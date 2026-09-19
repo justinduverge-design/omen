@@ -630,3 +630,179 @@ private fun confidenceRule(band: String): String = when (band.lowercase()) {
     else ->
         "This band reflects how far the available reads agree with each other, not how large the projected gap is."
 }
+
+/**
+ * `ConnectFailed.dc.html` — J1's degraded pass, and the only confirmed beta failure on record.
+ *
+ * A stale ESPN session is the failure users actually hit. It is not their fault, it recurs every
+ * few weeks, and the fix is an ordered procedure rather than "try again" — which a one-line error
+ * string cannot carry. iOS mirror: `OmenConnectFailedScreen`.
+ *
+ * **No cookie value appears here, ever** (fact-of-record #6). The screen says the cookies exist
+ * and are being refused; it never shows one. The league id and status code are provider facts and
+ * are safe — they are what makes the report worth sending to support.
+ */
+@Composable
+fun OmenConnectFailedScreen(
+    provider: String,
+    statusCode: Int,
+    statusText: String,
+    leagueId: String,
+    observedAt: String,
+    unaffected: List<String>,
+    modifier: Modifier = Modifier,
+    onReconnect: (() -> Unit)? = null,
+    onSendToSupport: (() -> Unit)? = null,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(OmenTheme.color.bg)
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = OmenTheme.spacing.step16, vertical = OmenTheme.spacing.step12),
+        verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step16),
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step4)) {
+            Text(provider, style = OmenTheme.typography.micro.toTextStyle(), color = OmenTheme.color.accent)
+            Text(
+                "That did not work",
+                style = OmenTheme.typography.screenTitle.toTextStyle(),
+                color = OmenTheme.color.textPrimary,
+            )
+        }
+        OmenCard {
+            Text(
+                "$provider returned $statusCode $statusText for league $leagueId at $observedAt. " +
+                    "The cookies are there and $provider is refusing them.",
+                style = OmenTheme.typography.bodySmall.toTextStyle(),
+                color = OmenTheme.color.textSecondary,
+            )
+        }
+        // Stated as likelihood, not fact: Omen cannot see ESPN's session table, and asserting a
+        // cause it cannot verify is the overclaim the capability contract exists to prevent.
+        FailureSection(
+            "Most likely cause",
+            "You signed out of $provider — or $provider signed you out, which it does every few " +
+                "weeks. The values Omen stored are stale. Nothing is wrong with your league.",
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8)) {
+            Text(
+                "Try in this order",
+                style = OmenTheme.typography.micro.toTextStyle(),
+                color = OmenTheme.color.textTertiary,
+            )
+            // Ordered because the order matters: reconnecting before signing in again re-reads
+            // the same stale values and fails identically.
+            OmenCard {
+                Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12)) {
+                    FailureStep(1, "Open $provider Fantasy in your browser and sign in again.")
+                    FailureStep(2, "Come back here and tap Reconnect. Omen re-reads the two cookies.")
+                    FailureStep(3, "Still failing? The league may have been made private, or deleted.")
+                }
+            }
+        }
+        // Both actions, per connection contract §6: Reconnect is the fix, support is the escape
+        // when it is not, and only the first would strand whoever's league really was deleted.
+        if (onReconnect != null) {
+            OmenButton("Reconnect $provider", onReconnect, size = OmenButtonSize.Lg, modifier = Modifier.fillMaxWidth())
+        }
+        if (onSendToSupport != null) {
+            OmenButton(
+                "Send this to support",
+                onSendToSupport,
+                variant = OmenButtonVariant.Secondary,
+                size = OmenButtonSize.Lg,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        if (unaffected.isNotEmpty()) {
+            val verb = if (unaffected.size == 1) "is" else "are"
+            val noun = if (unaffected.size == 1) "league is" else "leagues are"
+            Text(
+                "Your other $noun unaffected. ${unaffected.joinToString(" and ")} $verb still live.",
+                style = OmenTheme.typography.bodySmall.toTextStyle(),
+                color = OmenTheme.color.textTertiary,
+            )
+        }
+    }
+}
+
+@Composable
+private fun FailureSection(title: String, body: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8)) {
+        Text(title, style = OmenTheme.typography.micro.toTextStyle(), color = OmenTheme.color.textTertiary)
+        OmenCard {
+            Text(body, style = OmenTheme.typography.bodySmall.toTextStyle(), color = OmenTheme.color.textSecondary)
+        }
+    }
+}
+
+@Composable
+private fun FailureStep(n: Int, text: String) {
+    Row(horizontalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12)) {
+        Text("$n", style = OmenTheme.typography.micro.toTextStyle(), color = OmenTheme.color.accent)
+        Text(text, style = OmenTheme.typography.bodySmall.toTextStyle(), color = OmenTheme.color.textSecondary)
+    }
+}
+
+/**
+ * `CommandNoLeague.dc.html` — J1's terminus. iOS mirror: `OmenNoLeagueScreen`.
+ *
+ * The policy sentence is the point: "Until then this screen would be guessing, so it stays empty."
+ * That converts an absence into a stated commitment, and it is the first place a new user meets
+ * the same promise the capability contract makes on the decision screens.
+ *
+ * All three connectable providers are named. An earlier iOS draft listed only Sleeper and ESPN,
+ * copying the artboard, and silently told a Yahoo user the product was not for them.
+ */
+@Composable
+fun OmenNoLeagueScreen(
+    modifier: Modifier = Modifier,
+    onConnect: (() -> Unit)? = null,
+    onSeeHowOmenDecides: (() -> Unit)? = null,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(OmenTheme.color.bg)
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = OmenTheme.spacing.step16, vertical = OmenTheme.spacing.step12),
+        verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step16),
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step4)) {
+            Text("No league yet", style = OmenTheme.typography.micro.toTextStyle(), color = OmenTheme.color.accent)
+            Text(
+                "Nothing to read",
+                style = OmenTheme.typography.screenTitle.toTextStyle(),
+                color = OmenTheme.color.textPrimary,
+            )
+        }
+        OmenCard {
+            Text(
+                "Omen has nothing to read yet. Connect a league and the first call lands within a " +
+                    "minute. Until then this screen would be guessing, so it stays empty.",
+                style = OmenTheme.typography.bodySmall.toTextStyle(),
+                color = OmenTheme.color.textSecondary,
+            )
+        }
+        if (onConnect != null) {
+            OmenButton("Connect a league", onConnect, size = OmenButtonSize.Lg, modifier = Modifier.fillMaxWidth())
+        }
+        // So an empty screen is not a dead end for someone not ready to hand over a league.
+        if (onSeeHowOmenDecides != null) {
+            OmenButton(
+                "See how Omen decides",
+                onSeeHowOmenDecides,
+                variant = OmenButtonVariant.Secondary,
+                size = OmenButtonSize.Lg,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        Text(
+            "Sleeper takes about ten seconds. Yahoo is one sign-in, read-only. ESPN takes a few " +
+                "more steps and we walk you through them.",
+            style = OmenTheme.typography.bodySmall.toTextStyle(),
+            color = OmenTheme.color.textTertiary,
+        )
+    }
+}

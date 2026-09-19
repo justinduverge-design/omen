@@ -195,16 +195,12 @@ private fun SignInFirstScreen(
                 .weight(1f),
         ) {
             Image(
-                // `omen_lockup_stacked.png` bakes an opaque #0A0A0B plate into the raster —
-                // measured top-left RGBA [10,10,11,255] — so it drew the same black box the iOS
-                // SVG did before its plate was removed. This asset is genuinely transparent
-                // ([0,0,0,0]) and is the only correct lockup in the tree.
-                //
-                // It is the HORIZONTAL lockup, so this is a composition change, not just an
-                // asset swap. Interim: the right fix is a transparent STACKED export from the
-                // Figma vector, which needs a rasteriser this machine does not have. Until
-                // then, correct-and-horizontal beats stacked-in-a-box.
-                painter = painterResource(id = R.drawable.omen_horizontal_lockup_transparent),
+                // The stacked lockup, as a vector converted from the same corrected iOS SVG,
+                // so both platforms draw one mark from one geometry. The old
+                // `omen_lockup_stacked.png` baked an opaque #0A0A0B plate into the raster
+                // (measured top-left RGBA [10,10,11,255]) and drew the mark in a black box; a
+                // vector has no plate to bake.
+                painter = painterResource(id = R.drawable.omen_lockup_stacked_vector),
                 contentDescription = "Omen",
                 modifier = Modifier.widthIn(max = 300.dp),
             )

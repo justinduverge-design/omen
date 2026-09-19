@@ -58,7 +58,9 @@ import com.slopssaloon.omen.app.feature.connect.StubProviderAuthSession
 import com.slopssaloon.omen.app.feature.connect.YahooLeague
 import com.slopssaloon.omen.app.feature.omen.OmenDecisionFixtures
 import com.slopssaloon.omen.app.feature.omen.OmenDecisionScreen
+import com.slopssaloon.omen.app.feature.omen.OmenConnectFailedScreen
 import com.slopssaloon.omen.app.feature.omen.OmenEvidenceScreen
+import com.slopssaloon.omen.app.feature.omen.OmenNoLeagueScreen
 import com.slopssaloon.omen.app.feature.omen.OmenStartSitScreen
 import com.slopssaloon.omen.core.auth.AuthFlowState
 import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
@@ -141,6 +143,42 @@ object ScreenshotScenarios {
         // J3 — The first call. The numbered suffix is the contact-sheet order. Both passes
         // traverse the same three compositions so degraded evidence cannot be mistaken for an
         // optional edge case covered by a nominal-only screenshot.
+        // J1 "Getting in". The journey has no capability profile, so per screen-journeys-v1 the
+        // provider failure path is its degraded pass — and it is the only confirmed beta failure.
+        "journey-j1.degraded.05-connect-failed" to ScreenshotScenario(
+            label = "J1 degraded 5/6 — ESPN refused a stale session",
+            render = {
+                // Scaffold, not bare: without it the eyebrow renders under the status bar. The
+                // J3 scenarios got their insets from J3InShell's Scaffold and these did not.
+                // No bottom bar — this screen is inside the connect flow, not a tab.
+                J1InShell(tab = null) { modifier ->
+                    OmenConnectFailedScreen(
+                        modifier = modifier,
+                        provider = "ESPN",
+                        statusCode = 401,
+                        statusText = "Unauthorized",
+                        // A fixture league id. No cookie value appears here, and none may.
+                        leagueId = "884411",
+                        observedAt = "3:48 PM",
+                        unaffected = listOf("Sleeper", "Yahoo"),
+                        onReconnect = {},
+                        onSendToSupport = {},
+                    )
+                }
+            },
+        ),
+        "journey-j1.nominal.06-command-no-league" to ScreenshotScenario(
+            label = "J1 6/6 — signed in, no league connected",
+            render = {
+                J1InShell(tab = FauxNavTab.Command) { modifier ->
+                    OmenNoLeagueScreen(
+                        modifier = modifier,
+                        onConnect = {},
+                        onSeeHowOmenDecides = {},
+                    )
+                }
+            },
+        ),
         "journey-j3.nominal.01-omen-call" to ScreenshotScenario(
             label = "J3 nominal 1/3 — Omen call",
             render = {
@@ -355,6 +393,20 @@ private fun OmenInShell(demo: Boolean) {
             state = if (demo) OmenDecisionFixtures.demo else OmenDecisionFixtures.realDisconnected,
             modifier = Modifier.padding(innerPadding),
         )
+    }
+}
+
+/**
+ * J1's shell. Mirrors `J3InShell`, with an optional tab bar: the connect-flow screens are not
+ * inside a tab, and the Command terminus is.
+ */
+@Composable
+private fun J1InShell(tab: FauxNavTab?, content: @Composable (Modifier) -> Unit) {
+    Scaffold(
+        containerColor = OmenTheme.color.bg,
+        bottomBar = { if (tab != null) FauxBottomNav(tab) {} },
+    ) { innerPadding ->
+        content(Modifier.padding(innerPadding))
     }
 }
 
