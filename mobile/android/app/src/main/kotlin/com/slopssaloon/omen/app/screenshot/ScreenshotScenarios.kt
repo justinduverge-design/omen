@@ -23,6 +23,7 @@ import com.slopssaloon.omen.R
 import com.slopssaloon.omen.app.auth.OmenAuthFlow
 import com.slopssaloon.omen.app.auth.OtpResendController
 import com.slopssaloon.omen.app.feature.api.ForcedUpdateScreen
+import com.slopssaloon.omen.app.feature.api.StartSitDetail
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterFixtures
 import com.slopssaloon.omen.app.feature.api.LeagueCarouselViewModel
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterScreen
@@ -57,6 +58,8 @@ import com.slopssaloon.omen.app.feature.connect.StubProviderAuthSession
 import com.slopssaloon.omen.app.feature.connect.YahooLeague
 import com.slopssaloon.omen.app.feature.omen.OmenDecisionFixtures
 import com.slopssaloon.omen.app.feature.omen.OmenDecisionScreen
+import com.slopssaloon.omen.app.feature.omen.OmenEvidenceScreen
+import com.slopssaloon.omen.app.feature.omen.OmenStartSitScreen
 import com.slopssaloon.omen.core.auth.AuthFlowState
 import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
 import com.slopssaloon.omen.core.session.InMemorySecureSessionStore
@@ -134,6 +137,83 @@ object ScreenshotScenarios {
         "omen.disconnected" to ScreenshotScenario(
             label = "Omen — real user, disconnected",
             render = { OmenInShell(demo = false) },
+        ),
+        // J3 — The first call. The numbered suffix is the contact-sheet order. Both passes
+        // traverse the same three compositions so degraded evidence cannot be mistaken for an
+        // optional edge case covered by a nominal-only screenshot.
+        "journey-j3.nominal.01-omen-call" to ScreenshotScenario(
+            label = "J3 nominal 1/3 — Omen call",
+            render = {
+                J3InShell { modifier ->
+                    OmenDecisionScreen(
+                        state = OmenDecisionFixtures.journeyNominal,
+                        modifier = modifier,
+                        weekLabel = "Week 7",
+                        providerName = "ESPN",
+                        onMakeMove = {},
+                        onDecline = {},
+                    )
+                }
+            },
+        ),
+        "journey-j3.nominal.02-omen-evidence" to ScreenshotScenario(
+            label = "J3 nominal 2/3 — full argument",
+            render = {
+                J3InShell { modifier ->
+                    OmenEvidenceScreen(
+                        payload = OmenDecisionFixtures.journeyNominalPayload,
+                        weekLabel = "Week 7",
+                        modifier = modifier,
+                    )
+                }
+            },
+        ),
+        "journey-j3.nominal.03-start-sit" to ScreenshotScenario(
+            label = "J3 nominal 3/3 — clear Start/Sit call",
+            render = {
+                J3InShell { modifier ->
+                    OmenStartSitScreen(detail = J3ScreenshotFixtures.nominalStartSit, modifier = modifier)
+                }
+            },
+        ),
+        "journey-j3.degraded.01-omen-call" to ScreenshotScenario(
+            label = "J3 degraded 1/3 — Omen call",
+            render = {
+                J3InShell { modifier ->
+                    OmenDecisionScreen(
+                        state = OmenDecisionFixtures.journeyDegraded,
+                        modifier = modifier,
+                        weekLabel = "Week 7",
+                        providerName = "ESPN",
+                        onMakeMove = {},
+                        onDecline = {},
+                    )
+                }
+            },
+        ),
+        "journey-j3.degraded.02-omen-evidence" to ScreenshotScenario(
+            label = "J3 degraded 2/3 — unavailable and unused inputs",
+            render = {
+                J3InShell { modifier ->
+                    OmenEvidenceScreen(
+                        payload = OmenDecisionFixtures.journeyDegradedPayload,
+                        weekLabel = "Week 7",
+                        modifier = modifier,
+                    )
+                }
+            },
+        ),
+        "journey-j3.degraded.03-start-sit" to ScreenshotScenario(
+            label = "J3 degraded 3/3 — incomplete Start/Sit read",
+            render = {
+                J3InShell { modifier ->
+                    OmenStartSitScreen(
+                        detail = J3ScreenshotFixtures.degradedStartSit,
+                        onRetry = {},
+                        modifier = modifier,
+                    )
+                }
+            },
         ),
         "help-support.available" to ScreenshotScenario(
             label = "Help + Support — available",
@@ -275,6 +355,62 @@ private fun OmenInShell(demo: Boolean) {
             state = if (demo) OmenDecisionFixtures.demo else OmenDecisionFixtures.realDisconnected,
             modifier = Modifier.padding(innerPadding),
         )
+    }
+}
+
+@Composable
+private fun J3InShell(content: @Composable (Modifier) -> Unit) {
+    Scaffold(
+        containerColor = OmenTheme.color.bg,
+        bottomBar = { FauxBottomNav(FauxNavTab.Omen) {} },
+    ) { innerPadding ->
+        content(Modifier.padding(innerPadding))
+    }
+}
+
+/** Server-shaped fixtures decoded by the production parser so contract drift fails loudly. */
+private object J3ScreenshotFixtures {
+    val nominalStartSit: StartSitDetail = decode(
+        """
+        {"contract_version":"start-sit-detail.v2","state":"clear_decision","message":null,
+         "platform":"espn","league_id":"fixture-league","league_name":"Sample League",
+         "team_name":"Sample Team","season":2026,"week":7,"scoring_format":"half_ppr",
+         "recommendation":{"slot":"FLEX",
+           "start":{"player_key":"sample-wr1","name":"Sample WR1","position":"WR","team":"Sample Team","projected_points":16.8,"status":"Active","kickoff":"Sun 1:00 PM"},
+           "over":{"player_key":"sample-wr2","name":"Sample WR2","position":"WR","team":"Sample Team","projected_points":13.0,"status":"Active","kickoff":"Sun 4:25 PM"},
+           "points_delta":3.8,"confidence":"confident"},
+         "why":["The available projection and usage reads favor Sample WR1."],
+         "what_could_change_this":["A late inactive designation would invalidate the recommendation."],
+         "evidence":[
+           {"category":"projection","kind":"projection","statement":"Sample WR1 projects 3.8 points higher."},
+           {"category":"roster","kind":"verified","statement":"Both players are eligible for the flex slot."}],
+         "alternatives":[],
+         "capabilities":[
+           {"name":"league_scoring","state":"live","used":true,"kind":"verified","source":"provider","statement":"Half-PPR scoring was read for the selected league."},
+           {"name":"roster","state":"live","used":true,"kind":"verified","source":"provider","statement":"The selected roster was read successfully."},
+           {"name":"player_projections","state":"live","used":true,"kind":"projection","source":"provider","statement":"Current-week projections were available."},
+           {"name":"start_sit_inference","state":"live","used":true,"kind":"inference","source":"omen","statement":"The model compared the two eligible players."}]}
+        """.trimIndent(),
+    )
+
+    val degradedStartSit: StartSitDetail = decode(
+        """
+        {"contract_version":"start-sit-detail.v2","state":"incomplete_data",
+         "message":"The provider returned league settings, but the current roster and projections were unavailable.",
+         "platform":"espn","league_id":"fixture-league","league_name":"Sample League",
+         "team_name":"Sample Team","season":2026,"week":7,"scoring_format":"half_ppr",
+         "recommendation":null,"why":[],"what_could_change_this":[],"evidence":[],"alternatives":[],
+         "capabilities":[
+           {"name":"league_scoring","state":"live","used":false,"kind":"verified","source":"provider","statement":"Half-PPR scoring was read, but could not decide the call alone."},
+           {"name":"roster","state":"unavailable","used":false,"kind":"limitation","source":"provider","statement":"The provider did not return the current roster.","reason_code":"provider_unavailable"},
+           {"name":"player_projections","state":"unavailable","used":false,"kind":"limitation","source":"provider","statement":"Player projections could not be resolved.","reason_code":"provider_unavailable"},
+           {"name":"start_sit_inference","state":"unavailable","used":false,"kind":"limitation","source":"omen","statement":"Omen did not run inference without the required inputs.","reason_code":"missing_inputs"},
+           {"name":"weather","state":"not_requested","used":false,"kind":"limitation","source":null,"statement":null}]}
+        """.trimIndent(),
+    )
+
+    private fun decode(json: String): StartSitDetail = checkNotNull(StartSitDetail.parse(json)) {
+        "Malformed J3 screenshot fixture"
     }
 }
 

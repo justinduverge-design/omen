@@ -75,6 +75,44 @@ final class OmenDecisionTests: XCTestCase {
         XCTAssertEqual(detail.capabilities.first?.reconciliationState, "pending")
     }
 
+    func testStartSitV2KeepsTheServerRecommendationPairAndDoesNotInventRosterRows() throws {
+        let detail = try JSONDecoder().decode(StartSitDetail.self, from: Data("""
+        {
+          "contract_version": "start-sit-detail.v2",
+          "state": "clear_decision",
+          "platform": "espn",
+          "league_id": "L1",
+          "league_name": "Canvas League",
+          "team_name": "Fixture Team",
+          "season": 2026,
+          "week": 7,
+          "scoring_format": null,
+          "recommendation": {
+            "slot": "WR",
+            "start": {"player_key":"p-a","name":"Sample WR1","position":"WR","team":"MIA","projected_points":14.8,"status":null,"kickoff":null},
+            "over": {"player_key":"p-b","name":"Sample WR2","position":"WR","team":"CHI","projected_points":11.6,"status":"Q","kickoff":null},
+            "points_delta": 3.2,
+            "confidence": "moderate"
+          },
+          "why": ["Higher projected output in this league's scoring (+3.2)."],
+          "what_could_change_this": ["Sample WR2's final injury status."],
+          "evidence": [{"category":"player_game_fact","kind":"projection","statement":"Sample WR1 projects 14.8 and Sample WR2 projects 11.6."}],
+          "alternatives": [{"slot":"FLEX","start":"Sample RB1","over":"Sample RB2","points_delta":1.1}],
+          "capabilities": []
+        }
+        """.utf8))
+
+        XCTAssertEqual(detail.platform, "espn")
+        XCTAssertEqual(detail.week, 7)
+        XCTAssertNil(detail.scoringFormat, "unknown scoring must stay absent")
+        XCTAssertEqual(detail.recommendation?.start?.name, "Sample WR1")
+        XCTAssertEqual(detail.recommendation?.over?.status, "Q")
+        XCTAssertEqual(detail.recommendation?.pointsDelta, 3.2)
+        XCTAssertEqual(detail.why.count, 1)
+        XCTAssertEqual(detail.whatCouldChangeThis.count, 1)
+        XCTAssertEqual(detail.alternatives.first?.slot, "FLEX")
+    }
+
     // MARK: - success
 
     func testSuccessDecodesIntoARenderableBrief() throws {

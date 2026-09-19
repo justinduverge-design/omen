@@ -362,6 +362,10 @@ struct OmenDecisionScreen: View {
     var onMakeMove: (() -> Void)?
     var onDecline: (() -> Void)?
     var onOpenFullArgument: (() -> Void)?
+    /// Fills E017, the artboard's account slot. Optional for the same reason `onMakeMove` is:
+    /// an avatar that opens nothing is a drawn affordance, not a reachable one.
+    var onOpenAccount: (() -> Void)?
+    @State private var showingFullArgument = false
 
     var body: some View {
         ScrollView {
@@ -382,6 +386,14 @@ struct OmenDecisionScreen: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .background(OmenColor.bg)
+        .sheet(isPresented: $showingFullArgument) {
+            if let payload = successPayload {
+                NavigationStack {
+                    OmenEvidenceScreen(payload: payload, weekLabel: weekLabel)
+                }
+                .presentationDragIndicator(.visible)
+            }
+        }
     }
 
     private var header: some View {
@@ -397,11 +409,27 @@ struct OmenDecisionScreen: View {
                     .foregroundStyle(OmenColor.textPrimary)
             }
             Spacer(minLength: OmenSpacing.step8)
-            // Kept although the artboard shows an account avatar in this slot. M6-ContextualHelp
-            // shipped it, confidence/risk/"why is this empty" are the three things people ask
-            // here, and deleting a shipped affordance to match a picture is not a fix. Recorded
-            // as an open conflict in the drift report rather than resolved silently.
+            // Founder decision, 2026-09-18: this slot carries BOTH controls, not one.
+            //
+            // The artboard draws a single 30x30 account avatar here (E017). M6-ContextualHelp
+            // shipped the help button into the same slot, and U1 kept it — confidence, risk and
+            // "why is this empty" are the three things people ask on this screen, and deleting a
+            // shipped affordance to match a picture is not a fix. But leaving help alone made the
+            // account unreachable from the Omen destination, which the artboard does provide.
+            //
+            // Command Center already pairs them in this order, so the pairing is precedent rather
+            // than invention. The cost is ~38pt more header width than the artboard draws: a
+            // deliberate, recorded drift on the canvas's one-slot composition. The same slot
+            // appears on 25 of the 30 artboards, so this resolves the pattern, not one screen.
             OmenContextualHelpButton(topic: OmenContextualHelpContent.topic(for: .omen))
+            if let onOpenAccount {
+                OmenIconButton(
+                    contentDescription: "Account and profile",
+                    icon: Image(systemName: "person.crop.circle"),
+                    action: onOpenAccount,
+                    tone: .neutral
+                )
+            }
         }
     }
 
@@ -451,7 +479,13 @@ struct OmenDecisionScreen: View {
 
             OmenEvidenceDisclosure(
                 rows: payload.signals.prefix(3).map { ($0.label, $0.detail ?? "") },
-                onOpenFullArgument: onOpenFullArgument
+                onOpenFullArgument: {
+                    if let onOpenFullArgument {
+                        onOpenFullArgument()
+                    } else {
+                        showingFullArgument = true
+                    }
+                }
             )
         }
         .padding(OmenSpacing.step14)
@@ -524,6 +558,11 @@ struct OmenDecisionScreen: View {
         // made by an icon. An absent symbol says nothing; the wrong symbol says something untrue.
         return nil
     }
+
+    private var successPayload: OmenDecisionBriefPayload? {
+        guard case .success(let payload) = state else { return nil }
+        return payload
+    }
 }
 
 /// Demo fixtures use deliberately generic player names. `omen-store-review-notes-v1.md` tells App
@@ -533,6 +572,46 @@ struct OmenDecisionScreen: View {
 /// names or NFL team abbreviations here: the reviewer notes are a statement to Apple, and this
 /// fixture is the thing that has to make it true.
 enum OmenDecisionFixtures {
+
+    /// J3's deterministic nominal receipt. This is a successful server-shaped decision,
+    /// not demo mode: the journey needs to prove the shipped success composition without
+    /// borrowing a real account, player, provider response, or credential.
+    static let journeyNominalPayload = OmenDecisionBriefPayload(
+        verdict: "Start Sample WR1 over Sample WR2",
+        callType: "start_sit",
+        move: "Move Sample WR1 into the flex slot before kickoff.",
+        impact: "+3.8 projected",
+        confidenceBand: .confident,
+        confidenceDrivers: [
+            "The roster and projection reads agree on the stronger option.",
+            "The usage gap stayed stable across the latest provider update."
+        ],
+        risk: .low,
+        riskReasons: ["Both players remain active in the latest read."],
+        explanation: ["Sample WR1 has the stronger projection and the steadier route share."],
+        metrics: [],
+        signals: [
+            OmenSignalItem(label: "Roster", source: .live,
+                           detail: "The selected league roster was read successfully.",
+                           kind: .verified, used: true),
+            OmenSignalItem(label: "Projections", source: .live,
+                           detail: "Current-week projections favor Sample WR1.",
+                           kind: .projection, used: true),
+            OmenSignalItem(label: "Start sit inference", source: .live,
+                           detail: "The lineup model used both available players.",
+                           kind: .inference, used: true)
+        ],
+        alternatives: [
+            OmenDecisionBriefAlternative(
+                name: "Sample WR3",
+                position: .wr,
+                team: "Sample Team",
+                meta: "Lower projected floor"
+            )
+        ]
+    )
+
+    static let journeyNominal: OmenDecisionBriefState = .success(journeyNominalPayload)
 
     /// The **degraded** `omen_mvp` capture — the scenario `capability-expression-v1.md` requires
     /// of every profile, and the only one under which this screen's honesty is visible at all.
@@ -554,7 +633,7 @@ enum OmenDecisionFixtures {
     ///
     /// Player names are generic for the same reason the demo fixtures' are — a capture that
     /// escapes into a deck must not read as real fantasy advice.
-    static let degraded: OmenDecisionBriefState = .success(OmenDecisionBriefPayload(
+    static let journeyDegradedPayload = OmenDecisionBriefPayload(
         verdict: "Start Sample WR1 over Sample WR2",
         callType: "start_sit",
         move: "Sample WR2 draws the tougher shadow corner this week.",
@@ -576,7 +655,9 @@ enum OmenDecisionFixtures {
                            kind: .limitation, used: false)
         ],
         alternatives: []
-    ))
+    )
+
+    static let degraded: OmenDecisionBriefState = .success(journeyDegradedPayload)
 
     static let demo: OmenDecisionBriefState = .demo(OmenDecisionBriefPayload(
         verdict: "Start Sample RB1", move: "Bench Sample RB2 for the RB1 slot.",

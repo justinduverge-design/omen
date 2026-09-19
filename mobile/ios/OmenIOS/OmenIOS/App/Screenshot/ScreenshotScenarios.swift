@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 
 /// Reusable screenshot-mode registry for the native-visual-evidence CI workflow. The app
@@ -83,6 +84,74 @@ enum ScreenshotScenarios {
         "omen.disconnected": ScreenshotScenario(
             label: "Omen — real user, disconnected",
             content: { AnyView(FauxShell(scenarioKey: "omen.disconnected", initialTab: .omen)) }
+        ),
+        // J3 — The first call. The numbering is the storyboard order, not a screen id. Each
+        // pass is intentionally complete: nominal proves the product can act; degraded proves
+        // it names what it could not read and declines to invent advice.
+        "journey-j3.nominal.01-omen-call": ScreenshotScenario(
+            label: "J3 nominal 1/3 — Omen call",
+            content: {
+                AnyView(j3Shell(AnyView(OmenDecisionScreen(
+                    state: OmenDecisionFixtures.journeyNominal,
+                    weekLabel: "Week 7",
+                    providerName: "ESPN",
+                    onMakeMove: {},
+                    onDecline: {},
+                    onOpenAccount: {}
+                ))))
+            }
+        ),
+        "journey-j3.nominal.02-omen-evidence": ScreenshotScenario(
+            label: "J3 nominal 2/3 — full argument",
+            content: {
+                AnyView(j3Shell(AnyView(OmenEvidenceScreen(
+                    payload: OmenDecisionFixtures.journeyNominalPayload,
+                    weekLabel: "Week 7",
+                    onOpenAccount: {}
+                ))))
+            }
+        ),
+        "journey-j3.nominal.03-start-sit": ScreenshotScenario(
+            label: "J3 nominal 3/3 — clear Start/Sit call",
+            content: {
+                AnyView(j3Shell(AnyView(OmenStartSitScreen(
+                    detail: J3ScreenshotFixtures.nominalStartSit,
+                    onOpenAccount: {}
+                ))))
+            }
+        ),
+        "journey-j3.degraded.01-omen-call": ScreenshotScenario(
+            label: "J3 degraded 1/3 — Omen call",
+            content: {
+                AnyView(j3Shell(AnyView(OmenDecisionScreen(
+                    state: OmenDecisionFixtures.degraded,
+                    weekLabel: "Week 7",
+                    providerName: "ESPN",
+                    onMakeMove: {},
+                    onDecline: {},
+                    onOpenAccount: {}
+                ))))
+            }
+        ),
+        "journey-j3.degraded.02-omen-evidence": ScreenshotScenario(
+            label: "J3 degraded 2/3 — unavailable and unused inputs",
+            content: {
+                AnyView(j3Shell(AnyView(OmenEvidenceScreen(
+                    payload: OmenDecisionFixtures.journeyDegradedPayload,
+                    weekLabel: "Week 7",
+                    onOpenAccount: {}
+                ))))
+            }
+        ),
+        "journey-j3.degraded.03-start-sit": ScreenshotScenario(
+            label: "J3 degraded 3/3 — incomplete Start/Sit read",
+            content: {
+                AnyView(j3Shell(AnyView(OmenStartSitScreen(
+                    detail: J3ScreenshotFixtures.degradedStartSit,
+                    onRetry: {},
+                    onOpenAccount: {}
+                ))))
+            }
         ),
         "switcher.team-sheet": ScreenshotScenario(
             label: "Team switcher — pinned bar and the sheet, one favourite starred",
@@ -228,6 +297,10 @@ enum ScreenshotScenarios {
             topic: OmenContextualHelpContent.topic(for: destination),
             onDismiss: {}
         )
+    }
+
+    private static func j3Shell(_ content: AnyView) -> some View {
+        FauxShell(initialTab: .omen, omenContentOverride: content)
     }
 
     /// Read the launch-argument value that names the current scenario, if any.
@@ -433,6 +506,9 @@ private struct FauxShell: View {
     /// Supplied by the carousel scenarios. Everything else leaves this nil and gets the
     /// stacked `carousel == nil` layout, which is what those captures have always been of.
     var carousel: LeagueCarouselViewModel?
+    /// A real destination composition supplied by a journey scenario. This keeps the permanent
+    /// tab shell while avoiding any network/session state and does not duplicate screen markup.
+    var omenContentOverride: AnyView? = nil
 
     var body: some View {
         TabView(selection: .constant(initialTab)) {
@@ -452,19 +528,25 @@ private struct FauxShell: View {
                 .tabItem { CommandCenterTab.command.label }
             .tag(CommandCenterTab.command)
 
-            OmenDecisionScreen(
-                state: omenState,
-                // Supplied so the capture exercises the header eyebrow and the provider handoff.
-                // Both are optional on the screen by design: absent week means no eyebrow, and
-                // absent provider means no "make this move" button, because neither may be
-                // guessed. A capture that never passes them would silently prove only the
-                // degraded half of the layout.
-                weekLabel: "Week 7",
-                providerName: "ESPN",
-                onMakeMove: {},
-                onDecline: {},
-                onOpenFullArgument: {}
-            )
+            Group {
+                if let omenContentOverride {
+                    omenContentOverride
+                } else {
+                    OmenDecisionScreen(
+                        state: omenState,
+                        // Supplied so the capture exercises the header eyebrow and the provider handoff.
+                        // Both are optional on the screen by design: absent week means no eyebrow, and
+                        // absent provider means no "make this move" button, because neither may be
+                        // guessed. A capture that never passes them would silently prove only the
+                        // degraded half of the layout.
+                        weekLabel: "Week 7",
+                        providerName: "ESPN",
+                        onMakeMove: {},
+                        onDecline: {},
+                        onOpenFullArgument: {}
+                    )
+                }
+            }
             .tabItem { CommandCenterTab.omen.label }
             .tag(CommandCenterTab.omen)
 
@@ -588,6 +670,53 @@ private struct FauxShell: View {
         // a screenshot of its success state, because nothing is missing in a success state.
         case "omen.degraded": return OmenDecisionFixtures.degraded
         default: return OmenDecisionFixtures.realDisconnected
+        }
+    }
+}
+
+/// Server-shaped fixtures shared by the third frame of each J3 pass. They are decoded through
+/// the production transport type so the captures fail loudly if the client and route drift.
+private enum J3ScreenshotFixtures {
+    static let nominalStartSit = decode("""
+    {"contract_version":"start-sit-detail.v2","state":"clear_decision","message":null,
+     "platform":"espn","league_id":"fixture-league","league_name":"Sample League",
+     "team_name":"Sample Team","season":2026,"week":7,"scoring_format":"half_ppr",
+     "recommendation":{"slot":"FLEX",
+       "start":{"player_key":"sample-wr1","name":"Sample WR1","position":"WR","team":"Sample Team","projected_points":16.8,"status":"Active","kickoff":"Sun 1:00 PM"},
+       "over":{"player_key":"sample-wr2","name":"Sample WR2","position":"WR","team":"Sample Team","projected_points":13.0,"status":"Active","kickoff":"Sun 4:25 PM"},
+       "points_delta":3.8,"confidence":"confident"},
+     "why":["The available projection and usage reads favor Sample WR1."],
+     "what_could_change_this":["A late inactive designation would invalidate the recommendation."],
+     "evidence":[
+       {"category":"projection","kind":"projection","statement":"Sample WR1 projects 3.8 points higher."},
+       {"category":"roster","kind":"verified","statement":"Both players are eligible for the flex slot."}],
+     "alternatives":[],
+     "capabilities":[
+       {"name":"league_scoring","state":"live","used":true,"kind":"verified","source":"provider","statement":"Half-PPR scoring was read for the selected league."},
+       {"name":"roster","state":"live","used":true,"kind":"verified","source":"provider","statement":"The selected roster was read successfully."},
+       {"name":"player_projections","state":"live","used":true,"kind":"projection","source":"provider","statement":"Current-week projections were available."},
+       {"name":"start_sit_inference","state":"live","used":true,"kind":"inference","source":"omen","statement":"The model compared the two eligible players."}]}
+    """)
+
+    static let degradedStartSit = decode("""
+    {"contract_version":"start-sit-detail.v2","state":"incomplete_data",
+     "message":"The provider returned league settings, but the current roster and projections were unavailable.",
+     "platform":"espn","league_id":"fixture-league","league_name":"Sample League",
+     "team_name":"Sample Team","season":2026,"week":7,"scoring_format":"half_ppr",
+     "recommendation":null,"why":[],"what_could_change_this":[],"evidence":[],"alternatives":[],
+     "capabilities":[
+       {"name":"league_scoring","state":"live","used":false,"kind":"verified","source":"provider","statement":"Half-PPR scoring was read, but could not decide the call alone."},
+       {"name":"roster","state":"unavailable","used":false,"kind":"limitation","source":"provider","statement":"The provider did not return the current roster.","reason_code":"provider_unavailable"},
+       {"name":"player_projections","state":"unavailable","used":false,"kind":"limitation","source":"provider","statement":"Player projections could not be resolved.","reason_code":"provider_unavailable"},
+       {"name":"start_sit_inference","state":"unavailable","used":false,"kind":"limitation","source":"omen","statement":"Omen did not run inference without the required inputs.","reason_code":"missing_inputs"},
+       {"name":"weather","state":"not_requested","used":false,"kind":"limitation","source":null,"statement":null}]}
+    """)
+
+    private static func decode(_ json: String) -> StartSitDetail {
+        do {
+            return try JSONDecoder().decode(StartSitDetail.self, from: Data(json.utf8))
+        } catch {
+            preconditionFailure("Malformed J3 screenshot fixture: \(error)")
         }
     }
 }

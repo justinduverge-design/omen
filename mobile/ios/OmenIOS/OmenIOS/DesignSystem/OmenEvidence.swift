@@ -141,8 +141,16 @@ struct OmenEvidenceRow: View {
                 // Widened to 84 with two lines allowed rather than hyphenating a key. Recorded as
                 // a contract-vs-vocabulary deviation: the column was drawn against a shorter
                 // vocabulary than the API actually has.
+                // A capability key is a server-owned name, not copy we control, and the longest
+                // single word in the vocabulary ("PROJECTIONS") broke mid-word at this width —
+                // "PROJECTION / S". Scaling the key down is the honest trade: the name stays
+                // whole and legible, and the sentence beside it keeps its full column.
+                // `fixedSize` forced the ideal vertical size, which made SwiftUI wrap before it
+                // would ever scale — so `minimumScaleFactor` alone did nothing here. Capping the
+                // key at two lines lets the scale factor act on the one-word names.
+                .lineLimit(2)
+                .minimumScaleFactor(0.7)
                 .frame(width: 84, alignment: .leading)
-                .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, OmenSpacing.step4)
             Text(statement)
                 .omenTextStyle(OmenTypography.bodySmall)

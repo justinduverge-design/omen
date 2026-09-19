@@ -1,0 +1,35 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>J3 The first call — journey captures</title>
+<style>
+  :root{--bg:#141413;--panel:#1C1C1A;--line:#292926;--t1:#F5F0E8;--t2:#BDB5A9;--t3:#A79E90;--ac:#C4933B}
+  body{background:var(--bg);color:var(--t1);font-family:-apple-system,system-ui,sans-serif;margin:0;padding:40px 24px 64px}
+  h1{font-size:26px;letter-spacing:-.03em;margin:0 0 6px}
+  .sub{color:var(--t3);font-size:13px;margin:0 0 36px;line-height:1.5}
+  h2{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--ac);margin:36px 0 4px}
+  .note{color:var(--t3);font-size:12px;margin:0 0 16px;max-width:760px;line-height:1.5}
+  .row{display:flex;gap:20px;flex-wrap:wrap}
+  figure{margin:0;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;width:260px}
+  img{width:100%;border-radius:8px;display:block}
+  figcaption{font-size:11px;color:var(--t2);margin-top:10px;line-height:1.45}
+  figcaption b{color:var(--t1);display:block;font-size:12px;margin-bottom:2px}
+</style>
+<h1>J3 — The first call</h1>
+<p class="sub">Ordered journey captures, iOS, dark, iPhone 16, one run per pass.<br>
+Storyboard order, not screen ids. Proves composition, sequence and tone — not navigation.</p>
+
+<h2>Nominal pass</h2>
+<p class="note">Everything resolved, everything worked. This is the condition the product is least often in, which is why it is not captured alone.</p>
+<div class="row">
+  <figure><img src="ios/dark/journey-j3.nominal.01-omen-call.png"><figcaption><b>1 · Omen call</b>The week's one call, with its facts row and the route into the argument.</figcaption></figure>
+  <figure><img src="ios/dark/journey-j3.nominal.02-omen-evidence.png"><figcaption><b>2 · The argument</b>Every input live and used. Capabilities render as a key, a sentence and a status word — no glyphs.</figcaption></figure>
+  <figure><img src="ios/dark/journey-j3.nominal.03-start-sit.png"><figcaption><b>3 · The call</b>Clear decision. The route returns a comparison pair, not a nine-player lineup, so the screen does not claim one.</figcaption></figure>
+</div>
+
+<h2>Degraded pass</h2>
+<p class="note">At least one input <i>unavailable</i> and at least one <i>live, used: false</i>, per capability-expression-v1. This is the pass where the screens' honesty is visible at all.</p>
+<div class="row">
+  <figure><img src="ios/dark/journey-j3.degraded.01-omen-call.png"><figcaption><b>1 · Omen call</b>Leaning rather than Confident, with the thinner evidence behind it.</figcaption></figure>
+  <figure><img src="ios/dark/journey-j3.degraded.02-omen-evidence.png"><figcaption><b>2 · The argument</b>All three renderable classes at once: Roster live/used, Matchup DvP <i>read, not used</i>, Weather <i>unavailable</i> and named. <code>not_requested</code> renders as nothing.</figcaption></figure>
+  <figure><img src="ios/dark/journey-j3.degraded.03-start-sit.png"><figcaption><b>3 · Partial read</b>Omen declines to make a call and says why, rather than inventing advice from a partial read.</figcaption></figure>
+</div>
