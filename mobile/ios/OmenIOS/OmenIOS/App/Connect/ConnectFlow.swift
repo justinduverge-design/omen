@@ -317,16 +317,61 @@ enum EspnHandoffCopy {
     /// Consent, shown before ESPN's own sign-in opens. W1-A's binding constraint, and the
     /// sentence App Review will read: it says what opens, who the user signs in to, what Omen
     /// reads, and what Omen never sees.
-    static let consentTitle = "Connect ESPN"
-    static let consentBody = """
-    Next, ESPN's own sign-in page opens. You sign in to ESPN directly — Omen never sees your ESPN \
-    password and never asks you to type it here. Afterwards Omen reads only what it needs to \
-    follow your league: your roster, your scoring settings, and your matchup. It is your account \
-    and your choice, and you can disconnect it any time in Account. Omen is not affiliated with \
-    or endorsed by ESPN.
+    static let consentEyebrow = "ESPN"
+    static let consentTitle = "Before we start"
+
+    /// Rewritten 2026-09-19 to `EspnConnect.dc.html`.
+    ///
+    /// The previous copy said Omen "never sees your ESPN password" and stopped there. True, and
+    /// not the point: what Omen actually stores is **two cookies**, and the old paragraph never
+    /// said so. Consent that omits the mechanism is not informed consent, and informed consent is
+    /// the specific thing `W1-GATE` required when the founder accepted this risk — the terms
+    /// answer was No, so the consent screen is carrying real weight rather than being a formality.
+    ///
+    /// **OPEN, and deliberately not resolved here.** `EspnConnect.dc.html` names the mechanism
+    /// outright — "Two cookies, SWID and espn_s2". `ConnectFlowTests`
+    /// `testEspnHandoffCopyNeverUsesCredentialVocabulary` bans exactly those words from every
+    /// ESPN store-facing surface, because App Review reads this screen. Both positions are
+    /// defensible: naming the mechanism is stronger consent, and the ban is store-risk
+    /// management. This copy takes the ban's side pending a founder call, so it says "the two
+    /// values your browser already stores" instead. The structure is the artboard's; only the
+    /// vocabulary is held back.
+    static let consentLead = """
+    ESPN has no read-only sign-in. There is no ESPN equivalent of the "Continue with Yahoo" \
+    button, so the only way in is the sign-in your browser already holds. That is a real \
+    trade-off and you should make it knowingly.
     """
-    static let consentContinueTitle = "Continue to ESPN"
-    static let consentDeclineTitle = "Not now"
+    static let consentTakesTitle = "What Omen takes"
+    static let consentTakes = [
+        "The two values your browser already stores, which identify you to ESPN.",
+        "Your leagues, rosters, matchups and scoring settings."
+    ]
+    static let consentNeverTitle = "What Omen never does"
+    static let consentNever = [
+        "Set a lineup, make a claim, or send a trade.",
+        "Post, message, or act as you anywhere.",
+        "Show those values back to you, log them, or send them anywhere but ESPN."
+    ]
+    /// Kept from the shipped copy although the artboard omits it: the affiliation disclaimer is a
+    /// binding `W1-GATE` constraint, not decoration.
+    static let consentFooter = """
+    You sign in on ESPN's own sign-in page, and Omen never sees your ESPN password. Signing out \
+    of ESPN in your browser ends Omen's access too. You can disconnect from Account at any time \
+    and the stored values are deleted. Omen is not affiliated with or endorsed by ESPN.
+    """
+
+    /// Every consent surface as one string, for the App Review guardrails that check the screen
+    /// as a whole. It replaces `consentBody`, which was the single paragraph this screen used to
+    /// be — the assertions are about what the screen says, not about which constant holds it.
+    static var consentAllCopy: String {
+        ([consentEyebrow, consentTitle, consentLead, consentTakesTitle]
+         + consentTakes + [consentNeverTitle] + consentNever
+         + [consentFooter, consentContinueTitle, consentDeclineTitle]).joined(separator: " ")
+    }
+    static let consentContinueTitle = "I understand — open the ESPN sheet"
+    /// Not "Not now". A decline that names the alternatives is a door rather than a dead end, and
+    /// both named providers connect today.
+    static let consentDeclineTitle = "Use Sleeper or Yahoo instead"
 
     /// The sign-in sheet's own guidance while it waits.
     static let signInWaiting = "Sign in to ESPN above. Omen picks up from there."

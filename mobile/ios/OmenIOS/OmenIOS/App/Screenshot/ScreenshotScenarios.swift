@@ -88,6 +88,12 @@ enum ScreenshotScenarios {
         // J3 — The first call. The numbering is the storyboard order, not a screen id. Each
         // pass is intentionally complete: nominal proves the product can act; degraded proves
         // it names what it could not read and declines to invent advice.
+        // The consent screen W1-GATE required when the ESPN terms answer came back No. It names
+        // the two cookies by name — consent that omits the mechanism is not informed consent.
+        "journey-j1.nominal.04-espn-consent": ScreenshotScenario(
+            label: "J1 4/6 — ESPN consent, before the sheet opens",
+            content: { AnyView(OnboardingConnectScreenshotHost(autoSelectProvider: .espn)) }
+        ),
         "journey-j1.nominal.06-command-no-league": ScreenshotScenario(
             label: "J1 6/6 — signed in, no league connected",
             content: {
@@ -426,6 +432,8 @@ private struct OnboardingAuthScreenshotHost: View {
 }
 
 private struct OnboardingConnectScreenshotHost: View {
+    var autoSelectProvider: ConnectProvider? = nil
+
     var body: some View {
         ConnectView(
             repository: ScreenshotConnectRepository(),
@@ -441,6 +449,7 @@ private struct OnboardingConnectScreenshotHost: View {
                 nowEpochSeconds: { 1_000 }
             ),
             authSession: StubProviderAuthSession(),
+            autoSelectProvider: autoSelectProvider,
             onConnected: {},
             onDismiss: {}
         )

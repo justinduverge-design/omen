@@ -1,6 +1,8 @@
 <svg width="700" height="430" viewBox="0 0 700 430" fill="none" xmlns="http://www.w3.org/2000/svg">
 <g id="omen-lockup-stacked">
-<rect width="700" height="430" fill="#0A0A0B"/>
+<!-- Opaque #0A0A0B plate removed 2026-09-19. It baked a near-black panel into the
+     asset, so on OmenColor.bg (#1F1F1D) the lockup sat in a visible darker box instead of
+     on the page. The mark is cream-on-dark and needs no plate to stay legible. -->
 <g id="Omen B2 &#226;&#128;&#148; Final Candidate">
 <path id="Outer O" d="M350 33.5938C397.087 33.5938 423.573 86.832 423.573 135C423.573 183.168 397.087 236.406 350 236.406C302.913 236.406 276.427 183.168 276.427 135C276.427 86.832 302.913 33.5938 350 33.5938Z" fill="url(#paint0_linear_103_3)"/>
 <path id="Brass sheen" opacity="0.65" d="M308.886 61.5234C298.066 82.1484 294.099 107.5 294.099 135C294.099 162.93 298.427 188.711 309.607 209.766C314.656 205.469 318.623 200.312 322.23 194.297C313.214 176.68 309.607 156.914 309.607 135C309.607 113.516 313.214 93.3203 322.23 76.1328C318.623 70.1172 314.296 65.3906 308.886 61.5234Z" fill="url(#paint1_radial_103_3)"/>

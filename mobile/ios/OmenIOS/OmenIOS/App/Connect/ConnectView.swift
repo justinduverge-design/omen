@@ -12,15 +12,21 @@ struct ConnectView: View {
     /// Called when a league is connected, so the shell can refresh and route on.
     let onConnected: () -> Void
     let onDismiss: () -> Void
+    /// Screenshot-only: drives the flow straight to a provider's first step so a journey capture
+    /// can reach a state that otherwise needs a tap. Nil in the app — this never auto-selects for
+    /// a real user, because choosing a provider is their decision to make.
+    private let autoSelectProvider: ConnectProvider?
 
     init(
         repository: ConnectRepository,
         sessionManager: SessionManager,
         /// Nil takes the real system-browser session; tests inject a stub.
         authSession: ProviderAuthSessionPresenting? = nil,
+        autoSelectProvider: ConnectProvider? = nil,
         onConnected: @escaping () -> Void,
         onDismiss: @escaping () -> Void
     ) {
+        self.autoSelectProvider = autoSelectProvider
         _viewModel = StateObject(wrappedValue: ConnectViewModel(
             repository: repository,
             sessionManager: sessionManager,
@@ -31,6 +37,13 @@ struct ConnectView: View {
     }
 
     var body: some View {
+        content
+            .task {
+                if let autoSelectProvider { viewModel.selectProvider(autoSelectProvider) }
+            }
+    }
+
+    private var content: some View {
         GeometryReader { proxy in
             ScrollView {
                 Group {
@@ -411,15 +424,31 @@ struct ConnectView: View {
     /// user is told what is about to happen while they can still decline, and declining writes
     /// nothing. The affiliation disclaimer is not decorative — Disney's Terms of Use §2.B.vii
     /// bars use that suggests an association with their brands.
+    /// `EspnConnect.dc.html`. Two itemised lists rather than one paragraph, because a promise
+    /// buried mid-sentence is not one a user can check. This is the screen `W1-GATE` required
+    /// when the terms answer came back No, so it is doing real work.
     private var espnConsentSection: some View {
         VStack(alignment: .leading, spacing: OmenSpacing.step16) {
-            Text(EspnHandoffCopy.consentTitle)
-                .omenTextStyle(OmenTypography.h1)
-                .foregroundStyle(OmenColor.textPrimary)
+            VStack(alignment: .leading, spacing: OmenSpacing.step4) {
+                Text(EspnHandoffCopy.consentEyebrow)
+                    .omenTextStyle(OmenTypography.micro)
+                    .foregroundStyle(OmenColor.accent)
+                Text(EspnHandoffCopy.consentTitle)
+                    .omenTextStyle(OmenTypography.h1)
+                    .foregroundStyle(OmenColor.textPrimary)
+            }
 
-            Text(EspnHandoffCopy.consentBody)
+            Text(EspnHandoffCopy.consentLead)
                 .omenTextStyle(OmenTypography.body)
                 .foregroundStyle(OmenColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            consentList(EspnHandoffCopy.consentTakesTitle, EspnHandoffCopy.consentTakes)
+            consentList(EspnHandoffCopy.consentNeverTitle, EspnHandoffCopy.consentNever)
+
+            Text(EspnHandoffCopy.consentFooter)
+                .omenTextStyle(OmenTypography.bodySmall)
+                .foregroundStyle(OmenColor.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)
 
             OmenButton(
@@ -434,6 +463,30 @@ struct ConnectView: View {
                 variant: .secondary,
                 size: .md
             )
+        }
+    }
+
+    private func consentList(_ title: String, _ items: [String]) -> some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+            Text(title)
+                .omenTextStyle(OmenTypography.micro)
+                .foregroundStyle(OmenColor.textTertiary)
+            OmenCard(contentPadding: OmenSpacing.step12) {
+                VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+                    ForEach(items, id: \.self) { item in
+                        HStack(alignment: .top, spacing: OmenSpacing.step8) {
+                            Text("·")
+                                .omenTextStyle(OmenTypography.bodySmall)
+                                .foregroundStyle(OmenColor.accent)
+                            Text(item)
+                                .omenTextStyle(OmenTypography.bodySmall)
+                                .foregroundStyle(OmenColor.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                }
+            }
         }
     }
 

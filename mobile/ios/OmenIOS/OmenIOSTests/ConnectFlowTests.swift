@@ -59,7 +59,9 @@ final class ConnectFlowTests: XCTestCase {
     /// The consent sentence is what App Review reads. It must name who the user signs in to, and
     /// carry the non-affiliation disclaimer Disney's ToU §2.B.vii requires.
     func testEspnConsentCopySaysWhoTheUserSignsInToAndDisclaimsAffiliation() {
-        let copy = EspnHandoffCopy.consentBody
+        // The screen is now several constants rather than one paragraph. The guarantees are
+        // about what the user reads, so the assertions run against the whole screen's copy.
+        let copy = EspnHandoffCopy.consentAllCopy
 
         XCTAssertTrue(copy.contains("ESPN's own sign-in"))
         XCTAssertTrue(copy.contains("never sees your ESPN password"))
@@ -566,10 +568,18 @@ final class ConnectFlowTests: XCTestCase {
                         EspnHandoffCopy.openSetupTitle, EspnHandoffCopy.checkConnectionTitle,
                         EspnHandoffCopy.checkAgainTitle, EspnHandoffCopy.notConnectedYet,
                         EspnHandoffCopy.checkUnavailable, EspnHandoffCopy.consentTitle,
-                        EspnHandoffCopy.consentBody, EspnHandoffCopy.consentContinueTitle,
+                        EspnHandoffCopy.consentLead, EspnHandoffCopy.consentFooter,
+                        EspnHandoffCopy.consentTakesTitle, EspnHandoffCopy.consentNeverTitle,
+                        EspnHandoffCopy.consentDeclineTitle, EspnHandoffCopy.consentEyebrow,
+                        EspnHandoffCopy.consentContinueTitle,
                         EspnHandoffCopy.signInWaiting, EspnHandoffCopy.signInReady,
                         EspnHandoffCopy.signInConnectTitle, EspnHandoffCopy.signInFellBack]
             + EspnHandoffCopy.steps.flatMap { [$0.title, $0.detail] }
+            // Added 2026-09-19: the consent screen became two itemised lists, and a guardrail
+            // that only checked the old paragraph would have silently stopped covering the
+            // sentences most likely to name a credential.
+            + EspnHandoffCopy.consentTakes
+            + EspnHandoffCopy.consentNever
 
         for copy in surfaces {
             let lowered = copy.lowercased()
