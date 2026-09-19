@@ -454,7 +454,15 @@ number of pointed contract changes plus a governance amendment — not a build-o
 
 ### U1-OmenScreen — Build the Omen destination
 
-- **Status:** READY
+- **Status:** VERIFIED — 2026-09-19.
+- **Claim:** 2026-09-18 Claude — `claude/j3-first-call`.
+- **Evidence:** OmenCall built and diffed; the switcher bar (E005–E012) built as
+  `OmenLeagueSwitcherBar` and the evidence layer reworked per
+  `Blueprints/specs/mobile/screens/omencall-evidence-contract-v1.md`. Captures and drift report in
+  `Solutions/deliverables/native-runs/2026-09-18-j3-first-call/`. iOS 484 unit + 29 UI tests, 0
+  failures. **D11 is waived for this screen only** — see the amendment below and the 2026-09-19
+  decision-log entry.
+- **Superseded status:** READY
 - **Blocked by:** None — `C1` shipped in PR #440 (`946d0e58`) and `ATA-20260914-01` authorizes the native implementation.
 - **Priority:** P1
 - **Cost:** medium

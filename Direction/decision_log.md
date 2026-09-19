@@ -3422,3 +3422,53 @@ behaving; until then this entry records intent, not proof.
   names *"a correction was written where it was discovered rather than everywhere it was asserted"*
   as a standing failure of this repo. A closing gate must include the sweep for every document that
   asserts it, or the gate does not close — it just stops being true in one place.
+
+## 2026-09-19 — J1 and J3 land; four corrections worth more than the screens
+
+- **Decision: J3 "the first call" and J1 "getting in" are built on both platforms**, with ordered
+  contact sheets and both passes each. Twelve frames for J3, twelve for J1. Evidence:
+  `Solutions/deliverables/native-runs/2026-09-18-j3-first-call/` and `.../2026-09-18-j1-before/`.
+
+- **Decision (founder): the ESPN consent screen names the cookies.** "Two cookies, SWID and
+  espn_s2", on both platforms. The credential-vocabulary ban still holds everywhere else, and the
+  two coexist on a distinction now written into both codebases and pinned by a test on each:
+  **naming the fields is disclosure; showing the values stays forbidden** by fact-of-record #6.
+  Founder's reasoning: transparency is how this product is being built.
+
+- **Decision (founder): the artboard wins by default; where the built screen is genuinely better,
+  mix the two — then redraw the artboard to the merged result.** Step three is load-bearing. Two
+  artboards were redrawn under it this session: `OmenCall.dc.html` and `SignIn.dc.html`.
+
+- **Decision (founder): D11 waived on OmenCall only**, measured at 30.7pt of a 31.3pt line
+  occluded once the contractual switcher bar is present, and conditional on the page earning the
+  scroll. It did: the evidence layer became three labelled capability groups plus a confidence
+  rule, promoted from a surface most users never opened.
+
+### Four corrections, recorded because each has a general shape
+
+1. **A condition that ended, recorded where nobody revisited it, still steering decisions weeks
+   later.** "ESPN is research-gated" outlived its own gate by eighteen days in three documents,
+   one of them inside the native read gate — an agent reading it in good faith would have refused
+   to build two approved artboards. The identical failure then repeated **in the same session**:
+   Yahoo was omitted from a provider list because of a stale comment written while Yahoo really
+   was on hold. **Read the availability, do not remember it.** This is fact-of-record #11's
+   failure for the third time on the record, so it is now stated as a rule: a closing gate must
+   sweep every document that asserts it, or it has not closed.
+
+2. **A green exit code is not a passing check.** `cmd | tail` returns *tail's* status. Two Android
+   steps were reported here as successes while printing `no such file or directory` and
+   `BUILD FAILED`. This is the same class as the "quiet CI means untested" warning that opened the
+   work — committed by the agent repeating the warning. `set -o pipefail`, and read the output.
+
+3. **A capture is evidence only of the build that produced it.** A stale screenshot was sent for
+   review five minutes after the fix it was missing had landed, and the founder reviewed the
+   photograph rather than the app. Separately, an earlier run produced a **completely blank**
+   first frame that would have shipped as a journey's opening image. Check frames before handing
+   a sheet over.
+
+4. **A screen can be captured and unreachable.** `OmenNoLeagueScreen` and `OmenConnectFailedScreen`
+   were referenced only by screenshot scenarios on both platforms — they photographed perfectly
+   and no user could arrive at either. Found by asking what production code referenced them, which
+   no visual review would ever have asked. `OmenConnectFailedScreen` then could not be wired
+   honestly until `ConnectFailure` carried the provider's real status, league and time: forcing it
+   with an invented 401 would have been the exact false claim the screen exists to prevent.
