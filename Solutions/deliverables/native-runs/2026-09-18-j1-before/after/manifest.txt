@@ -1,1 +1,1 @@
-ios      dark  journey-j1.degraded.05-connect-failed
+ios      dark  journey-j1.nominal.06-command-no-league

@@ -88,6 +88,18 @@ enum ScreenshotScenarios {
         // J3 — The first call. The numbering is the storyboard order, not a screen id. Each
         // pass is intentionally complete: nominal proves the product can act; degraded proves
         // it names what it could not read and declines to invent advice.
+        "journey-j1.nominal.06-command-no-league": ScreenshotScenario(
+            label: "J1 6/6 — signed in, no league connected",
+            content: {
+                AnyView(FauxShell(
+                    initialTab: .command,
+                    commandContentOverride: AnyView(OmenNoLeagueScreen(
+                        onConnect: {},
+                        onSeeHowOmenDecides: {}
+                    ))
+                ))
+            }
+        ),
         // J1 "Getting in" — the degraded pass. The journey has no capability profile, so per
         // `screen-journeys-v1.md` the provider failure path IS the degraded pass, and ESPN on
         // iPhone is the only confirmed beta failure on record.
@@ -537,9 +549,15 @@ private struct FauxShell: View {
     /// A real destination composition supplied by a journey scenario. This keeps the permanent
     /// tab shell while avoiding any network/session state and does not duplicate screen markup.
     var omenContentOverride: AnyView? = nil
+    /// Same seam for the Command tab, so J1's terminus can be captured inside the real shell.
+    var commandContentOverride: AnyView? = nil
 
     var body: some View {
         TabView(selection: .constant(initialTab)) {
+            Group {
+                if let commandContentOverride {
+                    commandContentOverride
+                } else {
             OmenCommandCenterScreen(
                 state: commandState,
                 onOpenAccount: {},
@@ -553,6 +571,8 @@ private struct FauxShell: View {
                 onOpenLeague: {},
                 carousel: carousel
             )
+                }
+            }
                 .tabItem { CommandCenterTab.command.label }
             .tag(CommandCenterTab.command)
 
