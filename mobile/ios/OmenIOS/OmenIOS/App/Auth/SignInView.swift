@@ -3,6 +3,9 @@ import SwiftUI
 
 enum AuthSignInCopy {
     static let oauthBrowserDisclosure = "Google and Discord open a secure Omen sign-in page. We only receive the sign-in result."
+    /// `SignIn.dc.html`'s subline. The shipped screen had the tagline and not this; the artboard
+    /// has both, and this is the line that says what the product actually does for you.
+    static let promise = "One call a week for every team you manage. Plain English, and it shows its work."
 }
 
 /// First-run sign-in and re-auth surface. The cold-start path is provider first; email OTP
@@ -97,6 +100,14 @@ struct SignInView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, OmenSpacing.step16)
                     .fixedSize(horizontal: false, vertical: true)
+                Text(AuthSignInCopy.promise)
+                    .omenTextStyle(OmenTypography.bodySmall)
+                    .foregroundStyle(OmenColor.textTertiary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, OmenSpacing.step16)
+                    .padding(.top, OmenSpacing.step8)
+                    .fixedSize(horizontal: false, vertical: true)
                 Color.clear.frame(height: OmenSpacing.step32)
             }
 
@@ -112,34 +123,38 @@ struct SignInView: View {
                     )
                 }
 
-                HStack(spacing: OmenSpacing.step12) {
-                    if viewModel.googleSignInAvailable {
-                        OmenAuthIconTile(
-                            contentDescription: "Continue with Google",
-                            icon: Image("AuthGoogle"),
-                            action: { viewModel.signInWithOAuth(providerId: "google") },
-                            enabled: !isBusy,
-                            loading: isGoogleBusy
-                        )
-                    }
-                    if viewModel.discordSignInAvailable {
-                        OmenAuthIconTile(
-                            contentDescription: "Continue with Discord",
-                            icon: Image("AuthDiscord"),
-                            action: { viewModel.signInWithOAuth(providerId: "discord") },
-                            enabled: !isBusy,
-                            loading: isDiscordBusy
-                        )
-                    }
-                    OmenAuthIconTile(
-                        contentDescription: "Continue with email",
-                        icon: Image("AuthEmail"),
-                        action: { emailEntryVisible = true },
+                // `SignIn.dc.html` draws four labelled full-width rows. The shipped screen used
+                // three icon-only tiles, which is worse on its own terms: an unlabelled glyph
+                // makes the user infer the provider, and it gives VoiceOver nothing the eye has.
+                // The artboard wins here.
+                if viewModel.googleSignInAvailable {
+                    OmenAuthPrimaryButton(
+                        title: "Continue with Google",
+                        icon: Image("AuthGoogle"),
+                        action: { viewModel.signInWithOAuth(providerId: "google") },
                         enabled: !isBusy,
-                        tintsIcon: true
+                        loading: isGoogleBusy,
+                        variant: .secondary
                     )
                 }
-                .accessibilityElement(children: .contain)
+                if viewModel.discordSignInAvailable {
+                    OmenAuthPrimaryButton(
+                        title: "Continue with Discord",
+                        icon: Image("AuthDiscord"),
+                        action: { viewModel.signInWithOAuth(providerId: "discord") },
+                        enabled: !isBusy,
+                        loading: isDiscordBusy,
+                        variant: .secondary
+                    )
+                }
+                OmenAuthPrimaryButton(
+                    title: "Continue with email",
+                    icon: Image("AuthEmail"),
+                    action: { emailEntryVisible = true },
+                    enabled: !isBusy,
+                    tintsIcon: true,
+                    variant: .secondary
+                )
 
                 if viewModel.googleSignInAvailable || viewModel.discordSignInAvailable {
                     Text(AuthSignInCopy.oauthBrowserDisclosure)

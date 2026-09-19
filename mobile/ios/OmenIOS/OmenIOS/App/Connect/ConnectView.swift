@@ -131,7 +131,7 @@ struct ConnectView: View {
             // No provider is selected by default (spec §4). Availability is stated up front
             // rather than discovered by tapping into a dead end.
             VStack(alignment: .leading, spacing: 10) {
-                ForEach(ConnectProvider.allCases) { provider in
+                ForEach(ConnectProvider.displayOrder) { provider in
                     OmenProviderCard(
                         platform: provider.platform,
                         title: provider.displayName,
@@ -176,9 +176,13 @@ struct ConnectView: View {
     private func availabilityLabel(_ provider: ConnectProvider) -> String {
         switch provider.availability {
         case .available:
-            if provider == .yahoo { return "Sign in with Yahoo" }
-            if provider == .espn { return "Sign in with ESPN" }
-            return "Just your username — no password"
+            if provider == .yahoo { return "Sign in with Yahoo. Read-only access." }
+            // "Sign in with ESPN" implied parity with Yahoo's one-tap OAuth. It is not parity,
+            // and the missing phone path is the one confirmed beta failure on record — users
+            // were told to find a desktop and sideload a Chrome extension. The artboard's line
+            // says what actually happens, and that it happens here.
+            if provider == .espn { return "A few more steps — ESPN has no read-only sign-in. We walk you through it here, on your phone." }
+            return "Username only. About ten seconds."
         // The reason is read from `availability`, not restated. It was restated once, and the
         // two copies drifted the moment the ESPN line was reworded — the picker row kept
         // saying "needs a computer" while the destination screen said something else.

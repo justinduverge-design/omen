@@ -167,6 +167,18 @@ enum ConnectProvider: String, CaseIterable, Identifiable {
 
     static let espnSetupURL = URL(string: "https://slopssaloon.com/espn-connect")!
 
+    /// The order the picker shows, which is **not** `allCases`.
+    ///
+    /// `ConnectLeague.dc.html` draws Sleeper → Yahoo → ESPN, and the connection contract's policy
+    /// matrix agrees: Sleeper is the "first native connection candidate — fast, direct,
+    /// resumable", and ESPN is the most-steps path. The shipped list led with ESPN, which put the
+    /// slowest and most fragile provider first — and ESPN on iPhone is the only confirmed beta
+    /// failure on record.
+    ///
+    /// Declared here rather than by reordering the enum, because `allCases` order is not this
+    /// screen's to decide on behalf of every other caller.
+    static let displayOrder: [ConnectProvider] = [.sleeper, .yahoo, .espn]
+
     var id: String { rawValue }
 
     var displayName: String {

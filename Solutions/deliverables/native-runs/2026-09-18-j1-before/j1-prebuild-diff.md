@@ -87,6 +87,45 @@ before they can be captured. `ConnectFailed` is **J1's degraded pass** — the j
 capability profile, so per `screen-journeys-v1.md` the provider failure path is the degraded pass,
 and it is the only confirmed beta failure on record.
 
+## BUILT 2026-09-18, under the refined precedence rule
+
+Founder rule, same day: **the artboard wins by default; where the built screen is genuinely
+better, mix the two — then redraw the artboard to the merged result.**
+
+### `ConnectLeague` — done
+
+- **Order is now Sleeper → Yahoo → ESPN.** Declared as `ConnectProvider.displayOrder` rather than
+  by reordering the enum, because `allCases` order is not this screen's to decide for every caller.
+- **ESPN's subtitle is the artboard's honest line.** "Sign in with ESPN" implied parity with
+  Yahoo's one-tap OAuth; it is not parity, and the missing phone path is the beta failure.
+- **Provider marks are neutral crests** — `SLPR` / `YHOO` / `ESPN` — replacing `S` / `Y!` / `E`.
+  The artboard already drew the safer treatment, and `W1-GATE` carries "no association-implying
+  ESPN branding" as binding. The provider hex stays as the tile background: sole sanctioned colour
+  exception, never the only carrier, because the row names the provider (D7).
+- Kept from the shipped screen: the security reassurance card and "I'll do this later".
+
+### `SignIn` — done, as a mix
+
+The artboard's four labelled full-width buttons replace three icon-only tiles. Icon-only was worse
+on its own terms: an unlabelled glyph makes the user infer the provider and gives VoiceOver nothing
+the eye has. The artboard's subline is added.
+
+**Kept, against the artboard, because a fact of record requires them:** the "Look around without an
+account" demo link (fact #19 — the App Store reviewer's only path in), the 13-or-older age gate,
+and the OAuth security explainer.
+
+**One deliberate departure from the artboard:** Apple keeps the cream primary treatment while the
+other three are `surface-1`. The artboard draws all four equal; Apple's own guidance asks for Sign
+in with Apple to be at least as prominent as the alternatives, which is an external constraint the
+artboard does not carry. Recorded as a mix, not a rejection.
+
+**`SignIn.dc.html` has been redrawn** to the merged result — step 3 of the rule.
+
+## Still to build
+
+`ConnectFailed` (J1's degraded pass), `CommandNoLeague`, `EmailCode` behaviour, `EspnConnect`.
+All four still need capture scenarios before they can be diffed or captured.
+
 ## Recommended build order
 
 1. **`ConnectLeague`** — highest value, and items 1 and 2 above are the beta failure. Visual and

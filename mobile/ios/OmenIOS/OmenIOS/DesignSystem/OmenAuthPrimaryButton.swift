@@ -11,6 +11,8 @@ import SwiftUI
 /// state that replaces the glyph rather than sitting beside it. Folding it into `OmenButton`
 /// would mean adding both to a primitive used on every other screen, which is a wider change
 /// than this move and should be its own decision.
+enum OmenAuthButtonVariant { case primary, secondary }
+
 struct OmenAuthPrimaryButton: View {
     let title: String
     var icon: Image? = nil
@@ -25,8 +27,25 @@ struct OmenAuthPrimaryButton: View {
     /// near-black on near-black in light mode, i.e. invisible. Nobody had seen it because
     /// `SignInView` forced its own dark background until that literal was tokenised.
     var tintsIcon = false
+    /// `SignIn.dc.html` draws all four provider buttons as equal `surface-1` rows with a centred
+    /// label, not one cream primary over three icon-only tiles. `.secondary` is that treatment.
+    ///
+    /// Apple keeps `.primary`: Apple's own guidance asks for Sign in with Apple to be at least as
+    /// prominent as the alternatives, which is an external constraint the artboard does not carry.
+    /// That is the one deliberate departure, and it is a mix rather than a rejection.
+    var variant: OmenAuthButtonVariant = .primary
 
     private var isInteractable: Bool { enabled && !loading }
+
+    private var foreground: Color {
+        guard isInteractable else { return OmenColor.textTertiary }
+        return variant == .primary ? OmenColor.textOnAccent : OmenColor.textPrimary
+    }
+
+    private var background: Color {
+        guard isInteractable else { return OmenColor.surface3 }
+        return variant == .primary ? OmenColor.textPrimary : OmenColor.surface1
+    }
 
     var body: some View {
         Button(action: action) {
@@ -49,9 +68,9 @@ struct OmenAuthPrimaryButton: View {
                     .omenTextStyle(OmenTypography.h3)
                     .fontWeight(.semibold)
             }
-            .foregroundStyle(isInteractable ? OmenColor.textOnAccent : OmenColor.textTertiary)
+            .foregroundStyle(foreground)
             .frame(maxWidth: .infinity, minHeight: 54)
-            .background(isInteractable ? OmenColor.textPrimary : OmenColor.surface3)
+            .background(background)
             .clipShape(RoundedRectangle(cornerRadius: 10))
         }
         .buttonStyle(.plain)
