@@ -3371,3 +3371,54 @@ behaving; until then this entry records intent, not proof.
   `"74 — Medium-High Confidence"` as the good example. Fact-of-record #16 retired numeric confidence
   in favour of a band. A build agent reading the voice doc with the fact of record closed would ship
   a numeral. Flagged in the screen contract; the brand doc itself is not edited here.
+
+## 2026-09-18 — Artboard precedence refined; the "ESPN is gated" assumption withdrawn
+
+- **Decision (founder): the artboard wins by default, and where the built screen is genuinely
+  better the two are mixed.** This refines, and does not replace, the 2026-09-18 precedence
+  decision. The order of operations is now explicit:
+
+  1. Build the artboard.
+  2. Where the shipped screen carries something genuinely better — or something a fact of record
+     requires — **keep it and merge the two**, rather than deleting it to match a picture.
+  3. **Redraw the artboard to the merged result.** A mix that is not drawn back into the canvas
+     becomes drift at the next diff, and the next agent "fixes" it away.
+
+  Step 3 is the load-bearing one. `OmenCall` was redrawn on 2026-09-18 for exactly this reason.
+
+  **This unblocks `SignIn`.** Its artboard omits the "Look around without an account" demo link and
+  the 13-or-older age gate. Fact-of-record #19 makes Demo Mode the App Store reviewer's entire path
+  into the app and defers its removal until after first approval, so the link is not a nicety — it
+  is the reviewer's only door. Under this rule: take the artboard's composition (four labelled
+  provider buttons, tagline, subline), **keep** the demo link, the age gate and the security
+  explainer, then redraw `SignIn.dc.html` to match.
+
+- **Decision (founder): "ESPN is blocked / research-gated / feasibility-gated" is withdrawn as a
+  bad assumption that this repo created and then carried.** Corrected in place today:
+  `omen-mobile-onboarding-connection-contract-v1.md` §5 (the policy-matrix row **and** the
+  paragraph under it) and `omen-native-app-shell-auth-api-contract-v1.md` §282.
+
+  **The gate closed on 2026-08-31.** `W1-GATE` answered both its questions in writing and the
+  founder accepted the risk explicitly, keeping the live integration with a consent line. Three
+  documents went on asserting the gate for another eighteen days — and one of them sits inside the
+  **native mobile read gate**, which instructs an agent to *stop* when sources conflict. An agent
+  reading it in good faith would have refused to build two approved artboards.
+
+  **The correction is bounded, and the opposite overcorrection is also false.** ESPN's terms do not
+  permit authenticating a user inside our own sheet; that finding stands. The founder knows and owns
+  that risk. ESPN must never be described as "approved", "permitted" or "sanctioned". What was
+  false is only the operational conclusion agents kept drawing: that ESPN **may not be built**. It
+  may, under the constraints `W1-GATE` carried out — no association-implying branding, a consent
+  screen, the prepared App Review answer, and fact-of-record #6 on cookie values.
+
+  **Deliberately not rewritten:** the dated handoff `2026-08-15-native-api-scope-and-scoring-source.md`,
+  the `Blueprints/done/LEDGER.md` row, and the Safari-extension memo. The first two are provenance
+  and were true when written; the third is about `M7-EspnSafariExtension`, which is a different
+  claim and is still correct. Also untouched: `espn_import_blocked` as a backend state name, the
+  cookie-handling prohibitions, and `F6`'s block on founder-device QA — none of those are this
+  assumption.
+
+  **Generalisable, and this is the second time it is on the record:** fact-of-record #11 already
+  names *"a correction was written where it was discovered rather than everywhere it was asserted"*
+  as a standing failure of this repo. A closing gate must include the sweep for every document that
+  asserts it, or the gate does not close — it just stops being true in one place.
