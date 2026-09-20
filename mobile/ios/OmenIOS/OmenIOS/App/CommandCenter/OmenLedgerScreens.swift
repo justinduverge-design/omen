@@ -57,11 +57,31 @@ enum OmenLedgerAction: Equatable {
     /// is the flattering reading and the wrong one.
     case unknown
 
-    var label: String {
-        switch self {
-        case .followed: return "Followed"
-        case .passed: return "You passed"
-        case .unknown: return "Follow-through unknown"
+    /// `.row` is the Ledger's terse chip; `.receipt` is `LedgerDetail`'s sentence.
+    ///
+    /// Two artboards, two registers, **one set of cases**. `Ledger.dc.html` draws "Followed" in a
+    /// strip of four rows where a sentence per row would turn a record into an essay;
+    /// `LedgerDetail.dc.html` draws "You followed it", which is right on a screen about exactly
+    /// one call.
+    ///
+    /// The first build shared `label` across both and rendered the Ledger's terse words on the
+    /// receipt, which was drift against an approved artboard for no reason other than component
+    /// reuse. Splitting the *words* while keeping the *cases* costs one parameter and keeps the
+    /// thing that actually matters — that action and outcome are separate values no code path
+    /// can merge — in exactly one place.
+    enum Voice { case row, receipt }
+
+    var label: String { label(.row) }
+
+    func label(_ voice: Voice) -> String {
+        switch (self, voice) {
+        case (.followed, .row): return "Followed"
+        case (.followed, .receipt): return "You followed it"
+        case (.passed, .row): return "You passed"
+        case (.passed, .receipt): return "You passed on it"
+        // One register. Nobody knowing what you did is not a fact that reads better as a
+        // sentence, and inventing a second phrasing would be two strings to keep true.
+        case (.unknown, _): return "Follow-through unknown"
         }
     }
 
@@ -86,12 +106,19 @@ enum OmenLedgerOutcome: Equatable {
     case notVerified
     case pending
 
-    var label: String {
-        switch self {
-        case .worked: return "Worked"
-        case .didNotWork: return "Didn\u{2019}t work"
-        case .notVerified: return "Not verified"
-        case .pending: return "Outcome pending"
+    var label: String { label(.row) }
+
+    /// The same split as `OmenLedgerAction.label(_:)`, for the same reason.
+    func label(_ voice: OmenLedgerAction.Voice) -> String {
+        switch (self, voice) {
+        case (.worked, .row): return "Worked"
+        case (.worked, .receipt): return "It worked"
+        case (.didNotWork, .row): return "Didn\u{2019}t work"
+        case (.didNotWork, .receipt): return "It did not work"
+        // "Not verified" and "Outcome pending" are already statements rather than verdicts and
+        // read correctly in both places.
+        case (.notVerified, _): return "Not verified"
+        case (.pending, _): return "Outcome pending"
         }
     }
 }
@@ -401,10 +428,11 @@ struct OmenLedgerScreen: View {
 private struct OmenLedgerOutcomeStrip: View {
     let action: OmenLedgerAction
     let outcome: OmenLedgerOutcome
+    var voice: OmenLedgerAction.Voice = .row
 
     var body: some View {
         HStack(spacing: OmenSpacing.step8) {
-            chip(action.label, tone: actionTone)
+            chip(action.label(voice), tone: actionTone)
             if action.provenance == .selfReported {
                 separator
                 // `.o-s` — dotted underline, `text-secondary`. Registry §2.3's provenance
@@ -416,7 +444,7 @@ private struct OmenLedgerOutcomeStrip: View {
                     .underline(true, pattern: .dot)
             }
             separator
-            chip(outcome.label, tone: outcomeTone)
+            chip(outcome.label(voice), tone: outcomeTone)
             Spacer(minLength: 0)
         }
         .accessibilityHidden(true)
@@ -583,7 +611,7 @@ struct OmenLedgerDetailScreen: View {
     private var happened: some View {
         OmenCard(contentPadding: OmenSpacing.step12) {
             VStack(alignment: .leading, spacing: OmenSpacing.step10) {
-                OmenLedgerOutcomeStrip(action: state.action, outcome: state.outcome)
+                OmenLedgerOutcomeStrip(action: state.action, outcome: state.outcome, voice: .receipt)
                 if state.noteLead != nil || state.note != nil {
                     // `.rsn b` is `text-primary` and bold — the clause that must not be skimmed.
                     // On the artboard it is "Williams went for 21.4.", the fact that settles it.
@@ -599,9 +627,9 @@ struct OmenLedgerDetailScreen: View {
         .padding(.horizontal, OmenSpacing.step16)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
-            [state.action.label,
+            [state.action.label(.receipt),
              state.action.provenance == .selfReported ? "Self-reported" : nil,
-             state.outcome.label,
+             state.outcome.label(.receipt),
              state.noteLead,
              state.note].compactMap { $0 }.joined(separator: ". ")
         )

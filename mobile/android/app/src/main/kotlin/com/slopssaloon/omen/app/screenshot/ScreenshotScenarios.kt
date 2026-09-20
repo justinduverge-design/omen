@@ -46,6 +46,19 @@ import com.slopssaloon.omen.app.feature.commandcenter.OmenDeskState
 import com.slopssaloon.omen.app.feature.commandcenter.OmenDeskTeam
 import com.slopssaloon.omen.app.feature.commandcenter.OmenDeskWaiverMove
 import com.slopssaloon.omen.app.feature.commandcenter.OmenLeagueScreen
+import com.slopssaloon.omen.app.feature.commandcenter.OmenLedgerAction
+import com.slopssaloon.omen.app.feature.commandcenter.OmenLedgerCall
+import com.slopssaloon.omen.app.feature.commandcenter.OmenLedgerDetailScreen
+import com.slopssaloon.omen.app.feature.commandcenter.OmenLedgerGroup
+import com.slopssaloon.omen.app.feature.commandcenter.OmenLedgerOutcome
+import com.slopssaloon.omen.app.feature.commandcenter.OmenLedgerProvenance
+import com.slopssaloon.omen.app.feature.commandcenter.OmenLedgerReceiptState
+import com.slopssaloon.omen.app.feature.commandcenter.OmenLedgerScreen
+import com.slopssaloon.omen.app.feature.commandcenter.OmenLedgerState
+import com.slopssaloon.omen.app.feature.commandcenter.OmenLedgerUnread
+import com.slopssaloon.omen.app.feature.commandcenter.OmenReceiptEvidence
+import com.slopssaloon.omen.app.feature.commandcenter.OmenReceiptEvidenceClass
+import com.slopssaloon.omen.app.feature.commandcenter.issuedLabel
 import com.slopssaloon.omen.app.feature.commandcenter.OmenLeagueTableScreen
 import com.slopssaloon.omen.app.feature.commandcenter.OmenLeagueWireScreen
 import com.slopssaloon.omen.app.feature.commandcenter.OmenQuietState
@@ -619,6 +632,73 @@ object ScreenshotScenarios {
                 }
             },
         ),
+        // MARK: J6 — "the receipts"
+        //
+        // `Ledger.dc.html` and `LedgerDetail.dc.html`, in the order a user meets them. The keys
+        // and the fixtures mirror the iOS registry exactly, so a contact sheet compares two
+        // pictures of one product rather than two products.
+        //
+        // Each pass carries both required classes — at least one input `unavailable` and at
+        // least one `live, used: false`:
+        //
+        //   ledger         degraded  `move_outcomes` unavailable, named with a sentence that
+        //                            survives truncation; `league_scoring` read and unused.
+        //   ledger-detail  degraded  `opponent_roster` unavailable; `schedule_strength` read and
+        //                            explicitly not used — rendered with no evidence chip.
+        "journey-j6.nominal.01-ledger" to ScreenshotScenario(
+            label = "J6 nominal 1/2 \u2014 the record, verified and self-reported kept apart",
+            render = {
+                J6InShell { modifier ->
+                    OmenLedgerScreen(
+                        state = J6ScreenshotFixtures.nominalLedger,
+                        modifier = modifier,
+                        context = J6ScreenshotFixtures.titansContext,
+                        onOpenAccount = {},
+                        onOpenCall = {},
+                    )
+                }
+            },
+        ),
+        "journey-j6.nominal.02-ledger-detail" to ScreenshotScenario(
+            label = "J6 nominal 2/2 \u2014 one receipt in full, including the loss",
+            render = {
+                J6InShell { modifier ->
+                    OmenLedgerDetailScreen(
+                        state = J6ScreenshotFixtures.nominalReceipt,
+                        modifier = modifier,
+                        context = J6ScreenshotFixtures.titansContext,
+                        onOpenAccount = {},
+                    )
+                }
+            },
+        ),
+        "journey-j6.degraded.01-ledger" to ScreenshotScenario(
+            label = "J6 degraded 1/2 \u2014 outcomes unread, follow-through unknown",
+            render = {
+                J6InShell { modifier ->
+                    OmenLedgerScreen(
+                        state = J6ScreenshotFixtures.degradedLedger,
+                        modifier = modifier,
+                        context = J6ScreenshotFixtures.pukContext,
+                        onOpenAccount = {},
+                        onOpenCall = {},
+                    )
+                }
+            },
+        ),
+        "journey-j6.degraded.02-ledger-detail" to ScreenshotScenario(
+            label = "J6 degraded 2/2 \u2014 a receipt whose zone and evidence are incomplete",
+            render = {
+                J6InShell { modifier ->
+                    OmenLedgerDetailScreen(
+                        state = J6ScreenshotFixtures.degradedReceipt,
+                        modifier = modifier,
+                        context = J6ScreenshotFixtures.pukContext,
+                        onOpenAccount = {},
+                    )
+                }
+            },
+        ),
         "journey-j3.nominal.01-omen-call" to ScreenshotScenario(
             label = "J3 nominal 1/3 — Omen call",
             render = {
@@ -899,6 +979,22 @@ private fun J5InShell(content: @Composable (Modifier) -> Unit) {
     Scaffold(
         containerColor = OmenTheme.color.bg,
         bottomBar = { FauxBottomNav(FauxNavTab.League) {} },
+    ) { innerPadding ->
+        content(Modifier.padding(innerPadding))
+    }
+}
+
+/**
+ * J6 opens on the Omen tab. Both artboards draw the Omen tab lit, and the only production route
+ * into either of them is the Command Center Ledger preview's "See all" and its rows, which live
+ * in the Omen destination. A capture that opened on Command would photograph the preview rather
+ * than the Ledger.
+ */
+@Composable
+private fun J6InShell(content: @Composable (Modifier) -> Unit) {
+    Scaffold(
+        containerColor = OmenTheme.color.bg,
+        bottomBar = { FauxBottomNav(FauxNavTab.Omen) {} },
     ) { innerPadding ->
         content(Modifier.padding(innerPadding))
     }
@@ -2031,5 +2127,238 @@ private object J5ScreenshotFixtures {
         footnote = OmenDeskFootnote(
             text = "Next read Tuesday 3:00 AM. Omen will wake you only if something changes.",
         ),
+    )
+}
+
+/**
+ * J6 — `Ledger.dc.html` and `LedgerDetail.dc.html`, as deterministic in-app fixtures.
+ *
+ * The same four frames as the iOS registry, with the same words, so the contact sheets compare.
+ *
+ * ## Why all three states are on the nominal Ledger
+ *
+ * `CONTRACTS.md`: *"verified outcomes, self-reported action, and unknown follow-through stay
+ * visually and semantically separate."* A fixture set of verified rows only would photograph
+ * beautifully and prove nothing, so [nominalLedger] carries a verified followed row, a
+ * self-reported **pass**, and a loss — and [degradedLedger] carries the unknown.
+ *
+ * ## Why no fixture carries a raw `win` or `loss`
+ *
+ * It is not expressible. [OmenLedgerOutcome] has no such case, which is the point of the type:
+ * the translation happens in `MovesHistory.ledgerOutcomeFor` and a raw token cannot reach a
+ * screen state. `MovesHistoryTest` pins the mapping; there is nothing for a fixture to add.
+ */
+private object J6ScreenshotFixtures {
+
+    val titansContext = OmenScreenContext(
+        crest = "TTO",
+        teamName = "Titans of Slopsilonia",
+        platform = OmenPlatform.Espn,
+        leagueName = "Slops Saloon",
+        onSwitch = {},
+        onAddLeague = {},
+    )
+
+    val pukContext = OmenScreenContext(
+        crest = "PAK",
+        teamName = "Puk Around & Find Out",
+        platform = OmenPlatform.Yahoo,
+        leagueName = "Fantasy Madness",
+        onSwitch = {},
+        onAddLeague = {},
+    )
+
+    val nominalLedger = OmenLedgerState(
+        kicker = "11 calls",
+        groups = listOf(
+            OmenLedgerGroup(
+                title = "Week 7",
+                count = "1 open",
+                calls = listOf(
+                    OmenLedgerCall(
+                        id = "j6-w7-1",
+                        summary = "Start Stafford over Daniels",
+                        callType = "Start / sit",
+                        action = OmenLedgerAction.Followed(OmenLedgerProvenance.Verified),
+                        outcome = OmenLedgerOutcome.Pending,
+                    ),
+                    OmenLedgerCall(
+                        id = "j6-w7-2",
+                        summary = "Claim Wright, drop Johnson",
+                        callType = "Waiver",
+                        action = OmenLedgerAction.Passed(OmenLedgerProvenance.SelfReported),
+                        outcome = OmenLedgerOutcome.NotVerified,
+                        note = "Wright went for 94 and a score. Somebody else claimed him Wednesday.",
+                    ),
+                ),
+            ),
+            OmenLedgerGroup(
+                title = "Weeks 1–6",
+                count = "9 closed",
+                calls = listOf(
+                    OmenLedgerCall(
+                        id = "j6-w6-1",
+                        summary = "Trade Kupp for Nacua",
+                        callType = "Trade",
+                        action = OmenLedgerAction.Followed(OmenLedgerProvenance.Verified),
+                        outcome = OmenLedgerOutcome.Worked,
+                    ),
+                    OmenLedgerCall(
+                        id = "j6-w4-1",
+                        summary = "Bench Kyren Williams, Week 4",
+                        callType = "Start / sit",
+                        action = OmenLedgerAction.Followed(OmenLedgerProvenance.Verified),
+                        outcome = OmenLedgerOutcome.DidNotWork,
+                        note = "He went for 21.4. Omen was wrong — the snap-share read didn’t survive the game script.",
+                    ),
+                    OmenLedgerCall(
+                        id = "j6-w3-1",
+                        summary = "Claim Tank Dell, Week 3",
+                        callType = "Waiver",
+                        action = OmenLedgerAction.Followed(OmenLedgerProvenance.Verified),
+                        outcome = OmenLedgerOutcome.Worked,
+                    ),
+                ),
+            ),
+        ),
+    )
+
+    /**
+     * One input `unavailable`, one `live, used: false`.
+     *
+     * `move_outcomes` unavailable is the one that costs the reader something, so it is named with
+     * a sentence and placed above the rows where truncation cannot reach it. Every row therefore
+     * reads "Not verified" — a true statement about what Omen could read, not a claim that the
+     * calls failed.
+     */
+    val degradedLedger = OmenLedgerState(
+        kicker = "4 calls",
+        groups = listOf(
+            OmenLedgerGroup(
+                title = "Week 7",
+                count = "2 open",
+                calls = listOf(
+                    OmenLedgerCall(
+                        id = "j6-d-1",
+                        summary = "Start Pollard over Mostert",
+                        callType = "Start / sit",
+                        action = OmenLedgerAction.Followed(OmenLedgerProvenance.SelfReported),
+                        outcome = OmenLedgerOutcome.NotVerified,
+                    ),
+                    OmenLedgerCall(
+                        id = "j6-d-2",
+                        summary = "Claim Jaylen Wright",
+                        callType = "Waiver",
+                        action = OmenLedgerAction.Unknown,
+                        outcome = OmenLedgerOutcome.Pending,
+                        note = "Yahoo did not hand back the transaction, so Omen does not know whether you made this move.",
+                    ),
+                ),
+            ),
+            OmenLedgerGroup(
+                title = "Week 6",
+                count = "2 closed",
+                calls = listOf(
+                    OmenLedgerCall(
+                        id = "j6-d-3",
+                        summary = "Trade Chubb for Etienne",
+                        callType = "Trade",
+                        action = OmenLedgerAction.Passed(OmenLedgerProvenance.SelfReported),
+                        outcome = OmenLedgerOutcome.NotVerified,
+                    ),
+                    OmenLedgerCall(
+                        id = "j6-d-4",
+                        summary = "Bench Zay Flowers, Week 6",
+                        callType = "Start / sit",
+                        action = OmenLedgerAction.Unknown,
+                        outcome = OmenLedgerOutcome.NotVerified,
+                    ),
+                ),
+            ),
+        ),
+        unread = OmenLedgerUnread(
+            capability = "Move outcomes",
+            sentence = "Omen could not read how these calls turned out for this league. Every row below says “Not verified” because nobody checked — not because the call was wrong.",
+        ),
+        footnote = OmenDeskFootnote(
+            text = "League scoring was read and",
+            emphasis = "did not change any row here",
+        ),
+    )
+
+    /**
+     * The artboard's own receipt: the Week 4 Kyren Williams bench.
+     *
+     * It is a **loss**, and that is the artboard's choice. The screen's closing line is *"Losses
+     * stay in the Ledger — a record that only shows wins is marketing."* A nominal capture of a
+     * winning receipt would make that sentence decorative.
+     *
+     * [issuedLabel] is called rather than a string hard-coded, so the fixture exercises the
+     * formatter that `CONTRACTS.md`'s `issued_at_timezone` clause exists for.
+     */
+    val nominalReceipt = OmenLedgerReceiptState(
+        kicker = "Week 4 · Start / sit",
+        issuedLabel = issuedLabel("2026-09-29T07:00:00Z", "America/New_York"),
+        callType = "Start / sit",
+        headline = "Bench Kyren Williams",
+        status = "Closed",
+        action = OmenLedgerAction.Followed(OmenLedgerProvenance.Verified),
+        outcome = OmenLedgerOutcome.DidNotWork,
+        reasoning = "Snap share fell to 54% over two weeks while Blake Corum climbed to 38%.",
+        band = OmenConfidenceBand.Leaning,
+        risk = OmenRiskLevel.Medium,
+        noteLead = "Williams went for 21.4.",
+        note = "Omen was wrong. The snap-share read was accurate and did not survive the game script — the Rams trailed by seventeen and abandoned the committee.",
+        evidence = listOf(
+            OmenReceiptEvidence("Snaps", "54% over two weeks, down from 71%.", OmenReceiptEvidenceClass.Used),
+            OmenReceiptEvidence("Corum", "38% and rising in the same window.", OmenReceiptEvidenceClass.Used),
+            OmenReceiptEvidence(
+                "Game script",
+                "Not modelled. Omen had no view of this and it is what decided the game.",
+                OmenReceiptEvidenceClass.CouldNotRead,
+            ),
+        ),
+        fairnessNote = "This receipt is frozen as it was issued. Losses stay in the Ledger — a record that only shows wins is marketing.",
+    )
+
+    /**
+     * Two things are wrong with this receipt and they are different kinds of wrong.
+     *
+     *   1. `schedule_strength` was **read and not used** — `live, used: false`. Named,
+     *      de-emphasised, and carrying **no** `Live` chip, because the chip is evidence styling
+     *      and this input is not evidence for this call.
+     *   2. `opponent_roster` was **unavailable**. Named, with a sentence, underlined.
+     *
+     * And it arrived with `issued_at` and **no `issued_at_timezone`**, so the scope line says the
+     * zone is missing rather than rendering a bare UTC wall clock that reads as the wrong day to
+     * anyone west of Greenwich. That is [issuedLabel]'s refusal, captured.
+     */
+    val degradedReceipt = OmenLedgerReceiptState(
+        kicker = "Week 6 · Waiver",
+        issuedLabel = issuedLabel("2026-10-13T07:00:00Z", null),
+        callType = "Waiver",
+        headline = "Claim Jaylen Wright",
+        status = "Open",
+        action = OmenLedgerAction.Unknown,
+        outcome = OmenLedgerOutcome.NotVerified,
+        note = "Yahoo did not hand back the transaction log for this week, so Omen cannot say whether you made this claim.",
+        evidence = listOf(
+            OmenReceiptEvidence(
+                "Depth chart",
+                "Pollard out three weeks; Wright the only back behind him.",
+                OmenReceiptEvidenceClass.Used,
+            ),
+            OmenReceiptEvidence(
+                "Schedule strength",
+                "Read, and it did not move this call.",
+                OmenReceiptEvidenceClass.ReadNotUsed,
+            ),
+            OmenReceiptEvidence(
+                "Opponent roster",
+                "Unavailable. Yahoo does not expose other teams’ rosters for this league type, so Omen had no view of who else needed a back.",
+                OmenReceiptEvidenceClass.CouldNotRead,
+            ),
+        ),
+        fairnessNote = "This receipt is frozen as it was issued. Losses stay in the Ledger — a record that only shows wins is marketing.",
     )
 }
