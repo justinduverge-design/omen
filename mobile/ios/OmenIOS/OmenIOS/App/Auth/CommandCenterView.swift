@@ -252,7 +252,35 @@ struct CommandCenterView: View {
             .tag(CommandCenterTab.omen)
 
             // M5 slice G: the Trade destination now renders `trade-compare.v2`.
+            //
+            // J4: once the server has answered, the answer is J4's screen rather than the
+            // builder's inline verdict. `OmenTradeAnswer.from` picks `TradeVerdict` or
+            // `TradeNeedsContext` off `verdict_state` — the same seat in the journey, in the two
+            // states the contract returns it in — and this is the production route that makes
+            // both reachable rather than only photographable. `OmenTradeAnswer` documents which
+            // three J4 screens are deliberately NOT wired here and why.
+            //
+            // `dismissVerdict` keeps the offer. A user who reads "you give up too much" wants to
+            // change one player, not retype the deal.
             withTeamPicker {
+                if case .loaded(let compare) = tradeViewModel.viewState,
+                   let answer = OmenTradeAnswer.from(compare, offer: tradeViewModel.offer) {
+                    switch answer {
+                    case .verdict(let state):
+                        OmenTradeVerdictScreen(
+                            state: state,
+                            onOpenAccount: { showAccountSheet = true },
+                            onPrimaryAction: { tradeViewModel.dismissVerdict() }
+                        )
+                    case .needsContext(let state):
+                        OmenTradeNeedsContextScreen(
+                            state: state,
+                            onOpenAccount: { showAccountSheet = true },
+                            onConnect: { showConnectSheet = true },
+                            onShowAnyway: { tradeViewModel.dismissVerdict() }
+                        )
+                    }
+                } else {
                 OmenTradeScreen(
                     state: tradeViewModel.viewState,
                     offer: tradeViewModel.offer,
@@ -266,6 +294,7 @@ struct CommandCenterView: View {
                     capabilities: tradeViewModel.capabilities
                 )
                 .task { await tradeViewModel.loadCapabilities() }
+                }
             }
             // The league to personalize against comes from the SAME `league-overview.v1` read
             // the League destination uses. Trade never discovers a league on its own, so the

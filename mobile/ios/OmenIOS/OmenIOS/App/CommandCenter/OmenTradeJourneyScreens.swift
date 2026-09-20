@@ -1185,3 +1185,113 @@ extension OmenTradeInput {
         }
     }
 }
+
+// MARK: - The production route into J4
+
+/// The J4 answer, built from a real `trade-compare.v2` response.
+///
+/// ## Why this type exists
+///
+/// `scripts/check-screen-reachability.mjs` exists because a screen can photograph perfectly and
+/// be unreachable: a screenshot scenario mounts it directly against fixtures, so a scenario is
+/// **not evidence of a route**. Registering J4's eight captures without this would have added
+/// ten findings to that check — five screens on two platforms, every one of them a screen no
+/// user could arrive at.
+///
+/// This is the route for the two that can honestly have one.
+///
+/// ## What is reachable, and what is not
+///
+/// `TradeVerdict` and `TradeNeedsContext` are the same seat in the journey — the answer — in the
+/// states `trade-compare.v2` actually returns. Everything they show is in that payload or in the
+/// offer the user typed, so they mount on live data and nothing is invented.
+///
+/// **`TradeBuild`, `TradeRoster` and `TradeShare` are deliberately not wired here**, and the
+/// reason is the same in all three cases: the data does not exist to mount them honestly.
+///
+///   - `TradeBuild` needs a partner directory with Omen's read of *their* roster, and position
+///     filters over a roster the client holds. `league-overview.v1` gives the other teams'
+///     names and nothing about their rosters, so every `need` would be nil and every filter
+///     would be a live control that filters nothing. A control that answers a tap by doing
+///     nothing is the thing `OmenUnavailableControl` exists to avoid.
+///   - `TradeRoster` needs the other team's roster. No native read fetches one. Mounting it
+///     would mean rendering `permanentlyUnavailable` on every league — a sentence blaming the
+///     provider for a request Omen never made. That is a false claim about ESPN, and it is the
+///     precise failure the reachability check's own banner warns against: *"Do not invent state
+///     to make it reachable."*
+///   - `TradeShare` needs a client for `POST /api/trade/share`. The route exists on the server
+///     (`src/routes/trade.js`) and there is no native caller, so the button would either do
+///     nothing or fabricate a link.
+///
+/// Those three stay captured-and-unreachable, reported rather than papered over. Building the
+/// reads they need is product work, not a wiring change.
+enum OmenTradeAnswer: Equatable {
+    case verdict(OmenTradeVerdictState)
+    case needsContext(OmenTradeNeedsContextState)
+
+    /// `nil` where there is no answer to show — the offer has no players on one side, so there
+    /// is nothing to draw two sides of.
+    static func from(_ compare: TradeCompare, offer: TradeOffer) -> OmenTradeAnswer? {
+        let sides = Self.sides(of: offer)
+        guard sides.contains(where: { !$0.legs.isEmpty }) else { return nil }
+        let read = OmenTradeRead.from(compare)
+
+        switch compare.verdictState {
+        case .closeNeedsContext, .insufficientData:
+            return .needsContext(OmenTradeNeedsContextState(
+                kicker: "The read",
+                title: compare.headline,
+                sides: sides,
+                read: read,
+                // The remedy is offered only where it is genuinely the remedy. A personalized
+                // read that still could not call it is not fixed by connecting a league that is
+                // already connected, and saying so would send the user in a circle.
+                remedy: compare.analysisContext.isPersonalized
+                    ? nil
+                    : "Connect the league this offer is in and Omen can score it against your own settings instead of standard scoring.",
+                connectActionTitle: compare.analysisContext.isPersonalized ? nil : "Use my league\u{2019}s settings",
+                // The secondary slot. There is no "show it anyway" here — the read above already
+                // is the standard-scoring read — so the honest secondary is the way back to the
+                // offer the user is being asked to change.
+                showAnywayActionTitle: "Change the offer"
+            ))
+        case .favorsYou, .youGiveUpTooMuch:
+            return .verdict(OmenTradeVerdictState(
+                kicker: "The read",
+                title: compare.headline,
+                sides: sides,
+                read: read,
+                // `trade-capabilities.v1`'s `submission` is a single word about *how* a provider
+                // accepts a trade. It is not a list of steps, and three plausible ESPN steps
+                // composed here would be the client inventing a procedure.
+                submission: nil,
+                primaryActionTitle: "Change the offer",
+                // No counter builder exists, and no native caller for `POST /api/trade/share`.
+                // A button that does nothing is worse than an absent one.
+                counterActionTitle: nil,
+                shareActionTitle: nil
+            ))
+        }
+    }
+
+    /// Both sides, always — Trade "must show both sides", and an empty side renders as a heading
+    /// with nothing under it rather than disappearing.
+    private static func sides(of offer: TradeOffer) -> [OmenTradeSide] {
+        [
+            OmenTradeSide(heading: "You send", legs: offer.send.map { leg($0, .sending) }),
+            OmenTradeSide(heading: "You receive", legs: offer.receive.map { leg($0, .receiving) })
+        ]
+    }
+
+    /// `rank` is always nil on a live offer, and that is correct rather than missing: the offer
+    /// carries names and positions, and `trade-compare.v2` returns no per-player rank. A rank
+    /// composed here would be a number Omen never computed.
+    private static func leg(_ player: TradePlayer, _ direction: OmenTradeLeg.Direction) -> OmenTradeLeg {
+        OmenTradeLeg(
+            direction: direction,
+            name: player.name,
+            meta: [player.position, player.team].compactMap { $0 }.joined(separator: " · "),
+            rank: nil
+        )
+    }
+}

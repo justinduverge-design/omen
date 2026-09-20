@@ -43,6 +43,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.slopssaloon.omen.app.feature.api.TradeCompare
+import com.slopssaloon.omen.app.feature.api.TradeOffer
+import com.slopssaloon.omen.app.feature.api.TradePlayer
 import com.slopssaloon.omen.app.feature.help.OmenHelpDestination
 import com.slopssaloon.omen.app.feature.shell.OmenScreenContext
 import com.slopssaloon.omen.app.feature.shell.OmenScreenHeaderControls
@@ -1376,3 +1378,97 @@ fun omenTradeInput(capability: OmenDecisionCapability): OmenTradeInput? {
         )
     }
 }
+
+// MARK: The production route into J4
+
+/**
+ * The J4 answer, built from a real `trade-compare.v2` response. The Compose half of
+ * `OmenTradeAnswer` in `OmenTradeJourneyScreens.swift`.
+ *
+ * Why only two of the five screens are wired — and why the other three are deliberately left
+ * captured-and-unreachable rather than mounted against invented state — is written out once, in
+ * the Swift file's doc comment. A copied rule is a second source of truth and the copy is the one
+ * that goes stale. In short: `TradeBuild` needs partner-roster reads that do not exist,
+ * `TradeRoster` needs the opponent roster itself, and `TradeShare` needs a client for
+ * `POST /api/trade/share` that has not been built.
+ */
+sealed interface OmenTradeAnswer {
+    data class Verdict(val state: OmenTradeVerdictState) : OmenTradeAnswer
+    data class NeedsContext(val state: OmenTradeNeedsContextState) : OmenTradeAnswer
+}
+
+/**
+ * Null where there is no answer to show — an offer with nothing on either side has no two sides
+ * to draw.
+ */
+fun omenTradeAnswer(compare: TradeCompare, offer: TradeOffer): OmenTradeAnswer? {
+    val sides = omenTradeSides(offer)
+    if (sides.none { it.legs.isNotEmpty() }) return null
+    val read = omenTradeRead(compare)
+
+    return when (compare.verdictState) {
+        TradeCompare.VerdictState.CloseNeedsContext,
+        TradeCompare.VerdictState.InsufficientData,
+        -> OmenTradeAnswer.NeedsContext(
+            OmenTradeNeedsContextState(
+                kicker = "The read",
+                title = compare.headline,
+                sides = sides,
+                read = read,
+                // Offered only where it is genuinely the remedy. A personalized read that still
+                // could not call it is not fixed by connecting a league already connected.
+                remedy = if (compare.analysisContext.isPersonalized) {
+                    null
+                } else {
+                    "Connect the league this offer is in and Omen can score it against your " +
+                        "own settings instead of standard scoring."
+                },
+                connectActionTitle = if (compare.analysisContext.isPersonalized) {
+                    null
+                } else {
+                    "Use my league’s settings"
+                },
+                // The secondary slot. There is no "show it anyway" here — the read above already
+                // is the standard-scoring read — so the honest secondary is the way back.
+                showAnywayActionTitle = "Change the offer",
+            ),
+        )
+
+        TradeCompare.VerdictState.FavorsYou,
+        TradeCompare.VerdictState.YouGiveUpTooMuch,
+        -> OmenTradeAnswer.Verdict(
+            OmenTradeVerdictState(
+                kicker = "The read",
+                title = compare.headline,
+                sides = sides,
+                read = read,
+                // `trade-capabilities.v1`'s `submission` is one word about how a provider accepts
+                // a trade, not a list of steps. Three plausible ESPN steps composed here would be
+                // the client inventing a procedure.
+                submission = null,
+                primaryActionTitle = "Change the offer",
+                // No counter builder, and no native caller for `POST /api/trade/share`. A button
+                // that does nothing is worse than an absent one.
+                counterActionTitle = null,
+                shareActionTitle = null,
+            ),
+        )
+    }
+}
+
+/** Both sides, always — Trade "must show both sides". */
+private fun omenTradeSides(offer: TradeOffer): List<OmenTradeSide> = listOf(
+    OmenTradeSide("You send", offer.send.map { omenTradeLeg(it, OmenTradeLeg.Direction.Sending) }),
+    OmenTradeSide("You receive", offer.receive.map { omenTradeLeg(it, OmenTradeLeg.Direction.Receiving) }),
+)
+
+/**
+ * `rank` is always null on a live offer, and that is correct rather than missing: the offer
+ * carries names and positions, and `trade-compare.v2` returns no per-player rank.
+ */
+private fun omenTradeLeg(player: TradePlayer, direction: OmenTradeLeg.Direction) = OmenTradeLeg(
+    direction = direction,
+    name = player.name,
+    meta = listOfNotNull(player.position, player.team).joinToString(" · "),
+    rank = null,
+)
