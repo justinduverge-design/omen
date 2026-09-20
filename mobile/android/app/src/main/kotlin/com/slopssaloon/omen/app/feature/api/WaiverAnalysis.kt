@@ -9,7 +9,10 @@ import kotlin.math.round
 
 /**
  * `GET /api/waivers/analysis` -> `waiver-analysis.v1`.
- * iOS mirror: `App/Api/WaiverAnalysis.swift`.
+ * iOS mirror: `WaiverAnalysis` in `App/Api/DashboardRepository.swift`. There is no
+ * `App/Api/WaiverAnalysis.swift` and there never was — this pointer named one until
+ * 2026-09-20, which sent anyone checking the two models against each other to a file that
+ * does not exist.
  */
 data class WaiverAnalysis(
     val state: State,
@@ -17,9 +20,50 @@ data class WaiverAnalysis(
     val deadline: String?,
     val bestMove: BestMove?,
     val alternatives: List<Alternative>,
+    /**
+     * `waiver_system`. **Absent means not determined** — see [WaiverSystem.System].
+     *
+     * Added for J5's `WaiverNotDetermined`, which cannot be rendered honestly without it: the
+     * screen's entire job is to say that the system is unknown, and before this field the client
+     * had no way to tell "unknown" from "FAAB with a budget we happen not to have".
+     */
+    val waiverSystem: WaiverSystem? = null,
     /** Coverage only; player rows and bid math stay owned by waiver-analysis.v1. */
     val capabilities: List<OmenDecisionCapability> = emptyList(),
 ) {
+
+    /**
+     * `waiver_system` — how this league decides who gets a claim.
+     *
+     * §6.2's gate. FAAB figures appear only for a positively-determined FAAB league; priority
+     * only for a determined priority league; **neither** for `not_determined`, which is what ESPN
+     * and Yahoo return today.
+     */
+    data class WaiverSystem(
+        val system: System,
+        /**
+         * "Your budget $63 of $100". Composed server-side, because the client does not know
+         * whether a zero balance means spent or unread.
+         */
+        val budgetText: String?,
+        /** "Claim order 7 of 12". */
+        val orderText: String?,
+    ) {
+        enum class System(val wire: String) {
+            Faab("faab"),
+            Priority("priority"),
+            NotDetermined("not_determined");
+
+            companion object {
+                /**
+                 * An unrecognized value degrades to [NotDetermined], never to [Faab]. Assuming a
+                 * budget league is the one wrong guess that produces a bid figure out of nothing.
+                 */
+                fun from(raw: String?): System =
+                    entries.firstOrNull { it.wire == raw } ?: NotDetermined
+            }
+        }
+    }
     enum class State(val wire: String) {
         ConfirmedOpportunity("confirmed_opportunity"),
         AvailabilityUnknown("availability_unknown"),
@@ -88,6 +132,7 @@ data class WaiverAnalysis(
                 message = root.optStringOrNull("message"),
                 deadline = root.optStringOrNull("deadline"),
                 bestMove = root.optJSONObject("best_move")?.let(::bestMove),
+                waiverSystem = root.optJSONObject("waiver_system")?.let(::waiverSystem),
                 alternatives = root.optJSONArray("alternatives")?.let { array ->
                     (0 until array.length()).mapNotNull { index ->
                         array.optJSONObject(index)?.let(::alternative)
@@ -96,6 +141,12 @@ data class WaiverAnalysis(
                 capabilities = root.decisionCapabilities(),
             )
         }.getOrNull()
+
+        private fun waiverSystem(json: JSONObject): WaiverSystem = WaiverSystem(
+            system = WaiverSystem.System.from(json.optStringOrNull("system")),
+            budgetText = json.optStringOrNull("budget_text"),
+            orderText = json.optStringOrNull("order_text"),
+        )
 
         private fun bestMove(json: JSONObject): BestMove = BestMove(
             add = json.optJSONObject("add")?.let(::player),
