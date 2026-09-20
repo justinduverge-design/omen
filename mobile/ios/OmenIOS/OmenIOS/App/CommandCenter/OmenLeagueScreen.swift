@@ -1,217 +1,108 @@
 import SwiftUI
 
-/// M5 slice F — the League destination.
+/// The League destination — the scout's nest.
 ///
-/// Built against the ratified `M1-Screen-League` contract: Matchup Spine, Playoff Picture, the
-/// rank table, and Around the League.
+/// ## What changed here, and why it is a rebuild rather than a re-skin
 ///
-/// **Sections render independently**, because `league-overview.v1` reports them independently.
-/// A dead matchup read shows an unavailable matchup above live standings; it never blanks the
-/// screen. That is the whole reason the contract carries a per-section `status`.
+/// This screen was M5 slice F: a Matchup Spine, a Playoff Picture card, a rank table and "Around
+/// the League", built against the ratified `M1-Screen-League` contract before the canvas existed.
+/// `design/native-visual-lock-2026-09-13/` draws the destination as the **scout's nest** — a
+/// screen about the other eleven managers rather than about you — and `CONTRACTS.md` fixes its
+/// section order: **strip → The Table → Trade targets → Waiver → Activity**.
 ///
-/// Per the scope correction carried by the contract, this screen has **no Draft entry** —
-/// Draft is cut from 1.0.
+/// Those are not the same screen with different paint. The old composition had no trade-target
+/// section at all, put your own matchup at full card size at the top, and had no route to the
+/// wire. So this file now does what it should always have done: it **resolves** the League
+/// destination's state and hands it to `OmenLeagueTableScreen`, which is the built artboard.
+///
+/// **Sections still render independently**, because `league-overview.v1` reports them
+/// independently — that rule survived the rebuild intact and is now expressed as
+/// `OmenScoutSection` per section rather than as four `if` branches.
+///
+/// Per the scope correction carried by the contract, this screen has **no seasonal entry point
+/// beyond the week it is showing**.
 struct OmenLeagueScreen: View {
     let state: LeagueViewModel.ViewState
     var onRetry: (() -> Void)?
     var onConnect: (() -> Void)?
+    /// The switcher bar's context, resolved by the caller that fetched the league. A screen that
+    /// resolved its own could disagree with the table it is displaying.
+    var context: OmenScreenContext?
+    var onOpenAccount: (() -> Void)?
+    /// The wire, when the caller has actually read `waiver-analysis.v1`.
+    ///
+    /// **Optional, and its absence removes the link rather than disabling it.** A "The wire ›"
+    /// affordance that opens an empty screen is the same lie as an avatar that opens nothing —
+    /// the rule `OmenScreenShell` states for the header, applied to a section header.
+    var wire: OmenScoutWireState?
+    /// Trade targets, when something has read other managers' rosters. See `tradeTargets`.
+    var tradeTargets: OmenScoutSection<[OmenScoutTradeTarget]> = OmenLeagueScreen.tradeTargetsUnread
+    /// The waiver section's summary card on the Table screen.
+    var waiverSummary: OmenScoutSection<OmenDeskWaiverMove> = OmenLeagueScreen.waiverUnread
+
+    @State private var showingWire = false
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: OmenSpacing.step24) {
-                switch state {
-                case .idle, .loading:
-                    // Idle and loading are the same surface on purpose: before the first
-                    // request resolves there is nothing truthful to show but a spinner, and an
-                    // empty state would claim the user has no league.
-                    OmenStateSurface(
-                        kind: .loading,
-                        title: "Reading your league",
-                        message: "Matchup and standings come from your provider."
-                    )
-                case .demo:
-                    OmenStateSurface(
-                        kind: .mock,
-                        title: "Demo league",
-                        message: "Demo mode shows no live league. Sign in with a connected league to see your own."
-                    )
-                case .failed(let error):
-                    failure(error)
-                case .loaded(let overview):
-                    loaded(overview)
-                }
-            }
-            .padding(OmenSpacing.step24)
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .background(OmenColor.bg)
-    }
-
-    // MARK: - Loaded
-
-    @ViewBuilder
-    private func loaded(_ overview: LeagueOverview) -> some View {
-        header(overview)
-        matchupSection(overview)
-        standingsSection(overview)
-        activitySection(overview)
-    }
-
-    @ViewBuilder
-    private func header(_ overview: LeagueOverview) -> some View {
-        VStack(alignment: .leading, spacing: OmenSpacing.step4) {
-            Text(overview.leagueName ?? "Your league")
-                .omenTextStyle(OmenTypography.h1)
-                .foregroundStyle(OmenColor.textPrimary)
-            if let week = overview.week {
-                Text("Week \(week)")
-                    .omenTextStyle(OmenTypography.label)
-                    .foregroundStyle(OmenColor.textSecondary)
-            }
-        }
-    }
-
-    // MARK: - Matchup
-
-    @ViewBuilder
-    private func matchupSection(_ overview: LeagueOverview) -> some View {
-        VStack(alignment: .leading, spacing: OmenSpacing.step12) {
-            sectionLabel("Matchup")
-            if let hero = overview.matchupHero {
-                OmenMatchupHero(state: hero)
-            } else {
-                switch overview.matchup.status {
-                case .noMatchup:
-                    OmenStateSurface(
-                        kind: .empty,
-                        title: "No matchup this week",
-                        message: "Your league has you on a bye. Standings below are still current."
-                    )
-                default:
-                    // Named rather than generic: the client was told which half failed, so it
-                    // says so instead of implying the whole league is unreachable.
-                    OmenStateSurface(
-                        kind: .empty,
-                        title: "Matchup didn't come back",
-                        message: matchupUnavailableMessage(overview.matchup.unavailableReason)
+        content
+            .background(OmenColor.bg)
+            .sheet(isPresented: $showingWire) {
+                if let wire {
+                    OmenLeagueWireScreen(
+                        state: wire,
+                        context: context,
+                        onOpenAccount: onOpenAccount
                     )
                 }
             }
-        }
     }
 
-    private func matchupUnavailableMessage(_ reason: String?) -> String {
-        switch reason {
-        case "provider_unsupported":
-            return "This provider doesn't give Omen matchup data yet. Standings below are current."
-        case "team_unknown":
-            return "Omen can't tell which team is yours in this league. Reconnect it in Account to fix that."
-        case "off_season":
-            return "Matchups return when the regular season starts."
+    @ViewBuilder private var content: some View {
+        switch state {
+        case .loaded(let overview):
+            OmenLeagueTableScreen(
+                state: OmenScoutTableState.from(
+                    overview: overview,
+                    waiver: waiverSummary,
+                    tradeTargets: tradeTargets,
+                    notice: nil,
+                    footnote: nil,
+                    // A retry belongs only where retrying could change the answer. When the
+                    // whole read failed the failure surface below carries it instead.
+                    retryTitle: nil
+                ),
+                context: context,
+                onOpenAccount: onOpenAccount,
+                onOpenWaiver: wire == nil ? nil : { showingWire = true }
+            )
         default:
-            return "Omen couldn't read this week's matchup. Standings below are still current."
-        }
-    }
-
-    // MARK: - Standings
-
-    @ViewBuilder
-    private func standingsSection(_ overview: LeagueOverview) -> some View {
-        VStack(alignment: .leading, spacing: OmenSpacing.step12) {
-            sectionLabel("Standings")
-
-            switch overview.standings.status {
-            case .offSeason:
-                OmenStateSurface(
-                    kind: .empty,
-                    title: "Standings return in the regular season",
-                    message: "Your league has no standings to show yet."
-                )
-            case .unavailable:
-                OmenStateSurface(
-                    kind: .empty,
-                    title: "Standings didn't come back",
-                    message: "Omen won't show a stale table. Pull to refresh, or try again shortly."
-                )
-            case .available:
-                if let picture = overview.standings.playoffPicture {
-                    OmenCard(variant: .outlined) {
-                        VStack(alignment: .leading, spacing: OmenSpacing.step4) {
-                            Text(picture.line)
-                                .omenTextStyle(OmenTypography.h2)
-                                .foregroundStyle(OmenColor.textPrimary)
-                            // Only when the server actually read playoff settings. Omen states
-                            // no playoff likelihood in v1 — position only.
-                            if picture.settingsKnown, let note = picture.cutLineNote {
-                                Text(note)
-                                    .omenTextStyle(OmenTypography.body)
-                                    .foregroundStyle(OmenColor.textSecondary)
-                            }
-                        }
+            ScrollView {
+                VStack(alignment: .leading, spacing: OmenSpacing.step24) {
+                    switch state {
+                    case .idle, .loading:
+                        // Idle and loading are the same surface on purpose: before the first
+                        // request resolves there is nothing truthful to show but a spinner, and
+                        // an empty state would claim the user has no league.
+                        OmenStateSurface(
+                            kind: .loading,
+                            title: "Reading your league",
+                            message: "The table and the wire come from your provider."
+                        )
+                    case .demo:
+                        OmenStateSurface(
+                            kind: .mock,
+                            title: "Demo league",
+                            message: "Demo mode shows no live league. Sign in with a connected league to see your own."
+                        )
+                    case .failed(let error):
+                        failure(error)
+                    case .loaded:
+                        EmptyView()
                     }
                 }
-                standingsTable(overview.standings.teams)
+                .padding(OmenSpacing.step24)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-    }
-
-    /// Provider rank order, preserved exactly — Omen never reorders a league (§14.1).
-    @ViewBuilder
-    private func standingsTable(_ teams: [LeagueStandings.Team]) -> some View {
-        VStack(spacing: 0) {
-            ForEach(Array(teams.enumerated()), id: \.offset) { _, team in
-                OmenStandingsRow(team: team)
-            }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(OmenColor.border))
-    }
-
-    // MARK: - Activity
-
-    /// v1 derives no activity signals, so this section is normally the approved empty line.
-    /// It is a real section with a real state — not a placeholder — and the waiver/trade work
-    /// fills `items` without touching this view.
-    @ViewBuilder
-    private func activitySection(_ overview: LeagueOverview) -> some View {
-        VStack(alignment: .leading, spacing: OmenSpacing.step12) {
-            sectionLabel("Around the League")
-
-            if overview.activity.status == .unavailable {
-                OmenStateSurface(kind: .error, title: "League activity unavailable",
-                                 message: "Omen couldn't read league activity. This is an unread feed, not an empty one.")
-            } else if overview.activity.items.isEmpty {
-                OmenStateSurface(
-                    kind: .empty,
-                    title: overview.activity.unavailableFamilies.isEmpty ? "No major league activity to flag right now" : "League activity is incomplete",
-                    message: activityMessage(overview.activity)
-                )
-            } else {
-                OmenCard(variant: .outlined) {
-                    VStack(alignment: .leading, spacing: OmenSpacing.step8) {
-                        ForEach(overview.activity.items) { item in
-                            Text(item.text)
-                                .omenTextStyle(OmenTypography.body)
-                                .foregroundStyle(OmenColor.textSecondary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                    }
-                }
-            }
-            if !overview.activity.items.isEmpty && !overview.activity.unavailableFamilies.isEmpty {
-                Text("Unavailable feeds: \(overview.activity.unavailableFamilies.joined(separator: ", "))")
-                    .omenTextStyle(OmenTypography.bodySmall)
-                    .foregroundStyle(OmenColor.textSecondary)
-            }
-        }
-    }
-
-    /// The missing family is NAMED. §14.3 requires the screen to say *which* half is
-    /// unavailable, and it can only do that because the contract tells it.
-    private func activityMessage(_ activity: LeagueOverview.Activity) -> String {
-        activity.unavailableFamilies.contains("transactions")
-            ? "Waiver and trade activity isn't connected yet, so Omen isn't reporting on it."
-            : "Omen will flag standings and deadline moves here as they happen."
     }
 
     // MARK: - Failure
@@ -221,7 +112,7 @@ struct OmenLeagueScreen: View {
         VStack(alignment: .leading, spacing: OmenSpacing.step12) {
             OmenStateSurface(
                 kind: error == .unauthorized ? .disconnected : .error,
-                title: "Omen couldn't load your league",
+                title: "Omen couldn\u{2019}t load your league",
                 message: LeagueViewModel.message(for: error)
             )
             if let onRetry {
@@ -233,79 +124,23 @@ struct OmenLeagueScreen: View {
         }
     }
 
-    private func sectionLabel(_ text: String) -> some View {
-        Text(text)
-            .omenTextStyle(OmenTypography.label)
-            .foregroundStyle(OmenColor.textSecondary)
-    }
-}
+    // MARK: - The two sections `league-overview.v1` does not carry
 
-/// One standings row. Split out of `OmenLeagueScreen` because the inline expression exceeded
-/// the Swift type-checker's budget — not a stylistic split.
-private struct OmenStandingsRow: View {
-    let team: LeagueStandings.Team
+    /// `league-overview.v1` carries standings, matchup and activity. It does **not** carry other
+    /// managers' rosters, which is what a trade target is derived from — so until a caller has
+    /// read them, the section says so in words rather than rendering an empty list.
+    ///
+    /// An empty list and an unread one look identical and mean opposite things. That distinction
+    /// is the whole subject of `LeagueDegraded`, so this screen must not be the place that
+    /// quietly gets it wrong.
+    static let tradeTargetsUnread = OmenScoutSection<[OmenScoutTradeTarget]>.unread(
+        capability: "Trade rosters",
+        sentence: "Omen has not read the other managers\u{2019} rosters for this league yet, so it names no trade targets. It will not guess one from the standings."
+    )
 
-    private var rankText: String {
-        guard let rank = team.rank else { return "–" }
-        return String(rank)
-    }
-
-    private var recordText: String? {
-        guard let wins = team.wins, let losses = team.losses else { return nil }
-        return "\(wins)-\(losses)"
-    }
-
-    /// Points for. Shown because it is what the league is actually sorted by — without it two
-    /// teams at the same record appear ranked arbitrarily. Absent when the provider omits it.
-    private var pointsText: String? {
-        team.pointsFor.map { String(format: "%.1f", $0) }
-    }
-
-    private var accessibilityText: String {
-        var parts: [String] = []
-        if let rank = team.rank { parts.append("Rank \(rank)") }
-        parts.append(team.teamName ?? "Unnamed team")
-        if let recordText { parts.append(recordText) }
-        if let pointsText { parts.append("\(pointsText) points for") }
-        if team.isCurrentUser { parts.append("your team") }
-        return parts.joined(separator: ", ")
-    }
-
-    var body: some View {
-        HStack(spacing: OmenSpacing.step12) {
-            Text(rankText)
-                .omenTextStyle(OmenTypography.label)
-                .foregroundStyle(OmenColor.textSecondary)
-                .frame(minWidth: 24, alignment: .leading)
-
-            Text(team.teamName ?? "Unnamed team")
-                .omenTextStyle(OmenTypography.body)
-                .foregroundStyle(OmenColor.textPrimary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            if let recordText {
-                Text(recordText)
-                    .omenTextStyle(OmenTypography.bodySmall)
-                    .foregroundStyle(OmenColor.textSecondary)
-            }
-
-            if let pointsText {
-                Text(pointsText)
-                    .omenTextStyle(OmenTypography.bodySmall)
-                    .foregroundStyle(OmenColor.textTertiary)
-            }
-
-            if team.isCurrentUser {
-                OmenBadge(label: "You", tone: .live)
-            }
-        }
-        .padding(OmenSpacing.step12)
-        .background(rowBackground)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(accessibilityText)
-    }
-
-    private var rowBackground: Color {
-        team.isCurrentUser ? OmenColor.surface2 : Color.clear
-    }
+    /// Same rule for the waiver summary: `waiver-analysis.v1` is a separate read.
+    static let waiverUnread = OmenScoutSection<OmenDeskWaiverMove>.unread(
+        capability: "Waivers",
+        sentence: "The wire has not been read for this league yet."
+    )
 }
