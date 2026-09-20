@@ -37,6 +37,9 @@ import com.slopssaloon.omen.app.auth.OmenDeleteAccountScreen
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterFixtures
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterScreen
 import com.slopssaloon.omen.app.feature.commandcenter.OmenLeagueScreen
+import com.slopssaloon.omen.app.feature.commandcenter.omenScoutWireState
+import com.slopssaloon.omen.app.feature.commandcenter.scoutSummary
+import com.slopssaloon.omen.app.feature.commandcenter.waiverUnread
 import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeScreen
 import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeAnswer
 import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeNeedsContextScreen
@@ -910,6 +913,23 @@ private fun SignedInDestination(
                     state = leagueViewModel.viewState,
                     onRetry = { scope.launch { leagueViewModel.reload() } },
                     onConnect = onConnect,
+                    // E017 carries both controls, and `OmenScreenHeaderControls` renders the
+                    // account one only when this is non-null. Without it League — and the wire
+                    // sheet it presents, which inherits this same lambda — would be the only
+                    // signed-in surfaces with no route to the account.
+                    onOpenAccount = onOpenAccount,
+                    // The wire comes from the SAME `waiver-analysis.v1` read Command Center
+                    // already makes, for the reason Trade takes its league from the League
+                    // destination's read: two surfaces that fetch the wire separately can
+                    // disagree about it on screen.
+                    //
+                    // Null until that read lands, which removes the section link rather than
+                    // opening an empty sheet.
+                    wire = commandCenterViewModel.waiverAnalysis?.let {
+                        omenScoutWireState(it, leagueViewModel.wireWeekLabel)
+                    },
+                    waiverSummary = commandCenterViewModel.waiverAnalysis?.scoutSummary
+                        ?: waiverUnread,
                 )
             }
         }
