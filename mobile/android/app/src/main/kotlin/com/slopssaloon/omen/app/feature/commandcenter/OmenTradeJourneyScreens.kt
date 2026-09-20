@@ -603,6 +603,10 @@ private fun TradeJourneyHeader(kicker: String, title: String, onOpenAccount: (()
 /** `.tabs2` — two tabs, not a general segmented control. */
 @Composable
 private fun TradeTabs(titles: List<String>, selectedIndex: Int, onSelect: ((Int) -> Unit)?) {
+    // Hoisted out of `drawBehind`: that lambda is a `DrawScope`, not a `@Composable`, so it
+    // cannot read `OmenTheme.color` itself. Reading the token here and capturing it is the
+    // same pattern `accent` below already uses.
+    val borderSubtle = OmenTheme.color.borderSubtle
     Row(
         modifier = Modifier
             .fillMaxWidth()
