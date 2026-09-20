@@ -337,7 +337,7 @@ struct OmenLeagueTableScreen: View {
     @ViewBuilder private var stripSection: some View {
         switch state.strip {
         case .read(let strip):
-            OmenScoutStripRow(strip: strip, onOpen: onOpenWaiver == nil ? nil : {})
+            OmenScoutStripRow(strip: strip)
                 .padding(.horizontal, OmenSpacing.step16)
                 .padding(.top, OmenSpacing.step12)
         case .unread(let capability, let sentence):
@@ -725,10 +725,26 @@ struct OmenLeagueWireScreen: View {
 
 // MARK: - Blocks
 
-/// `.strip` — your own week, compressed to one line.
+/// `.strip` — your own week, compressed to one line, and **deliberately not a route**.
+///
+/// The artboard ends this row with `<a>Your week</a>`. The build omits it, and the artboard was
+/// redrawn to match rather than the link being added — this is the mix rule with the build
+/// winning, and the argument is a fact of record rather than taste.
+///
+/// Fact-of-record #16, amended 2026-09-13, re-scoped this destination away from being a readout
+/// of the user's own week: *"The locked order made League a readout of the user's own week, which
+/// Command Center already owns, so the destination opened by repeating its neighbour."* The strip
+/// survives that amendment as one compressed line of context — where you stand while you look at
+/// everyone else. A control labelled "Your week" that navigates to your own week reintroduces
+/// precisely what the amendment removed.
+///
+/// **This row previously carried a dead `onOpen`**: declared, never rendered, and passed
+/// `onOpenWaiver == nil ? nil : {}` by its caller — keyed off the *waiver* handler and then
+/// handed an empty closure either way. So it could not have worked even if it had been drawn.
+/// Removed rather than wired, on the principle `OmenLeagueSwitcherBar` already states about its
+/// chevron: a control that opens nothing is a lie about what the row can do.
 private struct OmenScoutStripRow: View {
     let strip: OmenScoutStrip
-    var onOpen: (() -> Void)?
 
     var body: some View {
         HStack(spacing: OmenSpacing.step10) {
