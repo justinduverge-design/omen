@@ -203,6 +203,17 @@ class TradeViewModel(
         }
     }
 
+    /**
+     * Back to the offer builder, keeping the offer itself.
+     *
+     * The J4 answer screens replace the builder while a verdict is on screen, so there has to be
+     * a way back. [ViewState.Idle] rather than clearing [offer] is the point: a user who reads
+     * "you give up too much" wants to change one player, not retype the deal.
+     */
+    fun dismissVerdict() {
+        viewState = ViewState.Idle
+    }
+
     companion object {
         const val SEARCH_DEBOUNCE_MS = 250L
 

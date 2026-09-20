@@ -28,6 +28,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.slopssaloon.omen.app.feature.api.StartSitDetail
 import com.slopssaloon.omen.app.feature.help.OmenHelpButton
+import com.slopssaloon.omen.app.feature.shell.OmenScreenContext
+import com.slopssaloon.omen.app.feature.shell.OmenScreenHeaderControls
+import com.slopssaloon.omen.app.feature.shell.OmenScreenSwitcherBar
 import com.slopssaloon.omen.app.feature.help.OmenHelpDestination
 import com.slopssaloon.omen.core.designsystem.component.OmenBadge
 import com.slopssaloon.omen.core.designsystem.component.OmenBadgeTone
@@ -50,7 +53,27 @@ import java.util.Locale
 
 /**
  * U1 Omen destination, mirrored from iOS so a J3 contact sheet does not compare the canvas with
- * two different products. The unresolved help/avatar slot is intentionally unchanged.
+ * two different products.
+ *
+ * ## Three pieces of recorded drift, closed here
+ *
+ * The 2026-09-19 handoff carried "Android's OmenCall card trails its artboard: no switcher bar,
+ * no account control, and it still renders `OmenDecisionBrief`." All three were real:
+ *
+ *  1. **No switcher bar.** E005–E012 is on 25 of the 30 artboards and Android had never built
+ *     it. `OmenLeagueSwitcherBar` now exists in the design system and [context] binds it.
+ *  2. **No account control.** The header held only the help button, so E017 was half-built and
+ *     Account — which is reachable *only* from a header profile control, never a tab — could not
+ *     be reached from here at all.
+ *  3. **`OmenDecisionBrief` for every non-success state.** iOS renders `OmenStateSurface` and
+ *     Android rendered the old brief component, so the two platforms disagreed about what an
+ *     empty or disconnected Omen looks like — on a journey whose entire purpose is comparing
+ *     them side by side.
+ *
+ * A fourth, found while closing the third: `payload` was read from `Success` **only**, so the
+ * `Demo`, `Mock` and `Stale` states — all three of which carry a payload — fell through to the
+ * brief. Demo Mode is the App Store reviewer's path into the app (fact-of-record #19), so the
+ * reviewer's Omen screen was the one composition nobody was looking at.
  */
 @Composable
 fun OmenDecisionScreen(
@@ -60,22 +83,42 @@ fun OmenDecisionScreen(
     providerName: String? = null,
     onMakeMove: (() -> Unit)? = null,
     onDecline: (() -> Unit)? = null,
+    onOpenAccount: (() -> Unit)? = null,
+    context: OmenScreenContext? = null,
 ) {
     val showingEvidence = androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
-    val payload = (state as? OmenDecisionBriefState.Success)?.payload
+    // Every state that carries a payload, not just `Success`. See the fourth point above.
+    val payload = when (state) {
+        is OmenDecisionBriefState.Success -> state.payload
+        is OmenDecisionBriefState.Demo -> state.payload
+        is OmenDecisionBriefState.Mock -> state.payload
+        is OmenDecisionBriefState.Stale -> state.payload
+        else -> null
+    }
     if (showingEvidence.value && payload != null) {
-        OmenEvidenceScreen(payload = payload, weekLabel = weekLabel, modifier = modifier)
+        OmenEvidenceScreen(
+            payload = payload,
+            weekLabel = weekLabel,
+            modifier = modifier,
+            onOpenAccount = onOpenAccount,
+            context = context,
+        )
         return
     }
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(OmenTheme.color.bg)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = OmenTheme.spacing.step16, vertical = OmenTheme.spacing.step12),
-        verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12),
+            .background(OmenTheme.color.bg),
     ) {
+        OmenScreenSwitcherBar(context)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = OmenTheme.spacing.step16, vertical = OmenTheme.spacing.step12),
+            verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12),
+        ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -87,12 +130,51 @@ fun OmenDecisionScreen(
                 }
                 Text("Omen", style = OmenTheme.typography.screenTitle.toTextStyle(), color = OmenTheme.color.textPrimary)
             }
-            OmenHelpButton(OmenHelpDestination.Omen)
+            OmenScreenHeaderControls(OmenHelpDestination.Omen, onOpenAccount = onOpenAccount)
         }
         Text("Call · one per team", style = OmenTheme.typography.micro.toTextStyle(), color = OmenTheme.color.textTertiary)
 
         if (payload == null) {
-            OmenDecisionBrief(state = state, modifier = Modifier.fillMaxWidth())
+            // `OmenStateSurface`, matching iOS, rather than `OmenDecisionBrief`. The brief is the
+            // older full-card renderer; on this screen the honest states are a title and a
+            // sentence, and two platforms must not disagree about what "no call this week" looks
+            // like on the journey built to compare them.
+            when (state) {
+                is OmenDecisionBriefState.Empty -> OmenStateSurface(
+                    kind = OmenStateSurfaceKind.Empty,
+                    title = "No call this week",
+                    message = state.message,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                is OmenDecisionBriefState.Error -> OmenStateSurface(
+                    kind = OmenStateSurfaceKind.Error,
+                    title = "Couldn't reach Omen",
+                    message = state.message,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                is OmenDecisionBriefState.Disconnected -> OmenStateSurface(
+                    kind = OmenStateSurfaceKind.Empty,
+                    title = "No league connected",
+                    message = "Omen needs a connected league before it can make a call.",
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OmenDecisionBriefState.OffSeason -> OmenStateSurface(
+                    kind = OmenStateSurfaceKind.Empty,
+                    title = "Calls return in season",
+                    message = "Omen will read your roster again when the regular season begins.",
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                // Loading is a real state here and it is NOT an unread capability: the answer has
+                // not been given yet, so a spinner is honest. `capability-expression-v1.md`'s ban
+                // on spinners applies to a `pending` input inside a delivered answer, which is a
+                // different thing.
+                else -> OmenStateSurface(
+                    kind = OmenStateSurfaceKind.Loading,
+                    title = "Reading your week",
+                    message = "Omen is reading your roster, the wire and the table.",
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
             return@Column
         }
 
@@ -167,6 +249,7 @@ fun OmenDecisionScreen(
             color = OmenTheme.color.textSecondary,
             modifier = Modifier.padding(top = OmenTheme.spacing.step10),
         )
+        }
     }
 }
 
@@ -176,20 +259,34 @@ fun OmenEvidenceScreen(
     payload: OmenDecisionBriefPayload,
     weekLabel: String? = null,
     modifier: Modifier = Modifier,
+    onOpenAccount: (() -> Unit)? = null,
+    context: OmenScreenContext? = null,
 ) {
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(OmenTheme.color.bg)
+            .background(OmenTheme.color.bg),
+    ) {
+    OmenScreenSwitcherBar(context)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = OmenTheme.spacing.step16, vertical = OmenTheme.spacing.step12),
         verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step4)) {
-            if (weekLabel != null) {
-                Text(weekLabel, style = OmenTheme.typography.micro.toTextStyle(), color = OmenTheme.color.accent)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step4)) {
+                if (weekLabel != null) {
+                    Text(weekLabel, style = OmenTheme.typography.micro.toTextStyle(), color = OmenTheme.color.accent)
+                }
+                Text("The argument", style = OmenTheme.typography.screenTitle.toTextStyle(), color = OmenTheme.color.textPrimary)
             }
-            Text("The argument", style = OmenTheme.typography.screenTitle.toTextStyle(), color = OmenTheme.color.textPrimary)
+            OmenScreenHeaderControls(OmenHelpDestination.Omen, onOpenAccount = onOpenAccount)
         }
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8)) {
@@ -254,6 +351,7 @@ fun OmenEvidenceScreen(
             }
         }
         Spacer(Modifier.height(OmenTheme.spacing.step16))
+    }
     }
 }
 
@@ -670,10 +768,25 @@ fun OmenConnectFailedScreen(
                 color = OmenTheme.color.textPrimary,
             )
         }
+        // **The closing clause is a function of the status, not a constant.**
+        //
+        // It used to say "The cookies are there and $provider is refusing them" on every failure,
+        // which is false on a 422 and the code says so itself: `ConnectRepository` calls 422
+        // "the route's own 'we didn't get a session'" and maps `espn_cookies_required` to it. On
+        // a 422 the values never reached Omen at all, so asserting they are present is the exact
+        // kind of confident wrong sentence this screen exists to replace.
+        //
+        // Additive and field-by-field like the rest of the evidence line: it still never invents
+        // a value, and it still never shows one.
+        val sessionUnreadable = statusCode == 422
         OmenCard {
             Text(
                 "$provider returned $statusCode $statusText for league $leagueId at $observedAt. " +
-                    "The cookies are there and $provider is refusing them.",
+                    if (sessionUnreadable) {
+                        "Omen did not receive the two cookies, so there was nothing to send."
+                    } else {
+                        "The cookies are there and $provider is refusing them."
+                    },
                 style = OmenTheme.typography.bodySmall.toTextStyle(),
                 color = OmenTheme.color.textSecondary,
             )
@@ -682,8 +795,14 @@ fun OmenConnectFailedScreen(
         // cause it cannot verify is the overclaim the capability contract exists to prevent.
         FailureSection(
             "Most likely cause",
-            "You signed out of $provider — or $provider signed you out, which it does every few " +
-                "weeks. The values Omen stored are stale. Nothing is wrong with your league.",
+            if (sessionUnreadable) {
+                "The sign-in finished but the two cookies never came back to Omen. That usually " +
+                    "means the capture was interrupted, or the browser blocked them. Nothing is " +
+                    "wrong with your league."
+            } else {
+                "You signed out of $provider — or $provider signed you out, which it does every " +
+                    "few weeks. The values Omen stored are stale. Nothing is wrong with your league."
+            },
         )
         Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8)) {
             Text(
@@ -691,13 +810,24 @@ fun OmenConnectFailedScreen(
                 style = OmenTheme.typography.micro.toTextStyle(),
                 color = OmenTheme.color.textTertiary,
             )
-            // Ordered because the order matters: reconnecting before signing in again re-reads
-            // the same stale values and fails identically.
+            // Ordered because the order matters, and the order is different per status.
+            //
+            // On a 401 the stored values are stale, so signing in again before reconnecting is
+            // what makes the reconnect find anything new. On a 422 there are no stored values to
+            // refresh — "tap Reconnect, Omen re-reads the two cookies" sends the user to re-read
+            // nothing, it fails identically, and they conclude the app is broken. That is the
+            // outcome this whole screen exists to prevent, so the 422 path says redo the capture.
             OmenCard {
                 Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12)) {
-                    FailureStep(1, "Open $provider Fantasy in your browser and sign in again.")
-                    FailureStep(2, "Come back here and tap Reconnect. Omen re-reads the two cookies.")
-                    FailureStep(3, "Still failing? The league may have been made private, or deleted.")
+                    if (sessionUnreadable) {
+                        FailureStep(1, "Tap Reconnect and run the $provider sign-in through to the end without switching apps.")
+                        FailureStep(2, "If your browser blocks cross-site cookies, allow them for $provider and try once more.")
+                        FailureStep(3, "Still failing? Send this to support — the capture is not completing and that is ours to fix.")
+                    } else {
+                        FailureStep(1, "Open $provider Fantasy in your browser and sign in again.")
+                        FailureStep(2, "Come back here and tap Reconnect. Omen re-reads the two cookies.")
+                        FailureStep(3, "Still failing? The league may have been made private, or deleted.")
+                    }
                 }
             }
         }

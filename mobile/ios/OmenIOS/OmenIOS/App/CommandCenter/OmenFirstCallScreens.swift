@@ -81,7 +81,7 @@ struct OmenEvidenceScreen: View {
                     .foregroundStyle(OmenColor.textPrimary)
             }
             Spacer(minLength: OmenSpacing.step8)
-            OmenFirstCallHeaderControls(
+            OmenScreenHeaderControls(
                 topic: OmenContextualHelpContent.topic(for: .omen),
                 onOpenAccount: onOpenAccount
             )
@@ -284,7 +284,7 @@ struct OmenStartSitScreen: View {
                     .foregroundStyle(OmenColor.textPrimary)
             }
             Spacer(minLength: OmenSpacing.step8)
-            OmenFirstCallHeaderControls(
+            OmenScreenHeaderControls(
                 topic: OmenContextualHelpContent.topic(for: .omen),
                 onOpenAccount: onOpenAccount
             )
@@ -514,52 +514,7 @@ private extension OmenDecisionCapability {
     }
 }
 
-/// E017's slot, resolved by the founder on 2026-09-18 as **both** controls rather than one.
-///
-/// The artboards draw a single 30x30 account avatar in this slot on 25 of the 30 screens, and
-/// M6-ContextualHelp shipped a help button into the same place. Rather than delete a shipped
-/// affordance to match a picture, or leave the account unreachable to keep it, both sit here in
-/// Command Center's order. The extra width against the artboard is a recorded drift.
-private struct OmenFirstCallHeaderControls: View {
-    let topic: OmenHelpTopic
-    var onOpenAccount: (() -> Void)?
-
-    var body: some View {
-        HStack(spacing: OmenSpacing.step8) {
-            OmenContextualHelpButton(topic: topic)
-            if let onOpenAccount {
-                OmenIconButton(
-                    contentDescription: "Account and profile",
-                    icon: Image(systemName: "person.crop.circle"),
-                    action: onOpenAccount,
-                    tone: .neutral
-                )
-            }
-        }
-    }
-}
-
-/// The league context a J3 screen renders in its switcher bar (E005–E012).
-///
-/// Passed in rather than read on-screen: these screens are handed a decision, and the context
-/// that decision was made in belongs to the caller that fetched it. A screen that resolved its
-/// own league could disagree with the call it is displaying.
-struct OmenFirstCallContext {
-    let crest: String
-    let teamName: String
-    let platform: OmenPlatform
-    var leagueName: String?
-    var onSwitch: (() -> Void)?
-    var onAddLeague: (() -> Void)?
-
-    @ViewBuilder var bar: some View {
-        OmenLeagueSwitcherBar(
-            crest: crest,
-            teamName: teamName,
-            platform: platform,
-            leagueName: leagueName,
-            onSwitch: onSwitch,
-            onAddLeague: onAddLeague
-        )
-    }
-}
+// The E017 header controls and the switcher-bar context that used to live here are now in
+// `DesignSystem/OmenScreenShell.swift`. They were never J3-specific: J2's five Command Center
+// screens carry both, and J4/J5/J6 will too. `OmenFirstCallContext` survives there as a
+// typealias for `OmenScreenContext`, so nothing below changed.

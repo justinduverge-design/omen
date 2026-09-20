@@ -122,10 +122,63 @@ struct CommandCenterView: View {
         .background(OmenColor.bg.ignoresSafeArea())
     }
 
+    /// The team a switch is currently writing to, or nil when nothing is in flight.
+    ///
+    /// Read off the carousel's own `committingPageID` rather than a second flag, so there is one
+    /// answer to "is a switch happening" and it cannot disagree with itself.
+    private var switchingContext: (context: OmenScreenContext, weekLabel: String, footnote: OmenDeskFootnote)? {
+        guard
+            let committingID = leagueCarouselViewModel.committingPageID,
+            let page = leagueCarouselViewModel.allPages.first(where: { $0.id == committingID })
+        else { return nil }
+
+        let platform: OmenPlatform
+        switch page.platform.lowercased() {
+        case "yahoo": platform = .yahoo
+        case "sleeper": platform = .sleeper
+        default: platform = .espn
+        }
+        let providerName: String
+        switch platform {
+        case .espn: providerName = "ESPN"
+        case .yahoo: providerName = "Yahoo"
+        case .sleeper: providerName = "Sleeper"
+        }
+
+        return (
+            context: OmenScreenContext(
+                crest: OmenDeskState.crest(from: page.displayTeamName),
+                teamName: page.displayTeamName,
+                platform: platform,
+                leagueName: page.leagueName
+            ),
+            // No week label mid-switch: the week belongs to the read that has not landed yet,
+            // and carrying the old team's week over would be the same reuse §10.3 forbids.
+            weekLabel: "",
+            footnote: OmenDeskFootnote(
+                text: "Reading \(page.displayTeamName) from \(providerName).",
+                emphasis: "The previous team's numbers are gone, not reused."
+            )
+        )
+    }
+
     var body: some View {
         TabView(selection: $selectedTab) {
             Group {
-                if let failure = commandCenterViewModel.failure {
+                // §10.3, wired. A league switch used to leave the outgoing team's scoreboard on
+                // screen until the new read landed — for that second the numbers belonged to one
+                // team and the name above them to another. The contract is explicit that "the
+                // previous team's numbers are discarded, never reused while loading", so the
+                // desk goes to its mid-switch state instead and the switcher bar commits to the
+                // new team immediately, which is the only thing on the screen we actually know.
+                if let switching = switchingContext {
+                    OmenSwitchLoadingScreen(
+                        context: switching.context,
+                        weekLabel: switching.weekLabel,
+                        footnote: switching.footnote,
+                        onOpenAccount: { showAccountSheet = true }
+                    )
+                } else if let failure = commandCenterViewModel.failure {
                     // M5 slice B: an unreadable shell renders an explicit failure surface.
                     // It must NOT silently fall through to the disconnected fixture, which
                     // would state as fact that the user has no leagues.
@@ -199,7 +252,35 @@ struct CommandCenterView: View {
             .tag(CommandCenterTab.omen)
 
             // M5 slice G: the Trade destination now renders `trade-compare.v2`.
+            //
+            // J4: once the server has answered, the answer is J4's screen rather than the
+            // builder's inline verdict. `OmenTradeAnswer.from` picks `TradeVerdict` or
+            // `TradeNeedsContext` off `verdict_state` — the same seat in the journey, in the two
+            // states the contract returns it in — and this is the production route that makes
+            // both reachable rather than only photographable. `OmenTradeAnswer` documents which
+            // three J4 screens are deliberately NOT wired here and why.
+            //
+            // `dismissVerdict` keeps the offer. A user who reads "you give up too much" wants to
+            // change one player, not retype the deal.
             withTeamPicker {
+                if case .loaded(let compare) = tradeViewModel.viewState,
+                   let answer = OmenTradeAnswer.from(compare, offer: tradeViewModel.offer) {
+                    switch answer {
+                    case .verdict(let state):
+                        OmenTradeVerdictScreen(
+                            state: state,
+                            onOpenAccount: { showAccountSheet = true },
+                            onPrimaryAction: { tradeViewModel.dismissVerdict() }
+                        )
+                    case .needsContext(let state):
+                        OmenTradeNeedsContextScreen(
+                            state: state,
+                            onOpenAccount: { showAccountSheet = true },
+                            onConnect: { showConnectSheet = true },
+                            onShowAnyway: { tradeViewModel.dismissVerdict() }
+                        )
+                    }
+                } else {
                 OmenTradeScreen(
                     state: tradeViewModel.viewState,
                     offer: tradeViewModel.offer,
@@ -213,6 +294,7 @@ struct CommandCenterView: View {
                     capabilities: tradeViewModel.capabilities
                 )
                 .task { await tradeViewModel.loadCapabilities() }
+                }
             }
             // The league to personalize against comes from the SAME `league-overview.v1` read
             // the League destination uses. Trade never discovers a league on its own, so the

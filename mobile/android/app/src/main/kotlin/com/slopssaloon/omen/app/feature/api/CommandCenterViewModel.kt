@@ -103,6 +103,17 @@ class CommandCenterViewModel(
     val failure: OmenApiError?
         get() = (viewState as? ViewState.Failed)?.error
 
+    /**
+     * True when the shell was read and it said there are no connected platforms.
+     *
+     * Distinct from [failure], and the distinction is the point: a shell we could not read is not
+     * the same as a shell that told us there are no leagues. Only `Loaded` answers this, so a
+     * failed or still-loading read returns false and keeps its own surface rather than claiming
+     * an empty account. The iOS twin is `CommandCenterViewModel.hasNoConnectedLeague`.
+     */
+    val hasNoConnectedLeague: Boolean
+        get() = (viewState as? ViewState.Loaded)?.summary?.platforms?.anyConnected?.not() ?: false
+
     suspend fun load(userId: String) {
         if (userId == SessionManager.DEMO_USER_ID) {
             viewState = ViewState.Demo

@@ -199,6 +199,204 @@ enum ScreenshotScenarios {
                 ))))
             }
         ),
+        // J2 — "the desk". The numbering is the storyboard order: arrive at Command, open the
+        // switcher, watch the new team resolve, and see what the desk says on a quiet week.
+        //
+        // The degraded pass is NOT a fifth screen. `CONTRACTS.md` gives Command Center its own
+        // rule — "Every section fails independently; a dead matchup read sits beside live
+        // standings" — so the same four frames run with `league_matchup` unavailable and
+        // `league_standings` read-but-unused, which is exactly the pair
+        // `capability-expression-v1.md` requires of a degraded pass for a `consumes` profile.
+        //
+        // `CommandQuiet` appears only in the nominal pass and `CommandQuietStraight` only in the
+        // degraded one, and that is the contract rather than a convenience: the neutral variant
+        // requires *all* positive quiet evidence, so it cannot occur in a pass where a provider
+        // failed. Straight fires on exactly that.
+        "journey-j2.nominal.01-command-center": ScreenshotScenario(
+            label: "J2 nominal 1/4 — the desk, everything read",
+            content: { AnyView(j2Shell(AnyView(OmenCommandDeskScreen(
+                state: J2ScreenshotFixtures.nominalDesk,
+                context: J2ScreenshotFixtures.titansContext,
+                onOpenAccount: {},
+                onOpenLeague: {},
+                onOpenLedger: {}
+            )))) }
+        ),
+        "journey-j2.nominal.02-switch-sheet": ScreenshotScenario(
+            label: "J2 nominal 2/4 — the switcher sheet over the desk",
+            content: { AnyView(j2Shell(AnyView(OmenSwitchSheetOverlay(
+                state: J2ScreenshotFixtures.nominalSwitchSheet,
+                onSelectFilter: { _ in },
+                onSelectRow: { _ in },
+                onToggleFavorite: { _ in },
+                onDismiss: {},
+                backdrop: {
+                    OmenCommandDeskScreen(
+                        state: J2ScreenshotFixtures.nominalDesk,
+                        context: J2ScreenshotFixtures.titansContext,
+                        onOpenAccount: {}
+                    )
+                }
+            )))) }
+        ),
+        "journey-j2.nominal.03-switch-loading": ScreenshotScenario(
+            label: "J2 nominal 3/4 — mid-switch, nothing reused",
+            content: { AnyView(j2Shell(AnyView(OmenSwitchLoadingScreen(
+                context: J2ScreenshotFixtures.davantesContext,
+                weekLabel: "Week 7 · Sunday",
+                footnote: J2ScreenshotFixtures.switchingFootnote,
+                onOpenAccount: {}
+            )))) }
+        ),
+        "journey-j2.nominal.04-command-quiet": ScreenshotScenario(
+            label: "J2 nominal 4/4 — a quiet week, neutral variant",
+            content: { AnyView(j2Shell(AnyView(OmenCommandQuietScreen(
+                state: J2ScreenshotFixtures.quietNeutral,
+                context: J2ScreenshotFixtures.titansContext,
+                onOpenAccount: {}
+            )))) }
+        ),
+        "journey-j2.degraded.01-command-center": ScreenshotScenario(
+            label: "J2 degraded 1/4 — dead matchup read beside a live wire",
+            content: { AnyView(j2Shell(AnyView(OmenCommandDeskScreen(
+                state: J2ScreenshotFixtures.degradedDesk,
+                context: J2ScreenshotFixtures.titansContext,
+                onOpenAccount: {},
+                onOpenLeague: {},
+                onOpenLedger: {}
+            )))) }
+        ),
+        "journey-j2.degraded.02-switch-sheet": ScreenshotScenario(
+            label: "J2 degraded 2/4 — switcher naming the provider it could not list",
+            content: { AnyView(j2Shell(AnyView(OmenSwitchSheetOverlay(
+                state: J2ScreenshotFixtures.degradedSwitchSheet,
+                onSelectFilter: { _ in },
+                onSelectRow: { _ in },
+                onToggleFavorite: { _ in },
+                onDismiss: {},
+                backdrop: {
+                    OmenCommandDeskScreen(
+                        state: J2ScreenshotFixtures.degradedDesk,
+                        context: J2ScreenshotFixtures.titansContext,
+                        onOpenAccount: {}
+                    )
+                }
+            )))) }
+        ),
+        "journey-j2.degraded.03-switch-loading": ScreenshotScenario(
+            label: "J2 degraded 3/4 — mid-switch after a partial read",
+            content: { AnyView(j2Shell(AnyView(OmenSwitchLoadingScreen(
+                context: J2ScreenshotFixtures.davantesContext,
+                weekLabel: "Week 7 · Sunday",
+                footnote: J2ScreenshotFixtures.switchingFootnote,
+                onOpenAccount: {}
+            )))) }
+        ),
+        "journey-j2.degraded.04-command-quiet-straight": ScreenshotScenario(
+            label: "J2 degraded 4/4 — a quiet week after a loss, straight variant",
+            content: { AnyView(j2Shell(AnyView(OmenCommandQuietScreen(
+                state: J2ScreenshotFixtures.quietStraight,
+                context: J2ScreenshotFixtures.titansContext,
+                onOpenAccount: {}
+            )))) }
+        ),
+        // J4, "settling an argument". Trade is the front door, so these open on the Trade tab.
+        //
+        // Numbered in the order a user meets them: build a deal, look at the other roster, get
+        // the read, send it. `TradeVerdict` holds the third seat in the nominal pass and
+        // `TradeNeedsContext` holds it in the degraded one — same seat, two states of the same
+        // answer. See `J4ScreenshotFixtures` for why that split is a contract and not a choice.
+        "journey-j4.nominal.01-trade-build": ScreenshotScenario(
+            label: "J4 nominal 1/4 — build a deal, third team unavailable",
+            content: { AnyView(j4Shell(AnyView(OmenTradeBuildScreen(
+                state: J4ScreenshotFixtures.nominalBuild,
+                context: J4ScreenshotFixtures.titansContext,
+                onOpenAccount: {},
+                onSelectTab: { _ in },
+                onSelectPartner: { _ in },
+                onSelectFilter: { _ in },
+                onPrimaryAction: {}
+            )))) }
+        ),
+        "journey-j4.nominal.02-trade-roster": ScreenshotScenario(
+            label: "J4 nominal 2/4 — picking from a roster Omen could read",
+            content: { AnyView(j4Shell(AnyView(OmenTradeRosterScreen(
+                state: J4ScreenshotFixtures.nominalRoster,
+                context: J4ScreenshotFixtures.titansContext,
+                onOpenAccount: {},
+                onSelectTab: { _ in },
+                onSelectPartner: { _ in },
+                onSelectFilter: { _ in },
+                onAddPlayer: { _ in }
+            )))) }
+        ),
+        "journey-j4.nominal.03-trade-verdict": ScreenshotScenario(
+            label: "J4 nominal 3/4 — the read, both sides and the caveat",
+            content: { AnyView(j4Shell(AnyView(OmenTradeVerdictScreen(
+                state: J4ScreenshotFixtures.verdict,
+                context: J4ScreenshotFixtures.titansContext,
+                onOpenAccount: {},
+                onPrimaryAction: {},
+                onCounter: {},
+                onShare: {}
+            )))) }
+        ),
+        "journey-j4.nominal.04-trade-share": ScreenshotScenario(
+            label: "J4 nominal 4/4 — share the read, names off by default",
+            content: { AnyView(j4Shell(AnyView(OmenTradeShareScreen(
+                state: J4ScreenshotFixtures.nominalShare,
+                context: J4ScreenshotFixtures.titansContext,
+                onOpenAccount: {},
+                onToggleInclusion: { _ in },
+                onShare: {},
+                onCopyAsText: {}
+            )))) }
+        ),
+        "journey-j4.degraded.01-trade-build": ScreenshotScenario(
+            label: "J4 degraded 1/4 — a read built on inputs that did not all arrive",
+            content: { AnyView(j4Shell(AnyView(OmenTradeBuildScreen(
+                state: J4ScreenshotFixtures.degradedBuild,
+                context: J4ScreenshotFixtures.titansContext,
+                onOpenAccount: {},
+                onSelectTab: { _ in },
+                onSelectPartner: { _ in },
+                onSelectFilter: { _ in },
+                onPrimaryAction: {}
+            )))) }
+        ),
+        "journey-j4.degraded.02-trade-roster": ScreenshotScenario(
+            label: "J4 degraded 2/4 — no opponent rosters, permanently",
+            content: { AnyView(j4Shell(AnyView(OmenTradeRosterScreen(
+                state: J4ScreenshotFixtures.degradedRoster,
+                context: J4ScreenshotFixtures.titansContext,
+                onOpenAccount: {},
+                onSelectTab: { _ in },
+                onSelectPartner: { _ in },
+                onSelectFilter: { _ in },
+                onAddPlayer: { _ in }
+            )))) }
+        ),
+        "journey-j4.degraded.03-trade-needs-context": ScreenshotScenario(
+            label: "J4 degraded 3/4 — too close to call blind, and it says which input is missing",
+            content: { AnyView(j4Shell(AnyView(OmenTradeNeedsContextScreen(
+                state: J4ScreenshotFixtures.needsContext,
+                context: J4ScreenshotFixtures.titansContext,
+                onOpenAccount: {},
+                onConnect: {},
+                onShowAnyway: {}
+            )))) }
+        ),
+        "journey-j4.degraded.04-trade-share": ScreenshotScenario(
+            label: "J4 degraded 4/4 — the share service failed, and the read did not",
+            content: { AnyView(j4Shell(AnyView(OmenTradeShareScreen(
+                state: J4ScreenshotFixtures.degradedShare,
+                context: J4ScreenshotFixtures.titansContext,
+                onOpenAccount: {},
+                onToggleInclusion: { _ in },
+                onShare: {},
+                onCopyAsText: {}
+            )))) }
+        ),
         "switcher.team-sheet": ScreenshotScenario(
             label: "Team switcher — pinned bar and the sheet, one favourite starred",
             content: { AnyView(TeamSwitcherScreenshotHost()) }
@@ -347,6 +545,20 @@ enum ScreenshotScenarios {
 
     private static func j3Shell(_ content: AnyView) -> some View {
         FauxShell(initialTab: .omen, omenContentOverride: content)
+    }
+
+    /// J2 opens on the Command tab, which is the destination all five of its screens live in —
+    /// including the switcher sheet, which the artboard happens to draw over Trade only because
+    /// the switcher bar is on 25 of the 30 screens and can be opened from any of them.
+    private static func j2Shell(_ content: AnyView) -> some View {
+        FauxShell(initialTab: .command, commandContentOverride: content)
+    }
+
+    /// J4 opens on the Trade tab. Trade is the front door — `context.md` says so — and all five
+    /// of its artboards are that destination, so a capture that opened anywhere else would be a
+    /// picture of the wrong screen.
+    private static func j4Shell(_ content: AnyView) -> some View {
+        FauxShell(initialTab: .trade, tradeContentOverride: content)
     }
 
     /// Read the launch-argument value that names the current scenario, if any.
@@ -560,6 +772,10 @@ private struct FauxShell: View {
     var omenContentOverride: AnyView? = nil
     /// Same seam for the Command tab, so J1's terminus can be captured inside the real shell.
     var commandContentOverride: AnyView? = nil
+    /// Same seam again for the Trade tab. J4's five screens all live in that destination, and
+    /// without this a J4 capture would screenshot `OmenTradeScreen` — the shipped compare
+    /// surface — while claiming to be a picture of `TradeBuild`.
+    var tradeContentOverride: AnyView? = nil
 
     var body: some View {
         TabView(selection: .constant(initialTab)) {
@@ -612,7 +828,13 @@ private struct FauxShell: View {
             // day after `M5` slices F and G shipped (`F-VET-B01`), so every screenshot and
             // every accessibility UI test that reached them was assessing a screen that no
             // longer existed.
-            OmenTradeScreen(state: tradeState, offer: tradeOffer)
+            Group {
+                if let tradeContentOverride {
+                    tradeContentOverride
+                } else {
+                    OmenTradeScreen(state: tradeState, offer: tradeOffer)
+                }
+            }
             .tabItem { CommandCenterTab.trade.label }
             .tag(CommandCenterTab.trade)
 
@@ -986,4 +1208,541 @@ private struct CarouselScenarioHost: View {
         FauxShell(scenarioKey: scenarioKey, carousel: viewModel)
             .task { await viewModel.load(userID: "fixture") }
     }
+}
+
+/// J2's fixtures.
+///
+/// Copy is taken **verbatim from the artboards** wherever the artboard has any, because on these
+/// five screens the words are the design: `CommandQuiet` and `CommandQuietStraight` differ by two
+/// sentences and nothing else, and paraphrasing either would erase the voice fence the pair
+/// exists to draw.
+///
+/// Team and player names are the canvas's own invented ones. A capture that escapes into a deck
+/// must not read as a real person's league.
+enum J2ScreenshotFixtures {
+    // MARK: Context
+
+    static let titansContext = OmenScreenContext(
+        crest: "TTO",
+        teamName: "Titans of Slopsilonia",
+        platform: .espn,
+        leagueName: "Slops Saloon",
+        onSwitch: {},
+        onAddLeague: {}
+    )
+
+    /// The team being switched **to** on `SwitchLoading`.
+    static let davantesContext = OmenScreenContext(
+        crest: "DSI",
+        teamName: "Davante\u{2019}s Inferno",
+        platform: .espn,
+        leagueName: "EB Football",
+        onSwitch: {},
+        onAddLeague: {}
+    )
+
+    // MARK: CommandCenter
+
+    private static let waiverMove = OmenDeskWaiverMove(
+        addName: "Jaylen Wright",
+        addMeta: "RB · TEN",
+        addPoints: "11.4",
+        dropName: "Roschon Johnson",
+        dropMeta: "RB · CHI",
+        dropPoints: "4.1",
+        reasoning: "Pollard\u{2019}s out three weeks and Wright took almost every backup snap. Roschon is behind two healthy backs — you won\u{2019}t miss him.",
+        band: .confident,
+        risk: .low,
+        riskReason: nil
+    )
+
+    private static let ledgerLine = OmenDeskLedgerLine(
+        summary: "Start Stafford over Daniels",
+        meta: "This week · start / sit · you followed it",
+        outcome: .pending
+    )
+
+    static let nominalDesk = OmenDeskState(
+        weekLabel: "Week 7 · Sunday",
+        deadlineLabel: "Lineups lock",
+        deadlineTime: "1:00 PM",
+        matchup: .read(OmenDeskMatchup(
+            platform: .espn,
+            status: "Live · Q2",
+            leader: OmenDeskTeam(crest: "TTO", name: "Titans of Slopsilonia", record: "5–2 · you", score: "64.8", isMine: true),
+            trailer: OmenDeskTeam(crest: "GMR", name: "Gibbs me some Rice", record: "6–1", score: "51.2", isMine: false),
+            projection: "119.6 – 114.2",
+            projectionNote: "Projected · 5.4 ahead",
+            leadFraction: 0.66,
+            watch: "Four of your starters left; two of theirs."
+        )),
+        railCount: 4,
+        railIndex: 0,
+        waiver: .read(waiverMove),
+        ledger: .read(ledgerLine),
+        // The nominal artboard has no foot line and neither does this. Nothing was unread and
+        // nothing was read-and-ignored, so there is nothing honest to put there.
+        footnote: nil
+    )
+
+    /// The degraded desk.
+    ///
+    /// Two classes are visible at once, which is the whole requirement:
+    ///
+    ///   - `league_matchup` is **unavailable** — named, with a sentence, in the board's own place.
+    ///     It is not dropped to make room, because that is the one class the spec says must
+    ///     survive truncation.
+    ///   - `league_standings` is **live, used: false** — named in the foot line, `text-tertiary`,
+    ///     with no evidence styling and no implication that it decided anything.
+    ///
+    /// The waiver card and the ledger line are untouched, and that is the point of the frame:
+    /// a dead matchup read sits beside a live wire, and the screen says which is which.
+    static let degradedDesk = OmenDeskState(
+        weekLabel: "Week 7 · Sunday",
+        deadlineLabel: "Lineups lock",
+        deadlineTime: "1:00 PM",
+        matchup: .unread(
+            capability: "League matchup",
+            sentence: "ESPN did not return this week\u{2019}s scoreboard, so Omen has no live score for you. The wire and the ledger below read normally."
+        ),
+        railCount: 4,
+        railIndex: 0,
+        waiver: .read(waiverMove),
+        ledger: .read(ledgerLine),
+        footnote: OmenDeskFootnote(
+            text: "League standings were read and did not change this week\u{2019}s call.",
+            emphasis: nil
+        )
+    )
+
+    // MARK: SwitchSheet
+
+    private static let switchFilters = [
+        OmenSwitchFilter(id: "all", label: "All"),
+        OmenSwitchFilter(id: "espn", label: "ESPN"),
+        OmenSwitchFilter(id: "yahoo", label: "Yahoo"),
+        OmenSwitchFilter(id: "sleeper", label: "Sleeper")
+    ]
+
+    /// Favourites first, then everything else — in the order the directory returned them.
+    /// `orderPlatformsByFollowCount` is the single authority and clients must not re-sort, so
+    /// these arrays are written in final order and the screen never touches them.
+    private static let switchGroups = [
+        OmenSwitchGroup(title: "Favourites", rows: [
+            OmenSwitchRow(id: "tto", crest: "TTO", teamName: "Titans of Slopsilonia", subtitle: "ESPN", isFavorite: true, isActive: true),
+            OmenSwitchRow(id: "dsi", crest: "DSI", teamName: "Davante\u{2019}s Inferno", subtitle: "ESPN · EB Football", isFavorite: true, isActive: false)
+        ]),
+        OmenSwitchGroup(title: "All teams", rows: [
+            OmenSwitchRow(id: "pak", crest: "PAK", teamName: "Puk Around & Find Out", subtitle: "ESPN · Fantasy Madness", isFavorite: false, isActive: false),
+            // The artboard's own honest row: a league the provider named and a team it did not.
+            // "unnamed team" is the fallback and it is the caller's to decide, never the row's.
+            OmenSwitchRow(id: "dar", crest: "DAR", teamName: "League 884411", subtitle: "unnamed team", isFavorite: false, isActive: false)
+        ])
+    ]
+
+    static let nominalSwitchSheet = OmenSwitchSheetState(
+        filters: switchFilters,
+        selectedFilterID: "espn",
+        groups: switchGroups
+    )
+
+    static let degradedSwitchSheet = OmenSwitchSheetState(
+        filters: switchFilters,
+        selectedFilterID: "espn",
+        groups: switchGroups,
+        // Named rather than silently absent. A user whose Yahoo teams vanished from this list
+        // would conclude they had lost them.
+        notice: "Yahoo did not answer, so any Yahoo teams are missing from this list. Your ESPN teams are all here."
+    )
+
+    // MARK: SwitchLoading
+
+    static let switchingFootnote = OmenDeskFootnote(
+        text: "Reading Davante\u{2019}s Inferno from ESPN.",
+        emphasis: "The previous team\u{2019}s numbers are gone, not reused."
+    )
+
+    // MARK: Quiet week
+
+    static let quietNeutral = OmenQuietState(
+        variant: .neutral,
+        weekLabel: "Week 8 · Bye",
+        headline: "Nothing worth waking you for.",
+        body: "You\u{2019}re on bye, your roster is healthy, and nobody on your waiver wire is worth a claim. Genuinely — go outside.",
+        band: .confident,
+        risk: .low,
+        nextRead: "Next read · Tuesday 3:00 AM waivers",
+        footnote: OmenDeskFootnote(
+            text: "3rd of 12, two games clear of the cut. Trade deadline in three weeks.",
+            emphasis: nil
+        )
+    )
+
+    static let quietStraight = OmenQuietState(
+        variant: .straight,
+        weekLabel: "Week 9 · After a loss",
+        headline: "Rough week. Nothing worth moving for.",
+        body: "You lost by four, Achane is out, and there is nobody on the wire who fixes that. Holding is the call.",
+        band: .confident,
+        risk: .low,
+        nextRead: "Next read · Tuesday 3:00 AM waivers",
+        footnote: OmenDeskFootnote(
+            text: "5th of 12. One game off the cut with six to play.",
+            emphasis: nil
+        )
+    )
+}
+
+/// J4, "settling an argument" — the fixtures behind the eight Trade captures.
+///
+/// ## The pass split, and why it is not arbitrary
+///
+/// Four frames per pass, five screens, and two of the five appear in only one pass each. That is
+/// the same shape J2 used and it is the contract rather than a convenience.
+///
+/// `TradeVerdict` is the nominal pass's third frame and `TradeNeedsContext` is the degraded
+/// pass's. They are the *same seat* in the journey — the answer — in the two states
+/// `trade-compare.v2` can return it in. A read whose inputs did not all arrive cannot produce a
+/// confident verdict, so `TradeVerdict` cannot honestly occur in a degraded pass; and
+/// `close_needs_context` is not a failure, so it has no business being drawn as one.
+///
+/// ## What makes the degraded pass degraded
+///
+/// `capability-expression-v1.md` asks a degraded pass to show **both** of the two classes that
+/// are easy to conflate: something Omen could not read at all, and something it read and did not
+/// use. Every degraded frame here carries both.
+///
+///   - `Roster availability` — **unavailable**, named with the server's own sentence.
+///   - `Schedule strength` — **live, `used: false`**, named and explicitly not claimed as
+///     evidence.
+///
+/// `not_requested` appears nowhere, which is the fourth class rendering as nothing. It is
+/// modelled by the input never existing, so there is no fixture for it to be forgotten in.
+///
+/// ## Facts of record pinned by these fixtures, not decorated by them
+///
+///   - `max_teams: 2`, `three_team.supported: false`,
+///     `reason: "multi_team_comparison_not_implemented"`. The `Add team` chip renders
+///     **unavailable** on both Build frames — not hidden and not working.
+///   - `TradeRoster`'s degraded frame is `permanentlyUnavailable`. A provider that will not hand
+///     over the other teams' rosters is a **permanent limit, not an outage**, so there is no
+///     retry fixture here and there must never be one.
+///   - `TradeShare`'s names toggle is **off by default** on the card, in both passes.
+///   - Confidence is a **band**, never a percentage, and no fixture here carries a number at all.
+enum J4ScreenshotFixtures {
+
+    // MARK: Context
+
+    /// The same team J2's desk runs as, so the switcher bar above J4 reads continuous with the
+    /// destination a user actually arrived from.
+    static let titansContext = OmenScreenContext(
+        crest: "TTO",
+        teamName: "Titans of Slopsilonia",
+        platform: .espn,
+        leagueName: "Slops Saloon",
+        onSwitch: {},
+        onAddLeague: {}
+    )
+
+    // MARK: Capability
+
+    static let twoTeamsOnly = OmenTradeCapability(
+        maxTeams: 2,
+        threeTeamSupported: false,
+        threeTeamReason: "multi_team_comparison_not_implemented"
+    )
+
+    // MARK: Partners and filters
+
+    static let partners: [OmenTradePartner] = [
+        OmenTradePartner(id: "dsi", crest: "DSI", name: "Davante\u{2019}s Inferno", need: "Needs RB"),
+        OmenTradePartner(id: "gmr", crest: "GMR", name: "Gibbs me some Rice", need: "No hole"),
+        // `need` is nil, not "No hole". Nobody read this roster, and "No hole" for a roster
+        // nobody read is a claim about a roster nobody read.
+        OmenTradePartner(id: "puk", crest: "PUK", name: "Puk Around & Find Out", need: nil)
+    ]
+
+    /// The artboard's six, including its `.fc.smart` one.
+    ///
+    /// "Fills my RB hole" rather than "Buy low": `.fc.smart` is a filter that names a
+    /// **conclusion** rather than a position, and a conclusion about *this* roster is what makes
+    /// it a different kind of control. "Buy low" is a category, which is what the plain chips
+    /// already are.
+    static let filters: [OmenTradeFilter] = [
+        OmenTradeFilter(id: "all", title: "All"),
+        OmenTradeFilter(id: "qb", title: "QB"),
+        OmenTradeFilter(id: "rb", title: "RB"),
+        OmenTradeFilter(id: "wr", title: "WR"),
+        OmenTradeFilter(id: "te", title: "TE"),
+        OmenTradeFilter(id: "fills-rb", title: "Fills my RB hole", isSmart: true)
+    ]
+
+    // MARK: Inputs
+
+    private static let usedRosterNeed = OmenTradeInput(
+        capability: "Roster need",
+        statement: "Your RB2 slot has averaged 6.1 since Pollard went out.",
+        presentation: .used
+    )
+
+    private static let usedLeagueScoring = OmenTradeInput(
+        capability: "League scoring",
+        statement: "Half PPR, and it read your league's own settings.",
+        presentation: .used
+    )
+
+    /// Class 2 — read, and explicitly **not** claimed as evidence.
+    private static let scheduleReadNotUsed = OmenTradeInput(
+        capability: "Schedule strength",
+        statement: "Omen has it. The two schedules are close enough that it did not move this call.",
+        presentation: .readNotUsed
+    )
+
+    /// Class 3 — could not read, **named**. Never dropped to make room.
+    private static let rosterUnavailable = OmenTradeInput(
+        capability: "Roster availability",
+        statement: "ESPN did not return the other team\u{2019}s roster for this league.",
+        presentation: .couldNotRead
+    )
+
+    // MARK: Sides
+
+    static let sides: [OmenTradeSide] = [
+        OmenTradeSide(heading: "You send", legs: [
+            OmenTradeLeg(direction: .sending, name: "Jaylen Waddle", meta: "WR · MIA", rank: "WR 21")
+        ]),
+        OmenTradeSide(heading: "Davante\u{2019}s Inferno sends", legs: [
+            OmenTradeLeg(direction: .receiving, name: "Tony Pollard", meta: "RB · TEN", rank: "RB 18"),
+            // Deliberately unranked. `rank` is optional and nil renders nothing — an em dash in
+            // that column reads as a rank of zero rather than as an absence.
+            OmenTradeLeg(direction: .receiving, name: "Jaylen Wright", meta: "RB · TEN", rank: nil)
+        ])
+    ]
+
+    // MARK: Reads
+
+    static let nominalRead = OmenTradeRead(
+        headline: "Take it.",
+        reasoning: "You are deep at receiver and thin at back, and this trade fixes the side that is costing you points. Pollard is the starter again and Wright is the handcuff, so you get the backfield either way it breaks.",
+        caveat: "Scored against Slops Saloon\u{2019}s settings and your roster.",
+        isPersonalized: true,
+        inputs: [usedRosterNeed, usedLeagueScoring, scheduleReadNotUsed]
+    )
+
+    static let degradedRead = OmenTradeRead(
+        headline: "Too close to call blind.",
+        reasoning: "On value this is a coin flip, and the thing that would break the tie — what the other team is actually short of — is the thing Omen could not read here. Forcing a verdict on half the inputs would be a guess wearing a verdict\u{2019}s clothes.",
+        caveat: "Standard scoring — not your league\u{2019}s settings. Need usually decides a trade, and need is what standard scoring cannot see.",
+        isPersonalized: false,
+        inputs: [usedLeagueScoring, scheduleReadNotUsed, rosterUnavailable]
+    )
+
+    // MARK: Submission
+
+    /// Omen never submits on anyone\u{2019}s behalf, so the screen says how to do it there.
+    static let submission = OmenTradeSubmission(
+        title: "How to send this",
+        caption: "ESPN · handoff only",
+        steps: [
+            "Open ESPN, then League \u{203A} Players \u{203A} Davante\u{2019}s Inferno.",
+            "Propose Waddle for Pollard and Wright.",
+            "Come back here once they answer and Omen will read the counter."
+        ]
+    )
+
+    // MARK: TradeBuild
+
+    static let nominalBuild = OmenTradeBuildState(
+        kicker: "Two teams",
+        title: "Build a deal",
+        // The artboard's two tabs, not "Build"/"Rosters". `Type a trade` is the shipped
+        // `OmenTradeScreen` path and `Build a trade` is this journey — the split is real
+        // product, and both `TradeBuild` and `TradeRoster` draw it with the same tab on.
+        tabTitles: ["Type a trade", "Build a trade"],
+        selectedTabIndex: 1,
+        partners: partners,
+        selectedPartnerID: "dsi",
+        filters: filters,
+        selectedFilterID: "all",
+        capability: twoTeamsOnly,
+        sides: sides,
+        read: nominalRead,
+        submission: submission,
+        primaryActionTitle: "Get Omen\u{2019}s read"
+    )
+
+    static let degradedBuild = OmenTradeBuildState(
+        kicker: "Two teams",
+        title: "Build a deal",
+        // The artboard's two tabs, not "Build"/"Rosters". `Type a trade` is the shipped
+        // `OmenTradeScreen` path and `Build a trade` is this journey — the split is real
+        // product, and both `TradeBuild` and `TradeRoster` draw it with the same tab on.
+        tabTitles: ["Type a trade", "Build a trade"],
+        selectedTabIndex: 1,
+        partners: partners,
+        selectedPartnerID: "dsi",
+        filters: filters,
+        selectedFilterID: "all",
+        capability: twoTeamsOnly,
+        sides: sides,
+        read: degradedRead,
+        // No submission block. The handoff steps come from `trade-capabilities.v1`'s
+        // `submission` field, and this pass is the one where that read did not land — inventing
+        // three ESPN steps here would be the screen claiming a capability it does not have.
+        submission: nil,
+        primaryActionTitle: "Get Omen\u{2019}s read"
+    )
+
+    // MARK: TradeRoster
+
+    static let nominalRoster = OmenTradeRosterState(
+        kicker: "Build a deal",
+        title: "Their roster",
+        tabTitles: ["Type a trade", "Build a trade"],
+        selectedTabIndex: 1,
+        partners: partners,
+        selectedPartnerID: "dsi",
+        filters: filters,
+        selectedFilterID: "rb",
+        capability: twoTeamsOnly,
+        rosters: .read(
+            teamName: "Davante\u{2019}s Inferno",
+            playerCount: 16,
+            rows: [
+                OmenTradeRosterState.Row(
+                    id: "pollard",
+                    name: "Tony Pollard",
+                    meta: "RB · TEN · RB 18",
+                    availability: .added
+                ),
+                OmenTradeRosterState.Row(
+                    id: "wright",
+                    name: "Jaylen Wright",
+                    meta: "RB · TEN · unranked",
+                    availability: .available
+                ),
+                OmenTradeRosterState.Row(
+                    id: "gibbs",
+                    name: "Jahmyr Gibbs",
+                    meta: "RB · DET · RB 3",
+                    availability: .theyNeedThis
+                )
+            ],
+            freshness: "Rosters read 6 minutes ago"
+        ),
+        note: "Gibbs is greyed because they are as thin at back as you are. Omen will still score it if you ask, but they will not take it."
+    )
+
+    /// Fact of record #16, rendered.
+    ///
+    /// The provider will not hand over the other teams' rosters for this league, so **Omen
+    /// issues no trade call at all** — and that is a permanent provider limit, not an outage.
+    /// There is no retry control on this frame and there must never be one: a retry says "try
+    /// again later", and later is not a thing that helps here.
+    static let degradedRoster = OmenTradeRosterState(
+        kicker: "Build a deal",
+        title: "Their roster",
+        tabTitles: ["Type a trade", "Build a trade"],
+        selectedTabIndex: 1,
+        partners: partners,
+        selectedPartnerID: "dsi",
+        filters: filters,
+        selectedFilterID: "rb",
+        capability: twoTeamsOnly,
+        rosters: .permanentlyUnavailable(
+            capability: "Opponent rosters",
+            sentence: "ESPN does not give Omen the other teams\u{2019} rosters in this league, so there is no trade call to make here. This will not change by trying again."
+        ),
+        note: nil
+    )
+
+    // MARK: TradeVerdict
+
+    /// The screen title is **"The read"**, not the verdict.
+    ///
+    /// The first build put `compare.headline` in both the screen title and the read block, so
+    /// "Take it." appeared twice on one screen. The artboard does not: `.ttl` names the screen
+    /// and `.verdh` carries the call, which is also the only arrangement that survives a
+    /// headline long enough to wrap.
+    static let verdict = OmenTradeVerdictState(
+        kicker: "Two teams",
+        title: "The read",
+        sides: sides,
+        read: nominalRead,
+        submission: submission,
+        primaryActionTitle: "How to send this",
+        counterActionTitle: "Build a counter",
+        shareActionTitle: "Share this read"
+    )
+
+    // MARK: TradeNeedsContext
+
+    /// Same rule as `verdict`: the screen is titled, the call is in the read block.
+    static let needsContext = OmenTradeNeedsContextState(
+        kicker: "Two teams",
+        title: "Not yet",
+        sides: sides,
+        read: degradedRead,
+        remedy: "Connect the league Omen already has for you and it can score this against your own settings instead of standard scoring.",
+        connectActionTitle: "Connect this league",
+        showAnywayActionTitle: "Show the standard-scoring read anyway"
+    )
+
+    // MARK: TradeShare
+
+    /// **Names off by default.** `trade-share.v1` — a 30-day hash, no auth, no provider data.
+    /// The default lives here because the screen does not set it: whoever builds the state owns
+    /// it, and a default that lives in a view is a default nobody can test.
+    private static let inclusions: [OmenTradeShareState.Inclusion] = [
+        OmenTradeShareState.Inclusion(
+            id: "verdict",
+            title: "The call and the reasoning",
+            detail: "What Omen said and why.",
+            isOn: true
+        ),
+        OmenTradeShareState.Inclusion(
+            id: "names",
+            title: "Team names",
+            detail: "Off by default. Your league-mates\u{2019} names do not leave Omen unless you turn this on.",
+            isOn: false
+        ),
+        OmenTradeShareState.Inclusion(
+            id: "caveat",
+            title: "The caveat",
+            detail: "Travels on the card itself, so a screenshot cannot lose it.",
+            isOn: true
+        )
+    ]
+
+    private static let card = OmenTradeShareState.Card(
+        eyebrow: "Omen\u{2019}s read",
+        headline: "Take it.",
+        reasoning: "Deep at receiver, thin at back. This trade fixes the side that is costing points.",
+        caveat: "Scored against one league\u{2019}s settings. Your league may score it differently.",
+        footer: "omen · link expires in 30 days"
+    )
+
+    static let nominalShare = OmenTradeShareState(
+        kicker: "Send the read",
+        title: "Share this call",
+        card: card,
+        inclusions: inclusions,
+        note: "The link carries the read and nothing else — no login, no league, no provider data. It expires after 30 days and cannot be renewed.",
+        primaryActionTitle: "Create the link",
+        secondaryActionTitle: "Copy as text",
+        failure: nil
+    )
+
+    /// `POST /api/trade/share` answered 503. That is the **share storage** failing, which is a
+    /// different thing from a trade Omen could not read, and the copy says which one it is.
+    static let degradedShare = OmenTradeShareState(
+        kicker: "Send the read",
+        title: "Share this call",
+        card: card,
+        inclusions: inclusions,
+        note: "The link carries the read and nothing else — no login, no league, no provider data. It expires after 30 days and cannot be renewed.",
+        primaryActionTitle: "Create the link",
+        secondaryActionTitle: "Copy as text",
+        failure: "Omen could not create a link just now. The read above is unaffected — this is the sharing service, not the call."
+    )
 }
