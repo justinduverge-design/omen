@@ -129,8 +129,11 @@ final class J4InteractionUITests: XCTestCase {
 
     func testTheBuildScreenOffersItsTabsFiltersAndPartners() {
         let app = launch("journey-j4.nominal.01-trade-build")
-        assertTappable(app.buttons["Build"], "Build tab")
-        assertTappable(app.buttons["Rosters"], "Rosters tab")
+        // The artboard's two tabs. `Type a trade` is the shipped `OmenTradeScreen` path and
+        // `Build a trade` is this journey; the first build invented "Build"/"Rosters", which
+        // hid the typed path that actually ships.
+        assertTappable(app.buttons["Type a trade"], "the typed-trade tab")
+        assertTappable(app.buttons["Build a trade"], "the built-trade tab")
         assertTappable(app.buttons["All"], "All filter")
         // The two-letter ones, deliberately. They are the narrowest controls on the journey and
         // the first run of this test caught both under the 44pt floor — "RB" at 37.3pt and "WR"
@@ -138,8 +141,9 @@ final class J4InteractionUITests: XCTestCase {
         assertTappable(app.buttons["RB"], "RB filter")
         assertTappable(app.buttons["WR"], "WR filter")
         // `.fc.smart` — the brass filter that names a conclusion rather than a position. It is
-        // the one most likely to be quietly dropped as "just another chip".
-        assertTappable(app.buttons["Buy low"], "the smart filter")
+        // the one most likely to be quietly dropped as "just another chip", and the only one
+        // whose label is a claim about the user's own roster.
+        assertTappable(app.buttons["Fills my RB hole"], "the smart filter")
         // CONTAINS rather than BEGINSWITH: the chip's accessibility label leads with the crest,
         // "DSI, Davante's Inferno, Needs RB". The first run of this test asserted BEGINSWITH and
         // reported the chip missing when it was on screen the whole time.
@@ -148,7 +152,7 @@ final class J4InteractionUITests: XCTestCase {
         // Their hole is on the chip. A partner whose roster was not read carries no `need` at
         // all rather than "No hole", which is a claim about a roster nobody read.
         XCTAssertTrue((partner.label as String).contains("Needs RB"), "the partner chip does not carry their hole: \(partner.label)")
-        assertTapDoesNotBreak(app.buttons["Rosters"], app)
+        assertTapDoesNotBreak(app.buttons["Type a trade"], app)
     }
 
     /// **`max_teams: 2`, and the third-team control renders UNAVAILABLE.**
@@ -304,8 +308,8 @@ final class J4InteractionUITests: XCTestCase {
             text(containing: "Too close to call blind", in: app).waitForExistence(timeout: 10),
             "the honest non-verdict is missing"
         )
-        assertTappable(app.buttons["Use my league\u{2019}s settings"], "the remedy control")
-        assertTapDoesNotBreak(app.buttons["Use my league\u{2019}s settings"], app)
+        assertTappable(app.buttons["Connect this league"], "the remedy control")
+        assertTapDoesNotBreak(app.buttons["Connect this league"], app)
     }
 
     // MARK: - TradeShare

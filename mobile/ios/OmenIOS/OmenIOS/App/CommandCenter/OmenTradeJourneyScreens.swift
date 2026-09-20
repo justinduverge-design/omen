@@ -1239,8 +1239,10 @@ enum OmenTradeAnswer: Equatable {
         switch compare.verdictState {
         case .closeNeedsContext, .insufficientData:
             return .needsContext(OmenTradeNeedsContextState(
-                kicker: "The read",
-                title: compare.headline,
+                // The screen is titled; the call lives in the read block. Putting
+                // `compare.headline` in both prints it twice on one screen.
+                kicker: "Two teams",
+                title: "Not yet",
                 sides: sides,
                 read: read,
                 // The remedy is offered only where it is genuinely the remedy. A personalized
@@ -1249,7 +1251,7 @@ enum OmenTradeAnswer: Equatable {
                 remedy: compare.analysisContext.isPersonalized
                     ? nil
                     : "Connect the league this offer is in and Omen can score it against your own settings instead of standard scoring.",
-                connectActionTitle: compare.analysisContext.isPersonalized ? nil : "Use my league\u{2019}s settings",
+                connectActionTitle: compare.analysisContext.isPersonalized ? nil : "Connect this league",
                 // The secondary slot. There is no "show it anyway" here — the read above already
                 // is the standard-scoring read — so the honest secondary is the way back to the
                 // offer the user is being asked to change.
@@ -1257,8 +1259,8 @@ enum OmenTradeAnswer: Equatable {
             ))
         case .favorsYou, .youGiveUpTooMuch:
             return .verdict(OmenTradeVerdictState(
-                kicker: "The read",
-                title: compare.headline,
+                kicker: "Two teams",
+                title: "The read",
                 sides: sides,
                 read: read,
                 // `trade-capabilities.v1`'s `submission` is a single word about *how* a provider

@@ -1315,11 +1315,18 @@ private object J4ScreenshotFixtures {
         OmenTradePartner(id = "puk", crest = "PUK", name = "Puk Around & Find Out", need = null),
     )
 
+    /**
+     * The artboard's six. "Fills my RB hole" rather than "Buy low": `.fc.smart` is a filter that
+     * names a **conclusion** rather than a position, and "Buy low" is a category, which is what
+     * the plain chips already are.
+     */
     private val filters = listOf(
         OmenTradeFilter(id = "all", title = "All"),
+        OmenTradeFilter(id = "qb", title = "QB"),
         OmenTradeFilter(id = "rb", title = "RB"),
         OmenTradeFilter(id = "wr", title = "WR"),
-        OmenTradeFilter(id = "buy-low", title = "Buy low", isSmart = true),
+        OmenTradeFilter(id = "te", title = "TE"),
+        OmenTradeFilter(id = "fills-rb", title = "Fills my RB hole", isSmart = true),
     )
 
     private val usedRosterNeed = OmenTradeInput(
@@ -1416,8 +1423,10 @@ private object J4ScreenshotFixtures {
     val nominalBuild = OmenTradeBuildState(
         kicker = "Two teams",
         title = "Build a deal",
-        tabTitles = listOf("Build", "Rosters"),
-        selectedTabIndex = 0,
+        // The artboard's two tabs, not "Build"/"Rosters". `Type a trade` is the shipped
+        // `OmenTradeScreen` path and `Build a trade` is this journey.
+        tabTitles = listOf("Type a trade", "Build a trade"),
+        selectedTabIndex = 1,
         partners = partners,
         selectedPartnerId = "dsi",
         filters = filters,
@@ -1432,8 +1441,10 @@ private object J4ScreenshotFixtures {
     val degradedBuild = OmenTradeBuildState(
         kicker = "Two teams",
         title = "Build a deal",
-        tabTitles = listOf("Build", "Rosters"),
-        selectedTabIndex = 0,
+        // The artboard's two tabs, not "Build"/"Rosters". `Type a trade` is the shipped
+        // `OmenTradeScreen` path and `Build a trade` is this journey.
+        tabTitles = listOf("Type a trade", "Build a trade"),
+        selectedTabIndex = 1,
         partners = partners,
         selectedPartnerId = "dsi",
         filters = filters,
@@ -1448,9 +1459,9 @@ private object J4ScreenshotFixtures {
     )
 
     val nominalRoster = OmenTradeRosterState(
-        kicker = "Davante’s Inferno",
-        title = "Pick from their roster",
-        tabTitles = listOf("Build", "Rosters"),
+        kicker = "Build a deal",
+        title = "Their roster",
+        tabTitles = listOf("Type a trade", "Build a trade"),
         selectedTabIndex = 1,
         partners = partners,
         selectedPartnerId = "dsi",
@@ -1492,9 +1503,9 @@ private object J4ScreenshotFixtures {
      * outage**. There is no retry control on this frame and there must never be one.
      */
     val degradedRoster = OmenTradeRosterState(
-        kicker = "Davante’s Inferno",
-        title = "Pick from their roster",
-        tabTitles = listOf("Build", "Rosters"),
+        kicker = "Build a deal",
+        title = "Their roster",
+        tabTitles = listOf("Type a trade", "Build a trade"),
         selectedTabIndex = 1,
         partners = partners,
         selectedPartnerId = "dsi",
@@ -1509,9 +1520,13 @@ private object J4ScreenshotFixtures {
         note = null,
     )
 
+    /**
+     * The screen title is **"The read"**, not the verdict. The first build put the headline in
+     * both the title and the read block, so "Take it." appeared twice on one screen.
+     */
     val verdict = OmenTradeVerdictState(
-        kicker = "The read",
-        title = "Take it.",
+        kicker = "Two teams",
+        title = "The read",
         sides = sides,
         read = nominalRead,
         submission = submission,
@@ -1520,14 +1535,15 @@ private object J4ScreenshotFixtures {
         shareActionTitle = "Share this read",
     )
 
+    /** Same rule as [verdict]: the screen is titled, the call is in the read block. */
     val needsContext = OmenTradeNeedsContextState(
-        kicker = "The read",
-        title = "Too close to call blind.",
+        kicker = "Two teams",
+        title = "Not yet",
         sides = sides,
         read = degradedRead,
         remedy = "Connect the league Omen already has for you and it can score this against " +
             "your own settings instead of standard scoring.",
-        connectActionTitle = "Use my league’s settings",
+        connectActionTitle = "Connect this league",
         showAnywayActionTitle = "Show the standard-scoring read anyway",
     )
 

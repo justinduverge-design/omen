@@ -1411,8 +1411,10 @@ fun omenTradeAnswer(compare: TradeCompare, offer: TradeOffer): OmenTradeAnswer? 
         TradeCompare.VerdictState.InsufficientData,
         -> OmenTradeAnswer.NeedsContext(
             OmenTradeNeedsContextState(
-                kicker = "The read",
-                title = compare.headline,
+                // The screen is titled; the call lives in the read block. Putting
+                // `compare.headline` in both prints it twice on one screen.
+                kicker = "Two teams",
+                title = "Not yet",
                 sides = sides,
                 read = read,
                 // Offered only where it is genuinely the remedy. A personalized read that still
@@ -1426,7 +1428,7 @@ fun omenTradeAnswer(compare: TradeCompare, offer: TradeOffer): OmenTradeAnswer? 
                 connectActionTitle = if (compare.analysisContext.isPersonalized) {
                     null
                 } else {
-                    "Use my league’s settings"
+                    "Connect this league"
                 },
                 // The secondary slot. There is no "show it anyway" here — the read above already
                 // is the standard-scoring read — so the honest secondary is the way back.
@@ -1438,8 +1440,8 @@ fun omenTradeAnswer(compare: TradeCompare, offer: TradeOffer): OmenTradeAnswer? 
         TradeCompare.VerdictState.YouGiveUpTooMuch,
         -> OmenTradeAnswer.Verdict(
             OmenTradeVerdictState(
-                kicker = "The read",
-                title = compare.headline,
+                kicker = "Two teams",
+                title = "The read",
                 sides = sides,
                 read = read,
                 // `trade-capabilities.v1`'s `submission` is one word about how a provider accepts

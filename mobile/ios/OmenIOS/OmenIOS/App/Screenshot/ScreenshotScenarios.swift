@@ -1462,11 +1462,19 @@ enum J4ScreenshotFixtures {
         OmenTradePartner(id: "puk", crest: "PUK", name: "Puk Around & Find Out", need: nil)
     ]
 
+    /// The artboard's six, including its `.fc.smart` one.
+    ///
+    /// "Fills my RB hole" rather than "Buy low": `.fc.smart` is a filter that names a
+    /// **conclusion** rather than a position, and a conclusion about *this* roster is what makes
+    /// it a different kind of control. "Buy low" is a category, which is what the plain chips
+    /// already are.
     static let filters: [OmenTradeFilter] = [
         OmenTradeFilter(id: "all", title: "All"),
+        OmenTradeFilter(id: "qb", title: "QB"),
         OmenTradeFilter(id: "rb", title: "RB"),
         OmenTradeFilter(id: "wr", title: "WR"),
-        OmenTradeFilter(id: "buy-low", title: "Buy low", isSmart: true)
+        OmenTradeFilter(id: "te", title: "TE"),
+        OmenTradeFilter(id: "fills-rb", title: "Fills my RB hole", isSmart: true)
     ]
 
     // MARK: Inputs
@@ -1547,8 +1555,11 @@ enum J4ScreenshotFixtures {
     static let nominalBuild = OmenTradeBuildState(
         kicker: "Two teams",
         title: "Build a deal",
-        tabTitles: ["Build", "Rosters"],
-        selectedTabIndex: 0,
+        // The artboard's two tabs, not "Build"/"Rosters". `Type a trade` is the shipped
+        // `OmenTradeScreen` path and `Build a trade` is this journey — the split is real
+        // product, and both `TradeBuild` and `TradeRoster` draw it with the same tab on.
+        tabTitles: ["Type a trade", "Build a trade"],
+        selectedTabIndex: 1,
         partners: partners,
         selectedPartnerID: "dsi",
         filters: filters,
@@ -1563,8 +1574,11 @@ enum J4ScreenshotFixtures {
     static let degradedBuild = OmenTradeBuildState(
         kicker: "Two teams",
         title: "Build a deal",
-        tabTitles: ["Build", "Rosters"],
-        selectedTabIndex: 0,
+        // The artboard's two tabs, not "Build"/"Rosters". `Type a trade` is the shipped
+        // `OmenTradeScreen` path and `Build a trade` is this journey — the split is real
+        // product, and both `TradeBuild` and `TradeRoster` draw it with the same tab on.
+        tabTitles: ["Type a trade", "Build a trade"],
+        selectedTabIndex: 1,
         partners: partners,
         selectedPartnerID: "dsi",
         filters: filters,
@@ -1582,9 +1596,9 @@ enum J4ScreenshotFixtures {
     // MARK: TradeRoster
 
     static let nominalRoster = OmenTradeRosterState(
-        kicker: "Davante\u{2019}s Inferno",
-        title: "Pick from their roster",
-        tabTitles: ["Build", "Rosters"],
+        kicker: "Build a deal",
+        title: "Their roster",
+        tabTitles: ["Type a trade", "Build a trade"],
         selectedTabIndex: 1,
         partners: partners,
         selectedPartnerID: "dsi",
@@ -1626,9 +1640,9 @@ enum J4ScreenshotFixtures {
     /// There is no retry control on this frame and there must never be one: a retry says "try
     /// again later", and later is not a thing that helps here.
     static let degradedRoster = OmenTradeRosterState(
-        kicker: "Davante\u{2019}s Inferno",
-        title: "Pick from their roster",
-        tabTitles: ["Build", "Rosters"],
+        kicker: "Build a deal",
+        title: "Their roster",
+        tabTitles: ["Type a trade", "Build a trade"],
         selectedTabIndex: 1,
         partners: partners,
         selectedPartnerID: "dsi",
@@ -1644,9 +1658,15 @@ enum J4ScreenshotFixtures {
 
     // MARK: TradeVerdict
 
+    /// The screen title is **"The read"**, not the verdict.
+    ///
+    /// The first build put `compare.headline` in both the screen title and the read block, so
+    /// "Take it." appeared twice on one screen. The artboard does not: `.ttl` names the screen
+    /// and `.verdh` carries the call, which is also the only arrangement that survives a
+    /// headline long enough to wrap.
     static let verdict = OmenTradeVerdictState(
-        kicker: "The read",
-        title: "Take it.",
+        kicker: "Two teams",
+        title: "The read",
         sides: sides,
         read: nominalRead,
         submission: submission,
@@ -1657,13 +1677,14 @@ enum J4ScreenshotFixtures {
 
     // MARK: TradeNeedsContext
 
+    /// Same rule as `verdict`: the screen is titled, the call is in the read block.
     static let needsContext = OmenTradeNeedsContextState(
-        kicker: "The read",
-        title: "Too close to call blind.",
+        kicker: "Two teams",
+        title: "Not yet",
         sides: sides,
         read: degradedRead,
         remedy: "Connect the league Omen already has for you and it can score this against your own settings instead of standard scoring.",
-        connectActionTitle: "Use my league\u{2019}s settings",
+        connectActionTitle: "Connect this league",
         showAnywayActionTitle: "Show the standard-scoring read anyway"
     )
 
