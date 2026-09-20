@@ -1,0 +1,12 @@
+ios      dark  journey-j5.nominal.01-league-table                   406450B  6229945c
+android  dark  journey-j5.nominal.01-league-table                   234727B  a90d3c7a
+ios      dark  journey-j5.nominal.02-league-waiver                  305930B  e99975a2
+android  dark  journey-j5.nominal.02-league-waiver                  231469B  9e5f08b7
+ios      dark  journey-j5.nominal.03-waiver-no-move                 305821B  2ea90a6a
+android  dark  journey-j5.nominal.03-waiver-no-move                 231713B  3bce1e79
+ios      dark  journey-j5.degraded.01-league-degraded               360330B  9b37f902
+android  dark  journey-j5.degraded.01-league-degraded               242885B  3b8b6f82
+ios      dark  journey-j5.degraded.02-league-no-rosters             381535B  31319b0d
+android  dark  journey-j5.degraded.02-league-no-rosters             262515B  a5a25295
+ios      dark  journey-j5.degraded.03-waiver-not-determined         334995B  0f422503
+android  dark  journey-j5.degraded.03-waiver-not-determined         234306B  977c7424
