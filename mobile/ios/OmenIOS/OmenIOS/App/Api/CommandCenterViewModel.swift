@@ -42,6 +42,16 @@ final class CommandCenterViewModel: ObservableObject {
     /// status until the route has produced a real decision state.
     @Published private(set) var waiverWatch: OmenWaiverWatchState?
 
+    /// The whole `waiver-analysis.v1` payload, kept rather than reduced.
+    ///
+    /// Until J5 this read was consumed for `waiverWatch` alone and the payload thrown away, so
+    /// the only thing the app could say about the wire was a four-case summary. The League
+    /// destination's wire screen needs the move, the alternatives and — above all —
+    /// `waiver_system`, without which it cannot tell a FAAB league from one whose system nobody
+    /// could determine. Those are different screens and the difference is the point of one of
+    /// them.
+    @Published private(set) var waiverAnalysis: WaiverAnalysis?
+
     private let repository: DashboardRepository
     private let leagueRepository: LeagueRepository
     private let movesRepository: MovesRepository
@@ -213,6 +223,7 @@ final class CommandCenterViewModel: ObservableObject {
         switch await waiverRepository.fetchWaiverAnalysis(accessToken: accessToken) {
         case .success(let analysis):
             waiverWatch = analysis.waiverWatchState
+            waiverAnalysis = analysis
         case .failure:
             // The dashboard-derived state remains visible. Waiver analysis has in-band
             // uncertainty states, but a transport failure cannot truthfully become one.

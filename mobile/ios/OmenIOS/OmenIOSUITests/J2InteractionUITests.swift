@@ -236,7 +236,13 @@ final class J2InteractionUITests: XCTestCase {
             .split(separator: " ")
             .compactMap { part -> Int? in
                 guard let equals = part.firstIndex(of: "=") else { return nil }
-                return Int(part[part.index(after: equals)...])
+                // Digits only. UIKit localises the accessibility value, so a content height of
+                // 1084 arrives as `content=1,084` — and `Int("1,084")` is nil, which this
+                // parser then reported as "an unreadable measurement". J2 never hit it because
+                // every one of its screens fits inside 844pt and so never reached four digits;
+                // J4's five are declared scrolls and every one of them does.
+                let digits = part[part.index(after: equals)...].filter(\.isNumber)
+                return digits.isEmpty ? nil : Int(digits)
             }
         guard numbers.count == 2, numbers[1] > 0 else { return nil }
         return numbers[0] - numbers[1]

@@ -67,7 +67,7 @@ only confirmed beta failure on record — undrawn.
 
 | File | Screen | Scroll |
 |---|---|---|
-| `TradeBuild.dc.html` | Partners, filters, three teams, execution steps | scrolls |
+| `TradeBuild.dc.html` | Partners, filters, **two teams max**, execution steps | scrolls |
 | `TradeRoster.dc.html` | Picking from real rosters | scrolls |
 | `TradeVerdict.dc.html` | The read and the counter | scrolls |
 | `TradeNeedsContext.dc.html` | Too close to call blind | scrolls |

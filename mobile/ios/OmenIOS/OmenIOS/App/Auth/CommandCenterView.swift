@@ -252,7 +252,35 @@ struct CommandCenterView: View {
             .tag(CommandCenterTab.omen)
 
             // M5 slice G: the Trade destination now renders `trade-compare.v2`.
+            //
+            // J4: once the server has answered, the answer is J4's screen rather than the
+            // builder's inline verdict. `OmenTradeAnswer.from` picks `TradeVerdict` or
+            // `TradeNeedsContext` off `verdict_state` — the same seat in the journey, in the two
+            // states the contract returns it in — and this is the production route that makes
+            // both reachable rather than only photographable. `OmenTradeAnswer` documents which
+            // three J4 screens are deliberately NOT wired here and why.
+            //
+            // `dismissVerdict` keeps the offer. A user who reads "you give up too much" wants to
+            // change one player, not retype the deal.
             withTeamPicker {
+                if case .loaded(let compare) = tradeViewModel.viewState,
+                   let answer = OmenTradeAnswer.from(compare, offer: tradeViewModel.offer) {
+                    switch answer {
+                    case .verdict(let state):
+                        OmenTradeVerdictScreen(
+                            state: state,
+                            onOpenAccount: { showAccountSheet = true },
+                            onPrimaryAction: { tradeViewModel.dismissVerdict() }
+                        )
+                    case .needsContext(let state):
+                        OmenTradeNeedsContextScreen(
+                            state: state,
+                            onOpenAccount: { showAccountSheet = true },
+                            onConnect: { showConnectSheet = true },
+                            onShowAnyway: { tradeViewModel.dismissVerdict() }
+                        )
+                    }
+                } else {
                 OmenTradeScreen(
                     state: tradeViewModel.viewState,
                     offer: tradeViewModel.offer,
@@ -266,6 +294,7 @@ struct CommandCenterView: View {
                     capabilities: tradeViewModel.capabilities
                 )
                 .task { await tradeViewModel.loadCapabilities() }
+                }
             }
             // The league to personalize against comes from the SAME `league-overview.v1` read
             // the League destination uses. Trade never discovers a league on its own, so the
@@ -284,7 +313,25 @@ struct CommandCenterView: View {
                 OmenLeagueScreen(
                     state: leagueViewModel.viewState,
                     onRetry: { Task { await leagueViewModel.reload() } },
-                    onConnect: { showConnectSheet = true }
+                    onConnect: { showConnectSheet = true },
+                    // E017 carries both controls, and `OmenScreenShell` renders the account
+                    // one only when this is non-nil. Without it the League destination — and
+                    // the wire sheet it presents, which inherits this same closure — were the
+                    // only signed-in surfaces with no route to the account. Every sibling tab
+                    // already passed it.
+                    onOpenAccount: { showAccountSheet = true },
+                    // The wire comes from the SAME `waiver-analysis.v1` read Command Center
+                    // already makes, for the reason Trade takes its league from the League
+                    // destination's read: two surfaces that fetch the wire separately can
+                    // disagree about it on screen.
+                    //
+                    // Nil until that read lands, which removes the section link rather than
+                    // opening an empty sheet.
+                    wire: commandCenterViewModel.waiverAnalysis.map {
+                        OmenScoutWireState.from(analysis: $0, weekLabel: leagueViewModel.wireWeekLabel)
+                    },
+                    waiverSummary: commandCenterViewModel.waiverAnalysis?.scoutSummary
+                        ?? OmenLeagueScreen.waiverUnread
                 )
             }
             .task { await loadLeagueForSelectedContext() }

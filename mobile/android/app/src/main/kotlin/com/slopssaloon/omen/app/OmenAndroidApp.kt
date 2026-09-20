@@ -37,7 +37,14 @@ import com.slopssaloon.omen.app.auth.OmenDeleteAccountScreen
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterFixtures
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterScreen
 import com.slopssaloon.omen.app.feature.commandcenter.OmenLeagueScreen
+import com.slopssaloon.omen.app.feature.commandcenter.omenScoutWireState
+import com.slopssaloon.omen.app.feature.commandcenter.scoutSummary
+import com.slopssaloon.omen.app.feature.commandcenter.waiverUnread
 import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeScreen
+import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeAnswer
+import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeNeedsContextScreen
+import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeVerdictScreen
+import com.slopssaloon.omen.app.feature.commandcenter.omenTradeAnswer
 import com.slopssaloon.omen.app.feature.help.OmenHelpSupportScreen
 import com.slopssaloon.omen.app.feature.omen.OmenDecisionScreen
 import com.slopssaloon.omen.app.auth.AndroidChromeTabsOAuthProvider
@@ -849,18 +856,41 @@ private fun SignedInDestination(
                         omenDecisionViewModel.load(userId)
                     }
                 }) {
-                OmenTradeScreen(
-                    state = tradeViewModel.viewState,
-                    offer = tradeViewModel.offer,
-                    searchState = tradeViewModel.searchState,
-                    searchingSide = tradeViewModel.searchingSide,
-                    onQueryChanged = { text, side -> tradeViewModel.search(text, side) },
-                    onAdd = { name, side -> tradeViewModel.add(name, side) },
-                    onAddResult = { player, side -> tradeViewModel.add(player, side) },
-                    onRemove = { index, side -> tradeViewModel.remove(index, side) },
-                    onCompare = { scope.launch { tradeViewModel.compare(userId) } },
-                    capabilities = tradeViewModel.capabilities,
-                )
+                // J4: once the server has answered, the answer is J4's screen rather than the
+                // builder's inline verdict. `omenTradeAnswer` picks `TradeVerdict` or
+                // `TradeNeedsContext` off `verdict_state` — the same seat in the journey, in the
+                // two states the contract returns it in — and this is the production route that
+                // makes both reachable rather than only photographable. `OmenTradeAnswer`'s
+                // Swift twin documents which three J4 screens are deliberately NOT wired.
+                val loadedCompare = (tradeViewModel.viewState as? TradeViewModel.ViewState.Loaded)?.result
+                val answer = loadedCompare?.let { omenTradeAnswer(it, tradeViewModel.offer) }
+                when (answer) {
+                    is OmenTradeAnswer.Verdict -> OmenTradeVerdictScreen(
+                        state = answer.state,
+                        onOpenAccount = onOpenAccount,
+                        // Keeps the offer. A user who reads "you give up too much" wants to
+                        // change one player, not retype the deal.
+                        onPrimaryAction = { tradeViewModel.dismissVerdict() },
+                    )
+                    is OmenTradeAnswer.NeedsContext -> OmenTradeNeedsContextScreen(
+                        state = answer.state,
+                        onOpenAccount = onOpenAccount,
+                        onConnect = onConnect,
+                        onShowAnyway = { tradeViewModel.dismissVerdict() },
+                    )
+                    null -> OmenTradeScreen(
+                        state = tradeViewModel.viewState,
+                        offer = tradeViewModel.offer,
+                        searchState = tradeViewModel.searchState,
+                        searchingSide = tradeViewModel.searchingSide,
+                        onQueryChanged = { text, side -> tradeViewModel.search(text, side) },
+                        onAdd = { name, side -> tradeViewModel.add(name, side) },
+                        onAddResult = { player, side -> tradeViewModel.add(player, side) },
+                        onRemove = { index, side -> tradeViewModel.remove(index, side) },
+                        onCompare = { scope.launch { tradeViewModel.compare(userId) } },
+                        capabilities = tradeViewModel.capabilities,
+                    )
+                }
                 LaunchedEffect(Unit) { tradeViewModel.loadCapabilities() }
             }
         }
@@ -883,6 +913,23 @@ private fun SignedInDestination(
                     state = leagueViewModel.viewState,
                     onRetry = { scope.launch { leagueViewModel.reload() } },
                     onConnect = onConnect,
+                    // E017 carries both controls, and `OmenScreenHeaderControls` renders the
+                    // account one only when this is non-null. Without it League — and the wire
+                    // sheet it presents, which inherits this same lambda — would be the only
+                    // signed-in surfaces with no route to the account.
+                    onOpenAccount = onOpenAccount,
+                    // The wire comes from the SAME `waiver-analysis.v1` read Command Center
+                    // already makes, for the reason Trade takes its league from the League
+                    // destination's read: two surfaces that fetch the wire separately can
+                    // disagree about it on screen.
+                    //
+                    // Null until that read lands, which removes the section link rather than
+                    // opening an empty sheet.
+                    wire = commandCenterViewModel.waiverAnalysis?.let {
+                        omenScoutWireState(it, leagueViewModel.wireWeekLabel)
+                    },
+                    waiverSummary = commandCenterViewModel.waiverAnalysis?.scoutSummary
+                        ?: waiverUnread,
                 )
             }
         }

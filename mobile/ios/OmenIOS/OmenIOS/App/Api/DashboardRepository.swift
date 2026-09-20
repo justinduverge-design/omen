@@ -343,6 +343,12 @@ struct WaiverAnalysis: Decodable, Equatable {
     let deadline: String?
     let bestMove: BestMove?
     let alternatives: [Alternative]
+    /// `waiver_system`. **Absent means not determined** — see `WaiverSystem.System`.
+    ///
+    /// Added for J5's `WaiverNotDetermined`, which cannot be rendered honestly without it: the
+    /// screen's entire job is to say that the system is unknown, and before this field the client
+    /// had no way to tell "unknown" from "FAAB with a budget we happen not to have".
+    let waiverSystem: WaiverSystem?
     /// Waiver detail owns its decision rows; this is coverage only, when the server negotiates it.
     let capabilities: [OmenDecisionCapability]?
 
@@ -350,6 +356,40 @@ struct WaiverAnalysis: Decodable, Equatable {
         case contractVersion = "contract_version"
         case state, message, deadline, alternatives, capabilities
         case bestMove = "best_move"
+        case waiverSystem = "waiver_system"
+    }
+
+    /// `waiver_system` — how this league decides who gets a claim.
+    ///
+    /// §6.2's gate. FAAB figures appear only for a positively-determined FAAB league; priority
+    /// only for a determined priority league; **neither** for `not_determined`, which is what
+    /// ESPN and Yahoo return today.
+    struct WaiverSystem: Decodable, Equatable {
+        enum System: String, Decodable {
+            case faab
+            case priority
+            case notDetermined = "not_determined"
+
+            /// An unrecognised value degrades to `notDetermined`, never to `faab`. Assuming a
+            /// budget league is the one wrong guess that produces a bid figure out of nothing.
+            init(from decoder: Decoder) throws {
+                let raw = try decoder.singleValueContainer().decode(String.self)
+                self = System(rawValue: raw) ?? .notDetermined
+            }
+        }
+
+        let system: System
+        /// "Your budget $63 of $100". Composed server-side, because the client does not know
+        /// whether a zero balance means spent or unread.
+        let budgetText: String?
+        /// "Claim order 7 of 12".
+        let orderText: String?
+
+        enum CodingKeys: String, CodingKey {
+            case system
+            case budgetText = "budget_text"
+            case orderText = "order_text"
+        }
     }
 
     enum State: String, Decodable {
