@@ -271,6 +271,24 @@
       "h": 844,
       "title": "Account",
       "page": "Ledger, switcher, account"
+    },
+    {
+      "file": "LedgerDegraded.dc.html",
+      "x": 2350,
+      "y": 4920,
+      "w": 390,
+      "h": 844,
+      "title": "The Ledger — outcomes unread",
+      "page": "Ledger, switcher, account"
+    },
+    {
+      "file": "LedgerDetailDegraded.dc.html",
+      "x": 2820,
+      "y": 4920,
+      "w": 390,
+      "h": 844,
+      "title": "Ledger — a receipt with gaps",
+      "page": "Ledger, switcher, account"
     }
   ]
 }
