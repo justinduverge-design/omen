@@ -25,7 +25,13 @@ struct CommandCenterView: View {
     /// section needs the same seam, and it owns its own view model rather than sharing the
     /// switcher's — the two read the same route for different reasons and fail independently.
     private let leagueDirectoryRepository: LeagueDirectoryRepository
+    @Environment(\.omenEnvironment) private var environment
     @State private var showAccountSheet: Bool = false
+    /// `ReportPill.dc.html`, wired to both its doors. Non-nil means the composer is open, and
+    /// the value is the screen the user was on when they opened it — the composer must be told
+    /// rather than resolve it, because a composer that resolved its own current screen would
+    /// name the composer.
+    @State private var reportingScreen: OmenBetaReportScreen?
     @State private var showConnectSheet: Bool = false
     @State private var showSwitcherSheet: Bool = false
     @State private var selectedTab: CommandCenterTab = .command
@@ -219,6 +225,7 @@ struct CommandCenterView: View {
                         onConnect: { showConnectSheet = true },
                         onOpenOmen: { selectedTab = .omen },
                         onOpenLeague: { selectedTab = .league },
+                        onReportProblem: { reportingScreen = .commandCenter },
                         carousel: leagueCarouselViewModel,
                         userID: userID,
                         // §10.3: the server names the surfaces a context change invalidates,
@@ -376,7 +383,10 @@ struct CommandCenterView: View {
                     userID: userID,
                     sessionManager: sessionManager,
                     authViewModel: authViewModel,
-                    leagueDirectoryRepository: leagueDirectoryRepository
+                    leagueDirectoryRepository: leagueDirectoryRepository,
+                    // The same composer the pill opens, told it is being opened from Account.
+                    // One composer, two doors: two would be two disclosures to keep true.
+                    onReportProblem: { reportingScreen = .account }
                 )
                     .navigationTitle("Account")
                     .navigationBarTitleDisplayMode(.inline)
@@ -393,6 +403,30 @@ struct CommandCenterView: View {
                     }
             }
         }
+        .sheet(item: $reportingScreen) { screen in
+            OmenReportComposerSheet(
+                screen: screen,
+                connectionState: reportConnectionState,
+                repository: URLSessionBetaReportRepository(apiBaseURL: environment.apiBaseURL),
+                accessToken: sessionManager.currentSession?.accessToken,
+                onDismiss: { reportingScreen = nil }
+            )
+        }
+    }
+
+    /// The one provider fact a report carries, and the reason it is derived here rather than in
+    /// the composer: the shell already knows which league is active and the composer must not
+    /// go looking. It resolves to a `provider:state` pair or to `none` — never to a league id,
+    /// a team, or anything a provider returned.
+    private var reportConnectionState: OmenBetaReportConnectionState {
+        let page = leagueCarouselViewModel.currentPage
+            ?? leagueCarouselViewModel.allPages.first(where: { $0.isActive })
+        guard let platform = page?.platform,
+              let provider = OmenBetaReportConnectionState.Provider(rawValue: platform)
+        else {
+            return .none
+        }
+        return OmenBetaReportConnectionState(provider: provider, state: .connected)
     }
 
     private func loadLeagueForSelectedContext() async {
