@@ -1,14 +1,5 @@
 package com.slopssaloon.omen.app.screenshot
 
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -16,6 +7,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -23,8 +23,18 @@ import com.slopssaloon.omen.R
 import com.slopssaloon.omen.app.auth.OmenAuthFlow
 import com.slopssaloon.omen.app.auth.OtpResendController
 import com.slopssaloon.omen.app.feature.api.ForcedUpdateScreen
+import com.slopssaloon.omen.app.feature.api.LeagueCarouselViewModel
+import com.slopssaloon.omen.app.feature.api.LeagueOverview
+import com.slopssaloon.omen.app.feature.api.LeagueViewModel
 import com.slopssaloon.omen.app.feature.api.StartSitDetail
+import com.slopssaloon.omen.app.feature.api.TradeCompare
+import com.slopssaloon.omen.app.feature.api.TradeOffer
+import com.slopssaloon.omen.app.feature.api.TradePlayer
+import com.slopssaloon.omen.app.feature.api.TradeViewModel
+import com.slopssaloon.omen.app.feature.api.WaiverAnalysis
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterFixtures
+import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterScreen
+import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterState
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandDeskScreen
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandQuietScreen
 import com.slopssaloon.omen.app.feature.commandcenter.OmenDeskFootnote
@@ -35,11 +45,28 @@ import com.slopssaloon.omen.app.feature.commandcenter.OmenDeskSection
 import com.slopssaloon.omen.app.feature.commandcenter.OmenDeskState
 import com.slopssaloon.omen.app.feature.commandcenter.OmenDeskTeam
 import com.slopssaloon.omen.app.feature.commandcenter.OmenDeskWaiverMove
+import com.slopssaloon.omen.app.feature.commandcenter.OmenLeagueScreen
+import com.slopssaloon.omen.app.feature.commandcenter.OmenLeagueTableScreen
+import com.slopssaloon.omen.app.feature.commandcenter.OmenLeagueWireScreen
 import com.slopssaloon.omen.app.feature.commandcenter.OmenQuietState
 import com.slopssaloon.omen.app.feature.commandcenter.OmenQuietVariant
+import com.slopssaloon.omen.app.feature.commandcenter.OmenScoutActivityRow
+import com.slopssaloon.omen.app.feature.commandcenter.OmenScoutCutLine
+import com.slopssaloon.omen.app.feature.commandcenter.OmenScoutSection
+import com.slopssaloon.omen.app.feature.commandcenter.OmenScoutStrip
+import com.slopssaloon.omen.app.feature.commandcenter.OmenScoutTableRow
+import com.slopssaloon.omen.app.feature.commandcenter.OmenScoutTableState
+import com.slopssaloon.omen.app.feature.commandcenter.OmenScoutTradeTarget
+import com.slopssaloon.omen.app.feature.commandcenter.OmenScoutWireBody
+import com.slopssaloon.omen.app.feature.commandcenter.OmenScoutWireRow
+import com.slopssaloon.omen.app.feature.commandcenter.OmenScoutWireRowStatus
+import com.slopssaloon.omen.app.feature.commandcenter.OmenScoutWireState
 import com.slopssaloon.omen.app.feature.commandcenter.OmenSwitchFilter
 import com.slopssaloon.omen.app.feature.commandcenter.OmenSwitchGroup
 import com.slopssaloon.omen.app.feature.commandcenter.OmenSwitchLoadingScreen
+import com.slopssaloon.omen.app.feature.commandcenter.OmenSwitchRow
+import com.slopssaloon.omen.app.feature.commandcenter.OmenSwitchSheetOverlay
+import com.slopssaloon.omen.app.feature.commandcenter.OmenSwitchSheetState
 import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeBuildScreen
 import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeBuildState
 import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeCapability
@@ -52,57 +79,47 @@ import com.slopssaloon.omen.app.feature.commandcenter.OmenTradePartner
 import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeRead
 import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeRosterScreen
 import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeRosterState
+import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeScreen
 import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeShareScreen
 import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeShareState
 import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeSide
 import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeSubmission
 import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeVerdictScreen
 import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeVerdictState
-import com.slopssaloon.omen.app.feature.commandcenter.OmenSwitchRow
-import com.slopssaloon.omen.app.feature.commandcenter.OmenSwitchSheetOverlay
-import com.slopssaloon.omen.app.feature.commandcenter.OmenSwitchSheetState
-import com.slopssaloon.omen.app.feature.shell.OmenScreenContext
-import com.slopssaloon.omen.core.designsystem.component.OmenConfidenceBand
-import com.slopssaloon.omen.core.designsystem.component.OmenPlatform
-import com.slopssaloon.omen.app.feature.api.LeagueCarouselViewModel
-import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterScreen
-import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterState
+import com.slopssaloon.omen.app.feature.commandcenter.OmenWaiverSystem
 import com.slopssaloon.omen.app.feature.commandcenter.OmenWaiverWatchState
-import com.slopssaloon.omen.app.feature.help.ContextualHelpContent
-import com.slopssaloon.omen.app.feature.help.OmenHelpDestination
-import com.slopssaloon.omen.app.feature.help.OmenHelpSupportScreen
-import com.slopssaloon.omen.app.feature.help.OmenHelpSupportState
-import com.slopssaloon.omen.core.designsystem.component.OmenContextualHelpSheet
-import com.slopssaloon.omen.app.feature.api.LeagueOverview
-import com.slopssaloon.omen.app.feature.api.LeagueViewModel
-import com.slopssaloon.omen.app.feature.api.TradeCompare
-import com.slopssaloon.omen.app.feature.api.TradeOffer
-import com.slopssaloon.omen.app.feature.api.TradePlayer
-import com.slopssaloon.omen.app.feature.api.TradeViewModel
-import com.slopssaloon.omen.app.feature.commandcenter.OmenLeagueScreen
-import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeScreen
+import com.slopssaloon.omen.app.feature.commandcenter.omenScoutWireState
 import com.slopssaloon.omen.app.feature.connect.ConnectException
 import com.slopssaloon.omen.app.feature.connect.ConnectFailure
 import com.slopssaloon.omen.app.feature.connect.ConnectProvider
 import com.slopssaloon.omen.app.feature.connect.ConnectRepository
-import com.slopssaloon.omen.app.feature.connect.FollowedLeague
 import com.slopssaloon.omen.app.feature.connect.ConnectScreen
 import com.slopssaloon.omen.app.feature.connect.ConnectViewModel
 import com.slopssaloon.omen.app.feature.connect.EspnCapture
 import com.slopssaloon.omen.app.feature.connect.EspnConnection
 import com.slopssaloon.omen.app.feature.connect.EspnLeagueOption
+import com.slopssaloon.omen.app.feature.connect.FollowedLeague
 import com.slopssaloon.omen.app.feature.connect.ProviderAuthOutcome
 import com.slopssaloon.omen.app.feature.connect.ResolvedSleeperAccount
 import com.slopssaloon.omen.app.feature.connect.SleeperLeague
 import com.slopssaloon.omen.app.feature.connect.StubProviderAuthSession
 import com.slopssaloon.omen.app.feature.connect.YahooLeague
+import com.slopssaloon.omen.app.feature.help.ContextualHelpContent
+import com.slopssaloon.omen.app.feature.help.OmenHelpDestination
+import com.slopssaloon.omen.app.feature.help.OmenHelpSupportScreen
+import com.slopssaloon.omen.app.feature.help.OmenHelpSupportState
+import com.slopssaloon.omen.app.feature.omen.OmenConnectFailedScreen
 import com.slopssaloon.omen.app.feature.omen.OmenDecisionFixtures
 import com.slopssaloon.omen.app.feature.omen.OmenDecisionScreen
-import com.slopssaloon.omen.app.feature.omen.OmenConnectFailedScreen
 import com.slopssaloon.omen.app.feature.omen.OmenEvidenceScreen
 import com.slopssaloon.omen.app.feature.omen.OmenNoLeagueScreen
 import com.slopssaloon.omen.app.feature.omen.OmenStartSitScreen
+import com.slopssaloon.omen.app.feature.shell.OmenScreenContext
 import com.slopssaloon.omen.core.auth.AuthFlowState
+import com.slopssaloon.omen.core.designsystem.component.OmenConfidenceBand
+import com.slopssaloon.omen.core.designsystem.component.OmenContextualHelpSheet
+import com.slopssaloon.omen.core.designsystem.component.OmenPlatform
+import com.slopssaloon.omen.core.designsystem.component.OmenRiskLevel
 import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
 import com.slopssaloon.omen.core.session.InMemorySecureSessionStore
 import com.slopssaloon.omen.core.session.Session
@@ -500,6 +517,108 @@ object ScreenshotScenarios {
                 }
             },
         ),
+        // J5, "the scout's nest". Six artboards, two screens, and both open on the League tab
+        // because `CONTRACTS.md` places Waiver as a section *inside* League rather than as a
+        // fifth tab. A J5 capture that opened on Command would photograph the wrong screen.
+        //
+        // The split between passes follows the capability contract rather than tone.
+        // `WaiverNoMove` is in the NOMINAL pass: a wire that read perfectly and found nothing
+        // worth claiming is a healthy read, not a degraded one, and filing it as a failure would
+        // teach exactly the wrong lesson about what "no move" means.
+        //
+        // Each pass carries both required classes for its profile — at least one input
+        // `unavailable` and at least one `live, used: false`:
+        //
+        //   league  degraded  `trade_rosters` and `league_activity` unavailable; `league_scoring`
+        //                     read and unused, in the foot line.
+        //   waiver  degraded  `waiver_system` unavailable, named three times over; `roster` read
+        //                     and unused, in the foot line.
+        "journey-j5.nominal.01-league-table" to ScreenshotScenario(
+            label = "J5 nominal 1/3 — the scout\u2019s nest, everything read",
+            render = {
+                J5InShell { modifier ->
+                    OmenLeagueTableScreen(
+                        state = J5ScreenshotFixtures.nominalTable,
+                        modifier = modifier,
+                        context = J5ScreenshotFixtures.titansContext,
+                        onOpenAccount = {},
+                        onOpenWaiver = {},
+                        onBuildTrade = {},
+                    )
+                }
+            },
+        ),
+        "journey-j5.nominal.02-league-waiver" to ScreenshotScenario(
+            label = "J5 nominal 2/3 — the wire, one move and two alternatives",
+            render = {
+                J5InShell { modifier ->
+                    OmenLeagueWireScreen(
+                        state = J5ScreenshotFixtures.nominalWire,
+                        modifier = modifier,
+                        context = J5ScreenshotFixtures.titansContext,
+                        onOpenAccount = {},
+                    )
+                }
+            },
+        ),
+        "journey-j5.nominal.03-waiver-no-move" to ScreenshotScenario(
+            label = "J5 nominal 3/3 — nothing on the wire beats what you have",
+            render = {
+                J5InShell { modifier ->
+                    OmenLeagueWireScreen(
+                        state = J5ScreenshotFixtures.noMoveWire,
+                        modifier = modifier,
+                        context = J5ScreenshotFixtures.titansContext,
+                        onOpenAccount = {},
+                    )
+                }
+            },
+        ),
+        "journey-j5.degraded.01-league-degraded" to ScreenshotScenario(
+            label = "J5 degraded 1/3 — two sections live, two unread, each saying which",
+            render = {
+                J5InShell { modifier ->
+                    OmenLeagueTableScreen(
+                        state = J5ScreenshotFixtures.degradedTable,
+                        modifier = modifier,
+                        context = J5ScreenshotFixtures.titansContext,
+                        onOpenAccount = {},
+                        onOpenWaiver = {},
+                        onRetry = {},
+                    )
+                }
+            },
+        ),
+        "journey-j5.degraded.02-league-no-rosters" to ScreenshotScenario(
+            label = "J5 degraded 2/3 — no rosters, so no trade read, permanently",
+            render = {
+                J5InShell { modifier ->
+                    OmenLeagueTableScreen(
+                        state = J5ScreenshotFixtures.noRostersTable,
+                        modifier = modifier,
+                        context = J5ScreenshotFixtures.pukContext,
+                        onOpenAccount = {},
+                        onOpenWaiver = {},
+                        // No `onRetry`, and the state carries no retry title. A permanent
+                        // provider limit with a Try Again button is a promise the product
+                        // cannot keep.
+                    )
+                }
+            },
+        ),
+        "journey-j5.degraded.03-waiver-not-determined" to ScreenshotScenario(
+            label = "J5 degraded 3/3 — the waiver system itself is unknown",
+            render = {
+                J5InShell { modifier ->
+                    OmenLeagueWireScreen(
+                        state = J5ScreenshotFixtures.notDeterminedWire,
+                        modifier = modifier,
+                        context = J5ScreenshotFixtures.pukContext,
+                        onOpenAccount = {},
+                    )
+                }
+            },
+        ),
         "journey-j3.nominal.01-omen-call" to ScreenshotScenario(
             label = "J3 nominal 1/3 — Omen call",
             render = {
@@ -765,6 +884,21 @@ private fun J4InShell(content: @Composable (Modifier) -> Unit) {
     Scaffold(
         containerColor = OmenTheme.color.bg,
         bottomBar = { FauxBottomNav(FauxNavTab.Trade) {} },
+    ) { innerPadding ->
+        content(Modifier.padding(innerPadding))
+    }
+}
+
+/**
+ * J5 opens on the League tab. All six of its artboards live in that destination — the wire
+ * included, because `CONTRACTS.md` places Waiver as a section *inside* League rather than as a
+ * fifth tab.
+ */
+@Composable
+private fun J5InShell(content: @Composable (Modifier) -> Unit) {
+    Scaffold(
+        containerColor = OmenTheme.color.bg,
+        bottomBar = { FauxBottomNav(FauxNavTab.League) {} },
     ) { innerPadding ->
         content(Modifier.padding(innerPadding))
     }
@@ -1611,5 +1745,291 @@ private object J4ScreenshotFixtures {
         secondaryActionTitle = "Copy as text",
         failure = "Omen could not create a link just now. The read above is unaffected — this " +
             "is the sharing service, not the call.",
+    )
+}
+
+/**
+ * J5, "the scout's nest" — the fixtures behind the six League captures.
+ *
+ * Mirror of `J5ScreenshotFixtures` in `App/Screenshot/ScreenshotScenarios.swift`, with the same
+ * data, so a contact sheet compares the canvas against one product rather than two.
+ *
+ * ## What makes the degraded passes degraded
+ *
+ * `capability-expression-v1.md` asks a degraded pass to show **both** of the two classes that are
+ * easy to conflate: something Omen could not read at all, and something it read and did not use.
+ * There are two capability profiles here and each gets its own degraded frame carrying both.
+ *
+ *   league  `trade_rosters` and `league_activity` **unavailable**, each named in its own
+ *           section's place; `league_scoring` **live, `used: false`**, named in the foot line.
+ *   waiver  `waiver_system` **unavailable**, named three times over in the withheld list;
+ *           `roster` **live, `used: false`**, named in the foot line.
+ *
+ * `not_requested` appears nowhere, which is the fourth class rendering as nothing.
+ */
+private object J5ScreenshotFixtures {
+
+    val titansContext = OmenScreenContext(
+        crest = "TTO",
+        teamName = "Titans of Slopsilonia",
+        platform = OmenPlatform.Espn,
+        leagueName = "Slops Saloon",
+        onSwitch = {},
+        onAddLeague = {},
+    )
+
+    /**
+     * The Yahoo league, which is where both permanent-limit frames live. Yahoo is a live,
+     * entitled provider — this is a limit of what it exposes for this league type, not a
+     * statement about the provider's availability.
+     */
+    val pukContext = OmenScreenContext(
+        crest = "PAK",
+        teamName = "Puk Around & Find Out",
+        platform = OmenPlatform.Yahoo,
+        leagueName = "Fantasy Madness",
+        onSwitch = {},
+        onAddLeague = {},
+    )
+
+    private val tableRows = listOf(
+        OmenScoutTableRow(rank = 1, crest = "GMR", teamName = "Gibbs me some Rice", form = listOf(true, true, false, true, true), record = "6–1"),
+        OmenScoutTableRow(rank = 2, crest = "PAK", teamName = "Puk Around & Find Out", form = listOf(true, false, true, true, true), record = "5–2"),
+        OmenScoutTableRow(rank = 3, crest = "TTO", teamName = "Titans of Slopsilonia", form = listOf(true, true, true, false, true), record = "5–2", isMine = true),
+        OmenScoutTableRow(rank = 4, crest = "DSI", teamName = "Davante’s Inferno", form = listOf(false, false, true, false, true), record = "4–3"),
+        OmenScoutTableRow(rank = 5, crest = "CHB", teamName = "Chubb Rock", form = listOf(false, true, false, false, false), record = "3–4"),
+    )
+
+    private val tradeTargets = listOf(
+        OmenScoutTradeTarget(crest = "DSI", teamName = "Davante’s Inferno", read = "Thin at RB, three startable receivers. You have the reverse."),
+        OmenScoutTradeTarget(crest = "CHB", teamName = "Chubb Rock", read = "3–4 and fading. Two backs on byes in weeks 9 and 11."),
+    )
+
+    private val waiverMove = OmenDeskWaiverMove(
+        addName = "Jaylen Wright",
+        addMeta = "RB · TEN",
+        addPoints = "11.4",
+        dropName = "Roschon Johnson",
+        dropMeta = "RB · CHI",
+        dropPoints = "4.1",
+        reasoning = "Pollard is out three weeks and Roschon sits behind two healthy backs — you are not losing anything you will miss.",
+        band = OmenConfidenceBand.Confident,
+        risk = OmenRiskLevel.Low,
+    )
+
+    /**
+     * `LeagueTable.dc.html`.
+     *
+     * The cut line is present because this fixture is a league whose playoff settings were
+     * actually read. On ESPN that is **not** generally true — `settings_known` is `true` on
+     * Sleeper only — so the real mapper drops the line on this provider and this frame is a
+     * capture of the line's composition rather than a claim that ESPN supplies it.
+     */
+    val nominalTable = OmenScoutTableState(
+        weekLabel = "Week 7 · 12 teams",
+        strip = OmenScoutSection.Read(
+            OmenScoutStrip(platform = OmenPlatform.Espn, myScore = "64.8", theirScore = "51.2", status = "Live · Q2"),
+        ),
+        table = OmenScoutSection.Read(tableRows),
+        cutLine = OmenScoutCutLine(afterRank = 4, label = "Playoff cut"),
+        tradeTargets = OmenScoutSection.Read(tradeTargets),
+        waiver = OmenScoutSection.Read(waiverMove),
+        activity = OmenScoutSection.Read(
+            listOf(
+                OmenScoutActivityRow(category = "Standings", text = "Two teams are tied for the final playoff spot."),
+                OmenScoutActivityRow(category = "Standings", text = "You are one game from the playoff cut line."),
+            ),
+        ),
+        // Partial, and the sentence says which half is missing. ESPN does not give Omen
+        // transactions today, so the list is real and incomplete at the same time.
+        activityUnreadNote = "Transactions unavailable for ESPN right now — adds, drops and trades are not in this list, which is unread rather than empty.",
+    )
+
+    /**
+     * `LeagueDegraded.dc.html` — the `league` profile's degraded pass.
+     *
+     * Two sections live, two unread, and **each section says which it is** rather than the page
+     * showing one banner and hoping.
+     */
+    val degradedTable = OmenScoutTableState(
+        weekLabel = "Week 7 · 12 teams",
+        notice = "ESPN is returning partial data right now. Two sections below are live and two are not. Each one says which it is.",
+        strip = OmenScoutSection.Read(
+            OmenScoutStrip(platform = OmenPlatform.Espn, myScore = "64.8", theirScore = "51.2", status = "Live · Q2"),
+        ),
+        table = OmenScoutSection.Read(tableRows.take(3)),
+        // Absent, because a partial ESPN read is exactly the case where playoff settings are
+        // unproven. Drawing the line here would put a playoff claim on a degraded screen.
+        cutLine = null,
+        tradeTargets = OmenScoutSection.Unread(
+            capability = "Trade rosters",
+            sentence = "Reading other managers’ rosters needs a call ESPN is currently refusing. Omen issues no trade read without rosters — it will not name a team it has not read.",
+        ),
+        waiver = OmenScoutSection.Read(waiverMove),
+        activity = OmenScoutSection.Unread(
+            capability = "League activity",
+            sentence = "Adds, drops and trades are not in this list. The list is not empty — it is unread, and those are different things.",
+        ),
+        footnote = OmenDeskFootnote(
+            text = "League scoring settings were read and did not change anything on this screen.",
+        ),
+        // A retry is legitimate here and only here: a refusing provider may stop refusing.
+        retryTitle = "Retry ESPN",
+    )
+
+    /**
+     * `LeagueNoRosters.dc.html`.
+     *
+     * A **permanent provider limit for this league**, not an outage — which is why the section
+     * uses [OmenScoutSection.ProviderLimit] rather than [OmenScoutSection.Unread], why the
+     * section header reads "Not possible here" rather than "Unavailable", and why [retryTitle]
+     * is null. `CONTRACTS.md` is explicit: "Do not build a retry for it."
+     */
+    val noRostersTable = OmenScoutTableState(
+        weekLabel = "Week 7 · 10 teams",
+        strip = OmenScoutSection.Read(
+            OmenScoutStrip(platform = OmenPlatform.Yahoo, myScore = "78.4", theirScore = "81.9", status = "Live · Q3"),
+        ),
+        table = OmenScoutSection.Read(
+            listOf(
+                OmenScoutTableRow(rank = 1, crest = "RGB", teamName = "Regulation Blondes", form = listOf(true, true, true, false, true), record = "5–1"),
+                OmenScoutTableRow(rank = 2, crest = "PAK", teamName = "Puk Around & Find Out", form = listOf(true, false, true, true, true), record = "4–2", isMine = true),
+                OmenScoutTableRow(rank = 3, crest = "MKM", teamName = "Mike’s Marauders", form = listOf(false, true, true, false, true), record = "4–2"),
+            ),
+        ),
+        tradeTargets = OmenScoutSection.ProviderLimit(
+            capability = "Trade rosters",
+            sentence = "Yahoo does not expose other managers’ rosters for this league. Without them Omen cannot see who needs what, so it makes no trade read at all rather than guessing from the standings.",
+            consequence = "This is a permanent limit of the provider for this league type, not an outage. Omen’s weekly call for this team will be a start/sit or a waiver move, never a trade. Everything else on this screen is unaffected.",
+        ),
+        waiver = OmenScoutSection.Read(waiverMove),
+        activity = OmenScoutSection.Read(
+            listOf(OmenScoutActivityRow(category = "Standings", text = "Two teams are tied at 4–2 behind the leader.")),
+        ),
+    )
+
+    // MARK: Server-shaped payloads
+
+    /**
+     * A fixture that cannot parse is a contract drift, and it should stop a capture rather than
+     * quietly render an empty screen. This is J3's rule and the throw is deliberate.
+     */
+    private fun decodeWaiver(json: String): WaiverAnalysis =
+        WaiverAnalysis.parse(json) ?: error("J5 fixture no longer parses as waiver-analysis.v1")
+
+    private val NOMINAL_WAIVER_JSON = """
+    {
+      "contract_version": "waiver-analysis.v1",
+      "state": "confirmed_opportunity",
+      "deadline": "Tue 3:00 AM",
+      "waiver_system": {
+        "system": "faab",
+        "budget_text": "Your budget ${'$'}63 of ${'$'}100",
+        "order_text": "Claim order 7 of 12"
+      },
+      "best_move": {
+        "add": { "name": "Jaylen Wright", "position": "RB", "team": "TEN", "projected_points": 11.4 },
+        "drop": { "name": "Roschon Johnson", "position": "RB", "team": "CHI", "projected_points": 4.1 },
+        "improvement": 7.3,
+        "why_now": "Pollard is out three weeks and Wright took almost every backup snap on Sunday. Roschon sits behind two healthy backs — you will not miss him.",
+        "bid": { "amount": 14, "basis": "two managers ahead of you need a back" }
+      },
+      "alternatives": [
+        {
+          "player": { "name": "Jalen McMillan", "position": "WR", "team": "TB", "projected_points": 9.2 },
+          "improvement": 2.1,
+          "tradeoff": "Projects 2.2 points below Wright against your lineup. Take this one only if you lose the Wright claim."
+        },
+        {
+          "player": { "name": "Cade Otton", "position": "TE", "team": "TB", "projected_points": 8.1 },
+          "improvement": 1.4,
+          "tradeoff": "There is no defensible drop for this one. Everyone on your bench is either starting somewhere or worth more than Otton. Named rather than forced."
+        }
+      ]
+    }
+    """.trimIndent()
+
+    /**
+     * Note what is **absent**: no `bid`, and `system` is `not_determined`.
+     *
+     * `bid` being absent rather than `{"amount": 0}` is the contract's own rule — null, never
+     * zero, when any input is missing — and this payload is the case that rule was written for.
+     */
+    private val NOT_DETERMINED_WAIVER_JSON = """
+    {
+      "contract_version": "waiver-analysis.v1",
+      "state": "confirmed_opportunity",
+      "waiver_system": { "system": "not_determined" },
+      "best_move": {
+        "add": { "name": "Jaylen Wright", "position": "RB", "team": "TEN", "projected_points": 11.4 },
+        "improvement": 7.3,
+        "why_now": "Wright took almost every backup snap on Sunday."
+      },
+      "alternatives": [
+        {
+          "player": { "name": "Jalen McMillan", "position": "WR", "team": "TB", "projected_points": 9.2 },
+          "improvement": 2.1,
+          "tradeoff": "The next best claim if the first one does not land."
+        }
+      ]
+    }
+    """.trimIndent()
+
+    // MARK: The wire
+
+    /** `LeagueWaiver.dc.html` — decoded, so the FAAB gate is proven rather than asserted. */
+    val nominalWire: OmenScoutWireState =
+        omenScoutWireState(decodeWaiver(NOMINAL_WAIVER_JSON), weekLabel = "Week 7 · Waiver")
+
+    /**
+     * `WaiverNotDetermined.dc.html` — the `waiver` profile's degraded pass.
+     *
+     * The payload says `"system": "not_determined"`, which is what ESPN and Yahoo return today.
+     * The screen therefore shows **no** budget and **no** claim order — not a dashed one, not a
+     * greyed one, none — and names the three answers it is withholding.
+     *
+     * The foot line carries the `live, used: false` half: the roster read succeeded and did not
+     * decide anything here, because the player read does not depend on the waiver system.
+     */
+    val notDeterminedWire: OmenScoutWireState =
+        omenScoutWireState(
+            decodeWaiver(NOT_DETERMINED_WAIVER_JSON),
+            weekLabel = "Week 7 · Waiver",
+            footnote = OmenDeskFootnote(
+                text = "Your roster was read and did not change any of this — the player read above does not depend on the waiver system.",
+            ),
+        )
+
+    /**
+     * `WaiverNoMove.dc.html` — the one J5 artboard declared a **fit**.
+     *
+     * A literal rather than a decode, and the reason is a gap worth naming: the artboard draws a
+     * **watch list** ("Jaylen Wright, if Pollard sits") and `waiver-analysis.v1` carries no such
+     * field. Under the 2026-09-18 precedence rule the artboard's shape is binding and its literal
+     * strings are not, so the block is built and the strings are fixture copy — and the missing
+     * contract field is reported rather than quietly dropped or quietly invented.
+     */
+    val noMoveWire = OmenScoutWireState(
+        weekLabel = "Week 7 · Waiver",
+        system = OmenWaiverSystem.Faab(
+            budgetText = "Your budget \$63 of \$100",
+            orderText = "Claim order 7 of 12",
+        ),
+        body = OmenScoutWireBody.NoMove(
+            headline = "Nothing on this wire beats what you have.",
+            body = "Omen checked all 143 free agents against your nine starting slots. The best of them projects 1.2 points above your weakest starter, which is noise.",
+            costTitle = "What it would have cost",
+            cost = "Claiming the best available means dropping Tyjae Spears, who is one Pollard injury from being startable. Doing nothing is the move this week.",
+            band = OmenConfidenceBand.Confident,
+            risk = OmenRiskLevel.Low,
+            watchTitle = "Watch list",
+            watching = listOf(
+                OmenScoutWireRow(title = "Jaylen Wright", detail = "RB · TEN · if Pollard sits", status = OmenScoutWireRowStatus.Watching),
+                OmenScoutWireRow(title = "Cade Otton", detail = "TE · TB · if Godwin misses week 8", status = OmenScoutWireRowStatus.Watching),
+            ),
+        ),
+        footnote = OmenDeskFootnote(
+            text = "Next read Tuesday 3:00 AM. Omen will wake you only if something changes.",
+        ),
     )
 }
