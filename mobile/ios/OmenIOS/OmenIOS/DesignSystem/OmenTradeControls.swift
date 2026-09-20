@@ -74,7 +74,13 @@ struct OmenTradeTabs: View {
                         .foregroundStyle(isOn ? OmenColor.textPrimary : OmenColor.textTertiary)
                         // The artboard's underline is 2px on the selected tab only. The frame
                         // reaches 44pt for the thumb; the underline stays where the type is.
-                        .frame(minHeight: OmenLayout.minTouchTarget)
+                        //
+                        // `minWidth` as well as `minHeight`: "Build" is 40.3pt wide at
+                        // `OmenTypography.label`, so the height floor alone left a tab target
+                        // 3.7pt under the HIG minimum on its short axis. Found by
+                        // `J4InteractionUITests.testTheBuildScreenOffersItsTabsFiltersAndPartners`,
+                        // which is the whole reason that test measures both axes.
+                        .frame(minWidth: OmenLayout.minTouchTarget, minHeight: OmenLayout.minTouchTarget)
                         .overlay(alignment: .bottom) {
                             Rectangle()
                                 .fill(isOn ? OmenColor.accent : Color.clear)
@@ -166,7 +172,12 @@ struct OmenTradeFilterChip: View {
                 .foregroundStyle(ink)
                 .lineLimit(1)
                 .padding(.horizontal, OmenSpacing.step10)
-                .frame(minHeight: OmenLayout.minTouchTarget)
+                // `minWidth` as well as `minHeight`, same finding as `OmenTradeTabs`: a
+                // two-letter position filter measured 37.3pt wide ("RB") and 40.7pt ("WR") with
+                // the height floor alone. The pill's visible edge grows with it, which is
+                // correct — the artboard's chip is drawn round a word, and a 6.7pt-wider pill
+                // round a two-letter word is not a drift worth a thumb missing the control.
+                .frame(minWidth: OmenLayout.minTouchTarget, minHeight: OmenLayout.minTouchTarget)
                 .background(
                     RoundedRectangle(cornerRadius: 7, style: .continuous)
                         .fill(isSelected ? OmenColor.surface3 : Color.clear)
