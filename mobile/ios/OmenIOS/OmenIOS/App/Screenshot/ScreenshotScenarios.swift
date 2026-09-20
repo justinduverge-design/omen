@@ -474,6 +474,53 @@ enum ScreenshotScenarios {
                 fitProbeIdentifier: "j5.fit.waiver-not-determined"
             )))) }
         ),
+        // MARK: J6 — "the receipts"
+        //
+        // `Ledger.dc.html` and `LedgerDetail.dc.html`, in the order a user meets them: the
+        // record, then one call in full. Both open on the **Omen** tab, which is where
+        // `CommandCenter`'s Ledger preview and its "See all" route live.
+        //
+        // Each pass carries both required classes:
+        //
+        //   ledger         degraded  `move_outcomes` unavailable, named with a sentence that
+        //                            survives truncation; `league_scoring` read and unused, in
+        //                            the foot line.
+        //   ledger-detail  degraded  `game_script` unavailable; `schedule_strength` read and
+        //                            explicitly not used — rendered with no evidence chip.
+        "journey-j6.nominal.01-ledger": ScreenshotScenario(
+            label: "J6 nominal 1/2 \u{2014} the record, verified and self-reported kept apart",
+            content: { AnyView(j6Shell(AnyView(OmenLedgerScreen(
+                state: J6ScreenshotFixtures.nominalLedger,
+                context: J6ScreenshotFixtures.titansContext,
+                onOpenAccount: {},
+                onOpenCall: { _ in }
+            )))) }
+        ),
+        "journey-j6.nominal.02-ledger-detail": ScreenshotScenario(
+            label: "J6 nominal 2/2 \u{2014} one receipt in full, including the loss",
+            content: { AnyView(j6Shell(AnyView(OmenLedgerDetailScreen(
+                state: J6ScreenshotFixtures.nominalReceipt,
+                context: J6ScreenshotFixtures.titansContext,
+                onOpenAccount: {}
+            )))) }
+        ),
+        "journey-j6.degraded.01-ledger": ScreenshotScenario(
+            label: "J6 degraded 1/2 \u{2014} outcomes unread, follow-through unknown",
+            content: { AnyView(j6Shell(AnyView(OmenLedgerScreen(
+                state: J6ScreenshotFixtures.degradedLedger,
+                context: J6ScreenshotFixtures.pukContext,
+                onOpenAccount: {},
+                onOpenCall: { _ in }
+            )))) }
+        ),
+        "journey-j6.degraded.02-ledger-detail": ScreenshotScenario(
+            label: "J6 degraded 2/2 \u{2014} a receipt whose zone and evidence are incomplete",
+            content: { AnyView(j6Shell(AnyView(OmenLedgerDetailScreen(
+                state: J6ScreenshotFixtures.degradedReceipt,
+                context: J6ScreenshotFixtures.pukContext,
+                onOpenAccount: {}
+            )))) }
+        ),
         "switcher.team-sheet": ScreenshotScenario(
             label: "Team switcher — pinned bar and the sheet, one favourite starred",
             content: { AnyView(TeamSwitcherScreenshotHost()) }
@@ -644,6 +691,14 @@ enum ScreenshotScenarios {
     /// prove nothing, which is the mistake the `initialTab` seam exists to prevent.
     private static func j5Shell(_ content: AnyView) -> some View {
         FauxShell(initialTab: .league, leagueContentOverride: content)
+    }
+
+    /// J6 opens on the Omen tab. Both artboards draw the Omen tab lit, and the only production
+    /// route into either of them is the Command Center Ledger preview's "See all" and its rows —
+    /// which live in the Omen destination. Opening on Command would photograph the preview
+    /// rather than the Ledger.
+    private static func j6Shell(_ content: AnyView) -> some View {
+        FauxShell(initialTab: .omen, omenContentOverride: content)
     }
 
     /// Read the launch-argument value that names the current scenario, if any.
@@ -2127,4 +2182,280 @@ enum J5ScreenshotFixtures {
       ]
     }
     """
+}
+
+/// J6 — `Ledger.dc.html` and `LedgerDetail.dc.html`, as deterministic in-app fixtures.
+///
+/// ## The Ledger's rule is narrower than the general honesty rule, and these fixtures exist to
+/// prove it holds
+///
+/// `CONTRACTS.md`: *"verified outcomes, self-reported action, and unknown follow-through stay
+/// visually and semantically separate."* A fixture set that only contained verified rows would
+/// photograph beautifully and prove nothing. So `nominalLedger` deliberately carries all three
+/// on one screen:
+///
+///   - a verified `.followed` row with a verified outcome,
+///   - a `.passed(.selfReported)` row — the dotted registry §2.3 carrier,
+///   - and an `.unknown` row, whose follow-through nobody knows.
+///
+/// ## Why no fixture carries a raw `win` or `loss`
+///
+/// It is not expressible. `OmenLedgerOutcome` has no such case, which is the point of the type:
+/// the translation happens in `MovesHistory.ledgerOutcome(for:)` and a raw token cannot reach a
+/// screen state. `MovesHistoryTests` pins the mapping; there is nothing for a fixture to add.
+enum J6ScreenshotFixtures {
+
+    // MARK: Context
+
+    static let titansContext = OmenScreenContext(
+        crest: "TTO",
+        teamName: "Titans of Slopsilonia",
+        platform: .espn,
+        leagueName: "Slops Saloon",
+        onSwitch: {},
+        onAddLeague: {}
+    )
+
+    static let pukContext = OmenScreenContext(
+        crest: "PAK",
+        teamName: "Puk Around & Find Out",
+        platform: .yahoo,
+        leagueName: "Fantasy Madness",
+        onSwitch: {},
+        onAddLeague: {}
+    )
+
+    // MARK: Ledger — nominal
+
+    /// `Ledger.dc.html`, with the artboard's own rows.
+    ///
+    /// The artboard's second row is `You passed` + `Self-reported`, and it is the one row on the
+    /// screen whose action Omen did not observe. Keeping it here — rather than promoting it to a
+    /// verified pass because it photographs cleaner — is the whole journey.
+    static let nominalLedger = OmenLedgerState(
+        kicker: "11 calls",
+        groups: [
+            OmenLedgerGroup(
+                title: "Week 7",
+                count: "1 open",
+                calls: [
+                    OmenLedgerCall(
+                        id: "j6-w7-1",
+                        summary: "Start Stafford over Daniels",
+                        callType: "Start / sit",
+                        action: .followed(.verified),
+                        outcome: .pending,
+                        note: nil
+                    ),
+                    OmenLedgerCall(
+                        id: "j6-w7-2",
+                        summary: "Claim Wright, drop Johnson",
+                        callType: "Waiver",
+                        action: .passed(.selfReported),
+                        outcome: .notVerified,
+                        note: "Wright went for 94 and a score. Somebody else claimed him Wednesday."
+                    )
+                ]
+            ),
+            OmenLedgerGroup(
+                title: "Weeks 1\u{2013}6",
+                count: "9 closed",
+                calls: [
+                    OmenLedgerCall(
+                        id: "j6-w6-1",
+                        summary: "Trade Kupp for Nacua",
+                        callType: "Trade",
+                        action: .followed(.verified),
+                        outcome: .worked,
+                        note: nil
+                    ),
+                    OmenLedgerCall(
+                        id: "j6-w4-1",
+                        summary: "Bench Kyren Williams, Week 4",
+                        callType: "Start / sit",
+                        action: .followed(.verified),
+                        outcome: .didNotWork,
+                        note: "He went for 21.4. Omen was wrong \u{2014} the snap-share read didn\u{2019}t survive the game script."
+                    ),
+                    OmenLedgerCall(
+                        id: "j6-w3-1",
+                        summary: "Claim Tank Dell, Week 3",
+                        callType: "Waiver",
+                        action: .followed(.verified),
+                        outcome: .worked,
+                        note: nil
+                    )
+                ]
+            )
+        ],
+        unread: nil,
+        footnote: nil
+    )
+
+    // MARK: Ledger — degraded
+
+    /// The degraded pass: one input `unavailable`, one `live, used: false`.
+    ///
+    /// `move_outcomes` unavailable is the one that costs the reader something, so it is named
+    /// with a sentence and placed above the rows where truncation cannot reach it. Every row in
+    /// this pass therefore reads `Not verified` — which is a true statement about what Omen
+    /// could read, not a claim that the calls failed.
+    ///
+    /// The third row's `.unknown` action is the case that exists so an unread follow-through
+    /// never renders as an empty slot a reader completes as "followed".
+    static let degradedLedger = OmenLedgerState(
+        kicker: "4 calls",
+        groups: [
+            OmenLedgerGroup(
+                title: "Week 7",
+                count: "2 open",
+                calls: [
+                    OmenLedgerCall(
+                        id: "j6-d-1",
+                        summary: "Start Pollard over Mostert",
+                        callType: "Start / sit",
+                        action: .followed(.selfReported),
+                        outcome: .notVerified,
+                        note: nil
+                    ),
+                    OmenLedgerCall(
+                        id: "j6-d-2",
+                        summary: "Claim Jaylen Wright",
+                        callType: "Waiver",
+                        action: .unknown,
+                        outcome: .pending,
+                        note: "Yahoo did not hand back the transaction, so Omen does not know whether you made this move."
+                    )
+                ]
+            ),
+            OmenLedgerGroup(
+                title: "Week 6",
+                count: "2 closed",
+                calls: [
+                    OmenLedgerCall(
+                        id: "j6-d-3",
+                        summary: "Trade Chubb for Etienne",
+                        callType: "Trade",
+                        action: .passed(.selfReported),
+                        outcome: .notVerified,
+                        note: nil
+                    ),
+                    OmenLedgerCall(
+                        id: "j6-d-4",
+                        summary: "Bench Zay Flowers, Week 6",
+                        callType: "Start / sit",
+                        action: .unknown,
+                        outcome: .notVerified,
+                        note: nil
+                    )
+                ]
+            )
+        ],
+        unread: OmenLedgerUnread(
+            capability: "Move outcomes",
+            sentence: "Omen could not read how these calls turned out for this league. Every row below says \u{201C}Not verified\u{201D} because nobody checked \u{2014} not because the call was wrong."
+        ),
+        footnote: OmenDeskFootnote(
+            text: "League scoring was read and did not change any row here.",
+            emphasis: "did not change any row here"
+        )
+    )
+
+    // MARK: LedgerDetail — nominal
+
+    /// `LedgerDetail.dc.html`, the artboard's own receipt: the Week 4 Kyren Williams bench.
+    ///
+    /// It is a **loss**, and that is the artboard's choice, not an accident of fixture picking.
+    /// The screen's closing line is *"Losses stay in the Ledger — a record that only shows wins
+    /// is marketing."* A nominal capture of a winning receipt would make that sentence
+    /// decorative.
+    ///
+    /// `issuedLabel` is built through `OmenLedgerReceiptState.issuedLabel(issuedAt:timezone:)`
+    /// from a real timestamp and a real zone rather than hard-coded, so the fixture exercises
+    /// the formatter that `CONTRACTS.md`'s `issued_at_timezone` clause exists for.
+    static let nominalReceipt = OmenLedgerReceiptState(
+        kicker: "Week 4 \u{00B7} Start / sit",
+        issuedLabel: OmenLedgerReceiptState.issuedLabel(
+            issuedAt: "2026-09-29T07:00:00Z",
+            timezone: "America/New_York"
+        ),
+        callType: "Start / sit",
+        headline: "Bench Kyren Williams",
+        reasoning: "Snap share fell to 54% over two weeks while Blake Corum climbed to 38%.",
+        band: .leaning,
+        risk: .medium,
+        riskReason: nil,
+        status: "Closed",
+        action: .followed(.verified),
+        outcome: .didNotWork,
+        noteLead: "Williams went for 21.4.",
+        note: "Omen was wrong. The snap-share read was accurate and did not survive the game script \u{2014} the Rams trailed by seventeen and abandoned the committee.",
+        evidence: [
+            OmenReceiptEvidence(
+                key: "Snaps",
+                statement: "54% over two weeks, down from 71%.",
+                kind: .used
+            ),
+            OmenReceiptEvidence(
+                key: "Corum",
+                statement: "38% and rising in the same window.",
+                kind: .used
+            ),
+            OmenReceiptEvidence(
+                key: "Game script",
+                statement: "Not modelled. Omen had no view of this and it is what decided the game.",
+                kind: .couldNotRead
+            )
+        ],
+        fairnessNote: "This receipt is frozen as it was issued. Losses stay in the Ledger \u{2014} a record that only shows wins is marketing."
+    )
+
+    // MARK: LedgerDetail — degraded
+
+    /// The degraded receipt. Two things are wrong with it and they are different kinds of wrong.
+    ///
+    ///   1. `schedule_strength` was **read and not used** — `live, used: false`. It is named,
+    ///      de-emphasised, and carries **no** `Live` chip, because the chip is evidence styling
+    ///      and this input is not evidence for this call.
+    ///   2. `opponent_roster` was **unavailable**. Named, with a sentence, dashed.
+    ///
+    /// And the receipt arrived with `issued_at` but **no `issued_at_timezone`**, so the scope
+    /// line says the zone is missing rather than rendering a bare UTC wall-clock that would read
+    /// as the wrong day to anyone west of Greenwich. That is `issuedLabel`'s refusal, captured.
+    static let degradedReceipt = OmenLedgerReceiptState(
+        kicker: "Week 6 \u{00B7} Waiver",
+        issuedLabel: OmenLedgerReceiptState.issuedLabel(
+            issuedAt: "2026-10-13T07:00:00Z",
+            timezone: nil
+        ),
+        callType: "Waiver",
+        headline: "Claim Jaylen Wright",
+        reasoning: nil,
+        band: nil,
+        risk: nil,
+        riskReason: nil,
+        status: "Open",
+        action: .unknown,
+        outcome: .notVerified,
+        noteLead: nil,
+        note: "Yahoo did not hand back the transaction log for this week, so Omen cannot say whether you made this claim.",
+        evidence: [
+            OmenReceiptEvidence(
+                key: "Depth chart",
+                statement: "Pollard out three weeks; Wright the only back behind him.",
+                kind: .used
+            ),
+            OmenReceiptEvidence(
+                key: "Schedule strength",
+                statement: "Read, and it did not move this call.",
+                kind: .readNotUsed
+            ),
+            OmenReceiptEvidence(
+                key: "Opponent roster",
+                statement: "Unavailable. Yahoo does not expose other teams\u{2019} rosters for this league type, so Omen had no view of who else needed a back.",
+                kind: .couldNotRead
+            )
+        ],
+        fairnessNote: "This receipt is frozen as it was issued. Losses stay in the Ledger \u{2014} a record that only shows wins is marketing."
+    )
 }

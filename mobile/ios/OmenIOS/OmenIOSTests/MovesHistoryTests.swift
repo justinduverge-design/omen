@@ -231,4 +231,87 @@ final class MovesHistoryTests: XCTestCase {
         XCTAssertEqual(entry.actionStatus, "You reported following this call")
         XCTAssertEqual(entry.outcomeProvenance, "verified")
     }
+
+    /// The **structured** axis, pinned separately from the sentence.
+    ///
+    /// `outcomeText(for:)` builds a line for the Ledger preview; `ledgerOutcome(for:)` builds the
+    /// value `OmenLedgerScreen` renders as a chip. They are two functions and the raw column can
+    /// leak through either, so a test on the sentence alone would have left the J6 screens
+    /// unguarded. There is deliberately no `.win` case for this to map onto — a raw token is not
+    /// expressible in `OmenLedgerOutcome` — and this asserts it resolves to `.notVerified` rather
+    /// than to `.worked`, which would invent the verification v2's third value exists to withhold.
+    func testARawWinIsNotPromotedToAVerifiedOutcomeOnTheStructuredAxis() throws {
+        for raw in ["win", "WIN", " loss ", "loss", "voided"] {
+            let move = MovesHistory.Move(
+                id: .string("structured-\(raw)"), season: 2026, week: 4, moveType: "start_sit",
+                recommendation: "Bench Kyren Williams", followed: true, stars: nil,
+                outcome: raw, effectivenessPct: 88, createdAt: nil
+            )
+            XCTAssertEqual(
+                MovesHistory.ledgerOutcome(for: move), .notVerified,
+                "raw \(raw) resolved to something other than .notVerified"
+            )
+            XCTAssertEqual(MovesHistory.ledgerOutcome(for: move).label, "Not verified")
+        }
+
+        // And the three values the server actually sends still map, so the test above is not
+        // passing by mapping everything to `.notVerified`.
+        func move(_ outcome: String) -> MovesHistory.Move {
+            MovesHistory.Move(
+                id: .string(outcome), season: 2026, week: 4, moveType: "start_sit",
+                recommendation: "Bench Kyren Williams", followed: true, stars: nil,
+                outcome: outcome, effectivenessPct: nil, createdAt: nil
+            )
+        }
+        XCTAssertEqual(MovesHistory.ledgerOutcome(for: move("worked")), .worked)
+        XCTAssertEqual(MovesHistory.ledgerOutcome(for: move("did_not_work")), .didNotWork)
+        XCTAssertEqual(MovesHistory.ledgerOutcome(for: move("pending")), .pending)
+        XCTAssertEqual(MovesHistory.ledgerOutcome(for: move("not_verified")), .notVerified)
+    }
+
+    /// Self-reported action never becomes a verified one, on the structured axis either.
+    ///
+    /// `CONTRACTS.md` keeps *"verified outcomes, self-reported action, and unknown follow-through
+    /// visually and semantically separate"*, and the semantic half is this mapping. An absent
+    /// `followed` is `.unknown` rather than `.passed`: a roster Omen could not read is not a
+    /// roster the user declined to move.
+    func testActionCarriesItsOwnProvenanceAndAnAbsentFollowedIsUnknown() throws {
+        func move(followed: Bool?, provenance: String?) -> MovesHistory.Move {
+            MovesHistory.Move(
+                id: .string("action"), season: 2026, week: 4, moveType: "waiver",
+                recommendation: "Claim Jaylen Wright", followed: followed,
+                actionProvenance: provenance, provenance: nil, stars: nil,
+                outcome: "pending", effectivenessPct: nil, createdAt: nil
+            )
+        }
+        XCTAssertEqual(MovesHistory.action(for: move(followed: true, provenance: "self_reported")), .followed(.selfReported))
+        XCTAssertEqual(MovesHistory.action(for: move(followed: false, provenance: "self_reported")), .passed(.selfReported))
+        XCTAssertEqual(MovesHistory.action(for: move(followed: true, provenance: nil)), .followed(.verified))
+        XCTAssertEqual(MovesHistory.action(for: move(followed: nil, provenance: "self_reported")), .unknown)
+        XCTAssertEqual(MovesHistory.action(for: move(followed: nil, provenance: nil)), .unknown)
+    }
+
+    /// **A bare UTC timestamp is not an acceptable fallback**, and neither is a guessed zone.
+    ///
+    /// `CONTRACTS.md`: *"`issued_at` carries `issued_at_timezone`."* A receipt issued Tuesday
+    /// 3:00 AM Eastern is 07:00 UTC, and a user checking whether Omen called it before the waiver
+    /// ran would read the UTC rendering as the wrong day's answer.
+    func testTheIssuedLabelIsZoneQualifiedOrSaysTheZoneIsMissing() throws {
+        XCTAssertEqual(
+            OmenLedgerReceiptState.issuedLabel(issuedAt: "2026-09-29T07:00:00Z", timezone: "America/New_York"),
+            "Issued Tue 3:00 AM"
+        )
+        // No zone: the screen says so rather than rendering 7:00 AM.
+        let noZone = OmenLedgerReceiptState.issuedLabel(issuedAt: "2026-09-29T07:00:00Z", timezone: nil)
+        XCTAssertEqual(noZone, "Issue time zone unavailable")
+        XCTAssertFalse(noZone.contains("7:00"), "the UTC wall clock leaked into the fallback")
+        // An unknown zone identifier is the same refusal, not a silent fall back to UTC.
+        XCTAssertEqual(
+            OmenLedgerReceiptState.issuedLabel(issuedAt: "2026-09-29T07:00:00Z", timezone: "Mars/Olympus"),
+            "Issue time zone unavailable"
+        )
+        XCTAssertEqual(OmenLedgerReceiptState.issuedLabel(issuedAt: nil, timezone: "America/New_York"), "Issue time not recorded")
+        XCTAssertEqual(OmenLedgerReceiptState.issuedLabel(issuedAt: "not a date", timezone: "America/New_York"), "Issue time not recorded")
+    }
+
 }
