@@ -40,6 +40,24 @@ import com.slopssaloon.omen.app.feature.commandcenter.OmenQuietVariant
 import com.slopssaloon.omen.app.feature.commandcenter.OmenSwitchFilter
 import com.slopssaloon.omen.app.feature.commandcenter.OmenSwitchGroup
 import com.slopssaloon.omen.app.feature.commandcenter.OmenSwitchLoadingScreen
+import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeBuildScreen
+import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeBuildState
+import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeCapability
+import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeFilter
+import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeInput
+import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeLeg
+import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeNeedsContextScreen
+import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeNeedsContextState
+import com.slopssaloon.omen.app.feature.commandcenter.OmenTradePartner
+import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeRead
+import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeRosterScreen
+import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeRosterState
+import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeShareScreen
+import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeShareState
+import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeSide
+import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeSubmission
+import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeVerdictScreen
+import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeVerdictState
 import com.slopssaloon.omen.app.feature.commandcenter.OmenSwitchRow
 import com.slopssaloon.omen.app.feature.commandcenter.OmenSwitchSheetOverlay
 import com.slopssaloon.omen.app.feature.commandcenter.OmenSwitchSheetState
@@ -344,6 +362,144 @@ object ScreenshotScenarios {
                 }
             },
         ),
+        // J4, "settling an argument". Trade is the front door, so these open on the Trade tab.
+        //
+        // Numbered in the order a user meets them: build a deal, look at the other roster, get
+        // the read, send it. `TradeVerdict` holds the third seat in the nominal pass and
+        // `TradeNeedsContext` holds it in the degraded one — the same seat in the journey, in
+        // the two states `trade-compare.v2` can return the answer in. See `J4ScreenshotFixtures`
+        // for why that is a contract and not a convenience.
+        "journey-j4.nominal.01-trade-build" to ScreenshotScenario(
+            label = "J4 nominal 1/4 — build a deal, third team unavailable",
+            render = {
+                J4InShell { modifier ->
+                    OmenTradeBuildScreen(
+                        state = J4ScreenshotFixtures.nominalBuild,
+                        modifier = modifier,
+                        context = J4ScreenshotFixtures.titansContext,
+                        onOpenAccount = {},
+                        onSelectTab = {},
+                        onSelectPartner = {},
+                        onSelectFilter = {},
+                        onPrimaryAction = {},
+                    )
+                }
+            },
+        ),
+        "journey-j4.nominal.02-trade-roster" to ScreenshotScenario(
+            label = "J4 nominal 2/4 — picking from a roster Omen could read",
+            render = {
+                J4InShell { modifier ->
+                    OmenTradeRosterScreen(
+                        state = J4ScreenshotFixtures.nominalRoster,
+                        modifier = modifier,
+                        context = J4ScreenshotFixtures.titansContext,
+                        onOpenAccount = {},
+                        onSelectTab = {},
+                        onSelectPartner = {},
+                        onSelectFilter = {},
+                        onAddPlayer = {},
+                    )
+                }
+            },
+        ),
+        "journey-j4.nominal.03-trade-verdict" to ScreenshotScenario(
+            label = "J4 nominal 3/4 — the read, both sides and the caveat",
+            render = {
+                J4InShell { modifier ->
+                    OmenTradeVerdictScreen(
+                        state = J4ScreenshotFixtures.verdict,
+                        modifier = modifier,
+                        context = J4ScreenshotFixtures.titansContext,
+                        onOpenAccount = {},
+                        onPrimaryAction = {},
+                        onCounter = {},
+                        onShare = {},
+                    )
+                }
+            },
+        ),
+        "journey-j4.nominal.04-trade-share" to ScreenshotScenario(
+            label = "J4 nominal 4/4 — share the read, names off by default",
+            render = {
+                J4InShell { modifier ->
+                    OmenTradeShareScreen(
+                        state = J4ScreenshotFixtures.nominalShare,
+                        modifier = modifier,
+                        context = J4ScreenshotFixtures.titansContext,
+                        onOpenAccount = {},
+                        onToggleInclusion = {},
+                        onShare = {},
+                        onCopyAsText = {},
+                    )
+                }
+            },
+        ),
+        "journey-j4.degraded.01-trade-build" to ScreenshotScenario(
+            label = "J4 degraded 1/4 — a read built on inputs that did not all arrive",
+            render = {
+                J4InShell { modifier ->
+                    OmenTradeBuildScreen(
+                        state = J4ScreenshotFixtures.degradedBuild,
+                        modifier = modifier,
+                        context = J4ScreenshotFixtures.titansContext,
+                        onOpenAccount = {},
+                        onSelectTab = {},
+                        onSelectPartner = {},
+                        onSelectFilter = {},
+                        onPrimaryAction = {},
+                    )
+                }
+            },
+        ),
+        "journey-j4.degraded.02-trade-roster" to ScreenshotScenario(
+            label = "J4 degraded 2/4 — no opponent rosters, permanently",
+            render = {
+                J4InShell { modifier ->
+                    OmenTradeRosterScreen(
+                        state = J4ScreenshotFixtures.degradedRoster,
+                        modifier = modifier,
+                        context = J4ScreenshotFixtures.titansContext,
+                        onOpenAccount = {},
+                        onSelectTab = {},
+                        onSelectPartner = {},
+                        onSelectFilter = {},
+                        onAddPlayer = {},
+                    )
+                }
+            },
+        ),
+        "journey-j4.degraded.03-trade-needs-context" to ScreenshotScenario(
+            label = "J4 degraded 3/4 — too close to call blind, and it says which input is missing",
+            render = {
+                J4InShell { modifier ->
+                    OmenTradeNeedsContextScreen(
+                        state = J4ScreenshotFixtures.needsContext,
+                        modifier = modifier,
+                        context = J4ScreenshotFixtures.titansContext,
+                        onOpenAccount = {},
+                        onConnect = {},
+                        onShowAnyway = {},
+                    )
+                }
+            },
+        ),
+        "journey-j4.degraded.04-trade-share" to ScreenshotScenario(
+            label = "J4 degraded 4/4 — the share service failed, and the read did not",
+            render = {
+                J4InShell { modifier ->
+                    OmenTradeShareScreen(
+                        state = J4ScreenshotFixtures.degradedShare,
+                        modifier = modifier,
+                        context = J4ScreenshotFixtures.titansContext,
+                        onOpenAccount = {},
+                        onToggleInclusion = {},
+                        onShare = {},
+                        onCopyAsText = {},
+                    )
+                }
+            },
+        ),
         "journey-j3.nominal.01-omen-call" to ScreenshotScenario(
             label = "J3 nominal 1/3 — Omen call",
             render = {
@@ -595,6 +751,20 @@ private fun J3InShell(content: @Composable (Modifier) -> Unit) {
     Scaffold(
         containerColor = OmenTheme.color.bg,
         bottomBar = { FauxBottomNav(FauxNavTab.Omen) {} },
+    ) { innerPadding ->
+        content(Modifier.padding(innerPadding))
+    }
+}
+
+/**
+ * J4 opens on the Trade tab. Trade is the front door, and all five of its artboards are that
+ * destination — a capture that opened anywhere else would be a picture of the wrong screen.
+ */
+@Composable
+private fun J4InShell(content: @Composable (Modifier) -> Unit) {
+    Scaffold(
+        containerColor = OmenTheme.color.bg,
+        bottomBar = { FauxBottomNav(FauxNavTab.Trade) {} },
     ) { innerPadding ->
         content(Modifier.padding(innerPadding))
     }
@@ -1107,5 +1277,339 @@ private object J2ScreenshotFixtures {
         band = OmenConfidenceBand.Confident,
         nextRead = "Next read · Tuesday 3:00 AM waivers",
         footnote = OmenDeskFootnote("5th of 12. One game off the cut with six to play."),
+    )
+}
+
+/**
+ * J4's fixtures. The Compose half of `J4ScreenshotFixtures` in `ScreenshotScenarios.swift`.
+ *
+ * The reasoning for the four-frames-per-pass split, the two capability classes the degraded pass
+ * must carry, and the facts of record these pin rather than decorate is written out once, in the
+ * Swift file. A copied rule is a second source of truth and the copy is the one that goes stale.
+ *
+ * The copy strings are deliberately identical across the two platforms, because a contact sheet
+ * that compares iOS against Android is worthless if the two are reading different sentences.
+ */
+private object J4ScreenshotFixtures {
+
+    val titansContext = OmenScreenContext(
+        crest = "TTO",
+        teamName = "Titans of Slopsilonia",
+        platform = OmenPlatform.Espn,
+        leagueName = "Slops Saloon",
+        onSwitch = {},
+        onAddLeague = {},
+    )
+
+    val twoTeamsOnly = OmenTradeCapability(
+        maxTeams = 2,
+        threeTeamSupported = false,
+        threeTeamReason = "multi_team_comparison_not_implemented",
+    )
+
+    private val partners = listOf(
+        OmenTradePartner(id = "dsi", crest = "DSI", name = "Davante’s Inferno", need = "Needs RB"),
+        OmenTradePartner(id = "gmr", crest = "GMR", name = "Gibbs me some Rice", need = "No hole"),
+        // `need` is null, not "No hole". Nobody read this roster, and "No hole" for a roster
+        // nobody read is a claim about a roster nobody read.
+        OmenTradePartner(id = "puk", crest = "PUK", name = "Puk Around & Find Out", need = null),
+    )
+
+    /**
+     * The artboard's six. "Fills my RB hole" rather than "Buy low": `.fc.smart` is a filter that
+     * names a **conclusion** rather than a position, and "Buy low" is a category, which is what
+     * the plain chips already are.
+     */
+    private val filters = listOf(
+        OmenTradeFilter(id = "all", title = "All"),
+        OmenTradeFilter(id = "qb", title = "QB"),
+        OmenTradeFilter(id = "rb", title = "RB"),
+        OmenTradeFilter(id = "wr", title = "WR"),
+        OmenTradeFilter(id = "te", title = "TE"),
+        OmenTradeFilter(id = "fills-rb", title = "Fills my RB hole", isSmart = true),
+    )
+
+    private val usedRosterNeed = OmenTradeInput(
+        capability = "Roster need",
+        statement = "Your RB2 slot has averaged 6.1 since Pollard went out.",
+        presentation = OmenTradeInput.Presentation.Used,
+    )
+
+    private val usedLeagueScoring = OmenTradeInput(
+        capability = "League scoring",
+        statement = "Half PPR, and it read your league’s own settings.",
+        presentation = OmenTradeInput.Presentation.Used,
+    )
+
+    /** Class 2 — read, and explicitly **not** claimed as evidence. */
+    private val scheduleReadNotUsed = OmenTradeInput(
+        capability = "Schedule strength",
+        statement = "Omen has it. The two schedules are close enough that it did not move this call.",
+        presentation = OmenTradeInput.Presentation.ReadNotUsed,
+    )
+
+    /** Class 3 — could not read, **named**. Never dropped to make room. */
+    private val rosterUnavailable = OmenTradeInput(
+        capability = "Roster availability",
+        statement = "ESPN did not return the other team’s roster for this league.",
+        presentation = OmenTradeInput.Presentation.CouldNotRead,
+    )
+
+    private val sides = listOf(
+        OmenTradeSide(
+            heading = "You send",
+            legs = listOf(
+                OmenTradeLeg(
+                    direction = OmenTradeLeg.Direction.Sending,
+                    name = "Jaylen Waddle",
+                    meta = "WR · MIA",
+                    rank = "WR 21",
+                ),
+            ),
+        ),
+        OmenTradeSide(
+            heading = "Davante’s Inferno sends",
+            legs = listOf(
+                OmenTradeLeg(
+                    direction = OmenTradeLeg.Direction.Receiving,
+                    name = "Tony Pollard",
+                    meta = "RB · TEN",
+                    rank = "RB 18",
+                ),
+                // Deliberately unranked. Null renders nothing; an em dash would read as a rank
+                // of zero rather than as an absence.
+                OmenTradeLeg(
+                    direction = OmenTradeLeg.Direction.Receiving,
+                    name = "Jaylen Wright",
+                    meta = "RB · TEN",
+                    rank = null,
+                ),
+            ),
+        ),
+    )
+
+    private val nominalRead = OmenTradeRead(
+        headline = "Take it.",
+        reasoning = "You are deep at receiver and thin at back, and this trade fixes the side " +
+            "that is costing you points. Pollard is the starter again and Wright is the " +
+            "handcuff, so you get the backfield either way it breaks.",
+        caveat = "Scored against Slops Saloon’s settings and your roster.",
+        isPersonalized = true,
+        inputs = listOf(usedRosterNeed, usedLeagueScoring, scheduleReadNotUsed),
+    )
+
+    private val degradedRead = OmenTradeRead(
+        headline = "Too close to call blind.",
+        reasoning = "On value this is a coin flip, and the thing that would break the tie — " +
+            "what the other team is actually short of — is the thing Omen could not read " +
+            "here. Forcing a verdict on half the inputs would be a guess wearing a verdict’s " +
+            "clothes.",
+        caveat = "Standard scoring — not your league’s settings. Need usually decides a trade, " +
+            "and need is what standard scoring cannot see.",
+        isPersonalized = false,
+        inputs = listOf(usedLeagueScoring, scheduleReadNotUsed, rosterUnavailable),
+    )
+
+    private val submission = OmenTradeSubmission(
+        title = "How to send this",
+        caption = "ESPN · handoff only",
+        steps = listOf(
+            "Open ESPN, then League › Players › Davante’s Inferno.",
+            "Propose Waddle for Pollard and Wright.",
+            "Come back here once they answer and Omen will read the counter.",
+        ),
+    )
+
+    val nominalBuild = OmenTradeBuildState(
+        kicker = "Two teams",
+        title = "Build a deal",
+        // The artboard's two tabs, not "Build"/"Rosters". `Type a trade` is the shipped
+        // `OmenTradeScreen` path and `Build a trade` is this journey.
+        tabTitles = listOf("Type a trade", "Build a trade"),
+        selectedTabIndex = 1,
+        partners = partners,
+        selectedPartnerId = "dsi",
+        filters = filters,
+        selectedFilterId = "all",
+        capability = twoTeamsOnly,
+        sides = sides,
+        read = nominalRead,
+        submission = submission,
+        primaryActionTitle = "Get Omen’s read",
+    )
+
+    val degradedBuild = OmenTradeBuildState(
+        kicker = "Two teams",
+        title = "Build a deal",
+        // The artboard's two tabs, not "Build"/"Rosters". `Type a trade` is the shipped
+        // `OmenTradeScreen` path and `Build a trade` is this journey.
+        tabTitles = listOf("Type a trade", "Build a trade"),
+        selectedTabIndex = 1,
+        partners = partners,
+        selectedPartnerId = "dsi",
+        filters = filters,
+        selectedFilterId = "all",
+        capability = twoTeamsOnly,
+        sides = sides,
+        read = degradedRead,
+        // No submission block. The handoff steps come from `trade-capabilities.v1`'s
+        // `submission` field, and this is the pass where that read did not land.
+        submission = null,
+        primaryActionTitle = "Get Omen’s read",
+    )
+
+    val nominalRoster = OmenTradeRosterState(
+        kicker = "Build a deal",
+        title = "Their roster",
+        tabTitles = listOf("Type a trade", "Build a trade"),
+        selectedTabIndex = 1,
+        partners = partners,
+        selectedPartnerId = "dsi",
+        filters = filters,
+        selectedFilterId = "rb",
+        capability = twoTeamsOnly,
+        rosters = OmenTradeRosterState.Rosters.Read(
+            teamName = "Davante’s Inferno",
+            playerCount = 16,
+            rows = listOf(
+                OmenTradeRosterState.Row(
+                    id = "pollard",
+                    name = "Tony Pollard",
+                    meta = "RB · TEN · RB 18",
+                    availability = OmenTradeRosterState.Availability.Added,
+                ),
+                OmenTradeRosterState.Row(
+                    id = "wright",
+                    name = "Jaylen Wright",
+                    meta = "RB · TEN · unranked",
+                    availability = OmenTradeRosterState.Availability.Available,
+                ),
+                OmenTradeRosterState.Row(
+                    id = "gibbs",
+                    name = "Jahmyr Gibbs",
+                    meta = "RB · DET · RB 3",
+                    availability = OmenTradeRosterState.Availability.TheyNeedThis,
+                ),
+            ),
+            freshness = "Rosters read 6 minutes ago",
+        ),
+        note = "Gibbs is greyed because they are as thin at back as you are. Omen will still " +
+            "score it if you ask, but they will not take it.",
+    )
+
+    /**
+     * Fact of record #16, rendered. The provider will not hand over the other teams' rosters for
+     * this league, so Omen issues no trade call at all — a **permanent provider limit, not an
+     * outage**. There is no retry control on this frame and there must never be one.
+     */
+    val degradedRoster = OmenTradeRosterState(
+        kicker = "Build a deal",
+        title = "Their roster",
+        tabTitles = listOf("Type a trade", "Build a trade"),
+        selectedTabIndex = 1,
+        partners = partners,
+        selectedPartnerId = "dsi",
+        filters = filters,
+        selectedFilterId = "rb",
+        capability = twoTeamsOnly,
+        rosters = OmenTradeRosterState.Rosters.PermanentlyUnavailable(
+            capability = "Opponent rosters",
+            sentence = "ESPN does not give Omen the other teams’ rosters in this league, so " +
+                "there is no trade call to make here. This will not change by trying again.",
+        ),
+        note = null,
+    )
+
+    /**
+     * The screen title is **"The read"**, not the verdict. The first build put the headline in
+     * both the title and the read block, so "Take it." appeared twice on one screen.
+     */
+    val verdict = OmenTradeVerdictState(
+        kicker = "Two teams",
+        title = "The read",
+        sides = sides,
+        read = nominalRead,
+        submission = submission,
+        primaryActionTitle = "How to send this",
+        counterActionTitle = "Build a counter",
+        shareActionTitle = "Share this read",
+    )
+
+    /** Same rule as [verdict]: the screen is titled, the call is in the read block. */
+    val needsContext = OmenTradeNeedsContextState(
+        kicker = "Two teams",
+        title = "Not yet",
+        sides = sides,
+        read = degradedRead,
+        remedy = "Connect the league Omen already has for you and it can score this against " +
+            "your own settings instead of standard scoring.",
+        connectActionTitle = "Connect this league",
+        showAnywayActionTitle = "Show the standard-scoring read anyway",
+    )
+
+    /**
+     * **Names off by default.** `trade-share.v1` — a 30-day hash, no auth, no provider data. The
+     * default lives here because the composable does not set it: whoever builds the state owns
+     * it, and a default that lives in a view is a default nobody can test.
+     */
+    private val inclusions = listOf(
+        OmenTradeShareState.Inclusion(
+            id = "verdict",
+            title = "The call and the reasoning",
+            detail = "What Omen said and why.",
+            isOn = true,
+        ),
+        OmenTradeShareState.Inclusion(
+            id = "names",
+            title = "Team names",
+            detail = "Off by default. Your league-mates’ names do not leave Omen unless you " +
+                "turn this on.",
+            isOn = false,
+        ),
+        OmenTradeShareState.Inclusion(
+            id = "caveat",
+            title = "The caveat",
+            detail = "Travels on the card itself, so a screenshot cannot lose it.",
+            isOn = true,
+        ),
+    )
+
+    private val card = OmenTradeShareState.Card(
+        eyebrow = "Omen’s read",
+        headline = "Take it.",
+        reasoning = "Deep at receiver, thin at back. This trade fixes the side that is costing points.",
+        caveat = "Scored against one league’s settings. Your league may score it differently.",
+        footer = "omen · link expires in 30 days",
+    )
+
+    private const val SHARE_NOTE =
+        "The link carries the read and nothing else — no login, no league, no provider data. " +
+            "It expires after 30 days and cannot be renewed."
+
+    val nominalShare = OmenTradeShareState(
+        kicker = "Send the read",
+        title = "Share this call",
+        card = card,
+        inclusions = inclusions,
+        note = SHARE_NOTE,
+        primaryActionTitle = "Create the link",
+        secondaryActionTitle = "Copy as text",
+        failure = null,
+    )
+
+    /**
+     * `POST /api/trade/share` answered 503. That is the **share storage** failing, which is a
+     * different thing from a trade Omen could not read, and the copy says which one it is.
+     */
+    val degradedShare = OmenTradeShareState(
+        kicker = "Send the read",
+        title = "Share this call",
+        card = card,
+        inclusions = inclusions,
+        note = SHARE_NOTE,
+        primaryActionTitle = "Create the link",
+        secondaryActionTitle = "Copy as text",
+        failure = "Omen could not create a link just now. The read above is unaffected — this " +
+            "is the sharing service, not the call.",
     )
 }

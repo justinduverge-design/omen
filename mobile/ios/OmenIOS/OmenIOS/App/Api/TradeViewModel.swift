@@ -178,6 +178,15 @@ final class TradeViewModel: ObservableObject {
         }
     }
 
+    /// Back to the offer builder, keeping the offer itself.
+    ///
+    /// The J4 answer screens replace the builder while a verdict is on screen, so there has to be
+    /// a way back. `.idle` rather than clearing `offer` is the point: a user who reads "you give
+    /// up too much" wants to change one player, not retype the deal.
+    func dismissVerdict() {
+        viewState = .idle
+    }
+
     /// Autocomplete-specific copy. Deliberately separate from `message(for:)`: a failed
     /// *search* must never read like a failed *verdict*, and the rate-limit case is the one
     /// users actually hit, so it gets named at full volume rather than folded into "server".

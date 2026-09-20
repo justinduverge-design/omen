@@ -933,6 +933,105 @@ final class ConnectFlowTests: XCTestCase {
         XCTAssertEqual(sparse.subtitle, "2026")
         XCTAssertFalse(sparse.subtitle.contains("nil"))
     }
+
+    // MARK: - ConnectFailed reports what the status actually means (2026-09-19)
+
+    /// **Regression: the screen asserted the opposite of what a 422 means.**
+    ///
+    /// `OmenConnectFailedScreen` closed its evidence line with an unconditional *"The cookies are
+    /// there and ESPN is refusing them"*, documented in the source as "always true". It is not.
+    /// `ApiConnectRepository` maps a **422** to `espnSessionUnreadable` and states what that
+    /// status is: *"422 is the route's own 'we didn't get a session' - the values never arrived or
+    /// were empty."* The backend's error code for it is `espn_cookies_required`.
+    ///
+    /// So on that branch the honesty screen made a false factual claim, and the ordered recovery
+    /// it implied - reconnect, which re-reads the same values - could not work. These pin both
+    /// directions, because fixing only the 422 sentence and losing the 401 one would be the same
+    /// defect wearing the other mask.
+    private func diagnosis(status: Int?, text: String?) -> OmenConnectFailedScreen.Diagnosis {
+        OmenConnectFailedScreen.Diagnosis(
+            provider: "ESPN",
+            statusCode: status,
+            statusText: text,
+            leagueID: "123456",
+            observedAt: "3:50 PM",
+            unaffected: []
+        )
+    }
+
+    func testA422SaysTheCookiesNeverArrivedRatherThanThatEspnRefusedThem() {
+        let screen = OmenConnectFailedScreen(diagnosis: diagnosis(status: 422, text: "Unprocessable"))
+
+        XCTAssertEqual(screen.storedValues, .neverArrived)
+        XCTAssertTrue(
+            screen.evidenceSentence.contains("Omen never received the two cookies"),
+            "a 422 must say the values never arrived, got: \(screen.evidenceSentence)"
+        )
+        XCTAssertFalse(
+            screen.evidenceSentence.contains("The cookies are there"),
+            "a 422 must not claim the cookies are present - the route's own code is espn_cookies_required"
+        )
+        // The provider's facts still survive. Fixing the claim must not cost the report.
+        XCTAssertTrue(screen.evidenceSentence.contains("ESPN returned 422 Unprocessable"))
+        XCTAssertTrue(screen.evidenceSentence.contains("for league 123456"))
+        // And the cause must not blame a stale value that was never stored.
+        XCTAssertFalse(screen.likelyCause.contains("stale"))
+    }
+
+    func testA401StillSaysTheCookiesArePresentAndRefused() {
+        let screen = OmenConnectFailedScreen(diagnosis: diagnosis(status: 401, text: "Unauthorized"))
+
+        XCTAssertEqual(screen.storedValues, .presentAndRefused)
+        XCTAssertTrue(
+            screen.evidenceSentence.contains("The cookies are there and ESPN is refusing them"),
+            "a 401 is the stale-session case and keeps its sentence, got: \(screen.evidenceSentence)"
+        )
+        XCTAssertFalse(screen.evidenceSentence.contains("never received"))
+        XCTAssertTrue(screen.likelyCause.contains("stale"))
+    }
+
+    /// A missing status is not a 422. With nothing to go on, the screen falls back to the common
+    /// case rather than claiming the stronger, rarer one.
+    func testAnAbsentStatusDoesNotClaimTheCookiesWereMissing() {
+        let screen = OmenConnectFailedScreen(diagnosis: diagnosis(status: nil, text: nil))
+
+        XCTAssertEqual(screen.storedValues, .presentAndRefused)
+        XCTAssertTrue(screen.evidenceSentence.hasPrefix("ESPN refused the request"))
+        XCTAssertFalse(screen.evidenceSentence.contains("returned"), "no status means no status is claimed")
+    }
+
+    /// Fact-of-record #6, pinned on the branch that assembles this sentence from provider data.
+    func testNoDiagnosticSentenceCanCarryACookieValue() {
+        for status in [401, 422, 400] {
+            let screen = OmenConnectFailedScreen(diagnosis: diagnosis(status: status, text: "X"))
+            let allProse = screen.evidenceSentence + " " + screen.likelyCause
+            XCTAssertFalse(allProse.contains("espn_s2"), "status \(status) leaked a cookie name/value into prose")
+            XCTAssertFalse(allProse.contains("SWID"), "status \(status) leaked a cookie name/value into prose")
+        }
+    }
+
+    /// **`observedAt` is excluded from `EspnDiagnostic` equality on purpose.**
+    ///
+    /// It defaults to `Date()`, so a synthesised `==` compares two diagnostics describing the
+    /// identical failure as unequal because they were built microseconds apart - and
+    /// `ConnectFailure` carries this type, so the time-dependence propagates to every comparison
+    /// of a populated failure. Nothing caught it because every other test here uses `(nil)`.
+    func testTwoDiagnosticsDescribingTheSameFailureAreEqualWhateverTheClockSaid() {
+        let earlier = EspnDiagnostic(statusCode: 401, statusText: "Unauthorized", leagueID: "1", observedAt: Date(timeIntervalSince1970: 0))
+        let later = EspnDiagnostic(statusCode: 401, statusText: "Unauthorized", leagueID: "1", observedAt: Date(timeIntervalSince1970: 9_999_999))
+
+        XCTAssertEqual(earlier, later)
+        XCTAssertEqual(ConnectFailure.espnSessionUnreadable(earlier), .espnSessionUnreadable(later))
+    }
+
+    /// The exclusion must not flatten the fields that do identify a failure.
+    func testDiagnosticsStillDifferOnWhatTheyActuallySay() {
+        let base = EspnDiagnostic(statusCode: 401, statusText: "Unauthorized", leagueID: "1")
+
+        XCTAssertNotEqual(base, EspnDiagnostic(statusCode: 422, statusText: "Unauthorized", leagueID: "1"))
+        XCTAssertNotEqual(base, EspnDiagnostic(statusCode: 401, statusText: "Unprocessable", leagueID: "1"))
+        XCTAssertNotEqual(base, EspnDiagnostic(statusCode: 401, statusText: "Unauthorized", leagueID: "2"))
+    }
 }
 
 
@@ -1129,4 +1228,5 @@ final class YahooConnectFlowTests: XCTestCase {
             ConnectViewModel.callbackStatus(URL(string: "com.slopssaloon.omen://auth/callback?code=abc&state=xyz")!)
         )
     }
+
 }

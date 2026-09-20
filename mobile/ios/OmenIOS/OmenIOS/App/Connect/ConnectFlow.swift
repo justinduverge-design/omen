@@ -136,6 +136,25 @@ struct EspnDiagnostic: Equatable {
         self.leagueID = leagueID
         self.observedAt = observedAt
     }
+
+    /// `observedAt` is deliberately **excluded from equality**, and the exclusion is the whole
+    /// point of writing `==` by hand rather than letting it be synthesised.
+    ///
+    /// It defaults to `Date()`, so a synthesised `==` would compare two diagnostics describing the
+    /// identical provider failure as unequal because they were constructed microseconds apart.
+    /// `ConnectFailure` is `Equatable` and carries this type, so that time-dependence would
+    /// propagate to every comparison of a populated failure. Nothing depends on it today only
+    /// because every existing test uses `.espnSessionUnreadable(nil)`; the first test that asserts
+    /// against a populated diagnostic would have flaked nondeterministically, which is the kind of
+    /// failure that gets an assertion deleted rather than fixed.
+    ///
+    /// Two diagnostics are the same diagnostic when they say the same thing about the same league.
+    /// *When* they were observed is for the reader of the screen, not for identity.
+    static func == (lhs: EspnDiagnostic, rhs: EspnDiagnostic) -> Bool {
+        lhs.statusCode == rhs.statusCode
+            && lhs.statusText == rhs.statusText
+            && lhs.leagueID == rhs.leagueID
+    }
 }
 
 enum ConnectFailure: Error, Equatable {
