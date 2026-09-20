@@ -767,7 +767,7 @@ private struct OmenDeskLedgerRow: View {
 /// Named plus a sentence, per `capability-expression-v1.md` acceptance rules 3 and 4. It carries
 /// no evidence styling and it is never dropped to make room: the spec singles this class out as
 /// the one that must survive truncation, since it is the only one that costs the reader anything.
-private struct OmenDeskUnreadSection: View {
+struct OmenDeskUnreadSection: View {
     let capability: String
     let sentence: String
 
@@ -801,7 +801,7 @@ private struct OmenDeskUnreadSection: View {
 }
 
 /// `.oneline` — the foot strip.
-private struct OmenDeskFootnoteStrip: View {
+struct OmenDeskFootnoteStrip: View {
     let footnote: OmenDeskFootnote
 
     var body: some View {

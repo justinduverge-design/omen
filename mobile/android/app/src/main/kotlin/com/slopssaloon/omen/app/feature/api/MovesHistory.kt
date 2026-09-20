@@ -27,8 +27,13 @@ data class MoveReceipt(val recommendation: String?, val issuedAt: String?, val t
 }
 
 /**
- * M5-Native-API-Client slice E — `GET /api/moves` → `moves-history.v1`.
+ * M5-Native-API-Client slice E — `GET /api/moves` → `moves-history.v2`.
  * iOS mirror: `App/Api/MovesHistory.swift`.
+ *
+ * **The stored `outcome` column is translated, never surfaced raw.** `CONTRACTS.md` says so of
+ * `LedgerDetail` and `moves-history.v2` exists to do the translating. Until J6 this file still
+ * had `"win" -> "Outcome: win"`, so a v1-shaped payload would have put the raw column in front
+ * of a reader. See [outcomeTextFor].
  *
  * Replaces the Ledger preview fixture. The approved composition (Figma node `72:2`) is
  * unchanged: this is wiring only.
@@ -78,7 +83,7 @@ data class MovesHistory(
     )
 
     /**
-     * Maps `moves-history.v1` onto the shipped [OmenLedgerPreviewState].
+     * Maps `moves-history.v2` onto the shipped [OmenLedgerPreviewState].
      *
      * An empty list is a real answer, not a failure: a signed-in user with a connected league
      * and no recorded moves genuinely has an empty Ledger. Rows that cannot be rendered
@@ -173,20 +178,20 @@ data class MovesHistory(
         fun outcomeTextFor(move: Move): String {
             val outcome = move.outcome?.trim()?.lowercase()
             val parts = mutableListOf<String>()
+            var decided = false
 
             when (outcome) {
-                "worked" -> parts += "Verified outcome: worked"
-                "did_not_work" -> parts += "Verified outcome: did not work"
-                "not_verified" -> parts += "Outcome not verified"
-                "win" -> parts += "Outcome: win"
-                "loss" -> parts += "Outcome: loss"
+                "worked" -> { parts += "Verified outcome: worked"; decided = true }
+                "did_not_work" -> { parts += "Verified outcome: did not work"; decided = true }
                 "pending", null, "" -> parts += "Outcome pending"
-                // An unrecognised outcome is shown verbatim rather than bucketed into
-                // "pending", which would hide a real backend change.
-                else -> parts += "Outcome: ${move.outcome}"
+                // `not_verified` is v2's own third value; `win` and `loss` are the raw stored
+                // column arriving untranslated; anything else is a token this build has no copy
+                // for. All three say the same thing to a reader: there is a row, and nobody has
+                // verified how it went. See the iOS twin for the full reasoning.
+                else -> parts += "Outcome not verified"
             }
 
-            if ((outcome == "win" || outcome == "loss") && move.followed == true && move.effectivenessPct != null) {
+            if (decided && move.followed == true && move.effectivenessPct != null) {
                 parts += "${move.effectivenessPct.roundToInt()}% effective"
             }
 

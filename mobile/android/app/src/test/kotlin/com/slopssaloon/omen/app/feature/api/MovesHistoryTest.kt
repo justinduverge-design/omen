@@ -2,6 +2,7 @@ package com.slopssaloon.omen.app.feature.api
 
 import com.slopssaloon.omen.app.feature.commandcenter.OmenLedgerPreviewState
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -44,7 +45,8 @@ class MovesHistoryTest {
         assertEquals("WEEK 6", state.entries[0].period)
         assertEquals("WAIVER", state.entries[0].callType)
         assertEquals("Add Tyrone Tracy Jr.", state.entries[0].summary)
-        assertEquals("Outcome: win · 72% effective", state.entries[0].outcome)
+        // Was "Outcome: win · 72% effective" until J6; the fixture carries the raw column.
+        assertEquals("Outcome not verified", state.entries[0].outcome)
     }
 
     /**
@@ -131,29 +133,67 @@ class MovesHistoryTest {
     /**
      * `buildSummary()` only counts effectiveness for followed, decided moves. The row line
      * mirrors that rule rather than pairing a score with a move the user never made.
+     *
+     * **Rewritten in J6.** It used to assert `"Outcome: win"` — the raw stored column, which
+     * `CONTRACTS.md` says is translated and never surfaced raw.
      */
     @Test
     fun effectivenessIsOnlyShownForAFollowedDecidedMove() {
         val unfollowed = MovesHistory.Move(
             id = "1", season = 2026, week = 4, moveType = "start_sit",
             recommendation = "Start Bijan Robinson", followed = false, stars = null,
-            outcome = "win", effectivenessPct = 88.0, createdAt = null,
+            outcome = "worked", effectivenessPct = 88.0, createdAt = null,
         )
-        assertEquals("Outcome: win", MovesHistory.outcomeTextFor(unfollowed))
+        assertEquals("Verified outcome: worked", MovesHistory.outcomeTextFor(unfollowed))
+
+        val followed = unfollowed.copy(followed = true)
+        assertEquals("Verified outcome: worked · 88% effective", MovesHistory.outcomeTextFor(followed))
 
         val pendingWithScore = unfollowed.copy(followed = true, outcome = "pending")
         assertEquals("Outcome pending", MovesHistory.outcomeTextFor(pendingWithScore))
     }
 
-    /** An unfamiliar outcome is shown verbatim rather than hidden behind a plausible word. */
+    /**
+     * **The raw stored column never reaches a reader.** J6's pinning test; the Swift twin is
+     * `testARawWinOrLossIsNeverRenderedToTheUser`.
+     *
+     * `moves-history.v2` maps the raw column to `worked`/`did_not_work`/`not_verified`. This
+     * asserts the client does not undo that if a v1-shaped payload arrives — and that it does
+     * not translate `win` into "worked" itself, which would invent the verification that v2's
+     * third value exists to withhold.
+     */
     @Test
-    fun unrecognisedOutcomeIsShownVerbatim() {
+    fun aRawWinOrLossIsNeverRenderedToTheUser() {
+        for (raw in listOf("win", "loss", "WIN", " Loss ")) {
+            val move = MovesHistory.Move(
+                id = "raw-$raw", season = 2026, week = 6, moveType = "start_sit",
+                recommendation = "Start Bijan Robinson", followed = true, stars = null,
+                outcome = raw, effectivenessPct = 88.0, createdAt = null,
+            )
+            val line = MovesHistory.outcomeTextFor(move)
+            assertEquals("Outcome not verified", line)
+            assertFalse("the raw token appeared in $line", line.lowercase().contains("win"))
+            assertFalse("the raw token appeared in $line", line.lowercase().contains("loss"))
+            assertFalse("an unverified outcome must not carry a score", line.contains("88%"))
+        }
+    }
+
+    /**
+     * An unfamiliar outcome is **not** shown verbatim.
+     *
+     * This test asserted the opposite until J6, on the argument that printing the token avoided
+     * hiding a backend change. A backend change is visible in `contract_version` and in this
+     * suite, and neither of those is the user's screen — `actionTextFor` already applied the
+     * correct rule one function below.
+     */
+    @Test
+    fun unrecognisedOutcomeIsNotPrintedVerbatim() {
         val move = MovesHistory.Move(
             id = "3", season = 2026, week = 5, moveType = null,
             recommendation = "Claim Jordan Mason", followed = null, stars = null,
             outcome = "voided", effectivenessPct = null, createdAt = null,
         )
-        assertEquals("Outcome: voided", MovesHistory.outcomeTextFor(move))
+        assertEquals("Outcome not verified", MovesHistory.outcomeTextFor(move))
     }
 
     @Test
