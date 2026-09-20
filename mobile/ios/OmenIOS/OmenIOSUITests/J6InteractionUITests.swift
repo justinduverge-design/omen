@@ -263,8 +263,15 @@ final class J6InteractionUITests: XCTestCase {
             text(containing: "7:00 AM", in: app).exists,
             "the receipt renders the raw UTC wall clock"
         )
+        // Case-insensitive, deliberately. `.scope` is a **combined** accessibility element:
+        // its children are hidden and its label reads "Issued Tue 3:00 AM. This receipt is
+        // immutable." — lowercase, mid-sentence. The first run of this test asserted on the
+        // rendered word "Immutable" and reported the receipt did not say it was immutable when
+        // it says so in both places. The product is right; the assertion was reading the wrong
+        // tree.
         XCTAssertTrue(
-            text(containing: "Immutable", in: app).waitForExistence(timeout: 10),
+            app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] %@", "immutable")).firstMatch
+                .waitForExistence(timeout: 10),
             "the receipt does not say it is immutable"
         )
         XCTAssertTrue(
@@ -327,32 +334,68 @@ final class J6InteractionUITests: XCTestCase {
 
     /// **Confidence is a band, never a percentage.**
     ///
-    /// Fact-of-record #16, and the `U1` defect this guards against is a client minting a number
-    /// the server never sent. The receipt is the worst possible place for it: a percentage on a
-    /// screen whose entire claim is "this is what was true at issue time" would be a fabricated
-    /// historical fact.
+    /// Fact-of-record #16, and the `U1` defect this guards is a client minting a number the
+    /// server never sent. The receipt is the worst place for it: a percentage on a screen whose
+    /// whole claim is "this was true at issue time" would be a fabricated historical fact.
     ///
-    /// The Ledger screens carry `%` legitimately nowhere — there is no effectiveness figure on
-    /// either artboard — so this sweeps all four frames.
+    /// ## Why this is not J4's sweep
+    ///
+    /// J4 forbids **every** percentage on every J4 screen, and that is correct there because no
+    /// J4 artboard has a legitimate one. J6's receipt does: `LedgerDetail.dc.html`'s evidence
+    /// block quotes real snap shares — *"54% over two weeks, down from 71%"* — which are
+    /// measurements the server sent, not confidence Omen minted.
+    ///
+    /// The first run of this test used J4's blunt sweep with a content exemption and failed on
+    /// exactly those two sentences. An exemption list would have made the check pass by making
+    /// it weaker, and the next fixture edit would have re-broken it. So the rule is split into
+    /// the two things actually being claimed, and neither has an exemption:
+    ///
+    ///   1. **The two Ledger frames forbid every percentage.** `Ledger.dc.html` has no figure on
+    ///      it at all, so any number with a `%` there is minted.
+    ///   2. **No screen pairs a percentage with confidence vocabulary.** This is the defect
+    ///      itself — `"\(confidence)%"` appended to a subtitle — and it fires wherever it
+    ///      appears, receipt included.
     func testNoJ6ScreenPrintsAConfidencePercentage() {
         continueAfterFailure = true
         let percentage = try! NSRegularExpression(pattern: "\\b\\d{1,3}\\s?%")
+        let confidenceWord = try! NSRegularExpression(
+            pattern: "(?i)\\b(confidence|confident|leaning|coin.?flip|certainty|sure|odds|chance)\\b"
+        )
+
         for scenario in Self.scenarios {
             let app = launch(scenario)
             XCTAssertTrue(app.staticTexts.firstMatch.waitForExistence(timeout: 15), "\(scenario) rendered no text")
+            let ledgerFrame = scenario.contains("-ledger-detail") == false
             for label in allLabels(in: app) {
                 let range = NSRange(label.startIndex..., in: label)
-                guard let match = percentage.firstMatch(in: label, range: range) else { continue }
-                // The receipt's evidence sentences quote real snap shares — "54% over two weeks"
-                // — which are measurements the server sent, not a minted confidence. They are
-                // the only legitimate percentages on this journey and they live in evidence
-                // statements, so the exemption is by content rather than by screen.
-                if label.contains("snap") || label.contains("Snaps") || label.contains("rising") { continue }
-                _ = match
-                XCTFail("\(scenario) prints a percentage: \"\(label)\" — confidence is a band, never a number")
+                guard percentage.firstMatch(in: label, range: range) != nil else { continue }
+                if ledgerFrame {
+                    XCTFail("\(scenario) prints a percentage: \"\(label)\" — the Ledger has no figure on it")
+                    continue
+                }
+                XCTAssertNil(
+                    confidenceWord.firstMatch(in: label, range: range),
+                    "\(scenario) pairs a percentage with confidence: \"\(label)\" — confidence is a band, never a number"
+                )
             }
             app.terminate()
         }
+    }
+
+    /// And the positive half: the band is rendered, **as a word**.
+    ///
+    /// A sweep that only forbids numbers passes on a screen that dropped confidence entirely.
+    /// The nominal receipt carries `.leaning`, so "Leaning" is on screen and no digit is.
+    func testTheReceiptRendersItsConfidenceAsABandWord() {
+        let app = launch("journey-j6.nominal.02-ledger-detail")
+        let band = app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] %@", "Leaning")).firstMatch
+        XCTAssertTrue(band.waitForExistence(timeout: 10), "the receipt renders no confidence band")
+        let digits = try! NSRegularExpression(pattern: "\\d")
+        let label = band.label as String
+        XCTAssertNil(
+            digits.firstMatch(in: label, range: NSRange(label.startIndex..., in: label)),
+            "the confidence band carries a number: \(label)"
+        )
     }
 
     // MARK: - D11, measured
