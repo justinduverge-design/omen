@@ -137,7 +137,11 @@ final class J5InteractionUITests: XCTestCase {
         for scenario in Self.allScenarios {
             let app = launch(scenario)
             assertTappable(helpButton(app), "\(scenario): the help control")
-            assertTappable(app.buttons["Account"], "\(scenario): the account control")
+            // "Account and profile", not "Account" — the shell builds this label as
+            // "\(title), \(section)" and J4's equivalent assertion already uses the full string.
+            // Asserting the short form failed on every J5 screen while the control was present
+            // and correct on all of them.
+            assertTappable(app.buttons["Account and profile"], "\(scenario): the account control")
             app.terminate()
         }
     }
@@ -153,20 +157,32 @@ final class J5InteractionUITests: XCTestCase {
     ///
     /// A test that only asserted the five sections exist would pass on every permutation,
     /// including the one that puts the flakiest section at the top.
+    /// **Do not scroll inside this loop.** The first version did, and failed while the order was
+    /// correct: `scrollIntoView` moves the content, so a frame read after scrolling is in a
+    /// different coordinate space from one read before it. `Activity` scrolled into the middle of
+    /// the screen reported `minY` 590 while `Waiver`, measured before any scrolling, reported 691
+    /// — and the test called a correct screen broken.
+    ///
+    /// Reading every frame first is both correct and sufficient here: the screen is a plain
+    /// `VStack` inside a `ScrollView`, not a `LazyVStack`, so all five sections are laid out and
+    /// in the accessibility tree whether or not they are on screen, and an off-screen section
+    /// below simply reports a larger `minY`. One coordinate space, one comparison.
     func testTheTableRunsInScoutsNestOrder() {
         let app = launch("journey-j5.nominal.01-league-table")
         let headers = ["The table", "Trade targets", "Waiver", "Activity"]
-        var lastY: CGFloat = -.greatestFiniteMagnitude
+
+        var positions: [(String, CGFloat)] = []
         for header in headers {
             let element = app.staticTexts[header]
             XCTAssertTrue(element.waitForExistence(timeout: 10), "the \(header) section header is missing")
-            scrollIntoView(element)
-            let y = element.frame.minY
+            positions.append((header, element.frame.minY))
+        }
+
+        for (previous, current) in zip(positions, positions.dropFirst()) {
             XCTAssertGreaterThan(
-                y, lastY,
-                "\(header) is above the section that should precede it — the scout's-nest order is broken"
+                current.1, previous.1,
+                "\(current.0) (y=\(current.1)) is above \(previous.0) (y=\(previous.1)) — the scout's-nest order is broken"
             )
-            lastY = y
         }
     }
 
