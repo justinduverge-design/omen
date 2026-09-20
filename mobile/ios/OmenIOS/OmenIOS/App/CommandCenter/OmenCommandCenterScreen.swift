@@ -178,30 +178,35 @@ struct OmenCommandCenterScreen: View {
                 waiverWatchBody(showDetailLink: false)
             }
         }
+        // J6. The route into `LedgerDetail.dc.html`: tap a Ledger row, open its receipt. This
+        // sheet already existed and already fetched `move-detail.v1` — what changed is what it
+        // renders once the fetch lands.
         .sheet(item: $ledgerDetailEntry) { entry in
             CommandCenterDetailSheet(title: "The Ledger") {
-                LedgerReceiptView(entry: entry, load: loadReceipt)
+                LedgerReceiptView(entry: entry, load: loadReceipt, onOpenAccount: onOpenAccount)
             }
         }
+        // J6. "See all" is the only route from the preview to the full Ledger, and it now opens
+        // `Ledger.dc.html` rather than the stacked `NavigationLink` list it opened before.
+        //
+        // The non-`entries` states keep the old rows, which are the `OmenStateSurface` cases —
+        // empty, not-connected, loading, error. `OmenLedgerScreen` renders a record; it has no
+        // opinion about a record that could not be read, and giving it one would be a second
+        // place for those four states to drift.
         .sheet(isPresented: $showLedgerHistory) {
             CommandCenterDetailSheet(title: "The Ledger") {
-                NavigationStack {
-                    ScrollView {
-                        if case .entries(let entries) = state.ledger {
-                            ForEach(entries) { entry in
-                                NavigationLink {
-                                    LedgerReceiptView(entry: entry, load: loadReceipt)
-                                } label: {
-                                    VStack(alignment: .leading, spacing: OmenSpacing.step8) {
-                                        Text(entry.period).omenTextStyle(OmenTypography.label)
-                                        Text(entry.summary).omenTextStyle(OmenTypography.h3)
-                                        Text(entry.outcome).omenTextStyle(OmenTypography.bodySmall)
-                                        if let action = entry.actionStatus { Text(action).omenTextStyle(OmenTypography.bodySmall) }
-                                    }.foregroundStyle(OmenColor.textPrimary).padding(OmenSpacing.step16)
-                                }
-                            }
-                        } else { ledgerRows(limit: Int.max) }
-                    }
+                if case .entries(let entries) = state.ledger {
+                    OmenLedgerScreen(
+                        state: OmenLedgerState.from(entries: entries),
+                        onOpenAccount: onOpenAccount,
+                        onOpenCall: { call in
+                            guard let entry = entries.first(where: { $0.id == call.id }) else { return }
+                            showLedgerHistory = false
+                            ledgerDetailEntry = entry
+                        }
+                    )
+                } else {
+                    ScrollView { ledgerRows(limit: Int.max) }
                 }
             }
         }
@@ -682,38 +687,49 @@ enum OmenLedgerPreviewState {
     }
 }
 
+/// J6. The receipt sheet: fetch `move-detail.v1`, then render `LedgerDetail.dc.html`.
+///
+/// The fetch, the failure surface and the loading surface are unchanged from slice E. What
+/// changed is the success branch, which used to stack four bare `Text`s and now renders the
+/// built screen.
 private struct LedgerReceiptView: View {
     let entry: OmenLedgerEntry
     let load: ((String) async -> Result<MoveReceipt, OmenApiError>)?
+    var onOpenAccount: (() -> Void)?
     @State private var result: Result<MoveReceipt, OmenApiError>?
+
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: OmenSpacing.step16) {
-                switch result {
-                case .success(let receipt):
-                    Text(receipt.snapshot.recommendation ?? entry.summary).omenTextStyle(OmenTypography.h2)
-                    if let issued = receipt.snapshot.issuedAt {
-                        Text("Issued \(issued) · \(receipt.snapshot.issuedAtTimezone ?? "Time zone unavailable")").omenTextStyle(OmenTypography.bodySmall)
-                    }
-                    ForEach(Array(receipt.evidenceAtTheTime.enumerated()), id: \.offset) { _, evidence in
-                        OmenCard(variant: .outlined) {
-                            VStack(alignment: .leading, spacing: OmenSpacing.step8) {
-                                Text(evidence.kind).omenTextStyle(OmenTypography.label)
-                                Text(evidence.statement).omenTextStyle(OmenTypography.body)
-                            }
-                        }
-                    }
-                    Text(receipt.userAction.statement).omenTextStyle(OmenTypography.body)
-                    Text(receipt.observedOutcome.statement).omenTextStyle(OmenTypography.body)
-                    Text(receipt.fairnessNote).omenTextStyle(OmenTypography.bodySmall)
-                case .failure:
-                    OmenStateSurface(kind: .error, title: "The receipt didn’t load", message: "The recorded evidence is unavailable. Return to the Ledger and try again.")
-                case nil:
-                    OmenStateSurface(kind: .loading, title: "Reading the receipt", message: "Loading the evidence recorded at issue time.")
-                }
-            }.foregroundStyle(OmenColor.textPrimary).padding(OmenSpacing.step16)
-        }.background(OmenColor.bg)
+        Group {
+            switch result {
+            case .success(let receipt):
+                OmenLedgerDetailScreen(
+                    state: OmenLedgerReceiptState.from(entry: entry, receipt: receipt),
+                    onOpenAccount: onOpenAccount
+                )
+            case .failure:
+                surface(OmenStateSurface(
+                    kind: .error,
+                    title: "The receipt didn\u{2019}t load",
+                    message: "The recorded evidence is unavailable. Return to the Ledger and try again."
+                ))
+            case nil:
+                surface(OmenStateSurface(
+                    kind: .loading,
+                    title: "Reading the receipt",
+                    message: "Loading the evidence recorded at issue time."
+                ))
+            }
+        }
+        .background(OmenColor.bg)
         .task(id: entry.id) { result = nil; result = await load?(entry.id) ?? .failure(.network) }
+    }
+
+    private func surface<Content: View>(_ content: Content) -> some View {
+        ScrollView {
+            content
+                .foregroundStyle(OmenColor.textPrimary)
+                .padding(OmenSpacing.step16)
+        }
     }
 }
 
@@ -722,11 +738,23 @@ struct OmenLedgerEntry: Identifiable {
     let period: String
     let callType: String
     let summary: String
+    /// The rendered outcome line, for the v1.1 preview rows that consume a string.
     let outcome: String
     let actionStatus: String?
     let outcomeProvenance: String?
+    /// J6. The same two facts as structure rather than as prose.
+    ///
+    /// `outcome` and `actionStatus` are sentences, and `OmenLedgerScreen` needs the values
+    /// behind them — the Ledger's rule is that verified outcome, self-reported action and
+    /// unknown follow-through stay *semantically* separate, and a screen that recovered them by
+    /// reading its own rendered strings would have re-merged them to do it.
+    ///
+    /// Defaulted so the existing preview call sites did not have to change. `MovesHistory`
+    /// fills both from the payload.
+    let action: OmenLedgerAction
+    let ledgerOutcome: OmenLedgerOutcome
 
-    init(id: String, period: String, callType: String, summary: String, outcome: String, actionStatus: String? = nil, outcomeProvenance: String? = nil) {
+    init(id: String, period: String, callType: String, summary: String, outcome: String, actionStatus: String? = nil, outcomeProvenance: String? = nil, action: OmenLedgerAction = .unknown, ledgerOutcome: OmenLedgerOutcome = .pending) {
         self.id = id
         self.period = period
         self.callType = callType
@@ -734,6 +762,8 @@ struct OmenLedgerEntry: Identifiable {
         self.outcome = outcome
         self.actionStatus = actionStatus
         self.outcomeProvenance = outcomeProvenance
+        self.action = action
+        self.ledgerOutcome = ledgerOutcome
     }
 
     var accessibilityLabel: String { [period, callType, summary, outcome, actionStatus].compactMap { $0 }.joined(separator: ", ") }

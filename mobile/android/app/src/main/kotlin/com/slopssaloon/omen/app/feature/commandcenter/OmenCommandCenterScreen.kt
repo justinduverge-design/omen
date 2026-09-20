@@ -252,16 +252,37 @@ fun OmenCommandCenterScreen(
         }
     }
     if (showLedgerHistory) {
+        // J6. "See all" is the only route from the preview to the full Ledger, and it now opens
+        // `Ledger.dc.html` rather than the stacked preview list it opened before.
+        //
+        // The non-`Entries` states keep the old rows, which are the `OmenStateSurface` cases —
+        // empty, not-connected, loading, error. `OmenLedgerScreen` renders a record; it has no
+        // opinion about a record that could not be read, and giving it one would be a second
+        // place for those four states to drift.
         CommandCenterDetailSheet(title = "The Ledger", onDismiss = { showLedgerHistory = false }) {
-            Column(Modifier.verticalScroll(rememberScrollState())) {
-                LedgerPreview(state.ledger, { showLedgerHistory = false; ledgerDetailEntry = it },
-                    showLabel = false, rowLimit = Int.MAX_VALUE)
+            val ledger = state.ledger
+            if (ledger is OmenLedgerPreviewState.Entries) {
+                OmenLedgerScreen(
+                    state = omenLedgerStateFrom(ledger.entries),
+                    onOpenAccount = onOpenAccount,
+                    onOpenCall = { call ->
+                        ledger.entries.firstOrNull { it.id == call.id }?.let {
+                            showLedgerHistory = false
+                            ledgerDetailEntry = it
+                        }
+                    },
+                )
+            } else {
+                Column(Modifier.verticalScroll(rememberScrollState())) {
+                    LedgerPreview(ledger, { showLedgerHistory = false; ledgerDetailEntry = it },
+                        showLabel = false, rowLimit = Int.MAX_VALUE)
+                }
             }
         }
     }
     ledgerDetailEntry?.let { entry ->
         CommandCenterDetailSheet(title = "The Ledger", onDismiss = { ledgerDetailEntry = null }) {
-            LedgerReceipt(entry, loadReceipt)
+            LedgerReceipt(entry, loadReceipt, onOpenAccount)
         }
     }
 }
@@ -518,35 +539,42 @@ private fun LedgerDetail(entry: OmenLedgerEntry, state: OmenLedgerPreviewState) 
     }
 }
 
+/**
+ * J6. The route into `LedgerDetail.dc.html`: tap a Ledger row, open its receipt.
+ *
+ * This sheet already existed and already fetched `move-detail.v1`. What changed is what it
+ * renders once the fetch lands — and **that it no longer prints the raw `issued_at` string**.
+ * It used to render `"Issued $issuedAt · ${timezone ?: "Time zone unavailable"}"`, which put an
+ * ISO-8601 timestamp in front of a reader and, worse, showed a wall clock in UTC beside a zone
+ * name it was not expressed in. [issuedLabel] resolves the two fields together or says the zone
+ * is missing.
+ */
 @Composable
-private fun LedgerReceipt(entry: OmenLedgerEntry,
-    load: (suspend (String) -> com.slopssaloon.omen.app.feature.api.OmenApiResult<com.slopssaloon.omen.app.feature.api.MoveReceipt>)?) {
+private fun LedgerReceipt(
+    entry: OmenLedgerEntry,
+    load: (suspend (String) -> com.slopssaloon.omen.app.feature.api.OmenApiResult<com.slopssaloon.omen.app.feature.api.MoveReceipt>)?,
+    onOpenAccount: (() -> Unit)? = null,
+) {
     var result by remember(entry.id) { mutableStateOf<com.slopssaloon.omen.app.feature.api.OmenApiResult<com.slopssaloon.omen.app.feature.api.MoveReceipt>?>(null) }
     androidx.compose.runtime.LaunchedEffect(entry.id) {
         result = load?.invoke(entry.id) ?: com.slopssaloon.omen.app.feature.api.OmenApiResult.Failure(com.slopssaloon.omen.app.feature.api.OmenApiError.Network)
     }
-    Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step16)) {
-        when (val value = result) {
-            is com.slopssaloon.omen.app.feature.api.OmenApiResult.Success -> {
-                val receipt = value.value
-                Text(receipt.recommendation ?: entry.summary, style = OmenTheme.typography.h2.toTextStyle(), color = OmenTheme.color.textPrimary)
-                receipt.issuedAt?.let { Text("Issued $it · ${receipt.timezone ?: "Time zone unavailable"}", style = OmenTheme.typography.bodySmall.toTextStyle(), color = OmenTheme.color.textSecondary) }
-                receipt.evidence.forEach { (kind, statement) ->
-                    OmenCard(variant = OmenCardVariant.Outlined) {
-                        Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8)) {
-                            Text(kind, style = OmenTheme.typography.label.toTextStyle(), color = OmenTheme.color.textSecondary)
-                            Text(statement, style = OmenTheme.typography.body.toTextStyle(), color = OmenTheme.color.textPrimary)
-                        }
-                    }
-                }
-                listOf(receipt.action, receipt.outcome, receipt.fairnessNote).forEach {
-                    Text(it, style = OmenTheme.typography.body.toTextStyle(), color = OmenTheme.color.textSecondary)
-                }
-            }
-            is com.slopssaloon.omen.app.feature.api.OmenApiResult.Failure -> OmenStateSurface(kind = OmenStateSurfaceKind.Error,
-                title = "The receipt didn’t load", message = "The recorded evidence is unavailable. Return to the Ledger and try again.")
-            null -> OmenStateSurface(kind = OmenStateSurfaceKind.Loading, title = "Reading the receipt", message = "Loading the evidence recorded at issue time.")
-        }
+    when (val value = result) {
+        is com.slopssaloon.omen.app.feature.api.OmenApiResult.Success ->
+            OmenLedgerDetailScreen(
+                state = omenLedgerReceiptStateFrom(entry, value.value),
+                onOpenAccount = onOpenAccount,
+            )
+        is com.slopssaloon.omen.app.feature.api.OmenApiResult.Failure -> OmenStateSurface(
+            kind = OmenStateSurfaceKind.Error,
+            title = "The receipt didn\u2019t load",
+            message = "The recorded evidence is unavailable. Return to the Ledger and try again.",
+        )
+        null -> OmenStateSurface(
+            kind = OmenStateSurfaceKind.Loading,
+            title = "Reading the receipt",
+            message = "Loading the evidence recorded at issue time.",
+        )
     }
 }
 
@@ -729,9 +757,24 @@ data class OmenLedgerEntry(
     val period: String,
     val callType: String,
     val summary: String,
+    /** The rendered outcome line, for the v1.1 preview rows that consume a string. */
     val outcome: String,
     val actionStatus: String? = null,
     val outcomeProvenance: String? = null,
+    /**
+     * J6. The same two facts as **structure** rather than as prose.
+     *
+     * [outcome] and [actionStatus] are sentences, and `OmenLedgerScreen` needs the values behind
+     * them — the Ledger's rule is that verified outcome, self-reported action and unknown
+     * follow-through stay *semantically* separate, and a screen that recovered them by parsing
+     * its own rendered strings would have re-merged them to do it.
+     *
+     * Defaulted so the existing preview call sites did not have to change. `MovesHistory` fills
+     * both from the payload, and the defaults are the two honest resting values: nobody knows
+     * what the user did, and the week has not answered yet.
+     */
+    val action: OmenLedgerAction = OmenLedgerAction.Unknown,
+    val ledgerOutcome: OmenLedgerOutcome = OmenLedgerOutcome.Pending,
 ) {
     val accessibilityLabel: String = listOfNotNull(period, callType, summary, outcome, actionStatus).joinToString(", ")
 }
