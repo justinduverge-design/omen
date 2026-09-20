@@ -14,6 +14,15 @@ them screen work.
 | Artboards | `Ledger.dc.html` redrawn (two rows). `LedgerDetail.dc.html` untouched. |
 | Captures | **Not run.** Scenarios are registered on both platforms; the lead runs the captures. |
 
+| Suite | Result |
+|---|---|
+| iOS, full | **573 passed, 0 failed, 1 skipped, 2 expected failures** (baseline 555/0/1/2) |
+| iOS, `J6InteractionUITests` | 13 tests, 0 failures |
+| Android `:app` | **196 unit tests, 0 failures**, `assembleDebug` successful (baseline 191) |
+
+The skip is still `HttpOnlyCookieSpikeTests`; the two expected failures are still #340 and #338,
+both deliberately deferred and neither touched here.
+
 ## The two defects, which were the real work
 
 Both were the same shape — **a stored machine value rendered straight to a reader** — and neither
@@ -171,7 +180,26 @@ rows, which live in that destination.
    claims actually being made — the Ledger frames forbid every percentage, and no frame pairs a
    percentage with confidence vocabulary — and add the positive half, that the band renders as a
    word, or a screen that dropped confidence entirely still passes.
-4. **`BUILD SUCCESSFUL in 31s` with `--rerun-tasks` deserves a second look.** It was genuine here
+4. **A full `xcodebuild test` can run a STALE UI-test bundle, and it looks exactly like a
+   regression.** The first full run reported 3 failures in `J6InteractionUITests` — 12 tests, and
+   the two failures that had already been fixed and committed two commits earlier, at the old
+   line numbers. The file on disk had 13 tests and the fixes; a targeted
+   `-only-testing:OmenIOSUITests/J6InteractionUITests` run had passed 13/13 against it.
+   Incremental build did not rebuild the bundle.
+
+   **Do not "fix" it.** Check the source first — `grep -c 'func test'` against the count in the
+   output is enough — then force the rebuild:
+
+   ```bash
+   touch mobile/ios/OmenIOS/OmenIOSUITests/<Class>.swift
+   rm -rf ~/Library/Developer/Xcode/DerivedData/OmenIOS-*/Build/Products/Debug-iphonesimulator/OmenIOSUITests-Runner.app \
+          ~/Library/Developer/Xcode/DerivedData/OmenIOS-*/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build
+   ```
+
+   The re-run was `** TEST SUCCEEDED **`, 573 passed. This is the same family as the hazard table's
+   "`test-without-building` after editing source", but it happened on a plain `test` action, which
+   the table does not warn about.
+5. **`BUILD SUCCESSFUL in 31s` with `--rerun-tasks` deserves a second look.** It was genuine here
    (warm daemon, fresh APK timestamp), but the count was read from
    `app/build/test-results/**/*.xml` rather than from the console, and every new test was
    confirmed by name.
