@@ -284,7 +284,19 @@ struct CommandCenterView: View {
                 OmenLeagueScreen(
                     state: leagueViewModel.viewState,
                     onRetry: { Task { await leagueViewModel.reload() } },
-                    onConnect: { showConnectSheet = true }
+                    onConnect: { showConnectSheet = true },
+                    // The wire comes from the SAME `waiver-analysis.v1` read Command Center
+                    // already makes, for the reason Trade takes its league from the League
+                    // destination's read: two surfaces that fetch the wire separately can
+                    // disagree about it on screen.
+                    //
+                    // Nil until that read lands, which removes the section link rather than
+                    // opening an empty sheet.
+                    wire: commandCenterViewModel.waiverAnalysis.map {
+                        OmenScoutWireState.from(analysis: $0, weekLabel: leagueViewModel.wireWeekLabel)
+                    },
+                    waiverSummary: commandCenterViewModel.waiverAnalysis?.scoutSummary
+                        ?? OmenLeagueScreen.waiverUnread
                 )
             }
             .task { await loadLeagueForSelectedContext() }

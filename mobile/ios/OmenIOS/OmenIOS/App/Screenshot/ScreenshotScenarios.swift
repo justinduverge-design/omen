@@ -300,6 +300,83 @@ enum ScreenshotScenarios {
                 onOpenAccount: {}
             )))) }
         ),
+        // MARK: - J5, "the scout's nest"
+        //
+        // Six artboards, six frames, two passes — and two compositions, because `LeagueTable`,
+        // `LeagueDegraded` and `LeagueNoRosters` are one screen in three states and the wire's
+        // three artboards are likewise one screen in three.
+        //
+        // The split between passes follows the capability contract rather than tone.
+        // `WaiverNoMove` is in the NOMINAL pass: a wire that read perfectly and found nothing
+        // worth claiming is a healthy read, not a degraded one, and filing it as a failure would
+        // teach exactly the wrong lesson about what "no move" means.
+        //
+        // Each pass carries both required classes for its profile — at least one input
+        // `unavailable` and at least one `live, used: false`:
+        //
+        //   league  degraded  `trade_rosters` and `league_activity` unavailable; `league_scoring`
+        //                     read and unused, in the foot line.
+        //   waiver  degraded  `waiver_system` unavailable, named three times over; `roster` read
+        //                     and unused, in the foot line.
+        "journey-j5.nominal.01-league-table": ScreenshotScenario(
+            label: "J5 nominal 1/3 — the scout\u{2019}s nest, everything read",
+            content: { AnyView(j5Shell(AnyView(OmenLeagueTableScreen(
+                state: J5ScreenshotFixtures.nominalTable,
+                context: J5ScreenshotFixtures.titansContext,
+                onOpenAccount: {},
+                onOpenWaiver: {},
+                onBuildTrade: { _ in }
+            )))) }
+        ),
+        "journey-j5.nominal.02-league-waiver": ScreenshotScenario(
+            label: "J5 nominal 2/3 — the wire, one move and two alternatives",
+            content: { AnyView(j5Shell(AnyView(OmenLeagueWireScreen(
+                state: J5ScreenshotFixtures.nominalWire,
+                context: J5ScreenshotFixtures.titansContext,
+                onOpenAccount: {}
+            )))) }
+        ),
+        "journey-j5.nominal.03-waiver-no-move": ScreenshotScenario(
+            label: "J5 nominal 3/3 — nothing on the wire beats what you have",
+            content: { AnyView(j5Shell(AnyView(OmenLeagueWireScreen(
+                state: J5ScreenshotFixtures.noMoveWire,
+                context: J5ScreenshotFixtures.titansContext,
+                onOpenAccount: {},
+                screenIdentifier: "j5.league-wire.no-move",
+                fitProbeIdentifier: "j5.fit.waiver-no-move"
+            )))) }
+        ),
+        "journey-j5.degraded.01-league-degraded": ScreenshotScenario(
+            label: "J5 degraded 1/3 — two sections live, two unread, each saying which",
+            content: { AnyView(j5Shell(AnyView(OmenLeagueTableScreen(
+                state: J5ScreenshotFixtures.degradedTable,
+                context: J5ScreenshotFixtures.titansContext,
+                onOpenAccount: {},
+                onOpenWaiver: {},
+                onRetry: {}
+            )))) }
+        ),
+        "journey-j5.degraded.02-league-no-rosters": ScreenshotScenario(
+            label: "J5 degraded 2/3 — no rosters, so no trade read, permanently",
+            content: { AnyView(j5Shell(AnyView(OmenLeagueTableScreen(
+                state: J5ScreenshotFixtures.noRostersTable,
+                context: J5ScreenshotFixtures.pukContext,
+                onOpenAccount: {},
+                onOpenWaiver: {}
+                // No `onRetry`, and the state carries no retry title. A permanent provider limit
+                // with a Try Again button is a promise the product cannot keep.
+            )))) }
+        ),
+        "journey-j5.degraded.03-waiver-not-determined": ScreenshotScenario(
+            label: "J5 degraded 3/3 — the waiver system itself is unknown",
+            content: { AnyView(j5Shell(AnyView(OmenLeagueWireScreen(
+                state: J5ScreenshotFixtures.notDeterminedWire,
+                context: J5ScreenshotFixtures.pukContext,
+                onOpenAccount: {},
+                screenIdentifier: "j5.league-wire.not-determined",
+                fitProbeIdentifier: "j5.fit.waiver-not-determined"
+            )))) }
+        ),
         "switcher.team-sheet": ScreenshotScenario(
             label: "Team switcher — pinned bar and the sheet, one favourite starred",
             content: { AnyView(TeamSwitcherScreenshotHost()) }
@@ -455,6 +532,14 @@ enum ScreenshotScenarios {
     /// the switcher bar is on 25 of the 30 screens and can be opened from any of them.
     private static func j2Shell(_ content: AnyView) -> some View {
         FauxShell(initialTab: .command, commandContentOverride: content)
+    }
+
+    /// J5 opens on the League tab. All six of its artboards live in that destination — the wire
+    /// included, because `CONTRACTS.md` places Waiver as a section *inside* League rather than as
+    /// a fifth tab. A J5 capture that opened on Command would photograph the wrong screen and
+    /// prove nothing, which is the mistake the `initialTab` seam exists to prevent.
+    private static func j5Shell(_ content: AnyView) -> some View {
+        FauxShell(initialTab: .league, leagueContentOverride: content)
     }
 
     /// Read the launch-argument value that names the current scenario, if any.
@@ -668,6 +753,8 @@ private struct FauxShell: View {
     var omenContentOverride: AnyView? = nil
     /// Same seam for the Command tab, so J1's terminus can be captured inside the real shell.
     var commandContentOverride: AnyView? = nil
+    /// And for the League tab, which is J5's whole destination.
+    var leagueContentOverride: AnyView? = nil
 
     var body: some View {
         TabView(selection: .constant(initialTab)) {
@@ -724,7 +811,13 @@ private struct FauxShell: View {
             .tabItem { CommandCenterTab.trade.label }
             .tag(CommandCenterTab.trade)
 
-            OmenLeagueScreen(state: leagueState)
+            Group {
+                if let leagueContentOverride {
+                    leagueContentOverride
+                } else {
+                    OmenLeagueScreen(state: leagueState)
+                }
+            }
             .tabItem { CommandCenterTab.league.label }
             .tag(CommandCenterTab.league)
         }
@@ -1277,4 +1370,293 @@ enum J2ScreenshotFixtures {
             emphasis: nil
         )
     )
+}
+
+// MARK: - J5 fixtures
+
+/// J5's six frames.
+///
+/// The two states that hinge on `waiver_system` are **decoded by the production parser** from
+/// server-shaped JSON, which is J3's pattern and the right one here: `WaiverNotDetermined` exists
+/// precisely because a client can mistake "system unknown" for "FAAB with no budget", and a
+/// hand-built Swift literal would prove the screen renders without proving the parser ever
+/// produces that state. The table fixtures are literals, as J2's are, because the Table screen's
+/// mapper is exercised by the real League destination rather than by a capture.
+enum J5ScreenshotFixtures {
+
+    // MARK: Context
+
+    static let titansContext = OmenScreenContext(
+        crest: "TTO",
+        teamName: "Titans of Slopsilonia",
+        platform: .espn,
+        leagueName: "Slops Saloon",
+        onSwitch: {},
+        onAddLeague: {}
+    )
+
+    /// The Yahoo league, which is where both permanent-limit frames live. Yahoo is a live,
+    /// entitled provider — this is a limit of what it exposes for this league type, not a
+    /// statement about the provider's availability.
+    static let pukContext = OmenScreenContext(
+        crest: "PAK",
+        teamName: "Puk Around & Find Out",
+        platform: .yahoo,
+        leagueName: "Fantasy Madness",
+        onSwitch: {},
+        onAddLeague: {}
+    )
+
+    // MARK: The table
+
+    private static let tableRows: [OmenScoutTableRow] = [
+        OmenScoutTableRow(rank: 1, crest: "GMR", teamName: "Gibbs me some Rice", form: [true, true, false, true, true], record: "6\u{2013}1", isMine: false),
+        OmenScoutTableRow(rank: 2, crest: "PAK", teamName: "Puk Around & Find Out", form: [true, false, true, true, true], record: "5\u{2013}2", isMine: false),
+        OmenScoutTableRow(rank: 3, crest: "TTO", teamName: "Titans of Slopsilonia", form: [true, true, true, false, true], record: "5\u{2013}2", isMine: true),
+        OmenScoutTableRow(rank: 4, crest: "DSI", teamName: "Davante\u{2019}s Inferno", form: [false, false, true, false, true], record: "4\u{2013}3", isMine: false),
+        OmenScoutTableRow(rank: 5, crest: "CHB", teamName: "Chubb Rock", form: [false, true, false, false, false], record: "3\u{2013}4", isMine: false)
+    ]
+
+    private static let tradeTargets = [
+        OmenScoutTradeTarget(crest: "DSI", teamName: "Davante\u{2019}s Inferno", read: "Thin at RB, three startable receivers. You have the reverse."),
+        OmenScoutTradeTarget(crest: "CHB", teamName: "Chubb Rock", read: "3\u{2013}4 and fading. Two backs on byes in weeks 9 and 11.")
+    ]
+
+    private static let waiverMove = OmenDeskWaiverMove(
+        addName: "Jaylen Wright",
+        addMeta: "RB \u{00B7} TEN",
+        addPoints: "11.4",
+        dropName: "Roschon Johnson",
+        dropMeta: "RB \u{00B7} CHI",
+        dropPoints: "4.1",
+        reasoning: "Pollard is out three weeks and Roschon sits behind two healthy backs \u{2014} you are not losing anything you will miss.",
+        band: .confident,
+        risk: .low,
+        riskReason: nil
+    )
+
+    /// `LeagueTable.dc.html`.
+    ///
+    /// The cut line is present because this fixture is a league whose playoff settings were
+    /// actually read. On ESPN that is **not** generally true — `settings_known` is `true` on
+    /// Sleeper only — so the real mapper drops the line on this provider and this frame is a
+    /// capture of the line's composition rather than a claim that ESPN supplies it.
+    static let nominalTable = OmenScoutTableState(
+        weekLabel: "Week 7 \u{00B7} 12 teams",
+        notice: nil,
+        strip: .read(OmenScoutStrip(platform: .espn, myScore: "64.8", theirScore: "51.2", status: "Live \u{00B7} Q2")),
+        table: .read(tableRows),
+        cutLine: OmenScoutCutLine(afterRank: 4, label: "Playoff cut"),
+        tradeTargets: .read(tradeTargets),
+        waiver: .read(waiverMove),
+        activity: .read([
+            OmenScoutActivityRow(category: "Standings", text: "Two teams are tied for the final playoff spot."),
+            OmenScoutActivityRow(category: "Standings", text: "You are one game from the playoff cut line.")
+        ]),
+        // Partial, and the sentence says which half is missing. ESPN does not give Omen
+        // transactions today, so the list is real and incomplete at the same time.
+        activityUnreadNote: "Transactions unavailable for ESPN right now \u{2014} adds, drops and trades are not in this list, which is unread rather than empty.",
+        footnote: nil,
+        retryTitle: nil
+    )
+
+    /// `LeagueDegraded.dc.html` — the `league` profile's degraded pass.
+    ///
+    /// Two sections live, two unread, and **each section says which it is** rather than the page
+    /// showing one banner and hoping. Both required classes are visible at once:
+    ///
+    ///   - `trade_rosters` and `league_activity` are `unavailable` — named, each with a sentence,
+    ///     each in its own section's place. Neither is dropped to make room.
+    ///   - `league_scoring` is `live, used: false` — named in the foot line, `text-tertiary`,
+    ///     with no evidence styling and no implication that it decided anything.
+    ///
+    /// `not_requested` inputs render nowhere at all, which is why there is no "playoff settings"
+    /// row: this profile never asked for them.
+    static let degradedTable = OmenScoutTableState(
+        weekLabel: "Week 7 \u{00B7} 12 teams",
+        notice: "ESPN is returning partial data right now. Two sections below are live and two are not. Each one says which it is.",
+        strip: .read(OmenScoutStrip(platform: .espn, myScore: "64.8", theirScore: "51.2", status: "Live \u{00B7} Q2")),
+        table: .read(Array(tableRows.prefix(3))),
+        // Absent, because a partial ESPN read is exactly the case where playoff settings are
+        // unproven. Drawing the line here would put a playoff claim on a degraded screen.
+        cutLine: nil,
+        tradeTargets: .unread(
+            capability: "Trade rosters",
+            sentence: "Reading other managers\u{2019} rosters needs a call ESPN is currently refusing. Omen issues no trade read without rosters \u{2014} it will not name a team it has not read."
+        ),
+        waiver: .read(waiverMove),
+        activity: .unread(
+            capability: "League activity",
+            sentence: "Adds, drops and trades are not in this list. The list is not empty \u{2014} it is unread, and those are different things."
+        ),
+        activityUnreadNote: nil,
+        footnote: OmenDeskFootnote(
+            text: "League scoring settings were read and did not change anything on this screen.",
+            emphasis: nil
+        ),
+        // A retry is legitimate here and only here: a refusing provider may stop refusing.
+        retryTitle: "Retry ESPN"
+    )
+
+    /// `LeagueNoRosters.dc.html`.
+    ///
+    /// A **permanent provider limit for this league**, not an outage — which is why the section
+    /// uses `providerLimit` rather than `unread`, why the section header reads "Not possible
+    /// here" rather than "Unavailable", and why `retryTitle` is nil. `CONTRACTS.md` is explicit:
+    /// "Do not build a retry for it."
+    static let noRostersTable = OmenScoutTableState(
+        weekLabel: "Week 7 \u{00B7} 10 teams",
+        notice: nil,
+        strip: .read(OmenScoutStrip(platform: .yahoo, myScore: "78.4", theirScore: "81.9", status: "Live \u{00B7} Q3")),
+        table: .read([
+            OmenScoutTableRow(rank: 1, crest: "RGB", teamName: "Regulation Blondes", form: [true, true, true, false, true], record: "5\u{2013}1", isMine: false),
+            OmenScoutTableRow(rank: 2, crest: "PAK", teamName: "Puk Around & Find Out", form: [true, false, true, true, true], record: "4\u{2013}2", isMine: true),
+            OmenScoutTableRow(rank: 3, crest: "MKM", teamName: "Mike\u{2019}s Marauders", form: [false, true, true, false, true], record: "4\u{2013}2", isMine: false)
+        ]),
+        cutLine: nil,
+        tradeTargets: .providerLimit(
+            capability: "Trade rosters",
+            sentence: "Yahoo does not expose other managers\u{2019} rosters for this league. Without them Omen cannot see who needs what, so it makes no trade read at all rather than guessing from the standings.",
+            consequence: "This is a permanent limit of the provider for this league type, not an outage. Omen\u{2019}s weekly call for this team will be a start/sit or a waiver move, never a trade. Everything else on this screen is unaffected."
+        ),
+        waiver: .read(waiverMove),
+        activity: .read([
+            OmenScoutActivityRow(category: "Standings", text: "Two teams are tied at 4\u{2013}2 behind the leader.")
+        ]),
+        activityUnreadNote: nil,
+        footnote: nil,
+        retryTitle: nil
+    )
+
+    // MARK: The wire
+
+    /// `LeagueWaiver.dc.html` — decoded, so the FAAB gate is proven rather than asserted.
+    static let nominalWire: OmenScoutWireState = OmenScoutWireState.from(
+        analysis: decodeWaiver(nominalWaiverJSON),
+        weekLabel: "Week 7 \u{00B7} Waiver"
+    )
+
+    /// `WaiverNotDetermined.dc.html` — the `waiver` profile's degraded pass.
+    ///
+    /// The payload says `"system": "not_determined"`, which is what ESPN and Yahoo return today.
+    /// The screen therefore shows **no** budget and **no** claim order — not a dashed one, not a
+    /// greyed one, none — and names the three answers it is withholding.
+    ///
+    /// The foot line carries the `live, used: false` half: the roster read succeeded and did not
+    /// decide anything here, because the player read does not depend on the waiver system.
+    static let notDeterminedWire: OmenScoutWireState = {
+        var state = OmenScoutWireState.from(
+            analysis: decodeWaiver(notDeterminedWaiverJSON),
+            weekLabel: "Week 7 \u{00B7} Waiver"
+        )
+        state = OmenScoutWireState(
+            weekLabel: state.weekLabel,
+            processLabel: state.processLabel,
+            processTime: state.processTime,
+            system: state.system,
+            notice: state.notice,
+            body: state.body,
+            footnote: OmenDeskFootnote(
+                text: "Your roster was read and did not change any of this \u{2014} the player read above does not depend on the waiver system.",
+                emphasis: nil
+            )
+        )
+        return state
+    }()
+
+    /// `WaiverNoMove.dc.html` — the one J5 artboard declared a **fit**.
+    ///
+    /// A literal rather than a decode, and the reason is a gap worth naming: the artboard draws a
+    /// **watch list** ("Jaylen Wright, if Pollard sits") and `waiver-analysis.v1` carries no such
+    /// field. Under the 2026-09-18 precedence rule the artboard's shape is binding and its
+    /// literal strings are not, so the block is built and the strings are fixture copy — and the
+    /// missing contract field is reported rather than quietly dropped or quietly invented.
+    static let noMoveWire = OmenScoutWireState(
+        weekLabel: "Week 7 \u{00B7} Waiver",
+        processLabel: nil,
+        processTime: nil,
+        system: .faab(budgetText: "Your budget $63 of $100", orderText: "Claim order 7 of 12"),
+        notice: nil,
+        body: .noMove(
+            headline: "Nothing on this wire beats what you have.",
+            body: "Omen checked all 143 free agents against your nine starting slots. The best of them projects 1.2 points above your weakest starter, which is noise.",
+            costTitle: "What it would have cost",
+            cost: "Claiming the best available means dropping Tyjae Spears, who is one Pollard injury from being startable. Doing nothing is the move this week.",
+            band: .confident,
+            risk: .low,
+            watchTitle: "Watch list",
+            watching: [
+                OmenScoutWireRow(title: "Jaylen Wright", detail: "RB \u{00B7} TEN \u{00B7} if Pollard sits", status: .watching),
+                OmenScoutWireRow(title: "Cade Otton", detail: "TE \u{00B7} TB \u{00B7} if Godwin misses week 8", status: .watching)
+            ]
+        ),
+        footnote: OmenDeskFootnote(
+            text: "Next read Tuesday 3:00 AM. Omen will wake you only if something changes.",
+            emphasis: nil
+        )
+    )
+
+    // MARK: Server-shaped payloads
+
+    private static func decodeWaiver(_ json: String) -> WaiverAnalysis {
+        // A fixture that cannot decode is a contract drift, and it should stop a capture rather
+        // than quietly render an empty screen. This is J3's rule and the crash is deliberate.
+        try! JSONDecoder().decode(WaiverAnalysis.self, from: Data(json.utf8))
+    }
+
+    private static let nominalWaiverJSON = """
+    {
+      "contract_version": "waiver-analysis.v1",
+      "state": "confirmed_opportunity",
+      "deadline": "Tue 3:00 AM",
+      "waiver_system": {
+        "system": "faab",
+        "budget_text": "Your budget $63 of $100",
+        "order_text": "Claim order 7 of 12"
+      },
+      "best_move": {
+        "add": { "name": "Jaylen Wright", "position": "RB", "team": "TEN", "projected_points": 11.4 },
+        "drop": { "name": "Roschon Johnson", "position": "RB", "team": "CHI", "projected_points": 4.1 },
+        "improvement": 7.3,
+        "why_now": "Pollard is out three weeks and Wright took almost every backup snap on Sunday. Roschon sits behind two healthy backs \\u2014 you will not miss him.",
+        "bid": { "amount": 14, "basis": "two managers ahead of you need a back" }
+      },
+      "alternatives": [
+        {
+          "player": { "name": "Jalen McMillan", "position": "WR", "team": "TB", "projected_points": 9.2 },
+          "improvement": 2.1,
+          "tradeoff": "Projects 2.2 points below Wright against your lineup. Take this one only if you lose the Wright claim."
+        },
+        {
+          "player": { "name": "Cade Otton", "position": "TE", "team": "TB", "projected_points": 8.1 },
+          "improvement": 1.4,
+          "tradeoff": "There is no defensible drop for this one. Everyone on your bench is either starting somewhere or worth more than Otton. Named rather than forced."
+        }
+      ]
+    }
+    """
+
+    /// Note what is **absent**: no `bid`, and `system` is `not_determined`.
+    ///
+    /// `bid` being absent rather than `{"amount": 0}` is the contract's own rule — null, never
+    /// zero, when any input is missing — and this payload is the case that rule was written for.
+    private static let notDeterminedWaiverJSON = """
+    {
+      "contract_version": "waiver-analysis.v1",
+      "state": "confirmed_opportunity",
+      "waiver_system": { "system": "not_determined" },
+      "best_move": {
+        "add": { "name": "Jaylen Wright", "position": "RB", "team": "TEN", "projected_points": 11.4 },
+        "improvement": 7.3,
+        "why_now": "Wright took almost every backup snap on Sunday."
+      },
+      "alternatives": [
+        {
+          "player": { "name": "Jalen McMillan", "position": "WR", "team": "TB", "projected_points": 9.2 },
+          "improvement": 2.1,
+          "tradeoff": "The next best claim if the first one does not land."
+        }
+      ]
+    }
+    """
 }

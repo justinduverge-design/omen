@@ -16,6 +16,16 @@ final class LeagueViewModel: ObservableObject {
 
     @Published private(set) var viewState: ViewState = .idle
 
+    /// "Week 7 · Waiver" for the wire screen's eyebrow.
+    ///
+    /// Derived from the league read rather than from the waiver read, because `waiver-analysis.v1`
+    /// carries no week and the two surfaces must agree about which week they are describing.
+    /// Falls back to the bare word when no week has been read — never to a guessed number.
+    var wireWeekLabel: String {
+        guard case .loaded(let overview) = viewState, let week = overview.week else { return "Waiver" }
+        return "Week \(week) \u{00B7} Waiver"
+    }
+
     private let repository: LeagueRepository
     private let sessionManager: SessionManager
     private var requestedPlatform: String?
