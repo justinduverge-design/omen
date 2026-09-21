@@ -127,27 +127,29 @@ final class ChromeInteractionUITests: XCTestCase {
         // is how the first run of this file failed — the row was there and the predicate was
         // wrong. Prefix is also what keeps this test from breaking every time a subtitle is
         // reworded, which is the more common change.
-        for (title, label) in [
-            ("justin@slopssaloon.com", "the identity row"),
-            ("Report a problem", "report a problem"),
-            ("Help centre", "help centre"),
-            ("Privacy & data", "privacy and data")
-        ] {
-            assertTappable(row(title, in: app), label)
-        }
+        assertTappable(row("justin@slopssaloon.com", in: app), "the identity row")
         assertTappable(app.buttons["Add a league"], "add a league")
-        assertTappable(app.buttons["Sign out"], "sign out")
 
         // Three leagues, three providers, and each Disconnect names its own league. Three
         // identical "Disconnect" labels is the defect this assertion is about: a user who
-        // cannot tell which row a control belongs to disconnects the wrong one.
-        print("TREE:\n\(app.debugDescription)")
+        // cannot tell which row a control belongs to disconnects the wrong one. Check these
+        // before the Support rows: Account is a scroll, and the one-direction helper follows
+        // the same top-to-bottom order a user does.
         for team in ["Titans of Slopsilonia", "Davante\u{2019}s Inferno", "Puk Around & Find Out"] {
             let control = app.buttons.matching(
                 NSPredicate(format: "label BEGINSWITH %@", "Disconnect \(team)")
             ).firstMatch
             assertTappable(control, "the Disconnect control for \(team)")
         }
+
+        for (title, label) in [
+            ("Report a problem", "report a problem"),
+            ("Help centre", "help centre"),
+            ("Privacy & data", "privacy and data")
+        ] {
+            assertTappable(row(title, in: app), label)
+        }
+        assertTappable(app.buttons["Sign out"], "sign out")
 
         assertTapDoesNotBreak(row("Report a problem", in: app), app)
     }
