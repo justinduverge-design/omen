@@ -54,8 +54,7 @@ final class ChromeInteractionUITests: XCTestCase {
         file: StaticString = #filePath,
         line: UInt = #line
     ) {
-        XCTAssertTrue(element.waitForExistence(timeout: 10), "\(label) is missing", file: file, line: line)
-        scrollIntoView(element)
+        XCTAssertTrue(scrollIntoView(element), "\(label) is missing", file: file, line: line)
         XCTAssertTrue(element.isHittable, "\(label) exists but cannot be tapped", file: file, line: line)
         let frame = element.frame
         XCTAssertGreaterThanOrEqual(frame.height, 43.5, "\(label) is \(frame.height)pt tall, under the 44pt minimum", file: file, line: line)
@@ -63,12 +62,17 @@ final class ChromeInteractionUITests: XCTestCase {
     }
 
     /// `Account` is a declared scroll, so a control can legitimately start below the fold.
-    private func scrollIntoView(_ element: XCUIElement, attempts: Int = 8) {
+    @discardableResult
+    private func scrollIntoView(_ element: XCUIElement, attempts: Int = 8) -> Bool {
         var remaining = attempts
-        while !element.isHittable && remaining > 0 {
+        while remaining > 0 {
+            if element.waitForExistence(timeout: 1), element.isHittable {
+                return true
+            }
             XCUIApplication().swipeUp()
             remaining -= 1
         }
+        return element.exists && element.isHittable
     }
 
     private func assertTapDoesNotBreak(_ element: XCUIElement, _ app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) {
@@ -128,7 +132,10 @@ final class ChromeInteractionUITests: XCTestCase {
         // wrong. Prefix is also what keeps this test from breaking every time a subtitle is
         // reworded, which is the more common change.
         assertTappable(row("justin@slopssaloon.com", in: app), "the identity row")
-        assertTappable(app.buttons["Add a league"], "add a league")
+        let addLeague = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "Add a league")
+        ).firstMatch
+        assertTappable(addLeague, "add a league")
 
         // Three leagues, three providers, and each Disconnect names its own league. Three
         // identical "Disconnect" labels is the defect this assertion is about: a user who
