@@ -3490,3 +3490,18 @@ behaving; until then this entry records intent, not proof.
 - **Process correction:** screenshot review remains serial. This close-out caught missing Android
   provider badges and a ReportPill captured over a blank field after builds and tests were green.
   Fresh build installation, byte/hash manifests and opening every frame are separate gates.
+
+## 2026-09-21 — Android chrome parity is measured in platform units, not contact-sheet width
+
+- **Decision:** Android keeps its 48dp interaction minimum, but the surrounding composition matches
+  the iOS visual lock numerically. Account league rows advance 64dp, support rows 64dp, and section
+  labels use 16dp above and 6dp below. Compact link and secondary actions do not fill the row merely
+  because Compose makes that convenient.
+- **Decision:** Account, Privacy, deletion and report scenarios mount over the permanent four-tab
+  shell on both platforms. Account is contextual chrome, not a fifth tab; omitting the shell from a
+  screenshot is a false composition even when the screen itself builds.
+- **Decision:** platform parity applies to information hierarchy as well as spacing. Android Privacy
+  does not expose an Export control until a native carrier exists; deletion uses the same open phrase
+  gate and compact action hierarchy as iOS; Report Composer names the payload, model-summary
+  disclosure and unsupported screenshot attachment before consent. Evidence and measurements are in
+  `Blueprints/handoffs/2026-09-20-j2-j4-j5-j6-and-chrome-closeout.md`, final commit `cf581876`.

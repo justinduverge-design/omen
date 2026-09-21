@@ -86,3 +86,28 @@ behind an ANR during recapture; the capture guard correctly refused nine frames.
 fresh APK install, and second batch produced nine nonblank frames; each timestamp/hash was refreshed
 and each replacement was opened individually. No deploy, store upload, production mutation, provider
 credential read, or SQL application occurred.
+
+## 2026-09-21 Android chrome geometry correction
+
+The first Android chrome reconciliation was not final. Direct rendered-frame measurement against the
+iOS Account screen found that several individually plausible choices combined into a visibly different
+page: chrome scenarios omitted the permanent four-tab shell, Add League was centred, Sign out filled
+the row, connection rows advanced about 68dp while iOS advanced 64pt, support rows advanced about
+57dp while iOS advanced 63.3pt, and section padding was 20/8 rather than 16/6.
+
+Commit `cf581876` corrects the shipped Android compositions and the evidence together. The final
+Account geometry measures title-to-identity at 52.2dp versus 52pt on iOS, title-to-section at 120dp
+versus 119.3pt, league rows at 64dp versus 64pt, and support rows at 64dp versus 63.3pt. Privacy no
+longer offers a dead Export control; the deletion phrase gate is an open page with compact actions
+rather than a giant risk card; the report composer now carries the explanatory lead, structured
+disclosed-fields card, model-summary disclosure and screenshot limitation visible on iOS. All nine
+Android chrome frames were rebuilt, recaptured at 1080x2400, opened individually, and written back
+with refreshed byte counts and hashes in `Solutions/deliverables/native-runs/2026-09-20-chrome/manifest.txt`.
+
+Final Android verification after this correction: `:app:assembleDebug` successful and 200 app unit
+tests passed with 0 failures and 0 skipped. `git diff --check`, kickoff drift, local Valor metadata
+validation and 32-artboard CSS parity pass. `check-sprint-staleness.js` reports 13 standing record
+findings. The production-reference checker still reports 11 screenshot-only screens whose required
+client reads/actions or structured failure state do not exist; they were not given fabricated routes.
+Layer-0 Truth Gate and the Layer-0 Valor validator are **NOT RUN** because this isolated `/tmp`
+worktree has no Layer-0 tree above it. An unrun check is not a pass.
