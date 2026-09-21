@@ -39,6 +39,9 @@ final class ASWebAuthenticationOAuthProvider: NSObject, SupabaseOAuthProvider, A
     /// through SwiftUI's `onOpenURL`. The app installs this handler so the captured URL reaches
     /// the same state/PKCE validation path immediately.
     var callbackHandler: ((URL) -> Void)?
+    /// Called when the auth sheet closes without a callback URL — a dismissal or a system
+    /// teardown. Without it the flow has no way to leave `.launchingOAuth`.
+    var cancellationHandler: (() -> Void)?
 
     init(
         supabaseURL: URL,
@@ -69,9 +72,18 @@ final class ASWebAuthenticationOAuthProvider: NSObject, SupabaseOAuthProvider, A
                     url: authorizeURL,
                     callbackURLScheme: self.callbackScheme
                 ) { [weak self] callbackURL, _ in
-                    guard let callbackURL else { return }
                     Task { @MainActor in
                         self?.activeSession = nil
+                        guard let callbackURL else {
+                            // No URL means the sheet closed without completing — the user
+                            // dismissed it, or the system tore it down. Previously this returned
+                            // without dispatching anything, so the flow stayed in
+                            // `.launchingOAuth` and the provider button spun forever with no way
+                            // back. Report it as the cancellation it is.
+                            self?.pending.removeValue(forKey: providerId)
+                            self?.cancellationHandler?()
+                            return
+                        }
                         self?.callbackHandler?(callbackURL)
                     }
                 }

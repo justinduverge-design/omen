@@ -33,6 +33,10 @@ enum AuthFailure: Equatable {
     // M4-Auth-Providers-v1 §2.3
     case oauthProviderNotConfigured
     case oauthCallbackMismatch
+    /// The identity provider round trip reached Supabase, which refused to complete it and said
+    /// so in the callback URL. Distinct from `oauthCallbackMismatch`: nothing about the request
+    /// was anomalous, the far side rejected it, and retrying unchanged cannot help.
+    case oauthProviderRejected
     case passkeyUnavailable
     case passkeyNoCredential
     case unknown
@@ -54,6 +58,7 @@ extension AuthFailure {
         // after the mechanical seam works. Keeping strings functional so nothing is blank.
         case .oauthProviderNotConfigured: return "That sign-in option isn't available right now. Use another method."
         case .oauthCallbackMismatch: return "Sign-in couldn't be verified. Start again."
+        case .oauthProviderRejected: return "That sign-in method turned us away. Use another for now — trying again won't help until it's fixed."
         case .passkeyUnavailable: return "Passkeys aren't available on this device. Use another method."
         case .passkeyNoCredential: return "No passkey found for this account on this device. Sign in another way to pair one."
         case .unknown: return "Something went wrong. Try again."
@@ -74,6 +79,8 @@ enum AuthEvent {
     case oauthRequested(providerId: String)
     case oauthCallbackReceived(providerId: String, code: String, state: String)
     case oauthExchangeResult(providerId: String, outcome: AuthOutcome)
+    /// Supabase redirected back carrying `error`/`error_description` instead of a `code`.
+    case oauthProviderReturnedError(providerId: String)
     // M4-Auth-Providers-v1 §2.2 — WebAuthn passkeys
     case passkeyRequested
     case passkeyAssertionResult(PasskeyResult)
@@ -148,6 +155,10 @@ enum AuthFlowReducer {
                 return .failed(reason: .oauthCallbackMismatch)
             }
             return .exchangingOAuthCode(providerId: providerId)
+
+        case .oauthProviderReturnedError:
+            // Terminal regardless of which state we were in: the provider has already answered.
+            return .failed(reason: .oauthProviderRejected)
 
         case .oauthExchangeResult(_, let outcome):
             return reduceOAuthExchangeOutcome(outcome)
