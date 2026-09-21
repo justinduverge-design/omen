@@ -800,11 +800,11 @@ object ScreenshotScenarios {
         ),
         "chrome.account.privacy" to ScreenshotScenario(
             label = "Chrome — privacy and data",
-            render = { OmenPrivacyDataScreen(onExport = {}, onDelete = {}) },
+            render = { ChromeInShell { OmenPrivacyDataScreen(onDelete = {}, onClose = {}) } },
         ),
         "chrome.account.delete-confirmation" to ScreenshotScenario(
             label = "Chrome — delete confirmation",
-            render = { OmenDeleteAccountScreen("", null, false, {}, {}, {}) },
+            render = { ChromeInShell { OmenDeleteAccountScreen("", null, false, {}, {}, {}) } },
         ),
         "chrome.report-pill.resting" to ScreenshotScenario(
             label = "Chrome — report pill",
@@ -812,15 +812,15 @@ object ScreenshotScenarios {
         ),
         "chrome.report-pill.composer" to ScreenshotScenario(
             label = "Chrome — report composer",
-            render = { OmenReportComposer(OmenBetaReportScreen.CommandCenter, { OmenBetaReportOutcome.NotSaved }) },
+            render = { ChromeInShell { OmenReportComposer(OmenBetaReportScreen.CommandCenter, { OmenBetaReportOutcome.NotSaved }) } },
         ),
         "chrome.report-pill.sent" to ScreenshotScenario(
             label = "Chrome — report received",
-            render = { OmenReportComposer(OmenBetaReportScreen.CommandCenter, { OmenBetaReportOutcome.NotSaved }, OmenBetaReportOutcome.Received("BR-1042")) },
+            render = { ChromeInShell { OmenReportComposer(OmenBetaReportScreen.CommandCenter, { OmenBetaReportOutcome.NotSaved }, OmenBetaReportOutcome.Received("BR-1042")) } },
         ),
         "chrome.report-pill.not-saved" to ScreenshotScenario(
             label = "Chrome — report not saved",
-            render = { OmenReportComposer(OmenBetaReportScreen.CommandCenter, { OmenBetaReportOutcome.NotSaved }, OmenBetaReportOutcome.NotSaved) },
+            render = { ChromeInShell { OmenReportComposer(OmenBetaReportScreen.CommandCenter, { OmenBetaReportOutcome.NotSaved }, OmenBetaReportOutcome.NotSaved) } },
         ),
         "help-support.available" to ScreenshotScenario(
             label = "Help + Support — available",
@@ -919,10 +919,22 @@ private val chromeConnections = listOf(
 
 @Composable
 private fun ChromeAccount(connections: OmenAccountConnections) {
-    OmenAccountScreen(
-        state = OmenAccountState("justin@slopssaloon.com", "Apple ID", "JD", connections),
-        onAddLeague = {}, onDisconnect = {}, onReportProblem = {}, onHelp = {}, onPrivacy = {}, onSignOut = {},
-    )
+    ChromeInShell {
+        OmenAccountScreen(
+            state = OmenAccountState("justin@slopssaloon.com", "Apple ID", "JD", connections),
+            onAddLeague = {}, onDisconnect = {}, onReportProblem = {}, onHelp = {}, onPrivacy = {}, onSignOut = {},
+        )
+    }
+}
+
+@Composable
+private fun ChromeInShell(content: @Composable () -> Unit) {
+    Scaffold(
+        containerColor = OmenTheme.color.bg,
+        bottomBar = { FauxBottomNav(FauxNavTab.Command) {} },
+    ) { innerPadding ->
+        Box(Modifier.fillMaxSize().padding(innerPadding)) { content() }
+    }
 }
 
 @Composable

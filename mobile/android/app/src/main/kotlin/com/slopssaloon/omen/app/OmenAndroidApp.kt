@@ -614,6 +614,7 @@ fun OmenAndroidApp() {
                             onDelete = if (s.userId != SessionManager.DEMO_USER_ID) {
                                 { showPrivacyData = false; showAccountSheet = false; showDelete = true }
                             } else null,
+                            onClose = { showPrivacyData = false },
                         )
                     }
                     OmenModalSheet(

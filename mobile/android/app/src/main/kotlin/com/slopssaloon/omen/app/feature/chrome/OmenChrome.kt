@@ -113,7 +113,12 @@ fun OmenAccountScreen(
             )
         }
         if (onAddLeague != null) {
-            OmenButton("+ Add a league", onAddLeague, Modifier.fillMaxWidth().padding(horizontal = OmenTheme.spacing.step16), OmenButtonVariant.Link)
+            OmenButton(
+                "+ Add a league",
+                onAddLeague,
+                Modifier.padding(horizontal = OmenTheme.spacing.step16),
+                OmenButtonVariant.Link,
+            )
         }
         SectionLabel("Support")
         ChromeListRow("Report a problem", "Sends device and version. Never your league data.", onReportProblem)
@@ -121,8 +126,10 @@ fun OmenAccountScreen(
         ChromeListRow("Privacy & data", "Export or delete everything", onPrivacy)
         if (onSignOut != null) OmenButton(
             "Sign out", onSignOut,
-            Modifier.fillMaxWidth().padding(OmenTheme.spacing.step16),
+            Modifier.padding(horizontal = OmenTheme.spacing.step16)
+                .padding(top = OmenTheme.spacing.step20, bottom = OmenTheme.spacing.step16),
             OmenButtonVariant.Secondary,
+            size = OmenButtonSize.Lg,
         )
     }
 }
@@ -131,6 +138,7 @@ fun OmenAccountScreen(
 fun OmenPrivacyDataScreen(
     onExport: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null,
+    onClose: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
@@ -167,6 +175,7 @@ fun OmenPrivacyDataScreen(
             if (onDelete != null) OmenButton(
                 "Delete my Omen data", onDelete, Modifier.fillMaxWidth(), OmenButtonVariant.Danger, size = OmenButtonSize.Lg,
             )
+            if (onClose != null) OmenButton("Close", onClose, variant = OmenButtonVariant.Link, size = OmenButtonSize.Sm)
         }
     }
 }
@@ -176,11 +185,11 @@ private fun ChromeListRow(title: String, subtitle: String, onClick: (() -> Unit)
     val action = if (onClick == null) Modifier else Modifier.clickable(onClick = onClick)
     Row(
         modifier = Modifier.fillMaxWidth().background(OmenTheme.color.surface1).then(action)
-            .heightIn(min = 56.dp).padding(horizontal = OmenTheme.spacing.step16, vertical = OmenTheme.spacing.step10),
+            .heightIn(min = 56.dp).padding(horizontal = OmenTheme.spacing.step16, vertical = OmenTheme.spacing.step12),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12),
     ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step2)) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step4)) {
             Text(title, style = OmenTheme.typography.body.toTextStyle(), color = OmenTheme.color.textPrimary)
             Text(subtitle, style = OmenTheme.typography.bodySmall.toTextStyle(), color = OmenTheme.color.textSecondary)
         }
@@ -192,7 +201,7 @@ private fun ChromeListRow(title: String, subtitle: String, onClick: (() -> Unit)
 @Composable
 private fun ConnectionRow(connection: OmenAccountConnection, onDisconnect: ((OmenAccountConnection) -> Unit)?) {
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = OmenTheme.spacing.step16, vertical = OmenTheme.spacing.step10),
+        Modifier.fillMaxWidth().padding(horizontal = OmenTheme.spacing.step16, vertical = OmenTheme.spacing.step8),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12),
     ) {
@@ -213,7 +222,7 @@ private fun ConnectionRow(connection: OmenAccountConnection, onDisconnect: ((Ome
 
 @Composable
 private fun SectionLabel(title: String, trailing: String? = null) {
-    Row(Modifier.fillMaxWidth().padding(start = OmenTheme.spacing.step16, end = OmenTheme.spacing.step16, top = OmenTheme.spacing.step20, bottom = OmenTheme.spacing.step8)) {
+    Row(Modifier.fillMaxWidth().padding(start = OmenTheme.spacing.step16, end = OmenTheme.spacing.step16, top = OmenTheme.spacing.step16, bottom = OmenTheme.spacing.step6)) {
         Text(title.uppercase(), Modifier.weight(1f), style = OmenTheme.typography.micro.toTextStyle(), color = OmenTheme.color.textTertiary)
         if (trailing != null) Text(trailing, style = OmenTheme.typography.micro.toTextStyle(), color = OmenTheme.color.textTertiary)
     }
@@ -341,21 +350,56 @@ fun OmenReportComposer(
         }
         return
     }
-    Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(OmenTheme.spacing.step16), verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12)) {
+    Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(OmenTheme.spacing.step16), verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step20)) {
         Text("Report a problem", style = OmenTheme.typography.screenTitle.toTextStyle(), color = OmenTheme.color.textPrimary)
-        Text("WHAT THIS SENDS", style = OmenTheme.typography.micro.toTextStyle(), color = OmenTheme.color.textTertiary)
-        HonestText("Screen: ${screen.display}\nApp and build\nAndroid version and device\nProvider connection state\nRecent scrubbed error codes\nYour note")
-        Text("Never league data, rosters, screenshots or credentials.", style = OmenTheme.typography.bodySmall.toTextStyle(), color = OmenTheme.color.textSecondary)
-        OutlinedTextField(value = note, onValueChange = { note = it.take(4000) }, label = { Text("What went wrong?") }, modifier = Modifier.fillMaxWidth())
+        Text(
+            "Omen sends the facts below and nothing else. It never sends your league, your roster, a screenshot, or anything you signed in with.",
+            style = OmenTheme.typography.body.toTextStyle(), color = OmenTheme.color.textSecondary,
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8)) {
+            Text("WHAT HAPPENED?", style = OmenTheme.typography.micro.toTextStyle(), color = OmenTheme.color.textTertiary)
+            OutlinedTextField(
+                value = note,
+                onValueChange = { note = it.take(4000) },
+                placeholder = { Text("What you did, and what Omen did.") },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        OmenCard(modifier = Modifier.fillMaxWidth(), variant = OmenCardVariant.Preview) {
+            Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8)) {
+                Text("WHAT THIS SENDS", style = OmenTheme.typography.micro.toTextStyle(), color = OmenTheme.color.textTertiary)
+                ReportFact("Screen", screen.display)
+                ReportFact("App", "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
+                ReportFact("Device", "${Build.MODEL ?: "Android device"}, Android ${Build.VERSION.RELEASE ?: "unknown"}")
+                ReportFact("Connection", "None")
+                ReportFact("Recent error codes", "None")
+                ReportFact("Your note", if (note.isBlank()) "Empty" else note)
+            }
+        }
+        Text(
+            "Reports are summarized by a model for a daily founder digest. Do not include league data or credentials.",
+            style = OmenTheme.typography.bodySmall.toTextStyle(), color = OmenTheme.color.textTertiary,
+        )
+        Text(
+            "Screenshots can’t be attached. Describe what you saw instead.",
+            style = OmenTheme.typography.bodySmall.toTextStyle(), color = OmenTheme.color.textTertiary,
+        )
         OmenButton(
             if (disclosureAccepted) "Disclosure accepted" else "I understand what this sends",
             onClick = { disclosureAccepted = !disclosureAccepted },
-            modifier = Modifier.fillMaxWidth(),
-            variant = OmenButtonVariant.Secondary,
+            variant = OmenButtonVariant.Link,
         )
         OmenButton("Send report", onClick = {
             val report = OmenBetaReport.device(screen, note).copy(disclosureAccepted = disclosureAccepted)
             if (report.isSendable) scope.launch { sending = true; outcome = send(report); sending = false }
-        }, modifier = Modifier.fillMaxWidth(), enabled = note.isNotBlank() && disclosureAccepted, loading = sending)
+        }, enabled = note.isNotBlank() && disclosureAccepted, loading = sending, size = OmenButtonSize.Lg)
+    }
+}
+
+@Composable
+private fun ReportFact(label: String, value: String) {
+    Row(horizontalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8)) {
+        Text(label, Modifier.weight(0.42f), style = OmenTheme.typography.bodySmall.toTextStyle(), color = OmenTheme.color.textTertiary)
+        Text(value, Modifier.weight(0.58f), style = OmenTheme.typography.bodySmall.toTextStyle(), color = OmenTheme.color.textSecondary)
     }
 }
