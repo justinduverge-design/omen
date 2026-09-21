@@ -27,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -94,6 +95,15 @@ import com.slopssaloon.omen.app.feature.api.CommandCenterViewModel
 import com.slopssaloon.omen.app.feature.api.OmenApiClient
 import com.slopssaloon.omen.app.feature.api.OmenApiError
 import com.slopssaloon.omen.app.feature.api.OmenDecisionViewModel
+import com.slopssaloon.omen.app.feature.chrome.OmenAccountConnection
+import com.slopssaloon.omen.app.feature.chrome.OmenAccountConnections
+import com.slopssaloon.omen.app.feature.chrome.OmenAccountScreen
+import com.slopssaloon.omen.app.feature.chrome.OmenAccountState
+import com.slopssaloon.omen.app.feature.chrome.OmenBetaReportRepository
+import com.slopssaloon.omen.app.feature.chrome.OmenBetaReportScreen
+import com.slopssaloon.omen.app.feature.chrome.OmenReportComposer
+import com.slopssaloon.omen.app.feature.chrome.OmenReportPill
+import com.slopssaloon.omen.app.feature.chrome.OmenPrivacyDataScreen
 import com.slopssaloon.omen.app.feature.api.ForcedUpdateScreen
 import com.slopssaloon.omen.app.feature.api.MinVersionGateClient
 import com.slopssaloon.omen.app.feature.api.UpdateGateState
@@ -270,6 +280,9 @@ fun OmenAndroidApp() {
     var showAccountSheet by remember { mutableStateOf(false) }
     var showSwitcherSheet by remember { mutableStateOf(false) }
     var showHelpSupportSheet by remember { mutableStateOf(false) }
+    var showReportComposer by remember { mutableStateOf(false) }
+    var showPrivacyData by remember { mutableStateOf(false) }
+    val betaReportRepository = remember { OmenBetaReportRepository(OmenApiClient(env.apiBaseUrl)) }
 
     // The "code didn't arrive" half of email sign-in. Held beside the reducer rather than
     // inside it: a failed resend must not knock the user out of AwaitingOtp and discard the
@@ -510,6 +523,14 @@ fun OmenAndroidApp() {
                             onOpenOmen = { selectedDestination = NavDestination.Omen },
                             onOpenLeague = { selectedDestination = NavDestination.League },
                         )
+                        if (selectedDestination == NavDestination.Command) {
+                            OmenReportPill(
+                                onClick = { showReportComposer = true },
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .padding(horizontal = OmenTheme.spacing.step16, vertical = OmenTheme.spacing.step12),
+                            )
+                        }
                     }
                     OmenLeagueSwitcherSheet(
                         visible = showSwitcherSheet,
@@ -566,17 +587,51 @@ fun OmenAndroidApp() {
                         onDismissRequest = { showAccountSheet = false },
                         title = "Account",
                     ) {
-                        ContextualHelpRow(OmenHelpDestination.Account)
-                        AccountSheetBody(
-                            userId = s.userId,
-                            onOpenHelpSupport = { showHelpSupportSheet = true },
+                        OmenAccountScreen(
+                            state = OmenAccountState(
+                                identity = s.userId,
+                                connections = accountConnections(leagueSwitcherViewModel.viewState),
+                            ),
+                            onAddLeague = { showAccountSheet = false; showConnectSheet = true },
+                            onReportProblem = { showReportComposer = true },
+                            onHelp = { showHelpSupportSheet = true },
+                            onPrivacy = { showPrivacyData = true },
                             onSignOut = {
                                 showAccountSheet = false
                                 sessionManager.signOut()
                             },
+                        )
+                    }
+                    LaunchedEffect(showAccountSheet) {
+                        if (showAccountSheet) leagueSwitcherViewModel.load(s.userId)
+                    }
+                    OmenModalSheet(
+                        visible = showPrivacyData,
+                        onDismissRequest = { showPrivacyData = false },
+                        title = "Privacy & data",
+                    ) {
+                        OmenPrivacyDataScreen(
                             onDelete = if (s.userId != SessionManager.DEMO_USER_ID) {
-                                { showAccountSheet = false; showDelete = true }
+                                { showPrivacyData = false; showAccountSheet = false; showDelete = true }
                             } else null,
+                        )
+                    }
+                    OmenModalSheet(
+                        visible = showReportComposer,
+                        onDismissRequest = { showReportComposer = false },
+                        title = "Report a problem",
+                    ) {
+                        OmenReportComposer(
+                            screen = OmenBetaReportScreen.CommandCenter,
+                            send = { report ->
+                                val token = store.load()?.accessToken
+                                if (token.isNullOrBlank()) {
+                                    com.slopssaloon.omen.app.feature.chrome.OmenBetaReportOutcome.Failed(
+                                        "Your session expired. Nothing was saved."
+                                    )
+                                } else betaReportRepository.send(report, token)
+                            },
+                            onDone = { showReportComposer = false },
                         )
                     }
                     OmenModalSheet(
@@ -980,29 +1035,27 @@ private fun ContextualHelpRow(destination: OmenHelpDestination) {
     }
 }
 
-@Composable
-private fun AccountSheetBody(
-    userId: String,
-    onOpenHelpSupport: () -> Unit,
-    onSignOut: () -> Unit,
-    onDelete: (() -> Unit)?,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12)) {
-        Text(
-            text = "Signed in as $userId",
-            style = OmenTheme.typography.body.toTextStyle(),
-            color = OmenTheme.color.textPrimary,
-        )
-        OmenListRow(
-            title = "Support & Help Improve Omen",
-            subtitle = "Help Center, feedback, and problem reporting",
-            onClick = onOpenHelpSupport,
-        )
-        OmenButton(text = "Sign out", onClick = onSignOut, variant = OmenButtonVariant.Secondary)
-        if (onDelete != null) {
-            OmenButton(text = "Delete account", onClick = onDelete, variant = OmenButtonVariant.Danger)
+private fun accountConnections(state: LeagueSwitcherViewModel.ViewState): OmenAccountConnections = when (state) {
+    is LeagueSwitcherViewModel.ViewState.Loaded -> {
+        val rows = state.directory.platforms.flatMap { group ->
+            group.leagues.map { league ->
+                OmenAccountConnection(
+                    id = "${group.platform}:${league.leagueId}",
+                    platform = when (group.platform.lowercase()) {
+                        "espn" -> OmenPlatform.Espn
+                        "yahoo" -> OmenPlatform.Yahoo
+                        else -> OmenPlatform.Sleeper
+                    },
+                    teamName = league.teamName ?: "Team unavailable",
+                    leagueName = league.leagueName ?: "League name unavailable",
+                )
+            }
         }
+        if (rows.isEmpty()) OmenAccountConnections.None else OmenAccountConnections.Loaded(rows)
     }
+    LeagueSwitcherViewModel.ViewState.Demo -> OmenAccountConnections.None
+    LeagueSwitcherViewModel.ViewState.Loading,
+    is LeagueSwitcherViewModel.ViewState.Failed -> OmenAccountConnections.Unavailable
 }
 
 /**

@@ -2,6 +2,11 @@ import SwiftUI
 
 /// Account → "Connected leagues", and the disconnect behind it.
 ///
+/// **The view moved out of this file on 2026-09-20.** `OmenAccountScreen` draws the section to
+/// `Account.dc.html` and `AccountView` hosts this view model; what is left here is the model and
+/// its directory mapping, which were already right and did not change. The file keeps its name
+/// so the reasoning below stays where anyone looking for it will look.
+///
 /// **This exists because the app was making a promise it could not keep.** The ESPN consent
 /// screen — the one App Review reads — says the connection is "your account and your choice, and
 /// you can disconnect it any time in Account". Account had no disconnect. `DELETE
@@ -107,98 +112,5 @@ final class ConnectedPlatformsViewModel: ObservableObject {
                     teamName: active?.teamName
                 )
             }
-    }
-}
-
-struct ConnectedPlatformsSection: View {
-    @StateObject private var viewModel: ConnectedPlatformsViewModel
-    @State private var pendingDisconnect: ConnectedPlatformsViewModel.Row?
-
-    init(repository: LeagueDirectoryRepository, sessionManager: SessionManager) {
-        _viewModel = StateObject(
-            wrappedValue: ConnectedPlatformsViewModel(
-                repository: repository,
-                sessionManager: sessionManager
-            )
-        )
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: OmenSpacing.step12) {
-            Text("Connected leagues")
-                .omenTextStyle(OmenTypography.h3)
-                .foregroundStyle(OmenColor.textPrimary)
-
-            switch viewModel.state {
-            case .loading:
-                Text("Checking your connections…")
-                    .omenTextStyle(OmenTypography.bodySmall)
-                    .foregroundStyle(OmenColor.textSecondary)
-
-            case .failed:
-                // Deliberately quiet: this section failing must not imply anything is wrong with
-                // the account itself, and sign-out and delete sit right below it.
-                Text("We couldn't load your connections just now.")
-                    .omenTextStyle(OmenTypography.bodySmall)
-                    .foregroundStyle(OmenColor.textSecondary)
-
-            case .loaded(let rows) where rows.isEmpty:
-                Text("No leagues connected yet.")
-                    .omenTextStyle(OmenTypography.bodySmall)
-                    .foregroundStyle(OmenColor.textSecondary)
-
-            case .loaded(let rows):
-                ForEach(rows) { row in
-                    VStack(alignment: .leading, spacing: OmenSpacing.step8) {
-                        OmenListRow(title: row.displayName, subtitle: row.subtitle)
-                        OmenButton(
-                            title: "Disconnect",
-                            action: { pendingDisconnect = row },
-                            variant: .link,
-                            size: .sm,
-                            enabled: viewModel.disconnecting == nil,
-                            loading: viewModel.disconnecting == row.platform
-                        )
-                    }
-                }
-            }
-
-            if let errorMessage = viewModel.errorMessage {
-                Text(errorMessage)
-                    .omenTextStyle(OmenTypography.bodySmall)
-                    .foregroundStyle(OmenColor.Data.riskHigh)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .task { await viewModel.load() }
-        // Confirmed, because disconnecting is not what a user means by a mis-tap next to
-        // "Delete account" — but no typed phrase: it is reversible by reconnecting.
-        .sheet(item: $pendingDisconnect) { row in
-            OmenModalSheet(title: "Disconnect \(row.displayName)?") {
-                VStack(alignment: .leading, spacing: OmenSpacing.step12) {
-                    Text("Omen will stop reading this league. Your \(row.displayName) account and your team are untouched, and you can connect again any time.")
-                        .omenTextStyle(OmenTypography.body)
-                        .foregroundStyle(OmenColor.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    OmenButton(
-                        title: "Disconnect",
-                        action: {
-                            let platform = row.platform
-                            pendingDisconnect = nil
-                            Task { await viewModel.disconnect(platform) }
-                        },
-                        variant: .danger,
-                        size: .lg
-                    )
-                    OmenButton(
-                        title: "Keep it connected",
-                        action: { pendingDisconnect = nil },
-                        variant: .secondary,
-                        size: .lg
-                    )
-                }
-            }
-            .presentationDetents([.medium])
-        }
     }
 }

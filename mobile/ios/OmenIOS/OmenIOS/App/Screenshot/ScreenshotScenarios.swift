@@ -521,6 +521,73 @@ enum ScreenshotScenarios {
                 onOpenAccount: {}
             )))) }
         ),
+        // ----------------------------------------------------------------------------------
+        // Chrome. `Account.dc.html` and `ReportPill.dc.html` — the last two artboards.
+        //
+        // The keys are `chrome.*`, **not** `journey-*`, and that is not a naming preference.
+        // `screen-journeys-v1.md` places both of these screens outside the six journeys
+        // because they are reachable from anywhere, so there is no order a user meets them in
+        // and no contact sheet to build. A `journey-` key here would assert a storyboard that
+        // was never observed.
+        //
+        // For the same reason there is no nominal/degraded pair. A degraded pass needs a
+        // capability profile to degrade, and chrome has none. What is here instead is **one
+        // scenario per state that genuinely exists** — four for Account, four for the pill.
+        "chrome.account.connected": ScreenshotScenario(
+            label: "Account \u{2014} three leagues, three providers",
+            content: { AnyView(ChromeFixtures.account(.loaded(ChromeFixtures.connections))) }
+        ),
+        "chrome.account.no-leagues": ScreenshotScenario(
+            label: "Account \u{2014} signed in, nothing connected",
+            content: { AnyView(ChromeFixtures.account(.none)) }
+        ),
+        // The honest state the Account screen most easily gets wrong. A directory read that
+        // fails renders as an EMPTY list unless something stops it, and an empty list on this
+        // screen reads as "your leagues were disconnected".
+        "chrome.account.connections-unavailable": ScreenshotScenario(
+            label: "Account \u{2014} connections unread, not empty",
+            content: { AnyView(ChromeFixtures.account(.unavailable)) }
+        ),
+        // Where export and delete actually live. The artboard draws the `Privacy & data` row
+        // and not the screen behind it, so this composition is built rather than drawn, and is
+        // recorded as drift.
+        "chrome.account.privacy": ScreenshotScenario(
+            label: "Account \u{2014} privacy and data, export beside delete",
+            content: { AnyView(ChromeFixtures.privacyAndData()) }
+        ),
+        // The destructive control's own state: the phrase gate with nothing typed into it,
+        // which is the state a user is in when they arrive at it.
+        //
+        // **The required phrase is `delete`, not `DELETE MY OMEN DATA`.** The founder shortened
+        // it on 2026-09-03 (`src/routes/userPrivacy.js`, `AccountDeletion`); the long phrase is
+        // kept *accepted* by the server for already-installed clients and is no longer what any
+        // client asks for. `CONTRACTS.md`'s `Account` row still says the old one — see the
+        // handoff. The screen renders `AccountDeletion.requiredPhrase` rather than a literal,
+        // so it cannot drift from whatever the constant says.
+        "chrome.account.delete-confirmation": ScreenshotScenario(
+            label: "Account \u{2014} the delete phrase gate, unconfirmed",
+            content: { AnyView(ChromeFixtures.deleteGate()) }
+        ),
+        "chrome.report-pill.resting": ScreenshotScenario(
+            label: "Report pill \u{2014} in place on Command",
+            content: { AnyView(ChromeFixtures.reportPillOnCommand()) }
+        ),
+        "chrome.report-pill.composer": ScreenshotScenario(
+            label: "Report pill \u{2014} the composer, showing exactly what it sends",
+            content: { AnyView(ChromeFixtures.composer(.composing)) }
+        ),
+        // The two ends of one POST, and both are real. `201` is what the route returns when the
+        // insert lands; `503 report_storage_unavailable` is what it returns when it does not —
+        // which is the shape the storage gate produces today, since
+        // `sql/2026-09-14_beta_reports_review.sql` is review-only until migration approval.
+        "chrome.report-pill.sent": ScreenshotScenario(
+            label: "Report pill \u{2014} received, with the server's own reference",
+            content: { AnyView(ChromeFixtures.composer(.done(.received(id: "rpt_8f21c4")))) }
+        ),
+        "chrome.report-pill.not-saved": ScreenshotScenario(
+            label: "Report pill \u{2014} not saved, said plainly",
+            content: { AnyView(ChromeFixtures.composer(.done(.notSaved))) }
+        ),
         "switcher.team-sheet": ScreenshotScenario(
             label: "Team switcher — pinned bar and the sheet, one favourite starred",
             content: { AnyView(TeamSwitcherScreenshotHost()) }
@@ -2458,4 +2525,170 @@ enum J6ScreenshotFixtures {
         ],
         fairnessNote: "This receipt is frozen as it was issued. Losses stay in the Ledger \u{2014} a record that only shows wins is marketing."
     )
+}
+
+// MARK: - Chrome fixtures
+
+/// Deterministic fixtures for `Account.dc.html` and `ReportPill.dc.html`.
+///
+/// Every value here is invented and says so. `Titans of Slopsilonia` and the two league names
+/// are the artboard's own fixtures, carried across so a capture can be diffed against the
+/// canvas element for element; the email is the artboard's too. No real account, no session,
+/// no network — which is the whole point of the registry and the reason these states are
+/// capturable at all.
+enum ChromeFixtures {
+    static let connections: [OmenAccountConnection] = [
+        OmenAccountConnection(
+            id: "espn",
+            platform: .espn,
+            teamName: "Titans of Slopsilonia",
+            leagueName: "Slops Saloon FF Showdown"
+        ),
+        OmenAccountConnection(
+            id: "sleeper",
+            platform: .sleeper,
+            teamName: "Davante\u{2019}s Inferno",
+            leagueName: "EB Football"
+        ),
+        OmenAccountConnection(
+            id: "yahoo",
+            platform: .yahoo,
+            teamName: "Puk Around & Find Out",
+            leagueName: "Fantasy Madness"
+        )
+    ]
+
+    static func account(_ connections: OmenAccountConnections) -> some View {
+        // Account has no bottom tab bar of its own in the artboard — E060's TabNav is drawn
+        // because Account is presented over the shell. `FauxShell`'s Command tab is the
+        // closest honest mount: it keeps the permanent four tabs in the frame without
+        // claiming Account is a fifth one.
+        chromeShell(AnyView(
+            OmenAccountScreen(
+                state: OmenAccountState(
+                    identity: "justin@slopssaloon.com",
+                    identityProvider: "Apple ID",
+                    avatarInitials: "JD",
+                    connections: connections
+                ),
+                onOpenIdentity: {},
+                onDisconnect: { _ in },
+                onAddLeague: {},
+                onReportProblem: {},
+                onOpenHelpCentre: {},
+                onOpenPrivacyAndData: {},
+                onSignOut: {}
+            )
+        ))
+    }
+
+    static func privacyAndData() -> some View {
+        chromeShell(AnyView(
+            sheetFrame(AnyView(OmenPrivacyAndDataSheet(onExport: nil, onDelete: {}, onDismiss: {})))
+        ))
+    }
+
+    /// The real phrase gate, with nothing typed into it.
+    ///
+    /// `DeleteAccountConfirmationView` rather than a stand-in, because the whole point of the
+    /// frame is that the confirm control is **disabled until the phrase matches** — and a
+    /// stand-in would be a picture of a different button. The session manager is built on
+    /// `InMemorySecureSessionStore`, which is empty, so the view has no token and the delete
+    /// path cannot reach the network even if something tapped it.
+    static func deleteGate() -> some View {
+        chromeShell(AnyView(DeleteGateHost()))
+    }
+
+    /// A sheet drawn in the frame rather than presented over it. A `.sheet` needs a presenting
+    /// view and a tap to open; a capture needs the sheet on screen at launch.
+    private static func sheetFrame(_ content: AnyView) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            content
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(OmenColor.bg)
+    }
+
+    static func reportPillOnCommand() -> some View {
+        FauxShell(
+            scenarioKey: "chrome.report-pill.resting",
+            initialTab: .command,
+            commandContentOverride: AnyView(
+                OmenCommandCenterScreen(
+                    state: OmenCommandCenterFixtures.demoConnected,
+                    onOpenAccount: {},
+                    onOpenOmen: {},
+                    onOpenLedger: { _ in },
+                    onOpenLeague: {},
+                    // The only difference from `command-center.demo-connected`. Every other
+                    // Command Center scenario leaves this nil and captures exactly what it
+                    // captured before, which is how the pill was added without re-certifying
+                    // eight existing frames.
+                    onReportProblem: {}
+                )
+            )
+        )
+    }
+
+    static func composer(_ phase: OmenReportComposerSheet.Phase) -> some View {
+        chromeShell(AnyView(
+            VStack(alignment: .leading, spacing: 0) {
+                OmenReportComposerSheet(
+                    screen: .commandCenter,
+                    connectionState: OmenBetaReportConnectionState(provider: .espn, state: .connected),
+                    recentErrorCodes: ["espn_matchup_timeout", "session_refresh_retry"],
+                    repository: StubBetaReportRepository(),
+                    // No token: a fixture must not carry anything that looks like one, and the
+                    // composer's own "Sign in to send a report" line is a real state.
+                    accessToken: nil,
+                    onDismiss: {},
+                    phase: phase,
+                    schema: StubBetaReportRepository.schema
+                )
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .background(OmenColor.bg)
+        ))
+    }
+
+    private static func chromeShell(_ content: AnyView) -> some View {
+        FauxShell(initialTab: .command, commandContentOverride: content)
+    }
+}
+
+/// Answers the schema read without a network, with the **server's real disclosure string** —
+/// copied from `src/routes/betaReports.js`'s `DISCLOSURE` constant rather than written for the
+/// fixture, so a capture shows the sentence a user actually sees.
+///
+/// It never answers a `send`: every composer scenario is mounted in an explicit phase, and a
+/// fixture that could return a success would let a capture claim a report was stored.
+private struct StubBetaReportRepository: OmenBetaReportRepository {
+    static let schema = OmenBetaReportSchema(
+        screens: OmenBetaReportScreen.allCases.map(\.rawValue),
+        screenshotsSupported: false,
+        disclosure: "Reports are summarized by a model for a daily founder digest. Do not include league data or credentials."
+    )
+
+    func schema() async -> OmenBetaReportSchema { Self.schema }
+
+    func send(_ report: OmenBetaReport, accessToken: String) async -> OmenBetaReportOutcome {
+        .failed(message: "This is a screenshot fixture. Nothing was sent.")
+    }
+}
+
+/// The phrase gate in its own view, so the `SessionManager` is constructed inside a `body` —
+/// it is `@MainActor`-isolated and the registry's `content` closures are not.
+private struct DeleteGateHost: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            DeleteAccountConfirmationView(
+                sessionManager: SessionManager(store: InMemorySecureSessionStore(), nowEpochSeconds: { 1_000 })
+            )
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(OmenColor.bg)
+    }
 }

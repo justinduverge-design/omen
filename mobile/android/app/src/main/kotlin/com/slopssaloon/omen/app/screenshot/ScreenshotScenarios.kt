@@ -1,6 +1,7 @@
 package com.slopssaloon.omen.app.screenshot
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
@@ -17,10 +18,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import com.slopssaloon.omen.R
 import com.slopssaloon.omen.app.auth.OmenAuthFlow
+import com.slopssaloon.omen.app.auth.OmenDeleteAccountScreen
 import com.slopssaloon.omen.app.auth.OtpResendController
 import com.slopssaloon.omen.app.feature.api.ForcedUpdateScreen
 import com.slopssaloon.omen.app.feature.api.LeagueCarouselViewModel
@@ -121,6 +124,15 @@ import com.slopssaloon.omen.app.feature.help.ContextualHelpContent
 import com.slopssaloon.omen.app.feature.help.OmenHelpDestination
 import com.slopssaloon.omen.app.feature.help.OmenHelpSupportScreen
 import com.slopssaloon.omen.app.feature.help.OmenHelpSupportState
+import com.slopssaloon.omen.app.feature.chrome.OmenAccountConnection
+import com.slopssaloon.omen.app.feature.chrome.OmenAccountConnections
+import com.slopssaloon.omen.app.feature.chrome.OmenAccountScreen
+import com.slopssaloon.omen.app.feature.chrome.OmenAccountState
+import com.slopssaloon.omen.app.feature.chrome.OmenBetaReportOutcome
+import com.slopssaloon.omen.app.feature.chrome.OmenBetaReportScreen
+import com.slopssaloon.omen.app.feature.chrome.OmenReportComposer
+import com.slopssaloon.omen.app.feature.chrome.OmenReportPill
+import com.slopssaloon.omen.app.feature.chrome.OmenPrivacyDataScreen
 import com.slopssaloon.omen.app.feature.omen.OmenConnectFailedScreen
 import com.slopssaloon.omen.app.feature.omen.OmenDecisionFixtures
 import com.slopssaloon.omen.app.feature.omen.OmenDecisionScreen
@@ -132,6 +144,7 @@ import com.slopssaloon.omen.core.auth.AuthFlowState
 import com.slopssaloon.omen.core.designsystem.component.OmenConfidenceBand
 import com.slopssaloon.omen.core.designsystem.component.OmenContextualHelpSheet
 import com.slopssaloon.omen.core.designsystem.component.OmenPlatform
+import com.slopssaloon.omen.core.designsystem.component.OmenListRow
 import com.slopssaloon.omen.core.designsystem.component.OmenRiskLevel
 import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
 import com.slopssaloon.omen.core.session.InMemorySecureSessionStore
@@ -773,6 +786,42 @@ object ScreenshotScenarios {
                 }
             },
         ),
+        "chrome.account.connected" to ScreenshotScenario(
+            label = "Chrome — Account connected",
+            render = { ChromeAccount(OmenAccountConnections.Loaded(chromeConnections)) },
+        ),
+        "chrome.account.no-leagues" to ScreenshotScenario(
+            label = "Chrome — Account without leagues",
+            render = { ChromeAccount(OmenAccountConnections.None) },
+        ),
+        "chrome.account.connections-unavailable" to ScreenshotScenario(
+            label = "Chrome — Account directory unavailable",
+            render = { ChromeAccount(OmenAccountConnections.Unavailable) },
+        ),
+        "chrome.account.privacy" to ScreenshotScenario(
+            label = "Chrome — privacy and data",
+            render = { OmenPrivacyDataScreen(onExport = {}, onDelete = {}) },
+        ),
+        "chrome.account.delete-confirmation" to ScreenshotScenario(
+            label = "Chrome — delete confirmation",
+            render = { OmenDeleteAccountScreen("", null, false, {}, {}, {}) },
+        ),
+        "chrome.report-pill.resting" to ScreenshotScenario(
+            label = "Chrome — report pill",
+            render = { ChromeReportPill() },
+        ),
+        "chrome.report-pill.composer" to ScreenshotScenario(
+            label = "Chrome — report composer",
+            render = { OmenReportComposer(OmenBetaReportScreen.CommandCenter, { OmenBetaReportOutcome.NotSaved }) },
+        ),
+        "chrome.report-pill.sent" to ScreenshotScenario(
+            label = "Chrome — report received",
+            render = { OmenReportComposer(OmenBetaReportScreen.CommandCenter, { OmenBetaReportOutcome.NotSaved }, OmenBetaReportOutcome.Received("BR-1042")) },
+        ),
+        "chrome.report-pill.not-saved" to ScreenshotScenario(
+            label = "Chrome — report not saved",
+            render = { OmenReportComposer(OmenBetaReportScreen.CommandCenter, { OmenBetaReportOutcome.NotSaved }, OmenBetaReportOutcome.NotSaved) },
+        ),
         "help-support.available" to ScreenshotScenario(
             label = "Help + Support — available",
             render = { HelpSupportInShell(OmenHelpSupportState.Available) },
@@ -860,6 +909,31 @@ object ScreenshotScenarios {
 
     fun isKnown(key: String?): Boolean = key != null && entries.containsKey(key)
     fun get(key: String): ScreenshotScenario = entries.getValue(key)
+}
+
+private val chromeConnections = listOf(
+    OmenAccountConnection("espn:1", OmenPlatform.Espn, "Titans of Slopsilonia", "Slops Saloon League"),
+    OmenAccountConnection("sleeper:2", OmenPlatform.Sleeper, "Davante’s Inferno", "Sunday Scaries"),
+    OmenAccountConnection("yahoo:3", OmenPlatform.Yahoo, "Puk Around & Find Out", "The Sickos"),
+)
+
+@Composable
+private fun ChromeAccount(connections: OmenAccountConnections) {
+    OmenAccountScreen(
+        state = OmenAccountState("justin@slopssaloon.com", "Apple ID", "JD", connections),
+        onAddLeague = {}, onDisconnect = {}, onReportProblem = {}, onHelp = {}, onPrivacy = {}, onSignOut = {},
+    )
+}
+
+@Composable
+private fun ChromeReportPill() {
+    Box(Modifier.fillMaxSize()) {
+        OmenCommandCenterScreen(state = OmenCommandCenterFixtures.demoConnected)
+        OmenReportPill(
+            onClick = {},
+            modifier = Modifier.align(Alignment.BottomCenter).padding(OmenTheme.spacing.step16),
+        )
+    }
 }
 
 /**

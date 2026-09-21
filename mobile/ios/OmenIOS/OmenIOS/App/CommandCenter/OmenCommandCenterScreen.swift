@@ -44,6 +44,15 @@ struct OmenCommandCenterScreen: View {
     let onOpenLedger: ((OmenLedgerEntry) -> Void)?
     let onOpenLeague: (() -> Void)?
     let onConnectPlatform: ((OmenPlatform) -> Void)?
+    /// `ReportPill.dc.html`, wired. Supplied only when there is a composer to open — the pill
+    /// is absent rather than inert when it is nil, for the reason `OmenScreenHeaderControls`
+    /// gives about its own avatar.
+    ///
+    /// It renders as an **overlay** rather than as a block in the stack. `CommandCenter` is one
+    /// of the thirteen artboards declared `fits` under D11, and a 73pt card in the content
+    /// stack would spend headroom that declaration has already promised. The artboard positions
+    /// it absolutely for the same reason.
+    let onReportProblem: (() -> Void)?
 
     /// The league carousel — provider chips over a swipeable matchup-per-league stack.
     ///
@@ -89,6 +98,7 @@ struct OmenCommandCenterScreen: View {
         onOpenLedger: ((OmenLedgerEntry) -> Void)? = nil,
         onOpenLeague: (() -> Void)? = nil,
         onConnectPlatform: ((OmenPlatform) -> Void)? = nil,
+        onReportProblem: (() -> Void)? = nil,
         carousel: LeagueCarouselViewModel? = nil,
         userID: String? = nil,
         onContextChanged: (([String]) -> Void)? = nil,
@@ -99,6 +109,7 @@ struct OmenCommandCenterScreen: View {
         self.userID = userID
         self.onContextChanged = onContextChanged
         self.onConnectPlatform = onConnectPlatform
+        self.onReportProblem = onReportProblem
         self.state = state
         self.onSwitchContext = onSwitchContext
         self.onOpenMatchup = onOpenMatchup
@@ -149,6 +160,14 @@ struct OmenCommandCenterScreen: View {
             .padding(.horizontal, OmenSpacing.step16)
             .padding(.vertical, carousel == nil ? OmenSpacing.step24 : OmenSpacing.step16)
             .frame(maxWidth: .infinity, alignment: .leading)
+            // J2's probe, reused rather than reinvented — `OmenFitProbe` in
+            // `DesignSystem/OmenScreenShell.swift`. This screen has measured its own content
+            // and viewport since 2026-09-10 to decide `scrollDisabled`, but those numbers are
+            // private `@State` and no test can read them. The probe publishes the same two
+            // heights as an accessibility value so D11 can be **stated in points** for
+            // `CommandCenter.dc.html` and `ReportPill.dc.html`, both of which are declared
+            // fits. It is a 1x1 unlabelled element and changes no capture.
+            .omenFitContent()
             .background(
                 GeometryReader { proxy in
                     Color.clear.preference(key: CommandCenterContentHeightKey.self, value: proxy.size.height)
@@ -169,6 +188,17 @@ struct OmenCommandCenterScreen: View {
         )
         .onPreferenceChange(CommandCenterContentHeightKey.self) { contentHeight = $0 }
         .onPreferenceChange(CommandCenterViewportHeightKey.self) { viewportHeight = $0 }
+        .omenFitProbe("chrome.fit.command-center")
+        // E042-E047. Outside the `ScrollView` and above the background, so it neither scrolls
+        // with the content nor counts against `contentFits` — the two properties that decide
+        // whether this screen still honours its `fits` declaration.
+        .overlay(alignment: .bottom) {
+            if let onReportProblem {
+                OmenReportPill(action: onReportProblem)
+                    .padding(.horizontal, OmenSpacing.step16)
+                    .padding(.bottom, OmenSpacing.step12)
+            }
+        }
         .background(OmenColor.bg.ignoresSafeArea())
         .sheet(item: $detailRow) { row in
             platformDetailSheet(row)
