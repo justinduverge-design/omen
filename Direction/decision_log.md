@@ -3472,3 +3472,21 @@ behaving; until then this entry records intent, not proof.
    no visual review would ever have asked. `OmenConnectFailedScreen` then could not be wired
    honestly until `ConnectFailure` carried the provider's real status, league and time: forcing it
    with an invented 401 would have been the exact false claim the screen exists to prevent.
+
+## 2026-09-20 — J2, J4, J5, J6 and the native chrome close the visual-lock build
+
+- **Decision:** the four remaining journeys are implemented on iOS and Android with nominal and
+  degraded states, production references, journey interaction coverage, and inspected paired
+  captures. Evidence lives under `Solutions/deliverables/native-runs/2026-09-20-j2-the-desk/`,
+  `2026-09-20-j4-settling-an-argument/`, `2026-09-20-j5-the-scouts-nest/`, and
+  `2026-09-20-j6-the-receipts/`.
+- **Decision:** Account and ReportPill are chrome rather than a seventh journey. Their state matrix
+  is recorded under `Solutions/deliverables/native-runs/2026-09-20-chrome/`. A beta report is a
+  closed nine-field payload; it cannot carry league data, rosters, screenshots or credentials,
+  requires explicit disclosure acceptance, and distinguishes a server receipt from the storage-
+  unavailable truth: “Your report was not saved.” Review-only storage SQL remains unapplied.
+- **Decision:** the visual lock now contains 32 artboards. The two additions are the degraded
+  Ledger states requested by the founder; all artboards continue to share `_shared.css`.
+- **Process correction:** screenshot review remains serial. This close-out caught missing Android
+  provider badges and a ReportPill captured over a blank field after builds and tests were green.
+  Fresh build installation, byte/hash manifests and opening every frame are separate gates.

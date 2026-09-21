@@ -29,8 +29,8 @@ import SwiftUI
 //
 // ## Two rules from `CONTRACTS.md`, both of which are load-bearing here
 //
-//   1. **Delete requires the exact string `DELETE MY OMEN DATA`.** `AccountDeletion` owns that
-//      constant on both platforms and the server checks it again. This screen never types it
+//   1. **Delete requires the exact string `delete`.** `AccountDeletion` owns that founder-
+//      shortened constant on both platforms and the server checks it again. This screen never types it
 //      for the user, never pre-fills it, and never enables the destructive control without it.
 //   2. **Export excludes OAuth tokens, ESPN cookies and Vault ids.** The export row says so in
 //      words, because a user who believes an export contains their credentials will handle the
@@ -232,15 +232,9 @@ struct OmenAccountScreen: View {
         if let onAddLeague {
             // `+ Add a league` — E040. A 12.5px accent word on the artboard; the target grows
             // to 44 and the type does not.
-            Button(action: onAddLeague) {
-                Text("+ Add a league")
-                    .omenTextStyle(OmenTypography.name)
-                    .foregroundStyle(OmenColor.accent)
-                    .frame(maxWidth: .infinity, minHeight: OmenLayout.minTouchTarget, alignment: .leading)
-                    .padding(.horizontal, OmenSpacing.step16)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
+            OmenButton(title: "+ Add a league", action: onAddLeague, variant: .link, size: .sm)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, OmenSpacing.step16)
             .accessibilityLabel("Add a league")
         }
     }
@@ -267,14 +261,7 @@ struct OmenAccountScreen: View {
             .accessibilityElement(children: .combine)
 
             if let onDisconnect {
-                Button { onDisconnect(connection) } label: {
-                    Text("Disconnect")
-                        .omenTextStyle(OmenTypography.micro)
-                        .foregroundStyle(OmenColor.accent)
-                        .frame(minWidth: OmenLayout.minTouchTarget, minHeight: OmenLayout.minTouchTarget, alignment: .trailing)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
+                OmenButton(title: "Disconnect", action: { onDisconnect(connection) }, variant: .link, size: .sm)
                 // Named, so VoiceOver hears which league it is about to unlink rather than
                 // three identical "Disconnect"s.
                 .accessibilityLabel("Disconnect \(connection.teamName), \(connection.leagueName)")

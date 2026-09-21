@@ -485,8 +485,9 @@ number of pointed contract changes plus a governance amendment — not a build-o
 
 ### U3-CommandLeagueTrade — Build the three remaining destinations
 
-- **Status:** READY
-- **Blocked by:** TASK-U1-OmenScreen — build the shared destination layer and prove the v2 Omen model first.
+- **Status:** VERIFIED — 2026-09-20, both native platforms.
+- **Evidence:** J2, J4 and J5 production screens, nominal/degraded screenshot scenarios and interaction tests; inspected captures and manifests under `Solutions/deliverables/native-runs/2026-09-20-j2-the-desk/`, `2026-09-20-j4-settling-an-argument/`, and `2026-09-20-j5-the-scouts-nest/`. Shared chrome evidence is under `2026-09-20-chrome/`.
+- **Blocked by:** None. `TASK-U1-OmenScreen` landed before this closure.
 - **Priority:** P1
 - **Cost:** large
 - **Inherited build gates:** `U2`, `C3` and `C5` move inside the shared component/server-copy implementation rather than staying as stale pre-build blockers. Keep `data-stub` and `data-mock` until the hatch/dashed and dotted carriers are built and tested.
@@ -496,8 +497,9 @@ number of pointed contract changes plus a governance amendment — not a build-o
 
 ### U4-LedgerScreen — Build the Ledger as its own destination
 
-- **Status:** READY
-- **Blocked by:** TASK-U1-OmenScreen — reuse the shared destination layer and evidence/state components first. `C4` shipped in PR #440 (`946d0e58`).
+- **Status:** VERIFIED — 2026-09-20, both native platforms.
+- **Evidence:** production Ledger and receipt routes, nominal/degraded scenarios, interaction coverage and inspected paired captures under `Solutions/deliverables/native-runs/2026-09-20-j6-the-receipts/`. The two degraded canvas records are `LedgerDegraded.dc.html` and `LedgerDetailDegraded.dc.html`.
+- **Blocked by:** None. `TASK-U1-OmenScreen` and C4 landed before this closure.
 - **Priority:** P2
 - **Cost:** medium
 - **Inherited build gates:** dotted self-reported provenance comes from the shared carrier work; do not blend it with verified outcomes.

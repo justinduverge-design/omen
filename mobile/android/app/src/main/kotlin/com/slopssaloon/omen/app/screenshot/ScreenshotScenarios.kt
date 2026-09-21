@@ -927,12 +927,14 @@ private fun ChromeAccount(connections: OmenAccountConnections) {
 
 @Composable
 private fun ChromeReportPill() {
-    Box(Modifier.fillMaxSize()) {
-        OmenCommandCenterScreen(state = OmenCommandCenterFixtures.demoConnected)
-        OmenReportPill(
-            onClick = {},
-            modifier = Modifier.align(Alignment.BottomCenter).padding(OmenTheme.spacing.step16),
-        )
+    Scaffold(bottomBar = { FauxBottomNav(FauxNavTab.Command) {} }) { innerPadding ->
+        Box(Modifier.fillMaxSize().padding(innerPadding)) {
+            OmenCommandCenterScreen(state = OmenCommandCenterFixtures.demoConnected)
+            OmenReportPill(
+                onClick = {},
+                modifier = Modifier.align(Alignment.BottomCenter).padding(OmenTheme.spacing.step16),
+            )
+        }
     }
 }
 

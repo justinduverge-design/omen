@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -32,8 +33,14 @@ import androidx.compose.ui.unit.dp
 import com.slopssaloon.omen.BuildConfig
 import com.slopssaloon.omen.app.feature.api.OmenApiClient
 import com.slopssaloon.omen.app.feature.api.OmenApiResult
+import com.slopssaloon.omen.app.feature.help.OmenHelpButton
+import com.slopssaloon.omen.app.feature.help.OmenHelpDestination
 import com.slopssaloon.omen.core.designsystem.component.OmenButton
+import com.slopssaloon.omen.core.designsystem.component.OmenButtonSize
 import com.slopssaloon.omen.core.designsystem.component.OmenButtonVariant
+import com.slopssaloon.omen.core.designsystem.component.OmenCard
+import com.slopssaloon.omen.core.designsystem.component.OmenCardTone
+import com.slopssaloon.omen.core.designsystem.component.OmenCardVariant
 import com.slopssaloon.omen.core.designsystem.component.OmenListRow
 import com.slopssaloon.omen.core.designsystem.component.OmenPlatform
 import com.slopssaloon.omen.core.designsystem.component.OmenPlatformBadge
@@ -82,14 +89,15 @@ fun OmenAccountScreen(
         ) {
             Column(Modifier.weight(1f)) {
                 Text("SIGNED IN", style = OmenTheme.typography.micro.toTextStyle(), color = OmenTheme.color.accent)
-                Text("Account", style = OmenTheme.typography.h1.toTextStyle(), color = OmenTheme.color.textPrimary)
+                Text("Account", style = OmenTheme.typography.screenTitle.toTextStyle(), color = OmenTheme.color.textPrimary)
             }
+            OmenHelpButton(OmenHelpDestination.Account)
             Box(
                 Modifier.size(30.dp).background(OmenTheme.color.surface2, RoundedCornerShape(99.dp)),
                 contentAlignment = Alignment.Center,
             ) { Text(state.avatarInitials, style = OmenTheme.typography.label.toTextStyle(), color = OmenTheme.color.accentHover) }
         }
-        OmenListRow(state.identity, state.identityProvider, onClick = {})
+        ChromeListRow(state.identity, state.identityProvider)
         SectionLabel("Connected leagues", when (val c = state.connections) {
             is OmenAccountConnections.Loaded -> c.rows.size.toString()
             OmenAccountConnections.None -> "0"
@@ -97,20 +105,7 @@ fun OmenAccountScreen(
         })
         when (val connections = state.connections) {
             is OmenAccountConnections.Loaded -> connections.rows.forEach { connection ->
-                OmenListRow(
-                    title = connection.teamName,
-                    subtitle = connection.leagueName,
-                    leadingContent = { OmenPlatformBadge(connection.platform) },
-                    trailingContent = onDisconnect?.let { disconnect -> {
-                        Box(
-                            modifier = Modifier
-                                .heightIn(min = 48.dp)
-                                .clickable { disconnect(connection) }
-                                .semantics { contentDescription = "Disconnect ${connection.teamName}, ${connection.leagueName}" },
-                            contentAlignment = Alignment.Center,
-                        ) { Text("Disconnect", style = OmenTheme.typography.micro.toTextStyle(), color = OmenTheme.color.accent) }
-                    } },
-                )
+                ConnectionRow(connection, onDisconnect)
             }
             OmenAccountConnections.None -> HonestText("No leagues connected yet.")
             OmenAccountConnections.Unavailable -> HonestText(
@@ -121,9 +116,9 @@ fun OmenAccountScreen(
             OmenButton("+ Add a league", onAddLeague, Modifier.fillMaxWidth().padding(horizontal = OmenTheme.spacing.step16), OmenButtonVariant.Link)
         }
         SectionLabel("Support")
-        OmenListRow("Report a problem", "Sends device and version. Never your league data.", onClick = onReportProblem)
-        OmenListRow("Help centre", "Answers and connection recovery", onClick = onHelp)
-        OmenListRow("Privacy & data", "Export or delete your account", onClick = onPrivacy)
+        ChromeListRow("Report a problem", "Sends device and version. Never your league data.", onReportProblem)
+        ChromeListRow("Help centre", "Connecting, waivers, trades", onHelp)
+        ChromeListRow("Privacy & data", "Export or delete everything", onPrivacy)
         if (onSignOut != null) OmenButton(
             "Sign out", onSignOut,
             Modifier.fillMaxWidth().padding(OmenTheme.spacing.step16),
@@ -141,14 +136,78 @@ fun OmenPrivacyDataScreen(
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Column(Modifier.padding(OmenTheme.spacing.step16)) {
             Text("PRIVACY", style = OmenTheme.typography.micro.toTextStyle(), color = OmenTheme.color.accent)
-            Text("Privacy & data", style = OmenTheme.typography.h1.toTextStyle(), color = OmenTheme.color.textPrimary)
+            Text("Privacy & data", style = OmenTheme.typography.screenTitle.toTextStyle(), color = OmenTheme.color.textPrimary)
             Text(
                 "Your account data stays separate from provider credentials. Omen never shows or exports credential values.",
                 style = OmenTheme.typography.bodySmall.toTextStyle(), color = OmenTheme.color.textSecondary,
             )
         }
-        OmenListRow("Export my data", "Request a copy of your Omen account data", onClick = onExport)
-        OmenListRow("Delete account", "Permanently removes your Omen account", onClick = onDelete)
+        Column(
+            Modifier.padding(horizontal = OmenTheme.spacing.step16, vertical = OmenTheme.spacing.step12),
+            verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8),
+        ) {
+            Text("Export your data", style = OmenTheme.typography.h3.toTextStyle(), color = OmenTheme.color.textPrimary)
+            Text(
+                "Everything Omen stores about you, as a file. It does not include sign-in tokens, ESPN cookies, or anything Omen uses to reach your leagues — those are never exported.",
+                style = OmenTheme.typography.body.toTextStyle(), color = OmenTheme.color.textSecondary,
+            )
+            if (onExport != null) OmenButton(
+                "Export my data", onExport, Modifier.fillMaxWidth(), OmenButtonVariant.Secondary, size = OmenButtonSize.Lg,
+            )
+        }
+        Column(
+            Modifier.padding(horizontal = OmenTheme.spacing.step16, vertical = OmenTheme.spacing.step12),
+            verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8),
+        ) {
+            Text("Delete everything", style = OmenTheme.typography.h3.toTextStyle(), color = OmenTheme.color.data.riskHigh)
+            Text(
+                "Permanently deletes your Omen account and data. It cannot be undone, and it does not delete anything held by ESPN, Yahoo or Sleeper.",
+                style = OmenTheme.typography.body.toTextStyle(), color = OmenTheme.color.textSecondary,
+            )
+            if (onDelete != null) OmenButton(
+                "Delete my Omen data", onDelete, Modifier.fillMaxWidth(), OmenButtonVariant.Danger, size = OmenButtonSize.Lg,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ChromeListRow(title: String, subtitle: String, onClick: (() -> Unit)? = null) {
+    val action = if (onClick == null) Modifier else Modifier.clickable(onClick = onClick)
+    Row(
+        modifier = Modifier.fillMaxWidth().background(OmenTheme.color.surface1).then(action)
+            .heightIn(min = 56.dp).padding(horizontal = OmenTheme.spacing.step16, vertical = OmenTheme.spacing.step10),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12),
+    ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step2)) {
+            Text(title, style = OmenTheme.typography.body.toTextStyle(), color = OmenTheme.color.textPrimary)
+            Text(subtitle, style = OmenTheme.typography.bodySmall.toTextStyle(), color = OmenTheme.color.textSecondary)
+        }
+        if (onClick != null) Text("›", style = OmenTheme.typography.h3.toTextStyle(), color = OmenTheme.color.textTertiary)
+    }
+    Box(Modifier.fillMaxWidth().height(1.dp).background(OmenTheme.color.borderSubtle))
+}
+
+@Composable
+private fun ConnectionRow(connection: OmenAccountConnection, onDisconnect: ((OmenAccountConnection) -> Unit)?) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = OmenTheme.spacing.step16, vertical = OmenTheme.spacing.step10),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12),
+    ) {
+        OmenPlatformBadge(connection.platform)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step2)) {
+            Text(connection.teamName, style = OmenTheme.typography.bodySmall.toTextStyle(), color = OmenTheme.color.textPrimary)
+            Text(connection.leagueName, style = OmenTheme.typography.label.toTextStyle(), color = OmenTheme.color.textTertiary, maxLines = 1)
+        }
+        if (onDisconnect != null) OmenButton(
+            "Disconnect",
+            onClick = { onDisconnect(connection) },
+            modifier = Modifier.semantics { contentDescription = "Disconnect ${connection.teamName}, ${connection.leagueName}" },
+            variant = OmenButtonVariant.Link,
+            size = OmenButtonSize.Sm,
+        )
     }
 }
 
@@ -257,19 +316,33 @@ fun OmenReportComposer(
     val scope = rememberCoroutineScope()
     if (outcome != null) {
         Column(modifier.fillMaxSize().padding(OmenTheme.spacing.step16), verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step16)) {
-            Text("Report a problem", style = OmenTheme.typography.h1.toTextStyle(), color = OmenTheme.color.textPrimary)
-            when (val value = outcome) {
-                is OmenBetaReportOutcome.Received -> HonestText("Report received. Reference ${value.id}.")
-                OmenBetaReportOutcome.NotSaved -> HonestText("Your report was not saved. Nothing was kept.")
-                is OmenBetaReportOutcome.Failed -> HonestText(value.message)
-                null -> Unit
+            Text("Report a problem", style = OmenTheme.typography.screenTitle.toTextStyle(), color = OmenTheme.color.textPrimary)
+            val successful = outcome is OmenBetaReportOutcome.Received
+            OmenCard(
+                modifier = Modifier.fillMaxWidth(),
+                variant = if (successful) OmenCardVariant.Outlined else OmenCardVariant.Error,
+                tone = if (successful) OmenCardTone.Omen else OmenCardTone.Risk,
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8)) {
+                    Text(
+                        if (successful) "Report received" else "Report not saved",
+                        style = OmenTheme.typography.h2.toTextStyle(),
+                        color = if (successful) OmenTheme.color.omen else OmenTheme.color.data.riskHigh,
+                    )
+                    when (val value = outcome) {
+                        is OmenBetaReportOutcome.Received -> Text("Reference ${value.id}.", style = OmenTheme.typography.body.toTextStyle(), color = OmenTheme.color.textSecondary)
+                        OmenBetaReportOutcome.NotSaved -> Text("Your report was not saved. Nothing was kept.", style = OmenTheme.typography.body.toTextStyle(), color = OmenTheme.color.textSecondary)
+                        is OmenBetaReportOutcome.Failed -> Text(value.message, style = OmenTheme.typography.body.toTextStyle(), color = OmenTheme.color.textSecondary)
+                        null -> Unit
+                    }
+                }
             }
             OmenButton("Done", onDone, variant = OmenButtonVariant.Secondary)
         }
         return
     }
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(OmenTheme.spacing.step16), verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12)) {
-        Text("Report a problem", style = OmenTheme.typography.h1.toTextStyle(), color = OmenTheme.color.textPrimary)
+        Text("Report a problem", style = OmenTheme.typography.screenTitle.toTextStyle(), color = OmenTheme.color.textPrimary)
         Text("WHAT THIS SENDS", style = OmenTheme.typography.micro.toTextStyle(), color = OmenTheme.color.textTertiary)
         HonestText("Screen: ${screen.display}\nApp and build\nAndroid version and device\nProvider connection state\nRecent scrubbed error codes\nYour note")
         Text("Never league data, rosters, screenshots or credentials.", style = OmenTheme.typography.bodySmall.toTextStyle(), color = OmenTheme.color.textSecondary)
