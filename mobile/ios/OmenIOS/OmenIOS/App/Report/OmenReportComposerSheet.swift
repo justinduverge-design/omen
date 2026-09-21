@@ -73,13 +73,22 @@ struct OmenReportComposerSheet: View {
 
     var body: some View {
         OmenModalSheet(title: "Report a problem") {
-            VStack(alignment: .leading, spacing: OmenSpacing.step20) {
-                switch phase {
-                case .composing, .sending:
-                    composer
-                case .done(let outcome):
-                    result(outcome)
+            // Scrolls, and has to. The composer is the disclosure plus six itemised fields plus
+            // a note field plus three controls; on a 390x844 frame the accept control and the
+            // Send button both start below the fold. The first build did not scroll and
+            // `ChromeInteractionUITests` failed with "the disclosure acceptance control is
+            // missing" — which was true: it was rendered, clipped, and unreachable. A consent
+            // control a user cannot reach is worse than one that is absent.
+            ScrollView {
+                VStack(alignment: .leading, spacing: OmenSpacing.step20) {
+                    switch phase {
+                    case .composing, .sending:
+                        composer
+                    case .done(let outcome):
+                        result(outcome)
+                    }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .accessibilityIdentifier("chrome.report-composer")
