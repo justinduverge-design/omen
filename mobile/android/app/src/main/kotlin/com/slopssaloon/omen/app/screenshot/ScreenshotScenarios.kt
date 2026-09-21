@@ -927,8 +927,12 @@ private fun ChromeAccount(connections: OmenAccountConnections) {
 
 @Composable
 private fun ChromeReportPill() {
-    Box(Modifier.fillMaxSize().padding(OmenTheme.spacing.step16), contentAlignment = Alignment.BottomCenter) {
-        OmenReportPill(onClick = {})
+    Box(Modifier.fillMaxSize()) {
+        OmenCommandCenterScreen(state = OmenCommandCenterFixtures.demoConnected)
+        OmenReportPill(
+            onClick = {},
+            modifier = Modifier.align(Alignment.BottomCenter).padding(OmenTheme.spacing.step16),
+        )
     }
 }
 

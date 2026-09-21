@@ -36,6 +36,7 @@ import com.slopssaloon.omen.core.designsystem.component.OmenButton
 import com.slopssaloon.omen.core.designsystem.component.OmenButtonVariant
 import com.slopssaloon.omen.core.designsystem.component.OmenListRow
 import com.slopssaloon.omen.core.designsystem.component.OmenPlatform
+import com.slopssaloon.omen.core.designsystem.component.OmenPlatformBadge
 import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
 import kotlinx.coroutines.launch
 import org.json.JSONArray
@@ -99,6 +100,7 @@ fun OmenAccountScreen(
                 OmenListRow(
                     title = connection.teamName,
                     subtitle = connection.leagueName,
+                    leadingContent = { OmenPlatformBadge(connection.platform) },
                     trailingContent = onDisconnect?.let { disconnect -> {
                         Box(
                             modifier = Modifier
@@ -195,7 +197,8 @@ data class OmenBetaReport(
     companion object {
         fun device(screen: OmenBetaReportScreen, message: String) = OmenBetaReport(
             screen, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE.toString(),
-            "Android ${Build.VERSION.RELEASE}", Build.MODEL, "none", emptyList(), message, true,
+            "Android ${Build.VERSION.RELEASE ?: "unknown"}", Build.MODEL ?: "Android device",
+            "none", emptyList(), message, false,
         )
     }
 }
@@ -244,27 +247,42 @@ fun OmenReportComposer(
     screen: OmenBetaReportScreen,
     send: suspend (OmenBetaReport) -> OmenBetaReportOutcome,
     initialOutcome: OmenBetaReportOutcome? = null,
+    onDone: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var note by remember { mutableStateOf("") }
     var outcome by remember { mutableStateOf(initialOutcome) }
     var sending by remember { mutableStateOf(false) }
+    var disclosureAccepted by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    if (outcome != null) {
+        Column(modifier.fillMaxSize().padding(OmenTheme.spacing.step16), verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step16)) {
+            Text("Report a problem", style = OmenTheme.typography.h1.toTextStyle(), color = OmenTheme.color.textPrimary)
+            when (val value = outcome) {
+                is OmenBetaReportOutcome.Received -> HonestText("Report received. Reference ${value.id}.")
+                OmenBetaReportOutcome.NotSaved -> HonestText("Your report was not saved. Nothing was kept.")
+                is OmenBetaReportOutcome.Failed -> HonestText(value.message)
+                null -> Unit
+            }
+            OmenButton("Done", onDone, variant = OmenButtonVariant.Secondary)
+        }
+        return
+    }
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(OmenTheme.spacing.step16), verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12)) {
         Text("Report a problem", style = OmenTheme.typography.h1.toTextStyle(), color = OmenTheme.color.textPrimary)
         Text("WHAT THIS SENDS", style = OmenTheme.typography.micro.toTextStyle(), color = OmenTheme.color.textTertiary)
         HonestText("Screen: ${screen.display}\nApp and build\nAndroid version and device\nProvider connection state\nRecent scrubbed error codes\nYour note")
         Text("Never league data, rosters, screenshots or credentials.", style = OmenTheme.typography.bodySmall.toTextStyle(), color = OmenTheme.color.textSecondary)
         OutlinedTextField(value = note, onValueChange = { note = it.take(4000) }, label = { Text("What went wrong?") }, modifier = Modifier.fillMaxWidth())
-        when (val value = outcome) {
-            is OmenBetaReportOutcome.Received -> HonestText("Report received. Reference ${value.id}.")
-            OmenBetaReportOutcome.NotSaved -> HonestText("Your report was not saved. Nothing was kept.")
-            is OmenBetaReportOutcome.Failed -> HonestText(value.message)
-            null -> Unit
-        }
+        OmenButton(
+            if (disclosureAccepted) "Disclosure accepted" else "I understand what this sends",
+            onClick = { disclosureAccepted = !disclosureAccepted },
+            modifier = Modifier.fillMaxWidth(),
+            variant = OmenButtonVariant.Secondary,
+        )
         OmenButton("Send report", onClick = {
-            val report = OmenBetaReport.device(screen, note)
+            val report = OmenBetaReport.device(screen, note).copy(disclosureAccepted = disclosureAccepted)
             if (report.isSendable) scope.launch { sending = true; outcome = send(report); sending = false }
-        }, modifier = Modifier.fillMaxWidth(), enabled = note.isNotBlank(), loading = sending)
+        }, modifier = Modifier.fillMaxWidth(), enabled = note.isNotBlank() && disclosureAccepted, loading = sending)
     }
 }

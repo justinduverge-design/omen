@@ -36,4 +36,8 @@ class OmenBetaReportTest {
         assertFalse(report("").isSendable)
         assertFalse(report().copy(recentErrorCodes = listOf("raw provider message!" )).isSendable)
     }
+
+    @Test fun `device report starts without disclosure acceptance`() {
+        assertFalse(OmenBetaReport.device(OmenBetaReportScreen.CommandCenter, "A note").disclosureAccepted)
+    }
 }

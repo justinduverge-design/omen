@@ -631,6 +631,7 @@ fun OmenAndroidApp() {
                                     )
                                 } else betaReportRepository.send(report, token)
                             },
+                            onDone = { showReportComposer = false },
                         )
                     }
                     OmenModalSheet(
@@ -1031,31 +1032,6 @@ private fun ContextualHelpRow(destination: OmenHelpDestination) {
         horizontalArrangement = Arrangement.End,
     ) {
         OmenHelpButton(destination, size = OmenIconButtonSize.Sm)
-    }
-}
-
-@Composable
-private fun AccountSheetBody(
-    userId: String,
-    onOpenHelpSupport: () -> Unit,
-    onSignOut: () -> Unit,
-    onDelete: (() -> Unit)?,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12)) {
-        Text(
-            text = "Signed in as $userId",
-            style = OmenTheme.typography.body.toTextStyle(),
-            color = OmenTheme.color.textPrimary,
-        )
-        OmenListRow(
-            title = "Support & Help Improve Omen",
-            subtitle = "Help Center, feedback, and problem reporting",
-            onClick = onOpenHelpSupport,
-        )
-        OmenButton(text = "Sign out", onClick = onSignOut, variant = OmenButtonVariant.Secondary)
-        if (onDelete != null) {
-            OmenButton(text = "Delete account", onClick = onDelete, variant = OmenButtonVariant.Danger)
-        }
     }
 }
 
