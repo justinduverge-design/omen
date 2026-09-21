@@ -137,7 +137,7 @@ final class ChromeInteractionUITests: XCTestCase {
         // the same top-to-bottom order a user does.
         for team in ["Titans of Slopsilonia", "Davante\u{2019}s Inferno", "Puk Around & Find Out"] {
             let control = app.buttons.matching(
-                NSPredicate(format: "label BEGINSWITH %@", "Disconnect \(team)")
+                NSPredicate(format: "label BEGINSWITH[c] %@", "Disconnect \(team)")
             ).firstMatch
             assertTappable(control, "the Disconnect control for \(team)")
         }
