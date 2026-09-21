@@ -133,15 +133,31 @@ struct OmenTeamPicker: View {
 
     // MARK: - Sheet
 
+    /// J2 rebuilt this sheet against `SwitchSheet.dc.html`, which is a different composition
+    /// from the one `OmenTeamSwitcherSheet` was built to: a segmented provider control rather
+    /// than a chip row, Favourites and All teams as labelled dividers rather than one flat list,
+    /// and a crest on every row. The behaviour underneath is unchanged and deliberately so —
+    /// two targets per row, dismiss-on-switch, stay-open-on-star, and the server's order.
+    ///
+    /// `OmenTeamSwitcherSheet` is not deleted. It is still the Account destination's list and it
+    /// still has its own preview and height contract; retiring it is that screen's call.
     private var switcherSheet: some View {
-        OmenTeamSwitcherSheet(
-            teams: switcherTeams,
-            platformFilters: platformFilters,
-            selectedFilter: viewModel.selectedPlatform,
-            notice: switcherNotice,
+        OmenSwitchSheet(
+            state: OmenSwitchSheetState(
+                filters: platformFilters.map { OmenSwitchFilter(id: $0.id, label: $0.label) },
+                selectedFilterID: viewModel.selectedPlatform,
+                // Favourites first, then the rest — a **grouping** of the order the server
+                // returned, not a re-sort of it. `orderPlatformsByFollowCount` stays the single
+                // authority and the relative order inside each group is untouched.
+                groups: [
+                    OmenSwitchGroup(title: "Favourites", rows: switcherTeams.filter(\.isFavorite).map(switchRow)),
+                    OmenSwitchGroup(title: "All teams", rows: switcherTeams.filter { !$0.isFavorite }.map(switchRow))
+                ].filter { !$0.rows.isEmpty },
+                notice: switcherNotice
+            ),
             onSelectFilter: { viewModel.selectedPlatform = $0 },
-            onSelectTeam: { team in
-                guard let page = viewModel.allPages.first(where: { $0.id == team.id }) else { return }
+            onSelectRow: { row in
+                guard let page = viewModel.allPages.first(where: { $0.id == row.id }) else { return }
                 // Dismiss first. The switch is fast but not instant, and holding the sheet open
                 // over a screen that is already updating underneath it hides the very thing the
                 // user asked for. The write continues after dismissal.
@@ -152,21 +168,28 @@ struct OmenTeamPicker: View {
                     }
                 }
             },
-            onToggleFavorite: { team in
-                guard let page = viewModel.allPages.first(where: { $0.id == team.id }) else { return }
+            onToggleFavorite: { row in
+                guard let page = viewModel.allPages.first(where: { $0.id == row.id }) else { return }
                 // Stays open, deliberately. Starring is curation, and a sheet that closed on
                 // every star would make ordering four favourites a four-trip errand.
                 viewModel.toggleFavorite(page)
-            },
-            onAddLeague: onAddLeague.map { add in
-                {
-                    isSwitcherPresented.wrappedValue = false
-                    add()
-                }
             }
         )
         .presentationDetents([.height(sheetHeight)])
         .presentationDragIndicator(.visible)
+    }
+
+    /// The artboard's row. The crest is derived from the team name the provider gave, never
+    /// invented — a wrong crest is a wrong claim about identity.
+    private func switchRow(_ team: OmenSwitcherTeam) -> OmenSwitchRow {
+        OmenSwitchRow(
+            id: team.id,
+            crest: OmenDeskState.crest(from: team.teamName),
+            teamName: team.teamName,
+            subtitle: team.subtitle,
+            isFavorite: team.isFavorite,
+            isActive: team.isActive
+        )
     }
 
     /// The sheet lists the *filtered* set, so the provider chips do something, while the bar

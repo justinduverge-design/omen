@@ -30,6 +30,12 @@ sealed interface OmenDecisionBriefState {
 
 /** DecisionBrief payload per shell brief §2 field set. Any field may be absent. */
 data class OmenDecisionBriefPayload(
+    /**
+     * `recommendation.type` — "start_sit", "waiver_pickup", … Rendered as the call's kind above
+     * the call itself (`OmenCall-v1` E023). The envelope has always sent it; the client dropped
+     * it until 2026-09-17. iOS mirror: `OmenDecisionBriefPayload.callType`.
+     */
+    val callType: String? = null,
     val verdict: String,
     val move: String,
     val impact: String? = null,

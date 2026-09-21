@@ -12,6 +12,7 @@ Compiled from `design/native-visual-lock-2026-09-13/Ledger.dc.html` on 2026-09-1
 | Scroll rule | scrolls; measured body overflow from canvas render: 0px. |
 | Data route | GET /api/moves?contract_version=moves-history.v2&platform={platform}&league_id={league_id} |
 | API contract | moves-history.v2 |
+| Capability profile | `ledger` — expresses per `capability-expression-v1.md` |
 | Governing rule | C4 resolved here; index requires explicit league scope and maps raw outcomes to worked/did_not_work/not_verified |
 
 ## Native build rules

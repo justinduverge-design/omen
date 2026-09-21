@@ -2,19 +2,14 @@ package com.slopssaloon.omen.app.auth
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.slopssaloon.omen.core.auth.AccountDeletion
 import com.slopssaloon.omen.core.designsystem.component.OmenButton
 import com.slopssaloon.omen.core.designsystem.component.OmenButtonVariant
-import com.slopssaloon.omen.core.designsystem.component.OmenCard
-import com.slopssaloon.omen.core.designsystem.component.OmenCardTone
-import com.slopssaloon.omen.core.designsystem.component.OmenCardVariant
 import com.slopssaloon.omen.core.designsystem.component.OmenFormField
 import com.slopssaloon.omen.core.designsystem.component.OmenTextField
 import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
@@ -32,27 +27,23 @@ fun OmenDeleteAccountScreen(
     onConfirm: () -> Unit,
     onCancel: () -> Unit,
 ) {
-    OmenCard(
-        modifier = Modifier.padding(24.dp).fillMaxWidth(),
-        variant = OmenCardVariant.Outlined,
-        tone = OmenCardTone.Risk,
-        contentPadding = PaddingValues(OmenTheme.spacing.cardInterior),
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(OmenTheme.spacing.step16),
+        verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step20),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step16)) {
             Text(
-                text = "Delete your Omen account",
-                style = OmenTheme.typography.h1.toTextStyle(),
+                text = "Delete your Omen data",
+                style = OmenTheme.typography.screenTitle.toTextStyle(),
                 color = OmenTheme.color.textPrimary,
             )
             Text(
-                text = "This permanently deletes your account and data. It cannot be undone.",
+                text = "This permanently deletes your Omen account and data. This can't be undone.",
                 style = OmenTheme.typography.body.toTextStyle(),
                 color = OmenTheme.color.textSecondary,
             )
 
             OmenFormField(
-                label = "Confirmation phrase",
-                hint = "Type ${AccountDeletion.REQUIRED_PHRASE} to confirm.",
+                label = "TYPE \"${AccountDeletion.REQUIRED_PHRASE.uppercase()}\" TO CONFIRM",
                 errorMessage = message,
             ) {
                 OmenTextField(
@@ -70,16 +61,13 @@ fun OmenDeleteAccountScreen(
                 variant = OmenButtonVariant.Danger,
                 enabled = !deleting && AccountDeletion.isConfirmed(phrase),
                 loading = deleting,
-                modifier = Modifier.fillMaxWidth(),
             )
 
             OmenButton(
                 text = "Cancel",
                 onClick = onCancel,
-                variant = OmenButtonVariant.Secondary,
+                variant = OmenButtonVariant.Link,
                 enabled = !deleting,
-                modifier = Modifier.fillMaxWidth(),
             )
-        }
     }
 }

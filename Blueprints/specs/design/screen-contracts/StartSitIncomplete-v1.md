@@ -12,6 +12,7 @@ Compiled from `design/native-visual-lock-2026-09-13/StartSitIncomplete.dc.html` 
 | Scroll rule | scrolls; measured body overflow from canvas render: 0px. |
 | Data route | GET /api/start-sit/detail |
 | API contract | start-sit-detail.v1 state=incomplete_data |
+| Capability profile | `start_sit` — expresses per `capability-expression-v1.md` |
 | Governing rule | visual briefs section 5; scoring format unknown is a limitation, never assumed PPR |
 
 ## Native build rules

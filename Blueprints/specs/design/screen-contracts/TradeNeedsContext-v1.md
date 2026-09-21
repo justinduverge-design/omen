@@ -12,6 +12,7 @@ Compiled from `design/native-visual-lock-2026-09-13/TradeNeedsContext.dc.html` o
 | Scroll rule | scrolls; measured body overflow from canvas render: 0px. |
 | Data route | POST /api/trade/compare |
 | API contract | trade-compare.v2 close_needs_context / insufficient_data |
+| Capability profile | `trade` — expresses per `capability-expression-v1.md` |
 | Governing rule | Both states are live and verified |
 
 ## Native build rules

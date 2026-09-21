@@ -12,6 +12,7 @@ Compiled from `design/native-visual-lock-2026-09-13/LedgerDetail.dc.html` on 202
 | Scroll rule | scrolls; measured body overflow from canvas render: 0px. |
 | Data route | GET /api/moves/:id |
 | API contract | move-detail.v1 |
+| Capability profile | `ledger` — expresses per `capability-expression-v1.md` |
 | Governing rule | Immutable snapshot; raw win/loss translates before render |
 
 ## Native build rules

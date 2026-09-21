@@ -56,20 +56,31 @@ struct OmenProviderCard: View {
 
     private var providerMark: some View {
         Text(markText)
-            .omenTextStyle(OmenTypography.h2)
+            .omenTextStyle(OmenTypography.micro)
             .fontWeight(.bold)
             .foregroundStyle(markForeground)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
             .frame(width: 44, height: 44)
             .background(markBackground)
             .clipShape(RoundedRectangle(cornerRadius: 10))
             .accessibilityHidden(true)
     }
 
+    /// Neutral four-letter crests, per `ConnectLeague.dc.html`.
+    ///
+    /// These were `E`, `Y!` and `S` on filled provider hexes. A red `E` tile and `Y!` are close
+    /// enough to the providers' own marks to read as their branding, and `W1-GATE` carries **no
+    /// association-implying ESPN branding** as a binding constraint out of the 2026-08-31 terms
+    /// finding. The artboard already drew the safer treatment; this adopts it.
+    ///
+    /// The provider hex stays as the tile background — it is the sole sanctioned colour exception
+    /// and it is never the only carrier, because the provider is named in the row beside it (D7).
     private var markText: String {
         switch platform {
-        case .espn: return "E"
-        case .yahoo: return "Y!"
-        case .sleeper: return "S"
+        case .espn: return "ESPN"
+        case .yahoo: return "YHOO"
+        case .sleeper: return "SLPR"
         }
     }
 

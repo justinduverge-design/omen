@@ -44,6 +44,15 @@ struct OmenCommandCenterScreen: View {
     let onOpenLedger: ((OmenLedgerEntry) -> Void)?
     let onOpenLeague: (() -> Void)?
     let onConnectPlatform: ((OmenPlatform) -> Void)?
+    /// `ReportPill.dc.html`, wired. Supplied only when there is a composer to open — the pill
+    /// is absent rather than inert when it is nil, for the reason `OmenScreenHeaderControls`
+    /// gives about its own avatar.
+    ///
+    /// It renders as an **overlay** rather than as a block in the stack. `CommandCenter` is one
+    /// of the thirteen artboards declared `fits` under D11, and a 73pt card in the content
+    /// stack would spend headroom that declaration has already promised. The artboard positions
+    /// it absolutely for the same reason.
+    let onReportProblem: (() -> Void)?
 
     /// The league carousel — provider chips over a swipeable matchup-per-league stack.
     ///
@@ -89,6 +98,7 @@ struct OmenCommandCenterScreen: View {
         onOpenLedger: ((OmenLedgerEntry) -> Void)? = nil,
         onOpenLeague: (() -> Void)? = nil,
         onConnectPlatform: ((OmenPlatform) -> Void)? = nil,
+        onReportProblem: (() -> Void)? = nil,
         carousel: LeagueCarouselViewModel? = nil,
         userID: String? = nil,
         onContextChanged: (([String]) -> Void)? = nil,
@@ -99,6 +109,7 @@ struct OmenCommandCenterScreen: View {
         self.userID = userID
         self.onContextChanged = onContextChanged
         self.onConnectPlatform = onConnectPlatform
+        self.onReportProblem = onReportProblem
         self.state = state
         self.onSwitchContext = onSwitchContext
         self.onOpenMatchup = onOpenMatchup
@@ -149,6 +160,14 @@ struct OmenCommandCenterScreen: View {
             .padding(.horizontal, OmenSpacing.step16)
             .padding(.vertical, carousel == nil ? OmenSpacing.step24 : OmenSpacing.step16)
             .frame(maxWidth: .infinity, alignment: .leading)
+            // J2's probe, reused rather than reinvented — `OmenFitProbe` in
+            // `DesignSystem/OmenScreenShell.swift`. This screen has measured its own content
+            // and viewport since 2026-09-10 to decide `scrollDisabled`, but those numbers are
+            // private `@State` and no test can read them. The probe publishes the same two
+            // heights as an accessibility value so D11 can be **stated in points** for
+            // `CommandCenter.dc.html` and `ReportPill.dc.html`, both of which are declared
+            // fits. It is a 1x1 unlabelled element and changes no capture.
+            .omenFitContent()
             .background(
                 GeometryReader { proxy in
                     Color.clear.preference(key: CommandCenterContentHeightKey.self, value: proxy.size.height)
@@ -169,6 +188,17 @@ struct OmenCommandCenterScreen: View {
         )
         .onPreferenceChange(CommandCenterContentHeightKey.self) { contentHeight = $0 }
         .onPreferenceChange(CommandCenterViewportHeightKey.self) { viewportHeight = $0 }
+        .omenFitProbe("chrome.fit.command-center")
+        // E042-E047. Outside the `ScrollView` and above the background, so it neither scrolls
+        // with the content nor counts against `contentFits` — the two properties that decide
+        // whether this screen still honours its `fits` declaration.
+        .overlay(alignment: .bottom) {
+            if let onReportProblem {
+                OmenReportPill(action: onReportProblem)
+                    .padding(.horizontal, OmenSpacing.step16)
+                    .padding(.bottom, OmenSpacing.step12)
+            }
+        }
         .background(OmenColor.bg.ignoresSafeArea())
         .sheet(item: $detailRow) { row in
             platformDetailSheet(row)
@@ -178,30 +208,35 @@ struct OmenCommandCenterScreen: View {
                 waiverWatchBody(showDetailLink: false)
             }
         }
+        // J6. The route into `LedgerDetail.dc.html`: tap a Ledger row, open its receipt. This
+        // sheet already existed and already fetched `move-detail.v1` — what changed is what it
+        // renders once the fetch lands.
         .sheet(item: $ledgerDetailEntry) { entry in
             CommandCenterDetailSheet(title: "The Ledger") {
-                LedgerReceiptView(entry: entry, load: loadReceipt)
+                LedgerReceiptView(entry: entry, load: loadReceipt, onOpenAccount: onOpenAccount)
             }
         }
+        // J6. "See all" is the only route from the preview to the full Ledger, and it now opens
+        // `Ledger.dc.html` rather than the stacked `NavigationLink` list it opened before.
+        //
+        // The non-`entries` states keep the old rows, which are the `OmenStateSurface` cases —
+        // empty, not-connected, loading, error. `OmenLedgerScreen` renders a record; it has no
+        // opinion about a record that could not be read, and giving it one would be a second
+        // place for those four states to drift.
         .sheet(isPresented: $showLedgerHistory) {
             CommandCenterDetailSheet(title: "The Ledger") {
-                NavigationStack {
-                    ScrollView {
-                        if case .entries(let entries) = state.ledger {
-                            ForEach(entries) { entry in
-                                NavigationLink {
-                                    LedgerReceiptView(entry: entry, load: loadReceipt)
-                                } label: {
-                                    VStack(alignment: .leading, spacing: OmenSpacing.step8) {
-                                        Text(entry.period).omenTextStyle(OmenTypography.label)
-                                        Text(entry.summary).omenTextStyle(OmenTypography.h3)
-                                        Text(entry.outcome).omenTextStyle(OmenTypography.bodySmall)
-                                        if let action = entry.actionStatus { Text(action).omenTextStyle(OmenTypography.bodySmall) }
-                                    }.foregroundStyle(OmenColor.textPrimary).padding(OmenSpacing.step16)
-                                }
-                            }
-                        } else { ledgerRows(limit: Int.max) }
-                    }
+                if case .entries(let entries) = state.ledger {
+                    OmenLedgerScreen(
+                        state: OmenLedgerState.from(entries: entries),
+                        onOpenAccount: onOpenAccount,
+                        onOpenCall: { call in
+                            guard let entry = entries.first(where: { $0.id == call.id }) else { return }
+                            showLedgerHistory = false
+                            ledgerDetailEntry = entry
+                        }
+                    )
+                } else {
+                    ScrollView { ledgerRows(limit: Int.max) }
                 }
             }
         }
@@ -682,38 +717,49 @@ enum OmenLedgerPreviewState {
     }
 }
 
+/// J6. The receipt sheet: fetch `move-detail.v1`, then render `LedgerDetail.dc.html`.
+///
+/// The fetch, the failure surface and the loading surface are unchanged from slice E. What
+/// changed is the success branch, which used to stack four bare `Text`s and now renders the
+/// built screen.
 private struct LedgerReceiptView: View {
     let entry: OmenLedgerEntry
     let load: ((String) async -> Result<MoveReceipt, OmenApiError>)?
+    var onOpenAccount: (() -> Void)?
     @State private var result: Result<MoveReceipt, OmenApiError>?
+
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: OmenSpacing.step16) {
-                switch result {
-                case .success(let receipt):
-                    Text(receipt.snapshot.recommendation ?? entry.summary).omenTextStyle(OmenTypography.h2)
-                    if let issued = receipt.snapshot.issuedAt {
-                        Text("Issued \(issued) · \(receipt.snapshot.issuedAtTimezone ?? "Time zone unavailable")").omenTextStyle(OmenTypography.bodySmall)
-                    }
-                    ForEach(Array(receipt.evidenceAtTheTime.enumerated()), id: \.offset) { _, evidence in
-                        OmenCard(variant: .outlined) {
-                            VStack(alignment: .leading, spacing: OmenSpacing.step8) {
-                                Text(evidence.kind).omenTextStyle(OmenTypography.label)
-                                Text(evidence.statement).omenTextStyle(OmenTypography.body)
-                            }
-                        }
-                    }
-                    Text(receipt.userAction.statement).omenTextStyle(OmenTypography.body)
-                    Text(receipt.observedOutcome.statement).omenTextStyle(OmenTypography.body)
-                    Text(receipt.fairnessNote).omenTextStyle(OmenTypography.bodySmall)
-                case .failure:
-                    OmenStateSurface(kind: .error, title: "The receipt didn’t load", message: "The recorded evidence is unavailable. Return to the Ledger and try again.")
-                case nil:
-                    OmenStateSurface(kind: .loading, title: "Reading the receipt", message: "Loading the evidence recorded at issue time.")
-                }
-            }.foregroundStyle(OmenColor.textPrimary).padding(OmenSpacing.step16)
-        }.background(OmenColor.bg)
+        Group {
+            switch result {
+            case .success(let receipt):
+                OmenLedgerDetailScreen(
+                    state: OmenLedgerReceiptState.from(entry: entry, receipt: receipt),
+                    onOpenAccount: onOpenAccount
+                )
+            case .failure:
+                surface(OmenStateSurface(
+                    kind: .error,
+                    title: "The receipt didn\u{2019}t load",
+                    message: "The recorded evidence is unavailable. Return to the Ledger and try again."
+                ))
+            case nil:
+                surface(OmenStateSurface(
+                    kind: .loading,
+                    title: "Reading the receipt",
+                    message: "Loading the evidence recorded at issue time."
+                ))
+            }
+        }
+        .background(OmenColor.bg)
         .task(id: entry.id) { result = nil; result = await load?(entry.id) ?? .failure(.network) }
+    }
+
+    private func surface<Content: View>(_ content: Content) -> some View {
+        ScrollView {
+            content
+                .foregroundStyle(OmenColor.textPrimary)
+                .padding(OmenSpacing.step16)
+        }
     }
 }
 
@@ -722,11 +768,23 @@ struct OmenLedgerEntry: Identifiable {
     let period: String
     let callType: String
     let summary: String
+    /// The rendered outcome line, for the v1.1 preview rows that consume a string.
     let outcome: String
     let actionStatus: String?
     let outcomeProvenance: String?
+    /// J6. The same two facts as structure rather than as prose.
+    ///
+    /// `outcome` and `actionStatus` are sentences, and `OmenLedgerScreen` needs the values
+    /// behind them — the Ledger's rule is that verified outcome, self-reported action and
+    /// unknown follow-through stay *semantically* separate, and a screen that recovered them by
+    /// reading its own rendered strings would have re-merged them to do it.
+    ///
+    /// Defaulted so the existing preview call sites did not have to change. `MovesHistory`
+    /// fills both from the payload.
+    let action: OmenLedgerAction
+    let ledgerOutcome: OmenLedgerOutcome
 
-    init(id: String, period: String, callType: String, summary: String, outcome: String, actionStatus: String? = nil, outcomeProvenance: String? = nil) {
+    init(id: String, period: String, callType: String, summary: String, outcome: String, actionStatus: String? = nil, outcomeProvenance: String? = nil, action: OmenLedgerAction = .unknown, ledgerOutcome: OmenLedgerOutcome = .pending) {
         self.id = id
         self.period = period
         self.callType = callType
@@ -734,6 +792,8 @@ struct OmenLedgerEntry: Identifiable {
         self.outcome = outcome
         self.actionStatus = actionStatus
         self.outcomeProvenance = outcomeProvenance
+        self.action = action
+        self.ledgerOutcome = ledgerOutcome
     }
 
     var accessibilityLabel: String { [period, callType, summary, outcome, actionStatus].compactMap { $0 }.joined(separator: ", ") }
@@ -886,6 +946,42 @@ enum OmenCommandCenterFixtures {
         // connected anywhere right now, so naming it here would send someone to a dead end.
         // Sleeper connects in the app and ESPN connects on the Omen website, so both belong.
         matchup: .noMatchup(reason: "No matchup yet — connect Sleeper or ESPN to see your team's week.")
+    )
+
+    /// A real, connected user — the state the carousel scenarios actually depict.
+    ///
+    /// **The greeting is derived, not written.** It comes from the shipped
+    /// `DashboardSummary.greeting(for:gameWeek:)`, so this fixture cannot assert copy the product
+    /// would not produce. That is not a stylistic preference: until 2026-09-17 the carousel
+    /// scenarios fell through to `realDisconnected` and every carousel capture rendered
+    /// "No game plan yet." above a live six-league carousel with both scores on screen — a state
+    /// the product cannot reach. The headline was right; the fixture was lying.
+    ///
+    /// This file has produced that same class of bug before: the blue tab bar that "the shipped
+    /// app never rendered", captured for ten days. A fixture that hardcodes what the product
+    /// computes will drift, and a screenshot of a drifted fixture is a screenshot of nothing.
+    static let realConnected = OmenCommandCenterState(
+        greeting: OmenCommandCenterState.greeting(
+            for: .ready,
+            gameWeek: DashboardSummary.GameWeek(week: 7, phase: .live, day: "sunday", isOffSeason: false)
+        ),
+        context: .selected(platform: .espn, leagueName: "EB Football", teamName: "Dat Sauce Inc."),
+        platforms: [
+            OmenPlatformRowState(platform: .sleeper, status: .connected, lastSyncText: "4m ago"),
+            OmenPlatformRowState(platform: .yahoo, status: .connected, lastSyncText: "8m ago"),
+            OmenPlatformRowState(platform: .espn, status: .connected, lastSyncText: "1m ago")
+        ],
+        // The carousel supplies the matchup band when one is present, so this is the fallback.
+        // It deliberately MIRRORS the carousel's first league rather than resting on
+        // `.noMatchup`: a "no matchup yet" card underneath a live carousel showing both scores
+        // is the same self-contradiction this fixture exists to remove, just in a different
+        // place. A fixture's unused half still has to be true.
+        matchup: .live(
+            selectedTeam: OmenMatchupTeam(name: "JAE", record: "6-1", scoreText: "64.8", projectedText: "119.6"),
+            opponent: OmenMatchupTeam(name: "G.O.A.T. SQUAD", record: "5-2", scoreText: "58.1", projectedText: "114.2"),
+            projectedFinish: "119.6-114.2",
+            whatToWatch: "Projected within 5.4 points."
+        )
     )
 
     /// Honest loading state — session restore or dashboard-summary in flight.

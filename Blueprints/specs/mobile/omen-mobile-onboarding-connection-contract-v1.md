@@ -85,9 +85,25 @@ Visual reference audit targets:
 |---|---|---|---|
 | Sleeper | username → resolve account → choose league → validate | first native connection candidate | fast, direct, resumable; no sign-in credential collection by Omen |
 | Yahoo | official OAuth in the **system browser** (`ASWebAuthenticationSession` on iOS / Chrome Custom Tabs on Android) with **PKCE** per RFC 8252 → deep-link return → choose/validate league | native candidate after OAuth proof | never embed the login in a WebView; callback and cancel handling are mandatory |
-| ESPN | **research-gated**; current web behavior is cookie-based, not an approved native OAuth contract | not allowed to block first-run success | do not ask for ESPN password or raw cookie entry in a store build; show only an honest supported path after a security, provider, and app-store decision |
+| ESPN | **in-app connect is SHIPPED** — see the correction below | not allowed to block first-run success | no association-implying ESPN branding; a consent screen; the prepared App Review answer; never show, log or echo a cookie value |
 
-ESPN is strategically important, but it cannot be treated as “connected” until its native method is proven. The native MVP must still work for demo, Sleeper, and Yahoo users if ESPN is deferred.
+The native MVP must still work for demo, Sleeper, and Yahoo users if an ESPN connection fails. That requirement is unchanged and is about resilience, not about whether ESPN may be built.
+
+### ⚠️ CORRECTION 2026-09-18 — "ESPN is research-gated" was a bad assumption, and it propagated
+
+This row previously read **"research-gated ... do not ask for ESPN password or raw cookie entry in a store build; show only an honest supported path after a security, provider, and app-store decision"**, and the paragraph below it read **"it cannot be treated as 'connected' until its native method is proven"**.
+
+**Both are withdrawn.** The decision they were waiting for was taken on **2026-08-31** and they were never updated. `W1-GATE` closed that day having answered both of its questions in writing, and the founder then **accepted the risk explicitly and chose to ship**, keeping the live integration with a consent line. ESPN in-app connect is shipped, was repaired on `main` on 2026-09-17/18, and `EspnConnect.dc.html` is an approved artboard.
+
+**State the truth precisely, because the opposite overcorrection is also false:**
+
+- ESPN's terms **do not** permit authenticating a user inside our own sheet. That finding stands — Disney ToU §2.B.viii / §2.B.x / §1.F, and there is no ESPN developer programme to grant an exception.
+- The founder **knows that** and accepted the risk on the record. This is a deliberate, owned risk, **not** a compliance clearance. Do not describe ESPN as "approved", "permitted", or "sanctioned".
+- What is false is only the operational conclusion that agents kept drawing from it: that ESPN **may not be built** on mobile. It may. It has been.
+
+**Binding constraints, carried out of `W1-GATE` and unchanged:** no association-implying ESPN branding; a consent screen; the prepared App Review answer (`omen-wave1-contract-v1.md` §W1-A); and fact-of-record #6 — an ESPN cookie value is never shown, logged, or echoed, anywhere, ever.
+
+**Why this is recorded at length rather than quietly edited.** This is the same failure fact-of-record #11 names: *a correction was written where it was discovered rather than everywhere it was asserted.* The gate closed on 2026-08-31 and at least three documents went on saying ESPN was gated for another eighteen days, one of which was read at the top of a native build gate. An agent reading this file in good faith would have refused to build two approved artboards.
 
 ## 6. Connection state machine
 

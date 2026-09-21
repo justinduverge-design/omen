@@ -110,7 +110,9 @@ class CommandCenterLedgerTest {
         val state = model.commandCenterState.ledger as OmenLedgerPreviewState.Entries
         assertEquals("41", state.entries.single().id)
         assertEquals("WEEK 6", state.entries.single().period)
-        assertEquals("Outcome: win · 62% effective", state.entries.single().outcome)
+        // Was "Outcome: win · 62% effective" until J6. `CONTRACTS.md`: the stored column is
+        // translated, never surfaced raw.
+        assertEquals("Outcome not verified", state.entries.single().outcome)
     }
 
     /** A real user with a connected league and no recorded moves. Empty is a real answer. */

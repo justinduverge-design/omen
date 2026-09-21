@@ -53,6 +53,8 @@ import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
  * adding both to a primitive used on every other screen — a wider change than this move, and its
  * own decision. iOS mirror: `OmenAuthPrimaryButton`.
  */
+enum class OmenAuthButtonVariant { Primary, Secondary }
+
 @Composable
 fun OmenAuthPrimaryButton(
     text: String,
@@ -61,14 +63,31 @@ fun OmenAuthPrimaryButton(
     enabled: Boolean = true,
     loading: Boolean = false,
     icon: (@Composable () -> Unit)? = null,
+    /**
+     * `SignIn.dc.html` draws every provider button as an equal `surface-1` row with a centred
+     * label, not one filled primary over icon-only tiles. `Secondary` is that treatment.
+     *
+     * Google keeps `Primary` on Android for the same reason Apple does on iOS: the platform's
+     * first-party sign-in stays at least as prominent as the alternatives.
+     * iOS mirror: `OmenAuthButtonVariant`.
+     */
+    variant: OmenAuthButtonVariant = OmenAuthButtonVariant.Primary,
 ) {
     Button(
         onClick = onClick,
         enabled = enabled && !loading,
         shape = RoundedCornerShape(10.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = OmenTheme.color.textPrimary,
-            contentColor = OmenTheme.color.textOnAccent,
+            containerColor = if (variant == OmenAuthButtonVariant.Primary) {
+                OmenTheme.color.textPrimary
+            } else {
+                OmenTheme.color.surface1
+            },
+            contentColor = if (variant == OmenAuthButtonVariant.Primary) {
+                OmenTheme.color.textOnAccent
+            } else {
+                OmenTheme.color.textPrimary
+            },
             disabledContainerColor = OmenTheme.color.surface3,
             disabledContentColor = OmenTheme.color.textTertiary,
         ),

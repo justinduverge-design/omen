@@ -79,6 +79,17 @@ class CommandCenterViewModel(
 
     /** Waiver Watch detail from `waiver-analysis.v1`; null keeps the dashboard-derived state. */
     var waiverWatch: OmenWaiverWatchState? by mutableStateOf(null)
+
+    /**
+     * The whole `waiver-analysis.v1` payload, kept rather than reduced.
+     *
+     * Until J5 this read was consumed for [waiverWatch] alone and the payload thrown away, so the
+     * only thing the app could say about the wire was a four-case summary. The League
+     * destination's wire screen needs the move, the alternatives and — above all —
+     * `waiver_system`, without which it cannot tell a FAAB league from one whose system nobody
+     * could determine. Those are different screens and the difference is the point of one of them.
+     */
+    var waiverAnalysis: WaiverAnalysis? by mutableStateOf(null)
         private set
 
     /**
@@ -103,6 +114,17 @@ class CommandCenterViewModel(
     val failure: OmenApiError?
         get() = (viewState as? ViewState.Failed)?.error
 
+    /**
+     * True when the shell was read and it said there are no connected platforms.
+     *
+     * Distinct from [failure], and the distinction is the point: a shell we could not read is not
+     * the same as a shell that told us there are no leagues. Only `Loaded` answers this, so a
+     * failed or still-loading read returns false and keeps its own surface rather than claiming
+     * an empty account. The iOS twin is `CommandCenterViewModel.hasNoConnectedLeague`.
+     */
+    val hasNoConnectedLeague: Boolean
+        get() = (viewState as? ViewState.Loaded)?.summary?.platforms?.anyConnected?.not() ?: false
+
     suspend fun load(userId: String) {
         if (userId == SessionManager.DEMO_USER_ID) {
             viewState = ViewState.Demo
@@ -115,6 +137,7 @@ class CommandCenterViewModel(
         leaguePulse = null
         matchup = null
         waiverWatch = null
+        waiverAnalysis = null
 
         // The shell read goes through the session seam, which renews an expiring token before
         // the call and retries once on a 401.
@@ -214,7 +237,10 @@ class CommandCenterViewModel(
 
     private suspend fun loadWaiverWatch(accessToken: String) {
         when (val result = waiverRepository.fetchWaiverAnalysis(accessToken)) {
-            is OmenApiResult.Success -> waiverWatch = result.value.waiverWatchState
+            is OmenApiResult.Success -> {
+                waiverWatch = result.value.waiverWatchState
+                waiverAnalysis = result.value
+            }
             is OmenApiResult.Failure -> Unit
         }
     }

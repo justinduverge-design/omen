@@ -43,6 +43,8 @@ data class OmenDecisionEnvelope(
     )
 
     data class Recommendation(
+        /** `recommendation.type` — the call's kind. iOS mirror: `Recommendation.type`. */
+        val type: String?,
         val title: String?,
         val move: String?,
         val confidenceScore: Int?,
@@ -98,6 +100,7 @@ data class OmenDecisionEnvelope(
             val risk = json.optJSONObject("risk")
 
             return Recommendation(
+                type = json.optStringOrNull("type"),
                 title = json.optStringOrNull("title"),
                 move = json.optStringOrNull("move"),
                 confidenceScore = json.optJSONObject("confidence")?.optIntOrNull("score"),
@@ -190,6 +193,7 @@ data class OmenDecisionEnvelope(
             // Number.isFinite guard — the server treats absence as a real, expected state, and
             // the client must not manufacture a number the server declined to give.
             confidence = rec.confidenceScore,
+            callType = rec.type,
             confidenceBand = confidenceBand(rec.confidenceBand),
             confidenceDrivers = rec.confidenceDrivers,
             confidenceUnavailableReason = rec.confidenceUnavailableReason,
@@ -203,6 +207,7 @@ data class OmenDecisionEnvelope(
                     source = signal.source,
                     detail = signal.detail,
                     kind = signal.kind,
+                    used = signal.used,
                 )
             },
             alternatives = alternatives(rec),
@@ -221,15 +226,29 @@ data class OmenDecisionEnvelope(
         val source: OmenSignalSource,
         val detail: String?,
         val kind: OmenEvidenceKind?,
+        /**
+         * **Did this input change the answer?** A separate question from whether it could be
+         * read, and the client dropped it until 2026-09-17 — so "we used this" and "we have it
+         * and it did not matter here" were indistinguishable on screen.
+         *
+         * `null` means the server did not say, which is not the same as `false`.
+         */
+        val used: Boolean? = null,
     )
 
     private fun displaySignals(): List<DisplaySignal> = if (capabilities.isNotEmpty()) {
-        capabilities.map { capability ->
+        // `not_requested` is NOT a limitation and must never render as one. A profile only
+        // resolves what it needs, so an input that was never asked for is out of scope rather
+        // than missing. It fell through `signalSource`'s else-branch to `Unavailable` until
+        // 2026-09-17, telling the user Omen had failed to read something it never wanted.
+        // Absence of a claim is not a claim of absence. Rule: `capability-expression-v1.md`.
+        capabilities.filter { it.state != "not_requested" }.map { capability ->
             DisplaySignal(
                 key = capability.name.orEmpty(),
                 source = signalSource(capability.state),
                 detail = capability.statement ?: capability.source,
                 kind = evidenceKind(capability.kind),
+                used = capability.used,
             )
         }
     } else {

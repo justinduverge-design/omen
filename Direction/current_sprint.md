@@ -454,12 +454,21 @@ number of pointed contract changes plus a governance amendment — not a build-o
 
 ### U1-OmenScreen — Build the Omen destination
 
-- **Status:** READY
+- **Status:** VERIFIED — 2026-09-19.
+- **Claim:** 2026-09-18 Claude — `claude/j3-first-call`.
+- **Evidence:** OmenCall built and diffed; the switcher bar (E005–E012) built as
+  `OmenLeagueSwitcherBar` and the evidence layer reworked per
+  `Blueprints/specs/mobile/screens/omencall-evidence-contract-v1.md`. Captures and drift report in
+  `Solutions/deliverables/native-runs/2026-09-18-j3-first-call/`. iOS 484 unit + 29 UI tests, 0
+  failures. **D11 is waived for this screen only** — see the amendment below and the 2026-09-19
+  decision-log entry.
+- **Superseded status:** READY
 - **Blocked by:** None — `C1` shipped in PR #440 (`946d0e58`) and `ATA-20260914-01` authorizes the native implementation.
 - **Priority:** P1
 - **Cost:** medium
 - **Scope:** one call for the week, band, risk and evidence on tap. Artboards: `design/native-visual-lock-2026-09-13/OmenCall.dc.html` and `design/native-visual-lock-2026-09-13/OmenEvidence.dc.html`.
-- **Done when:** the screen renders one call per team per week against `omen-decision-brief.v2`, the band travels with its drivers, the factor line names what Omen could not read, and **the screen fits with nothing below the fold** (D11).
+- **Done when:** the screen renders one call per team per week against `omen-decision-brief.v2`, the band travels with its drivers, and the factor line names what Omen could not read.
+- **D11 WAIVED for this screen — founder, 2026-09-18.** This clause read "and **the screen fits with nothing below the fold** (D11)". Building the contractual switcher bar (E005–E012) cost 46.5pt and OmenCall had less than that in headroom: measured on iPhone 16, the floating tab bar's top edge is at 769.0pt and the final line spans 768.3–799.7pt, so 30.7pt of a 31.3pt line was occluded. The founder accepted the scroll rather than cut the composition, **on the condition that the page earn it** — the evidence is being reworked to teach rather than assert. Contract: `Blueprints/specs/mobile/screens/omencall-evidence-contract-v1.md` (REVIEW_ONLY, needs ratification). D11 still binds every other screen whose contract declares a fit.
 - **Do not touch:** no numeric confidence, no gradient meter. A gradient encodes nothing the band does not already say.
 
 ### U2-TokenTypeSwap — Dark-only, Wix Madefor, fill-ring, risk blocks
@@ -476,8 +485,9 @@ number of pointed contract changes plus a governance amendment — not a build-o
 
 ### U3-CommandLeagueTrade — Build the three remaining destinations
 
-- **Status:** READY
-- **Blocked by:** TASK-U1-OmenScreen — build the shared destination layer and prove the v2 Omen model first.
+- **Status:** VERIFIED — 2026-09-20, both native platforms.
+- **Evidence:** J2, J4 and J5 production screens, nominal/degraded screenshot scenarios and interaction tests; inspected captures and manifests under `Solutions/deliverables/native-runs/2026-09-20-j2-the-desk/`, `2026-09-20-j4-settling-an-argument/`, and `2026-09-20-j5-the-scouts-nest/`. Shared chrome evidence is under `2026-09-20-chrome/`.
+- **Blocked by:** None. `TASK-U1-OmenScreen` landed before this closure.
 - **Priority:** P1
 - **Cost:** large
 - **Inherited build gates:** `U2`, `C3` and `C5` move inside the shared component/server-copy implementation rather than staying as stale pre-build blockers. Keep `data-stub` and `data-mock` until the hatch/dashed and dotted carriers are built and tested.
@@ -487,8 +497,9 @@ number of pointed contract changes plus a governance amendment — not a build-o
 
 ### U4-LedgerScreen — Build the Ledger as its own destination
 
-- **Status:** READY
-- **Blocked by:** TASK-U1-OmenScreen — reuse the shared destination layer and evidence/state components first. `C4` shipped in PR #440 (`946d0e58`).
+- **Status:** VERIFIED — 2026-09-20, both native platforms.
+- **Evidence:** production Ledger and receipt routes, nominal/degraded scenarios, interaction coverage and inspected paired captures under `Solutions/deliverables/native-runs/2026-09-20-j6-the-receipts/`. The two degraded canvas records are `LedgerDegraded.dc.html` and `LedgerDetailDegraded.dc.html`.
+- **Blocked by:** None. `TASK-U1-OmenScreen` and C4 landed before this closure.
 - **Priority:** P2
 - **Cost:** medium
 - **Inherited build gates:** dotted self-reported provenance comes from the shared carrier work; do not blend it with verified outcomes.
@@ -631,6 +642,51 @@ own comment says is **a design-steward decision, not a build fix**, and therefor
 - **Finding:** `POST /api/start-sit` exists and works, but is a stateless, **unauthenticated**, caller-supplied two-player comparator that never touches a provider. It is a different feature from §5, not an incomplete one — it cannot reach league context, kickoff times, scoring format, or the user's roster for any provider.
 - **Done when:** merged and deployed; proven once against a real roster.
 - **Do not touch:** the public `POST /api/start-sit` comparator; the detail route is a separate router so that one stays loadable without Supabase config.
+
+### BE-ConnectFailureDiagnostics — Carry the diagnostic fields on a connect failure
+
+- **Status:** VERIFIED — done 2026-09-19, same session it was filed.
+- **Evidence:** `EspnDiagnostic` on `ConnectFailure`'s two ESPN cases, populated from the real 422/400/401 responses in `ConnectRepository`; `errorSection` routes any ESPN failure carrying one to `OmenConnectFailedScreen`. iOS 484 unit + 29 UI tests, 0 failures. Frames in `Solutions/deliverables/native-runs/2026-09-18-j1-before/`.
+- **Superseded status:** READY
+- **Blocked by:** None.
+- **Priority:** P1
+- **Cost:** small
+- **Source:** J1 cleanup pass, 2026-09-19. `Solutions/deliverables/native-runs/2026-09-18-j1-before/`.
+- **Finding:** `OmenConnectFailedScreen` (iOS) and `OmenConnectFailedScreen` (Compose) are built
+  to `ConnectFailed.dc.html` and **cannot be reached in production**, because `ConnectFailure` is
+  a payload-free enum. The screen's whole value is the provider's own status code, the league id
+  and the time it happened — the three facts that let a user act and let support triage. Wiring it
+  today would mean inventing a `401` and a league id, which is precisely the false claim the
+  screen exists to prevent.
+- **Done when:** `ConnectFailure`'s ESPN cases carry `statusCode`, `statusText`, `leagueId` and an
+  observed timestamp on both platforms; `errorSection` routes the ESPN reauth cases to
+  `OmenConnectFailedScreen`; and a capture shows it reached from a real failure rather than a
+  fixture.
+- **Do not touch:** never put a cookie **value** on this screen or in its payload — fact-of-record
+  #6. Naming the fields is disclosure; showing a value is not. Do not synthesise a status code
+  when the provider did not give one; absent is a valid state and the screen must degrade to it.
+
+### BE-OmenBriefFalsifier — Carry `what_could_change_this` on the Omen decision brief
+
+- **Status:** READY
+- **Blocked by:** None.
+- **Priority:** P2
+- **Cost:** small
+- **Source:** `Blueprints/specs/mobile/screens/omencall-evidence-contract-v1.md`, block 11, deferred
+  on evidence when the contract was built on 2026-09-18.
+- **Finding:** `what_could_change_this` exists **only** in `src/services/startSitDetail.js`. The
+  Omen decision brief does not carry it, so OmenCall cannot show the user what to watch before
+  kickoff — the block was deferred rather than faked, because a falsifier Omen did not produce is a
+  claim about the week it cannot stand behind.
+- **Why it is worth doing:** it is the highest-value teaching block still missing. "What moved this
+  call" tells a user why Omen decided; the falsifier tells them what to monitor themselves, which is
+  the part that survives past this week. The founder's framing on 2026-09-18 was that the page
+  should help someone "become a better FF player".
+- **Done when:** the Omen brief emits the field on the same contract version bump as any other
+  brief change; the native block 11 renders it on both platforms; the block stays **absent** when
+  the array is empty, on both platforms; and a degraded capture proves the absent case.
+- **Do not touch:** do not synthesise a falsifier client-side, and do not reuse the Start/Sit text.
+  An empty array is a valid answer and renders as nothing.
 
 ### M9-BE-LedgerDetail — Backend for the Ledger detail screen (§7)
 

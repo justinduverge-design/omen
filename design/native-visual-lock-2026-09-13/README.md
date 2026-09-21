@@ -17,7 +17,7 @@ artifact of record for those.
 
 Where the two disagree on a screen listed below, **this folder wins**.
 
-## The screens — 30 artboards, six families
+## The screens — 32 artboards, six families
 
 **Scope C, founder 2026-09-13: every screen, not just the happy path.** The eight locked screens
 were all populated best-case, which left the honest states with nowhere to live and left ESPN — the
@@ -67,7 +67,7 @@ only confirmed beta failure on record — undrawn.
 
 | File | Screen | Scroll |
 |---|---|---|
-| `TradeBuild.dc.html` | Partners, filters, three teams, execution steps | scrolls |
+| `TradeBuild.dc.html` | Partners, filters, **two teams max**, execution steps | scrolls |
 | `TradeRoster.dc.html` | Picking from real rosters | scrolls |
 | `TradeVerdict.dc.html` | The read and the counter | scrolls |
 | `TradeNeedsContext.dc.html` | Too close to call blind | scrolls |
@@ -79,9 +79,18 @@ only confirmed beta failure on record — undrawn.
 |---|---|---|
 | `Ledger.dc.html` | Every call and how it went | scrolls |
 | `LedgerDetail.dc.html` | One call, in full — including a loss | scrolls |
+| `LedgerDegraded.dc.html` | **The Ledger with outcomes unread** — added 2026-09-20 | scrolls¹ |
+| `LedgerDetailDegraded.dc.html` | **A receipt whose zone and evidence are incomplete** — added 2026-09-20 | scrolls¹ |
 | `SwitchSheet.dc.html` | The sheet, favourites in star order | fits |
 | `SwitchLoading.dc.html` | Mid-switch — nothing reused, nothing invented | fits |
 | `Account.dc.html` | Identity, connections, support | scrolls |
+
+¹ **Both measure 0px overflow at 390×844 with the fixtures drawn** — they fit today. They are
+declared `scrolls` anyway, and keep `.sbody.scrolls`, because the content is provider-supplied
+and variable-length: the receipt's evidence sentences and the Ledger's row count both grow with
+what a provider returned. A `fits` declaration **binds** under D11, and it is not a promise this
+data can keep. Their nominal siblings are declared `scrolls` for the same reason, and the built
+nominal receipt has only **22pt** of headroom — one more evidence row puts it over.
 
 **"Fits" is a requirement, not an observation** (D11) and it is **measured, not eyeballed**. Thirteen
 artboards are declared fits and every one reports **0px overflow** in the 844px frame. If an edit
@@ -102,7 +111,7 @@ artboard covers it yet.
 ## `CONTRACTS.md` — read it before building any screen
 
 An artboard shows **what goes where**. It cannot show **why**, and it cannot show **what data makes
-it work**. `CONTRACTS.md` in this folder binds every one of the 30 artboards to its verified API
+it work**. `CONTRACTS.md` in this folder binds every one of the 32 artboards to its verified API
 contract, its governing spec rule, and its honest-state siblings.
 
 It also names **the five places a builder must stop and ask** rather than infer — the decision-brief
@@ -117,7 +126,7 @@ with no build step, no sibling fetch, and no server. That property is the point 
 convention and it is worth keeping: a relative `<link>` breaks the moment an artboard is opened from
 a `data:` URL, mailed, or unzipped. That was tried here first and is why it was reverted.
 
-The cost of that choice is thirty copies of the same CSS, which drift. So:
+The cost of that choice is thirty-two copies of the same CSS, which drift. So:
 
 ```bash
 node scripts/sync-canvas-css.mjs design/native-visual-lock-2026-09-13

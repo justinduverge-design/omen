@@ -12,6 +12,7 @@ Compiled from `design/native-visual-lock-2026-09-13/CommandNoLeague.dc.html` on 
 | Scroll rule | fits; measured body overflow from canvas render: 0px. |
 | Data route | GET /api/dashboard/summary |
 | API contract | dashboard-summary.v1 |
+| Capability profile | consumes receipts; owns no profile — expresses per `capability-expression-v1.md` |
 | Governing rule | No active connection is zero state, not an error state |
 
 ## Native build rules

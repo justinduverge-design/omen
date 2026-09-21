@@ -340,7 +340,9 @@ extension CommandCenterViewModelTests {
         XCTAssertEqual(entries[0].id, "41")
         XCTAssertEqual(entries[0].period, "WEEK 6")
         XCTAssertEqual(entries[0].callType, "START_SIT")
-        XCTAssertEqual(entries[0].outcome, "Outcome: win · 62% effective")
+        // Was "Outcome: win · 62% effective" until J6. The fixture carries the raw stored
+        // column; `CONTRACTS.md` says it is translated, never surfaced raw.
+        XCTAssertEqual(entries[0].outcome, "Outcome not verified")
     }
 
     /// The Ledger is scoped by `platform` + `league_id`, so whitespace in either is a silent

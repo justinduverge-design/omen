@@ -75,6 +75,44 @@ final class OmenDecisionTests: XCTestCase {
         XCTAssertEqual(detail.capabilities.first?.reconciliationState, "pending")
     }
 
+    func testStartSitV2KeepsTheServerRecommendationPairAndDoesNotInventRosterRows() throws {
+        let detail = try JSONDecoder().decode(StartSitDetail.self, from: Data("""
+        {
+          "contract_version": "start-sit-detail.v2",
+          "state": "clear_decision",
+          "platform": "espn",
+          "league_id": "L1",
+          "league_name": "Canvas League",
+          "team_name": "Fixture Team",
+          "season": 2026,
+          "week": 7,
+          "scoring_format": null,
+          "recommendation": {
+            "slot": "WR",
+            "start": {"player_key":"p-a","name":"Sample WR1","position":"WR","team":"MIA","projected_points":14.8,"status":null,"kickoff":null},
+            "over": {"player_key":"p-b","name":"Sample WR2","position":"WR","team":"CHI","projected_points":11.6,"status":"Q","kickoff":null},
+            "points_delta": 3.2,
+            "confidence": "moderate"
+          },
+          "why": ["Higher projected output in this league's scoring (+3.2)."],
+          "what_could_change_this": ["Sample WR2's final injury status."],
+          "evidence": [{"category":"player_game_fact","kind":"projection","statement":"Sample WR1 projects 14.8 and Sample WR2 projects 11.6."}],
+          "alternatives": [{"slot":"FLEX","start":"Sample RB1","over":"Sample RB2","points_delta":1.1}],
+          "capabilities": []
+        }
+        """.utf8))
+
+        XCTAssertEqual(detail.platform, "espn")
+        XCTAssertEqual(detail.week, 7)
+        XCTAssertNil(detail.scoringFormat, "unknown scoring must stay absent")
+        XCTAssertEqual(detail.recommendation?.start?.name, "Sample WR1")
+        XCTAssertEqual(detail.recommendation?.over?.status, "Q")
+        XCTAssertEqual(detail.recommendation?.pointsDelta, 3.2)
+        XCTAssertEqual(detail.why.count, 1)
+        XCTAssertEqual(detail.whatCouldChangeThis.count, 1)
+        XCTAssertEqual(detail.alternatives.first?.slot, "FLEX")
+    }
+
     // MARK: - success
 
     func testSuccessDecodesIntoARenderableBrief() throws {
@@ -297,6 +335,72 @@ final class OmenDecisionTests: XCTestCase {
         """)
         guard case .success(let payload) = envelope.briefState() else { return XCTFail("expected success") }
         XCTAssertEqual(payload.risk, .medium, "an unfamiliar risk must not read as safer than it is")
+    }
+
+    // MARK: - Capability expression (capability-expression-v1.md)
+
+    private func capabilityEnvelope() throws -> OmenDecisionEnvelope {
+        try decode("""
+        {
+          "contract_version": "omen-decision-brief.v3",
+          "state": "success", "mode": "live",
+          "recommendation": {
+            "type": "start_sit", "title": "Start Achane", "move": "Start Achane over Pollard.",
+            "confidence": {"band": "confident", "drivers": ["Volume is stable."]},
+            "risk": {"level": "low", "reasons": []},
+            "explanation": {"summary": "Start Achane."}
+          },
+          "capabilities": [
+            {"name":"roster","state":"live","used":true,"kind":"verified","statement":"Roster read."},
+            {"name":"matchup_dvp","state":"live","used":false,"kind":"projection","statement":"Read, not decisive."},
+            {"name":"weather","state":"unavailable","used":false,"kind":"limitation","statement":"Weather not read."},
+            {"name":"trade_rosters","state":"not_requested","used":false,"kind":"model","statement":"Never asked for."}
+          ]
+        }
+        """)
+    }
+
+    /// The two axes are different questions. `state` asks whether we could read it; `used` asks
+    /// whether it changed the answer. The client dropped `used` entirely until 2026-09-17, which
+    /// made "this moved the call" and "we have it and it did not matter" indistinguishable and
+    /// left two of the four presentation classes unexpressible.
+    func testUsedSurvivesTheMappingSoEvidenceIsDistinguishableFromMerelyResolved() throws {
+        guard case .success(let payload) = try capabilityEnvelope().briefState() else {
+            return XCTFail("expected success")
+        }
+        let byLabel = Dictionary(uniqueKeysWithValues: payload.signals.map { ($0.label, $0) })
+        XCTAssertEqual(byLabel["Roster"]?.used, true, "a used input must be marked used")
+        XCTAssertEqual(byLabel["Matchup Dvp"]?.used, false, "a resolved-but-unused input is not evidence")
+        XCTAssertNotNil(byLabel["Roster"], "capability names map to display labels")
+    }
+
+    /// `not_requested` is NOT a limitation. A profile resolves only what it needs, so an input it
+    /// never asked for is out of scope rather than missing. It fell through to `.unavailable`
+    /// until 2026-09-17 — telling the user Omen failed to read something it never wanted, which
+    /// is the manufactured limitation that teaches people to ignore the real ones.
+    func testAnInputThatWasNeverRequestedIsNotRenderedAtAll() throws {
+        guard case .success(let payload) = try capabilityEnvelope().briefState() else {
+            return XCTFail("expected success")
+        }
+        XCTAssertFalse(
+            payload.signals.contains { $0.label.lowercased().contains("trade") },
+            "a not_requested input must not reach the screen in any form"
+        )
+        XCTAssertTrue(
+            payload.signals.contains { $0.source == .unavailable },
+            "a genuinely unavailable input must still be named"
+        )
+    }
+
+    /// The server orders the evidence. iOS alphabetised it until 2026-09-17 while Android did
+    /// not, so the two platforms showed the same evidence in different orders and iOS asserted a
+    /// relative importance no contract supports.
+    func testServerOrderIsPreservedRatherThanAlphabetised() throws {
+        guard case .success(let payload) = try capabilityEnvelope().briefState() else {
+            return XCTFail("expected success")
+        }
+        // Server order is roster, matchup_dvp, weather (trade_rosters filtered out).
+        XCTAssertEqual(payload.signals.map(\.label), ["Roster", "Matchup Dvp", "Weather"])
     }
 
     /// The envelope legitimately varies by state. Modelling fields as required would turn an

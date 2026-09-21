@@ -73,10 +73,33 @@ class EspnConnectFlowTest {
         assertNull(viewModel.espnCookieReader)
     }
 
+    /**
+     * The founder's 2026-09-19 transparency call, pinned so it cannot be quietly undone either
+     * way. The screen must name the two cookies and must still promise never to show their
+     * values: softening the names loses the disclosure, printing a value breaks
+     * fact-of-record #6. iOS mirror: `testEspnConsentNamesTheCookiesAndNeverTheirValues`.
+     */
+    @Test
+    fun `consent names the cookies and never their values`() {
+        val takes = EspnHandoffCopy.CONSENT_TAKES.joinToString(" ")
+        assertTrue(takes.contains("SWID"))
+        assertTrue(takes.contains("espn_s2"))
+
+        val never = EspnHandoffCopy.CONSENT_NEVER.joinToString(" ").lowercase()
+        assertTrue(never.contains("show those cookies back to you"))
+        assertTrue(never.contains("log them"))
+
+        for (leaked in listOf("{", "}", "AEB", "%7B")) {
+            assertFalse(EspnHandoffCopy.CONSENT_ALL_COPY.contains(leaked))
+        }
+    }
+
     /** The consent sentence is what App Review reads, on both stores. */
     @Test
     fun `consent copy names who the user signs in to and disclaims affiliation`() {
-        val copy = EspnHandoffCopy.CONSENT_BODY
+        // The screen is several constants now rather than one paragraph. The guarantees are
+        // about what the user reads, so this asserts against the whole screen's copy.
+        val copy = EspnHandoffCopy.CONSENT_ALL_COPY
 
         assertTrue(copy.contains("ESPN's own sign-in"))
         assertTrue(copy.contains("never sees your ESPN password"))
@@ -88,7 +111,16 @@ class EspnConnectFlowTest {
     @Test
     fun `espn copy never uses credential vocabulary`() {
         val surfaces = listOf(
-            EspnHandoffCopy.CONSENT_TITLE, EspnHandoffCopy.CONSENT_BODY,
+            EspnHandoffCopy.CONSENT_TITLE, EspnHandoffCopy.CONSENT_EYEBROW,
+            EspnHandoffCopy.CONSENT_LEAD, EspnHandoffCopy.CONSENT_FOOTER,
+            EspnHandoffCopy.CONSENT_TAKES_TITLE, EspnHandoffCopy.CONSENT_NEVER_TITLE,
+            EspnHandoffCopy.CONSENT_DECLINE,
+            // CONSENT_TAKES and CONSENT_NEVER are deliberately excluded. Founder, 2026-09-19:
+            // name the cookies. A user cannot weigh handing something over if the screen will
+            // not say what it is, and this screen exists because the ESPN terms answer was No.
+            // The ban still covers every other surface — naming the fields is disclosure,
+            // showing their values is forbidden by fact-of-record #6. See
+            // `consent names the cookies and never their values`.
             EspnHandoffCopy.CONSENT_CONTINUE, EspnHandoffCopy.SIGN_IN_WAITING,
             EspnHandoffCopy.SIGN_IN_READY, EspnHandoffCopy.SIGN_IN_CONNECT,
             EspnHandoffCopy.NO_LEAGUES_FOUND, EspnHandoffCopy.DISCOVERY_UNAVAILABLE,

@@ -12,6 +12,7 @@ Compiled from `design/native-visual-lock-2026-09-13/CommandCenter.dc.html` on 20
 | Scroll rule | fits; measured body overflow from canvas render: 0px. |
 | Data route | GET /api/dashboard/summary + GET /api/league/overview + GET /api/waivers/analysis + GET /api/moves?contract_version=moves-history.v2 |
 | API contract | dashboard-summary.v1 + league-overview.v1 + waiver-analysis.v1 + moves-history.v2 |
+| Capability profile | consumes receipts; owns no profile — expresses per `capability-expression-v1.md` |
 | Governing rule | Small Council pages workshop; independent section failure |
 
 ## Native build rules

@@ -12,6 +12,7 @@ Compiled from `design/native-visual-lock-2026-09-13/TradeVerdict.dc.html` on 202
 | Scroll rule | scrolls; measured body overflow from canvas render: 69px. |
 | Data route | POST /api/trade/compare |
 | API contract | trade-compare.v2 |
+| Capability profile | `trade` — expresses per `capability-expression-v1.md` |
 | Governing rule | Trade workshop section 9.2 verdict states |
 
 ## Native build rules

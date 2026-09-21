@@ -1,0 +1,16 @@
+ios      dark  journey-j4.nominal.01-trade-build                    461359B  aa425518
+android  dark  journey-j4.nominal.01-trade-build                    244636B  60459132
+ios      dark  journey-j4.nominal.02-trade-roster                   268323B  a5bcc10b
+android  dark  journey-j4.nominal.02-trade-roster                   184365B  b127ed4c
+ios      dark  journey-j4.nominal.03-trade-verdict                  675478B  21a8e4a7
+android  dark  journey-j4.nominal.03-trade-verdict                  302790B  b4ee81e8
+ios      dark  journey-j4.nominal.04-trade-share                    300041B  fb5a5b6b
+android  dark  journey-j4.nominal.04-trade-share                    206754B  0dd03920
+ios      dark  journey-j4.degraded.01-trade-build                   472181B  ecafcdab
+android  dark  journey-j4.degraded.01-trade-build                   258398B  e56fb466
+ios      dark  journey-j4.degraded.02-trade-roster                  222413B  02af2718
+android  dark  journey-j4.degraded.02-trade-roster                  142386B  14f8797f
+ios      dark  journey-j4.degraded.03-trade-needs-context           625180B  a5b7c8a5
+android  dark  journey-j4.degraded.03-trade-needs-context           303082B  5c6e6abf
+ios      dark  journey-j4.degraded.04-trade-share                   360250B  c5f24fe0
+android  dark  journey-j4.degraded.04-trade-share                   226418B  813d37ff

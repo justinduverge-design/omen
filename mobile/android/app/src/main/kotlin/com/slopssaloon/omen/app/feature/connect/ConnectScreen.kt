@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import com.slopssaloon.omen.R
 import com.slopssaloon.omen.core.designsystem.component.OmenButton
+import com.slopssaloon.omen.core.designsystem.component.OmenCard
 import com.slopssaloon.omen.core.designsystem.component.OmenButtonVariant
 import com.slopssaloon.omen.core.designsystem.component.OmenIconButton
 import com.slopssaloon.omen.core.designsystem.component.OmenIconButtonSize
@@ -130,7 +131,7 @@ fun ConnectScreen(
                             // No provider is selected by default (spec §4), and availability is stated up
                             // front rather than discovered by tapping into a dead end.
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                ConnectProvider.entries.forEach { provider ->
+                                ConnectProvider.displayOrder.forEach { provider ->
                                     ConnectProviderCard(
                                         provider = provider,
                                         onClick = { scope.launch { viewModel.selectProvider(provider) } },
@@ -311,14 +312,28 @@ fun ConnectScreen(
             // not decorative — Disney's Terms of Use §2.B.vii bars use suggesting association.
             is ConnectState.EspnConsent -> {
                 Text(
+                    EspnHandoffCopy.CONSENT_EYEBROW,
+                    style = OmenTheme.typography.micro.toTextStyle(),
+                    color = OmenTheme.color.accent,
+                )
+                Text(
                     EspnHandoffCopy.CONSENT_TITLE,
                     style = OmenTheme.typography.h2.toTextStyle(),
                     color = OmenTheme.color.textPrimary,
                 )
                 Text(
-                    EspnHandoffCopy.CONSENT_BODY,
+                    EspnHandoffCopy.CONSENT_LEAD,
                     style = OmenTheme.typography.body.toTextStyle(),
                     color = OmenTheme.color.textSecondary,
+                )
+                // Two itemised lists rather than one paragraph: a promise buried mid-sentence is
+                // not one a user can check. Same structure and strings as iOS.
+                ConsentList(EspnHandoffCopy.CONSENT_TAKES_TITLE, EspnHandoffCopy.CONSENT_TAKES)
+                ConsentList(EspnHandoffCopy.CONSENT_NEVER_TITLE, EspnHandoffCopy.CONSENT_NEVER)
+                Text(
+                    EspnHandoffCopy.CONSENT_FOOTER,
+                    style = OmenTheme.typography.bodySmall.toTextStyle(),
+                    color = OmenTheme.color.textTertiary,
                 )
                 OmenButton(EspnHandoffCopy.CONSENT_CONTINUE, { viewModel.beginEspnSignIn() })
                 OmenButton(
@@ -513,11 +528,45 @@ private fun ConnectProviderCard(provider: ConnectProvider, onClick: () -> Unit) 
 
 
 @Composable
+private fun ConsentList(title: String, items: List<String>) {
+    Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8)) {
+        Text(
+            title,
+            style = OmenTheme.typography.micro.toTextStyle(),
+            color = OmenTheme.color.textTertiary,
+        )
+        OmenCard {
+            Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8)) {
+                items.forEach { item ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8)) {
+                        Text(
+                            "·",
+                            style = OmenTheme.typography.bodySmall.toTextStyle(),
+                            color = OmenTheme.color.accent,
+                        )
+                        Text(
+                            item,
+                            style = OmenTheme.typography.bodySmall.toTextStyle(),
+                            color = OmenTheme.color.textSecondary,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun ProviderMark(provider: ConnectProvider) {
+    // Neutral four-letter crests, per ConnectLeague.dc.html. These were "E", "Y!" and "S" on
+    // filled provider hexes; a red E tile and Y! are close enough to the providers' own marks to
+    // read as their branding, and W1-GATE carries "no association-implying ESPN branding" as a
+    // binding constraint. The hex stays as the tile background — sole sanctioned colour
+    // exception, and never the only carrier, because the row names the provider (D7).
     val (label, color, foreground) = when (provider) {
-        ConnectProvider.Espn -> Triple("E", OmenTheme.color.data.platformEspnChip, OmenTheme.color.data.onPlatformEspn)
-        ConnectProvider.Yahoo -> Triple("Y!", OmenTheme.color.data.platformYahooChip, OmenTheme.color.data.onPlatformYahoo)
-        ConnectProvider.Sleeper -> Triple("S", OmenTheme.color.data.platformSleeperChip, OmenTheme.color.data.onPlatformSleeper)
+        ConnectProvider.Espn -> Triple("ESPN", OmenTheme.color.data.platformEspnChip, OmenTheme.color.data.onPlatformEspn)
+        ConnectProvider.Yahoo -> Triple("YHOO", OmenTheme.color.data.platformYahooChip, OmenTheme.color.data.onPlatformYahoo)
+        ConnectProvider.Sleeper -> Triple("SLPR", OmenTheme.color.data.platformSleeperChip, OmenTheme.color.data.onPlatformSleeper)
     }
     Box(
         contentAlignment = Alignment.Center,
@@ -526,17 +575,26 @@ private fun ProviderMark(provider: ConnectProvider) {
     ) {
         Surface(shape = RoundedCornerShape(10.dp), color = color, modifier = Modifier.fillMaxSize()) {
             Box(contentAlignment = Alignment.Center) {
-                Text(label, style = OmenTheme.typography.h2.toTextStyle(), color = foreground)
+                Text(
+                    label,
+                    style = OmenTheme.typography.micro.toTextStyle(),
+                    color = foreground,
+                    maxLines = 1,
+                )
             }
         }
     }
 }
 
 private fun availabilityLabel(provider: ConnectProvider): String = when (provider.availability) {
-    is ConnectAvailability.Available -> if (provider == ConnectProvider.Yahoo) {
-        "Sign in with Yahoo"
-    } else {
-        "Just your username — no password"
+    // ESPN previously fell through to "Just your username — no password", which is flatly untrue
+    // of ESPN and is the opposite of what its row has to say. Each provider now states its own
+    // cost, and ESPN's line is the artboard's: the missing phone path is the beta failure.
+    is ConnectAvailability.Available -> when (provider) {
+        ConnectProvider.Yahoo -> "Sign in with Yahoo. Read-only access."
+        ConnectProvider.Espn ->
+            "A few more steps — ESPN has no read-only sign-in. We walk you through it here, on your phone."
+        ConnectProvider.Sleeper -> "Username only. About ten seconds."
     }
     is ConnectAvailability.OnHold -> "On hold"
     is ConnectAvailability.UseWeb -> "Needs a computer for now · we'll show you"

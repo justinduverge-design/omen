@@ -95,6 +95,49 @@ class OmenDecisionTest {
     }
 
     @Test
+    fun `start sit v2 keeps the server recommendation pair without inventing roster rows`() {
+        val detail = requireNotNull(
+            StartSitDetail.parse(
+                """
+                {
+                  "contract_version": "start-sit-detail.v2",
+                  "state": "clear_decision",
+                  "platform": "espn",
+                  "league_id": "L1",
+                  "league_name": "Canvas League",
+                  "team_name": "Fixture Team",
+                  "season": 2026,
+                  "week": 7,
+                  "scoring_format": null,
+                  "recommendation": {
+                    "slot": "WR",
+                    "start": {"player_key":"p-a","name":"Sample WR1","position":"WR","team":"MIA","projected_points":14.8,"status":null,"kickoff":null},
+                    "over": {"player_key":"p-b","name":"Sample WR2","position":"WR","team":"CHI","projected_points":11.6,"status":"Q","kickoff":null},
+                    "points_delta": 3.2,
+                    "confidence": "moderate"
+                  },
+                  "why": ["Higher projected output in this league's scoring (+3.2)."],
+                  "what_could_change_this": ["Sample WR2's final injury status."],
+                  "evidence": [{"category":"player_game_fact","kind":"projection","statement":"Sample WR1 projects 14.8 and Sample WR2 projects 11.6."}],
+                  "alternatives": [{"slot":"FLEX","start":"Sample RB1","over":"Sample RB2","points_delta":1.1}],
+                  "capabilities": []
+                }
+                """.trimIndent(),
+            ),
+        )
+
+        assertEquals("espn", detail.platform)
+        assertEquals(7, detail.week)
+        assertNull("unknown scoring must stay absent", detail.scoringFormat)
+        assertEquals("Sample WR1", detail.recommendation?.start?.name)
+        assertEquals("Q", detail.recommendation?.over?.status)
+        assertEquals(3.2, detail.recommendation?.pointsDelta)
+        assertEquals(1, detail.why.size)
+        assertEquals(1, detail.whatCouldChangeThis.size)
+        assertEquals("FLEX", detail.alternatives.first().slot)
+    }
+
+    @Test
     fun successDecodesIntoARenderableBrief() {
         val envelope = parse(
             """

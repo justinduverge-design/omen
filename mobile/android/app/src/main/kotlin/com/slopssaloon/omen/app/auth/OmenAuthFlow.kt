@@ -49,6 +49,7 @@ import com.slopssaloon.omen.R
 import com.slopssaloon.omen.core.auth.AuthFailure
 import com.slopssaloon.omen.core.auth.AuthFlowState
 import com.slopssaloon.omen.core.auth.OtpCodeValidator
+import com.slopssaloon.omen.core.designsystem.component.OmenAuthButtonVariant
 import com.slopssaloon.omen.core.designsystem.component.OmenAuthPrimaryButton
 import com.slopssaloon.omen.core.designsystem.component.OmenAuthTile
 import com.slopssaloon.omen.core.designsystem.component.OmenButton
@@ -194,7 +195,12 @@ private fun SignInFirstScreen(
                 .weight(1f),
         ) {
             Image(
-                painter = painterResource(id = R.drawable.omen_lockup_stacked),
+                // The stacked lockup, as a vector converted from the same corrected iOS SVG,
+                // so both platforms draw one mark from one geometry. The old
+                // `omen_lockup_stacked.png` baked an opaque #0A0A0B plate into the raster
+                // (measured top-left RGBA [10,10,11,255]) and drew the mark in a black box; a
+                // vector has no plate to bake.
+                painter = painterResource(id = R.drawable.omen_lockup_stacked_vector),
                 contentDescription = "Omen",
                 modifier = Modifier.widthIn(max = 300.dp),
             )
@@ -206,6 +212,15 @@ private fun SignInFirstScreen(
             color = OmenTheme.color.textSecondary,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth().padding(horizontal = OmenTheme.spacing.step16),
+        )
+        Text(
+            text = "One call a week for every team you manage. Plain English, and it shows its work.",
+            style = OmenTheme.typography.bodySmall.toTextStyle(),
+            color = OmenTheme.color.textTertiary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = OmenTheme.spacing.step16, vertical = OmenTheme.spacing.step8),
         )
         if (!live) {
             Text(
@@ -234,51 +249,47 @@ private fun SignInFirstScreen(
                     state is AuthFlowState.ExchangingGoogleToken,
             )
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                if (discordConfigured) {
-                    OmenAuthTile(
-                        contentDescription = "Continue with Discord",
-                        onClick = onDiscord,
-                        enabled = state !is AuthFlowState.LaunchingOAuth &&
-                            state !is AuthFlowState.ExchangingOAuthCode,
-                        loading = state is AuthFlowState.LaunchingOAuth ||
-                            state is AuthFlowState.ExchangingOAuthCode,
-                        modifier = Modifier.weight(1f).height(54.dp),
-                    ) {
+            // `SignIn.dc.html` draws four labelled full-width rows. These were icon-only tiles,
+            // which is worse on its own terms: an unlabelled glyph makes the user infer the
+            // provider, and it gives TalkBack nothing the eye has. iOS made the same change.
+            if (discordConfigured) {
+                OmenAuthPrimaryButton(
+                    text = "Continue with Discord",
+                    onClick = onDiscord,
+                    enabled = state !is AuthFlowState.LaunchingOAuth &&
+                        state !is AuthFlowState.ExchangingOAuthCode,
+                    loading = state is AuthFlowState.LaunchingOAuth ||
+                        state is AuthFlowState.ExchangingOAuthCode,
+                    variant = OmenAuthButtonVariant.Secondary,
+                    icon = {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_auth_discord),
                             contentDescription = null,
                             tint = Color.Unspecified,
                             modifier = Modifier.size(19.dp),
                         )
-                    }
-                }
-                OmenAuthTile(
-                    contentDescription = "Continue with email",
-                    onClick = onShowEmailEntry,
-                    enabled = state !is AuthFlowState.RequestingOtp,
-                    modifier = Modifier.weight(1f).height(54.dp),
-                ) {
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            OmenAuthPrimaryButton(
+                text = "Continue with email",
+                onClick = onShowEmailEntry,
+                enabled = state !is AuthFlowState.RequestingOtp,
+                variant = OmenAuthButtonVariant.Secondary,
+                icon = {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_auth_email),
                         contentDescription = null,
-                        // Tinted, unlike the Discord and Google marks beside it. Those are brand
-                        // logos and must keep their own colours (`Color.Unspecified`); this is a
-                        // plain UI glyph whose asset bakes in the cream `#F5F0E8`, so on a light
-                        // tile it was cream-on-white and all but invisible. It only became
-                        // visible when this screen's hardcoded near-black background literal was
-                        // replaced with the trait-aware `bg` token in the same 2026-09-07 pass —
-                        // the hex is deliberately not written out here, because the enforcement
-                        // scanner matches the literal by pattern and cannot tell prose from code —
-                        // before that the screen forced itself dark and the bug could not show.
+                        // Tinted, unlike the Discord and Google marks. Those are brand logos and
+                        // keep their own colours; this is a plain UI glyph whose asset bakes in
+                        // cream, so it needs the theme's foreground to stay visible.
                         tint = OmenTheme.color.textPrimary,
                         modifier = Modifier.size(19.dp),
                     )
-                }
-            }
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
 
             if (showEmailEntry) {
                 EmailEntry(

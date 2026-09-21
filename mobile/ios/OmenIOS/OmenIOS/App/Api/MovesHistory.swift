@@ -1,5 +1,12 @@
 import Foundation
 
+/// `GET /api/moves/:id` → `move-detail.v1`. An immutable snapshot of one call.
+///
+/// Android has asserted `contract_version == "move-detail.v1"` since slice E
+/// (`MovesHistory.kt`); iOS decoded whatever arrived. That asymmetry is closed here rather than
+/// left as a note: a receipt is the one surface in the product that claims to show what was
+/// true at issue time, so decoding a payload that never said which contract it was written to
+/// is the wrong kind of forgiving.
 struct MoveReceipt: Decodable {
     let snapshot: Snapshot
     let evidenceAtTheTime: [Evidence]
@@ -21,10 +28,28 @@ struct MoveReceipt: Decodable {
     enum CodingKeys: String, CodingKey {
         case snapshot, evidenceAtTheTime = "evidence_at_the_time", userAction = "user_action"
         case observedOutcome = "observed_outcome", fairnessNote = "fairness_note", capabilities
+        case contractVersion = "contract_version"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let version = try c.decodeIfPresent(String.self, forKey: .contractVersion)
+        guard version == "move-detail.v1" else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .contractVersion, in: c,
+                debugDescription: "expected move-detail.v1, got \(version ?? "no contract_version")"
+            )
+        }
+        snapshot = try c.decode(Snapshot.self, forKey: .snapshot)
+        evidenceAtTheTime = try c.decode([Evidence].self, forKey: .evidenceAtTheTime)
+        userAction = try c.decode(Statement.self, forKey: .userAction)
+        observedOutcome = try c.decode(Statement.self, forKey: .observedOutcome)
+        fairnessNote = try c.decode(String.self, forKey: .fairnessNote)
+        capabilities = try c.decodeIfPresent([OmenDecisionCapability].self, forKey: .capabilities)
     }
 }
 
-/// M5-Native-API-Client slice E — `GET /api/moves` → `moves-history.v1`.
+/// M5-Native-API-Client slice E — `GET /api/moves` → `moves-history.v2`.
 ///
 /// Replaces the Ledger preview fixture. The approved composition (Figma node `72:2`) is
 /// unchanged: this is wiring only.
@@ -153,7 +178,7 @@ struct MovesHistory: Decodable, Equatable {
 // MARK: - Contract → screen state
 
 extension MovesHistory {
-    /// Maps `moves-history.v1` onto the shipped `OmenLedgerPreviewState`.
+    /// Maps `moves-history.v2` onto the shipped `OmenLedgerPreviewState`.
     ///
     /// An empty list is a real answer, not a failure: a signed-in user with a connected league
     /// and no recorded moves genuinely has an empty Ledger, and the approved empty surface says
@@ -180,7 +205,12 @@ extension MovesHistory {
             summary: recommendation,
             outcome: outcomeText(for: move),
             actionStatus: actionText(for: move),
-            outcomeProvenance: move.provenance?.trimmed.lowercased()
+            outcomeProvenance: move.provenance?.trimmed.lowercased(),
+            // J6. The same two facts as structure, for `OmenLedgerScreen`. Built here rather
+            // than parsed back out of the sentences above, because recovering them from the
+            // rendered strings would mean re-merging the two axes the Ledger's rule keeps apart.
+            action: action(for: move),
+            ledgerOutcome: ledgerOutcome(for: move)
         )
     }
 
@@ -207,30 +237,83 @@ extension MovesHistory {
     /// and `effectiveness_pct` — and it never converts silence into a claim. `buildSummary()`
     /// only counts effectiveness for followed, decided moves, so this line mirrors that rule
     /// rather than pairing a score with a move the user never made.
+    ///
+    /// ## The stored column is translated, never surfaced raw
+    ///
+    /// `CONTRACTS.md` is explicit about `LedgerDetail`: the stored `outcome` column holds raw
+    /// `win`/`loss` and **"is translated, never surfaced raw"**. `moves-history.v2` exists to do
+    /// that translation — it maps the raw column to `worked` / `did_not_work` / `not_verified`
+    /// — and both clients have requested v2 since J2.
+    ///
+    /// Until now this function still had `case "win": "Outcome: win"` on both platforms, and a
+    /// v1-shaped payload (an older server, a cached response, a proxy that ignored the query)
+    /// would have rendered the raw column straight to the reader. Three tests, one per platform
+    /// plus a view-model test, **pinned that behaviour as correct**. They were written before
+    /// v2 existed and they are updated here rather than deleted.
+    ///
+    /// A raw `win` is **not** translated to "worked" on the client. The server's mapping has
+    /// three outputs, not two: `not_verified` exists precisely because a stored win is not the
+    /// same claim as a verified one. A client that turned `win` into "worked" would be inventing
+    /// the verification. So an untranslated value resolves to *"Outcome not verified"* — true
+    /// whatever the column held, and it never puts a machine word in front of a person.
+    ///
+    /// The same applies to an unrecognised token. The previous comment argued that printing it
+    /// verbatim avoided hiding a backend change; a backend change is visible in
+    /// `contract_version` and in these tests, and neither of those is the user's screen.
     static func outcomeText(for move: Move) -> String {
         let outcome = move.outcome?.trimmed.lowercased()
         var parts: [String] = []
+        var decided = false
 
         switch outcome {
-        case "worked": parts.append("Verified outcome: worked")
-        case "did_not_work": parts.append("Verified outcome: did not work")
-        case "not_verified": parts.append("Outcome not verified")
-        case "win": parts.append("Outcome: win")
-        case "loss": parts.append("Outcome: loss")
-        case "pending", nil, "": parts.append("Outcome pending")
+        case "worked":
+            parts.append("Verified outcome: worked")
+            decided = true
+        case "did_not_work":
+            parts.append("Verified outcome: did not work")
+            decided = true
+        case "pending", nil, "":
+            parts.append("Outcome pending")
+        // `not_verified` is v2's own third value; `win` and `loss` are the raw column arriving
+        // untranslated; anything else is a token this build has no copy for. All three are the
+        // same statement to a reader: there is a row, and nobody has verified how it went.
         default:
-            // An unrecognised outcome is shown verbatim rather than bucketed. Forcing an
-            // unknown value into "pending" would hide a real backend change.
-            parts.append("Outcome: \(move.outcome ?? "")")
+            parts.append("Outcome not verified")
         }
 
-        if (outcome == "win" || outcome == "loss"),
-           move.followed == true,
-           let effectiveness = move.effectivenessPct {
+        if decided, move.followed == true, let effectiveness = move.effectivenessPct {
             parts.append("\(Int(effectiveness.rounded()))% effective")
         }
 
         return parts.joined(separator: " · ")
+    }
+
+    /// What the user did, and **who says so**, as two facts rather than one sentence.
+    ///
+    /// `action_provenance` is the only thing that licenses the unqualified reading. Anything
+    /// that is not `self_reported` is treated as verified — `normalizeMove()` writes the column
+    /// when Omen observed the change — and an absent `followed` is `unknown` rather than
+    /// `passed`, because a roster Omen could not read is not a roster the user declined to move.
+    static func action(for move: Move) -> OmenLedgerAction {
+        let provenance: OmenLedgerProvenance =
+            move.actionProvenance?.trimmed.lowercased() == "self_reported" ? .selfReported : .verified
+        switch move.followed {
+        case true: return .followed(provenance)
+        case false: return .passed(provenance)
+        case nil: return .unknown
+        }
+    }
+
+    /// The four values of `moves-history.v2`. A raw `win`/`loss` resolves to `.notVerified` for
+    /// the reason `outcomeText(for:)` gives at length: translating it to `.worked` here would
+    /// invent the verification that v2's third value exists to withhold.
+    static func ledgerOutcome(for move: Move) -> OmenLedgerOutcome {
+        switch move.outcome?.trimmed.lowercased() {
+        case "worked": return .worked
+        case "did_not_work": return .didNotWork
+        case "pending", nil, "": return .pending
+        default: return .notVerified
+        }
     }
 
     static func actionText(for move: Move) -> String? {

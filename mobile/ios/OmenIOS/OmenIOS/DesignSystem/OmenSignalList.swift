@@ -45,12 +45,28 @@ struct OmenSignalItem: Identifiable {
     let source: OmenSignalSource
     let detail: String?
     let kind: OmenEvidenceKind?
+    /// **Did this input change the answer?** A separate question from whether it could be read,
+    /// and the client dropped it until 2026-09-17 — so "we used this" and "we have it and it did
+    /// not matter here" were indistinguishable on screen.
+    ///
+    /// `shared-decision-context.v1` is explicit that *"a resolved source is not described as
+    /// decision-making evidence until an engine marks it used"*, and
+    /// `capability-expression-v1.md` needs this axis to tell two of its four presentation classes
+    /// apart. `nil` means the server did not say, which is not the same as `false`.
+    let used: Bool?
 
-    init(label: String, source: OmenSignalSource, detail: String? = nil, kind: OmenEvidenceKind? = nil) {
+    init(
+        label: String,
+        source: OmenSignalSource,
+        detail: String? = nil,
+        kind: OmenEvidenceKind? = nil,
+        used: Bool? = nil
+    ) {
         self.label = label
         self.source = source
         self.detail = detail
         self.kind = kind
+        self.used = used
     }
 }
 
@@ -69,6 +85,20 @@ struct OmenSignalList: View {
         }
     }
 
+    /// One input, rendered in exactly one of the presentation classes from
+    /// `capability-expression-v1.md`. There is no fifth, and `not_requested` never arrives here —
+    /// it is filtered before mapping, because a source Omen never asked for is not a source it
+    /// failed to read.
+    ///
+    /// **Used and read-but-unused must not look alike.** Until 2026-09-18 every row rendered the
+    /// same badge at the same prominence, so "this moved the call" and "we read it and it changed
+    /// nothing" were indistinguishable to a reader — even after `used` was carried all the way
+    /// through the transport and three tests proved it arrived. The data was right and the screen
+    /// still overclaimed. A degraded capture caught it; no unit test could have.
+    ///
+    /// The difference is carried by **form, not hue** (D7): an unused input loses its badge and
+    /// drops to tertiary ink. It is still named — dropping it would read as a factor that did not
+    /// exist, rather than one that did not matter.
     private func signalRow(_ signal: OmenSignalItem) -> some View {
         let (tone, label): (OmenBadgeTone, String)
         switch signal.source {
@@ -77,22 +107,41 @@ struct OmenSignalList: View {
         case .mock: (tone, label) = (.mock, "Mock")
         case .unavailable: (tone, label) = (.unavailable, "Unavailable")
         }
+
+        // `used == false` is a statement; `nil` is the server declining to say, and silence is
+        // not demotion. Only an explicit false demotes the row.
+        let readButUnused = signal.source == .live && signal.used == false
+
         return HStack(alignment: .top, spacing: OmenSpacing.step12) {
-            OmenBadge(label: label, tone: tone)
+            if readButUnused {
+                // No badge. A badge is the evidence affordance, and this input is not evidence.
+                Text("Not used")
+                    .omenTextStyle(OmenTypography.micro)
+                    .foregroundStyle(OmenColor.textTertiary)
+                    .frame(width: 58, alignment: .leading)
+            } else {
+                OmenBadge(label: label, tone: tone)
+            }
             VStack(alignment: .leading, spacing: OmenSpacing.step4) {
                 Text(signal.label)
                     .omenTextStyle(OmenTypography.body)
-                    .foregroundStyle(OmenColor.textPrimary)
+                    .foregroundStyle(readButUnused ? OmenColor.textTertiary : OmenColor.textPrimary)
                 if let detail = signal.detail {
                     Text(detail)
                         .omenTextStyle(OmenTypography.bodySmall)
-                        .foregroundStyle(OmenColor.textSecondary)
+                        .foregroundStyle(readButUnused ? OmenColor.textTertiary : OmenColor.textSecondary)
                 }
             }
         }
-        .accessibilityLabel([label, signal.kind?.rawValue, signal.label, signal.detail]
-            .compactMap { $0 }
-            .joined(separator: ". "))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            [readButUnused ? "Read, not used" : label,
+             signal.kind?.rawValue,
+             signal.label,
+             signal.detail]
+                .compactMap { $0 }
+                .joined(separator: ". ")
+        )
     }
 }
 

@@ -1,0 +1,16 @@
+ios      dark  journey-j2.nominal.01-command-center                 376104B  ad100888
+android  dark  journey-j2.nominal.01-command-center                 215266B  593aee68
+ios      dark  journey-j2.nominal.02-switch-sheet                   348177B  e2fb73f5
+android  dark  journey-j2.nominal.02-switch-sheet                   188742B  a4013ab3
+ios      dark  journey-j2.nominal.03-switch-loading                 431278B  06381366
+android  dark  journey-j2.nominal.03-switch-loading                 133321B  a081c4d2
+ios      dark  journey-j2.nominal.04-command-quiet                  211485B  5db69591
+android  dark  journey-j2.nominal.04-command-quiet                  140327B  f375022f
+ios      dark  journey-j2.degraded.01-command-center                283702B  b66750a2
+android  dark  journey-j2.degraded.01-command-center                201422B  5e5e1a5f
+ios      dark  journey-j2.degraded.02-switch-sheet                  268701B  7bcac895
+android  dark  journey-j2.degraded.02-switch-sheet                  208533B  b3676469
+ios      dark  journey-j2.degraded.03-switch-loading                431278B  06381366
+android  dark  journey-j2.degraded.03-switch-loading                133335B  2dcfa7a8
+ios      dark  journey-j2.degraded.04-command-quiet-straight        209007B  fd85e674
+android  dark  journey-j2.degraded.04-command-quiet-straight        140028B  97f7eebf

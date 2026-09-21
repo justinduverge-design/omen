@@ -279,7 +279,9 @@ The `connected → Omen ready` transition uses the single dashboard status truth
 
 ### 4.4 ESPN
 
-ESPN stays feasibility-gated (M0a §5, item 7). No direct cookie-entry UI in a store build until a separately approved, safe mobile method exists. ESPN must not block first-run success for demo/Sleeper/Yahoo users.
+ESPN must not block first-run success for demo/Sleeper/Yahoo users.
+
+**⚠️ CORRECTED 2026-09-18.** This paragraph previously opened *"ESPN stays feasibility-gated (M0a §5, item 7). No direct cookie-entry UI in a store build until a separately approved, safe mobile method exists."* That gate closed on **2026-08-31**: `W1-GATE` answered the terms question **No**, and the founder **accepted the risk explicitly** and shipped the in-app connect. The clause outlived its own decision by eighteen days. ESPN's terms still do not permit it and this is an owned risk rather than a clearance — see the correction in `omen-mobile-onboarding-connection-contract-v1.md` §5 for the precise wording and the binding constraints.
 
 ## 5. Idempotency & request IDs
 

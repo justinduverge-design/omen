@@ -338,7 +338,8 @@ final class ConnectViewModel: ObservableObject {
         var session = espnSession
         if session == nil { session = await cookieStore.takeSession() }
         guard let session else {
-            return failEspnSignIn(with: .espnSessionUnreadable)
+            // No provider round trip happened, so there is no diagnostic to carry.
+            return failEspnSignIn(with: .espnSessionUnreadable(nil))
         }
 
         let capture = EspnCapture(
@@ -377,7 +378,7 @@ final class ConnectViewModel: ObservableObject {
     private func failEspnSignIn(with failure: ConnectFailure) {
         clearEspnSession()
 
-        if failure == .espnSessionUnreadable {
+        if case .espnSessionUnreadable = failure {
             espnUnreadableRetries += 1
             if espnUnreadableRetries > 1 {
                 espnCheckNotice = EspnHandoffCopy.signInFellBack

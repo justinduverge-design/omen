@@ -172,6 +172,7 @@ extension OmenDecisionEnvelope {
 
         return OmenDecisionBriefPayload(
             verdict: verdict,
+            callType: recommendation.type,
             move: move,
             impact: recommendation.expectedValueDelta.flatMap(Self.impactText),
             // Never `?? 0`. `src/routes/omen.js` persists a missing score as null behind a
@@ -197,12 +198,24 @@ extension OmenDecisionEnvelope {
 
     private static func signalItems(capabilities: [OmenDecisionCapability]?, legacySignals signals: [String: Signal]?) -> [OmenSignalItem] {
         if let capabilities, !capabilities.isEmpty {
-            return capabilities.sorted { ($0.name ?? "") < ($1.name ?? "") }.map { capability in
+            // `not_requested` is NOT a limitation and must never render as one. A profile only
+            // resolves what it needs — `omen_mvp` does not request trade rosters unless no
+            // lineup or waiver candidate clears the threshold — so an input that was never asked
+            // for is out of scope, not missing. It fell through `signalSource`'s default to
+            // `.unavailable` until 2026-09-17, which told the user Omen had failed to read
+            // something it never wanted. Absence of a claim is not a claim of absence, and a
+            // manufactured limitation is what teaches people to ignore the real ones.
+            // Rule: `capability-expression-v1.md`, "the four presentation classes".
+            // Server order is preserved. This alphabetised until 2026-09-17, which is a claim
+            // about relative importance that no contract supports — and Android never sorted, so
+            // the two platforms showed the same evidence in different orders.
+            return capabilities.filter { $0.state != "not_requested" }.map { capability in
                 OmenSignalItem(
                     label: signalLabel(capability.name ?? "unknown_capability"),
                     source: signalSource(capability.state),
                     detail: capability.statement ?? capability.source,
-                    kind: evidenceKind(capability.kind)
+                    kind: evidenceKind(capability.kind),
+                    used: capability.used
                 )
             }
         }

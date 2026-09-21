@@ -12,6 +12,7 @@ Compiled from `design/native-visual-lock-2026-09-13/TradeShare.dc.html` on 2026-
 | Scroll rule | scrolls; measured body overflow from canvas render: 0px. |
 | Data route | POST /api/trade/share |
 | API contract | trade-share.v1 |
+| Capability profile | `trade` — expresses per `capability-expression-v1.md` |
 | Governing rule | 30-day hash, no auth, no provider data, names off by default |
 
 ## Native build rules

@@ -137,6 +137,22 @@ enum class ConnectProvider(val displayName: String, val platform: OmenPlatform) 
     Yahoo("Yahoo", OmenPlatform.Yahoo),
     Sleeper("Sleeper", OmenPlatform.Sleeper);
 
+    companion object {
+        /**
+         * The order the picker shows, which is **not** `entries`.
+         *
+         * `ConnectLeague.dc.html` draws Sleeper -> Yahoo -> ESPN, and the connection contract's
+         * policy matrix agrees: Sleeper is the fast, direct, resumable path and ESPN is the
+         * most-steps one. The shipped list led with ESPN, putting the slowest and most fragile
+         * provider first — and ESPN on a phone is the only confirmed beta failure on record.
+         *
+         * Declared here rather than by reordering the enum, because `entries` order is not this
+         * screen's to decide on behalf of every other caller. iOS mirror:
+         * `ConnectProvider.displayOrder`.
+         */
+        val displayOrder: List<ConnectProvider> = listOf(Sleeper, Yahoo, Espn)
+    }
+
     val availability: ConnectAvailability
         get() = when (this) {
             Sleeper -> ConnectAvailability.Available
@@ -277,15 +293,50 @@ sealed interface EspnSignInProgress {
  * two platforms cannot drift into telling users different things.
  */
 object EspnHandoffCopy {
-    const val CONSENT_TITLE = "Connect ESPN"
-    const val CONSENT_BODY =
-        "Next, ESPN's own sign-in page opens. You sign in to ESPN directly — Omen never sees " +
-            "your ESPN password and never asks you to type it here. Afterwards Omen reads only " +
-            "what it needs to follow your league: your roster, your scoring settings, and your " +
-            "matchup. It is your account and your choice, and you can disconnect it any time in " +
-            "Account. Omen is not affiliated with or endorsed by ESPN."
-    const val CONSENT_CONTINUE = "Continue to ESPN"
-    const val CONSENT_DECLINE = "Not now"
+    const val CONSENT_EYEBROW = "ESPN"
+    const val CONSENT_TITLE = "Before we start"
+
+    /**
+     * Says what is about to happen, and stops.
+     *
+     * An earlier version explained why ESPN differs and compared it to Yahoo's button. Founder,
+     * 2026-09-19: they do not need the reason, and they do not need to hear about another
+     * provider while connecting this one. The terms below still have to be stated — they can be
+     * short and boring, they just cannot be missing.
+     */
+    const val CONSENT_LEAD =
+        "ESPN's own sign-in page opens next. You sign in to ESPN, then Omen reads your league."
+    const val CONSENT_TAKES_TITLE = "What Omen takes"
+    val CONSENT_TAKES = listOf(
+        "Two cookies, SWID and espn_s2, which identify you to ESPN.",
+        "Your leagues, rosters, matchups and scoring settings.",
+    )
+    const val CONSENT_NEVER_TITLE = "What Omen never does"
+    val CONSENT_NEVER = listOf(
+        "Set a lineup, make a claim, or send a trade.",
+        "Post, message, or act as you anywhere.",
+        "Show those cookies back to you, log them, or send them anywhere but ESPN.",
+    )
+    const val CONSENT_FOOTER =
+        "You sign in on ESPN's own sign-in page, and Omen never sees your ESPN password. " +
+            "Signing out of ESPN in your browser ends Omen's access too. You can disconnect " +
+            "from Account at any time and the stored values are deleted. Omen is not " +
+            "affiliated with or endorsed by ESPN."
+    /**
+     * Every consent surface as one string, for the App Review guardrails that check the screen as
+     * a whole. Replaces `CONSENT_BODY`, which was the single paragraph this screen used to be —
+     * the assertions are about what the screen says, not which constant holds it.
+     * iOS mirror: `EspnHandoffCopy.consentAllCopy`.
+     */
+    val CONSENT_ALL_COPY: String
+        get() = (
+            listOf(CONSENT_EYEBROW, CONSENT_TITLE, CONSENT_LEAD, CONSENT_TAKES_TITLE) +
+                CONSENT_TAKES + listOf(CONSENT_NEVER_TITLE) + CONSENT_NEVER +
+                listOf(CONSENT_FOOTER, CONSENT_CONTINUE, CONSENT_DECLINE)
+            ).joinToString(" ")
+
+    const val CONSENT_CONTINUE = "I understand — open the ESPN sheet"
+    const val CONSENT_DECLINE = "Use Sleeper or Yahoo instead"
 
     const val SIGN_IN_WAITING = "Sign in to ESPN above. Omen picks up from there."
     const val SIGN_IN_READY =

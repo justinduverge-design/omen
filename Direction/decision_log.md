@@ -3284,3 +3284,224 @@ behaving; until then this entry records intent, not proof.
   receive or contact the Tailscale model endpoint, and the 1.25-second narration attempt cannot
   choose or modify the move, confidence, risk, players, or sources. A late/invalid attempt is
   represented as unavailable; the deterministic recommendation remains the answer.
+
+## 2026-09-18 — Artboard and contract precedence; journeys as the unit of capture
+
+- **Decision: where an artboard and a screen contract disagree, the artboard owns the look and the
+  contract owns the truth.** Artboards are authoritative for composition, placement, type, spacing
+  and tone. Screen contracts are authoritative for data, vocabulary and state. Where an artboard
+  draws content the system cannot produce, its **shape is binding and its literal strings are not**.
+
+  **Why this came up.** `OmenCall.dc.html` draws its facts row as `WIND 22 · 2 ZONES · 4 DAYS ·
+  O-LINE`. The system emits no such inputs: the decision receipt's vocabulary is a closed set of
+  thirteen server-owned capability names — `roster`, `projections`, `waivers`, and so on. The
+  artboard drew *example factors a human analyst would cite*; the system produces *inputs it
+  resolved*. These are two different taxonomies describing two different things, and every screen
+  with an evidence or state surface has the same seam.
+
+  The artboards are therefore **not "behind"** the backend, which is how this was first described.
+  They are drawn against a data model that does not exist. That distinction matters: a lag is
+  closed by catching up, a mismatch is closed by deciding.
+
+  The two rejected options are recorded because they may return. Making the server emit
+  factor-level evidence is arguably the better product and is a substantial backend programme
+  before any screen can be built; redrawing all thirty artboards against the real vocabulary
+  removes the seam permanently but blocks every build behind thirty canvas revisions, on a canvas
+  that has already drifted from its own scale table twice.
+
+- **Decision: screens are captured and built by journey, not by screen.** Six journeys — getting
+  in, the desk, the first call, settling an argument, the scout's nest, the receipts — partition
+  all thirty artboards, with `Account` and `ReportPill` as chrome that is captured but has no path.
+  Each journey captures a nominal pass and a **degraded** pass.
+
+  A screen can be individually correct while the path through it is broken, and none of that is
+  visible in an isolated still. A journey is also the smallest thing that can actually be judged:
+  thirty disconnected screens cannot be assessed until all thirty exist.
+
+  Contract: `Blueprints/specs/design/screen-journeys-v1.md`.
+
+- **Decision: one symbol per capability, and an unmapped name gets no symbol at all.** Never a
+  default, never a placeholder, never the unread mark. Building `U1` produced the defect that
+  forced this: the screen fell back to `evidence.unread-source` for any unmapped name, so an input
+  Omen had read **and used** rendered wearing the "could not read" glyph. An icon made a false
+  claim. A missing symbol says nothing; a wrong one says something untrue.
+
+  Contract: `Blueprints/specs/design/capability-symbols-v1.md`. Nine of the ten glyphs are
+  described rather than drawn, and screens render capability labels without symbols until they
+  exist — which is correct under the rule, not a stopgap.
+
+## 2026-09-18 — D11 waived on OmenCall; the evidence layer becomes the teaching layer
+
+- **Decision: OmenCall scrolls. D11 is waived for this screen and no other.** Building the
+  contractual switcher bar (E005–E012) cost 46.5pt against the artboard's specified 49pt, and
+  OmenCall had less than that in headroom. Measured on iPhone 16 rather than estimated: the
+  floating tab bar's top edge sits at 769.0pt and the screen's final line spans 768.3–799.7pt, so
+  **30.7pt of a 31.3pt line was occluded — 98%**.
+
+  The four options were to tighten the call card's spacing to reclaim ~31pt, drop the ledger line,
+  cut one of the two CTAs, or accept the scroll. The founder took the scroll, **on a condition**:
+  the page must earn it. A screen that scrolls and says no more than a screen that fits has simply
+  got worse.
+
+  **D11 still binds every other screen whose contract declares a fit.** This is one waiver, not a
+  precedent — the clause exists because a decision surface that hides its decision is broken, and
+  that reasoning is untouched.
+
+- **Decision: OmenCall's evidence is reworked to teach, not to assert.** Founder framing: the page
+  should "present its worth for the user so the user can become a better FF player."
+
+  The material largely already exists and is **behind a tap**, on `OmenEvidence`. A user who never
+  taps "See the full argument" learns nothing, which is most users. So the transferable parts are
+  promoted onto `OmenCall` and the deepest part stays where it is.
+
+  The organising idea is that **the capability contract's four presentation classes are the
+  lesson.** Rendered as one flat list they are compliance furniture. Split into three labelled
+  groups — *what moved this call*, *read but it didn't decide this*, *what Omen couldn't read* —
+  they teach exactly the questions a fantasy player needs to learn to ask: not merely what the data
+  said, but whether it mattered and where the model is blind. Two teaching blocks are promoted from
+  elsewhere: *why this confidence* (the rule is agreement, not margin) and *what would change this*
+  (what to monitor before kickoff). "What else was considered" stays on `OmenEvidence` so the tap
+  remains worth taking.
+
+  Contract: `Blueprints/specs/mobile/screens/omencall-evidence-contract-v1.md`, `REVIEW_ONLY`,
+  pending founder ratification. It records four open questions rather than guessing them, including
+  a live spacing-scale conflict between `component-lock-v1.md:241` and registry §2.5.
+
+- **Noted, not fixed: `Brand/brand-system.md` §7 is stale on confidence.** It still gives
+  `"74 — Medium-High Confidence"` as the good example. Fact-of-record #16 retired numeric confidence
+  in favour of a band. A build agent reading the voice doc with the fact of record closed would ship
+  a numeral. Flagged in the screen contract; the brand doc itself is not edited here.
+
+## 2026-09-18 — Artboard precedence refined; the "ESPN is gated" assumption withdrawn
+
+- **Decision (founder): the artboard wins by default, and where the built screen is genuinely
+  better the two are mixed.** This refines, and does not replace, the 2026-09-18 precedence
+  decision. The order of operations is now explicit:
+
+  1. Build the artboard.
+  2. Where the shipped screen carries something genuinely better — or something a fact of record
+     requires — **keep it and merge the two**, rather than deleting it to match a picture.
+  3. **Redraw the artboard to the merged result.** A mix that is not drawn back into the canvas
+     becomes drift at the next diff, and the next agent "fixes" it away.
+
+  Step 3 is the load-bearing one. `OmenCall` was redrawn on 2026-09-18 for exactly this reason.
+
+  **This unblocks `SignIn`.** Its artboard omits the "Look around without an account" demo link and
+  the 13-or-older age gate. Fact-of-record #19 makes Demo Mode the App Store reviewer's entire path
+  into the app and defers its removal until after first approval, so the link is not a nicety — it
+  is the reviewer's only door. Under this rule: take the artboard's composition (four labelled
+  provider buttons, tagline, subline), **keep** the demo link, the age gate and the security
+  explainer, then redraw `SignIn.dc.html` to match.
+
+- **Decision (founder): "ESPN is blocked / research-gated / feasibility-gated" is withdrawn as a
+  bad assumption that this repo created and then carried.** Corrected in place today:
+  `omen-mobile-onboarding-connection-contract-v1.md` §5 (the policy-matrix row **and** the
+  paragraph under it) and `omen-native-app-shell-auth-api-contract-v1.md` §282.
+
+  **The gate closed on 2026-08-31.** `W1-GATE` answered both its questions in writing and the
+  founder accepted the risk explicitly, keeping the live integration with a consent line. Three
+  documents went on asserting the gate for another eighteen days — and one of them sits inside the
+  **native mobile read gate**, which instructs an agent to *stop* when sources conflict. An agent
+  reading it in good faith would have refused to build two approved artboards.
+
+  **The correction is bounded, and the opposite overcorrection is also false.** ESPN's terms do not
+  permit authenticating a user inside our own sheet; that finding stands. The founder knows and owns
+  that risk. ESPN must never be described as "approved", "permitted" or "sanctioned". What was
+  false is only the operational conclusion agents kept drawing: that ESPN **may not be built**. It
+  may, under the constraints `W1-GATE` carried out — no association-implying branding, a consent
+  screen, the prepared App Review answer, and fact-of-record #6 on cookie values.
+
+  **Deliberately not rewritten:** the dated handoff `2026-08-15-native-api-scope-and-scoring-source.md`,
+  the `Blueprints/done/LEDGER.md` row, and the Safari-extension memo. The first two are provenance
+  and were true when written; the third is about `M7-EspnSafariExtension`, which is a different
+  claim and is still correct. Also untouched: `espn_import_blocked` as a backend state name, the
+  cookie-handling prohibitions, and `F6`'s block on founder-device QA — none of those are this
+  assumption.
+
+  **Generalisable, and this is the second time it is on the record:** fact-of-record #11 already
+  names *"a correction was written where it was discovered rather than everywhere it was asserted"*
+  as a standing failure of this repo. A closing gate must include the sweep for every document that
+  asserts it, or the gate does not close — it just stops being true in one place.
+
+## 2026-09-19 — J1 and J3 land; four corrections worth more than the screens
+
+- **Decision: J3 "the first call" and J1 "getting in" are built on both platforms**, with ordered
+  contact sheets and both passes each. Twelve frames for J3, twelve for J1. Evidence:
+  `Solutions/deliverables/native-runs/2026-09-18-j3-first-call/` and `.../2026-09-18-j1-before/`.
+
+- **Decision (founder): the ESPN consent screen names the cookies.** "Two cookies, SWID and
+  espn_s2", on both platforms. The credential-vocabulary ban still holds everywhere else, and the
+  two coexist on a distinction now written into both codebases and pinned by a test on each:
+  **naming the fields is disclosure; showing the values stays forbidden** by fact-of-record #6.
+  Founder's reasoning: transparency is how this product is being built.
+
+- **Decision (founder): the artboard wins by default; where the built screen is genuinely better,
+  mix the two — then redraw the artboard to the merged result.** Step three is load-bearing. Two
+  artboards were redrawn under it this session: `OmenCall.dc.html` and `SignIn.dc.html`.
+
+- **Decision (founder): D11 waived on OmenCall only**, measured at 30.7pt of a 31.3pt line
+  occluded once the contractual switcher bar is present, and conditional on the page earning the
+  scroll. It did: the evidence layer became three labelled capability groups plus a confidence
+  rule, promoted from a surface most users never opened.
+
+### Four corrections, recorded because each has a general shape
+
+1. **A condition that ended, recorded where nobody revisited it, still steering decisions weeks
+   later.** "ESPN is research-gated" outlived its own gate by eighteen days in three documents,
+   one of them inside the native read gate — an agent reading it in good faith would have refused
+   to build two approved artboards. The identical failure then repeated **in the same session**:
+   Yahoo was omitted from a provider list because of a stale comment written while Yahoo really
+   was on hold. **Read the availability, do not remember it.** This is fact-of-record #11's
+   failure for the third time on the record, so it is now stated as a rule: a closing gate must
+   sweep every document that asserts it, or it has not closed.
+
+2. **A green exit code is not a passing check.** `cmd | tail` returns *tail's* status. Two Android
+   steps were reported here as successes while printing `no such file or directory` and
+   `BUILD FAILED`. This is the same class as the "quiet CI means untested" warning that opened the
+   work — committed by the agent repeating the warning. `set -o pipefail`, and read the output.
+
+3. **A capture is evidence only of the build that produced it.** A stale screenshot was sent for
+   review five minutes after the fix it was missing had landed, and the founder reviewed the
+   photograph rather than the app. Separately, an earlier run produced a **completely blank**
+   first frame that would have shipped as a journey's opening image. Check frames before handing
+   a sheet over.
+
+4. **A screen can be captured and unreachable.** `OmenNoLeagueScreen` and `OmenConnectFailedScreen`
+   were referenced only by screenshot scenarios on both platforms — they photographed perfectly
+   and no user could arrive at either. Found by asking what production code referenced them, which
+   no visual review would ever have asked. `OmenConnectFailedScreen` then could not be wired
+   honestly until `ConnectFailure` carried the provider's real status, league and time: forcing it
+   with an invented 401 would have been the exact false claim the screen exists to prevent.
+
+## 2026-09-20 — J2, J4, J5, J6 and the native chrome close the visual-lock build
+
+- **Decision:** the four remaining journeys are implemented on iOS and Android with nominal and
+  degraded states, production references, journey interaction coverage, and inspected paired
+  captures. Evidence lives under `Solutions/deliverables/native-runs/2026-09-20-j2-the-desk/`,
+  `2026-09-20-j4-settling-an-argument/`, `2026-09-20-j5-the-scouts-nest/`, and
+  `2026-09-20-j6-the-receipts/`.
+- **Decision:** Account and ReportPill are chrome rather than a seventh journey. Their state matrix
+  is recorded under `Solutions/deliverables/native-runs/2026-09-20-chrome/`. A beta report is a
+  closed nine-field payload; it cannot carry league data, rosters, screenshots or credentials,
+  requires explicit disclosure acceptance, and distinguishes a server receipt from the storage-
+  unavailable truth: “Your report was not saved.” Review-only storage SQL remains unapplied.
+- **Decision:** the visual lock now contains 32 artboards. The two additions are the degraded
+  Ledger states requested by the founder; all artboards continue to share `_shared.css`.
+- **Process correction:** screenshot review remains serial. This close-out caught missing Android
+  provider badges and a ReportPill captured over a blank field after builds and tests were green.
+  Fresh build installation, byte/hash manifests and opening every frame are separate gates.
+
+## 2026-09-21 — Android chrome parity is measured in platform units, not contact-sheet width
+
+- **Decision:** Android keeps its 48dp interaction minimum, but the surrounding composition matches
+  the iOS visual lock numerically. Account league rows advance 64dp, support rows 64dp, and section
+  labels use 16dp above and 6dp below. Compact link and secondary actions do not fill the row merely
+  because Compose makes that convenient.
+- **Decision:** Account, Privacy, deletion and report scenarios mount over the permanent four-tab
+  shell on both platforms. Account is contextual chrome, not a fifth tab; omitting the shell from a
+  screenshot is a false composition even when the screen itself builds.
+- **Decision:** platform parity applies to information hierarchy as well as spacing. Android Privacy
+  does not expose an Export control until a native carrier exists; deletion uses the same open phrase
+  gate and compact action hierarchy as iOS; Report Composer names the payload, model-summary
+  disclosure and unsupported screenshot attachment before consent. Evidence and measurements are in
+  `Blueprints/handoffs/2026-09-20-j2-j4-j5-j6-and-chrome-closeout.md`, final commit `cf581876`.

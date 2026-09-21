@@ -27,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -37,7 +38,14 @@ import com.slopssaloon.omen.app.auth.OmenDeleteAccountScreen
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterFixtures
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterScreen
 import com.slopssaloon.omen.app.feature.commandcenter.OmenLeagueScreen
+import com.slopssaloon.omen.app.feature.commandcenter.omenScoutWireState
+import com.slopssaloon.omen.app.feature.commandcenter.scoutSummary
+import com.slopssaloon.omen.app.feature.commandcenter.waiverUnread
 import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeScreen
+import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeAnswer
+import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeNeedsContextScreen
+import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeVerdictScreen
+import com.slopssaloon.omen.app.feature.commandcenter.omenTradeAnswer
 import com.slopssaloon.omen.app.feature.help.OmenHelpSupportScreen
 import com.slopssaloon.omen.app.feature.omen.OmenDecisionScreen
 import com.slopssaloon.omen.app.auth.AndroidChromeTabsOAuthProvider
@@ -68,6 +76,12 @@ import com.slopssaloon.omen.app.feature.api.ApiLeagueDirectoryRepository
 import com.slopssaloon.omen.app.feature.api.LeagueCarouselViewModel
 import com.slopssaloon.omen.app.feature.api.LeagueSwitcherViewModel
 import com.slopssaloon.omen.app.feature.commandcenter.OmenLeagueSwitcherSheet
+import com.slopssaloon.omen.app.feature.omen.OmenNoLeagueScreen
+import com.slopssaloon.omen.app.feature.commandcenter.OmenDeskFootnote
+import com.slopssaloon.omen.app.feature.commandcenter.OmenSwitchLoadingScreen
+import com.slopssaloon.omen.app.feature.commandcenter.omenDeskCrest
+import com.slopssaloon.omen.app.feature.shell.OmenScreenContext
+import com.slopssaloon.omen.core.designsystem.component.OmenPlatform
 import com.slopssaloon.omen.app.feature.api.ApiDashboardRepository
 import com.slopssaloon.omen.app.feature.api.ApiLeagueRepository
 import com.slopssaloon.omen.app.feature.api.ApiPlayerSearchRepository
@@ -81,6 +95,15 @@ import com.slopssaloon.omen.app.feature.api.CommandCenterViewModel
 import com.slopssaloon.omen.app.feature.api.OmenApiClient
 import com.slopssaloon.omen.app.feature.api.OmenApiError
 import com.slopssaloon.omen.app.feature.api.OmenDecisionViewModel
+import com.slopssaloon.omen.app.feature.chrome.OmenAccountConnection
+import com.slopssaloon.omen.app.feature.chrome.OmenAccountConnections
+import com.slopssaloon.omen.app.feature.chrome.OmenAccountScreen
+import com.slopssaloon.omen.app.feature.chrome.OmenAccountState
+import com.slopssaloon.omen.app.feature.chrome.OmenBetaReportRepository
+import com.slopssaloon.omen.app.feature.chrome.OmenBetaReportScreen
+import com.slopssaloon.omen.app.feature.chrome.OmenReportComposer
+import com.slopssaloon.omen.app.feature.chrome.OmenReportPill
+import com.slopssaloon.omen.app.feature.chrome.OmenPrivacyDataScreen
 import com.slopssaloon.omen.app.feature.api.ForcedUpdateScreen
 import com.slopssaloon.omen.app.feature.api.MinVersionGateClient
 import com.slopssaloon.omen.app.feature.api.UpdateGateState
@@ -257,6 +280,9 @@ fun OmenAndroidApp() {
     var showAccountSheet by remember { mutableStateOf(false) }
     var showSwitcherSheet by remember { mutableStateOf(false) }
     var showHelpSupportSheet by remember { mutableStateOf(false) }
+    var showReportComposer by remember { mutableStateOf(false) }
+    var showPrivacyData by remember { mutableStateOf(false) }
+    val betaReportRepository = remember { OmenBetaReportRepository(OmenApiClient(env.apiBaseUrl)) }
 
     // The "code didn't arrive" half of email sign-in. Held beside the reducer rather than
     // inside it: a failed resend must not knock the user out of AwaitingOtp and discard the
@@ -497,6 +523,14 @@ fun OmenAndroidApp() {
                             onOpenOmen = { selectedDestination = NavDestination.Omen },
                             onOpenLeague = { selectedDestination = NavDestination.League },
                         )
+                        if (selectedDestination == NavDestination.Command) {
+                            OmenReportPill(
+                                onClick = { showReportComposer = true },
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .padding(horizontal = OmenTheme.spacing.step16, vertical = OmenTheme.spacing.step12),
+                            )
+                        }
                     }
                     OmenLeagueSwitcherSheet(
                         visible = showSwitcherSheet,
@@ -553,17 +587,52 @@ fun OmenAndroidApp() {
                         onDismissRequest = { showAccountSheet = false },
                         title = "Account",
                     ) {
-                        ContextualHelpRow(OmenHelpDestination.Account)
-                        AccountSheetBody(
-                            userId = s.userId,
-                            onOpenHelpSupport = { showHelpSupportSheet = true },
+                        OmenAccountScreen(
+                            state = OmenAccountState(
+                                identity = s.userId,
+                                connections = accountConnections(leagueSwitcherViewModel.viewState),
+                            ),
+                            onAddLeague = { showAccountSheet = false; showConnectSheet = true },
+                            onReportProblem = { showReportComposer = true },
+                            onHelp = { showHelpSupportSheet = true },
+                            onPrivacy = { showPrivacyData = true },
                             onSignOut = {
                                 showAccountSheet = false
                                 sessionManager.signOut()
                             },
+                        )
+                    }
+                    LaunchedEffect(showAccountSheet) {
+                        if (showAccountSheet) leagueSwitcherViewModel.load(s.userId)
+                    }
+                    OmenModalSheet(
+                        visible = showPrivacyData,
+                        onDismissRequest = { showPrivacyData = false },
+                        title = "Privacy & data",
+                    ) {
+                        OmenPrivacyDataScreen(
                             onDelete = if (s.userId != SessionManager.DEMO_USER_ID) {
-                                { showAccountSheet = false; showDelete = true }
+                                { showPrivacyData = false; showAccountSheet = false; showDelete = true }
                             } else null,
+                            onClose = { showPrivacyData = false },
+                        )
+                    }
+                    OmenModalSheet(
+                        visible = showReportComposer,
+                        onDismissRequest = { showReportComposer = false },
+                        title = "Report a problem",
+                    ) {
+                        OmenReportComposer(
+                            screen = OmenBetaReportScreen.CommandCenter,
+                            send = { report ->
+                                val token = store.load()?.accessToken
+                                if (token.isNullOrBlank()) {
+                                    com.slopssaloon.omen.app.feature.chrome.OmenBetaReportOutcome.Failed(
+                                        "Your session expired. Nothing was saved."
+                                    )
+                                } else betaReportRepository.send(report, token)
+                            },
+                            onDone = { showReportComposer = false },
                         )
                     }
                     OmenModalSheet(
@@ -699,7 +768,49 @@ private fun SignedInDestination(
         NavDestination.Command -> {
             LaunchedEffect(userId) { commandCenterViewModel.load(userId) }
             val failure = commandCenterViewModel.failure
-            if (failure != null) {
+            val committingPage = leagueCarouselViewModel.committingPageId?.let { committingId ->
+                leagueCarouselViewModel.allPages.firstOrNull { it.id == committingId }
+            }
+            if (committingPage != null) {
+                // §10.3, wired — the iOS twin is `CommandCenterView.switchingContext`.
+                //
+                // A league switch used to leave the outgoing team's scoreboard on screen until
+                // the new read landed, and for that second the numbers belonged to one team and
+                // the name above them to another. The contract is explicit that "the previous
+                // team's numbers are discarded, never reused while loading", so the desk goes to
+                // its mid-switch state and the switcher bar commits to the incoming team at
+                // once — the one thing on the screen that is actually known.
+                //
+                // The state is read off `committingPageId`, which the carousel already maintains
+                // and `OmenTeamPicker` and `OmenLeagueCarousel` already read. A second flag for
+                // "is a switch happening" would be a second answer to one question.
+                val platform = when (committingPage.platform.lowercase()) {
+                    "yahoo" -> OmenPlatform.Yahoo
+                    "sleeper" -> OmenPlatform.Sleeper
+                    else -> OmenPlatform.Espn
+                }
+                val providerName = when (platform) {
+                    OmenPlatform.Yahoo -> "Yahoo"
+                    OmenPlatform.Sleeper -> "Sleeper"
+                    else -> "ESPN"
+                }
+                OmenSwitchLoadingScreen(
+                    context = OmenScreenContext(
+                        crest = omenDeskCrest(committingPage.displayTeamName),
+                        teamName = committingPage.displayTeamName,
+                        platform = platform,
+                        leagueName = committingPage.leagueName,
+                    ),
+                    // No week label mid-switch: the week belongs to the read that has not landed,
+                    // and carrying the outgoing team's week over is the same reuse §10.3 forbids.
+                    weekLabel = "",
+                    footnote = OmenDeskFootnote(
+                        text = "Reading ${committingPage.displayTeamName} from $providerName.",
+                        emphasis = "The previous team's numbers are gone, not reused.",
+                    ),
+                    onOpenAccount = onOpenAccount,
+                )
+            } else if (failure != null) {
                 // M5 slice B: an unreadable shell renders an explicit failure surface. It must
                 // NOT silently fall through to the disconnected fixture, which would state as
                 // fact that the user has no leagues.
@@ -718,6 +829,16 @@ private fun SignedInDestination(
                         variant = OmenButtonVariant.Secondary,
                     )
                 }
+            } else if (commandCenterViewModel.hasNoConnectedLeague) {
+                // J1's terminus, wired — the iOS twin is `CommandCenterView`'s
+                // `hasNoConnectedLeague` branch. Until now this screen existed only in a
+                // screenshot scenario: captured, and unreachable by any real user, which is a
+                // screenshot of nothing. The Command Center's own furniture renders as a broken
+                // dashboard when there is no league; this says why it is empty instead.
+                OmenNoLeagueScreen(
+                    onConnect = onConnect,
+                    onSeeHowOmenDecides = onOpenOmen,
+                )
             } else {
                 OmenCommandCenterScreen(
                     state = commandCenterViewModel.commandCenterState,
@@ -791,18 +912,41 @@ private fun SignedInDestination(
                         omenDecisionViewModel.load(userId)
                     }
                 }) {
-                OmenTradeScreen(
-                    state = tradeViewModel.viewState,
-                    offer = tradeViewModel.offer,
-                    searchState = tradeViewModel.searchState,
-                    searchingSide = tradeViewModel.searchingSide,
-                    onQueryChanged = { text, side -> tradeViewModel.search(text, side) },
-                    onAdd = { name, side -> tradeViewModel.add(name, side) },
-                    onAddResult = { player, side -> tradeViewModel.add(player, side) },
-                    onRemove = { index, side -> tradeViewModel.remove(index, side) },
-                    onCompare = { scope.launch { tradeViewModel.compare(userId) } },
-                    capabilities = tradeViewModel.capabilities,
-                )
+                // J4: once the server has answered, the answer is J4's screen rather than the
+                // builder's inline verdict. `omenTradeAnswer` picks `TradeVerdict` or
+                // `TradeNeedsContext` off `verdict_state` — the same seat in the journey, in the
+                // two states the contract returns it in — and this is the production route that
+                // makes both reachable rather than only photographable. `OmenTradeAnswer`'s
+                // Swift twin documents which three J4 screens are deliberately NOT wired.
+                val loadedCompare = (tradeViewModel.viewState as? TradeViewModel.ViewState.Loaded)?.result
+                val answer = loadedCompare?.let { omenTradeAnswer(it, tradeViewModel.offer) }
+                when (answer) {
+                    is OmenTradeAnswer.Verdict -> OmenTradeVerdictScreen(
+                        state = answer.state,
+                        onOpenAccount = onOpenAccount,
+                        // Keeps the offer. A user who reads "you give up too much" wants to
+                        // change one player, not retype the deal.
+                        onPrimaryAction = { tradeViewModel.dismissVerdict() },
+                    )
+                    is OmenTradeAnswer.NeedsContext -> OmenTradeNeedsContextScreen(
+                        state = answer.state,
+                        onOpenAccount = onOpenAccount,
+                        onConnect = onConnect,
+                        onShowAnyway = { tradeViewModel.dismissVerdict() },
+                    )
+                    null -> OmenTradeScreen(
+                        state = tradeViewModel.viewState,
+                        offer = tradeViewModel.offer,
+                        searchState = tradeViewModel.searchState,
+                        searchingSide = tradeViewModel.searchingSide,
+                        onQueryChanged = { text, side -> tradeViewModel.search(text, side) },
+                        onAdd = { name, side -> tradeViewModel.add(name, side) },
+                        onAddResult = { player, side -> tradeViewModel.add(player, side) },
+                        onRemove = { index, side -> tradeViewModel.remove(index, side) },
+                        onCompare = { scope.launch { tradeViewModel.compare(userId) } },
+                        capabilities = tradeViewModel.capabilities,
+                    )
+                }
                 LaunchedEffect(Unit) { tradeViewModel.loadCapabilities() }
             }
         }
@@ -825,6 +969,23 @@ private fun SignedInDestination(
                     state = leagueViewModel.viewState,
                     onRetry = { scope.launch { leagueViewModel.reload() } },
                     onConnect = onConnect,
+                    // E017 carries both controls, and `OmenScreenHeaderControls` renders the
+                    // account one only when this is non-null. Without it League — and the wire
+                    // sheet it presents, which inherits this same lambda — would be the only
+                    // signed-in surfaces with no route to the account.
+                    onOpenAccount = onOpenAccount,
+                    // The wire comes from the SAME `waiver-analysis.v1` read Command Center
+                    // already makes, for the reason Trade takes its league from the League
+                    // destination's read: two surfaces that fetch the wire separately can
+                    // disagree about it on screen.
+                    //
+                    // Null until that read lands, which removes the section link rather than
+                    // opening an empty sheet.
+                    wire = commandCenterViewModel.waiverAnalysis?.let {
+                        omenScoutWireState(it, leagueViewModel.wireWeekLabel)
+                    },
+                    waiverSummary = commandCenterViewModel.waiverAnalysis?.scoutSummary
+                        ?: waiverUnread,
                 )
             }
         }
@@ -875,29 +1036,27 @@ private fun ContextualHelpRow(destination: OmenHelpDestination) {
     }
 }
 
-@Composable
-private fun AccountSheetBody(
-    userId: String,
-    onOpenHelpSupport: () -> Unit,
-    onSignOut: () -> Unit,
-    onDelete: (() -> Unit)?,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12)) {
-        Text(
-            text = "Signed in as $userId",
-            style = OmenTheme.typography.body.toTextStyle(),
-            color = OmenTheme.color.textPrimary,
-        )
-        OmenListRow(
-            title = "Support & Help Improve Omen",
-            subtitle = "Help Center, feedback, and problem reporting",
-            onClick = onOpenHelpSupport,
-        )
-        OmenButton(text = "Sign out", onClick = onSignOut, variant = OmenButtonVariant.Secondary)
-        if (onDelete != null) {
-            OmenButton(text = "Delete account", onClick = onDelete, variant = OmenButtonVariant.Danger)
+private fun accountConnections(state: LeagueSwitcherViewModel.ViewState): OmenAccountConnections = when (state) {
+    is LeagueSwitcherViewModel.ViewState.Loaded -> {
+        val rows = state.directory.platforms.flatMap { group ->
+            group.leagues.map { league ->
+                OmenAccountConnection(
+                    id = "${group.platform}:${league.leagueId}",
+                    platform = when (group.platform.lowercase()) {
+                        "espn" -> OmenPlatform.Espn
+                        "yahoo" -> OmenPlatform.Yahoo
+                        else -> OmenPlatform.Sleeper
+                    },
+                    teamName = league.teamName ?: "Team unavailable",
+                    leagueName = league.leagueName ?: "League name unavailable",
+                )
+            }
         }
+        if (rows.isEmpty()) OmenAccountConnections.None else OmenAccountConnections.Loaded(rows)
     }
+    LeagueSwitcherViewModel.ViewState.Demo -> OmenAccountConnections.None
+    LeagueSwitcherViewModel.ViewState.Loading,
+    is LeagueSwitcherViewModel.ViewState.Failed -> OmenAccountConnections.Unavailable
 }
 
 /**

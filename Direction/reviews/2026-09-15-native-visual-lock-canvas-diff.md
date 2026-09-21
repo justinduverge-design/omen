@@ -139,3 +139,40 @@ See F3 and F4. No capture path exists.
 2. Mint capture scenarios for the quiet week, Omen evidence and Ledger, or those artboards can
    never pass a visual gate.
 3. Re-run this diff after `U1` lands, per screen, rather than once at the end.
+
+---
+
+# Addendum — 2026-09-18: U1 built, and what the rebuild changed
+
+**Scope:** iOS only, dark only, `omen.degraded`. Android not rebuilt. `U3`/`U4` untouched.
+
+## Findings from the first run that are now closed
+
+| Finding | State |
+|---|---|
+| F4 — `omen.demo` mounts the Command Center | **fixed.** Both omen scenarios now open the Omen tab. The Omen screen had never been photographed before. |
+| F4b — `CarouselScenarioHost` drops its key | **fixed.** Carousel captures render a connected state whose greeting is *derived* from the shipped function, so the fixture cannot drift from real copy. |
+| F3 — profiles had no degraded capture | **partly closed.** `omen.degraded` exists for `omen_mvp`. The other five profiles still have none. |
+
+## Still open
+
+- **F1 — D4's crest.** The League tab still uses the people glyph. `CanvasShield` already exists in the asset catalog, so this is small.
+- **F2 — provider chips have no fill-ring.** `C6`, unbuilt.
+- Fifteen artboards still have no capture path; `omen.degraded` moved the count to sixteen photographable.
+
+## New, from building against the contract rather than reading it
+
+1. **An icon can lie.** The first build fell back to `evidence.unread-source` when a capability name matched no symbol, so an input Omen had read *and used* wore the "could not read" mark. Symbols are optional now. **Generalisable: a default glyph is a default claim.**
+2. **The evidence key column was drawn against a shorter vocabulary than the API has.** 58pt fits "Weather" and "Rest"; it breaks "Matchup Dvp" mid-syllable. Widened to 84. The artboard was drawn before the capability vocabulary existed — the same three-day gap that left 19 of 21 contracts unaware of capabilities.
+3. **Two artboard strings have no contract behind them** and are now absent by decision rather than by oversight: `1 of 3` (no call index in v3) and `Locked Tue 3:00` (no lock time; a client-computed one is a schedule claim Omen cannot stand behind).
+4. **One artboard/shipped conflict, unresolved on purpose.** The header slot holds the shipped contextual-help button where the artboard draws an account avatar. Deleting a shipped affordance to match a picture is not a fix. Founder call.
+
+## What the rebuild actually changed on screen
+
+Before: `h1` title, a prose subtitle, the generic decision brief, a green `LOW RISK` pill, a green `+4.1` delta, green `LIVE` badges, and confidence rendered as a grey chip.
+
+After: week eyebrow in brass, screen title, scope line, the call card with the call at 24pt, the confidence band as a 14×2 brass rule plus the word, risk as a plain tertiary label with **no container**, the facts row as the capability expression, the evidence block, provider handoff and decline, and the Ledger footer.
+
+**There is no green anywhere on the Omen screen now.** That was expected to wait for `U2`'s colour half — in practice, building risk and confidence to their registry treatments removed the last of it on this screen, because the green only ever lived in the containers those treatments replaced.
+
+D11 holds: every element sits above the tab bar at 390×844 with clear space below the footer.

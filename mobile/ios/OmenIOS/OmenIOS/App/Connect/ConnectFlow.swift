@@ -114,6 +114,49 @@ enum ConnectState: Equatable {
 /// Why a connection attempt stopped, in terms the user can act on. Never carries a raw
 /// provider error, identifier, or credential — spec §7: "raw provider/cookie details never
 /// enter client copy."
+/// What the provider actually said, when it said anything.
+///
+/// `ConnectFailed.dc.html` shows the status code, the league and the time, because "it didn't
+/// work" is not a report a user can act on and support cannot triage without them. Carrying them
+/// on the failure is what makes that screen reachable honestly — before this, the screen existed
+/// and nothing could populate it, so nothing could route to it.
+///
+/// Every field is optional and the screen degrades field by field. **A value is never invented**:
+/// if ESPN gave no status, none is shown. `leagueID` is a league id, never a cookie value —
+/// fact-of-record #6 is unaffected by this type and no cookie may ever enter it.
+struct EspnDiagnostic: Equatable {
+    let statusCode: Int?
+    let statusText: String?
+    let leagueID: String?
+    let observedAt: Date
+
+    init(statusCode: Int?, statusText: String?, leagueID: String? = nil, observedAt: Date = Date()) {
+        self.statusCode = statusCode
+        self.statusText = statusText
+        self.leagueID = leagueID
+        self.observedAt = observedAt
+    }
+
+    /// `observedAt` is deliberately **excluded from equality**, and the exclusion is the whole
+    /// point of writing `==` by hand rather than letting it be synthesised.
+    ///
+    /// It defaults to `Date()`, so a synthesised `==` would compare two diagnostics describing the
+    /// identical provider failure as unequal because they were constructed microseconds apart.
+    /// `ConnectFailure` is `Equatable` and carries this type, so that time-dependence would
+    /// propagate to every comparison of a populated failure. Nothing depends on it today only
+    /// because every existing test uses `.espnSessionUnreadable(nil)`; the first test that asserts
+    /// against a populated diagnostic would have flaked nondeterministically, which is the kind of
+    /// failure that gets an assertion deleted rather than fixed.
+    ///
+    /// Two diagnostics are the same diagnostic when they say the same thing about the same league.
+    /// *When* they were observed is for the reader of the screen, not for identity.
+    static func == (lhs: EspnDiagnostic, rhs: EspnDiagnostic) -> Bool {
+        lhs.statusCode == rhs.statusCode
+            && lhs.statusText == rhs.statusText
+            && lhs.leagueID == rhs.leagueID
+    }
+}
+
 enum ConnectFailure: Error, Equatable {
     case usernameNotFound
     case noLeaguesForSeason
@@ -130,9 +173,18 @@ enum ConnectFailure: Error, Equatable {
 
     /// Signed in, but the session was not where Omen could read it. Contract §W1-A's failure
     /// table names this one explicitly and forbids blaming the user for it.
-    case espnSessionUnreadable
+    case espnSessionUnreadable(EspnDiagnostic? = nil)
     /// The session read fine and ESPN refused the league — wrong league, or no access to it.
-    case espnLeagueUnreachable
+    case espnLeagueUnreachable(EspnDiagnostic? = nil)
+
+    /// The provider's own account of the failure, when there is one. Only the ESPN cases carry
+    /// it, because only they have a provider response behind them.
+    var espnDiagnostic: EspnDiagnostic? {
+        switch self {
+        case .espnSessionUnreadable(let d), .espnLeagueUnreachable(let d): return d
+        default: return nil
+        }
+    }
 
     var message: String {
         switch self {
@@ -166,6 +218,18 @@ enum ConnectProvider: String, CaseIterable, Identifiable {
     case sleeper
 
     static let espnSetupURL = URL(string: "https://slopssaloon.com/espn-connect")!
+
+    /// The order the picker shows, which is **not** `allCases`.
+    ///
+    /// `ConnectLeague.dc.html` draws Sleeper → Yahoo → ESPN, and the connection contract's policy
+    /// matrix agrees: Sleeper is the "first native connection candidate — fast, direct,
+    /// resumable", and ESPN is the most-steps path. The shipped list led with ESPN, which put the
+    /// slowest and most fragile provider first — and ESPN on iPhone is the only confirmed beta
+    /// failure on record.
+    ///
+    /// Declared here rather than by reordering the enum, because `allCases` order is not this
+    /// screen's to decide on behalf of every other caller.
+    static let displayOrder: [ConnectProvider] = [.sleeper, .yahoo, .espn]
 
     var id: String { rawValue }
 
@@ -305,16 +369,73 @@ enum EspnHandoffCopy {
     /// Consent, shown before ESPN's own sign-in opens. W1-A's binding constraint, and the
     /// sentence App Review will read: it says what opens, who the user signs in to, what Omen
     /// reads, and what Omen never sees.
-    static let consentTitle = "Connect ESPN"
-    static let consentBody = """
-    Next, ESPN's own sign-in page opens. You sign in to ESPN directly — Omen never sees your ESPN \
-    password and never asks you to type it here. Afterwards Omen reads only what it needs to \
-    follow your league: your roster, your scoring settings, and your matchup. It is your account \
-    and your choice, and you can disconnect it any time in Account. Omen is not affiliated with \
-    or endorsed by ESPN.
+    static let consentEyebrow = "ESPN"
+    static let consentTitle = "Before we start"
+
+    /// Rewritten 2026-09-19 to `EspnConnect.dc.html`.
+    ///
+    /// The previous copy said Omen "never sees your ESPN password" and stopped there. True, and
+    /// not the point: what Omen actually stores is **two cookies**, and the old paragraph never
+    /// said so. Consent that omits the mechanism is not informed consent, and informed consent is
+    /// the specific thing `W1-GATE` required when the founder accepted this risk — the terms
+    /// answer was No, so the consent screen is carrying real weight rather than being a formality.
+    ///
+    /// **RESOLVED by the founder 2026-09-19: name them.** The consent screen says "Two cookies,
+    /// SWID and espn_s2" outright, as `EspnConnect.dc.html` always drew it.
+    ///
+    /// The credential-vocabulary ban still stands **everywhere else**, and the reason the two can
+    /// coexist is a distinction worth keeping sharp:
+    ///
+    /// - **Naming the fields is disclosure.** The user is being asked to hand over a specific
+    ///   thing, and they cannot weigh that if the screen will not say what it is. This screen
+    ///   exists precisely because the terms answer was No, so vagueness here would be the one
+    ///   place it actually costs something.
+    /// - **Showing the values is still absolutely forbidden** — fact-of-record #6, no exceptions.
+    ///   A cookie value is never displayed, logged, echoed, or sent anywhere but ESPN, and this
+    ///   screen promises exactly that in the list below.
+    ///
+    /// The ban continues to cover every other ESPN surface, because naming a credential in a
+    /// progress message or an error buys nothing and only raises the review surface.
+    /// Says what is about to happen, and stops.
+    ///
+    /// The previous version explained *why* ESPN is different and compared it to Yahoo's button.
+    /// Founder, 2026-09-19: they do not need the reason, and they certainly do not need to hear
+    /// about another provider while they are connecting this one. The security terms below still
+    /// have to be stated — they can be short and boring, they just cannot be missing.
+    static let consentLead = """
+    ESPN's own sign-in page opens next. You sign in to ESPN, then Omen reads your league.
     """
-    static let consentContinueTitle = "Continue to ESPN"
-    static let consentDeclineTitle = "Not now"
+    static let consentTakesTitle = "What Omen takes"
+    static let consentTakes = [
+        "Two cookies, SWID and espn_s2, which identify you to ESPN.",
+        "Your leagues, rosters, matchups and scoring settings."
+    ]
+    static let consentNeverTitle = "What Omen never does"
+    static let consentNever = [
+        "Set a lineup, make a claim, or send a trade.",
+        "Post, message, or act as you anywhere.",
+        "Show those cookies back to you, log them, or send them anywhere but ESPN."
+    ]
+    /// Kept from the shipped copy although the artboard omits it: the affiliation disclaimer is a
+    /// binding `W1-GATE` constraint, not decoration.
+    static let consentFooter = """
+    You sign in on ESPN's own sign-in page, and Omen never sees your ESPN password. Signing out \
+    of ESPN in your browser ends Omen's access too. You can disconnect from Account at any time \
+    and the stored values are deleted. Omen is not affiliated with or endorsed by ESPN.
+    """
+
+    /// Every consent surface as one string, for the App Review guardrails that check the screen
+    /// as a whole. It replaces `consentBody`, which was the single paragraph this screen used to
+    /// be — the assertions are about what the screen says, not about which constant holds it.
+    static var consentAllCopy: String {
+        ([consentEyebrow, consentTitle, consentLead, consentTakesTitle]
+         + consentTakes + [consentNeverTitle] + consentNever
+         + [consentFooter, consentContinueTitle, consentDeclineTitle]).joined(separator: " ")
+    }
+    static let consentContinueTitle = "I understand — open the ESPN sheet"
+    /// Not "Not now". A decline that names the alternatives is a door rather than a dead end, and
+    /// both named providers connect today.
+    static let consentDeclineTitle = "Use Sleeper or Yahoo instead"
 
     /// The sign-in sheet's own guidance while it waits.
     static let signInWaiting = "Sign in to ESPN above. Omen picks up from there."

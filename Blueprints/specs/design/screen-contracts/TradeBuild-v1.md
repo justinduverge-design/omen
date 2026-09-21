@@ -12,6 +12,7 @@ Compiled from `design/native-visual-lock-2026-09-13/TradeBuild.dc.html` on 2026-
 | Scroll rule | scrolls; measured body overflow from canvas render: 34px. |
 | Data route | GET /api/trade/capabilities + POST /api/trade/compare |
 | API contract | trade-capabilities.v1 + trade-compare.v2 |
+| Capability profile | `trade` — expresses per `capability-expression-v1.md` |
 | Governing rule | Free public compare; bearer + league_context opts into personalization; max_teams is 2 until capabilities changes |
 
 ## Native build rules

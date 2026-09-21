@@ -29,6 +29,19 @@ class LeagueViewModel(
     private var requestedPlatform: String? = null
     private var requestedLeagueId: String? = null
 
+    /**
+     * "Week 7 · Waiver" for the wire screen's eyebrow.
+     *
+     * Derived from the league read rather than from the waiver read, because `waiver-analysis.v1`
+     * carries no week and the two surfaces must agree about which week they are describing. Falls
+     * back to the bare word when no week has been read — never to a guessed number.
+     */
+    val wireWeekLabel: String
+        get() {
+            val week = (viewState as? ViewState.Loaded)?.overview?.week ?: return "Waiver"
+            return "Week $week · Waiver"
+        }
+
     suspend fun load(userId: String, platform: String? = null, leagueId: String? = null) {
         if (userId == SessionManager.DEMO_USER_ID) {
             viewState = ViewState.Demo

@@ -42,6 +42,16 @@ final class CommandCenterViewModel: ObservableObject {
     /// status until the route has produced a real decision state.
     @Published private(set) var waiverWatch: OmenWaiverWatchState?
 
+    /// The whole `waiver-analysis.v1` payload, kept rather than reduced.
+    ///
+    /// Until J5 this read was consumed for `waiverWatch` alone and the payload thrown away, so
+    /// the only thing the app could say about the wire was a four-case summary. The League
+    /// destination's wire screen needs the move, the alternatives and — above all —
+    /// `waiver_system`, without which it cannot tell a FAAB league from one whose system nobody
+    /// could determine. Those are different screens and the difference is the point of one of
+    /// them.
+    @Published private(set) var waiverAnalysis: WaiverAnalysis?
+
     private let repository: DashboardRepository
     private let leagueRepository: LeagueRepository
     private let movesRepository: MovesRepository
@@ -78,6 +88,17 @@ final class CommandCenterViewModel: ObservableObject {
         case .failed:
             return OmenCommandCenterFixtures.realDisconnected
         }
+    }
+
+    /// True when the shell was read successfully and the answer is **no connected league**.
+    ///
+    /// Distinct from `failure`, and the distinction is the point: a shell we could not read is
+    /// not the same as a shell that told us there are no leagues, and showing "nothing to read"
+    /// for an unread shell would state as fact something we do not know. `.failed` keeps its own
+    /// explicit failure surface.
+    var hasNoConnectedLeague: Bool {
+        guard case .loaded(let summary) = viewState else { return false }
+        return !summary.platforms.anyConnected
     }
 
     /// True when the shell could not be read. The view renders an explicit failure surface
@@ -202,6 +223,7 @@ final class CommandCenterViewModel: ObservableObject {
         switch await waiverRepository.fetchWaiverAnalysis(accessToken: accessToken) {
         case .success(let analysis):
             waiverWatch = analysis.waiverWatchState
+            waiverAnalysis = analysis
         case .failure:
             // The dashboard-derived state remains visible. Waiver analysis has in-band
             // uncertainty states, but a transport failure cannot truthfully become one.

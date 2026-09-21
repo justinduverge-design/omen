@@ -12,6 +12,7 @@ Compiled from `design/native-visual-lock-2026-09-13/LeagueDegraded.dc.html` on 2
 | Scroll rule | scrolls; measured body overflow from canvas render: 0px. |
 | Data route | GET /api/league/overview |
 | API contract | league-overview.v1 per-section status=unavailable |
+| Capability profile | `league` — expresses per `capability-expression-v1.md` |
 | Governing rule | Unread, not empty; every failed section names what is unavailable |
 
 ## Native build rules

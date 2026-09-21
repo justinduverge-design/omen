@@ -18,6 +18,10 @@ enum OmenDecisionBriefState {
 
 /// DecisionBrief payload per shell brief §2 field set. Any field may be absent.
 struct OmenDecisionBriefPayload {
+    /// `recommendation.type` — "start_sit", "waiver_pickup", … Rendered as the call's kind above
+    /// the call itself (`OmenCall-v1` E023). The envelope has always sent it; the client dropped
+    /// it until 2026-09-17.
+    let callType: String?
     let verdict: String
     let move: String
     let impact: String?
@@ -42,6 +46,7 @@ struct OmenDecisionBriefPayload {
 
     init(
         verdict: String,
+        callType: String? = nil,
         move: String,
         impact: String? = nil,
         confidence: Int? = nil,
@@ -55,6 +60,7 @@ struct OmenDecisionBriefPayload {
         signals: [OmenSignalItem] = [],
         alternatives: [OmenDecisionBriefAlternative] = []
     ) {
+        self.callType = callType
         self.verdict = verdict
         self.move = move
         self.impact = impact
