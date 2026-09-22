@@ -57,6 +57,9 @@ async function ensureCurrentLeagueOfficeJob(now = new Date()) {
     .eq("platform", LEAGUE_OFFICE_PLATFORM)
     .eq("league_id", LEAGUE_OFFICE_LEAGUE_ID)
     .eq("is_active", true)
+    // Several league members can connect the same ESPN league. Pick deterministically
+    // instead of relying on PostgREST row order, which can change between weekly runs.
+    .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
