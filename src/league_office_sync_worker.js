@@ -196,7 +196,7 @@ async function updateSeasonAccoladeLeaders(job, throughWeek) {
   const { data: games, error } = await supabase.from("league_office_matchups")
     .select("week,home_team_id,home_team_name,home_score,away_team_id,away_team_name,away_score,winner_team_id,status")
     .eq("platform", job.platform).eq("league_id", String(job.league_id)).eq("season", Number(job.season))
-    .lte("week", throughWeek).eq("status", "final");
+    .lte("week", Math.min(throughWeek, 14)).eq("status", "final");
   if (error) throw new Error("League Office accolade standings read failed");
 
   const stats = new Map();
@@ -367,7 +367,7 @@ async function runJob(job) {
     if (topPerformer) log("top performer stored", { league_id: job.league_id, season: job.season, week: completedWeek, player_id: topPerformer.player_id });
     const transactionAwards = await persistTransactionAwards(job, completedWeek, credentials, completedMatchups);
     log("transaction awards stored", { league_id: job.league_id, season: job.season, week: completedWeek, pickup_player_id: transactionAwards.pickup.player_id, drop_player_id: transactionAwards.drop.player_id });
-    await updateSeasonAccoladeLeaders(job, completedWeek);
+    // Slops Saloon regular season ends after Week 14; never let playoff weeks alter these $100 races.\n    await updateSeasonAccoladeLeaders(job, Math.min(completedWeek, 14));
     const line = await persistCurrentWeekLine(job, currentMatchups);
     log("primetime line stored", { league_id: job.league_id, season: job.season, week: job.week, game_id: line.game_id });
 
