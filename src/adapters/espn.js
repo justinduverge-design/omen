@@ -1117,6 +1117,43 @@ function leagueWeekFromEspnData(data, { leagueId, week } = {}) {
 }
 
 
+
+function leagueOfficeTransactionsFromEspnData(data) {
+  const txs = Array.isArray(data?.transactions) ? data.transactions : [];
+  return txs.flatMap((tx) => {
+    const status = String(tx?.status || tx?.executionType || "").toUpperCase();
+    if (status && !["EXECUTED", "PROCESSED"].includes(status)) return [];
+    const processDate = tx?.processDate ?? tx?.proposedDate ?? tx?.date ?? null;
+    const items = Array.isArray(tx?.items) ? tx.items : [];
+    return items.flatMap((item) => {
+      const player = item?.playerPoolEntry?.player || item?.player || {};
+      const playerIdValue = item?.playerId ?? item?.playerPoolEntry?.id ?? player?.id;
+      if (playerIdValue == null) return [];
+      const type = String(item?.type || item?.transactionType || item?.action || "").toUpperCase();
+      const fromTeamId = item?.fromTeamId ?? item?.fromTeam?.id ?? null;
+      const toTeamId = item?.toTeamId ?? item?.toTeam?.id ?? null;
+      let action = null;
+      if (type.includes("ADD") || (Number(toTeamId) > 0 && Number(fromTeamId || 0) === 0)) action = "ADD";
+      if (type.includes("DROP") || (Number(fromTeamId) > 0 && Number(toTeamId || 0) === 0)) action = "DROP";
+      if (!action) return [];
+      return [{
+        action,
+        player_id: String(playerIdValue),
+        player_name: playerName(player, String(playerIdValue)),
+        team_id: String(action === "ADD" ? toTeamId : fromTeamId),
+        process_date: processDate == null ? null : Number(processDate),
+        bid_amount: firstFinite(item?.bidAmount, tx?.bidAmount),
+      }];
+    });
+  });
+}
+
+async function fetchEspnLeagueOfficeTransactions(leagueId, espn_s2, swid, opts = {}) {
+  const week = Number(opts.week || opts.scoringPeriodId || 1);
+  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTransactions2"], week, opts);
+  return leagueOfficeTransactionsFromEspnData(data);
+}
+
 function leagueOfficePlayersFromEspnData(data, week) {
   const rows = [];
   for (const team of (Array.isArray(data?.teams) ? data.teams : [])) {
@@ -1275,7 +1312,7 @@ module.exports = {
   fetchEspnWaiverPool,
   fetchEspnLastResult,
   fetchEspnMatchup,
-  fetchEspnLeagueWeek,\n  fetchEspnLeagueOfficePlayers,\n  leagueOfficePlayersFromEspnData,
+  fetchEspnLeagueWeek,\n  fetchEspnLeagueOfficePlayers,\n  fetchEspnLeagueOfficeTransactions,\n  leagueOfficeTransactionsFromEspnData,\n  leagueOfficePlayersFromEspnData,
   leagueWeekFromEspnData,
   verifyLeagueAccess,
   lastResultFromEspnSchedule,
