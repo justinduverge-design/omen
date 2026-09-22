@@ -4,7 +4,7 @@
 // SECURITY: never logs or stores ESPN credentials or raw provider payloads.
 
 const { createClient } = require("@supabase/supabase-js");
-const config = require("./config");
+let configCache = null;\nfunction getConfig() {\n  if (!configCache) configCache = require("./config");\n  return configCache;\n}
 const { getAuthenticatedEspnCredentials } = require("./services/espnAuth");
 const espnAdapter = require("./adapters/espn");
 
