@@ -141,6 +141,60 @@ async function markJob(id, values) {
   if (error) throw new Error("League Office queue update failed");
 }
 
+function roundHalf(value) {
+  return Math.round(Number(value) * 2) / 2;
+}
+
+function americanMoneylineFromProbability(probability) {
+  const p = Math.min(0.95, Math.max(0.05, Number(probability)));
+  return p >= 0.5 ? -Math.round((p / (1 - p)) * 100) : Math.round(((1 - p) / p) * 100);
+}
+
+function buildLeagueOfficeLine(matchups) {
+  const candidates = (matchups || []).filter((m) => Number.isFinite(Number(m.home_projected)) && Number.isFinite(Number(m.away_projected)));
+  if (!candidates.length) return null;
+  // Primetime is the projected closest game; it gives the league a repeatable,
+  // non-editorial selection rule and naturally highlights the most competitive matchup.
+  const game = [...candidates].sort((a, b) => {
+    const da = Math.abs(Number(a.home_projected) - Number(a.away_projected));
+    const db = Math.abs(Number(b.home_projected) - Number(b.away_projected));
+    return da - db || Number(b.home_projected) + Number(b.away_projected) - Number(a.home_projected) - Number(a.away_projected);
+  })[0];
+  const home = Number(game.home_projected);
+  const away = Number(game.away_projected);
+  const favoriteTeamId = home >= away ? game.home_team_id : game.away_team_id;
+  const margin = Math.abs(home - away);
+  const spread = -Math.max(0.5, roundHalf(margin));
+  const total = roundHalf(home + away);
+  // Convert the projection margin into a bounded win probability. These are League Office
+  // entertainment lines derived from fantasy projections, not sportsbook odds.
+  const favoriteProbability = 1 / (1 + Math.exp(-margin / 12));
+  return {
+    game_id: String(game.game_id),
+    favorite_team_id: String(favoriteTeamId),
+    spread,
+    favorite_moneyline: americanMoneylineFromProbability(favoriteProbability),
+    underdog_moneyline: americanMoneylineFromProbability(1 - favoriteProbability),
+    over_under: total,
+    selection_reason: "Closest projected matchup; League Office line derived from ESPN fantasy projections.",
+  };
+}
+
+async function persistCurrentWeekLine(job, matchups) {
+  const line = buildLeagueOfficeLine(matchups);
+  if (!line) throw new Error("League Office line unavailable: ESPN projections missing");
+  const { error } = await supabase.from("league_office_lines").upsert({
+    ...line,
+    user_id: job.user_id,
+    league_id: String(job.league_id),
+    season: Number(job.season),
+    week: Number(job.week),
+    locked_at: new Date().toISOString(),
+  }, { onConflict: "league_id,season,week,game_id" });
+  if (error) throw new Error("League Office line persistence failed");
+  return line;
+}
+
 async function runJob(job) {
   await markJob(job.id, { status: "running", started_at: new Date().toISOString(), error_code: null });
   let stage = "validate";
@@ -180,7 +234,7 @@ async function runJob(job) {
     // week for the recap, then sync the current slate. This is intentionally independent
     // of DIAGNOSE so the persisted record book is always message-ready.
     const weeksToSync = [...new Set([Math.max(1, Number(job.week) - 1), Number(job.week)])];
-    let currentMatchupCount = 0;
+    let currentMatchupCount = 0;\n    let currentMatchups = [];
     for (const syncWeek of weeksToSync) {
       stage = "provider";
       const matchups = await espnAdapter.fetchEspnLeagueWeek(
@@ -189,7 +243,7 @@ async function runJob(job) {
         credentials.swid,
         { seasonId: job.season, week: syncWeek }
       );
-      if (syncWeek === Number(job.week)) currentMatchupCount = matchups.length;
+      if (syncWeek === Number(job.week)) { currentMatchupCount = matchups.length; currentMatchups = matchups; }
 
       if (matchups.length) {
         stage = "persist";
@@ -232,7 +286,7 @@ async function runJob(job) {
       log("week synced", { league_id: job.league_id, season: job.season, week: syncWeek, matchups: currentMatchupCount });
     }
 
-    stage = "complete";
+    stage = "message";\n    const line = await persistCurrentWeekLine(job, currentMatchups);\n    log("primetime line stored", { league_id: job.league_id, season: job.season, week: job.week, game_id: line.game_id });\n\n    stage = "complete";
     await markJob(job.id, {
       status: "completed",
       completed_at: new Date().toISOString(),
@@ -263,4 +317,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { claimQueuedJobs, ensureCurrentLeagueOfficeJob, nflSeasonAndWeek, runJob, main, safeErrorCode };
+module.exports = { americanMoneylineFromProbability, buildLeagueOfficeLine, claimQueuedJobs, ensureCurrentLeagueOfficeJob, nflSeasonAndWeek, runJob, main, safeErrorCode };
