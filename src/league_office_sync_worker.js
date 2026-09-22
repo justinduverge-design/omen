@@ -227,13 +227,13 @@ async function persistTransactionAwards(job, completedWeek, credentials, complet
     evidence,
     created_at: new Date().toISOString(),
   }));
-  const { error } = await supabase.from("league_office_awards").upsert(rows, { onConflict: "league_id,season,week,award_name" });
+  const { error } = await getSupabase().from("league_office_awards").upsert(rows, { onConflict: "league_id,season,week,award_name" });
   if (error) throw new Error("League Office transaction award persistence failed");
   return { pickup, drop };
 }
 
 async function updateSeasonAccoladeLeaders(job, throughWeek) {
-  const { data: games, error } = await supabase.from("league_office_matchups")
+  const { data: games, error } = await getSupabase().from("league_office_matchups")
     .select("week,home_team_id,home_team_name,home_score,away_team_id,away_team_name,away_score,winner_team_id,status")
     .eq("platform", job.platform).eq("league_id", String(job.league_id)).eq("season", Number(job.season))
     .lte("week", throughWeek).eq("status", "final");
@@ -262,7 +262,7 @@ async function updateSeasonAccoladeLeaders(job, throughWeek) {
     { name: "Best Regular-Season Record", recipient: recordLeader.name, value: `${recordLeader.wins}-${recordLeader.losses} through Week ${throughWeek} (provisional; final tie uses head-to-head then strength of schedule)` },
   ];
   for (const u of updates) {
-    const { error: updateError } = await supabase.from("league_office_accolades").update({ recipient: u.recipient, result_value: u.value })
+    const { error: updateError } = await getSupabase().from("league_office_accolades").update({ recipient: u.recipient, result_value: u.value })
       .eq("league_id", String(job.league_id)).eq("season", Number(job.season)).eq("accolade_name", u.name);
     if (updateError) throw new Error("League Office accolade leader persistence failed");
   }
@@ -277,7 +277,7 @@ async function persistTopPerformer(job, completedWeek, credentials) {
   const scored = players.filter((p) => Number.isFinite(Number(p.actual_points)));
   if (!scored.length) throw new Error("League Office Top Performer unavailable: player scores missing");
   const top = [...scored].sort((a, b) => Number(b.actual_points) - Number(a.actual_points) || String(a.player_id).localeCompare(String(b.player_id)))[0];
-  const { error } = await supabase.from("league_office_awards").upsert({
+  const { error } = await getSupabase().from("league_office_awards").upsert({
     user_id: job.user_id,
     league_id: String(job.league_id),
     season: Number(job.season),
@@ -295,7 +295,7 @@ async function persistTopPerformer(job, completedWeek, credentials) {
 async function persistCurrentWeekLine(job, matchups) {
   const line = buildLeagueOfficeLine(matchups);
   if (!line) throw new Error("League Office line unavailable: ESPN projections missing");
-  const { error } = await supabase.from("league_office_lines").upsert({
+  const { error } = await getSupabase().from("league_office_lines").upsert({
     ...line,
     user_id: job.user_id,
     league_id: String(job.league_id),
