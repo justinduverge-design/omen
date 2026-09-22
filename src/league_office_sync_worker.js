@@ -238,7 +238,7 @@ async function runJob(job) {
       completed_at: new Date().toISOString(),
       error_code: null,
     });
-    log("job completed", { id: job.id, league_id: job.league_id, season: job.season, week: job.week, matchups: matchups.length });
+    log("job completed", { id: job.id, league_id: job.league_id, season: job.season, week: job.week, matchups: currentMatchupCount });
   } catch (error) {
     await markJob(job.id, {
       status: "failed",
