@@ -1116,6 +1116,26 @@ function leagueWeekFromEspnData(data, { leagueId, week } = {}) {
   });
 }
 
+
+function leagueOfficePlayersFromEspnData(data, week) {
+  const rows = [];
+  for (const team of (Array.isArray(data?.teams) ? data.teams : [])) {
+    const tid = teamId(team);
+    const tname = teamName(team);
+    for (const entry of rosterEntries(team)) {
+      const p = normalizePlayer(entry, week);
+      rows.push({ team_id: tid, team_name: tname, player_id: p.player_id, player_name: p.name, actual_points: p.actual_points, selected_position: p.selected_position });
+    }
+  }
+  return rows;
+}
+
+async function fetchEspnLeagueOfficePlayers(leagueId, espn_s2, swid, opts = {}) {
+  const week = Number(opts.week || opts.scoringPeriodId || 1);
+  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTeam", "mRoster"], week, opts);
+  return leagueOfficePlayersFromEspnData(data, week);
+}
+
 async function fetchEspnLeagueWeek(leagueId, espn_s2, swid, opts = {}) {
   const scoringPeriodId = Number(opts.week || opts.scoringPeriodId || 1);
   const data = await fetchEspnApi(
@@ -1255,7 +1275,7 @@ module.exports = {
   fetchEspnWaiverPool,
   fetchEspnLastResult,
   fetchEspnMatchup,
-  fetchEspnLeagueWeek,
+  fetchEspnLeagueWeek,\n  fetchEspnLeagueOfficePlayers,\n  leagueOfficePlayersFromEspnData,
   leagueWeekFromEspnData,
   verifyLeagueAccess,
   lastResultFromEspnSchedule,
