@@ -181,6 +181,93 @@ function buildLeagueOfficeLine(matchups) {
 }
 
 
+
+function teamNameById(matchups) {
+  const names = new Map();
+  for (const m of (matchups || [])) {
+    names.set(String(m.home_team_id), m.home_team_name);
+    names.set(String(m.away_team_id), m.away_team_name);
+  }
+  return names;
+}
+
+async function persistTransactionAwards(job, completedWeek, credentials, completedMatchups) {
+  const transactions = await espnAdapter.fetchEspnLeagueOfficeTransactions(
+    job.league_id, credentials.espn_s2, credentials.swid,
+    { seasonId: job.season, week: completedWeek }
+  );
+  const players = await espnAdapter.fetchEspnLeagueOfficePlayers(
+    job.league_id, credentials.espn_s2, credentials.swid,
+    { seasonId: job.season, week: completedWeek }
+  );
+  const scoreByPlayer = new Map(players.map((p) => [String(p.player_id), Number(p.actual_points)]));
+  const names = teamNameById(completedMatchups);
+
+  const rank = (action) => transactions
+    .filter((t) => t.action === action)
+    .map((t) => ({ ...t, actual_points: scoreByPlayer.get(String(t.player_id)) }))
+    .filter((t) => Number.isFinite(t.actual_points))
+    .sort((a, b) => Number(b.actual_points) - Number(a.actual_points) || Number(b.process_date || 0) - Number(a.process_date || 0));
+
+  const pickup = rank("ADD")[0] || null;
+  const drop = rank("DROP")[0] || null;
+  if (!pickup || !drop) throw new Error("League Office transaction awards unavailable: ESPN transaction history incomplete");
+
+  const rows = [
+    { award_name: "Pickup of the Week", tx: pickup, evidence: `Highest Week ${completedWeek} ESPN score among executed adds.` },
+    { award_name: "Drop of the Week", tx: drop, evidence: `Highest Week ${completedWeek} ESPN score among executed drops.` },
+  ].map(({ award_name, tx, evidence }) => ({
+    user_id: job.user_id,
+    league_id: String(job.league_id),
+    season: Number(job.season),
+    week: completedWeek,
+    award_name,
+    executive_name: names.get(String(tx.team_id)) || null,
+    detail: `${tx.player_name} — ${Number(tx.actual_points).toFixed(2)} pts${tx.bid_amount == null ? "" : ` (FAAB ${tx.bid_amount})`}`,
+    evidence,
+    created_at: new Date().toISOString(),
+  }));
+  const { error } = await supabase.from("league_office_awards").upsert(rows, { onConflict: "league_id,season,week,award_name" });
+  if (error) throw new Error("League Office transaction award persistence failed");
+  return { pickup, drop };
+}
+
+async function updateSeasonAccoladeLeaders(job, throughWeek) {
+  const { data: games, error } = await supabase.from("league_office_matchups")
+    .select("week,home_team_id,home_team_name,home_score,away_team_id,away_team_name,away_score,winner_team_id,status")
+    .eq("platform", job.platform).eq("league_id", String(job.league_id)).eq("season", Number(job.season))
+    .lte("week", throughWeek).eq("status", "final");
+  if (error) throw new Error("League Office accolade standings read failed");
+
+  const stats = new Map();
+  const ensure = (id, name) => {
+    if (!stats.has(id)) stats.set(id, { id, name, wins: 0, losses: 0, points: 0, games: 0, opponents: [] });
+    return stats.get(id);
+  };
+  for (const g of games || []) {
+    const h = ensure(String(g.home_team_id), g.home_team_name);
+    const a = ensure(String(g.away_team_id), g.away_team_name);
+    h.points += Number(g.home_score || 0); a.points += Number(g.away_score || 0);
+    h.games += 1; a.games += 1; h.opponents.push(a.id); a.opponents.push(h.id);
+    if (String(g.winner_team_id) === h.id) { h.wins += 1; a.losses += 1; }
+    else if (String(g.winner_team_id) === a.id) { a.wins += 1; h.losses += 1; }
+  }
+  const all = [...stats.values()];
+  const avgLeader = [...all].sort((a,b)=>(b.points/b.games)-(a.points/a.games)||b.points-a.points)[0];
+  const recordLeader = [...all].sort((a,b)=>b.wins-a.wins||a.losses-b.losses||b.points-a.points)[0];
+  if (!avgLeader || !recordLeader) return;
+
+  const updates = [
+    { name: "Highest Regular-Season Average Points", recipient: avgLeader.name, value: `${(avgLeader.points/avgLeader.games).toFixed(2)} avg through Week ${throughWeek}` },
+    { name: "Best Regular-Season Record", recipient: recordLeader.name, value: `${recordLeader.wins}-${recordLeader.losses} through Week ${throughWeek} (provisional; final tie uses head-to-head then strength of schedule)` },
+  ];
+  for (const u of updates) {
+    const { error: updateError } = await supabase.from("league_office_accolades").update({ recipient: u.recipient, result_value: u.value })
+      .eq("league_id", String(job.league_id)).eq("season", Number(job.season)).eq("accolade_name", u.name);
+    if (updateError) throw new Error("League Office accolade leader persistence failed");
+  }
+}
+
 async function persistTopPerformer(job, completedWeek, credentials) {
   if (completedWeek < 1) return null;
   const players = await espnAdapter.fetchEspnLeagueOfficePlayers(
@@ -259,7 +346,7 @@ async function runJob(job) {
     // week for the recap, then sync the current slate. This is intentionally independent
     // of DIAGNOSE so the persisted record book is always message-ready.
     const weeksToSync = [...new Set([Math.max(1, Number(job.week) - 1), Number(job.week)])];
-    let currentMatchupCount = 0;\n    let currentMatchups = [];
+    let currentMatchupCount = 0;\n    let currentMatchups = [];\n    let completedMatchups = [];
     for (const syncWeek of weeksToSync) {
       stage = "provider";
       const matchups = await espnAdapter.fetchEspnLeagueWeek(
@@ -268,7 +355,7 @@ async function runJob(job) {
         credentials.swid,
         { seasonId: job.season, week: syncWeek }
       );
-      if (syncWeek === Number(job.week)) { currentMatchupCount = matchups.length; currentMatchups = matchups; }
+      if (syncWeek === Number(job.week)) { currentMatchupCount = matchups.length; currentMatchups = matchups; }\n      if (syncWeek === Math.max(1, Number(job.week) - 1)) completedMatchups = matchups;
 
       if (matchups.length) {
         stage = "persist";
@@ -311,7 +398,7 @@ async function runJob(job) {
       log("week synced", { league_id: job.league_id, season: job.season, week: syncWeek, matchups: currentMatchupCount });
     }
 
-    stage = "message";\n    const completedWeek = Math.max(1, Number(job.week) - 1);\n    const topPerformer = await persistTopPerformer(job, completedWeek, credentials);\n    if (topPerformer) log("top performer stored", { league_id: job.league_id, season: job.season, week: completedWeek, player_id: topPerformer.player_id });\n    const line = await persistCurrentWeekLine(job, currentMatchups);\n    log("primetime line stored", { league_id: job.league_id, season: job.season, week: job.week, game_id: line.game_id });\n\n    stage = "complete";
+    stage = "message";\n    const completedWeek = Math.max(1, Number(job.week) - 1);\n    const topPerformer = await persistTopPerformer(job, completedWeek, credentials);\n    if (topPerformer) log("top performer stored", { league_id: job.league_id, season: job.season, week: completedWeek, player_id: topPerformer.player_id });\n    const transactionAwards = await persistTransactionAwards(job, completedWeek, credentials, completedMatchups);\n    log("transaction awards stored", { league_id: job.league_id, season: job.season, week: completedWeek, pickup_player_id: transactionAwards.pickup.player_id, drop_player_id: transactionAwards.drop.player_id });\n    await updateSeasonAccoladeLeaders(job, completedWeek);\n    const line = await persistCurrentWeekLine(job, currentMatchups);\n    log("primetime line stored", { league_id: job.league_id, season: job.season, week: job.week, game_id: line.game_id });\n\n    stage = "complete";
     await markJob(job.id, {
       status: "completed",
       completed_at: new Date().toISOString(),
