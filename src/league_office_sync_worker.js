@@ -70,8 +70,7 @@ async function ensureCurrentLeagueOfficeJob(now = new Date()) {
   // Tuesday/Wednesday reruns capture stat corrections without duplicating record-book rows.
   const { data: existing, error: existingError } = await supabase
     .from("league_office_sync_jobs")
-    .select("id,status")
-    .eq("user_id", connection.user_id)
+    .select("id,user_id,status")
     .eq("platform", LEAGUE_OFFICE_PLATFORM)
     .eq("league_id", LEAGUE_OFFICE_LEAGUE_ID)
     .eq("season", season)
@@ -87,6 +86,10 @@ async function ensureCurrentLeagueOfficeJob(now = new Date()) {
     const { error } = await supabase
       .from("league_office_sync_jobs")
       .update({
+        // The league/week row is unique independently of user_id. ESPN reconnects can
+        // move the active league connection to a different Omen user, so always bind
+        // the reusable job to the connection that is active now.
+        user_id: connection.user_id,
         status: "queued",
         error_code: null,
         started_at: null,
