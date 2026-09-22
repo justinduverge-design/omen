@@ -346,7 +346,9 @@ async function runJob(job) {
     // week for the recap, then sync the current slate. This is intentionally independent
     // of DIAGNOSE so the persisted record book is always message-ready.
     const weeksToSync = [...new Set([Math.max(1, Number(job.week) - 1), Number(job.week)])];
-    let currentMatchupCount = 0;\n    let currentMatchups = [];\n    let completedMatchups = [];
+    let currentMatchupCount = 0;
+    let currentMatchups = [];
+    let completedMatchups = [];
     for (const syncWeek of weeksToSync) {
       stage = "provider";
       const matchups = await espnAdapter.fetchEspnLeagueWeek(
@@ -355,7 +357,8 @@ async function runJob(job) {
         credentials.swid,
         { seasonId: job.season, week: syncWeek }
       );
-      if (syncWeek === Number(job.week)) { currentMatchupCount = matchups.length; currentMatchups = matchups; }\n      if (syncWeek === Math.max(1, Number(job.week) - 1)) completedMatchups = matchups;
+      if (syncWeek === Number(job.week)) { currentMatchupCount = matchups.length; currentMatchups = matchups; }
+      if (syncWeek === Math.max(1, Number(job.week) - 1)) completedMatchups = matchups;
 
       if (matchups.length) {
         stage = "persist";
@@ -398,7 +401,17 @@ async function runJob(job) {
       log("week synced", { league_id: job.league_id, season: job.season, week: syncWeek, matchups: currentMatchupCount });
     }
 
-    stage = "message";\n    const completedWeek = Math.max(1, Number(job.week) - 1);\n    const topPerformer = await persistTopPerformer(job, completedWeek, credentials);\n    if (topPerformer) log("top performer stored", { league_id: job.league_id, season: job.season, week: completedWeek, player_id: topPerformer.player_id });\n    const transactionAwards = await persistTransactionAwards(job, completedWeek, credentials, completedMatchups);\n    log("transaction awards stored", { league_id: job.league_id, season: job.season, week: completedWeek, pickup_player_id: transactionAwards.pickup.player_id, drop_player_id: transactionAwards.drop.player_id });\n    await updateSeasonAccoladeLeaders(job, completedWeek);\n    const line = await persistCurrentWeekLine(job, currentMatchups);\n    log("primetime line stored", { league_id: job.league_id, season: job.season, week: job.week, game_id: line.game_id });\n\n    stage = "complete";
+    stage = "message";
+    const completedWeek = Math.max(1, Number(job.week) - 1);
+    const topPerformer = await persistTopPerformer(job, completedWeek, credentials);
+    if (topPerformer) log("top performer stored", { league_id: job.league_id, season: job.season, week: completedWeek, player_id: topPerformer.player_id });
+    const transactionAwards = await persistTransactionAwards(job, completedWeek, credentials, completedMatchups);
+    log("transaction awards stored", { league_id: job.league_id, season: job.season, week: completedWeek, pickup_player_id: transactionAwards.pickup.player_id, drop_player_id: transactionAwards.drop.player_id });
+    await updateSeasonAccoladeLeaders(job, completedWeek);
+    const line = await persistCurrentWeekLine(job, currentMatchups);
+    log("primetime line stored", { league_id: job.league_id, season: job.season, week: job.week, game_id: line.game_id });
+
+    stage = "complete";
     await markJob(job.id, {
       status: "completed",
       completed_at: new Date().toISOString(),
