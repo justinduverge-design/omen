@@ -2,8 +2,7 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { buildLeagueOfficeLine } = require("../src/league_office_sync_worker");
-const { leagueOfficeTransactionsFromEspnData } = require("../src/adapters/espn");
+const { buildLeagueOfficeLine, leagueOfficeTransactionsFromEspnData } = require("../src/services/leagueOfficeMessage");
 
 test("League Office chooses the closest projected matchup and derives stable lines", () => {
   const line = buildLeagueOfficeLine([
