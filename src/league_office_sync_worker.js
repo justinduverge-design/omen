@@ -82,7 +82,7 @@ async function ensureCurrentLeagueOfficeJob(now = new Date()) {
   if (existingError) throw new Error("League Office current-week lookup failed");
 
   if (existing?.id) {
-    if (existing.status === "queued" || existing.status === "running") return existing.id;
+    if (existing.status === "running") return existing.id;
     const { error } = await supabase
       .from("league_office_sync_jobs")
       .update({
