@@ -180,6 +180,31 @@ function buildLeagueOfficeLine(matchups) {
   };
 }
 
+
+async function persistTopPerformer(job, completedWeek, credentials) {
+  if (completedWeek < 1) return null;
+  const players = await espnAdapter.fetchEspnLeagueOfficePlayers(
+    job.league_id, credentials.espn_s2, credentials.swid,
+    { seasonId: job.season, week: completedWeek }
+  );
+  const scored = players.filter((p) => Number.isFinite(Number(p.actual_points)));
+  if (!scored.length) throw new Error("League Office Top Performer unavailable: player scores missing");
+  const top = [...scored].sort((a, b) => Number(b.actual_points) - Number(a.actual_points) || String(a.player_id).localeCompare(String(b.player_id)))[0];
+  const { error } = await supabase.from("league_office_awards").upsert({
+    user_id: job.user_id,
+    league_id: String(job.league_id),
+    season: Number(job.season),
+    week: completedWeek,
+    award_name: "Top Performer",
+    executive_name: top.team_name,
+    detail: `${top.player_name} — ${Number(top.actual_points).toFixed(2)} pts`,
+    evidence: `Highest ESPN player score among league rosters in Week ${completedWeek}.`,
+    created_at: new Date().toISOString(),
+  }, { onConflict: "league_id,season,week,award_name" });
+  if (error) throw new Error("League Office Top Performer persistence failed");
+  return top;
+}
+
 async function persistCurrentWeekLine(job, matchups) {
   const line = buildLeagueOfficeLine(matchups);
   if (!line) throw new Error("League Office line unavailable: ESPN projections missing");
@@ -286,7 +311,7 @@ async function runJob(job) {
       log("week synced", { league_id: job.league_id, season: job.season, week: syncWeek, matchups: currentMatchupCount });
     }
 
-    stage = "message";\n    const line = await persistCurrentWeekLine(job, currentMatchups);\n    log("primetime line stored", { league_id: job.league_id, season: job.season, week: job.week, game_id: line.game_id });\n\n    stage = "complete";
+    stage = "message";\n    const completedWeek = Math.max(1, Number(job.week) - 1);\n    const topPerformer = await persistTopPerformer(job, completedWeek, credentials);\n    if (topPerformer) log("top performer stored", { league_id: job.league_id, season: job.season, week: completedWeek, player_id: topPerformer.player_id });\n    const line = await persistCurrentWeekLine(job, currentMatchups);\n    log("primetime line stored", { league_id: job.league_id, season: job.season, week: job.week, game_id: line.game_id });\n\n    stage = "complete";
     await markJob(job.id, {
       status: "completed",
       completed_at: new Date().toISOString(),
