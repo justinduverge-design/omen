@@ -57,6 +57,9 @@ async function ensureCurrentLeagueOfficeJob(now = new Date()) {
     .eq("platform", LEAGUE_OFFICE_PLATFORM)
     .eq("league_id", LEAGUE_OFFICE_LEAGUE_ID)
     .eq("is_active", true)
+    // Several league members can connect the same ESPN league. Pick deterministically
+    // instead of relying on PostgREST row order, which can change between weekly runs.
+    .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
@@ -70,8 +73,7 @@ async function ensureCurrentLeagueOfficeJob(now = new Date()) {
   // Tuesday/Wednesday reruns capture stat corrections without duplicating record-book rows.
   const { data: existing, error: existingError } = await supabase
     .from("league_office_sync_jobs")
-    .select("id,status")
-    .eq("user_id", connection.user_id)
+    .select("id,user_id,status")
     .eq("platform", LEAGUE_OFFICE_PLATFORM)
     .eq("league_id", LEAGUE_OFFICE_LEAGUE_ID)
     .eq("season", season)
@@ -83,10 +85,14 @@ async function ensureCurrentLeagueOfficeJob(now = new Date()) {
   if (existingError) throw new Error("League Office current-week lookup failed");
 
   if (existing?.id) {
-    if (existing.status === "queued" || existing.status === "running") return existing.id;
+    if (existing.status === "running") return existing.id;
     const { error } = await supabase
       .from("league_office_sync_jobs")
       .update({
+        // The league/week row is unique independently of user_id. ESPN reconnects can
+        // move the active league connection to a different Omen user, so always bind
+        // the reusable job to the connection that is active now.
+        user_id: connection.user_id,
         status: "queued",
         error_code: null,
         started_at: null,
