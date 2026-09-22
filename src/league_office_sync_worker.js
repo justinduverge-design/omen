@@ -7,6 +7,7 @@ const { createClient } = require("@supabase/supabase-js");
 const config = require("./config");
 const { getAuthenticatedEspnCredentials } = require("./services/espnAuth");
 const espnAdapter = require("./adapters/espn");
+const { buildLeagueOfficeLine } = require("./services/leagueOfficeMessage");
 
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey, {
   auth: { persistSession: false },
@@ -141,47 +142,6 @@ async function markJob(id, values) {
   if (error) throw new Error("League Office queue update failed");
 }
 
-function roundHalf(value) {
-  return Math.round(Number(value) * 2) / 2;
-}
-
-function americanMoneylineFromProbability(probability) {
-  const p = Math.min(0.95, Math.max(0.05, Number(probability)));
-  return p >= 0.5 ? -Math.round((p / (1 - p)) * 100) : Math.round(((1 - p) / p) * 100);
-}
-
-function buildLeagueOfficeLine(matchups) {
-  const candidates = (matchups || []).filter((m) => Number.isFinite(Number(m.home_projected)) && Number.isFinite(Number(m.away_projected)));
-  if (!candidates.length) return null;
-  // Primetime is the projected closest game; it gives the league a repeatable,
-  // non-editorial selection rule and naturally highlights the most competitive matchup.
-  const game = [...candidates].sort((a, b) => {
-    const da = Math.abs(Number(a.home_projected) - Number(a.away_projected));
-    const db = Math.abs(Number(b.home_projected) - Number(b.away_projected));
-    return da - db || Number(b.home_projected) + Number(b.away_projected) - Number(a.home_projected) - Number(a.away_projected);
-  })[0];
-  const home = Number(game.home_projected);
-  const away = Number(game.away_projected);
-  const favoriteTeamId = home >= away ? game.home_team_id : game.away_team_id;
-  const margin = Math.abs(home - away);
-  const spread = -Math.max(0.5, roundHalf(margin));
-  const total = roundHalf(home + away);
-  // Convert the projection margin into a bounded win probability. These are League Office
-  // entertainment lines derived from fantasy projections, not sportsbook odds.
-  const favoriteProbability = 1 / (1 + Math.exp(-margin / 12));
-  return {
-    game_id: String(game.game_id),
-    favorite_team_id: String(favoriteTeamId),
-    spread,
-    favorite_moneyline: americanMoneylineFromProbability(favoriteProbability),
-    underdog_moneyline: americanMoneylineFromProbability(1 - favoriteProbability),
-    over_under: total,
-    selection_reason: "Closest projected matchup; League Office line derived from ESPN fantasy projections.",
-  };
-}
-
-
-
 function teamNameById(matchups) {
   const names = new Map();
   for (const m of (matchups || [])) {
@@ -227,16 +187,16 @@ async function persistTransactionAwards(job, completedWeek, credentials, complet
     evidence,
     created_at: new Date().toISOString(),
   }));
-  const { error } = await getSupabase().from("league_office_awards").upsert(rows, { onConflict: "league_id,season,week,award_name" });
+  const { error } = await supabase.from("league_office_awards").upsert(rows, { onConflict: "league_id,season,week,award_name" });
   if (error) throw new Error("League Office transaction award persistence failed");
   return { pickup, drop };
 }
 
 async function updateSeasonAccoladeLeaders(job, throughWeek) {
-  const { data: games, error } = await getSupabase().from("league_office_matchups")
+  const { data: games, error } = await supabase.from("league_office_matchups")
     .select("week,home_team_id,home_team_name,home_score,away_team_id,away_team_name,away_score,winner_team_id,status")
     .eq("platform", job.platform).eq("league_id", String(job.league_id)).eq("season", Number(job.season))
-    .lte("week", throughWeek).eq("status", "final");
+    .lte("week", Math.min(throughWeek, 14)).eq("status", "final");
   if (error) throw new Error("League Office accolade standings read failed");
 
   const stats = new Map();
@@ -262,7 +222,7 @@ async function updateSeasonAccoladeLeaders(job, throughWeek) {
     { name: "Best Regular-Season Record", recipient: recordLeader.name, value: `${recordLeader.wins}-${recordLeader.losses} through Week ${throughWeek} (provisional; final tie uses head-to-head then strength of schedule)` },
   ];
   for (const u of updates) {
-    const { error: updateError } = await getSupabase().from("league_office_accolades").update({ recipient: u.recipient, result_value: u.value })
+    const { error: updateError } = await supabase.from("league_office_accolades").update({ recipient: u.recipient, result_value: u.value })
       .eq("league_id", String(job.league_id)).eq("season", Number(job.season)).eq("accolade_name", u.name);
     if (updateError) throw new Error("League Office accolade leader persistence failed");
   }
@@ -277,7 +237,7 @@ async function persistTopPerformer(job, completedWeek, credentials) {
   const scored = players.filter((p) => Number.isFinite(Number(p.actual_points)));
   if (!scored.length) throw new Error("League Office Top Performer unavailable: player scores missing");
   const top = [...scored].sort((a, b) => Number(b.actual_points) - Number(a.actual_points) || String(a.player_id).localeCompare(String(b.player_id)))[0];
-  const { error } = await getSupabase().from("league_office_awards").upsert({
+  const { error } = await supabase.from("league_office_awards").upsert({
     user_id: job.user_id,
     league_id: String(job.league_id),
     season: Number(job.season),
@@ -295,7 +255,7 @@ async function persistTopPerformer(job, completedWeek, credentials) {
 async function persistCurrentWeekLine(job, matchups) {
   const line = buildLeagueOfficeLine(matchups);
   if (!line) throw new Error("League Office line unavailable: ESPN projections missing");
-  const { error } = await getSupabase().from("league_office_lines").upsert({
+  const { error } = await supabase.from("league_office_lines").upsert({
     ...line,
     user_id: job.user_id,
     league_id: String(job.league_id),
@@ -407,7 +367,7 @@ async function runJob(job) {
     if (topPerformer) log("top performer stored", { league_id: job.league_id, season: job.season, week: completedWeek, player_id: topPerformer.player_id });
     const transactionAwards = await persistTransactionAwards(job, completedWeek, credentials, completedMatchups);
     log("transaction awards stored", { league_id: job.league_id, season: job.season, week: completedWeek, pickup_player_id: transactionAwards.pickup.player_id, drop_player_id: transactionAwards.drop.player_id });
-    await updateSeasonAccoladeLeaders(job, completedWeek);
+    // Slops Saloon regular season ends after Week 14; never let playoff weeks alter these $100 races.\n    await updateSeasonAccoladeLeaders(job, Math.min(completedWeek, 14));
     const line = await persistCurrentWeekLine(job, currentMatchups);
     log("primetime line stored", { league_id: job.league_id, season: job.season, week: job.week, game_id: line.game_id });
 
@@ -442,4 +402,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { americanMoneylineFromProbability, buildLeagueOfficeLine, claimQueuedJobs, ensureCurrentLeagueOfficeJob, nflSeasonAndWeek, runJob, main, safeErrorCode };
+module.exports = { claimQueuedJobs, ensureCurrentLeagueOfficeJob, nflSeasonAndWeek, runJob, main, safeErrorCode };
