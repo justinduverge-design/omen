@@ -350,7 +350,7 @@ function normalizePlayer(entry, week) {
       player?.projectedStats?.appliedTotal,
       projectedPointsForEspnPlayer(player, week)
     ),
-    actual_points: firstFinite(entry?.totalPoints, entry?.actualPoints, player?.totalPoints, player?.actual_points),
+    actual_points: firstFinite(entry?.totalPoints, entry?.actualPoints, player?.totalPoints, player?.actual_points, actualPointsForEspnPlayer(player, week)),
     image_url: player?.headshotUrl || player?.imageUrl || null,
     is_starter: isStarter,
     espn_id: id,
@@ -387,6 +387,17 @@ function projectedPointsForEspnPlayer(player, week) {
     && (Number.isFinite(requestedWeek) ? Number(stat?.scoringPeriodId) === requestedWeek : true)
   );
   return firstFinite(projection?.appliedTotal);
+}
+
+/** ESPN weekly actual points: statSourceId 0 is Real, appliedTotal is the scored value. */
+function actualPointsForEspnPlayer(player, week) {
+  const requestedWeek = Number(week);
+  const stats = Array.isArray(player?.stats) ? player.stats : [];
+  const actual = stats.find((stat) =>
+    Number(stat?.statSourceId) === 0
+    && (Number.isFinite(requestedWeek) ? Number(stat?.scoringPeriodId) === requestedWeek : true)
+  );
+  return firstFinite(actual?.appliedTotal);
 }
 
 /**
