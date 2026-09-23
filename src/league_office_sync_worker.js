@@ -160,12 +160,15 @@ async function persistTransactionAwards(job, completedWeek, credentials, complet
     job.league_id, credentials.espn_s2, credentials.swid,
     { seasonId: job.season, week: completedWeek }
   );
-  const scoreByPlayer = new Map(players.map((p) => [String(p.player_id), Number(p.actual_points)]));
+  const playerById = new Map(players.map((p) => [String(p.player_id), p]));
   const names = teamNameById(completedMatchups);
 
   const rank = (action) => transactions
     .filter((t) => t.action === action)
-    .map((t) => ({ ...t, actual_points: scoreByPlayer.get(String(t.player_id)) }))
+    .map((t) => {
+      const player = playerById.get(String(t.player_id));
+      return { ...t, player_name: player?.player_name || t.player_name, actual_points: Number(player?.actual_points) };
+    })
     .filter((t) => Number.isFinite(t.actual_points))
     .sort((a, b) => Number(b.actual_points) - Number(a.actual_points) || Number(b.process_date || 0) - Number(a.process_date || 0));
 

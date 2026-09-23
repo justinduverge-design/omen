@@ -900,3 +900,36 @@ test("team names are trimmed of the padding ESPN stores verbatim", () => {
   assert.ok(names.includes("Team Name"), names.join(" | "));
   for (const n of names) assert.equal(n, n.trim(), `"${n}" still carries padding`);
 });
+
+
+test("League Office reads real weekly appliedTotal from completed matchup rosters", () => {
+  const { adapter } = loadEspnAdapterWithTeams([]);
+  const data = {
+    teams: [{ id: 1, name: "Week Two Team" }],
+    schedule: [{
+      matchupPeriodId: 2,
+      home: {
+        teamId: 1,
+        rosterForMatchupPeriod: {
+          entries: [{
+            lineupSlotId: 0,
+            playerPoolEntry: { player: {
+              id: 123,
+              fullName: "Actual Scorer",
+              stats: [
+                { statSourceId: 0, scoringPeriodId: 2, appliedTotal: 27.4 },
+                { statSourceId: 1, scoringPeriodId: 2, appliedTotal: 18.1 },
+              ],
+            } },
+          }],
+        },
+      },
+      away: { teamId: 2, rosterForMatchupPeriod: { entries: [] } },
+    }],
+  };
+  const rows = adapter.leagueOfficePlayersFromEspnData(data, 2);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].player_name, "Actual Scorer");
+  assert.equal(rows[0].actual_points, 27.4);
+  assert.equal(rows[0].team_name, "Week Two Team");
+});

@@ -350,7 +350,7 @@ function normalizePlayer(entry, week) {
       player?.projectedStats?.appliedTotal,
       projectedPointsForEspnPlayer(player, week)
     ),
-    actual_points: firstFinite(entry?.totalPoints, entry?.actualPoints, player?.totalPoints, player?.actual_points),
+    actual_points: firstFinite(entry?.totalPoints, entry?.actualPoints, player?.totalPoints, player?.actual_points, actualPointsForEspnPlayer(player, week)),
     image_url: player?.headshotUrl || player?.imageUrl || null,
     is_starter: isStarter,
     espn_id: id,
@@ -387,6 +387,17 @@ function projectedPointsForEspnPlayer(player, week) {
     && (Number.isFinite(requestedWeek) ? Number(stat?.scoringPeriodId) === requestedWeek : true)
   );
   return firstFinite(projection?.appliedTotal);
+}
+
+/** ESPN weekly actual points: statSourceId 0 is Real, appliedTotal is the scored value. */
+function actualPointsForEspnPlayer(player, week) {
+  const requestedWeek = Number(week);
+  const stats = Array.isArray(player?.stats) ? player.stats : [];
+  const actual = stats.find((stat) =>
+    Number(stat?.statSourceId) === 0
+    && (Number.isFinite(requestedWeek) ? Number(stat?.scoringPeriodId) === requestedWeek : true)
+  );
+  return firstFinite(actual?.appliedTotal);
 }
 
 /**
@@ -1127,6 +1138,30 @@ async function fetchEspnLeagueOfficeTransactions(leagueId, espn_s2, swid, opts =
 
 function leagueOfficePlayersFromEspnData(data, week) {
   const rows = [];
+  const names = new Map((Array.isArray(data?.teams) ? data.teams : []).map((team) => [teamId(team), teamName(team)]));
+  const games = Array.isArray(data?.schedule) ? data.schedule : [];
+
+  // Completed matchup payloads preserve the roster for that scoring period. Prefer them over
+  // mRoster, which can describe today's roster and therefore lose a player who was dropped
+  // after the week being summarized.
+  for (const game of games) {
+    if (Number(game?.matchupPeriodId ?? game?.scoringPeriodId) !== Number(week)) continue;
+    for (const side of [game?.home, game?.away]) {
+      const tid = espnMatchupTeamId(side);
+      const entries = Array.isArray(side?.rosterForCurrentScoringPeriod?.entries)
+        ? side.rosterForCurrentScoringPeriod.entries
+        : Array.isArray(side?.rosterForMatchupPeriod?.entries)
+          ? side.rosterForMatchupPeriod.entries
+          : [];
+      for (const entry of entries) {
+        const p = normalizePlayer(entry, week);
+        rows.push({ team_id: tid, team_name: names.get(tid) || null, player_id: p.player_id, player_name: p.name, actual_points: p.actual_points, selected_position: p.selected_position });
+      }
+    }
+  }
+  if (rows.length) return rows;
+
+  // Defensive fallback for ESPN payload variants without matchup rosters.
   for (const team of (Array.isArray(data?.teams) ? data.teams : [])) {
     const tid = teamId(team);
     const tname = teamName(team);
@@ -1140,7 +1175,7 @@ function leagueOfficePlayersFromEspnData(data, week) {
 
 async function fetchEspnLeagueOfficePlayers(leagueId, espn_s2, swid, opts = {}) {
   const week = Number(opts.week || opts.scoringPeriodId || 1);
-  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTeam", "mRoster"], week, opts);
+  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTeam", "mMatchup", "mMatchupScore"], week, opts);
   return leagueOfficePlayersFromEspnData(data, week);
 }
 
