@@ -165,7 +165,10 @@ async function persistTransactionAwards(job, completedWeek, credentials, complet
 
   const rank = (action) => transactions
     .filter((t) => t.action === action)
-    .map((t) => {\n      const player = playerById.get(String(t.player_id));\n      return { ...t, player_name: player?.player_name || t.player_name, actual_points: Number(player?.actual_points) };\n    })
+    .map((t) => {
+      const player = playerById.get(String(t.player_id));
+      return { ...t, player_name: player?.player_name || t.player_name, actual_points: Number(player?.actual_points) };
+    })
     .filter((t) => Number.isFinite(t.actual_points))
     .sort((a, b) => Number(b.actual_points) - Number(a.actual_points) || Number(b.process_date || 0) - Number(a.process_date || 0));
 
