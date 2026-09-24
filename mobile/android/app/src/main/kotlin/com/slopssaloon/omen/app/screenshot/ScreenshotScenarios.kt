@@ -1261,7 +1261,7 @@ private class ScreenshotConnectRepository : ConnectRepository {
     ): Result<List<EspnLeagueOption>> = Result.success(emptyList())
 
     override suspend fun connectEspn(capture: EspnCapture, accessToken: String): Result<Unit> =
-        Result.failure(ConnectException(ConnectFailure.EspnSessionUnreadable))
+        Result.failure(ConnectException(ConnectFailure.EspnSessionUnreadable()))
 
     // Screenshot mode never writes, so the follow set is reported as accepted and stored — the
     // "did not persist" disclosure is a real-server state and must not appear in a marketing

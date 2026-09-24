@@ -91,38 +91,107 @@ sealed interface ConnectState {
 }
 
 /**
+ * What the provider actually said, when it said anything. iOS mirror: `EspnDiagnostic` in
+ * `App/Connect/ConnectFlow.swift`.
+ *
+ * `ConnectFailed.dc.html` shows the status code, the league and the time, because "it didn't
+ * work" is not a report a user can act on and support cannot triage without them. Carrying them
+ * on the failure is what makes that screen reachable honestly.
+ *
+ * Every field is optional and the screen degrades field by field. **A value is never invented**:
+ * if ESPN gave no status, none is shown. [leagueId] is a league id, never a cookie value —
+ * fact-of-record #6 is unaffected by this type and no cookie may ever enter it.
+ *
+ * [observedAt] is excluded from equality by hand, same reasoning as the iOS type: it defaults to
+ * "now", so a synthesised `equals` would compare two diagnostics describing the identical
+ * provider failure as unequal because they were constructed microseconds apart.
+ */
+data class EspnDiagnostic(
+    val statusCode: Int? = null,
+    val statusText: String? = null,
+    val leagueId: String? = null,
+    val observedAt: java.time.Instant = java.time.Instant.now(),
+) {
+    override fun equals(other: Any?): Boolean =
+        other is EspnDiagnostic &&
+            statusCode == other.statusCode &&
+            statusText == other.statusText &&
+            leagueId == other.leagueId
+
+    override fun hashCode(): Int {
+        var result = statusCode ?: 0
+        result = 31 * result + (statusText?.hashCode() ?: 0)
+        result = 31 * result + (leagueId?.hashCode() ?: 0)
+        return result
+    }
+}
+
+/**
  * Why an attempt stopped, in terms the user can act on. Never carries a raw provider error,
  * identifier, or credential — spec §7: "raw provider/cookie details never enter client copy."
+ * iOS mirror: `ConnectFailure` in `App/Connect/ConnectFlow.swift`.
  */
-enum class ConnectFailure(val message: String) {
-    UsernameNotFound("We couldn't find that Sleeper username. Check the spelling and try again."),
-    NoLeaguesForSeason("That account doesn't have any leagues this season. Try another username, or explore the demo."),
-    Network("We couldn't reach Omen. Check your connection and try again."),
-    Server("Omen had a problem on our side. Try again in a moment."),
+sealed class ConnectFailure(val message: String) {
+    data object UsernameNotFound :
+        ConnectFailure("We couldn't find that Sleeper username. Check the spelling and try again.")
+    data object NoLeaguesForSeason :
+        ConnectFailure("That account doesn't have any leagues this season. Try another username, or explore the demo.")
+    data object Network : ConnectFailure("We couldn't reach Omen. Check your connection and try again.")
+    data object Server : ConnectFailure("Omen had a problem on our side. Try again in a moment.")
 
     /** The backend's own idempotency guard said an identical request is already running. */
-    AlreadyInProgress("That connection is already being set up. Give it a second, then check Account."),
+    data object AlreadyInProgress :
+        ConnectFailure("That connection is already being set up. Give it a second, then check Account.")
 
     /**
      * Yahoo's Fantasy Sports API entitlement is off server-side (`503 yahoo_unavailable`). A
      * product state, not a user error, so it gets its own sentence rather than "our side".
      */
-    ProviderUnavailable("Yahoo connections are paused right now. Sleeper still works, or try again later."),
+    data object ProviderUnavailable :
+        ConnectFailure("Yahoo connections are paused right now. Sleeper still works, or try again later.")
 
     /**
      * The provider round trip finished but Omen still cannot read the account — usually the
      * user approving in the browser while the token exchange failed behind them.
      */
-    ProviderNotConnected("Yahoo didn't finish connecting. Try again, and make sure you tap Agree in the Yahoo screen."),
+    data object ProviderNotConnected :
+        ConnectFailure("Yahoo didn't finish connecting. Try again, and make sure you tap Agree in the Yahoo screen.")
 
     /**
      * Signed in, but the session was not where Omen could read it. Named explicitly by the Wave 1
-     * contract's failure table, which also forbids blaming the user for it.
+     * contract's failure table, which also forbids blaming the user for it. [diagnostic] carries
+     * the provider's own status when `ConnectRepository` has one — populated the same way iOS's
+     * `ConnectRepository.swift` maps 401/422, never fabricated.
      */
-    EspnSessionUnreadable("Omen couldn't read your ESPN session. That's on us, not you — try once more, or finish on a computer."),
+    data class EspnSessionUnreadable(val diagnostic: EspnDiagnostic? = null) :
+        ConnectFailure("Omen couldn't read your ESPN session. That's on us, not you — try once more, or finish on a computer.")
 
-    /** The session read fine and ESPN refused the league — wrong league, or no access to it. */
-    EspnLeagueUnreachable("Omen signed in but couldn't reach that league. Open the league you want in ESPN, then try again."),
+    /**
+     * The session read fine and ESPN refused the league — wrong league, or no access to it.
+     * [diagnostic] mirrors [EspnSessionUnreadable]'s.
+     */
+    data class EspnLeagueUnreachable(val diagnostic: EspnDiagnostic? = null) :
+        ConnectFailure("Omen signed in but couldn't reach that league. Open the league you want in ESPN, then try again.")
+
+    /** The provider's own account of the failure, when there is one — only the ESPN cases carry it. */
+    val espnDiagnostic: EspnDiagnostic?
+        get() = when (this) {
+            is EspnSessionUnreadable -> diagnostic
+            is EspnLeagueUnreachable -> diagnostic
+            else -> null
+        }
+
+    companion object {
+        /**
+         * One instance per case, undiagnosed. Replaces the `entries` a plain enum would have
+         * given for free — a sealed class has no such list, and copy-safety tests need one
+         * representative of every failure regardless of whether a diagnostic is attached.
+         */
+        val entries: List<ConnectFailure> = listOf(
+            UsernameNotFound, NoLeaguesForSeason, Network, Server, AlreadyInProgress,
+            ProviderUnavailable, ProviderNotConnected, EspnSessionUnreadable(), EspnLeagueUnreachable(),
+        )
+    }
 }
 
 /** Availability is a recorded product decision, not something probed at runtime. */

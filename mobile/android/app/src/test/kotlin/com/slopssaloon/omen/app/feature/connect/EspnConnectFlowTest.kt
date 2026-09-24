@@ -266,7 +266,7 @@ class EspnConnectFlowTest {
     @Test
     fun `an unreadable session retries once then routes to the desktop path`() = runTest {
         val repository = StubConnectRepository()
-        repository.espnConnectResult = Result.failure(ConnectException(ConnectFailure.EspnSessionUnreadable))
+        repository.espnConnectResult = Result.failure(ConnectException(ConnectFailure.EspnSessionUnreadable()))
         repository.espnDiscoverResult = Result.success(
             listOf(EspnLeagueOption("1", "L", 2026, null, null)),
         )
@@ -284,6 +284,69 @@ class EspnConnectFlowTest {
             viewModel.state is ConnectState.UnsupportedOnMobile,
         )
         assertEquals(EspnHandoffCopy.SIGN_IN_FELL_BACK, viewModel.espnNotice)
+    }
+
+    // ---- ConnectFailed diagnostic wiring ----
+    //
+    // `OmenConnectFailedScreen` existed only in a screenshot scenario until this failure
+    // carried a real diagnostic. These pin that the diagnostic the repository maps from a
+    // provider status reaches `ConnectState.RetryableError` unchanged — `ConnectScreen`'s own
+    // "all three fields present" gate is what decides whether the report renders.
+
+    @Test
+    fun `a 422 diagnostic reaches RetryableError as session-unreadable with league id and no invented status text`() = runTest {
+        val repository = StubConnectRepository()
+        repository.espnConnectResult = Result.failure(
+            ConnectException(
+                ConnectFailure.EspnSessionUnreadable(
+                    EspnDiagnostic(statusCode = 422, statusText = "Unprocessable", leagueId = "884411"),
+                ),
+            ),
+        )
+        val viewModel = signedIn(repository)
+
+        viewModel.connectEspnLeague(EspnLeagueOption("884411", "L", 2026, null, null))
+
+        val state = viewModel.state as? ConnectState.RetryableError
+            ?: return@runTest org.junit.Assert.fail("expected RetryableError, got ${viewModel.state}")
+        val failure = state.failure as? ConnectFailure.EspnSessionUnreadable
+            ?: return@runTest org.junit.Assert.fail("expected EspnSessionUnreadable, got ${state.failure}")
+        assertEquals(422, failure.diagnostic?.statusCode)
+        assertEquals("Unprocessable", failure.diagnostic?.statusText)
+        assertEquals("884411", failure.diagnostic?.leagueId)
+    }
+
+    @Test
+    fun `a 400 diagnostic reaches RetryableError as league-unreachable`() = runTest {
+        val repository = StubConnectRepository()
+        repository.espnConnectResult = Result.failure(
+            ConnectException(
+                ConnectFailure.EspnLeagueUnreachable(
+                    EspnDiagnostic(statusCode = 400, statusText = "Bad Request", leagueId = "884411"),
+                ),
+            ),
+        )
+        val viewModel = signedIn(repository)
+
+        viewModel.connectEspnLeague(EspnLeagueOption("884411", "L", 2026, null, null))
+
+        val state = viewModel.state as? ConnectState.RetryableError
+            ?: return@runTest org.junit.Assert.fail("expected RetryableError, got ${viewModel.state}")
+        val failure = state.failure as? ConnectFailure.EspnLeagueUnreachable
+            ?: return@runTest org.junit.Assert.fail("expected EspnLeagueUnreachable, got ${state.failure}")
+        assertEquals(400, failure.diagnostic?.statusCode)
+        assertEquals("884411", failure.diagnostic?.leagueId)
+    }
+
+    /** Fact-of-record #6 lives at the type level too: no field on this type can hold a cookie. */
+    @Test
+    fun `EspnDiagnostic equality ignores observedAt so two reports of the same failure compare equal`() {
+        val first = EspnDiagnostic(statusCode = 401, statusText = "Unauthorized", leagueId = "1")
+        Thread.sleep(2)
+        val second = EspnDiagnostic(statusCode = 401, statusText = "Unauthorized", leagueId = "1")
+
+        assertEquals(first, second)
+        assertTrue(first.observedAt != second.observedAt)
     }
 
     /**

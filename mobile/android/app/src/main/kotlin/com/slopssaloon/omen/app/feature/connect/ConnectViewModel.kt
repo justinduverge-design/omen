@@ -356,7 +356,7 @@ class ConnectViewModel(
 
         state = ConnectState.ValidatingEspnConnection(leagueId)
         val session = espnSession ?: reader.takeSession() ?: run {
-            failEspnSignIn(ConnectFailure.EspnSessionUnreadable)
+            failEspnSignIn(ConnectFailure.EspnSessionUnreadable())
             return
         }
         sendEspnConnect(EspnCapture(session.first, session.second, leagueId, teamId))
@@ -397,7 +397,7 @@ class ConnectViewModel(
     private fun failEspnSignIn(failure: ConnectFailure) {
         clearEspnSession()
 
-        if (failure == ConnectFailure.EspnSessionUnreadable) {
+        if (failure is ConnectFailure.EspnSessionUnreadable) {
             espnUnreadableRetries++
             if (espnUnreadableRetries > 1) {
                 espnNotice = EspnHandoffCopy.SIGN_IN_FELL_BACK
