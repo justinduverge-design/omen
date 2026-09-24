@@ -43,6 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.slopssaloon.omen.app.feature.api.QuietWeekResponse
 import com.slopssaloon.omen.app.feature.help.OmenHelpDestination
 import com.slopssaloon.omen.app.feature.shell.OmenScreenContext
 import com.slopssaloon.omen.app.feature.shell.OmenScreenHeaderControls
@@ -213,7 +214,38 @@ data class OmenQuietState(
     /** "Next read · Tuesday 3:00 AM waivers" */
     val nextRead: String,
     val footnote: OmenDeskFootnote? = null,
-)
+) {
+    companion object {
+        /**
+         * Maps `quiet-week.v1` onto the screen's payload. Returns `null` whenever the response
+         * cannot honestly support the screen — not eligible, an unrecognised variant, or missing
+         * the server-owned copy it is supposed to carry. [weekLabel] comes from the shell's own
+         * `game_week` read (`DashboardSummary.GameWeek`), not from this response, which carries
+         * no week of its own. iOS mirror: `OmenQuietState.from(response:weekLabel:)`.
+         */
+        fun from(response: QuietWeekResponse, weekLabel: String): OmenQuietState? {
+            if (!response.eligible) return null
+            val variant = when (response.variant) {
+                "neutral" -> OmenQuietVariant.Neutral
+                "straight" -> OmenQuietVariant.Straight
+                else -> return null
+            }
+            val headline = response.headline ?: return null
+            val body = response.body ?: return null
+            val nextRead = response.nextRead ?: return null
+            return OmenQuietState(
+                variant = variant,
+                weekLabel = weekLabel,
+                headline = headline,
+                body = body,
+                band = OmenConfidenceBand.Confident,
+                risk = OmenRiskLevel.Low,
+                nextRead = nextRead,
+                footnote = null,
+            )
+        }
+    }
+}
 
 /** One row in the switch sheet. */
 data class OmenSwitchRow(

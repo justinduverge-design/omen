@@ -434,3 +434,58 @@ class StubLeagueDirectoryRepository(
         return selection
     }
 }
+
+// --- Quiet week -----------------------------------------------------------
+
+/**
+ * `GET /api/dashboard/quiet-week` -> `quiet-week.v1`. iOS mirror: `QuietWeekResponse` in
+ * `App/Api/DashboardRepository.swift`.
+ *
+ * Opt-in, separate from the dashboard summary: the ordinary dashboard must never pay for this
+ * read, and a quiet-week answer is only meaningful once the shell already knows the current
+ * empty-week state. [eligible] and [variant] are entirely server-owned — this type decodes them,
+ * it does not derive them. [headline]/[body]/[nextRead] are present only when [eligible] is
+ * true, composed server-side by `quietWeek()` in `src/services/quietWeek.js` from the same
+ * `reasons` this type decodes — never per-user specifics.
+ */
+data class QuietWeekResponse(
+    val eligible: Boolean,
+    val variant: String?,
+    val reasons: List<String>,
+    val sourceState: String?,
+    val headline: String?,
+    val body: String?,
+    val nextRead: String?,
+) {
+    companion object {
+        fun parse(json: String): QuietWeekResponse? = runCatching {
+            val root = JSONObject(json)
+            QuietWeekResponse(
+                eligible = root.optBoolean("eligible", false),
+                variant = root.optStringOrNull("variant"),
+                reasons = root.optJSONArray("reasons")?.let { array ->
+                    (0 until array.length()).mapNotNull { array.optString(it, null) }
+                }.orEmpty(),
+                sourceState = root.optStringOrNull("source_state"),
+                headline = root.optStringOrNull("headline"),
+                body = root.optStringOrNull("body"),
+                nextRead = root.optStringOrNull("next_read"),
+            )
+        }.getOrNull()
+    }
+}
+
+interface QuietWeekRepository {
+    suspend fun fetchQuietWeek(accessToken: String): OmenApiResult<QuietWeekResponse>
+}
+
+class ApiQuietWeekRepository(private val client: OmenApiClient) : QuietWeekRepository {
+    override suspend fun fetchQuietWeek(accessToken: String): OmenApiResult<QuietWeekResponse> =
+        client.get("api/dashboard/quiet-week", accessToken, QuietWeekResponse::parse)
+}
+
+class StubQuietWeekRepository(
+    private val result: OmenApiResult<QuietWeekResponse> = OmenApiResult.Failure(OmenApiError.Network),
+) : QuietWeekRepository {
+    override suspend fun fetchQuietWeek(accessToken: String): OmenApiResult<QuietWeekResponse> = result
+}

@@ -37,6 +37,7 @@ import com.slopssaloon.omen.app.auth.OmenAuthFlow
 import com.slopssaloon.omen.app.auth.OmenDeleteAccountScreen
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterFixtures
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterScreen
+import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandQuietScreen
 import com.slopssaloon.omen.app.feature.commandcenter.OmenLeagueScreen
 import com.slopssaloon.omen.app.feature.commandcenter.omenScoutWireState
 import com.slopssaloon.omen.app.feature.commandcenter.scoutSummary
@@ -91,6 +92,8 @@ import com.slopssaloon.omen.app.feature.api.TradeViewModel
 import com.slopssaloon.omen.app.feature.api.ApiMovesRepository
 import com.slopssaloon.omen.app.feature.api.ApiOmenDecisionRepository
 import com.slopssaloon.omen.app.feature.api.ApiWaiverAnalysisRepository
+import com.slopssaloon.omen.app.feature.api.ApiQuietWeekRepository
+import com.slopssaloon.omen.app.feature.api.ApiStartSitDetailRepository
 import com.slopssaloon.omen.app.feature.api.CommandCenterViewModel
 import com.slopssaloon.omen.app.feature.api.OmenApiClient
 import com.slopssaloon.omen.app.feature.api.OmenApiError
@@ -186,6 +189,7 @@ fun OmenAndroidApp() {
             leagueRepository = ApiLeagueRepository(client),
             movesRepository = ApiMovesRepository(client),
             waiverRepository = ApiWaiverAnalysisRepository(client),
+            quietWeekRepository = ApiQuietWeekRepository(client),
             sessionManager = sessionManager,
         )
     }
@@ -217,6 +221,7 @@ fun OmenAndroidApp() {
         OmenDecisionViewModel(
             repository = ApiOmenDecisionRepository(OmenApiClient(env.apiBaseUrl)),
             sessionManager = sessionManager,
+            startSitRepository = ApiStartSitDetailRepository(OmenApiClient(env.apiBaseUrl)),
         )
     }
 
@@ -839,6 +844,14 @@ private fun SignedInDestination(
                     onConnect = onConnect,
                     onSeeHowOmenDecides = onOpenOmen,
                 )
+            } else if (commandCenterViewModel.quietWeekState != null) {
+                // `quiet-week.v1`. Server-owned eligibility and variant — this only renders
+                // once the route has answered `eligible: true` with copy this build
+                // recognises; every other case keeps the ordinary desk below.
+                OmenCommandQuietScreen(
+                    state = commandCenterViewModel.quietWeekState!!,
+                    onOpenAccount = onOpenAccount,
+                )
             } else {
                 OmenCommandCenterScreen(
                     state = commandCenterViewModel.commandCenterState,
@@ -889,6 +902,8 @@ private fun SignedInDestination(
                     state = omenDecisionViewModel.briefState(
                         onReload = { scope.launch { omenDecisionViewModel.reload() } },
                     ),
+                    startSitDetail = omenDecisionViewModel.startSitDetail,
+                    onRetryStartSit = { scope.launch { omenDecisionViewModel.reload() } },
                 )
             }
         }

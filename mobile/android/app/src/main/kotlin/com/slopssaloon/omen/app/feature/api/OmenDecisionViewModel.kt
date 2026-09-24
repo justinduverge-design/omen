@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.slopssaloon.omen.app.feature.omen.OmenDecisionFixtures
 import com.slopssaloon.omen.core.designsystem.component.OmenDecisionBriefState
+import com.slopssaloon.omen.core.session.SessionAuthorization
 import com.slopssaloon.omen.core.session.SessionManager
 
 /**
@@ -18,6 +19,8 @@ import com.slopssaloon.omen.core.session.SessionManager
 class OmenDecisionViewModel(
     private val repository: OmenDecisionRepository,
     private val sessionManager: SessionManager,
+    private val startSitRepository: StartSitDetailRepository =
+        StubStartSitDetailRepository(OmenApiResult.Failure(OmenApiError.Network)),
 ) {
     sealed interface ViewState {
         data object Idle : ViewState
@@ -28,6 +31,17 @@ class OmenDecisionViewModel(
     }
 
     var viewState: ViewState by mutableStateOf(ViewState.Idle)
+        private set
+
+    /**
+     * `start-sit-detail.v2`. Populated only when the live envelope's own call names a
+     * start/sit recommendation (`recommendation.type == "start_sit"`) — a trade or waiver
+     * call has no start/sit detail to read, and this stays `null` for them. `null` also while
+     * the detail read is in flight, so the Omen destination keeps rendering the ordinary call
+     * card until there is a genuine, richer answer to swap in. iOS mirror:
+     * `OmenDecisionViewModel.startSitDetail`.
+     */
+    var startSitDetail: StartSitDetail? by mutableStateOf(null)
         private set
 
     /**
@@ -62,9 +76,26 @@ class OmenDecisionViewModel(
 
     suspend fun reload() {
         viewState = ViewState.Loading
-        viewState = when (val result = sessionManager.authorized { repository.fetchDecision(it) }) {
-            is OmenApiResult.Success -> ViewState.Loaded(result.value)
-            is OmenApiResult.Failure -> ViewState.Failed(result.error)
+        startSitDetail = null
+        when (val result = sessionManager.authorized { repository.fetchDecision(it) }) {
+            is OmenApiResult.Success -> {
+                viewState = ViewState.Loaded(result.value)
+                // Only a live `start_sit` call has a start/sit detail to read — a trade or
+                // waiver recommendation would just make this an extra round trip to a route
+                // that has nothing for it. Reuses the token `authorized` just proved good
+                // rather than renewing again, same reasoning as `CommandCenterViewModel`.
+                if (result.value.recommendation?.type != "start_sit") return
+                val auth = sessionManager.authorization()
+                if (auth !is SessionAuthorization.Token) return
+                when (val detail = startSitRepository.fetchDetail(auth.accessToken)) {
+                    is OmenApiResult.Success -> startSitDetail = detail.value
+                    // The ordinary call card remains visible. A transport failure on this
+                    // richer read must not block or replace an answer the envelope already
+                    // gave honestly.
+                    is OmenApiResult.Failure -> Unit
+                }
+            }
+            is OmenApiResult.Failure -> viewState = ViewState.Failed(result.error)
         }
     }
 

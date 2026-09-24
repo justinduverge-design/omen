@@ -8,6 +8,7 @@ import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterState
 import com.slopssaloon.omen.app.feature.commandcenter.OmenLeaguePulseState
 import com.slopssaloon.omen.core.designsystem.component.OmenMatchupHeroState
 import com.slopssaloon.omen.app.feature.commandcenter.OmenLedgerPreviewState
+import com.slopssaloon.omen.app.feature.commandcenter.OmenQuietState
 import com.slopssaloon.omen.app.feature.commandcenter.OmenWaiverWatchState
 import com.slopssaloon.omen.core.designsystem.component.OmenContextStripState
 import com.slopssaloon.omen.core.session.SessionAuthorization
@@ -28,6 +29,7 @@ class CommandCenterViewModel(
     private val leagueRepository: LeagueRepository,
     private val movesRepository: MovesRepository,
     private val waiverRepository: WaiverAnalysisRepository = StubWaiverAnalysisRepository(),
+    private val quietWeekRepository: QuietWeekRepository = StubQuietWeekRepository(),
     private val sessionManager: SessionManager,
 ) {
     sealed interface ViewState {
@@ -93,6 +95,28 @@ class CommandCenterViewModel(
         private set
 
     /**
+     * `quiet-week.v1`. Null means "no quiet-week answer yet, or not eligible" — the Command
+     * tab keeps rendering the ordinary desk in either case. Only a mapped, eligible
+     * [OmenQuietState] swaps the desk for the quiet screen; see [quietWeekState].
+     */
+    var quietWeek: QuietWeekResponse? by mutableStateOf(null)
+        private set
+
+    /**
+     * The mapped quiet-week screen, or `null` when the desk should render as usual — no answer
+     * yet, not eligible, or a response this build cannot honestly render. The week label comes
+     * from the same `game_week` the desk's own eyebrow uses, never from the quiet-week response,
+     * which carries no week of its own.
+     */
+    val quietWeekState: OmenQuietState?
+        get() {
+            val quiet = quietWeek ?: return null
+            val loaded = viewState as? ViewState.Loaded ?: return null
+            val weekLabel = loaded.summary.gameWeek?.week?.let { "Week $it" } ?: ""
+            return OmenQuietState.from(quiet, weekLabel)
+        }
+
+    /**
      * The Command Center state to render.
      *
      * Slice C overlays the verified context strip when — and only when — standings has produced
@@ -138,6 +162,7 @@ class CommandCenterViewModel(
         matchup = null
         waiverWatch = null
         waiverAnalysis = null
+        quietWeek = null
 
         // The shell read goes through the session seam, which renews an expiring token before
         // the call and retries once on a 401.
@@ -163,6 +188,16 @@ class CommandCenterViewModel(
                             loadWaiverWatch(accessToken)
                         }
                     }
+                    // Opt-in, per the route's own comment: never pay for this on an ordinary
+                    // dashboard load. Gated on the same `omenOfTheWeek` readiness the Ledger
+                    // scope read uses below — a user with no platform connected has no
+                    // decision to be quiet about, and the route would just answer
+                    // `eligible: false` anyway.
+                    val quietWeekJob = async {
+                        if (result.value.omenStatus != DashboardSummary.ToolStatus.NeedsPlatform) {
+                            loadQuietWeek(accessToken)
+                        }
+                    }
                     val overview = contextJob.await()
                     if (result.value.omenStatus != DashboardSummary.ToolStatus.NeedsPlatform) {
                         // Trimmed, matching iOS. Whitespace in a scope key is a silent
@@ -175,6 +210,7 @@ class CommandCenterViewModel(
                         else ledger = OmenLedgerPreviewState.Error("Omen couldn't determine the selected league for this Ledger.")
                     }
                     waiverJob.await()
+                    quietWeekJob.await()
                 }
             }
             is OmenApiResult.Failure -> {
@@ -232,6 +268,15 @@ class CommandCenterViewModel(
             // same token, so this is far more likely a route-level problem than a dead session,
             // and tearing down a working shell over it would be the worse failure.
             is OmenApiResult.Failure -> OmenLedgerPreviewState.Error(ledgerMessageFor(result.error))
+        }
+    }
+
+    private suspend fun loadQuietWeek(accessToken: String) {
+        when (val result = quietWeekRepository.fetchQuietWeek(accessToken)) {
+            is OmenApiResult.Success -> quietWeek = result.value
+            // The ordinary desk remains visible. A transport failure here is not an honest
+            // quiet-week answer, so it must not be treated as one.
+            is OmenApiResult.Failure -> Unit
         }
     }
 
