@@ -3505,3 +3505,53 @@ behaving; until then this entry records intent, not proof.
   gate and compact action hierarchy as iOS; Report Composer names the payload, model-summary
   disclosure and unsupported screenshot attachment before consent. Evidence and measurements are in
   `Blueprints/handoffs/2026-09-20-j2-j4-j5-j6-and-chrome-closeout.md`, final commit `cf581876`.
+
+## 2026-09-24 — J2/J4/J5/J6/chrome closeout, Trade opened to all three providers, telemetry posture partially reversed
+
+- **Decision: the six screen journeys and native chrome are complete.** All 32 visual-lock
+  artboards built on both platforms, merged to `main`, `check-screen-reachability.mjs` at
+  zero findings. `U1`, `U3`, `U4` moved to `VERIFIED`. Evidence:
+  `Direction/2026-09-29-tuesday-readiness.md`, `Solutions/deliverables/native-runs/2026-09-20-*`.
+
+- **Decision: Trade opens to ESPN and Yahoo, not just Sleeper — founder override of an
+  agent's own risk-averse scoping.** The original plan (an honest "not available for this
+  provider" fallback on ESPN/Yahoo) was withdrawn: *"ESPN and Yahoo, they got to become
+  available."* Checked before building rather than assumed feasible: none of the three
+  providers needed new integration. `fetchEspnMatchup` already returned every team's roster
+  embedded in its schedule payload; Yahoo's roster-by-team-key call already accepted an
+  arbitrary key. Both needed extension, not new auth surfaces. `GET /api/trade/roster` now
+  dispatches all three. Verified after merge: 1175 backend tests, 332 Android tests, a real
+  iOS binary produced (not just exit code), reachability at zero.
+
+- **Decision: the LLM-reasoning gap this session opened with was stale.** Two `signal("stub",
+  ...)` sites in `services/omen.js` were read as "not built" without checking whether a
+  downstream path overrides them. It does — `explainOmenMvpMove` (shipped `a37211e8`,
+  2026-09-17) already calls Ollama/Gemma with a bounded timeout and honest fallback, and is
+  live in production (`GET /api/ready` → `llm.status: configured_private, model: gemma3:4b`).
+  Corrected in place rather than rebuilt. **Generalisable, and on this record before**: an
+  inherited-work review is itself work that needs verifying — the same failure this repo's
+  own decision log named on 2026-09-19 for a different pass.
+
+- **Decision: fact-of-record #17's telemetry posture is partially reversed.** Cloud PostHog
+  is now approved for click/page/funnel product analytics. Self-hosting was considered and
+  declined on capacity grounds, not privacy grounds — the founder does not want a future
+  hardware purchase spent on analytics rather than revenue work. The local-Ollama beta-report
+  path and the `AI_PROVIDER=cloud` fail-closed LLM posture are unaffected; this is scoped to
+  product analytics specifically. Recorded in `facts-of-record.md` #17 as a correction, not a
+  silent edit. **Not yet implemented** — decision only.
+
+- **Decision: a football-data foundation and a scheme-tracking feature are scoped as their
+  own future work, deliberately not started here.** Full nflverse catalog surveyed with real
+  fetched columns (24 release families, not the 2 first assumed relevant) —
+  `Direction/football-data-and-schemes-research.md`. Scheme tracking (coaching tendencies
+  traveling between teams) has no free structured source; it is a derived/modeled problem
+  from `pbp_participation` formation/personnel data and `schedules`' coach-team history, not
+  an ingestion task, and needs a literature check before a build design. Neither is Tuesday
+  work. Three follow-on threads recorded, deliberately not conflated into one: canvas-to-code
+  polish (including the team-switch-lag lead, unresolved), the data/schemes foundation, and
+  the PostHog integration.
+
+- **Finding, recorded because it generalises past this session:** research done inside a
+  chat conversation is lost the moment that conversation ends unless it is written to the
+  repo before closing. The nflverse column survey above exists only because it was written
+  down here rather than left in a transcript.

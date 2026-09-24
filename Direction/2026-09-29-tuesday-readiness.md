@@ -3,6 +3,13 @@
 **Written:** 2026-09-24. **Target:** a TestFlight build Justin can push to his own phone and
 present, archived and pushed by Justin on Tuesday.
 
+**Closed out 2026-09-24: all 11 reachability findings resolved (0 remaining), Trade works on
+all three providers, LLM reasoning gap corrected (was already live, not a stub).** Merged and
+pushed to `origin/main` at `c8020dc4`, verified post-merge: 1175 backend tests, 332 Android
+tests, iOS binary built clean, reachability at zero. **Still open, carried to the next
+conversation on this thread:** team-switch-lag profiling (lead found, not fixed), #340
+Command Center contrast (small, optional), `CURRENT_PROJECT_VERSION` bump before archiving.
+
 This is a live tracking document, not a handoff. Update item status in place as work lands.
 Sourced from `node scripts/check-screen-reachability.mjs` and direct code inspection on
 `main` (`dbd30b97` at time of writing) — not from memory of what earlier sessions reported.
