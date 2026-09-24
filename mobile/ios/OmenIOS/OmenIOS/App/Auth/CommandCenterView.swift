@@ -46,7 +46,9 @@ struct CommandCenterView: View {
         leagueRepository: LeagueRepository,
         movesRepository: MovesRepository,
         waiverRepository: WaiverAnalysisRepository,
+        quietWeekRepository: QuietWeekRepository,
         omenDecisionRepository: OmenDecisionRepository,
+        startSitDetailRepository: StartSitDetailRepository,
         connectRepository: ConnectRepository,
         leagueDirectoryRepository: LeagueDirectoryRepository,
         tradeRepository: TradeRepository,
@@ -61,10 +63,12 @@ struct CommandCenterView: View {
             leagueRepository: leagueRepository,
             movesRepository: movesRepository,
             waiverRepository: waiverRepository,
+            quietWeekRepository: quietWeekRepository,
             sessionManager: sessionManager
         ))
         _omenDecisionViewModel = StateObject(wrappedValue: OmenDecisionViewModel(
             repository: omenDecisionRepository,
+            startSitRepository: startSitDetailRepository,
             sessionManager: sessionManager
         ))
         _tradeViewModel = StateObject(wrappedValue: TradeViewModel(
@@ -213,6 +217,14 @@ struct CommandCenterView: View {
                         onConnect: { showConnectSheet = true },
                         onSeeHowOmenDecides: { selectedTab = .omen }
                     )
+                } else if let quietState = commandCenterViewModel.quietWeekState {
+                    // `quiet-week.v1`. Server-owned eligibility and variant — this only
+                    // renders once the route has answered `eligible: true` with copy this
+                    // build recognises; every other case keeps the ordinary desk above.
+                    OmenCommandQuietScreen(
+                        state: quietState,
+                        onOpenAccount: { showAccountSheet = true }
+                    )
                 } else {
                     OmenCommandCenterScreen(
                         state: commandCenterViewModel.commandCenterState,
@@ -250,7 +262,13 @@ struct CommandCenterView: View {
             // M5 slice D: the Omen destination now renders the live engine's answer.
             // Previously this picked a fixture — `realDisconnected` for every real
             // signed-in user, regardless of their actual leagues.
-            withTeamPicker { OmenDecisionScreen(state: omenDecisionViewModel.briefState) }
+            withTeamPicker {
+                OmenDecisionScreen(
+                    state: omenDecisionViewModel.briefState,
+                    startSitDetail: omenDecisionViewModel.startSitDetail,
+                    onRetryStartSit: { Task { await omenDecisionViewModel.load(userID: userID) } }
+                )
+            }
             .task {
                 omenDecisionViewModel.onConnect = { showConnectSheet = true }
                 await omenDecisionViewModel.load(userID: userID)
@@ -495,6 +513,12 @@ private func commandCenterFailureMessage(_ error: OmenApiError) -> String {
 /// second set to keep honest, which is the failure `demo-mode-pre-empty-state` warns about.
 struct OmenDecisionScreen: View {
     let state: OmenDecisionBriefState
+    /// `start-sit-detail.v2`, read only when the live call is a start/sit
+    /// (`payload.callType == "start_sit"`). `nil` keeps this screen's ordinary `.success`
+    /// composition — the carried-over `OmenStartSitScreen` renders only once there is a real
+    /// detail answer to give it; it is never shown with fabricated or partial state.
+    var startSitDetail: StartSitDetail?
+    var onRetryStartSit: (() -> Void)?
     /// Rendered as the header eyebrow (E015). Absent when the caller does not know the week —
     /// a screen that names a week it was not told is a claim about the schedule.
     var weekLabel: String?
@@ -514,6 +538,25 @@ struct OmenDecisionScreen: View {
     @State private var showingFullArgument = false
 
     var body: some View {
+        // The carried-over J3 screen renders wholesale, with its own header, rather than as a
+        // block inside this screen's composition — it is a different screen contract
+        // (`start-sit-detail.v2`), not a section of `OmenCall-v1.md`'s. Only a live,
+        // successful start/sit call with a real detail answer takes this branch; anything
+        // else — loading, a trade/waiver call, a failed detail read — falls through to the
+        // ordinary composition below, unchanged.
+        if case .success(let payload) = state, payload.callType == "start_sit", let startSitDetail {
+            OmenStartSitScreen(
+                detail: startSitDetail,
+                onRetry: onRetryStartSit,
+                onOpenAccount: onOpenAccount,
+                context: context
+            )
+        } else {
+            ordinaryBody
+        }
+    }
+
+    private var ordinaryBody: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: OmenSpacing.step12) {
                 header

@@ -527,4 +527,126 @@ extension CommandCenterViewModelTests {
             return XCTFail("a failed waiver detail read must not claim no moves")
         }
     }
+
+    // MARK: - Quiet week
+
+    private func summary(omenStatus: String, gameWeek: Int) throws -> DashboardSummary {
+        try JSONDecoder().decode(DashboardSummary.self, from: Data("""
+        {
+          "contract_version": "dashboard-summary.v1",
+          "is_mock": false,
+          "user": { "favorite_team": null },
+          "platforms": {
+            "yahoo": { "connected": false },
+            "sleeper": { "connected": true, "username": "slops" },
+            "espn": { "connected": false }
+          },
+          "tools": {
+            "omen_of_the_week": { "available": true, "status": "\(omenStatus)" },
+            "waiver_wire": { "available": true, "status": "ready" }
+          },
+          "game_week": { "week": \(gameWeek), "phase": "preparing", "day": "tuesday", "is_off_season": false }
+        }
+        """.utf8))
+    }
+
+    private func quietWeek(eligible: Bool, variant: String?, headline: String?, body: String?, nextRead: String?) throws -> QuietWeekResponse {
+        try JSONDecoder().decode(QuietWeekResponse.self, from: Data("""
+        {
+          "contract_version": "quiet-week.v1",
+          "eligible": \(eligible),
+          "variant": \(variant.map { "\"\($0)\"" } ?? "null"),
+          "reasons": [],
+          "source_state": "empty",
+          "headline": \(headline.map { "\"\($0)\"" } ?? "null"),
+          "body": \(body.map { "\"\($0)\"" } ?? "null"),
+          "next_read": \(nextRead.map { "\"\($0)\"" } ?? "null")
+        }
+        """.utf8))
+    }
+
+    /// The reachability-closing case: an eligible, fully-populated quiet-week answer must
+    /// swap the Command tab to `OmenCommandQuietScreen`'s state, carrying the server's own
+    /// variant and copy and the shell's own week label.
+    func testEligibleQuietWeekProducesQuietState() async throws {
+        let viewModel = CommandCenterViewModel(
+            repository: StubDashboardRepository(result: .success(try summary(omenStatus: "ready", gameWeek: 9))),
+            leagueRepository: StubLeagueRepository(result: .failure(.network)),
+            movesRepository: StubMovesRepository(result: .failure(.network)),
+            quietWeekRepository: StubQuietWeekRepository(result: .success(try quietWeek(
+                eligible: true, variant: "straight",
+                headline: "Nothing worth moving for.",
+                body: "Last week didn't go your way — but there's still nothing worth moving for. Holding is the call.",
+                nextRead: "Next read \u{00b7} Tuesday 3:00 AM waivers"
+            ))),
+            sessionManager: makeSessionManager(withToken: "t")
+        )
+
+        await viewModel.load(userID: "user-1")
+
+        let state = try XCTUnwrap(viewModel.quietWeekState)
+        XCTAssertEqual(state.variant, .straight)
+        XCTAssertEqual(state.weekLabel, "Week 9")
+        XCTAssertEqual(state.headline, "Nothing worth moving for.")
+        XCTAssertEqual(state.nextRead, "Next read \u{00b7} Tuesday 3:00 AM waivers")
+    }
+
+    /// `eligible: false` must never be forced into a quiet state — the desk keeps rendering.
+    func testIneligibleQuietWeekLeavesDeskInPlace() async throws {
+        let viewModel = CommandCenterViewModel(
+            repository: StubDashboardRepository(result: .success(try summary(omenStatus: "ready", gameWeek: 9))),
+            leagueRepository: StubLeagueRepository(result: .failure(.network)),
+            movesRepository: StubMovesRepository(result: .failure(.network)),
+            quietWeekRepository: StubQuietWeekRepository(result: .success(try quietWeek(
+                eligible: false, variant: nil, headline: nil, body: nil, nextRead: nil
+            ))),
+            sessionManager: makeSessionManager(withToken: "t")
+        )
+
+        await viewModel.load(userID: "user-1")
+
+        XCTAssertNil(viewModel.quietWeekState)
+    }
+
+    /// A transport failure on the opt-in quiet-week read must not be treated as an honest
+    /// answer — the desk keeps rendering exactly as it did before this wiring existed.
+    func testQuietWeekTransportFailureLeavesDeskInPlace() async throws {
+        let viewModel = CommandCenterViewModel(
+            repository: StubDashboardRepository(result: .success(try summary(omenStatus: "ready", gameWeek: 9))),
+            leagueRepository: StubLeagueRepository(result: .failure(.network)),
+            movesRepository: StubMovesRepository(result: .failure(.network)),
+            quietWeekRepository: StubQuietWeekRepository(result: .failure(.network)),
+            sessionManager: makeSessionManager(withToken: "t")
+        )
+
+        await viewModel.load(userID: "user-1")
+
+        XCTAssertNil(viewModel.quietWeekState)
+    }
+
+    /// A disconnected user (`needsPlatform`) must not even issue the quiet-week read — the
+    /// route would just answer `eligible: false`, and this keeps the same "no platform, no
+    /// decision-shaped call" gate the Ledger load already uses.
+    func testQuietWeekIsNotFetchedWithoutAConnectedPlatform() async throws {
+        final class RecordingQuietWeekRepository: QuietWeekRepository {
+            var called = false
+            func fetchQuietWeek(accessToken: String) async -> Result<QuietWeekResponse, OmenApiError> {
+                called = true
+                return .failure(.network)
+            }
+        }
+        let quietRepo = RecordingQuietWeekRepository()
+        let viewModel = CommandCenterViewModel(
+            repository: StubDashboardRepository(result: .success(try summary(omenStatus: "needs_platform", gameWeek: 9))),
+            leagueRepository: StubLeagueRepository(result: .failure(.network)),
+            movesRepository: StubMovesRepository(result: .failure(.network)),
+            quietWeekRepository: quietRepo,
+            sessionManager: makeSessionManager(withToken: "t")
+        )
+
+        await viewModel.load(userID: "user-1")
+
+        XCTAssertFalse(quietRepo.called, "a disconnected user's dashboard load must not issue the opt-in quiet-week read")
+        XCTAssertNil(viewModel.quietWeekState)
+    }
 }

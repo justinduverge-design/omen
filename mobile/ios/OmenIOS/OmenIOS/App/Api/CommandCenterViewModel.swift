@@ -52,10 +52,16 @@ final class CommandCenterViewModel: ObservableObject {
     /// them.
     @Published private(set) var waiverAnalysis: WaiverAnalysis?
 
+    /// `quiet-week.v1`. `nil` means "no quiet-week answer yet, or not eligible" — the Command
+    /// tab keeps rendering the ordinary desk in either case. Only a mapped, eligible
+    /// `OmenQuietState` swaps the desk for the quiet screen; see `quietWeekState`.
+    @Published private(set) var quietWeek: QuietWeekResponse?
+
     private let repository: DashboardRepository
     private let leagueRepository: LeagueRepository
     private let movesRepository: MovesRepository
     private let waiverRepository: WaiverAnalysisRepository
+    private let quietWeekRepository: QuietWeekRepository
     private let sessionManager: SessionManager
 
     init(
@@ -63,12 +69,14 @@ final class CommandCenterViewModel: ObservableObject {
         leagueRepository: LeagueRepository,
         movesRepository: MovesRepository,
         waiverRepository: WaiverAnalysisRepository = StubWaiverAnalysisRepository(result: .failure(.network)),
+        quietWeekRepository: QuietWeekRepository = StubQuietWeekRepository(result: .failure(.network)),
         sessionManager: SessionManager
     ) {
         self.repository = repository
         self.leagueRepository = leagueRepository
         self.movesRepository = movesRepository
         self.waiverRepository = waiverRepository
+        self.quietWeekRepository = quietWeekRepository
         self.sessionManager = sessionManager
     }
 
@@ -108,6 +116,16 @@ final class CommandCenterViewModel: ObservableObject {
         return error
     }
 
+    /// The mapped quiet-week screen, or `nil` when the desk should render as usual — no answer
+    /// yet, not eligible, or a response this build cannot honestly render. `weekLabel` comes
+    /// from the same `game_week` the desk's own eyebrow uses, never from the quiet-week
+    /// response, which carries no week of its own.
+    var quietWeekState: OmenQuietState? {
+        guard let quietWeek, case .loaded(let summary) = viewState else { return nil }
+        let weekLabel = summary.gameWeek?.week.map { "Week \($0)" } ?? ""
+        return OmenQuietState.from(response: quietWeek, weekLabel: weekLabel)
+    }
+
     func load(userID: String) async {
         guard userID != SessionManager.demoUserID else {
             viewState = .demo
@@ -120,6 +138,7 @@ final class CommandCenterViewModel: ObservableObject {
         leaguePulse = nil
         matchup = nil
         waiverWatch = nil
+        quietWeek = nil
 
         // The shell read goes through the session seam, which renews an expiring token before
         // the call and retries once on a 401. The two follow-ups then reuse the token that
@@ -145,6 +164,14 @@ final class CommandCenterViewModel: ObservableObject {
                 guard summary.tools.waiverWire.status != .needsPlatform else { return }
                 await loadWaiverWatch(accessToken: accessToken)
             }()
+            // Opt-in, per the route's own comment: never pay for this on an ordinary
+            // dashboard load. Gated on the same `omenOfTheWeek` readiness the Ledger scope
+            // read uses below — a user with no platform connected has no decision to be
+            // quiet about, and the route would just answer `eligible: false` anyway.
+            async let quietWeekTask: Void = {
+                guard summary.tools.omenOfTheWeek.status != .needsPlatform else { return }
+                await loadQuietWeek(accessToken: accessToken)
+            }()
             let overview = await contextTask
             if summary.tools.omenOfTheWeek.status != .needsPlatform {
                 // Both values are trimmed before they become query parameters. The previous
@@ -162,6 +189,7 @@ final class CommandCenterViewModel: ObservableObject {
                 }
             }
             _ = await waiverTask
+            _ = await quietWeekTask
         case .failure(let error):
             // `authorized` has already forced a refresh, retried once, and routed a genuine
             // authorization failure to re-auth. Nothing left to do but render honestly.
@@ -216,6 +244,17 @@ final class CommandCenterViewModel: ObservableObject {
             // the same token, so this is far more likely a route-level problem than a dead
             // session, and tearing down a working shell over it would be the worse failure.
             ledger = .error(Self.ledgerMessage(for: error))
+        }
+    }
+
+    private func loadQuietWeek(accessToken: String) async {
+        switch await quietWeekRepository.fetchQuietWeek(accessToken: accessToken) {
+        case .success(let response):
+            quietWeek = response
+        case .failure:
+            // The ordinary desk remains visible. A transport failure here is not an honest
+            // quiet-week answer, so it must not be treated as one.
+            break
         }
     }
 

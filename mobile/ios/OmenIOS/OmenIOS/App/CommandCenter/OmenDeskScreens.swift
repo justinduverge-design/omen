@@ -187,6 +187,33 @@ struct OmenQuietState: Equatable {
     let footnote: OmenDeskFootnote?
 }
 
+extension OmenQuietState {
+    /// Maps `quiet-week.v1` onto the screen's payload. Returns `nil` whenever the response
+    /// cannot honestly support the screen — not eligible, an unrecognised variant, or missing
+    /// the server-owned copy it is supposed to carry. `weekLabel` comes from the shell's own
+    /// `game_week` read (`DashboardSummary.GameWeek`), not from this response, which carries no
+    /// week of its own.
+    static func from(response: QuietWeekResponse, weekLabel: String) -> OmenQuietState? {
+        guard response.eligible,
+              let rawVariant = response.variant,
+              let variant = OmenQuietVariant(rawValue: rawVariant),
+              let headline = response.headline,
+              let body = response.body,
+              let nextRead = response.nextRead
+        else { return nil }
+        return OmenQuietState(
+            variant: variant,
+            weekLabel: weekLabel,
+            headline: headline,
+            body: body,
+            band: .confident,
+            risk: .low,
+            nextRead: nextRead,
+            footnote: nil
+        )
+    }
+}
+
 // MARK: - CommandCenter
 
 /// J2, screen one: the desk.

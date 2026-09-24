@@ -18,15 +18,29 @@ final class OmenDecisionViewModel: ObservableObject {
 
     @Published private(set) var viewState: ViewState = .idle
 
+    /// `start-sit-detail.v2`. Populated only when the live envelope's own call names a
+    /// start/sit recommendation (`recommendation.type == "start_sit"`) — a trade or waiver
+    /// call has no start/sit detail to read, and this stays `nil` for them. `nil` also while
+    /// the detail read is in flight, so the Omen destination keeps rendering the brief's own
+    /// `.success` composition until there is a genuine, richer answer to swap in — never
+    /// blocking or regressing what the brief already has.
+    @Published private(set) var startSitDetail: StartSitDetail?
+
     private let repository: OmenDecisionRepository
+    private let startSitRepository: StartSitDetailRepository
     private let sessionManager: SessionManager
 
     /// Injected so the brief's Connect affordance reaches the same connect flow the rest of
     /// the app uses, rather than this screen minting a second entry point.
     var onConnect: (() -> Void)?
 
-    init(repository: OmenDecisionRepository, sessionManager: SessionManager) {
+    init(
+        repository: OmenDecisionRepository,
+        startSitRepository: StartSitDetailRepository = StubStartSitDetailRepository(result: .failure(.network)),
+        sessionManager: SessionManager
+    ) {
         self.repository = repository
+        self.startSitRepository = startSitRepository
         self.sessionManager = sessionManager
     }
 
@@ -61,9 +75,26 @@ final class OmenDecisionViewModel: ObservableObject {
 
     private func reload() async {
         viewState = .loading
+        startSitDetail = nil
         switch await sessionManager.authorized({ await repository.fetchDecision(accessToken: $0) }) {
         case .success(let envelope):
             viewState = .loaded(envelope)
+            // Only a live `start_sit` call has a start/sit detail to read — a trade or
+            // waiver recommendation would just make this an extra round trip to a route
+            // that has nothing for it. Reuses the token `authorized` just proved good
+            // rather than renewing again, same reasoning as `CommandCenterViewModel`.
+            guard envelope.recommendation?.type == "start_sit",
+                  case .token(let accessToken) = await sessionManager.authorization()
+            else { return }
+            switch await startSitRepository.fetchDetail(accessToken: accessToken, slot: nil) {
+            case .success(let detail):
+                startSitDetail = detail
+            case .failure:
+                // The brief's own `.success` composition remains visible. A transport
+                // failure on this richer read must not block or replace an answer the
+                // envelope already gave honestly.
+                break
+            }
         case .failure(let error):
             viewState = .failed(error)
         }

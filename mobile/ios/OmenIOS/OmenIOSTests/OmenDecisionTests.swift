@@ -637,4 +637,105 @@ final class OmenDecisionViewModelTests: XCTestCase {
             return XCTFail("the pre-request state must be loading, not empty")
         }
     }
+
+    // MARK: - Start/sit wiring
+
+    private var startSitEnvelope: OmenDecisionEnvelope {
+        get throws {
+            try JSONDecoder().decode(OmenDecisionEnvelope.self, from: Data("""
+            {"state": "success", "mode": "live", "recommendation": {"type": "start_sit", "title": "Start McCaffrey", "move": "Bench Walker."}}
+            """.utf8))
+        }
+    }
+
+    private var startSitDetailFixture: StartSitDetail {
+        get throws {
+            try JSONDecoder().decode(StartSitDetail.self, from: Data("""
+            {
+              "contract_version": "start-sit-detail.v2",
+              "state": "clear_decision",
+              "week": 9,
+              "recommendation": {
+                "slot": "RB",
+                "start": {"name": "McCaffrey", "position": "RB"},
+                "over": {"name": "Walker", "position": "RB"},
+                "points_delta": 4.2
+              },
+              "why": ["McCaffrey projects higher this week."],
+              "what_could_change_this": [],
+              "evidence": [],
+              "alternatives": [],
+              "capabilities": []
+            }
+            """.utf8))
+        }
+    }
+
+    /// The reachability-closing case: a live `start_sit` call must fetch the richer
+    /// `start-sit-detail.v2` read and expose it, so the Omen destination can swap in the
+    /// carried-over `OmenStartSitScreen` instead of the generic call card.
+    func testLiveStartSitCallFetchesStartSitDetail() async throws {
+        final class RecordingStartSitRepository: StartSitDetailRepository {
+            var calledWithSlot: String??
+            let result: Result<StartSitDetail, OmenApiError>
+            init(result: Result<StartSitDetail, OmenApiError>) { self.result = result }
+            func fetchDetail(accessToken: String, slot: String?) async -> Result<StartSitDetail, OmenApiError> {
+                calledWithSlot = slot
+                return result
+            }
+        }
+        let startSitRepo = RecordingStartSitRepository(result: .success(try startSitDetailFixture))
+        let viewModel = OmenDecisionViewModel(
+            repository: StubOmenDecisionRepository(result: .success(try startSitEnvelope)),
+            startSitRepository: startSitRepo,
+            sessionManager: makeSessionManager()
+        )
+
+        await viewModel.load(userID: "real-user")
+
+        XCTAssertNotNil(startSitRepo.calledWithSlot, "a live start_sit call must fetch start-sit-detail.v2")
+        XCTAssertEqual(viewModel.startSitDetail?.state, "clear_decision")
+        XCTAssertEqual(viewModel.startSitDetail?.recommendation?.start?.name, "McCaffrey")
+    }
+
+    /// A trade or waiver call has no start/sit detail to read — fetching it anyway would be
+    /// an extra round trip to a route with nothing for this call, and could only ever answer
+    /// with state for a different recommendation than the one on screen.
+    func testNonStartSitCallDoesNotFetchStartSitDetail() async throws {
+        final class RecordingStartSitRepository: StartSitDetailRepository {
+            var called = false
+            func fetchDetail(accessToken: String, slot: String?) async -> Result<StartSitDetail, OmenApiError> {
+                called = true
+                return .failure(.network)
+            }
+        }
+        let startSitRepo = RecordingStartSitRepository()
+        let viewModel = OmenDecisionViewModel(
+            repository: StubOmenDecisionRepository(result: .success(try successEnvelope)),
+            startSitRepository: startSitRepo,
+            sessionManager: makeSessionManager()
+        )
+
+        await viewModel.load(userID: "real-user")
+
+        XCTAssertFalse(startSitRepo.called, "a non-start_sit call must not fetch start-sit-detail.v2")
+        XCTAssertNil(viewModel.startSitDetail)
+    }
+
+    /// A transport failure on the detail read must not block or replace the brief's own
+    /// `.success` answer — the envelope already gave an honest recommendation.
+    func testStartSitDetailFailureLeavesBriefStateInPlace() async throws {
+        let viewModel = OmenDecisionViewModel(
+            repository: StubOmenDecisionRepository(result: .success(try startSitEnvelope)),
+            startSitRepository: StubStartSitDetailRepository(result: .failure(.network)),
+            sessionManager: makeSessionManager()
+        )
+
+        await viewModel.load(userID: "real-user")
+
+        XCTAssertNil(viewModel.startSitDetail)
+        guard case .success = viewModel.briefState else {
+            return XCTFail("a failed detail read must not turn a successful brief into an error")
+        }
+    }
 }
