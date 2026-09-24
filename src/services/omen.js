@@ -446,11 +446,17 @@ function buildSignals({ connected = true, useMockData = false, platform = "yahoo
       useMockData ? "mock_waiver_pool" : "platform_or_mock_pool",
       "Live waiver pool wiring is platform-dependent."
     ),
+    // The private Ollama/Gemma bridge is wired (src/routes/omen.js
+    // enrichWithLlm -> src/services/mvpEvidenceEnrichment.js) and is
+    // attempted by default for this mock/demo route. This default reflects
+    // the pre-attempt state; a successful live narration overwrites it to
+    // "live", and a failed/timed-out attempt overwrites it to "unavailable"
+    // naming Ollama, never leaving this stale claim in place after a real try.
     llm_reasoning: signal(
       "stub",
       true,
-      "ollama_gemma_or_template",
-      "Plain-English explanation is templated until Gemma is wired for this route."
+      "template_pending_llm_attempt",
+      "This response uses a deterministic template explanation. Live Gemma narration is attempted by default for this route and replaces it when available."
     ),
     ...exactEspnScoringSignal(platform),
   };
@@ -1169,11 +1175,16 @@ function buildLiveMvpSignals({ connectedPlatforms = [], platform = "yahoo" } = {
       `not_in_scope_for_${platform}_mvp_v1`,
       `Waiver pool is not used in this first live ${platformLabel} MVP Move.`
     ),
+    // Same bridge as buildSignals() above, but the live MVP route gates this
+    // route's narration behind an explicit `include_signals.llm_reasoning:
+    // true` request (native clients already send it). This default reflects
+    // the pre-attempt/opted-out state; enrichWithLlm overwrites it to "live"
+    // on success or "unavailable" naming Ollama on a real attempted failure.
     llm_reasoning: signal(
       "stub",
       true,
-      "template",
-      "Plain-English explanation is generated from deterministic optimizer facts."
+      "template_pending_llm_attempt",
+      "This response uses a deterministic template explanation from optimizer facts. Live Gemma narration runs only when requested via include_signals.llm_reasoning."
     ),
     connected_platforms: signal(
       "live",
@@ -2046,5 +2057,6 @@ module.exports = {
   VALID_STATES,
   buildOmenMvpMoveResponse,
   buildSignals,
+  buildLiveMvpSignals,
   offSeasonMvpResponse,
 };
