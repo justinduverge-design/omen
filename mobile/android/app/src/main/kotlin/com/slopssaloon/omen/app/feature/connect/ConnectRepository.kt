@@ -170,8 +170,10 @@ class ApiConnectRepository(private val client: OmenApiClient) : ConnectRepositor
                 // distinguishes them, and conflating the two would sign the user out of Omen
                 // over an expired ESPN cookie.
                 val failure = when {
-                    error is OmenApiError.Unauthorized -> ConnectFailure.EspnSessionUnreadable
-                    error is OmenApiError.Server && error.status == 422 -> ConnectFailure.EspnSessionUnreadable
+                    error is OmenApiError.Unauthorized ->
+                        ConnectFailure.EspnSessionUnreadable(EspnDiagnostic(statusCode = 401, statusText = "Unauthorized"))
+                    error is OmenApiError.Server && error.status == 422 ->
+                        ConnectFailure.EspnSessionUnreadable(EspnDiagnostic(statusCode = error.status, statusText = "Unprocessable"))
                     else -> map(error, ConnectFailure.Server)
                 }
                 Result.failure(ConnectException(failure))
@@ -198,9 +200,18 @@ class ApiConnectRepository(private val client: OmenApiClient) : ConnectRepositor
                 // — the session was fine and ESPN would not serve that league. Different
                 // sentences, different next actions, so they are not collapsed.
                 val failure = when {
-                    error is OmenApiError.Server && error.status == 422 -> ConnectFailure.EspnSessionUnreadable
-                    error is OmenApiError.Server && error.status == 400 -> ConnectFailure.EspnLeagueUnreachable
-                    else -> map(error, ConnectFailure.EspnLeagueUnreachable)
+                    error is OmenApiError.Server && error.status == 422 ->
+                        ConnectFailure.EspnSessionUnreadable(
+                            EspnDiagnostic(statusCode = error.status, statusText = "Unprocessable", leagueId = capture.leagueId),
+                        )
+                    error is OmenApiError.Server && error.status == 400 ->
+                        ConnectFailure.EspnLeagueUnreachable(
+                            EspnDiagnostic(statusCode = error.status, statusText = "Bad Request", leagueId = capture.leagueId),
+                        )
+                    else -> map(
+                        error,
+                        ConnectFailure.EspnLeagueUnreachable(EspnDiagnostic(leagueId = capture.leagueId)),
+                    )
                 }
                 Result.failure(ConnectException(failure))
             }

@@ -649,3 +649,58 @@ struct StubTradeRepository: TradeRepository {
         shareResult
     }
 }
+
+// MARK: - Quiet week
+
+/// `GET /api/dashboard/quiet-week` -> `quiet-week.v1`.
+///
+/// Opt-in, separate from the dashboard summary: the ordinary dashboard must never pay for
+/// this read, and a quiet-week answer is only meaningful once the shell already knows the
+/// current empty-week state. `eligible` and `variant` are entirely server-owned — this type
+/// decodes them, it does not derive them.
+struct QuietWeekResponse: Decodable, Equatable {
+    let contractVersion: String?
+    let eligible: Bool
+    /// `"straight"` or `"neutral"`, present only when `eligible` is true. The client renders
+    /// whichever the server names; it never infers one from the reasons itself.
+    let variant: String?
+    let reasons: [String]
+    let sourceState: String?
+    /// Locked per-variant copy. Present only when `eligible` is true — `quietWeek()` in
+    /// `src/services/quietWeek.js` composes these from the same `reasons` this type decodes,
+    /// never from per-user specifics. The client renders these verbatim.
+    let headline: String?
+    let body: String?
+    let nextRead: String?
+
+    enum CodingKeys: String, CodingKey {
+        case contractVersion = "contract_version"
+        case eligible, variant, reasons, headline, body
+        case sourceState = "source_state"
+        case nextRead = "next_read"
+    }
+}
+
+protocol QuietWeekRepository {
+    func fetchQuietWeek(accessToken: String) async -> Result<QuietWeekResponse, OmenApiError>
+}
+
+struct ApiQuietWeekRepository: QuietWeekRepository {
+    private let client: OmenApiClient
+
+    init(client: OmenApiClient) {
+        self.client = client
+    }
+
+    func fetchQuietWeek(accessToken: String) async -> Result<QuietWeekResponse, OmenApiError> {
+        await client.get("api/dashboard/quiet-week", accessToken: accessToken, as: QuietWeekResponse.self)
+    }
+}
+
+struct StubQuietWeekRepository: QuietWeekRepository {
+    let result: Result<QuietWeekResponse, OmenApiError>
+
+    func fetchQuietWeek(accessToken: String) async -> Result<QuietWeekResponse, OmenApiError> {
+        result
+    }
+}

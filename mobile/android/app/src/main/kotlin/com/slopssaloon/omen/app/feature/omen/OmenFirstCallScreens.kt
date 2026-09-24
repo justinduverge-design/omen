@@ -85,6 +85,15 @@ fun OmenDecisionScreen(
     onDecline: (() -> Unit)? = null,
     onOpenAccount: (() -> Unit)? = null,
     context: OmenScreenContext? = null,
+    /**
+     * `start-sit-detail.v2`, read only when the live call is a start/sit
+     * (`payload.callType == "start_sit"`). `null` keeps this screen's ordinary call-card
+     * composition — the carried-over [OmenStartSitScreen] renders only once there is a real
+     * detail answer to give it, never with fabricated or partial state. iOS mirror:
+     * `OmenDecisionScreen.startSitDetail`.
+     */
+    startSitDetail: StartSitDetail? = null,
+    onRetryStartSit: (() -> Unit)? = null,
 ) {
     val showingEvidence = androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     // Every state that carries a payload, not just `Success`. See the fourth point above.
@@ -94,6 +103,18 @@ fun OmenDecisionScreen(
         is OmenDecisionBriefState.Mock -> state.payload
         is OmenDecisionBriefState.Stale -> state.payload
         else -> null
+    }
+    // The carried-over J3 screen renders wholesale, with its own header, rather than as a
+    // block inside this screen's composition — it is a different screen contract
+    // (`start-sit-detail.v2`), not a section of `OmenCall-v1.md`'s. Only a live, successful
+    // start/sit call with a real detail answer takes this branch.
+    if (payload?.callType == "start_sit" && startSitDetail != null) {
+        OmenStartSitScreen(
+            detail = startSitDetail,
+            onRetry = onRetryStartSit,
+            modifier = modifier,
+        )
+        return
     }
     if (showingEvidence.value && payload != null) {
         OmenEvidenceScreen(

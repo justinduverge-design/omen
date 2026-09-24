@@ -44,7 +44,10 @@ import com.slopssaloon.omen.core.designsystem.component.OmenTextField
 import com.slopssaloon.omen.core.designsystem.component.OmenAuthTile
 import com.slopssaloon.omen.core.designsystem.component.OmenCanvasTextAction
 import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
+import com.slopssaloon.omen.app.feature.omen.OmenConnectFailedScreen
 import kotlinx.coroutines.launch
+import java.time.format.DateTimeFormatter
+import java.time.ZoneId
 
 /**
  * M5-NativeConnect — onboarding steps 4–6. iOS mirror: `App/Connect/ConnectView.swift`.
@@ -277,22 +280,47 @@ fun ConnectScreen(
             }
 
             is ConnectState.RetryableError -> {
-                OmenStateSurface(
-                    kind = OmenStateSurfaceKind.Error,
-                    title = "That didn't work",
-                    message = state.failure.message,
-                )
-                // Spec §6: every non-success state has a safe next action. A Yahoo round trip
-                // that already happened is re-checked rather than restarted — sending a user
-                // who is in fact connected back through the browser is the loop this flow
-                // exists to avoid.
-                if (state.failure == ConnectFailure.ProviderNotConnected ||
-                    state.failure == ConnectFailure.NoLeaguesForSeason
-                ) {
-                    OmenButton("Check again", { scope.launch { viewModel.confirmYahooConnection() } })
+                // An ESPN failure with a provider status behind it gets the full report rather
+                // than a one-line error — `ConnectFailed.dc.html`. Until the failure carried
+                // these fields nothing could populate that screen, so nothing routed to it and
+                // it existed only in a screenshot scenario. `OmenConnectFailedScreen` requires
+                // all three of statusCode, statusText and leagueId — a diagnostic missing any of
+                // them falls through to the plain error rather than inventing "unknown" for the
+                // gap, which is exactly the fabrication this whole screen exists to prevent.
+                val diagnostic = state.failure.espnDiagnostic
+                if (diagnostic?.statusCode != null && diagnostic.statusText != null && diagnostic.leagueId != null) {
+                    OmenConnectFailedScreen(
+                        provider = "ESPN",
+                        statusCode = diagnostic.statusCode,
+                        statusText = diagnostic.statusText,
+                        leagueId = diagnostic.leagueId,
+                        observedAt = DateTimeFormatter.ofPattern("h:mm a")
+                            .withZone(ZoneId.systemDefault())
+                            .format(diagnostic.observedAt),
+                        // Named only when true. The other providers' state is not known here,
+                        // so nothing is claimed about them.
+                        unaffected = emptyList(),
+                        onReconnect = { scope.launch { viewModel.selectProvider(ConnectProvider.Espn) } },
+                        onSendToSupport = onDismiss,
+                    )
+                } else {
+                    OmenStateSurface(
+                        kind = OmenStateSurfaceKind.Error,
+                        title = "That didn't work",
+                        message = state.failure.message,
+                    )
+                    // Spec §6: every non-success state has a safe next action. A Yahoo round
+                    // trip that already happened is re-checked rather than restarted — sending
+                    // a user who is in fact connected back through the browser is the loop this
+                    // flow exists to avoid.
+                    if (state.failure == ConnectFailure.ProviderNotConnected ||
+                        state.failure == ConnectFailure.NoLeaguesForSeason
+                    ) {
+                        OmenButton("Check again", { scope.launch { viewModel.confirmYahooConnection() } })
+                    }
+                    OmenButton("Try again", { viewModel.startOver() }, variant = OmenButtonVariant.Secondary)
+                    OmenButton("Explore the demo instead", onDismiss, variant = OmenButtonVariant.Link)
                 }
-                OmenButton("Try again", { viewModel.startOver() }, variant = OmenButtonVariant.Secondary)
-                OmenButton("Explore the demo instead", onDismiss, variant = OmenButtonVariant.Link)
             }
 
             is ConnectState.NeedsReauth -> {
