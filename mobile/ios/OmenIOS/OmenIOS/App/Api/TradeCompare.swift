@@ -210,3 +210,128 @@ struct TradeOffer: Equatable {
         return body
     }
 }
+
+// MARK: - Trade roster read (J4: TradeBuild, TradeRoster)
+
+/// `GET /api/trade/roster` → `trade-roster.v1`.
+///
+/// Sleeper, ESPN and Yahoo all resolve a real opponent roster today. `status` still carries
+/// `"unavailable"` as the exception path — no connection, a stale ESPN/Yahoo session, or a
+/// league that has not drafted — and the screen renders that honestly rather than treating a
+/// thin payload as an empty roster.
+struct TradeRosterResponse: Decodable, Equatable {
+    struct Team: Decodable, Equatable, Identifiable {
+        let teamId: String
+        let teamName: String?
+        let players: [Player]
+
+        var id: String { teamId }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            teamId = try c.decodeIfPresent(String.self, forKey: .teamId) ?? ""
+            teamName = try c.decodeIfPresent(String.self, forKey: .teamName)
+            players = try c.decodeIfPresent([Player].self, forKey: .players) ?? []
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case teamId = "team_id", teamName = "team_name", players
+        }
+    }
+
+    struct Player: Decodable, Equatable, Identifiable {
+        let playerKey: String?
+        let name: String
+        let position: String?
+        let team: String?
+        let projectedPoints: Double?
+
+        var id: String { playerKey ?? name }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            playerKey = try c.decodeIfPresent(String.self, forKey: .playerKey)
+            name = try c.decodeIfPresent(String.self, forKey: .name) ?? "Unknown"
+            position = try c.decodeIfPresent(String.self, forKey: .position)
+            team = try c.decodeIfPresent(String.self, forKey: .team)
+            projectedPoints = try c.decodeIfPresent(Double.self, forKey: .projectedPoints)
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case playerKey = "player_key", name, position, team
+            case projectedPoints = "projected_points"
+        }
+
+        /// "RB · IND", or just the position, or just the team — never a fabricated rank.
+        var meta: String {
+            switch (position, team) {
+            case let (.some(p), .some(t)) where !p.isEmpty && !t.isEmpty: return "\(p) · \(t)"
+            case let (.some(p), _) where !p.isEmpty: return p
+            case let (_, .some(t)) where !t.isEmpty: return t
+            default: return "Unranked"
+            }
+        }
+    }
+
+    let contractVersion: String
+    let status: String
+    let platform: String
+    let reason: String?
+    let week: Int?
+    let teams: [Team]
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        contractVersion = try c.decodeIfPresent(String.self, forKey: .contractVersion) ?? ""
+        status = try c.decodeIfPresent(String.self, forKey: .status) ?? "unavailable"
+        platform = try c.decodeIfPresent(String.self, forKey: .platform) ?? ""
+        reason = try c.decodeIfPresent(String.self, forKey: .reason)
+        week = try c.decodeIfPresent(Int.self, forKey: .week)
+        teams = try c.decodeIfPresent([Team].self, forKey: .teams) ?? []
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case contractVersion = "contract_version", status, platform, reason, week, teams
+    }
+
+    var isAvailable: Bool { status == "ok" }
+
+    /// The server's reason code, said in the product's voice. `CONTRACTS.md`'s `LeagueNoRosters`
+    /// rule: no retry — a permanent provider limit for this league is not an outage.
+    var unavailableSentence: String {
+        switch reason {
+        case "provider_unsupported":
+            return "Omen can't read the other teams' rosters for this provider yet."
+        case "provider_reauth_required":
+            return "Omen's connection to your league needs to be reconnected before it can read the other teams' rosters."
+        case "league_not_active":
+            return "This league hasn't drafted yet, so there are no rosters to read."
+        default:
+            return "Omen can't read the other teams' rosters for this league right now."
+        }
+    }
+}
+
+// MARK: - Trade share (J4: TradeShare)
+
+/// `POST /api/trade/share` → `trade-share.v1`. Free, public, no auth required: a 30-day
+/// hash with no provider data and names off by default.
+struct TradeShareResponse: Decodable, Equatable {
+    let contractVersion: String
+    let hash: String
+    let apiPath: String
+    let expiresAt: String
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        contractVersion = try c.decodeIfPresent(String.self, forKey: .contractVersion) ?? ""
+        hash = try c.decodeIfPresent(String.self, forKey: .hash) ?? ""
+        apiPath = try c.decodeIfPresent(String.self, forKey: .apiPath) ?? ""
+        expiresAt = try c.decodeIfPresent(String.self, forKey: .expiresAt) ?? ""
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case contractVersion = "contract_version", hash
+        case apiPath = "api_path", expiresAt = "expires_at"
+    }
+}

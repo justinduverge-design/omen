@@ -547,6 +547,18 @@ struct StubWaiverAnalysisRepository: WaiverAnalysisRepository {
 protocol TradeRepository {
     func compare(offer: TradeOffer, accessToken: String?) async -> Result<TradeCompare, OmenApiError>
     func capabilities() async -> Result<TradeCapabilities, OmenApiError>
+    /// `GET /api/trade/roster`. Requires a real access token — unlike `compare`, this reads the
+    /// caller's own connected league and cannot degrade to an anonymous answer.
+    func roster(
+        platform: String,
+        leagueId: String,
+        teamId: String?,
+        week: Int?,
+        accessToken: String
+    ) async -> Result<TradeRosterResponse, OmenApiError>
+    /// `POST /api/trade/share`. Free and public, like `compare` — an unauthenticated caller
+    /// still gets a working share link.
+    func share(offer: TradeOffer, accessToken: String?) async -> Result<TradeShareResponse, OmenApiError>
 }
 
 struct TradeCapabilities: Decodable, Equatable {
@@ -562,6 +574,14 @@ struct TradeCapabilities: Decodable, Equatable {
 
 extension TradeRepository {
     func capabilities() async -> Result<TradeCapabilities, OmenApiError> { .failure(.network) }
+    func roster(
+        platform: String,
+        leagueId: String,
+        teamId: String?,
+        week: Int?,
+        accessToken: String
+    ) async -> Result<TradeRosterResponse, OmenApiError> { .failure(.network) }
+    func share(offer: TradeOffer, accessToken: String?) async -> Result<TradeShareResponse, OmenApiError> { .failure(.network) }
 }
 
 struct ApiTradeRepository: TradeRepository {
@@ -583,12 +603,49 @@ struct ApiTradeRepository: TradeRepository {
             as: TradeCompare.self
         )
     }
+
+    func roster(
+        platform: String,
+        leagueId: String,
+        teamId: String?,
+        week: Int?,
+        accessToken: String
+    ) async -> Result<TradeRosterResponse, OmenApiError> {
+        var query: [String: String] = ["platform": platform, "league_id": leagueId]
+        if let teamId, !teamId.isEmpty { query["team_id"] = teamId }
+        if let week { query["week"] = String(week) }
+        return await client.get("api/trade/roster", accessToken: accessToken, query: query, as: TradeRosterResponse.self)
+    }
+
+    func share(offer: TradeOffer, accessToken: String?) async -> Result<TradeShareResponse, OmenApiError> {
+        let body: [String: Any] = [
+            "send": offer.send.map(\.payload),
+            "receive": offer.receive.map(\.payload),
+        ]
+        return await client.post("api/trade/share", optionalAccessToken: accessToken, body: body, as: TradeShareResponse.self)
+    }
 }
 
 struct StubTradeRepository: TradeRepository {
     let result: Result<TradeCompare, OmenApiError>
+    var rosterResult: Result<TradeRosterResponse, OmenApiError> = .failure(.network)
+    var shareResult: Result<TradeShareResponse, OmenApiError> = .failure(.network)
 
     func compare(offer: TradeOffer, accessToken: String?) async -> Result<TradeCompare, OmenApiError> {
         result
+    }
+
+    func roster(
+        platform: String,
+        leagueId: String,
+        teamId: String?,
+        week: Int?,
+        accessToken: String
+    ) async -> Result<TradeRosterResponse, OmenApiError> {
+        rosterResult
+    }
+
+    func share(offer: TradeOffer, accessToken: String?) async -> Result<TradeShareResponse, OmenApiError> {
+        shareResult
     }
 }

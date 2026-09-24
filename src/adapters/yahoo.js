@@ -191,8 +191,54 @@ async function buildNormalizedRoster(leagueKey, accessToken, week, opts = {}) {
   return roster;
 }
 
+/**
+ * Every team's roster for a week.
+ *
+ * `getRoster(teamKey, week)` already takes an arbitrary team key — `buildNormalizedRoster`
+ * above just never called it with anyone else's. `getLeagueStandings` already lists every
+ * team key in the league. This composes the two: same authenticated client, same calls,
+ * called once per team instead of once for the caller's own.
+ *
+ * Used by Trade's opponent-roster read (`GET /api/trade/roster`). No new Yahoo surface, no
+ * new auth — the standings and per-team roster reads already run in production today.
+ */
+async function fetchYahooLeagueRosters(leagueKey, accessToken, week) {
+  const client = new YahooClient(accessToken);
+  const effectiveWeek = week || await client.getCurrentWeek(leagueKey);
+  const standings = await client.getLeagueStandings(leagueKey);
+
+  const teams = await Promise.all(standings.map(async (team) => {
+    if (!team?.team_id) {
+      return { team_id: null, team_name: team?.team_name || null, players: [] };
+    }
+    let players = [];
+    try {
+      const raw = await client.getRoster(team.team_id, effectiveWeek);
+      const normalized = normalizeYahooRoster(raw, effectiveWeek);
+      players = [
+        ...(normalized.slots.starters || []),
+        ...(normalized.slots.bench || []),
+        ...(normalized.slots.ir || []),
+      ].map(withYahooIds);
+    } catch {
+      // One team's roster failing to read must not fail the whole league read. Partial
+      // data with that team's players empty is more honest than aborting the request.
+      players = [];
+    }
+    return { team_id: team.team_id, team_name: team.team_name || null, players };
+  }));
+
+  return {
+    week: rosterWeek(effectiveWeek),
+    league_status: null,
+    roster_positions: [],
+    teams,
+  };
+}
+
 module.exports = {
   buildNormalizedRoster,
   fetchYahooLastResult,
+  fetchYahooLeagueRosters,
   lastResultFromYahooScoreboard,
 };

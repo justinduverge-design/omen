@@ -1179,6 +1179,70 @@ async function fetchEspnLeagueOfficePlayers(leagueId, espn_s2, swid, opts = {}) 
   return leagueOfficePlayersFromEspnData(data, week);
 }
 
+/**
+ * Every team's roster for a week, from the same `mMatchup`+`mMatchupScore` read
+ * `fetchEspnMatchup` already makes for the caller's own matchup. ESPN's response
+ * (`data.schedule`) already carries every game that week, home and away, each side
+ * with its own roster — `matchupFromEspnSchedule` just stops after finding the
+ * caller's own game. This walks the whole thing instead, the same way
+ * `leagueOfficePlayersFromEspnData` above already does for the league-office view.
+ *
+ * Used by Trade's opponent-roster read (`GET /api/trade/roster`). No new ESPN
+ * surface, no new auth — same authenticated call, same session.
+ */
+function leagueRostersFromEspnSchedule(data, week) {
+  const teams = Array.isArray(data?.teams) ? data.teams : [];
+  const names = new Map(teams.map((team) => [teamId(team), teamName(team)]));
+  const games = Array.isArray(data?.schedule) ? data.schedule : [];
+  const byTeam = new Map();
+
+  for (const game of games) {
+    const scoringPeriod = Number(game?.matchupPeriodId ?? game?.scoringPeriodId);
+    if (Number.isFinite(Number(week)) && Number.isFinite(scoringPeriod) && scoringPeriod !== Number(week)) {
+      continue;
+    }
+    for (const side of [game?.home, game?.away]) {
+      const tid = espnMatchupTeamId(side);
+      if (!tid || byTeam.has(tid)) continue;
+      const entries = Array.isArray(side?.rosterForCurrentScoringPeriod?.entries)
+        ? side.rosterForCurrentScoringPeriod.entries
+        : Array.isArray(side?.rosterForMatchupPeriod?.entries)
+          ? side.rosterForMatchupPeriod.entries
+          : [];
+      byTeam.set(tid, {
+        team_id: tid,
+        team_name: names.get(tid) || null,
+        players: entries.map((entry) => normalizePlayer(entry, week)),
+      });
+    }
+  }
+
+  // Defensive fallback, mirroring `leagueOfficePlayersFromEspnData`'s: a payload variant
+  // (or a bye week with no schedule entry) that carries teams but no matchup rosters still
+  // yields whatever `mTeam` itself has, rather than dropping that team silently.
+  for (const team of teams) {
+    const tid = teamId(team);
+    if (!tid || byTeam.has(tid)) continue;
+    byTeam.set(tid, {
+      team_id: tid,
+      team_name: teamName(team),
+      players: rosterEntries(team).map((entry) => normalizePlayer(entry, week)),
+    });
+  }
+
+  return {
+    league_status: null,
+    roster_positions: [],
+    teams: [...byTeam.values()],
+  };
+}
+
+async function fetchEspnLeagueRosters(leagueId, espn_s2, swid, opts = {}) {
+  const week = Number(opts.week || opts.scoringPeriodId || 1);
+  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTeam", "mMatchup", "mMatchupScore"], week, opts);
+  return leagueRostersFromEspnSchedule(data, week);
+}
+
 async function fetchEspnLeagueWeek(leagueId, espn_s2, swid, opts = {}) {
   const scoringPeriodId = Number(opts.week || opts.scoringPeriodId || 1);
   const data = await fetchEspnApi(
@@ -1321,6 +1385,8 @@ module.exports = {
   fetchEspnLeagueWeek,
   fetchEspnLeagueOfficePlayers,
   fetchEspnLeagueOfficeTransactions,
+  fetchEspnLeagueRosters,
+  leagueRostersFromEspnSchedule,
   leagueOfficeTransactionsFromEspnData,
   leagueOfficePlayersFromEspnData,
   leagueWeekFromEspnData,

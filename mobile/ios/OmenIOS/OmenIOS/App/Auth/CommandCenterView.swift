@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Signed-in tab shell. v1.1 corrective: four permanent tabs per M0c §12.5 approved
 /// navigation contract — Command · Omen · Trade · League. Draft is a seasonal
@@ -34,6 +35,10 @@ struct CommandCenterView: View {
     @State private var reportingScreen: OmenBetaReportScreen?
     @State private var showConnectSheet: Bool = false
     @State private var showSwitcherSheet: Bool = false
+    /// J4: `TradeBuild`/`TradeRoster`, over `GET /api/trade/roster`.
+    @State private var showTradeRosterSheet: Bool = false
+    /// J4: `TradeShare`, over `POST /api/trade/share`.
+    @State private var showTradeShareSheet: Bool = false
     @State private var selectedTab: CommandCenterTab = .command
     @StateObject private var leagueViewModel: LeagueViewModel
     @StateObject private var tradeViewModel: TradeViewModel
@@ -263,9 +268,10 @@ struct CommandCenterView: View {
             // J4: once the server has answered, the answer is J4's screen rather than the
             // builder's inline verdict. `OmenTradeAnswer.from` picks `TradeVerdict` or
             // `TradeNeedsContext` off `verdict_state` — the same seat in the journey, in the two
-            // states the contract returns it in — and this is the production route that makes
-            // both reachable rather than only photographable. `OmenTradeAnswer` documents which
-            // three J4 screens are deliberately NOT wired here and why.
+            // states the contract returns it in. `TradeBuild`/`TradeRoster` (real opponent
+            // rosters, `GET /api/trade/roster`) and `TradeShare` (`POST /api/trade/share`) route
+            // independently below, since neither is "the answer" — see `OmenTradeAnswer`'s
+            // header for why they route separately rather than through it.
             //
             // `dismissVerdict` keeps the offer. A user who reads "you give up too much" wants to
             // change one player, not retype the deal.
@@ -277,7 +283,8 @@ struct CommandCenterView: View {
                         OmenTradeVerdictScreen(
                             state: state,
                             onOpenAccount: { showAccountSheet = true },
-                            onPrimaryAction: { tradeViewModel.dismissVerdict() }
+                            onPrimaryAction: { tradeViewModel.dismissVerdict() },
+                            onShare: { showTradeShareSheet = true }
                         )
                     case .needsContext(let state):
                         OmenTradeNeedsContextScreen(
@@ -298,6 +305,7 @@ struct CommandCenterView: View {
                     onAddResult: { player, side in tradeViewModel.add(player, to: side) },
                     onRemove: { index, side in tradeViewModel.remove(at: index, from: side) },
                     onCompare: { Task { await tradeViewModel.compare(userID: userID) } },
+                    onBrowseRoster: { showTradeRosterSheet = true },
                     capabilities: tradeViewModel.capabilities
                 )
                 .task { await tradeViewModel.loadCapabilities() }
@@ -309,6 +317,34 @@ struct CommandCenterView: View {
             .onChange(of: leagueViewModel.viewState) { _, newValue in
                 guard case .loaded(let overview) = newValue else { return }
                 tradeViewModel.useLeague(platform: overview.platform, leagueId: overview.leagueId)
+            }
+            .sheet(isPresented: $showTradeRosterSheet) {
+                TradeRosterFlowView(
+                    tradeViewModel: tradeViewModel,
+                    userID: userID,
+                    onOpenAccount: { showAccountSheet = true },
+                    onDismiss: { showTradeRosterSheet = false }
+                )
+            }
+            .sheet(isPresented: $showTradeShareSheet) {
+                if let state = tradeViewModel.shareScreenState {
+                    NavigationStack {
+                        OmenTradeShareScreen(
+                            state: state,
+                            onOpenAccount: { showAccountSheet = true },
+                            onToggleInclusion: { tradeViewModel.toggleShareInclusion($0) },
+                            onShare: { Task { await tradeViewModel.share(userID: userID) } },
+                            onCopyAsText: {
+                                if let text = tradeViewModel.copyShareText() {
+                                    UIPasteboard.general.string = text
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+            .onChange(of: showTradeShareSheet) { _, isPresented in
+                if !isPresented { tradeViewModel.dismissShare() }
             }
             .tabItem { CommandCenterTab.trade.label }
             .tag(CommandCenterTab.trade)

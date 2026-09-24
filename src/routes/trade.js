@@ -19,6 +19,10 @@ const { getCurrentNflWeekContext } = require("../services/nflSchedule");
 const { logger } = require("../middleware/logging");
 const { attachDecisionReceipt, createDecisionContext } = require("../services/decisionContext");
 const sleeperAdapter = require("../adapters/sleeper");
+const espnAdapter = require("../adapters/espn");
+const yahooAdapter = require("../adapters/yahoo");
+const { getAuthenticatedEspnCredentials } = require("../services/espnAuth");
+const { getAuthenticatedYahooClient } = require("../services/yahooAuth");
 
 const MAX_PLAYERS_PER_SIDE = 10;
 const MAX_SHARE_PAYLOAD_BYTES = 16 * 1024;
@@ -380,6 +384,20 @@ function createTradeRouter({
   leagueContextResolver = defaultLeagueContextResolver,
   playerResolver = defaultPlayerResolver,
   tradeExplainer = llm.explainTrade,
+  // Injected so the route is testable without a network call — the same
+  // opponent-roster read `buildTradeCandidateForConnection` in services/omen.js
+  // already uses internally for Omen's own weekly recommendation.
+  fetchLeagueRosters = (...args) => sleeperAdapter.fetchSleeperLeagueRosters(...args),
+  nflWeekContext = getCurrentNflWeekContext,
+  // Every-team-roster reads for ESPN and Yahoo. Each is a normalizer over an
+  // already-authenticated call this codebase already makes for a narrower purpose
+  // (see src/adapters/espn.js#fetchEspnLeagueRosters, src/adapters/yahoo.js
+  // #fetchYahooLeagueRosters) — injected so the route is testable against fixtures
+  // rather than a live ESPN/Yahoo session.
+  fetchEspnLeagueRosters = (...args) => espnAdapter.fetchEspnLeagueRosters(...args),
+  fetchYahooLeagueRosters = (...args) => yahooAdapter.fetchYahooLeagueRosters(...args),
+  espnCredentials = getAuthenticatedEspnCredentials,
+  yahooClient = getAuthenticatedYahooClient,
 } = {}) {
   const router = express.Router();
 
@@ -388,6 +406,173 @@ function createTradeRouter({
     comparison: "two_sided", submission: "handoff_only",
     three_team: { supported: false, reason: "multi_team_comparison_not_implemented" },
   }));
+
+  /**
+   * Every team's roster for a Sleeper league, in the route's unified shape. Wraps the same
+   * `sleeperAdapter.fetchSleeperLeagueRosters` read `buildTradeCandidateForConnection`
+   * (src/services/omen.js) already uses internally for Omen's own weekly recommendation —
+   * no new Sleeper surface.
+   */
+  async function readSleeperRosters({ leagueId, week }) {
+    const leagueRosters = await fetchLeagueRosters(leagueId, week, String(now().getFullYear()));
+    const status = String(leagueRosters?.league_status || "").toLowerCase();
+    if (status === "pre_draft" || status === "drafting") {
+      return { status: "unavailable", reason: "league_not_active" };
+    }
+    const teams = (Array.isArray(leagueRosters?.teams) ? leagueRosters.teams : []).map((team) => ({
+      team_id: String(team?.roster_id || ""),
+      team_name: team?.team_name || null,
+      players: Array.isArray(team?.players) ? team.players : [],
+    }));
+    return {
+      status: "ok",
+      week,
+      roster_positions: Array.isArray(leagueRosters?.roster_positions) ? leagueRosters.roster_positions : [],
+      teams,
+    };
+  }
+
+  /**
+   * Every team's roster for an ESPN league. `fetchEspnLeagueRosters` (src/adapters/espn.js)
+   * walks the same `mMatchup`+`mMatchupScore` read `fetchEspnMatchup` already makes for the
+   * caller's own matchup — ESPN's response already carries every team that week, this just
+   * doesn't stop at the caller's own game. Credentials come from the user's own stored
+   * connection (`getAuthenticatedEspnCredentials`), never from the request.
+   */
+  async function readEspnRosters({ userId, leagueId, week }) {
+    let credentials;
+    try {
+      credentials = await espnCredentials(userId);
+    } catch {
+      return { status: "unavailable", reason: "provider_reauth_required" };
+    }
+    const rosters = await fetchEspnLeagueRosters(leagueId, credentials.espn_s2, credentials.swid, { week });
+    const teams = (Array.isArray(rosters?.teams) ? rosters.teams : []).map((team) => ({
+      team_id: String(team?.team_id || ""),
+      team_name: team?.team_name || null,
+      players: Array.isArray(team?.players) ? team.players : [],
+    }));
+    return {
+      status: "ok",
+      week,
+      roster_positions: Array.isArray(rosters?.roster_positions) ? rosters.roster_positions : [],
+      teams,
+    };
+  }
+
+  /**
+   * Every team's roster for a Yahoo league. `fetchYahooLeagueRosters` (src/adapters/yahoo.js)
+   * composes two already-working calls: the standings read that lists every team key, and the
+   * per-team roster read (`getRoster`) that already accepts an arbitrary key — it was never
+   * restricted to the caller's own. The authenticated client comes from the user's own stored
+   * connection (`getAuthenticatedYahooClient`), never from the request.
+   */
+  async function readYahooRosters({ userId, leagueId, week }) {
+    let auth;
+    try {
+      auth = await yahooClient(userId);
+    } catch {
+      return { status: "unavailable", reason: "provider_reauth_required" };
+    }
+    const rosters = await fetchYahooLeagueRosters(leagueId, auth.accessToken, week);
+    const teams = (Array.isArray(rosters?.teams) ? rosters.teams : []).map((team) => ({
+      team_id: team?.team_id ? String(team.team_id) : "",
+      team_name: team?.team_name || null,
+      players: Array.isArray(team?.players) ? team.players : [],
+    }));
+    return {
+      status: "ok",
+      week: rosters?.week || week,
+      roster_positions: Array.isArray(rosters?.roster_positions) ? rosters.roster_positions : [],
+      teams,
+    };
+  }
+
+  const ROSTER_READERS = Object.freeze({
+    sleeper: readSleeperRosters,
+    espn: readEspnRosters,
+    yahoo: readYahooRosters,
+  });
+
+  /**
+   * `GET /api/trade/roster?platform=&league_id=&week=&team_id=` → `trade-roster.v1`.
+   *
+   * Exposes every team's roster for the caller's connected league to `TradeBuild`/
+   * `TradeRoster`, across all three providers. Each provider read is a normalizer over an
+   * already-authenticated call this codebase already makes for a narrower purpose — see
+   * `readSleeperRosters`/`readEspnRosters`/`readYahooRosters` above for exactly which one.
+   *
+   * A provider read that genuinely cannot supply this (no connection, a stale ESPN/Yahoo
+   * session, an inactive league) answers with the honest "not available" shape this app uses
+   * everywhere else (`waiver_system: not_determined`, `three_team.supported: false`) — never a
+   * 500 and never a fabricated roster. That is the exception path, not the default: it fires
+   * only for a real, named blocker on that provider or that user's connection.
+   */
+  router.get("/roster", async (req, res, next) => {
+    try {
+      let user;
+      try {
+        user = await authenticate(req.headers.authorization);
+      } catch {
+        user = null;
+      }
+      if (!user?.id) {
+        return res.status(401).json({ error: "authentication_required", code: "trade_roster_auth_required" });
+      }
+
+      const platform = req.query.platform == null ? "" : String(req.query.platform).toLowerCase();
+      const leagueId = req.query.league_id == null ? "" : String(req.query.league_id);
+      if (!platform) {
+        return res.status(400).json({ error: "platform query param required" });
+      }
+      if (!VALID_CONTEXT_PLATFORMS.has(platform)) {
+        return res.status(400).json({ error: "platform must be one of yahoo, sleeper, espn" });
+      }
+      if (!leagueId) {
+        return res.status(400).json({ error: "league_id query param required" });
+      }
+      if (leagueId.length > MAX_LEAGUE_ID_LENGTH) {
+        return res.status(400).json({ error: "league_id is too long" });
+      }
+
+      let week = parseInt(req.query.week, 10);
+      if (!Number.isFinite(week) || week < 1) {
+        week = nflWeekContext(now())?.week || 1;
+      }
+
+      let result;
+      try {
+        result = await ROSTER_READERS[platform]({ userId: user.id, leagueId, week });
+      } catch (e) {
+        logger.warn("Trade roster read failed", { err: e.message, platform, league_id: leagueId });
+        return res.status(503).json({ error: "roster_unavailable", code: "trade_roster_unavailable" });
+      }
+
+      if (result.status !== "ok") {
+        return res.json({
+          contract_version: "trade-roster.v1",
+          status: "unavailable",
+          platform,
+          reason: result.reason || "provider_unsupported",
+          teams: [],
+        });
+      }
+
+      const teamId = req.query.team_id == null ? null : String(req.query.team_id);
+      const teams = teamId ? result.teams.filter((team) => team.team_id === teamId) : result.teams;
+
+      return res.json({
+        contract_version: "trade-roster.v1",
+        status: "ok",
+        platform,
+        week: result.week,
+        roster_positions: result.roster_positions,
+        teams,
+      });
+    } catch (e) {
+      return next(e);
+    }
+  });
 
   router.get("/pulse", async (_req, res) => {
     const unavailable = () => res.json({
