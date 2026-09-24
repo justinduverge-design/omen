@@ -22,6 +22,10 @@ struct OmenTradeScreen: View {
     var onAddResult: ((PlayerSearchResult, TradeViewModel.Side) -> Void)?
     var onRemove: ((Int, TradeViewModel.Side) -> Void)?
     var onCompare: (() -> Void)?
+    /// Opens the J4 roster-picking flow (`TradeBuild`/`TradeRoster`) — real opponents from the
+    /// caller's own connected league, over `GET /api/trade/roster`. Nil (and the button hidden)
+    /// until a league is connected: there is nothing to browse without one.
+    var onBrowseRoster: (() -> Void)?
     var capabilities: TradeCapabilities?
 
     /// Says what this build can actually analyse. With no capability read, it states that the
@@ -100,6 +104,17 @@ struct OmenTradeScreen: View {
                  : "Using your connected league's scoring and roster.")
                 .omenTextStyle(OmenTypography.bodySmall)
                 .foregroundStyle(OmenColor.textSecondary)
+
+            // Real opponents from a real league, not a name typed by hand. Hidden with no
+            // connected league — there is nothing behind `GET /api/trade/roster` to browse yet.
+            if offer.leagueContext != nil, let onBrowseRoster {
+                OmenButton(
+                    title: "Browse a real roster",
+                    action: onBrowseRoster,
+                    variant: .link,
+                    size: .sm
+                )
+            }
         }
     }
 

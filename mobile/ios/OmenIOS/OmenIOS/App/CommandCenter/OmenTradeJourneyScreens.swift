@@ -1206,25 +1206,23 @@ extension OmenTradeInput {
 /// states `trade-compare.v2` actually returns. Everything they show is in that payload or in the
 /// offer the user typed, so they mount on live data and nothing is invented.
 ///
-/// **`TradeBuild`, `TradeRoster` and `TradeShare` are deliberately not wired here**, and the
-/// reason is the same in all three cases: the data does not exist to mount them honestly.
+/// **`TradeBuild`, `TradeRoster` and `TradeShare` are now wired too**, from `CommandCenterView`
+/// rather than from `OmenTradeAnswer` — they are not "the answer", they are the path to one and
+/// the way to send it, so they route independently of `verdictState`:
 ///
-///   - `TradeBuild` needs a partner directory with Omen's read of *their* roster, and position
-///     filters over a roster the client holds. `league-overview.v1` gives the other teams'
-///     names and nothing about their rosters, so every `need` would be nil and every filter
-///     would be a live control that filters nothing. A control that answers a tap by doing
-///     nothing is the thing `OmenUnavailableControl` exists to avoid.
-///   - `TradeRoster` needs the other team's roster. No native read fetches one. Mounting it
-///     would mean rendering `permanentlyUnavailable` on every league — a sentence blaming the
-///     provider for a request Omen never made. That is a false claim about ESPN, and it is the
-///     precise failure the reachability check's own banner warns against: *"Do not invent state
-///     to make it reachable."*
-///   - `TradeShare` needs a client for `POST /api/trade/share`. The route exists on the server
-///     (`src/routes/trade.js`) and there is no native caller, so the button would either do
-///     nothing or fabricate a link.
-///
-/// Those three stay captured-and-unreachable, reported rather than papered over. Building the
-/// reads they need is product work, not a wiring change.
+///   - `TradeBuild`/`TradeRoster` are driven by `TradeViewModel.rosterBuildState` /
+///     `.rosterScreenState`, built from `GET /api/trade/roster` (`trade-roster.v1`). A partner's
+///     `need` stays nil — Omen has never read what a partner needs, only their roster — and the
+///     three-team `Add team` control still renders through `OmenUnavailableControl`, per
+///     `trade-capabilities.v1`. A provider or connection that genuinely can't supply a roster
+///     (ESPN/Yahoo re-auth required, a league that hasn't drafted) renders
+///     `Rosters.permanentlyUnavailable` with the server's own reason — never a guessed one, and
+///     never rendered for a league that simply hasn't been asked yet.
+///   - `TradeShare` is driven by `TradeViewModel.shareScreenState` / `.share(userID:)`, calling
+///     the same `POST /api/trade/share` route this file's header already documented as working
+///     server-side. The card's headline/reasoning/caveat come from the already-displayed
+///     `trade-compare.v2` read, never from the share response, which returns the raw
+///     `compareTrade()` shape and carries no verdict.
 enum OmenTradeAnswer: Equatable {
     case verdict(OmenTradeVerdictState)
     case needsContext(OmenTradeNeedsContextState)
@@ -1268,17 +1266,20 @@ enum OmenTradeAnswer: Equatable {
                 // composed here would be the client inventing a procedure.
                 submission: nil,
                 primaryActionTitle: "Change the offer",
-                // No counter builder exists, and no native caller for `POST /api/trade/share`.
-                // A button that does nothing is worse than an absent one.
+                // No counter builder exists yet — a counter-offer flow is separate product work
+                // from wiring the existing `POST /api/trade/share` route.
                 counterActionTitle: nil,
-                shareActionTitle: nil
+                // `TradeViewModel.share(userID:)` now calls `POST /api/trade/share` for real.
+                shareActionTitle: "Share this read"
             ))
         }
     }
 
     /// Both sides, always — Trade "must show both sides", and an empty side renders as a heading
     /// with nothing under it rather than disappearing.
-    private static func sides(of offer: TradeOffer) -> [OmenTradeSide] {
+    /// Not private: `TradeViewModel.rosterBuildState` (M5/J4 roster-read wiring) reuses this to
+    /// render the same "both sides, always" block on `TradeBuild` before a verdict exists.
+    static func sides(of offer: TradeOffer) -> [OmenTradeSide] {
         [
             OmenTradeSide(heading: "You send", legs: offer.send.map { leg($0, .sending) }),
             OmenTradeSide(heading: "You receive", legs: offer.receive.map { leg($0, .receiving) })
