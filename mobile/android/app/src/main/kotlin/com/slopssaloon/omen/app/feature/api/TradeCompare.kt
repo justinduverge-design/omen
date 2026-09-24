@@ -211,4 +211,139 @@ data class TradeOffer(
         }
         return root.toString()
     }
+
+    /** Just the send/receive players — used by `POST /api/trade/share`, which takes no
+     * `league_context`. */
+    fun shareRequestBody(): String = JSONObject()
+        .put("send", JSONArray(send.map { it.payload() }))
+        .put("receive", JSONArray(receive.map { it.payload() }))
+        .toString()
+}
+
+// MARK: - Trade roster read (J4: TradeBuild, TradeRoster)
+
+/**
+ * `GET /api/trade/roster` → `trade-roster.v1`. iOS mirror: `TradeRosterResponse`.
+ *
+ * Sleeper, ESPN and Yahoo all resolve a real opponent roster today. `status` still carries
+ * `"unavailable"` as the exception path — no connection, a stale ESPN/Yahoo session, or a league
+ * that has not drafted — and the screen renders that honestly rather than treating a thin
+ * payload as an empty roster.
+ */
+data class TradeRosterResponse(
+    val contractVersion: String,
+    val status: String,
+    val platform: String,
+    val reason: String?,
+    val week: Int?,
+    val teams: List<Team>,
+) {
+    val isAvailable: Boolean get() = status == "ok"
+
+    /**
+     * The server's reason code, said in the product's voice. `CONTRACTS.md`'s `LeagueNoRosters`
+     * rule: no retry — a permanent provider limit for this league is not an outage.
+     */
+    val unavailableSentence: String
+        get() = when (reason) {
+            "provider_unsupported" -> "Omen can't read the other teams' rosters for this provider yet."
+            "provider_reauth_required" ->
+                "Omen's connection to your league needs to be reconnected before it can read the other teams' rosters."
+            "league_not_active" -> "This league hasn't drafted yet, so there are no rosters to read."
+            else -> "Omen can't read the other teams' rosters for this league right now."
+        }
+
+    data class Team(val teamId: String, val teamName: String?, val players: List<Player>) {
+        val id: String get() = teamId
+    }
+
+    data class Player(
+        val playerKey: String?,
+        val name: String,
+        val position: String?,
+        val team: String?,
+        val projectedPoints: Double?,
+    ) {
+        val id: String get() = playerKey ?: name
+
+        /** "RB · IND", or just the position, or just the team — never a fabricated rank. */
+        val meta: String
+            get() = when {
+                !position.isNullOrEmpty() && !team.isNullOrEmpty() -> "$position · $team"
+                !position.isNullOrEmpty() -> position
+                !team.isNullOrEmpty() -> team
+                else -> "Unranked"
+            }
+    }
+
+    companion object {
+        fun parse(raw: String): TradeRosterResponse? = runCatching {
+            val root = JSONObject(raw)
+            val teamsArr = root.optJSONArray("teams")
+            val teams = buildList {
+                for (i in 0 until (teamsArr?.length() ?: 0)) {
+                    val t = teamsArr?.optJSONObject(i) ?: continue
+                    val playersArr = t.optJSONArray("players")
+                    val players = buildList {
+                        for (j in 0 until (playersArr?.length() ?: 0)) {
+                            val p = playersArr?.optJSONObject(j) ?: continue
+                            add(
+                                Player(
+                                    playerKey = p.optStringOrNull("player_key"),
+                                    name = p.optStringOrNull("name") ?: "Unknown",
+                                    position = p.optStringOrNull("position"),
+                                    team = p.optStringOrNull("team"),
+                                    projectedPoints = if (p.has("projected_points") && !p.isNull("projected_points")) {
+                                        p.optDouble("projected_points")
+                                    } else {
+                                        null
+                                    },
+                                ),
+                            )
+                        }
+                    }
+                    add(
+                        Team(
+                            teamId = t.optStringOrNull("team_id") ?: "",
+                            teamName = t.optStringOrNull("team_name"),
+                            players = players,
+                        ),
+                    )
+                }
+            }
+            TradeRosterResponse(
+                contractVersion = root.optStringOrNull("contract_version").orEmpty(),
+                status = root.optStringOrNull("status") ?: "unavailable",
+                platform = root.optStringOrNull("platform").orEmpty(),
+                reason = root.optStringOrNull("reason"),
+                week = if (root.has("week") && !root.isNull("week")) root.optInt("week") else null,
+                teams = teams,
+            )
+        }.getOrNull()
+    }
+}
+
+// MARK: - Trade share (J4: TradeShare)
+
+/**
+ * `POST /api/trade/share` → `trade-share.v1`. Free, public, no auth required: a 30-day hash with
+ * no provider data and names off by default. iOS mirror: `TradeShareResponse`.
+ */
+data class TradeShareResponse(
+    val contractVersion: String,
+    val hash: String,
+    val apiPath: String,
+    val expiresAt: String,
+) {
+    companion object {
+        fun parse(raw: String): TradeShareResponse? = runCatching {
+            val root = JSONObject(raw)
+            TradeShareResponse(
+                contractVersion = root.optStringOrNull("contract_version").orEmpty(),
+                hash = root.optStringOrNull("hash").orEmpty(),
+                apiPath = root.optStringOrNull("api_path").orEmpty(),
+                expiresAt = root.optStringOrNull("expires_at").orEmpty(),
+            )
+        }.getOrNull()
+    }
 }

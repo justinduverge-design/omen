@@ -106,6 +106,22 @@ class StubLeagueRepository(
 interface TradeRepository {
     suspend fun compare(offer: TradeOffer, accessToken: String?): OmenApiResult<TradeCompare>
     suspend fun capabilities(): OmenApiResult<TradeCapabilities> = OmenApiResult.Failure(OmenApiError.Network)
+
+    /**
+     * `GET /api/trade/roster`. Requires a real access token — unlike [compare], this reads the
+     * caller's own connected league and cannot degrade to an anonymous answer.
+     */
+    suspend fun roster(
+        platform: String,
+        leagueId: String,
+        teamId: String?,
+        week: Int?,
+        accessToken: String,
+    ): OmenApiResult<TradeRosterResponse> = OmenApiResult.Failure(OmenApiError.Network)
+
+    /** `POST /api/trade/share`. Free and public, like [compare]. */
+    suspend fun share(offer: TradeOffer, accessToken: String?): OmenApiResult<TradeShareResponse> =
+        OmenApiResult.Failure(OmenApiError.Network)
 }
 
 data class TradeCapabilities(val maxTeams: Int, val submission: String, val threeTeamSupported: Boolean, val threeTeamReason: String?) {
@@ -146,15 +162,47 @@ class ApiTradeRepository(private val client: OmenApiClient) : TradeRepository {
         offer.requestBody(),
         TradeCompare::parse,
     )
+
+    override suspend fun roster(
+        platform: String,
+        leagueId: String,
+        teamId: String?,
+        week: Int?,
+        accessToken: String,
+    ): OmenApiResult<TradeRosterResponse> {
+        val query = buildMap {
+            put("platform", platform)
+            put("league_id", leagueId)
+            teamId?.takeIf { it.isNotEmpty() }?.let { put("team_id", it) }
+            week?.let { put("week", it.toString()) }
+        }
+        return client.getOptionalAuth("api/trade/roster", accessToken, query, TradeRosterResponse::parse)
+    }
+
+    override suspend fun share(offer: TradeOffer, accessToken: String?): OmenApiResult<TradeShareResponse> =
+        client.postOptionalAuth("api/trade/share", accessToken, offer.shareRequestBody(), TradeShareResponse::parse)
 }
 
 class StubTradeRepository(
     private val result: OmenApiResult<TradeCompare>,
+    private val rosterResult: OmenApiResult<TradeRosterResponse> = OmenApiResult.Failure(OmenApiError.Network),
+    private val shareResult: OmenApiResult<TradeShareResponse> = OmenApiResult.Failure(OmenApiError.Network),
 ) : TradeRepository {
     override suspend fun compare(
         offer: TradeOffer,
         accessToken: String?,
     ): OmenApiResult<TradeCompare> = result
+
+    override suspend fun roster(
+        platform: String,
+        leagueId: String,
+        teamId: String?,
+        week: Int?,
+        accessToken: String,
+    ): OmenApiResult<TradeRosterResponse> = rosterResult
+
+    override suspend fun share(offer: TradeOffer, accessToken: String?): OmenApiResult<TradeShareResponse> =
+        shareResult
 }
 
 /**

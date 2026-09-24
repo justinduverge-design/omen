@@ -68,6 +68,12 @@ fun OmenTradeScreen(
     onAddResult: ((PlayerSearchResult, TradeViewModel.Side) -> Unit)? = null,
     onRemove: ((Int, TradeViewModel.Side) -> Unit)? = null,
     onCompare: (() -> Unit)? = null,
+    /**
+     * Opens the J4 roster-picking flow (`TradeBuild`/`TradeRoster`) — real opponents from the
+     * caller's own connected league, over `GET /api/trade/roster`. Null (and the button hidden)
+     * until a league is connected: there is nothing to browse without one.
+     */
+    onBrowseRoster: (() -> Unit)? = null,
     capabilities: com.slopssaloon.omen.app.feature.api.TradeCapabilities? = null,
 ) {
     var sendDraft by remember { mutableStateOf("") }
@@ -108,6 +114,16 @@ fun OmenTradeScreen(
                 style = OmenTheme.typography.bodySmall.toTextStyle(),
                 color = OmenTheme.color.textSecondary,
             )
+            // Real opponents from a real league, not a name typed by hand. Hidden with no
+            // connected league — nothing behind `GET /api/trade/roster` to browse yet.
+            if (offer.leagueContext != null && onBrowseRoster != null) {
+                OmenButton(
+                    text = "Browse a real roster",
+                    onClick = onBrowseRoster,
+                    variant = OmenButtonVariant.Link,
+                    size = OmenButtonSize.Sm,
+                )
+            }
         }
 
         TradeSide(

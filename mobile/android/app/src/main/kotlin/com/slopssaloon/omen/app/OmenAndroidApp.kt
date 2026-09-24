@@ -28,8 +28,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import com.slopssaloon.omen.BuildConfig
 import com.slopssaloon.omen.R
@@ -44,7 +46,9 @@ import com.slopssaloon.omen.app.feature.commandcenter.waiverUnread
 import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeScreen
 import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeAnswer
 import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeNeedsContextScreen
+import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeShareScreen
 import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeVerdictScreen
+import com.slopssaloon.omen.app.feature.commandcenter.TradeRosterFlow
 import com.slopssaloon.omen.app.feature.commandcenter.omenTradeAnswer
 import com.slopssaloon.omen.app.feature.help.OmenHelpSupportScreen
 import com.slopssaloon.omen.app.feature.omen.OmenDecisionScreen
@@ -764,6 +768,11 @@ private fun SignedInDestination(
         leagueViewModel.load(userId, page?.platform, page?.leagueId)
     }
 
+    // J4: `TradeBuild`/`TradeRoster` over `GET /api/trade/roster`, and `TradeShare` over
+    // `POST /api/trade/share`. Local to this destination — nothing else needs them.
+    var showTradeRosterSheet by remember { mutableStateOf(false) }
+    var showTradeShareSheet by remember { mutableStateOf(false) }
+
     when (destination) {
         NavDestination.Command -> {
             LaunchedEffect(userId) { commandCenterViewModel.load(userId) }
@@ -915,9 +924,10 @@ private fun SignedInDestination(
                 // J4: once the server has answered, the answer is J4's screen rather than the
                 // builder's inline verdict. `omenTradeAnswer` picks `TradeVerdict` or
                 // `TradeNeedsContext` off `verdict_state` — the same seat in the journey, in the
-                // two states the contract returns it in — and this is the production route that
-                // makes both reachable rather than only photographable. `OmenTradeAnswer`'s
-                // Swift twin documents which three J4 screens are deliberately NOT wired.
+                // two states the contract returns it in. `TradeBuild`/`TradeRoster` (real
+                // opponent rosters, `GET /api/trade/roster`, via `TradeRosterFlow`) and
+                // `TradeShare` (`POST /api/trade/share`) route independently below, since neither
+                // is "the answer" — see `omenTradeAnswer`'s doc comment.
                 val loadedCompare = (tradeViewModel.viewState as? TradeViewModel.ViewState.Loaded)?.result
                 val answer = loadedCompare?.let { omenTradeAnswer(it, tradeViewModel.offer) }
                 when (answer) {
@@ -927,6 +937,7 @@ private fun SignedInDestination(
                         // Keeps the offer. A user who reads "you give up too much" wants to
                         // change one player, not retype the deal.
                         onPrimaryAction = { tradeViewModel.dismissVerdict() },
+                        onShare = { showTradeShareSheet = true },
                     )
                     is OmenTradeAnswer.NeedsContext -> OmenTradeNeedsContextScreen(
                         state = answer.state,
@@ -944,10 +955,45 @@ private fun SignedInDestination(
                         onAddResult = { player, side -> tradeViewModel.add(player, side) },
                         onRemove = { index, side -> tradeViewModel.remove(index, side) },
                         onCompare = { scope.launch { tradeViewModel.compare(userId) } },
+                        onBrowseRoster = { showTradeRosterSheet = true },
                         capabilities = tradeViewModel.capabilities,
                     )
                 }
                 LaunchedEffect(Unit) { tradeViewModel.loadCapabilities() }
+            }
+            OmenModalSheet(
+                visible = showTradeRosterSheet,
+                onDismissRequest = { showTradeRosterSheet = false },
+                title = "Trade",
+            ) {
+                TradeRosterFlow(
+                    tradeViewModel = tradeViewModel,
+                    userId = userId,
+                    onOpenAccount = onOpenAccount,
+                    onDismiss = { showTradeRosterSheet = false },
+                )
+            }
+            OmenModalSheet(
+                visible = showTradeShareSheet,
+                onDismissRequest = {
+                    showTradeShareSheet = false
+                    tradeViewModel.dismissShare()
+                },
+                title = "Share",
+            ) {
+                val shareState = tradeViewModel.shareScreenState
+                if (shareState != null) {
+                    val clipboard = LocalClipboardManager.current
+                    OmenTradeShareScreen(
+                        state = shareState,
+                        onOpenAccount = onOpenAccount,
+                        onToggleInclusion = { tradeViewModel.toggleShareInclusion(it) },
+                        onShare = { scope.launch { tradeViewModel.share(userId) } },
+                        onCopyAsText = {
+                            tradeViewModel.copyShareText()?.let { clipboard.setText(AnnotatedString(it)) }
+                        },
+                    )
+                }
             }
         }
         // M5 slice F: the League destination now renders `league-overview.v1`. It replaced an

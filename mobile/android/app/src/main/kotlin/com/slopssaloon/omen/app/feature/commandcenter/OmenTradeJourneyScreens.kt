@@ -1385,12 +1385,11 @@ fun omenTradeInput(capability: OmenDecisionCapability): OmenTradeInput? {
  * The J4 answer, built from a real `trade-compare.v2` response. The Compose half of
  * `OmenTradeAnswer` in `OmenTradeJourneyScreens.swift`.
  *
- * Why only two of the five screens are wired — and why the other three are deliberately left
- * captured-and-unreachable rather than mounted against invented state — is written out once, in
- * the Swift file's doc comment. A copied rule is a second source of truth and the copy is the one
- * that goes stale. In short: `TradeBuild` needs partner-roster reads that do not exist,
- * `TradeRoster` needs the opponent roster itself, and `TradeShare` needs a client for
- * `POST /api/trade/share` that has not been built.
+ * `TradeVerdict`/`TradeNeedsContext` are "the answer" and route through here.
+ * `TradeBuild`/`TradeRoster`/`TradeShare` route independently, from `OmenAndroidApp.kt`, driven
+ * by `TradeViewModel.rosterBuildState`/`.rosterScreenState`/`.shareScreenState` — see that file's
+ * doc comment for why they are not "the answer" and do not belong in this sealed interface. A
+ * copied rule is a second source of truth and the copy is the one that goes stale.
  */
 sealed interface OmenTradeAnswer {
     data class Verdict(val state: OmenTradeVerdictState) : OmenTradeAnswer
@@ -1449,17 +1448,22 @@ fun omenTradeAnswer(compare: TradeCompare, offer: TradeOffer): OmenTradeAnswer? 
                 // the client inventing a procedure.
                 submission = null,
                 primaryActionTitle = "Change the offer",
-                // No counter builder, and no native caller for `POST /api/trade/share`. A button
-                // that does nothing is worse than an absent one.
+                // No counter builder exists yet — separate product work from wiring the
+                // existing `POST /api/trade/share` route.
                 counterActionTitle = null,
-                shareActionTitle = null,
+                // `TradeViewModel.share(userId)` now calls `POST /api/trade/share` for real.
+                shareActionTitle = "Share this read",
             ),
         )
     }
 }
 
-/** Both sides, always — Trade "must show both sides". */
-private fun omenTradeSides(offer: TradeOffer): List<OmenTradeSide> = listOf(
+/**
+ * Both sides, always — Trade "must show both sides". Not private: [TradeViewModel]'s
+ * roster-browse wiring (`rosterBuildState`) reuses this to render the same block on `TradeBuild`
+ * before a verdict exists.
+ */
+fun omenTradeSides(offer: TradeOffer): List<OmenTradeSide> = listOf(
     OmenTradeSide("You send", offer.send.map { omenTradeLeg(it, OmenTradeLeg.Direction.Sending) }),
     OmenTradeSide("You receive", offer.receive.map { omenTradeLeg(it, OmenTradeLeg.Direction.Receiving) }),
 )
