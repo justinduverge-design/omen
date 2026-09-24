@@ -1,0 +1,116 @@
+# Tuesday (2026-09-29) readiness — gaps, plan, and status
+
+**Written:** 2026-09-24. **Target:** a TestFlight build Justin can push to his own phone and
+present, archived and pushed by Justin on Tuesday.
+
+This is a live tracking document, not a handoff. Update item status in place as work lands.
+Sourced from `node scripts/check-screen-reachability.mjs` and direct code inspection on
+`main` (`dbd30b97` at time of writing) — not from memory of what earlier sessions reported.
+
+---
+
+## 1. Canvas-to-code reachability gaps — 7 screens, 11 findings
+
+All six journeys (J1–J6) and chrome (Account, ReportPill) are built, merged, and verified on
+`main`. These seven screens exist, render correctly to their artboards, and photograph
+cleanly in screenshot scenarios — but nothing in production navigation can reach them. A
+screenshot is not evidence of a route. `check-screen-reachability.mjs` is the mechanical
+check; the list below is its current output, unchanged since the chrome merge.
+
+| # | Screen | Platform(s) | Why it's unreachable | Tuesday plan |
+|---|---|---|---|---|
+| 1 | `OmenCommandQuietScreen` | iOS + Android | No client slice for `quiet-week.v1` — the screen exists, nothing calls the route that would select it | Wire the client read; server predicate already exists (`quiet-week.v1`, done 2026-09-14) |
+| 2 | `OmenConnectFailedScreen` | Android only | `ConnectFailure` is a plain enum with no diagnostic payload; iOS's equivalent already carries status/league/time | Promote to a sealed class carrying the diagnostic, mirroring iOS |
+| 3 | `OmenStartSitScreen` | iOS + Android | Carried over from J3; never wired into the Omen destination | Wire into production Omen screen routing |
+| 4 | `OmenTradeBuildScreen` | iOS + Android | No opponent-roster read to populate a real trade partner | See §2, Trade gaps |
+| 5 | `OmenTradeRosterScreen` | iOS + Android | Same root cause as #4 | See §2 |
+| 6 | `OmenTradeShareScreen` | iOS + Android | No native client call to the existing `POST /api/trade/share` route | See §2 — this one is cheap |
+
+**Rule that stays in force while closing these:** never invent state to make a screen
+reachable. `ConnectFailed` cannot be wired with a fabricated status; `TradeBuild`/`TradeRoster`
+cannot be wired with a fake roster. Where a provider genuinely can't supply the read, the
+screen renders the honest "not available for this provider" state this app already uses
+everywhere else (`waiver_system: not_determined`, `three_team.supported: false`) — it does not
+stay silently unreachable, and it does not lie.
+
+**Not in scope for Tuesday, flagged so it isn't silently dropped:**
+- `move-detail.v2` still doesn't carry historical band/risk/reasoning (contract gap, not a
+  reachability gap — the screen is reachable, it's just thinner than its artboard).
+- `BE-OmenBriefFalsifier` (P2) — `what_could_change_this` absent from the Omen brief.
+
+---
+
+## 2. Trade gaps — the demo centerpiece
+
+Justin: *"If you're telling me all the pages are done, all the screens are done, then trade
+has to be in there for Tuesday."* Agreed — this is now a hard requirement, not a stretch item.
+
+### What's actually missing, traced to the data layer
+
+**Opponent-roster reads exist for Sleeper only.** `buildTradeCandidateForConnection` in
+`src/services/omen.js` already calls `sleeperAdapter.fetchSleeperLeagueRosters` — a working,
+proven read of every team's roster in a Sleeper league. It is explicitly gated:
+```js
+if (connection.platform !== "sleeper") return null;
+```
+**Nobody has ever built this for ESPN or Yahoo.** ESPN is the provider this whole project
+treats as fragile-by-design; Yahoo has its own access history in `facts-of-record.md` #11.
+Building either from scratch this week, alongside everything else, is the risky move — not
+the safe one.
+
+**`TradeShare` is not a data gap at all.** `POST /api/trade/share` → `trade-share.v1` already
+works server-side: 30-day hash, no auth, no provider data, names off by default. The only
+thing missing is a native client that calls it. Low risk, fast.
+
+**`TradeBuild`/`TradeRoster` need the same opponent-roster read** as the fix above — picking
+a real trade partner and seeing their actual roster is the same capability.
+
+### The plan
+
+1. Expose the existing, proven Sleeper roster logic as a real route (reusing
+   `fetchSleeperLeagueRosters`, not writing new provider integration).
+2. Wire `TradeBuild` and `TradeRoster` on both platforms to call it.
+3. Wire `TradeShare` on both platforms to the existing share route — independent of #1/#2,
+   can happen in parallel.
+4. ESPN and Yahoo connections render the honest unavailable state on `TradeBuild`/`TradeRoster`
+   rather than being blocked from the feature entirely or shown fabricated data.
+
+**Open question for Justin, decides how this actually feels on his phone Tuesday:** which
+platform is his real test league on? Sleeper gets the full experience end-to-end; ESPN/Yahoo
+get the honest-unavailable state on the roster-picking step specifically, not a broken screen.
+
+---
+
+## 3. UI/UX gaps — polish and presentation readiness
+
+These affect how the app looks and feels to a real tester, separate from what's reachable.
+
+| Item | Status | Tuesday call |
+|---|---|---|
+| **#340 — Command Center contrast** | Real, reproducing failure, confirmed by unmasking the `XCTExpectFailure` and running the audit | Small, scoped fix — in scope if time allows |
+| **#338 — App-wide Dynamic Type audit blindness** | Real. **Already attempted once this week and reverted** — `Font.custom` clears the audit finding but breaks layout, because Wix Madefor's weight is only reachable via a `UIFontDescriptor` variation axis that `Font.custom` can't carry. A real fix needs font-instance registration, not a one-line swap. Full writeup in `Direction/known_issues.md`, entry dated 2026-09-19/20 | **Out of scope for Tuesday.** Re-attempting under deadline pressure is how the ramp goes flat again, silently — the file's own header already documents that exact failure shipping once. Text does scale correctly at runtime; this is audit visibility, not a user-facing break |
+| **`Brand/brand-system.md` §7** | Stale — still shows the retired numeric-confidence example (`"74 — Medium-High Confidence"`), which fact-of-record #16 replaced with a confidence band | Trivial doc fix, low priority, can ride along with anything else touching that file |
+| **Build/archive readiness** | `CURRENT_PROJECT_VERSION` is still `6` in `project.pbxproj`, dated to the Sep 11 archive — before any of this week's work. Release-config archive dry-run **succeeded** on current `main` (verified, not assumed) | Bump the version number before Justin archives Tuesday; otherwise unchanged |
+
+---
+
+## 4. Also agreed, tracked separately, not blocking Tuesday's UI work
+
+- **LLM reasoning wiring** — `llm_reasoning` is currently a template stub (confirmed in
+  `src/services/omen.js`, both call sites explicitly marked `"stub"`). Gemma is live and idle
+  on the private AI VPS. In progress.
+- **Team-switch lag** — lead found (`POST /api/leagues/active` makes two serial provider
+  calls before responding, then signals a 5-surface client refresh). Not yet profiled to a
+  confirmed fix.
+- **Real football data (snap counts, route participation)** — both verified available for
+  free via nflverse (`snap_counts` and `pbp_participation` releases respectively), same
+  ingestion shape the pipeline already uses. Scoped, not started.
+
+---
+
+## Working agreement
+
+Work streams below are parallel-safe (separate files, separate platforms where noted) and
+will run in isolated worktrees, same discipline as the journey builds — no shared checkouts.
+Each stream reports real test counts, not exit codes; nothing is marked done without a
+production-reachability grep proving it.
