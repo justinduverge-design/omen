@@ -110,9 +110,23 @@ These affect how the app looks and feels to a real tester, separate from what's 
 
 ## 4. Also agreed, tracked separately, not blocking Tuesday's UI work
 
-- **LLM reasoning wiring** — `llm_reasoning` is currently a template stub (confirmed in
-  `src/services/omen.js`, both call sites explicitly marked `"stub"`). Gemma is live and idle
-  on the private AI VPS. In progress.
+- **LLM reasoning wiring — corrected 2026-09-24, was already built, not a stub.** My original
+  read found two `signal("stub", ...)` sites in `services/omen.js` and stopped there without
+  checking whether a downstream path overrides them — it does. `explainOmenMvpMove` in
+  `src/services/llm.js` (shipped `a37211e8`, 2026-09-17) is a real, tested function calling
+  Ollama's OpenAI-compatible chat API with a bounded timeout and strict output validation;
+  `routes/omen.js`'s `enrichWithLlm()` wraps the live MVP call and sets `llm_reasoning` to
+  `{status: "live", source: "ollama_gemma", ...}` on success or an honest `"unavailable"` on
+  timeout — never falsely `"live"`. Both native clients already request it
+  (`include_signals.llm_reasoning: true`). **Verified live in production**, `GET
+  /api/ready` → `llm.status: "configured_private", model: "gemma3:4b"`.
+  **What that status does NOT prove**: `configured_private` is a hostname-shape check
+  (`src/services/llm.js:126` — is `LLM_BASE_URL` a private address), not a live reachability
+  probe. Whether a real Omen call right now actually reaches the AI VPS and gets real
+  reasoning back is unverified from here — needs a real authenticated Omen call to confirm,
+  cheapest done when Justin tests the app on his phone. The two stale stub-copy sites were
+  corrected (`tue/gemma`, `f5e8f9dc`) without changing their `status`/`source` fields, since
+  they're pre-attempt defaults, not the path a live user hits on success.
 - **Team-switch lag** — lead found (`POST /api/leagues/active` makes two serial provider
   calls before responding, then signals a 5-surface client refresh). Not yet profiled to a
   confirmed fix.
