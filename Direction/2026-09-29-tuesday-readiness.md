@@ -47,16 +47,30 @@ has to be in there for Tuesday."* Agreed — this is now a hard requirement, not
 
 ### What's actually missing, traced to the data layer
 
-**Opponent-roster reads exist for Sleeper only.** `buildTradeCandidateForConnection` in
-`src/services/omen.js` already calls `sleeperAdapter.fetchSleeperLeagueRosters` — a working,
-proven read of every team's roster in a Sleeper league. It is explicitly gated:
-```js
-if (connection.platform !== "sleeper") return null;
-```
-**Nobody has ever built this for ESPN or Yahoo.** ESPN is the provider this whole project
-treats as fragile-by-design; Yahoo has its own access history in `facts-of-record.md` #11.
-Building either from scratch this week, alongside everything else, is the risky move — not
-the safe one.
+**Revised 2026-09-24 (founder): ESPN and Yahoo must become available too, not fall back to
+an honest-unavailable state.** Checked before committing to this — none of the three
+providers need new integration built from scratch. Each capability already exists in some
+form and needs extending, not building:
+
+- **Sleeper** — `buildTradeCandidateForConnection` in `src/services/omen.js` already calls
+  `sleeperAdapter.fetchSleeperLeagueRosters`, a working, proven read of every team's roster.
+  Gated `if (connection.platform !== "sleeper") return null;` — the gate is the only thing
+  stopping the other two, not a missing capability.
+- **ESPN** — `fetchEspnMatchup` (`src/adapters/espn.js`) already requests `mMatchup` +
+  `mMatchupScore` views, and ESPN returns the **whole league's schedule with every team's
+  roster embedded** in `data.schedule` — not just the current matchup's two sides.
+  `matchupFromEspnSchedule` currently extracts only the user's own matchup. Needs a sibling
+  normalizer that walks the full schedule and returns every team, reusing the same
+  authenticated call and the same session — no new ESPN surface, no new auth.
+- **Yahoo** — `GET /team/{teamKey}/roster` (`src/services/yahoo.js:346`) already accepts an
+  arbitrary team key, not just the caller's own. The full team-key list is already parsed
+  from standings elsewhere in the same file (`league.standings[0].teams`, line 400). Needs
+  composing the two calls that already work, not a new endpoint.
+
+**Still real work**: per-provider response shapes differ, each needs its own normalizer and
+fixture tests, and ESPN in particular gets careful treatment per this project's standing
+fragility posture — but this is extension of three already-authenticated, already-working
+reads, not new provider integration. Revised risk: moderate, not high.
 
 **`TradeShare` is not a data gap at all.** `POST /api/trade/share` → `trade-share.v1` already
 works server-side: 30-day hash, no auth, no provider data, names off by default. The only
@@ -72,12 +86,12 @@ a real trade partner and seeing their actual roster is the same capability.
 2. Wire `TradeBuild` and `TradeRoster` on both platforms to call it.
 3. Wire `TradeShare` on both platforms to the existing share route — independent of #1/#2,
    can happen in parallel.
-4. ESPN and Yahoo connections render the honest unavailable state on `TradeBuild`/`TradeRoster`
-   rather than being blocked from the feature entirely or shown fabricated data.
-
-**Open question for Justin, decides how this actually feels on his phone Tuesday:** which
-platform is his real test league on? Sleeper gets the full experience end-to-end; ESPN/Yahoo
-get the honest-unavailable state on the roster-picking step specifically, not a broken screen.
+4. **Revised**: extend `fetchEspnMatchup`'s schedule-walk and Yahoo's roster-by-team-key call to
+   cover every team in the league, not just the caller's own — same shape as the Sleeper route,
+   three provider-specific normalizers behind one route.
+5. Only if a specific provider genuinely cannot supply this in time does it fall back to the
+   honest-unavailable state — that is now the exception path, not the default, and needs a
+   named reason if used.
 
 ---
 
