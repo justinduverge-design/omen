@@ -46,3 +46,19 @@ typed inferred influence edge. It independently validates successfully.
 No package changes or installs, Supabase SQL/schema, production data or hosts, timers/services, credentials,
 provider accounts, deployment, merge, or public redistribution/licensing decision. The next authorized step is
 founder review/merge approval, followed by a separately approved package/schema/production implementation plan.
+
+## Promotion addendum — 2026-09-25
+
+The founder-approved conditional promotion completed. PR [#467](https://github.com/justinduverge-design/omen/pull/467)
+merged to `main` as `ee44a97ad2b1080d8d904779bdd3db3b2a29a9fe`. GitHub Actions run
+[36092456274](https://github.com/justinduverge-design/omen/actions/runs/36092456274) passed quality, image build,
+and Hostinger KVM1 deployment. Live verification at 2026-09-25 00:00 ET:
+
+- `/api/health` returned HTTP 200 and `status: ok`.
+- `/api/ready` returned HTTP 200 and `status: ready`; Supabase was reachable and critical configuration was present.
+- `/api/version` returned HTTP 200 with `git_sha: ee44a97ad2b1080d8d904779bdd3db3b2a29a9fe`,
+  `build_id: 36092456274`, and image tag `sha-ee44a97ad2b1080d8d904779bdd3db3b2a29a9fe`.
+
+The original verification notes above remain historically accurate for the pre-merge branch state; this addendum is
+the authoritative promotion record. The standing repository truth-gate baseline and local dependency limitation remain
+unchanged and are not represented as newly clean by this deployment.

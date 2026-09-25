@@ -3573,3 +3573,12 @@ behaving; until then this entry records intent, not proof.
 - **Evidence:** `Blueprints/specs/football-data/omen-football-intelligence-foundation-v1.md`,
   `Direction/reviews/2026-09-24-football-intelligence-reuse-and-method-research.md`,
   `Blueprints/handoffs/2026-09-24-football-intelligence-foundation.md`.
+
+## 2026-09-25 — Football intelligence foundation promoted
+
+- **Decision:** approve the additive foundation for production deployment after green CI and deployment smoke tests;
+  no SQL, package, provider-account, or request-path expansion was introduced.
+- **Evidence:** PR [#467](https://github.com/justinduverge-design/omen/pull/467) merged as
+  `ee44a97ad2b1080d8d904779bdd3db3b2a29a9fe`; workflow
+  [36092456274](https://github.com/justinduverge-design/omen/actions/runs/36092456274) passed; live `/api/health`,
+  `/api/ready`, and `/api/version` returned 200, with `/api/version` reporting the exact merge SHA and build id.
