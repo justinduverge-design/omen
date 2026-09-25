@@ -809,6 +809,19 @@ own comment says is **a design-steward decision, not a build fix**, and therefor
 
 **Phase 2.** Backend feature work is essentially complete. What remains is merging what is built and then freezing.
 
+### FDSI-TUESDAY — Build the football-intelligence foundation
+
+- **Status:** IN_PROGRESS
+- **Claim:** 2026-09-24 Codex — founder-assigned architecture, reuse audit, and non-production vertical proof under `ATA-20260924-FDSI` on `codex/football-data-research`.
+- **Blocked by:** None
+- **Priority:** P0 — founder deadline Tuesday 2026-09-29
+- **Cost:** large, staged into bounded non-production slices
+- **Source:** `Direction/football-data-and-schemes-research.md`; Valor Ventures infrastructure baseline and current-state capability map in Google Drive.
+- **Scope:** document the modular football-data architecture and adopt/adapt/own backend audit; define versioned observed-fact, identity, provenance, tendency-window, Scheme DNA, System Signal, and Coaching Tree contracts; implement one deterministic historical vertical proof without production mutation; preserve existing scoring-pipeline purpose and independent-witness authority boundaries.
+- **Skills:** `pre-build-research`, `engineering:architecture`, `engineering:system-design`, `engineering:testing-strategy`, `engineering:documentation`; Google Drive infrastructure discovery.
+- **Done when:** `Blueprints/specs/football-data/omen-football-intelligence-foundation-v1.md` is complete; the reuse audit has source/licence/maintenance/runtime verdicts; one real historical coach/team transition runs source facts through versioned Scheme DNA, System Signal, and Coaching Tree outputs; resolved-output tests cover determinism, row-order independence, provenance, insufficient samples, missing inputs, confirmed-versus-inferred edges, and model-version visibility; focused and broader checks pass; the handoff and ledgers identify every unperformed production/package/SQL/remote-host action.
+- **Do not touch:** package files, dependency installation, Supabase SQL/application, production data or hosts, deployed timers/services, credentials, provider accounts, main-branch merge, or deployment without separate exact approval.
+
 ### B2-D3-S2 — Merge and deploy the prepared-not-deployed set
 
 - **Staleness note (2026-08-31):** `check-sprint-staleness.js` reports this STALE — status

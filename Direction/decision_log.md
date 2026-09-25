@@ -3555,3 +3555,21 @@ behaving; until then this entry records intent, not proof.
   chat conversation is lost the moment that conversation ends unless it is written to the
   repo before closing. The nflverse column survey above exists only because it was written
   down here rather than left in a transcript.
+
+## 2026-09-24 — Football intelligence foundation: Scheme DNA, System Signal, Coaching Tree
+
+- **Decision:** all three names are retained as separate modules. Scheme DNA is the versioned tendency
+  fingerprint; System Signal is the evidence-backed comparison and fantasy-facing implication; Coaching
+  Tree is the time-aware graph with confirmed role edges separate from inferred system influence.
+- **Decision:** the foundation is additive and pure. It reuses Omen source/provenance and validation seams
+  but does not rebuild `src/services/omen.js`, alter scoring acceptance, add a route, add SQL, or introduce
+  a package. Heavy history remains offline; a future request path reads a compact versioned model.
+- **Decision:** the Ben Johnson proof is bounded to three regular-season nflverse cohorts and treats
+  schedules as game/head-coach context only. His Detroit offensive-coordinator assignment is an independent
+  official-source fact. Observed movement is not a causal claim.
+- **Decision:** BurntSushi/nflgame and BurntSushi/nfldb supplied reusable modeling patterns (normalized
+  game/drive/play shape, deterministic identity, incremental diff thinking), not copied code or data. No
+  relevant thousand-star repository publishes a canonical scheme label; Omen owns the derived model.
+- **Evidence:** `Blueprints/specs/football-data/omen-football-intelligence-foundation-v1.md`,
+  `Direction/reviews/2026-09-24-football-intelligence-reuse-and-method-research.md`,
+  `Blueprints/handoffs/2026-09-24-football-intelligence-foundation.md`.

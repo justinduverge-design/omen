@@ -96,9 +96,9 @@ Football, PFF), not a CSV. **This is a derived/modeled problem, not an ingestion
 1. **A literature check** — has anyone published an open methodology for NFL scheme
    classification from formation/personnel/tendency data (academic, hobbyist, or otherwise)?
    Not yet checked. Worth doing before inventing a classification scheme from scratch.
-2. **A naming decision** — founder wants something "cool centered around schemes," not
-   decided yet. Candidates to react to, not a final call: *Scheme DNA*, *Coaching Tree*,
-   *System Signal*, *Scheme Print*.
+2. **Naming decided 2026-09-24** — all three are product modules over one foundation:
+   **Scheme DNA** is the versioned tendency fingerprint; **System Signal** is the evidence-backed
+   fantasy implication; **Coaching Tree** is the confirmed-role and modeled-influence graph.
 3. **A scoping decision** — is v1 "flag when a coach with a known tendency joins a new team"
    (simple, coach-keyed lookup), or "continuously fingerprint every team's current tendencies
    and detect drift" (harder, ongoing classification)? These are very different builds.
@@ -110,3 +110,14 @@ Football, PFF), not a CSV. **This is a derived/modeled problem, not an ingestion
 No ingestion code, no schema, no scheme-classification model. This is the complete state of
 research as of 2026-09-24 — everything above is verified against real data, nothing below
 this line has been designed yet.
+
+## 4. Follow-on architecture — active 2026-09-24
+
+The founder approved all three modules and a Tuesday non-production foundation. The governing
+contract is `Blueprints/specs/football-data/omen-football-intelligence-foundation-v1.md`; external
+reuse and scheme-method research is recorded in
+`Direction/reviews/2026-09-24-football-intelligence-reuse-and-method-research.md`.
+
+The earlier "nothing below this line has been designed" statement remains the historical boundary
+of the original survey. It is superseded for current work by those two artifacts, not silently
+deleted.
