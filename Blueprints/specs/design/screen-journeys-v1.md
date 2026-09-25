@@ -2,7 +2,7 @@
 
 **Status:** Proposed — founder-directed 2026-09-18.
 **Date:** 2026-09-18
-**Covers:** all 30 artboards in `design/native-visual-lock-2026-09-13/`.
+**Covers:** all 32 artboards in `design/native-visual-lock-2026-09-13/`.
 **Supersedes, for capture purposes:** the per-screen scenario model in `ScreenshotScenarios`.
 
 ## Why journeys and not screens
