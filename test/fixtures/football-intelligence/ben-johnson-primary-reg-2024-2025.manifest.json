@@ -1,0 +1,175 @@
+{
+  "schema": "football-intelligence-source-fixture-manifest.v1",
+  "fixture": "ben-johnson-primary-reg-2024-2025.csv",
+  "derivation_version": "football-intelligence-fixture-derivation.v1",
+  "snapshot_witnessed_at": "2026-09-24T23:23:51Z",
+  "modified": true,
+  "licence": "CC-BY-SA-4.0",
+  "attribution": "FTN Data via nflverse",
+  "scope": {
+    "game_type": "REG",
+    "cohorts": [
+      {
+        "season": 2024,
+        "possession_team": "DET",
+        "game_type": "REG",
+        "expected_rows": 1394
+      },
+      {
+        "season": 2024,
+        "possession_team": "CHI",
+        "game_type": "REG",
+        "expected_rows": 1401
+      },
+      {
+        "season": 2025,
+        "possession_team": "CHI",
+        "game_type": "REG",
+        "expected_rows": 1422
+      }
+    ],
+    "join": [
+      "ftn_charting.nflverse_game_id = pbp_participation.nflverse_game_id",
+      "ftn_charting.nflverse_play_id = pbp_participation.play_id",
+      "ftn_charting.nflverse_game_id = schedules.game_id"
+    ],
+    "sort": [
+      "season",
+      "possession_team",
+      "week",
+      "nflverse_game_id",
+      "numeric nflverse_play_id"
+    ]
+  },
+  "schema_columns": [
+    "season",
+    "week",
+    "nflverse_game_id",
+    "nflverse_play_id",
+    "possession_team",
+    "offense_formation",
+    "offense_personnel",
+    "defenders_in_box",
+    "defense_personnel",
+    "number_of_pass_rushers",
+    "starting_hash",
+    "qb_location",
+    "n_offense_backfield",
+    "n_defense_box",
+    "is_no_huddle",
+    "is_motion",
+    "is_play_action",
+    "is_screen_pass",
+    "is_rpo",
+    "is_trick_play",
+    "is_qb_out_of_pocket",
+    "is_qb_sneak",
+    "n_blitzers",
+    "n_pass_rushers"
+  ],
+  "source_artifacts": [
+    {
+      "filename": "ftn_charting_2024.csv",
+      "source_family": "ftn_charting",
+      "source_season": 2024,
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/ftn_charting/ftn_charting_2024.csv",
+      "bytes": 8254908,
+      "rows": 48031,
+      "sha256": "6faae8118cc13ce62589210d553733128ed35e558671009b4a7a8fc5c674c2cb",
+      "asset_updated_at": "2025-09-01T01:29:37Z",
+      "licence": "CC-BY-SA-4.0",
+      "attribution": "FTN Data via nflverse"
+    },
+    {
+      "filename": "ftn_charting_2025.csv",
+      "source_family": "ftn_charting",
+      "source_season": 2025,
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/ftn_charting/ftn_charting_2025.csv",
+      "bytes": 8128926,
+      "rows": 47316,
+      "sha256": "62a66416043ff08d43303bf5f3af5390e3fe0f29461a1fc6e295a15cac6ea994",
+      "asset_updated_at": "2026-09-23T03:14:31Z",
+      "licence": "CC-BY-SA-4.0",
+      "attribution": "FTN Data via nflverse"
+    },
+    {
+      "filename": "pbp_participation_2024.csv",
+      "source_family": "pbp_participation",
+      "source_season": 2024,
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/pbp_participation/pbp_participation_2024.csv",
+      "bytes": 49688308,
+      "rows": 45919,
+      "sha256": "b1f436a98b2a7759eb4ed1181e072a35c2666f9aeb356a49c943d28d6be6b0b9",
+      "asset_updated_at": "2025-09-04T10:24:49Z",
+      "licence": "CC-BY-SA-4.0",
+      "attribution": "FTN Data via nflverse"
+    },
+    {
+      "filename": "pbp_participation_2025.csv",
+      "source_family": "pbp_participation",
+      "source_season": 2025,
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/pbp_participation/pbp_participation_2025.csv",
+      "bytes": 49094943,
+      "rows": 45184,
+      "sha256": "59069adfee7b0f464befba8a5e8be331e523633cc6a7ab403d37bcbcdfbe66ac",
+      "asset_updated_at": "2026-02-10T18:54:08Z",
+      "licence": "CC-BY-SA-4.0",
+      "attribution": "FTN Data via nflverse"
+    },
+    {
+      "filename": "games.csv",
+      "source_family": "schedules",
+      "source_season": null,
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/schedules/games.csv",
+      "bytes": 2180809,
+      "rows": 7548,
+      "sha256": "44ea79b765e734f75cc65ad6bf8d22f3ea70fdd9560af728421501fa758845fd",
+      "asset_updated_at": "2026-09-24T23:16:22Z",
+      "licence": "CC-BY-4.0",
+      "attribution": "nflverse"
+    }
+  ],
+  "reconciliation": {
+    "schedule_rows": 7548,
+    "years": [
+      {
+        "season": 2024,
+        "ftn_rows": 48031,
+        "participation_rows": 45919,
+        "ftn_rows_without_participation": 2126,
+        "target_joined_all_games": 2880,
+        "target_postseason_rows_excluded": 85,
+        "target_joined_rows_without_schedule": 0,
+        "target_regular_season_participation_rows_without_ftn": 1
+      },
+      {
+        "season": 2025,
+        "ftn_rows": 47316,
+        "participation_rows": 45184,
+        "ftn_rows_without_participation": 2140,
+        "target_joined_all_games": 1602,
+        "target_postseason_rows_excluded": 180,
+        "target_joined_rows_without_schedule": 0,
+        "target_regular_season_participation_rows_without_ftn": 0
+      }
+    ],
+    "cohort_rows": {
+      "DET_2024_REG": 1394,
+      "CHI_2024_REG": 1401,
+      "CHI_2025_REG": 1422
+    }
+  },
+  "output": {
+    "rows": 4217,
+    "columns": 24,
+    "bytes": 775531,
+    "sha256": "855297819f3d252c50e90b08fdef721f6371b93fd648881825fcc4c44c582b63",
+    "line_endings": "LF"
+  },
+  "limitations": [
+    "This fixture contains observed source fields, not a named scheme label or causal conclusion.",
+    "Schedules provide head coaches only and cannot establish Detroit's 2024 offensive-coordinator assignment.",
+    "The source release URLs are mutable; exact SHA-256 and byte-length pins intentionally fail on upstream drift.",
+    "Public redistribution or relicensing of this adapted fixture requires a separate CC-BY-SA review."
+  ]
+}
