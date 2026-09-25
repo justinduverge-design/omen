@@ -149,3 +149,120 @@ Work streams below are parallel-safe (separate files, separate platforms where n
 will run in isolated worktrees, same discipline as the journey builds — no shared checkouts.
 Each stream reports real test counts, not exit codes; nothing is marked done without a
 production-reachability grep proving it.
+
+---
+
+## 5. Tuesday parallel track — football intelligence + canvas foundation
+
+**Added 2026-09-25.** This is the architecture track that should inform the next canvas-to-code
+conversation. It is parallel to the remaining presentation items above, but it must not be mixed into
+the UI reachability checklist or treated as already-wired backend functionality.
+
+### Current truth
+
+Omen has a substantial A7B scoring-data pipeline (`src/services/footballData/`) with exact manifests,
+scoring acceptance, staging/shadow, correction, recovery, and fail-closed production-readiness gates.
+That system verifies fantasy scoring data. It is not yet the customer-supporting football-intelligence
+system.
+
+The football-intelligence kernel/research work defines Scheme DNA, System Signal, Coaching Tree, and a
+bounded Ben Johnson proof, but the current product path still lacks:
+
+- a persisted canonical football-fact store;
+- a Supabase schema and RLS boundary for intelligence data;
+- source-artifact and derived-artifact persistence;
+- an ingestion/correction/supersession lifecycle;
+- a versioned serving read model;
+- an authenticated football-intelligence API route;
+- a customer decision surface that consumes the signal.
+
+Do not add a route, SQL migration, production schedule, or customer-facing “scheme label” until the
+architecture gates below are complete.
+
+### Stage A — football authority and storage architecture
+
+Run in parallel with Stage C. Deliver and review:
+
+1. Source matrix for `schedules`, `pbp_participation`, `ftn_charting`, and the first admitted Tier 1
+   families: release identity, real columns, row grain, coverage, cadence, license, attribution,
+   freshness, and allowed customer use.
+2. Domain ownership map: source fact, canonical fact, feature, model output, evidence, and customer
+   interpretation.
+3. Storage ADR separating immutable raw/derived artifacts from compact Supabase serving data.
+4. Versioning/correction contract: source release, retrieval time, source hash, schema fingerprint,
+   derivation version, model version, effective interval, supersedes/replaces, stale/partial/disputed.
+5. Identity/crosswalk design for nflverse, GSIS/PFR, provider IDs, teams, relocations, and coaches.
+6. First customer contract and uncertainty language. Recommended first slice: coach-keyed transfer
+   System Signal backed by Scheme DNA evidence, not a universal scheme taxonomy.
+
+**Stage A gate:** no schema or route implementation until these artifacts agree and the storage boundary,
+identity model, and first customer read are explicitly approved.
+
+### Stage C — canvas/design-system foundation
+
+Run in parallel with Stage A and feed the next canvas-to-code session:
+
+1. Treat `design/native-visual-lock-2026-09-13/` as 32 artboards, not 30.
+2. Add or explicitly exempt contracts for `LedgerDegraded` and `LedgerDetailDegraded`; currently there
+   are 30 contracts for 32 artboards.
+3. Correct stale 30-count references in `screen-journeys-v1.md`, the 2026-09-18 canvas handoff, and
+   `capability-symbols-v1.md`.
+4. Add an artboard/contract coverage checker for missing contracts, orphan contracts, duplicate IDs,
+   missing artboards, and absent family/journey metadata.
+5. Reconcile the three spacing authorities: web component scale, amended native registry scale, and
+   canvas literals (`7`, `9`, `11`, `13`). Do not blind-replace values because fold/overflow behavior
+   is part of the visual contract.
+6. Reconcile the canvas/native typography narrative and fix the stale `OmenCall-v1.md` v2/v3 binding.
+7. Add mechanical checks for iOS/Android spacing and typography parity, canvas raw font/spacing values,
+   contract/API versions, 44pt/48dp hit-target requirements, Dynamic Type, long content, and horizontal
+   overflow.
+8. Decide and contract the quiet-week straight state before another broad canvas implementation run.
+
+**Stage C gate:** a canvas-to-code agent must be able to prove one-to-one artboard/contract coverage and
+one canonical token authority before writing native screen code.
+
+### Stage B — backend implementation (after A/C review)
+
+Implement in this order only after the gates pass:
+
+```text
+artifact registry
+→ minimum canonical fact ingestion
+→ identity/crosswalk dimensions
+→ feature windows
+→ Scheme DNA
+→ System Signal
+→ Coaching Tree
+→ versioned serving read model
+→ authenticated read-only API
+→ one customer decision explanation
+```
+
+Keep this separate from the A7B scoring publisher. The first end-to-end slice should be:
+
+```text
+schedules + pbp_participation + ftn_charting
+→ team/coach-season facts
+→ Scheme DNA
+→ coach-transfer System Signal
+→ persisted evidence/read model
+→ API
+→ one existing Omen explanation block
+```
+
+### Tuesday stop conditions
+
+- A/C architecture or token authority is unresolved: stop and record the decision; do not infer.
+- A screen has no contract or a contract has no artboard: stop the canvas run for that screen.
+- A source lacks row-grain, rights, freshness, or correction semantics: do not ingest it.
+- A football-intelligence value cannot identify whether it is confirmed, derived, inferred, stale, or
+  unavailable: do not expose it to a customer.
+- A production backend change would require SQL, secrets, schedules, or a new package before the
+  architecture review: keep it in the plan branch and do not wire it.
+
+### Durable source of truth
+
+The full staged plan is in
+`Direction/reviews/2026-09-25-football-intelligence-and-canvas-implementation-plan.md`.
+The next implementation session should start with Stage A and Stage C, in isolated worktrees, and should
+not re-discover or re-litigate this sequence from conversation history.
