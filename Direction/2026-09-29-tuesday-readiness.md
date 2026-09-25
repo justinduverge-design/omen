@@ -269,15 +269,40 @@ not re-discover or re-litigate this sequence from conversation history.
 
 ### Execution status — 2026-09-25
 
-- **Stage A:** active in an isolated worktree. The architecture package is being written from the current
-  source, Supabase, route, cron, and production-readiness seams. No SQL, route, package, schedule, or host
-  mutation is authorized in this pass.
-- **Stage C:** active in an isolated worktree. The first mechanical artboard/contract coverage guard and
-  evidence-safe documentation corrections are being implemented. Missing degraded contracts remain a
-  deliberate review item until their source/state requirements are fully known.
+- **Stage A:** documentation implementation complete in `ef84dd70`. The architecture package is written
+  from the current source, Supabase, route, cron, and production-readiness seams. No SQL, route, package,
+  schedule, or host mutation was made.
+- **Stage C:** safe mechanical implementation complete in `68c8a87f`. The artboard/contract coverage guard
+  and evidence-safe documentation corrections are in place. Its real-repository result intentionally fails
+  on the two missing degraded Ledger contracts; the focused tests pass. Those contracts remain a deliberate
+  review item until their source/state requirements are fully known.
 - **Stage B:** not started; blocked by the A/C gates by design.
 - **Stage D:** not started; blocked on a real serving API and customer contract.
 
 When this conversation or context window ends, the next agent should pick up by reading this section and
 the full plan named above, then inspect the two active stream commits before starting new work. Do not redo
 the inventory, create a second competing schema, or wire a route from the fixture kernel alone.
+
+### Stage A/C review checkpoint — 2026-09-25
+
+The next agent should review, in order:
+
+1. `Blueprints/specs/football-data/omen-football-intelligence-architecture-v1.md` — source admission,
+   ownership, storage boundary, provenance/versioning, correction, identity, and proposed signal contract.
+2. `Direction/reviews/2026-09-25-football-intelligence-stage-a-inventory.md` — evidence and five open
+   architecture questions.
+3. `scripts/check-canvas-contract-coverage.mjs` plus `test/canvasContractCoverage.test.mjs` — mechanical
+   proof that the current canvas inventory is 32 artboards / 30 contracts.
+4. `Blueprints/handoffs/2026-09-25-canvas-stage-c-polish.md` — why degraded Ledger contracts were not
+   fabricated.
+
+Review decisions required before Stage B:
+
+- approve the first admitted source slice and customer signal;
+- approve immutable artifact versus Supabase serving boundaries;
+- approve the minimum evidence/coverage threshold;
+- decide whether the two degraded Ledger contracts are authored now or explicitly deferred;
+- approve the API/state vocabulary and naming semantics.
+
+Until those decisions are recorded, the correct next action is review and targeted contract work—not SQL,
+routes, packages, schedules, or production activation.
