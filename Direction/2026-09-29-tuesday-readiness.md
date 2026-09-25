@@ -266,3 +266,18 @@ The full staged plan is in
 `Direction/reviews/2026-09-25-football-intelligence-and-canvas-implementation-plan.md`.
 The next implementation session should start with Stage A and Stage C, in isolated worktrees, and should
 not re-discover or re-litigate this sequence from conversation history.
+
+### Execution status — 2026-09-25
+
+- **Stage A:** active in an isolated worktree. The architecture package is being written from the current
+  source, Supabase, route, cron, and production-readiness seams. No SQL, route, package, schedule, or host
+  mutation is authorized in this pass.
+- **Stage C:** active in an isolated worktree. The first mechanical artboard/contract coverage guard and
+  evidence-safe documentation corrections are being implemented. Missing degraded contracts remain a
+  deliberate review item until their source/state requirements are fully known.
+- **Stage B:** not started; blocked by the A/C gates by design.
+- **Stage D:** not started; blocked on a real serving API and customer contract.
+
+When this conversation or context window ends, the next agent should pick up by reading this section and
+the full plan named above, then inspect the two active stream commits before starting new work. Do not redo
+the inventory, create a second competing schema, or wire a route from the fixture kernel alone.
