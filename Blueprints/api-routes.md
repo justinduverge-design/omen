@@ -1,6 +1,6 @@
 # Omen API Route Reference
 
-Last updated: 2026-09-14
+Last updated: 2026-09-26
 
 `/api/stripe/*` (prices, checkout, portal, webhook) removed 2026-07-12 — Omen ships free indefinitely, Stripe is not used on this product (see decision log). `/api/optimizer/*` and `/api/omen/mvp-move` are no longer gated by a subscription check.
 
@@ -49,6 +49,7 @@ LLM bridge status is additive on `GET /api/ready` and `GET /api/platform-status`
 | `POST` | `/api/platforms/espn/connect` | ESPN connect response | Yes | Cookie-backed ESPN connect; never log cookie values. |
 | `DELETE` | `/api/platforms/:platform` | disconnect response | Yes | Disconnects `yahoo`, `sleeper`, or `espn`. |
 | `POST` | `/api/omen/mvp-move` | `2026-05-18.omen-live.v1`; opt-in `omen-decision-brief.v2` / `omen-decision-brief.v3` | Yes for live | Canonical Omen / MVP Move path. Native v3 sends only `{"contract_version":"omen-decision-brief.v3","include_signals":{"llm_reasoning":true}}`: it never sends league facts, roster data, provider data, or model location. The server derives the selected context from the authenticated session; mock mode is explicit and never an automatic live fallback. `llm_reasoning:true` is a request for private, server-mediated narration only: it cannot select a move or alter confidence/risk, and a late/unavailable narrator leaves the deterministic recommendation intact. v2 returns `confidence.band` (`confident` / `leaning` / `coin_flip`) plus `confidence.drivers`, with numeric confidence removed from the response. v3 retains v2 compatibility fields and adds `capability_contract: "decision-capabilities.v1"` with server-owned capability records (`name`, availability `state`, `used`, evidence `kind`, source-safe statement, optional freshness). Its manifest maps an internal legacy `stub` to user-facing `unavailable`; a client must not infer a capability state, kind, or provider limitation. v1 remains the default for older clients. Every ESPN recommendation includes an unavailable `exact_espn_scoring_unavailable` signal: Omen may recognize some settings, but cannot yet verify every scoring rule and final ESPN result. A live success is issued only after the server persists its move metadata and post-A6 fail-closed scoring state; persistence failure returns `503 omen_recommendation_persistence_failed` with no recommendation. Unknown live provider scoring stays `null`, never an invented PPR default. The response path has bounded core, schedule, DvP, LLM, scoring, and persistence stages; a timed-out core returns retryable `503 omen_live_generation_timed_out`, while advisory evidence is honestly unavailable rather than blocking the move. Authenticated direct live POST returns `state: "off_season"` before live generation when the shared NFL calendar is outside weeks 1-18. Rate limited — see Rate Limits. |
+| `GET` | `/api/football-intelligence/signals/coach-transfer?team_id=&coach_id=&season=` | `football-intelligence-signal.v1` | Yes | Exact canonical `omen:team:*` + `omen:coach:*` + four-digit season lookup. Reads only an explicitly published serving row through the request-scoped authenticated client. Missing publication returns an honest `unavailable` / `not_published` envelope; storage failures are sanitized. The review-only SQL has not been applied, so this route is locally implemented but not production-live. |
 
 For `omen-decision-brief.v3`, Omen composes source-specific records only after their own gate:
 schedule facts require a normalized player team and ESPN scoreboard event; “TV” is a kickoff-window
@@ -57,6 +58,15 @@ three distinct prior weeks; LLM narration requires a configured private bridge a
 grounded in deterministic labels; waiver `reason_code` remains distinct for no-move versus unread
 results; and `league_exact_scoring` is live only for `coverage_state: supported` plus
 `reconciliation_state: exact`. Explicit mock requests cannot borrow live schedule or waiver facts.
+
+The optional top-level v3 `football_intelligence` object uses
+`football-intelligence-signal.v1`. Only a published `available` or `stale` response with a nonempty
+summary, complete publication metadata, and accepted/non-disputed quality may render contextual
+evidence. It is advisory and never selects the move. `insufficient_coverage`, `unavailable`,
+`disputed`, `pending`, candidate, or incomplete responses must not render advice. When the current
+recommendation lacks a canonical `omen:team:*` identity, the server returns
+`status: "unavailable"`, `reason_code: "identity_unresolved"`, and no summary rather than promoting
+an NFL abbreviation.
 
 ### Shared decision receipt v1
 

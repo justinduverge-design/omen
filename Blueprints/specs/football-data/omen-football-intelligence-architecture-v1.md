@@ -415,3 +415,27 @@ Stage B may begin only as a local/non-production implementation using injected s
 and deterministic fixtures. Production activation remains prohibited until the deferred
 artifact/DR item is accepted and restore-tested. A passing unit test cannot substitute
 for that production decision.
+
+## 2026-09-26 local Stage D implementation status
+
+The smallest serving and customer-integration slice is implemented locally, without applying SQL
+or activating a customer path:
+
+- a review-only compact Supabase serving projection permits authenticated reads of published rows
+  and service-role writes, with one published version per explicit scope;
+- the request-scoped repository reads only `publication_state = published`, validates the complete
+  `football-intelligence-signal.v1` payload, resolves deterministic published heads, and derives
+  stale state without rewriting stored evidence;
+- authenticated `GET /api/football-intelligence/signals/coach-transfer` requires canonical Omen
+  team/coach IDs and an exact season;
+- `omen-decision-brief.v3` receives an additive advisory block. Current provider recommendations do
+  not yet carry a proven canonical Omen team identity, so they return `identity_unresolved` and no
+  football-intelligence advice;
+- iOS, Android, and web consume the same object on the existing Omen Call/Evidence journey. Only
+  complete published `available` or `stale` evidence may render a summary. All other states remain
+  limitations and cannot become advice.
+
+This is local implementation completion, not production Gate D. The SQL remains unapplied; RLS has
+not been exercised against a live database; no accepted production artifact has been published;
+artifact backup/restore remains unproved; and browser/physical-device visual acceptance remains
+unperformed. Candidate artifacts still have no promotion route.

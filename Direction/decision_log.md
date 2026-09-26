@@ -3642,3 +3642,17 @@ behaving; until then this entry records intent, not proof.
   and verified replay are implemented. `publication.authorized` is always false. Production storage,
   SQL, routes, collection schedules, serving publication, and customer activation remain separately
   gated. Implementation: `dd1d150696b61cf240a61c872f3dd7718445397b`.
+
+## 2026-09-26 — Football-intelligence Stage D uses a published-only advisory seam
+
+- **Decision:** the first serving projection is compact and review-only. Authenticated callers may
+  read explicit published rows; service role owns writes; candidates remain in the immutable artifact
+  registry and have no promotion route.
+- **Decision:** football intelligence is additive context on `omen-decision-brief.v3`, never a move
+  selector. Only complete published `available` or `stale` evidence may render a summary. All other
+  states remain limitations.
+- **Decision:** current NFL abbreviations are not canonical identities. Until an `omen:team:*` subject
+  exists, the response is `identity_unresolved` with no advice.
+- **Boundary:** SQL is authored but unapplied; no RLS runtime proof, publication, remote artifact
+  storage, restore, credential, schedule, deployment, push, merge, or customer activation occurred.
+  Local implementation: `63689a4a7ca5873b9da12d4f3710f5a1c1e36cb8`.

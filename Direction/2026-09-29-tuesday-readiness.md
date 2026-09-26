@@ -296,7 +296,11 @@ not re-discover or re-litigate this sequence from conversation history.
   football-intelligence tests pass 56/56 and the full backend passes 1,236/1,236. Local Stage B is
   complete. Production artifact storage/restore, SQL, routes, schedulers, publication, and customer
   activation remain explicitly outside this authority.
-- **Stage D:** not started; blocked on a real serving API and customer contract.
+- **Stage D:** local implementation complete and ready for review. The review-only published serving
+  projection, authenticated exact-scope route, additive Omen v3 response, and iOS/Android/web consumers
+  are implemented and deterministically tested. It is not production-live: SQL/RLS execution, an
+  accepted production publication, artifact DR restore proof, and inspected browser/physical-device
+  evidence remain required before activation.
 
 When this conversation or context window ends, the next agent should pick up by reading this section and
 the full plan named above, then inspect the two active stream commits before starting new work. Do not redo
