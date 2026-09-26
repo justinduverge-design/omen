@@ -1,8 +1,8 @@
 # Football-intelligence immutable artifacts and disaster recovery — decision prompt
 
-Use this after the founder has selected or purchased reliable storage. This is an
-architecture/operations decision pass before production activation, not authorization to
-provision a host, apply SQL, move backups, or handle credentials.
+Use this before production activation to apply Omen's proven backup/restore controls to the
+football-intelligence artifact root. This is not authorization to provision a host, apply SQL,
+move backups, or handle credentials.
 
 ## Start here
 
@@ -15,12 +15,14 @@ Read:
 5. `Blueprints/playbooks/football-data-staging-shadow-runbook.md`;
 6. `ops/football-data/kvm1/omen-football-backup` and `omen-football-restore`;
 7. the current infrastructure capability map and active trust assignment.
+8. `Direction/reviews/2026-09-26-football-intelligence-dr-reuse-review.md`.
 
 ## Mission
 
-Choose and document a vendor-neutral immutable-artifact and disaster-recovery policy for
-football intelligence. Compare the actually available storage targets; do not assume KVM2
-will be renewed or retired. Keep domain code storage-neutral.
+Apply and document a vendor-neutral immutable-artifact and disaster-recovery policy for
+football intelligence. Reuse the commissioned KVM1 → encrypted Restic-on-KVM2 control pattern
+unless current evidence invalidates it; do not redesign already-proven database recovery.
+Do not assume KVM2 will be renewed or retired. Keep domain code storage-neutral.
 
 Decide:
 

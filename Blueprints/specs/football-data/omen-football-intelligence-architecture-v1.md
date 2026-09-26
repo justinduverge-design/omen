@@ -27,8 +27,9 @@ Founder review on 2026-09-26 accepted the practical source posture and v1 eviden
 thresholds. Gate A is therefore approved for a non-production Stage B implementation:
 ordinary nflverse play-by-play is the complete, timely denominator; FTN charting is
 optional tactical enrichment; participation data is historical calibration only.
-Production activation remains blocked on an exact artifact root, off-host backup target,
-restore proof, and the normal source receipts for each captured release.
+Production activation remains blocked on selecting the exact primary artifact root,
+including it in the already-proven encrypted backup pattern, and completing a fresh
+artifact-specific restore proof. Normal source receipts remain required for every capture.
 
 ## Decision summary
 
@@ -196,9 +197,10 @@ accepted before any production capture, publication, or activation.
 
 For the non-production Stage B slice, the implementation must accept an injected local
 artifact root and must not encode KVM1, KVM2, Supabase Storage, S3, R2, or any vendor into
-domain code. The production target remains deferred until the founder purchases or
-selects reliable storage. `Blueprints/prompts/football-intelligence-artifact-dr-decision.md`
-is the restart prompt for that decision.
+domain code. Omen's existing KVM1 → encrypted Restic-on-KVM2 database recovery pattern is
+proven and should be reused, but the intelligence artifact root has not yet been included
+and restored. The exact reuse boundary is recorded in
+`Direction/reviews/2026-09-26-football-intelligence-dr-reuse-review.md`.
 
 Artifact paths must be bound to hashes and must reject overwrite conflicts. A corrected
 source creates a new artifact and a supersession record; it never mutates the prior
@@ -384,7 +386,8 @@ Before SQL, routes, packages, or production wiring:
 - [x] First customer state matrix and adaptable v1 evidence thresholds accepted.
 - [x] Design-system/canvas contract inventory is complete for the future customer slice.
 - [ ] Production artifact target, retention, off-host backup, restore proof, encryption,
-      and access policy. **Deferred; blocks production activation, not local Stage B.**
+      and access policy. **Existing database controls are reusable; artifact inclusion and a
+      fresh artifact restore still block production activation, not local Stage B.**
 
 Stage B may begin only as a local/non-production implementation using injected storage
 and deterministic fixtures. Production activation remains prohibited until the deferred

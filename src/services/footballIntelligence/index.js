@@ -10,4 +10,6 @@ module.exports = {
   ...require("./readModel"),
   ...require("./validateArtifact"),
   ...require("./benJohnsonProof"),
+  ...require("./artifactRegistry"),
+  ...require("./sourceRegistry"),
 };

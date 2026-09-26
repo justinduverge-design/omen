@@ -3595,3 +3595,18 @@ behaving; until then this entry records intent, not proof.
   ships until reliable storage is selected, an independent encrypted backup exists, and a fresh restore
   proves exact hashes and serving-model rebuild. Restart prompt:
   `Blueprints/prompts/football-intelligence-artifact-dr-decision.md`.
+
+## 2026-09-26 — Stage B local artifact registry and DR reuse boundary
+
+- **Decision: Stage B starts with an injected-root, storage-neutral local artifact registry.** Immutable
+  SHA-256 objects and source receipts are replay authority; `football-intelligence-artifact-index.v1` is a
+  disposable navigation projection rebuilt from receipts. Admitted source families and uses fail closed.
+  Corrections create a new object and name an existing predecessor; replay re-hashes bytes before return.
+- **Decision: reuse Omen's commissioned recovery controls rather than inventing a second DR architecture.**
+  The repo proves KVM1 database export, encrypted Restic transfer to KVM2, isolated restore, freshness
+  monitoring, Command Center observability, and alerts. Command Center monitors the backup; KVM2 stores it.
+  Football-intelligence production still waits on including its exact root and proving a fresh artifact
+  restore/hash/index/read-model rebuild. KVM1 and KVM2 being the same provider remains an honest limitation.
+- **Boundary:** no SQL, route, package, timer, production path, host mutation, credential, deploy, publication,
+  or customer activation was added. Evidence:
+  `Blueprints/handoffs/2026-09-26-football-intelligence-stage-b-artifact-registry.md`.

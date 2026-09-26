@@ -281,7 +281,9 @@ not re-discover or re-litigate this sequence from conversation history.
   and 32 machine-readable requirement records. Token/API lint, one-to-one coverage, state/accessibility/
   overflow metadata, and iOS/Android spacing aliases are reconciled without a blind canvas replacement.
   The degraded Ledger contracts bind only to existing `moves-history.v2` / `move-detail.v1` behavior.
-- **Stage B:** not started. Its smallest local/non-production kernel is now permitted; production wiring is not.
+- **Stage B:** local artifact-registry kernel implemented on 2026-09-26 with an injected root, immutable
+  SHA-256 objects and receipts, admitted-source/use enforcement, correction links, tamper-checked replay,
+  rebuildable machine index, CLI, module map, and focused tests. No production wiring was added.
 - **Stage D:** not started; blocked on a real serving API and customer contract.
 
 When this conversation or context window ends, the next agent should pick up by reading this section and
@@ -309,7 +311,8 @@ Review decision still required before production Stage B activation:
 The degraded Ledger contract and Stage C token/coverage decisions are resolved. Founder review on
 2026-09-26 also approved the layered nflverse/FTN source strategy, provider-neutral player/coach identity,
 and adaptable v1 evidence thresholds. Gate A now permits a local/non-production Stage B implementation with
-an injected artifact root. Production activation remains blocked on the deliberately deferred, vendor-neutral
-artifact/DR decision and restore proof. See
+an injected artifact root. Repository evidence confirms the existing encrypted Restic backup/restore pattern
+is reusable; production activation now waits on including the exact artifact root and proving an
+artifact-specific restore/hash/index rebuild. See
 `Direction/reviews/2026-09-26-participation-source-admission.md` and
-`Blueprints/prompts/football-intelligence-artifact-dr-decision.md`.
+`Direction/reviews/2026-09-26-football-intelligence-dr-reuse-review.md`.
