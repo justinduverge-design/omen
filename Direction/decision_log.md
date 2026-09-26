@@ -3574,3 +3574,24 @@ behaving; until then this entry records intent, not proof.
   bind only to existing `moves-history.v2` and immutable `move-detail.v1` behavior. Unread is not empty or
   failed, missing receipt evidence is never backfilled from current data, and `omen-decision-brief.v3` is
   the current native OmenCall/OmenEvidence binding.
+
+## 2026-09-26 — Stage A source and evidence decisions approved; production storage deferred
+
+- **Decision: use a layered nflverse source strategy, not a fictional second open participation feed.**
+  Ordinary current-season play-by-play is the complete eligible-play denominator; FTN charting is optional
+  timely tactical enrichment; postseason participation is historical calibration and replay only. NFL Big
+  Data Bowl is research-only. Sportradar and SportsDataIO remain future paid adapters. Omen credits nflverse
+  centrally and retains full license/attribution provenance; FTN-derived evidence retains `FTN Data via
+  nflverse` and CC BY-SA 4.0. This is a founder engineering-risk decision, not legal advice.
+- **Decision: evidence thresholds start adaptable and versioned.** Current windows require 4 completed
+  games / 120 eligible offensive plays; comparison windows require 8 games / 250 plays; FTN-derived
+  dimensions require 70 percent charted coverage. Historical calibration may revise a policy version without
+  changing source, identity, or API contracts.
+- **Decision: Omen owns canonical player and coach identities.** Yahoo, Sleeper, ESPN, CBS, and future IDs
+  are effective-dated namespace assertions behind adapters, never canonical keys. Coach names are aliases;
+  confirmed employment edges remain separate from inferred influence.
+- **Decision: production artifact storage and disaster recovery are deliberately deferred, vendor-neutral,
+  and activation-blocking.** Local Stage B may use an injected artifact root. No production artifact system
+  ships until reliable storage is selected, an independent encrypted backup exists, and a fresh restore
+  proves exact hashes and serving-model rebuild. Restart prompt:
+  `Blueprints/prompts/football-intelligence-artifact-dr-decision.md`.

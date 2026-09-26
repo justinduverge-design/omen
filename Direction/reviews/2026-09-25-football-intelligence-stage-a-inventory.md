@@ -5,10 +5,14 @@
 **Purpose:** Evidence record for the architecture gate. This is an inventory and plan,
 not an implementation claim.
 
-**Review update 2026-09-26:** Architecture boundaries are complete enough for founder
-review, but Gate A is **HOLD**. Source admission found unresolved upstream rights and
-current-week freshness. Exact receipts are in
-`Blueprints/specs/football-data/omen-football-intelligence-architecture-v1.md`.
+**Review update 2026-09-26:** Founder review admitted the layered source strategy and
+approved the architecture for local, non-production Stage B implementation. Ordinary
+nflverse play-by-play is the timely denominator; FTN charting is coverage-gated tactical
+enrichment; participation data is historical calibration only. Production activation
+remains **HOLD** until the vendor-neutral immutable-artifact location, retention, backup,
+restore, encryption, and access policy is approved and restore-tested. Exact receipts are
+in `Blueprints/specs/football-data/omen-football-intelligence-architecture-v1.md` and
+`Direction/reviews/2026-09-26-participation-source-admission.md`.
 
 ## Current facts
 
@@ -88,22 +92,19 @@ scheme classifier.
 - No changes to A7B scoring behavior.
 - No assertion that a scheme label is an observed source fact.
 
-## Unresolved decisions / blockers
+## Remaining production blocker
 
-1. Rights: obtain a defensible commercial-use/attribution receipt for schedules and
-   decide how CC BY-SA applies to features, evidence, and customer outputs from FTN.
-2. Freshness: choose an in-season tactical denominator. `pbp_participation` cannot fill
-   that role from 2023 onward; FTN charting coverage must be measured before use.
-3. Identity: name authoritative Yahoo/Sleeper player-ID sources and a stable coach-ID
-   source; current nflverse players/schedules do not supply them.
-4. Evidence thresholds: approve minimum games, plays, charted-play coverage ratio,
-   comparison-window rules, freshness SLA, and dispute behavior. No number is inferred.
-5. Founder decisions: accept or revise the Supabase/artifact boundary, first
-   coach-transfer slice, and meanings of Scheme DNA, Coaching Tree, and System Signal.
+The source strategy, provider-neutral identity posture, first coach-transfer signal, and
+adaptable v1 evidence thresholds are approved. The sole architecture decision still
+blocking production ingestion and activation is the vendor-neutral immutable-artifact
+operating policy: location, retention, off-device backup, restore proof, encryption, and
+access. Local Stage B must inject its artifact root and must not make a developer laptop,
+Supabase Storage, or a specific vendor part of the domain contract.
 
 ## Gate result
 
-Stage A is **reviewed but not approved**. Stage B remains prohibited. The next smallest
-safe step is a source-admission/legal-freshness decision pass, then founder review of the
-five architecture decisions above. It is not SQL, a route, a package, a schedule, or a
-production-host change.
+Stage A is **approved for local/non-production implementation**. The next smallest safe
+step is the artifact registry and source-receipt kernel against injected local storage,
+with no SQL, route, package, schedule, or production-host change. Production ingestion,
+publication, and activation remain prohibited until the artifact/DR decision and restore
+proof are complete.

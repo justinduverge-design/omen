@@ -98,3 +98,61 @@ invented.
 
 Run a source-admission/legal/freshness decision pass, then founder review of the five architecture decisions
 above. Do not write SQL, routes, packages, schedules, or production-host changes from the research fixture.
+
+## Addendum — founder source-admission decision pass, 2026-09-26
+
+The verdict above is the preserved result at commits `06328111` / `a767b87e`; it is not the
+current gate. Founder review now admits the layered source strategy and approves Stage A for a
+local/non-production Stage B kernel:
+
+- ordinary nflverse PBP is the timely, complete denominator;
+- FTN charting is coverage-gated tactical enrichment;
+- participation is historical calibration, not a current-week dependency;
+- Omen owns canonical player and coach IDs; provider identifiers are effective-dated assertions in
+  open namespaces, with Yahoo and Sleeper required and CBS/future adapters allowed;
+- the v1 evidence defaults are 4 games / 120 plays for a current window, 8 games / 250 plays for a
+  comparison window, and 70% charted-play coverage, with every threshold versioned and replaceable;
+- nflverse receives central product/Data Sources credit and every evidence artifact retains exact source
+  provenance; FTN does not need to appear in every customer-facing sentence.
+
+Production ingestion, publication, and activation remain blocked on one deliberately deferred decision:
+the vendor-neutral immutable-artifact location, retention, off-device backup, restore, encryption, and
+access policy. The ready-to-run founder prompt is
+`Blueprints/prompts/football-intelligence-artifact-dr-decision.md`.
+
+The next smallest safe step is a local artifact-registry and source-receipt kernel using an injected
+artifact root. It must not add SQL, routes, packages, schedules, or production-host changes.
+
+### Addendum files and verification
+
+Files added:
+
+- `Direction/reviews/2026-09-26-participation-source-admission.md`
+- `Blueprints/prompts/football-intelligence-artifact-dr-decision.md`
+
+Files updated:
+
+- `Blueprints/specs/football-data/omen-football-intelligence-architecture-v1.md`
+- `Direction/reviews/2026-09-25-football-intelligence-stage-a-inventory.md`
+- `Direction/2026-09-29-tuesday-readiness.md`
+- `Direction/decision_log.md`
+- `Direction/known_issues.md`
+- `Blueprints/playbooks/skill-usage-ledger.md`
+- `Blueprints/done/LEDGER.md`
+- this handoff
+
+Verification on the addendum diff:
+
+- PASS — `git diff --check`.
+- PASS — `node scripts/check-kickoff-drift.js`.
+- PASS — `node scripts/check-canvas-contract-coverage.mjs`: 32 / 32 / 32.
+- PASS — `node scripts/check-canvas-foundation.mjs`: 32 screens.
+- PASS — `node --test test/canvasContractCoverage.test.mjs test/canvasFoundation.test.mjs`: 3 / 3.
+- PASS — L0 Valor Brain validation: 3 / 3.
+- FAIL, standing — `node scripts/check-sprint-staleness.js`: 13 existing findings; the corrected 2027
+  backup date remains one of the already-buried issues until a GitHub issue is created.
+- FAIL, standing — L0 Truth Gate: 222 P0 broken-path/dead-header findings. No reported finding points to
+  either new addendum file, but repository-wide close-out remains blocked by policy.
+
+The addendum also corrects the KVM2 expiration typo from `2026-05-06` to `2027-05-06`; the original note's
+September 2026 date and “about eight months” statement made the earlier year internally impossible.
