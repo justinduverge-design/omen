@@ -4,7 +4,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * Spacing scale (registry §2.5): 4 · 8 · 12 · 16 · 24 · 32 · 48 · 64 · 96. No ad-hoc values —
+ * Spacing scale (registry §2.5): 2 · 4 · 6 · 8 · 10 · 12 · 14 · 16 · 20 · 24 · 32 · 40 · 48 ·
+ * 64 · 96. No ad-hoc values —
  * feature code picks a named step or a documented rhythm alias, never a raw `dp` literal.
  */
 object OmenSpacing {
@@ -40,6 +41,11 @@ object OmenSpacing {
     val labelToInput: Dp = step8
     /** input → hint gap */
     val inputToHint: Dp = step4
+    /** chip interior padding — vertical / horizontal */
+    val chipInteriorVertical: Dp = step6
+    val chipInteriorHorizontal: Dp = step10
+    /** inline gap between sibling chips or facts */
+    val inlineGap: Dp = step10
 }
 
 /** Registry §4: minimum Android touch target is 48dp. */

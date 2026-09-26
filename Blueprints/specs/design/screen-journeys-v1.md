@@ -27,7 +27,7 @@ screens cannot be judged until all thirty exist.
 | J3 | **The first call** — receiving an Omen and reading its argument | OmenCall, OmenEvidence, StartSitClear, StartSitIncomplete | `omen_mvp`, `start_sit` |
 | J4 | **Settling an argument** — building and judging a trade | TradeBuild, TradeRoster, TradeNeedsContext, TradeVerdict, TradeShare | `trade` |
 | J5 | **The scout's nest** — reading the league and the wire | LeagueTable, LeagueWaiver, LeagueDegraded, LeagueNoRosters, WaiverNoMove, WaiverNotDetermined | `league`, `waiver` |
-| J6 | **The receipts** — checking your own record | Ledger, LedgerDetail | `ledger` |
+| J6 | **The receipts** — checking your own record | Ledger, LedgerDetail, LedgerDegraded, LedgerDetailDegraded | `ledger` |
 
 **Chrome, captured but not a journey:** `Account`, `ReportPill`. Both are reachable from anywhere,
 so a path through them would be invented rather than observed.
