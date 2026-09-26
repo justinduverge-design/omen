@@ -228,6 +228,15 @@ function createLocalArtifactRegistry({ root, clock = () => new Date() }) {
     return receipt;
   }
 
+  async function replayReceipt(receiptId) {
+    const receipt = await getReceipt(receiptId);
+    const bytes = await readArtifact(receipt.artifact.sha256);
+    if (bytes.length !== receipt.artifact.byte_length) {
+      fail("ARTIFACT_LENGTH_MISMATCH", `artifact byte length does not match receipt: ${receiptId}`);
+    }
+    return Object.freeze({ receipt, bytes });
+  }
+
   async function rebuildIndex() {
     const registryRoot = await ready();
     const receipts = [];
@@ -368,7 +377,7 @@ function createLocalArtifactRegistry({ root, clock = () => new Date() }) {
     };
   }
 
-  return Object.freeze({ getReceipt, readArtifact, rebuildIndex, registerSourceArtifact, root: selectedRoot });
+  return Object.freeze({ getReceipt, readArtifact, replayReceipt, rebuildIndex, registerSourceArtifact, root: selectedRoot });
 }
 
 module.exports = {

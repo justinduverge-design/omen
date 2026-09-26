@@ -177,6 +177,26 @@ test("detects object tampering before replay", async (t) => {
   );
 });
 
+test("verified receipt replay binds immutable receipt metadata to exact object bytes", async (t) => {
+  const registry = await temporaryRegistry(t);
+  const bytes = Buffer.from("game_id,play_id\n2025_01_SEA_SF,1\n");
+  const result = await registry.registerSourceArtifact({
+    artifact_type: "raw_source",
+    intended_use: "current_denominator",
+    bytes,
+    media_type: "text/csv",
+    source: SOURCE,
+    schema_fingerprint: `sha256:${"3".repeat(64)}`,
+    row_count: 1,
+    coverage: { games: 1, eligible_plays: 1, charted_plays: null },
+  });
+
+  const replay = await registry.replayReceipt(result.receipt_id);
+  assert.equal(replay.receipt.receipt_id, result.receipt_id);
+  assert.equal(replay.receipt.artifact.sha256, result.artifact_id);
+  assert.deepEqual(replay.bytes, bytes);
+});
+
 test("local CLI registers, indexes, and verifies without a storage vendor", async (t) => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "omen-fi-cli-root-"));
   const inputs = await fs.mkdtemp(path.join(os.tmpdir(), "omen-fi-cli-input-"));
@@ -204,8 +224,17 @@ test("local CLI registers, indexes, and verifies without a storage vendor", asyn
   const verified = JSON.parse((await execFileAsync(process.execPath, [
     script, "verify", "--root", root, "--artifact", registered.artifact_id,
   ])).stdout);
+  const replayed = JSON.parse((await execFileAsync(process.execPath, [
+    script, "replay", "--root", root, "--receipt", registered.receipt_id,
+  ])).stdout);
   assert.equal(index.artifacts.length, 1);
   assert.deepEqual(verified, {
+    artifact_id: registered.artifact_id,
+    byte_length: 33,
+    verified: true,
+  });
+  assert.deepEqual(replayed, {
+    receipt_id: registered.receipt_id,
     artifact_id: registered.artifact_id,
     byte_length: 33,
     verified: true,

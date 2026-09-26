@@ -12,4 +12,5 @@ module.exports = {
   ...require("./benJohnsonProof"),
   ...require("./artifactRegistry"),
   ...require("./sourceRegistry"),
+  ...require("./ordinaryPbp"),
 };
