@@ -267,15 +267,17 @@ The full staged plan is in
 The next implementation session should start with Stage A and Stage C, in isolated worktrees, and should
 not re-discover or re-litigate this sequence from conversation history.
 
-### Execution status — 2026-09-25
+### Execution status — reviewed 2026-09-26
 
-- **Stage A:** documentation implementation complete in `ef84dd70`. The architecture package is written
-  from the current source, Supabase, route, cron, and production-readiness seams. No SQL, route, package,
-  schedule, or host mutation was made.
-- **Stage C:** safe mechanical implementation complete in `68c8a87f`. The artboard/contract coverage guard
-  and evidence-safe documentation corrections are in place. Its real-repository result intentionally fails
-  on the two missing degraded Ledger contracts; the focused tests pass. Those contracts remain a deliberate
-  review item until their source/state requirements are fully known.
+- **Stage A:** architecture review is complete in `06328111`, but Gate A is **HOLD**. The source/ownership
+  matrix, artifact-versus-serving boundary, version/correction contract, identity design, and logical first
+  System Signal contract are explicit. Source admission is still blocked on upstream rights, in-season
+  freshness/coverage, Yahoo/Sleeper and stable coach identity, evidence thresholds, immutable-artifact
+  operations, and founder acceptance. No SQL, route, package, schedule, or host mutation was made.
+- **Stage C:** foundation gate is complete in `a767b87e`. The package now has 32 artboards, 32 contracts,
+  and 32 machine-readable requirement records. Token/API lint, one-to-one coverage, state/accessibility/
+  overflow metadata, and iOS/Android spacing aliases are reconciled without a blind canvas replacement.
+  The degraded Ledger contracts bind only to existing `moves-history.v2` / `move-detail.v1` behavior.
 - **Stage B:** not started; blocked by the A/C gates by design.
 - **Stage D:** not started; blocked on a real serving API and customer contract.
 
@@ -296,13 +298,15 @@ The next agent should review, in order:
 4. `Blueprints/handoffs/2026-09-25-canvas-stage-c-polish.md` — why degraded Ledger contracts were not
    fabricated.
 
-Review decisions required before Stage B:
+Review decisions still required before Stage B:
 
 - approve the first admitted source slice and customer signal;
 - approve immutable artifact versus Supabase serving boundaries;
 - approve the minimum evidence/coverage threshold;
-- decide whether the two degraded Ledger contracts are authored now or explicitly deferred;
-- approve the API/state vocabulary and naming semantics.
+- approve the API/state vocabulary, evidence thresholds, and naming semantics;
+- approve the immutable-artifact location, retention, backup/restore, encryption, and access policy.
 
-Until those decisions are recorded, the correct next action is review and targeted contract work—not SQL,
-routes, packages, schedules, or production activation.
+The degraded Ledger contract and Stage C token/coverage decisions are resolved. Until the remaining Stage A
+decisions are recorded, the correct next action is source-admission/legal/freshness review and founder
+architecture review—not SQL, routes, packages, schedules, or production activation. Evidence and exact
+checks are in `Blueprints/handoffs/2026-09-26-stage-a-c-foundation.md`.

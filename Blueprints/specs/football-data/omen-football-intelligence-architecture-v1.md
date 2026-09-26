@@ -291,35 +291,35 @@ logical response is `football-intelligence-signal.v1`:
 ```json
 {
   "contract_version": "football-intelligence-signal.v1",
-  "status": "available",
+  "status": "pending",
   "signal_type": "coach_transfer_system_signal",
   "subject": {"team_id": "CHI", "coach_id": "coach_internal_id", "season": 2025},
   "as_of_utc": "2025-10-07T12:00:00Z",
-  "summary": "Recent offensive tendencies resemble this coach's prior-team window.",
+  "summary": null,
   "interpretation": {
-    "direction": "similar",
+    "direction": null,
     "association_only": true,
-    "what_could_change_this": []
+    "what_could_change_this": ["Approve the source slice, thresholds, and publication candidate."]
   },
   "scheme_dna": {"contract_version": "scheme-dna.v1", "artifact_id": "", "dimensions": []},
   "coaching_tree": {"contract_version": "coaching-tree.v1", "confirmed_edges": [], "inferred_edges": []},
   "evidence": {
     "source_artifacts": [],
-    "games": 0,
-    "plays": 0,
-    "charted_plays": 0,
+    "games": null,
+    "plays": null,
+    "charted_plays": null,
     "current_window": {"start": null, "end": null},
     "comparison_window": {"start": null, "end": null},
     "coverage_ratio": null
   },
   "quality": {
-    "state": "accepted",
-    "coverage": "sufficient",
+    "state": "candidate",
+    "coverage": "not_evaluated",
     "confidence": null,
     "limitations": []
   },
   "freshness": {
-    "state": "current",
+    "state": "unknown",
     "computed_at_utc": null,
     "latest_observation_at_utc": null,
     "stale_after_utc": null

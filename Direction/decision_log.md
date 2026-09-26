@@ -3555,3 +3555,22 @@ behaving; until then this entry records intent, not proof.
   chat conversation is lost the moment that conversation ends unless it is written to the
   repo before closing. The nflverse column survey above exists only because it was written
   down here rather than left in a transcript.
+
+## 2026-09-26 — Tuesday Stage A is held; Stage C canvas foundation is closed
+
+- **Decision: football-intelligence architecture is reviewed but not approved for implementation.**
+  Immutable content-addressed artifacts are the proposed replay/evidence authority; Supabase/Postgres is
+  limited to compact identity, metadata, publication, and customer-serving projections. The first proposed
+  customer slice is an association-only coach-transfer System Signal backed by versioned Scheme DNA and
+  confirmed/inferred Coaching Tree evidence. Stage B remains prohibited until source rights/attribution,
+  in-season freshness/coverage, identity authorities, evidence thresholds, artifact operations, and the
+  public names/semantics are explicitly approved. Current blockers: recent `pbp_participation` is
+  postseason-only; FTN inputs require CC BY-SA review; schedules upstream rights are unresolved; and
+  nflverse players lacks Yahoo/Sleeper IDs.
+- **Decision: Stage C's canvas foundation gate is closed.** Native spacing authority is the registry's
+  15-step scale; existing off-scale canvas literals remain bounded optical evidence and are translated per
+  screen with fold/overflow measurement, never blind-replaced. The visual lock has 32 artboards, 32
+  contracts, and machine-readable journey/state/accessibility/overflow metadata. Ledger degraded states
+  bind only to existing `moves-history.v2` and immutable `move-detail.v1` behavior. Unread is not empty or
+  failed, missing receipt evidence is never backfilled from current data, and `omen-decision-brief.v3` is
+  the current native OmenCall/OmenEvidence binding.
