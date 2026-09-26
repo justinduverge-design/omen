@@ -1,0 +1,6 @@
+{
+  "journeys": { "J1": ["Example"] },
+  "screens": [
+    { "id": "Example", "family": "Fixture", "journey": "J1", "states": ["nominal"], "api_contracts": [], "scroll": "fits" }
+  ]
+}

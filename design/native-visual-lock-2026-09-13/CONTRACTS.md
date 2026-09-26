@@ -46,7 +46,7 @@ The verified route binding is necessary, but the native build also inherits the 
 
 | Artboard | Data | Rule | Notes |
 |---|---|---|---|
-| `OmenCall` | `POST /api/omen/mvp-move` with `contract_version: "omen-decision-brief.v2"` → `omen-decision-brief.v2` | D-band, workshop | v2 exists behind explicit negotiation. It returns a band plus drivers and strips numeric confidence from the response. v1 remains available for old clients. |
+| `OmenCall` | `POST /api/omen/mvp-move` with `contract_version: "omen-decision-brief.v3"` → `omen-decision-brief.v3` | D-band, workshop | v3 is the current native binding. It returns a band plus drivers and strips numeric confidence from the response; older versions remain compatibility contracts. |
 | `OmenEvidence` | same, expanded | §5.2 evidence categories | Each entry carries its own `kind` — `verified` / `projection` / `model` / `inference` / `limitation`. **A projection is never rendered as a fact.** |
 | `StartSitClear` | `GET /api/start-sit/detail` → `start-sit-detail.v1`, `state: "clear_decision"` | visual briefs §5 | |
 | `StartSitIncomplete` | same, `state: "incomplete_data"` | §5 | An unverified scoring format is stated as a limitation and **never assumed to be PPR**. |
@@ -78,6 +78,8 @@ The verified route binding is necessary, but the native build also inherits the 
 |---|---|---|---|
 | `Ledger` | `GET /api/moves?contract_version=moves-history.v2&platform={platform}&league_id={league_id}` → `moves-history.v2` | — | `C4` resolves to a scoped index on the existing route. v2 omits hit-rate summary, requires league scope, and maps raw stored `win`/`loss` to `worked`/`did_not_work`/`not_verified`. |
 | `LedgerDetail` | `GET /api/moves/:id` → `move-detail.v1` | visual briefs §7 | Immutable snapshot. The stored `outcome` column holds raw `win`/`loss` and **is translated, never surfaced raw**. `issued_at` carries `issued_at_timezone`. |
+| `LedgerDegraded` | `GET /api/moves?contract_version=moves-history.v2&platform={platform}&league_id={league_id}` → `moves-history.v2` | J6 degraded pass | Outcomes unread is not an empty list or a loss. Every unread result says `Not verified`; action provenance remains independent. |
+| `LedgerDetailDegraded` | `GET /api/moves/:id` → `move-detail.v1` | J6 degraded pass | Missing receipt fields remain missing; current data is never re-read onto immutable history. Used, read-not-used, and unavailable evidence stay distinct. |
 | `SwitchSheet` | `GET /api/leagues` → `league-directory.v1`; `POST /api/leagues/active` | `omen-league-switcher-contract-v1.md` | Platform groups ordered by followed-league count — `orderPlatformsByFollowCount` is the single authority and **clients must not re-sort**. |
 | `SwitchLoading` | mid-`POST /api/leagues/active` | §10.3 | The response's `refresh` list names the surfaces to re-read. **The previous team's numbers are discarded, never reused while loading.** |
 | `Account` | `dashboard-summary.v1`; `GET /api/user/export`; `DELETE /api/user/delete` | — | Delete requires the exact string `DELETE MY OMEN DATA`. Export excludes OAuth tokens, ESPN cookies and Vault ids. |
@@ -88,7 +90,7 @@ The verified route binding is necessary, but the native build also inherits the 
 
 These were the only places a builder previously had to stop. They are now concrete local bindings:
 
-1. **`omen-decision-brief.v2`** exists by explicit request on `POST /api/omen/mvp-move`. It returns
+1. **`omen-decision-brief.v3`** is the current native request on `POST /api/omen/mvp-move`. It returns
    `confidence.band` and `confidence.drivers`; it does not surface a numeric confidence.
 2. **Quiet-week straight** is server-owned in `quiet-week.v1`. Neutral requires all positive quiet
    evidence; straight fires on loss, injured starter, provider failure, or unknown inputs.

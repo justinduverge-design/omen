@@ -42,7 +42,7 @@ The canvas was read before answering this, and it had already answered it.
 
 A text key, a sentence, a status word. Every capability row in the canvas is built this way.
 
-Across all 30 artboards there are 14 distinct glyphs: 4 tab-bar icons, 4 sign-in provider marks, a
+Across all 32 artboards there are 14 distinct glyphs: 4 tab-bar icons, 4 sign-in provider marks, a
 favourite star, an empty-state illustration, and **4 fact chips that appear on `OmenCall` only**.
 Those four depict *factors* — `Wind 22`, `2 zones`, `4 days`, `O-line` — in a compact row where
 there is no space for sentences. They are not capability symbols and the system emits no such

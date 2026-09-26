@@ -238,7 +238,7 @@ Element count: 73. Count every rendered descendant inside `.screen`; pseudo-elem
 ## Acceptance checks
 
 - Render exactly 73 element descendants inside the screen frame and preserve every literal listed above.
-- Bind data only through omen-decision-brief.v2; do not fall back to older contracts when this screen requests the version above.
+- Bind data only through omen-decision-brief.v3; do not fall back to older contracts when this screen requests the version above.
 - Preserve the fits scroll behavior at 390 x 844. Smaller iPhone SE screens may scroll.
 - Use the named symbols above for every glyph. A missing symbol name is a build failure.
 - Keep provider, risk, data-source, confidence, and provenance carriers exactly as registry section 2.3 states.

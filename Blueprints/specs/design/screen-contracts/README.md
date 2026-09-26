@@ -4,6 +4,8 @@ Generated on 2026-09-14 from `design/native-visual-lock-2026-09-13`. Shared CSS 
 
 These are build contracts, not native screen code. They bind every artboard to the verified API contract, registry tokens, type ramp, spacing scale, resolved component roles, literal strings, control actions, and named symbols.
 
+Machine-readable inventory and state/accessibility/overflow requirements live in `../canvas-contract-requirements-v1.json`. Token authority and the bounded canvas optical exceptions live in `../canvas-token-authority-v1.md`. Both are enforced by `check-canvas-contract-coverage.mjs` and `check-canvas-foundation.mjs`.
+
 ## Global source rules
 
 - Start from `design/native-visual-lock-2026-09-13/CONTRACTS.md`, then this directory.
@@ -29,8 +31,8 @@ These contracts carry the experience model as a build requirement. The element t
 
 | Order | Contract | API contract | Scroll | Elements | Strings | Controls | Symbols |
 |---:|---|---|---|---:|---:|---:|---:|
-| 1 | [OmenCall](./OmenCall-v1.md) | omen-decision-brief.v2 | fits | 73 | 35 | 11 | 19 |
-| 2 | [OmenEvidence](./OmenEvidence-v1.md) | omen-decision-brief.v2 | scrolls | 69 | 33 | 8 | 10 |
+| 1 | [OmenCall](./OmenCall-v1.md) | omen-decision-brief.v3 | fits | 73 | 35 | 11 | 19 |
+| 2 | [OmenEvidence](./OmenEvidence-v1.md) | omen-decision-brief.v3 | scrolls | 69 | 33 | 8 | 10 |
 | 3 | [CommandCenter](./CommandCenter-v1.md) | dashboard-summary.v1 + league-overview.v1 + waiver-analysis.v1 + moves-history.v2 | fits | 88 | 40 | 9 | 15 |
 | 4 | [CommandQuiet](./CommandQuiet-v1.md) | quiet-week.v1 | fits | 47 | 19 | 8 | 16 |
 | 5 | [CommandQuietStraight](./CommandQuietStraight-v1.md) | quiet-week.v1 | fits | 47 | 19 | 8 | 16 |
@@ -59,3 +61,5 @@ These contracts carry the experience model as a build requirement. The element t
 | 28 | [Account](./Account-v1.md) | dashboard-summary.v1 + user-export.v1 + user-delete.v1 | scrolls | 72 | 33 | 7 | 12 |
 | 29 | [StartSitClear](./StartSitClear-v1.md) | start-sit-detail.v1 state=clear_decision | fits | 77 | 39 | 8 | 10 |
 | 30 | [StartSitIncomplete](./StartSitIncomplete-v1.md) | start-sit-detail.v1 state=incomplete_data | scrolls | 75 | 36 | 9 | 10 |
+| 31 | [LedgerDegraded](./LedgerDegraded-v1.md) | moves-history.v2 | scrolls | source-bound | source-bound | source-bound | source-bound |
+| 32 | [LedgerDetailDegraded](./LedgerDetailDegraded-v1.md) | move-detail.v1 | scrolls | source-bound | source-bound | source-bound | source-bound |

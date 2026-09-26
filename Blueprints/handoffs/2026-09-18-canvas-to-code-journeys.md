@@ -6,14 +6,14 @@
 
 ## Read these three, then start. Do not re-derive the seam.
 
-- `Blueprints/specs/design/screen-journeys-v1.md` — J1–J6, partitioning all 30 artboards
+- `Blueprints/specs/design/screen-journeys-v1.md` — J1–J6, partitioning all 32 artboards
 - `Blueprints/specs/design/capability-expression-v1.md` — the four presentation classes
 - `Blueprints/specs/design/capability-symbols-v1.md` — **read the correction section**
 - `Direction/decision_log.md`, 2026-09-18 entries — precedence, journeys, symbols
 
 ## Where the artboards actually are
 
-`design/native-visual-lock-2026-09-13/*.dc.html` — 30 hand-written HTML files, plus `_shared.css`
+`design/native-visual-lock-2026-09-13/*.dc.html` — 32 hand-written HTML files, plus `_shared.css`
 and `CONTRACTS.md`. They are **not images**. Icons are inline `viewBox="0 0 24 24"` path data typed
 into the markup. `canvas.json` is only a layout manifest (name/file/x/y/w/h) — it holds no design
 data, so do not read it expecting any.

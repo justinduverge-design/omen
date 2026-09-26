@@ -55,6 +55,9 @@ class OmenSpacingTest {
         assertEquals(16.dp, OmenSpacing.fieldToField)
         assertEquals(8.dp, OmenSpacing.labelToInput)
         assertEquals(4.dp, OmenSpacing.inputToHint)
+        assertEquals(6.dp, OmenSpacing.chipInteriorVertical)
+        assertEquals(10.dp, OmenSpacing.chipInteriorHorizontal)
+        assertEquals(10.dp, OmenSpacing.inlineGap)
     }
 
     /** Restored 2026-09-15 — see above. Registry §4: Android's minimum touch target is 48dp. */

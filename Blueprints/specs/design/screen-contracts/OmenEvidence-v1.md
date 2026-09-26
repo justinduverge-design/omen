@@ -10,8 +10,8 @@ Compiled from `design/native-visual-lock-2026-09-13/OmenEvidence.dc.html` on 202
 | Family | Omen |
 | Frame | 390 x 844; D11 floor. iPhone SE 375 x 667 may scroll. iPad deferred. |
 | Scroll rule | scrolls; measured body overflow from canvas render: 0px. |
-| Data route | POST /api/omen/mvp-move with contract_version=omen-decision-brief.v2 |
-| API contract | omen-decision-brief.v2 |
+| Data route | POST /api/omen/mvp-move with contract_version=omen-decision-brief.v3 |
+| API contract | omen-decision-brief.v3 |
 | Capability profile | `omen_mvp` — expresses per `capability-expression-v1.md` |
 | Governing rule | Evidence rows carry verified/projection/model/inference/limitation; projection never renders as fact |
 
@@ -188,7 +188,7 @@ Element count: 69. Count every rendered descendant inside `.screen`; pseudo-elem
 ## Acceptance checks
 
 - Render exactly 69 element descendants inside the screen frame and preserve every literal listed above.
-- Bind data only through omen-decision-brief.v2; do not fall back to older contracts when this screen requests the version above.
+- Bind data only through omen-decision-brief.v3; do not fall back to older contracts when this screen requests the version above.
 - Preserve the scrolls scroll behavior at 390 x 844. Smaller iPhone SE screens may scroll.
 - Use the named symbols above for every glyph. A missing symbol name is a build failure.
 - Keep provider, risk, data-source, confidence, and provenance carriers exactly as registry section 2.3 states.

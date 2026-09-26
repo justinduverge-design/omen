@@ -3556,20 +3556,21 @@ behaving; until then this entry records intent, not proof.
   repo before closing. The nflverse column survey above exists only because it was written
   down here rather than left in a transcript.
 
-## 2026-09-24 — Football intelligence foundation: Scheme DNA, System Signal, Coaching Tree
+## 2026-09-26 — Tuesday Stage A is held; Stage C canvas foundation is closed
 
-- **Decision:** all three names are retained as separate modules. Scheme DNA is the versioned tendency
-  fingerprint; System Signal is the evidence-backed comparison and fantasy-facing implication; Coaching
-  Tree is the time-aware graph with confirmed role edges separate from inferred system influence.
-- **Decision:** the foundation is additive and pure. It reuses Omen source/provenance and validation seams
-  but does not rebuild `src/services/omen.js`, alter scoring acceptance, add a route, add SQL, or introduce
-  a package. Heavy history remains offline; a future request path reads a compact versioned model.
-- **Decision:** the Ben Johnson proof is bounded to three regular-season nflverse cohorts and treats
-  schedules as game/head-coach context only. His Detroit offensive-coordinator assignment is an independent
-  official-source fact. Observed movement is not a causal claim.
-- **Decision:** BurntSushi/nflgame and BurntSushi/nfldb supplied reusable modeling patterns (normalized
-  game/drive/play shape, deterministic identity, incremental diff thinking), not copied code or data. No
-  relevant thousand-star repository publishes a canonical scheme label; Omen owns the derived model.
-- **Evidence:** `Blueprints/specs/football-data/omen-football-intelligence-foundation-v1.md`,
-  `Direction/reviews/2026-09-24-football-intelligence-reuse-and-method-research.md`,
-  `Blueprints/handoffs/2026-09-24-football-intelligence-foundation.md`.
+- **Decision: football-intelligence architecture is reviewed but not approved for implementation.**
+  Immutable content-addressed artifacts are the proposed replay/evidence authority; Supabase/Postgres is
+  limited to compact identity, metadata, publication, and customer-serving projections. The first proposed
+  customer slice is an association-only coach-transfer System Signal backed by versioned Scheme DNA and
+  confirmed/inferred Coaching Tree evidence. Stage B remains prohibited until source rights/attribution,
+  in-season freshness/coverage, identity authorities, evidence thresholds, artifact operations, and the
+  public names/semantics are explicitly approved. Current blockers: recent `pbp_participation` is
+  postseason-only; FTN inputs require CC BY-SA review; schedules upstream rights are unresolved; and
+  nflverse players lacks Yahoo/Sleeper IDs.
+- **Decision: Stage C's canvas foundation gate is closed.** Native spacing authority is the registry's
+  15-step scale; existing off-scale canvas literals remain bounded optical evidence and are translated per
+  screen with fold/overflow measurement, never blind-replaced. The visual lock has 32 artboards, 32
+  contracts, and machine-readable journey/state/accessibility/overflow metadata. Ledger degraded states
+  bind only to existing `moves-history.v2` and immutable `move-detail.v1` behavior. Unread is not empty or
+  failed, missing receipt evidence is never backfilled from current data, and `omen-decision-brief.v3` is
+  the current native OmenCall/OmenEvidence binding.
