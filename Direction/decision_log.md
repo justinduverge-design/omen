@@ -3626,3 +3626,19 @@ behaving; until then this entry records intent, not proof.
   participation remains historical calibration. Commit `e7c052c6437c83c42fb5afe1d20d3e9de473f02f` adds
   no SQL, route, package, timer, production path, remote storage, credential, deployment, publication, or
   customer activation behavior.
+
+## 2026-09-26 — Local football-intelligence Stage B completed through immutable read-model replay
+
+- **Decision: ordinary PBP owns the denominator; enrichment cannot manufacture denominator rows.**
+  Exact receipt replay crosses the injected `TabularReader` boundary. Schedule context supplies
+  event dates, effective-dated NFLverse assertions resolve Omen team IDs, and FTN facts join only to
+  an existing ordinary-PBP game/play key. Under 70% FTN coverage, every enrichment value remains
+  `not_covered` and `null`; participation is historical calibration only.
+- **Decision: the approved evidence thresholds are executable model policy v1.** Current Scheme DNA
+  requires 4 games/120 eligible plays. Comparisons require 8 games/250 plays in each window. Feature
+  windows enforce declared source families and an as-of cutoff.
+- **Decision: local persistence ends at an immutable candidate read model.** Independent validation,
+  canonical bytes, exact source artifact IDs, immutable derived receipts, correction supersession,
+  and verified replay are implemented. `publication.authorized` is always false. Production storage,
+  SQL, routes, collection schedules, serving publication, and customer activation remain separately
+  gated. Implementation: `dd1d150696b61cf240a61c872f3dd7718445397b`.

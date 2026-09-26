@@ -6,11 +6,12 @@
 
 ## Outcome
 
-The smallest approved Stage B kernel is implemented locally. It is an injected-root,
+The approved local/non-production Stage B is implemented through a validated, immutable candidate
+read model. It begins with an injected-root,
 content-addressed artifact registry with immutable source receipts, explicit admitted-source
 uses, correction/supersession links, tamper-checked replay, and a rebuildable machine index.
 It contains no SQL, route, package, scheduler, production path selection, remote-host change,
-deployment, credential, or publication behavior.
+deployment, credential, authorized publication, or customer activation behavior.
 
 The existing Omen disaster-recovery architecture was also reconciled. Database backup and
 restore are already proven through KVM1 → encrypted Restic-on-KVM2, Steward freshness,
@@ -107,7 +108,58 @@ as part of the already-proven recovery path.
 
 ## Next smallest safe step
 
-Define the smallest canonical team identity/dimension assertion needed to resolve the observed
-`posteam` / `defteam` keys without guessing or adding persistence. Keep Yahoo/Sleeper/ESPN/CBS
-provider identifiers as effective-dated namespace assertions, preserve unresolved/disputed states,
-and do not begin feature windows until the dimension contract and deterministic tests are closed.
+Local Stage B is closed at implementation commit
+`dd1d150696b61cf240a61c872f3dd7718445397b`. The next permitted step is not another Stage B
+kernel: it is the separately gated production artifact-root/retention/backup/restore decision and
+proof. An authenticated read-only API, SQL repository, scheduler, production collection, publication,
+and customer explanation remain later work and require their own current authority.
+
+## Stage B completion addendum — 2026-09-26
+
+The completion pass adopted the existing registry and ordinary-PBP work, then closed the remaining
+local sequence:
+
+```text
+exact admitted receipts
+  -> verified replay
+  -> injected TabularReader
+  -> schedules / ordinary PBP / FTN / historical participation source facts
+  -> effective-dated provider-neutral identity assertions
+  -> canonical scalar observed facts
+  -> as-of feature windows
+  -> Scheme DNA / System Signal / Coaching Tree
+  -> independently validated compact read model
+  -> immutable derived receipt and verified replay
+```
+
+- Ordinary PBP remains the current eligible-play denominator and now carries the observed
+  `no_huddle` input used by the first feature window.
+- FTN remains optional tactical enrichment. Its receipt coverage must meet 70%; otherwise its
+  observations remain explicit `not_covered`/`null` facts that are ineligible for computation.
+- Participation remains `historical_calibration_only` and is not accepted by the current-window
+  projection.
+- Omen team/franchise/coach identities are opaque provider-neutral IDs. NFLverse, Yahoo, Sleeper,
+  ESPN, CBS, and future identifiers remain effective-dated namespace assertions; unresolved or
+  disputed assertions never become serving IDs.
+- `football-intelligence-evidence-policy.v1` enforces 4 games/120 plays for current Scheme DNA and
+  8 games/250 plays in each comparison window. Thresholds are model policy, not observed facts.
+- Read models are independently validated before registration. Their canonical bytes, exact source
+  artifact IDs, immutable derived receipt, correction link, and publication-candidate state replay
+  with hash and byte-length verification. Registration never authorizes publication.
+- Feature windows enforce the source family declared by each metric and support an explicit as-of
+  cutoff, preventing later observations from entering an earlier replay.
+
+Verification for this completion:
+
+- PASS — football-intelligence suites: 56 / 56.
+- PASS — full backend suite: 1,236 / 1,236.
+- PASS — `git diff --check`.
+- PASS — kickoff drift; read order matches at 13 entries.
+- PASS — Layer 0 Valor Brain 3 / 3.
+- FAIL, standing — sprint staleness reports 13 pre-existing findings.
+- FAIL, standing — Layer 0 Truth Gate reports 222 P0 and 105 P1 findings in historical/live-tree
+  documentation. No completion-pass source or test file is named by the reported P0s, but repository
+  close-out remains formally blocked under the governing rule.
+- No endpoint contract changed.
+- No SQL, route, package, scheduler, production host/root, remote storage, credential, deployment,
+  publication authorization, or customer activation was added.

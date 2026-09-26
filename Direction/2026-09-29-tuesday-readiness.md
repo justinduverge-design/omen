@@ -288,7 +288,14 @@ not re-discover or re-litigate this sequence from conversation history.
   injected `TabularReader` port and produces deterministic `football-observed-fact.v1` play facts with
   measured no-play/non-scrimmage exclusions and fail-closed schema/row/value/identity checks. It adds no
   parser, fetcher, identity inference, enrichment, persistence, SQL, route, package, schedule, or production
-  wiring. Next is the smallest identity/dimension contract required by these observed team keys.
+  wiring. **Completed locally in `dd1d150696b61cf240a61c872f3dd7718445397b`:** admitted schedule,
+  FTN, and historical-participation normalizers; provider-neutral effective-dated identity dimensions;
+  ordinary-PBP-denominated scalar facts; FTN coverage gating; as-of/source-role feature windows;
+  approved 4/120 and 8/250 policy defaults; Scheme DNA/System Signal/Coaching Tree; independently
+  validated immutable candidate read-model receipts, correction supersession, and replay. Focused
+  football-intelligence tests pass 56/56 and the full backend passes 1,236/1,236. Local Stage B is
+  complete. Production artifact storage/restore, SQL, routes, schedulers, publication, and customer
+  activation remain explicitly outside this authority.
 - **Stage D:** not started; blocked on a real serving API and customer contract.
 
 When this conversation or context window ends, the next agent should pick up by reading this section and
