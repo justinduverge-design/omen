@@ -4,7 +4,12 @@ import OmenFeedback from '../components/omen/OmenFeedback.jsx';
 import MockBanner from '../components/ui/MockBanner.jsx';
 import { ApiError, apiFetch } from '../lib/api.js';
 import { PRIVATE_FIXTURE_KEYS, getPrivateFixtureKey } from '../lib/privateFixtureMode.js';
-import { confidenceBarStyle } from '../lib/confidenceGradient.js';
+import {
+  confidenceBandPresentation,
+  footballIntelligenceExplanation,
+  normalizeCapabilities,
+  omenDecisionBriefRequest,
+} from '../lib/omenDecisionBrief.js';
 import {
   formatOmenSignalKey,
   omenSignalBadgeStyle,
@@ -45,7 +50,7 @@ function useOmenData() {
     try {
       const result = await apiFetch('/api/omen/mvp-move', {
         method: 'POST',
-        body: {},
+        body: omenDecisionBriefRequest(),
       });
       setData(result);
     } catch (err) {
@@ -241,31 +246,17 @@ function MoveTypeBadge({ moveType }) {
   );
 }
 
-function ConfidenceBar({ confidence }) {
-  if (!confidence) return null;
-
-  const score = Math.min(100, Math.max(0, Number(confidence.score) || 0));
+function ConfidenceBand({ confidence }) {
+  const presentation = confidenceBandPresentation(confidence);
+  if (!presentation) return null;
 
   return (
-    <div>
-      <div className="mb-1.5 flex items-center justify-between gap-3">
-        <p className="text-xs uppercase tracking-widest text-slate-400">Confidence</p>
-        <p className="text-right text-xs font-semibold text-white">
-          <span className="font-mono tabular-nums">{score}%</span>
-          {confidence.label ? (
-            <span className="font-sans"> - {confidence.label.replace('_', ' ')}</span>
-          ) : null}
-        </p>
-      </div>
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
-        <div
-          className="h-full rounded-full transition-all duration-500 motion-reduce:transition-none"
-          style={confidenceBarStyle(score)}
-        />
-      </div>
-      {confidence.rationale ? (
-        <p className="mt-2 text-xs leading-5 text-slate-500">{confidence.rationale}</p>
-      ) : null}
+    <div className="rounded-xl border border-slate-800 bg-slate-900 px-4 py-3">
+      <p className="text-xs uppercase tracking-widest text-slate-400">Confidence</p>
+      <p className="mt-1 text-sm font-semibold capitalize text-white">{presentation.label}</p>
+      {[...presentation.drivers, ...presentation.unavailableReasons].map((statement) => (
+        <p key={statement} className="mt-2 text-xs leading-5 text-slate-500">{statement}</p>
+      ))}
     </div>
   );
 }
@@ -377,8 +368,15 @@ function SignalBadge({ status }) {
   );
 }
 
-function SignalsPanel({ signals }) {
-  const entries = Object.entries(signals || {});
+function CapabilitiesPanel({ capabilities, signals }) {
+  const records = normalizeCapabilities(capabilities);
+  const entries = records.length
+    ? records.map((capability) => [capability.name, capability])
+    : Object.entries(signals || {}).map(([name, signal]) => [name, {
+      ...signal,
+      state: signal?.status,
+      statement: signal?.message,
+    }]);
   if (!entries.length) return null;
 
   return (
@@ -394,9 +392,10 @@ function SignalsPanel({ signals }) {
         </div>
       </div>
       <div className="space-y-2">
-        {entries.map(([key, signal]) => {
-          const meta = omenSignalStatusMeta(signal?.status);
-          const usedLabel = signal?.used ? meta.usedLabel : 'Not used';
+        {entries.map(([key, capability]) => {
+          const state = capability?.state ?? 'unavailable';
+          const meta = omenSignalStatusMeta(state);
+          const usedLabel = capability?.used ? meta.usedLabel : 'Not used';
           return (
           <div
             key={key}
@@ -409,12 +408,12 @@ function SignalsPanel({ signals }) {
               <p className="mt-1 text-xs font-semibold text-[var(--color-text-secondary)]">
                 {meta.description}
               </p>
-              {signal?.message ? (
-                <p className="mt-1 text-xs leading-5 text-[var(--color-text-tertiary)]">{signal.message}</p>
+              {capability?.statement ? (
+                <p className="mt-1 text-xs leading-5 text-[var(--color-text-tertiary)]">{capability.statement}</p>
               ) : null}
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <SignalBadge status={signal?.status} />
+              <SignalBadge status={state} />
               <span className="text-xs font-semibold text-[var(--color-text-tertiary)]">
                 {usedLabel}
               </span>
@@ -446,7 +445,7 @@ function RiskReasons({ risk }) {
 
 function AlternativeCard({ alt }) {
   const riskLevel = alt.risk?.level ?? alt.risk_level;
-  const confidenceScore = alt.confidence?.score ?? alt.confidence_score;
+  const confidence = confidenceBandPresentation(alt.confidence);
   const title = alt.title ?? alt.headline ?? alt.move ?? 'Alternative move';
   const moveType = alt.type ?? alt.move_type;
 
@@ -457,14 +456,61 @@ function AlternativeCard({ alt }) {
         <p className="mt-0.5 truncate text-sm font-semibold text-white">{title}</p>
       </div>
       <div className="flex-shrink-0 text-right">
-        {confidenceScore != null ? (
-          <p className="text-sm font-semibold text-white">{confidenceScore}%</p>
+        {confidence ? (
+          <p className="text-sm font-semibold text-white">{confidence.label}</p>
         ) : null}
         {riskLevel ? (
           <p className="text-xs capitalize text-amber-400">{riskLevel} risk</p>
         ) : null}
       </div>
     </div>
+  );
+}
+
+function FootballIntelligencePanel({ data }) {
+  const explanation = footballIntelligenceExplanation(data);
+  if (!explanation) return null;
+
+  const degraded = ['stale', 'partial', 'insufficient_coverage', 'unavailable', 'disputed', 'pending'].includes(explanation.status);
+  return (
+    <section className={`rounded-xl border p-4 ${degraded ? 'border-amber-400/30 bg-amber-400/5' : 'border-slate-800 bg-slate-900'}`}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs uppercase tracking-widest text-slate-400">Football intelligence</p>
+        <span className="text-xs font-semibold capitalize text-slate-300">
+          {explanation.status.replace(/_/g, ' ')}
+        </span>
+      </div>
+      {explanation.summary ? <p className="mt-2 text-sm leading-6 text-slate-300">{explanation.summary}</p> : null}
+      {explanation.reasonCode ? (
+        <p className="mt-2 text-xs leading-5 text-slate-400">
+          {explanation.reasonCode.replace(/_/g, ' ')}
+        </p>
+      ) : null}
+      {(explanation.coverageState || explanation.freshnessState) ? (
+        <p className="mt-2 text-xs text-slate-500">
+          {[explanation.coverageState && `Coverage: ${explanation.coverageState.replace(/_/g, ' ')}`, explanation.freshnessState && `Freshness: ${explanation.freshnessState.replace(/_/g, ' ')}`].filter(Boolean).join(' · ')}
+        </p>
+      ) : null}
+      {(explanation.games != null || explanation.plays != null || explanation.chartedPlays != null || explanation.coverageRatio != null) ? (
+        <p className="mt-2 text-xs text-slate-500">
+          {[
+            explanation.games != null && `${explanation.games} games`,
+            explanation.plays != null && `${explanation.plays} plays`,
+            explanation.chartedPlays != null && `${explanation.chartedPlays} charted`,
+            explanation.coverageRatio != null && `${Math.round(explanation.coverageRatio * 100)}% coverage`,
+          ].filter(Boolean).join(' · ')}
+        </p>
+      ) : null}
+      {explanation.limitations.map((item) => <p key={item} className="mt-2 text-xs leading-5 text-amber-200/70">{item}</p>)}
+      {explanation.whatCouldChangeThis.length ? (
+        <div className="mt-3">
+          <p className="text-xs font-semibold text-slate-400">What could change this</p>
+          <ul className="mt-1 space-y-1 text-xs leading-5 text-slate-500">
+            {explanation.whatCouldChangeThis.map((item) => <li key={item}>• {item}</li>)}
+          </ul>
+        </div>
+      ) : null}
+    </section>
   );
 }
 
@@ -484,7 +530,6 @@ function reasoningFromExplanation(explanation) {
   const lines = [
     explanation.why_it_matters,
     explanation.risk,
-    explanation.confidence,
   ].filter(Boolean);
 
   if (Array.isArray(explanation.data_used) && explanation.data_used.length) {
@@ -566,7 +611,7 @@ export default function OmenOfTheWeek() {
  *  - showFeedback: gate the HITL feedback ritual. Defaults to live-only behavior.
  */
 export function OmenRecommendationView({ data, banner = null, showFeedback }) {
-  const { recommendation: rec, league, platform, signals, alternatives = [] } = data;
+  const { recommendation: rec, league, platform, signals, capabilities, alternatives = [] } = data;
   const dataMode = recommendationDataMode(data);
   const mockMode = dataMode === 'mock';
   const demoMode = dataMode === 'demo';
@@ -639,7 +684,7 @@ export function OmenRecommendationView({ data, banner = null, showFeedback }) {
         </p>
       </div>
 
-      <ConfidenceBar confidence={rec.confidence} />
+      <ConfidenceBand confidence={rec.confidence} />
 
       <PrimaryActionCard recommendation={rec} />
 
@@ -647,9 +692,11 @@ export function OmenRecommendationView({ data, banner = null, showFeedback }) {
 
       <ReasoningList explanation={rec.explanation} />
 
+      <FootballIntelligencePanel data={data} />
+
       <RiskReasons risk={rec.risk} />
 
-      <SignalsPanel signals={signals} />
+      <CapabilitiesPanel capabilities={capabilities} signals={signals} />
 
       {alternatives.length > 0 && (
         <div>

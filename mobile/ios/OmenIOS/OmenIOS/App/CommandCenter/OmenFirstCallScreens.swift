@@ -43,6 +43,30 @@ struct OmenEvidenceScreen: View {
                     }
                 }
 
+                if let signal = payload.footballIntelligence {
+                    sectionHeader("System signal", trailing: signal.status.replacingOccurrences(of: "_", with: " "))
+                    OmenCard(contentPadding: OmenSpacing.step12) {
+                        VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+                            Text(signal.summary)
+                                .omenTextStyle(OmenTypography.bodySmall)
+                                .foregroundStyle(OmenColor.textSecondary)
+                            OmenEvidenceRow(key: "Authority", statement: signal.evidenceAuthority)
+                            if let coverage = signal.coverage {
+                                OmenEvidenceRow(key: "Coverage", statement: coverage)
+                            }
+                            OmenEvidenceRow(key: "Freshness", statement: signal.freshness)
+                            if !signal.whatCouldChangeThis.isEmpty {
+                                sectionHeader("What would change this")
+                                ForEach(signal.whatCouldChangeThis, id: \.self) { condition in
+                                    Text(condition)
+                                        .omenTextStyle(OmenTypography.bodySmall)
+                                        .foregroundStyle(OmenColor.textSecondary)
+                                }
+                            }
+                        }
+                    }
+                }
+
                 sectionHeader("Confidence", trailing: payload.confidenceBand?.label)
                 confidenceCard
                 Color.clear.frame(height: OmenSpacing.step16)

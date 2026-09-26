@@ -378,6 +378,53 @@ class OmenDecisionTest {
         assertTrue(envelope.briefState() is OmenDecisionBriefState.Empty)
     }
 
+    @Test
+    fun `published football intelligence maps evidence freshness coverage and falsifiers`() {
+        val payload = (parse(
+            """{"state":"success","mode":"live","recommendation":{"title":"Start A","move":"Bench B"},
+              "football_intelligence":{"contract_version":"football-intelligence-signal.v1","status":"stale",
+               "signal_type":"coach_transfer_system_signal","as_of_utc":"2026-09-20T12:00:00Z",
+               "summary":"The offense is retaining its recent motion profile.",
+               "interpretation":{"direction":"stable","association_only":true,"what_could_change_this":["Two more games reverse the trend."]},
+               "evidence":{"source_artifacts":["a1"],"games":4,"plays":140,"charted_plays":100,"coverage_ratio":0.71},
+               "quality":{"state":"accepted","coverage":"coverage_met","confidence":"leaning","limitations":[]},
+               "freshness":{"state":"stale","latest_observation_at_utc":"2026-09-19T12:00:00Z"},
+               "publication":{"artifact_id":"artifact-1","artifact_version":"v1","published_at_utc":"2026-09-21T13:00:00Z"}}}""",
+        ).briefState() as OmenDecisionBriefState.Success).payload
+        val signal = requireNotNull(payload.footballIntelligence)
+        assertEquals("stale", signal.status)
+        assertEquals("Published derived signal · association only", signal.evidenceAuthority)
+        assertEquals("4 games · 140 plays · 100 charted · 71% coverage", signal.coverage)
+        assertEquals("stale · observations through 2026-09-19T12:00:00Z", signal.freshness)
+        assertEquals(listOf("Two more games reverse the trend."), signal.whatCouldChangeThis)
+    }
+
+    @Test
+    fun `football intelligence never promotes unpublished or non advice states`() {
+        for (status in listOf("unavailable", "insufficient_coverage", "disputed", "pending")) {
+            val payload = (parse(
+                """{"state":"success","mode":"live","recommendation":{"title":"Start A","move":"Bench B"},
+                  "football_intelligence":{"status":"$status","summary":"Do not render me.","quality":{"state":"accepted"},
+                   "publication":{"artifact_id":"a","artifact_version":"v1","published_at_utc":"2026-09-21T13:00:00Z"}}}""",
+            ).briefState() as OmenDecisionBriefState.Success).payload
+            assertNull("$status must not become contextual advice", payload.footballIntelligence)
+        }
+        for (qualityState in listOf("candidate", "unaccepted", "disputed")) {
+            val payload = (parse(
+                """{"state":"success","mode":"live","recommendation":{"title":"Start A","move":"Bench B"},
+                  "football_intelligence":{"status":"available","summary":"Do not render me.","quality":{"state":"$qualityState"},
+                   "publication":{"artifact_id":"a","artifact_version":"v1","published_at_utc":"2026-09-21T13:00:00Z"}}}""",
+            ).briefState() as OmenDecisionBriefState.Success).payload
+            assertNull(payload.footballIntelligence)
+        }
+        val incomplete = (parse(
+            """{"state":"success","mode":"live","recommendation":{"title":"Start A","move":"Bench B"},
+              "football_intelligence":{"status":"available","summary":"Not fully published.",
+               "quality":{"state":"accepted"},"publication":{"artifact_id":"a"}}}""",
+        ).briefState() as OmenDecisionBriefState.Success).payload
+        assertNull(incomplete.footballIntelligence)
+    }
+
     /** A body that is not the contract at all is a decode failure, not a fabricated state. */
     @Test
     fun unparseableBodyIsRejectedRatherThanGuessed() {

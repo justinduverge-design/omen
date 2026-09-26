@@ -394,6 +394,11 @@ test("native v3 adds typed shared capabilities while retaining v2's band policy"
   assert.equal(byName.league_exact_scoring.coverage_state, "pending");
   assert.equal(byName.matchup_dvp.state, "unavailable");
   assert.equal(byName.llm_reasoning.state, "unavailable");
+  assert.equal(v3.body.football_intelligence.contract_version, "football-intelligence-signal.v1");
+  assert.equal(v3.body.football_intelligence.status, "unavailable");
+  assert.equal(v3.body.football_intelligence.reason_code, "identity_unresolved");
+  assert.equal(v3.body.football_intelligence.summary, null);
+  assert.equal(byName.football_intelligence.state, "unavailable");
 });
 
 test("POST /api/omen/mvp-move requires auth for live requests", async () => {

@@ -40,6 +40,8 @@ const {
   isLatencyBudgetExceeded,
   withinLatencyBudget,
 } = require("../services/latencyBudget");
+const { createFootballIntelligenceServingRepository } = require("../services/footballIntelligence/servingRepository");
+const { enrichOmenWithFootballIntelligence } = require("../services/footballIntelligence/omenExplanation");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
@@ -68,6 +70,7 @@ const MVP_LATENCY_BUDGET_MS = Object.freeze({
   schedule: 700,
   matchup_dvp: 1100,
   llm_narration: 1250,
+  football_intelligence: 700,
   persistence: 2500,
 });
 
@@ -83,6 +86,23 @@ function includeLlmReasoning(body = {}, { defaultEnabled = true } = {}) {
 
 function includeMatchupDvp(body = {}) {
   return body?.include_signals?.matchup_dvp !== false;
+}
+
+function requestFootballIntelligenceRepository(req) {
+  const token = String(req.headers.authorization || "").slice("Bearer ".length).trim();
+  const client = createClient(config.supabaseUrl, config.supabaseServiceKey, {
+    accessToken: async () => token,
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  });
+  return createFootballIntelligenceServingRepository({ client });
+}
+
+async function enrichWithFootballIntelligence(response, req) {
+  const hasCanonicalTeam = /^omen:team:/.test(response?.recommendation?.primary_player?.omen_team_id || "");
+  return enrichOmenWithFootballIntelligence({
+    response,
+    repository: hasCanonicalTeam ? requestFootballIntelligenceRepository(req) : null,
+  });
 }
 
 function parseRequiredPositiveInteger(value) {
@@ -579,6 +599,17 @@ router.post("/mvp-move", async (req, res) => {
       ));
     } catch {
       // DvP is an enhancement only. Keep deterministic response.
+    }
+    if (requestedContract === BRIEF_V3) {
+      try {
+        await traceStage(trace, "football_intelligence", () => withinLatencyBudget(
+          "football_intelligence",
+          MVP_LATENCY_BUDGET_MS.football_intelligence,
+          () => enrichWithFootballIntelligence(result.body, req)
+        ));
+      } catch {
+        // Football intelligence is advisory. The deterministic recommendation remains unchanged.
+      }
     }
     try {
       await traceStage(trace, "llm_narration", () => enrichWithLlm(

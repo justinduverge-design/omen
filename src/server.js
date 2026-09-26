@@ -252,6 +252,13 @@ try {
   logger.error("League router failed to load", { err: e.message, stack: e.stack });
 }
 
+try {
+  const footballIntelligenceRoutes = require("./routes/footballIntelligence");
+  app.use("/api/football-intelligence", footballIntelligenceRoutes);
+} catch (e) {
+  logger.error("Football-intelligence router failed to load", { err: e.message, stack: e.stack });
+}
+
 // --- Mount /api/leagues (provider-neutral switcher directory) ---
 try {
   const leaguesRoutes = require("./routes/leagues");

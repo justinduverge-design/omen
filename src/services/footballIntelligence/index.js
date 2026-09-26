@@ -19,4 +19,6 @@ module.exports = {
   ...require("./ftnCharting"),
   ...require("./identityDimensions"),
   ...require("./observedMetrics"),
+  ...require("./servingRepository"),
+  ...require("./omenExplanation"),
 };

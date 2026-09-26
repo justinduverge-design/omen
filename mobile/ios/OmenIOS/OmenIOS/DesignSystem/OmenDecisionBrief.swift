@@ -43,6 +43,11 @@ struct OmenDecisionBriefPayload {
     let metrics: [OmenMetricItem]
     let signals: [OmenSignalItem]
     let alternatives: [OmenDecisionBriefAlternative]
+    /// Optional published football-intelligence context. This is supporting evidence for the
+    /// server-owned call, never a second recommendation. The API mapper admits only published
+    /// `available` or `stale` signals with a real summary. Insufficient coverage remains a
+    /// limitation and cannot become contextual advice.
+    let footballIntelligence: OmenFootballIntelligenceContext?
 
     init(
         verdict: String,
@@ -58,7 +63,8 @@ struct OmenDecisionBriefPayload {
         explanation: [String] = [],
         metrics: [OmenMetricItem] = [],
         signals: [OmenSignalItem] = [],
-        alternatives: [OmenDecisionBriefAlternative] = []
+        alternatives: [OmenDecisionBriefAlternative] = [],
+        footballIntelligence: OmenFootballIntelligenceContext? = nil
     ) {
         self.callType = callType
         self.verdict = verdict
@@ -74,7 +80,17 @@ struct OmenDecisionBriefPayload {
         self.metrics = metrics
         self.signals = signals
         self.alternatives = alternatives
+        self.footballIntelligence = footballIntelligence
     }
+}
+
+struct OmenFootballIntelligenceContext {
+    let status: String
+    let summary: String
+    let evidenceAuthority: String
+    let coverage: String?
+    let freshness: String
+    let whatCouldChangeThis: [String]
 }
 
 enum OmenConfidenceBand: String, Equatable {

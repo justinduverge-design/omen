@@ -239,6 +239,7 @@ fun OmenDecisionScreen(
         // Blocks 5-7 of `omencall-evidence-contract-v1`, ratified 2026-09-18. Same strings and
         // same order as iOS — acceptance line 16.
         CapabilityGroups(payload)
+        FootballIntelligence(payload)
         if (providerName != null && onMakeMove != null) {
             OmenButton(
                 text = "Make this move in $providerName",
@@ -341,6 +342,24 @@ fun OmenEvidenceScreen(
                             listOfNotNull(alternative.team, alternative.meta).takeIf { it.isNotEmpty() }?.let { detail ->
                                 Text(detail.joinToString(" · "), style = OmenTheme.typography.micro.toTextStyle(), color = OmenTheme.color.textTertiary)
                             }
+                        }
+                    }
+                }
+            }
+        }
+
+        payload.footballIntelligence?.let { signal ->
+            SectionHeader("System signal", signal.status.replace('_', ' '))
+            OmenCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(OmenTheme.spacing.step12)) {
+                Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8)) {
+                    Text(signal.summary, style = OmenTheme.typography.bodySmall.toTextStyle(), color = OmenTheme.color.textSecondary)
+                    EvidenceLine("Authority", signal.evidenceAuthority)
+                    signal.coverage?.let { EvidenceLine("Coverage", it) }
+                    EvidenceLine("Freshness", signal.freshness)
+                    if (signal.whatCouldChangeThis.isNotEmpty()) {
+                        Text("What would change this", style = OmenTheme.typography.micro.toTextStyle(), color = OmenTheme.color.textTertiary)
+                        signal.whatCouldChangeThis.forEach { condition ->
+                            Text(condition, style = OmenTheme.typography.bodySmall.toTextStyle(), color = OmenTheme.color.textSecondary)
                         }
                     }
                 }
@@ -710,6 +729,34 @@ private fun CapabilityGroup(title: String, items: List<OmenSignalItem>) {
             )
             items.forEach { CapabilityEvidenceRow(it) }
         }
+    }
+}
+
+@Composable
+private fun FootballIntelligence(payload: OmenDecisionBriefPayload) {
+    val signal = payload.footballIntelligence ?: return
+    OmenCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(OmenTheme.spacing.step12)) {
+        Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8)) {
+            Text("System signal", style = OmenTheme.typography.micro.toTextStyle(), color = OmenTheme.color.textTertiary)
+            Text(signal.summary, style = OmenTheme.typography.bodySmall.toTextStyle(), color = OmenTheme.color.textSecondary)
+            EvidenceLine("Authority", signal.evidenceAuthority)
+            signal.coverage?.let { EvidenceLine("Coverage", it) }
+            EvidenceLine("Freshness", signal.freshness)
+            if (signal.whatCouldChangeThis.isNotEmpty()) {
+                Text("What would change this", style = OmenTheme.typography.micro.toTextStyle(), color = OmenTheme.color.textTertiary)
+                signal.whatCouldChangeThis.forEach { condition ->
+                    Text(condition, style = OmenTheme.typography.bodySmall.toTextStyle(), color = OmenTheme.color.textSecondary)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EvidenceLine(key: String, statement: String) {
+    Row(horizontalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12)) {
+        Text(key, style = OmenTheme.typography.micro.toTextStyle(), color = OmenTheme.color.textTertiary)
+        Text(statement, style = OmenTheme.typography.bodySmall.toTextStyle(), color = OmenTheme.color.textSecondary)
     }
 }
 

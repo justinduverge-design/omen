@@ -19,10 +19,12 @@ struct OmenDecisionEnvelope: Decodable, Equatable {
     let warnings: [String]?
     let signals: [String: Signal]?
     let capabilities: [OmenDecisionCapability]?
+    let footballIntelligence: FootballIntelligence?
 
     enum CodingKeys: String, CodingKey {
         case contractVersion = "contract_version"
         case state, mode, recommendation, recovery, explanation, confidence, warnings, signals, capabilities
+        case footballIntelligence = "football_intelligence"
     }
 
     struct Recommendation: Decodable, Equatable {
@@ -102,6 +104,84 @@ struct OmenDecisionEnvelope: Decodable, Equatable {
         let status: String?
         let source: String?
         let message: String?
+    }
+
+    struct FootballIntelligence: Decodable, Equatable {
+        let contractVersion: String?
+        let status: String?
+        let reasonCode: String?
+        let signalType: String?
+        let asOfUTC: String?
+        let summary: String?
+        let interpretation: Interpretation?
+        let evidence: Evidence?
+        let quality: Quality?
+        let freshness: Freshness?
+        let publication: Publication?
+
+        enum CodingKeys: String, CodingKey {
+            case status, summary, interpretation, evidence, quality, freshness, publication
+            case contractVersion = "contract_version"
+            case reasonCode = "reason_code"
+            case signalType = "signal_type"
+            case asOfUTC = "as_of_utc"
+        }
+
+        struct Interpretation: Decodable, Equatable {
+            let direction: String?
+            let associationOnly: Bool?
+            let whatCouldChangeThis: [String]?
+            enum CodingKeys: String, CodingKey {
+                case direction
+                case associationOnly = "association_only"
+                case whatCouldChangeThis = "what_could_change_this"
+            }
+        }
+
+        struct Evidence: Decodable, Equatable {
+            let sourceArtifacts: [String]?
+            let games: Int?
+            let plays: Int?
+            let chartedPlays: Int?
+            let coverageRatio: Double?
+            enum CodingKeys: String, CodingKey {
+                case games, plays
+                case sourceArtifacts = "source_artifacts"
+                case chartedPlays = "charted_plays"
+                case coverageRatio = "coverage_ratio"
+            }
+        }
+
+        struct Quality: Decodable, Equatable {
+            let state: String?
+            let coverage: String?
+            let confidence: String?
+            let limitations: [String]?
+        }
+
+        struct Freshness: Decodable, Equatable {
+            let state: String?
+            let computedAtUTC: String?
+            let latestObservationAtUTC: String?
+            let staleAfterUTC: String?
+            enum CodingKeys: String, CodingKey {
+                case state
+                case computedAtUTC = "computed_at_utc"
+                case latestObservationAtUTC = "latest_observation_at_utc"
+                case staleAfterUTC = "stale_after_utc"
+            }
+        }
+
+        struct Publication: Decodable, Equatable {
+            let artifactID: String?
+            let artifactVersion: String?
+            let publishedAtUTC: String?
+            enum CodingKeys: String, CodingKey {
+                case artifactID = "artifact_id"
+                case artifactVersion = "artifact_version"
+                case publishedAtUTC = "published_at_utc"
+            }
+        }
     }
 
 }
@@ -187,8 +267,55 @@ extension OmenDecisionEnvelope {
             explanation: Self.explanationLines(explanationBlock),
             metrics: Self.metrics(from: recommendation),
             signals: Self.signalItems(capabilities: capabilities, legacySignals: signals),
-            alternatives: Self.alternatives(from: recommendation)
+            alternatives: Self.alternatives(from: recommendation),
+            footballIntelligence: Self.footballIntelligenceContext(footballIntelligence)
         )
+    }
+
+    private static func footballIntelligenceContext(
+        _ signal: FootballIntelligence?
+    ) -> OmenFootballIntelligenceContext? {
+        guard let signal,
+              ["available", "stale"].contains(signal.status),
+              let status = signal.status,
+              let summary = signal.summary?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !summary.isEmpty,
+              signal.quality?.state != "candidate",
+              signal.quality?.state != "unaccepted",
+              signal.quality?.state != "disputed",
+              let artifactID = signal.publication?.artifactID, !artifactID.isEmpty,
+              let artifactVersion = signal.publication?.artifactVersion, !artifactVersion.isEmpty,
+              let publishedAt = signal.publication?.publishedAtUTC, !publishedAt.isEmpty
+        else { return nil }
+
+        let authority = signal.interpretation?.associationOnly == true
+            ? "Published derived signal · association only"
+            : "Published derived signal"
+        let coverage = coverageSummary(signal.evidence, quality: signal.quality)
+        let freshnessState = signal.freshness?.state ?? status
+        let observed = signal.freshness?.latestObservationAtUTC ?? signal.asOfUTC
+        let freshness = observed.map { "\(freshnessState.replacingOccurrences(of: "_", with: " ")) · observations through \($0)" }
+            ?? freshnessState.replacingOccurrences(of: "_", with: " ")
+
+        return OmenFootballIntelligenceContext(
+            status: status,
+            summary: summary,
+            evidenceAuthority: authority,
+            coverage: coverage,
+            freshness: freshness,
+            whatCouldChangeThis: signal.interpretation?.whatCouldChangeThis ?? []
+        )
+    }
+
+    private static func coverageSummary(_ evidence: FootballIntelligence.Evidence?, quality: FootballIntelligence.Quality?) -> String? {
+        guard let evidence else { return quality?.coverage }
+        var parts: [String] = []
+        if let games = evidence.games { parts.append("\(games) games") }
+        if let plays = evidence.plays { parts.append("\(plays) plays") }
+        if let charted = evidence.chartedPlays { parts.append("\(charted) charted") }
+        if let ratio = evidence.coverageRatio { parts.append("\(Int((ratio * 100).rounded()))% coverage") }
+        if parts.isEmpty, let coverage = quality?.coverage { parts.append(coverage.replacingOccurrences(of: "_", with: " ")) }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
     private static func confidenceBand(_ raw: String?) -> OmenConfidenceBand? {
