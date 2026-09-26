@@ -1,12 +1,31 @@
 # Omen football intelligence architecture v1
 
-**Status:** Stage A proposal — documentation only
+**Status:** Stage A architecture reviewed — source admission and founder decision gates remain blocked
 
 **Date:** 2026-09-25
 
 **Scope:** Customer-supporting football intelligence built from nflverse and related
 open football data. This document does not activate collection, create SQL, add API
 routes, or change the existing A7B scoring pipeline.
+
+## Gate verdict
+
+This document fixes the architecture boundary, ownership model, correction contract,
+identity design, and logical first-customer contract. It does **not** admit a source or
+authorize Stage B. The architecture review found two material blockers:
+
+1. `pbp_participation` is not an in-season feed from 2023 onward. nflreadr says those
+   FTN-supplied seasons are released only after all postseason games finish. There is no
+   2026 asset as of the 2026-09-26 receipt below. It can support historical replay, not a
+   current-week System Signal.
+2. The repository-level CC BY 4.0 notice does not close upstream rights for all families.
+   FTN-specific datasets carry CC BY-SA 4.0 and named attribution; `schedules` points to
+   `nflverse/nfldata`, whose repository exposes no license; and nflverse's open licensing
+   question for paid derived products has no maintainer answer as of this review.
+
+Therefore Gate A is **HOLD**. No SQL, route, package, timer, or production-host work may
+start until the source slice has a written rights/freshness admission receipt and the
+founder accepts the decisions in the final checklist.
 
 ## Decision summary
 
@@ -51,17 +70,31 @@ Source facts are observations copied from an admitted release. They retain sourc
 identity, retrieval time, exact bytes/hash, schema fingerprint, license/attribution,
 and row-grain metadata. They are never edited in place.
 
-Initial source candidates:
+### Source/ownership matrix — observed 2026-09-26
 
-| Source family | Intended grain | Role | Minimum admission requirement |
-|---|---|---|---|
-| `schedules` / `games.csv` | game | coach/team assignment, game context | coach fields and game identity present |
-| `pbp_participation` | play | formation/personnel/tactical context | play/game/team identity and admitted columns present |
-| `ftn_charting` | play or charted play | motion, play-action, RPO, pressure/context signals | charting release and coverage recorded |
-| `player_stats` | player-week | fantasy-facing outcome/context | source release and player identity present |
-| `snap_counts` | player-game/week | role and participation context | player/team/game identity present |
-| `depth_charts` / rosters | player-team-date | role and identity context | effective date and team identity present |
-| `players` / crosswalk sources | player | provider identity bridge | IDs are retained as source values, not guessed |
+The hashes identify the upstream release assets seen during review. Tags such as
+`schedules` and `players` are mutable channels, not immutable versions; Stage B must copy
+bytes into Omen's artifact tier and verify the captured digest before using them.
+
+| Family / upstream owner | Exact reviewed asset and observed digest | Actual grain and candidate columns | Coverage / cadence | Rights and attribution | Customer-use boundary | Admission |
+|---|---|---|---|---|---|---|
+| `schedules` / Lee Sharpe `nfldata`, distributed by nflverse | `schedules/games.csv`, updated `2026-09-26T10:06:48Z`, SHA-256 `131f22a980b0d7c5eeebcf1a848bdd67ed3ea544b7be86ae6d1c5a0caf02561e` | one row per game; `game_id`, season/week/date, teams, `away_coach`, `home_coach` | 1999+ per research; mutable asset updates when maintained file changes, so no guaranteed service cadence is asserted | nflverse-data is CC BY 4.0, but named upstream `nfldata` exposes no license; attribution target and commercial-derived-use authority are unresolved | Internal evaluation only after capture; not customer-signal evidence until rights are recorded | **BLOCKED — rights** |
+| `pbp_participation` / NFL NGS through 2022; FTN via nflverse from 2023 | historical example `pbp_participation_2025.csv`, updated `2026-02-10T18:54:08Z`, SHA-256 `59069adfee7b0f464befba8a5e8be331e523633cc6a7ab403d37bcbcdfbe66ac`; no 2026 asset | one row per `nflverse_game_id` + `play_id`; formation/personnel/box fields | 2016+; from 2023 onward published only after postseason completion, not current-week | CC BY-SA 4.0; attribution names `FTN Data via nflverse` from 2023 or `NFL NextGenStats via nflverse` through 2022 | Historical replay/research only until share-alike handling is reviewed; never represented as current | **BLOCKED — freshness and legal review** |
+| `ftn_charting` / FTN Data via nflverse | `ftn_charting/ftn_charting_2026.csv`, updated `2026-09-26T11:02:01Z`, SHA-256 `0c55b7038ae9d82ab35b128a736d626b189d0cb6b1e022f1d23a0355a9377cf1` | one row per charted play; motion, play-action, screen, RPO, pressure/context fields | 2022+; nflreadr says charted within 48 hours; freshness still derives from covered games, not upload time alone | CC BY-SA 4.0; attribution names `FTN Data via nflverse` / `ftndata.com via nflverse` | Current-week enrichment only after coverage audit; not a complete denominator by assumption | **BLOCKED — legal/coverage review** |
+| `players` / nflverse-players | `players/players.csv`, updated `2026-09-21T14:48:47Z`, SHA-256 `4dd70f328f31b0bb7cbf043412298d5a325863e27b8f2eeea22c9e925c808dee` | one row per `gsis_id`; current header has PFR/PFF/OTC/ESPN/smart IDs, but no Yahoo or Sleeper ID | living crosswalk; observed release has no contractual cadence | upstream repo license is MIT; distributed nflverse-data repo is CC BY 4.0; capture receipt must record applicable terms | Identity evidence only; absent provider IDs and name similarity never become silent matches | **CONDITIONAL — terms receipt and provider gaps** |
+
+Not admitted in the first slice: `player_stats`, `snap_counts`, `depth_charts`, rosters,
+injuries, and next-gen statistics. They remain catalog candidates and require their own
+grain, cadence, coverage, rights, and attribution review.
+
+Primary evidence:
+
+- [nflverse schedules release](https://github.com/nflverse/nflverse-data/releases/tag/schedules)
+- [participation loader and source-specific terms](https://github.com/nflverse/nflreadr/blob/main/R/load_participation.R)
+- [FTN loader, cadence, and attribution](https://github.com/nflverse/nflreadr/blob/main/R/load_ftn_charting.R)
+- [player loader and identity scope](https://github.com/nflverse/nflreadr/blob/main/R/load_players.R)
+- [nflverse-data CC BY 4.0 license](https://github.com/nflverse/nflverse-data/blob/main/LICENSE.md)
+- [unanswered commercial-use licensing question](https://github.com/nflverse/nflverse-data/issues/101)
 
 The first implementation may admit fewer families than this catalog. A source is not
 considered admitted merely because its column names appeared in research; an exact
@@ -116,6 +149,12 @@ replaceable and rebuildable; it is not the source of truth for raw facts.
 | Serving read row | projection | API/read model | replace by versioned publish | yes |
 | Customer explanation | product copy | product/API surface | normal product revision | yes |
 
+An upstream publisher owns the observation; Omen ingestion owns faithful capture; the
+data foundation owns normalization and identity; derivation owns reproducible features;
+publication owns the accepted serving version; product owns bounded language. No
+downstream owner may upgrade authority—for example, turning a schedule display name into
+a confirmed coach identity or correlation into causation.
+
 ## Required metadata on every derived output
 
 Every feature window, Scheme DNA, Coaching Tree edge, and System Signal must carry or
@@ -141,9 +180,9 @@ sample is still a low-coverage result.
 ### Immutable artifact tier
 
 Raw downloads, normalized export bundles, manifests, validation receipts, and derived
-evidence bundles live as immutable, content-addressed artifacts. The implementation
-may use the approved Omen filesystem/object-storage path, but Stage B must document the
-exact root and backup policy before activation.
+evidence bundles live as immutable, content-addressed artifacts. The location,
+retention, backup, restore, encryption, and access policy are unresolved and must be
+accepted before Stage B writes anything.
 
 Artifact paths must be bound to hashes and must reject overwrite conflicts. A corrected
 source creates a new artifact and a supersession record; it never mutates the prior
@@ -159,9 +198,16 @@ Supabase/Postgres is the recommended relational tier for:
 - derived output metadata and evidence summaries;
 - serving read rows and publication state.
 
-Raw play-level history should not be copied wholesale into the serving schema. If
-volume or query shape later requires a columnar store, that is a separate capacity
-decision, not an implicit Stage B dependency.
+Raw play-level history and full normalized exports must not be copied wholesale into
+Supabase. Supabase holds identifiers, receipts, bounded dimensions/crosswalk assertions,
+publication metadata, compact evidence summaries, and customer read rows. Every
+evidence-derived row points to immutable artifact/hash/version identifiers. If volume or
+query shape later requires a columnar store, that is a separate capacity decision.
+
+Supabase is a rebuildable index and serving projection, never byte-level replay
+authority. Loss of an artifact makes its dependent candidate unpublishable; loss of a
+serving projection is repaired from accepted artifacts. A serving row may not detach
+from or outlive its evidence receipt.
 
 ### Serving rule
 
@@ -171,83 +217,135 @@ derivation directly. A route reads a published serving version whose status is
 
 ## Versioning and correction contract
 
-The minimum state machine is:
+The source-artifact state machine is:
 
 ```text
-captured -> validated -> derived -> candidate -> published
-              |            |          |
-              +-> quarantined          +-> superseded
+captured -> validated -> accepted -> superseded
+    |           |
+    +--------> quarantined
+```
+
+The independently versioned derivation/publication state machine is:
+
+```text
+computed -> validated -> candidate -> published -> superseded
+    |          |            |
+    +-------> quarantined    +-> rejected
 ```
 
 Required rules:
 
-1. A source release is identified by source, release/asset identity, retrieval time,
-   exact hash, byte length, and schema fingerprint.
-2. A derivation is identified by source hash set, fact-window key, derivation version,
-   and model version.
-3. A rerun with identical inputs and versions must produce identical canonical output
+1. A source receipt records family, upstream owner, release tag, asset name/URL,
+   upstream update time, retrieval time, exact SHA-256, byte length, media type, schema
+   fingerprint, row count, observed event-time range, rights identifier, attribution
+   text, and coverage audit.
+2. A canonical export is identified by ordered source hashes, normalization version,
+   identity-snapshot version, schema fingerprint, row count, and canonical hash.
+3. A derivation is identified by ordered canonical hashes, fact-window key, derivation
+   version, model version (or explicit `none`), parameters hash, and code revision.
+   Floating dependency versions are forbidden.
+4. A rerun with identical inputs and versions must produce identical canonical output
    and derivation hash.
-4. A source correction creates a candidate that compares against the currently
+5. A source correction creates a candidate that compares against the currently
    published version at the same scope. It lists changed subjects and does not publish
    automatically.
-5. A schema drift or incomplete required source quarantines the candidate and leaves
+6. Schema drift, rights change, incomplete source, identity dispute, denominator
+   change, or non-deterministic rerun quarantines the candidate and leaves
    the prior published version readable with a stale/coverage indicator.
-6. “Latest” may be a read-model query ordered over validated published versions, but
+7. Corrections never rewrite an effective interval. A new version records its
+   superseded ID, reason, effective interval, and publication/retraction actor and time.
+8. “Latest” may be a read-model query ordered over validated published versions, but
    it must resolve to an explicit version in the response and evidence.
-7. Rollback changes the serving pointer/status; it does not delete artifacts or rewrite
+9. Rollback changes the serving pointer/status; it does not delete artifacts or rewrite
    history.
+10. Freshness is family- and event-time-based. GitHub upload time alone never proves
+    covered games are current. A source without an accepted cadence/SLA remains
+    `freshness_unknown`, which cannot satisfy a current-week signal.
 
 ## Identity and temporal rules
 
-- Player provider IDs are source values. A crosswalk row records which source asserted
-  each ID and when; fuzzy names cannot silently create an identity.
-- Coaches require a stable normalized person key plus source display names. An unknown
-  or ambiguous coach remains unresolved.
+- Omen canonical IDs are opaque internal IDs, never provider IDs promoted to authority.
+- A crosswalk is an effective-dated assertion containing entity type, canonical ID,
+  namespace/external ID, asserting artifact/row, validity interval, confidence class,
+  review state, and optional superseded assertion. Conflicts are `disputed`, never
+  last-write-wins.
+- The reviewed nflverse player asset supplies GSIS/PFR/PFF/OTC/ESPN/smart IDs, not Yahoo
+  or Sleeper IDs. Those mappings require independent provider assertions. Fuzzy names
+  may create a review candidate but never a serving identity.
+- Coaches require an internal person ID. Schedule coach strings are aliases, not stable
+  IDs. Normalization may group review candidates only; an edge remains unresolved until
+  corroborated or manually confirmed with evidence.
 - Coach/team relationships are effective-dated by game/date and role. A coach moving
   teams must produce separate edges; overlapping roles require explicit handling.
-- Team identity uses stable canonical team IDs with relocation/name history retained.
+- Team identity uses a stable franchise ID plus effective-dated season/team aliases.
+  Relocation/name history stays separate from provider abbreviations, preserving the
+  historical team on each game.
 - A feature window may not use observations after the decision timestamp. Future games,
   later roster states, or post-event corrections are excluded from historical signals.
 
-## First customer contract (proposal)
+## First customer System Signal contract (logical v1)
 
 The first API should serve a bounded signal rather than a “scheme label.” The proposed
 logical response is `football-intelligence-signal.v1`:
 
 ```json
 {
+  "contract_version": "football-intelligence-signal.v1",
   "status": "available",
   "signal_type": "coach_transfer_system_signal",
-  "subject": {"team_id": "CHI", "season": 2025},
-  "summary": "Recent offensive tendencies resemble the coach's prior Detroit window.",
-  "scheme_dna": {"version": "scheme-dna.v1", "dimensions": {}},
-  "coaching_tree": {"edges": []},
+  "subject": {"team_id": "CHI", "coach_id": "coach_internal_id", "season": 2025},
+  "as_of_utc": "2025-10-07T12:00:00Z",
+  "summary": "Recent offensive tendencies resemble this coach's prior-team window.",
+  "interpretation": {
+    "direction": "similar",
+    "association_only": true,
+    "what_could_change_this": []
+  },
+  "scheme_dna": {"contract_version": "scheme-dna.v1", "artifact_id": "", "dimensions": []},
+  "coaching_tree": {"contract_version": "coaching-tree.v1", "confirmed_edges": [], "inferred_edges": []},
   "evidence": {
-    "source_versions": [],
+    "source_artifacts": [],
     "games": 0,
     "plays": 0,
     "charted_plays": 0,
-    "window": {"start": null, "end": null}
+    "current_window": {"start": null, "end": null},
+    "comparison_window": {"start": null, "end": null},
+    "coverage_ratio": null
   },
   "quality": {
-    "state": "derived",
+    "state": "accepted",
     "coverage": "sufficient",
     "confidence": null,
     "limitations": []
   },
-  "freshness": {"computed_at_utc": null, "stale_after_utc": null},
-  "artifact_version": ""
+  "freshness": {
+    "state": "current",
+    "computed_at_utc": null,
+    "latest_observation_at_utc": null,
+    "stale_after_utc": null
+  },
+  "publication": {"artifact_id": "", "artifact_version": "", "published_at_utc": null}
 }
 ```
 
-The exact dimensions and route path remain Stage A approval items. The contract must
-also support these honest states without changing shape:
+The route path, formulas, minimum sample/coverage thresholds, and freshness SLA remain
+approval items. Until accepted, every evaluation resolves to a non-available state; a
+fixture passing is not permission to return `available`. The contract supports these
+states without changing shape, using `null`/empty fields plus `reason_code` and
+limitations where evidence cannot honestly populate a value:
 
 - `unavailable`: no admitted source or derivation;
 - `insufficient_coverage`: not enough games/plays/charting;
 - `stale`: a prior result exists but source freshness has expired;
 - `disputed`: source disagreement or unresolved identity/temporal conflict;
 - `pending`: a validated candidate exists but publication has not occurred.
+
+Allowed reason-code families include `source_not_admitted`, `rights_unresolved`,
+`freshness_unknown`, `source_stale`, `insufficient_games`, `insufficient_plays`,
+`coverage_gap`, `identity_unresolved`, `identity_disputed`,
+`derivation_quarantined`, and `not_published`. Customer summary text is templated from
+state and evidence. An LLM may rephrase only while preserving semantics and may never
+turn an unavailable signal into advice.
 
 The customer copy must never say “this coach runs scheme X” unless a future, separately
 approved taxonomy and evidence standard supports that claim.
@@ -256,10 +354,12 @@ approved taxonomy and evidence standard supports that claim.
 
 Before SQL, routes, packages, or production wiring:
 
-- [ ] Source matrix has exact releases, rights, row grain, cadence, and admitted columns.
+- [ ] A source-admission receipt resolves matrix rights, attribution, coverage, and
+      current-week freshness blockers. **HOLD 2026-09-26.**
 - [ ] Founder approves the first source slice and the name/meaning of Scheme DNA,
       Coaching Tree, and System Signal.
-- [ ] Relational-versus-artifact boundary is accepted.
+- [ ] Founder accepts Supabase as compact serving/index tier and an approved external
+      immutable-artifact location as replay authority.
 - [ ] Identity and effective-date rules are accepted.
 - [ ] Versioning, correction, stale, dispute, and rollback states are accepted.
 - [ ] First customer read and response state matrix are accepted.
@@ -268,4 +368,3 @@ Before SQL, routes, packages, or production wiring:
 Stage B may begin only when all gates above are recorded as approved in a decision log
 or follow-up architecture review. A passing unit test cannot substitute for an absent
 architecture decision.
-

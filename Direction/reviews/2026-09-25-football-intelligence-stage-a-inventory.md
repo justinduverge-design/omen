@@ -5,6 +5,11 @@
 **Purpose:** Evidence record for the architecture gate. This is an inventory and plan,
 not an implementation claim.
 
+**Review update 2026-09-26:** Architecture boundaries are complete enough for founder
+review, but Gate A is **HOLD**. Source admission found unresolved upstream rights and
+current-week freshness. Exact receipts are in
+`Blueprints/specs/football-data/omen-football-intelligence-architecture-v1.md`.
+
 ## Current facts
 
 - The existing `src/services/footballData` pipeline is A7B scoring-data infrastructure.
@@ -15,6 +20,14 @@ not an implementation claim.
 - The research catalog identifies `pbp_participation`, `ftn_charting`, schedules,
   snap/depth/roster data, and player crosswalks as inputs to a future intelligence
   system. No source publishes a canonical “scheme” label.
+- `pbp_participation` from 2023 onward is post-season data, not an in-season feed; no
+  2026 asset exists in the reviewed release. It cannot support a current-week slice.
+- Current `players.csv` contains GSIS/PFR/PFF/OTC/ESPN/smart IDs, not Yahoo or Sleeper
+  IDs. The earlier research statement that one row solved all three fantasy-provider
+  crosswalks is disproven by the current header.
+- FTN charting/participation carry CC BY-SA 4.0 plus named attribution. The schedules
+  upstream repository exposes no license, and nflverse's paid-product licensing question
+  remains unanswered. Customer use is blocked pending a rights receipt/legal review.
 - The repository has Supabase-backed application tables, but no football-intelligence
   SQL schema, route, read model, or RLS contract.
 - The server mounts existing customer routes but no football-intelligence router.
@@ -35,7 +48,22 @@ admitted source -> canonical fact/dimension -> derived output -> published read 
 The Stage A architecture document closes the design boundary without claiming that any
 of those new components have been implemented.
 
-## Proposed implementation sequence after approval
+## Architecture decisions ready for founder review
+
+1. Immutable, content-addressed source/derived artifacts are replay authority;
+   Supabase/Postgres is only the compact identity, metadata, publication, and serving
+   projection tier.
+2. Corrections create superseding versions and never rewrite prior bytes or effective
+   intervals. Source, canonical, derivation, and publication versions are independent.
+3. Omen internal IDs are canonical. Every external-ID link is an effective-dated,
+   sourced assertion; conflicts fail closed. Coach names are aliases, not identities.
+4. The first customer slice is a bounded coach-transfer System Signal. It describes
+   association/similarity only and carries evidence, coverage, freshness, limitations,
+   and `what_could_change_this`.
+5. `available` is forbidden until minimum samples, coverage denominators, freshness
+   SLA, source rights, and publication state are accepted and satisfied.
+
+## Proposed implementation sequence after approval and source admission
 
 1. Artifact registry and source receipts.
 2. Identity/dimension and minimum canonical fact persistence.
@@ -60,13 +88,22 @@ scheme classifier.
 - No changes to A7B scoring behavior.
 - No assertion that a scheme label is an observed source fact.
 
-## Review questions
+## Unresolved decisions / blockers
 
-1. Is Supabase/Postgres the approved serving store while immutable source/derived bytes
-   remain artifact-backed?
-2. Is the first customer signal the coach-transfer comparison described above?
-3. Which minimum source slice is admitted for Stage B: schedules plus
-   `pbp_participation`, with `ftn_charting` as coverage-limited enrichment?
-4. What minimum sample/coverage threshold is required before a signal is available?
-5. Are the proposed public names and their semantics approved?
+1. Rights: obtain a defensible commercial-use/attribution receipt for schedules and
+   decide how CC BY-SA applies to features, evidence, and customer outputs from FTN.
+2. Freshness: choose an in-season tactical denominator. `pbp_participation` cannot fill
+   that role from 2023 onward; FTN charting coverage must be measured before use.
+3. Identity: name authoritative Yahoo/Sleeper player-ID sources and a stable coach-ID
+   source; current nflverse players/schedules do not supply them.
+4. Evidence thresholds: approve minimum games, plays, charted-play coverage ratio,
+   comparison-window rules, freshness SLA, and dispute behavior. No number is inferred.
+5. Founder decisions: accept or revise the Supabase/artifact boundary, first
+   coach-transfer slice, and meanings of Scheme DNA, Coaching Tree, and System Signal.
 
+## Gate result
+
+Stage A is **reviewed but not approved**. Stage B remains prohibited. The next smallest
+safe step is a source-admission/legal-freshness decision pass, then founder review of the
+five architecture decisions above. It is not SQL, a route, a package, a schedule, or a
+production-host change.
