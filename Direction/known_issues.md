@@ -115,13 +115,13 @@ fine. The check queried `hostingermail-a.slopssaloon.com` when the actual record
 shape as the NXDOMAIN mistake above: **an empty result is only evidence when you are certain you
 asked the right question.**
 
-## 🟡 OPEN — the only off-host database backup lives on a VPS scheduled to expire 2026-05-06 — noted 2026-09-05
+## 🟡 OPEN — the only off-host database backup lives on a VPS scheduled to expire 2027-05-06 — noted 2026-09-05
 
 **Not urgent. Easy to forget. Expensive if forgotten.**
 
 KVM2 (`srv1647690`) holds the encrypted Restic repository at `/srv/restic/omen` — per Layer 3 of
 the fleet spec, the **only** off-host copy of Omen's database. Hostinger reports that plan's
-**auto-renewal as disabled**, scheduled to expire **2026-05-06** (~8 months of runway). Neither
+**auto-renewal as disabled**, scheduled to expire **2027-05-06** (~8 months of runway). Neither
 VPS has Hostinger automatic snapshots enabled either, so there is no provider-side safety net
 underneath it.
 
@@ -131,12 +131,21 @@ waste. The point is narrower — **the backup repository has to move before or w
 decision, never after it.** A migration that relocates the app and leaves the backups on an
 expiring box converts a planned move into an unplanned data-loss window.
 
-Whatever is decided, one of these must be true before 2026-05-06:
+Whatever is decided, one of these must be true before 2027-05-06:
 
 1. KVM2 renews, or
 2. the Restic repository has an equivalent home elsewhere, with a **restore drill proven on the
    new target** — the fleet spec's existing drill was proven against KVM2 specifically, and a
    backup that has never been restored from its new home is a hope, not a backup.
+
+**Expanded 2026-09-26 — football-intelligence artifact storage shares this decision, but
+does not force it early.** Omen is not expected to be public in the first half of the 2026
+season, and the founder intends to purchase reliable storage before production activation.
+Local Stage B architecture must remain vendor-neutral through an injected artifact root.
+Production football-intelligence activation is blocked until the storage/DR decision and a
+fresh restore drill are complete. Restart with
+`Blueprints/prompts/football-intelligence-artifact-dr-decision.md`; do not infer that KVM2
+will be renewed or replaced.
 
 ## 🟡 OPEN — one ESPN connection row has no `espn_team_id`
 

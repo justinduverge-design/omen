@@ -269,16 +269,19 @@ not re-discover or re-litigate this sequence from conversation history.
 
 ### Execution status — reviewed 2026-09-26
 
-- **Stage A:** architecture review is complete in `06328111`, but Gate A is **HOLD**. The source/ownership
-  matrix, artifact-versus-serving boundary, version/correction contract, identity design, and logical first
-  System Signal contract are explicit. Source admission is still blocked on upstream rights, in-season
-  freshness/coverage, Yahoo/Sleeper and stable coach identity, evidence thresholds, immutable-artifact
-  operations, and founder acceptance. No SQL, route, package, schedule, or host mutation was made.
+- **Stage A:** architecture review is complete in `06328111`, and the 2026-09-26 founder decision pass
+  approves local/non-production Stage B. Ordinary nflverse PBP is the in-season denominator, FTN charting
+  is coverage-gated tactical enrichment, and participation is historical calibration. Omen owns canonical
+  player and coach IDs with provider-namespaced, effective-dated assertions; Yahoo and Sleeper are required
+  adapters and the namespace remains open to CBS and future providers. The v1 thresholds are adaptable,
+  versioned defaults. Production ingestion/publication/activation remains **HOLD** only on the deferred,
+  vendor-neutral immutable-artifact storage and DR policy plus restore proof. No SQL, route, package,
+  schedule, or host mutation was made.
 - **Stage C:** foundation gate is complete in `a767b87e`. The package now has 32 artboards, 32 contracts,
   and 32 machine-readable requirement records. Token/API lint, one-to-one coverage, state/accessibility/
   overflow metadata, and iOS/Android spacing aliases are reconciled without a blind canvas replacement.
   The degraded Ledger contracts bind only to existing `moves-history.v2` / `move-detail.v1` behavior.
-- **Stage B:** not started; blocked by the A/C gates by design.
+- **Stage B:** not started. Its smallest local/non-production kernel is now permitted; production wiring is not.
 - **Stage D:** not started; blocked on a real serving API and customer contract.
 
 When this conversation or context window ends, the next agent should pick up by reading this section and
@@ -298,15 +301,15 @@ The next agent should review, in order:
 4. `Blueprints/handoffs/2026-09-25-canvas-stage-c-polish.md` — why degraded Ledger contracts were not
    fabricated.
 
-Review decisions still required before Stage B:
+Review decision still required before production Stage B activation:
 
-- approve the first admitted source slice and customer signal;
-- approve immutable artifact versus Supabase serving boundaries;
-- approve the minimum evidence/coverage threshold;
-- approve the API/state vocabulary, evidence thresholds, and naming semantics;
-- approve the immutable-artifact location, retention, backup/restore, encryption, and access policy.
+- approve the immutable-artifact location, retention, backup/restore, encryption, and access policy, then
+  prove a restore from the selected off-device target.
 
-The degraded Ledger contract and Stage C token/coverage decisions are resolved. Until the remaining Stage A
-decisions are recorded, the correct next action is source-admission/legal/freshness review and founder
-architecture review—not SQL, routes, packages, schedules, or production activation. Evidence and exact
-checks are in `Blueprints/handoffs/2026-09-26-stage-a-c-foundation.md`.
+The degraded Ledger contract and Stage C token/coverage decisions are resolved. Founder review on
+2026-09-26 also approved the layered nflverse/FTN source strategy, provider-neutral player/coach identity,
+and adaptable v1 evidence thresholds. Gate A now permits a local/non-production Stage B implementation with
+an injected artifact root. Production activation remains blocked on the deliberately deferred, vendor-neutral
+artifact/DR decision and restore proof. See
+`Direction/reviews/2026-09-26-participation-source-admission.md` and
+`Blueprints/prompts/football-intelligence-artifact-dr-decision.md`.

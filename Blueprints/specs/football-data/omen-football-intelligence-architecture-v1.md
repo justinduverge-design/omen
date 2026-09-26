@@ -1,6 +1,6 @@
 # Omen football intelligence architecture v1
 
-**Status:** Stage A architecture reviewed — source admission and founder decision gates remain blocked
+**Status:** Stage A architecture approved for non-production implementation; production activation remains gated
 
 **Date:** 2026-09-25
 
@@ -11,8 +11,8 @@ routes, or change the existing A7B scoring pipeline.
 ## Gate verdict
 
 This document fixes the architecture boundary, ownership model, correction contract,
-identity design, and logical first-customer contract. It does **not** admit a source or
-authorize Stage B. The architecture review found two material blockers:
+identity design, and logical first-customer contract. The initial architecture review
+did **not** admit a source or authorize Stage B; it found two material blockers:
 
 1. `pbp_participation` is not an in-season feed from 2023 onward. nflreadr says those
    FTN-supplied seasons are released only after all postseason games finish. There is no
@@ -23,9 +23,12 @@ authorize Stage B. The architecture review found two material blockers:
    `nflverse/nfldata`, whose repository exposes no license; and nflverse's open licensing
    question for paid derived products has no maintainer answer as of this review.
 
-Therefore Gate A is **HOLD**. No SQL, route, package, timer, or production-host work may
-start until the source slice has a written rights/freshness admission receipt and the
-founder accepts the decisions in the final checklist.
+Founder review on 2026-09-26 accepted the practical source posture and v1 evidence
+thresholds. Gate A is therefore approved for a non-production Stage B implementation:
+ordinary nflverse play-by-play is the complete, timely denominator; FTN charting is
+optional tactical enrichment; participation data is historical calibration only.
+Production activation remains blocked on an exact artifact root, off-host backup target,
+restore proof, and the normal source receipts for each captured release.
 
 ## Decision summary
 
@@ -78,9 +81,10 @@ bytes into Omen's artifact tier and verify the captured digest before using them
 
 | Family / upstream owner | Exact reviewed asset and observed digest | Actual grain and candidate columns | Coverage / cadence | Rights and attribution | Customer-use boundary | Admission |
 |---|---|---|---|---|---|---|
-| `schedules` / Lee Sharpe `nfldata`, distributed by nflverse | `schedules/games.csv`, updated `2026-09-26T10:06:48Z`, SHA-256 `131f22a980b0d7c5eeebcf1a848bdd67ed3ea544b7be86ae6d1c5a0caf02561e` | one row per game; `game_id`, season/week/date, teams, `away_coach`, `home_coach` | 1999+ per research; mutable asset updates when maintained file changes, so no guaranteed service cadence is asserted | nflverse-data is CC BY 4.0, but named upstream `nfldata` exposes no license; attribution target and commercial-derived-use authority are unresolved | Internal evaluation only after capture; not customer-signal evidence until rights are recorded | **BLOCKED — rights** |
-| `pbp_participation` / NFL NGS through 2022; FTN via nflverse from 2023 | historical example `pbp_participation_2025.csv`, updated `2026-02-10T18:54:08Z`, SHA-256 `59069adfee7b0f464befba8a5e8be331e523633cc6a7ab403d37bcbcdfbe66ac`; no 2026 asset | one row per `nflverse_game_id` + `play_id`; formation/personnel/box fields | 2016+; from 2023 onward published only after postseason completion, not current-week | CC BY-SA 4.0; attribution names `FTN Data via nflverse` from 2023 or `NFL NextGenStats via nflverse` through 2022 | Historical replay/research only until share-alike handling is reviewed; never represented as current | **BLOCKED — freshness and legal review** |
-| `ftn_charting` / FTN Data via nflverse | `ftn_charting/ftn_charting_2026.csv`, updated `2026-09-26T11:02:01Z`, SHA-256 `0c55b7038ae9d82ab35b128a736d626b189d0cb6b1e022f1d23a0355a9377cf1` | one row per charted play; motion, play-action, screen, RPO, pressure/context fields | 2022+; nflreadr says charted within 48 hours; freshness still derives from covered games, not upload time alone | CC BY-SA 4.0; attribution names `FTN Data via nflverse` / `ftndata.com via nflverse` | Current-week enrichment only after coverage audit; not a complete denominator by assumption | **BLOCKED — legal/coverage review** |
+| `schedules` / Lee Sharpe `nfldata`, distributed by nflverse | `schedules/games.csv`, updated `2026-09-26T10:06:48Z`, SHA-256 `131f22a980b0d7c5eeebcf1a848bdd67ed3ea544b7be86ae6d1c5a0caf02561e` | one row per game; `game_id`, season/week/date, teams, `away_coach`, `home_coach` | 1999+ per research; mutable asset updates when maintained file changes, so no guaranteed service cadence is asserted | Consume under the distributed nflverse CC BY 4.0 posture; retain nflverse and named-source attribution in receipts and Data Sources credits | Team/game/coach-alias context; never promotes a display string into canonical coach identity | **ADMITTED — founder accepted attribution posture** |
+| ordinary nflverse `play_by_play` | current-season play-by-play release, captured by exact asset/hash receipt at ingestion | one row per play; game/play identity, down/distance, play type, participants named by event, results and contextual fields | current season; upstream workflow releases finished games frequently and refreshes recent games for corrections | nflverse CC BY 4.0; credit nflverse in product Data Sources and retained provenance | Complete timely denominator for eligible plays; does not claim full on-field personnel or formation participation | **ADMITTED — primary in-season denominator** |
+| `pbp_participation` / NFL NGS through 2022; FTN via nflverse from 2023 | historical example `pbp_participation_2025.csv`, updated `2026-02-10T18:54:08Z`, SHA-256 `59069adfee7b0f464befba8a5e8be331e523633cc6a7ab403d37bcbcdfbe66ac`; no 2026 asset | one row per `nflverse_game_id` + `play_id`; formation/personnel/box fields | 2016+; from 2023 onward published only after postseason completion, not current-week | CC BY-SA 4.0; attribution names `FTN Data via nflverse` from 2023 or `NFL NextGenStats via nflverse` through 2022 | Historical calibration, replay, and model audit only; never represented as current-season evidence | **ADMITTED — historical only** |
+| `ftn_charting` / FTN Data via nflverse | `ftn_charting/ftn_charting_2026.csv`, updated `2026-09-26T11:02:01Z`, SHA-256 `0c55b7038ae9d82ab35b128a736d626b189d0cb6b1e022f1d23a0355a9377cf1` | one row per charted play; motion, play-action, screen, RPO, pressure/context fields | 2022+; nflreadr says charted within 48 hours; freshness derives from covered games, not upload time alone | CC BY-SA 4.0; preserve `FTN Data via nflverse` attribution and license identity in provenance and product Data Sources credits | Optional current-week enrichment; every FTN-derived dimension reports measured eligible-play coverage | **ADMITTED — coverage-gated enrichment** |
 | `players` / nflverse-players | `players/players.csv`, updated `2026-09-21T14:48:47Z`, SHA-256 `4dd70f328f31b0bb7cbf043412298d5a325863e27b8f2eeea22c9e925c808dee` | one row per `gsis_id`; current header has PFR/PFF/OTC/ESPN/smart IDs, but no Yahoo or Sleeper ID | living crosswalk; observed release has no contractual cadence | upstream repo license is MIT; distributed nflverse-data repo is CC BY 4.0; capture receipt must record applicable terms | Identity evidence only; absent provider IDs and name similarity never become silent matches | **CONDITIONAL — terms receipt and provider gaps** |
 
 Not admitted in the first slice: `player_stats`, `snap_counts`, `depth_charts`, rosters,
@@ -99,6 +103,12 @@ Primary evidence:
 The first implementation may admit fewer families than this catalog. A source is not
 considered admitted merely because its column names appeared in research; an exact
 release, rights record, schema fingerprint, and replay receipt are required.
+
+The alternative-source review is recorded in
+`Direction/reviews/2026-09-26-participation-source-admission.md`. No independent open,
+current-season participation feed was found. NFL Big Data Bowl releases are bounded
+competition datasets, not a weekly production source. Sportradar and SportsDataIO remain
+future paid adapters if Omen later needs official/live depth beyond the admitted stack.
 
 ### Canonical facts
 
@@ -182,7 +192,13 @@ sample is still a low-coverage result.
 Raw downloads, normalized export bundles, manifests, validation receipts, and derived
 evidence bundles live as immutable, content-addressed artifacts. The location,
 retention, backup, restore, encryption, and access policy are unresolved and must be
-accepted before Stage B writes anything.
+accepted before any production capture, publication, or activation.
+
+For the non-production Stage B slice, the implementation must accept an injected local
+artifact root and must not encode KVM1, KVM2, Supabase Storage, S3, R2, or any vendor into
+domain code. The production target remains deferred until the founder purchases or
+selects reliable storage. `Blueprints/prompts/football-intelligence-artifact-dr-decision.md`
+is the restart prompt for that decision.
 
 Artifact paths must be bound to hashes and must reject overwrite conflicts. A corrected
 source creates a new artifact and a supersession record; it never mutates the prior
@@ -329,8 +345,11 @@ logical response is `football-intelligence-signal.v1`:
 ```
 
 The route path, formulas, minimum sample/coverage thresholds, and freshness SLA remain
-approval items. Until accepted, every evaluation resolves to a non-available state; a
-fixture passing is not permission to return `available`. The contract supports these
+versioned policy rather than hard-coded source behavior. Founder-approved v1 starting
+thresholds are: current window at least 4 completed games and 120 eligible offensive
+plays; comparison window at least 8 completed games and 250 eligible offensive plays;
+and at least 70 percent charting coverage for any FTN-derived dimension. Calibration may
+version these thresholds without changing source or identity contracts. The contract supports these
 states without changing shape, using `null`/empty fields plus `reason_code` and
 limitations where evidence cannot honestly populate a value:
 
@@ -354,17 +373,20 @@ approved taxonomy and evidence standard supports that claim.
 
 Before SQL, routes, packages, or production wiring:
 
-- [ ] A source-admission receipt resolves matrix rights, attribution, coverage, and
-      current-week freshness blockers. **HOLD 2026-09-26.**
-- [ ] Founder approves the first source slice and the name/meaning of Scheme DNA,
-      Coaching Tree, and System Signal.
-- [ ] Founder accepts Supabase as compact serving/index tier and an approved external
-      immutable-artifact location as replay authority.
-- [ ] Identity and effective-date rules are accepted.
-- [ ] Versioning, correction, stale, dispute, and rollback states are accepted.
-- [ ] First customer read and response state matrix are accepted.
-- [ ] Design-system/canvas contract inventory is complete enough for the customer slice.
+- [x] Founder admits ordinary nflverse play-by-play and schedules, historical-only
+      participation, and coverage-gated FTN charting with attribution.
+- [x] Founder approves the first coach-transfer slice and the bounded meanings of Scheme
+      DNA, Coaching Tree, and System Signal.
+- [x] Founder accepts Supabase as compact serving/index tier and immutable artifacts as
+      replay authority.
+- [x] Identity/effective-date and provider-neutral player/coach namespace rules accepted.
+- [x] Versioning, correction, stale, dispute, and rollback states accepted.
+- [x] First customer state matrix and adaptable v1 evidence thresholds accepted.
+- [x] Design-system/canvas contract inventory is complete for the future customer slice.
+- [ ] Production artifact target, retention, off-host backup, restore proof, encryption,
+      and access policy. **Deferred; blocks production activation, not local Stage B.**
 
-Stage B may begin only when all gates above are recorded as approved in a decision log
-or follow-up architecture review. A passing unit test cannot substitute for an absent
-architecture decision.
+Stage B may begin only as a local/non-production implementation using injected storage
+and deterministic fixtures. Production activation remains prohibited until the deferred
+artifact/DR item is accepted and restore-tested. A passing unit test cannot substitute
+for that production decision.
