@@ -75,13 +75,19 @@ function mapRowsToObservedFacts(rows, manifest) {
     if (!["U", "S", "P"].includes(row.qb_location)) continue;
     for (const [column, metric, kind] of METRICS) {
       if (row[column] === "") continue;
+      const sourceFamily = metric === "no_huddle" ? "play_by_play" : "ftn_charting";
       facts.push({
         contract_version: CONTRACTS.observedFact,
         fact_key: `${row.nflverse_game_id}:${row.nflverse_play_id}:${row.possession_team}:${metric}`,
         game_id: row.nflverse_game_id, play_id: row.nflverse_play_id, team_id: row.possession_team,
         subject_type: "team", subject_id: row.possession_team, season, week, metric,
         value: parseValue(row[column], kind, column), availability: "observed",
-        source: { artifact_sha256: artifactHash, row_key: `${row.nflverse_game_id}:${row.nflverse_play_id}` },
+        source: {
+          artifact_sha256: artifactHash,
+          row_key: `${row.nflverse_game_id}:${row.nflverse_play_id}`,
+          source_family: sourceFamily,
+          intended_use: sourceFamily === "play_by_play" ? "historical_replay" : "historical_calibration",
+        },
         normalization_version: MODELS.normalization,
       });
     }

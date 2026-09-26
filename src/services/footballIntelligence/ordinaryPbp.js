@@ -5,7 +5,7 @@ const { CONTRACTS, MODELS } = require("./contracts");
 const REQUIRED_COLUMNS = Object.freeze([
   "game_id", "play_id", "season", "week", "season_type", "posteam", "defteam",
   "down", "ydstogo", "yardline_100", "game_seconds_remaining", "play_type",
-  "pass", "rush", "qb_scramble", "no_play", "touchdown", "yards_gained",
+  "pass", "rush", "qb_scramble", "no_huddle", "no_play", "touchdown", "yards_gained",
 ]);
 
 class OrdinaryPbpError extends Error {
@@ -96,7 +96,10 @@ function normalizePlay(row, provenance) {
         yardline_100: finite(row.yardline_100, "yardline_100", { min: 0, max: 100, nullable: true }),
         game_seconds_remaining: finite(row.game_seconds_remaining, "game_seconds_remaining", { min: 0, max: 3600, nullable: true }),
       },
-      play: { type: canonicalType, source_type: sourcePlayType, pass: isPass, rush: isRush, qb_scramble: isScramble },
+      play: {
+        type: canonicalType, source_type: sourcePlayType, pass: isPass, rush: isRush,
+        qb_scramble: isScramble, no_huddle: flag(row.no_huddle, "no_huddle"),
+      },
       result: {
         touchdown: flag(row.touchdown, "touchdown"),
         yards_gained: finite(row.yards_gained, "yards_gained", { nullable: true }),
@@ -126,6 +129,7 @@ async function ingestOrdinaryPbpReceipt({ registry, receiptId, tabularReader } =
     artifact_id: receipt.artifact.sha256,
     receipt_id: receipt.receipt_id,
     source_family: receipt.source.family,
+    intended_use: receipt.intended_use,
     source_schema_fingerprint: receipt.schema_fingerprint,
   });
   const facts = [];

@@ -14,7 +14,7 @@ const {
 const COLUMNS = Object.freeze([
   "game_id", "play_id", "season", "week", "season_type", "posteam", "defteam",
   "down", "ydstogo", "yardline_100", "game_seconds_remaining", "play_type",
-  "pass", "rush", "qb_scramble", "no_play", "touchdown", "yards_gained",
+  "pass", "rush", "qb_scramble", "no_huddle", "no_play", "touchdown", "yards_gained",
 ]);
 
 const SOURCE = Object.freeze({
@@ -47,6 +47,7 @@ function play(overrides = {}) {
     pass: "1",
     rush: "0",
     qb_scramble: "0",
+    no_huddle: "1",
     no_play: "0",
     touchdown: "0",
     yards_gained: "8",
@@ -120,12 +121,13 @@ test("exact registered ordinary PBP receipt replays through TabularReader into b
     possession_team: "SEA",
     defense_team: "SF",
     situation: { down: 1, yards_to_go: 10, yardline_100: 75, game_seconds_remaining: 3500 },
-    play: { type: "pass", source_type: "pass", pass: true, rush: false, qb_scramble: false },
+    play: { type: "pass", source_type: "pass", pass: true, rush: false, qb_scramble: false, no_huddle: true },
     result: { touchdown: false, yards_gained: 8 },
     provenance: {
       artifact_id: registered.artifact_id,
       receipt_id: registered.receipt_id,
       source_family: "play_by_play",
+      intended_use: "current_denominator",
       source_schema_fingerprint: `sha256:${"4".repeat(64)}`,
     },
   });

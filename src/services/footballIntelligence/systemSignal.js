@@ -4,8 +4,8 @@ const { CONTRACTS, MODELS } = require("./contracts");
 const { hashCanonical } = require("./canonicalize");
 const { compareSchemeDna } = require("./schemeDna");
 
-function buildSystemSignal({ subject, baseline, comparison, fantasyImplications = [], alternativeExplanations = [], limitations = [] }) {
-  const similarity = compareSchemeDna(baseline, comparison);
+function buildSystemSignal({ subject, baseline, comparison, comparisonOptions = {}, fantasyImplications = [], alternativeExplanations = [], limitations = [] }) {
+  const similarity = compareSchemeDna(baseline, comparison, comparisonOptions);
   const state = classifyState(baseline, comparison, similarity);
   const evidence = similarity.components.map((component) => {
     const previous = scalarValue(baseline.features[component.feature]);

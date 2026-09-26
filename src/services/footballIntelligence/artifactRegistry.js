@@ -4,10 +4,12 @@ const crypto = require("node:crypto");
 const fs = require("node:fs/promises");
 const path = require("node:path");
 const { assertSourceAdmission } = require("./sourceRegistry");
+const { validateArtifact } = require("./validateArtifact");
 
 const RECEIPT_SCHEMA = "football-intelligence-source-receipt.v1";
 const INDEX_SCHEMA = "football-intelligence-artifact-index.v1";
 const REGISTRY_VERSION = "football-intelligence-artifact-registry.v1";
+const DERIVED_RECEIPT_SCHEMA = "football-intelligence-derived-receipt.v1";
 const PRODUCTION_ROOT = path.resolve("/var/lib/omen-football-intelligence");
 const MAX_ARTIFACT_BYTES = 512 * 1024 * 1024;
 const SHA256 = /^sha256:[a-f0-9]{64}$/;
@@ -89,7 +91,7 @@ async function prepareRoot(root) {
   await fs.mkdir(selected, { recursive: true });
   const real = await fs.realpath(selected);
   assertLocalRoot(real);
-  for (const directory of ["objects/sha256", "receipts", "indexes"]) {
+  for (const directory of ["objects/sha256", "receipts", "derived-receipts", "indexes"]) {
     await ensureSafeDirectory(real, directory);
   }
   return real;
@@ -170,6 +172,10 @@ function receiptPath(root, digest) {
   return inside(root, path.join(root, "receipts", `${digest}.json`));
 }
 
+function derivedReceiptPath(root, digest) {
+  return inside(root, path.join(root, "derived-receipts", `${digest}.json`));
+}
+
 function receiptDigest(receipt) {
   const unsigned = { ...receipt };
   delete unsigned.receipt_id;
@@ -235,6 +241,45 @@ function createLocalArtifactRegistry({ root, clock = () => new Date() }) {
       fail("ARTIFACT_LENGTH_MISMATCH", `artifact byte length does not match receipt: ${receiptId}`);
     }
     return Object.freeze({ receipt, bytes });
+  }
+
+  async function getDerivedReceipt(receiptId) {
+    if (!RECEIPT_ID.test(receiptId || "")) fail("INVALID_RECEIPT_ID", "receipt id must be receipt:<digest>");
+    const registryRoot = await ready();
+    const digest = receiptId.slice("receipt:".length);
+    let bytes;
+    try {
+      bytes = await fs.readFile(derivedReceiptPath(registryRoot, digest));
+    } catch (error) {
+      if (error.code === "ENOENT") fail("DERIVED_RECEIPT_NOT_FOUND", `derived receipt not found: ${receiptId}`);
+      throw error;
+    }
+    let receipt;
+    try {
+      receipt = JSON.parse(bytes);
+    } catch (error) {
+      fail("INVALID_RECEIPT", `derived receipt is not valid JSON: ${receiptId}`, { cause: error });
+    }
+    if (receiptDigest(receipt) !== digest) fail("RECEIPT_HASH_MISMATCH", `derived receipt failed hash verification: ${receiptId}`);
+    if (receipt.receipt_id !== receiptId || receipt.schema !== DERIVED_RECEIPT_SCHEMA) {
+      fail("RECEIPT_ID_MISMATCH", `derived receipt identity does not match: ${receiptId}`);
+    }
+    return receipt;
+  }
+
+  async function replayReadModel(receiptId) {
+    const receipt = await getDerivedReceipt(receiptId);
+    const bytes = await readArtifact(receipt.artifact.sha256);
+    if (bytes.length !== receipt.artifact.byte_length) fail("ARTIFACT_LENGTH_MISMATCH", `read model length does not match receipt: ${receiptId}`);
+    let readModel;
+    try {
+      readModel = JSON.parse(bytes);
+    } catch (error) {
+      fail("INVALID_DERIVED_ARTIFACT", `read model is not valid JSON: ${receiptId}`, { cause: error });
+    }
+    validateArtifact(readModel);
+    if (readModel.output_hash !== receipt.validation.output_hash) fail("DERIVED_OUTPUT_MISMATCH", `read model output hash does not match receipt: ${receiptId}`);
+    return Object.freeze({ receipt, read_model: readModel, bytes });
   }
 
   async function rebuildIndex() {
@@ -377,11 +422,72 @@ function createLocalArtifactRegistry({ root, clock = () => new Date() }) {
     };
   }
 
-  return Object.freeze({ getReceipt, readArtifact, replayReceipt, rebuildIndex, registerSourceArtifact, root: selectedRoot });
+  async function registerReadModel(input) {
+    if (!input || typeof input !== "object") fail("INVALID_DERIVED_ARTIFACT", "read-model input is required");
+    const validation = validateArtifact(input.readModel);
+    if (!Array.isArray(input.source_artifact_ids) || input.source_artifact_ids.length === 0) {
+      fail("INVALID_DERIVED_ARTIFACT", "source_artifact_ids must be non-empty");
+    }
+    const sourceArtifactIds = [...new Set(input.source_artifact_ids)].sort();
+    if (sourceArtifactIds.length !== input.source_artifact_ids.length) fail("INVALID_DERIVED_ARTIFACT", "source_artifact_ids cannot contain duplicates");
+    for (const artifactId of sourceArtifactIds) {
+      try {
+        await readArtifact(artifactId);
+      } catch (error) {
+        if (error.code === "ARTIFACT_NOT_FOUND") fail("SOURCE_ARTIFACT_NOT_FOUND", `read-model source artifact is absent: ${artifactId}`);
+        throw error;
+      }
+    }
+    const effectiveWindow = input.effective_window;
+    if (!effectiveWindow?.from || !effectiveWindow?.through) fail("INVALID_DERIVED_ARTIFACT", "effective_window.from and through are required");
+    const registryRoot = await ready();
+    const bytes = Buffer.from(`${stable(input.readModel)}\n`);
+    const digest = sha256(bytes);
+    const artifactId = `sha256:${digest}`;
+    const supersedes = input.supersedes_artifact_id || null;
+    if (supersedes) {
+      if (!SHA256.test(supersedes) || supersedes === artifactId) fail("INVALID_SUPERSESSION", "derived supersession must name a different sha256 artifact");
+      const derivedFiles = await listJsonFiles(path.join(registryRoot, "derived-receipts"));
+      let predecessor = null;
+      for (const file of derivedFiles) {
+        const candidate = await getDerivedReceipt(`receipt:${path.basename(file, ".json")}`);
+        if (candidate.artifact.sha256 === supersedes) predecessor = candidate;
+        if (candidate.supersession?.supersedes_artifact_id === supersedes) {
+          fail("SUPERSESSION_BRANCH", `derived artifact already has a successor: ${supersedes}`);
+        }
+      }
+      if (!predecessor) fail("SUPERSEDED_ARTIFACT_NOT_FOUND", `superseded read model is absent: ${supersedes}`);
+      requireString(input.correction_reason, "correction_reason");
+    }
+    await ensureSafeDirectory(registryRoot, `objects/sha256/${digest.slice(0, 2)}`);
+    const objectPath = artifactPath(registryRoot, digest);
+    const artifactCreated = await writeImmutable(objectPath, bytes);
+    const receipt = {
+      schema: DERIVED_RECEIPT_SCHEMA,
+      registry_version: REGISTRY_VERSION,
+      receipt_id: null,
+      artifact_type: "football_intelligence_read_model",
+      computed_at_utc: toIso(clock(), "clock"),
+      artifact: { sha256: artifactId, byte_length: bytes.length, media_type: "application/json", object_path: `objects/sha256/${digest.slice(0, 2)}/${digest}` },
+      source_artifact_ids: sourceArtifactIds,
+      effective_window: effectiveWindow,
+      validation,
+      supersession: supersedes ? { supersedes_artifact_id: supersedes, reason: input.correction_reason.trim() } : null,
+      publication: { authorized: false, state: "candidate" },
+    };
+    const digestReceipt = receiptDigest(receipt);
+    receipt.receipt_id = `receipt:${digestReceipt}`;
+    const receiptFile = derivedReceiptPath(registryRoot, digestReceipt);
+    const receiptCreated = await writeImmutable(receiptFile, Buffer.from(`${JSON.stringify(receipt, null, 2)}\n`));
+    return { artifact_id: artifactId, receipt_id: receipt.receipt_id, created: { artifact: artifactCreated, receipt: receiptCreated }, paths: { artifact: objectPath, receipt: receiptFile } };
+  }
+
+  return Object.freeze({ getReceipt, getDerivedReceipt, readArtifact, replayReceipt, replayReadModel, rebuildIndex, registerReadModel, registerSourceArtifact, root: selectedRoot });
 }
 
 module.exports = {
   ArtifactRegistryError,
+  DERIVED_RECEIPT_SCHEMA,
   INDEX_SCHEMA,
   RECEIPT_SCHEMA,
   REGISTRY_VERSION,

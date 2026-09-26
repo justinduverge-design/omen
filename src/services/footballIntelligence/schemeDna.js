@@ -3,9 +3,16 @@
 const { CONTRACTS, MODELS } = require("./contracts");
 const { hashCanonical } = require("./canonicalize");
 
-const DEFAULT_MINIMUM_PLAYS = 20;
-const DEFAULT_MEDIUM_PLAYS = 80;
-const DEFAULT_HIGH_PLAYS = 200;
+const EVIDENCE_POLICY_V1 = Object.freeze({
+  version: "football-intelligence-evidence-policy.v1",
+  current: Object.freeze({ minimum_games: 4, minimum_plays: 120 }),
+  comparison: Object.freeze({ minimum_games: 8, minimum_plays: 250 }),
+  confidence: Object.freeze({ medium_plays: 250, high_plays: 500 }),
+  ftn_minimum_coverage: 0.7,
+});
+const DEFAULT_MINIMUM_PLAYS = EVIDENCE_POLICY_V1.current.minimum_plays;
+const DEFAULT_MEDIUM_PLAYS = EVIDENCE_POLICY_V1.confidence.medium_plays;
+const DEFAULT_HIGH_PLAYS = EVIDENCE_POLICY_V1.confidence.high_plays;
 
 const FEATURE_WEIGHTS = Object.freeze({
   motion_rate: 1, no_huddle_rate: 0.75, play_action_rate: 1, rpo_rate: 0.75,
@@ -18,14 +25,15 @@ function computeSchemeDna(featureWindow, options = {}) {
   const minimumPlays = integerOption(options.minimumPlays, DEFAULT_MINIMUM_PLAYS, "minimumPlays");
   const mediumPlays = integerOption(options.mediumPlays, DEFAULT_MEDIUM_PLAYS, "mediumPlays");
   const highPlays = integerOption(options.highPlays, DEFAULT_HIGH_PLAYS, "highPlays");
+  const minimumGames = integerOption(options.minimumGames, EVIDENCE_POLICY_V1.current.minimum_games, "minimumGames");
   const usableFeatures = Object.fromEntries(Object.entries(featureWindow.features)
     .filter(([, feature]) => feature.denominator > 0)
     .sort(([a], [b]) => a.localeCompare(b)));
   const limitations = [...featureWindow.limitations];
   let status = "available";
-  if (featureWindow.eligible_plays < minimumPlays || Object.keys(usableFeatures).length === 0) {
+  if (featureWindow.eligible_plays < minimumPlays || featureWindow.games < minimumGames || Object.keys(usableFeatures).length === 0) {
     status = "insufficient_data";
-    limitations.push(`At least ${minimumPlays} eligible plays and one observed feature are required.`);
+    limitations.push(`At least ${minimumGames} games, ${minimumPlays} eligible plays, and one observed feature are required.`);
   }
   const observedRatio = Object.keys(usableFeatures).length / Math.max(1, Object.keys(featureWindow.features).length);
   const confidence = confidenceFor(featureWindow.eligible_plays, observedRatio, status, { mediumPlays, highPlays });
@@ -63,14 +71,17 @@ function compareSchemeDna(baseline, comparison, options = {}) {
     components.push({ feature: key, kind: a.kind, distance, similarity: 1 - distance, weight });
   }
   if (components.length === 0) return { model_version: MODELS.similarity, status: "insufficient_data", score: null, components: [], limitations: ["No comparable observed features."] };
+  const comparisonMinimumPlays = integerOption(options.comparisonMinimumPlays, EVIDENCE_POLICY_V1.comparison.minimum_plays, "comparisonMinimumPlays");
+  const comparisonMinimumGames = integerOption(options.comparisonMinimumGames, EVIDENCE_POLICY_V1.comparison.minimum_games, "comparisonMinimumGames");
   const weightTotal = components.reduce((sum, item) => sum + item.weight, 0);
   const distance = components.reduce((sum, item) => sum + item.distance * item.weight, 0) / weightTotal;
+  const available = baseline.status === "available" && comparison.status === "available" && baseline.sample.eligible_plays >= comparisonMinimumPlays && comparison.sample.eligible_plays >= comparisonMinimumPlays && baseline.sample.games >= comparisonMinimumGames && comparison.sample.games >= comparisonMinimumGames;
   return {
     model_version: MODELS.similarity,
-    status: baseline.status === "available" && comparison.status === "available" ? "available" : "insufficient_data",
+    status: available ? "available" : "insufficient_data",
     score: round(1 - distance),
     components: components.map((item) => ({ ...item, distance: round(item.distance), similarity: round(item.similarity) })),
-    limitations: baseline.status === "available" && comparison.status === "available" ? [] : ["At least one fingerprint is below its sample or coverage threshold."],
+    limitations: available ? [] : [`Comparison requires at least ${comparisonMinimumGames} games and ${comparisonMinimumPlays} eligible plays in each window.`],
   };
 }
 
@@ -97,4 +108,4 @@ function integerOption(value, fallback, name) { if (value === undefined) return 
 function round(value) { return Number(value.toFixed(6)); }
 function invalid(message) { const error = new TypeError(message); error.code = "FOOTBALL_INTELLIGENCE_INVALID"; return error; }
 
-module.exports = { DEFAULT_MINIMUM_PLAYS, FEATURE_WEIGHTS, compareSchemeDna, computeSchemeDna, jensenShannonDistance };
+module.exports = { DEFAULT_MINIMUM_PLAYS, EVIDENCE_POLICY_V1, FEATURE_WEIGHTS, compareSchemeDna, computeSchemeDna, jensenShannonDistance };

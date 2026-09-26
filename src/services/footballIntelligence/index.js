@@ -13,4 +13,10 @@ module.exports = {
   ...require("./artifactRegistry"),
   ...require("./sourceRegistry"),
   ...require("./ordinaryPbp"),
+  ...require("./tabularReceipt"),
+  ...require("./schedules"),
+  ...require("./participation"),
+  ...require("./ftnCharting"),
+  ...require("./identityDimensions"),
+  ...require("./observedMetrics"),
 };
