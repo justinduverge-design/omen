@@ -1,7 +1,7 @@
 # Football intelligence + canvas foundation implementation plan
 
-**Date:** 2026-09-25  
-**Status:** Planning / inventory complete; implementation intentionally not started  
+**Date:** 2026-09-25
+**Status:** Planning / inventory complete; implementation intentionally not started
 **Scope:** Omen football-intelligence backend, production data lifecycle, native design-system authority, and canvas-to-code contract foundation
 
 ## Executive decision
