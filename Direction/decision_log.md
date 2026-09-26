@@ -3610,3 +3610,19 @@ behaving; until then this entry records intent, not proof.
 - **Boundary:** no SQL, route, package, timer, production path, host mutation, credential, deploy, publication,
   or customer activation was added. Evidence:
   `Blueprints/handoffs/2026-09-26-football-intelligence-stage-b-artifact-registry.md`.
+
+## 2026-09-26 — Stage B ordinary-PBP replay and minimum observed facts
+
+- **Decision: canonical play facts begin from a receipt, never an unverified path or caller-supplied row set.**
+  `replayReceipt` binds the immutable receipt to its content-addressed object and verifies receipt hash,
+  object hash, and byte length before parsing. Exact bytes then cross the injected `TabularReader` port;
+  football-intelligence domain code does not add a fifth CSV/Parquet parser.
+- **Decision: the first canonical slice remains strictly observed and bounded.** It retains game/play,
+  season/week/type, possession/defense, situation, pass/rush/scramble, touchdown, yards gained, and exact
+  source provenance. No-play and non-scrimmage rows are counted exclusions. EPA, player identity guesses,
+  formation/personnel, FTN enrichment, participation, Scheme DNA, System Signal, Coaching Tree, persistence,
+  serving, and customer interpretation remain later stages.
+- **Boundary:** ordinary PBP remains the current denominator; FTN remains coverage-gated enrichment;
+  participation remains historical calibration. Commit `e7c052c6437c83c42fb5afe1d20d3e9de473f02f` adds
+  no SQL, route, package, timer, production path, remote storage, credential, deployment, publication, or
+  customer activation behavior.

@@ -12,6 +12,7 @@ const execFileAsync = promisify(execFile);
 
 const {
   ArtifactRegistryError,
+  SOURCE_ADMISSIONS,
   createLocalArtifactRegistry,
 } = require("../src/services/footballIntelligence");
 
@@ -36,6 +37,13 @@ async function temporaryRegistry(t) {
     clock: () => new Date("2026-09-26T12:00:00.000Z"),
   });
 }
+
+test("source catalog preserves ordinary PBP, FTN enrichment, and historical participation roles", () => {
+  assert.deepEqual(SOURCE_ADMISSIONS.play_by_play.allowed_uses, ["current_denominator", "historical_replay"]);
+  assert.deepEqual(SOURCE_ADMISSIONS.ftn_charting.allowed_uses, ["tactical_enrichment", "historical_calibration"]);
+  assert.deepEqual(SOURCE_ADMISSIONS.pbp_participation.allowed_uses, ["historical_calibration", "historical_replay"]);
+  assert.equal(SOURCE_ADMISSIONS.pbp_participation.allowed_uses.includes("current_denominator"), false);
+});
 
 test("registers immutable bytes, a source receipt, and a rebuildable index", async (t) => {
   const registry = await temporaryRegistry(t);

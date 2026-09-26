@@ -18,6 +18,21 @@ Command Center monitoring, and alert delivery. The remaining football-intelligen
 gate is to include the selected artifact root in that pattern and prove an artifact-specific
 restore/hash/index/read-model rebuild. No second backup architecture is needed.
 
+The adoption review of `cecd9b64c3a1d1fc5bb529e0d1cbd7b25cad5881` is complete. The registry was
+retained rather than rebuilt: its injected-root isolation, content addressing, source admission,
+immutable receipts, supersession link, generated index, CLI, tests, and DR-reuse boundary match
+the Stage B acceptance contract. One seam was strengthened before reuse: receipt replay now verifies
+the receipt and referenced object together, including declared byte length.
+
+The next smallest Stage B slice landed as `e7c052c6437c83c42fb5afe1d20d3e9de473f02f`:
+
+```text
+exact registered ordinary nflverse PBP receipt
+  -> verified receipt-bound replay
+  -> injected TabularReader.readRows({ exact bytes, media type, required columns, schema fingerprint })
+  -> bounded deterministic football-observed-fact.v1 plays
+```
+
 ## Files
 
 Added:
@@ -27,6 +42,8 @@ Added:
 - `src/services/footballIntelligence/README.md`
 - `scripts/football-intelligence-artifacts.js`
 - `test/footballIntelligenceArtifactRegistry.test.js`
+- `src/services/footballIntelligence/ordinaryPbp.js`
+- `test/footballIntelligenceOrdinaryPbp.test.js`
 - `Direction/reviews/2026-09-26-football-intelligence-dr-reuse-review.md`
 - this handoff
 
@@ -54,9 +71,18 @@ Updated:
 The index is a navigation projection, not replay authority. Immutable receipt and object
 hashes remain authoritative.
 
+The ordinary-PBP slice accepts only `raw_source` / `play_by_play` / `current_denominator`
+receipts. It retains observed game/play, season/week/type, team, situation, pass/rush/scramble,
+touchdown, yards gained, and exact provenance. It measures no-play/non-scrimmage exclusions and
+fails closed on missing columns, row-count drift, invalid bounded values, or duplicate play keys.
+It does not parse CSV/Parquet itself, infer identities, compute EPA, claim personnel/formation,
+or consume FTN/participation data.
+
 ## Verification
 
 - PASS — focused football-intelligence suites: 29 / 29.
+- PASS — post-adoption focused suites: 19 / 19, including 12 source-catalog/registry/replay/ordinary-PBP tests.
+- PASS — post-adoption full `npm test -- --test-reporter=dot` (exit 0; 509 dot-reporter tests).
 - PASS — full `npm test -- --test-reporter=dot` (exit 0).
 - PASS — `git diff --check`.
 - PASS — `node scripts/check-kickoff-drift.js`.
@@ -81,7 +107,7 @@ as part of the already-proven recovery path.
 
 ## Next smallest safe step
 
-Add the first local source adapter that translates one exact registered ordinary nflverse PBP
-receipt into bounded canonical play facts. Keep parsing behind the existing `TabularReader` port,
-use deterministic fixtures, and do not add collection scheduling, SQL, routes, or production
-activation.
+Define the smallest canonical team identity/dimension assertion needed to resolve the observed
+`posteam` / `defteam` keys without guessing or adding persistence. Keep Yahoo/Sleeper/ESPN/CBS
+provider identifiers as effective-dated namespace assertions, preserve unresolved/disputed states,
+and do not begin feature windows until the dimension contract and deterministic tests are closed.

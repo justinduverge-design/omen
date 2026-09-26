@@ -813,6 +813,12 @@ own comment says is **a design-steward decision, not a build fix**, and therefor
 
 - **Status:** IN_PROGRESS
 - **Claim:** 2026-09-24 Codex — founder-assigned architecture, reuse audit, and non-production vertical proof under `ATA-20260924-FDSI` on `codex/football-data-research`.
+- **Evidence (Stage B progress, 2026-09-26):** reviewed and adopted the unpushed registry commit
+  `cecd9b64c3a1d1fc5bb529e0d1cbd7b25cad5881`, then landed exact ordinary-PBP receipt replay through
+  the injected `TabularReader` boundary into bounded deterministic observed play facts as
+  `e7c052c6437c83c42fb5afe1d20d3e9de473f02f`. Handoff:
+  `Blueprints/handoffs/2026-09-26-football-intelligence-stage-b-artifact-registry.md`. Item remains
+  `IN_PROGRESS`; identity/dimensions, feature windows, serving, and customer activation are not complete.
 - **Blocked by:** None
 - **Priority:** P0 — founder deadline Tuesday 2026-09-29
 - **Cost:** large, staged into bounded non-production slices

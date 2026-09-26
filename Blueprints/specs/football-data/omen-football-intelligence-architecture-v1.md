@@ -166,6 +166,28 @@ publication owns the accepted serving version; product owns bounded language. No
 downstream owner may upgrade authority—for example, turning a schedule display name into
 a confirmed coach identity or correlation into causation.
 
+### Minimum canonical ordinary-PBP fact — implemented 2026-09-26
+
+The first Stage B normalization slice is deliberately narrower than the eventual fact model.
+An exact `raw_source` / `play_by_play` / `current_denominator` receipt is verified together
+with its referenced object, then its bytes cross an injected `TabularReader` port. Domain code
+does not parse CSV or Parquet and does not fetch a source.
+
+`football-observed-fact.v1` currently retains only:
+
+- source game/play identity and season/week/type;
+- possession and defense team observations, without resolving new identities;
+- down, yards to go, yardline, and game-seconds context when present;
+- ordinary-PBP pass, rush, scramble, no-play, and source play-type observations;
+- observed touchdown and yards gained;
+- exact receipt, artifact, source-family, schema-fingerprint, and normalization-version provenance.
+
+No-play and non-scrimmage rows are measured exclusions from this offensive-play slice, not
+zeroes. Missing required columns, receipt/reader row-count drift, invalid bounded values, and
+duplicate game/play identities fail closed. The output is deterministically ordered by game and
+play. It does not add EPA, player crosswalks, participation, formation/personnel, FTN enrichment,
+Scheme DNA, System Signal, Coaching Tree, serving persistence, or customer semantics.
+
 ## Required metadata on every derived output
 
 Every feature window, Scheme DNA, Coaching Tree edge, and System Signal must carry or

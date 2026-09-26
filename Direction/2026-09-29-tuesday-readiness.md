@@ -283,7 +283,12 @@ not re-discover or re-litigate this sequence from conversation history.
   The degraded Ledger contracts bind only to existing `moves-history.v2` / `move-detail.v1` behavior.
 - **Stage B:** local artifact-registry kernel implemented on 2026-09-26 with an injected root, immutable
   SHA-256 objects and receipts, admitted-source/use enforcement, correction links, tamper-checked replay,
-  rebuildable machine index, CLI, module map, and focused tests. No production wiring was added.
+  rebuildable machine index, CLI, module map, and focused tests. The next bounded slice is also complete
+  in `e7c052c6437c83c42fb5afe1d20d3e9de473f02f`: exact ordinary-PBP receipt replay is bound to the
+  injected `TabularReader` port and produces deterministic `football-observed-fact.v1` play facts with
+  measured no-play/non-scrimmage exclusions and fail-closed schema/row/value/identity checks. It adds no
+  parser, fetcher, identity inference, enrichment, persistence, SQL, route, package, schedule, or production
+  wiring. Next is the smallest identity/dimension contract required by these observed team keys.
 - **Stage D:** not started; blocked on a real serving API and customer contract.
 
 When this conversation or context window ends, the next agent should pick up by reading this section and
