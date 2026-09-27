@@ -103,9 +103,6 @@ const config = {
     apiKey: process.env.RESEND_API_KEY || null,
   },
 
-  // --- Anthropic ------------------------------------------------
-  anthropicApiKey: process.env.ANTHROPIC_API_KEY,
-
   // --- Mobile minimum supported version (O7 forced-update gate) --
   //
   // Once a build is on a phone it stays there until the user updates.

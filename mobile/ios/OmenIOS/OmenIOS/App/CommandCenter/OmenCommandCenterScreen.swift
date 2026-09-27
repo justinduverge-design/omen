@@ -32,6 +32,25 @@ private struct CommandCenterViewportHeightKey: PreferenceKey {
     }
 }
 
+/// Rendered footprint of the report pill overlay, including its own bottom padding.
+///
+/// Found 2026-09-27: `contentFits`/`scrollDisabled` compared the content stack straight
+/// against the full viewport, exactly as the overlay comment above says it does -- the pill
+/// "neither scrolls with the content nor counts against `contentFits`". That is correct for
+/// the artboard's own fixture, which leaves enough true empty space below the content for the
+/// pill's reserved `.spacer` to sit over without touching anything. A real signed-in league
+/// (longer League Pulse copy, live scores) can be taller than that fixture, and when it is,
+/// `contentFits` still read `true` off the full-screen comparison, scrolling stayed disabled,
+/// and the last card rendered underneath the floating pill with no way to reach it. This
+/// measures the pill the same way content/viewport are already measured here and reserves
+/// its real footprint, so `contentFits` reflects the space actually available to content.
+private struct CommandCenterReportPillHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
 struct OmenCommandCenterScreen: View {
     let state: OmenCommandCenterState
     let onSwitchContext: (() -> Void)?
@@ -72,11 +91,14 @@ struct OmenCommandCenterScreen: View {
     @State private var detailRow: OmenPlatformRowState?
     @State private var contentHeight: CGFloat = 0
     @State private var viewportHeight: CGFloat = 0
-    /// True once both have been measured and the content is no taller than the viewport.
-    /// Unmeasured (either still 0) reads as "does not fit", so scrolling stays available
-    /// until we actually know — never the other way round.
+    @State private var reportPillHeight: CGFloat = 0
+    /// True once both have been measured and the content is no taller than the space actually
+    /// left after the floating report pill's reserved footprint. Unmeasured (either still 0)
+    /// reads as "does not fit", so scrolling stays available until we actually know — never
+    /// the other way round. The pill's height is 0 when `onReportProblem` is nil, so this is
+    /// unchanged for every caller that doesn't supply one.
     private var contentFits: Bool {
-        contentHeight > 0 && viewportHeight > 0 && contentHeight <= viewportHeight
+        contentHeight > 0 && viewportHeight > 0 && contentHeight <= (viewportHeight - reportPillHeight)
     }
 
     @State private var showWaiverDetail = false
@@ -189,16 +211,25 @@ struct OmenCommandCenterScreen: View {
         .onPreferenceChange(CommandCenterContentHeightKey.self) { contentHeight = $0 }
         .onPreferenceChange(CommandCenterViewportHeightKey.self) { viewportHeight = $0 }
         .omenFitProbe("chrome.fit.command-center")
-        // E042-E047. Outside the `ScrollView` and above the background, so it neither scrolls
-        // with the content nor counts against `contentFits` — the two properties that decide
-        // whether this screen still honours its `fits` declaration.
+        // E042-E047. Outside the `ScrollView`, so it never scrolls with the content — it stays
+        // fixed at the bottom of the screen regardless of scroll position. It DOES count
+        // against `contentFits` (see `CommandCenterReportPillHeightKey` above): the artboard's
+        // own fixture leaves true empty space here, but real league content can be taller, and
+        // when it is, this reserved footprint is what keeps the content underneath reachable
+        // by scroll instead of permanently hidden behind the pill.
         .overlay(alignment: .bottom) {
             if let onReportProblem {
                 OmenReportPill(action: onReportProblem)
                     .padding(.horizontal, OmenSpacing.step16)
                     .padding(.bottom, OmenSpacing.step12)
+                    .background(
+                        GeometryReader { proxy in
+                            Color.clear.preference(key: CommandCenterReportPillHeightKey.self, value: proxy.size.height)
+                        }
+                    )
             }
         }
+        .onPreferenceChange(CommandCenterReportPillHeightKey.self) { reportPillHeight = $0 }
         .background(OmenColor.bg.ignoresSafeArea())
         .sheet(item: $detailRow) { row in
             platformDetailSheet(row)

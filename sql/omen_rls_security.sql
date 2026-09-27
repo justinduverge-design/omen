@@ -13,10 +13,28 @@
 -- destructive drops -- run against production only with Justin's
 -- explicit sign-off, after confirming no other consumer still reads
 -- `public.subscriptions` or `public.users.is_subscribed`.
--- =================================================================
+--
+-- 2026-09-27: production database-hygiene pass (0 rows / 0 code
+-- references, verified before dropping; see decision log). Also closed
+-- an over-grant gap: `users`, `moves`, `consent_records`,
+-- `deletion_audit_log`, and `oauth_state` all carried Supabase's default
+-- full-CRUD grant to `anon`/`authenticated`, relying entirely on RLS to
+-- block access. RLS did block it (verified empirically
+-- against a throwaway project before touching production), but that made
+-- "RLS stays enabled" a single point of failure for tables the app never
+-- accesses as anon/authenticated in the first place -- the frontend's only
+-- Supabase client (`frontend/src/lib/supabase.js`) is auth-session-only and
+-- never calls `.from()`; the Express backend always uses the service-role
+-- key. `oauth_credentials` and `system_context` are dropped below;
+-- everything else is closed with explicit `revoke`/`grant` blocks in
+-- section 5, matching the pattern this file already used for `profiles`,
+-- `platform_connections`, and `waitlist_signups`.
 
 drop table if exists public.subscriptions cascade;
 alter table public.users drop column if exists is_subscribed;
+drop table if exists public.oauth_credentials cascade;
+drop table if exists public.system_context cascade;
+drop table if exists public.local_snapshots cascade;
 
 
 -- =================================================================
@@ -66,14 +84,9 @@ create table if not exists public.consent_records (
   user_agent    text
 );
 
-create table if not exists public.oauth_credentials (
-  user_id          uuid not null references public.users(id) on delete cascade,
-  platform         text not null,
-  access_token_id  uuid,
-  refresh_token_id uuid,
-  expires_at       timestamptz,
-  primary key (user_id, platform)
-);
+-- oauth_credentials was dropped 2026-09-27: 0 rows, 0 code references.
+-- Superseded by platform_connections' own token_secret_id/refresh_secret_id/
+-- espn_secret_id/swid_secret_id columns, which is what the app actually uses.
 
 create table if not exists public.platform_connections (
   id          uuid primary key default gen_random_uuid(),
@@ -153,22 +166,16 @@ create table if not exists public.oauth_state (
   expires_at  timestamptz
 );
 
--- local_snapshots -- emergency-fallback ingestion path for ssff-bot data.
--- See omen_agents.js [A] LOCAL LOGIC BRIDGE.
-create table if not exists public.local_snapshots (
-  league_id    text primary key,
-  snapshot     jsonb not null,
-  source       text default 'ssff-bot-local',
-  exported_at  timestamptz,
-  ingested_at  timestamptz default now()
-);
+-- local_snapshots was dropped 2026-09-27: 0 rows, and its sole reader
+-- (omen_agents.js's fetchWithLocalFallback) was confirmed unreachable --
+-- never required by server.js, any cron entry point, or any Dockerfile.
+-- omen_agents.js itself was already-retired legacy code (its own header
+-- said so) superseded by src/services/agents.js + src/routes/optimizer.js,
+-- and its "ssff-bot" data source never existed anywhere in this repo.
+-- Deleted alongside it, not resurrected.
 
--- system_context -- internal KV config store (e.g. current_week, model_version).
-create table if not exists public.system_context (
-  key         text primary key,
-  value       jsonb,
-  updated_at  timestamptz
-);
+-- system_context was dropped 2026-09-27: 0 rows, 0 code references, and its
+-- role (internal KV config store) was never actually populated.
 
 -- waitlist_signups -- public landing-page capture.
 -- Duplicate emails are allowed intentionally so the current frontend never
@@ -186,13 +193,15 @@ create table if not exists public.waitlist_signups (
 -- =================================================================
 
 create index if not exists idx_consent_records_user_id      on public.consent_records      (user_id);
-create index if not exists idx_oauth_credentials_user_id    on public.oauth_credentials    (user_id);
 create index if not exists idx_platform_connections_user_id on public.platform_connections (user_id);
 create index if not exists idx_moves_user_week              on public.moves                (user_id, week_num, season);
 create unique index if not exists idx_moves_user_week_unique on public.moves               (user_id, week_num, season);
 create index if not exists idx_moves_pending                on public.moves                (outcome) where outcome = 'pending';
 create index if not exists idx_oauth_state_expires_at       on public.oauth_state          (expires_at);
 create index if not exists idx_waitlist_signups_created_at  on public.waitlist_signups     (created_at);
+create index if not exists idx_league_office_awards_user_id     on public.league_office_awards     (user_id);
+create index if not exists idx_league_office_lines_user_id      on public.league_office_lines      (user_id);
+create index if not exists idx_league_office_sync_jobs_user_id  on public.league_office_sync_jobs  (user_id);
 
 
 -- =================================================================
@@ -207,7 +216,6 @@ alter table public.platform_connections  enable row level security;
 alter table public.moves                 enable row level security;
 alter table public.deletion_audit_log    enable row level security;
 alter table public.oauth_state           enable row level security;
-alter table public.local_snapshots       enable row level security;
 alter table public.system_context        enable row level security;
 alter table public.waitlist_signups      enable row level security;
 
@@ -215,9 +223,15 @@ alter table public.waitlist_signups      enable row level security;
 drop policy if exists users_self_select on public.users;
 drop policy if exists users_self_update on public.users;
 drop policy if exists users_self_insert on public.users;
-create policy users_self_select on public.users for select using      (auth.uid() = id);
-create policy users_self_update on public.users for update using      (auth.uid() = id);
-create policy users_self_insert on public.users for insert with check (auth.uid() = id);
+create policy users_self_select on public.users for select to authenticated using      ((select auth.uid()) = id);
+create policy users_self_update on public.users for update to authenticated using      ((select auth.uid()) = id);
+create policy users_self_insert on public.users for insert to authenticated with check ((select auth.uid()) = id);
+
+-- Supabase grants full CRUD to anon/authenticated by default on table
+-- creation; revoke it and grant back only what the policies above use.
+-- Closed 2026-09-27 -- see the top-of-file note.
+revoke all on table public.users from anon, authenticated;
+grant select, insert, update on table public.users to authenticated;
 
 -- profiles -- self-only team preference
 drop policy if exists profiles_self_select on public.profiles;
@@ -244,23 +258,23 @@ grant select, insert, update on table public.profiles to service_role;
 drop policy if exists consent_self_select on public.consent_records;
 drop policy if exists consent_self_insert on public.consent_records;
 drop policy if exists consent_self_update on public.consent_records;
-create policy consent_self_select on public.consent_records for select using      (auth.uid() = user_id);
-create policy consent_self_insert on public.consent_records for insert with check (auth.uid() = user_id);
-create policy consent_self_update on public.consent_records for update using      (auth.uid() = user_id);
+create policy consent_self_select on public.consent_records for select to authenticated using      ((select auth.uid()) = user_id);
+create policy consent_self_insert on public.consent_records for insert to authenticated with check ((select auth.uid()) = user_id);
+create policy consent_self_update on public.consent_records for update to authenticated using      ((select auth.uid()) = user_id);
 
--- oauth_credentials
-drop policy if exists oauth_self_select on public.oauth_credentials;
-drop policy if exists oauth_self_insert on public.oauth_credentials;
-drop policy if exists oauth_self_update on public.oauth_credentials;
-drop policy if exists oauth_self_delete on public.oauth_credentials;
-create policy oauth_self_select on public.oauth_credentials for select using      (auth.uid() = user_id);
-create policy oauth_self_insert on public.oauth_credentials for insert with check (auth.uid() = user_id);
-create policy oauth_self_update on public.oauth_credentials for update using      (auth.uid() = user_id);
-create policy oauth_self_delete on public.oauth_credentials for delete using      (auth.uid() = user_id);
+revoke all on table public.consent_records from anon, authenticated;
+grant select, insert, update on table public.consent_records to authenticated;
 
--- platform_connections -- read-own; api server (service_role) manages writes
+-- oauth_credentials was dropped 2026-09-27 -- see the top-of-file note.
+
+-- platform_connections -- read-own; api server (service_role) manages writes.
+-- 2026-09-27: production had also accumulated "platform: insert own" and
+-- "platform: update own" policies that this file never created and that
+-- were never matched by a table grant (dead, and a deviation from the
+-- read-only-via-RLS design below) -- dropped directly against production;
+-- this file was already correct and needs no insert/update policy added.
 drop policy if exists platforms_self_select on public.platform_connections;
-create policy platforms_self_select on public.platform_connections for select using (auth.uid() = user_id);
+create policy platforms_self_select on public.platform_connections for select to authenticated using ((select auth.uid()) = user_id);
 
 -- Column-level grants keep client-visible connection status useful without
 -- exposing Vault secret UUIDs. Server routes use service_role and bypass this.
@@ -281,17 +295,24 @@ grant select (
 
 -- moves -- full self-access
 drop policy if exists moves_self_all on public.moves;
-create policy moves_self_all on public.moves for all
-  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy moves_self_all on public.moves for all to authenticated
+  using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 grant select, insert, update on table public.moves to service_role;
+
+revoke all on table public.moves from anon, authenticated;
+grant select, insert, update on table public.moves to authenticated;
 
 -- deletion_audit_log -- never readable by users; service_role still bypasses RLS
 drop policy if exists deletion_audit_no_user_read on public.deletion_audit_log;
 create policy deletion_audit_no_user_read on public.deletion_audit_log for select using (false);
+revoke all on table public.deletion_audit_log from anon, authenticated;
 
--- oauth_state, local_snapshots, system_context -- service_role only.
--- RLS enabled with NO policies = no anon/auth user can read or write.
--- service_role bypasses RLS.
+-- oauth_state -- service_role only.
+-- RLS enabled with NO policies = no anon/auth user can read or write, and
+-- as of 2026-09-27 the default anon/authenticated table grant is revoked
+-- too, so that stays true even if RLS is ever accidentally disabled.
+-- service_role bypasses RLS and is not revoked here.
+revoke all on table public.oauth_state from anon, authenticated;
 
 -- waitlist_signups -- writes go through POST /api/waitlist, which uses the
 -- server-only service_role key.  Do not expose a direct browser Data API path.

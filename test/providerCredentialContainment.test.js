@@ -565,3 +565,34 @@ test("A8: scrubbing `code` must not destroy the diagnostics an error report exis
   assert.equal(out.status_code, 500);
   assert.equal(out.error_code, "X");
 });
+
+// ---------------------------------------------------------------------------
+// 2026-09-27. Found the same way A8 found the `code` gap: provoking the
+// scrubber with a canary rather than reading it. `scrubUrl` (used only for
+// `event.request.url`) already had a state-aware rule; breadcrumbs go through
+// `scrubText`/`scrubValue` instead, which never did, so an OAuth `state`
+// (the CSRF token) could reach the error backend unredacted inside a
+// breadcrumb's `data.url`/`from`/`to` field.
+// ---------------------------------------------------------------------------
+
+test("2026-09-27: an OAuth state value in a breadcrumb URL is scrubbed, not just in event.request.url", () => {
+  const { scrubSentryBreadcrumb } = require("../src/middleware/sentry");
+  const canary = "CANARY_STATE_zzz333";
+
+  const crumb = scrubSentryBreadcrumb({
+    category: "navigation",
+    data: { url: `https://slopssaloon.com/api/yahoo/callback?code=abc&state=${canary}`, from: `/x?state=${canary}`, to: "/y" },
+  });
+
+  assert.ok(!JSON.stringify(crumb).includes(canary), "no OAuth state value may reach the error backend via a breadcrumb");
+});
+
+test("2026-09-27: scrubbing `state` must not destroy diagnostics that merely contain the word", () => {
+  const { scrubText } = require("../src/middleware/sentry");
+
+  // Mirrors the `code` case: `state` cannot join the general vocabulary, which allows any
+  // prefix/suffix and would also redact these legitimate diagnostic fields.
+  for (const kept of ["connection_state=stale", "reconciliation_state=exact", "publication_state=published"]) {
+    assert.equal(scrubText(kept), kept, `${kept} must survive scrubbing`);
+  }
+});
