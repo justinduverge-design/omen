@@ -41,6 +41,18 @@ const SENSITIVE_TEXT_PATTERN = /([A-Za-z0-9_-]*(?:password|cookie|token|secret|s
  */
 const OAUTH_CODE_TEXT_PATTERN = /(^|[?&\s])(code)(=)([^&\s"',;}]+)/gi;
 /**
+ * OAuth `state` (the CSRF token), same narrow query-parameter-position rule as `code` above and
+ * for the same reason: `state` is too generic a word for the SENSITIVE_TEXT_PATTERN vocabulary
+ * (it would also catch `connection_state`, `application_state`, `reconciliation_state`, all
+ * legitimate diagnostic fields this app relies on).
+ *
+ * `scrubUrl` already had a `state`-aware rule (`SENSITIVE_QUERY_PARAMETER_PATTERN`), but that
+ * function only runs on `event.request.url`. `scrubText` -- which is what actually scrubs Sentry
+ * breadcrumb `data.url`/`from`/`to` fields via `scrubValue` -- never had an equivalent, so a
+ * breadcrumb could carry an OAuth `state` value unredacted. Found 2026-09-27.
+ */
+const OAUTH_STATE_TEXT_PATTERN = /(^|[?&\s])(state)(=)([^&\s"',;}]+)/gi;
+/**
  * `Bearer <token>` and `Basic <token>` need their own rule, because the
  * key/value rule above stops a value at the first space — so
  * `authorization: Bearer ya29.secret` would have redacted the word "Bearer"
@@ -87,7 +99,8 @@ function scrubText(value) {
   return value
     .replace(AUTHORIZATION_SCHEME_PATTERN, (_match, scheme) => `${scheme} ${SCRUBBED}`)
     .replace(SENSITIVE_TEXT_PATTERN, (_match, key, separator) => `${key}${separator}${SCRUBBED}`)
-    .replace(OAUTH_CODE_TEXT_PATTERN, (_match, lead, key, eq) => `${lead}${key}${eq}${SCRUBBED}`);
+    .replace(OAUTH_CODE_TEXT_PATTERN, (_match, lead, key, eq) => `${lead}${key}${eq}${SCRUBBED}`)
+    .replace(OAUTH_STATE_TEXT_PATTERN, (_match, lead, key, eq) => `${lead}${key}${eq}${SCRUBBED}`);
 }
 
 function scrubValue(value) {

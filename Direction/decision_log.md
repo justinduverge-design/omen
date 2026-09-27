@@ -3656,3 +3656,184 @@ behaving; until then this entry records intent, not proof.
 - **Boundary:** SQL is authored but unapplied; no RLS runtime proof, publication, remote artifact
   storage, restore, credential, schedule, deployment, push, merge, or customer activation occurred.
   Local implementation: `63689a4a7ca5873b9da12d4f3710f5a1c1e36cb8`.
+
+## 2026-09-27 — Football-intelligence Gate D RLS proof, and a wider database hygiene/grant-hardening pass
+
+- **Decision: the football-intelligence serving RLS design is empirically proven, not just plausible.**
+  Supabase database branching is unavailable on this org's plan, so a throwaway standalone project
+  (`omen-rls-proof-throwaway`, since paused) stood in for it. The exact serving SQL was applied there,
+  a real Supabase-issued `authenticated` JWT was obtained by creating a user directly via SQL and
+  signing in through the real password grant, and the exact `requestScopedRepository()` client
+  construction (`servingRepository.js`) was exercised against a live REST API: a valid user JWT sees
+  only the published row; superseded/retracted rows are invisible; INSERT/UPDATE are denied (403); an
+  invalid `apikey` is rejected before any query runs (401), which is what establishes that `apikey`
+  gates gateway acceptance only and role/RLS enforcement is driven entirely by the JWT in
+  `Authorization` — the open question from the same-day Gate D audit. One honest limit: Supabase's MCP
+  tooling never exposes a project's actual `service_role` secret, so the test used the anon key as
+  `apikey` rather than the literal production key `requestScopedRepository()` uses; the observed
+  gateway behavior makes the distinction very unlikely to matter, but it is not bit-for-bit identical.
+- **Decision: founder authorized a broader database audit beyond football intelligence, executed in
+  parallel.** Two background passes ran against production (read-only: `list_tables`, `get_advisors`,
+  `information_schema`/`pg_stat_*` queries — no writes) while the RLS proof ran on the throwaway
+  project: one full schema/architecture review, one Stripe-residue-specific check.
+  - **Stripe residue: none found.** `public.subscriptions` and `users.is_subscribed` — the objects
+    `sql/omen_rls_security.sql`'s 2026-07-12 gated drop targeted — are already absent from production.
+    The `current_sprint.md` line calling this "a separately gated database action" was stale; closed.
+  - **Schema/architecture findings, independently re-verified before acting on any of them:** no
+    shared Supabase client (26 separate `createClient()` call sites) or repository layer;
+    `platform_connections` hand-rolled across 12 files; `oauth_credentials` (0 rows, 0 code
+    references) duplicating what `platform_connections`'s own secret-ID columns already do;
+    `system_context` (0 rows, 0 references) never populated; `profiles` vs `users` both claiming
+    "team name" ownership with no arbitration; `local_snapshots` (a raw jsonb blob table) directly
+    contradicting the football-intelligence architecture doc's own "Supabase is a serving/index tier,
+    never a blob store" rule; a bare unindexed `league_id text` duplicated across 9 tables with no
+    `leagues` entity behind it; and Supabase's own advisors independently flagging 27 RLS
+    per-row-`auth.uid()`-reevaluation warnings, 22 duplicate/overlapping permissive policies, 1
+    duplicate index, 3 unindexed foreign keys, and 10 RLS-enabled-with-no-policy tables.
+- **Decision: applied the low-risk, mechanical subset directly to production; held the larger
+  structural items (client centralization, `profiles`/`users`, `local_snapshots`, a `leagues`
+  entity) for a separately scoped pass.** Every claim below was re-verified directly (row counts,
+  grep for code references, current `pg_policies`/`information_schema` state) immediately before
+  acting, not taken from the background passes' report. Order run, each as its own migration with
+  an advisor check after: (1) three missing FK indexes on `league_office_{awards,lines,sync_jobs}`;
+  (2) consolidated the drifted colon-named RLS policies (present live, never in
+  `omen_rls_security.sql` — created by some other one-off process and never reconciled) into the
+  file's canonical snake_case set, switched to `(select auth.uid())` and explicit `to authenticated`;
+  (3) dropped the duplicate index `platform_user_id_idx`; (4) dropped `oauth_credentials` and
+  `system_context`.
+- **Finding beyond the approved list, surfaced by the consolidation pass and closed the same session:**
+  `users`, `moves`, and `consent_records` all carried Supabase's default full-CRUD grant to `anon`,
+  with only each table's RLS `auth.uid()` check as the gate — confirmed exploitable-in-principle
+  (empirically, `anon` had `DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE`) even though
+  nothing in the app legitimately uses it: the frontend's only Supabase client
+  (`frontend/src/lib/supabase.js`) is auth-session-only and never calls `.from()`; the Express backend
+  always uses the service-role key. A full sweep of every public table's `anon`/`authenticated` grants
+  afterward found the identical pattern on three more tables — `deletion_audit_log`, `local_snapshots`,
+  `oauth_state` — each already fully blocked by RLS (no policy, or an explicit `using (false)`), so not
+  actively exploitable, but leaving "RLS stays enabled" as the only thing standing between the public
+  anon key (shipped in the frontend bundle) and those tables. All six were closed with an explicit
+  `revoke all ... from anon, authenticated`, re-granting `authenticated` only what its policies use.
+  A final sweep confirmed `anon` now has zero grants on any `public` table.
+- **Verification:** `get_advisors` re-run after all changes — the 27 `auth_rls_initplan` and 22
+  `multiple_permissive_policies` findings are gone; `duplicate_index` and `unindexed_foreign_keys` are
+  gone; the 10 RLS-enabled-no-policy findings are unchanged (intentional — those tables are
+  service-role-only by design). `npm test`: **1259/1259**, unaffected as expected, since the backend
+  never relies on RLS for its own authorization. `sql/omen_rls_security.sql` (the long-lived source of
+  truth) was updated to match production exactly, so it stops drifting further; provenance of the
+  exact statements run is `sql/2026-09-27_production_hygiene_and_grant_hardening.sql`;
+  `test/securitySql.test.js` still passes 8/8 against the updated file.
+- **Not done, deliberately held for a separately scoped pass:** centralizing the 26 Supabase-client
+  call sites and the 12 `platform_connections` call sites into a repository layer; resolving
+  `profiles` vs `users`; `local_snapshots`'s fate; introducing a real `leagues` entity. None of these
+  are safe to rush through a single-statement production change the way the mechanical fixes above
+  were — each touches live route behavior, not just schema/grant hygiene.
+
+## 2026-09-27 — Full architecture/security/secondary-components audit (design only, nothing built)
+
+Founder widened scope from "the whole database" to "start from zero" on architecture, security, and
+secondary components. Four parallel read-only workstreams (data model, backend architecture/routing,
+security hardening, secondary components) plus direct verification. Full findings, exact file/line
+citations, and a priority-ordered plan: `Direction/reviews/2026-09-27-database-and-backend-architecture-audit.md`.
+
+- **Decision: caught and corrected a cross-agent contradiction before it shipped as a
+  recommendation.** One workstream called `local_snapshots` a live emergency fallback based on
+  `omen_agents.js`'s `fetchWithLocalFallback` function; another independently found `omen_agents.js`
+  is never `require()`'d by `server.js`, any cron entry point, or any Dockerfile. Verified directly —
+  it is genuinely dead code, and `local_snapshots`'s 0 rows means unreachable, not untriggered. Left
+  as an open founder decision (build the fallback for real, or delete both) rather than defaulting
+  either way.
+- **Real live findings, not just architecture preference:** OAuth `state` can still reach Sentry
+  breadcrumbs unredacted (`known_issues.md` #339's description is itself partially stale — the claim
+  that URLs are "never examined" is false; the actual gap is narrower, `state` only); 5 of 7
+  `league_office_*` tables store bare `league_id` with no platform qualifier, a live collision risk
+  across providers, not merely a modeling preference; a GitHub Action fires a live production job on
+  any push touching its own workflow file, not just manual dispatch.
+- **Product constraint supplied mid-audit, binding on the data-model design:** ESPN/Yahoo/Sleeper
+  connections already expose the whole real-world league, so `leagues` must be modeled as a shared
+  resource, not a per-connection dimension; `platform` must stay an open value, never a hardcoded
+  enum, since more providers (and possibly a first-party Omen platform) are expected later.
+- **Verified clean, not assumed:** Vault credential handling, CORS/Helmet/CSP, the error handler's
+  production 5xx suppression, SQL-injection surface, hardcoded-secret absence, `npm audit
+  --production` (0 vulnerabilities).
+
+## 2026-09-27 — `local_snapshots`/`omen_agents.js` resolved: deleted, not resurrected; closed `S7`
+
+Founder instruction: if the local-snapshot fallback would make the app better, turn it on; if it was
+supposed to be on and wasn't, that's a real problem to fix. Read `omen_agents.js` in full (not just
+the one function the earlier audit had read) before acting on that instruction.
+
+- **Decision: `omen_agents.js` was not a good idea nobody enabled — it was already replaced by a
+  better system that already runs.** Its own header comment says so directly: *"the original
+  standalone agent file drifted into non-executable generated text. Current production agent work
+  lives in `src/services/agents.js` and `src/routes/optimizer.js`."* Its HTTP router was already
+  retired on purpose — every route responds `410 Gone`, `"Use /api/omen/mvp-move instead"` — and that
+  route is confirmed real and live in `src/routes/omen.js`. Its fallback data source, an external
+  "ssff-bot" meant to push league snapshots into `local_snapshots`, does not exist anywhere in this
+  repo or its docs, past or present (`grep -rli "ssff.bot"` across the whole repo: zero hits). Turning
+  it on would have meant serving emergency data from a bot that was never built, computed with a
+  hardcoded, pre-current-system VORP table.
+- **Action:** deleted `src/omen_agents.js`; dropped `public.local_snapshots` from production (0 rows;
+  its RLS/grants had already been hardened in the earlier pass today, now moot). Also deleted
+  `src/omen_prompt_loader.js` — confirmed nothing else ever required it; it existed solely to be
+  wired into `omen_agents.js`, which never happened, so it was already-dead code even before today.
+- **Bonus closure:** this directly finished the unrelated, already-`READY`, agent-buildable sprint
+  item `S7` (retire stale cloud-AI runtime dependencies) — its own `Done when:` clause named
+  `omen_prompt_loader.js:7`'s stale "the Anthropic API" comment specifically. Also removed
+  `@anthropic-ai/sdk` from `package.json` (confirmed zero imports anywhere) and the unused
+  `anthropicApiKey`/`ANTHROPIC_API_KEY` config slot from `src/config/index.js`. `S7` closed in
+  `current_sprint.md`.
+- **Verification:** `npm install` re-run to keep `package-lock.json` in sync (this repo has a
+  documented history of exactly that drift breaking `npm ci` in CI — not repeating it), 0
+  vulnerabilities. `npm test`: 1259/1259, unchanged. `test/securitySql.test.js`: 8/8 against the
+  updated `sql/omen_rls_security.sql` (also updated to drop `local_snapshots`'s create-table block and
+  its now-redundant anon/authenticated revoke line). `Direction/reviews/2026-09-27-database-and-backend-architecture-audit.md`'s
+  D3 section updated from an open founder decision to RESOLVED.
+
+## 2026-09-27 — Tree-integrity sweep, `state`-leak fix, and Tuesday readiness re-verification
+
+Founder asked for a broader dead-code/wiring sweep across the whole tree before committing, then
+separately asked for a grounded, re-verified answer on 2026-09-29 Tuesday beta readiness given real
+calendar pressure (Sunday, founder works Monday).
+
+- **Sweep found and fixed one of my own mistakes.** I had claimed `src/omen_prompt_loader.js` was
+  deleted (in the prior session entry and in `current_sprint.md`); it was only edited, never
+  actually removed. The backend sweep caught this by grepping for it directly rather than trusting
+  the log. Deleted it for real this time. Lesson already known in this repo, reapplied here: verify
+  the artifact, not the record of the artifact.
+- **Confirmed clean, three parallel sweeps:** frontend (build succeeds, no broken API calls, no
+  Stripe residue, no unused deps — 4 truly-orphaned UI components found: `Modal.jsx`, `PageHero.jsx`,
+  `Stepper.jsx`, `Textarea.jsx`, not yet removed); mobile (zero navigation dead-ends on iOS or
+  Android, zero unused native dependencies — iOS has no third-party SPM/CocoaPods dependencies at
+  all); backend (found `src/services/agents.js`, a 465-line six-sub-agent LLM pipeline, has zero
+  production callers — superseded by `services/omen.js`/`omenSelector.js`/`decisionBriefV2.js` — and
+  two more unused prod dependencies, `espn-fantasy-football-api` and
+  `@opentelemetry/exporter-trace-otlp-http`; also found `omen_api_v2.js` has drifted to ~90% inert
+  code behind a "still shrinking" comment, including an unreachable duplicate `/health` route shadowed
+  by `routes/system.js`). **None of the backend findings were acted on this pass** — deliberately held
+  given Tuesday timing; only the two already-confirmed-safe deletions (`omen_agents.js`,
+  `omen_prompt_loader.js`) and the fixes below shipped today.
+- **Fixed the `state`-leak finding from the earlier architecture audit.** Added
+  `OAUTH_STATE_TEXT_PATTERN` to `src/middleware/sentry.js`'s `scrubText`, mirroring the existing
+  `OAUTH_CODE_TEXT_PATTERN` rule exactly (same reasoning: `state` is too generic for the general
+  vocabulary, needs the narrow query-position-only match). Regression tests added to
+  `test/providerCredentialContainment.test.js` following this file's own established convention —
+  provoke the scrubber with a canary, prove it's gone, rather than asserting from a code read.
+  `Direction/known_issues.md` #339 corrected (its description was itself stale — it claimed breadcrumb
+  URLs are "never examined," which was false even before today's fix) and closed.
+- **Bumped iOS `CURRENT_PROJECT_VERSION` from 6 to 7** (both Debug and Release configs on the main
+  `OmenIOS` target only, not the UI-test target) — it had been stuck at the Sept 11 archive value
+  through three weeks of subsequent work; the founder cannot archive Tuesday without this.
+- **Tuesday readiness re-verified against code, not memory of the doc.** `Direction/2026-09-29-tuesday-readiness.md`
+  was written 2026-09-24 and reads as if its own §1/§2 gaps (7 unreachable screens, Trade only working
+  on Sleeper) are still open — its top summary line already said otherwise, but the body below it
+  was never cleaned up to match, which is exactly the kind of drift this doc's own header warns about.
+  Independently confirmed via `node scripts/check-screen-reachability.mjs` (clean, zero findings
+  today) and direct code reads (`GET /api/trade/roster` exists, `src/adapters/espn.js:1190` names it
+  as its caller, native iOS has real wired files — `TradeRosterFlowView.swift`,
+  `OmenTradeJourneyScreens.swift`, `TradeViewModel.swift`) that both items are actually done and
+  already on `main`, not still open. `node scripts/check-sprint-staleness.js` run in full: 14
+  findings, all pre-existing documentation/evidence-row bookkeeping debt, none of them a working-app
+  problem or a Tuesday blocker.
+- **Founder decision:** test on his own phone before archiving; today's work (dead-code cleanup,
+  database hardening, the `state` fix, and the version bump) goes into one PR, which the founder
+  explicitly authorized pushing and merging directly.

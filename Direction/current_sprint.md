@@ -112,7 +112,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ## Current state
 
 - Production is live on KVM1; `/api/health` and `/api/ready` healthy at the latest verified baseline.
-- Omen is free indefinitely. Stripe application code and residual checkout references were removed on `main`. The production Supabase table/column cleanup remains a separately gated database action.
+- Omen is free indefinitely. Stripe application code and residual checkout references were removed on `main`. **Closed 2026-09-27:** the production Supabase table/column cleanup this line pointed at is moot — `public.subscriptions` and `users.is_subscribed` are already absent from production (verified directly; either the gated drop already ran or those objects never shipped to this database). No migration was needed.
 - Backend test baseline: **973/973** (`Direction/decision_log.md`, 2026-09-04; was 537/537 on 2026-08-15 and that stale number stood in this file for three weeks). PRs gated by `pr-quality.yml` (#253). The "Actions billing hold" was a misdiagnosis — two config bugs, fixed in #250.
 - Native test baseline: iOS **425** (Xcode 26.6, iPhone 17 Pro sim, 2026-09-04). The Android connected-instrumentation count has not been restated since `M6-ContextualHelp` (#312) and is **not** carried forward here as current — it needs a fresh run, not an assumption.
 - Native: Discord OAuth merged both platforms (#198). A signed-in native user can connect a Sleeper league and see real league state (#309, #310).
@@ -922,7 +922,8 @@ own comment says is **a design-steward decision, not a build fix**, and therefor
 
 ### S7 — Retire stale cloud-AI runtime dependencies (OpenAI **and Anthropic**)
 
-- **Status:** READY
+- **Status:** CLOSED
+- **Closure:** COMPLETED — 2026-09-27. `@anthropic-ai/sdk` removed from `package.json` (`npm install` re-run, 0 vulnerabilities, `package-lock.json` back in sync); the `anthropicApiKey`/`ANTHROPIC_API_KEY` config slot removed from `src/config/index.js`; the stale `omen_prompt_loader.js:7` comment referencing "the Anthropic API" is moot — the file it was pointing at (`omen_agents.js`) was deleted the same session as confirmed-dead legacy code (see `Direction/decision_log.md` 2026-09-27). `npm test`: 1259/1259. No OpenAI-specific residue found beyond what the item's own `openai_compatible_chat_completions` naming note already explains (protocol name, not vendor use) — nothing further to remove there.
 - **Blocked by:** None
 - **Priority:** P2
 - **Cost:** small

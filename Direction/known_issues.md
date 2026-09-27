@@ -230,14 +230,22 @@ plate is load-bearing. The two real options are a founder call:
 - **(b)** Make the wordmark theme-aware — cream in dark, near-black in light — and drop the plate.
   This is the design-system-correct answer and it costs a second brand asset.
 
-## Security — Backend Sentry breadcrumbs do not scrub URLs (found 2026-08-17, OPEN — [#339](https://github.com/justinduverge-design/omen/issues/339))
+## Security — Backend Sentry breadcrumbs do not scrub URLs (found 2026-08-17, CLOSED 2026-09-27 — [#339](https://github.com/justinduverge-design/omen/issues/339))
 
-**Severity: low–moderate. Open.** The frontend equivalent is fixed (see below); this one is not.
+**Correction, 2026-09-27:** this entry's own description was stale. `crumb.data` is not passed
+through `scrubValue`'s key-name matching alone — `scrubValue` recurses into string values via
+`scrubText`, which already ran `SENSITIVE_TEXT_PATTERN` and `OAUTH_CODE_TEXT_PATTERN` against
+breadcrumb URL values. Verified by executing the scrubber directly: `Bearer <token>` and an OAuth
+`code=` in a breadcrumb URL were already redacted before today. The actual, narrower gap: `state`
+(the OAuth CSRF token) had no equivalent rule — `scrubUrl` (used only for `event.request.url`) had
+a `state`-aware pattern, but `scrubText` (what breadcrumbs actually go through) didn't.
 
-- `src/middleware/sentry.js`'s `scrubSentryBreadcrumb` passes `crumb.data` through `scrubValue`, which matches on **key names**. Breadcrumb URLs live under `url` / `from` / `to`, none of which are sensitive key names, so the URL **value** is never examined and any query string inside it survives — including OAuth `code` / `state`.
-- The frontend fix added `scrubBreadcrumbUrls` for exactly this. The backend has no equivalent.
-- **Lower severity than the frontend case** because Node breadcrumbs are less likely to carry an OAuth return URL than a browser navigation breadcrumb on the callback page. Not zero: HTTP breadcrumbs can carry outbound provider URLs.
-- **Fix:** mirror `scrubBreadcrumbUrls` from `frontend/src/lib/sentry.js` into `src/middleware/sentry.js`, with a test alongside the existing `test/sentryBoot.test.js`. The backend has a real test runner, so this one can be covered directly.
+- **Fixed:** added `OAUTH_STATE_TEXT_PATTERN` to `src/middleware/sentry.js`'s `scrubText`, mirroring
+  the existing narrow `OAUTH_CODE_TEXT_PATTERN` rule (a general-vocabulary match on the word
+  "state" would also redact `connection_state`, `reconciliation_state`, `publication_state`, etc.,
+  so it needed the same query-parameter-position-only treatment as `code`).
+- Regression tests in `test/providerCredentialContainment.test.js`, following this repo's own rule
+  for this file: provoke the scrubber with a canary and prove it's gone, don't just read the code.
 
 ## Current Context Risks
 

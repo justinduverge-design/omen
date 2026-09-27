@@ -12,7 +12,6 @@
     "evals:mock": "node evals/slops-prompt-guard.mjs"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.126.0",
     "@opentelemetry/exporter-trace-otlp-http": "^0.222.0",
     "@sentry/node": "^10.75.0",
     "@supabase/supabase-js": "^2.116.0",
