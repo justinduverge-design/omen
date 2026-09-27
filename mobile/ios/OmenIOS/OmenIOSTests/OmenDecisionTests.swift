@@ -392,6 +392,56 @@ final class OmenDecisionTests: XCTestCase {
         )
     }
 
+    func testPublishedFootballIntelligenceMapsEvidenceFreshnessCoverageAndFalsifiers() throws {
+        let envelope = try decode("""
+        {"state":"success","mode":"live","recommendation":{"title":"Start A","move":"Bench B"},
+         "football_intelligence":{"contract_version":"football-intelligence-signal.v1","status":"stale",
+          "signal_type":"coach_transfer_system_signal","as_of_utc":"2026-09-20T12:00:00Z",
+          "summary":"The offense is retaining its recent motion profile.",
+          "interpretation":{"direction":"stable","association_only":true,"what_could_change_this":["Two more games reverse the trend."]},
+          "evidence":{"source_artifacts":["a1"],"games":4,"plays":140,"charted_plays":100,"coverage_ratio":0.71},
+          "quality":{"state":"accepted","coverage":"coverage_met","confidence":"leaning","limitations":[]},
+          "freshness":{"state":"stale","computed_at_utc":"2026-09-21T12:00:00Z","latest_observation_at_utc":"2026-09-19T12:00:00Z","stale_after_utc":"2026-09-20T12:00:00Z"},
+          "publication":{"artifact_id":"artifact-1","artifact_version":"v1","published_at_utc":"2026-09-21T13:00:00Z"}}}
+        """)
+        guard case .success(let payload) = envelope.briefState() else { return XCTFail("expected success") }
+        let signal = try XCTUnwrap(payload.footballIntelligence)
+        XCTAssertEqual(signal.status, "stale")
+        XCTAssertEqual(signal.summary, "The offense is retaining its recent motion profile.")
+        XCTAssertEqual(signal.evidenceAuthority, "Published derived signal · association only")
+        XCTAssertEqual(signal.coverage, "4 games · 140 plays · 100 charted · 71% coverage")
+        XCTAssertEqual(signal.freshness, "stale · observations through 2026-09-19T12:00:00Z")
+        XCTAssertEqual(signal.whatCouldChangeThis, ["Two more games reverse the trend."])
+    }
+
+    func testFootballIntelligenceNeverPromotesUnpublishedOrNonAdviceStates() throws {
+        for status in ["unavailable", "insufficient_coverage", "disputed", "pending"] {
+            let envelope = try decode("""
+            {"state":"success","mode":"live","recommendation":{"title":"Start A","move":"Bench B"},
+             "football_intelligence":{"status":"\(status)","summary":"Do not render me.","quality":{"state":"accepted"},
+              "publication":{"artifact_id":"a","artifact_version":"v1","published_at_utc":"2026-09-21T13:00:00Z"}}}
+            """)
+            guard case .success(let payload) = envelope.briefState() else { return XCTFail("expected success") }
+            XCTAssertNil(payload.footballIntelligence, "\(status) must not become contextual advice")
+        }
+        for qualityState in ["candidate", "unaccepted", "disputed"] {
+            let envelope = try decode("""
+            {"state":"success","mode":"live","recommendation":{"title":"Start A","move":"Bench B"},
+             "football_intelligence":{"status":"available","summary":"Do not render me.","quality":{"state":"\(qualityState)"},
+              "publication":{"artifact_id":"a","artifact_version":"v1","published_at_utc":"2026-09-21T13:00:00Z"}}}
+            """)
+            guard case .success(let payload) = envelope.briefState() else { return XCTFail("expected success") }
+            XCTAssertNil(payload.footballIntelligence)
+        }
+        let incomplete = try decode("""
+        {"state":"success","mode":"live","recommendation":{"title":"Start A","move":"Bench B"},
+         "football_intelligence":{"status":"available","summary":"Not fully published.",
+          "quality":{"state":"accepted"},"publication":{"artifact_id":"a"}}}
+        """)
+        guard case .success(let payload) = incomplete.briefState() else { return XCTFail("expected success") }
+        XCTAssertNil(payload.footballIntelligence)
+    }
+
     /// The server orders the evidence. iOS alphabetised it until 2026-09-17 while Android did
     /// not, so the two platforms showed the same evidence in different orders and iOS asserted a
     /// relative importance no contract supports.

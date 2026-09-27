@@ -811,8 +811,19 @@ own comment says is **a design-steward decision, not a build fix**, and therefor
 
 ### FDSI-TUESDAY — Build the football-intelligence foundation
 
-- **Status:** IN_PROGRESS
+- **Status:** READY_FOR_REVIEW
 - **Claim:** 2026-09-24 Codex — founder-assigned architecture, reuse audit, and non-production vertical proof under `ATA-20260924-FDSI` on `codex/football-data-research`.
+- **Evidence (Stage B progress, 2026-09-26):** reviewed and adopted the unpushed registry commit
+  `cecd9b64c3a1d1fc5bb529e0d1cbd7b25cad5881`, then landed exact ordinary-PBP receipt replay through
+  the injected `TabularReader` boundary into bounded deterministic observed play facts as
+  `e7c052c6437c83c42fb5afe1d20d3e9de473f02f`. Handoff:
+  `Blueprints/handoffs/2026-09-26-football-intelligence-stage-b-artifact-registry.md`. Item remains
+  locally complete through Stage B. Stage D now has a review-only serving projection, authenticated
+  published-read route, additive Omen v3 integration, and iOS/Android/web parity. Handoff:
+  `Blueprints/handoffs/2026-09-26-football-intelligence-stage-d-local-integration.md`. Production
+  activation is deliberately not complete: SQL/RLS runtime proof, an accepted production publication,
+  artifact restore proof, and inspected browser/physical-device evidence remain gated. Local
+  implementation commit: `63689a4a7ca5873b9da12d4f3710f5a1c1e36cb8`.
 - **Blocked by:** None
 - **Priority:** P0 — founder deadline Tuesday 2026-09-29
 - **Cost:** large, staged into bounded non-production slices

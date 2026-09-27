@@ -71,6 +71,12 @@ evidence *"presents its worth for the user so the user can become a better FF pl
 
 ## Append-only timeline
 
+- **2026-09-26 — Stage D local integration:** `omen-decision-brief.v3` now optionally supplies
+  `football_intelligence.interpretation.what_could_change_this`. iOS and Android render the block only
+  when the server supplies nonempty entries on a complete published `available` or `stale` signal.
+  Insufficient, unavailable, disputed, pending, candidate, or incomplete signals render no contextual
+  advice. This closes the local payload/UI seam, not the production-data or device-acceptance gate.
+
 - **2026-09-18:** Ratified by the founder, with one correction found while verifying the open
   questions: block 11 is deferred because `what_could_change_this` is not on the Omen decision
   brief. Blocks 5, 6, 7 and 10 are built against `omencall-evidence-contract-v1`.

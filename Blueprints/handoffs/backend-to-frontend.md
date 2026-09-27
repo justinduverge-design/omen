@@ -4211,3 +4211,18 @@ Native consumers should render the returned receipt and never infer a model stat
 iOS and Android repositories send the request above. Verification: `test/latencyBudget.test.js`
 and `test/omenMvpLiveRoute.test.js` (17/17); Android focused `OmenDecisionTest`; iOS
 `OmenDecisionTests` 23/23 on the booted iPhone 17 simulator.
+
+## Football-intelligence Stage D local contract — 2026-09-26
+
+`omen-decision-brief.v3` may include top-level `football_intelligence` using
+`football-intelligence-signal.v1`. Render its summary only for complete published `available` or
+`stale` evidence with accepted/non-disputed quality. Treat `insufficient_coverage`, `unavailable`,
+`disputed`, `pending`, candidate, unaccepted, and incomplete publication as limitations, never advice.
+The block is contextual and never decides the recommendation. Missing canonical `omen:team:*`
+identity returns `identity_unresolved`; clients must not promote an NFL abbreviation.
+
+The exact authenticated inspection route is
+`GET /api/football-intelligence/signals/coach-transfer?team_id=&coach_id=&season=`. It requires
+canonical Omen IDs and returns the published signal or `unavailable/not_published`. The serving SQL
+is review-only and unapplied, so this is an implemented local contract rather than a production-live
+endpoint. Full handoff: `Blueprints/handoffs/2026-09-26-football-intelligence-stage-d-local-integration.md`.

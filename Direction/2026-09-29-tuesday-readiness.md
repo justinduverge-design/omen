@@ -281,8 +281,26 @@ not re-discover or re-litigate this sequence from conversation history.
   and 32 machine-readable requirement records. Token/API lint, one-to-one coverage, state/accessibility/
   overflow metadata, and iOS/Android spacing aliases are reconciled without a blind canvas replacement.
   The degraded Ledger contracts bind only to existing `moves-history.v2` / `move-detail.v1` behavior.
-- **Stage B:** not started. Its smallest local/non-production kernel is now permitted; production wiring is not.
-- **Stage D:** not started; blocked on a real serving API and customer contract.
+- **Stage B:** local artifact-registry kernel implemented on 2026-09-26 with an injected root, immutable
+  SHA-256 objects and receipts, admitted-source/use enforcement, correction links, tamper-checked replay,
+  rebuildable machine index, CLI, module map, and focused tests. The next bounded slice is also complete
+  in `e7c052c6437c83c42fb5afe1d20d3e9de473f02f`: exact ordinary-PBP receipt replay is bound to the
+  injected `TabularReader` port and produces deterministic `football-observed-fact.v1` play facts with
+  measured no-play/non-scrimmage exclusions and fail-closed schema/row/value/identity checks. It adds no
+  parser, fetcher, identity inference, enrichment, persistence, SQL, route, package, schedule, or production
+  wiring. **Completed locally in `dd1d150696b61cf240a61c872f3dd7718445397b`:** admitted schedule,
+  FTN, and historical-participation normalizers; provider-neutral effective-dated identity dimensions;
+  ordinary-PBP-denominated scalar facts; FTN coverage gating; as-of/source-role feature windows;
+  approved 4/120 and 8/250 policy defaults; Scheme DNA/System Signal/Coaching Tree; independently
+  validated immutable candidate read-model receipts, correction supersession, and replay. Focused
+  football-intelligence tests pass 56/56 and the full backend passes 1,236/1,236. Local Stage B is
+  complete. Production artifact storage/restore, SQL, routes, schedulers, publication, and customer
+  activation remain explicitly outside this authority.
+- **Stage D:** local implementation complete and ready for review. The review-only published serving
+  projection, authenticated exact-scope route, additive Omen v3 response, and iOS/Android/web consumers
+  are implemented and deterministically tested. It is not production-live: SQL/RLS execution, an
+  accepted production publication, artifact DR restore proof, and inspected browser/physical-device
+  evidence remain required before activation.
 
 When this conversation or context window ends, the next agent should pick up by reading this section and
 the full plan named above, then inspect the two active stream commits before starting new work. Do not redo
@@ -309,7 +327,8 @@ Review decision still required before production Stage B activation:
 The degraded Ledger contract and Stage C token/coverage decisions are resolved. Founder review on
 2026-09-26 also approved the layered nflverse/FTN source strategy, provider-neutral player/coach identity,
 and adaptable v1 evidence thresholds. Gate A now permits a local/non-production Stage B implementation with
-an injected artifact root. Production activation remains blocked on the deliberately deferred, vendor-neutral
-artifact/DR decision and restore proof. See
+an injected artifact root. Repository evidence confirms the existing encrypted Restic backup/restore pattern
+is reusable; production activation now waits on including the exact artifact root and proving an
+artifact-specific restore/hash/index rebuild. See
 `Direction/reviews/2026-09-26-participation-source-admission.md` and
-`Blueprints/prompts/football-intelligence-artifact-dr-decision.md`.
+`Direction/reviews/2026-09-26-football-intelligence-dr-reuse-review.md`.

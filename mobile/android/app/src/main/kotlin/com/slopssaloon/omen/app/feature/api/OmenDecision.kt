@@ -5,6 +5,7 @@ import com.slopssaloon.omen.core.designsystem.component.OmenDecisionBriefPayload
 import com.slopssaloon.omen.core.designsystem.component.OmenDecisionBriefState
 import com.slopssaloon.omen.core.designsystem.component.OmenDecisionCapability
 import com.slopssaloon.omen.core.designsystem.component.OmenEvidenceKind
+import com.slopssaloon.omen.core.designsystem.component.OmenFootballIntelligenceContext
 import com.slopssaloon.omen.core.designsystem.component.OmenConfidenceBand
 import com.slopssaloon.omen.core.designsystem.component.OmenMetricDelta
 import com.slopssaloon.omen.core.designsystem.component.OmenMetricItem
@@ -34,6 +35,7 @@ data class OmenDecisionEnvelope(
     val explanationSummary: String? = null,
     val signals: List<Signal> = emptyList(),
     val capabilities: List<OmenDecisionCapability> = emptyList(),
+    val footballIntelligence: FootballIntelligence? = null,
 ) {
     data class Signal(
         val key: String,
@@ -62,6 +64,25 @@ data class OmenDecisionEnvelope(
         val comparisonTeam: String?,
     )
 
+    data class FootballIntelligence(
+        val status: String?,
+        val summary: String?,
+        val asOfUtc: String?,
+        val associationOnly: Boolean?,
+        val whatCouldChangeThis: List<String>,
+        val games: Int?,
+        val plays: Int?,
+        val chartedPlays: Int?,
+        val coverageRatio: Double?,
+        val qualityState: String?,
+        val qualityCoverage: String?,
+        val freshnessState: String?,
+        val latestObservationAtUtc: String?,
+        val artifactId: String?,
+        val artifactVersion: String?,
+        val publishedAtUtc: String?,
+    )
+
     companion object {
         fun parse(body: String): OmenDecisionEnvelope? {
             val root = runCatching { JSONObject(body) }.getOrNull() ?: return null
@@ -75,6 +96,33 @@ data class OmenDecisionEnvelope(
                 explanationSummary = root.optJSONObject("explanation")?.optStringOrNull("summary"),
                 signals = parseSignals(root.optJSONObject("signals")),
                 capabilities = root.decisionCapabilities(),
+                footballIntelligence = root.optJSONObject("football_intelligence")?.let(::parseFootballIntelligence),
+            )
+        }
+
+        private fun parseFootballIntelligence(json: JSONObject): FootballIntelligence {
+            val interpretation = json.optJSONObject("interpretation")
+            val evidence = json.optJSONObject("evidence")
+            val quality = json.optJSONObject("quality")
+            val freshness = json.optJSONObject("freshness")
+            val publication = json.optJSONObject("publication")
+            return FootballIntelligence(
+                status = json.optStringOrNull("status"),
+                summary = json.optStringOrNull("summary"),
+                asOfUtc = json.optStringOrNull("as_of_utc"),
+                associationOnly = interpretation?.optBooleanOrNull("association_only"),
+                whatCouldChangeThis = interpretation?.optJSONArray("what_could_change_this").toStringList(),
+                games = evidence?.optIntOrNull("games"),
+                plays = evidence?.optIntOrNull("plays"),
+                chartedPlays = evidence?.optIntOrNull("charted_plays"),
+                coverageRatio = evidence?.optDoubleOrNull("coverage_ratio"),
+                qualityState = quality?.optStringOrNull("state"),
+                qualityCoverage = quality?.optStringOrNull("coverage"),
+                freshnessState = freshness?.optStringOrNull("state"),
+                latestObservationAtUtc = freshness?.optStringOrNull("latest_observation_at_utc"),
+                artifactId = publication?.optStringOrNull("artifact_id"),
+                artifactVersion = publication?.optStringOrNull("artifact_version"),
+                publishedAtUtc = publication?.optStringOrNull("published_at_utc"),
             )
         }
 
@@ -133,6 +181,9 @@ data class OmenDecisionEnvelope(
 
         private fun JSONObject.optDoubleOrNull(key: String): Double? =
             if (isNull(key)) null else optDouble(key).takeIf { !it.isNaN() }
+
+        private fun JSONObject.optBooleanOrNull(key: String): Boolean? =
+            if (has(key) && !isNull(key)) optBoolean(key) else null
 
         private fun org.json.JSONArray?.toStringList(): List<String> {
             if (this == null) return emptyList()
@@ -211,6 +262,35 @@ data class OmenDecisionEnvelope(
                 )
             },
             alternatives = alternatives(rec),
+            footballIntelligence = footballIntelligenceContext(footballIntelligence),
+        )
+    }
+
+    private fun footballIntelligenceContext(signal: FootballIntelligence?): OmenFootballIntelligenceContext? {
+        signal ?: return null
+        val status = signal.status ?: return null
+        if (status !in setOf("available", "stale")) return null
+        val summary = signal.summary?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+        if (signal.qualityState in setOf("candidate", "unaccepted", "disputed")) return null
+        if (signal.artifactId.isNullOrBlank() || signal.artifactVersion.isNullOrBlank() || signal.publishedAtUtc.isNullOrBlank()) return null
+
+        val coverageParts = buildList {
+            signal.games?.let { add("$it games") }
+            signal.plays?.let { add("$it plays") }
+            signal.chartedPlays?.let { add("$it charted") }
+            signal.coverageRatio?.let { add("${kotlin.math.round(it * 100).toInt()}% coverage") }
+            if (isEmpty()) signal.qualityCoverage?.replace('_', ' ')?.let(::add)
+        }
+        val freshnessState = signal.freshnessState ?: status
+        val observed = signal.latestObservationAtUtc ?: signal.asOfUtc
+        return OmenFootballIntelligenceContext(
+            status = status,
+            summary = summary,
+            evidenceAuthority = if (signal.associationOnly == true) "Published derived signal · association only" else "Published derived signal",
+            coverage = coverageParts.takeIf { it.isNotEmpty() }?.joinToString(" · "),
+            freshness = observed?.let { "${freshnessState.replace('_', ' ')} · observations through $it" }
+                ?: freshnessState.replace('_', ' '),
+            whatCouldChangeThis = signal.whatCouldChangeThis,
         )
     }
 

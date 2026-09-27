@@ -3595,3 +3595,64 @@ behaving; until then this entry records intent, not proof.
   ships until reliable storage is selected, an independent encrypted backup exists, and a fresh restore
   proves exact hashes and serving-model rebuild. Restart prompt:
   `Blueprints/prompts/football-intelligence-artifact-dr-decision.md`.
+
+## 2026-09-26 — Stage B local artifact registry and DR reuse boundary
+
+- **Decision: Stage B starts with an injected-root, storage-neutral local artifact registry.** Immutable
+  SHA-256 objects and source receipts are replay authority; `football-intelligence-artifact-index.v1` is a
+  disposable navigation projection rebuilt from receipts. Admitted source families and uses fail closed.
+  Corrections create a new object and name an existing predecessor; replay re-hashes bytes before return.
+- **Decision: reuse Omen's commissioned recovery controls rather than inventing a second DR architecture.**
+  The repo proves KVM1 database export, encrypted Restic transfer to KVM2, isolated restore, freshness
+  monitoring, Command Center observability, and alerts. Command Center monitors the backup; KVM2 stores it.
+  Football-intelligence production still waits on including its exact root and proving a fresh artifact
+  restore/hash/index/read-model rebuild. KVM1 and KVM2 being the same provider remains an honest limitation.
+- **Boundary:** no SQL, route, package, timer, production path, host mutation, credential, deploy, publication,
+  or customer activation was added. Evidence:
+  `Blueprints/handoffs/2026-09-26-football-intelligence-stage-b-artifact-registry.md`.
+
+## 2026-09-26 — Stage B ordinary-PBP replay and minimum observed facts
+
+- **Decision: canonical play facts begin from a receipt, never an unverified path or caller-supplied row set.**
+  `replayReceipt` binds the immutable receipt to its content-addressed object and verifies receipt hash,
+  object hash, and byte length before parsing. Exact bytes then cross the injected `TabularReader` port;
+  football-intelligence domain code does not add a fifth CSV/Parquet parser.
+- **Decision: the first canonical slice remains strictly observed and bounded.** It retains game/play,
+  season/week/type, possession/defense, situation, pass/rush/scramble, touchdown, yards gained, and exact
+  source provenance. No-play and non-scrimmage rows are counted exclusions. EPA, player identity guesses,
+  formation/personnel, FTN enrichment, participation, Scheme DNA, System Signal, Coaching Tree, persistence,
+  serving, and customer interpretation remain later stages.
+- **Boundary:** ordinary PBP remains the current denominator; FTN remains coverage-gated enrichment;
+  participation remains historical calibration. Commit `e7c052c6437c83c42fb5afe1d20d3e9de473f02f` adds
+  no SQL, route, package, timer, production path, remote storage, credential, deployment, publication, or
+  customer activation behavior.
+
+## 2026-09-26 — Local football-intelligence Stage B completed through immutable read-model replay
+
+- **Decision: ordinary PBP owns the denominator; enrichment cannot manufacture denominator rows.**
+  Exact receipt replay crosses the injected `TabularReader` boundary. Schedule context supplies
+  event dates, effective-dated NFLverse assertions resolve Omen team IDs, and FTN facts join only to
+  an existing ordinary-PBP game/play key. Under 70% FTN coverage, every enrichment value remains
+  `not_covered` and `null`; participation is historical calibration only.
+- **Decision: the approved evidence thresholds are executable model policy v1.** Current Scheme DNA
+  requires 4 games/120 eligible plays. Comparisons require 8 games/250 plays in each window. Feature
+  windows enforce declared source families and an as-of cutoff.
+- **Decision: local persistence ends at an immutable candidate read model.** Independent validation,
+  canonical bytes, exact source artifact IDs, immutable derived receipts, correction supersession,
+  and verified replay are implemented. `publication.authorized` is always false. Production storage,
+  SQL, routes, collection schedules, serving publication, and customer activation remain separately
+  gated. Implementation: `dd1d150696b61cf240a61c872f3dd7718445397b`.
+
+## 2026-09-26 — Football-intelligence Stage D uses a published-only advisory seam
+
+- **Decision:** the first serving projection is compact and review-only. Authenticated callers may
+  read explicit published rows; service role owns writes; candidates remain in the immutable artifact
+  registry and have no promotion route.
+- **Decision:** football intelligence is additive context on `omen-decision-brief.v3`, never a move
+  selector. Only complete published `available` or `stale` evidence may render a summary. All other
+  states remain limitations.
+- **Decision:** current NFL abbreviations are not canonical identities. Until an `omen:team:*` subject
+  exists, the response is `identity_unresolved` with no advice.
+- **Boundary:** SQL is authored but unapplied; no RLS runtime proof, publication, remote artifact
+  storage, restore, credential, schedule, deployment, push, merge, or customer activation occurred.
+  Local implementation: `63689a4a7ca5873b9da12d4f3710f5a1c1e36cb8`.

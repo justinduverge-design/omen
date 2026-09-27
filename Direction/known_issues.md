@@ -142,8 +142,12 @@ Whatever is decided, one of these must be true before 2027-05-06:
 does not force it early.** Omen is not expected to be public in the first half of the 2026
 season, and the founder intends to purchase reliable storage before production activation.
 Local Stage B architecture must remain vendor-neutral through an injected artifact root.
-Production football-intelligence activation is blocked until the storage/DR decision and a
-fresh restore drill are complete. Restart with
+The repository review in
+`Direction/reviews/2026-09-26-football-intelligence-dr-reuse-review.md` confirms the existing
+database controls are the intended architecture; no second backup design is required.
+Production football-intelligence activation is blocked only until its exact artifact root is
+included in that encrypted backup pattern and a fresh artifact restore/hash/index rebuild is
+proven. Restart with
 `Blueprints/prompts/football-intelligence-artifact-dr-decision.md`; do not infer that KVM2
 will be renewed or replaced.
 

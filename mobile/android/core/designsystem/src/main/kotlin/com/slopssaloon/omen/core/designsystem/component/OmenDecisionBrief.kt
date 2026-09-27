@@ -61,6 +61,17 @@ data class OmenDecisionBriefPayload(
     val metrics: List<OmenMetricItem> = emptyList(),
     val signals: List<OmenSignalItem> = emptyList(),
     val alternatives: List<OmenDecisionBriefAlternative> = emptyList(),
+    /** Published contextual evidence for the call, never a second recommendation. */
+    val footballIntelligence: OmenFootballIntelligenceContext? = null,
+)
+
+data class OmenFootballIntelligenceContext(
+    val status: String,
+    val summary: String,
+    val evidenceAuthority: String,
+    val coverage: String? = null,
+    val freshness: String,
+    val whatCouldChangeThis: List<String> = emptyList(),
 )
 
 enum class OmenConfidenceBand(val label: String) { Confident("Confident"), Leaning("Leaning"), CoinFlip("Coin flip") }

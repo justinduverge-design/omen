@@ -27,8 +27,9 @@ Founder review on 2026-09-26 accepted the practical source posture and v1 eviden
 thresholds. Gate A is therefore approved for a non-production Stage B implementation:
 ordinary nflverse play-by-play is the complete, timely denominator; FTN charting is
 optional tactical enrichment; participation data is historical calibration only.
-Production activation remains blocked on an exact artifact root, off-host backup target,
-restore proof, and the normal source receipts for each captured release.
+Production activation remains blocked on selecting the exact primary artifact root,
+including it in the already-proven encrypted backup pattern, and completing a fresh
+artifact-specific restore proof. Normal source receipts remain required for every capture.
 
 ## Decision summary
 
@@ -165,6 +166,28 @@ publication owns the accepted serving version; product owns bounded language. No
 downstream owner may upgrade authority—for example, turning a schedule display name into
 a confirmed coach identity or correlation into causation.
 
+### Minimum canonical ordinary-PBP fact — implemented 2026-09-26
+
+The first Stage B normalization slice is deliberately narrower than the eventual fact model.
+An exact `raw_source` / `play_by_play` / `current_denominator` receipt is verified together
+with its referenced object, then its bytes cross an injected `TabularReader` port. Domain code
+does not parse CSV or Parquet and does not fetch a source.
+
+`football-observed-fact.v1` currently retains only:
+
+- source game/play identity and season/week/type;
+- possession and defense team observations, without resolving new identities;
+- down, yards to go, yardline, and game-seconds context when present;
+- ordinary-PBP pass, rush, scramble, no-play, and source play-type observations;
+- observed touchdown and yards gained;
+- exact receipt, artifact, source-family, schema-fingerprint, and normalization-version provenance.
+
+No-play and non-scrimmage rows are measured exclusions from this offensive-play slice, not
+zeroes. Missing required columns, receipt/reader row-count drift, invalid bounded values, and
+duplicate game/play identities fail closed. The output is deterministically ordered by game and
+play. It does not add EPA, player crosswalks, participation, formation/personnel, FTN enrichment,
+Scheme DNA, System Signal, Coaching Tree, serving persistence, or customer semantics.
+
 ## Required metadata on every derived output
 
 Every feature window, Scheme DNA, Coaching Tree edge, and System Signal must carry or
@@ -196,9 +219,10 @@ accepted before any production capture, publication, or activation.
 
 For the non-production Stage B slice, the implementation must accept an injected local
 artifact root and must not encode KVM1, KVM2, Supabase Storage, S3, R2, or any vendor into
-domain code. The production target remains deferred until the founder purchases or
-selects reliable storage. `Blueprints/prompts/football-intelligence-artifact-dr-decision.md`
-is the restart prompt for that decision.
+domain code. Omen's existing KVM1 → encrypted Restic-on-KVM2 database recovery pattern is
+proven and should be reused, but the intelligence artifact root has not yet been included
+and restored. The exact reuse boundary is recorded in
+`Direction/reviews/2026-09-26-football-intelligence-dr-reuse-review.md`.
 
 Artifact paths must be bound to hashes and must reject overwrite conflicts. A corrected
 source creates a new artifact and a supersession record; it never mutates the prior
@@ -384,9 +408,34 @@ Before SQL, routes, packages, or production wiring:
 - [x] First customer state matrix and adaptable v1 evidence thresholds accepted.
 - [x] Design-system/canvas contract inventory is complete for the future customer slice.
 - [ ] Production artifact target, retention, off-host backup, restore proof, encryption,
-      and access policy. **Deferred; blocks production activation, not local Stage B.**
+      and access policy. **Existing database controls are reusable; artifact inclusion and a
+      fresh artifact restore still block production activation, not local Stage B.**
 
 Stage B may begin only as a local/non-production implementation using injected storage
 and deterministic fixtures. Production activation remains prohibited until the deferred
 artifact/DR item is accepted and restore-tested. A passing unit test cannot substitute
 for that production decision.
+
+## 2026-09-26 local Stage D implementation status
+
+The smallest serving and customer-integration slice is implemented locally, without applying SQL
+or activating a customer path:
+
+- a review-only compact Supabase serving projection permits authenticated reads of published rows
+  and service-role writes, with one published version per explicit scope;
+- the request-scoped repository reads only `publication_state = published`, validates the complete
+  `football-intelligence-signal.v1` payload, resolves deterministic published heads, and derives
+  stale state without rewriting stored evidence;
+- authenticated `GET /api/football-intelligence/signals/coach-transfer` requires canonical Omen
+  team/coach IDs and an exact season;
+- `omen-decision-brief.v3` receives an additive advisory block. Current provider recommendations do
+  not yet carry a proven canonical Omen team identity, so they return `identity_unresolved` and no
+  football-intelligence advice;
+- iOS, Android, and web consume the same object on the existing Omen Call/Evidence journey. Only
+  complete published `available` or `stale` evidence may render a summary. All other states remain
+  limitations and cannot become advice.
+
+This is local implementation completion, not production Gate D. The SQL remains unapplied; RLS has
+not been exercised against a live database; no accepted production artifact has been published;
+artifact backup/restore remains unproved; and browser/physical-device visual acceptance remains
+unperformed. Candidate artifacts still have no promotion route.

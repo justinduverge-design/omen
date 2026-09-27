@@ -602,6 +602,7 @@ struct OmenDecisionScreen: View {
                     // Blocks 5-7, `omencall-evidence-contract-v1`. Three labelled groups rather
                     // than one flat list: the capability contract's classes ARE the lesson.
                     capabilityGroups(payload)
+                    footballIntelligence(payload)
                     actions(payload)
                     // Block 10. Promoted from OmenEvidence, where most users never saw it.
                     whyThisConfidence(payload)
@@ -747,6 +748,38 @@ struct OmenDecisionScreen: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    @ViewBuilder
+    private func footballIntelligence(_ payload: OmenDecisionBriefPayload) -> some View {
+        if let signal = payload.footballIntelligence {
+            OmenCard(contentPadding: OmenSpacing.step12) {
+                VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+                    Text("System signal")
+                        .omenTextStyle(OmenTypography.micro)
+                        .foregroundStyle(OmenColor.textTertiary)
+                    Text(signal.summary)
+                        .omenTextStyle(OmenTypography.bodySmall)
+                        .foregroundStyle(OmenColor.textSecondary)
+                    OmenEvidenceRow(key: "Authority", statement: signal.evidenceAuthority)
+                    if let coverage = signal.coverage {
+                        OmenEvidenceRow(key: "Coverage", statement: coverage)
+                    }
+                    OmenEvidenceRow(key: "Freshness", statement: signal.freshness)
+                    if !signal.whatCouldChangeThis.isEmpty {
+                        Text("What would change this")
+                            .omenTextStyle(OmenTypography.micro)
+                            .foregroundStyle(OmenColor.textTertiary)
+                        ForEach(signal.whatCouldChangeThis, id: \.self) { condition in
+                            Text(condition)
+                                .omenTextStyle(OmenTypography.bodySmall)
+                                .foregroundStyle(OmenColor.textSecondary)
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
     }
 
