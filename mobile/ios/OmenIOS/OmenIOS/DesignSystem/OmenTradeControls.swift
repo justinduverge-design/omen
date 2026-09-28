@@ -217,6 +217,14 @@ struct OmenTradeRosterRow: View {
     let meta: String
     let availability: Availability
     var action: (() -> Void)?
+    /// T5, `TradeRoster-v1.md`'s three-team addendum: non-empty only while three teams are
+    /// active. When empty, this row is byte-for-byte the original two-team row — a single tap on
+    /// "Add to deal" calls `action` immediately, exactly as before T5. When non-empty, the row
+    /// expands in place to these pills instead, and `action` is never called directly.
+    var recipients: [OmenTradeRecipientChooser.Recipient] = []
+    var onChooseRecipient: ((OmenTradeRecipientChooser.Recipient) -> Void)?
+
+    @State private var isExpanded = false
 
     private var actionTitle: String {
         switch availability {
@@ -234,31 +242,189 @@ struct OmenTradeRosterRow: View {
         }
     }
 
+    private var hasRecipientChoice: Bool { availability == .available && !recipients.isEmpty }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+            Button(action: primaryTap) {
+                HStack(spacing: OmenSpacing.step10) {
+                    VStack(alignment: .leading, spacing: OmenSpacing.step2) {
+                        Text(name)
+                            .omenTextStyle(OmenTypography.name)
+                            .foregroundStyle(availability == .theyNeedThis ? OmenColor.textTertiary : OmenColor.textPrimary)
+                            .lineLimit(1)
+                        Text(meta)
+                            .omenTextStyle(OmenTypography.micro)
+                            .foregroundStyle(OmenColor.textTertiary)
+                            .lineLimit(1)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    Text(actionTitle)
+                        .omenTextStyle(OmenTypography.micro)
+                        .foregroundStyle(actionInk)
+                }
+                .padding(.vertical, OmenSpacing.step10)
+                .frame(minHeight: OmenLayout.minTouchTarget)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("\(name). \(meta). \(actionTitle).")
+            .accessibilityHint(hasRecipientChoice ? (isExpanded ? "Double tap to collapse" : "Double tap to choose who receives this player") : "")
+
+            // Expands in place — no new screen, no modal. Collapsing without a choice (tapping
+            // "Add to deal" again) leaves the row exactly as it was: no leg committed either way.
+            if hasRecipientChoice, isExpanded {
+                OmenTradeRecipientChooser(recipients: recipients) { recipient in
+                    isExpanded = false
+                    onChooseRecipient?(recipient)
+                }
+                .padding(.bottom, OmenSpacing.step8)
+            }
+        }
+    }
+
+    private func primaryTap() {
+        if hasRecipientChoice {
+            isExpanded.toggle()
+        } else {
+            action?()
+        }
+    }
+}
+
+/// T5 — the `.pt.addt` chip's **live** state. `TradePartnerPicker-v1.md`: "the live `Add team`
+/// chip is a new enabled state of an existing component, not a new component" — same shell, same
+/// accent-dashed treatment already defined for `.fc.smart`, just no longer wrapped in
+/// `OmenUnavailableControl`. Lives here rather than in `App/` for the same reason every other
+/// button-backed control in this file does: `PrimitiveEnforcementTests` bans raw `Button(` under
+/// `App/`.
+struct OmenTradeAddTeamChip: View {
+    var action: (() -> Void)?
+
     var body: some View {
         Button(action: { action?() }) {
-            HStack(spacing: OmenSpacing.step10) {
-                VStack(alignment: .leading, spacing: OmenSpacing.step2) {
-                    Text(name)
-                        .omenTextStyle(OmenTypography.name)
-                        .foregroundStyle(availability == .theyNeedThis ? OmenColor.textTertiary : OmenColor.textPrimary)
-                        .lineLimit(1)
-                    Text(meta)
-                        .omenTextStyle(OmenTypography.micro)
-                        .foregroundStyle(OmenColor.textTertiary)
-                        .lineLimit(1)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                Text(actionTitle)
+            VStack(spacing: OmenSpacing.step4) {
+                Text("+")
+                    .omenTextStyle(OmenTypography.h3)
+                    .foregroundStyle(OmenColor.accent)
+                    .frame(width: 44, height: 44)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 13, style: .continuous)
+                            .strokeBorder(OmenColor.accent, style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+                    )
+                Text("Add team")
+                    .omenTextStyle(OmenTypography.bodySmall)
+                    .foregroundStyle(OmenColor.accent)
+                Text("Add a third team")
                     .omenTextStyle(OmenTypography.micro)
-                    .foregroundStyle(actionInk)
+                    .foregroundStyle(OmenColor.accent)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             }
-            .padding(.vertical, OmenSpacing.step10)
-            .frame(minHeight: OmenLayout.minTouchTarget)
+            .frame(width: 66)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(name). \(meta). \(actionTitle).")
+        .accessibilityLabel("Add a third team")
+    }
+}
+
+/// T5 — one `li` of the split-handoff submission checklist. Read-only (the numbered-circle,
+/// 2-team shape) when `isDone` is `nil`; a tappable done-toggle plus a "Copy" micro-action when
+/// it is not — `TradeBuildThreeTeam-v1.md`'s checklist. Two sibling tap targets (the row, and
+/// Copy) rather than one nested inside the other.
+struct OmenTradeSubmissionStepRow: View {
+    let index: Int
+    let step: String
+    /// `nil` — the plain numbered 2-team row (no `submission.stepDone` at all).
+    let isDone: Bool?
+    var onToggleDone: (() -> Void)?
+    var onCopy: (() -> Void)?
+
+    /// The numbered circle or the done/not-done glyph, and the step text. Shared by both the
+    /// plain and the interactive rendering below — identical content, different container.
+    @ViewBuilder private var rowContent: some View {
+        HStack(alignment: .top, spacing: OmenSpacing.step8) {
+            Group {
+                if let isDone {
+                    Image(systemName: isDone ? "checkmark.circle.fill" : "circle")
+                        .foregroundStyle(isDone ? OmenColor.accent : OmenColor.textTertiary)
+                } else {
+                    Text("\(index + 1)")
+                        .omenTextStyle(OmenTypography.micro)
+                        .foregroundStyle(OmenColor.textSecondary)
+                        .frame(width: 17, height: 17)
+                        .background(Circle().fill(OmenColor.surface3))
+                }
+            }
+            .frame(width: 17, height: 17)
+            Text(step)
+                .omenTextStyle(OmenTypography.bodySmall)
+                .foregroundStyle(OmenColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: OmenSpacing.step8) {
+            // **Not a `Button` at all** when there is nothing to toggle — the 2-team-style
+            // read-only checklist (`onToggleDone == nil`) stays exactly the plain, non-interactive
+            // list item it was before T5. A `Button` here even `.disabled()` would still register
+            // as an accessibility button element, which is the wrong hit-testing surface for a
+            // row nothing can ever activate.
+            if let onToggleDone {
+                Button(action: onToggleDone) { rowContent.contentShape(Rectangle()) }
+                    .buttonStyle(.plain)
+                    .frame(minHeight: OmenLayout.minTouchTarget, alignment: .top)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("Step \(index + 1). \(step). \(isDone == true ? "Done." : "Not done.")")
+                    .accessibilityAddTraits(.isButton)
+            } else {
+                rowContent
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("Step \(index + 1). \(step)")
+            }
+
+            if let onCopy {
+                Button(action: onCopy) {
+                    Text("Copy")
+                        .omenTextStyle(OmenTypography.micro)
+                        .foregroundStyle(OmenColor.accent)
+                        .frame(minWidth: OmenLayout.minTouchTarget, minHeight: OmenLayout.minTouchTarget)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Copy step \(index + 1)")
+            }
+        }
+    }
+}
+
+/// T5, `TradeRoster`'s three-team recipient chooser — the addendum to `TradeRoster-v1.md`.
+///
+/// One small pill per **other** team in the trade (never the roster's own team), reusing
+/// `OmenTradeFilterChip`'s existing compact-pill look rather than a new chooser component, per
+/// the addendum's own text: *"These reuse `OmenTradeFilterChip`'s existing compact-pill look."*
+/// At most two pills, since the beta ceiling is three teams total.
+struct OmenTradeRecipientChooser: View {
+    /// One candidate recipient: `id` is the team id (`"you"` for the viewer), `label` is
+    /// "Send to you" / "Send to Chubb Rock".
+    struct Recipient: Identifiable, Equatable {
+        let id: String
+        let label: String
+    }
+
+    let recipients: [Recipient]
+    var action: (Recipient) -> Void
+
+    var body: some View {
+        HStack(spacing: OmenSpacing.step6) {
+            ForEach(recipients) { recipient in
+                OmenTradeFilterChip(title: recipient.label, action: { action(recipient) })
+            }
+        }
+        .accessibilityElement(children: .contain)
     }
 }
 

@@ -559,6 +559,12 @@ protocol TradeRepository {
     /// `POST /api/trade/share`. Free and public, like `compare` — an unauthenticated caller
     /// still gets a working share link.
     func share(offer: TradeOffer, accessToken: String?) async -> Result<TradeShareResponse, OmenApiError>
+    /// T5: `POST /api/trade/compare` with a `legs` body — the three-team branch of
+    /// `trade-compare.v2`. Built against T1's documented shape
+    /// (`omen-t1-three-team-capability`); that branch is unmerged as of this writing, so this is
+    /// exercised locally with fixtures matching the documented request/response, same as every
+    /// other route this repository speaks to before it lands.
+    func compareThreeTeam(offer: TradeThreeTeamOffer, accessToken: String?) async -> Result<TradeThreeTeamCompare, OmenApiError>
 }
 
 struct TradeCapabilities: Decodable, Equatable {
@@ -582,6 +588,7 @@ extension TradeRepository {
         accessToken: String
     ) async -> Result<TradeRosterResponse, OmenApiError> { .failure(.network) }
     func share(offer: TradeOffer, accessToken: String?) async -> Result<TradeShareResponse, OmenApiError> { .failure(.network) }
+    func compareThreeTeam(offer: TradeThreeTeamOffer, accessToken: String?) async -> Result<TradeThreeTeamCompare, OmenApiError> { .failure(.network) }
 }
 
 struct ApiTradeRepository: TradeRepository {
@@ -624,12 +631,22 @@ struct ApiTradeRepository: TradeRepository {
         ]
         return await client.post("api/trade/share", optionalAccessToken: accessToken, body: body, as: TradeShareResponse.self)
     }
+
+    func compareThreeTeam(offer: TradeThreeTeamOffer, accessToken: String?) async -> Result<TradeThreeTeamCompare, OmenApiError> {
+        await client.post(
+            "api/trade/compare",
+            optionalAccessToken: accessToken,
+            body: offer.requestBody,
+            as: TradeThreeTeamCompare.self
+        )
+    }
 }
 
 struct StubTradeRepository: TradeRepository {
     let result: Result<TradeCompare, OmenApiError>
     var rosterResult: Result<TradeRosterResponse, OmenApiError> = .failure(.network)
     var shareResult: Result<TradeShareResponse, OmenApiError> = .failure(.network)
+    var threeTeamResult: Result<TradeThreeTeamCompare, OmenApiError> = .failure(.network)
 
     func compare(offer: TradeOffer, accessToken: String?) async -> Result<TradeCompare, OmenApiError> {
         result
@@ -647,6 +664,10 @@ struct StubTradeRepository: TradeRepository {
 
     func share(offer: TradeOffer, accessToken: String?) async -> Result<TradeShareResponse, OmenApiError> {
         shareResult
+    }
+
+    func compareThreeTeam(offer: TradeThreeTeamOffer, accessToken: String?) async -> Result<TradeThreeTeamCompare, OmenApiError> {
+        threeTeamResult
     }
 }
 
