@@ -127,6 +127,9 @@ function validateLeagueContext(body = {}) {
   if (context.league_id != null && String(context.league_id).length > MAX_LEAGUE_ID_LENGTH) {
     return "league_context.league_id is too long";
   }
+  if (context.season != null && (!Number.isInteger(Number(context.season)) || Number(context.season) < 2000 || Number(context.season) > 2100)) {
+    return "league_context.season must be a valid calendar year";
+  }
   return null;
 }
 
@@ -353,11 +356,12 @@ function unresolvedPlayersFor(side, inputs, resolutions) {
  * the provider's league settings. Injected in tests so the maths is provable
  * without a network call.
  */
-async function defaultLeagueContextResolver({ userId, platform, leagueId }) {
+async function defaultLeagueContextResolver({ userId, platform, leagueId, season = null }) {
   return resolveTradeLeagueContext({
     userId,
     platform,
     leagueId,
+    season,
     deps: {
       getConnections: getActivePlatformConnections,
       fetchSleeperLeague: (id) => sleeperAdapter.fetchSleeperLeague(id),
@@ -739,7 +743,7 @@ function createTradeRouter({
    * unverifiable league quietly retains neutral analysis rather than erroring,
    * and §9.1 requires the screen to say which one it is.
    */
-  async function resolveAnalysisContext(req) {
+async function resolveAnalysisContext(req) {
     const requested = req.body.league_context;
     if (requested == null) return { analysis: neutralAnalysisContext(), scoringConfig: {} };
 
@@ -756,6 +760,7 @@ function createTradeRouter({
       userId: user.id,
       platform: requested.platform == null ? null : String(requested.platform).toLowerCase(),
       leagueId: requested.league_id == null ? null : String(requested.league_id),
+      season: requested.season == null ? null : Number(requested.season),
     });
 
     if (resolved?.status !== "personalized") {

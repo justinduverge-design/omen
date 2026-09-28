@@ -275,6 +275,7 @@ async function resolveTradeLeagueContext({
   userId,
   platform = null,
   leagueId = null,
+  season = null,
   deps = {},
 } = {}) {
   const {
@@ -313,6 +314,10 @@ async function resolveTradeLeagueContext({
 
   try {
     const league = await fetchSleeperLeague(String(connection.league_id));
+    const resolvedSeason = Number(league?.season);
+    if (season != null && (!Number.isInteger(resolvedSeason) || resolvedSeason !== Number(season))) {
+      return { status: "unavailable", reason: "league_season_mismatch", platform: connection.platform, league_id: connection.league_id };
+    }
     const roster = await buildSleeperRoster(
       String(connection.league_id),
       connection.platform_username,
