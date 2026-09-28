@@ -883,6 +883,22 @@ signatures in `tradeValue.js` before either PR, don't let both sessions modify i
 ### T2-FindATradeGenerator — League-wide find-a-trade candidate generator
 
 - **Status:** READY
+- **Claim:** 2026-09-27 Claude (worktree `omen-t2-find-a-trade-generator`, branch
+  `feat/t2-find-a-trade-generator`) — implemented `GET /api/trade/find` in `src/routes/trade.js`;
+  new `src/services/tradeFind.js` (candidate assembly, reusing `tradeLineup.js`'s `findTradeCandidate`
+  / `createSearchBudget` #404-#405 budget pattern and `tradeValue.js`'s `compareTrade` unmodified) and
+  `src/services/tradeFindCacheStore.js` (per-league/week roster+need-profile cache, same
+  `@upstash/redis` client pattern as `tradeShareStore.js`). Hard caps: `MAX_OPPONENT_TEAMS_PER_SCAN`
+  (16) and `MAX_CANDIDATES_RETURNED` (10), both surfaced in the response's `bounds`. Partial provider
+  failure degrades with a named reason per team (`degraded_teams`) rather than failing the batch.
+  Every candidate carries a tested `reasoning` field. TDD: `test/tradeFind.test.js` (service, 6 tests,
+  including a shared-budget/#404-shape regression) and `test/tradeFindRoute.test.js` (route, 9 tests,
+  including a many-team #404-shape test and a cache-hit-avoids-re-read test). Full suite 1276/1276
+  (1261 baseline + 15 new). Left as an explicit open question: no roster-change webhook exists on any
+  connected provider, so cache refresh is TTL-based (15 min), not event-driven — see this session's
+  handoff/report. Did not touch `src/services/tradeValue.js` (T1 is also touching it); only additive
+  changes to `src/routes/trade.js` (new `/find` route + one new constructor param, nothing existing
+  edited). Not marked VERIFIED — leaving that to the founder/reviewer per this session's instructions.
 - **Blocked by:** None
 - **Unblock:** 2026-09-27 CLEARED — founder approved proceeding same-session ahead of `B-FREEZE`.
 - **Priority:** P2

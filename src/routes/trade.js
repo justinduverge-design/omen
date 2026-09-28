@@ -14,6 +14,12 @@ const { buildTradeShareOgSvg } = require("../services/tradeShareOg");
 const { compareTrade } = require("../services/tradeValue");
 const { resolveNflPlayerInputs } = require("../services/playerSearch");
 const { resolveTradeLeagueContext } = require("../services/tradeLeagueContext");
+const { findLeagueTradeCandidates, MAX_OPPONENT_TEAMS_PER_SCAN, MAX_CANDIDATES_RETURNED } = require("../services/tradeFind");
+const { createSearchBudget } = require("../services/tradeLineup");
+const {
+  DEFAULT_FIND_CACHE_TTL_SECONDS,
+  createDefaultTradeFindCache,
+} = require("../services/tradeFindCacheStore");
 const { authenticateOmenRequest, getActivePlatformConnections } = require("../services/omen");
 const { getCurrentNflWeekContext } = require("../services/nflSchedule");
 const { logger } = require("../middleware/logging");
@@ -31,6 +37,7 @@ const TRADE_SHARE_CONTRACT = "trade-share.v1";
 // reading `verdict`; v2 clients read `verdict_state`, which is the only field
 // carrying the four approved verdict labels.
 const TRADE_COMPARE_CONTRACT = "trade-compare.v2";
+const TRADE_FIND_CONTRACT = "trade-find.v1";
 const VALID_CONTEXT_PLATFORMS = new Set(["yahoo", "sleeper", "espn"]);
 const MAX_LEAGUE_ID_LENGTH = 64;
 
@@ -534,6 +541,10 @@ function createTradeRouter({
   fetchYahooLeagueRosters = (...args) => yahooAdapter.fetchYahooLeagueRosters(...args),
   espnCredentials = getAuthenticatedEspnCredentials,
   yahooClient = getAuthenticatedYahooClient,
+  // T2 find-a-trade: caches each league/week's roster-and-need-profile bundle so a
+  // repeat request doesn't re-read the provider or re-derive need profiles. Same
+  // client/connection pattern as tradeShareStore.js (see tradeFindCacheStore.js).
+  tradeFindCache = createDefaultTradeFindCache(),
 } = {}) {
   const router = express.Router();
 
@@ -704,6 +715,193 @@ function createTradeRouter({
         week: result.week,
         roster_positions: result.roster_positions,
         teams,
+      });
+    } catch (e) {
+      return next(e);
+    }
+  });
+
+  function tradeFindCacheKey({ platform, leagueId, week }) {
+    return `${platform}:${leagueId}:${week}`;
+  }
+
+  /**
+   * `GET /api/trade/find?platform=&league_id=&team_id=&week=` → `trade-find.v1`.
+   *
+   * Scans every OTHER connected team's roster in the caller's league against the
+   * caller's own team (`team_id`, the same query param `/roster` already uses to
+   * pick one team out of a league) and returns ranked candidate trade packages.
+   *
+   * Bounding strategy (spec: `Blueprints/specs/omen-trade-rework-v1.md` §T2, the
+   * #404/#405 non-negotiable constraint):
+   *
+   *   1. **Cache.** The provider roster read for a given platform/league/week is
+   *      cached (`tradeFindCache`, `tradeFindCacheStore.js` — same Redis client
+   *      pattern as `tradeShareStore.js`) for `DEFAULT_FIND_CACHE_TTL_SECONDS`. A
+   *      repeat request in that window never re-reads the provider. This is the
+   *      "not recomputed live on every call" half of the constraint. Refresh is
+   *      TTL-based rather than webhook-driven because none of Yahoo, Sleeper, or
+   *      ESPN publish a roster-change webhook today — see the open question noted
+   *      in this item's report.
+   *   2. **Compute bound.** Candidate generation (`findLeagueTradeCandidates`,
+   *      `tradeFind.js`) reuses the exact #404/#405 shared search-budget pattern
+   *      from `tradeLineup.js`, plus a hard cap on opponent teams considered
+   *      (`MAX_OPPONENT_TEAMS_PER_SCAN`) and candidates returned
+   *      (`MAX_CANDIDATES_RETURNED`). Both are surfaced in `bounds` below so a
+   *      truncated scan is visible, never silent.
+   *   3. **Partial failure.** A team whose roster the provider disclosed as empty
+   *      or missing is skipped with a named reason in `degraded_teams` — the scan
+   *      never fails closed over one bad team (fact-of-record #16: no candidate
+   *      is ever proposed against a roster Omen cannot see).
+   */
+  router.get("/find", async (req, res, next) => {
+    try {
+      let user;
+      try {
+        user = await authenticate(req.headers.authorization);
+      } catch {
+        user = null;
+      }
+      if (!user?.id) {
+        return res.status(401).json({ error: "authentication_required", code: "trade_find_auth_required" });
+      }
+
+      const platform = req.query.platform == null ? "" : String(req.query.platform).toLowerCase();
+      const leagueId = req.query.league_id == null ? "" : String(req.query.league_id);
+      const teamId = req.query.team_id == null ? "" : String(req.query.team_id);
+      if (!platform) {
+        return res.status(400).json({ error: "platform query param required" });
+      }
+      if (!VALID_CONTEXT_PLATFORMS.has(platform)) {
+        return res.status(400).json({ error: "platform must be one of yahoo, sleeper, espn" });
+      }
+      if (!leagueId) {
+        return res.status(400).json({ error: "league_id query param required" });
+      }
+      if (leagueId.length > MAX_LEAGUE_ID_LENGTH) {
+        return res.status(400).json({ error: "league_id is too long" });
+      }
+      if (!teamId) {
+        return res.status(400).json({
+          error: "team_id query param required",
+          code: "trade_find_team_id_required",
+        });
+      }
+
+      let week = parseInt(req.query.week, 10);
+      if (!Number.isFinite(week) || week < 1) {
+        week = nflWeekContext(now())?.week || 1;
+      }
+
+      const cacheKey = tradeFindCacheKey({ platform, leagueId, week });
+      let bundle = null;
+      let cacheHit = false;
+      try {
+        bundle = await tradeFindCache.read(cacheKey);
+      } catch (e) {
+        logger.warn("Trade find cache read failed; continuing uncached", { err: e.message });
+      }
+
+      if (bundle) {
+        cacheHit = true;
+      } else {
+        let result;
+        try {
+          result = await ROSTER_READERS[platform]({ userId: user.id, leagueId, week });
+        } catch (e) {
+          logger.warn("Trade find roster read failed", { err: e.message, platform, league_id: leagueId });
+          return res.status(503).json({ error: "roster_unavailable", code: "trade_find_unavailable" });
+        }
+
+        if (result.status !== "ok") {
+          return res.json({
+            contract_version: TRADE_FIND_CONTRACT,
+            status: "unavailable",
+            platform,
+            league_id: leagueId,
+            week,
+            reason: result.reason || "provider_unsupported",
+            candidates: [],
+          });
+        }
+
+        bundle = {
+          generated_at: now().toISOString(),
+          week: result.week || week,
+          roster_positions: result.roster_positions,
+          teams: result.teams,
+        };
+
+        try {
+          await tradeFindCache.write(cacheKey, bundle, DEFAULT_FIND_CACHE_TTL_SECONDS);
+        } catch (e) {
+          logger.warn("Trade find cache write failed; serving uncached this request", { err: e.message });
+        }
+      }
+
+      let budgetExceededStats = null;
+      const scan = findLeagueTradeCandidates({
+        ownTeamId: teamId,
+        teams: bundle.teams,
+        rosterPositions: bundle.roster_positions,
+        budget: createSearchBudget(),
+        onBudgetExceeded: (stats) => { budgetExceededStats = stats; },
+      });
+
+      if (scan.status === "own_team_not_found") {
+        return res.status(404).json({ error: "team_not_found", code: "trade_find_team_not_found" });
+      }
+      if (scan.status === "own_roster_unreadable") {
+        return res.json({
+          contract_version: TRADE_FIND_CONTRACT,
+          status: "unavailable",
+          platform,
+          league_id: leagueId,
+          week: bundle.week,
+          reason: "own_roster_unavailable",
+          candidates: [],
+        });
+      }
+
+      if (budgetExceededStats) {
+        // Mirrors the #404 postmortem lesson in services/omen.js: a budget trip
+        // silently means fewer candidates were issued, which must be visible to
+        // whoever is watching this deploy, not just to the caller.
+        logger.warn("Trade find search budget exceeded", {
+          ...budgetExceededStats,
+          platform,
+          league_id: leagueId,
+        });
+      }
+
+      const responseStatus = scan.degraded_teams.length > 0
+        || scan.teams_skipped_for_cap.length > 0
+        || scan.budget_exceeded
+        ? "degraded"
+        : "ok";
+
+      return res.json({
+        contract_version: TRADE_FIND_CONTRACT,
+        status: responseStatus,
+        platform,
+        league_id: leagueId,
+        team_id: teamId,
+        week: bundle.week,
+        cache: {
+          hit: cacheHit,
+          generated_at: bundle.generated_at,
+          ttl_seconds: DEFAULT_FIND_CACHE_TTL_SECONDS,
+        },
+        bounds: {
+          max_opponent_teams: MAX_OPPONENT_TEAMS_PER_SCAN,
+          max_candidates: MAX_CANDIDATES_RETURNED,
+          teams_considered: scan.teams_considered,
+          teams_skipped_for_cap: scan.teams_skipped_for_cap,
+        },
+        degraded_teams: scan.degraded_teams,
+        budget_exceeded: scan.budget_exceeded,
+        own_needs: scan.own_needs,
+        candidates: scan.candidates,
       });
     } catch (e) {
       return next(e);
