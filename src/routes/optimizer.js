@@ -25,6 +25,7 @@ const { getAuthenticatedYahooClient } = require("../services/yahooAuth");
 const rosterSvc               = require("../services/roster");
 const optimizer               = require("../services/optimizer");
 const { vorpForPlayer }       = require("../services/vorp");
+const { canonicalLeagueContext } = require("../services/leagueContext");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
@@ -92,6 +93,20 @@ async function resolveActiveYahooLeagueId(userId) {
 function projectedPoints(player = {}) {
   const value = Number(player.projected_points);
   return Number.isFinite(value) ? value : null;
+}
+
+// Keep optimizer responses explicit about the season-scoped identity used by
+// downstream decision consumers. Older Yahoo roster payloads do not carry a
+// season yet, so this is deliberately fail-closed rather than inventing the
+// current year. The optimizer remains compatibility-safe while callers can
+// distinguish a complete context from a legacy response.
+function optimizerLeagueContext(roster, leagueKey, requestedSeason) {
+  return canonicalLeagueContext({
+    platform: "yahoo",
+    league_id: roster?.league_key || leagueKey,
+    season: roster?.season || requestedSeason,
+    team_id: roster?.team_key,
+  });
 }
 
 function rosterBaselineVorpByPosition(roster, scoringFormat) {
@@ -190,6 +205,7 @@ router.get("/lineup", async (req, res, next) => {
       week:  roster.week,
       league_key: roster.league_key,
       team_key:   roster.team_key,
+      league_context: optimizerLeagueContext(roster, leagueKey, req.query.season),
       starter_count: roster.slots.starters.length,
       bench_count:   roster.slots.bench.length,
       recommendations,
@@ -227,6 +243,7 @@ router.get("/waivers", async (req, res, next) => {
     res.json({
       week:        roster.week,
       league_key:  roster.league_key,
+      league_context: optimizerLeagueContext(roster, leagueKey, req.query.season),
       pool_size:   waiverPool.length,
       recommendations,
       note:        waiverPool.every(p => p.projected_points == null)
@@ -277,6 +294,7 @@ router.get("/waiver", async (req, res, next) => {
     return res.json({
       week: roster.week,
       platform: "yahoo",
+      league_context: optimizerLeagueContext(roster, leagueId, req.query.season),
       pool_size: waiverPool.length,
       is_mock: false,
       recommendations: buildWaiverRecommendations(roster, waiverPool, scoringFormat),
