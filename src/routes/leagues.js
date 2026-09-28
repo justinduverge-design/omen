@@ -35,6 +35,7 @@ const {
   replaceFollows,
   orderPlatformsByFollowCount,
 } = require("../services/leagueFollows");
+const { CONNECTION_STATES } = require("../services/providerConnectionState");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
@@ -80,6 +81,7 @@ function credentialsPresent(row) {
 
 function connectionState(row) {
   if (!row || !row.is_active) return "not_connected";
+  if (CONNECTION_STATES.includes(row.connection_state)) return row.connection_state;
   return credentialsPresent(row) ? "connected" : "reconnect_required";
 }
 

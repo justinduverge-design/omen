@@ -80,11 +80,27 @@ async function deleteWhereUserId(table, userId) {
 }
 
 async function deleteVaultSecret(secretId) {
-  if (!secretId) return;
+  if (!secretId) return { secretId: null, deleted: true };
   const { error } = await supabase.rpc("vault_delete_secret", { secret_id: secretId });
   if (error) {
     logger.warn("Vault secret delete failed during account deletion", { err: error.message });
+    return { secretId, deleted: false, error: error.message };
   }
+  return { secretId, deleted: true };
+}
+
+async function deleteVaultSecrets(secretIds) {
+  const results = await Promise.all([...secretIds].map(deleteVaultSecret));
+  const failures = results.filter((result) => !result.deleted);
+  if (failures.length > 0) {
+    const error = new Error("provider credential deletion incomplete");
+    error.code = "credential_deletion_incomplete";
+    // Keep secret identifiers and provider error text out of the request error path.
+    // The connection rows remain intact, so the next deletion attempt can retry them.
+    error.failure_count = failures.length;
+    throw error;
+  }
+  return results;
 }
 
 async function ensureConsentRecord(consentType, userId, req) {
@@ -232,7 +248,11 @@ router.delete("/delete", requireAuth, async (req, res, next) => {
         if (row[key]) secretIds.add(row[key]);
       }
     }
-    await Promise.all([...secretIds].map(deleteVaultSecret));
+    // Do not delete the database rows until every referenced Vault secret has been
+    // removed.  Otherwise a transient Vault failure leaves an orphaned credential
+    // with no connection row to find or retry.  This is intentionally retry-safe:
+    // successful Vault deletes are idempotent and the failed set remains discoverable.
+    await deleteVaultSecrets(secretIds);
 
     await Promise.all([
       deleteWhereUserId("moves", userId),
@@ -272,3 +292,4 @@ module.exports.LEGACY_DELETE_CONFIRMATION = LEGACY_DELETE_CONFIRMATION;
 module.exports.isDeleteConfirmed = isDeleteConfirmed;
 module.exports.LEGAL_VERSION = LEGAL_VERSION;
 module.exports.redactPlatformConnection = redactPlatformConnection;
+module.exports.deleteVaultSecrets = deleteVaultSecrets;
