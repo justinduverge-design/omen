@@ -74,6 +74,18 @@ test("POST /api/trade/compare requires send array", async () => {
   assert.equal(res.body.error, "send must be a non-empty array");
 });
 
+test("POST /api/trade/compare rejects an invalid canonical league season", async () => {
+  const res = await request(buildApp(), {
+    body: {
+      send: [{ name: "Ja'Marr Chase" }],
+      receive: [{ name: "CeeDee Lamb" }],
+      league_context: { platform: "sleeper", league_id: "league-1", season: "not-a-year" },
+    },
+  });
+  assert.equal(res.status, 400);
+  assert.equal(res.body.error, "league_context.season must be a valid calendar year");
+});
+
 test("Trade reports a three-team ceiling and never silently drops or invents a fourth team", async () => {
   const app = buildApp();
   const capabilities = await get(app, "/api/trade/capabilities");
