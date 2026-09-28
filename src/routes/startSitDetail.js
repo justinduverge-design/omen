@@ -36,6 +36,7 @@ const {
 } = require("../services/startSitDetail");
 const sleeperAdapter = require("../adapters/sleeper");
 const espnAdapter = require("../adapters/espn");
+const { canonicalLeagueContext } = require("../services/leagueContext");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
@@ -142,9 +143,24 @@ router.get("/detail", requireAuth, async (req, res, next) => {
       }));
     }
 
+    const leagueContext = canonicalLeagueContext({
+      platform: connection.platform,
+      league_id: connection.league_id,
+      season: context.season,
+      team_id: connection.espn_team_id,
+    });
+    if (leagueContext.state !== "live") {
+      return res.status(422).json(detailError({
+        code: "league_context_incomplete",
+        message: "Omen needs a provider league and season before it can compare a lineup decision.",
+        action: "connect",
+        platform: connection.platform,
+      }));
+    }
+
     let loaded;
     try {
-      loaded = await loadDetailContext(connection, req.user.id, resolvedWeek, context.season);
+      loaded = await loadDetailContext({ ...connection, league_id: leagueContext.league_id }, req.user.id, resolvedWeek, leagueContext.season);
     } catch (error) {
       // Never echo the provider message; it can carry credential fragments.
       logger.warn("Start/Sit detail provider read failed", {
@@ -163,12 +179,12 @@ router.get("/detail", requireAuth, async (req, res, next) => {
 
     return res.json(buildStartSitDetail({
       roster: loaded.roster,
-      platform: connection.platform,
-      leagueId: connection.league_id,
+      platform: leagueContext.platform,
+      leagueId: leagueContext.league_id,
       leagueName: loaded.leagueName,
       teamName: loaded.roster?.team_name || null,
       week: resolvedWeek,
-      season: context.season,
+      season: leagueContext.season,
       scoringFormat: loaded.scoringFormat,
       slot: req.query.slot ? String(req.query.slot) : null,
       offSeason: suppressLiveFootballData(),
