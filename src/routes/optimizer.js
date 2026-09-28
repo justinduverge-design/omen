@@ -309,3 +309,4 @@ router.get("/waiver", async (req, res, next) => {
 });
 
 module.exports = router;
+module.exports.optimizerLeagueContext = optimizerLeagueContext;

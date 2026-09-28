@@ -390,3 +390,4 @@ module.exports.buildWaiverTool = buildWaiverTool;
 module.exports.buildCommandCapabilities = buildCommandCapabilities;
 module.exports.isExpiredYahooToken = isExpiredYahooToken;
 module.exports.emptyLastResult = emptyLastResult;
+module.exports.rowLeagueContext = rowLeagueContext;
