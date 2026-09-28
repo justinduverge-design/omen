@@ -253,6 +253,13 @@ test("alert fingerprint keeps stale age and generated time out of incident ident
   assert.equal(second.stdout, first.stdout);
 });
 
+test("checked-in Command Center bundle is locally validation-gated", () => {
+  const validator = path.join(__dirname, "..", "scripts", "validate-command-center-artifacts.js");
+  const result = spawnSync(process.execPath, [validator], { encoding: "utf8" });
+  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+  assert.match(result.stdout, /stable fingerprint helper/);
+});
+
 test("publication decision schedules exist but fail closed behind an exact control and witness", () => {
   const root = path.join(__dirname, "..", "ops", "football-data", "kvm1");
   const helper = fs.readFileSync(path.join(root, "omen-football-publication-decision"), "utf8");
