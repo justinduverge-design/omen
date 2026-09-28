@@ -134,9 +134,18 @@ These affect how the app looks and feels to a real tester, separate from what's 
   cheapest done when Justin tests the app on his phone. The two stale stub-copy sites were
   corrected (`tue/gemma`, `f5e8f9dc`) without changing their `status`/`source` fields, since
   they're pre-attempt defaults, not the path a live user hits on success.
-- **Team-switch lag** — lead found (`POST /api/leagues/active` makes two serial provider
-  calls before responding, then signals a 5-surface client refresh). Not yet profiled to a
-  confirmed fix.
+- **Team-switch lag — partially fixed 2026-09-27.** The two ESPN provider calls in
+  `POST /api/leagues/active` (membership check, team resolution) had no data dependency on each
+  other but ran one after the other; they now dispatch concurrently via `Promise.all`, with a
+  regression test (`test/leaguesDirectoryRoute.test.js`) proving the request time stays close to
+  one call's latency rather than their sum. **Investigated and deliberately NOT done:**
+  consolidating to a single ESPN call by dropping the membership check and trusting the team
+  -resolution call's own not-found behavior — `test/leaguesDirectoryRoute.test.js`'s own ESPN
+  mocks default the membership call to failing specifically so the bound-league fallback path
+  stays exercised, and that fallback is what `"refuses an ESPN league other than the bound one"`
+  actually depends on; team resolution alone doesn't reliably reproduce that rejection. The
+  5-surface client refresh signaled after this response is unchanged and unexamined — if lag
+  remains after this fix, look there next.
 - **Real football data (snap counts, route participation)** — both verified available for
   free via nflverse (`snap_counts` and `pbp_participation` releases respectively), same
   ingestion shape the pipeline already uses. Scoped, not started.

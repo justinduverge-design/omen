@@ -613,11 +613,30 @@ router.post("/active", requireAuth, async (req, res, next) => {
       }));
     }
 
-    let belongs;
-    try {
-      belongs = await assertLeagueBelongsToUser(platform, row, leagueId, req.user.id, season);
-    } catch (error) {
-      logger.warn("Active league verification failed", { platform, err: error.message });
+    // Dispatched together rather than one after the other: this was the diagnosed source of
+    // switch lag (2026-09-24 lead, `Direction/2026-09-29-tuesday-readiness.md`). The two calls
+    // have no data dependency on each other -- `resolveEspnTeamId` only needs `leagueId`, not
+    // the membership-check result -- so waiting for one before starting the other was pure
+    // serial latency for no correctness reason. The decision below still gates entirely on
+    // `belongs`, exactly as before; a rejected league's team lookup (a wasted ESPN call in the
+    // uncommon "not your league" path) is discarded, never used or persisted.
+    //
+    // Deliberately NOT consolidated into a single call by dropping this membership check and
+    // trusting `resolveEspnTeamId`'s own not-found behavior instead: `discoverLeagueIds`'s ESPN
+    // path falls back to the single league already stored on the connection row whenever ESPN's
+    // fan-discovery call is unavailable (`test/leaguesDirectoryRoute.test.js`'s ESPN mocks
+    // default that call to failing for exactly this reason), and that fallback is the actual
+    // mechanism `"refuses an ESPN league other than the bound one"` depends on. Team resolution
+    // alone does not reliably reproduce that rejection, so both calls stay.
+    const [belongsResult, resolvedTeamId] = await Promise.all([
+      assertLeagueBelongsToUser(platform, row, leagueId, req.user.id, season)
+        .then((value) => ({ ok: true, value }))
+        .catch((error) => ({ ok: false, error })),
+      platform === "espn" ? resolveEspnTeamId(req.user.id, leagueId, teamId) : Promise.resolve(teamId),
+    ]);
+
+    if (!belongsResult.ok) {
+      logger.warn("Active league verification failed", { platform, err: belongsResult.error.message });
       return res.status(502).json(errorBody({
         code: "league_verification_unavailable",
         message: "Omen could not confirm that league with the platform. Try again shortly.",
@@ -626,7 +645,7 @@ router.post("/active", requireAuth, async (req, res, next) => {
       }));
     }
 
-    if (!belongs) {
+    if (!belongsResult.value) {
       return res.status(400).json(errorBody({
         code: "league_not_in_account",
         message: "That league is not one Omen can see on your connected account.",
@@ -639,9 +658,6 @@ router.post("/active", requireAuth, async (req, res, next) => {
     // the client to send one. Both native clients call this with no team id today, which is what
     // let a stale id survive a league change; making the server authoritative fixes every client
     // at once and cannot be undone by a future one forgetting the field.
-    const resolvedTeamId = platform === "espn"
-      ? await resolveEspnTeamId(req.user.id, leagueId, teamId)
-      : teamId;
 
     const persistence = await persistSelection(req.user.id, platform, leagueId, resolvedTeamId);
 

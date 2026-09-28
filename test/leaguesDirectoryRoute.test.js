@@ -472,6 +472,41 @@ test("POST /api/leagues/active accepts the bound ESPN league and records the tea
 // worked, because the row being set is the one already selected and no second true row is
 // created — which is why it presented as "ESPN is broken" rather than "switching providers is
 // broken", and why it survived review.
+// 2026-09-27: the two ESPN provider calls this route makes (membership check, team resolution)
+// used to run one after the other for no data-dependency reason -- diagnosed as the lead cause
+// of visible lag when switching leagues. Proves they now actually run concurrently, not just
+// that the end result is unchanged, by giving each an independent artificial delay and
+// asserting the total request time is close to the SLOWER one, not their sum. A regression back
+// to sequential calls (`await` one, then the other) would make this take close to the sum and
+// fail the upper-bound assertion.
+test("POST /api/leagues/active dispatches the ESPN membership and team-resolution calls concurrently", async () => {
+  const delay = (ms, value) => new Promise((resolve) => setTimeout(() => resolve(value), ms));
+  const CALL_DELAY_MS = 150;
+
+  const app = buildApp({
+    supabase: { rows: [ESPN_ROW], missingSelectionColumn: false, updates: [] },
+    espnAdapter: defaultEspnAdapter({
+      fetchEspnFanLeagues: () => delay(CALL_DELAY_MS, [{ league_id: "12345" }]),
+      verifyLeagueAccess: () => delay(CALL_DELAY_MS, { team_id: "9", team_name: "Hall Be Thy Name" }),
+    }),
+  });
+
+  const startedAt = Date.now();
+  const { status } = await request(app, {
+    path: "/api/leagues/active", method: "POST", body: { platform: "espn", league_id: "12345" },
+  });
+  const elapsedMs = Date.now() - startedAt;
+
+  assert.equal(status, 200);
+  // Sequential would be >= 2 * CALL_DELAY_MS (300ms); concurrent stays close to one delay.
+  // The threshold leaves generous room for test-runner overhead without also passing if the
+  // two calls were run one after another.
+  assert.ok(
+    elapsedMs < CALL_DELAY_MS * 1.8,
+    `expected concurrent dispatch (~${CALL_DELAY_MS}ms); took ${elapsedMs}ms, consistent with sequential calls`
+  );
+});
+
 test("POST /api/leagues/active clears the old selection before setting the new one", async () => {
   const updates = [];
   const app = buildApp({

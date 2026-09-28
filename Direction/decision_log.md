@@ -3837,3 +3837,44 @@ calendar pressure (Sunday, founder works Monday).
 - **Founder decision:** test on his own phone before archiving; today's work (dead-code cleanup,
   database hardening, the `state` fix, and the version bump) goes into one PR, which the founder
   explicitly authorized pushing and merging directly.
+
+## 2026-09-27 — Team-switch lag: parallelized the safe half, investigated and declined the risky half
+
+Founder asked to fix "the two calls" behind league-switch lag and, after hearing the tradeoff,
+explicitly asked for both the safe and the more aggressive fix. Investigation changed the answer
+on the second one.
+
+- **Decision: parallelize, don't consolidate.** `POST /api/leagues/active`'s two ESPN provider
+  calls (`assertLeagueBelongsToUser` — membership; `resolveEspnTeamId` — team lookup) have no data
+  dependency on each other and now dispatch via `Promise.all` instead of one after another.
+  Decision logic (400 if not a member, 502 if verification failed, proceed otherwise) is
+  unchanged — only the ordering changed. `src/routes/leagues.js`.
+- **Decision: do NOT drop the membership call and rely on team-resolution's own not-found
+  behavior**, despite that looking like the more complete fix (2 ESPN calls down to 1). Evidence
+  against it, found while implementing rather than assumed: `test/leaguesDirectoryRoute.test.js`'s
+  `defaultEspnAdapter()` deliberately makes the membership-discovery call (`fetchEspnFanLeagues`)
+  fail by default, "so every pre-existing ESPN test keeps exercising the bound-league fallback it
+  was written for" — that fallback (comparing against the one league already stored on the
+  connection row) is what `"refuses an ESPN league other than the bound one"` actually depends on.
+  The same mock's `verifyLeagueAccess` returns a plausible default team for *any* unrecognized
+  league id rather than failing, so relying on it alone would have removed a real, tested
+  ownership guardrail on the one provider this repo treats with the most caution. Test evidence
+  overrode the initial plan rather than the plan overriding the test.
+- **Regression coverage added, not just correctness preserved.** A wall-clock timing test proves
+  the two calls actually run concurrently (elapsed time close to one call's delay, not the sum) —
+  correctness-only tests would not have caught a future accidental re-serialization.
+- **A near-incident during implementation, worth recording:** the first version of the
+  concurrency test used a manually-held promise plus a single `setImmediate` tick to try to catch
+  the calls mid-flight, assumed real estimate of one macrotask being enough for a loopback
+  HTTP round-trip to reach the route handler. It wasn't, reliably — the assertion sometimes fired
+  before the request even arrived, threw, and left the held promise never released, which kept an
+  open HTTP server alive and hung the whole test process indefinitely (no per-test timeout was
+  configured to catch it). Rewritten to use independent artificial delays on each mock and an
+  upper-bound wall-clock assertion instead, which cannot leak a dangling promise. Cleaned up
+  several genuinely stuck `node --test` processes by hand while diagnosing this.
+- **Verification:** `test/leaguesDirectoryRoute.test.js` 41/41 (was 40); full backend `npm test`
+  1262/1262.
+- **Not investigated:** the response's `refresh: [...]` field signals a 5-surface client refresh
+  after this call returns. Whether that refresh is itself serial/slow client-side is unexamined —
+  flagged in `Direction/2026-09-29-tuesday-readiness.md` as the next place to look if switch lag
+  is still noticeable after this fix.
