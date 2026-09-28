@@ -23,6 +23,7 @@ const waiverSystemSvc = require("./waiverSystem");
 const sleeperAdapter = require("../adapters/sleeper");
 const espnAdapter = require("../adapters/espn");
 const { logger } = require("../middleware/logging");
+const { canonicalLeagueContext } = require("./leagueContext");
 const { findTradeCandidate } = require("./tradeLineup");
 const { compareTrade } = require("./tradeValue");
 const {
@@ -59,6 +60,20 @@ function safePlatformSummary(row) {
 function hasUsableLeagueId(connection) {
   const leagueId = String(connection?.league_id || "").trim();
   return Boolean(leagueId) && leagueId !== connection?.platform;
+}
+
+// Never manufacture a season for a live provider response.  The calendar year
+// is not a league identity: providers can expose an old season, a future
+// season, or a league whose season has not been persisted yet.  Returning null
+// keeps the response honest until the selected league context is available.
+function liveSeason({ connection, roster } = {}) {
+  const context = canonicalLeagueContext({
+    platform: connection?.platform || roster?.source,
+    league_id: connection?.league_id,
+    season: roster?.season ?? connection?.season,
+    team_id: roster?.team_key,
+  });
+  return context.state === "live" ? context.season : null;
 }
 
 function selectYahooConnection(connections = []) {
@@ -218,7 +233,7 @@ function mapLineupSwapToOmen({ roster, swap, connection, connectedPlatforms }) {
     is_mock: false,
     contract_version: LIVE_CONTRACT_VERSION,
     generated_at: new Date().toISOString(),
-    season: new Date().getFullYear(),
+    season: liveSeason({ connection, roster }),
     week: roster.week || null,
     scoring_format: DEFAULT_SCORING_FORMAT,
     source: {
@@ -732,7 +747,7 @@ function liveEmptyMvpResponse({ roster, connection, connectedPlatforms, waiverSi
     platform,
     leagueId: connection.league_id,
     teamId: roster.team_key || null,
-    season: new Date().getFullYear(),
+    season: liveSeason({ connection, roster }),
     week: roster.week || null,
     state: "empty",
   });
@@ -768,7 +783,7 @@ function preDraftMvpResponse({ connection, roster, connectedPlatforms }) {
     platformStatus: "pre_draft",
     leagueId: connection.league_id,
     teamId: roster?.team_key || null,
-    season: new Date().getFullYear(),
+    season: liveSeason({ connection, roster }),
     week: roster?.week || null,
     state: "empty",
   });
@@ -833,7 +848,7 @@ function mapWaiverPickupToMvpMove({ roster, connection, connectedPlatforms, outS
     platform,
     leagueId: connection.league_id,
     teamId: roster.team_key || null,
-    season: new Date().getFullYear(),
+    season: liveSeason({ connection, roster }),
     week: roster.week || null,
     state: "success",
   });
