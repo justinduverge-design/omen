@@ -240,6 +240,8 @@ struct OmenLeagueSwitcherSheet: View {
         switch group.connectionState {
         case "reconnect_required":
             return "\(platformDisplayName(group.platform)) needs to be reconnected before Omen can list its leagues."
+        case "temporarily_unavailable":
+            return "\(platformDisplayName(group.platform)) is temporarily unavailable. Try again in a moment."
         case "not_connected":
             return "\(platformDisplayName(group.platform)) is not connected."
         default:

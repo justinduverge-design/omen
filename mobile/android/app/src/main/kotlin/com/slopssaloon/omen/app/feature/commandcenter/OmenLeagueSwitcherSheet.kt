@@ -226,6 +226,8 @@ fun leagueSubtitle(group: LeagueDirectory.PlatformGroup, league: LeagueDirectory
 fun emptyGroupMessage(group: LeagueDirectory.PlatformGroup): String = when (group.connectionState) {
     "reconnect_required" ->
         "${platformDisplayName(group.platform)} needs to be reconnected before Omen can list its leagues."
+    "temporarily_unavailable" ->
+        "${platformDisplayName(group.platform)} is temporarily unavailable. Try again in a moment."
     "not_connected" -> "${platformDisplayName(group.platform)} is not connected."
     else -> "No ${platformDisplayName(group.platform)} leagues are available right now."
 }

@@ -70,7 +70,7 @@ struct LeagueDirectory: Decodable, Equatable {
     }
 
     struct PlatformGroup: Decodable, Equatable, Identifiable {
-        /// `"connected"`, `"reconnect_required"`, or `"not_connected"`.
+        /// `"connected"`, `"reconnect_required"`, `"temporarily_unavailable"`, or `"not_connected"`.
         let platform: String
         let connectionState: String?
         /// `"full"`, `"bound_only"`, or `"unavailable"`. ESPN is always `bound_only`.
