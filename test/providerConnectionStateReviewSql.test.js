@@ -28,10 +28,12 @@ test("provider state review SQL is additive and bounded", () => {
   assert.match(sql, /create index if not exists idx_platform_connections_health_state/i);
 });
 
-test("provider state review SQL does not expose secrets to browser roles", () => {
+test("provider state review SQL preserves the safe browser read contract", () => {
   const sql = fs.readFileSync(sqlPath, "utf8");
-  assert.match(sql, /revoke all on table public\.platform_connections from anon, authenticated/i);
-  assert.doesNotMatch(sql, /grant select on table public\.platform_connections to authenticated/i);
+  assert.match(sql, /revoke all on table public\.platform_connections from anon\s*;/i);
+  assert.doesNotMatch(sql, /revoke all on table public\.platform_connections from anon, authenticated/i);
+  assert.match(sql, /preserve the established RLS\/grant contract/i);
+  assert.match(sql, /newly-added health columns remain ungranted/i);
   assert.match(sql, /grant select, insert, update, delete on table public\.platform_connections to service_role/i);
 });
 

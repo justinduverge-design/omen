@@ -40,7 +40,10 @@ end $$;
 create index if not exists idx_platform_connections_health_state
   on public.platform_connections (user_id, platform, connection_state);
 
--- Backend-only health metadata. Never grant browser roles access to this table:
--- it also contains secret identifiers and provider linkage fields.
-revoke all on table public.platform_connections from anon, authenticated;
+-- Preserve the established RLS/grant contract from `sql/omen_rls_security.sql`:
+-- authenticated may read the existing safe, column-limited connection view,
+-- while the newly-added health columns remain ungranted to browser roles.
+-- Do not blanket-revoke authenticated here: that would regress the client
+-- league directory while adding no protection beyond the existing column grant.
+revoke all on table public.platform_connections from anon;
 grant select, insert, update, delete on table public.platform_connections to service_role;
