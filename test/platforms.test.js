@@ -463,6 +463,25 @@ test("GET /api/platforms/state returns safe machine-readable states from persist
   assert.equal(JSON.stringify(res.body).includes("swid-secret-id"), false);
 });
 
+test("GET /api/platforms/state honors persisted provider health without exposing credential metadata", async () => {
+  const { app } = buildApp({
+    rows: [
+      { user_id: "test-slops-user", platform: "espn", is_active: true, connection_state: "reconnect_required", connection_reason_code: "provider_auth_rejected", espn_secret_id: "secret", swid_secret_id: "secret" },
+      { user_id: "test-slops-user", platform: "yahoo", is_active: true, connection_state: "temporarily_unavailable", connection_reason_code: "provider_timeout", token_secret_id: "secret" },
+    ],
+  });
+
+  const res = await request(app, "/api/platforms/state");
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.body.providers.espn, {
+    platform: "espn", state: "reconnect_required", recovery_action: "reauthenticate", error_code: "provider_auth_rejected",
+  });
+  assert.deepEqual(res.body.providers.yahoo, {
+    platform: "yahoo", state: "temporarily_unavailable", recovery_action: "retry", error_code: "provider_timeout",
+  });
+  assert.equal(JSON.stringify(res.body).includes("secret"), false);
+});
+
 test("GET /api/platforms/state reports choosing_league for the Yahoo league_id placeholder, not connected", async () => {
   const { app } = buildApp({
     rows: [

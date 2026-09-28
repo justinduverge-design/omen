@@ -17,6 +17,7 @@ const { ensureAppUser } = require("../services/appUser");
 const { hasUsableLeagueId } = require("../services/omenReadiness");
 const sleeperAdapter = require("../adapters/sleeper");
 const espnAdapter = require("../adapters/espn");
+const { CONNECTION_STATES } = require("../services/providerConnectionState");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
@@ -222,6 +223,23 @@ function platformStatusContract(rows) {
 function providerState(platform, row) {
   const base = { platform, state: "not_started", recovery_action: "start_connection", error_code: null };
   if (!row?.is_active) return base;
+
+  // Persisted provider health is authoritative when available. Keep the
+  // legacy shape below as a compatibility fallback for older rows that do not
+  // yet have the additive connection-state columns.
+  if (CONNECTION_STATES.includes(row.connection_state)) {
+    const state = row.connection_state;
+    return {
+      ...base,
+      state,
+      recovery_action: state === "reconnect_required"
+        ? "reauthenticate"
+        : state === "temporarily_unavailable"
+          ? "retry"
+          : state === "connected" ? null : "start_connection",
+      error_code: row.connection_reason_code || null,
+    };
+  }
 
   if (platform === "yahoo") {
     if (!row.token_secret_id) {

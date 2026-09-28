@@ -377,7 +377,6 @@ test("a connection missing its credentials reports reconnect_required rather tha
   assert.deepEqual(espn.leagues, []);
   assert.equal(body.active, null);
 });
-
 test("the directory reports provider_binding_only while the selection column is absent", async () => {
   const app = buildApp({ supabase: { rows: [SLEEPER_ROW], missingSelectionColumn: true } });
   const { status, body } = await request(app);
