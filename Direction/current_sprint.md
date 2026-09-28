@@ -911,6 +911,36 @@ signatures in `tradeValue.js` before either PR, don't let both sessions modify i
 - **Do not touch:** inferring an outcome from any signal Omen can observe; blending self-reported
   outcomes with verified ones in any aggregate.
 
+### T5-ThreeTeamBuilderInteraction — Design the native 3-team "build a trade" interaction
+
+- **Status:** READY
+- **Blocked by:** None
+- **Source:** discovered building T1 (PR #473, `feat/t1-three-team-capability`, commit `d7f63169`).
+  Investigating the native unlock, the agent found the "Add team" chip and 3-leg block in the
+  Trade-build/roster journey screens are **hardcoded disabled controls with no underlying interaction
+  built at all** on either platform — no third-team selection state, no 3-sided offer model, no live
+  construction site for `OmenTradeSubmission` beyond a display struct. T1's backend (3-team
+  `trade-compare.v2`) is real and tested; this is the undesigned native half the trade-page workshop's
+  `Still open` section already named ("two-/three-team builder interaction and accessibility
+  behavior") and T1 correctly stopped rather than inventing it.
+- **Priority:** P3
+- **Cost:** medium
+- **Scope:** same design-contract sequence `T3-SwipeCandidateReview` already requires, applied to a
+  different screen: `slops-native-screen-design` to decide the third-partner-selection and 3-sided
+  offer interaction on the existing `TradeBuild`/`TradeRoster` journey, an approved canvas artboard or
+  Figma node, `slops-canvas-to-code` to compile the contract, then SwiftUI + Compose implementation in
+  parity consuming T1's now-live `legs`-based `trade-compare.v2` payload. Files:
+  `OmenTradeJourneyScreens.swift` / the Android equivalent, `OmenTradeControls.swift`,
+  `OmenTradeSubmission` on both platforms.
+- **Skills:** `slops-native-screen-design`, `slops-canvas-to-code`, `slops-native-ui-audit`,
+  `slops-ux-copy`, core native implementation bundle
+- **Done when:** an approved screen contract exists for the 3-team builder interaction;
+  `slops-canvas-to-code` reports no drift; both platforms let a user select a third partner, build a
+  3-sided offer, and see the split-handoff submission steps T1 already generates server-side;
+  `slops-native-ui-audit` records a clean verdict.
+- **Do not touch:** the 2-team builder flow's existing approved contract; do not re-open the
+  already-approved `TradeBuild-v1.md` 2-team layout to retrofit a third slot without a new proposal.
+
 ## B. Backend / recommendation lane
 
 **Phase 2.** Backend feature work is essentially complete. What remains is merging what is built and then freezing.
