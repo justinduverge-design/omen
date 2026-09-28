@@ -6,6 +6,8 @@ This is the human-readable tracker for active `slops-saloon` security and privac
 
 `probo.yaml` is the machine-readable compliance and evidence map. This file explains the product and engineering defaults agents should follow before changing auth, platform connections, ESPN recovery, logging, analytics, or user data handling.
 
+The manifest is an internal control and evidence register. Its statuses describe Omen's current evidence state; they do not constitute formal certification or a public compliance claim. Run `node scripts/validate-probo.js` when changing either this tracker or `probo.yaml`.
+
 ## Canonical Evidence
 
 - Compliance controls: `probo.yaml`
@@ -57,6 +59,8 @@ This is the human-readable tracker for active `slops-saloon` security and privac
 - Data inventory evidence.
 - Non-PII audit trail evidence.
 - ESPN recovery secret-handling evidence.
+
+Each manifest control must include an owner, evidence type, evidence freshness window, review dates, and one repository-relative evidence path. The validator checks those fields and prevents missing evidence paths or unknown control statuses from silently entering the register.
 
 This is useful as a compliance checklist, but it is not a complete security program by itself. Keep product decisions and privacy rules in this tracker or the relevant playbook, then point `probo.yaml` at implementation evidence when controls are ready to verify.
 

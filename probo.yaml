@@ -1,5 +1,15 @@
 framework: "gdpr_soc2_hybrid"
 project: "Omen"
+manifest_version: 2
+status_vocabulary:
+  - designed
+  - implemented
+  - tested
+  - operating
+  - stale
+  - failed
+  - independently_assessed
+  - not_applicable
 
 # 1. Encryption at Rest (Vault Verification)
 controls:
@@ -8,6 +18,12 @@ controls:
     description: "Verify Yahoo/ESPN tokens are stored in Supabase Vault"
     evidence_path: "sql/omen_rls_security.sql"
     check: "contains('vault.secrets')"
+    owner: "backend-security"
+    status: "implemented"
+    evidence_type: "implementation"
+    evidence_freshness_days: 90
+    last_reviewed: "2026-09-28"
+    next_review: "2026-12-27"
 
 # 2. Right to Erasure (Article 17)
   - id: "GDPR_ART_17"
@@ -15,6 +31,12 @@ controls:
     description: "Automated purge of user data, secrets, and cache"
     evidence_path: "src/routes/userPrivacy.js"
     check: "contains('router.delete(\"/delete\"')"
+    owner: "backend-privacy"
+    status: "implemented"
+    evidence_type: "implementation_and_test"
+    evidence_freshness_days: 90
+    last_reviewed: "2026-09-28"
+    next_review: "2026-12-27"
 
 # 3. Data Minimization (Article 5)
   - id: "GDPR_ART_5"
@@ -22,6 +44,12 @@ controls:
     description: "Ensures only authorized data points are collected"
     evidence_path: "src/routes/userPrivacy.js"
     check: "contains('redactions')"
+    owner: "backend-privacy"
+    status: "designed"
+    evidence_type: "implementation_and_review"
+    evidence_freshness_days: 90
+    last_reviewed: "2026-09-28"
+    next_review: "2026-12-27"
 
 # 4. Audit Logging (Non-PII)
   - id: "CC7.2"
@@ -29,3 +57,22 @@ controls:
     description: "Hashed user IDs for deletion logs"
     evidence_path: "src/routes/userPrivacy.js"
     check: "contains('userHash')"
+    owner: "backend-security"
+    status: "implemented"
+    evidence_type: "implementation_and_test"
+    evidence_freshness_days: 90
+    last_reviewed: "2026-09-28"
+    next_review: "2026-12-27"
+
+# 5. ESPN Recovery Secret Handling
+  - id: "OMEN-ESP-01"
+    name: "ESPN Recovery Secret Handling"
+    description: "Recovery keeps provider credentials out of user-facing context and logs"
+    evidence_path: "Blueprints/playbooks/espn-recovery.md"
+    check: "contains('Never log')"
+    owner: "backend-security"
+    status: "implemented"
+    evidence_type: "playbook_and_test"
+    evidence_freshness_days: 30
+    last_reviewed: "2026-09-28"
+    next_review: "2026-10-28"

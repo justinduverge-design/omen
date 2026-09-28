@@ -179,12 +179,6 @@ const DETAIL_COLUMNS = [
   "scoring", "scoring_contract_version", "scoring_coverage_state", "reconciliation_state",
 ].join(",");
 
-const DETAIL_COLUMNS_LEGACY = [
-  "id", "user_id", "week_num", "season", "move_type", "headline", "reasoning",
-  "confidence", "target_player", "followed", "user_stars", "user_note",
-  "outcome", "eff", "result", "created_at", "scored_at",
-].join(",");
-
 function detailError({ code, message, action }) {
   return {
     contract_version: DETAIL_ERROR_CONTRACT,
@@ -491,9 +485,22 @@ router.get("/:id", requireAuth, async (req, res, next) => {
       .eq("user_id", req.user.id)
       .maybeSingle();
 
-    let { data, error } = await load(DETAIL_COLUMNS);
+    const { data, error } = await load(DETAIL_COLUMNS);
+    // Do not fall back to a second, also-unverified column shape. The legacy
+    // fallback made schema drift look like a healthy detail response while
+    // silently dropping A6 context and could still request columns absent from
+    // production. Detail is a capability: report its absence explicitly and
+    // let the client preserve the rest of the Ledger.
     if (error && isMissingColumnError(error)) {
-      ({ data, error } = await load(DETAIL_COLUMNS_LEGACY));
+      return res.status(503).json({
+        ...detailError({
+          code: "ledger_detail_schema_capability_missing",
+          message: "Omen cannot open this Ledger entry until its detail storage contract is available.",
+          action: "try_again_later",
+        }),
+        capability: "ledger_detail",
+        operation: "detail",
+      });
     }
     if (error) throw new Error(`move lookup failed: ${error.message}`);
 
