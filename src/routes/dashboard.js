@@ -14,6 +14,7 @@ const yahooAdapter = require("../adapters/yahoo");
 const espnAdapter = require("../adapters/espn");
 const { quietWeek } = require("../services/quietWeek");
 const { CAPABILITY_CONTRACT } = require("../services/decisionCapabilities");
+const { canonicalLeagueContext } = require("../services/leagueContext");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
@@ -115,6 +116,18 @@ function applyLastResult(summary, platform, result) {
   summary[platform].lastGameKickoff = result.lastGameKickoff ?? null;
 }
 
+// Dashboard rows predate the season-instance contract and may not carry a
+// season column yet. Enrich only request-local reads with the current season;
+// an incomplete row is unavailable, never repaired with a guessed league id.
+function rowLeagueContext(row, context) {
+  return canonicalLeagueContext({
+    platform: row?.platform,
+    league_id: row?.league_id,
+    season: context?.season,
+    team_id: row?.espn_team_id,
+  });
+}
+
 async function getSleeperLastResult(row, context) {
   const sleeperUserId = row.platform_user_id
     || (row.platform_username
@@ -179,20 +192,21 @@ async function buildPlatformSummaryForUser(rows = [], userId, now = new Date()) 
   if (!lastResultContext) return summary;
 
   const activeRows = rows.filter((row) => row?.is_active);
+  const hasCanonicalContext = (row) => rowLeagueContext(row, lastResultContext).state === "live";
   const lookups = [
     {
       platform: "sleeper",
-      row: activeRows.find(hasUsableSleeperContext),
+      row: activeRows.find((row) => hasUsableSleeperContext(row) && hasCanonicalContext(row)),
       run: (row) => getSleeperLastResult(row, lastResultContext),
     },
     {
       platform: "yahoo",
-      row: activeRows.find((row) => hasUsableYahooToken(row, now) && hasUsableLeagueId(row)),
+      row: activeRows.find((row) => hasUsableYahooToken(row, now) && hasUsableLeagueId(row) && hasCanonicalContext(row)),
       run: (row) => getYahooLastResult(row, userId, lastResultContext),
     },
     {
       platform: "espn",
-      row: activeRows.find(hasUsableEspnContext),
+      row: activeRows.find((row) => hasUsableEspnContext(row) && hasCanonicalContext(row)),
       run: (row) => getEspnLastResult(row, userId, lastResultContext),
     },
   ];
