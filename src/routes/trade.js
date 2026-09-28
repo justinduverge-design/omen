@@ -34,6 +34,17 @@ const TRADE_COMPARE_CONTRACT = "trade-compare.v2";
 const VALID_CONTEXT_PLATFORMS = new Set(["yahoo", "sleeper", "espn"]);
 const MAX_LEAGUE_ID_LENGTH = 64;
 
+// T1 — three-team trade capability (omen-trade-rework-v1.md). Beta's ceiling per the workshop's
+// locked decision: "Beta supports two-team and three-team trades; three is the maximum." A
+// three-team deal is expressed as `legs` — literal player transfers between named teams — rather
+// than a generic N-sided payload, because (a) the native artboards already model a leg exactly
+// this way (`OmenTradeLeg`: direction + "RB · IND → Davante's"), and (b) the split-submission
+// copy this shape must produce needs to know *which* players move *where*, not just each
+// participant's aggregate gain/loss.
+const THREE_TEAM_COUNT = 3;
+const MIN_THREE_TEAM_LEGS = 2;
+const MAX_THREE_TEAM_LEGS = 6;
+
 // Approved verdict vocabulary (visual briefs §9.2). The shipped three-value
 // enum maps onto the first three; the fourth is reachable only through the
 // evaluability signal and never by inference on the client.
@@ -117,6 +128,131 @@ function validateLeagueContext(body = {}) {
     return "league_context.league_id is too long";
   }
   return null;
+}
+
+/**
+ * One player transfer between two named teams — the unit a three-team trade is built from.
+ * `from`/`to` are caller-chosen opaque ids (a roster/team id, or just "you"); `from_name`/
+ * `to_name` are optional display names carried through to the submission copy.
+ */
+function validateLeg(leg, index) {
+  if (!isPlainObject(leg)) {
+    return `legs[${index}] must be an object`;
+  }
+  if (typeof leg.from !== "string" || !leg.from.trim()) {
+    return `legs[${index}].from is required`;
+  }
+  if (typeof leg.to !== "string" || !leg.to.trim()) {
+    return `legs[${index}].to is required`;
+  }
+  if (leg.from === leg.to) {
+    return `legs[${index}].from and legs[${index}].to must be different teams`;
+  }
+  if (leg.from_name != null && typeof leg.from_name !== "string") {
+    return `legs[${index}].from_name must be a string`;
+  }
+  if (leg.to_name != null && typeof leg.to_name !== "string") {
+    return `legs[${index}].to_name must be a string`;
+  }
+  return validatePlayers(leg.players, `legs[${index}].players`);
+}
+
+function validateLegs(legs) {
+  if (!Array.isArray(legs) || legs.length < MIN_THREE_TEAM_LEGS) {
+    return `legs must be an array of at least ${MIN_THREE_TEAM_LEGS} transfers`;
+  }
+  if (legs.length > MAX_THREE_TEAM_LEGS) {
+    return `legs may contain at most ${MAX_THREE_TEAM_LEGS} transfers`;
+  }
+  for (let index = 0; index < legs.length; index += 1) {
+    const error = validateLeg(legs[index], index);
+    if (error) return error;
+  }
+  return null;
+}
+
+function uniqueTeamIdsFromLegs(legs) {
+  const ids = [];
+  for (const leg of legs) {
+    if (!ids.includes(leg.from)) ids.push(leg.from);
+    if (!ids.includes(leg.to)) ids.push(leg.to);
+  }
+  return ids;
+}
+
+function teamNamesFromLegs(legs) {
+  const names = {};
+  for (const leg of legs) {
+    if (leg.from_name && !names[leg.from]) names[leg.from] = leg.from_name;
+    if (leg.to_name && !names[leg.to]) names[leg.to] = leg.to_name;
+  }
+  return names;
+}
+
+/**
+ * Bounded to three qualitative labels — never a fabricated percentage. Derived transparently
+ * from the same `verdict_state` the screen already shows for that participant: a deal that
+ * favors them is one they are more likely to accept, and the reverse.
+ */
+function acceptanceLikelihoodFor(verdictState) {
+  switch (verdictState) {
+    case "favors_you": return "likely";
+    case "you_give_up_too_much": return "unlikely";
+    case "close_needs_context": return "uncertain";
+    default: return "uncertain";
+  }
+}
+
+/**
+ * Same shape as `evaluabilityFor`, summed across every participant's own evaluability rather
+ * than a single send/receive pair. Insufficient anywhere means the trade as a whole cannot
+ * responsibly receive a verdict — the same "do not force a verdict" rule `evaluabilityFor`
+ * already applies to a two-team offer.
+ */
+function overallEvaluabilityAcrossParticipants(evaluabilities) {
+  const missing = evaluabilities.reduce((sum, e) => sum + Number(e.missing_projection_count || 0), 0);
+  const total = evaluabilities.reduce((sum, e) => sum + Number(e.total_player_count || 0), 0);
+
+  if (!total) {
+    return {
+      status: "insufficient_data", reason: "no_players",
+      missing_projection_count: 0, total_player_count: 0,
+    };
+  }
+  if (missing > 0) {
+    return {
+      status: "insufficient_data", reason: "missing_projections",
+      missing_projection_count: missing, total_player_count: total,
+    };
+  }
+  return {
+    status: "evaluable", reason: null,
+    missing_projection_count: 0, total_player_count: total,
+  };
+}
+
+/**
+ * No connected provider (ESPN, Yahoo, Sleeper) publishes a three-team write API — the workshop's
+ * locked fact, restated by `trade-capabilities.v1`'s `submission: "handoff_only"`. A three-team
+ * deal is therefore always assembled as linked two-team handoffs, submitted in the order the
+ * caller gave the legs. This states the mechanical fact and the concrete, data-derived order —
+ * it never guesses which leg is "riskiest" or otherwise invents a judgment the engine has no
+ * evidence for.
+ */
+function buildThreeTeamSubmission(resolvedLegs, teamNames) {
+  const nameFor = (teamId) => teamNames[teamId] || teamId;
+  const steps = resolvedLegs.map((leg, index) => {
+    const players = leg.players.map((player) => player.name).join(", ");
+    const contingency = index === 0 ? "" : ` Make it contingent on leg ${index} completing first.`;
+    return `Leg ${index + 1}: send ${players} from ${nameFor(leg.from)} to ${nameFor(leg.to)}.${contingency}`;
+  });
+
+  return {
+    mode: "split_handoff",
+    reason: "no_connected_provider_publishes_a_three_team_write_api",
+    caption: "No provider builds a three-team trade natively. Submit it as linked two-team trades, in this order.",
+    steps,
+  };
 }
 
 /**
@@ -402,9 +538,9 @@ function createTradeRouter({
   const router = express.Router();
 
   router.get("/capabilities", (_req, res) => res.json({
-    contract_version: "trade-capabilities.v1", max_teams: 2,
-    comparison: "two_sided", submission: "handoff_only",
-    three_team: { supported: false, reason: "multi_team_comparison_not_implemented" },
+    contract_version: "trade-capabilities.v1", max_teams: THREE_TEAM_COUNT,
+    comparison: "multi_sided", submission: "handoff_only",
+    three_team: { supported: true, reason: null },
   }));
 
   /**
@@ -642,13 +778,140 @@ function createTradeRouter({
     };
   }
 
+  /**
+   * `POST /api/trade/compare` with a `legs` body → the three-team branch of `trade-compare.v2`.
+   *
+   * Each participant is evaluated **separately**, by aggregating exactly what that team sends
+   * and receives across the legs and running it through the same `compareTrade` fairness engine
+   * the two-team path already uses — never a pairwise decomposition bolted on top. A payload
+   * touching more or fewer than exactly three distinct teams is refused outright: T1's contract
+   * is that a three-team request never silently collapses to two, and never expands past three.
+   */
+  async function handleThreeTeamCompare(req, res) {
+    const legs = req.body.legs;
+    const legsError = validateLegs(legs);
+    if (legsError) {
+      return res.status(400).json({ error: legsError });
+    }
+
+    const teamIds = uniqueTeamIdsFromLegs(legs);
+    if (teamIds.length > THREE_TEAM_COUNT) {
+      return res.status(422).json({
+        error: "multi_team_trade_unsupported", max_teams: THREE_TEAM_COUNT,
+        message: "Omen compares at most three teams. No trade analysis was performed.",
+      });
+    }
+    if (teamIds.length < THREE_TEAM_COUNT) {
+      return res.status(422).json({
+        error: "three_team_shape_required", max_teams: THREE_TEAM_COUNT,
+        message: "These legs only touch two teams. Use a two-team compare (send/receive) instead — "
+          + "Omen never silently collapses a three-team request into a two-team one.",
+      });
+    }
+
+    const contextError = validateLeagueContext(req.body);
+    if (contextError) {
+      return res.status(400).json({ error: contextError });
+    }
+
+    let resolvedLegs;
+    try {
+      resolvedLegs = await Promise.all(legs.map(async (leg) => ({
+        leg,
+        resolutions: await playerResolver(leg.players),
+      })));
+    } catch (error) {
+      logger.warn("Trade player resolution unavailable", { err: error.message });
+      return res.status(503).json({
+        error: "player_resolution_unavailable",
+        code: "player_resolution_unavailable",
+      });
+    }
+
+    const unresolved = [];
+    resolvedLegs.forEach(({ leg, resolutions }, index) => {
+      unresolved.push(...unresolvedPlayersFor(`legs[${index}].players`, leg.players, resolutions));
+    });
+    if (unresolved.length) {
+      return res.status(422).json({
+        error: "unresolved_players",
+        code: "trade_unresolved_players",
+        unresolved,
+      });
+    }
+
+    const resolvedLegsWithPlayers = resolvedLegs.map(({ leg, resolutions }) => ({
+      from: leg.from,
+      to: leg.to,
+      players: resolvedTradePlayers(leg.players, resolutions),
+    }));
+
+    const { analysis, scoringConfig } = await resolveAnalysisContext(req);
+    const scoring_format = analysis.mode === "personalized"
+      ? scoringConfig.scoring_format
+      : (req.body.scoring_format || "ppr");
+
+    const teamNames = teamNamesFromLegs(legs);
+
+    const participants = teamIds.map((teamId) => {
+      const sends = resolvedLegsWithPlayers
+        .filter((leg) => leg.from === teamId)
+        .flatMap((leg) => leg.players);
+      const receives = resolvedLegsWithPlayers
+        .filter((leg) => leg.to === teamId)
+        .flatMap((leg) => leg.players);
+
+      const result = compareTrade({ send: sends, receive: receives }, { scoringFormat: scoring_format }, scoringConfig);
+      const evaluability = evaluabilityFor(result);
+      const verdict_state = verdictStateFor(result, evaluability);
+
+      return {
+        team_id: teamId,
+        team_name: teamNames[teamId] || null,
+        sends: result.send,
+        receives: result.receive,
+        net_value: result.net_value,
+        verdict: result.verdict,
+        verdict_state,
+        acceptance_likelihood: acceptanceLikelihoodFor(verdict_state),
+        confidence: result.confidence,
+        // "Roster fit" reuses the same scarcity/tier and depth-discount signals the two-team
+        // engine already computes — not a new scoring model, per the item's scope.
+        roster_fit: {
+          summary: result.scarcity_analysis.summary || null,
+          depth_discounted: result.depth_discounted,
+        },
+        evaluability,
+      };
+    });
+
+    const overall = overallEvaluabilityAcrossParticipants(participants.map((p) => p.evaluability));
+
+    return res.json({
+      contract_version: TRADE_COMPARE_CONTRACT,
+      trade_shape: "three_team",
+      team_count: THREE_TEAM_COUNT,
+      participants,
+      evaluability: overall,
+      // The first team named across the legs, by convention — "your" headline when this request
+      // came from the app's own builder, which always lists the caller's team first.
+      verdict_state: participants[0].verdict_state,
+      analysis_context: analysis,
+      submission: buildThreeTeamSubmission(resolvedLegsWithPlayers, teamNames),
+    });
+  }
+
   router.post("/compare", async (req, res, next) => {
     try {
+      if (req.body?.legs != null) {
+        return await handleThreeTeamCompare(req, res);
+      }
       if (req.body?.teams != null || req.body?.participants != null
         || (req.body?.team_count != null && req.body.team_count !== 2)) {
         return res.status(422).json({
           error: "multi_team_trade_unsupported", max_teams: 2,
-          message: "Omen compares two teams at a time. No three-team analysis was performed.",
+          message: "Omen doesn't support that trade shape. Use send/receive for a two-team "
+            + "compare, or legs for a three-team compare.",
         });
       }
       const validationError = validateTradePayload(req.body);
@@ -809,3 +1072,8 @@ module.exports.evaluabilityFor = evaluabilityFor;
 module.exports.verdictStateFor = verdictStateFor;
 module.exports.TRADE_COMPARE_CONTRACT = TRADE_COMPARE_CONTRACT;
 module.exports.attachTradeDecisionReceipt = attachTradeDecisionReceipt;
+module.exports.validateLegs = validateLegs;
+module.exports.uniqueTeamIdsFromLegs = uniqueTeamIdsFromLegs;
+module.exports.acceptanceLikelihoodFor = acceptanceLikelihoodFor;
+module.exports.overallEvaluabilityAcrossParticipants = overallEvaluabilityAcrossParticipants;
+module.exports.THREE_TEAM_COUNT = THREE_TEAM_COUNT;
