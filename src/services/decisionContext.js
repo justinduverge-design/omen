@@ -7,6 +7,7 @@
  */
 
 const DECISION_CONTEXT_VERSION = "shared-decision-context.v1";
+const { canonicalLeagueContext } = require("./leagueContext");
 const INPUT_STATES = Object.freeze(["live", "unavailable", "pending", "not_requested"]);
 const PROFILES = Object.freeze({
   omen_mvp: ["selected_context", "roster", "projections"],
@@ -147,4 +148,4 @@ function attachDecisionReceipt(response, context) {
   return response;
 }
 
-module.exports = { DECISION_CONTEXT_VERSION, INPUT_STATES, PROFILES, attachDecisionReceipt, createDecisionContext, normalizeInput, unavailableInput };
+module.exports = { DECISION_CONTEXT_VERSION, INPUT_STATES, PROFILES, attachDecisionReceipt, canonicalLeagueContext, createDecisionContext, normalizeInput, unavailableInput };
