@@ -228,6 +228,24 @@
       "page": "Trade"
     },
     {
+      "file": "TradeBuildThreeTeam.dc.html",
+      "x": 2350,
+      "y": 3936,
+      "w": 390,
+      "h": 844,
+      "title": "Trade — three teams, built",
+      "page": "Trade"
+    },
+    {
+      "file": "TradePartnerPicker.dc.html",
+      "x": 2820,
+      "y": 3936,
+      "w": 390,
+      "h": 844,
+      "title": "Trade — pick a third team",
+      "page": "Trade"
+    },
+    {
       "file": "Ledger.dc.html",
       "x": 0,
       "y": 4920,

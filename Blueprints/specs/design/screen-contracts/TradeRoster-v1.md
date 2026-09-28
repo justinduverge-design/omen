@@ -224,3 +224,55 @@ Element count: 81. Count every rendered descendant inside `.screen`; pseudo-elem
 - Preserve the scrolls scroll behavior at 390 x 844. Smaller iPhone SE screens may scroll.
 - Use the named symbols above for every glyph. A missing symbol name is a build failure.
 - Keep provider, risk, data-source, confidence, and provenance carriers exactly as registry section 2.3 states.
+
+## Addendum, 2026-09-27 (T5-ThreeTeamBuilderInteraction) — the three-team recipient chooser
+
+**Everything above this line is the approved 2-team contract and is unchanged.** This addendum
+documents one additional interaction this screen must support once a third team is active
+(`trade-capabilities.v1.three_team.supported === true` and `TradeBuildThreeTeam-v1.md`'s state is
+live). It is written in prose and a controls delta rather than as a full pixel-measured artboard —
+flagged here as a scoping choice, not an oversight, per `TradeBuildThreeTeam-v1.md`'s own "Still
+open" note. A pixel artboard for this specific state can follow in a fast-follow pass.
+
+**The problem.** In the 2-team contract, `E052` ("Add to deal") has exactly one meaningful
+destination: the deal has only two sides, so a player leaving this roster can only be going to
+"you." Once three teams are active, tapping "Add to deal" on a player from Davante's Inferno's
+roster is ambiguous — does this player go to you, or to Chubb Rock? The interaction must resolve
+that before a leg can be built, because `POST /api/trade/compare`'s `legs` shape requires an
+explicit `to` on every entry.
+
+**The resolution.** Tapping `E052`/`.lo.see` ("Add to deal") on a roster row, while three teams are
+active, does not immediately commit the player to the deal. It expands the row in place (no new
+screen, no modal) to reveal a short recipient choice: one small pill per **other** team in the trade
+that is not the roster's own team — at most two pills, since the beta ceiling is three teams total
+(e.g., browsing Davante's Inferno's roster with Chubb Rock also in the trade, the two pills read
+"Send to you" and "Send to Chubb Rock"). These reuse `OmenTradeFilterChip`'s existing compact-pill
+look (`.fc`-style: small, rounded, bordered) rather than introducing a new chooser component.
+Tapping a pill commits the leg (`from`: this roster's team id, `to`: the chosen recipient, `players`:
+`[this player]`) and the row's trailing label flips to the existing `.lo.good`/"In the deal" state
+exactly as it does today. Tapping "Add to deal" a second time before choosing collapses the expanded
+pills without committing anything.
+
+When only two teams are active (today's approved state), tapping "Add to deal" is unchanged: it
+commits directly to "you," with no pill expansion, because there is nothing to choose between.
+
+**Removal parity.** The same third-partner removal described in `TradeBuildThreeTeam-v1.md` (tapping
+an already-selected `.pt.on` third-partner chip to remove them) is reachable from this screen too,
+since its own `.partners` row renders the same chip strip. Removing the third team from here clears
+any legs already built through this screen's recipient chooser, identically to removing it from
+`TradeBuild`.
+
+**Controls delta (additive to the table above):**
+
+| Element | Literal | Component | Action |
+|---|---|---|---|
+| E052 (three-team variant) | Add to deal | Text (expands in place) | Tap: reveal 1–2 recipient pills beneath this row. Tap again before choosing: collapse without committing. |
+| — (new, per expanded row) | "Send to you" / "Send to \<team\>" | FilterChip-style pill (reused `.fc` look) | Tap: commit this player as a leg from this roster's team to the chosen recipient; row flips to `.lo.good`/"In the deal". |
+
+**Acceptance checks (additive):**
+
+- The recipient chooser never renders more pills than there are other teams in the trade (at most
+  two, given the three-team beta ceiling).
+- No leg is created by tapping "Add to deal" alone while three teams are active — a recipient must
+  be explicitly chosen.
+- Collapsing the chooser without a choice leaves the row's state exactly as it was before the tap.

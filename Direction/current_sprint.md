@@ -940,6 +940,26 @@ signatures in `tradeValue.js` before either PR, don't let both sessions modify i
   `slops-native-ui-audit` records a clean verdict.
 - **Do not touch:** the 2-team builder flow's existing approved contract; do not re-open the
   already-approved `TradeBuild-v1.md` 2-team layout to retrofit a third slot without a new proposal.
+- **Claim:** 2026-09-27, design-contract pass only (no native code), on
+  `feat/t5-three-team-builder-interaction`. Ran `slops-native-screen-design`-style interaction work:
+  third-team selection reuses the existing `LeagueSwitcherBar`/`SwitchSheet` chrome, repurposed as a
+  new `TradePartnerPicker` sheet (own contract); the 3-sided leg display generalizes
+  `OmenTradeSide`/`OmenTradeLegBlock` from a fixed 2-block layout into N team-headed blocks fed
+  directly by `trade-compare.v2`'s per-participant `sends`, adding one new silent third
+  `OmenTradeLeg.Direction` state (a leg touching neither side of the viewer renders no glyph, same
+  "absence is the state" philosophy as `.rk.lo`); the split-handoff submission becomes a
+  local-only, per-step done-toggle checklist with a per-leg "Copy" action and a progress caption,
+  never synced or claimed as provider confirmation. Drew two new pixel-measured artboards
+  (`TradeBuildThreeTeam.dc.html`, `TradePartnerPicker.dc.html`) plus their screen contracts
+  (`TradeBuildThreeTeam-v1.md`, `TradePartnerPicker-v1.md`), and an addendum to `TradeRoster-v1.md`
+  documenting the inline "who receives this player" recipient chooser needed once three teams are
+  active. Found and documented that `TradeBuild-v1.md` (compiled 2026-09-14) is stale against the
+  current `TradeBuild.dc.html` post-reconciliation (`c287cae9`, 2026-09-20) — it still describes a
+  pre-reconciliation fake three-team mock as the current 2-team artboard's content; not fixed here
+  (out of scope), flagged in the new contract's own drift note instead. `check-canvas-css-parity`,
+  `check-canvas-contract-coverage`, and `check-canvas-foundation` all pass with the two new
+  artboards registered. No SwiftUI/Compose/Kotlin code written. Status left `READY` pending founder
+  review — not marking VERIFIED per this session's explicit instructions.
 
 ## B. Backend / recommendation lane
 
