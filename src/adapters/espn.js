@@ -18,7 +18,7 @@ const https = require("https");
 const { Redis } = require("@upstash/redis");
 const config = require("../config");
 const { logger } = require("../middleware/logging");
-const { captureProviderError } = require("../middleware/providerErrors");
+const { captureProviderError, sanitizeProviderPath } = require("../middleware/providerErrors");
 const { leagueOfficeTransactionsFromEspnData } = require("../services/leagueOfficeMessage");
 
 const LAST_RESULT_TTL_S = 21600; // 6h - a completed week's matchup result never changes
@@ -470,7 +470,7 @@ function reportEspnFailure(operation, error, hostname, path, httpStatus) {
     error,
     context: {
       hostname,
-      path: String(path || "").split("?")[0],
+      path: sanitizeProviderPath(path),
       http_status: httpStatus ?? error?.status ?? null,
     },
   });
@@ -500,7 +500,7 @@ function doEspnRequest(hostname, path, espn_s2, swid, redirectsLeft, fantasyFilt
         res.on("data", (chunk) => chunks.push(chunk));
         res.on("end", () => {
           const body = Buffer.concat(chunks).toString("utf8");
-          logger.info(`[espn] ${hostname}${path.split("?")[0]} -> HTTP ${res.statusCode}`);
+          logger.info(`[espn] ${hostname}${sanitizeProviderPath(path)} -> HTTP ${res.statusCode}`);
           if (res.statusCode === 401 || res.statusCode === 403) {
             const err = new Error("ESPN rejected the request — cookies may be invalid or expired");
             err.status = 401;

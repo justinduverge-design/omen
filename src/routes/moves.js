@@ -5,13 +5,15 @@ const { createClient } = require("@supabase/supabase-js");
 const config = require("../config");
 const { requireAuth } = require("../middleware/auth");
 const { getCurrentNflWeekContext } = require("../services/nflSchedule");
-const { isMissingColumnError } = require("../services/activeSelection");
+const { isMissingColumnError, ledgerUnavailable } = require("../services/schemaCapabilities");
+const { createMovesRepository, DETAIL_COLUMNS: REPOSITORY_DETAIL_COLUMNS } = require("../repositories/movesRepository");
 const { buildDecisionCapabilities, CAPABILITY_CONTRACT } = require("../services/decisionCapabilities");
 const { attachDecisionReceipt, createDecisionContext } = require("../services/decisionContext");
 const { scoringCoverageCapability } = require("../services/waiverScoringCapabilities");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
+const movesRepository = createMovesRepository(supabase);
 
 function nowIso() {
   return new Date().toISOString();
@@ -99,20 +101,22 @@ router.get("/", requireAuth, async (req, res, next) => {
     if (!season) return res.status(400).json({ error: "season must be a positive integer" });
     if (!limit) return res.status(400).json({ error: "limit must be an integer between 1 and 100" });
 
-    const load = (columns) => {
-      let query = supabase
-      .from("moves")
-      .select(columns)
-      .eq("user_id", req.user.id)
-      .eq("season", season)
-      .order("created_at", { ascending: false })
-      .limit(limit);
-      if (native) query = query.eq("platform", req.query.platform).eq("league_id", req.query.league_id);
-      return query;
-    };
+    const load = (columns) => movesRepository.list({
+      userId: req.user.id,
+      season,
+      limit,
+      platform: native ? req.query.platform : null,
+      leagueId: native ? req.query.league_id : null,
+      columns,
+    });
 
-    let { data, error } = await load(native ? DETAIL_COLUMNS : "id,week_num,season,move_type,headline,reasoning,followed,user_stars,outcome,eff,created_at");
-    if (native && error && isMissingColumnError(error)) ({ data, error } = await load(DETAIL_COLUMNS_LEGACY));
+    let { data, error } = await load(native ? REPOSITORY_DETAIL_COLUMNS : "id,week_num,season,move_type,headline,reasoning,followed,user_stars,outcome,eff,created_at");
+    // Do not issue a second incompatible query after schema drift. The old
+    // fallback hid a production capability failure and generated repeated
+    // alerts. Clients receive a stable, actionable degraded contract.
+    if (native && error && isMissingColumnError(error)) {
+      return res.status(503).json(ledgerUnavailable({ contractVersion: "moves-history.v2" }));
+    }
 
     if (error) throw new Error(`moves lookup failed: ${error.message}`);
 

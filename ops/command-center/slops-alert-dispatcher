@@ -100,7 +100,8 @@ $a4"
   fi
   printf '%s\n' "$a4" > "$a4_state"
 fi
-sig="$(printf '%s\n%s\n%s\n%s\n%s' "$bad" "$kuma" "$pihole" "$glitchtip" "$stale" | sed '/^$/d' | sort)"
+raw_sig="$(printf '%s\n%s\n%s\n%s\n%s' "$bad" "$kuma" "$pihole" "$glitchtip" "$stale" | sed '/^$/d' | sort)"
+sig="$(printf '%s\n' "$raw_sig" | /usr/local/lib/slops-alerting/alert-fingerprint.py)"
 old="$(cat "$state" 2>/dev/null || true)"
 today="$(date -u +%Y-%m-%d)"
 # Unchanged signature: stay quiet, EXCEPT once per day while anything is still
@@ -108,7 +109,7 @@ today="$(date -u +%Y-%m-%d)"
 # those latch in their own state files and were the ones that went silent, so a
 # reminder that only covered "$sig" would have missed the 17-day outage entirely.
 if [ "$sig" = "$old" ]; then
-  active="$(printf '%s\n%s' "$sig" "$football" | sed '/^$/d')"
+  active="$(printf '%s\n%s' "$raw_sig" "$football" | sed '/^$/d')"
   [ -z "$active" ] && exit 0
   [ "$today" = "$(cat "$reminder_state" 2>/dev/null || true)" ] && exit 0
   send "SLOPS REMINDER: these conditions are still active
@@ -121,7 +122,7 @@ fi
 # alert that never left the machine. Under set -e a failed send exits non-zero
 # with the state untouched, and the next run retries.
 if [ -n "$sig" ]; then send "SLOPS ALERT: CRITICAL state change
-$sig"; elif [ -n "$old" ]; then send 'SLOPS RECOVERY: previously reported alert conditions are healthy again.'; fi
+$raw_sig"; elif [ -n "$old" ]; then send 'SLOPS RECOVERY: previously reported alert conditions are healthy again.'; fi
 printf '%s\n' "$sig" > "$state"
 # A real alert counts as today's notification: no reminder on top of it.
 printf '%s\n' "$today" > "$reminder_state"

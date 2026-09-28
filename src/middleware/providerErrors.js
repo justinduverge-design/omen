@@ -44,6 +44,20 @@ const SUPPORTED_PROVIDERS = Object.freeze(["yahoo", "sleeper", "espn"]);
 const MAX_BODY_CHARS = 500;
 
 /**
+ * Return a diagnostic-safe provider path. ESPN's fan endpoint puts the
+ * account identifier in the path (not the query string), so query stripping
+ * alone is insufficient. Keep the operation shape while removing the
+ * provider identity before a path reaches logs, Sentry, or GlitchTip.
+ */
+function sanitizeProviderPath(path) {
+  if (typeof path !== "string") return path;
+  return path
+    .replace(/(\/apis\/v2\/fans\/)[^/?#]+/gi, "$1[redacted]")
+    .split("?")[0]
+    .slice(0, 300);
+}
+
+/**
  * Allowlist, not denylist. A denylist over provider context is how a
  * token ends up in an error report the first time somebody adds a field.
  * League and team identifiers are opaque provider-side ids, not user PII,
@@ -67,7 +81,9 @@ function pickAllowedContext(context) {
   for (const key of ALLOWED_CONTEXT_KEYS) {
     const value = context[key];
     if (value === undefined || value === null) continue;
-    picked[key] = typeof value === "string" ? value.slice(0, 200) : value;
+    picked[key] = key === "path"
+      ? sanitizeProviderPath(value)
+      : typeof value === "string" ? value.slice(0, 200) : value;
   }
   return scrubValue(picked);
 }
@@ -149,6 +165,7 @@ module.exports = {
   DEMO_MODE_TAG,
   DEMO_MODE_TAG_VALUE,
   MAX_BODY_CHARS,
+  sanitizeProviderPath,
   SUPPORTED_PROVIDERS,
   captureProviderError,
 };

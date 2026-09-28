@@ -237,6 +237,22 @@ test("the dispatcher gives football alerts independent delivery-before-state and
   assert.doesNotMatch(exercises, /test ! -s \/var\/lib\/slops-alerting\/football-last-signature/);
 });
 
+test("alert fingerprint keeps stale age and generated time out of incident identity", () => {
+  const script = path.join(__dirname, "..", "ops", "command-center", "alert-fingerprint.py");
+  const first = spawnSync("python3", [script], {
+    input: "Omen football status payload is STALE: 111 hours old (generated 2026-09-23T09:15:04.765Z)\n",
+    encoding: "utf8",
+  });
+  const second = spawnSync("python3", [script], {
+    input: "Omen football status payload is STALE: 112 hours old (generated 2026-09-23T09:15:04.765Z)\n",
+    encoding: "utf8",
+  });
+  assert.equal(first.status, 0, first.stderr);
+  assert.equal(second.status, 0, second.stderr);
+  assert.equal(first.stdout, "Omen football status payload is STALE\n");
+  assert.equal(second.stdout, first.stdout);
+});
+
 test("publication decision schedules exist but fail closed behind an exact control and witness", () => {
   const root = path.join(__dirname, "..", "ops", "football-data", "kvm1");
   const helper = fs.readFileSync(path.join(root, "omen-football-publication-decision"), "utf8");
