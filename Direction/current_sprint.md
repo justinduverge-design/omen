@@ -874,6 +874,12 @@ signatures in `tradeValue.js` before either PR, don't let both sessions modify i
 ### T3-SwipeCandidateReview — Swipeable candidate-review screen (native)
 
 - **Status:** READY
+- **Claim:** 2026-09-27 Claude — produced the design-contract deliverable only, on
+  `feat/t3-swipe-candidate-review`: `slops-native-screen-design` decisions (swipe-with-visible-fallback,
+  save-without-a-queue honesty), the canvas artboard `design/native-visual-lock-2026-09-13/TradeFindReview.dc.html`,
+  and the compiled contract `Blueprints/specs/design/screen-contracts/TradeFindReview-v1.md`. No
+  SwiftUI/Compose written; stopped per this task's explicit instruction for founder review before any
+  native build starts. Status stays READY — this is not a completed or verified item.
 - **Blocked by:** TASK-T2-FindATradeGenerator — needs the candidate payload shape.
 - **Priority:** P3
 - **Cost:** medium
