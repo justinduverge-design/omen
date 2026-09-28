@@ -1,5 +1,7 @@
 "use strict";
 
+const { canonicalLeagueContext } = require("./leagueContext");
+
 // Pure weekly-lineup solver used by the canonical Omen trade candidate. It
 // deliberately consumes normalized player shapes only; provider payloads and
 // season-long VORP valuation stay outside this module.
@@ -59,6 +61,7 @@ const TRADE_SEARCH_BUDGET_MS = 2000;
  * solves that become near-free but unbounded in count.
  */
 const TRADE_SEARCH_MAX_SOLVES = 200000;
+const TRADE_SEARCH_MAX_OPPONENTS = 32;
 /// Nodes between clock reads. `Date.now()` per node would itself dominate the search.
 const DEADLINE_CHECK_INTERVAL = 5000;
 
@@ -362,10 +365,16 @@ function findTradeCandidate({
   ownTeam,
   opponentTeams = [],
   rosterPositions = [],
+  leagueContext = null,
   fairnessGuard = () => true,
   budget = createSearchBudget(),
   onBudgetExceeded = null,
 } = {}) {
+  // A trade candidate is only meaningful inside one provider/league/season
+  // instance.  Do not let an incomplete or cross-season payload fall through
+  // to the solver and look like a genuine "no trade" result.
+  const context = leagueContext == null ? null : canonicalLeagueContext(leagueContext);
+  if (context && context.state !== "live") return null;
   if (!ownTeam || !Array.isArray(ownTeam.players)) return null;
   const ownBaseline = solveOptimalLineup({ players: ownTeam.players, rosterPositions, budget });
   if (!ownBaseline.exhaustive) {
@@ -378,9 +387,15 @@ function findTradeCandidate({
 
   let ranOut = false;
 
+  let scannedOpponents = 0;
   for (const opponent of opponentTeams) {
+    if (scannedOpponents >= TRADE_SEARCH_MAX_OPPONENTS) {
+      ranOut = true;
+      break;
+    }
     if (ranOut || budget.exceeded) { ranOut = true; break; }
     if (!opponent || !Array.isArray(opponent.players) || opponent.roster_id === ownTeam.roster_id) continue;
+    scannedOpponents += 1;
     const opponentBaseline = solveOptimalLineup({ players: opponent.players, rosterPositions, budget });
     if (!opponentBaseline.exhaustive) { ranOut = true; break; }
     const opponentStarterIds = new Set(opponentBaseline.starters
@@ -452,4 +467,5 @@ module.exports = {
   createSearchBudget,
   TRADE_SEARCH_BUDGET_MS,
   TRADE_SEARCH_MAX_SOLVES,
+  TRADE_SEARCH_MAX_OPPONENTS,
 };
