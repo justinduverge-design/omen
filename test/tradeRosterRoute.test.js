@@ -129,6 +129,35 @@ test("GET /api/trade/roster returns every Sleeper team when team_id is omitted",
   assert.equal(res.body.teams.length, 2);
 });
 
+test("GET /api/trade/roster propagates an explicit season to the provider reader", async () => {
+  let requestedSeason = null;
+  const app = buildApp({
+    fetchLeagueRosters: async (_leagueId, _week, season) => {
+      requestedSeason = season;
+      return SLEEPER_FIXTURE;
+    },
+  });
+  const res = await get(app, "/api/trade/roster?platform=sleeper&league_id=abc123&season=2025", {
+    authorization: "Bearer t",
+  });
+  assert.equal(res.status, 200);
+  assert.equal(requestedSeason, "2025");
+  assert.equal(res.body.season, 2025);
+});
+
+test("GET /api/trade/roster rejects an invalid season before provider access", async () => {
+  let called = false;
+  const app = buildApp({
+    fetchLeagueRosters: async () => { called = true; return SLEEPER_FIXTURE; },
+  });
+  const res = await get(app, "/api/trade/roster?platform=sleeper&league_id=abc123&season=not-a-year", {
+    authorization: "Bearer t",
+  });
+  assert.equal(res.status, 400);
+  assert.equal(res.body.error, "season must be a valid calendar year");
+  assert.equal(called, false);
+});
+
 test("GET /api/trade/roster resolves a real ESPN opponent roster from the schedule-walk normalizer", async () => {
   const app = buildApp();
   const res = await get(app, "/api/trade/roster?platform=espn&league_id=espnleague&team_id=20", {
