@@ -55,6 +55,15 @@ const VALID_PLATFORMS = new Set(PLATFORM_GROUP_ORDER);
 
 const CONNECTION_COLUMNS =
   "platform,is_active,league_id,platform_username,platform_user_id,token_secret_id,espn_secret_id,swid_secret_id,espn_team_id,updated_at";
+const PROVIDER_STATE_COLUMNS = [
+  "connection_state",
+  "connection_reason_code",
+  "credential_generation",
+  "consecutive_failures",
+  "last_status",
+  "last_checked_at",
+  "state_changed_at",
+];
 
 function nowIso() {
   return new Date().toISOString();
@@ -397,7 +406,12 @@ function activeSummary(rows, groups) {
 router.get("/", requireAuth, async (req, res, next) => {
   try {
     const season = getCurrentNflWeekContext().season;
-    const { rows, selectionPersisted } = await readConnectionsWithSelection(supabase, req.user.id, CONNECTION_COLUMNS);
+    const { rows, selectionPersisted } = await readConnectionsWithSelection(
+      supabase,
+      req.user.id,
+      CONNECTION_COLUMNS,
+      PROVIDER_STATE_COLUMNS
+    );
     const byPlatform = new Map(rows.map((row) => [row.platform, row]));
     const { follows, followsPersisted } = await readFollows(supabase, req.user.id);
 

@@ -71,8 +71,11 @@ function resolveActiveConnection(connections = [], { isUsable = usableLeagueId, 
  * Returns `{ rows, selectionPersisted }` so the caller can report honestly
  * instead of silently degrading.
  */
-async function readConnectionsWithSelection(supabase, userId, baseColumns) {
-  const withSelection = `${baseColumns},${SELECTION_COLUMN}`;
+async function readConnectionsWithSelection(supabase, userId, baseColumns, optionalColumns = []) {
+  const optional = Array.isArray(optionalColumns)
+    ? optionalColumns.filter(Boolean).map(String)
+    : [];
+  const withSelection = [baseColumns, SELECTION_COLUMN, ...optional].join(",");
 
   const attempt = await supabase
     .from("platform_connections")
@@ -87,6 +90,24 @@ async function readConnectionsWithSelection(supabase, userId, baseColumns) {
     throw new Error(`platform_connections lookup failed: ${attempt.error.message}`);
   }
 
+  // During additive rollout either the selection column or the provider health
+  // columns may be absent. Retry with the optional state columns removed before
+  // falling back to the legacy selection-aware query. This preserves the
+  // existing selection contract on installations that have only one migration.
+  if (optional.length > 0) {
+    const withoutOptional = await supabase
+      .from("platform_connections")
+      .select(`${baseColumns},${SELECTION_COLUMN}`)
+      .eq("user_id", userId)
+      .eq("is_active", true);
+    if (!withoutOptional.error) {
+      return { rows: withoutOptional.data || [], selectionPersisted: true, stateColumnsAvailable: false };
+    }
+    if (!isMissingColumnError(withoutOptional.error)) {
+      throw new Error(`platform_connections lookup failed: ${withoutOptional.error.message}`);
+    }
+  }
+
   const fallback = await supabase
     .from("platform_connections")
     .select(baseColumns)
@@ -96,7 +117,7 @@ async function readConnectionsWithSelection(supabase, userId, baseColumns) {
   if (fallback.error) {
     throw new Error(`platform_connections lookup failed: ${fallback.error.message}`);
   }
-  return { rows: fallback.data || [], selectionPersisted: false };
+  return { rows: fallback.data || [], selectionPersisted: false, stateColumnsAvailable: false };
 }
 
 module.exports = {
