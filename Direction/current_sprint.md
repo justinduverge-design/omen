@@ -847,6 +847,38 @@ signatures in `tradeValue.js` before either PR, don't let both sessions modify i
   both platforms; tests cover 2-team regression, 3-team evaluation, and the split-handoff copy path.
 - **Do not touch:** the workshop's 2-team beta-locked defaults for users without three connected teams
   available; draft-pick valuation (out of scope per the workshop's deferred pick seam).
+- **Claim:** 2026-09-27 Claude (feat/t1-three-team-capability worktree) — Backend done: `GET
+  /api/trade/capabilities` now reports `max_teams: 3`/`three_team.supported: true`;
+  `POST /api/trade/compare` accepts a new `legs` payload (player transfers between named teams,
+  2-6 legs, exactly 3 distinct teams) and evaluates each participant separately by aggregating
+  their own sends/receives through the existing `compareTrade` engine — zero changes to
+  `src/services/tradeValue.js`. Rejects >3 or <3 distinct teams (never collapses/expands shape),
+  reuses `evaluabilityFor`/`verdictStateFor` per participant so a missing projection on one leg
+  never blends into another participant's verdict, adds `acceptance_likelihood`
+  (likely/unlikely/uncertain, derived from verdict_state — no invented numeric confidence) and
+  `roster_fit` (reuses existing scarcity/depth-discount fields), and generates split-handoff
+  submission steps server-side (no existing server-side pattern for the 2-team case was found to
+  follow — `OmenTradeSubmission` is a display-only struct never constructed from live data on
+  either platform today). Backend tests: 1268/1268 pass (`npm test`), including 9 new/updated
+  tests in `test/tradeRoute.test.js` covering the 3-team happy path, shape-collapse and
+  shape-expansion rejection, missing-projection isolation, and 2-team non-regression; TDD
+  red→green verified by stashing the route change and confirming the new tests fail first.
+  Native: investigated but did not change any files. `OmenTradeScreen.tradeFormatNote` (iOS and
+  Android, the "type a trade" screen) already reads `three_team.supported` dynamically and will
+  render the honest "supported" sentence with zero code changes once this ships. The richer
+  `TradeBuild`/`TradeRoster` journey screens' "Add team" chip and 3-leg block
+  (`OmenTradeJourneyScreens.swift` / the Kotlin equivalent) are **not** capability-gated — they
+  are unconditionally hardcoded to the disabled `OmenUnavailableControl` composition, with no
+  partner-selection-for-a-third-team interaction, no 3-side offer state, and no compare-request
+  wiring built anywhere (confirmed no call site constructs `OmenTradeSubmission` from live data
+  on either platform). There is no existing gate to flip here — building one is new interaction
+  design, which the item's own scope excludes ("Explicitly not this item's job: drawing new UI")
+  and which the workshop spec still lists as open ("Two-/three-team builder interaction and
+  accessibility behavior"). Left untouched rather than guessing at an undesigned interaction; a
+  design-contract pass (`slops-native-screen-design`) is the correct next step before that native
+  work can start. No native test run needed since no native files changed; Xcode 27.0 is present
+  in this environment if that follow-up session needs it, `mobile/android/gradlew` is present but
+  no Android SDK/`ANDROID_HOME` was found. Commit: see `Blueprints/handoffs/` for the hash.
 
 ### T2-FindATradeGenerator — League-wide find-a-trade candidate generator
 
