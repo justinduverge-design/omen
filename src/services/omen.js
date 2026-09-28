@@ -1063,6 +1063,14 @@ async function buildTradeCandidateForConnection({ connection, roster }) {
     ownTeam,
     opponentTeams: teams,
     rosterPositions: leagueRosters.roster_positions,
+    ...(leagueRosters.season || roster.season || connection.season ? {
+      leagueContext: {
+        platform: connection.platform,
+        league_id: connection.league_id,
+        season: leagueRosters.season ?? roster.season ?? connection.season,
+        team_id: roster.team_key,
+      },
+    } : {}),
     // The budget tripping means a user silently lost their trade suggestion. That must be
     // visible: the 2026-09-05 outage ran for most of a day partly because the only signal was
     // a watchdog restarting a wedged container 650 times, which nobody was reading as a bug.
