@@ -18,6 +18,7 @@ const { hasUsableLeagueId } = require("../services/omenReadiness");
 const sleeperAdapter = require("../adapters/sleeper");
 const espnAdapter = require("../adapters/espn");
 const { CONNECTION_STATES } = require("../services/providerConnectionState");
+const { selectConnections, upsertConnection } = require("../services/providerConnectionPersistence");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
@@ -403,10 +404,7 @@ function espnValidationError(result) {
 }
 
 async function getPlatformConnectionRows(userId) {
-  const { data, error } = await supabase
-    .from("platform_connections")
-    .select("platform,is_active,platform_username,token_secret_id,espn_secret_id,swid_secret_id,league_id,espn_team_id")
-    .eq("user_id", userId);
+  const { data, error } = await selectConnections(supabase, userId);
 
   if (error) throw new Error(`platform_connections lookup failed: ${error.message}`);
   return data || [];
@@ -532,7 +530,7 @@ router.post("/sleeper/connect", requireAuth, async (req, res, next) => {
       throw e;
     }
 
-    const { error } = await supabase.from("platform_connections").upsert({
+    const { error } = await upsertConnection(supabase, {
       user_id: req.user.id,
       platform: "sleeper",
       platform_user_id: sleeperUser.user_id,
@@ -680,7 +678,7 @@ router.post("/espn/connect", requireAuth, (req, res, next) => {
       vaultUpsert(existing?.swid_secret_id, swid, `espn_swid_${req.user.id}`, "ESPN SWID cookie"),
     ]);
 
-    const { error } = await supabase.from("platform_connections").upsert({
+    const { error } = await upsertConnection(supabase, {
       user_id: req.user.id,
       platform: "espn",
       espn_secret_id: espnSecretId,
