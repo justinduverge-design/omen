@@ -10,12 +10,12 @@ test("Probo manifest validates its control metadata and evidence paths", () => {
     cwd: repo,
     encoding: "utf8",
   });
-  assert.match(output, /Probo manifest valid: 5 controls/);
+  assert.match(output, /Probo manifest valid: 8 controls/);
 });
 
 test("Probo manifest records the tracker controls", () => {
   const manifest = require("node:fs").readFileSync(path.join(repo, "probo.yaml"), "utf8");
-  for (const id of ["CC6.1", "GDPR_ART_17", "GDPR_ART_5", "CC7.2", "OMEN-ESP-01"]) {
+  for (const id of ["CC6.1", "GDPR_ART_17", "GDPR_ART_5", "CC7.2", "OMEN-ESP-01", "OMEN-MIG-01", "OMEN-RET-01", "OMEN-DR-01"]) {
     assert.match(manifest, new RegExp(`id: "${id}"`));
   }
 });

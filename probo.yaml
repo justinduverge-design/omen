@@ -76,3 +76,42 @@ controls:
     evidence_freshness_days: 30
     last_reviewed: "2026-09-28"
     next_review: "2026-10-28"
+
+# 6. Migration Safety and Rollback
+  - id: "OMEN-MIG-01"
+    name: "Additive Migration Safety"
+    description: "Provider health schema changes are review-only, nullable, bounded, and paired with a fail-closed rollback artifact"
+    evidence_path: "sql/2026-09-28_provider_connection_state_review.sql"
+    check: "contains('review-only')"
+    owner: "backend-platform"
+    status: "designed"
+    evidence_type: "migration_and_rollback_review"
+    evidence_freshness_days: 30
+    last_reviewed: "2026-09-28"
+    next_review: "2026-10-28"
+
+# 7. Retention Boundary
+  - id: "OMEN-RET-01"
+    name: "Provider Retention Boundary"
+    description: "Retention decisions distinguish provider rights, derived data, and unresolved commercial/licensing questions"
+    evidence_path: "Direction/reviews/2026-08-27-sleeper-retention-rights.md"
+    check: "contains('founder/counsel determination')"
+    owner: "product-security"
+    status: "designed"
+    evidence_type: "provider-review_and_decision-record"
+    evidence_freshness_days: 90
+    last_reviewed: "2026-09-28"
+    next_review: "2026-12-27"
+
+# 8. Backup and Recovery Readiness
+  - id: "OMEN-DR-01"
+    name: "Backup and Recovery Readiness"
+    description: "Backup, witness, correction, and fresh-root recovery remain separately evidenced and blocked from activation until rehearsed"
+    evidence_path: "Blueprints/specs/football-data/omen-football-production-readiness-v1.md"
+    check: "contains('Production effect: none')"
+    owner: "data-operations"
+    status: "designed"
+    evidence_type: "readiness-contract_and_local-rehearsal"
+    evidence_freshness_days: 30
+    last_reviewed: "2026-09-28"
+    next_review: "2026-10-28"

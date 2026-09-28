@@ -56,7 +56,7 @@ for (const match of blocks) {
 }
 
 const tracker = fs.readFileSync(path.join(repo, "Blueprints/security-privacy.md"), "utf8");
-for (const id of ["CC6.1", "GDPR_ART_17", "GDPR_ART_5", "CC7.2", "OMEN-ESP-01"]) {
+for (const id of ["CC6.1", "GDPR_ART_17", "GDPR_ART_5", "CC7.2", "OMEN-ESP-01", "OMEN-MIG-01", "OMEN-RET-01", "OMEN-DR-01"]) {
   if (!source.includes(`id: "${id}"`)) errors.push(`manifest missing tracker control: ${id}`);
 }
 if (!/ESPN recovery privacy rules/i.test(tracker)) errors.push("tracker ESPN recovery control reference missing");

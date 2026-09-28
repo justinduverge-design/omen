@@ -15,6 +15,9 @@ The manifest is an internal control and evidence register. Its statuses describe
 - Supabase RLS and Vault setup: `sql/omen_rls_security.sql`
 - GDPR/delete flow notes: `src/omen_gdpr.js (retired 2026-07-13) (**retired 2026-07-13** — see `Blueprints/handoffs/2026-07-13-orphaned-gdpr-module-retirement.md`)`
 - ESPN recovery privacy rules: `Omen\Blueprints\playbooks\espn-recovery.md`
+- Provider migration review and rollback: `sql/2026-09-28_provider_connection_state_review.sql` and `sql/2026-09-28_provider_connection_state_rollback_review.md`
+- Retention-rights decision record: `Direction/reviews/2026-08-27-sleeper-retention-rights.md`
+- Backup/recovery readiness contract: `Blueprints/specs/football-data/omen-football-production-readiness-v1.md`
 - Shared engineering decisions: `Blueprints/handoffs/decisions.md`
 
 ## Current Controls
@@ -28,6 +31,8 @@ The manifest is an internal control and evidence register. Its statuses describe
 - User deletion work includes platform connection and Vault secret cleanup.
 - `probo.yaml` tracks GDPR/SOC2-style control evidence.
 - Sleeper draft routes verify every requested league/draft against the authenticated user's active connection and omit other managers' raw Sleeper user IDs.
+- Provider-state migration is review-only until approval, backup verification, dependency inspection, and post-change health checks are recorded.
+- Backup and recovery readiness is a local contract, not evidence that KVM1 or the Command Center Pi have been provisioned or rehearsed.
 
 ## Safe Defaults
 
@@ -77,3 +82,5 @@ This is useful as a compliance checklist, but it is not a complete security prog
 - Decide whether recovery analytics ship before paid launch.
 - Add a lightweight privacy review checklist before paid launch.
 - Re-check frontend privacy copy before using any "Probo Verified" language publicly.
+- Obtain the founder/counsel decision for Sleeper commercial licensing before treating retention or production use as cleared.
+- Complete an approved backup/restore rehearsal and record the exact witness, hash, and recovery receipts before activation.
