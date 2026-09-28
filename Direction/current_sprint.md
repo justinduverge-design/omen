@@ -922,6 +922,35 @@ signatures in `tradeValue.js` before either PR, don't let both sessions modify i
 ### T3-SwipeCandidateReview — Swipeable candidate-review screen (native)
 
 - **Status:** READY
+- **Claim:** 2026-09-27 Claude — produced the design-contract deliverable only, on
+  `feat/t3-swipe-candidate-review`: `slops-native-screen-design` decisions (swipe-with-visible-fallback,
+  save-without-a-queue honesty), the canvas artboard `design/native-visual-lock-2026-09-13/TradeFindReview.dc.html`,
+  and the compiled contract `Blueprints/specs/design/screen-contracts/TradeFindReview-v1.md`. No
+  SwiftUI/Compose written; stopped per this task's explicit instruction for founder review before any
+  native build starts. Status stays READY — this is not a completed or verified item.
+- **Claim:** 2026-09-28 Claude — built the screen contract above on both platforms, same branch,
+  in a worktree isolated from T5's parallel three-team-builder work. iOS:
+  `App/Api/TradeFind.swift` (trade-find.v1 models, own `TradeFindRepository`/save-action stub —
+  deliberately not added to the shared `TradeRepository` protocol), `App/Api/TradeFindReviewViewModel.swift`,
+  `App/CommandCenter/OmenTradeFindReviewScreen.swift`. Android mirrors under
+  `feature/api/TradeFind.kt`, `feature/api/TradeFindReviewViewModel.kt`,
+  `feature/commandcenter/OmenTradeFindReviewScreen.kt`. Candidate card (E031–E064) and the
+  provider-degraded banner (E029/E030) are pixel-accurate to the contract; loading, batch-exhausted,
+  zero-candidates and the two gesture states reuse the named existing patterns
+  (`.skel`-equivalent, `OmenStateSurface.empty`, `.hatch`-equivalent, drag+hidden stamp). Save calls
+  a local `TradeFindSaveAction` stub (`// TODO(T4)` marked, no network call) with `candidate_id` +
+  `reasoning` verbatim and flips to `Saved ✓`; Pass never calls it. 9 view-model tests per platform,
+  all green (`xcodebuild test`, `./gradlew testDebugUnitTest`); `./gradlew assembleDebug` also
+  green. **Flagged, not silently resolved:** the contract's E034 binding table names
+  `reasoning.opponent_receives` for the header `NeedBadge`, but the contract's own literal fixture
+  only reproduces "Needs RB" from `reasoning.user_receives` — both platforms bind to
+  `user_receives`, matching the literal example; see the header comment in
+  `OmenTradeFindReviewScreen.swift`/`.kt`. `slops-canvas-to-code` drift check and
+  `slops-native-ui-audit` were not run this session (no `slops-canvas-to-code`/`slops-native-ui-audit`
+  agent invocation — self-checked against the contract's own acceptance list and native
+  accessibility basics by hand instead). Screen is not wired into Trade's navigation graph yet —
+  that's a small follow-up, not part of this build. Status stays READY pending founder review,
+  `slops-native-ui-audit`, and the drift check.
 - **Blocked by:** TASK-T2-FindATradeGenerator — needs the candidate payload shape.
 - **Priority:** P3
 - **Cost:** medium
