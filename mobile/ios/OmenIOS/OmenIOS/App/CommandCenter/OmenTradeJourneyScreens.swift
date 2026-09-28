@@ -68,7 +68,13 @@ import SwiftUI
 
 /// One line of an offer. `direction` is the artboard's `.ar` / `.ar.out`.
 struct OmenTradeLeg: Equatable {
-    enum Direction: Equatable { case sending, receiving }
+    /// T5 adds `.lateral`: a 3-team ring can move a player between two teams that are neither
+    /// "you" — `OmenTradeLeg.Direction` used to be exhaustive with only two cases because a
+    /// 2-team trade only ever has two participants, and anything not sent by you was received by
+    /// you. `TradeBuildThreeTeam-v1.md`'s own interaction note: rather than mislabel a lateral
+    /// leg "In" (wrong — it never reaches you) or invent a new glyph, this state renders no
+    /// label at all — `_shared.css`'s "absence is the state" philosophy, same tier as `.rk.lo`.
+    enum Direction: Equatable { case sending, receiving, lateral }
 
     let direction: Direction
     let name: String
@@ -78,7 +84,27 @@ struct OmenTradeLeg: Equatable {
     /// `—` in this column reads as a rank of zero rather than as an absence.
     var rank: String?
 
-    var label: String { direction == .sending ? "Out" : "In" }
+    /// The visible label. Blank, not a dash, for `.lateral` — see the type's own doc comment.
+    var label: String {
+        switch direction {
+        case .sending: return "Out"
+        case .receiving: return "In"
+        case .lateral: return ""
+        }
+    }
+
+    /// What VoiceOver says for the direction, independent of `label`. A blank visible label must
+    /// still be **announced**, not just visually absent — `TradeBuildThreeTeam-v1.md`'s own
+    /// acceptance rule: "never color as the only carrier of the blank state." Silence here would
+    /// make the row read as `name, meta, rank` with no direction at all, which under-informs a
+    /// screen-reader user relative to a sighted one looking at three visually distinct states.
+    var accessibilityDirection: String {
+        switch direction {
+        case .sending: return "Sent by you"
+        case .receiving: return "Received by you"
+        case .lateral: return "Not sent or received by you"
+        }
+    }
 }
 
 /// One side of the deal: a heading and its rows.
@@ -170,6 +196,17 @@ struct OmenTradeBuildState: Equatable {
     let read: OmenTradeRead?
     let submission: OmenTradeSubmission?
     let primaryActionTitle: String
+    /// T5: present once a third team is active. When set, `.partners` renders exactly the
+    /// primary partner plus this chip — two fixed `.pt.on` chips and no browsable candidates —
+    /// per `TradeBuildThreeTeam-v1.md`'s own rule that the row stops offering not-yet-selected
+    /// candidates once three teams are active. `nil` is the entire existing 2-team behavior,
+    /// unchanged: candidates render, the (un)available "Add team" chip renders, nothing here
+    /// executes differently than it did before T5.
+    var thirdPartner: OmenTradePartner? = nil
+    /// "Removed Chubb Rock. Any legs with them were cleared too." — the transient one-line
+    /// disclosure shown the instant the third partner is removed. `nil` the rest of the time,
+    /// including always for the 2-team case.
+    var removalDisclosure: String? = nil
 }
 
 struct OmenTradeFilter: Equatable, Identifiable {
@@ -202,6 +239,18 @@ struct OmenTradeSubmission: Equatable {
     /// "ESPN · handoff only". `trade-capabilities.v1`'s `submission` field says which.
     let caption: String
     let steps: [String]
+    /// T5: one flag per `steps` entry — a client-local "done" toggle for the 3-team
+    /// split-handoff checklist. **Empty for the 2-team case**, which has no checklist at all
+    /// (`OmenTradeAnswer.from` never sets `submission` for a 2-team verdict), so this is purely
+    /// additive and never renders for the existing approved 2-team screens.
+    ///
+    /// Never synced, never sent to the server, never read back as proof a leg went through —
+    /// `TradeBuildThreeTeam-v1.md`'s own rule: "never claims a leg went through because a box
+    /// got tapped."
+    var stepDone: [Bool] = []
+    /// "0 of 3 legs sent." — derived purely from `stepDone`. Nil where there is nothing to count
+    /// (the 2-team case, or before `stepDone` exists).
+    var progressCaption: String? = nil
 }
 
 /// `TradeRoster`.
@@ -219,6 +268,10 @@ struct OmenTradeRosterState: Equatable {
         let name: String
         let meta: String
         let availability: OmenTradeRosterRow.Availability
+        /// T5: non-empty only while three teams are active and this row's team is not one of the
+        /// recipients (a team is never offered itself as a destination). `TradeRoster-v1.md`'s
+        /// addendum: at most two pills, one per other team in the trade.
+        var recipients: [OmenTradeRecipientChooser.Recipient] = []
     }
 
     let kicker: String
@@ -310,6 +363,13 @@ struct OmenTradeBuildScreen: View {
     var onSelectPartner: ((String) -> Void)?
     var onSelectFilter: ((String) -> Void)?
     var onPrimaryAction: (() -> Void)?
+    /// T5: opens `TradePartnerPicker`. Only ever invoked from the live `.pt.addt` chip, which
+    /// only renders when `capability.threeTeamSupported` is true and no third partner is active.
+    var onOpenPartnerPicker: (() -> Void)?
+    /// T5: tapping the already-selected third-partner chip a second time. Never invoked for the
+    /// primary chip — `TradeBuildThreeTeam-v1.md`: "The primary partner chip is not removable
+    /// this way."
+    var onRemoveThirdPartner: (() -> Void)?
 
     var body: some View {
         OmenTradeScrollShell(
@@ -331,15 +391,28 @@ struct OmenTradeBuildScreen: View {
             .padding(.top, OmenSpacing.step12)
 
             partners
+            if let disclosure = state.removalDisclosure {
+                OmenTradeNoteBlock(text: disclosure, emphasis: nil)
+                    .padding(.top, OmenSpacing.step8)
+            }
             filters
-            threeTeamNotice
+            // Once three teams are active there is nothing left to explain about the chip row —
+            // both slots are filled and the "why can't I add a team" sentence would be stale.
+            if state.thirdPartner == nil {
+                threeTeamNotice
+            }
 
             ForEach(Array(state.sides.enumerated()), id: \.offset) { _, side in
                 OmenTradeLegBlock(side: side)
             }
 
             if let read = state.read {
-                OmenTradeReadBlock(read: read, submission: state.submission)
+                OmenTradeReadBlock(
+                    read: read,
+                    submission: state.submission,
+                    onToggleStepDone: onToggleSubmissionStepDone,
+                    onCopyStep: onCopySubmissionStep
+                )
             }
 
             OmenButton(
@@ -353,23 +426,68 @@ struct OmenTradeBuildScreen: View {
         }
     }
 
-    /// `.partners`, plus the `Add team` control the contract will not let work.
+    /// T5: threaded down to `OmenTradeReadBlock`. Kept as separate optional closures (rather than
+    /// folding into `onPrimaryAction`) so a caller with no 3-team submission checklist — every
+    /// 2-team screen — never has to supply a no-op.
+    var onToggleSubmissionStepDone: ((Int) -> Void)?
+    var onCopySubmissionStep: ((Int) -> Void)?
+
+    /// `.partners`. T5 branches on `state.thirdPartner`: once a third team is active the row
+    /// shows exactly the two selected chips and nothing else (`TradeBuildThreeTeam-v1.md`'s own
+    /// rule — swapping the third team is remove-then-reopen-the-picker, not a direct tap). With
+    /// no third partner, this is byte-for-byte the original 2-team row: every candidate, plus the
+    /// `Add team` control in whichever of its two states `addTeamOrUnavailable` resolves to.
     private var partners: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(alignment: .top, spacing: OmenSpacing.step8) {
-                ForEach(state.partners) { partner in
+                if let thirdPartner = state.thirdPartner {
+                    let primary = state.partners.first(where: { $0.id == state.selectedPartnerID })
                     OmenTradePartnerChip(
-                        crest: partner.crest,
-                        name: partner.name,
-                        need: partner.need,
-                        isSelected: partner.id == state.selectedPartnerID,
-                        action: { onSelectPartner?(partner.id) }
+                        crest: primary?.crest ?? "",
+                        name: primary?.name ?? "",
+                        need: primary?.need,
+                        isSelected: true,
+                        // Not the removal affordance — per contract, the primary chip keeps
+                        // today's 2-team behavior (a no-op with three teams active; there is
+                        // nothing to swap it with here).
+                        action: {}
                     )
+                    OmenTradePartnerChip(
+                        crest: thirdPartner.crest,
+                        name: thirdPartner.name,
+                        need: thirdPartner.need,
+                        isSelected: true,
+                        action: { onRemoveThirdPartner?() }
+                    )
+                    .accessibilityHint("Double tap to remove this team from the trade")
+                } else {
+                    ForEach(state.partners) { partner in
+                        OmenTradePartnerChip(
+                            crest: partner.crest,
+                            name: partner.name,
+                            need: partner.need,
+                            isSelected: partner.id == state.selectedPartnerID,
+                            action: { onSelectPartner?(partner.id) }
+                        )
+                    }
+                    addTeamOrUnavailable
                 }
-                addTeam
             }
             .padding(.horizontal, OmenSpacing.step16)
             .padding(.top, OmenSpacing.step12)
+        }
+    }
+
+    /// The `.pt.addt` chip. **Live** once `capability.threeTeamSupported` is true — opens
+    /// `TradePartnerPicker` — and `OmenUnavailableControl` otherwise, exactly as before T5.
+    /// `TradePartnerPicker-v1.md`: "the live `Add team` chip is a new enabled state of an
+    /// existing component, not a new component" — same shell, same accent-dashed treatment
+    /// already defined for `.fc.smart`, just no longer wrapped in the unavailable carrier.
+    @ViewBuilder private var addTeamOrUnavailable: some View {
+        if state.capability?.threeTeamSupported == true {
+            OmenTradeAddTeamChip(action: { onOpenPartnerPicker?() })
+        } else {
+            addTeam
         }
     }
 
@@ -445,6 +563,9 @@ struct OmenTradeRosterScreen: View {
     var onSelectPartner: ((String) -> Void)?
     var onSelectFilter: ((String) -> Void)?
     var onAddPlayer: ((String) -> Void)?
+    /// T5: fires when a recipient pill is tapped on a row with a choice to make. `playerID`,
+    /// `recipientTeamID`.
+    var onChooseRecipient: ((String, String) -> Void)?
 
     var body: some View {
         OmenTradeScrollShell(
@@ -508,7 +629,9 @@ struct OmenTradeRosterScreen: View {
                             name: row.name,
                             meta: row.meta,
                             availability: row.availability,
-                            action: { onAddPlayer?(row.id) }
+                            action: { onAddPlayer?(row.id) },
+                            recipients: row.recipients,
+                            onChooseRecipient: { recipient in onChooseRecipient?(row.id, recipient.id) }
                         )
                     }
                 }
@@ -832,9 +955,12 @@ private struct OmenTradeLegBlock: View {
 
     private func row(_ leg: OmenTradeLeg) -> some View {
         HStack(spacing: OmenSpacing.step10) {
+            // `.lateral` renders no glyph at all — not even a dash — per
+            // `TradeBuildThreeTeam-v1.md`'s acceptance check. The 22pt column stays reserved so
+            // the name/meta column does not shift between rows.
             Text(leg.label)
                 .omenTextStyle(OmenTypography.micro)
-                .foregroundStyle(leg.direction == .sending ? OmenColor.textTertiary : OmenColor.accent)
+                .foregroundStyle(leg.direction == .receiving ? OmenColor.accent : OmenColor.textTertiary)
                 .frame(width: 22, alignment: .leading)
             VStack(alignment: .leading, spacing: OmenSpacing.step2) {
                 Text(leg.name)
@@ -860,7 +986,7 @@ private struct OmenTradeLegBlock: View {
             RoundedRectangle(cornerRadius: 10, style: .continuous).fill(OmenColor.surface1)
         )
         .accessibilityElement(children: .combine)
-        .accessibilityLabel([leg.label, leg.name, leg.meta, leg.rank].compactMap { $0 }.joined(separator: ", "))
+        .accessibilityLabel([leg.accessibilityDirection, leg.name, leg.meta, leg.rank].compactMap { $0 }.joined(separator: ", "))
     }
 }
 
@@ -868,6 +994,10 @@ private struct OmenTradeLegBlock: View {
 private struct OmenTradeReadBlock: View {
     let read: OmenTradeRead
     let submission: OmenTradeSubmission?
+    /// T5: present only when `submission.stepDone` is non-empty (the 3-team split-handoff case).
+    /// Every 2-team call site omits these, so the row renders exactly as it did before T5.
+    var onToggleStepDone: ((Int) -> Void)? = nil
+    var onCopyStep: ((Int) -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: OmenSpacing.step8) {
@@ -921,20 +1051,15 @@ private struct OmenTradeReadBlock: View {
                             .omenTextStyle(OmenTypography.micro)
                             .foregroundStyle(OmenColor.textTertiary)
                     }
+                    // T5: "0 of 3 legs sent." Derived client-side from `stepDone`; never implies
+                    // the provider confirmed anything.
+                    if let progress = submission.progressCaption {
+                        Text(progress)
+                            .omenTextStyle(OmenTypography.micro)
+                            .foregroundStyle(OmenColor.textTertiary)
+                    }
                     ForEach(Array(submission.steps.enumerated()), id: \.offset) { index, step in
-                        HStack(alignment: .top, spacing: OmenSpacing.step8) {
-                            Text("\(index + 1)")
-                                .omenTextStyle(OmenTypography.micro)
-                                .foregroundStyle(OmenColor.textSecondary)
-                                .frame(width: 17, height: 17)
-                                .background(Circle().fill(OmenColor.surface3))
-                            Text(step)
-                                .omenTextStyle(OmenTypography.bodySmall)
-                                .foregroundStyle(OmenColor.textSecondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        .accessibilityElement(children: .combine)
-                        .accessibilityLabel("Step \(index + 1). \(step)")
+                        submissionStepRow(index: index, step: step, submission: submission)
                     }
                 }
                 .padding(.top, OmenSpacing.step10)
@@ -955,6 +1080,22 @@ private struct OmenTradeReadBlock: View {
         )
         .padding(.horizontal, OmenSpacing.step16)
         .padding(.top, OmenSpacing.step14)
+    }
+
+    /// One `li` of `ol.steps`. Read-only (the numbered-circle, 2-team shape) when
+    /// `submission.stepDone` is empty; a tappable done-toggle plus a "Copy" micro-action when it
+    /// is not — `TradeBuildThreeTeam-v1.md`'s split-handoff checklist. Two sibling tap targets
+    /// (the row, and Copy) rather than one nested inside the other.
+    @ViewBuilder
+    private func submissionStepRow(index: Int, step: String, submission: OmenTradeSubmission) -> some View {
+        let isDone = submission.stepDone.indices.contains(index) ? submission.stepDone[index] : nil
+        OmenTradeSubmissionStepRow(
+            index: index,
+            step: step,
+            isDone: isDone,
+            onToggleDone: onToggleStepDone == nil ? nil : { onToggleStepDone?(index) },
+            onCopy: onCopyStep == nil ? nil : { onCopyStep?(index) }
+        )
     }
 }
 
@@ -1120,7 +1261,14 @@ extension OmenTradeRead {
     /// The caveat is composed from `analysis_context` and never from the verdict. A personalized
     /// answer still carries one: "your league's settings" is itself the scope of the claim.
     private static func caveat(for compare: TradeCompare) -> String {
-        if let reason = compare.analysisContext.unavailableReason {
+        caveat(analysisContext: compare.analysisContext)
+    }
+
+    /// T5: hoisted so `TradeThreeTeamCompare` — which carries the identical `analysis_context`
+    /// vocabulary but is a distinct decodable type — reads the same sentences rather than a
+    /// second copy of them.
+    fileprivate static func caveat(analysisContext: TradeCompare.AnalysisContext) -> String {
+        if let reason = analysisContext.unavailableReason {
             switch reason {
             case "unauthenticated":
                 return "Omen used standard scoring — sign in and it will use your league's settings instead."
@@ -1130,12 +1278,71 @@ extension OmenTradeRead {
                 return "Omen used standard scoring for this one, not your league's settings."
             }
         }
-        if compare.analysisContext.isPersonalized {
-            let league = compare.analysisContext.leagueName
+        if analysisContext.isPersonalized {
+            let league = analysisContext.leagueName
             return league.map { "Scored against \($0)'s settings and your roster." }
                 ?? "Scored against your league's settings and your roster."
         }
         return "Standard scoring — not your league's settings. Need usually decides a trade, and need is what standard scoring cannot see."
+    }
+
+    /// T5: the "your own" read for a three-team compare. `TradeThreeTeamCompare` has no
+    /// top-level `explanation` field (T1's route never sets one for the `legs` branch), so the
+    /// reasoning line is composed the same way `TradeCompare.subhead` is — from `verdictState`
+    /// and `evaluability` — rather than left blank. There are no `capabilities` in this response
+    /// either, so `inputs` is always empty, which the existing "only render the divider if
+    /// non-empty" check already handles with no further change needed.
+    static func from(_ compare: TradeThreeTeamCompare) -> OmenTradeRead {
+        OmenTradeRead(
+            headline: TradeCompare.headline(for: compare.verdictState),
+            reasoning: threeTeamSubhead(for: compare),
+            caveat: caveat(analysisContext: compare.analysisContext),
+            isPersonalized: compare.analysisContext.isPersonalized,
+            inputs: []
+        )
+    }
+
+    /// The three-team mirror of `TradeCompare.subhead` — same vocabulary, applied to the overall
+    /// `evaluability`/`verdictState` this response carries at its top level.
+    private static func threeTeamSubhead(for compare: TradeThreeTeamCompare) -> String {
+        switch compare.verdictState {
+        case .insufficientData:
+            switch compare.evaluability.reason {
+            case "no_players":
+                return "Add players to every leg and Omen will look at it."
+            case "missing_projections":
+                let n = compare.evaluability.missingProjectionCount
+                return n == 1
+                    ? "Omen has no projection for 1 of these players, so it won't force a verdict."
+                    : "Omen has no projection for \(n) of these players, so it won't force a verdict."
+            default:
+                return "Omen doesn't have enough to evaluate this three-team deal."
+            }
+        case .closeNeedsContext:
+            return "The value is close enough that your roster and league settings decide it."
+        default:
+            return compare.analysisContext.isPersonalized
+                ? "Based on your league's scoring and your roster."
+                : "Based on standard scoring — not your league's settings."
+        }
+    }
+}
+
+extension OmenTradeSubmission {
+    /// T5: builds the split-handoff checklist from T1's `submission` block plus the client-local
+    /// `doneSteps` set. `doneSteps` is never sent anywhere — it lives only in
+    /// `TradeViewModel.threeTeamSubmissionDoneSteps` for exactly as long as the screen is open.
+    static func from(_ submission: TradeThreeTeamCompare.Submission, platform: String?, doneSteps: Set<Int>) -> OmenTradeSubmission {
+        let doneFlags = submission.steps.indices.map { doneSteps.contains($0) }
+        let doneCount = doneFlags.filter { $0 }.count
+        let caption = [platform?.uppercased(), "Handoff only"].compactMap { $0 }.joined(separator: " · ")
+        return OmenTradeSubmission(
+            title: "How to submit this",
+            caption: caption.isEmpty ? "Handoff only" : caption,
+            steps: submission.steps,
+            stepDone: doneFlags,
+            progressCaption: "\(doneCount) of \(submission.steps.count) legs sent."
+        )
     }
 }
 
@@ -1296,5 +1503,61 @@ enum OmenTradeAnswer: Equatable {
             meta: [player.position, player.team].compactMap { $0 }.joined(separator: " · "),
             rank: nil
         )
+    }
+
+    // MARK: - T5: three-team leg blocks
+
+    /// Generalizes the fixed "You send"/"You receive" pair into N team-headed blocks, one per
+    /// team that sends something — `TradeBuildThreeTeam-v1.md`'s own rule: *"each leg block is
+    /// headed by a team, not by a direction... never one block per pairwise leg."*
+    ///
+    /// **Built from the locally-authored `TradeThreeTeamOffer.legs`, not from
+    /// `TradeThreeTeamCompare.participants[].sends`.** The two disagree in one respect the
+    /// contract does not resolve: T1's `participant.sends` pools every leg that team sent into
+    /// one flat list with no per-player destination and no player `team` (NFL) field
+    /// (`TradeThreeTeamCompare.Player` doc comment). This beta's only tested shape is a ring where
+    /// each team sends to exactly one recipient, so the two sources agree there — but reading the
+    /// destination and NFL-team abbreviation off the client's own authored legs is the only way
+    /// to build the exact `meta` string (`"RB · IND → Davante's"`) the contract specifies without
+    /// fabricating a `team` the server never returns. This is enrichment of already-known data,
+    /// not the "leg-to-side reassembly" the contract warns against — the grouping (which teams
+    /// get a block, and in what order) still comes from `teamOrder`, which the caller derives
+    /// from the same `uniqueTeamIdsFromLegs`-style bookkeeping T1 itself does server-side.
+    ///
+    /// - Parameter teamOrder: viewer id first, then partner ids in the order they were added to
+    ///   the trade — `TradeBuildThreeTeam-v1.md`: "block order matches the `.partners` chip order
+    ///   above it." A team with nothing to send (per the contract, only participants that send
+    ///   something get a block) is filtered out.
+    static func sides(of offer: TradeThreeTeamOffer, viewerTeamID: String, teamOrder: [String]) -> [OmenTradeSide] {
+        let sendingTeamIDs = Set(offer.legs.map(\.from))
+        return teamOrder.filter(sendingTeamIDs.contains).map { teamID in
+            let legsFromTeam = offer.legs.filter { $0.from == teamID }
+            let heading = teamID == viewerTeamID
+                ? "You send"
+                : "\((legsFromTeam.first?.fromName).flatMap { $0.isEmpty ? nil : $0 } ?? teamID) sends"
+            let rows = legsFromTeam.flatMap { leg in
+                leg.players.map { player in threeTeamLeg(player, leg: leg, viewerTeamID: viewerTeamID) }
+            }
+            return OmenTradeSide(heading: heading, legs: rows)
+        }
+    }
+
+    /// One row of a three-team leg block. `rank` stays nil for the same reason the 2-team `leg()`
+    /// helper leaves it nil — `trade-compare.v2` computes no per-player rank in either shape.
+    private static func threeTeamLeg(_ player: TradePlayer, leg: TradeThreeTeamLeg, viewerTeamID: String) -> OmenTradeLeg {
+        let direction: OmenTradeLeg.Direction
+        if leg.from == viewerTeamID { direction = .sending }
+        else if leg.to == viewerTeamID { direction = .receiving }
+        else { direction = .lateral }
+
+        let parts = [player.position, player.team].compactMap { $0 }.filter { !$0.isEmpty }
+        var meta = parts.joined(separator: " · ")
+        // The destination suffix is load-bearing only when the recipient is not the viewer —
+        // `TradeBuildThreeTeam-v1.md`'s own rule, restated in `meta`'s doc comment already: never
+        // "→ you" for a row where the viewer is the recipient.
+        if leg.to != viewerTeamID, let toName = leg.toName, !toName.isEmpty {
+            meta = meta.isEmpty ? "→ \(toName)" : "\(meta) → \(toName)"
+        }
+        return OmenTradeLeg(direction: direction, name: player.name, meta: meta, rank: nil)
     }
 }

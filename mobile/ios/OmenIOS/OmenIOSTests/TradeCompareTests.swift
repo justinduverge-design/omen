@@ -289,4 +289,177 @@ final class TradeCompareTests: XCTestCase {
         )
         XCTAssertNil(PlayerSearchResult(id: "3", name: "C", position: nil, team: nil).subtitle)
     }
+
+    // MARK: - T5: three-team trade builder
+
+    /// Fixture matching `omen-t1-three-team-capability`'s documented `legs`-branch response
+    /// (`test/tradeRoute.test.js`'s ring example) exactly, since that route is unmerged and this
+    /// type is built against the documented shape rather than a live server.
+    private func threeTeamFixture(
+        verdictState: String = "favors_you",
+        youVerdict: String = "favors_you"
+    ) throws -> TradeThreeTeamCompare {
+        try JSONDecoder().decode(TradeThreeTeamCompare.self, from: Data("""
+        {
+          "contract_version": "trade-compare.v2",
+          "trade_shape": "three_team",
+          "team_count": 3,
+          "participants": [
+            {
+              "team_id": "you", "team_name": null,
+              "sends": {"total_value": 4.0, "player_count": 1, "missing_projection_count": 0, "players": [{"name": "Jonathan Taylor", "position": "RB", "player_key": null}]},
+              "receives": {"total_value": 3.0, "player_count": 1, "missing_projection_count": 0, "players": [{"name": "Tyjae Spears", "position": "RB", "player_key": null}]},
+              "net_value": -1.0, "verdict_state": "\(youVerdict)",
+              "acceptance_likelihood": "likely", "confidence": "medium",
+              "roster_fit": {"summary": "fine", "depth_discounted": false},
+              "evaluability": {"status": "evaluable", "reason": null, "missing_projection_count": 0, "total_player_count": 2}
+            },
+            {
+              "team_id": "team_b", "team_name": "Davante's Inferno",
+              "sends": {"total_value": 5.0, "player_count": 1, "missing_projection_count": 0, "players": [{"name": "Ja'Marr Chase", "position": "WR", "player_key": null}]},
+              "receives": {"total_value": 4.0, "player_count": 1, "missing_projection_count": 0, "players": [{"name": "Jonathan Taylor", "position": "RB", "player_key": null}]},
+              "net_value": -1.0, "verdict_state": "close_needs_context",
+              "acceptance_likelihood": "uncertain", "confidence": "medium",
+              "roster_fit": {"summary": "fine", "depth_discounted": false},
+              "evaluability": {"status": "evaluable", "reason": null, "missing_projection_count": 0, "total_player_count": 2}
+            },
+            {
+              "team_id": "team_c", "team_name": "Chubb Rock",
+              "sends": {"total_value": 3.0, "player_count": 1, "missing_projection_count": 0, "players": [{"name": "Tyjae Spears", "position": "RB", "player_key": null}]},
+              "receives": {"total_value": 5.0, "player_count": 1, "missing_projection_count": 0, "players": [{"name": "Ja'Marr Chase", "position": "WR", "player_key": null}]},
+              "net_value": 2.0, "verdict_state": "favors_you",
+              "acceptance_likelihood": "likely", "confidence": "medium",
+              "roster_fit": {"summary": "fine", "depth_discounted": false},
+              "evaluability": {"status": "evaluable", "reason": null, "missing_projection_count": 0, "total_player_count": 2}
+            }
+          ],
+          "evaluability": {"status": "evaluable", "reason": null, "missing_projection_count": 0, "total_player_count": 6},
+          "verdict_state": "\(verdictState)",
+          "analysis_context": {"mode": "neutral", "platform": null, "league_id": null, "league_name": null, "applied": [], "unavailable_reason": null},
+          "submission": {
+            "mode": "split_handoff",
+            "reason": "no_connected_provider_publishes_a_three_team_write_api",
+            "caption": "No provider builds a three-team trade natively. Submit it as linked two-team trades, in this order.",
+            "steps": [
+              "Leg 1: send Jonathan Taylor from you to team_b.",
+              "Leg 2: send Ja'Marr Chase from team_b to team_c. Make it contingent on leg 1 completing first.",
+              "Leg 3: send Tyjae Spears from team_c to you. Make it contingent on leg 2 completing first."
+            ]
+          }
+        }
+        """.utf8))
+    }
+
+    func testThreeTeamCompareDecodesEveryParticipantSeparately() throws {
+        let result = try threeTeamFixture()
+
+        XCTAssertEqual(result.tradeShape, "three_team")
+        XCTAssertEqual(result.teamCount, 3)
+        XCTAssertEqual(result.participants.count, 3)
+        XCTAssertEqual(result.participants.map(\.teamID), ["you", "team_b", "team_c"])
+        XCTAssertEqual(result.participants[0].sends.players.first?.name, "Jonathan Taylor")
+        XCTAssertEqual(result.participants[0].receives.players.first?.name, "Tyjae Spears")
+        XCTAssertEqual(result.submission.steps.count, 3)
+        XCTAssertEqual(result.submission.mode, "split_handoff")
+    }
+
+    /// The client never mints a verdict — the three-team headline reads the same closed
+    /// vocabulary the two-team one does, off the same `verdict_state` field.
+    func testThreeTeamHeadlineNeverMintsAVerdict() throws {
+        let favors = try threeTeamFixture(verdictState: "favors_you")
+        XCTAssertEqual(OmenTradeRead.from(favors).headline, "This favors you")
+
+        let insufficient = try threeTeamFixture(verdictState: "insufficient_data")
+        XCTAssertEqual(OmenTradeRead.from(insufficient).headline, "Omen can't call this one")
+    }
+
+    // MARK: - N team-headed leg blocks
+
+    /// One `TradeThreeTeamLeg` per pairwise transfer, exactly as `TradePartnerPicker` /
+    /// `TradeRoster`'s recipient chooser would build them for the ring example T1's own test
+    /// fixture uses.
+    private func ringOffer() -> TradeThreeTeamOffer {
+        TradeThreeTeamOffer(legs: [
+            TradeThreeTeamLeg(from: "you", fromName: nil, to: "team_b", toName: "Davante's Inferno", players: [
+                TradePlayer(name: "Jonathan Taylor", position: "RB", team: "IND"),
+            ]),
+            TradeThreeTeamLeg(from: "team_b", fromName: "Davante's Inferno", to: "team_c", toName: "Chubb Rock", players: [
+                TradePlayer(name: "Ja'Marr Chase", position: "WR", team: "CIN"),
+            ]),
+            TradeThreeTeamLeg(from: "team_c", fromName: "Chubb Rock", to: "you", toName: nil, players: [
+                TradePlayer(name: "Tyjae Spears", position: "RB", team: "TEN"),
+            ]),
+        ])
+    }
+
+    /// `TradeBuildThreeTeam-v1.md`: one block per participant that sends something, headed by
+    /// that participant, in `teamOrder` — never one block per pairwise leg (there are 3 legs and
+    /// 3 blocks here only because the ring happens to have exactly one leg per sender).
+    func testThreeTeamSidesProducesOneBlockPerSendingParticipantInOrder() {
+        let sides = OmenTradeAnswer.sides(of: ringOffer(), viewerTeamID: "you", teamOrder: ["you", "team_b", "team_c"])
+
+        XCTAssertEqual(sides.map(\.heading), ["You send", "Davante's Inferno sends", "Chubb Rock sends"])
+        XCTAssertEqual(sides[0].legs.first?.name, "Jonathan Taylor")
+        XCTAssertEqual(sides[1].legs.first?.name, "Ja'Marr Chase")
+        XCTAssertEqual(sides[2].legs.first?.name, "Tyjae Spears")
+    }
+
+    /// The middle leg — Davante's Inferno sending to Chubb Rock — touches neither the viewer's
+    /// outgoing nor incoming pile. `TradeBuildThreeTeam-v1.md`'s new third direction state: blank
+    /// label, but still announced to VoiceOver rather than silently absent.
+    func testALegTouchingNeitherSideOfTheViewerIsLateralAndBlank() {
+        let sides = OmenTradeAnswer.sides(of: ringOffer(), viewerTeamID: "you", teamOrder: ["you", "team_b", "team_c"])
+        let middleLeg = sides[1].legs[0]
+
+        XCTAssertEqual(middleLeg.direction, .lateral)
+        XCTAssertEqual(middleLeg.label, "", "no glyph — not even a dash — in the shipped build")
+        XCTAssertEqual(middleLeg.accessibilityDirection, "Not sent or received by you", "silence must still be announced")
+
+        XCTAssertEqual(sides[0].legs[0].direction, .sending)
+        XCTAssertEqual(sides[2].legs[0].direction, .receiving)
+    }
+
+    /// `meta`'s destination suffix appears only when the recipient is not the viewer, and the
+    /// viewer-recipient row never carries a "→ you" suffix in the shipped copy.
+    func testMetaCarriesTheDestinationSuffixOnlyWhenTheRecipientIsNotTheViewer() {
+        let sides = OmenTradeAnswer.sides(of: ringOffer(), viewerTeamID: "you", teamOrder: ["you", "team_b", "team_c"])
+
+        XCTAssertEqual(sides[0].legs[0].meta, "RB · IND → Davante's Inferno")
+        XCTAssertEqual(sides[1].legs[0].meta, "WR · CIN → Chubb Rock")
+        XCTAssertEqual(sides[2].legs[0].meta, "RB · TEN", "you are the recipient — no suffix")
+    }
+
+    /// Only participants that send something get a block, and block order matches `teamOrder`
+    /// (the `.partners` chip order) even when a team is filtered out.
+    func testOnlySendingParticipantsGetABlock() {
+        let offer = TradeThreeTeamOffer(legs: [
+            TradeThreeTeamLeg(from: "you", fromName: nil, to: "team_b", toName: "Davante's Inferno", players: [TradePlayer(name: "A")]),
+        ])
+        let sides = OmenTradeAnswer.sides(of: offer, viewerTeamID: "you", teamOrder: ["you", "team_b"])
+        XCTAssertEqual(sides.count, 1)
+        XCTAssertEqual(sides[0].heading, "You send")
+    }
+
+    func testThreeTeamRequestBodyMatchesT1sDocumentedLegsShape() {
+        let offer = ringOffer()
+        let body = offer.requestBody
+        let legs = body["legs"] as? [[String: Any]]
+        XCTAssertEqual(legs?.count, 3)
+        XCTAssertEqual(legs?[0]["from"] as? String, "you")
+        XCTAssertEqual(legs?[0]["to"] as? String, "team_b")
+        XCTAssertEqual(legs?[0]["to_name"] as? String, "Davante's Inferno")
+        let players = legs?[0]["players"] as? [[String: Any]]
+        XCTAssertEqual(players?.first?["name"] as? String, "Jonathan Taylor")
+    }
+
+    func testTeamIDsAndThreeTeamShapeDetection() {
+        XCTAssertTrue(ringOffer().isThreeTeamShape)
+        XCTAssertEqual(ringOffer().teamIDs, ["you", "team_b", "team_c"])
+
+        let twoTeamLooking = TradeThreeTeamOffer(legs: [
+            TradeThreeTeamLeg(from: "you", fromName: nil, to: "team_b", toName: nil, players: [TradePlayer(name: "A")]),
+            TradeThreeTeamLeg(from: "team_b", fromName: nil, to: "you", toName: nil, players: [TradePlayer(name: "B")]),
+        ])
+        XCTAssertFalse(twoTeamLooking.isThreeTeamShape)
+    }
 }

@@ -14,6 +14,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import com.slopssaloon.omen.app.feature.api.TradeViewModel
 import com.slopssaloon.omen.core.designsystem.component.OmenButton
 import com.slopssaloon.omen.core.designsystem.component.OmenButtonSize
@@ -43,9 +45,38 @@ fun TradeRosterFlow(
     onDismiss: (() -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
+    val clipboard = LocalClipboardManager.current
     var showingRoster by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) { tradeViewModel.loadRoster(userId) }
+
+    // T5: `TradePartnerPicker`, reached from the live "Add team" chip on `TradeBuild`.
+    if (tradeViewModel.isPartnerPickerPresented) {
+        TradePartnerPicker(
+            candidates = tradeViewModel.partnerPickerCandidates,
+            leagueName = null,
+            onSelect = { tradeViewModel.addThirdPartner(it) },
+            onDismiss = { tradeViewModel.dismissPartnerPicker() },
+        )
+    }
+
+    // T5: the bottom button means three different things depending on where the three-team
+    // build is. With no third partner it is unchanged.
+    fun primaryAction() {
+        if (tradeViewModel.thirdPartnerTeamId == null) {
+            showingRoster = true
+            return
+        }
+        if (tradeViewModel.threeTeamViewState is TradeViewModel.ThreeTeamViewState.Loaded) {
+            tradeViewModel.dismissThreeTeamVerdict()
+        } else {
+            scope.launch { tradeViewModel.compareThreeTeam(userId) }
+        }
+    }
+
+    fun copyThreeTeamStep(index: Int) {
+        tradeViewModel.copyTextForThreeTeamStep(index)?.let { clipboard.setText(AnnotatedString(it)) }
+    }
 
     when (val state = tradeViewModel.rosterBrowseState) {
         is TradeViewModel.RosterBrowseState.Idle, is TradeViewModel.RosterBrowseState.Loading -> {
@@ -88,7 +119,11 @@ fun TradeRosterFlow(
                         tradeViewModel.selectPartnerTeam(id)
                         showingRoster = true
                     },
-                    onPrimaryAction = { showingRoster = true },
+                    onPrimaryAction = { primaryAction() },
+                    onOpenPartnerPicker = { tradeViewModel.openPartnerPicker() },
+                    onRemoveThirdPartner = { tradeViewModel.removeThirdPartner() },
+                    onToggleSubmissionStepDone = { tradeViewModel.toggleThreeTeamSubmissionStep(it) },
+                    onCopySubmissionStep = { copyThreeTeamStep(it) },
                 )
             } else {
                 val rosterState = tradeViewModel.rosterScreenState
@@ -111,6 +146,9 @@ fun TradeRosterFlow(
                                 tradeViewModel.addFromRoster(player)
                                 onDismiss?.invoke()
                             }
+                        },
+                        onChooseRecipient = { playerId, recipientTeamId ->
+                            tradeViewModel.chooseThreeTeamRecipient(playerId, recipientTeamId)
                         },
                     )
                 }

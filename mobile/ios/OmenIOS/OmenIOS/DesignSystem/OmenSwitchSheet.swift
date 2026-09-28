@@ -95,6 +95,12 @@ struct OmenSwitchSheet: View {
     var onSelectFilter: ((String) -> Void)?
     var onSelectRow: ((OmenSwitchRow) -> Void)?
     var onToggleFavorite: ((OmenSwitchRow) -> Void)?
+    /// T5, `TradePartnerPicker`: *"Dropped: the star/favourite affordance. Favouriting a
+    /// one-time trade partner has no product meaning here."* `onToggleFavorite == nil` already
+    /// disables the star's tap target, but the row still reserved its 20pt outline glyph —
+    /// this additionally removes the glyph itself. Defaults to `true` so every existing caller
+    /// (the real team switcher) renders exactly as it did before T5.
+    var showsFavoriteAffordance: Bool = true
 
     var body: some View {
         VStack(spacing: 0) {
@@ -191,7 +197,8 @@ struct OmenSwitchSheet: View {
                         OmenSwitchSheetRow(
                             row: row,
                             onSelect: { onSelectRow?(row) },
-                            onToggleFavorite: onToggleFavorite == nil ? nil : { onToggleFavorite?(row) }
+                            onToggleFavorite: onToggleFavorite == nil ? nil : { onToggleFavorite?(row) },
+                            showsFavoriteAffordance: showsFavoriteAffordance
                         )
                     }
                 }
@@ -214,24 +221,27 @@ private struct OmenSwitchSheetRow: View {
     let row: OmenSwitchRow
     let onSelect: () -> Void
     var onToggleFavorite: (() -> Void)?
+    var showsFavoriteAffordance: Bool = true
 
     var body: some View {
         HStack(spacing: OmenSpacing.step10) {
             crest
-            if let onToggleFavorite {
-                Button(action: onToggleFavorite) {
-                    star
-                        // The artboard's star is a 14pt glyph. Padded to 44pt without moving the
-                        // glyph — the canvas README flags this exact control as under the touch
-                        // floor and says so deliberately, because growing it in the artboard
-                        // would make the artboard wrong.
-                        .frame(width: OmenLayout.minTouchTarget, height: OmenLayout.minTouchTarget)
-                        .contentShape(Rectangle())
+            if showsFavoriteAffordance {
+                if let onToggleFavorite {
+                    Button(action: onToggleFavorite) {
+                        star
+                            // The artboard's star is a 14pt glyph. Padded to 44pt without moving
+                            // the glyph — the canvas README flags this exact control as under the
+                            // touch floor and says so deliberately, because growing it in the
+                            // artboard would make the artboard wrong.
+                            .frame(width: OmenLayout.minTouchTarget, height: OmenLayout.minTouchTarget)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(row.isFavorite ? "Unstar \(row.teamName)" : "Star \(row.teamName)")
+                } else {
+                    star.frame(width: 20)
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel(row.isFavorite ? "Unstar \(row.teamName)" : "Star \(row.teamName)")
-            } else {
-                star.frame(width: 20)
             }
             Button(action: onSelect) {
                 HStack(spacing: OmenSpacing.step10) {

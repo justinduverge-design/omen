@@ -7,10 +7,15 @@ import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeBuildState
 import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeCapability
 import com.slopssaloon.omen.app.feature.commandcenter.OmenTradePartner
 import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeRead
+import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeRecipient
 import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeRosterState
 import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeShareState
+import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeSubmission
 import com.slopssaloon.omen.app.feature.commandcenter.omenTradeRead
 import com.slopssaloon.omen.app.feature.commandcenter.omenTradeSides
+import com.slopssaloon.omen.app.feature.commandcenter.omenTradeThreeTeamRead
+import com.slopssaloon.omen.app.feature.commandcenter.omenTradeThreeTeamSides
+import com.slopssaloon.omen.app.feature.commandcenter.omenTradeThreeTeamSubmission
 import com.slopssaloon.omen.core.session.SessionAuthorization
 import com.slopssaloon.omen.core.session.SessionManager
 import kotlinx.coroutines.CoroutineScope
@@ -116,6 +121,188 @@ class TradeViewModel(
         selectedPartnerTeamId = id
     }
 
+    // MARK: - T5: three-team trade builder
+
+    sealed interface ThreeTeamViewState {
+        data object Idle : ThreeTeamViewState
+        data object Loading : ThreeTeamViewState
+        data class Loaded(val result: TradeThreeTeamCompare) : ThreeTeamViewState
+        data class Failed(val error: OmenApiError) : ThreeTeamViewState
+        data object Demo : ThreeTeamViewState
+    }
+
+    var thirdPartnerTeamId: String? by mutableStateOf(null)
+        private set
+
+    var isPartnerPickerPresented: Boolean by mutableStateOf(false)
+
+    var threeTeamLegs: List<TradeThreeTeamLeg> by mutableStateOf(emptyList())
+        private set
+
+    var threeTeamViewState: ThreeTeamViewState by mutableStateOf(ThreeTeamViewState.Idle)
+        private set
+
+    /**
+     * Client-local only. Never sent to the server, never read back as proof a leg went through —
+     * `TradeBuildThreeTeam-v1.md`'s own rule.
+     */
+    var threeTeamSubmissionDoneSteps: Set<Int> by mutableStateOf(emptySet())
+        private set
+
+    /** "Removed Chubb Rock. Any legs with them were cleared too." Transient. */
+    var thirdPartnerRemovalDisclosure: String? by mutableStateOf(null)
+        private set
+
+    /**
+     * The league's other teams, minus the viewer's own team and whichever partner(s) are already
+     * in the trade — `TradePartnerPicker-v1.md`'s governing rule, restated by [rosterPartners]
+     * already excluding "you".
+     */
+    val partnerPickerCandidates: List<OmenTradePartner>
+        get() {
+            val excluded = setOfNotNull(selectedPartnerTeamId, thirdPartnerTeamId)
+            return rosterPartners.filter { it.id !in excluded }
+        }
+
+    /**
+     * Only reachable while `three_team.supported` and exactly two teams are selected —
+     * `TradePartnerPicker-v1.md`'s governing rule. A no-op otherwise, which is what keeps the
+     * live "Add team" chip from ever being wired to open this with a third team already active
+     * or three-team support unread/unavailable.
+     */
+    fun openPartnerPicker() {
+        if (rosterCapability?.threeTeamSupported != true || thirdPartnerTeamId != null) return
+        isPartnerPickerPresented = true
+    }
+
+    fun dismissPartnerPicker() {
+        isPartnerPickerPresented = false
+    }
+
+    /**
+     * Commits a picked team as the third partner. Any prior three-team read goes stale — the
+     * same "any edit invalidates the standing verdict" rule [add] already applies to the 2-team
+     * offer.
+     */
+    fun addThirdPartner(partner: OmenTradePartner) {
+        thirdPartnerTeamId = partner.id
+        isPartnerPickerPresented = false
+        thirdPartnerRemovalDisclosure = null
+        threeTeamViewState = ThreeTeamViewState.Idle
+    }
+
+    /**
+     * Tapping the already-selected third-partner chip a second time — the toggle-a-chip removal
+     * idiom `.fc` filter chips already use. Discards every leg touching that team and returns to
+     * the existing 2-team state, per `TradeBuildThreeTeam-v1.md`'s own acceptance check: "never a
+     * silent partial state with orphaned legs."
+     */
+    fun removeThirdPartner() {
+        val removedId = thirdPartnerTeamId ?: return
+        val removedName = rosterPartners.firstOrNull { it.id == removedId }?.name ?: "that team"
+        threeTeamLegs = threeTeamLegs.filterNot { it.from == removedId || it.to == removedId }
+        thirdPartnerTeamId = null
+        threeTeamViewState = ThreeTeamViewState.Idle
+        threeTeamSubmissionDoneSteps = emptySet()
+        thirdPartnerRemovalDisclosure = "Removed $removedName. Any legs with them were cleared too."
+    }
+
+    fun dismissThirdPartnerRemovalDisclosure() {
+        thirdPartnerRemovalDisclosure = null
+    }
+
+    /**
+     * "Send to you" / "Send to Chubb Rock" — `TradeRoster-v1.md`'s addendum. Always the two teams
+     * in the trade other than whichever team's roster is currently being browsed
+     * ([selectedPartnerTeamId], the fixed primary once a third team is active). Empty — and
+     * therefore no recipient chooser renders at all — until a third team exists.
+     */
+    val threeTeamRecipientChoices: List<OmenTradeRecipient>
+        get() {
+            val thirdId = thirdPartnerTeamId ?: return emptyList()
+            val thirdName = rosterPartners.firstOrNull { it.id == thirdId }?.name ?: thirdId
+            return listOf(
+                OmenTradeRecipient(id = "you", label = "Send to you"),
+                OmenTradeRecipient(id = thirdId, label = "Send to $thirdName"),
+            )
+        }
+
+    /**
+     * Tapping a recipient pill on `TradeRoster`. Builds or extends the leg from the browsed team
+     * to the chosen recipient — never a leg the client invents a destination for.
+     */
+    fun chooseThreeTeamRecipient(playerId: String, recipientTeamId: String) {
+        val fromId = selectedPartnerTeamId ?: return
+        val loaded = rosterBrowseState as? RosterBrowseState.Loaded ?: return
+        val team = loaded.response.teams.firstOrNull { it.id == fromId } ?: return
+        val player = team.players.firstOrNull { it.id == playerId } ?: return
+        val toName = if (recipientTeamId == "you") null else rosterPartners.firstOrNull { it.id == recipientTeamId }?.name
+        addThreeTeamLeg(
+            from = fromId,
+            fromName = team.teamName,
+            to = recipientTeamId,
+            toName = toName,
+            player = TradePlayer(name = player.name, position = player.position, team = player.team, playerKey = player.playerKey),
+        )
+    }
+
+    private fun addThreeTeamLeg(from: String, fromName: String?, to: String, toName: String?, player: TradePlayer) {
+        val index = threeTeamLegs.indexOfFirst { it.from == from && it.to == to }
+        threeTeamLegs = if (index >= 0) {
+            threeTeamLegs.toMutableList().also { it[index] = it[index].copy(players = it[index].players + player) }
+        } else {
+            threeTeamLegs + TradeThreeTeamLeg(from = from, fromName = fromName, to = to, toName = toName, players = listOf(player))
+        }
+        // Any edit invalidates the standing three-team read, same rule as the 2-team offer.
+        threeTeamViewState = ThreeTeamViewState.Idle
+    }
+
+    val threeTeamOffer: TradeThreeTeamOffer
+        get() = TradeThreeTeamOffer(legs = threeTeamLegs, leagueContext = offer.leagueContext)
+
+    suspend fun compareThreeTeam(userId: String) {
+        if (userId == SessionManager.DEMO_USER_ID) {
+            threeTeamViewState = ThreeTeamViewState.Demo
+            return
+        }
+        if (!threeTeamOffer.isThreeTeamShape || threeTeamLegs.size < 2) {
+            threeTeamViewState = ThreeTeamViewState.Idle
+            return
+        }
+        val accessToken = (sessionManager.authorization() as? SessionAuthorization.Token)?.accessToken
+
+        threeTeamViewState = ThreeTeamViewState.Loading
+        threeTeamSubmissionDoneSteps = emptySet()
+        threeTeamViewState = when (val result = repository.compareThreeTeam(threeTeamOffer, accessToken)) {
+            is OmenApiResult.Success -> ThreeTeamViewState.Loaded(result.value)
+            is OmenApiResult.Failure -> {
+                if (result.error is OmenApiError.Unauthorized) sessionManager.onRefreshFailed()
+                ThreeTeamViewState.Failed(result.error)
+            }
+        }
+    }
+
+    /** The per-step done toggle. Client-local only. */
+    fun toggleThreeTeamSubmissionStep(index: Int) {
+        threeTeamSubmissionDoneSteps = if (index in threeTeamSubmissionDoneSteps) {
+            threeTeamSubmissionDoneSteps - index
+        } else {
+            threeTeamSubmissionDoneSteps + index
+        }
+    }
+
+    /**
+     * Copies only this leg's player names — never the whole three-leg block —
+     * `TradeBuildThreeTeam-v1.md`'s own rule for the per-step "Copy" action. Steps line up 1:1,
+     * in order, with the legs the client POSTed.
+     */
+    fun copyTextForThreeTeamStep(index: Int): String? =
+        threeTeamLegs.getOrNull(index)?.players?.joinToString(", ") { it.name }
+
+    fun dismissThreeTeamVerdict() {
+        threeTeamViewState = ThreeTeamViewState.Idle
+    }
+
     /**
      * Picked off a real roster. Keeps position, team and the provider id — the same fields
      * autocomplete already carries.
@@ -159,23 +346,71 @@ class TradeViewModel(
     /**
      * `TradeBuild` — a real partner directory plus the offer built so far. Always constructible
      * once a league is connected, whether or not the roster read has landed yet.
+     *
+     * T5: once a third team is active, `sides`/`read`/`submission` switch to the three-team path
+     * entirely — built from [threeTeamOffer]/[threeTeamViewState] rather than [offer]. With no
+     * third partner (every existing account, and every league without `three_team.supported`)
+     * this executes exactly the branch that shipped before T5, unchanged.
      */
     val rosterBuildState: OmenTradeBuildState
         get() {
             val partners = rosterPartners
             val selectedId = selectedPartnerTeamId ?: partners.firstOrNull()?.id
-            val primaryTitle = when (val state = rosterBrowseState) {
-                is RosterBrowseState.Loading -> "Loading your league's teams…"
-                is RosterBrowseState.Loaded -> when {
-                    !state.response.isAvailable -> "See why rosters aren't available"
-                    selectedId != null -> "View their roster"
+            val thirdPartner = thirdPartnerTeamId?.let { id -> partners.firstOrNull { it.id == id } }
+
+            if (thirdPartner == null) {
+                val primaryTitle = when (val state = rosterBrowseState) {
+                    is RosterBrowseState.Loading -> "Loading your league's teams…"
+                    is RosterBrowseState.Loaded -> when {
+                        !state.response.isAvailable -> "See why rosters aren't available"
+                        selectedId != null -> "View their roster"
+                        else -> "Load your league's teams"
+                    }
                     else -> "Load your league's teams"
                 }
-                else -> "Load your league's teams"
+                return OmenTradeBuildState(
+                    kicker = "Two teams",
+                    title = "Trade with a real team",
+                    tabTitles = emptyList(),
+                    selectedTabIndex = 0,
+                    partners = partners,
+                    selectedPartnerId = selectedId,
+                    filters = emptyList(),
+                    selectedFilterId = null,
+                    capability = rosterCapability,
+                    sides = omenTradeSides(offer),
+                    read = null,
+                    submission = null,
+                    primaryActionTitle = primaryTitle,
+                )
             }
+
+            val teamOrder = listOfNotNull("you", selectedId, thirdPartnerTeamId)
+            val sides = omenTradeThreeTeamSides(threeTeamOffer, "you", teamOrder)
+            val read: OmenTradeRead?
+            val submission: OmenTradeSubmission?
+            val primaryTitle: String
+            when (val state = threeTeamViewState) {
+                is ThreeTeamViewState.Loaded -> {
+                    read = omenTradeThreeTeamRead(state.result)
+                    submission = omenTradeThreeTeamSubmission(state.result.submission, state.result.analysisContext.platform, threeTeamSubmissionDoneSteps)
+                    primaryTitle = "Change the offer"
+                }
+                is ThreeTeamViewState.Loading -> {
+                    read = null
+                    submission = null
+                    primaryTitle = "Comparing…"
+                }
+                else -> {
+                    read = null
+                    submission = null
+                    primaryTitle = if (threeTeamLegs.size >= 2) "Compare this deal" else "Add at least one more leg"
+                }
+            }
+
             return OmenTradeBuildState(
-                kicker = "Two teams",
-                title = "Trade with a real team",
+                kicker = "Three teams",
+                title = "Trade with two real teams",
                 tabTitles = emptyList(),
                 selectedTabIndex = 0,
                 partners = partners,
@@ -183,10 +418,12 @@ class TradeViewModel(
                 filters = emptyList(),
                 selectedFilterId = null,
                 capability = rosterCapability,
-                sides = omenTradeSides(offer),
-                read = null,
-                submission = null,
+                sides = sides,
+                read = read,
+                submission = submission,
                 primaryActionTitle = primaryTitle,
+                thirdPartner = thirdPartner,
+                removalDisclosure = thirdPartnerRemovalDisclosure,
             )
         }
 
@@ -208,9 +445,18 @@ class TradeViewModel(
             } else {
                 val team = response.teams.firstOrNull { it.id == selectedId }
                 if (team != null) {
+                    // T5: with a third team active, "already added" means "already in one of
+                    // this team's legs", and each available row gets the recipient chooser
+                    // instead of committing straight to "you" — `TradeRoster-v1.md`'s addendum.
+                    val recipients = threeTeamRecipientChoices
                     val rows = team.players.map { player ->
-                        val alreadyAdded = player.playerKey != null &&
-                            offer.receive.any { it.playerKey == player.playerKey }
+                        val alreadyAdded = if (thirdPartnerTeamId != null) {
+                            player.playerKey != null &&
+                                threeTeamLegs.any { it.from == selectedId && it.players.any { p -> p.playerKey == player.playerKey } }
+                        } else {
+                            player.playerKey != null &&
+                                offer.receive.any { it.playerKey == player.playerKey }
+                        }
                         OmenTradeRosterState.Row(
                             id = player.id,
                             name = player.name,
@@ -220,6 +466,7 @@ class TradeViewModel(
                             } else {
                                 OmenTradeRosterState.Availability.Available
                             },
+                            recipients = if (alreadyAdded) emptyList() else recipients,
                         )
                     }
                     if (rows.isEmpty()) note = "Omen didn't find any rostered players for this team."
