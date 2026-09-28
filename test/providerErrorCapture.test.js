@@ -15,6 +15,7 @@ const Sentry = require("@sentry/node");
 const {
   captureProviderError,
   MAX_BODY_CHARS,
+  sanitizeProviderPath,
 } = require("../src/middleware/providerErrors");
 const {
   DEMO_MODE_TAG,
@@ -85,6 +86,22 @@ test("provider capture does not forward an ESPN cookie or SWID", () => {
   // The actionable, non-identifying context does survive.
   assert.equal(event.extra.provider, "espn");
   assert.equal(event.extra.http_status, 401);
+});
+
+test("provider capture redacts ESPN fan identifiers embedded in the URL path", () => {
+  const fanId = "{11111111-2222-3333-4444-555555555555}";
+  const path = `/apis/v2/fans/${encodeURIComponent(fanId)}?featureFlags=challengeEntries`;
+  const event = capturedEvent({
+    provider: "espn",
+    operation: "fan_leagues",
+    error: new Error("ESPN API returned HTTP 400"),
+    context: { hostname: "fan.api.espn.com", path, http_status: 400 },
+  });
+
+  assert.equal(sanitizeProviderPath(path), "/apis/v2/fans/[redacted]");
+  assert.equal(event.extra.path, "/apis/v2/fans/[redacted]");
+  assert.equal(JSON.stringify(event).includes(fanId), false);
+  assert.equal(JSON.stringify(event).includes(encodeURIComponent(fanId)), false);
 });
 
 test("provider capture does not forward a Yahoo access token or refresh token", () => {
