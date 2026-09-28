@@ -29,7 +29,8 @@ test("provider-state execution review checks the real target and preserves grant
   assert.match(review, /service_role/g);
   assert.match(review, /non-nullable/i);
   assert.match(review, /row count must be unchanged/i);
-  assert.match(sql, /revoke all on table public\.platform_connections from anon, authenticated/i);
+  assert.match(sql, /revoke all on table public\.platform_connections from anon\s*;/i);
+  assert.doesNotMatch(sql, /revoke all on table public\.platform_connections from anon, authenticated/i);
 });
 
 test("provider-state SQL remains additive and contains no row mutation", () => {
