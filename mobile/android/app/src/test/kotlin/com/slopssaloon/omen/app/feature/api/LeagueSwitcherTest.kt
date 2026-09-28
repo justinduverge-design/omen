@@ -2,6 +2,7 @@ package com.slopssaloon.omen.app.feature.api
 
 import com.slopssaloon.omen.app.feature.commandcenter.leagueSubtitle
 import com.slopssaloon.omen.app.feature.commandcenter.switcherErrorMessage
+import com.slopssaloon.omen.app.feature.commandcenter.emptyGroupMessage
 import com.slopssaloon.omen.app.feature.commandcenter.switcherRowAccessibilityLabel
 import com.slopssaloon.omen.core.session.InMemorySecureSessionStore
 import com.slopssaloon.omen.core.session.Session
@@ -24,6 +25,22 @@ import org.junit.Test
  * render. Every unit was fine; the wiring between them was the whole defect.
  */
 class LeagueSwitcherTest {
+
+    @Test
+    fun `temporary provider outage remains retryable and does not become reconnect required`() {
+        val group = LeagueDirectory.PlatformGroup(
+            platform = "espn",
+            connectionState = "temporarily_unavailable",
+            discovery = "unavailable",
+            notice = null,
+            leagues = emptyList(),
+        )
+
+        assertEquals(
+            "ESPN is temporarily unavailable. Try again in a moment.",
+            emptyGroupMessage(group),
+        )
+    }
 
     /** A manager holding a live session, so `authorized` hands the repository a bearer. */
     private fun signedIn(): SessionManager = SessionManager(

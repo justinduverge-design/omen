@@ -62,6 +62,18 @@ final class LeagueSwitcherTests: XCTestCase {
         XCTAssertEqual(espn.discovery, "bound_only")
     }
 
+    func testDirectoryPreservesTemporaryProviderAvailabilityState() throws {
+        let json = Data("""
+        {"contract_version":"league-directory.v1","platforms":[
+          {"platform":"espn","connection_state":"temporarily_unavailable","discovery":"unavailable","notice":null,"leagues":[]}
+        ]}
+        """.utf8)
+
+        let directory = try JSONDecoder().decode(LeagueDirectory.self, from: json)
+
+        XCTAssertEqual(directory.platforms.first?.connectionState, "temporarily_unavailable")
+    }
+
     func testSelectionResultCarriesTheSurfacesToRefresh() throws {
         let json = Data("""
         {"contract_version":"league-active-selection.v1","selection_persistence":"provider_binding_only",

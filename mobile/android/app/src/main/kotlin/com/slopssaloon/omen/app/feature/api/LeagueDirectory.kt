@@ -63,7 +63,7 @@ data class LeagueDirectory(
 
     data class PlatformGroup(
         val platform: String,
-        /** `"connected"`, `"reconnect_required"`, or `"not_connected"`. */
+        /** `"connected"`, `"reconnect_required"`, `"temporarily_unavailable"`, or `"not_connected"`. */
         val connectionState: String?,
         /** `"full"`, `"bound_only"`, or `"unavailable"`. ESPN is always `bound_only`. */
         val discovery: String?,
