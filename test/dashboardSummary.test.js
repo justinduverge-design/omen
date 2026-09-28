@@ -529,6 +529,36 @@ test("GET /api/dashboard/summary applies Sleeper last-result enrichment", async 
   });
 });
 
+test("GET /api/dashboard/summary does not enrich a league outside the canonical season contract", async () => {
+  let calls = 0;
+  const app = buildApp({
+    context: { season: 1999, week: 8, season_type: "regular" },
+    platformRows: [{
+      user_id: "test-user",
+      platform: "sleeper",
+      is_active: true,
+      league_id: "sleeper-league-1",
+      platform_username: "sleepy",
+      platform_user_id: "sleeper-user-1",
+    }],
+    userRows: [{ id: "test-user" }],
+    sleeperAdapter: {
+      fetchSleeperLastResult: async () => {
+        calls += 1;
+        return { lastResult: "W" };
+      },
+    },
+  });
+
+  const res = await request(app, "/api/dashboard/summary", {
+    headers: { authorization: "Bearer valid-token" },
+  });
+
+  assert.equal(res.status, 200);
+  assert.equal(calls, 0);
+  assert.equal(res.body.platforms.sleeper.lastResult, null);
+});
+
 test("GET /api/dashboard/summary marks Omen ready for subscribed ESPN users with usable league context", async () => {
   const app = buildApp({
     platformRows: [
