@@ -267,7 +267,7 @@ test("a malformed id is rejected before any database call", async () => {
   assert.equal(calls.length, 0);
 });
 
-test("the detail query falls back when the A6 contract columns are absent from the schema", async () => {
+test("the detail route returns typed degradation when the A6 contract is absent from the schema", async () => {
   const calls = [];
   const app = buildApp({
     supabase: {
@@ -278,11 +278,14 @@ test("the detail query falls back when the A6 contract columns are absent from t
   });
   const { status, body } = await request(app, `/api/moves/${MOVE_ID}`);
 
-  assert.equal(status, 200);
-  assert.equal(calls.length, 2);
+  assert.equal(status, 503);
+  assert.equal(calls.length, 1);
   assert.match(calls[0].columns, /scoring_contract_version/);
-  assert.equal(/scoring_contract_version/.test(calls[1].columns), false);
-  assert.ok(body.evidence_at_the_time.some((e) => e.category === "limitation"));
+  assert.equal(body.contract_version, "move-detail-error.v1");
+  assert.equal(body.code, "ledger_detail_schema_capability_missing");
+  assert.equal(body.capability, "ledger_detail");
+  assert.equal(body.operation, "detail");
+  assert.equal(body.action, "try_again_later");
 });
 
 test("GET /api/moves list behavior is unchanged", async () => {
