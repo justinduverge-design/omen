@@ -31,6 +31,7 @@ const waiverSystem = require("../services/waiverSystem");
 const rosterSvc = require("../services/roster");
 const sleeperAdapter = require("../adapters/sleeper");
 const espnAdapter = require("../adapters/espn");
+const { canonicalLeagueContext } = require("../services/leagueContext");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
@@ -292,9 +293,24 @@ router.get("/analysis", requireAuth, async (req, res, next) => {
       }));
     }
 
+    const leagueContext = canonicalLeagueContext({
+      platform: connection.platform,
+      league_id: connection.league_id,
+      season: context.season,
+      team_id: connection.espn_team_id,
+    });
+    if (leagueContext.state !== "live") {
+      return res.status(422).json(errorBody({
+        code: "league_context_incomplete",
+        message: "Omen needs a provider league and season before it can analyse waivers.",
+        action: "connect",
+        platform: connection.platform,
+      }));
+    }
+
     let loaded;
     try {
-      loaded = await loadForConnection(connection, req.user.id, week, context.season);
+      loaded = await loadForConnection({ ...connection, league_id: leagueContext.league_id }, req.user.id, week, leagueContext.season);
     } catch (error) {
       // Never echo the provider message; it can carry credential fragments.
       logger.warn("Waiver analysis provider read failed", {
@@ -315,10 +331,10 @@ router.get("/analysis", requireAuth, async (req, res, next) => {
     const analysis = buildWaiverAnalysis({
       roster: loaded.roster,
       pool: loaded.pool,
-      platform: connection.platform,
-      leagueId: connection.league_id,
+      platform: leagueContext.platform,
+      leagueId: leagueContext.league_id,
       week,
-      season: context.season,
+      season: leagueContext.season,
       scoringFormat: loaded.scoringFormat,
       availabilityConfirmed: loaded.availabilityConfirmed,
       waiverSystem: loaded.waiverSystem || null,
