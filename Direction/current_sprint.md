@@ -1,6 +1,7 @@
 # Omen Current Sprint
 
-**Last updated:** 2026-09-07 (reconciliation pass against `git log` — 30 CLOSED tombstone stubs removed from the active queue; the duplicate `W1-CONSENT` merged; `W1-REVIEW`'s satisfied blockers annotated; 50 unrecorded commits filed; `R4`/`R5` raised as closed-without-evidence)
+**Last updated:** 2026-09-27 (planning-pass — lane T minted: three-team trade capability, league-wide find-a-trade generator, swipe candidate review, saved trade queue; spec `Blueprints/specs/omen-trade-rework-v1.md`)
+**Previously updated:** 2026-09-07 (reconciliation pass against `git log` — 30 CLOSED tombstone stubs removed from the active queue; the duplicate `W1-CONSENT` merged; `W1-REVIEW`'s satisfied blockers annotated; 50 unrecorded commits filed; `R4`/`R5` raised as closed-without-evidence)
 **Structure last revised:** 2026-08-05 (revamped around the 1.0 plan — added Store/Release, Security, and Ops lanes; every lane now maps to a phase gate)
 **Purpose:** Active execution queue only — `READY`, `IN_PROGRESS`, `VERIFIED`, `BLOCKED`. Completed evidence belongs in `Direction/sprints_completed.md`, `Blueprints/done/LEDGER.md`, PRs, and dated handoffs.
 **Scope and sequence:** `Direction/omen-1.0-plan.md`. **Evidence record:** `Direction/release_readiness.md`.
@@ -804,6 +805,111 @@ own comment says is **a design-steward decision, not a build fix**, and therefor
 - **Done when:** `https://slopssaloon.com/.well-known/apple-app-site-association` serves the exact team/bundle association as JSON without redirect; a fresh physical-device install can add a passkey, list/remove it in Account, sign out, and sign back in with Face ID; sanitized evidence records the ceremony without credential material.
 - **Evidence:** merge `81878d0`; `Blueprints/handoffs/2026-08-12-m3a-ios-authorization-passkeys.md`; `Blueprints/handoffs/2026-08-13-native-auth-completion.md`; public `https://slopssaloon.com/.well-known/apple-app-site-association` read-only check 2026-08-22; `/private/tmp/omen-m3a-full-simulator-final.log`; `/private/tmp/omen-m3a-device-build-final.log` (local-only command logs, no credentials).
 - **Do not touch:** Android passkeys, Xcode Cloud, archive/TestFlight, production deployment, provider secrets, UI redesign, or Figma in this item.
+
+## T. Trade rework — three-team, find-a-trade, swipe review, saved queue (minted 2026-09-27)
+
+**Founder-directed planning pass, 2026-09-27.** Spec: `Blueprints/specs/omen-trade-rework-v1.md` —
+read it before pulling any item below; each item here is a pointer, not the full scope. The spec
+records what is already built (`U3-CommandLeagueTrade`'s roster-browse "Build a trade" path, need
+tags, counter, handoff) so this lane does not re-plan it.
+
+**Standing tension, flagged then resolved same session:** lane B's `B-FREEZE` is a founder-authored
+plan to reject new feature scope once `B2-D3-S2` and `M3A-QA` close. This lane is new feature scope
+minted the same week that freeze plan is close to firing. Flagged rather than silently pulled past —
+the founder explicitly approved proceeding same-session (2026-09-27): *"you are approved to work them
+and approved to do whatever you need to make it work."* T1/T2 are unblocked below. T3/T4 keep their
+real dependency blockers (on T2, and on T2+T3) — approval clears the freeze question, not the
+build-order requirement.
+
+**Parallel-safety note, per `Direction/status-model.md`'s WIP rule.** T1 and T2 are *not* fully
+parallel-safe as written — both touch `src/routes/trade.js` and `src/services/tradeValue.js`. Two
+worktrees exist for both (see `Blueprints/handoffs/2026-09-27-trade-rework-scaffolding.md`) so work can
+start on both immediately, but: land T1 first (smaller, `medium` cost vs. T2's `large`) and rebase
+T2's branch onto `main` after T1 merges, rather than both racing to touch the same fairness/valuation
+seam unreviewed. If T2 reaches its valuation logic before T1 merges, coordinate the exact function
+signatures in `tradeValue.js` before either PR, don't let both sessions modify it independently.
+
+### T1-ThreeTeamCapability — Enable 3-team trade capability end to end
+
+- **Status:** READY
+- **Blocked by:** None
+- **Unblock:** 2026-09-27 CLEARED — founder approved proceeding same-session ahead of `B-FREEZE`.
+- **Priority:** P2
+- **Cost:** medium
+- **Scope:** `trade-capabilities.v1` (`max_teams`, `three_team.supported`) and `trade-compare.v2`
+  (per-participant fair-value/fit/acceptance evaluation, shape preservation) in `src/routes/trade.js`
+  and `src/services/tradeValue.js`; unlock the already-drawn 3-team controls in
+  `TradeRosterFlowView.swift` and the Android trade feature. No new screens. Spec §T1.
+- **Skills:** `slops-repo-inspector`, `slops-tdd`, `slops-code-review`, `slops-quality-baseline`, `slops-git-flow`
+- **Done when:** `GET /api/trade/capabilities` reports `max_teams: 3`/`three_team.supported: true` only
+  once `POST /api/trade/compare` evaluates a real 3-participant payload per-side; a 3-team request
+  never collapses to a 2-team result or vice versa; native 3-team controls are reachable end to end on
+  both platforms; tests cover 2-team regression, 3-team evaluation, and the split-handoff copy path.
+- **Do not touch:** the workshop's 2-team beta-locked defaults for users without three connected teams
+  available; draft-pick valuation (out of scope per the workshop's deferred pick seam).
+
+### T2-FindATradeGenerator — League-wide find-a-trade candidate generator
+
+- **Status:** READY
+- **Blocked by:** None
+- **Unblock:** 2026-09-27 CLEARED — founder approved proceeding same-session ahead of `B-FREEZE`.
+- **Priority:** P2
+- **Cost:** large
+- **Scope:** new read endpoint that scans every connected team's roster/need profile against the
+  user's roster and returns ranked candidate packages, reusing `src/services/tradeValue.js`,
+  `src/services/tradeLineup.js`, and `src/services/tradeLeagueContext.js`. Must specify and implement a
+  bounding/caching strategy before any code — see spec §T2's non-negotiable constraint citing the
+  #404/#405 unbounded-trade-search production outage. Never proposes a candidate touching a roster the
+  provider won't disclose (fact-of-record #16); never invents a value/rank. Every candidate carries
+  its reasoning (required input for T4, not telemetry). Spec §T2.
+- **Skills:** `slops-repo-inspector`, `pre-build-research` (caching/bounding approach), `slops-tdd`,
+  `security-privacy-evidence`, `slops-code-review`, `slops-quality-baseline`, `slops-git-flow`
+- **Done when:** the endpoint returns bounded, capped candidate batches under a documented load test
+  that specifically re-creates the #404 shape (many connected teams, many rosters) without degrading
+  other routes; partial provider failure degrades the batch with a named reason rather than failing
+  silently or failing the whole batch; every candidate's reasoning payload is present and testable.
+- **Do not touch:** synchronous full-league fan-out on the request path; any candidate involving a
+  provider-restricted roster.
+
+### T3-SwipeCandidateReview — Swipeable candidate-review screen (native)
+
+- **Status:** READY
+- **Blocked by:** TASK-T2-FindATradeGenerator — needs the candidate payload shape.
+- **Priority:** P3
+- **Cost:** medium
+- **Scope:** first deliverable is an approved screen contract (no code before it) — run
+  `slops-native-screen-design` against T2's payload, produce an approved canvas artboard or Figma
+  node, compile it with `slops-canvas-to-code`, then build SwiftUI + Compose in parity. Required
+  states: batch loading, candidate card with reasoning visible, swipe-dismiss, swipe-save (calls
+  T4), batch-exhausted, zero-candidates-found (honest positive state), provider-read-degraded. Spec §T3.
+- **Skills:** `slops-native-screen-design`, `slops-canvas-to-code`, `slops-native-ui-audit`,
+  `slops-ux-copy`, core native implementation bundle
+- **Done when:** an approved screen contract exists and `slops-canvas-to-code` reports no drift; both
+  platforms render every required state; `slops-native-ui-audit` records a clean verdict.
+- **Do not touch:** do not build a save/persist mechanism inside this screen — call T4's save action
+  and show local optimistic state only.
+
+### T4-SavedTradeQueue — Saved trade queue with tracked outcomes
+
+- **Status:** READY
+- **Blocked by:** TASK-T2-FindATradeGenerator — needs the reasoning payload.
+- **Blocked by:** TASK-T3-SwipeCandidateReview — needs the save-action interaction to hook into.
+- **Priority:** P3
+- **Cost:** medium
+- **Scope:** apply the existing Ledger honesty pattern (`U4-LedgerScreen`'s self-reported vs. verified
+  provenance, `followed: null` rendered honestly) to saved trade candidates: `saved` → `sent` →
+  self-reported `outcome: accepted | rejected | countered | null`, never inferred. Retains T2's
+  reasoning verbatim rather than regenerating it at read time. Names staleness when a referenced
+  player's roster status changed since save. Supabase schema for persistence is a separate founder-
+  gated action per facts-of-record #8 the moment it becomes a real migration. Spec §T4.
+- **Skills:** `slops-repo-inspector`, `slops-tdd`, `security-privacy-evidence`, `slops-code-review`,
+  `slops-quality-baseline`, `slops-git-flow`; `slops-native-screen-design` if the queue needs a new
+  screen rather than fitting inside an existing destination (Ledger or League)
+- **Done when:** a saved candidate's reasoning and staleness state are both testable; outcome is never
+  inferred, only self-reported or `null`; schema application, if any, is explicitly founder-approved
+  and separate from the code that reads/writes it locally.
+- **Do not touch:** inferring an outcome from any signal Omen can observe; blending self-reported
+  outcomes with verified ones in any aggregate.
 
 ## B. Backend / recommendation lane
 
