@@ -323,6 +323,14 @@ async function runJob(job) {
       if (syncWeek === Number(job.week)) { currentMatchupCount = matchups.length; currentMatchups = matchups; }
       if (syncWeek === Math.max(1, Number(job.week) - 1)) completedMatchups = matchups;
 
+      // Slops Saloon is a 12-team league: every regular-season slate must contain six games.
+      // Treat an incomplete ESPN handoff as a failed sync instead of letting a green workflow
+      // hide missing recap/current-week data and force manual diagnosis the following Tuesday.
+      const expectedMatchupCount = 6;
+      if (syncWeek <= 14 && matchups.length !== expectedMatchupCount) {
+        throw new Error(`League Office Week ${syncWeek} incomplete: expected ${expectedMatchupCount} matchups, received ${matchups.length}`);
+      }
+
       if (matchups.length) {
         stage = "persist";
         const rows = matchups.map((row) => ({
@@ -361,7 +369,7 @@ async function runJob(job) {
         return !source || row.status !== source.status || Number(row.home_score) !== Number(source.home_score) || Number(row.away_score) !== Number(source.away_score);
       });
       if (mismatch) throw new Error("League Office persisted matchup verification mismatch");
-      log("week synced", { league_id: job.league_id, season: job.season, week: syncWeek, matchups: currentMatchupCount });
+      log("week synced", { league_id: job.league_id, season: job.season, week: syncWeek, matchups: matchups.length });
     }
 
     stage = "message";
@@ -380,7 +388,7 @@ async function runJob(job) {
       completed_at: new Date().toISOString(),
       error_code: null,
     });
-    log("job completed", { id: job.id, league_id: job.league_id, season: job.season, week: job.week, matchups: currentMatchupCount });
+    log("job completed", { id: job.id, league_id: job.league_id, season: job.season, week: job.week, completed_week: completedWeek, completed_matchups: completedMatchups.length, current_matchups: currentMatchupCount });
   } catch (error) {
     await markJob(job.id, {
       status: "failed",
