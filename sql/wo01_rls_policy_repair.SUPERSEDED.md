@@ -1,0 +1,1 @@
+The `wo01_rls_policy_repair.sql` script (merged via PR #479 on 2026-09-29) was never applied to any database. It has been superseded by `omen_rls_security.sql` (the 2026-09-27 hardening, PR #471), which remains the canonical RLS posture. These policies must not be recreated without explicit founder approval.
