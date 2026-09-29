@@ -49,3 +49,25 @@ test("leagueWeekFromEspnData accepts ESPN schedule sides that expose teamId dire
   assert.equal(rows[0].home_team_name, "Titans Of Slopssilonia");
   assert.equal(rows[0].status, "pregame");
 });
+
+
+test("leagueWeekFromEspnData returns a complete six-game 12-team weekly slate", () => {
+  const teams = Array.from({ length: 12 }, (_, index) => ({
+    id: index + 1,
+    location: `Team${index + 1}`,
+    nickname: "Club",
+  }));
+  const schedule = Array.from({ length: 6 }, (_, index) => ({
+    id: 20 + index,
+    matchupPeriodId: 4,
+    winner: "UNDECIDED",
+    home: { teamId: index * 2 + 1, totalPoints: 0 },
+    away: { teamId: index * 2 + 2, totalPoints: 0 },
+  }));
+  const rows = adapter.leagueWeekFromEspnData(
+    { teams, schedule },
+    { leagueId: "13338821", week: 4 }
+  );
+  assert.equal(rows.length, 6);
+  assert.deepEqual(rows.map((row) => row.game_id), ["20", "21", "22", "23", "24", "25"]);
+});
