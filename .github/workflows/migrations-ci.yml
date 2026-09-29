@@ -1,0 +1,113 @@
+name: Migration CI
+
+on:
+  pull_request:
+    paths:
+      - 'migrations/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/migrations-ci.yml'
+  workflow_dispatch:
+
+jobs:
+  test-migrations:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: supabase/postgres:15.1.1.78
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: omen_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Setup Mock Supabase Schema
+        run: |
+          PGPASSWORD=password psql -h localhost -U postgres -d omen_test -c "
+            create schema if not exists auth;
+            create table if not exists auth.users (id uuid primary key);
+            create or replace function auth.uid() returns uuid language sql as \$\$ select null::uuid; \$\$;
+            do \$\$
+            begin
+              if not exists (select 1 from pg_roles where rolname = 'anon') then create role anon; end if;
+              if not exists (select 1 from pg_roles where rolname = 'authenticated') then create role authenticated; end if;
+              if not exists (select 1 from pg_roles where rolname = 'service_role') then create role service_role; end if;
+            end
+            \$\$;
+          "
+
+      - name: Run Migrations
+        run: |
+          DATABASE_URL=postgres://postgres:password@localhost:5432/omen_test npm run migrate up
+
+      - name: Verify Schema
+        run: |
+          cat << 'SCRIPT' > verify.js
+          const { Client } = require('pg');
+          const assert = require('assert');
+
+          const expectedInventory = {
+            consent_records: [ 'consent_type', 'granted', 'granted_at', 'id', 'ip_address', 'user_agent', 'user_id', 'withdrawn_at' ],
+            deletion_audit_log: [ 'deleted_at', 'id', 'method', 'user_id_hash' ],
+            league_office_accolades: [ 'accolade_name', 'id', 'league_id', 'notes', 'paid', 'paid_at', 'payout', 'recipient', 'result_value', 'season', 'user_id' ],
+            league_office_awards: [ 'award_name', 'created_at', 'detail', 'evidence', 'executive_name', 'id', 'league_id', 'season', 'user_id', 'week' ],
+            league_office_executives: [ 'created_at', 'executive_name', 'id', 'league_id', 'owner_display_name', 'platform_team_id', 'platform_team_name', 'season', 'updated_at', 'user_id' ],
+            league_office_lines: [ 'favorite_moneyline', 'favorite_team_id', 'game_id', 'id', 'league_id', 'locked_at', 'over_under', 'season', 'selection_reason', 'spread', 'underdog_moneyline', 'user_id', 'week' ],
+            league_office_matchups: [ 'away_owner_name', 'away_projected', 'away_score', 'away_team_id', 'away_team_name', 'game_id', 'home_owner_name', 'home_projected', 'home_score', 'home_team_id', 'home_team_name', 'id', 'league_id', 'platform', 'season', 'source_verified', 'status', 'synced_at', 'user_id', 'week', 'winner_team_id' ],
+            league_office_rivalries: [ 'created_at', 'executive_a', 'executive_b', 'id', 'league_id', 'priority', 'season', 'user_id' ],
+            league_office_sync_jobs: [ 'completed_at', 'created_at', 'error_code', 'id', 'league_id', 'platform', 'season', 'started_at', 'status', 'user_id', 'week' ],
+            moves: [ 'confidence', 'created_at', 'eff', 'followed', 'headline', 'id', 'move_type', 'outcome', 'provider_final_outcome', 'provider_rule_snapshot_hash', 'reasoning', 'reconciliation_state', 'scoring', 'scoring_contract', 'scoring_contract_hash', 'scoring_contract_required', 'scoring_contract_version', 'scoring_coverage_state', 'season', 'target_player', 'user_id', 'user_note', 'user_stars', 'vorp_score', 'week_num' ],
+            oauth_state: [ 'expires_at', 'platform', 'state', 'user_id', 'verifier' ],
+            platform_connections: [ 'created_at', 'espn_secret_id', 'espn_swid', 'espn_team_id', 'id', 'is_active', 'is_selected', 'league_id', 'platform', 'platform_user_id', 'platform_username', 'refresh_secret_id', 'swid_secret_id', 'token_expires_at', 'token_secret_id', 'updated_at', 'user_id' ],
+            profiles: [ 'created_at', 'favorite_team', 'user_id' ],
+            users: [ 'created_at', 'email', 'id', 'league_id', 'platform', 'team_name' ],
+            waitlist_signups: [ 'created_at', 'email', 'id', 'platform' ]
+          };
+
+          const client = new Client({ connectionString: 'postgres://postgres:password@localhost:5432/omen_test' });
+
+          async function main() {
+            await client.connect();
+            const res = await client.query(`
+              SELECT table_name, column_name
+              FROM information_schema.columns
+              WHERE table_schema = 'public' AND table_name != 'pgmigrations'
+              ORDER BY table_name, column_name;
+            `);
+
+            const actual = {};
+            for (const row of res.rows) {
+              if (!actual[row.table_name]) actual[row.table_name] = [];
+              actual[row.table_name].push(row.column_name);
+            }
+
+            try {
+              assert.deepStrictEqual(actual, expectedInventory, 'Database schema does not match the expected inventory!');
+              console.log('Schema verification passed successfully. No diffs found.');
+            } catch (err) {
+              console.error(err.message);
+              console.error('Actual:', actual);
+              console.error('Expected:', expectedInventory);
+              process.exit(1);
+            }
+
+            await client.end();
+          }
+          main();
+          SCRIPT
+          node verify.js

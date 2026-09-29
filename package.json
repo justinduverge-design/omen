@@ -9,7 +9,8 @@
     "cron": "node src/omen_tuesday_cron.js",
     "test": "node --test",
     "evals:validate": "node evals/slops-prompt-guard.mjs --validate",
-    "evals:mock": "node evals/slops-prompt-guard.mjs"
+    "evals:mock": "node evals/slops-prompt-guard.mjs",
+    "migrate": "node-pg-migrate"
   },
   "dependencies": {
     "@opentelemetry/exporter-trace-otlp-http": "^0.222.0",
@@ -28,6 +29,8 @@
   },
   "devDependencies": {
     "impeccable": "^4.1.0",
+    "node-pg-migrate": "^9.0.0",
+    "pg": "^8.23.0",
     "playwright-core": "^1.63.0"
   },
   "overrides": {
