@@ -37,6 +37,20 @@ Every gate marked done must **point to evidence** — commit hash, file path, sc
 
 Skipping a gate without writing why = lying about done. Marking a gate done with stale, fabricated, or missing evidence is a hard prohibition.
 
+## Native UI: device gate — added 2026-09-30
+
+**A native screen is not done, and may not be marked `VERIFIED`, until it has run on the founder's paired iPhone.** Simulator captures prove composition; they do not prove what the founder sees. On 2026-09-30 the Sept 13 visual lock was marked `VERIFIED` (U1, U3, U4) on simulator frames rendered from fixtures and forced dark, while the production Command tab still mounted the pre-lock screen, in light mode. The reachability check passed because it counts references from screenshot code.
+
+Every native UI change (iOS, and Android when a device is attached) closes with all of these, with pointers:
+
+1. **Built and installed on the device**, not the simulator: `xcodebuild ... -destination 'id=<UDID>' -allowProvisioningUpdates build`, then `xcrun devicectl device install app` and `... process launch`. Record the UDID and the commit.
+2. **A screenshot taken from the device**: `xcrun devicectl device capture screenshot --device <UDID> --destination <file>.png`. Store it beside the artboard it is compared to.
+3. **Real data, real route**: the screen is reached by navigating the running app, not by a screenshot scenario key or a fixture. Say which provider and league.
+4. **Dark only**: the app ignores the system appearance. A light frame is a failure.
+5. **Compared to the artboard**, element by element, with every difference listed. "Looks right" is not a comparison.
+
+If the device is unreachable, the status is `DEFERRED-DEVICE`, never `VERIFIED`, and the founder is told in the same message. This gate binds every agent (Claude, Codex, Muse, Jules) that touches native screens.
+
 ## Verification substitutes — corrected 2026-08-24
 
 > ✅ **CORRECTED 2026-08-24.** This section previously opened *"Degraded verification — GitHub Actions billing hold — Active since ~2026-07-24"*, declared the Actions allotment exhausted, called failing runs **"cosmetic"**, and stated that **Release Done is hard-blocked**. **All of that rested on a premise that was retracted on 2026-08-01 and never existed** (`Direction/agent_inbox.md` § "RETRACTED — the 'GitHub Actions billing hold' never existed"). Actions was executing the whole time; the red was two real config bugs, fixed in #250.

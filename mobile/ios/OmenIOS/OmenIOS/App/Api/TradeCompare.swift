@@ -305,7 +305,7 @@ struct TradeRosterResponse: Decodable, Equatable {
         case "provider_reauth_required":
             return "Omen's connection to your league needs to be reconnected before it can read the other teams' rosters."
         case "league_not_active":
-            return "This league hasn't drafted yet, so there are no rosters to read."
+            return "This league has no rosters to read yet."
         default:
             return "Omen can't read the other teams' rosters for this league right now."
         }

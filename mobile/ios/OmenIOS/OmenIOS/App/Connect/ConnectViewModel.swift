@@ -290,6 +290,59 @@ final class ConnectViewModel: ObservableObject {
         state = .espnSigningIn
     }
 
+    // MARK: - Multiselect confirm (restored 2026-09-30)
+    //
+    // Removed as collateral on 2026-09-16 by `f54284b7` / `654da0b9`, which rolled ESPN connect
+    // back to a known-good snapshot and took the whole multiselect with it. A user with three
+    // leagues could then connect only one. The first pick is bound as the ACTIVE league; every
+    // pick is followed. Following runs only after the connect succeeded.
+
+    /// Confirms the ESPN multiselect.
+    func confirmEspnSelection() async {
+        guard case .choosingEspnLeague(let options) = state, canConfirmLeagueSelection else { return }
+        let chosen = options.filter { selectedLeagueIDs.contains($0.id) }
+        guard let primary = chosen.first else { return }
+
+        await connectEspnLeague(primary)
+
+        if case .espnConnected = state {
+            await recordFollows(platform: "espn", leagues: chosen.map {
+                FollowedLeague(leagueID: $0.id, teamID: $0.teamId, leagueName: $0.name, season: $0.season)
+            })
+        }
+    }
+
+    /// Confirms the Yahoo multiselect.
+    func confirmYahooSelection() async {
+        guard case .choosingYahooLeague(let leagues) = state, canConfirmLeagueSelection else { return }
+        let chosen = leagues.filter { selectedLeagueIDs.contains($0.id) }
+        guard let primary = chosen.first else { return }
+
+        await bindYahooLeague(primary)
+
+        if case .yahooConnected = state {
+            await recordFollows(platform: "yahoo", leagues: chosen.map {
+                FollowedLeague(leagueID: $0.id, teamID: nil, leagueName: $0.name, season: $0.season)
+            })
+        }
+    }
+
+    /// Confirms the Sleeper multiselect.
+    func confirmSleeperSelection() async {
+        guard case .choosingLeague(let account) = state, canConfirmLeagueSelection else { return }
+        let chosen = account.leagues.filter { selectedLeagueIDs.contains($0.id) }
+        guard let primary = chosen.first else { return }
+
+        pendingRequestId = makeRequestId()
+        await connect(league: primary, username: account.username)
+
+        if case .connected = state {
+            await recordFollows(platform: "sleeper", leagues: chosen.map {
+                FollowedLeague(leagueID: $0.id, teamID: nil, leagueName: $0.name, season: $0.season)
+            })
+        }
+    }
+
     /// The user picked a league from the list ESPN reported.
     func connectEspnLeague(_ option: EspnLeagueOption) async {
         guard let session = espnSession, !state.isBusy else { return }
@@ -446,6 +499,8 @@ final class ConnectViewModel: ObservableObject {
         espnLeagueId = ""
         espnUnreadableRetries = 0
         selectedProvider = nil
+        clearLeagueSelection()
+        followsNotPersisted = false
         state = .notStarted
     }
 
@@ -457,7 +512,8 @@ final class ConnectViewModel: ObservableObject {
         state = .resolvingAccount
         switch await repository.resolveSleeper(username: trimmed, accessToken: accessToken) {
         case .success(let account):
-            state = .choosingLeague(account)
+            clearLeagueSelection()
+                state = .choosingLeague(account)
         case .failure(let failure):
             state = .retryableError(failure)
         }
@@ -554,6 +610,7 @@ final class ConnectViewModel: ObservableObject {
             if leagues.count == 1, let only = leagues.first {
                 await bindYahooLeague(only)
             } else {
+                clearLeagueSelection()
                 state = .choosingYahooLeague(leagues)
             }
         case .failure(let failure):

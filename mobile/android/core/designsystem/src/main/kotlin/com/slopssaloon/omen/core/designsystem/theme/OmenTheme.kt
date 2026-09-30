@@ -1,7 +1,6 @@
 package com.slopssaloon.omen.core.designsystem.theme
 
 import android.app.Activity
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
@@ -41,12 +40,12 @@ object OmenTheme {
     val spacing = OmenSpacing
 
     /**
-     * Defaults to the system dark/light setting via [isSystemInDarkTheme]; pass [darkTheme]
-     * explicitly to override (e.g. an in-app appearance toggle, once one exists).
+     * Dark-only by founder rule (native visual lock D-dark, 2026-09-13): the app ignores the
+     * system setting. Pass [darkTheme] explicitly only for tests that exercise the light scheme.
      */
     @Composable
     operator fun invoke(
-        darkTheme: Boolean = isSystemInDarkTheme(),
+        darkTheme: Boolean = true,
         content: @Composable () -> Unit,
     ) {
         val colors = if (darkTheme) OmenDarkColors else OmenLightColors

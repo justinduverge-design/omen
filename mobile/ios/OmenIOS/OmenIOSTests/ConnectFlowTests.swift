@@ -211,6 +211,57 @@ final class ConnectFlowTests: XCTestCase {
         XCTAssertNil(viewModel.espnCookieStore, "session must be dropped once connected")
     }
 
+    /// **Multiselect regression guard.** On 2026-09-16 two "restore known-good" commits removed
+    /// the ability to pick more than one league, and nothing failed. A user with three ESPN
+    /// leagues could connect one. Ticking all of them must connect the first as the active
+    /// league and follow every one.
+    func testTickingSeveralEspnLeaguesConnectsTheFirstAndFollowsAll() async {
+        var repository = StubConnectRepository()
+        let a = EspnLeagueOption(id: "1", name: "Slops Saloon FF Showdown", season: 2026, teamId: "3", teamName: "Titans")
+        let b = EspnLeagueOption(id: "2", name: "Everything Backwards", season: 2026, teamId: "5", teamName: "Scary Team")
+        let c = EspnLeagueOption(id: "3", name: "Third League", season: 2026, teamId: "9", teamName: "Third Team")
+        repository.espnDiscoverResult = .success([a, b, c])
+        repository.espnConnectResult = .success(())
+        repository.espnConnectionResult = .success(EspnConnection(leagueName: "Slops Saloon FF Showdown", teamName: "Titans"))
+        let viewModel = await espnReadyViewModel(repository: repository)
+
+        XCTAssertFalse(viewModel.canConfirmLeagueSelection, "nothing ticked yet")
+        viewModel.toggleLeague("1")
+        viewModel.toggleLeague("2")
+        viewModel.toggleLeague("3")
+        XCTAssertEqual(viewModel.selectedLeagueIDs, ["1", "2", "3"])
+        XCTAssertEqual(viewModel.confirmLeagueSelectionTitle, "Connect 3 leagues")
+
+        await viewModel.confirmEspnSelection()
+
+        guard case .espnConnected = viewModel.state else {
+            return XCTFail("expected espnConnected, got \(viewModel.state)")
+        }
+        XCTAssertEqual(repository.recorder.espnConnectAttempts.count, 1)
+        XCTAssertEqual(repository.recorder.espnConnectAttempts.first?.leagueId, "1", "the first pick is the active league")
+        XCTAssertEqual(repository.recorder.followed.count, 1)
+        XCTAssertEqual(repository.recorder.followed.first?.platform, "espn")
+        XCTAssertEqual(Set(repository.recorder.followed.first?.leagueIDs ?? []), ["1", "2", "3"])
+    }
+
+    /// Codex review, PR #494: ticks from one provider must not survive into the next picker, or
+    /// Confirm reads as enabled with nothing chosen and silently does nothing.
+    func testStartingOverClearsPriorLeagueSelection() async {
+        var repository = StubConnectRepository()
+        repository.espnDiscoverResult = .success([
+            EspnLeagueOption(id: "1", name: "A", season: 2026, teamId: "3", teamName: "T"),
+        ])
+        let viewModel = await espnReadyViewModel(repository: repository)
+        viewModel.toggleLeague("1")
+        XCTAssertTrue(viewModel.canConfirmLeagueSelection)
+
+        viewModel.startOver()
+
+        XCTAssertTrue(viewModel.selectedLeagueIDs.isEmpty)
+        XCTAssertFalse(viewModel.canConfirmLeagueSelection)
+        XCTAssertFalse(viewModel.followsNotPersisted)
+    }
+
     /// ESPN's directory can lag the WebKit session by a moment. Omen retries once before it
     /// offers manual entry, so a friend sees the same picker path as the first successful user.
     func testDiscoveryFailingFallsBackToManualEntryRatherThanFailingTheConnection() async {

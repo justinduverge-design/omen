@@ -238,6 +238,45 @@ struct ConnectView: View {
         }
     }
 
+    // MARK: - Multiselect
+
+    /// The tick shown on a chosen row. A glyph, never colour alone.
+    @ViewBuilder
+    private func selectionTick(_ id: String) -> some View {
+        if viewModel.isLeagueSelected(id) {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(OmenColor.accent)
+                .accessibilityHidden(true)
+        } else {
+            Image(systemName: "circle")
+                .foregroundStyle(OmenColor.textTertiary)
+                .accessibilityHidden(true)
+        }
+    }
+
+    private func selectionAccessibilityLabel(_ title: String, id: String) -> String {
+        "\(title), \(viewModel.isLeagueSelected(id) ? "selected" : "not selected")"
+    }
+
+    /// Says what picking several actually does: follow all, start on the first.
+    private var multiselectFooter: some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+            if viewModel.selectedLeagueIDs.count > 1 {
+                Text("Omen will follow all \(viewModel.selectedLeagueIDs.count) and start on the first one. You can swipe between them on Command Center.")
+                    .omenTextStyle(OmenTypography.bodySmall)
+                    .foregroundStyle(OmenColor.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if viewModel.followsNotPersisted {
+                OmenStateSurface(
+                    kind: .stale,
+                    title: "Only the first league will stick for now",
+                    message: "Omen connected all of them, but can't yet remember a multi-league choice between sessions."
+                )
+            }
+        }
+    }
+
     // MARK: - Yahoo
 
     private func yahooLeaguePicker(_ leagues: [YahooLeague]) -> some View {
@@ -245,7 +284,7 @@ struct ConnectView: View {
             Text("Choose a league")
                 .omenTextStyle(OmenTypography.h2)
                 .foregroundStyle(OmenColor.textPrimary)
-            Text("Yahoo is connected. Pick the league Omen should read.")
+            Text("Yahoo is connected. Pick every league Omen should follow.")
                 .omenTextStyle(OmenTypography.bodySmall)
                 .foregroundStyle(OmenColor.textSecondary)
 
@@ -253,11 +292,22 @@ struct ConnectView: View {
                 OmenListRow(
                     title: league.name,
                     subtitle: league.subtitle,
-                    action: { Task { await viewModel.bindYahooLeague(league) } },
+                    enabled: !viewModel.state.isBusy,
+                    action: { viewModel.toggleLeague(league.id) },
                     leading: { OmenPlatformBadge(platform: .yahoo) },
-                    trailing: { EmptyView() }
+                    trailing: { selectionTick(league.id) }
                 )
+                .accessibilityLabel(selectionAccessibilityLabel(league.name, id: league.id))
             }
+
+            multiselectFooter
+            OmenButton(
+                title: viewModel.confirmLeagueSelectionTitle,
+                action: { Task { await viewModel.confirmYahooSelection() } },
+                variant: .primary,
+                size: .md,
+                enabled: viewModel.canConfirmLeagueSelection
+            )
 
             OmenButton(title: "Choose another provider", action: { viewModel.startOver() }, variant: .link, size: .sm)
         }
@@ -301,11 +351,22 @@ struct ConnectView: View {
                 OmenListRow(
                     title: league.name,
                     subtitle: league.subtitle.isEmpty ? nil : league.subtitle,
-                    action: { Task { await viewModel.selectLeague(league) } },
+                    enabled: !viewModel.state.isBusy,
+                    action: { viewModel.toggleLeague(league.id) },
                     leading: { OmenPlatformBadge(platform: .sleeper) },
-                    trailing: { EmptyView() }
+                    trailing: { selectionTick(league.id) }
                 )
+                .accessibilityLabel(selectionAccessibilityLabel(league.name, id: league.id))
             }
+
+            multiselectFooter
+            OmenButton(
+                title: viewModel.confirmLeagueSelectionTitle,
+                action: { Task { await viewModel.confirmSleeperSelection() } },
+                variant: .primary,
+                size: .md,
+                enabled: viewModel.canConfirmLeagueSelection
+            )
 
             OmenButton(title: "Use a different username", action: { viewModel.startOver() }, variant: .link, size: .sm)
         }
@@ -324,7 +385,23 @@ struct ConnectView: View {
         }
     }
 
+    /// The connected screen's actions, preceded by the persistence warning when the server accepted
+    /// a multi-league choice but could not store it. The picker's footer is gone by the time
+    /// `recordFollows` learns this, so the warning has to live where the user is by then.
     private var connectedActions: some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step12) {
+            if viewModel.followsNotPersisted {
+                OmenStateSurface(
+                    kind: .stale,
+                    title: "Only the first league will stick for now",
+                    message: "Omen connected all of them, but can't yet remember a multi-league choice between sessions."
+                )
+            }
+            connectedButtons
+        }
+    }
+
+    private var connectedButtons: some View {
         ViewThatFits(in: .horizontal) {
             HStack(spacing: OmenSpacing.step12) {
                 OmenButton(title: "Go to Command Center", action: onConnected, variant: .primary, size: .md)
@@ -696,11 +773,22 @@ struct ConnectView: View {
                 OmenListRow(
                     title: option.displayName,
                     subtitle: option.subtitle,
-                    action: { Task { await viewModel.connectEspnLeague(option) } },
+                    enabled: !viewModel.state.isBusy,
+                    action: { viewModel.toggleLeague(option.id) },
                     leading: { OmenPlatformBadge(platform: .espn) },
-                    trailing: { EmptyView() }
+                    trailing: { selectionTick(option.id) }
                 )
+                .accessibilityLabel(selectionAccessibilityLabel(option.displayName, id: option.id))
             }
+
+            multiselectFooter
+            OmenButton(
+                title: viewModel.confirmLeagueSelectionTitle,
+                action: { Task { await viewModel.confirmEspnSelection() } },
+                variant: .primary,
+                size: .md,
+                enabled: viewModel.canConfirmLeagueSelection
+            )
 
             OmenButton(
                 title: "Choose another provider",

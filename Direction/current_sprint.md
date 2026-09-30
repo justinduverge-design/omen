@@ -540,6 +540,21 @@ number of pointed contract changes plus a governance amendment — not a build-o
 - **Done when:** `slops-native-ui-audit` grades the artboards clean against the amended registry, and the README's scale table, the prose and the CSS agree.
 - **Do not touch:** `design/app-rework-canvas/` keeps its four screens the new canvas does not hold — sign-in, email code, connect, share card. It gets a supersession banner, not a deletion.
 
+## D. Decision engine — Omen's own read
+
+**Minted 2026-09-30** from the founder's direction and `Direction/2026-09-30-technical-root-assessment.md`. Spec: `Blueprints/specs/omen-decision-engine-v2.md` (PROPOSED — founder review before phase 1).
+
+### D1-DecisionEngineV2 — Make the pick from real football data, not from comparing projections
+
+- **Status:** READY — pending founder ratification of the spec.
+- **Blocked by:** None for phases 1-2 (read-only data layer, factor library, backtest harness). Phase 3 (replace the optimizer) waits on phase 2's reports.
+- **Priority:** P0 — this is the product. Everything else in the queue protects a loop this item defines.
+- **Cost:** large, phased.
+- **Agent-buildable:** yes, phases 1-3. Phase 5 needs the founder's phone.
+- **Scope:** every factor that appears in an explanation must have moved the number: player form and role, opponent and matchup, where/when (home/away, roof, wind, primetime), travel and rest, game script, availability, then scheme and coaching. Each factor is backtested on historical nflverse weeks and admitted only if it improves out-of-sample error.
+- **Done when:** on the founder's phone, for a real league, a start/sit shows ranked reasons that are exactly the factors that moved it, with magnitudes; each admitted factor has a backtest report; the engine's read is compared against the provider-projection-only pick and the result is stated whether or not it wins.
+- **Do not touch:** do not narrate a factor that did not contribute. Do not ship a factor on plausibility. Do not write scoring rules to the database (A6 rights question is open). No production database change without a founder-approved, bounded order.
+
 ## M. Native mobile execution lane
 
 **Phase 2.** D7-equivalent scope (new auth providers) is deferred — every new provider is new store-review surface during the tightest five weeks.
