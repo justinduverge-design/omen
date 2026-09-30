@@ -1,0 +1,53 @@
+# Non-signing Android CI for the native Compose app.
+#
+# COST NOTE: Android CI runs on standard Ubuntu runners, which are included/non-billed
+# capacity. However, as of 2026-08-11, routine verification moved to the founder's
+# local Mac — see `Blueprints/definition-of-done.md` → "Local substitutes". CI is now
+# reserved for release branches, PRs, and manual dispatch, where a reproducible,
+# attached build actually matters.
+#
+# Runs the Android unit-test suite using `./gradlew test` against an Ubuntu runner,
+# per the M3-A Android CI parity spec.
+
+name: Android CI
+
+on:
+  push:
+    branches:
+      - "main"
+      - "release/**"
+    paths:
+      - "mobile/android/**"
+      - ".github/workflows/android-ci.yml"
+  pull_request:
+    paths:
+      - "mobile/android/**"
+      - ".github/workflows/android-ci.yml"
+  # On-demand reruns — use this before any store submission.
+  workflow_dispatch: {}
+
+concurrency:
+  group: android-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Unit tests (Ubuntu, no signing)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Show Java version
+        run: java -version
+
+      - name: Run Android Tests
+        run: |
+          cd mobile/android
+          ./gradlew test
