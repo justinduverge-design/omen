@@ -1,0 +1,170 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "league-directory.v1",
+  "title": "league-directory.v1 (inferred from recorded server responses; review before relying on it)",
+  "description": "ADDITIVE ONLY within this version. Extra properties are allowed; removing, renaming or retyping anything listed here is a breaking change and fails the lock.",
+  "type": "object",
+  "properties": {
+    "active": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "properties": {
+        "league_id": {
+          "type": "string"
+        },
+        "league_name": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "platform": {
+          "type": "string"
+        },
+        "scoring_format": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "season": {
+          "type": [
+            "null",
+            "number"
+          ]
+        },
+        "team_id": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "team_name": {
+          "type": [
+            "null",
+            "string"
+          ]
+        }
+      },
+      "required": [
+        "league_id",
+        "league_name",
+        "platform",
+        "scoring_format",
+        "season",
+        "team_id",
+        "team_name"
+      ]
+    },
+    "contract_version": {
+      "type": "string"
+    },
+    "follow_persistence": {
+      "type": "string"
+    },
+    "generated_at": {
+      "type": "string"
+    },
+    "platforms": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "connection_state": {
+            "type": "string"
+          },
+          "discovery": {
+            "type": "string"
+          },
+          "leagues": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "is_active": {
+                  "type": "boolean"
+                },
+                "is_followed": {
+                  "type": "boolean"
+                },
+                "league_id": {
+                  "type": "string"
+                },
+                "league_name": {
+                  "type": [
+                    "null",
+                    "string"
+                  ]
+                },
+                "scoring_format": {
+                  "type": [
+                    "null",
+                    "string"
+                  ]
+                },
+                "season": {
+                  "type": "number"
+                },
+                "team_id": {
+                  "type": [
+                    "null",
+                    "string"
+                  ]
+                },
+                "team_name": {
+                  "type": [
+                    "null",
+                    "string"
+                  ]
+                }
+              },
+              "required": [
+                "is_active",
+                "is_followed",
+                "league_id",
+                "league_name",
+                "scoring_format",
+                "season",
+                "team_id",
+                "team_name"
+              ]
+            }
+          },
+          "notice": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "platform": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "connection_state",
+          "discovery",
+          "leagues",
+          "notice",
+          "platform"
+        ]
+      }
+    },
+    "season": {
+      "type": "number"
+    },
+    "selection_persistence": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "active",
+    "contract_version",
+    "follow_persistence",
+    "generated_at",
+    "platforms",
+    "season",
+    "selection_persistence"
+  ]
+}

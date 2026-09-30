@@ -1,0 +1,86 @@
+{
+  "http_status": 200,
+  "route": "/api/dashboard/summary",
+  "body": {
+    "capabilities": [
+      {
+        "fresh_until": null,
+        "kind": "verified",
+        "name": "game_week",
+        "observed_at": "2026-01-01T00:00:00.000Z",
+        "source": "nfl_game_week",
+        "state": "live",
+        "statement": "Command uses the server-owned NFL game-week context for its headline.",
+        "used": false
+      },
+      {
+        "fresh_until": null,
+        "kind": "verified",
+        "name": "selected_context",
+        "observed_at": "2026-01-01T00:00:00.000Z",
+        "source": "platform_connections",
+        "state": "live",
+        "statement": "Command has a usable league connection for routing.",
+        "used": false
+      }
+    ],
+    "capability_contract": "decision-capabilities.v1",
+    "contract_version": "dashboard-summary.v1",
+    "game_week": {
+      "day": "sunday",
+      "is_off_season": false,
+      "phase": "live",
+      "season": 2026,
+      "week": 1
+    },
+    "generated_at": "2026-01-01T00:00:00.000Z",
+    "is_mock": false,
+    "platforms": {
+      "espn": {
+        "connected": true,
+        "lastGameId": null,
+        "lastGameKickoff": null,
+        "lastResult": null
+      },
+      "sleeper": {
+        "connected": false,
+        "lastGameId": null,
+        "lastGameKickoff": null,
+        "lastResult": null,
+        "username": null
+      },
+      "yahoo": {
+        "connected": false,
+        "lastGameId": null,
+        "lastGameKickoff": null,
+        "lastResult": null,
+        "league_id": null
+      }
+    },
+    "tools": {
+      "omen_of_the_week": {
+        "available": true,
+        "mode": "free",
+        "status": "ready"
+      },
+      "start_sit": {
+        "available": true,
+        "mode": "free",
+        "status": "ready"
+      },
+      "trade_analyzer": {
+        "available": true,
+        "mode": "free",
+        "status": "ready"
+      },
+      "waiver_wire": {
+        "available": true,
+        "mode": "free",
+        "status": "ready"
+      }
+    },
+    "user": {
+      "favorite_team": null
+    }
+  }
+}

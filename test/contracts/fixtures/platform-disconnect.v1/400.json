@@ -1,0 +1,7 @@
+{
+  "http_status": 400,
+  "route": "/api/platforms/:platform",
+  "body": {
+    "error": "Invalid platform"
+  }
+}

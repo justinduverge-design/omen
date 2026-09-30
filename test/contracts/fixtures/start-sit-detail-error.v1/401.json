@@ -1,0 +1,12 @@
+{
+  "http_status": 401,
+  "route": "/api/start-sit/detail",
+  "body": {
+    "action": "reconnect",
+    "code": "yahoo_reconnect_required",
+    "contract_version": "start-sit-detail-error.v1",
+    "error": "Start/Sit detail unavailable",
+    "message": "Reconnect this platform so Omen can read your roster.",
+    "platform": "yahoo"
+  }
+}

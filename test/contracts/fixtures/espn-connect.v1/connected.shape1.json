@@ -1,0 +1,20 @@
+{
+  "http_status": 200,
+  "route": "/api/platforms/espn/connect",
+  "body": {
+    "connected": true,
+    "leagues": [
+      {
+        "id": "12345",
+        "name": null,
+        "scoring_format": null,
+        "season": 2026,
+        "selected": true,
+        "team_id": "7",
+        "team_name": null
+      }
+    ],
+    "platform": "espn",
+    "status": "connected"
+  }
+}

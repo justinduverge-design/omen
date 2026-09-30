@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "system-min-version.v1",
+  "title": "system-min-version.v1 (inferred from recorded server responses; review before relying on it)",
+  "description": "ADDITIVE ONLY within this version. Extra properties are allowed; removing, renaming or retyping anything listed here is a breaking change and fails the lock.",
+  "type": "object",
+  "properties": {
+    "client_version": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "contract_version": {
+      "type": "string"
+    },
+    "generated_at": {
+      "type": "string"
+    },
+    "minimum_version": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "platform": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ok",
+        "update_required"
+      ]
+    },
+    "update_required": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "client_version",
+    "contract_version",
+    "generated_at",
+    "minimum_version",
+    "platform",
+    "status",
+    "update_required"
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "league-active-selection.v1",
+  "title": "league-active-selection.v1 (inferred from recorded server responses; review before relying on it)",
+  "description": "ADDITIVE ONLY within this version. Extra properties are allowed; removing, renaming or retyping anything listed here is a breaking change and fails the lock.",
+  "type": "object",
+  "properties": {
+    "active": {
+      "type": "object",
+      "properties": {
+        "league_id": {
+          "type": "string"
+        },
+        "platform": {
+          "type": "string"
+        },
+        "team_id": {
+          "type": [
+            "null",
+            "string"
+          ]
+        }
+      },
+      "required": [
+        "league_id",
+        "platform",
+        "team_id"
+      ]
+    },
+    "contract_version": {
+      "type": "string"
+    },
+    "generated_at": {
+      "type": "string"
+    },
+    "refresh": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "selection_persistence": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "active",
+    "contract_version",
+    "generated_at",
+    "refresh",
+    "selection_persistence"
+  ]
+}

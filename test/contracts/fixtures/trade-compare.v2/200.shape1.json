@@ -1,0 +1,162 @@
+{
+  "http_status": 200,
+  "route": "/api/trade/compare",
+  "body": {
+    "a_score": -1.36,
+    "analysis_context": {
+      "applied": [
+        "scoring_format",
+        "roster_construction",
+        "roster_depth"
+      ],
+      "league_id": "123",
+      "league_name": "Dynasty Dogs",
+      "mode": "personalized",
+      "platform": "sleeper",
+      "unavailable_reason": null
+    },
+    "b_score": 0.2,
+    "combined_score": -1.24,
+    "confidence": "medium",
+    "contract_version": "trade-compare.v2",
+    "decision_context": {
+      "contract_version": "shared-decision-context.v1",
+      "inputs": {
+        "league_scoring": {
+          "observed_at": "2026-01-01T00:00:00.000Z",
+          "source": "league_settings",
+          "state": "live",
+          "used": true
+        },
+        "projections": {
+          "observed_at": "2026-01-01T00:00:00.000Z",
+          "source": "resolved_player_inputs",
+          "state": "live",
+          "used": true
+        },
+        "roster": {
+          "observed_at": "2026-01-01T00:00:00.000Z",
+          "source": "selected_league_roster",
+          "state": "live",
+          "used": true
+        },
+        "selected_context": {
+          "observed_at": "2026-01-01T00:00:00.000Z",
+          "source": "owned_platform_connection",
+          "state": "live",
+          "used": true
+        },
+        "trade_rosters": {
+          "reason_code": "not_requested",
+          "source": "unknown",
+          "state": "unavailable",
+          "used": false
+        }
+      },
+      "inputs_used": [
+        "league_scoring",
+        "projections",
+        "roster",
+        "selected_context"
+      ],
+      "limitations": [
+        {
+          "name": "trade_rosters",
+          "reason_code": "not_requested",
+          "state": "unavailable"
+        }
+      ],
+      "profile": "trade"
+    },
+    "depth_discounted": false,
+    "evaluability": {
+      "missing_projection_count": 0,
+      "reason": null,
+      "status": "evaluable",
+      "total_player_count": 2
+    },
+    "explanation": null,
+    "generated_at": "2026-01-01T00:00:00.000Z",
+    "net_value": -1.36,
+    "receive": {
+      "missing_projection_count": 0,
+      "player_count": 1,
+      "players": [
+        {
+          "adjusted_projection": 12,
+          "confidence": "medium",
+          "name": "WR B",
+          "notes": [],
+          "player_key": "test:0:WR B",
+          "position": "WR",
+          "projected_points": 12,
+          "replacement_level": 5.91,
+          "scarcity_bonus": 0.5,
+          "status": null,
+          "tier": "starter",
+          "value": 6.09
+        }
+      ],
+      "scarcity_details": [
+        {
+          "name": "WR B",
+          "position": "WR",
+          "tier": "starter",
+          "vorp": 6.09
+        }
+      ],
+      "total_value": 6.09
+    },
+    "scarcity_analysis": {
+      "receive": [
+        {
+          "name": "WR B",
+          "position": "WR",
+          "tier": "starter",
+          "vorp": 6.09
+        }
+      ],
+      "send": [
+        {
+          "name": "RB A",
+          "position": "RB",
+          "tier": "starter",
+          "vorp": 7.45
+        }
+      ],
+      "summary": "You are sending a starter-tier RB for a starter-tier WR."
+    },
+    "scoring_format": "standard",
+    "send": {
+      "missing_projection_count": 0,
+      "player_count": 1,
+      "players": [
+        {
+          "adjusted_projection": 12,
+          "confidence": "medium",
+          "name": "RB A",
+          "notes": [],
+          "player_key": "test:0:RB A",
+          "position": "RB",
+          "projected_points": 12,
+          "replacement_level": 4.55,
+          "scarcity_bonus": 0.5,
+          "status": null,
+          "tier": "starter",
+          "value": 7.45
+        }
+      ],
+      "scarcity_details": [
+        {
+          "name": "RB A",
+          "position": "RB",
+          "tier": "starter",
+          "vorp": 7.45
+        }
+      ],
+      "total_value": 7.45
+    },
+    "verdict": "neutral",
+    "verdict_state": "close_needs_context"
+  }
+}

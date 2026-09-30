@@ -1,0 +1,110 @@
+{
+  "http_status": 200,
+  "route": "/api/moves/:id",
+  "body": {
+    "call_type": "start_sit",
+    "capabilities": [
+      {
+        "fresh_until": null,
+        "kind": "verified",
+        "name": "decision_receipt",
+        "observed_at": "2026-01-01T00:00:00.000Z",
+        "source": "moves_persisted_receipt",
+        "state": "live",
+        "statement": "Omen preserved the recommendation and evidence recorded when this call was issued.",
+        "used": true
+      },
+      {
+        "coverage_state": "supported",
+        "fresh_until": null,
+        "kind": "verified",
+        "name": "league_exact_scoring",
+        "observed_at": "2026-01-01T00:00:00.000Z",
+        "reason_code": "league_exact",
+        "reconciliation_state": "exact",
+        "source": "league_scoring_contract",
+        "state": "live",
+        "statement": "Omen reproduced the provider's final score from this league's own rules.",
+        "used": true
+      }
+    ],
+    "capability_contract": "decision-capabilities.v1",
+    "contract_version": "move-detail.v1",
+    "decision_context": {
+      "contract_version": "shared-decision-context.v1",
+      "inputs": {
+        "decision_receipt": {
+          "observed_at": "2026-01-01T00:00:00.000Z",
+          "source": "moves_persisted_receipt",
+          "state": "live",
+          "used": true
+        },
+        "scoring_outcome": {
+          "observed_at": "2026-01-01T00:00:00.000Z",
+          "source": "moves_reconciliation",
+          "state": "live",
+          "used": true
+        }
+      },
+      "inputs_used": [
+        "decision_receipt",
+        "scoring_outcome"
+      ],
+      "limitations": [],
+      "profile": "ledger"
+    },
+    "evidence_at_the_time": [
+      {
+        "category": "league_context",
+        "kind": "verified",
+        "statement": "This recommendation was graded in Half PPR scoring."
+      },
+      {
+        "category": "player_game_fact",
+        "kind": "verified",
+        "statement": "The recommendation named DeVonta Smith."
+      },
+      {
+        "category": "model_input",
+        "kind": "model",
+        "statement": "Omen recorded 72% confidence at issue time."
+      },
+      {
+        "category": "omen_inference",
+        "kind": "inference",
+        "statement": "The available data favored Smith in a close matchup."
+      }
+    ],
+    "fairness_note": "Omen shows what it knew when the call was made. Later information is never used to make an earlier recommendation look better.",
+    "feedback": {
+      "note": null,
+      "stars": 4
+    },
+    "generated_at": "2026-01-01T00:00:00.000Z",
+    "id": "00000000-0000-4000-8000-000000000000",
+    "observed_outcome": {
+      "awaiting": null,
+      "detail": "DeVonta Smith scored 18.4 fantasy points (Half PPR).",
+      "known": true,
+      "provenance": "verified",
+      "statement": "Observed outcome aligned with the recommendation."
+    },
+    "snapshot": {
+      "issued_at": "2026-01-01T00:00:00.000Z",
+      "issued_at_timezone": "UTC",
+      "league_id": "L1",
+      "platform": "sleeper",
+      "recommendation": "Start DeVonta Smith over Chris Olave",
+      "scoring_contract_version": "omen-scoring-contract-v1",
+      "scoring_format": "Half PPR",
+      "season": 2026,
+      "week": 6
+    },
+    "state": "resolved",
+    "user_action": {
+      "followed": null,
+      "known": false,
+      "statement": "Omen could not confirm whether you acted on this recommendation."
+    }
+  }
+}

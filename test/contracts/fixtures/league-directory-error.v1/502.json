@@ -1,0 +1,12 @@
+{
+  "http_status": 502,
+  "route": "/api/leagues/active",
+  "body": {
+    "action": "retry",
+    "code": "league_verification_unavailable",
+    "contract_version": "league-directory-error.v1",
+    "error": "League directory unavailable",
+    "message": "Omen could not confirm that league with the platform. Try again shortly.",
+    "platform": "sleeper"
+  }
+}

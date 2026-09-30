@@ -1,0 +1,11 @@
+{
+  "http_status": 400,
+  "route": "/api/start-sit/detail",
+  "body": {
+    "action": "retry",
+    "code": "invalid_week",
+    "contract_version": "start-sit-detail-error.v1",
+    "error": "Start/Sit detail unavailable",
+    "message": "Week must be between 1 and 18."
+  }
+}

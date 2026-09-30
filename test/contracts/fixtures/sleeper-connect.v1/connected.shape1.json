@@ -1,0 +1,13 @@
+{
+  "http_status": 200,
+  "route": "/api/platforms/sleeper/connect",
+  "body": {
+    "connected": true,
+    "league_id": "league-1",
+    "platform": "sleeper",
+    "replayed": false,
+    "request_id": "native-connect-request-0001",
+    "status": "connected",
+    "username": "sleepy"
+  }
+}

@@ -1,0 +1,328 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "waiver-analysis.v1",
+  "title": "waiver-analysis.v1 (inferred from recorded server responses; review before relying on it)",
+  "description": "ADDITIVE ONLY within this version. Extra properties are allowed; removing, renaming or retyping anything listed here is a breaking change and fails the lock.",
+  "type": "object",
+  "properties": {
+    "alternatives": {
+      "type": "array"
+    },
+    "availability_state": {
+      "type": "string"
+    },
+    "best_move": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "properties": {
+        "add": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "player_key": {
+              "type": "string"
+            },
+            "position": {
+              "type": "string"
+            },
+            "projected_points": {
+              "type": "number"
+            },
+            "status": {
+              "description": "Observed only as null in recorded responses; the real type is not constrained."
+            },
+            "team": {
+              "description": "Observed only as null in recorded responses; the real type is not constrained."
+            }
+          },
+          "required": [
+            "name",
+            "player_key",
+            "position",
+            "projected_points",
+            "status",
+            "team"
+          ]
+        },
+        "bid": {
+          "type": [
+            "null",
+            "object"
+          ],
+          "properties": {
+            "amount": {
+              "type": "number"
+            },
+            "basis": {
+              "type": "string"
+            },
+            "implies_claim_success": {
+              "type": "boolean"
+            },
+            "model_version": {
+              "type": "string"
+            },
+            "of_budget_remaining": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "amount",
+            "basis",
+            "implies_claim_success",
+            "model_version",
+            "of_budget_remaining"
+          ]
+        },
+        "displaces": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "player_key": {
+              "type": "string"
+            },
+            "position": {
+              "type": "string"
+            },
+            "projected_points": {
+              "type": "number"
+            },
+            "status": {
+              "description": "Observed only as null in recorded responses; the real type is not constrained."
+            },
+            "team": {
+              "description": "Observed only as null in recorded responses; the real type is not constrained."
+            }
+          },
+          "required": [
+            "name",
+            "player_key",
+            "position",
+            "projected_points",
+            "status",
+            "team"
+          ]
+        },
+        "drop": {
+          "type": [
+            "null",
+            "object"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "player_key": {
+              "type": "string"
+            },
+            "position": {
+              "type": "string"
+            },
+            "projected_points": {
+              "type": "number"
+            },
+            "status": {
+              "description": "Observed only as null in recorded responses; the real type is not constrained."
+            },
+            "team": {
+              "description": "Observed only as null in recorded responses; the real type is not constrained."
+            }
+          },
+          "required": [
+            "name",
+            "player_key",
+            "position",
+            "projected_points",
+            "status",
+            "team"
+          ]
+        },
+        "improvement": {
+          "type": "number"
+        },
+        "solves_unavailable_starter": {
+          "type": "boolean"
+        },
+        "why_now": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "add",
+        "bid",
+        "displaces",
+        "drop",
+        "improvement",
+        "solves_unavailable_starter",
+        "why_now"
+      ]
+    },
+    "contract_version": {
+      "type": "string"
+    },
+    "cost": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "properties": {
+        "accepted_because": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "removes": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "accepted_because",
+        "removes"
+      ]
+    },
+    "deadline": {
+      "description": "Observed only as null in recorded responses; the real type is not constrained."
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "statement": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "category",
+          "kind",
+          "statement"
+        ]
+      }
+    },
+    "generated_at": {
+      "type": "string"
+    },
+    "league_id": {
+      "type": "string"
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "message": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "platform": {
+      "type": "string"
+    },
+    "scoring_format": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "season": {
+      "type": "number"
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "confirmed_opportunity",
+        "availability_unknown",
+        "no_low_cost_drop",
+        "no_credible_move",
+        "engine_limitation",
+        "off_season"
+      ]
+    },
+    "waiver_system": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "properties": {
+        "budget_remaining": {
+          "type": [
+            "null",
+            "number"
+          ]
+        },
+        "budget_total": {
+          "type": [
+            "null",
+            "number"
+          ]
+        },
+        "determined_from": {
+          "type": "string"
+        },
+        "priority_position": {
+          "description": "Observed only as null in recorded responses; the real type is not constrained."
+        },
+        "system": {
+          "type": "string"
+        },
+        "budget_text": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Composed server-side, e.g. \"Your budget $80 of $100\". Null unless budget_total and budget_remaining are both known. The native League screen renders a FAAB budget only from this field."
+        },
+        "order_text": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Composed server-side, e.g. \"Claim order 7\". Null unless the league runs priority waivers and the position is known."
+        }
+      },
+      "required": [
+        "budget_remaining",
+        "budget_total",
+        "determined_from",
+        "priority_position",
+        "system"
+      ]
+    },
+    "week": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "alternatives",
+    "availability_state",
+    "best_move",
+    "contract_version",
+    "cost",
+    "deadline",
+    "evidence",
+    "generated_at",
+    "league_id",
+    "message",
+    "platform",
+    "scoring_format",
+    "season",
+    "state",
+    "waiver_system",
+    "week"
+  ]
+}

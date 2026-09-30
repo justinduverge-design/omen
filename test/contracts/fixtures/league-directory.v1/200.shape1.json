@@ -1,0 +1,54 @@
+{
+  "http_status": 200,
+  "route": "/api/leagues/",
+  "body": {
+    "active": {
+      "league_id": "449.l.1",
+      "league_name": "Work League",
+      "platform": "yahoo",
+      "scoring_format": null,
+      "season": 2026,
+      "team_id": null,
+      "team_name": null
+    },
+    "contract_version": "league-directory.v1",
+    "follow_persistence": "unavailable",
+    "generated_at": "2026-01-01T00:00:00.000Z",
+    "platforms": [
+      {
+        "connection_state": "connected",
+        "discovery": "full",
+        "leagues": [
+          {
+            "is_active": true,
+            "is_followed": true,
+            "league_id": "449.l.1",
+            "league_name": "Work League",
+            "scoring_format": null,
+            "season": 2026,
+            "team_id": null,
+            "team_name": null
+          }
+        ],
+        "notice": null,
+        "platform": "yahoo"
+      },
+      {
+        "connection_state": "not_connected",
+        "discovery": "unavailable",
+        "leagues": [],
+        "notice": null,
+        "platform": "espn"
+      },
+      {
+        "connection_state": "not_connected",
+        "discovery": "unavailable",
+        "leagues": [],
+        "notice": null,
+        "platform": "sleeper"
+      }
+    ],
+    "season": 2026,
+    "selection_persistence": "explicit"
+  }
+}

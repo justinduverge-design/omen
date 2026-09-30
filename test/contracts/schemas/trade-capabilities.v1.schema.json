@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "trade-capabilities.v1",
+  "title": "trade-capabilities.v1 (inferred from recorded server responses; review before relying on it)",
+  "description": "ADDITIVE ONLY within this version. Extra properties are allowed; removing, renaming or retyping anything listed here is a breaking change and fails the lock.",
+  "type": "object",
+  "properties": {
+    "comparison": {
+      "type": "string"
+    },
+    "contract_version": {
+      "type": "string"
+    },
+    "max_teams": {
+      "type": "number"
+    },
+    "submission": {
+      "type": "string"
+    },
+    "three_team": {
+      "type": "object",
+      "properties": {
+        "reason": {
+          "description": "Observed only as null in recorded responses; the real type is not constrained."
+        },
+        "supported": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "reason",
+        "supported"
+      ]
+    }
+  },
+  "required": [
+    "comparison",
+    "contract_version",
+    "max_teams",
+    "submission",
+    "three_team"
+  ]
+}

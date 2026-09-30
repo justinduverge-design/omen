@@ -1,0 +1,928 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "trade-compare.v2",
+  "title": "trade-compare.v2 (inferred from recorded server responses; review before relying on it)",
+  "description": "ADDITIVE ONLY within this version. Extra properties are allowed; removing, renaming or retyping anything listed here is a breaking change and fails the lock.",
+  "type": "object",
+  "properties": {
+    "a_score": {
+      "type": "number"
+    },
+    "analysis_context": {
+      "type": "object",
+      "properties": {
+        "applied": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "league_id": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "league_name": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "mode": {
+          "type": "string"
+        },
+        "platform": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "unavailable_reason": {
+          "type": [
+            "null",
+            "string"
+          ]
+        }
+      },
+      "required": [
+        "applied",
+        "league_id",
+        "league_name",
+        "mode",
+        "platform",
+        "unavailable_reason"
+      ]
+    },
+    "b_score": {
+      "type": "number"
+    },
+    "combined_score": {
+      "type": "number"
+    },
+    "confidence": {
+      "type": "string"
+    },
+    "contract_version": {
+      "type": "string"
+    },
+    "decision_context": {
+      "type": "object",
+      "properties": {
+        "contract_version": {
+          "type": "string"
+        },
+        "inputs": {
+          "type": "object",
+          "properties": {
+            "league_scoring": {
+              "type": "object",
+              "properties": {
+                "observed_at": {
+                  "type": "string"
+                },
+                "reason_code": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "string"
+                },
+                "state": {
+                  "type": "string"
+                },
+                "used": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "source",
+                "state",
+                "used"
+              ]
+            },
+            "projections": {
+              "type": "object",
+              "properties": {
+                "observed_at": {
+                  "type": "string"
+                },
+                "reason_code": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "string"
+                },
+                "state": {
+                  "type": "string"
+                },
+                "used": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "source",
+                "state",
+                "used"
+              ]
+            },
+            "roster": {
+              "type": "object",
+              "properties": {
+                "observed_at": {
+                  "type": "string"
+                },
+                "reason_code": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "string"
+                },
+                "state": {
+                  "type": "string"
+                },
+                "used": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "source",
+                "state",
+                "used"
+              ]
+            },
+            "selected_context": {
+              "type": "object",
+              "properties": {
+                "observed_at": {
+                  "type": "string"
+                },
+                "reason_code": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "string"
+                },
+                "state": {
+                  "type": "string"
+                },
+                "used": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "source",
+                "state",
+                "used"
+              ]
+            },
+            "trade_rosters": {
+              "type": "object",
+              "properties": {
+                "reason_code": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "string"
+                },
+                "state": {
+                  "type": "string"
+                },
+                "used": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "reason_code",
+                "source",
+                "state",
+                "used"
+              ]
+            }
+          },
+          "required": [
+            "league_scoring",
+            "projections",
+            "roster",
+            "selected_context",
+            "trade_rosters"
+          ]
+        },
+        "inputs_used": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "reason_code": {
+                "type": "string"
+              },
+              "state": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "reason_code",
+              "state"
+            ]
+          }
+        },
+        "profile": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract_version",
+        "inputs",
+        "inputs_used",
+        "limitations",
+        "profile"
+      ]
+    },
+    "depth_discounted": {
+      "type": "boolean"
+    },
+    "evaluability": {
+      "type": "object",
+      "properties": {
+        "missing_projection_count": {
+          "type": "number"
+        },
+        "reason": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "status": {
+          "type": "string"
+        },
+        "total_player_count": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "missing_projection_count",
+        "reason",
+        "status",
+        "total_player_count"
+      ]
+    },
+    "explanation": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "generated_at": {
+      "type": "string"
+    },
+    "net_value": {
+      "type": "number"
+    },
+    "participants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "acceptance_likelihood": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": "string"
+          },
+          "evaluability": {
+            "type": "object",
+            "properties": {
+              "missing_projection_count": {
+                "type": "number"
+              },
+              "reason": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "status": {
+                "type": "string"
+              },
+              "total_player_count": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "missing_projection_count",
+              "reason",
+              "status",
+              "total_player_count"
+            ]
+          },
+          "net_value": {
+            "type": "number"
+          },
+          "receives": {
+            "type": "object",
+            "properties": {
+              "missing_projection_count": {
+                "type": "number"
+              },
+              "player_count": {
+                "type": "number"
+              },
+              "players": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "adjusted_projection": {
+                      "type": "number"
+                    },
+                    "confidence": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "notes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "player_key": {
+                      "type": "string"
+                    },
+                    "position": {
+                      "type": "string"
+                    },
+                    "projected_points": {
+                      "type": [
+                        "null",
+                        "number"
+                      ]
+                    },
+                    "replacement_level": {
+                      "type": "number"
+                    },
+                    "scarcity_bonus": {
+                      "type": "number"
+                    },
+                    "status": {
+                      "description": "Observed only as null in recorded responses; the real type is not constrained."
+                    },
+                    "tier": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "adjusted_projection",
+                    "confidence",
+                    "name",
+                    "notes",
+                    "player_key",
+                    "position",
+                    "projected_points",
+                    "replacement_level",
+                    "scarcity_bonus",
+                    "status",
+                    "tier",
+                    "value"
+                  ]
+                }
+              },
+              "scarcity_details": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "position": {
+                      "type": "string"
+                    },
+                    "tier": {
+                      "type": "string"
+                    },
+                    "vorp": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "position",
+                    "tier",
+                    "vorp"
+                  ]
+                }
+              },
+              "total_value": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "missing_projection_count",
+              "player_count",
+              "players",
+              "scarcity_details",
+              "total_value"
+            ]
+          },
+          "roster_fit": {
+            "type": "object",
+            "properties": {
+              "depth_discounted": {
+                "type": "boolean"
+              },
+              "summary": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "depth_discounted",
+              "summary"
+            ]
+          },
+          "sends": {
+            "type": "object",
+            "properties": {
+              "missing_projection_count": {
+                "type": "number"
+              },
+              "player_count": {
+                "type": "number"
+              },
+              "players": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "adjusted_projection": {
+                      "type": "number"
+                    },
+                    "confidence": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "notes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "player_key": {
+                      "type": "string"
+                    },
+                    "position": {
+                      "type": "string"
+                    },
+                    "projected_points": {
+                      "type": [
+                        "null",
+                        "number"
+                      ]
+                    },
+                    "replacement_level": {
+                      "type": "number"
+                    },
+                    "scarcity_bonus": {
+                      "type": "number"
+                    },
+                    "status": {
+                      "description": "Observed only as null in recorded responses; the real type is not constrained."
+                    },
+                    "tier": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "adjusted_projection",
+                    "confidence",
+                    "name",
+                    "notes",
+                    "player_key",
+                    "position",
+                    "projected_points",
+                    "replacement_level",
+                    "scarcity_bonus",
+                    "status",
+                    "tier",
+                    "value"
+                  ]
+                }
+              },
+              "scarcity_details": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "position": {
+                      "type": "string"
+                    },
+                    "tier": {
+                      "type": "string"
+                    },
+                    "vorp": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "position",
+                    "tier",
+                    "vorp"
+                  ]
+                }
+              },
+              "total_value": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "missing_projection_count",
+              "player_count",
+              "players",
+              "scarcity_details",
+              "total_value"
+            ]
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "team_name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "verdict": {
+            "type": "string"
+          },
+          "verdict_state": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "acceptance_likelihood",
+          "confidence",
+          "evaluability",
+          "net_value",
+          "receives",
+          "roster_fit",
+          "sends",
+          "team_id",
+          "team_name",
+          "verdict",
+          "verdict_state"
+        ]
+      }
+    },
+    "receive": {
+      "type": "object",
+      "properties": {
+        "missing_projection_count": {
+          "type": "number"
+        },
+        "player_count": {
+          "type": "number"
+        },
+        "players": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "adjusted_projection": {
+                "type": "number"
+              },
+              "confidence": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "notes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "player_key": {
+                "type": "string"
+              },
+              "position": {
+                "type": "string"
+              },
+              "projected_points": {
+                "type": [
+                  "null",
+                  "number"
+                ]
+              },
+              "replacement_level": {
+                "type": "number"
+              },
+              "scarcity_bonus": {
+                "type": "number"
+              },
+              "status": {
+                "description": "Observed only as null in recorded responses; the real type is not constrained."
+              },
+              "tier": {
+                "type": "string"
+              },
+              "value": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "adjusted_projection",
+              "confidence",
+              "name",
+              "notes",
+              "player_key",
+              "position",
+              "projected_points",
+              "replacement_level",
+              "scarcity_bonus",
+              "status",
+              "tier",
+              "value"
+            ]
+          }
+        },
+        "scarcity_details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "position": {
+                "type": "string"
+              },
+              "tier": {
+                "type": "string"
+              },
+              "vorp": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "name",
+              "position",
+              "tier",
+              "vorp"
+            ]
+          }
+        },
+        "total_value": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "missing_projection_count",
+        "player_count",
+        "players",
+        "scarcity_details",
+        "total_value"
+      ]
+    },
+    "scarcity_analysis": {
+      "type": "object",
+      "properties": {
+        "receive": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "position": {
+                "type": "string"
+              },
+              "tier": {
+                "type": "string"
+              },
+              "vorp": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "name",
+              "position",
+              "tier",
+              "vorp"
+            ]
+          }
+        },
+        "send": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "position": {
+                "type": "string"
+              },
+              "tier": {
+                "type": "string"
+              },
+              "vorp": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "name",
+              "position",
+              "tier",
+              "vorp"
+            ]
+          }
+        },
+        "summary": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "receive",
+        "send",
+        "summary"
+      ]
+    },
+    "scoring_format": {
+      "type": "string"
+    },
+    "send": {
+      "type": "object",
+      "properties": {
+        "missing_projection_count": {
+          "type": "number"
+        },
+        "player_count": {
+          "type": "number"
+        },
+        "players": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "adjusted_projection": {
+                "type": "number"
+              },
+              "confidence": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "notes": {
+                "type": "array"
+              },
+              "player_key": {
+                "type": "string"
+              },
+              "position": {
+                "type": "string"
+              },
+              "projected_points": {
+                "type": "number"
+              },
+              "replacement_level": {
+                "type": "number"
+              },
+              "scarcity_bonus": {
+                "type": "number"
+              },
+              "status": {
+                "description": "Observed only as null in recorded responses; the real type is not constrained."
+              },
+              "tier": {
+                "type": "string"
+              },
+              "value": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "adjusted_projection",
+              "confidence",
+              "name",
+              "notes",
+              "player_key",
+              "position",
+              "projected_points",
+              "replacement_level",
+              "scarcity_bonus",
+              "status",
+              "tier",
+              "value"
+            ]
+          }
+        },
+        "scarcity_details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "position": {
+                "type": "string"
+              },
+              "tier": {
+                "type": "string"
+              },
+              "vorp": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "name",
+              "position",
+              "tier",
+              "vorp"
+            ]
+          }
+        },
+        "total_value": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "missing_projection_count",
+        "player_count",
+        "players",
+        "scarcity_details",
+        "total_value"
+      ]
+    },
+    "submission": {
+      "type": "object",
+      "properties": {
+        "caption": {
+          "type": "string"
+        },
+        "mode": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "caption",
+        "mode",
+        "reason",
+        "steps"
+      ]
+    },
+    "team_count": {
+      "type": "number"
+    },
+    "trade_shape": {
+      "type": "string"
+    },
+    "verdict": {
+      "type": "string"
+    },
+    "verdict_state": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "analysis_context",
+    "contract_version",
+    "evaluability",
+    "verdict_state"
+  ]
+}

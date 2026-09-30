@@ -1,0 +1,16 @@
+{
+  "http_status": 200,
+  "route": "(built)",
+  "body": {
+    "body": "Some of this week's data didn't come through clean — but there's still nothing worth moving for. Holding is the call.",
+    "contract_version": "quiet-week.v1",
+    "eligible": true,
+    "headline": "Nothing worth moving for.",
+    "next_read": "Next read · Tuesday 3:00 AM waivers",
+    "reasons": [
+      "provider_read_incomplete"
+    ],
+    "source_state": "empty",
+    "variant": "straight"
+  }
+}

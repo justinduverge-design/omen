@@ -1,0 +1,10 @@
+{
+  "http_status": 503,
+  "route": "/api/platforms/state",
+  "body": {
+    "contract_version": "platform-provider-state.v1",
+    "error_code": "provider_state_unavailable",
+    "recovery_action": "retry",
+    "state": "retryable_error"
+  }
+}

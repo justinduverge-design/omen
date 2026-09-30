@@ -1,0 +1,170 @@
+{
+  "http_status": 200,
+  "route": "/api/trade/compare",
+  "body": {
+    "a_score": -5,
+    "analysis_context": {
+      "applied": [],
+      "league_id": null,
+      "league_name": null,
+      "mode": "neutral",
+      "platform": null,
+      "unavailable_reason": null
+    },
+    "b_score": -0.5,
+    "combined_score": -5.3,
+    "confidence": "medium",
+    "contract_version": "trade-compare.v2",
+    "decision_context": {
+      "contract_version": "shared-decision-context.v1",
+      "inputs": {
+        "league_scoring": {
+          "reason_code": "league_scoring_not_used",
+          "source": "league_settings",
+          "state": "not_requested",
+          "used": false
+        },
+        "projections": {
+          "observed_at": "2026-01-01T00:00:00.000Z",
+          "source": "resolved_player_inputs",
+          "state": "live",
+          "used": true
+        },
+        "roster": {
+          "reason_code": "roster_context_not_used",
+          "source": "selected_league_roster",
+          "state": "not_requested",
+          "used": false
+        },
+        "selected_context": {
+          "reason_code": "league_context_not_requested",
+          "source": "trade_request",
+          "state": "not_requested",
+          "used": false
+        },
+        "trade_rosters": {
+          "reason_code": "not_requested",
+          "source": "unknown",
+          "state": "unavailable",
+          "used": false
+        }
+      },
+      "inputs_used": [
+        "projections"
+      ],
+      "limitations": [
+        {
+          "name": "league_scoring",
+          "reason_code": "league_scoring_not_used",
+          "state": "not_requested"
+        },
+        {
+          "name": "roster",
+          "reason_code": "roster_context_not_used",
+          "state": "not_requested"
+        },
+        {
+          "name": "selected_context",
+          "reason_code": "league_context_not_requested",
+          "state": "not_requested"
+        },
+        {
+          "name": "trade_rosters",
+          "reason_code": "not_requested",
+          "state": "unavailable"
+        }
+      ],
+      "profile": "trade"
+    },
+    "depth_discounted": false,
+    "evaluability": {
+      "missing_projection_count": 0,
+      "reason": null,
+      "status": "evaluable",
+      "total_player_count": 2
+    },
+    "explanation": "Justin Jefferson for Patrick Mahomes",
+    "generated_at": "2026-01-01T00:00:00.000Z",
+    "net_value": -5,
+    "receive": {
+      "missing_projection_count": 0,
+      "player_count": 1,
+      "players": [
+        {
+          "adjusted_projection": 14,
+          "confidence": "medium",
+          "name": "Patrick Mahomes",
+          "notes": [],
+          "player_key": "sleeper:4046",
+          "position": "QB",
+          "projected_points": 14,
+          "replacement_level": 15,
+          "scarcity_bonus": 0,
+          "status": null,
+          "tier": "bubble",
+          "value": -1
+        }
+      ],
+      "scarcity_details": [
+        {
+          "name": "Patrick Mahomes",
+          "position": "QB",
+          "tier": "bubble",
+          "vorp": -1
+        }
+      ],
+      "total_value": -1
+    },
+    "scarcity_analysis": {
+      "receive": [
+        {
+          "name": "Patrick Mahomes",
+          "position": "QB",
+          "tier": "bubble",
+          "vorp": -1
+        }
+      ],
+      "send": [
+        {
+          "name": "Justin Jefferson",
+          "position": "WR",
+          "tier": "starter",
+          "vorp": 4
+        }
+      ],
+      "summary": "You are sending a starter-tier WR for a bubble-tier QB."
+    },
+    "scoring_format": "ppr",
+    "send": {
+      "missing_projection_count": 0,
+      "player_count": 1,
+      "players": [
+        {
+          "adjusted_projection": 12,
+          "confidence": "medium",
+          "name": "Justin Jefferson",
+          "notes": [],
+          "player_key": "sleeper:6794",
+          "position": "WR",
+          "projected_points": 12,
+          "replacement_level": 8,
+          "scarcity_bonus": 0.5,
+          "status": null,
+          "tier": "starter",
+          "value": 4
+        }
+      ],
+      "scarcity_details": [
+        {
+          "name": "Justin Jefferson",
+          "position": "WR",
+          "tier": "starter",
+          "vorp": 4
+        }
+      ],
+      "total_value": 4
+    },
+    "verdict": "decline",
+    "verdict_state": "you_give_up_too_much"
+  }
+}

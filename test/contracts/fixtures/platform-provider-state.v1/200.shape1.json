@@ -1,0 +1,27 @@
+{
+  "http_status": 200,
+  "route": "/api/platforms/state",
+  "body": {
+    "contract_version": "platform-provider-state.v1",
+    "providers": {
+      "espn": {
+        "error_code": null,
+        "platform": "espn",
+        "recovery_action": "start_connection",
+        "state": "not_started"
+      },
+      "sleeper": {
+        "error_code": "sleeper_account_context_missing",
+        "platform": "sleeper",
+        "recovery_action": "retry",
+        "state": "resolving_account"
+      },
+      "yahoo": {
+        "error_code": null,
+        "platform": "yahoo",
+        "recovery_action": "start_connection",
+        "state": "not_started"
+      }
+    }
+  }
+}

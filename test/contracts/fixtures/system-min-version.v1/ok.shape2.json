@@ -1,0 +1,13 @@
+{
+  "http_status": 200,
+  "route": "/api/system/min-version",
+  "body": {
+    "client_version": "1.0.0",
+    "contract_version": "system-min-version.v1",
+    "generated_at": "2026-01-01T00:00:00.000Z",
+    "minimum_version": null,
+    "platform": "web",
+    "status": "ok",
+    "update_required": false
+  }
+}

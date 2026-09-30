@@ -1,0 +1,10 @@
+{
+  "http_status": 201,
+  "route": "/",
+  "body": {
+    "contract_version": "beta-report.v1",
+    "id": "report-1",
+    "message": "Report received. Thank you.",
+    "status": "received"
+  }
+}

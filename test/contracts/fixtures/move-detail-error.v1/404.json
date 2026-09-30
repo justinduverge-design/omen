@@ -1,0 +1,11 @@
+{
+  "http_status": 404,
+  "route": "/api/moves/:id",
+  "body": {
+    "action": "back",
+    "code": "move_not_found",
+    "contract_version": "move-detail-error.v1",
+    "error": "Ledger entry unavailable",
+    "message": "That Ledger entry is not available."
+  }
+}

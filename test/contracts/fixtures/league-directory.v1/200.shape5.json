@@ -1,0 +1,35 @@
+{
+  "http_status": 200,
+  "route": "/api/leagues/",
+  "body": {
+    "active": null,
+    "contract_version": "league-directory.v1",
+    "follow_persistence": "unavailable",
+    "generated_at": "2026-01-01T00:00:00.000Z",
+    "platforms": [
+      {
+        "connection_state": "reconnect_required",
+        "discovery": "unavailable",
+        "leagues": [],
+        "notice": null,
+        "platform": "espn"
+      },
+      {
+        "connection_state": "not_connected",
+        "discovery": "unavailable",
+        "leagues": [],
+        "notice": null,
+        "platform": "sleeper"
+      },
+      {
+        "connection_state": "not_connected",
+        "discovery": "unavailable",
+        "leagues": [],
+        "notice": null,
+        "platform": "yahoo"
+      }
+    ],
+    "season": 2026,
+    "selection_persistence": "explicit"
+  }
+}

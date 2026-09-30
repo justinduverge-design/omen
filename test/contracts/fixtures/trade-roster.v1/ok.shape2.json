@@ -1,0 +1,43 @@
+{
+  "http_status": 200,
+  "route": "/api/trade/roster",
+  "body": {
+    "contract_version": "trade-roster.v1",
+    "platform": "sleeper",
+    "roster_positions": [
+      "QB",
+      "RB",
+      "RB",
+      "WR",
+      "WR",
+      "FLEX",
+      "BN"
+    ],
+    "status": "ok",
+    "teams": [
+      {
+        "players": [
+          {
+            "name": "Own Player",
+            "player_key": "sleeper:100",
+            "position": "RB"
+          }
+        ],
+        "team_id": "1",
+        "team_name": "Own Team"
+      },
+      {
+        "players": [
+          {
+            "name": "Opponent Player",
+            "player_key": "sleeper:200",
+            "position": "WR"
+          }
+        ],
+        "team_id": "2",
+        "team_name": "Opponent Team"
+      }
+    ],
+    "week": 3
+  }
+}

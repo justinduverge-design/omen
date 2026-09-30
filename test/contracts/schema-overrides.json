@@ -1,0 +1,79 @@
+{
+  "note": "Enum completions and reviewed corrections applied after inference. Recorded tests only reach some values, so a closed vocabulary is completed from the server's own constants (source noted per entry). Applied by `node scripts/contract-recorded.js schemas --force`. Once a schema is committed it is the source of truth and the lock guards it; do not regenerate a merged schema to make a test pass.",
+  "contracts": {
+    "start-sit-detail.v1": {
+      "state": [
+        "clear_decision",
+        "close_decision",
+        "player_unavailable",
+        "incomplete_data",
+        "games_started",
+        "no_decision",
+        "off_season"
+      ]
+    },
+    "start-sit-detail.v2": {
+      "state": [
+        "clear_decision",
+        "close_decision",
+        "player_unavailable",
+        "incomplete_data",
+        "games_started",
+        "no_decision",
+        "off_season"
+      ]
+    },
+    "waiver-analysis.v1": {
+      "state": [
+        "confirmed_opportunity",
+        "availability_unknown",
+        "no_low_cost_drop",
+        "no_credible_move",
+        "engine_limitation",
+        "off_season"
+      ]
+    },
+    "move-detail.v1": {
+      "state": [
+        "pending",
+        "resolved",
+        "data_incomplete"
+      ]
+    },
+    "quiet-week.v1": {
+      "variant": [
+        "neutral",
+        "straight",
+        null
+      ]
+    },
+    "trade-roster.v1": {
+      "status": [
+        "ok",
+        "unavailable"
+      ]
+    },
+    "system-min-version.v1": {
+      "status": [
+        "ok",
+        "update_required"
+      ]
+    },
+    "platform-provider-state.v1": {
+      "providers.*.state": [
+        "not_started",
+        "needs_reauth",
+        "choosing_league",
+        "resolving_account",
+        "connected"
+      ]
+    }
+  },
+  "sources": {
+    "start-sit-detail": "src/services/startSitDetail.js STATES",
+    "waiver-analysis": "src/services/waiverAnalysis.js STATES",
+    "move-detail": "src/routes/moves.js (pending/resolved/data_incomplete)",
+    "platform-provider-state": "src/routes/platforms.js provider state branches (lines 223-253)",
+    "quiet-week": "src/services/quietWeek.js (variant neutral|straight|null)"
+  }
+}

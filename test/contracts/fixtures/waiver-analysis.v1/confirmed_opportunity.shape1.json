@@ -1,0 +1,77 @@
+{
+  "http_status": 200,
+  "route": "/api/waivers/analysis",
+  "body": {
+    "alternatives": [],
+    "availability_state": "confirmed",
+    "best_move": {
+      "add": {
+        "name": "Tracy",
+        "player_key": "f-Tracy",
+        "position": "RB",
+        "projected_points": 12,
+        "status": null,
+        "team": null
+      },
+      "bid": null,
+      "displaces": {
+        "name": "Weak RB",
+        "player_key": "s-Weak RB",
+        "position": "RB",
+        "projected_points": 5,
+        "status": null,
+        "team": null
+      },
+      "drop": {
+        "name": "Deep RB",
+        "player_key": "b-Deep RB",
+        "position": "RB",
+        "projected_points": 3,
+        "status": null,
+        "team": null
+      },
+      "improvement": 7,
+      "solves_unavailable_starter": false,
+      "why_now": "Tracy projects above your weakest eligible starter for this week."
+    },
+    "contract_version": "waiver-analysis.v1",
+    "cost": {
+      "accepted_because": [
+        "Deep RB projects 3 points, the lowest on your bench.",
+        "Tracy addresses a more immediate roster need."
+      ],
+      "removes": "Deep RB was your only remaining bench option at that position."
+    },
+    "deadline": null,
+    "evidence": [
+      {
+        "category": "immediate_need",
+        "kind": "roster_math",
+        "statement": "Tracy projects 7 points above Weak RB, your weakest eligible starter."
+      },
+      {
+        "category": "league_fact",
+        "kind": "league_context",
+        "statement": "This comparison uses your league's half PPR scoring."
+      }
+    ],
+    "generated_at": "2026-01-01T00:00:00.000Z",
+    "league_id": "L1",
+    "limitations": [],
+    "message": null,
+    "platform": "sleeper",
+    "scoring_format": "half PPR",
+    "season": 2026,
+    "state": "confirmed_opportunity",
+    "waiver_system": {
+      "budget_remaining": null,
+      "budget_text": null,
+      "budget_total": null,
+      "determined_from": "not_determined",
+      "order_text": null,
+      "priority_position": null,
+      "system": "not_determined"
+    },
+    "week": 7
+  }
+}

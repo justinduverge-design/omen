@@ -1,0 +1,106 @@
+{
+  "http_status": 200,
+  "route": "/api/leagues/",
+  "body": {
+    "active": {
+      "league_id": "L-alpha",
+      "league_name": "Alpha League",
+      "platform": "sleeper",
+      "scoring_format": "standard",
+      "season": 2026,
+      "team_id": "3",
+      "team_name": "Team L-alpha"
+    },
+    "contract_version": "league-directory.v1",
+    "follow_persistence": "unavailable",
+    "generated_at": "2026-01-01T00:00:00.000Z",
+    "platforms": [
+      {
+        "connection_state": "connected",
+        "discovery": "full",
+        "leagues": [
+          {
+            "is_active": true,
+            "is_followed": true,
+            "league_id": "12345",
+            "league_name": "Alpha Dynasty",
+            "scoring_format": null,
+            "season": 2026,
+            "team_id": "9",
+            "team_name": "ESPN Team"
+          },
+          {
+            "is_active": false,
+            "is_followed": true,
+            "league_id": "88",
+            "league_name": "Mid Money",
+            "scoring_format": null,
+            "season": 2026,
+            "team_id": "2",
+            "team_name": "Mid Squad"
+          },
+          {
+            "is_active": false,
+            "is_followed": true,
+            "league_id": "77",
+            "league_name": "Zeta Office",
+            "scoring_format": null,
+            "season": 2026,
+            "team_id": "4",
+            "team_name": "Zeta Squad"
+          }
+        ],
+        "notice": null,
+        "platform": "espn"
+      },
+      {
+        "connection_state": "connected",
+        "discovery": "full",
+        "leagues": [
+          {
+            "is_active": true,
+            "is_followed": true,
+            "league_id": "L-alpha",
+            "league_name": "Alpha League",
+            "scoring_format": "standard",
+            "season": 2026,
+            "team_id": "3",
+            "team_name": "Team L-alpha"
+          },
+          {
+            "is_active": false,
+            "is_followed": true,
+            "league_id": "L-zeta",
+            "league_name": "Zeta League",
+            "scoring_format": "half_ppr",
+            "season": 2026,
+            "team_id": "7",
+            "team_name": "Team L-zeta"
+          }
+        ],
+        "notice": null,
+        "platform": "sleeper"
+      },
+      {
+        "connection_state": "connected",
+        "discovery": "full",
+        "leagues": [
+          {
+            "is_active": true,
+            "is_followed": true,
+            "league_id": "449.l.1",
+            "league_name": "Work League",
+            "scoring_format": null,
+            "season": 2026,
+            "team_id": "7",
+            "team_name": "Desk Jockeys"
+          }
+        ],
+        "notice": null,
+        "platform": "yahoo"
+      }
+    ],
+    "season": 2026,
+    "selection_persistence": "explicit"
+  }
+}

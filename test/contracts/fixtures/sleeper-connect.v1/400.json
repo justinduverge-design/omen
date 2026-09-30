@@ -1,0 +1,7 @@
+{
+  "http_status": 400,
+  "route": "/api/platforms/sleeper/connect",
+  "body": {
+    "error": "Sleeper username not found"
+  }
+}

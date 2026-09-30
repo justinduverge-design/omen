@@ -1,0 +1,353 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "move-detail.v1",
+  "title": "move-detail.v1 (inferred from recorded server responses; review before relying on it)",
+  "description": "ADDITIVE ONLY within this version. Extra properties are allowed; removing, renaming or retyping anything listed here is a breaking change and fails the lock.",
+  "type": "object",
+  "properties": {
+    "call_type": {
+      "type": "string"
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "coverage_state": {
+            "type": "string"
+          },
+          "fresh_until": {
+            "description": "Observed only as null in recorded responses; the real type is not constrained."
+          },
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "observed_at": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reason_code": {
+            "type": "string"
+          },
+          "reconciliation_state": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "statement": {
+            "type": "string"
+          },
+          "used": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "fresh_until",
+          "kind",
+          "name",
+          "observed_at",
+          "source",
+          "state",
+          "statement",
+          "used"
+        ]
+      }
+    },
+    "capability_contract": {
+      "type": "string"
+    },
+    "contract_version": {
+      "type": "string"
+    },
+    "decision_context": {
+      "type": "object",
+      "properties": {
+        "contract_version": {
+          "type": "string"
+        },
+        "inputs": {
+          "type": "object",
+          "properties": {
+            "decision_receipt": {
+              "type": "object",
+              "properties": {
+                "observed_at": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "string"
+                },
+                "state": {
+                  "type": "string"
+                },
+                "used": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "observed_at",
+                "source",
+                "state",
+                "used"
+              ]
+            },
+            "scoring_outcome": {
+              "type": "object",
+              "properties": {
+                "observed_at": {
+                  "type": "string"
+                },
+                "reason_code": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "string"
+                },
+                "state": {
+                  "type": "string"
+                },
+                "used": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "source",
+                "state",
+                "used"
+              ]
+            }
+          },
+          "required": [
+            "decision_receipt",
+            "scoring_outcome"
+          ]
+        },
+        "inputs_used": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "reason_code": {
+                "type": "string"
+              },
+              "state": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "reason_code",
+              "state"
+            ]
+          }
+        },
+        "profile": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract_version",
+        "inputs",
+        "inputs_used",
+        "limitations",
+        "profile"
+      ]
+    },
+    "evidence_at_the_time": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "statement": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "category",
+          "kind",
+          "statement"
+        ]
+      }
+    },
+    "fairness_note": {
+      "type": "string"
+    },
+    "feedback": {
+      "type": "object",
+      "properties": {
+        "note": {
+          "description": "Observed only as null in recorded responses; the real type is not constrained."
+        },
+        "stars": {
+          "type": [
+            "null",
+            "number"
+          ]
+        }
+      },
+      "required": [
+        "note",
+        "stars"
+      ]
+    },
+    "generated_at": {
+      "type": "string"
+    },
+    "id": {
+      "type": "string"
+    },
+    "observed_outcome": {
+      "type": "object",
+      "properties": {
+        "awaiting": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "detail": {
+          "type": "string"
+        },
+        "known": {
+          "type": "boolean"
+        },
+        "provenance": {
+          "type": "string"
+        },
+        "statement": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "awaiting",
+        "known",
+        "statement"
+      ]
+    },
+    "snapshot": {
+      "type": "object",
+      "properties": {
+        "issued_at": {
+          "type": "string"
+        },
+        "issued_at_timezone": {
+          "type": "string"
+        },
+        "league_id": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "platform": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "recommendation": {
+          "type": "string"
+        },
+        "scoring_contract_version": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "scoring_format": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "season": {
+          "type": "number"
+        },
+        "week": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "issued_at",
+        "issued_at_timezone",
+        "league_id",
+        "platform",
+        "recommendation",
+        "scoring_contract_version",
+        "scoring_format",
+        "season",
+        "week"
+      ]
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "resolved",
+        "data_incomplete"
+      ]
+    },
+    "user_action": {
+      "type": "object",
+      "properties": {
+        "followed": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "known": {
+          "type": "boolean"
+        },
+        "statement": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "followed",
+        "known",
+        "statement"
+      ]
+    }
+  },
+  "required": [
+    "call_type",
+    "capabilities",
+    "capability_contract",
+    "contract_version",
+    "decision_context",
+    "evidence_at_the_time",
+    "fairness_note",
+    "feedback",
+    "generated_at",
+    "id",
+    "observed_outcome",
+    "snapshot",
+    "state",
+    "user_action"
+  ]
+}

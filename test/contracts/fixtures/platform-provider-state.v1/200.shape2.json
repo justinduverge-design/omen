@@ -1,0 +1,27 @@
+{
+  "http_status": 200,
+  "route": "/api/platforms/state",
+  "body": {
+    "contract_version": "platform-provider-state.v1",
+    "providers": {
+      "espn": {
+        "error_code": null,
+        "platform": "espn",
+        "recovery_action": null,
+        "state": "connected"
+      },
+      "sleeper": {
+        "error_code": "sleeper_league_context_missing",
+        "platform": "sleeper",
+        "recovery_action": "choose_league",
+        "state": "choosing_league"
+      },
+      "yahoo": {
+        "error_code": "yahoo_oauth_context_missing",
+        "platform": "yahoo",
+        "recovery_action": "reauthenticate",
+        "state": "needs_reauth"
+      }
+    }
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "http_status": 200,
+  "route": "/api/leagues/",
+  "body": {
+    "active": {
+      "league_id": "12345",
+      "league_name": "Alpha Dynasty",
+      "platform": "espn",
+      "scoring_format": null,
+      "season": 2026,
+      "team_id": "9",
+      "team_name": "ESPN Team"
+    },
+    "contract_version": "league-directory.v1",
+    "follow_persistence": "unavailable",
+    "generated_at": "2026-01-01T00:00:00.000Z",
+    "platforms": [
+      {
+        "connection_state": "connected",
+        "discovery": "full",
+        "leagues": [
+          {
+            "is_active": true,
+            "is_followed": true,
+            "league_id": "12345",
+            "league_name": "Alpha Dynasty",
+            "scoring_format": null,
+            "season": 2026,
+            "team_id": "9",
+            "team_name": "ESPN Team"
+          },
+          {
+            "is_active": false,
+            "is_followed": true,
+            "league_id": "88",
+            "league_name": "Mid Money",
+            "scoring_format": null,
+            "season": 2026,
+            "team_id": "900002",
+            "team_name": null
+          },
+          {
+            "is_active": false,
+            "is_followed": true,
+            "league_id": "77",
+            "league_name": "Zeta Office",
+            "scoring_format": null,
+            "season": 2026,
+            "team_id": "4",
+            "team_name": "Zeta Squad"
+          }
+        ],
+        "notice": null,
+        "platform": "espn"
+      },
+      {
+        "connection_state": "not_connected",
+        "discovery": "unavailable",
+        "leagues": [],
+        "notice": null,
+        "platform": "sleeper"
+      },
+      {
+        "connection_state": "not_connected",
+        "discovery": "unavailable",
+        "leagues": [],
+        "notice": null,
+        "platform": "yahoo"
+      }
+    ],
+    "season": 2026,
+    "selection_persistence": "explicit"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "http_status": 400,
+  "route": "/api/platforms/espn/connect",
+  "body": {
+    "code": "espn_league_or_team_not_found",
+    "message": "ESPN accepted the request, but Omen could not find your team in that league. Confirm the League ID belongs to the same ESPN account and that the league has a fantasy team for you.",
+    "status": "error"
+  }
+}

@@ -1,0 +1,310 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "dashboard-summary.v1",
+  "title": "dashboard-summary.v1 (inferred from recorded server responses; review before relying on it)",
+  "description": "ADDITIVE ONLY within this version. Extra properties are allowed; removing, renaming or retyping anything listed here is a breaking change and fails the lock.",
+  "type": "object",
+  "properties": {
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "fresh_until": {
+            "description": "Observed only as null in recorded responses; the real type is not constrained."
+          },
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "observed_at": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reason_code": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "statement": {
+            "type": "string"
+          },
+          "used": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "fresh_until",
+          "kind",
+          "name",
+          "observed_at",
+          "source",
+          "state",
+          "statement",
+          "used"
+        ]
+      }
+    },
+    "capability_contract": {
+      "type": "string"
+    },
+    "contract_version": {
+      "type": "string"
+    },
+    "game_week": {
+      "type": "object",
+      "properties": {
+        "day": {
+          "type": "string"
+        },
+        "is_off_season": {
+          "type": "boolean"
+        },
+        "phase": {
+          "type": "string"
+        },
+        "season": {
+          "type": "number"
+        },
+        "week": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "day",
+        "is_off_season",
+        "phase",
+        "season",
+        "week"
+      ]
+    },
+    "generated_at": {
+      "type": "string"
+    },
+    "is_mock": {
+      "type": "boolean"
+    },
+    "platforms": {
+      "type": "object",
+      "properties": {
+        "espn": {
+          "type": "object",
+          "properties": {
+            "connected": {
+              "type": "boolean"
+            },
+            "lastGameId": {
+              "description": "Observed only as null in recorded responses; the real type is not constrained."
+            },
+            "lastGameKickoff": {
+              "description": "Observed only as null in recorded responses; the real type is not constrained."
+            },
+            "lastResult": {
+              "description": "Observed only as null in recorded responses; the real type is not constrained."
+            }
+          },
+          "required": [
+            "connected",
+            "lastGameId",
+            "lastGameKickoff",
+            "lastResult"
+          ]
+        },
+        "sleeper": {
+          "type": "object",
+          "properties": {
+            "connected": {
+              "type": "boolean"
+            },
+            "lastGameId": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "lastGameKickoff": {
+              "description": "Observed only as null in recorded responses; the real type is not constrained."
+            },
+            "lastResult": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "username": {
+              "type": [
+                "null",
+                "string"
+              ]
+            }
+          },
+          "required": [
+            "connected",
+            "lastGameId",
+            "lastGameKickoff",
+            "lastResult",
+            "username"
+          ]
+        },
+        "yahoo": {
+          "type": "object",
+          "properties": {
+            "connected": {
+              "type": "boolean"
+            },
+            "lastGameId": {
+              "description": "Observed only as null in recorded responses; the real type is not constrained."
+            },
+            "lastGameKickoff": {
+              "description": "Observed only as null in recorded responses; the real type is not constrained."
+            },
+            "lastResult": {
+              "description": "Observed only as null in recorded responses; the real type is not constrained."
+            },
+            "league_id": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "status": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "connected",
+            "lastGameId",
+            "lastGameKickoff",
+            "lastResult",
+            "league_id"
+          ]
+        }
+      },
+      "required": [
+        "espn",
+        "sleeper",
+        "yahoo"
+      ]
+    },
+    "tools": {
+      "type": "object",
+      "properties": {
+        "omen_of_the_week": {
+          "type": "object",
+          "properties": {
+            "available": {
+              "type": "boolean"
+            },
+            "mode": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "available",
+            "mode",
+            "status"
+          ]
+        },
+        "start_sit": {
+          "type": "object",
+          "properties": {
+            "available": {
+              "type": "boolean"
+            },
+            "mode": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "available",
+            "mode",
+            "status"
+          ]
+        },
+        "trade_analyzer": {
+          "type": "object",
+          "properties": {
+            "available": {
+              "type": "boolean"
+            },
+            "mode": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "available",
+            "mode",
+            "status"
+          ]
+        },
+        "waiver_wire": {
+          "type": "object",
+          "properties": {
+            "available": {
+              "type": "boolean"
+            },
+            "mode": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "available",
+            "mode",
+            "status"
+          ]
+        }
+      },
+      "required": [
+        "omen_of_the_week",
+        "start_sit",
+        "trade_analyzer",
+        "waiver_wire"
+      ]
+    },
+    "user": {
+      "type": "object",
+      "properties": {
+        "favorite_team": {
+          "type": [
+            "null",
+            "string"
+          ]
+        }
+      },
+      "required": [
+        "favorite_team"
+      ]
+    }
+  },
+  "required": [
+    "capabilities",
+    "capability_contract",
+    "contract_version",
+    "game_week",
+    "generated_at",
+    "is_mock",
+    "platforms",
+    "tools",
+    "user"
+  ]
+}

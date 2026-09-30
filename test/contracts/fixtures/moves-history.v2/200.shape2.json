@@ -1,0 +1,24 @@
+{
+  "http_status": 200,
+  "route": "/api/moves/",
+  "body": {
+    "contract_version": "moves-history.v2",
+    "generated_at": "2026-01-01T00:00:00.000Z",
+    "moves": [
+      {
+        "action_provenance": "self_reported",
+        "followed": true,
+        "headline": "Start Hall",
+        "id": "00000000-0000-4000-8000-000000000000",
+        "issued_at": "2026-01-01T00:00:00.000Z",
+        "issued_at_timezone": "UTC",
+        "move_type": "start_sit",
+        "outcome": "not_verified",
+        "provenance": "unknown",
+        "season": 2026,
+        "week": 2
+      }
+    ],
+    "season": 2026
+  }
+}

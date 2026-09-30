@@ -1,0 +1,12 @@
+{
+  "http_status": 401,
+  "route": "/api/waivers/analysis",
+  "body": {
+    "action": "reconnect",
+    "code": "yahoo_reconnect_required",
+    "contract_version": "waiver-analysis-error.v1",
+    "error": "Waiver analysis unavailable",
+    "message": "Reconnect this platform so Omen can read your roster.",
+    "platform": "yahoo"
+  }
+}

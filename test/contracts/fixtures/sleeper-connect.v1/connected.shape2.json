@@ -1,0 +1,11 @@
+{
+  "http_status": 200,
+  "route": "/api/platforms/sleeper/connect",
+  "body": {
+    "connected": true,
+    "league_id": "league-1",
+    "platform": "sleeper",
+    "status": "connected",
+    "username": "sleepy"
+  }
+}

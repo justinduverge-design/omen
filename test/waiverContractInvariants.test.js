@@ -56,3 +56,30 @@ test("waiver_system is null-safe when no model is supplied at all", () => {
   assert.equal(out.waiver_system, null);
   assert.equal(out.best_move.bid, null);
 });
+
+// Composed display text: the native League screen renders a budget or claim order ONLY from these two
+// fields, and treats a league without them as "not determined". Before they existed every FAAB and
+// priority league rendered as undetermined (S0 contract probe, 2026-09-30).
+test("waiver_system carries composed budget_text / order_text, and only when every number is known", () => {
+  const out = buildWaiverAnalysis({ ...CASES.confirmed_opportunity });
+  assert.equal(out.waiver_system.budget_text, "Your budget $80 of $100");
+  assert.equal(out.waiver_system.order_text, null, "a FAAB league has no claim order (decoy field dropped)");
+
+  const unreadBalance = buildWaiverAnalysis({
+    ...CASES.confirmed_opportunity,
+    waiverSystem: fromSleeper({ league: { settings: { waiver_type: 2, waiver_budget: 100 } }, roster: { settings: {} } }),
+  });
+  assert.equal(unreadBalance.waiver_system.budget_remaining, null);
+  assert.equal(unreadBalance.waiver_system.budget_text, null, "an unread balance must not become \"$0 of $100\"");
+
+  const priority = buildWaiverAnalysis({
+    ...CASES.confirmed_opportunity,
+    waiverSystem: fromSleeper({ league: { settings: { waiver_type: 0 } }, roster: { settings: { waiver_position: 7 } } }),
+  });
+  assert.equal(priority.waiver_system.order_text, "Claim order 7");
+  assert.equal(priority.waiver_system.budget_text, null);
+
+  const unknown = buildWaiverAnalysis({ ...CASES.confirmed_opportunity, waiverSystem: undetermined("no probe") });
+  assert.equal(unknown.waiver_system.budget_text, null);
+  assert.equal(unknown.waiver_system.order_text, null);
+});

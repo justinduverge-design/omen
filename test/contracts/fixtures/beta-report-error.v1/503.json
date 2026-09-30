@@ -1,0 +1,9 @@
+{
+  "http_status": 503,
+  "route": "/",
+  "body": {
+    "contract_version": "beta-report-error.v1",
+    "error": "report_storage_unavailable",
+    "message": "Your report was not saved. Please try again later."
+  }
+}

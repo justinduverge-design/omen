@@ -1,0 +1,213 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "user-export.v1",
+  "title": "user-export.v1 (inferred from recorded server responses; review before relying on it)",
+  "description": "ADDITIVE ONLY within this version. Extra properties are allowed; removing, renaming or retyping anything listed here is a breaking change and fails the lock.",
+  "type": "object",
+  "properties": {
+    "beta_reports": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "app_version": {
+            "type": "string"
+          },
+          "build": {
+            "type": "string"
+          },
+          "connection_state": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "device_model": {
+            "type": "string"
+          },
+          "disclosure_accepted": {
+            "type": "boolean"
+          },
+          "expires_at": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "os_version": {
+            "type": "string"
+          },
+          "recent_error_codes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "screen": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "app_version",
+          "build",
+          "connection_state",
+          "created_at",
+          "device_model",
+          "disclosure_accepted",
+          "expires_at",
+          "id",
+          "message",
+          "os_version",
+          "recent_error_codes",
+          "screen",
+          "user_id"
+        ]
+      }
+    },
+    "consent_records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "consent_type": {
+            "type": "string"
+          },
+          "granted": {
+            "type": "boolean"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "consent_type",
+          "granted",
+          "user_id"
+        ]
+      }
+    },
+    "contract_version": {
+      "type": "string"
+    },
+    "generated_at": {
+      "type": "string"
+    },
+    "moves": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "created_at": {
+            "type": "string"
+          },
+          "feature": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "move_type": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "created_at",
+          "feature",
+          "id",
+          "move_type",
+          "user_id"
+        ]
+      }
+    },
+    "platform_connections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "created_at": {
+            "description": "Observed only as null in recorded responses; the real type is not constrained."
+          },
+          "espn_team_id": {
+            "description": "Observed only as null in recorded responses; the real type is not constrained."
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "league_id": {
+            "type": "string"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "platform_username": {
+            "type": "string"
+          },
+          "token_expires_at": {
+            "description": "Observed only as null in recorded responses; the real type is not constrained."
+          },
+          "updated_at": {
+            "description": "Observed only as null in recorded responses; the real type is not constrained."
+          }
+        },
+        "required": [
+          "created_at",
+          "espn_team_id",
+          "is_active",
+          "league_id",
+          "platform",
+          "platform_username",
+          "token_expires_at",
+          "updated_at"
+        ]
+      }
+    },
+    "redactions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "user": {
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "updated_at": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "created_at",
+        "email",
+        "id",
+        "updated_at"
+      ]
+    }
+  },
+  "required": [
+    "beta_reports",
+    "consent_records",
+    "contract_version",
+    "generated_at",
+    "moves",
+    "platform_connections",
+    "redactions",
+    "user"
+  ]
+}

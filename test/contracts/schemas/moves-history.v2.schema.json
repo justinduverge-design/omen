@@ -1,0 +1,84 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "moves-history.v2",
+  "title": "moves-history.v2 (inferred from recorded server responses; review before relying on it)",
+  "description": "ADDITIVE ONLY within this version. Extra properties are allowed; removing, renaming or retyping anything listed here is a breaking change and fails the lock.",
+  "type": "object",
+  "properties": {
+    "contract_version": {
+      "type": "string"
+    },
+    "generated_at": {
+      "type": "string"
+    },
+    "moves": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "action_provenance": {
+            "type": "string"
+          },
+          "followed": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "headline": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "issued_at": {
+            "type": "string"
+          },
+          "issued_at_timezone": {
+            "type": "string"
+          },
+          "move_type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "provenance": {
+            "type": "string"
+          },
+          "season": {
+            "type": "number"
+          },
+          "week": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "action_provenance",
+          "followed",
+          "headline",
+          "id",
+          "issued_at",
+          "issued_at_timezone",
+          "move_type",
+          "outcome",
+          "provenance",
+          "season",
+          "week"
+        ]
+      }
+    },
+    "season": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "contract_version",
+    "generated_at",
+    "moves",
+    "season"
+  ]
+}

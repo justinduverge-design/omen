@@ -1,0 +1,21 @@
+{
+  "http_status": 200,
+  "route": "/api/platforms/sleeper/resolve",
+  "body": {
+    "leagues": [
+      {
+        "id": "league-1",
+        "name": "The Bird Board",
+        "scoring_format": "ppr",
+        "season": 2026,
+        "team_id": "7",
+        "team_name": "Old School Whistles"
+      }
+    ],
+    "platform": "sleeper",
+    "season": 2026,
+    "sleeper_user_id": "sleeper-user-1",
+    "status": "resolved",
+    "username": "sleepy"
+  }
+}

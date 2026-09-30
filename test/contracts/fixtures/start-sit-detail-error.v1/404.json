@@ -1,0 +1,11 @@
+{
+  "http_status": 404,
+  "route": "/api/start-sit/detail",
+  "body": {
+    "action": "connect",
+    "code": "no_usable_league",
+    "contract_version": "start-sit-detail-error.v1",
+    "error": "Start/Sit detail unavailable",
+    "message": "Connect a league and pick a team before Omen can compare a lineup decision."
+  }
+}

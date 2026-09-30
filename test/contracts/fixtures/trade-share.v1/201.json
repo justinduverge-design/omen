@@ -1,0 +1,10 @@
+{
+  "http_status": 201,
+  "route": "/api/trade/share",
+  "body": {
+    "api_path": "/api/trade/share/00000000-0000-4000-8000-000000000000",
+    "contract_version": "trade-share.v1",
+    "expires_at": "2026-01-01T00:00:00.000Z",
+    "hash": "00000000-0000-4000-8000-000000000000"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sleeper-connect.v1",
+  "title": "sleeper-connect.v1 (inferred from recorded server responses; review before relying on it)",
+  "description": "ADDITIVE ONLY within this version. Extra properties are allowed; removing, renaming or retyping anything listed here is a breaking change and fails the lock.",
+  "type": "object",
+  "properties": {
+    "code": {
+      "type": "string"
+    },
+    "connected": {
+      "type": "boolean"
+    },
+    "error": {
+      "type": "string"
+    },
+    "league_id": {
+      "type": "string"
+    },
+    "platform": {
+      "type": "string"
+    },
+    "replayed": {
+      "type": "boolean"
+    },
+    "request_id": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "connected"
+      ]
+    },
+    "username": {
+      "type": "string"
+    }
+  }
+}
