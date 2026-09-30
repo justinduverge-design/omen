@@ -41,7 +41,7 @@ Skipping a gate without writing why = lying about done. Marking a gate done with
 
 **A native screen is not done, and may not be marked `VERIFIED`, until it has run on the founder's paired iPhone.** Simulator captures prove composition; they do not prove what the founder sees. On 2026-09-30 the Sept 13 visual lock was marked `VERIFIED` (U1, U3, U4) on simulator frames rendered from fixtures and forced dark, while the production Command tab still mounted the pre-lock screen, in light mode. The reachability check passed because it counts references from screenshot code.
 
-Every native UI change (iOS, and Android when a device is attached) closes with all of these, with pointers:
+Every native UI change closes with all of these. **iOS only until Android resumes** (`Direction/decision_log.md` 2026-09-30); an iOS item does not wait on Android, with pointers:
 
 1. **Built and installed on the device**, not the simulator: `xcodebuild ... -destination 'id=<UDID>' -allowProvisioningUpdates build`, then `xcrun devicectl device install app` and `... process launch`. Record the UDID and the commit.
 2. **A screenshot taken from the device**: `xcrun devicectl device capture screenshot --device <UDID> --destination <file>.png`. Store it beside the artboard it is compared to.

@@ -546,6 +546,8 @@ number of pointed contract changes plus a governance amendment — not a build-o
 
 ### D1-DecisionEngineV2 — Make the pick from real football data, not from comparing projections
 
+- **Platform scope:** iOS only (founder, 2026-09-30, `Direction/decision_log.md`). The API and contracts stay platform-neutral; Android catches up later against the same fixtures.
+
 - **Status:** READY — pending founder ratification of the spec.
 - **Blocked by:** None for phases 1-2 (read-only data layer, factor library, backtest harness). Phase 3 (replace the optimizer) waits on phase 2's reports.
 - **Priority:** P0 — this is the product. Everything else in the queue protects a loop this item defines.

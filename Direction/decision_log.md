@@ -1,5 +1,17 @@
 # Omen Decision Log
 
+## 2026-09-30 — iOS leads; Android is paused, not maintained in parallel
+
+- **Decision (founder):** build and prove everything on iOS first. The beta users are on iOS. Android native work is paused until iOS is stable; then Android is brought level in one pass against the same contracts.
+- **Why:** Android was built at the end of sessions and is further behind and more broken than iOS (founder's read; consistent with the record — the lock's Command Center, dark-only and the multiselect were only checked on iOS). Splitting agent tokens across two clients meant neither was on a real device. This supersedes "Android receives equal semantic support" and "Android passes the same contract and provider suite" in `Blueprints/architecture/omen-rebuild-plan-v1.md` for the current phase: iOS leads, and **Android parity is a named later phase, not a per-change requirement.**
+- **What this changes in practice:**
+  - The native device gate in `definition-of-done.md` is iOS-only until Android resumes. An iOS item does not wait on Android.
+  - New native screens and engine-v2 screen work (D1) build iOS only. The public API and contracts stay platform-neutral, so Android can catch up against the same fixtures without rework.
+  - `android-ci.yml` keeps running so debt stays visible, but a red Android check does not block an iOS-only PR.
+  - Android is not deleted or deprecated. Its debt is recorded, not fixed piecemeal.
+- **Known Android debt at pause (not exhaustive):** dark-only change unbuilt/unrun on device; the lock's Command Center desk is not mounted (`OmenCommandDeskScreen` has no production reference on Android); `OmenEvidenceScreen` and `OmenStartSitScreen` show no non-test references by name (recheck); no device-verified screens.
+- **Resume trigger:** iOS beta stable for the weekly cadence and the D1 engine serving in production. Then one Android parity item, sized from a fresh audit.
+
 ## 2026-09-30 — the ESPN alerts were stopped by resolving GlitchTip issues, not by deactivating ESPN
 
 - **What was asked, and what was tried:** the founder wanted the recurring ESPN Discord alerts to stop and ESPN to stay active, with users re-logging in only
