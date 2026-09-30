@@ -1,0 +1,70 @@
+{
+  "http_status": 200,
+  "body": {
+    "alternatives": [],
+    "capabilities": [
+      {
+        "fresh_until": null,
+        "kind": "limitation",
+        "name": "roster",
+        "observed_at": null,
+        "source": "espn_adapter",
+        "state": "unavailable",
+        "statement": "ESPN roster import is blocked until recovery succeeds.",
+        "used": false
+      }
+    ],
+    "capability_contract": "decision-capabilities.v1",
+    "confidence_policy": "engine-bands.v1",
+    "contract_version": "omen-decision-brief.v3",
+    "evidence": [
+      {
+        "kind": "limitation",
+        "name": "roster",
+        "source_status": "unavailable",
+        "statement": "ESPN roster import is blocked until recovery succeeds.",
+        "used": false
+      }
+    ],
+    "feature": "omen_mvp_move",
+    "generated_at": "2026-01-01T00:00:00.000Z",
+    "league": {
+      "id": "mock-league-1",
+      "name": "Mock Omen League",
+      "scoring_format": "ppr",
+      "season": 2026,
+      "week": 1
+    },
+    "mode": "mock",
+    "platform": {
+      "name": "espn",
+      "recovery": {
+        "code": "refresh_espn_cookies",
+        "cta": "Reconnect ESPN",
+        "fields_needed": [
+          "ESPN_S2",
+          "SWID"
+        ],
+        "message": "Your ESPN connection needs fresh cookies before Omen can read this league.",
+        "status": "reauth_required"
+      },
+      "status": "reauth_required"
+    },
+    "recommendation": null,
+    "request_id": "omen_req_FIXTURE",
+    "signals": {
+      "roster": {
+        "message": "ESPN roster import is blocked until recovery succeeds.",
+        "source": "espn_adapter",
+        "status": "unavailable",
+        "used": false
+      }
+    },
+    "state": "espn_reauth_required",
+    "team": {
+      "id": "mock-team-1",
+      "name": "Mock Omen Team"
+    },
+    "warnings": []
+  }
+}

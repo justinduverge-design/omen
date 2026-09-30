@@ -14,6 +14,11 @@ struct OmenDecisionEnvelope: Decodable, Equatable {
     let mode: String?
     let recommendation: Recommendation?
     let recovery: Recovery?
+    /// `omen-decision-brief.v3` puts the recovery block under `platform.recovery`, not at the top
+    /// level (the pre-v3 envelope did). Both are read; see `recoveryMessage`.
+    let platform: Platform?
+    /// Present on `state: "error"`: `{ code, message, retryable }`.
+    let error: ErrorBody?
     let explanation: Explanation?
     let confidence: Confidence?
     let warnings: [String]?
@@ -23,7 +28,7 @@ struct OmenDecisionEnvelope: Decodable, Equatable {
 
     enum CodingKeys: String, CodingKey {
         case contractVersion = "contract_version"
-        case state, mode, recommendation, recovery, explanation, confidence, warnings, signals, capabilities
+        case state, mode, recommendation, recovery, platform, error, explanation, confidence, warnings, signals, capabilities
         case footballIntelligence = "football_intelligence"
     }
 
@@ -52,6 +57,17 @@ struct OmenDecisionEnvelope: Decodable, Equatable {
         let code: String?
         let message: String?
         let cta: String?
+    }
+
+    struct Platform: Decodable, Equatable {
+        let name: String?
+        let status: String?
+        let recovery: Recovery?
+    }
+
+    struct ErrorBody: Decodable, Equatable {
+        let code: String?
+        let message: String?
     }
 
     struct Player: Decodable, Equatable {
@@ -232,8 +248,18 @@ extension OmenDecisionEnvelope {
             // with the backend's own recovery message. The server already writes a
             // user-safe sentence for these; rewriting it here would be a second, drifting
             // copy of the same truth.
-            return .error(recovery?.message ?? Self.unreadableMessage, retry: onRetry)
+            return .error(recoveryMessage ?? Self.unreadableMessage, retry: onRetry)
         }
+    }
+
+    /// The server's own user-safe sentence for a state the user cannot render a recommendation from,
+    /// wherever the contract version put it: the legacy top-level `recovery`, v3's
+    /// `platform.recovery`, or an `error.message`. Before this read all three, an expired ESPN
+    /// connection told the user to "update the app" instead of to reconnect ESPN (S0 contract test).
+    var recoveryMessage: String? {
+        [recovery?.message, platform?.recovery?.message, error?.message]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .first { !$0.isEmpty }
     }
 
     private static let unreadableMessage =

@@ -1,0 +1,40 @@
+{
+  "http_status": 500,
+  "body": {
+    "alternatives": [],
+    "capabilities": [],
+    "capability_contract": "decision-capabilities.v1",
+    "confidence_policy": "engine-bands.v1",
+    "contract_version": "omen-decision-brief.v3",
+    "error": {
+      "code": "omen_generation_failed",
+      "message": "Omen could not generate an MVP Move right now.",
+      "retryable": true
+    },
+    "evidence": [],
+    "feature": "omen_mvp_move",
+    "generated_at": "2026-01-01T00:00:00.000Z",
+    "league": {
+      "id": "mock-league-1",
+      "name": "Mock Omen League",
+      "scoring_format": "ppr",
+      "season": 2026,
+      "week": 1
+    },
+    "mode": "mock",
+    "platform": {
+      "name": "yahoo",
+      "recovery": null,
+      "status": "connected"
+    },
+    "recommendation": null,
+    "request_id": "omen_req_FIXTURE",
+    "signals": {},
+    "state": "error",
+    "team": {
+      "id": "mock-team-1",
+      "name": "Mock Omen Team"
+    },
+    "warnings": []
+  }
+}
