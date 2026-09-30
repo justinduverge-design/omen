@@ -1,5 +1,46 @@
 # Omen Decision Log
 
+## 2026-09-29 — hostnames are not identity, the backup alert existed and said nothing useful, and "patched" is not "running patched"
+
+- **What happened.** Both VPSes were renamed. Three KVM1 scripts and Steward's freshness check compared
+  `hostname` to a hard-coded string, so every Supabase backup exited `Wrong host` from 2026-09-15 until
+  2026-09-29. Behind that sat a second, unrelated failure: Supabase added `recovery_code` to
+  `auth.factor_type`, and the backup's fail-closed enum guard refused to dump. The dropped-tables
+  hypothesis in the first WO-15 PR was wrong (see `Blueprints/handoffs/2026-09-29-wo-15-backup-repair.md`).
+- **Decision: identity is `/etc/machine-id`, never a hostname.** All backup scripts, Steward's checks and
+  Sentinel's checks now guard on machine-id. The status protocol reports a stable logical role (`kvm1`),
+  not a hostname. A rename can no longer silently disable a monitor.
+- **Decision: the alert existed; the message was the defect.** Steward reported `DOWN` correctly for 14
+  days and the dispatcher delivered it, but the line was a bare `result=DOWN` among GlitchTip issues. The
+  dispatcher now labels every Steward record: `result=DOWN check=supabase-backup-freshness
+  reason=backup_older_than_24h`. Lesson, extending the 2026-08-21 entry: a delivered alert that cannot be
+  read as an instruction has not been delivered.
+- **Decision: watch every backup, not just the first one.** The weekly football-data backup had no
+  freshness check and was failing on the same guard. Steward now runs `football-backup-freshness`
+  (8d WARNING / 9d CRITICAL / 14d DOWN) over the same forced-command channel, extended to an allow-list
+  of exactly two exports.
+- **Decision: updates were already automatic; restarts were the gap.** `unattended-upgrades` is on and
+  working on all five hosts, but `Automatic-Reboot` is off everywhere, so KVM1 runs kernel 139 with 142
+  installed and KVM2 runs 5.15.0-186 with 191 installed after 9 weeks. Restart policy is specified in the
+  fleet spec and is **not enabled until each host has had one supervised reboot.**
+- **Update, 2026-09-30.** Supervised reboots passed (KVM2, then KVM1, ~1 minute of downtime), so the restart
+  policy is enabled on KVM1/KVM2; the Pis are not, pending supervised reboots. Sentinel's patch-state check is
+  built (see the fleet spec). Two principles from building it: **a check that crashes must record `DOWN`, never
+  go silent** (silence reads as health), and **a failed-then-recovering probe during a planned reboot is expected** —
+  the supervised reboot briefly tripped Sentinel's existing network check, which cleared on its next run.
+  Pending security updates are daily churn; the alert is "still pending while unattended-upgrades is stale."
+- **Update, 2026-09-30 (later).** The remaining Sentinel checks are built: external exposure scan, host drift and
+  login events (hashes and counts only, against a deliberate baseline), and a weekly Restic integrity check watched by
+  Steward. All five hosts are on the restart policy after supervised reboots. Lessons worth keeping: **a probe from one
+  vantage point can lie** (the home network answers TCP 53 for every address; a canary address now detects that
+  instead of a hard-coded exception); **a script that works on the host you wrote it on can fail on its twin** (an empty
+  crontab directory made `set -e` + `pipefail` kill the collector on KVM2 only); **Debian does not signal
+  reboot-required**, so an automatic-reboot policy there is inert without a hook; and **Raspberry Pi OS journals are
+  volatile by default**, which is why incident history vanished on every reboot. Pi kernel/firmware updates are not
+  automated on purpose (single `kernel8.img`, no fallback) and need a person present.
+- **Corrected claim.** An earlier note said Steward's journal was memory-only. It is persistent; the
+  default cap was overrun by UFW LAN-broadcast noise. Retention is now `SystemMaxUse=300M`, one month.
+
 ## 2026-09-17 — Shared Decision Capabilities v1 is a semantic boundary, not a live-data switch
 
 - **Decision: capability state and evidence kind remain separate everywhere.**
