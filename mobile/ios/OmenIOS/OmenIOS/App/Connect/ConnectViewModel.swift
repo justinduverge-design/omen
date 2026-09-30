@@ -499,6 +499,8 @@ final class ConnectViewModel: ObservableObject {
         espnLeagueId = ""
         espnUnreadableRetries = 0
         selectedProvider = nil
+        clearLeagueSelection()
+        followsNotPersisted = false
         state = .notStarted
     }
 
@@ -510,7 +512,8 @@ final class ConnectViewModel: ObservableObject {
         state = .resolvingAccount
         switch await repository.resolveSleeper(username: trimmed, accessToken: accessToken) {
         case .success(let account):
-            state = .choosingLeague(account)
+            clearLeagueSelection()
+                state = .choosingLeague(account)
         case .failure(let failure):
             state = .retryableError(failure)
         }
@@ -607,6 +610,7 @@ final class ConnectViewModel: ObservableObject {
             if leagues.count == 1, let only = leagues.first {
                 await bindYahooLeague(only)
             } else {
+                clearLeagueSelection()
                 state = .choosingYahooLeague(leagues)
             }
         case .failure(let failure):

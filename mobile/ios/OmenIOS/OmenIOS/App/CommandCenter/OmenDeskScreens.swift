@@ -1216,6 +1216,11 @@ struct OmenCommandDeskHost: View {
     var onOpenLeague: (() -> Void)?
     var onReportProblem: (() -> Void)?
     var loadReceipt: ((String) async -> Result<MoveReceipt, OmenApiError>)?
+    /// The followed leagues. Swiping the desk moves between them; the league the user rests on
+    /// becomes the one Omen reasons about, exactly as the legacy carousel did.
+    @ObservedObject var carousel: LeagueCarouselViewModel
+    var userID: String
+    var onContextChanged: (([String]) -> Void)?
 
     @State private var showLedger = false
     @State private var receiptEntry: OmenLedgerEntry?
@@ -1227,6 +1232,24 @@ struct OmenCommandDeskHost: View {
             desk.padding(.bottom, 104)
         }
         .background(OmenColor.bg)
+        .task { await carousel.load(userID: userID) }
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 40).onEnded { value in
+                let dx = value.translation.width
+                guard abs(dx) > abs(value.translation.height) * 1.5 else { return }
+                let next = carousel.selectedIndex + (dx < 0 ? 1 : -1)
+                guard carousel.pages.indices.contains(next) else { return }
+                carousel.selectedIndex = next
+            }
+        )
+        .onChange(of: carousel.selectedIndex) { _, _ in
+            Task {
+                await carousel.loadCurrentPage()
+                if let refresh = await carousel.commitSelection() {
+                    onContextChanged?(refresh)
+                }
+            }
+        }
         .sheet(isPresented: $showLedger) {
             CommandCenterDetailSheet(title: "The Ledger") {
                 OmenLedgerScreen(

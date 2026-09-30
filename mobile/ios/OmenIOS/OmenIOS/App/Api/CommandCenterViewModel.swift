@@ -106,18 +106,35 @@ final class CommandCenterViewModel: ObservableObject {
     /// The lock's Command Center, from the same reads the legacy screen used. `nil` until the
     /// shell has loaded; sections resolve independently, so a dead matchup read never blanks the
     /// waiver or Ledger sections beside it.
-    var deskState: OmenDeskState? {
-        guard case .loaded(let summary) = viewState else { return nil }
-        let ledgerState = commandCenterState.ledger
-        return OmenDeskState.from(
-            overview: overview,
-            waiver: .from(analysis: waiverAnalysis),
-            ledger: .from(ledger: ledgerState),
-            weekLabel: summary.gameWeek?.week.map { "Week \($0)" } ?? "",
-            railCount: 0,
-            railIndex: 0,
-            standingsLine: nil
-        )
+    func deskState(railCount: Int, railIndex: Int) -> OmenDeskState? {
+        switch viewState {
+        case .loaded(let summary):
+            return OmenDeskState.from(
+                overview: overview,
+                waiver: .from(analysis: waiverAnalysis),
+                ledger: .from(ledger: commandCenterState.ledger),
+                weekLabel: summary.gameWeek?.week.map { "Week \($0)" } ?? "",
+                railCount: railCount,
+                railIndex: railIndex,
+                standingsLine: nil
+            )
+        case .loading:
+            // §10.3: numbers from the previous team are never shown while a read is in flight.
+            // Loading is the desk's own switching state, not a flash of the legacy screen.
+            return OmenDeskState(
+                weekLabel: "",
+                deadlineLabel: nil,
+                deadlineTime: nil,
+                matchup: .switching,
+                railCount: railCount,
+                railIndex: railIndex,
+                waiver: .switching,
+                ledger: .switching,
+                footnote: nil
+            )
+        case .demo, .failed:
+            return nil
+        }
     }
 
     /// True when the shell was read successfully and the answer is **no connected league**.

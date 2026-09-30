@@ -230,7 +230,10 @@ struct CommandCenterView: View {
                         state: quietState,
                         onOpenAccount: { showAccountSheet = true }
                     )
-                } else if let deskState = commandCenterViewModel.deskState {
+                } else if let deskState = commandCenterViewModel.deskState(
+                    railCount: leagueCarouselViewModel.pages.count,
+                    railIndex: leagueCarouselViewModel.selectedIndex
+                ) {
                     // The Sept 13 lock's Command Center. Before this, the production tab mounted
                     // `OmenCommandCenterScreen` and `OmenCommandDeskScreen` existed only in
                     // screenshot scenarios — verified on fixtures, never on a phone.
@@ -246,7 +249,16 @@ struct CommandCenterView: View {
                         onOpenAccount: { showAccountSheet = true },
                         onOpenLeague: { selectedTab = .league },
                         onReportProblem: { reportingScreen = .commandCenter },
-                        loadReceipt: { await commandCenterViewModel.loadReceipt(id: $0) }
+                        loadReceipt: { await commandCenterViewModel.loadReceipt(id: $0) },
+                        carousel: leagueCarouselViewModel,
+                        userID: userID,
+                        onContextChanged: { _ in
+                            Task {
+                                await commandCenterViewModel.load(userID: userID)
+                                await loadLeagueForSelectedContext()
+                                await omenDecisionViewModel.load(userID: userID)
+                            }
+                        }
                     )
                 } else {
                     OmenCommandCenterScreen(

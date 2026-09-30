@@ -385,7 +385,23 @@ struct ConnectView: View {
         }
     }
 
+    /// The connected screen's actions, preceded by the persistence warning when the server accepted
+    /// a multi-league choice but could not store it. The picker's footer is gone by the time
+    /// `recordFollows` learns this, so the warning has to live where the user is by then.
     private var connectedActions: some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step12) {
+            if viewModel.followsNotPersisted {
+                OmenStateSurface(
+                    kind: .stale,
+                    title: "Only the first league will stick for now",
+                    message: "Omen connected all of them, but can't yet remember a multi-league choice between sessions."
+                )
+            }
+            connectedButtons
+        }
+    }
+
+    private var connectedButtons: some View {
         ViewThatFits(in: .horizontal) {
             HStack(spacing: OmenSpacing.step12) {
                 OmenButton(title: "Go to Command Center", action: onConnected, variant: .primary, size: .md)

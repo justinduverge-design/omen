@@ -244,6 +244,24 @@ final class ConnectFlowTests: XCTestCase {
         XCTAssertEqual(Set(repository.recorder.followed.first?.leagueIDs ?? []), ["1", "2", "3"])
     }
 
+    /// Codex review, PR #494: ticks from one provider must not survive into the next picker, or
+    /// Confirm reads as enabled with nothing chosen and silently does nothing.
+    func testStartingOverClearsPriorLeagueSelection() async {
+        var repository = StubConnectRepository()
+        repository.espnDiscoverResult = .success([
+            EspnLeagueOption(id: "1", name: "A", season: 2026, teamId: "3", teamName: "T"),
+        ])
+        let viewModel = await espnReadyViewModel(repository: repository)
+        viewModel.toggleLeague("1")
+        XCTAssertTrue(viewModel.canConfirmLeagueSelection)
+
+        viewModel.startOver()
+
+        XCTAssertTrue(viewModel.selectedLeagueIDs.isEmpty)
+        XCTAssertFalse(viewModel.canConfirmLeagueSelection)
+        XCTAssertFalse(viewModel.followsNotPersisted)
+    }
+
     /// ESPN's directory can lag the WebKit session by a moment. Omen retries once before it
     /// offers manual entry, so a friend sees the same picker path as the first successful user.
     func testDiscoveryFailingFallsBackToManualEntryRatherThanFailingTheConnection() async {
