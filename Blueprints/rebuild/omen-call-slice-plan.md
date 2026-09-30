@@ -121,7 +121,9 @@ Designed here; built and rehearsed on a scratch database, never applied to produ
 
 Each step lists **owner**, **output**, **independent check**, **evidence required before merge**, and **stop conditions**. "Jules builds" means Jules produces the PR from the written work order; nothing is merged on Jules's word.
 
-### S0 — Freeze the slice contracts *(Claude)*
+### S0 — Freeze the slice contracts *(Claude)* — **IN PROGRESS: `omen-decision-brief.v3` done, others next**
+
+**Done 2026-09-30:** schema, six real-server fixtures, lock, and server and iOS contract tests for `omen-decision-brief.v3` (`test/contracts/README.md`). The first run found a live bug: iOS read the recovery message from a top-level field that v3 no longer sends, so an expired ESPN connection told the user to "update the app". Fixed and locked by test. **Still open in S0:** `start-sit-detail.v1/v2`, `decision-capabilities.v1` as its own schema, `waiver-analysis.v1`, `trade-compare.v2`, `moves-history.v2`; live-mode fixtures; a validated real production response.
 - **Output:** JSON Schemas and golden fixtures for `omen-decision-brief.v3`, `start-sit-detail.v2`, `decision-capabilities.v1` (nominal, degraded, no-play, unavailable, partial), generated from `canvas-contract-requirements-v1.json` and the shipped payloads. A contract-test job in CI.
 - **Independent check:** the real production route's response for the founder's league validates against the schema (read-only request); the iOS decoder tests decode every fixture.
 - **Evidence:** schema files, fixtures, green CI run, the recorded validation of a live response.

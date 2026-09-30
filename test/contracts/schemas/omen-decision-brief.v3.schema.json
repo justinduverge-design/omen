@@ -1,0 +1,628 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "omen-decision-brief.v3",
+  "title": "omen-decision-brief.v3 \u2014 POST /api/omen/mvp-move",
+  "description": "The public shape the Omen destination (OmenCall, OmenEvidence) renders. ADDITIVE ONLY within v3: optional fields and new capability entries may be added; nothing may be removed, renamed, retyped, or have its meaning changed. The lock file beside this schema enforces that. Additional properties are deliberately allowed so the server can add fields without a client release. Consumers must ignore fields and enum values they do not know.",
+  "type": "object",
+  "required": [
+    "contract_version",
+    "state",
+    "feature",
+    "mode",
+    "request_id",
+    "generated_at",
+    "platform",
+    "signals",
+    "recommendation",
+    "alternatives",
+    "warnings",
+    "confidence_policy",
+    "evidence",
+    "capability_contract",
+    "capabilities"
+  ],
+  "properties": {
+    "contract_version": {
+      "const": "omen-decision-brief.v3"
+    },
+    "state": {
+      "enum": [
+        "success",
+        "empty",
+        "off_season",
+        "platform_disconnected",
+        "pending_live_engine",
+        "yahoo_reauth_required",
+        "sleeper_league_context_missing",
+        "espn_reauth_required",
+        "espn_league_context_missing",
+        "espn_import_blocked",
+        "espn_recovery_needed",
+        "context_unavailable",
+        "error"
+      ]
+    },
+    "feature": {
+      "const": "omen_mvp_move"
+    },
+    "mode": {
+      "type": "string"
+    },
+    "request_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generated_at": {
+      "type": "string"
+    },
+    "platform": {
+      "type": "object",
+      "required": [
+        "name",
+        "status",
+        "recovery"
+      ],
+      "properties": {
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "type": "string"
+        },
+        "recovery": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "required": [
+                "code",
+                "message",
+                "cta"
+              ],
+              "properties": {
+                "status": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "cta": {
+                  "type": "string"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "league": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "team": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "signals": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/signal"
+      }
+    },
+    "recommendation": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/definitions/recommendation"
+        }
+      ]
+    },
+    "alternatives": {
+      "type": "array"
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "confidence_policy": {
+      "type": "string"
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/evidenceRow"
+      }
+    },
+    "capability_contract": {
+      "const": "decision-capabilities.v1"
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/capability"
+      }
+    },
+    "explanation": {
+      "$ref": "#/definitions/explanation"
+    },
+    "confidence": {
+      "$ref": "#/definitions/confidence"
+    },
+    "error": {
+      "type": "object",
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "retryable": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "description": "A successful call carries a complete recommendation.",
+      "if": {
+        "properties": {
+          "state": {
+            "const": "success"
+          }
+        },
+        "required": [
+          "state"
+        ]
+      },
+      "then": {
+        "required": [
+          "recommendation"
+        ],
+        "properties": {
+          "recommendation": {
+            "type": "object",
+            "required": [
+              "type",
+              "title",
+              "move",
+              "primary_player",
+              "comparison_player",
+              "expected_value_delta",
+              "confidence",
+              "risk",
+              "explanation"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "description": "A state with nothing to recommend explains why, at the top level.",
+      "if": {
+        "properties": {
+          "state": {
+            "enum": [
+              "empty",
+              "off_season"
+            ]
+          }
+        },
+        "required": [
+          "state"
+        ]
+      },
+      "then": {
+        "required": [
+          "explanation",
+          "confidence"
+        ]
+      }
+    },
+    {
+      "description": "An error state says what went wrong.",
+      "if": {
+        "properties": {
+          "state": {
+            "const": "error"
+          }
+        },
+        "required": [
+          "state"
+        ]
+      },
+      "then": {
+        "required": [
+          "error"
+        ]
+      }
+    },
+    {
+      "description": "A state that asks the user to act carries platform.recovery with the server's own sentence and action; the app renders that sentence instead of a generic fallback (S0 finding).",
+      "if": {
+        "properties": {
+          "state": {
+            "enum": [
+              "platform_disconnected",
+              "pending_live_engine",
+              "yahoo_reauth_required",
+              "sleeper_league_context_missing",
+              "espn_reauth_required",
+              "espn_league_context_missing",
+              "espn_import_blocked",
+              "espn_recovery_needed",
+              "context_unavailable"
+            ]
+          }
+        },
+        "required": [
+          "state"
+        ]
+      },
+      "then": {
+        "properties": {
+          "platform": {
+            "properties": {
+              "recovery": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "recovery"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "signal": {
+      "type": "object",
+      "required": [
+        "status",
+        "used",
+        "source",
+        "message"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "live",
+            "stub",
+            "mock",
+            "demo",
+            "unavailable"
+          ]
+        },
+        "used": {
+          "type": "boolean"
+        },
+        "source": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "player": {
+      "type": "object",
+      "required": [
+        "name",
+        "position",
+        "team"
+      ],
+      "properties": {
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "position": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "team": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "confidence": {
+      "description": "Band and drivers travel together; a numeric score never reaches a native client (C1). When the engine produced no confidence, the band is null and the reason is named, never a fourth band.",
+      "type": "object",
+      "not": {
+        "required": [
+          "score"
+        ]
+      },
+      "properties": {
+        "band": {
+          "enum": [
+            "confident",
+            "leaning",
+            "coin_flip",
+            null
+          ]
+        },
+        "drivers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "unavailable_reason": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "label": {
+          "type": "string"
+        },
+        "rationale": {
+          "type": "string"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "band": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "band"
+            ]
+          },
+          "then": {
+            "required": [
+              "drivers"
+            ],
+            "properties": {
+              "drivers": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "explanation": {
+      "type": "object",
+      "required": [
+        "summary"
+      ],
+      "properties": {
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "why_it_matters": {
+          "type": "string"
+        },
+        "risk": {
+          "type": "string"
+        },
+        "confidence": {
+          "type": "string"
+        },
+        "data_used": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "recommendation": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "start_sit",
+            "waiver_pickup",
+            "trade_suggestion"
+          ]
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "move": {
+          "type": "string",
+          "minLength": 1
+        },
+        "primary_player": {
+          "$ref": "#/definitions/player"
+        },
+        "comparison_player": {
+          "$ref": "#/definitions/player"
+        },
+        "matchup_context": {
+          "type": "object"
+        },
+        "expected_value_delta": {
+          "type": "object",
+          "required": [
+            "points",
+            "label"
+          ],
+          "description": "points is null on purpose when the provider has no projection (Yahoo's basic availability response): absence is an honesty guarantee, never rendered as 0.",
+          "properties": {
+            "points": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "label": {
+              "type": "string"
+            }
+          }
+        },
+        "confidence": {
+          "$ref": "#/definitions/confidence"
+        },
+        "risk": {
+          "type": "object",
+          "required": [
+            "level",
+            "reasons"
+          ],
+          "properties": {
+            "level": {
+              "enum": [
+                "low",
+                "medium",
+                "high"
+              ]
+            },
+            "reasons": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "explanation": {
+          "$ref": "#/definitions/explanation"
+        }
+      }
+    },
+    "evidenceRow": {
+      "type": "object",
+      "required": [
+        "name",
+        "kind",
+        "source_status",
+        "used",
+        "statement"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "verified",
+            "projection",
+            "model",
+            "inference",
+            "limitation"
+          ]
+        },
+        "source_status": {
+          "enum": [
+            "live",
+            "stub",
+            "mock",
+            "demo",
+            "unavailable"
+          ]
+        },
+        "used": {
+          "type": "boolean"
+        },
+        "statement": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "capability": {
+      "type": "object",
+      "required": [
+        "name",
+        "state",
+        "used",
+        "kind",
+        "source",
+        "statement",
+        "observed_at",
+        "fresh_until"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "live",
+            "mock",
+            "demo",
+            "unavailable"
+          ]
+        },
+        "used": {
+          "type": "boolean"
+        },
+        "kind": {
+          "enum": [
+            "verified",
+            "projection",
+            "model",
+            "inference",
+            "limitation"
+          ]
+        },
+        "source": {
+          "type": "string"
+        },
+        "statement": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observed_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fresh_until": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "http_status": 200,
+  "body": {
+    "alternatives": [],
+    "capabilities": [
+      {
+        "fresh_until": null,
+        "kind": "limitation",
+        "name": "roster",
+        "observed_at": null,
+        "source": "platform_adapter",
+        "state": "unavailable",
+        "statement": "No connected roster is available.",
+        "used": false
+      }
+    ],
+    "capability_contract": "decision-capabilities.v1",
+    "confidence_policy": "engine-bands.v1",
+    "contract_version": "omen-decision-brief.v3",
+    "evidence": [
+      {
+        "kind": "limitation",
+        "name": "roster",
+        "source_status": "unavailable",
+        "statement": "No connected roster is available.",
+        "used": false
+      }
+    ],
+    "feature": "omen_mvp_move",
+    "generated_at": "2026-01-01T00:00:00.000Z",
+    "league": {
+      "id": "mock-league-1",
+      "name": "Mock Omen League",
+      "scoring_format": "ppr",
+      "season": 2026,
+      "week": 1
+    },
+    "mode": "mock",
+    "platform": {
+      "name": "yahoo",
+      "recovery": {
+        "code": "connect_platform",
+        "cta": "Connect yahoo",
+        "message": "Connect yahoo before Omen can read your roster."
+      },
+      "status": "disconnected"
+    },
+    "recommendation": null,
+    "request_id": "omen_req_FIXTURE",
+    "signals": {
+      "roster": {
+        "message": "No connected roster is available.",
+        "source": "platform_adapter",
+        "status": "unavailable",
+        "used": false
+      }
+    },
+    "state": "platform_disconnected",
+    "team": {
+      "id": "mock-team-1",
+      "name": "Mock Omen Team"
+    },
+    "warnings": []
+  }
+}

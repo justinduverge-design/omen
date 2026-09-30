@@ -1,0 +1,238 @@
+{
+  "http_status": 200,
+  "body": {
+    "alternatives": [],
+    "capabilities": [
+      {
+        "fresh_until": null,
+        "kind": "limitation",
+        "name": "game_time_tv",
+        "observed_at": null,
+        "source": "mock_schedule_fixture",
+        "state": "mock",
+        "statement": "Kickoff and slate context from ESPN scoreboard or deterministic mock schedule.",
+        "used": true
+      },
+      {
+        "fresh_until": null,
+        "kind": "limitation",
+        "name": "llm_reasoning",
+        "observed_at": null,
+        "source": "template_pending_llm_attempt",
+        "state": "unavailable",
+        "statement": "This response uses a deterministic template explanation. Live Gemma narration is attempted by default for this route and replaces it when available.",
+        "used": true
+      },
+      {
+        "fresh_until": null,
+        "kind": "limitation",
+        "name": "matchup_dvp",
+        "observed_at": null,
+        "source": "pending_nflverse_data",
+        "state": "unavailable",
+        "statement": "Matchup DvP is live from nflverse-data when enough trailing-week opponent data exists; stub fallback otherwise.",
+        "used": false
+      },
+      {
+        "fresh_until": null,
+        "kind": "limitation",
+        "name": "projections",
+        "observed_at": null,
+        "source": "mock_projection_fixture",
+        "state": "mock",
+        "statement": "Projection provider is not finalized yet.",
+        "used": true
+      },
+      {
+        "fresh_until": null,
+        "kind": "limitation",
+        "name": "roster",
+        "observed_at": null,
+        "source": "platform_adapter",
+        "state": "mock",
+        "statement": "Roster imported from the selected platform or deterministic mock fixture.",
+        "used": true
+      },
+      {
+        "fresh_until": null,
+        "kind": "limitation",
+        "name": "travel_home_away",
+        "observed_at": null,
+        "source": "mock_schedule_fixture",
+        "state": "mock",
+        "statement": "Home/away context from ESPN scoreboard or deterministic mock schedule.",
+        "used": true
+      },
+      {
+        "fresh_until": null,
+        "kind": "limitation",
+        "name": "waivers",
+        "observed_at": null,
+        "source": "mock_waiver_pool",
+        "state": "mock",
+        "statement": "Live waiver pool wiring is platform-dependent.",
+        "used": true
+      },
+      {
+        "fresh_until": null,
+        "kind": "limitation",
+        "name": "weather",
+        "observed_at": null,
+        "source": "weather_fixture_or_stub",
+        "state": "mock",
+        "statement": "Live when OPENWEATHER_API_KEY is configured; stub or mock fallback otherwise.",
+        "used": true
+      }
+    ],
+    "capability_contract": "decision-capabilities.v1",
+    "confidence": {
+      "band": "leaning",
+      "drivers": [
+        "Available mock alternatives do not clear the current recommendation threshold."
+      ]
+    },
+    "confidence_policy": "engine-bands.v1",
+    "contract_version": "omen-decision-brief.v3",
+    "evidence": [
+      {
+        "kind": "limitation",
+        "name": "game_time_tv",
+        "source_status": "mock",
+        "statement": "Kickoff and slate context from ESPN scoreboard or deterministic mock schedule.",
+        "used": true
+      },
+      {
+        "kind": "limitation",
+        "name": "llm_reasoning",
+        "source_status": "unavailable",
+        "statement": "This response uses a deterministic template explanation. Live Gemma narration is attempted by default for this route and replaces it when available.",
+        "used": true
+      },
+      {
+        "kind": "limitation",
+        "name": "matchup_dvp",
+        "source_status": "unavailable",
+        "statement": "Matchup DvP is live from nflverse-data when enough trailing-week opponent data exists; stub fallback otherwise.",
+        "used": false
+      },
+      {
+        "kind": "limitation",
+        "name": "projections",
+        "source_status": "mock",
+        "statement": "Projection provider is not finalized yet.",
+        "used": true
+      },
+      {
+        "kind": "limitation",
+        "name": "roster",
+        "source_status": "mock",
+        "statement": "Roster imported from the selected platform or deterministic mock fixture.",
+        "used": true
+      },
+      {
+        "kind": "limitation",
+        "name": "travel_home_away",
+        "source_status": "mock",
+        "statement": "Home/away context from ESPN scoreboard or deterministic mock schedule.",
+        "used": true
+      },
+      {
+        "kind": "limitation",
+        "name": "waivers",
+        "source_status": "mock",
+        "statement": "Live waiver pool wiring is platform-dependent.",
+        "used": true
+      },
+      {
+        "kind": "limitation",
+        "name": "weather",
+        "source_status": "mock",
+        "statement": "Live when OPENWEATHER_API_KEY is configured; stub or mock fallback otherwise.",
+        "used": true
+      }
+    ],
+    "explanation": {
+      "confidence": "Leaning",
+      "data_used": [
+        "connected roster",
+        "weekly projections"
+      ],
+      "risk": "Forcing a marginal move could create more downside than upside.",
+      "summary": "No move clears the recommendation threshold this week.",
+      "why_it_matters": "Your current lineup is close enough to the available alternatives that Omen should not force a move."
+    },
+    "feature": "omen_mvp_move",
+    "generated_at": "2026-01-01T00:00:00.000Z",
+    "league": {
+      "id": "mock-league-1",
+      "name": "Mock Omen League",
+      "scoring_format": "ppr",
+      "season": 2026,
+      "week": 1
+    },
+    "mode": "mock",
+    "platform": {
+      "name": "yahoo",
+      "recovery": null,
+      "status": "connected"
+    },
+    "recommendation": null,
+    "request_id": "omen_req_FIXTURE",
+    "signals": {
+      "game_time_tv": {
+        "message": "Kickoff and slate context from ESPN scoreboard or deterministic mock schedule.",
+        "source": "mock_schedule_fixture",
+        "status": "mock",
+        "used": true
+      },
+      "llm_reasoning": {
+        "message": "This response uses a deterministic template explanation. Live Gemma narration is attempted by default for this route and replaces it when available.",
+        "source": "template_pending_llm_attempt",
+        "status": "stub",
+        "used": true
+      },
+      "matchup_dvp": {
+        "message": "Matchup DvP is live from nflverse-data when enough trailing-week opponent data exists; stub fallback otherwise.",
+        "source": "pending_nflverse_data",
+        "status": "stub",
+        "used": false
+      },
+      "projections": {
+        "message": "Projection provider is not finalized yet.",
+        "source": "mock_projection_fixture",
+        "status": "mock",
+        "used": true
+      },
+      "roster": {
+        "message": "Roster imported from the selected platform or deterministic mock fixture.",
+        "source": "platform_adapter",
+        "status": "mock",
+        "used": true
+      },
+      "travel_home_away": {
+        "message": "Home/away context from ESPN scoreboard or deterministic mock schedule.",
+        "source": "mock_schedule_fixture",
+        "status": "mock",
+        "used": true
+      },
+      "waivers": {
+        "message": "Live waiver pool wiring is platform-dependent.",
+        "source": "mock_waiver_pool",
+        "status": "mock",
+        "used": true
+      },
+      "weather": {
+        "message": "Live when OPENWEATHER_API_KEY is configured; stub or mock fallback otherwise.",
+        "source": "weather_fixture_or_stub",
+        "status": "mock",
+        "used": true
+      }
+    },
+    "state": "empty",
+    "team": {
+      "id": "mock-team-1",
+      "name": "Mock Omen Team"
+    },
+    "warnings": []
+  }
+}

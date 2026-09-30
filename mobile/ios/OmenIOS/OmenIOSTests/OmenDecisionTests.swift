@@ -788,4 +788,62 @@ final class OmenDecisionViewModelTests: XCTestCase {
             return XCTFail("a failed detail read must not turn a successful brief into an error")
         }
     }
+    // MARK: - Contract fixtures (S0)
+    //
+    // The fixtures under `test/contracts/fixtures/omen-decision-brief.v3/` are generated from the real
+    // server builders and validated against the published schema in CI. Decoding the SAME files here
+    // is the other half of the contract check: the server cannot change a field the app reads
+    // without one of the two suites failing.
+
+    private func contractFixture(_ state: String) throws -> (envelope: OmenDecisionEnvelope, raw: [String: Any]) {
+        var url = URL(fileURLWithPath: #filePath)
+        for _ in 0..<5 { url.deleteLastPathComponent() } // file, OmenIOSTests, OmenIOS, ios, mobile -> repo root
+        url.appendPathComponent("test/contracts/fixtures/omen-decision-brief.v3/\(state).json")
+        let data = try Data(contentsOf: url)
+        let wrapper = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let bodyObject = try XCTUnwrap(wrapper["body"] as? [String: Any])
+        let bodyData = try JSONSerialization.data(withJSONObject: bodyObject)
+        return (try JSONDecoder().decode(OmenDecisionEnvelope.self, from: bodyData), bodyObject)
+    }
+
+    func testContractFixturesEveryStateDecodesAndMapsToItsScreenState() throws {
+        // success (mock mode): a full recommendation, a band that travels with its drivers, no numeral.
+        let success = try contractFixture("success")
+        XCTAssertEqual(success.envelope.state, "success")
+        guard case .mock(let payload) = success.envelope.briefState() else { return XCTFail("mock success must map to .mock") }
+        XCTAssertFalse(payload.verdict.isEmpty)
+        XCTAssertFalse(payload.move.isEmpty)
+        XCTAssertEqual(payload.confidenceBand, .leaning)
+        XCTAssertFalse(payload.confidenceDrivers.isEmpty, "a band never travels without its drivers")
+        XCTAssertNil(payload.confidence, "no numeric confidence reaches the native client")
+
+        // empty: the server's own sentence.
+        let empty = try contractFixture("empty")
+        guard case .empty(let sentence) = empty.envelope.briefState() else { return XCTFail("empty") }
+        XCTAssertEqual(sentence, empty.envelope.explanation?.summary)
+
+        // off_season and disconnected map to their own states.
+        guard case .offSeason = try contractFixture("off_season").envelope.briefState() else { return XCTFail("off_season") }
+        guard case .disconnected = try contractFixture("platform_disconnected").envelope.briefState() else { return XCTFail("disconnected") }
+    }
+
+    /// The server writes a user-safe recovery sentence for every state that needs the user to act
+    /// (`platform.recovery.message`) and an `error.message` for failures. The app must show THOSE, not
+    /// its generic "couldn't read" fallback — for an expiring ESPN cookie the difference is between
+    /// "reconnect ESPN" and a message telling the user to update the app.
+    func testContractFixturesShowTheServersOwnRecoveryMessage() throws {
+        let reauth = try contractFixture("espn_reauth_required")
+        let platform = try XCTUnwrap(reauth.raw["platform"] as? [String: Any])
+        let recovery = try XCTUnwrap(platform["recovery"] as? [String: Any])
+        let serverMessage = try XCTUnwrap(recovery["message"] as? String)
+        guard case .error(let shown, _) = reauth.envelope.briefState() else { return XCTFail("reauth must map to .error") }
+        XCTAssertEqual(shown, serverMessage)
+
+        let failure = try contractFixture("error")
+        let errorObject = try XCTUnwrap(failure.raw["error"] as? [String: Any])
+        let errorMessage = try XCTUnwrap(errorObject["message"] as? String)
+        guard case .error(let shownFailure, _) = failure.envelope.briefState() else { return XCTFail("error must map to .error") }
+        XCTAssertEqual(shownFailure, errorMessage)
+    }
+
 }
