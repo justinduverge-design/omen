@@ -189,8 +189,7 @@ restarts afterwards, so patched kernels sit unused. Policy, enabled per host onl
 proves a clean return (SSH socket, tailscaled, docker, all containers `unless-stopped` healthy, runner, timers).
 **Enabled 2026-09-30 on KVM1 (08:00) and KVM2 (08:30)** via `/etc/apt/apt.conf.d/52omen-reboot-policy`; the supervised
 reboots passed (KVM2 back in ~35s on 5.15.0-191; KVM1 back in ~60s on 6.8.0-142, public `/api/ready` 200 within
-~70s, ~1 minute of downtime). **The three Pis are not enabled yet** — none has had a supervised reboot, and
-Steward is on Wi-Fi, so a failed rejoin needs physical access.
+~70s, ~1 minute of downtime).
 
 | Host | `Automatic-Reboot-Time` (UTC) | Why this slot |
 |---|---|---|
@@ -199,6 +198,23 @@ Steward is on Wi-Fi, so a failed rejoin needs physical access.
 | Sentinel | 07:40 | |
 | KVM1 | 08:00 | After the 06:xx backup (≤20 min jitter); back well before the 09:15 football captures; 04:00 ET |
 | KVM2 | 08:30 | Holds the Restic repository; KVM1 does not back up in this slot |
+
+**The three Pis are enabled too (2026-09-30), in local America/New_York time:** Command Center 03:00, Steward 03:20,
+Sentinel 03:40 (07:00-07:40 UTC during daylight time; the rows above give the UTC intent). Supervised reboots passed:
+Sentinel back in ~91s, Steward in ~101s (Wi-Fi rejoined), Command Center in ~40s with all 7 containers. Two findings
+from doing it, both fixed: (1) **Debian has no reboot-required signal** (`update-notifier-common` is Ubuntu's), so the
+policy could never have fired; `omen-reboot-required-signal`, run after every dpkg invocation, now raises it when a newer
+kernel *of the same flavor* is installed (`-rpi-v8` and `-rpi-2712` are never compared). (2) Steward's freshness checks
+recorded a false DOWN at boot because the tailnet was not up yet; both now retry 4 times over ~80s.
+
+**Not automated, deliberately:** kernel and firmware updates on the Pis. They come from the Raspberry Pi archive, which
+unattended-upgrades does not allow (only Debian origins), so kernel 6.18.50 and new `raspi-firmware` are pending on all
+three. A Pi boots a single `kernel8.img`, so a bad kernel or Wi-Fi driver regression means keyboard-and-SD-card recovery.
+Update one Pi (Sentinel) with someone present, then decide whether to allow the origin.
+
+**Journals are now persistent on the Pis.** Raspberry Pi OS ships `Storage=volatile`, so every reboot erased incident
+history; `SystemMaxUse` had no effect until storage was persistent. The trade-off is more SD-card writes (300 MB cap,
+one month).
 
 Reboot only when `/var/run/reboot-required` exists; never with users logged in. **Backstop (built):**
 Sentinel's patch check raises WARNING when a reboot has been pending more than 48 hours (the policy reboots within
@@ -218,19 +234,42 @@ Build order is by value:
    false-alarm) or an identity mismatch. A crashing check records `DOWN check_crashed` instead of going silent.
    Pending security updates alone are normal daily churn and do not alert. Verified with real runs and simulated
    WARNING, DOWN and crash cases.
-2. **Public exposure** (external, from the home network): scan slopssaloon.com's public address and expect only
-   80/443. This verifies Hostinger firewall profile `287557` from outside, which nothing does today.
-3. **Host drift**: normalized listener hash, every user's `authorized_keys` hash, sudoers hash, UID-0/sudo
-   membership, enabled-unit set, container/image set on KVM1. A deliberate change refreshes the baseline.
-4. **Auth events**: SSH is Tailscale-only, so any failed authentication on a VPS is notable. Reuse the
-   cursor-based journald parser already proven on Sentinel.
+2. **Public exposure** — **built 2026-09-30.** `omen-public-exposure.py` (every 6h) TCP-scans ports 1-1024 plus
+   common service ports on both VPS public addresses and expects exactly 80/443 on KVM1 and nothing on KVM2, which
+   verifies Hostinger firewall profile `287557` from outside. Unexpected open port = CRITICAL; expected port closed =
+   WARNING (re-confirmed sequentially). Two lessons: **the home network answers TCP 53 for every address** (a non-routable
+   RFC 5737 canary connects), so any port the canary also reaches is recorded as `locally_intercepted_tcp` and ignored
+   rather than hard-coding an exception; and a 64-way connect burst gets SYNs dropped and hid 443, so it uses 16 workers.
+   No `nmap` was installed. From the datacenter vantage KVM1 shows only 80/443 with 22 closed.
+3. **Host drift** — **built 2026-09-30.** A root collector on each VPS (every 5 min) publishes only hashes and counts to
+   a world-readable report; the unprivileged `sentinel-status` export serves it (`posture`, second command on that
+   forced-command allow-list). Sentinel's `omen-host-posture.sh` (every 10 min) compares against a deliberately accepted
+   baseline in `/etc/sentinel/omen-host-posture-baseline-<role>.env`: `authorized_keys`, sudoers, admin/docker/UID-0
+   membership, effective `sshd -T` security subset, cron = **CRITICAL** on drift; listeners, enabled units,
+   container/image names (tags, so per-deploy digests do not alert) = **WARNING**. A deliberate change is accepted with
+   `sudo sentinel-omen-posture-baseline-refresh kvm1|kvm2` (it prints which categories changed) - never to silence an
+   alert you have not understood.
+4. **Auth events** — **built 2026-09-30** into the same collector, over a 60-minute journald window: an accepted SSH
+   login from outside the tailnet (100.64.0.0/10 and the tailnet ULA) or by a user not on
+   `/etc/omen-host-posture/expected-ssh-users` = **CRITICAL**; 10+ SSH failures or 3+ sudo failures = WARNING. The
+   range expression was tested on synthetic lines including the 100.63/100.128 boundaries.
 
-**Also noted for the drift check (step 3):** KVM2's `/etc/ssh/sshd_config.d/50-cloud-init.conf` contains
+**Noted:** KVM2's `/etc/ssh/sshd_config.d/50-cloud-init.conf` contains
 `PasswordAuthentication yes`; it is overridden today (`sshd -T` reports `no`) but is a latent regression if an earlier
 drop-in is ever removed. The dispatcher now labels Sentinel's records as well as Steward's.
 
-**Still uncovered:** KVM2 itself (disk, Restic repository integrity) — needs a periodic `restic check` run from
-KVM1 with the existing backup credentials, published through the same status channel.
+**KVM2 / Restic integrity — built 2026-09-30.** KVM1 runs `restic check --read-data-subset=5%` weekly (Sunday 09:30
+UTC, clear of the 00/06/12/18 backups and Tuesday football) with the existing backup credentials and publishes the
+outcome over the same channel (`restic-status`, third command on the `steward-status` allow-list). Steward's
+`restic-check-freshness` turns a FAILED check into CRITICAL immediately and a missing one into WARNING at 9 days,
+CRITICAL at 14, DOWN at 21. First run: 157 snapshots, no errors. KVM2's disk is covered by the patch check.
+
+**What the dispatcher now sees (13 checks, all labelled):** omen-ready, tls-expiry, supabase-backup-freshness,
+football-backup-freshness, restic-integrity, network-health, auth-security, listener-drift, omen-host-patch-kvm1/kvm2,
+omen-host-posture-kvm1/kvm2, public-exposure.
+
+**Every new check follows one rule:** a crashing check records `DOWN check_crashed`, and an unreachable channel is DOWN only
+after retries, so a reboot does not page.
 
 ## What this fleet is not
 

@@ -29,6 +29,15 @@
   go silent** (silence reads as health), and **a failed-then-recovering probe during a planned reboot is expected** —
   the supervised reboot briefly tripped Sentinel's existing network check, which cleared on its next run.
   Pending security updates are daily churn; the alert is "still pending while unattended-upgrades is stale."
+- **Update, 2026-09-30 (later).** The remaining Sentinel checks are built: external exposure scan, host drift and
+  login events (hashes and counts only, against a deliberate baseline), and a weekly Restic integrity check watched by
+  Steward. All five hosts are on the restart policy after supervised reboots. Lessons worth keeping: **a probe from one
+  vantage point can lie** (the home network answers TCP 53 for every address; a canary address now detects that
+  instead of a hard-coded exception); **a script that works on the host you wrote it on can fail on its twin** (an empty
+  crontab directory made `set -e` + `pipefail` kill the collector on KVM2 only); **Debian does not signal
+  reboot-required**, so an automatic-reboot policy there is inert without a hook; and **Raspberry Pi OS journals are
+  volatile by default**, which is why incident history vanished on every reboot. Pi kernel/firmware updates are not
+  automated on purpose (single `kernel8.img`, no fallback) and need a person present.
 - **Corrected claim.** An earlier note said Steward's journal was memory-only. It is persistent; the
   default cap was overrun by UFW LAN-broadcast noise. Retention is now `SystemMaxUse=300M`, one month.
 
