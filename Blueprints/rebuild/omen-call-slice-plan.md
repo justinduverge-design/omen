@@ -19,6 +19,22 @@ On the founder's iPhone, for the founder's real Sleeper league, in a weekly beta
 4. Each admitted factor has a backtest report; the engine's read is compared with the provider-projection-only pick over the season's shadow log, and the result is stated whether or not it wins.
 5. Every screen state on the path passes a contract test against the real server, and the iOS build was installed and screenshotted on the device.
 
+## Double-check results, 2026-09-30
+
+Every assumption the plan rests on was checked against the repo or the live data source. Results, including the ones that changed the plan:
+
+| Assumption | Result |
+|---|---|
+| nflverse publishes injuries, depth charts, snap counts and player-week stats for 2026 | **Confirmed.** `injuries_2026`, `depth_charts_2026`, `snap_counts_2026`, `stats_player_week_2026` exist. |
+| nflverse has schedule context (kickoff, rest, spread, total) for 2026 | **Confirmed.** The `schedules` release `games.csv` has 272 rows for 2026 with `weekday`, `gametime`, `home_rest`, `away_rest`, `spread_line`, `total_line`. |
+| nflverse has historical provider projections | **False.** No projections dataset exists. The forward shadow log is the only honest comparison (kept). |
+| Temperature and wind are available before kickoff | **False.** `temp` and `wind` are empty until the game is played; `roof` is blank for some venues (e.g. DAL). The live weather factor must come from a forecast source (OpenWeather is already integrated) and a stadium-roof table, while the backtest can only use observed weather. That difference is a known bias and must be reported, not hidden. |
+| A Sleeper roster joins to nflverse stats using ids nflverse already has | **False, and this was the biggest gap in the first draft.** nflverse's `players` table has `gsis_id` and `espn_id` but **no Sleeper or Yahoo id**. Only 34% of fantasy-relevant players are reachable through Sleeper's own `gsis_id`/`espn_id`. Without a crosswalk the slice cannot join a roster to any football data. |
+| A crosswalk can be built | **Confirmed, two ways.** (a) The DynastyProcess `db_playerids.csv` maps 99.7% of 572 relevant 2025 players to a Sleeper id, but the repository is **GPL-3.0**; do not ship or commit it. (b) Our own match on normalized name plus birth date (fallback name plus position) between Sleeper's public player dump and nflverse `players` agrees with (a) on **98.8%** of the 572, with 0 ambiguous, 5 unmatched and 2 disagreements that are cases where (a) itself has no Sleeper id. **Decision: build our own crosswalk; use (a) only as a checker on a dev machine, never committed.** |
+| The migration CI matches production | **False.** `migrations-ci.yml` runs `supabase/postgres:15.1.1.78`; production is Postgres 17.6. Rehearsals must run on 17. |
+| Canonical `players` exists to reference | **False.** `migrations/` holds only the baseline and identity migrations. `players` and `player_provider_ids` are in the Gate 1 blueprint but not built, so S1 must create them first. |
+| `rawVault.js` can hold receipts | **Confirmed**, and it enforces a current rights review date (`assertRightsReviewCurrent`); S2 must supply one or the job refuses to run, by design. |
+
 ## Decisions I am making, and why
 
 | # | Decision | Why |
@@ -28,6 +44,7 @@ On the founder's iPhone, for the founder's real Sleeper league, in a weekly beta
 | 3 | **Compact football data lives in Postgres; raw source files stay immutable artifacts.** | A season of player-week features is roughly a million numbers, which is small. Postgres gives transactional reads, access control and joins with decisions. Raw CSV and parquet stay as receipts outside the serving tables, as the football-intelligence architecture already requires. |
 | 4 | **Store the band as issued; do not derive it at read time.** | See "Two design flaws" below. |
 | 5 | **Start logging provider projections and Omen's read every week, now.** | Historical provider projections are not in nflverse (verify; I have not found them there). Without them the only honest comparison to "what ESPN already tells you" is a forward shadow log. Every week not logged is a week lost. |
+| 8 | **Own the player crosswalk; do not import a GPL file.** | Measured above: our own name-plus-birthdate match reaches 98.8% and unmatched players are held as *unresolved*, never guessed. |
 | 6 | **Factor set for the slice:** opponent matchup, game context (roof, wind, temperature), rest and travel, player form and role, injury and depth-chart detail. Scheme and coaching, and primetime history, come after the harness can judge them. | These are the factors whose data is verified available today (nflverse `schedules`, `stats_player`, `injuries`, `depth_charts`, `snap_counts` all publish 2026 files). |
 | 7 | **The agent that builds a step does not sign it off.** | The recurring failure. Each step below names an independent check and the evidence that must exist before merge. |
 
@@ -44,7 +61,9 @@ Designed here; built and rehearsed on a scratch database, never applied to produ
 
 | Table | Purpose | Key columns |
 |---|---|---|
-| `football_games` | One row per NFL game with the context factors read | `game_id` (nflverse), `season`, `week`, `kickoff_at`, `weekday`, `home_team`, `away_team`, `roof`, `surface`, `temp`, `wind`, `home_rest`, `away_rest`, `spread_line`, `total_line`, coaches, QBs, `source_ref` (content hash) |
+| `players`, `player_provider_ids` | **The canonical player and the crosswalk (from the Gate 1 blueprint, football core). Built first; every table below references `players`.** | `players(id omen:player:<slug>, gsis_id, name, position, birth_date, status)`; `player_provider_ids(player_id, provider, provider_player_id, match_method, verified_at)`; unresolved players held in a separate `player_identity_unresolved` list |
+| `football_games` | One row per NFL game with the context factors read; source is the nflverse `schedules` release | `game_id` (nflverse), `season`, `week`, `kickoff_at`, `weekday`, `home_team`, `away_team`, `roof`, `surface`, `temp`, `wind`, `home_rest`, `away_rest`, `spread_line`, `total_line`, coaches, QBs, `source_ref` (content hash) |
+| `game_weather` | Forecast or observed weather per game, with its source and as-of time | `game_id`, `source` (`forecast`\|`observed`), `temp`, `wind`, `precip`, `roof_resolved`, `as_of` |
 | `player_week_features` | Compact per-player-week form and role numbers | `player_id` (canonical), `season`, `week`, `team`, `opponent`, target/air-yards/WOPR/snap share, carries, EPA, `features` jsonb, `source_ref` |
 | `defense_position_allowed` | Opponent-versus-position table, derived | `team`, `position`, `season`, `week`, points/yards/EPA allowed, `window`, `source_ref` |
 | `decision_factors` | Per-decision factor contributions | `decision_id`, `factor_key`, `family`, `contribution_points`, `range_lo`, `range_hi`, `direction`, `used` boolean, `source`, `source_as_of`, `evidence` jsonb; insert-only |
@@ -64,12 +83,19 @@ Each step lists **owner**, **output**, **independent check**, **evidence require
 ### S1 — Schema additions and the band fix *(Claude designs the DDL; Jules builds)*
 - **Output:** the tables above as migrations under the WO-02 framework, one file per table, with `down` scripts, plus a pgTAP or SQL test proving RLS and the immutability triggers.
 - **Independent check:** up, down, up again on a scratch database with a schema diff after each; the suite passes on the migrated schema, not on a stub.
-- **Evidence:** rehearsal log, schema-diff output, RLS test output.
+- **Also in S1:** change `migrations-ci.yml` to a Postgres 17 image so rehearsals match production (currently 15).
+- **Evidence:** rehearsal log, schema-diff output, RLS test output, and the CI image change.
 - **Stop if:** any step needs production credentials, or `down` cannot restore the baseline.
 - **Action now:** before WO-07 opens a PR, tell Jules to apply the two flaws above. If a WO-07 PR already exists when this is read, it is **not merged** until it matches.
 
+### S1b — Player crosswalk *(Jules builds; Claude reviews)*
+- **Output:** a job that builds `players` and `player_provider_ids` from Sleeper's public player dump and the nflverse `players` release, matching on normalized name and birth date (fallback name and position). Ambiguous or unmatched players are written to an unresolved list with the reason; **never guessed**. Sleeper's own `espn_id` and `yahoo_id` populate the ESPN and Yahoo mappings.
+- **Independent check:** on a dev machine only, compare against the DynastyProcess `db_playerids.csv` (GPL-3.0; do not commit it or its derivatives). Coverage of players with at least one snap in the last season must be at least 98%, with zero known-wrong matches.
+- **Evidence:** the coverage report, the unresolved list, and the disagreement list with a reason for each.
+- **Stop if:** coverage is below 98%, or any match is wrong.
+
 ### S2 — Football data layer *(Jules builds; Claude reviews)*
-- **Output:** a weekly job that downloads nflverse `schedules`, `stats_player`, `snap_counts`, `injuries`, `depth_charts`; stores the raw file with a content hash as an immutable receipt (reuse `src/services/footballData/rawVault.js`); loads the compact tables; records freshness and refuses to serve stale data silently.
+- **Output:** a weekly job that downloads nflverse `schedules` (the release `games.csv`), `stats_player` (`stats_player_week_<season>.csv`), `snap_counts`, `injuries`, `depth_charts`; resolves each stats row to a canonical player through the S1b crosswalk (rows for unresolved players are counted and reported, not dropped silently); and writes weather as a separate forecast-or-observed record; stores the raw file with a content hash as an immutable receipt (reuse `src/services/footballData/rawVault.js`); loads the compact tables; records freshness and refuses to serve stale data silently.
 - **Independent check:** a run against 2025 data on a scratch database reproduces byte-identical compact tables on a second run; row counts match the source files; a corrupted file is rejected with a named reason.
 - **Evidence:** run logs, row-count table, the rejection test.
 - **Stop if:** an upstream file changes shape (record it; do not adapt silently).
@@ -118,7 +144,9 @@ Each step lists **owner**, **output**, **independent check**, **evidence require
 
 Each is self-contained. Paste the order into the Jules task; do not add the plan.
 
-**WO-S1 (schema):** *"Repo: justinduverge-design/omen. Read `Blueprints/rebuild/omen-call-slice-plan.md` sections 'Two design flaws' and 'Schema additions', and `Blueprints/rebuild/gate1/schema-decisions-ledger.md`. Add migrations under `migrations/` (node-pg-migrate, one file per table, with `down`) for `football_games`, `player_week_features`, `defense_position_allowed`, `decision_factors`, `projection_shadow_log`, and change `decisions` to store `band` (`confident|leaning|coin_flip`), `band_drivers` jsonb and `engine_version`, keeping the score internal. RLS on every table; immutability triggers on `decision_factors`. Prove up → down → up on a scratch database with schema diffs and run the full suite on the migrated schema. Never touch production; never merge. In the PR, list what you did not verify."*
+**WO-S1 (schema):** *"Repo: justinduverge-design/omen. Read `Blueprints/rebuild/omen-call-slice-plan.md` sections 'Double-check results', 'Two design flaws' and 'Schema additions', and `Blueprints/rebuild/gate1/schema-decisions-ledger.md`. Also change `.github/workflows/migrations-ci.yml` to a Postgres 17 image (it runs 15; production is 17.6). Add migrations under `migrations/` (node-pg-migrate, one file per table, with `down`) for `players`, `player_provider_ids`, `football_games`, `game_weather`, `player_week_features`, `defense_position_allowed`, `decision_factors`, `projection_shadow_log`, and change `decisions` to store `band` (`confident|leaning|coin_flip`), `band_drivers` jsonb and `engine_version`, keeping the score internal. RLS on every table; immutability triggers on `decision_factors`. Prove up → down → up on a scratch database with schema diffs and run the full suite on the migrated schema. Never touch production; never merge. In the PR, list what you did not verify."*
+
+**WO-S1b (crosswalk):** *"Read `Blueprints/rebuild/omen-call-slice-plan.md`, sections 'Double-check results' and S1b. Build the player crosswalk job: fetch Sleeper's public `https://api.sleeper.app/v1/players/nfl` and the nflverse `players` release; match on normalized name plus birth date, falling back to name plus position; write `players` and `player_provider_ids`; write ambiguous or unmatched players to an unresolved list with the reason; never guess. Do NOT download, commit or embed the DynastyProcess file (GPL-3.0). Report coverage over players with at least one snap in the last season (target at least 98%, zero known-wrong). Scratch database only; never merge. Say what you did not verify."*
 
 **WO-S2 (data layer):** *"Read `Blueprints/rebuild/omen-call-slice-plan.md` S2 and `src/services/footballData/`. Build the weekly nflverse job for `schedules`, `stats_player`, `snap_counts`, `injuries`, `depth_charts`. Store each raw file as an immutable content-hashed receipt (reuse `rawVault.js`); load the compact tables from WO-S1; refuse stale or corrupt input with a named reason. Prove: a 2025 run on a scratch database is byte-identical on a second run, row counts match the source, and a corrupted file is rejected. No production access, no merge."*
 
