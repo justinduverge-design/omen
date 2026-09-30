@@ -68,6 +68,45 @@ The "start the higher projection" rule is used only as the yardstick to beat, an
 - Each admitted factor has a backtest report showing out-of-sample improvement; rejected factors are listed with why.
 - The engine's read beats the provider-projection-only pick on historical weeks by a stated margin, or the spec says plainly that it does not and what that means for the product claim.
 
+
+## What the visual lock needs from the engine
+
+The 2026-09-13 lock was designed around an engine like this one: `OmenEvidence` already draws Weather, Rest and Matchup rows, and its copy says *"Three independent factors point the same way and none contradicts. That is what moves a call from Leaning to Confident — agreement, not margin."* That sentence is a **specification for the confidence band**: agreement between independent factors, not the size of the projection gap.
+
+| Screen (contract) | What it takes from the engine |
+|---|---|
+| **OmenCall**, **OmenEvidence** (`omen-decision-brief.v3`) | The move; the band with its drivers; risk with its reason; evidence rows per factor (kind, what it says, whether it was used); "what Omen could not read"; the alternatives it considered and why each was rejected |
+| **StartSitClear**, **StartSitIncomplete** (`start-sit-detail.v2`) | Per-player expected points and range; the factors that separated the two; the honest "incomplete" reasons (missing factor, unread provider) |
+| **CommandCenter** (waiver watch, matchup, ledger line) | The week's top move summary; matchup projection with the game-script context; the same waiver read as League |
+| **LeagueTable**, **LeagueWaiver**, **WaiverNoMove**, **WaiverNotDetermined** (`waiver-analysis.v1`) | The add/drop read with factor contributions; the honest no-move and not-determined states |
+| **TradeBuild**, **TradeVerdict**, **TradeNeedsContext** (`trade-compare.v2`) | The same factor-adjusted expectation for both sides of a trade, so a trade is judged on Omen's read, not on provider projections |
+| **Ledger**, **LedgerDetail** (`moves-history.v2`, `move-detail.v2`) | The stored factors and their contributions at issue time, so a wrong call can say which factor misled it. This is what makes "we admit when we were wrong" checkable. |
+
+The engine therefore has to persist, per decision: the expectation, its range, each factor's contribution, and each factor's source and as-of time. Contract-wise this is `move-detail` gaining the historical band/risk/reasoning it lacks today (a known gap in `Direction/2026-09-29-tuesday-readiness.md`).
+
+## Keeping the API from breaking again
+
+Two things broke the API before: production drifted from what the code assumed, and clients and server changed without a mechanical check between them. The rules below make both impossible to do quietly.
+
+1. **One public shape, private internals.** The engine produces a private `engine-read.v1` that no client ever sees. A single adapter maps it to the existing public contracts (`omen-decision-brief.v3`, `start-sit-detail.v2`, `waiver-analysis.v1`, `trade-compare.v2`, `moves-history.v2`). Engine work can change freely behind the adapter; the public shape only changes through the rules below.
+2. **New factors are new evidence rows, not new fields or new versions.** The capability manifest (`decision-capabilities.v1`) is already additive, with evidence kinds `verified / projection / model / inference / limitation`. A new factor (rest, wind, primetime history) ships as a new capability entry. Clients render an entry they do not recognise as a generic evidence row (label, sentence, kind, used or not), so a new factor needs **no client release**.
+3. **Additive only within a version.** Within a contract version the server may add optional fields and new capability entries. It may not remove, rename, retype or change the meaning of anything. A change that would do any of those is a **new contract version served alongside the old one**; the old one is kept until `GET /api/system/min-version` shows no supported client still needs it, then sunset with a dated note. Never mutate a shipped version in place (this is how `omen-decision-brief.v2` and `.v3` already coexist).
+4. **The visual lock is the test.** Every screen in `Blueprints/specs/design/canvas-contract-requirements-v1.json` already names its `api_contracts`. From that file, generate one JSON Schema per contract plus golden fixtures, and check them in **both directions in CI**: (a) the real server response, for a seeded league, validates against the schema; (b) the iOS and Android decoders decode the same fixtures and every required screen state renders. A server change that breaks a screen, or a client change that stops reading a field, fails a build.
+5. **Shadow before serving.** The new engine runs beside the old optimizer on real requests, logs both reads and their differences, and serves only after the differences are reviewed. The old path stays behind a flag until parity is shown.
+6. **Production schema is a checked input.** The engine's persistence changes are migrations under the framework added in WO-02, rehearsed up, down and up again on a restored clone, and applied to production only through a founder-approved bounded order. Tests run against the migrated schema, not against a hand-written stub of it.
+7. **The device gate applies.** A contract-affecting change is not done until the affected screens have run against the real server on the founder's phone (`definition-of-done.md`, native UI device gate).
+
+## Work split for the groundwork
+
+| Who | Does | Does not |
+|---|---|---|
+| **Jules** | Phase 1 data layer (weekly nflverse pull, receipts, store) as a migration and job on a scratch database; factor-library skeletons; the backtest harness; the schema and fixture generator from `canvas-contract-requirements-v1.json` | Merge; touch the production database; change a public contract |
+| **Muse** | Dispatches the work orders; gate-reviews against the rules above (schema check, UP/DOWN/UP, fixtures, shadow-mode diff); keeps the tracker | Production writes; merging anything without the gate evidence |
+| **Claude (this session's lane)** | The adapter and the engine-to-contract mapping; the contract tests in CI; the native screens against the real server and the founder's phone | Applying database changes; marking a screen verified without the device gate |
+| **Founder** | Ratify this spec; pick the first-beta factor set; approve each bounded production order | — |
+
+**Ordering:** contract schemas and fixtures first (they need no new data and protect everything after), then the data layer, then the factor library and harness, then the engine behind the adapter in shadow mode.
+
 ## Not decided here (founder)
 
 - Which factors are must-have for the first beta versus later.
