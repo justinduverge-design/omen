@@ -1,5 +1,20 @@
 # Omen Decision Log
 
+## 2026-09-30 — the ESPN alerts were stopped by resolving GlitchTip issues, not by deactivating ESPN
+
+- **What was asked, and what was tried:** the founder wanted the recurring ESPN Discord alerts to stop and ESPN to stay active, with users re-logging in only
+  briefly. First attempt: mark the 3 ESPN `platform_connections` rows `is_active = false` (the app then answers `espn_reauth_required` and shows ESPN as disconnected).
+  **The founder rejected that** (ESPN must stay active), and it was reverted exactly, including original `updated_at` values: all three active again, selection flags
+  unchanged, Sleeper (2) and Yahoo (1) never touched. Deactivating and staying active are mutually exclusive for stale cookies.
+- **Root of the alerts:** the dispatcher lists unresolved GlitchTip issues. Issues #4 and #11 (ESPN cookies rejected / HTTP 400; last event 2026-09-27) and #13 (Moves
+  ledger; fixed and migrated today) were unresolved, so they were re-listed daily. All 13 GlitchTip issues are now resolved (status 1); the dispatcher signature is empty.
+  GlitchTip reopens an issue on a new event, so a recurrence alerts again. **Not fixed:** ESPN cookies are user-supplied session cookies with a limited life, so the
+  underlying expiry will recur for those 3 users; the durable fix is a product item (detect expiry proactively and prompt before the first failed call).
+- **A false alert found while forcing the check, and fixed:** two CI deploys right after the merges made `docker compose up -d` recreate containers under temporary
+  `<12 hex>_name` names, and the posture collector snapshotted mid-recreate (`drift_containers`). The collector now strips that prefix (hash unchanged, no baseline
+  refresh), and Sentinel requires WARNING-class drift (listeners, enabled units, containers) to persist across two consecutive checks; security-class drift (keys,
+  sudoers, admin groups, sshd, cron) still alerts on the first sighting. Tested with scratch baselines.
+
 ## 2026-09-30 — the Ledger migration was applied, and "staging" was a restored production clone
 
 - **Decision: the founder-gated sequence was followed with a clone standing in for staging.** Omen has no staging Supabase project (the only

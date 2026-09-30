@@ -32,6 +32,15 @@
 - The dispatcher *service* stopping while Command Center stays up is not detected.
 - `omen-football-restore` has the corrected guard but has not been run.
 
+## ESPN alerts (2026-09-30, founder request)
+ESPN stays active. A first attempt to deactivate the 3 ESPN connections was rejected and **reverted exactly** (all active, original timestamps). The Discord alerts came from
+unresolved GlitchTip issues #4, #11 (ESPN) and #13 (Moves ledger, fixed); all 13 GlitchTip issues are now resolved, so the dispatcher lists nothing. They reopen if the
+errors recur. ESPN cookies will expire again for those users; that needs a product fix, not an operations one.
+
+## Alert tuning (2026-09-30)
+WARNING-class posture drift (listeners, enabled units, containers) now needs two consecutive checks before alerting, and the collector ignores compose's temporary
+container names during a deploy. Security-class drift still alerts immediately.
+
 ## Findings worth knowing
 - Uptime Kuma monitors only the public site, API health/ready and GlitchTip. Sentinel and Steward are Pi Zero 2 W boards (no Ethernet).
 - Unattended-upgrades worked all along; the gap was restarts. KVM1's runner is a bare process restarted by `@reboot` cron.
