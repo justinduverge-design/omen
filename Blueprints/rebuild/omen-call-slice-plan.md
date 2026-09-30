@@ -52,6 +52,35 @@ The engine needs seven things from a provider. A provider is **ready** for the s
 
 **Verdict today:** Sleeper is ready. ESPN and Yahoo are *capable in code and not verified live*; that is why the slice starts on Sleeper. ESPN becomes ready when: (1) a read-only probe run from production for the founder's own connection passes roster, matchup, projections, waiver pool and injury reads and prints no cookie values; (2) cookie expiry is detected proactively and the user is prompted before the first failed call (the durable fix, currently a product item); (3) the ESPN terms position is recorded by the founder. Yahoo becomes ready when the same probe passes and the scoring-rules refusal has a documented workaround.
 
+## External services readiness (checked 2026-09-30)
+
+Every outside service Omen depends on, found by reading `src/` for hosts and environment variables, then tested from outside where that is possible without credentials. "Verified" means observed working today; "Configured" means production reports the key is set and nothing more.
+
+| Service | Used for | Status | Evidence and what is missing |
+|---|---|---|---|
+| **Supabase** (Postgres and Auth) | Database, sign-in | **Verified** | `/api/ready` reports reachable; 15 tables; Auth providers enabled: Apple, Google, Discord, email (matches the native apps). Schema drift is the problem, not availability. |
+| **Sleeper** | Roster, matchup, scoring, projections, injuries, history | **Verified** | Live projections (3,117 rows, week 4) with stat lines; history to 2018. The projections endpoint is undocumented. |
+| **nflverse** (GitHub releases) | Stats, schedule, injuries, depth charts, snaps | **Verified** | 2026 files present; `games.csv` has 272 games for 2026. |
+| **ESPN public** (`site.api.espn.com`) | NFL schedule and scoreboard | **Verified** | 16 events, week 4, season 2026. |
+| **ESPN private** (`lm-api-reads.fantasy.espn.com`) | Users' ESPN leagues | **Capable, not verified today; fragile** | Cookie-based, expires. See the provider gate above. |
+| **Yahoo** (OAuth and fantasy API) | Users' Yahoo leagues | **Configured, not verified** | 1 connection, last touched 2026-09-17; scoring rules refused at the entitlement level. |
+| **FantasyFootballCalculator** | ADP | **Verified** | 2026 PPR ADP live, 109 drafts, updated 2026-09-25. |
+| **MyFantasyLeague** | ADP fallback | **Verified** | HTTP 200. |
+| **OpenWeather** | Game weather | **Configured, not verified** | Key set in production; the endpoint is alive (401 without a key). Whether the production key works is unproven, and it only offers a current forecast: no history, so a backtest cannot use it. |
+| **Local LLM** (`gemma3:4b` on the model host) | Narration | **Works, but too slow for the request path** | Reachable over the tailnet. Warm generation of a one-sentence answer took 4.7 to 6.7 seconds; a cold load took 13 seconds. The production narration budget is **1.25 seconds** (`MVP_LATENCY_BUDGET_MS.llm_narration`), so it almost certainly times out and falls back to "unavailable" (the mock response reports `llm_reasoning: unavailable`). |
+| **Resend** (email) | Waitlist confirmation | **DNS correct; key not proven** | DKIM record present, sending subdomain MX and SPF point at SES, DMARC present (monitor-only). Whether the API key is valid and the domain shows verified in Resend needs the Resend dashboard. It is used only by the waitlist route, best-effort, and failures are swallowed silently. The daily founder digest is described as "already wired" but the only Resend call in `src/` is the waitlist. |
+| **GlitchTip** (error tracking) | Errors | **Verified** | `/api/ready` reports valid DSN on the tailnet. |
+| **Upstash Redis** | Roster cache | **Configured, not verified** | Flag only. |
+| **Push notifications** (APNs) | Alerts | **Not built** | No sender exists in `src/`. |
+
+**Findings that change the plan**
+
+1. **Narration cannot depend on the local LLM in the request path.** The engine's explanation is generated deterministically from the factor contributions (already the rule). An LLM may polish it asynchronously or be dropped; it may never be required to answer, and it may not add reasons.
+2. **Weather should come from Open-Meteo, not OpenWeather.** Open-Meteo needs no key and offers a forecast, observed history, **and the historical forecast (what the forecast said before each game)**. That last one removes the forecast-versus-observed bias called out above and lets the backtest use exactly what a live pick would have seen. **Founder decision:** Open-Meteo's free tier is for non-commercial use with a daily call limit; Omen is free, but Valor Ventures LLC operates it. Either accept that position, or buy their commercial plan, or stay on OpenWeather and accept the bias. I recommend Open-Meteo now and revisiting if Omen ever charges or sells the API.
+3. **Resend is not a dependency of the engine and is low risk.** It stays as is. The claim that a daily digest runs over it should be checked before anything relies on it.
+
+**Services that must pass a bounded live probe before their slice depends on them** (each read-only, prints no secret, run from production with founder approval): ESPN private, Yahoo, OpenWeather key (if kept), Resend key and domain status, Upstash. Sleeper, nflverse, ESPN public, Supabase, FFC and MFL need none.
+
 ## Decisions I am making, and why
 
 | # | Decision | Why |
@@ -61,6 +90,7 @@ The engine needs seven things from a provider. A provider is **ready** for the s
 | 3 | **Compact football data lives in Postgres; raw source files stay immutable artifacts.** | A season of player-week features is roughly a million numbers, which is small. Postgres gives transactional reads, access control and joins with decisions. Raw CSV and parquet stay as receipts outside the serving tables, as the football-intelligence architecture already requires. |
 | 4 | **Store the band as issued; do not derive it at read time.** | See "Two design flaws" below. |
 | 5 | **Backtest against Sleeper's historical projections, and confirm with a forward shadow log.** | Sleeper serves weekly projections to 2018 (see the double-check table), so the "does Omen beat the provider" question can be answered on history now. The shadow log still starts as early as possible because it is the only proof of as-of timing and it covers ESPN and Yahoo projections, which have no history. |
+| 9 | **Weather from Open-Meteo (forecast, observed and historical forecast); narration deterministic from contributions.** | Verified 2026-09-30: gives an unbiased backtest, and the local LLM cannot meet the 1.25 s budget. Founder decision on Open-Meteo's non-commercial terms. |
 | 8 | **Own the player crosswalk; do not import a GPL file.** | Measured above: our own name-plus-birthdate match reaches 98.8% and unmatched players are held as *unresolved*, never guessed. |
 | 6 | **Factor set for the slice:** opponent matchup, game context (roof, wind, temperature), rest and travel, player form and role, injury and depth-chart detail. Scheme and coaching, and primetime history, come after the harness can judge them. | These are the factors whose data is verified available today (nflverse `schedules`, `stats_player`, `injuries`, `depth_charts`, `snap_counts` all publish 2026 files). |
 | 7 | **The agent that builds a step does not sign it off.** | The recurring failure. Each step below names an independent check and the evidence that must exist before merge. |
