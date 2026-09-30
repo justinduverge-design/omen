@@ -207,10 +207,15 @@ policy could never have fired; `omen-reboot-required-signal`, run after every dp
 kernel *of the same flavor* is installed (`-rpi-v8` and `-rpi-2712` are never compared). (2) Steward's freshness checks
 recorded a false DOWN at boot because the tailnet was not up yet; both now retry 4 times over ~80s.
 
-**Not automated, deliberately:** kernel and firmware updates on the Pis. They come from the Raspberry Pi archive, which
-unattended-upgrades does not allow (only Debian origins), so kernel 6.18.50 and new `raspi-firmware` are pending on all
-three. A Pi boots a single `kernel8.img`, so a bad kernel or Wi-Fi driver regression means keyboard-and-SD-card recovery.
-Update one Pi (Sentinel) with someone present, then decide whether to allow the origin.
+**Pi kernel and firmware updates: done by hand on 2026-09-30, deliberately not automated.** They come from the Raspberry
+Pi archive, which unattended-upgrades does not allow (only Debian origins). Hardware matters: **Sentinel and Steward are Pi
+Zero 2 W (Wi-Fi only, no Ethernet)**; Command Center is a Pi 4B (has an Ethernet port). All three were moved from 6.18.39
+to 6.18.50 with `raspi-firmware` 1.20260915-1 using `Blueprints/playbooks/pi-kernel-update-runbook.md` (verified
+fallback copy of the boot partition first). Sentinel went first and soaked 10 minutes (0 Wi-Fi drops, no throttling,
+all checks HEALTHY) before its identical twin Steward; Command Center followed. Reboots: 90s, 97s, 39s. **Decision:
+keep it manual.** A Pi boots one `kernel8.img`, so a bad kernel is keyboard-and-SD-card recovery, and unattended installs
+would take that risk with nobody watching. Revisit after a few more clean manual cycles. The Command Center bootloader EEPROM
+has an update available (`rpi-eeprom-update`); it is a firmware flash and was not applied.
 
 **Journals are now persistent on the Pis.** Raspberry Pi OS ships `Storage=volatile`, so every reboot erased incident
 history; `SystemMaxUse` had no effect until storage was persistent. The trade-off is more SD-card writes (300 MB cap,
@@ -264,9 +269,17 @@ outcome over the same channel (`restic-status`, third command on the `steward-st
 `restic-check-freshness` turns a FAILED check into CRITICAL immediately and a missing one into WARNING at 9 days,
 CRITICAL at 14, DOWN at 21. First run: 157 snapshots, no errors. KVM2's disk is covered by the patch check.
 
-**What the dispatcher now sees (13 checks, all labelled):** omen-ready, tls-expiry, supabase-backup-freshness,
-football-backup-freshness, restic-integrity, network-health, auth-security, listener-drift, omen-host-patch-kvm1/kvm2,
-omen-host-posture-kvm1/kvm2, public-exposure.
+**What the dispatcher now sees (14 checks, all labelled):** omen-ready, tls-expiry, supabase-backup-freshness,
+football-backup-freshness, restic-integrity, command-center-alive, network-health, auth-security, listener-drift,
+omen-host-patch-kvm1/kvm2, omen-host-posture-kvm1/kvm2, public-exposure.
+
+**Who watches the watchers (2026-09-30).** Uptime Kuma monitors only the public site, the API health/ready endpoints and
+GlitchTip; nothing watched whether Steward, Sentinel or Command Center were alive, and the dispatcher treated an unreachable
+Pi as "no data", which reads as healthy. Now: (1) the dispatcher reports `result=DOWN check=<host>-unreachable` once
+Steward or Sentinel has stayed unreachable for **10 minutes** (state file per host; the grace stops an ordinary ~90s reboot
+from alerting); (2) Steward's `command-center-alive` checks Command Center's SSH port every 5 minutes, WARNING on one full
+failure and DOWN on the second consecutive one. Tested with simulated first/second/recovered states. Still uncovered: the
+dispatcher *service* stopping while Command Center stays up.
 
 **Every new check follows one rule:** a crashing check records `DOWN check_crashed`, and an unreachable channel is DOWN only
 after retries, so a reboot does not page.

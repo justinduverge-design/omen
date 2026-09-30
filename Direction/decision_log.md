@@ -38,6 +38,19 @@
   reboot-required**, so an automatic-reboot policy there is inert without a hook; and **Raspberry Pi OS journals are
   volatile by default**, which is why incident history vanished on every reboot. Pi kernel/firmware updates are not
   automated on purpose (single `kernel8.img`, no fallback) and need a person present.
+- **Update, 2026-09-30 (kernels and watchers).** The Pi kernel/firmware updates were done by hand, canary-first, with a verified
+  fallback copy of the boot partition. **Sentinel and Steward are Pi Zero 2 W boards with no Ethernet; Command Center is a Pi 4B,**
+  so the canary covers Steward exactly and Command Center only by shared kernel image; that is why it went last and why the
+  runbook records the Ethernet recovery option. Automatic Pi kernel updates stay **off**: one bootable kernel image and no
+  fallback means an unattended bad update needs physical recovery. Separately, **nothing alerted when a Pi went unreachable**:
+  Kuma watches only the public site and GlitchTip, and the dispatcher read a dead host as "no data". The dispatcher now reports a
+  host unreachable for 10+ minutes, and Steward watches Command Center. Principle: **a monitor must distinguish "healthy" from
+  "I could not look".** Also found while auditing: the native Moves ledger has been failing in production since 2026-09-16 (150
+  GlitchTip events; `moves.result` and three other columns the code selects do not exist in production, and the "legacy" fallback
+  still selects `result`). It is application code and a gated schema change, so it went to its own task and merged as PR #490 (2026-09-30): the route no longer
+  names columns production lacks and answers 503 `league_scope_unavailable` instead of 500. **That does not restore the Ledger;** it
+  returns only after the review-only migration `sql/2026-09-29_moves_league_scope_review.sql` (adds nullable `platform`/`league_id`,
+  no backfill) goes through the founder-gated sequence: approval, staging, verification, production.
 - **Corrected claim.** An earlier note said Steward's journal was memory-only. It is persistent; the
   default cap was overrun by UFW LAN-broadcast noise. Retention is now `SystemMaxUse=300M`, one month.
 
