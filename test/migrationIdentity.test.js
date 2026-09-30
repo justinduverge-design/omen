@@ -6,7 +6,7 @@ const { execSync } = require("child_process");
 const { Client } = require("pg");
 
 test("Identity Unification Migration (1790735188136_identity-unification.js)", async () => {
-  const rootClient = new Client({ connectionString: "postgres://postgres:postgres@localhost:5432/postgres" });
+  const rootClient = new Client({ connectionString: "postgres://postgres:password@localhost:5432/postgres" });
   await rootClient.connect();
 
   await rootClient.query("DROP DATABASE IF EXISTS test_identity_migration;");
@@ -21,7 +21,7 @@ test("Identity Unification Migration (1790735188136_identity-unification.js)", a
   }
   await rootClient.end();
 
-  const dbUrl = "postgres://postgres:postgres@localhost:5432/test_identity_migration";
+  const dbUrl = "postgres://postgres:password@localhost:5432/test_identity_migration";
   const client = new Client({ connectionString: dbUrl });
   await client.connect();
 
