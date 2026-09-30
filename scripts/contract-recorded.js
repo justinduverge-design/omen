@@ -132,6 +132,23 @@ function outputs(dir) {
   return files;
 }
 
+/**
+ * Committed fixture files that a recording no longer produces (a state or shape vanished). Shared by
+ * `check` and `compare`: without it the schema tests keep treating a stale response as covered coverage.
+ */
+function staleFixtures(producedFiles) {
+  const stale = [];
+  for (const contract of Object.keys(registry())) {
+    const dir = path.join(FIXTURES, contract);
+    if (!fs.existsSync(dir)) continue;
+    for (const file of fs.readdirSync(dir)) {
+      const full = path.join(dir, file);
+      if (!producedFiles.has(full)) stale.push(full);
+    }
+  }
+  return stale.sort();
+}
+
 // ---- schema inference ------------------------------------------------------------------------
 const ENUM_KEYS = new Set(["state", "status", "variant"]);
 
@@ -215,7 +232,7 @@ function inferContract(name) {
   };
 }
 
-module.exports = { applyOverrides, registry, pick, outputs, runRecording, inferContract, normalizeValue, serialize, FIXTURES };
+module.exports = { staleFixtures, applyOverrides, registry, pick, outputs, runRecording, inferContract, normalizeValue, serialize, FIXTURES };
 
 if (require.main === module) {
   const cmd = process.argv[2];
@@ -245,24 +262,18 @@ if (require.main === module) {
     for (const [file, text] of out) {
       if (!fs.existsSync(file) || fs.readFileSync(file, "utf8") !== text) { console.error(`fixture out of date or new: ${path.relative(ROOT, file)}`); bad += 1; }
     }
-    // A committed recorded fixture the recording no longer produces means a state vanished.
-    for (const contract of Object.keys(registry())) {
-      const d = path.join(FIXTURES, contract);
-      if (!fs.existsSync(d)) continue;
-      for (const f of fs.readdirSync(d)) {
-        const full = path.join(d, f);
-        if (!out.has(full)) { console.error(`fixture no longer produced: ${path.relative(ROOT, full)}`); bad += 1; }
-      }
-    }
+    for (const full of staleFixtures(new Set(out.keys()))) { console.error(`fixture no longer produced: ${path.relative(ROOT, full)}`); bad += 1; }
     console.log(bad ? `${bad} fixture problem(s). Run: node scripts/contract-recorded.js record, and review the diff as an API change.` : `fixtures current (${out.size})`);
     process.exit(bad ? 1 : 0);
   } else if (cmd === "check") {
     const dir = path.join(os.tmpdir(), "omen-contract-record-check");
     if (!runRecording(dir)) { console.error("suite failed while recording"); process.exit(1); }
     let bad = 0;
-    for (const [file, text] of outputs(dir)) {
+    const out = outputs(dir);
+    for (const [file, text] of out) {
       if (!fs.existsSync(file) || fs.readFileSync(file, "utf8") !== text) { console.error(`fixture out of date or new: ${path.relative(ROOT, file)}`); bad += 1; }
     }
+    for (const full of staleFixtures(new Set(out.keys()))) { console.error(`fixture no longer produced: ${path.relative(ROOT, full)}`); bad += 1; }
     process.exit(bad ? 1 : 0);
-  } else { console.error("usage: record | infer <contract> | check"); process.exit(2); }
+  } else { console.error("usage: record | schemas | infer <contract> | compare <dir> | check"); process.exit(2); }
 }

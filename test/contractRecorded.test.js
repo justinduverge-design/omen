@@ -146,3 +146,16 @@ test("the registry and the requirements file agree (known differences are docume
   const missing = [...required].filter((c) => !registry[c] && !known.has(c)).sort();
   assert.deepEqual(missing, [], "a contract the screens depend on has no S0 protection");
 });
+
+test("staleFixtures reports a committed fixture the recording no longer produces", () => {
+  const { staleFixtures } = require("../scripts/contract-recorded");
+  const all = new Set();
+  for (const name of Object.keys(registry)) {
+    for (const file of fixtureFiles(name)) all.add(path.join(ROOT, "fixtures", name, file));
+  }
+  assert.deepEqual(staleFixtures(all), [], "every committed fixture is accounted for");
+  const victim = [...all][0];
+  const without = new Set(all);
+  without.delete(victim);
+  assert.deepEqual(staleFixtures(without), [victim], "a vanished state must be reported");
+});
