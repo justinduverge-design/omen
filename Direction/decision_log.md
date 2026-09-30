@@ -23,6 +23,12 @@
   working on all five hosts, but `Automatic-Reboot` is off everywhere, so KVM1 runs kernel 139 with 142
   installed and KVM2 runs 5.15.0-186 with 191 installed after 9 weeks. Restart policy is specified in the
   fleet spec and is **not enabled until each host has had one supervised reboot.**
+- **Update, 2026-09-30.** Supervised reboots passed (KVM2, then KVM1, ~1 minute of downtime), so the restart
+  policy is enabled on KVM1/KVM2; the Pis are not, pending supervised reboots. Sentinel's patch-state check is
+  built (see the fleet spec). Two principles from building it: **a check that crashes must record `DOWN`, never
+  go silent** (silence reads as health), and **a failed-then-recovering probe during a planned reboot is expected** —
+  the supervised reboot briefly tripped Sentinel's existing network check, which cleared on its next run.
+  Pending security updates are daily churn; the alert is "still pending while unattended-upgrades is stale."
 - **Corrected claim.** An earlier note said Steward's journal was memory-only. It is persistent; the
   default cap was overrun by UFW LAN-broadcast noise. Retention is now `SystemMaxUse=300M`, one month.
 

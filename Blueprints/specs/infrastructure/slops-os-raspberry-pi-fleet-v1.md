@@ -185,8 +185,12 @@ instance), which does not depend on SSH.
 | Steward, Sentinel, Command Center | journald `SystemMaxUse=300M`, `MaxRetentionSec=1month` |
 
 **Updates and restarts.** Security updates were already automatic on all five hosts. The gap is that nothing
-restarts afterwards, so patched kernels sit unused. Policy, in force only after one supervised reboot per host
-proves a clean return (SSH socket, tailscaled, docker, all containers `unless-stopped` healthy, runner, timers):
+restarts afterwards, so patched kernels sit unused. Policy, enabled per host only after one supervised reboot
+proves a clean return (SSH socket, tailscaled, docker, all containers `unless-stopped` healthy, runner, timers).
+**Enabled 2026-09-30 on KVM1 (08:00) and KVM2 (08:30)** via `/etc/apt/apt.conf.d/52omen-reboot-policy`; the supervised
+reboots passed (KVM2 back in ~35s on 5.15.0-191; KVM1 back in ~60s on 6.8.0-142, public `/api/ready` 200 within
+~70s, ~1 minute of downtime). **The three Pis are not enabled yet** — none has had a supervised reboot, and
+Steward is on Wi-Fi, so a failed rejoin needs physical access.
 
 | Host | `Automatic-Reboot-Time` (UTC) | Why this slot |
 |---|---|---|
@@ -196,23 +200,34 @@ proves a clean return (SSH socket, tailscaled, docker, all containers `unless-st
 | KVM1 | 08:00 | After the 06:xx backup (≤20 min jitter); back well before the 09:15 football captures; 04:00 ET |
 | KVM2 | 08:30 | Holds the Restic repository; KVM1 does not back up in this slot |
 
-Reboot only when `/var/run/reboot-required` exists; never with users logged in. **Backstop:** a check that
-raises WARNING when a reboot has been pending more than 7 days and CRITICAL past 14, so a stalled policy
-cannot go silent the way this one did.
+Reboot only when `/var/run/reboot-required` exists; never with users logged in. **Backstop (built):**
+Sentinel's patch check raises WARNING when a reboot has been pending more than 48 hours (the policy reboots within
+a day, so longer means it stalled) and CRITICAL past 7 days, so a stalled policy cannot go silent the way this one did.
 
-**Sentinel's role on Omen (design, not yet built).** Steward answers "is it up and fresh." Sentinel should
+**Sentinel's role on Omen.** Steward answers "is it up and fresh." Sentinel should
 answer "is the host still the host we built" — pull-based and read-only, exactly the existing forced-command
 pattern (no credentials, `from=` locked to Sentinel, hashes and counts only, protocol `omen-host-security.v1`).
 Build order is by value:
 
-1. **Patch state** (KVM1, KVM2): reboot-pending age, running vs installed kernel, pending security updates,
-   last unattended-upgrade success, disk. Would have caught this incident's kernel lag weeks ago.
+1. **Patch state** (KVM1, KVM2) — **built 2026-09-30.** `omen-host-patch-status-export` on each VPS
+   (unprivileged, counts/timestamps/versions only) behind a `sentinel-status` identity locked to `from=` Sentinel's
+   tailnet address with `restrict` and a forced command; Sentinel keeps its own key, with the VPS host keys pinned
+   after checking fingerprints out-of-band. `omen-host-patch.sh` (hourly, per host) flags reboot pending
+   48h/7d, running kernel behind installed, unattended-upgrades stale (72h) or security updates pending while it is
+   stale (36h), disk 85/92%, failed units, and DOWN on an unreachable channel (3 attempts, so a reboot does not
+   false-alarm) or an identity mismatch. A crashing check records `DOWN check_crashed` instead of going silent.
+   Pending security updates alone are normal daily churn and do not alert. Verified with real runs and simulated
+   WARNING, DOWN and crash cases.
 2. **Public exposure** (external, from the home network): scan slopssaloon.com's public address and expect only
    80/443. This verifies Hostinger firewall profile `287557` from outside, which nothing does today.
 3. **Host drift**: normalized listener hash, every user's `authorized_keys` hash, sudoers hash, UID-0/sudo
    membership, enabled-unit set, container/image set on KVM1. A deliberate change refreshes the baseline.
 4. **Auth events**: SSH is Tailscale-only, so any failed authentication on a VPS is notable. Reuse the
    cursor-based journald parser already proven on Sentinel.
+
+**Also noted for the drift check (step 3):** KVM2's `/etc/ssh/sshd_config.d/50-cloud-init.conf` contains
+`PasswordAuthentication yes`; it is overridden today (`sshd -T` reports `no`) but is a latent regression if an earlier
+drop-in is ever removed. The dispatcher now labels Sentinel's records as well as Steward's.
 
 **Still uncovered:** KVM2 itself (disk, Restic repository integrity) — needs a periodic `restic check` run from
 KVM1 with the existing backup credentials, published through the same status channel.
