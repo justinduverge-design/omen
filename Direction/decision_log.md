@@ -3919,3 +3919,25 @@ on the second one.
   after this call returns. Whether that refresh is itself serial/slow client-side is unexamined —
   flagged in `Direction/2026-09-29-tuesday-readiness.md` as the next place to look if switch lag
   is still noticeable after this fix.
+
+## 2026-09-29 — Ledger v2 refuses to serve when `moves` cannot be league-scoped (GlitchTip #13)
+
+- **Decision:** `GET /api/moves` (v2) returns `503 moves-history-error.v1 / league_scope_unavailable`
+  when `platform`/`league_id` are absent from `public.moves`, rather than serving the user's rows
+  unscoped or an empty list. Column reads are schema-tolerant: optional columns are dropped one at a
+  time as the database names them (`selectTolerantly` in `src/routes/moves.js`), replacing the
+  hand-written "legacy" list that still named `result`.
+- **Why not the alternatives:** unscoped rows would show another league's calls as this league's
+  (moves are keyed `user_id,week_num,season`, so a multi-league user has one row per week regardless
+  of league). An empty list would render the native "No Ledger entries yet", a false positive claim
+  about history. Attribution via `platform_connections` is unsound: one connection row can cover
+  several leagues.
+- **Cost, stated plainly:** the native Ledger shows its error state in production until
+  `sql/2026-09-29_moves_league_scope_review.sql` is applied through the founder-gated sequence. The
+  native client cannot yet distinguish this from a transient failure ("try again in a moment").
+- **Root cause:** production `moves` predates the reviewed bootstrap schema (same class as the A6
+  `scoring` column, 2026-08-26). Not a regression from the 2026-09-27 hygiene migration.
+- **Same-class findings left open:** `src/omen_tuesday_cron.js` writes `result`/`scored_at` (cron
+  scoring is held off); `src/routes/userPrivacy.js:128` exports `moves` columns `feature` and
+  `updated_at`, absent from production per the reported column list. `scripts/check-a4-scoring-gates.js`
+  shares the message format only: every column it selects exists in production.

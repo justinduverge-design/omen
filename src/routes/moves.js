@@ -5,6 +5,7 @@ const { createClient } = require("@supabase/supabase-js");
 const config = require("../config");
 const { requireAuth } = require("../middleware/auth");
 const { getCurrentNflWeekContext } = require("../services/nflSchedule");
+const { logger } = require("../middleware/logging");
 const { isMissingColumnError } = require("../services/activeSelection");
 const { buildDecisionCapabilities, CAPABILITY_CONTRACT } = require("../services/decisionCapabilities");
 const { attachDecisionReceipt, createDecisionContext } = require("../services/decisionContext");
@@ -26,6 +27,48 @@ function parsePositiveInteger(value, fallback, { max = Number.MAX_SAFE_INTEGER }
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed <= 0 || parsed > max) return null;
   return parsed;
+}
+
+// --- Schema-tolerant reads ---------------------------------------------------
+//
+// Production `public.moves` was not created from the definition this code assumed (verified
+// 2026-09-28, GlitchTip #13): it has no `result`, `scored_at`, `platform` or `league_id`. The
+// hand-written "legacy" column list still named `result`, so the fallback failed with the
+// same error it was meant to absorb. Optional columns are now dropped one at a time, as the
+// database names them, so any combination of absent columns degrades instead of failing.
+
+function namesColumn(error, column) {
+  const message = error?.message || "";
+  return new RegExp(`column [^ ]*\\b${column}\\b|'${column}' column`, "i").test(message);
+}
+
+async function selectTolerantly(columns, optional, run) {
+  let selected = [...columns];
+  for (;;) {
+    const result = await run(selected.join(","));
+    if (!result.error || !isMissingColumnError(result.error)) return result;
+    const absent = selected.find((column) => optional.includes(column) && namesColumn(result.error, column));
+    if (!absent) return result;
+    selected = selected.filter((column) => column !== absent);
+  }
+}
+
+// Only what ledgerRow() reads. `platform`/`league_id` are filters here, not projections.
+const LEDGER_COLUMNS = [
+  "id", "week_num", "season", "move_type", "headline", "reasoning", "followed",
+  "outcome", "created_at", "reconciliation_state",
+];
+const OPTIONAL_LEDGER_COLUMNS = ["reconciliation_state"];
+const LEAGUE_SCOPE_COLUMNS = ["platform", "league_id"];
+
+function ledgerScopeUnavailable() {
+  return {
+    contract_version: "moves-history-error.v1",
+    error: "Ledger unavailable",
+    code: "league_scope_unavailable",
+    message: "Omen cannot yet tell which league each saved call belongs to, so it is not showing this league's Ledger.",
+    action: "back",
+  };
 }
 
 function recommendationFrom(row = {}) {
@@ -111,8 +154,17 @@ router.get("/", requireAuth, async (req, res, next) => {
       return query;
     };
 
-    let { data, error } = await load(native ? DETAIL_COLUMNS : "id,week_num,season,move_type,headline,reasoning,followed,user_stars,outcome,eff,created_at");
-    if (native && error && isMissingColumnError(error)) ({ data, error } = await load(DETAIL_COLUMNS_LEGACY));
+    let { data, error } = native
+      ? await selectTolerantly(LEDGER_COLUMNS, OPTIONAL_LEDGER_COLUMNS, load)
+      : await load("id,week_num,season,move_type,headline,reasoning,followed,user_stars,outcome,eff,created_at");
+
+    // The filter columns are not optional: without them a row cannot be attributed to the
+    // requested league, and serving the user's rows anyway would show another league's calls
+    // as this one's. Refuse, and say why, rather than 500 or guess.
+    if (native && error && LEAGUE_SCOPE_COLUMNS.some((column) => namesColumn(error, column))) {
+      logger.warn("moves ledger cannot be league-scoped: column absent from the schema", { message: error.message });
+      return res.status(503).json(ledgerScopeUnavailable());
+    }
 
     if (error) throw new Error(`moves lookup failed: ${error.message}`);
 
@@ -169,17 +221,16 @@ const DETAIL_COLUMNS = [
   "confidence", "target_player", "followed", "user_stars", "user_note",
   "outcome", "eff", "result", "created_at", "scored_at",
   "platform", "league_id",
-  // A6 contract fields. Absent on the production schema until the reviewed
-  // migration is applied, which is the gated founder sequence, so the query
-  // falls back rather than failing.
+  // A6 contract fields, present on production since the reviewed migration was applied.
   "scoring", "scoring_contract_version", "scoring_coverage_state", "reconciliation_state",
-].join(",");
+];
 
-const DETAIL_COLUMNS_LEGACY = [
+// Absent from production today; dropped from the query when the database says so. With no
+// `result` the receipt never claims a retained final score, which is the safe direction.
+const OPTIONAL_DETAIL_COLUMNS = DETAIL_COLUMNS.filter((column) => ![
   "id", "user_id", "week_num", "season", "move_type", "headline", "reasoning",
-  "confidence", "target_player", "followed", "user_stars", "user_note",
-  "outcome", "eff", "result", "created_at", "scored_at",
-].join(",");
+  "confidence", "target_player", "followed", "user_stars", "user_note", "outcome", "eff", "created_at",
+].includes(column));
 
 function detailError({ code, message, action }) {
   return {
@@ -487,10 +538,7 @@ router.get("/:id", requireAuth, async (req, res, next) => {
       .eq("user_id", req.user.id)
       .maybeSingle();
 
-    let { data, error } = await load(DETAIL_COLUMNS);
-    if (error && isMissingColumnError(error)) {
-      ({ data, error } = await load(DETAIL_COLUMNS_LEGACY));
-    }
+    const { data, error } = await selectTolerantly(DETAIL_COLUMNS, OPTIONAL_DETAIL_COLUMNS, load);
     if (error) throw new Error(`move lookup failed: ${error.message}`);
 
     if (!data) {
