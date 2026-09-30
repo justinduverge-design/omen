@@ -75,7 +75,7 @@ jobs:
             oauth_state: [ 'expires_at', 'platform', 'state', 'user_id', 'verifier' ],
             platform_connections: [ 'created_at', 'espn_secret_id', 'espn_swid', 'espn_team_id', 'id', 'is_active', 'is_selected', 'league_id', 'platform', 'platform_user_id', 'platform_username', 'refresh_secret_id', 'swid_secret_id', 'token_expires_at', 'token_secret_id', 'updated_at', 'user_id' ],
             profiles: [ 'created_at', 'favorite_team', 'user_id' ],
-            users: [ 'created_at', 'email', 'id', 'league_id', 'platform', 'team_name' ],
+            users: [ 'created_at', 'email', 'id', 'team_name' ],
             waitlist_signups: [ 'created_at', 'email', 'id', 'platform' ]
           };
 

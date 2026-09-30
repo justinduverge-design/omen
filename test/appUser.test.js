@@ -52,7 +52,7 @@ test("ensureAppUser upserts only app-user identity fields", async () => {
   assert.equal(state.upserts[0].options.onConflict, "id");
   assert.equal(state.upserts[0].payload.id, "user-1");
   assert.equal(state.upserts[0].payload.email, "user@example.com");
-  assert.deepEqual(Object.keys(state.upserts[0].payload).sort(), ["email", "id"]);
+  assert.deepEqual(Object.keys(state.upserts[0].payload).sort(), ["email", "id"], "login creates/links exactly one identity by upserting only id and email, eschewing legacy identity split columns");
 });
 
 test("ensureAppUser rejects authenticated users without email", async () => {

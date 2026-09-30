@@ -282,7 +282,7 @@ test("DELETE /delete removes only the requesting user's rows, never another user
   assert.equal(store.beta_reports.some((r) => r.user_id === "user-1"), false);
   assert.equal(store.platform_connections.some((c) => c.user_id === "user-1"), false);
   assert.equal(store.oauth_state.some((s) => s.user_id === "user-1"), false);
-  assert.equal(store.consent_records.some((c) => c.user_id === "user-1"), false);
+  assert.equal(store.consent_records.some((c) => c.user_id === "user-1"), false, "account deletion wipes everything including consent records");
   assert.equal(store.users.some((u) => u.id === "user-1"), false);
 
   // user-2's rows are untouched.
