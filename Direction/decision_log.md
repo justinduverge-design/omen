@@ -1,17 +1,19 @@
 # Omen Decision Log
 
-## 2026-09-30 — every ESPN connection was forced to reconnect, by marking it inactive (not by resetting anything)
+## 2026-09-30 — the ESPN alerts were stopped by resolving GlitchTip issues, not by deactivating ESPN
 
-- **Decision (founder request): make every user reconnect ESPN next time they use it.** The recurring GlitchTip errors ("ESPN rejected the request — cookies
-  may be invalid or expired", "ESPN API returned HTTP 400") come from stored ESPN cookies (last set 2026-09-17 and 2026-09-25) that ESPN no longer accepts.
-  Resetting or restarting the database would not help and would destroy user data; the app already has the right mechanism. An ESPN connection is only
-  "ready" if `is_active` is true and both credential references exist (`src/services/omenReadiness.js`), so `is_active = false` makes Omen answer
-  `espn_reauth_required` ("Reconnect ESPN") and makes Account show ESPN as disconnected. `POST /api/platforms/espn/connect` then updates the existing
-  Vault secrets and sets `is_active` back to true. **Applied to the 3 ESPN connections in production** (3 users); Sleeper (2) and Yahoo (1) untouched.
-  Nothing was deleted: the Vault secret references are kept, and the change is undone with one statement (see the WO-15 handoff).
-- **What this does not do:** it does not stop ESPN cookies expiring again (they are user-supplied session cookies with a limited life), and it does not touch
-  Supabase login sessions. It gives each ESPN user a fresh cookie now. The durable fix is a product item: detect expiry proactively and prompt before the
-  first failed call.
+- **What was asked, and what was tried:** the founder wanted the recurring ESPN Discord alerts to stop and ESPN to stay active, with users re-logging in only
+  briefly. First attempt: mark the 3 ESPN `platform_connections` rows `is_active = false` (the app then answers `espn_reauth_required` and shows ESPN as disconnected).
+  **The founder rejected that** (ESPN must stay active), and it was reverted exactly, including original `updated_at` values: all three active again, selection flags
+  unchanged, Sleeper (2) and Yahoo (1) never touched. Deactivating and staying active are mutually exclusive for stale cookies.
+- **Root of the alerts:** the dispatcher lists unresolved GlitchTip issues. Issues #4 and #11 (ESPN cookies rejected / HTTP 400; last event 2026-09-27) and #13 (Moves
+  ledger; fixed and migrated today) were unresolved, so they were re-listed daily. All 13 GlitchTip issues are now resolved (status 1); the dispatcher signature is empty.
+  GlitchTip reopens an issue on a new event, so a recurrence alerts again. **Not fixed:** ESPN cookies are user-supplied session cookies with a limited life, so the
+  underlying expiry will recur for those 3 users; the durable fix is a product item (detect expiry proactively and prompt before the first failed call).
+- **A false alert found while forcing the check, and fixed:** two CI deploys right after the merges made `docker compose up -d` recreate containers under temporary
+  `<12 hex>_name` names, and the posture collector snapshotted mid-recreate (`drift_containers`). The collector now strips that prefix (hash unchanged, no baseline
+  refresh), and Sentinel requires WARNING-class drift (listeners, enabled units, containers) to persist across two consecutive checks; security-class drift (keys,
+  sudoers, admin groups, sshd, cron) still alerts on the first sighting. Tested with scratch baselines.
 
 ## 2026-09-30 — the Ledger migration was applied, and "staging" was a restored production clone
 
