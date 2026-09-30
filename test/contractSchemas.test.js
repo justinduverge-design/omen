@@ -47,16 +47,60 @@ for (const state of contracts.BRIEF_STATES) {
   });
 }
 
-test("every state the schema allows that the mock builder cannot reach is listed, not silently untested", () => {
+test("every state and recommendation type the SERVER emits is in the schema (universe read from source, not from the schema)", () => {
+  // The universe comes from the server's own source. Deriving it from the schema being checked
+  // would make the check circular: a state the server emits and the schema forgot could never fail
+  // (this omitted `context_unavailable` until code review caught it).
+  const source = ["../src/services/omen.js", "../src/routes/omen.js"]
+    .map((f) => fs.readFileSync(require("node:path").join(__dirname, f), "utf8")).join("\n");
+  const NOT_A_BRIEF_STATE = new Set(["live", "mock", "demo", "stub", "unavailable"]);
+  const emittedStates = [...new Set([...source.matchAll(/(?<![a-z_])state: "([a-z_]+)"/g)].map((m) => m[1]))]
+    .filter((s) => !NOT_A_BRIEF_STATE.has(s));
   const schemaStates = new Set(schema.properties.state.enum);
+  assert.deepEqual(emittedStates.filter((s) => !schemaStates.has(s)).sort(), [], "states the server emits but the schema lacks");
+
+  const emittedTypes = [...new Set([...source.matchAll(/(?<![a-z_])type: "([a-z_]+)"/g)].map((m) => m[1]))];
+  const schemaTypes = new Set(schema.definitions.recommendation.properties.type.enum);
+  assert.deepEqual(emittedTypes.filter((t) => !schemaTypes.has(t)).sort(), [], "recommendation types the server emits but the schema lacks");
+});
+
+test("states with no fixture are listed, not silently untested", () => {
   const covered = new Set(contracts.BRIEF_STATES);
-  const uncovered = [...schemaStates].filter((s) => !covered.has(s)).sort();
-  // Live-only states. Adding a fixture for one removes it from this list; adding a state to the
-  // schema without a fixture or an entry here fails the test.
+  const uncovered = schema.properties.state.enum.filter((s) => !covered.has(s)).sort();
+  // Live-only states the mock builder cannot produce. Adding a fixture removes a name from this
+  // list; a new schema state without a fixture or an entry here fails.
   assert.deepEqual(uncovered, [
-    "espn_import_blocked", "espn_league_context_missing", "espn_recovery_needed",
+    "context_unavailable", "espn_import_blocked", "espn_league_context_missing", "espn_recovery_needed",
     "pending_live_engine", "sleeper_league_context_missing", "yahoo_reauth_required",
   ]);
+});
+
+test("live-only shapes the mock builder cannot emit still validate (nullable delta, nullable player metadata, live types)", () => {
+  const body = clone(load("success").body);
+  body.recommendation.type = "waiver_pickup";
+  body.recommendation.expected_value_delta = { points: null, label: "projection unavailable" };
+  body.recommendation.primary_player = { id: null, name: "Zonovan Knight", position: null, team: null };
+  body.recommendation.comparison_player = { name: "Bench Player", position: "RB", team: null };
+  assert.ok(validate(body), explain());
+  body.recommendation.type = "trade_suggestion";
+  assert.ok(validate(body), explain());
+});
+
+test("every state that asks the user to act must carry a recovery block (else the app shows its generic fallback)", () => {
+  const actionable = [
+    "platform_disconnected", "pending_live_engine", "yahoo_reauth_required", "sleeper_league_context_missing",
+    "espn_reauth_required", "espn_league_context_missing", "espn_import_blocked", "espn_recovery_needed", "context_unavailable",
+  ];
+  const base = clone(load("espn_reauth_required").body);
+  for (const state of actionable) {
+    const withRecovery = clone(base);
+    withRecovery.state = state;
+    assert.ok(validate(withRecovery), `${state}: ${explain()}`);
+    const without = clone(base);
+    without.state = state;
+    without.platform.recovery = null;
+    assert.equal(validate(without), false, `${state} without a recovery block must be rejected`);
+  }
 });
 
 test("the schema rejects breaking changes (it can say no)", () => {

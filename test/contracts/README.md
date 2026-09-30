@@ -23,7 +23,7 @@ Within a contract version the API is **additive only**. You may add optional fie
 
 ## Known gaps (not covered, on purpose stated)
 
-- **Live-mode payloads.** The mock builder can only produce `limitation` evidence and cannot reach `pending_live_engine`, `yahoo_reauth_required`, `sleeper_league_context_missing` or the three `espn_*` recovery states (it returns a success body for some; a fixture whose body state differs from its name is refused). Those states are listed in `contractSchemas.test.js` and need the seeded-league harness.
+- **Live-mode payloads.** The mock builder can only produce `limitation` evidence and cannot reach `pending_live_engine`, `yahoo_reauth_required`, `sleeper_league_context_missing`, `context_unavailable` or the three `espn_*` recovery states (it returns a success body for some; a fixture whose body state differs from its name is refused). Those states are listed in `contractSchemas.test.js` and need the seeded-league harness.
 - **Contracts beyond `omen-decision-brief.v3`.** `start-sit-detail.v1/v2`, `waiver-analysis.v1`, `trade-compare.v2`, `moves-history.v2` are next. Note `canvas-contract-requirements-v1.json` names `start-sit-detail.v1` for the Start/Sit screens while `decision-capabilities-v1.md` puts the evidence on v2; both versions must be locked and the requirements file corrected.
 - **iOS only.** Android decoders are paused (`Direction/decision_log.md`, 2026-09-30).
 - **A real production response** has not yet been validated against the schema (needs an authenticated request for the founder's league).
