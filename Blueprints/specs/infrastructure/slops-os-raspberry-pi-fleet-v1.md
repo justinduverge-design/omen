@@ -171,6 +171,52 @@ instance), which does not depend on SSH.
 
 **Explicitly not yet done — this is a real gate, not a formality:** the eero cutover (making Pi-hole the household's actual DNS resolver) requires reserving Command Center's DHCP address (done), then a deliberate, approved eero settings change with a captured rollback click-path and a scheduled reboot window. **A draft custom-DNS entry was reviewed and correctly discarded** during this build because its IPv4 target didn't actually host Pi-hole and its shown IPv6 values belonged to a different device (Steward) with no DNS listener — saving from that draft would have broken household DNS. Command Center currently has no household IPv6 address at all, so entering an IPv6 DNS server today would be false on its face; IPv6 handling is a separate decision still to make before cutover.
 
+## Hardening pass 2026-09-29 (WO-15) — what changed, restart policy, Sentinel's role on Omen
+
+**Applied and verified live** (scripts live on the hosts, not in this repo; rollback copies are under
+`/var/backups/*-script-history/` on each host):
+
+| Host | Change |
+|---|---|
+| KVM1 | Backup scripts guard on machine-id; status reports `HOST=kvm1`; `omen-status-dispatch` forced command (allow-list: default + `football-status`); `omen-football-publish-status` runs after each football backup |
+| Steward | `backup-freshness.sh` guards on machine-id, expects `kvm1` / recovery format 2; new `football-backup-freshness` check + timer (hourly); reader and sudoers extended by exactly one path |
+| Sentinel | `network-health.sh`, `listener-drift.sh` guard on machine-id |
+| Command Center | Dispatcher labels Steward records (`label-steward-state.awk`) |
+| Steward, Sentinel, Command Center | journald `SystemMaxUse=300M`, `MaxRetentionSec=1month` |
+
+**Updates and restarts.** Security updates were already automatic on all five hosts. The gap is that nothing
+restarts afterwards, so patched kernels sit unused. Policy, in force only after one supervised reboot per host
+proves a clean return (SSH socket, tailscaled, docker, all containers `unless-stopped` healthy, runner, timers):
+
+| Host | `Automatic-Reboot-Time` (UTC) | Why this slot |
+|---|---|---|
+| Command Center | 07:00 | Dispatcher host; staggered so the alert path is never down with its sensors |
+| Steward | 07:20 | |
+| Sentinel | 07:40 | |
+| KVM1 | 08:00 | After the 06:xx backup (≤20 min jitter); back well before the 09:15 football captures; 04:00 ET |
+| KVM2 | 08:30 | Holds the Restic repository; KVM1 does not back up in this slot |
+
+Reboot only when `/var/run/reboot-required` exists; never with users logged in. **Backstop:** a check that
+raises WARNING when a reboot has been pending more than 7 days and CRITICAL past 14, so a stalled policy
+cannot go silent the way this one did.
+
+**Sentinel's role on Omen (design, not yet built).** Steward answers "is it up and fresh." Sentinel should
+answer "is the host still the host we built" — pull-based and read-only, exactly the existing forced-command
+pattern (no credentials, `from=` locked to Sentinel, hashes and counts only, protocol `omen-host-security.v1`).
+Build order is by value:
+
+1. **Patch state** (KVM1, KVM2): reboot-pending age, running vs installed kernel, pending security updates,
+   last unattended-upgrade success, disk. Would have caught this incident's kernel lag weeks ago.
+2. **Public exposure** (external, from the home network): scan slopssaloon.com's public address and expect only
+   80/443. This verifies Hostinger firewall profile `287557` from outside, which nothing does today.
+3. **Host drift**: normalized listener hash, every user's `authorized_keys` hash, sudoers hash, UID-0/sudo
+   membership, enabled-unit set, container/image set on KVM1. A deliberate change refreshes the baseline.
+4. **Auth events**: SSH is Tailscale-only, so any failed authentication on a VPS is notable. Reuse the
+   cursor-based journald parser already proven on Sentinel.
+
+**Still uncovered:** KVM2 itself (disk, Restic repository integrity) — needs a periodic `restic check` run from
+KVM1 with the existing backup credentials, published through the same status channel.
+
 ## What this fleet is not
 
 Per the deferred/backlog list carried through to the end of the source tracker: full centralized log aggregation, packet inspection, a SIEM-style dashboard, AI analysis of raw telemetry, large historical metric retention, a general-purpose Docker management UI, or a publicly exposed monitoring dashboard. None of these were rejected for being hard — they were rejected as not justified for the current scale, consistent with Constitution item 5.

@@ -1,5 +1,31 @@
 # Omen Decision Log
 
+## 2026-09-29 — hostnames are not identity, the backup alert existed and said nothing useful, and "patched" is not "running patched"
+
+- **What happened.** Both VPSes were renamed. Three KVM1 scripts and Steward's freshness check compared
+  `hostname` to a hard-coded string, so every Supabase backup exited `Wrong host` from 2026-09-15 until
+  2026-09-29. Behind that sat a second, unrelated failure: Supabase added `recovery_code` to
+  `auth.factor_type`, and the backup's fail-closed enum guard refused to dump. The dropped-tables
+  hypothesis in the first WO-15 PR was wrong (see `Blueprints/handoffs/2026-09-29-wo-15-backup-repair.md`).
+- **Decision: identity is `/etc/machine-id`, never a hostname.** All backup scripts, Steward's checks and
+  Sentinel's checks now guard on machine-id. The status protocol reports a stable logical role (`kvm1`),
+  not a hostname. A rename can no longer silently disable a monitor.
+- **Decision: the alert existed; the message was the defect.** Steward reported `DOWN` correctly for 14
+  days and the dispatcher delivered it, but the line was a bare `result=DOWN` among GlitchTip issues. The
+  dispatcher now labels every Steward record: `result=DOWN check=supabase-backup-freshness
+  reason=backup_older_than_24h`. Lesson, extending the 2026-08-21 entry: a delivered alert that cannot be
+  read as an instruction has not been delivered.
+- **Decision: watch every backup, not just the first one.** The weekly football-data backup had no
+  freshness check and was failing on the same guard. Steward now runs `football-backup-freshness`
+  (8d WARNING / 9d CRITICAL / 14d DOWN) over the same forced-command channel, extended to an allow-list
+  of exactly two exports.
+- **Decision: updates were already automatic; restarts were the gap.** `unattended-upgrades` is on and
+  working on all five hosts, but `Automatic-Reboot` is off everywhere, so KVM1 runs kernel 139 with 142
+  installed and KVM2 runs 5.15.0-186 with 191 installed after 9 weeks. Restart policy is specified in the
+  fleet spec and is **not enabled until each host has had one supervised reboot.**
+- **Corrected claim.** An earlier note said Steward's journal was memory-only. It is persistent; the
+  default cap was overrun by UFW LAN-broadcast noise. Retention is now `SystemMaxUse=300M`, one month.
+
 ## 2026-09-17 — Shared Decision Capabilities v1 is a semantic boundary, not a live-data switch
 
 - **Decision: capability state and evidence kind remain separate everywhere.**
