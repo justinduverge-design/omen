@@ -16,7 +16,7 @@ On the founder's iPhone, for the founder's real Sleeper league, in a weekly beta
 1. The Omen tab shows a start/sit recommendation whose **displayed reasons are exactly the factors that moved the number**, each with its magnitude, source and as-of time.
 2. Evidence shows a row per factor, marks any factor Omen could not read, and lists the alternatives it rejected and why.
 3. The band is **Confident / Leaning / Coin flip**, set by agreement between independent factors, with its drivers.
-4. Each admitted factor has a backtest report; the engine's read is compared with the provider-projection-only pick over the season's shadow log, and the result is stated whether or not it wins.
+4. Each admitted factor has a backtest report; the engine's read is compared with the provider-projection-only pick, on Sleeper's historical projections and on the season's shadow log, and the result is stated whether or not it wins.
 5. Every screen state on the path passes a contract test against the real server, and the iOS build was installed and screenshotted on the device.
 
 ## Double-check results, 2026-09-30
@@ -27,13 +27,30 @@ Every assumption the plan rests on was checked against the repo or the live data
 |---|---|
 | nflverse publishes injuries, depth charts, snap counts and player-week stats for 2026 | **Confirmed.** `injuries_2026`, `depth_charts_2026`, `snap_counts_2026`, `stats_player_week_2026` exist. |
 | nflverse has schedule context (kickoff, rest, spread, total) for 2026 | **Confirmed.** The `schedules` release `games.csv` has 272 rows for 2026 with `weekday`, `gametime`, `home_rest`, `away_rest`, `spread_line`, `total_line`. |
-| nflverse has historical provider projections | **False.** No projections dataset exists. The forward shadow log is the only honest comparison (kept). |
+| nflverse has historical provider projections | **False for nflverse, but Sleeper serves them.** Sleeper's projections endpoint returns weekly projections back to at least 2018 (about 300 players a week carry a PPR projection), including the underlying stat lines. Checked against Sleeper's own actuals: correlation with actual points 0.49 to 0.69 and mean error 4.5 to 5.4 points (2019, 2023, 2025 samples), which is what genuine pre-game projections look like; restated projections would correlate near 1.0. **So the backtest can compare against a real provider baseline.** Caveats: the endpoint is undocumented, and its as-of timing cannot be proven from the outside, so the forward shadow log stays as the confirmation. |
 | Temperature and wind are available before kickoff | **False.** `temp` and `wind` are empty until the game is played; `roof` is blank for some venues (e.g. DAL). The live weather factor must come from a forecast source (OpenWeather is already integrated) and a stadium-roof table, while the backtest can only use observed weather. That difference is a known bias and must be reported, not hidden. |
 | A Sleeper roster joins to nflverse stats using ids nflverse already has | **False, and this was the biggest gap in the first draft.** nflverse's `players` table has `gsis_id` and `espn_id` but **no Sleeper or Yahoo id**. Only 34% of fantasy-relevant players are reachable through Sleeper's own `gsis_id`/`espn_id`. Without a crosswalk the slice cannot join a roster to any football data. |
 | A crosswalk can be built | **Confirmed, two ways.** (a) The DynastyProcess `db_playerids.csv` maps 99.7% of 572 relevant 2025 players to a Sleeper id, but the repository is **GPL-3.0**; do not ship or commit it. (b) Our own match on normalized name plus birth date (fallback name plus position) between Sleeper's public player dump and nflverse `players` agrees with (a) on **98.8%** of the 572, with 0 ambiguous, 5 unmatched and 2 disagreements that are cases where (a) itself has no Sleeper id. **Decision: build our own crosswalk; use (a) only as a checker on a dev machine, never committed.** |
 | The migration CI matches production | **False.** `migrations-ci.yml` runs `supabase/postgres:15.1.1.78`; production is Postgres 17.6. Rehearsals must run on 17. |
 | Canonical `players` exists to reference | **False.** `migrations/` holds only the baseline and identity migrations. `players` and `player_provider_ids` are in the Gate 1 blueprint but not built, so S1 must create them first. |
 | `rawVault.js` can hold receipts | **Confirmed**, and it enforces a current rights review date (`assertRightsReviewCurrent`); S2 must supply one or the job refuses to run, by design. |
+
+## Provider readiness gate (must pass before the slice is built on a provider)
+
+The engine needs seven things from a provider. A provider is **ready** for the slice only when each is verified live, by someone other than the builder, with the evidence recorded.
+
+| Need | Sleeper | ESPN | Yahoo |
+|---|---|---|---|
+| Roster, slots, status | **Verified** (public API, adapter) | Capable (adapter, July spike); **not verified today** | Adapter exists; not verified today |
+| Matchup and opponent | **Verified** (projections carry `opponent`) | Capable; not verified today | Adapter exists; not verified today |
+| League scoring rules | **Exact** (adapter maps 32 of 37 events) | Partial: per-position defense scoring has no canonical form (`known_issues.md`) | **Refused** at the entitlement level (recorded 2026-08-26); scoring stays unknown |
+| Current projections | **Verified live** (3,117 rows for week 4, with stat lines) | Capable (`stats[]`, `statSourceId: 1`); not verified today | Not verified |
+| Historical projections (baseline) | **Verified back to 2018** | None | None |
+| Waiver pool | Derived by subtracting every rostered player; correct only if every roster is read | Capable (E1); not verified today | Not verified |
+| Injury and news detail | **Verified live** (`injury_status`, `injury_body_part`, `injury_notes`, `news_updated`) | Capable (`injuryStatus`); not verified today | Not verified |
+| **Durability** | Public API, documented request limit; the projections endpoint is undocumented | **Fragile:** unofficial API on user-supplied session cookies that expire; three users hit expired-cookie errors through 2026-09-27; one connection row has no team id | OAuth with a granted entitlement; one connection, last touched 2026-09-17 |
+
+**Verdict today:** Sleeper is ready. ESPN and Yahoo are *capable in code and not verified live*; that is why the slice starts on Sleeper. ESPN becomes ready when: (1) a read-only probe run from production for the founder's own connection passes roster, matchup, projections, waiver pool and injury reads and prints no cookie values; (2) cookie expiry is detected proactively and the user is prompted before the first failed call (the durable fix, currently a product item); (3) the ESPN terms position is recorded by the founder. Yahoo becomes ready when the same probe passes and the scoring-rules refusal has a documented workaround.
 
 ## Decisions I am making, and why
 
@@ -43,7 +60,7 @@ Every assumption the plan rests on was checked against the repo or the live data
 | 2 | **iOS only.** | Founder decision, 2026-09-30 (`Direction/decision_log.md`). |
 | 3 | **Compact football data lives in Postgres; raw source files stay immutable artifacts.** | A season of player-week features is roughly a million numbers, which is small. Postgres gives transactional reads, access control and joins with decisions. Raw CSV and parquet stay as receipts outside the serving tables, as the football-intelligence architecture already requires. |
 | 4 | **Store the band as issued; do not derive it at read time.** | See "Two design flaws" below. |
-| 5 | **Start logging provider projections and Omen's read every week, now.** | Historical provider projections are not in nflverse (verify; I have not found them there). Without them the only honest comparison to "what ESPN already tells you" is a forward shadow log. Every week not logged is a week lost. |
+| 5 | **Backtest against Sleeper's historical projections, and confirm with a forward shadow log.** | Sleeper serves weekly projections to 2018 (see the double-check table), so the "does Omen beat the provider" question can be answered on history now. The shadow log still starts as early as possible because it is the only proof of as-of timing and it covers ESPN and Yahoo projections, which have no history. |
 | 8 | **Own the player crosswalk; do not import a GPL file.** | Measured above: our own name-plus-birthdate match reaches 98.8% and unmatched players are held as *unresolved*, never guessed. |
 | 6 | **Factor set for the slice:** opponent matchup, game context (roof, wind, temperature), rest and travel, player form and role, injury and depth-chart detail. Scheme and coaching, and primetime history, come after the harness can judge them. | These are the factors whose data is verified available today (nflverse `schedules`, `stats_player`, `injuries`, `depth_charts`, `snap_counts` all publish 2026 files). |
 | 7 | **The agent that builds a step does not sign it off.** | The recurring failure. Each step below names an independent check and the evidence that must exist before merge. |
