@@ -23,9 +23,11 @@
 - **Pi kernel updates stay manual.** Follow `Blueprints/playbooks/pi-kernel-update-runbook.md`, one Pi at a time, with someone able to reach the device.
 
 ## Not done / open
-- **Native Moves ledger is failing in production** (GlitchTip #13, 150 events since 2026-09-16): the route selects `moves` columns
-  (`result`, `scored_at`, `platform`, `league_id`) that production does not have, and its "legacy" fallback still selects `result`.
-  Application code plus a gated schema change, so it was handed off as a separate task rather than patched here.
+- **Native Moves ledger: code fixed (PR #490, merged), Ledger still unavailable until a migration is applied.** GlitchTip #13 (150 events
+  since 2026-09-16) was the route selecting `moves` columns production lacks (`result`, `scored_at`, `platform`, `league_id`). It now
+  degrades cleanly and returns 503 `league_scope_unavailable` when it cannot scope by league. **To bring the Ledger back:** approve and
+  apply `sql/2026-09-29_moves_league_scope_review.sql` via approval → staging → verification → production. It adds nullable columns with
+  no backfill, so pre-migration history stays hidden. Details: `2026-09-29-ledger-production-schema-fix.md`.
 - Command Center's bootloader EEPROM has an update available; not applied (separate firmware flash).
 - The dispatcher *service* stopping while Command Center stays up is not detected.
 - `omen-football-restore` has the corrected guard but has not been run.
