@@ -1,3 +1,11 @@
+-- APPLIED to production 2026-09-30T02:20:39Z as Supabase migration `moves_league_scope_platform_league_id`
+-- (section 2 only), with explicit founder approval in session, after this file was run in full against a
+-- restored production clone (newest Restic snapshot, isolated `network=none` Postgres 17): preflight rolled
+-- back, migration committed, the 6 existing rows byte-identical, the Ledger query ran, a second apply was a
+-- no-op, and the documented rollback restored the original 25 columns. Production before: 25 columns, 6 rows,
+-- neither column, no index; after: 27 columns, both nullable, index present, 6 rows untouched, RLS unchanged.
+-- (Original header follows.)
+--
 -- REVIEW ONLY. NOT APPLIED. Facts-of-record #8: authoring SQL and applying it are distinct
 -- acts, and the required order is explicit founder approval -> staging application ->
 -- verification -> production application. Nothing in an agent session may run this.

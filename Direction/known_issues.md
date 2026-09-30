@@ -429,12 +429,13 @@ The lesson worth keeping: reasoning about a unit file is not the same as running
 `ReadWritePaths` defect was found by reading and was real; the buildx defect was found only by
 execution, and it was the one actually blocking.
 
-## 🔴 OPEN — native Ledger is gated off in production: `public.moves` has no `platform`/`league_id`
+## 🟡 MIGRATION APPLIED 2026-09-30 — native Ledger serves new moves; history before it stays hidden (`public.moves` `platform`/`league_id`)
 
 Found 2026-09-28 (GlitchTip #13, 150 events since 2026-09-16, `column moves.result does not exist`).
-The route no longer 500s; it returns `503 league_scope_unavailable` on purpose (decision_log
-2026-09-29). **The Ledger screen stays in its error state until
-`sql/2026-09-29_moves_league_scope_review.sql` is applied** (founder-gated, review-only). After it
-lands, pre-migration rows keep NULL league and stay hidden; no backfill is authorised.
+The route no longer 500s (PR #490). **`sql/2026-09-29_moves_league_scope_review.sql` was applied to production on
+2026-09-30** after proof on a restored production clone, so the `503 league_scope_unavailable` gate no longer trips and the
+Ledger query runs. Rows written before the migration keep NULL `platform`/`league_id` and stay hidden by design (no backfill is
+authorised; a backfill from `platform_connections` is sound only for a single-league user and needs its own review). **Still to
+watch:** GlitchTip #13 should stop growing (last event 2026-09-28 19:37 UTC, 150 total) and new moves should carry a league.
 Same-class, unfixed: Tuesday cron writes `result`/`scored_at` (held off); `userPrivacy.js` moves
 export selects `feature`/`updated_at` (verify against production before treating as live).

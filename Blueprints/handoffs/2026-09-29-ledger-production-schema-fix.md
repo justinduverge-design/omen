@@ -6,7 +6,7 @@
 
 **Changed:** `src/routes/moves.js` — `selectTolerantly` drops optional columns as the database names them; list selects only what `ledgerRow` reads; v2 returns `503 moves-history-error.v1 / league_scope_unavailable` when `platform`/`league_id` are absent. New `test/movesProductionSchema.test.js` (stub enforces the reported production column set; red before the fix). New review-only `sql/2026-09-29_moves_league_scope_review.sql`.
 
-**Not applied / founder-gated:** the migration. Until it is applied the native Ledger shows its error state in production (the client maps any non-2xx to "try again in a moment"). After it lands, existing rows have NULL league and stay hidden; no backfill.
+**Applied 2026-09-30:** the migration went to production (Supabase migration `moves_league_scope_platform_league_id`) with founder approval, after being run in full on a restored production clone. Existing rows have NULL league and stay hidden; no backfill. The Ledger should now render for moves written from here on.
 
 **`scripts/check-a4-scoring-gates.js:125`:** same message format, different cause. It selects only columns that exist in production; its failure would be a different column.
 
