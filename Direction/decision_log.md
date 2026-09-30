@@ -1,5 +1,15 @@
 # Omen Decision Log
 
+## 2026-09-30 — the Ledger migration was applied, and "staging" was a restored production clone
+
+- **Decision: the founder-gated sequence was followed with a clone standing in for staging.** Omen has no staging Supabase project (the only
+  other project is a paused throwaway, and a branch costs money). The newest Restic snapshot of production was restored into an isolated
+  `network=none` Postgres and the migration file was run in full there: preflight rolled back, migration committed, existing rows
+  byte-identical, the new Ledger query ran, a second apply was a no-op, the rollback restored 25 columns. Only then, with explicit founder
+  approval, was section 2 applied to production (`moves_league_scope_platform_league_id`). **Why a restored backup is a good staging
+  environment:** it is production's real schema and data by construction, which a hand-built staging database never is; it also proved the backup
+  restores. Pre-migration rows stay hidden (NULL league, no backfill).
+
 ## 2026-09-29 — hostnames are not identity, the backup alert existed and said nothing useful, and "patched" is not "running patched"
 
 - **What happened.** Both VPSes were renamed. Three KVM1 scripts and Steward's freshness check compared
