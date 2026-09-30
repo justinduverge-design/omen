@@ -946,7 +946,7 @@ private struct OmenScoutWaiverCard: View {
                     .fixedSize(horizontal: false, vertical: true)
                 HStack(spacing: OmenSpacing.step14) {
                     if let band = move.band { OmenConfidenceBandLabel(band: band) }
-                    OmenRiskLabel(level: move.risk, reason: move.riskReason)
+                    if let risk = move.risk { OmenRiskLabel(level: risk, reason: move.riskReason) }
                 }
             }
         }
@@ -1655,8 +1655,10 @@ extension WaiverAnalysis {
             dropMeta: [best.drop?.position, best.drop?.team].compactMap { $0 }.joined(separator: " \u{00B7} ").scoutNonEmpty,
             dropPoints: best.drop?.projectedPoints.map { String(format: "%.1f", $0) },
             reasoning: best.whyNow?.scoutNonEmpty ?? "Omen found this as the strongest available roster move.",
-            band: .confident,
-            risk: .low,
+            // `waiver-analysis.v1` carries no confidence band and no risk. These were hardcoded
+            // to `.confident` / `.low` for every claim — a fabricated read on a live screen.
+            band: nil,
+            risk: nil,
             riskReason: nil
         ))
     }

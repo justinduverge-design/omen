@@ -99,7 +99,9 @@ struct OmenDeskWaiverMove: Equatable {
     let dropPoints: String?
     let reasoning: String
     let band: OmenConfidenceBand?
-    let risk: OmenRiskLevel
+    /// Nil when the payload carries no risk. `waiver-analysis.v1` has neither a band nor a risk,
+    /// and a hardcoded "Confident · Low risk" on every claim is a fabricated read.
+    let risk: OmenRiskLevel?
     let riskReason: String?
 }
 
@@ -227,6 +229,8 @@ struct OmenCommandDeskScreen: View {
     var onOpenAccount: (() -> Void)?
     var onOpenLeague: (() -> Void)?
     var onOpenLedger: (() -> Void)?
+    /// `ReportPill` sits inline under the Ledger in the artboard, so the screen lays out around it.
+    var onReportProblem: (() -> Void)?
     /// Overridden by `OmenSwitchLoadingScreen`, which reuses this composition wholesale. The
     /// identifiers are parameters rather than modifiers applied from outside because
     /// `accessibilityIdentifier` on a composed view does not reliably replace an inner one, and
@@ -243,6 +247,11 @@ struct OmenCommandDeskScreen: View {
             waiverCard
             sectionHeader("The Ledger", action: onOpenLedger == nil ? nil : "See all", perform: onOpenLedger)
             ledgerCard
+            if let onReportProblem {
+                OmenReportPill(action: onReportProblem)
+                    .padding(.horizontal, OmenSpacing.step16)
+                    .padding(.top, OmenSpacing.step12)
+            }
             Spacer(minLength: OmenSpacing.step8)
             if let footnote = state.footnote {
                 OmenDeskFootnoteStrip(footnote: footnote)
@@ -677,7 +686,7 @@ private struct OmenDeskWaiverCard: View {
                     .fixedSize(horizontal: false, vertical: true)
                 HStack(spacing: OmenSpacing.step14) {
                     if let band = move.band { OmenConfidenceBandLabel(band: band) }
-                    OmenRiskLabel(level: move.risk, reason: move.riskReason)
+                    if let risk = move.risk { OmenRiskLabel(level: risk, reason: move.riskReason) }
                 }
             }
         }
@@ -1102,5 +1111,150 @@ private extension LeagueOverview.Matchup.Status {
         case .noMatchup: return "No matchup"
         case .unavailable: return "Unavailable"
         }
+    }
+}
+
+// MARK: - Production binding (the lock's Command Center, mounted)
+
+extension OmenDeskSection where Value == OmenDeskWaiverMove {
+    /// `waiver-analysis.v1` → the desk's waiver card. `nil` (no read yet, or the route was never
+    /// asked) resolves to an explicit resting state rather than a skeleton that never ends.
+    static func from(analysis: WaiverAnalysis?) -> OmenDeskSection<OmenDeskWaiverMove> {
+        guard let analysis else {
+            return .unread(
+                capability: "Waivers",
+                sentence: "Omen has not read this league's waiver wire yet."
+            )
+        }
+        switch analysis.scoutSummary {
+        case .read(let move):
+            return .read(move)
+        case .unread(let capability, let sentence),
+             .providerLimit(let capability, let sentence, _):
+            return .unread(capability: capability, sentence: sentence)
+        }
+    }
+}
+
+extension OmenDeskSection where Value == OmenDeskLedgerLine {
+    /// `START_SIT` is a database enum, not a sentence. The artboard reads "start / sit".
+    static func callTypeWords(_ raw: String) -> String {
+        switch raw.lowercased() {
+        case "start_sit": return "start / sit"
+        default: return raw.lowercased().replacingOccurrences(of: "_", with: " ")
+        }
+    }
+
+    /// The Ledger preview's own honest states, carried onto the desk unchanged. `.loading` is the
+    /// one case that may show a skeleton; an unreadable Ledger says so and never claims "empty".
+    static func from(ledger: OmenLedgerPreviewState) -> OmenDeskSection<OmenDeskLedgerLine> {
+        switch ledger {
+        case .entries(let entries):
+            guard let entry = entries.first else {
+                return .unread(capability: "The Ledger", sentence: "No calls on the record yet.")
+            }
+            let action: String?
+            switch entry.action {
+            case .followed: action = "you followed it"
+            case .passed: action = "you passed"
+            case .unknown: action = nil
+            }
+            let outcome: OmenDeskLedgerOutcome
+            switch entry.ledgerOutcome {
+            case .worked: outcome = .worked
+            case .didNotWork: outcome = .didNotWork
+            case .notVerified: outcome = .notVerified
+            case .pending: outcome = .pending
+            }
+            return .read(OmenDeskLedgerLine(
+                summary: entry.summary,
+                meta: [entry.period, Self.callTypeWords(entry.callType), action]
+                    .compactMap { $0 }
+                    .joined(separator: " \u{00B7} "),
+                outcome: outcome
+            ))
+        case .empty:
+            return .unread(capability: "The Ledger", sentence: "No calls on the record yet.")
+        case .notConnected:
+            return .unread(capability: "The Ledger", sentence: "Connect a league and Omen starts keeping the record.")
+        case .loading:
+            return .switching
+        case .error(let message):
+            return .unread(capability: "The Ledger", sentence: message)
+        }
+    }
+}
+
+extension OmenScreenContext {
+    /// The switcher bar's identity, from the verified context strip. `.empty` has no bar.
+    static func from(strip: OmenContextStripState?) -> OmenScreenContext? {
+        guard let strip else { return nil }
+        switch strip {
+        case .selected(let platform, let leagueName, let teamName),
+             .multiTeamHint(let platform, let leagueName as String?, let teamName, _),
+             .needsRecovery(let platform, let leagueName as String?, let teamName, _):
+            return OmenScreenContext(
+                crest: OmenDeskState.crest(from: teamName),
+                teamName: teamName,
+                platform: platform,
+                leagueName: leagueName
+            )
+        case .empty:
+            return nil
+        }
+    }
+}
+
+/// The lock's Command Center with the pieces the artboard does not draw but a shipped screen
+/// needs: the report pill, the full Ledger behind "See all", and a receipt behind a Ledger row.
+struct OmenCommandDeskHost: View {
+    let state: OmenDeskState
+    var context: OmenScreenContext?
+    /// The unabridged Ledger, for the "See all" sheet. Nil when the read did not produce entries.
+    var ledgerEntries: [OmenLedgerEntry] = []
+    var onOpenAccount: (() -> Void)?
+    var onOpenLeague: (() -> Void)?
+    var onReportProblem: (() -> Void)?
+    var loadReceipt: ((String) async -> Result<MoveReceipt, OmenApiError>)?
+
+    @State private var showLedger = false
+    @State private var receiptEntry: OmenLedgerEntry?
+
+    var body: some View {
+        // Scrolls, because a real waiver row plus the report pill is taller than the artboard's
+        // fixture and the floating tab bar would otherwise sit on top of the pill.
+        ScrollView(showsIndicators: false) {
+            desk.padding(.bottom, 104)
+        }
+        .background(OmenColor.bg)
+        .sheet(isPresented: $showLedger) {
+            CommandCenterDetailSheet(title: "The Ledger") {
+                OmenLedgerScreen(
+                    state: OmenLedgerState.from(entries: ledgerEntries),
+                    onOpenAccount: onOpenAccount,
+                    onOpenCall: { call in
+                        guard let entry = ledgerEntries.first(where: { $0.id == call.id }) else { return }
+                        showLedger = false
+                        receiptEntry = entry
+                    }
+                )
+            }
+        }
+        .sheet(item: $receiptEntry) { entry in
+            CommandCenterDetailSheet(title: "The Ledger") {
+                LedgerReceiptView(entry: entry, load: loadReceipt, onOpenAccount: onOpenAccount)
+            }
+        }
+    }
+
+    private var desk: some View {
+        OmenCommandDeskScreen(
+            state: state,
+            context: context,
+            onOpenAccount: onOpenAccount,
+            onOpenLeague: onOpenLeague,
+            onOpenLedger: ledgerEntries.isEmpty ? nil : { showLedger = true },
+            onReportProblem: onReportProblem
+        )
     }
 }

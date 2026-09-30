@@ -230,6 +230,24 @@ struct CommandCenterView: View {
                         state: quietState,
                         onOpenAccount: { showAccountSheet = true }
                     )
+                } else if let deskState = commandCenterViewModel.deskState {
+                    // The Sept 13 lock's Command Center. Before this, the production tab mounted
+                    // `OmenCommandCenterScreen` and `OmenCommandDeskScreen` existed only in
+                    // screenshot scenarios — verified on fixtures, never on a phone.
+                    OmenCommandDeskHost(
+                        state: deskState,
+                        context: OmenScreenContext.from(strip: commandCenterViewModel.context).map {
+                            var bar = $0
+                            bar.onSwitch = { showSwitcherSheet = true }
+                            bar.onAddLeague = { showConnectSheet = true }
+                            return bar
+                        },
+                        ledgerEntries: commandCenterViewModel.commandCenterState.ledger.entries,
+                        onOpenAccount: { showAccountSheet = true },
+                        onOpenLeague: { selectedTab = .league },
+                        onReportProblem: { reportingScreen = .commandCenter },
+                        loadReceipt: { await commandCenterViewModel.loadReceipt(id: $0) }
+                    )
                 } else {
                     OmenCommandCenterScreen(
                         state: commandCenterViewModel.commandCenterState,

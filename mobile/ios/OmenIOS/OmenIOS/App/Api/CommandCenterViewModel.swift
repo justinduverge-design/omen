@@ -57,6 +57,11 @@ final class CommandCenterViewModel: ObservableObject {
     /// `OmenQuietState` swaps the desk for the quiet screen; see `quietWeekState`.
     @Published private(set) var quietWeek: QuietWeekResponse?
 
+    /// The whole `league-overview.v1` read. Until the lock's Command Center was mounted this was
+    /// reduced to a context strip, a pulse and a hero, and thrown away; the desk builds its own
+    /// matchup section from it, so it is kept.
+    @Published private(set) var overview: LeagueOverview?
+
     private let repository: DashboardRepository
     private let leagueRepository: LeagueRepository
     private let movesRepository: MovesRepository
@@ -96,6 +101,23 @@ final class CommandCenterViewModel: ObservableObject {
         case .failed:
             return OmenCommandCenterFixtures.realDisconnected
         }
+    }
+
+    /// The lock's Command Center, from the same reads the legacy screen used. `nil` until the
+    /// shell has loaded; sections resolve independently, so a dead matchup read never blanks the
+    /// waiver or Ledger sections beside it.
+    var deskState: OmenDeskState? {
+        guard case .loaded(let summary) = viewState else { return nil }
+        let ledgerState = commandCenterState.ledger
+        return OmenDeskState.from(
+            overview: overview,
+            waiver: .from(analysis: waiverAnalysis),
+            ledger: .from(ledger: ledgerState),
+            weekLabel: summary.gameWeek?.week.map { "Week \($0)" } ?? "",
+            railCount: 0,
+            railIndex: 0,
+            standingsLine: nil
+        )
     }
 
     /// True when the shell was read successfully and the answer is **no connected league**.
@@ -139,6 +161,7 @@ final class CommandCenterViewModel: ObservableObject {
         matchup = nil
         waiverWatch = nil
         quietWeek = nil
+        overview = nil
 
         // The shell read goes through the session seam, which renews an expiring token before
         // the call and retries once on a 401. The two follow-ups then reuse the token that
@@ -213,6 +236,7 @@ final class CommandCenterViewModel: ObservableObject {
             leaguePulse = .unavailable
             return nil
         }
+        self.overview = overview
         context = overview.contextStrip
         // `nil` from either mapping means "this payload cannot honestly support the section".
         // League Pulse resolves to `.unavailable` so it always settles; the Matchup Hero stays

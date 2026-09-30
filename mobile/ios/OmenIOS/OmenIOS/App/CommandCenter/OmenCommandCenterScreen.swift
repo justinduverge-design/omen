@@ -753,7 +753,7 @@ enum OmenLedgerPreviewState {
 /// The fetch, the failure surface and the loading surface are unchanged from slice E. What
 /// changed is the success branch, which used to stack four bare `Text`s and now renders the
 /// built screen.
-private struct LedgerReceiptView: View {
+struct LedgerReceiptView: View {
     let entry: OmenLedgerEntry
     let load: ((String) async -> Result<MoveReceipt, OmenApiError>)?
     var onOpenAccount: (() -> Void)?
@@ -866,7 +866,7 @@ struct OmenWaiverOpportunity: Identifiable {
     }
 }
 
-private struct CommandCenterDetailSheet<Content: View>: View {
+struct CommandCenterDetailSheet<Content: View>: View {
     let title: String
     @ViewBuilder let content: () -> Content
 
