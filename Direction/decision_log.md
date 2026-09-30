@@ -1,5 +1,18 @@
 # Omen Decision Log
 
+## 2026-09-30 — every ESPN connection was forced to reconnect, by marking it inactive (not by resetting anything)
+
+- **Decision (founder request): make every user reconnect ESPN next time they use it.** The recurring GlitchTip errors ("ESPN rejected the request — cookies
+  may be invalid or expired", "ESPN API returned HTTP 400") come from stored ESPN cookies (last set 2026-09-17 and 2026-09-25) that ESPN no longer accepts.
+  Resetting or restarting the database would not help and would destroy user data; the app already has the right mechanism. An ESPN connection is only
+  "ready" if `is_active` is true and both credential references exist (`src/services/omenReadiness.js`), so `is_active = false` makes Omen answer
+  `espn_reauth_required` ("Reconnect ESPN") and makes Account show ESPN as disconnected. `POST /api/platforms/espn/connect` then updates the existing
+  Vault secrets and sets `is_active` back to true. **Applied to the 3 ESPN connections in production** (3 users); Sleeper (2) and Yahoo (1) untouched.
+  Nothing was deleted: the Vault secret references are kept, and the change is undone with one statement (see the WO-15 handoff).
+- **What this does not do:** it does not stop ESPN cookies expiring again (they are user-supplied session cookies with a limited life), and it does not touch
+  Supabase login sessions. It gives each ESPN user a fresh cookie now. The durable fix is a product item: detect expiry proactively and prompt before the
+  first failed call.
+
 ## 2026-09-30 — the Ledger migration was applied, and "staging" was a restored production clone
 
 - **Decision: the founder-gated sequence was followed with a clone standing in for staging.** Omen has no staging Supabase project (the only

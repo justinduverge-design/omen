@@ -32,6 +32,13 @@
 - The dispatcher *service* stopping while Command Center stays up is not detected.
 - `omen-football-restore` has the corrected guard but has not been run.
 
+## ESPN forced reconnect (2026-09-30, founder request)
+The 3 ESPN `platform_connections` rows were set `is_active = false` so those users see "Reconnect ESPN" next time (state `espn_reauth_required`). No secrets
+deleted. **Undo:** `update public.platform_connections set is_active = true, updated_at = now() where id in
+('5dc4491d-3cb3-4279-bdef-81100bdd4110','5fc814fc-0534-4450-9ace-7353406384ec','2e26fa89-7726-4b49-9908-b32ae2162b22');`. Before: all three active with both
+credential references (updated 2026-09-25, 2026-09-17, 2026-09-17). GlitchTip #4 and #11 (ESPN) will stop growing once these users stop failing; resolve them
+in the GlitchTip UI (and #13, now fixed) so the dispatcher's daily reminder stops listing them; they reopen if they recur.
+
 ## Findings worth knowing
 - Uptime Kuma monitors only the public site, API health/ready and GlitchTip. Sentinel and Steward are Pi Zero 2 W boards (no Ethernet).
 - Unattended-upgrades worked all along; the gap was restarts. KVM1's runner is a bare process restarted by `@reboot` cron.
