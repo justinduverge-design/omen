@@ -117,7 +117,7 @@ Designed here; built and rehearsed on a scratch database, never applied to produ
 | `decisions` (change) | Store the band as issued | add `band`, `band_drivers` jsonb, `engine_version`; keep `confidence_score` internal, never sent to native |
 | `projection_shadow_log` | Provider projection versus Omen read per player-week | `provider`, `player_id`, `season`, `week`, `provider_projection`, `omen_expected`, `omen_range`, `logged_at`; later joined to actuals |
 
-> **Read first (2026-09-30):** `Direction/2026-09-30-first-factor-experiment.md`. Adding context to the projection did not measurably improve close start/sit calls. S2, S4 and S5 below describe building the factor pipeline; they are **on hold until a factor passes the test** (the harness in S5 has effectively been built in `scripts/research/context-vs-projection/`). S0, D2's band-as-issued fix and the shadow log are unaffected.
+> **Read first (2026-09-30):** `Direction/2026-09-30-first-factor-experiment.md`. Adding context to the projection did not measurably improve close start/sit calls. S2, S4 and S5 below describe building the factor pipeline; they are **on hold: all eight families were tested and none met the bar** (the harness in S5 now exists as `scripts/research/context-vs-projection/`; see the update at the bottom of that report). S0, D2's band-as-issued fix and the shadow log are unaffected.
 
 ## Steps
 

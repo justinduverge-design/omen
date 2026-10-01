@@ -9,13 +9,15 @@ Today the pick is `evaluateLineup()`: it compares the provider's projected point
 
 A recommendation that reads as analysis but is produced by comparing two provider numbers is not what Omen is for.
 
-## First experiment, 2026-09-30 — read before building anything in this spec
+## Experiments, 2026-09-30 — read before building anything in this spec
 
-`Direction/2026-09-30-first-factor-experiment.md`. On 8 seasons of real data, adding game lines, rest, primetime, weather, roof, opponent strength and recent form to Sleeper's projection moved the close-call hit rate from 54.0% to 54.2% (change +0.16 points, 95% interval -0.16 to +0.50). **The factor-adjusted expected-points model this spec describes is unproven.** Consequences:
+`Direction/2026-09-30-first-factor-experiment.md`. Every factor family was tested out of sample on 8 seasons of real data under a rule written beforehand: availability, usage trends, player-specific splits, team tempo and scheme, game lines, rest and primetime, weather, opponent strength, recent form, variance, and waiver value. **None met the bar for improving close start/sit calls** (best: game lines, +0.22 points, real but too small). Variance from recent history is not predictable once scoring level is controlled. Waiver value: the model beats a trailing average clearly (by 0.69 points) and this week's projection by only 0.10.
 
-1. **Do not build the full data layer or factor library on faith.** Factors are admitted only after they pass this test; none has yet. S2 and S4 narrow to whatever a passing factor needs.
-2. **The untested families are where the spec should look next:** availability and usage leading indicators (injury report, practice participation, depth chart, snap and target share), win-probability lineup choices (ceiling versus floor given the opponent's projected score), and season-long waiver and trade value (rest of schedule, byes, roster construction, league scoring).
-3. **Honest uncertainty is already a feature.** Within one point of projection the projection is right 52% of the time; Omen saying "coin flip" there is correct and rare among competitors.
+**The factor-adjusted expected-points model this spec describes is not supported by the evidence.** Consequences:
+
+1. **Do not build the football-data pipeline, the factor library, or the extra tables on faith.** S2, S4 and S5 are on hold; the harness already exists as `scripts/research/context-vs-projection/`.
+2. **Reframe the product around what the evidence supports:** an honest confidence layer (the projection is right 52% of the time within a point and 82% at 8+, so tell the user which kind of call this is), cross-provider integration, workflow where projections do not decide (waivers, trades, deadlines, what changed), and, to be tested with the forward shadow log, speed on availability and news.
+3. **Keep the guard.** A factor is admitted only after it passes a pre-registered out-of-sample test; the shadow log (Omen's read beside the provider's, logged weekly) is the proof that matters.
 
 ## Principle
 
