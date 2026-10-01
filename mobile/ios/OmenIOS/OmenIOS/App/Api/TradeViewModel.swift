@@ -82,6 +82,174 @@ final class TradeViewModel: ObservableObject {
         selectedPartnerTeamID = id
     }
 
+    // MARK: - T5: three-team trade builder
+
+    enum ThreeTeamViewState: Equatable {
+        case idle
+        case loading
+        case loaded(TradeThreeTeamCompare)
+        case failed(OmenApiError)
+        case demo
+    }
+
+    @Published private(set) var thirdPartnerTeamID: String?
+    @Published var isPartnerPickerPresented = false
+    @Published private(set) var threeTeamLegs: [TradeThreeTeamLeg] = []
+    @Published private(set) var threeTeamViewState: ThreeTeamViewState = .idle
+    /// Client-local only. Never sent to the server, never read back as proof a leg went through —
+    /// `TradeBuildThreeTeam-v1.md`'s own rule.
+    @Published private(set) var threeTeamSubmissionDoneSteps: Set<Int> = []
+    /// "Removed Chubb Rock. Any legs with them were cleared too." Transient; the screen clears it
+    /// on its own timetable (or the caller can via `dismissThirdPartnerRemovalDisclosure`).
+    @Published private(set) var thirdPartnerRemovalDisclosure: String?
+
+    /// The league's other teams, minus the viewer's own team and whichever partner(s) are
+    /// already in the trade — `TradePartnerPicker-v1.md`'s governing rule, restated by
+    /// `rosterPartners` already excluding "you" (it is built from opponent rosters only).
+    var partnerPickerCandidates: [OmenTradePartner] {
+        let excluded = Set([selectedPartnerTeamID, thirdPartnerTeamID].compactMap { $0 })
+        return rosterPartners.filter { !excluded.contains($0.id) }
+    }
+
+    /// Only reachable while `three_team.supported` and exactly two teams (you + primary) are
+    /// selected — `TradePartnerPicker-v1.md`'s governing rule. A no-op otherwise, which is what
+    /// keeps the live "Add team" chip from ever being wired to open this with a third team
+    /// already active or three-team support unread/unavailable.
+    func openPartnerPicker() {
+        guard rosterCapability?.threeTeamSupported == true, thirdPartnerTeamID == nil else { return }
+        isPartnerPickerPresented = true
+    }
+
+    func dismissPartnerPicker() {
+        isPartnerPickerPresented = false
+    }
+
+    /// Commits a picked team as the third partner. Any prior three-team read goes stale — the
+    /// same "any edit invalidates the standing verdict" rule `add(_:to:)` already applies to the
+    /// two-team offer.
+    func addThirdPartner(_ partner: OmenTradePartner) {
+        thirdPartnerTeamID = partner.id
+        isPartnerPickerPresented = false
+        thirdPartnerRemovalDisclosure = nil
+        threeTeamViewState = .idle
+    }
+
+    /// Tapping the already-selected third-partner chip a second time — the toggle-a-chip removal
+    /// idiom `.fc` filter chips already use. Discards every leg touching that team and returns to
+    /// the existing 2-team state, per `TradeBuildThreeTeam-v1.md`'s own acceptance check: "never a
+    /// silent partial state with orphaned legs."
+    func removeThirdPartner() {
+        guard let removedID = thirdPartnerTeamID else { return }
+        let removedName = rosterPartners.first(where: { $0.id == removedID })?.name ?? "that team"
+        threeTeamLegs.removeAll { $0.from == removedID || $0.to == removedID }
+        thirdPartnerTeamID = nil
+        threeTeamViewState = .idle
+        threeTeamSubmissionDoneSteps = []
+        thirdPartnerRemovalDisclosure = "Removed \(removedName). Any legs with them were cleared too."
+    }
+
+    func dismissThirdPartnerRemovalDisclosure() {
+        thirdPartnerRemovalDisclosure = nil
+    }
+
+    /// "Send to you" / "Send to Chubb Rock" — `TradeRoster-v1.md`'s addendum. Always the two
+    /// teams in the trade other than whichever team's roster is currently being browsed
+    /// (`selectedPartnerTeamID`, the fixed primary once a third team is active — see
+    /// `TradeBuildThreeTeam-v1.md`'s note that the chip row stops offering a swap once three are
+    /// active). Empty — and therefore no recipient chooser renders at all — until a third team
+    /// exists, which is exactly the addendum's "when only two teams are active... unchanged."
+    var threeTeamRecipientChoices: [OmenTradeRecipientChooser.Recipient] {
+        guard let thirdPartnerTeamID else { return [] }
+        let thirdName = rosterPartners.first(where: { $0.id == thirdPartnerTeamID })?.name ?? thirdPartnerTeamID
+        return [
+            .init(id: "you", label: "Send to you"),
+            .init(id: thirdPartnerTeamID, label: "Send to \(thirdName)"),
+        ]
+    }
+
+    /// Tapping a recipient pill on `TradeRoster`. Builds or extends the leg from the browsed
+    /// team to the chosen recipient — never a leg the client invents a destination for.
+    func chooseThreeTeamRecipient(playerID: String, recipientTeamID: String) {
+        guard let fromID = selectedPartnerTeamID,
+              case .loaded(let response) = rosterBrowseState,
+              let team = response.teams.first(where: { $0.id == fromID }),
+              let player = team.players.first(where: { $0.id == playerID })
+        else { return }
+        let toName = recipientTeamID == "you"
+            ? nil
+            : rosterPartners.first(where: { $0.id == recipientTeamID })?.name
+        addThreeTeamLeg(
+            from: fromID,
+            fromName: team.teamName,
+            to: recipientTeamID,
+            toName: toName,
+            player: TradePlayer(name: player.name, position: player.position, team: player.team, playerKey: player.playerKey)
+        )
+    }
+
+    private func addThreeTeamLeg(from: String, fromName: String?, to: String, toName: String?, player: TradePlayer) {
+        if let index = threeTeamLegs.firstIndex(where: { $0.from == from && $0.to == to }) {
+            threeTeamLegs[index].players.append(player)
+        } else {
+            threeTeamLegs.append(TradeThreeTeamLeg(from: from, fromName: fromName, to: to, toName: toName, players: [player]))
+        }
+        // Any edit invalidates the standing three-team read, same rule as the 2-team offer.
+        threeTeamViewState = .idle
+    }
+
+    var threeTeamOffer: TradeThreeTeamOffer {
+        TradeThreeTeamOffer(legs: threeTeamLegs, leagueContext: offer.leagueContext)
+    }
+
+    func compareThreeTeam(userID: String) async {
+        guard userID != SessionManager.demoUserID else {
+            threeTeamViewState = .demo
+            return
+        }
+        guard threeTeamOffer.isThreeTeamShape, threeTeamLegs.count >= 2 else {
+            threeTeamViewState = .idle
+            return
+        }
+        let accessToken: String?
+        if case .token(let renewed) = await sessionManager.authorization() {
+            accessToken = renewed
+        } else {
+            accessToken = nil
+        }
+
+        threeTeamViewState = .loading
+        threeTeamSubmissionDoneSteps = []
+        switch await repository.compareThreeTeam(offer: threeTeamOffer, accessToken: accessToken) {
+        case .success(let result):
+            threeTeamViewState = .loaded(result)
+        case .failure(let error):
+            if error == .unauthorized { sessionManager.onRefreshFailed() }
+            threeTeamViewState = .failed(error)
+        }
+    }
+
+    /// The per-step done toggle. Client-local only — see `OmenTradeSubmission.stepDone`'s doc
+    /// comment for the full rule.
+    func toggleThreeTeamSubmissionStep(_ index: Int) {
+        if threeTeamSubmissionDoneSteps.contains(index) {
+            threeTeamSubmissionDoneSteps.remove(index)
+        } else {
+            threeTeamSubmissionDoneSteps.insert(index)
+        }
+    }
+
+    /// Copies only this leg's player names — never the whole three-leg block —
+    /// `TradeBuildThreeTeam-v1.md`'s own rule for the per-step "Copy" action. Steps line up 1:1,
+    /// in order, with the legs the client POSTed (T1 iterates `resolvedLegs.map` in that order).
+    func copyTextForThreeTeamStep(_ index: Int) -> String? {
+        guard threeTeamLegs.indices.contains(index) else { return nil }
+        return threeTeamLegs[index].players.map(\.name).joined(separator: ", ")
+    }
+
+    func dismissThreeTeamVerdict() {
+        threeTeamViewState = .idle
+    }
+
     /// Picked off a real roster. Keeps position, team and the provider id — the same fields
     /// autocomplete already carries, and the same reason: a name-only player resolves to
     /// `position: "UNK"` on the server and drops out of scarcity and tier entirely.
@@ -119,19 +287,64 @@ final class TradeViewModel: ObservableObject {
 
     /// `TradeBuild` — a real partner directory plus the offer built so far. Always constructible
     /// once a league is connected, whether or not the roster read has landed yet.
+    ///
+    /// T5: once a third team is active, `sides`/`read`/`submission` switch to the three-team
+    /// path entirely — built from `threeTeamOffer`/`threeTeamViewState` rather than `offer`. With
+    /// no third partner (every existing account, and every league without `three_team.supported`)
+    /// this executes exactly the branch that shipped before T5, unchanged.
     var rosterBuildState: OmenTradeBuildState {
         let partners = rosterPartners
         let selectedID = selectedPartnerTeamID ?? partners.first?.id
-        let primaryTitle: String
-        switch rosterBrowseState {
-        case .loading: primaryTitle = "Loading your league's teams…"
-        case .loaded(let response) where !response.isAvailable: primaryTitle = "See why rosters aren't available"
-        case .loaded where selectedID != nil: primaryTitle = "View their roster"
-        default: primaryTitle = "Load your league's teams"
+        let thirdPartner = thirdPartnerTeamID.flatMap { id in partners.first(where: { $0.id == id }) }
+
+        guard let thirdPartner else {
+            let primaryTitle: String
+            switch rosterBrowseState {
+            case .loading: primaryTitle = "Loading your league's teams…"
+            case .loaded(let response) where !response.isAvailable: primaryTitle = "See why rosters aren't available"
+            case .loaded where selectedID != nil: primaryTitle = "View their roster"
+            default: primaryTitle = "Load your league's teams"
+            }
+            return OmenTradeBuildState(
+                kicker: "Two teams",
+                title: "Trade with a real team",
+                tabTitles: [],
+                selectedTabIndex: 0,
+                partners: partners,
+                selectedPartnerID: selectedID,
+                filters: [],
+                selectedFilterID: nil,
+                capability: rosterCapability,
+                sides: OmenTradeAnswer.sides(of: offer),
+                read: nil,
+                submission: nil,
+                primaryActionTitle: primaryTitle
+            )
         }
+
+        let teamOrder = ["you", selectedID, thirdPartnerTeamID].compactMap { $0 }
+        let sides = OmenTradeAnswer.sides(of: threeTeamOffer, viewerTeamID: "you", teamOrder: teamOrder)
+        let read: OmenTradeRead?
+        let submission: OmenTradeSubmission?
+        let primaryTitle: String
+        switch threeTeamViewState {
+        case .loaded(let compare):
+            read = OmenTradeRead.from(compare)
+            submission = OmenTradeSubmission.from(compare.submission, platform: compare.analysisContext.platform, doneSteps: threeTeamSubmissionDoneSteps)
+            primaryTitle = "Change the offer"
+        case .loading:
+            read = nil
+            submission = nil
+            primaryTitle = "Comparing…"
+        case .failed, .demo, .idle:
+            read = nil
+            submission = nil
+            primaryTitle = threeTeamLegs.count >= 2 ? "Compare this deal" : "Add at least one more leg"
+        }
+
         return OmenTradeBuildState(
-            kicker: "Two teams",
-            title: "Trade with a real team",
+            kicker: "Three teams",
+            title: "Trade with two real teams",
             tabTitles: [],
             selectedTabIndex: 0,
             partners: partners,
@@ -139,10 +352,12 @@ final class TradeViewModel: ObservableObject {
             filters: [],
             selectedFilterID: nil,
             capability: rosterCapability,
-            sides: OmenTradeAnswer.sides(of: offer),
-            read: nil,
-            submission: nil,
-            primaryActionTitle: primaryTitle
+            sides: sides,
+            read: read,
+            submission: submission,
+            primaryActionTitle: primaryTitle,
+            thirdPartner: thirdPartner,
+            removalDisclosure: thirdPartnerRemovalDisclosure
         )
     }
 
@@ -160,14 +375,25 @@ final class TradeViewModel: ObservableObject {
         if !response.isAvailable {
             rosters = .permanentlyUnavailable(capability: "Opponent rosters", sentence: response.unavailableSentence)
         } else if let selectedID, let team = response.teams.first(where: { $0.id == selectedID }) {
+            // T5: with a third team active, "already added" means "already in one of this
+            // team's legs", and each available row gets the recipient chooser instead of
+            // committing straight to "you" — `TradeRoster-v1.md`'s addendum.
+            let recipients = threeTeamRecipientChoices
             let rows: [OmenTradeRosterState.Row] = team.players.map { player in
-                let alreadyAdded = player.playerKey != nil
-                    && offer.receive.contains { $0.playerKey == player.playerKey }
+                let alreadyAdded: Bool
+                if thirdPartnerTeamID != nil {
+                    alreadyAdded = player.playerKey != nil
+                        && threeTeamLegs.contains { $0.from == selectedID && $0.players.contains { $0.playerKey == player.playerKey } }
+                } else {
+                    alreadyAdded = player.playerKey != nil
+                        && offer.receive.contains { $0.playerKey == player.playerKey }
+                }
                 return OmenTradeRosterState.Row(
                     id: player.id,
                     name: player.name,
                     meta: player.meta,
-                    availability: alreadyAdded ? .added : .available
+                    availability: alreadyAdded ? .added : .available,
+                    recipients: alreadyAdded ? [] : recipients
                 )
             }
             rosters = .read(

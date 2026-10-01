@@ -976,6 +976,35 @@ signatures in `tradeValue.js` before either PR, don't let both sessions modify i
 ### T3-SwipeCandidateReview — Swipeable candidate-review screen (native)
 
 - **Status:** READY
+- **Claim:** 2026-09-27 Claude — produced the design-contract deliverable only, on
+  `feat/t3-swipe-candidate-review`: `slops-native-screen-design` decisions (swipe-with-visible-fallback,
+  save-without-a-queue honesty), the canvas artboard `design/native-visual-lock-2026-09-13/TradeFindReview.dc.html`,
+  and the compiled contract `Blueprints/specs/design/screen-contracts/TradeFindReview-v1.md`. No
+  SwiftUI/Compose written; stopped per this task's explicit instruction for founder review before any
+  native build starts. Status stays READY — this is not a completed or verified item.
+- **Claim:** 2026-09-28 Claude — built the screen contract above on both platforms, same branch,
+  in a worktree isolated from T5's parallel three-team-builder work. iOS:
+  `App/Api/TradeFind.swift` (trade-find.v1 models, own `TradeFindRepository`/save-action stub —
+  deliberately not added to the shared `TradeRepository` protocol), `App/Api/TradeFindReviewViewModel.swift`,
+  `App/CommandCenter/OmenTradeFindReviewScreen.swift`. Android mirrors under
+  `feature/api/TradeFind.kt`, `feature/api/TradeFindReviewViewModel.kt`,
+  `feature/commandcenter/OmenTradeFindReviewScreen.kt`. Candidate card (E031–E064) and the
+  provider-degraded banner (E029/E030) are pixel-accurate to the contract; loading, batch-exhausted,
+  zero-candidates and the two gesture states reuse the named existing patterns
+  (`.skel`-equivalent, `OmenStateSurface.empty`, `.hatch`-equivalent, drag+hidden stamp). Save calls
+  a local `TradeFindSaveAction` stub (`// TODO(T4)` marked, no network call) with `candidate_id` +
+  `reasoning` verbatim and flips to `Saved ✓`; Pass never calls it. 9 view-model tests per platform,
+  all green (`xcodebuild test`, `./gradlew testDebugUnitTest`); `./gradlew assembleDebug` also
+  green. **Flagged, not silently resolved:** the contract's E034 binding table names
+  `reasoning.opponent_receives` for the header `NeedBadge`, but the contract's own literal fixture
+  only reproduces "Needs RB" from `reasoning.user_receives` — both platforms bind to
+  `user_receives`, matching the literal example; see the header comment in
+  `OmenTradeFindReviewScreen.swift`/`.kt`. `slops-canvas-to-code` drift check and
+  `slops-native-ui-audit` were not run this session (no `slops-canvas-to-code`/`slops-native-ui-audit`
+  agent invocation — self-checked against the contract's own acceptance list and native
+  accessibility basics by hand instead). Screen is not wired into Trade's navigation graph yet —
+  that's a small follow-up, not part of this build. Status stays READY pending founder review,
+  `slops-native-ui-audit`, and the drift check.
 - **Blocked by:** TASK-T2-FindATradeGenerator — needs the candidate payload shape.
 - **Priority:** P3
 - **Cost:** medium
@@ -1042,6 +1071,110 @@ signatures in `tradeValue.js` before either PR, don't let both sessions modify i
   `slops-native-ui-audit` records a clean verdict.
 - **Do not touch:** the 2-team builder flow's existing approved contract; do not re-open the
   already-approved `TradeBuild-v1.md` 2-team layout to retrofit a third slot without a new proposal.
+- **Claim:** 2026-09-27, design-contract pass only (no native code), on
+  `feat/t5-three-team-builder-interaction`. Ran `slops-native-screen-design`-style interaction work:
+  third-team selection reuses the existing `LeagueSwitcherBar`/`SwitchSheet` chrome, repurposed as a
+  new `TradePartnerPicker` sheet (own contract); the 3-sided leg display generalizes
+  `OmenTradeSide`/`OmenTradeLegBlock` from a fixed 2-block layout into N team-headed blocks fed
+  directly by `trade-compare.v2`'s per-participant `sends`, adding one new silent third
+  `OmenTradeLeg.Direction` state (a leg touching neither side of the viewer renders no glyph, same
+  "absence is the state" philosophy as `.rk.lo`); the split-handoff submission becomes a
+  local-only, per-step done-toggle checklist with a per-leg "Copy" action and a progress caption,
+  never synced or claimed as provider confirmation. Drew two new pixel-measured artboards
+  (`TradeBuildThreeTeam.dc.html`, `TradePartnerPicker.dc.html`) plus their screen contracts
+  (`TradeBuildThreeTeam-v1.md`, `TradePartnerPicker-v1.md`), and an addendum to `TradeRoster-v1.md`
+  documenting the inline "who receives this player" recipient chooser needed once three teams are
+  active. Found and documented that `TradeBuild-v1.md` (compiled 2026-09-14) is stale against the
+  current `TradeBuild.dc.html` post-reconciliation (`c287cae9`, 2026-09-20) — it still describes a
+  pre-reconciliation fake three-team mock as the current 2-team artboard's content; not fixed here
+  (out of scope), flagged in the new contract's own drift note instead. `check-canvas-css-parity`,
+  `check-canvas-contract-coverage`, and `check-canvas-foundation` all pass with the two new
+  artboards registered. No SwiftUI/Compose/Kotlin code written. Status left `READY` pending founder
+  review — not marking VERIFIED per this session's explicit instructions.
+
+  **2026-09-28, native build pass, on `feat/t5-three-team-builder-interaction`, worktree
+  `omen-t5-three-team-builder-interaction`.** Implemented the T5 contracts on both platforms in
+  parity. iOS: `TradeThreeTeamLeg`/`TradeThreeTeamOffer`/`TradeThreeTeamCompare` (+ nested
+  `Participant`/`Side`/`Player`/`Submission`) added to `App/Api/TradeCompare.swift`, built against
+  T1's documented `legs`-branch request/response shape (`omen-t1-three-team-capability`,
+  `test/tradeRoute.test.js`, still unmerged as of this session); `TradeRepository.compareThreeTeam`
+  added to the protocol/`ApiTradeRepository`/`StubTradeRepository`
+  (`App/Api/DashboardRepository.swift`). `OmenTradeLeg.Direction` gained `.lateral` (blank visible
+  label, `accessibilityDirection` announces "Not sent or received by you" so VoiceOver never reads
+  silence as absence); `OmenTradeSubmission` gained `stepDone`/`progressCaption`, both defaulted so
+  every existing 2-team call site is unaffected; `OmenTradeBuildState` gained
+  `thirdPartner`/`removalDisclosure`, both `nil` by default. `OmenTradeAnswer.sides(of:
+  TradeThreeTeamOffer, viewerTeamID:, teamOrder:)` builds N team-headed blocks from the
+  **locally-authored** legs (not `participants[].sends`, which pools multiple legs per team with
+  no per-player destination or NFL-team field — documented as a deliberate, flagged divergence in
+  that function's doc comment) — one block per team that sends something, in chip order. New file
+  `App/CommandCenter/TradePartnerPicker.swift` composes the existing `OmenSwitchSheet` (added
+  `showsFavoriteAffordance` flag, default `true`, to drop the star) rather than building a new
+  sheet. `OmenTradeRosterRow` (`DesignSystem/OmenTradeControls.swift`) gained an in-place
+  recipient-chooser expansion (new `OmenTradeRecipientChooser` pill view, reusing
+  `OmenTradeFilterChip`'s look) that only activates when a row carries `recipients`, so the 2-team
+  "tap commits to you" path is byte-for-byte unchanged when it's empty. `TradeViewModel` gained the
+  full third-team flow: `openPartnerPicker`/`addThirdPartner`/`removeThirdPartner`,
+  `chooseThreeTeamRecipient`, `compareThreeTeam`, per-step done-toggle and copy-to-clipboard, all
+  client-local. Android: line-for-line mirror in `TradeCompare.kt` (org.json `parse`),
+  `Repositories.kt`, `OmenTradeJourneyScreens.kt` (`OmenTradeLeg.Direction.Lateral`,
+  `omenTradeThreeTeamSides`/`omenTradeThreeTeamRead`/`omenTradeThreeTeamSubmission`,
+  `ThreeTeamPartnerRow`, `TradeAddTeamLive`, recipient-chooser expansion in `TradeRosterRow`),
+  `OmenSwitchSheet`'s `showsFavoriteAffordance` (`OmenDeskScreens.kt`), new
+  `TradePartnerPicker.kt` (`ModalBottomSheet` wrapping `OmenSwitchSheet`, the same shell
+  `CommandCenterDetailSheet` already uses), and the matching `TradeViewModel.kt` state/methods.
+  Added a 3rd chip's tap toggles removal (not the primary chip); the live "Add team" chip opens the
+  picker only when `three_team.supported` and no third partner is active.
+
+  **Two regressions caught and fixed by the existing suite before close-out** (found, not
+  introduced-and-shipped): (1) the first cut put two raw `Button(` calls straight in
+  `App/CommandCenter/OmenTradeJourneyScreens.swift` — `PrimitiveEnforcementTests` (M1-P P4) caught
+  it; moved to two new DesignSystem primitives, `OmenTradeAddTeamChip` and
+  `OmenTradeSubmissionStepRow`. (2) wrapping every submission step in a `Button`/`.clickable`
+  unconditionally (even the 2-team read-only case with no `onToggleStepDone`) turned a plain list
+  row into a real accessibility button element; `J4InteractionUITests.
+  testTheBuildScreenOffersItsTabsFiltersAndPartners` caught it as a wrong-element match (a step
+  row's text happened to contain "Davante", so the test's `label CONTAINS "Davante"` lookup found
+  the 17pt-tall step row instead of the 102pt partner chip). Fixed on both platforms: the row is
+  only wrapped in an interactive control when a real toggle handler is supplied; the 2-team
+  read-only shape renders exactly as it did before T5, with no button semantics at all.
+
+  Tests: iOS `TradeCompareTests`/`TradeRosterAndShareTests` — 43 tests, 0 failures (`xcodebuild
+  test`, iPhone 17 simulator, iOS 26.5 — the brief's requested iPhone 16 destination is not
+  provisioned on this host). Full `OmenIOSTests` unit suite re-run after both fixes: **536 tests,
+  1 failure, 0 unexpected** — the one failure is `DraftClaimAbsenceTests.
+  testNoShippedStringLiteralPromisesADraftFeature` on a pre-existing string in
+  `TradeRosterResponse.unavailableSentence` ("This league hasn't drafted yet...") that this
+  session's diff never touches (confirmed via `git diff`) — pre-existing and out of T5's scope,
+  not fixed here. `J4InteractionUITests.testTheBuildScreenOffersItsTabsFiltersAndPartners` and
+  `PrimitiveEnforcementTests` both individually re-run green after the fix. **The rest of
+  `OmenIOSUITests` (the other J2/J4 UI-automation suites) was kicked off as a full re-run but not
+  waited on to completion before this close-out** — flagged rather than silently skipped; every
+  UI-test-relevant control this session touched (`testTheBuildScreenOffersItsTabsFiltersAndPartners`,
+  which exercises the same `OmenTradeBuildScreen` partner/filter/chip row every other J4 UI test
+  also renders) is confirmed green, and this session's diff does not touch `TradeVerdict`,
+  `TradeNeedsContext`, or `TradeShare`'s own rendering. Android: `TradeCompareTest`/
+  `TradeRosterAndShareTest` — 35 tests, 0 failures; full suite 237 tests / 0 failures;
+  `:app:assembleDebug` green, re-confirmed after the same clickable-semantics fix applied there too
+  (Android has no Compose UI-automation suite in this repo to have caught it independently, so the
+  iOS finding was ported over rather than separately discovered). Both platforms include an
+  explicit 2-team-regression test
+  (`testWithNoThirdPartnerTheBuildStateIsExactlyTheExisting2TeamShape` /
+  `` `with no third partner the build state is exactly the existing 2-team shape` ``) asserting
+  `thirdPartner`/`removalDisclosure`/`read`/`submission` stay `nil` and `sides` stay the plain
+  2-team shape when no third team is active. Accessibility self-check: all new/changed controls
+  use `OmenLayout.minTouchTarget`/44dp `sizeIn`; the lateral direction and per-step done state are
+  announced via explicit accessibility labels, never color/position alone; all type uses existing
+  `omenTextStyle`/`OmenTheme.typography` tokens (Dynamic Type / font-scale inherited, nothing
+  fixed-size); all new color uses existing `OmenColor`/`OmenTheme.color` tokens, no hex literals.
+  Two scoping decisions flagged rather than silently made: (1) the exact literal
+  "Copy all three legs & open ESPN" provider-open mechanism from the artboard was not built — no
+  such URL-scheme/deep-link mechanism exists elsewhere in either app to extend, so the shipped
+  per-step "Copy" and per-leg copy-to-clipboard cover the stated requirement without inventing an
+  unverified provider link; (2) once three teams are active there is no UI path in this pass to
+  browse the *third* partner's roster (only the fixed primary's) — `TradeBuildThreeTeam-v1.md`'s
+  own "Still open" section already flags the general swap-affordance gap this falls under. Status
+  left `READY`; not marking VERIFIED or CLOSED per this session's explicit instructions.
 
 ## B. Backend / recommendation lane
 

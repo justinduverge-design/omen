@@ -877,6 +877,28 @@ final class ContractFixtureDecodeTests: XCTestCase {
         }
     }
 
+    /// The Trade Find decoder defaults every missing field, so "it decoded" proves nothing. Compare what
+    /// it produced against the raw server body: same status, same candidates, same players.
+    func testTradeFindFixturesDecodeToWhatTheServerSent() throws {
+        for fx in try fixtures("trade-find.v1") where fx.status == 200 {
+            let raw = try XCTUnwrap(JSONSerialization.jsonObject(with: fx.body) as? [String: Any], fx.name)
+            let decoded = try JSONDecoder().decode(TradeFindResponse.self, from: fx.body)
+            XCTAssertEqual(decoded.contractVersion, raw["contract_version"] as? String, fx.name)
+            XCTAssertEqual(decoded.status, raw["status"] as? String, fx.name)
+            let rawCandidates = (raw["candidates"] as? [[String: Any]]) ?? []
+            XCTAssertEqual(decoded.candidates.count, rawCandidates.count, fx.name)
+            for (got, sent) in zip(decoded.candidates, rawCandidates) {
+                XCTAssertEqual(got.give.name, (sent["give"] as? [String: Any])?["name"] as? String, fx.name)
+                XCTAssertEqual(got.receive.name, (sent["receive"] as? [String: Any])?["name"] as? String, fx.name)
+                XCTAssertEqual(got.userLineupDelta, sent["user_lineup_delta"] as? Double, fx.name)
+                XCTAssertNotNil(sent["reasoning"], fx.name)
+                XCTAssertEqual(got.reasoning.evidence, (sent["reasoning"] as? [String: Any])?["evidence"] as? [String], fx.name)
+            }
+            let rawDegraded = (raw["degraded_teams"] as? [[String: Any]]) ?? []
+            XCTAssertEqual(decoded.degradedTeams.count, rawDegraded.count, fx.name)
+        }
+    }
+
     func testEveryRecordedSuccessFixtureDecodesWithTheAppsOwnType() throws {
         let decoders: [(String, (Data) throws -> Void)] = [
             ("dashboard-summary.v1", { _ = try JSONDecoder().decode(DashboardSummary.self, from: $0) }),
@@ -889,6 +911,7 @@ final class ContractFixtureDecodeTests: XCTestCase {
             ("start-sit-detail.v1", { _ = try JSONDecoder().decode(StartSitDetail.self, from: $0) }),
             ("start-sit-detail.v2", { _ = try JSONDecoder().decode(StartSitDetail.self, from: $0) }),
             ("trade-capabilities.v1", { _ = try JSONDecoder().decode(TradeCapabilities.self, from: $0) }),
+            ("trade-find.v1", { _ = try JSONDecoder().decode(TradeFindResponse.self, from: $0) }),
             ("trade-compare.v2", { _ = try JSONDecoder().decode(TradeCompare.self, from: $0) }),
             ("trade-roster.v1", { _ = try JSONDecoder().decode(TradeRosterResponse.self, from: $0) }),
             ("trade-share.v1", { _ = try JSONDecoder().decode(TradeShareResponse.self, from: $0) }),

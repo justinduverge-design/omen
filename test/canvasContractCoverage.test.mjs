@@ -5,9 +5,9 @@ import { findCoverage } from '../scripts/check-canvas-contract-coverage.mjs';
 
 test('visual-lock canvas has a one-to-one contract inventory', () => {
   const coverage = findCoverage();
-  assert.equal(coverage.artboards.length, 32);
-  assert.equal(coverage.contracts.length, 32);
-  assert.equal(coverage.requirementIds.length, 32);
+  assert.equal(coverage.artboards.length, 35);
+  assert.equal(coverage.contracts.length, 35);
+  assert.equal(coverage.requirementIds.length, 35);
   assert.deepEqual(coverage.missingContracts, []);
   assert.deepEqual(coverage.orphanContracts, []);
   assert.deepEqual(coverage.missingRequirements, []);

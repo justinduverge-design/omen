@@ -601,6 +601,12 @@ fun OmenSwitchSheet(
     onSelectFilter: ((String) -> Unit)? = null,
     onSelectRow: ((OmenSwitchRow) -> Unit)? = null,
     onToggleFavorite: ((OmenSwitchRow) -> Unit)? = null,
+    /**
+     * T5, `TradePartnerPicker`: *"Dropped: the star/favourite affordance. Favouriting a
+     * one-time trade partner has no product meaning here."* Defaults to `true` so every existing
+     * caller (the real team switcher) renders exactly as it did before T5.
+     */
+    showsFavoriteAffordance: Boolean = true,
 ) {
     Column(
         modifier = modifier
@@ -684,7 +690,7 @@ fun OmenSwitchSheet(
                         .padding(top = OmenTheme.spacing.step8, bottom = OmenTheme.spacing.step4),
                 )
                 for (row in group.rows) {
-                    SwitchSheetRow(row, onSelectRow, onToggleFavorite)
+                    SwitchSheetRow(row, onSelectRow, onToggleFavorite, showsFavoriteAffordance)
                 }
             }
         }
@@ -703,6 +709,7 @@ private fun SwitchSheetRow(
     row: OmenSwitchRow,
     onSelectRow: ((OmenSwitchRow) -> Unit)?,
     onToggleFavorite: ((OmenSwitchRow) -> Unit)?,
+    showsFavoriteAffordance: Boolean = true,
 ) {
     Row(
         modifier = Modifier
@@ -730,26 +737,29 @@ private fun SwitchSheetRow(
         // Filled `platinum` when starred, outlined `border` when not. The outline colour is
         // `border` rather than the artboard's original `#4A4A4E`, which measured 1.63:1 on
         // `surface-1` and was invisible; Registry Amendment 01 fixed it to 3.78:1.
-        Text(
-            text = if (row.isFavorite) "★" else "☆",
-            style = OmenTheme.typography.bodySmall.toTextStyle(),
-            // iOS fills a starred star with the `platinum` token (#C7CBD1), which the artboard
-            // draws. **Android's colour scheme has no `platinum`** — a real iOS/Android token
-            // parity gap that predates J2 — so the nearest legal token is used and the exact
-            // hex is recorded as drift rather than hard-coded here. Inventing a local colour
-            // would put a fourth source of truth beside the two token files and the registry.
-            color = if (row.isFavorite) OmenTheme.color.textPrimary else OmenTheme.color.border,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                // The artboard's star is a 14dp glyph, padded to 44dp without the glyph growing.
-                // The canvas README flags this exact control as under the touch floor and says so
-                // deliberately, because growing it in the artboard would make the artboard wrong.
-                .sizeIn(minWidth = 44.dp, minHeight = 44.dp)
-                .clickable(enabled = onToggleFavorite != null) { onToggleFavorite?.invoke(row) }
-                .semantics {
-                    contentDescription = if (row.isFavorite) "Unstar ${row.teamName}" else "Star ${row.teamName}"
-                },
-        )
+        if (showsFavoriteAffordance) {
+            Text(
+                text = if (row.isFavorite) "★" else "☆",
+                style = OmenTheme.typography.bodySmall.toTextStyle(),
+                // iOS fills a starred star with the `platinum` token (#C7CBD1), which the artboard
+                // draws. **Android's colour scheme has no `platinum`** — a real iOS/Android token
+                // parity gap that predates J2 — so the nearest legal token is used and the exact
+                // hex is recorded as drift rather than hard-coded here. Inventing a local colour
+                // would put a fourth source of truth beside the two token files and the registry.
+                color = if (row.isFavorite) OmenTheme.color.textPrimary else OmenTheme.color.border,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    // The artboard's star is a 14dp glyph, padded to 44dp without the glyph
+                    // growing. The canvas README flags this exact control as under the touch
+                    // floor and says so deliberately, because growing it in the artboard would
+                    // make the artboard wrong.
+                    .sizeIn(minWidth = 44.dp, minHeight = 44.dp)
+                    .clickable(enabled = onToggleFavorite != null) { onToggleFavorite?.invoke(row) }
+                    .semantics {
+                        contentDescription = if (row.isFavorite) "Unstar ${row.teamName}" else "Star ${row.teamName}"
+                    },
+            )
+        }
 
         Row(
             modifier = Modifier

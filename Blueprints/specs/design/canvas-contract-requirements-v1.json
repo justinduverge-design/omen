@@ -17,7 +17,7 @@
     "J1": ["SignIn", "EmailCode", "ConnectLeague", "EspnConnect", "ConnectFailed", "CommandNoLeague"],
     "J2": ["CommandCenter", "CommandQuiet", "CommandQuietStraight", "SwitchSheet", "SwitchLoading"],
     "J3": ["OmenCall", "OmenEvidence", "StartSitClear", "StartSitIncomplete"],
-    "J4": ["TradeBuild", "TradeRoster", "TradeNeedsContext", "TradeVerdict", "TradeShare"],
+    "J4": ["TradeBuild", "TradeRoster", "TradeNeedsContext", "TradeVerdict", "TradeShare", "TradeBuildThreeTeam", "TradePartnerPicker", "TradeFindReview"],
     "J5": ["LeagueTable", "LeagueWaiver", "LeagueDegraded", "LeagueNoRosters", "WaiverNoMove", "WaiverNotDetermined"],
     "J6": ["Ledger", "LedgerDetail", "LedgerDegraded", "LedgerDetailDegraded"],
     "chrome": ["Account", "ReportPill"]
@@ -43,6 +43,9 @@
     {"id":"TradeNeedsContext","family":"Trade","journey":"J4","states":["degraded","partial"],"api_contracts":["trade-compare.v2"],"scroll":"scrolls"},
     {"id":"TradeVerdict","family":"Trade","journey":"J4","states":["nominal"],"api_contracts":["trade-compare.v2"],"scroll":"scrolls"},
     {"id":"TradeShare","family":"Trade","journey":"J4","states":["nominal","error"],"api_contracts":["trade-share.v1"],"scroll":"scrolls"},
+    {"id":"TradeBuildThreeTeam","family":"Trade","journey":"J4","states":["nominal","partial"],"api_contracts":["trade-capabilities.v1","trade-compare.v2"],"scroll":"scrolls"},
+    {"id":"TradePartnerPicker","family":"Trade","journey":"J4","states":["nominal"],"api_contracts":["trade-capabilities.v1"],"scroll":"fits"},
+    {"id":"TradeFindReview","family":"Trade","journey":"J4","states":["nominal","loading","empty","degraded"],"api_contracts":["trade-find.v1"],"scroll":"scrolls"},
     {"id":"LeagueTable","family":"League & waiver","journey":"J5","states":["nominal","partial"],"api_contracts":["league-overview.v1"],"scroll":"scrolls"},
     {"id":"LeagueWaiver","family":"League & waiver","journey":"J5","states":["nominal"],"api_contracts":["waiver-analysis.v1"],"scroll":"scrolls"},
     {"id":"LeagueDegraded","family":"League & waiver","journey":"J5","states":["degraded","partial","unavailable"],"api_contracts":["league-overview.v1"],"scroll":"scrolls"},

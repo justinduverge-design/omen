@@ -1,0 +1,13 @@
+{
+  "http_status": 200,
+  "route": "/api/trade/find",
+  "body": {
+    "candidates": [],
+    "contract_version": "trade-find.v1",
+    "league_id": "abc123",
+    "platform": "sleeper",
+    "reason": "league_not_active",
+    "status": "unavailable",
+    "week": 3
+  }
+}
