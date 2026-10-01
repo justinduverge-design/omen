@@ -9,6 +9,18 @@ Today the pick is `evaluateLineup()`: it compares the provider's projected point
 
 A recommendation that reads as analysis but is produced by comparing two provider numbers is not what Omen is for.
 
+## Experiments, 2026-09-30 — read before building anything in this spec
+
+`Direction/2026-09-30-first-factor-experiment.md`. Every factor family was tested out of sample on 8 seasons of real data under a rule written beforehand: availability, usage trends, player-specific splits, team tempo and scheme, game lines, rest and primetime, weather, opponent strength, recent form, variance, and waiver value. **None met the bar for improving close start/sit calls** (best: game lines, +0.22 points, real but too small). Variance from recent history is not predictable once scoring level is controlled. Waiver value: the model beats a trailing average clearly (by 0.69 points) and this week's projection by only 0.10.
+
+Rounds 3 and 4 added scheme, coverage and route-matchup features and then every unused nflverse dataset (122 features); none passed once a data leak was found and fixed (a first +5.6 result was the leak). **Per the pre-agreed stopping rule the search for a projection-beating edge in nflverse data has ended** (`Direction/2026-09-30-first-factor-experiment.md`). A second round tested combinations and interactions directly (trees on every feature, and a nested best-subset selection) and found nothing distinguishable from zero (best +0.31 points, 99% CI -0.06 to +0.70).
+
+**The factor-adjusted expected-points model this spec describes is not supported by the evidence.** Consequences:
+
+1. **Do not build the football-data pipeline, the factor library, or the extra tables on faith.** S2, S4 and S5 are on hold; the harness already exists as `scripts/research/context-vs-projection/`.
+2. **Reframe the product around what the evidence supports:** an honest confidence layer (the projection is right 52% of the time within a point and 82% at 8+, so tell the user which kind of call this is), cross-provider integration, workflow where projections do not decide (waivers, trades, deadlines, what changed), and, to be tested with the forward shadow log, speed on availability and news.
+3. **Keep the guard.** A factor is admitted only after it passes a pre-registered out-of-sample test; the shadow log (Omen's read beside the provider's, logged weekly) is the proof that matters.
+
 ## Principle
 
 **Every factor that appears in the explanation must have moved the number.** The explanation is generated from the factors' recorded contributions. Nothing is narrated that did not contribute, and nothing contributes without a recorded, tested magnitude.
