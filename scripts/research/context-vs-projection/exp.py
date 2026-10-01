@@ -10,13 +10,18 @@ for kind in ("proj", "stats"):
 df = pd.DataFrame(rows)
 P = df[df.kind == "proj"][["season","week","id","team","opp","pos","name","ppr"]].rename(columns={"ppr":"proj"})
 A = df[df.kind == "stats"][["season","week","id","team","ppr","gp"]].rename(columns={"ppr":"actual","team":"team_a"})
-P = P[P.proj.notna() & (P.proj > 0) & P.pos.isin(["QB","RB","WR","TE"])]
-D = P.merge(A[["season","week","id","actual","gp","team_a"]], on=["season","week","id"], how="left")
-D["played"] = D.actual.notna() & (D.gp.fillna(0) > 0)
-# ---------- team code normalisation ----------
+P = P[P.proj.notna() & (P.proj > 0) & P.pos.isin(["QB","RB","WR","TE"])].copy()
+# ---------- team code normalisation (applied to the projection frame BEFORE it is used for anything,
+#            including the opponent-vs-position history; the first version normalised only D, which left every
+#            game against the Rams ("LAR" in Sleeper, "LA" here) without an opponent-strength value) ----------
 NORM = {"LAR":"LA","OAK":"LV","SD":"LAC","STL":"LA","JAC":"JAX","WSH":"WAS"}
 nt = lambda t: NORM.get(t, t)
+for c in ("team","opp"): P[c] = P[c].map(lambda x: nt(x) if isinstance(x, str) else x)
+A["team_a"] = A["team_a"].map(lambda x: nt(x) if isinstance(x, str) else x)
+D = P.merge(A[["season","week","id","actual","gp","team_a"]], on=["season","week","id"], how="left")
+D["played"] = D.actual.notna() & (D.gp.fillna(0) > 0)
 for c in ("team","opp","team_a"): D[c] = D[c].map(lambda x: nt(x) if isinstance(x, str) else x)
+assert not (set(D.team.dropna()) | set(D.opp.dropna())) & set(NORM), "an un-normalised team code survived"
 # ---------- schedule context ----------
 G = pd.read_csv("data/games.csv"); G = G[(G.game_type == "REG") & G.season.between(2018, 2025)]
 for c in ("home_team","away_team"): G[c] = G[c].map(nt)
@@ -57,6 +62,10 @@ def dvp(row_df):
         i += 1
     return out, miss
 D["dvp"], D["dvp_missing"] = dvp(D)
+late = D[D.week >= 5]
+worst = late.groupby("opp").dvp_missing.mean().sort_values(ascending=False)
+assert worst.iloc[0] < 0.15, f"opponent-strength is missing for {worst.index[0]}: {worst.iloc[0]:.0%} of games from week 5 on"
+print("opponent-strength missing from week 5 on: worst team", worst.index[0], f"{worst.iloc[0]:.1%}")
 # ---------- player recent residual vs projection (strictly earlier weeks, same season) ----------
 D = D.sort_values(["id","season","week"]).reset_index(drop=True)
 D["resid"] = D.actual - D.proj

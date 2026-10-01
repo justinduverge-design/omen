@@ -1,5 +1,7 @@
 # First factor experiment — does context beat the projection? (2026-09-30)
 
+> **Corrected after code review (same day).** The first run had a data bug (every game against the Rams lacked an opponent-strength value) and a bootstrap that resampled position-week slices instead of whole weeks. Both are fixed and every number in this report was re-run; none of the conclusions changed. The tables below are the corrected ones. The bar for the family tests (99% interval above zero, 4 of 5 seasons positive, effect at least +0.5 points) was written down before the tests ran (`scripts/research/context-vs-projection/PREREGISTRATION.md`); that file is self-authored and not independently timestamped, and the +0.5 threshold is a judgment, not a law: at +0.2, game lines would pass.
+
 **Question.** Omen's pitch is "real football context, not just comparing projections." Before building a data layer for it: does adding context (game lines, rest, primetime, weather and roof, opponent strength, recent form) to a provider's projection predict who scores more, on weeks the model never saw?
 
 **Method.** 44,480 player-weeks, QB/RB/WR/TE, regular seasons 2018-2025, weeks 1-18. Baseline and outcome both from Sleeper (its weekly projection, and its actual PPR points), so no player-ID mapping is involved. Context from nflverse `games.csv` (spread and total give each team's implied score; rest days; roof, temperature, wind; weekday and kickoff time) and from opponent-allowed points to the position over the previous four weeks of the same season. A ridge regression per position learns the *residual* (actual minus projection); it is trained only on earlier seasons and scored on 2021-2025 (19,103 played player-weeks). The decision metric is the start/sit one: among pairs at the same position and week whose projections are within 2 points (both at least 5), how often does the higher-rated player actually score more? 95% intervals are cluster-bootstrapped over weeks.
@@ -9,13 +11,13 @@
 | | Right on close calls | Change vs projection (95% CI) |
 |---|---|---|
 | Projection only | **54.0%** (129,487 pairs) | — |
-| + game lines | 54.3% | +0.22 pts [+0.10, +0.35] |
-| + rest / primetime / home | 54.2% | +0.18 [-0.05, +0.39] |
-| + weather / roof | 54.2% | +0.21 [-0.02, +0.43] |
-| + opponent vs position | 54.2% | +0.12 [-0.04, +0.31] |
-| + recent form vs projection | 53.8% | **-0.21** [-0.39, -0.02] |
-| All context together | 54.2% | +0.16 [-0.16, +0.50] |
-| (QB only, all context) | 55.5% vs 54.3% | +1.14 [-0.11, +2.32] |
+| + game lines | 54.3% | +0.22 pts [+0.11, +0.35] |
+| + rest / primetime / home | 54.2% | +0.18 [-0.06, +0.43] |
+| + weather / roof | 54.2% | +0.21 [-0.04, +0.45] |
+| + opponent vs position | 54.2% | +0.14 [-0.03, +0.31] |
+| + recent form vs projection | 53.8% | **-0.21** [-0.39, -0.04] |
+| All context together | 54.3% | +0.21 [-0.13, +0.58] |
+| (QB only, all context) | 55.7% vs 54.3% | +1.33 [+0.13, +2.54] |
 
 Mean error: the projection misses by about 5.2 points; context moves it by well under 0.1, except for QBs, where the gain (6.45 to 5.85) is almost entirely **correcting a bias** (Sleeper over-projects played QBs by 3.0 points on average), not context.
 
@@ -41,16 +43,16 @@ The founder asked to test every family rather than stop at the first miss. Rule 
 
 | Family | Hit rate (baseline 54.04%) | Change | 99% CI | Seasons positive | Result |
 |---|---|---|---|---|---|
-| A availability (injury report, practice status, returning from injury) | 54.00% | -0.04 | [-0.36, +0.29] | 2/5 | no |
-| B usage trends (targets, WOPR, carries, snap share and their trend) | 53.71% | -0.33 | [-0.75, +0.07] | 1/5 | no |
-| C player-specific splits (primetime, home/away, dome, cold or wind) | 54.02% | -0.02 | [-0.25, +0.22] | 2/5 | no |
-| D team tempo and scheme (pass rate, plays, opponent pass rate faced, new coach) | 54.19% | +0.15 | [-0.07, +0.37] | 3/5 | no |
-| E1 game lines (implied team totals, margin) | 54.26% | **+0.22** | [+0.05, +0.39] | **5/5** | no (real, but below +0.5) |
-| E2 rest / primetime / home | 54.22% | +0.18 | [-0.11, +0.48] | 3/5 | no |
-| E3 weather / roof | 54.25% | +0.21 | [-0.08, +0.51] | 3/5 | no |
-| E4 opponent vs position | 54.16% | +0.12 | [-0.12, +0.36] | 3/5 | no |
-| E5 recent form vs projection | 53.83% | -0.21 | [-0.45, +0.01] | 1/5 | no |
-| All features together | 54.09% | +0.05 | [-0.54, +0.61] | 2/5 | no |
+| A availability (injury report, practice status, returning from injury) | 54.00% | -0.04 | [-0.34, +0.26] | 2/5 | no |
+| B usage trends (targets, WOPR, carries, snap share and their trend) | 53.71% | -0.33 | [-0.75, +0.06] | 1/5 | no |
+| C player-specific splits (primetime, home/away, dome, cold or wind) | 54.02% | -0.02 | [-0.29, +0.25] | 2/5 | no |
+| D team tempo and scheme (pass rate, plays, opponent pass rate faced, new coach) | 54.19% | +0.15 | [-0.08, +0.38] | 3/5 | no |
+| E1 game lines (implied team totals, margin) | 54.26% | **+0.22** | [+0.06, +0.37] | **5/5** | no (real, but below +0.5) |
+| E2 rest / primetime / home | 54.22% | +0.18 | [-0.14, +0.49] | 3/5 | no |
+| E3 weather / roof | 54.25% | +0.21 | [-0.11, +0.54] | 3/5 | no |
+| E4 opponent vs position | 54.18% | +0.14 | [-0.08, +0.38] | 4/5 | no |
+| E5 recent form vs projection | 53.83% | -0.21 | [-0.46, +0.03] | 1/5 | no |
+| All features together | 54.15% | +0.11 | [-0.50, +0.68] | 2/5 | no |
 
 **F, variance.** A player's recent score spread does **not** predict how far next week lands from his own average once you compare players at the same scoring level (Spearman 0.02 to 0.05; the raw 0.14 to 0.18 is just higher scorers having bigger swings). Player-specific ceiling and floor from recent history is not supported.
 
@@ -62,3 +64,16 @@ The founder asked to test every family rather than stop at the first miss. Rule 
 2. **The projection's own resolving power is the story.** Right 52% of the time within 1 point of projection, 57% at 1 to 2, 60% at 2 to 3, 65% at 3 to 5, 73% at 5 to 8, 82% at 8 or more. Most close calls are noise, and saying so is accurate.
 3. **Untested, and the honest limits:** this baseline likely includes kickoff-time information (so availability and late news cannot show a gain here), the models were linear with simple features, depth charts were skipped (inconsistent format across years), coaching and scheme beyond pass rate and a new-coach flag were not tried, win-probability lineup choices need league matchup data we do not have, and nothing here measures speed of news. Trades were not tested.
 4. **Where Omen can still be better than a provider, on this evidence:** (a) telling the user when a call is a coin flip and when it is not, with accuracy it can show; (b) bringing ESPN, Yahoo and Sleeper leagues into one place with one honest read; (c) workflow where projections do not decide (waiver claims and timing, trade fairness, deadlines, what changed since you last looked); (d) speed on availability, which needs a mid-week baseline and the forward shadow log to measure.
+
+## Exploratory follow-up (not pre-registered; treat as a hypothesis)
+
+Run per position after the main result, with the same strict rule applied to each (12 combinations checked: 3 feature sets by 4 positions, so about 0.1 false passes are expected at 99%).
+
+| Features | Position | Change | 99% CI | Seasons + | |
+|---|---|---|---|---|---|
+| lines only | **QB** | **+1.12** | [+0.30, +1.98] | 5/5 | pass |
+| lines only | WR | +0.17 | [+0.03, +0.31] | 5/5 | no (below +0.5) |
+| lines + weather + rest | WR | +0.60 | [+0.05, +1.11] | 5/5 | pass, but the specification was chosen after looking: weak |
+| everything else | | | | | no |
+
+The quarterback result is the cleaner one (a single feature, implied team total, positive in all five seasons, and the theory is sensible: a QB's output follows his team's passing volume). It is also the position with the fewest pairs (13,986). **It is not a basis for building a pipeline.** It is a hypothesis for the forward shadow log, and a cheap one: implied totals come from a schedule file we already read.

@@ -1,5 +1,15 @@
 # Omen Decision Log
 
+## 2026-09-30 — the factor pipeline is on hold: no context family beat the projection under a pre-set rule
+
+- **What was decided (by the evidence and the planner; the product reframe is awaiting the founder):** the data-layer, factor-library and extra-tables work (slice steps S2, S4, S5 and the data tables of D2-D4) is **on hold**. `D2`'s band-as-issued fix and the shadow log are unaffected.
+- **Why:** eight families (availability, usage trends, player splits, scheme and tempo, lines, rest and primetime, weather, opponent strength, recent form) were each tested out of sample on 8 seasons (44,480 player-weeks) under a rule written beforehand: 99% interval above zero, positive in 4 of 5 test seasons, effect at least +0.5 points. **None passed pooled.** The best, game lines, is a real but small +0.22 points (99% CI +0.06 to +0.37, 5 of 5 seasons) and falls below the +0.5 bar. The pre-set threshold is a judgment: at +0.2, lines would pass, and it is cheap to include later without building the pipeline.
+- **Exploratory, not a pass (not pre-registered, 12 combinations checked):** quarterbacks only, implied team total alone: +1.12 points on close calls (99% CI +0.30 to +1.98, 5 of 5 seasons). Worth confirming with the forward shadow log, not building on.
+- **Corrections made after review (PR #500):** a bug left every game against the Rams without an opponent-strength value (Rams are "LAR" in Sleeper, "LA" here); bootstrap now resamples whole weeks; the reproduction script now downloads `games.csv`. None changed a conclusion.
+- **Limits:** the baseline probably contains kickoff-time information; trades, depth charts, win-probability lineup choices and news speed were not tested; the models were linear with simple features; the pre-registration file is self-authored and not independently timestamped.
+- **Recommended, awaiting founder decision:** reframe the promise around honest confidence (the projection is right 52% of the time within a point and 82% at 8 or more), one place for ESPN, Yahoo and Sleeper leagues, and workflow where projections do not decide; keep the shadow log as the proof of any "beats the provider" claim.
+- **Full record:** `Direction/2026-09-30-first-factor-experiment.md`; scripts `scripts/research/context-vs-projection/`.
+
 ## 2026-09-30 — the database lane belongs to Claude or Codex; Jules and Muse do not touch it
 
 - **Decision (founder):** Jules does not touch the database. Muse does not either. Database work is done by a **Claude or Codex session** from a ticket in `Direction/current_sprint.md` (lane D: D2 schema, D3 crosswalk, D4 data layer). Production steps remain bounded, founder-approved orders.

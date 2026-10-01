@@ -41,8 +41,8 @@ def pair_acc(R, lo=5.0, band=2.0):
         i, j = i[m], j[m]
         if len(i) == 0: continue
         hp = ((pr[i] > pr[j]) == (a[i] > a[j])).sum(); ha = ((ad[i] > ad[j]) == (a[i] > a[j])).sum()
-        hits_p += hp; hits_a += ha; n += len(i); wk.append((hp, ha, len(i)))
-    wk = np.array(wk)
+        hits_p += hp; hits_a += ha; n += len(i); wk.append((s, w, hp, ha, len(i)))
+    wk = pd.DataFrame(wk, columns=['s','w','hp','ha','n']).groupby(['s','w']).sum().reset_index()[['hp','ha','n']].values   # whole weeks
     # cluster bootstrap over player-weeks groups (season-week-pos) for the CI of the difference
     diffs = []
     for _ in range(1000):

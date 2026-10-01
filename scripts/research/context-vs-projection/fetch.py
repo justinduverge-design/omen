@@ -28,4 +28,7 @@ with ThreadPoolExecutor(6) as ex:
     for fn, n in ex.map(job, jobs):
         done += 1
         if done % 40 == 0: print(done, "of", len(jobs), flush=True)
-print("done", len(jobs))
+import urllib.request as _u
+if not os.path.exists(f"{OUT}/games.csv"):
+    _u.urlretrieve("https://github.com/nflverse/nflverse-data/releases/download/schedules/games.csv", f"{OUT}/games.csv")
+print("done", len(jobs), "(+ games.csv)")

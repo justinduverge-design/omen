@@ -80,7 +80,10 @@ def pairs(R, lo=5.0, band=2.0):
         if len(i): rec.append((s, w, ((pr[i] > pr[j]) == (a[i] > a[j])).sum(), ((ad[i] > ad[j]) == (a[i] > a[j])).sum(), len(i)))
     return np.array(rec)
 def verdict(R):
-    W = pairs(R); hp, ha, n = W[:,2].sum(), W[:,3].sum(), W[:,4].sum()
+    W0 = pairs(R)
+    # cluster = a whole (season, week): outcomes and game-level factors are correlated across positions in one NFL week
+    wk = pd.DataFrame(W0, columns=["s","w","hp","ha","n"]).groupby(["s","w"], as_index=False).sum().values
+    W = wk; hp, ha, n = W[:,2].sum(), W[:,3].sum(), W[:,4].sum()
     d = (ha - hp) / n
     boots = []
     for _ in range(2000):
