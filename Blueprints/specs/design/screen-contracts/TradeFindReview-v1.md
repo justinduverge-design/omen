@@ -84,7 +84,7 @@ line is explicit: this screen "calls T4's save action and shows local optimistic
 - **Save / swipe-right** calls a save action (interface below, data-binding notes) and flips the
   `Save for later` button to a confirmed local state (`Saved ✓`) rather than navigating anywhere —
   **there is no saved-trades destination to navigate to yet.** A caption under the buttons says so
-  plainly: *"Saved picks keep this reasoning. Your queue is coming soon."* This is the honest
+  plainly: *"Saved picks keep this reasoning."* This is the honest
   in-between: the interaction exists and is real (it calls a save endpoint), the destination does not
   (T4), and the copy never implies otherwise.
 - Both are drawn on the resting artboard as **hidden gesture stamps** (`GestureStamp`, opacity 0 at
@@ -224,7 +224,7 @@ it read everything and found nothing).
 - `Pass` (button)
 - `Save for later` (button)
 - `Saved ✓` (optimistic post-save button state, not drawn — see data-binding notes)
-- `Saved picks keep this reasoning. Your queue is coming soon.`
+- `Saved picks keep this reasoning.`
 - `Command`
 - `Omen`
 - `Trade`
@@ -365,7 +365,7 @@ rendered descendant inside `.screen`). Rects are `x,y w×h` relative to `.screen
 | E068 | button row div |  | SwipeActionRow | body | text-primary | transparent | — | 16,711 358x44 |
 | E069 | `.btn.ghost` | Pass | Button.secondary | card-lead | text-secondary | transparent | border | 16,711 175x44 |
 | E070 | `.btn` | Save for later | Button.primary | card-lead | text-on-accent | accent | text-on-accent | 201,711 173x44 |
-| E071 | `p:2` | Saved picks keep this reasoning. Your queue is coming soon. | Text | micro | text-tertiary | transparent | — | 16,763 358x15 |
+| E071 | `p:2` | Saved picks keep this reasoning. | Text | micro | text-tertiary | transparent | — | 16,763 358x15 |
 | E072 | `.spacer` |  | NativeStack | body | text-primary | transparent | — | 0,778 390x8 |
 | E073 | trailing `div` |  | NativeStack | body | text-primary | transparent | — | 0,786 390x0 |
 | E074 | `.tabbar` |  | TabNav | body | text-primary | surface-1 | border-subtle | 0,781 390x64 |

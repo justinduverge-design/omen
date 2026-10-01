@@ -285,7 +285,7 @@ private fun ReviewingContent(viewModel: TradeFindReviewViewModel) {
                 .padding(top = OmenTheme.spacing.step8),
         )
         Text(
-            "Saved picks keep this reasoning. Your queue is coming soon.",
+            "Saved picks keep this reasoning.",
             style = OmenTheme.typography.micro.toTextStyle(),
             color = OmenTheme.color.textTertiary,
             modifier = Modifier

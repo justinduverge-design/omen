@@ -159,7 +159,7 @@ struct OmenTradeFindReviewScreen: View {
             .padding(.horizontal, OmenSpacing.step16)
             .padding(.top, OmenSpacing.step8)
 
-            Text("Saved picks keep this reasoning. Your queue is coming soon.")
+            Text("Saved picks keep this reasoning.")
                 .omenTextStyle(OmenTypography.micro)
                 .foregroundStyle(OmenColor.textTertiary)
                 .multilineTextAlignment(.center)
