@@ -557,6 +557,32 @@ number of pointed contract changes plus a governance amendment — not a build-o
 - **Done when:** on the founder's phone, for a real league, a start/sit shows ranked reasons that are exactly the factors that moved it, with magnitudes; each admitted factor has a backtest report; the engine's read is compared against the provider-projection-only pick and the result is stated whether or not it wins.
 - **Do not touch:** do not narrate a factor that did not contribute. Do not ship a factor on plausibility. Do not write scoring rules to the database (A6 rights question is open). No production database change without a founder-approved, bounded order.
 
+### D2-SchemaForSlice — Schema additions and the confidence-band fix
+
+- **Status:** READY
+- **Owner lane:** database — a **Claude or Codex session only**. Jules and Muse never touch the database (founder, 2026-09-30, `Direction/decision_log.md`).
+- **Blocked by:** None.
+- **Priority:** P0 — gates D3, D4 and the first production order for the shadow log.
+- **Cost:** medium
+- **Ticket:** `T-S1` in `Blueprints/rebuild/omen-call-slice-plan.md` ("Database tickets"). Read its sections "Two design flaws" and "Schema additions" first.
+- **Scope:** migrations under `migrations/` (node-pg-migrate, one file per table, with `down`) for `players`, `player_provider_ids`, `football_games`, `game_weather`, `player_week_features`, `defense_position_allowed`, `decision_factors`, `projection_shadow_log`; change `decisions` to store `band`, `band_drivers`, `engine_version` as issued (score internal); RLS on every table; immutability triggers on `decision_factors`; change `migrations-ci.yml` to Postgres 17 (production is 17.6; CI runs 15).
+- **Done when:** up → down → up proven on a **scratch Postgres 17** with schema diffs; the full suite passes on the migrated schema; RLS and immutability are tested; Codex's PR review and a second session have read it; the PR lists what was not verified. **Production is a separate founder-approved bounded order.**
+- **Do not touch:** production, secrets, the unapplied WO-06 migration (held until it keeps a reversible copy of what it deletes).
+
+### D3-PlayerCrosswalk — Canonical players and the provider crosswalk
+
+- **Status:** READY after D2 merges.
+- **Owner lane:** database — Claude or Codex session only.
+- **Blocked by:** D2.
+- **Ticket:** `T-S1b` in the slice plan. Own match on normalized name + birth date (98.8% on the 572-player check; the DynastyProcess file is GPL-3.0 and must not be committed or embedded); ambiguous or unmatched players go to an unresolved list, never guessed; coverage at least 98% of players with a snap last season and zero known-wrong.
+
+### D4-FootballDataLayer — Weekly nflverse and weather load
+
+- **Status:** READY after D3 merges.
+- **Owner lane:** database — Claude or Codex session only.
+- **Blocked by:** D2, D3.
+- **Ticket:** `T-S2` in the slice plan. Reuse `src/services/weather/openMeteo.js` and `src/data/stadiums.json`; backtest weather uses `leadDays`, never the short-lead archive. Immutable content-hashed receipts via `rawVault.js` (which enforces a current rights-review date). Proven by a byte-identical second run, row counts matching the source, and a rejected corrupt file.
+
 ## M. Native mobile execution lane
 
 **Phase 2.** D7-equivalent scope (new auth providers) is deferred — every new provider is new store-review surface during the tightest five weeks.
