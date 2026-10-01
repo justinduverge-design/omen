@@ -119,7 +119,7 @@ Designed here; built and rehearsed on a scratch database, never applied to produ
 
 ## Steps
 
-Each step lists **owner**, **output**, **independent check**, **evidence required before merge**, and **stop conditions**. "Jules builds" means Jules produces the PR from the written work order; nothing is merged on Jules's word.
+Each step lists **owner**, **output**, **independent check**, **evidence required before merge**, and **stop conditions**. "Jules builds" (S4 and S5 only) means Jules produces the PR from the written work order; nothing is merged on Jules's word.
 
 ### S0 — Freeze the slice contracts *(Claude)* — **IN PROGRESS: `omen-decision-brief.v3` done, others next**
 
@@ -129,7 +129,7 @@ Each step lists **owner**, **output**, **independent check**, **evidence require
 - **Evidence:** schema files, fixtures, green CI run, the recorded validation of a live response.
 - **Stop if:** the live response does not match the shipped contract. Fix the schema to describe reality first, and log the difference; do not "correct" the server.
 
-### S1 — Schema additions and the band fix *(Claude designs the DDL; Jules builds)*
+### S1 — Schema additions and the band fix *(Claude or Codex session — database lane; Jules does not touch it)*
 - **Output:** the tables above as migrations under the WO-02 framework, one file per table, with `down` scripts, plus a pgTAP or SQL test proving RLS and the immutability triggers.
 - **Independent check:** up, down, up again on a scratch database with a schema diff after each; the suite passes on the migrated schema, not on a stub.
 - **Also in S1:** change `migrations-ci.yml` to a Postgres 17 image so rehearsals match production (currently 15).
@@ -137,13 +137,13 @@ Each step lists **owner**, **output**, **independent check**, **evidence require
 - **Stop if:** any step needs production credentials, or `down` cannot restore the baseline.
 - **Action now:** before WO-07 opens a PR, tell Jules to apply the two flaws above. If a WO-07 PR already exists when this is read, it is **not merged** until it matches.
 
-### S1b — Player crosswalk *(Jules builds; Claude reviews)*
+### S1b — Player crosswalk *(Claude or Codex session — writes database tables, so database lane)*
 - **Output:** a job that builds `players` and `player_provider_ids` from Sleeper's public player dump and the nflverse `players` release, matching on normalized name and birth date (fallback name and position). Ambiguous or unmatched players are written to an unresolved list with the reason; **never guessed**. Sleeper's own `espn_id` and `yahoo_id` populate the ESPN and Yahoo mappings.
 - **Independent check:** on a dev machine only, compare against the DynastyProcess `db_playerids.csv` (GPL-3.0; do not commit it or its derivatives). Coverage of players with at least one snap in the last season must be at least 98%, with zero known-wrong matches.
 - **Evidence:** the coverage report, the unresolved list, and the disagreement list with a reason for each.
 - **Stop if:** coverage is below 98%, or any match is wrong.
 
-### S2 — Football data layer *(Jules builds; Claude reviews)*
+### S2 — Football data layer *(Claude or Codex session — loads database tables, so database lane)*
 - **Output:** a weekly job that downloads nflverse `schedules` (the release `games.csv`), `stats_player` (`stats_player_week_<season>.csv`), `snap_counts`, `injuries`, `depth_charts`; resolves each stats row to a canonical player through the S1b crosswalk (rows for unresolved players are counted and reported, not dropped silently); and writes weather as a separate forecast-or-observed record; stores the raw file with a content hash as an immutable receipt (reuse `src/services/footballData/rawVault.js`); loads the compact tables; records freshness and refuses to serve stale data silently.
 - **Independent check:** a run against 2025 data on a scratch database reproduces byte-identical compact tables on a second run; row counts match the source files; a corrupted file is rejected with a named reason.
 - **Evidence:** run logs, row-count table, the rejection test.
@@ -156,12 +156,12 @@ Each step lists **owner**, **output**, **independent check**, **evidence require
 - **Evidence:** the diff between Omen's read and the Sleeper app for the same roster.
 - **Start the shadow log as early as possible**, before the engine exists, using the provider projection alone. That gives the season-long baseline. It needs `projection_shadow_log` (S1) applied to production, which is a founder-approved bounded order; until then it runs as a local file log from the founder's own league. Getting S1 applied is therefore the first production order to prepare.
 
-### S4 — Factor library v1 *(Jules builds; Claude designs the interface and reviews)*
+### S4 — Factor library v1 *(Jules builds, no database access; Claude designs the interface and reviews)*
 - **Output:** one module per factor family returning `{ adjustment, range, confidence, evidence }`, with unit tests using fixed fixtures; a factor with no data returns "not read" with a reason, never a default.
 - **Independent check:** golden tests on hand-computed cases; a mutation check (change an input, the output must move in the expected direction).
 - **Evidence:** the test suite, and a page per factor stating its data, its formula and its known limits.
 
-### S5 — Backtest harness and reports *(Jules builds; Claude judges the results)*
+### S5 — Backtest harness and reports *(Jules builds from local files, no database access; Claude judges the results)*
 - **Output:** a harness that, for each factor, runs 2018 through 2025 out of sample (train on earlier seasons, test on the next), against a **form-only baseline** (trailing average points). Reports: error with and without the factor, by position, and where it helped or hurt.
 - **Independent check:** the harness reproduces on a second machine or run; a planted fake factor (random noise) must show no improvement, proving the harness can say no.
 - **Evidence:** report per factor. A factor is admitted only if it improves out-of-sample error; rejected factors are listed with the reason.
@@ -180,6 +180,14 @@ Each step lists **owner**, **output**, **independent check**, **evidence require
 ### S8 — Weekly beta cadence *(founder and Claude)*
 - Each week: a build on the phone, the on-device regression checklist run, one thing widened (next screen, then ESPN, then Yahoo), and the shadow-log comparison reported.
 
+## Who touches the database (founder decision, 2026-09-30)
+
+**Jules never touches the database.** That means no migrations, no SQL, no schema or table changes, no loaders or jobs that write rows, no database credentials, and no scratch databases of its own. **Muse never does either.** All database work (S1, S1b, S2, and anything after) is done by a **Claude or Codex session** from a ticket in `Direction/current_sprint.md` (lane D), and its production steps still require a founder-approved bounded order.
+
+Jules's remaining work is code that needs no database: **S4** (factor functions over plain objects and fixtures) and **S5** (a backtest harness that reads nflverse files from a local directory). Neither may import a database client.
+
+**Independent check.** The session that builds a migration does not sign it off: Codex's automated PR review (already on this repo) and a second session read it, and the founder merges.
+
 ## Rules that bind Jules, Muse and me
 
 1. **Nothing merges on the builder's word.** The independent check for the step must have run, with its evidence attached to the PR.
@@ -189,19 +197,23 @@ Each step lists **owner**, **output**, **independent check**, **evidence require
 5. **A factor never ships on plausibility.** It ships on an out-of-sample result.
 6. **Say what was not verified.** A PR description lists what was not checked; silence is not a pass.
 
-## Ready-to-paste work orders for Jules
+## Database tickets (Claude or Codex sessions only; never Jules or Muse)
 
-Each is self-contained. Paste the order into the Jules task; do not add the plan.
+Tracked as `D2`, `D3`, `D4` in `Direction/current_sprint.md`. Each is self-contained: paste it into a fresh Claude Code (or Codex) session in this repo. Rehearse on a **scratch Postgres 17** (a local container), never on production; a production step is a separate founder-approved bounded order.
 
-**WO-S1 (schema):** *"Repo: justinduverge-design/omen. Read `Blueprints/rebuild/omen-call-slice-plan.md` sections 'Double-check results', 'Two design flaws' and 'Schema additions', and `Blueprints/rebuild/gate1/schema-decisions-ledger.md`. Also change `.github/workflows/migrations-ci.yml` to a Postgres 17 image (it runs 15; production is 17.6). Add migrations under `migrations/` (node-pg-migrate, one file per table, with `down`) for `players`, `player_provider_ids`, `football_games`, `game_weather`, `player_week_features`, `defense_position_allowed`, `decision_factors`, `projection_shadow_log`, and change `decisions` to store `band` (`confident|leaning|coin_flip`), `band_drivers` jsonb and `engine_version`, keeping the score internal. RLS on every table; immutability triggers on `decision_factors`. Prove up → down → up on a scratch database with schema diffs and run the full suite on the migrated schema. Never touch production; never merge. In the PR, list what you did not verify."*
+**T-S1 = D2 (schema)** *"Repo: justinduverge-design/omen. Read `Blueprints/rebuild/omen-call-slice-plan.md` sections 'Double-check results', 'Two design flaws' and 'Schema additions', and `Blueprints/rebuild/gate1/schema-decisions-ledger.md`. Also change `.github/workflows/migrations-ci.yml` to a Postgres 17 image (it runs 15; production is 17.6). Add migrations under `migrations/` (node-pg-migrate, one file per table, with `down`) for `players`, `player_provider_ids`, `football_games`, `game_weather`, `player_week_features`, `defense_position_allowed`, `decision_factors`, `projection_shadow_log`, and change `decisions` to store `band` (`confident|leaning|coin_flip`), `band_drivers` jsonb and `engine_version`, keeping the score internal. RLS on every table; immutability triggers on `decision_factors`. Prove up → down → up on a scratch database with schema diffs and run the full suite on the migrated schema. Rehearse on a scratch Postgres 17 container only; never touch production; do not merge. In the PR, list what you did not verify."*
 
-**WO-S1b (crosswalk):** *"Read `Blueprints/rebuild/omen-call-slice-plan.md`, sections 'Double-check results' and S1b. Build the player crosswalk job: fetch Sleeper's public `https://api.sleeper.app/v1/players/nfl` and the nflverse `players` release; match on normalized name plus birth date, falling back to name plus position; write `players` and `player_provider_ids`; write ambiguous or unmatched players to an unresolved list with the reason; never guess. Do NOT download, commit or embed the DynastyProcess file (GPL-3.0). Report coverage over players with at least one snap in the last season (target at least 98%, zero known-wrong). Scratch database only; never merge. Say what you did not verify."*
+**T-S1b = D3 (crosswalk)** *"Read `Blueprints/rebuild/omen-call-slice-plan.md`, sections 'Double-check results' and S1b. Build the player crosswalk job: fetch Sleeper's public `https://api.sleeper.app/v1/players/nfl` and the nflverse `players` release; match on normalized name plus birth date, falling back to name plus position; write `players` and `player_provider_ids`; write ambiguous or unmatched players to an unresolved list with the reason; never guess. Do NOT download, commit or embed the DynastyProcess file (GPL-3.0). Report coverage over players with at least one snap in the last season (target at least 98%, zero known-wrong). Scratch Postgres 17 only (a local container); never touch production; do not merge. Say what you did not verify."*
 
-**WO-S2 (data layer):** *"Read `Blueprints/rebuild/omen-call-slice-plan.md` S2 and `src/services/footballData/`. For weather, use the existing `src/services/weather/openMeteo.js` and `src/data/stadiums.json` (already built and tested; do not write another weather client): for past games call it with `leadDays` equal to the lead at which the pick would have been issued (for example 3 for a Sunday game picked on Thursday), never with the short-lead archive, and store the result in `game_weather` with its `kind` and `lead_days`; a vintage that was not archived comes back `lead_time_unavailable` and is stored as not read; a `not_read` result is stored as not read with its reason, never as a default. Build the weekly nflverse job for `schedules`, `stats_player`, `snap_counts`, `injuries`, `depth_charts`. Store each raw file as an immutable content-hashed receipt (reuse `rawVault.js`); load the compact tables from WO-S1; refuse stale or corrupt input with a named reason. Prove: a 2025 run on a scratch database is byte-identical on a second run, row counts match the source, and a corrupted file is rejected. No production access, no merge."*
+**T-S2 = D4 (data layer)** *"Read `Blueprints/rebuild/omen-call-slice-plan.md` S2 and `src/services/footballData/`. For weather, use the existing `src/services/weather/openMeteo.js` and `src/data/stadiums.json` (already built and tested; do not write another weather client): for past games call it with `leadDays` equal to the lead at which the pick would have been issued (for example 3 for a Sunday game picked on Thursday), never with the short-lead archive, and store the result in `game_weather` with its `kind` and `lead_days`; a vintage that was not archived comes back `lead_time_unavailable` and is stored as not read; a `not_read` result is stored as not read with its reason, never as a default. Build the weekly nflverse job for `schedules`, `stats_player`, `snap_counts`, `injuries`, `depth_charts`. Store each raw file as an immutable content-hashed receipt (reuse `rawVault.js`); load the compact tables from WO-S1; refuse stale or corrupt input with a named reason. Prove: a 2025 run on a scratch database is byte-identical on a second run, row counts match the source, and a corrupted file is rejected. Scratch Postgres 17 only; no production access; do not merge."*
 
-**WO-S4 (factor library):** *"Read `Blueprints/specs/omen-decision-engine-v2.md` and S4. Implement factor modules for matchup, game context (roof, wind, temperature), rest/travel, player form/role, injury/depth-chart detail. Each returns `{adjustment, range, confidence, evidence}`; no data returns `not_read` with a reason, never a default. Golden tests from hand-computed cases and a mutation test per factor. A doc per factor: data, formula, known limits."*
+## Work orders for Jules (no database)
 
-**WO-S5 (harness):** *"Read S5. Build a backtest harness over 2018–2025, out of sample, against a form-only baseline. Must include a planted random-noise factor that shows no improvement, proving the harness can reject. Emit a per-factor report by position. Must reproduce on a second run."*
+Each is self-contained. Paste the order into the Jules task; do not add the plan. **Jules may not import a database client, write SQL or a migration, or ask for database credentials.**
+
+**WO-S4 (factor library):** *"Read `Blueprints/specs/omen-decision-engine-v2.md` and S4. You do not touch the database: no SQL, no migrations, no database client, no credentials. Your functions take plain objects and return plain objects. Implement factor modules for matchup, game context (roof, wind, temperature), rest/travel, player form/role, injury/depth-chart detail. Each returns `{adjustment, range, confidence, evidence}`; no data returns `not_read` with a reason, never a default. Golden tests from hand-computed cases and a mutation test per factor. A doc per factor: data, formula, known limits."*
+
+**WO-S5 (harness):** *"Read S5. You do not touch the database: read nflverse files (and Sleeper historical projections) from a local cache directory that you download into, never a database; no SQL, no migrations, no database client. Build a backtest harness over 2018–2025, out of sample, against a form-only baseline. Must include a planted random-noise factor that shows no improvement, proving the harness can reject. Emit a per-factor report by position. Must reproduce on a second run."*
 
 ## Open questions for the founder
 

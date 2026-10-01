@@ -1,5 +1,13 @@
 # Omen Decision Log
 
+## 2026-09-30 — the database lane belongs to Claude or Codex; Jules and Muse do not touch it
+
+- **Decision (founder):** Jules does not touch the database. Muse does not either. Database work is done by a **Claude or Codex session** from a ticket in `Direction/current_sprint.md` (lane D: D2 schema, D3 crosswalk, D4 data layer). Production steps remain bounded, founder-approved orders.
+- **Why:** the production schema drifted from the code for months (missing `moves` columns, an ungoverned identity model), a Jules-authored migration (WO-06) merged with checks pending and would delete unmatched users, and a Jules RLS package had to be reverted (#484). The database is the foundation; its owner should be the agent with the whole picture, and it needs an independent check that the builder does not give itself.
+- **Recommendation recorded:** a Claude session builds; **Codex reviews** (its automated PR review is already on this repo, and the session that builds a migration must not sign it off); the founder merges. Either agent may build; the other reviews.
+- **What this changes:** `WO-S1`, `WO-S1b`, `WO-S2` become tickets `D2`, `D3`, `D4` (Claude or Codex). Jules keeps S4 (factor functions) and S5 (backtest harness reading local files), with no database client, SQL or credentials. **WO-07 (normalize `moves`) and WO-08 (canonical names and constraints) are held**: they are database work, they predate the slice plan, and their schema (a numeric confidence with the band derived at read time) conflicts with D2.
+- **Execution tracker:** `Blueprints/rebuild/execution-tracker.md` operating model updated to match.
+
 ## 2026-09-30 — Open-Meteo adopted for game weather; narration is deterministic
 
 - **Decision (founder):** game weather comes from Open-Meteo. It replaces OpenWeather for the engine and the backtest. `src/services/weather/openMeteo.js` is the client; `src/services/weatherService.js` (OpenWeather) is untouched and stays wired until the engine switches over.

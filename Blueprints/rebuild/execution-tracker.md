@@ -14,7 +14,7 @@
 
 ## Open PRs
 - None. All four are merged.
-**Direction:** Jules preps everything; Claude Code / Codex finish it. No production database write happens except through a bounded Claude/Codex order.
+**Direction (revised 2026-09-30):** database work belongs to Claude Code / Codex (tickets D2-D4 in `Direction/current_sprint.md`); Jules does non-database code. No production database write happens except through a bounded, founder-approved Claude/Codex order. **WO-07 and WO-08 are HELD** until D2 merges (see `Direction/decision_log.md`).
 
 ## Known production issues (from GlitchTip, 9/29 ~9pm)
 - **moves.result missing**: app queries `moves.result` but the production `moves` table has no such column → moves lookup errors in prod (GlitchTip #13). App/DB drift — no migration framework. Do NOT hotfix in prod; reconcile in WO-07 (normalize moves) against what the app actually queries.
@@ -29,7 +29,7 @@
 
 | Who | Does | Never |
 |---|---|---|
-| **Jules** (Google sub) | All prep/build work: work orders, PRs, docs, migrations rehearsed on scratch DBs | Merges; touches prod DB; spends Claude/Codex tokens |
+| **Jules** (Google sub) | Code and docs work that needs no database: factor functions, the backtest harness (S4, S5), PRs, docs | **Anything database** (migrations, SQL, schema, loaders that write rows, credentials — founder decision 2026-09-30); merges; touching prod; spending Claude/Codex tokens |
 | **Claude Code / Codex** (Justin's tokens) | Finishes the work: bounded production execution only (backup fix, cutover one-shot) | Broad unpaused work; anything unprepped |
 | **Muse** (no. 2) | Dispatches work orders, gate-reviews, merges only passing PRs, keeps this tracker current | Prod DB writes; production deploys |
 | **Justin** | UI/UX on the Mac (against v2 contracts), decisions, approvals | — |
