@@ -77,3 +77,22 @@ Run per position after the main result, with the same strict rule applied to eac
 | everything else | | | | | no |
 
 The quarterback result is the cleaner one (a single feature, implied team total, positive in all five seasons, and the theory is sensible: a QB's output follows his team's passing volume). It is also the position with the fewest pairs (13,986). **It is not a basis for building a pipeline.** It is a hypothesis for the forward shadow log, and a cheap one: implied totals come from a schedule file we already read.
+
+---
+
+# Round 2: combinations and interactions (founder's challenge, same day)
+
+**The challenge:** round 1 tested families one at a time, and its one "all together" model was linear and additive, which cannot represent interactions (wind and pass rate, short week and primetime) and never chose a best subset. So "no combination helps" was not established. Round 2 (`PREREGISTRATION_2.md`, written before running) tests four fixed models with the same data split, metric, whole-week bootstrap and pass rule (99% interval above zero, at least 4 of 5 seasons positive, at least +0.5 points):
+
+| Model | Hit rate (baseline 54.04%) | Change | 99% CI | Seasons + | Result |
+|---|---|---|---|---|---|
+| M1 gradient-boosted trees, all context, pooled | 53.94% | -0.10 | [-0.53, +0.32] | 3/5 | no |
+| M2 trees, all context plus the projection itself (nonlinear calibration) | 54.30% | +0.26 | [-0.17, +0.72] | 4/5 | no |
+| M3 as M2, one model per position | 54.01% | -0.03 | [-0.57, +0.51] | 3/5 | no |
+| M4 nested forward selection of families (the chosen combination never sees the season it is tested on) | 54.35% | +0.31 | [-0.06, +0.70] | 4/5 | no |
+
+**M4's chosen families change every year** (2021 none; 2022 weather + availability + tempo + lines; 2023 opponent + lines + rest; 2024 rest + tempo + weather + form; 2025 lines alone). A real signal would be selected consistently; this is noise-fitting around a small effect.
+
+**What this does and does not rule out.** Combining families and letting trees find interactions does not produce an effect distinguishable from zero, and the best point estimates (+0.26, +0.31) are below the +0.5 bar. It does **not** rule out a true effect of roughly +0.3: the intervals are about 0.9 points wide, so an effect that small cannot be detected with 19,103 player-weeks. A +0.3-point gain would change roughly one close call in 330, which is not a product.
+
+Still untested: depth charts, trades, win-probability lineup choices, news speed, and anything needing a mid-week baseline.

@@ -12,6 +12,8 @@ cd scripts/research/context-vs-projection
 ../../../venv/bin/python -W ignore build2.py  # player-ID crosswalk + merge (checks itself: Sleeper vs nflverse points, corr 0.998)
 ../../../venv/bin/python -W ignore fam.py     # families A-E under PREREGISTRATION.md
 ../../../venv/bin/python -W ignore fam2.py    # families F (variance) and G (waiver / rest of season)
+../../../venv/bin/pip install scikit-learn
+../../../venv/bin/python -W ignore fam3.py    # round 2: combinations and interactions (PREREGISTRATION_2.md)
 ```
 
 `PREREGISTRATION.md` was written before any family test ran. Paths inside the scripts assume they run from a lab directory containing `data/`; adjust as needed.
