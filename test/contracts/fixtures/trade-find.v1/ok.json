@@ -1,0 +1,622 @@
+{
+  "http_status": 200,
+  "route": "/api/trade/find",
+  "body": {
+    "bounds": {
+      "max_candidates": 10,
+      "max_opponent_teams": 16,
+      "teams_considered": 4,
+      "teams_skipped_for_cap": []
+    },
+    "budget_exceeded": false,
+    "cache": {
+      "generated_at": "2026-01-01T00:00:00.000Z",
+      "hit": false,
+      "ttl_seconds": 900
+    },
+    "candidates": [
+      {
+        "give": {
+          "eligible_positions": [
+            "RB"
+          ],
+          "name": "own-my-rb",
+          "player_id": "own-my-rb",
+          "player_key": "own-my-rb",
+          "position": "RB",
+          "projected_points": 18,
+          "selected_position": "BN"
+        },
+        "id": "find_2_own-my-rb_opp0-wr-one",
+        "opponent_lineup_delta": 17,
+        "opponent_team_id": "2",
+        "opponent_team_name": "Opponent 0",
+        "reasoning": {
+          "evidence": [
+            "live_roster_depth",
+            "live_lineup_projection_delta"
+          ],
+          "fills_need_for": [
+            "opponent"
+          ],
+          "opponent_receives": {
+            "need": {
+              "have": 1,
+              "required": 2,
+              "status": "hole",
+              "weight": 1.2
+            },
+            "position": "RB"
+          },
+          "user_receives": {
+            "need": {
+              "have": 1,
+              "required": 1,
+              "status": "balanced",
+              "weight": 1
+            },
+            "position": "WR"
+          }
+        },
+        "receive": {
+          "eligible_positions": [
+            "WR"
+          ],
+          "name": "opp0-wr-one",
+          "player_id": "opp0-wr-one",
+          "player_key": "opp0-wr-one",
+          "position": "WR",
+          "projected_points": 20,
+          "selected_position": "BN"
+        },
+        "user_lineup_delta": 15,
+        "valuation": {
+          "a_score": 0.5,
+          "b_score": 0,
+          "combined_score": 0.5,
+          "confidence": "medium",
+          "depth_discounted": false,
+          "generated_at": "2026-01-01T00:00:00.000Z",
+          "net_value": 0.5,
+          "receive": {
+            "missing_projection_count": 0,
+            "player_count": 1,
+            "players": [
+              {
+                "adjusted_projection": 20,
+                "confidence": "medium",
+                "name": "opp0-wr-one",
+                "notes": [],
+                "player_key": "opp0-wr-one",
+                "position": "WR",
+                "projected_points": 20,
+                "replacement_level": 8,
+                "scarcity_bonus": 2,
+                "status": null,
+                "tier": "elite",
+                "value": 12
+              }
+            ],
+            "scarcity_details": [
+              {
+                "name": "opp0-wr-one",
+                "position": "WR",
+                "tier": "elite",
+                "vorp": 12
+              }
+            ],
+            "total_value": 12
+          },
+          "scarcity_analysis": {
+            "receive": [
+              {
+                "name": "opp0-wr-one",
+                "position": "WR",
+                "tier": "elite",
+                "vorp": 12
+              }
+            ],
+            "send": [
+              {
+                "name": "own-my-rb",
+                "position": "RB",
+                "tier": "elite",
+                "vorp": 11.5
+              }
+            ],
+            "summary": "You are sending an elite-tier RB for an elite-tier WR."
+          },
+          "scoring_format": "ppr",
+          "send": {
+            "missing_projection_count": 0,
+            "player_count": 1,
+            "players": [
+              {
+                "adjusted_projection": 18,
+                "confidence": "medium",
+                "name": "own-my-rb",
+                "notes": [],
+                "player_key": "own-my-rb",
+                "position": "RB",
+                "projected_points": 18,
+                "replacement_level": 6.5,
+                "scarcity_bonus": 2,
+                "status": null,
+                "tier": "elite",
+                "value": 11.5
+              }
+            ],
+            "scarcity_details": [
+              {
+                "name": "own-my-rb",
+                "position": "RB",
+                "tier": "elite",
+                "vorp": 11.5
+              }
+            ],
+            "total_value": 11.5
+          },
+          "verdict": "neutral"
+        }
+      },
+      {
+        "give": {
+          "eligible_positions": [
+            "RB"
+          ],
+          "name": "own-my-rb",
+          "player_id": "own-my-rb",
+          "player_key": "own-my-rb",
+          "position": "RB",
+          "projected_points": 18,
+          "selected_position": "BN"
+        },
+        "id": "find_3_own-my-rb_opp1-wr-one",
+        "opponent_lineup_delta": 17,
+        "opponent_team_id": "3",
+        "opponent_team_name": "Opponent 1",
+        "reasoning": {
+          "evidence": [
+            "live_roster_depth",
+            "live_lineup_projection_delta"
+          ],
+          "fills_need_for": [
+            "opponent"
+          ],
+          "opponent_receives": {
+            "need": {
+              "have": 1,
+              "required": 2,
+              "status": "hole",
+              "weight": 1.2
+            },
+            "position": "RB"
+          },
+          "user_receives": {
+            "need": {
+              "have": 1,
+              "required": 1,
+              "status": "balanced",
+              "weight": 1
+            },
+            "position": "WR"
+          }
+        },
+        "receive": {
+          "eligible_positions": [
+            "WR"
+          ],
+          "name": "opp1-wr-one",
+          "player_id": "opp1-wr-one",
+          "player_key": "opp1-wr-one",
+          "position": "WR",
+          "projected_points": 20,
+          "selected_position": "BN"
+        },
+        "user_lineup_delta": 15,
+        "valuation": {
+          "a_score": 0.5,
+          "b_score": 0,
+          "combined_score": 0.5,
+          "confidence": "medium",
+          "depth_discounted": false,
+          "generated_at": "2026-01-01T00:00:00.000Z",
+          "net_value": 0.5,
+          "receive": {
+            "missing_projection_count": 0,
+            "player_count": 1,
+            "players": [
+              {
+                "adjusted_projection": 20,
+                "confidence": "medium",
+                "name": "opp1-wr-one",
+                "notes": [],
+                "player_key": "opp1-wr-one",
+                "position": "WR",
+                "projected_points": 20,
+                "replacement_level": 8,
+                "scarcity_bonus": 2,
+                "status": null,
+                "tier": "elite",
+                "value": 12
+              }
+            ],
+            "scarcity_details": [
+              {
+                "name": "opp1-wr-one",
+                "position": "WR",
+                "tier": "elite",
+                "vorp": 12
+              }
+            ],
+            "total_value": 12
+          },
+          "scarcity_analysis": {
+            "receive": [
+              {
+                "name": "opp1-wr-one",
+                "position": "WR",
+                "tier": "elite",
+                "vorp": 12
+              }
+            ],
+            "send": [
+              {
+                "name": "own-my-rb",
+                "position": "RB",
+                "tier": "elite",
+                "vorp": 11.5
+              }
+            ],
+            "summary": "You are sending an elite-tier RB for an elite-tier WR."
+          },
+          "scoring_format": "ppr",
+          "send": {
+            "missing_projection_count": 0,
+            "player_count": 1,
+            "players": [
+              {
+                "adjusted_projection": 18,
+                "confidence": "medium",
+                "name": "own-my-rb",
+                "notes": [],
+                "player_key": "own-my-rb",
+                "position": "RB",
+                "projected_points": 18,
+                "replacement_level": 6.5,
+                "scarcity_bonus": 2,
+                "status": null,
+                "tier": "elite",
+                "value": 11.5
+              }
+            ],
+            "scarcity_details": [
+              {
+                "name": "own-my-rb",
+                "position": "RB",
+                "tier": "elite",
+                "vorp": 11.5
+              }
+            ],
+            "total_value": 11.5
+          },
+          "verdict": "neutral"
+        }
+      },
+      {
+        "give": {
+          "eligible_positions": [
+            "RB"
+          ],
+          "name": "own-my-rb",
+          "player_id": "own-my-rb",
+          "player_key": "own-my-rb",
+          "position": "RB",
+          "projected_points": 18,
+          "selected_position": "BN"
+        },
+        "id": "find_4_own-my-rb_opp2-wr-one",
+        "opponent_lineup_delta": 17,
+        "opponent_team_id": "4",
+        "opponent_team_name": "Opponent 2",
+        "reasoning": {
+          "evidence": [
+            "live_roster_depth",
+            "live_lineup_projection_delta"
+          ],
+          "fills_need_for": [
+            "opponent"
+          ],
+          "opponent_receives": {
+            "need": {
+              "have": 1,
+              "required": 2,
+              "status": "hole",
+              "weight": 1.2
+            },
+            "position": "RB"
+          },
+          "user_receives": {
+            "need": {
+              "have": 1,
+              "required": 1,
+              "status": "balanced",
+              "weight": 1
+            },
+            "position": "WR"
+          }
+        },
+        "receive": {
+          "eligible_positions": [
+            "WR"
+          ],
+          "name": "opp2-wr-one",
+          "player_id": "opp2-wr-one",
+          "player_key": "opp2-wr-one",
+          "position": "WR",
+          "projected_points": 20,
+          "selected_position": "BN"
+        },
+        "user_lineup_delta": 15,
+        "valuation": {
+          "a_score": 0.5,
+          "b_score": 0,
+          "combined_score": 0.5,
+          "confidence": "medium",
+          "depth_discounted": false,
+          "generated_at": "2026-01-01T00:00:00.000Z",
+          "net_value": 0.5,
+          "receive": {
+            "missing_projection_count": 0,
+            "player_count": 1,
+            "players": [
+              {
+                "adjusted_projection": 20,
+                "confidence": "medium",
+                "name": "opp2-wr-one",
+                "notes": [],
+                "player_key": "opp2-wr-one",
+                "position": "WR",
+                "projected_points": 20,
+                "replacement_level": 8,
+                "scarcity_bonus": 2,
+                "status": null,
+                "tier": "elite",
+                "value": 12
+              }
+            ],
+            "scarcity_details": [
+              {
+                "name": "opp2-wr-one",
+                "position": "WR",
+                "tier": "elite",
+                "vorp": 12
+              }
+            ],
+            "total_value": 12
+          },
+          "scarcity_analysis": {
+            "receive": [
+              {
+                "name": "opp2-wr-one",
+                "position": "WR",
+                "tier": "elite",
+                "vorp": 12
+              }
+            ],
+            "send": [
+              {
+                "name": "own-my-rb",
+                "position": "RB",
+                "tier": "elite",
+                "vorp": 11.5
+              }
+            ],
+            "summary": "You are sending an elite-tier RB for an elite-tier WR."
+          },
+          "scoring_format": "ppr",
+          "send": {
+            "missing_projection_count": 0,
+            "player_count": 1,
+            "players": [
+              {
+                "adjusted_projection": 18,
+                "confidence": "medium",
+                "name": "own-my-rb",
+                "notes": [],
+                "player_key": "own-my-rb",
+                "position": "RB",
+                "projected_points": 18,
+                "replacement_level": 6.5,
+                "scarcity_bonus": 2,
+                "status": null,
+                "tier": "elite",
+                "value": 11.5
+              }
+            ],
+            "scarcity_details": [
+              {
+                "name": "own-my-rb",
+                "position": "RB",
+                "tier": "elite",
+                "vorp": 11.5
+              }
+            ],
+            "total_value": 11.5
+          },
+          "verdict": "neutral"
+        }
+      },
+      {
+        "give": {
+          "eligible_positions": [
+            "RB"
+          ],
+          "name": "own-my-rb",
+          "player_id": "own-my-rb",
+          "player_key": "own-my-rb",
+          "position": "RB",
+          "projected_points": 18,
+          "selected_position": "BN"
+        },
+        "id": "find_5_own-my-rb_opp3-wr-one",
+        "opponent_lineup_delta": 17,
+        "opponent_team_id": "5",
+        "opponent_team_name": "Opponent 3",
+        "reasoning": {
+          "evidence": [
+            "live_roster_depth",
+            "live_lineup_projection_delta"
+          ],
+          "fills_need_for": [
+            "opponent"
+          ],
+          "opponent_receives": {
+            "need": {
+              "have": 1,
+              "required": 2,
+              "status": "hole",
+              "weight": 1.2
+            },
+            "position": "RB"
+          },
+          "user_receives": {
+            "need": {
+              "have": 1,
+              "required": 1,
+              "status": "balanced",
+              "weight": 1
+            },
+            "position": "WR"
+          }
+        },
+        "receive": {
+          "eligible_positions": [
+            "WR"
+          ],
+          "name": "opp3-wr-one",
+          "player_id": "opp3-wr-one",
+          "player_key": "opp3-wr-one",
+          "position": "WR",
+          "projected_points": 20,
+          "selected_position": "BN"
+        },
+        "user_lineup_delta": 15,
+        "valuation": {
+          "a_score": 0.5,
+          "b_score": 0,
+          "combined_score": 0.5,
+          "confidence": "medium",
+          "depth_discounted": false,
+          "generated_at": "2026-01-01T00:00:00.000Z",
+          "net_value": 0.5,
+          "receive": {
+            "missing_projection_count": 0,
+            "player_count": 1,
+            "players": [
+              {
+                "adjusted_projection": 20,
+                "confidence": "medium",
+                "name": "opp3-wr-one",
+                "notes": [],
+                "player_key": "opp3-wr-one",
+                "position": "WR",
+                "projected_points": 20,
+                "replacement_level": 8,
+                "scarcity_bonus": 2,
+                "status": null,
+                "tier": "elite",
+                "value": 12
+              }
+            ],
+            "scarcity_details": [
+              {
+                "name": "opp3-wr-one",
+                "position": "WR",
+                "tier": "elite",
+                "vorp": 12
+              }
+            ],
+            "total_value": 12
+          },
+          "scarcity_analysis": {
+            "receive": [
+              {
+                "name": "opp3-wr-one",
+                "position": "WR",
+                "tier": "elite",
+                "vorp": 12
+              }
+            ],
+            "send": [
+              {
+                "name": "own-my-rb",
+                "position": "RB",
+                "tier": "elite",
+                "vorp": 11.5
+              }
+            ],
+            "summary": "You are sending an elite-tier RB for an elite-tier WR."
+          },
+          "scoring_format": "ppr",
+          "send": {
+            "missing_projection_count": 0,
+            "player_count": 1,
+            "players": [
+              {
+                "adjusted_projection": 18,
+                "confidence": "medium",
+                "name": "own-my-rb",
+                "notes": [],
+                "player_key": "own-my-rb",
+                "position": "RB",
+                "projected_points": 18,
+                "replacement_level": 6.5,
+                "scarcity_bonus": 2,
+                "status": null,
+                "tier": "elite",
+                "value": 11.5
+              }
+            ],
+            "scarcity_details": [
+              {
+                "name": "own-my-rb",
+                "position": "RB",
+                "tier": "elite",
+                "vorp": 11.5
+              }
+            ],
+            "total_value": 11.5
+          },
+          "verdict": "neutral"
+        }
+      }
+    ],
+    "contract_version": "trade-find.v1",
+    "degraded_teams": [],
+    "league_id": "abc123",
+    "own_needs": {
+      "needs": {
+        "RB": {
+          "have": 3,
+          "required": 2,
+          "status": "surplus",
+          "weight": 0.8
+        },
+        "WR": {
+          "have": 1,
+          "required": 1,
+          "status": "balanced",
+          "weight": 1
+        }
+      },
+      "player_count": 4,
+      "team_id": "1",
+      "team_name": "Own Team"
+    },
+    "platform": "sleeper",
+    "status": "ok",
+    "team_id": "1",
+    "week": 3
+  }
+}
