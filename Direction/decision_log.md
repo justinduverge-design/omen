@@ -1,5 +1,11 @@
 # Omen Decision Log
 
+## 2026-09-30 — build the projection explainer; keep every feature to explain, none to adjust
+
+- **Decision (founder):** build the "why" feature: explain why a player is projected where he is, with scheme, role, route and matchup information (`Blueprints/specs/omen-projection-explainer-v1.md`, ticket `D5`). Keep all the football features.
+- **Resolution of "keep all features" (agreed in the same conversation):** the features are kept **to explain**, not to change the number. A +0.04-point effect with a 99% interval of -0.15 to +0.23 cannot be told from zero, and confirming an effect that small would take roughly twenty times the weeks tested (about a hundred seasons), so no feature adjusts a projection until it earns it in the shadow log and a pre-registered test. Lines are labelled **Projected**, **Observed context** (a fact with a sample size, never a cause) or **Could change this**.
+- **Consequence:** the weekly football-data job is un-paused in a narrower form, for explanations only (layers 2 and 3 of the spec), as a database-lane ticket for Claude or Codex.
+
 ## 2026-09-30 — the factor pipeline is on hold: no context family beat the projection under a pre-set rule
 
 - **What was decided (by the evidence and the planner; the product reframe is awaiting the founder):** the data-layer, factor-library and extra-tables work (slice steps S2, S4, S5 and the data tables of D2-D4) is **on hold**. `D2`'s band-as-issued fix and the shadow log are unaffected.

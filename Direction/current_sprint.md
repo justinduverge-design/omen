@@ -583,6 +583,17 @@ number of pointed contract changes plus a governance amendment — not a build-o
 - **Blocked by:** D2, D3.
 - **Ticket:** `T-S2` in the slice plan. Reuse `src/services/weather/openMeteo.js` and `src/data/stadiums.json`; backtest weather uses `leadDays`, never the short-lead archive. Immutable content-hashed receipts via `rawVault.js` (which enforces a current rights-review date). Proven by a byte-identical second run, row counts matching the source, and a rejected corrupt file.
 
+### D5-ProjectionExplainer — "Why is this player projected where he is"
+
+- **Status:** READY — pending founder approval of the design shape (new component, so the native visual lock requires approval before UI is built).
+- **Blocked by:** None for layer 1.
+- **Platform scope:** iOS only (`Direction/decision_log.md`, 2026-09-30).
+- **Owner lanes:** server contract and explanation logic, Claude; any database table, Claude or Codex only; never Jules or Muse.
+- **Spec:** `Blueprints/specs/omen-projection-explainer-v1.md`. Every line is labelled Projected, Observed context, or Could change this; nothing claims a cause; unproven features inform and never adjust.
+- **Scope:** layer 1 first (points by source from the provider's stat line and the league's own scoring, summing to the projection; Sleeper), then role, then matchup (route mix, coverage mix, pass rush, depth of target) with sample sizes.
+- **Done when:** on the founder's phone, a real player's screen shows the provider's number, where it comes from, his role and the matchup facts with sample sizes; a CI test fails if a non-"Projected" line contains "because".
+- **Do not touch:** the confidence band logic; production database; league scoring rules are not stored (A6).
+
 ## M. Native mobile execution lane
 
 **Phase 2.** D7-equivalent scope (new auth providers) is deferred — every new provider is new store-review surface during the tightest five weeks.
