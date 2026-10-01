@@ -24,6 +24,17 @@ No line says "because" unless it is arithmetic (the projection is the sum of the
 
 **3. The matchup, in football terms** (weekly data job from play-by-play, participation and PFR/NGS data already investigated). For the receiver: his route mix and depth of target, and his production against man versus zone. For the defense: its coverage mix (man or zone, Cover 3, Cover 1), pass rush and blitz rate, and what it allows to the position by depth of target. Presented as paired facts with sample sizes, for example (**wording only: every number in this example is invented to show the format and is not data**): *"He runs short crossers and slants on 61% of his targets and has averaged +0.12 EPA per target against man coverage. NE plays man on 42% of dropbacks and is allowing -0.04 EPA per target on short routes."* Real values come from the weekly job; the first build must show none until it has real ones. Observed context, labelled as such.
 
+
+## Extensions requested by the founder (2026-09-30): the matchup game plan, and trades
+
+**Matchup game plan** ("pretend you are one of the teams: what do you need to win this week?"). Fantasy fights are about styles, and the honest version of that is decision theory, not a claim that styles predict scores. For the user's weekly head-to-head: each side's projected total with a calibrated spread, a win probability, and **swing players** (the few whose outcomes decide the week, by slot and volatility); the user's path ("you win if both your RBs clear 12; they win if their WR1 has a boom game"); and, where it matters, **floor or ceiling** advice: when you are a heavy favourite, prefer the safer starter; when you are the underdog, prefer the higher-ceiling one. This is the one family that expected-points tests could not judge, because it optimises the chance of winning, not the average score. It is also the family with the most honest uncertainty to state.
+- **Needs before any percentage is shown:** (a) per-player outcome spreads calibrated from our 34,000 player-weeks (by position and projection level), checked with a reliability test; (b) team totals that respect that players on one NFL team move together; (c) real matchup results from the founder's leagues to check the win probabilities, logged in the shadow log. Until then it shows swing players and paths **without a percentage**.
+- **Style facts** (the opponent's roster built pass-heavy or run-heavy; which of his players face a defense that plays man or zone) appear as **Observed context** with sample sizes, as in layer 3; they do not change the probability.
+
+**Trade explainer** (same components on the trade screens). For each side of a trade: where each player's projection comes from (layer 1); role and trend (layer 2); upcoming schedule and matchup facts for the next weeks (layer 3, observed context, with sample sizes); and **needs**: which positions it fills or opens for each team, bye-week overlap, and how it changes each team's weekly win probability once that exists. "This fills your WR2 hole and opens an RB2 one" is arithmetic over rosters and scoring, not a prediction. Trade verdicts keep the existing honest states (`submission: handoff_only`; a trade needs both rosters read).
+
+Both ride the same label rule, additive contract, iOS-first scope, design gate and device gate; neither is built before the screen-level design is approved.
+
 ## What it will not do
 
 - Claim a matchup *causes* a number, or adjust a projection with unproven features.
@@ -39,7 +50,8 @@ Additive only (`test/contracts/README.md`): an optional `projection_breakdown` o
 1. **Layer 1 on the phone** for the founder's Sleeper league: server computes points by source from the stat line and the league's real scoring (in memory only; league scoring rules are not retained in the database, per the open A6 rights question), contract + fixtures + iOS decoder test, design approved, device-verified (`definition-of-done.md` device gate). No new database tables.
 2. **Layer 2** (role): weekly job, read-only against nflverse, compact table or file cache (database lane: Claude or Codex).
 3. **Layer 3** (matchup): the same job extended with coverage, route and scheme descriptors; every statistic ships with its sample size.
-4. **ESPN and Yahoo** layer 1 after their projection reads are verified live (`omen-call-slice-plan.md`, provider readiness gate).
+4. **ESPN and Yahoo** layer 1. ESPN publishes weekly projections with a raw projected stat line for the user's own league (and, historically, publicly for league defaults); Yahoo is unverified. After their projection reads are verified live (`omen-call-slice-plan.md`, provider readiness gate).
+5. **Matchup game plan**, then **trade explainer** (extensions above), after layer 1 is on the phone.
 
 ## Done when
 

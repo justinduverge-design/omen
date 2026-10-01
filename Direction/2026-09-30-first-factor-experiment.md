@@ -129,3 +129,26 @@ What was never tested, and cannot be with this data: player tracking data teams 
 1. **Explain the projection.** Sleeper's projection includes the full stat line. Josh Allen, week 4 of 2026 at New England: 23.12 points from about 30 pass attempts (19 completions, 227 yards, 1.2 touchdowns, 0.46 interceptions, 2.6 sacks) and 8 rushes for 40 yards and 0.96 rushing touchdowns. That breaks into points by source under the league's own scoring and shows where the number is fragile (nearly a quarter of it is expected rushing touchdowns, which are volatile). A reader can see why a player is projected where he is.
 2. **Say how much a call matters.** Right 52% of the time within one point of projection and 82% at eight or more.
 3. **One place for ESPN, Yahoo and Sleeper**, and workflow where projections do not decide.
+
+---
+
+# Round 5: ESPN's projection as the baseline (founder: "you are only testing against Sleeper")
+
+Every earlier round used Sleeper's projection, so the conclusion was about Sleeper's projection. ESPN's public "league defaults" endpoint returns historical weekly projections for 2018-2025 without credentials (default PPR scoring; a 0.0 for a player is a bye week). 44,013 ESPN player-weeks were matched to the same outcomes by player ID; 94% of the Sleeper-scored test rows have both projections. **Yahoo cannot be tested historically**: it has no public projection history, so it can only be evaluated going forward through the shadow log.
+
+**The two projections are about equally good.** On the same 18,020 player-weeks: mean error ESPN 5.24 vs Sleeper 5.33; correlation with actual points 0.537 vs 0.527; bias ESPN +0.04 vs Sleeper -0.20 points (actual minus projection); close-call hit rate 53.97% vs 54.00%. ESPN's projection is not weaker, so there is no reason to expect context to add much more over it.
+
+**Context over ESPN's projection (pre-registered rule, `PREREGISTRATION_5.md`):**
+
+| Model, ESPN baseline | Hit rate vs ESPN alone (54.00%) | Change | 99% CI | Seasons + | Result |
+|---|---|---|---|---|---|
+| Trees on all features (127, trailing only) | 54.38% | +0.38 | [+0.06, +0.75] | 4/5 | no (below +0.5) |
+| Implied team totals only, per position | 54.42% | +0.43 | [+0.18, +0.69] | 5/5 | no (below +0.5) |
+| Implied team totals only, QB | 54.49% vs 53.07% | **+1.42** | [+0.50, +2.39] | 5/5 | exploratory pass |
+| Implied team totals only, RB / WR / TE | | +0.26 / +0.27 / +0.61 | all include 0 | 4-5/5 | no |
+
+Context adds somewhat more over ESPN's projection than over Sleeper's (+0.4 against +0.2 pooled) and still falls short of the +0.5 bar. **The recurring signal is quarterbacks and implied team totals: +1.12 on Sleeper, +1.42 on ESPN, positive in all five seasons both times.** That is the same player-weeks scored against two different projections, so it is a replication of the projection's blind spot, not independent evidence about the world. It remains an exploratory, un-pre-registered hypothesis for the forward shadow log, and it is cheap to test because implied totals come from a schedule file we already read.
+
+## A second leak, mine, caught by the same check
+
+The first run of this round reported +18.5 points on trees. It was a leak: the script built its feature list as "every column except a short exclusion list", which let in the current game's usage columns (targets, carries, snap share). The script now uses the explicit trailing-only groups and **asserts that no current-game column can be present** (`espn_test.py`). Lesson for every future round: explicit feature lists, and an assertion that fails if a column derived from the game being predicted is present.

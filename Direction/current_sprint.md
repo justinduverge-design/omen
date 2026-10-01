@@ -590,7 +590,7 @@ number of pointed contract changes plus a governance amendment — not a build-o
 - **Platform scope:** iOS only (`Direction/decision_log.md`, 2026-09-30).
 - **Owner lanes:** server contract and explanation logic, Claude; any database table, Claude or Codex only; never Jules or Muse.
 - **Spec:** `Blueprints/specs/omen-projection-explainer-v1.md`. Every line is labelled Projected, Observed context, or Could change this; nothing claims a cause; unproven features inform and never adjust.
-- **Scope:** layer 1 first (points by source from the provider's stat line and the league's own scoring, summing to the projection; Sleeper), then role, then matchup (route mix, coverage mix, pass rush, depth of target) with sample sizes.
+- **Scope:** layer 1 first (points by source from the provider's stat line and the league's own scoring, summing to the projection; Sleeper, then ESPN, whose weekly projections carry a raw stat line), then role, then matchup (route mix, coverage mix, pass rush, depth of target) with sample sizes. Extensions (spec): the weekly matchup game plan (swing players, paths to winning, floor-or-ceiling advice, win probability only once calibrated) and the trade explainer.
 - **Done when:** on the founder's phone, a real player's screen shows the provider's number, where it comes from, his role and the matchup facts with sample sizes; a CI test fails if a non-"Projected" line contains "because".
 - **Do not touch:** the confidence band logic; production database; league scoring rules are not stored (A6).
 
