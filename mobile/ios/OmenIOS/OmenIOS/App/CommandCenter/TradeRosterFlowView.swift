@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Hosts J4's `TradeBuild` → `TradeRoster` roster-picking flow, reached from the Trade
 /// destination's "Browse a real roster" control.
@@ -32,6 +33,15 @@ struct TradeRosterFlowView: View {
                 }
         }
         .task { await tradeViewModel.loadRoster(userID: userID) }
+        // T5: `TradePartnerPicker`, reached from the live "Add team" chip on `TradeBuild`.
+        .sheet(isPresented: $tradeViewModel.isPartnerPickerPresented) {
+            TradePartnerPicker(
+                candidates: tradeViewModel.partnerPickerCandidates,
+                leagueName: nil,
+                onSelect: { tradeViewModel.addThirdPartner($0) },
+                onDismiss: { tradeViewModel.dismissPartnerPicker() }
+            )
+        }
     }
 
     @ViewBuilder
@@ -68,9 +78,32 @@ struct TradeRosterFlowView: View {
                     tradeViewModel.selectPartnerTeam(id)
                     path = [.roster]
                 },
-                onPrimaryAction: { path = [.roster] }
+                onPrimaryAction: { primaryAction() },
+                onOpenPartnerPicker: { tradeViewModel.openPartnerPicker() },
+                onRemoveThirdPartner: { tradeViewModel.removeThirdPartner() },
+                onToggleSubmissionStepDone: { tradeViewModel.toggleThreeTeamSubmissionStep($0) },
+                onCopySubmissionStep: { copyThreeTeamStep($0) }
             )
         }
+    }
+
+    /// T5: the bottom button means three different things depending on where the three-team
+    /// build is. With no third partner it is unchanged — navigate to the roster.
+    private func primaryAction() {
+        guard tradeViewModel.thirdPartnerTeamID != nil else {
+            path = [.roster]
+            return
+        }
+        if case .loaded = tradeViewModel.threeTeamViewState {
+            tradeViewModel.dismissThreeTeamVerdict()
+        } else {
+            Task { await tradeViewModel.compareThreeTeam(userID: userID) }
+        }
+    }
+
+    private func copyThreeTeamStep(_ index: Int) {
+        guard let text = tradeViewModel.copyTextForThreeTeamStep(index) else { return }
+        UIPasteboard.general.string = text
     }
 
     @ViewBuilder
@@ -87,6 +120,9 @@ struct TradeRosterFlowView: View {
                     else { return }
                     tradeViewModel.addFromRoster(player)
                     onDismiss?()
+                },
+                onChooseRecipient: { playerID, recipientTeamID in
+                    tradeViewModel.chooseThreeTeamRecipient(playerID: playerID, recipientTeamID: recipientTeamID)
                 }
             )
         } else {

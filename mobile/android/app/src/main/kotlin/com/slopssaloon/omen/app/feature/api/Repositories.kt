@@ -122,6 +122,16 @@ interface TradeRepository {
     /** `POST /api/trade/share`. Free and public, like [compare]. */
     suspend fun share(offer: TradeOffer, accessToken: String?): OmenApiResult<TradeShareResponse> =
         OmenApiResult.Failure(OmenApiError.Network)
+
+    /**
+     * T5: `POST /api/trade/compare` with a `legs` body — the three-team branch of
+     * `trade-compare.v2`. Built against T1's documented shape (`omen-t1-three-team-capability`);
+     * that branch is unmerged as of this writing, so this is exercised locally with fixtures
+     * matching the documented request/response, same as every other route this repository
+     * speaks to before it lands.
+     */
+    suspend fun compareThreeTeam(offer: TradeThreeTeamOffer, accessToken: String?): OmenApiResult<TradeThreeTeamCompare> =
+        OmenApiResult.Failure(OmenApiError.Network)
 }
 
 data class TradeCapabilities(val maxTeams: Int, val submission: String, val threeTeamSupported: Boolean, val threeTeamReason: String?) {
@@ -181,12 +191,23 @@ class ApiTradeRepository(private val client: OmenApiClient) : TradeRepository {
 
     override suspend fun share(offer: TradeOffer, accessToken: String?): OmenApiResult<TradeShareResponse> =
         client.postOptionalAuth("api/trade/share", accessToken, offer.shareRequestBody(), TradeShareResponse::parse)
+
+    override suspend fun compareThreeTeam(
+        offer: TradeThreeTeamOffer,
+        accessToken: String?,
+    ): OmenApiResult<TradeThreeTeamCompare> = client.postOptionalAuth(
+        "api/trade/compare",
+        accessToken,
+        offer.requestBody(),
+        TradeThreeTeamCompare::parse,
+    )
 }
 
 class StubTradeRepository(
     private val result: OmenApiResult<TradeCompare>,
     private val rosterResult: OmenApiResult<TradeRosterResponse> = OmenApiResult.Failure(OmenApiError.Network),
     private val shareResult: OmenApiResult<TradeShareResponse> = OmenApiResult.Failure(OmenApiError.Network),
+    private val threeTeamResult: OmenApiResult<TradeThreeTeamCompare> = OmenApiResult.Failure(OmenApiError.Network),
 ) : TradeRepository {
     override suspend fun compare(
         offer: TradeOffer,
@@ -203,6 +224,11 @@ class StubTradeRepository(
 
     override suspend fun share(offer: TradeOffer, accessToken: String?): OmenApiResult<TradeShareResponse> =
         shareResult
+
+    override suspend fun compareThreeTeam(
+        offer: TradeThreeTeamOffer,
+        accessToken: String?,
+    ): OmenApiResult<TradeThreeTeamCompare> = threeTeamResult
 }
 
 /**

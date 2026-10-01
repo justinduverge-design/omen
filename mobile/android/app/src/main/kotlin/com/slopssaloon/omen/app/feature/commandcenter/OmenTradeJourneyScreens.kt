@@ -22,6 +22,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,6 +49,9 @@ import androidx.compose.ui.unit.dp
 import com.slopssaloon.omen.app.feature.api.TradeCompare
 import com.slopssaloon.omen.app.feature.api.TradeOffer
 import com.slopssaloon.omen.app.feature.api.TradePlayer
+import com.slopssaloon.omen.app.feature.api.TradeThreeTeamCompare
+import com.slopssaloon.omen.app.feature.api.TradeThreeTeamLeg
+import com.slopssaloon.omen.app.feature.api.TradeThreeTeamOffer
 import com.slopssaloon.omen.app.feature.help.OmenHelpDestination
 import com.slopssaloon.omen.app.feature.shell.OmenScreenContext
 import com.slopssaloon.omen.app.feature.shell.OmenScreenHeaderControls
@@ -87,9 +94,36 @@ data class OmenTradeLeg(
     /** "RB 8". **Null renders nothing** — `—` in this column reads as a rank of zero. */
     val rank: String? = null,
 ) {
-    enum class Direction { Sending, Receiving }
+    /**
+     * T5 adds [Lateral]: a 3-team ring can move a player between two teams that are neither
+     * "you" — this enum used to be exhaustive with only two cases because a 2-team trade only
+     * ever has two participants, and anything not sent by you was received by you.
+     * `TradeBuildThreeTeam-v1.md`'s own interaction note: rather than mislabel a lateral leg
+     * "In" (wrong — it never reaches you) or invent a new glyph, this state renders no label at
+     * all — `_shared.css`'s "absence is the state" philosophy, same tier as `.rk.lo`.
+     */
+    enum class Direction { Sending, Receiving, Lateral }
 
-    val label: String get() = if (direction == Direction.Sending) "Out" else "In"
+    /** The visible label. Blank, not a dash, for [Direction.Lateral]. */
+    val label: String
+        get() = when (direction) {
+            Direction.Sending -> "Out"
+            Direction.Receiving -> "In"
+            Direction.Lateral -> ""
+        }
+
+    /**
+     * What TalkBack says for the direction, independent of [label]. A blank visible label must
+     * still be **announced**, not just visually absent —
+     * `TradeBuildThreeTeam-v1.md`'s own acceptance rule: "never color as the only carrier of the
+     * blank state."
+     */
+    val accessibilityDirection: String
+        get() = when (direction) {
+            Direction.Sending -> "Sent by you"
+            Direction.Receiving -> "Received by you"
+            Direction.Lateral -> "Not sent or received by you"
+        }
 }
 
 /** One side of the deal. Both sides always render: Trade "must show both sides". */
@@ -135,6 +169,13 @@ data class OmenTradeCapability(
 /** `.fc` — a position filter, or the brass `.fc.smart` one that names a conclusion. */
 data class OmenTradeFilter(val id: String, val title: String, val isSmart: Boolean = false)
 
+/**
+ * T5, `TradeRoster`'s three-team recipient chooser — the addendum to `TradeRoster-v1.md`. One
+ * pill per other team in the trade: `id` is the team id (`"you"` for the viewer), `label` is
+ * "Send to you" / "Send to Chubb Rock".
+ */
+data class OmenTradeRecipient(val id: String, val label: String)
+
 /** The verdict block (`.verd`), shared by Build, Verdict and NeedsContext. */
 data class OmenTradeRead(
     /** `TradeCompare.headline`. Server-owned; nothing here re-derives it. */
@@ -151,7 +192,22 @@ data class OmenTradeRead(
 )
 
 /** `.howto` — Omen never submits on anyone's behalf, so it says how to. */
-data class OmenTradeSubmission(val title: String, val caption: String, val steps: List<String>)
+data class OmenTradeSubmission(
+    val title: String,
+    val caption: String,
+    val steps: List<String>,
+    /**
+     * T5: one flag per [steps] entry — a client-local "done" toggle for the 3-team split-handoff
+     * checklist. **Empty for the 2-team case**, which has no checklist at all (`omenTradeAnswer`
+     * never sets `submission` for a 2-team verdict), so this is purely additive.
+     *
+     * Never synced, never sent to the server, never read back as proof a leg went through —
+     * `TradeBuildThreeTeam-v1.md`'s own rule.
+     */
+    val stepDone: List<Boolean> = emptyList(),
+    /** "0 of 3 legs sent." Derived purely from [stepDone]. Null where there is nothing to count. */
+    val progressCaption: String? = null,
+)
 
 /** `TradeBuild`. */
 data class OmenTradeBuildState(
@@ -168,6 +224,15 @@ data class OmenTradeBuildState(
     val read: OmenTradeRead?,
     val submission: OmenTradeSubmission?,
     val primaryActionTitle: String,
+    /**
+     * T5: present once a third team is active. When set, `.partners` renders exactly the primary
+     * partner plus this chip — two fixed `.pt.on` chips and no browsable candidates — per
+     * `TradeBuildThreeTeam-v1.md`'s own rule. `null` is the entire existing 2-team behavior,
+     * unchanged.
+     */
+    val thirdPartner: OmenTradePartner? = null,
+    /** "Removed Chubb Rock. Any legs with them were cleared too." Transient; null otherwise. */
+    val removalDisclosure: String? = null,
 )
 
 /** `TradeRoster`. */
@@ -186,7 +251,18 @@ data class OmenTradeRosterState(
 ) {
     enum class Availability { Available, TheyNeedThis, Added }
 
-    data class Row(val id: String, val name: String, val meta: String, val availability: Availability)
+    data class Row(
+        val id: String,
+        val name: String,
+        val meta: String,
+        val availability: Availability,
+        /**
+         * T5: non-empty only while three teams are active and this row's team is not one of the
+         * recipients. `TradeRoster-v1.md`'s addendum: at most two pills, one per other team in
+         * the trade.
+         */
+        val recipients: List<OmenTradeRecipient> = emptyList(),
+    )
 
     sealed interface Rosters {
         data class Read(
@@ -269,23 +345,55 @@ fun OmenTradeBuildScreen(
     onSelectPartner: ((String) -> Unit)? = null,
     onSelectFilter: ((String) -> Unit)? = null,
     onPrimaryAction: (() -> Unit)? = null,
+    /**
+     * T5: opens `TradePartnerPicker`. Only ever invoked from the live `.pt.addt` chip, which only
+     * renders when `capability.threeTeamSupported` is true and no third partner is active.
+     */
+    onOpenPartnerPicker: (() -> Unit)? = null,
+    /**
+     * T5: tapping the already-selected third-partner chip a second time. Never invoked for the
+     * primary chip — `TradeBuildThreeTeam-v1.md`: "The primary partner chip is not removable
+     * this way."
+     */
+    onRemoveThirdPartner: (() -> Unit)? = null,
+    /** T5: present only when `submission.stepDone` is non-empty (the 3-team checklist case). */
+    onToggleSubmissionStepDone: ((Int) -> Unit)? = null,
+    onCopySubmissionStep: ((Int) -> Unit)? = null,
 ) {
     TradeScrollShell(modifier = modifier, context = context) {
         TradeJourneyHeader(state.kicker, state.title, onOpenAccount)
         TradeTabs(state.tabTitles, state.selectedTabIndex, onSelectTab)
-        TradePartnerRow(
-            partners = state.partners,
-            selectedId = state.selectedPartnerId,
-            onSelect = onSelectPartner,
-            addTeamReason = state.capability?.reasonSentence ?: UNKNOWN_FORMAT,
-        )
+        if (state.thirdPartner != null) {
+            ThreeTeamPartnerRow(
+                primary = state.partners.firstOrNull { it.id == state.selectedPartnerId },
+                thirdPartner = state.thirdPartner,
+                onRemoveThirdPartner = onRemoveThirdPartner,
+            )
+        } else {
+            TradePartnerRow(
+                partners = state.partners,
+                selectedId = state.selectedPartnerId,
+                onSelect = onSelectPartner,
+                addTeamReason = state.capability?.reasonSentence ?: UNKNOWN_FORMAT,
+                threeTeamSupported = state.capability?.threeTeamSupported == true,
+                onOpenPartnerPicker = onOpenPartnerPicker,
+            )
+        }
+        state.removalDisclosure?.let {
+            TradeNoteBlock(text = it, modifier = Modifier.padding(top = OmenTheme.spacing.step8))
+        }
         TradeFilterRow(state.filters, state.selectedFilterId, onSelectFilter)
-        TradeNoteBlock(
-            text = state.capability?.reasonSentence ?: UNKNOWN_FORMAT,
-            modifier = Modifier.padding(top = OmenTheme.spacing.step12),
-        )
+        // Once three teams are active there is nothing left to explain about the chip row.
+        if (state.thirdPartner == null) {
+            TradeNoteBlock(
+                text = state.capability?.reasonSentence ?: UNKNOWN_FORMAT,
+                modifier = Modifier.padding(top = OmenTheme.spacing.step12),
+            )
+        }
         state.sides.forEach { TradeLegBlock(it) }
-        state.read?.let { TradeReadBlock(it, state.submission) }
+        state.read?.let {
+            TradeReadBlock(it, state.submission, onToggleSubmissionStepDone, onCopySubmissionStep)
+        }
         OmenButton(
             text = state.primaryActionTitle,
             onClick = { onPrimaryAction?.invoke() },
@@ -312,6 +420,8 @@ fun OmenTradeRosterScreen(
     onSelectPartner: ((String) -> Unit)? = null,
     onSelectFilter: ((String) -> Unit)? = null,
     onAddPlayer: ((String) -> Unit)? = null,
+    /** T5: fires when a recipient pill is tapped on a row with a choice to make. */
+    onChooseRecipient: ((playerId: String, recipientTeamId: String) -> Unit)? = null,
 ) {
     TradeScrollShell(modifier = modifier, context = context) {
         TradeJourneyHeader(state.kicker, state.title, onOpenAccount)
@@ -333,7 +443,11 @@ fun OmenTradeRosterScreen(
                 ) {
                     Column {
                         rosters.rows.forEach { row ->
-                            TradeRosterRow(row) { onAddPlayer?.invoke(row.id) }
+                            TradeRosterRow(
+                                row = row,
+                                onClick = { onAddPlayer?.invoke(row.id) },
+                                onChooseRecipient = { recipient -> onChooseRecipient?.invoke(row.id, recipient.id) },
+                            )
                         }
                     }
                 }
@@ -660,6 +774,9 @@ private fun TradePartnerRow(
     onSelect: ((String) -> Unit)?,
     /** Null omits the unavailable `Add team` chip entirely — used where it is already stated. */
     addTeamReason: String?,
+    /** T5: swaps the unavailable chip for the live one that opens `TradePartnerPicker`. */
+    threeTeamSupported: Boolean = false,
+    onOpenPartnerPicker: (() -> Unit)? = null,
 ) {
     Row(
         modifier = Modifier
@@ -673,7 +790,83 @@ private fun TradePartnerRow(
         partners.forEach { partner ->
             TradePartnerChip(partner, partner.id == selectedId) { onSelect?.invoke(partner.id) }
         }
-        addTeamReason?.let { TradeAddTeamUnavailable(it) }
+        if (threeTeamSupported) {
+            TradeAddTeamLive(onClick = { onOpenPartnerPicker?.invoke() })
+        } else {
+            addTeamReason?.let { TradeAddTeamUnavailable(it) }
+        }
+    }
+}
+
+/**
+ * T5: the two fixed chips shown once a third team is active — no candidates, no add-team chip.
+ * `TradeBuildThreeTeam-v1.md`'s own rule: swapping the third team is remove-then-reopen-the-
+ * picker, not a direct tap, so the primary chip is a no-op here and only the third chip removes.
+ */
+@Composable
+private fun ThreeTeamPartnerRow(
+    primary: OmenTradePartner?,
+    thirdPartner: OmenTradePartner,
+    onRemoveThirdPartner: (() -> Unit)?,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = OmenTheme.spacing.step16)
+            .padding(top = OmenTheme.spacing.step12),
+        horizontalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8),
+        verticalAlignment = Alignment.Top,
+    ) {
+        if (primary != null) {
+            TradePartnerChip(primary, selected = true, onClick = {})
+        }
+        TradePartnerChip(thirdPartner, selected = true, onClick = { onRemoveThirdPartner?.invoke() })
+    }
+}
+
+/**
+ * The `.pt.addt` chip, **live**. `TradePartnerPicker-v1.md`: "the live `Add team` chip is a new
+ * enabled state of an existing component, not a new component" — same shell, same accent-dashed
+ * treatment already defined for `.fc.smart`, just no longer wrapped in the unavailable carrier.
+ */
+@Composable
+private fun TradeAddTeamLive(onClick: () -> Unit) {
+    val accent = OmenTheme.color.accent
+    Column(
+        modifier = Modifier
+            .width(66.dp)
+            .clickable(onClick = onClick)
+            .semantics { contentDescription = "Add a third team" },
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step4),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .drawBehind {
+                    drawRoundRect(
+                        color = accent,
+                        cornerRadius = CornerRadius(13.dp.toPx()),
+                        style = Stroke(
+                            width = 1.dp.toPx(),
+                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 4.dp.toPx()), 0f),
+                        ),
+                    )
+                },
+            contentAlignment = Alignment.Center,
+        ) {
+            Text("+", style = OmenTheme.typography.h3.toTextStyle(), color = accent)
+        }
+        Text("Add team", style = OmenTheme.typography.bodySmall.toTextStyle(), color = accent, maxLines = 1, textAlign = TextAlign.Center)
+        Text(
+            "Add a third team",
+            style = OmenTheme.typography.micro.toTextStyle(),
+            color = accent,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
@@ -872,19 +1065,22 @@ private fun TradeLegBlock(side: OmenTradeSide) {
                     .background(OmenTheme.color.surface1)
                     .padding(OmenTheme.spacing.step10)
                     .semantics {
-                        contentDescription = listOfNotNull(leg.label, leg.name, leg.meta, leg.rank)
+                        contentDescription = listOfNotNull(leg.accessibilityDirection, leg.name, leg.meta, leg.rank)
                             .joinToString(", ")
                     },
                 horizontalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step10),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                // `.lateral` renders no glyph at all — not even a dash — per
+                // `TradeBuildThreeTeam-v1.md`'s acceptance check. The 22dp column stays reserved
+                // so the name/meta column does not shift between rows.
                 Text(
                     leg.label,
                     style = OmenTheme.typography.micro.toTextStyle(),
-                    color = if (leg.direction == OmenTradeLeg.Direction.Sending) {
-                        OmenTheme.color.textTertiary
-                    } else {
+                    color = if (leg.direction == OmenTradeLeg.Direction.Receiving) {
                         OmenTheme.color.accent
+                    } else {
+                        OmenTheme.color.textTertiary
                     },
                     modifier = Modifier.width(22.dp),
                 )
@@ -919,7 +1115,12 @@ private fun TradeLegBlock(side: OmenTradeSide) {
 
 /** `.verd` — the read, its caveat, its inputs and how to act on it. */
 @Composable
-private fun TradeReadBlock(read: OmenTradeRead, submission: OmenTradeSubmission?) {
+private fun TradeReadBlock(
+    read: OmenTradeRead,
+    submission: OmenTradeSubmission?,
+    onToggleStepDone: ((Int) -> Unit)? = null,
+    onCopyStep: ((Int) -> Unit)? = null,
+) {
     val hairline = OmenTheme.color.textPrimary.copy(alpha = 0.08f)
     Column(
         modifier = Modifier
@@ -997,32 +1198,78 @@ private fun TradeReadBlock(read: OmenTradeRead, submission: OmenTradeSubmission?
                         color = OmenTheme.color.textTertiary,
                     )
                 }
+                // T5: "0 of 3 legs sent." Derived client-side from `stepDone`; never implies the
+                // provider confirmed anything.
+                it.progressCaption?.let { progress ->
+                    Text(progress, style = OmenTheme.typography.micro.toTextStyle(), color = OmenTheme.color.textTertiary)
+                }
                 it.steps.forEachIndexed { index, step ->
+                    val isDone = it.stepDone.getOrNull(index)
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8),
                         verticalAlignment = Alignment.Top,
-                        modifier = Modifier.semantics {
-                            contentDescription = "Step ${index + 1}. $step"
-                        },
                     ) {
-                        Box(
+                        Row(
+                            // **Not `.clickable` at all** when there is nothing to toggle — the
+                            // 2-team-style read-only checklist (`onToggleStepDone == null`) stays
+                            // exactly the plain, non-interactive list item it was before T5. A
+                            // `clickable(enabled = false)` here still exposes a clickable
+                            // semantics role, which is the wrong hit-testing/TalkBack surface for
+                            // a row nothing can ever activate.
                             modifier = Modifier
-                                .size(17.dp)
-                                .clip(CircleShape)
-                                .background(OmenTheme.color.surface3),
-                            contentAlignment = Alignment.Center,
+                                .weight(1f)
+                                .let { m ->
+                                    if (onToggleStepDone != null) {
+                                        m.sizeIn(minHeight = 44.dp).clickable { onToggleStepDone(index) }
+                                    } else {
+                                        m
+                                    }
+                                }
+                                .semantics {
+                                    contentDescription = "Step ${index + 1}. $step." +
+                                        when (isDone) {
+                                            true -> " Done."
+                                            false -> " Not done."
+                                            null -> ""
+                                        }
+                                },
+                            horizontalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8),
+                            verticalAlignment = Alignment.Top,
                         ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(17.dp)
+                                    .clip(CircleShape)
+                                    .background(if (isDone == true) OmenTheme.color.accent else OmenTheme.color.surface3),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                if (isDone == null) {
+                                    Text(
+                                        "${index + 1}",
+                                        style = OmenTheme.typography.micro.toTextStyle(),
+                                        color = OmenTheme.color.textSecondary,
+                                    )
+                                }
+                            }
                             Text(
-                                "${index + 1}",
-                                style = OmenTheme.typography.micro.toTextStyle(),
+                                step,
+                                style = OmenTheme.typography.bodySmall.toTextStyle(),
                                 color = OmenTheme.color.textSecondary,
                             )
                         }
-                        Text(
-                            step,
-                            style = OmenTheme.typography.bodySmall.toTextStyle(),
-                            color = OmenTheme.color.textSecondary,
-                        )
+                        // Sibling tap target, not nested inside the row's own clickable — a
+                        // second "Copy" micro-action that copies only this leg's player names.
+                        if (onCopyStep != null) {
+                            Text(
+                                "Copy",
+                                style = OmenTheme.typography.micro.toTextStyle(),
+                                color = OmenTheme.color.accent,
+                                modifier = Modifier
+                                    .sizeIn(minWidth = 44.dp, minHeight = 44.dp)
+                                    .clickable { onCopyStep(index) }
+                                    .semantics { contentDescription = "Copy step ${index + 1}" },
+                            )
+                        }
                     }
                 }
             }
@@ -1078,9 +1325,21 @@ private fun TradeInputRow(input: OmenTradeInput) {
     }
 }
 
-/** A player on someone else's roster, and what you may do about them. */
+/**
+ * A player on someone else's roster, and what you may do about them.
+ *
+ * T5, `TradeRoster-v1.md`'s addendum: when [row] carries [OmenTradeRosterState.Row.recipients],
+ * tapping the row expands it in place to a recipient chooser instead of calling [onClick]
+ * directly — [onChooseRecipient] fires only once a pill is tapped. With no recipients (the
+ * existing 2-team case) this is byte-for-byte the original row: a single tap commits straight to
+ * "you" via [onClick], unchanged.
+ */
 @Composable
-private fun TradeRosterRow(row: OmenTradeRosterState.Row, onClick: () -> Unit) {
+private fun TradeRosterRow(
+    row: OmenTradeRosterState.Row,
+    onClick: () -> Unit,
+    onChooseRecipient: ((OmenTradeRecipient) -> Unit)? = null,
+) {
     val actionTitle = when (row.availability) {
         OmenTradeRosterState.Availability.Available -> "Add to deal"
         // Still tappable. The artboard's own note: "You can still offer; Omen is telling you the
@@ -1088,47 +1347,84 @@ private fun TradeRosterRow(row: OmenTradeRosterState.Row, onClick: () -> Unit) {
         OmenTradeRosterState.Availability.TheyNeedThis -> "They need this"
         OmenTradeRosterState.Availability.Added -> "In the deal"
     }
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .sizeIn(minHeight = 44.dp)
-            .clickable(onClick = onClick)
-            .padding(vertical = OmenTheme.spacing.step10)
-            .clearAndSetSemantics {
-                contentDescription = "${row.name}. ${row.meta}. $actionTitle."
-            },
-        horizontalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step10),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                row.name,
-                style = OmenTheme.typography.name.toTextStyle(),
-                color = if (row.availability == OmenTradeRosterState.Availability.TheyNeedThis) {
-                    OmenTheme.color.textTertiary
-                } else {
-                    OmenTheme.color.textPrimary
+    val hasRecipientChoice = row.availability == OmenTradeRosterState.Availability.Available && row.recipients.isNotEmpty()
+    var isExpanded by remember(row.id) { mutableStateOf(false) }
+
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .sizeIn(minHeight = 44.dp)
+                .clickable(onClick = { if (hasRecipientChoice) isExpanded = !isExpanded else onClick() })
+                .padding(vertical = OmenTheme.spacing.step10)
+                .clearAndSetSemantics {
+                    contentDescription = "${row.name}. ${row.meta}. $actionTitle."
                 },
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            horizontalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step10),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    row.name,
+                    style = OmenTheme.typography.name.toTextStyle(),
+                    color = if (row.availability == OmenTradeRosterState.Availability.TheyNeedThis) {
+                        OmenTheme.color.textTertiary
+                    } else {
+                        OmenTheme.color.textPrimary
+                    },
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    row.meta,
+                    style = OmenTheme.typography.micro.toTextStyle(),
+                    color = OmenTheme.color.textTertiary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             Text(
-                row.meta,
+                actionTitle,
                 style = OmenTheme.typography.micro.toTextStyle(),
-                color = OmenTheme.color.textTertiary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+                color = when (row.availability) {
+                    OmenTradeRosterState.Availability.Available -> OmenTheme.color.accent
+                    OmenTradeRosterState.Availability.TheyNeedThis -> OmenTheme.color.textTertiary
+                    OmenTradeRosterState.Availability.Added -> OmenTheme.color.textPrimary
+                },
             )
         }
-        Text(
-            actionTitle,
-            style = OmenTheme.typography.micro.toTextStyle(),
-            color = when (row.availability) {
-                OmenTradeRosterState.Availability.Available -> OmenTheme.color.accent
-                OmenTradeRosterState.Availability.TheyNeedThis -> OmenTheme.color.textTertiary
-                OmenTradeRosterState.Availability.Added -> OmenTheme.color.textPrimary
-            },
-        )
+        // Expands in place — no new screen, no modal. Collapsing without a choice (tapping
+        // "Add to deal" again) leaves the row exactly as it was: no leg committed either way.
+        if (hasRecipientChoice && isExpanded) {
+            val accentOutline = OmenTheme.color.accent.copy(alpha = 0.38f)
+            Row(
+                modifier = Modifier.padding(bottom = OmenTheme.spacing.step8),
+                horizontalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step6),
+            ) {
+                row.recipients.forEach { recipient ->
+                    Box(
+                        modifier = Modifier
+                            .sizeIn(minWidth = 44.dp, minHeight = 44.dp)
+                            .clip(RoundedCornerShape(7.dp))
+                            .drawBehind {
+                                drawRoundRect(
+                                    color = accentOutline,
+                                    cornerRadius = CornerRadius(7.dp.toPx()),
+                                    style = Stroke(width = 1.dp.toPx()),
+                                )
+                            }
+                            .clickable {
+                                isExpanded = false
+                                onChooseRecipient?.invoke(recipient)
+                            }
+                            .padding(horizontal = OmenTheme.spacing.step10),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(recipient.label, style = OmenTheme.typography.micro.toTextStyle(), color = OmenTheme.color.accent, maxLines = 1)
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -1321,8 +1617,14 @@ fun omenTradeRead(compare: TradeCompare): OmenTradeRead = OmenTradeRead(
 )
 
 /** The caveat is composed from `analysis_context` and never from the verdict. */
-private fun omenTradeCaveat(compare: TradeCompare): String {
-    compare.analysisContext.unavailableReason?.let { reason ->
+private fun omenTradeCaveat(compare: TradeCompare): String = omenTradeCaveat(compare.analysisContext)
+
+/**
+ * T5: hoisted so the three-team read builder — which carries the identical `analysis_context`
+ * vocabulary but is a distinct type — reads the same sentences rather than a second copy.
+ */
+private fun omenTradeCaveat(analysisContext: TradeCompare.AnalysisContext): String {
+    analysisContext.unavailableReason?.let { reason ->
         return when (reason) {
             "unauthenticated" ->
                 "Omen used standard scoring — sign in and it will use your league's settings instead."
@@ -1331,8 +1633,8 @@ private fun omenTradeCaveat(compare: TradeCompare): String {
             else -> "Omen used standard scoring for this one, not your league's settings."
         }
     }
-    if (compare.analysisContext.isPersonalized) {
-        val league = compare.analysisContext.leagueName
+    if (analysisContext.isPersonalized) {
+        val league = analysisContext.leagueName
         return if (league != null) {
             "Scored against $league's settings and your roster."
         } else {
@@ -1341,6 +1643,66 @@ private fun omenTradeCaveat(compare: TradeCompare): String {
     }
     return "Standard scoring — not your league's settings. Need usually decides a trade, and " +
         "need is what standard scoring cannot see."
+}
+
+/**
+ * T5: the "your own" read for a three-team compare. `TradeThreeTeamCompare` has no top-level
+ * `explanation` field (T1's route never sets one for the `legs` branch), so the reasoning line
+ * is composed the same way [TradeCompare.subhead] is — from `verdictState` and `evaluability` —
+ * rather than left blank. There are no `capabilities` in this response either, so `inputs` is
+ * always empty.
+ */
+fun omenTradeThreeTeamRead(compare: TradeThreeTeamCompare): OmenTradeRead = OmenTradeRead(
+    headline = TradeCompare.headlineFor(compare.verdictState),
+    reasoning = omenTradeThreeTeamSubhead(compare),
+    caveat = omenTradeCaveat(compare.analysisContext),
+    isPersonalized = compare.analysisContext.isPersonalized,
+    inputs = emptyList(),
+)
+
+/** The three-team mirror of [TradeCompare.subhead]. */
+private fun omenTradeThreeTeamSubhead(compare: TradeThreeTeamCompare): String =
+    when (compare.verdictState) {
+        TradeCompare.VerdictState.InsufficientData -> when (compare.evaluability.reason) {
+            "no_players" -> "Add players to every leg and Omen will look at it."
+            "missing_projections" -> {
+                val n = compare.evaluability.missingProjectionCount
+                if (n == 1) {
+                    "Omen has no projection for 1 of these players, so it won't force a verdict."
+                } else {
+                    "Omen has no projection for $n of these players, so it won't force a verdict."
+                }
+            }
+            else -> "Omen doesn't have enough to evaluate this three-team deal."
+        }
+        TradeCompare.VerdictState.CloseNeedsContext ->
+            "The value is close enough that your roster and league settings decide it."
+        else -> if (compare.analysisContext.isPersonalized) {
+            "Based on your league's scoring and your roster."
+        } else {
+            "Based on standard scoring — not your league's settings."
+        }
+    }
+
+/**
+ * T5: builds the split-handoff checklist from T1's `submission` block plus the client-local
+ * `doneSteps` set. `doneSteps` is never sent anywhere.
+ */
+fun omenTradeThreeTeamSubmission(
+    submission: TradeThreeTeamCompare.Submission,
+    platform: String?,
+    doneSteps: Set<Int>,
+): OmenTradeSubmission {
+    val doneFlags = submission.steps.indices.map { doneSteps.contains(it) }
+    val doneCount = doneFlags.count { it }
+    val caption = listOfNotNull(platform?.uppercase(), "Handoff only").joinToString(" · ")
+    return OmenTradeSubmission(
+        title = "How to submit this",
+        caption = caption.ifEmpty { "Handoff only" },
+        steps = submission.steps,
+        stepDone = doneFlags,
+        progressCaption = "$doneCount of ${submission.steps.size} legs sent.",
+    )
 }
 
 /**
@@ -1478,3 +1840,62 @@ private fun omenTradeLeg(player: TradePlayer, direction: OmenTradeLeg.Direction)
     meta = listOfNotNull(player.position, player.team).joinToString(" · "),
     rank = null,
 )
+
+// MARK: T5: three-team leg blocks
+
+/**
+ * Generalizes the fixed "You send"/"You receive" pair into N team-headed blocks, one per team
+ * that sends something — `TradeBuildThreeTeam-v1.md`'s own rule: *"each leg block is headed by a
+ * team, not by a direction... never one block per pairwise leg."*
+ *
+ * **Built from the locally-authored [TradeThreeTeamOffer.legs], not from
+ * `TradeThreeTeamCompare.participants[].sends`.** The two disagree in one respect the contract
+ * does not resolve: T1's `participant.sends` pools every leg that team sent into one flat list
+ * with no per-player destination and no player `team` (NFL) field (see
+ * `TradeThreeTeamCompare.Player`'s doc comment). This beta's only tested shape is a ring where
+ * each team sends to exactly one recipient, so the two sources agree there — but reading the
+ * destination and NFL-team abbreviation off the client's own authored legs is the only way to
+ * build the exact `meta` string (`"RB · IND → Davante's"`) the contract specifies without
+ * fabricating a `team` the server never returns. This is enrichment of already-known data, not
+ * the "leg-to-side reassembly" the contract warns against — the grouping (which teams get a
+ * block, and in what order) still comes from [teamOrder], which the caller derives from the same
+ * `uniqueTeamIdsFromLegs`-style bookkeeping T1 itself does server-side.
+ *
+ * @param teamOrder viewer id first, then partner ids in the order they were added to the trade —
+ * `TradeBuildThreeTeam-v1.md`: "block order matches the `.partners` chip order above it." A team
+ * with nothing to send is filtered out — only participants that send something get a block.
+ */
+fun omenTradeThreeTeamSides(offer: TradeThreeTeamOffer, viewerTeamId: String, teamOrder: List<String>): List<OmenTradeSide> {
+    val sendingTeamIds = offer.legs.map { it.from }.toSet()
+    return teamOrder.filter(sendingTeamIds::contains).map { teamId ->
+        val legsFromTeam = offer.legs.filter { it.from == teamId }
+        val heading = if (teamId == viewerTeamId) {
+            "You send"
+        } else {
+            "${legsFromTeam.firstOrNull()?.fromName?.takeIf { it.isNotEmpty() } ?: teamId} sends"
+        }
+        val rows = legsFromTeam.flatMap { leg -> leg.players.map { player -> omenTradeThreeTeamLeg(player, leg, viewerTeamId) } }
+        OmenTradeSide(heading, rows)
+    }
+}
+
+/**
+ * One row of a three-team leg block. `rank` stays null for the same reason the 2-team
+ * [omenTradeLeg] helper leaves it null — `trade-compare.v2` computes no per-player rank in
+ * either shape.
+ */
+private fun omenTradeThreeTeamLeg(player: TradePlayer, leg: TradeThreeTeamLeg, viewerTeamId: String): OmenTradeLeg {
+    val direction = when {
+        leg.from == viewerTeamId -> OmenTradeLeg.Direction.Sending
+        leg.to == viewerTeamId -> OmenTradeLeg.Direction.Receiving
+        else -> OmenTradeLeg.Direction.Lateral
+    }
+    val parts = listOfNotNull(player.position, player.team).filter { it.isNotEmpty() }
+    var meta = parts.joinToString(" · ")
+    // The destination suffix is load-bearing only when the recipient is not the viewer — never
+    // "→ you" for a row where the viewer is the recipient.
+    if (leg.to != viewerTeamId && !leg.toName.isNullOrEmpty()) {
+        meta = if (meta.isEmpty()) "→ ${leg.toName}" else "$meta → ${leg.toName}"
+    }
+    return OmenTradeLeg(direction = direction, name = player.name, meta = meta, rank = null)
+}
