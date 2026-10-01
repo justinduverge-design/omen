@@ -1,6 +1,6 @@
 # Projection explainer v1 — "why is this player projected where he is"
 
-**Status:** PROPOSED — founder review, then a design pass (`slops-native-screen-design`) before any UI is built, because the native visual lock is canonical and forbids new components without approval.
+**Status:** PROPOSED — layer-1 block DESIGN APPROVED 2026-10-01 (see decision_log); build waits on the Evidence contract and the server field. Original gate: founder review, then a design pass (`slops-native-screen-design`) before any UI is built, because the native visual lock is canonical and forbids new components without approval.
 **Date:** 2026-09-30. **Platform:** iOS first (Android paused, `Direction/decision_log.md`). **Owner lanes:** server contract and explanation logic — Claude; database tables, if any — Claude or Codex only (never Jules or Muse).
 **Why this exists:** four rounds of testing (`Direction/2026-09-30-first-factor-experiment.md`) found no way to beat a provider's projection with public football data. What Omen can do honestly is show the user **why** a projection is what it is, with the scheme, role, route and matchup information a sharp fantasy player would look up, and say how much a call matters. Founder direction: *"explain why this player is projected here, this player runs this type of route better, this other team struggles against it."*
 
