@@ -1,0 +1,11 @@
+{
+  "http_status": 400,
+  "route": "/api/waivers/analysis",
+  "body": {
+    "action": "retry",
+    "code": "unsupported_waiver_analysis_contract",
+    "contract_version": "waiver-analysis-error.v1",
+    "error": "Waiver analysis unavailable",
+    "message": "This version of waiver analysis is not supported."
+  }
+}

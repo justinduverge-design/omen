@@ -1,0 +1,234 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "start-sit-detail.v1",
+  "title": "start-sit-detail.v1 (inferred from recorded server responses; review before relying on it)",
+  "description": "ADDITIVE ONLY within this version. Extra properties are allowed; removing, renaming or retyping anything listed here is a breaking change and fails the lock.",
+  "type": "object",
+  "properties": {
+    "alternatives": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "over": {
+            "type": "string"
+          },
+          "points_delta": {
+            "type": "number"
+          },
+          "slot": {
+            "type": "string"
+          },
+          "start": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "over",
+          "points_delta",
+          "slot",
+          "start"
+        ]
+      }
+    },
+    "contract_version": {
+      "type": "string"
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "statement": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "category",
+          "kind",
+          "statement"
+        ]
+      }
+    },
+    "generated_at": {
+      "type": "string"
+    },
+    "league_id": {
+      "type": "string"
+    },
+    "league_name": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "message": {
+      "type": "string"
+    },
+    "platform": {
+      "type": "string"
+    },
+    "recommendation": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "properties": {
+        "confidence": {
+          "type": "string"
+        },
+        "over": {
+          "type": "object",
+          "properties": {
+            "kickoff": {
+              "description": "Observed only as null in recorded responses; the real type is not constrained."
+            },
+            "name": {
+              "type": "string"
+            },
+            "player_key": {
+              "type": "string"
+            },
+            "position": {
+              "type": "string"
+            },
+            "projected_points": {
+              "type": "number"
+            },
+            "status": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "team": {
+              "description": "Observed only as null in recorded responses; the real type is not constrained."
+            }
+          },
+          "required": [
+            "kickoff",
+            "name",
+            "player_key",
+            "position",
+            "projected_points",
+            "status",
+            "team"
+          ]
+        },
+        "points_delta": {
+          "type": "number"
+        },
+        "slot": {
+          "type": "string"
+        },
+        "start": {
+          "type": "object",
+          "properties": {
+            "kickoff": {
+              "description": "Observed only as null in recorded responses; the real type is not constrained."
+            },
+            "name": {
+              "type": "string"
+            },
+            "player_key": {
+              "type": "string"
+            },
+            "position": {
+              "type": "string"
+            },
+            "projected_points": {
+              "type": "number"
+            },
+            "status": {
+              "description": "Observed only as null in recorded responses; the real type is not constrained."
+            },
+            "team": {
+              "description": "Observed only as null in recorded responses; the real type is not constrained."
+            }
+          },
+          "required": [
+            "kickoff",
+            "name",
+            "player_key",
+            "position",
+            "projected_points",
+            "status",
+            "team"
+          ]
+        }
+      },
+      "required": [
+        "confidence",
+        "over",
+        "points_delta",
+        "slot",
+        "start"
+      ]
+    },
+    "scoring_format": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "season": {
+      "type": "number"
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "clear_decision",
+        "close_decision",
+        "player_unavailable",
+        "incomplete_data",
+        "games_started",
+        "no_decision",
+        "off_season"
+      ]
+    },
+    "team_name": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "week": {
+      "type": "number"
+    },
+    "what_could_change_this": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "why": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "alternatives",
+    "contract_version",
+    "evidence",
+    "generated_at",
+    "league_id",
+    "league_name",
+    "platform",
+    "recommendation",
+    "scoring_format",
+    "season",
+    "state",
+    "team_name",
+    "week",
+    "what_could_change_this",
+    "why"
+  ]
+}

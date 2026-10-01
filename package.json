@@ -1,7 +1,7 @@
 {
   "name": "omen",
   "version": "1.0.0",
-  "description": "Omen — Slops Saloon Fantasy Football Intelligence",
+  "description": "Omen \u2014 Slops Saloon Fantasy Football Intelligence",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
@@ -10,7 +10,10 @@
     "test": "node --test",
     "evals:validate": "node evals/slops-prompt-guard.mjs --validate",
     "evals:mock": "node evals/slops-prompt-guard.mjs",
-    "migrate": "node-pg-migrate"
+    "migrate": "node-pg-migrate",
+    "contracts:record": "node scripts/contract-recorded.js record",
+    "contracts:check": "node scripts/contracts.js check && node scripts/contract-recorded.js check",
+    "contracts:lock": "node scripts/contracts.js lock"
   },
   "dependencies": {
     "@opentelemetry/exporter-trace-otlp-http": "^0.222.0",

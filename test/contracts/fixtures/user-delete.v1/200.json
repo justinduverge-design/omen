@@ -1,0 +1,10 @@
+{
+  "http_status": 200,
+  "route": "/api/account/delete",
+  "body": {
+    "auth_identity_deleted": true,
+    "contract_version": "user-delete.v1",
+    "deleted": true,
+    "user_hash": "c6c289e49e9c05b2145860387b73bcb18df43fb09a1e4a4a9713c76c88bb541b"
+  }
+}

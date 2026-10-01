@@ -1,0 +1,80 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "trade-roster.v1",
+  "title": "trade-roster.v1 (inferred from recorded server responses; review before relying on it)",
+  "description": "ADDITIVE ONLY within this version. Extra properties are allowed; removing, renaming or retyping anything listed here is a breaking change and fails the lock.",
+  "type": "object",
+  "properties": {
+    "contract_version": {
+      "type": "string"
+    },
+    "platform": {
+      "type": "string"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "roster_positions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ok",
+        "unavailable"
+      ]
+    },
+    "teams": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "players": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "player_key": {
+                  "type": "string"
+                },
+                "position": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "player_key"
+              ]
+            }
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "team_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "players",
+          "team_id",
+          "team_name"
+        ]
+      }
+    },
+    "week": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "contract_version",
+    "platform",
+    "status",
+    "teams"
+  ]
+}

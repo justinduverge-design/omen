@@ -1,0 +1,197 @@
+{
+  "note": "Contracts under S0 protection. `screens` are the native screens that depend on the contract (canvas-contract-requirements-v1.json); `family: error` contracts are the degraded states those screens render. A contract listed here is additive-only: see test/contracts/README.md.",
+  "contracts": {
+    "dashboard-summary.v1": {
+      "screens": [
+        "CommandNoLeague",
+        "CommandCenter",
+        "Account"
+      ]
+    },
+    "league-overview.v1": {
+      "screens": [
+        "CommandCenter",
+        "LeagueTable",
+        "LeagueDegraded",
+        "LeagueNoRosters"
+      ]
+    },
+    "league-directory.v1": {
+      "screens": [
+        "SwitchSheet"
+      ]
+    },
+    "league-directory-error.v1": {
+      "screens": [
+        "SwitchSheet"
+      ],
+      "family": "error"
+    },
+    "league-active-selection.v1": {
+      "screens": [
+        "SwitchSheet",
+        "SwitchLoading"
+      ],
+      "note": "canvas-contract-requirements-v1.json calls this `active-league.v1`; the server sends `league-active-selection.v1`."
+    },
+    "moves-history.v2": {
+      "screens": [
+        "CommandCenter",
+        "Ledger",
+        "LedgerDegraded"
+      ]
+    },
+    "moves-history-error.v1": {
+      "screens": [
+        "LedgerDegraded"
+      ],
+      "family": "error"
+    },
+    "move-detail.v1": {
+      "screens": [
+        "LedgerDetail",
+        "LedgerDetailDegraded"
+      ]
+    },
+    "move-detail-error.v1": {
+      "screens": [
+        "LedgerDetailDegraded"
+      ],
+      "family": "error"
+    },
+    "platform-provider-state.v1": {
+      "screens": [
+        "ConnectLeague",
+        "ConnectFailed"
+      ]
+    },
+    "quiet-week.v1": {
+      "screens": [
+        "CommandQuiet",
+        "CommandQuietStraight"
+      ]
+    },
+    "session.v1": {
+      "screens": [
+        "SignIn"
+      ]
+    },
+    "start-sit-detail.v1": {
+      "screens": [
+        "StartSitClear",
+        "StartSitIncomplete"
+      ],
+      "note": "Fixtures built from the production builder (buildStartSitDetail), not recorded from a route test."
+    },
+    "start-sit-detail-error.v1": {
+      "screens": [
+        "StartSitIncomplete"
+      ],
+      "family": "error"
+    },
+    "trade-capabilities.v1": {
+      "screens": [
+        "TradeBuild",
+        "TradeRoster"
+      ]
+    },
+    "trade-compare.v2": {
+      "screens": [
+        "TradeBuild",
+        "TradeRoster",
+        "TradeNeedsContext",
+        "TradeVerdict"
+      ]
+    },
+    "trade-roster.v1": {
+      "screens": [
+        "TradeRoster"
+      ]
+    },
+    "trade-share.v1": {
+      "screens": [
+        "TradeShare"
+      ]
+    },
+    "user-delete.v1": {
+      "screens": [
+        "Account"
+      ]
+    },
+    "user-export.v1": {
+      "screens": [
+        "Account"
+      ]
+    },
+    "waiver-analysis.v1": {
+      "screens": [
+        "CommandCenter",
+        "LeagueWaiver",
+        "WaiverNoMove",
+        "WaiverNotDetermined"
+      ]
+    },
+    "waiver-analysis-error.v1": {
+      "screens": [
+        "LeagueWaiver"
+      ],
+      "family": "error"
+    },
+    "beta-report.v1": {
+      "screens": [
+        "ReportPill"
+      ]
+    },
+    "beta-report-error.v1": {
+      "screens": [
+        "ReportPill"
+      ],
+      "family": "error"
+    },
+    "system-min-version.v1": {
+      "screens": [
+        "(app gate)"
+      ]
+    },
+    "start-sit-detail.v2": {
+      "screens": [
+        "StartSitClear",
+        "StartSitIncomplete"
+      ],
+      "note": "Served to v2 clients (evidence via decision-capabilities.v1). The requirements file still names v1 for these screens."
+    },
+    "espn-connect.v1": {
+      "screens": [
+        "EspnConnect"
+      ],
+      "route": "POST /api/platforms/espn/connect",
+      "unversioned": true,
+      "note": "The server sends NO contract_version on this route; the name comes from canvas-contract-requirements-v1.json. Adding `contract_version` is additive and recommended. Cookie values must never appear here (facts-of-record #6); fixtures are scanned for them."
+    },
+    "sleeper-resolve.v1": {
+      "screens": [
+        "ConnectLeague"
+      ],
+      "route": "POST /api/platforms/sleeper/resolve",
+      "unversioned": true,
+      "note": "Unversioned route, named here so it is protected."
+    },
+    "sleeper-connect.v1": {
+      "screens": [
+        "ConnectLeague",
+        "ConnectFailed"
+      ],
+      "route": "POST /api/platforms/sleeper/connect",
+      "unversioned": true,
+      "note": "Unversioned route, named here so it is protected."
+    },
+    "platform-disconnect.v1": {
+      "screens": [
+        "Account"
+      ],
+      "route": "DELETE /api/platforms/:platform",
+      "unversioned": true,
+      "note": "Unversioned route, named here so it is protected."
+    }
+  }
+}

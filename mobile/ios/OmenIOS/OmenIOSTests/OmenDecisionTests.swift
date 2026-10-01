@@ -847,3 +847,94 @@ final class OmenDecisionViewModelTests: XCTestCase {
     }
 
 }
+
+// MARK: - Contract fixtures: every recorded server response, decoded by the app's own types (S0)
+
+/// The consumer half of `test/contracts/`. The fixtures are real server responses (recorded from the
+/// route tests, or built by the production builders); the schemas guard the server side in CI. Here
+/// the SAME files go through the decoders the app ships, so a server change the app cannot read, or an
+/// app change that stops reading what the server sends, fails a test on one side or the other.
+///
+/// Not covered, stated: contracts decoded by ad-hoc or private code paths (connect flows, session,
+/// account export/delete, beta report) — they are schema-protected on the server side only for now.
+final class ContractFixtureDecodeTests: XCTestCase {
+
+    private func fixtureRoot() -> URL {
+        var url = URL(fileURLWithPath: #filePath)
+        for _ in 0..<5 { url.deleteLastPathComponent() } // file, OmenIOSTests, OmenIOS, ios, mobile -> repo root
+        return url.appendingPathComponent("test/contracts/fixtures")
+    }
+
+    /// (file name, http status, body bytes) for every fixture of a contract.
+    private func fixtures(_ contract: String) throws -> [(name: String, status: Int, body: Data)] {
+        let dir = fixtureRoot().appendingPathComponent(contract)
+        let files = try FileManager.default.contentsOfDirectory(atPath: dir.path).filter { $0.hasSuffix(".json") }.sorted()
+        return try files.map { file in
+            let data = try Data(contentsOf: dir.appendingPathComponent(file))
+            let wrapper = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+            let body = try JSONSerialization.data(withJSONObject: try XCTUnwrap(wrapper["body"]), options: [.fragmentsAllowed])
+            return (file, (wrapper["http_status"] as? Int) ?? 200, body)
+        }
+    }
+
+    func testEveryRecordedSuccessFixtureDecodesWithTheAppsOwnType() throws {
+        let decoders: [(String, (Data) throws -> Void)] = [
+            ("dashboard-summary.v1", { _ = try JSONDecoder().decode(DashboardSummary.self, from: $0) }),
+            ("league-overview.v1", { _ = try JSONDecoder().decode(LeagueOverview.self, from: $0) }),
+            ("league-directory.v1", { _ = try JSONDecoder().decode(LeagueDirectory.self, from: $0) }),
+            ("league-active-selection.v1", { _ = try JSONDecoder().decode(LeagueSelectionResult.self, from: $0) }),
+            ("moves-history.v2", { _ = try JSONDecoder().decode(MovesHistory.self, from: $0) }),
+            ("move-detail.v1", { _ = try JSONDecoder().decode(MoveReceipt.self, from: $0) }),
+            ("quiet-week.v1", { _ = try JSONDecoder().decode(QuietWeekResponse.self, from: $0) }),
+            ("start-sit-detail.v1", { _ = try JSONDecoder().decode(StartSitDetail.self, from: $0) }),
+            ("start-sit-detail.v2", { _ = try JSONDecoder().decode(StartSitDetail.self, from: $0) }),
+            ("trade-capabilities.v1", { _ = try JSONDecoder().decode(TradeCapabilities.self, from: $0) }),
+            ("trade-compare.v2", { _ = try JSONDecoder().decode(TradeCompare.self, from: $0) }),
+            ("trade-roster.v1", { _ = try JSONDecoder().decode(TradeRosterResponse.self, from: $0) }),
+            ("trade-share.v1", { _ = try JSONDecoder().decode(TradeShareResponse.self, from: $0) }),
+            ("waiver-analysis.v1", { _ = try JSONDecoder().decode(WaiverAnalysis.self, from: $0) }),
+            ("system-min-version.v1", { _ = try JSONDecoder().decode(MinVersionStatus.self, from: $0) }),
+        ]
+        var failures: [String] = []
+        var decoded = 0
+        for (contract, decode) in decoders {
+            for fixture in try fixtures(contract) where fixture.status < 400 {
+                do { try decode(fixture.body); decoded += 1 }
+                catch { failures.append("\(contract)/\(fixture.name): \(error)") }
+            }
+        }
+        XCTAssertGreaterThan(decoded, 40, "the fixtures were not found or were not read")
+        XCTAssertTrue(failures.isEmpty, "The app cannot decode a response the server sends:\n" + failures.joined(separator: "\n"))
+    }
+    /// Found by an "always-nil" probe over these fixtures: the app's `WaiverSystem` reads `budget_text` and
+    /// `order_text`, which the server never sent, and `OmenWaiverSystem` treats a league without them as
+    /// `not_determined` — so every FAAB and priority league rendered as undetermined. The server now
+    /// composes both; this pins that the native mapping lights up from real server output.
+    func testWaiverSystemFixturesMapToTheRightNativeSystem() throws {
+        var checked = 0
+        for fixture in try fixtures("waiver-analysis.v1") where fixture.status < 400 {
+            let analysis = try JSONDecoder().decode(WaiverAnalysis.self, from: fixture.body)
+            guard let system = analysis.waiverSystem else { continue }
+            switch system.system {
+            case .faab:
+                if system.budgetText != nil {
+                    guard case .faab(let budget, _) = OmenWaiverSystem(analysis.waiverSystem) else {
+                        return XCTFail("\(fixture.name): a FAAB league with a known budget must map to .faab")
+                    }
+                    XCTAssertTrue(budget.hasPrefix("Your budget $"), budget)
+                    checked += 1
+                }
+            case .priority:
+                if system.orderText != nil {
+                    guard case .priority = OmenWaiverSystem(analysis.waiverSystem) else {
+                        return XCTFail("\(fixture.name): a priority league with a known order must map to .priority")
+                    }
+                    checked += 1
+                }
+            case .notDetermined:
+                XCTAssertEqual(OmenWaiverSystem(analysis.waiverSystem), .notDetermined, fixture.name)
+            }
+        }
+        XCTAssertGreaterThan(checked, 0, "no FAAB or priority fixture exercised the native mapping")
+    }
+}

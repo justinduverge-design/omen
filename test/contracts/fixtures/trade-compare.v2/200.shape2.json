@@ -1,0 +1,267 @@
+{
+  "http_status": 200,
+  "route": "/api/trade/compare",
+  "body": {
+    "analysis_context": {
+      "applied": [],
+      "league_id": null,
+      "league_name": null,
+      "mode": "neutral",
+      "platform": null,
+      "unavailable_reason": null
+    },
+    "contract_version": "trade-compare.v2",
+    "evaluability": {
+      "missing_projection_count": 0,
+      "reason": null,
+      "status": "evaluable",
+      "total_player_count": 6
+    },
+    "participants": [
+      {
+        "acceptance_likelihood": "unlikely",
+        "confidence": "medium",
+        "evaluability": {
+          "missing_projection_count": 0,
+          "reason": null,
+          "status": "evaluable",
+          "total_player_count": 2
+        },
+        "net_value": -6,
+        "receives": {
+          "missing_projection_count": 0,
+          "player_count": 1,
+          "players": [
+            {
+              "adjusted_projection": 12,
+              "confidence": "medium",
+              "name": "Tyjae Spears",
+              "notes": [],
+              "player_key": "test:0:Tyjae Spears",
+              "position": "RB",
+              "projected_points": 12,
+              "replacement_level": 6.5,
+              "scarcity_bonus": 0.5,
+              "status": null,
+              "tier": "starter",
+              "value": 5.5
+            }
+          ],
+          "scarcity_details": [
+            {
+              "name": "Tyjae Spears",
+              "position": "RB",
+              "tier": "starter",
+              "vorp": 5.5
+            }
+          ],
+          "total_value": 5.5
+        },
+        "roster_fit": {
+          "depth_discounted": false,
+          "summary": "You are sending an elite-tier RB for a starter-tier RB."
+        },
+        "sends": {
+          "missing_projection_count": 0,
+          "player_count": 1,
+          "players": [
+            {
+              "adjusted_projection": 18,
+              "confidence": "medium",
+              "name": "Jonathan Taylor",
+              "notes": [],
+              "player_key": "test:0:Jonathan Taylor",
+              "position": "RB",
+              "projected_points": 18,
+              "replacement_level": 6.5,
+              "scarcity_bonus": 2,
+              "status": null,
+              "tier": "elite",
+              "value": 11.5
+            }
+          ],
+          "scarcity_details": [
+            {
+              "name": "Jonathan Taylor",
+              "position": "RB",
+              "tier": "elite",
+              "vorp": 11.5
+            }
+          ],
+          "total_value": 11.5
+        },
+        "team_id": "you",
+        "team_name": null,
+        "verdict": "decline",
+        "verdict_state": "you_give_up_too_much"
+      },
+      {
+        "acceptance_likelihood": "uncertain",
+        "confidence": "medium",
+        "evaluability": {
+          "missing_projection_count": 0,
+          "reason": null,
+          "status": "evaluable",
+          "total_player_count": 2
+        },
+        "net_value": -0.5,
+        "receives": {
+          "missing_projection_count": 0,
+          "player_count": 1,
+          "players": [
+            {
+              "adjusted_projection": 18,
+              "confidence": "medium",
+              "name": "Jonathan Taylor",
+              "notes": [],
+              "player_key": "test:0:Jonathan Taylor",
+              "position": "RB",
+              "projected_points": 18,
+              "replacement_level": 6.5,
+              "scarcity_bonus": 2,
+              "status": null,
+              "tier": "elite",
+              "value": 11.5
+            }
+          ],
+          "scarcity_details": [
+            {
+              "name": "Jonathan Taylor",
+              "position": "RB",
+              "tier": "elite",
+              "vorp": 11.5
+            }
+          ],
+          "total_value": 11.5
+        },
+        "roster_fit": {
+          "depth_discounted": false,
+          "summary": "You are sending an elite-tier WR for an elite-tier RB."
+        },
+        "sends": {
+          "missing_projection_count": 0,
+          "player_count": 1,
+          "players": [
+            {
+              "adjusted_projection": 20,
+              "confidence": "medium",
+              "name": "Ja'Marr Chase",
+              "notes": [],
+              "player_key": "test:0:Ja'Marr Chase",
+              "position": "WR",
+              "projected_points": 20,
+              "replacement_level": 8,
+              "scarcity_bonus": 2,
+              "status": null,
+              "tier": "elite",
+              "value": 12
+            }
+          ],
+          "scarcity_details": [
+            {
+              "name": "Ja'Marr Chase",
+              "position": "WR",
+              "tier": "elite",
+              "vorp": 12
+            }
+          ],
+          "total_value": 12
+        },
+        "team_id": "team_b",
+        "team_name": "Davante's Inferno",
+        "verdict": "neutral",
+        "verdict_state": "close_needs_context"
+      },
+      {
+        "acceptance_likelihood": "likely",
+        "confidence": "medium",
+        "evaluability": {
+          "missing_projection_count": 0,
+          "reason": null,
+          "status": "evaluable",
+          "total_player_count": 2
+        },
+        "net_value": 6.5,
+        "receives": {
+          "missing_projection_count": 0,
+          "player_count": 1,
+          "players": [
+            {
+              "adjusted_projection": 20,
+              "confidence": "medium",
+              "name": "Ja'Marr Chase",
+              "notes": [],
+              "player_key": "test:0:Ja'Marr Chase",
+              "position": "WR",
+              "projected_points": 20,
+              "replacement_level": 8,
+              "scarcity_bonus": 2,
+              "status": null,
+              "tier": "elite",
+              "value": 12
+            }
+          ],
+          "scarcity_details": [
+            {
+              "name": "Ja'Marr Chase",
+              "position": "WR",
+              "tier": "elite",
+              "vorp": 12
+            }
+          ],
+          "total_value": 12
+        },
+        "roster_fit": {
+          "depth_discounted": false,
+          "summary": "You are sending a starter-tier RB for an elite-tier WR."
+        },
+        "sends": {
+          "missing_projection_count": 0,
+          "player_count": 1,
+          "players": [
+            {
+              "adjusted_projection": 12,
+              "confidence": "medium",
+              "name": "Tyjae Spears",
+              "notes": [],
+              "player_key": "test:0:Tyjae Spears",
+              "position": "RB",
+              "projected_points": 12,
+              "replacement_level": 6.5,
+              "scarcity_bonus": 0.5,
+              "status": null,
+              "tier": "starter",
+              "value": 5.5
+            }
+          ],
+          "scarcity_details": [
+            {
+              "name": "Tyjae Spears",
+              "position": "RB",
+              "tier": "starter",
+              "vorp": 5.5
+            }
+          ],
+          "total_value": 5.5
+        },
+        "team_id": "team_c",
+        "team_name": "Chubb Rock",
+        "verdict": "accept",
+        "verdict_state": "favors_you"
+      }
+    ],
+    "submission": {
+      "caption": "No provider builds a three-team trade natively. Submit it as linked two-team trades, in this order.",
+      "mode": "split_handoff",
+      "reason": "no_connected_provider_publishes_a_three_team_write_api",
+      "steps": [
+        "Leg 1: send Jonathan Taylor from you to Davante's Inferno.",
+        "Leg 2: send Ja'Marr Chase from Davante's Inferno to Chubb Rock. Make it contingent on leg 1 completing first.",
+        "Leg 3: send Tyjae Spears from Chubb Rock to you. Make it contingent on leg 2 completing first."
+      ]
+    },
+    "team_count": 3,
+    "trade_shape": "three_team",
+    "verdict_state": "you_give_up_too_much"
+  }
+}

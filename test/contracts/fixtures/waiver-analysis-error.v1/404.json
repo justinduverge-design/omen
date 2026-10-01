@@ -1,0 +1,11 @@
+{
+  "http_status": 404,
+  "route": "/api/waivers/analysis",
+  "body": {
+    "action": "connect",
+    "code": "no_usable_league",
+    "contract_version": "waiver-analysis-error.v1",
+    "error": "Waiver analysis unavailable",
+    "message": "Connect a league and pick a team before Omen can analyse waivers."
+  }
+}

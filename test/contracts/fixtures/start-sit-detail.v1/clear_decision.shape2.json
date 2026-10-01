@@ -1,0 +1,68 @@
+{
+  "http_status": 200,
+  "route": "/api/start-sit/detail",
+  "body": {
+    "alternatives": [
+      {
+        "over": "Star RB",
+        "points_delta": 16,
+        "slot": "RB",
+        "start": "Bench RB"
+      }
+    ],
+    "contract_version": "start-sit-detail.v1",
+    "evidence": [
+      {
+        "category": "player_game_fact",
+        "kind": "projection",
+        "statement": "DeVonta Smith projects 15.2 and Chris Olave projects 11 in this league's scoring."
+      },
+      {
+        "category": "omen_inference",
+        "kind": "inference",
+        "statement": "The available data favors DeVonta Smith."
+      },
+      {
+        "category": "limitation",
+        "kind": "limitation",
+        "statement": "Omen has not verified this league's scoring rules, so the comparison uses the provider's own projections without restating the rule."
+      }
+    ],
+    "generated_at": "2026-01-01T00:00:00.000Z",
+    "league_id": "12345",
+    "league_name": null,
+    "platform": "espn",
+    "recommendation": {
+      "confidence": "high",
+      "over": {
+        "kickoff": null,
+        "name": "Chris Olave",
+        "player_key": "p-Chris-Olave",
+        "position": "WR",
+        "projected_points": 11,
+        "status": null,
+        "team": null
+      },
+      "points_delta": 4.2,
+      "slot": "WR",
+      "start": {
+        "kickoff": null,
+        "name": "DeVonta Smith",
+        "player_key": "p-DeVonta-Smith",
+        "position": "WR",
+        "projected_points": 15.2,
+        "status": null,
+        "team": null
+      }
+    },
+    "scoring_format": null,
+    "season": 2026,
+    "state": "clear_decision",
+    "team_name": "Justin Titans",
+    "week": 7,
+    "what_could_change_this": [],
+    "why": [
+      "Higher projected output in this league's scoring (+4.2)."
+    ]
+  }
+}

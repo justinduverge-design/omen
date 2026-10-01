@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "user-delete.v1",
+  "title": "user-delete.v1 (inferred from recorded server responses; review before relying on it)",
+  "description": "ADDITIVE ONLY within this version. Extra properties are allowed; removing, renaming or retyping anything listed here is a breaking change and fails the lock.",
+  "type": "object",
+  "properties": {
+    "auth_identity_deleted": {
+      "type": "boolean"
+    },
+    "contract_version": {
+      "type": "string"
+    },
+    "deleted": {
+      "type": "boolean"
+    },
+    "user_hash": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "auth_identity_deleted",
+    "contract_version",
+    "deleted",
+    "user_hash"
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "espn-connect.v1",
+  "title": "espn-connect.v1 (inferred from recorded server responses; review before relying on it)",
+  "description": "ADDITIVE ONLY within this version. Extra properties are allowed; removing, renaming or retyping anything listed here is a breaking change and fails the lock.",
+  "type": "object",
+  "properties": {
+    "code": {
+      "type": "string"
+    },
+    "connected": {
+      "type": "boolean"
+    },
+    "leagues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "description": "Observed only as null in recorded responses; the real type is not constrained."
+          },
+          "scoring_format": {
+            "description": "Observed only as null in recorded responses; the real type is not constrained."
+          },
+          "season": {
+            "type": "number"
+          },
+          "selected": {
+            "type": "boolean"
+          },
+          "team_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "team_name": {
+            "description": "Observed only as null in recorded responses; the real type is not constrained."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "scoring_format",
+          "season",
+          "selected",
+          "team_id",
+          "team_name"
+        ]
+      }
+    },
+    "message": {
+      "type": "string"
+    },
+    "platform": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "connected",
+        "error"
+      ]
+    }
+  },
+  "required": [
+    "status"
+  ]
+}

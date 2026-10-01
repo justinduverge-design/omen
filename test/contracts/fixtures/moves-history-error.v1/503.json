@@ -1,0 +1,11 @@
+{
+  "http_status": 503,
+  "route": "/api/moves/",
+  "body": {
+    "action": "back",
+    "code": "league_scope_unavailable",
+    "contract_version": "moves-history-error.v1",
+    "error": "Ledger unavailable",
+    "message": "Omen cannot yet tell which league each saved call belongs to, so it is not showing this league's Ledger."
+  }
+}

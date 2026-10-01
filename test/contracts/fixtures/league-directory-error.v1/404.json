@@ -1,0 +1,12 @@
+{
+  "http_status": 404,
+  "route": "/api/leagues/active",
+  "body": {
+    "action": "connect",
+    "code": "platform_not_connected",
+    "contract_version": "league-directory-error.v1",
+    "error": "League directory unavailable",
+    "message": "Connect this platform before making one of its leagues active.",
+    "platform": "yahoo"
+  }
+}

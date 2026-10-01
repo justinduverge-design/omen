@@ -1,0 +1,63 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "quiet-week.v1",
+  "title": "quiet-week.v1 (inferred from recorded server responses; review before relying on it)",
+  "description": "ADDITIVE ONLY within this version. Extra properties are allowed; removing, renaming or retyping anything listed here is a breaking change and fails the lock.",
+  "type": "object",
+  "properties": {
+    "body": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "contract_version": {
+      "type": "string"
+    },
+    "eligible": {
+      "type": "boolean"
+    },
+    "headline": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "next_read": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "source_state": {
+      "type": "string"
+    },
+    "variant": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "enum": [
+        "neutral",
+        "straight",
+        null
+      ]
+    }
+  },
+  "required": [
+    "body",
+    "contract_version",
+    "eligible",
+    "headline",
+    "next_read",
+    "reasons",
+    "source_state",
+    "variant"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "http_status": 400,
+  "route": "/api/leagues/active",
+  "body": {
+    "action": "retry",
+    "code": "invalid_platform",
+    "contract_version": "league-directory-error.v1",
+    "error": "League directory unavailable",
+    "message": "Choose Sleeper, ESPN, or Yahoo."
+  }
+}

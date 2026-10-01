@@ -1,0 +1,30 @@
+{
+  "http_status": 200,
+  "route": "(built)",
+  "body": {
+    "alternatives": [],
+    "availability_state": "confirmed",
+    "best_move": null,
+    "contract_version": "waiver-analysis.v1",
+    "cost": null,
+    "deadline": null,
+    "evidence": [],
+    "generated_at": "2026-01-01T00:00:00.000Z",
+    "league_id": "L1",
+    "message": "Omen could not read this league's available players, so it will not guess at a waiver move.",
+    "platform": "sleeper",
+    "scoring_format": null,
+    "season": 2026,
+    "state": "engine_limitation",
+    "waiver_system": {
+      "budget_remaining": 80,
+      "budget_text": "Your budget $80 of $100",
+      "budget_total": 100,
+      "determined_from": "provider_settings",
+      "order_text": null,
+      "priority_position": null,
+      "system": "faab"
+    },
+    "week": 3
+  }
+}

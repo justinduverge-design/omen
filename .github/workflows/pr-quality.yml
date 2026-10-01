@@ -49,8 +49,19 @@ jobs:
       - name: Install backend dependencies
         run: npm ci
 
+      # The contract recorder captures the JSON the real routes send while the ordinary suite runs, so
+      # contract fixtures cannot drift from the server (scripts/contract-recorder.js). One run, two jobs.
       - name: Run backend tests
         run: npm test
+        env:
+          CONTRACT_RECORD_DIR: ${{ runner.temp }}/contract-record
+          NODE_OPTIONS: --require ${{ github.workspace }}/scripts/contract-recorder.js
+
+      # Non-blocking for now: fixtures are recorded and normalized on a Mac; this confirms they are
+      # byte-identical on the CI runner. Flip continue-on-error off after it has been green a few runs.
+      - name: Contract fixtures are current
+        continue-on-error: true
+        run: node scripts/contract-recorded.js compare "${{ runner.temp }}/contract-record"
 
       # Same threshold as deploy.yml's quality job, so a PR cannot pass here
       # and then fail the gate that actually blocks the deploy.

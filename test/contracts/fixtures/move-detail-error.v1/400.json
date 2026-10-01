@@ -1,0 +1,11 @@
+{
+  "http_status": 400,
+  "route": "/api/moves/:id",
+  "body": {
+    "action": "back",
+    "code": "invalid_move_id",
+    "contract_version": "move-detail-error.v1",
+    "error": "Ledger entry unavailable",
+    "message": "That is not a valid Ledger entry id."
+  }
+}

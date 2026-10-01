@@ -1,0 +1,14 @@
+{
+  "http_status": 200,
+  "route": "(built)",
+  "body": {
+    "body": null,
+    "contract_version": "quiet-week.v1",
+    "eligible": false,
+    "headline": null,
+    "next_read": null,
+    "reasons": [],
+    "source_state": "unavailable",
+    "variant": null
+  }
+}

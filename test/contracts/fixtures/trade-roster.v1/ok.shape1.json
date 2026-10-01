@@ -1,0 +1,33 @@
+{
+  "http_status": 200,
+  "route": "/api/trade/roster",
+  "body": {
+    "contract_version": "trade-roster.v1",
+    "platform": "espn",
+    "roster_positions": [],
+    "status": "ok",
+    "teams": [
+      {
+        "players": [
+          {
+            "name": "Own ESPN Player",
+            "player_key": "espn:1"
+          }
+        ],
+        "team_id": "10",
+        "team_name": "Own ESPN Team"
+      },
+      {
+        "players": [
+          {
+            "name": "Rival ESPN Player",
+            "player_key": "espn:2"
+          }
+        ],
+        "team_id": "20",
+        "team_name": "Rival ESPN Team"
+      }
+    ],
+    "week": 3
+  }
+}

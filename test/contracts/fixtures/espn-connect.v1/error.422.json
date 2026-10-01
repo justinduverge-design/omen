@@ -1,0 +1,9 @@
+{
+  "http_status": 422,
+  "route": "/api/platforms/espn/connect",
+  "body": {
+    "code": "espn_cookies_required",
+    "message": "ESPN_S2 and SWID are required.",
+    "status": "error"
+  }
+}

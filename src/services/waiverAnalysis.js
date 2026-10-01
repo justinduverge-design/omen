@@ -212,13 +212,30 @@ function playerView(player) {
  */
 function waiverSystemView(model) {
   if (!model) return null;
+  const faab = mayShowFaab(model);
+  const priority = mayShowPriority(model);
+  const total = faab ? model.budget_total : null;
+  const remaining = faab ? model.budget_remaining : null;
+  const position = priority ? model.priority_position : null;
+  const money = (n) => `$${Number.isInteger(n) ? n : Number(n.toFixed(2))}`;
   return {
     system: model.system,
     determined_from: model.determined_from,
-    budget_total: mayShowFaab(model) ? model.budget_total : null,
-    budget_remaining: mayShowFaab(model) ? model.budget_remaining : null,
-    priority_position: mayShowPriority(model) ? model.priority_position : null,
+    budget_total: total,
+    budget_remaining: remaining,
+    priority_position: position,
+    // Composed here because the client cannot know whether a zero balance means "spent" or "unread".
+    // Emitted only when every number it names is known: a FAAB line with an unread remaining balance
+    // is null, never "$0 of $100". Before these two fields existed the native League screen, which
+    // requires them to render a budget or claim order, showed every FAAB and priority league as
+    // "not determined" (found by the S0 contract probe, 2026-09-30).
+    budget_text: isFiniteNumber(total) && isFiniteNumber(remaining) ? `Your budget ${money(remaining)} of ${money(total)}` : null,
+    order_text: isFiniteNumber(position) ? `Claim order ${position}` : null,
   };
+}
+
+function isFiniteNumber(value) {
+  return typeof value === "number" && Number.isFinite(value);
 }
 
 function envelope({ platform, leagueId, week, season, scoringFormat, availability, deadline, state, waiverSystem = null, extra = {} }) {

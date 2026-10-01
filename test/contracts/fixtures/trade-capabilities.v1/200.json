@@ -1,0 +1,14 @@
+{
+  "http_status": 200,
+  "route": "/api/trade/capabilities",
+  "body": {
+    "comparison": "multi_sided",
+    "contract_version": "trade-capabilities.v1",
+    "max_teams": 3,
+    "submission": "handoff_only",
+    "three_team": {
+      "reason": null,
+      "supported": true
+    }
+  }
+}

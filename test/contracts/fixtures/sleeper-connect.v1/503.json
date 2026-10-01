@@ -1,0 +1,8 @@
+{
+  "http_status": 503,
+  "route": "/api/platforms/sleeper/connect",
+  "body": {
+    "code": "connection_replay_unavailable",
+    "error": "Connection request replay is temporarily unavailable"
+  }
+}

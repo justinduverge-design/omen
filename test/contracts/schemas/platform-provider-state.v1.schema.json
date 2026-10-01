@@ -1,0 +1,136 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "platform-provider-state.v1",
+  "title": "platform-provider-state.v1 (inferred from recorded server responses; review before relying on it)",
+  "description": "ADDITIVE ONLY within this version. Extra properties are allowed; removing, renaming or retyping anything listed here is a breaking change and fails the lock.",
+  "type": "object",
+  "properties": {
+    "contract_version": {
+      "type": "string"
+    },
+    "error_code": {
+      "type": "string"
+    },
+    "providers": {
+      "type": "object",
+      "properties": {
+        "espn": {
+          "type": "object",
+          "properties": {
+            "error_code": {
+              "description": "Observed only as null in recorded responses; the real type is not constrained."
+            },
+            "platform": {
+              "type": "string"
+            },
+            "recovery_action": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "state": {
+              "type": "string",
+              "enum": [
+                "not_started",
+                "needs_reauth",
+                "choosing_league",
+                "resolving_account",
+                "connected"
+              ]
+            }
+          },
+          "required": [
+            "error_code",
+            "platform",
+            "recovery_action",
+            "state"
+          ]
+        },
+        "sleeper": {
+          "type": "object",
+          "properties": {
+            "error_code": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "platform": {
+              "type": "string"
+            },
+            "recovery_action": {
+              "type": "string"
+            },
+            "state": {
+              "type": "string",
+              "enum": [
+                "not_started",
+                "needs_reauth",
+                "choosing_league",
+                "resolving_account",
+                "connected"
+              ]
+            }
+          },
+          "required": [
+            "error_code",
+            "platform",
+            "recovery_action",
+            "state"
+          ]
+        },
+        "yahoo": {
+          "type": "object",
+          "properties": {
+            "error_code": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "platform": {
+              "type": "string"
+            },
+            "recovery_action": {
+              "type": "string"
+            },
+            "state": {
+              "type": "string",
+              "enum": [
+                "not_started",
+                "needs_reauth",
+                "choosing_league",
+                "resolving_account",
+                "connected"
+              ]
+            }
+          },
+          "required": [
+            "error_code",
+            "platform",
+            "recovery_action",
+            "state"
+          ]
+        }
+      },
+      "required": [
+        "espn",
+        "sleeper",
+        "yahoo"
+      ]
+    },
+    "recovery_action": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "retryable_error"
+      ]
+    }
+  },
+  "required": [
+    "contract_version"
+  ]
+}

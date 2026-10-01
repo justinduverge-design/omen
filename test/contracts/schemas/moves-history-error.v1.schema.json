@@ -1,0 +1,31 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "moves-history-error.v1",
+  "title": "moves-history-error.v1 (inferred from recorded server responses; review before relying on it)",
+  "description": "ADDITIVE ONLY within this version. Extra properties are allowed; removing, renaming or retyping anything listed here is a breaking change and fails the lock.",
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string"
+    },
+    "code": {
+      "type": "string"
+    },
+    "contract_version": {
+      "type": "string"
+    },
+    "error": {
+      "type": "string"
+    },
+    "message": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "action",
+    "code",
+    "contract_version",
+    "error",
+    "message"
+  ]
+}

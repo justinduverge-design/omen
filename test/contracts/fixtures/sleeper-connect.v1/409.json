@@ -1,0 +1,8 @@
+{
+  "http_status": 409,
+  "route": "/api/platforms/sleeper/connect",
+  "body": {
+    "code": "connection_request_in_progress",
+    "error": "Connection request is already in progress"
+  }
+}

@@ -1,0 +1,119 @@
+{
+  "http_status": 200,
+  "route": "/api/trade/share/:hash",
+  "body": {
+    "contract_version": "trade-share.v1",
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "expires_at": "2026-01-01T00:00:00.000Z",
+    "hash": "00000000-0000-4000-8000-000000000000",
+    "is_public": true,
+    "result": {
+      "a_score": 2.5,
+      "b_score": 0,
+      "combined_score": 2.5,
+      "confidence": "medium",
+      "depth_discounted": false,
+      "generated_at": "2026-01-01T00:00:00.000Z",
+      "net_value": 2.5,
+      "receive": {
+        "missing_projection_count": 0,
+        "player_count": 1,
+        "players": [
+          {
+            "adjusted_projection": 14,
+            "confidence": "medium",
+            "name": "Starter WR",
+            "notes": [],
+            "player_key": null,
+            "position": "WR",
+            "projected_points": 14,
+            "replacement_level": 8,
+            "scarcity_bonus": 0.5,
+            "status": null,
+            "tier": "starter",
+            "value": 6
+          }
+        ],
+        "scarcity_details": [
+          {
+            "name": "Starter WR",
+            "position": "WR",
+            "tier": "starter",
+            "vorp": 6
+          }
+        ],
+        "total_value": 6
+      },
+      "scarcity_analysis": {
+        "receive": [
+          {
+            "name": "Starter WR",
+            "position": "WR",
+            "tier": "starter",
+            "vorp": 6
+          }
+        ],
+        "send": [
+          {
+            "name": "Bench RB",
+            "position": "RB",
+            "tier": "starter",
+            "vorp": 3.5
+          }
+        ],
+        "summary": "You are sending a starter-tier RB for a starter-tier WR."
+      },
+      "scoring_format": "ppr",
+      "send": {
+        "missing_projection_count": 0,
+        "player_count": 1,
+        "players": [
+          {
+            "adjusted_projection": 10,
+            "confidence": "medium",
+            "name": "Bench RB",
+            "notes": [],
+            "player_key": null,
+            "position": "RB",
+            "projected_points": 10,
+            "replacement_level": 6.5,
+            "scarcity_bonus": 0.5,
+            "status": null,
+            "tier": "starter",
+            "value": 3.5
+          }
+        ],
+        "scarcity_details": [
+          {
+            "name": "Bench RB",
+            "position": "RB",
+            "tier": "starter",
+            "vorp": 3.5
+          }
+        ],
+        "total_value": 3.5
+      },
+      "verdict": "accept"
+    },
+    "source": "trade_analyzer",
+    "trade": {
+      "receive": [
+        {
+          "name": "Starter WR",
+          "position": "WR",
+          "projected_points": 14,
+          "team": "DET"
+        }
+      ],
+      "scoring_format": "ppr",
+      "send": [
+        {
+          "name": "Bench RB",
+          "position": "RB",
+          "projected_points": 10,
+          "team": "SEA"
+        }
+      ]
+    }
+  }
+}

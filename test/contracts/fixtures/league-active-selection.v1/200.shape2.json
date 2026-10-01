@@ -1,0 +1,21 @@
+{
+  "http_status": 200,
+  "route": "/api/leagues/active",
+  "body": {
+    "active": {
+      "league_id": "L-zeta",
+      "platform": "sleeper",
+      "team_id": null
+    },
+    "contract_version": "league-active-selection.v1",
+    "generated_at": "2026-01-01T00:00:00.000Z",
+    "refresh": [
+      "command_center",
+      "omen",
+      "league",
+      "waiver_watch",
+      "ledger"
+    ],
+    "selection_persistence": "provider_binding_only"
+  }
+}

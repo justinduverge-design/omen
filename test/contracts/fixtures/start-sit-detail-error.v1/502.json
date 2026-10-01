@@ -1,0 +1,12 @@
+{
+  "http_status": 502,
+  "route": "/api/start-sit/detail",
+  "body": {
+    "action": "retry",
+    "code": "provider_unavailable",
+    "contract_version": "start-sit-detail-error.v1",
+    "error": "Start/Sit detail unavailable",
+    "message": "Omen could not reach this platform. Try again shortly.",
+    "platform": "sleeper"
+  }
+}

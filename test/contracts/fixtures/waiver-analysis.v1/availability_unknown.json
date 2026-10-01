@@ -1,0 +1,33 @@
+{
+  "http_status": 200,
+  "route": "/api/waivers/analysis",
+  "body": {
+    "alternatives": [],
+    "availability_state": "unconfirmed",
+    "best_move": null,
+    "contract_version": "waiver-analysis.v1",
+    "cost": null,
+    "deadline": null,
+    "evidence": [],
+    "generated_at": "2026-01-01T00:00:00.000Z",
+    "league_id": "449.l.1",
+    "limitations": [
+      "Yahoo's available-player response carries no weekly projection, so Omen cannot rank waiver adds for this league."
+    ],
+    "message": "Omen cannot confirm free-agent status in this league, and no available player clears your current lineup.",
+    "platform": "yahoo",
+    "scoring_format": null,
+    "season": 2026,
+    "state": "availability_unknown",
+    "waiver_system": {
+      "budget_remaining": null,
+      "budget_text": null,
+      "budget_total": null,
+      "determined_from": "not_determined",
+      "order_text": null,
+      "priority_position": null,
+      "system": "not_determined"
+    },
+    "week": 7
+  }
+}

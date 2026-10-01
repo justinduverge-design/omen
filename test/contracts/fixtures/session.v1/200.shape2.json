@@ -1,0 +1,12 @@
+{
+  "http_status": 200,
+  "route": "/api/session",
+  "body": {
+    "authenticated": true,
+    "contract_version": "session.v1",
+    "user": {
+      "email": "user@example.com",
+      "id": "user-123"
+    }
+  }
+}

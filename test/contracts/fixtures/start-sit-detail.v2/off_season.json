@@ -1,0 +1,108 @@
+{
+  "http_status": 200,
+  "route": "(built)",
+  "body": {
+    "alternatives": [],
+    "capabilities": [
+      {
+        "fresh_until": null,
+        "kind": "limitation",
+        "name": "roster",
+        "observed_at": null,
+        "source": "normalized_roster",
+        "state": "unavailable",
+        "statement": "Lineup decisions return with the regular season.",
+        "used": false
+      },
+      {
+        "fresh_until": null,
+        "kind": "verified",
+        "name": "league_scoring",
+        "observed_at": null,
+        "source": "league_settings",
+        "state": "live",
+        "statement": "This league awards 0.5 PPR.",
+        "used": false
+      },
+      {
+        "fresh_until": null,
+        "kind": "limitation",
+        "name": "player_projections",
+        "observed_at": null,
+        "source": "normalized_roster",
+        "state": "unavailable",
+        "statement": "Omen does not have a complete projection pair for this lineup comparison.",
+        "used": false
+      },
+      {
+        "fresh_until": null,
+        "kind": "limitation",
+        "name": "start_sit_inference",
+        "observed_at": null,
+        "source": "lineup_optimizer",
+        "state": "unavailable",
+        "statement": "Omen did not produce a lineup change for this request.",
+        "used": false
+      }
+    ],
+    "capability_contract": "decision-capabilities.v1",
+    "contract_version": "start-sit-detail.v2",
+    "decision_context": {
+      "contract_version": "shared-decision-context.v1",
+      "inputs": {
+        "league_scoring": {
+          "observed_at": "2026-01-01T00:00:00.000Z",
+          "source": "league_settings",
+          "state": "live",
+          "used": false
+        },
+        "projections": {
+          "reason_code": "input_unavailable",
+          "source": "normalized_roster",
+          "state": "unavailable",
+          "used": false
+        },
+        "roster": {
+          "reason_code": "input_unavailable",
+          "source": "normalized_roster",
+          "state": "unavailable",
+          "used": false
+        },
+        "selected_context": {
+          "observed_at": "2026-01-01T00:00:00.000Z",
+          "source": "selected_platform_connection",
+          "state": "live",
+          "used": false
+        }
+      },
+      "inputs_used": [],
+      "limitations": [
+        {
+          "name": "projections",
+          "reason_code": "input_unavailable",
+          "state": "unavailable"
+        },
+        {
+          "name": "roster",
+          "reason_code": "input_unavailable",
+          "state": "unavailable"
+        }
+      ],
+      "profile": "start_sit"
+    },
+    "evidence": [],
+    "generated_at": "2026-01-01T00:00:00.000Z",
+    "league_id": "L1",
+    "league_name": "Dynasty Dogs",
+    "message": "Lineup decisions return with the regular season.",
+    "platform": "sleeper",
+    "recommendation": null,
+    "scoring_format": "0.5 PPR",
+    "season": 2026,
+    "state": "off_season",
+    "team_name": "Justin Titans",
+    "week": 7,
+    "what_could_change_this": [],
+    "why": []
+  }
+}

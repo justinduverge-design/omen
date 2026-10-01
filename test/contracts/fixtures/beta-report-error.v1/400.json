@@ -1,0 +1,9 @@
+{
+  "http_status": 400,
+  "route": "/",
+  "body": {
+    "contract_version": "beta-report-error.v1",
+    "error": "invalid_report",
+    "message": "Check the report fields. Attachments and automatic league data are not accepted."
+  }
+}

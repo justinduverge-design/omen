@@ -197,3 +197,26 @@ test("fixtures contain no volatile values", () => {
     assert.equal(body.generated_at, "2026-01-01T00:00:00.000Z");
   }
 });
+
+test("mergeLock records what a compatible update ADDS: new enum values and newly required paths", () => {
+  const baseline = {
+    state: { type: "string", required: true, values: ['"a"', '"b"'] },
+    optional: { type: "string", required: false },
+    untouched: { type: "number", required: true },
+  };
+  const current = {
+    state: { type: "string", required: true, values: ['"a"', '"b"', '"c"'] },
+    optional: { type: "string", required: true },
+    untouched: { type: "number", required: true },
+    brandNew: { type: "string", required: false },
+  };
+  assert.deepEqual(contracts.compareToLock(baseline, current), [], "the update is compatible");
+  const merged = contracts.mergeLock(baseline, current);
+  assert.deepEqual(merged.state.values, ['"a"', '"b"', '"c"'], "the new enum value must become protected");
+  assert.equal(merged.optional.required, true, "a path that became required must stay required");
+  assert.ok(merged.brandNew);
+  assert.equal(merged.untouched.type, "number");
+  // The proof that it matters: removing the new value later is now caught.
+  const later = { ...current, state: { type: "string", required: true, values: ['"a"', '"b"'] } };
+  assert.ok(contracts.compareToLock(merged, later).some((b) => b.startsWith("value removed: state")));
+});

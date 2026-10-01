@@ -1,0 +1,12 @@
+{
+  "http_status": 400,
+  "route": "/api/leagues/follows",
+  "body": {
+    "action": "retry",
+    "code": "league_not_in_account",
+    "contract_version": "league-directory-error.v1",
+    "error": "League directory unavailable",
+    "message": "One of those leagues isn't on your connected account. Nothing was changed.",
+    "platform": "sleeper"
+  }
+}

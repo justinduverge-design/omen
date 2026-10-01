@@ -1,0 +1,43 @@
+{
+  "http_status": 200,
+  "route": "/api/leagues/",
+  "body": {
+    "active": {
+      "league_id": "449.l.1",
+      "league_name": null,
+      "platform": "yahoo",
+      "scoring_format": null,
+      "season": null,
+      "team_id": null,
+      "team_name": null
+    },
+    "contract_version": "league-directory.v1",
+    "follow_persistence": "unavailable",
+    "generated_at": "2026-01-01T00:00:00.000Z",
+    "platforms": [
+      {
+        "connection_state": "not_connected",
+        "discovery": "unavailable",
+        "leagues": [],
+        "notice": null,
+        "platform": "espn"
+      },
+      {
+        "connection_state": "not_connected",
+        "discovery": "unavailable",
+        "leagues": [],
+        "notice": null,
+        "platform": "sleeper"
+      },
+      {
+        "connection_state": "connected",
+        "discovery": "unavailable",
+        "leagues": [],
+        "notice": "Yahoo needs to be reconnected before its leagues can be listed.",
+        "platform": "yahoo"
+      }
+    ],
+    "season": 2026,
+    "selection_persistence": "explicit"
+  }
+}
