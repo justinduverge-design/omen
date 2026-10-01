@@ -9,9 +9,9 @@ Guards the public API shapes the native screens depend on, so a server or client
 | Lock | `lock/<contract>.lock.json` | Every path in the schema with its type, whether it is required, and its allowed values. |
 | Tests | `test/contractSchemas.test.js` (server); `OmenDecisionViewModelTests` in `OmenDecisionTests.swift` (iOS) | Server: fixtures validate, the schema rejects breaking mutations, the lock is intact, fixtures are current. iOS: the SAME fixture files decode and map to the right screen state. |
 
-## What is protected (30 contracts)
+## What is protected (31 contracts, 127 fixtures)
 
-`omen-decision-brief.v3` (built from the mock builder; `scripts/contracts.js`) and 29 more listed in `registry.json`: the dashboard, league overview/directory/selection, moves history and receipt, platform provider state, quiet week, session, start/sit detail v1 and v2, trade compare/roster/share/capabilities, waiver analysis, account export/delete, beta report, the min-version gate, the ESPN and Sleeper connect routes, and the degraded-state (`*-error.v1`) contracts the screens render. Each has a schema, fixtures, and a lock.
+`omen-decision-brief.v3` (built from the mock builder; `scripts/contracts.js`) and 30 more listed in `registry.json`: the dashboard, league overview/directory/selection, moves history and receipt, platform provider state, quiet week, session, start/sit detail v1 and v2, trade compare/roster/share/capabilities, waiver analysis, account export/delete, beta report, the min-version gate, the ESPN and Sleeper connect routes, and the degraded-state (`*-error.v1`) contracts the screens render. Each has a schema, fixtures, and a lock.
 
 **Where fixtures come from.** Not hand-written. `scripts/contract-recorder.js` is preloaded into the ordinary test run and records every JSON response the real routes send (real handlers, the tests' own stubs). `scripts/contract-synthetic.js` adds bodies built directly by the pure production builders (quiet week, start/sit, waiver) for states no route test reaches. Up to 12 structurally different examples per state are kept, so nullable and optional fields show up in the record. Schemas were inferred from the fixtures, reviewed, and their `state`/`status` enums completed from the server's own constants (`schema-overrides.json`).
 

@@ -57,10 +57,11 @@ jobs:
           CONTRACT_RECORD_DIR: ${{ runner.temp }}/contract-record
           NODE_OPTIONS: --require ${{ github.workspace }}/scripts/contract-recorder.js
 
-      # Non-blocking for now: fixtures are recorded and normalized on a Mac; this confirms they are
-      # byte-identical on the CI runner. Flip continue-on-error off after it has been green a few runs.
+      # Blocking. Without it a server change that drops or reshapes a public field passes the ordinary
+      # suite (the fixtures still validate); only a fresh recording notices. Verified by mutation on
+      # 2026-09-30: removing trade-capabilities `submission` passed `npm test` and failed this step.
+      # Fixtures recorded on a Mac were byte-identical on the CI runner (first run, PR #497).
       - name: Contract fixtures are current
-        continue-on-error: true
         run: node scripts/contract-recorded.js compare "${{ runner.temp }}/contract-record"
 
       # Same threshold as deploy.yml's quality job, so a PR cannot pass here

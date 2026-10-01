@@ -64,8 +64,16 @@ jobs:
       - name: Install backend dependencies
         run: npm ci
 
+      # Same recorder + drift check as pr-quality.yml, so a push straight to main cannot ship a public
+      # API change that no one re-recorded and reviewed.
       - name: Run backend tests
         run: npm test
+        env:
+          CONTRACT_RECORD_DIR: ${{ runner.temp }}/contract-record
+          NODE_OPTIONS: --require ${{ github.workspace }}/scripts/contract-recorder.js
+
+      - name: Contract fixtures are current
+        run: node scripts/contract-recorded.js compare "${{ runner.temp }}/contract-record"
 
       - name: Run dependency audit
         run: npm audit --audit-level=moderate --omit=dev
