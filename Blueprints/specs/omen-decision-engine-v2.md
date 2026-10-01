@@ -9,6 +9,14 @@ Today the pick is `evaluateLineup()`: it compares the provider's projected point
 
 A recommendation that reads as analysis but is produced by comparing two provider numbers is not what Omen is for.
 
+## First experiment, 2026-09-30 — read before building anything in this spec
+
+`Direction/2026-09-30-first-factor-experiment.md`. On 8 seasons of real data, adding game lines, rest, primetime, weather, roof, opponent strength and recent form to Sleeper's projection moved the close-call hit rate from 54.0% to 54.2% (change +0.16 points, 95% interval -0.16 to +0.50). **The factor-adjusted expected-points model this spec describes is unproven.** Consequences:
+
+1. **Do not build the full data layer or factor library on faith.** Factors are admitted only after they pass this test; none has yet. S2 and S4 narrow to whatever a passing factor needs.
+2. **The untested families are where the spec should look next:** availability and usage leading indicators (injury report, practice participation, depth chart, snap and target share), win-probability lineup choices (ceiling versus floor given the opponent's projected score), and season-long waiver and trade value (rest of schedule, byes, roster construction, league scoring).
+3. **Honest uncertainty is already a feature.** Within one point of projection the projection is right 52% of the time; Omen saying "coin flip" there is correct and rare among competitors.
+
 ## Principle
 
 **Every factor that appears in the explanation must have moved the number.** The explanation is generated from the factors' recorded contributions. Nothing is narrated that did not contribute, and nothing contributes without a recorded, tested magnitude.
