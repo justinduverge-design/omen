@@ -96,3 +96,36 @@ The quarterback result is the cleaner one (a single feature, implied team total,
 **What this does and does not rule out.** Combining families and letting trees find interactions does not produce an effect distinguishable from zero, and the best point estimates (+0.26, +0.31) are below the +0.5 bar. It does **not** rule out a true effect of roughly +0.3: the intervals are about 0.9 points wide, so an effect that small cannot be detected with 19,103 player-weeks. A +0.3-point gain would change roughly one close call in 330, which is not a product.
 
 Still untested: depth charts, trades, win-probability lineup choices, news speed, and anything needing a mid-week baseline.
+
+---
+
+# Round 3 and round 4: scheme, coverage and route matchups, then "everything" (founder's challenges, same day)
+
+**Round 3 (`PREREGISTRATION_3.md`).** Scheme, pass-rush, depth-of-target, coverage (man/zone, Cover 1/2/3/4/6), blitz and player-profile features from play-by-play and participation data, as trees and as explicit offense-by-defense products. Clean re-run: trees -0.15 [-0.48, +0.21], 1 of 5 seasons positive; products 0.00 [-0.25, +0.23]; opponent-scheme-only trees -0.25 (they made calls worse). The route-by-coverage matrix test (M7) was pre-registered but **not run**: the founder redirected before it executed.
+
+**Round 4 (`PREREGISTRATION_4.md`, with a stopping rule agreed in advance).** Every nflverse dataset not yet used (PFR advanced stats, Next Gen Stats, FTN charting, referee crews, draft capital, age, combine athleticism) plus everything from earlier rounds: 122 features in 23 groups. Two models: trees on everything (rounds chosen on the last training season) and a nested forward selection of groups.
+
+## My own error, and how it was caught
+
+The first round-4 run **passed** the pre-set rule: trees +5.61 points, 99% CI [+4.18, +7.04]. It should not have been believed, and was not, for three reasons visible in the output: the gain was +9 to +10 points in 2021, 2022 and 2023 and about zero in 2024 and 2025; a single group (Next Gen Stats receiver separation) carried almost all the model's reliance; and a gain that large on close calls is not plausible.
+
+The cause: player-level trailing features (Next Gen Stats, PFR and my own play-by-play profiles) were merged on `(player, season, week)`. A value therefore existed only where the player had a source row for the *current* week, so "this feature is present" meant "he had qualifying targets in this very game", which is the answer, leaking through missingness. The week alignment itself was verified correct (NGS targets match nflverse's weekly targets exactly at the same week). The fix attaches each player's most recent earlier row with an as-of join. The round-3 player features had the same flaw and were rebuilt and re-run.
+
+| Model, clean data | Hit rate (baseline 54.04%) | Change | 99% CI | Seasons + | Result |
+|---|---|---|---|---|---|
+| K1 trees on all 122 features | 54.08% | +0.04 | [-0.15, +0.23] | 3/5 | no |
+| K2 nested forward selection of groups | 53.90% | -0.14 | [-0.65, +0.34] | 3/5 | no |
+
+Feature reliance is now thin and spread (usage trends, offense scheme, defense scheme, availability, lines), none dominant. The groups K2 selects change every year.
+
+## Where the search ends
+
+**Stopping rule triggered.** Four rounds, every family, every combination, and every unused nflverse dataset have been tested out of sample on 8 seasons against a provider projection. None improves close start/sit calls by a margin that is distinguishable from zero, let alone worth shipping. **The search for a projection-beating edge in nflverse data stops here.** Further work needs a new, specific hypothesis and a new pre-registration, and cannot rely on the same public data.
+
+What was never tested, and cannot be with this data: player tracking data teams use (not in nflverse), a mid-week baseline (the comparison projection looks like a kickoff-time snapshot), news speed, trades, and win-probability lineup choices.
+
+## What Omen can do with the evidence
+
+1. **Explain the projection.** Sleeper's projection includes the full stat line. Josh Allen, week 4 of 2026 at New England: 23.12 points from about 30 pass attempts (19 completions, 227 yards, 1.2 touchdowns, 0.46 interceptions, 2.6 sacks) and 8 rushes for 40 yards and 0.96 rushing touchdowns. That breaks into points by source under the league's own scoring and shows where the number is fragile (nearly a quarter of it is expected rushing touchdowns, which are volatile). A reader can see why a player is projected where he is.
+2. **Say how much a call matters.** Right 52% of the time within one point of projection and 82% at eight or more.
+3. **One place for ESPN, Yahoo and Sleeper**, and workflow where projections do not decide.
