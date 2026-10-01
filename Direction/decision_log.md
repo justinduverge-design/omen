@@ -4028,3 +4028,20 @@ on the second one.
   scoring is held off); `src/routes/userPrivacy.js:128` exports `moves` columns `feature` and
   `updated_at`, absent from production per the reported column list. `scripts/check-a4-scoring-gates.js`
   shares the message format only: every column it selects exists in production.
+
+## 2026-10-01 — "Where the points come from" block: design approved by the founder; build deferred
+
+- **Decision:** the founder approved the block as drawn in
+  `design/native-visual-lock-2026-09-13/proposals/WhereThePointsComeFrom.proposal.html` (v3): one bar
+  per source; solid gold before the game, a gold tick at the projection once play starts with
+  Verdigris green filling from the left, green past the tick when he beats it, hatched crimson only
+  for the part not reached once the game is final; the unfilled part stays neutral while the game can
+  still change it. Percent beside each number is that source's share of points earned (adds to 100);
+  fumbles/interceptions are listed as "taken away". A matchup note sits under the bars labelled
+  "Observed context · not part of the projection".
+- **Build:** not started. It lands on the Evidence screen, whose contract
+  (`Blueprints/specs/mobile/screens/omencall-evidence-contract-v1.md`) is still REVIEW_ONLY, so the
+  block waits on that contract being ratified and on the server's additive `projection_breakdown`
+  field (`Blueprints/specs/omen-projection-explainer-v1.md`).
+- **Open design items:** crimson `#7E1717` is 1.39:1 on the card (invisible), so the proposal uses a
+  lighter `#B23A3A` hatch — needs a token decision; first use of Verdigris in the app.
