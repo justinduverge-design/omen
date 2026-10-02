@@ -156,3 +156,24 @@ final class OmenApiClientTests: XCTestCase {
         XCTAssertEqual(components.queryItems?.first(where: { $0.name == "leagueId" })?.value, "470.l.1358570")
     }
 }
+
+final class OmenDecodeDiagnosticsTests: XCTestCase {
+    private struct Inner: Decodable { let player: String }
+    private struct Outer: Decodable { let recommendation: Inner }
+
+    func testMissingKeyNamesThePathAndNeverAValue() {
+        let json = Data(#"{"recommendation":{"secret":"do-not-print"}}"#.utf8)
+        do { _ = try JSONDecoder().decode(Outer.self, from: json); XCTFail("should not decode") }
+        catch {
+            let text = OmenDecodeDiagnostics.describe(error)
+            XCTAssertEqual(text, "missing recommendation.player")
+            XCTAssertFalse(text.contains("do-not-print"))
+        }
+    }
+
+    func testWrongTypeNamesThePath() {
+        let json = Data(#"{"recommendation":{"player":5}}"#.utf8)
+        do { _ = try JSONDecoder().decode(Outer.self, from: json); XCTFail("should not decode") }
+        catch { XCTAssertTrue(OmenDecodeDiagnostics.describe(error).hasPrefix("wrong type at recommendation.player")) }
+    }
+}

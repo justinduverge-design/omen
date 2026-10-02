@@ -114,7 +114,9 @@ final class OmenDecisionViewModel: ObservableObject {
             // act on, and `OmenApiError` carries it for logs rather than for display.
             return "Omen is having trouble on our side. Try again in a moment."
         case .decode:
-            return "Omen sent something this version of the app couldn't read. Updating the app may fix it."
+            let base = "Omen sent something this version of the app couldn't read. Updating the app may fix it."
+            guard let detail = OmenDecodeDiagnostics.lastFailure else { return base }
+            return "\(base) (Detail: \(detail))"
         }
     }
 }
