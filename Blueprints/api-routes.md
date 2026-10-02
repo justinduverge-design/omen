@@ -320,6 +320,28 @@ shipped middleware instances until they 429, and proves reset.
 
 Once applied, `selection_persistence` reports `explicit` with no code change — the routes detect the column at runtime and fall back rather than failing.
 
+## Short response cache — additive, 2026-10-02
+
+Five slow per-request routes keep their finished answer for about a minute so a second open of the same screen does not re-pull ESPN, Yahoo or Sleeper. No body, schema, SQL or contract changes; the only visible difference is a response header.
+
+| Route | Env override (seconds, default 60, `0` = off for that route) | Key inputs beyond user id |
+| --- | --- | --- |
+| `POST /api/omen/mvp-move` (live only) | `OMEN_CACHE_TTL_MVP_MOVE` | the whole request body (`context_id`, `contract_version`, `include_signals`, ...) |
+| `GET /api/waivers/analysis` | `OMEN_CACHE_TTL_WAIVER_ANALYSIS` | resolved platform, league id, ESPN team id, selected flag, week, season, `contract_version` |
+| `GET /api/leagues` | `OMEN_CACHE_TTL_LEAGUES_DIRECTORY` | season; every connection row's platform, league id, team id, selected flag, `updated_at` |
+| `GET /api/dashboard/quiet-week` | `OMEN_CACHE_TTL_QUIET_WEEK` | `context_id` |
+| `GET /api/league/overview` | `OMEN_CACHE_TTL_LEAGUE_OVERVIEW` | `platform`, `leagueId`, week, season; every connection row's platform, league id, team id, selected flag |
+
+- **Store.** Redis only, the same Upstash client and `REDIS_URL`/`REDIS_TOKEN` as `tradeFindCacheStore`. No Redis, `OMEN_RESPONSE_CACHE=off`, a store error, or a store that takes over 400 ms all mean "miss": the route runs exactly as before and sends no header. The cache can never fail a request. TTLs are clamped to 600 s.
+- **Key.** `omen:rc:v1:{userId}:{epoch}:{route}:{sha256(inputs)}`. The user id is always in the key, so one user's answer cannot be read by another; the inputs above separate leagues, weeks and contexts for the same user.
+- **Invalidation.** A per-user epoch (`omen:rc:epoch:{userId}`) is part of every key. Bumping it orphans all of that user's entries at once, with no key scan. It is bumped before and again just before the response is released by: `POST /api/leagues/active`, `POST /api/leagues/follows`, `POST /api/platforms/sleeper/connect`, `POST /api/platforms/espn/connect`, `DELETE /api/platforms/:platform`, `POST /api/yahoo/league`, the Yahoo OAuth callback (after tokens persist) and `DELETE /api/user/delete`. A request already in flight when the epoch moves writes to the dead epoch and cannot repopulate.
+- **Never cached.** Any non-2xx; any state the user must act on (`espn_reauth_required`, `yahoo_reauth_required`, `platform_disconnected`, `context_unavailable`, `*_league_context_missing`, `espn_import_blocked`, `espn_recovery_needed`, `pending_live_engine`, `error`, off-season) or any body with a recovery block or `error`; a waiver answer other than `confirmed_opportunity` / `no_low_cost_drop` / `no_credible_move`; a directory with a connection that needs reconnecting; explicit mock `mvp-move` requests; auth failures. **Degraded** answers (the roster signal not live, a fallback provider answered, an overview section `unavailable`, a connected directory group whose discovery failed) are kept for at most 5 s.
+- **Header.** `X-Omen-Cache: hit` or `miss` on every response from these routes that consulted the cache (absent when the cache is off or the response was rejected before the lookup). Use it to measure latency.
+- **Known bound.** A selection or connection change made outside these routes (for example directly in the database) is picked up immediately where the key reads the rows (directory, overview, waivers) and within the TTL for `mvp-move` and `quiet-week`.
+- **Ledger.** A `mvp-move` cache hit does not re-run the ledger upsert; the miss that produced the answer already stored it.
+
+Code: `src/services/responseCache.js`. Tests: `test/responseCache.test.js`, plus cache cases in `test/omenMvpLiveRoute.test.js` and `test/leaguesDirectoryRoute.test.js`.
+
 ## Retired Compatibility Routes
 
 These routes intentionally return `410 legacy_route_retired` with canonical hints where a replacement exists.

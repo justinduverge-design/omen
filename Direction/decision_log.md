@@ -15,6 +15,31 @@
 - **Process note:** the founder's merge of the stacked PRs landed #505 and #506 in their parent branches,
   not `main`; #508 carried them to `main`. Stacked PRs should be retargeted to `main` before merging.
 
+## 2026-10-02 — a 60-second per-user response cache on the five slow routes
+
+- **Why.** Measured on the founder's iPhone 2026-10-01, each request recomputed from the providers:
+  `POST /api/omen/mvp-move` 1.6-3.4 s, `GET /api/waivers/analysis` 0.9-3.8 s, `GET /api/leagues`
+  0.9-3.0 s, `GET /api/dashboard/quiet-week` 0.5-2.4 s, `GET /api/league/overview` about 0.7 s. The
+  founder approved a short cache of about 60-90 seconds.
+- **Decision.** Cache the finished status and body in Redis for 60 s per route (env-overridable,
+  clamped to 600 s). No database, SQL, contract, schema or fixture change; the only visible change is
+  `X-Omen-Cache: hit|miss`. Full description in `Blueprints/api-routes.md`, "Short response cache".
+- **Isolation.** Every key holds the user id and a per-user epoch; the route adds platform, league,
+  team, week, context id and contract where it knows them. Where the route already reads the user's
+  connection rows (directory, overview, waivers) those rows are part of the key, so a changed
+  selection changes the key by itself.
+- **Invalidation by epoch, not by scan.** League selection, follows, platform connect/disconnect and
+  Yahoo league/callback and account deletion bump the epoch before and again before the response is
+  released. A request already in flight writes to the dead epoch.
+- **Safety rules.** Never cache non-2xx, reauth/recovery/disconnected states, an error body, mock
+  requests or auth failures. Degraded answers live 5 s at most.
+- **Rejected: caching without Redis.** An in-process cache would be per replica and would outlive
+  invalidations on other replicas. Without Redis the routes run as before.
+- **Rejected: a connection-row read just to build the key for `mvp-move` and `quiet-week`.** It adds a
+  query and would break the narrow test doubles for no gain over the epoch. Stated bound: an
+  out-of-band selection change reaches those two routes within the TTL.
+- **Trade-off accepted.** A `mvp-move` hit skips the ledger upsert; the miss already stored it.
+
 ## 2026-10-02 — the redo is verified on real Supabase and on production's real data
 
 - **Real Supabase (V1).** Founder-approved: the throwaway project was woken, all nine steps were

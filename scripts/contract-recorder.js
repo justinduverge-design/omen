@@ -31,6 +31,10 @@ if (dir) {
         const body = JSON.parse(text);
         if (body && typeof body === "object") {
           const req = this.req || {};
+          // A test whose stubbed bodies exist to exercise something other than the
+          // contract (the response cache's isolation cases) opts out with this
+          // request header, so it cannot add examples to the fixtures.
+          if (req.headers && req.headers["x-contract-record"] === "skip") return originalEnd.call(this, chunk, ...rest);
           records.push({
             method: req.method || null,
             route: (req.baseUrl || "") + ((req.route && req.route.path) || ""),

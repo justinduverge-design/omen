@@ -9,6 +9,7 @@
 
 const express = require("express");
 const { createClient } = require("@supabase/supabase-js");
+const responseCache = require("../services/responseCache");
 const { Redis } = require("@upstash/redis");
 const config = require("../config");
 const { logger } = require("../middleware/logging");
@@ -464,7 +465,7 @@ router.post("/sleeper/resolve", requireAuth, async (req, res, next) => {
   }
 });
 
-router.post("/sleeper/connect", requireAuth, async (req, res, next) => {
+router.post("/sleeper/connect", requireAuth, responseCache.invalidateUserCacheOnWrite, async (req, res, next) => {
   const requestId = req.body?.request_id == null ? null : String(req.body.request_id).trim();
   let replay = null;
   let connectionSaved = false;
@@ -614,7 +615,7 @@ router.post("/espn/leagues", requireAuth, (req, res, next) => {
   }
 });
 
-router.post("/espn/connect", requireAuth, (req, res, next) => {
+router.post("/espn/connect", requireAuth, responseCache.invalidateUserCacheOnWrite, (req, res, next) => {
   res.locals.__skipBodyLog = true;
   return next();
 }, async (req, res, next) => {
@@ -695,7 +696,7 @@ router.post("/espn/connect", requireAuth, (req, res, next) => {
   }
 });
 
-router.delete("/:platform", requireAuth, async (req, res, next) => {
+router.delete("/:platform", requireAuth, responseCache.invalidateUserCacheOnWrite, async (req, res, next) => {
   try {
     const platform = String(req.params.platform || "").toLowerCase();
     if (!VALID_PLATFORMS.has(platform)) {
