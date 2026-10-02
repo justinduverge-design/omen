@@ -1,5 +1,27 @@
 # Omen Decision Log
 
+## 2026-10-02 (night) — scoring rules kept and compartmented; ESPN/Yahoo trade finder gets fixed; web stays; next session preps production
+
+- **League scoring rules (founder):** keep storing each league's scoring rules, for all three providers.
+  - **Record why we use them**, not a rights argument. We use them to:
+    - grade every call against the league's own scoring, not a PPR default (A6 exact reconciliation);
+    - give advice in the format the league actually plays.
+  - **Store them in a compartment**, the way ESPN projections are stored: their own table, a recorded
+    ingest, and one recorded purge that deletes them. Deleting the compartment must leave everything
+    else working. Calls keep the rules' version and hash, never a foreign key to the rule body.
+  - Today the bodies sit in `moves.scoring_contract`, and the new Ledger has no column for them. The
+    prep session designs the compartment as a redo step.
+  - Plan B8 in `Direction/reviews/2026-10-02-codex-action-plans.md` is closed by this decision.
+- **Trade finder for ESPN and Yahoo (founder): fix it.** It returns nothing for those leagues today
+  (Codex #474; plan D1).
+- **Web app (founder): it stays.** No web work now. When native is done, web takes the lessons
+  learned on the same backend, so it becomes front-end work. Plan H's comments wait for that, not for
+  retirement.
+- **Next session (founder): prepare production, don't run it.** "We're going to take one day to prep
+  it, make sure everything is where we need it to go so that when we do it, we can really do it well."
+  Brief: `Blueprints/handoffs/2026-10-02-prep-for-production-brief.md`, pinned in
+  `Direction/agent_inbox.md`.
+
 ## 2026-10-02 (evening) — account erasure waits for a reconnect in flight; redo re-verified
 
 - **Codex's review of #511 was missed before merge.** It found a real race: `account_erase()` did not wait

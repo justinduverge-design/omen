@@ -571,6 +571,7 @@ number of pointed contract changes plus a governance amendment — not a build-o
 - **Codex review 2026-10-02:** 4 P1 and 4 P2 findings on #503/#505/#506; all addressed in the follow-up PR (see `Blueprints/handoffs/2026-10-01-database-redo.md`, "Codex review").
 - **Codex review of #511 (2026-10-02):** 1 P1 (account erase vs. reconnect race) and 1 P2 (the race check swallowed a failure), both fixed in the follow-up PR. V1b and V2b re-ran all ten steps on real Supabase and on a restored copy of production: all pass (handoff, verification table).
 - **Blocked by:** AGENT_RESOLVABLE — Codex reviews the follow-up PR.
+- **Next (founder, 2026-10-02):** a prep-for-production session, pinned in `Direction/agent_inbox.md`; brief `Blueprints/handoffs/2026-10-02-prep-for-production-brief.md`. It adds plan A1–A4 and a scoring-rules compartment step (founder: keep the rules, record why they are used, make them deletable).
 - **Blocked by:** FOUNDER_APPROVAL — a production order per step, after review.
 - **Priority:** P0 — gates D3, D4 and the first production order for the shadow log.
 - **Cost:** medium
@@ -578,6 +579,17 @@ number of pointed contract changes plus a governance amendment — not a build-o
 - **Scope (rewritten 2026-10-02):** the reviewed steps in `sql/2026-10-01-redo/` (01-10), designed in `Blueprints/rebuild/omen-database-redo-v1.md`. No node-pg-migrate and no `migrations/` directory: that framework is retired (`Archive/superseded-db-2026-10-01/`). Changes are proven with `scripts/db/rehearse-redo.sh` and CI job `redo-rehearsal` on Postgres 17.
 - **Done when:** every step passes the rehearsal (scratch, real Supabase, restored production copy); Codex's findings are resolved; each production step is applied through its own founder-approved order with its verification recorded. **Production is a separate founder-approved bounded order per step.**
 - **Do not touch:** production without an approved order; secrets; the retired WO-06 file (archived, never to be applied).
+
+### D7-TradeFinderEspnYahoo — The trade finder works for ESPN and Yahoo leagues
+
+- **Status:** READY
+- **Owner lane:** backend, any session that can run the server tests; Codex reviews.
+- **Blocked by:** None.
+- **Priority:** P1
+- **Source:** founder, 2026-10-02 ("that needs to be fixed"). Codex #474: the ESPN and Yahoo adapters return `roster_positions: []` (`src/adapters/espn.js`, `src/adapters/yahoo.js`), so every optimal lineup totals zero and no trade is ever found. Plan D1 in `Direction/reviews/2026-10-02-codex-action-plans.md`; D2–D6 there are the related trade defects.
+- **Scope:** read each league's starting-slot configuration from ESPN and Yahoo; apply the value guard the weekly path already uses (D2); treat a `null` projection as missing, not 0 (D3).
+- **Done when:** a real ESPN league and a real Yahoo league each return at least one candidate, or an honest "none found" with the reason, in a test that uses recorded provider payloads; Codex's review is read and answered.
+- **Do not touch:** mobile code; the database.
 
 ### D6-AccountLinking — One Omen account per person across Apple, Google, Discord and email
 

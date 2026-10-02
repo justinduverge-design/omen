@@ -7,7 +7,24 @@
 **Previously refreshed:** 2026-08-16 — sprint-queue reconciliation. 23 completed items moved to `Direction/sprints_completed.md`, the Done ledger caught up, and the selection re-derived from what was open.
 **Authority:** `Direction/current_sprint.md` is the active queue. `Direction/status-model.md` defines states, `Claim:`/`Evidence:` requirements, blocker grammar, and the selection rule. This file selects or recommends the next pull.
 
-## 📌 Next pull — 2026-08-31: Beta Rework Wave 1
+## 📌 Next pull — 2026-10-02: prepare production for the database redo (do not run it)
+
+**Founder, 2026-10-02:** the next session prepares production rather than running it. "We're going to
+take one day to prep it, make sure everything is where we need it to go so that when we do it, we can
+really do it well."
+
+**Brief:** `Blueprints/handoffs/2026-10-02-prep-for-production-brief.md`, a seven-part prep list:
+1. merge state;
+2. the code the steps need (A1–A4, plus the scoring-rules compartment);
+3. a compatibility check per step;
+4. backup and restore;
+5. the production runbook;
+6. a full dry run on a restored copy;
+7. a go/no-go sheet.
+
+**Lane:** database: a Claude or Codex session only. Nothing is applied to production in this session.
+
+## Earlier pin — 2026-08-31: Beta Rework Wave 1 (superseded by the 2026-10-02 pin above)
 
 **Refreshed by Claude after the app-wide page workshop.** Product direction for every native screen
 now lives in `Blueprints/specs/mobile/omen-app-pages-workshop-v1.md`; Wave 1 is contracted in

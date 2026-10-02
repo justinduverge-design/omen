@@ -58,9 +58,9 @@ B1 (the trade cache) and the C bug (accolade update commented out) are already b
 | B5 | Ownership is trusted, not checked | Codex #371, #56 ×2: `findUserTeam` (`espn.js:188`) takes a requested ESPN team id if it exists in the league; Sleeper connect never checks league membership; draft picks are fetched before the access check (`sleeper.js:144`) | Check the ESPN team against the SWID owner. Check Sleeper membership at connect. Check access before fetching picks | Medium |
 | B6 | An operator script reads **every** user's ESPN cookies | Codex #418. `scripts/espn-projection-live-proof.js:46` | Require an explicit user id; refuse without one | Medium. Do not run it until fixed |
 | B7 | `/API/...` (capital letters) skips the general rate limit | Codex #77. `src/server.js:93` | Case-insensitive check, or mount the limiter on `/api` | Low |
-| B8 | Sleeper scoring rules are being retained while the rights question was recorded as open | Codex #380. `scoringSnapshotResolver.js:61` `sleeper: true` | **Founder decision**: record the rights basis, or turn retention off | Decision needed |
+| B8 | Sleeper scoring rules are being retained while the rights question was recorded as open | Codex #380. `scoringSnapshotResolver.js:61` `sleeper: true` | **Decided 2026-10-02:** keep them for all providers, record *why we use them*, and move them into a deletable compartment (prep session designs it) | Decided |
 
-Sequence: B2, B3, B6 first (small and contained), then B5, then B4 and B7. B8 is a founder decision.
+Sequence: B2, B3, B6 first (small and contained), then B5, then B4 and B7. B8 is decided (compartment).
 
 ## C. League Office worker (backend session; Slops Saloon bulletin)
 
@@ -89,7 +89,7 @@ Fix: an atomic claim (one `UPDATE … WHERE status='queued' RETURNING`), plus a 
 | D6 | A position with nobody on the roster isn't treated as a need; IR/taxi players can't be traded in; Yahoo reads every roster before the cap | Codex #474, #364, #259 | Open (P2) |
 | D7 | The lineup search blocks the server for up to 2 seconds per call | Codex #259, #404. A time budget exists; the work still runs on the main thread | **Unclear**: measure at production traffic before choosing a worker thread |
 
-D1 decides whether the trade finder works at all for two of three providers. Either fix it, or have the app say "not available for ESPN/Yahoo yet" until it is fixed. Founder decision.
+D1 decides whether the trade finder works at all for two of three providers. **Decided 2026-10-02: fix it.**
 
 ## E. Before Tuesday scoring returns (folds into the redo's scoring ticket)
 
@@ -136,8 +136,8 @@ Football data acceptance (#370 ×3, #381 ×3), football intelligence (#467 ×3, 
 ## H. Web app (paused)
 
 There are 6 serious comments and about 33 lesser ones, mostly theming and contrast. The founder decides first whether the web app stays.
-- **If it is retired:** archive it and these close.
-- **If it stays:** fix #121 first. Account deletion is unreachable for a user who never connected a league, and app stores require deletion to be reachable.
+- **Decided 2026-10-02: the web app stays.** It is rebuilt on the shared backend after native is done, so these comments wait for that work.
+- When web work starts, fix #121 first. Account deletion is unreachable for a user who never connected a league, and app stores require deletion to be reachable.
 
 ## I. Process: stop this happening again
 
