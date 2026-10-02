@@ -20,6 +20,7 @@ What replaces them:
 | `sql/2026-09-03_multi_league_follows_review.sql` | never applied; replaced by `leagues` + `league_memberships` (redo step 03) |
 | `sql/2026-08-24_a6_full_league_scoring_contract_review.sql` | review draft; the applied version is `sql/applied/2026-08-26_a6_scoring_contract_production.sql` |
 | `sql/2026-06-12_phase1_adp_scoring_schema_review.sql` | never applied; stored per-league scoring rules, which the open A6 rights question rules out |
+| `sql/2026-09-14_beta_reports_review.sql` | replaced by redo step 09 (server-only, recorded 30-day purge, undo and tests) after the founder said yes on 2026-10-01 |
 | `sql/wo01_rls_policy_repair.SUPERSEDED.md` | already marked superseded |
 | `gate1/schema-blueprint.md`, `gate1/schema-identity-access.md`, `gate1/schema-decisions-ledger.md`, `gate1/schema-football-core.md` | the Gate 1 schema set. The redo keeps its good decisions (shared `leagues`, `league_memberships`, canonical players, append-only Ledger) and replaces the rest: read-time confidence bands, stored scoring rules, roster snapshots, `trade_shares`, the WO-06 data migration. Account linking (`user_identities`) is reconsidered under `D6-AccountLinking` |
 

@@ -4176,7 +4176,7 @@ Authenticated. `platform` is `espn`, `yahoo`, or `sleeper`; `league_id` is requi
 
 `GET /api/beta/reports/schema` returns `beta-report.v1`, the supported screen enum, `screenshots_supported: false`, and the required disclosure string. `POST /api/beta/reports` is authenticated and metadata-only: screen, state, connection state, message, optional client timestamp, app/device metadata, consent flag, and short recent error codes. It rejects screenshots, credentials, league data, roster data, unknown fields, and missing disclosure acknowledgement.
 
-Storage uses `public.beta_reports`; the review-only SQL is `sql/pending/2026-09-14_beta_reports_review.sql`. Until that migration is applied, the route fails closed with `503 beta_report_storage_unavailable`.
+Storage uses `public.beta_reports`; the review-only SQL is `Archive/superseded-db-2026-10-01/sql/2026-09-14_beta_reports_review.sql`. Until that migration is applied, the route fails closed with `503 beta_report_storage_unavailable`.
 
 Verification: `npm test` 1100/1100, including `test/omenMvpLiveRoute.test.js`, `test/dashboardQuietWeekRoute.test.js`, `test/movesRoute.test.js`, `test/tradeRoute.test.js`, `test/betaReports.test.js`, `test/userPrivacyIsolation.test.js`, and hot-route rate-limit coverage. `git diff --check` clean.
 

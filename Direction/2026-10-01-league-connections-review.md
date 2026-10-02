@@ -141,6 +141,19 @@ plan.
   function, so the secret and its pointer change together, and a disconnect that cannot delete the
   secret reports failure instead of success.
 
+### 6b. The server's key can read every stored cookie in plain text — P1 (posture) · Verified 2026-10-02
+
+Found while verifying the redo on real Supabase, then confirmed on production with a read-only
+privilege check:
+- `service_role`, the role the server's key acts as, has SELECT on `vault.decrypted_secrets`, so it can
+  read every ESPN cookie and Yahoo token.
+- `anon` and `authenticated` have no access to the `vault` schema at all.
+
+This is Supabase's default, not a defect introduced anywhere in Omen. It means the service key is
+exactly as sensitive as every user's ESPN cookie combined. The `vault_*` wrapper functions are a
+convenience, not a boundary. Protecting the key (where it lives, who can read it, rotation) is the
+real control: facts-of-record #13, sprint items `S1` and `S2`.
+
 ### 7. ESPN cookie expiry is not recorded anywhere — P1 · Verified (schema), product item already exists
 
 - **Storage is sound.** Cookies are stored only as Vault ids (`espn_secret_id`, `swid_secret_id`),

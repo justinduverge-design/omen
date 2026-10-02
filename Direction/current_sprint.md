@@ -564,9 +564,11 @@ number of pointed contract changes plus a governance amendment — not a build-o
 - **Evidence so far (not VERIFIED):** up → tests → down → up proven per step on scratch Postgres 17.11, with schema **and** data fingerprints; snapshot proven equal to production's catalog; 7 of 7 deliberate faults caught. Not met: Codex review; a second session's read; the server suite on the migrated schema (the server does not use these tables yet); a restored-clone rehearsal (each production step's own gate).
 - **Scope change:** `football_games`, `game_weather`, `player_week_features` and `defense_position_allowed` are deferred to `D4` (explanation-only after the factor experiment); see design §8.
 - **Owner lane:** database — a **Claude or Codex session only**. Jules and Muse never touch the database (founder, 2026-09-30, `Direction/decision_log.md`).
-- **Blocked by:** AGENT_RESOLVABLE — Codex reviews the PR (the building session must not sign it off).
 - **Unblock:** 2026-10-01 CLEARED — founder decided band storage, the 6 unscoped rows (deleted, step 08), projection retention (compartmented), the retirement list (done) and account linking (`D6-AccountLinking`).
-- **Blocked by:** FOUNDER_APPROVAL — `beta_reports` yes or no, and the verification approvals in `Blueprints/handoffs/2026-10-01-database-redo.md`.
+- **Unblock:** 2026-10-01 CLEARED — founder: beta_reports yes (step 09); verification approved (throwaway Supabase project; restored-clone run on KVM1 by the agent).
+- **Evidence (2026-10-02):** verified on real Supabase (V1) and on a restored copy of production on KVM1 (V2); see `Blueprints/handoffs/2026-10-01-database-redo.md`.
+- **Blocked by:** AGENT_RESOLVABLE — Codex reviews PRs #503, #505, #506 (the building session must not sign them off).
+- **Blocked by:** FOUNDER_APPROVAL — a production order per step, after review.
 - **Priority:** P0 — gates D3, D4 and the first production order for the shadow log.
 - **Cost:** medium
 - **Ticket:** `T-S1` in `Blueprints/rebuild/omen-call-slice-plan.md` ("Database tickets"). Read its sections "Two design flaws" and "Schema additions" first.

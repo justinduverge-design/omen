@@ -21,7 +21,7 @@ sqldir="$root/sql/2026-10-01-redo"
 out="${REHEARSAL_OUT:-$(mktemp -d)}"
 mkdir -p "$out"
 db="${REHEARSAL_DB:-omen_redo_rehearsal}"
-steps=(01_identity_link 02_connection_credentials 03_leagues_memberships 04_players_crosswalk 05_ledger 06_projections_shadow 07_close_client_writes 08_retire_unscoped_moves)
+steps=(01_identity_link 02_connection_credentials 03_leagues_memberships 04_players_crosswalk 05_ledger 06_projections_shadow 07_close_client_writes 08_retire_unscoped_moves 09_beta_reports)
 
 case "${PGHOST:-}" in
   *supabase.co*|*supabase.com*|*pooler*) echo "refusing: PGHOST looks like a Supabase host" >&2; exit 2 ;;
@@ -39,28 +39,42 @@ same() {
 }
 
 echo "postgres: $(psql -X -At -d postgres -c 'show server_version')"
-dropdb --if-exists "$db"
-createdb "$db"
-psql_db -f "$sqldir/00a_scratch_supabase_shim.sql" 2>/dev/null
-psql_db -f "$sqldir/00b_production_schema_snapshot.sql"
-PGDATABASE="$db" node "$here/catalog.js" compare-production
-psql_db -f "$sqldir/00c_scratch_seed.sql"
+if [ "${REHEARSAL_CLONE:-0}" = 1 ]; then
+  # A restored production backup already holds production's schema and real data (KVM1 clone,
+  # scripts/db/kvm1-restored-clone.sh). Add the Supabase pieces a plain restore lacks, re-apply
+  # production's privileges, prove the schema matches the production catalog, and skip the synthetic
+  # tests (they assume the scratch seed). Each step's own preflight and backfill checks still run.
+  psql_db -f "$sqldir/00a_scratch_supabase_shim.sql" 2>/dev/null
+  psql_db -f "$sqldir/00d_production_acls.sql"
+  PGDATABASE="$db" node "$here/catalog.js" compare-production
+else
+  dropdb --if-exists "$db"
+  createdb "$db"
+  psql_db -f "$sqldir/00a_scratch_supabase_shim.sql" 2>/dev/null
+  psql_db -f "$sqldir/00b_production_schema_snapshot.sql"
+  psql_db -f "$sqldir/00d_production_acls.sql"
+  PGDATABASE="$db" node "$here/catalog.js" compare-production
+  psql_db -f "$sqldir/00c_scratch_seed.sql"
+fi
 fingerprint 00_production
 prev=00_production
 
 for step in "${steps[@]}"; do
   psql_db -f "$sqldir/$step.up.sql"
   fingerprint "${step}_up"
-  psql_db -f "$sqldir/$step.test.sql"
-  fingerprint "${step}_after_test"
-  same "${step}_up" "${step}_after_test"   # the tests rolled back and left nothing behind
+  if [ "${REHEARSAL_CLONE:-0}" != 1 ]; then
+    psql_db -f "$sqldir/$step.test.sql"
+    fingerprint "${step}_after_test"
+    same "${step}_up" "${step}_after_test"   # the tests rolled back and left nothing behind
+  fi
   psql_db -f "$sqldir/$step.down.sql"
   fingerprint "${step}_down"
   same "$prev" "${step}_down"
   psql_db -f "$sqldir/$step.up.sql"
   fingerprint "${step}_reup"
   same "${step}_up" "${step}_reup"
-  echo "PASS $step: up, tests, down restores schema and data, up again identical"
+  if [ "${REHEARSAL_CLONE:-0}" = 1 ]; then tested="no synthetic tests (clone)"; else tested="tests"; fi
+  echo "PASS $step: up, $tested, down restores schema and data, up again identical"
   prev="${step}_up"
 done
 
