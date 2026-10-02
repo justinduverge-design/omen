@@ -35,8 +35,8 @@ test("all backend source files parse as JavaScript", () => {
 });
 
 // A literal backslash-n in a line comment parses fine but swallows the code after it:
-// `// note.\n    await work();` never runs `work()`. This hid the season-accolade update in
-// league_office_sync_worker.js and an ESPN actuals fix in #466. `node --check` cannot see it.
+// `// note.\n    await work();` never runs `work()`. This hid the season-accolade update in the
+// retired League Office worker and an ESPN actuals fix in #466. `node --check` cannot see it.
 // Outside strings, `\n` in code is already a syntax error, so line comments are the only gap.
 const REGEX_KEYWORDS = new Set(["return", "typeof", "case", "do", "else", "in", "of", "new", "delete", "void", "throw", "instanceof", "yield", "await"]);
 
