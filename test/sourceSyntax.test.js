@@ -38,6 +38,8 @@ test("all backend source files parse as JavaScript", () => {
 // `// note.\n    await work();` never runs `work()`. This hid the season-accolade update in
 // league_office_sync_worker.js and an ESPN actuals fix in #466. `node --check` cannot see it.
 // Outside strings, `\n` in code is already a syntax error, so line comments are the only gap.
+const REGEX_KEYWORDS = new Set(["return", "typeof", "case", "do", "else", "in", "of", "new", "delete", "void", "throw", "instanceof", "yield", "await"]);
+
 function literalNewlinesInLineComments(source) {
   const hits = [];
   let i = 0;
@@ -92,7 +94,9 @@ function literalNewlinesInLineComments(source) {
     }
     if (ch === "'" || ch === '"') { skipQuoted(ch); prev = "a"; continue; }
     if (ch === "`") { i += 1; skipTemplate(); prev = "a"; continue; }
-    if (ch === "/" && (prev === "" || /[(,=:[!&|?{};+\-*%<>~^]/.test(prev))) {
+    const prevWord = /[\w$]+$/.exec(source.slice(Math.max(0, i - 12), i).trimEnd())?.[0];
+    const afterKeyword = /[\w$]/.test(prev) && REGEX_KEYWORDS.has(prevWord);
+    if (ch === "/" && (prev === "" || afterKeyword || /[(,=:[!&|?{};+\-*%<>~^]/.test(prev))) {
       // Regex literal.
       i += 1;
       let inClass = false;
@@ -143,8 +147,15 @@ test("the literal-\\n guard catches the shape it exists for and ignores strings"
     "const b = 'x\\n  y'; // trailing comment",
     "const c = `tpl ${\"\\n  z\"} // not a comment \\n  q`;",
     "const d = /\\/\\/ x\\n  y/.test(s);",
+    "function q() { return /['\"]/; }",
+    "const r = 'after keyword regex'; // still fine",
     "/* block \\n  text */",
     "// a comment that mentions \\n at the end\\n",
   ].join("\n");
   assert.deepEqual(literalNewlinesInLineComments(fine), []);
+
+  // A regex after `return` must not be read as division, or its quote opens a fake string
+  // that hides the next real comment.
+  const afterReturn = "function q() { return /['\"]/; }\n// note.\\n  await work();\n";
+  assert.deepEqual(literalNewlinesInLineComments(afterReturn).map((h) => h.line), [2]);
 });
