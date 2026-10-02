@@ -44,8 +44,8 @@ Codex reacted 👍 to #516 with no inline comments. CI: all four checks green on
 
 ## Watch for
 
-- **#514 will conflict** on `Direction/reviews/2026-10-02-codex-review-compilation.md` (both add it).
-  Resolve by keeping the two "fixed in #516" rows and taking everything else from #514.
+- **#514 conflict: resolved.** #514 merged after #516 (`9889c820`) and kept the "fixed in #516" rows
+  in `Direction/reviews/2026-10-02-codex-review-compilation.md`.
 - **Adapter caches keyed by league, not user** (`ssff:espn:scoring:*`, `ssff:espn:lastresult:*`,
   `ssff:yahoo:lastresult:*`). Safe today because league ids come from the caller's stored connection.
   A new route that passes a request-supplied league id to them would reopen the same leak.
