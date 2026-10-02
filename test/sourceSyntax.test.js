@@ -41,19 +41,23 @@ test("all backend source files parse as JavaScript", () => {
 // acorn reports every comment exactly, so strings, templates and regex literals cannot fool it.
 // A comment is flagged when turning its `\n` into a real newline leaves code that still parses:
 // hidden code does, prose that merely mentions `\n` ("ends with \n here") does not.
+// Parse as a CommonJS script first (this repo has no "type": "module"), then as a module. The
+// mode that parsed the original file is the mode every unfolded candidate must parse in.
 function parseJavaScript(source, onComment) {
   const options = { ecmaVersion: "latest", allowHashBang: true, locations: true, onComment };
   try {
-    return acorn.parse(source, { ...options, sourceType: "script" });
+    acorn.parse(source, { ...options, sourceType: "script" });
+    return "script";
   } catch {
     if (Array.isArray(onComment)) onComment.length = 0;
-    return acorn.parse(source, { ...options, sourceType: "module" });
+    acorn.parse(source, { ...options, sourceType: "module" });
+    return "module";
   }
 }
 
-function parses(source) {
+function parses(source, sourceType) {
   try {
-    parseJavaScript(source);
+    acorn.parse(source, { ecmaVersion: "latest", allowHashBang: true, sourceType });
     return true;
   } catch {
     return false;
@@ -64,7 +68,7 @@ const MAX_UNFOLD_SITES = 10;
 
 function literalNewlinesInLineComments(source) {
   const comments = [];
-  parseJavaScript(source, comments);
+  const sourceType = parseJavaScript(source, comments);
   return comments
     .filter((c) => c.type === "Line" && /\\n\s*\S/.test(c.value))
     .filter((c) => {
@@ -83,7 +87,7 @@ function literalNewlinesInLineComments(source) {
         for (let k = sites.length - 1; k >= 0; k -= 1) {
           if (mask & (1 << k)) unfolded = unfolded.slice(0, sites[k]) + "\n" + unfolded.slice(sites[k] + 2);
         }
-        if (parses(source.slice(0, c.start) + unfolded + source.slice(c.end))) return true;
+        if (parses(source.slice(0, c.start) + unfolded + source.slice(c.end), sourceType)) return true;
       }
       return false;
     })
@@ -116,6 +120,10 @@ test("the literal-\\n guard catches the shape it exists for and ignores strings"
   const block = '// note.\\n if (ok) {\\n log("a\\nb");\\n }\n';
   assert.deepEqual(literalNewlinesInLineComments(block).map((h) => h.line), [1]);
   assert.deepEqual(literalNewlinesInLineComments("// note.\\n work();\\n\n").map((h) => h.line), [1]);
+
+  // A CommonJS file is checked as CommonJS: top-level `await` there is a syntax error, so this
+  // comment cannot be hiding runnable code (Codex P2 on #515).
+  assert.deepEqual(literalNewlinesInLineComments('"use strict";\n// example:\\n await work();\n'), []);
 
   // A regex whose quote could open a fake string must not hide a later comment (Codex P2 on #515).
   for (const lead of ["function q() { return /['\"]/; }", "if (ok) /[\"]/.test(value);"]) {
