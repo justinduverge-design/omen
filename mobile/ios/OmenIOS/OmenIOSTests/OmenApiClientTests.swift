@@ -177,3 +177,31 @@ final class OmenDecodeDiagnosticsTests: XCTestCase {
         catch { XCTAssertTrue(OmenDecodeDiagnostics.describe(error).hasPrefix("wrong type at recommendation.player")) }
     }
 }
+
+/// The founder's phone showed "Unable to build this recommendation" for every league because
+/// `football_intelligence.quality.confidence` arrived as a number and the app expected text.
+final class OmenDecisionDriftTolerance: XCTestCase {
+    private func envelope(_ fi: String) throws -> OmenDecisionEnvelope {
+        let json = #"{"contract_version":"omen-decision-brief.v3","state":"empty","mode":"live","football_intelligence":\#(fi)}"#
+        return try JSONDecoder().decode(OmenDecisionEnvelope.self, from: Data(json.utf8))
+    }
+
+    func testNumericConfidenceIsKeptAsText() throws {
+        let env = try envelope(#"{"status":"ready","quality":{"state":"accepted","confidence":0.62}}"#)
+        XCTAssertEqual(env.footballIntelligence?.quality?.confidence, "0.62")
+        XCTAssertEqual(env.state, "empty")
+    }
+
+    func testAnUnreadableFootballIntelligenceBlockNeverFailsTheBrief() throws {
+        let env = try envelope(#"{"status":{"nested":"surprise"},"quality":"not an object"}"#)
+        XCTAssertEqual(env.state, "empty")
+        XCTAssertEqual(env.mode, "live")
+        XCTAssertNil(env.footballIntelligence)
+    }
+
+    func testAbsentOrNullFootballIntelligenceIsNil() throws {
+        XCTAssertNil(try envelope("null").footballIntelligence)
+        let json = #"{"contract_version":"omen-decision-brief.v3","state":"empty"}"#
+        XCTAssertNil(try JSONDecoder().decode(OmenDecisionEnvelope.self, from: Data(json.utf8)).footballIntelligence)
+    }
+}
