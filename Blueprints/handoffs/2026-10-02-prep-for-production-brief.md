@@ -57,7 +57,7 @@ Each item is its own PR with tests, reviewed by Codex.
 
 - [ ] **New: saved trades table (T4, PR #519 left open; founder, 2026-10-02).** Design and write a redo step 12.
   - Today `src/services/tradeSavedQueueStore.js` keeps each user's saved trades as **one Redis blob** (`omen:trade_saved_queue:{userId}`, no TTL). Codex on #519 found two problems the table fixes:
-    - **Lost saves.** Every change reads the whole list and writes it back, so two quick saves can drop one. A table with one row per saved trade, and a unique key on (user, candidate), makes each save atomic.
+    - **Lost saves.** Every change reads the whole list and writes it back, so two quick saves can drop one. A table with one row per saved trade and an atomic insert makes each save safe. **The unique key cannot be (user, candidate) alone** (Codex, #521): `buildCandidateRecord` in `src/services/tradeFind.js` builds the id from the opponent team and two player ids only, so the same swap gets the same id in two leagues or two weeks. Key on at least (user, provider, league, season, week, candidate), or have the server issue a globally unique id at find time.
     - **Not erased.** `account_erase()` and data export do not know about it. The table has a foreign key to `users` with cascade (or a line in `account_erase()`), and export includes it.
   - Columns from the T4 record: candidate id, reasoning (verbatim from first save), state `saved`/`sent`, outcome `accepted`/`rejected`/`countered`/null (self-report only), saved/sent/outcome timestamps, and the trade itself (see the open decision below). RLS: owner only; server writes.
   - Up/down/test, then rehearse. Backfill: none (no app calls the endpoint yet; nothing in Redis to move).
@@ -66,13 +66,14 @@ Each item is its own PR with tests, reviewed by Codex.
 
 ### 3. Tape the edges: compatibility check per step
 
-For each of steps 01–11, write down what today's server does against the changed schema:
+For each of steps 01–12, write down what today's server does against the changed schema:
 - Grep `src/` for every table and column the step touches.
 - Note any client or route that would break, and how.
 
 Known so far:
 - Step 05 breaks deletion until A1 ships.
 - Step 07 removes client writes, which no app uses (verified 2026-10-01; re-check iOS for any `supabase.from(` write).
+- Step 12 replaces the Redis store `#519` uses: #519 has to move onto the table, and the export and erasure changes ship with it or before.
 - Step 01's foreign key needs every `users` insert to come after an auth user exists (re-check signup paths).
 
 Output: a table in the handoff. A step with an unexplained break does not go.
@@ -108,7 +109,7 @@ Restore the newest backup on KVM1 and apply **every step in the production order
 - Record timings: how long each step holds locks on the real data size.
 - Delete the copy and confirm it is gone.
 
-Also re-run V1 (real Supabase) for steps 06 and 11. The throwaway project needs waking; pause it afterwards.
+Also re-run V1 (real Supabase) for steps 06, 11 and 12. The throwaway project needs waking; pause it afterwards.
 
 ### 7. Go / no-go sheet
 
