@@ -85,6 +85,7 @@ create table public.projection_shadow_log (
   season                 integer not null check (season between 2000 and 2100),
   week                   integer not null check (week between 1 and 22),
   projection_snapshot_id bigint not null references public.projection_snapshots(id) on delete restrict,
+  league_id              uuid references public.leagues(id) on delete restrict,   -- copied from the snapshot; null for public projections
   provider_projection    numeric not null,
   points_basis           text not null,             -- which key of provider_points this is: ppr, half_ppr, std, league
   omen_expected          numeric,                    -- null until an engine produces a read
@@ -92,20 +93,51 @@ create table public.projection_shadow_log (
   omen_range_hi          numeric,
   engine_version         text not null,              -- 'provider-only' before any engine exists
   logged_at              timestamptz not null default now(),
-  constraint projection_shadow_log_one_per_engine unique (provider, provider_player_id, season, week, points_basis, engine_version),
   constraint projection_shadow_log_range check (omen_range_lo is null or omen_range_hi is null or omen_range_lo <= omen_range_hi)
 );
+-- One row per player-week per league per engine: the same ESPN or Yahoo player in two leagues the same
+-- week has two league-scoped projections, and both are logged (Codex review, #505).
+create unique index projection_shadow_log_one_per_engine on public.projection_shadow_log
+  (provider, provider_player_id, season, week, coalesce(league_id, '00000000-0000-0000-0000-000000000000'::uuid),
+   points_basis, engine_version);
 create index projection_shadow_log_snapshot on public.projection_shadow_log (projection_snapshot_id);
 
--- A shadow row must be about the same provider and player-week as the snapshot it cites.
+-- The snapshot is the single source for a shadow row's identity and provider number (Codex review, #505).
+-- Provider, player, player id, season, week, league and the provider's projection are copied from the cited
+-- snapshot; a writer may omit them, and a value that disagrees with the snapshot is refused. The provider's
+-- projection must exist in the snapshot under points_basis. One wrong insert can no longer corrupt the
+-- measurement, because the measurement's inputs are not taken on the writer's word.
 create function public.projection_shadow_log_check() returns trigger
 language plpgsql set search_path = pg_catalog, public as $$
+declare snap public.projection_snapshots%rowtype; points numeric;
 begin
-  if not exists (select 1 from public.projection_snapshots s where s.id = new.projection_snapshot_id
-                  and s.provider = new.provider and s.provider_player_id = new.provider_player_id
-                  and s.season = new.season and s.week = new.week) then
-    raise exception 'projection_shadow_log: snapshot is for a different provider, player or week' using errcode = '23514';
+  select * into snap from public.projection_snapshots where id = new.projection_snapshot_id;
+  if not found then
+    raise exception 'projection_shadow_log: snapshot % does not exist', new.projection_snapshot_id using errcode = '23503';
   end if;
+  if (new.provider is not null and new.provider <> snap.provider)
+     or (new.provider_player_id is not null and new.provider_player_id <> snap.provider_player_id)
+     or (new.player_id is not null and new.player_id is distinct from snap.player_id)
+     or (new.season is not null and new.season <> snap.season)
+     or (new.week is not null and new.week <> snap.week)
+     or (new.league_id is not null and new.league_id is distinct from snap.league_id) then
+    raise exception 'projection_shadow_log: row disagrees with its snapshot (provider, player, week or league)' using errcode = '23514';
+  end if;
+  if not (snap.provider_points ? new.points_basis) then
+    raise exception 'projection_shadow_log: snapshot has no % projection', new.points_basis using errcode = '23514';
+  end if;
+  points := (snap.provider_points ->> new.points_basis)::numeric;
+  if new.provider_projection is not null and new.provider_projection <> points then
+    raise exception 'projection_shadow_log: provider_projection % does not match the snapshot''s %', new.provider_projection, points
+      using errcode = '23514';
+  end if;
+  new.provider := snap.provider;
+  new.provider_player_id := snap.provider_player_id;
+  new.player_id := snap.player_id;
+  new.season := snap.season;
+  new.week := snap.week;
+  new.league_id := snap.league_id;
+  new.provider_projection := points;
   return new;
 end $$;
 create trigger projection_shadow_log_check before insert on public.projection_shadow_log

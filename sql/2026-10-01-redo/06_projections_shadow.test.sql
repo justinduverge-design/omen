@@ -73,6 +73,42 @@ begin
     raise exception 'FAIL 06: shadow row citing another player''s snapshot accepted';
   exception when check_violation then null;
   end;
+  -- The provider's number must be the snapshot's number; it cannot be typed in independently.
+  begin
+    insert into public.projection_shadow_log (projection_snapshot_id, provider_projection, points_basis, engine_version)
+    values (snap, 30.0, 'ppr', 'engine-x');
+    raise exception 'FAIL 06: a provider projection that disagrees with its snapshot was accepted';
+  exception when check_violation then null;
+  end;
+  begin
+    insert into public.projection_shadow_log (projection_snapshot_id, points_basis, engine_version)
+    values (snap, 'half_ppr', 'engine-x');
+    raise exception 'FAIL 06: a points basis the snapshot does not have was accepted';
+  exception when check_violation then null;
+  end;
+  -- A writer can give only the snapshot; identity and the provider's number are filled from it.
+  declare got public.projection_shadow_log%rowtype;
+  begin
+    insert into public.projection_shadow_log (projection_snapshot_id, points_basis, engine_version)
+    values (snap, 'ppr', 'engine-x') returning * into got;
+    if got.provider <> 'sleeper' or got.provider_player_id <> '4984' or got.week <> 4 or got.provider_projection <> 23.12 then
+      raise exception 'FAIL 06: shadow row was not filled from its snapshot';
+    end if;
+  end;
+  -- The same player in two leagues the same week: both league-scoped rows are logged.
+  declare lg2 uuid; s1 bigint; s2 bigint;
+  begin
+    select id into lg2 from public.leagues where provider = 'espn' and id <> lg limit 1;
+    insert into public.projection_snapshots (ingest_event_id, provider, provider_player_id, season, week, scope, league_id, provider_points, stat_line, fetched_at, source_ref)
+    values (ev_espn, 'espn', '4040', 2026, 4, 'league', lg, '{"league":18.0}', '{}', now(), 'sha256:' || repeat('1', 64)) returning id into s1;
+    insert into public.projection_snapshots (ingest_event_id, provider, provider_player_id, season, week, scope, league_id, provider_points, stat_line, fetched_at, source_ref)
+    values (ev_espn, 'espn', '4040', 2026, 4, 'league', lg2, '{"league":16.5}', '{}', now(), 'sha256:' || repeat('2', 64)) returning id into s2;
+    insert into public.projection_shadow_log (projection_snapshot_id, points_basis, engine_version) values (s1, 'league', 'provider-only');
+    insert into public.projection_shadow_log (projection_snapshot_id, points_basis, engine_version) values (s2, 'league', 'provider-only');
+    if (select count(*) from public.projection_shadow_log where provider_player_id = '4040') <> 2 then
+      raise exception 'FAIL 06: one player in two leagues could not be logged twice';
+    end if;
+  end;
   begin
     insert into public.projection_snapshots (ingest_event_id, provider, provider_player_id, season, week, scope, provider_points, stat_line, fetched_at, source_ref)
     values (ev_espn, 'espn', '1', 2026, 4, 'league', '{}', '{}', now(), 'sha256:' || repeat('e', 64));
@@ -82,12 +118,12 @@ begin
 
   -- The ESPN compartment is removed in one call; Sleeper is untouched; the purge is recorded.
   res := public.projections_purge('espn', 'founder test of the compartment', 'founder');
-  if (res->>'projection_snapshots')::int <> 1 or (res->>'projection_shadow_log')::int <> 1 then
+  if (res->>'projection_snapshots')::int <> 3 or (res->>'projection_shadow_log')::int <> 3 then
     raise exception 'FAIL 06: purge removed %', res;
   end if;
   if exists (select 1 from public.projection_snapshots where provider = 'espn') then raise exception 'FAIL 06: ESPN rows survived the purge'; end if;
   if (select count(*) from public.projection_snapshots where provider = 'sleeper') <> 1 then raise exception 'FAIL 06: purge touched Sleeper'; end if;
-  if not exists (select 1 from public.data_events where event = 'purge' and subject = 'projections:espn' and approved_by = 'founder' and row_count = 2) then
+  if not exists (select 1 from public.data_events where event = 'purge' and subject = 'projections:espn' and approved_by = 'founder' and row_count = 6) then
     raise exception 'FAIL 06: purge was not recorded';
   end if;
   if not exists (select 1 from public.data_events where id = ev_espn) then raise exception 'FAIL 06: the ingest record was removed by the purge'; end if;

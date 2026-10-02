@@ -20,6 +20,9 @@
 --     cannot reach Vault at all. The protection for stored cookies is that only the server holds the
 --     service key. Supabase's default privileges grant EXECUTE on new public
 --     functions to anon and authenticated; this file revokes that explicitly for each one.
+--   * Every function that creates, replaces or deletes a secret first takes a transaction-scoped advisory
+--     lock per (user, provider). Without it, two first-time connects at once both find no row to lock
+--     with SELECT ... FOR UPDATE, both create secrets, and the loser's pair is orphaned (Codex review, #505).
 --   * New secrets are created with name = NULL, so the unique name index can never block a reconnect.
 --     The description carries the label. Existing named secrets are left as they are.
 --   * Secret values arrive as function arguments, exactly as with the existing vault_create_secret
@@ -61,6 +64,8 @@ begin
   if p_user_id is null or coalesce(p_league_id, '') = '' or coalesce(p_espn_s2, '') = '' or coalesce(p_swid, '') = '' then
     raise exception 'connection_store_espn: user, league and both cookies are required' using errcode = '22023';
   end if;
+
+  perform pg_advisory_xact_lock(hashtextextended('omen.connection:' || p_user_id::text || ':espn', 0));
 
   select * into conn from public.platform_connections
    where user_id = p_user_id and platform = 'espn' for update;
@@ -108,6 +113,8 @@ begin
     raise exception 'connection_store_yahoo: user, both tokens and expiry are required' using errcode = '22023';
   end if;
 
+  perform pg_advisory_xact_lock(hashtextextended('omen.connection:' || p_user_id::text || ':yahoo', 0));
+
   select * into conn from public.platform_connections
    where user_id = p_user_id and platform = 'yahoo' for update;
 
@@ -150,6 +157,8 @@ begin
   if coalesce(p_access_token, '') = '' or p_expires_at is null then
     raise exception 'connection_rotate_yahoo: access token and expiry are required' using errcode = '22023';
   end if;
+
+  perform pg_advisory_xact_lock(hashtextextended('omen.connection:' || p_user_id::text || ':yahoo', 0));
 
   select * into conn from public.platform_connections
    where user_id = p_user_id and platform = 'yahoo' for update;
@@ -199,6 +208,8 @@ declare
   ids uuid[];
   deleted int;
 begin
+  perform pg_advisory_xact_lock(hashtextextended('omen.connection:' || p_user_id::text || ':' || p_platform, 0));
+
   select * into conn from public.platform_connections
    where user_id = p_user_id and platform = p_platform for update;
   if not found then

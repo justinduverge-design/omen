@@ -568,14 +568,15 @@ number of pointed contract changes plus a governance amendment — not a build-o
 - **Unblock:** 2026-10-01 CLEARED — founder: beta_reports yes (step 09); verification approved (throwaway Supabase project; restored-clone run on KVM1 by the agent).
 - **Evidence (2026-10-02):** verified on real Supabase (V1) and on a restored copy of production on KVM1 (V2); see `Blueprints/handoffs/2026-10-01-database-redo.md`.
 - **Merged 2026-10-02 by the founder:** #503 into `main`; #505 and #506 merged into their stacked parent branches, not `main`, so the redo reached `main` through a follow-up PR from `claude/db-retire-old`.
-- **Blocked by:** AGENT_RESOLVABLE — Codex reviews the redo on `main` (the building session must not sign it off).
+- **Codex review 2026-10-02:** 4 P1 and 4 P2 findings on #503/#505/#506; all addressed in the follow-up PR (see `Blueprints/handoffs/2026-10-01-database-redo.md`, "Codex review").
+- **Blocked by:** AGENT_RESOLVABLE — Codex re-reviews the fixes.
 - **Blocked by:** FOUNDER_APPROVAL — a production order per step, after review.
 - **Priority:** P0 — gates D3, D4 and the first production order for the shadow log.
 - **Cost:** medium
-- **Ticket:** `T-S1` in `Blueprints/rebuild/omen-call-slice-plan.md` ("Database tickets"). Read its sections "Two design flaws" and "Schema additions" first.
-- **Scope:** migrations under `migrations/` (node-pg-migrate, one file per table, with `down`) for `players`, `player_provider_ids`, `football_games`, `game_weather`, `player_week_features`, `defense_position_allowed`, `decision_factors`, `projection_shadow_log`; change `decisions` to store `band`, `band_drivers`, `engine_version` as issued (score internal); RLS on every table; immutability triggers on `decision_factors`; change `migrations-ci.yml` to Postgres 17 (production is 17.6; CI runs 15).
-- **Done when:** up → down → up proven on a **scratch Postgres 17** with schema diffs; the full suite passes on the migrated schema; RLS and immutability are tested; Codex's PR review and a second session have read it; the PR lists what was not verified. **Production is a separate founder-approved bounded order.**
-- **Do not touch:** production, secrets, the unapplied WO-06 migration (held until it keeps a reversible copy of what it deletes).
+- **Ticket:** `T-S1` in `Blueprints/rebuild/omen-call-slice-plan.md`, rewritten 2026-10-02 for the new workflow (Codex review, #506).
+- **Scope (rewritten 2026-10-02):** the reviewed steps in `sql/2026-10-01-redo/` (01-10), designed in `Blueprints/rebuild/omen-database-redo-v1.md`. No node-pg-migrate and no `migrations/` directory: that framework is retired (`Archive/superseded-db-2026-10-01/`). Changes are proven with `scripts/db/rehearse-redo.sh` and CI job `redo-rehearsal` on Postgres 17.
+- **Done when:** every step passes the rehearsal (scratch, real Supabase, restored production copy); Codex's findings are resolved; each production step is applied through its own founder-approved order with its verification recorded. **Production is a separate founder-approved bounded order per step.**
+- **Do not touch:** production without an approved order; secrets; the retired WO-06 file (archived, never to be applied).
 
 ### D6-AccountLinking — One Omen account per person across Apple, Google, Discord and email
 

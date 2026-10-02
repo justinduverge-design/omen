@@ -1,5 +1,20 @@
 # Omen Decision Log
 
+## 2026-10-02 (later) — one call per team per week; Codex's review of the redo resolved
+
+- **Decision (founder):** a person in two leagues gets **one call per team per week**. Facts-of-record #16
+  is amended. The Ledger now enforces it: exactly one current call per team-week, even under a race.
+- **Codex reviewed the merged redo** (#503, #505, #506): 4 P1 and 4 P2 findings, all addressed.
+  - The credential-function race was real. It was reproduced (2 orphaned secrets) and is now fixed
+    (0 orphaned).
+  - Account deletion became one transaction: step 10, `account_erase()`.
+  - The shadow log now takes its facts from the snapshot it cites.
+  - The stale D2 ticket was rewritten.
+  - The archived tests no longer run.
+  - Detail is in `Blueprints/handoffs/2026-10-01-database-redo.md`.
+- **Process note:** the founder's merge of the stacked PRs landed #505 and #506 in their parent branches,
+  not `main`; #508 carried them to `main`. Stacked PRs should be retargeted to `main` before merging.
+
 ## 2026-10-02 — a 60-second per-user response cache on the five slow routes
 
 - **Why.** Measured on the founder's iPhone 2026-10-01, each request recomputed from the providers:
