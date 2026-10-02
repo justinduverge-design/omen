@@ -355,7 +355,6 @@ final class LeagueCarouselViewModel: ObservableObject {
         guard !page.isActive else { return nil }
 
         committingPageID = page.id
-        defer { committingPageID = nil }
 
         let result = await sessionManager.authorized {
             await directoryRepository.selectLeague(
@@ -368,16 +367,25 @@ final class LeagueCarouselViewModel: ObservableObject {
 
         switch result {
         case .success(let selection):
-            // Re-read the directory rather than flipping `isActive` locally: the server
-            // decides what is active now, and a locally-invented active flag is how a
-            // switcher starts lying about what it switched. Page caches survive, so this
-            // costs no provider matchup calls.
-            await reloadDirectoryPreservingPages()
+            // The directory is still re-read rather than flipped locally: the server decides what
+            // is active now. But the screens' own re-reads no longer wait behind it. Measured on
+            // the founder's iPhone 2026-10-01, `GET /api/leagues` alone took 2.0-3.0 s and ran
+            // BEFORE the five surface reads began, so every switch paid for it twice over. The
+            // two now overlap. `committingPageID` stays set until the re-read lands, so the chips
+            // stay disabled and nothing can start a second switch against a half-updated list.
+            pendingDirectoryReload = Task { [weak self] in
+                await self?.reloadDirectoryPreservingPages()
+                self?.committingPageID = nil
+            }
             return selection.refresh
         case .failure:
+            committingPageID = nil
             return nil
         }
     }
+
+    /// The directory re-read started by the last successful switch. Tests await it; the app does not.
+    private(set) var pendingDirectoryReload: Task<Void, Never>?
 
     private func reloadDirectoryPreservingPages() async {
         guard case .success(let loaded) = await sessionManager.authorized({
