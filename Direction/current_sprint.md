@@ -565,13 +565,35 @@ number of pointed contract changes plus a governance amendment — not a build-o
 - **Scope change:** `football_games`, `game_weather`, `player_week_features` and `defense_position_allowed` are deferred to `D4` (explanation-only after the factor experiment); see design §8.
 - **Owner lane:** database — a **Claude or Codex session only**. Jules and Muse never touch the database (founder, 2026-09-30, `Direction/decision_log.md`).
 - **Blocked by:** AGENT_RESOLVABLE — Codex reviews the PR (the building session must not sign it off).
-- **Blocked by:** FOUNDER_APPROVAL — the decisions in design §11 (band storage, unscoped legacy rows, account linking, projection retention, retirement list, beta_reports).
+- **Unblock:** 2026-10-01 CLEARED — founder decided band storage, the 6 unscoped rows (deleted, step 08), projection retention (compartmented), the retirement list (done) and account linking (`D6-AccountLinking`).
+- **Blocked by:** FOUNDER_APPROVAL — `beta_reports` yes or no, and the verification approvals in `Blueprints/handoffs/2026-10-01-database-redo.md`.
 - **Priority:** P0 — gates D3, D4 and the first production order for the shadow log.
 - **Cost:** medium
 - **Ticket:** `T-S1` in `Blueprints/rebuild/omen-call-slice-plan.md` ("Database tickets"). Read its sections "Two design flaws" and "Schema additions" first.
 - **Scope:** migrations under `migrations/` (node-pg-migrate, one file per table, with `down`) for `players`, `player_provider_ids`, `football_games`, `game_weather`, `player_week_features`, `defense_position_allowed`, `decision_factors`, `projection_shadow_log`; change `decisions` to store `band`, `band_drivers`, `engine_version` as issued (score internal); RLS on every table; immutability triggers on `decision_factors`; change `migrations-ci.yml` to Postgres 17 (production is 17.6; CI runs 15).
 - **Done when:** up → down → up proven on a **scratch Postgres 17** with schema diffs; the full suite passes on the migrated schema; RLS and immutability are tested; Codex's PR review and a second session have read it; the PR lists what was not verified. **Production is a separate founder-approved bounded order.**
 - **Do not touch:** production, secrets, the unapplied WO-06 migration (held until it keeps a reversible copy of what it deletes).
+
+### D6-AccountLinking — One Omen account per person across Apple, Google, Discord and email
+
+- **Status:** READY
+- **Owner lane:** research and design first, any session; the database half is Claude or Codex only.
+- **Blocked by:** None for research. Turning on manual identity linking in Supabase Auth is a dashboard
+  setting: FOUNDER_APPROVAL at that point.
+- **Priority:** P2
+- **Source:** founder, 2026-10-01 ("account linking would be dope, if possible"). Today, signing in with
+  Apple (private relay email) and then with Google creates two separate Omen accounts with nothing
+  linking them (`Direction/2026-10-01-league-connections-review.md`, finding 13).
+- **Scope:**
+  - **Research (`pre-build-research`):** how Supabase Auth links a second identity to an existing user
+    from native iOS sign-in (Apple and Google), and what settings it needs.
+  - **Merging existing duplicates:** how to merge two Omen accounts that already exist. The new Ledger
+    cannot be rewritten, so a merge needs a recorded, approved path like step 08's.
+- **Done when:** a written design says how linking works on iOS, what changes in the database (likely
+  nothing for new links; a recorded merge function for existing duplicates), and which settings the
+  founder must change.
+- **Do not touch:** Auth settings or production without approval; never merge accounts by matching
+  email alone (Apple relay addresses differ by design).
 
 ### D3-PlayerCrosswalk — Canonical players and the provider crosswalk
 

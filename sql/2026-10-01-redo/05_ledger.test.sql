@@ -5,7 +5,10 @@ begin;
 do $$
 begin
   if (select count(*) from public.decisions) <> 3 then raise exception 'FAIL 05: expected 3 backfilled calls'; end if;
-  if (select count(*) from public.moves) <> 9 then raise exception 'FAIL 05: moves was modified'; end if;
+  if exists (select 1 from public.decisions d where d.legacy_move_id is not null
+              and not exists (select 1 from public.moves m where m.id = d.legacy_move_id)) then
+    raise exception 'FAIL 05: a copied move is missing from moves (moves must stay untouched)';
+  end if;
   if (select count(*) from public.decision_outcomes where provenance = 'verified') <> 1 then
     raise exception 'FAIL 05: the exact-reconciled win should be the only verified outcome';
   end if;

@@ -21,7 +21,7 @@ sqldir="$root/sql/2026-10-01-redo"
 out="${REHEARSAL_OUT:-$(mktemp -d)}"
 mkdir -p "$out"
 db="${REHEARSAL_DB:-omen_redo_rehearsal}"
-steps=(01_identity_link 02_connection_credentials 03_leagues_memberships 04_players_crosswalk 05_ledger 06_projections_shadow 07_close_client_writes)
+steps=(01_identity_link 02_connection_credentials 03_leagues_memberships 04_players_crosswalk 05_ledger 06_projections_shadow 07_close_client_writes 08_retire_unscoped_moves)
 
 case "${PGHOST:-}" in
   *supabase.co*|*supabase.com*|*pooler*) echo "refusing: PGHOST looks like a Supabase host" >&2; exit 2 ;;

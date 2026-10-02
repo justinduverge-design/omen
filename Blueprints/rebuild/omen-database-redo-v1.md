@@ -146,6 +146,22 @@ Ledger rows **fails** instead of silently erasing history.
 |---|---|---|
 | `projection_snapshots` | provider projection as read: points and the raw **stat line**, scope public or league, content hash of the raw payload | append-only |
 | `projection_shadow_log` | provider projection beside Omen's read per player-week (Omen's read null until an engine exists) | append-only; one row per player-week per engine version |
+| `data_events` | the record of every batch stored in a compartment and every purge or retirement: when, which job, source hash, rights basis, row count, and for deletions the reason and approver | append-only, never deleted |
+
+**Compartments (founder, 2026-10-01).** ESPN's exact projections are kept, "in a compartment where if
+it ever comes down to it, we can delete it", and "everything got to be recorded, everything got to be
+traceable":
+- **One compartment per provider.** Every projection row names the `data_events` batch that wrote it,
+  and every batch records the terms it was stored under (`rights_basis`, e.g. `espn_user_connection`).
+- **One call removes a provider's compartment.** `projections_purge('espn', reason, approver)` deletes
+  that provider's snapshots and shadow rows in one transaction and records a `purge` event with the
+  counts and a hash of what was removed. It is the only path that can delete from these tables.
+
+### Retired rows (new, step 08)
+
+| Table | Purpose | Mutability |
+|---|---|---|
+| `retired_rows` | exact copies of rows a founder-approved retirement deleted, held 30 days so the step can be undone; `retired_rows_purge_due()` then removes them and records it | held copies only; deleted with the person's account |
 
 ## 4. Stored versus read live
 
@@ -168,7 +184,7 @@ historical roster, and the Ledger keeps the evidence it needs in `decision_facto
 |---|---|---|
 | `users` | **keep**, repaired (step 01). `platform`, `league_id`, `team_name` retire later (empty in all 7 rows); `email` stays while the server requires it | retire: later step, separate approval |
 | `platform_connections` | **keep** as the credential. `league_id`, `espn_team_id`, `is_selected` retire after the server reads `league_memberships`; `espn_swid` (plaintext column, empty, unused) retires | retire: later step |
-| `moves` | **frozen, then retired.** Kept untouched by every step here. The 3 league-scoped rows are copied into the Ledger. The 6 without a league stay in `moves` (founder decision §11) | freeze after the server writes `decisions`; drop only with approval |
+| `moves` | **frozen, then retired.** The 3 league-scoped rows are copied into the Ledger (step 05). The 6 without a league are **deleted** (founder, 2026-10-01: "we can't solve who it owns"), recorded and held 30 days (step 08) | freeze after the server writes `decisions`; drop only with approval |
 | `profiles` | **retire** (0 rows; favourite team feeds team theming, which is postponed by fact #19) | separate approval |
 | `consent_records`, `deletion_audit_log`, `oauth_state`, `waitlist_signups` | **keep** | — |
 | `league_office_*` (7) | **keep, out of scope.** The League Office feature store; the Gate 1 flag about its league-scoped uniqueness still stands | — |
@@ -176,8 +192,8 @@ historical roster, and the Ledger keeps the evidence it needs in `decision_facto
 | *(never applied)* `beta_reports` | **apply** the existing reviewed SQL. The report pill fails today without it | its own approval |
 | *(never applied)* `football_intelligence_signals` | **wait**: scheme feature is paused | later |
 
-**Repo files that no longer describe anything real.** Listed only; nothing is deleted without
-founder approval:
+**Repo files that no longer describe anything real.** Retired 2026-10-01 with founder approval
+(moved to `Archive/superseded-db-2026-10-01/` with a manifest, so old citations still resolve):
 
 - `migrations/1790680789307_baseline.js` and `migrations/1790735188136_identity-unification.js`
   (WO-06): not production, and WO-06 is replaced by step 01.
@@ -186,7 +202,10 @@ founder approval:
 - `sql/2026-09-03_multi_league_follows_review.sql`
 - The Gate 1 `decisions` / `premises` / `user_actions` / `ledger_entries` designs in
   `Blueprints/rebuild/gate1/schema-decisions-ledger.md`.
-- The `league_scoring_*` and `roster_*` tables in `schema-football-core.md`.
+- The `league_scoring_*` and `roster_*` tables in `schema-football-core.md`, and the rest of the Gate 1
+  schema set (`schema-blueprint.md`, `schema-identity-access.md`), which this design replaces.
+- `test/migrationIdentity.test.js`, the `test-migrations` CI job and the `migrate` npm script, which
+  existed only to run the files above.
 
 ## 6. Confidence: `NO_CALL` versus `coin_flip`, and number versus band
 
@@ -204,7 +223,7 @@ founder approval:
 
   This design stores **both**: the band and its drivers as issued (served), and `internal_score`
   (never served, kept for audit and backtests). That satisfies the Gate 1 lock's "the raw number is
-  stored" without letting the Ledger rewrite history. **Founder: please confirm** (§11, item 1).
+  stored" without letting the Ledger rewrite history. **Confirmed by the founder 2026-10-01.**
 
 ## 7. Migration plan — small steps, each reversible
 
@@ -225,7 +244,8 @@ restored-clone rehearsal (the 2026-09-30 method) → verification → production
 | 03 | Leagues + memberships + backfill (10 connections → 10 memberships) | low: additive, `platform_connections` untouched | drop tables | the server writes follows (export first) |
 | 04 | Players + crosswalk tables (empty) | none | drop tables | always (the D3 job is deterministic) |
 | 05 | Ledger + backfill (3 scoped moves copied; `moves` untouched) | medium: new write path | drop tables | **the server writes its first call here**; after that, export before rollback |
-| 06 | Projection snapshots + shadow log | low | drop tables | the first logged week (cannot be re-created) |
+| 06 | Projection snapshots + shadow log + `data_events` + provider purge | low | drop tables | the first logged week (cannot be re-created) |
+| 08 | Delete the 6 unscoped `moves` rows: aborts unless exactly 6; recorded; held 30 days | medium: deletes data, by founder decision | restore from the held copies | 30 days, then the copies are purged by design |
 | later | Freeze `moves`; drop retired columns and tables; apply `beta_reports` | destructive | from export only | each needs its own approval |
 
 **The database alone does not fix the phone.** The server must move to these tables. Each move is
@@ -276,31 +296,38 @@ explainer may not show a statistic without one.
   → down, and the down state equals the pre-step state in schema **and** data (every original table's
   contents hashed over production's columns, plus Vault). Up again is identical. A full reverse
   teardown returns to the production snapshot. Script: `scripts/db/rehearse-redo.sh`.
-- **The harness can fail.** Seven deliberate faults were each caught:
+- **The harness can fail.** Ten deliberate faults were each caught by the guard meant to catch them:
   1. a Ledger call can be rewritten;
   2. client access is left open on a new table;
   3. an undo step leaves a column behind;
   4. an orphan user exists (step 01 refuses instead of deleting);
   5. the snapshot drifts from production;
   6. an undo step rewrites data;
-  7. a band is stored without drivers.
+  7. a band is stored without drivers;
+  8. a 7th unscoped row exists (step 08 refuses: only 6 were approved);
+  9. step 08's undo restores only some rows;
+  10. a projection can be deleted outside the purge.
 
   The unmodified copy passes.
+- **Production logging cannot capture secrets** (read-only settings check, 2026-10-01). `pgaudit.log`
+  is `none` and `log_statement` is `ddl`, so function calls are not logged. Bound parameters are not
+  logged even on error (`log_parameter_max_length_on_error = 0`).
+- **The phone apps never write the database directly.** Neither app includes a Supabase database
+  library (code search, 2026-10-01), so step 07 cannot break them.
 - **Not run:**
   - against real Supabase Vault (the shim stores secrets unencrypted; shape only);
   - with real production data (synthetic seed shaped like production's counts);
   - against a restored production clone (that is the per-step staging gate);
   - the server's test suite against these tables (the server does not use them yet);
-  - pgaudit's logging of function arguments (§3, step 02);
   - the old `test-migrations` CI job on Postgres 17. Moving it to `supabase/postgres:17.6.1.111`
     failed to start the container and was reverted to 15.1.1.78 (handoff). The new `redo-rehearsal`
     job runs on Postgres 17 and passes in CI.
 
 ## 10. Rights and privacy notes
 
-- **League scoring rules are never stored** (A6). Projections are the provider's own numbers. ESPN and
-  Yahoo league-scoped projections are allowed by the schema but should not be written until the founder
-  makes the A6-equivalent call for projections (the slice starts on Sleeper).
+- **League scoring rules are never stored** (A6). Projections are the provider's own numbers.
+- **ESPN and Yahoo projections are kept, in their compartments** (founder, 2026-10-01). Every batch is
+  recorded with its rights basis, and one recorded call removes a provider entirely (§3).
 - **Account deletion removes everything person-owned:**
   - Vault secrets and connections (one transaction, or nothing);
   - memberships (cascade);
@@ -311,18 +338,22 @@ explainer may not show a statistic without one.
   Shared rows (`leagues`, `players`, projections) hold no personal data and stay.
 - **Export** gains `decisions`, `decision_actions` and `decision_outcomes` (code ticket).
 
-## 11. Founder decisions this needs
+## 11. Founder decisions
 
-1. **Confidence storage** (§6): band and drivers stored as issued, plus an internal number never shown.
-   This replaces Gate 1's read-time derivation.
-2. **The 6 Ledger rows with no league:**
-   - leave them hidden (today's behaviour);
-   - show them in a "league unknown" section; or
-   - backfill a league only where the person had exactly one connection at the time.
-3. **Account linking:** one person signing in with Apple and with Google gets two Omen accounts today.
-   Link them, or leave it.
-4. **ESPN / Yahoo projection retention** (§10).
-5. **Retirement list** (§5): approve deleting the superseded repo files and, later, the retired columns
-   and tables.
-6. **`beta_reports`:** approve the existing reviewed file through the same sequence. The report pill
-   cannot save anything until then.
+Decided 2026-10-01:
+
+1. **Confidence storage** (§6): confirmed.
+2. **The 6 Ledger rows with no league:** delete them (step 08, recorded, 30-day held copy).
+3. **Account linking:** wanted, "if possible". Minted as its own sprint item (`D6-AccountLinking`).
+   It needs research before design: how Supabase Auth links an Apple and a Google identity on native
+   iOS, and how two existing Omen accounts would be merged when the Ledger cannot be rewritten.
+4. **ESPN and Yahoo projections:** kept, in a recorded, deletable compartment (§3).
+5. **Retirement list:** approved; done (§5).
+
+Still open:
+
+6. **`beta_reports`** (the in-app "Report" button): explained to the founder 2026-10-01; awaiting a
+   yes or no.
+7. **Verification before production:** founder, 2026-10-01: "we need to verify everything before we
+   move anything to production." The open verifications and the approvals each needs are in
+   `Blueprints/handoffs/2026-10-01-database-redo.md`.

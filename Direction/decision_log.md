@@ -1,5 +1,27 @@
 # Omen Decision Log
 
+## 2026-10-01 (later) — founder decisions on the database redo
+
+- **Confidence:** band and drivers stored as issued, plus an internal number that is never shown.
+  Confirmed. This supersedes the Gate 1 read-time derivation.
+- **The 6 Ledger rows with no league are deleted.** The founder's reasons: "I don't think that's good
+  data. We can't solve who it owns."
+  - Step 08 deletes exactly 6 and refuses any other count.
+  - It records the deletion in `data_events`.
+  - It holds an exact copy for 30 days, then purges it, so the step can be undone in that window.
+- **Account linking is wanted, "if possible."** Minted as `D6-AccountLinking`, research first.
+- **ESPN and Yahoo projections are kept, compartmented.** Founder: "in a compartment where if it ever
+  comes down to it, we can delete it ... Everything got to be recorded. Everything got to be
+  traceable."
+  - Every stored batch is a `data_events` row with its rights basis and source hash.
+  - `projections_purge(provider, reason, approver)` removes a provider's compartment and records it.
+- **Old files are retired:** "I want a lot of old shit out of here. It just ends up confusing people."
+  - Superseded schema files and docs moved to `Archive/superseded-db-2026-10-01/` with a manifest.
+  - Applied SQL records now sit together in `sql/applied/`.
+- **Nothing moves to production until everything is verified** ("All these things that are not
+  verified need to be verified"). The verification list, and the approval each item needs, are in
+  `Blueprints/handoffs/2026-10-01-database-redo.md`.
+
 ## 2026-10-01 — the database is redone from the screens back; production's own history is the migration system
 
 - **Decisions (founder, in session):**
