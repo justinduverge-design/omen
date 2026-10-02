@@ -60,19 +60,32 @@ function parses(source) {
   }
 }
 
+const MAX_UNFOLD_SITES = 10;
+
 function literalNewlinesInLineComments(source) {
   const comments = [];
   parseJavaScript(source, comments);
   return comments
     .filter((c) => c.type === "Line" && /\\n\s*\S/.test(c.value))
     .filter((c) => {
-      // Unfold one `\n` at a time: the hidden code may carry its own intended `\n` escapes.
+      // Each `\n` is either a swallowed line break or an escape the hidden code meant to keep (inside
+      // its own string). Try every combination; any that parses means real code is commented out.
+      // Past MAX_UNFOLD_SITES, flag the comment for a human rather than guess.
       const comment = source.slice(c.start, c.end);
-      return [...comment.matchAll(/\\n/g)].some(({ index }) => {
-        if (!/\S/.test(comment.slice(index + 2))) return false; // nothing after it to hide
-        const unfolded = comment.slice(0, index) + "\n" + comment.slice(index + 2);
-        return parses(source.slice(0, c.start) + unfolded + source.slice(c.end));
-      });
+      const sites = [...comment.matchAll(/\\n/g)].map((m) => m.index);
+      // Unfolding only a trailing `\n` exposes nothing; a combination counts only if it breaks
+      // the line somewhere that leaves code after it.
+      const exposes = sites.reduce((bits, index, k) => (/\S/.test(comment.slice(index + 2)) ? bits | (1 << k) : bits), 0);
+      if (sites.length > MAX_UNFOLD_SITES) return true;
+      for (let mask = 1; mask < 2 ** sites.length; mask += 1) {
+        if (!(mask & exposes)) continue;
+        let unfolded = comment;
+        for (let k = sites.length - 1; k >= 0; k -= 1) {
+          if (mask & (1 << k)) unfolded = unfolded.slice(0, sites[k]) + "\n" + unfolded.slice(sites[k] + 2);
+        }
+        if (parses(source.slice(0, c.start) + unfolded + source.slice(c.end))) return true;
+      }
+      return false;
     })
     .map((c) => ({ line: c.loc.start.line, comment: `//${c.value}`.trim() }));
 }
@@ -98,6 +111,11 @@ test("the literal-\\n guard catches the shape it exists for and ignores strings"
   // The hidden code's own `\n` escapes must survive the unfold (Codex P2 on #515).
   const ownEscape = '// note.\\n const message = "a\\nb";\n';
   assert.deepEqual(literalNewlinesInLineComments(ownEscape).map((h) => h.line), [1]);
+
+  // A swallowed block spanning several literal `\n`s, mixed with an intended escape (Codex P2 on #515).
+  const block = '// note.\\n if (ok) {\\n log("a\\nb");\\n }\n';
+  assert.deepEqual(literalNewlinesInLineComments(block).map((h) => h.line), [1]);
+  assert.deepEqual(literalNewlinesInLineComments("// note.\\n work();\\n\n").map((h) => h.line), [1]);
 
   // A regex whose quote could open a fake string must not hide a later comment (Codex P2 on #515).
   for (const lead of ["function q() { return /['\"]/; }", "if (ok) /[\"]/.test(value);"]) {
