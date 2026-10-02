@@ -13,15 +13,18 @@
 -- Design:
 --   * Four columns on platform_connections: credential_state, last_verified_at, last_failure_code,
 --     last_failure_at. Existing rows get 'unknown' (true: nothing has been verified under this rule).
---   * Five functions, each ONE transaction, SECURITY DEFINER with a pinned search_path (Vault is not
---     reachable by service_role directly, which is why production's vault_* wrappers are also definer),
---     EXECUTE granted to service_role only. Supabase's default privileges grant EXECUTE on new public
+--   * Five functions, each ONE transaction, SECURITY DEFINER with a pinned search_path, EXECUTE granted
+--     to service_role only. Their job is atomicity (a secret and its pointer change together), not access
+--     control: verified 2026-10-01 on production and on a real Supabase project, service_role can read
+--     vault.decrypted_secrets directly, as Supabase grants by default. Clients (anon, authenticated)
+--     cannot reach Vault at all. The protection for stored cookies is that only the server holds the
+--     service key. Supabase's default privileges grant EXECUTE on new public
 --     functions to anon and authenticated; this file revokes that explicitly for each one.
 --   * New secrets are created with name = NULL, so the unique name index can never block a reconnect.
 --     The description carries the label. Existing named secrets are left as they are.
 --   * Secret values arrive as function arguments, exactly as with the existing vault_create_secret
---     wrapper; this adds no new exposure. Review item for Codex: confirm pgaudit's statement logging on
---     production does not capture function arguments (pgaudit is installed; its settings were not read).
+--     wrapper; this adds no new exposure. Verified 2026-10-01 on production's settings: pgaudit.log is
+--     'none', log_statement is 'ddl', and bound parameters are not logged even on error.
 --
 -- The server code does not call these yet. Wiring them in is a separate code change (design doc §8).
 

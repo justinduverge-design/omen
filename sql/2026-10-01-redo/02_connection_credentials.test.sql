@@ -67,11 +67,16 @@ begin
 end $$;
 
 -- If a secret cannot be deleted, revoke fails and leaves BOTH the row and the secrets in place.
-create function pg_temp.block_vault_delete() returns trigger language plpgsql as $$
-begin raise exception 'simulated vault failure'; end $$;
-create trigger block_vault_delete before delete on vault.secrets for each row execute function pg_temp.block_vault_delete();
+-- Simulated with a trigger on vault.secrets, which only a plain Postgres scratch database allows; on real
+-- Supabase (Vault owned by supabase_admin) this sub-test reports itself skipped rather than passing silently.
 do $$
 begin
+  if not has_table_privilege('vault.secrets', 'TRIGGER') then
+    raise notice 'SKIPPED 02: cannot simulate a Vault delete failure here (no TRIGGER privilege on vault.secrets)';
+    return;
+  end if;
+  execute 'create function pg_temp.block_vault_delete() returns trigger language plpgsql as $f$ begin raise exception ''simulated vault failure''; end $f$';
+  execute 'create trigger block_vault_delete before delete on vault.secrets for each row execute function pg_temp.block_vault_delete()';
   begin
     perform public.connection_revoke('00000000-0000-4000-8000-000000000002', 'espn');
     raise exception 'FAIL 02: revoke succeeded although Vault refused';
@@ -81,8 +86,8 @@ begin
   if not exists (select 1 from public.platform_connections where user_id = '00000000-0000-4000-8000-000000000002' and platform = 'espn') then
     raise exception 'FAIL 02: pointer was dropped although its secret could not be deleted';
   end if;
+  execute 'drop trigger block_vault_delete on vault.secrets';
 end $$;
-drop trigger block_vault_delete on vault.secrets;
 
 -- Yahoo refresh: only the caller that read the current expiry wins.
 do $$
@@ -110,6 +115,34 @@ begin
     raise exception 'FAIL 02: free-text failure code accepted';
   exception when check_violation then null;
   end;
+end $$;
+
+-- Clients can never reach Vault, directly or otherwise.
+do $$
+begin
+  if has_schema_privilege('anon', 'vault', 'usage') or has_schema_privilege('authenticated', 'vault', 'usage') then
+    raise exception 'FAIL 02: a client role can reach the vault schema';
+  end if;
+end $$;
+
+-- Real Supabase only: the server's role can store and revoke through the functions. It can ALSO read
+-- Vault directly (Supabase's default, verified on production 2026-10-01); that is recorded, not failed,
+-- because it is a property of the service key, not of this step.
+do $$
+declare cid uuid;
+begin
+  if has_table_privilege('vault.secrets', 'TRIGGER') then
+    return;  -- plain Postgres scratch: service_role there is a stand-in, so this check means nothing
+  end if;
+  set local role service_role;
+  cid := public.connection_store_espn('00000000-0000-4000-8000-000000000003', '100003', '5', 'svc-s2', '{SVC-SWID}');
+  if not public.connection_revoke('00000000-0000-4000-8000-000000000003', 'espn') then
+    raise exception 'FAIL 02: service_role could not revoke through the function';
+  end if;
+  if has_table_privilege('vault.decrypted_secrets', 'select') then
+    raise notice 'RECORDED 02: service_role can read vault.decrypted_secrets directly (Supabase default; protect the service key)';
+  end if;
+  reset role;
 end $$;
 
 rollback;

@@ -252,6 +252,7 @@ create view public.ledger_current_calls with (security_invoker = true) as
 
 -- Backfill from moves (copy; moves is untouched) --------------------------------------------------
 
+drop table if exists pg_temp.step05_backfill;
 create temporary table step05_backfill on commit drop as
 select m.*, l.id as new_league_id,
        coalesce(ms.provider_team_id, case when m.platform = 'sleeper' then pc.platform_user_id end) as new_team_id
@@ -305,6 +306,8 @@ begin
     raise exception 'step 05 backfill: % league-scoped moves could not be attributed to a followed league; stop and review', scoped - copied;
   end if;
 end $$;
+
+drop table pg_temp.step05_backfill;
 
 -- Privileges --------------------------------------------------------------------------------------
 

@@ -6,7 +6,7 @@ controls:
   - id: "CC6.1"
     name: "Encryption of Sensitive Credentials"
     description: "Verify Yahoo/ESPN tokens are stored in Supabase Vault"
-    evidence_path: "sql/omen_rls_security.sql"
+    evidence_path: "sql/2026-10-01-redo/00b_production_schema_snapshot.sql"  # production schema, proven equal to the catalog read 2026-10-01
     check: "contains('vault.secrets')"
 
 # 2. Right to Erasure (Article 17)

@@ -4,7 +4,7 @@
 --
 -- Review finding 9: `authenticated` holds INSERT and UPDATE on moves, users and consent_records (RLS
 -- limits it to the user's own rows). Native apps never write these tables directly — the server uses
--- service_role (2026-09-27 audit; not re-checked in code here, see the design doc's "not verified").
+-- service_role (verified 2026-10-01: neither app links a Supabase database library).
 -- But anyone holding their own session token can call the REST API and change their own calls'
 -- `followed`, `outcome` or `headline`, which makes "verified versus self-reported" forgeable.
 --

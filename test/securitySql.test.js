@@ -1,130 +1,97 @@
 "use strict";
 
+// Security and schema facts about PRODUCTION, checked against the read-only catalog read of production
+// (`sql/2026-10-01-redo/production-catalog-2026-10-01.json`), not against a hand-written setup script.
+//
+// Until 2026-10-01 these tests read `sql/omen_rls_security.sql`, which did not match production: they
+// asserted that `moves.result`, `moves.scored_at` and `users.updated_at` existed, and passed for months
+// while production had none of them (`Direction/2026-10-01-league-connections-review.md`, finding 10).
+// When production changes, refresh the fixture from a new read-only catalog read; these tests then say
+// exactly what changed.
+
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
 
 const root = path.join(__dirname, "..");
+const catalog = JSON.parse(fs.readFileSync(path.join(root, "sql", "2026-10-01-redo", "production-catalog-2026-10-01.json"), "utf8"));
 
-function readRepoFile(...parts) {
-  return fs.readFileSync(path.join(root, ...parts), "utf8");
+function columns(table) {
+  const spec = catalog.columns[table];
+  assert.ok(spec, `production has no table ${table}`);
+  return spec.split(", ").map((c) => c.split(":")[0]);
 }
 
-test("Supabase Vault RPCs are service-role only", () => {
-  const sql = readRepoFile("sql", "omen_rls_security.sql");
-  const vaultGrantLines = sql
-    .split(/\r?\n/)
-    .filter((line) => /grant execute on function public\.vault_/i.test(line));
+function acl(kind, name) {
+  const row = catalog.acls.find((a) => a.startsWith(`${kind}|${name}`));
+  assert.ok(row, `no ACL recorded for ${kind} ${name}`);
+  return row.split("|").pop();
+}
 
-  assert.ok(vaultGrantLines.length >= 4, "expected explicit Vault RPC grants");
-  assert.ok(
-    vaultGrantLines.every((line) => /\bto service_role\b/i.test(line)),
-    "Vault RPCs should only be granted to service_role"
-  );
-  assert.ok(
-    vaultGrantLines.every((line) => !/\bauthenticated\b/i.test(line)),
-    "authenticated users must not execute Vault RPCs directly"
-  );
-});
-
-test("platform_connections client grant excludes Vault secret identifiers", () => {
-  const sql = readRepoFile("sql", "omen_rls_security.sql");
-  const grantMatch = sql.match(
-    /grant select\s*\(([\s\S]*?)\)\s*on table public\.platform_connections to authenticated;/i
-  );
-
-  assert.ok(grantMatch, "expected a column-scoped platform_connections grant");
-  const grantedColumns = grantMatch[1].toLowerCase();
-
-  for (const secretColumn of [
-    "token_secret_id",
-    "refresh_secret_id",
-    "espn_secret_id",
-    "swid_secret_id",
-  ]) {
-    assert.equal(
-      grantedColumns.includes(secretColumn),
-      false,
-      `${secretColumn} must not be client-readable`
-    );
+test("Supabase Vault RPCs are executable by service_role only", () => {
+  const vault = catalog.acls.filter((a) => a.startsWith("func|vault_"));
+  assert.equal(vault.length, 4);
+  for (const row of vault) {
+    assert.match(row, /service_role=X/);
+    assert.doesNotMatch(row, /\b(anon|authenticated)=/, row);
   }
 });
 
-test("schema includes backend-owned columns used by active routes and workers", () => {
-  const sql = readRepoFile("sql", "omen_rls_security.sql");
+test("clients have no access to provider connections, so Vault ids are never client-readable", () => {
+  assert.doesNotMatch(acl("table", "platform_connections"), /\b(anon|authenticated)=/);
+});
 
-  for (const column of [
-    "swid_secret_id",
-    "scoring",
-    "platform",
-    "league_id",
-    "eff",
-    "result",
-    "scored_at",
-    "user_stars",
-    "user_note",
-    "push_token",
-    "updated_at",
-  ]) {
-    assert.match(sql, new RegExp(`\\b${column}\\b`, "i"));
+test("anon has no table privileges anywhere; authenticated only on users, moves, consent_records", () => {
+  for (const row of catalog.acls.filter((a) => a.startsWith("table|"))) {
+    assert.doesNotMatch(row, /\banon=/, row);
+    const table = row.split("|")[1];
+    if (/\bauthenticated=/.test(row)) {
+      assert.ok(["users", "moves", "consent_records"].includes(table), `unexpected client grant on ${table}`);
+    }
   }
-
-  assert.match(sql, /create or replace function public\.vault_delete_secret/i);
 });
 
-test("waitlist_signups permits writes only through the server service role", () => {
-  const sql = readRepoFile("sql", "omen_rls_security.sql");
-
-  assert.match(sql, /create table if not exists public\.waitlist_signups/i);
-  assert.match(sql, /alter table public\.waitlist_signups\s+enable row level security/i);
-  assert.match(sql, /drop policy if exists anon_insert on public\.waitlist_signups/i);
-  assert.match(sql, /drop policy if exists authenticated_insert on public\.waitlist_signups/i);
-  assert.match(sql, /revoke all on table public\.waitlist_signups from anon, authenticated;/i);
-  assert.match(sql, /grant select, insert, update, delete on table public\.waitlist_signups to service_role;/i);
-  assert.doesNotMatch(sql, /create policy anon_insert on public\.waitlist_signups/i);
-  assert.doesNotMatch(sql, /grant insert \(email, platform\) on table public\.waitlist_signups to anon, authenticated;/i);
+test("waitlist_signups is written only through the server", () => {
+  assert.doesNotMatch(acl("table", "waitlist_signups"), /\b(anon|authenticated)=/);
+  assert.equal(catalog.policies.filter((p) => p.startsWith("waitlist_signups|")).length, 0);
 });
 
-test("subscriptions table and is_subscribed column are dropped now that Stripe is removed", () => {
-  const sql = readRepoFile("sql", "omen_rls_security.sql");
-  const compactSql = sql.replace(/\s+/g, " ");
-
-  assert.match(compactSql, /drop table if exists public\.subscriptions cascade;/i);
-  assert.match(compactSql, /alter table public\.users drop column if exists is_subscribed;/i);
-  assert.doesNotMatch(sql, /create table if not exists public\.subscriptions/i);
+test("Stripe objects are gone", () => {
+  assert.equal(catalog.columns.subscriptions, undefined);
+  assert.equal(columns("users").includes("is_subscribed"), false);
 });
 
-test("profiles table supports self-only favorite_team preference", () => {
-  const sql = readRepoFile("sql", "omen_rls_security.sql");
-  const compactSql = sql.replace(/\s+/g, " ");
-
-  assert.match(sql, /create table if not exists public\.profiles/i);
-  assert.match(compactSql, /alter table public\.profiles add column if not exists favorite_team text;/i);
-  assert.match(sql, /alter table public\.profiles\s+enable row level security/i);
-  assert.match(compactSql, /create policy profiles_self_select on public\.profiles for select to authenticated using \(\(select auth\.uid\(\)\) = user_id\);/i);
-  assert.match(compactSql, /create policy profiles_self_insert on public\.profiles for insert to authenticated with check \(\(select auth\.uid\(\)\) = user_id\);/i);
-  assert.match(compactSql, /create policy profiles_self_update on public\.profiles for update to authenticated using \(\(select auth\.uid\(\)\) = user_id\) with check \(\(select auth\.uid\(\)\) = user_id\);/i);
-  assert.match(sql, /grant select \(user_id, favorite_team\) on table public\.profiles to authenticated;/i);
-  assert.match(sql, /grant insert \(user_id, favorite_team\) on table public\.profiles to authenticated;/i);
-  assert.match(sql, /grant update \(favorite_team\) on table public\.profiles to authenticated;/i);
+test("columns the server reads exist in production", () => {
+  for (const column of ["swid_secret_id", "espn_team_id", "is_selected", "platform_user_id"]) {
+    assert.ok(columns("platform_connections").includes(column), `platform_connections.${column}`);
+  }
+  for (const column of ["scoring", "platform", "league_id", "eff", "user_stars", "user_note", "reconciliation_state"]) {
+    assert.ok(columns("moves").includes(column), `moves.${column}`);
+  }
+  assert.ok(columns("profiles").includes("favorite_team"));
 });
 
-test("moves table supports idempotent HITL feedback upsert", () => {
-  const sql = readRepoFile("sql", "omen_rls_security.sql");
-  const compactSql = sql.replace(/\s+/g, " ");
+test("known gaps: columns the server still references that production does not have", () => {
+  // Each one is a live defect, recorded in the 2026-10-01 review. When a redo step adds one, or a code
+  // change stops referencing it, update this list and the fixture together.
+  assert.equal(columns("moves").includes("result"), false, "moves.result now exists: update the review and this test");
+  assert.equal(columns("moves").includes("scored_at"), false, "moves.scored_at now exists: update the review and this test");
+  assert.equal(columns("users").includes("updated_at"), false, "users.updated_at now exists (step 01?): update this test");
+  assert.equal(catalog.columns.league_follows, undefined, "league_follows now exists: update this test");
+  assert.equal(catalog.columns.beta_reports, undefined, "beta_reports now exists: update this test");
+});
 
-  assert.match(compactSql, /alter table public\.moves add column if not exists followed boolean, add column if not exists user_stars integer, add column if not exists user_note text, add column if not exists outcome text default 'pending', add column if not exists eff integer;/i);
-  assert.match(sql, /create unique index if not exists idx_moves_user_week_unique on public\.moves\s+\(user_id, week_num, season\);/i);
-  assert.match(sql, /grant select, insert, update on table public\.moves to service_role;/i);
+test("moves feedback upsert has its unique key (one row per user per week: the flaw step 05 replaces)", () => {
+  assert.ok(catalog.indexes.some((i) => /idx_moves_user_week_unique ON public\.moves USING btree \(user_id, week_num, season\)/.test(i)));
 });
 
 test("compliance evidence manifest points at current Omen files", () => {
-  const manifest = readRepoFile("probo.yaml");
-
+  const manifest = fs.readFileSync(path.join(root, "probo.yaml"), "utf8");
   assert.match(manifest, /project:\s*"Omen"/);
-  assert.match(manifest, /sql\/omen_rls_security\.sql/);
+  assert.match(manifest, /sql\/2026-10-01-redo\/00b_production_schema_snapshot\.sql/);
   assert.match(manifest, /src\/routes\/userPrivacy\.js/);
+  assert.doesNotMatch(manifest, /sql\/omen_rls_security\.sql/);
   assert.doesNotMatch(manifest, /src\/omen_gdpr\.js/);
   assert.doesNotMatch(manifest, /ssffmvp_(rls_security|gdpr)\.js|ssffmvp_rls_security\.sql/);
 });

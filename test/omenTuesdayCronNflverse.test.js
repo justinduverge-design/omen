@@ -56,7 +56,7 @@ test("isDryRun is true only for the explicit no-write flag", () => {
 test("the A6 production compatibility migration adds every cron-read scoring field without rewriting rows", () => {
   const fs = require("node:fs");
   const path = require("node:path");
-  const sql = fs.readFileSync(path.join(__dirname, "..", "sql", "2026-08-26_a6_scoring_contract_production.sql"), "utf8");
+  const sql = fs.readFileSync(path.join(__dirname, "..", "sql", "applied", "2026-08-26_a6_scoring_contract_production.sql"), "utf8");
   for (const column of [
     "scoring text",
     "scoring_contract jsonb",

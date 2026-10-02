@@ -12,7 +12,7 @@ separately approves each production step (facts-of-record #8).
 - `Blueprints/specs/omen-projection-explainer-v1.md`
 - `Direction/2026-09-30-first-factor-experiment.md`
 - `Blueprints/rebuild/omen-call-slice-plan.md`
-- the Gate 1 blueprints in `Blueprints/rebuild/gate1/`
+- the Gate 1 blueprints (now retired to `Archive/superseded-db-2026-10-01/gate1/`)
 
 **SQL:** `sql/2026-10-01-redo/`. **Rehearsal:** `scripts/db/rehearse-redo.sh`, which also runs in CI
 as the `redo-rehearsal` job.
@@ -61,7 +61,7 @@ request; "DB" names the table; "computed" means server arithmetic on the other t
 | **Ledger, LedgerDegraded** | `moves-history.v2` | every call, followed or not, outcome, provenance | DB `ledger_current_calls` view + `decision_actions` + `decision_outcomes`, scoped by league |
 | **LedgerDetail, LedgerDetailDegraded** | `move-detail.v1` | snapshot as issued, evidence at the time, user action, observed outcome, scoring contract | DB `decisions` (snapshot, scoring contract fields), `decision_factors` (evidence at the time), `decision_actions`, `decision_outcomes` |
 | **Account** | `dashboard-summary.v1`, `user-export.v1`, `user-delete.v1` | connected leagues, export, delete | DB everything owned by the user; delete goes through `connection_revoke()` + `ledger_erase_user()` |
-| **ReportPill** | `beta-report.v1` | in-app report | DB `beta_reports`. The reviewed SQL `sql/2026-09-14_beta_reports_review.sql` was never applied, so its own approval is needed |
+| **ReportPill** | `beta-report.v1` | in-app report | DB `beta_reports` (redo step 09; founder yes, 2026-10-01). Missing in production today, so every report fails |
 
 ### What each contract's Ledger fields map to
 
@@ -189,22 +189,23 @@ historical roster, and the Ledger keeps the evidence it needs in `decision_facto
 | `consent_records`, `deletion_audit_log`, `oauth_state`, `waitlist_signups` | **keep** | — |
 | `league_office_*` (7) | **keep, out of scope.** The League Office feature store; the Gate 1 flag about its league-scoped uniqueness still stands | — |
 | *(never applied)* `league_follows` | **superseded** by `league_memberships` | — |
-| *(never applied)* `beta_reports` | **apply** the existing reviewed SQL. The report pill fails today without it | its own approval |
+| *(never applied)* `beta_reports` | **apply** as redo step 09 (founder yes, 2026-10-01): server-only, 30-day purge recorded in `data_events` | through the verification sequence |
 | *(never applied)* `football_intelligence_signals` | **wait**: scheme feature is paused | later |
 
 **Repo files that no longer describe anything real.** Retired 2026-10-01 with founder approval
-(moved to `Archive/superseded-db-2026-10-01/` with a manifest, so old citations still resolve):
+(moved to `Archive/superseded-db-2026-10-01/` with a manifest, so old citations still resolve). Applied
+SQL records moved to `sql/applied/`; reviewed-but-undecided files to `sql/pending/`:
 
-- `migrations/1790680789307_baseline.js` and `migrations/1790735188136_identity-unification.js`
+- `Archive/superseded-db-2026-10-01/migrations/1790680789307_baseline.js` and `Archive/superseded-db-2026-10-01/migrations/1790735188136_identity-unification.js`
   (WO-06): not production, and WO-06 is replaced by step 01.
-- `sql/omen_rls_security.sql`, which says "idempotent" but stops with an error if re-run; production
+- `Archive/superseded-db-2026-10-01/sql/omen_rls_security.sql`, which says "idempotent" but stops with an error if re-run; production
   history now lives in `supabase_migrations`.
-- `sql/2026-09-03_multi_league_follows_review.sql`
+- `Archive/superseded-db-2026-10-01/sql/2026-09-03_multi_league_follows_review.sql`
 - The Gate 1 `decisions` / `premises` / `user_actions` / `ledger_entries` designs in
-  `Blueprints/rebuild/gate1/schema-decisions-ledger.md`.
+  `Archive/superseded-db-2026-10-01/gate1/schema-decisions-ledger.md`.
 - The `league_scoring_*` and `roster_*` tables in `schema-football-core.md`, and the rest of the Gate 1
   schema set (`schema-blueprint.md`, `schema-identity-access.md`), which this design replaces.
-- `test/migrationIdentity.test.js`, the `test-migrations` CI job and the `migrate` npm script, which
+- `Archive/superseded-db-2026-10-01/test/migrationIdentity.test.js`, the `test-migrations` CI job and the `migrate` npm script, which
   existed only to run the files above.
 
 ## 6. Confidence: `NO_CALL` versus `coin_flip`, and number versus band
@@ -245,8 +246,9 @@ restored-clone rehearsal (the 2026-09-30 method) → verification → production
 | 04 | Players + crosswalk tables (empty) | none | drop tables | always (the D3 job is deterministic) |
 | 05 | Ledger + backfill (3 scoped moves copied; `moves` untouched) | medium: new write path | drop tables | **the server writes its first call here**; after that, export before rollback |
 | 06 | Projection snapshots + shadow log + `data_events` + provider purge | low | drop tables | the first logged week (cannot be re-created) |
+| 09 | `beta_reports` for the Report button, with a recorded 30-day purge | low: additive | drop table | the first saved report |
 | 08 | Delete the 6 unscoped `moves` rows: aborts unless exactly 6; recorded; held 30 days | medium: deletes data, by founder decision | restore from the held copies | 30 days, then the copies are purged by design |
-| later | Freeze `moves`; drop retired columns and tables; apply `beta_reports` | destructive | from export only | each needs its own approval |
+| later | Freeze `moves`; drop retired columns and tables | destructive | from export only | each needs its own approval |
 
 **The database alone does not fix the phone.** The server must move to these tables. Each move is
 its own code ticket, and none is part of this PR:
@@ -314,10 +316,12 @@ explainer may not show a statistic without one.
   logged even on error (`log_parameter_max_length_on_error = 0`).
 - **The phone apps never write the database directly.** Neither app includes a Supabase database
   library (code search, 2026-10-01), so step 07 cannot break them.
+- **Real Supabase (2026-10-02):** all nine steps pass on a real Supabase project with encrypted Vault,
+  real roles and default privileges. Every file loaded byte-identical. See the handoff, V1.
+- **Production's real data (2026-10-02):** all nine steps pass on a restored copy of last night's
+  backup on KVM1, with undo exact on real data and step 08's "exactly 6" guard holding. See the
+  handoff, V2.
 - **Not run:**
-  - against real Supabase Vault (the shim stores secrets unencrypted; shape only);
-  - with real production data (synthetic seed shaped like production's counts);
-  - against a restored production clone (that is the per-step staging gate);
   - the server's test suite against these tables (the server does not use them yet);
   - the old `test-migrations` CI job on Postgres 17. Moving it to `supabase/postgres:17.6.1.111`
     failed to start the container and was reverted to 15.1.1.78 (handoff). The new `redo-rehearsal`
@@ -325,6 +329,10 @@ explainer may not show a statistic without one.
 
 ## 10. Rights and privacy notes
 
+- **The service key can read every stored credential.** Verified 2026-10-02 on production:
+  `service_role` can read `vault.decrypted_secrets` directly (Supabase default); clients cannot reach
+  Vault. The credential functions provide atomicity, not access control. Protecting the service key is
+  what protects users' cookies.
 - **League scoring rules are never stored** (A6). Projections are the provider's own numbers.
 - **ESPN and Yahoo projections are kept, in their compartments** (founder, 2026-10-01). Every batch is
   recorded with its rights basis, and one recorded call removes a provider entirely (§3).
@@ -352,8 +360,7 @@ Decided 2026-10-01:
 
 Still open:
 
-6. **`beta_reports`** (the in-app "Report" button): explained to the founder 2026-10-01; awaiting a
-   yes or no.
+6. **`beta_reports`** (the in-app "Report" button): yes (2026-10-01). Step 09.
 7. **Verification before production:** founder, 2026-10-01: "we need to verify everything before we
    move anything to production." The open verifications and the approvals each needs are in
    `Blueprints/handoffs/2026-10-01-database-redo.md`.

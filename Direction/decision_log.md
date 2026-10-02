@@ -1,5 +1,24 @@
 # Omen Decision Log
 
+## 2026-10-02 — the redo is verified on real Supabase and on production's real data
+
+- **Real Supabase (V1).** Founder-approved: the throwaway project was woken, all nine steps were
+  rehearsed with their tests and undo through the Supabase connector, and the project was then
+  returned to its prior state and paused.
+  - Every SQL file loaded byte-identical (md5 per file).
+  - All nine steps passed.
+- **Production's real data (V2).** Founder-approved: the agent ran it on KVM1.
+  - Last night's backup was restored into an isolated Postgres with no network access.
+  - All nine steps went up and down with schema and data equal.
+  - Step 08 found exactly the 6 rows it was approved to delete.
+  - The copy was deleted.
+- **Finding (verified on production):** the service key can read every stored cookie directly; this is
+  Supabase's default. The step 02 comment that said otherwise was wrong and is corrected. Protecting
+  the key is the control (facts-of-record #13).
+- **Beta reports:** founder said yes; step 09 adds the table, server-only, with a recorded 30-day purge.
+- **Still before production:** Codex review, then a founder-approved order per step. Server code moves
+  onto the new tables in separate tickets (design §7).
+
 ## 2026-10-01 (later) — founder decisions on the database redo
 
 - **Confidence:** band and drivers stored as issued, plus an internal number that is never shown.
@@ -31,7 +50,7 @@
   - a scratch Postgres 17 is used for testing, both locally (Homebrew `postgresql@17`) and in CI;
   - read-only production catalog checks are approved (schema and anonymous counts only).
 - **Why:** production is the only true copy of the schema, and the repo's two schema sources (the
-  `migrations/` baseline and `sql/omen_rls_security.sql`) both disagree with it. Review:
+  `migrations/` baseline and `Archive/superseded-db-2026-10-01/sql/omen_rls_security.sql`) both disagree with it. Review:
   `Direction/2026-10-01-league-connections-review.md`.
 - **Design decisions made by the agent, recorded for review** (`Blueprints/rebuild/omen-database-redo-v1.md`):
   - the Ledger stores one call per **team** per week; a re-ask supersedes and both are kept;

@@ -293,27 +293,4 @@ begin
   delete from vault.secrets where id = secret_id;
 end $$;
 
--- ACLs exactly as production (2026-10-01) ----------------------------------------------------------
-
-do $$
-declare t text;
-begin
-  foreach t in array array['users','consent_records','deletion_audit_log','league_office_accolades',
-    'league_office_awards','league_office_executives','league_office_lines','league_office_matchups',
-    'league_office_rivalries','league_office_sync_jobs','moves','oauth_state','platform_connections',
-    'profiles','waitlist_signups']
-  loop
-    execute format('revoke all on table public.%I from anon, authenticated', t);
-    execute format('grant all on table public.%I to service_role', t);
-  end loop;
-end $$;
-grant select, insert, update on public.users, public.moves, public.consent_records to authenticated;
-
-revoke all on function public.vault_create_secret(text, text, text) from public, anon, authenticated;
-revoke all on function public.vault_decrypt_secret(uuid) from public, anon, authenticated;
-revoke all on function public.vault_update_secret(uuid, text) from public, anon, authenticated;
-revoke all on function public.vault_delete_secret(uuid) from public, anon, authenticated;
-grant execute on function public.vault_create_secret(text, text, text) to service_role;
-grant execute on function public.vault_decrypt_secret(uuid) to service_role;
-grant execute on function public.vault_update_secret(uuid, text) to service_role;
-grant execute on function public.vault_delete_secret(uuid) to service_role;
+-- ACLs: in 00d_production_acls.sql (separate so a restored backup, which drops privileges, can re-apply them).
