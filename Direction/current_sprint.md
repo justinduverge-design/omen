@@ -1069,6 +1069,8 @@ signatures in `tradeValue.js` before either PR, don't let both sessions modify i
 ### T4-SavedTradeQueue — Saved trade queue with tracked outcomes
 
 - **Status:** READY
+- **PR:** #519, open, not mergeable yet (2026-10-02). Rebased from the never-pushed `feat/t4-saved-trade-queue`. Codex: lost saves (one Redis blob per user), stores no trade data, staleness ignores the actual players, one roster read per item.
+- **Blocked by:** redo step 12, saved-trades table (`Blueprints/handoffs/2026-10-02-prep-for-production-brief.md`). Save-data decision made: the server remembers every candidate `/api/trade/find` returns and resolves a save from it (`Direction/decision_log.md` 2026-10-02).
 - **Blocked by:** TASK-T2-FindATradeGenerator — needs the reasoning payload.
 - **Blocked by:** TASK-T3-SwipeCandidateReview — needs the save-action interaction to hook into.
 - **Priority:** P3

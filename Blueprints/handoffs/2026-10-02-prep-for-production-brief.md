@@ -61,7 +61,12 @@ Each item is its own PR with tests, reviewed by Codex.
     - **Not erased.** `account_erase()` and data export do not know about it. The table has a foreign key to `users` with cascade (or a line in `account_erase()`), and export includes it.
   - Columns from the T4 record: candidate id, reasoning (verbatim from first save), state `saved`/`sent`, outcome `accepted`/`rejected`/`countered`/null (self-report only), saved/sent/outcome timestamps, and the trade itself (see the open decision below). RLS: owner only; server writes.
   - Up/down/test, then rehearse. Backfill: none (no app calls the endpoint yet; nothing in Redis to move).
-  - **Not fixed by the table (founder decision needed before #519 can merge):** T3's save button sends only `candidate_id` and `reasoning`, so no players, sides or league are stored, and staleness checks only position need. Either the app's save sends the full candidate, or the server keeps the `/api/trade/find` results so it can look the candidate up. Then staleness compares the actual players and both rosters.
+  - **Decided (founder, 2026-10-02): the server remembers every trade it shows, not only the best.** The save button still sends only `candidate_id` and `reasoning`, so the table needs a second piece:
+    - Each `/api/trade/find` response's candidates (at most `MAX_CANDIDATES_RETURNED` = 10) are kept server side, per user, with players, both teams, provider, league, season and week. Short-lived (match the find cache, 15 min, or longer if the founder prefers); never shown to anyone but that user.
+    - On save, the server looks the candidate up in the caller's own kept batch and writes the full trade into the saved-trades row. No iPhone change.
+    - Batch expired or id not found: the save returns `{status: "error"}` with a code the app can turn into "refresh the search". Never a save with missing trade data.
+    - Staleness then compares the saved players and both rosters, not only position need.
+    - Not "best only": the review screen saves whichever card is swiped (`TradeFindReviewViewModel.save()`), so keeping only the top candidate would fail most saves.
   - Also on #519, not database: `GET /api/trade/saved` reads the roster once per item; group by league/week.
 
 ### 3. Tape the edges: compatibility check per step
