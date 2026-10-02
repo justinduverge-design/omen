@@ -4191,3 +4191,23 @@ on the second one.
   field (`Blueprints/specs/omen-projection-explainer-v1.md`).
 - **Open design items:** crimson `#7E1717` is 1.39:1 on the card (invisible), so the proposal uses a
   lighter `#B23A3A` hatch — needs a token decision; first use of Verdigris in the app.
+
+## 2026-10-02 — Trade-finder cache is scoped to the user, Sleeper included (#516)
+
+- **Decision:** every `tradeFindCache` key starts with the authenticated user id:
+  `${userId}:${platform}:${leagueId}:${week}` (`src/routes/trade.js`, `tradeFindCacheKey`).
+- **Why:** `GET /api/trade/find` reads the cache before the provider roster read, and that read is
+  the only league-ownership check (it uses the caller's own ESPN/Yahoo credentials). With the old
+  key, any signed-in user who named another user's private league id got that user's warm roster
+  bundle. Reported by Codex on #474; listed as "fix first" in
+  `Direction/reviews/2026-10-02-codex-review-compilation.md`.
+- **Sleeper too:** Sleeper leagues are public, so sharing their entries would not leak anything. They
+  are scoped the same way so the rule has no exceptions. Cost: two users in one league each warm
+  their own entry.
+- **Alternative not taken:** verify league ownership before honouring a hit. It needs a membership
+  read per request, which is the cost the cache exists to avoid.
+- **Left as is:** adapter caches keyed by league or team, not user (`ssff:espn:scoring:*`,
+  `ssff:espn:lastresult:*`, `ssff:yahoo:lastresult:*`). Today they only receive league ids from the
+  caller's stored connection, so nothing leaks. They would leak the same way if a route ever passed
+  them a league id from the request. `responseCache` (#513) already puts the user id in every key.
+
