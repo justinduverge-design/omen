@@ -12,8 +12,14 @@ merges, and approves each production step separately.
   stored versus read live; kept, changed and retired; migration plan; founder decisions (§11).
 - **SQL, review-only:** `sql/2026-10-01-redo/`. Steps 01-07, each with up, down and test files, plus
   scratch-only shim, production snapshot and seed.
-- **Rehearsal:** `scripts/db/rehearse-redo.sh` + `scripts/db/catalog.js`. CI job `redo-rehearsal`.
-  The old migration job now runs on `supabase/postgres:17.6.1.111` (production's version).
+- **Rehearsal:** `scripts/db/rehearse-redo.sh` + `scripts/db/catalog.js`. CI job `redo-rehearsal` runs on
+  `postgres:17` and **passed in CI** (run 36946432760).
+- **The old `test-migrations` job stays on Postgres 15.** Moving it to `supabase/postgres:17.6.1.111`
+  failed: the container never became healthy, because the image's init could not authenticate as
+  `supabase_admin` with this job's `POSTGRES_USER=postgres` env (run 36946432760). It was reverted
+  rather than tuned blind; Docker was not available to test the image locally. That job exercises the
+  superseded node-pg-migrate files, so this is low priority: fix the env, or retire the job with those
+  files (design §5).
 
 ## What Codex should check hardest
 
@@ -37,7 +43,7 @@ merges, and approves each production step separately.
 - real production data;
 - a restored-clone rehearsal;
 - the server using these tables (no code moved yet; design §7 lists the seven code tickets);
-- the old `test-migrations` job on the Supabase 17 image (first run is this PR's CI).
+- the old `test-migrations` job on a Postgres 17 image (attempted, reverted; see above).
 
 ## Next steps, in order
 

@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: supabase/postgres:17.6.1.111  # production's exact version (read 2026-10-01); was 15.1.1.78
+        image: supabase/postgres:15.1.1.78  # 17.6.1.111 (production's version) fails to start with this job's env; follow-up in Blueprints/handoffs/2026-10-01-database-redo.md
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: password

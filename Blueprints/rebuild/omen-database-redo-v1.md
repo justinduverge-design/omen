@@ -292,8 +292,9 @@ explainer may not show a statistic without one.
   - against a restored production clone (that is the per-step staging gate);
   - the server's test suite against these tables (the server does not use them yet);
   - pgaudit's logging of function arguments (§3, step 02);
-  - the old `test-migrations` CI job on `supabase/postgres:17.6.1.111` (changed from 15.1.1.78, as D2
-    requires; the PR's CI run is its first test).
+  - the old `test-migrations` CI job on Postgres 17. Moving it to `supabase/postgres:17.6.1.111`
+    failed to start the container and was reverted to 15.1.1.78 (handoff). The new `redo-rehearsal`
+    job runs on Postgres 17 and passes in CI.
 
 ## 10. Rights and privacy notes
 
