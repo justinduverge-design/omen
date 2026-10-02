@@ -378,7 +378,8 @@ async function runJob(job) {
     if (topPerformer) log("top performer stored", { league_id: job.league_id, season: job.season, week: completedWeek, player_id: topPerformer.player_id });
     const transactionAwards = await persistTransactionAwards(job, completedWeek, credentials, completedMatchups);
     log("transaction awards stored", { league_id: job.league_id, season: job.season, week: completedWeek, pickup_player_id: transactionAwards.pickup.player_id, drop_player_id: transactionAwards.drop.player_id });
-    // Slops Saloon regular season ends after Week 14; never let playoff weeks alter these $100 races.\n    await updateSeasonAccoladeLeaders(job, Math.min(completedWeek, 14));
+    // Slops Saloon regular season ends after Week 14; never let playoff weeks alter these $100 races.
+    await updateSeasonAccoladeLeaders(job, Math.min(completedWeek, 14));
     const line = await persistCurrentWeekLine(job, currentMatchups);
     log("primetime line stored", { league_id: job.league_id, season: job.season, week: job.week, game_id: line.game_id });
 

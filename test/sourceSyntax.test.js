@@ -33,3 +33,118 @@ test("all backend source files parse as JavaScript", () => {
 
   assert.equal(failures.join("\n\n"), "");
 });
+
+// A literal backslash-n in a line comment parses fine but swallows the code after it:
+// `// note.\n    await work();` never runs `work()`. This hid the season-accolade update in
+// league_office_sync_worker.js and an ESPN actuals fix in #466. `node --check` cannot see it.
+// Outside strings, `\n` in code is already a syntax error, so line comments are the only gap.
+function literalNewlinesInLineComments(source) {
+  const hits = [];
+  let i = 0;
+  let line = 1;
+  let prev = ""; // last significant code character, to tell regex literals from division
+  const templateDepth = []; // brace depth at each `${` so `}` can resume the template
+  let braceDepth = 0;
+
+  const skipQuoted = (quote) => {
+    i += 1;
+    while (i < source.length && source[i] !== quote) {
+      if (source[i] === "\\") i += 1;
+      else if (source[i] === "\n") line += 1;
+      i += 1;
+    }
+    i += 1;
+  };
+  const skipTemplate = () => {
+    while (i < source.length) {
+      const ch = source[i];
+      if (ch === "\\") { i += 2; continue; }
+      if (ch === "\n") line += 1;
+      if (ch === "`") { i += 1; return; }
+      if (ch === "$" && source[i + 1] === "{") {
+        i += 2;
+        templateDepth.push(braceDepth);
+        braceDepth += 1;
+        return;
+      }
+      i += 1;
+    }
+  };
+
+  while (i < source.length) {
+    const ch = source[i];
+    const next = source[i + 1];
+    if (ch === "\n") { line += 1; i += 1; continue; }
+    if (/\s/.test(ch)) { i += 1; continue; }
+    if (ch === "/" && next === "/") {
+      const end = source.indexOf("\n", i);
+      const comment = source.slice(i, end === -1 ? source.length : end);
+      if (/\\n(?: {2,}|\t)\S/.test(comment)) hits.push({ line, comment: comment.trim() });
+      i = end === -1 ? source.length : end;
+      continue;
+    }
+    if (ch === "/" && next === "*") {
+      const end = source.indexOf("*/", i + 2);
+      const block = source.slice(i, end === -1 ? source.length : end + 2);
+      line += (block.match(/\n/g) || []).length;
+      i += block.length;
+      continue;
+    }
+    if (ch === "'" || ch === '"') { skipQuoted(ch); prev = "a"; continue; }
+    if (ch === "`") { i += 1; skipTemplate(); prev = "a"; continue; }
+    if (ch === "/" && (prev === "" || /[(,=:[!&|?{};+\-*%<>~^]/.test(prev))) {
+      // Regex literal.
+      i += 1;
+      let inClass = false;
+      while (i < source.length && source[i] !== "\n") {
+        if (source[i] === "\\") i += 1;
+        else if (source[i] === "[") inClass = true;
+        else if (source[i] === "]") inClass = false;
+        else if (source[i] === "/" && !inClass) break;
+        i += 1;
+      }
+      i += 1;
+      prev = "a";
+      continue;
+    }
+    if (ch === "{") braceDepth += 1;
+    if (ch === "}") {
+      braceDepth -= 1;
+      if (templateDepth.length && templateDepth[templateDepth.length - 1] === braceDepth) {
+        templateDepth.pop();
+        i += 1;
+        skipTemplate();
+        prev = "a";
+        continue;
+      }
+    }
+    prev = ch;
+    i += 1;
+  }
+  return hits;
+}
+
+test("no line comment contains a literal \\n that swallows the code after it", () => {
+  const failures = [];
+  for (const filePath of collectJavaScriptFiles(srcDir)) {
+    for (const hit of literalNewlinesInLineComments(fs.readFileSync(filePath, "utf8"))) {
+      failures.push(`${path.relative(root, filePath)}:${hit.line}  ${hit.comment}`);
+    }
+  }
+  assert.equal(failures.join("\n"), "");
+});
+
+test("the literal-\\n guard catches the shape it exists for and ignores strings", () => {
+  const bad = "async function f() {\n  // note.\\n  await work();\n}\n";
+  assert.deepEqual(literalNewlinesInLineComments(bad).map((h) => h.line), [2]);
+
+  const fine = [
+    'const a = "line one\\n  line two";',
+    "const b = 'x\\n  y'; // trailing comment",
+    "const c = `tpl ${\"\\n  z\"} // not a comment \\n  q`;",
+    "const d = /\\/\\/ x\\n  y/.test(s);",
+    "/* block \\n  text */",
+    "// a comment that mentions \\n at the end\\n",
+  ].join("\n");
+  assert.deepEqual(literalNewlinesInLineComments(fine), []);
+});
