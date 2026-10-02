@@ -14,8 +14,8 @@ What replaces them:
 |---|---|
 | `migrations/1790680789307_baseline.js` | node-pg-migrate baseline that did not match production; production never ran node-pg-migrate (no `pgmigrations` table) |
 | `migrations/1790735188136_identity-unification.js` | WO-06. Deletes unmatched users with no stop condition or copy, irreversible `down`, and not runnable on production. Replaced by redo step 01, which deletes nothing |
-| `test/migrationIdentity.test.js` | tested WO-06 |
-| `test/phase1SchemaReviewSql.test.js` | tested the 2026-06-12 review file below |
+| `test/migrationIdentity.test.js` | tested WO-06. No longer runs: `npm test` is scoped to `test/` (Codex review, #506) |
+| `test/phase1SchemaReviewSql.test.js` | tested the 2026-06-12 review file below; no longer runs, for the same reason |
 | `sql/omen_rls_security.sql` | claimed to be the idempotent source of truth; did not match production and would stop with an error if re-run (it enables RLS on tables it has just dropped) |
 | `sql/2026-09-03_multi_league_follows_review.sql` | never applied; replaced by `leagues` + `league_memberships` (redo step 03) |
 | `sql/2026-08-24_a6_full_league_scoring_contract_review.sql` | review draft; the applied version is `sql/applied/2026-08-26_a6_scoring_contract_production.sql` |

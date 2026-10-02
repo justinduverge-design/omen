@@ -130,7 +130,7 @@ over, `platform_connections.is_selected` and its single `league_id`.
 
 | Table | Purpose | Mutability |
 |---|---|---|
-| `decisions` | one row per issued call: league, team, season, week, call type, band + drivers (or why there is none), risk, headline, the recommendation exactly as served, scoring-contract fields, engine and contract version, issue time | append-only; a re-ask in the same week inserts a new row that **supersedes** the old one, and both are kept |
+| `decisions` | one row per issued call: league, team, season, week, call type, band + drivers (or why there is none), risk, headline, the recommendation exactly as served, scoring-contract fields, engine and contract version, issue time | append-only; a re-ask in the same week inserts a new row that **supersedes** the old one, and both are kept. **One call per team per week** (founder, 2026-10-02): the database allows exactly one first call per team-week, and each call can be superseded once, so there is always exactly one current call, even when two requests race |
 | `decision_factors` | evidence rows as they stood at issue time: label (Projected / Observed context / Could change this), kind, used, contribution (only if used), range, sample size, source, as-of, reason if not read | append-only |
 | `decision_actions` | what the person says they did; provenance explicit | the only mutable Ledger table |
 | `decision_outcomes` | Tuesday scoring: state, win/loss, provenance, reconciliation, effectiveness, summary | no row = pending; `data_incomplete` may be completed; `resolved` / `not_executed` are final; "verified" requires exact reconciliation |
@@ -145,7 +145,7 @@ Ledger rows **fails** instead of silently erasing history.
 | Table | Purpose | Mutability |
 |---|---|---|
 | `projection_snapshots` | provider projection as read: points and the raw **stat line**, scope public or league, content hash of the raw payload | append-only |
-| `projection_shadow_log` | provider projection beside Omen's read per player-week (Omen's read null until an engine exists) | append-only; one row per player-week per engine version |
+| `projection_shadow_log` | provider projection beside Omen's read per player-week (Omen's read null until an engine exists) | append-only; one row per player-week per **league** per engine version. Provider, player, week, league and the provider's number are copied from the cited snapshot, never taken on the writer's word |
 | `data_events` | the record of every batch stored in a compartment and every purge or retirement: when, which job, source hash, rights basis, row count, and for deletions the reason and approver | append-only, never deleted |
 
 **Compartments (founder, 2026-10-01).** ESPN's exact projections are kept, "in a compartment where if
@@ -247,6 +247,7 @@ restored-clone rehearsal (the 2026-09-30 method) → verification → production
 | 05 | Ledger + backfill (3 scoped moves copied; `moves` untouched) | medium: new write path | drop tables | **the server writes its first call here**; after that, export before rollback |
 | 06 | Projection snapshots + shadow log + `data_events` + provider purge | low | drop tables | the first logged week (cannot be re-created) |
 | 09 | `beta_reports` for the Report button, with a recorded 30-day purge | low: additive | drop table | the first saved report |
+| 10 | `account_erase()`: the whole account in one transaction (secrets, connections, Ledger, moves, consent, OAuth state; reports and held rows cascade), audit row written | low: additive function | drop function | always |
 | 08 | Delete the 6 unscoped `moves` rows: aborts unless exactly 6; recorded; held 30 days | medium: deletes data, by founder decision | restore from the held copies | 30 days, then the copies are purged by design |
 | later | Freeze `moves`; drop retired columns and tables | destructive | from export only | each needs its own approval |
 
@@ -261,8 +262,9 @@ its own code ticket, and none is part of this PR:
    re-enabled before it.
 4. **Follows and selection.** They call `league_follows_replace()` / `league_select_active()`, and
    `follow_persistence` becomes `"explicit"`.
-5. **Connect, disconnect, Yahoo refresh and account deletion.** They call `connection_*()` and
-   `ledger_erase_user()`.
+5. **Connect, disconnect, Yahoo refresh and account deletion.** Connect, disconnect and Yahoo refresh call
+   `connection_*()`. Account deletion calls `account_erase()` (step 10), one transaction, then deletes
+   the Auth account.
 6. **Export.** Drop the nonexistent `moves.feature` / `moves.updated_at` from the select (a code bug,
    not a schema gap).
 7. **Startup schema check.** Expected objects versus `information_schema`; `/api/ready` degraded on
@@ -336,12 +338,16 @@ explainer may not show a statistic without one.
 - **League scoring rules are never stored** (A6). Projections are the provider's own numbers.
 - **ESPN and Yahoo projections are kept, in their compartments** (founder, 2026-10-01). Every batch is
   recorded with its rights basis, and one recorded call removes a provider entirely (§3).
-- **Account deletion removes everything person-owned:**
-  - Vault secrets and connections (one transaction, or nothing);
+- **Account deletion removes everything person-owned in ONE transaction** (`account_erase()`, step 10;
+  Codex review, #505):
+  - Vault secrets and connections, refusing to continue if any secret is missing;
   - memberships (cascade);
-  - the whole Ledger (`ledger_erase_user`);
-  - consent;
-  - the `users` row.
+  - the whole Ledger;
+  - legacy moves, consent and OAuth state;
+  - beta reports and held retired rows (cascade);
+  - the `users` row, with the hash-only audit row written.
+
+  All of it happens, or none of it does.
 
   Shared rows (`leagues`, `players`, projections) hold no personal data and stay.
 - **Export** gains `decisions`, `decision_actions` and `decision_outcomes` (code ticket).

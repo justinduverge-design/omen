@@ -7,7 +7,7 @@
     "start": "node src/server.js",
     "dev": "node src/server.js",
     "cron": "node src/omen_tuesday_cron.js",
-    "test": "node --test",
+    "test": "node --test \"test/**/*.js\" \"test/**/*.mjs\"",
     "evals:validate": "node evals/slops-prompt-guard.mjs --validate",
     "evals:mock": "node evals/slops-prompt-guard.mjs",
     "contracts:record": "node scripts/contract-recorded.js record",
