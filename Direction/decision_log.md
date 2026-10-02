@@ -4231,3 +4231,16 @@ on the second one.
   `drop_league_office` after the code deploy stopped the worker; 29 rows discarded, no down
   migration. Record and evidence: `sql/applied/2026-10-02_drop_league_office.sql`. The redo's `00b`,
   `00d` and catalog fixture no longer name these tables and match a fresh production read.
+
+## 2026-10-02 — Saved trades: the server remembers every trade it shows (T4, #519)
+
+- **Decision (founder):** the server keeps each trade-finder batch (up to 10 candidates) per user and
+  resolves a save from it. The app keeps sending only `candidate_id` and `reasoning`.
+- **Why:** T3's save button sends no players or league, so a save could not be shown or checked
+  (Codex, #519). Server-side memory needs no iPhone change.
+- **Not "best only":** proposed first, then widened. The review screen saves whichever card is
+  swiped, so keeping only the top candidate would fail most saves. Ten small records per search is
+  the whole cost.
+- **Storage:** saved trades move to a table in redo step 12 (prep brief), which also fixes lost
+  saves and account erasure. #519 stays open until then.
+
