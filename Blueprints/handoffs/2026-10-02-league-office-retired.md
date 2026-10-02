@@ -35,7 +35,7 @@ source type, and flags comments with more than 10 sites for a human.
 - #515 merged before Codex reviewed its last two commits (a test-only fix and a merge of `main`).
   If Codex raises more guard edge cases, fix them in a small follow-up PR.
 - Truth Gate still reports 1102 P0. The count is inherited (identical on `main` before this work) and
-  none mention League Office, but under the close-out rule a P0 still blocks a clean close-out.
+  none mention League Office, but under the close-out rule a P0 still blocks a clean close-out. **Cleared later on 2026-10-02 (#520): Truth Gate PASS, 0 P0.**
 - `Direction/reviews/2026-10-02-codex-review-compilation.md` lists the League Office worker findings
   (#441, #463, and the line-381 comment bug). All are moot now that the worker is deleted.
-- **Close-out is BLOCKED, not done**, on the inherited Truth Gate P0s above (see the Done ledger row).
+- **Close-out is BLOCKED, not done**, on the inherited Truth Gate P0s above (see the Done ledger row). **Update, same day:** unblocked; see the clearance row appended to `Blueprints/done/LEDGER.md` (#520).
