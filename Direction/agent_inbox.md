@@ -24,7 +24,7 @@ really do it well."
 
 **Lane:** database: a Claude or Codex session only. Nothing is applied to production in this session.
 
-## Earlier pin — 2026-08-31: Beta Rework Wave 1 (superseded by the 2026-10-02 pin above)
+## Earlier pin — 2026-08-31: Beta Rework Wave 1 (replaced by the 2026-10-02 pin above)
 
 **Refreshed by Claude after the app-wide page workshop.** Product direction for every native screen
 now lives in `Blueprints/specs/mobile/omen-app-pages-workshop-v1.md`; Wave 1 is contracted in
