@@ -4226,7 +4226,8 @@ on the second one.
   `leagueOfficePlayersFromEspnData`, `fetchEspnLeagueOfficeTransactions`), their tests, and the
   weekly message template. `fetchEspnLeagueRosters` (Trade) is unaffected.
 - **Kept:** the literal-`\n` guard in `test/sourceSyntax.test.js`. It applies to all of `src/`.
-- **Not yet done:** the seven `league_office_*` tables are still in production. Dropping them is
-  destructive SQL, so it goes through the fact #8 sequence as its own approved order. The redo's
-  `00b` snapshot, catalog fixture and `00d` ACL list still name these tables and must be regenerated
-  after the drop.
+- **Tables dropped (same day):** the founder approved an outright drop ("drop it, its approved just
+  drop it"), choosing it over archive-first. Applied 23:12 UTC as migration `20261002231212`
+  `drop_league_office` after the code deploy stopped the worker; 29 rows discarded, no down
+  migration. Record and evidence: `sql/applied/2026-10-02_drop_league_office.sql`. The redo's `00b`,
+  `00d` and catalog fixture no longer name these tables and match a fresh production read.

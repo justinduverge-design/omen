@@ -187,7 +187,7 @@ historical roster, and the Ledger keeps the evidence it needs in `decision_facto
 | `moves` | **frozen, then retired.** The 3 league-scoped rows are copied into the Ledger (step 05). The 6 without a league are **deleted** (founder, 2026-10-01: "we can't solve who it owns"), recorded and held 30 days (step 08) | freeze after the server writes `decisions`; drop only with approval |
 | `profiles` | **retire** (0 rows; favourite team feeds team theming, which is postponed by fact #19) | separate approval |
 | `consent_records`, `deletion_audit_log`, `oauth_state`, `waitlist_signups` | **keep** | — |
-| `league_office_*` (7) | **keep, out of scope.** The League Office feature store; the Gate 1 flag about its league-scoped uniqueness still stands | — |
+| `league_office_*` (7) | **dropped 2026-10-02.** League Office was retired; the founder approved an outright drop, applied as migration `20261002231212` (`sql/applied/2026-10-02_drop_league_office.sql`). The Gate 1 uniqueness flag is moot. Do not restore | done |
 | *(never applied)* `league_follows` | **superseded** by `league_memberships` | — |
 | *(never applied)* `beta_reports` | **apply** as redo step 09 (founder yes, 2026-10-01): server-only, 30-day purge recorded in `data_events` | through the verification sequence |
 | *(never applied)* `football_intelligence_signals` | **wait**: scheme feature is paused | later |
