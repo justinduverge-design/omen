@@ -87,7 +87,15 @@ follow-up PR:
 1. Codex review of the follow-up PR (read it **before** merging).
 2. Founder: decided 2026-10-01 (beta reports yes; V1 and V2 approved and done).
 3. Per step: a restored-clone rehearsal, then a founder-approved production order. Suggested order:
-   07, 01, 02, 03, 04, 05, 06, 08, 09, 10.
+   07, 01, 02, 03, 04, 06; then the account-deletion server change; then 05 and 10 back to back; then 08, 09.
+   - **Step 05 waits for the server change** (Codex, #508; confirmed 2026-10-02 against `main`). Once 05
+     is applied, the Ledger refuses a plain delete of anyone with a call. Today's `/api/user/delete`
+     erases secrets, connections and consent first, then fails on `users`, leaving a half-erased
+     account. The route must call `account_erase()` when it exists, keeping today's path when it does
+     not. Ship that, then apply 05 and 10 together. Step 10 needs 05, so it cannot go first.
+   - **Step 09 waits for a fix to the beta-report credential filter** (`src/routes/betaReports.js`).
+     It misses `ESPN S2 = <cookie>`.
+   - Full compilation of Codex's comments: `Direction/reviews/2026-10-02-codex-review-compilation.md`.
 4. Server code tickets (design §7), starting with the Ledger write path and Tuesday scoring, since
    scoring cannot be re-enabled before `decision_outcomes` exists and is written.
 5. D3 crosswalk job, then D4 (explanation-only data).
