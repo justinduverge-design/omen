@@ -25,6 +25,6 @@ PGHOST=127.0.0.1 PGPORT=54317 PGUSER=postgres scripts/db/rehearse-redo.sh
 
 CI runs the same thing as the `redo-rehearsal` job in `.github/workflows/migrations-ci.yml`.
 
-**If production gains a migration** after `20260930022039`, regenerate `00b` and the catalog fixture
+**If production gains a migration** after `20261002231212` (`drop_league_office`, 2026-10-02), regenerate `00b` and the catalog fixture
 from a fresh read-only catalog read before rehearsing any step. A stale snapshot rehearses against a
 database that no longer exists, and that is how the earlier outages happened.
