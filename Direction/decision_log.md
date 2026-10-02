@@ -4211,3 +4211,22 @@ on the second one.
   caller's stored connection, so nothing leaks. They would leak the same way if a route ever passed
   them a league id from the request. `responseCache` (#513) already puts the user id in every key.
 
+## 2026-10-02 — League Office retired: code removed now, tables dropped later under fact #8
+
+- **Decision:** the founder retired League Office, the weekly bulletin for the Slops Saloon ESPN
+  league (13338821). It was a personal side project and is not part of Omen.
+- **Why now:** a literal `\n` in a comment (`src/league_office_sync_worker.js:381`) had silently
+  disabled the season-accolade update, and the "Run Now" workflow reported green on failed jobs.
+  Five Codex findings on the worker were also open (#441 ×2, #463 ×3). Fixing it would have cost
+  more than the feature is worth.
+- **Removed in code:** the worker and its 5-minute cron line (`Dockerfile.cron`), the
+  `league-office-run-now` workflow, `scripts/league-office-diagnose.js`,
+  `src/services/leagueOfficeMessage.js`, the League Office-only ESPN adapter functions
+  (`fetchEspnLeagueWeek`, `leagueWeekFromEspnData`, `fetchEspnLeagueOfficePlayers`,
+  `leagueOfficePlayersFromEspnData`, `fetchEspnLeagueOfficeTransactions`), their tests, and the
+  weekly message template. `fetchEspnLeagueRosters` (Trade) is unaffected.
+- **Kept:** the literal-`\n` guard in `test/sourceSyntax.test.js`. It applies to all of `src/`.
+- **Not yet done:** the seven `league_office_*` tables are still in production. Dropping them is
+  destructive SQL, so it goes through the fact #8 sequence as its own approved order. The redo's
+  `00b` snapshot, catalog fixture and `00d` ACL list still name these tables and must be regenerated
+  after the drop.
