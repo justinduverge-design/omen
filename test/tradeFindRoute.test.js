@@ -243,3 +243,52 @@ test("GET /api/trade/find serves a second request from cache without re-reading 
   // must not fan out to the provider again.
   assert.equal(getSleeperCallCount(), 1, "cache hit must not re-read the provider roster");
 });
+
+test("GET /api/trade/find never serves one user's cached ESPN league bundle to another user", async () => {
+  // Codex on #474: the cache is read before the provider roster read, and that
+  // read is the only league-ownership check. User B names user A's private ESPN
+  // league id while A's bundle is warm; B must miss and go through B's own
+  // credentials, which B does not have.
+  const cache = createMemoryTradeFindCache();
+  let espnCallCount = 0;
+  const router = tradeRoutes.createTradeRouter({
+    authenticate: async (authorization) => ({ id: authorization === "Bearer a" ? "user-a" : "user-b" }),
+    nflWeekContext: () => ({ week: 3 }),
+    espnCredentials: async (userId) => {
+      if (userId !== "user-a") throw new Error("no ESPN connection");
+      return { espn_s2: "s2-a", swid: "{swid-a}" };
+    },
+    fetchEspnLeagueRosters: async () => {
+      espnCallCount += 1;
+      const fixture = sleeperFixture(2);
+      return {
+        roster_positions: fixture.roster_positions,
+        teams: fixture.teams.map((team) => ({ team_id: team.roster_id, team_name: team.team_name, players: team.players })),
+      };
+    },
+    tradeFindCache: cache,
+  });
+  const app = express();
+  app.use("/api/trade", router);
+
+  const path = "/api/trade/find?platform=espn&league_id=private-espn-1&team_id=1&week=3";
+
+  const ownerFirst = await get(app, path, { authorization: "Bearer a" });
+  assert.equal(ownerFirst.status, 200);
+  assert.equal(ownerFirst.body.cache.hit, false);
+  assert.ok(ownerFirst.body.candidates.length > 0);
+  assert.equal(espnCallCount, 1);
+
+  const intruder = await get(app, path, { authorization: "Bearer b" });
+  assert.equal(intruder.status, 200);
+  assert.equal(intruder.body.status, "unavailable");
+  assert.equal(intruder.body.reason, "provider_reauth_required");
+  assert.deepEqual(intruder.body.candidates, []);
+  assert.equal(intruder.body.cache, undefined, "user B must not receive user A's cache entry");
+  assert.equal(espnCallCount, 1, "user B has no ESPN credentials, so no provider read happens either");
+
+  // The owner's own repeat still hits — the fix scopes the cache, it does not disable it.
+  const ownerSecond = await get(app, path, { authorization: "Bearer a" });
+  assert.equal(ownerSecond.body.cache.hit, true);
+  assert.equal(espnCallCount, 1);
+});

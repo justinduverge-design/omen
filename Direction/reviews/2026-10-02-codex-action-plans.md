@@ -27,7 +27,7 @@ Nothing here has been changed. Each plan needs the founder's go-ahead before wor
 | H | Web app | Paused; decide keep or retire first | — |
 | I | Process: stop this happening again | Cheap, prevents a repeat | — |
 
-B1 (the trade cache) and the C bug (accolade update commented out) are already being fixed in two separate sessions the founder started on 2026-10-02.
+B1 (the trade cache) was fixed in #516 on 2026-10-02. The C bug (accolade update commented out) is being fixed in a separate session the founder started the same day.
 
 ---
 
@@ -51,7 +51,7 @@ B1 (the trade cache) and the C bug (accolade update commented out) are already b
 
 | | Problem | Evidence | Fix | Priority |
 |---|---|---|---|---|
-| B1 | Trade-finder cache is shared across users: another person's private rosters can be read | Codex #474. `src/routes/trade.js:724` key has no user id | Key by user id, plus a regression test | **In progress** (separate session) |
+| B1 | Trade-finder cache is shared across users: another person's private rosters can be read | Codex #474. `src/routes/trade.js:724` key has no user id | Key by user id, plus a regression test | **Fixed in #516** (2026-10-02) |
 | B2 | Yahoo routes return raw internal errors; the Yahoo diagnostic probe is open to every user | Codex #295, #296. `src/routes/yahoo.js:181,210,227,261` | Fixed messages in 5xx responses, detail kept server-side and sent to error tracking (#295 P2). Restrict or remove `/access-probe` | High |
 | B3 | Monitoring and logs can receive personal data | Codex #353 ×2, #355. Yahoo error body (`providerErrors.js:76`); Sleeper usernames and league ids in paths (`sleeper.js:11`); `Error` objects bypass the log scrubber (`logging.js`) | Drop the Yahoo body, or allowlist fields. Replace path ids with placeholders. Scrub `Error`/Axios objects | High |
 | B4 | Anyone can remove anyone's waitlist signup by email; an unsubscribed address can be re-added and emailed | Codex #269 ×2. `src/routes/waitlist.js:64` | Signed unsubscribe token; keep a suppression record | Medium |

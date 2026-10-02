@@ -29,7 +29,7 @@ These are on code that runs now. None blocks a database step, but several are pr
 
 | # | Where | What | Status on `main` |
 |---|---|---|---|
-| #474 | `src/routes/trade.js:724` | **Trade-finder cache is not tied to the user.** The cache key is `platform:league:week`. Anyone signed in who asks for the same league and week gets another person's cached private ESPN/Yahoo rosters, without provider access to that league. | **Still open. Security, fix first.** |
+| #474 | `src/routes/trade.js:724` | **Trade-finder cache is not tied to the user.** The cache key is `platform:league:week`. Anyone signed in who asks for the same league and week gets another person's cached private ESPN/Yahoo rosters, without provider access to that league. | **Fixed in #516** (2026-10-02): the key now starts with the user id; regression test in `test/tradeFindRoute.test.js`. |
 | #295 | `src/routes/yahoo.js:210,227,261` | 500 responses return the raw internal error message (database/RPC names) to the app. | Still open |
 | #296 | `src/routes/yahoo.js:181` | `/access-probe` (a diagnostic making 4 Yahoo calls each time) is open to any signed-in Yahoo user, not just the operator. | Still open |
 | #353 | `src/middleware/providerErrors.js:76` | Up to 500 characters of Yahoo's error body go to error tracking after keyword scrubbing; arbitrary vendor text can carry an email or token. | Still open |
@@ -163,7 +163,7 @@ Status: **checked** comments carry the verdict above; everything else is "not ch
 | #364 | `src/routes/trade.js:411` | Avoid verdict explanations for insufficient offers | checked (see above) |
 | #473 | `src/routes/trade.js:864` | Evaluate roster fit from each participant's roster | checked (see above) |
 | #473 | `src/routes/trade.js:898` | Return insufficient_data when any participant is unevaluable | checked (see above) |
-| #474 | `src/routes/trade.js:660` | Scope cached league bundles to the authenticated user | checked (see above) |
+| #474 | `src/routes/trade.js:660` | Scope cached league bundles to the authenticated user | fixed in #516 |
 | #474 | `src/routes/trade.js:710` | Provide starting slots for ESPN and Yahoo scans | checked (see above) |
 | #269 | `src/routes/waitlist.js:73` | Retain an unsubscribe suppression marker | checked (see above) |
 | #295 | `src/routes/yahoo.js:170` | Preserve production sanitization for Yahoo 500 responses | checked (see above) |
