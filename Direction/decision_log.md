@@ -125,6 +125,10 @@
   names columns production lacks and answers 503 `league_scope_unavailable` instead of 500. **That does not restore the Ledger;** it
   returns only after the review-only migration `sql/2026-09-29_moves_league_scope_review.sql` (adds nullable `platform`/`league_id`,
   no backfill) goes through the founder-gated sequence: approval, staging, verification, production.
+  **Correction 2026-10-01:** this line is stale. The migration *was* applied to production on 2026-09-30T02:20:39Z as Supabase migration
+  `moves_league_scope_platform_league_id` (see the 2026-09-30 entry above and the header of the SQL file). Verified 2026-10-01 by a
+  read-only catalog check: `moves.platform` and `moves.league_id` exist, 3 of 9 rows carry them. `result` and `scored_at` are still absent,
+  and the Tuesday cron still writes both (`Direction/2026-10-01-league-connections-review.md`, finding 2).
 - **Corrected claim.** An earlier note said Steward's journal was memory-only. It is persistent; the
   default cap was overrun by UFW LAN-broadcast noise. Retention is now `SystemMaxUse=300M`, one month.
 
