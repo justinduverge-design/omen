@@ -156,24 +156,88 @@ struct OmenApiClient {
     private func send<T: Decodable>(_ request: URLRequest, as type: T.Type) async -> Result<T, OmenApiError> {
         let data: Data
         let response: URLResponse
+        let started = Date()
         do {
             (data, response) = try await fetcher.data(for: request)
         } catch {
+            OmenRequestTiming.log(request, status: nil, since: started)
             return .failure(.network)
         }
 
         guard let http = response as? HTTPURLResponse else { return .failure(.network) }
+        OmenRequestTiming.log(request, status: http.statusCode, since: started)
 
         switch http.statusCode {
         case 200...299:
-            guard let decoded = try? JSONDecoder().decode(type, from: data) else {
+            do {
+                return .success(try JSONDecoder().decode(type, from: data))
+            } catch {
+                OmenDecodeDiagnostics.record(error)
                 return .failure(.decode)
             }
-            return .success(decoded)
         case 401, 403:
             return .failure(.unauthorized)
         default:
             return .failure(.server(status: http.statusCode))
         }
+    }
+}
+
+/// Remembers WHERE the last unreadable server response failed to decode, so a screen can say
+/// "missing `recommendation.player`" instead of a generic "update the app". It records the
+/// key path and the expected type only — never a value, so nothing a league or a user sent can
+/// leak into a screenshot or a report.
+enum OmenDecodeDiagnostics {
+    private static let lock = NSLock()
+    private static var last: String?
+
+    static var lastFailure: String? {
+        lock.lock(); defer { lock.unlock() }
+        return last
+    }
+
+    static func record(_ error: Error) {
+        let text = describe(error)
+        lock.lock(); last = text; lock.unlock()
+    }
+
+    static func clear() {
+        lock.lock(); last = nil; lock.unlock()
+    }
+
+    static func describe(_ error: Error) -> String {
+        guard let decoding = error as? DecodingError else { return "unreadable response" }
+        func path(_ context: DecodingError.Context, adding key: CodingKey? = nil) -> String {
+            var parts = context.codingPath
+            if let key { parts.append(key) }
+            let text = parts.map { $0.intValue.map { "[\($0)]" } ?? $0.stringValue }
+                .joined(separator: ".")
+                .replacingOccurrences(of: ".[", with: "[")
+            return text.isEmpty ? "the top level" : text
+        }
+        switch decoding {
+        case .keyNotFound(let key, let context):
+            return "missing \(path(context, adding: key))"
+        case .valueNotFound(let type, let context):
+            return "empty \(path(context)) (expected \(type))"
+        case .typeMismatch(let type, let context):
+            return "wrong type at \(path(context)) (expected \(type))"
+        case .dataCorrupted(let context):
+            return "not valid JSON at \(path(context))"
+        @unknown default:
+            return "unreadable response"
+        }
+    }
+}
+
+
+/// How long each Omen API call took, as one line per call in the device console:
+/// `[omen-timing] POST api/leagues/active 200 1840ms`. Path only: no query string, no headers, no
+/// body, so a token or a league id can never reach a log. Exists so lag is measured, not guessed.
+enum OmenRequestTiming {
+    static func log(_ request: URLRequest, status: Int?, since started: Date) {
+        let ms = Int(Date().timeIntervalSince(started) * 1000)
+        let path = request.url?.path ?? "?"
+        NSLog("[omen-timing] %@ %@ %@ %dms", request.httpMethod ?? "GET", path, status.map(String.init) ?? "network-error", ms)
     }
 }

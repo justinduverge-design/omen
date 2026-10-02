@@ -567,7 +567,8 @@ number of pointed contract changes plus a governance amendment — not a build-o
 - **Unblock:** 2026-10-01 CLEARED — founder decided band storage, the 6 unscoped rows (deleted, step 08), projection retention (compartmented), the retirement list (done) and account linking (`D6-AccountLinking`).
 - **Unblock:** 2026-10-01 CLEARED — founder: beta_reports yes (step 09); verification approved (throwaway Supabase project; restored-clone run on KVM1 by the agent).
 - **Evidence (2026-10-02):** verified on real Supabase (V1) and on a restored copy of production on KVM1 (V2); see `Blueprints/handoffs/2026-10-01-database-redo.md`.
-- **Blocked by:** AGENT_RESOLVABLE — Codex reviews PRs #503, #505, #506 (the building session must not sign them off).
+- **Merged 2026-10-02 by the founder:** #503 into `main`; #505 and #506 merged into their stacked parent branches, not `main`, so the redo reached `main` through a follow-up PR from `claude/db-retire-old`.
+- **Blocked by:** AGENT_RESOLVABLE — Codex reviews the redo on `main` (the building session must not sign it off).
 - **Blocked by:** FOUNDER_APPROVAL — a production order per step, after review.
 - **Priority:** P0 — gates D3, D4 and the first production order for the shadow log.
 - **Cost:** medium
@@ -1304,6 +1305,26 @@ signatures in `tradeValue.js` before either PR, don't let both sessions modify i
 - **Unblock:** 2026-08-28 REASSESSED — **the Yahoo half is now dischargeable.** The 2026-08-24 entry above recorded it blocked on an entitlement that was not restored; Yahoo granted access on 2026-08-28 and a fresh token was minted and accepted mid-call (`P1-YahooReauth`). Per the 2026-08-11 entry, that discharges the Yahoo portion **only if the old `token_secret_id` is retired rather than left orphaned** — that retirement is not yet evidenced and is the remaining Yahoo work. **The Apple `.p8` half is unchanged and still needs the founder at the Windows machine.**
 - **Done when:** any credential that touched local branch work is rotated or explicitly cleared as never-exposed, with the decision recorded.
 - **Do not touch:** credential values in any written record.
+
+### S9 — Key and credential security pass (where every key lives, who can read it, what it unlocks)
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P1 — founder, 2026-10-02: "at a later time we need to do a security pass for things just like those keys." Not pinned; pull when the founder schedules it.
+- **Cost:** medium
+- **Agent-buildable:** inventory, the threat note and the checklist; changing keys, dashboards and host env is founder-executed.
+- **Source:** the 2026-10-02 database verification found that the Supabase service key (`service_role`) can read every stored ESPN cookie and Yahoo token in plain text (`vault.decrypted_secrets`, Supabase default; verified on production, read-only). Clients cannot reach Vault. So that one key is as sensitive as every user's provider credentials combined (`Direction/2026-10-01-league-connections-review.md`, finding 6b).
+- **Scope:**
+  - **Inventory every secret** (names only, never values): Supabase service and anon keys, DB password, Yahoo client secret, Apple `.p8`, Discord, Resend, GlitchTip DSN, Upstash, Restic and backup credentials. For each: where it lives (KVM1 env files, containers, CI secrets, laptops), who and what can read it, what it unlocks, when it was last rotated.
+  - **Service key specifically:** confirm it exists only in the server's runtime env, not in CI logs, the web or native apps, local shells or old `.env.bak-*` files. Decide rotation cadence. Decide whether a narrower Postgres role for the API (no Vault access except through the credential functions) is worth it.
+  - **Backups:** they contain user data. Confirm who can decrypt the Restic repository.
+- **Relationship:** builds on `S1` (secrets present and scoped) and `S2` (rotate exposed credentials); does not replace them.
+- **Done when:**
+  - a written inventory exists with no values in it;
+  - each key has an owner location, a reader list and a rotation date;
+  - the service-key exposure is either reduced or explicitly accepted by the founder with reasons;
+  - findings are recorded under facts-of-record #13.
+- **Do not touch:** secret values in any written record, log or chat; production keys without the founder executing.
 
 ### S6 — KVM2 public Nginx exposure (`openclaw.slopssaloon.com`)
 
