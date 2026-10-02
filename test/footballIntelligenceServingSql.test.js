@@ -5,7 +5,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
 
-const sql = fs.readFileSync(path.join(__dirname, "..", "sql", "2026-09-26_football_intelligence_serving_review.sql"), "utf8");
+const sql = fs.readFileSync(path.join(__dirname, "..", "sql", "pending", "2026-09-26_football_intelligence_serving_review.sql"), "utf8");
 const compact = sql.replace(/\s+/g, " ");
 
 test("football-intelligence serving SQL is review-only and compact", () => {

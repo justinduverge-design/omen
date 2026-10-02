@@ -1,5 +1,72 @@
 # Omen Decision Log
 
+## 2026-10-02 — the redo is verified on real Supabase and on production's real data
+
+- **Real Supabase (V1).** Founder-approved: the throwaway project was woken, all nine steps were
+  rehearsed with their tests and undo through the Supabase connector, and the project was then
+  returned to its prior state and paused.
+  - Every SQL file loaded byte-identical (md5 per file).
+  - All nine steps passed.
+- **Production's real data (V2).** Founder-approved: the agent ran it on KVM1.
+  - Last night's backup was restored into an isolated Postgres with no network access.
+  - All nine steps went up and down with schema and data equal.
+  - Step 08 found exactly the 6 rows it was approved to delete.
+  - The copy was deleted.
+- **Finding (verified on production):** the service key can read every stored cookie directly; this is
+  Supabase's default. The step 02 comment that said otherwise was wrong and is corrected. Protecting
+  the key is the control (facts-of-record #13).
+- **Beta reports:** founder said yes; step 09 adds the table, server-only, with a recorded 30-day purge.
+- **Still before production:** Codex review, then a founder-approved order per step. Server code moves
+  onto the new tables in separate tickets (design §7).
+
+## 2026-10-01 (later) — founder decisions on the database redo
+
+- **Confidence:** band and drivers stored as issued, plus an internal number that is never shown.
+  Confirmed. This supersedes the Gate 1 read-time derivation.
+- **The 6 Ledger rows with no league are deleted.** The founder's reasons: "I don't think that's good
+  data. We can't solve who it owns."
+  - Step 08 deletes exactly 6 and refuses any other count.
+  - It records the deletion in `data_events`.
+  - It holds an exact copy for 30 days, then purges it, so the step can be undone in that window.
+- **Account linking is wanted, "if possible."** Minted as `D6-AccountLinking`, research first.
+- **ESPN and Yahoo projections are kept, compartmented.** Founder: "in a compartment where if it ever
+  comes down to it, we can delete it ... Everything got to be recorded. Everything got to be
+  traceable."
+  - Every stored batch is a `data_events` row with its rights basis and source hash.
+  - `projections_purge(provider, reason, approver)` removes a provider's compartment and records it.
+- **Old files are retired:** "I want a lot of old shit out of here. It just ends up confusing people."
+  - Superseded schema files and docs moved to `Archive/superseded-db-2026-10-01/` with a manifest.
+  - Applied SQL records now sit together in `sql/applied/`.
+- **Nothing moves to production until everything is verified** ("All these things that are not
+  verified need to be verified"). The verification list, and the approval each item needs, are in
+  `Blueprints/handoffs/2026-10-01-database-redo.md`.
+
+## 2026-10-01 — the database is redone from the screens back; production's own history is the migration system
+
+- **Decisions (founder, in session):**
+  - approved the redo plan;
+  - production's Supabase migration history (plain reviewed SQL files) owns the database from now
+    on, not node-pg-migrate, which production never ran;
+  - a scratch Postgres 17 is used for testing, both locally (Homebrew `postgresql@17`) and in CI;
+  - read-only production catalog checks are approved (schema and anonymous counts only).
+- **Why:** production is the only true copy of the schema, and the repo's two schema sources (the
+  `migrations/` baseline and `Archive/superseded-db-2026-10-01/sql/omen_rls_security.sql`) both disagree with it. Review:
+  `Direction/2026-10-01-league-connections-review.md`.
+- **Design decisions made by the agent, recorded for review** (`Blueprints/rebuild/omen-database-redo-v1.md`):
+  - the Ledger stores one call per **team** per week; a re-ask supersedes and both are kept;
+  - the band is stored **as issued** with its drivers, plus an internal number that is never served,
+    so Gate 1's "store the number" and the slice plan's "store the band" both hold and neither
+    derives the band at read time. **Awaiting founder confirmation.**
+  - `NO_CALL` is not a band;
+  - league scoring rules, rosters and standings are never stored;
+  - provider credentials change only through transactional functions;
+  - every new table and function revokes the client access Supabase grants by default.
+- **WO-06 is replaced, not applied.** Measured today it would delete no one (7 of 7 app users match a
+  sign-in account), but it has no stop condition, no copy, an irreversible `down`, and production
+  cannot run it. Step 01 links identities and deletes nothing.
+- **Founder approval of the projection explainer design (2026-10-01)** was reported in the session
+  brief and is recorded here because it was not in this log.
+
 ## 2026-09-30 — build the projection explainer; keep every feature to explain, none to adjust
 
 - **Decision (founder):** build the "why" feature: explain why a player is projected where he is, with scheme, role, route and matchup information (`Blueprints/specs/omen-projection-explainer-v1.md`, ticket `D5`). Keep all the football features.

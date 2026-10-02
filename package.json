@@ -10,7 +10,6 @@
     "test": "node --test",
     "evals:validate": "node evals/slops-prompt-guard.mjs --validate",
     "evals:mock": "node evals/slops-prompt-guard.mjs",
-    "migrate": "node-pg-migrate",
     "contracts:record": "node scripts/contract-recorded.js record",
     "contracts:check": "node scripts/contracts.js check && node scripts/contract-recorded.js check",
     "contracts:lock": "node scripts/contracts.js lock"
@@ -33,7 +32,6 @@
   "devDependencies": {
     "ajv": "^8.20.0",
     "impeccable": "^4.1.0",
-    "node-pg-migrate": "^9.0.0",
     "pg": "^8.23.0",
     "playwright-core": "^1.63.0"
   },

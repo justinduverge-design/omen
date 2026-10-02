@@ -10,7 +10,7 @@ This is the human-readable tracker for active `slops-saloon` security and privac
 
 - Compliance controls: `probo.yaml`
 - Security summary: `README.md`
-- Supabase RLS and Vault setup: `sql/omen_rls_security.sql`
+- Supabase schema, RLS and Vault wrappers as they are in production: `sql/2026-10-01-redo/00b_production_schema_snapshot.sql` (proven equal to the read-only catalog read in `sql/2026-10-01-redo/production-catalog-2026-10-01.json`). The old `sql/omen_rls_security.sql` did not match production and was retired 2026-10-01 to `Archive/superseded-db-2026-10-01/`.
 - GDPR/delete flow notes: `src/omen_gdpr.js (retired 2026-07-13) (**retired 2026-07-13** — see `Blueprints/handoffs/2026-07-13-orphaned-gdpr-module-retirement.md`)`
 - ESPN recovery privacy rules: `Omen\Blueprints\playbooks\espn-recovery.md`
 - Shared engineering decisions: `Blueprints/handoffs/decisions.md`

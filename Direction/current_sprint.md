@@ -559,16 +559,44 @@ number of pointed contract changes plus a governance amendment — not a build-o
 
 ### D2-SchemaForSlice — Schema additions and the confidence-band fix
 
-- **Status:** IN_PROGRESS
-- **Claim:** 2026-10-01 Claude — founder-directed database redo: league-connections review done (`Direction/2026-10-01-league-connections-review.md`); schema design from screens → contracts → tables next, after founder approval of the plan. Review-only SQL; nothing applied.
+- **Status:** READY — claim released 2026-10-01; the remaining clauses need another party.
+- **Claim (released):** 2026-10-01 Claude — founder-directed database redo. Done: league-connections review; design `Blueprints/rebuild/omen-database-redo-v1.md`; review-only SQL steps 01-07 in `sql/2026-10-01-redo/`; rehearsal `scripts/db/rehearse-redo.sh` + CI job `redo-rehearsal` on Postgres 17 (passed in CI run 36946432760). The old `test-migrations` job stays on Postgres 15: its move to the Supabase 17 image failed to start and was reverted (handoff).
+- **Evidence so far (not VERIFIED):** up → tests → down → up proven per step on scratch Postgres 17.11, with schema **and** data fingerprints; snapshot proven equal to production's catalog; 7 of 7 deliberate faults caught. Not met: Codex review; a second session's read; the server suite on the migrated schema (the server does not use these tables yet); a restored-clone rehearsal (each production step's own gate).
+- **Scope change:** `football_games`, `game_weather`, `player_week_features` and `defense_position_allowed` are deferred to `D4` (explanation-only after the factor experiment); see design §8.
 - **Owner lane:** database — a **Claude or Codex session only**. Jules and Muse never touch the database (founder, 2026-09-30, `Direction/decision_log.md`).
-- **Blocked by:** FOUNDER_APPROVAL — approve the Task B design plan before any SQL is drafted.
+- **Unblock:** 2026-10-01 CLEARED — founder decided band storage, the 6 unscoped rows (deleted, step 08), projection retention (compartmented), the retirement list (done) and account linking (`D6-AccountLinking`).
+- **Unblock:** 2026-10-01 CLEARED — founder: beta_reports yes (step 09); verification approved (throwaway Supabase project; restored-clone run on KVM1 by the agent).
+- **Evidence (2026-10-02):** verified on real Supabase (V1) and on a restored copy of production on KVM1 (V2); see `Blueprints/handoffs/2026-10-01-database-redo.md`.
+- **Merged 2026-10-02 by the founder:** #503 into `main`; #505 and #506 merged into their stacked parent branches, not `main`, so the redo reached `main` through a follow-up PR from `claude/db-retire-old`.
+- **Blocked by:** AGENT_RESOLVABLE — Codex reviews the redo on `main` (the building session must not sign it off).
+- **Blocked by:** FOUNDER_APPROVAL — a production order per step, after review.
 - **Priority:** P0 — gates D3, D4 and the first production order for the shadow log.
 - **Cost:** medium
 - **Ticket:** `T-S1` in `Blueprints/rebuild/omen-call-slice-plan.md` ("Database tickets"). Read its sections "Two design flaws" and "Schema additions" first.
 - **Scope:** migrations under `migrations/` (node-pg-migrate, one file per table, with `down`) for `players`, `player_provider_ids`, `football_games`, `game_weather`, `player_week_features`, `defense_position_allowed`, `decision_factors`, `projection_shadow_log`; change `decisions` to store `band`, `band_drivers`, `engine_version` as issued (score internal); RLS on every table; immutability triggers on `decision_factors`; change `migrations-ci.yml` to Postgres 17 (production is 17.6; CI runs 15).
 - **Done when:** up → down → up proven on a **scratch Postgres 17** with schema diffs; the full suite passes on the migrated schema; RLS and immutability are tested; Codex's PR review and a second session have read it; the PR lists what was not verified. **Production is a separate founder-approved bounded order.**
 - **Do not touch:** production, secrets, the unapplied WO-06 migration (held until it keeps a reversible copy of what it deletes).
+
+### D6-AccountLinking — One Omen account per person across Apple, Google, Discord and email
+
+- **Status:** READY
+- **Owner lane:** research and design first, any session; the database half is Claude or Codex only.
+- **Blocked by:** None for research. Turning on manual identity linking in Supabase Auth is a dashboard
+  setting: FOUNDER_APPROVAL at that point.
+- **Priority:** P2
+- **Source:** founder, 2026-10-01 ("account linking would be dope, if possible"). Today, signing in with
+  Apple (private relay email) and then with Google creates two separate Omen accounts with nothing
+  linking them (`Direction/2026-10-01-league-connections-review.md`, finding 13).
+- **Scope:**
+  - **Research (`pre-build-research`):** how Supabase Auth links a second identity to an existing user
+    from native iOS sign-in (Apple and Google), and what settings it needs.
+  - **Merging existing duplicates:** how to merge two Omen accounts that already exist. The new Ledger
+    cannot be rewritten, so a merge needs a recorded, approved path like step 08's.
+- **Done when:** a written design says how linking works on iOS, what changes in the database (likely
+  nothing for new links; a recorded merge function for existing duplicates), and which settings the
+  founder must change.
+- **Do not touch:** Auth settings or production without approval; never merge accounts by matching
+  email alone (Apple relay addresses differ by design).
 
 ### D3-PlayerCrosswalk — Canonical players and the provider crosswalk
 
@@ -673,7 +701,7 @@ own comment says is **a design-steward decision, not a build fix**, and therefor
 - **Evidence:** `GET /api/leagues` → `league-directory.v1`, `POST /api/leagues/active` → `league-active-selection.v1`, `src/services/activeSelection.js`, `test/leaguesDirectoryRoute.test.js` (21). Contracts in `Blueprints/api-routes.md`.
 - **Finding:** before this, three surfaces resolved "which league is active" three different ways — `omen.js` sleeper→espn→yahoo, `league.js` espn→sleeper→yahoo, `optimizer.js` Yahoo-only by `updated_at` — and none of them was the user's choice. All now use one resolver; behavior is unchanged for a user who has not chosen.
 - **Done when:** merged and deployed; a real switch is observed changing the surface a personalized route returns.
-- **Do not touch:** applying `sql/2026-08-26_league_selection_review.sql` — gated founder sequence.
+- **Do not touch:** applying `sql/applied/2026-08-26_league_selection_review.sql` — gated founder sequence.
 
 ### M9-BE-WaiverAnalysis — Backend for Waiver Analysis (§6)
 
@@ -1277,6 +1305,26 @@ signatures in `tradeValue.js` before either PR, don't let both sessions modify i
 - **Unblock:** 2026-08-28 REASSESSED — **the Yahoo half is now dischargeable.** The 2026-08-24 entry above recorded it blocked on an entitlement that was not restored; Yahoo granted access on 2026-08-28 and a fresh token was minted and accepted mid-call (`P1-YahooReauth`). Per the 2026-08-11 entry, that discharges the Yahoo portion **only if the old `token_secret_id` is retired rather than left orphaned** — that retirement is not yet evidenced and is the remaining Yahoo work. **The Apple `.p8` half is unchanged and still needs the founder at the Windows machine.**
 - **Done when:** any credential that touched local branch work is rotated or explicitly cleared as never-exposed, with the decision recorded.
 - **Do not touch:** credential values in any written record.
+
+### S9 — Key and credential security pass (where every key lives, who can read it, what it unlocks)
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P1 — founder, 2026-10-02: "at a later time we need to do a security pass for things just like those keys." Not pinned; pull when the founder schedules it.
+- **Cost:** medium
+- **Agent-buildable:** inventory, the threat note and the checklist; changing keys, dashboards and host env is founder-executed.
+- **Source:** the 2026-10-02 database verification found that the Supabase service key (`service_role`) can read every stored ESPN cookie and Yahoo token in plain text (`vault.decrypted_secrets`, Supabase default; verified on production, read-only). Clients cannot reach Vault. So that one key is as sensitive as every user's provider credentials combined (`Direction/2026-10-01-league-connections-review.md`, finding 6b).
+- **Scope:**
+  - **Inventory every secret** (names only, never values): Supabase service and anon keys, DB password, Yahoo client secret, Apple `.p8`, Discord, Resend, GlitchTip DSN, Upstash, Restic and backup credentials. For each: where it lives (KVM1 env files, containers, CI secrets, laptops), who and what can read it, what it unlocks, when it was last rotated.
+  - **Service key specifically:** confirm it exists only in the server's runtime env, not in CI logs, the web or native apps, local shells or old `.env.bak-*` files. Decide rotation cadence. Decide whether a narrower Postgres role for the API (no Vault access except through the credential functions) is worth it.
+  - **Backups:** they contain user data. Confirm who can decrypt the Restic repository.
+- **Relationship:** builds on `S1` (secrets present and scoped) and `S2` (rotate exposed credentials); does not replace them.
+- **Done when:**
+  - a written inventory exists with no values in it;
+  - each key has an owner location, a reader list and a rotation date;
+  - the service-key exposure is either reduced or explicitly accepted by the founder with reasons;
+  - findings are recorded under facts-of-record #13.
+- **Do not touch:** secret values in any written record, log or chat; production keys without the founder executing.
 
 ### S6 — KVM2 public Nginx exposure (`openclaw.slopssaloon.com`)
 
