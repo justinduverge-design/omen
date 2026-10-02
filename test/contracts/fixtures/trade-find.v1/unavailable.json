@@ -4,9 +4,9 @@
   "body": {
     "candidates": [],
     "contract_version": "trade-find.v1",
-    "league_id": "abc123",
-    "platform": "sleeper",
-    "reason": "league_not_active",
+    "league_id": "private-espn-1",
+    "platform": "espn",
+    "reason": "provider_reauth_required",
     "status": "unavailable",
     "week": 3
   }
