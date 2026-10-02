@@ -15,6 +15,29 @@
 - **Tracking:** `Direction/reviews/2026-10-02-codex-review-compilation.md` was only on PR #514's branch.
   It was copied to `main` in #516, with the cache row marked fixed.
 
+## Close-out status: BLOCKED
+
+Truth Gate fails with **1102 P0**. All are inherited: the result is identical on `main`, and 1096 are
+in the six sibling `slops-saloon/omen-*` clones (duplicate page ids). The other 6 are in `omen`
+and predate this work. A P0 blocks close-out with no exception for inherited findings, so #516 is
+**not** recorded as done (`Blueprints/done/LEDGER.md` says BLOCKED). Founder call: clear them (most
+likely by removing or archiving the stale sibling clones) or rule on them.
+
+## Procedure receipt
+
+- **Invoked by name:** `security-privacy-evidence` →
+  `Direction/reviews/2026-10-02-trade-find-cache-security-privacy-evidence.md`.
+- **Followed by hand, not invoked:** `slops-tdd` (regression test red on `main`, green with the fix);
+  `slops-git-flow` (explicit-path commits, one branch per PR).
+- **Considered and skipped:** `slops-code-review` and `rbac-risk-review` (Codex's automated PR review
+  was used; no findings on #516); `slops-investigate` (cause already known from the Codex finding).
+- **Evidence:** PR #516 (`e7677303`); `test/tradeFindRoute.test.js`; `npm test` 1541 pass, 0 fail; CI
+  green on the head commit; gate runs as above.
+- **Procedure gap:** the first close-out (#517 as first opened) marked `security-privacy-evidence` not
+  applicable and recorded the work as done despite the P0s. Codex caught both.
+- **Open:** whether any cross-account read actually happened is unknown. Needs a founder-gated
+  production log review (see the evidence note).
+
 ## Review
 
 Codex reacted 👍 to #516 with no inline comments. CI: all four checks green on the head commit.
