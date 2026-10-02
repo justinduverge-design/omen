@@ -2,6 +2,7 @@
 
 const express = require("express");
 const { createClient } = require("@supabase/supabase-js");
+const responseCache = require("../services/responseCache");
 const config = require("../config");
 const { requireAuth } = require("../middleware/auth");
 const { logger } = require("../middleware/logging");
@@ -439,12 +440,17 @@ async function enrichWithLlm(response, body, options) {
   return response;
 }
 
-async function liveOmenResult(req, trace) {
+async function liveOmenResult(req, trace, preAuth = null) {
   let user;
-  try {
-    user = await authenticateOmenRequest(req.headers.authorization);
-  } catch (e) {
-    return authRequiredMvpResponse(e.message);
+  if (preAuth?.error) return authRequiredMvpResponse(preAuth.error.message);
+  if (preAuth?.user) {
+    user = preAuth.user;
+  } else {
+    try {
+      user = await authenticateOmenRequest(req.headers.authorization);
+    } catch (e) {
+      return authRequiredMvpResponse(e.message);
+    }
   }
 
   try {
@@ -569,7 +575,28 @@ router.post("/mvp-move", async (req, res) => {
     return body;
   };
   if (!isExplicitMockRequest(req.body || {})) {
-    const result = await liveOmenResult(req, trace);
+    // Short per-user response cache (see src/services/responseCache.js). Mock
+    // requests never reach this branch. The user is authenticated here, once,
+    // and the result is handed to liveOmenResult so auth is not paid twice.
+    let preAuth = null;
+    let cacheHandle = null;
+    if (responseCache.ROUTE_TTL_SECONDS.mvp_move()) {
+      try {
+        preAuth = { user: await authenticateOmenRequest(req.headers.authorization) };
+      } catch (e) {
+        preAuth = { error: e };
+      }
+      if (preAuth.user) {
+        cacheHandle = await responseCache.lookup({
+          route: "mvp_move",
+          userId: preAuth.user.id,
+          parts: { body: req.body || {} },
+        });
+        if (cacheHandle.hit) return responseCache.sendHit(res, cacheHandle);
+        responseCache.setCacheHeader(res, cacheHandle);
+      }
+    }
+    const result = await liveOmenResult(req, trace, preAuth);
     // Ledger persistence runs beside optional evidence enrichment. We still
     // fail closed if it cannot be stored, but it is no longer a fourth serial
     // network wait after schedule/DvP/LLM work.
@@ -637,6 +664,11 @@ router.post("/mvp-move", async (req, res) => {
     }
     const body = present(result.body);
     emitLatencyTrace(trace, body.state);
+    if (cacheHandle) {
+      // The cacheability decision reads the un-presented body: `state` and
+      // `signals` live there in every contract version.
+      await responseCache.store(cacheHandle, result.status, body, responseCache.omenMoveVerdict(result.body));
+    }
     return res.status(result.status).json(body);
   }
 

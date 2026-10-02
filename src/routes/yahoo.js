@@ -20,6 +20,7 @@
 const express = require("express");
 const crypto = require("crypto");
 const { createClient } = require("@supabase/supabase-js");
+const responseCache = require("../services/responseCache");
 const config = require("../config");
 const { logger }              = require("../middleware/logging");
 const { requireAuth }         = require("../middleware/auth");
@@ -138,7 +139,9 @@ router.get("/callback", async (req, res, next) => {
     }
 
     const tokens = await exchangeYahooCode(code);
+    await responseCache.invalidateUser(oauthRow.user_id);
     await persistYahooTokens(oauthRow.user_id, tokens, leagueId);
+    await responseCache.invalidateUser(oauthRow.user_id);
     await supabase.from("oauth_state").delete().eq("state", state);
 
     return res.redirect(oauthCompletionRedirect(nativeReturn, "connected"));
@@ -225,7 +228,7 @@ router.get("/leagues", requireAuth, async (req, res, next) => {
   }
 });
 
-router.post("/league", requireAuth, async (req, res, next) => {
+router.post("/league", requireAuth, responseCache.invalidateUserCacheOnWrite, async (req, res, next) => {
   try {
     const leagueId = req.body?.leagueId || req.body?.league_id || null;
     if (!leagueId) {

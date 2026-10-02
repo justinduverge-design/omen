@@ -928,3 +928,96 @@ test("an ESPN read that fails without a 401 stays connected", async () => {
   assert.equal(espn.connection_state, "connected");
   assert.match(espn.notice, /full league list/);
 });
+
+// --- Short response cache ----------------------------------------------------
+
+const responseCache = require("../src/services/responseCache");
+
+async function requestWithHeaders(app, opts = {}) {
+  const server = http.createServer(app);
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const { port } = server.address();
+  try {
+    const response = await fetch(`http://127.0.0.1:${port}${opts.path || "/api/leagues"}`, {
+      method: opts.method || "GET",
+      headers: { authorization: "Bearer valid-token", "content-type": "application/json" },
+      body: opts.body == null ? undefined : JSON.stringify(opts.body),
+    });
+    return { status: response.status, body: await response.json(), cache: response.headers.get("x-omen-cache") };
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
+
+test("GET /api/leagues: second read is a cache hit with the same body; no store means no header", async () => {
+  responseCache.setStoreForTests(responseCache.createMemoryResponseCacheStore());
+  try {
+    let discoveries = 0;
+    const app = buildApp({
+      supabase: { rows: [SLEEPER_ROW], missingSelectionColumn: false },
+      sleeperAdapter: defaultSleeperAdapter({
+        fetchSleeperLeagues: async () => { discoveries += 1; return [{ league_id: "L-alpha", name: "Alpha", season: "2026", scoring_settings: { rec: 1 } }]; },
+      }),
+    });
+    const first = await requestWithHeaders(app);
+    const second = await requestWithHeaders(app);
+    assert.equal(first.cache, "miss");
+    assert.equal(second.cache, "hit");
+    assert.deepEqual(second.body, first.body);
+    assert.equal(discoveries, 1);
+
+    responseCache.setStoreForTests(null);
+    const bare = await requestWithHeaders(app);
+    assert.equal(bare.status, 200);
+    assert.equal(bare.cache, null);
+  } finally {
+    responseCache.setStoreForTests(undefined);
+  }
+});
+
+test("GET /api/leagues: a selection change in the rows is a different key (league switch never replays the old payload)", async () => {
+  responseCache.setStoreForTests(responseCache.createMemoryResponseCacheStore());
+  try {
+    const rows = [{ ...SLEEPER_ROW, league_id: "L-alpha" }];
+    const app = buildApp({ supabase: { rows, missingSelectionColumn: false } });
+    const alpha = await requestWithHeaders(app);
+    assert.equal(alpha.body.active.league_id, "L-alpha");
+    rows[0] = { ...SLEEPER_ROW, league_id: "L-zeta" };
+    const zeta = await requestWithHeaders(app);
+    assert.equal(zeta.cache, "miss");
+    assert.equal(zeta.body.active.league_id, "L-zeta");
+  } finally {
+    responseCache.setStoreForTests(undefined);
+  }
+});
+
+test("POST /api/leagues/active invalidates the user's cached entries even when the rows are unchanged", async () => {
+  responseCache.setStoreForTests(responseCache.createMemoryResponseCacheStore());
+  try {
+    const app = buildApp({ supabase: { rows: [SLEEPER_ROW], missingSelectionColumn: false } });
+    await requestWithHeaders(app);
+    assert.equal((await requestWithHeaders(app)).cache, "hit");
+    const switched = await requestWithHeaders(app, {
+      path: "/api/leagues/active", method: "POST", body: { platform: "sleeper", league_id: "L-zeta" },
+    });
+    assert.equal(switched.status, 200);
+    assert.equal((await requestWithHeaders(app)).cache, "miss");
+  } finally {
+    responseCache.setStoreForTests(undefined);
+  }
+});
+
+test("GET /api/leagues: a connection that needs reconnecting is never cached", async () => {
+  responseCache.setStoreForTests(responseCache.createMemoryResponseCacheStore());
+  try {
+    const app = buildApp({
+      supabase: { rows: [{ platform: "espn", is_active: true, league_id: "12345", espn_secret_id: null, swid_secret_id: null }], missingSelectionColumn: false },
+    });
+    const first = await requestWithHeaders(app);
+    const second = await requestWithHeaders(app);
+    assert.equal(first.cache, "miss");
+    assert.equal(second.cache, "miss");
+  } finally {
+    responseCache.setStoreForTests(undefined);
+  }
+});

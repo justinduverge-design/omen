@@ -15,6 +15,7 @@
 
 const express = require("express");
 const { createClient } = require("@supabase/supabase-js");
+const responseCache = require("../services/responseCache");
 const config = require("../config");
 const { logger } = require("../middleware/logging");
 const { requireAuth } = require("../middleware/auth");
@@ -396,6 +397,27 @@ router.get("/", requireAuth, async (req, res, next) => {
   try {
     const season = getCurrentNflWeekContext().season;
     const { rows, selectionPersisted } = await readConnectionsWithSelection(supabase, req.user.id, CONNECTION_COLUMNS);
+    // Short per-user response cache. The key carries every connection row's
+    // identity and selection flag (never a secret id), so a changed selection
+    // or connection yields a different key even before the epoch moves.
+    const cacheHandle = await responseCache.lookup({
+      route: "leagues_directory",
+      userId: req.user.id,
+      parts: {
+        season,
+        connections: rows
+          .map((row) => ({
+            platform: row.platform,
+            league_id: row.league_id == null ? null : String(row.league_id),
+            team_id: row.espn_team_id == null ? null : String(row.espn_team_id),
+            selected: Boolean(row.is_selected),
+            updated_at: row.updated_at ?? null,
+          }))
+          .sort((a, b) => String(a.platform).localeCompare(String(b.platform))),
+      },
+    });
+    if (cacheHandle.hit) return responseCache.sendHit(res, cacheHandle);
+    responseCache.setCacheHeader(res, cacheHandle);
     const byPlatform = new Map(rows.map((row) => [row.platform, row]));
     const { follows, followsPersisted } = await readFollows(supabase, req.user.id);
 
@@ -420,7 +442,11 @@ router.get("/", requireAuth, async (req, res, next) => {
       ));
     }
 
-    return res.json({
+    // A group that needs the user to act (reconnect) is never kept; a connected
+    // group whose discovery failed is a partial answer and is kept only briefly.
+    const needsAction = groups.some((g) => g.connection_state === "reconnect_required");
+    const degraded = groups.some((g) => g.connection_state === "connected" && g.discovery === "unavailable");
+    const directoryBody = {
       contract_version: DIRECTORY_CONTRACT,
       generated_at: nowIso(),
       season,
@@ -433,7 +459,9 @@ router.get("/", requireAuth, async (req, res, next) => {
       // Providers ordered most-leagues-first, ties alphabetical. The client renders its
       // filter chips and its carousel in this order and does not re-sort.
       platforms: orderPlatformsByFollowCount(groups),
-    });
+    };
+    await responseCache.store(cacheHandle, 200, directoryBody, { cache: !needsAction, degraded });
+    return res.json(directoryBody);
   } catch (e) {
     logger.error("League directory lookup failed", { err: e.message });
     return next(e);
@@ -577,7 +605,7 @@ async function persistSelection(userId, platform, leagueId, teamId) {
   return "provider_binding_only";
 }
 
-router.post("/active", requireAuth, async (req, res, next) => {
+router.post("/active", requireAuth, responseCache.invalidateUserCacheOnWrite, async (req, res, next) => {
   const platform = String(req.body?.platform || "").trim().toLowerCase();
   const leagueId = String(req.body?.league_id ?? req.body?.leagueId ?? "").trim();
   const rawTeamId = req.body?.team_id ?? req.body?.teamId;
@@ -694,7 +722,7 @@ router.post("/active", requireAuth, async (req, res, next) => {
  * from "accepted but not stored yet" while
  * `sql/2026-09-03_multi_league_follows_review.sql` is still review-only.
  */
-router.post("/follows", requireAuth, async (req, res, next) => {
+router.post("/follows", requireAuth, responseCache.invalidateUserCacheOnWrite, async (req, res, next) => {
   const platform = String(req.body?.platform || "").trim().toLowerCase();
   const submitted = Array.isArray(req.body?.leagues) ? req.body.leagues : null;
 

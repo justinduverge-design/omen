@@ -216,6 +216,7 @@ function loadOmenRouter({ offSeason = false, liveResponse = liveEnvelope, dvp = 
       return {
         authenticateOmenRequest: async (authHeader) => {
           state.authHeaders.push(authHeader || null);
+          if (authHeader === "Bearer valid-token-2") return { id: "user-2" };
           if (authHeader !== "Bearer valid-token") {
             throw Object.assign(new Error("Missing bearer token"), { status: 401 });
           }
@@ -666,4 +667,140 @@ test("a missing column that is NOT optional still fails closed", async () => {
   });
 
   assert.notEqual(res.status, 200);
+});
+
+// --- Short response cache ----------------------------------------------------
+
+const responseCache = require("../src/services/responseCache");
+
+async function postRaw(app, { headers = {}, body = {} } = {}) {
+  const server = http.createServer(app);
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  try {
+    const res = await fetch(`http://127.0.0.1:${server.address().port}/api/omen/mvp-move`, {
+      method: "POST",
+      headers: { "content-type": "application/json", ...headers },
+      body: JSON.stringify(body),
+    });
+    return { status: res.status, body: await res.json(), cache: res.headers.get("x-omen-cache") };
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
+
+const QUIET = { include_signals: { llm_reasoning: false, matchup_dvp: false } };
+
+test("mvp-move cache: a repeat is a hit, identical body, and does not recompute or re-persist", async () => {
+  responseCache.setStoreForTests(responseCache.createMemoryResponseCacheStore());
+  try {
+    const { app, state } = buildApp();
+    const headers = { authorization: "Bearer valid-token" };
+    const first = await postRaw(app, { headers, body: QUIET });
+    const second = await postRaw(app, { headers, body: QUIET });
+    assert.equal(first.cache, "miss");
+    assert.equal(second.cache, "hit");
+    assert.deepEqual(second.body, first.body);
+    assert.equal(state.liveUserIds.length, 1);
+    assert.equal(state.moveUpserts.length, 1);
+    // Auth is paid once per request, never twice.
+    assert.equal(state.authHeaders.length, 2);
+  } finally {
+    responseCache.setStoreForTests(undefined);
+  }
+});
+
+test("mvp-move cache: two users sending the identical request never share an answer", async () => {
+  responseCache.setStoreForTests(responseCache.createMemoryResponseCacheStore());
+  try {
+    const { app, state } = buildApp();
+    const a = await postRaw(app, { headers: { authorization: "Bearer valid-token" }, body: QUIET });
+    const b = await postRaw(app, { headers: { authorization: "Bearer valid-token-2" }, body: QUIET });
+    assert.equal(a.cache, "miss");
+    assert.equal(b.cache, "miss");
+    assert.deepEqual(state.liveUserIds, ["user-1", "user-2"]);
+  } finally {
+    responseCache.setStoreForTests(undefined);
+  }
+});
+
+test("mvp-move cache: a different context_id (league switch) or contract version is a separate entry", async () => {
+  responseCache.setStoreForTests(responseCache.createMemoryResponseCacheStore());
+  try {
+    const { app, state } = buildApp();
+    const headers = { authorization: "Bearer valid-token" };
+    await postRaw(app, { headers, body: { ...QUIET, context_id: "ctx-1" } });
+    assert.equal((await postRaw(app, { headers, body: { ...QUIET, context_id: "ctx-1" } })).cache, "hit");
+    assert.equal((await postRaw(app, { headers, body: { ...QUIET, context_id: "ctx-2" } })).cache, "miss");
+    assert.equal((await postRaw(app, { headers, body: { ...QUIET, context_id: "ctx-1", contract_version: "omen-decision-brief.v2" } })).cache, "miss");
+    assert.deepEqual(state.liveRequests.map((r) => r.options.contextId), ["ctx-1", "ctx-2", "ctx-1"]);
+  } finally {
+    responseCache.setStoreForTests(undefined);
+  }
+});
+
+test("mvp-move cache: invalidating the user forces a recompute", async () => {
+  responseCache.setStoreForTests(responseCache.createMemoryResponseCacheStore());
+  try {
+    const { app, state } = buildApp();
+    const headers = { authorization: "Bearer valid-token" };
+    await postRaw(app, { headers, body: QUIET });
+    await responseCache.invalidateUser("user-1");
+    assert.equal((await postRaw(app, { headers, body: QUIET })).cache, "miss");
+    assert.equal(state.liveUserIds.length, 2);
+  } finally {
+    responseCache.setStoreForTests(undefined);
+  }
+});
+
+test("mvp-move cache: mock requests, auth failures, errors and persistence failures are never cached", async () => {
+  responseCache.setStoreForTests(responseCache.createMemoryResponseCacheStore());
+  try {
+    const headers = { authorization: "Bearer valid-token" };
+    const mock = buildApp();
+    const m1 = await postRaw(mock.app, { headers, body: { use_mock_data: true } });
+    const m2 = await postRaw(mock.app, { headers, body: { use_mock_data: true } });
+    assert.equal(m1.cache, null);
+    assert.equal(m2.cache, null);
+
+    const anon = buildApp();
+    const unauth = await postRaw(anon.app, { body: QUIET });
+    assert.equal(unauth.status, 401);
+    assert.equal(unauth.cache, null);
+
+    const failing = buildApp({ persistenceError: "database unavailable" });
+    const f1 = await postRaw(failing.app, { headers, body: QUIET });
+    const f2 = await postRaw(failing.app, { headers, body: QUIET });
+    assert.equal(f1.status, 503);
+    assert.equal(f2.cache, "miss");
+    assert.equal(failing.state.liveUserIds.length, 2);
+  } finally {
+    responseCache.setStoreForTests(undefined);
+  }
+});
+
+test("mvp-move cache: reauth/recovery states are not cached, with no store the route is unchanged", async () => {
+  responseCache.setStoreForTests(responseCache.createMemoryResponseCacheStore());
+  try {
+    const headers = { authorization: "Bearer valid-token" };
+    const reauth = () => {
+      const body = liveEnvelope();
+      body.state = "espn_reauth_required";
+      body.platform = { name: "espn", status: "reauth_required", recovery: { code: "reconnect", message: "x", cta: "Reconnect" } };
+      body.recommendation = null;
+      return body;
+    };
+    const { app, state } = buildApp({ liveResponse: reauth });
+    await postRaw(app, { headers, body: QUIET });
+    const again = await postRaw(app, { headers, body: QUIET });
+    assert.equal(again.cache, "miss");
+    assert.equal(state.liveUserIds.length, 2);
+
+    responseCache.setStoreForTests(null);
+    const plain = buildApp();
+    const res = await postRaw(plain.app, { headers, body: QUIET });
+    assert.equal(res.status, 200);
+    assert.equal(res.cache, null);
+  } finally {
+    responseCache.setStoreForTests(undefined);
+  }
 });

@@ -211,7 +211,7 @@ router.post("/legal-acceptance", requireAuth, async (req, res, next) => {
   }
 });
 
-router.delete("/delete", requireAuth, async (req, res, next) => {
+router.delete("/delete", requireAuth, require("../services/responseCache").invalidateUserCacheOnWrite, async (req, res, next) => {
   try {
     if (!isDeleteConfirmed(req.body?.confirmation)) {
       return res.status(400).json({

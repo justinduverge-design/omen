@@ -29,6 +29,7 @@ const { waiverCapabilitiesEnvelope } = require("../services/waiverScoringCapabil
 const { attachDecisionReceipt, createDecisionContext } = require("../services/decisionContext");
 const waiverSystem = require("../services/waiverSystem");
 const rosterSvc = require("../services/roster");
+const responseCache = require("../services/responseCache");
 const sleeperAdapter = require("../adapters/sleeper");
 const espnAdapter = require("../adapters/espn");
 
@@ -292,6 +293,25 @@ router.get("/analysis", requireAuth, async (req, res, next) => {
       }));
     }
 
+    // Short per-user response cache. The key carries the resolved connection
+    // (platform, league, ESPN team) as well as the week and contract, so a
+    // league switch can never be answered from the previous league's entry.
+    const cacheHandle = await responseCache.lookup({
+      route: "waiver_analysis",
+      userId: req.user.id,
+      parts: {
+        platform: connection.platform,
+        league_id: String(connection.league_id),
+        team_id: connection.espn_team_id == null ? null : String(connection.espn_team_id),
+        selected: Boolean(connection.is_selected),
+        week,
+        season: context.season,
+        contract_version: requestedContract ?? null,
+      },
+    });
+    if (cacheHandle.hit) return responseCache.sendHit(res, cacheHandle);
+    responseCache.setCacheHeader(res, cacheHandle);
+
     let loaded;
     try {
       loaded = await loadForConnection(connection, req.user.id, week, context.season);
@@ -326,7 +346,14 @@ router.get("/analysis", requireAuth, async (req, res, next) => {
       offSeason: suppressLiveFootballData(),
     });
 
-    return res.json(presentAnalysis({ ...analysis, limitations: loaded.limitations }, requestedContract));
+    const payload = presentAnalysis({ ...analysis, limitations: loaded.limitations }, requestedContract);
+    // Only a confirmed analysis is kept. availability_unknown / engine_limitation
+    // mean a provider could not confirm the pool, which the user may fix or retry.
+    await responseCache.store(cacheHandle, 200, payload, {
+      cache: !responseCache.isActionState(analysis)
+        && ["confirmed_opportunity", "no_low_cost_drop", "no_credible_move"].includes(analysis.state),
+    });
+    return res.json(payload);
   } catch (e) {
     logger.error("Waiver analysis failed", { err: e.message });
     return next(e);
