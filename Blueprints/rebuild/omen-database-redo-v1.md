@@ -12,7 +12,7 @@ separately approves each production step (facts-of-record #8).
 - `Blueprints/specs/omen-projection-explainer-v1.md`
 - `Direction/2026-09-30-first-factor-experiment.md`
 - `Blueprints/rebuild/omen-call-slice-plan.md`
-- the Gate 1 blueprints in `Blueprints/rebuild/gate1/`
+- the Gate 1 blueprints (now retired to `Archive/superseded-db-2026-10-01/gate1/`)
 
 **SQL:** `sql/2026-10-01-redo/`. **Rehearsal:** `scripts/db/rehearse-redo.sh`, which also runs in CI
 as the `redo-rehearsal` job.
@@ -61,7 +61,7 @@ request; "DB" names the table; "computed" means server arithmetic on the other t
 | **Ledger, LedgerDegraded** | `moves-history.v2` | every call, followed or not, outcome, provenance | DB `ledger_current_calls` view + `decision_actions` + `decision_outcomes`, scoped by league |
 | **LedgerDetail, LedgerDetailDegraded** | `move-detail.v1` | snapshot as issued, evidence at the time, user action, observed outcome, scoring contract | DB `decisions` (snapshot, scoring contract fields), `decision_factors` (evidence at the time), `decision_actions`, `decision_outcomes` |
 | **Account** | `dashboard-summary.v1`, `user-export.v1`, `user-delete.v1` | connected leagues, export, delete | DB everything owned by the user; delete goes through `connection_revoke()` + `ledger_erase_user()` |
-| **ReportPill** | `beta-report.v1` | in-app report | DB `beta_reports`. The reviewed SQL `sql/2026-09-14_beta_reports_review.sql` was never applied, so its own approval is needed |
+| **ReportPill** | `beta-report.v1` | in-app report | DB `beta_reports`. The reviewed SQL `sql/pending/2026-09-14_beta_reports_review.sql` was never applied, so its own approval is needed |
 
 ### What each contract's Ledger fields map to
 
@@ -193,18 +193,19 @@ historical roster, and the Ledger keeps the evidence it needs in `decision_facto
 | *(never applied)* `football_intelligence_signals` | **wait**: scheme feature is paused | later |
 
 **Repo files that no longer describe anything real.** Retired 2026-10-01 with founder approval
-(moved to `Archive/superseded-db-2026-10-01/` with a manifest, so old citations still resolve):
+(moved to `Archive/superseded-db-2026-10-01/` with a manifest, so old citations still resolve). Applied
+SQL records moved to `sql/applied/`; reviewed-but-undecided files to `sql/pending/`:
 
-- `migrations/1790680789307_baseline.js` and `migrations/1790735188136_identity-unification.js`
+- `Archive/superseded-db-2026-10-01/migrations/1790680789307_baseline.js` and `Archive/superseded-db-2026-10-01/migrations/1790735188136_identity-unification.js`
   (WO-06): not production, and WO-06 is replaced by step 01.
-- `sql/omen_rls_security.sql`, which says "idempotent" but stops with an error if re-run; production
+- `Archive/superseded-db-2026-10-01/sql/omen_rls_security.sql`, which says "idempotent" but stops with an error if re-run; production
   history now lives in `supabase_migrations`.
-- `sql/2026-09-03_multi_league_follows_review.sql`
+- `Archive/superseded-db-2026-10-01/sql/2026-09-03_multi_league_follows_review.sql`
 - The Gate 1 `decisions` / `premises` / `user_actions` / `ledger_entries` designs in
-  `Blueprints/rebuild/gate1/schema-decisions-ledger.md`.
+  `Archive/superseded-db-2026-10-01/gate1/schema-decisions-ledger.md`.
 - The `league_scoring_*` and `roster_*` tables in `schema-football-core.md`, and the rest of the Gate 1
   schema set (`schema-blueprint.md`, `schema-identity-access.md`), which this design replaces.
-- `test/migrationIdentity.test.js`, the `test-migrations` CI job and the `migrate` npm script, which
+- `Archive/superseded-db-2026-10-01/test/migrationIdentity.test.js`, the `test-migrations` CI job and the `migrate` npm script, which
   existed only to run the files above.
 
 ## 6. Confidence: `NO_CALL` versus `coin_flip`, and number versus band

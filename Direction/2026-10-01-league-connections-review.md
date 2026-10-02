@@ -14,7 +14,7 @@ and Muse do not touch the database.
   grants, triggers, extensions, the Supabase migration list, and counts only. **No user rows, no
   emails, no secret values and no Vault contents were read.** Vault was counted by id only.
 - **Repo:** `migrations/` (node-pg-migrate baseline + WO-06), `sql/*.sql`,
-  `Blueprints/rebuild/gate1/schema-identity-access.md`, `.github/workflows/migrations-ci.yml`.
+  `Archive/superseded-db-2026-10-01/gate1/schema-identity-access.md`, `.github/workflows/migrations-ci.yml`.
 - **Not checked:** live API responses (no request was made to `slopssaloon.com`). Behaviour under
   failure (Vault errors, concurrent Yahoo refresh) is inferred from code, not reproduced.
 
@@ -72,7 +72,7 @@ screen, so this matters beyond the app.
 ### 4. Multi-league choices are not saved — P1 · Verified
 
 - The phone's "only the first league will stick" is honest. `league_follows`
-  (`sql/2026-09-03_multi_league_follows_review.sql`) was **never applied**. `readFollows` gets
+  (`Archive/superseded-db-2026-10-01/sql/2026-09-03_multi_league_follows_review.sql`) was **never applied**. `readFollows` gets
   `PGRST205`, `/api/leagues` reports `follow_persistence: "unavailable"`, and
   `POST /api/leagues/follows` accepts the selection and stores nothing.
 - Underneath that, `platform_connections` is unique on `(user_id, platform)`. One row per provider
@@ -181,8 +181,8 @@ This is the root cause behind the past outages, and it is still true today:
 
 | Source | What it says | Production |
 |---|---|---|
-| `migrations/1790680789307_baseline.js` | `moves` without `platform`/`league_id`; no `UNIQUE(user_id, platform)` on connections; no one-selected index; `consent_records → public.users`; `league_office_matchups` / `sync_jobs` unique keys include `user_id`; `down()` empty | has `platform`/`league_id`; has the unique and partial index; `consent_records → auth.users` with `UNIQUE(user_id, consent_type)`; unique keys are league-scoped, no `user_id` |
-| `sql/omen_rls_security.sql` ("idempotent, safe to re-run") | drops `local_snapshots`, then **enables RLS on `oauth_credentials` and `system_context`, which it has just dropped** | re-running it would stop with an error partway through |
+| `Archive/superseded-db-2026-10-01/migrations/1790680789307_baseline.js` | `moves` without `platform`/`league_id`; no `UNIQUE(user_id, platform)` on connections; no one-selected index; `consent_records → public.users`; `league_office_matchups` / `sync_jobs` unique keys include `user_id`; `down()` empty | has `platform`/`league_id`; has the unique and partial index; `consent_records → auth.users` with `UNIQUE(user_id, consent_type)`; unique keys are league-scoped, no `user_id` |
+| `Archive/superseded-db-2026-10-01/sql/omen_rls_security.sql` ("idempotent, safe to re-run") | drops `local_snapshots`, then **enables RLS on `oauth_credentials` and `system_context`, which it has just dropped** | re-running it would stop with an error partway through |
 | `.github/workflows/migrations-ci.yml` | Postgres 15 | Postgres 17.6 |
 | node-pg-migrate (`npm run migrate`) | the framework for D2 | never applied; no `pgmigrations` table |
 

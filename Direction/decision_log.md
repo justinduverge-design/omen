@@ -31,7 +31,7 @@
   - a scratch Postgres 17 is used for testing, both locally (Homebrew `postgresql@17`) and in CI;
   - read-only production catalog checks are approved (schema and anonymous counts only).
 - **Why:** production is the only true copy of the schema, and the repo's two schema sources (the
-  `migrations/` baseline and `sql/omen_rls_security.sql`) both disagree with it. Review:
+  `migrations/` baseline and `Archive/superseded-db-2026-10-01/sql/omen_rls_security.sql`) both disagree with it. Review:
   `Direction/2026-10-01-league-connections-review.md`.
 - **Design decisions made by the agent, recorded for review** (`Blueprints/rebuild/omen-database-redo-v1.md`):
   - the Ledger stores one call per **team** per week; a re-ask supersedes and both are kept;

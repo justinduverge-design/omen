@@ -698,7 +698,7 @@ own comment says is **a design-steward decision, not a build fix**, and therefor
 - **Evidence:** `GET /api/leagues` → `league-directory.v1`, `POST /api/leagues/active` → `league-active-selection.v1`, `src/services/activeSelection.js`, `test/leaguesDirectoryRoute.test.js` (21). Contracts in `Blueprints/api-routes.md`.
 - **Finding:** before this, three surfaces resolved "which league is active" three different ways — `omen.js` sleeper→espn→yahoo, `league.js` espn→sleeper→yahoo, `optimizer.js` Yahoo-only by `updated_at` — and none of them was the user's choice. All now use one resolver; behavior is unchanged for a user who has not chosen.
 - **Done when:** merged and deployed; a real switch is observed changing the surface a personalized route returns.
-- **Do not touch:** applying `sql/2026-08-26_league_selection_review.sql` — gated founder sequence.
+- **Do not touch:** applying `sql/applied/2026-08-26_league_selection_review.sql` — gated founder sequence.
 
 ### M9-BE-WaiverAnalysis — Backend for Waiver Analysis (§6)
 

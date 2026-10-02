@@ -432,7 +432,7 @@ execution, and it was the one actually blocking.
 ## 🟡 MIGRATION APPLIED 2026-09-30 — native Ledger serves new moves; history before it stays hidden (`public.moves` `platform`/`league_id`)
 
 Found 2026-09-28 (GlitchTip #13, 150 events since 2026-09-16, `column moves.result does not exist`).
-The route no longer 500s (PR #490). **`sql/2026-09-29_moves_league_scope_review.sql` was applied to production on
+The route no longer 500s (PR #490). **`sql/applied/2026-09-29_moves_league_scope_review.sql` was applied to production on
 2026-09-30** after proof on a restored production clone, so the `503 league_scope_unavailable` gate no longer trips and the
 Ledger query runs. Rows written before the migration keep NULL `platform`/`league_id` and stay hidden by design (no backfill is
 authorised; a backfill from `platform_connections` is sound only for a single-league user and needs its own review). **Still to

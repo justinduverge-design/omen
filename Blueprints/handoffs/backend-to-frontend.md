@@ -1154,7 +1154,7 @@ Method and path:
 
 ```text
 No HTTP endpoint changed.
-Review SQL only: sql/2026-06-12_phase1_adp_scoring_schema_review.sql
+Review SQL only: Archive/superseded-db-2026-10-01/sql/2026-06-12_phase1_adp_scoring_schema_review.sql
 ```
 
 Request body or query:
@@ -1208,8 +1208,8 @@ Example response:
 
 Files changed:
 
-- `sql/2026-06-12_phase1_adp_scoring_schema_review.sql`
-- `test/phase1SchemaReviewSql.test.js`
+- `Archive/superseded-db-2026-10-01/sql/2026-06-12_phase1_adp_scoring_schema_review.sql`
+- `Archive/superseded-db-2026-10-01/test/phase1SchemaReviewSql.test.js`
 - `Blueprints/handoffs/backend-to-frontend.md`
 - `Direction/current_sprint.md`
 - `Direction/decision_log.md`
@@ -4027,7 +4027,7 @@ on open blockers)"). Removed:
   and `tools.waiver_wire` no longer have a `needs_subscription` status or `mode: "pro"` — both are
   `mode: "free"` now.
 - `public.subscriptions` table and `public.users.is_subscribed` column dropped from
-  `sql/omen_rls_security.sql` (drop statements added; must still be run against production
+  `Archive/superseded-db-2026-10-01/sql/omen_rls_security.sql` (drop statements added; must still be run against production
   Supabase separately with explicit sign-off — this repo cannot apply schema changes directly).
 - `stripe` npm package removed from root `package.json`.
 - Frontend: `UpgradeState.jsx` deleted (was dead code, zero importers). `Account.jsx`'s entire
@@ -4176,7 +4176,7 @@ Authenticated. `platform` is `espn`, `yahoo`, or `sleeper`; `league_id` is requi
 
 `GET /api/beta/reports/schema` returns `beta-report.v1`, the supported screen enum, `screenshots_supported: false`, and the required disclosure string. `POST /api/beta/reports` is authenticated and metadata-only: screen, state, connection state, message, optional client timestamp, app/device metadata, consent flag, and short recent error codes. It rejects screenshots, credentials, league data, roster data, unknown fields, and missing disclosure acknowledgement.
 
-Storage uses `public.beta_reports`; the review-only SQL is `sql/2026-09-14_beta_reports_review.sql`. Until that migration is applied, the route fails closed with `503 beta_report_storage_unavailable`.
+Storage uses `public.beta_reports`; the review-only SQL is `sql/pending/2026-09-14_beta_reports_review.sql`. Until that migration is applied, the route fails closed with `503 beta_report_storage_unavailable`.
 
 Verification: `npm test` 1100/1100, including `test/omenMvpLiveRoute.test.js`, `test/dashboardQuietWeekRoute.test.js`, `test/movesRoute.test.js`, `test/tradeRoute.test.js`, `test/betaReports.test.js`, `test/userPrivacyIsolation.test.js`, and hot-route rate-limit coverage. `git diff --check` clean.
 
