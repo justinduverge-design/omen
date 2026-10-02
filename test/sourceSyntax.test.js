@@ -66,9 +66,13 @@ function literalNewlinesInLineComments(source) {
   return comments
     .filter((c) => c.type === "Line" && /\\n\s*\S/.test(c.value))
     .filter((c) => {
+      // Unfold one `\n` at a time: the hidden code may carry its own intended `\n` escapes.
       const comment = source.slice(c.start, c.end);
-      const unfolded = source.slice(0, c.start) + comment.replace(/\\n/g, "\n") + source.slice(c.end);
-      return parses(unfolded);
+      return [...comment.matchAll(/\\n/g)].some(({ index }) => {
+        if (!/\S/.test(comment.slice(index + 2))) return false; // nothing after it to hide
+        const unfolded = comment.slice(0, index) + "\n" + comment.slice(index + 2);
+        return parses(source.slice(0, c.start) + unfolded + source.slice(c.end));
+      });
     })
     .map((c) => ({ line: c.loc.start.line, comment: `//${c.value}`.trim() }));
 }
@@ -90,6 +94,10 @@ test("the literal-\\n guard catches the shape it exists for and ignores strings"
   // One space of indentation, or none, is enough to hide the code (Codex P3 on #515).
   assert.deepEqual(literalNewlinesInLineComments("// note.\\n work();\n").map((h) => h.line), [1]);
   assert.deepEqual(literalNewlinesInLineComments("// note.\\nwork();\n").map((h) => h.line), [1]);
+
+  // The hidden code's own `\n` escapes must survive the unfold (Codex P2 on #515).
+  const ownEscape = '// note.\\n const message = "a\\nb";\n';
+  assert.deepEqual(literalNewlinesInLineComments(ownEscape).map((h) => h.line), [1]);
 
   // A regex whose quote could open a fake string must not hide a later comment (Codex P2 on #515).
   for (const lead of ["function q() { return /['\"]/; }", "if (ok) /[\"]/.test(value);"]) {
