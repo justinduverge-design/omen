@@ -2,6 +2,7 @@
 
 const express = require("express");
 const { createClient } = require("@supabase/supabase-js");
+const responseCache = require("../services/responseCache");
 const config = require("../config");
 const { requireAuth } = require("../middleware/auth");
 const { logger } = require("../middleware/logging");
@@ -355,6 +356,13 @@ router.get("/quiet-week", requireAuth, async (req, res) => {
     if (req.query.context_id != null && (typeof req.query.context_id !== "string" || req.query.context_id.length > 128)) {
       return res.status(400).json({ error: "invalid_context_id" });
     }
+    const cacheHandle = await responseCache.lookup({
+      route: "quiet_week",
+      userId: req.user.id,
+      parts: { context_id: req.query.context_id ?? null },
+    });
+    if (cacheHandle.hit) return responseCache.sendHit(res, cacheHandle);
+    responseCache.setCacheHeader(res, cacheHandle);
     const { body, status } = await buildLiveOmenMvpMoveForUser(req.user.id, { contextId: req.query.context_id ?? null });
     let lastResult = null;
     if (body.state === "empty") {
@@ -362,7 +370,11 @@ router.get("/quiet-week", requireAuth, async (req, res) => {
       const platforms = await buildPlatformSummaryForUser(rows, req.user.id);
       lastResult = platforms[body.platform?.name]?.lastResult ?? null;
     }
-    return res.status(status).json(quietWeek(body, lastResult));
+    const payload = quietWeek(body, lastResult);
+    // Cacheability is decided from the underlying Omen answer, not the derived
+    // quiet-week body: a reauth/recovery/degraded source is never kept.
+    await responseCache.store(cacheHandle, status, payload, responseCache.omenMoveVerdict(body));
+    return res.status(status).json(payload);
   } catch {
     return res.status(503).json({ ...quietWeek(null, null), error: "quiet_week_unavailable" });
   }

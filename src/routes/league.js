@@ -2,6 +2,7 @@
 
 const express = require("express");
 const { createClient } = require("@supabase/supabase-js");
+const responseCache = require("../services/responseCache");
 const config = require("../config");
 const { requireAuth } = require("../middleware/auth");
 const { logger } = require("../middleware/logging");
@@ -834,6 +835,29 @@ router.get("/overview", requireAuth, async (req, res, next) => {
   try {
     const context = getCurrentNflWeekContext();
     const rows = await getConnectionRows(req.user.id);
+    // Short per-user response cache. Keyed by the requested platform/league,
+    // week and season plus every connection row's identity and selection flag
+    // (never a secret id), so a league switch cannot reuse the old entry.
+    const cacheHandle = await responseCache.lookup({
+      route: "league_overview",
+      userId: req.user.id,
+      parts: {
+        platform: platform || null,
+        league_id: leagueId || null,
+        week: context.week,
+        season: context.season,
+        connections: rows
+          .map((row) => ({
+            platform: row.platform,
+            league_id: row.league_id == null ? null : String(row.league_id),
+            team_id: row.espn_team_id == null ? null : String(row.espn_team_id),
+            selected: Boolean(row.is_selected),
+          }))
+          .sort((a, b) => String(a.platform).localeCompare(String(b.platform))),
+      },
+    });
+    if (cacheHandle.hit) return responseCache.sendHit(res, cacheHandle);
+    responseCache.setCacheHeader(res, cacheHandle);
     const candidates = await candidatesForRequest(rows, {
       platform, leagueId, userId: req.user.id, season: context.season,
     });
@@ -853,7 +877,16 @@ router.get("/overview", requireAuth, async (req, res, next) => {
     const failures = [];
     for (const connection of candidates) {
       try {
-        return res.json(await fetchOverview(connection, req.user.id, context));
+        const overview = await fetchOverview(connection, req.user.id, context);
+        // Earlier candidates failing means this answer came from a fallback
+        // provider, and a section that reads "unavailable" is a partial read:
+        // both are kept only briefly.
+        const sectionUnavailable = ["matchup", "standings"].some((k) => overview?.[k]?.status === "unavailable");
+        await responseCache.store(cacheHandle, 200, overview, {
+          cache: !responseCache.hasRecoveryBlock(overview),
+          degraded: failures.length > 0 || sectionUnavailable,
+        });
+        return res.json(overview);
       } catch (e) {
         failures.push({
           platform: connection.platform,
