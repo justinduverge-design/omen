@@ -1,6 +1,6 @@
 # The Omen-call slice — one path through every layer
 
-> **Database sections replaced 2026-10-01.** "Two design flaws", "Schema additions" and the database tickets' table lists are replaced by `Blueprints/rebuild/omen-database-redo-v1.md` (reviewed SQL in `sql/2026-10-01-redo/`). The node-pg-migrate framework this plan names was retired; production's own migration history owns the schema.
+> **Partially superseded 2026-10-01: the database sections only.** "Two design flaws", "Schema additions" and the database tickets' table lists are replaced by `Blueprints/rebuild/omen-database-redo-v1.md` (reviewed SQL in `sql/2026-10-01-redo/`). The node-pg-migrate framework this plan names was retired; production's own migration history owns the schema.
 
 **Status:** PROPOSED — founder review. Written 2026-09-30 by Claude Code as project planner at the founder's request.
 **Supersedes for sequencing:** the strict gate-by-gate order in `Blueprints/architecture/omen-rebuild-plan-v1.md` (keeps its layers and its safety rules). **Builds on:** `Blueprints/specs/omen-decision-engine-v2.md`.

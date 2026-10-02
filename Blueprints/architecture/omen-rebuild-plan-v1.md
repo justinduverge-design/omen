@@ -65,7 +65,7 @@ The rebuild preserves the product assets that are already strong—provider inte
 
 ### Resolved dependency: pipeline verified 2026-09-29
 
-The football pipeline on `pi-command-center` was verified read-only on September 29, 2026 (full report: `workspace/omen-rebuild/football-pipeline-verification.md`). It is a **witness/verification pipeline**, not a data-feed pipeline: it independently downloads nflverse CSVs each Tuesday at 05:45 ET, stores immutable content-addressed snapshots, and compares their hashes against Omen production's football-data status pulled from KVM1 over an SSH forced-command channel — alerting to Discord on mismatch, outage, schema drift, or staleness. It does not feed data to the Omen app.
+The football pipeline on `pi-command-center` was verified read-only on September 29, 2026 (the full report was a planning-session working file and was never committed; this section is the surviving record). It is a **witness/verification pipeline**, not a data-feed pipeline: it independently downloads nflverse CSVs each Tuesday at 05:45 ET, stores immutable content-addressed snapshots, and compares their hashes against Omen production's football-data status pulled from KVM1 over an SSH forced-command channel — alerting to Discord on mismatch, outage, schema drift, or staleness. It does not feed data to the Omen app.
 
 Verified findings that shape this plan:
 
@@ -355,7 +355,7 @@ This envelope supports start/sit, trade, waiver, MVP Move, and a future Draft As
 
 ### Gate 0 verification of the reported pipeline
 
-Verification completed 2026-09-29 (report: `workspace/omen-rebuild/football-pipeline-verification.md`). All ten items below were captured; dispositions are recorded in the "Resolved dependency" section above. The same ten-item standard now applies to each unverified peripheral system in the scope table before the rebuild depends on it.
+Verification completed 2026-09-29 (the full report was never committed; this section is the surviving record). All ten items below were captured; dispositions are recorded in the "Resolved dependency" section above. The same ten-item standard now applies to each unverified peripheral system in the scope table before the rebuild depends on it.
 
 When verifying a new system, capture:
 
@@ -553,7 +553,7 @@ The sequence deliberately establishes foundations first, then proves them throug
 
 **Work:**
 
-- Verify `pi-command-center` and the reported football pipeline. **Complete 2026-09-29** — findings recorded in this plan; full report at `workspace/omen-rebuild/football-pipeline-verification.md`.
+- Verify `pi-command-center` and the reported football pipeline. **Complete 2026-09-29** — findings recorded in this plan; the full report was never committed, so the findings in this plan are the record.
 - Verify each peripheral system in the scope table to the same ten-item Gate 0 standard (read-only; no configuration changes without founder approval).
 - Capture deployment topology, data paths, schedules, logs, and artifact state.
 - Render at least one representative native screen per journey and compare it with its artboard and contract.

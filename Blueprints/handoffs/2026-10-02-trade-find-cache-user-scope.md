@@ -15,13 +15,14 @@
 - **Tracking:** `Direction/reviews/2026-10-02-codex-review-compilation.md` was only on PR #514's branch.
   It was copied to `main` in #516, with the cache row marked fixed.
 
-## Close-out status: BLOCKED
+## Close-out status: DONE (was blocked)
 
-Truth Gate fails with **1102 P0**. All are inherited: the result is identical on `main`, and 1096 are
-in the six sibling `slops-saloon/omen-*` clones (duplicate page ids). The other 6 are in `omen`
-and predate this work. A P0 blocks close-out with no exception for inherited findings, so #516 is
-**not** recorded as done (`Blueprints/done/LEDGER.md` says BLOCKED). Founder call: clear them (most
-likely by removing or archiving the stale sibling clones) or rule on them.
+Truth Gate first failed with **1102 P0**, all inherited: 1096 from the six sibling
+`slops-saloon/omen-*` worktrees (duplicate page ids) and 6 in `omen` itself. A P0 blocks close-out, so
+#516 was first recorded as BLOCKED. Cleared the same day, founder-approved: the one sibling with
+unpushed work (T4) was saved as #519, all six worktrees were removed, and the last 3 P0s were fixed
+(two partly-superseded banners, one citation of a report that was never committed). Truth Gate:
+PASS, 0 P0. Valor Brain: 5/5 valid.
 
 ## Procedure receipt
 
