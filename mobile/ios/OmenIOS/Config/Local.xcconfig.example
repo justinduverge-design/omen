@@ -5,6 +5,10 @@
 // key (safe to ship in a client build — Supabase RLS enforces access control server-side).
 // Never put a service-role key or any other secret here.
 //
+// BUILD GUARD: the "Build Guard (Supabase config)" build phase FAILS Release/Archive builds when
+// OMEN_SUPABASE_URL/OMEN_SUPABASE_ANON_KEY are empty, OMEN_API_BASE_URL is example.invalid, or a URL
+// truncated to `https:`; Debug only warns. It names the bad setting, never prints a value.
+//
 // URL SYNTAX — READ BEFORE PASTING A URL. In xcconfig, `//` begins a comment, so a bare
 // `https://host` silently truncates to `https:`. The older `https:$()//host` workaround no
 // longer works: Xcode 26 strips comments *before* expanding `$()`, so it also yields `https:`.
