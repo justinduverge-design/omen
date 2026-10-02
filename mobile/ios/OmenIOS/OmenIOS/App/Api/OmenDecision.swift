@@ -24,7 +24,10 @@ struct OmenDecisionEnvelope: Decodable, Equatable {
     let warnings: [String]?
     let signals: [String: Signal]?
     let capabilities: [OmenDecisionCapability]?
-    let footballIntelligence: FootballIntelligence?
+    /// Optional evidence. If its shape ever drifts, the recommendation must still render, so this
+    /// is read leniently: an unreadable football-intelligence block becomes nil instead of failing
+    /// the whole brief (this is exactly how a numeric `quality.confidence` broke every Omen call).
+    @LenientDecoded var footballIntelligence: FootballIntelligence?
 
     enum CodingKeys: String, CodingKey {
         case contractVersion = "contract_version"
@@ -173,6 +176,23 @@ struct OmenDecisionEnvelope: Decodable, Equatable {
             let coverage: String?
             let confidence: String?
             let limitations: [String]?
+
+            init(from decoder: Decoder) throws {
+                let c = try decoder.container(keyedBy: CodingKeys.self)
+                state = try c.decodeIfPresent(String.self, forKey: .state)
+                coverage = try c.decodeIfPresent(String.self, forKey: .coverage)
+                limitations = try? c.decodeIfPresent([String].self, forKey: .limitations)
+                // The server has sent a label, null, and a number here. Keep whichever it is as text.
+                if let text = try? c.decodeIfPresent(String.self, forKey: .confidence) {
+                    confidence = text
+                } else if let number = try? c.decodeIfPresent(Double.self, forKey: .confidence) {
+                    confidence = String(number)
+                } else {
+                    confidence = nil
+                }
+            }
+
+            enum CodingKeys: String, CodingKey { case state, coverage, confidence, limitations }
         }
 
         struct Freshness: Decodable, Equatable {
@@ -470,5 +490,25 @@ extension OmenDecisionEnvelope {
         case "K": return .k
         default: return nil
         }
+    }
+}
+
+
+/// Decodes `T?` and swallows a shape mismatch inside it, so one drifting optional block cannot take
+/// down the whole response. Missing key and null are nil, as for any optional.
+@propertyWrapper
+struct LenientDecoded<T: Decodable>: Decodable {
+    var wrappedValue: T?
+    init(wrappedValue: T?) { self.wrappedValue = wrappedValue }
+    init(from decoder: Decoder) throws {
+        wrappedValue = try? T(from: decoder)
+    }
+}
+
+extension LenientDecoded: Equatable where T: Equatable {}
+
+extension KeyedDecodingContainer {
+    func decode<T>(_ type: LenientDecoded<T>.Type, forKey key: Key) throws -> LenientDecoded<T> {
+        LenientDecoded(wrappedValue: try? decodeIfPresent(T.self, forKey: key))
     }
 }
