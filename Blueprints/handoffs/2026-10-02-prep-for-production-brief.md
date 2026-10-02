@@ -63,7 +63,8 @@ Each item is its own PR with tests, reviewed by Codex.
   - Up/down/test, then rehearse. Backfill: none (no app calls the endpoint yet; nothing in Redis to move).
   - **Decided (founder, 2026-10-02): the server remembers every trade it shows, not only the best.** The save button still sends only `candidate_id` and `reasoning`, so the table needs a second piece:
     - Each `/api/trade/find` response's candidates (at most `MAX_CANDIDATES_RETURNED` = 10) are kept server side, per user, with players, both teams, provider, league, season and week. Short-lived (match the find cache, 15 min, or longer if the founder prefers); never shown to anyone but that user.
-    - On save, the server looks the candidate up in the caller's own kept batch and writes the full trade into the saved-trades row. No iPhone change.
+    - **Candidate ids become globally unique** (Codex, #522). Today's id (`find_{opponent}_{give}_{receive}`) repeats across leagues and weeks, so a lookup by id alone could save the wrong league's trade. `/api/trade/find` issues a batch token per response and folds it into each candidate's id. The app already treats the id as opaque and sends it back unchanged, so this is still no iPhone change; the `trade-find.v1` contract keeps `id` a string.
+    - On save, the server looks the id up in the caller's own kept batches and writes the full trade into the saved-trades row. No iPhone change.
     - Batch expired or id not found: the save returns `{status: "error"}` with a code the app can turn into "refresh the search". Never a save with missing trade data.
     - Staleness then compares the saved players and both rosters, not only position need.
     - Not "best only": the review screen saves whichever card is swiped (`TradeFindReviewViewModel.save()`), so keeping only the top candidate would fail most saves.
