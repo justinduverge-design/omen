@@ -559,9 +559,10 @@ number of pointed contract changes plus a governance amendment — not a build-o
 
 ### D2-SchemaForSlice — Schema additions and the confidence-band fix
 
-- **Status:** READY
+- **Status:** IN_PROGRESS
+- **Claim:** 2026-10-01 Claude — founder-directed database redo: league-connections review done (`Direction/2026-10-01-league-connections-review.md`); schema design from screens → contracts → tables next, after founder approval of the plan. Review-only SQL; nothing applied.
 - **Owner lane:** database — a **Claude or Codex session only**. Jules and Muse never touch the database (founder, 2026-09-30, `Direction/decision_log.md`).
-- **Blocked by:** None.
+- **Blocked by:** FOUNDER_APPROVAL — approve the Task B design plan before any SQL is drafted.
 - **Priority:** P0 — gates D3, D4 and the first production order for the shadow log.
 - **Cost:** medium
 - **Ticket:** `T-S1` in `Blueprints/rebuild/omen-call-slice-plan.md` ("Database tickets"). Read its sections "Two design flaws" and "Schema additions" first.
