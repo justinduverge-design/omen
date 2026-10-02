@@ -55,6 +55,15 @@ Each item is its own PR with tests, reviewed by Codex.
   - The table records **why** the rules are used: grading against the league's own scoring, and advising in its real format.
   - Up/down/test, then rehearse.
 
+- [ ] **New: saved trades table (T4, PR #519 left open; founder, 2026-10-02).** Design and write a redo step 12.
+  - Today `src/services/tradeSavedQueueStore.js` keeps each user's saved trades as **one Redis blob** (`omen:trade_saved_queue:{userId}`, no TTL). Codex on #519 found two problems the table fixes:
+    - **Lost saves.** Every change reads the whole list and writes it back, so two quick saves can drop one. A table with one row per saved trade, and a unique key on (user, candidate), makes each save atomic.
+    - **Not erased.** `account_erase()` and data export do not know about it. The table has a foreign key to `users` with cascade (or a line in `account_erase()`), and export includes it.
+  - Columns from the T4 record: candidate id, reasoning (verbatim from first save), state `saved`/`sent`, outcome `accepted`/`rejected`/`countered`/null (self-report only), saved/sent/outcome timestamps, and the trade itself (see the open decision below). RLS: owner only; server writes.
+  - Up/down/test, then rehearse. Backfill: none (no app calls the endpoint yet; nothing in Redis to move).
+  - **Not fixed by the table (founder decision needed before #519 can merge):** T3's save button sends only `candidate_id` and `reasoning`, so no players, sides or league are stored, and staleness checks only position need. Either the app's save sends the full candidate, or the server keeps the `/api/trade/find` results so it can look the candidate up. Then staleness compares the actual players and both rosters.
+  - Also on #519, not database: `GET /api/trade/saved` reads the roster once per item; group by league/week.
+
 ### 3. Tape the edges: compatibility check per step
 
 For each of steps 01–11, write down what today's server does against the changed schema:
@@ -87,7 +96,7 @@ One page per step: `Blueprints/handoffs/<date>-production-runbook.md`. Each page
 The order (from the handoff, updated 2026-10-02):
 1. 07, 01, 02, 03, 04;
 2. 06 (after A4);
-3. 11 (rules compartment);
+3. 11 (rules compartment), and 12 (saved trades) once its design is approved;
 4. A0 then A1 deployed;
 5. 05 and 10 together;
 6. 08 and 09 (after A2 and A3).
