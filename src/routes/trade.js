@@ -721,8 +721,13 @@ function createTradeRouter({
     }
   });
 
-  function tradeFindCacheKey({ platform, leagueId, week }) {
-    return `${platform}:${leagueId}:${week}`;
+  // Scoped to the caller. The cache is read before the provider roster read, and
+  // that read is the only ownership check (it uses the caller's own ESPN/Yahoo
+  // credentials). A key without the user id would hand user A's warm bundle to
+  // any user who names A's league id. Sleeper leagues are public, but they are
+  // scoped the same way so the rule has no exceptions.
+  function tradeFindCacheKey({ userId, platform, leagueId, week }) {
+    return `${userId}:${platform}:${leagueId}:${week}`;
   }
 
   /**
@@ -737,8 +742,9 @@ function createTradeRouter({
    *
    *   1. **Cache.** The provider roster read for a given platform/league/week is
    *      cached (`tradeFindCache`, `tradeFindCacheStore.js` — same Redis client
-   *      pattern as `tradeShareStore.js`) for `DEFAULT_FIND_CACHE_TTL_SECONDS`. A
-   *      repeat request in that window never re-reads the provider. This is the
+   *      pattern as `tradeShareStore.js`) for `DEFAULT_FIND_CACHE_TTL_SECONDS`,
+   *      keyed per user (see `tradeFindCacheKey`). A repeat request by the same
+   *      user in that window never re-reads the provider. This is the
    *      "not recomputed live on every call" half of the constraint. Refresh is
    *      TTL-based rather than webhook-driven because none of Yahoo, Sleeper, or
    *      ESPN publish a roster-change webhook today — see the open question noted
@@ -793,7 +799,7 @@ function createTradeRouter({
         week = nflWeekContext(now())?.week || 1;
       }
 
-      const cacheKey = tradeFindCacheKey({ platform, leagueId, week });
+      const cacheKey = tradeFindCacheKey({ userId: user.id, platform, leagueId, week });
       let bundle = null;
       let cacheHit = false;
       try {
