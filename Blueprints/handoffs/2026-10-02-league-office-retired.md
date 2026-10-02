@@ -36,5 +36,6 @@ source type, and flags comments with more than 10 sites for a human.
   If Codex raises more guard edge cases, fix them in a small follow-up PR.
 - Truth Gate still reports 1102 P0. The count is inherited (identical on `main` before this work) and
   none mention League Office, but under the close-out rule a P0 still blocks a clean close-out.
-- The 2026-10-02 Codex review compilation (which listed the League Office findings) lives only in the
-  `sharp-lamarr-3e114b` worktree, not on `main`. Its League Office table is now moot.
+- `Direction/reviews/2026-10-02-codex-review-compilation.md` lists the League Office worker findings
+  (#441, #463, and the line-381 comment bug). All are moot now that the worker is deleted.
+- **Close-out is BLOCKED, not done**, on the inherited Truth Gate P0s above (see the Done ledger row).
