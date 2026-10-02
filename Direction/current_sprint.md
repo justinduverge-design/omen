@@ -1002,6 +1002,9 @@ signatures in `tradeValue.js` before either PR, don't let both sessions modify i
   silently or failing the whole batch; every candidate's reasoning payload is present and testable.
 - **Do not touch:** synchronous full-league fan-out on the request path; any candidate involving a
   provider-restricted roster.
+- **Security fix 2026-10-02 (#516, Claude):** the `/find` cache key now includes the user id. Before,
+  any signed-in user could read another user's cached ESPN/Yahoo league bundle by naming its league
+  id (Codex on #474). Regression test in `test/tradeFindRoute.test.js`. Status unchanged.
 
 ### T3-SwipeCandidateReview — Swipeable candidate-review screen (native)
 
