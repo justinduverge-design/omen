@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - 'migrations/**'
+      - 'sql/2026-10-01-redo/**'
+      - 'scripts/db/**'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/migrations-ci.yml'
@@ -14,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: supabase/postgres:15.1.1.78
+        image: supabase/postgres:17.6.1.111  # production's exact version (read 2026-10-01); was 15.1.1.78
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: password
@@ -111,3 +113,43 @@ jobs:
           main();
           SCRIPT
           node verify.js
+
+  # The 2026-10-01 database redo (sql/2026-10-01-redo/, design in Blueprints/rebuild/omen-database-redo-v1.md).
+  # Plain Postgres 17: the shim reproduces the Supabase pieces the steps rely on, and the job first proves
+  # the scratch snapshot equals the production catalog fixture. Then every step goes up, through its
+  # tests, down (schema and data must equal the state before), and up again (must be identical).
+  redo-rehearsal:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Rehearse the redo steps (up, test, down, up)
+        env:
+          PGHOST: localhost
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: password
+        run: |
+          psql --version
+          scripts/db/rehearse-redo.sh

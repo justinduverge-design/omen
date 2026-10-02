@@ -1,5 +1,31 @@
 # Omen Decision Log
 
+## 2026-10-01 — the database is redone from the screens back; production's own history is the migration system
+
+- **Decisions (founder, in session):**
+  - approved the redo plan;
+  - production's Supabase migration history (plain reviewed SQL files) owns the database from now
+    on, not node-pg-migrate, which production never ran;
+  - a scratch Postgres 17 is used for testing, both locally (Homebrew `postgresql@17`) and in CI;
+  - read-only production catalog checks are approved (schema and anonymous counts only).
+- **Why:** production is the only true copy of the schema, and the repo's two schema sources (the
+  `migrations/` baseline and `sql/omen_rls_security.sql`) both disagree with it. Review:
+  `Direction/2026-10-01-league-connections-review.md`.
+- **Design decisions made by the agent, recorded for review** (`Blueprints/rebuild/omen-database-redo-v1.md`):
+  - the Ledger stores one call per **team** per week; a re-ask supersedes and both are kept;
+  - the band is stored **as issued** with its drivers, plus an internal number that is never served,
+    so Gate 1's "store the number" and the slice plan's "store the band" both hold and neither
+    derives the band at read time. **Awaiting founder confirmation.**
+  - `NO_CALL` is not a band;
+  - league scoring rules, rosters and standings are never stored;
+  - provider credentials change only through transactional functions;
+  - every new table and function revokes the client access Supabase grants by default.
+- **WO-06 is replaced, not applied.** Measured today it would delete no one (7 of 7 app users match a
+  sign-in account), but it has no stop condition, no copy, an irreversible `down`, and production
+  cannot run it. Step 01 links identities and deletes nothing.
+- **Founder approval of the projection explainer design (2026-10-01)** was reported in the session
+  brief and is recorded here because it was not in this log.
+
 ## 2026-09-30 — build the projection explainer; keep every feature to explain, none to adjust
 
 - **Decision (founder):** build the "why" feature: explain why a player is projected where he is, with scheme, role, route and matchup information (`Blueprints/specs/omen-projection-explainer-v1.md`, ticket `D5`). Keep all the football features.
