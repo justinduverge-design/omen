@@ -307,6 +307,7 @@ final class LeagueCarouselTests: XCTestCase {
         let refresh = await viewModel.commitSelection()
         XCTAssertEqual(refresh, ["command_center"])
         XCTAssertEqual(recorder.calls.count, 1)
+        await viewModel.pendingDirectoryReload?.value
 
         // The re-read reordered the list, so the view model moved the pager to keep the user
         // on Beta. That move fires `.onChange` exactly as SwiftUI would.

@@ -156,13 +156,16 @@ struct OmenApiClient {
     private func send<T: Decodable>(_ request: URLRequest, as type: T.Type) async -> Result<T, OmenApiError> {
         let data: Data
         let response: URLResponse
+        let started = Date()
         do {
             (data, response) = try await fetcher.data(for: request)
         } catch {
+            OmenRequestTiming.log(request, status: nil, since: started)
             return .failure(.network)
         }
 
         guard let http = response as? HTTPURLResponse else { return .failure(.network) }
+        OmenRequestTiming.log(request, status: http.statusCode, since: started)
 
         switch http.statusCode {
         case 200...299:
@@ -224,5 +227,17 @@ enum OmenDecodeDiagnostics {
         @unknown default:
             return "unreadable response"
         }
+    }
+}
+
+
+/// How long each Omen API call took, as one line per call in the device console:
+/// `[omen-timing] POST api/leagues/active 200 1840ms`. Path only: no query string, no headers, no
+/// body, so a token or a league id can never reach a log. Exists so lag is measured, not guessed.
+enum OmenRequestTiming {
+    static func log(_ request: URLRequest, status: Int?, since started: Date) {
+        let ms = Int(Date().timeIntervalSince(started) * 1000)
+        let path = request.url?.path ?? "?"
+        NSLog("[omen-timing] %@ %@ %@ %dms", request.httpMethod ?? "GET", path, status.map(String.init) ?? "network-error", ms)
     }
 }
