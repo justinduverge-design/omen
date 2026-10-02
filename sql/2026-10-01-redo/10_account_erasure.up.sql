@@ -6,7 +6,12 @@
 -- plus several table deletes, each its own Supabase RPC that commits on its own. A failure halfway leaves
 -- the account partly erased: say, the ESPN cookie deleted but the Yahoo token still in Vault. This function
 -- does all of it or none of it:
---   1. locks the user row;
+--   1. takes the same per-(user, provider) advisory locks that step 02's credential functions take, for
+--      every provider, so a connect or reconnect in flight finishes first (or starts after the erase and
+--      fails on the missing user). Without them, a store could swap a connection's Vault ids while this
+--      reads the old ones, and its new secrets would outlive the account (Codex review, #511). The
+--      advisory locks come BEFORE the user-row lock: a first-time store holds its advisory lock and then
+--      needs a key-share lock on the user row, so the opposite order could deadlock. Then locks the user row;
 --   2. deletes every Vault secret the person's connections point at, and refuses to continue if any is
 --      missing (the same rule as connection_revoke);
 --   3. erases the Ledger through the append-only guard's erasure flag;
@@ -19,6 +24,11 @@
 -- account; no Omen data survives either way.
 --
 -- Requires steps 01, 02 and 05. Server-only: EXECUTE for service_role alone.
+--
+-- Deploy order (Codex, #514): the advisory locks only serialize with writers that take them. Today's
+-- server connects ESPN and Yahoo by writing Vault and platform_connections in separate calls, outside
+-- these locks. Move those paths onto the step 02 functions BEFORE the deletion route calls this
+-- function, or an erase between "secrets created" and "connection saved" orphans the new secrets.
 
 begin;
 
@@ -43,6 +53,10 @@ declare
   moves_n integer;
   consent_n integer;
 begin
+  -- Fixed order (espn, sleeper, yahoo): the platform check allows exactly these three.
+  perform pg_advisory_xact_lock(hashtextextended('omen.connection:' || p_user_id::text || ':espn', 0));
+  perform pg_advisory_xact_lock(hashtextextended('omen.connection:' || p_user_id::text || ':sleeper', 0));
+  perform pg_advisory_xact_lock(hashtextextended('omen.connection:' || p_user_id::text || ':yahoo', 0));
   perform 1 from public.users where id = p_user_id for update;
   if not found then
     return jsonb_build_object('erased', false, 'reason', 'no_such_user');

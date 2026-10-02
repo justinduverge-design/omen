@@ -569,7 +569,9 @@ number of pointed contract changes plus a governance amendment — not a build-o
 - **Evidence (2026-10-02):** verified on real Supabase (V1) and on a restored copy of production on KVM1 (V2); see `Blueprints/handoffs/2026-10-01-database-redo.md`.
 - **Merged 2026-10-02 by the founder:** #503 into `main`; #505 and #506 merged into their stacked parent branches, not `main`, so the redo reached `main` through a follow-up PR from `claude/db-retire-old`.
 - **Codex review 2026-10-02:** 4 P1 and 4 P2 findings on #503/#505/#506; all addressed in the follow-up PR (see `Blueprints/handoffs/2026-10-01-database-redo.md`, "Codex review").
-- **Blocked by:** AGENT_RESOLVABLE — Codex re-reviews the fixes.
+- **Codex review of #511 (2026-10-02):** 1 P1 (account erase vs. reconnect race) and 1 P2 (the race check swallowed a failure), both fixed in the follow-up PR. V1b and V2b re-ran all ten steps on real Supabase and on a restored copy of production: all pass (handoff, verification table).
+- **Blocked by:** AGENT_RESOLVABLE — Codex reviews the follow-up PR.
+- **Next (founder, 2026-10-02):** a prep-for-production session, pinned in `Direction/agent_inbox.md`; brief `Blueprints/handoffs/2026-10-02-prep-for-production-brief.md`. It adds plan A1–A4 and a scoring-rules compartment step (founder: keep the rules, record why they are used, make them deletable).
 - **Blocked by:** FOUNDER_APPROVAL — a production order per step, after review.
 - **Priority:** P0 — gates D3, D4 and the first production order for the shadow log.
 - **Cost:** medium
@@ -577,6 +579,17 @@ number of pointed contract changes plus a governance amendment — not a build-o
 - **Scope (rewritten 2026-10-02):** the reviewed steps in `sql/2026-10-01-redo/` (01-10), designed in `Blueprints/rebuild/omen-database-redo-v1.md`. No node-pg-migrate and no `migrations/` directory: that framework is retired (`Archive/superseded-db-2026-10-01/`). Changes are proven with `scripts/db/rehearse-redo.sh` and CI job `redo-rehearsal` on Postgres 17.
 - **Done when:** every step passes the rehearsal (scratch, real Supabase, restored production copy); Codex's findings are resolved; each production step is applied through its own founder-approved order with its verification recorded. **Production is a separate founder-approved bounded order per step.**
 - **Do not touch:** production without an approved order; secrets; the retired WO-06 file (archived, never to be applied).
+
+### D7-TradeFinderEspnYahoo — The trade finder works for ESPN and Yahoo leagues
+
+- **Status:** READY
+- **Owner lane:** backend, any session that can run the server tests; Codex reviews.
+- **Blocked by:** None.
+- **Priority:** P1
+- **Source:** founder, 2026-10-02 ("that needs to be fixed"). Codex #474: the ESPN and Yahoo adapters return `roster_positions: []` (`src/adapters/espn.js`, `src/adapters/yahoo.js`), so every optimal lineup totals zero and no trade is ever found. Plan D1 in `Direction/reviews/2026-10-02-codex-action-plans.md`; D2–D6 there are the related trade defects.
+- **Scope:** read each league's starting-slot configuration from ESPN and Yahoo; apply the value guard the weekly path already uses (D2); treat a `null` projection as missing, not 0 (D3).
+- **Done when:** a real ESPN league and a real Yahoo league each return at least one candidate, or an honest "none found" with the reason, in a test that uses recorded provider payloads; Codex's review is read and answered.
+- **Do not touch:** mobile code; the database.
 
 ### D6-AccountLinking — One Omen account per person across Apple, Google, Discord and email
 
@@ -1002,6 +1015,9 @@ signatures in `tradeValue.js` before either PR, don't let both sessions modify i
   silently or failing the whole batch; every candidate's reasoning payload is present and testable.
 - **Do not touch:** synchronous full-league fan-out on the request path; any candidate involving a
   provider-restricted roster.
+- **Security fix 2026-10-02 (#516, Claude):** the `/find` cache key now includes the user id. Before,
+  any signed-in user could read another user's cached ESPN/Yahoo league bundle by naming its league
+  id (Codex on #474). Regression test in `test/tradeFindRoute.test.js`. Status unchanged.
 
 ### T3-SwipeCandidateReview — Swipeable candidate-review screen (native)
 

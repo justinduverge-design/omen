@@ -55,7 +55,7 @@ jobs:
           psql --version
           scripts/db/rehearse-redo.sh
 
-      - name: Concurrent first-time connects leave no orphaned Vault secret
+      - name: Credential and erase races leave no orphaned Vault secret
         env:
           PGHOST: localhost
           PGPORT: '5432'

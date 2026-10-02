@@ -1,5 +1,40 @@
 # Omen Decision Log
 
+## 2026-10-02 (night) — scoring rules kept and compartmented; ESPN/Yahoo trade finder gets fixed; web stays; next session preps production
+
+- **League scoring rules (founder):** keep storing each league's scoring rules, for all three providers.
+  - **Record why we use them**, not a rights argument. We use them to:
+    - grade every call against the league's own scoring, not a PPR default (A6 exact reconciliation);
+    - give advice in the format the league actually plays.
+  - **Store them in a compartment**, the way ESPN projections are stored: their own table, a recorded
+    ingest, and one recorded purge that deletes them. Deleting the compartment must leave everything
+    else working. Calls keep the rules' version and hash, never a foreign key to the rule body.
+  - Today the bodies sit in `moves.scoring_contract`, and the new Ledger has no column for them. The
+    prep session designs the compartment as a redo step.
+  - Plan B8 in `Direction/reviews/2026-10-02-codex-action-plans.md` is closed by this decision.
+- **Trade finder for ESPN and Yahoo (founder): fix it.** It returns nothing for those leagues today
+  (Codex #474; plan D1).
+- **Web app (founder): it stays.** No web work now. When native is done, web takes the lessons
+  learned on the same backend, so it becomes front-end work. Plan H's comments wait for that, not for
+  retirement.
+- **Next session (founder): prepare production, don't run it.** "We're going to take one day to prep
+  it, make sure everything is where we need it to go so that when we do it, we can really do it well."
+  Brief: `Blueprints/handoffs/2026-10-02-prep-for-production-brief.md`, pinned in
+  `Direction/agent_inbox.md`.
+
+## 2026-10-02 (evening) — account erasure waits for a reconnect in flight; redo re-verified
+
+- **Codex's review of #511 was missed before merge.** It found a real race: `account_erase()` did not wait
+  for a connect or reconnect running at the same moment. Reproduced: with the version on `main`, an erase
+  during a reconnect fails partway. Fixed: the erase takes the same per-provider locks as the credential
+  functions, before it locks the user (the other order can deadlock). The race check now fails if either
+  session errors.
+- **Rule going forward:** read the PR's Codex review on the latest head before merging, not only CI.
+- **Re-verified, all ten steps:** real Supabase (V1b) and the newest production backup restored on KVM1
+  (V2b) both pass. Production now has 7 leagues (5 on 2026-10-01). Still exactly 6 unscoped Ledger rows.
+- **Not changed:** nothing has been applied to production. Production orders run in a separate session,
+  one step at a time, with the founder's approval.
+
 ## 2026-10-02 (later) — one call per team per week; Codex's review of the redo resolved
 
 - **Decision (founder):** a person in two leagues gets **one call per team per week**. Facts-of-record #16
@@ -4156,6 +4191,25 @@ on the second one.
   field (`Blueprints/specs/omen-projection-explainer-v1.md`).
 - **Open design items:** crimson `#7E1717` is 1.39:1 on the card (invisible), so the proposal uses a
   lighter `#B23A3A` hatch — needs a token decision; first use of Verdigris in the app.
+
+## 2026-10-02 — Trade-finder cache is scoped to the user, Sleeper included (#516)
+
+- **Decision:** every `tradeFindCache` key starts with the authenticated user id:
+  `${userId}:${platform}:${leagueId}:${week}` (`src/routes/trade.js`, `tradeFindCacheKey`).
+- **Why:** `GET /api/trade/find` reads the cache before the provider roster read, and that read is
+  the only league-ownership check (it uses the caller's own ESPN/Yahoo credentials). With the old
+  key, any signed-in user who named another user's private league id got that user's warm roster
+  bundle. Reported by Codex on #474; listed as "fix first" in
+  `Direction/reviews/2026-10-02-codex-review-compilation.md`.
+- **Sleeper too:** Sleeper leagues are public, so sharing their entries would not leak anything. They
+  are scoped the same way so the rule has no exceptions. Cost: two users in one league each warm
+  their own entry.
+- **Alternative not taken:** verify league ownership before honouring a hit. It needs a membership
+  read per request, which is the cost the cache exists to avoid.
+- **Left as is:** adapter caches keyed by league or team, not user (`ssff:espn:scoring:*`,
+  `ssff:espn:lastresult:*`, `ssff:yahoo:lastresult:*`). Today they only receive league ids from the
+  caller's stored connection, so nothing leaks. They would leak the same way if a route ever passed
+  them a league id from the request. `responseCache` (#513) already puts the user id in every key.
 
 ## 2026-10-02 — League Office retired: code removed now, tables dropped later under fact #8
 
