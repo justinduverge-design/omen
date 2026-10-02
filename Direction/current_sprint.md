@@ -569,7 +569,8 @@ number of pointed contract changes plus a governance amendment — not a build-o
 - **Evidence (2026-10-02):** verified on real Supabase (V1) and on a restored copy of production on KVM1 (V2); see `Blueprints/handoffs/2026-10-01-database-redo.md`.
 - **Merged 2026-10-02 by the founder:** #503 into `main`; #505 and #506 merged into their stacked parent branches, not `main`, so the redo reached `main` through a follow-up PR from `claude/db-retire-old`.
 - **Codex review 2026-10-02:** 4 P1 and 4 P2 findings on #503/#505/#506; all addressed in the follow-up PR (see `Blueprints/handoffs/2026-10-01-database-redo.md`, "Codex review").
-- **Blocked by:** AGENT_RESOLVABLE — Codex re-reviews the fixes.
+- **Codex review of #511 (2026-10-02):** 1 P1 (account erase vs. reconnect race) and 1 P2 (the race check swallowed a failure), both fixed in the follow-up PR. V1b and V2b re-ran all ten steps on real Supabase and on a restored copy of production: all pass (handoff, verification table).
+- **Blocked by:** AGENT_RESOLVABLE — Codex reviews the follow-up PR.
 - **Blocked by:** FOUNDER_APPROVAL — a production order per step, after review.
 - **Priority:** P0 — gates D3, D4 and the first production order for the shadow log.
 - **Cost:** medium

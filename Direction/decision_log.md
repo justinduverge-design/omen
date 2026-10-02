@@ -1,5 +1,18 @@
 # Omen Decision Log
 
+## 2026-10-02 (evening) — account erasure waits for a reconnect in flight; redo re-verified
+
+- **Codex's review of #511 was missed before merge.** It found a real race: `account_erase()` did not wait
+  for a connect or reconnect running at the same moment. Reproduced: with the version on `main`, an erase
+  during a reconnect fails partway. Fixed: the erase takes the same per-provider locks as the credential
+  functions, before it locks the user (the other order can deadlock). The race check now fails if either
+  session errors.
+- **Rule going forward:** read the PR's Codex review on the latest head before merging, not only CI.
+- **Re-verified, all ten steps:** real Supabase (V1b) and the newest production backup restored on KVM1
+  (V2b) both pass. Production now has 7 leagues (5 on 2026-10-01). Still exactly 6 unscoped Ledger rows.
+- **Not changed:** nothing has been applied to production. Production orders run in a separate session,
+  one step at a time, with the founder's approval.
+
 ## 2026-10-02 (later) — one call per team per week; Codex's review of the redo resolved
 
 - **Decision (founder):** a person in two leagues gets **one call per team per week**. Facts-of-record #16
