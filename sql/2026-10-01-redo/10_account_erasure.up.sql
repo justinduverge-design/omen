@@ -24,6 +24,11 @@
 -- account; no Omen data survives either way.
 --
 -- Requires steps 01, 02 and 05. Server-only: EXECUTE for service_role alone.
+--
+-- Deploy order (Codex, #514): the advisory locks only serialize with writers that take them. Today's
+-- server connects ESPN and Yahoo by writing Vault and platform_connections in separate calls, outside
+-- these locks. Move those paths onto the step 02 functions BEFORE the deletion route calls this
+-- function, or an erase between "secrets created" and "connection saved" orphans the new secrets.
 
 begin;
 

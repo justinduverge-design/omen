@@ -34,6 +34,11 @@ Do these in order. Each one ends with something checkable.
 
 Each item is its own PR with tests, reviewed by Codex.
 
+- [ ] **A0. Connect paths on the step 02 functions (Codex, #514).**
+  - Today's ESPN connect (`src/routes/platforms.js:652-675`) and Yahoo token storage (`src/services/yahooAuth.js:48-80`) create Vault secrets and upsert `platform_connections` in separate calls, outside the advisory locks.
+  - `account_erase()` cannot serialize with them. An erase between "secrets created" and "connection saved" leaves orphaned secrets.
+  - Move both onto `connection_store_espn()`/`connection_store_yahoo()`. Move disconnect onto `connection_revoke()` and the Yahoo refresh onto `connection_rotate_yahoo()`. Each keeps today's path when the function doesn't exist.
+  - Must be **deployed before A1**.
 - [ ] **A1. Account deletion on `account_erase()`.**
   - `src/routes/userPrivacy.js` calls `rpc('account_erase')` when the function exists. When it doesn't (missing function: PostgREST `PGRST202`/`42883`), it keeps today's path.
   - Test both paths. This must be **deployed** before step 05.
@@ -83,7 +88,7 @@ The order (from the handoff, updated 2026-10-02):
 1. 07, 01, 02, 03, 04;
 2. 06 (after A4);
 3. 11 (rules compartment);
-4. A1 deployed;
+4. A0 then A1 deployed;
 5. 05 and 10 together;
 6. 08 and 09 (after A2 and A3).
 

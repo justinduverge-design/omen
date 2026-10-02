@@ -87,7 +87,7 @@ follow-up PR:
 1. Codex review of the follow-up PR (read it **before** merging).
 2. Founder: decided 2026-10-01 (beta reports yes; V1 and V2 approved and done).
 3. Per step: a restored-clone rehearsal, then a founder-approved production order. Suggested order:
-   07, 01, 02, 03, 04; then 06 (after its ingest-event check, plan A4); then the account-deletion server
+   07, 01, 02, 03, 04; then 06 (after its ingest-event check, plan A4); then the connect paths on the step 02 functions (plan A0), then the account-deletion server
    change; then 05 and 10 back to back; then 08 and 09 (after the purges are scheduled, plan A3, and the
    beta-report filter is fixed, plan A2). Plans: `Direction/reviews/2026-10-02-codex-action-plans.md`.
    - **Step 05 waits for the server change** (Codex, #508; confirmed 2026-10-02 against `main`). Once 05

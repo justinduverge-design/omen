@@ -35,6 +35,7 @@ B1 (the trade cache) was fixed in #516 on 2026-10-02. The C bug (accolade update
 
 | | Problem | Evidence | Fix | Done when |
 |---|---|---|---|---|
+| A0 | Account erase can't serialize with today's connect paths | Codex #514. `src/routes/platforms.js:652-675` and `src/services/yahooAuth.js:48-80` write Vault and the connection row in separate calls, outside the step 02 locks | Move connect, disconnect and the Yahoo refresh onto the step 02 functions, with today's path kept as a fallback | Deployed before A1 |
 | A1 | Once step 05 is on, "delete my account" fails halfway for anyone with a Ledger call | Codex #508. `src/routes/userPrivacy.js:236-262` deletes table by table, then `users`; step 05's guard refuses the last delete | The route calls `account_erase()` when the function exists, and keeps today's path when it doesn't. Tests for both | Deployed **before** step 05. Then steps 05 and 10 are applied back to back |
 | A2 | The beta-report filter misses pasted ESPN cookies such as `ESPN S2 = …` | Codex #440. `src/routes/betaReports.js:6` matches only `espn_s2` | Match label variants (`espn s2`, `espn-s2`, `s2=`) and cookie-shaped values; test with real-looking samples | Shipped before step 09 |
 | A3 | The 30-day purges exist but nothing runs them | Codex #508. No caller of `beta_reports_purge_expired()` or `retired_rows_purge_due()` in `src/`, `scripts/` or `Dockerfile.cron` | Add both to the cron container, daily, with a log line per run | Scheduled before steps 08/09 count as done; first run seen in the logs |
@@ -43,7 +44,7 @@ B1 (the trade cache) was fixed in #516 on 2026-10-02. The C bug (accolade update
 
 **Production order** (in `Blueprints/handoffs/2026-10-01-database-redo.md`):
 1. 07, 01, 02, 03, 04, 06 (06 after A4);
-2. A1 deployed;
+2. A0, then A1 deployed;
 3. 05 and 10 together;
 4. 08 and 09 (after A2 and A3).
 
