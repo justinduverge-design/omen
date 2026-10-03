@@ -54,6 +54,9 @@ declare
   moves_n integer;
   consent_n integer;
 begin
+  -- The account lock first: a beta report being filed (step 09 takes it shared) finishes before the erase,
+  -- and one filed during the erase waits and is then refused by the tombstone (Codex review, #530).
+  perform pg_advisory_xact_lock(hashtextextended('omen.account:' || p_user_id::text, 0));
   -- Fixed order (espn, sleeper, yahoo): the platform check allows exactly these three.
   perform pg_advisory_xact_lock(hashtextextended('omen.connection:' || p_user_id::text || ':espn', 0));
   perform pg_advisory_xact_lock(hashtextextended('omen.connection:' || p_user_id::text || ':sleeper', 0));

@@ -59,6 +59,25 @@ create table public.beta_reports (
   constraint beta_reports_expiry_check check (expires_at > created_at and expires_at <= created_at + interval '30 days')
 );
 create index beta_reports_user_created_at on public.beta_reports (user_id, created_at desc);
+
+-- No report after erasure (Codex review, #530). The deletion audit row account_erase() writes (sha256 of the
+-- user id, the same hash the route's legacy path writes) is the tombstone: a report for an erased person is
+-- refused. A SHARED per-account lock, which account_erase() takes exclusively first, closes the window both
+-- ways: an erase waits for a report being filed and then deletes it; a report filed during an erase waits,
+-- sees the tombstone and is refused. Without this, a report inserted between the erase and the route's
+-- sign-in deletion would survive if that last call failed.
+create function public.beta_reports_check_insert() returns trigger
+language plpgsql set search_path = pg_catalog, public as $$
+begin
+  perform pg_advisory_xact_lock_shared(hashtextextended('omen.account:' || new.user_id::text, 0));
+  if exists (select 1 from public.deletion_audit_log
+              where user_id_hash = encode(sha256(convert_to(new.user_id::text, 'UTF8')), 'hex')) then
+    raise exception 'beta_reports: this account has been erased' using errcode = '42501';
+  end if;
+  return new;
+end $$;
+create trigger beta_reports_check_insert before insert on public.beta_reports
+  for each row execute function public.beta_reports_check_insert();
 create index beta_reports_expires_at on public.beta_reports (expires_at);
 comment on table public.beta_reports is
   'In-app beta report: screen, app/device metadata, scrubbed error codes, the user''s note. No league data, rosters, screenshots or credentials. Deleted after 30 days by beta_reports_purge_expired().';
@@ -83,5 +102,7 @@ revoke all on table public.beta_reports from anon, authenticated;
 grant all on table public.beta_reports to service_role;
 revoke all on function public.beta_reports_purge_expired() from public, anon, authenticated;
 grant execute on function public.beta_reports_purge_expired() to service_role;
+revoke all on function public.beta_reports_check_insert() from public, anon, authenticated;
+grant execute on function public.beta_reports_check_insert() to service_role;
 
 commit;

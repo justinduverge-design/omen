@@ -10,17 +10,20 @@
 #      leave nothing behind;
 #   4. a projections purge while a snapshot insert is in flight (Codex review, #528): the purge must wait
 #      for the insert and remove it, leaving no row of that provider behind;
-#   5. the same for a scoring-rules purge and a rule-set insert (step 11).
+#   5. the same for a scoring-rules purge and a rule-set insert (step 11);
+#   6. an account erase while a beta report insert is in flight: the erase waits and removes it;
+#   7. a beta report while an account erase is in flight: the report waits and is refused (Codex, #530).
 #
 #   PGHOST=127.0.0.1 PGPORT=54317 PGUSER=postgres scripts/db/concurrency-check.sh
 #
-# STEP02=path / STEP06=path / STEP10=path / STEP11=path substitute an older version of a step, to prove the check catches it.
+# STEP02=path / STEP06=path / STEP09=path / STEP10=path / STEP11=path substitute an older version of a step, to prove the check catches it.
 # Exits 1 on the first failed expectation.
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 sqldir="$here/../../sql/2026-10-01-redo"
 step02="${STEP02:-$sqldir/02_connection_credentials.up.sql}"
 step06="${STEP06:-$sqldir/06_projections_shadow.up.sql}"
+step09="${STEP09:-$sqldir/09_beta_reports.up.sql}"
 step10="${STEP10:-$sqldir/10_account_erasure.up.sql}"
 step11="${STEP11:-$sqldir/11_league_scoring_rules.up.sql}"
 db=omen_concurrency_check
@@ -59,7 +62,7 @@ for f in 00a_scratch_supabase_shim 00b_production_schema_snapshot 00d_production
   psql -X -q -v ON_ERROR_STOP=1 -d "$db" -f "$sqldir/$f.sql" >/dev/null 2>&1
 done
 for f in 01_identity_link.up "$step02" 03_leagues_memberships.up 04_players_crosswalk.up 05_ledger.up \
-         "$step06" 07_close_client_writes.up 08_retire_unscoped_moves.up 09_beta_reports.up "$step10" "$step11"; do
+         "$step06" 07_close_client_writes.up 08_retire_unscoped_moves.up "$step09" "$step10" "$step11"; do
   case "$f" in /*) path="$f" ;; *) path="$sqldir/$f.sql" ;; esac
   psql -X -q -v ON_ERROR_STOP=1 -d "$db" -f "$path" >/dev/null 2>&1 || fail "could not apply $path"
 done
@@ -136,6 +139,28 @@ race "insert into public.league_scoring_rules (ingest_event_id, provider, league
 left=$(q "select count(*) from public.league_scoring_rules where provider = 'espn'")
 echo "race 5: ESPN rule sets left after the purge $left"
 [ "$left" = 0 ] || fail "race 5: $left ESPN rule set(s) survived a purge that recorded success"
+
+# 6. An account erase while a beta report insert is in flight.
+u6=00000000-0000-4000-8000-000000000003
+race "insert into public.beta_reports (user_id, screen, app_version, build, os_version, device_model, connection_state, message, disclosure_accepted)
+      values ('$u6', 'account', '1', '1', 'x', 'y', 'none', 'race 6', true);" \
+     "select public.account_erase('$u6')"
+[ "$a_rc" = 0 ] || fail "race 6: report insert failed: $(cat "$tmp/a.err")"
+[ "$b_rc" = 0 ] || fail "race 6: erase failed: $(cat "$tmp/b.err")"
+left=$(q "select count(*) from public.beta_reports where user_id = '$u6'")
+echo "race 6: reports left after the erase $left"
+[ "$left" = 0 ] || fail "race 6: a report filed during the erase survived it"
+
+# 7. A beta report while an account erase is in flight.
+u7=00000000-0000-4000-8000-000000000002
+race "select public.account_erase('$u7');" \
+     "insert into public.beta_reports (user_id, screen, app_version, build, os_version, device_model, connection_state, message, disclosure_accepted)
+      values ('$u7', 'account', '1', '1', 'x', 'y', 'none', 'race 7', true)"
+[ "$a_rc" = 0 ] || fail "race 7: erase failed: $(cat "$tmp/a.err")"
+[ "$b_rc" != 0 ] || fail "race 7: a report was accepted for an account being erased"
+left=$(q "select count(*) from public.beta_reports where user_id = '$u7'")
+echo "race 7: reports left $left"
+[ "$left" = 0 ] || fail "race 7: a report outlived the erase"
 
 dropdb "$db"
 rm -rf "$tmp"

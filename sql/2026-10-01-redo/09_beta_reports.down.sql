@@ -3,4 +3,5 @@
 begin;
 drop function if exists public.beta_reports_purge_expired();
 drop table if exists public.beta_reports;
+drop function if exists public.beta_reports_check_insert();
 commit;
