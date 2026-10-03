@@ -170,9 +170,10 @@ traceable":
 | identity, credentials (Vault refs), credential health | rosters (all teams), lineups, slots |
 | leagues followed, team per league, active selection | standings, matchups, scores |
 | every call as issued, its evidence, the person's action, the outcome | waiver pool, transactions, activity |
-| provider projections as read (stat line + points) | **league scoring rules** (A6; applied in memory only) |
-| canonical players + crosswalk | injuries and news (until a lawful source is chosen) |
-| shadow log | weather and schedule (until D4; see §9) |
+| provider projections as read (stat line + points) | injuries and news (until a lawful source is chosen) |
+| canonical players + crosswalk | weather and schedule (until D4; see §9) |
+| shadow log | |
+| **league scoring rules** in their own compartment (step 11; founder, 2026-10-02 night, superseding "applied in memory only") | |
 
 **Rosters are deliberately not snapshotted.** The Gate 1 blueprint proposed `roster_snapshots` for
 auditability. That stores other managers' rosters, who never signed up for Omen. No screen needs a
@@ -246,6 +247,7 @@ restored-clone rehearsal (the 2026-09-30 method) → verification → production
 | 04 | Players + crosswalk tables (empty) | none | drop tables | always (the D3 job is deterministic) |
 | 05 | Ledger + backfill (3 scoped moves copied; `moves` untouched) | medium: new write path | drop tables | **the server writes its first call here**; after that, export before rollback |
 | 06 | Projection snapshots + shadow log + `data_events` + provider purge | low | drop tables | the first logged week (cannot be re-created) |
+| 11 | `league_scoring_rules`: each league's scoring rules in a deletable compartment, kept for grading and advice; `scoring_rules_purge()`; backfill from league-scoped `moves.scoring_contract` (founder, 2026-10-02 night) | low: additive, `moves` untouched | drop table (a `retire` record is kept) | the server writes its own rule sets (export first) |
 | 09 | `beta_reports` for the Report button, with a recorded 30-day purge | low: additive | drop table | the first saved report |
 | 10 | `account_erase()`: the whole account in one transaction (secrets, connections, Ledger, moves, consent, OAuth state; reports and held rows cascade), audit row written | low: additive function | drop function | always |
 | 08 | Delete the 6 unscoped `moves` rows: aborts unless exactly 6; recorded; held 30 days | medium: deletes data, by founder decision | restore from the held copies | 30 days, then the copies are purged by design |
@@ -265,9 +267,11 @@ its own code ticket, and none is part of this PR:
 5. **Connect, disconnect, Yahoo refresh and account deletion.** Connect, disconnect and Yahoo refresh call
    `connection_*()`. Account deletion calls `account_erase()` (step 10), one transaction, then deletes
    the Auth account.
-6. **Export.** Drop the nonexistent `moves.feature` / `moves.updated_at` from the select (a code bug,
+6. **Scoring rules.** Whatever writes a call's scoring contract also writes the rule set into
+   `league_scoring_rules` (with its `scoring_rules:<provider>` ingest) when the hash is new. Calls keep version and hash only.
+7. **Export.** Drop the nonexistent `moves.feature` / `moves.updated_at` from the select (a code bug,
    not a schema gap).
-7. **Startup schema check.** Expected objects versus `information_schema`; `/api/ready` degraded on
+8. **Startup schema check.** Expected objects versus `information_schema`; `/api/ready` degraded on
    drift (finding 11).
 
 ## 8. First slice versus later
@@ -335,7 +339,11 @@ explainer may not show a statistic without one.
   `service_role` can read `vault.decrypted_secrets` directly (Supabase default); clients cannot reach
   Vault. The credential functions provide atomicity, not access control. Protecting the service key is
   what protects users' cookies.
-- **League scoring rules are never stored** (A6). Projections are the provider's own numbers.
+- **League scoring rules are stored, in their own compartment** (step 11; founder, 2026-10-02 night;
+  this replaced "never stored"). They are kept for two recorded uses: grading each call against the
+  league's own scoring (A6) and advising in the format the league plays. Every rule set cites a recorded
+  ingest, and `scoring_rules_purge()` removes a provider's rules in one recorded call. Calls keep only
+  version and hash, so a purge breaks nothing. Projections are the provider's own numbers.
 - **ESPN and Yahoo projections are kept, in their compartments** (founder, 2026-10-01). Every batch is
   recorded with its rights basis, and one recorded call removes a provider entirely (§3).
 - **Account deletion removes everything person-owned in ONE transaction** (`account_erase()`, step 10;

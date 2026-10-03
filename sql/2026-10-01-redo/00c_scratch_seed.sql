@@ -53,6 +53,18 @@ values
   ('00000000-0000-4000-8000-000000000004', 4, 2026, 'start_sit', 'Start L over M', 'scoped', 51, 'Player L', null,  'pending',      '2026-09-30', null, null, null,  'sleeper', '998877665501'),
   ('00000000-0000-4000-8000-000000000007', 4, 2026, 'start_sit', 'Start N over O', 'scoped', 66, 'Player N', null,  'pending',      '2026-09-30', null, null, null,  'yahoo',   '470.l.5007');
 
+-- Scoring rules (step 11 backfill): production's moves all carry a contract. Here two league-scoped moves
+-- (ESPN, Sleeper) and one unscoped move do; the Yahoo move does not. Bodies are synthetic.
+update public.moves set scoring_contract = '{"contract_version":"omen-scoring-contract-v1","provider":"espn","coverage_state":"supported","rules":[{"event_key":"receiving_receptions","operator":"per_event","points":1}]}',
+       scoring_contract_version = 'omen-scoring-contract-v1', scoring_contract_hash = 'sha256:' || repeat('e', 64)
+ where platform = 'espn' and league_id = '100001';
+update public.moves set scoring_contract = '{"contract_version":"omen-scoring-contract-v1","provider":"sleeper","coverage_state":"supported","rules":[{"event_key":"receiving_receptions","operator":"per_event","points":0.5}]}',
+       scoring_contract_version = 'omen-scoring-contract-v1', scoring_contract_hash = 'sha256:' || repeat('5', 64)
+ where platform = 'sleeper' and league_id = '998877665501';
+update public.moves set scoring_contract = '{"contract_version":"omen-scoring-contract-v1","coverage_state":"supported","rules":[]}',
+       scoring_contract_version = 'omen-scoring-contract-v1', scoring_contract_hash = 'sha256:' || repeat('0', 64)
+ where headline = 'Start A over B';
+
 insert into public.consent_records (user_id, consent_type, granted, granted_at) values
   ('00000000-0000-4000-8000-000000000001', 'terms', true, now()),
   ('00000000-0000-4000-8000-000000000002', 'terms', true, now()),

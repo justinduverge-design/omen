@@ -9,11 +9,12 @@
 #   3. a connect while an account erase is in flight: the connect must fail (the person is gone) and
 #      leave nothing behind;
 #   4. a projections purge while a snapshot insert is in flight (Codex review, #528): the purge must wait
-#      for the insert and remove it, leaving no row of that provider behind.
+#      for the insert and remove it, leaving no row of that provider behind;
+#   5. the same for a scoring-rules purge and a rule-set insert (step 11).
 #
 #   PGHOST=127.0.0.1 PGPORT=54317 PGUSER=postgres scripts/db/concurrency-check.sh
 #
-# STEP02=path / STEP06=path / STEP10=path substitute an older version of a step, to prove the check catches it.
+# STEP02=path / STEP06=path / STEP10=path / STEP11=path substitute an older version of a step, to prove the check catches it.
 # Exits 1 on the first failed expectation.
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -21,6 +22,7 @@ sqldir="$here/../../sql/2026-10-01-redo"
 step02="${STEP02:-$sqldir/02_connection_credentials.up.sql}"
 step06="${STEP06:-$sqldir/06_projections_shadow.up.sql}"
 step10="${STEP10:-$sqldir/10_account_erasure.up.sql}"
+step11="${STEP11:-$sqldir/11_league_scoring_rules.up.sql}"
 db=omen_concurrency_check
 u=00000000-0000-4000-8000-000000000009
 
@@ -57,7 +59,7 @@ for f in 00a_scratch_supabase_shim 00b_production_schema_snapshot 00d_production
   psql -X -q -v ON_ERROR_STOP=1 -d "$db" -f "$sqldir/$f.sql" >/dev/null 2>&1
 done
 for f in 01_identity_link.up "$step02" 03_leagues_memberships.up 04_players_crosswalk.up 05_ledger.up \
-         "$step06" 07_close_client_writes.up 08_retire_unscoped_moves.up 09_beta_reports.up "$step10"; do
+         "$step06" 07_close_client_writes.up 08_retire_unscoped_moves.up 09_beta_reports.up "$step10" "$step11"; do
   case "$f" in /*) path="$f" ;; *) path="$sqldir/$f.sql" ;; esac
   psql -X -q -v ON_ERROR_STOP=1 -d "$db" -f "$path" >/dev/null 2>&1 || fail "could not apply $path"
 done
@@ -119,6 +121,21 @@ race "insert into public.projection_snapshots (ingest_event_id, provider, provid
 left=$(q "select count(*) from public.projection_snapshots where provider = 'espn'")
 echo "race 4: ESPN projection rows left after the purge $left"
 [ "$left" = 0 ] || fail "race 4: $left ESPN projection row(s) survived a purge that recorded success"
+
+# 5. A scoring-rules purge while a rule-set insert is in flight.
+ev=$(q "insert into public.data_events (event, subject, provider, rights_basis, job, source_ref, row_count)
+        values ('ingest', 'scoring_rules:espn', 'espn', 'espn_user_connection', 'race', 'sha256:' || repeat('c', 64), 1)
+        returning id" | head -1)
+lg=$(q "select id from public.leagues where provider = 'espn' order by id limit 1")
+season=$(q "select season from public.leagues where id = '$lg'")
+race "insert into public.league_scoring_rules (ingest_event_id, provider, league_id, season, contract_version, contract_hash, rules)
+      values ($ev, 'espn', '$lg', $season, 'omen-scoring-contract-v1', 'sha256:' || repeat('d', 64), '{}');" \
+     "select public.scoring_rules_purge('espn', 'race check', 'founder')"
+[ "$a_rc" = 0 ] || fail "race 5: insert failed: $(cat "$tmp/a.err")"
+[ "$b_rc" = 0 ] || fail "race 5: purge failed: $(cat "$tmp/b.err")"
+left=$(q "select count(*) from public.league_scoring_rules where provider = 'espn'")
+echo "race 5: ESPN rule sets left after the purge $left"
+[ "$left" = 0 ] || fail "race 5: $left ESPN rule set(s) survived a purge that recorded success"
 
 dropdb "$db"
 rm -rf "$tmp"
