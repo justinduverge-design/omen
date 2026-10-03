@@ -55,12 +55,13 @@ intelligence should be built for the whole game so all coaches and players come 
    - Real output: "Chicago's offense in 2025: quarterback plays outside the pocket on 18.2% of plays
      (1st of 32); play-action on 18.7% of plays (2nd of 32)." Miami is flagged with a new head coach.
    - `team_system_change` (this season against last) is deferred until 2026 qualifies.
-4. [ ] **Production table.**
-   - Revise `sql/pending/2026-09-26_football_intelligence_serving_review.sql`: its `signal_type` check
-     allows only `coach_transfer_system_signal`.
-   - Rehearse it (scratch, then the throwaway project), then apply with `apply_migration`. The founder
-     approved creating it under plan B (2026-10-03).
-   - Keep its rules: published rows only for authenticated users, and service-role writes.
+4. [x] **Production table.** Redo step 13 `football_intelligence_signals` (#547).
+   - `signal_type` admits `team_system_identity` and `team_system_change`.
+   - Rehearsed on scratch: 01–13, with the other twelve expected catalogs byte-identical.
+   - Rehearsed on the throwaway: applied and rolled back through `apply_migration`. Verified there:
+     published-only reads, anon refused, one published row per scope.
+   - **Applied to production 2026-10-03** through `apply_migration`. `VERIFIED 13`; the catalog
+     fingerprint equals the expected state in all 9 families.
 5. [ ] **Nightly job (cron image).** Download FTN, play-by-play and games; build the DNA and signals;
    validate; publish (supersede yesterday's rows); record a `data_events` ingest. Refuse to publish on a
    truncated source.
@@ -76,6 +77,27 @@ intelligence should be built for the whole game so all coaches and players come 
 8. [ ] **Snap share** in the usage line (snap counts join on `pfr_id`, which nflverse `players.csv`
    carries).
 9. [ ] **Phone check with the founder,** then the beta decision.
+
+## Tuesday 2026-10-06 plan (founder asked 2026-10-03: "how will we build it by Monday?")
+
+The database design covers every screen and is live (steps 01–13). What remains is **server wiring**: the
+code that writes to and reads from the new tables. It deploys continuously, and most of it needs no new
+iPhone build.
+
+| Day | Work | Screens |
+|---|---|---|
+| Sat 10-03 | FI-LEAGUE steps 5, 7, 8 (nightly publish, team-system lines, snap share); data export fix; SWID log redaction | Omen call, Start/Sit, Account |
+| Sun 10-04 | Ledger write path: each Omen call writes `decisions` + `decision_factors`; Ledger and Ledger Detail read the new tables | Omen, Ledger |
+| Sun 10-04 | League follows (plan A5): connecting writes `league_memberships`; the switch sheet reads `leagues` + memberships | Switch sheet, Command |
+| Sun 10-04 | Saved trades: move #519's Redis store onto `saved_trades` | Trade |
+| Mon 10-05 | Tuesday scoring writes `decision_outcomes` (week 5 is scored Tuesday morning); store projections as read (`projection_snapshots`); startup schema check | Ledger, Start/Sit |
+| Mon 10-05 | Full phone walkthrough with the founder, including the deletion test (steps 05/10); release prep (RELEASE-OCT-6) | all |
+
+- **Cut first if behind:** projection storage.
+- **Risks:**
+  - App Store review time for anything that needs a new build.
+  - Scope for one session. Suggested to the founder: run a second session in parallel, for example on the
+    Ledger and Tuesday scoring.
 
 ## Open questions for the founder
 
