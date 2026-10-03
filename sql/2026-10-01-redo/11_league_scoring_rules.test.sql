@@ -61,6 +61,12 @@ begin
   exception when check_violation then null;
   end;
   begin
+    insert into public.league_scoring_rules (ingest_event_id, provider, league_id, season, contract_version, contract_hash, rules)
+    values (ev_espn, 'espn', espn_lg, 2025, 'omen-scoring-contract-v1', 'sha256:' || repeat('7', 64), '{}');
+    raise exception 'FAIL 11: rules on a season other than the league''s were accepted';
+  exception when check_violation then null;
+  end;
+  begin
     insert into public.league_scoring_rules (ingest_event_id, provider, league_id, season, contract_version, contract_hash, rules, uses)
     values (ev_espn, 'espn', espn_lg, 2026, 'omen-scoring-contract-v1', 'sha256:' || repeat('7', 64), '{}', array['marketing']);
     raise exception 'FAIL 11: a use outside grading/advice was accepted';

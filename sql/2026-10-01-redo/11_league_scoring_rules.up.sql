@@ -64,22 +64,26 @@ comment on table public.league_scoring_rules is
 comment on column public.league_scoring_rules.uses is
   'Why the rules are kept: grading = grade each call against the league''s own scoring (A6); advice = advise in the format the league plays.';
 
--- A row must cite an ingest of the scoring-rules compartment for its own provider, and its provider must be
--- its league's provider. The foreign key alone would accept any data_events row (the step 06 lesson, plan A4).
+-- A row must cite an ingest of the scoring-rules compartment for its own provider, and its provider and
+-- season must be its league's (Codex review, #528: a row on the wrong season could never be found by a
+-- call). The foreign key alone would accept any data_events row (the step 06 lesson, plan A4).
+-- It also takes a SHARED per-provider lock that scoring_rules_purge takes exclusively, so a purge waits for
+-- every insert in flight and deletes it too (Codex review, #528).
 create function public.league_scoring_rules_check_insert() returns trigger
 language plpgsql set search_path = pg_catalog, public as $$
-declare ev public.data_events%rowtype; league_provider text;
+declare ev public.data_events%rowtype; lg public.leagues%rowtype;
 begin
+  perform pg_advisory_xact_lock_shared(hashtextextended('omen.compartment:scoring_rules:' || new.provider, 0));
   select * into ev from public.data_events where id = new.ingest_event_id;
   if found and (ev.event <> 'ingest' or ev.provider is distinct from new.provider
                 or ev.subject <> 'scoring_rules:' || new.provider) then
     raise exception 'league_scoring_rules: event % is not a scoring-rules ingest for %', new.ingest_event_id, new.provider
       using errcode = '23514';
   end if;
-  select provider into league_provider from public.leagues where id = new.league_id;
-  if found and league_provider <> new.provider then
-    raise exception 'league_scoring_rules: league % belongs to %, not %', new.league_id, league_provider, new.provider
-      using errcode = '23514';
+  select * into lg from public.leagues where id = new.league_id;
+  if found and (lg.provider <> new.provider or lg.season <> new.season) then
+    raise exception 'league_scoring_rules: league % is % season %, not % season %', new.league_id, lg.provider, lg.season,
+      new.provider, new.season using errcode = '23514';
   end if;
   return new;
 end $$;
@@ -101,6 +105,9 @@ begin
   if coalesce(p_reason, '') = '' or coalesce(p_approved_by, '') = '' then
     raise exception 'scoring_rules_purge: a reason and an approver are required' using errcode = '22023';
   end if;
+
+  -- Waits for every rule-set insert in flight for this provider, so the delete below sees them.
+  perform pg_advisory_xact_lock(hashtextextended('omen.compartment:scoring_rules:' || p_provider, 0));
 
   select 'sha256:' || encode(sha256(convert_to(coalesce(string_agg(r.id::text || ':' || r.contract_hash, ',' order by r.id), ''), 'UTF8')), 'hex')
     into removed_hash from public.league_scoring_rules r where r.provider = p_provider;
