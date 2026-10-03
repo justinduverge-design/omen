@@ -45,12 +45,16 @@ intelligence should be built for the whole game so all coaches and players come 
 2. [x] **Tests.** `test/footballIntelligenceLeague.test.js`: the join (REG only, unmatched counted), the fact
    mapping (invalid QB location and odd values skipped), per-team DNA and league ranks, the 4-game evidence
    rule, and column projection.
-3. [ ] **Signals per team** (new signal types, alongside the existing `coach_transfer_system_signal`):
-   - `team_system_identity`: each rate with its league rank and average. Current season when available,
-     otherwise last season, **labelled which**.
-   - `team_system_change`: this season against last, once the current season is available.
-   - Head-coach changes from `games.csv`: compare with the coach's previous head-coach team where one
-     exists; a first-time head coach gets no comparison. **No causation claims.**
+3. [x] **Signals per team.** `src/services/footballIntelligence/teamSignals.js` (#546): a `team_system_identity`
+   signal for all 32 teams, in the `football-intelligence-signal.v1` shape the Omen call and iOS already read.
+   - Each signal carries the two most distinctive rates with NFL rank and league average.
+   - The current season is used for **every** team only once at least 24 teams qualify, so a rank is
+     always across the league; until then 2025 is used and labelled.
+   - Head-coach changes from `games.csv` are stated as facts. A comparison with the coach's previous team
+     waits for the new season's evidence.
+   - Real output: "Chicago's offense in 2025: quarterback plays outside the pocket on 18.2% of plays
+     (1st of 32); play-action on 18.7% of plays (2nd of 32)." Miami is flagged with a new head coach.
+   - `team_system_change` (this season against last) is deferred until 2026 qualifies.
 4. [ ] **Production table.**
    - Revise `sql/pending/2026-09-26_football_intelligence_serving_review.sql`: its `signal_type` check
      allows only `coach_transfer_system_signal`.
@@ -60,8 +64,9 @@ intelligence should be built for the whole game so all coaches and players come 
 5. [ ] **Nightly job (cron image).** Download FTN, play-by-play and games; build the DNA and signals;
    validate; publish (supersede yesterday's rows); record a `data_events` ingest. Refuse to publish on a
    truncated source.
-6. [ ] **Team identity mapping.** NFL abbreviation → `omen:team:*` (convention to settle; the tests use
-   `omen:team:chicago-2026` and `omen:team:sea`). Watch the relocations: LV/OAK, LAC/SD, LA/STL.
+6. [x] **Team identity mapping.** `src/services/footballIntelligence/nflTeams.js` (#546): `omen:team:<abbr>`, one
+   per current franchise; provider aliases (JAC, WSH, LAR, OAK, SD, STL…) map onto it. Coach ids:
+   `omen:coach:<slug>`.
 7. [ ] **Show it.**
    - Start/sit call (`src/services/startSitDetail.js` `buildEvidence`): one "team system" line per
      player, e.g. "Chicago runs play-action on 18.7% of plays, 2nd in the NFL (2025)."
