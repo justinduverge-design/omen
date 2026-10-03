@@ -48,6 +48,9 @@ class FakeQuery {
         this.store[this.table] = remaining;
         return { data: null, error: null, count: removedCount };
       }
+      if (this.store.__missingTables?.has(this.table)) {
+        return { data: null, error: { code: "PGRST205", message: "Could not find the table" } };
+      }
       const rows = this.store[this.table].filter((row) => this._matches(row));
       return { data: rows, error: null };
     }).then(resolve, reject);
@@ -145,6 +148,10 @@ function seedStore() {
     oauth_state: [
       { user_id: "user-1", state: "state-1", platform: "yahoo" },
       { user_id: "user-2", state: "state-2", platform: "yahoo" },
+    ],
+    saved_trades: [
+      { user_id: "user-1", provider: "sleeper", provider_league_id: "L1", season: 2026, week: 5, candidate_id: "b1.find_x", trade: { give: [], receive: [] }, reasoning: {}, state: "saved" },
+      { user_id: "user-2", provider: "sleeper", provider_league_id: "L2", season: 2026, week: 5, candidate_id: "b2.find_y", trade: { give: [], receive: [] }, reasoning: {}, state: "saved" },
     ],
     deletion_audit_log: [],
   };
@@ -305,4 +312,24 @@ test("DELETE /delete rejects a mismatched confirmation phrase without touching a
 
   assert.equal(res.status, 400);
   assert.equal(store.users.some((u) => u.id === "user-1"), true);
+});
+
+// Redo step 12: saved trades are part of the person's export (and cascade with the users row on erase).
+test("GET /export includes only the requesting user's saved trades", async () => {
+  const store = seedStore();
+  const app = buildApp({ store, actingUserId: "user-1" });
+  const res = await request(app, "/api/account/export");
+
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.body.saved_trades.map((t) => t.candidate_id), ["b1.find_x"]);
+});
+
+test("GET /export returns an empty saved_trades list while step 12 is not applied", async () => {
+  const store = seedStore();
+  store.__missingTables = new Set(["saved_trades"]);
+  const app = buildApp({ store, actingUserId: "user-1" });
+  const res = await request(app, "/api/account/export");
+
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.body.saved_trades, []);
 });

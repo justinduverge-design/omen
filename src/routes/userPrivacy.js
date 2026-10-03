@@ -53,12 +53,17 @@ function redactPlatformConnection(row = {}) {
   };
 }
 
+// Tables a redo step adds (09 beta_reports, 12 saved_trades): until the step is applied, there is nothing
+// to export or delete, so a missing table reads as empty instead of failing the request.
+const NOT_YET_APPLIED_TABLES = new Set(["beta_reports", "saved_trades"]);
+const MISSING_TABLE_CODES = new Set(["42P01", "PGRST205"]);
+
 async function selectRows(table, columns, userId) {
   const { data, error } = await supabase
     .from(table)
     .select(columns)
     .eq("user_id", userId);
-  if (table === "beta_reports" && ["42P01", "PGRST205"].includes(error?.code)) return [];
+  if (NOT_YET_APPLIED_TABLES.has(table) && MISSING_TABLE_CODES.has(error?.code)) return [];
   if (error) throw new Error(`${table} export failed: ${error.message}`);
   return Array.isArray(data) ? data : [];
 }
@@ -75,7 +80,7 @@ async function selectUserProfile(userId) {
 
 async function deleteWhereUserId(table, userId) {
   const { error } = await supabase.from(table).delete().eq("user_id", userId);
-  if (table === "beta_reports" && ["42P01", "PGRST205"].includes(error?.code)) return;
+  if (NOT_YET_APPLIED_TABLES.has(table) && MISSING_TABLE_CODES.has(error?.code)) return;
   if (error) throw new Error(`${table} delete failed: ${error.message}`);
 }
 
@@ -117,6 +122,7 @@ router.get("/export", requireAuth, async (req, res, next) => {
       consentRows,
       moveRows,
       reportRows,
+      savedTradeRows,
     ] = await Promise.all([
       selectUserProfile(userId),
       selectRows(
@@ -127,6 +133,7 @@ router.get("/export", requireAuth, async (req, res, next) => {
       selectRows("consent_records", "consent_type,granted,granted_at,withdrawn_at,ip_address,user_agent", userId),
       selectRows("moves", "id,feature,move_type,created_at,updated_at", userId),
       selectRows("beta_reports", "id,message,screen,app_version,build,os_version,device_model,connection_state,recent_error_codes,disclosure_accepted,created_at,expires_at", userId),
+      selectRows("saved_trades", "provider,provider_league_id,season,week,provider_team_id,candidate_id,trade,reasoning,state,outcome,outcome_provenance,saved_at,sent_at,outcome_at", userId),
     ]);
 
     return res.json({
@@ -137,6 +144,7 @@ router.get("/export", requireAuth, async (req, res, next) => {
       consent_records: consentRows,
       moves: moveRows,
       beta_reports: reportRows,
+      saved_trades: savedTradeRows,
       redactions: [
         "Raw OAuth tokens are excluded.",
         "ESPN cookies are excluded.",
