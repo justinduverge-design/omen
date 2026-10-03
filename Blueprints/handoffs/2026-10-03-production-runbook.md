@@ -264,8 +264,9 @@ second at production's size. Step 01's `VALIDATE` was the longest, at 1.66 s end
   - The Ledger screen still reads `moves`.
   - Watch 5xx on `/api/user/delete` and `/api/moves`.
 - **Rollback:**
-  - `10_account_erasure.down.sql` drops the function (lossless, always). A1 then falls back, which step
-    05 blocks for anyone with a call, so roll back 05 too.
+  - `10_account_erasure.down.sql` drops the function (lossless). It refuses while step 09 is applied, so
+    roll back 09 first (#534). A1 then falls back, which step 05 blocks for anyone with a call, so roll
+    back 05 too.
   - `05_ledger.down.sql` is lossless until the server writes its first call.
 - **Approval, step 05:** ☐ Founder approves step 05 — date/time: ________
 - **Approval, step 10** (only after `05.verify.sql` printed `VERIFIED 05`, and before deletion is used):

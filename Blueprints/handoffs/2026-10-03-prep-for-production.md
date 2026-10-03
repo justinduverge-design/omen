@@ -14,7 +14,7 @@ the migration list, the catalog, and row counts. No row contents and no secrets 
 | 2. A2 beta-report filter | PR, red-first tests. Codex P2 (quadratic regex) fixed. Also keys step 09's reports to the sign-in, and `account_erase()` deletes them (found by item 3; Codex P1) | #523 |
 | 2. A3 purges scheduled | PR; daily 04:15 ET in the cron container, skips missing functions. dcron passing the env to jobs was proven on KVM1 | #524 |
 | 2. A0 connect paths on step 02 | PR. Codex P1 (Yahoo refresh not single-flight before the provider) fixed and answered | #525 |
-| 2. A1 deletion on `account_erase()` | PR, stacked on A0. Codex P2 (no app row still owns consent) fixed and answered | #526 |
+| 2. A1 deletion on `account_erase()` | PR, stacked on A0. Codex P2 (no app row still owns consent) fixed and answered. Reached `main` through #531 | #526 → #531 |
 | 2. A4 step 06 ingest check | PR. Plus Codex P1 from #528 (a purge racing an insert) fixed here too, proven by race 4 | #527 |
 | 2. Step 11 scoring-rules compartment | PR, stacked on #527. Codex P1 and two P2s fixed and answered; race 5 | #528 |
 | 2. Step 12 saved trades | PR, stacked on #528. The export includes it | #529 |
@@ -150,11 +150,12 @@ recorded: 1 sign-in, 0 secrets, the 3-row leftover table, and 1 migration histor
     - **#530:** the dry-run driver verifies the server it reached before applying anything (P1).
   - **#519 (the Redis saved-trade queue) merged to `main`.** The step 12 server ticket now starts from
     it: move its store onto `saved_trades`, and add the batch token and save lookup.
-- **Founder:** merge order and production orders. Merge order:
-  1. #523, #524;
-  2. #525, then retarget #526 to `main` and merge it;
-  3. #527, then retarget #528, merge; then retarget #529, merge;
-  4. the runbook PR.
+- **Merge state (2026-10-03, merges delegated to Claude by the founder, each after a clean Codex review of
+  its latest commit):**
+  - **Merged to `main`:** #523, #524, #525, #531 (A1), #527, #528, #532 and #533.
+  - **Remaining:** #529 (step 12), #534 (beta-report tombstone; changes steps 09 and 10) and this runbook
+    PR, which goes last.
+- **Founder:** the production orders, one sitting at a time.
 - **Server tickets after the redo** (design §7): Ledger write path, Tuesday scoring, follows (plan A5),
   scoring-rule writes, #519 onto `saved_trades` with the batch token, the export's `moves` columns, and
   the startup schema check.

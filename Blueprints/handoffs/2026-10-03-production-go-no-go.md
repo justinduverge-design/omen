@@ -8,6 +8,8 @@ no-go for the steps it guards. The step-by-step procedure is
 
 - ☐ A2 #523, A3 #524, A0 #525 and A1 (**#531**, which carries #526 to `main`) are merged **and deployed**,
   and the deploy workflow is green. Also merged: #532 (step 10 test) and #533 (Yahoo cross-process claim).
+- ☐ **#534** (beta-report tombstone and account lock; changes steps 09 and 10) is merged, and the
+  production SHA includes it. Without it, a report filed during an account erase can survive.
 - ☐ The cron log shows the daily purge's two "skipped" lines (A3 ran).
 - ☐ #527 (step 06), #528 (step 11), #529 (step 12) and the runbook PR are merged.
 - ☐ No open Codex P1 on any redo file or on those PRs, read on each PR's **latest head**.
