@@ -559,8 +559,8 @@ number of pointed contract changes plus a governance amendment — not a build-o
 
 ### D2-SchemaForSlice — Schema additions and the confidence-band fix
 
-- **Status:** IN_PROGRESS
-- **Claim:** 2026-10-03 Claude — prep-for-production session (pin 2026-10-02, brief `Blueprints/handoffs/2026-10-02-prep-for-production-brief.md`): plan A0–A4, redo steps 11 and 12, compatibility table, runbook, dry run. Nothing applied to production.
+- **Status:** READY — prep for production complete 2026-10-03; the remaining blockers are merges and founder-approved production orders.
+- **Claim (released):** 2026-10-03 Claude — prep-for-production session (pin 2026-10-02, brief `Blueprints/handoffs/2026-10-02-prep-for-production-brief.md`). Done: plan A0–A4 (#525, #526, #523, #524, #527), redo steps 11 and 12 (#528, #529), compatibility table, production runbook and go/no-go sheet, dry run on a restored copy, V1 on real Supabase. Nothing applied to production. Handoff: `Blueprints/handoffs/2026-10-03-prep-for-production.md`.
 - **Prep evidence (2026-10-03, read-only, founder-approved):** production's newest migration is still `20261002231212`; a live catalog read equals `production-catalog-2026-10-01.json` (`catalog.js diff`: identical); counts 7 users, 9 auth users, 0 users without an auth user, 10 connections, 7 leagues, 9 moves (6 unscoped, 9 with scoring rules), 14 Vault secrets. Newest backup `de1d3675` (2026-10-03 00:13) restored on KVM1 to a temp dir, 9 of 9 checksums passed, copy deleted.
 - **Claim (released):** 2026-10-01 Claude — founder-directed database redo. Done: league-connections review; design `Blueprints/rebuild/omen-database-redo-v1.md`; review-only SQL steps 01-07 in `sql/2026-10-01-redo/`; rehearsal `scripts/db/rehearse-redo.sh` + CI job `redo-rehearsal` on Postgres 17 (passed in CI run 36946432760). The old `test-migrations` job stays on Postgres 15: its move to the Supabase 17 image failed to start and was reverted (handoff).
 - **Evidence so far (not VERIFIED):** up → tests → down → up proven per step on scratch Postgres 17.11, with schema **and** data fingerprints; snapshot proven equal to production's catalog; 7 of 7 deliberate faults caught. Not met: Codex review; a second session's read; the server suite on the migrated schema (the server does not use these tables yet); a restored-clone rehearsal (each production step's own gate).
@@ -572,9 +572,10 @@ number of pointed contract changes plus a governance amendment — not a build-o
 - **Merged 2026-10-02 by the founder:** #503 into `main`; #505 and #506 merged into their stacked parent branches, not `main`, so the redo reached `main` through a follow-up PR from `claude/db-retire-old`.
 - **Codex review 2026-10-02:** 4 P1 and 4 P2 findings on #503/#505/#506; all addressed in the follow-up PR (see `Blueprints/handoffs/2026-10-01-database-redo.md`, "Codex review").
 - **Codex review of #511 (2026-10-02):** 1 P1 (account erase vs. reconnect race) and 1 P2 (the race check swallowed a failure), both fixed in the follow-up PR. V1b and V2b re-ran all ten steps on real Supabase and on a restored copy of production: all pass (handoff, verification table).
-- **Blocked by:** AGENT_RESOLVABLE — Codex reviews the follow-up PR.
+- **Unblock:** 2026-10-03 CLEARED — Codex reviewed the follow-up PR (#514, merged); prep-session PRs #523–#529 are each reviewed by Codex on their latest heads before merge.
+- **Blocked by:** FOUNDER_APPROVAL — merge #523, #524, #525, #526 (after #525), #527, #528 (after #527), #529 (after #528) and the runbook PR; deploy A0–A3 before the first step.
 - **Next (founder, 2026-10-02):** a prep-for-production session, pinned in `Direction/agent_inbox.md`; brief `Blueprints/handoffs/2026-10-02-prep-for-production-brief.md`. It adds plan A1–A4 and a scoring-rules compartment step (founder: keep the rules, record why they are used, make them deletable).
-- **Blocked by:** FOUNDER_APPROVAL — a production order per step, after review.
+- **Blocked by:** FOUNDER_APPROVAL — a production order per step, after review. Runbook: `Blueprints/handoffs/2026-10-03-production-runbook.md`; go/no-go: `Blueprints/handoffs/2026-10-03-production-go-no-go.md`.
 - **Priority:** P0 — gates D3, D4 and the first production order for the shadow log.
 - **Cost:** medium
 - **Ticket:** `T-S1` in `Blueprints/rebuild/omen-call-slice-plan.md`, rewritten 2026-10-02 for the new workflow (Codex review, #506).

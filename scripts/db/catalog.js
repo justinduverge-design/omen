@@ -143,7 +143,24 @@ async function main() {
     console.log("catalog: scratch snapshot matches production (columns, constraints, indexes, policies, ACLs)");
     return;
   }
-  console.error("usage: catalog.js dump | diff a.json b.json | compare-production");
+  if (mode === "delta-check") {
+    // What a step changed on the target (actual before -> after) must equal what it changed on scratch
+    // (expected before -> after). Comparing changes, not whole catalogs, keeps Supabase-only objects that
+    // exist before the step (and never change) out of the comparison.
+    const [expBefore, expAfter, actBefore, actAfter] = process.argv.slice(3).map((f) => JSON.parse(fs.readFileSync(f, "utf8")));
+    const expected = diff(expBefore, expAfter).sort();
+    const actual = diff(actBefore, actAfter).sort();
+    const missing = expected.filter((l) => !actual.includes(l));
+    const extra = actual.filter((l) => !expected.includes(l));
+    if (missing.length || extra.length) {
+      if (missing.length) console.error(`expected but not seen:\n${missing.join("\n")}`);
+      if (extra.length) console.error(`seen but not expected:\n${extra.join("\n")}`);
+      process.exit(1);
+    }
+    console.log(`catalog delta: as expected (${expected.length} changes)`);
+    return;
+  }
+  console.error("usage: catalog.js dump | diff a.json b.json | compare-production | delta-check expBefore expAfter actBefore actAfter");
   process.exit(2);
 }
 

@@ -1,5 +1,34 @@
 # Omen Decision Log
 
+## 2026-10-03 — prep for production: how steps are applied, step 11 and 12 designs, and four fixes found on the way
+
+- **Apply mechanism (founder, 2026-10-03: "I like it"):** production steps go through the Supabase
+  connector's `apply_migration`, one migration per step (`redo_NN_<slug>`). No psql tunnel; the agent never
+  holds the database password.
+- **Every step is sent with its `begin;`/`commit;`/`rollback;` lines removed.** Tested on the throwaway project:
+  `apply_migration` runs a migration as one transaction, and a file's own `commit;` inside it commits early.
+  A later failure then leaves half a step applied with **no history row**. Tool:
+  `scripts/db/strip-transaction-lines.sh`.
+- **Saved trades (step 12; founder, 2026-10-03: "I'll take your recommendation"):** each `/api/trade/find`
+  response's candidates are kept per user for **15 minutes** in Redis, the find cache's lifetime. A save
+  after that returns an error the app turns into "refresh the search". The table holds one row per saved
+  trade with the trade itself, keyed on (user, provider, league, season, week, candidate). It cascades with
+  the account and is exported.
+- **Scoring rules (step 11):** `league_scoring_rules` is a compartment like projections. It has a `uses`
+  column (`grading`, `advice`) recording why the rules are kept, a recorded ingest per batch, and
+  `scoring_rules_purge()`. It is backfilled from the league-scoped moves only; the 6 unscoped moves' rules
+  leave with step 08.
+- **Fixed on the way (each from a Codex review or the compatibility pass):**
+  - **Yahoo refresh:** one exchange per user at a time; a compare-and-swap alone did not stop two
+    exchanges with Yahoo (#525).
+  - **Purges:** both compartment purges wait for inserts in flight. Without that, a purge could report
+    success with a row left behind (#527, #528; races 4 and 5).
+  - **Deletion:** deletion of a sign-in with no app row still clears its consent before the audit
+    (#526).
+  - **Beta reports:** the route creates the reporter's app row, which step 09's foreign key needs (#523).
+- **Not changed:** nothing applied to production. Each step still needs its own founder approval
+  (`Blueprints/handoffs/2026-10-03-production-runbook.md`).
+
 ## 2026-10-02 (night) — scoring rules kept and compartmented; ESPN/Yahoo trade finder gets fixed; web stays; next session preps production
 
 - **League scoring rules (founder):** keep storing each league's scoring rules, for all three providers.
