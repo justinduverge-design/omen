@@ -28,7 +28,7 @@
         "user_id": "user-1"
       }
     ],
-    "contract_version": "user-export.v1",
+    "contract_version": "user-export.v2",
     "decisions": [
       {
         "call_type": "start_sit",

@@ -140,7 +140,7 @@ router.get("/export", requireAuth, async (req, res, next) => {
     ]);
 
     return res.json({
-      contract_version: "user-export.v1",
+      contract_version: "user-export.v2",
       generated_at: new Date().toISOString(),
       user: profile,
       platform_connections: platformRows.map(redactPlatformConnection),
