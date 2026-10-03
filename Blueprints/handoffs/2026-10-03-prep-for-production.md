@@ -141,6 +141,15 @@ recorded: 1 sign-in, 0 secrets, the 3-row leftover table, and 1 migration histor
 ## Still open
 
 - **V1 for steps 09 and 10 at their current files is not re-run.** Both changed after V1 (#523: reports keyed to the sign-in). Scratch, production order, races and a third restored-copy dry run all pass. Re-run V1 for 09 and 10 before their production orders (go/no-go item).
+- **After the founder's merges (2026-10-03):**
+  - **#526 merged into the A0 branch, not `main`:** it was stacked, and A0 had already merged. A1 reaches
+    `main` through **#531**, which carries #526's commits unchanged.
+  - **Three Codex comments landed after their PRs merged**, and each is now fixed in a follow-up:
+    - **#532:** the step 10 test keeps its pre-erase baseline (#523, P2).
+    - **#533:** the Yahoo refresh claims across processes through Redis (#525, P1).
+    - **#530:** the dry-run driver verifies the server it reached before applying anything (P1).
+  - **#519 (the Redis saved-trade queue) merged to `main`.** The step 12 server ticket now starts from
+    it: move its store onto `saved_trades`, and add the batch token and save lookup.
 - **Founder:** merge order and production orders. Merge order:
   1. #523, #524;
   2. #525, then retarget #526 to `main` and merge it;

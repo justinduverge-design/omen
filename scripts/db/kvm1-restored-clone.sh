@@ -86,6 +86,9 @@ select format('%s %s', c.relname, (xpath('/row/n/text()', query_to_xml(format('s
 SQL
   echo "--- source-table-counts.txt"
   cat "$export/source-table-counts.txt"
+  # Mark this database as a rehearsal clone, outside `public`, so scripts/db/production-order-run.sh can
+  # verify the server it reached is this clone and never production (Codex, #530).
+  in_clone -c "create schema rehearsal_target; create table rehearsal_target.marker (kind text not null); insert into rehearsal_target.marker values ('clone')"
   echo "clone ready: container $NAME on internal network $NET, IP $(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$NAME")"
 }
 

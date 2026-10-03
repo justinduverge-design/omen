@@ -29,7 +29,9 @@ Do these the day before, or the morning of. Each ends with something checkable.
 4. **Fresh backup, restore-tested, dry-run.**
    - On KVM1: `sudo bash kvm1-restored-clone.sh up`. The newest snapshot restores, its checksums pass,
      and its row counts equal the backup's own.
-   - From a machine with node: run `CLONE=1 PSQL="ssh kvm1 sudo docker exec -i omen-redo-clone psql -X -q -v ON_ERROR_STOP=1 -U postgres -d omen" scripts/db/production-order-run.sh`.
+   - From a machine with node: run `TARGET=clone CLONE=1 PSQL="ssh kvm1 sudo docker exec -i omen-redo-clone psql -X -q -v ON_ERROR_STOP=1 -U postgres -d omen" scripts/db/production-order-run.sh`.
+     The script first checks, on the server it reached, that it is the marked clone and not a Supabase
+     server. If it isn't, it refuses before applying anything.
      All twelve steps must pass.
    - Then `sudo bash kvm1-restored-clone.sh down`, and confirm the container, network and files are gone.
 5. **Right before the first step:** take a fresh Restic snapshot on KVM1 (the nightly job, run by hand)
