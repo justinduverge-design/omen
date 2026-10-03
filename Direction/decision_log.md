@@ -4291,3 +4291,21 @@ on the second one.
 - **Also found (not yet acted on):** a session reads about 92k tokens before work starts, over half of
   it `Direction/current_sprint.md` (202 KB, 1,887 lines, despite "active items only"). Trimming it needs
   `slops-agent-docs-refresh` and the drift checks, so it is a separate task.
+
+## 2026-10-03 — Skills and code graph cleaned up (founder: "clean up and organize")
+
+- **Skills:** the skill linker (`Slops-OS` PR #27) now skips any skill whose `SKILL_ROUTING.md` Status is
+  `parked` or `retired`, so an unused skill stops costing description tokens in every session. Parked 11
+  with zero recorded use (content-phase: screenplay-loop, explainer-cut, animation-render, image-prompt;
+  first-need: financial-sketch, exec-summary, product-pulse; harness-maintenance: agent-wrapper-generator,
+  agent-index-diff-builder, command-bridge-generator, dbs-research-to-architecture-router). Retired
+  `slops-onboarding-agent` (retired 2026-08-05 but still linked) to `_retired/`. Linked skills per product:
+  60 → 46, now 47 with the next item. Revive = set Status `active`, re-run the linker.
+- **Graphify:** `slops-graphify` was marked active with no folder; written (`Slops-OS` PR #28). Omen's
+  graph is now generated locally (`graphify update .`), gitignored and scoped to code by `.graphifyignore`
+  (omen #542); the 34 MB tracked graph, built on another machine in June, is gone from git.
+- **Not done:** unrelated plugin skills (~150 listings: Unity, Noibu, legal, marketing, Synthflow, Qodo, and
+  others) are set in the founder's account, not in a repo file; disable per project there. The three-weekly
+  skill check is run by hand on request.
+- **Untouched on purpose:** an uncommitted `AGENT_INDEX.md` edit in the L0 checkout (a Codex trust
+  assignment, not ours).
