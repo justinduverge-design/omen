@@ -7,9 +7,12 @@ const config = require("../config");
 const { logger } = require("../middleware/logging");
 const { requireAuth } = require("../middleware/auth");
 const { isMissingFunction } = require("../services/connectionStore");
+const { createDefaultTradeSavedQueueStore } = require("../services/tradeSavedQueueStore");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
+// #519's Redis saved-trade blob, superseded by the saved_trades table (which cascades from users).
+const legacySavedTrades = createDefaultTradeSavedQueueStore();
 // Shortened from "DELETE MY OMEN DATA" on 2026-09-03 (founder). The long phrase made an
 // already-deliberate action tedious, and on a phone it fought autocapitalize and autocorrect
 // the whole way — the founder hit it while trying to reset an account for testing.
@@ -229,6 +232,9 @@ router.delete("/delete", requireAuth, require("../services/responseCache").inval
     }
 
     const userId = req.user.id;
+
+    // First, so a failure stops the request before anything is erased and a retry starts clean.
+    await legacySavedTrades.deleteAll(userId);
 
     // One transaction for everything Omen holds (redo step 10). It waits for any connect in flight,
     // deletes every Vault secret or nothing, erases the Ledger, writes the audit row and removes the

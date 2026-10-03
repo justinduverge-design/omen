@@ -1,7 +1,10 @@
 "use strict";
 
 /**
- * Persistence for T4's saved-trade queue.
+ * Persistence for T4's saved-trade queue — SUPERSEDED by the `saved_trades` table (redo step 12,
+ * src/services/savedTradesStore.js). Kept only as a transition source: src/routes/trade.js reads it
+ * for ids not in the table and never adds to it, and account erasure deletes a user's blob
+ * (`deleteAll`). Remove once the blob is confirmed empty in production.
  *
  * Same client/connection pattern as `tradeShareStore.js` and
  * `tradeFindCacheStore.js` (T2, read-only reference): the project's existing
@@ -53,6 +56,9 @@ function createMemoryTradeSavedQueueStore() {
     async writeAll(userId, items) {
       records.set(userId, items.map((item) => ({ ...item })));
     },
+    async deleteAll(userId) {
+      records.delete(userId);
+    },
   };
 }
 
@@ -70,6 +76,9 @@ function createRedisTradeSavedQueueStore({ redis, keyPrefix = KEY_PREFIX } = {})
     async writeAll(userId, items) {
       await redis.set(`${keyPrefix}${userId}`, JSON.stringify(items));
     },
+    async deleteAll(userId) {
+      await redis.del(`${keyPrefix}${userId}`);
+    },
   };
 }
 
@@ -81,6 +90,9 @@ function createDisabledTradeSavedQueueStore() {
     },
     async writeAll() {
       throw storageUnavailableError();
+    },
+    async deleteAll() {
+      // Nothing can have been stored without a backing store, so account erasure has nothing to do.
     },
   };
 }

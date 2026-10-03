@@ -15,6 +15,7 @@ const { compareTrade } = require("../services/tradeValue");
 const { resolveNflPlayerInputs } = require("../services/playerSearch");
 const { resolveTradeLeagueContext } = require("../services/tradeLeagueContext");
 const { createDefaultTradeSavedQueueStore } = require("../services/tradeSavedQueueStore");
+const { createSupabaseSavedTradesStore } = require("../services/savedTradesStore");
 const {
   VALID_OUTCOME_SET,
   currentNeedFor,
@@ -557,9 +558,11 @@ function createTradeRouter({
   // repeat request doesn't re-read the provider or re-derive need profiles. Same
   // client/connection pattern as tradeShareStore.js (see tradeFindCacheStore.js).
   tradeFindCache = createDefaultTradeFindCache(),
-  // T4 — saved trade queue. Same client/connection pattern as
-  // `tradeShareStore`/`tradeFindCacheStore` (see tradeSavedQueueStore.js).
+  // T4 — #519's Redis saved-trade blob. Since redo step 12 only a transition source, consulted for
+  // ids that are not in `saved_trades` (see "Transition" below). New saves never go here.
   tradeSavedQueueStore = createDefaultTradeSavedQueueStore(),
+  // T4 storage of record: the `saved_trades` table (redo step 12).
+  savedTradesStore = createSupabaseSavedTradesStore(),
 } = {}) {
   const router = express.Router();
 
@@ -745,6 +748,56 @@ function createTradeRouter({
     return `${userId}:${platform}:${leagueId}:${week}`;
   }
 
+  // T4 save lookup (decision log 2026-10-02, "the server remembers every trade it shows"). Each /find
+  // response gets a batch token, folded into every candidate id as `{token}.{id}`, and the batch's
+  // trades are kept per user for the find cache's lifetime. The app still sends only the id back.
+  const SHOWN_BATCH_TOKEN_RE = /^([0-9a-f]{16})\./;
+
+  function shownBatchKey(userId, token) {
+    return `shown:${userId}:${token}`;
+  }
+
+  function keptTradePlayer(player) {
+    if (!isPlainObject(player)) return null;
+    const kept = sanitizePlayer(player);
+    if (player.player_id != null) kept.player_id = truncateString(player.player_id, 160);
+    return kept;
+  }
+
+  async function keepShownBatch({ userId, platform, leagueId, teamId, week, candidates }) {
+    const token = crypto.randomBytes(8).toString("hex");
+    const issued = candidates.map((candidate) => ({ ...candidate, id: `${token}.${candidate.id}` }));
+    const context = nflWeekContext(now()) || {};
+    const batch = {
+      provider: platform,
+      provider_league_id: leagueId,
+      provider_team_id: teamId,
+      season: Number.isInteger(context.season) ? context.season : now().getUTCFullYear(),
+      week,
+      trades: Object.fromEntries(issued.map((candidate) => [candidate.id, {
+        give: keptTradePlayer(candidate.give),
+        receive: keptTradePlayer(candidate.receive),
+        opponent_team_id: candidate.opponent_team_id == null ? null : String(candidate.opponent_team_id),
+        opponent_team_name: candidate.opponent_team_name ?? null,
+      }])),
+    };
+    try {
+      await tradeFindCache.write(shownBatchKey(userId, token), batch, DEFAULT_FIND_CACHE_TTL_SECONDS);
+    } catch (e) {
+      // The search still answers; saving from it will ask the user to refresh.
+      logger.warn("Trade find shown-batch write failed; saves from this search will expire", { err: e.message });
+    }
+    return issued;
+  }
+
+  async function readShownTrade(userId, candidateId) {
+    const match = SHOWN_BATCH_TOKEN_RE.exec(candidateId);
+    if (!match) return null;
+    const batch = await tradeFindCache.read(shownBatchKey(userId, match[1]));
+    const trade = batch?.trades?.[candidateId];
+    return trade ? { batch, trade } : null;
+  }
+
   /**
    * `GET /api/trade/find?platform=&league_id=&team_id=&week=` → `trade-find.v1`.
    *
@@ -922,7 +975,14 @@ function createTradeRouter({
         degraded_teams: scan.degraded_teams,
         budget_exceeded: scan.budget_exceeded,
         own_needs: scan.own_needs,
-        candidates: scan.candidates,
+        candidates: await keepShownBatch({
+          userId: user.id,
+          platform,
+          leagueId,
+          teamId,
+          week: bundle.week,
+          candidates: scan.candidates,
+        }),
       });
     } catch (e) {
       return next(e);
@@ -937,11 +997,11 @@ function createTradeRouter({
   // exactly (`TradeFindReviewViewModel.save()`,
   // `Blueprints/specs/design/screen-contracts/TradeFindReview-v1.md`) is
   // `save_action(candidate_id, reasoning) -> { status: "saved" | "error" }` —
-  // two arguments, no player identity, no league context. Every other field
-  // this route accepts (`give`, `receive`, `opponent_team_id`,
-  // `opponent_team_name`, `platform`, `league_id`, `team_id`) is optional so
-  // today's stub-shaped call still works unmodified, while a richer future
-  // caller gets a more precise staleness check for free.
+  // two arguments, no player identity, no league context. The trade and its
+  // scope come from the caller's own kept /find batch (`readShownTrade`), never
+  // from the request body, and are written to the `saved_trades` table (redo
+  // step 12). An expired or unknown id is `trade_saved_candidate_expired`
+  // ("refresh the search"); a row is never written without its trade.
   //
   // `U4-LedgerScreen`'s honesty pattern, applied here rather than reinvented:
   // `state` (`saved` -> `sent`) and `outcome` (`accepted`/`rejected`/
@@ -949,16 +1009,71 @@ function createTradeRouter({
   // anything but the self-report endpoint below, and `null` is the only
   // honest resting value — never inferred from `state` or from any other
   // signal this server can observe.
+  //
+  // Transition: #519 kept saves in one Redis blob per user. Those items have no
+  // league or players, so the table's checks reject them and they cannot be
+  // migrated. Reads fall back to the blob for ids not in the table, and sent /
+  // outcome / unsave keep working on such an item in place. No client ever
+  // called #519's endpoint (T3 ships a local stub), so the blob is expected to
+  // be empty; the fallback is a guard, and can go once that is confirmed.
   // -------------------------------------------------------------------------
 
   function isPlainSavedField(value, maxLength) {
     return typeof value === "string" && value.trim().length > 0 && value.length <= maxLength;
   }
 
-  async function findSavedItem(userId, candidateId) {
-    const items = await tradeSavedQueueStore.readAll(userId);
+  function storageUnavailable(res, e) {
+    logger.warn("Trade saved queue storage failed", { err: e.message, db_code: e.dbCode });
+    return res.status(503).json({ status: "error", code: "trade_saved_queue_storage_unavailable" });
+  }
+
+  async function authenticatedUser(req, res) {
+    let user;
+    try {
+      user = await authenticate(req.headers.authorization);
+    } catch {
+      user = null;
+    }
+    if (!user?.id) {
+      res.status(401).json({ status: "error", code: "trade_saved_auth_required" });
+      return null;
+    }
+    return user;
+  }
+
+  // A store with nothing behind it (production without Redis) can hold no legacy items.
+  const legacyStoreUsable = () => tradeSavedQueueStore && tradeSavedQueueStore.kind !== "disabled";
+
+  async function readLegacyItems(userId) {
+    if (!legacyStoreUsable()) return [];
+    return tradeSavedQueueStore.readAll(userId);
+  }
+
+  async function findLegacyItem(userId, candidateId) {
+    const items = await readLegacyItems(userId);
     const index = items.findIndex((item) => item.candidate_id === candidateId);
     return { items, index, item: index >= 0 ? items[index] : null };
+  }
+
+  /** A `saved_trades` row in the shape the rest of this section (and #519's items) use. */
+  function itemFromRow(row) {
+    const trade = row.trade || {};
+    return {
+      candidate_id: row.candidate_id,
+      reasoning: row.reasoning,
+      give: trade.give ?? null,
+      receive: trade.receive ?? null,
+      opponent_team_id: trade.opponent_team_id ?? null,
+      opponent_team_name: trade.opponent_team_name ?? null,
+      platform: row.provider,
+      league_id: row.provider_league_id,
+      team_id: row.provider_team_id,
+      state: row.state,
+      outcome: row.outcome ?? null,
+      saved_at: row.saved_at,
+      sent_at: row.sent_at ?? null,
+      outcome_reported_at: row.outcome_at ?? null,
+    };
   }
 
   /**
@@ -966,9 +1081,10 @@ function createTradeRouter({
    * against a live roster read, reusing the exact `ROSTER_READERS` this
    * file's own `/roster` route already exposes — no new roster-fetch logic.
    * Answers `unknown` (never a guess) whenever the context needed to do a
-   * live read isn't available.
+   * live read isn't available. `readRoster` is memoized per request, so items
+   * in one league read its rosters once.
    */
-  async function stalenessForItem(item, { userId, queryPlatform, queryLeagueId, queryTeamId, week }) {
+  async function stalenessForItem(item, { queryPlatform, queryLeagueId, queryTeamId, readRoster }) {
     const platform = item.platform || queryPlatform;
     const leagueId = item.league_id || queryLeagueId;
     const teamId = item.team_id || queryTeamId;
@@ -980,7 +1096,7 @@ function createTradeRouter({
     }
 
     try {
-      const result = await ROSTER_READERS[platform]({ userId, leagueId, week });
+      const result = await readRoster(platform, leagueId);
       if (result.status !== "ok") {
         return { status: "unknown", reason: "insufficient_context_for_staleness_check" };
       }
@@ -1024,15 +1140,8 @@ function createTradeRouter({
    */
   router.post("/saved", async (req, res, next) => {
     try {
-      let user;
-      try {
-        user = await authenticate(req.headers.authorization);
-      } catch {
-        user = null;
-      }
-      if (!user?.id) {
-        return res.status(401).json({ status: "error", code: "trade_saved_auth_required" });
-      }
+      const user = await authenticatedUser(req, res);
+      if (!user) return undefined;
 
       const body = isPlainObject(req.body) ? req.body : {};
       const candidateId = body.candidate_id;
@@ -1048,47 +1157,38 @@ function createTradeRouter({
       if (containsSensitiveField(body)) {
         return res.status(400).json({ status: "error", code: "trade_saved_sensitive_field" });
       }
-      const platform = body.platform == null ? null : String(body.platform).toLowerCase();
-      if (platform != null && !VALID_CONTEXT_PLATFORMS.has(platform)) {
-        return res.status(400).json({ status: "error", code: "trade_saved_invalid_platform" });
-      }
 
-      let items;
+      let shown;
       try {
-        items = await tradeSavedQueueStore.readAll(user.id);
+        shown = await readShownTrade(user.id, candidateId);
       } catch (e) {
-        return res.status(503).json({ status: "error", code: e.code || "trade_saved_queue_storage_unavailable" });
+        return storageUnavailable(res, e);
+      }
+      const trade = shown?.trade;
+      if (!trade || !trade.give || !trade.receive || !trade.opponent_team_id) {
+        return res.status(410).json({ status: "error", code: "trade_saved_candidate_expired" });
       }
 
-      const alreadySaved = items.some((item) => item.candidate_id === candidateId);
-      if (!alreadySaved) {
-        // Reasoning is retained VERBATIM from this first save — a later save
-        // of the same candidate_id (e.g. a retried/duplicate client call)
-        // must never regenerate or overwrite it (spec: "the user is
-        // reviewing the reasoning that made them save it, not a refreshed
-        // opinion that may have changed").
-        items.push({
+      try {
+        // Reasoning is retained VERBATIM from the first save: the insert
+        // ignores a duplicate on the table's unique key, so a retried save
+        // never regenerates or overwrites it (spec: "the user is reviewing the
+        // reasoning that made them save it, not a refreshed opinion").
+        await savedTradesStore.insertIfAbsent({
+          user_id: user.id,
+          provider: shown.batch.provider,
+          provider_league_id: shown.batch.provider_league_id,
+          season: shown.batch.season,
+          week: shown.batch.week,
+          provider_team_id: shown.batch.provider_team_id,
           candidate_id: candidateId,
+          trade,
           reasoning: body.reasoning,
-          give: isPlainObject(body.give) ? sanitizePlayer(body.give) : null,
-          receive: isPlainObject(body.receive) ? sanitizePlayer(body.receive) : null,
-          opponent_team_id: body.opponent_team_id != null ? truncateString(body.opponent_team_id, MAX_CANDIDATE_ID_LENGTH) : null,
-          opponent_team_name: body.opponent_team_name != null ? truncateString(body.opponent_team_name, 120) : null,
-          platform,
-          league_id: body.league_id != null ? truncateString(body.league_id, MAX_LEAGUE_ID_LENGTH) : null,
-          team_id: body.team_id != null ? truncateString(body.team_id, MAX_CANDIDATE_ID_LENGTH) : null,
           state: "saved",
-          outcome: null,
           saved_at: now().toISOString(),
-          sent_at: null,
-          outcome_reported_at: null,
         });
-
-        try {
-          await tradeSavedQueueStore.writeAll(user.id, items);
-        } catch (e) {
-          return res.status(503).json({ status: "error", code: e.code || "trade_saved_queue_storage_unavailable" });
-        }
+      } catch (e) {
+        return storageUnavailable(res, e);
       }
 
       return res.status(200).json({ status: "saved" });
@@ -1105,21 +1205,21 @@ function createTradeRouter({
    */
   router.get("/saved", async (req, res, next) => {
     try {
-      let user;
-      try {
-        user = await authenticate(req.headers.authorization);
-      } catch {
-        user = null;
-      }
-      if (!user?.id) {
-        return res.status(401).json({ status: "error", code: "trade_saved_auth_required" });
-      }
+      const user = await authenticatedUser(req, res);
+      if (!user) return undefined;
 
       let items;
       try {
-        items = await tradeSavedQueueStore.readAll(user.id);
+        items = (await savedTradesStore.list(user.id)).map(itemFromRow);
       } catch (e) {
-        return res.status(503).json({ status: "error", code: e.code || "trade_saved_queue_storage_unavailable" });
+        return storageUnavailable(res, e);
+      }
+      try {
+        const inTable = new Set(items.map((item) => item.candidate_id));
+        items = items.concat((await readLegacyItems(user.id)).filter((item) => !inTable.has(item.candidate_id)));
+      } catch (e) {
+        // The legacy blob is a transition guard; it never blocks the table-backed list.
+        logger.warn("Trade saved queue legacy read failed; listing the table only", { err: e.message });
       }
 
       const queryPlatform = req.query.platform == null ? null : String(req.query.platform).toLowerCase();
@@ -1130,16 +1230,17 @@ function createTradeRouter({
         week = nflWeekContext(now())?.week || 1;
       }
 
-      const serialized = await Promise.all(items.map(async (item) => {
-        const staleInfo = await stalenessForItem(item, {
-          userId: user.id,
-          queryPlatform,
-          queryLeagueId,
-          queryTeamId,
-          week,
-        });
-        return serializeSavedItem(item, staleInfo);
-      }));
+      const rosterReads = new Map();
+      const readRoster = (platform, leagueId) => {
+        const key = `${platform}:${leagueId}`;
+        if (!rosterReads.has(key)) rosterReads.set(key, ROSTER_READERS[platform]({ userId: user.id, leagueId, week }));
+        return rosterReads.get(key);
+      };
+
+      const serialized = await Promise.all(items.map(async (item) => serializeSavedItem(
+        item,
+        await stalenessForItem(item, { queryPlatform, queryLeagueId, queryTeamId, readRoster }),
+      )));
 
       return res.json({
         contract_version: TRADE_SAVED_QUEUE_CONTRACT,
@@ -1158,39 +1259,25 @@ function createTradeRouter({
    */
   router.post("/saved/:candidateId/sent", async (req, res, next) => {
     try {
-      let user;
-      try {
-        user = await authenticate(req.headers.authorization);
-      } catch {
-        user = null;
-      }
-      if (!user?.id) {
-        return res.status(401).json({ status: "error", code: "trade_saved_auth_required" });
-      }
+      const user = await authenticatedUser(req, res);
+      if (!user) return undefined;
 
       const candidateId = req.params.candidateId;
-      let items;
-      let index;
-      let item;
+      const sentAt = now().toISOString();
       try {
-        ({ items, index, item } = await findSavedItem(user.id, candidateId));
-      } catch (e) {
-        return res.status(503).json({ status: "error", code: e.code || "trade_saved_queue_storage_unavailable" });
-      }
-      if (!item) {
-        return res.status(404).json({ status: "error", code: "trade_saved_not_found" });
-      }
+        const row = await savedTradesStore.markSent(user.id, candidateId, sentAt);
+        if (row) return res.json({ status: "sent", candidate_id: candidateId, sent_at: row.sent_at });
 
-      if (item.state !== "sent") {
-        items[index] = { ...item, state: "sent", sent_at: now().toISOString() };
-        try {
+        const { items, index, item } = await findLegacyItem(user.id, candidateId);
+        if (!item) return res.status(404).json({ status: "error", code: "trade_saved_not_found" });
+        if (item.state !== "sent") {
+          items[index] = { ...item, state: "sent", sent_at: sentAt };
           await tradeSavedQueueStore.writeAll(user.id, items);
-        } catch (e) {
-          return res.status(503).json({ status: "error", code: e.code || "trade_saved_queue_storage_unavailable" });
         }
+        return res.json({ status: "sent", candidate_id: candidateId, sent_at: items[index].sent_at });
+      } catch (e) {
+        return storageUnavailable(res, e);
       }
-
-      return res.json({ status: "sent", candidate_id: candidateId, sent_at: items[index].sent_at });
     } catch (e) {
       return next(e);
     }
@@ -1206,15 +1293,8 @@ function createTradeRouter({
    */
   router.post("/saved/:candidateId/outcome", async (req, res, next) => {
     try {
-      let user;
-      try {
-        user = await authenticate(req.headers.authorization);
-      } catch {
-        user = null;
-      }
-      if (!user?.id) {
-        return res.status(401).json({ status: "error", code: "trade_saved_auth_required" });
-      }
+      const user = await authenticatedUser(req, res);
+      if (!user) return undefined;
 
       const outcome = isPlainObject(req.body) ? req.body.outcome : null;
       if (!VALID_OUTCOME_SET.has(outcome)) {
@@ -1222,29 +1302,59 @@ function createTradeRouter({
       }
 
       const candidateId = req.params.candidateId;
-      let items;
-      let index;
-      let item;
+      const reportedAt = now().toISOString();
       try {
-        ({ items, index, item } = await findSavedItem(user.id, candidateId));
+        const result = await savedTradesStore.setOutcome(user.id, candidateId, outcome, reportedAt);
+        if (result.status === "not_sent") {
+          return res.status(409).json({ status: "error", code: "trade_saved_not_sent" });
+        }
+        if (result.status === "not_found") {
+          const { items, index, item } = await findLegacyItem(user.id, candidateId);
+          if (!item) return res.status(404).json({ status: "error", code: "trade_saved_not_found" });
+          if (item.state !== "sent") return res.status(409).json({ status: "error", code: "trade_saved_not_sent" });
+          items[index] = { ...item, outcome, outcome_reported_at: reportedAt };
+          await tradeSavedQueueStore.writeAll(user.id, items);
+        }
       } catch (e) {
-        return res.status(503).json({ status: "error", code: e.code || "trade_saved_queue_storage_unavailable" });
-      }
-      if (!item) {
-        return res.status(404).json({ status: "error", code: "trade_saved_not_found" });
-      }
-      if (item.state !== "sent") {
-        return res.status(409).json({ status: "error", code: "trade_saved_not_sent" });
-      }
-
-      items[index] = { ...item, outcome, outcome_reported_at: now().toISOString() };
-      try {
-        await tradeSavedQueueStore.writeAll(user.id, items);
-      } catch (e) {
-        return res.status(503).json({ status: "error", code: e.code || "trade_saved_queue_storage_unavailable" });
+        return storageUnavailable(res, e);
       }
 
       return res.json({ status: "ok", candidate_id: candidateId, outcome });
+    } catch (e) {
+      return next(e);
+    }
+  });
+
+  /**
+   * `DELETE /api/trade/saved/:candidateId` — unsave. Removes the table row (and
+   * a legacy item with the same id, if one is left over). 404 when neither held it.
+   */
+  router.delete("/saved/:candidateId", async (req, res, next) => {
+    try {
+      const user = await authenticatedUser(req, res);
+      if (!user) return undefined;
+
+      const candidateId = req.params.candidateId;
+      let removed;
+      try {
+        removed = await savedTradesStore.remove(user.id, candidateId);
+      } catch (e) {
+        return storageUnavailable(res, e);
+      }
+      try {
+        const { items, index } = await findLegacyItem(user.id, candidateId);
+        if (index >= 0) {
+          items.splice(index, 1);
+          await tradeSavedQueueStore.writeAll(user.id, items);
+          removed = true;
+        }
+      } catch (e) {
+        // The table row is gone; only a leftover legacy copy could not be checked.
+        if (!removed) return storageUnavailable(res, e);
+        logger.warn("Trade saved queue legacy unsave failed after the table delete", { err: e.message });
+      }
+      if (!removed) return res.status(404).json({ status: "error", code: "trade_saved_not_found" });
+      return res.json({ status: "deleted", candidate_id: candidateId });
     } catch (e) {
       return next(e);
     }
