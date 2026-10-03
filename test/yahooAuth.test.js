@@ -303,3 +303,60 @@ test("a request whose snapshot went stale while it waited uses the token another
   assert.equal(state.refreshCalls || 0, 0);
   assert.equal(state.rpcs.some((rpc) => rpc.name === "connection_rotate_yahoo"), false);
 });
+
+// Codex, #525 (P1): the single-flight map is per process. A Redis claim spans the provider exchange
+// across processes; a process that does not hold it waits for the stored token instead of exchanging.
+function fakeClaimStore({ held = false, fail = false } = {}) {
+  const calls = { set: [], eval: [] };
+  return {
+    calls,
+    async set(key, value, options) {
+      calls.set.push({ key, value, options });
+      if (fail) throw new Error("redis unavailable");
+      return held ? null : "OK";
+    },
+    async eval(script, keys, args) {
+      calls.eval.push({ keys, args });
+      return 1;
+    },
+  };
+}
+
+test("the request that wins the cross-process claim exchanges once and releases only its own claim", async () => {
+  const { service, state } = loadYahooAuth([{ ...EXPIRED_ROW }], { step02: true });
+  const claim = fakeClaimStore();
+  service.setRefreshClaimStore(claim, { sleep: async () => {} });
+  const { accessToken } = await service.getAuthenticatedYahooClient("user-9");
+
+  assert.equal(accessToken, "fresh-access");
+  assert.equal(state.refreshCalls, 1);
+  assert.equal(claim.calls.set.length, 1);
+  assert.equal(claim.calls.set[0].key, "omen:yahoo_refresh_claim:user-9");
+  assert.equal(claim.calls.set[0].options.nx, true);
+  assert.ok(claim.calls.set[0].options.px > 0);
+  assert.deepEqual(claim.calls.eval[0].args, [claim.calls.set[0].value]);
+});
+
+test("a process that loses the claim never calls Yahoo and uses the token the winner stores", async () => {
+  const { service, state } = loadYahooAuth([{ ...EXPIRED_ROW }], { step02: true, refreshedByOtherAfterRead: 3 });
+  service.setRefreshClaimStore(fakeClaimStore({ held: true }), { sleep: async () => {} });
+  const { accessToken } = await service.getAuthenticatedYahooClient("user-9");
+
+  assert.equal(accessToken, "other-access-secret-plain");
+  assert.equal(state.refreshCalls || 0, 0);
+});
+
+test("a process that loses the claim and never sees a stored token fails retryably, without calling Yahoo", async () => {
+  const { service, state } = loadYahooAuth([{ ...EXPIRED_ROW }], { step02: true });
+  service.setRefreshClaimStore(fakeClaimStore({ held: true }), { sleep: async () => {} });
+  await assert.rejects(service.getAuthenticatedYahooClient("user-9"), (err) => err.status === 503 && err.code === "yahoo_refresh_in_progress");
+  assert.equal(state.refreshCalls || 0, 0);
+});
+
+test("if the claim store is unavailable, the refresh still happens (process-local single flight only)", async () => {
+  const { service, state } = loadYahooAuth([{ ...EXPIRED_ROW }], { step02: true });
+  service.setRefreshClaimStore(fakeClaimStore({ fail: true }), { sleep: async () => {} });
+  const { accessToken } = await service.getAuthenticatedYahooClient("user-9");
+  assert.equal(accessToken, "fresh-access");
+  assert.equal(state.refreshCalls, 1);
+});

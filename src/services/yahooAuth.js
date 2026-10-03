@@ -114,6 +114,69 @@ async function readYahooConnection(userId) {
 // revoked token stored (Codex, #525). Concurrent callers share the one in-flight refresh.
 const refreshesInFlight = new Map();
 
+// Across processes (API and cron containers, or more than one API process), a short Redis claim spans the
+// whole provider exchange (Codex, #525). The holder exchanges; anyone else waits for the token the holder
+// stores and never calls Yahoo. Without Redis, only the process-local map above applies.
+const CLAIM_TTL_MS = 20_000;
+const CLAIM_WAIT_TRIES = 10;
+const CLAIM_WAIT_MS = 300;
+const RELEASE_IF_OWNER = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
+let claimStore;
+let claimSleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function refreshClaimStore() {
+  if (claimStore === undefined) {
+    claimStore = config.redisUrl && config.redisToken
+      ? new (require("@upstash/redis").Redis)({ url: config.redisUrl, token: config.redisToken })
+      : null;
+  }
+  return claimStore;
+}
+
+// Test seam: substitute the claim store and the wait between re-reads.
+function setRefreshClaimStore(store, { sleep } = {}) {
+  claimStore = store;
+  if (sleep) claimSleep = sleep;
+}
+
+// Returns a release function when this process holds the claim, null when another process does, and a
+// no-op release when the claim store is unavailable (fall back to the process-local guard).
+async function claimRefresh(userId) {
+  const store = refreshClaimStore();
+  if (!store) return async () => {};
+  const key = `omen:yahoo_refresh_claim:${userId}`;
+  const token = require("node:crypto").randomUUID();
+  try {
+    const acquired = await store.set(key, token, { nx: true, px: CLAIM_TTL_MS });
+    if (!acquired) return null;
+  } catch (err) {
+    logger.warn("Yahoo refresh claim unavailable; refreshing without the cross-process guard", { err: err.message });
+    return async () => {};
+  }
+  return async () => {
+    try {
+      await store.eval(RELEASE_IF_OWNER, [key], [token]);
+    } catch (err) {
+      logger.warn("Yahoo refresh claim release failed; it expires on its own", { err: err.message });
+    }
+  };
+}
+
+async function waitForStoredToken(userId) {
+  for (let i = 0; i < CLAIM_WAIT_TRIES; i += 1) {
+    await claimSleep(CLAIM_WAIT_MS);
+    const current = await readYahooConnection(userId);
+    if (current && !expiresSoon(current)) {
+      const stored = await vaultDecrypt(current.token_secret_id);
+      if (stored) return stored;
+    }
+  }
+  throw Object.assign(new Error("Yahoo token refresh in progress elsewhere; retry shortly"), {
+    status: 503,
+    code: "yahoo_refresh_in_progress",
+  });
+}
+
 function refreshYahooAccessToken(userId, conn) {
   const inFlight = refreshesInFlight.get(userId);
   if (inFlight) return inFlight;
@@ -137,6 +200,16 @@ async function exchangeAndStore(userId, snapshot) {
     if (stored) return stored;
   }
 
+  const release = await claimRefresh(userId);
+  if (!release) return waitForStoredToken(userId);
+  try {
+    return await exchangeWithProvider(userId, conn);
+  } finally {
+    await release();
+  }
+}
+
+async function exchangeWithProvider(userId, conn) {
   const refreshToken = await vaultDecrypt(conn.refresh_secret_id);
   if (!refreshToken) {
     throw Object.assign(new Error("Yahoo refresh token missing - re-auth required"), { status: 401 });
@@ -206,4 +279,4 @@ async function getAuthenticatedYahooClient(userId) {
   };
 }
 
-module.exports = { getAuthenticatedYahooClient, persistYahooTokens };
+module.exports = { getAuthenticatedYahooClient, persistYahooTokens, setRefreshClaimStore };
