@@ -11,7 +11,8 @@
 --   projection_snapshots   one row per provider projection read: the provider's points and the raw
 --                          projected STAT LINE (the explainer's "where the points come from" block,
 --                          approved design, D5 layer 1). Every row names the data_events batch that
---                          wrote it. League scoring rules are NOT stored (A6).
+--                          wrote it. League scoring rules are not stored here: they have their own
+--                          compartment, step 11 (league_scoring_rules; founder, 2026-10-02 night).
 --   projection_shadow_log  per player-week: the provider's projection beside Omen's read (null until an
 --                          engine exists), so any "beats the provider" claim rests on a forward record.
 --
