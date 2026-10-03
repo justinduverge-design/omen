@@ -18,7 +18,7 @@ intelligence should be built for the whole game so all coaches and players come 
 | Play-by-play 2024–2026 | `posteam` per play; updated in-season | joins FTN to the offense (no 2026 participation file exists) |
 | `games.csv` | head coach for every game | head-coach identities and changes (2026 new: BAL, CLE, LV, MIA, NYG, PIT, TEN) |
 | Weekly player stats | targets, target share, carries, attempts… | player usage (**live**, A2) |
-| Snap counts | offense snap share per player | player usage (next) |
+| Snap counts | offense snap share per player | player usage (step 8, live on merge) |
 | `players.csv` + Sleeper player list | id crosswalk | **live**, A1 |
 | Next Gen Stats | passing/receiving/rushing | **not admitted**: the source registry admits PBP, schedules, participation and FTN only; needs a terms check and a founder yes |
 | Coordinators | — | **no open source**. Needs a small maintained list; ask the founder before adding one |
@@ -78,8 +78,14 @@ intelligence should be built for the whole game so all coaches and players come 
    - Omen call: `src/routes/omen.js` now sets `primary_player.omen_team_id` from the player's NFL team,
      so the existing hook reads the published `team_system_identity` (the serving repository's team lookup
      now asks for that type).
-8. [ ] **Snap share** in the usage line (snap counts join on `pfr_id`, which nflverse `players.csv`
-   carries).
+8. [x] **Snap share and trend** in the usage line (`src/services/playerUsage.js`, PR: see branch
+   `claude/usage-snaps-trends`). Snap counts join on `pfr_id`, read from nflverse `players.csv` at
+   runtime (6 h cache, two columns; no schema change). A snap-count outage drops only the snap share.
+   The trend compares the last 3 games with the player's earlier games that season and is stated only
+   with 2+ earlier games and a meaningful change (volume ±2 a game and 25%; snap share ±10 points),
+   e.g. "Up from 4.0 targets a game over the first 2 games." Live check (2026 through week 4): "Kalif
+   Raymond: 7.0 targets a game over the last 3 games (24% of the team's targets), on the field for 66%
+   of the offense's snaps." Trend lines first appear once a player has 5 games (week 6 on).
 9. [ ] **Phone check with the founder,** then the beta decision.
 
 ## Tuesday 2026-10-06 plan (founder asked 2026-10-03: "how will we build it by Monday?")
