@@ -13,6 +13,10 @@ begin
                                 band, band_drivers, headline, recommendation)
   values ('00000000-0000-4000-8000-000000000006', lg, '2', 2026, 5, 'start_sit', 'omen-decision-brief.v3', 'e', 'leaning', '["x"]', 'h', '{}');
   insert into public.consent_records (user_id, consent_type, granted) values ('00000000-0000-4000-8000-000000000006', 'terms', true);
+  if to_regclass('public.beta_reports') is not null then
+    execute $q$insert into public.beta_reports (user_id, screen, app_version, build, os_version, device_model, connection_state, message, disclosure_accepted)
+               values ('00000000-0000-4000-8000-000000000006', 'account', '1', '1', 'x', 'y', 'none', 'bye', true)$q$;
+  end if;
 
   select count(*) into others_before from public.platform_connections where user_id <> '00000000-0000-4000-8000-000000000006';
   select count(*) into secrets_before from vault.secrets;
@@ -28,6 +32,11 @@ begin
      or exists (select 1 from public.moves where user_id = '00000000-0000-4000-8000-000000000006')
      or exists (select 1 from public.consent_records where user_id = '00000000-0000-4000-8000-000000000006') then
     raise exception 'FAIL 10: something owned by the erased user survived';
+  end if;
+  if to_regclass('public.beta_reports') is not null then
+    execute $q$select count(*) from public.beta_reports where user_id = '00000000-0000-4000-8000-000000000006'$q$ into others_before;
+    if others_before <> 0 then raise exception 'FAIL 10: a beta report survived the erase'; end if;
+    select count(*) into others_before from public.platform_connections where user_id <> '00000000-0000-4000-8000-000000000006';
   end if;
   if (select count(*) from vault.secrets) <> secrets_before - 4 then raise exception 'FAIL 10: secret count is wrong after erase'; end if;
   hash := encode(sha256(convert_to('00000000-0000-4000-8000-000000000006', 'UTF8')), 'hex');

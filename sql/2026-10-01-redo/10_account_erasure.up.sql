@@ -15,8 +15,9 @@
 --   2. deletes every Vault secret the person's connections point at, and refuses to continue if any is
 --      missing (the same rule as connection_revoke);
 --   3. erases the Ledger through the append-only guard's erasure flag;
---   4. deletes connections (memberships cascade), moves, consent, OAuth state, beta reports and held
---      retired rows (both cascade from users), profiles and League Office rows (cascade from users);
+--   4. deletes connections (memberships cascade), moves, consent, OAuth state, beta reports (keyed to the
+--      sign-in since #523, so deleted explicitly when step 09 is applied), held retired rows and profiles
+--      (cascade from users);
 --   5. writes the deletion_audit_log row: sha256 of the user id, the same hash the route writes today;
 --   6. deletes the users row.
 -- The Auth account is deleted afterwards by the route through the Auth API (step 01's foreign key requires
@@ -84,6 +85,10 @@ begin
   delete from public.consent_records where user_id = p_user_id;
   get diagnostics consent_n = row_count;
   delete from public.oauth_state where user_id = p_user_id;
+  -- Step 09 may not be applied yet (production applies 10 before 09).
+  if to_regclass('public.beta_reports') is not null then
+    execute 'delete from public.beta_reports where user_id = $1' using p_user_id;
+  end if;
 
   insert into public.deletion_audit_log (user_id_hash, method)
   values (encode(sha256(convert_to(p_user_id::text, 'UTF8')), 'hex'), coalesce(p_method, 'user_requested'));
