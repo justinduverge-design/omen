@@ -56,6 +56,7 @@ class FakeQuery {
 
 function makeFakeSupabase(store) {
   const adminDeleteCalls = [];
+  const rpcCalls = [];
   return {
     __adminDeleteCalls: adminDeleteCalls,
     auth: {
@@ -86,7 +87,21 @@ function makeFakeSupabase(store) {
         },
       };
     },
-    async rpc(_fn, _args) {
+    __rpcCalls: rpcCalls,
+    async rpc(fn, args) {
+      rpcCalls.push({ fn, args });
+      if (fn === "account_erase") {
+        // Production today: redo step 10 is not applied, so PostgREST reports the function as missing.
+        if (!store.__accountErase) return { data: null, error: { code: "PGRST202", message: "Could not find the function" } };
+        if (store.__accountErase.error) return { data: null, error: store.__accountErase.error };
+        if (!store.users.some((u) => u.id === args.p_user_id)) return { data: { erased: false, reason: "no_such_user" }, error: null };
+        for (const table of ["platform_connections", "moves", "consent_records", "oauth_state", "beta_reports"]) {
+          store[table] = store[table].filter((row) => row.user_id !== args.p_user_id);
+        }
+        store.deletion_audit_log.push({ user_id_hash: "hash-from-function", method: args.p_method });
+        store.users = store.users.filter((u) => u.id !== args.p_user_id);
+        return { data: { erased: true }, error: null };
+      }
       return { error: null };
     },
   };
@@ -150,7 +165,7 @@ function seedStore() {
   };
 }
 
-function loadUserPrivacyRouter({ store, actingUserId = "user-1" } = {}) {
+function loadUserPrivacyRouter({ store, actingUserId = "user-1", fakeOut } = {}) {
   const routePath = require.resolve("../src/routes/userPrivacy");
   delete require.cache[routePath];
 
@@ -172,6 +187,7 @@ function loadUserPrivacyRouter({ store, actingUserId = "user-1" } = {}) {
   };
 
   try {
+    if (fakeOut) fakeOut.client = fakeSupabase;
     return require("../src/routes/userPrivacy");
   } finally {
     Module._load = originalLoad;
@@ -305,4 +321,70 @@ test("DELETE /delete rejects a mismatched confirmation phrase without touching a
 
   assert.equal(res.status, 400);
   assert.equal(store.users.some((u) => u.id === "user-1"), true);
+});
+
+// Plan A1: once redo steps 05 and 10 are applied, deletion is one transaction in account_erase().
+// Until then the route keeps today's table-by-table path.
+const CONFIRM = { confirmation: "DELETE MY OMEN DATA" };
+
+test("DELETE /delete erases through account_erase() in one call when the function exists", async () => {
+  const store = seedStore();
+  store.__accountErase = {};
+  const fakeOut = {};
+  const app = buildApp({ store, actingUserId: "user-1", fakeOut });
+
+  const res = await request(app, "/api/account/delete", { method: "DELETE", body: CONFIRM });
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.deleted, true);
+  assert.equal(res.body.auth_identity_deleted, true);
+  assert.deepEqual(fakeOut.client.__rpcCalls, [{ fn: "account_erase", args: { p_user_id: "user-1", p_method: "user_requested" } }]);
+  assert.deepEqual(fakeOut.client.__adminDeleteCalls, ["user-1"]);
+  assert.equal(store.deletion_audit_log.length, 1, "the function writes the audit row; the route must not write a second");
+  assert.equal(store.users.some((u) => u.id === "user-1"), false);
+  assert.equal(store.users.some((u) => u.id === "user-2"), true);
+  assert.equal(store.moves.some((m) => m.user_id === "user-2"), true);
+});
+
+test("DELETE /delete keeps today's path while account_erase() is not applied", async () => {
+  const store = seedStore();
+  const fakeOut = {};
+  const app = buildApp({ store, actingUserId: "user-1", fakeOut });
+
+  const res = await request(app, "/api/account/delete", { method: "DELETE", body: CONFIRM });
+
+  assert.equal(res.status, 200);
+  assert.equal(fakeOut.client.__rpcCalls[0].fn, "account_erase");
+  assert.equal(store.users.some((u) => u.id === "user-1"), false);
+  assert.equal(store.moves.some((m) => m.user_id === "user-1"), false);
+  assert.equal(store.deletion_audit_log.length, 1);
+});
+
+test("DELETE /delete fails without touching anything, and keeps the sign-in, when account_erase() refuses", async () => {
+  const store = seedStore();
+  store.__accountErase = { error: { code: "P0001", message: "account_erase: 1 of 2 secrets found; refusing to erase a partial account" } };
+  const fakeOut = {};
+  const app = buildApp({ store, actingUserId: "user-1", fakeOut });
+
+  const res = await request(app, "/api/account/delete", { method: "DELETE", body: CONFIRM });
+
+  assert.equal(res.status, 500);
+  assert.deepEqual(fakeOut.client.__adminDeleteCalls, []);
+  assert.equal(store.users.some((u) => u.id === "user-1"), true);
+  assert.equal(store.moves.some((m) => m.user_id === "user-1"), true);
+  assert.equal(store.deletion_audit_log.length, 0);
+});
+
+test("DELETE /delete still records the audit row and removes the sign-in when there is no app user row", async () => {
+  const store = seedStore();
+  store.__accountErase = {};
+  store.users = store.users.filter((u) => u.id !== "user-1");
+  const fakeOut = {};
+  const app = buildApp({ store, actingUserId: "user-1", fakeOut });
+
+  const res = await request(app, "/api/account/delete", { method: "DELETE", body: CONFIRM });
+
+  assert.equal(res.status, 200);
+  assert.deepEqual(fakeOut.client.__adminDeleteCalls, ["user-1"]);
+  assert.equal(store.deletion_audit_log.length, 1);
 });
