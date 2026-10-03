@@ -56,7 +56,7 @@
     {"id":"LedgerDetail","family":"Ledger, switcher, account","journey":"J6","states":["nominal","partial"],"api_contracts":["move-detail.v1"],"scroll":"scrolls"},
     {"id":"LedgerDegraded","family":"Ledger, switcher, account","journey":"J6","states":["degraded","unavailable","partial"],"api_contracts":["moves-history.v2"],"scroll":"scrolls"},
     {"id":"LedgerDetailDegraded","family":"Ledger, switcher, account","journey":"J6","states":["degraded","unavailable","partial"],"api_contracts":["move-detail.v1"],"scroll":"scrolls"},
-    {"id":"Account","family":"Ledger, switcher, account","journey":"chrome","states":["nominal"],"api_contracts":["dashboard-summary.v1","user-export.v1","user-delete.v1"],"scroll":"scrolls"},
+    {"id":"Account","family":"Ledger, switcher, account","journey":"chrome","states":["nominal"],"api_contracts":["dashboard-summary.v1","user-export.v2","user-delete.v1"],"scroll":"scrolls"},
     {"id":"ReportPill","family":"Command Center","journey":"chrome","states":["nominal","error"],"api_contracts":["beta-report.v1"],"scroll":"fits"}
   ]
 }

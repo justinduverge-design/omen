@@ -58,7 +58,7 @@ These contracts carry the experience model as a build requirement. The element t
 | 25 | [ConnectFailed](./ConnectFailed-v1.md) | platform-provider-state.v1 | scrolls | 30 | 15 | 3 | 0 |
 | 26 | [SwitchSheet](./SwitchSheet-v1.md) | league-directory.v1 + active-league.v1 | fits | 89 | 37 | 20 | 19 |
 | 27 | [SwitchLoading](./SwitchLoading-v1.md) | active-league.v1 refresh list | fits | 68 | 17 | 8 | 10 |
-| 28 | [Account](./Account-v1.md) | dashboard-summary.v1 + user-export.v1 + user-delete.v1 | scrolls | 72 | 33 | 7 | 12 |
+| 28 | [Account](./Account-v1.md) | dashboard-summary.v1 + user-export.v2 + user-delete.v1 | scrolls | 72 | 33 | 7 | 12 |
 | 29 | [StartSitClear](./StartSitClear-v1.md) | start-sit-detail.v1 state=clear_decision | fits | 77 | 39 | 8 | 10 |
 | 30 | [StartSitIncomplete](./StartSitIncomplete-v1.md) | start-sit-detail.v1 state=incomplete_data | scrolls | 75 | 36 | 9 | 10 |
 | 31 | [LedgerDegraded](./LedgerDegraded-v1.md) | moves-history.v2 | scrolls | source-bound | source-bound | source-bound | source-bound |

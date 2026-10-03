@@ -80,7 +80,7 @@ test("any failure gives no usage at all, never a guess", async () => {
   assert.equal((await getRecentUsage({ supabase: fakeSupabase(crosswalk), playerKeys: ["espn:2973405"], season: 2026, beforeWeek: 4, fetchImpl: down, log })).size, 0);
   _resetCache();
   assert.equal((await getRecentUsage({ supabase: fakeSupabase([], { error: { code: "42P01" } }), playerKeys: ["espn:2973405"], season: 2026, beforeWeek: 4, fetchImpl: okFetch, log })).size, 0);
-  assert.equal(warnings.length, 2);
+  assert.equal(warnings.filter(([m]) => m === "player usage unavailable").length, 2);
   assert.equal((await getRecentUsage({ supabase: null, playerKeys: ["espn:1"], season: 2026, beforeWeek: 4 })).size, 0);
 });
 
@@ -108,4 +108,80 @@ test("the start/sit call carries a verified usage line for each player, and none
   assert.match(lines.map((e) => e.statement).join(" "), /Kalif Raymond: 7\.0 targets a game over the last 3 games \(24% of the team's targets\)/);
   const without = buildStartSitDetail({ roster: roster(), platform: "espn", leagueId: "1", week: 4, season: 2026, scoringFormat: "1 point per reception" });
   assert.equal(without.evidence.filter((e) => e.category === "recent_usage").length, 0);
+});
+
+// --- Snap share and trend (FI-LEAGUE step 8) ---------------------------------------------------
+
+const SNAPS = [
+  "game_id,pfr_game_id,season,game_type,week,player,pfr_player_id,position,team,opponent,offense_snaps,offense_pct,defense_snaps,defense_pct,st_snaps,st_pct",
+  "2026_01_CHI_CAR,x,2026,REG,1,Kalif Raymond,RaymKa00,WR,CHI,CAR,45,0.6,0,0,4,0.11",
+  "2026_02_MIN_CHI,x,2026,REG,2,Kalif Raymond,RaymKa00,WR,CHI,MIN,46,0.62,0,0,6,0.29",
+  "2026_03_PHI_CHI,x,2026,REG,3,Kalif Raymond,RaymKa00,WR,CHI,PHI,54,0.75,0,0,4,0.21",
+  "2026_05_CHI_X,x,2026,REG,5,Kalif Raymond,RaymKa00,WR,CHI,X,60,0.8,0,0,4,0.21",
+  "2026_01_CHI_CAR,x,2026,REG,1,Kyle Monangai,MonaKy00,RB,CHI,CAR,30,0.4,0,0,4,0.11",
+].join("\n");
+const PLAYERS = [
+  "gsis_id,display_name,pfr_id,espn_id",
+  "00-0032464,Kalif Raymond,RaymKa00,2973405",
+  "00-0040236,Kyle Monangai,MonaKy00,",
+].join("\n");
+function routedFetch({ snapsOk = true } = {}) {
+  const urls = [];
+  const impl = async (url) => {
+    urls.push(url);
+    if (url.includes("snap_counts")) return snapsOk ? { ok: true, text: async () => SNAPS } : { ok: false, status: 404, text: async () => "" };
+    if (url.includes("/players/players.csv")) return { ok: true, text: async () => PLAYERS };
+    return { ok: true, text: async () => CSV };
+  };
+  impl.urls = urls;
+  return impl;
+}
+
+test("snap share joins nflverse snap counts through the players.csv pfr id", async () => {
+  _resetCache();
+  const fetchImpl = routedFetch();
+  const usage = await getRecentUsage({ supabase: fakeSupabase(crosswalk), playerKeys: ["espn:2973405", "sleeper:12534"], season: 2026, beforeWeek: 6, fetchImpl });
+  const kalif = usage.get("espn:2973405");
+  assert.deepEqual(kalif.weeks, [2, 3, 5]);
+  assert.ok(Math.abs(kalif.snap_share - (0.62 + 0.75 + 0.8) / 3) < 1e-9);
+  assert.equal(kalif.prior, null, "one earlier game is not enough for a trend");
+  assert.equal(usage.get("sleeper:12534").snap_share, null, "snap rows missing for some games: no snap share");
+  assert.ok(fetchImpl.urls.some((u) => u.endsWith("snap_counts_2026.csv")));
+});
+
+test("a snap-count outage keeps the target line and drops only the snap share", async () => {
+  _resetCache();
+  const warnings = [];
+  const usage = await getRecentUsage({ supabase: fakeSupabase(crosswalk), playerKeys: ["espn:2973405"], season: 2026, beforeWeek: 4, fetchImpl: routedFetch({ snapsOk: false }), log: { warn: (m) => warnings.push(m) } });
+  assert.equal(usage.get("espn:2973405").targets_per_game, 7);
+  assert.equal(usage.get("espn:2973405").snap_share, null);
+  assert.equal(warnings.length, 1);
+});
+
+test("trend compares the last three games with the earlier games of the season", () => {
+  const rows = (weeks) => weeks.map(([week, targets]) => ({ week: String(week), targets: String(targets), carries: "0", attempts: "0", receptions: "0", target_share: "0.2", team: "CHI" }));
+  const u = summarize(rows([[1, 4], [2, 4], [3, 8], [4, 9], [5, 10]]), 6);
+  assert.deepEqual(u.weeks, [3, 4, 5]);
+  assert.equal(u.prior.games, 2);
+  assert.equal(u.prior.targets_per_game, 4);
+  assert.equal(summarize(rows([[1, 4], [2, 4], [3, 8]]), 4).prior, null, "no earlier games: no trend");
+  assert.equal(summarize(rows([[1, 4], [2, 4], [3, 8], [4, 9]]), 5).prior, null, "one earlier game: no trend");
+  const snaps = [1, 2, 3, 4, 5].map((week) => ({ week: String(week), offense_pct: week <= 2 ? (week === 1 ? "0.4" : "0.5") : "0.7" }));
+  const withSnaps = summarize(rows([[1, 4], [2, 4], [3, 4], [4, 4], [5, 4]]), 6, snaps);
+  assert.ok(Math.abs(withSnaps.snap_share - 0.7) < 1e-9);
+  assert.ok(Math.abs(withSnaps.prior.snap_share - 0.45) < 1e-9);
+});
+
+test("usage sentences add snap share and a meaningful trend, and nothing when the change is small", () => {
+  const base = { games: 3, targets_per_game: 9.3, target_share: 0.26, carries_per_game: 0 };
+  const head = "Kalif Raymond: 9.3 targets a game over the last 3 games (26% of the team's targets), on the field for 72% of the offense's snaps.";
+  assert.equal(usageStatement("Kalif Raymond", "WR", { ...base, snap_share: 0.7233, prior: { games: 2, targets_per_game: 4, carries_per_game: 0, snap_share: 0.6 } }),
+    `${head} Up from 4.0 targets a game over the first 2 games.`);
+  assert.equal(usageStatement("Kalif Raymond", "WR", { ...base, snap_share: 0.72, prior: { games: 2, targets_per_game: 8.5, carries_per_game: 0, snap_share: 0.45 } }),
+    `${head} Snap share up from 45% over the first 2 games.`);
+  assert.equal(usageStatement("Kalif Raymond", "WR", { ...base, snap_share: 0.72, prior: { games: 2, targets_per_game: 8.5, carries_per_game: 0, snap_share: 0.68 } }), head);
+  assert.equal(usageStatement("Kyle Monangai", "RB", { games: 3, carries_per_game: 8, targets_per_game: 1, snap_share: null, prior: { games: 4, carries_per_game: 15, targets_per_game: 1, snap_share: null } }),
+    "Kyle Monangai: 8.0 carries and 1.0 targets a game over the last 3 games. Down from 15.0 carries a game over the first 4 games.");
+  assert.equal(usageStatement("Kyle Monangai", "RB", { games: 2, carries_per_game: 8, targets_per_game: 1, prior: null }),
+    "Kyle Monangai: 8.0 carries and 1.0 targets a game over the last 2 games.");
 });

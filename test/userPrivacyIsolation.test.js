@@ -126,8 +126,12 @@ function seedStore() {
       { user_id: "user-2", consent_type: "analytics", granted: true },
     ],
     moves: [
-      { user_id: "user-1", id: "move-1", feature: "omen", move_type: "start_sit", created_at: "2026-01-01T00:00:00.000Z" },
-      { user_id: "user-2", id: "move-2", feature: "omen", move_type: "waiver", created_at: "2026-01-01T00:00:00.000Z" },
+      { user_id: "user-1", id: "move-1", move_type: "start_sit", created_at: "2026-01-01T00:00:00.000Z" },
+      { user_id: "user-2", id: "move-2", move_type: "waiver", created_at: "2026-01-01T00:00:00.000Z" },
+    ],
+    decisions: [
+      { user_id: "user-1", id: "decision-1", call_type: "start_sit", headline: "Start A" },
+      { user_id: "user-2", id: "decision-2", call_type: "waiver", headline: "Add B" },
     ],
     beta_reports: [
       {
@@ -260,6 +264,7 @@ test("GET /export returns only the requesting user's data, never another user's"
   assert.deepEqual(res.body.platform_connections.map((c) => c.platform_username), ["user-1-handle"]);
   assert.deepEqual(res.body.consent_records.map((c) => c.user_id), ["user-1"]);
   assert.deepEqual(res.body.moves.map((m) => m.id), ["move-1"]);
+  assert.deepEqual(res.body.decisions.map((d) => d.id), ["decision-1"]);
   assert.deepEqual(res.body.beta_reports.map((r) => r.id), ["report-1"]);
 
   // Cross-user leak assertions: user-2's data must not appear anywhere in the response.
