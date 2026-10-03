@@ -15,6 +15,7 @@ const config = require("../config");
 const { logger } = require("../middleware/logging");
 const { requireAuth } = require("../middleware/auth");
 const { ensureAppUser } = require("../services/appUser");
+const connectionStore = require("../services/connectionStore");
 const { hasUsableLeagueId } = require("../services/omenReadiness");
 const sleeperAdapter = require("../adapters/sleeper");
 const espnAdapter = require("../adapters/espn");
@@ -293,6 +294,36 @@ async function vaultUpsert(existingSecretId, secret, name, description) {
   return existingSecretId
     ? vaultUpdate(existingSecretId, secret)
     : vaultCreate(secret, name, description);
+}
+
+// Today's ESPN store, kept until redo step 02 is applied: secrets and row in separate calls.
+async function storeEspnLegacy(userId, { leagueId, espnTeamId, espn_s2, swid }) {
+  const { data: existing, error: lookupError } = await supabase
+    .from("platform_connections")
+    .select("espn_secret_id, swid_secret_id")
+    .eq("user_id", userId)
+    .eq("platform", "espn")
+    .maybeSingle();
+
+  if (lookupError) throw new Error(`ESPN connection lookup failed: ${lookupError.message}`);
+
+  const [espnSecretId, swidSecretId] = await Promise.all([
+    vaultUpsert(existing?.espn_secret_id, espn_s2, `espn_s2_${userId}`, "ESPN espn_s2 cookie"),
+    vaultUpsert(existing?.swid_secret_id, swid, `espn_swid_${userId}`, "ESPN SWID cookie"),
+  ]);
+
+  const { error } = await supabase.from("platform_connections").upsert({
+    user_id: userId,
+    platform: "espn",
+    espn_secret_id: espnSecretId,
+    swid_secret_id: swidSecretId,
+    league_id: leagueId,
+    espn_team_id: espnTeamId,
+    is_active: true,
+    updated_at: nowIso(),
+  }, { onConflict: "user_id,platform" });
+
+  if (error) throw new Error(`ESPN connection upsert failed: ${error.message}`);
 }
 
 async function vaultDelete(secretId) {
@@ -649,32 +680,11 @@ router.post("/espn/connect", requireAuth, responseCache.invalidateUserCacheOnWri
       return res.status(400).json(espnValidationError(validation));
     }
 
-    const { data: existing, error: lookupError } = await supabase
-      .from("platform_connections")
-      .select("espn_secret_id, swid_secret_id")
-      .eq("user_id", req.user.id)
-      .eq("platform", "espn")
-      .maybeSingle();
-
-    if (lookupError) throw new Error(`ESPN connection lookup failed: ${lookupError.message}`);
-
-    const [espnSecretId, swidSecretId] = await Promise.all([
-      vaultUpsert(existing?.espn_secret_id, espn_s2, `espn_s2_${req.user.id}`, "ESPN espn_s2 cookie"),
-      vaultUpsert(existing?.swid_secret_id, swid, `espn_swid_${req.user.id}`, "ESPN SWID cookie"),
-    ]);
-
-    const { error } = await supabase.from("platform_connections").upsert({
-      user_id: req.user.id,
-      platform: "espn",
-      espn_secret_id: espnSecretId,
-      swid_secret_id: swidSecretId,
-      league_id: leagueId,
-      espn_team_id: espnTeamId,
-      is_active: true,
-      updated_at: nowIso(),
-    }, { onConflict: "user_id,platform" });
-
-    if (error) throw new Error(`ESPN connection upsert failed: ${error.message}`);
+    // Both cookies and the connection row in one transaction, under the lock account_erase() takes.
+    const stored = await connectionStore.storeEspn(supabase, {
+      userId: req.user.id, leagueId, teamId: espnTeamId ?? null, espnS2: espn_s2, swid,
+    });
+    if (!stored.present) await storeEspnLegacy(req.user.id, { leagueId, espnTeamId, espn_s2, swid });
     return res.json({
       connected: true,
       status: "connected",
@@ -702,6 +712,10 @@ router.delete("/:platform", requireAuth, responseCache.invalidateUserCacheOnWrit
     if (!VALID_PLATFORMS.has(platform)) {
       return res.status(400).json({ error: "Invalid platform" });
     }
+
+    // Every secret and the row go together, or nothing changes and the route reports failure.
+    const revoked = await connectionStore.revoke(supabase, { userId: req.user.id, platform });
+    if (revoked.present) return res.json({ disconnected: true, platform });
 
     const { data: conn, error: lookupError } = await supabase
       .from("platform_connections")

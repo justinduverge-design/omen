@@ -559,7 +559,9 @@ number of pointed contract changes plus a governance amendment — not a build-o
 
 ### D2-SchemaForSlice — Schema additions and the confidence-band fix
 
-- **Status:** READY — claim released 2026-10-01; the remaining clauses need another party.
+- **Status:** IN_PROGRESS
+- **Claim:** 2026-10-03 Claude — prep-for-production session (pin 2026-10-02, brief `Blueprints/handoffs/2026-10-02-prep-for-production-brief.md`): plan A0–A4, redo steps 11 and 12, compatibility table, runbook, dry run. Nothing applied to production.
+- **Prep evidence (2026-10-03, read-only, founder-approved):** production's newest migration is still `20261002231212`; a live catalog read equals `production-catalog-2026-10-01.json` (`catalog.js diff`: identical); counts 7 users, 9 auth users, 0 users without an auth user, 10 connections, 7 leagues, 9 moves (6 unscoped, 9 with scoring rules), 14 Vault secrets. Newest backup `de1d3675` (2026-10-03 00:13) restored on KVM1 to a temp dir, 9 of 9 checksums passed, copy deleted.
 - **Claim (released):** 2026-10-01 Claude — founder-directed database redo. Done: league-connections review; design `Blueprints/rebuild/omen-database-redo-v1.md`; review-only SQL steps 01-07 in `sql/2026-10-01-redo/`; rehearsal `scripts/db/rehearse-redo.sh` + CI job `redo-rehearsal` on Postgres 17 (passed in CI run 36946432760). The old `test-migrations` job stays on Postgres 15: its move to the Supabase 17 image failed to start and was reverted (handoff).
 - **Evidence so far (not VERIFIED):** up → tests → down → up proven per step on scratch Postgres 17.11, with schema **and** data fingerprints; snapshot proven equal to production's catalog; 7 of 7 deliberate faults caught. Not met: Codex review; a second session's read; the server suite on the migrated schema (the server does not use these tables yet); a restored-clone rehearsal (each production step's own gate).
 - **Scope change:** `football_games`, `game_weather`, `player_week_features` and `defense_position_allowed` are deferred to `D4` (explanation-only after the factor experiment); see design §8.
@@ -1089,6 +1091,33 @@ signatures in `tradeValue.js` before either PR, don't let both sessions modify i
   and separate from the code that reads/writes it locally.
 - **Do not touch:** inferring an outcome from any signal Omen can observe; blending self-reported
   outcomes with verified ones in any aggregate.
+- **Claim:** 2026-09-28, `feat/t4-saved-trade-queue` (worktree `omen-t4-saved-trade-queue`, local
+  commits only, not pushed/merged). Built the backend in full TDD: `POST /api/trade/saved`
+  (`{candidate_id, reasoning} -> {status: "saved"|"error"}`, matching T3's documented save-action
+  interface exactly — every other field is optional so the current two-argument stub call still
+  works unmodified), `GET /api/trade/saved` (`trade-saved-queue.v1`; verbatim reasoning, `saved`/
+  `sent` state, self-reported `outcome` that is `null` until explicitly reported, per-item honest
+  `staleness`), `POST /api/trade/saved/:candidateId/sent`, and `POST /api/trade/saved/:candidateId/
+  outcome` (accepted/rejected/countered only, refused with 409 until `sent`). Persistence is
+  `src/services/tradeSavedQueueStore.js`, the same Redis client pattern as `tradeShareStore.js`
+  (disabled store throws in prod without Redis, since a saved trade is durable user state, not a
+  cache). Staleness (`src/services/tradeSavedQueue.js`) reuses `tradeLeagueContext.js`'s existing
+  `rosterDepth`/`needWeightForPosition`/`parseRosterSlots`/`effectiveStarters` exports and this
+  file's own `ROSTER_READERS` — no new roster-fetch logic. 24 new route tests + 8 new pure-logic
+  tests; full `npm test` is 1294/1294 passing. Open question carried forward explicitly (not
+  silently resolved): T3's real save-action interface never sends player identity, only
+  position-level need evidence, so staleness here answers "did the need context that justified this
+  candidate change" rather than literally "did this specific player's status change" — see the doc
+  comment atop `tradeSavedQueue.js`. Native wiring of T3's `TODO(T4)` stub is **blocked on T3
+  merging to `main`**: this worktree (forked from `main`) has no `TradeFind.swift`/`.kt` files at
+  all yet (confirmed via `find mobile -iname "*TradeFind*"` — empty), so there is nothing to wire
+  against; nothing native was touched. Queue-viewing UI: did not build a new screen or extend an
+  existing one — Ledger's row shape is a retrospective receipt with no in-list mutation, while a
+  saved-trade row needs "Mark as sent"/"self-report outcome" actions Ledger's contract doesn't
+  carry, so this does not cleanly fit as an addendum the way T5 extended `TradeRoster`. Treating it
+  as a genuinely new screen per this item's own instruction: stopping before any SwiftUI/Compose and
+  leaving `slops-native-screen-design` + a canvas artboard + `slops-canvas-to-code` as the next step,
+  gated on founder review of this plan first.
 
 ### T5-ThreeTeamBuilderInteraction — Design the native 3-team "build a trade" interaction
 
