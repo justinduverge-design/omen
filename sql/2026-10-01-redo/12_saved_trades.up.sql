@@ -20,7 +20,7 @@
 -- response's candidates are kept server side for 15 minutes, per user (Redis, the find cache's lifetime;
 -- not in this database). On save, the server looks the id up in the caller's own kept batches and writes
 -- the full trade here. An expired or unknown id returns an error the app turns into "refresh the search";
--- a row is never written without its trade (`trade` is NOT NULL and must name both sides).
+-- a row is never written without its trade (`trade` must name a player on each side and the opponent).
 --
 -- Lifecycle, as #519 implements it: saved -> sent (once, never back), then an optional SELF-REPORTED
 -- outcome (accepted / rejected / countered) that may be corrected. The reasoning is kept verbatim from the
@@ -38,6 +38,22 @@ begin
   end if;
 end $$;
 
+-- A trade side as `buildCandidateRecord` (src/services/tradeFind.js) produces it: one player object that
+-- names its player (`player_key` or `player_id`), or a non-empty array of them (three-team trades). Keys
+-- alone are not enough: `{"give": null}` or `{"give": []}` would be a saved trade nobody can read or
+-- stale-check, and the update guard below would make it permanent (Codex review, #529).
+create function public.saved_trades_side_ok(side jsonb) returns boolean
+language sql immutable set search_path = pg_catalog as $$
+  select case jsonb_typeof(side)
+    when 'object' then coalesce(side ->> 'player_key', side ->> 'player_id', '') <> ''
+    when 'array' then jsonb_array_length(side) > 0
+                      and not exists (select 1 from jsonb_array_elements(side) e
+                                       where jsonb_typeof(e) <> 'object'
+                                          or coalesce(e ->> 'player_key', e ->> 'player_id', '') = '')
+    else false
+  end
+$$;
+
 create table public.saved_trades (
   id                 uuid primary key default gen_random_uuid(),
   user_id            uuid not null references public.users(id) on delete cascade,
@@ -47,7 +63,10 @@ create table public.saved_trades (
   week               integer not null check (week between 1 and 22),
   provider_team_id   text,
   candidate_id       text not null check (candidate_id <> '' and length(candidate_id) <= 200),
-  trade              jsonb not null check (jsonb_typeof(trade) = 'object' and trade ? 'give' and trade ? 'receive'),
+  trade              jsonb not null check (jsonb_typeof(trade) = 'object'
+                                           and public.saved_trades_side_ok(trade -> 'give')
+                                           and public.saved_trades_side_ok(trade -> 'receive')
+                                           and coalesce(trade ->> 'opponent_team_id', '') <> ''),
   reasoning          jsonb not null check (jsonb_typeof(reasoning) = 'object'),
   state              text not null default 'saved' check (state in ('saved', 'sent')),
   outcome            text check (outcome in ('accepted', 'rejected', 'countered')),
@@ -94,5 +113,7 @@ grant all on table public.saved_trades to service_role;
 
 revoke all on function public.saved_trades_check_update() from public, anon, authenticated;
 grant execute on function public.saved_trades_check_update() to service_role;
+revoke all on function public.saved_trades_side_ok(jsonb) from public, anon, authenticated;
+grant execute on function public.saved_trades_side_ok(jsonb) to service_role;
 
 commit;

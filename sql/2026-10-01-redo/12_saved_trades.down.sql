@@ -4,4 +4,5 @@
 begin;
 drop table if exists public.saved_trades;
 drop function if exists public.saved_trades_check_update();
+drop function if exists public.saved_trades_side_ok(jsonb);
 commit;

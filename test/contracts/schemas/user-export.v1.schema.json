@@ -198,6 +198,107 @@
         "id",
         "updated_at"
       ]
+    },
+    "saved_trades": {
+      "type": "array",
+      "description": "Redo step 12 (T4 saved trades). Empty until the table exists and the person has saved a trade.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "sleeper",
+              "espn",
+              "yahoo"
+            ]
+          },
+          "provider_league_id": {
+            "type": "string"
+          },
+          "season": {
+            "type": "integer"
+          },
+          "week": {
+            "type": "integer"
+          },
+          "provider_team_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "candidate_id": {
+            "type": "string"
+          },
+          "trade": {
+            "type": "object",
+            "required": [
+              "give",
+              "receive",
+              "opponent_team_id"
+            ]
+          },
+          "reasoning": {
+            "type": "object"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "saved",
+              "sent"
+            ]
+          },
+          "outcome": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "accepted",
+              "rejected",
+              "countered",
+              null
+            ]
+          },
+          "outcome_provenance": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "self_reported",
+              null
+            ]
+          },
+          "saved_at": {
+            "type": "string"
+          },
+          "sent_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "outcome_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "provider",
+          "provider_league_id",
+          "season",
+          "week",
+          "candidate_id",
+          "trade",
+          "reasoning",
+          "state",
+          "saved_at"
+        ]
+      }
     }
   },
   "required": [
@@ -208,6 +309,7 @@
     "moves",
     "platform_connections",
     "redactions",
+    "saved_trades",
     "user"
   ]
 }
