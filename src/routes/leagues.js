@@ -31,11 +31,13 @@ const {
   resolveActiveConnection,
   usableLeagueId,
 } = require("../services/activeSelection");
+const { orderPlatformsByFollowCount } = require("../services/leagueFollows");
 const {
-  readFollows,
-  replaceFollows,
-  orderPlatformsByFollowCount,
-} = require("../services/leagueFollows");
+  readMemberships,
+  replaceFollowed,
+  selectActive,
+  syncMemberships,
+} = require("../services/leagueMemberships");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
@@ -53,8 +55,9 @@ const ERROR_CONTRACT = "league-directory-error.v1";
 const PLATFORM_GROUP_ORDER = Object.freeze(["sleeper", "espn", "yahoo"]);
 const VALID_PLATFORMS = new Set(PLATFORM_GROUP_ORDER);
 
+// `id` is the connection a league membership points at (redo step 03). Never a secret.
 const CONNECTION_COLUMNS =
-  "platform,is_active,league_id,platform_username,platform_user_id,token_secret_id,espn_secret_id,swid_secret_id,espn_team_id,updated_at";
+  "id,platform,is_active,league_id,platform_username,platform_user_id,token_secret_id,espn_secret_id,swid_secret_id,espn_team_id,updated_at";
 
 function nowIso() {
   return new Date().toISOString();
@@ -247,6 +250,8 @@ async function resolveEspnTeams(leagues, credentials) {
       ...league,
       team_id: team.team_id == null ? league.team_id : String(team.team_id),
       team_name: team.team_name || league.team_name || null,
+      // ESPN's own league read named this team. Only such a team is stored on a membership.
+      team_verified: team.team_id != null,
     };
   }));
 }
@@ -284,6 +289,7 @@ async function espnLeagues(row, userId, season) {
             teamId: league.team_id,
             teamName: league.team_name,
           })),
+          verifiedTeams: new Set(named.filter((league) => league.team_verified).map((league) => String(league.league_id))),
           notice: null,
         };
       }
@@ -302,6 +308,7 @@ async function espnLeagues(row, userId, season) {
 
   let teamId = row.espn_team_id == null ? null : String(row.espn_team_id);
   let teamName = null;
+  let teamVerified = false;
   if (credentials) {
     try {
       const team = await espnAdapter.verifyLeagueAccess(
@@ -312,6 +319,7 @@ async function espnLeagues(row, userId, season) {
       );
       teamId = team?.team_id == null ? teamId : String(team.team_id);
       teamName = team?.team_name || null;
+      teamVerified = team?.team_id != null;
     } catch (e) {
       // Never surface the ESPN failure detail here; the state field carries it.
       if (Number(e?.status) === 401) credentialsRejected = true;
@@ -322,6 +330,7 @@ async function espnLeagues(row, userId, season) {
     discovery: "bound_only",
     credentialsRejected,
     leagues: [leagueEntry({ leagueId: row.league_id, leagueName: null, season, teamId, teamName })],
+    verifiedTeams: new Set(teamVerified ? [String(row.league_id)] : []),
     notice: credentialsRejected
       ? "ESPN is no longer accepting this connection. Reconnect ESPN to see your leagues and teams."
       : "Omen couldn't ask ESPN for your full league list, so only the connected league is shown.",
@@ -339,7 +348,8 @@ function discoveryFailure(platform, error) {
   };
 }
 
-async function platformGroup(platform, row, userId, season, followed) {
+/** What the provider said, before memberships are applied. Leagues carry no flags yet. */
+async function platformGroup(platform, row, userId, season) {
   const state = connectionState(row);
   if (state !== "connected") {
     return { platform, connection_state: state, discovery: "unavailable", notice: null, leagues: [] };
@@ -354,17 +364,6 @@ async function platformGroup(platform, row, userId, season, followed) {
     result = discoveryFailure(platform, error);
   }
 
-  const boundLeagueId = usableLeagueId(row) ? String(row.league_id) : null;
-  // `followed` is null when the follow table is absent, which means "the user has not
-  // been able to choose a subset yet". Everything discovered is then followed — the
-  // honest reading, and exactly what every surface did before follows existed. An empty
-  // Set is a different fact: the user chose nothing, and nothing is followed.
-  const leagues = sortLeagues(result.leagues).map((league) => ({
-    ...league,
-    is_active: boundLeagueId != null && league.league_id === boundLeagueId,
-    is_followed: followed == null ? true : followed.has(league.league_id),
-  }));
-
   // A provider that answered `401` has credentials that exist and no longer work. `connectionState`
   // above cannot see that — it tests whether the columns are *populated*, which they are — so a
   // dead ESPN connection reported `connected` and produced a league with no team name, no
@@ -372,7 +371,129 @@ async function platformGroup(platform, row, userId, season, followed) {
   // 2026-09-07: `connection_state=connected` beside `team_name=null` on a league ESPN was
   // rejecting outright. Presence is not liveness.
   const reportedState = result.credentialsRejected ? "reconnect_required" : state;
-  return { platform, connection_state: reportedState, discovery: result.discovery, notice: result.notice, leagues };
+  return {
+    platform,
+    connection_state: reportedState,
+    discovery: result.discovery,
+    notice: result.notice,
+    leagues: result.leagues,
+    // Internal, stripped by finishGroup. Null means every team in the list came from the
+    // provider's own read (Sleeper rosters, Yahoo teams); a Set lists the ESPN leagues whose team
+    // ESPN confirmed. Anything else may be the fan payload's entry id and is not stored.
+    verifiedTeams: result.verifiedTeams ?? null,
+  };
+}
+
+/**
+ * Write what the provider just reported into `leagues` + `league_memberships` (plan A5).
+ *
+ * This is also the backfill: a connection whose memberships were lost (a disconnect cascades
+ * them away) or never written past step 03's one-per-connection backfill gets every league back
+ * the next time the switcher is opened, with no manual SQL. Only a connected, unrejected group is
+ * written, and only a FULL discovery may unfollow a league the provider stopped listing; a
+ * fallback list is partial by definition. The bound league is never unfollowed by a sync.
+ *
+ * Best-effort: a failed write is logged (table and code only) and the directory still answers.
+ */
+async function syncGroupMemberships(userId, season, row, group) {
+  if (group.connection_state !== "connected" || !row?.id || !group.leagues.length) return;
+  const boundLeagueId = usableLeagueId(row) ? String(row.league_id) : null;
+  try {
+    await syncMemberships(supabase, {
+      userId,
+      platform: group.platform,
+      connectionId: row.id,
+      season,
+      leagues: group.verifiedTeams
+        ? group.leagues.map((league) => (group.verifiedTeams.has(String(league.league_id))
+          ? league
+          : { ...league, team_id: null, team_name: null }))
+        : group.leagues,
+      source: "backfill",
+      markMissing: group.discovery === "full",
+      keepLeagueIds: boundLeagueId ? [boundLeagueId] : [],
+    });
+  } catch (error) {
+    logger.warn("League membership sync failed", { platform: group.platform, err: error.message });
+  }
+}
+
+const STORED_LEAGUES_NOTICE = "These are your leagues from the last sync.";
+
+/**
+ * Apply the stored memberships to one provider's group: `is_followed` from the membership (a
+ * league with no membership yet is followed, per plan A5), and, when discovery could not give the
+ * full list, the followed leagues stored for this season, so a provider hiccup no longer shrinks
+ * the switcher to the one bound league. Stored names and teams fill only what the provider left
+ * null.
+ */
+function finishGroup(group, row, membershipView, season) {
+  const stored = membershipView.memberships.filter((m) => m.platform === group.platform);
+  const storedByKey = new Map(stored.map((m) => [`${m.league_id}:${m.season}`, m]));
+  const keyOf = (league) => `${league.league_id}:${Number(league.season) || season}`;
+
+  let leagues = group.leagues.map((league) => {
+    const membership = storedByKey.get(keyOf(league));
+    if (!membership) return league;
+    // An ESPN team this read could not confirm may be the fan payload's entry id; a stored team
+    // was confirmed when it was written, so it wins.
+    const unconfirmed = group.verifiedTeams != null && !group.verifiedTeams.has(String(league.league_id));
+    const useStoredTeam = membership.team_id != null && (unconfirmed || league.team_id == null);
+    return {
+      ...league,
+      league_name: league.league_name ?? membership.league_name,
+      scoring_format: league.scoring_format ?? membership.scoring_format,
+      team_id: useStoredTeam ? membership.team_id : league.team_id,
+      team_name: useStoredTeam ? (membership.team_name ?? league.team_name) : (league.team_name ?? membership.team_name),
+    };
+  });
+  let notice = group.notice;
+
+  if (group.connection_state === "connected" && group.discovery !== "full") {
+    const listed = new Set(leagues.map((league) => league.league_id));
+    const extra = stored
+      .filter((m) => m.season === season && m.is_followed && !listed.has(m.league_id))
+      .map((m) => leagueEntry({
+        leagueId: m.league_id,
+        leagueName: m.league_name,
+        season: m.season,
+        scoringFormat: m.scoring_format,
+        teamId: m.team_id,
+        teamName: m.team_name,
+      }));
+    if (extra.length) {
+      leagues = leagues.concat(extra);
+      notice = group.platform === "espn" && group.discovery === "bound_only"
+        ? `Omen couldn't ask ESPN for your full league list. ${STORED_LEAGUES_NOTICE}`
+        : [group.notice, STORED_LEAGUES_NOTICE].filter(Boolean).join(" ");
+    }
+  }
+
+  const visible = { ...group };
+  delete visible.verifiedTeams;
+  const boundLeagueId = usableLeagueId(row) ? String(row.league_id) : null;
+  // Before step 03 exists every listed league counts as followed: the honest reading, and what
+  // every surface did before follows existed. Once it exists, the membership decides.
+  return {
+    ...visible,
+    notice,
+    leagues: sortLeagues(leagues).map((league) => ({
+      ...league,
+      is_active: boundLeagueId != null && league.league_id === boundLeagueId,
+      is_followed: membershipView.persisted
+        ? storedByKey.get(keyOf(league))?.is_followed ?? true
+        : true,
+    })),
+  };
+}
+
+async function readMembershipView(userId) {
+  try {
+    return await readMemberships(supabase, userId);
+  } catch (error) {
+    logger.warn("League membership read failed", { err: error.message });
+    return { persisted: false, memberships: [] };
+  }
 }
 
 function activeSummary(rows, groups) {
@@ -419,28 +540,21 @@ router.get("/", requireAuth, async (req, res, next) => {
     if (cacheHandle.hit) return responseCache.sendHit(res, cacheHandle);
     responseCache.setCacheHeader(res, cacheHandle);
     const byPlatform = new Map(rows.map((row) => [row.platform, row]));
-    const { follows, followsPersisted } = await readFollows(supabase, req.user.id);
 
-    // Per platform: the followed set, or null meaning "no stored choice exists".
-    const followedByPlatform = new Map();
-    if (followsPersisted) {
-      for (const platform of PLATFORM_GROUP_ORDER) followedByPlatform.set(platform, new Set());
-      for (const follow of follows) {
-        const set = followedByPlatform.get(follow.platform);
-        if (set) set.add(String(follow.league_id));
-      }
-    }
-
-    const groups = [];
+    const discovered = [];
     for (const platform of PLATFORM_GROUP_ORDER) {
-      groups.push(await platformGroup(
-        platform,
-        byPlatform.get(platform),
-        req.user.id,
-        season,
-        followedByPlatform.get(platform) ?? null
-      ));
+      discovered.push(await platformGroup(platform, byPlatform.get(platform), req.user.id, season));
     }
+
+    // Write what the providers said, then read the stored memberships back: the switcher's
+    // followed set and its fallback league list come from `leagues` + `league_memberships`.
+    await Promise.all(discovered.map((group) =>
+      syncGroupMemberships(req.user.id, season, byPlatform.get(group.platform), group)));
+    const membershipView = await readMembershipView(req.user.id);
+    const followsPersisted = membershipView.persisted;
+
+    const groups = discovered.map((group) =>
+      finishGroup(group, byPlatform.get(group.platform), membershipView, season));
 
     // A group that needs the user to act (reconnect) is never kept; a connected
     // group whose discovery failed is a partial answer and is kept only briefly.
@@ -451,9 +565,9 @@ router.get("/", requireAuth, async (req, res, next) => {
       generated_at: nowIso(),
       season,
       selection_persistence: selectionPersisted ? "explicit" : "provider_binding_only",
-      // Whether a multiselect the user makes will survive the session. `false` until
-      // `sql/2026-09-03_multi_league_follows_review.sql` is applied, and the picker says
-      // so rather than pretending a choice stuck.
+      // Whether a multiselect the user makes will survive the session: `explicit` once redo
+      // step 03 (`leagues` + `league_memberships`) is readable, `unavailable` otherwise, and the
+      // picker says so rather than pretending a choice stuck.
       follow_persistence: followsPersisted ? "explicit" : "unavailable",
       active: activeSummary(rows, groups),
       // Providers ordered most-leagues-first, ties alphabetical. The client renders its
@@ -688,6 +802,9 @@ router.post("/active", requireAuth, responseCache.invalidateUserCacheOnWrite, as
     // at once and cannot be undone by a future one forgetting the field.
 
     const persistence = await persistSelection(req.user.id, platform, leagueId, resolvedTeamId);
+    // Mirror onto the memberships (`league_select_active`). Best-effort and never thrown:
+    // `platform_connections` is still what every surface reads the active league from.
+    await selectActive(supabase, { userId: req.user.id, platform, leagueId, season });
 
     return res.json({
       contract_version: SELECTION_CONTRACT,
@@ -718,9 +835,12 @@ router.post("/active", requireAuth, responseCache.invalidateUserCacheOnWrite, as
  * than stored and quietly ignored later — a stored league Omen cannot read is a carousel
  * page that can only ever render an error.
  *
+ * Stored through `league_follows_replace` (redo step 03), all-or-nothing: the submitted
+ * leagues are followed, the platform's other leagues this season are unfollowed (not deleted).
+ * Only league ids and their order are sent; names and team ids come from provider reads.
+ *
  * The response always reports `follow_persistence`, so a client can tell "saved" apart
- * from "accepted but not stored yet" while
- * `sql/2026-09-03_multi_league_follows_review.sql` is still review-only.
+ * from "accepted but not stored yet" when step 03 is absent.
  */
 router.post("/follows", requireAuth, responseCache.invalidateUserCacheOnWrite, async (req, res, next) => {
   const platform = String(req.body?.platform || "").trim().toLowerCase();
@@ -742,14 +862,11 @@ router.post("/follows", requireAuth, responseCache.invalidateUserCacheOnWrite, a
     }));
   }
 
+  // Only the id is read. Clients may still send team and league names (the contract allows
+  // them), but a shared league row must not take its name from one client, and a client ESPN
+  // team id is the field that was silently wrong before; provider reads fill both.
   const entries = submitted
-    .map((entry) => ({
-      league_id: String(entry?.league_id ?? entry?.leagueId ?? "").trim(),
-      team_id: entry?.team_id ?? entry?.teamId ?? null,
-      league_name: entry?.league_name ?? entry?.leagueName ?? null,
-      team_name: entry?.team_name ?? entry?.teamName ?? null,
-      season: entry?.season ?? null,
-    }))
+    .map((entry) => ({ league_id: String(entry?.league_id ?? entry?.leagueId ?? "").trim() }))
     .filter((entry) => entry.league_id);
 
   try {
@@ -791,7 +908,12 @@ router.post("/follows", requireAuth, responseCache.invalidateUserCacheOnWrite, a
       }));
     }
 
-    const persisted = await replaceFollows(supabase, req.user.id, platform, entries);
+    const persisted = await replaceFollowed(supabase, {
+      userId: req.user.id,
+      platform,
+      season,
+      leagueIds: [...new Set(entries.map((entry) => entry.league_id))],
+    });
 
     return res.json({
       contract_version: FOLLOWS_CONTRACT,
