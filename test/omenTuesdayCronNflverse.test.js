@@ -7,6 +7,10 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 const { fetchNFLScores, fetchPendingMoves, isDeferredScores, isDryRun, nflverseScoresFromCsv, runScoring, scoreMove, scoredMovePatch } = require("../src/omen_tuesday_cron");
 
+// Ledger (decisions) scoring is covered in test/ledgerDecisions.test.js; here it is stubbed so these
+// tests stay about moves.
+const LEDGER_TALLY = Object.freeze({ inserted: 0, updated: 0, unchanged: 0, deferred: 0, failed: 0 });
+
 test("nflverseScoresFromCsv maps one stored season/week into all scoring formats", () => {
   const scores = nflverseScoresFromCsv([
     "player_name,season,week,season_type,fantasy_points,fantasy_points_ppr",
@@ -230,6 +234,7 @@ test("runScoring groups reads by each move's stored season/week and dry-run neve
     dependencies: {
       createSupabase: () => ({}),
       createRedis: () => null,
+      scoreLedgerDecisions: async () => LEDGER_TALLY,
       archiveNotExecutedMoves: async (_supabase, _now, { dryRun }) => {
         calls.archive += 1;
         assert.equal(dryRun, true);
@@ -252,7 +257,7 @@ test("runScoring groups reads by each move's stored season/week and dry-run neve
   assert.deepEqual(calls.fetches.sort(), ["2024:17", "2025:2"]);
   assert.equal(calls.archive, 1);
   assert.equal(calls.score, 0);
-  assert.deepEqual(result, { dryRun: true, archiveCount: 1, scoredCount: 2, failedCount: 0, deferredCount: 0 });
+  assert.deepEqual(result, { dryRun: true, archiveCount: 1, scoredCount: 2, failedCount: 0, deferredCount: 0, ledger: LEDGER_TALLY });
 });
 
 test("runScoring uses the PPR fallback when deployed moves omit the legacy scoring field", async () => {
@@ -265,6 +270,7 @@ test("runScoring uses the PPR fallback when deployed moves omit the legacy scori
     dependencies: {
       createSupabase: () => ({}),
       createRedis: () => null,
+      scoreLedgerDecisions: async () => LEDGER_TALLY,
       archiveNotExecutedMoves: async () => 0,
       fetchPendingMoves: async () => [{
         id: "move-without-scoring",
@@ -284,7 +290,7 @@ test("runScoring uses the PPR fallback when deployed moves omit the legacy scori
   });
 
   assert.equal(saved, 1);
-  assert.deepEqual(result, { dryRun: false, archiveCount: 0, scoredCount: 1, failedCount: 0, deferredCount: 0 });
+  assert.deepEqual(result, { dryRun: false, archiveCount: 0, scoredCount: 1, failedCount: 0, deferredCount: 0, ledger: LEDGER_TALLY });
 });
 
 test("fetchNFLScores defers on an unpublished season CSV without writing cache", async () => {
@@ -330,6 +336,7 @@ test("runScoring defers a pre-season move instead of marking it failed", async (
     dependencies: {
       createSupabase: () => ({}),
       createRedis: () => null,
+      scoreLedgerDecisions: async () => LEDGER_TALLY,
       archiveNotExecutedMoves: async () => 0,
       fetchPendingMoves: async () => [{
         id: "pre-season-move",
@@ -353,5 +360,5 @@ test("runScoring defers a pre-season move instead of marking it failed", async (
   });
 
   assert.equal(saved, 0);
-  assert.deepEqual(result, { dryRun: false, archiveCount: 0, scoredCount: 0, failedCount: 0, deferredCount: 1 });
+  assert.deepEqual(result, { dryRun: false, archiveCount: 0, scoredCount: 0, failedCount: 0, deferredCount: 1, ledger: LEDGER_TALLY });
 });
