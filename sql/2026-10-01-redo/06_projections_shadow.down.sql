@@ -6,6 +6,7 @@ begin;
 drop function if exists public.projections_purge(text, text, text);
 drop table if exists public.projection_shadow_log;
 drop table if exists public.projection_snapshots;
+drop function if exists public.projection_snapshots_check_ingest();
 drop function if exists public.projection_shadow_log_check();
 drop table if exists public.data_events;
 drop function if exists public.compartment_append_only();

@@ -7,16 +7,19 @@
 #   2. account erase while a reconnect repairs a half-populated connection (Codex review, #511): the
 #      erase must succeed and leave nothing behind;
 #   3. a connect while an account erase is in flight: the connect must fail (the person is gone) and
-#      leave nothing behind.
+#      leave nothing behind;
+#   4. a projections purge while a snapshot insert is in flight (Codex review, #528): the purge must wait
+#      for the insert and remove it, leaving no row of that provider behind.
 #
 #   PGHOST=127.0.0.1 PGPORT=54317 PGUSER=postgres scripts/db/concurrency-check.sh
 #
-# STEP02=path / STEP10=path substitute an older version of a step, to prove the check catches it.
+# STEP02=path / STEP06=path / STEP10=path substitute an older version of a step, to prove the check catches it.
 # Exits 1 on the first failed expectation.
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 sqldir="$here/../../sql/2026-10-01-redo"
 step02="${STEP02:-$sqldir/02_connection_credentials.up.sql}"
+step06="${STEP06:-$sqldir/06_projections_shadow.up.sql}"
 step10="${STEP10:-$sqldir/10_account_erasure.up.sql}"
 db=omen_concurrency_check
 u=00000000-0000-4000-8000-000000000009
@@ -54,7 +57,7 @@ for f in 00a_scratch_supabase_shim 00b_production_schema_snapshot 00d_production
   psql -X -q -v ON_ERROR_STOP=1 -d "$db" -f "$sqldir/$f.sql" >/dev/null 2>&1
 done
 for f in 01_identity_link.up "$step02" 03_leagues_memberships.up 04_players_crosswalk.up 05_ledger.up \
-         06_projections_shadow.up 07_close_client_writes.up 08_retire_unscoped_moves.up 09_beta_reports.up "$step10"; do
+         "$step06" 07_close_client_writes.up 08_retire_unscoped_moves.up 09_beta_reports.up "$step10"; do
   case "$f" in /*) path="$f" ;; *) path="$sqldir/$f.sql" ;; esac
   psql -X -q -v ON_ERROR_STOP=1 -d "$db" -f "$path" >/dev/null 2>&1 || fail "could not apply $path"
 done
@@ -104,6 +107,19 @@ echo "race 3: connections left $conns, orphaned $o"
 [ "$conns" = 0 ] || fail "race 3: a connection survived the erase"
 [ "$o" = 0 ] || fail "race 3: $o orphaned secret(s)"
 
+# 4. A projections purge while a snapshot insert is in flight.
+ev=$(q "insert into public.data_events (event, subject, provider, rights_basis, job, source_ref, row_count)
+        values ('ingest', 'projections:espn', 'espn', 'espn_user_connection', 'race', 'sha256:' || repeat('a', 64), 1)
+        returning id" | head -1)
+race "insert into public.projection_snapshots (ingest_event_id, provider, provider_player_id, season, week, scope, provider_points, stat_line, fetched_at, source_ref)
+      values ($ev, 'espn', 'race-1', 2026, 4, 'public', '{\"ppr\":1}', '{}', now(), 'sha256:' || repeat('b', 64));" \
+     "select public.projections_purge('espn', 'race check', 'founder')"
+[ "$a_rc" = 0 ] || fail "race 4: insert failed: $(cat "$tmp/a.err")"
+[ "$b_rc" = 0 ] || fail "race 4: purge failed: $(cat "$tmp/b.err")"
+left=$(q "select count(*) from public.projection_snapshots where provider = 'espn'")
+echo "race 4: ESPN projection rows left after the purge $left"
+[ "$left" = 0 ] || fail "race 4: $left ESPN projection row(s) survived a purge that recorded success"
+
 dropdb "$db"
 rm -rf "$tmp"
-echo "PASS: no race leaves an orphaned secret"
+echo "PASS: no race leaves an orphaned secret or a purged row behind"
