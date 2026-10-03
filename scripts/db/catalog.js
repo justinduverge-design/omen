@@ -10,6 +10,7 @@
  *   node scripts/db/catalog.js dump > state.json
  *   node scripts/db/catalog.js compare-production   # scratch snapshot vs production fixture
  *   node scripts/db/catalog.js diff a.json b.json   # exit 1 and print the difference if they differ
+ *   node scripts/db/catalog.js compare-fixture read.json   # a production read (runbook/catalog.sql) vs the fixture
  *
  * Connection comes from the standard PG* environment variables. Never point this at production:
  * production is compared through the committed fixture, not by connecting to it.
@@ -143,6 +144,22 @@ async function main() {
     console.log("catalog: scratch snapshot matches production (columns, constraints, indexes, policies, ACLs)");
     return;
   }
+  if (mode === "compare-fixture") {
+    // A catalog read from production through the connector (runbook/catalog.sql, all nine families) against the
+    // committed fixture, which records five. Compares exactly those five, as compare-production does for scratch.
+    const fixture = JSON.parse(fs.readFileSync(FIXTURE, "utf8"));
+    const read = JSON.parse(fs.readFileSync(a, "utf8"));
+    const live = read.catalog || read;
+    const scoped = Object.fromEntries(["columns", "constraints", "indexes", "policies", "acls"].map((k) => [k, live[k]]));
+    const lines = diff(fixture, scoped);
+    if (lines.length) {
+      console.error("production differs from the fixture (- fixture, + production):");
+      console.error(lines.join("\n"));
+      process.exit(1);
+    }
+    console.log("catalog: production matches the fixture (columns, constraints, indexes, policies, ACLs)");
+    return;
+  }
   if (mode === "delta-check") {
     // What a step changed on the target (actual before -> after) must equal what it changed on scratch
     // (expected before -> after). Comparing changes, not whole catalogs, keeps Supabase-only objects that
@@ -160,7 +177,7 @@ async function main() {
     console.log(`catalog delta: as expected (${expected.length} changes)`);
     return;
   }
-  console.error("usage: catalog.js dump | diff a.json b.json | compare-production | delta-check expBefore expAfter actBefore actAfter");
+  console.error("usage: catalog.js dump | diff a.json b.json | compare-production | compare-fixture read.json | delta-check expBefore expAfter actBefore actAfter");
   process.exit(2);
 }
 

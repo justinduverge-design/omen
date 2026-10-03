@@ -15,7 +15,7 @@ no-go for the steps it guards. The step-by-step procedure is
 ## Production as it is
 
 - ☐ The newest production migration is still `20261002231212 drop_league_office`.
-- ☐ The live catalog equals `production-catalog-2026-10-01.json` (`catalog.js diff`: identical).
+- ☐ The live catalog matches `production-catalog-2026-10-01.json` (`catalog.js compare-fixture`).
 - ☐ `runbook/snapshot.sql` matches the runbook's expected values, or each difference is written down
   and explained.
 

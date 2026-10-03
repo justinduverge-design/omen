@@ -22,8 +22,9 @@ Do these the day before, or the morning of. Each ends with something checkable.
 3. **Production has not drifted.**
    - `list_migrations`: the newest entry is still `20261002231212 drop_league_office`.
    - Run `sql/2026-10-01-redo/runbook/catalog.sql` through the connector, save it, and run
-     `node scripts/db/catalog.js diff sql/2026-10-01-redo/production-catalog-2026-10-01.json <saved>` →
-     `catalog: identical` on the five families (columns, constraints, indexes, policies, ACLs).
+     `node scripts/db/catalog.js compare-fixture <saved>`. It must report that production matches the
+     fixture. It compares the five families the fixture records (columns, constraints, indexes, policies,
+     ACLs); the other four in the read are used by the per-step delta check.
    - If either check fails, stop. Regenerate `00b` and the fixture, and re-rehearse (`sql/2026-10-01-redo/README.md`).
 4. **Fresh backup, restore-tested, dry-run.**
    - On KVM1: `sudo bash kvm1-restored-clone.sh up`. The newest snapshot restores, its checksums pass,
@@ -245,7 +246,7 @@ second at production's size. Step 01's `VALIDATE` was the longest, at 1.66 s end
 - **Rollback:** `12_saved_trades.down.sql`. Lossless until the first saved trade.
 - **Approval:** ☐ Founder approves step 12 — date/time: ________
 
-## Steps 05 and 10 — the Ledger, then one-transaction account erasure (back to back)
+## Steps 05 and 10 — the Ledger, then one-transaction account erasure (back to back, approved separately)
 
 - **What it changes:**
   - **05** adds the Ledger (`decisions` and its children). It copies the 3 league-scoped moves into it;
@@ -263,7 +264,11 @@ second at production's size. Step 01's `VALIDATE` was the longest, at 1.66 s end
   - `10_account_erasure.down.sql` drops the function (lossless, always). A1 then falls back, which step
     05 blocks for anyone with a call, so roll back 05 too.
   - `05_ledger.down.sql` is lossless until the server writes its first call.
-- **Approval:** ☐ Founder approves steps 05 and 10 — date/time: ________
+- **Approval, step 05:** ☐ Founder approves step 05 — date/time: ________
+- **Approval, step 10** (only after `05.verify.sql` printed `VERIFIED 05`, and before deletion is used):
+  ☐ Founder approves step 10 — date/time: ________. Get both approvals before starting 05, so that 10
+  follows within minutes. Between 05 and 10, deletion uses today's path, which 05 blocks for anyone
+  with a call.
 
 ## Step 08 — retire the 6 unscoped moves
 
