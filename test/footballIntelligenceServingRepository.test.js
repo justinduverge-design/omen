@@ -55,10 +55,12 @@ test("serving repository resolves only the explicit published scope", async () =
 });
 
 test("serving repository resolves a deterministic published team signal without a caller-supplied coach", async () => {
-  const { query, repository } = setup({ data: row(), error: null });
+  const teamPayload = { ...payload(), signal_type: "team_system_identity" };
+  const { query, repository } = setup({ data: row({ signal_type: "team_system_identity", payload: teamPayload }), error: null });
   const result = await repository.findPublishedTeamSignal({ teamId: "omen:team:chicago-2026", season: 2026 });
   assert.equal(result.subject.coach_id, "omen:coach:ben-johnson");
   assert.equal(query.calls.some((call) => call[0] === "eq" && call[1] === "coach_id"), false);
+  assert.ok(query.calls.some((call) => call[0] === "eq" && call[1] === "signal_type" && call[2] === "team_system_identity"));
   assert.deepEqual(query.calls.filter((call) => call[0] === "order"), [
     ["order", "published_at", { ascending: false }],
     ["order", "artifact_id", { ascending: false }],
@@ -87,4 +89,9 @@ test("serving repository fails closed on database errors and invalid rows", asyn
   await assert.rejects(invalid.findPublishedCoachTransfer({ teamId: "omen:team:chicago-2026", coachId: "omen:coach:ben-johnson", season: 2026 }), (error) => error.code === "SERVING_ROW_INVALID");
   const mismatchedPublication = setup({ data: row({ published_at: "2026-09-26T13:00:00.000Z" }), error: null }).repository;
   await assert.rejects(mismatchedPublication.findPublishedCoachTransfer({ teamId: "omen:team:chicago-2026", coachId: "omen:coach:ben-johnson", season: 2026 }), (error) => error.code === "SERVING_ROW_INVALID");
+});
+
+test("a team lookup refuses a row of another signal type", async () => {
+  const { repository } = setup({ data: row(), error: null });
+  await assert.rejects(repository.findPublishedTeamSignal({ teamId: "omen:team:chicago-2026", season: 2026 }), /failed validation/);
 });

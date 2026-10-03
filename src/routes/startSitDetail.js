@@ -35,6 +35,7 @@ const {
   buildStartSitDetail,
 } = require("../services/startSitDetail");
 const { getRecentUsage } = require("../services/playerUsage");
+const { getTeamSystemSummaries } = require("../services/footballIntelligence/teamSystemLines");
 const sleeperAdapter = require("../adapters/sleeper");
 const espnAdapter = require("../adapters/espn");
 
@@ -164,12 +165,18 @@ router.get("/detail", requireAuth, async (req, res, next) => {
 
     const rosterKeys = [...(loaded.roster?.slots?.starters || []), ...(loaded.roster?.slots?.bench || [])]
       .map((player) => player?.player_key).filter(Boolean);
-    const usage = suppressLiveFootballData()
-      ? new Map()
-      : await getRecentUsage({ supabase, playerKeys: rosterKeys, season: Number(context.season), beforeWeek: Number(resolvedWeek), log: logger });
+    const rosterTeams = [...(loaded.roster?.slots?.starters || []), ...(loaded.roster?.slots?.bench || [])]
+      .map((player) => player?.team).filter(Boolean);
+    const [usage, teamSystem] = suppressLiveFootballData()
+      ? [new Map(), new Map()]
+      : await Promise.all([
+        getRecentUsage({ supabase, playerKeys: rosterKeys, season: Number(context.season), beforeWeek: Number(resolvedWeek), log: logger }),
+        getTeamSystemSummaries({ supabase, teams: rosterTeams, season: Number(context.season), log: logger }),
+      ]);
 
     return res.json(buildStartSitDetail({
       usage,
+      teamSystem,
       roster: loaded.roster,
       platform: connection.platform,
       leagueId: connection.league_id,

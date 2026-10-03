@@ -68,7 +68,7 @@ function playerView(player, roster) {
  * §5.2. Each entry names its own kind, so the client can never render a
  * projection or a model inference as a verified fact.
  */
-function buildEvidence({ start, sit, delta, scoringFormat, usage = null }) {
+function buildEvidence({ start, sit, delta, scoringFormat, usage = null, teamSystem = null }) {
   const evidence = [];
 
   if (scoringFormat) {
@@ -91,6 +91,15 @@ function buildEvidence({ start, sit, delta, scoringFormat, usage = null }) {
   for (const player of [start, sit]) {
     const statement = usageStatement(player.name, player.position, usage?.get?.(player.player_key));
     if (statement) evidence.push({ category: "recent_usage", kind: "verified", statement });
+  }
+
+  // How each player's offense plays, ranked against the league (published football intelligence).
+  const seenTeams = new Set();
+  for (const player of [start, sit]) {
+    const team = String(player.team || "").toUpperCase();
+    const statement = team && !seenTeams.has(team) ? teamSystem?.get?.(team) : null;
+    seenTeams.add(team);
+    if (statement) evidence.push({ category: "team_system", kind: "observed_context", statement });
   }
 
   for (const player of [start, sit]) {
@@ -227,6 +236,7 @@ function buildStartSitDetail({
   offSeason = false,
   contractVersion = CONTRACT_VERSION,
   usage = null,
+  teamSystem = null,
 } = {}) {
   const context = {
     platform,
@@ -311,7 +321,7 @@ function buildStartSitDetail({
       },
       why,
       what_could_change_this: whatCouldChangeThis({ start, sit, delta }),
-      evidence: buildEvidence({ start, sit, delta, scoringFormat, usage }),
+      evidence: buildEvidence({ start, sit, delta, scoringFormat, usage, teamSystem }),
       // §5.3: the user may switch slots. These are the other slots that have one.
       alternatives: ordered.slice(1, 4).map((rec) => ({
         slot: rec.slot,

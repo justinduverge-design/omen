@@ -43,6 +43,7 @@ const {
 } = require("../services/latencyBudget");
 const { createFootballIntelligenceServingRepository } = require("../services/footballIntelligence/servingRepository");
 const { enrichOmenWithFootballIntelligence } = require("../services/footballIntelligence/omenExplanation");
+const { teamIdFor } = require("../services/footballIntelligence/nflTeams");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
@@ -99,6 +100,9 @@ function requestFootballIntelligenceRepository(req) {
 }
 
 async function enrichWithFootballIntelligence(response, req) {
+  // The engine's team ids (omen:team:<abbr>, nflTeams.js) follow from the player's NFL team.
+  const player = response?.recommendation?.primary_player;
+  if (player && !player.omen_team_id && teamIdFor(player.team)) player.omen_team_id = teamIdFor(player.team);
   const hasCanonicalTeam = /^omen:team:/.test(response?.recommendation?.primary_player?.omen_team_id || "");
   return enrichOmenWithFootballIntelligence({
     response,

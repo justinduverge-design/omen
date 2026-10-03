@@ -397,7 +397,9 @@ test("native v3 adds typed shared capabilities while retaining v2's band policy"
   assert.equal(byName.llm_reasoning.state, "unavailable");
   assert.equal(v3.body.football_intelligence.contract_version, "football-intelligence-signal.v1");
   assert.equal(v3.body.football_intelligence.status, "unavailable");
-  assert.equal(v3.body.football_intelligence.reason_code, "identity_unresolved");
+  // The player's NFL team now resolves to an Omen team id (FI-LEAGUE), so the call reaches the serving
+  // read; this test server has no signals table, so the honest answer is "serving unavailable".
+  assert.equal(v3.body.football_intelligence.reason_code, "serving_unavailable");
   assert.equal(v3.body.football_intelligence.summary, null);
   assert.equal(byName.football_intelligence.state, "unavailable");
 });
