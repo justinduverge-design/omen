@@ -25,7 +25,9 @@
     success with a row left behind (#527, #528; races 4 and 5).
   - **Deletion:** deletion of a sign-in with no app row still clears its consent before the audit
     (#526).
-  - **Beta reports:** the route creates the reporter's app row, which step 09's foreign key needs (#523).
+  - **Beta reports:** keyed to the sign-in (`auth.users`) rather than the app row, so a person whose
+    connect failed can still report. `account_erase()` deletes them. Creating an app row in the route was
+    tried first and rejected: it could recreate an account during deletion (#523).
 - **Not changed:** nothing applied to production. Each step still needs its own founder approval
   (`Blueprints/handoffs/2026-10-03-production-runbook.md`).
 

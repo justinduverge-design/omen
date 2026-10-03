@@ -24,6 +24,8 @@ no-go for the steps it guards. The step-by-step procedure is
 - ☐ The newest nightly backup exists and its checksums pass.
 - ☐ The dry run on a restored copy passed all twelve steps **in production order**, today or yesterday,
   and the copy was deleted.
+- ☐ V1 (real Supabase) has been re-run for steps 09 and 10 at their current files (they changed after
+  V1 on 2026-10-03: reports keyed to the sign-in). Needed before the 05/10 and 09 orders only.
 - ☐ A fresh snapshot was taken right before the first step. Id: `________`
 
 ## People

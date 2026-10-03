@@ -289,7 +289,9 @@ second at production's size. Step 01's `VALIDATE` was the longest, at 1.66 s end
 
 - **What it changes:**
   - Adds the `beta_reports` table behind the in-app Report button, with its 30-day purge.
-  - With A2 deployed, the route refuses pasted cookies and creates the reporter's app row first.
+  - With A2 deployed, the route refuses pasted cookies.
+  - Reports are keyed to the sign-in, so a person with no app row can report. `account_erase()` deletes
+    them, and deleting the sign-in removes any report filed during an erase.
 - **Precondition:** A2 and A3 are deployed.
 - **Migration name:** `redo_09_beta_reports`.
 - **Verify:** `09.verify.sql`.

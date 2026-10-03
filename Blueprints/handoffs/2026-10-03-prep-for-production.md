@@ -11,7 +11,7 @@ the migration list, the catalog, and row counts. No row contents and no secrets 
 | Brief item | Result | Where |
 |---|---|---|
 | 1. Merge state | #514–#522 merged, Codex findings answered. `main` at `b63404fe` (docs only; last code deploy `e4f8ab16` green). Only #519 open, waiting for step 12 by design | — |
-| 2. A2 beta-report filter | PR, red-first tests. Also creates the reporter's app row (found by item 3) | #523 |
+| 2. A2 beta-report filter | PR, red-first tests. Codex P2 (quadratic regex) fixed. Also keys step 09's reports to the sign-in, and `account_erase()` deletes them (found by item 3; Codex P1) | #523 |
 | 2. A3 purges scheduled | PR; daily 04:15 ET in the cron container, skips missing functions. dcron passing the env to jobs was proven on KVM1 | #524 |
 | 2. A0 connect paths on step 02 | PR. Codex P1 (Yahoo refresh not single-flight before the provider) fixed and answered | #525 |
 | 2. A1 deletion on `account_erase()` | PR, stacked on A0. Codex P2 (no app row still owns consent) fixed and answered | #526 |
@@ -50,7 +50,7 @@ direct table access (none in `mobile/` or `frontend/`); then run the export's re
 | 05 | new tables; the Ledger guard refuses deleting a user who has calls | `/api/user/delete` deletes `users` table by table | **yes, until A1**. Fixed by A1 + step 10, applied back to back |
 | 10 | new function | A1 calls it when present | no |
 | 08 | deletes the 6 unscoped `moves` | `/api/moves` returns 6 fewer rows for those users | by decision (founder, 2026-10-01); restorable 30 days |
-| 09 | new table; `user_id` FK to `users` | the report route never created the app row; 2 of 9 sign-ins have none | **yes, fixed**: #523 now calls `ensureAppUser` first |
+| 09 | new table | the report route never creates an app row; 2 of 9 sign-ins have none | **yes, fixed in #523**: reports are keyed to the sign-in (`auth.users`), so no app row is needed. Creating one in the route was tried first; Codex showed it could recreate an account during deletion |
 
 Not caused by the redo, still open: the export selects `moves.feature` and `moves.updated_at`, which
 don't exist (design §7, server ticket "Export").
@@ -140,6 +140,7 @@ recorded: 1 sign-in, 0 secrets, the 3-row leftover table, and 1 migration histor
 
 ## Still open
 
+- **V1 for steps 09 and 10 at their current files is not re-run.** Both changed after V1 (#523: reports keyed to the sign-in). Scratch, production order, races and a third restored-copy dry run all pass. Re-run V1 for 09 and 10 before their production orders (go/no-go item).
 - **Founder:** merge order and production orders. Merge order:
   1. #523, #524;
   2. #525, then retarget #526 to `main` and merge it;
