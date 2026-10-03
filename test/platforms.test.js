@@ -8,6 +8,7 @@ const http = require("node:http");
 const Module = require("node:module");
 const test = require("node:test");
 const express = require("express");
+const { createLeagueMembershipDb } = require("./fixtures/fakeLeagueMembershipDb");
 
 class FakeQuery {
   constructor(state, operation, columns) {
@@ -56,6 +57,7 @@ class FakeQuery {
 function makeSupabase(state) {
   return {
     from(table) {
+      if (table === "leagues" || table === "league_memberships") return state.membershipDb.client.from(table);
       assert.equal(table, "platform_connections");
       return {
         select(columns) {
@@ -67,7 +69,8 @@ function makeSupabase(state) {
           const index = state.rows.findIndex((row) =>
             row.user_id === payload.user_id && row.platform === payload.platform
           );
-          if (index === -1) state.rows.push({ id: `row-${state.rows.length + 1}`, ...payload });
+          state.nextRowId = (state.nextRowId || 0) + 1;
+          if (index === -1) state.rows.push({ id: `row-${state.nextRowId}`, ...payload });
           else state.rows[index] = { ...state.rows[index], ...payload };
           return Promise.resolve({ data: null, error: null });
         },
@@ -130,6 +133,11 @@ function loadPlatformsRouter({
   yahooEnabled = false,
   step02 = false,
   revokeError,
+  // Redo step 03 applied (`leagues`, `league_memberships`). Off by default: production's older
+  // world, where the membership write reports the schema absent and changes nothing.
+  memberships = false,
+  // What ESPN's fan API lists for the session; null means the call fails.
+  espnFanLeagues = null,
 } = {}) {
   const routePath = require.resolve("../src/routes/platforms");
   delete require.cache[routePath];
@@ -141,6 +149,7 @@ function loadPlatformsRouter({
     deleted: [],
     rpcs: [],
     espnCalls: [],
+    fanCalls: [],
     appUsers: [],
     logs: [],
     vaultDeleteError,
@@ -149,6 +158,8 @@ function loadPlatformsRouter({
     step02,
     revokeError,
   };
+  // The trigger and the cascade read this test's own platform_connections rows.
+  state.membershipDb = createLeagueMembershipDb({ connections: () => state.rows, missing: !memberships });
   const fakeSupabase = makeSupabase(state);
   const originalLoad = Module._load;
   let redisSetCalls = 0;
@@ -241,6 +252,15 @@ function loadPlatformsRouter({
     }
     if (request === "../adapters/espn" && parent?.filename === routePath) {
       return {
+        fetchEspnFanLeagues: async (espnS2, swid, opts) => {
+          state.fanCalls.push({ espnS2, swid, opts });
+          if (!espnFanLeagues) {
+            const error = new Error("fan api unavailable");
+            error.status = 503;
+            throw error;
+          }
+          return espnFanLeagues;
+        },
         buildNormalizedRoster: async (...args) => {
           state.espnCalls.push(args);
           if (espnError) throw espnError;
@@ -916,4 +936,126 @@ test("DELETE /api/platforms/espn reports failure, not success, when connection_r
   const serialized = JSON.stringify(state.logs) + JSON.stringify(res.body);
   assert.equal(serialized.includes("espn-secret"), false);
   assert.equal(serialized.includes("swid-secret"), false);
+});
+
+// --- League memberships (redo step 03, plan A5) ------------------------------------------------
+
+const TEN_FAN_LEAGUES = Array.from({ length: 10 }, (_, i) => ({
+  league_id: String(12345 + i),
+  league_name: `League ${i}`,
+  season: 2026,
+  team_id: String(900000 + i), // ESPN's entry id, not a league-scoped team id
+  team_name: null,
+}));
+
+const ESPN_CONNECT_BODY = Object.freeze({
+  espn_s2: "espn-cookie-value", swid: "{swid-cookie-value}", league_id: "12345", espn_team_id: "7",
+});
+
+function espnMemberships(state) {
+  return state.membershipDb.membershipsOf("test-slops-user");
+}
+
+test("ESPN connect writes a followed membership for every league the session can see", async () => {
+  const { app, state } = buildApp({ memberships: true, espnFanLeagues: TEN_FAN_LEAGUES });
+  const res = await request(app, "/api/platforms/espn/connect", { method: "POST", body: ESPN_CONNECT_BODY });
+
+  assert.equal(res.status, 200);
+  const rows = espnMemberships(state);
+  assert.equal(rows.length, 10);
+  assert.ok(rows.every((m) => m.is_followed && m.source === "connect" && m.connection_id === state.rows[0].id));
+  // The bound league carries the verified team; the fan payload's entry ids are never stored.
+  assert.equal(rows.find((m) => m.provider_league_id === "12345").provider_team_id, "7");
+  assert.ok(rows.filter((m) => m.provider_league_id !== "12345").every((m) => m.provider_team_id == null));
+  // Discovery used the cookies just submitted, scoped to a season.
+  assert.equal(state.fanCalls.length, 1);
+  assert.equal(typeof state.fanCalls[0].opts.season, "number");
+});
+
+// The observed production bug: 10 memberships became 9 after an ESPN disconnect and reconnect.
+test("ESPN disconnect then reconnect brings every membership back", async () => {
+  const { app, state } = buildApp({ memberships: true, espnFanLeagues: TEN_FAN_LEAGUES });
+  await request(app, "/api/platforms/espn/connect", { method: "POST", body: ESPN_CONNECT_BODY });
+  assert.equal(espnMemberships(state).length, 10);
+
+  const gone = await request(app, "/api/platforms/espn", { method: "DELETE" });
+  assert.equal(gone.status, 200);
+  assert.equal(espnMemberships(state).length, 0);
+
+  const back = await request(app, "/api/platforms/espn/connect", { method: "POST", body: ESPN_CONNECT_BODY });
+  assert.equal(back.status, 200);
+  const rows = espnMemberships(state);
+  assert.equal(rows.length, 10);
+  assert.ok(rows.every((m) => m.connection_id === state.rows[0].id && m.is_followed));
+  // The shared league rows were reused, not duplicated.
+  assert.equal(state.membershipDb.state.leagues.length, 10);
+});
+
+test("ESPN connect still writes the bound league when ESPN discovery is down", async () => {
+  const { app, state } = buildApp({ memberships: true });
+  const res = await request(app, "/api/platforms/espn/connect", { method: "POST", body: ESPN_CONNECT_BODY });
+
+  assert.equal(res.status, 200);
+  assert.deepEqual(espnMemberships(state).map((m) => m.provider_league_id), ["12345"]);
+  assert.ok(state.logs.some((log) => log.level === "warn" && log.meta?.http_status === 503));
+});
+
+test("ESPN connect succeeds, and never logs a cookie, when the membership write fails", async () => {
+  const { app, state } = buildApp({ memberships: true, espnFanLeagues: TEN_FAN_LEAGUES });
+  state.membershipDb.state.calls.length = 0;
+  // Make every membership write fail.
+  const original = state.membershipDb.client.from;
+  state.membershipDb.client.from = (table) => {
+    const real = original(table);
+    return { ...real, upsert: () => Promise.resolve({ data: null, error: { code: "XX000", message: "refused" } }) };
+  };
+
+  const res = await request(app, "/api/platforms/espn/connect", { method: "POST", body: ESPN_CONNECT_BODY });
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.connected, true);
+  assert.ok(state.logs.some((log) => log.level === "warn" && /membership/i.test(log.message)));
+  const serialized = JSON.stringify(state.logs);
+  assert.equal(serialized.includes("espn-cookie-value"), false);
+  assert.equal(serialized.includes("swid-cookie-value"), false);
+});
+
+test("ESPN connect before step 03 exists changes nothing and logs nothing about memberships", async () => {
+  const { app, state } = buildApp({ espnFanLeagues: TEN_FAN_LEAGUES });
+  const res = await request(app, "/api/platforms/espn/connect", { method: "POST", body: ESPN_CONNECT_BODY });
+
+  assert.equal(res.status, 200);
+  assert.equal(state.logs.some((log) => /membership/i.test(log.message)), false);
+});
+
+test("Sleeper connect writes a followed membership for every league on the account", async () => {
+  const { app, state } = buildApp({
+    memberships: true,
+    sleeperLeagues: [
+      { league_id: "league-1", name: "The Bird Board", season: "2026", scoring_settings: { rec: 1 } },
+      { league_id: "league-2", name: "Dynasty", season: "2026", scoring_settings: { rec: 0.5 } },
+    ],
+  });
+  const res = await request(app, "/api/platforms/sleeper/connect", {
+    method: "POST",
+    body: { sleeper_username: "sleepy", league_id: "league-1" },
+  });
+
+  assert.equal(res.status, 200);
+  const rows = state.membershipDb.membershipsOf("test-slops-user");
+  assert.deepEqual(rows.map((m) => m.provider_league_id).sort(), ["league-1", "league-2"]);
+  assert.ok(rows.every((m) => m.is_followed && m.source === "connect"));
+  assert.equal(rows.find((m) => m.provider_league_id === "league-2").name, "Dynasty");
+  // Never the old default-to-PPR guess; the directory's own mapping fills scoring later.
+  assert.ok(rows.every((m) => m.scoring_format == null));
+});
+
+test("Sleeper connect does not write a membership for a league the account is not in", async () => {
+  const { app, state } = buildApp({ memberships: true });
+  await request(app, "/api/platforms/sleeper/connect", {
+    method: "POST",
+    body: { sleeper_username: "sleepy", league_id: "someone-elses" },
+  });
+
+  assert.deepEqual(state.membershipDb.membershipsOf("test-slops-user").map((m) => m.provider_league_id), ["league-1"]);
 });
