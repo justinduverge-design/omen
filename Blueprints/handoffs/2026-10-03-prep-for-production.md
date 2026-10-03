@@ -124,6 +124,37 @@ recorded: 1 sign-in, 0 secrets, the 3-row leftover table, and 1 migration histor
   - `redo_12_saved_trades_down` removed everything.
   - The project was returned to its prior state and paused.
 
+## Production applied (2026-10-03, founder-approved: all five sittings)
+
+The founder approved all five sittings at once ("you have the approval to do all five sittings"), with the
+hands-on phone checks at the very end. Every step ran through `apply_migration` with its stripped body,
+on production project `Omen` (`xyudxfhqejbwvjngiwhw`).
+
+- **Before the first step (12:38–12:40 UTC):**
+  - The newest migration was still `drop_league_office`, and the live catalog matched the fixture.
+  - Counts equalled the runbook's expected values.
+  - The daily purge job was run once by hand: both lines read "skipped".
+  - A fresh backup was taken: snapshot `1999659e`.
+- **Each step:** `NN.verify.sql` passed, and a per-family fingerprint of the full catalog equalled the
+  expected state (the production baseline plus the rehearsed change, all nine families). After each
+  sitting, Vault orphans were 0 and the API was healthy with no 5xx.
+  - Sitting 1: 07, 01, 02, 03 (7 leagues, 10 memberships), 04.
+  - Sitting 2: 06, 11 (3 rule sets, 2 ingest events), 12.
+  - Sitting 3: 05 (3 Ledger calls; `moves` still 9), then 10 within a minute.
+  - Sitting 4: 08 (moves 3, 6 held copies, 1 `retire` event).
+  - Sitting 5: 09.
+- **After:**
+  - Migration history lists the 12 `redo_*` migrations in production order.
+  - 7 users, 9 sign-ins, 10 connections, 14 secrets, 0 orphans.
+  - The purge job now calls the real functions (purged 0).
+  - Supabase's security check shows only "RLS on, no policy" (intended: server-only tables) and the
+    existing leaked-password setting.
+- **Still to do, founder on the iPhone:**
+  1. Reconnect ESPN, then check League (step 02).
+  2. Send one in-app report: expect success, where it used to be 503 (step 09).
+  3. Delete a test account made for the purpose: expect `deleted: true` and Vault orphans 0 (steps 05/10).
+  4. Glance at Command Center, Omen, League, Trade and Ledger.
+
 ## Final re-test (2026-10-03, after #534 merged; files as on #529 + #530)
 
 Every check ran on the final step files: those on `main` after #534, plus #529's step 12.
