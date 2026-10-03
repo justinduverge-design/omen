@@ -375,16 +375,23 @@ test("DELETE /delete fails without touching anything, and keeps the sign-in, whe
   assert.equal(store.deletion_audit_log.length, 0);
 });
 
-test("DELETE /delete still records the audit row and removes the sign-in when there is no app user row", async () => {
+test("DELETE /delete with no app user row clears the sign-in's own rows before recording the deletion (Codex, #526)", async () => {
   const store = seedStore();
   store.__accountErase = {};
+  // A sign-in that accepted the legal terms but never got an app user row: consent and OAuth state only.
   store.users = store.users.filter((u) => u.id !== "user-1");
+  for (const table of ["moves", "beta_reports", "platform_connections"]) {
+    store[table] = store[table].filter((row) => row.user_id !== "user-1");
+  }
   const fakeOut = {};
   const app = buildApp({ store, actingUserId: "user-1", fakeOut });
 
   const res = await request(app, "/api/account/delete", { method: "DELETE", body: CONFIRM });
 
   assert.equal(res.status, 200);
+  assert.equal(store.consent_records.some((c) => c.user_id === "user-1"), false);
+  assert.equal(store.oauth_state.some((s) => s.user_id === "user-1"), false);
+  assert.equal(store.consent_records.some((c) => c.user_id === "user-2"), true);
   assert.deepEqual(fakeOut.client.__adminDeleteCalls, ["user-1"]);
   assert.equal(store.deletion_audit_log.length, 1);
 });

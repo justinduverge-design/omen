@@ -232,11 +232,11 @@ router.delete("/delete", requireAuth, require("../services/responseCache").inval
     if (eraseError && !isMissingFunction(eraseError)) {
       throw new Error(`account_erase failed (${eraseError.code || "unknown"})`);
     }
-    if (eraseError) {
+    if (eraseError || erased?.erased === false) {
+      // Function not applied yet, or no app user row. A sign-in without an app row can still own rows
+      // keyed to the auth user (consent from /legal-acceptance, OAuth state), so clean those up before
+      // the audit row records the deletion (Codex, #526).
       await eraseAccountLegacy(userId);
-    } else if (erased?.erased === false) {
-      // No app user row: nothing of Omen's to erase, but the request is still recorded.
-      await insertDeletionAudit(userId);
     }
 
     const { error: authError } = await supabase.auth.admin.deleteUser(userId);
