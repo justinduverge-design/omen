@@ -4275,3 +4275,19 @@ on the second one.
 - **Storage:** saved trades move to a table in redo step 12 (prep brief), which also fixes lost
   saves and account erasure. #519 stays open until then.
 
+
+## 2026-10-03 — Review moves before the PR; Codex is on request for high-risk work only
+
+- **Decision (founder):** Claude reviews its own diff before the PR is opened. Codex stops reviewing
+  every PR automatically and is asked (`@codex review`) only on high-risk PRs: database and
+  migrations, user-data deletion/migration/exposure, auth and credential handling, billing.
+- **Why:** automatic review ran after the PR existed, so findings arrived as rework and extra review
+  rounds, and merges kept landing before the review was read (#511, #515). Codex did catch real P1s on
+  #493, #511 and #517, which is why it stays for the high-risk class. Supersedes "Claude builds, Codex
+  reviews" for everything outside that class.
+- **How:** `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md`, section "Review". The Codex auto-review switch
+  is in the founder's ChatGPT Codex settings (repo `justinduverge-design/omen`), not in this repo, so
+  turning it off is a founder action.
+- **Also found (not yet acted on):** a session reads about 92k tokens before work starts, over half of
+  it `Direction/current_sprint.md` (202 KB, 1,887 lines, despite "active items only"). Trimming it needs
+  `slops-agent-docs-refresh` and the drift checks, so it is a separate task.

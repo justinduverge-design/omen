@@ -29,6 +29,23 @@ One short instruction per task. The folder carries the context; you approve the 
 4. **Agent builds, verifies, commits, closes** — follows the company-baseline playbook, satisfies DoD, writes handoff, and logs decisions. Closing means advancing the item through the **status model** (`Direction/status-model.md`): set `Status: VERIFIED` with an `Evidence:` pointer, then `Status: CLOSED` with a `Closure:` value once it lands in `Direction/sprints_completed.md`. `CLOSED` is terminal. A merged PR alone does not satisfy `VERIFIED` — the task's own `Done when:` must be met.
 5. **Agent leaves a skill receipt** — records evidence in `Blueprints/playbooks/skill-usage-ledger.md` and routes any procedure gap through the retro/backlog.
 
+## Review — before the PR, not after it
+
+The reviewer runs while you build, so the PR that opens is already clean.
+
+1. **Every PR:** before opening it, review the diff with `slops-code-review` in a fresh agent (not the
+   one that wrote it). Fix what it finds. Say in the PR body that this was done.
+2. **High-risk PRs get a second reviewer.** Comment `@codex review` on the PR, and read the review on
+   the **head commit** before merging. High-risk means: database steps and migrations, anything that
+   deletes, migrates or exposes user data, auth/credential/token handling, and billing.
+   `rbac-risk-review` or `security-privacy-evidence` apply on top of that when the change touches a
+   trust boundary.
+3. **Everything else** (docs, UI, copy, small fixes) merges on Claude's review and green CI. Codex is
+   not asked.
+4. Codex's automatic review of every PR is off (founder decision 2026-10-03,
+   `Direction/decision_log.md`). If a bot review appears on a PR you did not ask it for, read it
+   anyway; do not merge past an open P0/P1.
+
 ## Native mobile design loop
 
 For any iPhone, Android, onboarding, provider, native component, or mobile release task, the normal five steps are expanded by `Blueprints/playbooks/native-mobile-design-delivery-workflow-v1.md`:
