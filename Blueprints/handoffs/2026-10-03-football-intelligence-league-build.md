@@ -78,7 +78,7 @@ intelligence should be built for the whole game so all coaches and players come 
    - Omen call: `src/routes/omen.js` now sets `primary_player.omen_team_id` from the player's NFL team,
      so the existing hook reads the published `team_system_identity` (the serving repository's team lookup
      now asks for that type).
-8. [x] **Snap share and trend** in the usage line (`src/services/playerUsage.js`, PR: see branch
+8. [x] **Snap share and trend** in the usage line (`src/services/playerUsage.js`, #551, branch
    `claude/usage-snaps-trends`). Snap counts join on `pfr_id`, read from nflverse `players.csv` at
    runtime (6 h cache, two columns; no schema change). A snap-count outage drops only the snap share.
    The trend compares the last 3 games with the player's earlier games that season and is stated only
