@@ -25,17 +25,20 @@ function parseCsvLine(line = "") {
   return values;
 }
 
-function parseCsv(csvText, { required = [] } = {}) {
+function parseCsv(csvText, { required = [], columns = null } = {}) {
   const lines = String(csvText || "").trim().split(/\r?\n/).filter(Boolean);
   if (lines.length < 2) return [];
   const headers = parseCsvLine(lines[0]).map((h) => h.trim());
   for (const column of required) {
     if (!headers.includes(column)) throw new Error(`missing required column: ${column}`);
   }
+  // `columns` keeps only the named columns: play-by-play has ~370, and keeping them all for a season
+  // costs gigabytes of short-lived objects.
+  const keep = columns ? headers.map((h, i) => [h, i]).filter(([h]) => columns.includes(h)) : headers.map((h, i) => [h, i]);
   return lines.slice(1).map((line) => {
     const values = parseCsvLine(line);
     const row = {};
-    headers.forEach((header, i) => { row[header] = values[i] == null ? "" : values[i].trim(); });
+    for (const [header, i] of keep) row[header] = values[i] == null ? "" : values[i].trim();
     return row;
   });
 }
