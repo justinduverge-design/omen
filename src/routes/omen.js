@@ -44,6 +44,8 @@ const {
 const { createFootballIntelligenceServingRepository } = require("../services/footballIntelligence/servingRepository");
 const { enrichOmenWithFootballIntelligence } = require("../services/footballIntelligence/omenExplanation");
 const { teamIdFor } = require("../services/footballIntelligence/nflTeams");
+const { attachOmenProjectionBreakdown } = require("../services/projectionBreakdown");
+const sleeperAdapter = require("../adapters/sleeper");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
@@ -73,8 +75,25 @@ const MVP_LATENCY_BUDGET_MS = Object.freeze({
   matchup_dvp: 1100,
   llm_narration: 1250,
   football_intelligence: 700,
+  projection_breakdown: 1500,
   persistence: 2500,
 });
+
+// Projection explainer layer 1 on the Omen call. Sleeper's league read and its week's stat
+// lines (cached hourly by the adapter); the league's rules stay in memory only.
+async function enrichWithProjectionBreakdown(response) {
+  if (suppressLiveFootballData()) return response;
+  return attachOmenProjectionBreakdown({
+    response,
+    loadSleeperInputs: async ({ leagueId, season, week }) => {
+      const [league, statLines] = await Promise.all([
+        sleeperAdapter.fetchSleeperLeague(leagueId),
+        sleeperAdapter.fetchSleeperProjectionStatLines(season, week),
+      ]);
+      return { statLines, scoringSettings: league?.scoring_settings || null };
+    },
+  });
+}
 
 function isExplicitMockRequest(body = {}) {
   return body.use_mock_data === true || body.mock_state != null;
@@ -622,6 +641,15 @@ router.post("/mvp-move", async (req, res) => {
       // Schedule context is advisory. Its capability record remains an explicit limitation.
     }
     attachWaiverCapability(result.body);
+    try {
+      await traceStage(trace, "projection_breakdown", () => withinLatencyBudget(
+        "projection_breakdown",
+        MVP_LATENCY_BUDGET_MS.projection_breakdown,
+        () => enrichWithProjectionBreakdown(result.body)
+      ));
+    } catch {
+      // The points breakdown is advisory. A failed or slow read means no breakdown, never a failed call.
+    }
     try {
       await traceStage(trace, "matchup_dvp", () => withinLatencyBudget(
         "matchup_dvp",
