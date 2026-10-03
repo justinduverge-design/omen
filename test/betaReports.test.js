@@ -93,3 +93,18 @@ test("report fails closed, unsaved, when the app user row cannot be created", as
   assert.equal(result.stored.length, 0);
   assert.doesNotMatch(JSON.stringify(result.body), /upsert/);
 });
+test("the credential check is linear: a very long run without a percent sign is checked quickly (Codex, #523)", () => {
+  const { looksSensitive } = require("../src/routes/betaReports");
+  const run = "a".repeat(100000);
+  const started = process.hrtime.bigint();
+  assert.equal(looksSensitive(run), true); // 100k-character run: caught by the 80+ rule, and checked in linear time
+  looksSensitive(`"message":"${run.slice(0, 79)}"`);
+  looksSensitive(`"message":"x ${"ab ".repeat(30000)}"`);
+  assert.equal(looksSensitive(`"${"a".repeat(56)}%2F"`), false); // 59-character run
+  assert.equal(looksSensitive(`"${"a".repeat(57)}%2F"`), true); // 60-character run
+  const shortRuns = `"${"a1b2c3d ".repeat(12000)}"`;
+  assert.equal(looksSensitive(shortRuns), false);
+  looksSensitive(run.replace(/a/g, (c, i) => (i % 79 === 78 ? " " : c)));
+  const elapsedMs = Number(process.hrtime.bigint() - started) / 1e6;
+  assert.ok(elapsedMs < 250, `took ${elapsedMs} ms`);
+});
