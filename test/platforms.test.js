@@ -78,6 +78,23 @@ function makeSupabase(state) {
     },
     rpc(name, params) {
       state.rpcs.push({ name, params });
+      if (name.startsWith("connection_")) {
+        // Production today: step 02 is not applied, so PostgREST reports the function as missing.
+        if (!state.step02) {
+          return Promise.resolve({ data: null, error: { code: "PGRST202", message: "Could not find the function" } });
+        }
+        if (name === "connection_store_espn") {
+          return Promise.resolve({ data: "conn-uuid", error: null });
+        }
+        if (name === "connection_revoke") {
+          if (state.revokeError) {
+            return Promise.resolve({ data: null, error: { code: "P0001", message: state.revokeError } });
+          }
+          const before = state.rows.length;
+          state.rows = state.rows.filter((row) => !(row.user_id === params.p_user_id && row.platform === params.p_platform));
+          return Promise.resolve({ data: state.rows.length !== before, error: null });
+        }
+      }
       if (name === "vault_create_secret") {
         return Promise.resolve({ data: `${params.name}-id`, error: null });
       }
@@ -111,6 +128,8 @@ function loadPlatformsRouter({
   redisErrorMessage = "redis unavailable",
   redisFailOnSet = null,
   yahooEnabled = false,
+  step02 = false,
+  revokeError,
 } = {}) {
   const routePath = require.resolve("../src/routes/platforms");
   delete require.cache[routePath];
@@ -127,6 +146,8 @@ function loadPlatformsRouter({
     vaultDeleteError,
     platformLookupError,
     redisStore,
+    step02,
+    revokeError,
   };
   const fakeSupabase = makeSupabase(state);
   const originalLoad = Module._load;
@@ -834,4 +855,65 @@ test("DELETE /api/platforms/espn never logs the raw Vault secret id when deletio
   assert.equal(serializedLogs.includes("espn-secret"), false);
   assert.equal(serializedLogs.includes("swid-secret"), false);
   assert.ok(state.logs.some((entry) => entry.level === "warn"));
+});
+
+// Plan A0: once redo step 02 is applied, credential writes go through its one-transaction functions,
+// which take the same per-(user, provider) locks as account_erase(). Until then, today's path runs.
+test("POST /api/platforms/espn/connect stores through connection_store_espn when step 02 is present", async () => {
+  const { app, state } = buildApp({ step02: true });
+  const res = await request(app, "/api/platforms/espn/connect", {
+    method: "POST",
+    body: { espn_s2: "espn-cookie", swid: "{swid-cookie}", league_id: "12345", espn_team_id: "7" },
+  });
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.connected, true);
+  assert.deepEqual(state.rpcs.map((rpc) => rpc.name), ["connection_store_espn"]);
+  assert.deepEqual(state.rpcs[0].params, {
+    p_user_id: "test-slops-user", p_league_id: "12345", p_team_id: "7", p_espn_s2: "espn-cookie", p_swid: "{swid-cookie}",
+  });
+  assert.equal(state.upserts.length, 0);
+});
+
+test("POST /api/platforms/espn/connect keeps today's path while step 02 is not applied", async () => {
+  const { app, state } = buildApp();
+  const res = await request(app, "/api/platforms/espn/connect", {
+    method: "POST",
+    body: { espn_s2: "espn-cookie", swid: "{swid-cookie}", league_id: "12345", espn_team_id: "7" },
+  });
+
+  assert.equal(res.status, 200);
+  assert.equal(state.rpcs[0].name, "connection_store_espn");
+  assert.deepEqual(state.rpcs.slice(1).map((rpc) => rpc.name), ["vault_create_secret", "vault_create_secret"]);
+  assert.equal(state.upserts.length, 1);
+});
+
+test("DELETE /api/platforms/espn revokes through connection_revoke when step 02 is present", async () => {
+  const { app, state } = buildApp({
+    step02: true,
+    rows: [{ user_id: "test-slops-user", platform: "espn", is_active: true, espn_secret_id: "espn-secret", swid_secret_id: "swid-secret" }],
+  });
+  const res = await request(app, "/api/platforms/espn", { method: "DELETE" });
+
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.body, { disconnected: true, platform: "espn" });
+  assert.deepEqual(state.rpcs.map((rpc) => rpc.name), ["connection_revoke"]);
+  assert.deepEqual(state.rpcs[0].params, { p_user_id: "test-slops-user", p_platform: "espn" });
+  assert.equal(state.rows.length, 0);
+});
+
+test("DELETE /api/platforms/espn reports failure, not success, when connection_revoke refuses", async () => {
+  const { app, state } = buildApp({
+    step02: true,
+    revokeError: "connection_revoke: 1 of 2 secrets found; refusing to drop the pointers",
+    rows: [{ user_id: "test-slops-user", platform: "espn", is_active: true, espn_secret_id: "espn-secret", swid_secret_id: "swid-secret" }],
+  });
+  const res = await request(app, "/api/platforms/espn", { method: "DELETE" });
+
+  assert.equal(res.status, 500);
+  assert.equal(state.rows.length, 1);
+  assert.equal(state.rpcs.some((rpc) => rpc.name === "vault_delete_secret"), false);
+  const serialized = JSON.stringify(state.logs) + JSON.stringify(res.body);
+  assert.equal(serialized.includes("espn-secret"), false);
+  assert.equal(serialized.includes("swid-secret"), false);
 });

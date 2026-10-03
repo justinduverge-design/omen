@@ -41,10 +41,26 @@ function makeSupabase(state) {
           state.upserts.push({ payload, options });
           return Promise.resolve({ data: null, error: null });
         },
+        update(payload) {
+          state.updates.push(payload);
+          const chain = { eq: () => chain, then: (resolve) => resolve({ data: null, error: null }) };
+          return chain;
+        },
       };
     },
     rpc(name, params) {
       state.rpcs.push({ name, params });
+      if (name.startsWith("connection_")) {
+        // Production today: step 02 is not applied, so PostgREST reports the function as missing.
+        if (!state.step02) {
+          return Promise.resolve({ data: null, error: { code: "PGRST202", message: "Could not find the function" } });
+        }
+        if (name === "connection_rotate_yahoo") return Promise.resolve({ data: state.rotateWins, error: null });
+        return Promise.resolve({ data: "conn-uuid", error: null });
+      }
+      if (name === "vault_decrypt_secret") {
+        return Promise.resolve({ data: { decrypted_secret: `${params.secret_id}-plain` }, error: null });
+      }
       if (name === "vault_create_secret") {
         return Promise.resolve({ data: `${params.name}-id`, error: null });
       }
@@ -56,7 +72,7 @@ function makeSupabase(state) {
   };
 }
 
-function loadYahooAuth(rows = []) {
+function loadYahooAuth(rows = [], { step02 = false, rotateWins = true } = {}) {
   const servicePath = require.resolve("../src/services/yahooAuth");
   delete require.cache[servicePath];
 
@@ -64,7 +80,10 @@ function loadYahooAuth(rows = []) {
     rows: rows.map((row) => ({ ...row })),
     selects: [],
     upserts: [],
+    updates: [],
     rpcs: [],
+    step02,
+    rotateWins,
   };
   const fakeSupabase = makeSupabase(state);
   const originalLoad = Module._load;
@@ -78,8 +97,9 @@ function loadYahooAuth(rows = []) {
     }
     if (request === "../middleware/yahooOAuth" && parent?.filename === servicePath) {
       return {
-        refreshYahooToken: async () => {
-          throw new Error("refresh path not exercised in persistYahooTokens tests");
+        refreshYahooToken: async (refreshToken) => {
+          state.refreshedWith = refreshToken;
+          return { access_token: "fresh-access", refresh_token: "fresh-refresh", expires_in: 3600 };
         },
       };
     }
@@ -115,11 +135,12 @@ test("persistYahooTokens updates existing Vault secrets and preserves existing l
   });
 
   assert.equal(state.selects[0], "league_id, token_secret_id, refresh_secret_id");
-  assert.deepEqual(state.rpcs.map((rpc) => rpc.name), [
+  const vaultRpcs = state.rpcs.filter((rpc) => rpc.name.startsWith("vault_"));
+  assert.deepEqual(vaultRpcs.map((rpc) => rpc.name), [
     "vault_update_secret",
     "vault_update_secret",
   ]);
-  assert.deepEqual(state.rpcs.map((rpc) => rpc.params.secret_id), [
+  assert.deepEqual(vaultRpcs.map((rpc) => rpc.params.secret_id), [
     "access-secret",
     "refresh-secret",
   ]);
@@ -139,12 +160,13 @@ test("persistYahooTokens creates Vault secrets when no Yahoo connection exists",
     expires_in: 3600,
   }, "new-league");
 
-  assert.deepEqual(state.rpcs.map((rpc) => rpc.name), [
+  const vaultRpcs = state.rpcs.filter((rpc) => rpc.name.startsWith("vault_"));
+  assert.deepEqual(vaultRpcs.map((rpc) => rpc.name), [
     "vault_create_secret",
     "vault_create_secret",
   ]);
-  assert.equal(state.rpcs[0].params.name, "yahoo_access_user-2");
-  assert.equal(state.rpcs[1].params.name, "yahoo_refresh_user-2");
+  assert.equal(vaultRpcs[0].params.name, "yahoo_access_user-2");
+  assert.equal(vaultRpcs[1].params.name, "yahoo_refresh_user-2");
   assert.equal(state.upserts.length, 1);
   assert.equal(state.upserts[0].payload.league_id, "new-league");
   assert.equal(state.upserts[0].payload.token_secret_id, "yahoo_access_user-2-id");
@@ -163,4 +185,66 @@ test("persistYahooTokens never writes a null league_id (platform_connections.lea
   assert.equal(state.upserts.length, 1);
   assert.notEqual(state.upserts[0].payload.league_id, null);
   assert.equal(state.upserts[0].payload.league_id, "yahoo");
+});
+
+// Plan A0: Yahoo token writes go through redo step 02 once it is applied.
+const EXPIRED_ROW = {
+  user_id: "user-9",
+  platform: "yahoo",
+  league_id: "449.l.1",
+  token_secret_id: "access-secret",
+  refresh_secret_id: "refresh-secret",
+  token_expires_at: "2026-10-01T00:00:00.123456+00:00",
+};
+
+test("persistYahooTokens stores through connection_store_yahoo when step 02 is present", async () => {
+  const { service, state } = loadYahooAuth([], { step02: true });
+  await service.persistYahooTokens("user-4", {
+    access_token: "access-token", refresh_token: "refresh-token", expires_in: 3600, xoauth_yahoo_guid: "guid-4",
+  }, "449.l.4");
+
+  assert.deepEqual(state.rpcs.map((rpc) => rpc.name), ["connection_store_yahoo"]);
+  const params = state.rpcs[0].params;
+  assert.equal(params.p_user_id, "user-4");
+  assert.equal(params.p_access_token, "access-token");
+  assert.equal(params.p_refresh_token, "refresh-token");
+  assert.equal(params.p_yahoo_guid, "guid-4");
+  assert.equal(params.p_league_id, "449.l.4");
+  assert.ok(!Number.isNaN(Date.parse(params.p_expires_at)));
+  assert.equal(state.upserts.length, 0);
+});
+
+test("an expired Yahoo token is rotated by compare-and-swap on the expiry the request read", async () => {
+  const { service, state } = loadYahooAuth([EXPIRED_ROW], { step02: true });
+  const { accessToken } = await service.getAuthenticatedYahooClient("user-9");
+
+  assert.equal(accessToken, "fresh-access");
+  assert.equal(state.refreshedWith, "refresh-secret-plain");
+  const rotate = state.rpcs.find((rpc) => rpc.name === "connection_rotate_yahoo");
+  assert.equal(rotate.params.p_expected_expires_at, EXPIRED_ROW.token_expires_at);
+  assert.equal(rotate.params.p_access_token, "fresh-access");
+  assert.equal(rotate.params.p_refresh_token, "fresh-refresh");
+  assert.equal(state.rpcs.some((rpc) => rpc.name === "vault_update_secret"), false);
+  assert.equal(state.updates.length, 0);
+});
+
+test("a Yahoo refresh that loses the race writes nothing and still serves its own fresh token", async () => {
+  const { service, state } = loadYahooAuth([EXPIRED_ROW], { step02: true, rotateWins: false });
+  const { accessToken } = await service.getAuthenticatedYahooClient("user-9");
+
+  assert.equal(accessToken, "fresh-access");
+  assert.equal(state.rpcs.some((rpc) => rpc.name === "vault_update_secret"), false);
+  assert.equal(state.updates.length, 0);
+});
+
+test("an expired Yahoo token keeps today's refresh writes while step 02 is not applied", async () => {
+  const { service, state } = loadYahooAuth([EXPIRED_ROW]);
+  const { accessToken } = await service.getAuthenticatedYahooClient("user-9");
+
+  assert.equal(accessToken, "fresh-access");
+  assert.deepEqual(
+    state.rpcs.filter((rpc) => rpc.name === "vault_update_secret").map((rpc) => rpc.params.secret_id),
+    ["access-secret", "refresh-secret"]
+  );
+  assert.equal(state.updates.length, 1);
 });

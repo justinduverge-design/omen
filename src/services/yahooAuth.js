@@ -21,6 +21,7 @@ const config           = require("../config");
 const { logger }       = require("../middleware/logging");
 const { refreshYahooToken } = require("../middleware/yahooOAuth");
 const YahooClient      = require("./yahoo");
+const connectionStore  = require("./connectionStore");
 
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
 
@@ -45,7 +46,23 @@ async function vaultCreate(secret, name, description = "") {
   return data?.id || data?.secret_id || data?.[0]?.id || data?.[0]?.secret_id || data;
 }
 
+function expiryFrom(tokens) {
+  return new Date(Date.now() + Number(tokens.expires_in || 3600) * 1000).toISOString();
+}
+
 async function persistYahooTokens(userId, tokens, leagueId = null) {
+  // Both tokens and the connection row in one transaction, under the lock account_erase() takes.
+  const stored = await connectionStore.storeYahoo(supabase, {
+    userId,
+    accessToken: tokens.access_token,
+    refreshToken: tokens.refresh_token,
+    expiresAt: expiryFrom(tokens),
+    yahooGuid: tokens.xoauth_yahoo_guid || null,
+    leagueId,
+  });
+  if (stored.present) return;
+
+  // Today's path, kept until redo step 02 is applied.
   const { data: existing, error: lookupError } = await supabase
     .from("platform_connections")
     .select("league_id, token_secret_id, refresh_secret_id")
@@ -72,7 +89,7 @@ async function persistYahooTokens(userId, tokens, leagueId = null) {
     platform_user_id: tokens.xoauth_yahoo_guid || null,
     token_secret_id: accessSecretId,
     refresh_secret_id: refreshSecretId,
-    token_expires_at: new Date(Date.now() + Number(tokens.expires_in || 3600) * 1000).toISOString(),
+    token_expires_at: expiryFrom(tokens),
     is_active: true,
     updated_at: new Date().toISOString(),
   }, { onConflict: "user_id,platform" });
@@ -109,17 +126,31 @@ async function getAuthenticatedYahooClient(userId) {
 
     const refreshed = await refreshYahooToken(refreshToken);
     accessToken = refreshed.access_token;
+    const expiresAt = new Date(Date.now() + refreshed.expires_in * 1000).toISOString();
 
-    await vaultUpdate(conn.token_secret_id, accessToken);
-    if (refreshed.refresh_token) {
-      await vaultUpdate(conn.refresh_secret_id, refreshed.refresh_token);
+    // Single-flight: the write lands only if nobody refreshed since this request read the row.
+    // A loser keeps its own fresh access token for this request and writes nothing.
+    const rotation = await connectionStore.rotateYahoo(supabase, {
+      userId,
+      expectedExpiresAt: conn.token_expires_at,
+      accessToken,
+      refreshToken: refreshed.refresh_token || null,
+      expiresAt,
+    });
+
+    if (!rotation.present) {
+      // Today's path, kept until redo step 02 is applied.
+      await vaultUpdate(conn.token_secret_id, accessToken);
+      if (refreshed.refresh_token) {
+        await vaultUpdate(conn.refresh_secret_id, refreshed.refresh_token);
+      }
+      await supabase.from("platform_connections").update({
+        token_expires_at: expiresAt,
+        updated_at:       new Date().toISOString(),
+      }).eq("user_id", userId).eq("platform", "yahoo");
     }
-    await supabase.from("platform_connections").update({
-      token_expires_at: new Date(Date.now() + refreshed.expires_in * 1000).toISOString(),
-      updated_at:       new Date().toISOString(),
-    }).eq("user_id", userId).eq("platform", "yahoo");
 
-    logger.info("Yahoo token refreshed", { userId });
+    logger.info("Yahoo token refreshed", { userId, stored: rotation.present ? rotation.data !== false : true });
   }
 
   return {
