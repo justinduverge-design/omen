@@ -1,7 +1,7 @@
-# Go / no-go — database redo, production day
+# Launch checklist — database redo, production day
 
-Read this on the morning of production day. **Every box must be ticked to go.** One unticked box means
-no-go for the steps it guards. The step-by-step procedure is
+Read this on the morning of production day. **Every box must be ticked to start.** An unticked box holds
+only the steps it guards, until it is ticked. The step-by-step procedure is
 `Blueprints/handoffs/2026-10-03-production-runbook.md`.
 
 ## Code and review
@@ -27,8 +27,10 @@ no-go for the steps it guards. The step-by-step procedure is
 - ☐ The newest nightly backup exists and its checksums pass.
 - ☐ The dry run on a restored copy passed all twelve steps **in production order**, today or yesterday,
   and the copy was deleted.
-- ☐ V1 (real Supabase) has been re-run for steps 09 and 10 at their current files (they changed after
-  V1 on 2026-10-03: reports keyed to the sign-in). Needed before the 05/10 and 09 orders only.
+- ☑ V1 (real Supabase) re-run for steps 09, 10 and 12 at their final files (2026-10-03, after #534 and the
+  last step 12 change). All twelve steps passed up, tests, rollback and re-apply in production order, and
+  12, 10 and 09 were applied and rolled back through `apply_migration` itself. Evidence:
+  `Blueprints/handoffs/2026-10-03-prep-for-production.md`, "Final re-test".
 - ☐ A fresh snapshot was taken right before the first step. Id: `________`
 
 ## People

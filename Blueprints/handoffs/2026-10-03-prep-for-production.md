@@ -22,7 +22,7 @@ the migration list, the catalog, and row counts. No row contents and no secrets 
 | 4. Backup and restore | Newest snapshot `de1d3675` (2026-10-03 00:13) restored to a temp dir; 9 of 9 checksums passed; deleted. Production-day snapshot and rollback steps are in the runbook | runbook |
 | 5. Production runbook | One page per step, read-only preflight and verify SQL, and expected catalogs per step | `Blueprints/handoffs/2026-10-03-production-runbook.md`, `sql/2026-10-01-redo/runbook/` |
 | 6. Dry run | Restored copy of production on KVM1, all 12 steps in production order with the runbook's own checks: all pass; copy deleted | below |
-| 7. Go / no-go | One screen | `Blueprints/handoffs/2026-10-03-production-go-no-go.md` |
+| 7. Launch checklist | One screen | `Blueprints/handoffs/2026-10-03-production-go-no-go.md` |
 
 ## Production as read today (2026-10-03, read-only, founder-approved)
 
@@ -124,6 +124,39 @@ recorded: 1 sign-in, 0 secrets, the 3-row leftover table, and 1 migration histor
   - `redo_12_saved_trades_down` removed everything.
   - The project was returned to its prior state and paused.
 
+## Final re-test (2026-10-03, after #534 merged; files as on #529 + #530)
+
+Every check ran on the final step files: those on `main` after #534, plus #529's step 12.
+
+- **Scratch:** `rehearse-redo.sh` passed all 12 steps (up → tests → down → up) and the full teardown
+  equals the production snapshot. `concurrency-check.sh` races 1–8 pass. A production-order run on a
+  fresh scratch database matched every recorded catalog change.
+- **Restored copy (KVM1):** the newest backup was restored into the isolated clone; row counts equal the
+  backup's own. `production-order-run.sh` (TARGET=clone) passed all 12 steps in production order,
+  with each step's post-checks verified and its catalog change equal to scratch's. Each up took
+  0.60–0.73 s; Vault orphans were 0 throughout. The copy, network and files were deleted and confirmed gone.
+- **Real Supabase (throwaway `omen-rls-proof-throwaway`, prior state recorded first).**
+  - **Setup:** production's schema, privileges and `ensure_rls` trigger were loaded (`compare_production`:
+    matches), plus the synthetic seed (7 users, 10 connections, 14 fake secrets, 9 moves).
+  - **All 36 files loaded:** every step's up, test and down with transaction lines stripped. Each md5
+    equals `strip-transaction-lines.sh` output (12 up `042c6350…`, 10 up `302a076a…`, 09 up `3defaaea…`).
+  - **`rehearsal.rehearse()` in production order:** every step passed up → tests → down equals before →
+    up again identical, and the full teardown equals the production snapshot. This is the first time
+    steps 01, 02, 05, 07, 08, 09 and 10 ran on real Supabase.
+  - **The launch tool itself:** with 07, 01, 02, 03, 04, 06 and 11 applied beneath, steps 12, 10 and 09
+    each went through `apply_migration` in their production slots, with 05 and 08 between them.
+    - Each wrote its history row and passed `NN.verify.sql`.
+    - With all three applied, the 09, 10 and 12 tests pass and leave no trace.
+    - Step 10's rollback refuses while 09 is applied.
+  - **Rollbacks through the launch tool:** the downs for 09, 10 and 12, in reverse order, returned the
+    database exactly to its state before step 12. The full teardown then equals the production snapshot.
+  - **Afterwards:** everything added was removed. The state equals the recorded prior state (1 sign-in,
+    0 secrets, the 3-row table, 1 history row), and the project is paused.
+- **Deploy:** `main` at `caa65ae4` (#534) deployed green at 11:52; both containers restarted at 11:54 on
+  `:main`; the purge cron line is installed.
+- **Codex:** every inline comment on #529 and #530 is answered and fixed. The latest commits were not
+  re-reviewed: Codex reported its review usage limit at 11:54 and 11:56.
+
 ## Verification on scratch
 
 - `scripts/db/rehearse-redo.sh` (now steps 01–12): every step up → tests → down → up, and the full
@@ -140,7 +173,6 @@ recorded: 1 sign-in, 0 secrets, the 3-row leftover table, and 1 migration histor
 
 ## Still open
 
-- **V1 for steps 09 and 10 at their current files is not re-run.** Both changed after V1 (#523: reports keyed to the sign-in). Scratch, production order, races and a third restored-copy dry run all pass. Re-run V1 for 09 and 10 before their production orders (go/no-go item).
 - **After the founder's merges (2026-10-03):**
   - **#526 merged into the A0 branch, not `main`:** it was stacked, and A0 had already merged. A1 reaches
     `main` through **#531**, which carries #526's commits unchanged.
