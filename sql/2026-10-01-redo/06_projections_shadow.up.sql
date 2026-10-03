@@ -106,10 +106,15 @@ create index projection_shadow_log_snapshot on public.projection_shadow_log (pro
 -- the same provider (Codex review, #508; plan A4). The foreign key alone would accept another
 -- provider's ingest, a purge record, or another compartment's batch (such as scoring rules), and then
 -- the record would no longer say where the row came from. A missing event is left to the foreign key.
+--
+-- It also takes a SHARED per-provider lock that projections_purge takes exclusively, so a purge waits for
+-- every insert in flight and its delete then sees them (Codex review, #528). Without it, a purge's DELETE
+-- cannot see an uncommitted insert, both commit, and the purge records success with rows left behind.
 create function public.projection_snapshots_check_ingest() returns trigger
 language plpgsql set search_path = pg_catalog, public as $$
 declare ev public.data_events%rowtype;
 begin
+  perform pg_advisory_xact_lock_shared(hashtextextended('omen.compartment:projections:' || new.provider, 0));
   select * into ev from public.data_events where id = new.ingest_event_id;
   if not found then
     return new;
@@ -194,6 +199,10 @@ begin
   if coalesce(p_reason, '') = '' or coalesce(p_approved_by, '') = '' then
     raise exception 'projections_purge: a reason and an approver are required' using errcode = '22023';
   end if;
+
+  -- Waits for every snapshot insert in flight for this provider (they hold the lock shared), so the
+  -- delete below sees them; inserts that start after the purge commits are new data.
+  perform pg_advisory_xact_lock(hashtextextended('omen.compartment:projections:' || p_provider, 0));
 
   select 'sha256:' || encode(sha256(convert_to(coalesce(string_agg(s.id::text || ':' || s.source_ref, ',' order by s.id), ''), 'UTF8')), 'hex')
     into removed_hash from public.projection_snapshots s where s.provider = p_provider;
