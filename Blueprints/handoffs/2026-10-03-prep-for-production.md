@@ -152,9 +152,8 @@ recorded: 1 sign-in, 0 secrets, the 3-row leftover table, and 1 migration histor
     it: move its store onto `saved_trades`, and add the batch token and save lookup.
 - **Merge state (2026-10-03, merges delegated to Claude by the founder, each after a clean Codex review of
   its latest commit):**
-  - **Merged to `main`:** #523, #524, #525, #531 (A1), #527, #528, #532 and #533.
-  - **Remaining:** #529 (step 12), #534 (beta-report tombstone; changes steps 09 and 10) and this runbook
-    PR, which goes last.
+  - **Merged to `main`:** #523, #524, #525, #531 (A1), #527, #528, #532, #533 and #534.
+  - **Remaining:** #529 (step 12) and this runbook PR, which goes last.
 - **Founder:** the production orders, one sitting at a time.
 - **Server tickets after the redo** (design §7): Ledger write path, Tuesday scoring, follows (plan A5),
   scoring-rule writes, #519 onto `saved_trades` with the batch token, the export's `moves` columns, and
