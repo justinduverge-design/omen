@@ -5,7 +5,7 @@ do $$
 declare
   owner uuid := '00000000-0000-4000-8000-000000000008';  -- an auth user with no app row in the seed
   other uuid := '00000000-0000-4000-8000-000000000001';
-  t jsonb := '{"give":[{"provider_player_id":"4984"}],"receive":[{"provider_player_id":"6794"}],"opponent_team_id":"3"}';
+  t jsonb := '{"give":{"player_key":"sleeper:4984","player_id":"4984","position":"QB"},"receive":{"player_key":"sleeper:6794","player_id":"6794","position":"WR"},"opponent_team_id":"3"}';
   r jsonb := '{"fills_need_for":"WR","user_receives":{"position":"WR","need":{"status":"hole","have":2,"required":3}}}';
   saved_id uuid; seen integer; res jsonb;
 begin
@@ -29,13 +29,28 @@ begin
   insert into public.saved_trades (user_id, provider, provider_league_id, season, week, candidate_id, trade, reasoning)
   values (owner, 'sleeper', '998877665501', 2026, 6, 'b1.find_3_4984_6794', t, r);
 
-  -- Never a save without its trade.
+  -- Never a save without a readable trade: a named player on each side and the opponent (Codex, #529).
+  declare bad jsonb;
   begin
-    insert into public.saved_trades (user_id, provider, provider_league_id, season, week, candidate_id, trade, reasoning)
-    values (owner, 'sleeper', '998877665501', 2026, 5, 'b3.x', '{"give":[]}', r);
-    raise exception 'FAIL 12: a saved trade without both sides was accepted';
-  exception when check_violation then null;
+    foreach bad in array array[
+      '{"give":[]}', '{"give":null,"receive":null,"opponent_team_id":"3"}', '{"give":"x","receive":"y","opponent_team_id":"3"}',
+      '{"give":[],"receive":[],"opponent_team_id":"3"}', '{"give":{"position":"QB"},"receive":{"player_id":"1"},"opponent_team_id":"3"}',
+      '{"give":[{"player_id":"1"},{}],"receive":{"player_id":"2"},"opponent_team_id":"3"}',
+      '{"give":{"player_id":"1"},"receive":{"player_id":"2"}}']::jsonb[]
+    loop
+      begin
+        insert into public.saved_trades (user_id, provider, provider_league_id, season, week, candidate_id, trade, reasoning)
+        values (owner, 'sleeper', '998877665501', 2026, 5, 'b3.x', bad, r);
+        raise exception 'FAIL 12: an unreadable trade was saved: %', bad;
+      exception when check_violation then null;
+      end;
+    end loop;
   end;
+  -- A three-team side (an array of named players) is accepted.
+  insert into public.saved_trades (user_id, provider, provider_league_id, season, week, candidate_id, trade, reasoning)
+  values (owner, 'sleeper', '998877665501', 2026, 9, 'b5.three',
+          '{"give":[{"player_id":"1"},{"player_key":"sleeper:2"}],"receive":{"player_id":"3"},"opponent_team_id":"4"}', r);
+  delete from public.saved_trades where candidate_id = 'b5.three';
 
   -- Outcome only after sent, self-reported, with its time.
   begin
@@ -64,7 +79,7 @@ begin
   exception when insufficient_privilege then null;
   end;
   begin
-    update public.saved_trades set trade = '{"give":[],"receive":[]}' where id = saved_id;
+    update public.saved_trades set trade = '{"give":{"player_id":"9"},"receive":{"player_id":"8"},"opponent_team_id":"3"}' where id = saved_id;
     raise exception 'FAIL 12: the saved trade was rewritten';
   exception when insufficient_privilege then null;
   end;
