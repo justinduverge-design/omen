@@ -122,7 +122,21 @@ function refreshYahooAccessToken(userId, conn) {
   return refresh;
 }
 
-async function exchangeAndStore(userId, conn) {
+function expiresSoon(conn) {
+  const expiresAt = conn?.token_expires_at ? new Date(conn.token_expires_at) : null;
+  return !expiresAt || expiresAt.getTime() < Date.now() + 60_000;
+}
+
+async function exchangeAndStore(userId, snapshot) {
+  // The caller's snapshot may be stale: another request can finish a refresh after it was read and
+  // before this one became the leader. Re-read, and use a token someone else already stored instead of
+  // exchanging again (a second exchange can rotate and revoke the stored refresh token; Codex, #525).
+  const conn = (await readYahooConnection(userId)) || snapshot;
+  if (!expiresSoon(conn)) {
+    const stored = await vaultDecrypt(conn.token_secret_id);
+    if (stored) return stored;
+  }
+
   const refreshToken = await vaultDecrypt(conn.refresh_secret_id);
   if (!refreshToken) {
     throw Object.assign(new Error("Yahoo refresh token missing - re-auth required"), { status: 401 });
@@ -182,10 +196,7 @@ async function getAuthenticatedYahooClient(userId) {
     throw Object.assign(new Error("No Yahoo token on file"), { status: 401 });
   }
 
-  const expiresAt = conn.token_expires_at ? new Date(conn.token_expires_at) : null;
-  const isExpired = !expiresAt || expiresAt.getTime() < Date.now() + 60_000;
-
-  if (isExpired) {
+  if (expiresSoon(conn)) {
     accessToken = await refreshYahooAccessToken(userId, conn);
   }
 

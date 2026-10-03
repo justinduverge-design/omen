@@ -21,10 +21,16 @@ class FakeQuery {
   }
 
   maybeSingle() {
+    this.state.reads = (this.state.reads || 0) + 1;
     const row = this.state.rows.find((candidate) =>
       this.filters.every(({ field, value }) => candidate[field] === value)
     );
-    return Promise.resolve({ data: row ? { ...row } : null, error: null });
+    const copy = row ? { ...row } : null;
+    // Simulates another request finishing its refresh right after this one read the row.
+    if (this.state.refreshedByOtherAfterRead === this.state.reads && row) {
+      Object.assign(row, { token_expires_at: new Date(Date.now() + 3600_000).toISOString(), token_secret_id: "other-access-secret" });
+    }
+    return Promise.resolve({ data: copy, error: null });
   }
 }
 
@@ -72,7 +78,7 @@ function makeSupabase(state) {
   };
 }
 
-function loadYahooAuth(rows = [], { step02 = false, rotateWins = true, refreshFails = false, otherProcessRefreshes = false } = {}) {
+function loadYahooAuth(rows = [], { step02 = false, rotateWins = true, refreshFails = false, otherProcessRefreshes = false, refreshedByOtherAfterRead = null } = {}) {
   const servicePath = require.resolve("../src/services/yahooAuth");
   delete require.cache[servicePath];
 
@@ -86,6 +92,7 @@ function loadYahooAuth(rows = [], { step02 = false, rotateWins = true, refreshFa
     rotateWins,
     refreshFails,
     otherProcessRefreshes,
+    refreshedByOtherAfterRead,
   };
   const fakeSupabase = makeSupabase(state);
   const originalLoad = Module._load;
@@ -285,4 +292,14 @@ test("a Yahoo exchange that fails with nobody else refreshing still fails, and w
   await assert.rejects(service.getAuthenticatedYahooClient("user-9"), /yahoo refresh rejected/);
   assert.equal(state.rpcs.some((rpc) => rpc.name === "connection_rotate_yahoo"), false);
   assert.equal(state.updates.length, 0);
+});
+
+test("a request whose snapshot went stale while it waited uses the token another request stored, without a second exchange (Codex, #525)", async () => {
+  // The row is read expired; before this request becomes the refresh leader, another request refreshes it.
+  const { service, state } = loadYahooAuth([{ ...EXPIRED_ROW }], { step02: true, refreshedByOtherAfterRead: 1 });
+  const { accessToken } = await service.getAuthenticatedYahooClient("user-9");
+
+  assert.equal(accessToken, "other-access-secret-plain");
+  assert.equal(state.refreshCalls || 0, 0);
+  assert.equal(state.rpcs.some((rpc) => rpc.name === "connection_rotate_yahoo"), false);
 });
