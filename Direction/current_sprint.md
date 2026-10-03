@@ -13,16 +13,22 @@ founder, or store work.
 
 ### DB-REDO-PROD — Prepare production for the database redo (do not run it)
 
-- **Status:** BLOCKED
-- **Blocked by:** founder go/no-go. Applying SQL is a separate, explicitly authorized step (fact 8).
-- **Unblock:** founder reads the go/no-go sheet and authorizes an exact command and blast radius.
+- **Status:** READY
+- **Blocked by:** FOUNDER_APPROVAL — go/no-go on the exact SQL command and blast radius (fact 8)
+- **Priority:** P0
+- **Cost:** large
+- **Do not touch:** production; applying any step without the founder's exact approval
 - **Scope:** `Blueprints/handoffs/2026-10-02-prep-for-production-brief.md`, `Blueprints/rebuild/omen-database-redo-v1.md`,
-  `sql/2026-10-01-redo/`. Open PRs: #529 (step 12), #530 (runbook, go/no-go, dry-run tooling).
+  `sql/2026-10-01-redo/`. Step 12 (#529) and the runbook, go/no-go and dry-run tooling (#530) merged 2026-10-03.
 - **Done when:** the redo is applied step by step on production with founder approval and verified.
 
 ### RELEASE-OCT-6 — Tuesday 2026-10-06 iOS release
 
 - **Status:** READY
+- **Blocked by:** FOUNDER_APPROVAL — store submission and any App Store Connect action
+- **Priority:** P0
+- **Cost:** medium
+- **Do not touch:** the database and contract redo; store consoles without approval
 - **Scope:** `Direction/2026-10-01-tuesday-oct-6-release-prep.md` (build guard, version bump, connect
   confirmation wording, Command/League waiver disagreement, smaller fixes). Store actions are founder-gated.
 - **Done when:** the founder ships the build; each "must fix" item in that file is done or descoped.

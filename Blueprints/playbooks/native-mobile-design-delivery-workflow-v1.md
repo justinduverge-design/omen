@@ -96,7 +96,7 @@ Use `mobile-first-qa-playbook` at the real-device/release gate.
 
 The reviewer checks behavior and security. The design steward checks hierarchy, tokens, native expression, and any new pattern. Founder approval is required for new components/tokens, provider claims, exceptions, production actions, and releases.
 
-Record the actual skills used, evidence paths, and gaps in `skill-usage-ledger.md` and the handoff. Use `slops-retro` when a repeated gap should change the system.
+Record the actual skills used, evidence paths, and gaps in `skill-usage-log.md` and the handoff. Use `slops-retro` when a repeated gap should change the system.
 
 ## Required skill bundles
 

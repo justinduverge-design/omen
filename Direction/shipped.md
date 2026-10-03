@@ -1,12 +1,14 @@
 # Shipped and in flight
 
-Generated 2026-10-03 from GitHub by `node scripts/shipped.js`. Merged PRs since 2026-08-01: **272**. Open: **3**. Do not edit by hand; rerun the script. Not part of the startup read.
+Generated 2026-10-03 from GitHub by `node scripts/shipped.js`. Merged PRs since 2026-08-01: **276**. Open: **5**. Do not edit by hand; rerun the script. Not part of the startup read.
 
 ## Open now
 
-- #529 db: redo step 12, saved trades in a table; export includes them
-- #530 docs+db: production runbook, go/no-go and dry-run tooling for the database redo
 - #535 Stop paging on expected ESPN reconnects
+- #536 process: review before the PR, Codex on request; shipped.md from GitHub
+- #537 docs: database redo applied to production
+- #538 chore: stop tracking dd/ (Xcode build output from #453)
+- #541 harness: two-file cold start, archived sprint/inbox, cost report
 
 ## Shipped by area
 
@@ -14,11 +16,11 @@ Generated 2026-10-03 from GitHub by `node scripts/shipped.js`. Merged PRs since 
 |---|---|
 | CI and tooling | 42 |
 | Native iOS | 38 |
-| Other | 35 |
+| Other | 36 |
+| Football data | 27 |
 | Docs and process | 27 |
-| Football data | 26 |
 | Providers (ESPN / Yahoo / Sleeper) | 24 |
-| Database | 14 |
+| Database | 16 |
 | League Office (retired 2026-10-02) | 14 |
 | Performance and background jobs | 11 |
 | Trade Analyzer | 11 |
@@ -114,8 +116,9 @@ Generated 2026-10-03 from GitHub by `node scripts/shipped.js`. Merged PRs since 
 - 2026-08-02 #198 feat(auth): M4-Auth-Providers-v1 v1 — Discord OAuth (Android + iOS), Passkey on deck
 - 2026-08-01 #250 fix(ci): repair broken quality checks (deploy.yml lockfile, ios-ci.yml YAML)
 
-### Other (35)
+### Other (36)
 
+- 2026-10-03 #539 feat: daily player crosswalk into the players tables (plan A1)
 - 2026-09-29 #478 Add Omen Rebuild Plan v1.1 (founder-approved)
 - 2026-09-14 #439 Canvas as source of truth: contract bindings, D11 device floor, iPad deferred
 - 2026-09-13 #430 feat(command-center): auto-resolve GlitchTip issues that stopped happening
@@ -152,6 +155,36 @@ Generated 2026-10-03 from GitHub by `node scripts/shipped.js`. Merged PRs since 
 - 2026-08-01 #251 fix(server): make catch-all routes Express 5 compatible (unblocks #206)
 - 2026-08-01 #249 Figma proposals (all 4 CC components approved), D1/A3 live verification, LeaguePulse brief
 
+### Football data (27)
+
+- 2026-10-03 #540 feat: recent usage in the start/sit call, from nflverse (plan A2)
+- 2026-10-03 #528 db: redo step 11, league scoring rules in a deletable compartment
+- 2026-10-03 #527 db: step 06 snapshots must cite their own provider's projections ingest (plan A4)
+- 2026-10-01 #500 research: first factor experiment — context did not measurably beat the projection
+- 2026-09-27 #470 feat: complete local football intelligence stages B and D
+- 2026-09-26 #469 docs: close football intelligence Stage A and canvas Stage C
+- 2026-09-26 #468 docs: close Stage A/C football intelligence foundation
+- 2026-09-25 #467 feat: add football intelligence foundation
+- 2026-09-13 #431 docs: close out the 2026-09-13 football-data capture outage
+- 2026-09-13 #429 fix(football-data): image guard could not build under ProtectHome; keep build output
+- 2026-09-13 #428 fix(football-data): self-heal an unpullable image pin; end silent alert latching
+- 2026-09-07 #418 Projections for ESPN and Sleeper, and a legible matchup card
+- 2026-09-06 #410 feat(providers): Yahoo matchups, and exact ESPN scoring
+- 2026-09-06 #409 fix(espn): read the projections ESPN was already sending
+- 2026-08-27 #386 feat(ops): add a mechanical A4 scoring-enablement gate checker
+- 2026-08-27 #381 feat(scoring): map A7B's fact rows onto A6's canonical events
+- 2026-08-27 #380 fix(scoring): Sleeper retention was gated on the wrong axis; ratify the ESPN clause
+- 2026-08-27 #379 feat(scoring): complete A6's replay matrix and fix a field-goal modelling defect
+- 2026-08-27 #376 docs(a6): generate the per-provider scoring coverage matrix from the code
+- 2026-08-27 #374 feat(scoring): join the A6 write path to the contract derivation (step 2)
+- 2026-08-25 #370 feat: implement A7B football-data pipeline phases 1-3
+- 2026-08-24 #365 A6/A7: establish full league scoring contract foundation
+- 2026-08-24 #369 A6/A7: establish full league scoring contract foundation
+- 2026-08-24 #368 fix: disclose ESPN full scoring limits
+- 2026-08-19 #334 fix(scoring): matchupService.js — nflverse URL, season_type, CSV quoting
+- 2026-08-15 #309 fix(scoring): repoint nflverse to the live release; add the native product API layer (M5 A+B+C, iOS + Android)
+- 2026-08-02 #264 docs(b3): close nflverse scoring verification
+
 ### Docs and process (27)
 
 - 2026-10-02 #520 docs: clear the last 3 Truth Gate P0s; record #516 close-out as done
@@ -182,35 +215,6 @@ Generated 2026-10-03 from GitHub by `node scripts/shipped.js`. Merged PRs since 
 - 2026-08-02 #270 docs(release): record LEGAL-V1 deployment
 - 2026-08-01 #255 docs(direction): retract the GitHub Actions billing misdiagnosis
 
-### Football data (26)
-
-- 2026-10-03 #528 db: redo step 11, league scoring rules in a deletable compartment
-- 2026-10-03 #527 db: step 06 snapshots must cite their own provider's projections ingest (plan A4)
-- 2026-10-01 #500 research: first factor experiment — context did not measurably beat the projection
-- 2026-09-27 #470 feat: complete local football intelligence stages B and D
-- 2026-09-26 #469 docs: close football intelligence Stage A and canvas Stage C
-- 2026-09-26 #468 docs: close Stage A/C football intelligence foundation
-- 2026-09-25 #467 feat: add football intelligence foundation
-- 2026-09-13 #431 docs: close out the 2026-09-13 football-data capture outage
-- 2026-09-13 #429 fix(football-data): image guard could not build under ProtectHome; keep build output
-- 2026-09-13 #428 fix(football-data): self-heal an unpullable image pin; end silent alert latching
-- 2026-09-07 #418 Projections for ESPN and Sleeper, and a legible matchup card
-- 2026-09-06 #410 feat(providers): Yahoo matchups, and exact ESPN scoring
-- 2026-09-06 #409 fix(espn): read the projections ESPN was already sending
-- 2026-08-27 #386 feat(ops): add a mechanical A4 scoring-enablement gate checker
-- 2026-08-27 #381 feat(scoring): map A7B's fact rows onto A6's canonical events
-- 2026-08-27 #380 fix(scoring): Sleeper retention was gated on the wrong axis; ratify the ESPN clause
-- 2026-08-27 #379 feat(scoring): complete A6's replay matrix and fix a field-goal modelling defect
-- 2026-08-27 #376 docs(a6): generate the per-provider scoring coverage matrix from the code
-- 2026-08-27 #374 feat(scoring): join the A6 write path to the contract derivation (step 2)
-- 2026-08-25 #370 feat: implement A7B football-data pipeline phases 1-3
-- 2026-08-24 #365 A6/A7: establish full league scoring contract foundation
-- 2026-08-24 #369 A6/A7: establish full league scoring contract foundation
-- 2026-08-24 #368 fix: disclose ESPN full scoring limits
-- 2026-08-19 #334 fix(scoring): matchupService.js — nflverse URL, season_type, CSV quoting
-- 2026-08-15 #309 fix(scoring): repoint nflverse to the live release; add the native product API layer (M5 A+B+C, iOS + Android)
-- 2026-08-02 #264 docs(b3): close nflverse scoring verification
-
 ### Providers (ESPN / Yahoo / Sleeper) (24)
 
 - 2026-09-30 #492 docs: record the forced ESPN reconnect (3 connections marked inactive)
@@ -238,8 +242,10 @@ Generated 2026-10-03 from GitHub by `node scripts/shipped.js`. Merged PRs since 
 - 2026-08-02 #257 docs(spec): protocol to close ESPN observation 12 on a drafted league
 - 2026-08-01 #213 docs(spec): scope live waiver pool for Sleeper and ESPN (B2-D)
 
-### Database (14)
+### Database (16)
 
+- 2026-10-03 #530 docs+db: production runbook, go/no-go and dry-run tooling for the database redo
+- 2026-10-03 #529 db: redo step 12, saved trades in a table; export includes them
 - 2026-10-03 #532 db: step 10 test keeps its pre-erase connection baseline (Codex on #523)
 - 2026-10-03 #533 db: Yahoo refresh claims across processes before exchanging (Codex on #525)
 - 2026-10-03 #525 db: credential writes use the redo step 02 functions when present (plan A0)

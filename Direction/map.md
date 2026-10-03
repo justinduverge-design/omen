@@ -18,14 +18,22 @@ Analyzer is the front door; Omen of the Week is the main event. Detail: `Directi
 1. Omen is free. No billing, no Stripe.
 2. ESPN cookie values are never logged, shown or echoed. Anywhere.
 3. Mock data is always labeled; never mixed silently with live data.
-4. Supabase SQL is review-only until the founder authorizes the exact command: approval → staging →
-   verify → production.
+4. Supabase SQL is review-only until the founder authorizes the exact command and blast radius: approval →
+   staging → verify → production. Writing SQL is not applying it.
 5. Deploys, production changes, provider credentials and store actions each need their own approval.
    Being the owner is not standing consent.
 6. Required security controls and rollback proof are mandatory, not optional.
 7. `connected` is not `usable`: check a provider connection can actually serve data.
-8. Draft Assistant is a 2027 feature; the only allowed mention is the locked wording "2027 fantasy draft".
+8. Draft Assistant is a 2027 feature. The only mention allowed is the locked wording "2027 fantasy draft", and
+   only on the marketing site or an in-app "not in this version" note. Never in store metadata, onboarding,
+   legal copy, navigation or the tool list; never "coming soon" or a month. Do not delete the code.
 9. `is_off_season` is the authority for the season; `week` is a clamped default, not evidence.
+10. Do not merge, push to `main`, deploy, delete major files or rewrite architecture unless the task grants it.
+11. Never expose, print, log or commit secrets, tokens, provider credentials or private user data.
+12. Do not remove Demo Mode before the first App Store approval: it is the reviewer's only way in.
+13. No third-party analytics SDK. Confidence is a band, never a percentage. No breach-detection claims.
+    DM Mono is retired; the type system is two families. Before touching copy, analytics, demo or type,
+    read the matching fact in `Direction/facts-of-record.md` (facts 16-21).
 
 ## Right now
 
@@ -48,6 +56,7 @@ and the risky-PR list: `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md` § Review. Cl
 | Native iPhone screen | the seven-file native gate in `CLAUDE.md`, approved Figma node | `slops-native-screen-design`, `slops-figma-to-native`, `slops-native-sim-drive`, `slops-native-ui-audit` |
 | Shared UI components or team theming | `Blueprints/specs/design/component-lock-v1.md`, `team-theme-contract-v1.md` | `slops-ux-copy` for words |
 | Recommendations / scoring / football data | `Blueprints/specs/football-data/`, `Direction/football-data-and-schemes-research.md` | `slops-tdd` |
+| Public copy, analytics, demo mode, type | `Direction/facts-of-record.md` facts 16-21, `Brand/brand-system.md` | `slops-ux-copy` |
 | Auth, tokens, user data | `Blueprints/security-privacy.md` | `security-privacy-evidence`; request `@codex review` |
 | A bug or failed check | `Direction/known_issues.md` (open only) | `slops-investigate` |
 | Release, deploy, store consoles | `Direction/release/`, `Direction/release_readiness.md` | `slops-ship`, `slops-canary`, `slops-founder-admin-runbook` |
