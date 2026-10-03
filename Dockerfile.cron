@@ -36,12 +36,16 @@ COPY --from=builder /app/client ./client
 COPY package.json ./
 
 # ── CRONTAB ──────────────────────────────────────────────────────
-# Schedule: 6:00 AM every Tuesday (TZ=America/New_York set in compose)
+# Schedule (TZ=America/New_York set in compose):
+#   6:00 AM every Tuesday: scoring worker (gated off by OMEN_CRON_SCORING_ENABLED)
+#   4:15 AM every day:     redo retention purges (beta reports, retired rows); skips a purge
+#                          whose function is not applied yet
 # Format:   min hour day month weekday command
 # Weekday 2 = Tuesday
 # Output is appended to /var/log/omen_cron.log
 RUN { \
       echo "0 6 * * 2 node /app/src/omen_tuesday_cron.js >> /var/log/omen_cron.log 2>&1"; \
+      echo "15 4 * * * node /app/src/omen_daily_purge_cron.js >> /var/log/omen_cron.log 2>&1"; \
     } > /var/spool/cron/crontabs/ssffmvp
 
 # Ensure permissions are correct for the crond daemon to read it
