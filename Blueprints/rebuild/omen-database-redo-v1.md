@@ -248,6 +248,7 @@ restored-clone rehearsal (the 2026-09-30 method) → verification → production
 | 05 | Ledger + backfill (3 scoped moves copied; `moves` untouched) | medium: new write path | drop tables | **the server writes its first call here**; after that, export before rollback |
 | 06 | Projection snapshots + shadow log + `data_events` + provider purge | low | drop tables | the first logged week (cannot be re-created) |
 | 11 | `league_scoring_rules`: each league's scoring rules in a deletable compartment, kept for grading and advice; `scoring_rules_purge()`; backfill from league-scoped `moves.scoring_contract` (founder, 2026-10-02 night) | low: additive, `moves` untouched | drop table (a `retire` record is kept) | the server writes its own rule sets (export first) |
+| 12 | `saved_trades` (T4): one row per saved trade, keyed on (user, provider, league, season, week, candidate); the trade stored with it; reasoning and trade fixed at first save; saved → sent → self-reported outcome; owner read, server writes; cascades from `users`, exported | low: additive, empty | drop table | the first saved trade (export first) |
 | 09 | `beta_reports` for the Report button, with a recorded 30-day purge | low: additive | drop table | the first saved report |
 | 10 | `account_erase()`: the whole account in one transaction (secrets, connections, Ledger, moves, consent, OAuth state; reports and held rows cascade), audit row written | low: additive function | drop function | always |
 | 08 | Delete the 6 unscoped `moves` rows: aborts unless exactly 6; recorded; held 30 days | medium: deletes data, by founder decision | restore from the held copies | 30 days, then the copies are purged by design |
@@ -269,9 +270,13 @@ its own code ticket, and none is part of this PR:
    the Auth account.
 6. **Scoring rules.** Whatever writes a call's scoring contract also writes the rule set into
    `league_scoring_rules` (with its `scoring_rules:<provider>` ingest) when the hash is new. Calls keep version and hash only.
-7. **Export.** Drop the nonexistent `moves.feature` / `moves.updated_at` from the select (a code bug,
+7. **Saved trades (T4, #519).** `/api/trade/find` issues a batch token per response, folds it into each
+   candidate id, and keeps the batch's candidates per user for 15 minutes (Redis). `POST /api/trade/saved`
+   looks the id up in the caller's own batches and inserts one `saved_trades` row with the full trade; an
+   expired or unknown id returns an error the app turns into "refresh the search". The export reads the table.
+8. **Export.** Drop the nonexistent `moves.feature` / `moves.updated_at` from the select (a code bug,
    not a schema gap).
-8. **Startup schema check.** Expected objects versus `information_schema`; `/api/ready` degraded on
+9. **Startup schema check.** Expected objects versus `information_schema`; `/api/ready` degraded on
    drift (finding 11).
 
 ## 8. First slice versus later
