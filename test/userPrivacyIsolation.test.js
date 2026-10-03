@@ -189,7 +189,7 @@ function seedStore() {
   };
 }
 
-function loadUserPrivacyRouter({ store, actingUserId = "user-1", fakeOut } = {}) {
+function loadUserPrivacyRouter({ store, actingUserId = "user-1", fakeOut, legacySavedTrades } = {}) {
   const routePath = require.resolve("../src/routes/userPrivacy");
   delete require.cache[routePath];
 
@@ -198,6 +198,9 @@ function loadUserPrivacyRouter({ store, actingUserId = "user-1", fakeOut } = {})
   Module._load = function patchedLoad(request, parent, isMain) {
     if (request === "@supabase/supabase-js" && parent?.filename === routePath) {
       return { createClient: () => fakeSupabase };
+    }
+    if (legacySavedTrades && request === "../services/tradeSavedQueueStore" && parent?.filename === routePath) {
+      return { createDefaultTradeSavedQueueStore: () => legacySavedTrades };
     }
     if (request === "../middleware/auth" && parent?.filename === routePath) {
       return {
@@ -370,6 +373,31 @@ test("GET /export returns an empty saved_trades list while step 12 is not applie
 // Plan A1: once redo steps 05 and 10 are applied, deletion is one transaction in account_erase().
 // Until then the route keeps today's table-by-table path.
 const CONFIRM = { confirmation: "DELETE MY OMEN DATA" };
+
+// Saved trades moved from #519's Redis blob to the table; until the blob is retired, erasure clears it too.
+test("DELETE /delete erases the requesting user's legacy saved-trade blob, never another user's", async () => {
+  const blobs = new Map([["user-1", [{ candidate_id: "c1" }]], ["user-2", [{ candidate_id: "c2" }]]]);
+  const legacySavedTrades = { kind: "memory", async readAll(id) { return blobs.get(id) || []; }, async writeAll() {}, async deleteAll(id) { blobs.delete(id); } };
+  const store = seedStore();
+  const app = buildApp({ store, actingUserId: "user-1", legacySavedTrades });
+
+  const res = await request(app, "/api/account/delete", { method: "DELETE", body: CONFIRM });
+  assert.equal(res.status, 200);
+  assert.equal(blobs.has("user-1"), false);
+  assert.equal(blobs.has("user-2"), true);
+});
+
+test("DELETE /delete stops before erasing anything when the legacy saved-trade blob cannot be cleared", async () => {
+  const legacySavedTrades = { kind: "redis", async readAll() { return []; }, async writeAll() {}, async deleteAll() { throw new Error("redis down"); } };
+  const store = seedStore();
+  const fakeOut = {};
+  const app = buildApp({ store, actingUserId: "user-1", legacySavedTrades, fakeOut });
+
+  const res = await request(app, "/api/account/delete", { method: "DELETE", body: CONFIRM });
+  assert.equal(res.status, 500);
+  assert.equal(store.users.some((u) => u.id === "user-1"), true);
+  assert.deepEqual(fakeOut.client.__adminDeleteCalls, []);
+});
 
 test("DELETE /delete erases through account_erase() in one call when the function exists", async () => {
   const store = seedStore();
