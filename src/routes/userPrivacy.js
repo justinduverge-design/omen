@@ -6,6 +6,7 @@ const { createClient } = require("@supabase/supabase-js");
 const config = require("../config");
 const { logger } = require("../middleware/logging");
 const { requireAuth } = require("../middleware/auth");
+const { isMissingFunction } = require("../services/connectionStore");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
@@ -228,36 +229,26 @@ router.delete("/delete", requireAuth, require("../services/responseCache").inval
     }
 
     const userId = req.user.id;
-    const { data: platformRows, error: platformError } = await supabase
-      .from("platform_connections")
-      .select("token_secret_id,refresh_secret_id,espn_secret_id,swid_secret_id")
-      .eq("user_id", userId);
-    if (platformError) throw new Error(`platform_connections lookup failed: ${platformError.message}`);
 
-    const secretIds = new Set();
-    for (const row of platformRows || []) {
-      for (const key of ["token_secret_id", "refresh_secret_id", "espn_secret_id", "swid_secret_id"]) {
-        if (row[key]) secretIds.add(row[key]);
-      }
-    }
-    await Promise.all([...secretIds].map(deleteVaultSecret));
-
-    await Promise.all([
-      deleteWhereUserId("moves", userId),
-      deleteWhereUserId("beta_reports", userId),
-      deleteWhereUserId("platform_connections", userId),
-      deleteWhereUserId("oauth_state", userId),
-      deleteWhereUserId("consent_records", userId),
-    ]);
-
-    const { error: auditError } = await supabase.from("deletion_audit_log").insert({
-      user_id_hash: userHash(userId),
-      method: "user_requested",
+    // One transaction for everything Omen holds (redo step 10). It waits for any connect in flight,
+    // deletes every Vault secret or nothing, erases the Ledger, writes the audit row and removes the
+    // users row. Today's table-by-table path stays until the function is applied.
+    const { data: erased, error: eraseError } = await supabase.rpc("account_erase", {
+      p_user_id: userId,
+      p_method: "user_requested",
     });
-    if (auditError) throw new Error(`deletion audit insert failed: ${auditError.message}`);
-
-    const { error: userError } = await supabase.from("users").delete().eq("id", userId);
-    if (userError) throw new Error(`users delete failed: ${userError.message}`);
+    if (eraseError && !isMissingFunction(eraseError)) {
+      throw new Error(`account_erase failed (${eraseError.code || "unknown"})`);
+    }
+    // The function cleans a sign-in with no app row itself, under its lock (Codex, #534), and reports a
+    // repeat request as already_erased; the legacy cleanup runs only when the function is missing or is
+    // the earlier version that returned no_such_user.
+    if (eraseError || (erased?.erased === false && erased.reason !== "already_erased")) {
+      // Function not applied yet, or no app user row. A sign-in without an app row can still own rows
+      // keyed to the auth user (consent from /legal-acceptance, OAuth state), so clean those up before
+      // the audit row records the deletion (Codex, #526).
+      await eraseAccountLegacy(userId);
+    }
 
     const { error: authError } = await supabase.auth.admin.deleteUser(userId);
     if (authError) throw new Error(`auth identity delete failed: ${authError.message}`);
@@ -273,6 +264,44 @@ router.delete("/delete", requireAuth, require("../services/responseCache").inval
     return next(err);
   }
 });
+
+async function insertDeletionAudit(userId) {
+  const { error } = await supabase.from("deletion_audit_log").insert({
+    user_id_hash: userHash(userId),
+    method: "user_requested",
+  });
+  if (error) throw new Error(`deletion audit insert failed: ${error.message}`);
+}
+
+// Today's deletion, kept until redo steps 05 and 10 are applied. Each call commits on its own.
+async function eraseAccountLegacy(userId) {
+  const { data: platformRows, error: platformError } = await supabase
+    .from("platform_connections")
+    .select("token_secret_id,refresh_secret_id,espn_secret_id,swid_secret_id")
+    .eq("user_id", userId);
+  if (platformError) throw new Error(`platform_connections lookup failed: ${platformError.message}`);
+
+  const secretIds = new Set();
+  for (const row of platformRows || []) {
+    for (const key of ["token_secret_id", "refresh_secret_id", "espn_secret_id", "swid_secret_id"]) {
+      if (row[key]) secretIds.add(row[key]);
+    }
+  }
+  await Promise.all([...secretIds].map(deleteVaultSecret));
+
+  await Promise.all([
+    deleteWhereUserId("moves", userId),
+    deleteWhereUserId("beta_reports", userId),
+    deleteWhereUserId("platform_connections", userId),
+    deleteWhereUserId("oauth_state", userId),
+    deleteWhereUserId("consent_records", userId),
+  ]);
+
+  await insertDeletionAudit(userId);
+
+  const { error: userError } = await supabase.from("users").delete().eq("id", userId);
+  if (userError) throw new Error(`users delete failed: ${userError.message}`);
+}
 
 module.exports = router;
 module.exports.DELETE_CONFIRMATION = DELETE_CONFIRMATION;

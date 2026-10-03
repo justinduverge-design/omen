@@ -73,4 +73,18 @@ begin
   end if;
 end $$;
 
+-- No report after erasure, even while the sign-in still exists (Codex review, #530): the deletion audit row
+-- is the tombstone, whichever path wrote it.
+do $$
+begin
+  insert into public.deletion_audit_log (user_id_hash, method)
+  values (encode(sha256(convert_to('00000000-0000-4000-8000-000000000009', 'UTF8')), 'hex'), 'user_requested');
+  begin
+    insert into public.beta_reports (user_id, screen, app_version, build, os_version, device_model, connection_state, message, disclosure_accepted)
+    values ('00000000-0000-4000-8000-000000000009', 'account', '1', '1', 'x', 'y', 'none', 'after erase', true);
+    raise exception 'FAIL 09: a report was accepted for an erased account';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+
 rollback;

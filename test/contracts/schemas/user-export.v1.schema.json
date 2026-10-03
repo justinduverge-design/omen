@@ -223,10 +223,7 @@
             "type": "integer"
           },
           "provider_team_id": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string"
           },
           "candidate_id": {
             "type": "string"
@@ -288,15 +285,20 @@
           }
         },
         "required": [
+          "candidate_id",
+          "outcome",
+          "outcome_at",
+          "outcome_provenance",
           "provider",
           "provider_league_id",
-          "season",
-          "week",
-          "candidate_id",
-          "trade",
+          "provider_team_id",
           "reasoning",
+          "saved_at",
+          "season",
+          "sent_at",
           "state",
-          "saved_at"
+          "trade",
+          "week"
         ]
       }
     }

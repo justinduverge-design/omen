@@ -183,7 +183,7 @@
       "type": "string"
     },
     "saved_trades[].outcome": {
-      "required": false,
+      "required": true,
       "type": "enum",
       "values": [
         "\"accepted\"",
@@ -193,11 +193,11 @@
       ]
     },
     "saved_trades[].outcome_at": {
-      "required": false,
+      "required": true,
       "type": "null|string"
     },
     "saved_trades[].outcome_provenance": {
-      "required": false,
+      "required": true,
       "type": "enum",
       "values": [
         "\"self_reported\"",
@@ -218,8 +218,8 @@
       "type": "string"
     },
     "saved_trades[].provider_team_id": {
-      "required": false,
-      "type": "null|string"
+      "required": true,
+      "type": "string"
     },
     "saved_trades[].reasoning": {
       "required": true,
@@ -234,7 +234,7 @@
       "type": "integer"
     },
     "saved_trades[].sent_at": {
-      "required": false,
+      "required": true,
       "type": "null|string"
     },
     "saved_trades[].state": {

@@ -14,20 +14,20 @@ begin
   insert into public.saved_trades (user_id, provider, provider_league_id, season, week, provider_team_id, candidate_id, trade, reasoning)
   values (owner, 'sleeper', '998877665501', 2026, 5, 'sleeper-user-1', 'b1.find_3_4984_6794', t, r)
   returning id into saved_id;
-  insert into public.saved_trades (user_id, provider, provider_league_id, season, week, candidate_id, trade, reasoning)
-  values (other, 'espn', '100001', 2026, 5, 'b2.find_3_1_2', t, r);
+  insert into public.saved_trades (user_id, provider, provider_league_id, season, week, provider_team_id, candidate_id, trade, reasoning)
+  values (other, 'espn', '100001', 2026, 5, '1', 'b2.find_3_1_2', t, r);
 
   -- One row per saved candidate in its full scope; the same id in another league or week is its own row.
   begin
-    insert into public.saved_trades (user_id, provider, provider_league_id, season, week, candidate_id, trade, reasoning)
-    values (owner, 'sleeper', '998877665501', 2026, 5, 'b1.find_3_4984_6794', t, r);
+    insert into public.saved_trades (user_id, provider, provider_league_id, season, week, provider_team_id, candidate_id, trade, reasoning)
+    values (owner, 'sleeper', '998877665501', 2026, 5, '1', 'b1.find_3_4984_6794', t, r);
     raise exception 'FAIL 12: the same candidate was saved twice in one scope';
   exception when unique_violation then null;
   end;
-  insert into public.saved_trades (user_id, provider, provider_league_id, season, week, candidate_id, trade, reasoning)
-  values (owner, 'sleeper', '998877665502', 2026, 5, 'b1.find_3_4984_6794', t, r);
-  insert into public.saved_trades (user_id, provider, provider_league_id, season, week, candidate_id, trade, reasoning)
-  values (owner, 'sleeper', '998877665501', 2026, 6, 'b1.find_3_4984_6794', t, r);
+  insert into public.saved_trades (user_id, provider, provider_league_id, season, week, provider_team_id, candidate_id, trade, reasoning)
+  values (owner, 'sleeper', '998877665502', 2026, 5, '1', 'b1.find_3_4984_6794', t, r);
+  insert into public.saved_trades (user_id, provider, provider_league_id, season, week, provider_team_id, candidate_id, trade, reasoning)
+  values (owner, 'sleeper', '998877665501', 2026, 6, '1', 'b1.find_3_4984_6794', t, r);
 
   -- Never a save without a readable trade: a named player on each side and the opponent (Codex, #529).
   declare bad jsonb;
@@ -39,16 +39,23 @@ begin
       '{"give":{"player_id":"1"},"receive":{"player_id":"2"}}']::jsonb[]
     loop
       begin
-        insert into public.saved_trades (user_id, provider, provider_league_id, season, week, candidate_id, trade, reasoning)
-        values (owner, 'sleeper', '998877665501', 2026, 5, 'b3.x', bad, r);
+        insert into public.saved_trades (user_id, provider, provider_league_id, season, week, provider_team_id, candidate_id, trade, reasoning)
+        values (owner, 'sleeper', '998877665501', 2026, 5, '1', 'b3.x', bad, r);
         raise exception 'FAIL 12: an unreadable trade was saved: %', bad;
       exception when check_violation then null;
       end;
     end loop;
   end;
+  -- The saver's own team is required: staleness compares both rosters (Codex, #529).
+  begin
+    insert into public.saved_trades (user_id, provider, provider_league_id, season, week, candidate_id, trade, reasoning)
+    values (owner, 'sleeper', '998877665501', 2026, 8, 'b6.noteam', t, r);
+    raise exception 'FAIL 12: a saved trade without the saver''s team was accepted';
+  exception when not_null_violation then null;
+  end;
   -- A three-team side (an array of named players) is accepted.
-  insert into public.saved_trades (user_id, provider, provider_league_id, season, week, candidate_id, trade, reasoning)
-  values (owner, 'sleeper', '998877665501', 2026, 9, 'b5.three',
+  insert into public.saved_trades (user_id, provider, provider_league_id, season, week, provider_team_id, candidate_id, trade, reasoning)
+  values (owner, 'sleeper', '998877665501', 2026, 9, '1', 'b5.three',
           '{"give":[{"player_id":"1"},{"player_key":"sleeper:2"}],"receive":{"player_id":"3"},"opponent_team_id":"4"}', r);
   delete from public.saved_trades where candidate_id = 'b5.three';
 
@@ -95,8 +102,8 @@ begin
   select count(*) into seen from public.saved_trades;
   if seen <> 3 then raise exception 'FAIL 12: the owner sees % rows, expected their 3', seen; end if;
   begin
-    insert into public.saved_trades (user_id, provider, provider_league_id, season, week, candidate_id, trade, reasoning)
-    values (owner, 'sleeper', '998877665501', 2026, 7, 'b4.x', t, r);
+    insert into public.saved_trades (user_id, provider, provider_league_id, season, week, provider_team_id, candidate_id, trade, reasoning)
+    values (owner, 'sleeper', '998877665501', 2026, 7, '1', 'b4.x', t, r);
     raise exception 'FAIL 12: a client wrote a saved trade';
   exception when insufficient_privilege then null;
   end;
