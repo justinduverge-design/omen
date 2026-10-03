@@ -246,6 +246,7 @@ restored-clone rehearsal (the 2026-09-30 method) → verification → production
 | 04 | Players + crosswalk tables (empty) | none | drop tables | always (the D3 job is deterministic) |
 | 05 | Ledger + backfill (3 scoped moves copied; `moves` untouched) | medium: new write path | drop tables | **the server writes its first call here**; after that, export before rollback |
 | 06 | Projection snapshots + shadow log + `data_events` + provider purge | low | drop tables | the first logged week (cannot be re-created) |
+| 11 | `league_scoring_rules`: each league's scoring rules in a deletable compartment, kept for grading and advice; `scoring_rules_purge()`; backfill from league-scoped `moves.scoring_contract` (founder, 2026-10-02 night) | low: additive, `moves` untouched | drop table (a `retire` record is kept) | the server writes its own rule sets (export first) |
 | 09 | `beta_reports` for the Report button, with a recorded 30-day purge | low: additive | drop table | the first saved report |
 | 10 | `account_erase()`: the whole account in one transaction (secrets, connections, Ledger, moves, consent, OAuth state; reports and held rows cascade), audit row written | low: additive function | drop function | always |
 | 08 | Delete the 6 unscoped `moves` rows: aborts unless exactly 6; recorded; held 30 days | medium: deletes data, by founder decision | restore from the held copies | 30 days, then the copies are purged by design |
@@ -265,9 +266,11 @@ its own code ticket, and none is part of this PR:
 5. **Connect, disconnect, Yahoo refresh and account deletion.** Connect, disconnect and Yahoo refresh call
    `connection_*()`. Account deletion calls `account_erase()` (step 10), one transaction, then deletes
    the Auth account.
-6. **Export.** Drop the nonexistent `moves.feature` / `moves.updated_at` from the select (a code bug,
+6. **Scoring rules.** Whatever writes a call's scoring contract also writes the rule set into
+   `league_scoring_rules` (with its `scoring_rules:<provider>` ingest) when the hash is new. Calls keep version and hash only.
+7. **Export.** Drop the nonexistent `moves.feature` / `moves.updated_at` from the select (a code bug,
    not a schema gap).
-7. **Startup schema check.** Expected objects versus `information_schema`; `/api/ready` degraded on
+8. **Startup schema check.** Expected objects versus `information_schema`; `/api/ready` degraded on
    drift (finding 11).
 
 ## 8. First slice versus later
