@@ -51,6 +51,37 @@ begin
   end if;
 end $$;
 
+-- A sign-in with no app row: its own rows are cleaned and the tombstone written inside the function
+-- (Codex review, #534); a repeat call changes nothing.
+do $$
+declare res jsonb; n int; hash text := encode(sha256(convert_to('00000000-0000-4000-8000-000000000008', 'UTF8')), 'hex');
+begin
+  if exists (select 1 from public.users where id = '00000000-0000-4000-8000-000000000008') then
+    raise exception 'FAIL 10: seed changed; user 8 should be a sign-in without an app row';
+  end if;
+  insert into public.consent_records (user_id, consent_type, granted) values ('00000000-0000-4000-8000-000000000008', 'terms', true);
+  if to_regclass('public.beta_reports') is not null then
+    execute $q$insert into public.beta_reports (user_id, screen, app_version, build, os_version, device_model, connection_state, message, disclosure_accepted)
+               values ('00000000-0000-4000-8000-000000000008', 'connect_failed', '1', '1', 'x', 'y', 'none', 'help', true)$q$;
+  end if;
+  res := public.account_erase('00000000-0000-4000-8000-000000000008');
+  if not (res->>'erased')::boolean or (res->>'app_user')::boolean then raise exception 'FAIL 10: no-app-user erase returned %', res; end if;
+  if exists (select 1 from public.consent_records where user_id = '00000000-0000-4000-8000-000000000008') then
+    raise exception 'FAIL 10: a no-app-user erase left consent behind';
+  end if;
+  if to_regclass('public.beta_reports') is not null then
+    execute $q$select count(*) from public.beta_reports where user_id = '00000000-0000-4000-8000-000000000008'$q$ into n;
+    if n <> 0 then raise exception 'FAIL 10: a no-app-user erase left a beta report behind'; end if;
+  end if;
+  if (select count(*) from public.deletion_audit_log where user_id_hash = hash) <> 1 then
+    raise exception 'FAIL 10: a no-app-user erase did not write exactly one tombstone';
+  end if;
+  res := public.account_erase('00000000-0000-4000-8000-000000000008');
+  if (res->>'reason') is distinct from 'already_erased' or (select count(*) from public.deletion_audit_log where user_id_hash = hash) <> 1 then
+    raise exception 'FAIL 10: a repeat erase changed something: %', res;
+  end if;
+end $$;
+
 -- All or nothing: if a secret cannot be deleted, nothing is erased (simulated on scratch only).
 do $$
 begin
