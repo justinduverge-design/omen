@@ -559,7 +559,9 @@ number of pointed contract changes plus a governance amendment — not a build-o
 
 ### D2-SchemaForSlice — Schema additions and the confidence-band fix
 
-- **Status:** READY — claim released 2026-10-01; the remaining clauses need another party.
+- **Status:** IN_PROGRESS
+- **Claim:** 2026-10-03 Claude — prep-for-production session (pin 2026-10-02, brief `Blueprints/handoffs/2026-10-02-prep-for-production-brief.md`): plan A0–A4, redo steps 11 and 12, compatibility table, runbook, dry run. Nothing applied to production.
+- **Prep evidence (2026-10-03, read-only, founder-approved):** production's newest migration is still `20261002231212`; a live catalog read equals `production-catalog-2026-10-01.json` (`catalog.js diff`: identical); counts 7 users, 9 auth users, 0 users without an auth user, 10 connections, 7 leagues, 9 moves (6 unscoped, 9 with scoring rules), 14 Vault secrets. Newest backup `de1d3675` (2026-10-03 00:13) restored on KVM1 to a temp dir, 9 of 9 checksums passed, copy deleted.
 - **Claim (released):** 2026-10-01 Claude — founder-directed database redo. Done: league-connections review; design `Blueprints/rebuild/omen-database-redo-v1.md`; review-only SQL steps 01-07 in `sql/2026-10-01-redo/`; rehearsal `scripts/db/rehearse-redo.sh` + CI job `redo-rehearsal` on Postgres 17 (passed in CI run 36946432760). The old `test-migrations` job stays on Postgres 15: its move to the Supabase 17 image failed to start and was reverted (handoff).
 - **Evidence so far (not VERIFIED):** up → tests → down → up proven per step on scratch Postgres 17.11, with schema **and** data fingerprints; snapshot proven equal to production's catalog; 7 of 7 deliberate faults caught. Not met: Codex review; a second session's read; the server suite on the migrated schema (the server does not use these tables yet); a restored-clone rehearsal (each production step's own gate).
 - **Scope change:** `football_games`, `game_weather`, `player_week_features` and `defense_position_allowed` are deferred to `D4` (explanation-only after the factor experiment); see design §8.
