@@ -35,6 +35,7 @@ const https = require("node:https");
 const { test } = require("node:test");
 const express = require("express");
 const axios = require("axios");
+const Sentry = require("@sentry/node");
 
 const espnAdapter = require("../src/adapters/espn");
 const sleeperAdapter = require("../src/adapters/sleeper");
@@ -299,6 +300,69 @@ test("ESPN auth rejection: the cookie really goes out, and nothing comes back in
     assertNoCanary(envelope.text, "ESPN 401 error envelope");
     assert.equal(envelope.status, 401);
   });
+});
+
+test("ESPN auth rejection becomes reconnect state without creating an incident", async () => {
+  const originalCapture = Sentry.captureException;
+  const captures = [];
+  Sentry.captureException = (...args) => {
+    captures.push(args);
+    return "unexpected-test-event";
+  };
+
+  try {
+    for (const scenario of [
+      {
+        status: 401,
+        call: () => espnAdapter.verifyLeagueAccess("1234567", CANARY.espnS2, CANARY.swid),
+      },
+      {
+        // fan.api uses 400 for the same expired web session that lm-api-reads
+        // reports as 401. Both must become one reconnect state, not incidents.
+        status: 400,
+        call: () => espnAdapter.fetchEspnFanLeagues(CANARY.espnS2, CANARY.swid),
+      },
+    ]) {
+      await withFakeEspn({
+        status: scenario.status,
+        body: () => JSON.stringify({ messages: ["not authorized"] }),
+      }, async () => {
+        await assert.rejects(scenario.call(), (error) => Number(error?.status) === 401);
+      });
+    }
+  } finally {
+    Sentry.captureException = originalCapture;
+  }
+
+  assert.deepEqual(captures, []);
+});
+
+test("ESPN fan-directory incidents redact the SWID embedded in the path", async () => {
+  const originalCapture = Sentry.captureException;
+  const captures = [];
+  Sentry.captureException = (error, hint) => {
+    captures.push({ error, hint });
+    return "test-event";
+  };
+
+  try {
+    await withFakeEspn({
+      status: 500,
+      body: () => JSON.stringify({ error: "upstream unavailable" }),
+    }, async () => {
+      const { captured, thrown } = await captureOutput(() => (
+        espnAdapter.fetchEspnFanLeagues(CANARY.espnS2, CANARY.swid)
+      ));
+      assert.equal(Number(thrown?.status), 502);
+      assertNoCanary(captured, "ESPN fan-directory stdout");
+    });
+  } finally {
+    Sentry.captureException = originalCapture;
+  }
+
+  assert.equal(captures.length, 1);
+  assert.equal(captures[0].hint.extra.path, "/apis/v2/fans/[redacted]");
+  assertNoCanary(JSON.stringify(captures[0]), "ESPN fan-directory incident");
 });
 
 test("ESPN 500 and malformed-response paths emit no credential", async () => {

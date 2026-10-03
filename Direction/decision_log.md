@@ -4141,3 +4141,23 @@ on the second one.
   field (`Blueprints/specs/omen-projection-explainer-v1.md`).
 - **Open design items:** crimson `#7E1717` is 1.39:1 on the card (invisible), so the proposal uses a
   lighter `#B23A3A` hatch — needs a token decision; first use of Verdigris in the app.
+
+## 2026-10-03 — expired ESPN sessions are reconnect states, not operational incidents
+
+- **Decision:** ESPN session rejection remains visible to the affected user as the existing honest
+  reconnect state, but it does not create a GlitchTip incident. Four beta users made the distinction
+  operationally necessary: inactive users' ESPN web sessions can expire without Omen itself being
+  unhealthy. One stale session produced 102 `auth_rejected` events plus 40 paired fan-directory 400
+  events and repeatedly polluted the fleet alert signature.
+- **Measured provider behavior:** ESPN's reads API returns 401/403 for a rejected session, while the
+  fan-directory endpoint returns 400 for the same lifecycle state. The adapter normalizes both to
+  status 401 and the product's reconnect envelope. Genuine 5xx responses, malformed responses,
+  transport failures, and unclassified authentication failures remain reportable.
+- **Privacy correction found in the same trace:** the fan-directory API embeds SWID in its URL path.
+  Query-string removal alone did not make that path safe: it reached both application logs and
+  GlitchTip metadata. The dynamic path segment is now `[redacted]` before either surface receives it.
+- **Fleet cleanup:** Sentinel's KVM2 posture baseline was refreshed only after the sole drift was
+  traced to Ubuntu's expected `snapd` revision mount. KVM2 returned to `HEALTHY`; no service was
+  restarted or disabled.
+- **Production boundary:** the backend change is locally implemented and tested but is not live until
+  its feature branch is reviewed, merged, and deployed through the normal founder-gated path.
