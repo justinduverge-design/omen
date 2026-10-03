@@ -172,7 +172,13 @@ function seedStore() {
         saved_at: "2026-10-01T00:00:00.000Z", sent_at: "2026-10-01T01:00:00.000Z", outcome_at: "2026-10-02T00:00:00.000Z",
       },
       {
-        user_id: "user-2", provider: "sleeper", provider_league_id: "L2", season: 2026, week: 5, provider_team_id: null,
+        user_id: "user-1", provider: "sleeper", provider_league_id: "L1", season: 2026, week: 6, provider_team_id: "3",
+        candidate_id: "b3.find_z", trade: { give: { player_id: "11" }, receive: { player_id: "12" }, opponent_team_id: "8" },
+        reasoning: {}, state: "saved", outcome: null, outcome_provenance: null,
+        saved_at: "2026-10-01T00:00:00.000Z", sent_at: null, outcome_at: null,
+      },
+      {
+        user_id: "user-2", provider: "sleeper", provider_league_id: "L2", season: 2026, week: 5, provider_team_id: "5",
         candidate_id: "b2.find_y", trade: { give: { player_id: "1" }, receive: { player_id: "2" }, opponent_team_id: "4" },
         reasoning: {}, state: "saved", outcome: null, outcome_provenance: null,
         saved_at: "2026-10-01T00:00:00.000Z", sent_at: null, outcome_at: null,
@@ -347,7 +353,7 @@ test("GET /export includes only the requesting user's saved trades", async () =>
   const res = await request(app, "/api/account/export");
 
   assert.equal(res.status, 200);
-  assert.deepEqual(res.body.saved_trades.map((t) => t.candidate_id), ["b1.find_x"]);
+  assert.deepEqual(res.body.saved_trades.map((t) => t.candidate_id), ["b1.find_x", "b3.find_z"]);
 });
 
 test("GET /export returns an empty saved_trades list while step 12 is not applied", async () => {

@@ -61,7 +61,7 @@ create table public.saved_trades (
   provider_league_id text not null check (provider_league_id <> '' and provider_league_id <> provider),
   season             integer not null check (season between 2000 and 2100),
   week               integer not null check (week between 1 and 22),
-  provider_team_id   text,
+  provider_team_id   text not null check (provider_team_id <> ''),   -- the saver's team: staleness compares both rosters (Codex, #529)
   candidate_id       text not null check (candidate_id <> '' and length(candidate_id) <= 200),
   trade              jsonb not null check (jsonb_typeof(trade) = 'object'
                                            and public.saved_trades_side_ok(trade -> 'give')

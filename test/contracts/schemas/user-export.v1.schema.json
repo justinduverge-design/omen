@@ -288,15 +288,20 @@
           }
         },
         "required": [
+          "candidate_id",
+          "outcome",
+          "outcome_at",
+          "outcome_provenance",
           "provider",
           "provider_league_id",
-          "season",
-          "week",
-          "candidate_id",
-          "trade",
+          "provider_team_id",
           "reasoning",
+          "saved_at",
+          "season",
+          "sent_at",
           "state",
-          "saved_at"
+          "trade",
+          "week"
         ]
       }
     }
