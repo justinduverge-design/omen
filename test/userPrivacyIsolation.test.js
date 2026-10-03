@@ -94,6 +94,7 @@ function makeFakeSupabase(store) {
         // Production today: redo step 10 is not applied, so PostgREST reports the function as missing.
         if (!store.__accountErase) return { data: null, error: { code: "PGRST202", message: "Could not find the function" } };
         if (store.__accountErase.error) return { data: null, error: store.__accountErase.error };
+        if (store.__accountErase.result) return { data: store.__accountErase.result, error: null };
         if (!store.users.some((u) => u.id === args.p_user_id)) return { data: { erased: false, reason: "no_such_user" }, error: null };
         for (const table of ["platform_connections", "moves", "consent_records", "oauth_state", "beta_reports"]) {
           store[table] = store[table].filter((row) => row.user_id !== args.p_user_id);
@@ -394,4 +395,18 @@ test("DELETE /delete with no app user row clears the sign-in's own rows before r
   assert.equal(store.consent_records.some((c) => c.user_id === "user-2"), true);
   assert.deepEqual(fakeOut.client.__adminDeleteCalls, ["user-1"]);
   assert.equal(store.deletion_audit_log.length, 1);
+});
+
+test("DELETE /delete does not repeat the cleanup or write a second audit row when the account is already erased (Codex, #534)", async () => {
+  const store = seedStore();
+  store.__accountErase = { result: { erased: false, reason: "already_erased" } };
+  const fakeOut = {};
+  const app = buildApp({ store, actingUserId: "user-1", fakeOut });
+
+  const res = await request(app, "/api/account/delete", { method: "DELETE", body: CONFIRM });
+
+  assert.equal(res.status, 200);
+  assert.equal(store.deletion_audit_log.length, 0);
+  assert.equal(store.users.some((u) => u.id === "user-1"), true, "the route's legacy cleanup did not run");
+  assert.deepEqual(fakeOut.client.__adminDeleteCalls, ["user-1"]);
 });
