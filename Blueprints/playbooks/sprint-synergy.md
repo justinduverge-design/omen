@@ -1,5 +1,7 @@
 # Sprint Synergy Playbook
 
+> **Partly superseded 2026-10-03.** `Blueprints/done/LEDGER.md` receipts and `skill-usage-ledger.md` rows are no longer written; closure evidence is the sprint item's `Closure:`/`Evidence:` plus the merged PR (`Direction/shipped.md`). Close-out is in `CLAUDE.md`.
+
 How to plan and close work so the active context for any pull stays small, and so the evidence we keep for retro/overhaul stays canonical instead of duplicated. Authored 2026-06-27 after the `current_sprint.md` split.
 
 ## The four-tier zoom

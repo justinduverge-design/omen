@@ -68,7 +68,7 @@ Authoring a proposed change is separate from applying it. Prepared SQL, release 
 
 ## Required Files To Read First
 
-Read order is a pointer, not a list here.
+Read order is a pointer, not a list here (as of 2026-10-03: `Direction/map.md` then `Direction/agent_inbox.md`; Codex also reads this file).
 
 `CLAUDE.md` section "Read in order before pulling a task" is the single expressed read order. `Blueprints/prompts/kickoff-l2.md` carries the same contract, and `node scripts/check-kickoff-drift.js` enforces the pair. Do not restate or edit the read order in this file.
 
