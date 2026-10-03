@@ -78,7 +78,7 @@ function makeSupabase(state) {
   };
 }
 
-function loadYahooAuth(rows = [], { step02 = false, rotateWins = true, refreshFails = false, otherProcessRefreshes = false, refreshedByOtherAfterRead = null } = {}) {
+function loadYahooAuth(rows = [], { step02 = false, rotateWins = true, refreshFails = false, otherProcessRefreshes = false, refreshedByOtherAfterRead = null, refreshDelayMs = 0 } = {}) {
   const servicePath = require.resolve("../src/services/yahooAuth");
   delete require.cache[servicePath];
 
@@ -93,6 +93,7 @@ function loadYahooAuth(rows = [], { step02 = false, rotateWins = true, refreshFa
     refreshFails,
     otherProcessRefreshes,
     refreshedByOtherAfterRead,
+    refreshDelayMs,
   };
   const fakeSupabase = makeSupabase(state);
   const originalLoad = Module._load;
@@ -109,7 +110,7 @@ function loadYahooAuth(rows = [], { step02 = false, rotateWins = true, refreshFa
         refreshYahooToken: async (refreshToken) => {
           state.refreshedWith = refreshToken;
           state.refreshCalls = (state.refreshCalls || 0) + 1;
-          await new Promise((resolve) => setImmediate(resolve));
+          await new Promise((resolve) => (state.refreshDelayMs ? setTimeout(resolve, state.refreshDelayMs) : setImmediate(resolve)));
           if (state.refreshFails) {
             if (state.otherProcessRefreshes) {
               Object.assign(state.rows[0], { token_expires_at: "2026-10-03T09:00:00+00:00", token_secret_id: "other-access-secret" });
@@ -302,4 +303,108 @@ test("a request whose snapshot went stale while it waited uses the token another
   assert.equal(accessToken, "other-access-secret-plain");
   assert.equal(state.refreshCalls || 0, 0);
   assert.equal(state.rpcs.some((rpc) => rpc.name === "connection_rotate_yahoo"), false);
+});
+
+// Codex, #525 (P1): the single-flight map is per process. A Redis claim spans the provider exchange
+// across processes; a process that does not hold it waits for the stored token instead of exchanging.
+function fakeClaimStore({ held = false, fail = false } = {}) {
+  const calls = { set: [], eval: [] };
+  return {
+    calls,
+    async set(key, value, options) {
+      calls.set.push({ key, value, options });
+      if (fail) throw new Error("redis unavailable");
+      return held ? null : "OK";
+    },
+    async eval(script, keys, args) {
+      calls.eval.push({ keys, args });
+      return 1;
+    },
+  };
+}
+
+test("the request that wins the cross-process claim exchanges once and releases only its own claim", async () => {
+  const { service, state } = loadYahooAuth([{ ...EXPIRED_ROW }], { step02: true });
+  const claim = fakeClaimStore();
+  service.setRefreshClaimStore(claim, { sleep: async () => {} });
+  const { accessToken } = await service.getAuthenticatedYahooClient("user-9");
+
+  assert.equal(accessToken, "fresh-access");
+  assert.equal(state.refreshCalls, 1);
+  assert.equal(claim.calls.set.length, 1);
+  assert.equal(claim.calls.set[0].key, "omen:yahoo_refresh_claim:user-9");
+  assert.equal(claim.calls.set[0].options.nx, true);
+  assert.ok(claim.calls.set[0].options.px > 0);
+  assert.deepEqual(claim.calls.eval[0].args, [claim.calls.set[0].value]);
+});
+
+test("a process that loses the claim never calls Yahoo and uses the token the winner stores", async () => {
+  const { service, state } = loadYahooAuth([{ ...EXPIRED_ROW }], { step02: true, refreshedByOtherAfterRead: 3 });
+  service.setRefreshClaimStore(fakeClaimStore({ held: true }), { sleep: async () => {} });
+  const { accessToken } = await service.getAuthenticatedYahooClient("user-9");
+
+  assert.equal(accessToken, "other-access-secret-plain");
+  assert.equal(state.refreshCalls || 0, 0);
+});
+
+test("a process that loses the claim and never sees a stored token fails retryably, without calling Yahoo", async () => {
+  const { service, state } = loadYahooAuth([{ ...EXPIRED_ROW }], { step02: true });
+  service.setRefreshClaimStore(fakeClaimStore({ held: true }), { sleep: async () => {} });
+  await assert.rejects(service.getAuthenticatedYahooClient("user-9"), (err) => err.status === 503 && err.code === "yahoo_refresh_in_progress");
+  assert.equal(state.refreshCalls || 0, 0);
+});
+
+test("if the claim store is unavailable, the refresh still happens (process-local single flight only)", async () => {
+  const { service, state } = loadYahooAuth([{ ...EXPIRED_ROW }], { step02: true });
+  service.setRefreshClaimStore(fakeClaimStore({ fail: true }), { sleep: async () => {} });
+  const { accessToken } = await service.getAuthenticatedYahooClient("user-9");
+  assert.equal(accessToken, "fresh-access");
+  assert.equal(state.refreshCalls, 1);
+});
+
+test("the claim holder re-reads under the claim and uses a token stored meanwhile, without exchanging (Codex, #533)", async () => {
+  // Reads: 1 = caller, 2 = leader before claiming; another process stores a fresh token right after read 2.
+  const { service, state } = loadYahooAuth([{ ...EXPIRED_ROW }], { step02: true, refreshedByOtherAfterRead: 2 });
+  const claim = fakeClaimStore();
+  service.setRefreshClaimStore(claim, { sleep: async () => {} });
+  const { accessToken } = await service.getAuthenticatedYahooClient("user-9");
+
+  assert.equal(accessToken, "other-access-secret-plain");
+  assert.equal(state.refreshCalls || 0, 0);
+  assert.equal(claim.calls.eval.length, 1, "the claim is still released");
+});
+
+test("the claim is renewed while a slow exchange runs, and released by its holder afterwards (Codex, #533)", async () => {
+  const { service, state } = loadYahooAuth([{ ...EXPIRED_ROW }], { step02: true, refreshDelayMs: 40 });
+  const claim = fakeClaimStore();
+  service.setRefreshClaimStore(claim, { sleep: async () => {}, renewEveryMs: 5 });
+  await service.getAuthenticatedYahooClient("user-9");
+
+  const renewals = claim.calls.eval.filter((c) => c.args.length === 2);
+  const releases = claim.calls.eval.filter((c) => c.args.length === 1);
+  assert.ok(renewals.length >= 2, `expected renewals during the exchange, saw ${renewals.length}`);
+  assert.ok(renewals.every((c) => c.args[0] === claim.calls.set[0].value && Number(c.args[1]) > 0));
+  assert.equal(releases.length, 1);
+  assert.equal(state.refreshCalls, 1);
+});
+
+test("the Yahoo token request has a timeout, so a hung exchange cannot outlive the claim (Codex, #533)", async () => {
+  const modulePath = require.resolve("../src/middleware/yahooOAuth");
+  delete require.cache[modulePath];
+  const seen = [];
+  const originalLoad = Module._load;
+  Module._load = function patchedLoad(request, parent, isMain) {
+    if (request === "axios" && parent?.filename === modulePath) {
+      return { post: async (url, body, options) => { seen.push(options); return { data: { access_token: "a" } }; } };
+    }
+    return originalLoad.call(this, request, parent, isMain);
+  };
+  try {
+    const { refreshYahooToken } = require("../src/middleware/yahooOAuth");
+    await refreshYahooToken("r");
+  } finally {
+    Module._load = originalLoad;
+    delete require.cache[modulePath];
+  }
+  assert.ok(seen[0].timeout > 0 && seen[0].timeout <= 10_000, `timeout ${seen[0].timeout}`);
 });

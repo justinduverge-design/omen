@@ -4,7 +4,7 @@ begin;
 -- User 6 has a Sleeper and a Yahoo connection (two Yahoo secrets), a legacy move and, after step 05,
 -- possibly Ledger rows. Give them an ESPN connection too, a call, consent and a beta report if step 09 exists.
 do $$
-declare res jsonb; lg uuid; others_before int; secrets_before int; hash text;
+declare res jsonb; lg uuid; others_before int; secrets_before int; hash text; reports_left int;
 begin
   perform public.connection_store_espn('00000000-0000-4000-8000-000000000006', '600006', '2', 'six-s2', '{SIX-SWID}');
   perform public.league_follows_replace('00000000-0000-4000-8000-000000000006', 'espn', 2026, '[{"league_id":"600006","team_id":"2"}]');
@@ -34,9 +34,8 @@ begin
     raise exception 'FAIL 10: something owned by the erased user survived';
   end if;
   if to_regclass('public.beta_reports') is not null then
-    execute $q$select count(*) from public.beta_reports where user_id = '00000000-0000-4000-8000-000000000006'$q$ into others_before;
-    if others_before <> 0 then raise exception 'FAIL 10: a beta report survived the erase'; end if;
-    select count(*) into others_before from public.platform_connections where user_id <> '00000000-0000-4000-8000-000000000006';
+    execute $q$select count(*) from public.beta_reports where user_id = '00000000-0000-4000-8000-000000000006'$q$ into reports_left;
+    if reports_left <> 0 then raise exception 'FAIL 10: a beta report survived the erase'; end if;
   end if;
   if (select count(*) from vault.secrets) <> secrets_before - 4 then raise exception 'FAIL 10: secret count is wrong after erase'; end if;
   hash := encode(sha256(convert_to('00000000-0000-4000-8000-000000000006', 'UTF8')), 'hex');

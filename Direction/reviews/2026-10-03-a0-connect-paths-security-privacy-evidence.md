@@ -67,11 +67,12 @@ holding the service key (sprint items S1 and S2).
 - The fallback warning is logged once per function per process. The runbook's verify step for
   step 02 must look for its absence after the deploy that follows the apply.
 
-- Two **processes** can still exchange the same refresh token at once (the API and cron containers;
-  cron does not refresh Yahoo tokens while Tuesday scoring is off). If Yahoo revokes the old token,
-  the loser's exchange fails, re-reads, and uses the token the winner stored. If both exchanges
-  succeed with different refresh tokens, the compare-and-swap keeps the first one. Whether Yahoo
-  then honours it is Yahoo's behaviour and is not verified here.
+- **Resolved after merge (Codex, #525 second round):** two processes could still exchange the same
+  refresh token at once. A Redis claim (`omen:yahoo_refresh_claim:<user>`, 20 s, released only by its
+  holder) now spans the whole Yahoo exchange. A process without the claim waits for the stored token and
+  never calls Yahoo; if none appears in about 3 s it returns a retryable 503. If Redis is unavailable, the
+  refresh proceeds with the process-local guard only, and a warning is logged. That fallback is the
+  remaining exposure.
 
 ## Approval required
 
