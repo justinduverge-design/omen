@@ -31,7 +31,7 @@ intelligence should be built for the whole game so all coaches and players come 
   Raymond: 7.0 targets a game over the last 3 games (24% of the team's targets)." iOS shows it with no
   app build.
 - [x] **League Scheme DNA engine, first run** (`src/services/footballIntelligence/leagueSchemeDna.js`,
-  uncommitted on `claude/football-intelligence-league` at the time of writing):
+  shipped with tests; see box 2):
   - **2025:** all 32 offenses available, in 9 s. Example: CHI play-action 18.7%, 2nd in the NFL
     (league average 14.0%).
   - **2026:** 2 of 32 available. The evidence policy needs at least 4 games and 120 plays, so most teams
@@ -39,14 +39,12 @@ intelligence should be built for the whole game so all coaches and players come 
 
 ## Next, in order
 
-1. [ ] **Performance.** The 2026 run took ~17 min against 9 s for 2025. Find the hot spot (suspect
-   `buildFeatureWindow` scanning every fact per team; pre-partition facts by team). Also project only the
-   needed play-by-play columns instead of parsing all 370. Target: a full run in well under a minute.
-2. [ ] **Tests** for `leagueSchemeDna.js`:
-   - join (REG only; unmatched counted);
-   - fact mapping (invalid QB location skipped);
-   - ranks;
-   - the 4-game evidence rule respected.
+1. [x] **Performance.** The cause was memory, not the engine: all ~370 play-by-play columns were kept for a
+   season. `parseCsv` now takes `columns` and keeps only the four used. 2025 + 2026: about 7 s, 0.9 GB peak.
+   One team's window takes about 50 ms.
+2. [x] **Tests.** `test/footballIntelligenceLeague.test.js`: the join (REG only, unmatched counted), the fact
+   mapping (invalid QB location and odd values skipped), per-team DNA and league ranks, the 4-game evidence
+   rule, and column projection.
 3. [ ] **Signals per team** (new signal types, alongside the existing `coach_transfer_system_signal`):
    - `team_system_identity`: each rate with its league rank and average. Current season when available,
      otherwise last season, **labelled which**.
