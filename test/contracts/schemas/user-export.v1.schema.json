@@ -223,10 +223,7 @@
             "type": "integer"
           },
           "provider_team_id": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string"
           },
           "candidate_id": {
             "type": "string"

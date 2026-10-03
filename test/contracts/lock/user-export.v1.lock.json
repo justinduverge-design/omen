@@ -219,7 +219,7 @@
     },
     "saved_trades[].provider_team_id": {
       "required": true,
-      "type": "null|string"
+      "type": "string"
     },
     "saved_trades[].reasoning": {
       "required": true,
