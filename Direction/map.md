@@ -62,7 +62,7 @@ and the risky-PR list: `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md` § Review. Cl
 | Release, deploy, store consoles | `Direction/release/`, `Direction/release_readiness.md` | `slops-ship`, `slops-canary`, `slops-founder-admin-runbook` |
 | Where a new file belongs | `RESOLVER.md` | — |
 | Why something was decided | `Direction/decision_log.md` (search, do not read whole) | — |
-| What a code area touches | `graphify-out/` once refreshed (see skill audit) | — |
+| What a code area touches or depends on | Run `graphify update .` (about a minute, no API cost; the graph is generated and not in git), then `graphify explain "X"`, `graphify path "A" "B"` or `graphify query "question"`. Covers code only; scope in `.graphifyignore` | `slops-graphify` |
 
 ## Never read, only write to or run
 

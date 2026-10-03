@@ -1,0 +1,21 @@
+# Graph the code only. Docs, brand media, research, archives and build output are not code structure.
+Archive/
+Blueprints/
+Brand/
+Direction/
+Legal/
+References/
+Solutions/
+docs/
+output/
+design/
+memory/
+skills/
+logos/
+dd/
+build/
+graphify-out/
+**/Pods/
+**/build/
+**/node_modules/
+**/.build/

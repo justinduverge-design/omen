@@ -87,3 +87,6 @@ output/ios-dd/
 
 # Xcode DerivedData and build output. Was committed by accident in #453 (339 MB, 2,564 files).
 dd/
+
+# Generated code graph (~34 MB). Rebuild with `graphify update .` (about a minute, no API cost); see Direction/map.md.
+graphify-out/
