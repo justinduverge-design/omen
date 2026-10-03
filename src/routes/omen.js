@@ -44,6 +44,7 @@ const {
 const { createFootballIntelligenceServingRepository } = require("../services/footballIntelligence/servingRepository");
 const { enrichOmenWithFootballIntelligence } = require("../services/footballIntelligence/omenExplanation");
 const { teamIdFor } = require("../services/footballIntelligence/nflTeams");
+const ledger = require("../services/ledger");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
@@ -74,6 +75,7 @@ const MVP_LATENCY_BUDGET_MS = Object.freeze({
   llm_narration: 1250,
   football_intelligence: 700,
   persistence: 2500,
+  ledger: 1500,
 });
 
 function isExplicitMockRequest(body = {}) {
@@ -412,6 +414,25 @@ async function persistLiveRecommendation(user, response) {
   return data.id;
 }
 
+/**
+ * Record the served call in the Ledger (decisions + decision_factors). Runs after enrichment so
+ * the evidence lines are the ones the person actually saw. Unlike the moves receipt above, this is
+ * best-effort: a Ledger failure is logged (stage and code only) and never costs the user their
+ * answer. A write still running when the budget ends finishes in the background.
+ */
+async function recordLedgerCall(user, response, served, trace) {
+  if (!user?.id || response?.state !== "success" || !response.recommendation) return;
+  try {
+    await traceStage(trace, "ledger", () => withinLatencyBudget(
+      "ledger",
+      MVP_LATENCY_BUDGET_MS.ledger,
+      () => ledger.recordDecisionSafely(supabase, { userId: user.id, response, served }, { log: logger })
+    ));
+  } catch {
+    // Budget exceeded. The trace records it; the response is not held for the Ledger.
+  }
+}
+
 async function enrichWithDvp(response, body, { explicitMock = false } = {}) {
   if (!includeMatchupDvp(body)) return response;
   const dvp = await resolveMvpDvpContext(response, { explicitMock });
@@ -561,6 +582,24 @@ router.post("/feedback", requireAuth, async (req, res, next) => {
     if (error) throw new Error(`move feedback upsert failed: ${error.message}`);
     if (!data?.id) throw new Error("move feedback upsert failed: missing move id");
 
+    // The Ledger's own record of the action (decision_actions). Best-effort, like the call write:
+    // the moves row above is still the response's source of truth for this contract.
+    try {
+      const recorded = await ledger.recordDecisionAction(supabase, {
+        userId: req.user.id,
+        season,
+        week,
+        followed,
+        stars,
+        note,
+        platform: typeof req.body?.platform === "string" ? req.body.platform : null,
+        providerLeagueId: typeof req.body?.league_id === "string" ? req.body.league_id : null,
+      });
+      if (!recorded.written) logger.info("Ledger action not recorded", { reason: recorded.reason });
+    } catch (ledgerError) {
+      logger.warn("Ledger action write failed", { stage: ledgerError?.stage || "unknown", code: ledgerError?.code || null });
+    }
+
     return res.json({ recorded: true, move_id: data.id });
   } catch (e) {
     return next(e);
@@ -667,6 +706,7 @@ router.post("/mvp-move", async (req, res) => {
       return res.status(503).json(body);
     }
     const body = present(result.body);
+    await recordLedgerCall(result.authenticatedUser, result.body, body, trace);
     emitLatencyTrace(trace, body.state);
     if (cacheHandle) {
       // The cacheability decision reads the un-presented body: `state` and
