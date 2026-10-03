@@ -60,6 +60,33 @@ begin
   exception when invalid_parameter_value then null;
   end;
 
+  -- A row must cite an ingest of its own provider's projections compartment (plan A4).
+  declare ev_purge bigint; ev_other bigint;
+  begin
+    begin
+      insert into public.projection_snapshots (ingest_event_id, provider, provider_player_id, season, week, scope, provider_points, stat_line, fetched_at, source_ref)
+      values (ev_espn, 'sleeper', '5050', 2026, 4, 'public', '{"ppr":1}', '{}', now(), 'sha256:' || repeat('3', 64));
+      raise exception 'FAIL 06: a Sleeper projection citing an ESPN ingest was accepted';
+    exception when check_violation then null;
+    end;
+    insert into public.data_events (event, subject, provider, job, row_count, reason, approved_by)
+    values ('purge', 'projections:sleeper', 'sleeper', 'x', 0, 'test', 'founder') returning id into ev_purge;
+    begin
+      insert into public.projection_snapshots (ingest_event_id, provider, provider_player_id, season, week, scope, provider_points, stat_line, fetched_at, source_ref)
+      values (ev_purge, 'sleeper', '5051', 2026, 4, 'public', '{"ppr":1}', '{}', now(), 'sha256:' || repeat('4', 64));
+      raise exception 'FAIL 06: a projection citing a purge record was accepted';
+    exception when check_violation then null;
+    end;
+    insert into public.data_events (event, subject, provider, rights_basis, job, source_ref, row_count)
+    values ('ingest', 'scoring_rules:sleeper', 'sleeper', 'sleeper_public_api', 'x', 'sha256:' || repeat('5', 64), 1) returning id into ev_other;
+    begin
+      insert into public.projection_snapshots (ingest_event_id, provider, provider_player_id, season, week, scope, provider_points, stat_line, fetched_at, source_ref)
+      values (ev_other, 'sleeper', '5052', 2026, 4, 'public', '{"ppr":1}', '{}', now(), 'sha256:' || repeat('6', 64));
+      raise exception 'FAIL 06: a projection citing another compartment''s ingest was accepted';
+    exception when check_violation then null;
+    end;
+  end;
+
   -- A row cannot exist without its batch; a shadow row cannot cite another player's snapshot.
   begin
     insert into public.projection_snapshots (ingest_event_id, provider, provider_player_id, season, week, scope, provider_points, stat_line, fetched_at, source_ref)

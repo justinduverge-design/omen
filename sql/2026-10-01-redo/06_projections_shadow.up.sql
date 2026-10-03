@@ -102,6 +102,27 @@ create unique index projection_shadow_log_one_per_engine on public.projection_sh
    points_basis, engine_version);
 create index projection_shadow_log_snapshot on public.projection_shadow_log (projection_snapshot_id);
 
+-- A snapshot must cite the batch that wrote it: an 'ingest' event for the projections compartment of
+-- the same provider (Codex review, #508; plan A4). The foreign key alone would accept another
+-- provider's ingest, a purge record, or another compartment's batch (such as scoring rules), and then
+-- the record would no longer say where the row came from. A missing event is left to the foreign key.
+create function public.projection_snapshots_check_ingest() returns trigger
+language plpgsql set search_path = pg_catalog, public as $$
+declare ev public.data_events%rowtype;
+begin
+  select * into ev from public.data_events where id = new.ingest_event_id;
+  if not found then
+    return new;
+  end if;
+  if ev.event <> 'ingest' or ev.provider is distinct from new.provider or ev.subject <> 'projections:' || new.provider then
+    raise exception 'projection_snapshots: event % is not a projections ingest for %', new.ingest_event_id, new.provider
+      using errcode = '23514';
+  end if;
+  return new;
+end $$;
+create trigger projection_snapshots_check_ingest before insert on public.projection_snapshots
+  for each row execute function public.projection_snapshots_check_ingest();
+
 -- The snapshot is the single source for a shadow row's identity and provider number (Codex review, #505).
 -- Provider, player, player id, season, week, league and the provider's projection are copied from the cited
 -- snapshot; a writer may omit them, and a value that disagrees with the snapshot is refused. The provider's
@@ -203,7 +224,8 @@ revoke all on sequence public.data_events_id_seq, public.projection_snapshots_id
 do $$
 declare f text;
 begin
-  foreach f in array array['public.projection_shadow_log_check()', 'public.compartment_append_only()',
+  foreach f in array array['public.projection_shadow_log_check()', 'public.projection_snapshots_check_ingest()',
+                           'public.compartment_append_only()',
                            'public.projections_purge(text, text, text)']
   loop
     execute format('revoke all on function %s from public, anon, authenticated', f);
