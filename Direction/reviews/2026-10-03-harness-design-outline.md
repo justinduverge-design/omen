@@ -104,9 +104,14 @@ Never changed by this process: authority, permissions, or approval gates. Those 
 - **Plugin skills** (~150 entries, unrelated to Omen) and **skill linking** at `Slops-OS/.claude/skills`
   are outside this repo; both need a founder action and a cross-layer approval.
 
-## 8. Decisions needed from the founder
+## 8. Decisions (founder, 2026-10-03)
 
-- Is the four-layer split and the 1.5k-token map budget right, or should the map hold more?
-- Approve step order in section 6, or reorder.
-- Should the monthly skill check run as a scheduled cloud job, or manually after each model release?
-- OK to remove `dd/` from git as its own PR?
+- **Four-layer split:** approved.
+- **Budget:** the map is capped at ~2k tokens (was 1.5k). A typical session is map plus task context,
+  target ~10k total against ~92k today. The cost report in step 2 will measure it.
+- **Skill check cadence:** every three weeks, plus on request when a new model ships ("run the skill
+  check"). Manual trigger first; schedule it once the with/without test exists.
+- **`dd/`:** remove from git. Done in a separate PR (#538). History still holds the files.
+- **Step order (section 6):** accepted as written.
+- **Still open:** large media tracked in git (`Brand/` videos and audio, ~79 MB; `Solutions/` ~62 MB;
+  `output/` ~20 MB; `graphify-out/` ~34 MB). Candidates to move out of git; not touched.

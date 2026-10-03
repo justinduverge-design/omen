@@ -3,7 +3,7 @@
 **Status: proposal. Nothing reads this yet.** It is the page a session would load instead of the 92k-token
 read list. It holds only what every task needs; everything else is pulled by the table below. Edit it,
 then the drift-checked docs (`CLAUDE.md`, `AGENTS.md`, `AGENT.md`, `kickoff-l2.md`) get rewritten to point
-here via `slops-agent-docs-refresh`. Target: under ~1.5k tokens once live.
+here via `slops-agent-docs-refresh`. Target: under ~2k tokens once live.
 
 Design basis: ICM (Van Clief & McDermott, arXiv 2603.16021 — load only the current stage's context, keep
 reference separate from working files), "thin harness, fat skills" (gstack), grill-before-build (Pocock).
