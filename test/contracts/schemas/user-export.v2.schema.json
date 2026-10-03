@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "user-export.v1",
-  "title": "user-export.v1 (inferred from recorded server responses; review before relying on it)",
+  "$id": "user-export.v2",
+  "title": "user-export.v2",
   "description": "ADDITIVE ONLY within this version. Extra properties are allowed; removing, renaming or retyping anything listed here is a breaking change and fails the lock.",
   "type": "object",
   "properties": {
@@ -106,9 +106,6 @@
           "created_at": {
             "type": "string"
           },
-          "feature": {
-            "type": "string"
-          },
           "id": {
             "type": "string"
           },
@@ -121,7 +118,6 @@
         },
         "required": [
           "created_at",
-          "feature",
           "id",
           "move_type",
           "user_id"
@@ -301,6 +297,30 @@
           "week"
         ]
       }
+    },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "call_type": {
+            "type": "string"
+          },
+          "headline": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "call_type"
+        ]
+      }
     }
   },
   "required": [
@@ -312,6 +332,7 @@
     "platform_connections",
     "redactions",
     "saved_trades",
-    "user"
+    "user",
+    "decisions"
   ]
 }
