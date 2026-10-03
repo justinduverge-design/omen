@@ -31,7 +31,7 @@ unused Vault helpers in `src/omen_api_v2.js`, whose routes are retired.
 |---|---|---|---|
 | Once step 02 is applied, a secret and its connection row change in one transaction, under the per-(user, provider) advisory lock that `account_erase()` also takes | Each function's body; `concurrency-check.sh` races 1–3 (handoff) | step 02/10 SQL; handoff | confirmed |
 | Disconnect no longer reports success while stranding a secret | `connection_revoke` raises if any pointed-at secret is missing; route test expects 500, the row kept, and no Vault deletes | `platforms.test.js` | confirmed |
-| Concurrent Yahoo refreshes cannot overwrite each other | Compare-and-swap on the `token_expires_at` the request read; the losing request writes nothing | `yahooAuth.test.js` | confirmed (unit); the SQL was verified in V1 |
+| Concurrent Yahoo refreshes do not race the provider or overwrite each other | Within a process, one Yahoo exchange per user at a time, shared by concurrent callers (Codex, #525). Across processes, a compare-and-swap on the `token_expires_at` the request read, so the loser writes nothing; and an exchange that fails because another process already rotated the token uses the stored token | `yahooAuth.test.js` | confirmed (unit); the SQL was verified in V1 |
 | Cookie and token values never appear in errors or logs from the new module | Errors carry the function name and Postgres code only; the fallback warning carries the function name only; tested with a sentinel secret | `connectionStore.test.js` | confirmed |
 | A disconnect failure does not log Vault secret ids | Route test checks both the logs and the response body | `platforms.test.js` | confirmed |
 | A misspelled argument cannot silently disable the new path | A test parses the SQL signatures and compares them with the argument names the module sends | `connectionStore.test.js` | confirmed |
@@ -66,6 +66,12 @@ holding the service key (sprint items S1 and S2).
   warning has stopped.
 - The fallback warning is logged once per function per process. The runbook's verify step for
   step 02 must look for its absence after the deploy that follows the apply.
+
+- Two **processes** can still exchange the same refresh token at once (the API and cron containers;
+  cron does not refresh Yahoo tokens while Tuesday scoring is off). If Yahoo revokes the old token,
+  the loser's exchange fails, re-reads, and uses the token the winner stored. If both exchanges
+  succeed with different refresh tokens, the compare-and-swap keeps the first one. Whether Yahoo
+  then honours it is Yahoo's behaviour and is not verified here.
 
 ## Approval required
 

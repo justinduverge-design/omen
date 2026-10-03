@@ -24,7 +24,7 @@ class FakeQuery {
     const row = this.state.rows.find((candidate) =>
       this.filters.every(({ field, value }) => candidate[field] === value)
     );
-    return Promise.resolve({ data: row || null, error: null });
+    return Promise.resolve({ data: row ? { ...row } : null, error: null });
   }
 }
 
@@ -72,7 +72,7 @@ function makeSupabase(state) {
   };
 }
 
-function loadYahooAuth(rows = [], { step02 = false, rotateWins = true } = {}) {
+function loadYahooAuth(rows = [], { step02 = false, rotateWins = true, refreshFails = false, otherProcessRefreshes = false } = {}) {
   const servicePath = require.resolve("../src/services/yahooAuth");
   delete require.cache[servicePath];
 
@@ -84,6 +84,8 @@ function loadYahooAuth(rows = [], { step02 = false, rotateWins = true } = {}) {
     rpcs: [],
     step02,
     rotateWins,
+    refreshFails,
+    otherProcessRefreshes,
   };
   const fakeSupabase = makeSupabase(state);
   const originalLoad = Module._load;
@@ -99,6 +101,14 @@ function loadYahooAuth(rows = [], { step02 = false, rotateWins = true } = {}) {
       return {
         refreshYahooToken: async (refreshToken) => {
           state.refreshedWith = refreshToken;
+          state.refreshCalls = (state.refreshCalls || 0) + 1;
+          await new Promise((resolve) => setImmediate(resolve));
+          if (state.refreshFails) {
+            if (state.otherProcessRefreshes) {
+              Object.assign(state.rows[0], { token_expires_at: "2026-10-03T09:00:00+00:00", token_secret_id: "other-access-secret" });
+            }
+            throw new Error("yahoo refresh rejected");
+          }
           return { access_token: "fresh-access", refresh_token: "fresh-refresh", expires_in: 3600 };
         },
       };
@@ -247,4 +257,32 @@ test("an expired Yahoo token keeps today's refresh writes while step 02 is not a
     ["access-secret", "refresh-secret"]
   );
   assert.equal(state.updates.length, 1);
+});
+
+test("concurrent requests for one expired Yahoo token share a single exchange with Yahoo (Codex, #525)", async () => {
+  const { service, state } = loadYahooAuth([EXPIRED_ROW], { step02: true });
+  const results = await Promise.all([
+    service.getAuthenticatedYahooClient("user-9"),
+    service.getAuthenticatedYahooClient("user-9"),
+    service.getAuthenticatedYahooClient("user-9"),
+  ]);
+
+  assert.equal(state.refreshCalls, 1);
+  assert.deepEqual(results.map((r) => r.accessToken), ["fresh-access", "fresh-access", "fresh-access"]);
+  assert.equal(state.rpcs.filter((rpc) => rpc.name === "connection_rotate_yahoo").length, 1);
+});
+
+test("a Yahoo exchange that fails because another process refreshed first uses the token it stored", async () => {
+  const { service, state } = loadYahooAuth([{ ...EXPIRED_ROW }], { step02: true, refreshFails: true, otherProcessRefreshes: true });
+  const { accessToken } = await service.getAuthenticatedYahooClient("user-9");
+
+  assert.equal(accessToken, "other-access-secret-plain");
+  assert.equal(state.rpcs.some((rpc) => rpc.name === "connection_rotate_yahoo"), false);
+});
+
+test("a Yahoo exchange that fails with nobody else refreshing still fails, and writes nothing", async () => {
+  const { service, state } = loadYahooAuth([{ ...EXPIRED_ROW }], { step02: true, refreshFails: true });
+  await assert.rejects(service.getAuthenticatedYahooClient("user-9"), /yahoo refresh rejected/);
+  assert.equal(state.rpcs.some((rpc) => rpc.name === "connection_rotate_yahoo"), false);
+  assert.equal(state.updates.length, 0);
 });

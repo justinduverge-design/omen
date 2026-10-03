@@ -97,7 +97,7 @@ async function persistYahooTokens(userId, tokens, leagueId = null) {
   if (error) throw new Error(`Yahoo token persistence failed: ${error.message}`);
 }
 
-async function getAuthenticatedYahooClient(userId) {
+async function readYahooConnection(userId) {
   const { data: conn, error } = await supabase
     .from("platform_connections")
     .select("*")
@@ -106,6 +106,73 @@ async function getAuthenticatedYahooClient(userId) {
     .maybeSingle();
 
   if (error) throw new Error(`platform_connections lookup failed: ${error.message}`);
+  return conn;
+}
+
+// One Yahoo token exchange per user at a time in this process. Yahoo may issue a new refresh token
+// and revoke the old one, so two parallel exchanges with the same refresh token can fail or leave a
+// revoked token stored (Codex, #525). Concurrent callers share the one in-flight refresh.
+const refreshesInFlight = new Map();
+
+function refreshYahooAccessToken(userId, conn) {
+  const inFlight = refreshesInFlight.get(userId);
+  if (inFlight) return inFlight;
+  const refresh = exchangeAndStore(userId, conn).finally(() => refreshesInFlight.delete(userId));
+  refreshesInFlight.set(userId, refresh);
+  return refresh;
+}
+
+async function exchangeAndStore(userId, conn) {
+  const refreshToken = await vaultDecrypt(conn.refresh_secret_id);
+  if (!refreshToken) {
+    throw Object.assign(new Error("Yahoo refresh token missing - re-auth required"), { status: 401 });
+  }
+
+  let refreshed;
+  try {
+    refreshed = await refreshYahooToken(refreshToken);
+  } catch (err) {
+    // Another process may have refreshed first and rotated the refresh token this request read.
+    // If the stored expiry moved, use the access token it stored instead of failing.
+    const current = await readYahooConnection(userId);
+    if (current && current.token_expires_at !== conn.token_expires_at) {
+      const stored = await vaultDecrypt(current.token_secret_id);
+      if (stored) return stored;
+    }
+    throw err;
+  }
+
+  const accessToken = refreshed.access_token;
+  const expiresAt = new Date(Date.now() + refreshed.expires_in * 1000).toISOString();
+
+  // Across processes, the write lands only if nobody refreshed since this request read the row.
+  // A loser keeps its own fresh access token for this request and writes nothing.
+  const rotation = await connectionStore.rotateYahoo(supabase, {
+    userId,
+    expectedExpiresAt: conn.token_expires_at,
+    accessToken,
+    refreshToken: refreshed.refresh_token || null,
+    expiresAt,
+  });
+
+  if (!rotation.present) {
+    // Today's path, kept until redo step 02 is applied.
+    await vaultUpdate(conn.token_secret_id, accessToken);
+    if (refreshed.refresh_token) {
+      await vaultUpdate(conn.refresh_secret_id, refreshed.refresh_token);
+    }
+    await supabase.from("platform_connections").update({
+      token_expires_at: expiresAt,
+      updated_at:       new Date().toISOString(),
+    }).eq("user_id", userId).eq("platform", "yahoo");
+  }
+
+  logger.info("Yahoo token refreshed", { userId, stored: rotation.present ? rotation.data !== false : true });
+  return accessToken;
+}
+
+async function getAuthenticatedYahooClient(userId) {
+  const conn = await readYahooConnection(userId);
   if (!conn) {
     throw Object.assign(new Error("No Yahoo connection for this user"), { status: 404 });
   }
@@ -119,38 +186,7 @@ async function getAuthenticatedYahooClient(userId) {
   const isExpired = !expiresAt || expiresAt.getTime() < Date.now() + 60_000;
 
   if (isExpired) {
-    const refreshToken = await vaultDecrypt(conn.refresh_secret_id);
-    if (!refreshToken) {
-      throw Object.assign(new Error("Yahoo refresh token missing - re-auth required"), { status: 401 });
-    }
-
-    const refreshed = await refreshYahooToken(refreshToken);
-    accessToken = refreshed.access_token;
-    const expiresAt = new Date(Date.now() + refreshed.expires_in * 1000).toISOString();
-
-    // Single-flight: the write lands only if nobody refreshed since this request read the row.
-    // A loser keeps its own fresh access token for this request and writes nothing.
-    const rotation = await connectionStore.rotateYahoo(supabase, {
-      userId,
-      expectedExpiresAt: conn.token_expires_at,
-      accessToken,
-      refreshToken: refreshed.refresh_token || null,
-      expiresAt,
-    });
-
-    if (!rotation.present) {
-      // Today's path, kept until redo step 02 is applied.
-      await vaultUpdate(conn.token_secret_id, accessToken);
-      if (refreshed.refresh_token) {
-        await vaultUpdate(conn.refresh_secret_id, refreshed.refresh_token);
-      }
-      await supabase.from("platform_connections").update({
-        token_expires_at: expiresAt,
-        updated_at:       new Date().toISOString(),
-      }).eq("user_id", userId).eq("platform", "yahoo");
-    }
-
-    logger.info("Yahoo token refreshed", { userId, stored: rotation.present ? rotation.data !== false : true });
+    accessToken = await refreshYahooAccessToken(userId, conn);
   }
 
   return {
