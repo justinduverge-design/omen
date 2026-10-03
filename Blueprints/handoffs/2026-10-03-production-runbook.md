@@ -11,7 +11,8 @@ no agent reads or prints a secret; the agent never holds the database password.
 
 Do these the day before, or the morning of. Each ends with something checkable.
 
-1. **Server changes merged and deployed, in this order:** A2 (#523), A3 (#524), A0 (#525), A1 (#526).
+1. **Server changes merged and deployed, in this order:** A2 (#523), A3 (#524), A0 (#525), A1 (**#531**;
+   #526 merged into the A0 branch, not `main`, so #531 carries it). Also #532 and #533.
    - Every one keeps today's behaviour while its function or table does not exist, so they are safe to
      deploy before any step.
    - Deploying them first makes each step's watch meaningful: the moment step 02 is applied, connect

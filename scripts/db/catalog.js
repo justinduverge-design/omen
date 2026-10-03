@@ -164,7 +164,10 @@ async function main() {
     // What a step changed on the target (actual before -> after) must equal what it changed on scratch
     // (expected before -> after). Comparing changes, not whole catalogs, keeps Supabase-only objects that
     // exist before the step (and never change) out of the comparison.
-    const [expBefore, expAfter, actBefore, actAfter] = process.argv.slice(3).map((f) => JSON.parse(fs.readFileSync(f, "utf8")));
+    // Catalogs saved from the connector arrive wrapped as {"catalog": {...}}; unwrap every input (Codex, #530).
+    const [expBefore, expAfter, actBefore, actAfter] = process.argv.slice(3)
+      .map((f) => JSON.parse(fs.readFileSync(f, "utf8")))
+      .map((doc) => doc.catalog || doc);
     const expected = diff(expBefore, expAfter).sort();
     const actual = diff(actBefore, actAfter).sort();
     const missing = expected.filter((l) => !actual.includes(l));
