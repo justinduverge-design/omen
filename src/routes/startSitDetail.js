@@ -34,6 +34,7 @@ const {
   CONTRACT_VERSION_V2,
   buildStartSitDetail,
 } = require("../services/startSitDetail");
+const { getRecentUsage } = require("../services/playerUsage");
 const sleeperAdapter = require("../adapters/sleeper");
 const espnAdapter = require("../adapters/espn");
 
@@ -161,7 +162,14 @@ router.get("/detail", requireAuth, async (req, res, next) => {
       }));
     }
 
+    const rosterKeys = [...(loaded.roster?.slots?.starters || []), ...(loaded.roster?.slots?.bench || [])]
+      .map((player) => player?.player_key).filter(Boolean);
+    const usage = suppressLiveFootballData()
+      ? new Map()
+      : await getRecentUsage({ supabase, playerKeys: rosterKeys, season: Number(context.season), beforeWeek: Number(resolvedWeek), log: logger });
+
     return res.json(buildStartSitDetail({
+      usage,
       roster: loaded.roster,
       platform: connection.platform,
       leagueId: connection.league_id,
