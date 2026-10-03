@@ -62,18 +62,22 @@ intelligence should be built for the whole game so all coaches and players come 
      published-only reads, anon refused, one published row per scope.
    - **Applied to production 2026-10-03** through `apply_migration`. `VERIFIED 13`; the catalog
      fingerprint equals the expected state in all 9 families.
-5. [ ] **Nightly job (cron image).** Download FTN, play-by-play and games; build the DNA and signals;
-   validate; publish (supersede yesterday's rows); record a `data_events` ingest. Refuse to publish on a
-   truncated source.
+5. [x] **Nightly job.** `src/omen_football_intelligence_cron.js`, daily 06:30 ET in the cron image.
+   - Downloads games plus the current and previous season's FTN and play-by-play (play-by-play streamed
+     line by line, four columns kept).
+   - Builds per-team DNA one team at a time: 519 MB peak, against the container's 1 GB.
+   - Publishes `team_system_identity` per team: unchanged content is skipped; changed content supersedes
+     the published row. Refuses below 30 teams. Records a `data_events` ingest.
+   - Real rows proven against the step 13 table on scratch (32 published, then a supersede).
 6. [x] **Team identity mapping.** `src/services/footballIntelligence/nflTeams.js` (#546): `omen:team:<abbr>`, one
    per current franchise; provider aliases (JAC, WSH, LAR, OAK, SD, STL…) map onto it. Coach ids:
    `omen:coach:<slug>`.
-7. [ ] **Show it.**
-   - Start/sit call (`src/services/startSitDetail.js` `buildEvidence`): one "team system" line per
-     player, e.g. "Chicago runs play-action on 18.7% of plays, 2nd in the NFL (2025)."
-   - Omen call: the `football_intelligence` object, which `src/routes/omen.js` already attaches once the
-     recommendation carries an `omen_team_id`.
-   - iOS already renders both. **Do not touch `mobile/`**: the phone session owns it.
+7. [x] **Show it.**
+   - Start/sit: one `observed_context` line per player's team, from the published summaries
+     (`teamSystemLines.js`).
+   - Omen call: `src/routes/omen.js` now sets `primary_player.omen_team_id` from the player's NFL team,
+     so the existing hook reads the published `team_system_identity` (the serving repository's team lookup
+     now asks for that type).
 8. [ ] **Snap share** in the usage line (snap counts join on `pfr_id`, which nflverse `players.csv`
    carries).
 9. [ ] **Phone check with the founder,** then the beta decision.

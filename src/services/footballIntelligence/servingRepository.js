@@ -2,6 +2,8 @@
 
 const CONTRACT_VERSION = "football-intelligence-signal.v1";
 const SIGNAL_TYPE = "coach_transfer_system_signal";
+// The league-wide team signal (FI-LEAGUE, teamSignals.js): what a team's offense does, ranked against the league.
+const TEAM_SIGNAL_TYPE = "team_system_identity";
 const SERVABLE_STATUSES = new Set(["available", "insufficient_coverage", "stale", "disputed"]);
 const SHA256 = /^sha256:[0-9a-f]{64}$/;
 const RECEIPT = /^receipt:[0-9a-f]{64}$/;
@@ -20,14 +22,14 @@ function createFootballIntelligenceServingRepository({ client, now = () => new D
   }
 
   async function findPublishedCoachTransfer({ teamId, coachId, season }) {
-    return findPublished({ teamId, coachId, season });
+    return findPublished({ teamId, coachId, season, signalType: SIGNAL_TYPE });
   }
 
   async function findPublishedTeamSignal({ teamId, season }) {
-    return findPublished({ teamId, season });
+    return findPublished({ teamId, season, signalType: TEAM_SIGNAL_TYPE });
   }
 
-  async function findPublished({ teamId, coachId, season }) {
+  async function findPublished({ teamId, coachId, season, signalType }) {
     let result;
     try {
       let query = client
@@ -41,7 +43,7 @@ function createFootballIntelligenceServingRepository({ client, now = () => new D
       if (coachId !== undefined) query = query.eq("coach_id", coachId);
       query = query
         .eq("season", season)
-        .eq("signal_type", SIGNAL_TYPE)
+        .eq("signal_type", signalType)
         .eq("publication_state", "published");
       result = await query
         .order("published_at", { ascending: false })
@@ -54,7 +56,7 @@ function createFootballIntelligenceServingRepository({ client, now = () => new D
 
     if (result?.error) throw servingFailure();
     if (!result?.data) return null;
-    validateRow(result.data, { teamId, coachId, season });
+    validateRow(result.data, { teamId, coachId, season, signalType });
 
     const payload = structuredClone(result.data.payload);
     const staleAfter = result.data.stale_after ? Date.parse(result.data.stale_after) : null;
@@ -78,7 +80,7 @@ function createFootballIntelligenceServingRepository({ client, now = () => new D
 function validateRow(row, scope) {
   const payload = row?.payload;
   if (row.contract_version !== CONTRACT_VERSION
-    || row.signal_type !== SIGNAL_TYPE
+    || row.signal_type !== scope.signalType
     || row.publication_state !== "published"
     || row.team_id !== scope.teamId
     || (scope.coachId !== undefined && row.coach_id !== scope.coachId)
@@ -86,7 +88,7 @@ function validateRow(row, scope) {
     || !SERVABLE_STATUSES.has(row.status)
     || !payload || Array.isArray(payload) || typeof payload !== "object"
     || payload.contract_version !== CONTRACT_VERSION
-    || payload.signal_type !== SIGNAL_TYPE
+    || payload.signal_type !== scope.signalType
     || payload.status !== row.status
     || payload.subject?.team_id !== row.team_id
     || payload.subject?.coach_id !== row.coach_id
@@ -115,5 +117,6 @@ module.exports = {
   CONTRACT_VERSION,
   FootballIntelligenceServingError,
   SIGNAL_TYPE,
+  TEAM_SIGNAL_TYPE,
   createFootballIntelligenceServingRepository,
 };
