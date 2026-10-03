@@ -108,6 +108,22 @@ recorded: 1 sign-in, 0 secrets, the 3-row leftover table, and 1 migration histor
 - **Afterwards:** every object, seed row, secret and history row added was removed, and the leftover
   table was moved back. The state equals the recorded prior state, and the project was paused.
 
+### Step 12 changed after V1 (Codex on #529), so it was re-verified (2026-10-03, later)
+
+- **What changed:** a trade side must now name a player (`player_key` or `player_id`), and the trade must
+  name the opponent. The new step 12 up has md5 `a6ad7a63…`, the test `24ff9eed…`, the down `b584afd8…`.
+- **Restored copy (V2c, re-run):** a fresh restore on KVM1 passes all 12 steps in production order with the
+  re-recorded expected catalogs. The copy was deleted and confirmed gone.
+- **Real Supabase (V1c, step 12 re-run):** the throwaway project was woken again and given production's
+  `users` table, privileges and `ensure_rls` trigger.
+  - `apply_migration redo_12_saved_trades` succeeded. The SQL statements were sent as in the stripped
+    file; comment lines were omitted from the payload.
+  - The full step 12 test passed inside a rolled-back transaction, including the seven malformed trades
+    refused and the owner-only read under `authenticated`.
+  - `12.verify.sql` passed, and no client role can execute `saved_trades_side_ok`.
+  - `redo_12_saved_trades_down` removed everything.
+  - The project was returned to its prior state and paused.
+
 ## Verification on scratch
 
 - `scripts/db/rehearse-redo.sh` (now steps 01–12): every step up → tests → down → up, and the full
