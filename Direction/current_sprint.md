@@ -11,17 +11,20 @@ founder, or store work.
 
 ## Active
 
-### DB-REDO-PROD — Prepare production for the database redo (do not run it)
+### FI-LEAGUE — Football intelligence for the whole league (the "why" behind every call)
 
-- **Status:** READY
-- **Blocked by:** FOUNDER_APPROVAL — go/no-go on the exact SQL command and blast radius (fact 8)
-- **Priority:** P0
+- **Status:** IN_PROGRESS
+- **Claim:** 2026-10-03 Claude — league-wide Scheme DNA, team signals, serving table, nightly job, and the start/sit and Omen call lines
+- **Priority:** P0. The founder holds the beta until this is on the phone.
 - **Cost:** large
-- **Do not touch:** production; applying any step without the founder's exact approval
-- **Scope:** prep is complete (2026-10-03). Next is the production session: confirm the deployed SHA, tick
-  `Blueprints/handoffs/2026-10-03-production-go-no-go.md`, apply by `Blueprints/handoffs/2026-10-03-production-runbook.md`,
-  one sitting at a time. Design: `Blueprints/rebuild/omen-database-redo-v1.md`; SQL: `sql/2026-10-01-redo/`.
-- **Done when:** the redo is applied step by step on production with founder approval and verified.
+- **Do not touch:** `mobile/` (the phone session owns it); production writes beyond what the founder approved under plan B (the serving table and the nightly publish)
+- **Scope and running checklist:** `Blueprints/handoffs/2026-10-03-football-intelligence-league-build.md`. Tick boxes there as work lands.
+- **Done when:** every team has a published system signal, and the founder sees team-system and usage lines on the phone for players on any team.
+
+### DB-REDO-PROD — Database redo applied to production
+
+- **Status:** VERIFIED
+- **Evidence:** all 12 steps applied 2026-10-03 (founder-approved, five sittings), each verified against the rehearsed catalog change: `Blueprints/handoffs/2026-10-03-prep-for-production.md` ("Production applied"). The phone deletion test (steps 05 and 10) remains, deferred by the founder to the very end.
 
 ### RELEASE-OCT-6 — Tuesday 2026-10-06 iOS release
 
