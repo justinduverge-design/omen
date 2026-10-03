@@ -48,6 +48,9 @@ class FakeQuery {
         this.store[this.table] = remaining;
         return { data: null, error: null, count: removedCount };
       }
+      if (this.store.__missingTables?.has(this.table)) {
+        return { data: null, error: { code: "PGRST205", message: "Could not find the table" } };
+      }
       const rows = this.store[this.table].filter((row) => this._matches(row));
       return { data: rows, error: null };
     }).then(resolve, reject);
@@ -161,6 +164,26 @@ function seedStore() {
     oauth_state: [
       { user_id: "user-1", state: "state-1", platform: "yahoo" },
       { user_id: "user-2", state: "state-2", platform: "yahoo" },
+    ],
+    saved_trades: [
+      {
+        user_id: "user-1", provider: "sleeper", provider_league_id: "L1", season: 2026, week: 5, provider_team_id: "3",
+        candidate_id: "b1.find_x", trade: { give: { player_id: "4984" }, receive: { player_id: "6794" }, opponent_team_id: "7" },
+        reasoning: { fills_need_for: "WR" }, state: "sent", outcome: "accepted", outcome_provenance: "self_reported",
+        saved_at: "2026-10-01T00:00:00.000Z", sent_at: "2026-10-01T01:00:00.000Z", outcome_at: "2026-10-02T00:00:00.000Z",
+      },
+      {
+        user_id: "user-1", provider: "sleeper", provider_league_id: "L1", season: 2026, week: 6, provider_team_id: "3",
+        candidate_id: "b3.find_z", trade: { give: { player_id: "11" }, receive: { player_id: "12" }, opponent_team_id: "8" },
+        reasoning: {}, state: "saved", outcome: null, outcome_provenance: null,
+        saved_at: "2026-10-01T00:00:00.000Z", sent_at: null, outcome_at: null,
+      },
+      {
+        user_id: "user-2", provider: "sleeper", provider_league_id: "L2", season: 2026, week: 5, provider_team_id: "5",
+        candidate_id: "b2.find_y", trade: { give: { player_id: "1" }, receive: { player_id: "2" }, opponent_team_id: "4" },
+        reasoning: {}, state: "saved", outcome: null, outcome_provenance: null,
+        saved_at: "2026-10-01T00:00:00.000Z", sent_at: null, outcome_at: null,
+      },
     ],
     deletion_audit_log: [],
   };
@@ -322,6 +345,26 @@ test("DELETE /delete rejects a mismatched confirmation phrase without touching a
 
   assert.equal(res.status, 400);
   assert.equal(store.users.some((u) => u.id === "user-1"), true);
+});
+
+// Redo step 12: saved trades are part of the person's export (and cascade with the users row on erase).
+test("GET /export includes only the requesting user's saved trades", async () => {
+  const store = seedStore();
+  const app = buildApp({ store, actingUserId: "user-1" });
+  const res = await request(app, "/api/account/export");
+
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.body.saved_trades.map((t) => t.candidate_id), ["b1.find_x", "b3.find_z"]);
+});
+
+test("GET /export returns an empty saved_trades list while step 12 is not applied", async () => {
+  const store = seedStore();
+  store.__missingTables = new Set(["saved_trades"]);
+  const app = buildApp({ store, actingUserId: "user-1" });
+  const res = await request(app, "/api/account/export");
+
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.body.saved_trades, []);
 });
 
 // Plan A1: once redo steps 05 and 10 are applied, deletion is one transaction in account_erase().

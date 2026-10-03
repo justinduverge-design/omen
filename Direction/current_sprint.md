@@ -18,8 +18,9 @@ founder, or store work.
 - **Priority:** P0
 - **Cost:** large
 - **Do not touch:** production; applying any step without the founder's exact approval
-- **Scope:** `Blueprints/handoffs/2026-10-02-prep-for-production-brief.md`, `Blueprints/rebuild/omen-database-redo-v1.md`,
-  `sql/2026-10-01-redo/`. Step 12 (#529) and the runbook, go/no-go and dry-run tooling (#530) merged 2026-10-03.
+- **Scope:** prep is complete (2026-10-03). Next is the production session: confirm the deployed SHA, tick
+  `Blueprints/handoffs/2026-10-03-production-go-no-go.md`, apply by `Blueprints/handoffs/2026-10-03-production-runbook.md`,
+  one sitting at a time. Design: `Blueprints/rebuild/omen-database-redo-v1.md`; SQL: `sql/2026-10-01-redo/`.
 - **Done when:** the redo is applied step by step on production with founder approval and verified.
 
 ### RELEASE-OCT-6 — Tuesday 2026-10-06 iOS release

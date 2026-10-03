@@ -170,6 +170,89 @@
       "required": true,
       "type": "string"
     },
+    "saved_trades": {
+      "required": true,
+      "type": "array"
+    },
+    "saved_trades[]": {
+      "required": true,
+      "type": "object"
+    },
+    "saved_trades[].candidate_id": {
+      "required": true,
+      "type": "string"
+    },
+    "saved_trades[].outcome": {
+      "required": true,
+      "type": "enum",
+      "values": [
+        "\"accepted\"",
+        "\"countered\"",
+        "\"rejected\"",
+        "null"
+      ]
+    },
+    "saved_trades[].outcome_at": {
+      "required": true,
+      "type": "null|string"
+    },
+    "saved_trades[].outcome_provenance": {
+      "required": true,
+      "type": "enum",
+      "values": [
+        "\"self_reported\"",
+        "null"
+      ]
+    },
+    "saved_trades[].provider": {
+      "required": true,
+      "type": "enum",
+      "values": [
+        "\"espn\"",
+        "\"sleeper\"",
+        "\"yahoo\""
+      ]
+    },
+    "saved_trades[].provider_league_id": {
+      "required": true,
+      "type": "string"
+    },
+    "saved_trades[].provider_team_id": {
+      "required": true,
+      "type": "string"
+    },
+    "saved_trades[].reasoning": {
+      "required": true,
+      "type": "object"
+    },
+    "saved_trades[].saved_at": {
+      "required": true,
+      "type": "string"
+    },
+    "saved_trades[].season": {
+      "required": true,
+      "type": "integer"
+    },
+    "saved_trades[].sent_at": {
+      "required": true,
+      "type": "null|string"
+    },
+    "saved_trades[].state": {
+      "required": true,
+      "type": "enum",
+      "values": [
+        "\"saved\"",
+        "\"sent\""
+      ]
+    },
+    "saved_trades[].trade": {
+      "required": true,
+      "type": "object"
+    },
+    "saved_trades[].week": {
+      "required": true,
+      "type": "integer"
+    },
     "user": {
       "required": true,
       "type": "object"
