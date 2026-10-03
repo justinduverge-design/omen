@@ -63,7 +63,22 @@ begin
   perform pg_advisory_xact_lock(hashtextextended('omen.connection:' || p_user_id::text || ':yahoo', 0));
   perform 1 from public.users where id = p_user_id for update;
   if not found then
-    return jsonb_build_object('erased', false, 'reason', 'no_such_user');
+    -- A sign-in with no app row can still own rows keyed to the sign-in (consent, OAuth state, beta
+    -- reports). Clean them and write the tombstone HERE, inside the account lock, so a report cannot land
+    -- between the cleanup and the tombstone (Codex review, #534). A repeat call changes nothing.
+    if exists (select 1 from public.deletion_audit_log
+                where user_id_hash = encode(sha256(convert_to(p_user_id::text, 'UTF8')), 'hex')) then
+      return jsonb_build_object('erased', false, 'reason', 'already_erased');
+    end if;
+    delete from public.consent_records where user_id = p_user_id;
+    get diagnostics consent_n = row_count;
+    delete from public.oauth_state where user_id = p_user_id;
+    if to_regclass('public.beta_reports') is not null then
+      execute 'delete from public.beta_reports where user_id = $1' using p_user_id;
+    end if;
+    insert into public.deletion_audit_log (user_id_hash, method)
+    values (encode(sha256(convert_to(p_user_id::text, 'UTF8')), 'hex'), coalesce(p_method, 'user_requested'));
+    return jsonb_build_object('erased', true, 'app_user', false, 'consent_records', consent_n);
   end if;
 
   select coalesce(array_agg(x), '{}') into ids

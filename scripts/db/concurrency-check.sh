@@ -12,7 +12,8 @@
 #      for the insert and remove it, leaving no row of that provider behind;
 #   5. the same for a scoring-rules purge and a rule-set insert (step 11);
 #   6. an account erase while a beta report insert is in flight: the erase waits and removes it;
-#   7. a beta report while an account erase is in flight: the report waits and is refused (Codex, #530).
+#   7. a beta report while an account erase is in flight: the report waits and is refused (Codex, #530);
+#   8. the same for a sign-in with no app row, which the erase cleans inside its lock (Codex, #534).
 #
 #   PGHOST=127.0.0.1 PGPORT=54317 PGUSER=postgres scripts/db/concurrency-check.sh
 #
@@ -161,6 +162,17 @@ race "select public.account_erase('$u7');" \
 left=$(q "select count(*) from public.beta_reports where user_id = '$u7'")
 echo "race 7: reports left $left"
 [ "$left" = 0 ] || fail "race 7: a report outlived the erase"
+
+# 8. A beta report while a no-app-row erase is in flight.
+u8=00000000-0000-4000-8000-000000000008
+race "select public.account_erase('$u8');" \
+     "insert into public.beta_reports (user_id, screen, app_version, build, os_version, device_model, connection_state, message, disclosure_accepted)
+      values ('$u8', 'account', '1', '1', 'x', 'y', 'none', 'race 8', true)"
+[ "$a_rc" = 0 ] || fail "race 8: erase failed: $(cat "$tmp/a.err")"
+[ "$b_rc" != 0 ] || fail "race 8: a report was accepted for a sign-in being erased"
+left=$(q "select count(*) from public.beta_reports where user_id = '$u8'")
+echo "race 8: reports left $left"
+[ "$left" = 0 ] || fail "race 8: a report outlived the no-app-row erase"
 
 dropdb "$db"
 rm -rf "$tmp"
