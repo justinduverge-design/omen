@@ -37,7 +37,10 @@ async function defaultStore(row) {
   if (error || !data?.id) throw Error("report_storage_unavailable");
   return data;
 }
-function createBetaReportsRouter({ authenticate, store = defaultStore, now = () => new Date() } = {}) {
+function defaultEnsureUser(user) {
+  return require("../services/appUser").ensureAppUser(user);
+}
+function createBetaReportsRouter({ authenticate, store = defaultStore, ensureUser = defaultEnsureUser, now = () => new Date() } = {}) {
   const router = express.Router();
   const auth = authenticate || require("../middleware/auth").requireAuth;
   router.get("/schema", (_req, res) => res.json({ contract_version: "beta-report.v1", screens: [...SCREENS], screenshots_supported: false, disclosure: DISCLOSURE }));
@@ -49,6 +52,8 @@ function createBetaReportsRouter({ authenticate, store = defaultStore, now = () 
     row.created_at = createdAt.toISOString();
     row.expires_at = new Date(createdAt.getTime() + 30 * 86400000).toISOString();
     try {
+      // beta_reports.user_id references users (redo step 09); a sign-in may not have its app row yet.
+      await ensureUser(req.user);
       const saved = await store(row);
       if (!saved?.id) throw Error("report_storage_unavailable");
       return res.status(201).json({ contract_version: "beta-report.v1", id: saved.id, status: "received", message: "Report received. Thank you." });

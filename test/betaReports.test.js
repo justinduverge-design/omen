@@ -11,6 +11,7 @@ async function run(body, options = {}) {
   app.use(createBetaReportsRouter({
     authenticate: (req, res, next) => { req.user = { id: "owner" }; next(); },
     store: async (row) => { stored.push(row); return { id: "report-1" }; },
+    ensureUser: async () => {},
     ...options,
   }));
   const server = http.createServer(app);
@@ -75,4 +76,20 @@ test("report still accepts ordinary messages that mention screens, links and ver
     const result = await run({ ...valid, message });
     assert.equal(result.status, 201, message);
   }
+});
+test("report creates the reporter's app user row before storing (redo step 09: user_id references users)", async () => {
+  const order = [];
+  const result = await run(valid, {
+    authenticate: (req, res, next) => { req.user = { id: "owner", email: "owner@example.test" }; next(); },
+    ensureUser: async (user) => { order.push(`ensure:${user.id}`); },
+    store: async (row) => { order.push(`store:${row.user_id}`); return { id: "report-1" }; },
+  });
+  assert.equal(result.status, 201);
+  assert.deepEqual(order, ["ensure:owner", "store:owner"]);
+});
+test("report fails closed, unsaved, when the app user row cannot be created", async () => {
+  const result = await run(valid, { ensureUser: async () => { throw Error("users upsert failed"); } });
+  assert.equal(result.status, 503);
+  assert.equal(result.stored.length, 0);
+  assert.doesNotMatch(JSON.stringify(result.body), /upsert/);
 });
