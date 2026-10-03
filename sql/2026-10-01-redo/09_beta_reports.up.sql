@@ -13,7 +13,13 @@
 --
 -- Data boundary (enforced by the route before insert, and by the checks below): screen, app and device
 -- metadata, connection state, at most five scrubbed error codes, the user's note. No league data,
--- rosters, screenshots, credentials or Vault ids. Deleted with the account (cascade).
+-- rosters, screenshots, credentials or Vault ids.
+--
+-- Keyed to the SIGN-IN (auth.users), like consent_records, not to the app row (Codex review, #523). A
+-- person whose connect failed may have no app row yet, and theirs are the reports that matter most; the
+-- route must not create an app row just to file a report, because that can recreate an account that
+-- account_erase() has just deleted. Deleted with the account: account_erase() deletes them explicitly,
+-- and the route's final step, deleting the sign-in, cascades any report filed during the erasure.
 
 begin;
 
@@ -29,7 +35,7 @@ end $$;
 
 create table public.beta_reports (
   id                  uuid primary key default gen_random_uuid(),
-  user_id             uuid not null references public.users(id) on delete cascade,
+  user_id             uuid not null references auth.users(id) on delete cascade,  -- the sign-in, not the app row
   screen              text not null,
   app_version         text not null,
   build               text not null,
