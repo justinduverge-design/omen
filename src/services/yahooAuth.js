@@ -121,8 +121,12 @@ const CLAIM_TTL_MS = 20_000;
 const CLAIM_WAIT_TRIES = 10;
 const CLAIM_WAIT_MS = 300;
 const RELEASE_IF_OWNER = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
+const RENEW_IF_OWNER = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('pexpire', KEYS[1], ARGV[2]) else return 0 end";
 let claimStore;
 let claimSleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+// While held, the claim is renewed well inside its lease, so a slow exchange or slow database write cannot
+// let it lapse and admit a second exchanger (Codex, #533). The Yahoo request itself is also time-bounded.
+let claimRenewEveryMs = CLAIM_TTL_MS / 4;
 
 function refreshClaimStore() {
   if (claimStore === undefined) {
@@ -134,9 +138,10 @@ function refreshClaimStore() {
 }
 
 // Test seam: substitute the claim store and the wait between re-reads.
-function setRefreshClaimStore(store, { sleep } = {}) {
+function setRefreshClaimStore(store, { sleep, renewEveryMs } = {}) {
   claimStore = store;
   if (sleep) claimSleep = sleep;
+  if (renewEveryMs) claimRenewEveryMs = renewEveryMs;
 }
 
 // Returns a release function when this process holds the claim, null when another process does, and a
@@ -153,7 +158,14 @@ async function claimRefresh(userId) {
     logger.warn("Yahoo refresh claim unavailable; refreshing without the cross-process guard", { err: err.message });
     return async () => {};
   }
+  const renewal = setInterval(() => {
+    store.eval(RENEW_IF_OWNER, [key], [token, String(CLAIM_TTL_MS)]).catch((err) => {
+      logger.warn("Yahoo refresh claim renewal failed", { err: err.message });
+    });
+  }, claimRenewEveryMs);
+  renewal.unref?.();
   return async () => {
+    clearInterval(renewal);
     try {
       await store.eval(RELEASE_IF_OWNER, [key], [token]);
     } catch (err) {
@@ -203,7 +215,14 @@ async function exchangeAndStore(userId, snapshot) {
   const release = await claimRefresh(userId);
   if (!release) return waitForStoredToken(userId);
   try {
-    return await exchangeWithProvider(userId, conn);
+    // Re-read under the claim: another process may have stored a fresh token after this request's read
+    // and released the claim before this request took it (Codex, #533).
+    const current = (await readYahooConnection(userId)) || conn;
+    if (!expiresSoon(current)) {
+      const stored = await vaultDecrypt(current.token_secret_id);
+      if (stored) return stored;
+    }
+    return await exchangeWithProvider(userId, current);
   } finally {
     await release();
   }
