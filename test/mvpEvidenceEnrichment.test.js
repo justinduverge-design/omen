@@ -124,3 +124,24 @@ test("DvP resolver validates provider result and distinct-week evidence before p
   });
   assert.equal(wrongOpponent, null);
 });
+
+test("why_statements reach the model payload so a grounded rephrase of their numbers passes", () => {
+  const response = liveResponse();
+  response.recommendation.explanation.why_statements = [
+    { rank: 1, basis: "projection", text: "Starter Wideout projects 15.2 and Bench Wideout projects 13.1.", evidence: [] },
+  ];
+  const payload = evidence.buildMvpLlmPayload(response);
+  assert.deepEqual(payload.why_statements, ["Starter Wideout projects 15.2 and Bench Wideout projects 13.1."]);
+  assert.equal(evidence.buildMvpLlmPayload(liveResponse()).why_statements.length, 0);
+
+  const grounded = { summary: "Start Starter Wideout", why_it_matters: "Starter Wideout projects 15.2 against 13.1" };
+  assert.equal(evidence.isGroundedLlmExplanation(grounded, payload), true);
+  assert.equal(evidence.isGroundedLlmExplanation(grounded, evidence.buildMvpLlmPayload(liveResponse())), false);
+
+  // Applying a narration keeps the deterministic statements on the response.
+  evidence.applyMvpLlmNarration(response, {
+    explanation: { summary: "s", why_it_matters: "w", risk: "r", confidence: "c", data_used: ["connected roster"] },
+    source: "ollama_local", model: "m",
+  });
+  assert.equal(response.recommendation.explanation.why_statements.length, 1);
+});

@@ -99,6 +99,11 @@ function buildMvpLlmPayload(response = {}) {
         ? risk.reasons.map((value) => shortSafeString(value)).filter(Boolean).slice(0, 8)
         : [],
     },
+    // Deterministic ranked statements (evidenceWhy.js). Listed so the grounding gate accepts the
+    // numbers and names a rephrase of them uses.
+    why_statements: Array.isArray(explanation.why_statements)
+      ? explanation.why_statements.map((item) => shortSafeString(item?.text)).filter(Boolean).slice(0, 3)
+      : [],
     signal_statuses: safeSignalFacts(response.signals),
     data_used: Array.isArray(explanation.data_used)
       ? explanation.data_used.map((value) => shortSafeString(value, 120)).filter(Boolean).slice(0, MAX_LLM_DATA_USED)

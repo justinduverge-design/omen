@@ -145,6 +145,32 @@
     ],
     "why": [
       "Higher projected output in this league's scoring (+0.8)."
+    ],
+    "why_statements": [
+      {
+        "basis": "projection",
+        "evidence": [
+          {
+            "category": "player_game_fact",
+            "id": "evidence[1]",
+            "kind": "projection"
+          }
+        ],
+        "rank": 1,
+        "text": "DeVonta Smith projects 11.8 and Chris Olave projects 11 in this league's scoring."
+      },
+      {
+        "basis": "inference",
+        "evidence": [
+          {
+            "category": "omen_inference",
+            "id": "evidence[2]",
+            "kind": "inference"
+          }
+        ],
+        "rank": 2,
+        "text": "The available data slightly favors DeVonta Smith, and the gap is inside normal projection variance."
+      }
     ]
   }
 }

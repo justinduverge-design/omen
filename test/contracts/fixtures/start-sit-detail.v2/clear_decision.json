@@ -1,6 +1,6 @@
 {
   "http_status": 200,
-  "route": "(built)",
+  "route": "/api/start-sit/detail",
   "body": {
     "alternatives": [
       {
@@ -117,7 +117,7 @@
       "over": {
         "kickoff": null,
         "name": "Chris Olave",
-        "player_key": "a",
+        "player_key": "p-Chris-Olave",
         "position": "WR",
         "projected_points": 11,
         "status": null,
@@ -128,7 +128,7 @@
       "start": {
         "kickoff": null,
         "name": "DeVonta Smith",
-        "player_key": "c",
+        "player_key": "p-DeVonta-Smith",
         "position": "WR",
         "projected_points": 15.2,
         "status": null,
@@ -143,6 +143,32 @@
     "what_could_change_this": [],
     "why": [
       "Higher projected output in this league's scoring (+4.2)."
+    ],
+    "why_statements": [
+      {
+        "basis": "projection",
+        "evidence": [
+          {
+            "category": "player_game_fact",
+            "id": "evidence[1]",
+            "kind": "projection"
+          }
+        ],
+        "rank": 1,
+        "text": "DeVonta Smith projects 15.2 and Chris Olave projects 11 in this league's scoring."
+      },
+      {
+        "basis": "inference",
+        "evidence": [
+          {
+            "category": "omen_inference",
+            "id": "evidence[2]",
+            "kind": "inference"
+          }
+        ],
+        "rank": 2,
+        "text": "The available data favors DeVonta Smith."
+      }
     ]
   }
 }
