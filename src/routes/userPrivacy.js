@@ -122,6 +122,7 @@ router.get("/export", requireAuth, async (req, res, next) => {
       platformRows,
       consentRows,
       moveRows,
+      decisionRows,
       reportRows,
       savedTradeRows,
     ] = await Promise.all([
@@ -132,18 +133,20 @@ router.get("/export", requireAuth, async (req, res, next) => {
         userId
       ),
       selectRows("consent_records", "consent_type,granted,granted_at,withdrawn_at,ip_address,user_agent", userId),
-      selectRows("moves", "id,feature,move_type,created_at,updated_at", userId),
+      selectRows("moves", "id,platform,league_id,season,week_num,move_type,headline,reasoning,confidence,target_player,followed,outcome,user_stars,user_note,created_at", userId),
+      selectRows("decisions", "id,league_id,provider_team_id,season,week,call_type,headline,summary,recommendation,band,risk_level,risk_reasons,scoring_format,issued_at,created_at", userId),
       selectRows("beta_reports", "id,message,screen,app_version,build,os_version,device_model,connection_state,recent_error_codes,disclosure_accepted,created_at,expires_at", userId),
       selectRows("saved_trades", "provider,provider_league_id,season,week,provider_team_id,candidate_id,trade,reasoning,state,outcome,outcome_provenance,saved_at,sent_at,outcome_at", userId),
     ]);
 
     return res.json({
-      contract_version: "user-export.v1",
+      contract_version: "user-export.v2",
       generated_at: new Date().toISOString(),
       user: profile,
       platform_connections: platformRows.map(redactPlatformConnection),
       consent_records: consentRows,
       moves: moveRows,
+      decisions: decisionRows,
       beta_reports: reportRows,
       saved_trades: savedTradeRows,
       redactions: [
