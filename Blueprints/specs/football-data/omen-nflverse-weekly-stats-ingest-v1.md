@@ -1,8 +1,8 @@
 # Omen nflverse weekly stats ingest v1
 
-**Status:** Spec for review. No job code is written; the table is redo step 14 (`sql/2026-10-01-redo/14_nflverse_weekly_stats.up.sql`, not applied).
+**Status:** Job written: `src/omen_nflverse_weekly_stats_cron.js` (tests `test/nflverseWeeklyStats.test.js`). The table is redo step 14 (`sql/2026-10-01-redo/14_nflverse_weekly_stats.up.sql`), not applied to production; until it is, the job exits without writing anything, including no `data_events` row.
 **Writes:** `public.nflverse_weekly_stats` and one `data_events` row per run.
-**Schedule:** weekly, Tuesday or Wednesday, after the week's games are final.
+**Schedule:** 05:00 ET Tuesday and Wednesday (`Dockerfile.cron`), an hour before Tuesday scoring at 06:00. Wednesday picks up Monday-night stats and nflverse's corrections.
 
 ## What it does
 
@@ -20,10 +20,10 @@ Confirm the current release asset names and column headers at build time; nflver
 
 ## Identity: the step-04 crosswalk, never a guess
 
-- Stats rows join on gsis id through `player_provider_ids` (`provider = 'nflverse'`, `provider_player_id` = gsis id) to `players.id` (`omen:player:gsis.<gsis_id>`).
+- Stats rows join on gsis id to `players.gsis_id` (unique; ids are `omen:player:gsis.<gsis_id>`). The step-04 crosswalk job stores nflverse's id there; it writes no `player_provider_ids` rows with `provider = 'nflverse'`. Production players hold every position, linemen included.
 - Snap rows go PFR id, then gsis id (`players.csv`), then the same crosswalk.
 - A row with no match is **skipped and logged** (provider, provider id, name, season, week, reason). It is not matched by name, position or team. This is the step-04 rule: a player the crosswalk cannot resolve stays unresolved until the crosswalk job resolves them.
-- The unmatched count goes in the run's `data_events.details`. A run where unmatched rows exceed a set share of rows fails closed with no write (threshold set at build time from the first real run).
+- The unmatched count goes in the run's `data_events.details`. A run where more than 5% of source rows are unmatched fails closed with no write. Measured 2026-10-04 against the production crosswalk: 1,434 of 1,434 stats players and 697 of 697 offensive-snap players resolve; 2 snap players have no gsis id in nflverse `players.csv`.
 - The job never creates `players` rows. A late-arriving rookie appears in the next run once the daily crosswalk job has added them.
 
 ## Mapping to `nflverse_weekly_stats`
@@ -39,6 +39,8 @@ Confirm the current release asset names and column headers at build time; nflver
 - Regular season and postseason weeks are both stored as published (`week` is the nflverse week number).
 - Empty or non-numeric source values become NULL, never 0.
 - A player with a stats row but no snap row (or the reverse) gets the columns that exist; the others stay NULL.
+- Snap rows with zero offensive snaps (defenders, special teams) are not stored: there is nothing offensive in them.
+- At the season's first two weeks the run also re-reads the previous season.
 
 ## Write path
 
