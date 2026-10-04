@@ -44,10 +44,10 @@ player_id,season,week,completions,attempts,passing_yards,passing_tds,interceptio
 00-0036900,2023,1,21,32,210,1,1,5,45,0,0,0,0,0,0,14.9,14.9
 MOCKEOF
 
-    # Mock play-by-play
+    # Mock play-by-play (Updated with the EPA columns)
     cat <<MOCKEOF > "$DATA_DIR/play_by_play.csv"
-play_id,game_id,home_team,away_team,posteam,posteam_type,defteam,yardline_100,quarter,half_seconds_remaining,game_seconds_remaining,drive,qtr,down,ydstogo,play_type,yards_gained,passer_player_id,receiver_player_id,rusher_player_id,desc
-1,2023_01_ARI_ATL,ATL,ARI,ARI,away,ATL,75,1,1800,3600,1,1,1,10,pass,15,00-0036900,,,Pass complete to WR for 15 yards.
+play_id,game_id,home_team,away_team,posteam,posteam_type,defteam,yardline_100,quarter,half_seconds_remaining,game_seconds_remaining,drive,qtr,down,ydstogo,play_type,yards_gained,passer_player_id,receiver_player_id,rusher_player_id,desc,epa,wpa,air_epa,yac_epa,cpoe,success
+1,2023_01_ARI_ATL,ATL,ARI,ARI,away,ATL,75,1,1800,3600,1,1,1,10,pass,15,00-0036900,,,Pass complete to WR for 15 yards.,0.5,0.02,0.3,0.2,5.5,1
 MOCKEOF
 
 else
@@ -71,15 +71,68 @@ docker cp "$DATA_DIR/play_by_play.csv" "$CONTAINER_NAME:/tmp/play_by_play.csv"
 echo "Loading data into Postgres..."
 
 # Use psql \copy for efficient loading from CSV
-# Using ON_ERROR_STOP=1 as per guidelines
-docker exec -i "$CONTAINER_NAME" psql -v ON_ERROR_STOP=1 -U "$PG_USER" -d postgres -c "\copy teams FROM '/tmp/teams.csv' DELIMITER ',' CSV HEADER;"
-docker exec -i "$CONTAINER_NAME" psql -v ON_ERROR_STOP=1 -U "$PG_USER" -d postgres -c "\copy players FROM '/tmp/players.csv' DELIMITER ',' CSV HEADER;"
-docker exec -i "$CONTAINER_NAME" psql -v ON_ERROR_STOP=1 -U "$PG_USER" -d postgres -c "\copy games FROM '/tmp/games.csv' DELIMITER ',' CSV HEADER;"
-docker exec -i "$CONTAINER_NAME" psql -v ON_ERROR_STOP=1 -U "$PG_USER" -d postgres -c "\copy weekly_stats FROM '/tmp/weekly_stats.csv' DELIMITER ',' CSV HEADER;"
-docker exec -i "$CONTAINER_NAME" psql -v ON_ERROR_STOP=1 -U "$PG_USER" -d postgres -c "\copy play_by_play FROM '/tmp/play_by_play.csv' DELIMITER ',' CSV HEADER;"
+# Because the source CSVs have different/more columns than our schema,
+# we specify the exact column mapping to Postgres during \copy
+
+docker exec -i "$CONTAINER_NAME" psql -v ON_ERROR_STOP=1 -U "$PG_USER" -d postgres <<PSQLEOF
+
+-- For teams, players, games, weekly stats we can parse the CSV header.
+-- Since the schema doesn't perfectly match nflverse columns in all places, we preprocess with awk/python.
+-- However, an easier approach is to use Python directly to filter to our exact columns to handle wide/extra columns safely.
+
+PSQLEOF
+
+echo "Preprocessing CSVs to match schema exactly..."
+docker exec -i "$CONTAINER_NAME" bash -c "cat << 'PYEOF' > /tmp/parse_csvs.py
+import csv
+import sys
+import os
+
+SCHEMAS = {
+    'teams': ['team_abbr', 'team_name', 'team_conf', 'team_division', 'team_color', 'team_color2', 'team_logo_url'],
+    'players': ['gsis_id', 'first_name', 'last_name', 'position', 'team', 'birth_date', 'weight', 'height', 'college'],
+    'games': ['game_id', 'season', 'game_type', 'week', 'gameday', 'weekday', 'gametime', 'away_team', 'home_team', 'away_score', 'home_score', 'stadium'],
+    'weekly_stats': ['player_id', 'season', 'week', 'completions', 'attempts', 'passing_yards', 'passing_tds', 'interceptions', 'carries', 'rushing_yards', 'rushing_tds', 'receptions', 'targets', 'receiving_yards', 'receiving_tds', 'fumbles_lost', 'fantasy_points', 'fantasy_points_ppr'],
+    'play_by_play': ['play_id', 'game_id', 'home_team', 'away_team', 'posteam', 'posteam_type', 'defteam', 'yardline_100', 'quarter', 'half_seconds_remaining', 'game_seconds_remaining', 'drive', 'qtr', 'down', 'ydstogo', 'play_type', 'yards_gained', 'passer_player_id', 'receiver_player_id', 'rusher_player_id', 'desc', 'epa', 'wpa', 'air_epa', 'yac_epa', 'cpoe', 'success']
+}
+
+try:
+    for table, target_cols in SCHEMAS.items():
+        in_file = f'/tmp/{table}.csv'
+        out_file = f'/tmp/{table}_filtered.csv'
+
+        if not os.path.exists(in_file):
+            continue
+
+        with open(in_file, 'r') as f_in, open(out_file, 'w', newline='') as f_out:
+            reader = csv.DictReader(f_in)
+            writer = csv.writer(f_out)
+
+            # We write no header to the output
+            for row in reader:
+                out_row = [row.get(col, '') for col in target_cols]
+                writer.writerow(out_row)
+        print(f'Successfully processed {table}')
+except Exception as e:
+    print(f'Error processing CSV: {e}', file=sys.stderr)
+    sys.exit(1)
+PYEOF"
+
+# In the postgres image, python3 is usually not installed by default, so we install it silently
+docker exec -i "$CONTAINER_NAME" bash -c "apt-get update -qq && apt-get install -y python3 -qq > /dev/null 2>&1"
+docker exec -i "$CONTAINER_NAME" python3 /tmp/parse_csvs.py
+
+# Now load the filtered CSVs which perfectly match our columns
+docker exec -i "$CONTAINER_NAME" psql -v ON_ERROR_STOP=1 -U "$PG_USER" -d postgres <<PSQLEOF
+\copy teams (team_abbr, team_name, team_conf, team_division, team_color, team_color2, team_logo_url) FROM '/tmp/teams_filtered.csv' DELIMITER ',' CSV;
+\copy players (gsis_id, first_name, last_name, position, team, birth_date, weight, height, college) FROM '/tmp/players_filtered.csv' DELIMITER ',' CSV;
+\copy games (game_id, season, game_type, week, gameday, weekday, gametime, away_team, home_team, away_score, home_score, stadium) FROM '/tmp/games_filtered.csv' DELIMITER ',' CSV;
+\copy weekly_stats (player_id, season, week, completions, attempts, passing_yards, passing_tds, interceptions, carries, rushing_yards, rushing_tds, receptions, targets, receiving_yards, receiving_tds, fumbles_lost, fantasy_points, fantasy_points_ppr) FROM '/tmp/weekly_stats_filtered.csv' DELIMITER ',' CSV;
+\copy play_by_play (play_id, game_id, home_team, away_team, posteam, posteam_type, defteam, yardline_100, quarter, half_seconds_remaining, game_seconds_remaining, drive, qtr, down, ydstogo, play_type, yards_gained, passer_player_id, receiver_player_id, rusher_player_id, description, epa, wpa, air_epa, yac_epa, cpoe, success) FROM '/tmp/play_by_play_filtered.csv' DELIMITER ',' CSV;
+PSQLEOF
 
 echo "Cleaning up container temporary files..."
-docker exec -i "$CONTAINER_NAME" rm /tmp/teams.csv /tmp/players.csv /tmp/games.csv /tmp/weekly_stats.csv /tmp/play_by_play.csv
+docker exec -i "$CONTAINER_NAME" bash -c "rm -f /tmp/*.csv /tmp/parse_csvs.py"
 
 echo "Cleaning up host temporary files..."
 rm -rf "$DATA_DIR"

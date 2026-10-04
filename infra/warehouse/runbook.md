@@ -19,20 +19,36 @@ Run these checks on KVM1 before starting deployment. Expect failure if threshold
    free -m
    ```
    *Expectation:* ~7 GB (7000 MB) free.
+   *(Note: KVM1 is single-node, so no hard `deploy.resources` limit is set in docker-compose.yml for the 2-4GB DB).*
 
 3. **KVM2 Disk Space:**
    ```bash
-   ssh omen-backup@100.67.187.57 df -h /
+   ssh omen-backup@100.77.202.56 df -h /
    ```
    *Expectation:* ~77 GB free.
 
 4. **Tailscale Reachability (KVM1 -> KVM2):**
    ```bash
-   ping -c 3 100.67.187.57
+   ping -c 3 100.77.202.56
    ```
    *Expectation:* 0% packet loss.
 
 ## Deployment Steps
+
+0. **Local Scratch Rehearsal (MUST RUN ON KVM1 BEFORE PERSISTENT VOLUME):**
+   Before touching the API or setting up persistent states, verify Docker and the script execution on KVM1:
+   ```bash
+   cd infra/warehouse
+   echo "POSTGRES_PASSWORD=test" > .env
+   chmod 600 .env
+   docker compose up -d
+   sleep 10
+   ./backfill.sh true
+   docker exec -i omen_football_warehouse psql -U postgres -d postgres -c "SELECT COUNT(*) FROM teams;"
+   docker compose down -v
+   rm .env
+   ```
+   *Check:* Verify successful startup, DDL parsing, backfill script execution, and correct row counts returned.
 
 1. **Clone/Pull Latest Code:**
    Ensure `infra/warehouse/` is up to date on KVM1.
@@ -46,7 +62,7 @@ Run these checks on KVM1 before starting deployment. Expect failure if threshold
 
 3. **Bring Up the Warehouse:**
    ```bash
-   docker-compose up -d
+   docker compose up -d
    ```
    *Check:* `docker ps` shows `omen_football_warehouse` running and healthy.
 
@@ -61,7 +77,7 @@ Run these checks on KVM1 before starting deployment. Expect failure if threshold
 Run these against the running container to ensure data is present and valid.
 
 ```bash
-docker exec -i omen_football_warehouse psql -U postgres -d postgres <<EOF
+docker exec -i omen_football_warehouse psql -U postgres -d postgres <<QUERYEOF
 \x
 -- 1. Check table sizes
 SELECT relname as table_name, n_live_tup as rows
@@ -73,7 +89,7 @@ SELECT COUNT(*) FROM games WHERE season = 2023;
 
 -- 3. Check specific team exists
 SELECT * FROM teams WHERE team_abbr = 'KC';
-EOF
+QUERYEOF
 ```
 
 ## Rollback Procedure
@@ -83,7 +99,7 @@ If the verification fails or an issue is detected *before* cutover, the fallback
 1. **Tear down the container and volume:**
    ```bash
    cd infra/warehouse
-   docker-compose down -v
+   docker compose down -v
    ```
    *(This destroys the container and the `warehouse_data` volume).*
 
@@ -111,42 +127,3 @@ Once verified, the switch is made at the application level.
 
 5. **Decommission Supabase Cache:**
    *ONLY AFTER successful cutover.* Drop the Step-14 football cache tables from Supabase.
-
----
-
-## Local Scratch Rehearsal (Performed locally before PR)
-
-This rehearsal verifies the Docker compose setup, the backfill script (using mock data), and the schema.
-
-1. **Start the container:**
-   ```bash
-   cd infra/warehouse
-   # Create a dummy .env for testing
-   echo "POSTGRES_PASSWORD=test" > .env
-   docker-compose up -d
-   ```
-
-2. **Load mock data:**
-   ```bash
-   ./backfill.sh true
-   ```
-
-3. **Tear down:**
-   ```bash
-   docker-compose down -v
-   ```
-
-4. **Restart and verify schema:**
-   ```bash
-   docker-compose up -d
-   sleep 5
-   # Schema will be automatically created via the init/ script
-   docker exec -i omen_football_warehouse psql -U postgres -d postgres -c "\dt"
-   docker exec -i omen_football_warehouse psql -U postgres -d postgres -c "\d players"
-   ```
-
-5. **Clean up:**
-   ```bash
-   docker-compose down -v
-   rm .env
-   ```
