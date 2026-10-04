@@ -4431,3 +4431,30 @@ on the second one.
   restarted or disabled.
 - **Production boundary:** the backend change is locally implemented and tested but is not live until
   its feature branch is reviewed, merged, and deployed through the normal founder-gated path.
+
+## 2026-10-04 — signal vs noise module (engine step 6), not yet wired
+
+- **Decision:** `src/services/signalNoise.js` is a pure module that says what in a recommendation is
+  noise and what is observed fact. Omen explains provider projections; it does not claim to beat
+  them. It uses observed values only (a published projection gap, box-score usage already played),
+  predicts nothing, and never calls anything "predictive". No route uses it yet; a follow-up PR wires it.
+- **Gap:** `gapNoise` returns `inside_noise` below 1.5 pts (imported from `confidencePolicy.js`, one
+  line, not duplicated), `real_edge` from 1.5, `large_edge` from 8 (the research point where providers
+  are right about 82% of the time). Sentences carry only the gap itself, no research percentages.
+- **Usage:** `usageStability` uses the last 6 counted games, needs at least 3 per metric or returns
+  `insufficient_data`, and measures mean absolute deviation around the window mean. Volatile at 10
+  snap-share points, 2 targets or carries a game (both reuse `playerUsage.js` meaningful-change lines),
+  10 routes. Bye weeks, missing weeks and all-zero rows are not games. A row flagged `injury_shortened`
+  is excluded and counted in the sentence, because an early exit is not a role change.
+- **Summary:** `signalNoiseSummary` returns at most 2 statements tagged `projection` (gap) or
+  `observed_context` (usage), both from `evidenceVocabulary.js`.
+- **Review fixes:** no load-time throw (the evidence-kind and `COIN_FLIP_BELOW` checks live in the
+  test; the threshold falls back to 1.5 without throwing). Gaps are rounded to 2 decimals once, and
+  that same value is both classified and printed, so a sentence never contradicts its label. Blank
+  strings, objects and Symbols read as missing. Float error at the 10-point line is rounded away. The
+  injury-shortened count covers the window only. Snap share of exactly 1 is read as a fraction (100%).
+  `routes` is not supported, since no source provides it.
+- **Wiring prep:** `playerUsage.weeklyUsageRows({supabase, playerKey, season, beforeWeek})` returns
+  per-week `{week, snap_share, targets, carries}` rows through the same crosswalk and cached loaders
+  as `getRecentUsage`, in the shape `usageStability` takes. Additive; existing callers unchanged.
+- **Verification:** `test/signalNoise.test.js`, `test/playerUsage.test.js`; no fixtures changed.
