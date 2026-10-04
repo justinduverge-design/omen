@@ -211,6 +211,41 @@ async function getRecentUsage({ supabase, playerKeys, season, beforeWeek, fetchI
   }
 }
 
+/**
+ * Per-week usage rows for one roster player, in the shape signalNoise.usageStability consumes:
+ * `{week, snap_share, targets, carries}` for each regular-season game before `beforeWeek`, oldest
+ * first. Same crosswalk, cached CSV loaders and failure behaviour as getRecentUsage (an empty list on
+ * any failure, never a guess). `snap_share` is null for a week with no snap row. A bye week has no
+ * stats row, so it is simply absent.
+ *
+ * @returns {Promise<Array<{week:number, snap_share:number|null, targets:number, carries:number}>>}
+ */
+async function weeklyUsageRows({ supabase, playerKey, season, beforeWeek, fetchImpl = fetch, log }) {
+  try {
+    if (!supabase || !playerKey || !Number.isInteger(season) || !Number.isInteger(beforeWeek)) return [];
+    const gsisByKey = await resolveGsis(supabase, [playerKey]);
+    const gsis = gsisByKey.get(playerKey);
+    if (!gsis) return [];
+    const [byGsis, snaps] = await Promise.all([
+      loadSeason(season, { fetchImpl }),
+      snapsByGsis(season, new Set([gsis]), { fetchImpl, log }), // never rejects
+    ]);
+    const snapByWeek = new Map((snaps.get(gsis) || []).map((r) => [num(r.week), num(r.offense_pct)]));
+    return (byGsis.get(gsis) || [])
+      .filter((r) => num(r.week) < beforeWeek)
+      .map((r) => ({
+        week: num(r.week),
+        snap_share: snapByWeek.has(num(r.week)) ? snapByWeek.get(num(r.week)) : null,
+        targets: num(r.targets),
+        carries: num(r.carries),
+      }))
+      .sort((a, b) => a.week - b.week);
+  } catch (error) {
+    log?.warn?.("weekly usage unavailable", { reason: error.message });
+    return [];
+  }
+}
+
 const round1 = (n) => (Math.round(n * 10) / 10).toFixed(1);
 const pct = (share) => `${Math.round(share * 100)}%`;
 
@@ -270,4 +305,4 @@ function usageStatement(name, position, usage) {
 
 function _resetCache() { cache.clear(); }
 
-module.exports = { getRecentUsage, usageStatement, summarize, _resetCache, RECENT_GAMES };
+module.exports = { getRecentUsage, weeklyUsageRows, usageStatement, summarize, _resetCache, RECENT_GAMES };

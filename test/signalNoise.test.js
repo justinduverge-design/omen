@@ -4,12 +4,58 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { THRESHOLDS: CP } = require("../src/services/confidencePolicy");
 const { START_SIT } = require("../src/services/evidenceVocabulary");
-const { THRESHOLDS, gapNoise, usageStability, signalNoiseSummary } = require("../src/services/signalNoise");
+const { THRESHOLDS, KIND, gapNoise, usageStability, signalNoiseSummary } = require("../src/services/signalNoise");
 
 const wk = (week, snap_share, targets, extra = {}) => ({ week, snap_share, targets, ...extra });
 
-test("gap threshold is the confidence policy coin-flip line", () => {
+test("gap threshold is the confidence policy coin-flip line, and the evidence kinds exist", () => {
+  assert.ok(Number.isFinite(CP.COIN_FLIP_BELOW), "confidencePolicy must keep COIN_FLIP_BELOW");
   assert.equal(THRESHOLDS.GAP_NOISE_BELOW, CP.COIN_FLIP_BELOW);
+  for (const k of Object.values(KIND)) assert.ok(START_SIT.kinds.includes(k), `${k} missing from evidenceVocabulary`);
+});
+
+test("gap classification and sentence agree on the rounded value shown", () => {
+  const a = gapNoise(1.46);
+  assert.equal(a.classification, "inside_noise");
+  assert.match(a.sentence, /1\.46 pts/);
+  const b = gapNoise(1.499); // shown as 1.5, so a real edge, never "1.5 is inside noise"
+  assert.equal(b.classification, "real_edge");
+  assert.match(b.sentence, /1\.5-point/);
+  assert.equal(gapNoise(7.999).classification, "large_edge");
+  assert.match(gapNoise(7.999).sentence, /^An 8-point/);
+  assert.match(gapNoise(3.2).sentence, /^A 3\.2-point/);
+  assert.match(gapNoise(11).sentence, /^An 11-point/);
+  assert.match(gapNoise(1).sentence, /\(1 pt\)/);
+});
+
+test("odd values never throw and blank strings are missing", () => {
+  for (const v of ["", "   ", "\t", Symbol("x"), {}, [], { valueOf() { throw new Error("no"); } }, true]) {
+    assert.equal(gapNoise(v).classification, null);
+  }
+  const r = usageStability([wk(1, "  ", " "), wk(2, Symbol("x"), {}), wk(3, "", "")]);
+  assert.equal(r.stability, "insufficient_data");
+});
+
+test("usageStability: injury count refers to the window only; 100% and identical values read sensibly", () => {
+  const rows = [wk(1, 0.7, 6, { injury_shortened: true }), ...Array.from({ length: 6 }, (_, i) => wk(i + 2, 0.7, 6))];
+  const r = usageStability(rows);
+  assert.equal(r.excluded_injury_games, 0, "the week-1 shortened game is older than the window");
+  assert.doesNotMatch(r.sentence, /injury-shortened/);
+  const full = usageStability([wk(1, 1, 8), wk(2, 1, 8), wk(3, 1, 8)]);
+  assert.equal(full.stability, "stable");
+  assert.match(full.sentence, /Snap share held at 100% over the last 3 games/);
+  assert.match(usageStability([wk(1, null, 8), wk(2, null, 8), wk(3, null, 8)]).sentence, /Targets held at 8 over/);
+  assert.equal(usageStability([wk(1, 0.5), wk(2, 1), wk(3, "100")]).metrics[0].max, 1);
+});
+
+test("usageStability: float boundary and sparse-data wording", () => {
+  assert.equal(usageStability([wk(1, 0.5), wk(2, 0.7), wk(3, 0.5), wk(4, 0.7)]).stability, "volatile");
+  assert.equal(usageStability([wk(1, 0.7), wk(2, 0.5), wk(3, 0.7), wk(4, 0.5)]).stability, "volatile");
+  assert.match(usageStability([wk(1, 0.7, 5)]).sentence, /Only 1 game of usage on record \(3 needed\)/);
+  assert.match(usageStability([]).sentence, /^No usage history on record/);
+  const sparse = usageStability([wk(1, 0.7, 5), wk(2, null, null, { receptions: 3 }), wk(3, 0.6, null), wk(4, null, 4)]);
+  assert.equal(sparse.stability, "insufficient_data");
+  assert.match(sparse.sentence, /4 games are on record, but fewer than 3 have snap share, targets or carries/);
 });
 
 test("gapNoise boundaries", () => {
@@ -62,7 +108,6 @@ test("usageStability: insufficient data, never guesses", () => {
     assert.equal(r.stability, "insufficient_data");
     assert.equal(r.change_since_last_week, null);
   }
-  assert.match(usageStability([wk(1, 0.7, 5)]).sentence, /Only 1 game of usage/);
 });
 
 test("usageStability: bye weeks, missing weeks and zero rows are not volatility", () => {

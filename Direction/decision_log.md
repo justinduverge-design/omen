@@ -4431,4 +4431,13 @@ on the second one.
   is excluded and counted in the sentence, because an early exit is not a role change.
 - **Summary:** `signalNoiseSummary` returns at most 2 statements tagged `projection` (gap) or
   `observed_context` (usage), both from `evidenceVocabulary.js`.
-- **Verification:** `test/signalNoise.test.js`; no fixtures changed.
+- **Review fixes:** no load-time throw (the evidence-kind and `COIN_FLIP_BELOW` checks live in the
+  test; the threshold falls back to 1.5 without throwing). Gaps are rounded to 2 decimals once, and
+  that same value is both classified and printed, so a sentence never contradicts its label. Blank
+  strings, objects and Symbols read as missing. Float error at the 10-point line is rounded away. The
+  injury-shortened count covers the window only. Snap share of exactly 1 is read as a fraction (100%).
+  `routes` is not supported, since no source provides it.
+- **Wiring prep:** `playerUsage.weeklyUsageRows({supabase, playerKey, season, beforeWeek})` returns
+  per-week `{week, snap_share, targets, carries}` rows through the same crosswalk and cached loaders
+  as `getRecentUsage`, in the shape `usageStability` takes. Additive; existing callers unchanged.
+- **Verification:** `test/signalNoise.test.js`, `test/playerUsage.test.js`; no fixtures changed.

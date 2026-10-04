@@ -158,6 +158,39 @@ test("a snap-count outage keeps the target line and drops only the snap share", 
   assert.equal(warnings.length, 1);
 });
 
+test("weeklyUsageRows merges stats and snap rows per week for usageStability, oldest first", async () => {
+  _resetCache();
+  const { weeklyUsageRows } = require("../src/services/playerUsage");
+  const { usageStability } = require("../src/services/signalNoise");
+  const fetchImpl = routedFetch();
+  const rows = await weeklyUsageRows({ supabase: fakeSupabase(crosswalk), playerKey: "espn:2973405", season: 2026, beforeWeek: 5, fetchImpl });
+  assert.deepEqual(rows, [
+    { week: 1, snap_share: 0.6, targets: 9, carries: 0 },
+    { week: 2, snap_share: 0.62, targets: 5, carries: 0 },
+    { week: 3, snap_share: 0.75, targets: 7, carries: 0 },
+  ], "week 4 is a bye (no row) and week 5 is not before week 5");
+  assert.equal(usageStability(rows).games, 3);
+  const sleeper = await weeklyUsageRows({ supabase: fakeSupabase(crosswalk), playerKey: "sleeper:12534", season: 2026, beforeWeek: 4, fetchImpl });
+  assert.equal(sleeper[0].snap_share, 0.4);
+  assert.equal(sleeper[1].snap_share, null, "a week without a snap row keeps a null snap share");
+});
+
+test("weeklyUsageRows returns an empty list on any failure or unmapped player", async () => {
+  _resetCache();
+  const { weeklyUsageRows } = require("../src/services/playerUsage");
+  const down = async () => ({ ok: false, status: 503, text: async () => "" });
+  const base = { supabase: fakeSupabase(crosswalk), playerKey: "espn:2973405", season: 2026, beforeWeek: 4 };
+  assert.deepEqual(await weeklyUsageRows({ ...base, fetchImpl: down }), []);
+  _resetCache();
+  assert.deepEqual(await weeklyUsageRows({ ...base, playerKey: "espn:999", fetchImpl: okFetch }), []);
+  assert.deepEqual(await weeklyUsageRows({ ...base, season: "x", fetchImpl: okFetch }), []);
+  assert.deepEqual(await weeklyUsageRows({ ...base, supabase: null }), []);
+  _resetCache();
+  const rows = await weeklyUsageRows({ ...base, fetchImpl: routedFetch({ snapsOk: false }), log: { warn() {} } });
+  assert.equal(rows.length, 3);
+  assert.ok(rows.every((r) => r.snap_share === null), "a snap outage drops only the snap share");
+});
+
 test("trend compares the last three games with the earlier games of the season", () => {
   const rows = (weeks) => weeks.map(([week, targets]) => ({ week: String(week), targets: String(targets), carries: "0", attempts: "0", receptions: "0", target_share: "0.2", team: "CHI" }));
   const u = summarize(rows([[1, 4], [2, 4], [3, 8], [4, 9], [5, 10]]), 6);
