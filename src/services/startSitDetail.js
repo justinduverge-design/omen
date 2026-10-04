@@ -398,6 +398,7 @@ module.exports = {
   CONTRACT_VERSION_V2,
   STATES,
   buildCapabilities,
+  buildEvidence,
   buildStartSitDetail,
   confidenceLabel,
 };

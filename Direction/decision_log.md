@@ -1,5 +1,20 @@
 # Omen Decision Log
 
+## 2026-10-04 — evidence taxonomy closed in code and CI; contract enum deferred to a new version
+
+- **Decision:** evidence `category` and `kind` stay free strings in the schemas, but the set of values
+  the code may emit is now closed in `src/services/evidenceVocabulary.js` and enforced by
+  `test/evidenceVocabulary.test.js` (real builders, literal strings in builder source, and every
+  recorded fixture row). Covers start-sit-detail v1/v2, waiver-analysis v1 and the code-built
+  move-detail rows. Start/sit includes both `projection` (player_game_fact) and `projected`
+  (points_breakdown).
+- **Why not a schema enum:** the contract lock reports `string -> enum` as a retype, a breaking change
+  under `test/contracts/README.md`; the only way past it is `--accept-breaking`, which the rule forbids.
+  The enum lands in a future start-sit-detail v3 / waiver-analysis v2 served alongside the old versions.
+- **Open on purpose:** the decision-based move-detail builder takes `category` from the DB factor
+  `family` and `kind` from `evidence_kind`; only its code-side `evidenceCategory` fallback is closed.
+- No schema, lock or fixture change; `contracts.js check` passes untouched.
+
 ## 2026-10-04 — honest confidence: one scale, projection gap alone never reads Confident
 
 - **Why (founder, 2026-10-04; thesis in `Blueprints/specs/omen-decision-engine-v2.md`):** Omen explains provider

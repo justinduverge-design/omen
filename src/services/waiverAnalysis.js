@@ -367,6 +367,7 @@ module.exports = {
   STATES,
   buildWaiverAnalysis,
   chooseDrop,
+  evidenceFor,
   displacedStarter,
   projection,
   rankCandidates,
