@@ -16,6 +16,7 @@ const { logger } = require("../middleware/logging");
 const { requireAuth } = require("../middleware/auth");
 const { ensureAppUser } = require("../services/appUser");
 const connectionStore = require("../services/connectionStore");
+const leagueMemberships = require("../services/leagueMemberships");
 const { hasUsableLeagueId } = require("../services/omenReadiness");
 const sleeperAdapter = require("../adapters/sleeper");
 const espnAdapter = require("../adapters/espn");
@@ -326,6 +327,26 @@ async function storeEspnLegacy(userId, { leagueId, espnTeamId, espn_s2, swid }) 
   if (error) throw new Error(`ESPN connection upsert failed: ${error.message}`);
 }
 
+/**
+ * Plan A5: every connect and reconnect writes `leagues` + `league_memberships` for the leagues the
+ * account can see. A disconnect cascades the memberships away with the connection row, so without
+ * this a reconnect lost leagues (production: 10 memberships became 9 after an ESPN reconnect).
+ *
+ * Never fails the connect: the connection is already saved, and the next directory read repairs
+ * the memberships. Logs carry the provider's HTTP status and the table/code of a failed write only,
+ * never a cookie, token, or URL.
+ */
+async function writeConnectMemberships(userId, platform, options) {
+  const result = await leagueMemberships.syncAfterConnect(supabase, { userId, platform, ...options });
+  if (result.discoveryFailed) {
+    logger.warn("League discovery at connect failed", { platform, http_status: result.discoveryStatus });
+  }
+  if (result.reason === "write_failed" || result.reason === "no_connection") {
+    logger.warn("League membership write at connect failed", { platform, reason: result.reason, err: result.error || null });
+  }
+  return result;
+}
+
 async function vaultDelete(secretId) {
   if (!secretId) return;
   const { error } = await supabase.rpc("vault_delete_secret", { secret_id: secretId });
@@ -558,6 +579,15 @@ router.post("/sleeper/connect", requireAuth, responseCache.invalidateUserCacheOn
 
     if (error) throw new Error(`Sleeper connection upsert failed: ${error.message}`);
     connectionSaved = true;
+    await writeConnectMemberships(req.user.id, "sleeper", {
+      discover: async (season) => (await sleeperAdapter.fetchSleeperLeagues(sleeperUser.user_id, season) || [])
+        .map((league) => ({
+          league_id: String(league?.league_id || league?.id || "").trim(),
+          league_name: league?.name || null,
+          season: league?.season,
+        })),
+      boundLeagueId: leagueId,
+    });
     const response = {
       connected: true,
       status: "connected",
@@ -685,6 +715,15 @@ router.post("/espn/connect", requireAuth, responseCache.invalidateUserCacheOnWri
       userId: req.user.id, leagueId, teamId: espnTeamId ?? null, espnS2: espn_s2, swid,
     });
     if (!stored.present) await storeEspnLegacy(req.user.id, { leagueId, espnTeamId, espn_s2, swid });
+    // The cookies stay in this closure: they reach ESPN and nothing else.
+    await writeConnectMemberships(req.user.id, "espn", {
+      connectionId: stored.present ? stored.data : null,
+      discover: (season) => espnAdapter.fetchEspnFanLeagues(espn_s2, swid, { season }),
+      boundLeagueId: leagueId,
+      boundTeamId: espnTeamId,
+      boundVerified: true,
+      trustDiscoveredTeams: false,
+    });
     return res.json({
       connected: true,
       status: "connected",

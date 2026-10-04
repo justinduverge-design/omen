@@ -3,13 +3,13 @@
   "route": "/api/leagues/",
   "body": {
     "active": {
-      "league_id": "12345",
-      "league_name": "Alpha Dynasty",
-      "platform": "espn",
+      "league_id": "L-alpha",
+      "league_name": null,
+      "platform": "sleeper",
       "scoring_format": null,
-      "season": 2026,
-      "team_id": "9",
-      "team_name": "ESPN Team"
+      "season": null,
+      "team_id": null,
+      "team_name": null
     },
     "contract_version": "league-directory.v1",
     "follow_persistence": "unavailable",
@@ -22,50 +22,30 @@
           {
             "is_active": true,
             "is_followed": true,
-            "league_id": "12345",
-            "league_name": "Alpha Dynasty",
+            "league_id": "449.l.1",
+            "league_name": "Work League",
             "scoring_format": null,
             "season": 2026,
-            "team_id": "9",
-            "team_name": "ESPN Team"
-          },
-          {
-            "is_active": false,
-            "is_followed": true,
-            "league_id": "88",
-            "league_name": "Mid Money",
-            "scoring_format": null,
-            "season": 2026,
-            "team_id": "2",
-            "team_name": "Mid Squad"
-          },
-          {
-            "is_active": false,
-            "is_followed": true,
-            "league_id": "77",
-            "league_name": "Zeta Office",
-            "scoring_format": null,
-            "season": 2026,
-            "team_id": "4",
-            "team_name": "Zeta Squad"
+            "team_id": "7",
+            "team_name": "Desk Jockeys"
           }
         ],
+        "notice": null,
+        "platform": "yahoo"
+      },
+      {
+        "connection_state": "not_connected",
+        "discovery": "unavailable",
+        "leagues": [],
         "notice": null,
         "platform": "espn"
       },
       {
-        "connection_state": "not_connected",
+        "connection_state": "connected",
         "discovery": "unavailable",
         "leagues": [],
-        "notice": null,
+        "notice": "Omen could not reach this platform to list leagues.",
         "platform": "sleeper"
-      },
-      {
-        "connection_state": "not_connected",
-        "discovery": "unavailable",
-        "leagues": [],
-        "notice": null,
-        "platform": "yahoo"
       }
     ],
     "season": 2026,

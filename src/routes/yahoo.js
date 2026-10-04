@@ -28,6 +28,7 @@ const { ensureAppUser }       = require("../services/appUser");
 const { getYahooAuthUrl, exchangeYahooCode } = require("../middleware/yahooOAuth");
 const { getAuthenticatedYahooClient, persistYahooTokens } = require("../services/yahooAuth");
 const yahooAdapter            = require("../adapters/yahoo");
+const leagueMemberships       = require("../services/leagueMemberships");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
@@ -112,6 +113,39 @@ router.post("/auth", requireAuth, requireYahooEnabled, async (req, res, next) =>
   }
 });
 
+/**
+ * Plan A5: a Yahoo connect or re-auth writes `leagues` + `league_memberships` for every league the
+ * account has. Never fails the callback (the tokens are already stored, and the next directory
+ * read repairs the memberships). The league id from the OAuth state is client-supplied, so it is
+ * written only if Yahoo lists it or Yahoo cannot be asked. Logs carry no token.
+ */
+async function writeYahooMemberships(userId, leagueId) {
+  const result = await leagueMemberships.syncAfterConnect(supabase, {
+    userId,
+    platform: "yahoo",
+    boundLeagueId: leagueId,
+    discover: async () => {
+      const { client } = await getAuthenticatedYahooClient(userId);
+      const leagues = typeof client.getUserLeaguesWithTeams === "function"
+        ? await client.getUserLeaguesWithTeams()
+        : await client.getUserLeagues();
+      return (leagues || []).map((league) => ({
+        league_id: league.league_id,
+        league_name: league.name || null,
+        season: league.season,
+        team_id: league.team_id ?? null,
+        team_name: league.team_name ?? null,
+      }));
+    },
+  });
+  if (result.discoveryFailed) {
+    logger.warn("League discovery at connect failed", { platform: "yahoo", http_status: result.discoveryStatus });
+  }
+  if (result.reason === "write_failed" || result.reason === "no_connection") {
+    logger.warn("League membership write at connect failed", { platform: "yahoo", reason: result.reason, err: result.error || null });
+  }
+}
+
 router.get("/callback", async (req, res, next) => {
   try {
     const { code, state, error: providerError } = req.query;
@@ -141,6 +175,7 @@ router.get("/callback", async (req, res, next) => {
     const tokens = await exchangeYahooCode(code);
     await responseCache.invalidateUser(oauthRow.user_id);
     await persistYahooTokens(oauthRow.user_id, tokens, leagueId);
+    await writeYahooMemberships(oauthRow.user_id, leagueId);
     await responseCache.invalidateUser(oauthRow.user_id);
     await supabase.from("oauth_state").delete().eq("state", state);
 
