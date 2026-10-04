@@ -3,6 +3,7 @@
 const express = require("express");
 const optimizer = require("../services/optimizer");
 const llm = require("../services/llm");
+const { validateGroundedText } = require("../services/narrationGrounding");
 
 const router = express.Router();
 const LLM_TIMEOUT_MS = 8000;
@@ -105,26 +106,44 @@ function buildSignals({ winningPlayer, losingPlayer, pointsDelta }) {
   return signals;
 }
 
-async function explainSafely({ loser, winner, pointsDelta, slot }) {
-  return withTimeout(
-    llm.explainStartSit({
-      from: {
-        name: loser.name,
-        position: loser.position,
-        projected: loser.projected_points,
-        status: loser.status || null,
-      },
-      to: {
-        name: winner.name,
-        position: winner.position,
-        projected: winner.projected_points,
-        status: winner.status || null,
-      },
-      delta: pointsDelta,
-      slot,
-    }),
-    LLM_TIMEOUT_MS
+function statusClause(player) {
+  return isActiveStatus(player.status) ? "" : ` (${statusText(player.status)})`;
+}
+
+/**
+ * Deterministic "why": built only from the request's own numbers, so it is
+ * always present and can never be wrong about the facts.
+ */
+function deterministicExplanation({ loser, winner, pointsDelta }) {
+  return `${winner.name.trim()}${statusClause(winner)} is projected for ${winner.projected_points} pts `
+    + `against ${loser.projected_points} for ${loser.name.trim()}${statusClause(loser)}, `
+    + `a ${pointsDelta}-point edge.`;
+}
+
+function groundingFacts({ loser, winner, pointsDelta, slot }) {
+  const side = (p) => ({
+    name: p.name.trim(),
+    position: p.position,
+    projected: p.projected_points,
+    status: p.status || null,
+  });
+  return { from: side(loser), to: side(winner), delta: pointsDelta, slot };
+}
+
+/**
+ * The model may only rephrase the deterministic facts. Timeout, error, empty,
+ * overlong or ungrounded output all fall back to the deterministic sentence, so
+ * `explanation` is always a bounded, grounded string.
+ */
+async function explainSafely({ loser, winner, pointsDelta, slot }, { timeoutMs = LLM_TIMEOUT_MS, llmService = llm } = {}) {
+  const fallback = deterministicExplanation({ loser, winner, pointsDelta });
+  const facts = groundingFacts({ loser, winner, pointsDelta, slot });
+  const generated = await withTimeout(
+    Promise.resolve().then(() => llmService.explainStartSit({ ...facts, timeoutMs })),
+    timeoutMs
   );
+  const text = typeof generated === "string" ? generated.trim() : "";
+  return text && validateGroundedText(text, facts).ok ? text : fallback;
 }
 
 function comparePlayers(playerA, playerB) {
@@ -185,3 +204,5 @@ module.exports = router;
 module.exports.validatePlayer = validatePlayer;
 module.exports.comparePlayers = comparePlayers;
 module.exports.buildSignals = buildSignals;
+module.exports.explainSafely = explainSafely;
+module.exports.deterministicExplanation = deterministicExplanation;

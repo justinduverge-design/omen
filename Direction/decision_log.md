@@ -1,5 +1,20 @@
 # Omen Decision Log
 
+## 2026-10-04 — LLM narration is grounded: it may phrase the "why", never add to it
+
+- **Decision:** v1 thesis is that Omen explains provider projections. The model may rephrase reasons the
+  deterministic engine already produced; it may not introduce new ones. `src/services/narrationGrounding.js`
+  rejects model text unless every number, name-like token and stat claim traces to the facts payload the model
+  was given (rounding variants allowed), and rejects invented stats, "beats projections", own-prediction
+  claims, guarantees and numeric confidence.
+- **Applied at:** `mvpEvidenceEnrichment.generateMvpLlmNarration` (summary and why_it_matters) and
+  `routes/startSit.explainSafely`. Start/sit now always returns a string `explanation`: a deterministic
+  sentence built from the request's own numbers, replaced by model text only when it passes grounding and the
+  length bound. Timeout, error, empty or ungrounded output all fall back. No latency can be added beyond the
+  existing bounds; narration defaults are unchanged (MVP brief path still opt-in, cloud still hard-disabled).
+- **Prompts** in `llm.js` now say "rephrase ONLY these facts; add nothing". The old omenRoute fixture that had
+  the model say "Live Gemma says..." was itself an ungrounded name and was corrected.
+
 ## 2026-10-03 — prep for production: how steps are applied, step 11 and 12 designs, and four fixes found on the way
 
 - **Apply mechanism (founder, 2026-10-03: "I like it"):** production steps go through the Supabase

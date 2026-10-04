@@ -11,6 +11,7 @@
 
 const llm = require("./llm");
 const matchupService = require("./matchupService");
+const { validateGroundedText } = require("./narrationGrounding");
 
 const DVP_POSITIONS = new Set(["QB", "RB", "WR", "TE"]);
 const LIVE_SCHEDULE_SOURCES = new Set(["espn_scoreboard"]);
@@ -127,6 +128,25 @@ function isBoundedLlmExplanation(value, allowedDataUsed = []) {
   });
 }
 
+/**
+ * The model may rephrase the deterministic facts but never add to them. Every
+ * number, name and stat claim in the applied fields must trace to `payload`;
+ * the numeric confidence score is never quoted. Anything else falls back to the
+ * deterministic explanation already on the response.
+ */
+function isGroundedLlmExplanation(generated, payload) {
+  const options = {
+    // Each field is checked on its own; the combined 50-word/2-sentence bound is
+    // enforced by isBoundedLlmExplanation.
+    maxWords: 50,
+    maxSentences: 2,
+    disallowNumbers: [payload?.confidence?.score],
+  };
+  return ["summary", "why_it_matters"].every(
+    (field) => validateGroundedText(generated?.[field], payload, options).ok
+  );
+}
+
 function safeModelLabel(value) {
   const model = String(value || "").trim();
   return /^[a-z0-9][a-z0-9._:-]{0,79}$/i.test(model) && model.length <= MAX_LLM_MODEL_LABEL_LENGTH
@@ -153,6 +173,7 @@ async function generateMvpLlmNarration(response, { llmService = llm, timeoutMs }
     ...(timeoutMs == null ? {} : { timeoutMs }),
   });
   if (!isBoundedLlmExplanation(generated, payload.data_used)) return null;
+  if (!isGroundedLlmExplanation(generated, payload)) return null;
 
   const bridge = typeof llmService.getLlmBridgeStatus === "function"
     ? llmService.getLlmBridgeStatus()
@@ -287,6 +308,7 @@ module.exports = {
   deriveVerifiedDvpLookup,
   generateMvpLlmNarration,
   isBoundedLlmExplanation,
+  isGroundedLlmExplanation,
   isValidDvpContextForLookup,
   resolveMvpDvpContext,
   safeModelLabel,

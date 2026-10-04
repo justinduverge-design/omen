@@ -176,7 +176,7 @@ test("POST /api/omen/mvp-move requires auth for non-mock live requests", async (
 
 test("POST /api/omen/mvp-move uses live LLM explanation for eligible success response", async () => {
   const liveExplanation = {
-    summary: "Live Gemma says Vale is the best weekly swing.",
+    summary: "Marquise Vale is the best weekly swing.",
     why_it_matters: "Adds meaningful projected value without changing the rest of the lineup",
     risk: "Medium risk because matchup DvP is stubbed",
     confidence: "Confidence is 74 out of 100 with a clear but not perfect edge",
