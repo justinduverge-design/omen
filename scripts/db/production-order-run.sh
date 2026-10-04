@@ -31,7 +31,7 @@ rb="$sqldir/runbook"
 out="${OUT:-$(mktemp -d)}"
 mkdir -p "$out" "$rb/expected"
 : "${PSQL:?set PSQL to a psql command that reads SQL from stdin}"
-order=(${STEPS:-07 01 02 03 04 06 11 12 05 10 08 09 13 14})
+order=(${STEPS:-07 01 02 03 04 06 11 12 05 10 08 09 13 14 15})
 
 case "$PSQL" in *supabase.co*|*supabase.com*|*pooler*) echo "refusing: this script never runs against Supabase" >&2; exit 2 ;; esac
 case "${TARGET:-}" in scratch|clone) ;; *) echo "refusing: set TARGET=scratch or TARGET=clone" >&2; exit 2 ;; esac

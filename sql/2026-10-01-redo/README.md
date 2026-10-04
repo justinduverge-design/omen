@@ -12,7 +12,7 @@ Claude or Codex sessions only. Jules and Muse never touch the database.
 |---|---|
 | `00a_scratch_supabase_shim.sql`, `00b_production_schema_snapshot.sql`, `00c_scratch_seed.sql` | **scratch only**: Supabase stand-ins, production's schema as read 2026-10-01, synthetic data |
 | `production-catalog-2026-10-01.json` | fixture: production's catalog, read-only, 2026-10-01 |
-| Steps 01-14 | identity, credentials, leagues, players, Ledger, projections + data record, close client writes, delete the 6 unscoped Ledger rows, beta reports, one-transaction account erasure, league scoring rules compartment, saved trades, football-intelligence signals (13), nflverse weekly player stats (14; job spec `Blueprints/specs/football-data/omen-nflverse-weekly-stats-ingest-v1.md`) |
+| Steps 01-15 | identity, credentials, leagues, players, Ledger, projections + data record, close client writes, delete the 6 unscoped Ledger rows, beta reports, one-transaction account erasure, league scoring rules compartment, saved trades, football-intelligence signals (13), nflverse weekly player stats (14; job spec `Blueprints/specs/football-data/omen-nflverse-weekly-stats-ingest-v1.md`), the full nflverse record (15: full stat lines, play-by-play opportunity, team weeks, games with lines, weekly rosters) |
 | `NN_<step>.up.sql` | the step (one transaction, preflight aborts on unexpected state) |
 | `NN_<step>.down.sql` | its exact rollback (schema and data) |
 | `NN_<step>.test.sql` | scratch assertions; rolls back |

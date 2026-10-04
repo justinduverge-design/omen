@@ -103,7 +103,13 @@ async function writeCrosswalk({ client, crosswalk, sourceRefValue, now = new Dat
   return summary;
 }
 
-async function runCrosswalk({ client, fetchImpl = fetch, minLastSeason = new Date().getUTCFullYear() - 2, log = defaultLog }) {
+// Players last seen in or after this season are kept. It reaches back as far as the nflverse history
+// Omen stores (src/omen_nflverse_weekly_stats_cron.js): a player-week whose player is not in the
+// crosswalk is skipped, never guessed, so the window must cover every stored season. 2021 is the first
+// 17-game season; earlier history is left out to stay well inside the free plan's 500 MB database.
+const HISTORY_FROM_SEASON = 2021;
+
+async function runCrosswalk({ client, fetchImpl = fetch, minLastSeason = HISTORY_FROM_SEASON, log = defaultLog }) {
   const [playersCsv, sleeperJson] = await Promise.all([
     fetchText(NFLVERSE_PLAYERS_URL, fetchImpl),
     fetchText(SLEEPER_PLAYERS_URL, fetchImpl),
@@ -139,4 +145,5 @@ if (require.main === module) {
   );
 }
 
-module.exports = { runCrosswalk, writeCrosswalk, NFLVERSE_PLAYERS_URL, SLEEPER_PLAYERS_URL };
+module.exports = {
+  HISTORY_FROM_SEASON, runCrosswalk, writeCrosswalk, NFLVERSE_PLAYERS_URL, SLEEPER_PLAYERS_URL };
