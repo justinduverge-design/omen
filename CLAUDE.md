@@ -21,42 +21,22 @@ If a file is missing, continue and say which one.
 ## Read in order before pulling a task
 
 **This list and `Blueprints/prompts/kickoff-l2.md` are one contract and must stay identical.**
-`node scripts/check-kickoff-drift.js` enforces it. Change one, change both. Do not grow it without the
-founder: `node scripts/harness-cost.js` fails when the always-loaded set goes over budget.
+`node scripts/check-kickoff-drift.js` enforces it. Change one, change both.
 
-1. `Direction/map.md` — what Omen is, rules that never bend, current focus, and the "when you touch X,
-   read Y and call Z" table
-2. `Direction/agent_inbox.md` — pinned task; **a pin wins over the queue**
+1. `Direction/map.md`
+2. `Direction/agent_inbox.md`
 
 Codex also reads `AGENT.md`, its runtime extension. **`AGENTS.md` with the S is the shared file; `AGENT.md`
 extends it for Codex.**
 
 ## Reads on demand
 
-Everything else is pulled by the map's routing table, not up front. The usual suspects:
-
-| Read this | When |
-|---|---|
-| `Direction/facts-of-record.md` | A rule in the map needs its reasoning, or you may be about to state a public claim |
-| `Direction/status-model.md` | Setting or reading `Status:`, `Claim:`, `Evidence:` |
-| `Direction/known_issues.md` | You hit a bug; open issues only. Fixed ones: `known_issues-resolved.md` |
-| `Direction/decision_log.md` | You need the reasoning behind a decision — search it, never load it whole |
-| `Direction/shipped.md` | What has merged or is open; regenerate with `node scripts/shipped.js` |
-| `Blueprints/definition-of-done.md` | Closing out |
-| `RESOLVER.md` | Before creating a new file |
-| `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md` | The loop, and the Review policy |
-| `Blueprints/api-routes.md` | API contracts |
-| `Brand/brand-system.md`, `Blueprints/specs/page-system.md`, `Blueprints/specs/design/component-lock-v1.md`, `team-theme-contract-v1.md` | Voice, page and component design |
-
-`Blueprints/specs/omen-ux-ui-design-system-v1.md` is **partially superseded**; read its banner before
-citing it.
+Read the map (`Direction/map.md`). Its routing table says what else to read and which skills to call for your task.
 
 ### Skills are invoked by name
 
 Call a Slops skill by name. Do not read it as a file and never copy one into this repo.
-`Slops-OS/Blueprints/skills/SKILL_ROUTING.md` is authoritative for status and scope. Three are
-**web-app only**: `slops-ui-ux-audit`, `mobile-first-qa-playbook`, `slops-mobile-smoke`. Native work wants
-`slops-native-ui-audit`, `slops-native-sim-drive` and `slops-native-screen-design`.
+`Slops-OS/Blueprints/skills/SKILL_ROUTING.md` is authoritative for status and scope.
 
 ## Native mobile read gate
 

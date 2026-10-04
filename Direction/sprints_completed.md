@@ -652,3 +652,8 @@ five real leagues across two providers, all-provider projections, and two produc
 dated handoffs cover them well. They were absent from the *status* surfaces: this file,
 `current_sprint.md`, `Blueprints/done/LEDGER.md`, `roadmap.md`, and `release_readiness.md`. The
 narrative record and the queue record came apart, and the queue was the half that was wrong.
+
+### DB-REDO-PROD — Database redo applied to production
+
+- **Status:** VERIFIED
+- **Evidence:** all 12 steps applied 2026-10-03 (founder-approved, five sittings), each verified against the rehearsed catalog change: `Blueprints/handoffs/2026-10-03-prep-for-production.md` ("Production applied"). The phone deletion test (steps 05 and 10) remains, deferred by the founder to the very end.
