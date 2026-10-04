@@ -11,9 +11,22 @@ const express = require("express");
 
 const MOVE_ID = "11111111-2222-3333-4444-555555555555";
 
+// The detail route looks in the redo's Ledger (decisions) first; these fixtures are moves rows the
+// redo did not copy, so the Ledger lookups find nothing and the route falls back to moves.
+// Decision-backed receipts are covered in test/ledgerDecisions.test.js.
+function emptyLedgerQuery() {
+  const query = {
+    select() { return query; },
+    eq() { return query; },
+    async maybeSingle() { return { data: null, error: null }; },
+  };
+  return query;
+}
+
 function fakeSupabase({ rows = [], missingColumns = false, calls = [] } = {}) {
   return {
     from(table) {
+      if (table === "decisions") return emptyLedgerQuery();
       assert.equal(table, "moves");
       return {
         select(columns) {
