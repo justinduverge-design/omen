@@ -45,6 +45,29 @@
   move detail maps them with `bandFromScore`, so an old high number can still read Confident for that old row.
   The Tuesday cron's win/loss bonus thresholds (`>=75`, `<50`) read the same column and now see 85 / 68 / 50.
 
+## 2026-10-04 — LLM narration is grounded: it may phrase the "why", never add to it
+
+- **Decision:** v1 thesis is that Omen explains provider projections. The model may rephrase reasons the
+  deterministic engine already produced; it may not introduce new ones. `src/services/narrationGrounding.js`
+  rejects model text unless every number, name-like token and stat claim traces to the facts payload the model
+  was given (rounding variants allowed), and rejects invented stats, "beats projections", own-prediction
+  claims, guarantees and numeric confidence.
+- **Applied at:** `mvpEvidenceEnrichment.generateMvpLlmNarration` (summary and why_it_matters) and
+  `routes/startSit.explainSafely`. Start/sit now always returns a string `explanation`: a deterministic
+  sentence built from the request's own numbers, replaced by model text only when it passes grounding and the
+  length bound. Timeout, error, empty or ungrounded output all fall back. No latency can be added beyond the
+  existing bounds; narration defaults are unchanged (MVP brief path still opt-in, cloud still hard-disabled).
+- **Grounding is best-effort, not a proof.** It checks numbers, name-like capitalized tokens, and a broad
+  lexicon of unsupported-reason terms ("dominant", "great matchup", "elite", "smash spot", "locked in"...),
+  each allowed only when the same phrase is in the facts. It is deliberately not a closed vocabulary: false
+  rejects would kill narration. A novel invented lowercase claim can still slip through; the deterministic
+  text is always present and is the safe fallback, and the validator and its call sites fail closed (never
+  throw). Abbreviation periods ("St. Brown", "D.J. Moore") do not count as sentence ends; position tags
+  (WR1, FLEX) are not treated as numbers or names. No frontend or mobile client reads the
+  `POST /api/start-sit` explanation (mobile uses `/detail`), so null-to-string needed no client change.
+- **Prompts** in `llm.js` now say "rephrase ONLY these facts; add nothing". The old omenRoute fixture that had
+  the model say "Live Gemma says..." was itself an ungrounded name and was corrected.
+
 ## 2026-10-03 — prep for production: how steps are applied, step 11 and 12 designs, and four fixes found on the way
 
 - **Apply mechanism (founder, 2026-10-03: "I like it"):** production steps go through the Supabase

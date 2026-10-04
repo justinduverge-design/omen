@@ -226,13 +226,18 @@ async function explainTrade({ send, receive, net_value, verdict }) {
  * from/to: { name, position, projected, status }
  * delta: number, slot: string
  */
-async function explainStartSit({ from, to, delta, slot }) {
+async function explainStartSit({ from, to, delta, slot, timeoutMs }) {
   const messages = [
     {
       role: "system",
       content:
         "You are a concise fantasy football analyst. " +
-        `Give plain English advice. ${narrationLimitInstruction()} No markdown.`,
+        "Rephrase ONLY the facts given in the user message; add nothing. " +
+        "Use only the player names, positions, injury statuses and point numbers provided. " +
+        "Do not mention any other stat, trend, usage, matchup, weather or injury. " +
+        "Do not predict, do not claim to beat projections, do not guarantee an outcome, " +
+        "and do not state a confidence number or percentage. " +
+        `${narrationLimitInstruction()} Plain text, no markdown.`,
     },
     {
       role: "user",
@@ -240,10 +245,10 @@ async function explainStartSit({ from, to, delta, slot }) {
         `Start/sit decision for ${slot} slot: ` +
         `bench ${from.name} (projected ${from.projected} pts${from.status ? ", " + from.status : ""}) ` +
         `and start ${to.name} (projected ${to.projected} pts${to.status ? ", " + to.status : ""}). ` +
-        `Difference: ${delta} pts. Give one clear reason why.`,
+        `Difference: ${delta} pts. Give one clear reason why, using only these facts.`,
     },
   ];
-  return chat(messages);
+  return chat(messages, timeoutMs == null ? {} : { timeoutMs });
 }
 
 /**
@@ -362,9 +367,10 @@ function parseOmenExplanation(raw) {
 async function explainOmenMvpMove(payload, { timeoutMs } = {}) {
   const systemPrompt = [
     "You are Omen, a concise fantasy football analyst.",
-    "Explain only the already-selected MVP Move using plain English.",
+    "Rephrase ONLY the provided facts in plain English. Add nothing.",
     "Do not change the recommendation, players, confidence score, risk level, expected value, or response state.",
-    "Use only the provided sanitized facts.",
+    "Use only names, teams and numbers that appear in the facts. Do not mention any stat, trend, injury, weather, usage or matchup that is not in the facts.",
+    "Never quote the confidence score or any percentage. Never say you predict, never claim to beat projections, never guarantee an outcome.",
     narrationLimitInstruction(),
     "Return strict JSON only, with no markdown.",
     'Required shape: {"summary":"short string","why_it_matters":"short string","risk":"short string","confidence":"short string","data_used":["string"]}',
