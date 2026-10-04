@@ -43,7 +43,7 @@ const promoOmenData = {
       summary: 'Start Marquise Vale over Trent Holloway.',
       why_it_matters: 'Vale gives this sample lineup a meaningful projection edge.',
       risk: 'Risk is medium because player availability and matchup context can still move.',
-      confidence: 'Confidence is 74 out of 100 for this sample scenario.',
+      confidence: 'Leaning. This sample scenario rests on the projection gap alone.',
       data_used: ['sample roster', 'sample projections', 'sample matchup context'],
     },
   },

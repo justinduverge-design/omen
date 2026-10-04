@@ -19,6 +19,9 @@ const {
   RECONCILIATION_STATES,
   reconcileMoveScoring,
 } = require("./services/scoringReconciliation");
+const ledgerStore = require("./services/ledger");
+const { bandFromScore } = require("./services/confidencePolicy");
+const { getCurrentNflWeekContext } = require("./services/nflSchedule");
 
 const REQUIRED_SCORING_ENV = Object.freeze([
   "SUPABASE_URL",
@@ -301,6 +304,15 @@ function scoreMoveByContract(move, stats) {
   return { deferred: false, points: reconciliation.omen_points, reconciliation_state: reconciliation.state };
 }
 
+// Band-aware grading weight. `moves.confidence` is the internal band representative (85 / 68 / 50);
+// rows written on the legacy scale keep working: >= 80 is Confident, <= 50 is a Coin flip.
+function confidenceFlags(score) {
+  // Missing, null, zero or non-finite confidence is neutral: no bonus either way.
+  const n = score == null || score === "" ? NaN : Number(score);
+  if (!Number.isFinite(n) || n <= 0) return { confident: false, coinFlip: false };
+  return { confident: bandFromScore(n) === "confident", coinFlip: n <= 50 };
+}
+
 function scoreMove(move, playerScores) {
   const keys = Object.keys(playerScores);
   const target = move.target_player || move.headline || "";
@@ -339,7 +351,7 @@ function scoreMove(move, playerScores) {
     actual = scoreFromStats(stats, move.scoring || "PPR");
     scoringLabel = move.scoring || "PPR";
   }
-  const confidence = Number(move.confidence) || 50;
+  const confidence = move.confidence;
   const projectedBaseline = 12.5;
   const ratio = actual / projectedBaseline;
   let eff = 30;
@@ -355,10 +367,11 @@ function scoreMove(move, playerScores) {
     eff += 5;
   }
 
-  if (outcome === "win" && confidence >= 75) eff += 20;
-  if (outcome === "win" && confidence < 50) eff += 10;
-  if (outcome === "loss" && confidence >= 75) eff -= 15;
-  if (outcome === "loss" && confidence < 50) eff -= 5;
+  const { confident, coinFlip } = confidenceFlags(confidence);
+  if (outcome === "win" && confident) eff += 20;
+  if (outcome === "win" && coinFlip) eff += 10;
+  if (outcome === "loss" && confident) eff -= 15;
+  if (outcome === "loss" && coinFlip) eff -= 5;
 
   return {
     outcome,
@@ -402,6 +415,139 @@ async function saveScoredMove(supabase, moveId, score) {
   if (error) throw new Error(`Move ${moveId} update failed: ${error.message}`);
 }
 
+// --- The Ledger (decisions → decision_outcomes) ----------------------------------------------------
+
+const LEGACY_SCORING_LABELS = Object.freeze({ ppr: "PPR", half_ppr: "Half PPR", standard: "Standard" });
+
+function emptyLedgerTally() {
+  return { inserted: 0, updated: 0, unchanged: 0, deferred: 0, failed: 0 };
+}
+
+function decisionTargetPlayer(decision) {
+  const recommendation = decision.recommendation || {};
+  const name = recommendation.primary_player?.name || recommendation.target_player || null;
+  return typeof name === "string" && name.trim() ? name.trim() : null;
+}
+
+/**
+ * Grade one decision with the same rules the moves worker applies (scoreMove), so the two Ledgers
+ * cannot disagree about a call. Differences are deliberate and only ever more cautious:
+ *   - a call the person said they did not follow is `not_executed`, not graded;
+ *   - a player with no public stat line is `data_incomplete`, not a loss;
+ *   - every call issued by the live engine is contract-required (A6), and the decisions row keeps
+ *     the contract's version and hash but not its rule body, so it reconciles to a named state and
+ *     is recorded `data_incomplete` until a league-exact source exists. Only a legacy call copied
+ *     from moves without a contract is graded against the documented PPR-label fallback;
+ *   - nothing graded from public fantasy totals is `verified` (that needs exact reconciliation).
+ */
+function gradeDecision({ decision, action }, playerScores) {
+  if (action?.followed === false) {
+    return {
+      state: "not_executed",
+      provenance: "self_reported",
+      summary: "You marked this call as not followed.",
+    };
+  }
+
+  const target = decisionTargetPlayer(decision);
+  if (!target || !findBestMatch(target, Object.keys(playerScores))) {
+    return {
+      state: "data_incomplete",
+      provenance: "legacy_estimate",
+      summary: "No public stat line matched the recommended player.",
+    };
+  }
+
+  const contractRequired = decision.call_type !== "legacy"
+    || Boolean(decision.scoring_contract_version || decision.scoring_contract_hash);
+  const score = scoreMove({
+    target_player: target,
+    headline: decision.headline,
+    confidence: decision.internal_score,
+    scoring: LEGACY_SCORING_LABELS[decision.scoring_format] || decision.scoring_format || "PPR",
+    scoring_contract_required: contractRequired,
+    scoring_contract: null,
+    scoring_coverage_state: decision.scoring_coverage_state || null,
+  }, playerScores);
+
+  if (score.outcome === "pending") {
+    return {
+      state: "data_incomplete",
+      provenance: "legacy_estimate",
+      reconciliation_state: score.reconciliation_state,
+      summary: score.result,
+    };
+  }
+  return {
+    state: "resolved",
+    result: score.outcome,
+    provenance: score.reconciliation_state === RECONCILIATION_STATES.EXACT ? "verified" : "legacy_estimate",
+    reconciliation_state: score.reconciliation_state,
+    effectiveness: score.eff,
+    summary: score.result,
+  };
+}
+
+/**
+ * Write decision_outcomes for every current call in a finished week of the current season that has
+ * no final outcome. "Finished" is week < the current NFL week (Omen's calendar rolls on Tuesday),
+ * so a missed run is caught up next time. Re-runs are idempotent: a final outcome is never touched
+ * and an unchanged incomplete one is not rewritten.
+ */
+async function scoreLedgerDecisions(supabase, {
+  now = new Date(),
+  dryRun = false,
+  fetchScores = fetchNFLScores,
+  redis = null,
+  env = process.env,
+  dependencies = {},
+} = {}) {
+  const tally = emptyLedgerTally();
+  const { season, raw_week: rawWeek } = getCurrentNflWeekContext(now);
+  if (!Number.isInteger(rawWeek) || rawWeek < 2) return tally;
+  // nflverse REG weeks only: weeks 1-18.
+  const beforeWeek = Math.min(rawWeek, 19);
+
+  const fetchScorable = dependencies.fetchScorableDecisions || ledgerStore.fetchScorableDecisions;
+  const saveOutcome = dependencies.saveDecisionOutcome || ledgerStore.saveDecisionOutcome;
+  const pending = await fetchScorable(supabase, { season, beforeWeek });
+  const scoreMaps = new Map();
+
+  for (const entry of pending) {
+    const { decision } = entry;
+    try {
+      let playerScores = {};
+      if (entry.action?.followed !== false) {
+        const scoreKey = `${decision.season}:${decision.week}`;
+        if (!scoreMaps.has(scoreKey)) {
+          scoreMaps.set(scoreKey, await fetchScores({ weekNum: decision.week, season: decision.season, redis, env }));
+        }
+        playerScores = scoreMaps.get(scoreKey);
+        if (isDeferredScores(playerScores)) {
+          tally.deferred += 1;
+          continue;
+        }
+        if (!Object.keys(playerScores || {}).length) throw new Error(`No nflverse player scores for ${scoreKey}`);
+      }
+
+      const outcome = gradeDecision(entry, playerScores);
+      if (dryRun) {
+        tally[entry.outcome ? "updated" : "inserted"] += 1;
+        continue;
+      }
+      const written = await saveOutcome(supabase, { decision, existing: entry.outcome, outcome, now: new Date() });
+      if (written === "inserted") tally.inserted += 1;
+      else if (written === "updated") tally.updated += 1;
+      else tally.unchanged += 1;
+    } catch (error) {
+      tally.failed += 1;
+      // The decision id is an opaque uuid; no user, league or player value is logged.
+      log.error(`Ledger decision ${decision.id} failed: ${error.message}`);
+    }
+  }
+  return tally;
+}
+
 async function runScoring({ env = process.env, now = new Date(), dependencies = {} } = {}) {
   const missing = missingScoringEnv(env);
   if (missing.length) {
@@ -415,13 +561,27 @@ async function runScoring({ env = process.env, now = new Date(), dependencies = 
   const resolvedFetchPendingMoves = dependencies.fetchPendingMoves || fetchPendingMoves;
   const resolvedFetchNFLScores = dependencies.fetchNFLScores || fetchNFLScores;
   const resolvedSaveScoredMove = dependencies.saveScoredMove || saveScoredMove;
+  const resolvedScoreLedger = dependencies.scoreLedgerDecisions || scoreLedgerDecisions;
   const supabase = resolvedCreateSupabase(env);
   const redis = resolvedCreateRedis(env);
   const archiveCount = await resolvedArchive(supabase, now, { dryRun });
   const pendingMoves = await resolvedFetchPendingMoves(supabase, now);
 
+  // The Ledger is scored independently of moves: a failure in one never stops the other.
+  const scoreLedger = async () => {
+    try {
+      return await resolvedScoreLedger(supabase, {
+        now, dryRun, redis, env,
+        fetchScores: dependencies.fetchNFLScores || fetchNFLScores,
+      });
+    } catch (error) {
+      log.error(`Ledger scoring failed: ${error.message}`);
+      return { ...emptyLedgerTally(), error: true };
+    }
+  };
+
   if (!pendingMoves.length) {
-    return { dryRun, archiveCount, scoredCount: 0, failedCount: 0, deferredCount: 0 };
+    return { dryRun, archiveCount, scoredCount: 0, failedCount: 0, deferredCount: 0, ledger: await scoreLedger() };
   }
 
   let scoredCount = 0;
@@ -458,7 +618,7 @@ async function runScoring({ env = process.env, now = new Date(), dependencies = 
     }
   }
 
-  return { dryRun, archiveCount, scoredCount, failedCount, deferredCount };
+  return { dryRun, archiveCount, scoredCount, failedCount, deferredCount, ledger: await scoreLedger() };
 }
 
 async function main({ env = process.env } = {}) {
@@ -469,6 +629,8 @@ async function main({ env = process.env } = {}) {
 
   const result = await runScoring({ env });
   log.info(`Tuesday scoring complete: archived=${result.archiveCount} scored=${result.scoredCount} failed=${result.failedCount} deferred=${result.deferredCount}`);
+  const ledger = result.ledger || {};
+  log.info(`Ledger scoring: inserted=${ledger.inserted} updated=${ledger.updated} unchanged=${ledger.unchanged} deferred=${ledger.deferred} failed=${ledger.failed}${ledger.error ? " error=true" : ""}`);
   return result;
 }
 
@@ -504,10 +666,13 @@ if (require.main === module) {
 
 module.exports = {
   archiveNotExecutedMoves,
+  confidenceFlags,
   fetchNFLScores,
   fetchPendingMoves,
   findBestMatch,
   getMostRecentSunday,
+  gradeDecision,
+  scoreLedgerDecisions,
   isDeferredScores,
   isDryRun,
   isScoringEnabled,

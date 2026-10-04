@@ -38,7 +38,7 @@
     "league_name": "Work League",
     "platform": "yahoo",
     "recommendation": {
-      "confidence": "high",
+      "confidence": "moderate",
       "over": {
         "kickoff": null,
         "name": "Chris Olave",

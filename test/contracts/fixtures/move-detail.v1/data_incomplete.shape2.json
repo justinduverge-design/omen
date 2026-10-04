@@ -73,7 +73,7 @@
       {
         "category": "model_input",
         "kind": "model",
-        "statement": "Omen recorded 72% confidence at issue time."
+        "statement": "Omen issued this call as Leaning."
       },
       {
         "category": "omen_inference",

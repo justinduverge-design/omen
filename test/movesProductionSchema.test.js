@@ -24,10 +24,25 @@ const PRODUCTION_COLUMNS = new Set([
   "provider_final_outcome", "reconciliation_state",
 ]);
 
-function fakeSupabase({ rows, columns = PRODUCTION_COLUMNS, calls }) {
+// The redo's Ledger tables (decisions, leagues, ...) are read first by the Ledger routes. They hold
+// nothing here, so the routes fall back to moves exactly as they would for a pre-redo row.
+function emptyLedgerQuery(table, ledgerCalls, ledgerError = null) {
+  const query = {
+    select() { return query; },
+    eq() { return query; },
+    in() { return query; },
+    order() { return query; },
+    limit() { return query; },
+    then(resolve, reject) { ledgerCalls.push(table); return Promise.resolve({ data: [], error: ledgerError }).then(resolve, reject); },
+    async maybeSingle() { ledgerCalls.push(table); return { data: null, error: ledgerError }; },
+  };
+  return query;
+}
+
+function fakeSupabase({ rows, columns = PRODUCTION_COLUMNS, calls, ledgerCalls = [], ledgerError = null }) {
   return {
     from(table) {
-      assert.equal(table, "moves");
+      if (table !== "moves") return emptyLedgerQuery(table, ledgerCalls, ledgerError);
       return {
         select(selected) {
           const query = {
@@ -101,43 +116,46 @@ const ROW = {
 };
 const NATIVE = "/api/moves?platform=sleeper&league_id=L1&contract_version=moves-history.v2";
 
-test("native Ledger never names a column production lacks and refuses to guess a league", async () => {
+test("native Ledger (v2) reads the redo's Ledger tables and never the moves table", async () => {
+  // v2 used to read moves and had to refuse (503 league_scope_unavailable) whenever production
+  // lacked platform/league_id. It now reads decisions, which are always league-scoped
+  // (sql/2026-10-01-redo/05). Coverage of the decisions mapping: test/ledgerDecisions.test.js.
   const calls = [];
-  const app = buildApp({ rows: [ROW], calls });
-  const { status, body } = await get(app, NATIVE);
-
-  // Was 500 "moves lookup failed: column moves.result does not exist".
-  assert.equal(status, 503);
-  assert.equal(body.contract_version, "moves-history-error.v1");
-  assert.equal(body.code, "league_scope_unavailable");
-  assert.equal(body.moves, undefined, "another league's rows must not be served as this league's");
-  assert.equal(calls.some((c) => /\b(result|scored_at)\b/.test(c.columns)), false);
-});
-
-test("native Ledger serves league-scoped rows once platform and league_id exist", async () => {
-  const columns = new Set([...PRODUCTION_COLUMNS, "platform", "league_id"]);
-  const rows = [
-    { ...ROW, platform: "sleeper", league_id: "L1" },
-    { ...ROW, id: "other", platform: "sleeper", league_id: "L2" },
-  ];
-  const calls = [];
-  const { status, body } = await get(buildApp({ rows, columns, calls }), NATIVE);
+  const ledgerCalls = [];
+  const { status, body } = await get(buildApp({ rows: [ROW], calls, ledgerCalls }), NATIVE);
 
   assert.equal(status, 200);
   assert.equal(body.contract_version, "moves-history.v2");
-  assert.deepEqual(body.moves.map((m) => m.id), [MOVE_ID]);
-  assert.equal(calls.some((c) => /\b(result|scored_at)\b/.test(c.columns)), false);
+  assert.deepEqual(body.moves, [], "a league with no recorded calls is an empty Ledger, never another league's rows");
+  assert.equal(calls.length, 0, "moves is not read for v2");
+  assert.deepEqual(ledgerCalls, ["leagues"]);
 });
 
-test("native Ledger still works on a pre-A6 schema (reconciliation_state absent)", async () => {
-  const columns = new Set([...PRODUCTION_COLUMNS, "platform", "league_id"]);
-  columns.delete("reconciliation_state");
-  const rows = [{ ...ROW, platform: "sleeper", league_id: "L1" }];
-  const { status, body } = await get(buildApp({ rows, columns, calls: [] }), NATIVE);
+test("native Ledger refuses with 503 league_scope_unavailable when the Ledger tables cannot be read", async () => {
+  const calls = [];
+  const ledgerError = { code: "42P01", message: 'relation "public.leagues" does not exist' };
+  const { status, body } = await get(buildApp({ rows: [ROW], calls, ledgerError }), NATIVE);
 
+  assert.equal(status, 503);
+  assert.equal(body.contract_version, "moves-history-error.v1");
+  assert.equal(body.code, "league_scope_unavailable");
+  assert.equal(body.action, "back");
+  assert.equal(body.moves, undefined, "another league's rows must not be served as this league's");
+  assert.equal(calls.length, 0, "moves is not read for v2");
+});
+
+test("native Ledger still fails loudly on an unrelated Ledger error", async () => {
+  const ledgerError = { code: "XX000", message: "boom" };
+  const { status } = await get(buildApp({ rows: [ROW], calls: [], ledgerError }), NATIVE);
+  assert.equal(status, 500);
+});
+
+test("detail for a legacy moves row with no move_type returns the string call_type \"unknown\"", async () => {
+  const legacy = { ...ROW, move_type: null };
+  const { status, body } = await get(buildApp({ rows: [legacy], calls: [] }), `/api/moves/${MOVE_ID}`);
   assert.equal(status, 200);
-  assert.equal(body.moves.length, 1);
-  assert.equal(body.moves[0].provenance, "unknown");
+  assert.equal(body.contract_version, "move-detail.v1");
+  assert.equal(body.call_type, "unknown");
 });
 
 test("v1 list is unaffected by the production schema", async () => {

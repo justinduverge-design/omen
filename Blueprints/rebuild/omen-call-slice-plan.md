@@ -3,7 +3,7 @@
 > **Partially superseded 2026-10-01: the database sections only.** "Two design flaws", "Schema additions" and the database tickets' table lists are replaced by `Blueprints/rebuild/omen-database-redo-v1.md` (reviewed SQL in `sql/2026-10-01-redo/`). The node-pg-migrate framework this plan names was retired; production's own migration history owns the schema.
 
 **Status:** PROPOSED — founder review. Written 2026-09-30 by Claude Code as project planner at the founder's request.
-**Supersedes for sequencing:** the strict gate-by-gate order in `Blueprints/architecture/omen-rebuild-plan-v1.md` (keeps its layers and its safety rules). **Builds on:** `Blueprints/specs/omen-decision-engine-v2.md`.
+**Supersedes for sequencing:** the strict gate-by-gate order in `Blueprints/architecture/omen-rebuild-plan-v1.md` (keeps its layers and its safety rules). **Builds on:** `Blueprints/specs/omen-decision-engine-v2.md` (partially superseded 2026-10-04: the factor library and factor-adjusted read, S2/S4/S5, are retired; the API-stability rule still stands).
 
 ## Why a slice, not layers
 
@@ -215,7 +215,7 @@ Tracked as `D2`, `D3`, `D4` in `Direction/current_sprint.md`. Each is self-conta
 
 Each is self-contained. Paste the order into the Jules task; do not add the plan. **Jules may not import a database client, write SQL or a migration, or ask for database credentials.**
 
-**WO-S4 (factor library):** *"Read `Blueprints/specs/omen-decision-engine-v2.md` and S4. You do not touch the database: no SQL, no migrations, no database client, no credentials. Your functions take plain objects and return plain objects. Implement factor modules for matchup, game context (roof, wind, temperature), rest/travel, player form/role, injury/depth-chart detail. Each returns `{adjustment, range, confidence, evidence}`; no data returns `not_read` with a reason, never a default. Golden tests from hand-computed cases and a mutation test per factor. A doc per factor: data, formula, known limits."*
+**WO-S4 (factor library) — RETIRED 2026-10-04, do not dispatch; see the banner in `Blueprints/specs/omen-decision-engine-v2.md`:** *"Read `Blueprints/specs/omen-decision-engine-v2.md` and S4. You do not touch the database: no SQL, no migrations, no database client, no credentials. Your functions take plain objects and return plain objects. Implement factor modules for matchup, game context (roof, wind, temperature), rest/travel, player form/role, injury/depth-chart detail. Each returns `{adjustment, range, confidence, evidence}`; no data returns `not_read` with a reason, never a default. Golden tests from hand-computed cases and a mutation test per factor. A doc per factor: data, formula, known limits."*
 
 **WO-S5 (harness):** *"Read S5. You do not touch the database: read nflverse files (and Sleeper historical projections) from a local cache directory that you download into, never a database; no SQL, no migrations, no database client. Build a backtest harness over 2018–2025, out of sample, against a form-only baseline. Must include a planted random-noise factor that shows no improvement, proving the harness can reject. Emit a per-factor report by position. Must reproduce on a second run."*
 

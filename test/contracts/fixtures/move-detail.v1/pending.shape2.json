@@ -2,14 +2,14 @@
   "http_status": 200,
   "route": "/api/moves/:id",
   "body": {
-    "call_type": "start_sit",
+    "call_type": "hold",
     "capabilities": [
       {
         "fresh_until": null,
         "kind": "verified",
         "name": "decision_receipt",
         "observed_at": "2026-01-01T00:00:00.000Z",
-        "source": "moves_persisted_receipt",
+        "source": "ledger_decisions",
         "state": "live",
         "statement": "Omen preserved the recommendation and evidence recorded when this call was issued.",
         "used": true
@@ -19,12 +19,12 @@
         "fresh_until": null,
         "kind": "limitation",
         "name": "league_exact_scoring",
-        "observed_at": "2026-01-01T00:00:00.000Z",
-        "reason_code": "legacy_ppr_estimate",
+        "observed_at": null,
+        "reason_code": "awaiting_final_scoring",
         "reconciliation_state": "pending",
         "source": "league_scoring_contract",
         "state": "unavailable",
-        "statement": "This historical outcome is a PPR fallback estimate, not a provider-verified result.",
+        "statement": "Final scoring for this recommendation is still pending.",
         "used": false
       }
     ],
@@ -35,15 +35,14 @@
       "inputs": {
         "decision_receipt": {
           "observed_at": "2026-01-01T00:00:00.000Z",
-          "source": "moves_persisted_receipt",
+          "source": "ledger_decisions",
           "state": "live",
           "used": true
         },
         "scoring_outcome": {
-          "observed_at": "2026-01-01T00:00:00.000Z",
-          "reason_code": "legacy_ppr_estimate",
-          "source": "moves_reconciliation",
-          "state": "unavailable",
+          "reason_code": "awaiting_final_scoring",
+          "source": "ledger_outcomes",
+          "state": "pending",
           "used": false
         }
       },
@@ -53,8 +52,8 @@
       "limitations": [
         {
           "name": "scoring_outcome",
-          "reason_code": "legacy_ppr_estimate",
-          "state": "unavailable"
+          "reason_code": "awaiting_final_scoring",
+          "state": "pending"
         }
       ],
       "profile": "ledger"
@@ -63,17 +62,12 @@
       {
         "category": "player_game_fact",
         "kind": "verified",
-        "statement": "The recommendation named DeVonta Smith."
-      },
-      {
-        "category": "model_input",
-        "kind": "model",
-        "statement": "Omen issued this call as Leaning."
+        "statement": "The recommendation named Legacy Back."
       },
       {
         "category": "omen_inference",
         "kind": "inference",
-        "statement": "The available data favored Smith in a close matchup."
+        "statement": "Legacy reasoning."
       },
       {
         "category": "limitation",
@@ -84,33 +78,31 @@
     "fairness_note": "Omen shows what it knew when the call was made. Later information is never used to make an earlier recommendation look better.",
     "feedback": {
       "note": null,
-      "stars": 4
+      "stars": null
     },
     "generated_at": "2026-01-01T00:00:00.000Z",
     "id": "00000000-0000-4000-8000-000000000000",
     "observed_outcome": {
-      "awaiting": null,
-      "detail": "DeVonta Smith scored 18.4 fantasy points (Half PPR).",
-      "known": true,
-      "provenance": "legacy_estimate",
-      "statement": "Historical PPR fallback estimate aligned with the recommendation."
+      "awaiting": "final scoring for this week",
+      "known": false,
+      "statement": "This recommendation has not been scored yet."
     },
     "snapshot": {
       "issued_at": "2026-01-01T00:00:00.000Z",
       "issued_at_timezone": "UTC",
-      "league_id": "L1",
-      "platform": "sleeper",
-      "recommendation": "Start DeVonta Smith over Chris Olave",
+      "league_id": "414.l.12345",
+      "platform": "yahoo",
+      "recommendation": "Hold your RB",
       "scoring_contract_version": null,
       "scoring_format": null,
       "season": 2026,
-      "week": 6
+      "week": 4
     },
-    "state": "resolved",
+    "state": "pending",
     "user_action": {
-      "followed": true,
-      "known": true,
-      "statement": "You marked this as followed."
+      "followed": null,
+      "known": false,
+      "statement": "Omen could not confirm whether you acted on this recommendation."
     }
   }
 }

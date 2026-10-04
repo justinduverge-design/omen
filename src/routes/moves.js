@@ -10,6 +10,9 @@ const { isMissingColumnError } = require("../services/activeSelection");
 const { buildDecisionCapabilities, CAPABILITY_CONTRACT } = require("../services/decisionCapabilities");
 const { attachDecisionReceipt, createDecisionContext } = require("../services/decisionContext");
 const { scoringCoverageCapability } = require("../services/waiverScoringCapabilities");
+const { LABELS: BAND_LABELS } = require("../services/decisionBriefV2");
+const ledger = require("../services/ledger");
+const { bandFromScore } = require("../services/confidencePolicy");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
@@ -53,14 +56,6 @@ async function selectTolerantly(columns, optional, run) {
   }
 }
 
-// Only what ledgerRow() reads. `platform`/`league_id` are filters here, not projections.
-const LEDGER_COLUMNS = [
-  "id", "week_num", "season", "move_type", "headline", "reasoning", "followed",
-  "outcome", "created_at", "reconciliation_state",
-];
-const OPTIONAL_LEDGER_COLUMNS = ["reconciliation_state"];
-const LEAGUE_SCOPE_COLUMNS = ["platform", "league_id"];
-
 function ledgerScopeUnavailable() {
   return {
     contract_version: "moves-history-error.v1",
@@ -70,6 +65,17 @@ function ledgerScopeUnavailable() {
     action: "back",
   };
 }
+
+// The Ledger's league scope lives in the redo's leagues/decisions tables. When the database lacks
+// them (relation or column absent) Omen cannot attribute any call to a league, so it refuses
+// rather than 500 or show the user's other leagues' calls as this one's.
+const SCOPE_UNREADABLE_CODES = new Set(["42P01", "42703", "PGRST204", "PGRST205"]);
+function isLedgerScopeUnreadable(error) {
+  return error instanceof ledger.LedgerError && SCOPE_UNREADABLE_CODES.has(error.code);
+}
+
+// move-detail.v1 requires call_type to be a string; a legacy moves row may have no move_type.
+const UNKNOWN_CALL_TYPE = "unknown";
 
 function recommendationFrom(row = {}) {
   return row.headline || row.reasoning || null;
@@ -142,37 +148,39 @@ router.get("/", requireAuth, async (req, res, next) => {
     if (!season) return res.status(400).json({ error: "season must be a positive integer" });
     if (!limit) return res.status(400).json({ error: "limit must be an integer between 1 and 100" });
 
-    const load = (columns) => {
-      let query = supabase
+    // v2 is the native Ledger, read from the redo's decisions tables (sql/2026-10-01-redo/05).
+    // Every decision belongs to a league, so the old "cannot attribute a row" refusal is gone:
+    // a league Omen has no record of is simply an empty Ledger.
+    if (native) {
+      let calls;
+      try {
+        calls = await ledger.listLedgerCalls(supabase, {
+          userId: req.user.id,
+          platform: req.query.platform,
+          providerLeagueId: req.query.league_id.trim(),
+          season,
+          limit,
+        });
+      } catch (err) {
+        if (!isLedgerScopeUnreadable(err)) throw err;
+        logger.warn("moves ledger cannot be league-scoped: Ledger tables unreadable", { message: err.message });
+        return res.status(503).json(ledgerScopeUnavailable());
+      }
+      return res.json({
+        contract_version: "moves-history.v2",
+        generated_at: nowIso(), season,
+        moves: calls.map(decisionLedgerRow),
+      });
+    }
+
+    const { data, error } = await supabase
       .from("moves")
-      .select(columns)
+      .select("id,week_num,season,move_type,headline,reasoning,followed,user_stars,outcome,eff,created_at")
       .eq("user_id", req.user.id)
       .eq("season", season)
       .order("created_at", { ascending: false })
       .limit(limit);
-      if (native) query = query.eq("platform", req.query.platform).eq("league_id", req.query.league_id);
-      return query;
-    };
-
-    let { data, error } = native
-      ? await selectTolerantly(LEDGER_COLUMNS, OPTIONAL_LEDGER_COLUMNS, load)
-      : await load("id,week_num,season,move_type,headline,reasoning,followed,user_stars,outcome,eff,created_at");
-
-    // The filter columns are not optional: without them a row cannot be attributed to the
-    // requested league, and serving the user's rows anyway would show another league's calls
-    // as this one's. Refuse, and say why, rather than 500 or guess.
-    if (native && error && LEAGUE_SCOPE_COLUMNS.some((column) => namesColumn(error, column))) {
-      logger.warn("moves ledger cannot be league-scoped: column absent from the schema", { message: error.message });
-      return res.status(503).json(ledgerScopeUnavailable());
-    }
-
     if (error) throw new Error(`moves lookup failed: ${error.message}`);
-
-    if (native) return res.json({
-      contract_version: "moves-history.v2",
-      generated_at: nowIso(), season,
-      moves: (Array.isArray(data) ? data : []).map(ledgerRow),
-    });
 
     const moves = (Array.isArray(data) ? data : []).map(normalizeMove);
     return res.json({
@@ -187,19 +195,39 @@ router.get("/", requireAuth, async (req, res, next) => {
   }
 });
 
-function ledgerRow(row) {
-  // Legacy records have no provenance field. Do not equate a result string or
-  // a user's follow report with provider-verified scoring.
-  const verified = row.reconciliation_state === "exact" && ["win", "loss"].includes(row.outcome);
+function textOrNull(value) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+/** A legacy call (copied from moves by step 05) keeps its original move type. */
+function decisionCallType(decision) {
+  if (decision.call_type !== "legacy") return decision.call_type || null;
+  return textOrNull(decision.recommendation?.move_type);
+}
+
+function isVerifiedOutcome(outcome) {
+  return outcome?.state === "resolved" && outcome.provenance === "verified" && ["win", "loss"].includes(outcome.result);
+}
+
+/**
+ * One moves-history.v2 row from a decision, its action and its outcome — the shape the native
+ * apps already decode. Only an exactly reconciled result is worked/did_not_work; an estimate or a
+ * not-executed call is `not_verified`; no outcome, or an incomplete one, is `pending`. A user's
+ * follow report is never equated with verified scoring. The engine's internal number is not read.
+ */
+function decisionLedgerRow({ decision, action, outcome }) {
+  const followed = typeof action?.followed === "boolean" ? action.followed : null;
+  const verified = isVerifiedOutcome(outcome);
   return {
-    id: row.id, season: row.season, week: row.week_num,
-    move_type: row.move_type || null, headline: recommendationFrom(row),
-    issued_at: row.created_at || null, issued_at_timezone: "UTC",
-    followed: typeof row.followed === "boolean" ? row.followed : null,
-    action_provenance: typeof row.followed === "boolean" ? "self_reported" : "unknown",
+    id: decision.id, season: decision.season, week: decision.week,
+    move_type: decisionCallType(decision),
+    headline: textOrNull(decision.headline) || textOrNull(decision.summary),
+    issued_at: decision.issued_at || null, issued_at_timezone: decision.issued_at_timezone || "UTC",
+    followed,
+    action_provenance: followed === null ? "unknown" : (action.provenance || "self_reported"),
     provenance: verified ? "verified" : "unknown",
-    outcome: row.outcome === "pending" || !row.outcome ? "pending"
-      : verified ? (row.outcome === "win" ? "worked" : "did_not_work") : "not_verified",
+    outcome: !outcome || outcome.state === "data_incomplete" ? "pending"
+      : verified ? (outcome.result === "win" ? "worked" : "did_not_work") : "not_verified",
   };
 }
 
@@ -365,8 +393,10 @@ function evidenceAtTheTime(row) {
   if (row?.target_player) {
     evidence.push({ category: "player_game_fact", kind: "verified", statement: `The recommendation named ${row.target_player}.` });
   }
-  if (row?.confidence != null) {
-    evidence.push({ category: "model_input", kind: "model", statement: `Omen recorded ${Number(row.confidence)}% confidence at issue time.` });
+  // The stored number is an internal ordering value; the response only ever says the band.
+  const recordedBand = row?.confidence != null ? bandFromScore(Number(row.confidence)) : null;
+  if (recordedBand) {
+    evidence.push({ category: "model_input", kind: "model", statement: `Omen issued this call as ${BAND_LABELS[recordedBand]}.` });
   }
   if (row?.reasoning) {
     evidence.push({ category: "omen_inference", kind: "inference", statement: String(row.reasoning) });
@@ -418,7 +448,7 @@ function observedOutcome(row) {
   };
 }
 
-function attachLedgerDecisionReceipt(response, row) {
+function attachLedgerDecisionReceipt(response, row, { receiptSource = "moves_persisted_receipt", scoringSource = "moves_reconciliation" } = {}) {
   const context = createDecisionContext({ profile: "ledger" });
   const persistedRecommendation = recommendationFrom(row);
   const hasDecisionReceipt = typeof persistedRecommendation === "string" && persistedRecommendation.trim().length > 0;
@@ -426,18 +456,18 @@ function attachLedgerDecisionReceipt(response, row) {
 
   context.record("decision_receipt", hasDecisionReceipt ? {
     state: "live",
-    source: "moves_persisted_receipt",
+    source: receiptSource,
     observed_at: row.created_at || null,
   } : {
     state: "unavailable",
-    source: "moves_persisted_receipt",
+    source: receiptSource,
     reason_code: "issue_time_recommendation_not_recorded",
   });
   if (hasDecisionReceipt) context.use("decision_receipt");
 
   context.record("scoring_outcome", {
     state: outcome.state,
-    source: "moves_reconciliation",
+    source: scoringSource,
     reason_code: outcome.reason_code,
     observed_at: row.scored_at || null,
   });
@@ -448,14 +478,14 @@ function attachLedgerDecisionReceipt(response, row) {
     state: "live",
     used: true,
     kind: "verified",
-    source: "moves_persisted_receipt",
+    source: receiptSource,
     statement: "Omen preserved the recommendation and evidence recorded when this call was issued.",
     observed_at: row.created_at || null,
   } : {
     state: "unavailable",
     used: false,
     kind: "limitation",
-    source: "moves_persisted_receipt",
+    source: receiptSource,
     statement: "Omen did not retain a readable issue-time recommendation for this entry.",
     reason_code: "issue_time_recommendation_not_recorded",
   };
@@ -492,7 +522,7 @@ function moveDetail(row) {
     contract_version: DETAIL_CONTRACT,
     generated_at: nowIso(),
     id: row.id,
-    call_type: row.move_type || null,
+    call_type: row.move_type || UNKNOWN_CALL_TYPE,
     state: detailState(row),
     snapshot: {
       recommendation: recommendationFrom(row),
@@ -518,6 +548,148 @@ function moveDetail(row) {
   return attachLedgerDecisionReceipt(response, row);
 }
 
+// --- Ledger detail from the redo's tables ------------------------------------
+//
+// The same move-detail.v1 receipt, built from decisions + decision_factors + decision_actions +
+// decision_outcomes. Evidence is the issue-time factor rows, never a current re-read. Two §7.5
+// states the moves table could not express are now real: `superseded` (a later call for the same
+// team-week replaced this one) and `not_executed` (the person said they did not act on it).
+
+const SCORING_FORMAT_LABELS = Object.freeze({ ppr: "PPR", half_ppr: "Half PPR", standard: "Standard" });
+
+function evidenceCategory(kind) {
+  if (kind === "limitation") return "limitation";
+  if (kind === "verified") return "player_game_fact";
+  if (kind === "projection" || kind === "model") return "model_input";
+  return "omen_inference";
+}
+
+function decisionEvidence({ decision, factors }) {
+  const evidence = [];
+  const format = textOrNull(decision.scoring_format);
+
+  if (decision.call_type === "legacy" && !factors.length) {
+    // A call copied from moves carries no factor rows; say only what the copied record supports.
+    // The legacy confidence number is deliberately not repeated (it is the internal score).
+    return evidenceAtTheTime({
+      scoring: format,
+      scoring_contract_version: decision.scoring_contract_version,
+      target_player: textOrNull(decision.recommendation?.target_player),
+      reasoning: textOrNull(decision.summary),
+    });
+  }
+
+  if (format) {
+    evidence.push({
+      category: "league_context",
+      kind: "verified",
+      statement: `Omen read this league's scoring as ${SCORING_FORMAT_LABELS[format] || format}.`,
+    });
+  }
+  if (decision.band && BAND_LABELS[decision.band]) {
+    evidence.push({ category: "model_input", kind: "model", statement: `Omen issued this call as ${BAND_LABELS[decision.band]}.` });
+  } else if (textOrNull(decision.band_unavailable_reason)) {
+    evidence.push({ category: "limitation", kind: "limitation", statement: decision.band_unavailable_reason.trim() });
+  }
+  for (const factor of factors) {
+    if (!textOrNull(factor.statement)) continue;
+    evidence.push({
+      category: textOrNull(factor.family) || evidenceCategory(factor.evidence_kind),
+      kind: factor.evidence_kind,
+      statement: factor.statement.trim(),
+    });
+  }
+  return evidence;
+}
+
+function decisionObservedOutcome({ decision, outcome, superseded }) {
+  if (superseded) {
+    return { known: false, statement: "A later call for the same week replaced this one, so Omen does not score it.", awaiting: null };
+  }
+  if (!outcome) {
+    return { known: false, statement: "This recommendation has not been scored yet.", awaiting: "final scoring for this week" };
+  }
+  if (outcome.state === "not_executed") {
+    return { known: false, statement: "You marked this as not followed, so Omen did not score it.", awaiting: null };
+  }
+  if (outcome.state !== "resolved" || !["win", "loss"].includes(outcome.result)) {
+    return {
+      known: false,
+      statement: "Omen could not complete a verifiable result for this call yet.",
+      awaiting: "complete scoring data for this week",
+    };
+  }
+
+  const aligned = outcome.result === "win";
+  if (outcome.provenance === "verified") {
+    return {
+      known: true,
+      provenance: "verified",
+      statement: aligned ? "Observed outcome aligned with the recommendation." : "Observed outcome did not align with the recommendation.",
+      detail: textOrNull(outcome.summary),
+      awaiting: null,
+    };
+  }
+  const legacy = decision.call_type === "legacy";
+  return {
+    known: true,
+    provenance: outcome.provenance || "legacy_estimate",
+    statement: legacy
+      ? (aligned
+        ? "Historical PPR fallback estimate aligned with the recommendation."
+        : "Historical PPR fallback estimate did not align with the recommendation.")
+      : (aligned
+        ? "Omen's estimate from public stat lines aligned with the recommendation. It is not reconciled to this league's own scoring."
+        : "Omen's estimate from public stat lines did not align with the recommendation. It is not reconciled to this league's own scoring."),
+    detail: textOrNull(outcome.summary),
+    awaiting: null,
+  };
+}
+
+function decisionDetail({ decision, factors = [], action = null, outcome = null, superseded = false, league = null }) {
+  const response = {
+    contract_version: DETAIL_CONTRACT,
+    generated_at: nowIso(),
+    id: decision.id,
+    call_type: decisionCallType(decision) || UNKNOWN_CALL_TYPE,
+    state: superseded ? "superseded" : outcome?.state || "pending",
+    snapshot: {
+      recommendation: textOrNull(decision.headline) || textOrNull(decision.summary),
+      season: decision.season,
+      week: decision.week,
+      platform: league?.provider || null,
+      league_id: league?.provider_league_id == null ? null : String(league.provider_league_id),
+      scoring_format: textOrNull(decision.scoring_format),
+      scoring_contract_version: textOrNull(decision.scoring_contract_version),
+      issued_at: decision.issued_at || null,
+      issued_at_timezone: decision.issued_at_timezone || "UTC",
+    },
+    evidence_at_the_time: decisionEvidence({ decision, factors }),
+    user_action: userAction({ followed: action?.followed }),
+    observed_outcome: decisionObservedOutcome({ decision, outcome, superseded }),
+    feedback: {
+      stars: action?.stars ?? null,
+      note: textOrNull(action?.note),
+    },
+    fairness_note: "Omen shows what it knew when the call was made. Later information is never used to make an earlier recommendation look better.",
+  };
+
+  // The capability manifest reuses the moves receipt rules on an equivalent view of the outcome.
+  const resolved = outcome?.state === "resolved";
+  return attachLedgerDecisionReceipt(response, {
+    headline: decision.headline,
+    reasoning: decision.summary,
+    created_at: decision.issued_at,
+    scored_at: outcome?.scored_at || null,
+    outcome: resolved ? outcome.result : outcome ? outcome.state : "pending",
+    result: resolved ? (textOrNull(outcome.summary) || outcome.result) : null,
+    scoring: decision.scoring_format,
+    scoring_contract_version: decision.scoring_contract_version,
+    scoring_coverage_state: outcome?.scoring_coverage_state ?? decision.scoring_coverage_state,
+    reconciliation_state: outcome?.reconciliation_state ?? null,
+  }, { receiptSource: "ledger_decisions", scoringSource: "ledger_outcomes" });
+}
+
 router.get("/:id", requireAuth, async (req, res, next) => {
   const id = String(req.params.id || "").trim();
   if (!UUID_PATTERN.test(id)) {
@@ -529,8 +701,13 @@ router.get("/:id", requireAuth, async (req, res, next) => {
   }
 
   try {
-    // The user_id filter is the isolation boundary. It is applied in the query,
-    // never checked after the fact.
+    // The Ledger first: a decisions id, or the moves id a backfilled decision was copied from.
+    // The user_id filter is in every query.
+    const call = await ledger.loadLedgerCall(supabase, { userId: req.user.id, id });
+    if (call) return res.json(decisionDetail(call));
+
+    // A moves row the redo did not copy (v1 history ids). The user_id filter is the isolation
+    // boundary. It is applied in the query, never checked after the fact.
     const load = async (columns) => supabase
       .from("moves")
       .select(columns)
@@ -559,6 +736,11 @@ module.exports = router;
 module.exports.buildSummary = buildSummary;
 module.exports.normalizeMove = normalizeMove;
 module.exports.moveDetail = moveDetail;
+module.exports.decisionDetail = decisionDetail;
+module.exports.evidenceAtTheTime = evidenceAtTheTime;
+module.exports.decisionEvidence = decisionEvidence;
+module.exports.evidenceCategory = evidenceCategory;
+module.exports.decisionLedgerRow = decisionLedgerRow;
 module.exports.detailState = detailState;
 module.exports.userAction = userAction;
 module.exports.observedOutcome = observedOutcome;

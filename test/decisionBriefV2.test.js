@@ -74,7 +74,15 @@ test("a null band substitutes no label into a string confidence field", () => {
     explanation: { confidence: "Confidence is high." },
     signals: {},
   });
-  assert.equal(brief.explanation.confidence, null);
+  // The contract wants a string, so the field names the absence; it never carries a band label.
+  assert.equal(brief.explanation.confidence, "Omen did not produce a confidence value for this call.");
+  assert.doesNotMatch(brief.explanation.confidence, /Confident|Leaning|Coin flip/);
+  const plain = decisionBriefV2({
+    recommendation: { confidence: { score: null } },
+    explanation: { confidence: "Omen has no move to make right now." },
+    signals: {},
+  });
+  assert.equal(plain.explanation.confidence, "Omen has no move to make right now.");
 });
 
 test("limitationStatements ignores live signals and malformed entries", () => {

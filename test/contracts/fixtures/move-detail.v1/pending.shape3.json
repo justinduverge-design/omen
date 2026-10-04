@@ -15,16 +15,16 @@
         "used": true
       },
       {
-        "coverage_state": "pending",
+        "coverage_state": "supported",
         "fresh_until": null,
         "kind": "limitation",
         "name": "league_exact_scoring",
-        "observed_at": "2026-01-01T00:00:00.000Z",
-        "reason_code": "legacy_ppr_estimate",
-        "reconciliation_state": "pending",
+        "observed_at": null,
+        "reason_code": "awaiting_final_scoring",
+        "reconciliation_state": "exact",
         "source": "league_scoring_contract",
         "state": "unavailable",
-        "statement": "This historical outcome is a PPR fallback estimate, not a provider-verified result.",
+        "statement": "Final scoring for this recommendation is still pending.",
         "used": false
       }
     ],
@@ -40,10 +40,9 @@
           "used": true
         },
         "scoring_outcome": {
-          "observed_at": "2026-01-01T00:00:00.000Z",
-          "reason_code": "legacy_ppr_estimate",
+          "reason_code": "awaiting_final_scoring",
           "source": "moves_reconciliation",
-          "state": "unavailable",
+          "state": "pending",
           "used": false
         }
       },
@@ -53,13 +52,18 @@
       "limitations": [
         {
           "name": "scoring_outcome",
-          "reason_code": "legacy_ppr_estimate",
-          "state": "unavailable"
+          "reason_code": "awaiting_final_scoring",
+          "state": "pending"
         }
       ],
       "profile": "ledger"
     },
     "evidence_at_the_time": [
+      {
+        "category": "league_context",
+        "kind": "verified",
+        "statement": "This recommendation was graded in Half PPR scoring."
+      },
       {
         "category": "player_game_fact",
         "kind": "verified",
@@ -74,11 +78,6 @@
         "category": "omen_inference",
         "kind": "inference",
         "statement": "The available data favored Smith in a close matchup."
-      },
-      {
-        "category": "limitation",
-        "kind": "limitation",
-        "statement": "This entry predates league scoring capture, so it was graded against the PPR fallback rather than this league's own rules."
       }
     ],
     "fairness_note": "Omen shows what it knew when the call was made. Later information is never used to make an earlier recommendation look better.",
@@ -89,11 +88,9 @@
     "generated_at": "2026-01-01T00:00:00.000Z",
     "id": "00000000-0000-4000-8000-000000000000",
     "observed_outcome": {
-      "awaiting": null,
-      "detail": "DeVonta Smith scored 18.4 fantasy points (Half PPR).",
-      "known": true,
-      "provenance": "legacy_estimate",
-      "statement": "Historical PPR fallback estimate aligned with the recommendation."
+      "awaiting": "final scoring for this week",
+      "known": false,
+      "statement": "This recommendation has not been scored yet."
     },
     "snapshot": {
       "issued_at": "2026-01-01T00:00:00.000Z",
@@ -101,12 +98,12 @@
       "league_id": "L1",
       "platform": "sleeper",
       "recommendation": "Start DeVonta Smith over Chris Olave",
-      "scoring_contract_version": null,
-      "scoring_format": null,
+      "scoring_contract_version": "omen-scoring-contract-v1",
+      "scoring_format": "Half PPR",
       "season": 2026,
       "week": 6
     },
-    "state": "resolved",
+    "state": "pending",
     "user_action": {
       "followed": true,
       "known": true,

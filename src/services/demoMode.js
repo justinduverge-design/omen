@@ -1,6 +1,7 @@
 "use strict";
 
 const { evaluateLineup } = require("./optimizer");
+const { bandFromScore, bandSentence, mvpLabelForBand } = require("./confidencePolicy");
 
 const DEMO_CONTRACT_VERSION = "omen-demo.v1";
 const DEMO_SEASON = 2026;
@@ -286,8 +287,8 @@ function buildDemoOmen(roster, swap, generatedAt) {
       },
       confidence: {
         score: confidenceScore,
-        label: confidenceScore >= 80 ? "high" : confidenceScore >= 65 ? "medium-high" : "medium",
-        rationale: `The demo optimizer sees a ${swap.delta.toFixed(2)} point edge in the sample lineup.`,
+        label: mvpLabelForBand(bandFromScore(confidenceScore)),
+        rationale: `${swap.confidence_reason || `The demo optimizer sees a ${swap.delta.toFixed(2)} point edge.`} This is the sample lineup.`,
       },
       risk: {
         level: riskLevel,
@@ -300,7 +301,7 @@ function buildDemoOmen(roster, swap, generatedAt) {
         summary: `Start ${startPlayer.name} over ${sitPlayer.name}.`,
         why_it_matters: `${startPlayer.name} improves the sample lineup by ${swap.delta.toFixed(2)} projected points.`,
         risk: "This demonstrates the decision shape only; it is not live fantasy advice.",
-        confidence: `Confidence is ${confidenceScore} out of 100 for this deterministic demo scenario.`,
+        confidence: `${bandSentence(bandFromScore(confidenceScore), swap.confidence_reason || "The sample lineup has a projected point edge.")} This is a deterministic demo scenario.`,
         data_used: [
           "deterministic demo roster",
           "sample projected points",

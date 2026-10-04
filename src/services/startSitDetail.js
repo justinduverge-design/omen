@@ -24,7 +24,8 @@ const CONTRACT_VERSION_V2 = "start-sit-detail.v2";
 
 // Below this the two players are inside projection noise. §5.3 requires an
 // honest "close decision" rather than a forced recommendation.
-const CLOSE_DECISION_DELTA = 1.5;
+const { assessConfidence, usageCorroboration, THRESHOLDS } = require("./confidencePolicy");
+const CLOSE_DECISION_DELTA = THRESHOLDS.COIN_FLIP_BELOW;
 
 const OUT_STATUSES = new Set(["O", "OUT", "IR", "IR-R", "PUP", "SUSP"]);
 const RISK_STATUSES = new Set(["Q", "QUESTIONABLE", "GTD", "DTD", "DOUBTFUL"]);
@@ -43,10 +44,12 @@ function normalizedStatus(status) {
   return String(status || "").trim().toUpperCase();
 }
 
-function confidenceLabel(delta) {
-  if (delta >= 4) return "high";
-  if (delta >= CLOSE_DECISION_DELTA) return "moderate";
-  return "low";
+// Detail's vocabulary for the shared policy band; there is no scale of its own.
+const DETAIL_LABEL = Object.freeze({ confident: "high", leaning: "moderate", coin_flip: "low" });
+
+function confidenceLabel(delta, { corroboration = [], startStatus = null, sitStatus = null } = {}) {
+  const { band } = assessConfidence({ gap: delta, corroboration, startStatus, sitStatus });
+  return DETAIL_LABEL[band] || "low";
 }
 
 function playerView(player, roster) {
@@ -328,7 +331,11 @@ function buildStartSitDetail({
         start,
         over: sit,
         points_delta: Number(delta.toFixed(2)),
-        confidence: confidenceLabel(delta),
+        confidence: confidenceLabel(delta, {
+          corroboration: [usageCorroboration(usage?.get?.(start.player_key), usage?.get?.(sit.player_key))].filter(Boolean),
+          startStatus: start.status,
+          sitStatus: sit.status,
+        }),
       },
       why,
       what_could_change_this: whatCouldChangeThis({ start, sit, delta }),
@@ -391,6 +398,7 @@ module.exports = {
   CONTRACT_VERSION_V2,
   STATES,
   buildCapabilities,
+  buildEvidence,
   buildStartSitDetail,
   confidenceLabel,
 };

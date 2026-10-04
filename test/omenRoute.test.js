@@ -176,7 +176,7 @@ test("POST /api/omen/mvp-move requires auth for non-mock live requests", async (
 
 test("POST /api/omen/mvp-move uses live LLM explanation for eligible success response", async () => {
   const liveExplanation = {
-    summary: "Live Gemma says Vale is the best weekly swing.",
+    summary: "Marquise Vale is the best weekly swing.",
     why_it_matters: "Adds meaningful projected value without changing the rest of the lineup",
     risk: "Medium risk because matchup DvP is stubbed",
     confidence: "Confidence is 74 out of 100 with a clear but not perfect edge",
@@ -188,7 +188,7 @@ test("POST /api/omen/mvp-move uses live LLM explanation for eligible success res
     assert.equal(payload.title, "Start Marquise Vale over Trent Holloway");
     assert.equal(payload.primary_player.name, "Marquise Vale");
     assert.equal(payload.comparison_player.name, "Trent Holloway");
-    assert.equal(payload.confidence.score, 74);
+    assert.equal(payload.confidence.score, 68); // Leaning, pinned by confidencePolicy
     assert.equal(payload.risk.level, "medium");
     assert.ok(payload.signal_statuses.llm_reasoning);
     return liveExplanation;
