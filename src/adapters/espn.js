@@ -455,6 +455,12 @@ function makeEspnHeaders(espn_s2, swid, fantasyFilter) {
   };
 }
 
+// The fan-profile path carries the user's SWID ({GUID}); it and the query string never reach logs or Sentry.
+const SWID_PATTERN = /(\{|%7B)[0-9a-f-]{36}(\}|%7D)/gi;
+function redactEspnPath(path) {
+  return String(path || "").split("?")[0].replace(SWID_PATTERN, "[swid]");
+}
+
 /**
  * ESPN's failing request is the one carrying espn_s2 and SWID, so this
  * reporter takes only the hostname and the path *before* the query string,
@@ -469,7 +475,7 @@ function reportEspnFailure(operation, error, hostname, path, httpStatus) {
     error,
     context: {
       hostname,
-      path: String(path || "").split("?")[0],
+      path: redactEspnPath(path),
       http_status: httpStatus ?? error?.status ?? null,
     },
   });
@@ -499,7 +505,7 @@ function doEspnRequest(hostname, path, espn_s2, swid, redirectsLeft, fantasyFilt
         res.on("data", (chunk) => chunks.push(chunk));
         res.on("end", () => {
           const body = Buffer.concat(chunks).toString("utf8");
-          logger.info(`[espn] ${hostname}${path.split("?")[0]} -> HTTP ${res.statusCode}`);
+          logger.info(`[espn] ${hostname}${redactEspnPath(path)} -> HTTP ${res.statusCode}`);
           if (res.statusCode === 401 || res.statusCode === 403) {
             const err = new Error("ESPN rejected the request — cookies may be invalid or expired");
             err.status = 401;
@@ -1292,6 +1298,7 @@ async function fetchEspnFanLeagues(espn_s2, swid, opts = {}) {
 }
 
 module.exports = {
+  redactEspnPath,
   // Exported for scripts/probe-espn-waiver-settings.js (spec Phase 0, ESPN).
   fetchEspnApi,
   espnScoringRules,

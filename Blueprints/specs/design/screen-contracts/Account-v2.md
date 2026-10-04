@@ -16,7 +16,7 @@ Compiled from `design/native-visual-lock-2026-09-13/Account.dc.html` on 2026-09-
 | Frame | 390 x 844; D11 floor. iPhone SE 375 x 667 may scroll. iPad deferred. |
 | Scroll rule | scrolls; measured body overflow from canvas render: 0px. |
 | Data route | GET /api/dashboard/summary + GET /api/user/export + DELETE /api/user/delete |
-| API contract | dashboard-summary.v1 + user-export.v1 + user-delete.v1 |
+| API contract | dashboard-summary.v1 + user-export.v2 + user-delete.v1 |
 | Governing rule | Export excludes OAuth tokens, ESPN cookies and Vault ids; legacy DELETE MY OMEN DATA remains accepted |
 
 ## Native build rules
@@ -181,7 +181,7 @@ Element count: 72. Count every rendered descendant inside `.screen`; pseudo-elem
 ## Acceptance checks
 
 - Render exactly 72 element descendants inside the screen frame and preserve every literal listed above.
-- Bind data only through dashboard-summary.v1 + user-export.v1 + user-delete.v1; do not fall back to older contracts when this screen requests the version above.
+- Bind data only through dashboard-summary.v1 + user-export.v2 + user-delete.v1; do not fall back to older contracts when this screen requests the version above.
 - Preserve the scrolls scroll behavior at 390 x 844. Smaller iPhone SE screens may scroll.
 - Use the named symbols above for every glyph. A missing symbol name is a build failure.
 - Keep provider, risk, data-source, confidence, and provenance carriers exactly as registry section 2.3 states.

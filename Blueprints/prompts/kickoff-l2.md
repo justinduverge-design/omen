@@ -73,10 +73,8 @@ Read in order before acting:
   ALWAYS-READ CORE
   Revised 2026-10-03: the cold start was ~92,000 tokens and is now two files.
   Everything else is pulled by the routing table in the map, per task.
-   1. Direction/map.md              what Omen is, rules that never bend,
-                                    current focus, and "when you touch X,
-                                    read Y and call Z"
-   2. Direction/agent_inbox.md      <- a pin wins over the queue
+   1. Direction/map.md
+   2. Direction/agent_inbox.md
 
   Codex also reads AGENT.md (its runtime extension of AGENTS.md).
   Direction/decision_log.md, the ledgers and Direction/shipped.md are records,

@@ -21,11 +21,6 @@ founder, or store work.
 - **Scope and running checklist:** `Blueprints/handoffs/2026-10-03-football-intelligence-league-build.md`. Tick boxes there as work lands.
 - **Done when:** every team has a published system signal, and the founder sees team-system and usage lines on the phone for players on any team.
 
-### DB-REDO-PROD — Database redo applied to production
-
-- **Status:** VERIFIED
-- **Evidence:** all 12 steps applied 2026-10-03 (founder-approved, five sittings), each verified against the rehearsed catalog change: `Blueprints/handoffs/2026-10-03-prep-for-production.md` ("Production applied"). The phone deletion test (steps 05 and 10) remains, deferred by the founder to the very end.
-
 ### RELEASE-OCT-6 — Tuesday 2026-10-06 iOS release
 
 - **Status:** READY
