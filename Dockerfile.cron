@@ -39,6 +39,8 @@ COPY package.json ./
 # Schedule (TZ=America/New_York set in compose):
 #   6:00 AM every Tuesday: scoring worker (gated off by OMEN_CRON_SCORING_ENABLED)
 #   4:45 AM every day:     player crosswalk refresh (nflverse players + Sleeper ids -> players tables)
+#   5:00 AM Tue and Wed:   nflverse weekly player stats + snaps -> nflverse_weekly_stats (redo step 14);
+#                          exits without writing until step 14 is applied
 #   6:30 AM every day:     football intelligence: nflverse FTN + play-by-play -> team signals (FI-LEAGUE)
 #   4:15 AM every day:     redo retention purges (beta reports, retired rows); skips a purge
 #                          whose function is not applied yet
@@ -49,6 +51,7 @@ RUN { \
       echo "0 6 * * 2 node /app/src/omen_tuesday_cron.js >> /var/log/omen_cron.log 2>&1"; \
       echo "15 4 * * * node /app/src/omen_daily_purge_cron.js >> /var/log/omen_cron.log 2>&1"; \
       echo "45 4 * * * node /app/src/omen_player_crosswalk_cron.js >> /var/log/omen_cron.log 2>&1"; \
+      echo "0 5 * * 2,3 node /app/src/omen_nflverse_weekly_stats_cron.js >> /var/log/omen_cron.log 2>&1"; \
       echo "30 6 * * * node /app/src/omen_football_intelligence_cron.js >> /var/log/omen_cron.log 2>&1"; \
     } > /var/spool/cron/crontabs/ssffmvp
 
