@@ -93,7 +93,11 @@ function fakeClient({ tableMissing = false } = {}) {
         return q;
       }
       if (table === "data_events") {
+        const last = () => [...state.events].reverse().find((e) => e.subject === "nflverse_weekly_stats") || null;
+        const q = { select: () => q, eq: () => q, order: () => q, limit: () => q,
+                    maybeSingle: async () => ({ data: last() ? { source_ref: last().source_ref } : null, error: null }) };
         return {
+          select: q.select,
           insert: (row) => ({ select: () => ({ single: async () => {
             const event = { ...row, id: nextId++ };
             state.events.push(event);
@@ -140,15 +144,27 @@ test("a run writes one data_events ingest first, then upserts every player-week 
   assert.equal(client.state.rows.get("omen:player:gsis.00-0001|2026|1").snap_share, 0.8);
 });
 
-test("a re-run with the same data rewrites the same rows and only moves ingest_event_id", async () => {
+test("a forced re-run with the same data rewrites the same rows and only moves ingest_event_id", async () => {
   const client = fakeClient();
   await runWeeklyStats({ client, seasons: [2026], fetchImpl: fetchFor(FILES), log: quiet });
   const first = JSON.parse(JSON.stringify([...client.state.rows.values()]));
-  await runWeeklyStats({ client, seasons: [2026], fetchImpl: fetchFor(FILES), log: quiet });
+  await runWeeklyStats({ client, seasons: [2026], fetchImpl: fetchFor(FILES), log: quiet, force: true });
   const second = [...client.state.rows.values()];
   assert.equal(client.state.events[0].source_ref, client.state.events[1].source_ref);
   assert.deepEqual(second.map(({ ingest_event_id, ...r }) => r), first.map(({ ingest_event_id, ...r }) => r));
   assert.ok(second.every((r) => r.ingest_event_id === 101));
+});
+
+test("a source unchanged since the last ingest writes nothing; a changed one writes", async () => {
+  const client = fakeClient();
+  await runWeeklyStats({ client, seasons: [2026], fetchImpl: fetchFor(FILES), log: quiet });
+  const again = await runWeeklyStats({ client, seasons: [2026], fetchImpl: fetchFor(FILES), log: quiet });
+  assert.deepEqual(again, { skipped: "source_unchanged" });
+  assert.equal(client.state.events.length, 1);
+  const changed = { ...FILES, [URLS.snaps(2026)]: snapsCsv(["g1,2026,REG,1,A,AbcdEf00,WR,CHI,51,0.81"]) };
+  const third = await runWeeklyStats({ client, seasons: [2026], fetchImpl: fetchFor(changed), log: quiet });
+  assert.equal(third.written, 2);
+  assert.equal(client.state.rows.get("omen:player:gsis.00-0001|2026|1").snaps, 51);
 });
 
 test("too many unmatched players refuses the run before anything is written", async () => {
@@ -180,7 +196,7 @@ test("the season's first two weeks also re-read the previous season", () => {
   assert.deepEqual(seasonsFor({ season: 2026, week: 5 }), [2026]);
 });
 
-test("the job runs Tuesday and Wednesday in the cron image", () => {
+test("the job runs every day in the cron image", () => {
   const dockerfile = fs.readFileSync(path.join(__dirname, "..", "Dockerfile.cron"), "utf8");
-  assert.match(dockerfile, /\* \* 2,3 node \/app\/src\/omen_nflverse_weekly_stats_cron\.js/);
+  assert.match(dockerfile, /"0 5 \* \* \* node \/app\/src\/omen_nflverse_weekly_stats_cron\.js/);
 });

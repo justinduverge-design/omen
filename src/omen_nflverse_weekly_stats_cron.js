@@ -4,8 +4,7 @@
  * Omen nflverse weekly stats ingest (redo step 14; spec:
  * Blueprints/specs/football-data/omen-nflverse-weekly-stats-ingest-v1.md).
  *
- * Tuesday and Wednesday: downloads nflverse's weekly player stats and snap counts for the whole
- * current season, resolves every row to a canonical `players.id` and upserts one
+ * Daily: downloads nflverse's weekly player stats and snap counts for the whole current season, resolves every row to a canonical `players.id` and upserts one
  * `nflverse_weekly_stats` row per player-week. Each run is one `data_events` ingest, inserted before
  * any stats row (rows name it in `ingest_event_id`); `data_events` is append-only, so its row_count
  * is the planned count, computed in memory first.
@@ -16,7 +15,9 @@
  * of them refuses the whole run before anything is written. The job never creates `players` rows.
  *
  * Re-runnable: the whole season is re-read every run, so nflverse's corrections to earlier weeks and
- * a missed run are both caught by the next one. Nothing is deleted.
+ * a missed run are both caught by the next one. Nothing is deleted. Daily, so Thursday, Saturday,
+ * Sunday and Monday games all land the next morning; a run whose source files are byte-identical to
+ * the last ingest's writes nothing (no data_events row either), which keeps off-season days free.
  *
  * Until step 14 is applied to production the table does not exist: the run then logs and exits
  * cleanly without writing a data_events row.
@@ -177,7 +178,14 @@ async function playerIdsByGsis(client) {
  * @param {object} p
  * @param {number[]} p.seasons  seasons to read in full (normally just the current one)
  */
-async function runWeeklyStats({ client, seasons, fetchImpl = fetch, log = defaultLog }) {
+async function lastSourceRef(client) {
+  const { data, error } = await client.from("data_events").select("source_ref")
+    .eq("subject", TABLE).order("id", { ascending: false }).limit(1).maybeSingle();
+  must({ error }, "data_events read");
+  return data?.source_ref || null;
+}
+
+async function runWeeklyStats({ client, seasons, fetchImpl = fetch, log = defaultLog, force = false }) {
   if (!(await tableExists(client))) {
     log.info(`${TABLE} does not exist (redo step 14 not applied); nothing written`);
     return { skipped: "table_absent" };
@@ -200,6 +208,12 @@ async function runWeeklyStats({ client, seasons, fetchImpl = fetch, log = defaul
     snapRows.push(...parseCsv(snapsRaw.toString("utf8"), { required: SNAPS_REQUIRED, columns: [...SNAPS_REQUIRED, "player"] }));
   }
 
+  const sourceRef = sha256(...hashes);
+  if (!force && sourceRef === (await lastSourceRef(client))) {
+    log.info("nflverse sources unchanged since the last ingest; nothing written");
+    return { skipped: "source_unchanged" };
+  }
+
   const { rows, unmatched, considered } = buildWeeklyRows({ statRows, snapRows, playerIdByGsis, gsisByPfr });
   if (!rows.length) throw new Error(`refused: no rows resolved from ${considered} source rows; sources likely empty or truncated`);
   const unmatchedShare = considered ? unmatched.length / considered : 0;
@@ -215,7 +229,7 @@ async function runWeeklyStats({ client, seasons, fetchImpl = fetch, log = defaul
     provider: "nflverse",
     rights_basis: "nflverse_open_data",
     job: JOB,
-    source_ref: sha256(...hashes),
+    source_ref: sourceRef,
     row_count: rows.length,
     details: { seasons, weeks, source_rows: considered, unmatched: unmatched.length },
   }).select("id").single();
