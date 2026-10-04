@@ -4414,3 +4414,21 @@ on the second one.
   restarted or disabled.
 - **Production boundary:** the backend change is locally implemented and tested but is not live until
   its feature branch is reviewed, merged, and deployed through the normal founder-gated path.
+
+## 2026-10-04 — signal vs noise module (engine step 6), not yet wired
+
+- **Decision:** `src/services/signalNoise.js` is a pure module that says what in a recommendation is
+  noise and what is observed fact. Omen explains provider projections; it does not claim to beat
+  them. It uses observed values only (a published projection gap, box-score usage already played),
+  predicts nothing, and never calls anything "predictive". No route uses it yet; a follow-up PR wires it.
+- **Gap:** `gapNoise` returns `inside_noise` below 1.5 pts (imported from `confidencePolicy.js`, one
+  line, not duplicated), `real_edge` from 1.5, `large_edge` from 8 (the research point where providers
+  are right about 82% of the time). Sentences carry only the gap itself, no research percentages.
+- **Usage:** `usageStability` uses the last 6 counted games, needs at least 3 per metric or returns
+  `insufficient_data`, and measures mean absolute deviation around the window mean. Volatile at 10
+  snap-share points, 2 targets or carries a game (both reuse `playerUsage.js` meaningful-change lines),
+  10 routes. Bye weeks, missing weeks and all-zero rows are not games. A row flagged `injury_shortened`
+  is excluded and counted in the sentence, because an early exit is not a role change.
+- **Summary:** `signalNoiseSummary` returns at most 2 statements tagged `projection` (gap) or
+  `observed_context` (usage), both from `evidenceVocabulary.js`.
+- **Verification:** `test/signalNoise.test.js`; no fixtures changed.
