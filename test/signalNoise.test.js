@@ -14,18 +14,32 @@ test("gap threshold is the confidence policy coin-flip line, and the evidence ki
   for (const k of Object.values(KIND)) assert.ok(START_SIT.kinds.includes(k), `${k} missing from evidenceVocabulary`);
 });
 
-test("gap classification and sentence agree on the rounded value shown", () => {
+test("gap classification uses the raw gap, the same comparison confidencePolicy makes", () => {
+  const { assessConfidence } = require("../src/services/confidencePolicy");
   const a = gapNoise(1.46);
   assert.equal(a.classification, "inside_noise");
   assert.match(a.sentence, /1\.46 pts/);
-  const b = gapNoise(1.499); // shown as 1.5, so a real edge, never "1.5 is inside noise"
-  assert.equal(b.classification, "real_edge");
-  assert.match(b.sentence, /1\.5-point/);
-  assert.equal(gapNoise(7.999).classification, "large_edge");
-  assert.match(gapNoise(7.999).sentence, /^An 8-point/);
+  // Boundaries: raw 1.496 and 1.499 are below the line (coin flip) even though they display as 1.5.
+  for (const g of [1.496, 1.499]) {
+    const r = gapNoise(g);
+    assert.equal(r.classification, "inside_noise", String(g));
+    assert.match(r.sentence, /just under 1\.5 pts\) is inside normal projection variance/);
+    assert.doesNotMatch(r.sentence, /real edge|outside/);
+  }
+  assert.equal(gapNoise(1.5).classification, "real_edge");
+  assert.match(gapNoise(1.5).sentence, /^A 1\.5-point/);
+  assert.equal(gapNoise(7.996).classification, "real_edge");
+  assert.match(gapNoise(7.996).sentence, /^A projection gap just under 8 points is outside/);
+  assert.equal(gapNoise(8).classification, "large_edge");
+  assert.match(gapNoise(8).sentence, /^An 8-point/);
   assert.match(gapNoise(3.2).sentence, /^A 3\.2-point/);
   assert.match(gapNoise(11).sentence, /^An 11-point/);
   assert.match(gapNoise(1).sentence, /\(1 pt\)/);
+  // Agreement with the confidence scale on a sweep that includes every rounding edge.
+  for (const g of [0, 1.4, 1.495, 1.496, 1.499, 1.5, 1.501, 2, 7.99, 7.996, 8, 12]) {
+    const coinFlip = assessConfidence({ gap: g }).band === "coin_flip";
+    assert.equal(gapNoise(g).classification === "inside_noise", coinFlip, `gap ${g}`);
+  }
 });
 
 test("odd values never throw and blank strings are missing", () => {

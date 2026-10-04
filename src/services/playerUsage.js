@@ -187,28 +187,56 @@ async function snapsByGsis(season, gsisIds, { fetchImpl, log }) {
   }
 }
 
+/** One player's per-week rows (shape signalNoise.usageStability consumes), oldest first. */
+function weeklyRowsFor(statsRows, snapRows, beforeWeek) {
+  const snapByWeek = new Map((snapRows || []).map((r) => [num(r.week), num(r.offense_pct)]));
+  return (statsRows || [])
+    .filter((r) => num(r.week) < beforeWeek)
+    .map((r) => ({
+      week: num(r.week),
+      snap_share: snapByWeek.has(num(r.week)) ? snapByWeek.get(num(r.week)) : null,
+      targets: num(r.targets),
+      carries: num(r.carries),
+    }))
+    .sort((a, b) => a.week - b.week);
+}
+
 /**
- * @returns {Promise<Map<string, object>>} player_key -> usage summary; empty on any failure.
+ * One crosswalk read and one pass over the cached CSVs, returning both the usage summaries and the
+ * per-week rows. The start/sit route uses this so signal-vs-noise adds no extra network round trip.
+ * Any failure yields empty maps.
+ *
+ * @returns {Promise<{usage: Map<string, object>, weekly: Map<string, Array>}>}
  */
-async function getRecentUsage({ supabase, playerKeys, season, beforeWeek, fetchImpl = fetch, log }) {
+async function getUsageBundle({ supabase, playerKeys, season, beforeWeek, fetchImpl = fetch, log }) {
+  const empty = () => ({ usage: new Map(), weekly: new Map() });
   try {
-    if (!supabase || !playerKeys?.length || !Number.isInteger(season) || !Number.isInteger(beforeWeek)) return new Map();
+    if (!supabase || !playerKeys?.length || !Number.isInteger(season) || !Number.isInteger(beforeWeek)) return empty();
     const gsisByKey = await resolveGsis(supabase, playerKeys);
-    if (!gsisByKey.size) return new Map();
+    if (!gsisByKey.size) return empty();
     const [byGsis, snaps] = await Promise.all([
       loadSeason(season, { fetchImpl }),
       snapsByGsis(season, new Set(gsisByKey.values()), { fetchImpl, log }), // never rejects
     ]);
-    const out = new Map();
+    const out = empty();
     for (const [key, gsis] of gsisByKey) {
       const usage = summarize(byGsis.get(gsis), beforeWeek, snaps.get(gsis));
-      if (usage) out.set(key, usage);
+      if (usage) out.usage.set(key, usage);
+      const rows = weeklyRowsFor(byGsis.get(gsis), snaps.get(gsis), beforeWeek);
+      if (rows.length) out.weekly.set(key, rows);
     }
     return out;
   } catch (error) {
     log?.warn?.("player usage unavailable", { reason: error.message });
-    return new Map();
+    return empty();
   }
+}
+
+/**
+ * @returns {Promise<Map<string, object>>} player_key -> usage summary; empty on any failure.
+ */
+async function getRecentUsage(args) {
+  return (await getUsageBundle(args)).usage;
 }
 
 /**
@@ -230,16 +258,7 @@ async function weeklyUsageRows({ supabase, playerKey, season, beforeWeek, fetchI
       loadSeason(season, { fetchImpl }),
       snapsByGsis(season, new Set([gsis]), { fetchImpl, log }), // never rejects
     ]);
-    const snapByWeek = new Map((snaps.get(gsis) || []).map((r) => [num(r.week), num(r.offense_pct)]));
-    return (byGsis.get(gsis) || [])
-      .filter((r) => num(r.week) < beforeWeek)
-      .map((r) => ({
-        week: num(r.week),
-        snap_share: snapByWeek.has(num(r.week)) ? snapByWeek.get(num(r.week)) : null,
-        targets: num(r.targets),
-        carries: num(r.carries),
-      }))
-      .sort((a, b) => a.week - b.week);
+    return weeklyRowsFor(byGsis.get(gsis), snaps.get(gsis), beforeWeek);
   } catch (error) {
     log?.warn?.("weekly usage unavailable", { reason: error.message });
     return [];
@@ -305,4 +324,4 @@ function usageStatement(name, position, usage) {
 
 function _resetCache() { cache.clear(); }
 
-module.exports = { getRecentUsage, weeklyUsageRows, usageStatement, summarize, _resetCache, RECENT_GAMES };
+module.exports = { getRecentUsage, getUsageBundle, weeklyUsageRows, usageStatement, summarize, _resetCache, RECENT_GAMES };

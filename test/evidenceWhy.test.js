@@ -87,3 +87,22 @@ test("input rows are not mutated and output is deterministic", () => {
   assert.deepEqual(buildEvidenceWhy(rows), buildEvidenceWhy(rows));
   assert.equal(JSON.stringify(rows), snapshot);
 });
+
+test("signal-vs-noise usage rows (recent_usage / observed_context) rank as observed facts", () => {
+  const out = buildEvidenceWhy([
+    { category: "omen_inference", kind: "inference", statement: "The available data favors A B." },
+    { category: "recent_usage", kind: "observed_context", statement: "Snap share held at 80% over the last 4 games, so A B's recent usage is steady." },
+  ]);
+  assert.equal(out[0].basis, "observed");
+  assert.equal(out[0].evidence[0].category, "recent_usage");
+});
+
+test("usage steadiness ranks after points_breakdown and team_system and never evicts them", () => {
+  const STEADY = row("recent_usage", "observed_context", "Snap share held at 80% over the last 4 games, so Tyreek Hill's recent usage is steady.");
+  const out = buildEvidenceWhy([STEADY, BREAKDOWN, TEAM, INFER]);
+  assert.deepEqual(out.map((s) => s.text), [BREAKDOWN.statement, TEAM.statement, STEADY.statement]);
+  // A limitation is still never dropped.
+  const withLimit = buildEvidenceWhy([STEADY, BREAKDOWN, TEAM, BREAKDOWN_LIMIT]);
+  assert.ok(withLimit.some((s) => s.basis === "limitation"));
+  assert.ok(withLimit.some((s) => s.text === BREAKDOWN.statement));
+});

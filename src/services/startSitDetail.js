@@ -17,6 +17,7 @@ const optimizer = require("./optimizer");
 const { usageStatement } = require("./playerUsage");
 const { breakdownEvidence } = require("./projectionBreakdown");
 const { buildEvidenceWhy } = require("./evidenceWhy");
+const { signalNoiseSummary } = require("./signalNoise");
 const { CAPABILITY_CONTRACT } = require("./decisionCapabilities");
 const { attachDecisionReceipt, createDecisionContext } = require("./decisionContext");
 
@@ -73,7 +74,7 @@ function playerView(player, roster) {
  * §5.2. Each entry names its own kind, so the client can never render a
  * projection or a model inference as a verified fact.
  */
-function buildEvidence({ start, sit, delta, scoringFormat, usage = null, teamSystem = null, breakdowns = null }) {
+function buildEvidence({ start, sit, delta, scoringFormat, usage = null, teamSystem = null, breakdowns = null, weeklyUsage = null, signal = false, starterOut = false }) {
   const evidence = [];
 
   if (scoringFormat) {
@@ -92,6 +93,14 @@ function buildEvidence({ start, sit, delta, scoringFormat, usage = null, teamSys
     });
   }
 
+  // Signal vs noise (v2 only): is the gap real or inside projection variance? Observed values only.
+  // Not for a forced replacement: an out starter's slot is a hole, not a projection edge.
+  if (signal && !starterOut && start.projected_points != null && sit.projected_points != null) {
+    for (const s of signalNoiseSummary({ gapPts: delta }).statements.filter((x) => x.source === "gap")) {
+      evidence.push({ category: "player_game_fact", kind: s.kind, statement: s.text });
+    }
+  }
+
   // Projection explainer layer 1: where each projection's points come from (Projected, or an
   // honest "unavailable"). No breakdowns at all, as when a read failed, means no rows.
   if (breakdowns?.get) {
@@ -105,6 +114,19 @@ function buildEvidence({ start, sit, delta, scoringFormat, usage = null, teamSys
   for (const player of [start, sit]) {
     const statement = usageStatement(player.name, player.position, usage?.get?.(player.player_key));
     if (statement) evidence.push({ category: "recent_usage", kind: "verified", statement });
+  }
+  if (signal) {
+    for (const player of [start, sit]) {
+      // Steady usage reads as a reason to trust a player; never say it of one who is out.
+      if (OUT_STATUSES.has(normalizedStatus(player.status))) continue;
+      const rows = weeklyUsage?.get?.(player.player_key);
+      if (!Array.isArray(rows) || !rows.length) continue;
+      const summary = signalNoiseSummary({ usageRows: rows, name: player.name });
+      // Too little history is left out rather than shown as a non-statement.
+      for (const s of summary.statements.filter((x) => x.source === "usage" && x.classification !== "insufficient_data")) {
+        evidence.push({ category: "recent_usage", kind: s.kind, statement: s.text });
+      }
+    }
   }
 
   // How each player's offense plays, ranked against the league (published football intelligence).
@@ -250,6 +272,7 @@ function buildStartSitDetail({
   offSeason = false,
   contractVersion = CONTRACT_VERSION,
   usage = null,
+  weeklyUsage = null,
   teamSystem = null,
   breakdowns = null,
 } = {}) {
@@ -320,7 +343,7 @@ function buildStartSitDetail({
   if (starterOut) why.push(`${sit.name} is unavailable for this week.`);
   if (RISK_STATUSES.has(normalizedStatus(sit.status))) why.push(`${sit.name} carries an unresolved injury designation.`);
 
-  const evidence = buildEvidence({ start, sit, delta, scoringFormat, usage, teamSystem, breakdowns });
+  const evidence = buildEvidence({ start, sit, delta, scoringFormat, usage, teamSystem, breakdowns, weeklyUsage, signal: contractVersion === CONTRACT_VERSION_V2, starterOut });
 
   const result = envelope({
     context,

@@ -58,21 +58,29 @@ function toNumber(v) {
   }
 }
 
-/** Classify a projection gap (points, either sign). */
+/**
+ * Classify a projection gap (points, either sign). The class comes from the RAW absolute gap, the same
+ * comparison confidencePolicy.assessConfidence and the start/sit CLOSE state make, so the sentence can
+ * never contradict the confidence band. The gap is rounded to 2 decimals for display only; when that
+ * rounding would land on a line the raw value is on the other side of (1.496 shows as 1.5, 7.996 as 8),
+ * the sentence says "just under" the line instead of printing a number that reads as the other class.
+ */
 function gapNoise(gapPts) {
   const g = toNumber(gapPts);
   if (g === null) return { classification: null, gap: null, sentence: null };
-  // One rule: classify on the value shown. The gap is rounded to 2 decimals (as confidencePolicy
-  // renders it) and that rounded number is both compared with the lines and printed.
-  const gap = round2(Math.abs(g));
-  if (gap < THRESHOLDS.GAP_NOISE_BELOW) {
-    return { classification: "inside_noise", gap, sentence: `The projection gap (${pts(gap)}) is inside normal projection variance.` };
+  const raw = Math.abs(g);
+  const gap = round2(raw);
+  const noiseLine = THRESHOLDS.GAP_NOISE_BELOW;
+  const largeLine = THRESHOLDS.GAP_LARGE_AT;
+  if (raw < noiseLine) {
+    const shown = gap >= noiseLine ? `just under ${noiseLine} pts` : pts(gap);
+    return { classification: "inside_noise", gap, sentence: `The projection gap (${shown}) is inside normal projection variance.` };
   }
-  const a = cap1(article(gap));
-  if (gap < THRESHOLDS.GAP_LARGE_AT) {
-    return { classification: "real_edge", gap, sentence: `${a} ${gap}-point projection gap is outside normal projection variance: a real edge on paper.` };
+  if (raw < largeLine) {
+    const lead = gap >= largeLine ? `A projection gap just under ${largeLine} points` : `${cap1(article(gap))} ${gap}-point projection gap`;
+    return { classification: "real_edge", gap, sentence: `${lead} is outside normal projection variance: a real edge on paper.` };
   }
-  return { classification: "large_edge", gap, sentence: `${a} ${gap}-point projection gap is a large edge on paper.` };
+  return { classification: "large_edge", gap, sentence: `${cap1(article(gap))} ${gap}-point projection gap is a large edge on paper.` };
 }
 
 // Order is the preference order for the "change since last week" figure.

@@ -4458,3 +4458,26 @@ on the second one.
   per-week `{week, snap_share, targets, carries}` rows through the same crosswalk and cached loaders
   as `getRecentUsage`, in the shape `usageStability` takes. Additive; existing callers unchanged.
 - **Verification:** `test/signalNoise.test.js`, `test/playerUsage.test.js`; no fixtures changed.
+
+## 2026-10-04 — Signal vs noise wired into Start/Sit detail v2 (engine step 6, wiring)
+
+- **Decision:** `start-sit-detail.v2` evidence now carries `signalNoise.js` statements as ordinary tagged
+  rows: the projection-gap sentence as `player_game_fact` / `projection`, and each player's usage
+  steadiness as `recent_usage` / `observed_context`. Vocabulary values are the existing ones; none added.
+  v1 is untouched (rows are built only for v2).
+- **Ranking:** `evidenceWhy.js` ranks `recent_usage` + `observed_context` last among the observed facts
+  (after `points_breakdown` and `team_system`), so steadiness can never evict them from the 3
+  `why_statements` slots; a limitation is still never dropped.
+- **Review fixes (PR #567):** `gapNoise` now classifies on the RAW gap, the same comparison
+  `assessConfidence` and the CLOSE state make; rounding is display-only, and a gap that would round onto a
+  line it has not crossed reads "just under 1.5 pts" / "just under 8 points". (The optimizer already
+  hands the route a 2-decimal delta; the raw case is guarded at the unit level.) No steadiness row for an
+  OUT player, and no "real edge" gap row when the starter is out (forced replacement).
+- **No extra latency:** the route calls `playerUsage.getUsageBundle`, which returns the usage summaries
+  and the per-week rows from the same crosswalk read and cached CSV loaders `getRecentUsage` used (now a
+  thin wrapper). Same timeout and cache. Any failure yields empty maps and an unchanged response.
+- **Confidence untouched:** `confidencePolicy` is not edited and signal rows are not corroboration
+  inputs; a test asserts recommendation and confidence are identical with and without signal rows.
+- **Insufficient history** adds no usage row (the sentence is a non-statement, so it is omitted).
+- **Contract:** additive only (extra `evidence[]` rows and possibly different `why_statements` text);
+  `contracts.js check` passes, no lock change. Three v2 fixtures re-recorded.

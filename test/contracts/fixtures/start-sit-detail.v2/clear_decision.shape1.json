@@ -1,6 +1,6 @@
 {
   "http_status": 200,
-  "route": "(built)",
+  "route": "/api/start-sit/detail",
   "body": {
     "alternatives": [
       {
@@ -100,12 +100,27 @@
       {
         "category": "player_game_fact",
         "kind": "projection",
-        "statement": "DeVonta Smith projects 11.8 and Chris Olave projects 11 in this league's scoring."
+        "statement": "DeVonta Smith projects 15.2 and Chris Olave projects 11 in this league's scoring."
+      },
+      {
+        "category": "player_game_fact",
+        "kind": "projection",
+        "statement": "A 4.2-point projection gap is outside normal projection variance: a real edge on paper."
+      },
+      {
+        "category": "recent_usage",
+        "kind": "observed_context",
+        "statement": "Snap share held at 80% over the last 4 games, so DeVonta Smith's recent usage is steady."
+      },
+      {
+        "category": "recent_usage",
+        "kind": "observed_context",
+        "statement": "Snap share swung by about 25 points a game over the last 4 games (from 35% to 90%), so Chris Olave's recent usage is uneven."
       },
       {
         "category": "omen_inference",
         "kind": "inference",
-        "statement": "The available data slightly favors DeVonta Smith, and the gap is inside normal projection variance."
+        "statement": "The available data favors DeVonta Smith."
       }
     ],
     "generated_at": "2026-01-01T00:00:00.000Z",
@@ -113,40 +128,62 @@
     "league_name": "Dynasty Dogs",
     "platform": "sleeper",
     "recommendation": {
-      "confidence": "low",
+      "confidence": "moderate",
       "over": {
         "kickoff": null,
         "name": "Chris Olave",
-        "player_key": "a",
+        "player_key": "p-Chris-Olave",
         "position": "WR",
         "projected_points": 11,
         "status": null,
         "team": null
       },
-      "points_delta": 0.8,
+      "points_delta": 4.2,
       "slot": "WR",
       "start": {
         "kickoff": null,
         "name": "DeVonta Smith",
-        "player_key": "c",
+        "player_key": "p-DeVonta-Smith",
         "position": "WR",
-        "projected_points": 11.8,
+        "projected_points": 15.2,
         "status": null,
         "team": null
       }
     },
     "scoring_format": "0.5 PPR",
     "season": 2026,
-    "state": "close_decision",
+    "state": "clear_decision",
     "team_name": "Justin Titans",
     "week": 7,
-    "what_could_change_this": [
-      "Any late projection move, since the two are within a point and a half."
-    ],
+    "what_could_change_this": [],
     "why": [
-      "Higher projected output in this league's scoring (+0.8)."
+      "Higher projected output in this league's scoring (+4.2)."
     ],
     "why_statements": [
+      {
+        "basis": "observed",
+        "evidence": [
+          {
+            "category": "recent_usage",
+            "id": "evidence[3]",
+            "kind": "observed_context"
+          }
+        ],
+        "rank": 1,
+        "text": "Snap share held at 80% over the last 4 games, so DeVonta Smith's recent usage is steady."
+      },
+      {
+        "basis": "observed",
+        "evidence": [
+          {
+            "category": "recent_usage",
+            "id": "evidence[4]",
+            "kind": "observed_context"
+          }
+        ],
+        "rank": 2,
+        "text": "Snap share swung by about 25 points a game over the last 4 games (from 35% to 90%), so Chris Olave's recent usage is uneven."
+      },
       {
         "basis": "projection",
         "evidence": [
@@ -156,20 +193,8 @@
             "kind": "projection"
           }
         ],
-        "rank": 1,
-        "text": "DeVonta Smith projects 11.8 and Chris Olave projects 11 in this league's scoring."
-      },
-      {
-        "basis": "inference",
-        "evidence": [
-          {
-            "category": "omen_inference",
-            "id": "evidence[2]",
-            "kind": "inference"
-          }
-        ],
-        "rank": 2,
-        "text": "The available data slightly favors DeVonta Smith, and the gap is inside normal projection variance."
+        "rank": 3,
+        "text": "DeVonta Smith projects 15.2 and Chris Olave projects 11 in this league's scoring."
       }
     ]
   }

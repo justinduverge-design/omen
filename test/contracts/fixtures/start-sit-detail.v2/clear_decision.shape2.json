@@ -1,0 +1,184 @@
+{
+  "http_status": 200,
+  "route": "/api/start-sit/detail",
+  "body": {
+    "alternatives": [],
+    "capabilities": [
+      {
+        "fresh_until": null,
+        "kind": "verified",
+        "name": "roster",
+        "observed_at": null,
+        "source": "normalized_roster",
+        "state": "live",
+        "statement": "Omen compared the connected league's normalized roster.",
+        "used": true
+      },
+      {
+        "fresh_until": null,
+        "kind": "verified",
+        "name": "league_scoring",
+        "observed_at": null,
+        "source": "league_settings",
+        "state": "live",
+        "statement": "This league awards 0.5 PPR.",
+        "used": true
+      },
+      {
+        "fresh_until": null,
+        "kind": "projection",
+        "name": "player_projections",
+        "observed_at": null,
+        "source": "normalized_roster",
+        "state": "live",
+        "statement": "Omen compared the available provider projections for DeVonta Smith and Chris Olave.",
+        "used": true
+      },
+      {
+        "fresh_until": null,
+        "kind": "inference",
+        "name": "start_sit_inference",
+        "observed_at": null,
+        "source": "lineup_optimizer",
+        "state": "live",
+        "statement": "Omen ranked eligible lineup changes from the available roster and projection inputs.",
+        "used": true
+      }
+    ],
+    "capability_contract": "decision-capabilities.v1",
+    "contract_version": "start-sit-detail.v2",
+    "decision_context": {
+      "contract_version": "shared-decision-context.v1",
+      "inputs": {
+        "league_scoring": {
+          "observed_at": "2026-01-01T00:00:00.000Z",
+          "source": "league_settings",
+          "state": "live",
+          "used": true
+        },
+        "projections": {
+          "observed_at": "2026-01-01T00:00:00.000Z",
+          "source": "normalized_roster",
+          "state": "live",
+          "used": true
+        },
+        "roster": {
+          "observed_at": "2026-01-01T00:00:00.000Z",
+          "source": "normalized_roster",
+          "state": "live",
+          "used": true
+        },
+        "selected_context": {
+          "observed_at": "2026-01-01T00:00:00.000Z",
+          "source": "selected_platform_connection",
+          "state": "live",
+          "used": true
+        }
+      },
+      "inputs_used": [
+        "league_scoring",
+        "projections",
+        "roster",
+        "selected_context"
+      ],
+      "limitations": [],
+      "profile": "start_sit"
+    },
+    "evidence": [
+      {
+        "category": "league_fact",
+        "kind": "verified",
+        "statement": "This league awards 0.5 PPR."
+      },
+      {
+        "category": "player_game_fact",
+        "kind": "projection",
+        "statement": "DeVonta Smith projects 12.51 and Chris Olave projects 11 in this league's scoring."
+      },
+      {
+        "category": "player_game_fact",
+        "kind": "projection",
+        "statement": "A 1.51-point projection gap is outside normal projection variance: a real edge on paper."
+      },
+      {
+        "category": "omen_inference",
+        "kind": "inference",
+        "statement": "The available data favors DeVonta Smith."
+      }
+    ],
+    "generated_at": "2026-01-01T00:00:00.000Z",
+    "league_id": "L1",
+    "league_name": "Dynasty Dogs",
+    "platform": "sleeper",
+    "recommendation": {
+      "confidence": "moderate",
+      "over": {
+        "kickoff": null,
+        "name": "Chris Olave",
+        "player_key": "p-Chris-Olave",
+        "position": "WR",
+        "projected_points": 11,
+        "status": null,
+        "team": null
+      },
+      "points_delta": 1.51,
+      "slot": "WR",
+      "start": {
+        "kickoff": null,
+        "name": "DeVonta Smith",
+        "player_key": "p-DeVonta-Smith",
+        "position": "WR",
+        "projected_points": 12.51,
+        "status": null,
+        "team": null
+      }
+    },
+    "scoring_format": "0.5 PPR",
+    "season": 2026,
+    "state": "clear_decision",
+    "team_name": "Justin Titans",
+    "week": 7,
+    "what_could_change_this": [],
+    "why": [
+      "Higher projected output in this league's scoring (+1.51)."
+    ],
+    "why_statements": [
+      {
+        "basis": "projection",
+        "evidence": [
+          {
+            "category": "player_game_fact",
+            "id": "evidence[1]",
+            "kind": "projection"
+          }
+        ],
+        "rank": 1,
+        "text": "DeVonta Smith projects 12.51 and Chris Olave projects 11 in this league's scoring."
+      },
+      {
+        "basis": "projection",
+        "evidence": [
+          {
+            "category": "player_game_fact",
+            "id": "evidence[2]",
+            "kind": "projection"
+          }
+        ],
+        "rank": 2,
+        "text": "A 1.51-point projection gap is outside normal projection variance: a real edge on paper."
+      },
+      {
+        "basis": "inference",
+        "evidence": [
+          {
+            "category": "omen_inference",
+            "id": "evidence[3]",
+            "kind": "inference"
+          }
+        ],
+        "rank": 3,
+        "text": "The available data favors DeVonta Smith."
+      }
+    ]
+  }
+}

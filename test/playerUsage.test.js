@@ -218,3 +218,18 @@ test("usage sentences add snap share and a meaningful trend, and nothing when th
   assert.equal(usageStatement("Kyle Monangai", "RB", { games: 2, carries_per_game: 8, targets_per_game: 1, prior: null }),
     "Kyle Monangai: 8.0 carries and 1.0 targets a game over the last 2 games.");
 });
+
+test("getUsageBundle returns summaries and weekly rows from one crosswalk read; failure is empty maps", async () => {
+  const { getUsageBundle } = require("../src/services/playerUsage");
+  _resetCache();
+  const supabase = fakeSupabase(crosswalk);
+  const bundle = await getUsageBundle({ supabase, playerKeys: ["espn:2973405"], season: 2026, beforeWeek: 4, fetchImpl: okFetch });
+  assert.equal(supabase.calls.length, 1, "one crosswalk read");
+  assert.equal(bundle.usage.get("espn:2973405").targets_per_game, 7);
+  assert.deepEqual(bundle.weekly.get("espn:2973405").map((r) => r.week), [1, 2, 3]);
+  _resetCache();
+  const down = async () => ({ ok: false, status: 500, text: async () => "" });
+  const failed = await getUsageBundle({ supabase: fakeSupabase(crosswalk), playerKeys: ["espn:2973405"], season: 2026, beforeWeek: 4, fetchImpl: down });
+  assert.equal(failed.usage.size, 0);
+  assert.equal(failed.weekly.size, 0);
+});

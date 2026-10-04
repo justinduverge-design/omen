@@ -260,6 +260,9 @@ function loadRouter(options = {}) {
       if (request === "../services/roster") {
         return options.rosterSvc || { fetchAndNormalizeRoster: async () => ROSTER, normalizeYahooWaivers: () => [] };
       }
+      if (request === "../services/playerUsage" && options.getUsageBundle) {
+        return { getUsageBundle: options.getUsageBundle };
+      }
       if (request === "../adapters/sleeper") return options.sleeperAdapter || {};
       if (request === "../adapters/espn") return options.espnAdapter || {};
     }
@@ -605,4 +608,120 @@ test("v2 route carries ranked why_statements built from the evidence rows; v1 do
 test("v2 builder: no recommendation means no why_statements field", () => {
   const result = buildStartSitDetail({ roster: ROSTER, platform: "sleeper", leagueId: "L1", offSeason: true, contractVersion: CONTRACT_VERSION_V2 });
   assert.equal(result.why_statements, undefined);
+});
+
+// --- Signal vs noise (engine step 6) ----------------------------------------
+
+const SN_URL = "/api/start-sit/detail?contract_version=start-sit-detail.v2";
+const snOptions = (extra = {}) => ({
+  connections: [SLEEPER_CONN],
+  sleeperAdapter: {
+    fetchSleeperLeague: async () => ({ name: "Dynasty Dogs", scoring_settings: { rec: 0.5 } }),
+    buildNormalizedRoster: async () => ROSTER,
+  },
+  ...extra,
+});
+// Serialized with generation timestamps blanked, for equality across two requests.
+const stable = (body) => JSON.stringify(body, (k, v) => (/(^|_)(at|generated_at|observed_at)$/.test(k) ? null : v));
+const weeks = (shares, extra = {}) => shares.map((snap_share, i) => ({ week: i + 1, snap_share, targets: 6, carries: 0, ...extra }));
+const bundle = (weekly) => async () => ({ usage: new Map(), weekly: new Map(Object.entries(weekly)) });
+const signalRows = (body) => body.evidence.filter((r) => r.category === "recent_usage" && r.kind === "observed_context");
+
+test("signal: stable vs volatile usage become tagged observed_context rows, the gap becomes a projection row", async () => {
+  const stable = weeks([0.8, 0.8, 0.8, 0.8]);
+  const volatile = weeks([0.9, 0.4, 0.85, 0.35, 0.9, 0.4]);
+  const { status, body } = await request(buildApp(snOptions({
+    getUsageBundle: bundle({ "p-DeVonta-Smith": stable, "p-Chris-Olave": volatile }),
+  })), SN_URL);
+  assert.equal(status, 200);
+  const rows = signalRows(body);
+  assert.equal(rows.length, 2);
+  assert.match(rows[0].statement, /^Snap share held at 80% over the last 4 games, so DeVonta Smith's recent usage is steady\.$/);
+  assert.match(rows[1].statement, /Chris Olave's recent usage is uneven\.$/);
+  const gap = body.evidence.filter((r) => r.category === "player_game_fact" && r.kind === "projection" && /projection gap/.test(r.statement));
+  assert.equal(gap.length, 1);
+  assert.equal(gap[0].statement, "A 4.2-point projection gap is outside normal projection variance: a real edge on paper.");
+  // Closed vocabulary only.
+  const vocab = require("../src/services/evidenceVocabulary").START_SIT;
+  for (const row of body.evidence) {
+    assert.ok(vocab.categories.includes(row.category), row.category);
+    assert.ok(vocab.kinds.includes(row.kind), row.kind);
+  }
+  // Grounded: every number in the new text comes from the inputs (delta, share percents, game counts).
+  const allowed = new Set(["4.2", "80", "4", "6", "90", "35", "40", "85", "25", "20"]);
+  for (const row of [...rows, gap[0]]) {
+    for (const n of row.statement.match(/\d+(?:\.\d+)?/g) || []) assert.ok(allowed.has(n), `ungrounded number ${n} in: ${row.statement}`);
+  }
+});
+
+test("signal: insufficient history adds no usage row; a usage failure leaves the response as without usage", async () => {
+  const insufficient = await request(buildApp(snOptions({
+    getUsageBundle: bundle({ "p-DeVonta-Smith": weeks([0.8, 0.8]), "p-Chris-Olave": weeks([0.7]) }),
+  })), SN_URL);
+  assert.equal(signalRows(insufficient.body).length, 0);
+
+  const none = await request(buildApp(snOptions({ getUsageBundle: bundle({}) })), SN_URL);
+  const failed = await request(buildApp(snOptions({
+    getUsageBundle: async () => ({ usage: new Map(), weekly: new Map() }), // what getUsageBundle returns on any failure
+  })), SN_URL);
+  assert.equal(stable(failed.body), stable(none.body));
+  assert.equal(signalRows(failed.body).length, 0);
+});
+
+test("signal: rows never change the confidence band or the recommendation; v1 is untouched", async () => {
+  const withSignal = await request(buildApp(snOptions({
+    getUsageBundle: bundle({ "p-DeVonta-Smith": weeks([0.8, 0.8, 0.8, 0.8]), "p-Chris-Olave": weeks([0.9, 0.4, 0.85, 0.35]) }),
+  })), SN_URL);
+  const without = await request(buildApp(snOptions({ getUsageBundle: bundle({}) })), SN_URL);
+  assert.deepEqual(withSignal.body.recommendation, without.body.recommendation);
+  assert.equal(withSignal.body.recommendation.confidence, without.body.recommendation.confidence);
+
+  const v1With = await request(buildApp(snOptions({
+    getUsageBundle: bundle({ "p-DeVonta-Smith": weeks([0.8, 0.8, 0.8, 0.8]) }),
+  })));
+  const v1Without = await request(buildApp(snOptions({ getUsageBundle: bundle({}) })));
+  assert.equal(stable(v1With.body), stable(v1Without.body));
+  assert.equal(signalRows(v1With.body).length, 0);
+  assert.equal(v1With.body.evidence.some((r) => /projection gap/.test(r.statement)), false);
+});
+
+test("signal: an OUT player gets no steadiness row, and a forced replacement gets no 'real edge' gap row", async () => {
+  const roster = { week: 7, team_name: "Justin Titans", slots: {
+    starters: [player("Chris Olave", "WR", 11.0, "OUT")],
+    bench: [player("DeVonta Smith", "WR", 15.2)],
+  } };
+  const out = await request(buildApp(snOptions({
+    rosterSvc: undefined,
+    sleeperAdapter: {
+      fetchSleeperLeague: async () => ({ name: "Dynasty Dogs", scoring_settings: { rec: 0.5 } }),
+      buildNormalizedRoster: async () => roster,
+    },
+    getUsageBundle: bundle({ "p-DeVonta-Smith": weeks([0.8, 0.8, 0.8, 0.8]), "p-Chris-Olave": weeks([0.8, 0.8, 0.8, 0.8]) }),
+  })), SN_URL);
+  assert.equal(out.body.state, "player_unavailable");
+  const steady = signalRows(out.body);
+  assert.equal(steady.length, 1, "only the available replacement");
+  assert.match(steady[0].statement, /DeVonta Smith/);
+  assert.equal(out.body.evidence.some((r) => /projection gap|real edge/.test(r.statement)), false);
+});
+
+test("signal: the gap sentence agrees with the confidence band and the close state at the 1.5 line", async () => {
+  // The optimizer hands the route a 2-decimal delta, so the route sees 1.49 / 1.5 / 1.51; the raw 1.496 case is in signalNoise.test.js.
+  for (const startPts of [12.49, 12.5, 12.51]) {
+    const roster = { week: 7, team_name: "Justin Titans", slots: {
+      starters: [player("Chris Olave", "WR", 11.0)],
+      bench: [player("DeVonta Smith", "WR", startPts)],
+    } };
+    const { body } = await request(buildApp(snOptions({
+      sleeperAdapter: {
+        fetchSleeperLeague: async () => ({ name: "Dynasty Dogs", scoring_settings: { rec: 0.5 } }),
+        buildNormalizedRoster: async () => roster,
+      },
+      getUsageBundle: bundle({}),
+    })), SN_URL);
+    const gap = body.evidence.find((r) => /projection gap/.test(r.statement));
+    const inside = /inside normal projection variance/.test(gap.statement);
+    assert.equal(inside, body.recommendation.confidence === "low", `${startPts}: ${gap.statement}`);
+    assert.equal(inside, body.state === "close_decision", `${startPts}: ${gap.statement}`);
+  }
 });

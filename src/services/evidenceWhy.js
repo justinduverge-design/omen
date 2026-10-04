@@ -31,9 +31,11 @@ function tierFor(row) {
   const { category, kind } = row;
   if (kind === "limitation" || category === "limitation") return { tier: "limitation", rank: 3 };
   if (category === "recent_usage" && kind === "verified") return { tier: "observed", rank: 0.0 };
-  if (category === "current_status" && kind === "verified") return { tier: "observed", rank: 0.1 };
+    if (category === "current_status" && kind === "verified") return { tier: "observed", rank: 0.1 };
   if (category === "points_breakdown" && kind === "projected") return { tier: "observed", rank: 0.2 };
   if (category === "team_system" && kind === "observed_context") return { tier: "observed", rank: 0.3 };
+  // Signal-vs-noise usage steadiness (signalNoise.js): last of the observed facts, so it never evicts a breakdown or team row.
+  if (category === "recent_usage" && kind === "observed_context") return { tier: "observed", rank: 0.35 };
   if (category === "player_game_fact" && kind === "projection") return { tier: "projection", rank: 2 };
   if (category === "omen_inference" && kind === "inference") return { tier: "inference", rank: 4 };
   // league_fact and anything unrecognized is context, not a reason.

@@ -34,7 +34,7 @@ const {
   CONTRACT_VERSION_V2,
   buildStartSitDetail,
 } = require("../services/startSitDetail");
-const { getRecentUsage } = require("../services/playerUsage");
+const { getUsageBundle } = require("../services/playerUsage");
 const { getTeamSystemSummaries } = require("../services/footballIntelligence/teamSystemLines");
 const { rosterProjectionBreakdowns } = require("../services/projectionBreakdown");
 const { withinLatencyBudget } = require("../services/latencyBudget");
@@ -219,10 +219,12 @@ router.get("/detail", requireAuth, async (req, res, next) => {
       .map((player) => player?.player_key).filter(Boolean);
     const rosterTeams = [...(loaded.roster?.slots?.starters || []), ...(loaded.roster?.slots?.bench || [])]
       .map((player) => player?.team).filter(Boolean);
-    const [usage, teamSystem] = suppressLiveFootballData()
-      ? [new Map(), new Map()]
+    // One usage read yields both the summaries and the per-week rows (signal vs noise), so the second
+    // costs no extra round trip; any failure is empty maps and the response is unchanged.
+    const [{ usage, weekly: weeklyUsage }, teamSystem] = suppressLiveFootballData()
+      ? [{ usage: new Map(), weekly: new Map() }, new Map()]
       : await Promise.all([
-        getRecentUsage({ supabase, playerKeys: rosterKeys, season: Number(context.season), beforeWeek: Number(resolvedWeek), log: logger }),
+        getUsageBundle({ supabase, playerKeys: rosterKeys, season: Number(context.season), beforeWeek: Number(resolvedWeek), log: logger }),
         getTeamSystemSummaries({ supabase, teams: rosterTeams, season: Number(context.season), log: logger }),
       ]);
     const breakdowns = suppressLiveFootballData()
@@ -231,6 +233,7 @@ router.get("/detail", requireAuth, async (req, res, next) => {
 
     return res.json(buildStartSitDetail({
       usage,
+      weeklyUsage,
       teamSystem,
       breakdowns,
       roster: loaded.roster,
