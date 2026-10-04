@@ -1,4 +1,6 @@
--- REVIEW ONLY. NOT APPLIED. Facts-of-record #8.
+-- RETIRED FOR PRODUCTION — DO NOT APPLY TO SUPABASE.
+-- Founder architecture decision 2026-10-04 moved the full nflverse record and play-by-play to the
+-- private KVM1 football warehouse. Kept only as evidence of the superseded Supabase design.
 --
 -- Step 15 — the full nflverse football record (Gate 1 database redo). Founder direction 2026-10-04:
 -- "finish the nflverse ingestion; make Omen a football brain".
