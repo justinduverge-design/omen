@@ -16,9 +16,11 @@
     ],
     "capability_contract": "decision-capabilities.v1",
     "confidence": {
-      "band": "confident",
-      "drivers": [
-        "The shared NFL calendar is outside the regular season window."
+      "band": null,
+      "drivers": [],
+      "unavailable_reason": [
+        "The shared NFL calendar is outside the regular season window.",
+        "Omen does not generate live lineup advice outside the NFL regular season."
       ]
     },
     "confidence_policy": "engine-bands.v1",
@@ -33,7 +35,7 @@
       }
     ],
     "explanation": {
-      "confidence": "Confident",
+      "confidence": "Omen has no live weekly move to make right now.",
       "data_used": [
         "NFL calendar"
       ],

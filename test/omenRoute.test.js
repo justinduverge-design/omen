@@ -188,7 +188,7 @@ test("POST /api/omen/mvp-move uses live LLM explanation for eligible success res
     assert.equal(payload.title, "Start Marquise Vale over Trent Holloway");
     assert.equal(payload.primary_player.name, "Marquise Vale");
     assert.equal(payload.comparison_player.name, "Trent Holloway");
-    assert.equal(payload.confidence.score, 74);
+    assert.equal(payload.confidence.score, 68); // Leaning, pinned by confidencePolicy
     assert.equal(payload.risk.level, "medium");
     assert.ok(payload.signal_statuses.llm_reasoning);
     return liveExplanation;

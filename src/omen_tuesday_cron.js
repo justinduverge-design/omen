@@ -20,6 +20,7 @@ const {
   reconcileMoveScoring,
 } = require("./services/scoringReconciliation");
 const ledgerStore = require("./services/ledger");
+const { bandFromScore } = require("./services/confidencePolicy");
 const { getCurrentNflWeekContext } = require("./services/nflSchedule");
 
 const REQUIRED_SCORING_ENV = Object.freeze([
@@ -303,6 +304,15 @@ function scoreMoveByContract(move, stats) {
   return { deferred: false, points: reconciliation.omen_points, reconciliation_state: reconciliation.state };
 }
 
+// Band-aware grading weight. `moves.confidence` is the internal band representative (85 / 68 / 50);
+// rows written on the legacy scale keep working: >= 80 is Confident, <= 50 is a Coin flip.
+function confidenceFlags(score) {
+  // Missing, null, zero or non-finite confidence is neutral: no bonus either way.
+  const n = score == null || score === "" ? NaN : Number(score);
+  if (!Number.isFinite(n) || n <= 0) return { confident: false, coinFlip: false };
+  return { confident: bandFromScore(n) === "confident", coinFlip: n <= 50 };
+}
+
 function scoreMove(move, playerScores) {
   const keys = Object.keys(playerScores);
   const target = move.target_player || move.headline || "";
@@ -341,7 +351,7 @@ function scoreMove(move, playerScores) {
     actual = scoreFromStats(stats, move.scoring || "PPR");
     scoringLabel = move.scoring || "PPR";
   }
-  const confidence = Number(move.confidence) || 50;
+  const confidence = move.confidence;
   const projectedBaseline = 12.5;
   const ratio = actual / projectedBaseline;
   let eff = 30;
@@ -357,10 +367,11 @@ function scoreMove(move, playerScores) {
     eff += 5;
   }
 
-  if (outcome === "win" && confidence >= 75) eff += 20;
-  if (outcome === "win" && confidence < 50) eff += 10;
-  if (outcome === "loss" && confidence >= 75) eff -= 15;
-  if (outcome === "loss" && confidence < 50) eff -= 5;
+  const { confident, coinFlip } = confidenceFlags(confidence);
+  if (outcome === "win" && confident) eff += 20;
+  if (outcome === "win" && coinFlip) eff += 10;
+  if (outcome === "loss" && confident) eff -= 15;
+  if (outcome === "loss" && coinFlip) eff -= 5;
 
   return {
     outcome,
@@ -655,6 +666,7 @@ if (require.main === module) {
 
 module.exports = {
   archiveNotExecutedMoves,
+  confidenceFlags,
   fetchNFLScores,
   fetchPendingMoves,
   findBestMatch,

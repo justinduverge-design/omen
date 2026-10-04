@@ -11,6 +11,7 @@ const {
 const { getAuthenticatedYahooClient } = require("./yahooAuth");
 const rosterSvc = require("./roster");
 const optimizer = require("./optimizer");
+const { assessConfidence, bandFromScore, bandSentence, mvpLabelForBand, scoreForBand } = require("./confidencePolicy");
 const omenSelector = require("./omenSelector");
 const { isOmenReadyConnection } = require("./omenReadiness");
 const {
@@ -105,17 +106,14 @@ function isOutStatus(status) {
   return OUT_STATUSES.has(normalizedStatus(status));
 }
 
+const LIVE_LABEL_FOR_BAND = Object.freeze({ confident: "strong lean", leaning: "lean", coin_flip: "slight edge" });
+
 function confidenceLabelFromScore(score) {
-  if (score >= 75) return "strong lean";
-  if (score >= 60) return "lean";
-  return "slight edge";
+  return LIVE_LABEL_FOR_BAND[bandFromScore(score)] || "slight edge";
 }
 
 function mvpConfidenceLabelFromScore(score) {
-  if (score >= 85) return "high";
-  if (score >= 70) return "medium_high";
-  if (score >= 55) return "medium";
-  return "low";
+  return mvpLabelForBand(bandFromScore(score));
 }
 
 function priorityFromScore(score) {
@@ -609,14 +607,10 @@ function offSeasonMvpResponse() {
     summary: "Omen is paused until the NFL regular season starts.",
     why_it_matters: "Live lineup recommendations need current weekly matchups and active rosters.",
     risk: "Showing stale offseason advice would be misleading.",
-    confidence: "Confidence is high that no live weekly move should be generated right now.",
+    confidence: "Omen has no live weekly move to make right now.",
     data_used: ["NFL calendar"],
   };
-  response.confidence = confidence(
-    100,
-    "high",
-    "The shared NFL calendar is outside the regular season window."
-  );
+  response.confidence = noConfidence("The shared NFL calendar is outside the regular season window.");
   response.warnings.push("Live MVP Move is paused outside the NFL regular season.");
   return { status: 200, body: response };
 }
@@ -742,10 +736,10 @@ function liveEmptyMvpResponse({ roster, connection, connectedPlatforms, waiverSi
     summary: "No move clears the recommendation threshold this week.",
     why_it_matters: "The current lineup and bench options do not show a strong enough live edge to force a move.",
     risk: "Forcing a marginal lineup change can create avoidable downside.",
-    confidence: "Confidence is moderate that standing pat is better than forcing a move.",
+    confidence: bandSentence("leaning", "Standing pat is better than forcing a move."),
     data_used: [`${platformLabel} roster`, "normalized lineup slots", "optimizer projection edge"],
   };
-  response.confidence = confidence(68, "medium", `No ${platformLabel} lineup swap cleared the optimizer threshold.`);
+  response.confidence = leaningConfidence(`No ${platformLabel} lineup swap cleared the optimizer threshold.`);
   response.quiet_inputs = { injured_starter: require("./quietWeek").starterInjuryState(roster) };
   return { status: 200, body: response };
 }
@@ -781,10 +775,10 @@ function preDraftMvpResponse({ connection, roster, connectedPlatforms }) {
     summary: `Your ${platformLabel} league has not drafted yet.`,
     why_it_matters: "Omen needs a drafted roster before it can weigh a lineup, waiver, or trade move.",
     risk: "Acting on advice for an undrafted team would mean acting on players you do not have.",
-    confidence: "Confidence is high that no move exists to recommend before the draft.",
+    confidence: "Omen has no move to recommend before the draft.",
     data_used: [`${platformLabel} league status`],
   };
-  response.confidence = confidence(100, "high", `The ${platformLabel} league status is pre-draft.`);
+  response.confidence = noConfidence(`The ${platformLabel} league status is pre-draft.`);
   response.warnings.push(`Omen resumes for this league once the ${platformLabel} draft is complete.`);
   return { status: 200, body: response };
 }
@@ -828,6 +822,11 @@ function mapWaiverPickupToMvpMove({ roster, connection, connectedPlatforms, outS
   const starterPoints = finiteNumber(outStarter.projected_points) || 0;
   const delta = pickupPoints - starterPoints;
   const statusLabel = STATUS_LABELS[normalizedStatus(outStarter.status)] || "unavailable";
+  // A waiver add still has to clear waivers, so it never reads above a lean.
+  const waiverPickupVerdict = (() => {
+    const v = assessConfidence({ gap: delta, sitStatus: outStarter.status, startStatus: pickup.status, maxBand: "leaning" });
+    return { ...v, score: scoreForBand(v.band) ?? 50 };
+  })();
 
   const response = liveBaseEnvelope({
     platform,
@@ -852,8 +851,8 @@ function mapWaiverPickupToMvpMove({ roster, connection, connectedPlatforms, outS
       label: expectedValueLabel(delta),
     },
     confidence: confidence(
-      70,
-      mvpConfidenceLabelFromScore(70),
+      waiverPickupVerdict.score,
+      mvpLabelForBand(waiverPickupVerdict.band),
       `${outStarter.name} is ${statusLabel} and ${pickup.name} is the best projected ${slot} available in your ${platformLabel} league.`
     ),
     risk: risk("medium", [
@@ -869,7 +868,7 @@ function mapWaiverPickupToMvpMove({ roster, connection, connectedPlatforms, outS
           ? "the add still has to clear waivers"
           : "waiver priority is not modeled"
       }.`,
-      confidence: "Confidence is 70 out of 100.",
+      confidence: bandSentence(waiverPickupVerdict.band, waiverPickupVerdict.reason),
       data_used: [
         `${platformLabel} roster`,
         `${platformLabel} available player pool`,
@@ -1233,7 +1232,7 @@ function mapLineupSwapToMvpMove({ roster, swap, connection, connectedPlatforms }
     confidence: confidence(
       confidenceScore,
       mvpConfidenceLabelFromScore(confidenceScore),
-      `The optimizer sees a ${formatDelta(delta)} edge from live ${platformLabel} roster context.`
+      `${swap.confidence_reason || `The optimizer sees a ${formatDelta(delta)} edge.`} It comes from live ${platformLabel} roster context.`
     ),
     risk: risk(riskLevel, riskReasonsForSwap({ startPlayer, sitPlayer, swap, platform })),
     explanation: {
@@ -1242,7 +1241,7 @@ function mapLineupSwapToMvpMove({ roster, swap, connection, connectedPlatforms }
         `${primary.name} grades as the better ${rosterSlot} option by ${formatDelta(delta)} in the normalized ${platformLabel} lineup.`,
       risk:
         `Risk is ${riskLevel} because this recommendation uses roster and projection math, not waiver availability or trade-acceptance forecasting.`,
-      confidence: `Confidence is ${confidenceScore} out of 100.`,
+      confidence: bandSentence(bandFromScore(confidenceScore), swap.confidence_reason || "The optimizer weighed the projected point edge."),
       data_used: [
         `${platformLabel} roster`,
         "starter and bench slots",
@@ -1287,9 +1286,7 @@ function mapTradeSuggestionToMvpMove({ roster, connection, connectedPlatforms, t
     primary_player: receive,
     comparison_player: give,
     expected_value_delta: { points: delta, label: expectedValueLabel(delta) },
-    confidence: confidence(
-      66,
-      "medium",
+    confidence: leaningConfidence(
       `Both projected starting lineups improve after the one-for-one swap in this ${platformLabel} league.`
     ),
     risk: risk("medium", [
@@ -1301,7 +1298,7 @@ function mapTradeSuggestionToMvpMove({ roster, connection, connectedPlatforms, t
       summary: `Your best live trade candidate is ${give.name} for ${receive.name}.`,
       why_it_matters: `The swap adds ${formatDelta(delta)} to your optimal weekly lineup while also improving ${teamName}'s lineup.`,
       risk: "A fair projected lineup gain is not a guarantee that the other manager will accept the offer.",
-      confidence: "Confidence is medium because the roster and projection inputs are live, while acceptance behavior is not modeled.",
+      confidence: bandSentence("leaning", "The roster and projection inputs are live, while acceptance behavior is not modeled."),
       data_used: [
         `${platformLabel} selected roster`,
         `${platformLabel} league rosters`,
@@ -1385,9 +1382,7 @@ function mapYahooWaiverToMvpMove({ roster, waiver, connection, connectedPlatform
       points: null,
       label: "unavailable",
     },
-    confidence: confidence(
-      60,
-      "medium",
+    confidence: leaningConfidence(
       "The selected Yahoo league shows an unavailable starter and an available same-position replacement, but no waiver projection."
     ),
     risk: risk("medium", [
@@ -1399,7 +1394,7 @@ function mapYahooWaiverToMvpMove({ roster, waiver, connection, connectedPlatform
       summary: `Add ${add.name} to cover for ${drop.name}.`,
       why_it_matters: `${drop.name} is unavailable and ${add.name} is an available ${add.position} in the selected Yahoo league.`,
       risk: "This is an availability-based replacement, not a projection-backed claim about the better weekly player.",
-      confidence: "Confidence is medium because the roster need and availability are live, while a waiver projection is unavailable.",
+      confidence: bandSentence("leaning", "The roster need and availability are live, while a waiver projection is unavailable."),
       data_used: [
         "selected Yahoo roster",
         "starter availability status",
@@ -1820,6 +1815,17 @@ function confidence(score, label, rationale) {
   return { score, label, rationale };
 }
 
+// States with no projection to judge (off-season, pre-draft) carry no band at all. A null score
+// takes the decision brief's named-absence path; it is never Confident, never Coin flip.
+function noConfidence(rationale) {
+  return { score: null, label: null, rationale };
+}
+
+// Pinned to the Leaning band through the policy, not through a lucky number.
+function leaningConfidence(rationale) {
+  return confidence(scoreForBand("leaning"), mvpLabelForBand("leaning"), rationale);
+}
+
 function risk(level, reasons) {
   return { level, reasons };
 }
@@ -1855,11 +1861,7 @@ function successResponse(body = {}) {
       points: 4.2,
       label: "meaningful",
     },
-    confidence: confidence(
-      74,
-      "medium_high",
-      "The projection gap is clear, but matchup DvP is still stubbed."
-    ),
+    confidence: leaningConfidence("The projection gap is clear, but matchup DvP is still stubbed."),
     risk: risk("medium", [
       "Marquise Vale has the stronger weekly role, but one matchup signal is still stubbed.",
       "The recommendation should be treated as a contract-safe preview until live projections are finalized.",
@@ -1868,7 +1870,7 @@ function successResponse(body = {}) {
       summary: "Your best move is to start Marquise Vale over Trent Holloway.",
       why_it_matters: "Vale projects for a better weekly role and gives your lineup a higher expected point total.",
       risk: "The recommendation carries medium risk because matchup DvP and some projection inputs are still stubbed.",
-      confidence: "Confidence is 74 out of 100.",
+      confidence: bandSentence("leaning", "The projection gap is clear, but matchup DvP is still stubbed."),
       data_used: [
         "connected roster",
         "weekly projections",
@@ -1888,14 +1890,10 @@ function emptyResponse(body = {}) {
     summary: "No move clears the recommendation threshold this week.",
     why_it_matters: "Your current lineup is close enough to the available alternatives that Omen should not force a move.",
     risk: "Forcing a marginal move could create more downside than upside.",
-    confidence: "Confidence is 68 out of 100 that standing pat is reasonable.",
+    confidence: bandSentence("leaning", "Standing pat is reasonable because no alternative clears the recommendation threshold."),
     data_used: ["connected roster", "weekly projections"],
   };
-  response.confidence = confidence(
-    68,
-    "medium",
-    "Available mock alternatives do not clear the current recommendation threshold."
-  );
+  response.confidence = leaningConfidence("Available mock alternatives do not clear the current recommendation threshold.");
   return response;
 }
 
@@ -1990,14 +1988,10 @@ function offSeasonMockResponse(body = {}) {
     summary: "Omen is paused until the NFL regular season starts.",
     why_it_matters: "Live lineup recommendations need current weekly matchups and active rosters.",
     risk: "Showing stale offseason advice would be misleading.",
-    confidence: "Confidence is high that no live weekly move should be generated right now.",
+    confidence: "Omen has no live weekly move to make right now.",
     data_used: ["NFL calendar"],
   };
-  response.confidence = confidence(
-    100,
-    "high",
-    "The shared NFL calendar is outside the regular season window."
-  );
+  response.confidence = noConfidence("The shared NFL calendar is outside the regular season window.");
   response.warnings.push("Mock off-season state. Do not present as live fantasy advice.");
   return response;
 }
@@ -2059,4 +2053,9 @@ module.exports = {
   buildSignals,
   buildLiveMvpSignals,
   offSeasonMvpResponse,
+  preDraftMvpResponse,
+  mapWaiverPickupToMvpMove,
+  mapYahooWaiverToMvpMove,
+  mapTradeSuggestionToMvpMove,
+  mapLineupSwapToMvpMove,
 };

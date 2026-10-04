@@ -49,11 +49,34 @@ test("buildStartSitDetail answers with the recommendation first, in league conte
   assert.equal(result.state, STATES.CLEAR);
   assert.equal(result.recommendation.start.name, "DeVonta Smith");
   assert.equal(result.recommendation.over.name, "Chris Olave");
-  assert.equal(result.recommendation.confidence, "high");
+  // 4.2 pt gap on provider projections alone: a lean, never "high" (confidencePolicy).
+  assert.equal(result.recommendation.confidence, "moderate");
   assert.equal(result.league_name, "Dynasty Dogs");
   assert.equal(result.team_name, "Justin Titans");
   assert.equal(result.scoring_format, "0.5 PPR");
   assert.ok(result.why.length >= 1);
+});
+
+test("a big gap reads high only when observed usage corroborates it", () => {
+  const roster = {
+    week: 7,
+    slots: {
+      starters: [player("Chris Olave", "WR", 8.0)],
+      bench: [player("DeVonta Smith", "WR", 14.0)],
+    },
+  };
+  const base = { roster, platform: "sleeper", leagueId: "L1", week: 7, season: 2026, scoringFormat: "0.5 PPR" };
+  const usage = new Map([
+    ["p-DeVonta-Smith", { games: 3, snap_share: 0.9, target_share: 0.3 }],
+    ["p-Chris-Olave", { games: 3, snap_share: 0.6, target_share: 0.15 }],
+  ]);
+  assert.equal(buildStartSitDetail({ ...base }).recommendation.confidence, "moderate");
+  assert.equal(buildStartSitDetail({ ...base, usage }).recommendation.confidence, "high");
+  const contradicting = new Map([
+    ["p-DeVonta-Smith", { games: 3, snap_share: 0.5, target_share: 0.1 }],
+    ["p-Chris-Olave", { games: 3, snap_share: 0.9, target_share: 0.3 }],
+  ]);
+  assert.equal(buildStartSitDetail({ ...base, usage: contradicting }).recommendation.confidence, "moderate");
 });
 
 test("evidence separates the league fact, the projection, and Omen's inference", () => {
