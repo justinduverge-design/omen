@@ -85,12 +85,12 @@ values
 insert into football.football_players
   (player_id, gsis_id, display_name, ingest_event_id)
 values
-  ('omen:player:test-player', '00-0000001', 'Schema Test Player', :receipt_id);
+  ('omen:player:gsis.00-0000001', '00-0000001', 'Schema Test Player', :receipt_id);
 
 insert into football.football_player_ids
   (provider, provider_id, player_id, match_method, ingest_event_id)
 values
-  ('gsis', '00-0000001', 'omen:player:test-player', 'source_crosswalk', :receipt_id);
+  ('gsis', '00-0000001', 'omen:player:gsis.00-0000001', 'source_crosswalk', :receipt_id);
 
 insert into football.nfl_games
   (season, game_id, week, game_type, away_team_id, home_team_id, ingest_event_id)
@@ -102,7 +102,7 @@ insert into football.nfl_plays (
   play_type, epa, success, source_row, ingest_event_id
 ) values (
   2026, '2026_01_BUF_MIA', 1, 1, 'omen:team:buf', 'omen:team:mia',
-  'omen:player:test-player', 'pass', 0.75, true, '{"play_id":1}'::jsonb, :receipt_id
+  'omen:player:gsis.00-0000001', 'pass', 0.75, true, '{"play_id":1}'::jsonb, :receipt_id
 );
 
 do $$
@@ -129,6 +129,6 @@ insert into football.football_metric_run_inputs (metric_run_id, ingest_event_id)
 values (:metric_id, :receipt_id);
 
 insert into football.football_metric_values (metric_run_id, entity_type, entity_id, value, components)
-values (:metric_id, 'player', 'omen:player:test-player', 0.75, '{"epa":0.75}'::jsonb);
+values (:metric_id, 'player', 'omen:player:gsis.00-0000001', 0.75, '{"epa":0.75}'::jsonb);
 
 select 'VERIFIED football warehouse schema' as result;

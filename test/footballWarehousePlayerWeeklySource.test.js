@@ -29,7 +29,7 @@ function sourceArgs(raw) {
     sourceUrl: sourceUrlForSeason(2026),
     runId: "player-week-2026-a",
     playerIdByGsis: new Map([
-      ["00-0001", "omen:player:00-0001"],
+      ["00-0001", "omen:player:gsis.00-0001"],
       // A display name in the map must never resolve a row without a matching GSIS id.
       ["Same Name", "omen:player:wrong-name-match"],
     ]),
@@ -82,7 +82,7 @@ test("hashes exact raw bytes and maps a complete source row to writer input", ()
     season: 2026,
     week: 3,
     seasonType: "REG",
-    playerId: "omen:player:00-0001",
+    playerId: "omen:player:gsis.00-0001",
     teamId: "omen:team:buf",
     opponentTeamId: "omen:team:nyj",
     gameId: "2026_03_BUF_NYJ",

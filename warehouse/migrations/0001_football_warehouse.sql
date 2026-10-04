@@ -74,7 +74,7 @@ create table football.football_teams (
 );
 
 create table football.football_players (
-  player_id          text primary key check (player_id ~ '^omen:player:[a-z0-9:_-]+$'),
+  player_id          text primary key check (player_id ~ '^omen:player:[a-z0-9:._-]+$'),
   gsis_id            text unique,
   display_name       text not null,
   first_name         text,
