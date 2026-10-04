@@ -37,9 +37,11 @@ function bandedConfidence(value, limitations = []) {
     return {
       band: null,
       drivers: [],
-      unavailable_reason: limitations.length
-        ? limitations
-        : ["Omen did not produce a confidence value for this call."],
+      unavailable_reason: safeRationale
+        ? [rationale, ...limitations]
+        : limitations.length
+          ? limitations
+          : ["Omen did not produce a confidence value for this call."],
     };
   }
 
@@ -51,6 +53,13 @@ function bandedConfidence(value, limitations = []) {
     drivers: [safeRationale ? rationale
       : "This band reflects the engine's combined evidence; it is not a probability of success."],
   };
+}
+
+// With no band there is no label to show, and the contract wants a string. Use the engine's own
+// sentence when it carries no number; otherwise the named reason. Never a label or a number.
+function unbandedText(text, confidence) {
+  const clean = typeof text === "string" && text.trim() && !/confiden|leaning|coin flip/i.test(text) && !/\d\s*(?:%|out of|\/\s*100)|confidence[^.!?]*\d/i.test(text);
+  return clean ? text.trim() : (confidence.unavailable_reason?.[0] || "Omen did not produce a confidence value for this call.");
 }
 
 function decisionBriefV2(body) {
@@ -70,7 +79,7 @@ function decisionBriefV2(body) {
         // A null band has no label. Substituting one would reintroduce the claim this
         // version exists to remove.
         result[key] = typeof item === "string"
-          ? (confidence.band ? LABELS[confidence.band] : null)
+          ? (confidence.band ? LABELS[confidence.band] : unbandedText(item, confidence))
           : confidence;
       } else result[key] = visit(item, confidence);
     }

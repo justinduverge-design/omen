@@ -92,7 +92,7 @@ export const OMEN_VISUAL_FIXTURE = Object.freeze({
     },
     confidence: {
       score: 74,
-      label: 'medium_high',
+      label: 'medium',
       rationale: 'The projection gap is clear enough for a visual fixture, with mock matchup context labeled below.',
     },
     risk: {

@@ -30,8 +30,12 @@ const THRESHOLDS = Object.freeze({
 const SCORE_FOR_BAND = Object.freeze({ confident: 85, leaning: 68, coin_flip: 50 });
 const SCORE_MIN = { confident: 80, leaning: 60 };
 
-const OUT = new Set(["O", "OUT", "IR", "IR-R", "PUP", "SUSP"]);
-const RISKY = new Set(["Q", "QUESTIONABLE", "GTD", "DTD", "DOUBTFUL"]);
+// Same set as the optimizer's OUT (which zeroes the projection). DOUBTFUL is out-like for the player
+// being started (never start him), but it is a provider guess, not a definitive absence, so a
+// doubtful starter never makes a call Confident on its own (DEFINITE_OUT below).
+const OUT = new Set(["O", "OUT", "IR", "IR-R", "PUP", "DOUBTFUL", "SUSP"]);
+const DEFINITE_OUT = new Set(["O", "OUT", "IR", "IR-R", "PUP", "SUSP"]);
+const RISKY = new Set(["Q", "QUESTIONABLE", "GTD", "DTD"]);
 
 const status = (s) => String(s || "").trim().toUpperCase();
 
@@ -78,24 +82,27 @@ const fmt = (n) => Number(n.toFixed(2));
  * @param {number} input.gap            projection gap in the recommended direction (points)
  * @param {Array<string|{kind:string}>} [input.corroboration] observed evidence that supports the call
  * @param {string} [input.startStatus]  status of the player being started
- * @param {string} [input.sitStatus]    status of the player being benched
+ * @param {string} [input.sitStatus]    status of the player being benched (OUT is definitive; Q/D is not corroboration alone)
  * @param {boolean} [input.closeCall]   caller already judged this a close call
  * @param {string} [input.maxBand]      hard ceiling for this surface
  * @returns {{band: string|null, reason: string}}
  */
 function assessConfidence({ gap, corroboration = [], startStatus = null, sitStatus = null, closeCall = false, maxBand = null } = {}) {
-  const g = typeof gap === "number" ? gap : Number(gap);
+  const g = typeof gap === "number" ? gap : gap == null || gap === "" ? NaN : Number(gap);
   if (!Number.isFinite(g)) {
     return { band: null, reason: "Omen has no projection gap to judge this call." };
   }
   const startOut = OUT.has(status(startStatus));
   const startRisky = RISKY.has(status(startStatus));
-  const sitOut = OUT.has(status(sitStatus));
-  const sitRisky = RISKY.has(status(sitStatus));
+  const sitOut = DEFINITE_OUT.has(status(sitStatus));
   const done = (band, reason) => ({ band: cap(band, maxBand), reason });
 
   if (startOut) return done(BANDS.COIN_FLIP, "The player this call would start is listed out, so there is no edge to trust.");
   if (sitOut) {
+    // Fail safe: the hole only justifies Confident when the replacement clearly beats an empty slot.
+    if (closeCall || g < THRESHOLDS.COIN_FLIP_BELOW) {
+      return done(BANDS.COIN_FLIP, `The current starter is listed out, but the replacement's projected edge (${fmt(Math.max(g, 0))} pts) does not clearly beat him.`);
+    }
     return startRisky
       ? done(BANDS.LEANING, "The current starter is listed out, but the replacement carries an injury designation too.")
       : done(BANDS.CONFIDENT, "The current starter is listed out, so this slot needs a replacement regardless of projections.");
@@ -104,8 +111,9 @@ function assessConfidence({ gap, corroboration = [], startStatus = null, sitStat
     return done(BANDS.COIN_FLIP, `The projection gap (${fmt(Math.max(g, 0))} pts) is inside normal projection variance.`);
   }
 
+  // A questionable/doubtful label on the benched player is a provider status, not verified evidence:
+  // it counts only when the caller passes {kind: "injury_status"} explicitly.
   const kinds = kindsOf(corroboration);
-  if (sitRisky && !kinds.includes("injury_status")) kinds.push("injury_status");
 
   if (startRisky) {
     return done(BANDS.LEANING, "The player this call would start carries an injury designation, which caps this at a lean.");

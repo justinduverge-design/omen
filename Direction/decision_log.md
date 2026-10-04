@@ -24,6 +24,23 @@
 - **Numbers.** Numeric `confidence` stays only where an internal or legacy field needs it, as a band
   representative (85 / 68 / 50), never a probability. `bandFromScore` (>=80 / >=60) is the only score-to-band map.
   No response text carries a number: "out of 100" prose and "N% confidence at issue time" (move detail) now say the band.
+- **Review fixes (same day).**
+  - States with no projection to judge (off-season, pre-draft, mock off-season) now carry `score: null`, so the
+    brief takes the named-absence path (null band plus a reason). They can never read Confident or Coin flip.
+    Stand-pat, trade and waiver-without-projection states are pinned to Leaning through `scoreForBand`, not
+    through a literal.
+  - Out starter fails safe: Confident needs a replacement edge of at least 1.5 pts and no close call; a
+    negative or tiny gap, or a close call, is a Coin flip even for an out starter.
+  - DOUBTFUL joins the optimizer's OUT set for the player being started (never start him: Coin flip). For the
+    benched player it is a provider guess, not a definitive absence, so it does not make a call Confident.
+    Questionable/doubtful on the benched player is no longer automatic corroboration: only an explicit
+    `{kind: "injury_status"}` entry counts. Definite OUT (O, OUT, IR, IR-R, PUP, SUSP) still does.
+  - The optimizer assesses the same rounded delta it stores and displays (3.996 shows as 4.00 and is judged as 4.00).
+  - Tuesday cron grading is band-aware (`confidenceFlags`): Confident is score >= 80 (`bandFromScore`), Coin flip
+    is <= 50, so legacy rows still behave (old 75-79 rows are now a lean).
+- **Follow-ups, not done here:** `tradeValue.js` / `tradeShareOg.js` still carry their own confidence scale;
+  `usageCorroboration` is wired only into start-sit detail (the optimizer and MVP move paths have no usage input);
+  `priorityFromScore` semantics and comparability of the ledger's `internal_score` across the old and new scales.
 - **Consequence for history.** Stored `moves.confidence` values from before this change were on the old scale;
   move detail maps them with `bandFromScore`, so an old high number can still read Confident for that old row.
   The Tuesday cron's win/loss bonus thresholds (`>=75`, `<50`) read the same column and now see 85 / 68 / 50.

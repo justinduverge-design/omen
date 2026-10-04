@@ -176,7 +176,8 @@ function evaluateLineup(roster, opts = {}, scoringConfig = {}) {
 
     if (delta < minDelta) continue;
 
-    const swapVerdict = assessSwap(delta, starter.status, best.player.status);
+    const shownDelta = Number(delta.toFixed(2));
+    const swapVerdict = assessSwap(shownDelta, starter.status, best.player.status);
     recs.push({
       slot,
       from: {
@@ -191,7 +192,7 @@ function evaluateLineup(roster, opts = {}, scoringConfig = {}) {
         status:     best.player.status,
         projected:  Number(best.adj.toFixed(2)),
       },
-      delta:      Number(delta.toFixed(2)),
+      delta:      shownDelta,
       confidence: swapVerdict.score,
       confidence_band: swapVerdict.band,
       confidence_reason: swapVerdict.reason,
@@ -264,7 +265,7 @@ function findWaiverMoves(roster, waiverPool, opts = {}, scoringConfig = {}) {
         projected:  Number(topProj.toFixed(2)),
       },
       delta:      Number(delta.toFixed(2)),
-      ...waiverConfidence(delta),
+      ...waiverConfidence(Number(delta.toFixed(2))),
     });
   }
 

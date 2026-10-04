@@ -352,7 +352,7 @@ test("buildLiveOmenMvpMoveForUser returns off_season before platform adapter cal
   assert.equal(result.body.recommendation, null);
   assert.equal(result.body.platform.status, "off_season");
   assert.equal(result.body.signals.roster.source, "nfl_calendar");
-  assert.equal(result.body.confidence.score, 100);
+  assert.equal(result.body.confidence.score, null); // no projection to judge: no band
   assert.deepEqual(state.yahooCalls, []);
   assert.deepEqual(state.rosterCalls, []);
   assert.deepEqual(state.sleeperCalls, []);
