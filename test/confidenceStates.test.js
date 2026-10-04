@@ -64,6 +64,11 @@ test("cron grading weights are band-aware and keep legacy rows sensible", () => 
   assert.deepEqual(confidenceFlags(92), { confident: true, coinFlip: false }); // legacy high row
   assert.deepEqual(confidenceFlags(75), { confident: false, coinFlip: false }); // legacy 75-79 is now a lean
   assert.equal(bandFromScore(80), "confident");
+  // Missing or non-finite confidence is neutral, never a Coin flip bonus.
+  for (const missing of [null, undefined, 0, "", NaN, "abc"]) {
+    assert.deepEqual(confidenceFlags(missing), { confident: false, coinFlip: false });
+  }
+  assert.deepEqual(confidenceFlags(55), { confident: false, coinFlip: false });
 });
 
 test("policy edge cases: exactly 4, NaN, null, out starter with a negative gap, doubtful", () => {

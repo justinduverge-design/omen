@@ -80,7 +80,8 @@ function SignalsPanel({ signals }) {
 }
 
 function ConfidenceMeter({ confidence }) {
-  if (!confidence) return null;
+  // Band-only policy: no score (off-season, pre-draft) means no meter, no bar, no number.
+  if (!confidence || confidence.score == null) return null;
   const { score, label, rationale } = confidence;
   const colorClass = CONFIDENCE_COLORS[label] ?? 'text-slate-300';
 

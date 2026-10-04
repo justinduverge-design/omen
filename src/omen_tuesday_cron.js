@@ -307,11 +307,10 @@ function scoreMoveByContract(move, stats) {
 // Band-aware grading weight. `moves.confidence` is the internal band representative (85 / 68 / 50);
 // rows written on the legacy scale keep working: >= 80 is Confident, <= 50 is a Coin flip.
 function confidenceFlags(score) {
-  const n = Number(score);
-  return {
-    confident: bandFromScore(n) === "confident",
-    coinFlip: Number.isFinite(n) && n <= 50,
-  };
+  // Missing, null, zero or non-finite confidence is neutral: no bonus either way.
+  const n = score == null || score === "" ? NaN : Number(score);
+  if (!Number.isFinite(n) || n <= 0) return { confident: false, coinFlip: false };
+  return { confident: bandFromScore(n) === "confident", coinFlip: n <= 50 };
 }
 
 function scoreMove(move, playerScores) {
@@ -352,7 +351,7 @@ function scoreMove(move, playerScores) {
     actual = scoreFromStats(stats, move.scoring || "PPR");
     scoringLabel = move.scoring || "PPR";
   }
-  const confidence = Number(move.confidence) || 50;
+  const confidence = move.confidence;
   const projectedBaseline = 12.5;
   const ratio = actual / projectedBaseline;
   let eff = 30;

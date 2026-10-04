@@ -40,7 +40,9 @@
     is <= 50, so legacy rows still behave (old 75-79 rows are now a lean).
 - **Follow-ups, not done here:** `tradeValue.js` / `tradeShareOg.js` still carry their own confidence scale;
   `usageCorroboration` is wired only into start-sit detail (the optimizer and MVP move paths have no usage input);
-  `priorityFromScore` semantics and comparability of the ledger's `internal_score` across the old and new scales.
+  `priorityFromScore` semantics and comparability of the ledger's `internal_score` across the old and new scales;
+  `systemContracts.js` (`confidence_score` 78 / 61 / 54) and `routes/draftAssistant.js` (84, 82, 77, 74, 66, 78, 72)
+  still emit old-scale values.
 - **Consequence for history.** Stored `moves.confidence` values from before this change were on the old scale;
   move detail maps them with `bandFromScore`, so an old high number can still read Confident for that old row.
   The Tuesday cron's win/loss bonus thresholds (`>=75`, `<50`) read the same column and now see 85 / 68 / 50.
