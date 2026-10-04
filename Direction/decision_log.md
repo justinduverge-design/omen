@@ -4465,10 +4465,14 @@ on the second one.
   rows: the projection-gap sentence as `player_game_fact` / `projection`, and each player's usage
   steadiness as `recent_usage` / `observed_context`. Vocabulary values are the existing ones; none added.
   v1 is untouched (rows are built only for v2).
-- **Ranking:** `evidenceWhy.js` ranks `recent_usage` + `observed_context` as an observed fact (rank 0.05,
-  after the plain usage lines). The per-category cap of 2 still applies, so when both players already
-  have a plain usage line the steadiness rows can sit below the cap in `why_statements`; they are still
-  in `evidence[]`.
+- **Ranking:** `evidenceWhy.js` ranks `recent_usage` + `observed_context` last among the observed facts
+  (after `points_breakdown` and `team_system`), so steadiness can never evict them from the 3
+  `why_statements` slots; a limitation is still never dropped.
+- **Review fixes (PR #567):** `gapNoise` now classifies on the RAW gap, the same comparison
+  `assessConfidence` and the CLOSE state make; rounding is display-only, and a gap that would round onto a
+  line it has not crossed reads "just under 1.5 pts" / "just under 8 points". (The optimizer already
+  hands the route a 2-decimal delta; the raw case is guarded at the unit level.) No steadiness row for an
+  OUT player, and no "real edge" gap row when the starter is out (forced replacement).
 - **No extra latency:** the route calls `playerUsage.getUsageBundle`, which returns the usage summaries
   and the per-week rows from the same crosswalk read and cached CSV loaders `getRecentUsage` used (now a
   thin wrapper). Same timeout and cache. Any failure yields empty maps and an unchanged response.

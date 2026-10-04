@@ -103,11 +103,6 @@
         "statement": "DeVonta Smith projects 9.2 and Chris Olave projects 0 in this league's scoring."
       },
       {
-        "category": "player_game_fact",
-        "kind": "projection",
-        "statement": "A 9.2-point projection gap is a large edge on paper."
-      },
-      {
         "category": "current_status",
         "kind": "verified",
         "statement": "Chris Olave is listed out."
@@ -161,7 +156,7 @@
         "evidence": [
           {
             "category": "current_status",
-            "id": "evidence[3]",
+            "id": "evidence[2]",
             "kind": "verified"
           }
         ],
@@ -181,16 +176,16 @@
         "text": "DeVonta Smith projects 9.2 and Chris Olave projects 0 in this league's scoring."
       },
       {
-        "basis": "projection",
+        "basis": "inference",
         "evidence": [
           {
-            "category": "player_game_fact",
-            "id": "evidence[2]",
-            "kind": "projection"
+            "category": "omen_inference",
+            "id": "evidence[3]",
+            "kind": "inference"
           }
         ],
         "rank": 3,
-        "text": "A 9.2-point projection gap is a large edge on paper."
+        "text": "The available data favors DeVonta Smith."
       }
     ]
   }

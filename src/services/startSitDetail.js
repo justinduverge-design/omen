@@ -74,7 +74,7 @@ function playerView(player, roster) {
  * §5.2. Each entry names its own kind, so the client can never render a
  * projection or a model inference as a verified fact.
  */
-function buildEvidence({ start, sit, delta, scoringFormat, usage = null, teamSystem = null, breakdowns = null, weeklyUsage = null, signal = false }) {
+function buildEvidence({ start, sit, delta, scoringFormat, usage = null, teamSystem = null, breakdowns = null, weeklyUsage = null, signal = false, starterOut = false }) {
   const evidence = [];
 
   if (scoringFormat) {
@@ -94,7 +94,8 @@ function buildEvidence({ start, sit, delta, scoringFormat, usage = null, teamSys
   }
 
   // Signal vs noise (v2 only): is the gap real or inside projection variance? Observed values only.
-  if (signal && start.projected_points != null && sit.projected_points != null) {
+  // Not for a forced replacement: an out starter's slot is a hole, not a projection edge.
+  if (signal && !starterOut && start.projected_points != null && sit.projected_points != null) {
     for (const s of signalNoiseSummary({ gapPts: delta }).statements.filter((x) => x.source === "gap")) {
       evidence.push({ category: "player_game_fact", kind: s.kind, statement: s.text });
     }
@@ -116,6 +117,8 @@ function buildEvidence({ start, sit, delta, scoringFormat, usage = null, teamSys
   }
   if (signal) {
     for (const player of [start, sit]) {
+      // Steady usage reads as a reason to trust a player; never say it of one who is out.
+      if (OUT_STATUSES.has(normalizedStatus(player.status))) continue;
       const rows = weeklyUsage?.get?.(player.player_key);
       if (!Array.isArray(rows) || !rows.length) continue;
       const summary = signalNoiseSummary({ usageRows: rows, name: player.name });
@@ -340,7 +343,7 @@ function buildStartSitDetail({
   if (starterOut) why.push(`${sit.name} is unavailable for this week.`);
   if (RISK_STATUSES.has(normalizedStatus(sit.status))) why.push(`${sit.name} carries an unresolved injury designation.`);
 
-  const evidence = buildEvidence({ start, sit, delta, scoringFormat, usage, teamSystem, breakdowns, weeklyUsage, signal: contractVersion === CONTRACT_VERSION_V2 });
+  const evidence = buildEvidence({ start, sit, delta, scoringFormat, usage, teamSystem, breakdowns, weeklyUsage, signal: contractVersion === CONTRACT_VERSION_V2, starterOut });
 
   const result = envelope({
     context,

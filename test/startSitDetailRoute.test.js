@@ -684,3 +684,44 @@ test("signal: rows never change the confidence band or the recommendation; v1 is
   assert.equal(signalRows(v1With.body).length, 0);
   assert.equal(v1With.body.evidence.some((r) => /projection gap/.test(r.statement)), false);
 });
+
+test("signal: an OUT player gets no steadiness row, and a forced replacement gets no 'real edge' gap row", async () => {
+  const roster = { week: 7, team_name: "Justin Titans", slots: {
+    starters: [player("Chris Olave", "WR", 11.0, "OUT")],
+    bench: [player("DeVonta Smith", "WR", 15.2)],
+  } };
+  const out = await request(buildApp(snOptions({
+    rosterSvc: undefined,
+    sleeperAdapter: {
+      fetchSleeperLeague: async () => ({ name: "Dynasty Dogs", scoring_settings: { rec: 0.5 } }),
+      buildNormalizedRoster: async () => roster,
+    },
+    getUsageBundle: bundle({ "p-DeVonta-Smith": weeks([0.8, 0.8, 0.8, 0.8]), "p-Chris-Olave": weeks([0.8, 0.8, 0.8, 0.8]) }),
+  })), SN_URL);
+  assert.equal(out.body.state, "player_unavailable");
+  const steady = signalRows(out.body);
+  assert.equal(steady.length, 1, "only the available replacement");
+  assert.match(steady[0].statement, /DeVonta Smith/);
+  assert.equal(out.body.evidence.some((r) => /projection gap|real edge/.test(r.statement)), false);
+});
+
+test("signal: the gap sentence agrees with the confidence band and the close state at the 1.5 line", async () => {
+  // The optimizer hands the route a 2-decimal delta, so the route sees 1.49 / 1.5 / 1.51; the raw 1.496 case is in signalNoise.test.js.
+  for (const startPts of [12.49, 12.5, 12.51]) {
+    const roster = { week: 7, team_name: "Justin Titans", slots: {
+      starters: [player("Chris Olave", "WR", 11.0)],
+      bench: [player("DeVonta Smith", "WR", startPts)],
+    } };
+    const { body } = await request(buildApp(snOptions({
+      sleeperAdapter: {
+        fetchSleeperLeague: async () => ({ name: "Dynasty Dogs", scoring_settings: { rec: 0.5 } }),
+        buildNormalizedRoster: async () => roster,
+      },
+      getUsageBundle: bundle({}),
+    })), SN_URL);
+    const gap = body.evidence.find((r) => /projection gap/.test(r.statement));
+    const inside = /inside normal projection variance/.test(gap.statement);
+    assert.equal(inside, body.recommendation.confidence === "low", `${startPts}: ${gap.statement}`);
+    assert.equal(inside, body.state === "close_decision", `${startPts}: ${gap.statement}`);
+  }
+});

@@ -143,3 +143,18 @@ test("every evidence row in a recorded fixture is in its contract's vocabulary",
   }
   assert.ok(checked > 0, "no evidence rows found in fixtures; the scan is broken");
 });
+
+test("signal-vs-noise rows from the real builder, and the signalNoise kinds, are in the vocabulary", () => {
+  const { KIND } = require("../src/services/signalNoise");
+  for (const k of Object.values(KIND)) assert.ok(START_SIT.kinds.includes(k), `signalNoise kind ${k}`);
+  const rows = [1, 2, 3, 4].map((week) => ({ week, snap_share: 0.8, targets: 6, carries: 0 }));
+  const start = player("a", "Alpha");
+  const sit = player("b", "Beta");
+  const evidence = buildEvidence({
+    start, sit, delta: 3, scoringFormat: "1 point per reception", signal: true,
+    weeklyUsage: new Map([["a", rows], ["b", rows]]),
+  });
+  assert.ok(evidence.some((r) => r.category === "recent_usage" && r.kind === "observed_context"));
+  assert.ok(evidence.some((r) => /projection gap/.test(r.statement)));
+  assertInside(evidence, START_SIT, "start-sit with signal rows");
+});
