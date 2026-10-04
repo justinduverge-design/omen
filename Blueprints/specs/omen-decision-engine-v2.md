@@ -1,6 +1,27 @@
 # Omen decision engine v2 — Omen's own read
 
-**Status:** PROPOSED — founder review. Written 2026-09-30 after the founder's direction: *"We're not trying to guess which projection is higher. We're taking real football data — stats, location, travel, rest, primetime track record — and giving the analysis, not just whether three is more than two."*
+> **⚠ 2026-10-04: PARTIALLY SUPERSEDED. Read this first.**
+>
+> The **factor-adjusted "Omen read"** (a recomputed expected-points number with per-factor contributions, the
+> factor library, S2/S4/S5, and the "Shape" and build-order sections below) is **retired**. Its own experiments
+> (below) found no factor that beats the provider projection, and the v1 thesis is the opposite plan: **Omen
+> explains provider projections; nflverse is the evidence; Omen separates signal from noise.** Omen's own
+> projections are a possible later v2, only after a pre-registered out-of-sample test passes.
+>
+> What shipped instead:
+>
+> - `src/services/confidencePolicy.js` — one honest confidence scale in bands; a projection gap alone never reads Confident.
+> - `src/services/narrationGrounding.js` — narration is grounded in recorded facts only.
+> - `src/services/projectionBreakdown.js` and `src/services/playerUsage.js` — explain the provider projection and usage.
+> - nflverse weekly player stats, step 14 (`Blueprints/rebuild/omen-database-redo-v1.md`) — the evidence table.
+> - Current spec: `Blueprints/specs/omen-projection-explainer-v1.md`. Decision: `Direction/decision_log.md` (2026-10-04).
+>
+> **Still valid:** the research numbers (provider projections are right about 52% of the time within 1 point and
+> about 82% at 8+ points; no tested factor passed), the "a factor is admitted only after it passes a pre-registered
+> out-of-sample test" guard, the shadow-log idea, and "Keeping the API from breaking again" (additive-only public
+> contracts, enforced by `scripts/contracts.js`). Do not build the factor pipeline from the rest of this file.
+
+**Status:** PARTIALLY SUPERSEDED 2026-10-04 (see banner). Originally PROPOSED — founder review. Written 2026-09-30 after the founder's direction: *"We're not trying to guess which projection is higher. We're taking real football data — stats, location, travel, rest, primetime track record — and giving the analysis, not just whether three is more than two."*
 **Replaces:** the optimizer-only pick in `src/services/optimizer.js` as the source of a recommendation. The provider projection stays as one input, not as the answer.
 
 ## The problem being fixed

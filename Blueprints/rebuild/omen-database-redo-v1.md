@@ -8,7 +8,7 @@ separately approves each production step (facts-of-record #8).
 - `Direction/2026-10-01-league-connections-review.md` (Task A, the findings this fixes)
 - the 35 artboards and `Blueprints/specs/design/canvas-contract-requirements-v1.json`
 - the 31 protected contracts in `test/contracts/`
-- `Blueprints/specs/omen-decision-engine-v2.md`
+- `Blueprints/specs/omen-decision-engine-v2.md` (partially superseded 2026-10-04; read its banner)
 - `Blueprints/specs/omen-projection-explainer-v1.md`
 - `Direction/2026-09-30-first-factor-experiment.md`
 - `Blueprints/rebuild/omen-call-slice-plan.md`

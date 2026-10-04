@@ -33,7 +33,7 @@ Mean error: the projection misses by about 5.2 points; context moves it by well 
 
 ## What it changes
 
-The engine spec's rule, "a factor ships only if it improves out-of-sample error," did its job: the first factors failed. The plan's assumption that a *factor-adjusted expected-points model* is the product is **unproven** and should not be built out (data layer, factor library, tables) until a factor passes. See `Blueprints/specs/omen-decision-engine-v2.md` ("First experiment").
+The engine spec's rule, "a factor ships only if it improves out-of-sample error," did its job: the first factors failed. The plan's assumption that a *factor-adjusted expected-points model* is the product is **unproven** and should not be built out (data layer, factor library, tables) until a factor passes. *(2026-10-04: the engine spec now carries a supersession banner; the shipped path is the projection explainer.)* See `Blueprints/specs/omen-decision-engine-v2.md` ("First experiment").
 
 ---
 
