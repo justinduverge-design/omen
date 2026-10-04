@@ -15,6 +15,7 @@
 
 const optimizer = require("./optimizer");
 const { usageStatement } = require("./playerUsage");
+const { breakdownEvidence } = require("./projectionBreakdown");
 const { CAPABILITY_CONTRACT } = require("./decisionCapabilities");
 const { attachDecisionReceipt, createDecisionContext } = require("./decisionContext");
 
@@ -68,7 +69,7 @@ function playerView(player, roster) {
  * §5.2. Each entry names its own kind, so the client can never render a
  * projection or a model inference as a verified fact.
  */
-function buildEvidence({ start, sit, delta, scoringFormat, usage = null, teamSystem = null }) {
+function buildEvidence({ start, sit, delta, scoringFormat, usage = null, teamSystem = null, breakdowns = null }) {
   const evidence = [];
 
   if (scoringFormat) {
@@ -85,6 +86,15 @@ function buildEvidence({ start, sit, delta, scoringFormat, usage = null, teamSys
       kind: "projection",
       statement: `${start.name} projects ${start.projected_points} and ${sit.name} projects ${sit.projected_points} in this league's scoring.`,
     });
+  }
+
+  // Projection explainer layer 1: where each projection's points come from (Projected, or an
+  // honest "unavailable"). No breakdowns at all, as when a read failed, means no rows.
+  if (breakdowns?.get) {
+    evidence.push(...breakdownEvidence([start, sit].map((player) => ({
+      name: player.name,
+      breakdown: breakdowns.get(player.player_key) || null,
+    }))));
   }
 
   // Observed recent usage (nflverse box scores via the player crosswalk): facts, not a forecast.
@@ -237,6 +247,7 @@ function buildStartSitDetail({
   contractVersion = CONTRACT_VERSION,
   usage = null,
   teamSystem = null,
+  breakdowns = null,
 } = {}) {
   const context = {
     platform,
@@ -321,7 +332,7 @@ function buildStartSitDetail({
       },
       why,
       what_could_change_this: whatCouldChangeThis({ start, sit, delta }),
-      evidence: buildEvidence({ start, sit, delta, scoringFormat, usage, teamSystem }),
+      evidence: buildEvidence({ start, sit, delta, scoringFormat, usage, teamSystem, breakdowns }),
       // §5.3: the user may switch slots. These are the other slots that have one.
       alternatives: ordered.slice(1, 4).map((rec) => ({
         slot: rec.slot,

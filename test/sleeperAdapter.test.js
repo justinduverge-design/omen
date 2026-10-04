@@ -659,3 +659,31 @@ test("a Sleeper side with no projections at all is null, never zero", () => {
   // And the pre-existing callers that pass nothing keep working unchanged.
   assert.equal(noProjections.opponent.projected, null);
 });
+
+// Projection explainer layer 1: the projected stat line behind each projected number.
+test("fetchSleeperProjectionStatLines keeps each player's projected stat line, keyed by player id", async () => {
+  const data = fixtures();
+  data.projections = [
+    { player_id: "4046", stats: { rec: 6.1, rec_yd: 72, rec_td: 0.4, pts_ppr: 15.6, adp_ppr: 40, rush_att: 0 } },
+    { player_id: "999", stats: { pts_ppr: 0 } },
+    { player_id: "998" },
+  ];
+  const { adapter } = loadSleeperAdapterWithFixtures(data);
+
+  const lines = await adapter.fetchSleeperProjectionStatLines(2026, 1);
+
+  // Zero stats and ranking fields carry no points and are not kept.
+  assert.deepEqual(lines, { 4046: { rec: 6.1, rec_yd: 72, rec_td: 0.4, pts_ppr: 15.6 } });
+});
+
+test("a Sleeper projections fetch writes the stat-line cache too, so the explainer adds no second fetch", async () => {
+  const data = fixtures();
+  data.projections = [{ player_id: "4046", stats: { rec: 6, pts_ppr: 6 } }];
+  const { adapter, calls } = loadSleeperAdapterWithFixtures(data, { redis: true });
+
+  await adapter.fetchSleeperProjections(2026, 1);
+  const lines = await adapter.fetchSleeperProjectionStatLines(2026, 1);
+
+  assert.deepEqual(lines, { 4046: { rec: 6, pts_ppr: 6 } });
+  assert.equal(calls.filter((call) => call.url.includes("/projections/")).length, 1);
+});

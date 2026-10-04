@@ -320,10 +320,12 @@ test("ESPN: detail is built from the ESPN adapter and leaks no cookie value", as
   const app = buildApp({
     connections: [ESPN_CONN],
     espnAdapter: {
-      buildNormalizedRoster: async (id, _s2, _swid, week, opts) => {
+      buildNormalizedRosterWithProjectionLines: async (id, _s2, _swid, week, opts) => {
         assert.deepEqual([id, week, opts.teamId], ["12345", 7, "9"]);
-        return ROSTER;
+        return { roster: ROSTER, projectionLines: new Map() };
       },
+      // A failed rules read costs only the breakdown, never the detail.
+      fetchEspnScoringSettings: async () => { throw new Error("espn 503"); },
     },
   });
   const { status, body } = await request(app);
@@ -427,4 +429,129 @@ test("the existing stateless POST /api/start-sit comparator is unchanged", async
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }
+});
+
+// --- Projection explainer layer 1: where the points come from ----------------
+
+const PPR_SETTINGS = { rec: 1, rec_yd: 0.1, rec_td: 6, rush_yd: 0.1, rush_td: 6, fum_lost: -2 };
+
+function sleeperRosterWithKeys() {
+  const sleeperPlayer = (id, name, projected) => ({ ...player(name, "WR", projected), player_key: `sleeper:${id}`, player_id: id });
+  return {
+    week: 7,
+    team_name: "Justin Titans",
+    slots: {
+      starters: [sleeperPlayer("1", "Chris Olave", 11)],
+      bench: [sleeperPlayer("2", "DeVonta Smith", 15.72)],
+    },
+  };
+}
+
+const STAT_LINES = {
+  // 6.1 + 7.2 + 2.4 = 15.7, Sleeper says 15.72: within rounding.
+  2: { rec: 6.1, rec_yd: 72, rec_td: 0.4, pts_ppr: 15.72 },
+  // 5 + 5 + 1.2 = 11.2 against Sleeper's 11: does not reconcile.
+  1: { rec: 5, rec_yd: 50, rec_td: 0.2, pts_ppr: 11 },
+};
+
+test("engine: points_breakdown rows follow the projection row, labelled projected or limitation", () => {
+  const { rosterProjectionBreakdowns } = require("../src/services/projectionBreakdown");
+  const roster = sleeperRosterWithKeys();
+  const breakdowns = rosterProjectionBreakdowns({
+    platform: "sleeper", roster, sleeper: { statLines: STAT_LINES, scoringSettings: PPR_SETTINGS },
+  });
+  const result = buildStartSitDetail({ roster, platform: "sleeper", leagueId: "L1", scoringFormat: "1 point per reception", breakdowns });
+
+  const rows = result.evidence.filter((e) => e.category === "points_breakdown");
+  assert.deepEqual(rows.map((row) => row.kind), ["projected", "limitation"]);
+  assert.equal(rows[0].statement, "DeVonta Smith's 15.72 from Sleeper: 72 rec yds × 0.1 = 7.2; 6.1 receptions × 1 = 6.1; 0.4 rec TD × 6 = 2.4.");
+  assert.match(rows[1].statement, /^Points breakdown unavailable for Chris Olave: .*does not add up to Sleeper's projection/);
+  const categories = result.evidence.map((e) => e.category);
+  assert.equal(categories.indexOf("points_breakdown"), categories.indexOf("player_game_fact") + 1);
+});
+
+test("engine: no breakdowns supplied means no points_breakdown rows", () => {
+  const result = buildStartSitDetail({ roster: ROSTER, platform: "sleeper", leagueId: "L1" });
+  assert.equal(result.evidence.some((e) => e.category === "points_breakdown"), false);
+});
+
+test("Sleeper route: the stat line and the league's scoring produce a points breakdown", async () => {
+  const app = buildApp({
+    connections: [SLEEPER_CONN],
+    sleeperAdapter: {
+      fetchSleeperLeague: async () => ({ name: "Dynasty Dogs", scoring_settings: PPR_SETTINGS }),
+      buildNormalizedRoster: async () => sleeperRosterWithKeys(),
+      fetchSleeperProjectionStatLines: async (season, week) => {
+        assert.deepEqual([season, week], [2026, 7]);
+        return STAT_LINES;
+      },
+    },
+  });
+  const { status, body } = await request(app);
+
+  assert.equal(status, 200);
+  const rows = body.evidence.filter((e) => e.category === "points_breakdown");
+  assert.equal(rows[0].kind, "projected");
+  assert.match(rows[0].statement, /^DeVonta Smith's 15.72 from Sleeper: /);
+});
+
+test("Sleeper route: a failed stat-line read degrades to no breakdown line, never an error", async () => {
+  const app = buildApp({
+    connections: [SLEEPER_CONN],
+    sleeperAdapter: {
+      fetchSleeperLeague: async () => ({ scoring_settings: PPR_SETTINGS }),
+      buildNormalizedRoster: async () => sleeperRosterWithKeys(),
+      fetchSleeperProjectionStatLines: async () => { throw new Error("sleeper 503"); },
+    },
+  });
+  const { status, body } = await request(app);
+
+  assert.equal(status, 200);
+  assert.equal(body.recommendation.start.name, "DeVonta Smith");
+  assert.equal(body.evidence.some((e) => e.category === "points_breakdown"), false);
+});
+
+test("ESPN route: the projected stat row and the league's stat-id rules produce a breakdown", async () => {
+  const espnRoster = {
+    week: 7,
+    slots: {
+      starters: [{ ...player("Chris Olave", "WR", 11), player_key: "espn:1" }],
+      bench: [{ ...player("DeVonta Smith", "WR", 15.7), player_key: "espn:2" }],
+    },
+  };
+  const app = buildApp({
+    connections: [ESPN_CONN],
+    espnAdapter: {
+      buildNormalizedRosterWithProjectionLines: async (id, _s2, _swid, week, opts) => {
+        assert.deepEqual([id, week, opts.teamId], ["12345", 7, "9"]);
+        return {
+          roster: espnRoster,
+          projectionLines: new Map([["espn:2", { position_id: 3, applied_total: 15.7, stats: { 53: 6.1, 42: 72, 43: 0.4 } }]]),
+        };
+      },
+      fetchEspnScoringSettings: async () => ({
+        byStatId: new Map([["53", { points: 1, overrides: {} }], ["42", { points: 0.1, overrides: {} }], ["43", { points: 6, overrides: {} }]]),
+        ruleCount: 3,
+      }),
+    },
+  });
+  const { status, body } = await request(app);
+
+  assert.equal(status, 200);
+  const rows = body.evidence.filter((e) => e.category === "points_breakdown");
+  assert.equal(rows[0].statement, "DeVonta Smith's 15.7 from ESPN: 72 rec yds × 0.1 = 7.2; 6.1 receptions × 1 = 6.1; 0.4 rec TD × 6 = 2.4.");
+  assert.match(rows[1].statement, /^Points breakdown unavailable for Chris Olave: ESPN gave no projected stat line/);
+  assert.equal(JSON.stringify(body).includes("ESPNCOOKIESECRET"), false);
+});
+
+test("Yahoo route: the breakdown is named unavailable once, with the reason", async () => {
+  const app = buildApp({ connections: [YAHOO_CONN] });
+  const { body } = await request(app);
+
+  const rows = body.evidence.filter((e) => e.category === "points_breakdown");
+  assert.deepEqual(rows, [{
+    category: "points_breakdown",
+    kind: "limitation",
+    statement: "Points breakdown unavailable: Yahoo does not give Omen a projected stat line.",
+  }]);
 });

@@ -20,7 +20,7 @@
       {
         "category": "points_breakdown",
         "kind": "limitation",
-        "statement": "Points breakdown unavailable: ESPN gave no projected stat line for this player."
+        "statement": "Points breakdown unavailable: Yahoo does not give Omen a projected stat line."
       },
       {
         "category": "omen_inference",
@@ -34,9 +34,9 @@
       }
     ],
     "generated_at": "2026-01-01T00:00:00.000Z",
-    "league_id": "12345",
-    "league_name": null,
-    "platform": "espn",
+    "league_id": "449.l.1",
+    "league_name": "Work League",
+    "platform": "yahoo",
     "recommendation": {
       "confidence": "high",
       "over": {

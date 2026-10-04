@@ -846,6 +846,43 @@ async function buildNormalizedRoster(leagueId, espn_s2, swid, week, opts = {}) {
   return rosterFromEspnData(data, leagueId, swid, week, opts);
 }
 
+/**
+ * `player_key -> { position_id, applied_total, stats }`: the week's projected row (statSourceId
+ * 1, the requested scoringPeriodId) for every player on the user's team. `stats` is ESPN's raw
+ * projected stat line keyed by stat id, the same ids the league's scoring rules use, so the
+ * projection explainer can show where `appliedTotal` comes from. Players with no projected row
+ * are left out.
+ */
+function projectionLinesFromEspnData(data, swid, week, opts = {}) {
+  const lines = new Map();
+  const team = findUserTeam(data?.teams || [], swid, opts);
+  const requestedWeek = Number(week);
+  for (const entry of rosterEntries(team)) {
+    const player = unwrapPlayer(entry);
+    const stats = Array.isArray(player?.stats) ? player.stats : [];
+    const row = stats.find((stat) =>
+      Number(stat?.statSourceId) === ESPN_PROJECTED_STAT_SOURCE_ID
+      && Number(stat?.scoringPeriodId) === requestedWeek);
+    if (!row?.stats || typeof row.stats !== "object") continue;
+    lines.set(`espn:${playerId(entry, player)}`, {
+      position_id: player?.defaultPositionId ?? null,
+      applied_total: firstFinite(row.appliedTotal),
+      stats: row.stats,
+    });
+  }
+  return lines;
+}
+
+/** The normalized roster plus each player's projected stat line, from one ESPN read. */
+async function buildNormalizedRosterWithProjectionLines(leagueId, espn_s2, swid, week, opts = {}) {
+  const scoringPeriodId = Number(week);
+  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTeam", "mRoster"], scoringPeriodId, opts);
+  return {
+    roster: rosterFromEspnData(data, leagueId, swid, week, opts),
+    projectionLines: projectionLinesFromEspnData(data, swid, week, opts),
+  };
+}
+
 function normalizeLastResult({ result, gameId, kickoff = null } = {}) {
   return {
     lastResult: result === "W" || result === "L" ? result : null,
@@ -1283,6 +1320,8 @@ module.exports = {
   buildLeagueContext,
   leagueNameFromEspnData,
   buildNormalizedRoster,
+  buildNormalizedRosterWithProjectionLines,
+  projectionLinesFromEspnData,
   fetchEspnWaiverPool,
   fetchEspnLastResult,
   fetchEspnMatchup,

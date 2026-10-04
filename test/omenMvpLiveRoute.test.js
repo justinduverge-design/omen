@@ -404,6 +404,22 @@ test("native v3 adds typed shared capabilities while retaining v2's band policy"
   assert.equal(byName.football_intelligence.state, "unavailable");
 });
 
+test("the live Omen call carries the primary player's projection_breakdown (Yahoo: named unavailable)", async () => {
+  const { app } = buildApp();
+  for (const contractVersion of [undefined, "omen-decision-brief.v3"]) {
+    const res = await post(app, {
+      headers: { authorization: "Bearer valid-token" },
+      body: contractVersion ? { contract_version: contractVersion } : {},
+    });
+
+    assert.equal(res.status, 200);
+    assert.equal(res.body.projection_breakdown.label, "Projected");
+    assert.equal(res.body.projection_breakdown.status, "unavailable");
+    assert.equal(res.body.projection_breakdown.reason_code, "no_stat_line");
+    assert.equal(res.body.projection_breakdown.statement, "Points breakdown unavailable: Yahoo does not give Omen a projected stat line.");
+  }
+});
+
 test("POST /api/omen/mvp-move requires auth for live requests", async () => {
   const { app, state } = buildApp();
   const res = await post(app);

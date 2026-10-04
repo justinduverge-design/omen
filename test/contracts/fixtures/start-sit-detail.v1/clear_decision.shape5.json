@@ -2,25 +2,23 @@
   "http_status": 200,
   "route": "/api/start-sit/detail",
   "body": {
-    "alternatives": [
-      {
-        "over": "Star RB",
-        "points_delta": 16,
-        "slot": "RB",
-        "start": "Bench RB"
-      }
-    ],
+    "alternatives": [],
     "contract_version": "start-sit-detail.v1",
     "evidence": [
       {
         "category": "player_game_fact",
         "kind": "projection",
-        "statement": "DeVonta Smith projects 15.2 and Chris Olave projects 11 in this league's scoring."
+        "statement": "DeVonta Smith projects 15.7 and Chris Olave projects 11 in this league's scoring."
+      },
+      {
+        "category": "points_breakdown",
+        "kind": "projected",
+        "statement": "DeVonta Smith's 15.7 from ESPN: 72 rec yds × 0.1 = 7.2; 6.1 receptions × 1 = 6.1; 0.4 rec TD × 6 = 2.4."
       },
       {
         "category": "points_breakdown",
         "kind": "limitation",
-        "statement": "Points breakdown unavailable: ESPN gave no projected stat line for this player."
+        "statement": "Points breakdown unavailable for Chris Olave: ESPN gave no projected stat line for this player."
       },
       {
         "category": "omen_inference",
@@ -42,20 +40,20 @@
       "over": {
         "kickoff": null,
         "name": "Chris Olave",
-        "player_key": "p-Chris-Olave",
+        "player_key": "espn:1",
         "position": "WR",
         "projected_points": 11,
         "status": null,
         "team": null
       },
-      "points_delta": 4.2,
+      "points_delta": 4.7,
       "slot": "WR",
       "start": {
         "kickoff": null,
         "name": "DeVonta Smith",
-        "player_key": "p-DeVonta-Smith",
+        "player_key": "espn:2",
         "position": "WR",
-        "projected_points": 15.2,
+        "projected_points": 15.7,
         "status": null,
         "team": null
       }
@@ -63,11 +61,11 @@
     "scoring_format": null,
     "season": 2026,
     "state": "clear_decision",
-    "team_name": "Justin Titans",
+    "team_name": null,
     "week": 7,
     "what_could_change_this": [],
     "why": [
-      "Higher projected output in this league's scoring (+4.2)."
+      "Higher projected output in this league's scoring (+4.7)."
     ]
   }
 }

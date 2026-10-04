@@ -36,10 +36,15 @@ const {
 } = require("../services/startSitDetail");
 const { getRecentUsage } = require("../services/playerUsage");
 const { getTeamSystemSummaries } = require("../services/footballIntelligence/teamSystemLines");
+const { rosterProjectionBreakdowns } = require("../services/projectionBreakdown");
+const { withinLatencyBudget } = require("../services/latencyBudget");
 const sleeperAdapter = require("../adapters/sleeper");
 const espnAdapter = require("../adapters/espn");
 
 const router = express.Router();
+
+// The points breakdown is advisory; its extra reads never hold the route longer than this.
+const PROJECTION_BREAKDOWN_BUDGET_MS = 2500;
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
 
 const ERROR_CONTRACT = "start-sit-detail-error.v1";
@@ -73,18 +78,33 @@ async function loadDetailContext(connection, userId, week, season) {
     const roster = await sleeperAdapter.buildNormalizedRoster(
       connection.league_id, connection.platform_username, week, { season }
     );
-    return { roster, leagueName: league?.name || null, scoringFormat: scoringFormatFromSleeperLeague(league) };
+    return {
+      roster,
+      leagueName: league?.name || null,
+      scoringFormat: scoringFormatFromSleeperLeague(league),
+      // In memory only, for the points breakdown; never stored (projection explainer spec).
+      sleeperScoringSettings: league?.scoring_settings || null,
+    };
   }
 
   if (connection.platform === "espn") {
     const credentials = await getAuthenticatedEspnCredentials(userId);
-    const roster = await espnAdapter.buildNormalizedRoster(
-      connection.league_id, credentials.espn_s2, credentials.swid, week,
-      { teamId: connection.espn_team_id }
-    );
+    const [{ roster, projectionLines }, espnRules] = await Promise.all([
+      espnAdapter.buildNormalizedRosterWithProjectionLines(
+        connection.league_id, credentials.espn_s2, credentials.swid, week,
+        { teamId: connection.espn_team_id }
+      ),
+      // Only the points breakdown reads these rules. A slow or failed read costs that line,
+      // never the roster.
+      suppressLiveFootballData()
+        ? null
+        : withinLatencyBudget("start_sit_espn_scoring", PROJECTION_BREAKDOWN_BUDGET_MS, () =>
+          espnAdapter.fetchEspnScoringSettings(connection.league_id, credentials.espn_s2, credentials.swid)
+        ).catch(() => null),
+    ]);
     // ESPN scoring rules are unverified, so this stays null rather than
     // defaulting to PPR — that default is the A6 defect.
-    return { roster, leagueName: null, scoringFormat: null };
+    return { roster, leagueName: null, scoringFormat: null, espnProjectionLines: projectionLines, espnRules };
   }
 
   if (connection.platform === "yahoo") {
@@ -100,6 +120,38 @@ async function loadDetailContext(connection, userId, week, season) {
   const err = new Error(`Unsupported platform: ${connection.platform}`);
   err.status = 400;
   throw err;
+}
+
+/**
+ * `player_key -> breakdown` for the projection explainer (layer 1), or null when it could not
+ * be computed. Advisory: any failure is logged without provider detail and costs only the
+ * breakdown rows, never the route.
+ */
+async function loadProjectionBreakdowns({ connection, loaded, season, week }) {
+  try {
+    if (connection.platform === "sleeper") {
+      const statLines = await withinLatencyBudget("start_sit_projection_stat_lines", PROJECTION_BREAKDOWN_BUDGET_MS, () =>
+        sleeperAdapter.fetchSleeperProjectionStatLines(season, week));
+      return rosterProjectionBreakdowns({
+        platform: "sleeper",
+        roster: loaded.roster,
+        sleeper: { statLines, scoringSettings: loaded.sleeperScoringSettings },
+      });
+    }
+    if (connection.platform === "espn") {
+      return rosterProjectionBreakdowns({
+        platform: "espn",
+        roster: loaded.roster,
+        espn: { projections: loaded.espnProjectionLines, rules: loaded.espnRules },
+      });
+    }
+    return rosterProjectionBreakdowns({ platform: connection.platform, roster: loaded.roster });
+  } catch (error) {
+    logger.warn("Start/Sit projection breakdown unavailable", {
+      platform: connection.platform, status: error?.status || null,
+    });
+    return null;
+  }
 }
 
 function parseWeek(value) {
@@ -173,10 +225,14 @@ router.get("/detail", requireAuth, async (req, res, next) => {
         getRecentUsage({ supabase, playerKeys: rosterKeys, season: Number(context.season), beforeWeek: Number(resolvedWeek), log: logger }),
         getTeamSystemSummaries({ supabase, teams: rosterTeams, season: Number(context.season), log: logger }),
       ]);
+    const breakdowns = suppressLiveFootballData()
+      ? null
+      : await loadProjectionBreakdowns({ connection, loaded, season: Number(context.season), week: Number(resolvedWeek) });
 
     return res.json(buildStartSitDetail({
       usage,
       teamSystem,
+      breakdowns,
       roster: loaded.roster,
       platform: connection.platform,
       leagueId: connection.league_id,
