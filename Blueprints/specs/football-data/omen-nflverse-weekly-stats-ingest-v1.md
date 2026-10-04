@@ -2,7 +2,7 @@
 
 **Status:** Job written: `src/omen_nflverse_weekly_stats_cron.js` (tests `test/nflverseWeeklyStats.test.js`). The table is redo step 14 (`sql/2026-10-01-redo/14_nflverse_weekly_stats.up.sql`), not applied to production; until it is, the job exits without writing anything, including no `data_events` row.
 **Writes:** `public.nflverse_weekly_stats` and one `data_events` row per run.
-**Schedule:** 05:00 ET Tuesday and Wednesday (`Dockerfile.cron`), an hour before Tuesday scoring at 06:00. Wednesday picks up Monday-night stats and nflverse's corrections.
+**Schedule:** 05:00 ET every day (`Dockerfile.cron`), an hour before Tuesday scoring at 06:00, so Thursday, Saturday, Sunday and Monday games all land the next morning. A run whose source files are byte-identical to the last ingest's (same `source_ref`) writes nothing, not even a `data_events` row, so off-season days cost three downloads. First production run 2026-10-04 (founder-approved): 3,968 player-weeks, weeks 1-4, 10 unmatched skipped.
 
 ## What it does
 
