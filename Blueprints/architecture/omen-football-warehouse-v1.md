@@ -1,7 +1,7 @@
 # Omen football warehouse v1
 
-**Status:** founder-approved architecture; implementation pending  
-**Decision date:** 2026-10-04  
+**Status:** founder-approved architecture; implementation pending
+**Decision date:** 2026-10-04
 **Supersedes:** applying redo Step 15 to Supabase
 
 ## Decision and boundary
