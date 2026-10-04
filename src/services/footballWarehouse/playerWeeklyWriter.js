@@ -9,6 +9,7 @@ const TEAM_ID = /^omen:team:[a-z0-9]+$/;
 const GAME_ID = /^.{1,64}$/;
 const MAX_ROWS = 250_000;
 const MAX_ERROR_SUMMARY = 500;
+const DEFAULT_MAX_UNMATCHED_RATIO = 0.05;
 
 class WarehouseIngestError extends Error {
   constructor(code, message, options) {
@@ -82,12 +83,26 @@ function validateReceipt(receipt) {
   }
   const validatedSourceUrl = sourceUrl(receipt.sourceUrl);
   const sourceRef = requiredString(receipt.sourceRef, "receipt.sourceRef", SOURCE_REF);
+  const metadata = plainObject(receipt.metadata, "receipt.metadata");
+  const schemaFingerprint = requiredString(
+    metadata.schema_fingerprint,
+    "receipt.metadata.schema_fingerprint",
+    SOURCE_REF,
+  );
+  if (!Array.isArray(metadata.source_columns) || !metadata.source_columns.length ||
+      metadata.source_columns.some((column) => typeof column !== "string" || !column)) {
+    throw new TypeError("receipt.metadata.source_columns must be a nonempty string array");
+  }
   return {
     runId: requiredString(receipt.runId, "receipt.runId", RUN_ID),
     sourceUrl: validatedSourceUrl,
     sourceRef,
     sourceBytes: integer(receipt.sourceBytes, "receipt.sourceBytes", 0, Number.MAX_SAFE_INTEGER),
     sourceRows: integer(receipt.sourceRows, "receipt.sourceRows", 1, Number.MAX_SAFE_INTEGER),
+    metadata: {
+      schema_fingerprint: schemaFingerprint,
+      source_columns: [...metadata.source_columns],
+    },
   };
 }
 
@@ -142,7 +157,7 @@ async function recordFailure(client, { receipt, season, sourceRows, unmatchedRow
           (run_id, dataset, season, rights_basis, source_url, source_ref, source_bytes,
            source_rows, state, finished_at, error_code, error_summary, metadata)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'failed', clock_timestamp(), $9, $10,
-                jsonb_build_object('unmatched_rows', $11::integer))
+                $11::jsonb)
         ON CONFLICT (run_id, dataset, season) DO UPDATE SET
           rights_basis = EXCLUDED.rights_basis, source_url = EXCLUDED.source_url,
           source_ref = EXCLUDED.source_ref, source_bytes = EXCLUDED.source_bytes,
@@ -152,16 +167,21 @@ async function recordFailure(client, { receipt, season, sourceRows, unmatchedRow
         WHERE football.warehouse_ingest_events.state <> 'succeeded'
       `,
       values: [receipt.runId, DATASET, season, RIGHTS_BASIS, receipt.sourceUrl,
-        receipt.sourceRef, receipt.sourceBytes, sourceRows, safe.code, safe.summary, unmatchedRows],
+        receipt.sourceRef, receipt.sourceBytes, sourceRows, safe.code, safe.summary,
+        JSON.stringify({ ...receipt.metadata, unmatched_rows: unmatchedRows })],
     });
   } catch {
     // The original ingest failure remains authoritative; diagnostics are best effort.
   }
 }
 
-function createPlayerWeeklyWriter({ pool }) {
+function createPlayerWeeklyWriter({ pool, maxUnmatchedRatio = DEFAULT_MAX_UNMATCHED_RATIO }) {
   if (!pool || typeof pool.connect !== "function") {
     throw new TypeError("pool.connect must be a function");
+  }
+  if (typeof maxUnmatchedRatio !== "number" || !Number.isFinite(maxUnmatchedRatio) ||
+      maxUnmatchedRatio < 0 || maxUnmatchedRatio > 1) {
+    throw new TypeError("maxUnmatchedRatio must be between 0 and 1");
   }
 
   return {
@@ -181,6 +201,9 @@ function createPlayerWeeklyWriter({ pool }) {
       }
       if (receipt.sourceRows < validatedRows.length + unmatchedRows) {
         throw new RangeError("receipt.sourceRows cannot be smaller than resolved plus unmatched rows");
+      }
+      if (unmatchedRows / receipt.sourceRows > maxUnmatchedRatio) {
+        throw new RangeError("unmatched player rows exceed the configured ratio");
       }
       const client = await pool.connect();
 
@@ -216,7 +239,7 @@ function createPlayerWeeklyWriter({ pool }) {
               (run_id, dataset, season, rights_basis, source_url, source_ref, source_bytes, state,
                metadata)
             VALUES ($1, $2, $3, $4, $5, $6, $7, 'started',
-                    jsonb_build_object('unmatched_rows', $8::integer))
+                    $8::jsonb)
             ON CONFLICT (run_id, dataset, season) DO UPDATE SET
               rights_basis = EXCLUDED.rights_basis, source_url = EXCLUDED.source_url,
               source_ref = EXCLUDED.source_ref, source_bytes = EXCLUDED.source_bytes,
@@ -226,7 +249,8 @@ function createPlayerWeeklyWriter({ pool }) {
             RETURNING id
           `,
           values: [receipt.runId, DATASET, season, RIGHTS_BASIS, receipt.sourceUrl,
-            receipt.sourceRef, receipt.sourceBytes, unmatchedRows],
+            receipt.sourceRef, receipt.sourceBytes,
+            JSON.stringify({ ...receipt.metadata, unmatched_rows: unmatchedRows })],
         });
         if (!started.rows.length) {
           throw new WarehouseIngestError("run_id_conflict", "run id already belongs to a succeeded ingest");
@@ -345,4 +369,5 @@ module.exports = {
   WarehouseIngestError,
   DATASET,
   MAX_ROWS,
+  DEFAULT_MAX_UNMATCHED_RATIO,
 };

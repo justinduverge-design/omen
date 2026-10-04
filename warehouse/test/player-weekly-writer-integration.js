@@ -49,6 +49,10 @@ async function main() {
         sourceRef: `sha256:${"b".repeat(64)}`,
         sourceBytes: 256,
         sourceRows: 1,
+        metadata: {
+          schema_fingerprint: `sha256:${"d".repeat(64)}`,
+          source_columns: ["player_id", "season", "week"],
+        },
       },
       unmatchedRows: 0,
       rows: [{

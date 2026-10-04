@@ -18,9 +18,13 @@ function input(overrides = {}) {
       sourceUrl: "https://github.com/nflverse/example.csv",
       sourceRef: HASH_A,
       sourceBytes: 1234,
-      sourceRows: 3,
+      sourceRows: 1,
+      metadata: {
+        schema_fingerprint: HASH_A,
+        source_columns: ["player_id", "season", "week"],
+      },
     },
-    unmatchedRows: 2,
+    unmatchedRows: 0,
     rows: [{
       season: 2026,
       week: 1,
@@ -84,9 +88,9 @@ test("writes player weekly facts and the succeeded receipt in one guarded transa
   assert.deepEqual(result, {
     state: "succeeded",
     ingestEventId: 71,
-    sourceRows: 3,
+    sourceRows: 1,
     writtenRows: 1,
-    unmatchedRows: 2,
+    unmatchedRows: 0,
   });
   assert.deepEqual(names(db.calls), [
     "BEGIN",
@@ -137,7 +141,7 @@ test("skips an unchanged source under the season lock without replacing facts", 
 
   const result = await writer.writeSeason(input());
 
-  assert.deepEqual(result, { state: "unchanged", ingestEventId: 44, sourceRows: 3, writtenRows: 1 });
+  assert.deepEqual(result, { state: "unchanged", ingestEventId: 44, sourceRows: 1, writtenRows: 1 });
   assert.deepEqual(names(db.calls), [
     "BEGIN",
     "warehouse-player-weekly-lock-v1",
@@ -169,8 +173,12 @@ test("rolls back partial work before writing a bounded failed receipt", async ()
   const failure = db.calls.find((call) => call.name === "warehouse-player-weekly-failed-receipt-v1");
   assert.equal(failure.values[8], "23505");
   assert.equal(failure.values[9], "player weekly ingest failed");
-  assert.equal(failure.values[10], 2);
-  assert.equal(failure.values[7], 3);
+  assert.deepEqual(JSON.parse(failure.values[10]), {
+    schema_fingerprint: HASH_A,
+    source_columns: ["player_id", "season", "week"],
+    unmatched_rows: 0,
+  });
+  assert.equal(failure.values[7], 1);
   assert.equal(db.wasReleased(), true);
 });
 
@@ -193,8 +201,20 @@ test("rejects malformed source hashes and unmatched row metadata before connecti
   );
   await assert.rejects(writer.writeSeason(input({ unmatchedRows: -1 })), /unmatchedRows/);
   await assert.rejects(
-    writer.writeSeason(input({ receipt: { ...input().receipt, sourceRows: 2 } })),
+    writer.writeSeason(input({ receipt: { ...input().receipt, sourceRows: 0 } })),
+    /receipt\.sourceRows/,
+  );
+  await assert.rejects(
+    writer.writeSeason(input({ receipt: { ...input().receipt, sourceRows: 1 }, unmatchedRows: 1 })),
     /sourceRows cannot be smaller/,
+  );
+  await assert.rejects(
+    writer.writeSeason(input({ receipt: { ...input().receipt, sourceRows: 20 }, unmatchedRows: 2 })),
+    /unmatched player rows exceed/,
+  );
+  await assert.rejects(
+    writer.writeSeason(input({ receipt: { ...input().receipt, metadata: {} } })),
+    /schema_fingerprint/,
   );
   await assert.rejects(writer.writeSeason(input({ rows: [] })), /at least one resolved player week/);
   await assert.rejects(
