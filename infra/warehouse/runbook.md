@@ -18,39 +18,54 @@ Run these checks on KVM1 before starting deployment. Expect failure if threshold
    ```bash
    free -m
    ```
-   *Expectation:* ~7 GB (7000 MB) free.
+   *Expectation:* ~7 GB (7000 MB) free. (Note: KVM1 is single-node, so no hard memory limit is set in docker-compose. DB is expected to use 2-4GB).
 
 3. **KVM2 Disk Space:**
    ```bash
-   ssh omen-backup@100.67.187.57 df -h /
+   ssh omen-backup@100.77.202.56 df -h /
    ```
    *Expectation:* ~77 GB free.
 
 4. **Tailscale Reachability (KVM1 -> KVM2):**
    ```bash
-   ping -c 3 100.67.187.57
+   ping -c 3 100.77.202.56
    ```
    *Expectation:* 0% packet loss.
 
 ## Deployment Steps
 
-1. **Clone/Pull Latest Code:**
+1. **Local Scratch Rehearsal (on KVM1):**
+   Run the full scratch rehearsal to verify Docker compose, schema, and backfill script on KVM1 BEFORE creating persistent volumes or touching the API. Docker cannot run in the sandbox, so the real rehearsal happens on KVM1.
+   ```bash
+   cd infra/warehouse
+   echo "POSTGRES_PASSWORD=test" > .env
+   docker-compose up -d
+   sleep 5
+   # Load mock data and row-count verify
+   ./backfill.sh true
+   docker exec -i omen_football_warehouse psql -U postgres -d postgres -c "\dt"
+   docker-compose down -v
+   rm .env
+   ```
+
+
+2. **Clone/Pull Latest Code:**
    Ensure `infra/warehouse/` is up to date on KVM1.
 
-2. **Provision Credentials:**
+3. **Provision Credentials:**
    ```bash
    cd infra/warehouse
    ./provision-credentials.sh
    ```
    *Check:* Verify `.env` exists with `600` permissions and contains `POSTGRES_PASSWORD`.
 
-3. **Bring Up the Warehouse:**
+4. **Bring Up the Warehouse:**
    ```bash
    docker-compose up -d
    ```
    *Check:* `docker ps` shows `omen_football_warehouse` running and healthy.
 
-4. **Execute Backfill:**
+5. **Execute Backfill:**
    ```bash
    ./backfill.sh
    ```
@@ -114,39 +129,6 @@ Once verified, the switch is made at the application level.
 
 ---
 
-## Local Scratch Rehearsal (Performed locally before PR)
+## Local Scratch Rehearsal
 
-This rehearsal verifies the Docker compose setup, the backfill script (using mock data), and the schema.
-
-1. **Start the container:**
-   ```bash
-   cd infra/warehouse
-   # Create a dummy .env for testing
-   echo "POSTGRES_PASSWORD=test" > .env
-   docker-compose up -d
-   ```
-
-2. **Load mock data:**
-   ```bash
-   ./backfill.sh true
-   ```
-
-3. **Tear down:**
-   ```bash
-   docker-compose down -v
-   ```
-
-4. **Restart and verify schema:**
-   ```bash
-   docker-compose up -d
-   sleep 5
-   # Schema will be automatically created via the init/ script
-   docker exec -i omen_football_warehouse psql -U postgres -d postgres -c "\dt"
-   docker exec -i omen_football_warehouse psql -U postgres -d postgres -c "\d players"
-   ```
-
-5. **Clean up:**
-   ```bash
-   docker-compose down -v
-   rm .env
-   ```
+*(Moved to Deployment Step 1 on KVM1)*

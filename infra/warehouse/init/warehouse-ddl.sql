@@ -90,7 +90,13 @@ CREATE TABLE play_by_play (
     passer_player_id VARCHAR(50),
     receiver_player_id VARCHAR(50),
     rusher_player_id VARCHAR(50),
-    desc TEXT,
+    description TEXT,
+    epa NUMERIC,
+    wpa NUMERIC,
+    air_epa NUMERIC,
+    yac_epa NUMERIC,
+    cpoe NUMERIC,
+    success NUMERIC,
     PRIMARY KEY (game_id, play_id)
 );
 

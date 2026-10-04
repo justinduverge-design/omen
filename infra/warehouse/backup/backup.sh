@@ -10,7 +10,7 @@ DB_NAME="postgres"
 BACKUP_DIR="/var/backups/warehouse"
 DATE=$(date +%Y%m%d_%H%M%S)
 BACKUP_FILE="${BACKUP_DIR}/warehouse_${DATE}.sql.gz"
-KVM2_TAILSCALE_IP="100.67.187.57" # From docs: KVM2 Tailscale IP
+KVM2_TAILSCALE_IP="100.77.202.56" # From docs: KVM2 Tailscale IP
 KVM2_USER="omen-backup"
 KVM2_PATH="/srv/restic/omen/warehouse"
 
