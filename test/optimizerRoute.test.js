@@ -50,19 +50,6 @@ function loadOptimizerRouter(state) {
         },
       };
     }
-    if (parent?.filename === routePath && request === "../services/agents") {
-      return {
-        getMVPMove: async (players, opts) => {
-          state.mvpMoveCalls.push({ players, opts });
-          return {
-            move_type: "lineup",
-            headline: "Start the safer RB",
-            confidence: 82,
-            reasoning: "Stubbed test response.",
-          };
-        },
-      };
-    }
     if (parent?.filename === routePath && request === "../services/omen") {
       return {
         buildLiveOmenMvpMoveForUser: async (userId) => {
