@@ -24,6 +24,8 @@ const registry = () => JSON.parse(fs.readFileSync(REGISTRY, "utf8")).contracts;
 const ISO = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z/g;
 const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
 const REQ = /(omen_req_|req_)\d{8,}/g;
+// /trade/find issues a random 16-hex batch token per response, folded into each id as `{token}.{id}`.
+const BATCH_TOKEN = /^[0-9a-f]{16}\.(?=find_)/;
 const EPOCH_KEYS = new Set(["uptime", "timestamp", "generated_at", "updated_at", "created_at", "as_of", "observed_at", "fresh_until", "issued_at", "received_at"]);
 
 function normalizeValue(value, key) {
@@ -32,7 +34,7 @@ function normalizeValue(value, key) {
     return Object.fromEntries(Object.keys(value).sort().map((k) => [k, normalizeValue(value[k], k)]));
   }
   if (typeof value === "string") {
-    return value.replace(ISO, "2026-01-01T00:00:00.000Z").replace(UUID, "00000000-0000-4000-8000-000000000000").replace(REQ, "$1FIXTURE");
+    return value.replace(ISO, "2026-01-01T00:00:00.000Z").replace(UUID, "00000000-0000-4000-8000-000000000000").replace(REQ, "$1FIXTURE").replace(BATCH_TOKEN, "0000000000000000.");
   }
   if (typeof value === "number" && EPOCH_KEYS.has(key)) return 0;
   return value;
