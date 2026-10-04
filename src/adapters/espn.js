@@ -461,18 +461,28 @@ function redactEspnPath(path) {
   return String(path || "").split("?")[0].replace(SWID_PATTERN, "[swid]");
 }
 
-/**
- * ESPN's failing request is the one carrying espn_s2 and SWID, so this
- * reporter takes only the hostname and the path *before* the query string,
- * and never touches the headers, the cookie jar, or the response body.
- * facts-of-record #6: ESPN cookie values are never logged, displayed, or
- * echoed — anywhere, ever. That includes error reports.
- */
+function isEspnReconnectResponse(hostname, status) {
+  const code = Number(status);
+  return code === 401
+    || code === 403
+    // ESPN's fan-directory endpoint answers 400, rather than 401, when the
+    // user-supplied ESPN web session is no longer accepted. Reconnecting is
+    // the only useful recovery and the same request commonly pairs with a 401
+    // from lm-api-reads during one refresh.
+    || (hostname === ESPN_FAN_HOSTNAME && code === 400);
+}
+
 function reportEspnFailure(operation, error, hostname, path, httpStatus) {
   captureProviderError({
     provider: "espn",
     operation,
     error,
+    // Expired ESPN cookies belong to one user and already become the honest
+    // `espn_reconnect_required` product state. They are expected lifecycle,
+    // not an operational outage. Reporting each background/request-time probe
+    // as an exception produced 100+ duplicate alerts for inactive beta users.
+    // Genuine provider/transport failures below remain reportable.
+    expected: operation === "auth_rejected",
     context: {
       hostname,
       path: redactEspnPath(path),
@@ -506,7 +516,7 @@ function doEspnRequest(hostname, path, espn_s2, swid, redirectsLeft, fantasyFilt
         res.on("end", () => {
           const body = Buffer.concat(chunks).toString("utf8");
           logger.info(`[espn] ${hostname}${redactEspnPath(path)} -> HTTP ${res.statusCode}`);
-          if (res.statusCode === 401 || res.statusCode === 403) {
+          if (isEspnReconnectResponse(hostname, res.statusCode)) {
             const err = new Error("ESPN rejected the request — cookies may be invalid or expired");
             err.status = 401;
             reportEspnFailure("auth_rejected", err, hostname, path, res.statusCode);

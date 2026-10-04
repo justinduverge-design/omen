@@ -88,7 +88,13 @@ function normalizeProvider(provider) {
  *
  * Never throws and never rejects: an error in the error reporter must not
  * become the error the user sees. Returns the Sentry event id, or null
- * when nothing was sent (demo mode, or capture failed).
+ * when nothing was sent (demo mode, expected user action, or capture failed).
+ *
+ * `expected` is deliberately explicit rather than inferred from an HTTP
+ * status. A 401 can mean an ordinary expired user session for one provider,
+ * but a broken server-to-server credential for another. The adapter that owns
+ * the provider contract decides whether the failure is an actionable incident
+ * or an honest reconnect state.
  */
 function captureProviderError({
   provider,
@@ -96,9 +102,10 @@ function captureProviderError({
   error,
   context = {},
   demo = false,
+  expected = false,
 } = {}) {
   try {
-    if (demo) return null;
+    if (demo || expected) return null;
 
     const normalizedProvider = normalizeProvider(provider);
     const reported = error instanceof Error

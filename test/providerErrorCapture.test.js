@@ -167,6 +167,36 @@ test("demo-mode provider errors are never captured at all", () => {
   assert.deepEqual(calls, []);
 });
 
+test("expected provider reconnect states are never captured as incidents", () => {
+  const error = new Error("ESPN rejected the request — cookies may be invalid or expired");
+  error.status = 401;
+
+  const calls = recordCapture(() => captureProviderError({
+    provider: "espn",
+    operation: "auth_rejected",
+    error,
+    expected: true,
+    context: { http_status: 401 },
+  }));
+
+  assert.deepEqual(calls, []);
+});
+
+test("an unexpected provider 401 is still captured unless its adapter classifies it", () => {
+  const error = new Error("provider service credential rejected");
+  error.status = 401;
+
+  const calls = recordCapture(() => captureProviderError({
+    provider: "espn",
+    operation: "service_probe",
+    error,
+    context: { http_status: 401 },
+  }));
+
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0].hint.fingerprint, ["provider", "espn", "service_probe", "401"]);
+});
+
 test("live provider captures are tagged live, not demo", () => {
   const event = capturedEvent({
     provider: "sleeper",
