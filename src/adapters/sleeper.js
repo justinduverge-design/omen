@@ -517,12 +517,40 @@ async function fetchSleeperPlayers() {
   return out;
 }
 
-async function fetchSleeperProjections(season, week) {
-  const cacheKey = `ssff:sleeper:projections:${season}:${week}`;
-  const cached = await readCache(cacheKey);
-  // Normalized on read too: entries cached before this fix hold the raw array.
-  if (cached) return normalizeProjections(cached);
+// Ranking and draft fields ride along in Sleeper's projection `stats`; they are not stats and
+// no league scores them, so they are not kept in the stat-line cache.
+const NON_STAT_PROJECTION_KEY = /^(adp_|pos_adp|rank_|pos_rank|gp$|gs$|gms_active$)/;
 
+/**
+ * `player_id -> projected stat line` from the same payload as `normalizeProjections`.
+ *
+ * The projection explainer (`services/projectionBreakdown.js`) multiplies this line by the
+ * league's `scoring_settings` to show where the projected points come from. Only non-zero
+ * numeric stats are kept (a zero contributes nothing to any league's score), which keeps the
+ * cached map small enough for one Redis value.
+ */
+function normalizeProjectionStatLines(payload) {
+  const out = {};
+  const records = Array.isArray(payload) ? payload : [];
+  for (const record of records) {
+    if (!record || record.player_id == null || !record.stats || typeof record.stats !== "object") continue;
+    const line = {};
+    for (const [key, value] of Object.entries(record.stats)) {
+      if (NON_STAT_PROJECTION_KEY.test(key)) continue;
+      const number = Number(value);
+      if (value == null || !Number.isFinite(number) || number === 0) continue;
+      line[key] = number;
+    }
+    if (Object.keys(line).some((key) => !key.startsWith("pts_"))) out[String(record.player_id)] = line;
+  }
+  return out;
+}
+
+const projectionsCacheKey = (season, week) => `ssff:sleeper:projections:${season}:${week}`;
+const projectionStatLinesCacheKey = (season, week) => `ssff:sleeper:projection-stat-lines:${season}:${week}`;
+
+/** One fetch of the week's projections, written to both the points and stat-line caches. */
+async function fetchAndCacheSleeperProjections(season, week) {
   const projections = await getJson(`${PROJECTIONS_BASE}/${season}/${week}`, {
     params: {
       season_type: "regular",
@@ -530,9 +558,26 @@ async function fetchSleeperProjections(season, week) {
     },
     timeout: 15000,
   });
-  const out = normalizeProjections(projections);
-  await writeCache(cacheKey, out, PROJECTIONS_TTL_S);
-  return out;
+  const points = normalizeProjections(projections);
+  const statLines = normalizeProjectionStatLines(projections);
+  await Promise.all([
+    writeCache(projectionsCacheKey(season, week), points, PROJECTIONS_TTL_S),
+    writeCache(projectionStatLinesCacheKey(season, week), statLines, PROJECTIONS_TTL_S),
+  ]);
+  return { points, statLines };
+}
+
+async function fetchSleeperProjections(season, week) {
+  const cached = await readCache(projectionsCacheKey(season, week));
+  // Normalized on read too: entries cached before this fix hold the raw array.
+  if (cached) return normalizeProjections(cached);
+  return (await fetchAndCacheSleeperProjections(season, week)).points;
+}
+
+async function fetchSleeperProjectionStatLines(season, week) {
+  const cached = await readCache(projectionStatLinesCacheKey(season, week));
+  if (cached && typeof cached === "object" && !Array.isArray(cached)) return cached;
+  return (await fetchAndCacheSleeperProjections(season, week)).statLines;
 }
 
 /**
@@ -753,6 +798,8 @@ module.exports = {
   fetchSleeperLastResult,
   fetchSleeperPlayers,
   fetchSleeperProjections,
+  fetchSleeperProjectionStatLines,
+  normalizeProjectionStatLines,
   fetchSleeperAvailablePlayers,
   fetchSleeperLeagueRosters,
   fetchSleeperLeagueDrafts,

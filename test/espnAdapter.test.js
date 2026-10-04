@@ -900,3 +900,32 @@ test("team names are trimmed of the padding ESPN stores verbatim", () => {
   assert.ok(names.includes("Team Name"), names.join(" | "));
   for (const n of names) assert.equal(n, n.trim(), `"${n}" still carries padding`);
 });
+
+// Projection explainer layer 1: the projected stat line behind each roster projection.
+test("projectionLinesFromEspnData keeps each rostered player's projected stat row for the week", () => {
+  const { adapter } = loadEspnAdapterWithTeams([]);
+  const entry = (playerId, stats) => ({
+    playerId,
+    lineupSlotId: 4,
+    playerPoolEntry: { player: { id: playerId, fullName: `P${playerId}`, defaultPositionId: 3, stats } },
+  });
+  const data = {
+    teams: [{
+      id: 8,
+      roster: { entries: [
+        entry(1, [
+          { statSourceId: 0, scoringPeriodId: 3, appliedTotal: 20, stats: { 53: 9 } },
+          { statSourceId: 1, scoringPeriodId: 0, appliedTotal: 250, stats: { 53: 90 } },
+          { statSourceId: 1, scoringPeriodId: 3, appliedTotal: 13.3, stats: { 53: 6.1, 42: 72.3 } },
+        ]),
+        entry(2, [{ statSourceId: 0, scoringPeriodId: 3, appliedTotal: 4, stats: { 53: 4 } }]),
+      ] },
+    }],
+  };
+
+  const lines = adapter.projectionLinesFromEspnData(data, "{X}", 3, { teamId: 8 });
+
+  assert.deepEqual(lines.get("espn:1"), { position_id: 3, applied_total: 13.3, stats: { 53: 6.1, 42: 72.3 } });
+  // An actual row, or the season-long projection, is never read as this week's projection.
+  assert.equal(lines.has("espn:2"), false);
+});

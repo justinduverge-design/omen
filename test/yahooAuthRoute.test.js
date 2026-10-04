@@ -86,7 +86,12 @@ function makeSupabase(state) {
   };
 }
 
-function loadYahooRouter({ oauthRows = [], getAuthenticatedYahooClient, yahooEnabled = true } = {}) {
+function loadYahooRouter({
+  oauthRows = [],
+  getAuthenticatedYahooClient,
+  yahooEnabled = true,
+  membershipResult = { persisted: true, inserted: 0, updated: 0, unfollowed: 0, discoveryFailed: false, discoveryStatus: null },
+} = {}) {
   const routePath = require.resolve("../src/routes/yahoo");
   const authPath = require.resolve("../src/middleware/auth");
   delete require.cache[routePath];
@@ -101,6 +106,7 @@ function loadYahooRouter({ oauthRows = [], getAuthenticatedYahooClient, yahooEna
     authUrlStates: [],
     exchanges: [],
     persists: [],
+    membershipSyncs: [],
     appUsers: [],
     logs: [],
   };
@@ -147,6 +153,14 @@ function loadYahooRouter({ oauthRows = [], getAuthenticatedYahooClient, yahooEna
         }),
         persistYahooTokens: async (userId, tokens, leagueId) => {
           state.persists.push({ userId, tokens, leagueId });
+        },
+      };
+    }
+    if (request === "../services/leagueMemberships" && parent?.filename === routePath) {
+      return {
+        syncAfterConnect: async (_supabase, args) => {
+          state.membershipSyncs.push(args);
+          return membershipResult;
         },
       };
     }
@@ -310,6 +324,57 @@ test("GET /api/yahoo/callback redirects back to account connect onboarding", asy
     leagueId: "league-1",
   });
   assert.equal(state.deletes[0].state, "valid-state");
+});
+
+const VALID_OAUTH_ROW = Object.freeze({
+  state: "valid-state",
+  platform: "yahoo",
+  user_id: "test-slops-user",
+  verifier: "league-1",
+  expires_at: new Date(Date.now() + 60 * 60_000).toISOString(),
+});
+
+// Plan A5: a Yahoo connect or re-auth writes league memberships after the tokens persist.
+test("GET /api/yahoo/callback writes league memberships after the tokens persist", async () => {
+  const yahooClient = {
+    getUserLeaguesWithTeams: async () => ([
+      { league_id: "449.l.1", name: "Work League", season: 2026, team_id: "7", team_name: "Desk Jockeys" },
+      { league_id: "449.l.2", name: "Family", season: 2026, team_id: "3", team_name: "Dad Bod" },
+    ]),
+  };
+  const { app, state } = buildApp({
+    oauthRows: [{ ...VALID_OAUTH_ROW }],
+    getAuthenticatedYahooClient: async () => ({ client: yahooClient }),
+  });
+  const res = await request(app, "/api/yahoo/callback?code=code&state=valid-state");
+
+  assert.equal(res.status, 302);
+  assert.equal(state.persists.length, 1);
+  assert.equal(state.membershipSyncs.length, 1);
+  const sync = state.membershipSyncs[0];
+  assert.equal(sync.userId, "test-slops-user");
+  assert.equal(sync.platform, "yahoo");
+  assert.equal(sync.boundLeagueId, "league-1");
+  assert.notEqual(sync.boundVerified, true);
+  assert.deepEqual(await sync.discover(2026), [
+    { league_id: "449.l.1", league_name: "Work League", season: 2026, team_id: "7", team_name: "Desk Jockeys" },
+    { league_id: "449.l.2", league_name: "Family", season: 2026, team_id: "3", team_name: "Dad Bod" },
+  ]);
+});
+
+test("GET /api/yahoo/callback still completes when the membership write fails", async () => {
+  const { app, state } = buildApp({
+    oauthRows: [{ ...VALID_OAUTH_ROW }],
+    membershipResult: { persisted: false, reason: "write_failed", error: "leagues upsert failed (XX000)", discoveryFailed: true, discoveryStatus: 401 },
+  });
+  const res = await request(app, "/api/yahoo/callback?code=code&state=valid-state");
+
+  assert.equal(res.status, 302);
+  assert.equal(res.headers.get("location"), "http://localhost:3000/account/connect?connected=yahoo");
+  assert.ok(state.logs.some((log) => log.level === "warn" && /membership/i.test(log.message)));
+  const serialized = JSON.stringify(state.logs);
+  assert.equal(serialized.includes("yahoo-access-token"), false);
+  assert.equal(serialized.includes("yahoo-refresh-token"), false);
 });
 
 test("GET /api/yahoo/callback returns a verified native start to the fixed deep link without OAuth artifacts", async () => {
