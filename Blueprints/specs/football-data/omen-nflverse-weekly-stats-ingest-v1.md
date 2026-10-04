@@ -66,3 +66,22 @@ Confirm the current release asset names and column headers at build time; nflver
 
 - Fixture tests: CSV mapping and NULL handling, snap join through `pfr_id`, an unmatched player skipped and counted (never name-matched), the `data_events` row shape, and re-run idempotency.
 - A scratch run against redo step 14 writes rows, a second run changes only `ingest_event_id`.
+
+## Step 15: the full record (2026-10-04)
+
+Founder direction: finish the nflverse ingestion. Step 14 stored 14 of ~190 player-week columns; step 15
+(`sql/2026-10-01-redo/15_nflverse_full_lines.up.sql`) stores the rest and three more tables. Builders:
+`src/services/nflverseFacts.js`; the same daily job runs every subject.
+
+| Table | Source (nflverse family) | What it holds |
+|---|---|---|
+| `nflverse_weekly_stats` (+ `team`, `opponent`, `game_id`, `season_type`, `position`, `stats`, `opportunity`) | `stats_player` week file, `pbp` | the full numeric stat line, sparse jsonb (kickers by distance, defense, returns, 2-pt, fumbles, air yards, EPA, target/air-yards share, WOPR); red-zone, inside-10, goal-line, end-zone and deep usage from play-by-play |
+| `nflverse_team_weekly_stats` | `stats_team` week file, `schedules` | the team's full stat line plus points for and against (team-defense scoring) |
+| `nflverse_games` | `schedules` | every game, played or scheduled: score, spread and total lines, moneylines, roof, surface, weather, rest, division game |
+| `nflverse_weekly_rosters` | `rosters` (weekly) | each player on each team each week: roster status, listed position, jersey |
+
+- **Subjects:** each table is its own `data_events` subject with its own unchanged-source skip and unmatched limit (5%; rosters 15%, since practice-squad players the crosswalk lacks are skipped and counted). One table failing does not block the others; the run fails at the end.
+- **Storage budget** (free plan, 500 MB database): stat lines, team weeks and games from 2021, the first 17-game season (about 9 MB a season); rosters for the current and previous season only (about 10 MB each). Measured on scratch with real data: 2021-2026 is 71 MB. The player crosswalk window moved from "last two seasons" to 2021 to match (5,962 players).
+- **Backfill:** `node src/omen_nflverse_weekly_stats_cron.js --seasons 2021-2025`, one process per season in production (a single season peaks near 650 MB; the cron container has 1 GB).
+- **Before step 15 is applied** the job stays in step-14 mode: typed columns only, no new tables touched.
+- **Not stored, and not to be added without a new rights decision:** Next Gen Stats (NFL), PFR advanced stats (Sports Reference), ESPN QBR and depth charts (ESPN), contracts (OverTheCap). Open: the NFL injury report and ffopportunity (GPL-3) need founder decisions.
