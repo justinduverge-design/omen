@@ -60,6 +60,12 @@
       unchanged — Small Council, one call per week, Waiver inside League, confidence as a band, and
       no trade call without rosters. Reasoning in `Direction/decision_log.md`, 2026-09-13.
 
+    - **Amended 2026-10-02 (founder) — one call per TEAM per week.** A person in two leagues gets two
+      calls a week, one per team; the Omen screen's league switcher shows each league's call. The
+      clause "Omen returns one call per week" above means one per team. The database enforces it: the
+      Ledger allows exactly one current call per team per week (`sql/2026-10-01-redo/05_ledger.up.sql`).
+      Raised by Codex review on #505, which found the fact and the schema disagreed.
+
     - **Amended 2026-09-13 (founder) — the native visual direction is locked.** Dark-only
       (`bg #1F1F1D`), brass-led (`accent #C4933B` the sole brand-expression accent in chrome),
       provider hexes the sole colour exception, **Wix Madefor Display + Text** replacing Alegreya

@@ -41,16 +41,50 @@ begin
   end if;
 end $$;
 
--- Reports are deleted with the account.
+-- A sign-in without an app row can file a report (Codex review, #523: the route no longer creates one).
 do $$
+begin
+  if exists (select 1 from public.users where id = '00000000-0000-4000-8000-000000000008') then
+    raise exception 'FAIL 09: seed changed; user 8 should be a sign-in without an app row';
+  end if;
+  insert into public.beta_reports (user_id, screen, app_version, build, os_version, device_model, connection_state, message, disclosure_accepted)
+  values ('00000000-0000-4000-8000-000000000008', 'connect_failed', '1', '1', 'x', 'y', 'espn:reconnect_required', 'connect keeps failing', true);
+end $$;
+
+-- Reports are deleted with the account: by account_erase() when it exists, and by deleting the sign-in.
+do $$
+declare res jsonb;
 begin
   insert into public.beta_reports (user_id, screen, app_version, build, os_version, device_model, connection_state, message, disclosure_accepted)
   values ('00000000-0000-4000-8000-000000000007', 'account', '1', '1', 'x', 'y', 'none', 'bye', true);
-  perform public.ledger_erase_user('00000000-0000-4000-8000-000000000007');
-  delete from public.users where id = '00000000-0000-4000-8000-000000000007';
-  if exists (select 1 from public.beta_reports where user_id = '00000000-0000-4000-8000-000000000007') then
-    raise exception 'FAIL 09: report survived account deletion';
+  if to_regprocedure('public.account_erase(uuid, text)') is not null then
+    -- The ESPN-less, Yahoo user 7: its secrets exist on scratch, so the erase goes through.
+    execute 'select public.account_erase($1)' into res using '00000000-0000-4000-8000-000000000007'::uuid;
+    if exists (select 1 from public.beta_reports where user_id = '00000000-0000-4000-8000-000000000007') then
+      raise exception 'FAIL 09: report survived account_erase()';
+    end if;
   end if;
+  -- A report filed after the erase but before the sign-in is deleted goes with the sign-in.
+  insert into public.beta_reports (user_id, screen, app_version, build, os_version, device_model, connection_state, message, disclosure_accepted)
+  values ('00000000-0000-4000-8000-000000000008', 'account', '1', '1', 'x', 'y', 'none', 'late', true);
+  delete from auth.users where id = '00000000-0000-4000-8000-000000000008';
+  if exists (select 1 from public.beta_reports where user_id = '00000000-0000-4000-8000-000000000008') then
+    raise exception 'FAIL 09: report survived the sign-in''s deletion';
+  end if;
+end $$;
+
+-- No report after erasure, even while the sign-in still exists (Codex review, #530): the deletion audit row
+-- is the tombstone, whichever path wrote it.
+do $$
+begin
+  insert into public.deletion_audit_log (user_id_hash, method)
+  values (encode(sha256(convert_to('00000000-0000-4000-8000-000000000009', 'UTF8')), 'hex'), 'user_requested');
+  begin
+    insert into public.beta_reports (user_id, screen, app_version, build, os_version, device_model, connection_state, message, disclosure_accepted)
+    values ('00000000-0000-4000-8000-000000000009', 'account', '1', '1', 'x', 'y', 'none', 'after erase', true);
+    raise exception 'FAIL 09: a report was accepted for an erased account';
+  exception when insufficient_privilege then null;
+  end;
 end $$;
 
 rollback;

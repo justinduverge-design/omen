@@ -14,6 +14,12 @@ const { buildTradeShareOgSvg } = require("../services/tradeShareOg");
 const { compareTrade } = require("../services/tradeValue");
 const { resolveNflPlayerInputs } = require("../services/playerSearch");
 const { resolveTradeLeagueContext } = require("../services/tradeLeagueContext");
+const { createDefaultTradeSavedQueueStore } = require("../services/tradeSavedQueueStore");
+const {
+  VALID_OUTCOME_SET,
+  currentNeedFor,
+  staleness: computeStaleness,
+} = require("../services/tradeSavedQueue");
 const { findLeagueTradeCandidates, MAX_OPPONENT_TEAMS_PER_SCAN, MAX_CANDIDATES_RETURNED } = require("../services/tradeFind");
 const { createSearchBudget } = require("../services/tradeLineup");
 const {
@@ -40,6 +46,12 @@ const TRADE_COMPARE_CONTRACT = "trade-compare.v2";
 const TRADE_FIND_CONTRACT = "trade-find.v1";
 const VALID_CONTEXT_PLATFORMS = new Set(["yahoo", "sleeper", "espn"]);
 const MAX_LEAGUE_ID_LENGTH = 64;
+const TRADE_SAVED_QUEUE_CONTRACT = "trade-saved-queue.v1";
+const MAX_CANDIDATE_ID_LENGTH = 200;
+// Same posture as MAX_SHARE_PAYLOAD_BYTES — a guardrail against abuse, not a
+// realistic ceiling for a reasoning payload this shape (a handful of short
+// strings and two small need objects).
+const MAX_SAVED_REASONING_BYTES = 16 * 1024;
 
 // T1 — three-team trade capability (omen-trade-rework-v1.md). Beta's ceiling per the workshop's
 // locked decision: "Beta supports two-team and three-team trades; three is the maximum." A
@@ -545,6 +557,9 @@ function createTradeRouter({
   // repeat request doesn't re-read the provider or re-derive need profiles. Same
   // client/connection pattern as tradeShareStore.js (see tradeFindCacheStore.js).
   tradeFindCache = createDefaultTradeFindCache(),
+  // T4 — saved trade queue. Same client/connection pattern as
+  // `tradeShareStore`/`tradeFindCacheStore` (see tradeSavedQueueStore.js).
+  tradeSavedQueueStore = createDefaultTradeSavedQueueStore(),
 } = {}) {
   const router = express.Router();
 
@@ -721,8 +736,13 @@ function createTradeRouter({
     }
   });
 
-  function tradeFindCacheKey({ platform, leagueId, week }) {
-    return `${platform}:${leagueId}:${week}`;
+  // Scoped to the caller. The cache is read before the provider roster read, and
+  // that read is the only ownership check (it uses the caller's own ESPN/Yahoo
+  // credentials). A key without the user id would hand user A's warm bundle to
+  // any user who names A's league id. Sleeper leagues are public, but they are
+  // scoped the same way so the rule has no exceptions.
+  function tradeFindCacheKey({ userId, platform, leagueId, week }) {
+    return `${userId}:${platform}:${leagueId}:${week}`;
   }
 
   /**
@@ -737,8 +757,9 @@ function createTradeRouter({
    *
    *   1. **Cache.** The provider roster read for a given platform/league/week is
    *      cached (`tradeFindCache`, `tradeFindCacheStore.js` — same Redis client
-   *      pattern as `tradeShareStore.js`) for `DEFAULT_FIND_CACHE_TTL_SECONDS`. A
-   *      repeat request in that window never re-reads the provider. This is the
+   *      pattern as `tradeShareStore.js`) for `DEFAULT_FIND_CACHE_TTL_SECONDS`,
+   *      keyed per user (see `tradeFindCacheKey`). A repeat request by the same
+   *      user in that window never re-reads the provider. This is the
    *      "not recomputed live on every call" half of the constraint. Refresh is
    *      TTL-based rather than webhook-driven because none of Yahoo, Sleeper, or
    *      ESPN publish a roster-change webhook today — see the open question noted
@@ -793,7 +814,7 @@ function createTradeRouter({
         week = nflWeekContext(now())?.week || 1;
       }
 
-      const cacheKey = tradeFindCacheKey({ platform, leagueId, week });
+      const cacheKey = tradeFindCacheKey({ userId: user.id, platform, leagueId, week });
       let bundle = null;
       let cacheHit = false;
       try {
@@ -903,6 +924,327 @@ function createTradeRouter({
         own_needs: scan.own_needs,
         candidates: scan.candidates,
       });
+    } catch (e) {
+      return next(e);
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // T4 — saved trade queue with tracked outcomes
+  // (`Blueprints/specs/omen-trade-rework-v1.md` §T4).
+  //
+  // The save-action interface T3 already shipped and this item must match
+  // exactly (`TradeFindReviewViewModel.save()`,
+  // `Blueprints/specs/design/screen-contracts/TradeFindReview-v1.md`) is
+  // `save_action(candidate_id, reasoning) -> { status: "saved" | "error" }` —
+  // two arguments, no player identity, no league context. Every other field
+  // this route accepts (`give`, `receive`, `opponent_team_id`,
+  // `opponent_team_name`, `platform`, `league_id`, `team_id`) is optional so
+  // today's stub-shaped call still works unmodified, while a richer future
+  // caller gets a more precise staleness check for free.
+  //
+  // `U4-LedgerScreen`'s honesty pattern, applied here rather than reinvented:
+  // `state` (`saved` -> `sent`) and `outcome` (`accepted`/`rejected`/
+  // `countered`/`null`) are two separate fields, `outcome` is never set by
+  // anything but the self-report endpoint below, and `null` is the only
+  // honest resting value — never inferred from `state` or from any other
+  // signal this server can observe.
+  // -------------------------------------------------------------------------
+
+  function isPlainSavedField(value, maxLength) {
+    return typeof value === "string" && value.trim().length > 0 && value.length <= maxLength;
+  }
+
+  async function findSavedItem(userId, candidateId) {
+    const items = await tradeSavedQueueStore.readAll(userId);
+    const index = items.findIndex((item) => item.candidate_id === candidateId);
+    return { items, index, item: index >= 0 ? items[index] : null };
+  }
+
+  /**
+   * Re-derives the position-level need snapshot the item was saved with
+   * against a live roster read, reusing the exact `ROSTER_READERS` this
+   * file's own `/roster` route already exposes — no new roster-fetch logic.
+   * Answers `unknown` (never a guess) whenever the context needed to do a
+   * live read isn't available.
+   */
+  async function stalenessForItem(item, { userId, queryPlatform, queryLeagueId, queryTeamId, week }) {
+    const platform = item.platform || queryPlatform;
+    const leagueId = item.league_id || queryLeagueId;
+    const teamId = item.team_id || queryTeamId;
+    const position = item.reasoning?.user_receives?.position;
+    const savedNeed = item.reasoning?.user_receives?.need;
+
+    if (!platform || !VALID_CONTEXT_PLATFORMS.has(platform) || !leagueId || !teamId || !position || !savedNeed) {
+      return { status: "unknown", reason: "insufficient_context_for_staleness_check" };
+    }
+
+    try {
+      const result = await ROSTER_READERS[platform]({ userId, leagueId, week });
+      if (result.status !== "ok") {
+        return { status: "unknown", reason: "insufficient_context_for_staleness_check" };
+      }
+      const ownTeam = result.teams.find((team) => team.team_id === String(teamId));
+      if (!ownTeam) {
+        return { status: "unknown", reason: "insufficient_context_for_staleness_check" };
+      }
+      const liveNeed = currentNeedFor({
+        position,
+        rosterPositions: result.roster_positions,
+        players: ownTeam.players,
+      });
+      return computeStaleness({ savedNeed, liveNeed });
+    } catch (e) {
+      logger.warn("Trade saved queue staleness check failed; reporting unknown rather than guessing", { err: e.message });
+      return { status: "unknown", reason: "insufficient_context_for_staleness_check" };
+    }
+  }
+
+  function serializeSavedItem(item, staleInfo) {
+    return {
+      candidate_id: item.candidate_id,
+      reasoning: item.reasoning,
+      give: item.give ?? null,
+      receive: item.receive ?? null,
+      opponent_team_id: item.opponent_team_id ?? null,
+      opponent_team_name: item.opponent_team_name ?? null,
+      state: item.state,
+      outcome: item.outcome ?? null,
+      saved_at: item.saved_at,
+      sent_at: item.sent_at ?? null,
+      outcome_reported_at: item.outcome_reported_at ?? null,
+      staleness: staleInfo,
+    };
+  }
+
+  /**
+   * `POST /api/trade/saved` — the documented save-action interface's real
+   * endpoint: `save_action(candidate_id, reasoning) -> { status: "saved" |
+   * "error" }`.
+   */
+  router.post("/saved", async (req, res, next) => {
+    try {
+      let user;
+      try {
+        user = await authenticate(req.headers.authorization);
+      } catch {
+        user = null;
+      }
+      if (!user?.id) {
+        return res.status(401).json({ status: "error", code: "trade_saved_auth_required" });
+      }
+
+      const body = isPlainObject(req.body) ? req.body : {};
+      const candidateId = body.candidate_id;
+      if (!isPlainSavedField(candidateId, MAX_CANDIDATE_ID_LENGTH)) {
+        return res.status(400).json({ status: "error", code: "trade_saved_candidate_id_required" });
+      }
+      if (!isPlainObject(body.reasoning)) {
+        return res.status(400).json({ status: "error", code: "trade_saved_reasoning_required" });
+      }
+      if (jsonByteLength(body.reasoning) > MAX_SAVED_REASONING_BYTES) {
+        return res.status(413).json({ status: "error", code: "trade_saved_reasoning_too_large" });
+      }
+      if (containsSensitiveField(body)) {
+        return res.status(400).json({ status: "error", code: "trade_saved_sensitive_field" });
+      }
+      const platform = body.platform == null ? null : String(body.platform).toLowerCase();
+      if (platform != null && !VALID_CONTEXT_PLATFORMS.has(platform)) {
+        return res.status(400).json({ status: "error", code: "trade_saved_invalid_platform" });
+      }
+
+      let items;
+      try {
+        items = await tradeSavedQueueStore.readAll(user.id);
+      } catch (e) {
+        return res.status(503).json({ status: "error", code: e.code || "trade_saved_queue_storage_unavailable" });
+      }
+
+      const alreadySaved = items.some((item) => item.candidate_id === candidateId);
+      if (!alreadySaved) {
+        // Reasoning is retained VERBATIM from this first save — a later save
+        // of the same candidate_id (e.g. a retried/duplicate client call)
+        // must never regenerate or overwrite it (spec: "the user is
+        // reviewing the reasoning that made them save it, not a refreshed
+        // opinion that may have changed").
+        items.push({
+          candidate_id: candidateId,
+          reasoning: body.reasoning,
+          give: isPlainObject(body.give) ? sanitizePlayer(body.give) : null,
+          receive: isPlainObject(body.receive) ? sanitizePlayer(body.receive) : null,
+          opponent_team_id: body.opponent_team_id != null ? truncateString(body.opponent_team_id, MAX_CANDIDATE_ID_LENGTH) : null,
+          opponent_team_name: body.opponent_team_name != null ? truncateString(body.opponent_team_name, 120) : null,
+          platform,
+          league_id: body.league_id != null ? truncateString(body.league_id, MAX_LEAGUE_ID_LENGTH) : null,
+          team_id: body.team_id != null ? truncateString(body.team_id, MAX_CANDIDATE_ID_LENGTH) : null,
+          state: "saved",
+          outcome: null,
+          saved_at: now().toISOString(),
+          sent_at: null,
+          outcome_reported_at: null,
+        });
+
+        try {
+          await tradeSavedQueueStore.writeAll(user.id, items);
+        } catch (e) {
+          return res.status(503).json({ status: "error", code: e.code || "trade_saved_queue_storage_unavailable" });
+        }
+      }
+
+      return res.status(200).json({ status: "saved" });
+    } catch (e) {
+      return next(e);
+    }
+  });
+
+  /**
+   * `GET /api/trade/saved?platform=&league_id=&team_id=&week=` ->
+   * `trade-saved-queue.v1`. The user's saved candidates, each carrying its
+   * verbatim reasoning, its `saved` -> `sent` -> self-reported-`outcome`
+   * state, and an honest staleness read.
+   */
+  router.get("/saved", async (req, res, next) => {
+    try {
+      let user;
+      try {
+        user = await authenticate(req.headers.authorization);
+      } catch {
+        user = null;
+      }
+      if (!user?.id) {
+        return res.status(401).json({ status: "error", code: "trade_saved_auth_required" });
+      }
+
+      let items;
+      try {
+        items = await tradeSavedQueueStore.readAll(user.id);
+      } catch (e) {
+        return res.status(503).json({ status: "error", code: e.code || "trade_saved_queue_storage_unavailable" });
+      }
+
+      const queryPlatform = req.query.platform == null ? null : String(req.query.platform).toLowerCase();
+      const queryLeagueId = req.query.league_id == null ? null : String(req.query.league_id);
+      const queryTeamId = req.query.team_id == null ? null : String(req.query.team_id);
+      let week = parseInt(req.query.week, 10);
+      if (!Number.isFinite(week) || week < 1) {
+        week = nflWeekContext(now())?.week || 1;
+      }
+
+      const serialized = await Promise.all(items.map(async (item) => {
+        const staleInfo = await stalenessForItem(item, {
+          userId: user.id,
+          queryPlatform,
+          queryLeagueId,
+          queryTeamId,
+          week,
+        });
+        return serializeSavedItem(item, staleInfo);
+      }));
+
+      return res.json({
+        contract_version: TRADE_SAVED_QUEUE_CONTRACT,
+        status: "ok",
+        items: serialized,
+      });
+    } catch (e) {
+      return next(e);
+    }
+  });
+
+  /**
+   * `POST /api/trade/saved/:candidateId/sent` — the user confirms they did
+   * the provider handoff. Idempotent: calling it again on an already-`sent`
+   * candidate is a no-op success, never an error.
+   */
+  router.post("/saved/:candidateId/sent", async (req, res, next) => {
+    try {
+      let user;
+      try {
+        user = await authenticate(req.headers.authorization);
+      } catch {
+        user = null;
+      }
+      if (!user?.id) {
+        return res.status(401).json({ status: "error", code: "trade_saved_auth_required" });
+      }
+
+      const candidateId = req.params.candidateId;
+      let items;
+      let index;
+      let item;
+      try {
+        ({ items, index, item } = await findSavedItem(user.id, candidateId));
+      } catch (e) {
+        return res.status(503).json({ status: "error", code: e.code || "trade_saved_queue_storage_unavailable" });
+      }
+      if (!item) {
+        return res.status(404).json({ status: "error", code: "trade_saved_not_found" });
+      }
+
+      if (item.state !== "sent") {
+        items[index] = { ...item, state: "sent", sent_at: now().toISOString() };
+        try {
+          await tradeSavedQueueStore.writeAll(user.id, items);
+        } catch (e) {
+          return res.status(503).json({ status: "error", code: e.code || "trade_saved_queue_storage_unavailable" });
+        }
+      }
+
+      return res.json({ status: "sent", candidate_id: candidateId, sent_at: items[index].sent_at });
+    } catch (e) {
+      return next(e);
+    }
+  });
+
+  /**
+   * `POST /api/trade/saved/:candidateId/outcome` — self-report only. The
+   * server never infers an outcome from any signal it can observe (the
+   * spec's own rule); this is the only path that can ever set one, it only
+   * accepts the three approved values, and it refuses to fire before the
+   * user has confirmed the handoff via `/sent` — self-reporting an outcome
+   * for a trade never actually sent would itself be a fabricated claim.
+   */
+  router.post("/saved/:candidateId/outcome", async (req, res, next) => {
+    try {
+      let user;
+      try {
+        user = await authenticate(req.headers.authorization);
+      } catch {
+        user = null;
+      }
+      if (!user?.id) {
+        return res.status(401).json({ status: "error", code: "trade_saved_auth_required" });
+      }
+
+      const outcome = isPlainObject(req.body) ? req.body.outcome : null;
+      if (!VALID_OUTCOME_SET.has(outcome)) {
+        return res.status(400).json({ status: "error", code: "trade_saved_invalid_outcome" });
+      }
+
+      const candidateId = req.params.candidateId;
+      let items;
+      let index;
+      let item;
+      try {
+        ({ items, index, item } = await findSavedItem(user.id, candidateId));
+      } catch (e) {
+        return res.status(503).json({ status: "error", code: e.code || "trade_saved_queue_storage_unavailable" });
+      }
+      if (!item) {
+        return res.status(404).json({ status: "error", code: "trade_saved_not_found" });
+      }
+      if (item.state !== "sent") {
+        return res.status(409).json({ status: "error", code: "trade_saved_not_sent" });
+      }
+
+      items[index] = { ...item, outcome, outcome_reported_at: now().toISOString() };
+      try {
+        await tradeSavedQueueStore.writeAll(user.id, items);
+      } catch (e) {
+        return res.status(503).json({ status: "error", code: e.code || "trade_saved_queue_storage_unavailable" });
+      }
+
+      return res.json({ status: "ok", candidate_id: candidateId, outcome });
     } catch (e) {
       return next(e);
     }

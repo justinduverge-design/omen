@@ -7,8 +7,10 @@
 -- production (see `Direction/2026-10-01-league-connections-review.md`, finding 10).
 --
 -- Last production migration at the time of the read: 20260930022039
--- `moves_league_scope_platform_league_id`. If production gains a migration after that, regenerate this
--- file before rehearsing anything; `verify_snapshot.sql` compares a rehearsal database against the
+-- `moves_league_scope_platform_league_id`. Since then, 2026-10-02: the seven `league_office_*` tables
+-- were dropped (`sql/applied/2026-10-02_drop_league_office.sql`) and removed here and from the fixture.
+-- Last production migration now: 20261002231212 `drop_league_office`. If production gains another
+-- migration, regenerate this file before rehearsing anything; `verify_snapshot.sql` compares a rehearsal database against the
 -- column/constraint inventory recorded below.
 --
 -- Run after 00a_scratch_supabase_shim.sql. Objects are created as the `postgres` role, as in
@@ -43,116 +45,6 @@ create table public.deletion_audit_log (
   user_id_hash text not null,
   deleted_at   timestamptz default now(),
   method       text default 'user_requested'
-);
-
-create table public.league_office_accolades (
-  id            uuid primary key default gen_random_uuid(),
-  user_id       uuid not null references public.users(id) on delete cascade,
-  league_id     text not null,
-  season        integer not null,
-  accolade_name text not null,
-  payout        numeric not null default 0,
-  recipient     text,
-  result_value  text,
-  paid          boolean not null default false,
-  paid_at       timestamptz,
-  notes         text,
-  constraint league_office_accolades_user_id_league_id_season_accolade_n_key unique (user_id, league_id, season, accolade_name)
-);
-
-create table public.league_office_awards (
-  id             uuid primary key default gen_random_uuid(),
-  user_id        uuid not null references public.users(id) on delete cascade,
-  league_id      text not null,
-  season         integer not null,
-  week           integer not null,
-  award_name     text not null check (award_name = any (array['Top Performer'::text, 'Pickup of the Week'::text, 'Drop of the Week'::text])),
-  executive_name text,
-  detail         text,
-  evidence       text,
-  created_at     timestamptz not null default now()
-);
-
-create table public.league_office_executives (
-  id                 uuid primary key default gen_random_uuid(),
-  user_id            uuid not null references public.users(id) on delete cascade,
-  league_id          text not null,
-  season             integer not null,
-  executive_name     text not null,
-  platform_team_id   text,
-  platform_team_name text,
-  owner_display_name text,
-  created_at         timestamptz not null default now(),
-  updated_at         timestamptz not null default now(),
-  constraint league_office_executives_user_id_league_id_season_executive_key unique (user_id, league_id, season, executive_name)
-);
-
-create table public.league_office_lines (
-  id                 uuid primary key default gen_random_uuid(),
-  user_id            uuid not null references public.users(id) on delete cascade,
-  league_id          text not null,
-  season             integer not null,
-  week               integer not null,
-  game_id            text not null,
-  favorite_team_id   text,
-  spread             numeric,
-  favorite_moneyline integer,
-  underdog_moneyline integer,
-  over_under         numeric,
-  locked_at          timestamptz not null default now(),
-  selection_reason   text
-);
-
-create table public.league_office_matchups (
-  id              uuid primary key default gen_random_uuid(),
-  user_id         uuid not null references public.users(id) on delete cascade,
-  platform        text not null,
-  league_id       text not null,
-  season          integer not null,
-  week            integer not null,
-  game_id         text not null,
-  home_team_id    text not null,
-  home_team_name  text,
-  home_owner_name text,
-  home_score      numeric,
-  home_projected  numeric,
-  away_team_id    text not null,
-  away_team_name  text,
-  away_owner_name text,
-  away_score      numeric,
-  away_projected  numeric,
-  status          text not null check (status = any (array['pregame'::text, 'live'::text, 'final'::text])),
-  winner_team_id  text,
-  source_verified boolean not null default true,
-  synced_at       timestamptz not null default now(),
-  constraint league_office_matchups_league_game_key unique (platform, league_id, season, week, game_id)
-);
-
-create table public.league_office_rivalries (
-  id          uuid primary key default gen_random_uuid(),
-  user_id     uuid not null references public.users(id) on delete cascade,
-  league_id   text not null,
-  season      integer not null,
-  executive_a text not null,
-  executive_b text not null,
-  priority    integer not null default 1,
-  created_at  timestamptz not null default now(),
-  constraint league_office_rivalries_user_id_league_id_season_executive__key unique (user_id, league_id, season, executive_a, executive_b)
-);
-
-create table public.league_office_sync_jobs (
-  id           uuid primary key default gen_random_uuid(),
-  user_id      uuid not null references public.users(id) on delete cascade,
-  platform     text not null check (platform = any (array['espn'::text, 'sleeper'::text, 'yahoo'::text])),
-  league_id    text not null,
-  season       integer not null,
-  week         integer not null check (week >= 1 and week <= 25),
-  status       text not null default 'queued' check (status = any (array['queued'::text, 'running'::text, 'completed'::text, 'failed'::text])),
-  error_code   text,
-  created_at   timestamptz not null default now(),
-  started_at   timestamptz,
-  completed_at timestamptz,
-  constraint league_office_sync_jobs_league_week_key unique (platform, league_id, season, week)
 );
 
 create table public.moves (
@@ -230,14 +122,6 @@ create table public.waitlist_signups (
 -- Indexes (beyond the ones constraints create) ---------------------------------------------------
 
 create index idx_consent_records_user_id on public.consent_records (user_id);
-create index idx_league_office_awards_user_id on public.league_office_awards (user_id);
-create unique index league_office_awards_league_week_name_key on public.league_office_awards (league_id, season, week, award_name);
-create index idx_league_office_lines_user_id on public.league_office_lines (user_id);
-create unique index league_office_lines_league_week_game_key on public.league_office_lines (league_id, season, week, game_id);
-create index idx_league_office_matchups_league_week on public.league_office_matchups (platform, league_id, season, week);
-create index idx_league_office_matchups_lookup on public.league_office_matchups (user_id, league_id, season, week);
-create index idx_league_office_sync_jobs_status on public.league_office_sync_jobs (status, created_at);
-create index idx_league_office_sync_jobs_user_id on public.league_office_sync_jobs (user_id);
 create index idx_moves_pending on public.moves (outcome) where (outcome = 'pending'::text);
 create index idx_moves_user_week on public.moves (user_id, week_num, season);
 create unique index idx_moves_user_week_unique on public.moves (user_id, week_num, season);

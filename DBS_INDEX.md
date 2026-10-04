@@ -96,9 +96,9 @@ The app may have extra source, config, and test folders. Those do not replace th
 
 ## Read First
 
-**All work** starts with `AGENTS.md` (or `CLAUDE.md` / `AGENT.md` for the
-runtime you are), then `RESOLVER.md`, `Direction/context.md`, `Direction/agent_inbox.md`,
-`Direction/current_sprint.md`, `Direction/facts-of-record.md`.
+**All work** starts with `CLAUDE.md` (or `AGENTS.md` / `AGENT.md` for the runtime you
+are), then `Direction/map.md` and `Direction/agent_inbox.md`. The map's routing table says what
+else to read for the task.
 
 **Native mobile work** — the primary surface. Read the native mobile read gate in
 `CLAUDE.md` before planning or writing code. Do not start native feature work

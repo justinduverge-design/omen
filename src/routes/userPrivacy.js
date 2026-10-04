@@ -6,6 +6,7 @@ const { createClient } = require("@supabase/supabase-js");
 const config = require("../config");
 const { logger } = require("../middleware/logging");
 const { requireAuth } = require("../middleware/auth");
+const { isMissingFunction } = require("../services/connectionStore");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
@@ -53,12 +54,17 @@ function redactPlatformConnection(row = {}) {
   };
 }
 
+// Tables a redo step adds (09 beta_reports, 12 saved_trades): until the step is applied, there is nothing
+// to export or delete, so a missing table reads as empty instead of failing the request.
+const NOT_YET_APPLIED_TABLES = new Set(["beta_reports", "saved_trades"]);
+const MISSING_TABLE_CODES = new Set(["42P01", "PGRST205"]);
+
 async function selectRows(table, columns, userId) {
   const { data, error } = await supabase
     .from(table)
     .select(columns)
     .eq("user_id", userId);
-  if (table === "beta_reports" && ["42P01", "PGRST205"].includes(error?.code)) return [];
+  if (NOT_YET_APPLIED_TABLES.has(table) && MISSING_TABLE_CODES.has(error?.code)) return [];
   if (error) throw new Error(`${table} export failed: ${error.message}`);
   return Array.isArray(data) ? data : [];
 }
@@ -75,7 +81,7 @@ async function selectUserProfile(userId) {
 
 async function deleteWhereUserId(table, userId) {
   const { error } = await supabase.from(table).delete().eq("user_id", userId);
-  if (table === "beta_reports" && ["42P01", "PGRST205"].includes(error?.code)) return;
+  if (NOT_YET_APPLIED_TABLES.has(table) && MISSING_TABLE_CODES.has(error?.code)) return;
   if (error) throw new Error(`${table} delete failed: ${error.message}`);
 }
 
@@ -116,7 +122,9 @@ router.get("/export", requireAuth, async (req, res, next) => {
       platformRows,
       consentRows,
       moveRows,
+      decisionRows,
       reportRows,
+      savedTradeRows,
     ] = await Promise.all([
       selectUserProfile(userId),
       selectRows(
@@ -125,18 +133,22 @@ router.get("/export", requireAuth, async (req, res, next) => {
         userId
       ),
       selectRows("consent_records", "consent_type,granted,granted_at,withdrawn_at,ip_address,user_agent", userId),
-      selectRows("moves", "id,feature,move_type,created_at,updated_at", userId),
+      selectRows("moves", "id,platform,league_id,season,week_num,move_type,headline,reasoning,confidence,target_player,followed,outcome,user_stars,user_note,created_at", userId),
+      selectRows("decisions", "id,league_id,provider_team_id,season,week,call_type,headline,summary,recommendation,band,risk_level,risk_reasons,scoring_format,issued_at,created_at", userId),
       selectRows("beta_reports", "id,message,screen,app_version,build,os_version,device_model,connection_state,recent_error_codes,disclosure_accepted,created_at,expires_at", userId),
+      selectRows("saved_trades", "provider,provider_league_id,season,week,provider_team_id,candidate_id,trade,reasoning,state,outcome,outcome_provenance,saved_at,sent_at,outcome_at", userId),
     ]);
 
     return res.json({
-      contract_version: "user-export.v1",
+      contract_version: "user-export.v2",
       generated_at: new Date().toISOString(),
       user: profile,
       platform_connections: platformRows.map(redactPlatformConnection),
       consent_records: consentRows,
       moves: moveRows,
+      decisions: decisionRows,
       beta_reports: reportRows,
+      saved_trades: savedTradeRows,
       redactions: [
         "Raw OAuth tokens are excluded.",
         "ESPN cookies are excluded.",
@@ -220,36 +232,26 @@ router.delete("/delete", requireAuth, require("../services/responseCache").inval
     }
 
     const userId = req.user.id;
-    const { data: platformRows, error: platformError } = await supabase
-      .from("platform_connections")
-      .select("token_secret_id,refresh_secret_id,espn_secret_id,swid_secret_id")
-      .eq("user_id", userId);
-    if (platformError) throw new Error(`platform_connections lookup failed: ${platformError.message}`);
 
-    const secretIds = new Set();
-    for (const row of platformRows || []) {
-      for (const key of ["token_secret_id", "refresh_secret_id", "espn_secret_id", "swid_secret_id"]) {
-        if (row[key]) secretIds.add(row[key]);
-      }
-    }
-    await Promise.all([...secretIds].map(deleteVaultSecret));
-
-    await Promise.all([
-      deleteWhereUserId("moves", userId),
-      deleteWhereUserId("beta_reports", userId),
-      deleteWhereUserId("platform_connections", userId),
-      deleteWhereUserId("oauth_state", userId),
-      deleteWhereUserId("consent_records", userId),
-    ]);
-
-    const { error: auditError } = await supabase.from("deletion_audit_log").insert({
-      user_id_hash: userHash(userId),
-      method: "user_requested",
+    // One transaction for everything Omen holds (redo step 10). It waits for any connect in flight,
+    // deletes every Vault secret or nothing, erases the Ledger, writes the audit row and removes the
+    // users row. Today's table-by-table path stays until the function is applied.
+    const { data: erased, error: eraseError } = await supabase.rpc("account_erase", {
+      p_user_id: userId,
+      p_method: "user_requested",
     });
-    if (auditError) throw new Error(`deletion audit insert failed: ${auditError.message}`);
-
-    const { error: userError } = await supabase.from("users").delete().eq("id", userId);
-    if (userError) throw new Error(`users delete failed: ${userError.message}`);
+    if (eraseError && !isMissingFunction(eraseError)) {
+      throw new Error(`account_erase failed (${eraseError.code || "unknown"})`);
+    }
+    // The function cleans a sign-in with no app row itself, under its lock (Codex, #534), and reports a
+    // repeat request as already_erased; the legacy cleanup runs only when the function is missing or is
+    // the earlier version that returned no_such_user.
+    if (eraseError || (erased?.erased === false && erased.reason !== "already_erased")) {
+      // Function not applied yet, or no app user row. A sign-in without an app row can still own rows
+      // keyed to the auth user (consent from /legal-acceptance, OAuth state), so clean those up before
+      // the audit row records the deletion (Codex, #526).
+      await eraseAccountLegacy(userId);
+    }
 
     const { error: authError } = await supabase.auth.admin.deleteUser(userId);
     if (authError) throw new Error(`auth identity delete failed: ${authError.message}`);
@@ -265,6 +267,44 @@ router.delete("/delete", requireAuth, require("../services/responseCache").inval
     return next(err);
   }
 });
+
+async function insertDeletionAudit(userId) {
+  const { error } = await supabase.from("deletion_audit_log").insert({
+    user_id_hash: userHash(userId),
+    method: "user_requested",
+  });
+  if (error) throw new Error(`deletion audit insert failed: ${error.message}`);
+}
+
+// Today's deletion, kept until redo steps 05 and 10 are applied. Each call commits on its own.
+async function eraseAccountLegacy(userId) {
+  const { data: platformRows, error: platformError } = await supabase
+    .from("platform_connections")
+    .select("token_secret_id,refresh_secret_id,espn_secret_id,swid_secret_id")
+    .eq("user_id", userId);
+  if (platformError) throw new Error(`platform_connections lookup failed: ${platformError.message}`);
+
+  const secretIds = new Set();
+  for (const row of platformRows || []) {
+    for (const key of ["token_secret_id", "refresh_secret_id", "espn_secret_id", "swid_secret_id"]) {
+      if (row[key]) secretIds.add(row[key]);
+    }
+  }
+  await Promise.all([...secretIds].map(deleteVaultSecret));
+
+  await Promise.all([
+    deleteWhereUserId("moves", userId),
+    deleteWhereUserId("beta_reports", userId),
+    deleteWhereUserId("platform_connections", userId),
+    deleteWhereUserId("oauth_state", userId),
+    deleteWhereUserId("consent_records", userId),
+  ]);
+
+  await insertDeletionAudit(userId);
+
+  const { error: userError } = await supabase.from("users").delete().eq("id", userId);
+  if (userError) throw new Error(`users delete failed: ${userError.message}`);
+}
 
 module.exports = router;
 module.exports.DELETE_CONFIRMATION = DELETE_CONFIRMATION;

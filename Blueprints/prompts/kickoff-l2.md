@@ -71,37 +71,15 @@ Read in order before acting:
   node scripts/check-kickoff-drift.js enforces it. Change one, change both.
 
   ALWAYS-READ CORE
-  Revised 2026-09-12: this core cost ~166,000 tokens and now costs ~50,000.
-  Three files carried it. decision_log.md left the list entirely;
-  current_sprint.md and known_issues.md were split. A bootstrap that large
-  competes with the work.
-   1. AGENTS.md            shared root posture, ownership, safety
-   2. AGENT.md             Codex-specific extension of AGENTS.md.
-                           AGENTS.md (with S) is the shared one; AGENT.md
-                           extends it. One letter apart, easy to invert.
-   3. RESOLVER.md          where a new file belongs, before you create one
-   4. Direction/context.md
-   5. Direction/agent_inbox.md      <- a pin wins over the queue
-   6. Direction/current_sprint.md   <- lane queue when there is no pin.
-                                       ACTIVE items only; terminal items point
-                                       into Direction/sprint-verified-detail.md
-   7. Direction/status-model.md     states, Claim:/Evidence:, blocker grammar
-   8. Direction/facts-of-record.md
-   9. Direction/known_issues.md     OPEN bugs. Fixed ones live in
-                                    Direction/known_issues-resolved.md
+  Revised 2026-10-03: the cold start was ~92,000 tokens and is now two files.
+  Everything else is pulled by the routing table in the map, per task.
+   1. Direction/map.md
+   2. Direction/agent_inbox.md
 
-  READ BEFORE YOU PLAN
-  10. Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md
-  11. Blueprints/definition-of-done.md
-  12. Blueprints/playbooks/omen-company-baseline.md
-  13. Blueprints/playbooks/skill-activation-runbook.md
-  14. Latest entry in Blueprints/handoffs/
-
-  Direction/decision_log.md is NOT read up front as of 2026-09-12. It is a
-  reference, not a briefing: nothing about picking up a task requires every
-  decision ever made, and at ~93,000 tokens it was 56% of the cold start.
-  Read the entry that governs what you are touching. You still WRITE to it at
-  close-out. If you are about to re-decide something, go read it.
+  Codex also reads AGENT.md (its runtime extension of AGENTS.md).
+  Direction/decision_log.md, the ledgers and Direction/shipped.md are records,
+  not briefings: search them, never load them whole. You still WRITE to the
+  decision log at close-out. If you are about to re-decide something, go read it.
 
 	The Slops skills are INVOCABLE BY NAME. Do not read them as files and do not
 	copy one into this repo. The local .claude/skills/ directory is linker output;
@@ -161,22 +139,24 @@ Then run, in order:
 3. BUILD — once the founder confirms.
 
 4. DONE & CLOSE
+   - Review your diff in a fresh agent BEFORE opening the PR (slops-code-review);
+     ask Codex (@codex review) only for database, user-data, auth/credential or
+     billing changes. Never merge past an open P0/P1.
    - Satisfy Blueprints/definition-of-done.md (per-type DoD).
    - Set Status: VERIFIED on the item in Direction/current_sprint.md and
      record its Evidence: pointer.
    - Log decisions in Direction/decision_log.md.
-   - Append a row to Blueprints/playbooks/skill-usage-ledger.md (invoked +
-     considered-but-skipped skills, with evidence pointer).
-   - Write a dated handoff in Blueprints/handoffs/YYYY-MM-DD-<task>.md.
-   - Append to Blueprints/done/LEDGER.md. Entries you append TODAY cite
-     repo-relative paths that resolve today (Blueprints/done/LEDGER.md, not
-     done/LEDGER.md). Old entries are history and stay as written.
+   - Add one line to Blueprints/playbooks/skill-usage-log.md (skills invoked,
+     skipped and why). The old ledgers are history: do not append to them.
+   - Write a dated handoff in Blueprints/handoffs/YYYY-MM-DD-<task>.md only
+     when the work continues in another session.
    - Run the gates. A P0 BLOCKS YOUR OWN CLOSE-OUT. An unrun check is not a
      passing check; in a standalone clone without L0, say the gate did not run.
        node scripts/check-sprint-staleness.js
        node ../../Blueprints/tools/truth-gate/truth-gate.mjs --quiet
        node ../../Blueprints/tools/valor-brain/validate.mjs
        node scripts/check-kickoff-drift.js
+       node scripts/harness-cost.js
 
 	Begin now: run STEP 0, then STEP 0.1, then read the files above, then run
 	PULL TASK immediately unless the founder's message already names the task.

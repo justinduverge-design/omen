@@ -154,3 +154,9 @@ The Phase 4 readiness contract is `Blueprints/specs/football-data/omen-football-
   implementation of this rule.
 - **Never auto-fix a record.** Whether a `Done when:` clause was genuinely met is a human
   call; several items are legitimately held open after merging.
+
+## Status — what is done
+
+| Script | What it does | Safe to run? |
+|---|---|---|
+| [`shipped.js`](shipped.js) | Regenerates `Direction/shipped.md` from GitHub: open PRs, and merged PRs grouped by area (`--since YYYY-MM-DD`, `--stdout`). The answer to "what have we shipped" without a hand-kept list. | Yes — read-only against GitHub; writes only that one file |

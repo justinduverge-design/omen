@@ -361,7 +361,7 @@ test("ESPN fan-directory incidents redact the SWID embedded in the path", async 
   }
 
   assert.equal(captures.length, 1);
-  assert.equal(captures[0].hint.extra.path, "/apis/v2/fans/[redacted]");
+  assert.equal(captures[0].hint.extra.path, "/apis/v2/fans/[swid]");
   assertNoCanary(JSON.stringify(captures[0]), "ESPN fan-directory incident");
 });
 

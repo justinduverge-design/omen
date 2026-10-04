@@ -19,7 +19,6 @@ const { Redis } = require("@upstash/redis");
 const config = require("../config");
 const { logger } = require("../middleware/logging");
 const { captureProviderError } = require("../middleware/providerErrors");
-const { leagueOfficeTransactionsFromEspnData } = require("../services/leagueOfficeMessage");
 
 const LAST_RESULT_TTL_S = 21600; // 6h - a completed week's matchup result never changes
 const redis = config.redisUrl
@@ -456,18 +455,10 @@ function makeEspnHeaders(espn_s2, swid, fantasyFilter) {
   };
 }
 
-/**
- * ESPN's failing request is the one carrying espn_s2 and SWID, so this
- * reporter takes only the hostname and the path *before* the query string,
- * and never touches the headers, the cookie jar, or the response body.
- * facts-of-record #6: ESPN cookie values are never logged, displayed, or
- * echoed — anywhere, ever. That includes error reports.
- */
-function safeEspnReportPath(path) {
-  const withoutQuery = String(path || "").split("?")[0];
-  // fan.api league discovery puts the SWID inside the URL path. A path is not
-  // automatically non-sensitive merely because it has no query string.
-  return withoutQuery.replace(/(\/apis\/v2\/fans\/)[^/]+/i, "$1[redacted]");
+// The fan-profile path carries the user's SWID ({GUID}); it and the query string never reach logs or Sentry.
+const SWID_PATTERN = /(\{|%7B)[0-9a-f-]{36}(\}|%7D)/gi;
+function redactEspnPath(path) {
+  return String(path || "").split("?")[0].replace(SWID_PATTERN, "[swid]");
 }
 
 function isEspnReconnectResponse(hostname, status) {
@@ -494,7 +485,7 @@ function reportEspnFailure(operation, error, hostname, path, httpStatus) {
     expected: operation === "auth_rejected",
     context: {
       hostname,
-      path: safeEspnReportPath(path),
+      path: redactEspnPath(path),
       http_status: httpStatus ?? error?.status ?? null,
     },
   });
@@ -524,7 +515,7 @@ function doEspnRequest(hostname, path, espn_s2, swid, redirectsLeft, fantasyFilt
         res.on("data", (chunk) => chunks.push(chunk));
         res.on("end", () => {
           const body = Buffer.concat(chunks).toString("utf8");
-          logger.info(`[espn] ${hostname}${safeEspnReportPath(path)} -> HTTP ${res.statusCode}`);
+          logger.info(`[espn] ${hostname}${redactEspnPath(path)} -> HTTP ${res.statusCode}`);
           if (isEspnReconnectResponse(hostname, res.statusCode)) {
             const err = new Error("ESPN rejected the request — cookies may be invalid or expired");
             err.status = 401;
@@ -1106,110 +1097,11 @@ async function fetchEspnLastResult(leagueId, espn_s2, swid, opts = {}) {
 
 
 /**
- * One `mMatchup` read, kept whole. Deliberately NOT cached: `fetchEspnLastResult` caches a
- * completed week's W/L letter for six hours, which is safe because that never changes. A live
- * matchup's points change every few minutes, so serving them from that cache would show stale
- * scores during the games this section exists to cover.
- */
-function leagueWeekFromEspnData(data, { leagueId, week } = {}) {
-  const teams = Array.isArray(data?.teams) ? data.teams : [];
-  const names = new Map(teams.map((team) => [String(teamId(team)), teamName(team)]));
-  const games = Array.isArray(data?.schedule) ? data.schedule : [];
-  const targetWeek = Number(week);
-
-  return games.flatMap((game) => {
-    const scoringPeriod = Number(game?.matchupPeriodId ?? game?.scoringPeriodId);
-    if (Number.isFinite(targetWeek) && Number.isFinite(scoringPeriod) && scoringPeriod !== targetWeek) return [];
-
-    const home = game?.home || null;
-    const away = game?.away || null;
-    const homeId = espnMatchupTeamId(home);
-    const awayId = espnMatchupTeamId(away);
-    if (!homeId || !awayId) return [];
-
-    const winner = game?.winner;
-    const decided = winner === "HOME" || winner === "AWAY";
-    const homeScore = espnMatchupPoints(home);
-    const awayScore = espnMatchupPoints(away);
-    const noPointsYet = (homeScore ?? 0) === 0 && (awayScore ?? 0) === 0;
-
-    return [{
-      game_id: game?.id ? String(game.id) : `${leagueId}:${week}:${homeId}:${awayId}`,
-      home_team_id: homeId,
-      home_team_name: names.get(homeId) || null,
-      home_owner_name: null,
-      home_score: homeScore,
-      home_projected: espnMatchupProjected(home, week),
-      away_team_id: awayId,
-      away_team_name: names.get(awayId) || null,
-      away_owner_name: null,
-      away_score: awayScore,
-      away_projected: espnMatchupProjected(away, week),
-      status: decided ? "final" : noPointsYet ? "pregame" : "live",
-      winner_team_id: decided ? (winner === "HOME" ? homeId : awayId) : null,
-      source_verified: true,
-    }];
-  });
-}
-
-
-
-async function fetchEspnLeagueOfficeTransactions(leagueId, espn_s2, swid, opts = {}) {
-  const week = Number(opts.week || opts.scoringPeriodId || 1);
-  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTransactions2"], week, opts);
-  return leagueOfficeTransactionsFromEspnData(data);
-}
-
-function leagueOfficePlayersFromEspnData(data, week) {
-  const rows = [];
-  const names = new Map((Array.isArray(data?.teams) ? data.teams : []).map((team) => [teamId(team), teamName(team)]));
-  const games = Array.isArray(data?.schedule) ? data.schedule : [];
-
-  // Completed matchup payloads preserve the roster for that scoring period. Prefer them over
-  // mRoster, which can describe today's roster and therefore lose a player who was dropped
-  // after the week being summarized.
-  for (const game of games) {
-    if (Number(game?.matchupPeriodId ?? game?.scoringPeriodId) !== Number(week)) continue;
-    for (const side of [game?.home, game?.away]) {
-      const tid = espnMatchupTeamId(side);
-      const entries = Array.isArray(side?.rosterForCurrentScoringPeriod?.entries)
-        ? side.rosterForCurrentScoringPeriod.entries
-        : Array.isArray(side?.rosterForMatchupPeriod?.entries)
-          ? side.rosterForMatchupPeriod.entries
-          : [];
-      for (const entry of entries) {
-        const p = normalizePlayer(entry, week);
-        rows.push({ team_id: tid, team_name: names.get(tid) || null, player_id: p.player_id, player_name: p.name, actual_points: p.actual_points, selected_position: p.selected_position });
-      }
-    }
-  }
-  if (rows.length) return rows;
-
-  // Defensive fallback for ESPN payload variants without matchup rosters.
-  for (const team of (Array.isArray(data?.teams) ? data.teams : [])) {
-    const tid = teamId(team);
-    const tname = teamName(team);
-    for (const entry of rosterEntries(team)) {
-      const p = normalizePlayer(entry, week);
-      rows.push({ team_id: tid, team_name: tname, player_id: p.player_id, player_name: p.name, actual_points: p.actual_points, selected_position: p.selected_position });
-    }
-  }
-  return rows;
-}
-
-async function fetchEspnLeagueOfficePlayers(leagueId, espn_s2, swid, opts = {}) {
-  const week = Number(opts.week || opts.scoringPeriodId || 1);
-  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTeam", "mMatchup", "mMatchupScore"], week, opts);
-  return leagueOfficePlayersFromEspnData(data, week);
-}
-
-/**
  * Every team's roster for a week, from the same `mMatchup`+`mMatchupScore` read
  * `fetchEspnMatchup` already makes for the caller's own matchup. ESPN's response
  * (`data.schedule`) already carries every game that week, home and away, each side
  * with its own roster — `matchupFromEspnSchedule` just stops after finding the
- * caller's own game. This walks the whole thing instead, the same way
- * `leagueOfficePlayersFromEspnData` above already does for the league-office view.
+ * caller's own game. This walks the whole thing instead.
  *
  * Used by Trade's opponent-roster read (`GET /api/trade/roster`). No new ESPN
  * surface, no new auth — same authenticated call, same session.
@@ -1241,7 +1133,7 @@ function leagueRostersFromEspnSchedule(data, week) {
     }
   }
 
-  // Defensive fallback, mirroring `leagueOfficePlayersFromEspnData`'s: a payload variant
+  // Defensive fallback: a payload variant
   // (or a bye week with no schedule entry) that carries teams but no matchup rosters still
   // yields whatever `mTeam` itself has, rather than dropping that team silently.
   for (const team of teams) {
@@ -1265,19 +1157,6 @@ async function fetchEspnLeagueRosters(leagueId, espn_s2, swid, opts = {}) {
   const week = Number(opts.week || opts.scoringPeriodId || 1);
   const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTeam", "mMatchup", "mMatchupScore"], week, opts);
   return leagueRostersFromEspnSchedule(data, week);
-}
-
-async function fetchEspnLeagueWeek(leagueId, espn_s2, swid, opts = {}) {
-  const scoringPeriodId = Number(opts.week || opts.scoringPeriodId || 1);
-  const data = await fetchEspnApi(
-    leagueId,
-    espn_s2,
-    swid,
-    ["mTeam", "mMatchup", "mMatchupScore"],
-    scoringPeriodId,
-    opts
-  );
-  return leagueWeekFromEspnData(data, { leagueId, week: scoringPeriodId });
 }
 
 async function fetchEspnMatchup(leagueId, espn_s2, swid, opts = {}) {
@@ -1392,6 +1271,7 @@ async function fetchEspnFanLeagues(espn_s2, swid, opts = {}) {
 }
 
 module.exports = {
+  redactEspnPath,
   // Exported for scripts/probe-espn-waiver-settings.js (spec Phase 0, ESPN).
   fetchEspnApi,
   espnScoringRules,
@@ -1406,14 +1286,8 @@ module.exports = {
   fetchEspnWaiverPool,
   fetchEspnLastResult,
   fetchEspnMatchup,
-  fetchEspnLeagueWeek,
-  fetchEspnLeagueOfficePlayers,
-  fetchEspnLeagueOfficeTransactions,
   fetchEspnLeagueRosters,
   leagueRostersFromEspnSchedule,
-  leagueOfficeTransactionsFromEspnData,
-  leagueOfficePlayersFromEspnData,
-  leagueWeekFromEspnData,
   verifyLeagueAccess,
   lastResultFromEspnSchedule,
   matchupFromEspnSchedule,

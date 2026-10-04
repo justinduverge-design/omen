@@ -48,6 +48,8 @@ function getYahooAuthUrl(state) {
   return `${AUTH_URL}?${params.toString()}`;
 }
 
+const TOKEN_REQUEST_TIMEOUT_MS = 10_000;
+
 async function requestToken(body, action) {
   try {
     const { data } = await axios.post(TOKEN_URL, new URLSearchParams(body).toString(), {
@@ -55,6 +57,8 @@ async function requestToken(body, action) {
         Authorization: basicAuthHeader(),
         "Content-Type": "application/x-www-form-urlencoded",
       },
+      // Bounded, so a hung exchange cannot outlive the cross-process refresh claim (Codex, #533).
+      timeout: TOKEN_REQUEST_TIMEOUT_MS,
     });
     return data;
   } catch (error) {

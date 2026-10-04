@@ -54,3 +54,11 @@ jobs:
         run: |
           psql --version
           scripts/db/rehearse-redo.sh
+
+      - name: Credential and erase races leave no orphaned Vault secret
+        env:
+          PGHOST: localhost
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: password
+        run: scripts/db/concurrency-check.sh

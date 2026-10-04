@@ -1,0 +1,127 @@
+{
+  "http_status": 200,
+  "route": "/api/account/export",
+  "body": {
+    "beta_reports": [
+      {
+        "app_version": "1.0",
+        "build": "100",
+        "connection_state": "espn:connected",
+        "created_at": "2026-01-01T00:00:00.000Z",
+        "device_model": "iPhone",
+        "disclosure_accepted": true,
+        "expires_at": "2026-01-01T00:00:00.000Z",
+        "id": "report-1",
+        "message": "owner report",
+        "os_version": "iOS 26.0",
+        "recent_error_codes": [
+          "sample"
+        ],
+        "screen": "command_center",
+        "user_id": "user-1"
+      }
+    ],
+    "consent_records": [
+      {
+        "consent_type": "analytics",
+        "granted": true,
+        "user_id": "user-1"
+      }
+    ],
+    "contract_version": "user-export.v2",
+    "decisions": [
+      {
+        "call_type": "start_sit",
+        "headline": "Start A",
+        "id": "decision-1",
+        "user_id": "user-1"
+      }
+    ],
+    "generated_at": "2026-01-01T00:00:00.000Z",
+    "moves": [
+      {
+        "created_at": "2026-01-01T00:00:00.000Z",
+        "id": "move-1",
+        "move_type": "start_sit",
+        "user_id": "user-1"
+      }
+    ],
+    "platform_connections": [
+      {
+        "created_at": null,
+        "espn_team_id": null,
+        "is_active": true,
+        "league_id": "L1",
+        "platform": "sleeper",
+        "platform_username": "user-1-handle",
+        "token_expires_at": null,
+        "updated_at": null
+      }
+    ],
+    "redactions": [
+      "Raw OAuth tokens are excluded.",
+      "ESPN cookies are excluded.",
+      "Supabase Vault secret identifiers are excluded."
+    ],
+    "saved_trades": [
+      {
+        "candidate_id": "b1.find_x",
+        "outcome": "accepted",
+        "outcome_at": "2026-01-01T00:00:00.000Z",
+        "outcome_provenance": "self_reported",
+        "provider": "sleeper",
+        "provider_league_id": "L1",
+        "provider_team_id": "3",
+        "reasoning": {
+          "fills_need_for": "WR"
+        },
+        "saved_at": "2026-01-01T00:00:00.000Z",
+        "season": 2026,
+        "sent_at": "2026-01-01T00:00:00.000Z",
+        "state": "sent",
+        "trade": {
+          "give": {
+            "player_id": "4984"
+          },
+          "opponent_team_id": "7",
+          "receive": {
+            "player_id": "6794"
+          }
+        },
+        "user_id": "user-1",
+        "week": 5
+      },
+      {
+        "candidate_id": "b3.find_z",
+        "outcome": null,
+        "outcome_at": null,
+        "outcome_provenance": null,
+        "provider": "sleeper",
+        "provider_league_id": "L1",
+        "provider_team_id": "3",
+        "reasoning": {},
+        "saved_at": "2026-01-01T00:00:00.000Z",
+        "season": 2026,
+        "sent_at": null,
+        "state": "saved",
+        "trade": {
+          "give": {
+            "player_id": "11"
+          },
+          "opponent_team_id": "8",
+          "receive": {
+            "player_id": "12"
+          }
+        },
+        "user_id": "user-1",
+        "week": 6
+      }
+    ],
+    "user": {
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "email": "user1@example.com",
+      "id": "user-1",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    }
+  }
+}

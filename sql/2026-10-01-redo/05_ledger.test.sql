@@ -49,6 +49,15 @@ begin
     raise exception 'FAIL 05: the superseded call was not kept';
   end if;
 
+  -- One call per team per week: a second FIRST call for the same team-week is refused (it must supersede).
+  begin
+    insert into public.decisions (user_id, league_id, provider_team_id, season, week, call_type, contract_version, engine_version,
+                                  band, band_drivers, headline, recommendation)
+    values ('00000000-0000-4000-8000-000000000001', espn_league, '3', 2026, 5, 'start_sit', 'v3', 'e', 'leaning', '["x"]', 'h', '{}');
+    raise exception 'FAIL 05: a second current call for the same team and week accepted';
+  exception when unique_violation then null;
+  end;
+
   -- A call can be superseded once, and only by the same team and week.
   begin
     insert into public.decisions (user_id, league_id, provider_team_id, season, week, call_type, contract_version, engine_version,

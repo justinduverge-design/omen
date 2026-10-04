@@ -48,6 +48,9 @@ class FakeQuery {
         this.store[this.table] = remaining;
         return { data: null, error: null, count: removedCount };
       }
+      if (this.store.__missingTables?.has(this.table)) {
+        return { data: null, error: { code: "PGRST205", message: "Could not find the table" } };
+      }
       const rows = this.store[this.table].filter((row) => this._matches(row));
       return { data: rows, error: null };
     }).then(resolve, reject);
@@ -56,6 +59,7 @@ class FakeQuery {
 
 function makeFakeSupabase(store) {
   const adminDeleteCalls = [];
+  const rpcCalls = [];
   return {
     __adminDeleteCalls: adminDeleteCalls,
     auth: {
@@ -86,7 +90,22 @@ function makeFakeSupabase(store) {
         },
       };
     },
-    async rpc(_fn, _args) {
+    __rpcCalls: rpcCalls,
+    async rpc(fn, args) {
+      rpcCalls.push({ fn, args });
+      if (fn === "account_erase") {
+        // Production today: redo step 10 is not applied, so PostgREST reports the function as missing.
+        if (!store.__accountErase) return { data: null, error: { code: "PGRST202", message: "Could not find the function" } };
+        if (store.__accountErase.error) return { data: null, error: store.__accountErase.error };
+        if (store.__accountErase.result) return { data: store.__accountErase.result, error: null };
+        if (!store.users.some((u) => u.id === args.p_user_id)) return { data: { erased: false, reason: "no_such_user" }, error: null };
+        for (const table of ["platform_connections", "moves", "consent_records", "oauth_state", "beta_reports"]) {
+          store[table] = store[table].filter((row) => row.user_id !== args.p_user_id);
+        }
+        store.deletion_audit_log.push({ user_id_hash: "hash-from-function", method: args.p_method });
+        store.users = store.users.filter((u) => u.id !== args.p_user_id);
+        return { data: { erased: true }, error: null };
+      }
       return { error: null };
     },
   };
@@ -107,8 +126,12 @@ function seedStore() {
       { user_id: "user-2", consent_type: "analytics", granted: true },
     ],
     moves: [
-      { user_id: "user-1", id: "move-1", feature: "omen", move_type: "start_sit", created_at: "2026-01-01T00:00:00.000Z" },
-      { user_id: "user-2", id: "move-2", feature: "omen", move_type: "waiver", created_at: "2026-01-01T00:00:00.000Z" },
+      { user_id: "user-1", id: "move-1", move_type: "start_sit", created_at: "2026-01-01T00:00:00.000Z" },
+      { user_id: "user-2", id: "move-2", move_type: "waiver", created_at: "2026-01-01T00:00:00.000Z" },
+    ],
+    decisions: [
+      { user_id: "user-1", id: "decision-1", call_type: "start_sit", headline: "Start A" },
+      { user_id: "user-2", id: "decision-2", call_type: "waiver", headline: "Add B" },
     ],
     beta_reports: [
       {
@@ -146,11 +169,31 @@ function seedStore() {
       { user_id: "user-1", state: "state-1", platform: "yahoo" },
       { user_id: "user-2", state: "state-2", platform: "yahoo" },
     ],
+    saved_trades: [
+      {
+        user_id: "user-1", provider: "sleeper", provider_league_id: "L1", season: 2026, week: 5, provider_team_id: "3",
+        candidate_id: "b1.find_x", trade: { give: { player_id: "4984" }, receive: { player_id: "6794" }, opponent_team_id: "7" },
+        reasoning: { fills_need_for: "WR" }, state: "sent", outcome: "accepted", outcome_provenance: "self_reported",
+        saved_at: "2026-10-01T00:00:00.000Z", sent_at: "2026-10-01T01:00:00.000Z", outcome_at: "2026-10-02T00:00:00.000Z",
+      },
+      {
+        user_id: "user-1", provider: "sleeper", provider_league_id: "L1", season: 2026, week: 6, provider_team_id: "3",
+        candidate_id: "b3.find_z", trade: { give: { player_id: "11" }, receive: { player_id: "12" }, opponent_team_id: "8" },
+        reasoning: {}, state: "saved", outcome: null, outcome_provenance: null,
+        saved_at: "2026-10-01T00:00:00.000Z", sent_at: null, outcome_at: null,
+      },
+      {
+        user_id: "user-2", provider: "sleeper", provider_league_id: "L2", season: 2026, week: 5, provider_team_id: "5",
+        candidate_id: "b2.find_y", trade: { give: { player_id: "1" }, receive: { player_id: "2" }, opponent_team_id: "4" },
+        reasoning: {}, state: "saved", outcome: null, outcome_provenance: null,
+        saved_at: "2026-10-01T00:00:00.000Z", sent_at: null, outcome_at: null,
+      },
+    ],
     deletion_audit_log: [],
   };
 }
 
-function loadUserPrivacyRouter({ store, actingUserId = "user-1" } = {}) {
+function loadUserPrivacyRouter({ store, actingUserId = "user-1", fakeOut } = {}) {
   const routePath = require.resolve("../src/routes/userPrivacy");
   delete require.cache[routePath];
 
@@ -172,6 +215,7 @@ function loadUserPrivacyRouter({ store, actingUserId = "user-1" } = {}) {
   };
 
   try {
+    if (fakeOut) fakeOut.client = fakeSupabase;
     return require("../src/routes/userPrivacy");
   } finally {
     Module._load = originalLoad;
@@ -217,6 +261,7 @@ test("GET /export returns only the requesting user's data, never another user's"
   assert.deepEqual(res.body.platform_connections.map((c) => c.platform_username), ["user-1-handle"]);
   assert.deepEqual(res.body.consent_records.map((c) => c.user_id), ["user-1"]);
   assert.deepEqual(res.body.moves.map((m) => m.id), ["move-1"]);
+  assert.deepEqual(res.body.decisions.map((d) => d.id), ["decision-1"]);
   assert.deepEqual(res.body.beta_reports.map((r) => r.id), ["report-1"]);
 
   // Cross-user leak assertions: user-2's data must not appear anywhere in the response.
@@ -305,4 +350,111 @@ test("DELETE /delete rejects a mismatched confirmation phrase without touching a
 
   assert.equal(res.status, 400);
   assert.equal(store.users.some((u) => u.id === "user-1"), true);
+});
+
+// Redo step 12: saved trades are part of the person's export (and cascade with the users row on erase).
+test("GET /export includes only the requesting user's saved trades", async () => {
+  const store = seedStore();
+  const app = buildApp({ store, actingUserId: "user-1" });
+  const res = await request(app, "/api/account/export");
+
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.body.saved_trades.map((t) => t.candidate_id), ["b1.find_x", "b3.find_z"]);
+});
+
+test("GET /export returns an empty saved_trades list while step 12 is not applied", async () => {
+  const store = seedStore();
+  store.__missingTables = new Set(["saved_trades"]);
+  const app = buildApp({ store, actingUserId: "user-1" });
+  const res = await request(app, "/api/account/export");
+
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.body.saved_trades, []);
+});
+
+// Plan A1: once redo steps 05 and 10 are applied, deletion is one transaction in account_erase().
+// Until then the route keeps today's table-by-table path.
+const CONFIRM = { confirmation: "DELETE MY OMEN DATA" };
+
+test("DELETE /delete erases through account_erase() in one call when the function exists", async () => {
+  const store = seedStore();
+  store.__accountErase = {};
+  const fakeOut = {};
+  const app = buildApp({ store, actingUserId: "user-1", fakeOut });
+
+  const res = await request(app, "/api/account/delete", { method: "DELETE", body: CONFIRM });
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.deleted, true);
+  assert.equal(res.body.auth_identity_deleted, true);
+  assert.deepEqual(fakeOut.client.__rpcCalls, [{ fn: "account_erase", args: { p_user_id: "user-1", p_method: "user_requested" } }]);
+  assert.deepEqual(fakeOut.client.__adminDeleteCalls, ["user-1"]);
+  assert.equal(store.deletion_audit_log.length, 1, "the function writes the audit row; the route must not write a second");
+  assert.equal(store.users.some((u) => u.id === "user-1"), false);
+  assert.equal(store.users.some((u) => u.id === "user-2"), true);
+  assert.equal(store.moves.some((m) => m.user_id === "user-2"), true);
+});
+
+test("DELETE /delete keeps today's path while account_erase() is not applied", async () => {
+  const store = seedStore();
+  const fakeOut = {};
+  const app = buildApp({ store, actingUserId: "user-1", fakeOut });
+
+  const res = await request(app, "/api/account/delete", { method: "DELETE", body: CONFIRM });
+
+  assert.equal(res.status, 200);
+  assert.equal(fakeOut.client.__rpcCalls[0].fn, "account_erase");
+  assert.equal(store.users.some((u) => u.id === "user-1"), false);
+  assert.equal(store.moves.some((m) => m.user_id === "user-1"), false);
+  assert.equal(store.deletion_audit_log.length, 1);
+});
+
+test("DELETE /delete fails without touching anything, and keeps the sign-in, when account_erase() refuses", async () => {
+  const store = seedStore();
+  store.__accountErase = { error: { code: "P0001", message: "account_erase: 1 of 2 secrets found; refusing to erase a partial account" } };
+  const fakeOut = {};
+  const app = buildApp({ store, actingUserId: "user-1", fakeOut });
+
+  const res = await request(app, "/api/account/delete", { method: "DELETE", body: CONFIRM });
+
+  assert.equal(res.status, 500);
+  assert.deepEqual(fakeOut.client.__adminDeleteCalls, []);
+  assert.equal(store.users.some((u) => u.id === "user-1"), true);
+  assert.equal(store.moves.some((m) => m.user_id === "user-1"), true);
+  assert.equal(store.deletion_audit_log.length, 0);
+});
+
+test("DELETE /delete with no app user row clears the sign-in's own rows before recording the deletion (Codex, #526)", async () => {
+  const store = seedStore();
+  store.__accountErase = {};
+  // A sign-in that accepted the legal terms but never got an app user row: consent and OAuth state only.
+  store.users = store.users.filter((u) => u.id !== "user-1");
+  for (const table of ["moves", "beta_reports", "platform_connections"]) {
+    store[table] = store[table].filter((row) => row.user_id !== "user-1");
+  }
+  const fakeOut = {};
+  const app = buildApp({ store, actingUserId: "user-1", fakeOut });
+
+  const res = await request(app, "/api/account/delete", { method: "DELETE", body: CONFIRM });
+
+  assert.equal(res.status, 200);
+  assert.equal(store.consent_records.some((c) => c.user_id === "user-1"), false);
+  assert.equal(store.oauth_state.some((s) => s.user_id === "user-1"), false);
+  assert.equal(store.consent_records.some((c) => c.user_id === "user-2"), true);
+  assert.deepEqual(fakeOut.client.__adminDeleteCalls, ["user-1"]);
+  assert.equal(store.deletion_audit_log.length, 1);
+});
+
+test("DELETE /delete does not repeat the cleanup or write a second audit row when the account is already erased (Codex, #534)", async () => {
+  const store = seedStore();
+  store.__accountErase = { result: { erased: false, reason: "already_erased" } };
+  const fakeOut = {};
+  const app = buildApp({ store, actingUserId: "user-1", fakeOut });
+
+  const res = await request(app, "/api/account/delete", { method: "DELETE", body: CONFIRM });
+
+  assert.equal(res.status, 200);
+  assert.equal(store.deletion_audit_log.length, 0);
+  assert.equal(store.users.some((u) => u.id === "user-1"), true, "the route's legacy cleanup did not run");
+  assert.deepEqual(fakeOut.client.__adminDeleteCalls, ["user-1"]);
 });

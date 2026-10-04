@@ -1,5 +1,86 @@
 # Omen Decision Log
 
+## 2026-10-03 — prep for production: how steps are applied, step 11 and 12 designs, and four fixes found on the way
+
+- **Apply mechanism (founder, 2026-10-03: "I like it"):** production steps go through the Supabase
+  connector's `apply_migration`, one migration per step (`redo_NN_<slug>`). No psql tunnel; the agent never
+  holds the database password.
+- **Every step is sent with its `begin;`/`commit;`/`rollback;` lines removed.** Tested on the throwaway project:
+  `apply_migration` runs a migration as one transaction, and a file's own `commit;` inside it commits early.
+  A later failure then leaves half a step applied with **no history row**. Tool:
+  `scripts/db/strip-transaction-lines.sh`.
+- **Saved trades (step 12; founder, 2026-10-03: "I'll take your recommendation"):** each `/api/trade/find`
+  response's candidates are kept per user for **15 minutes** in Redis, the find cache's lifetime. A save
+  after that returns an error the app turns into "refresh the search". The table holds one row per saved
+  trade with the trade itself, keyed on (user, provider, league, season, week, candidate). It cascades with
+  the account and is exported.
+- **Scoring rules (step 11):** `league_scoring_rules` is a compartment like projections. It has a `uses`
+  column (`grading`, `advice`) recording why the rules are kept, a recorded ingest per batch, and
+  `scoring_rules_purge()`. It is backfilled from the league-scoped moves only; the 6 unscoped moves' rules
+  leave with step 08.
+- **Fixed on the way (each from a Codex review or the compatibility pass):**
+  - **Yahoo refresh:** one exchange per user at a time; a compare-and-swap alone did not stop two
+    exchanges with Yahoo (#525).
+  - **Purges:** both compartment purges wait for inserts in flight. Without that, a purge could report
+    success with a row left behind (#527, #528; races 4 and 5).
+  - **Deletion:** deletion of a sign-in with no app row still clears its consent before the audit
+    (#526).
+  - **Beta reports:** keyed to the sign-in (`auth.users`) rather than the app row, so a person whose
+    connect failed can still report. `account_erase()` deletes them. Creating an app row in the route was
+    tried first and rejected: it could recreate an account during deletion (#523).
+- **Not changed:** nothing applied to production. Each step still needs its own founder approval
+  (`Blueprints/handoffs/2026-10-03-production-runbook.md`).
+
+## 2026-10-02 (night) — scoring rules kept and compartmented; ESPN/Yahoo trade finder gets fixed; web stays; next session preps production
+
+- **League scoring rules (founder):** keep storing each league's scoring rules, for all three providers.
+  - **Record why we use them**, not a rights argument. We use them to:
+    - grade every call against the league's own scoring, not a PPR default (A6 exact reconciliation);
+    - give advice in the format the league actually plays.
+  - **Store them in a compartment**, the way ESPN projections are stored: their own table, a recorded
+    ingest, and one recorded purge that deletes them. Deleting the compartment must leave everything
+    else working. Calls keep the rules' version and hash, never a foreign key to the rule body.
+  - Today the bodies sit in `moves.scoring_contract`, and the new Ledger has no column for them. The
+    prep session designs the compartment as a redo step.
+  - Plan B8 in `Direction/reviews/2026-10-02-codex-action-plans.md` is closed by this decision.
+- **Trade finder for ESPN and Yahoo (founder): fix it.** It returns nothing for those leagues today
+  (Codex #474; plan D1).
+- **Web app (founder): it stays.** No web work now. When native is done, web takes the lessons
+  learned on the same backend, so it becomes front-end work. Plan H's comments wait for that, not for
+  retirement.
+- **Next session (founder): prepare production, don't run it.** "We're going to take one day to prep
+  it, make sure everything is where we need it to go so that when we do it, we can really do it well."
+  Brief: `Blueprints/handoffs/2026-10-02-prep-for-production-brief.md`, pinned in
+  `Direction/agent_inbox.md`.
+
+## 2026-10-02 (evening) — account erasure waits for a reconnect in flight; redo re-verified
+
+- **Codex's review of #511 was missed before merge.** It found a real race: `account_erase()` did not wait
+  for a connect or reconnect running at the same moment. Reproduced: with the version on `main`, an erase
+  during a reconnect fails partway. Fixed: the erase takes the same per-provider locks as the credential
+  functions, before it locks the user (the other order can deadlock). The race check now fails if either
+  session errors.
+- **Rule going forward:** read the PR's Codex review on the latest head before merging, not only CI.
+- **Re-verified, all ten steps:** real Supabase (V1b) and the newest production backup restored on KVM1
+  (V2b) both pass. Production now has 7 leagues (5 on 2026-10-01). Still exactly 6 unscoped Ledger rows.
+- **Not changed:** nothing has been applied to production. Production orders run in a separate session,
+  one step at a time, with the founder's approval.
+
+## 2026-10-02 (later) — one call per team per week; Codex's review of the redo resolved
+
+- **Decision (founder):** a person in two leagues gets **one call per team per week**. Facts-of-record #16
+  is amended. The Ledger now enforces it: exactly one current call per team-week, even under a race.
+- **Codex reviewed the merged redo** (#503, #505, #506): 4 P1 and 4 P2 findings, all addressed.
+  - The credential-function race was real. It was reproduced (2 orphaned secrets) and is now fixed
+    (0 orphaned).
+  - Account deletion became one transaction: step 10, `account_erase()`.
+  - The shadow log now takes its facts from the snapshot it cites.
+  - The stale D2 ticket was rewritten.
+  - The archived tests no longer run.
+  - Detail is in `Blueprints/handoffs/2026-10-01-database-redo.md`.
+- **Process note:** the founder's merge of the stacked PRs landed #505 and #506 in their parent branches,
+  not `main`; #508 carried them to `main`. Stacked PRs should be retargeted to `main` before merging.
+
 ## 2026-10-02 — a 60-second per-user response cache on the five slow routes
 
 - **Why.** Measured on the founder's iPhone 2026-10-01, each request recomputed from the providers:
@@ -4141,6 +4222,93 @@ on the second one.
   field (`Blueprints/specs/omen-projection-explainer-v1.md`).
 - **Open design items:** crimson `#7E1717` is 1.39:1 on the card (invisible), so the proposal uses a
   lighter `#B23A3A` hatch — needs a token decision; first use of Verdigris in the app.
+
+## 2026-10-02 — Trade-finder cache is scoped to the user, Sleeper included (#516)
+
+- **Decision:** every `tradeFindCache` key starts with the authenticated user id:
+  `${userId}:${platform}:${leagueId}:${week}` (`src/routes/trade.js`, `tradeFindCacheKey`).
+- **Why:** `GET /api/trade/find` reads the cache before the provider roster read, and that read is
+  the only league-ownership check (it uses the caller's own ESPN/Yahoo credentials). With the old
+  key, any signed-in user who named another user's private league id got that user's warm roster
+  bundle. Reported by Codex on #474; listed as "fix first" in
+  `Direction/reviews/2026-10-02-codex-review-compilation.md`.
+- **Sleeper too:** Sleeper leagues are public, so sharing their entries would not leak anything. They
+  are scoped the same way so the rule has no exceptions. Cost: two users in one league each warm
+  their own entry.
+- **Alternative not taken:** verify league ownership before honouring a hit. It needs a membership
+  read per request, which is the cost the cache exists to avoid.
+- **Left as is:** adapter caches keyed by league or team, not user (`ssff:espn:scoring:*`,
+  `ssff:espn:lastresult:*`, `ssff:yahoo:lastresult:*`). Today they only receive league ids from the
+  caller's stored connection, so nothing leaks. They would leak the same way if a route ever passed
+  them a league id from the request. `responseCache` (#513) already puts the user id in every key.
+
+## 2026-10-02 — League Office retired: code removed now, tables dropped later under fact #8
+
+- **Decision:** the founder retired League Office, the weekly bulletin for the Slops Saloon ESPN
+  league (13338821). It was a personal side project and is not part of Omen.
+- **Why now:** a literal `\n` in a comment (`src/league_office_sync_worker.js:381`) had silently
+  disabled the season-accolade update, and the "Run Now" workflow reported green on failed jobs.
+  Five Codex findings on the worker were also open (#441 ×2, #463 ×3). Fixing it would have cost
+  more than the feature is worth.
+- **Removed in code:** the worker and its 5-minute cron line (`Dockerfile.cron`), the
+  `league-office-run-now` workflow, `scripts/league-office-diagnose.js`,
+  `src/services/leagueOfficeMessage.js`, the League Office-only ESPN adapter functions
+  (`fetchEspnLeagueWeek`, `leagueWeekFromEspnData`, `fetchEspnLeagueOfficePlayers`,
+  `leagueOfficePlayersFromEspnData`, `fetchEspnLeagueOfficeTransactions`), their tests, and the
+  weekly message template. `fetchEspnLeagueRosters` (Trade) is unaffected.
+- **Kept:** the literal-`\n` guard in `test/sourceSyntax.test.js`. It applies to all of `src/`.
+- **Tables dropped (same day):** the founder approved an outright drop ("drop it, its approved just
+  drop it"), choosing it over archive-first. Applied 23:12 UTC as migration `20261002231212`
+  `drop_league_office` after the code deploy stopped the worker; 29 rows discarded, no down
+  migration. Record and evidence: `sql/applied/2026-10-02_drop_league_office.sql`. The redo's `00b`,
+  `00d` and catalog fixture no longer name these tables and match a fresh production read.
+
+## 2026-10-02 — Saved trades: the server remembers every trade it shows (T4, #519)
+
+- **Decision (founder):** the server keeps each trade-finder batch (up to 10 candidates) per user and
+  resolves a save from it. The app keeps sending only `candidate_id` and `reasoning`.
+- **Why:** T3's save button sends no players or league, so a save could not be shown or checked
+  (Codex, #519). Server-side memory needs no iPhone change.
+- **Not "best only":** proposed first, then widened. The review screen saves whichever card is
+  swiped, so keeping only the top candidate would fail most saves. Ten small records per search is
+  the whole cost.
+- **Storage:** saved trades move to a table in redo step 12 (prep brief), which also fixes lost
+  saves and account erasure. #519 stays open until then.
+
+
+## 2026-10-03 — Review moves before the PR; Codex is on request for high-risk work only
+
+- **Decision (founder):** Claude reviews its own diff before the PR is opened. Codex stops reviewing
+  every PR automatically and is asked (`@codex review`) only on high-risk PRs: database and
+  migrations, user-data deletion/migration/exposure, auth and credential handling, billing.
+- **Why:** automatic review ran after the PR existed, so findings arrived as rework and extra review
+  rounds, and merges kept landing before the review was read (#511, #515). Codex did catch real P1s on
+  #493, #511 and #517, which is why it stays for the high-risk class. Supersedes "Claude builds, Codex
+  reviews" for everything outside that class.
+- **How:** `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md`, section "Review". The Codex auto-review switch
+  is in the founder's ChatGPT Codex settings (repo `justinduverge-design/omen`), not in this repo, so
+  turning it off is a founder action.
+- **Also found (not yet acted on):** a session reads about 92k tokens before work starts, over half of
+  it `Direction/current_sprint.md` (202 KB, 1,887 lines, despite "active items only"). Trimming it needs
+  `slops-agent-docs-refresh` and the drift checks, so it is a separate task.
+
+## 2026-10-03 — Skills and code graph cleaned up (founder: "clean up and organize")
+
+- **Skills:** the skill linker (`Slops-OS` PR #27) now skips any skill whose `SKILL_ROUTING.md` Status is
+  `parked` or `retired`, so an unused skill stops costing description tokens in every session. Parked 11
+  with zero recorded use (content-phase: screenplay-loop, explainer-cut, animation-render, image-prompt;
+  first-need: financial-sketch, exec-summary, product-pulse; harness-maintenance: agent-wrapper-generator,
+  agent-index-diff-builder, command-bridge-generator, dbs-research-to-architecture-router). Retired
+  `slops-onboarding-agent` (retired 2026-08-05 but still linked) to `_retired/`. Linked skills per product:
+  60 → 46, now 47 with the next item. Revive = set Status `active`, re-run the linker.
+- **Graphify:** `slops-graphify` was marked active with no folder; written (`Slops-OS` PR #28). Omen's
+  graph is now generated locally (`graphify update .`), gitignored and scoped to code by `.graphifyignore`
+  (omen #542); the 34 MB tracked graph, built on another machine in June, is gone from git.
+- **Not done:** unrelated plugin skills (~150 listings: Unity, Noibu, legal, marketing, Synthflow, Qodo, and
+  others) are set in the founder's account, not in a repo file; disable per project there. The three-weekly
+  skill check is run by hand on request.
+- **Untouched on purpose:** an uncommitted `AGENT_INDEX.md` edit in the L0 checkout (a Codex trust
+  assignment, not ours).
 
 ## 2026-10-03 — expired ESPN sessions are reconnect states, not operational incidents
 

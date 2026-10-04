@@ -1,6 +1,6 @@
 # Omen Rebuild — Execution Tracker
 
-> **Database work replaced 2026-10-01.** WO-06 is replaced, not applied; WO-07 and WO-08 are retired. The Gate 1 schema blueprints moved to `Archive/superseded-db-2026-10-01/`. Current: `Blueprints/rebuild/omen-database-redo-v1.md`, sprint items `D2`-`D6`.
+> **Partially superseded 2026-10-01: the database work only.** WO-06 is replaced, not applied; WO-07 and WO-08 are retired. The Gate 1 schema blueprints moved to `Archive/superseded-db-2026-10-01/`. Current: `Blueprints/rebuild/omen-database-redo-v1.md`, sprint items `D2`-`D6`.
 
 **Last updated:** 2026-09-29 ~10:35pm EDT
 

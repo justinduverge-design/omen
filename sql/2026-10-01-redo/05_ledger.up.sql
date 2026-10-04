@@ -3,7 +3,8 @@
 -- Step 05 — the Ledger: what Omen said, why, what the person did, and what happened. Four tables:
 --
 --   decisions          one row per issued call, never changed after insert. Keyed to a league and a
---                      team, so two leagues in one week are two calls (review finding 1). Asking again
+--                      team: one call per team per week (founder, 2026-10-02), so two leagues in one
+--                      week are two calls (review finding 1). The database enforces it. Asking again
 --                      in the same week adds a row that SUPERSEDES the earlier one; the earlier one
 --                      stays, so the Ledger can show what was said and when.
 --   decision_factors   the evidence rows as they stood at issue time, insert-only. Each row carries its
@@ -86,6 +87,12 @@ create table public.decisions (
   constraint decisions_no_self_supersede check (supersedes_id is distinct from id)
 );
 create unique index decisions_superseded_once on public.decisions (supersedes_id) where supersedes_id is not null;
+-- One call per TEAM per week (founder, 2026-10-02; facts-of-record #16 amended). Exactly one first call
+-- may exist per team-week; every later call must supersede, and each call can be superseded only once,
+-- so a team-week is always one straight chain with exactly one current call. Two first requests racing
+-- cannot both win: the second gets a unique violation and must supersede instead (Codex review, #505).
+create unique index decisions_one_first_call_per_team_week on public.decisions
+  (user_id, league_id, coalesce(provider_team_id, ''), season, week) where supersedes_id is null;
 create index decisions_team_week on public.decisions (user_id, league_id, provider_team_id, season, week, issued_at desc);
 create index decisions_user_issued on public.decisions (user_id, issued_at desc);
 create index decisions_league on public.decisions (league_id);

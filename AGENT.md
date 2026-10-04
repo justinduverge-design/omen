@@ -8,9 +8,8 @@ AGENTS.md is shared by every runtime. CLAUDE.md owns the current read order. Thi
 
 ## Product shape
 
-Omen is a fantasy football management app: a user connects a real ESPN, Yahoo, or Sleeper league, and Omen tells them the best move to make this week. It explains what to do, why it matters, the risk, and the confidence in plain English.
-
-Product detail lives in `Direction/context.md`. Standing constraints — what is free, what is cut, what may be said publicly, and what must not be claimed — live in `Direction/facts-of-record.md`. Do not restate those constraints here; a copied fact is a second source of truth, and the copy is the one that goes stale.
+Product detail lives in `Direction/context.md`. Standing constraints — what is free, what is cut, what may be said publicly, and what must not be claimed — live in `Direction/facts-of-record.md`.
+Read `Direction/map.md` for routing and rules.
 
 ## Role
 
@@ -68,11 +67,7 @@ Authoring a proposed change is separate from applying it. Prepared SQL, release 
 
 ## Required Files To Read First
 
-Read order is a pointer, not a list here.
-
-`CLAUDE.md` section "Read in order before pulling a task" is the single expressed read order. `Blueprints/prompts/kickoff-l2.md` carries the same contract, and `node scripts/check-kickoff-drift.js` enforces the pair. Do not restate or edit the read order in this file.
-
-If this file seems to need another permanent read, propose the change to the read-order owners instead of adding a second copy here.
+Read order is a pointer, not a list here. See `CLAUDE.md` and `Direction/map.md`.
 
 ## Skills
 

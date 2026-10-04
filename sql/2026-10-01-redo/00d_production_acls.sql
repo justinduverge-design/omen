@@ -9,10 +9,8 @@
 do $$
 declare t text;
 begin
-  foreach t in array array['users','consent_records','deletion_audit_log','league_office_accolades',
-    'league_office_awards','league_office_executives','league_office_lines','league_office_matchups',
-    'league_office_rivalries','league_office_sync_jobs','moves','oauth_state','platform_connections',
-    'profiles','waitlist_signups']
+  foreach t in array array['users','consent_records','deletion_audit_log','moves','oauth_state',
+    'platform_connections','profiles','waitlist_signups']
   loop
     execute format('revoke all on table public.%I from anon, authenticated', t);
     execute format('grant all on table public.%I to service_role', t);

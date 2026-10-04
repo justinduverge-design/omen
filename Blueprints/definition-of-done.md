@@ -23,7 +23,7 @@ Run cross-cutting gates **in addition** to the primary type. A page change that 
 
 ## Procedure receipt (all work)
 
-Every task also follows `playbooks/omen-company-baseline.md` and selects applicable skills from `playbooks/skill-activation-runbook.md`. The handoff must state skills invoked, conditional skills considered but not applicable, evidence, and any procedure gap. Append invoked/skipped-required skills to `playbooks/skill-usage-ledger.md` before closing.
+Every task also follows `playbooks/omen-company-baseline.md` and selects applicable skills from `playbooks/skill-activation-runbook.md`. The handoff must state skills invoked, conditional skills considered but not applicable, evidence, and any procedure gap. Add one line (skills invoked, skipped and why) to `playbooks/skill-usage-log.md` before closing; the old `skill-usage-ledger.md` is history.
 
 If a touched Markdown page declares `metadata_profile: valor-brain/v1`, run `node scripts/check-valor-brain.mjs`. An invalid opted-in page is not done; ordinary Markdown is outside this gate.
 
@@ -122,9 +122,9 @@ the value in an old entry is the reasoning, not the path.
 `frontend/src/lib/platformChip.js`. Old entries are history and stay as written. New entries are current writing
 and are the one part of these files anyone will follow.
 
-## The ledger
+## The record
 
-Every closure is recorded in `done/LEDGER.md`. Review monthly — gates skipped often signal a prompt or skill to revisit.
+A closure is recorded by `Status: CLOSED` with its `Closure:` and `Evidence:` in the sprint file and the merged PR; `Direction/shipped.md` regenerates the list. `done/LEDGER.md` and `skill-usage-ledger.md` are history (2026-10-03): do not append to them. Review skipped gates every three weeks with the skill check.
 
 ## Open updates
 
