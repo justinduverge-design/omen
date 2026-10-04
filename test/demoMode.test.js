@@ -73,7 +73,10 @@ test("demo roster follows the normalized roster contract and produces a recommen
   assert.equal(omen.mode, "demo");
   assert.equal(omen.recommendation.title, "Start Sample RB Breakout over Sample RB Starter");
   assert.equal(omen.recommendation.expected_value_delta.points, 5.6);
-  assert.equal(omen.recommendation.confidence.score, 95);
+  // A projection-only gap never reads Confident (confidencePolicy), however large.
+  assert.equal(omen.recommendation.confidence.score, 68);
+  assert.equal(omen.recommendation.confidence.label, "medium");
+  assert.doesNotMatch(omen.recommendation.explanation.confidence, /out of 100|\d\s*%/);
   assert.equal(omen.recommendation.risk.level, "low");
   assert.ok(omen.recommendation.risk.reasons.length > 0);
 });

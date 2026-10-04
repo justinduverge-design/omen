@@ -11,6 +11,7 @@ const {
 const { getAuthenticatedYahooClient } = require("./yahooAuth");
 const rosterSvc = require("./roster");
 const optimizer = require("./optimizer");
+const { assessConfidence, bandFromScore, bandSentence, mvpLabelForBand, scoreForBand } = require("./confidencePolicy");
 const omenSelector = require("./omenSelector");
 const { isOmenReadyConnection } = require("./omenReadiness");
 const {
@@ -105,17 +106,14 @@ function isOutStatus(status) {
   return OUT_STATUSES.has(normalizedStatus(status));
 }
 
+const LIVE_LABEL_FOR_BAND = Object.freeze({ confident: "strong lean", leaning: "lean", coin_flip: "slight edge" });
+
 function confidenceLabelFromScore(score) {
-  if (score >= 75) return "strong lean";
-  if (score >= 60) return "lean";
-  return "slight edge";
+  return LIVE_LABEL_FOR_BAND[bandFromScore(score)] || "slight edge";
 }
 
 function mvpConfidenceLabelFromScore(score) {
-  if (score >= 85) return "high";
-  if (score >= 70) return "medium_high";
-  if (score >= 55) return "medium";
-  return "low";
+  return mvpLabelForBand(bandFromScore(score));
 }
 
 function priorityFromScore(score) {
@@ -828,6 +826,11 @@ function mapWaiverPickupToMvpMove({ roster, connection, connectedPlatforms, outS
   const starterPoints = finiteNumber(outStarter.projected_points) || 0;
   const delta = pickupPoints - starterPoints;
   const statusLabel = STATUS_LABELS[normalizedStatus(outStarter.status)] || "unavailable";
+  // A waiver add still has to clear waivers, so it never reads above a lean.
+  const waiverPickupVerdict = (() => {
+    const v = assessConfidence({ gap: delta, sitStatus: outStarter.status, startStatus: pickup.status, maxBand: "leaning" });
+    return { ...v, score: scoreForBand(v.band) ?? 50 };
+  })();
 
   const response = liveBaseEnvelope({
     platform,
@@ -852,8 +855,8 @@ function mapWaiverPickupToMvpMove({ roster, connection, connectedPlatforms, outS
       label: expectedValueLabel(delta),
     },
     confidence: confidence(
-      70,
-      mvpConfidenceLabelFromScore(70),
+      waiverPickupVerdict.score,
+      mvpLabelForBand(waiverPickupVerdict.band),
       `${outStarter.name} is ${statusLabel} and ${pickup.name} is the best projected ${slot} available in your ${platformLabel} league.`
     ),
     risk: risk("medium", [
@@ -869,7 +872,7 @@ function mapWaiverPickupToMvpMove({ roster, connection, connectedPlatforms, outS
           ? "the add still has to clear waivers"
           : "waiver priority is not modeled"
       }.`,
-      confidence: "Confidence is 70 out of 100.",
+      confidence: bandSentence(waiverPickupVerdict.band, waiverPickupVerdict.reason),
       data_used: [
         `${platformLabel} roster`,
         `${platformLabel} available player pool`,
@@ -1233,7 +1236,7 @@ function mapLineupSwapToMvpMove({ roster, swap, connection, connectedPlatforms }
     confidence: confidence(
       confidenceScore,
       mvpConfidenceLabelFromScore(confidenceScore),
-      `The optimizer sees a ${formatDelta(delta)} edge from live ${platformLabel} roster context.`
+      `${swap.confidence_reason || `The optimizer sees a ${formatDelta(delta)} edge.`} It comes from live ${platformLabel} roster context.`
     ),
     risk: risk(riskLevel, riskReasonsForSwap({ startPlayer, sitPlayer, swap, platform })),
     explanation: {
@@ -1242,7 +1245,7 @@ function mapLineupSwapToMvpMove({ roster, swap, connection, connectedPlatforms }
         `${primary.name} grades as the better ${rosterSlot} option by ${formatDelta(delta)} in the normalized ${platformLabel} lineup.`,
       risk:
         `Risk is ${riskLevel} because this recommendation uses roster and projection math, not waiver availability or trade-acceptance forecasting.`,
-      confidence: `Confidence is ${confidenceScore} out of 100.`,
+      confidence: bandSentence(bandFromScore(confidenceScore), swap.confidence_reason || "The optimizer weighed the projected point edge."),
       data_used: [
         `${platformLabel} roster`,
         "starter and bench slots",
@@ -1868,7 +1871,7 @@ function successResponse(body = {}) {
       summary: "Your best move is to start Marquise Vale over Trent Holloway.",
       why_it_matters: "Vale projects for a better weekly role and gives your lineup a higher expected point total.",
       risk: "The recommendation carries medium risk because matchup DvP and some projection inputs are still stubbed.",
-      confidence: "Confidence is 74 out of 100.",
+      confidence: bandSentence("leaning", "The projection gap is clear, but matchup DvP is still stubbed."),
       data_used: [
         "connected roster",
         "weekly projections",
@@ -1888,7 +1891,7 @@ function emptyResponse(body = {}) {
     summary: "No move clears the recommendation threshold this week.",
     why_it_matters: "Your current lineup is close enough to the available alternatives that Omen should not force a move.",
     risk: "Forcing a marginal move could create more downside than upside.",
-    confidence: "Confidence is 68 out of 100 that standing pat is reasonable.",
+    confidence: bandSentence("leaning", "Standing pat is reasonable because no alternative clears the recommendation threshold."),
     data_used: ["connected roster", "weekly projections"],
   };
   response.confidence = confidence(

@@ -106,7 +106,7 @@ export const OMEN_VISUAL_FIXTURE = Object.freeze({
       summary: 'Your best mock move is to start Marquise Vale over Trent Holloway.',
       why_it_matters: 'Vale gives the fixture lineup a visible projection edge without using real player advice.',
       risk: 'Risk is medium because every signal is mock-labeled for local testing.',
-      confidence: 'Confidence is 74 out of 100.',
+      confidence: 'Leaning. The projection gap is clear, but nothing else backs it yet.',
       data_used: ['private mock roster', 'private mock projections', 'private mock matchup note'],
     },
   },

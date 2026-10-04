@@ -16,9 +16,8 @@
  * benchmate beats an injured starter even before the projection
  * delta crosses the threshold.
  *
- * Confidence scoring is a function of (delta, status of both sides).
- * Bigger delta = higher confidence; risky receiver of swap drops it;
- * obviously-broken sender of swap raises it (the swap is justified).
+ * Confidence comes from services/confidencePolicy (the one scale): a projection gap alone
+ * never reads Confident; an OUT or flagged starter is observed evidence.
  * =================================================================
  */
 
@@ -36,6 +35,8 @@ const POSITION_GROUPS = {
   K:     ["K"],
   DEF:   ["DEF", "D/ST", "DST"],
 };
+
+const { assessConfidence, scoreForBand } = require("./confidencePolicy");
 
 const HEALTHY = new Set([null, undefined, "", "P", "PROBABLE"]);
 const RISKY   = new Set(["Q", "QUESTIONABLE", "GTD", "DTD"]);
@@ -123,14 +124,18 @@ function compatibleSlots(slot) {
   return POSITION_GROUPS[slot] || [slot];
 }
 
-function scoreSwapConfidence(delta, fromStatus, toStatus) {
-  // Floor: 40, ceiling: 95. Each point of delta adds 8 to base 50.
-  let score = 50 + delta * 8;
-  if (RISKY.has(String(toStatus || "").toUpperCase()))   score -= 10;
-  if (OUT.has(String(toStatus   || "").toUpperCase()))   score -= 30;
-  if (RISKY.has(String(fromStatus || "").toUpperCase())) score += 5;
-  if (OUT.has(String(fromStatus   || "").toUpperCase())) score += 15;
-  return Math.max(40, Math.min(95, Math.round(score)));
+// Projection-only call: the optimizer sees rosters and provider projections, never observed usage,
+// so this can reach "Confident" only for an OUT starter. Callers holding observed evidence (usage
+// trends) re-assess with confidencePolicy.assessConfidence. The numeric is a band representative.
+function assessSwap(delta, fromStatus, toStatus) {
+  const verdict = assessConfidence({ gap: delta, startStatus: toStatus, sitStatus: fromStatus });
+  return { ...verdict, score: scoreForBand(verdict.band) ?? 50 };
+}
+
+function waiverConfidence(delta) {
+  // Waiver adds are projection-only and the add still has to clear waivers: never above a lean.
+  const verdict = assessConfidence({ gap: delta, maxBand: "leaning" });
+  return { confidence: scoreForBand(verdict.band) ?? 50, confidence_band: verdict.band, confidence_reason: verdict.reason };
 }
 
 function buildReasoning(from, to, delta) {
@@ -171,6 +176,7 @@ function evaluateLineup(roster, opts = {}, scoringConfig = {}) {
 
     if (delta < minDelta) continue;
 
+    const swapVerdict = assessSwap(delta, starter.status, best.player.status);
     recs.push({
       slot,
       from: {
@@ -186,7 +192,9 @@ function evaluateLineup(roster, opts = {}, scoringConfig = {}) {
         projected:  Number(best.adj.toFixed(2)),
       },
       delta:      Number(delta.toFixed(2)),
-      confidence: scoreSwapConfidence(delta, starter.status, best.player.status),
+      confidence: swapVerdict.score,
+      confidence_band: swapVerdict.band,
+      confidence_reason: swapVerdict.reason,
       reasoning:  buildReasoning(starter, best.player, delta),
     });
   }
@@ -256,7 +264,7 @@ function findWaiverMoves(roster, waiverPool, opts = {}, scoringConfig = {}) {
         projected:  Number(topProj.toFixed(2)),
       },
       delta:      Number(delta.toFixed(2)),
-      confidence: Math.max(40, Math.min(95, Math.round(50 + delta * 5))),
+      ...waiverConfidence(delta),
     });
   }
 

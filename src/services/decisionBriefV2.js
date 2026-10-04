@@ -3,6 +3,7 @@
 const CONTRACT = "omen-decision-brief.v2";
 const CONTRACT_V3 = "omen-decision-brief.v3";
 const LABELS = Object.freeze({ confident: "Confident", leaning: "Leaning", coin_flip: "Coin flip" });
+const { bandFromScore } = require("./confidencePolicy");
 const { CAPABILITY_CONTRACT, buildDecisionCapabilities } = require("./decisionCapabilities");
 
 // Collects the statements for things Omen could not read on this request. These are the
@@ -42,7 +43,9 @@ function bandedConfidence(value, limitations = []) {
     };
   }
 
-  const band = score >= 80 ? "confident" : score >= 60 ? "leaning" : "coin_flip";
+  // The one scale lives in confidencePolicy; scores reaching here are band representatives that
+  // the policy produced, so a projection-only call cannot arrive above "leaning".
+  const band = bandFromScore(score);
   return {
     band,
     drivers: [safeRationale ? rationale

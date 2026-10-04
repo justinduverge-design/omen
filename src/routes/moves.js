@@ -12,6 +12,7 @@ const { attachDecisionReceipt, createDecisionContext } = require("../services/de
 const { scoringCoverageCapability } = require("../services/waiverScoringCapabilities");
 const { LABELS: BAND_LABELS } = require("../services/decisionBriefV2");
 const ledger = require("../services/ledger");
+const { bandFromScore } = require("../services/confidencePolicy");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
@@ -392,8 +393,10 @@ function evidenceAtTheTime(row) {
   if (row?.target_player) {
     evidence.push({ category: "player_game_fact", kind: "verified", statement: `The recommendation named ${row.target_player}.` });
   }
-  if (row?.confidence != null) {
-    evidence.push({ category: "model_input", kind: "model", statement: `Omen recorded ${Number(row.confidence)}% confidence at issue time.` });
+  // The stored number is an internal ordering value; the response only ever says the band.
+  const recordedBand = row?.confidence != null ? bandFromScore(Number(row.confidence)) : null;
+  if (recordedBand) {
+    evidence.push({ category: "model_input", kind: "model", statement: `Omen issued this call as ${BAND_LABELS[recordedBand]}.` });
   }
   if (row?.reasoning) {
     evidence.push({ category: "omen_inference", kind: "inference", statement: String(row.reasoning) });

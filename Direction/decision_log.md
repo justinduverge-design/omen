@@ -1,5 +1,33 @@
 # Omen Decision Log
 
+## 2026-10-04 — honest confidence: one scale, projection gap alone never reads Confident
+
+- **Why (founder, 2026-10-04; thesis in `Blueprints/specs/omen-decision-engine-v2.md`):** Omen explains provider
+  projections and never claims to beat them. Provider projections are right about **52%** of the time when the gap
+  is within a point and about **82%** at 8+ points. The old scale (`50 + 8 x gap`, `>=80` Confident) read
+  "Confident" at a 3.75 pt gap, which the research does not support. A second scale in `startSitDetail.js`
+  (`>=4` high) and "Confidence is N out of 100" prose in `omen.js` contradicted the confidence-is-a-band rule.
+- **One policy: `src/services/confidencePolicy.js` (`assessConfidence`).** Optimizer, start/sit detail, decision
+  brief, MVP move text and demo mode all derive from it. Labels are unchanged (Confident / Leaning / Coin flip;
+  detail high / moderate / low), so no contract version changes.
+- **Thresholds (points of provider projection gap):**
+  - gap below **1.5** (the existing close-call line; the 52% region) or an explicit close call: **Coin flip**.
+  - otherwise a gap resting on projections alone: **Leaning**, at any size. Even 8+ pts is capped, because the
+    82% figure is a hit rate for the projection, not corroboration of Omen's own judgement.
+  - **Confident** needs gap **>= 4** (the old "high" line) AND at least one piece of corroborating observed
+    evidence: a usage edge for the player being started (snap share +5 pts or target share +3 pts, nothing
+    contradicting), a verified injury designation on the player being benched, or other verified evidence
+    passed in as a `{kind}`.
+  - **Out starter** (listed out) with a healthy replacement: **Confident** at any gap, because the slot is a
+    hole, not a projection call. Replacement flagged questionable: Leaning. Replacement listed out: Coin flip.
+  - Questionable replacement caps at Leaning. Waiver adds are capped at Leaning (they still have to clear waivers).
+- **Numbers.** Numeric `confidence` stays only where an internal or legacy field needs it, as a band
+  representative (85 / 68 / 50), never a probability. `bandFromScore` (>=80 / >=60) is the only score-to-band map.
+  No response text carries a number: "out of 100" prose and "N% confidence at issue time" (move detail) now say the band.
+- **Consequence for history.** Stored `moves.confidence` values from before this change were on the old scale;
+  move detail maps them with `bandFromScore`, so an old high number can still read Confident for that old row.
+  The Tuesday cron's win/loss bonus thresholds (`>=75`, `<50`) read the same column and now see 85 / 68 / 50.
+
 ## 2026-10-03 — prep for production: how steps are applied, step 11 and 12 designs, and four fixes found on the way
 
 - **Apply mechanism (founder, 2026-10-03: "I like it"):** production steps go through the Supabase
