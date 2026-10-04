@@ -308,7 +308,8 @@
       "enum": [
         "pending",
         "resolved",
-        "data_incomplete"
+        "data_incomplete",
+        "superseded"
       ]
     },
     "user_action": {

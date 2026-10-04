@@ -1,0 +1,98 @@
+{
+  "http_status": 200,
+  "route": "/api/moves/:id",
+  "body": {
+    "call_type": "unknown",
+    "capabilities": [
+      {
+        "fresh_until": null,
+        "kind": "verified",
+        "name": "decision_receipt",
+        "observed_at": "2026-01-01T00:00:00.000Z",
+        "source": "moves_persisted_receipt",
+        "state": "live",
+        "statement": "Omen preserved the recommendation and evidence recorded when this call was issued.",
+        "used": true
+      },
+      {
+        "coverage_state": "pending",
+        "fresh_until": null,
+        "kind": "limitation",
+        "name": "league_exact_scoring",
+        "observed_at": null,
+        "reason_code": "awaiting_final_scoring",
+        "reconciliation_state": "pending",
+        "source": "league_scoring_contract",
+        "state": "unavailable",
+        "statement": "Final scoring for this recommendation is still pending.",
+        "used": false
+      }
+    ],
+    "capability_contract": "decision-capabilities.v1",
+    "contract_version": "move-detail.v1",
+    "decision_context": {
+      "contract_version": "shared-decision-context.v1",
+      "inputs": {
+        "decision_receipt": {
+          "observed_at": "2026-01-01T00:00:00.000Z",
+          "source": "moves_persisted_receipt",
+          "state": "live",
+          "used": true
+        },
+        "scoring_outcome": {
+          "reason_code": "awaiting_final_scoring",
+          "source": "moves_reconciliation",
+          "state": "pending",
+          "used": false
+        }
+      },
+      "inputs_used": [
+        "decision_receipt"
+      ],
+      "limitations": [
+        {
+          "name": "scoring_outcome",
+          "reason_code": "awaiting_final_scoring",
+          "state": "pending"
+        }
+      ],
+      "profile": "ledger"
+    },
+    "evidence_at_the_time": [
+      {
+        "category": "limitation",
+        "kind": "limitation",
+        "statement": "This entry predates league scoring capture, so it was graded against the PPR fallback rather than this league's own rules."
+      }
+    ],
+    "fairness_note": "Omen shows what it knew when the call was made. Later information is never used to make an earlier recommendation look better.",
+    "feedback": {
+      "note": null,
+      "stars": null
+    },
+    "generated_at": "2026-01-01T00:00:00.000Z",
+    "id": "00000000-0000-4000-8000-000000000000",
+    "observed_outcome": {
+      "awaiting": "final scoring for this week",
+      "known": false,
+      "statement": "This recommendation has not been scored yet."
+    },
+    "snapshot": {
+      "issued_at": "2026-01-01T00:00:00.000Z",
+      "issued_at_timezone": "UTC",
+      "league_id": null,
+      "platform": null,
+      "recommendation": "Old moves row",
+      "scoring_contract_version": null,
+      "scoring_format": null,
+      "season": 2026,
+      "week": 2
+    },
+    "state": "pending",
+    "user_action": {
+      "followed": null,
+      "known": false,
+      "statement": "Omen could not confirm whether you acted on this recommendation."
+    }
+  }
+}

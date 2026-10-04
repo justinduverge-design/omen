@@ -9,7 +9,7 @@
         "kind": "verified",
         "name": "decision_receipt",
         "observed_at": "2026-01-01T00:00:00.000Z",
-        "source": "ledger_decisions",
+        "source": "moves_persisted_receipt",
         "state": "live",
         "statement": "Omen preserved the recommendation and evidence recorded when this call was issued.",
         "used": true
@@ -35,13 +35,13 @@
       "inputs": {
         "decision_receipt": {
           "observed_at": "2026-01-01T00:00:00.000Z",
-          "source": "ledger_decisions",
+          "source": "moves_persisted_receipt",
           "state": "live",
           "used": true
         },
         "scoring_outcome": {
           "observed_at": "2026-01-01T00:00:00.000Z",
-          "source": "ledger_outcomes",
+          "source": "moves_reconciliation",
           "state": "live",
           "used": true
         }
@@ -57,48 +57,48 @@
       {
         "category": "league_context",
         "kind": "verified",
-        "statement": "Omen read this league's scoring as PPR."
+        "statement": "This recommendation was graded in Half PPR scoring."
+      },
+      {
+        "category": "player_game_fact",
+        "kind": "verified",
+        "statement": "The recommendation named DeVonta Smith."
       },
       {
         "category": "model_input",
         "kind": "model",
-        "statement": "Omen issued this call as Leaning."
+        "statement": "Omen recorded 72% confidence at issue time."
       },
       {
-        "category": "model_input",
-        "kind": "projection",
-        "statement": "Yahoo projections were read."
-      },
-      {
-        "category": "limitation",
-        "kind": "limitation",
-        "statement": "Waiver context is not available."
+        "category": "omen_inference",
+        "kind": "inference",
+        "statement": "The available data favored Smith in a close matchup."
       }
     ],
     "fairness_note": "Omen shows what it knew when the call was made. Later information is never used to make an earlier recommendation look better.",
     "feedback": {
-      "note": "Nice",
-      "stars": 5
+      "note": null,
+      "stars": 4
     },
     "generated_at": "2026-01-01T00:00:00.000Z",
     "id": "00000000-0000-4000-8000-000000000000",
     "observed_outcome": {
       "awaiting": null,
-      "detail": "A scored 21.0 fantasy points.",
+      "detail": "DeVonta Smith scored 18.4 fantasy points (Half PPR).",
       "known": true,
       "provenance": "verified",
-      "statement": "Observed outcome aligned with the recommendation."
+      "statement": "Observed outcome did not align with the recommendation."
     },
     "snapshot": {
       "issued_at": "2026-01-01T00:00:00.000Z",
       "issued_at_timezone": "UTC",
-      "league_id": "414.l.12345",
-      "platform": "yahoo",
-      "recommendation": "Start A over B",
-      "scoring_contract_version": "scoring-contract.v1",
-      "scoring_format": "ppr",
+      "league_id": "L1",
+      "platform": "sleeper",
+      "recommendation": "Start DeVonta Smith over Chris Olave",
+      "scoring_contract_version": "omen-scoring-contract-v1",
+      "scoring_format": "Half PPR",
       "season": 2026,
-      "week": 1
+      "week": 6
     },
     "state": "resolved",
     "user_action": {

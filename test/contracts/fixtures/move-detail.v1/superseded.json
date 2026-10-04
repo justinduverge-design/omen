@@ -17,15 +17,15 @@
       {
         "coverage_state": "supported",
         "fresh_until": null,
-        "kind": "verified",
+        "kind": "limitation",
         "name": "league_exact_scoring",
-        "observed_at": "2026-01-01T00:00:00.000Z",
-        "reason_code": "league_exact",
-        "reconciliation_state": "exact",
+        "observed_at": null,
+        "reason_code": "awaiting_final_scoring",
+        "reconciliation_state": "pending",
         "source": "league_scoring_contract",
-        "state": "live",
-        "statement": "Omen reproduced the provider's final score from this league's own rules.",
-        "used": true
+        "state": "unavailable",
+        "statement": "Final scoring for this recommendation is still pending.",
+        "used": false
       }
     ],
     "capability_contract": "decision-capabilities.v1",
@@ -40,17 +40,22 @@
           "used": true
         },
         "scoring_outcome": {
-          "observed_at": "2026-01-01T00:00:00.000Z",
+          "reason_code": "awaiting_final_scoring",
           "source": "ledger_outcomes",
-          "state": "live",
-          "used": true
+          "state": "pending",
+          "used": false
         }
       },
       "inputs_used": [
-        "decision_receipt",
-        "scoring_outcome"
+        "decision_receipt"
       ],
-      "limitations": [],
+      "limitations": [
+        {
+          "name": "scoring_outcome",
+          "reason_code": "awaiting_final_scoring",
+          "state": "pending"
+        }
+      ],
       "profile": "ledger"
     },
     "evidence_at_the_time": [
@@ -63,48 +68,36 @@
         "category": "model_input",
         "kind": "model",
         "statement": "Omen issued this call as Leaning."
-      },
-      {
-        "category": "model_input",
-        "kind": "projection",
-        "statement": "Yahoo projections were read."
-      },
-      {
-        "category": "limitation",
-        "kind": "limitation",
-        "statement": "Waiver context is not available."
       }
     ],
     "fairness_note": "Omen shows what it knew when the call was made. Later information is never used to make an earlier recommendation look better.",
     "feedback": {
-      "note": "Nice",
-      "stars": 5
+      "note": null,
+      "stars": null
     },
     "generated_at": "2026-01-01T00:00:00.000Z",
     "id": "00000000-0000-4000-8000-000000000000",
     "observed_outcome": {
       "awaiting": null,
-      "detail": "A scored 21.0 fantasy points.",
-      "known": true,
-      "provenance": "verified",
-      "statement": "Observed outcome aligned with the recommendation."
+      "known": false,
+      "statement": "A later call for the same week replaced this one, so Omen does not score it."
     },
     "snapshot": {
       "issued_at": "2026-01-01T00:00:00.000Z",
       "issued_at_timezone": "UTC",
       "league_id": "414.l.12345",
       "platform": "yahoo",
-      "recommendation": "Start A over B",
+      "recommendation": "First week-3 call",
       "scoring_contract_version": "scoring-contract.v1",
       "scoring_format": "ppr",
       "season": 2026,
-      "week": 1
+      "week": 3
     },
-    "state": "resolved",
+    "state": "superseded",
     "user_action": {
-      "followed": true,
-      "known": true,
-      "statement": "You marked this as followed."
+      "followed": null,
+      "known": false,
+      "statement": "Omen could not confirm whether you acted on this recommendation."
     }
   }
 }

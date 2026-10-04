@@ -5,6 +5,7 @@ const { createClient } = require("@supabase/supabase-js");
 const config = require("../config");
 const { requireAuth } = require("../middleware/auth");
 const { getCurrentNflWeekContext } = require("../services/nflSchedule");
+const { logger } = require("../middleware/logging");
 const { isMissingColumnError } = require("../services/activeSelection");
 const { buildDecisionCapabilities, CAPABILITY_CONTRACT } = require("../services/decisionCapabilities");
 const { attachDecisionReceipt, createDecisionContext } = require("../services/decisionContext");
@@ -53,6 +54,27 @@ async function selectTolerantly(columns, optional, run) {
     selected = selected.filter((column) => column !== absent);
   }
 }
+
+function ledgerScopeUnavailable() {
+  return {
+    contract_version: "moves-history-error.v1",
+    error: "Ledger unavailable",
+    code: "league_scope_unavailable",
+    message: "Omen cannot yet tell which league each saved call belongs to, so it is not showing this league's Ledger.",
+    action: "back",
+  };
+}
+
+// The Ledger's league scope lives in the redo's leagues/decisions tables. When the database lacks
+// them (relation or column absent) Omen cannot attribute any call to a league, so it refuses
+// rather than 500 or show the user's other leagues' calls as this one's.
+const SCOPE_UNREADABLE_CODES = new Set(["42P01", "42703", "PGRST204", "PGRST205"]);
+function isLedgerScopeUnreadable(error) {
+  return error instanceof ledger.LedgerError && SCOPE_UNREADABLE_CODES.has(error.code);
+}
+
+// move-detail.v1 requires call_type to be a string; a legacy moves row may have no move_type.
+const UNKNOWN_CALL_TYPE = "unknown";
 
 function recommendationFrom(row = {}) {
   return row.headline || row.reasoning || null;
@@ -129,13 +151,20 @@ router.get("/", requireAuth, async (req, res, next) => {
     // Every decision belongs to a league, so the old "cannot attribute a row" refusal is gone:
     // a league Omen has no record of is simply an empty Ledger.
     if (native) {
-      const calls = await ledger.listLedgerCalls(supabase, {
-        userId: req.user.id,
-        platform: req.query.platform,
-        providerLeagueId: req.query.league_id.trim(),
-        season,
-        limit,
-      });
+      let calls;
+      try {
+        calls = await ledger.listLedgerCalls(supabase, {
+          userId: req.user.id,
+          platform: req.query.platform,
+          providerLeagueId: req.query.league_id.trim(),
+          season,
+          limit,
+        });
+      } catch (err) {
+        if (!isLedgerScopeUnreadable(err)) throw err;
+        logger.warn("moves ledger cannot be league-scoped: Ledger tables unreadable", { message: err.message });
+        return res.status(503).json(ledgerScopeUnavailable());
+      }
       return res.json({
         contract_version: "moves-history.v2",
         generated_at: nowIso(), season,
@@ -490,7 +519,7 @@ function moveDetail(row) {
     contract_version: DETAIL_CONTRACT,
     generated_at: nowIso(),
     id: row.id,
-    call_type: row.move_type || null,
+    call_type: row.move_type || UNKNOWN_CALL_TYPE,
     state: detailState(row),
     snapshot: {
       recommendation: recommendationFrom(row),
@@ -619,7 +648,7 @@ function decisionDetail({ decision, factors = [], action = null, outcome = null,
     contract_version: DETAIL_CONTRACT,
     generated_at: nowIso(),
     id: decision.id,
-    call_type: decisionCallType(decision),
+    call_type: decisionCallType(decision) || UNKNOWN_CALL_TYPE,
     state: superseded ? "superseded" : outcome?.state || "pending",
     snapshot: {
       recommendation: textOrNull(decision.headline) || textOrNull(decision.summary),

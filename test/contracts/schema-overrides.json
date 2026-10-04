@@ -37,7 +37,8 @@
       "state": [
         "pending",
         "resolved",
-        "data_incomplete"
+        "data_incomplete",
+        "superseded"
       ]
     },
     "quiet-week.v1": {
@@ -72,7 +73,7 @@
   "sources": {
     "start-sit-detail": "src/services/startSitDetail.js STATES",
     "waiver-analysis": "src/services/waiverAnalysis.js STATES",
-    "move-detail": "src/routes/moves.js (pending/resolved/data_incomplete)",
+    "move-detail": "src/routes/moves.js (pending/resolved/data_incomplete/superseded)",
     "platform-provider-state": "src/routes/platforms.js provider state branches (lines 223-253)",
     "quiet-week": "src/services/quietWeek.js (variant neutral|straight|null)"
   }
