@@ -31,6 +31,8 @@ function tierFor(row) {
   const { category, kind } = row;
   if (kind === "limitation" || category === "limitation") return { tier: "limitation", rank: 3 };
   if (category === "recent_usage" && kind === "verified") return { tier: "observed", rank: 0.0 };
+  // Signal-vs-noise usage steadiness (signalNoise.js): observed box-score facts, ranked after the plain usage lines.
+  if (category === "recent_usage" && kind === "observed_context") return { tier: "observed", rank: 0.05 };
   if (category === "current_status" && kind === "verified") return { tier: "observed", rank: 0.1 };
   if (category === "points_breakdown" && kind === "projected") return { tier: "observed", rank: 0.2 };
   if (category === "team_system" && kind === "observed_context") return { tier: "observed", rank: 0.3 };

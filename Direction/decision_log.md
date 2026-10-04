@@ -4458,3 +4458,22 @@ on the second one.
   per-week `{week, snap_share, targets, carries}` rows through the same crosswalk and cached loaders
   as `getRecentUsage`, in the shape `usageStability` takes. Additive; existing callers unchanged.
 - **Verification:** `test/signalNoise.test.js`, `test/playerUsage.test.js`; no fixtures changed.
+
+## 2026-10-04 — Signal vs noise wired into Start/Sit detail v2 (engine step 6, wiring)
+
+- **Decision:** `start-sit-detail.v2` evidence now carries `signalNoise.js` statements as ordinary tagged
+  rows: the projection-gap sentence as `player_game_fact` / `projection`, and each player's usage
+  steadiness as `recent_usage` / `observed_context`. Vocabulary values are the existing ones; none added.
+  v1 is untouched (rows are built only for v2).
+- **Ranking:** `evidenceWhy.js` ranks `recent_usage` + `observed_context` as an observed fact (rank 0.05,
+  after the plain usage lines). The per-category cap of 2 still applies, so when both players already
+  have a plain usage line the steadiness rows can sit below the cap in `why_statements`; they are still
+  in `evidence[]`.
+- **No extra latency:** the route calls `playerUsage.getUsageBundle`, which returns the usage summaries
+  and the per-week rows from the same crosswalk read and cached CSV loaders `getRecentUsage` used (now a
+  thin wrapper). Same timeout and cache. Any failure yields empty maps and an unchanged response.
+- **Confidence untouched:** `confidencePolicy` is not edited and signal rows are not corroboration
+  inputs; a test asserts recommendation and confidence are identical with and without signal rows.
+- **Insufficient history** adds no usage row (the sentence is a non-statement, so it is omitted).
+- **Contract:** additive only (extra `evidence[]` rows and possibly different `why_statements` text);
+  `contracts.js check` passes, no lock change. Three v2 fixtures re-recorded.

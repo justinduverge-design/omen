@@ -103,6 +103,21 @@
         "statement": "DeVonta Smith projects 15.2 and Chris Olave projects 11 in this league's scoring."
       },
       {
+        "category": "player_game_fact",
+        "kind": "projection",
+        "statement": "A 4.2-point projection gap is outside normal projection variance: a real edge on paper."
+      },
+      {
+        "category": "recent_usage",
+        "kind": "observed_context",
+        "statement": "Snap share held at 80% over the last 4 games, so DeVonta Smith's recent usage is steady."
+      },
+      {
+        "category": "recent_usage",
+        "kind": "observed_context",
+        "statement": "Snap share swung by about 25 points a game over the last 4 games (from 35% to 90%), so Chris Olave's recent usage is uneven."
+      },
+      {
         "category": "omen_inference",
         "kind": "inference",
         "statement": "The available data favors DeVonta Smith."
@@ -146,6 +161,30 @@
     ],
     "why_statements": [
       {
+        "basis": "observed",
+        "evidence": [
+          {
+            "category": "recent_usage",
+            "id": "evidence[3]",
+            "kind": "observed_context"
+          }
+        ],
+        "rank": 1,
+        "text": "Snap share held at 80% over the last 4 games, so DeVonta Smith's recent usage is steady."
+      },
+      {
+        "basis": "observed",
+        "evidence": [
+          {
+            "category": "recent_usage",
+            "id": "evidence[4]",
+            "kind": "observed_context"
+          }
+        ],
+        "rank": 2,
+        "text": "Snap share swung by about 25 points a game over the last 4 games (from 35% to 90%), so Chris Olave's recent usage is uneven."
+      },
+      {
         "basis": "projection",
         "evidence": [
           {
@@ -154,20 +193,8 @@
             "kind": "projection"
           }
         ],
-        "rank": 1,
+        "rank": 3,
         "text": "DeVonta Smith projects 15.2 and Chris Olave projects 11 in this league's scoring."
-      },
-      {
-        "basis": "inference",
-        "evidence": [
-          {
-            "category": "omen_inference",
-            "id": "evidence[2]",
-            "kind": "inference"
-          }
-        ],
-        "rank": 2,
-        "text": "The available data favors DeVonta Smith."
       }
     ]
   }

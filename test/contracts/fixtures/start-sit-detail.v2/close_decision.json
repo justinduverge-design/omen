@@ -103,6 +103,11 @@
         "statement": "DeVonta Smith projects 11.8 and Chris Olave projects 11 in this league's scoring."
       },
       {
+        "category": "player_game_fact",
+        "kind": "projection",
+        "statement": "The projection gap (0.8 pts) is inside normal projection variance."
+      },
+      {
         "category": "omen_inference",
         "kind": "inference",
         "statement": "The available data slightly favors DeVonta Smith, and the gap is inside normal projection variance."
@@ -160,15 +165,27 @@
         "text": "DeVonta Smith projects 11.8 and Chris Olave projects 11 in this league's scoring."
       },
       {
+        "basis": "projection",
+        "evidence": [
+          {
+            "category": "player_game_fact",
+            "id": "evidence[2]",
+            "kind": "projection"
+          }
+        ],
+        "rank": 2,
+        "text": "The projection gap (0.8 pts) is inside normal projection variance."
+      },
+      {
         "basis": "inference",
         "evidence": [
           {
             "category": "omen_inference",
-            "id": "evidence[2]",
+            "id": "evidence[3]",
             "kind": "inference"
           }
         ],
-        "rank": 2,
+        "rank": 3,
         "text": "The available data slightly favors DeVonta Smith, and the gap is inside normal projection variance."
       }
     ]
