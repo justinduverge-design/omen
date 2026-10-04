@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: omen_football_warehouse
+    restart: unless-stopped
+    env_file:
+      - .env
+    # No exposed ports to the host; accessible only within the internal Docker network.
+    # ports:
+    #   - "5432:5432"
+    volumes:
+      - warehouse_data:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - warehouse_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 4G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+
+volumes:
+  warehouse_data:
+
+networks:
+  warehouse_net:
+    driver: bridge
+    internal: true
