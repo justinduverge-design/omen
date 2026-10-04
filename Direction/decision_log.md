@@ -1,5 +1,22 @@
 # Omen Decision Log
 
+## 2026-10-04 — the "why" is built from the tagged evidence rows (engine step 5)
+
+- **Decision:** `src/services/evidenceWhy.js` turns the ordered evidence rows into at most three
+  ranked statements. Each statement is a row's own text verbatim (so every number and name comes
+  from a row), tagged with the row it came from. Rank: observed (recent usage, status, points-breakdown
+  reconciliation, team system), then the provider-projection gap, then limitation, then inference.
+  A limitation row is never crowded out by the cap; no usable rows gives one honest "not enough
+  evidence" statement. Rows that claim Omen predicts or beats the provider are dropped.
+- **Wiring (additive only):** `why_statements` on start-sit-detail v2 (recommendation states only)
+  and `recommendation.explanation.why_statements` on the Omen MVP brief. The statement texts are
+  also in the LLM facts payload (`why_statements`), so a grounded rephrase of their numbers passes
+  `narrationGrounding`. Existing `why[]` and `why_it_matters` are unchanged and remain the
+  deterministic base text; the LLM never rewrites `why_statements`.
+- **Contract impact:** optional `why_statements` added to the v2 schema and lock via
+  `contracts.js lock` (no `--accept-breaking`); three v2 fixtures re-recorded. No enum, retype or
+  removal. v1 is untouched.
+
 ## 2026-10-04 — evidence taxonomy closed in code and CI; contract enum deferred to a new version
 
 - **Decision:** evidence `category` and `kind` stay free strings in the schemas, but the set of values

@@ -149,6 +149,44 @@
     "why": [
       "Higher projected output in this league's scoring (+9.2).",
       "Chris Olave is unavailable for this week."
+    ],
+    "why_statements": [
+      {
+        "basis": "observed",
+        "evidence": [
+          {
+            "category": "current_status",
+            "id": "evidence[2]",
+            "kind": "verified"
+          }
+        ],
+        "rank": 1,
+        "text": "Chris Olave is listed out."
+      },
+      {
+        "basis": "projection",
+        "evidence": [
+          {
+            "category": "player_game_fact",
+            "id": "evidence[1]",
+            "kind": "projection"
+          }
+        ],
+        "rank": 2,
+        "text": "DeVonta Smith projects 9.2 and Chris Olave projects 0 in this league's scoring."
+      },
+      {
+        "basis": "inference",
+        "evidence": [
+          {
+            "category": "omen_inference",
+            "id": "evidence[3]",
+            "kind": "inference"
+          }
+        ],
+        "rank": 3,
+        "text": "The available data favors DeVonta Smith."
+      }
     ]
   }
 }

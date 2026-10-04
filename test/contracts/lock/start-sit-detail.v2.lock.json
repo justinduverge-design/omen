@@ -370,6 +370,46 @@
     "why[]": {
       "required": true,
       "type": "string"
+    },
+    "why_statements": {
+      "required": false,
+      "type": "array"
+    },
+    "why_statements[]": {
+      "required": true,
+      "type": "object"
+    },
+    "why_statements[].basis": {
+      "required": true,
+      "type": "string"
+    },
+    "why_statements[].evidence": {
+      "required": true,
+      "type": "array"
+    },
+    "why_statements[].evidence[]": {
+      "required": true,
+      "type": "object"
+    },
+    "why_statements[].evidence[].category": {
+      "required": true,
+      "type": "string"
+    },
+    "why_statements[].evidence[].id": {
+      "required": true,
+      "type": "string"
+    },
+    "why_statements[].evidence[].kind": {
+      "required": true,
+      "type": "string"
+    },
+    "why_statements[].rank": {
+      "required": true,
+      "type": "number"
+    },
+    "why_statements[].text": {
+      "required": true,
+      "type": "string"
     }
   }
 }

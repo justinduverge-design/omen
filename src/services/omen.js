@@ -11,6 +11,7 @@ const {
 const { getAuthenticatedYahooClient } = require("./yahooAuth");
 const rosterSvc = require("./roster");
 const optimizer = require("./optimizer");
+const { buildEvidenceWhy } = require("./evidenceWhy");
 const { assessConfidence, bandFromScore, bandSentence, mvpLabelForBand, scoreForBand } = require("./confidencePolicy");
 const omenSelector = require("./omenSelector");
 const { isOmenReadyConnection } = require("./omenReadiness");
@@ -1195,6 +1196,31 @@ function buildLiveMvpSignals({ connectedPlatforms = [], platform = "yahoo" } = {
   };
 }
 
+// Tagged evidence rows for a lineup swap, from fields the swap already carries. The statements
+// quote those fields and nothing else; they feed buildEvidenceWhy.
+function swapEvidenceRows({ swap, startPlayer, sitPlayer }) {
+  const rows = [];
+  const startPoints = swap.to?.projected == null ? null : finiteNumber(swap.to.projected);
+  const sitPoints = swap.from?.projected == null ? null : finiteNumber(swap.from.projected);
+  if (startPoints != null && sitPoints != null && swap.to?.name && swap.from?.name) {
+    rows.push({
+      category: "player_game_fact",
+      kind: "projection",
+      statement: `${swap.to.name} projects ${startPoints} and ${swap.from.name} projects ${sitPoints}.`,
+    });
+  }
+  for (const [player, fallback] of [[startPlayer, swap.to], [sitPlayer, swap.from]]) {
+    const status = player?.status ?? fallback?.status;
+    if (!(isRiskyStatus(status) || isOutStatus(status))) continue;
+    rows.push({
+      category: "current_status",
+      kind: "verified",
+      statement: `${player?.name || fallback?.name} is listed ${displayStatus(status)}.`,
+    });
+  }
+  return rows;
+}
+
 function mapLineupSwapToMvpMove({ roster, swap, connection, connectedPlatforms }) {
   const platform = connection.platform || roster.source || "unknown";
   const platformLabel = displayPlatform(platform);
@@ -1242,6 +1268,8 @@ function mapLineupSwapToMvpMove({ roster, swap, connection, connectedPlatforms }
       risk:
         `Risk is ${riskLevel} because this recommendation uses roster and projection math, not waiver availability or trade-acceptance forecasting.`,
       confidence: bandSentence(bandFromScore(confidenceScore), swap.confidence_reason || "The optimizer weighed the projected point edge."),
+      // Additive: ranked statements built deterministically from tagged evidence rows.
+      why_statements: buildEvidenceWhy(swapEvidenceRows({ swap, startPlayer, sitPlayer })),
       data_used: [
         `${platformLabel} roster`,
         "starter and bench slots",

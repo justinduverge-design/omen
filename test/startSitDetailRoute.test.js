@@ -578,3 +578,31 @@ test("Yahoo route: the breakdown is named unavailable once, with the reason", as
     statement: "Points breakdown unavailable: Yahoo does not give Omen a projected stat line.",
   }]);
 });
+
+test("v2 route carries ranked why_statements built from the evidence rows; v1 does not", async () => {
+  const options = {
+    connections: [SLEEPER_CONN],
+    sleeperAdapter: {
+      fetchSleeperLeague: async () => ({ name: "Dynasty Dogs", scoring_settings: { rec: 0.5 } }),
+      buildNormalizedRoster: async () => ROSTER,
+    },
+  };
+  const v2 = await request(buildApp(options), "/api/start-sit/detail?contract_version=start-sit-detail.v2");
+  assert.equal(v2.status, 200);
+  const statements = v2.body.why_statements;
+  assert.ok(Array.isArray(statements) && statements.length >= 1 && statements.length <= 3);
+  const evidenceText = new Set(v2.body.evidence.map((row) => row.statement));
+  for (const statement of statements) {
+    assert.ok(evidenceText.has(statement.text), `statement must be an evidence row verbatim: ${statement.text}`);
+    assert.ok(statement.evidence.length >= 1);
+  }
+  assert.ok(Array.isArray(v2.body.why) && v2.body.why.length >= 1, "existing why[] still served");
+
+  const v1 = await request(buildApp(options));
+  assert.equal(v1.body.why_statements, undefined);
+});
+
+test("v2 builder: no recommendation means no why_statements field", () => {
+  const result = buildStartSitDetail({ roster: ROSTER, platform: "sleeper", leagueId: "L1", offSeason: true, contractVersion: CONTRACT_VERSION_V2 });
+  assert.equal(result.why_statements, undefined);
+});

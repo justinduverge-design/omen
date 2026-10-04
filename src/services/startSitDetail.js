@@ -16,6 +16,7 @@
 const optimizer = require("./optimizer");
 const { usageStatement } = require("./playerUsage");
 const { breakdownEvidence } = require("./projectionBreakdown");
+const { buildEvidenceWhy } = require("./evidenceWhy");
 const { CAPABILITY_CONTRACT } = require("./decisionCapabilities");
 const { attachDecisionReceipt, createDecisionContext } = require("./decisionContext");
 
@@ -319,6 +320,8 @@ function buildStartSitDetail({
   if (starterOut) why.push(`${sit.name} is unavailable for this week.`);
   if (RISK_STATUSES.has(normalizedStatus(sit.status))) why.push(`${sit.name} carries an unresolved injury designation.`);
 
+  const evidence = buildEvidence({ start, sit, delta, scoringFormat, usage, teamSystem, breakdowns });
+
   const result = envelope({
     context,
     state: starterOut
@@ -339,7 +342,9 @@ function buildStartSitDetail({
       },
       why,
       what_could_change_this: whatCouldChangeThis({ start, sit, delta }),
-      evidence: buildEvidence({ start, sit, delta, scoringFormat, usage, teamSystem, breakdowns }),
+      evidence,
+      // Additive, v2 only: at most three ranked statements built deterministically from `evidence`.
+      ...(contractVersion === CONTRACT_VERSION_V2 ? { why_statements: buildEvidenceWhy(evidence) } : {}),
       // §5.3: the user may switch slots. These are the other slots that have one.
       alternatives: ordered.slice(1, 4).map((rec) => ({
         slot: rec.slot,
