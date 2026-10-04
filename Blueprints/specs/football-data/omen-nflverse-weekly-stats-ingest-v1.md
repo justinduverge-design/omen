@@ -43,7 +43,7 @@ Confirm the current release asset names and column headers at build time; nflver
 ## Write path
 
 1. Download the CSVs. Compute `source_ref` = `sha256:` plus the hex SHA-256 of the raw bytes (stats file, then snap file, then both hashed together in that order when two files are read, as `sourceRef(...)` in `playerCrosswalk.js` does).
-2. Insert one `data_events` row first: `event = 'ingest'`, `subject = 'nflverse_weekly_stats'`, `provider = 'nflverse'`, `rights_basis = 'nflverse_open_data'`, `job = '<job name> v1'`, `source_ref`, `row_count` set after the write (or written once the count is known), `details` with the season, weeks covered, and unmatched count. The table's `ingest_event_id` is `NOT NULL`, so the batch is recorded before its rows.
+2. Insert one `data_events` row before any stats row: `event = 'ingest'`, `subject = 'nflverse_weekly_stats'`, `provider = 'nflverse'`, `rights_basis = 'nflverse_open_data'`, `job = '<job name> v1'`, `source_ref`, and `row_count`, with `details` carrying the season, weeks covered, and unmatched count. `data_events` is append-only (step 06's `compartment_append_only` trigger) and `row_count` is `NOT NULL`, so the event is never updated: the job parses the CSV and resolves players in memory first, counts the rows it will write, then inserts the event once with that final count. The table's `ingest_event_id` is `NOT NULL`, so the event exists before its rows.
 3. Upsert rows in batches by `(player_id, season, week)`, setting `ingest_event_id` to this run's event, so each row names the batch that last wrote it.
 4. Nothing is deleted. A player-week that disappears from nflverse stays as last written.
 
@@ -51,7 +51,7 @@ Confirm the current release asset names and column headers at build time; nflver
 
 - Idempotent: the same input writes the same rows; re-running only moves `ingest_event_id` to the newer run.
 - nflverse corrects past weeks; each run covers **the whole current season** (all weeks to date), so a corrected earlier week is picked up and a missed run is caught by the next one. At season start, also read the previous season once.
-- A failed run leaves the rows it had written, and the next run completes them. Because the event row is written first, a failed run's event can show a `row_count` below its intent; the next run is the record of completion.
+- A failed run leaves the rows it had written, and the next run completes them. A run that fails before the event insert leaves no event. A run that fails partway through the batches leaves an event whose `row_count` is the planned figure, not the rows written; the next run is the record of completion.
 - If nflverse is unreachable or a required column is missing, the run fails with no partial write beyond a batch already committed, and logs it.
 
 ## Safety
