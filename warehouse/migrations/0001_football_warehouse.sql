@@ -166,10 +166,15 @@ create table football.nfl_player_weekly_stats (
   receiving_yards     numeric,
   targets             numeric,
   receptions          numeric,
+  carries             numeric,
+  passing_attempts    numeric,
+  target_share        numeric check (target_share is null or target_share between 0 and 1),
   stats               jsonb not null default '{}'::jsonb check (jsonb_typeof(stats) = 'object'),
   opportunity         jsonb not null default '{}'::jsonb check (jsonb_typeof(opportunity) = 'object'),
+  source_row          jsonb not null default '{}'::jsonb check (jsonb_typeof(source_row) = 'object'),
   ingest_event_id     bigint not null references football.warehouse_ingest_events(id) on delete restrict,
-  primary key (season, week, season_type, player_id)
+  primary key (season, week, season_type, player_id),
+  foreign key (season, game_id) references football.nfl_games(season, game_id) on delete restrict
 );
 create index nfl_player_weekly_stats_team_week
   on football.nfl_player_weekly_stats (team_id, season, week);
@@ -186,6 +191,7 @@ create table football.nfl_team_weekly_stats (
   points_for        smallint check (points_for is null or points_for >= 0),
   points_against    smallint check (points_against is null or points_against >= 0),
   stats             jsonb not null default '{}'::jsonb check (jsonb_typeof(stats) = 'object'),
+  source_row        jsonb not null default '{}'::jsonb check (jsonb_typeof(source_row) = 'object'),
   ingest_event_id   bigint not null references football.warehouse_ingest_events(id) on delete restrict,
   primary key (season, week, season_type, team_id)
 );
@@ -248,6 +254,7 @@ create table football.nfl_player_weekly_opportunity (
   player_id          text not null references football.football_players(player_id) on delete restrict,
   team_id            text references football.football_teams(team_id) on delete restrict,
   snaps              integer check (snaps is null or snaps >= 0),
+  snap_share         numeric check (snap_share is null or snap_share between 0 and 1),
   routes             integer check (routes is null or routes >= 0),
   carries            integer check (carries is null or carries >= 0),
   targets            integer check (targets is null or targets >= 0),

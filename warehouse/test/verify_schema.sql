@@ -28,6 +28,28 @@ begin
     raise exception 'expected 29 season partitions, found %', partition_count;
   end if;
 
+  if exists (
+    select 1
+    from (values ('carries'), ('passing_attempts'), ('target_share'), ('source_row')) expected(name)
+    where not exists (
+      select 1 from information_schema.columns
+      where table_schema = 'football'
+        and table_name = 'nfl_player_weekly_stats'
+        and column_name = expected.name
+    )
+  ) then
+    raise exception 'player weekly facts are missing a typed Start/Sit usage column';
+  end if;
+
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'football'
+      and table_name = 'nfl_player_weekly_opportunity'
+      and column_name = 'snap_share'
+  ) then
+    raise exception 'player weekly opportunity is missing snap_share';
+  end if;
+
   if has_schema_privilege('public', 'football', 'usage') then
     raise exception 'PUBLIC unexpectedly has football schema usage';
   end if;

@@ -66,14 +66,24 @@ function createWarehouseUsageRepository({ query, timeoutMs = DEFAULT_TIMEOUT_MS 
       const result = await query({
         name: "warehouse-player-usage-v1",
         text: `
-          SELECT gsis_id, week, season_type, team, targets, receptions, carries, attempts,
-                 target_share, snaps, snap_share
-          FROM nfl_player_weekly_stats
-          WHERE gsis_id = ANY($1::text[])
-            AND season = $2
-            AND week < $3
-            AND season_type = 'REG'
-          ORDER BY gsis_id, week
+          SELECT players.gsis_id, facts.week, facts.season_type,
+                 teams.nflverse_abbr AS team,
+                 facts.targets, facts.receptions, facts.carries,
+                 facts.passing_attempts AS attempts,
+                 facts.target_share, opportunity.snaps, opportunity.snap_share
+          FROM football.nfl_player_weekly_stats AS facts
+          JOIN football.football_players AS players ON players.player_id = facts.player_id
+          LEFT JOIN football.football_teams AS teams ON teams.team_id = facts.team_id
+          LEFT JOIN football.nfl_player_weekly_opportunity AS opportunity
+            ON opportunity.season = facts.season
+           AND opportunity.week = facts.week
+           AND opportunity.season_type = facts.season_type
+           AND opportunity.player_id = facts.player_id
+          WHERE players.gsis_id = ANY($1::text[])
+            AND facts.season = $2
+            AND facts.week < $3
+            AND facts.season_type = 'REG'
+          ORDER BY players.gsis_id, facts.week
         `,
         values: [ids, season, beforeWeek],
         query_timeout: timeoutMs,
