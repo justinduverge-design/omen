@@ -135,7 +135,7 @@ function groundingFacts({ loser, winner, pointsDelta, slot }) {
  * overlong or ungrounded output all fall back to the deterministic sentence, so
  * `explanation` is always a bounded, grounded string.
  */
-async function explainSafely({ loser, winner, pointsDelta, slot }, { timeoutMs = LLM_TIMEOUT_MS, llmService = llm } = {}) {
+async function explainSafely({ loser, winner, pointsDelta, slot }, { timeoutMs = LLM_TIMEOUT_MS, llmService = llm, validator = validateGroundedText } = {}) {
   const fallback = deterministicExplanation({ loser, winner, pointsDelta });
   const facts = groundingFacts({ loser, winner, pointsDelta, slot });
   const generated = await withTimeout(
@@ -143,7 +143,11 @@ async function explainSafely({ loser, winner, pointsDelta, slot }, { timeoutMs =
     timeoutMs
   );
   const text = typeof generated === "string" ? generated.trim() : "";
-  return text && validateGroundedText(text, facts).ok ? text : fallback;
+  try {
+    return text && validator(text, facts).ok ? text : fallback;
+  } catch {
+    return fallback; // fail closed
+  }
 }
 
 function comparePlayers(playerA, playerB) {

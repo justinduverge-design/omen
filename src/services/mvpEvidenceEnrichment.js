@@ -11,7 +11,7 @@
 
 const llm = require("./llm");
 const matchupService = require("./matchupService");
-const { validateGroundedText } = require("./narrationGrounding");
+const { validateGroundedText, countSentences: countGroundedSentences } = require("./narrationGrounding");
 
 const DVP_POSITIONS = new Set(["QB", "RB", "WR", "TE"]);
 const LIVE_SCHEDULE_SOURCES = new Set(["espn_scoreboard"]);
@@ -32,9 +32,7 @@ function countWords(text) {
 }
 
 function countSentences(text) {
-  const value = String(text || "").trim();
-  if (!value) return 0;
-  return value.match(/[.!?]+(?=\s|$)/g)?.length || 1;
+  return countGroundedSentences(text);
 }
 
 function explanationTarget(response = {}) {
@@ -134,7 +132,15 @@ function isBoundedLlmExplanation(value, allowedDataUsed = []) {
  * the numeric confidence score is never quoted. Anything else falls back to the
  * deterministic explanation already on the response.
  */
-function isGroundedLlmExplanation(generated, payload) {
+function isGroundedLlmExplanation(generated, payload, { validator = validateGroundedText } = {}) {
+  try {
+    return groundedFields(generated, payload, validator);
+  } catch {
+    return false; // fail closed: deterministic text stays
+  }
+}
+
+function groundedFields(generated, payload, validator) {
   const options = {
     // Each field is checked on its own; the combined 50-word/2-sentence bound is
     // enforced by isBoundedLlmExplanation.
@@ -143,7 +149,7 @@ function isGroundedLlmExplanation(generated, payload) {
     disallowNumbers: [payload?.confidence?.score],
   };
   return ["summary", "why_it_matters"].every(
-    (field) => validateGroundedText(generated?.[field], payload, options).ok
+    (field) => validator(generated?.[field], payload, options).ok
   );
 }
 
@@ -163,7 +169,7 @@ function sourceForModel(model) {
  * `data_used` are validated but intentionally not applied: those fields remain
  * deterministic so a narrator cannot change decision facts or invent sources.
  */
-async function generateMvpLlmNarration(response, { llmService = llm, timeoutMs } = {}) {
+async function generateMvpLlmNarration(response, { llmService = llm, timeoutMs, groundingValidator } = {}) {
   const target = explanationTarget(response);
   if (!target) return null;
 
@@ -173,7 +179,7 @@ async function generateMvpLlmNarration(response, { llmService = llm, timeoutMs }
     ...(timeoutMs == null ? {} : { timeoutMs }),
   });
   if (!isBoundedLlmExplanation(generated, payload.data_used)) return null;
-  if (!isGroundedLlmExplanation(generated, payload)) return null;
+  if (!isGroundedLlmExplanation(generated, payload, groundingValidator ? { validator: groundingValidator } : undefined)) return null;
 
   const bridge = typeof llmService.getLlmBridgeStatus === "function"
     ? llmService.getLlmBridgeStatus()

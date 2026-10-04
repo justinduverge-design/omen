@@ -12,6 +12,14 @@
   sentence built from the request's own numbers, replaced by model text only when it passes grounding and the
   length bound. Timeout, error, empty or ungrounded output all fall back. No latency can be added beyond the
   existing bounds; narration defaults are unchanged (MVP brief path still opt-in, cloud still hard-disabled).
+- **Grounding is best-effort, not a proof.** It checks numbers, name-like capitalized tokens, and a broad
+  lexicon of unsupported-reason terms ("dominant", "great matchup", "elite", "smash spot", "locked in"...),
+  each allowed only when the same phrase is in the facts. It is deliberately not a closed vocabulary: false
+  rejects would kill narration. A novel invented lowercase claim can still slip through; the deterministic
+  text is always present and is the safe fallback, and the validator and its call sites fail closed (never
+  throw). Abbreviation periods ("St. Brown", "D.J. Moore") do not count as sentence ends; position tags
+  (WR1, FLEX) are not treated as numbers or names. No frontend or mobile client reads the
+  `POST /api/start-sit` explanation (mobile uses `/detail`), so null-to-string needed no client change.
 - **Prompts** in `llm.js` now say "rephrase ONLY these facts; add nothing". The old omenRoute fixture that had
   the model say "Live Gemma says..." was itself an ungrounded name and was corrected.
 

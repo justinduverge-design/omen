@@ -34,7 +34,12 @@ const COMMON_WORDS = new Set((
   "adds gives brings offers provides makes keeps leaves lets helps means shows reflects favors " +
   "recommend recommends recommended strong healthy best good great top another any all other some " +
   "many much key main primary reason move choice call option player players role those these " +
-  "gets get got ranks lines line up down about around across after before during without within"
+  "gets get got ranks lines line up down about around across after before during without within " +
+  "sitting starting benching choosing choose trust go going stay staying lean leaning " +
+  "i'd i'll i'm id ill im we'd we'll you'd you'll let's lets it's its that's thats there's " +
+  "if when since given considering consider look looking note noting go with plan stick sticking " +
+  "bet backing back favor favoring prefer preferring take taking use using rely relying " +
+  "projected-higher higher-projected pass passing okay ok yes no do does don't dont can't cant"
 ).split(/\s+/));
 
 // Stat/usage claims a small model likes to invent. Each is rejected unless the
@@ -47,7 +52,19 @@ const STAT_TERMS = Object.freeze([
   "last week", "last game", "past games", "career", "season-long", "per game", "ppr",
   "defense ranks", "ranked", "rank", "game script", "pace", "offensive line", "coach", "coaching",
   "depth chart", "contract", "rookie", "veteran",
+  // Unsupported "reason" language: each is a claim the engine never made, so it
+  // is allowed only when the same phrase is already in the facts.
+  "dominant", "dominating", "lately", "recently", "recent form", "form", "momentum", "hot", "cold",
+  "great matchup", "good matchup", "easy matchup", "plus matchup", "soft matchup", "tough matchup",
+  "favorable", "unfavorable", "soft defense", "weak defense", "poor defense", "bad defense",
+  "tough defense", "stout", "elite", "upside", "ceiling", "floor", "boom", "bust", "breakout",
+  "locked in", "locked-in", "must-start", "must start", "must-sit", "smash", "smash spot",
+  "workhorse", "bellcow", "lead back", "featured", "explosive", "efficient", "efficiency",
+  "rested", "fresh legs", "hot streak", "cold streak", "points allowed", "shootout", "blowout",
+  "garbage time", "target", "red-hot", "on fire", "league-winner", "league winner", "sleeper pick",
 ]);
+
+const POSITION_TAGS = new Set(["QB", "RB", "WR", "TE", "K", "DEF", "DST", "FLEX", "IR"]);
 
 const NUMBER_WORDS = Object.freeze([
   "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve",
@@ -133,17 +150,39 @@ function numberIsGrounded(token, factNumbers) {
 }
 
 function splitSentences(text) {
-  return String(text).split(/(?<=[.!?])\s+/).filter(Boolean);
+  return String(text).split(/(?<=[.!?])\s+(?=[A-Z])/).filter(Boolean);
 }
 
 function countWords(text) {
   return String(text || "").match(/\b[\w'-]+\b/g)?.length || 0;
 }
 
+const ABBREVIATIONS = new Set(["st", "jr", "sr", "mr", "mrs", "ms", "dr", "vs", "inc"]);
+
+/**
+ * Counts sentence ends only: [.!?] followed by whitespace and an uppercase
+ * letter (or end of text), and not a period closing a short abbreviation or an
+ * initial ("St. Brown", "Jr.", "D.J. Moore").
+ */
 function countSentences(text) {
   const value = String(text || "").trim();
   if (!value) return 0;
-  return value.match(/[.!?]+(?=\s|$)/g)?.length || 1;
+  let count = 0;
+  const re = /[.!?]+(?=\s+[A-Z"'\u201C(]|\s*$)/g;
+  let match;
+  while ((match = re.exec(value)) !== null) {
+    if (match[0] === ".") {
+      const before = value.slice(0, match.index).match(/([A-Za-z.]+)$/);
+      const token = before ? before[1] : "";
+      const bare = token.replace(/\./g, "").toLowerCase();
+      const isInitials = /^(?:[A-Za-z]\.)+[A-Za-z]?$/.test(token) || (token.length === 1 && /[A-Z]/.test(token));
+      if (ABBREVIATIONS.has(bare) || isInitials) {
+        if (match.index + 1 < value.length) continue;
+      }
+    }
+    count += 1;
+  }
+  return count || 1;
 }
 
 /**
@@ -154,14 +193,14 @@ function countSentences(text) {
  * @param {string[]} [opts.extraAllowedWords] additional allowed capitalized tokens
  * @returns {{ ok: boolean, reasons: string[] }}
  */
-function validateGroundedText(text, facts, opts = {}) {
+function validateGroundedTextUnsafe(text, facts, opts) {
   const {
     maxWords = DEFAULT_MAX_WORDS,
     maxSentences = DEFAULT_MAX_SENTENCES,
     maxChars = DEFAULT_MAX_CHARS,
     disallowNumbers = [],
     extraAllowedWords = [],
-  } = opts;
+  } = opts || {};
   const reasons = [];
   if (typeof text !== "string" || !text.trim()) return { ok: false, reasons: ["empty"] };
   const value = text.trim();
@@ -178,7 +217,9 @@ function validateGroundedText(text, facts, opts = {}) {
   const index = buildFactIndex(facts);
   const blocked = new Set(disallowNumbers.filter(Number.isFinite).map(Number));
 
-  for (const token of value.match(/\d+(?:\.\d+)?/g) || []) {
+  // Position tags such as WR1 / RB2 / FLEX are labels, not claims.
+  const numberText = value.replace(/\b(?:QB|RB|WR|TE|K|DEF|DST)\s?\d\b/g, " ");
+  for (const token of numberText.match(/\d+(?:\.\d+)?/g) || []) {
     if (blocked.has(Number(token)) || !numberIsGrounded(token, index.numbers)) {
       reasons.push(`ungrounded_number:${token}`);
     }
@@ -199,6 +240,7 @@ function validateGroundedText(text, facts, opts = {}) {
   const sentenceStarts = new Set(splitSentences(value).map((s) => wordsOf(s)[0]).filter(Boolean));
   for (const token of wordsOf(value)) {
     if (!/^[A-Z]/.test(token)) continue;
+    if (POSITION_TAGS.has(token)) continue;
     const parts = token.split("-").map(stripToken).filter(Boolean);
     const known = parts.every((part) => index.words.has(part) || extra.has(part) || part === "omen"
       || (sentenceStarts.has(token) && COMMON_WORDS.has(part)));
@@ -206,6 +248,15 @@ function validateGroundedText(text, facts, opts = {}) {
   }
 
   return { ok: reasons.length === 0, reasons: [...new Set(reasons)] };
+}
+
+/** Never throws: any internal failure is a rejection (callers fall back). */
+function validateGroundedText(text, facts, opts) {
+  try {
+    return validateGroundedTextUnsafe(text, facts, opts);
+  } catch {
+    return { ok: false, reasons: ["validator_error"] };
+  }
 }
 
 function isGroundedText(text, facts, opts) {
@@ -217,6 +268,7 @@ module.exports = {
   DEFAULT_MAX_SENTENCES,
   DEFAULT_MAX_WORDS,
   buildFactIndex,
+  countSentences,
   isGroundedText,
   validateGroundedText,
 };
