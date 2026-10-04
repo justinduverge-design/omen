@@ -173,9 +173,6 @@ function loadOptimizerRouter(options = {}) {
         findWaiverMoves: () => [],
       };
     }
-    if (parent?.filename === routePath && request === "../services/agents") {
-      return { getMVPMove: async () => ({}) };
-    }
     if (parent?.filename === routePath && request === "../middleware/logging") {
       return { logger: { error() {}, warn() {}, info() {} } };
     }
