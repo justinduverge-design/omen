@@ -116,10 +116,10 @@ function validateRow(row, index, season) {
     week: integer(row.week, `rows[${index}].week`, 1, 23),
     season_type: requiredString(row.seasonType, `rows[${index}].seasonType`, /^(REG|POST)$/),
     player_id: requiredString(row.playerId, `rows[${index}].playerId`, PLAYER_ID),
-    team_id: optionalString(row.teamId, `rows[${index}].teamId`, TEAM_ID),
-    opponent_team_id: optionalString(row.opponentTeamId, `rows[${index}].opponentTeamId`, TEAM_ID),
-    game_id: optionalString(row.gameId, `rows[${index}].gameId`, GAME_ID),
-    football_position: optionalString(row.footballPosition, `rows[${index}].footballPosition`, /^.{1,32}$/),
+    team_id: requiredString(row.teamId, `rows[${index}].teamId`, TEAM_ID),
+    opponent_team_id: requiredString(row.opponentTeamId, `rows[${index}].opponentTeamId`, TEAM_ID),
+    game_id: requiredString(row.gameId, `rows[${index}].gameId`, GAME_ID),
+    football_position: requiredString(row.footballPosition, `rows[${index}].footballPosition`, /^.{1,32}$/),
     fantasy_points_ppr: optionalFinite(row.fantasyPointsPpr, `rows[${index}].fantasyPointsPpr`),
     passing_yards: optionalFinite(row.passingYards, `rows[${index}].passingYards`),
     rushing_yards: optionalFinite(row.rushingYards, `rows[${index}].rushingYards`),
@@ -305,9 +305,16 @@ function createPlayerWeeklyWriter({ pool, maxUnmatchedRatio = DEFAULT_MAX_UNMATC
             LEFT JOIN football.football_teams o ON o.team_id = s.opponent_team_id
             LEFT JOIN football.nfl_games g ON g.season = s.season AND g.game_id = s.game_id
             WHERE p.player_id IS NULL
-               OR (s.team_id IS NOT NULL AND t.team_id IS NULL)
-               OR (s.opponent_team_id IS NOT NULL AND o.team_id IS NULL)
-               OR (s.game_id IS NOT NULL AND g.game_id IS NULL)
+               OR t.team_id IS NULL
+               OR o.team_id IS NULL
+               OR g.game_id IS NULL
+               OR g.week IS DISTINCT FROM s.week
+               OR (s.season_type = 'REG' AND g.game_type <> 'REG')
+               OR (s.season_type = 'POST' AND g.game_type NOT IN ('WC', 'DIV', 'CON', 'SB'))
+               OR NOT (
+                 (g.away_team_id = s.team_id AND g.home_team_id = s.opponent_team_id)
+                 OR (g.home_team_id = s.team_id AND g.away_team_id = s.opponent_team_id)
+               )
           `,
         });
         if (references.rows[0]?.invalid_count !== 0) {

@@ -11,7 +11,7 @@ const {
   sourceUrlForSeason,
 } = require("../src/services/footballWarehouse/playerWeeklySource");
 
-const EXTRA_COLUMNS = ["game_id", "player_display_name", "note"];
+const EXTRA_COLUMNS = ["player_display_name", "note"];
 const HEADERS = [...REQUIRED_COLUMNS, ...EXTRA_COLUMNS];
 
 function csvRow(values) {
@@ -186,5 +186,13 @@ test("rejects wrong seasons, invalid numerics and credential-bearing source URLs
   assert.throws(
     () => adaptPlayerWeeklyCsv(sourceArgs(rawCsv([csvRow(row({ team: "NOT" }))]))),
     /team is not a known NFL team/,
+  );
+  assert.throws(
+    () => adaptPlayerWeeklyCsv(sourceArgs(rawCsv([csvRow(row({ game_id: "" }))]))),
+    /game_id is empty/,
+  );
+  assert.throws(
+    () => adaptPlayerWeeklyCsv(sourceArgs(rawCsv([csvRow(row({ opponent_team: "" }))]))),
+    /opponent_team is empty/,
   );
 });

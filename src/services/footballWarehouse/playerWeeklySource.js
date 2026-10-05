@@ -11,6 +11,7 @@ const REQUIRED_COLUMNS = Object.freeze([
   "player_id", "season", "week", "season_type", "team", "opponent_team", "position",
   "fantasy_points_ppr", "attempts", "passing_yards", "carries", "rushing_yards",
   "targets", "receptions", "receiving_yards", "target_share",
+  "game_id",
 ]);
 const RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 
@@ -123,7 +124,7 @@ function textOrNull(value) {
 
 function teamId(value, name) {
   const text = textOrNull(value);
-  if (text == null) return null;
+  if (text == null) throw new TypeError(`${name} is empty`);
   const id = teamIdFor(text);
   if (!id) throw new TypeError(`${name} is not a known NFL team`);
   return id;
@@ -214,6 +215,10 @@ function adaptPlayerWeeklyCsv({ raw, season, playerIdByGsis, sourceUrl, runId })
     if (targetShare != null && (targetShare < 0 || targetShare > 1)) {
       throw new TypeError(`CSV row ${index + 2} target_share is invalid`);
     }
+    const gameId = textOrNull(sourceRow.game_id);
+    if (!gameId) throw new TypeError(`CSV row ${index + 2} game_id is empty`);
+    const footballPosition = textOrNull(sourceRow.position);
+    if (!footballPosition) throw new TypeError(`CSV row ${index + 2} position is empty`);
     rows.push({
       season,
       week,
@@ -221,8 +226,8 @@ function adaptPlayerWeeklyCsv({ raw, season, playerIdByGsis, sourceUrl, runId })
       playerId,
       teamId: teamId(sourceRow.team, `CSV row ${index + 2} team`),
       opponentTeamId: teamId(sourceRow.opponent_team, `CSV row ${index + 2} opponent_team`),
-      gameId: textOrNull(sourceRow.game_id),
-      footballPosition: textOrNull(sourceRow.position),
+      gameId,
+      footballPosition,
       fantasyPointsPpr: finiteOrNull(sourceRow.fantasy_points_ppr, `CSV row ${index + 2} fantasy_points_ppr`),
       passingYards: finiteOrNull(sourceRow.passing_yards, `CSV row ${index + 2} passing_yards`),
       rushingYards: finiteOrNull(sourceRow.rushing_yards, `CSV row ${index + 2} rushing_yards`),

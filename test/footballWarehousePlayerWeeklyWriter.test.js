@@ -132,6 +132,10 @@ test("writes player weekly facts and the succeeded receipt in one guarded transa
     opportunity: { carries: 5 },
     source_row: { player_id: "00-0031234", week: 1 },
   }]);
+  const references = db.calls.find((call) => call.name === "warehouse-player-weekly-stage-references-v1");
+  assert.match(references.text, /g\.week IS DISTINCT FROM s\.week/);
+  assert.match(references.text, /g\.game_type NOT IN \('WC', 'DIV', 'CON', 'SB'\)/);
+  assert.match(references.text, /g\.away_team_id = s\.team_id/);
   assert.equal(db.wasReleased(), true);
 });
 
