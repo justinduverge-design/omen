@@ -33,7 +33,7 @@
     "acorn": "^8.18.0",
     "ajv": "^8.20.0",
     "impeccable": "^4.1.0",
-    "pg": "^8.23.0",
+    "pg": "^8.23.1",
     "playwright-core": "^1.63.0"
   },
   "overrides": {
