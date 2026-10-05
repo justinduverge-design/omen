@@ -21,7 +21,10 @@ function withoutYamlComments(contents) {
 test("warehouse PostgreSQL is internal-only and bounded", () => {
   const compose = withoutYamlComments(read("infra", "warehouse", "docker-compose.yml"));
 
-  assert.match(compose, /image:\s+postgres:17(?:-|\s|$)/m);
+  assert.match(compose, /image:\s+postgres:17\.11-bookworm@sha256:91eb910c44c7ed13f7f1a4ccadaa9ca72ef14cddc04cacb6e070e48eb44731a3$/m);
+  assert.match(compose, /POSTGRES_DB:\s*omen_football/);
+  assert.match(compose, /pg_isready\s+-U\s+postgres\s+-d\s+omen_football/);
+  assert.match(compose, /checksum='27fb1e8dd4a5167ffc27660f165f326e7c9a6e3b4aaf2e04ec16ec4e55448f1c'/);
   assert.match(compose, /internal:\s+true/);
   assert.doesNotMatch(compose, /^\s*ports:/m, "warehouse PostgreSQL must not publish a host port");
   assert.match(compose, /healthcheck:/);
@@ -29,6 +32,17 @@ test("warehouse PostgreSQL is internal-only and bounded", () => {
   assert.match(compose, /(?:cpus|nano_cpus):/, "warehouse must have an explicit CPU bound");
   assert.match(compose, /pids_limit:/, "warehouse must have a PID bound");
   assert.match(compose, /max-size:/, "warehouse container logs must be size-bounded");
+});
+
+test("warehouse initialization records the exact migration checksum and version", () => {
+  const receipt = read("warehouse", "migrations", "0002_record_migration.sh");
+  assert.match(receipt, /sha256sum\s+"\$migration"/);
+  assert.match(receipt, /27fb1e8dd4a5167ffc27660f165f326e7c9a6e3b4aaf2e04ec16ec4e55448f1c/);
+  assert.match(receipt, /--single-transaction/);
+  assert.match(receipt, /warehouse_schema_migrations/);
+  assert.match(receipt, /values \(1, '0001_football_warehouse'/);
+  assert.match(receipt, /and checksum = :'migration_checksum'/);
+  assert.doesNotMatch(receipt, /echo\s+[^\n]*(?:password|POSTGRES_PASSWORD)/i);
 });
 
 test("warehouse password uses a machine-local secret file, never an env file", () => {
