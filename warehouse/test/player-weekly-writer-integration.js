@@ -45,7 +45,7 @@ async function main() {
       season: 2026,
       receipt: {
         runId: "writer-integration-success",
-        sourceUrl: "https://github.com/nflverse/stats_player_week_2026.csv",
+        sourceUrl: "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2026.csv",
         sourceRef: `sha256:${"b".repeat(64)}`,
         sourceBytes: 256,
         sourceRows: 1,

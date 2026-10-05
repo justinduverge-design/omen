@@ -15,7 +15,7 @@ function input(overrides = {}) {
     season: 2026,
     receipt: {
       runId: "weekly-2026-a",
-      sourceUrl: "https://github.com/nflverse/example.csv",
+      sourceUrl: "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2026.csv",
       sourceRef: HASH_A,
       sourceBytes: 1234,
       sourceRows: 1,
@@ -48,7 +48,7 @@ function input(overrides = {}) {
   };
 }
 
-function fakePool({ existing = [], failAt } = {}) {
+function fakePool({ existing = [], failAt, startedRows = [{ id: 71 }] } = {}) {
   const calls = [];
   let released = false;
   const client = {
@@ -61,7 +61,7 @@ function fakePool({ existing = [], failAt } = {}) {
         throw error;
       }
       if (name === "warehouse-player-weekly-existing-v1") return { rows: existing };
-      if (name === "warehouse-player-weekly-start-receipt-v1") return { rows: [{ id: 71 }] };
+      if (name === "warehouse-player-weekly-start-receipt-v1") return { rows: startedRows };
       if (name === "warehouse-player-weekly-stage-count-v1") return { rows: [{ row_count: 1 }] };
       if (name === "warehouse-player-weekly-stage-references-v1") return { rows: [{ invalid_count: 0 }] };
       return { rows: [], rowCount: 1 };
@@ -94,6 +94,7 @@ test("writes player weekly facts and the succeeded receipt in one guarded transa
   });
   assert.deepEqual(names(db.calls), [
     "BEGIN",
+    "warehouse-local-transaction-timeouts-v1",
     "warehouse-player-weekly-lock-v1",
     "warehouse-player-weekly-existing-v1",
     "warehouse-player-weekly-start-receipt-v1",
@@ -148,6 +149,7 @@ test("skips an unchanged source under the season lock without replacing facts", 
   assert.deepEqual(result, { state: "unchanged", ingestEventId: 44, sourceRows: 1, writtenRows: 1 });
   assert.deepEqual(names(db.calls), [
     "BEGIN",
+    "warehouse-local-transaction-timeouts-v1",
     "warehouse-player-weekly-lock-v1",
     "warehouse-player-weekly-existing-v1",
     "COMMIT",
@@ -226,6 +228,24 @@ test("rejects malformed source hashes and unmatched row metadata before connecti
     /sourceRow must be an object/,
   );
   assert.equal(connects, 0);
+});
+
+test("rejects a receipt for any source other than the exact season asset", async () => {
+  const bad = input();
+  bad.receipt.sourceUrl = "https://example.com/player-week.csv";
+  await assert.rejects(createPlayerWeeklyWriter({ pool: { connect() { throw new Error("must not connect"); } } }).writeSeason(bad), /allowlisted/);
+});
+
+test("failed receipt upserts cannot rebind a run id to different source bytes", async () => {
+  const db = fakePool({ startedRows: [] });
+  const changed = input();
+  changed.receipt.sourceRef = `sha256:${"b".repeat(64)}`;
+  await assert.rejects(createPlayerWeeklyWriter({ pool: db.pool }).writeSeason(changed),
+    (error) => error.code === "run_id_conflict");
+  const start = db.calls.find((call) => call.name === "warehouse-player-weekly-start-receipt-v1");
+  const failure = db.calls.find((call) => call.name === "warehouse-player-weekly-failed-receipt-v1");
+  assert.match(start.text, /source_ref = EXCLUDED\.source_ref/);
+  assert.match(failure.text, /source_ref = EXCLUDED\.source_ref/);
 });
 
 test("rejects rows from another season and never performs name matching", async () => {

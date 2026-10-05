@@ -1,6 +1,7 @@
 "use strict";
 
 const { SCHEDULES_SOURCE_URL } = require("./scheduleSource");
+const { runBoundedFailureReceipt, setLocalTransactionTimeouts, validateTransactionTimeouts } = require("./transactionTimeouts");
 
 const DATASET = "teams";
 const RIGHTS_BASIS = "nflverse_open_data";
@@ -59,7 +60,7 @@ function safe(error) {
 }
 async function failed(client, r, error) {
   const failure = safe(error);
-  try { await client.query({ name: "warehouse-team-failed-receipt-v1", text: `
+  await runBoundedFailureReceipt(client, () => client.query({ name: "warehouse-team-failed-receipt-v1", text: `
     INSERT INTO football.warehouse_ingest_events
       (run_id,dataset,season,rights_basis,source_url,source_ref,source_bytes,source_rows,state,finished_at,error_code,error_summary,metadata)
     VALUES ($1,$2,NULL,$3,$4,$5,$6,$7,'failed',clock_timestamp(),$8,$9,$10::jsonb)
@@ -70,12 +71,13 @@ async function failed(client, r, error) {
     WHERE football.warehouse_ingest_events.state <> 'succeeded'
       AND football.warehouse_ingest_events.source_ref = EXCLUDED.source_ref`,
     values: [r.runId, DATASET, RIGHTS_BASIS, r.sourceUrl, r.sourceRef, r.sourceBytes, r.sourceRows,
-      failure.code, failure.summary, JSON.stringify(r.metadata)] }); } catch {}
+      failure.code, failure.summary, JSON.stringify(r.metadata)] }));
 }
 
-function createTeamWriter({ pool, expectedTeamRows = 32 } = {}) {
+function createTeamWriter({ pool, expectedTeamRows = 32, transactionTimeouts } = {}) {
   if (!pool || typeof pool.connect !== "function") throw new TypeError("pool.connect must be a function");
   integer(expectedTeamRows, "expectedTeamRows", 1, 64);
+  const timeouts = validateTransactionTimeouts(transactionTimeouts);
   return { async writeSnapshot({ receipt: rawReceipt, teamRows }) {
     const r = receipt(rawReceipt);
     if (!Array.isArray(teamRows) || teamRows.length !== expectedTeamRows) throw new RangeError(`teamRows must contain exactly ${expectedTeamRows} rows`);
@@ -89,6 +91,7 @@ function createTeamWriter({ pool, expectedTeamRows = 32 } = {}) {
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
+      await setLocalTransactionTimeouts(client, timeouts);
       await client.query({ name: "warehouse-team-lock-v1", text: "SELECT pg_advisory_xact_lock(hashtextextended($1,0))", values: [DATASET] });
       const existing = await client.query({ name: "warehouse-team-existing-v1", text: `SELECT id FROM football.warehouse_ingest_events WHERE dataset=$1 AND season IS NULL AND source_ref=$2 AND state='succeeded' ORDER BY finished_at DESC LIMIT 1`, values: [DATASET, r.sourceRef] });
       if (existing.rows.length) { await client.query("COMMIT"); return { state: "unchanged", ingestEventId: existing.rows[0].id, writtenTeams: rows.length }; }

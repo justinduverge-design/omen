@@ -1,5 +1,7 @@
 "use strict";
 
+const { runBoundedFailureReceipt, setLocalTransactionTimeouts, validateTransactionTimeouts } = require("./transactionTimeouts");
+
 const { PLAYERS_SOURCE_URL } = require("./playerIdentitySource");
 
 const DATASET = "players";
@@ -130,27 +132,31 @@ function sanitizeError(error) {
 
 async function recordFailure(client, receipt, error) {
   const safe = sanitizeError(error);
-  try {
-    await client.query({
+  await runBoundedFailureReceipt(client, () => client.query({
       name: "warehouse-player-identity-failed-receipt-v1",
       text: `
         INSERT INTO football.warehouse_ingest_events
           (run_id, dataset, season, rights_basis, source_url, source_ref, source_bytes,
            source_rows, state, finished_at, error_code, error_summary, metadata)
         VALUES ($1, $2, NULL, $3, $4, $5, $6, $7, 'failed', clock_timestamp(), $8, $9, $10::jsonb)
+        ON CONFLICT (run_id, dataset) WHERE season IS NULL DO UPDATE SET
+          source_url = EXCLUDED.source_url, source_bytes = EXCLUDED.source_bytes,
+          source_rows = EXCLUDED.source_rows, state = 'failed',
+          finished_at = clock_timestamp(), error_code = EXCLUDED.error_code,
+          error_summary = EXCLUDED.error_summary, metadata = EXCLUDED.metadata
+        WHERE football.warehouse_ingest_events.state <> 'succeeded'
+          AND football.warehouse_ingest_events.source_ref = EXCLUDED.source_ref
       `,
       values: [receipt.runId, DATASET, RIGHTS_BASIS, receipt.sourceUrl, receipt.sourceRef,
         receipt.sourceBytes, receipt.sourceRows, safe.code, safe.summary,
         JSON.stringify(receipt.metadata)],
-    });
-  } catch {
-    // Preserve the authoritative ingest error when best-effort diagnostics fail.
-  }
+    }));
 }
 
-function createPlayerIdentityWriter({ pool, minPlayerRows = 1000 }) {
+function createPlayerIdentityWriter({ pool, minPlayerRows = 1000, transactionTimeouts } = {}) {
   if (!pool || typeof pool.connect !== "function") throw new TypeError("pool.connect must be a function");
   integer(minPlayerRows, "minPlayerRows", 1, MAX_ROWS);
+  const timeouts = validateTransactionTimeouts(transactionTimeouts);
 
   return {
     async writeSnapshot({ receipt: rawReceipt, players, playerIds }) {
@@ -188,7 +194,8 @@ function createPlayerIdentityWriter({ pool, minPlayerRows = 1000 }) {
 
       const client = await pool.connect();
       try {
-        await client.query("BEGIN");
+      await client.query("BEGIN");
+      await setLocalTransactionTimeouts(client, timeouts);
         await client.query({
           name: "warehouse-player-identity-lock-v1",
           text: "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))",

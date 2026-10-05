@@ -4493,3 +4493,17 @@ on the second one.
   coordinated dependent-facts reload; it never silently cascades or leaves mixed facts.
 - A failed run ID remains bound to its first exact source hash. Failure-record upserts
   cannot rewrite that provenance after a mismatched retry.
+## 2026-10-05 — Current-season warehouse ingestion is fail-stop and resumable
+
+- The current-season runner validates all three exact source assets before it begins
+  database writes, then writes teams, schedules, players, and player-week facts in that
+  dependency order.
+- Each writer retains its own transaction. The runner does not claim global atomicity;
+  an interrupted run resumes through deterministic source-bound run IDs and unchanged
+  receipt detection.
+- All writer transactions use bounded transaction-local PostgreSQL statement and lock
+  timeouts. Source acquisition has a separate caller-visible deadline and cancellation
+  checks continue between independently committed stages.
+- Once dependent facts exist, a schedule refresh may update nonstructural public context
+  in place. Changes to game identity, week, type, or participants require a separately
+  coordinated dependent-facts reload and fail closed in the standalone runner.

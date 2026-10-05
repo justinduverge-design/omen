@@ -12,10 +12,15 @@ const {
 const { createTeamWriter } = require("../../src/services/footballWarehouse/teamWriter");
 const {
   createScheduleWriter,
-  WarehouseScheduleIngestError,
 } = require("../../src/services/footballWarehouse/scheduleWriter");
 const { adaptPlayerWeeklyCsv } = require("../../src/services/footballWarehouse/playerWeeklySource");
 const { createPlayerWeeklyWriter } = require("../../src/services/footballWarehouse/playerWeeklyWriter");
+const {
+  adaptPlayersCsv,
+  PLAYERS_SOURCE_URL,
+} = require("../../src/services/footballWarehouse/playerIdentitySource");
+const { createPlayerIdentityWriter } = require("../../src/services/footballWarehouse/playerIdentityWriter");
+const { createCurrentSeasonIngest } = require("../../src/services/footballWarehouse/currentSeasonIngest");
 
 const PLAYER_SOURCE_URL =
   "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2026.csv";
@@ -44,79 +49,70 @@ function scheduleCsv() {
   return Buffer.from([REQUIRED_COLUMNS.join(","), ...rows].join("\n"));
 }
 
-async function seedPlayer(pool) {
-  const event = await pool.query(`
-    INSERT INTO football.warehouse_ingest_events
-      (run_id,dataset,season,rights_basis,source_url,source_ref,source_bytes,source_rows,state,finished_at)
-    VALUES ('schedule-chain-player','players',2026,'nflverse_open_data',
-      'https://github.com/nflverse/fixture-player','sha256:${"a".repeat(64)}',1,1,
-      'succeeded',clock_timestamp()) RETURNING id
-  `);
-  await pool.query(`
-    INSERT INTO football.football_players
-      (player_id,gsis_id,display_name,football_position,ingest_event_id)
-    VALUES ('omen:player:fixture-qb','00-0000001','Doe, Jane','QB',$1)
-  `, [event.rows[0].id]);
-}
-
 async function main() {
   const [socket, playerFixture] = process.argv.slice(2);
   if (!socket || !playerFixture) throw new Error("socket and player fixture are required");
   const pool = new Pool({ host: socket, user: "postgres", database: "postgres", max: 2 });
   try {
-    const schedule = adaptSchedulesCsv({
-      raw: scheduleCsv(), sourceUrl: SCHEDULES_SOURCE_URL,
-      runId: "schedule-chain", season: 2026,
+    const scheduleRaw = scheduleCsv();
+    const playersRaw = Buffer.from([
+      "gsis_id,display_name,first_name,last_name,position,birth_date",
+      '00-0000001,"Doe, Jane",Jane,Doe,QB,1990-01-01',
+    ].join("\n"));
+    const weeklyRaw = fs.readFileSync(playerFixture);
+    const runner = createCurrentSeasonIngest({
+      acquireSchedules: async () => ({ raw: scheduleRaw, sourceUrl: SCHEDULES_SOURCE_URL }),
+      adaptSchedules: adaptSchedulesCsv,
+      acquirePlayers: async () => ({ raw: playersRaw, sourceUrl: PLAYERS_SOURCE_URL }),
+      adaptPlayers: adaptPlayersCsv,
+      acquirePlayerWeekly: async () => ({ raw: weeklyRaw, sourceUrl: PLAYER_SOURCE_URL }),
+      adaptPlayerWeekly: adaptPlayerWeeklyCsv,
+      teamWriter: createTeamWriter({ pool }),
+      scheduleWriter: createScheduleWriter({ pool }),
+      playerWriter: createPlayerIdentityWriter({ pool, minPlayerRows: 1 }),
+      playerWeeklyWriter: createPlayerWeeklyWriter({ pool, maxUnmatchedRatio: 0.5 }),
     });
-    const teams = await createTeamWriter({ pool }).writeSnapshot({
-      receipt: schedule.receipt, teamRows: schedule.teamRows,
-    });
-    assert.equal(teams.writtenTeams, 32);
-    const games = await createScheduleWriter({ pool }).writeSeason({
-      receipt: schedule.receipt, season: 2026, gameRows: schedule.gameRows,
-    });
-    assert.equal(games.writtenGames, 240);
-
-    await seedPlayer(pool);
-    const weekly = adaptPlayerWeeklyCsv({
-      raw: fs.readFileSync(playerFixture), season: 2026,
-      playerIdByGsis: new Map([["00-0000001", "omen:player:fixture-qb"]]),
-      sourceUrl: PLAYER_SOURCE_URL, runId: "schedule-chain-weekly",
-    });
-    const written = await createPlayerWeeklyWriter({ pool, maxUnmatchedRatio: 0.5 }).writeSeason({
-      season: 2026, receipt: weekly.receipt, rows: weekly.rows,
-      unmatchedRows: weekly.unmatchedRows,
-    });
-    assert.equal(written.writtenRows, 1);
+    const first = await runner.run({ season: 2026 });
+    assert.equal(first.stages.teams.writtenTeams, 32);
+    assert.equal(first.stages.schedules.writtenGames, 240);
+    assert.equal(first.stages.players.writtenPlayers, 1);
+    assert.equal(first.stages.playerWeekly.writtenRows, 1);
+    assert.equal(first.unmatchedRows, 1);
 
     const joined = await pool.query(`
       SELECT f.week,f.team_id,f.opponent_team_id,g.game_id
       FROM football.nfl_player_weekly_stats f
       JOIN football.nfl_games g ON g.season=f.season AND g.game_id=f.game_id
-      WHERE f.player_id='omen:player:fixture-qb'
+      WHERE f.player_id='omen:player:gsis.00-0000001'
     `);
     assert.deepEqual(joined.rows, [{
       week: 1, team_id: "omen:team:buf", opponent_team_id: "omen:team:mia",
       game_id: "2026_01_BUF_MIA",
     }]);
 
+    const retry = await runner.run({ season: 2026 });
+    assert.deepEqual(Object.values(retry.stages).map((stage) => stage.state),
+      ["unchanged", "unchanged", "unchanged", "unchanged"]);
+
     const correction = adaptSchedulesCsv({
       raw: Buffer.concat([scheduleCsv(), Buffer.from("\n")]), sourceUrl: SCHEDULES_SOURCE_URL,
       runId: "schedule-chain-correction", season: 2026,
     });
-    await assert.rejects(
-      createScheduleWriter({ pool }).writeSeason({
-        receipt: correction.receipt, season: 2026, gameRows: correction.gameRows,
-      }),
-      (error) => error instanceof WarehouseScheduleIngestError &&
-        error.code === "dependent_facts_exist",
-    );
+    const refreshed = await createScheduleWriter({ pool }).writeSeason({
+      receipt: correction.receipt, season: 2026, gameRows: correction.gameRows,
+    });
+    assert.equal(refreshed.state, "succeeded");
     const preserved = await pool.query(`SELECT
       (SELECT count(*)::integer FROM football.nfl_games WHERE season=2026) AS games,
       (SELECT count(*)::integer FROM football.nfl_player_weekly_stats WHERE season=2026) AS facts
     `);
     assert.deepEqual(preserved.rows[0], { games: 240, facts: 1 });
-    console.log("VERIFIED schedules -> canonical teams/games -> player-week PostgreSQL 17 chain");
+    const terminal = await pool.query(`SELECT
+      count(*) FILTER (WHERE state='started')::integer AS started,
+      count(*) FILTER (WHERE state='succeeded')::integer AS succeeded
+      FROM football.warehouse_ingest_events`);
+    assert.deepEqual(terminal.rows[0], { started: 0, succeeded: 5 });
+    console.log("VERIFIED current-season runner -> canonical teams/games/players/player-week PostgreSQL 17 chain");
   } finally {
     await pool.end();
   }

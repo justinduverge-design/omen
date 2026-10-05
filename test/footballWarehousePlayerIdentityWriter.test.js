@@ -88,6 +88,7 @@ test("atomically upserts players and replaces only the GSIS mapping snapshot", a
   });
   assert.deepEqual(names(db.calls), [
     "BEGIN",
+    "warehouse-local-transaction-timeouts-v1",
     "warehouse-player-identity-lock-v1",
     "warehouse-player-identity-existing-v1",
     "warehouse-player-identity-run-v1",
@@ -138,6 +139,7 @@ test("returns unchanged under the global identity lock without replacing mapping
   assert.equal(result.ingestEventId, 55);
   assert.deepEqual(names(db.calls), [
     "BEGIN",
+    "warehouse-local-transaction-timeouts-v1",
     "warehouse-player-identity-lock-v1",
     "warehouse-player-identity-existing-v1",
     "COMMIT",
@@ -179,6 +181,7 @@ test("rolls back facts before recording a separately sanitized failed receipt", 
   assert.ok(callNames.indexOf("ROLLBACK") > callNames.indexOf("warehouse-player-identity-promote-ids-v1"));
   assert.ok(callNames.indexOf("warehouse-player-identity-failed-receipt-v1") > callNames.indexOf("ROLLBACK"));
   const failure = db.calls.find((call) => call.name === "warehouse-player-identity-failed-receipt-v1");
+  assert.match(failure.text, /ON CONFLICT \(run_id, dataset\) WHERE season IS NULL DO UPDATE/);
   assert.equal(failure.values[7], "23505");
   assert.equal(failure.values[8], "player identity ingest failed");
 });

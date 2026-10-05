@@ -1,5 +1,8 @@
 "use strict";
 
+const { runBoundedFailureReceipt, setLocalTransactionTimeouts, validateTransactionTimeouts } = require("./transactionTimeouts");
+const { sourceUrlForSeason } = require("./playerWeeklySource");
+
 const DATASET = "player_weekly_stats";
 const RIGHTS_BASIS = "nflverse_open_data";
 const SOURCE_REF = /^sha256:[0-9a-f]{64}$/;
@@ -77,11 +80,14 @@ function sourceObject(value, name) {
   return plainObject(value, name);
 }
 
-function validateReceipt(receipt) {
+function validateReceipt(receipt, season) {
   if (!receipt || typeof receipt !== "object" || Array.isArray(receipt)) {
     throw new TypeError("receipt must be an object");
   }
   const validatedSourceUrl = sourceUrl(receipt.sourceUrl);
+  if (validatedSourceUrl !== sourceUrlForSeason(season)) {
+    throw new TypeError("receipt.sourceUrl is not the allowlisted player-week asset");
+  }
   const sourceRef = requiredString(receipt.sourceRef, "receipt.sourceRef", SOURCE_REF);
   const metadata = plainObject(receipt.metadata, "receipt.metadata");
   const schemaFingerprint = requiredString(
@@ -149,8 +155,7 @@ function sanitizeError(error) {
 
 async function recordFailure(client, { receipt, season, sourceRows, unmatchedRows, error }) {
   const safe = sanitizeError(error);
-  try {
-    await client.query({
+  await runBoundedFailureReceipt(client, () => client.query({
       name: "warehouse-player-weekly-failed-receipt-v1",
       text: `
         INSERT INTO football.warehouse_ingest_events
@@ -165,17 +170,19 @@ async function recordFailure(client, { receipt, season, sourceRows, unmatchedRow
           error_code = EXCLUDED.error_code,
           error_summary = EXCLUDED.error_summary, metadata = EXCLUDED.metadata
         WHERE football.warehouse_ingest_events.state <> 'succeeded'
+          AND football.warehouse_ingest_events.source_ref = EXCLUDED.source_ref
       `,
       values: [receipt.runId, DATASET, season, RIGHTS_BASIS, receipt.sourceUrl,
         receipt.sourceRef, receipt.sourceBytes, sourceRows, safe.code, safe.summary,
         JSON.stringify({ ...receipt.metadata, unmatched_rows: unmatchedRows })],
-    });
-  } catch {
-    // The original ingest failure remains authoritative; diagnostics are best effort.
-  }
+    }));
 }
 
-function createPlayerWeeklyWriter({ pool, maxUnmatchedRatio = DEFAULT_MAX_UNMATCHED_RATIO }) {
+function createPlayerWeeklyWriter({
+  pool,
+  maxUnmatchedRatio = DEFAULT_MAX_UNMATCHED_RATIO,
+  transactionTimeouts,
+} = {}) {
   if (!pool || typeof pool.connect !== "function") {
     throw new TypeError("pool.connect must be a function");
   }
@@ -183,11 +190,12 @@ function createPlayerWeeklyWriter({ pool, maxUnmatchedRatio = DEFAULT_MAX_UNMATC
       maxUnmatchedRatio < 0 || maxUnmatchedRatio > 1) {
     throw new TypeError("maxUnmatchedRatio must be between 0 and 1");
   }
+  const timeouts = validateTransactionTimeouts(transactionTimeouts);
 
   return {
     async writeSeason({ season, receipt: rawReceipt, rows, unmatchedRows = 0 }) {
       integer(season, "season", 1999, 2100);
-      const receipt = validateReceipt(rawReceipt);
+      const receipt = validateReceipt(rawReceipt, season);
       integer(unmatchedRows, "unmatchedRows", 0, Number.MAX_SAFE_INTEGER);
       if (!Array.isArray(rows)) throw new TypeError("rows must be an array");
       if (!rows.length) throw new RangeError("rows must contain at least one resolved player week");
@@ -209,6 +217,7 @@ function createPlayerWeeklyWriter({ pool, maxUnmatchedRatio = DEFAULT_MAX_UNMATC
 
       try {
         await client.query("BEGIN");
+        await setLocalTransactionTimeouts(client, timeouts);
         await client.query({
           name: "warehouse-player-weekly-lock-v1",
           text: "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))",
@@ -246,6 +255,7 @@ function createPlayerWeeklyWriter({ pool, maxUnmatchedRatio = DEFAULT_MAX_UNMATC
               source_rows = NULL, state = 'started', finished_at = NULL, error_code = NULL,
               error_summary = NULL, metadata = EXCLUDED.metadata
             WHERE football.warehouse_ingest_events.state = 'failed'
+              AND football.warehouse_ingest_events.source_ref = EXCLUDED.source_ref
             RETURNING id
           `,
           values: [receipt.runId, DATASET, season, RIGHTS_BASIS, receipt.sourceUrl,

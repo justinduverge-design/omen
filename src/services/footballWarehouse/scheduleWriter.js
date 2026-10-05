@@ -1,6 +1,7 @@
 "use strict";
 
 const { SCHEDULES_SOURCE_URL } = require("./scheduleSource");
+const { runBoundedFailureReceipt, setLocalTransactionTimeouts, validateTransactionTimeouts } = require("./transactionTimeouts");
 
 const DATASET = "schedules";
 const RIGHTS_BASIS = "nflverse_open_data";
@@ -51,10 +52,11 @@ function game(row, index, season) {
 function safe(error) { const code = typeof error?.code === "string" && /^[A-Za-z0-9_]{1,64}$/.test(error.code) ? error.code : "warehouse_schedule_ingest_failed";
   const message = error instanceof WarehouseScheduleIngestError ? error.message : "schedule ingest failed";
   return { code, summary: String(message).replace(/(?:postgres(?:ql)?:\/\/|password=)[^\s]+/gi,"[redacted]").replace(/[\u0000-\u001f\u007f]+/g," ").slice(0,500) }; }
-async function failed(client, r, season, error) { const f = safe(error); try { await client.query({ name:"warehouse-schedule-failed-receipt-v1", text:`INSERT INTO football.warehouse_ingest_events (run_id,dataset,season,rights_basis,source_url,source_ref,source_bytes,source_rows,state,finished_at,error_code,error_summary,metadata) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'failed',clock_timestamp(),$9,$10,$11::jsonb) ON CONFLICT (run_id,dataset,season) DO UPDATE SET source_url=EXCLUDED.source_url,source_ref=EXCLUDED.source_ref,source_bytes=EXCLUDED.source_bytes,source_rows=EXCLUDED.source_rows,state='failed',finished_at=clock_timestamp(),error_code=EXCLUDED.error_code,error_summary=EXCLUDED.error_summary,metadata=EXCLUDED.metadata WHERE football.warehouse_ingest_events.state <> 'succeeded' AND football.warehouse_ingest_events.source_ref = EXCLUDED.source_ref`, values:[r.runId,DATASET,season,RIGHTS_BASIS,r.sourceUrl,r.sourceRef,r.sourceBytes,r.sourceRows,f.code,f.summary,JSON.stringify(r.metadata)] }); } catch {} }
+async function failed(client, r, season, error) { const f = safe(error); await runBoundedFailureReceipt(client,()=>client.query({ name:"warehouse-schedule-failed-receipt-v1", text:`INSERT INTO football.warehouse_ingest_events (run_id,dataset,season,rights_basis,source_url,source_ref,source_bytes,source_rows,state,finished_at,error_code,error_summary,metadata) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'failed',clock_timestamp(),$9,$10,$11::jsonb) ON CONFLICT (run_id,dataset,season) DO UPDATE SET source_url=EXCLUDED.source_url,source_ref=EXCLUDED.source_ref,source_bytes=EXCLUDED.source_bytes,source_rows=EXCLUDED.source_rows,state='failed',finished_at=clock_timestamp(),error_code=EXCLUDED.error_code,error_summary=EXCLUDED.error_summary,metadata=EXCLUDED.metadata WHERE football.warehouse_ingest_events.state <> 'succeeded' AND football.warehouse_ingest_events.source_ref = EXCLUDED.source_ref`, values:[r.runId,DATASET,season,RIGHTS_BASIS,r.sourceUrl,r.sourceRef,r.sourceBytes,r.sourceRows,f.code,f.summary,JSON.stringify(r.metadata)] })); }
 
-function createScheduleWriter({ pool } = {}) {
+function createScheduleWriter({ pool, transactionTimeouts } = {}) {
   if (!pool || typeof pool.connect !== "function") throw new TypeError("pool.connect must be a function");
+  const timeouts=validateTransactionTimeouts(transactionTimeouts);
   return { async writeSeason({ receipt: rawReceipt, season, gameRows }) {
     const r=receipt(rawReceipt); integer(season,"season",1999,2100);
     if (!Array.isArray(gameRows)||!gameRows.length) throw new RangeError("gameRows must be a nonempty array");
@@ -64,6 +66,7 @@ function createScheduleWriter({ pool } = {}) {
     const client=await pool.connect();
     try {
       await client.query("BEGIN");
+      await setLocalTransactionTimeouts(client,timeouts);
       await client.query({name:"warehouse-schedule-lock-v1",text:"SELECT pg_advisory_xact_lock(hashtext($1),$2)",values:[DATASET,season]});
       const existing=await client.query({name:"warehouse-schedule-existing-v1",text:"SELECT id FROM football.warehouse_ingest_events WHERE dataset=$1 AND season=$2 AND source_ref=$3 AND state='succeeded' ORDER BY finished_at DESC LIMIT 1",values:[DATASET,season,r.sourceRef]});
       if(existing.rows.length){await client.query("COMMIT");return{state:"unchanged",ingestEventId:existing.rows[0].id,season,writtenGames:rows.length};}
@@ -82,19 +85,42 @@ function createScheduleWriter({ pool } = {}) {
         (SELECT count(*)::integer FROM football.nfl_weekly_rosters WHERE season=$1) AS weekly_rosters,
         (SELECT count(*)::integer FROM football.nfl_plays WHERE season=$1) AS plays`,values:[season]});
       const dependent=dependencies.rows[0]||{};
-      if(dependent.player_weekly_stats!==0||dependent.team_weekly_stats!==0||dependent.weekly_rosters!==0||dependent.plays!==0){
-        throw new WarehouseScheduleIngestError("dependent_facts_exist","schedule correction requires a coordinated dependent-facts reload");
+      const hasDependentFacts=dependent.player_weekly_stats!==0||dependent.team_weekly_stats!==0||dependent.weekly_rosters!==0||dependent.plays!==0;
+      if(hasDependentFacts){
+        const structure=await client.query({name:"warehouse-schedule-structural-diff-v1",text:`SELECT count(*)::integer AS invalid_count
+          FROM (
+            SELECT COALESCE(s.game_id,g.game_id) AS game_id
+            FROM stage_nfl_games s
+            FULL JOIN football.nfl_games g ON g.season=$1 AND g.game_id=s.game_id
+            WHERE s.game_id IS NULL OR g.game_id IS NULL
+               OR s.week IS DISTINCT FROM g.week OR s.game_type IS DISTINCT FROM g.game_type
+               OR s.away_team_id IS DISTINCT FROM g.away_team_id
+               OR s.home_team_id IS DISTINCT FROM g.home_team_id
+          ) changed`,values:[season]});
+        if(structure.rows[0]?.invalid_count!==0){
+          throw new WarehouseScheduleIngestError("dependent_facts_exist","schedule structure changed and requires a coordinated dependent-facts reload");
+        }
+        await client.query({name:"warehouse-schedule-refresh-context-v1",text:`UPDATE football.nfl_games g SET
+          kickoff_at=s.kickoff_at,away_score=s.away_score,home_score=s.home_score,overtime=s.overtime,
+          stadium=s.stadium,location=s.location,roof=s.roof,surface=s.surface,
+          temperature_f=s.temperature_f,wind_mph=s.wind_mph,away_rest_days=s.away_rest_days,
+          home_rest_days=s.home_rest_days,division_game=s.division_game,spread_line=s.spread_line,
+          total_line=s.total_line,away_moneyline=s.away_moneyline,home_moneyline=s.home_moneyline,
+          away_coach=s.away_coach,home_coach=s.home_coach,source_row=s.source_row,
+          ingest_event_id=s.ingest_event_id
+          FROM stage_nfl_games s WHERE g.season=$1 AND g.game_id=s.game_id`,values:[season]});
+      }else{
+        await client.query({name:"warehouse-schedule-delete-season-v1",text:"DELETE FROM football.nfl_games WHERE season=$1",values:[season]});
+        await client.query({name:"warehouse-schedule-promote-v1",text:`INSERT INTO football.nfl_games
+          (season,game_id,week,game_type,kickoff_at,away_team_id,home_team_id,away_score,home_score,
+           overtime,stadium,location,roof,surface,temperature_f,wind_mph,away_rest_days,home_rest_days,
+           division_game,spread_line,total_line,away_moneyline,home_moneyline,away_coach,home_coach,
+           source_row,ingest_event_id)
+          SELECT season,game_id,week,game_type,kickoff_at,away_team_id,home_team_id,away_score,home_score,
+           overtime,stadium,location,roof,surface,temperature_f,wind_mph,away_rest_days,home_rest_days,
+           division_game,spread_line,total_line,away_moneyline,home_moneyline,away_coach,home_coach,
+           source_row,ingest_event_id FROM stage_nfl_games`,values:[]});
       }
-      await client.query({name:"warehouse-schedule-delete-season-v1",text:"DELETE FROM football.nfl_games WHERE season=$1",values:[season]});
-      await client.query({name:"warehouse-schedule-promote-v1",text:`INSERT INTO football.nfl_games
-        (season,game_id,week,game_type,kickoff_at,away_team_id,home_team_id,away_score,home_score,
-         overtime,stadium,location,roof,surface,temperature_f,wind_mph,away_rest_days,home_rest_days,
-         division_game,spread_line,total_line,away_moneyline,home_moneyline,away_coach,home_coach,
-         source_row,ingest_event_id)
-        SELECT season,game_id,week,game_type,kickoff_at,away_team_id,home_team_id,away_score,home_score,
-         overtime,stadium,location,roof,surface,temperature_f,wind_mph,away_rest_days,home_rest_days,
-         division_game,spread_line,total_line,away_moneyline,home_moneyline,away_coach,home_coach,
-         source_row,ingest_event_id FROM stage_nfl_games`,values:[]});
       const done=await client.query({name:"warehouse-schedule-succeed-receipt-v1",text:"UPDATE football.warehouse_ingest_events SET state='succeeded',source_rows=$2,finished_at=clock_timestamp() WHERE id=$1 AND state='started'",values:[id,r.sourceRows]});
       if(done.rowCount!==1)throw new WarehouseScheduleIngestError("receipt_update_failed","schedule receipt did not reach succeeded state");
       await client.query("COMMIT");return{state:"succeeded",ingestEventId:id,season,writtenGames:rows.length};
