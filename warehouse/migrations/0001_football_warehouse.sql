@@ -62,6 +62,9 @@ create index warehouse_ingest_events_dataset_season_finished
   where state = 'succeeded';
 create index warehouse_ingest_events_source_ref
   on football.warehouse_ingest_events (source_ref);
+create unique index warehouse_ingest_events_run_dataset_without_season
+  on football.warehouse_ingest_events (run_id, dataset)
+  where season is null;
 
 create table football.football_teams (
   team_id          text primary key check (team_id ~ '^omen:team:[a-z0-9]+$'),
@@ -81,6 +84,7 @@ create table football.football_players (
   last_name          text,
   football_position text,
   birth_date         date,
+  source_row         jsonb not null default '{}'::jsonb check (jsonb_typeof(source_row) = 'object'),
   ingest_event_id    bigint not null references football.warehouse_ingest_events(id) on delete restrict
 );
 
