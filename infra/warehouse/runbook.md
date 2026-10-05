@@ -13,12 +13,12 @@ rollback. Do not switch reads, stop the Supabase Step-14 writer, or drop Step 14
 
 Record, without printing secrets:
 
-- current KVM1/KVM2 identity, Tailscale reachability, disk, memory, load, Docker version and networks;
+- current omen-prod/KVM2 identity, Tailscale reachability, disk, memory, load, Docker version and networks;
 - current API/cron containers and the 04:45/05:00/06:00/06:30 ET job ordering;
 - KVM2 Restic repository health and the existing user-plane backup window;
 - Command Center Kuma, Beszel and GlitchTip reachability;
 - Steward/Sentinel forced-command status channels and pinned SSH host keys;
-- absence of a public PostgreSQL listener on KVM1.
+- absence of a public PostgreSQL listener on omen-prod.
 
 Historical IPs and capacity estimates in repository documents are hints, not executable values.
 Resolve and verify live targets immediately before an approved deployment.
@@ -37,7 +37,7 @@ cluster when the required PostgreSQL tools are installed and removes only that t
 
 ## Credential and container creation
 
-During the approved KVM1 change window:
+During the approved omen-prod change window:
 
 1. Run `sudo infra/warehouse/provision-credentials.sh`. It creates the bootstrap secret at the
    Compose-declared machine-local path with `root:root` ownership and `0600` permissions. Never open,
@@ -64,7 +64,7 @@ It must be replaced by the transactional warehouse writer before data is loaded.
 - support safe rerun and receipt-based resume;
 - retain the complete admitted play row plus typed access fields.
 
-First load one bounded recent season. Verify counts, uniqueness, receipts, one known player-week,
+First load the current season for the Tuesday shadow proof. Verify counts, uniqueness, receipts, one known player-week,
 one game, one team-week, one roster membership and one full play row before historical backfill.
 
 ## Backup and restore gate
@@ -93,11 +93,11 @@ observation window.
 ## Promotion sequence
 
 1. Local schema and repository proof.
-2. Approved KVM1 container creation with runtime-limit and no-public-port proof.
-3. One recent-season transactional ingest.
+2. Approved omen-prod container creation with runtime-limit and no-public-port proof.
+3. One current-season transactional ingest and real shadow-read proof while Supabase continues serving Tuesday.
 4. Encrypted KVM2 backup and isolated restore proof.
 5. Independent Kuma, Beszel, GlitchTip, Steward and Sentinel evidence.
-6. Historical 1999–2026 backfill, season by season.
-7. Shadow reads with aggregate, user-free comparison evidence.
-8. Founder-approved warehouse-primary mode change and monitored rollback window.
+6. Founder-approved warehouse-primary mode change immediately after all required proofs pass; Supabase remains rollback.
+7. Historical 1999–2026 backfill in chronological order, beginning with 1999 after the current-season proof.
+8. Retention proposal based on measured KVM2 usable capacity and measured compressed backup size, never a guessed fixed count.
 9. Separate rehearsal and approval before any Supabase Step-14 retirement.

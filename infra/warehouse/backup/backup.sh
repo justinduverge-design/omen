@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "REFUSED: legacy gzip/scp backup is retired; use the encrypted Restic recovery workflow." >&2
+echo "REFUSED: backup transport requires the separately approved pinned-host Restic dispatcher; use manifest.js to verify local backup evidence." >&2
 exit 64

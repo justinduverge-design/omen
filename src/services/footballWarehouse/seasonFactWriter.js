@@ -29,7 +29,7 @@ async function recordFailure(client, { dataset, season, receipt, unmatchedRows, 
   }));
 }
 
-function createSeasonFactWriter({ pool, dataset, table, sourceUrlForSeason, validateRow, columns, stageTypes, transactionTimeouts } = {}) {
+function createSeasonFactWriter({ pool, dataset, table, sourceUrlForSeason, validateRow, columns, stageTypes, stageValidationSql, transactionTimeouts } = {}) {
   if (!pool || typeof pool.connect !== "function") throw new TypeError("pool.connect must be a function");
   if (!/^[a-z_]+$/.test(dataset) || !/^[a-z_]+$/.test(table)) throw new TypeError("writer identity is invalid");
   const timeouts = validateTransactionTimeouts(transactionTimeouts);
@@ -52,6 +52,10 @@ function createSeasonFactWriter({ pool, dataset, table, sourceUrlForSeason, vali
       await client.query({ name: `warehouse-${dataset}-create-stage-v1`, text: `CREATE TEMP TABLE ${stage} (LIKE football.${table} INCLUDING DEFAULTS) ON COMMIT DROP` });
       await client.query({ name: `warehouse-${dataset}-stage-v1`, text: `INSERT INTO ${stage} (${columns.join(",")},ingest_event_id) SELECT ${columns.join(",")},$2 FROM jsonb_to_recordset($1::jsonb) AS r(${stageTypes})`, values: [JSON.stringify(admitted),id] });
       const checks = await client.query({ name: `warehouse-${dataset}-check-v1`, text: `SELECT count(*)::integer row_count FROM ${stage}` }); if (checks.rows[0]?.row_count !== admitted.length) throw Object.assign(new Error("stage count mismatch"), { code: "stage_count_mismatch" });
+      if (stageValidationSql) {
+        const integrity = await client.query({ name: `warehouse-${dataset}-integrity-v1`, text: stageValidationSql, values: [season] });
+        if (integrity.rows[0]?.invalid_count !== 0) throw Object.assign(new Error("stage integrity mismatch"), { code: "stage_integrity_mismatch" });
+      }
       await client.query({ name: `warehouse-${dataset}-delete-v1`, text: `DELETE FROM football.${table} WHERE season=$1`, values: [season] });
       await client.query({ name: `warehouse-${dataset}-promote-v1`, text: `INSERT INTO football.${table} (${columns.join(",")},ingest_event_id) SELECT ${columns.join(",")},ingest_event_id FROM ${stage}` });
       await client.query({ name: `warehouse-${dataset}-succeed-v1`, text: "UPDATE football.warehouse_ingest_events SET state='succeeded',source_rows=$2,finished_at=clock_timestamp() WHERE id=$1 AND state='started'", values: [id,receipt.sourceRows] });

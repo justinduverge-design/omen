@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "REFUSED: legacy watchdog is retired; use the pinned forced-command fleet witness." >&2
+echo "REFUSED: remote witness collection requires the separately approved pinned forced-command dispatcher; use status.js to evaluate an already-collected status artifact." >&2
 exit 64
