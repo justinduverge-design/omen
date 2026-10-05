@@ -2,7 +2,7 @@
 
 const crypto = require("node:crypto");
 
-const DATASETS = new Set(["teams", "schedules", "players", "player-weekly"]);
+const DATASETS = new Set(["teams", "schedules", "players", "player-weekly", "team-weekly", "weekly-rosters"]);
 const DEFAULT_ACQUISITION_TIMEOUT_MS = 120_000;
 const MAX_ACQUISITION_TIMEOUT_MS = 600_000;
 
@@ -70,10 +70,16 @@ function createCurrentSeasonIngest({
   adaptPlayers,
   acquirePlayerWeekly,
   adaptPlayerWeekly,
+  acquireTeamWeekly,
+  adaptTeamWeekly,
+  acquireWeeklyRosters,
+  adaptWeeklyRosters,
   teamWriter,
   scheduleWriter,
   playerWriter,
   playerWeeklyWriter,
+  teamWeeklyWriter,
+  weeklyRosterWriter,
   acquisitionTimeoutMs = DEFAULT_ACQUISITION_TIMEOUT_MS,
 } = {}) {
   const dependencies = {
@@ -83,10 +89,16 @@ function createCurrentSeasonIngest({
     adaptPlayers: fn(adaptPlayers, "adaptPlayers"),
     acquirePlayerWeekly: fn(acquirePlayerWeekly, "acquirePlayerWeekly"),
     adaptPlayerWeekly: fn(adaptPlayerWeekly, "adaptPlayerWeekly"),
+    acquireTeamWeekly: fn(acquireTeamWeekly, "acquireTeamWeekly"),
+    adaptTeamWeekly: fn(adaptTeamWeekly, "adaptTeamWeekly"),
+    acquireWeeklyRosters: fn(acquireWeeklyRosters, "acquireWeeklyRosters"),
+    adaptWeeklyRosters: fn(adaptWeeklyRosters, "adaptWeeklyRosters"),
     teamWriter: writer(teamWriter, "writeSnapshot", "teamWriter"),
     scheduleWriter: writer(scheduleWriter, "writeSeason", "scheduleWriter"),
     playerWriter: writer(playerWriter, "writeSnapshot", "playerWriter"),
     playerWeeklyWriter: writer(playerWeeklyWriter, "writeSeason", "playerWeeklyWriter"),
+    teamWeeklyWriter: writer(teamWeeklyWriter, "writeSeason", "teamWeeklyWriter"),
+    weeklyRosterWriter: writer(weeklyRosterWriter, "writeSeason", "weeklyRosterWriter"),
   };
   const timeoutMs = acquisitionTimeout(acquisitionTimeoutMs);
 
@@ -121,6 +133,8 @@ function createCurrentSeasonIngest({
           dependencies.acquireSchedules({ signal: controller.signal }),
           dependencies.acquirePlayers({ signal: controller.signal }),
           dependencies.acquirePlayerWeekly({ season: selectedSeason, signal: controller.signal }),
+          dependencies.acquireTeamWeekly({ season: selectedSeason, signal: controller.signal }),
+          dependencies.acquireWeeklyRosters({ season: selectedSeason, signal: controller.signal }),
         ];
         try {
           acquired = await Promise.race([Promise.all(tasks), deadline, callerAbort]);
@@ -142,11 +156,15 @@ function createCurrentSeasonIngest({
       const schedulesSource = acquisition(acquired[0], "schedules");
       const playersSource = acquisition(acquired[1], "players");
       const weeklySource = acquisition(acquired[2], "player weekly");
+      const teamWeeklySource = acquisition(acquired[3], "team weekly");
+      const rosterSource = acquisition(acquired[4], "weekly rosters");
       const ids = {
         teams: runIdFor({ dataset: "teams", season: selectedSeason, raw: schedulesSource.raw }),
         schedules: runIdFor({ dataset: "schedules", season: selectedSeason, raw: schedulesSource.raw }),
         players: runIdFor({ dataset: "players", season: selectedSeason, raw: playersSource.raw }),
         playerWeekly: runIdFor({ dataset: "player-weekly", season: selectedSeason, raw: weeklySource.raw }),
+        teamWeekly: runIdFor({ dataset: "team-weekly", season: selectedSeason, raw: teamWeeklySource.raw }),
+        weeklyRosters: runIdFor({ dataset: "weekly-rosters", season: selectedSeason, raw: rosterSource.raw }),
       };
 
       // Finish every validation before the first independently committed writer runs.
@@ -157,6 +175,16 @@ function createCurrentSeasonIngest({
       throwIfAborted(signal);
       const weekly = dependencies.adaptPlayerWeekly({
         ...weeklySource, runId: ids.playerWeekly, season: selectedSeason,
+        playerIdByGsis: players.playerIdByGsis,
+      });
+      throwIfAborted(signal);
+      const scoresByGameId = new Map(schedules.gameRows.map((game) => [game.gameId, game]));
+      const teamWeekly = dependencies.adaptTeamWeekly({
+        ...teamWeeklySource, runId: ids.teamWeekly, season: selectedSeason, scoresByGameId,
+      });
+      throwIfAborted(signal);
+      const rosters = dependencies.adaptWeeklyRosters({
+        ...rosterSource, runId: ids.weeklyRosters, season: selectedSeason,
         playerIdByGsis: players.playerIdByGsis,
       });
       const teamReceipt = { ...schedules.receipt, runId: ids.teams };
@@ -171,11 +199,16 @@ function createCurrentSeasonIngest({
             players: players.players.length,
             playerWeeks: weekly.rows.length,
             unmatchedRows: weekly.unmatchedRows,
+            teamWeeks: teamWeekly.rows.length,
+            rosterRows: rosters.rows.length,
+            unmatchedRosterRows: rosters.unmatchedRows,
           },
           sourceRefs: {
             schedules: schedules.receipt.sourceRef,
             players: players.receipt.sourceRef,
             playerWeekly: weekly.receipt.sourceRef,
+            teamWeekly: teamWeekly.receipt.sourceRef,
+            weeklyRosters: rosters.receipt.sourceRef,
           },
         };
       }
@@ -196,6 +229,16 @@ function createCurrentSeasonIngest({
         receipt: weekly.receipt, season: selectedSeason, rows: weekly.rows,
         unmatchedRows: weekly.unmatchedRows,
       });
+      throwIfAborted(signal);
+      stages.teamWeekly = await dependencies.teamWeeklyWriter.writeSeason({
+        receipt: teamWeekly.receipt, season: selectedSeason, rows: teamWeekly.rows,
+        unmatchedRows: teamWeekly.unmatchedRows,
+      });
+      throwIfAborted(signal);
+      stages.weeklyRosters = await dependencies.weeklyRosterWriter.writeSeason({
+        receipt: rosters.receipt, season: selectedSeason, rows: rosters.rows,
+        unmatchedRows: rosters.unmatchedRows,
+      });
 
       return {
         mode,
@@ -206,6 +249,8 @@ function createCurrentSeasonIngest({
           schedules: schedules.receipt.sourceRef,
           players: players.receipt.sourceRef,
           playerWeekly: weekly.receipt.sourceRef,
+          teamWeekly: teamWeekly.receipt.sourceRef,
+          weeklyRosters: rosters.receipt.sourceRef,
         },
       };
     },

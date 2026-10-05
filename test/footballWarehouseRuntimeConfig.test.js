@@ -22,6 +22,10 @@ test("reads a complete PostgreSQL URL from a restricted absolute secret file", (
   assert.deepEqual(config.ssl, { rejectUnauthorized: true });
   assert.equal(config.connectionTimeoutMillis, 5000);
   assert.equal(config.poolMax, 2);
+  assert.equal(config.queryTimeoutMillis, 65000);
+  assert.equal(config.shutdownTimeoutMillis, 10000);
+  assert.equal(config.expectedDatabase, "omen_football");
+  assert.equal(config.expectedRole, "omen_warehouse_ingest");
   assert.equal(Object.isFrozen(config), true);
 });
 

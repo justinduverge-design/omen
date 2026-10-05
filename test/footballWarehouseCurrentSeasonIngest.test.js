@@ -15,19 +15,27 @@ function fixture(overrides = {}) {
     schedules: Buffer.from("schedules"),
     players: Buffer.from("players"),
     weekly: Buffer.from("weekly"),
+    teamWeekly: Buffer.from("team-weekly"),
+    rosters: Buffer.from("rosters"),
   };
   const receipt = (runId, sourceRef) => ({ runId, sourceRef, sourceUrl: "https://example.invalid/source" });
   const dependencies = {
     acquireSchedules: async ({ signal }) => { calls.push(["acquireSchedules", signal]); return { raw: raw.schedules, sourceUrl: "schedule-url" }; },
     acquirePlayers: async ({ signal }) => { calls.push(["acquirePlayers", signal]); return { raw: raw.players, sourceUrl: "players-url" }; },
     acquirePlayerWeekly: async ({ season, signal }) => { calls.push(["acquireWeekly", season, signal]); return { raw: raw.weekly, sourceUrl: "weekly-url" }; },
-    adaptSchedules: (input) => { calls.push(["adaptSchedules", input]); return { receipt: receipt(input.runId, "schedule-ref"), teamRows: ["team"], gameRows: ["game"] }; },
+    acquireTeamWeekly: async ({ season, signal }) => { calls.push(["acquireTeamWeekly", season, signal]); return { raw: raw.teamWeekly, sourceUrl: "team-weekly-url" }; },
+    acquireWeeklyRosters: async ({ season, signal }) => { calls.push(["acquireRosters", season, signal]); return { raw: raw.rosters, sourceUrl: "roster-url" }; },
+    adaptSchedules: (input) => { calls.push(["adaptSchedules", input]); return { receipt: receipt(input.runId, "schedule-ref"), teamRows: ["team"], gameRows: [{ gameId: "g1", homeTeamId: "h", awayTeamId: "a", homeScore: 1, awayScore: 2 }] }; },
     adaptPlayers: (input) => { calls.push(["adaptPlayers", input]); return { receipt: receipt(input.runId, "players-ref"), players: ["player"], playerIds: ["id"], playerIdByGsis: map }; },
     adaptPlayerWeekly: (input) => { calls.push(["adaptWeekly", input]); return { receipt: receipt(input.runId, "weekly-ref"), rows: ["week"], unmatchedRows: 2 }; },
+    adaptTeamWeekly: (input) => { calls.push(["adaptTeamWeekly", input]); return { receipt: receipt(input.runId, "team-weekly-ref"), rows: ["team-week"], unmatchedRows: 0 }; },
+    adaptWeeklyRosters: (input) => { calls.push(["adaptRosters", input]); return { receipt: receipt(input.runId, "roster-ref"), rows: ["roster"], unmatchedRows: 3 }; },
     teamWriter: { writeSnapshot: async (input) => { calls.push(["writeTeams", input]); return { state: "succeeded", writtenTeams: 32 }; } },
     scheduleWriter: { writeSeason: async (input) => { calls.push(["writeSchedules", input]); return { state: "succeeded", writtenGames: 240 }; } },
     playerWriter: { writeSnapshot: async (input) => { calls.push(["writePlayers", input]); return { state: "succeeded", writtenPlayers: 1 }; } },
     playerWeeklyWriter: { writeSeason: async (input) => { calls.push(["writeWeekly", input]); return { state: "succeeded", writtenRows: 1 }; } },
+    teamWeeklyWriter: { writeSeason: async (input) => { calls.push(["writeTeamWeekly", input]); return { state: "succeeded", writtenRows: 1 }; } },
+    weeklyRosterWriter: { writeSeason: async (input) => { calls.push(["writeRosters", input]); return { state: "succeeded", writtenRows: 1 }; } },
     ...overrides,
   };
   return { runner: createCurrentSeasonIngest(dependencies), dependencies, calls, map, raw };
@@ -47,9 +55,9 @@ test("acquires all sources, validates all adapters, then writes in dependency or
   const f = fixture();
   const result = await f.runner.run({ season: 2026 });
   assert.deepEqual(f.calls.map((call) => call[0]), [
-    "acquireSchedules", "acquirePlayers", "acquireWeekly",
-    "adaptSchedules", "adaptPlayers", "adaptWeekly",
-    "writeTeams", "writeSchedules", "writePlayers", "writeWeekly",
+    "acquireSchedules", "acquirePlayers", "acquireWeekly", "acquireTeamWeekly", "acquireRosters",
+    "adaptSchedules", "adaptPlayers", "adaptWeekly", "adaptTeamWeekly", "adaptRosters",
+    "writeTeams", "writeSchedules", "writePlayers", "writeWeekly", "writeTeamWeekly", "writeRosters",
   ]);
   const signals = f.calls.slice(0, 3).map((call) => call.at(-1));
   assert.ok(signals.every((signal) => signal instanceof AbortSignal && signal === signals[0]));
@@ -57,7 +65,7 @@ test("acquires all sources, validates all adapters, then writes in dependency or
   assert.equal(f.calls.find((call) => call[0] === "writeTeams")[1].receipt.runId,
     runIdFor({ dataset: "teams", season: 2026, raw: f.raw.schedules }));
   assert.equal(result.unmatchedRows, 2);
-  assert.deepEqual(result.sourceRefs, { schedules: "schedule-ref", players: "players-ref", playerWeekly: "weekly-ref" });
+  assert.deepEqual(result.sourceRefs, { schedules: "schedule-ref", players: "players-ref", playerWeekly: "weekly-ref", teamWeekly: "team-weekly-ref", weeklyRosters: "roster-ref" });
   assert.equal(JSON.stringify(result).includes("sourceRow"), false);
   assert.equal(JSON.stringify(result).includes("same exact bytes"), false);
 });
@@ -75,14 +83,14 @@ test("validate mode completes every source validation without writing", async ()
   const f = fixture();
   const result = await f.runner.run({ season: 2026, mode: "validate" });
   assert.deepEqual(f.calls.map((call) => call[0]), [
-    "acquireSchedules", "acquirePlayers", "acquireWeekly",
-    "adaptSchedules", "adaptPlayers", "adaptWeekly",
+    "acquireSchedules", "acquirePlayers", "acquireWeekly", "acquireTeamWeekly", "acquireRosters",
+    "adaptSchedules", "adaptPlayers", "adaptWeekly", "adaptTeamWeekly", "adaptRosters",
   ]);
   assert.deepEqual(result, {
     mode: "validate",
     season: 2026,
-    counts: { teams: 1, games: 1, players: 1, playerWeeks: 1, unmatchedRows: 2 },
-    sourceRefs: { schedules: "schedule-ref", players: "players-ref", playerWeekly: "weekly-ref" },
+    counts: { teams: 1, games: 1, players: 1, playerWeeks: 1, unmatchedRows: 2, teamWeeks: 1, rosterRows: 1, unmatchedRosterRows: 3 },
+    sourceRefs: { schedules: "schedule-ref", players: "players-ref", playerWeekly: "weekly-ref", teamWeekly: "team-weekly-ref", weeklyRosters: "roster-ref" },
   });
 });
 

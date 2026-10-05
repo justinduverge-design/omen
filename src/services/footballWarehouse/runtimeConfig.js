@@ -54,8 +54,12 @@ function parseWarehouseRuntimeConfig({ env = process.env, requireDatabase = true
     ssl: sslMode === "require" ? Object.freeze({ rejectUnauthorized: true }) : false,
     connectionTimeoutMillis: integer(env, "FOOTBALL_WAREHOUSE_CONNECTION_TIMEOUT_MS", LIMITS.connectionTimeoutMillis),
     idleTimeoutMillis: integer(env, "FOOTBALL_WAREHOUSE_IDLE_TIMEOUT_MS", LIMITS.idleTimeoutMillis),
+    queryTimeoutMillis: integer(env, "FOOTBALL_WAREHOUSE_QUERY_TIMEOUT_MS", [1_000, 300_000, 65_000]),
+    shutdownTimeoutMillis: integer(env, "FOOTBALL_WAREHOUSE_SHUTDOWN_TIMEOUT_MS", [1_000, 30_000, 10_000]),
     poolMax: integer(env, "FOOTBALL_WAREHOUSE_POOL_MAX", LIMITS.poolMax),
     acquisitionTimeoutMs: integer(env, "FOOTBALL_WAREHOUSE_ACQUISITION_TIMEOUT_MS", LIMITS.acquisitionTimeoutMs),
+    expectedDatabase: env.FOOTBALL_WAREHOUSE_EXPECTED_DATABASE || "omen_football",
+    expectedRole: env.FOOTBALL_WAREHOUSE_EXPECTED_ROLE || "omen_warehouse_ingest",
   });
 }
 

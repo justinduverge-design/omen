@@ -11,6 +11,12 @@ const { createTeamWriter } = require("./teamWriter");
 const { createScheduleWriter } = require("./scheduleWriter");
 const { createPlayerIdentityWriter } = require("./playerIdentityWriter");
 const { createPlayerWeeklyWriter } = require("./playerWeeklyWriter");
+const { acquireTeamWeeklySource } = require("./teamWeeklyAcquisition");
+const { adaptTeamWeeklyCsv } = require("./teamWeeklySource");
+const { createTeamWeeklyWriter } = require("./teamWeeklyWriter");
+const { acquireWeeklyRosterSource } = require("./weeklyRosterAcquisition");
+const { adaptWeeklyRosterCsv } = require("./weeklyRosterSource");
+const { createWeeklyRosterWriter } = require("./weeklyRosterWriter");
 
 function createWarehousePool({ Pool, config }) {
   if (typeof Pool !== "function") throw new TypeError("Pool must be a constructor");
@@ -21,6 +27,8 @@ function createWarehousePool({ Pool, config }) {
     max: config.poolMax,
     connectionTimeoutMillis: config.connectionTimeoutMillis,
     idleTimeoutMillis: config.idleTimeoutMillis,
+    query_timeout: config.queryTimeoutMillis,
+    application_name: "omen-football-warehouse-ingest",
     allowExitOnIdle: true,
   });
 }
@@ -33,10 +41,16 @@ function createCurrentSeasonComposition({ pool, fetchImpl = globalThis.fetch, ac
     adaptPlayers: adaptPlayersCsv,
     acquirePlayerWeekly: ({ season, signal }) => acquirePlayerWeeklySource({ fetchImpl, season, signal }),
     adaptPlayerWeekly: adaptPlayerWeeklyCsv,
+    acquireTeamWeekly: ({ season, signal }) => acquireTeamWeeklySource({ fetchImpl, season, signal }),
+    adaptTeamWeekly: adaptTeamWeeklyCsv,
+    acquireWeeklyRosters: ({ season, signal }) => acquireWeeklyRosterSource({ fetchImpl, season, signal }),
+    adaptWeeklyRosters: adaptWeeklyRosterCsv,
     teamWriter: createTeamWriter({ pool }),
     scheduleWriter: createScheduleWriter({ pool }),
     playerWriter: createPlayerIdentityWriter({ pool }),
     playerWeeklyWriter: createPlayerWeeklyWriter({ pool }),
+    teamWeeklyWriter: createTeamWeeklyWriter({ pool }),
+    weeklyRosterWriter: createWeeklyRosterWriter({ pool }),
     acquisitionTimeoutMs,
   });
 }
@@ -52,10 +66,16 @@ function createCurrentSeasonValidationComposition({ fetchImpl = globalThis.fetch
     adaptPlayers: adaptPlayersCsv,
     acquirePlayerWeekly: ({ season, signal }) => acquirePlayerWeeklySource({ fetchImpl, season, signal }),
     adaptPlayerWeekly: adaptPlayerWeeklyCsv,
+    acquireTeamWeekly: ({ season, signal }) => acquireTeamWeeklySource({ fetchImpl, season, signal }),
+    adaptTeamWeekly: adaptTeamWeeklyCsv,
+    acquireWeeklyRosters: ({ season, signal }) => acquireWeeklyRosterSource({ fetchImpl, season, signal }),
+    adaptWeeklyRosters: adaptWeeklyRosterCsv,
     teamWriter: unwritable("writeSnapshot"),
     scheduleWriter: unwritable("writeSeason"),
     playerWriter: unwritable("writeSnapshot"),
     playerWeeklyWriter: unwritable("writeSeason"),
+    teamWeeklyWriter: unwritable("writeSeason"),
+    weeklyRosterWriter: unwritable("writeSeason"),
     acquisitionTimeoutMs,
   });
 }

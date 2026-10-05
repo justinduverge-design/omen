@@ -16,6 +16,7 @@ test("creates a dedicated bounded pool with exit-on-idle enabled", () => {
     poolMax: 2,
     connectionTimeoutMillis: 5000,
     idleTimeoutMillis: 10000,
+    queryTimeoutMillis: 65000,
   } });
   assert.ok(pool instanceof Pool);
   assert.deepEqual(options, {
@@ -24,6 +25,8 @@ test("creates a dedicated bounded pool with exit-on-idle enabled", () => {
     max: 2,
     connectionTimeoutMillis: 5000,
     idleTimeoutMillis: 10000,
+    query_timeout: 65000,
+    application_name: "omen-football-warehouse-ingest",
     allowExitOnIdle: true,
   });
 });
