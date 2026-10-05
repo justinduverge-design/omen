@@ -71,6 +71,27 @@ test("validates configuration and already-aborted callers before I/O", async () 
   assert.equal(f.calls.length, 0);
 });
 
+test("validate mode completes every source validation without writing", async () => {
+  const f = fixture();
+  const result = await f.runner.run({ season: 2026, mode: "validate" });
+  assert.deepEqual(f.calls.map((call) => call[0]), [
+    "acquireSchedules", "acquirePlayers", "acquireWeekly",
+    "adaptSchedules", "adaptPlayers", "adaptWeekly",
+  ]);
+  assert.deepEqual(result, {
+    mode: "validate",
+    season: 2026,
+    counts: { teams: 1, games: 1, players: 1, playerWeeks: 1, unmatchedRows: 2 },
+    sourceRefs: { schedules: "schedule-ref", players: "players-ref", playerWeekly: "weekly-ref" },
+  });
+});
+
+test("rejects an unknown mode before acquisition", async () => {
+  const f = fixture();
+  await assert.rejects(f.runner.run({ season: 2026, mode: "write" }), /mode must be ingest or validate/);
+  assert.equal(f.calls.length, 0);
+});
+
 test("an adapter failure causes zero writes", async () => {
   const f = fixture({ adaptPlayerWeekly: () => { throw new Error("bad weekly CSV"); } });
   await assert.rejects(f.runner.run({ season: 2026 }), /bad weekly CSV/);

@@ -4507,3 +4507,4 @@ on the second one.
 - Once dependent facts exist, a schedule refresh may update nonstructural public context
   in place. Changes to game identity, week, type, or participants require a separately
   coordinated dependent-facts reload and fail closed in the standalone runner.
+2026-10-05 — Football warehouse runtime composition remains disconnected from production. Warehouse credentials come only from a restricted server-side file; Supabase config is not imported. Validation may acquire and adapt allowlisted nflverse sources but has no database pool or writer path. Runtime PostgreSQL pool bounds and explicit SSL policy fail closed; CLI, target-identity preflight, signal shutdown, deployment, and scheduling remain separate follow-up gates.

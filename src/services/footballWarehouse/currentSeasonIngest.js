@@ -91,8 +91,11 @@ function createCurrentSeasonIngest({
   const timeoutMs = acquisitionTimeout(acquisitionTimeoutMs);
 
   return {
-    async run({ season: requestedSeason, signal } = {}) {
+    async run({ season: requestedSeason, signal, mode = "ingest" } = {}) {
       const selectedSeason = season(requestedSeason);
+      if (mode !== "ingest" && mode !== "validate") {
+        throw new TypeError("mode must be ingest or validate");
+      }
       if (signal != null && !(signal instanceof AbortSignal)) throw new TypeError("signal must be an AbortSignal");
       throwIfAborted(signal);
 
@@ -158,6 +161,25 @@ function createCurrentSeasonIngest({
       });
       const teamReceipt = { ...schedules.receipt, runId: ids.teams };
 
+      if (mode === "validate") {
+        return {
+          mode,
+          season: selectedSeason,
+          counts: {
+            teams: schedules.teamRows.length,
+            games: schedules.gameRows.length,
+            players: players.players.length,
+            playerWeeks: weekly.rows.length,
+            unmatchedRows: weekly.unmatchedRows,
+          },
+          sourceRefs: {
+            schedules: schedules.receipt.sourceRef,
+            players: players.receipt.sourceRef,
+            playerWeekly: weekly.receipt.sourceRef,
+          },
+        };
+      }
+
       const stages = {};
       throwIfAborted(signal);
       stages.teams = await dependencies.teamWriter.writeSnapshot({ receipt: teamReceipt, teamRows: schedules.teamRows });
@@ -176,6 +198,7 @@ function createCurrentSeasonIngest({
       });
 
       return {
+        mode,
         season: selectedSeason,
         stages,
         unmatchedRows: weekly.unmatchedRows,
