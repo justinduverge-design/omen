@@ -4481,3 +4481,15 @@ on the second one.
 - **Insufficient history** adds no usage row (the sentence is a non-statement, so it is omitted).
 - **Contract:** additive only (extra `evidence[]` rows and possibly different `why_statements` text);
   `contracts.js check` passes, no lock change. Three v2 fixtures re-recorded.
+## 2026-10-05 — Warehouse schedule corrections fail closed around dependent facts
+
+- The warehouse admits only the exact nflverse `schedules/games.csv` URL and retains its
+  exact-byte hash and complete logical row count in every teams and schedules receipt.
+- A season is not admitted with fewer than 240 non-preseason games or fewer than 28
+  participating canonical teams; the global source must cover all 32 current canonical
+  franchises.
+- Once player-week facts, team-week facts, weekly rosters, or plays exist for a season,
+  the standalone schedule writer refuses a correction. Correction requires a later
+  coordinated dependent-facts reload; it never silently cascades or leaves mixed facts.
+- A failed run ID remains bound to its first exact source hash. Failure-record upserts
+  cannot rewrite that provenance after a mismatched retry.
