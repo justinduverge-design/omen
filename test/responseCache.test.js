@@ -142,9 +142,9 @@ test("a missing or broken store is a miss, never a failure", async () => {
 test("a store that hangs costs at most the timeout and is a miss", async () => {
   cache.setStoreForTests({
     kind: "hung",
-    get: () => new Promise(() => {}),
+    get: () => { const p = new Promise(() => {}); setTimeout(() => {}, 500); return p; },
     set: () => new Promise(() => {}),
-    getEpoch: () => new Promise(() => {}),
+    getEpoch: () => { const p = new Promise(() => {}); setTimeout(() => {}, 500); return p; },
     bumpEpoch: () => new Promise(() => {}),
   });
   const startedAt = Date.now();
