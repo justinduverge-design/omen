@@ -45,6 +45,17 @@ test("warehouse initialization records the exact migration checksum and version"
   assert.doesNotMatch(receipt, /echo\s+[^\n]*(?:password|POSTGRES_PASSWORD)/i);
 });
 
+test("warehouse deployment is an immutable artifact operation, separate from container mutation", () => {
+  const build = read("infra", "warehouse", "build-release.sh");
+  const verifyRelease = read("infra", "warehouse", "verify-release.sh");
+  assert.match(build, /git archive --format=tar "\$commit"/);
+  assert.match(build, /platform=linux\/amd64/);
+  assert.match(build, /MANIFEST-SHA256/);
+  assert.match(build, /builder does not match the requested commit/);
+  assert.match(verifyRelease, /approved_manifest/);
+  assert.doesNotMatch(`${build}\n${verifyRelease}`, /docker compose|docker run|systemctl/);
+});
+
 test("warehouse password uses a machine-local secret file, never an env file", () => {
   const compose = withoutYamlComments(read("infra", "warehouse", "docker-compose.yml"));
   const provision = read("infra", "warehouse", "provision-credentials.sh");

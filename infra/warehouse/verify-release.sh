@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 2 ]]; then
+  echo "usage: verify-release.sh <staged-release-directory> <approved-manifest-sha256>" >&2
+  exit 64
+fi
+
+release_dir="$(cd "$1" && pwd -P)"
+approved_manifest="$2"
+[[ "$approved_manifest" =~ ^[0-9a-f]{64}$ ]] || { echo "approved manifest is invalid" >&2; exit 1; }
+
+expected_files=(COMMIT MANIFEST-SHA256 RELEASE-CONTRACT SHA256SUMS infra/warehouse/build-release.sh infra/warehouse/docker-compose.yml infra/warehouse/provision-credentials.sh infra/warehouse/verify-release.sh warehouse/migrations/0001_football_warehouse.sql warehouse/migrations/0002_record_migration.sh)
+expected_dirs=(infra infra/warehouse warehouse warehouse/migrations)
+actual_list="$(mktemp)"
+allowed_list="$(mktemp)"
+expected_contract="$(mktemp)"
+trap 'rm -f -- "$actual_list" "$allowed_list" "$expected_contract"' EXIT
+(cd "$release_dir" && find . -mindepth 1 -print | sed 's#^\./##' | LC_ALL=C sort) > "$actual_list"
+printf '%s\n' "${expected_files[@]}" "${expected_dirs[@]}" | LC_ALL=C sort > "$allowed_list"
+cmp -s "$actual_list" "$allowed_list" || { echo "release inventory is invalid" >&2; exit 1; }
+for relative in "${expected_files[@]}"; do
+  file="$release_dir/$relative"
+  [[ -f "$file" && ! -L "$file" ]] || { echo "release file type is invalid" >&2; exit 1; }
+  links="$(stat -c '%h' "$file" 2>/dev/null || stat -f '%l' "$file")"
+  [[ "$links" -eq 1 ]] || { echo "release contains a hard-linked file" >&2; exit 1; }
+  mode="$(stat -c '%a' "$file" 2>/dev/null || stat -f '%Lp' "$file")"
+  case "$relative" in
+    COMMIT|MANIFEST-SHA256|RELEASE-CONTRACT|SHA256SUMS) expected_mode=444 ;;
+    *.sh) expected_mode=755 ;;
+    *) expected_mode=644 ;;
+  esac
+  [[ "$mode" == "$expected_mode" ]] || { echo "release file mode is invalid" >&2; exit 1; }
+done
+for relative in "${expected_dirs[@]}"; do
+  mode="$(stat -c '%a' "$release_dir/$relative" 2>/dev/null || stat -f '%Lp' "$release_dir/$relative")"
+  [[ "$mode" == 755 ]] || { echo "release directory mode is invalid" >&2; exit 1; }
+done
+
+commit="$(tr -d '\n' < "$release_dir/COMMIT")"
+[[ "$commit" =~ ^[0-9a-f]{40}$ ]] || { echo "release commit is invalid" >&2; exit 1; }
+(cd "$release_dir" && test "$(sha256sum SHA256SUMS | awk '{print $1}')" = "$approved_manifest")
+(cd "$release_dir" && test "$(tr -d '\n' < MANIFEST-SHA256)" = "$approved_manifest")
+(cd "$release_dir" && sha256sum --check --strict SHA256SUMS >/dev/null)
+
+cat > "$expected_contract" <<EOF
+contract_version=omen-football-warehouse-release.v1
+commit=$commit
+platform=linux/amd64
+image=postgres:17.11-bookworm@sha256:91eb910c44c7ed13f7f1a4ccadaa9ca72ef14cddc04cacb6e070e48eb44731a3
+install_root=/opt/omen/warehouse/releases
+EOF
+cmp -s "$expected_contract" "$release_dir/RELEASE-CONTRACT" || { echo "release contract is invalid" >&2; exit 1; }
+echo "warehouse release verified for commit $commit"
