@@ -25,6 +25,8 @@ test("warehouse PostgreSQL is internal-only and bounded", () => {
   assert.match(compose, /POSTGRES_DB:\s*omen_football/);
   assert.match(compose, /pg_isready\s+-U\s+postgres\s+-d\s+omen_football/);
   assert.match(compose, /checksum='27fb1e8dd4a5167ffc27660f165f326e7c9a6e3b4aaf2e04ec16ec4e55448f1c'/);
+  assert.match(compose, /checksum='0b0577edd8995fad967409a37012390d77447cf55595fd4a310270b56f7a169d'/);
+  assert.match(compose, /0002_apply_access_policy\.sh:ro/);
   assert.match(compose, /internal:\s+true/);
   assert.doesNotMatch(compose, /^\s*ports:/m, "warehouse PostgreSQL must not publish a host port");
   assert.match(compose, /healthcheck:/);

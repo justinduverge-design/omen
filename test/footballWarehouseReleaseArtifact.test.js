@@ -15,8 +15,11 @@ const files = [
   "infra/warehouse/docker-compose.yml",
   "infra/warehouse/verify-release.sh",
   "infra/warehouse/provision-credentials.sh",
+  "infra/warehouse/provision-login-roles.sh",
   "warehouse/migrations/0001_football_warehouse.sql",
   "warehouse/migrations/0002_record_migration.sh",
+  "warehouse/migrations/0003_warehouse_access_policy.sql",
+  "warehouse/migrations/0004_apply_access_policy.sh",
 ];
 
 function treeManifest(directory) {

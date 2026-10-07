@@ -139,6 +139,8 @@ done
     printf "alter role %s set statement_timeout = '5min';\n" "$role"
     printf "alter role %s set lock_timeout = '15s';\n" "$role"
     printf "do \$\$ declare membership record; begin for membership in select parent.rolname from pg_auth_members m join pg_roles parent on parent.oid=m.roleid join pg_roles member on member.oid=m.member where member.rolname='%s' and parent.rolname<>'%s' loop execute format('revoke %%I from %s', membership.rolname); end loop; end \$\$;\n" "$role" "$group" "$role"
+    # Recreate the sole intended membership so a drifted ADMIN option cannot survive.
+    printf "revoke %s from %s;\n" "$group" "$role"
     printf "grant %s to %s;\n" "$group" "$role"
     printf "revoke all privileges on database %s from %s;\n" "$database" "$role"
     printf "revoke all privileges on schema football from %s;\n" "$role"

@@ -174,6 +174,7 @@ psql --username postgres --dbname omen_football --set ON_ERROR_STOP=1 --quiet --
 psql --username postgres --dbname omen_football --set ON_ERROR_STOP=1 --quiet <<'SQL'
 create role warehouse_unexpected_group nologin;
 grant warehouse_unexpected_group to omen_warehouse_read with admin option;
+grant omen_warehouse_reader to omen_warehouse_read with admin option;
 alter role omen_warehouse_read createdb connection limit 99;
 grant temporary on database omen_football to omen_warehouse_read;
 grant insert on football.access_policy_probe to omen_warehouse_read;
