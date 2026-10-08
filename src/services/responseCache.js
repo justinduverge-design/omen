@@ -61,7 +61,7 @@ function withTimeout(promise) {
   let timer;
   const timeout = new Promise((_, reject) => {
     timer = setTimeout(() => reject(new Error("response_cache_timeout")), STORE_TIMEOUT_MS);
-    if (typeof timer.unref === "function") timer.unref();
+
   });
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
