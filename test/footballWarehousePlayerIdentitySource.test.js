@@ -97,10 +97,30 @@ test("uses exact playerIdFor output and admits only direct GSIS identifiers", ()
   assert.ok(result.playerIds.every(({ provider }) => provider === "gsis"));
 });
 
+test("admits exact historical source IDs without guessing or normalizing lookup keys", () => {
+  const result = adapt(rawCsv([row(), row({
+    gsis_id: "ABB498348", display_name: "Vince Abbott", position: "K",
+  })]));
+
+  assert.equal(result.players.length, 2);
+  assert.equal(result.playerIdByGsis.get("ABB498348"), playerIdFor("ABB498348"));
+  assert.equal(result.playerIdByGsis.get("abb498348"), undefined);
+  assert.equal(result.players[1].gsisId, "ABB498348");
+  assert.equal(result.players[1].playerId, "omen:player:gsis.abb498348");
+  assert.equal(result.playerIds[1].providerId, "ABB498348");
+  assert.equal(result.playerIdByGsis.has("Vince Abbott"), false);
+  assert.equal(result.receipt.sourceRows, 2);
+});
+
 test("fails closed on duplicate, empty, malformed and conflicting identities", () => {
   assert.throws(() => adapt(rawCsv([row(), row({ display_name: "Other" })])), /duplicate GSIS identity/);
   assert.throws(() => adapt(rawCsv([row({ gsis_id: "" })])), /gsis_id is empty/);
   assert.throws(() => adapt(rawCsv([row({ gsis_id: "Current, Player" })])), /gsis_id is malformed/);
+  assert.throws(() => adapt(rawCsv([row({ gsis_id: "a".repeat(129) })])), /gsis_id is malformed/);
+  assert.throws(() => adapt(rawCsv([
+    row({ gsis_id: "ABB498348" }),
+    row({ gsis_id: "abb498348", display_name: "Conflicting Player" }),
+  ])), /canonical player identity collision/);
   assert.throws(() => adapt(rawCsv([row({ display_name: "NA" })])), /display_name is empty/);
   assert.throws(() => adapt(rawCsv([row({ position: "NA" })])), /position is empty/);
 });

@@ -8,7 +8,7 @@ const PLAYERS_SOURCE_URL =
   "https://github.com/nflverse/nflverse-data/releases/download/players/players.csv";
 const REQUIRED_COLUMNS = Object.freeze(["gsis_id", "display_name", "position"]);
 const RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
-const GSIS_ID = /^\d{2}-\d{1,12}$/;
+const GSIS_ID = /^[A-Za-z0-9._-]{1,128}$/;
 
 function textOrNull(value) {
   const text = String(value ?? "").trim();
@@ -73,6 +73,7 @@ function adaptPlayersCsv({ raw, sourceUrl, runId }) {
   const players = [];
   const playerIds = [];
   const playerIdByGsis = new Map();
+  const gsisByPlayerId = new Map();
 
   for (let index = 0; index < parsed.rows.length; index += 1) {
     const sourceRow = parsed.rows[index];
@@ -87,6 +88,10 @@ function adaptPlayersCsv({ raw, sourceUrl, runId }) {
     if (playerIdByGsis.has(gsisId)) throw new TypeError("CSV contains a duplicate GSIS identity");
 
     const playerId = playerIdFor(gsisId);
+    if (gsisByPlayerId.has(playerId)) {
+      throw new TypeError("CSV contains a canonical player identity collision");
+    }
+    gsisByPlayerId.set(playerId, gsisId);
     playerIdByGsis.set(gsisId, playerId);
     players.push({
       playerId,
