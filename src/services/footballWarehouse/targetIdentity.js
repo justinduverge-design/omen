@@ -9,8 +9,9 @@ class WarehouseTargetIdentityError extends Error {
 }
 
 const IDENTIFIER = /^[a-z][a-z0-9_]{0,62}$/;
+const COMPOSED_SCHEMA_VERSION = 2;
 
-async function verifyWarehouseTarget({ pool, expectedDatabase, expectedRole, expectedVersion = 1 }) {
+async function verifyWarehouseTarget({ pool, expectedDatabase, expectedRole, expectedVersion = COMPOSED_SCHEMA_VERSION }) {
   if (!pool || typeof pool.query !== "function") throw new TypeError("pool.query must be a function");
   if (!IDENTIFIER.test(expectedDatabase || "")) throw new TypeError("expectedDatabase is invalid");
   if (!IDENTIFIER.test(expectedRole || "")) throw new TypeError("expectedRole is invalid");
@@ -28,13 +29,19 @@ async function verifyWarehouseTarget({ pool, expectedDatabase, expectedRole, exp
   }
   const version = await pool.query({
     name: "warehouse-target-version-v1",
-    text: "SELECT COALESCE(max(version), 0)::integer AS schema_version FROM football.warehouse_schema_migrations",
+    text: `SELECT count(*)::integer AS migration_count,
+                  COALESCE(min(version), 0)::integer AS first_version,
+                  COALESCE(max(version), 0)::integer AS schema_version
+           FROM football.warehouse_schema_migrations`,
     query_timeout: 5_000,
   });
-  if (version?.rows?.[0]?.schema_version !== expectedVersion) {
+  const receipt = version?.rows?.[0];
+  if (receipt?.migration_count !== expectedVersion
+      || receipt?.first_version !== 1
+      || receipt?.schema_version !== expectedVersion) {
     throw new WarehouseTargetIdentityError("warehouse_target_mismatch", "warehouse target identity did not match");
   }
   return Object.freeze({ state: "verified", schemaVersion: expectedVersion });
 }
 
-module.exports = { verifyWarehouseTarget, WarehouseTargetIdentityError };
+module.exports = { verifyWarehouseTarget, WarehouseTargetIdentityError, COMPOSED_SCHEMA_VERSION };

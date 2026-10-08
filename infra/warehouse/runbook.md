@@ -49,7 +49,14 @@ During the approved omen-prod change window:
    NanoCPUs/CPU quota, PID limit, log rotation, network attachments, mounts and secrets. A Compose file
    declaration alone is not proof; cgroup or Docker inspection must show enforcement.
 5. Verify host and public-tailnet listeners again. Port 5432 must have no published or host port.
-6. Verify the migration checksum ledger and catalog using `warehouse/test/verify_schema.sql`.
+6. Reconcile the LOGIN roles with `sudo infra/warehouse/provision-login-roles.sh`. The script writes
+   credential files only at the fixed host path and runs administrative SQL through the fixed private
+   container. It does not require a host PostgreSQL client or a published port, and never carries a
+   password in Docker argv or environment variables.
+7. Verify the migration checksum ledger, catalog, partitions, typed columns, and capability-role grants
+   with `sudo infra/warehouse/verify-production-readonly.sh`. This production verifier runs in an
+   explicit read-only transaction. Do **not** run `warehouse/test/verify_schema.sql` on production; that
+   file intentionally inserts disposable fixture rows for local schema rehearsal.
 
 ## Bounded data proof
 

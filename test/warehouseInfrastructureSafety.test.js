@@ -89,6 +89,33 @@ test("warehouse operations never make destructive teardown the normal rollback",
   assert.match(runbook, /HostConfig\.Memory|cgroup/i, "resource bounds require live enforcement proof");
 });
 
+test("production verification is read-only and enters only the fixed private container", () => {
+  const verifier = read("infra", "warehouse", "verify-production-readonly.sh");
+  const sql = read("warehouse", "verify", "production_readonly.sql");
+  const fixture = read("warehouse", "test", "verify_schema.sql");
+
+  assert.match(verifier, /container="omen_football_warehouse"/);
+  assert.match(verifier, /docker exec --interactive "\$container"/);
+  assert.doesNotMatch(verifier, /--host|PGPASSWORD|POSTGRES_PASSWORD/);
+  assert.match(sql, /begin transaction read only;/i);
+  assert.match(sql, /VERIFIED production football warehouse read-only/);
+  assert.doesNotMatch(sql, /^\s*(?:insert|update|delete|truncate|alter|create|drop|grant|revoke)\b/im);
+  assert.match(fixture, /insert into football\.warehouse_ingest_events/i,
+    "the destructive local fixture remains visibly separate from production verification");
+});
+
+test("LOGIN provisioning uses an explicit host-secret and private-container admin boundary", () => {
+  const provision = read("infra", "warehouse", "provision-login-roles.sh");
+
+  assert.match(provision, /secret_dir="\/var\/lib\/omen\/secrets"/);
+  assert.match(provision, /admin_mode="private-container"/);
+  assert.match(provision, /container="omen_football_warehouse"/);
+  assert.match(provision, /psql_admin=\(docker exec --interactive "\$container" psql/);
+  assert.match(provision, /cat > "\$probe"/);
+  assert.doesNotMatch(provision, /docker exec[^\n]*(?:PGPASSWORD|password=[^'"\s]+)/i,
+    "credentials must not be placed in Docker argv or environment variables");
+});
+
 test("unsafe preparation scripts fail closed until their proven replacements exist", () => {
   for (const parts of [
     ["infra", "warehouse", "backfill.sh"],

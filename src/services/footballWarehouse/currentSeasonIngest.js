@@ -2,7 +2,7 @@
 
 const crypto = require("node:crypto");
 
-const DATASETS = new Set(["teams", "schedules", "players", "player-weekly", "team-weekly", "weekly-rosters"]);
+const DATASETS = new Set(["teams", "schedules", "players", "player-weekly", "team-weekly", "weekly-rosters", "play-by-play"]);
 const DEFAULT_ACQUISITION_TIMEOUT_MS = 120_000;
 const MAX_ACQUISITION_TIMEOUT_MS = 600_000;
 
@@ -74,12 +74,15 @@ function createCurrentSeasonIngest({
   adaptTeamWeekly,
   acquireWeeklyRosters,
   adaptWeeklyRosters,
+  acquirePlayByPlay,
+  adaptPlayByPlay,
   teamWriter,
   scheduleWriter,
   playerWriter,
   playerWeeklyWriter,
   teamWeeklyWriter,
   weeklyRosterWriter,
+  playByPlayWriter,
   acquisitionTimeoutMs = DEFAULT_ACQUISITION_TIMEOUT_MS,
 } = {}) {
   const dependencies = {
@@ -93,12 +96,15 @@ function createCurrentSeasonIngest({
     adaptTeamWeekly: fn(adaptTeamWeekly, "adaptTeamWeekly"),
     acquireWeeklyRosters: fn(acquireWeeklyRosters, "acquireWeeklyRosters"),
     adaptWeeklyRosters: fn(adaptWeeklyRosters, "adaptWeeklyRosters"),
+    acquirePlayByPlay: fn(acquirePlayByPlay, "acquirePlayByPlay"),
+    adaptPlayByPlay: fn(adaptPlayByPlay, "adaptPlayByPlay"),
     teamWriter: writer(teamWriter, "writeSnapshot", "teamWriter"),
     scheduleWriter: writer(scheduleWriter, "writeSeason", "scheduleWriter"),
     playerWriter: writer(playerWriter, "writeSnapshot", "playerWriter"),
     playerWeeklyWriter: writer(playerWeeklyWriter, "writeSeason", "playerWeeklyWriter"),
     teamWeeklyWriter: writer(teamWeeklyWriter, "writeSeason", "teamWeeklyWriter"),
     weeklyRosterWriter: writer(weeklyRosterWriter, "writeSeason", "weeklyRosterWriter"),
+    playByPlayWriter: writer(playByPlayWriter, "writeSeason", "playByPlayWriter"),
   };
   const timeoutMs = acquisitionTimeout(acquisitionTimeoutMs);
 
@@ -135,6 +141,7 @@ function createCurrentSeasonIngest({
           dependencies.acquirePlayerWeekly({ season: selectedSeason, signal: controller.signal }),
           dependencies.acquireTeamWeekly({ season: selectedSeason, signal: controller.signal }),
           dependencies.acquireWeeklyRosters({ season: selectedSeason, signal: controller.signal }),
+          dependencies.acquirePlayByPlay({ season: selectedSeason, signal: controller.signal }),
         ];
         try {
           acquired = await Promise.race([Promise.all(tasks), deadline, callerAbort]);
@@ -158,6 +165,7 @@ function createCurrentSeasonIngest({
       const weeklySource = acquisition(acquired[2], "player weekly");
       const teamWeeklySource = acquisition(acquired[3], "team weekly");
       const rosterSource = acquisition(acquired[4], "weekly rosters");
+      const playByPlaySource = acquisition(acquired[5], "play by play");
       const ids = {
         teams: runIdFor({ dataset: "teams", season: selectedSeason, raw: schedulesSource.raw }),
         schedules: runIdFor({ dataset: "schedules", season: selectedSeason, raw: schedulesSource.raw }),
@@ -165,6 +173,7 @@ function createCurrentSeasonIngest({
         playerWeekly: runIdFor({ dataset: "player-weekly", season: selectedSeason, raw: weeklySource.raw }),
         teamWeekly: runIdFor({ dataset: "team-weekly", season: selectedSeason, raw: teamWeeklySource.raw }),
         weeklyRosters: runIdFor({ dataset: "weekly-rosters", season: selectedSeason, raw: rosterSource.raw }),
+        playByPlay: runIdFor({ dataset: "play-by-play", season: selectedSeason, raw: playByPlaySource.raw }),
       };
 
       // Finish every validation before the first independently committed writer runs.
@@ -187,6 +196,11 @@ function createCurrentSeasonIngest({
         ...rosterSource, runId: ids.weeklyRosters, season: selectedSeason,
         playerIdByGsis: players.playerIdByGsis,
       });
+      throwIfAborted(signal);
+      const plays = dependencies.adaptPlayByPlay({
+        ...playByPlaySource, runId: ids.playByPlay, season: selectedSeason,
+        playerIdByGsis: players.playerIdByGsis,
+      });
       const teamReceipt = { ...schedules.receipt, runId: ids.teams };
 
       if (mode === "validate") {
@@ -202,6 +216,8 @@ function createCurrentSeasonIngest({
             teamWeeks: teamWeekly.rows.length,
             rosterRows: rosters.rows.length,
             unmatchedRosterRows: rosters.unmatchedRows,
+            plays: plays.rows.length,
+            unmatchedPlayRows: plays.unmatchedRows,
           },
           sourceRefs: {
             schedules: schedules.receipt.sourceRef,
@@ -209,6 +225,7 @@ function createCurrentSeasonIngest({
             playerWeekly: weekly.receipt.sourceRef,
             teamWeekly: teamWeekly.receipt.sourceRef,
             weeklyRosters: rosters.receipt.sourceRef,
+            playByPlay: plays.receipt.sourceRef,
           },
         };
       }
@@ -239,6 +256,11 @@ function createCurrentSeasonIngest({
         receipt: rosters.receipt, season: selectedSeason, rows: rosters.rows,
         unmatchedRows: rosters.unmatchedRows,
       });
+      throwIfAborted(signal);
+      stages.playByPlay = await dependencies.playByPlayWriter.writeSeason({
+        receipt: plays.receipt, season: selectedSeason, rows: plays.rows,
+        unmatchedRows: plays.unmatchedRows,
+      });
 
       return {
         mode,
@@ -251,6 +273,7 @@ function createCurrentSeasonIngest({
           playerWeekly: weekly.receipt.sourceRef,
           teamWeekly: teamWeekly.receipt.sourceRef,
           weeklyRosters: rosters.receipt.sourceRef,
+          playByPlay: plays.receipt.sourceRef,
         },
       };
     },

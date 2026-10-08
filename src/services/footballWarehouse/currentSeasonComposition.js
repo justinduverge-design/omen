@@ -17,6 +17,9 @@ const { createTeamWeeklyWriter } = require("./teamWeeklyWriter");
 const { acquireWeeklyRosterSource } = require("./weeklyRosterAcquisition");
 const { adaptWeeklyRosterCsv } = require("./weeklyRosterSource");
 const { createWeeklyRosterWriter } = require("./weeklyRosterWriter");
+const { acquirePlayByPlaySource } = require("./playByPlayAcquisition");
+const { adaptPlayByPlayCsvGzip } = require("./playByPlaySource");
+const { createPlayByPlayWriter } = require("./playByPlayWriter");
 
 function createWarehousePool({ Pool, config }) {
   if (typeof Pool !== "function") throw new TypeError("Pool must be a constructor");
@@ -45,12 +48,15 @@ function createCurrentSeasonComposition({ pool, fetchImpl = globalThis.fetch, ac
     adaptTeamWeekly: adaptTeamWeeklyCsv,
     acquireWeeklyRosters: ({ season, signal }) => acquireWeeklyRosterSource({ fetchImpl, season, signal }),
     adaptWeeklyRosters: adaptWeeklyRosterCsv,
+    acquirePlayByPlay: ({ season, signal }) => acquirePlayByPlaySource({ fetchImpl, season, signal }),
+    adaptPlayByPlay: adaptPlayByPlayCsvGzip,
     teamWriter: createTeamWriter({ pool }),
     scheduleWriter: createScheduleWriter({ pool }),
     playerWriter: createPlayerIdentityWriter({ pool }),
     playerWeeklyWriter: createPlayerWeeklyWriter({ pool }),
     teamWeeklyWriter: createTeamWeeklyWriter({ pool }),
     weeklyRosterWriter: createWeeklyRosterWriter({ pool }),
+    playByPlayWriter: createPlayByPlayWriter({ pool }),
     acquisitionTimeoutMs,
   });
 }
@@ -70,12 +76,15 @@ function createCurrentSeasonValidationComposition({ fetchImpl = globalThis.fetch
     adaptTeamWeekly: adaptTeamWeeklyCsv,
     acquireWeeklyRosters: ({ season, signal }) => acquireWeeklyRosterSource({ fetchImpl, season, signal }),
     adaptWeeklyRosters: adaptWeeklyRosterCsv,
+    acquirePlayByPlay: ({ season, signal }) => acquirePlayByPlaySource({ fetchImpl, season, signal }),
+    adaptPlayByPlay: adaptPlayByPlayCsvGzip,
     teamWriter: unwritable("writeSnapshot"),
     scheduleWriter: unwritable("writeSeason"),
     playerWriter: unwritable("writeSnapshot"),
     playerWeeklyWriter: unwritable("writeSeason"),
     teamWeeklyWriter: unwritable("writeSeason"),
     weeklyRosterWriter: unwritable("writeSeason"),
+    playByPlayWriter: unwritable("writeSeason"),
     acquisitionTimeoutMs,
   });
 }

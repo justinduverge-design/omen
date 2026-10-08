@@ -8,6 +8,7 @@ access_policy="$repo_root/warehouse/migrations/0003_warehouse_access_policy.sql"
 apply_access="$repo_root/warehouse/migrations/0004_apply_access_policy.sh"
 provision="$repo_root/infra/warehouse/provision-login-roles.sh"
 verification="$repo_root/warehouse/test/verify_access_policy.sql"
+production_verification="$repo_root/warehouse/verify/production_readonly.sql"
 temp_root="$(mktemp -d "${TMPDIR:-/tmp}/omen-warehouse-access.XXXXXX")"
 server_started=false
 
@@ -230,5 +231,8 @@ for role_secret in \
     exit 1
   fi
 done
+
+psql --host "$temp_root/socket" --username postgres --dbname omen_football \
+  --set ON_ERROR_STOP=1 --quiet < "$production_verification"
 
 echo "VERIFIED warehouse LOGIN access policy on PostgreSQL 17.11"

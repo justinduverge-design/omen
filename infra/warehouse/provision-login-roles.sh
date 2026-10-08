@@ -9,11 +9,13 @@ umask 077
 if [[ "${OMEN_WAREHOUSE_PROVISION_TEST_MODE:-}" == "disposable-pg17" ]]; then
   secret_dir="${OMEN_WAREHOUSE_LOGIN_SECRET_DIR:?test secret directory is required}"
   host="${OMEN_WAREHOUSE_HOST:-warehouse.test.invalid}"
+  admin_mode="host-psql"
 else
   [[ -z "${OMEN_WAREHOUSE_LOGIN_SECRET_DIR:-}" ]] || { echo "production warehouse secret directory is fixed" >&2; exit 1; }
   [[ -z "${OMEN_WAREHOUSE_HOST:-}" ]] || { echo "production warehouse host is fixed" >&2; exit 1; }
   secret_dir="/var/lib/omen/secrets"
   host="omen_football_warehouse"
+  admin_mode="private-container"
 fi
 database="omen_football"
 port="5432"
@@ -60,7 +62,18 @@ else
   exit 1
 fi
 
-psql_admin=(psql --no-psqlrc --set ON_ERROR_STOP=1 --quiet --username postgres --dbname "$database")
+if [[ "$admin_mode" == "private-container" ]]; then
+  command -v docker >/dev/null 2>&1 || { echo "warehouse LOGIN provisioning requires Docker" >&2; exit 1; }
+  container="omen_football_warehouse"
+  docker inspect --format '{{.State.Running}}' "$container" 2>/dev/null | grep -qx true || {
+    echo "private warehouse container is not running" >&2
+    exit 1
+  }
+  psql_admin=(docker exec --interactive "$container" psql --no-psqlrc --set ON_ERROR_STOP=1 --quiet --username postgres --dbname "$database")
+else
+  psql_admin=(psql --no-psqlrc --set ON_ERROR_STOP=1 --quiet --username postgres --dbname "$database")
+fi
+
 identity="$("${psql_admin[@]}" --tuples-only --no-align --command \
   "select current_database() || ':' || exists(select 1 from football.warehouse_schema_migrations where version=2 and name='0003_warehouse_access_policy')::text")"
 [[ "$identity" == "omen_football:true" ]] || { echo "warehouse target identity lacks access-policy version 2" >&2; exit 1; }
@@ -156,7 +169,18 @@ for index in "${!roles[@]}"; do
   probe="$(mktemp "$secret_dir/.${role}.probe.XXXXXX")"
   printf '*:*:%s:%s:%s\n' "$database" "$role" "$password" > "$probe"
   chmod 0600 "$probe"
-  if ! PGPASSFILE="$probe" psql --no-psqlrc --set ON_ERROR_STOP=1 --quiet \
+  if [[ "$admin_mode" == "private-container" ]]; then
+    # The credential crosses only stdin into the already-private container. It is
+    # never placed in docker argv/env, and the in-container passfile is removed by
+    # the trap before docker exec returns.
+    if ! docker exec --interactive "$container" sh -eu -c \
+        'probe="$(mktemp /tmp/omen-warehouse-login-probe.XXXXXX)"; trap '\''rm -f -- "$probe"'\'' EXIT; cat > "$probe"; chmod 0600 "$probe"; PGPASSFILE="$probe" psql --no-psqlrc --set ON_ERROR_STOP=1 --quiet --host 127.0.0.1 --port 5432 --username "$1" --dbname omen_football --tuples-only --no-align --command "select current_user"' \
+        sh "$role" < "$probe" 2>/dev/null | grep -qx "$role"; then
+      rm -f -- "$probe"
+      echo "warehouse credential probe failed for $role" >&2
+      exit 1
+    fi
+  elif ! PGPASSFILE="$probe" psql --no-psqlrc --set ON_ERROR_STOP=1 --quiet \
       --host "${OMEN_WAREHOUSE_PROBE_HOST:-$host}" --port "$port" --username "$role" --dbname "$database" \
       --tuples-only --no-align --command 'select current_user' 2>/dev/null | grep -qx "$role"; then
     rm -f -- "$probe"
