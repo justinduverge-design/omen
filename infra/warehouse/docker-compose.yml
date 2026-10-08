@@ -73,6 +73,7 @@ volumes:
 
 networks:
   warehouse_net:
+    name: omen_warehouse_net
     driver: bridge
     internal: true
   omen_network:

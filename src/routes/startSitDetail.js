@@ -20,6 +20,7 @@
 
 const express = require("express");
 const { createClient } = require("@supabase/supabase-js");
+const { Pool } = require("pg");
 const config = require("../config");
 const { logger } = require("../middleware/logging");
 const { requireAuth } = require("../middleware/auth");
@@ -35,6 +36,9 @@ const {
   buildStartSitDetail,
 } = require("../services/startSitDetail");
 const { getUsageBundle } = require("../services/playerUsage");
+const { createWarehouseReadRuntime } = require("../services/footballWarehouse/readRuntime");
+const { createUsageShadowRunner } = require("../services/footballWarehouse/usageShadow");
+const { getWarehouseUsageBundle } = require("../services/footballWarehouse/warehouseUsageBundle");
 const { getTeamSystemSummaries } = require("../services/footballIntelligence/teamSystemLines");
 const { rosterProjectionBreakdowns } = require("../services/projectionBreakdown");
 const { withinLatencyBudget } = require("../services/latencyBudget");
@@ -46,6 +50,14 @@ const router = express.Router();
 // The points breakdown is advisory; its extra reads never hold the route longer than this.
 const PROJECTION_BREAKDOWN_BUDGET_MS = 2500;
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
+const warehouseUsageRuntime = createWarehouseReadRuntime({ Pool });
+const usageReader = createUsageShadowRunner({
+  readLegacy: (input) => getUsageBundle(input),
+  readWarehouse: (input) => getWarehouseUsageBundle({
+    ...input, repository: warehouseUsageRuntime.repository,
+  }),
+  emitTelemetry: (event) => logger.info("Football warehouse usage shadow", event),
+});
 
 const ERROR_CONTRACT = "start-sit-detail-error.v1";
 // token_expires_at is load-bearing: isOmenReadyConnection() treats an absent
@@ -224,7 +236,16 @@ router.get("/detail", requireAuth, async (req, res, next) => {
     const [{ usage, weekly: weeklyUsage }, teamSystem] = suppressLiveFootballData()
       ? [{ usage: new Map(), weekly: new Map() }, new Map()]
       : await Promise.all([
-        getUsageBundle({ supabase, playerKeys: rosterKeys, season: Number(context.season), beforeWeek: Number(resolvedWeek), log: logger }),
+        usageReader.read({
+          mode: warehouseUsageRuntime.mode,
+          input: {
+            supabase,
+            playerKeys: rosterKeys,
+            season: Number(context.season),
+            beforeWeek: Number(resolvedWeek),
+            log: logger,
+          },
+        }),
         getTeamSystemSummaries({ supabase, teams: rosterTeams, season: Number(context.season), log: logger }),
       ]);
     const breakdowns = suppressLiveFootballData()
@@ -256,3 +277,4 @@ router.get("/detail", requireAuth, async (req, res, next) => {
 
 module.exports = router;
 module.exports.scoringFormatFromSleeperLeague = scoringFormatFromSleeperLeague;
+module.exports.closeWarehouseUsageRuntime = () => warehouseUsageRuntime.close();

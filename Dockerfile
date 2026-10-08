@@ -68,7 +68,7 @@ COPY src/ ./src/
 FROM node:24-alpine AS production
 
 # Security: non-root user (SY0-701 5.4: least privilege)
-RUN addgroup -S ssffmvp && adduser -S ssffmvp -G ssffmvp
+RUN addgroup -S -g 10001 ssffmvp && adduser -S -D -H -u 10001 -G ssffmvp ssffmvp
 
 WORKDIR /app
 
