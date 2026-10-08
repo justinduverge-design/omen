@@ -20,6 +20,7 @@ assert SPEC and SPEC.loader
 SPEC.loader.exec_module(MODULE)
 
 RELEASE_FILES = [
+    "Dockerfile.warehouse-ingest",
     "infra/warehouse/build-release.sh",
     "infra/warehouse/docker-compose.yml",
     "infra/warehouse/verify-release.sh",
@@ -32,6 +33,7 @@ RELEASE_FILES = [
     "warehouse/migrations/0004_apply_access_policy.sh",
     "warehouse/verify/production_readonly.sql",
 ]
+WORKER_IMAGE = f"ghcr.io/justinduverge-design/omen-warehouse-ingest@sha256:{'a' * 64}"
 
 
 class PublisherTest(unittest.TestCase):
@@ -49,7 +51,7 @@ class PublisherTest(unittest.TestCase):
         subprocess.run(["git", "commit", "-qm", "fixture"], cwd=self.temporary, check=True)
         self.commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=self.temporary, text=True).strip()
         self.release = self.temporary / "release"
-        subprocess.run([self.temporary / "infra/warehouse/build-release.sh", self.commit, self.release], cwd=self.temporary, check=True)
+        subprocess.run([self.temporary / "infra/warehouse/build-release.sh", self.commit, self.release, WORKER_IMAGE], cwd=self.temporary, check=True)
         self.bundle = Path(f"{self.release}.tar")
         self.bundle_hash = Path(f"{self.bundle}.sha256").read_text().strip()
 
@@ -61,7 +63,7 @@ class PublisherTest(unittest.TestCase):
 
     def test_bundle_is_deterministic_and_excludes_publisher(self):
         second = self.temporary / "second"
-        subprocess.run([self.temporary / "infra/warehouse/build-release.sh", self.commit, second], cwd=self.temporary, check=True)
+        subprocess.run([self.temporary / "infra/warehouse/build-release.sh", self.commit, second, WORKER_IMAGE], cwd=self.temporary, check=True)
         self.assertEqual(self.bundle.read_bytes(), Path(f"{second}.tar").read_bytes())
         with tarfile.open(self.bundle, "r:") as archive:
             self.assertNotIn("infra/warehouse/publish_release_root.py", archive.getnames())
@@ -75,7 +77,7 @@ class PublisherTest(unittest.TestCase):
         subprocess.run(["git", "commit", "-qm", "payload"], cwd=self.temporary, check=True)
         commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=self.temporary, text=True).strip()
         release = self.temporary / "payload-release"
-        subprocess.run([self.temporary / "infra/warehouse/build-release.sh", commit, release], cwd=self.temporary, check=True)
+        subprocess.run([self.temporary / "infra/warehouse/build-release.sh", commit, release, WORKER_IMAGE], cwd=self.temporary, check=True)
         bundle = Path(f"{release}.tar")
         approved = Path(f"{bundle}.sha256").read_text().strip()
         result = self.publish(bundle, approved)

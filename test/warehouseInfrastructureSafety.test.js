@@ -36,6 +36,28 @@ test("warehouse PostgreSQL is internal-only and bounded", () => {
   assert.match(compose, /max-size:/, "warehouse container logs must be size-bounded");
 });
 
+test("warehouse ingest worker is exact-commit built and deployed only by digest", () => {
+  const compose = withoutYamlComments(read("infra", "warehouse", "docker-compose.yml"));
+  const dockerfile = read("Dockerfile.warehouse-ingest");
+  const workflow = read(".github", "workflows", "warehouse-worker-image.yml");
+
+  assert.match(dockerfile, /^FROM node:24-alpine@sha256:[0-9a-f]{64}/m);
+  assert.match(dockerfile, /case "\$GIT_SHA"/);
+  assert.match(dockerfile, /case "\$BUILD_ID"/);
+  assert.match(dockerfile, /USER 10001:10001/);
+  assert.match(dockerfile, /ENTRYPOINT \["node", "\/app\/src\/omen_football_warehouse_current_season\.js"\]/);
+  assert.match(compose, /image: \$\{WAREHOUSE_INGEST_IMAGE:\?[^}]+\}/);
+  assert.match(compose, /FOOTBALL_WAREHOUSE_DATABASE_URL_FILE:\s*\/run\/secrets\/warehouse_ingest_url/);
+  assert.match(compose, /profiles: \["ingest"\]/);
+  assert.match(compose, /read_only:\s*true/);
+  assert.match(compose, /no-new-privileges:true/);
+  assert.match(compose, /cap_drop:\s*\n\s*- ALL/);
+  assert.match(workflow, /test "\$\(git rev-parse HEAD\)" = "\$\{GITHUB_SHA\}"/);
+  assert.match(workflow, /omen-warehouse-ingest:sha-\$\{\{ github\.sha \}\}/);
+  assert.match(workflow, /IMAGE_DIGEST: \$\{\{ steps\.build\.outputs\.digest \}\}/);
+  assert.doesNotMatch(compose, /omen-warehouse-ingest:(?:latest|main)/);
+});
+
 test("warehouse initialization records the exact migration checksum and version", () => {
   const receipt = read("warehouse", "migrations", "0002_record_migration.sh");
   assert.match(receipt, /sha256sum\s+"\$migration"/);

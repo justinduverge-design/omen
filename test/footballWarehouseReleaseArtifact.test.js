@@ -11,6 +11,7 @@ const root = path.join(__dirname, "..");
 const build = path.join(root, "infra/warehouse/build-release.sh");
 const verify = path.join(root, "infra/warehouse/verify-release.sh");
 const files = [
+  "Dockerfile.warehouse-ingest",
   "infra/warehouse/build-release.sh",
   "infra/warehouse/docker-compose.yml",
   "infra/warehouse/verify-release.sh",
@@ -23,6 +24,7 @@ const files = [
   "warehouse/migrations/0004_apply_access_policy.sh",
   "warehouse/verify/production_readonly.sql",
 ];
+const workerImage = `ghcr.io/justinduverge-design/omen-warehouse-ingest@sha256:${"a".repeat(64)}`;
 
 function treeManifest(directory) {
   return execFileSync("find", [".", "-mindepth", "1", "-print"], { cwd: directory, encoding: "utf8" })
@@ -72,8 +74,8 @@ test("release builder exports exact committed bytes and is reproducible despite 
   fs.appendFileSync(path.join(item.dir, "infra/warehouse/docker-compose.yml"), "\n# dirty shadow\n");
   const one = path.join(item.dir, "release-one");
   const two = path.join(item.dir, "release-two");
-  execFileSync(build, [item.commit, one], { cwd: item.dir });
-  execFileSync(build, [item.commit, two], { cwd: item.dir });
+  execFileSync(build, [item.commit, one, workerImage], { cwd: item.dir });
+  execFileSync(build, [item.commit, two, workerImage], { cwd: item.dir });
   assert.deepEqual(treeManifest(one), treeManifest(two));
   assert.doesNotMatch(fs.readFileSync(path.join(one, "infra/warehouse/docker-compose.yml"), "utf8"), /dirty shadow/);
   assert.equal(fs.readFileSync(path.join(one, "COMMIT"), "utf8").trim(), item.commit);
@@ -84,14 +86,15 @@ test("release builder rejects an existing destination and unknown commit", (t) =
   const item = fixture(t);
   const output = path.join(item.dir, "already");
   fs.mkdirSync(output);
-  assert.notEqual(spawnSync(build, [item.commit, output], { cwd: item.dir }).status, 0);
-  assert.notEqual(spawnSync(build, ["not-a-commit", path.join(item.dir, "other")], { cwd: item.dir }).status, 0);
+  assert.notEqual(spawnSync(build, [item.commit, output, workerImage], { cwd: item.dir }).status, 0);
+  assert.notEqual(spawnSync(build, ["not-a-commit", path.join(item.dir, "other"), workerImage], { cwd: item.dir }).status, 0);
+  assert.notEqual(spawnSync(build, [item.commit, path.join(item.dir, "tagged"), "ghcr.io/justinduverge-design/omen-warehouse-ingest:latest"], { cwd: item.dir }).status, 0);
 });
 
 test("release verifier accepts approved bytes and rejects tampering", (t) => {
   const item = fixture(t);
   const release = path.join(item.dir, "release");
-  execFileSync(build, [item.commit, release], { cwd: item.dir });
+  execFileSync(build, [item.commit, release, workerImage], { cwd: item.dir });
   const manifest = approvedManifest(release);
   execFileSync(verify, [release, manifest], { cwd: item.dir });
   fs.appendFileSync(path.join(release, "infra/warehouse/docker-compose.yml"), "\n# tampered\n");
@@ -101,7 +104,7 @@ test("release verifier accepts approved bytes and rejects tampering", (t) => {
 test("release verifier fails closed across structural, mode, contract, and approval drift", (t) => {
   const item = fixture(t);
   const base = path.join(item.dir, "release-base");
-  execFileSync(build, [item.commit, base], { cwd: item.dir });
+  execFileSync(build, [item.commit, base, workerImage], { cwd: item.dir });
   let sequence = 0;
   const mutate = (name, change, refresh = false) => {
     const release = path.join(item.dir, `reject-${sequence++}-${name}`);

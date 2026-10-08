@@ -10,7 +10,7 @@ release_dir="$(cd "$1" && pwd -P)"
 approved_manifest="$2"
 [[ "$approved_manifest" =~ ^[0-9a-f]{64}$ ]] || { echo "approved manifest is invalid" >&2; exit 1; }
 
-expected_files=(COMMIT MANIFEST-SHA256 RELEASE-CONTRACT SHA256SUMS infra/warehouse/build-release.sh infra/warehouse/docker-compose.yml infra/warehouse/provision-credentials.sh infra/warehouse/provision-login-roles.sh infra/warehouse/verify-production-readonly.sh infra/warehouse/verify-release.sh warehouse/migrations/0001_football_warehouse.sql warehouse/migrations/0002_record_migration.sh warehouse/migrations/0003_warehouse_access_policy.sql warehouse/migrations/0004_apply_access_policy.sh warehouse/verify/production_readonly.sql)
+expected_files=(COMMIT MANIFEST-SHA256 RELEASE-CONTRACT SHA256SUMS Dockerfile.warehouse-ingest infra/warehouse/build-release.sh infra/warehouse/docker-compose.yml infra/warehouse/provision-credentials.sh infra/warehouse/provision-login-roles.sh infra/warehouse/verify-production-readonly.sh infra/warehouse/verify-release.sh warehouse/migrations/0001_football_warehouse.sql warehouse/migrations/0002_record_migration.sh warehouse/migrations/0003_warehouse_access_policy.sql warehouse/migrations/0004_apply_access_policy.sh warehouse/verify/production_readonly.sql)
 expected_dirs=(infra infra/warehouse warehouse warehouse/migrations warehouse/verify)
 actual_list="$(mktemp)"
 allowed_list="$(mktemp)"
@@ -39,6 +39,8 @@ done
 
 commit="$(tr -d '\n' < "$release_dir/COMMIT")"
 [[ "$commit" =~ ^[0-9a-f]{40}$ ]] || { echo "release commit is invalid" >&2; exit 1; }
+worker_image="$(sed -n 's/^worker_image=//p' "$release_dir/RELEASE-CONTRACT")"
+[[ "$worker_image" =~ ^ghcr\.io/justinduverge-design/omen-warehouse-ingest@sha256:[0-9a-f]{64}$ ]] || { echo "worker image contract is invalid" >&2; exit 1; }
 (cd "$release_dir" && test "$(sha256sum SHA256SUMS | awk '{print $1}')" = "$approved_manifest")
 (cd "$release_dir" && test "$(tr -d '\n' < MANIFEST-SHA256)" = "$approved_manifest")
 (cd "$release_dir" && sha256sum --check --strict SHA256SUMS >/dev/null)
@@ -48,6 +50,7 @@ contract_version=omen-football-warehouse-release.v1
 commit=$commit
 platform=linux/amd64
 image=postgres:17.11-bookworm@sha256:91eb910c44c7ed13f7f1a4ccadaa9ca72ef14cddc04cacb6e070e48eb44731a3
+worker_image=$worker_image
 install_root=/opt/omen/warehouse/releases
 EOF
 cmp -s "$expected_contract" "$release_dir/RELEASE-CONTRACT" || { echo "release contract is invalid" >&2; exit 1; }

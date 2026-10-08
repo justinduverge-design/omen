@@ -12,6 +12,7 @@ import io
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import stat
 import sys
@@ -30,6 +31,7 @@ FILE_MODES = {
     "MANIFEST-SHA256": 0o444,
     "RELEASE-CONTRACT": 0o444,
     "SHA256SUMS": 0o444,
+    "Dockerfile.warehouse-ingest": 0o644,
     "infra/warehouse/build-release.sh": 0o755,
     "infra/warehouse/docker-compose.yml": 0o644,
     "infra/warehouse/verify-release.sh": 0o755,
@@ -148,11 +150,17 @@ def validate_tree(entries: dict[str, tuple[bytes | None, int]]) -> tuple[str, st
     if len(commit_text) != 41 or not commit_text.endswith("\n") or any(character not in "0123456789abcdef" for character in commit_text[:-1]):
         fail("commit_invalid")
     commit = commit_text.strip()
+    actual_contract = files["RELEASE-CONTRACT"]
+    assert actual_contract is not None
+    match = re.search(rb"^worker_image=(ghcr\.io/justinduverge-design/omen-warehouse-ingest@sha256:[0-9a-f]{64})$", actual_contract, re.MULTILINE)
+    if match is None:
+        fail("release_contract_invalid")
+    worker_image = match.group(1).decode("ascii")
     expected_contract = (
         f"contract_version={RELEASE_CONTRACT}\ncommit={commit}\nplatform=linux/amd64\n"
-        f"image={IMAGE}\ninstall_root=/opt/omen/warehouse/releases\n"
+        f"image={IMAGE}\nworker_image={worker_image}\ninstall_root=/opt/omen/warehouse/releases\n"
     ).encode()
-    if files["RELEASE-CONTRACT"] != expected_contract:
+    if actual_contract != expected_contract:
         fail("release_contract_invalid")
     manifest = files["SHA256SUMS"]
     assert manifest is not None

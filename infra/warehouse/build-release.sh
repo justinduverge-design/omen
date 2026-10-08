@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -ne 2 ]]; then
-  echo "usage: build-release.sh <git-commit> <output-directory>" >&2
+if [[ $# -ne 3 ]]; then
+  echo "usage: build-release.sh <git-commit> <output-directory> <worker-image-by-digest>" >&2
   exit 64
 fi
 
@@ -10,6 +10,11 @@ commit="$(git rev-parse --verify "$1^{commit}")"
 output="$2"
 bundle="$output.tar"
 bundle_hash="$bundle.sha256"
+worker_image="$3"
+if [[ ! "$worker_image" =~ ^ghcr\.io/justinduverge-design/omen-warehouse-ingest@sha256:[0-9a-f]{64}$ ]]; then
+  echo "worker image must be the approved GHCR repository pinned by sha256 digest" >&2
+  exit 1
+fi
 if [[ ! "$commit" =~ ^[0-9a-f]{40}$ ]] || [[ -e "$output" ]] || [[ -e "$bundle" ]] || [[ -e "$bundle_hash" ]]; then
   echo "release commit is invalid or output already exists" >&2
   exit 1
@@ -30,6 +35,7 @@ cleanup() {
 trap cleanup EXIT
 
 paths=(
+  Dockerfile.warehouse-ingest
   infra/warehouse/build-release.sh
   infra/warehouse/docker-compose.yml
   infra/warehouse/verify-release.sh
@@ -49,6 +55,7 @@ contract_version=omen-football-warehouse-release.v1
 commit=$commit
 platform=linux/amd64
 image=postgres:17.11-bookworm@sha256:91eb910c44c7ed13f7f1a4ccadaa9ca72ef14cddc04cacb6e070e48eb44731a3
+worker_image=$worker_image
 install_root=/opt/omen/warehouse/releases
 EOF
 (
