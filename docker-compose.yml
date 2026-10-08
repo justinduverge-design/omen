@@ -64,9 +64,6 @@ services:
     secrets:
       - source: warehouse_reader_url
         target: warehouse_reader_url
-        uid: "10001"
-        gid: "10001"
-        mode: 0400
     networks:
       - default
       - warehouse_net

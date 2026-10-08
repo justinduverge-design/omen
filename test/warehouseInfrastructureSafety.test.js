@@ -130,6 +130,10 @@ test("LOGIN provisioning uses an explicit host-secret and private-container admi
   const provision = read("infra", "warehouse", "provision-login-roles.sh");
 
   assert.match(provision, /secret_dir="\/var\/lib\/omen\/secrets"/);
+  assert.match(provision, /runtime_gid="10001"/);
+  assert.match(provision, /final_modes=\(440 440 600\)/);
+  assert.match(provision, /install -d -m 0700 -o root -g root "\$secret_dir"/);
+  assert.match(provision, /chown "\$\(id -u\):\$\{final_gids\[\$index\]\}" "\$final_temp"/);
   assert.match(provision, /admin_mode="private-container"/);
   assert.match(provision, /container="omen_football_warehouse"/);
   assert.match(provision, /psql_admin=\(docker exec --interactive "\$container" psql/);

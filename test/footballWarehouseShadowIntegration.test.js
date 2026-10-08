@@ -17,7 +17,7 @@ test("API warehouse reads are opt-in, read-role only, and attached to the privat
   assert.match(compose, /file: \/var\/lib\/omen\/secrets\/warehouse-reader-url/);
   assert.match(compose, /warehouse_net:[\s\S]*external: true/);
   assert.match(warehouse, /warehouse_net:[\s\S]*name: omen_warehouse_net[\s\S]*internal: true/);
-  assert.match(compose, /target: warehouse_reader_url[\s\S]*uid: "10001"[\s\S]*mode: 0400/);
+  assert.doesNotMatch(compose, /target: warehouse_reader_url[\s\S]*uid: "10001"/);
   assert.match(dockerfile, /adduser[^\n]*-u 10001/);
 });
 

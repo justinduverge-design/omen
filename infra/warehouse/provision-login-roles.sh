@@ -8,12 +8,14 @@ set -euo pipefail
 umask 077
 if [[ "${OMEN_WAREHOUSE_PROVISION_TEST_MODE:-}" == "disposable-pg17" ]]; then
   secret_dir="${OMEN_WAREHOUSE_LOGIN_SECRET_DIR:?test secret directory is required}"
+  runtime_gid="$(id -g)"
   host="${OMEN_WAREHOUSE_HOST:-warehouse.test.invalid}"
   admin_mode="host-psql"
 else
   [[ -z "${OMEN_WAREHOUSE_LOGIN_SECRET_DIR:-}" ]] || { echo "production warehouse secret directory is fixed" >&2; exit 1; }
   [[ -z "${OMEN_WAREHOUSE_HOST:-}" ]] || { echo "production warehouse host is fixed" >&2; exit 1; }
   secret_dir="/var/lib/omen/secrets"
+  runtime_gid="10001"
   host="omen_football_warehouse"
   admin_mode="private-container"
 fi
@@ -49,7 +51,6 @@ fi
   echo "warehouse secret directory owner is unsafe" >&2
   exit 1
 }
-
 if command -v flock >/dev/null 2>&1; then
   exec 9>"$secret_dir/.login-role-provision.lock"
   flock -n 9 || { echo "warehouse LOGIN provisioning is already active" >&2; exit 1; }
@@ -83,14 +84,18 @@ groups=(omen_warehouse_writer omen_warehouse_reader omen_warehouse_backup)
 limits=(4 8 1)
 kinds=(url url pgpass)
 names=(warehouse-ingest-url warehouse-reader-url warehouse-backup-pgpass)
+final_dirs=("$secret_dir" "$secret_dir" "$secret_dir")
+final_modes=(440 440 600)
+final_gids=("$runtime_gid" "$runtime_gid" "$(id -g)")
 passwords=()
 pending_flags=()
 
 read_final_password() {
-  local role="$1" kind="$2" file="$3" value
+  local role="$1" kind="$2" file="$3" expected_mode="$4" expected_gid="$5" value
   [[ -f "$file" && ! -L "$file" ]] || return 1
-  [[ "$(stat -c '%a' "$file" 2>/dev/null || stat -f '%Lp' "$file")" == "600" ]] || return 1
+  [[ "$(stat -c '%a' "$file" 2>/dev/null || stat -f '%Lp' "$file")" == "$expected_mode" ]] || return 1
   [[ "$(stat -c '%u' "$file" 2>/dev/null || stat -f '%u' "$file")" == "$(id -u)" ]] || return 1
+  [[ "$(stat -c '%g' "$file" 2>/dev/null || stat -f '%g' "$file")" == "$expected_gid" ]] || return 1
   value="$(<"$file")"
   if [[ "$kind" == "url" ]]; then
     [[ "$value" =~ ^postgresql://${role}:([0-9a-f]{64})@${host}:${port}/${database}$ ]] || return 1
@@ -103,14 +108,22 @@ read_final_password() {
 
 for index in "${!roles[@]}"; do
   role="${roles[$index]}"
-  final="$secret_dir/${names[$index]}"
+  final="${final_dirs[$index]}/${names[$index]}"
   pending="$secret_dir/.${role}.pending"
   role_exists="$("${psql_admin[@]}" --tuples-only --no-align --command \
     "select exists(select 1 from pg_roles where rolname='$role')")"
   [[ ! -e "$final" || ! -e "$pending" ]] || { echo "ambiguous warehouse credential state for $role" >&2; exit 1; }
 
   if [[ -e "$final" ]]; then
-    password="$(read_final_password "$role" "${kinds[$index]}" "$final")" || {
+    # Reconcile metadata only; never copy, print, or rotate values.
+    if [[ "$index" -lt 2 && -f "$final" && ! -L "$final" &&
+          "$(stat -c '%u' "$final" 2>/dev/null || stat -f '%u' "$final")" == "$(id -u)" &&
+          "$(stat -c '%g' "$final" 2>/dev/null || stat -f '%g' "$final")" == "$(id -g)" &&
+          "$(stat -c '%a' "$final" 2>/dev/null || stat -f '%Lp' "$final")" == "600" ]]; then
+      chown "$(id -u):${final_gids[$index]}" "$final"
+      chmod "${final_modes[$index]}" "$final"
+    fi
+    password="$(read_final_password "$role" "${kinds[$index]}" "$final" "${final_modes[$index]}" "${final_gids[$index]}")" || {
       echo "invalid warehouse credential file for $role" >&2
       exit 1
     }
@@ -197,8 +210,9 @@ for index in "${!roles[@]}"; do
     else
       printf '%s:%s:%s:%s:%s\n' "$host" "$port" "$database" "$role" "$password" > "$final_temp"
     fi
-    chmod 0600 "$final_temp"
-    mv -- "$final_temp" "$secret_dir/${names[$index]}"
+    chown "$(id -u):${final_gids[$index]}" "$final_temp"
+    chmod "${final_modes[$index]}" "$final_temp"
+    mv -- "$final_temp" "${final_dirs[$index]}/${names[$index]}"
     rm -f -- "$pending"
   fi
 done

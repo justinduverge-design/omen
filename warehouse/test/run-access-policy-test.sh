@@ -215,11 +215,17 @@ env "${provision_env[@]}" "$provision" >"$temp_root/provision-resume.out" 2>"$te
   echo "pending credential was not promoted" >&2; exit 1
 }
 
-for secret_file in "$ingest_secret" "$reader_secret" "$backup_secret"; do
-  [[ "$(stat -c '%a' "$secret_file" 2>/dev/null || stat -f '%Lp' "$secret_file")" == "600" ]] || {
-    echo "credential file mode is not 600" >&2; exit 1
+for secret_file in "$ingest_secret" "$reader_secret"; do
+  [[ "$(stat -c '%a' "$secret_file" 2>/dev/null || stat -f '%Lp' "$secret_file")" == "440" ]] || {
+    echo "runtime credential file mode is not 440" >&2; exit 1
+  }
+  [[ "$(stat -c '%g' "$secret_file" 2>/dev/null || stat -f '%g' "$secret_file")" == "$(id -g)" ]] || {
+    echo "runtime credential file group is unsafe" >&2; exit 1
   }
 done
+[[ "$(stat -c '%a' "$backup_secret" 2>/dev/null || stat -f '%Lp' "$backup_secret")" == "600" ]] || {
+  echo "backup credential file mode is not 600" >&2; exit 1
+}
 
 for role_secret in \
   "$(extract_password omen_warehouse_ingest "$ingest_secret")" \
