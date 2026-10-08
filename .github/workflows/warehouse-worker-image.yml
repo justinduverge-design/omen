@@ -1,6 +1,15 @@
 name: Warehouse ingest worker image
 
 on:
+  push:
+    branches:
+      - codex/football-warehouse-foundation
+    paths:
+      - Dockerfile.warehouse-ingest
+      - package.json
+      - package-lock.json
+      - src/**
+      - .github/workflows/warehouse-worker-image.yml
   workflow_dispatch:
 
 permissions:
