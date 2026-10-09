@@ -57,7 +57,7 @@ test("a deep synchronous middleware chain adds no per-layer finish listeners", a
   const res = await get(server, "/api/health");
   assert.equal(res.status, 200);
   const { finish } = JSON.parse(res.body);
-  assert.ok(finish < 10, `expected no per-layer finish listeners, saw ${finish}`);
+  assert.ok(finish <= 2, `expected no per-layer finish listeners, saw ${finish}`);
 
   await new Promise((resolve) => setImmediate(resolve));
   assert.deepEqual(warnings.map((w) => w.message), []);
