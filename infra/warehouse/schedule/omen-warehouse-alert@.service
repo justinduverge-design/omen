@@ -1,0 +1,6 @@
+[Unit]
+Description=Discord alert for failed Omen warehouse unit %i
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/omen-warehouse-alert %i

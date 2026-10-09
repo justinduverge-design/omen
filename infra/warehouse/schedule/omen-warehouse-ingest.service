@@ -1,0 +1,11 @@
+[Unit]
+Description=Omen football warehouse daily current-season ingest
+Wants=network-online.target docker.service
+After=network-online.target docker.service
+OnFailure=omen-warehouse-alert@%n.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/omen-warehouse-run-current-season
+TimeoutStartSec=45min
+Nice=10

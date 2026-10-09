@@ -1,0 +1,29 @@
+#!/bin/sh
+# Daily football warehouse ingest (installed to /usr/local/sbin on KVM1).
+#
+# Runs the selected release's pinned worker image against the private warehouse, exactly as the
+# 2026-10-09 manual run did: `ingest --season YYYY`. The worker short-circuits unchanged sources, so a
+# daily run is idempotent. --no-deps: never let `compose run` recreate the database container.
+#
+# Season: September onward is the new NFL season; January through August belongs to the previous one
+# (playoffs, then the off-season, when the run re-reads last season and changes nothing).
+# OMEN_WAREHOUSE_TODAY=YYYY-MM-DD overrides the date (tests only); --print-season prints and exits.
+set -eu
+
+today=${OMEN_WAREHOUSE_TODAY:-$(date -u +%Y-%m-%d)}
+year=${today%%-*}
+month=$(printf '%s' "$today" | cut -d- -f2)
+if [ "${month#0}" -ge 9 ]; then season=$year; else season=$((year - 1)); fi
+if [ "${1:-}" = "--print-season" ]; then echo "$season"; exit 0; fi
+
+release=/opt/omen/warehouse/current
+image=$(sed -n 's/^worker_image=//p' "$release/RELEASE-CONTRACT")
+case "$image" in
+  ghcr.io/justinduverge-design/omen-warehouse-ingest@sha256:????????????????????????????????????????????????????????????????) ;;
+  *) echo "omen-warehouse: selected release has no digest-pinned worker image" >&2; exit 64 ;;
+esac
+
+cd "$release/infra/warehouse"
+export WAREHOUSE_INGEST_IMAGE="$image"
+exec docker compose --project-name omen-football-warehouse --profile ingest \
+  run --rm --no-deps ingest ingest --season "$season"
