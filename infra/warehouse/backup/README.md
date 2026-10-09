@@ -80,7 +80,9 @@ transfer channel and its timers. The repository contains:
 - `export-restore-file.sh` is the omen-prod forced command. Running as the
   existing backup-only user, it accepts either `latest` or `manifest|dump`, one
   lowercase 64-hex snapshot ID, and one warehouse run ID. `latest` returns only
-  the exact newest warehouse snapshot/run identities. File reads verify the
+  the exact newest warehouse snapshot/run identities by comparing all bounded
+  tagged snapshot timestamps; Restic's path-grouped `--latest` behavior is not
+  used because every backup run has a distinct path. File reads verify the
   warehouse tag and use only a fixed manifest or dump path from Restic. The
   endpoint reads the non-secret `sftp:` repository locator from
   `/etc/omen-warehouse/restic-repository`; it never receives the commissioned

@@ -40,13 +40,26 @@ if [[ "$request" == "latest" ]]; then
   snapshots="$(mktemp)"
   trap 'rm -f -- "$snapshots"' EXIT
   HOME="$BACKUP_HOME" RESTIC_REPOSITORY="$repository" RESTIC_PASSWORD_FILE="$RESTIC_PASSWORD_FILE" \
-    restic snapshots --json --no-cache --latest 1 --tag omen-football-warehouse > "$snapshots"
+    restic snapshots --json --no-cache --tag omen-football-warehouse > "$snapshots"
   snapshot_id="$(python3 - "$snapshots" <<'PY'
-import json, re, sys
+import datetime, json, re, sys
 items = json.load(open(sys.argv[1], encoding="utf-8"))
-if len(items) != 1:
-    raise SystemExit("warehouse restore export refused: exactly one latest snapshot is required")
-snapshot = items[0]
+if not isinstance(items, list) or not 1 <= len(items) <= 10000:
+    raise SystemExit("warehouse restore export refused: bounded snapshots are required")
+times = [item.get("time", "") for item in items if isinstance(item, dict)]
+if len(times) != len(items) or any(not isinstance(value, str) or not value for value in times):
+    raise SystemExit("warehouse restore export refused: snapshot time is invalid")
+try:
+    instants = [datetime.datetime.fromisoformat(value.replace("Z", "+00:00")) for value in times]
+except ValueError:
+    raise SystemExit("warehouse restore export refused: snapshot time is invalid")
+if any(value.tzinfo is None or value.utcoffset() is None for value in instants):
+    raise SystemExit("warehouse restore export refused: snapshot time lacks a timezone")
+latest_instant = max(instants)
+latest = [item for item, instant in zip(items, instants) if instant == latest_instant]
+if len(latest) != 1:
+    raise SystemExit("warehouse restore export refused: latest snapshot is ambiguous")
+snapshot = latest[0]
 identity = snapshot.get("id", "")
 paths = snapshot.get("paths", [])
 if not isinstance(identity, str) or len(identity) != 64 or any(c not in "0123456789abcdef" for c in identity):
