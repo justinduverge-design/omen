@@ -1,5 +1,5 @@
 [Unit]
-Description=Discord alert for failed Omen warehouse unit %i
+Description=Report failed Omen warehouse unit %i to Uptime Kuma (down)
 
 [Service]
 Type=oneshot

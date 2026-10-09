@@ -16,7 +16,11 @@ sudo systemctl enable --now omen-warehouse-ingest.timer
 - **What runs:** the selected release's digest-pinned worker (`/opt/omen/warehouse/current/RELEASE-CONTRACT`),
   `ingest --season YYYY`, through the release's Compose file with `--no-deps`. Unchanged sources are skipped.
 - **When:** 11:15 UTC daily (07:15 ET), after nflverse's nightly publish. Persistent across reboots.
-- **Failure:** `OnFailure` posts a payload-free notice to the Slops Discord channel
-  (`/etc/slops-alerting/discord-webhook-url`); then read `journalctl -u omen-warehouse-ingest -n 80`.
+- **Alerting (Uptime Kuma on the Pi, monitor "Omen warehouse daily ingest", push type, 26 h window):**
+  a successful run pushes `up`; a failed run pushes `down` through `OnFailure`; no push for 26 h means
+  the job did not run. Kuma alerts through its Discord notification. The push URL is the root-only file
+  `/etc/omen-warehouse/kuma-push-url` (0600), written by the founder; it is never printed.
+  (KVM1 has no Discord webhook; the webhook lives only on the Pi.) Then read
+  `journalctl -u omen-warehouse-ingest -n 80`.
 - **Run now:** `sudo systemctl start omen-warehouse-ingest`. **Stop:** `sudo systemctl disable --now omen-warehouse-ingest.timer`.
 - Supabase keeps serving the app whatever this job does (`FOOTBALL_DATA_MODE=shadow`).
