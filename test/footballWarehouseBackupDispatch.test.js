@@ -45,7 +45,12 @@ test("restore transfer is forced-command-only, path-fixed, host-key-pinned, and 
   assert.match(exporter, /REPOSITORY_FILE="\/etc\/omen-warehouse\/restic-repository"/);
   assert.doesNotMatch(exporter, /COMMISSIONED_BACKUP/);
   assert.match(exporter, /request" == "latest"/);
-  assert.match(exporter, /--latest 1 --tag omen-football-warehouse/);
+  assert.match(exporter, /snapshots --json --no-cache --tag omen-football-warehouse/);
+  assert.doesNotMatch(exporter, /--latest 1/);
+  assert.match(exporter, /datetime\.datetime\.fromisoformat/);
+  assert.match(exporter, /value\.tzinfo is None or value\.utcoffset\(\) is None/);
+  assert.match(exporter, /latest_instant = max\(instants\)/);
+  assert.match(exporter, /latest snapshot is ambiguous/);
   assert.match(exporter, /\^\(manifest\|dump\).*\[0-9a-f\]\{64\}.*warehouse-/);
   assert.match(exporter, /restic snapshots --json --no-cache --tag omen-football-warehouse/);
   assert.match(exporter, /restic dump --no-cache "\$snapshot_id" "\$SNAPSHOT_ROOT\/\$run_id\/\$filename"/);
