@@ -17,7 +17,11 @@ push_status() {
   local status="$1" message="$2" url config
   [[ -f "$KUMA_URL_FILE" && ! -L "$KUMA_URL_FILE" && "$(stat -c '%a:%U:%G' "$KUMA_URL_FILE")" == "600:root:root" ]] || return 0
   url="$(<"$KUMA_URL_FILE")"
-  [[ "$url" == https://* && "$url" != *$'\n'* && "$url" != *'"'* ]] || return 0
+  [[ "$url" != *$'\n'* && "$url" != *'"'* ]] || return 0
+  case "$url" in
+    http://100.98.81.0:3001/api/push/*|https://*/api/push/*) ;;
+    *) return 0 ;;
+  esac
   config="url = \"${url}&status=${status}&msg=${message}&ping=\""
   printf '%s\n' "$config" | curl --config - --fail --silent --show-error --max-time 20 >/dev/null 2>&1 || true
 }
