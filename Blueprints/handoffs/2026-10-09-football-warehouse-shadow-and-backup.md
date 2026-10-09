@@ -45,13 +45,27 @@ The first attempt failed closed because the backup-only account could not traver
 
 The selected release's read-only status export reports `UP`: database running and healthy, restart policy correct, no host PostgreSQL listener, schema verified, no started receipts, latest receipt succeeded and fresh, all required fact tables populated, and zero orphan facts.
 
-The isolated KVM2 restore proof remains blocked, not failed:
+Beszel is now directly inspected and sees both warehouse hosts:
 
-1. KVM2 has no Restic client.
-2. KVM2 does not have the pinned PostgreSQL 17 restore image.
-3. No reviewed forced-command dispatcher places one decrypted snapshot into a root-owned KVM2 restore source without copying the Restic password or widening the SFTP-only account.
+- `Omen Production — KVM1`: `up`; about 9.7% memory and 15.9% disk at the witness; `omen_api` healthy; `omen_football_warehouse` healthy and identified by the pinned PostgreSQL image.
+- `Private AI — KVM2`: `up`; about 7.7% memory and 20.9% disk at the witness.
+- Beszel contains no alert records for omen-prod or any other system. This proves telemetry visibility, not notification delivery.
 
-Do not copy the Restic password, loosen the SFTP account, accept a host key interactively, or pull an unpinned image to bypass these gates.
+### Isolated KVM2 restore — completed 2026-10-09
+
+The first encrypted snapshot was restored and independently verified on KVM2 without copying the Restic password, widening the SFTP account, or pulling an image:
+
+- exact PostgreSQL image content ID `sha256:91eb910c44c7ed13f7f1a4ccadaa9ca72ef14cddc04cacb6e070e48eb44731a3` transferred by Docker save/load from omen-prod;
+- manifest and dump streamed from Restic on omen-prod over the existing Tailscale SSH paths into a `0700 root:root` KVM2 source directory;
+- manifest and dump were `0400 root:root`; checksum verification passed before restore;
+- disposable PostgreSQL ran with `--network none`, no published port, read-only root filesystem, bounded CPU/memory/PIDs, fresh volume, and the exact image ID;
+- restored schema version 2, 7 succeeded/0 started receipts, all seven table counts, zero representative receipt-chain violations, and dump SHA-256 all matched the manifest;
+- retained proof: `/var/lib/omen/warehouse-restore-proofs/warehouse-20261009T045409Z.restore-proof.json`, `0400 root:root`;
+- proof state: `restored_verified`, verifier run `restore-20261009T130040Z`;
+- disposable container and volume removed automatically after success; decrypted restore source removed after independent proof verification;
+- encrypted Restic snapshot retained.
+
+The first restore attempt exposed and preserved two fail-closed defects before proof: Docker save/load retains the exact image content ID but not the registry `RepoDigest` reference, and the evidence SQL missed one closing parenthesis. Commits `3553fa61` and `cdfd3d1f` correct those boundaries and add regression assertions. The failed disposable container/volume were inspected and then removed before the unchanged source was retried.
 
 ## Verification
 
@@ -61,6 +75,9 @@ Do not copy the Restic password, loosen the SFTP account, accept a host key inte
 - production read-only warehouse verifier: passed
 - local manifest/dump checksum verifier: passed
 - Restic snapshot identity/path/tag query: exactly one match
+- isolated KVM2 restore proof: `restored_verified`
+- post-restore disposable containers/volumes: zero
+- full repository suite after restore corrections: 2,057/2,057 passed
 - `git diff --check`: passed before checkpoint
 - kickoff drift: passed
 - Valor Brain: 5/5 passed
@@ -70,10 +87,10 @@ Do not copy the Restic password, loosen the SFTP account, accept a host key inte
 ## Next batch, in order
 
 1. Produce one authenticated real Start/Sit shadow comparison and prove parity or record the exact bounded delta.
-2. Commission the narrow KVM2 restore dispatcher, stage the digest-pinned PostgreSQL 17 image, and complete an isolated restore proof.
-3. Route the read-only status export through Kuma/Beszel/GlitchTip and exercise one controlled DOWN-to-UP transition.
-4. Start the chronological backfill at 1999 only after recovery proof.
-5. Promote warehouse-primary only when comparison, recovery, and monitoring proofs pass; keep Supabase as rollback.
+2. Turn the proven manual no-secret-copy restore path into a narrow scheduled dispatcher and retain a recurring restore proof.
+3. Add a warehouse-specific alert to the already-proven Beszel telemetry path and exercise one controlled DOWN-to-UP transition.
+4. Start the chronological backfill at 1999; the one-time current-season recovery gate now passes.
+5. Promote warehouse-primary only when comparison and monitoring proofs pass; keep Supabase as rollback.
 6. Rehearse and separately approve Supabase Step 14 retirement only after warehouse-primary operation is proven.
 
 No protected decision-engine file changed.
