@@ -83,11 +83,20 @@ function verifyDump(manifest, manifestPath) {
 }
 
 function main(argv) {
-  if (argv.length !== 2 || argv[0] !== "verify") fail("usage", "usage: manifest.js verify /absolute/path/manifest.json");
+  if (!((argv.length === 2 && argv[0] === "verify") || (argv.length === 3 && argv[0] === "verify-restore"))) {
+    fail("usage", "usage: manifest.js verify /absolute/path/manifest.json | verify-restore /absolute/path/manifest.json /absolute/path/proof.json");
+  }
   const manifestPath = argv[1];
   if (!path.isAbsolute(manifestPath)) fail("usage", "manifest path must be absolute");
   const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-  process.stdout.write(`${JSON.stringify(verifyDump(manifest, manifestPath))}\n`);
+  if (argv[0] === "verify") {
+    process.stdout.write(`${JSON.stringify(verifyDump(manifest, manifestPath))}\n`);
+    return;
+  }
+  const proofPath = argv[2];
+  if (!path.isAbsolute(proofPath)) fail("usage", "proof path must be absolute");
+  const proof = JSON.parse(fs.readFileSync(proofPath, "utf8"));
+  process.stdout.write(`${JSON.stringify(verifyRestoreEvidence(manifest, proof))}\n`);
 }
 
 if (require.main === module) {

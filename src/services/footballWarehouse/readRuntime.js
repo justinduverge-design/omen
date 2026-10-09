@@ -153,6 +153,36 @@ function createWarehouseReadRuntime({ env = process.env, Pool, fileSystem } = {}
   });
 }
 
+/**
+ * Shadow mode must never make the Supabase-authoritative route unavailable just
+ * because the optional warehouse reader could not be initialized. Warehouse
+ * mode remains fail-closed: a bad credential, target, or pool configuration is
+ * a startup error rather than an implicit fallback.
+ */
+function createFailSafeWarehouseReadRuntime({
+  env = process.env,
+  Pool,
+  fileSystem,
+  onShadowUnavailable = () => {},
+} = {}) {
+  if (typeof onShadowUnavailable !== "function") {
+    throw new TypeError("onShadowUnavailable must be a function");
+  }
+  const mode = footballDataMode(env);
+  try {
+    return createWarehouseReadRuntime({ env, Pool, fileSystem });
+  } catch (error) {
+    if (mode !== "shadow") throw error;
+    try {
+      onShadowUnavailable(Object.freeze({
+        event: "football_warehouse_read_startup",
+        outcome: "unavailable",
+      }));
+    } catch {}
+    return Object.freeze({ mode, enabled: false, repository: null, close: async () => {} });
+  }
+}
+
 module.exports = {
   LIMITS,
   MODES,
@@ -162,4 +192,5 @@ module.exports = {
   createWarehouseReadPool,
   createVerifiedReadQuery,
   createWarehouseReadRuntime,
+  createFailSafeWarehouseReadRuntime,
 };

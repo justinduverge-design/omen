@@ -1,0 +1,67 @@
+#!/bin/sh
+set -eu
+
+container=omen_football_warehouse
+temporary="$(mktemp -d)"
+cleanup() { rm -rf "$temporary"; }
+failure() {
+  cleanup
+  printf '%s\n' '{"contract_version":"omen-football-warehouse-lifecycle-evidence.v1","checker_completed":false}'
+  exit 1
+}
+trap failure HUP INT TERM
+trap cleanup EXIT
+
+docker inspect --format '{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}|{{.HostConfig.RestartPolicy.Name}}' \
+  "$container" > "$temporary/container"
+
+ss -ltnH 'sport = :5432' > "$temporary/listeners"
+
+docker exec --interactive -e PGOPTIONS='-c default_transaction_read_only=on' "$container" \
+  psql -U postgres -d omen_football -Atq > "$temporary/database" <<'SQL'
+select json_build_object(
+  'schema_verified', (select count(*) = 2 from football.warehouse_schema_migrations where
+    (version = 1 and name = '0001_football_warehouse' and checksum = '27fb1e8dd4a5167ffc27660f165f326e7c9a6e3b4aaf2e04ec16ec4e55448f1c')
+    or (version = 2 and name = '0003_warehouse_access_policy' and checksum = '0b0577edd8995fad967409a37012390d77447cf55595fd4a310270b56f7a169d')),
+  'receipts', json_build_object(
+    'started', count(*) filter (where state = 'started'),
+    'latest_state', (array_agg(state order by started_at desc, id desc))[1],
+    'latest_finished_at', (array_agg(finished_at order by started_at desc, id desc))[1]
+  ),
+  'rows', json_build_object(
+    'football_teams', (select count(*) from football.football_teams),
+    'football_players', (select count(*) from football.football_players),
+    'nfl_games', (select count(*) from football.nfl_games),
+    'nfl_player_weekly_stats', (select count(*) from football.nfl_player_weekly_stats),
+    'nfl_team_weekly_stats', (select count(*) from football.nfl_team_weekly_stats),
+    'nfl_weekly_rosters', (select count(*) from football.nfl_weekly_rosters),
+    'nfl_plays', (select count(*) from football.nfl_plays)
+  ),
+  'orphan_facts',
+    (select count(*) from football.nfl_player_weekly_stats f left join football.warehouse_ingest_events e on e.id=f.ingest_event_id where e.id is null or e.state <> 'succeeded')
+    + (select count(*) from football.nfl_team_weekly_stats f left join football.warehouse_ingest_events e on e.id=f.ingest_event_id where e.id is null or e.state <> 'succeeded')
+    + (select count(*) from football.nfl_weekly_rosters f left join football.warehouse_ingest_events e on e.id=f.ingest_event_id where e.id is null or e.state <> 'succeeded')
+    + (select count(*) from football.nfl_plays f left join football.warehouse_ingest_events e on e.id=f.ingest_event_id where e.id is null or e.state <> 'succeeded')
+) from football.warehouse_ingest_events;
+SQL
+
+python3 - "$temporary" <<'PY'
+import datetime
+import json
+import pathlib
+import sys
+
+root = pathlib.Path(sys.argv[1])
+state, health, restart_policy = root.joinpath("container").read_text().strip().split("|")
+database = json.loads(root.joinpath("database").read_text())
+listeners = len([line for line in root.joinpath("listeners").read_text().splitlines() if line])
+payload = {
+    "contract_version": "omen-football-warehouse-lifecycle-evidence.v1",
+    "checker_completed": True,
+    "observed_at": datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z"),
+    "database": {"state": state, "health": health, "restart_policy": restart_policy},
+    "host_postgres_listeners": listeners,
+    **database,
+}
+print(json.dumps(payload, separators=(",", ":"), sort_keys=True))
+PY

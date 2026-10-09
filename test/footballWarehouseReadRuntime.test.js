@@ -6,6 +6,7 @@ const {
   footballDataMode,
   parseWarehouseReadConfig,
   createWarehouseReadRuntime,
+  createFailSafeWarehouseReadRuntime,
 } = require("../src/services/footballWarehouse/readRuntime");
 
 const secret = "postgresql://omen_warehouse_read:do-not-print@warehouse:5432/omen_football";
@@ -36,6 +37,31 @@ test("Supabase mode never reads warehouse credentials or creates a pool", async 
   await runtime.close();
   assert.equal(fileReads, 0);
   assert.equal(pools, 0);
+});
+
+test("shadow startup failure leaves Supabase authoritative and emits aggregate-only availability", async () => {
+  const events = [];
+  const runtime = createFailSafeWarehouseReadRuntime({
+    env: { FOOTBALL_DATA_MODE: "shadow" },
+    Pool: class Pool {},
+    onShadowUnavailable: (event) => events.push(event),
+  });
+  assert.deepEqual({ mode: runtime.mode, enabled: runtime.enabled, repository: runtime.repository }, {
+    mode: "shadow", enabled: false, repository: null,
+  });
+  assert.deepEqual(events, [{
+    event: "football_warehouse_read_startup",
+    outcome: "unavailable",
+  }]);
+  assert.doesNotMatch(JSON.stringify(events), /credential|password|secret|database_url/i);
+  await runtime.close();
+});
+
+test("warehouse startup failure remains fail-closed", () => {
+  assert.throws(() => createFailSafeWarehouseReadRuntime({
+    env: { FOOTBALL_DATA_MODE: "warehouse" },
+    Pool: class Pool {},
+  }), /READ_DATABASE_URL_FILE/);
 });
 
 test("warehouse modes require a restricted dedicated read-role credential file", () => {

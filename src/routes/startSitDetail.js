@@ -36,7 +36,7 @@ const {
   buildStartSitDetail,
 } = require("../services/startSitDetail");
 const { getUsageBundle } = require("../services/playerUsage");
-const { createWarehouseReadRuntime } = require("../services/footballWarehouse/readRuntime");
+const { createFailSafeWarehouseReadRuntime } = require("../services/footballWarehouse/readRuntime");
 const { createUsageShadowRunner } = require("../services/footballWarehouse/usageShadow");
 const { getWarehouseUsageBundle } = require("../services/footballWarehouse/warehouseUsageBundle");
 const { getTeamSystemSummaries } = require("../services/footballIntelligence/teamSystemLines");
@@ -50,7 +50,10 @@ const router = express.Router();
 // The points breakdown is advisory; its extra reads never hold the route longer than this.
 const PROJECTION_BREAKDOWN_BUDGET_MS = 2500;
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
-const warehouseUsageRuntime = createWarehouseReadRuntime({ Pool });
+const warehouseUsageRuntime = createFailSafeWarehouseReadRuntime({
+  Pool,
+  onShadowUnavailable: (event) => logger.warn("Football warehouse reader unavailable", event),
+});
 const usageReader = createUsageShadowRunner({
   readLegacy: (input) => getUsageBundle(input),
   readWarehouse: (input) => getWarehouseUsageBundle({

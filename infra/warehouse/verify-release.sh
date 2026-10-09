@@ -10,8 +10,8 @@ release_dir="$(cd "$1" && pwd -P)"
 approved_manifest="$2"
 [[ "$approved_manifest" =~ ^[0-9a-f]{64}$ ]] || { echo "approved manifest is invalid" >&2; exit 1; }
 
-expected_files=(COMMIT MANIFEST-SHA256 RELEASE-CONTRACT SHA256SUMS Dockerfile.warehouse-ingest infra/warehouse/build-release.sh infra/warehouse/docker-compose.yml infra/warehouse/provision-credentials.sh infra/warehouse/provision-login-roles.sh infra/warehouse/verify-production-readonly.sh infra/warehouse/verify-release.sh warehouse/migrations/0001_football_warehouse.sql warehouse/migrations/0002_record_migration.sh warehouse/migrations/0003_warehouse_access_policy.sql warehouse/migrations/0004_apply_access_policy.sh warehouse/verify/production_readonly.sql)
-expected_dirs=(infra infra/warehouse warehouse warehouse/migrations warehouse/verify)
+expected_files=(COMMIT MANIFEST-SHA256 RELEASE-CONTRACT SHA256SUMS Dockerfile.warehouse-ingest infra/warehouse/build-release.sh infra/warehouse/docker-compose.yml infra/warehouse/provision-credentials.sh infra/warehouse/provision-login-roles.sh infra/warehouse/verify-production-readonly.sh infra/warehouse/verify-release.sh infra/warehouse/backup/README.md infra/warehouse/backup/create-snapshot.sh infra/warehouse/backup/manifest.js infra/warehouse/backup/restore-isolated.sh infra/warehouse/monitor/status-export infra/warehouse/monitor/status.js warehouse/migrations/0001_football_warehouse.sql warehouse/migrations/0002_record_migration.sh warehouse/migrations/0003_warehouse_access_policy.sql warehouse/migrations/0004_apply_access_policy.sh warehouse/verify/production_readonly.sql)
+expected_dirs=(infra infra/warehouse infra/warehouse/backup infra/warehouse/monitor warehouse warehouse/migrations warehouse/verify)
 actual_list="$(mktemp)"
 allowed_list="$(mktemp)"
 expected_contract="$(mktemp)"
@@ -27,7 +27,7 @@ for relative in "${expected_files[@]}"; do
   mode="$(stat -c '%a' "$file" 2>/dev/null || stat -f '%Lp' "$file")"
   case "$relative" in
     COMMIT|MANIFEST-SHA256|RELEASE-CONTRACT|SHA256SUMS) expected_mode=444 ;;
-    *.sh) expected_mode=755 ;;
+    *.sh|infra/warehouse/monitor/status-export|infra/warehouse/monitor/status.js) expected_mode=755 ;;
     *) expected_mode=644 ;;
   esac
   [[ "$mode" == "$expected_mode" ]] || { echo "release file mode is invalid" >&2; exit 1; }
