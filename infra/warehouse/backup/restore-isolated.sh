@@ -7,7 +7,10 @@ umask 077
 # dispatcher. This script does not receive, copy, or decrypt backup credentials.
 
 EXPECTED_HOST="model-host"
-IMAGE="postgres:17.11-bookworm@sha256:91eb910c44c7ed13f7f1a4ccadaa9ca72ef14cddc04cacb6e070e48eb44731a3"
+# docker save/load preserves this exact content-addressed image ID but does not
+# preserve the source registry's RepoDigest reference. Run only the verified
+# bytes, never a mutable local tag.
+IMAGE="sha256:91eb910c44c7ed13f7f1a4ccadaa9ca72ef14cddc04cacb6e070e48eb44731a3"
 [[ $# -eq 2 ]] || { echo "usage: restore-isolated.sh /absolute/manifest.json /absolute/restore-proof.json" >&2; exit 64; }
 manifest="$1"
 proof="$2"

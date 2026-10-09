@@ -25,8 +25,9 @@ test("warehouse backup reuses commissioned encrypted transport without exposing 
 test("KVM2 restore is pinned, networkless, isolated, and verifies restored evidence", () => {
   const script = fs.readFileSync(path.join(root, "restore-isolated.sh"), "utf8");
   assert.match(script, /EXPECTED_HOST="model-host"/);
-  assert.match(script, /postgres:17\.11-bookworm@sha256:[a-f0-9]{64}/);
+  assert.match(script, /IMAGE="sha256:[a-f0-9]{64}"/);
   assert.match(script, /docker image inspect "\$IMAGE"/);
+  assert.doesNotMatch(script, /IMAGE="postgres:17\.11-bookworm"/);
   assert.match(script, /--network none/);
   assert.match(script, /--no-owner --no-privileges/);
   assert.match(script, /verify-restore "\$manifest" "\$proof"/);
