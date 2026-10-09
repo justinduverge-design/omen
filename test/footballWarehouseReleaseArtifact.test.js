@@ -19,9 +19,18 @@ const files = [
   "infra/warehouse/provision-login-roles.sh",
   "infra/warehouse/verify-production-readonly.sh",
   "infra/warehouse/backup/README.md",
+  "infra/warehouse/backup/apply-retention.sh",
   "infra/warehouse/backup/create-snapshot.sh",
+  "infra/warehouse/backup/export-restore-file.sh",
   "infra/warehouse/backup/manifest.js",
+  "infra/warehouse/backup/omen-warehouse-backup.service",
+  "infra/warehouse/backup/omen-warehouse-backup.timer",
+  "infra/warehouse/backup/omen-warehouse-restore-proof.service",
+  "infra/warehouse/backup/omen-warehouse-restore-proof.timer",
+  "infra/warehouse/backup/receive-restore-source.sh",
   "infra/warehouse/backup/restore-isolated.sh",
+  "infra/warehouse/backup/run-nightly-backup.sh",
+  "infra/warehouse/backup/run-weekly-restore-proof.sh",
   "infra/warehouse/monitor/status-export",
   "infra/warehouse/monitor/status.js",
   "warehouse/migrations/0001_football_warehouse.sql",
@@ -152,5 +161,5 @@ test("release verifier is read-only and authenticates the complete artifact", ()
   assert.match(source, /hard-linked file/);
   assert.match(source, /file mode is invalid/);
   assert.doesNotMatch(source, /docker\s+(?:compose|run|exec|start)/);
-  assert.doesNotMatch(source, /systemctl|service\s|\bmv\s|\bcp\s/);
+  assert.doesNotMatch(source, /\bsystemctl\b|(?:^|\n)\s*service\s|\bmv\s|\bcp\s/m);
 });

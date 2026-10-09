@@ -157,4 +157,5 @@ PY
 )"
 rm -f -- "$restic_json"
 trap - EXIT
+rm -rf -- "$final"
 printf 'warehouse backup completed: run=%s snapshot=%s\n' "$run_id" "$snapshot_id"
