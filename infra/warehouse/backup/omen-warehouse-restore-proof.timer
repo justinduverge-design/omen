@@ -1,0 +1,10 @@
+[Unit]
+Description=Weekly Omen football warehouse isolated restore proof
+
+[Timer]
+OnCalendar=Sun *-*-* 14:00:00 UTC
+Persistent=true
+RandomizedDelaySec=20min
+
+[Install]
+WantedBy=timers.target
