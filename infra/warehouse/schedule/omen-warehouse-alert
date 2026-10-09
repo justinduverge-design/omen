@@ -1,0 +1,14 @@
+#!/bin/sh
+# Posts a payload-free failure notice for a warehouse unit to the existing Slops Discord alert channel
+# (installed to /usr/local/sbin on KVM1; called by omen-warehouse-alert@.service). The webhook URL is
+# read from its root-only file and never printed. No database detail or job output is sent.
+set -eu
+unit=${1:?unit name required}
+webhook_file=/etc/slops-alerting/discord-webhook-url
+[ -r "$webhook_file" ] || { echo "omen-warehouse-alert: no webhook file" >&2; exit 0; }
+case "$unit" in *[!A-Za-z0-9@._-]*) unit=unknown-unit ;; esac
+host=$(hostname -s)
+when=$(date -u +%Y-%m-%dT%H:%MZ)
+body=$(printf '{"content":"Omen football warehouse: %s failed on %s at %s. Supabase is still serving the app; nothing customer-facing changed. Check: journalctl -u %s -n 80"}' \
+  "$unit" "$host" "$when" "$unit")
+printf '%s' "$body" | curl -fsS --max-time 15 -H 'Content-Type: application/json' --data-binary @- "$(cat "$webhook_file")" >/dev/null

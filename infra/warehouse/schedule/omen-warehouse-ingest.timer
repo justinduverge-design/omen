@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily Omen football warehouse ingest (after nflverse's nightly publish)
+
+[Timer]
+# nflverse publishes nightly around 09:05 UTC; 11:15 UTC (07:15 ET) leaves margin and runs after the
+# 06:30 ET football-intelligence job. Persistent: a run missed while the host was down runs at boot.
+OnCalendar=*-*-* 11:15:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target
