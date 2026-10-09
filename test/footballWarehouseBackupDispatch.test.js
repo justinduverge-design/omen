@@ -31,6 +31,7 @@ test("KVM2 restore is pinned, networkless, isolated, and verifies restored evide
   assert.match(script, /--network none/);
   assert.match(script, /--no-owner --no-privileges/);
   assert.match(script, /verify-restore "\$manifest" "\$proof"/);
+  assert.match(script, /e\.state <> 'succeeded'\)\)\)\nfrom football\.warehouse_ingest_events/);
   assert.match(script, /preserved container\/volume for bounded diagnosis/);
   assert.doesNotMatch(script, /docker pull/);
   assert.doesNotMatch(script, /--publish|-p 5432/);

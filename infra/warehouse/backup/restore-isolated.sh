@@ -76,7 +76,7 @@ select json_build_object(
   'representative_queries_passed', (
     (select count(*) > 0 from football.nfl_games) and
     (select count(*) = 0 from football.nfl_player_weekly_stats s left join football.warehouse_ingest_events e on e.id=s.ingest_event_id where e.id is null or e.state <> 'succeeded') and
-    (select count(*) = 0 from football.nfl_plays p left join football.warehouse_ingest_events e on e.id=p.ingest_event_id where e.id is null or e.state <> 'succeeded'))
+    (select count(*) = 0 from football.nfl_plays p left join football.warehouse_ingest_events e on e.id=p.ingest_event_id where e.id is null or e.state <> 'succeeded')))
 from football.warehouse_ingest_events")"
 dump_sha="$(sha256sum "$dump" | awk '{print $1}')"
 python3 - "$manifest" "$proof" "$evidence" "$dump_sha" "$run_id" "$safe_id" <<'PY'
