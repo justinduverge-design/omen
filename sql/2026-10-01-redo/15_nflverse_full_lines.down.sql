@@ -1,4 +1,6 @@
--- REVIEW ONLY. Rollback for step 15. Lossless in substance: every row and column it adds is rebuilt by the
+-- RETIRED FOR PRODUCTION — DO NOT APPLY TO SUPABASE.
+-- Kept only as rollback evidence for the superseded Supabase Step 15 design.
+-- Rollback for step 15. Lossless in substance: every row and column it adds is rebuilt by the
 -- daily nflverse job from public nflverse files. Step 14's typed columns and rows stay. The data_events
 -- ingest records stay (append-only, step 06).
 begin;

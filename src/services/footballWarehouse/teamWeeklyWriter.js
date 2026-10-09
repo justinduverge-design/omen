@@ -1,0 +1,15 @@
+"use strict";
+const { createSeasonFactWriter } = require("./seasonFactWriter"); const { sourceUrlForSeason } = require("./teamWeeklySource");
+const team=/^omen:team:[a-z0-9]+$/; const str=(v,n,p)=>{if(typeof v!=="string"||!p.test(v))throw new TypeError(`${n} is invalid`);return v;}; const num=(v,n)=>{if(v==null)return null;if(typeof v!=="number"||!Number.isFinite(v))throw new TypeError(`${n} is invalid`);return v;};
+function validate(row,i,season){if(!row||row.season!==season)throw new TypeError(`rows[${i}].season is invalid`);const pf=num(row.pointsFor,`rows[${i}].pointsFor`),pa=num(row.pointsAgainst,`rows[${i}].pointsAgainst`);if((pf!=null&&(!Number.isInteger(pf)||pf<0||pf>255))||(pa!=null&&(!Number.isInteger(pa)||pa<0||pa>255)))throw new TypeError(`rows[${i}] scores are invalid`);return{season,week:row.week,season_type:str(row.seasonType,"seasonType",/^(REG|POST)$/),team_id:str(row.teamId,"teamId",team),opponent_team_id:str(row.opponentTeamId,"opponentTeamId",team),game_id:str(row.gameId,"gameId",/^.{1,64}$/),points_for:pf,points_against:pa,stats:row.stats,source_row:row.sourceRow};}
+function createTeamWeeklyWriter(options={}){return createSeasonFactWriter({...options,dataset:"team_weekly_stats",table:"nfl_team_weekly_stats",sourceUrlForSeason,validateRow:validate,columns:["season","week","season_type","team_id","opponent_team_id","game_id","points_for","points_against","stats","source_row"],stageTypes:"season integer,week integer,season_type text,team_id text,opponent_team_id text,game_id text,points_for smallint,points_against smallint,stats jsonb,source_row jsonb",stageValidationSql:`SELECT count(*)::integer AS invalid_count
+FROM stage_nfl_team_weekly_stats s
+LEFT JOIN football.nfl_games g ON g.season=s.season AND g.game_id=s.game_id
+WHERE s.season<>$1 OR g.game_id IS NULL OR g.week<>s.week
+   OR (s.season_type='REG' AND g.game_type<>'REG')
+   OR (s.season_type='POST' AND g.game_type NOT IN ('WC','DIV','CON','SB'))
+   OR NOT ((g.away_team_id=s.team_id AND g.home_team_id=s.opponent_team_id
+            AND g.away_score IS NOT DISTINCT FROM s.points_for AND g.home_score IS NOT DISTINCT FROM s.points_against)
+        OR (g.home_team_id=s.team_id AND g.away_team_id=s.opponent_team_id
+            AND g.home_score IS NOT DISTINCT FROM s.points_for AND g.away_score IS NOT DISTINCT FROM s.points_against))`});}
+module.exports={createTeamWeeklyWriter};

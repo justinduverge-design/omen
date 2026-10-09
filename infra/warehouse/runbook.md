@@ -1,129 +1,110 @@
-# Omen Football Warehouse - Production Runbook
+# Omen football warehouse deployment runbook
 
-This runbook documents the bounded execution order for deploying the standalone Postgres 17 Football Warehouse on KVM1, migrating football data off the main Supabase instance.
+**Status:** local foundation only; production execution requires a separate approved change window.
+**Boundary:** rebuildable nflverse football facts only. No user, league, credential, Ledger, or saved-trade data.
 
-**Important Context:** The warehouse holds ONLY CC BY 4.0 nflverse data (1999-2026). It NEVER holds user data. It is completely rebuildable.
+## Stop conditions
 
-## Pre-flight Checks (Read-only)
+Stop without changing the host when any preflight, migration, data, resource, backup, restore, or
+observability check differs from its recorded expectation. Do not delete a volume or credential as a
+rollback. Do not switch reads, stop the Supabase Step-14 writer, or drop Step 14 in this procedure.
 
-Run these checks on KVM1 before starting deployment. Expect failure if thresholds are not met.
+## Read-only preflight
 
-1. **KVM1 Disk Space:**
-   ```bash
-   df -h /
-   ```
-   *Expectation:* ~83 GB free.
+Record, without printing secrets:
 
-2. **KVM1 RAM:**
-   ```bash
-   free -m
-   ```
-   *Expectation:* ~7 GB (7000 MB) free.
-   *(Note: KVM1 is single-node, so no hard `deploy.resources` limit is set in docker-compose.yml for the 2-4GB DB).*
+- current omen-prod/KVM2 identity, Tailscale reachability, disk, memory, load, Docker version and networks;
+- current API/cron containers and the 04:45/05:00/06:00/06:30 ET job ordering;
+- KVM2 Restic repository health and the existing user-plane backup window;
+- Command Center Kuma, Beszel and GlitchTip reachability;
+- Steward/Sentinel forced-command status channels and pinned SSH host keys;
+- absence of a public PostgreSQL listener on omen-prod.
 
-3. **KVM2 Disk Space:**
-   ```bash
-   ssh omen-backup@100.77.202.56 df -h /
-   ```
-   *Expectation:* ~77 GB free.
+Historical IPs and capacity estimates in repository documents are hints, not executable values.
+Resolve and verify live targets immediately before an approved deployment.
 
-4. **Tailscale Reachability (KVM1 -> KVM2):**
-   ```bash
-   ping -c 3 100.77.202.56
-   ```
-   *Expectation:* 0% packet loss.
+## Local schema rehearsal
 
-## Deployment Steps
-
-0. **Local Scratch Rehearsal (MUST RUN ON KVM1 BEFORE PERSISTENT VOLUME):**
-   Before touching the API or setting up persistent states, verify Docker and the script execution on KVM1:
-   ```bash
-   cd infra/warehouse
-   echo "POSTGRES_PASSWORD=test" > .env
-   chmod 600 .env
-   docker compose up -d
-   sleep 10
-   ./backfill.sh true
-   docker exec -i omen_football_warehouse psql -U postgres -d postgres -c "SELECT COUNT(*) FROM teams;"
-   docker compose down -v
-   rm .env
-   ```
-   *Check:* Verify successful startup, DDL parsing, backfill script execution, and correct row counts returned.
-
-1. **Clone/Pull Latest Code:**
-   Ensure `infra/warehouse/` is up to date on KVM1.
-
-2. **Provision Credentials:**
-   ```bash
-   cd infra/warehouse
-   ./provision-credentials.sh
-   ```
-   *Check:* Verify `.env` exists with `600` permissions and contains `POSTGRES_PASSWORD`.
-
-3. **Bring Up the Warehouse:**
-   ```bash
-   docker compose up -d
-   ```
-   *Check:* `docker ps` shows `omen_football_warehouse` running and healthy.
-
-4. **Execute Backfill:**
-   ```bash
-   ./backfill.sh
-   ```
-   *Check:* Script completes without errors. (Note: this will take time).
-
-## Verification Queries
-
-Run these against the running container to ensure data is present and valid.
+Run the disposable PostgreSQL 17 proof from the repository root:
 
 ```bash
-docker exec -i omen_football_warehouse psql -U postgres -d postgres <<QUERYEOF
-\x
--- 1. Check table sizes
-SELECT relname as table_name, n_live_tup as rows
-FROM pg_stat_user_tables
-ORDER BY n_live_tup DESC;
-
--- 2. Verify recent data exists (e.g., 2023 season)
-SELECT COUNT(*) FROM games WHERE season = 2023;
-
--- 3. Check specific team exists
-SELECT * FROM teams WHERE team_abbr = 'KC';
-QUERYEOF
+warehouse/test/run-schema-test.sh
+node --test test/warehouseInfrastructureSafety.test.js test/footballWarehouseUsageRepository.test.js
 ```
 
-## Rollback Procedure
+The schema proof must print `VERIFIED football warehouse schema`. It creates an ephemeral local
+cluster when the required PostgreSQL tools are installed and removes only that test directory.
 
-If the verification fails or an issue is detected *before* cutover, the fallback is to remain on the Supabase Step-14 cache.
+## Credential and container creation
 
-1. **Tear down the container and volume:**
-   ```bash
-   cd infra/warehouse
-   docker compose down -v
-   ```
-   *(This destroys the container and the `warehouse_data` volume).*
+During the approved omen-prod change window:
 
-2. **Remove the provisioned credentials:**
-   ```bash
-   rm .env
-   ```
-   *(Also remove the appended `WAREHOUSE_DB_URL` from the main API `.env` if it was added).*
+1. Run `sudo infra/warehouse/provision-credentials.sh`. It creates the bootstrap secret at the
+   Compose-declared machine-local path with `root:root` ownership and `0600` permissions. Never open,
+   print, copy into chat, or append it to an environment file.
+2. Confirm the external `omen_network` already exists. The Compose project creates a separate
+   `internal: true` warehouse network and must not publish a host port.
+3. Start PostgreSQL without attaching the API or cron writer.
+4. Verify the health check and actual runtime controls. Inspect Docker `HostConfig.Memory` (2 GiB),
+   NanoCPUs/CPU quota, PID limit, log rotation, network attachments, mounts and secrets. A Compose file
+   declaration alone is not proof; cgroup or Docker inspection must show enforcement.
+5. Verify host and public-tailnet listeners again. Port 5432 must have no published or host port.
+6. Reconcile the LOGIN roles with `sudo infra/warehouse/provision-login-roles.sh`. The script writes
+   credential files only at the fixed host path and runs administrative SQL through the fixed private
+   container. It does not require a host PostgreSQL client or a published port, and never carries a
+   password in Docker argv or environment variables.
+7. Verify the migration checksum ledger, catalog, partitions, typed columns, and capability-role grants
+   with `sudo infra/warehouse/verify-production-readonly.sh`. This production verifier runs in an
+   explicit read-only transaction. Do **not** run `warehouse/test/verify_schema.sql` on production; that
+   file intentionally inserts disposable fixture rows for local schema rehearsal.
 
-## Cutover Sequence
+## Bounded data proof
 
-Once verified, the switch is made at the application level.
+The current `backfill.sh` is retained upstream preparation and is **not authorized for execution**.
+It must be replaced by the transactional warehouse writer before data is loaded. The writer must:
 
-1. **Update API Configuration:**
-   Ensure `WAREHOUSE_DB_URL` is exported in the API's environment (`.env`).
+- use verified per-season nflverse release assets;
+- hash exact raw bytes and create `sha256:<64 lowercase hex>` receipts;
+- validate required columns before writes;
+- stage and commit one dataset/season atomically;
+- skip unmatched players without guessing and enforce a recorded threshold;
+- support safe rerun and receipt-based resume;
+- retain the complete admitted play row plus typed access fields.
 
-2. **Switch the Daily Job (5 AM ET):**
-   Update the cron job/API route that syncs football data to write to the Warehouse connection instead of Supabase.
+First load the current season for the Tuesday shadow proof. Verify counts, uniqueness, receipts, one known player-week,
+one game, one team-week, one roster membership and one full play row before historical backfill.
 
-3. **Switch API Reads:**
-   Deploy the API update that routes all football-data reads (`/api/optimizer/*`, etc.) to the `WAREHOUSE_DB_URL`.
+## Backup and restore gate
 
-4. **Verify Live Application:**
-   Check the Beta UI to ensure football data loads correctly.
+The current `backup/backup.sh` and `pi-watchdog/watchdog.sh` are **not authorized for execution**.
+They must be replaced with the established encrypted Restic/SFTP, pinned-host-key, forced-command
+status-export and dispatcher patterns. A passing gate requires:
 
-5. **Decommission Supabase Cache:**
-   *ONLY AFTER successful cutover.* Drop the Step-14 football cache tables from Supabase.
+- a warehouse-tagged encrypted snapshot on KVM2;
+- a manifest with PostgreSQL/migration versions, receipt high-water marks, counts, bytes and SHA-256;
+- an isolated networkless PostgreSQL 17 restore on KVM2;
+- schema, count, receipt-chain and representative-query verification;
+- an independent Steward freshness result and Command Center alert/recovery exercise.
+
+## Safe rollback
+
+Before read cutover, rollback means stop new warehouse work, preserve the container volume and evidence,
+and keep the API and daily job on their current Supabase/CSV path. `docker compose stop postgres` is
+recoverable; volume deletion is not a normal rollback. Any later destructive cleanup requires its own
+explicit target resolution, backup proof and approval.
+
+After read cutover, return `FOOTBALL_DATA_MODE` to the previously proven mode, redeploy the API, verify
+Start/Sit output and preserve the warehouse for diagnosis. Step 14 remains intact throughout the
+observation window.
+
+## Promotion sequence
+
+1. Local schema and repository proof.
+2. Approved omen-prod container creation with runtime-limit and no-public-port proof.
+3. One current-season transactional ingest and real shadow-read proof while Supabase continues serving Tuesday.
+4. Encrypted KVM2 backup and isolated restore proof.
+5. Independent Kuma, Beszel, GlitchTip, Steward and Sentinel evidence.
+6. Founder-approved warehouse-primary mode change immediately after all required proofs pass; Supabase remains rollback.
+7. Historical 1999–2026 backfill in chronological order, beginning with 1999 after the current-season proof.
+8. Retention proposal based on measured KVM2 usable capacity and measured compressed backup size, never a guessed fixed count.
+9. Separate rehearsal and approval before any Supabase Step-14 retirement.

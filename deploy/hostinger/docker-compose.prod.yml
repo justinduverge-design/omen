@@ -16,6 +16,16 @@ services:
     environment:
       NODE_ENV: production
       PORT: "3000"
+      FOOTBALL_DATA_MODE: ${FOOTBALL_DATA_MODE:-supabase}
+      FOOTBALL_WAREHOUSE_READ_DATABASE_URL_FILE: /run/secrets/warehouse_reader_url
+      FOOTBALL_WAREHOUSE_READ_EXPECTED_DATABASE: omen_football
+      FOOTBALL_WAREHOUSE_READ_SSL_MODE: disable
+    secrets:
+      - source: warehouse_reader_url
+        target: warehouse_reader_url
+    networks:
+      - default
+      - warehouse_net
     ports:
       # Localhost only. Nginx is the public HTTPS front door.
       - "127.0.0.1:3000:3000"
@@ -74,3 +84,10 @@ services:
 networks:
   default:
     name: omen_network
+  warehouse_net:
+    name: omen_warehouse_net
+    external: true
+
+secrets:
+  warehouse_reader_url:
+    file: /var/lib/omen/secrets/warehouse-reader-url

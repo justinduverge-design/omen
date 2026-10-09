@@ -4481,3 +4481,37 @@ on the second one.
 - **Insufficient history** adds no usage row (the sentence is a non-statement, so it is omitted).
 - **Contract:** additive only (extra `evidence[]` rows and possibly different `why_statements` text);
   `contracts.js check` passes, no lock change. Three v2 fixtures re-recorded.
+## 2026-10-05 — Warehouse schedule corrections fail closed around dependent facts
+
+- The warehouse admits only the exact nflverse `schedules/games.csv` URL and retains its
+  exact-byte hash and complete logical row count in every teams and schedules receipt.
+- A season is not admitted with fewer than 240 non-preseason games or fewer than 28
+  participating canonical teams; the global source must cover all 32 current canonical
+  franchises.
+- Once player-week facts, team-week facts, weekly rosters, or plays exist for a season,
+  the standalone schedule writer refuses a correction. Correction requires a later
+  coordinated dependent-facts reload; it never silently cascades or leaves mixed facts.
+- A failed run ID remains bound to its first exact source hash. Failure-record upserts
+  cannot rewrite that provenance after a mismatched retry.
+## 2026-10-05 — Current-season warehouse ingestion is fail-stop and resumable
+
+- The current-season runner validates all three exact source assets before it begins
+  database writes, then writes teams, schedules, players, and player-week facts in that
+  dependency order.
+- Each writer retains its own transaction. The runner does not claim global atomicity;
+  an interrupted run resumes through deterministic source-bound run IDs and unchanged
+  receipt detection.
+- All writer transactions use bounded transaction-local PostgreSQL statement and lock
+  timeouts. Source acquisition has a separate caller-visible deadline and cancellation
+  checks continue between independently committed stages.
+- Once dependent facts exist, a schedule refresh may update nonstructural public context
+  in place. Changes to game identity, week, type, or participants require a separately
+  coordinated dependent-facts reload and fail closed in the standalone runner.
+2026-10-05 — Football warehouse runtime composition remains disconnected from production. Warehouse credentials come only from a restricted server-side file; Supabase config is not imported. Validation may acquire and adapt allowlisted nflverse sources but has no database pool or writer path. Runtime PostgreSQL pool bounds and explicit SSL policy fail closed; CLI, target-identity preflight, signal shutdown, deployment, and scheduling remain separate follow-up gates.
+2026-10-05 — The manual football-warehouse command defaults to configuration validation; source validation has no database pool; ingest requires the exact `FOOTBALL_WAREHOUSE_INGEST_ENABLED=true` value and a database/role/schema-version identity match. Current-season success requires schedules, identities, player-week, team-week, and weekly-roster stages. Play-by-play rows with unresolved GSIS participants are skipped and recorded, never name-matched and never silently admitted.
+2026-10-05 — Founder warehouse direction: Supabase Step 14 serves Tuesday while a real warehouse runs on omen-prod in shadow; cut over immediately when the defined proofs pass, without an arbitrary observation delay. Commissioning requires an exact command-scope approval. After current-season proof, historical backfill runs chronologically 1999–2026. The user-facing metric name is Omen QB Efficiency (OQBE). Backup retention must be proposed from measured KVM2 capacity and real compressed size. Recovery is scenario-specific (dead host, full disk, stopped database, corruption, stuck ingest, unavailable backup destination), not one universal RTO. Source research should inventory nflverse gaps, prefer open lawful sources, and derive Omen formulas where no suitable source exists.
+2026-10-05 — The first omen-prod warehouse preflight was read-only and made no host mutation. It confirmed capacity/network/listener prerequisites but found the Compose database name and migration-ledger state disagreed with the fail-closed runtime identity. Live commissioning stopped before secret, container, or volume creation. The empty-container foundation now uses canonical database `omen_football`, a digest-pinned PostgreSQL 17.11 amd64 image, and an exact SHA-256 migration receipt recorded during first initialization. Ingestion, shared-network credentials, play-by-play, backup/restore transport, monitoring dispatch, and cutover remain later gates.
+2026-10-06 — Warehouse deployment artifacts are built from an exact Git commit, not the working tree, and accepted only when a read-only verifier matches an externally approved manifest hash. Privileged publication is deliberately deferred: an artifact-contained installer cannot authenticate itself before it begins executing under sudo. Root publication, least-privilege login provisioning, and commission verification remain a separately trusted and jointly tested checkpoint; nothing in this artifact step starts services, provisions secrets, or changes the active runtime.
+2026-10-08 — Local Compose file-backed secrets use the source file's host ownership and mode as the enforceable boundary; unsupported YAML uid/gid/mode declarations are not accepted as proof. Warehouse runtime URL files stay inside the root-only 0700 secret directory and are root:10001 0440 so the fixed non-root container identity can read only the explicitly bind-mounted file. Bootstrap and backup credentials remain root:root 0600. The 2026 warehouse load is live on omen-prod, but Supabase remains application authority until bounded shadow comparison, KVM2 restore, and monitoring proofs pass.
+2026-10-09 — Omen's API may run warehouse shadow reads while Supabase remains response authority. Shadow reader startup degrades safely to Supabase; warehouse-primary startup remains fail-closed. The warehouse backup root is root-owned 0711 so the dedicated backup account can traverse an exact path without listing it; per-run directories remain 0700 and artifacts 0400. The first encrypted KVM2 snapshot is storage proof, not recovery proof: primary promotion and historical backfill still wait for an isolated KVM2 restore, real authenticated comparison evidence, and exercised monitoring.
+2026-10-09 — The first football-warehouse KVM2 recovery proof passed. Docker save/load is pinned by the exact image content ID because it does not preserve a source registry RepoDigest reference; accepting a mutable local tag is forbidden. Restic credentials remain only on omen-prod: decrypted public-football snapshot bytes may stream over existing Tailscale SSH trust into a root-only KVM2 source, must be checksum-verified before a networkless disposable restore, and must be removed after the retained proof verifies. This closes one-time restore proof, not scheduled recovery automation or monitoring notification.

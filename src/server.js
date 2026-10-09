@@ -284,12 +284,15 @@ try {
 }
 
 // --- Mount /api/start-sit (free public manual comparison) --------
+let closeWarehouseUsageRuntime = async () => {};
 try {
   const startSitRoutes = require("./routes/startSit");
   app.use("/api/start-sit", startSitRoutes);
   // Authenticated §5 detail surface, kept out of the public comparator's module
   // so that route stays loadable without Supabase config.
-  app.use("/api/start-sit", require("./routes/startSitDetail"));
+  const startSitDetailRouter = require("./routes/startSitDetail");
+  closeWarehouseUsageRuntime = startSitDetailRouter.closeWarehouseUsageRuntime;
+  app.use("/api/start-sit", startSitDetailRouter);
 } catch (e) {
   logger.error("Start/Sit router failed to load", { err: e.message, stack: e.stack });
 }
@@ -409,7 +412,10 @@ const server = app.listen(config.port, () => {
 // after 10s if anything hangs. SY0-701 4.5: orderly service teardown.
 const shutdown = (signal, exitCode = 0) => {
   logger.info(`${signal} received, draining...`);
-  server.close(() => {
+  server.close(async () => {
+    await closeWarehouseUsageRuntime().catch(() => {
+      logger.warn("Warehouse read pool did not close cleanly");
+    });
     logger.info("HTTP server closed");
     process.exit(exitCode);
   });

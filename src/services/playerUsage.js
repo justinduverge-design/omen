@@ -324,4 +324,13 @@ function usageStatement(name, position, usage) {
 
 function _resetCache() { cache.clear(); }
 
-module.exports = { getRecentUsage, getUsageBundle, weeklyUsageRows, usageStatement, summarize, _resetCache, RECENT_GAMES };
+module.exports = {
+  getRecentUsage,
+  getUsageBundle,
+  weeklyUsageRows,
+  usageStatement,
+  summarize,
+  resolveGsis,
+  _resetCache,
+  RECENT_GAMES,
+};
