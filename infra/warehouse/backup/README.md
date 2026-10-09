@@ -109,8 +109,9 @@ decrypted source.
 
 ### Exact commissioning scope (not executed by repository delivery)
 
-1. Create a dedicated non-admin SSH identity on omen-prod whose authorized key
-   is source-restricted to KVM2 and carries both `restrict` and
+1. Add a dedicated recovery key to the existing non-admin
+   `omen-backup-client` account on omen-prod. Its authorized-key entry is
+   source-restricted to KVM2 and carries both `restrict` and
    `command="/opt/omen/warehouse-recovery/export-restore-file.sh"`.
    Do not reuse the monitoring-status key.
 2. Install one dedicated private key and one separately verified pinned
