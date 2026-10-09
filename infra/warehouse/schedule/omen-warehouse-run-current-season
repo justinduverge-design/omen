@@ -25,5 +25,11 @@ esac
 
 cd "$release/infra/warehouse"
 export WAREHOUSE_INGEST_IMAGE="$image"
-exec docker compose --project-name omen-football-warehouse --profile ingest \
+docker compose --project-name omen-football-warehouse --profile ingest \
   run --rm --no-deps ingest ingest --season "$season"
+
+# Success heartbeat to the Uptime Kuma push monitor on the Pi ("Omen warehouse daily ingest"). Kuma
+# alerts when a day passes without one, so a job that never runs is caught too. The push URL is a
+# root-only file on this host and is never printed; a missing file or an unreachable Kuma does not fail
+# a good ingest.
+/usr/local/sbin/omen-warehouse-alert up || true
