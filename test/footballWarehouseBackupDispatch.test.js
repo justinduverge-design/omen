@@ -15,6 +15,8 @@ test("warehouse backup reuses commissioned encrypted transport without exposing 
   assert.match(script, /RESTIC_PASSWORD_FILE="\$RESTIC_PASSWORD_FILE"/);
   assert.match(script, /restic backup --json --no-cache --tag omen-football-warehouse/);
   assert.match(script, /cmp -s "\$stage\/before\.json" "\$stage\/after\.json"/);
+  assert.match(script, /install -d -m 0711 -o root -g root "\$SNAPSHOT_ROOT"/);
+  assert.match(script, /chmod 0700 "\$stage"/);
   assert.doesNotMatch(script, /cat "\$PGPASS_FILE"/);
   assert.doesNotMatch(script, /RESTIC_PASSWORD=/);
   assert.doesNotMatch(script, /POSTGRES_PASSWORD=/);

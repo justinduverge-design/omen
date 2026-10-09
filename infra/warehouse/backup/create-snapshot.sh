@@ -43,7 +43,9 @@ repository="$(sed -n 's/^RESTIC_REPOSITORY="\([^"]*\)"$/\1/p' "$COMMISSIONED_BAC
   exit 78
 }
 
-install -d -m 0700 -o root -g root "$SNAPSHOT_ROOT"
+# The backup-only account must be able to traverse to the one final directory
+# handed to Restic.  Keep the parent non-listable and each snapshot private.
+install -d -m 0711 -o root -g root "$SNAPSHOT_ROOT"
 run_id="warehouse-$(date -u '+%Y%m%dT%H%M%SZ')"
 stage="$(mktemp -d "$SNAPSHOT_ROOT/.${run_id}.XXXXXX")"
 final="$SNAPSHOT_ROOT/$run_id"
