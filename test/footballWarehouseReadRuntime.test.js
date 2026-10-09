@@ -155,3 +155,25 @@ test("runtime fails closed before fact reads when server identity or read-only m
   );
   assert.equal(factQueries.length, 0);
 });
+
+test("an idle warehouse connection dropping never crashes the API: the pool error is handled and reported without its message", () => {
+  const { EventEmitter } = require("node:events");
+  let pool;
+  class Pool extends EventEmitter {
+    constructor() { super(); pool = this; }
+    async query() { return { rows: [] }; }
+    async end() {}
+  }
+  const events = [];
+  const runtime = createFailSafeWarehouseReadRuntime({
+    env: { FOOTBALL_DATA_MODE: "shadow", FOOTBALL_WAREHOUSE_READ_DATABASE_URL_FILE: "/run/secrets/read" },
+    Pool,
+    fileSystem: safeFileSystem,
+    onShadowUnavailable: (event) => events.push(event),
+  });
+  assert.equal(runtime.enabled, true);
+  // pg re-emits idle-client errors on the pool; with no listener Node throws (and server.js exits).
+  assert.doesNotThrow(() => pool.emit("error", new Error(`terminating connection: ${secret}`)));
+  assert.deepEqual(events, [{ event: "football_warehouse_read_pool", outcome: "idle_client_error" }]);
+  assert.equal(JSON.stringify(events).includes("do-not-print"), false);
+});

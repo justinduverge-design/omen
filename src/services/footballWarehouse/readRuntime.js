@@ -87,10 +87,16 @@ function parseWarehouseReadConfig({ env = process.env, fileSystem } = {}) {
   });
 }
 
-function createWarehouseReadPool({ Pool, config }) {
+/**
+ * pg re-emits an idle client's error (warehouse restart, OOM, terminated backend) on the pool. With no
+ * listener Node treats it as uncaught and the API process exits, so the listener is always attached. pg
+ * has already discarded the broken client; the next query reconnects. The error's message is never
+ * forwarded: it can carry connection details.
+ */
+function createWarehouseReadPool({ Pool, config, onPoolError = () => {} }) {
   if (typeof Pool !== "function") throw new TypeError("Pool must be a constructor");
   if (!config?.enabled || !config.connectionString) throw new TypeError("enabled warehouse read config is required");
-  return new Pool({
+  const pool = new Pool({
     connectionString: config.connectionString,
     ssl: config.ssl,
     max: config.poolMax,
@@ -102,6 +108,14 @@ function createWarehouseReadPool({ Pool, config }) {
     options: "-c default_transaction_read_only=on",
     allowExitOnIdle: true,
   });
+  if (typeof pool.on === "function") {
+    pool.on("error", () => {
+      try {
+        onPoolError(Object.freeze({ event: "football_warehouse_read_pool", outcome: "idle_client_error" }));
+      } catch {}
+    });
+  }
+  return pool;
 }
 
 function createVerifiedReadQuery({ pool, config }) {
@@ -134,12 +148,12 @@ function createVerifiedReadQuery({ pool, config }) {
   };
 }
 
-function createWarehouseReadRuntime({ env = process.env, Pool, fileSystem } = {}) {
+function createWarehouseReadRuntime({ env = process.env, Pool, fileSystem, onPoolError } = {}) {
   const config = parseWarehouseReadConfig({ env, fileSystem });
   if (!config.enabled) {
     return Object.freeze({ mode: config.mode, enabled: false, repository: null, close: async () => {} });
   }
-  const pool = createWarehouseReadPool({ Pool, config });
+  const pool = createWarehouseReadPool({ Pool, config, onPoolError });
   const query = createVerifiedReadQuery({ pool, config });
   const repository = createWarehouseUsageRepository({
     timeoutMs: config.queryTimeoutMillis,
@@ -170,7 +184,7 @@ function createFailSafeWarehouseReadRuntime({
   }
   const mode = footballDataMode(env);
   try {
-    return createWarehouseReadRuntime({ env, Pool, fileSystem });
+    return createWarehouseReadRuntime({ env, Pool, fileSystem, onPoolError: onShadowUnavailable });
   } catch (error) {
     if (mode !== "shadow") throw error;
     try {
