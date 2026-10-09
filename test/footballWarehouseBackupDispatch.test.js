@@ -67,6 +67,7 @@ test("scheduled backup and restore use separate timers, pinned trust, and clean 
   const restoreTimer = fs.readFileSync(path.join(root, "omen-warehouse-restore-proof.timer"), "utf8");
   assert.match(backup, /EXPECTED_HOST="omen-prod"/);
   assert.match(backup, /kuma-backup-push-url/);
+  assert.match(backup, /http:\/\/100\.98\.81\.0:3001\/api\/push\/\*\|https:\/\/\*\/api\/push\/\*/);
   assert.match(backup, /push_status down backup_failed/);
   assert.match(backup, /"\$RETENTION_TOOL" --check[\s\S]*"\$SNAPSHOT_TOOL"[\s\S]*"\$RETENTION_TOOL"[\s\S]*push_status up backup_completed/);
   assert.doesNotMatch(backup, /echo.*KUMA|printf.*KUMA_URL/);

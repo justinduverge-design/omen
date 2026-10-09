@@ -94,6 +94,9 @@ transfer channel and its timers. The repository contains:
   weekly, and monthly keep counts. It limits only the warehouse-tagged snapshot
   selection and prunes unreferenced repository data. Missing measured policy is
   a failed backup heartbeat, never an implicit unlimited policy.
+  The heartbeat accepts the private Pi Kuma endpoint at
+  `http://100.98.81.0:3001/api/push/...` or an HTTPS push endpoint; it refuses
+  every other plaintext HTTP destination.
 - `run-weekly-restore-proof.sh` discovers the newest exact snapshot through the
   forced command, receives it, runs the pinned networkless restore, independently
   verifies the proof, and only then removes the decrypted restore source.
