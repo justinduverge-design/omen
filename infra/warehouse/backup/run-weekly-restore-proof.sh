@@ -3,7 +3,7 @@ set -euo pipefail
 umask 077
 
 EXPECTED_HOST="model-host"
-REMOTE="omen-warehouse-recovery@omen-prod"
+REMOTE="omen-backup-client@omen-prod"
 KEY="/root/.ssh/omen-warehouse-recovery_ed25519"
 KNOWN_HOSTS="/root/.ssh/omen-warehouse-recovery_known_hosts"
 RECEIVER="/opt/omen/warehouse-restore/receive-restore-source.sh"
