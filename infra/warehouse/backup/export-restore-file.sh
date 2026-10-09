@@ -11,7 +11,7 @@ EXPECTED_HOST="omen-prod"
 EXPECTED_USER="omen-backup-client"
 BACKUP_HOME="/var/lib/omen-backup-client"
 RESTIC_PASSWORD_FILE="$BACKUP_HOME/restic-password"
-COMMISSIONED_BACKUP="/opt/omen-backup/bin/backup-supabase.sh"
+REPOSITORY_FILE="/etc/omen-warehouse/restic-repository"
 SNAPSHOT_ROOT="/var/lib/omen/warehouse-backups"
 
 [[ "$(hostname)" == "$EXPECTED_HOST" ]] || { echo "warehouse restore export refused: wrong host" >&2; exit 69; }
@@ -23,10 +23,14 @@ done
   echo "warehouse restore export refused: commissioned Restic credential is unavailable" >&2
   exit 78
 }
-[[ -r "$COMMISSIONED_BACKUP" ]] || { echo "warehouse restore export refused: repository configuration is unavailable" >&2; exit 78; }
-
-repository="$(sed -n 's/^RESTIC_REPOSITORY="\([^"]*\)"$/\1/p' "$COMMISSIONED_BACKUP")"
-[[ "$(printf '%s\n' "$repository" | wc -l)" -eq 1 && "$repository" == sftp:* ]] || {
+[[ -f "$REPOSITORY_FILE" && ! -L "$REPOSITORY_FILE" && -r "$REPOSITORY_FILE" ]] || {
+  echo "warehouse restore export refused: repository configuration is unavailable" >&2
+  exit 78
+}
+mapfile -t repository_lines < "$REPOSITORY_FILE"
+[[ "${#repository_lines[@]}" -eq 1 ]] || { echo "warehouse restore export refused: repository assignment is invalid" >&2; exit 78; }
+repository="${repository_lines[0]}"
+[[ "$repository" == sftp:* && "$repository" != *[[:space:]]* ]] || {
   echo "warehouse restore export refused: commissioned repository assignment is invalid" >&2
   exit 78
 }

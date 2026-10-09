@@ -81,7 +81,10 @@ transfer channel and its timers. The repository contains:
   existing backup-only user, it accepts either `latest` or `manifest|dump`, one
   lowercase 64-hex snapshot ID, and one warehouse run ID. `latest` returns only
   the exact newest warehouse snapshot/run identities. File reads verify the
-  warehouse tag and use only a fixed manifest or dump path from Restic.
+  warehouse tag and use only a fixed manifest or dump path from Restic. The
+  endpoint reads the non-secret `sftp:` repository locator from
+  `/etc/omen-warehouse/restic-repository`; it never receives the commissioned
+  root-only backup script or the Restic password.
 - `receive-restore-source.sh` is the KVM2 root receiver. It uses a dedicated key,
   a dedicated pinned known-hosts file, strict host checking, a fresh `0700`
   staging directory, manifest validation, exact byte count, SHA-256 verification,
@@ -121,14 +124,17 @@ decrypted source.
    known-hosts file at the fixed root-only KVM2 paths named by the receiver.
 3. Install the release manifest verifier at the receiver's fixed path and stage
    this exact release on both hosts without selecting it for the live warehouse.
-4. Create the dedicated Kuma push monitor and write its URL, without echoing it,
+4. Derive the repository's `sftp:` locator as root from the commissioned backup
+   script, then install only that locator at `/etc/omen-warehouse/restic-repository`
+   as `0440 root:omen-backup-client`. Never copy the Restic password.
+5. Create the dedicated Kuma push monitor and write its URL, without echoing it,
    to `/etc/omen-warehouse/kuma-backup-push-url` as `0600 root:root`.
-5. From KVM2, invoke `run-weekly-restore-proof.sh`; inspect the resulting
+6. From KVM2, invoke `run-weekly-restore-proof.sh`; inspect the resulting
    root-only `0400` proof and confirm the decrypted source was removed.
-6. Test refusal of an arbitrary command, wrong snapshot tag, wrong run ID,
+7. Test refusal of an arbitrary command, wrong snapshot tag, wrong run ID,
    changed host key, existing target, and checksum mismatch before considering a
    timer. Retain the proof before removing decrypted source material.
-7. Install and enable the nightly backup timer on KVM1 and the weekly restore
+8. Install and enable the nightly backup timer on KVM1 and the weekly restore
    timer on KVM2. Batch A closes only after each timer has produced one successful
    scheduled run; a manual `systemctl start` does not satisfy that claim.
 

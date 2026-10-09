@@ -42,6 +42,8 @@ test("restore transfer is forced-command-only, path-fixed, host-key-pinned, and 
   const exporter = fs.readFileSync(path.join(root, "export-restore-file.sh"), "utf8");
   const receiver = fs.readFileSync(path.join(root, "receive-restore-source.sh"), "utf8");
   assert.match(exporter, /SSH_ORIGINAL_COMMAND/);
+  assert.match(exporter, /REPOSITORY_FILE="\/etc\/omen-warehouse\/restic-repository"/);
+  assert.doesNotMatch(exporter, /COMMISSIONED_BACKUP/);
   assert.match(exporter, /request" == "latest"/);
   assert.match(exporter, /--latest 1 --tag omen-football-warehouse/);
   assert.match(exporter, /\^\(manifest\|dump\).*\[0-9a-f\]\{64\}.*warehouse-/);
