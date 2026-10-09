@@ -27,13 +27,18 @@ KVM2 (Tailscale name `model-host`), watched from the Pi command center.
 
 ## What is left, in order
 
-1. **Daily warehouse ingest.** Nothing refreshes the warehouse; it stops at week 4 while Supabase's
-   daily job is already on week 5. Schedule the current-season command daily (same cadence as the
-   Supabase job, 05:00 ET) through the pinned worker image.
+1. ~~**Daily warehouse ingest.**~~ **Done 2026-10-09** (#582, #584): `omen-warehouse-ingest.timer` on
+   KVM1, 11:15 UTC daily, runs the selected release's pinned worker (`infra/warehouse/schedule/`).
+   Proven through systemd; 2026 is current through week 5 Thursday.
 2. **Scheduled backup and restore check.** Nightly backup to KVM2, weekly isolated restore (Codex's
    uncommitted dispatcher is the start of this). Then set retention from measured KVM2 growth.
-3. **Alerting.** Beszel sees both hosts but has no alert rule; the Pi watchdog in
-   `infra/warehouse/pi-watchdog/` is not installed. Add a warehouse alert, prove one DOWN-to-UP.
+3. ~~**Alerting.**~~ **Done 2026-10-09:** Beszel (on the Pi) alerts all five hosts to Discord: down 10 min,
+   memory >90% 10 min, disk >80% 10 min. Uptime Kuma (on the Pi) has a Discord notification on all its
+   monitors (it had none before), and push monitor #7 "Omen warehouse daily ingest" gets `up` after each
+   good run and `down` on failure, alerting after 26 h of silence; proven with a real heartbeat. KVM1
+   has no Discord webhook (it lives only on the Pi); the push URL is root-only at
+   `/etc/omen-warehouse/kuma-push-url`. Still open: the `pi-watchdog` scripts are not installed, and the
+   `down` path has not been fired on purpose.
 4. **Shadow parity on a real request.** No signed-in Start/Sit request has produced a comparison yet
    (no app traffic since the switch). Needs the founder to use the app, then read the
    "Football warehouse usage shadow" log lines.
