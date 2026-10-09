@@ -365,6 +365,16 @@ function initSentry({ component }) {
     release: process.env.GITHUB_SHA || process.env.COMMIT_SHA || undefined,
     serverName: `omen-${component}`,
     tracesSampleRate: 0,
+    // Tracing is off, so Express layer spans are never sent — but the default
+    // integration still starts one per middleware and hangs a `finish`
+    // listener on the response for each. A synchronous chain holds them all
+    // at once: GET /api/health crossed 11 and logged MaxListenersExceededWarning
+    // on every probe. Ignoring every layer type keeps what we use (route-named
+    // error events, layer error capture) and drops the spans. Revisit if
+    // tracesSampleRate is ever raised.
+    integrations: [
+      Sentry.expressIntegration({ ignoreLayersType: ["middleware", "router", "request_handler"] }),
+    ],
     sendDefaultPii: false,
     beforeSend: scrubSentryEvent,
     beforeBreadcrumb: scrubSentryBreadcrumb,
