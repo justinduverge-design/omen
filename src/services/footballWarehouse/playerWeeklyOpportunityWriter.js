@@ -65,8 +65,13 @@ LEFT JOIN football.nfl_player_weekly_stats s
   ON s.season = $1 AND s.week = c.week AND s.season_type = c.season_type AND s.player_id = c.player_id`;
 
 // Play-by-play against the weekly stat lines over every player-week either side knows about.
+// nfl_player_weekly_stats.carries counts QB kneel-downs (play_type 'qb_kneel'); the derived carries exclude them,
+// so the carries comparison adds each player-week's kneels to the play-by-play side. Kneel-only weeks still match.
 const RECONCILE_SQL = `
-WITH joined AS (
+WITH kneels AS (
+  SELECT week, rusher_player_id AS player_id, count(*)::integer AS kneels FROM football.nfl_plays
+  WHERE season = $1 AND play_type = 'qb_kneel' AND rusher_player_id IS NOT NULL AND week IS NOT NULL GROUP BY week, rusher_player_id
+), base AS (
   SELECT coalesce(o.player_id, s.player_id) AS player_id, coalesce(o.week, s.week) AS week,
          o.player_id IS NULL AS missing_plays, s.player_id IS NULL AS missing_stats,
          coalesce(o.targets, 0) AS pbp_targets, coalesce(o.carries, 0) AS pbp_carries,
@@ -74,18 +79,21 @@ WITH joined AS (
   FROM stage_nfl_player_weekly_opportunity o
   FULL JOIN (SELECT season, week, season_type, player_id, targets, carries FROM football.nfl_player_weekly_stats WHERE season = $1) s
     ON s.season = o.season AND s.week = o.week AND s.season_type = o.season_type AND s.player_id = o.player_id
+), joined AS (
+  SELECT base.*, coalesce(k.kneels, 0) AS kneels FROM base LEFT JOIN kneels k ON k.week = base.week AND k.player_id = base.player_id
 ), live AS (
-  SELECT *, (abs(pbp_targets - stat_targets) > $2::integer OR abs(pbp_carries - stat_carries) > $2::integer) AS outlier
-  FROM joined WHERE pbp_targets + pbp_carries + stat_targets + stat_carries > 0
+  SELECT *, (abs(pbp_targets - stat_targets) > $2::integer OR abs(pbp_carries + kneels - stat_carries) > $2::integer) AS outlier
+  FROM joined WHERE pbp_targets + pbp_carries + kneels + stat_targets + stat_carries > 0
 )
 SELECT count(*)::integer AS compared_rows,
   (count(*) FILTER (WHERE outlier))::integer AS outlier_rows,
   (count(*) FILTER (WHERE missing_stats))::integer AS missing_stats_rows,
+  (count(*) FILTER (WHERE kneels > 0))::integer AS kneel_adjusted_rows,
   (count(*) FILTER (WHERE missing_plays))::integer AS missing_play_rows,
   (SELECT count(*)::integer FROM stage_nfl_player_weekly_opportunity) AS derived_rows,
   coalesce((SELECT jsonb_agg(x ORDER BY x->>'week', x->>'player_id') FROM (
     SELECT jsonb_build_object('player_id', player_id, 'week', week, 'pbp_targets', pbp_targets, 'stat_targets', stat_targets,
-      'pbp_carries', pbp_carries, 'stat_carries', stat_carries) AS x
+      'pbp_carries', pbp_carries, 'kneels', kneels, 'stat_carries', stat_carries) AS x
     FROM live WHERE outlier ORDER BY week, player_id LIMIT 10) sample), '[]'::jsonb) AS outlier_sample
 FROM live`;
 
@@ -133,7 +141,7 @@ function createPlayerWeeklyOpportunityWriter({ pool, transactionTimeouts, maxOut
       const stats = (await client.query(RECONCILE_SQL, [season, TOLERANCE])).rows[0];
       const reconciliation = {
         comparedRows: stats.compared_rows, outlierRows: stats.outlier_rows, missingStatsRows: stats.missing_stats_rows,
-        missingPlayRows: stats.missing_play_rows, outlierRatio: stats.compared_rows ? stats.outlier_rows / stats.compared_rows : 0,
+        missingPlayRows: stats.missing_play_rows, kneelAdjustedRows: stats.kneel_adjusted_rows, outlierRatio: stats.compared_rows ? stats.outlier_rows / stats.compared_rows : 0,
         outlierSample: stats.outlier_sample, crosswalkDroppedPlays: skipped.crosswalk_dropped_plays, missingYardlinePlays: skipped.missing_yardline_plays, tolerance: TOLERANCE, maxOutlierRatio,
       };
       if (!stats.derived_rows) throw new PlayerWeeklyOpportunityError("opportunity_no_rows", "play-by-play produced no opportunity rows", reconciliation);

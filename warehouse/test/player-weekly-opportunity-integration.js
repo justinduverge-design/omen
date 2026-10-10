@@ -12,6 +12,8 @@ const WR = "omen:player:fixture-wr";
 const RB = "omen:player:fixture-rb";
 const TE = "omen:player:fixture-te";
 const QB = "omen:player:fixture-qb";
+const QB2 = "omen:player:fixture-qb2";
+const QB3 = "omen:player:fixture-qb3";
 
 // Raw play-by-play CSV values, the way nfl_plays.source_row stores them. The first five rows are the
 // fixtures of test/nflverseWeeklyStats.test.js "opportunity counts red-zone, end-zone and deep targets".
@@ -32,6 +34,14 @@ const PLAYS = [
   // Playoff week with no stats row (team falls back to posteam_id); and a target whose receiver the crosswalk dropped.
   { week: 19, season_type: "POST", play_type: "run", yardline_100: "1", air_yards: "NA", two_point_attempt: "0", rusher_player_id: QB },
   { week: 1, play_type: "pass", yardline_100: "40", air_yards: "5", two_point_attempt: "0", receiver_player_id: "00-9999999", dropped: true },
+  // Stats carries include kneel-downs: QB2 has 2 runs + 3 kneels (stat line 5); QB3 has only 2 kneels (a kneel-only week).
+  { week: 1, play_type: "run", yardline_100: "60", air_yards: "NA", two_point_attempt: "0", rusher_player_id: QB2 },
+  { week: 1, play_type: "run", yardline_100: "60", air_yards: "NA", two_point_attempt: "0", rusher_player_id: QB2 },
+  { week: 1, play_type: "qb_kneel", yardline_100: "30", air_yards: "NA", two_point_attempt: "0", rusher_player_id: QB2 },
+  { week: 1, play_type: "qb_kneel", yardline_100: "30", air_yards: "NA", two_point_attempt: "0", rusher_player_id: QB2 },
+  { week: 1, play_type: "qb_kneel", yardline_100: "30", air_yards: "NA", two_point_attempt: "0", rusher_player_id: QB2 },
+  { week: 2, play_type: "qb_kneel", yardline_100: "30", air_yards: "NA", two_point_attempt: "0", rusher_player_id: QB3 },
+  { week: 2, play_type: "qb_kneel", yardline_100: "30", air_yards: "NA", two_point_attempt: "0", rusher_player_id: QB3 },
 ].map((play, index) => ({ season_type: "REG", ...play, play_id: index + 1, season: String(SEASON), posteam: "BUF" }));
 
 async function seed(pool) {
@@ -45,7 +55,7 @@ async function seed(pool) {
   await pool.query(`INSERT INTO football.football_teams (team_id, nflverse_abbr, display_name, first_season, ingest_event_id)
     VALUES ('omen:team:buf', 'BUF', 'Buffalo', 1999, $1), ('omen:team:mia', 'MIA', 'Miami', 1999, $1)`, [ids.players]);
   await pool.query(`INSERT INTO football.football_players (player_id, gsis_id, display_name, football_position, ingest_event_id)
-    VALUES ($2, '00-0000002', 'Fixture Receiver', 'WR', $1), ($3, '00-0000003', 'Fixture Back', 'RB', $1), ($4, '00-0000004', 'Fixture End', 'TE', $1), ($5, '00-0000005', 'Fixture Passer', 'QB', $1)`, [ids.players, WR, RB, TE, QB]);
+    VALUES ($2, '00-0000002', 'Fixture Receiver', 'WR', $1), ($3, '00-0000003', 'Fixture Back', 'RB', $1), ($4, '00-0000004', 'Fixture End', 'TE', $1), ($5, '00-0000005', 'Fixture Passer', 'QB', $1), ($6, '00-0000006', 'Fixture Passer Two', 'QB', $1), ($7, '00-0000007', 'Fixture Passer Three', 'QB', $1)`, [ids.players, WR, RB, TE, QB, QB2, QB3]);
   await pool.query(`INSERT INTO football.nfl_games (season, game_id, week, game_type, away_team_id, home_team_id, away_score, home_score, ingest_event_id)
     VALUES ($1, '2026_01_BUF_MIA', 1, 'REG', 'omen:team:buf', 'omen:team:mia', 24, 27, $2),
            ($1, '2026_02_BUF_MIA', 2, 'REG', 'omen:team:buf', 'omen:team:mia', 20, 10, $2),
@@ -64,6 +74,8 @@ async function seed(pool) {
   await stat(1, RB, 0, 4);
   await stat(1, TE, 1, 0);
   await stat(2, RB, 0, 1);
+  await stat(1, QB2, 0, 5);
+  await stat(2, QB3, 0, 2);
   return ids;
 }
 
@@ -74,7 +86,7 @@ async function rows(pool) {
 async function verifyParity(pool) {
   const expected = buildOpportunity(PLAYS);
   const stored = await rows(pool);
-  assert.equal(stored.length, 5);
+  assert.equal(stored.length, 6);
   for (const row of stored) {
     const o = expected.get(`${row.player_id}|${SEASON}|${row.week}`) || {};
     assert.equal(row.season_type, row.week === 19 ? "POST" : "REG");
@@ -109,9 +121,10 @@ async function main() {
 
     const first = await writer.writeSeason({ season: SEASON });
     assert.equal(first.state, "succeeded");
-    assert.equal(first.writtenRows, 5);
+    assert.equal(first.writtenRows, 6);
     assert.equal(String(first.ingestEventId), String(ids.play_by_play));
-    assert.deepEqual([first.reconciliation.comparedRows, first.reconciliation.outlierRows, first.reconciliation.missingStatsRows], [5, 0, 1]);
+    assert.deepEqual([first.reconciliation.comparedRows, first.reconciliation.outlierRows, first.reconciliation.missingStatsRows], [7, 0, 1]);
+    assert.equal(first.reconciliation.kneelAdjustedRows, 2);
     assert.deepEqual([first.reconciliation.crosswalkDroppedPlays, first.reconciliation.missingYardlinePlays], [1, 1]);
     await verifyParity(pool);
     assert.equal((await writer.writeSeason({ season: SEASON })).state, "unchanged");
@@ -124,7 +137,7 @@ async function main() {
       assert.equal(error.report.outlierSample[0].player_id, WR);
       return true;
     });
-    assert.equal((await rows(pool)).length, 5);
+    assert.equal((await rows(pool)).length, 6);
     // A looser tolerance reports the outlier and proceeds (nothing changed, so unchanged).
     const loose = await createPlayerWeeklyOpportunityWriter({ pool, maxOutlierRatio: 0.5 }).writeSeason({ season: SEASON });
     assert.equal(loose.state, "unchanged");
@@ -146,7 +159,7 @@ async function main() {
 
     await pool.query("DELETE FROM football.nfl_player_weekly_stats WHERE season=$1", [SEASON]);
     await assert.rejects(writer.writeSeason({ season: SEASON }), (error) => error.code === "stats_missing");
-    assert.equal((await rows(pool)).length, 5);
+    assert.equal((await rows(pool)).length, 6);
     await assert.rejects(writer.writeSeason({ season: 2025 }), (error) => error.code === "play_by_play_receipt_missing");
     const dangling = await pool.query("SELECT count(*)::integer count FROM football.warehouse_ingest_events WHERE state='started'");
     assert.equal(dangling.rows[0].count, 0);
