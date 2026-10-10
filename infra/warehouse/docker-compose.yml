@@ -43,6 +43,8 @@ services:
     environment:
       FOOTBALL_WAREHOUSE_DATABASE_URL_FILE: /run/secrets/warehouse_ingest_url
       FOOTBALL_WAREHOUSE_INGEST_ENABLED: "true"
+      # After each season ingest: fill the opportunity table and recompute RAT-QB v0 (derivedStages.js).
+      FOOTBALL_WAREHOUSE_DERIVED_ENABLED: "true"
       FOOTBALL_WAREHOUSE_SSL_MODE: disable
       FOOTBALL_WAREHOUSE_EXPECTED_DATABASE: omen_football
       FOOTBALL_WAREHOUSE_EXPECTED_ROLE: omen_warehouse_ingest
