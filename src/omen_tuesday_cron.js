@@ -22,6 +22,8 @@ const {
 const ledgerStore = require("./services/ledger");
 const { bandFromScore } = require("./services/confidencePolicy");
 const { getCurrentNflWeekContext } = require("./services/nflSchedule");
+const { footballDataMode, createFailSafeWarehouseReadRuntime } = require("./services/footballWarehouse/readRuntime");
+const { resolveWarehouseOutcomes } = require("./services/footballWarehouse/ledgerOutcomes");
 
 const REQUIRED_SCORING_ENV = Object.freeze([
   "SUPABASE_URL",
@@ -326,8 +328,11 @@ function scoreMove(move, playerScores) {
     };
   }
 
-  const stats = playerScores[playerKey];
+  return scoreStats(move, playerScores[playerKey], target);
+}
 
+/** Grade one matched stat line. Shared by the name-matched path and the warehouse id-matched path. */
+function scoreStats(move, stats, target) {
   // A contract-required row must never reach the legacy fallback. If its
   // contract cannot be reconciled, the row is deferred with its state recorded,
   // not graded against points the league does not award.
@@ -458,9 +463,13 @@ function gradeDecision({ decision, action }, playerScores) {
     };
   }
 
+  return gradeMatched(decision, playerScores[findBestMatch(target, Object.keys(playerScores))], target);
+}
+
+function decisionAsMove(decision, target) {
   const contractRequired = decision.call_type !== "legacy"
     || Boolean(decision.scoring_contract_version || decision.scoring_contract_hash);
-  const score = scoreMove({
+  return {
     target_player: target,
     headline: decision.headline,
     confidence: decision.internal_score,
@@ -468,7 +477,11 @@ function gradeDecision({ decision, action }, playerScores) {
     scoring_contract_required: contractRequired,
     scoring_contract: null,
     scoring_coverage_state: decision.scoring_coverage_state || null,
-  }, playerScores);
+  };
+}
+
+function gradeMatched(decision, stats, target) {
+  const score = scoreStats(decisionAsMove(decision, target), stats, target);
 
   if (score.outcome === "pending") {
     return {
@@ -486,6 +499,110 @@ function gradeDecision({ decision, action }, playerScores) {
     effectiveness: score.eff,
     summary: score.result,
   };
+}
+
+/**
+ * Grade one decision from a warehouse outcome (matched by provider id, never by name).
+ * Returns null when the week is not in the warehouse yet: the call stays Pending, it is not zero.
+ * Same honesty as gradeDecision: points are PPR-derived estimates (`legacy_estimate`), a contract-required
+ * call stays `data_incomplete` because exact league scoring cannot be reconstructed from warehouse totals,
+ * and nothing is ever `verified`.
+ */
+function gradeDecisionFromWarehouse({ decision, action }, found) {
+  if (action?.followed === false) return gradeDecision({ decision, action }, {});
+  if (!found || found.kind === "pending") return null;
+
+  const target = decisionTargetPlayer(decision) || "the recommended player";
+  if (found.kind === "unresolved") {
+    return {
+      state: "data_incomplete",
+      provenance: "legacy_estimate",
+      summary: "The recommended player could not be matched to the football warehouse by provider id.",
+    };
+  }
+  if (found.kind === "no_line") {
+    return {
+      state: "data_incomplete",
+      provenance: "legacy_estimate",
+      summary: "No public stat line matched the recommended player.",
+    };
+  }
+
+  const label = LEGACY_SCORING_LABELS[decision.scoring_format] || decision.scoring_format || "PPR";
+  const ppr = found.ppr;
+  const receptions = found.receptions;
+  // nflverse PPR = standard + receptions, so Standard and Half PPR follow exactly from the same line.
+  if (label !== "PPR" && !Number.isFinite(receptions)) {
+    return {
+      state: "data_incomplete",
+      provenance: "legacy_estimate",
+      summary: `The ${label} total cannot be derived because the stat line has no reception count.`,
+    };
+  }
+  const stats = {
+    name: target,
+    rec_ppr: ppr,
+    rec_std: Number.isFinite(receptions) ? ppr - receptions : undefined,
+    rec_half: Number.isFinite(receptions) ? ppr - receptions / 2 : undefined,
+  };
+  return gradeMatched(decision, stats, target);
+}
+
+async function openWarehouseOutcomeRepository({ env, dependencies, Pool } = {}) {
+  if (dependencies?.warehouseOutcomeRepository !== undefined) {
+    return { repository: dependencies.warehouseOutcomeRepository, close: async () => {} };
+  }
+  try {
+    if (footballDataMode(env) === "supabase") return { repository: null, close: async () => {} };
+    const runtime = createFailSafeWarehouseReadRuntime({
+      env,
+      Pool: Pool || require("pg").Pool,
+      onShadowUnavailable: () => log.warn("Football warehouse reader unavailable for Ledger scoring"),
+    });
+    return { repository: runtime.outcomeRepository || null, close: () => runtime.close() };
+  } catch (error) {
+    log.warn(`Warehouse outcome reader unavailable; using the existing scoring path (${error.name})`);
+    return { repository: null, close: async () => {} };
+  }
+}
+
+/**
+ * Compute what Ledger scoring WOULD record for a finished week, straight from the warehouse, and write
+ * nothing. Read-only: it never calls saveDecisionOutcome and never falls back to the GitHub CSV, so what
+ * the founder inspects is exactly the warehouse path. Returns counts plus one preview row per call (opaque
+ * decision id, week, proposed state/result/provenance/summary); no user, league or provider values.
+ */
+async function previewLedgerOutcomes(supabase, { season, week, repository, dependencies = {} }) {
+  if (!Number.isInteger(season) || !Number.isInteger(week) || week < 1 || week > 18) {
+    throw new TypeError("season and week (1-18) are required");
+  }
+  if (!repository) throw new Error("warehouse outcome repository is not available");
+  const fetchScorable = dependencies.fetchScorableDecisions || ledgerStore.fetchScorableDecisions;
+  const entries = (await fetchScorable(supabase, { season, beforeWeek: week + 1 }))
+    .filter((entry) => entry.decision.week === week);
+  const needsLine = entries.filter((entry) => entry.action?.followed !== false);
+  const found = await resolveWarehouseOutcomes({ entries: needsLine, repository });
+
+  const counts = { calls: entries.length, graded: 0, data_incomplete: 0, not_executed: 0, pending: 0 };
+  const preview = entries.map((entry) => {
+    const outcome = gradeDecisionFromWarehouse(entry, found.get(entry.decision.id));
+    if (!outcome) {
+      counts.pending += 1;
+      return { decision_id: entry.decision.id, week, state: "pending", summary: "Week not in the warehouse yet." };
+    }
+    if (outcome.state === "resolved") counts.graded += 1;
+    else counts[outcome.state] = (counts[outcome.state] || 0) + 1;
+    return {
+      decision_id: entry.decision.id,
+      week,
+      state: outcome.state,
+      result: outcome.result || null,
+      provenance: outcome.provenance,
+      reconciliation_state: outcome.reconciliation_state || null,
+      summary: outcome.summary,
+    };
+  });
+  return { dryRun: true, written: 0, season, week, counts, preview };
 }
 
 /**
@@ -513,9 +630,43 @@ async function scoreLedgerDecisions(supabase, {
   const pending = await fetchScorable(supabase, { season, beforeWeek });
   const scoreMaps = new Map();
 
+  // Warehouse path (FOOTBALL_DATA_MODE shadow|warehouse): match by provider id, no GitHub CSV, no names.
+  // Any warehouse failure drops the whole run back to the existing path below, unchanged.
+  let warehouseFound = null;
+  const warehouse = await openWarehouseOutcomeRepository({ env, dependencies });
+  try {
+    if (warehouse.repository) {
+      warehouseFound = await resolveWarehouseOutcomes({
+        entries: pending.filter((entry) => entry.action?.followed !== false),
+        repository: warehouse.repository,
+      });
+    }
+  } catch (error) {
+    warehouseFound = null;
+    log.warn(`Warehouse outcome read failed; using the existing scoring path (${error.name})`);
+  } finally {
+    try { await warehouse.close(); } catch { /* closing a read pool must not fail scoring */ }
+  }
+
   for (const entry of pending) {
     const { decision } = entry;
     try {
+      if (warehouseFound) {
+        const outcome = gradeDecisionFromWarehouse(entry, warehouseFound.get(decision.id));
+        if (!outcome) {
+          tally.deferred += 1;
+          continue;
+        }
+        if (dryRun) {
+          tally[entry.outcome ? "updated" : "inserted"] += 1;
+          continue;
+        }
+        const written = await saveOutcome(supabase, { decision, existing: entry.outcome, outcome, now: new Date() });
+        if (written === "inserted") tally.inserted += 1;
+        else if (written === "updated") tally.updated += 1;
+        else tally.unchanged += 1;
+        continue;
+      }
       let playerScores = {};
       if (entry.action?.followed !== false) {
         const scoreKey = `${decision.season}:${decision.week}`;
@@ -672,6 +823,8 @@ module.exports = {
   findBestMatch,
   getMostRecentSunday,
   gradeDecision,
+  gradeDecisionFromWarehouse,
+  previewLedgerOutcomes,
   scoreLedgerDecisions,
   isDeferredScores,
   isDryRun,
