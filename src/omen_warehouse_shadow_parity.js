@@ -14,7 +14,7 @@
 // differences (public football fields only) and latency percentiles. It never prints secrets, provider
 // keys, user ids or raw error text. Exit code is nonzero if any query errored.
 
-const { compareUsageBundles, equalValue, WEEK_FIELDS, SUMMARY_FIELDS } = require("../src/services/footballWarehouse/usageComparison");
+const { compareUsageBundles, equalValue, WEEK_FIELDS, SUMMARY_FIELDS } = require("./services/footballWarehouse/usageComparison");
 
 const MAX_SAMPLE = 200;
 const MAX_DIFFS = 10;
@@ -235,10 +235,10 @@ async function main({ argv = process.argv.slice(2), env = process.env, stdout = 
     const args = parseArgs(argv);
     const { createClient } = require("@supabase/supabase-js");
     const { Pool } = require("pg");
-    const config = require("../src/config");
-    const { getUsageBundle, resolveGsis } = require("../src/services/playerUsage");
-    const { getWarehouseUsageBundle } = require("../src/services/footballWarehouse/warehouseUsageBundle");
-    const { createWarehouseReadRuntime } = require("../src/services/footballWarehouse/readRuntime");
+    const config = require("./config");
+    const { getUsageBundle, resolveGsis } = require("./services/playerUsage");
+    const { getWarehouseUsageBundle } = require("./services/footballWarehouse/warehouseUsageBundle");
+    const { createWarehouseReadRuntime } = require("./services/footballWarehouse/readRuntime");
 
     // Fail closed: a missing or wrong warehouse credential is an error here, never a silent skip.
     runtime = createWarehouseReadRuntime({ env: { ...env, FOOTBALL_DATA_MODE: "warehouse" }, Pool });
