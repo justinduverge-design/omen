@@ -2,7 +2,7 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { parseArgs, runParity, readOnlySupabase, percentile } = require("../scripts/warehouse-shadow-parity");
+const { parseArgs, runParity, readOnlySupabase, percentile } = require("../src/omen_warehouse_shadow_parity");
 
 const summary = (targets = 4) => ({
   games: 1, targets_per_game: targets, receptions_per_game: 2, carries_per_game: 0,
