@@ -22,7 +22,10 @@ push_status() {
     http://100.98.81.0:3001/api/push/*|https://*/api/push/*) ;;
     *) return 0 ;;
   esac
-  config="url = \"${url}&status=${status}&msg=${message}&ping=\""
+  # Kuma's copy button yields "<push>?status=up&msg=OK&ping="; appending a second status would make the
+  # query an array and mark every push down, so rebuild the query from the bare push endpoint.
+  url="${url%%\?*}"
+  config="url = \"${url}?status=${status}&msg=${message}&ping=\""
   printf '%s\n' "$config" | curl --config - --fail --silent --show-error --max-time 20 >/dev/null 2>&1 || true
 }
 
