@@ -32,6 +32,12 @@ const INPUTS_SQL = `
 
 const QB_SQL = "SELECT player_id, gsis_id FROM football.football_players WHERE football_position = 'QB' AND gsis_id IS NOT NULL";
 
+const IDENTITY_SQL = `
+  SELECT (SELECT md5(COALESCE(string_agg(player_id || ':' || gsis_id, ',' ORDER BY player_id), ''))
+            FROM football.football_players WHERE football_position = 'QB' AND gsis_id IS NOT NULL) AS qb_hash,
+         (SELECT md5(COALESCE(string_agg(game_id || ':' || game_type, ',' ORDER BY game_id), ''))
+            FROM football.nfl_games WHERE season = $1) AS games_hash`;
+
 function playFromRow(row) {
   return {
     passerId: row.passer_player_id, rusherId: row.rusher_player_id, epa: row.epa, cpoe: row.cpoe,
@@ -53,10 +59,16 @@ function createRatQbRunner({ pool, transactionTimeouts } = {}) {
         week,
         async resolveInputs(client) {
           const result = await client.query({ name: "rat-qb-inputs-v1", text: INPUTS_SQL, values: [season, week] });
+          // The grade also depends on who counts as a QB (gsis_id + position) and on which games
+          // are regular season. Hash both into the input identity so a crosswalk or schedule
+          // change forces a recompute instead of an "unchanged" result.
+          const identity = await client.query({ name: "rat-qb-identity-v1", text: IDENTITY_SQL, values: [season] });
           return {
             ingestEventIds: result.rows.map((row) => Number(row.ingest_event_id)),
             parameters: {
               ...metricConstants(),
+              qb_crosswalk_hash: identity.rows[0].qb_hash,
+              game_types_hash: identity.rows[0].games_hash,
               scope: { season_type: "REG", through_week: week },
               play_count: result.rows.reduce((sum, row) => sum + row.play_count, 0),
             },

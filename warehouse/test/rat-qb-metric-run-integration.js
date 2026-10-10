@@ -66,6 +66,22 @@ async function seed(pool) {
            CASE WHEN j <= 50 THEN 'omen:player:qb1' ELSE 'omen:player:wr1' END, 'pass', 5.0,
            jsonb_build_object('qb_dropback', '1', 'pass_attempt', '1'), $1
       FROM generate_series(1, 100) j`, [pbp]);
+  // Edge plays for QB 10 (the loop above gave it 110 dropbacks, 10 designed rushes, 8 sacks):
+  // a scramble, a spike, a kneel, a sack the QB fumbled and lost, and a catch the receiver fumbled.
+  await pool.query(`
+    INSERT INTO football.nfl_plays (season, game_id, play_id, week, posteam_id, defteam_id, passer_player_id,
+                                    rusher_player_id, play_type, epa, cpoe, source_row, ingest_event_id)
+    VALUES
+      (2025, '2025_10_BUF_MIA', 2001, 10, 'omen:team:buf', 'omen:team:mia', NULL, 'omen:player:qb10', 'run', 0.5, NULL,
+       '{"qb_dropback":"1","qb_scramble":"1","rush_attempt":"1","pass_attempt":"0","sack":"0","interception":"0","fumble_lost":"0"}', $1),
+      (2025, '2025_10_BUF_MIA', 2002, 10, 'omen:team:buf', 'omen:team:mia', 'omen:player:qb10', NULL, 'qb_spike', -0.1, NULL,
+       '{"qb_dropback":"1","qb_spike":"1","pass_attempt":"1","sack":"0","interception":"0","fumble_lost":"0"}', $1),
+      (2025, '2025_10_BUF_MIA', 2003, 10, 'omen:team:buf', 'omen:team:mia', NULL, 'omen:player:qb10', 'qb_kneel', -0.4, NULL,
+       '{"qb_dropback":"0","qb_kneel":"1","rush_attempt":"1","sack":"0","interception":"0","fumble_lost":"0"}', $1),
+      (2025, '2025_10_BUF_MIA', 2004, 10, 'omen:team:buf', 'omen:team:mia', 'omen:player:qb10', NULL, 'pass', -2.5, NULL,
+       '{"qb_dropback":"1","sack":"1","pass_attempt":"0","interception":"0","fumble_lost":"1","fumbled_1_player_id":"00-0000010"}', $1),
+      (2025, '2025_10_BUF_MIA', 2005, 10, 'omen:team:buf', 'omen:team:mia', 'omen:player:qb10', NULL, 'pass', 0.0, 1.0,
+       '{"qb_dropback":"1","sack":"0","pass_attempt":"1","interception":"0","fumble_lost":"1","fumbled_1_player_id":"00-0000999"}', $1)`, [pbp]);
   return { pbp };
 }
 
@@ -107,7 +123,16 @@ async function main() {
     const qb1 = values.rows.find((r) => r.entity_id === "omen:player:qb1");
     assert.equal(qb1.components.dropbacks, 110);
     assert.equal(qb1.components.designed_rushes, 10);
-    assert.equal(values.rows[0].entity_id, "omen:player:qb10", "best constructed QB ranks first");
+    // Edge plays end to end for QB 10: +1 scramble, +1 sack-fumble, +1 receiver-fumble catch = 113 dropbacks;
+    // spike and kneel excluded; scramble is not a designed rush; only the QB's own fumble is charged.
+    const qb10 = values.rows.find((r) => r.entity_id === "omen:player:qb10").components;
+    assert.equal(qb10.dropbacks, 113);
+    assert.equal(qb10.sacks, 9);
+    assert.equal(qb10.fumbles_lost, 1);
+    assert.equal(qb10.interceptions, 0);
+    assert.equal(qb10.designed_rushes, 10);
+    // QB 10's edge plays (sack-fumble) cost it the top spot to QB 9; both stay at the top.
+    assert.ok(["omen:player:qb9", "omen:player:qb10"].includes(values.rows[0].entity_id), "best constructed QBs rank first");
 
     // 2. Identical rerun is unchanged and does not duplicate anything.
     const again = await runner.run({ season: 2025 });
@@ -117,6 +142,17 @@ async function main() {
       `SELECT (SELECT count(*)::integer FROM football.football_metric_runs WHERE metric_name='omen_qb_grade' AND week IS NULL) AS null_week_runs,
               (SELECT count(*)::integer FROM football.football_metric_values WHERE metric_run_id=$1) AS value_rows`, [first.metricRunId]);
     assert.deepEqual(counts.rows[0], { null_week_runs: 1, value_rows: QB_COUNT });
+
+    // 2b. A QB crosswalk change must defeat the "unchanged" shortcut, and reverting must recompute again.
+    await pool.query("UPDATE football.football_players SET football_position='WR' WHERE player_id='omen:player:qb1'");
+    const crosswalk = await runner.run({ season: 2025 });
+    assert.equal(crosswalk.state, "succeeded");
+    assert.equal(crosswalk.metricRunId, first.metricRunId);
+    assert.equal(crosswalk.valueCount, QB_COUNT - 1);
+    await pool.query("UPDATE football.football_players SET football_position='QB' WHERE player_id='omen:player:qb1'");
+    const restored = await runner.run({ season: 2025 });
+    assert.equal(restored.state, "succeeded");
+    assert.equal(restored.valueCount, QB_COUNT);
 
     // 3. A week-limited run is its own row; 5 qualified QBs is below the cohort minimum, so it stores no values.
     const early = await runner.run({ season: 2025, week: 5 });
@@ -152,6 +188,14 @@ async function main() {
       `SELECT r.state, (SELECT count(*)::integer FROM football.football_metric_values v WHERE v.metric_run_id = r.id) AS n
          FROM football.football_metric_runs r WHERE r.id=$1`, [first.metricRunId]);
     assert.deepEqual(survivor.rows[0], { state: "succeeded", n: QB_COUNT });
+
+    // 6b. Two simultaneous null-week runs leave exactly one run row.
+    await pool.query("DELETE FROM football.football_metric_runs WHERE metric_name='omen_qb_grade' AND season=2025 AND week IS NULL");
+    const racers = await Promise.all([runner.run({ season: 2025 }), runner.run({ season: 2025 })]);
+    assert.deepEqual(racers.map((r) => r.state).sort(), ["succeeded", "unchanged"]);
+    assert.equal(racers[0].metricRunId, racers[1].metricRunId);
+    const raced = await pool.query("SELECT count(*)::integer n FROM football.football_metric_runs WHERE metric_name='omen_qb_grade' AND season=2025 AND week IS NULL");
+    assert.equal(raced.rows[0].n, 1);
 
     // 7. The schema rejects a metric name outside the omen_ namespace.
     await assert.rejects(pool.query(

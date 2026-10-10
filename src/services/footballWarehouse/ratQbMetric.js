@@ -22,11 +22,11 @@ const GRADE_POINTS_PER_SD = 10;
 // is unfitted (equal). `shrinkK` is the pseudo-observation count pulling the
 // component toward the qualified-cohort pooled mean: shrunk = (n*x + k*mu)/(n + k).
 const COMPONENTS = Object.freeze([
-  Object.freeze({ key: "epa_per_dropback", sign: 1, weight: 0.2, shrinkK: 150, unit: "dropbacks" }),
-  Object.freeze({ key: "cpoe", sign: 1, weight: 0.2, shrinkK: 250, unit: "pass attempts with cpoe" }),
-  Object.freeze({ key: "sack_avoidance_rate", sign: 1, weight: 0.2, shrinkK: 300, unit: "dropbacks" }),
-  Object.freeze({ key: "turnover_rate", sign: -1, weight: 0.2, shrinkK: 500, unit: "dropbacks" }),
-  Object.freeze({ key: "rush_epa", sign: 1, weight: 0.2, shrinkK: 100, unit: "designed QB rushes" }),
+  Object.freeze({ key: "epa_per_dropback", sign: 1, weight: 0.2, shrinkK: 150 }),
+  Object.freeze({ key: "cpoe", sign: 1, weight: 0.2, shrinkK: 250 }),
+  Object.freeze({ key: "sack_avoidance_rate", sign: 1, weight: 0.2, shrinkK: 300 }),
+  Object.freeze({ key: "turnover_rate", sign: -1, weight: 0.2, shrinkK: 500 }),
+  Object.freeze({ key: "rush_epa", sign: 1, weight: 0.2, shrinkK: 100 }),
 ]);
 
 const ROUND_DIGITS = 6;

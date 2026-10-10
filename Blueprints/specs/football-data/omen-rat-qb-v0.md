@@ -79,7 +79,7 @@ The run row's `parameters` hold the constants, the scope, the play count and (un
 
 - Advisory lock per `(metric, version, season, week)` (week null included); the lock is what prevents duplicate null-week rows, because the table's unique constraint treats nulls as distinct.
 - One transaction: row set to `running`, values written, row set to `succeeded`. On failure the transaction rolls back and a `failed` row with a safe error code is recorded; a failure never overwrites a previously `succeeded` run.
-- **Idempotent:** a rerun whose input ingest events and base parameters equal the stored run returns `unchanged` and writes nothing. A re-ingest of play-by-play (new ingest event) recomputes into the same run row and repoints its inputs. A change to the constants changes `parameters` and recomputes. A change to the formula itself needs a new `formula_version`.
+- **Idempotent:** a rerun whose input ingest events and base parameters equal the stored run returns `unchanged` and writes nothing. The base parameters include hashes of the QB crosswalk (`gsis_id` + `football_position`) and of the season's `nfl_games.game_type` values, so a crosswalk or schedule change recomputes. A re-ingest of play-by-play (new ingest event) recomputes into the same run row and repoints its inputs. A change to the constants changes `parameters` and recomputes. A change to the formula itself needs a new `formula_version`.
 - No play-by-play for the season: fails with code `no_inputs`.
 
 ## Limits (state them so nobody over-reads a grade)

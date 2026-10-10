@@ -78,6 +78,7 @@ function createMetricRunWriter({ pool, transactionTimeouts } = {}) {
       const key = lockKey(metricName, formulaVersion, season, week);
       const client = await pool.connect();
       let began = false;
+      let broken = null; // a failed ROLLBACK means the connection is untrustworthy: destroy it, do not pool it
       try {
         await client.query("BEGIN"); began = true;
         await setLocalTransactionTimeouts(client, timeouts);
@@ -128,7 +129,7 @@ function createMetricRunWriter({ pool, transactionTimeouts } = {}) {
         await client.query("COMMIT");
         return { state: "succeeded", metricRunId: Number(runId), valueCount: rows.length, summary };
       } catch (error) {
-        if (began) try { await client.query("ROLLBACK"); } catch {}
+        if (began) try { await client.query("ROLLBACK"); } catch (rollbackError) { broken = rollbackError; }
         const safe = safeFailure(error);
         // A failure never overwrites a previously succeeded run: its values are still valid.
         await runBoundedFailureReceipt(client, async () => {
@@ -140,7 +141,7 @@ function createMetricRunWriter({ pool, transactionTimeouts } = {}) {
         });
         throw new MetricRunError(safe.code, safe.summary, { cause: error });
       } finally {
-        client.release();
+        client.release(broken || undefined);
       }
     },
   };
