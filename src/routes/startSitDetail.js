@@ -35,7 +35,8 @@ const {
   CONTRACT_VERSION_V2,
   buildStartSitDetail,
 } = require("../services/startSitDetail");
-const { getUsageBundle } = require("../services/playerUsage");
+const { getUsageBundle, resolveGsis } = require("../services/playerUsage");
+const { getSeasonBundle } = require("../services/fantasyMetrics/fantasyMetricsData");
 const { createFailSafeWarehouseReadRuntime } = require("../services/footballWarehouse/readRuntime");
 const { createUsageShadowRunner } = require("../services/footballWarehouse/usageShadow");
 const { getWarehouseUsageBundle } = require("../services/footballWarehouse/warehouseUsageBundle");
@@ -77,6 +78,22 @@ function detailError({ code, message, action, platform = null }) {
     action,
     ...(platform ? { platform } : {}),
   };
+}
+
+// Omen's own stats (beta slice): the cached nflverse season bundle plus the roster's gsis ids. Any
+// failure is null and the response simply carries no metric lines.
+async function loadFantasyMetrics({ supabase, rosterKeys, season }) {
+  try {
+    if (!supabase || !rosterKeys.length || !Number.isInteger(season)) return null;
+    const [bundle, gsisByKey] = await Promise.all([
+      getSeasonBundle({ season, log: logger }),
+      resolveGsis(supabase, rosterKeys),
+    ]);
+    return bundle ? { bundle, gsisByKey } : null;
+  } catch (error) {
+    logger.warn("fantasy metrics skipped", { reason: error.message });
+    return null;
+  }
 }
 
 function scoringFormatFromSleeperLeague(league) {
@@ -254,12 +271,14 @@ router.get("/detail", requireAuth, async (req, res, next) => {
     const breakdowns = suppressLiveFootballData()
       ? null
       : await loadProjectionBreakdowns({ connection, loaded, season: Number(context.season), week: Number(resolvedWeek) });
+    const fantasyMetrics = suppressLiveFootballData() ? null : await loadFantasyMetrics({ supabase, rosterKeys, season: Number(context.season) });
 
     return res.json(buildStartSitDetail({
       usage,
       weeklyUsage,
       teamSystem,
       breakdowns,
+      fantasyMetrics,
       roster: loaded.roster,
       platform: connection.platform,
       leagueId: connection.league_id,

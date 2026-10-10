@@ -18,6 +18,7 @@ const path = require("node:path");
 const { START_SIT, WAIVER, MOVE_DETAIL } = require("../src/services/evidenceVocabulary");
 const { buildEvidence } = require("../src/services/startSitDetail");
 const { breakdownEvidence } = require("../src/services/projectionBreakdown");
+const { fantasyMetricsEvidence, gameEnvironmentEvidence } = require("../src/services/fantasyMetrics/fantasyMetricsLines");
 const { evidenceFor } = require("../src/services/waiverAnalysis");
 const moves = require("../src/routes/moves");
 
@@ -75,6 +76,23 @@ test("start-sit evidence: every row from the real builder is in the vocabulary",
   const bare = buildEvidence({ start: player("a", "Alpha"), sit: player("b", "Beta"), delta: 0.5, scoringFormat: null });
   for (const r of bare) seen.add(r.category);
   assertInside(bare, START_SIT, "bare start-sit");
+
+  // Omen's own stats (beta slice): a minimal season bundle emits omen_metric and game_environment.
+  const line = { receiving_receptions: 5, receiving_yards: 60 };
+  const rollups = [1, 2, 3].map((week) => ({
+    player: "G1", week, team: "SEA", targets: 6, carries: 0, expected: line, actual: line, fallbackPlays: 0,
+    opportunity: { rz_targets: 1, i10_targets: 0, ez_targets: 0, deep_targets: 0, rz_carries: 0, i10_carries: 0, gl_carries: 0 },
+  }));
+  const bundle = {
+    byPlayer: new Map([["G1", rollups]]), byTeam: new Map([["SEA", rollups]]), teamWeeks: new Map([["SEA", [1, 2, 3]]]),
+    positions: new Map([["G1", "WR"]]), names: new Map(), games: [{ week: 4, home: "SEA", away: "DEN", spread: 3, total: 44 }],
+  };
+  const metrics = buildEvidence({
+    start: player("a", "Alpha"), sit: player("b", "Beta"), delta: 3, scoringFormat: null,
+    fantasyMetrics: { bundle, gsisByKey: new Map([["a", "G1"]]), week: 4 },
+  });
+  for (const r of metrics) seen.add(r.category);
+  assertInside(metrics, START_SIT, "start-sit with fantasy metrics");
   assert.deepEqual([...seen].sort(), [...START_SIT.categories].sort(), "vocabulary lists a category the builder never emits, or the test misses a branch");
 });
 
@@ -107,7 +125,7 @@ test("move-detail code-built evidence is in the vocabulary", () => {
 });
 
 test("literal category/kind strings in the evidence builders' source are all listed", () => {
-  assertLiteralsInside([buildEvidence, breakdownEvidence], START_SIT, "start-sit");
+  assertLiteralsInside([buildEvidence, breakdownEvidence, fantasyMetricsEvidence, gameEnvironmentEvidence], START_SIT, "start-sit");
   assertLiteralsInside([evidenceFor], WAIVER, "waiver");
   assertLiteralsInside([moves.evidenceAtTheTime, moves.decisionEvidence], MOVE_DETAIL, "move-detail");
 });

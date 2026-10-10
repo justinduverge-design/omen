@@ -15,7 +15,7 @@ const freeze = (list) => Object.freeze([...list]);
 const START_SIT = Object.freeze({
   categories: freeze([
     "league_fact", "player_game_fact", "points_breakdown", "recent_usage", "team_system",
-    "current_status", "omen_inference", "limitation",
+    "current_status", "omen_inference", "limitation", "omen_metric", "game_environment",
   ]),
   kinds: freeze(["verified", "projection", "projected", "observed_context", "inference", "limitation"]),
 });
