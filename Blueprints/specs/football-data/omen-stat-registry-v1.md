@@ -24,13 +24,13 @@ The founder wants the headline stats to have names. **Every name below is a prop
   `slops-ux-copy`.
 - **Internal IDs never change**, so a renamed stat needs no rebuild.
 
-**Position ratings family (§3), two options for the founder:**
+**Position ratings family (§3): founder decision 2026-10-10.** One family name, tied to Omen ("Augur"
+rejected). The working name is **Omen Grade** (e.g. "QB Omen Grade 87", "OL Omen Grade 61").
+- Alternatives for the founder: Omen Score, Omen Mark, OmenRank.
+- The name is a display string only; IDs `RAT-*` never change.
 
-- **(A) One family name:** "**Augur** rating" (an augur reads the signs), e.g. "QB Augur 87", "WR Augur 74",
-  "OL Augur 61". Scales to every position group.
-- **(B) Each position its own name.** More flavour, harder to learn, and every new group needs a new name.
-
-Recommendation: (A).
+**Founder, 2026-10-10:** the other proposed names are approved as working names ("the names are ok"). They still
+pass through `slops-ux-copy` wording review before release copy is locked.
 
 ## 2. The registry
 
@@ -136,11 +136,11 @@ Recommendation: (A).
 
 | ID | Proposed name | Group |
 |---|---|---|
-| `RAT-QB` `RAT-RB` `RAT-WR` `RAT-TE` `RAT-K` | **Augur** ratings | individual skill positions and kickers |
-| `RAT-DST` | **Augur** rating | team defence (fantasy) |
-| `RAT-OLP` `RAT-OLR` | **Augur** ratings | offensive line: pass protection, run blocking (unit) |
-| `RAT-PR` `RAT-RD` `RAT-CVS` `RAT-CVD` | **Augur** ratings | pass rush, run defence, short coverage, deep coverage (unit) |
-| `RAT-DL` `RAT-LB` `RAT-DB` | **Augur** ratings | individual defensive players (IDP leagues) |
+| `RAT-QB` `RAT-RB` `RAT-WR` `RAT-TE` `RAT-K` | **Omen Grade** | individual skill positions and kickers |
+| `RAT-DST` | **Omen Grade** | team defence (fantasy) |
+| `RAT-OLP` `RAT-OLR` | **Omen Grade** | offensive line: pass protection, run blocking (unit) |
+| `RAT-PR` `RAT-RD` `RAT-CVS` `RAT-CVD` | **Omen Grade** | pass rush, run defence, short coverage, deep coverage (unit) |
+| `RAT-DL` `RAT-LB` `RAT-DB` | **Omen Grade** | individual defensive players (IDP leagues) |
 
 ## 3. Position ratings: "a QBR for every position group"
 
@@ -160,7 +160,7 @@ Recommendation: (A).
   - Each 10 points ≈ one standard deviation of the fitted composite.
   - Qualification minimums are per group (e.g. QB ≥ 100 dropbacks).
   - Below the minimum, the rating is shown as "not enough snaps yet".
-- **Every rating shows its components** ("QB Augur 87: elite against the blitz, below average under
+- **Every rating shows its components** ("QB Omen Grade 87: elite against the blitz, below average under
   pressure"), and FTN-based components are labelled and credited per T §2.
 
 ### 3.2 Components per group
@@ -218,11 +218,28 @@ FND (M1) ──► ROL ──► OUT-02, TRD (T1) ──► MCH ──► RAT (R
 6. C items
 7. dynasty layers after the 1999+ backfill
 
-## 5. Open decisions (the only things that could change definitions later)
+## 5. Draft foundations (later: in-season late or offseason; not built now)
+
+The founder asked for the foundations a future draft tool would need, without going deep. Product rule 8
+(`Direction/map.md`): the draft tool is a 2027 feature and is never named in the app, store metadata,
+onboarding or navigation. These are internal stat definitions only.
+
+| ID | Working name | What it measures | Reuses | Open question |
+|---|---|---|---|---|
+| `DRF-01` | Season value over replacement | full-season value by league size, slots and scoring | VAL-01/02 logic on season outlooks | which season projection (provider preseason or Omen-built) |
+| `DRF-02` | Tiers | natural breaks in DRF-01 within each position | DRF-01 | none |
+| `DRF-03` | Average draft position | where players are being drafted | — | **needs its own source-rights review** (the 2026-08-24 review: ADP requires one); `Direction/context.md` says a Slops-built ADP |
+| `DRF-04` | Value against ADP | DRF-01 rank against DRF-03 rank (bargains and reaches) | DRF-01, DRF-03 | depends on DRF-03 |
+| `DRF-05` | Rookie outlook | draft capital, landing-spot Open Field, room age | DYN-01..03 | no college stats source is admitted |
+| `DRF-06` | Season schedule strength | full-season Road ahead | LGE-04 | none |
+
+Everything here reuses registry stats, so building the in-season stats now is also the draft groundwork.
+
+## 6. Open decisions (the only things that could change definitions later)
 
 | ID | Decision | Options | Default until decided |
 |---|---|---|---|
-| D-NAMES | stat names | approve, change or reject each proposed name | internal IDs only in code; no names in the app |
-| D-RATING-FAMILY | position ratings naming | (A) one family "Augur" / (B) a name per position | (A) in docs only |
-| D-CROWN | show title-odds change as a number, or only as bands and words | number / band only | band only (fact 16 posture) |
-| D-IDP | build IDP ratings in R1, or only when IDP leagues are seen among users | R1 / later | later; unit ratings in R1 |
+| D-NAMES | stat names | **decided 2026-10-10:** approved as working names; copy review before release | — |
+| D-RATING-FAMILY | position ratings naming | **decided 2026-10-10:** one family tied to Omen; working name "Omen Grade" (alternatives: Omen Score, Omen Mark, OmenRank) | "Omen Grade" |
+| D-CROWN | show title-odds change as a number, or only as bands and words | **decided 2026-10-10:** a number may be shown ("title contention can have a number attached"). Call confidence stays a band (fact 16). | — |
+| D-IDP | build IDP ratings in R1, or later | **decided 2026-10-10:** build IDP in R1 | — |

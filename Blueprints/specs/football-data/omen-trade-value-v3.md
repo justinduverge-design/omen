@@ -126,10 +126,8 @@ thresholds are parameters fitted in §8.
 - **Facts-of-record fact 16:** confidence is a band, never a percentage.
 - **Omen issues no trade call where a provider won't give it the other rosters.** v3 needs every roster and
   the schedule; without them, no Crown Odds and no trade call.
-- **Open decision D-CROWN** (registry §5): may the change in title odds be shown as a number (e.g. "+6 points
-  of title odds"), or only as a band and words ("raises your title chances a lot")?
-  - The rule as written is about the confidence of a call, not about odds.
-  - Until the founder decides, odds are shown only as bands and words.
+- **D-CROWN, decided 2026-10-10:** title contention may carry a number (e.g. "title odds 18% → 24%"). The
+  confidence of the call itself stays a band (fact 16).
 
 ## 6. Dynasty and keeper leagues (decision 6)
 

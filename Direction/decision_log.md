@@ -1,5 +1,18 @@
 # Omen Decision Log
 
+## 2026-10-10 — registry decisions: Omen-tied rating name, title odds as a number, IDP now, draft groundwork
+
+- **Founder decisions:**
+  - "Augur" rejected. Position ratings take one family name tied to Omen; working name **Omen Grade**
+    (alternatives listed in the registry).
+  - The other proposed stat names are approved as working names.
+  - **Title contention may carry a number** (D-CROWN). The confidence of a call stays a band (fact 16).
+  - **IDP ratings are built in R1** (D-IDP).
+  - Lay light foundations for a later draft tool. Registry §5 (`DRF-01`..`06`) holds internal definitions
+    only, per product rule 8. ADP needs its own source-rights review.
+- **Timing (founder):** these stats are for beta users to critique, ideally usable by Tuesday 2026-10-13.
+  Draft stats are not needed now.
+
 ## 2026-10-10 — trade value v3 is "title odds", the stat registry is the single list
 
 - **Decisions (founder), applied in `Blueprints/specs/football-data/omen-trade-value-v3.md`:**
