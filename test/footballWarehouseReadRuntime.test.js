@@ -177,3 +177,15 @@ test("an idle warehouse connection dropping never crashes the API: the pool erro
   assert.deepEqual(events, [{ event: "football_warehouse_read_pool", outcome: "idle_client_error" }]);
   assert.equal(JSON.stringify(events).includes("do-not-print"), false);
 });
+
+test("an invalid FOOTBALL_DATA_MODE stops startup instead of silently disabling the route", () => {
+  const { assertFootballDataModeAtStartup } = require("../src/services/footballWarehouse/readRuntime");
+  const logged = [];
+  const exits = [];
+  const logger = { error: (message, meta) => logged.push([message, meta]) };
+  assertFootballDataModeAtStartup({ env: { FOOTBALL_DATA_MODE: "warehose" }, logger, exit: (code) => exits.push(code) });
+  assert.deepEqual(exits, [1]);
+  assert.match(logged[0][0], /refusing to start/);
+  assert.equal(assertFootballDataModeAtStartup({ env: {}, logger, exit: () => assert.fail("must not exit") }), "supabase");
+  assert.equal(assertFootballDataModeAtStartup({ env: { FOOTBALL_DATA_MODE: "shadow" }, logger, exit: () => assert.fail("must not exit") }), "shadow");
+});
