@@ -2,6 +2,8 @@
 
 const { setLocalTransactionTimeouts, validateTransactionTimeouts } = require("./transactionTimeouts");
 
+// Only play_type pass/run count: nflverse labels kneels and spikes as separate play_type values, while
+// fatedPoints.js excludes them by flag, so the two agree except for the rare flagged run/pass.
 // football.nfl_player_weekly_opportunity is derived inside the warehouse from football.nfl_plays.source_row.
 // The rules are the ones in src/services/nflverseFacts.js buildOpportunity (pass with a receiver, run with a
 // rusher; two-point tries and plays without a yardline are skipped; red zone <=20, inside-10 <=10, goal-line
@@ -87,6 +89,16 @@ SELECT count(*)::integer AS compared_rows,
     FROM live WHERE outlier ORDER BY week, player_id LIMIT 10) sample), '[]'::jsonb) AS outlier_sample
 FROM live`;
 
+// Plays the derivation cannot count: a source id the player crosswalk dropped (column NULL), or no usable yardline.
+const SKIPPED_SQL = `
+SELECT
+  (count(*) FILTER (WHERE (play_type = 'pass' AND receiver_player_id IS NULL AND btrim(coalesce(source_row->>'receiver_player_id', '')) NOT IN ('', 'NA'))
+                       OR (play_type = 'run' AND rusher_player_id IS NULL AND btrim(coalesce(source_row->>'rusher_player_id', '')) NOT IN ('', 'NA'))))::integer AS crosswalk_dropped_plays,
+  (count(*) FILTER (WHERE ((play_type = 'pass' AND receiver_player_id IS NOT NULL) OR (play_type = 'run' AND rusher_player_id IS NOT NULL))
+                       AND source_row->>'season_type' IN ('REG', 'POST') AND source_row->>'two_point_attempt' IS DISTINCT FROM '1'
+                       AND NOT (btrim(source_row->>'yardline_100') ~ ${NUMBER})))::integer AS missing_yardline_plays
+FROM football.nfl_plays WHERE season = $1 AND week IS NOT NULL`;
+
 const COLUMNS = "week,season_type,player_id,team_id,carries,targets,red_zone_carries,red_zone_targets,inside_10_touches,inside_5_touches,end_zone_targets,deep_targets,details,ingest_event_id";
 
 function safeCode(error) {
@@ -108,18 +120,21 @@ function createPlayerWeeklyOpportunityWriter({ pool, transactionTimeouts, maxOut
     if (!Number.isInteger(season) || season < 1999 || season > 2100) throw new TypeError("season is invalid");
     const client = await pool.connect(); let began = false;
     try {
-      await client.query("BEGIN"); began = true; await setLocalTransactionTimeouts(client, timeouts);
+      await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ"); began = true; await setLocalTransactionTimeouts(client, timeouts);
       await client.query({ name: `warehouse-${DATASET}-lock-v1`, text: "SELECT pg_advisory_xact_lock(hashtext($1),$2)", values: [DATASET, season] });
       const receipt = await client.query({ name: `warehouse-${DATASET}-receipt-v1`, text: "SELECT id FROM football.warehouse_ingest_events WHERE dataset='play_by_play' AND season=$1 AND state='succeeded' ORDER BY finished_at DESC, id DESC LIMIT 1", values: [season] });
       if (!receipt.rows.length) throw new PlayerWeeklyOpportunityError("play_by_play_receipt_missing", "no succeeded play-by-play receipt for the season");
       const ingestEventId = receipt.rows[0].id;
       await client.query("CREATE TEMP TABLE stage_nfl_player_weekly_opportunity (LIKE football.nfl_player_weekly_opportunity INCLUDING DEFAULTS) ON COMMIT DROP");
       await client.query(DERIVE_SQL, [season, ingestEventId]);
+      const present = await client.query({ text: "SELECT count(*)::integer AS n FROM football.nfl_player_weekly_stats WHERE season=$1", values: [season] });
+      if (!present.rows[0].n) throw new PlayerWeeklyOpportunityError("stats_missing", "no nfl_player_weekly_stats rows for the season");
+      const skipped = (await client.query({ text: SKIPPED_SQL, values: [season] })).rows[0];
       const stats = (await client.query(RECONCILE_SQL, [season, TOLERANCE])).rows[0];
       const reconciliation = {
         comparedRows: stats.compared_rows, outlierRows: stats.outlier_rows, missingStatsRows: stats.missing_stats_rows,
         missingPlayRows: stats.missing_play_rows, outlierRatio: stats.compared_rows ? stats.outlier_rows / stats.compared_rows : 0,
-        outlierSample: stats.outlier_sample, tolerance: TOLERANCE, maxOutlierRatio,
+        outlierSample: stats.outlier_sample, crosswalkDroppedPlays: skipped.crosswalk_dropped_plays, missingYardlinePlays: skipped.missing_yardline_plays, tolerance: TOLERANCE, maxOutlierRatio,
       };
       if (!stats.derived_rows) throw new PlayerWeeklyOpportunityError("opportunity_no_rows", "play-by-play produced no opportunity rows", reconciliation);
       if (stats.outlier_rows > maxOutlierRatio * stats.compared_rows) throw new PlayerWeeklyOpportunityError("opportunity_reconciliation_failed", "play-by-play disagrees with the weekly stat lines beyond tolerance", reconciliation);

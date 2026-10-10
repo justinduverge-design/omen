@@ -24,3 +24,12 @@ test("a season with no succeeded play-by-play receipt rolls back with a stable c
   assert.equal(pool.statements.at(-1), "ROLLBACK");
   assert.ok(!pool.statements.some((text) => /INSERT INTO football\.nfl_player_weekly_opportunity|DELETE FROM/.test(text)));
 });
+
+test("a season with no weekly stat rows fails with stats_missing before the guard or any write", async () => {
+  const pool = fakePool((text) => /FROM football\.warehouse_ingest_events/.test(text) ? { rows: [{ id: 7 }] }
+    : /FROM football\.nfl_player_weekly_stats WHERE season/.test(text) ? { rows: [{ n: 0 }] } : { rows: [] });
+  await assert.rejects(createPlayerWeeklyOpportunityWriter({ pool }).writeSeason({ season: 2026 }), (error) => error.code === "stats_missing");
+  assert.equal(pool.statements[0], "BEGIN ISOLATION LEVEL REPEATABLE READ");
+  assert.equal(pool.statements.at(-1), "ROLLBACK");
+  assert.ok(!pool.statements.some((text) => /DELETE FROM/.test(text)));
+});
