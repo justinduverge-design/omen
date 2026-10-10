@@ -99,3 +99,12 @@ test("scheduled backup and restore use separate timers, pinned trust, and clean 
   assert.match(restoreTimer, /OnCalendar=Sun \*-\*-\* 14:00:00 UTC/);
   assert.match(restoreTimer, /Persistent=true/);
 });
+
+test("credential proofs connect over the container's network address, not trusted loopback", () => {
+  const snapshot = fs.readFileSync(path.join(root, "create-snapshot.sh"), "utf8");
+  const provision = fs.readFileSync(path.join(root, "..", "provision-login-roles.sh"), "utf8");
+  for (const script of [snapshot, provision]) {
+    assert.match(script, /--host "\$\(hostname -i \| cut -d\\ {2}-f1\)" --port 5432/);
+    assert.doesNotMatch(script, /--host 127\.0\.0\.1/);
+  }
+});

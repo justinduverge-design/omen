@@ -187,7 +187,7 @@ for index in "${!roles[@]}"; do
     # never placed in docker argv/env, and the in-container passfile is removed by
     # the trap before docker exec returns.
     if ! docker exec --interactive "$container" sh -eu -c \
-        'probe="$(mktemp /tmp/omen-warehouse-login-probe.XXXXXX)"; trap '\''rm -f -- "$probe"'\'' EXIT; cat > "$probe"; chmod 0600 "$probe"; PGPASSFILE="$probe" psql --no-psqlrc --set ON_ERROR_STOP=1 --quiet --host 127.0.0.1 --port 5432 --username "$1" --dbname omen_football --tuples-only --no-align --command "select current_user"' \
+        'probe="$(mktemp /tmp/omen-warehouse-login-probe.XXXXXX)"; trap '\''rm -f -- "$probe"'\'' EXIT; cat > "$probe"; chmod 0600 "$probe"; PGPASSFILE="$probe" psql --no-psqlrc --set ON_ERROR_STOP=1 --quiet --host "$(hostname -i | cut -d\  -f1)" --port 5432 --username "$1" --dbname omen_football --tuples-only --no-align --command "select current_user"' \
         sh "$role" < "$probe" 2>/dev/null | grep -qx "$role"; then
       rm -f -- "$probe"
       echo "warehouse credential probe failed for $role" >&2
