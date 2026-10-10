@@ -196,3 +196,20 @@ test("rejects wrong seasons, invalid numerics and credential-bearing source URLs
     /opponent_team is empty/,
   );
 });
+
+test("a stray stat line with no team and no opponent is quarantined as unmatched, not fatal", () => {
+  const raw = rawCsv([csvRow(row()), csvRow(row({ player_id: "00-0001", week: "9", team: "", opponent_team: "" }))]);
+  const result = adaptPlayerWeeklyCsv(sourceArgs(raw));
+  assert.equal(result.rows.length, 1);
+  assert.equal(result.unmatchedRows, 1);
+  assert.equal(result.receipt.sourceRows, 2);
+  // A missing team alone, with a real opponent, is still a hard error.
+  assert.throws(() => adaptPlayerWeeklyCsv(sourceArgs(rawCsv([csvRow(row({ team: "" }))]))), /team is empty/);
+});
+
+test("historic franchise codes resolve to the current franchise", () => {
+  const { teamIdFor } = require("../src/services/footballIntelligence/nflTeams");
+  for (const [old, current] of [["ARZ", "ari"], ["BLT", "bal"], ["CLV", "cle"], ["HST", "hou"], ["SL", "la"], ["OAK", "lv"], ["SD", "lac"]]) {
+    assert.equal(teamIdFor(old), `omen:team:${current}`);
+  }
+});

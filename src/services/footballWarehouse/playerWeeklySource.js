@@ -199,6 +199,13 @@ function adaptPlayerWeeklyCsv({ raw, season, playerIdByGsis, sourceUrl, runId })
     if (keys.has(sourceKey)) throw new TypeError("CSV contains a duplicate player-week row");
     keys.add(sourceKey);
 
+    // nflverse's older seasons carry a stray stat line with no team and no opponent (e.g. 1999 week 9); there is
+    // nothing to attach it to, so it is quarantined and counted like any other unmatched row.
+    if (textOrNull(sourceRow.team) == null && textOrNull(sourceRow.opponent_team) == null) {
+      unmatched.push({ provider: "gsis", providerId: gsisId || null, season, week, reason: "team_missing" });
+      continue;
+    }
+
     const playerId = gsisId ? playerIdByGsis.get(gsisId) : null;
     if (!playerId) {
       unmatched.push({
