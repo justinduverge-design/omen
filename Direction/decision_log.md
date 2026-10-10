@@ -1,5 +1,21 @@
 # Omen Decision Log
 
+## 2026-10-10 — trend evidence uses FTN charting (option A), on the football-intelligence path
+
+- **Decision (founder):** play-type splits use FTN charting (box count, blitz, pass rushers, play-action,
+  motion, screen, RPO, catchable ball) as well as play-by-play. FTN-derived output is labelled
+  `ftn_derived`, carries CC BY-SA 4.0 and "FTN Data via nflverse", and is stored on the
+  football-intelligence serving path, not in the warehouse, so the warehouse's nflverse-only `rights_basis`
+  is unchanged. Spec: `Blueprints/specs/football-data/omen-trend-evidence-v1.md`; sprint item `FM-TREND`.
+- **Decision (founder):** "keep it all in the same stack": the fantasy metrics spec, the trend evidence
+  spec and the stats-and-scenarios catalogue ship together in one PR.
+- **Design choices:**
+  - Trends are labelled coincidence / correlation / likely cause by fixed tests (stickiness, a confounder
+    check, a dated event from data Omen holds), never by judgement.
+  - A broad claim is suppressed when a context matching this week's opponent credibly points the other way
+    (the "curveball" rule).
+  - "Likely cause" is the strongest label; cause is never claimed as proven.
+
 ## 2026-10-10 — build our own fantasy stats; no cap-space data in the warehouse
 
 - **Decision (founder):** answer the rights-excluded stats (Next Gen Stats, PFR advanced stats, ESPN QBR and

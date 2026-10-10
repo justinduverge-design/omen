@@ -44,6 +44,20 @@ founder, or store work.
 - **Done when (M1):** the backtest report is in `Direction/reviews/` and shows, per position, whether xFP beats
   the last-3-weeks baseline; the founder has read it before M2 is requested.
 
+### FM-TREND — Omen trend evidence v1: play-type splits, shrinkage, cause / correlation / coincidence
+
+- **Status:** READY
+- **Blocked by:** FOUNDER_APPROVAL — the spec; T2 and T3 each need their own yes (production write, deploy)
+- **Priority:** P1
+- **Cost:** large
+- **Depends on:** `FM-XFP` (the over-expected measure and the role chart)
+- **Do not touch:** `mobile/`; warehouse schema and `rights_basis` (FTN stays on the football-intelligence path)
+- **Scope:** `Blueprints/specs/football-data/omen-trend-evidence-v1.md`. Phase T1 is local only. Catalogue of
+  further stats and scenarios: `Direction/reviews/2026-10-10-fantasy-manager-stats-and-scenarios.md`.
+- **Done when (T1):** the trend backtest report is in `Direction/reviews/` and shows whether "likely cause"
+  trends persist more than "coincidence" trends, and whether matchup fit lowers next-week error; the founder
+  has read it before T2 is requested.
+
 ## Needs a decision
 
 - **T2-FindATradeGenerator** — every PR it cited has merged (list in the archive file), but it was never

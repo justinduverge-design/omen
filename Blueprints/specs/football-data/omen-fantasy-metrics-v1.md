@@ -46,8 +46,9 @@ Columns confirmed in the live 2026 nflverse files (2026-10-10):
 - **`players.csv`:** `birth_date`, `rookie_season`, `draft_year`, `draft_round`, `draft_pick`, `draft_team`.
 
 **Deliberately not used in v1:**
-- **FTN charting.** Its CC BY-SA share-alike term would pass on to derived output. FTN-based stats are a
-  v2 decision.
+- **FTN charting.** Its CC BY-SA share-alike term would pass on to derived output, so these metrics stay on
+  CC BY data. FTN is used for play-type splits in `omen-trend-evidence-v1.md` (founder, 2026-10-10,
+  option A), on the football-intelligence path.
 - **Snap counts.** Their rights review is still open.
 - **Cap space and contracts.** Founder decision 2026-10-10: the warehouse stays as it is.
 
