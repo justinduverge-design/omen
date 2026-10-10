@@ -3,6 +3,8 @@
 const DEFAULT_TIMEOUT_MS = 2_000;
 const BATCH_SIZE = 200;
 const MAX_REFS = 2_000;
+// A played regular-season week has hundreds of player lines; fewer means a partial ingest, so Pending.
+const MIN_WEEK_ROWS = 100;
 const PROVIDERS = new Set(["espn", "sleeper", "yahoo", "gsis"]);
 const PROVIDER_ID = /^[0-9A-Za-z_-]{1,64}$/;
 
@@ -32,7 +34,9 @@ function publicRefs(values) {
     }
     seen.set(refKey(ref.provider, ref.providerId), { provider: ref.provider, providerId: ref.providerId });
   }
-  if (seen.size > MAX_REFS) throw new RangeError(`refs exceeds the ${MAX_REFS}-player query limit`);
+  if (seen.size > MAX_REFS) {
+    throw Object.assign(new RangeError(`refs exceeds the ${MAX_REFS}-player query limit`), { code: "refs_cap_exceeded" });
+  }
   return [...seen.values()];
 }
 
@@ -54,15 +58,16 @@ function createWarehouseOutcomeRepository({ query, timeoutMs = DEFAULT_TIMEOUT_M
       const result = await query({
         name: "warehouse-week-ingested-v1",
         text: `
-          SELECT EXISTS (
+          SELECT count(*)::integer AS row_count FROM (
             SELECT 1 FROM football.nfl_player_weekly_stats
             WHERE season = $1 AND week = $2 AND season_type = 'REG'
-          ) AS ingested
+            LIMIT ${MIN_WEEK_ROWS}
+          ) AS sample
         `,
         values: [season, week],
         query_timeout: timeoutMs,
       });
-      return result?.rows?.[0]?.ingested === true;
+      return Number(result?.rows?.[0]?.row_count) >= MIN_WEEK_ROWS;
     },
 
     /**
@@ -110,4 +115,4 @@ function createWarehouseOutcomeRepository({ query, timeoutMs = DEFAULT_TIMEOUT_M
   };
 }
 
-module.exports = { createWarehouseOutcomeRepository, refKey, BATCH_SIZE };
+module.exports = { createWarehouseOutcomeRepository, refKey, BATCH_SIZE, MIN_WEEK_ROWS, MAX_REFS };

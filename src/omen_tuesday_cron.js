@@ -553,7 +553,11 @@ async function openWarehouseOutcomeRepository({ env, dependencies, Pool } = {}) 
     return { repository: dependencies.warehouseOutcomeRepository, close: async () => {} };
   }
   try {
-    if (footballDataMode(env) === "supabase") return { repository: null, close: async () => {} };
+    // Shadow must not make the warehouse authoritative for WRITTEN outcomes: scoring from it needs
+    // FOOTBALL_DATA_MODE=warehouse, or shadow plus the explicit OMEN_LEDGER_WAREHOUSE_SCORING=true (default off).
+    const mode = footballDataMode(env);
+    const optedIn = mode === "warehouse" || (mode === "shadow" && env.OMEN_LEDGER_WAREHOUSE_SCORING === "true");
+    if (!optedIn) return { repository: null, close: async () => {} };
     const runtime = createFailSafeWarehouseReadRuntime({
       env,
       Pool: Pool || require("pg").Pool,
@@ -570,7 +574,8 @@ async function openWarehouseOutcomeRepository({ env, dependencies, Pool } = {}) 
  * Compute what Ledger scoring WOULD record for a finished week, straight from the warehouse, and write
  * nothing. Read-only: it never calls saveDecisionOutcome and never falls back to the GitHub CSV, so what
  * the founder inspects is exactly the warehouse path. Returns counts plus one preview row per call (opaque
- * decision id, week, proposed state/result/provenance/summary); no user, league or provider values.
+ * decision id, week, proposed state/result/provenance/basis). Never a summary or player name, because those
+ * can carry a name; no user, league or provider values either.
  */
 async function previewLedgerOutcomes(supabase, { season, week, repository, dependencies = {} }) {
   if (!Number.isInteger(season) || !Number.isInteger(week) || week < 1 || week > 18) {
@@ -588,7 +593,7 @@ async function previewLedgerOutcomes(supabase, { season, week, repository, depen
     const outcome = gradeDecisionFromWarehouse(entry, found.get(entry.decision.id));
     if (!outcome) {
       counts.pending += 1;
-      return { decision_id: entry.decision.id, week, state: "pending", summary: "Week not in the warehouse yet." };
+      return { decision_id: entry.decision.id, week, state: "pending", basis: "week_not_in_warehouse" };
     }
     if (outcome.state === "resolved") counts.graded += 1;
     else counts[outcome.state] = (counts[outcome.state] || 0) + 1;
@@ -599,7 +604,7 @@ async function previewLedgerOutcomes(supabase, { season, week, repository, depen
       result: outcome.result || null,
       provenance: outcome.provenance,
       reconciliation_state: outcome.reconciliation_state || null,
-      summary: outcome.summary,
+      basis: found.get(entry.decision.id)?.kind || (outcome.state === "not_executed" ? "self_reported" : null),
     };
   });
   return { dryRun: true, written: 0, season, week, counts, preview };
@@ -643,7 +648,7 @@ async function scoreLedgerDecisions(supabase, {
     }
   } catch (error) {
     warehouseFound = null;
-    log.warn(`Warehouse outcome read failed; using the existing scoring path (${error.name})`);
+    log.warn(`Warehouse outcome read failed; using the existing scoring path (reason=${error.code || error.name})`);
   } finally {
     try { await warehouse.close(); } catch { /* closing a read pool must not fail scoring */ }
   }

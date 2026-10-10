@@ -32,7 +32,7 @@ function fakeQuery({ ingestedWeeks = [4], crosswalk = {}, lines = {}, fail = fal
     log.push(request);
     if (fail) throw new Error("warehouse down");
     if (request.name === "warehouse-week-ingested-v1") {
-      return { rows: [{ ingested: ingestedWeeks.includes(request.values[1]) }] };
+      return { rows: [{ row_count: ingestedWeeks.includes(request.values[1]) ? 100 : 7 }] };
     }
     const [providers, ids] = request.values;
     return {
@@ -222,4 +222,77 @@ test("the outcome repository batches 200 ids per query and rejects non-public id
   assert.equal(out.size, 450);
   assert.deepEqual(log.map((q) => q.values[0].length), [200, 200, 50]);
   await assert.rejects(() => repository.readWeekOutcomes({ refs: [{ provider: "sleeper", providerId: "a b; drop" }], season: 2026, week: 4 }), TypeError);
+});
+
+test("dry-run report never contains a player name or summary text", async () => {
+  const repository = createWarehouseOutcomeRepository({ query: fakeQuery({ crosswalk: CROSSWALK, lines: LINES }) });
+  const report = await cron.previewLedgerOutcomes({}, {
+    season: 2026, week: 4, repository,
+    dependencies: { fetchScorableDecisions: async () => [entry(legacyDecision("n1", "sleeper:111")), entry(legacyDecision("n2", "sleeper:999"))] },
+  });
+  const text = JSON.stringify(report);
+  assert.ok(!text.includes("Some Name"));
+  assert.ok(!text.includes("fantasy points"));
+  assert.ok(report.preview.every((row) => !("summary" in row)));
+});
+
+test("a partially ingested week (under 100 lines) stays Pending", async () => {
+  const repository = createWarehouseOutcomeRepository({ query: async () => ({ rows: [{ row_count: 99 }] }) });
+  assert.equal(await repository.isWeekIngested({ season: 2026, week: 4 }), false);
+});
+
+test("shadow does not make the warehouse authoritative; only warehouse mode or the explicit flag does", async () => {
+  const entries = [entry(legacyDecision("s1", "sleeper:111", { recommendation: { primary_player: { id: "sleeper:111", name: "Bench Breakout" } } }))];
+  const warnings = [];
+  const original = console.warn;
+  console.warn = (...args) => warnings.push(args.join(" "));
+  const run = async (env) => {
+    warnings.length = 0;
+    await cron.scoreLedgerDecisions({}, {
+      now: TUESDAY, env,
+      fetchScores: async () => ({ bench_breakout: { name: "Bench Breakout", rec_std: 12, rec_half: 14, rec_ppr: 16 } }),
+      dependencies: { fetchScorableDecisions: async () => entries, saveDecisionOutcome: async () => "inserted" },
+    });
+    return warnings.length;
+  };
+  try {
+    assert.equal(await run({ FOOTBALL_DATA_MODE: "shadow" }), 0, "shadow never tries the warehouse scorer");
+    assert.equal(await run({ FOOTBALL_DATA_MODE: "supabase", OMEN_LEDGER_WAREHOUSE_SCORING: "true" }), 0, "the flag only applies in shadow");
+    // Opted in but no reader credential: the attempt is made, fails closed, and falls back with a warning.
+    assert.ok(await run({ FOOTBALL_DATA_MODE: "warehouse" }) > 0);
+    assert.ok(await run({ FOOTBALL_DATA_MODE: "shadow", OMEN_LEDGER_WAREHOUSE_SCORING: "true" }) > 0);
+  } finally { console.warn = original; }
+});
+
+test("exceeding the ref cap is a logged fallback reason, not a crash", async () => {
+  const many = Array.from({ length: 2001 }, (_, i) => entry(legacyDecision(`c${i}`, `sleeper:${i}`)));
+  const saved = [];
+  const warnings = [];
+  const original = console.warn;
+  console.warn = (...args) => warnings.push(args.join(" "));
+  try {
+    await cron.scoreLedgerDecisions({}, {
+      now: TUESDAY, fetchScores: async () => ({}),
+      dependencies: {
+        fetchScorableDecisions: async () => many,
+        saveDecisionOutcome: async (_d, { decision }) => { saved.push(decision.id); return "inserted"; },
+        warehouseOutcomeRepository: createWarehouseOutcomeRepository({ query: fakeQuery() }),
+      },
+    });
+  } finally { console.warn = original; }
+  assert.ok(warnings.some((line) => line.includes("reason=refs_cap_exceeded")));
+});
+
+test("the dry-run CLI helpers: read-only Supabase and argument parsing", () => {
+  const { parseArgs, readOnlySupabase } = require("../src/omen_ledger_outcomes_dry_run");
+  const table = { select() { return this; }, insert() {}, update() {}, upsert() {}, delete() {} };
+  const ro = readOnlySupabase({ from: () => table });
+  for (const method of ["insert", "update", "upsert", "delete"]) assert.throws(() => ro.from("decisions")[method], /write not allowed/);
+  assert.throws(() => ro.rpc(), /rpc not allowed/);
+  assert.equal(typeof ro.from("decisions").select, "function");
+  assert.deepEqual(parseArgs(["--season", "2026", "--week", "4"]), { season: 2026, week: 4 });
+  assert.throws(() => parseArgs(["--season", "2026", "--week", "19"]), /--week/);
+  assert.throws(() => parseArgs(["--season", "1900", "--week", "4"]), /--season/);
+  assert.throws(() => parseArgs(["--bogus", "1"]), /unknown flag/);
+  assert.throws(() => parseArgs(["--season", "2026"]), TypeError);
 });
