@@ -52,11 +52,16 @@ docker run --detach --name "$container" --network none --read-only --tmpfs /tmp:
   --security-opt no-new-privileges:true --cap-drop ALL --cap-add CHOWN --cap-add DAC_OVERRIDE --cap-add FOWNER --cap-add SETGID --cap-add SETUID \
   --memory 2g --cpus 1.25 --pids-limit 200 -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_DB=omen_football \
   --mount "type=volume,src=$volume,dst=/var/lib/postgresql/data" --mount "type=bind,src=$snapshot_dir,dst=/restore,readonly" "$IMAGE" >/dev/null
-for _ in $(seq 1 60); do
-  docker exec "$container" pg_isready --username postgres --dbname omen_football >/dev/null 2>&1 && break
+# The official image first runs a temporary server on the Unix socket only, creates the database, shuts
+# it down, then starts the real server, which also listens on TCP. pg_isready over the socket succeeds
+# against the temporary server (even before the database exists) and then races its shutdown, so wait on
+# loopback TCP, which only the final server serves.
+ready=false
+for _ in $(seq 1 120); do
+  if docker exec "$container" pg_isready --host 127.0.0.1 --username postgres --dbname omen_football >/dev/null 2>&1; then ready=true; break; fi
   sleep 1
 done
-docker exec "$container" pg_isready --username postgres --dbname omen_football >/dev/null
+[[ "$ready" == true ]] || { echo "warehouse restore failed: PostgreSQL did not become ready on loopback TCP" >&2; exit 75; }
 docker exec --interactive "$container" psql --no-psqlrc --set ON_ERROR_STOP=1 --username postgres --dbname omen_football <<'SQL'
 create role omen_warehouse_reader nologin;
 create role omen_warehouse_writer nologin;
