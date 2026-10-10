@@ -93,3 +93,24 @@ test("writer validates source identity and row counts before connecting", async 
   await assert.rejects(writer.writeSeason({ ...input, receipt: { ...input.receipt, sourceUrl: "https://example.com/pbp.gz" } }), /allowlisted/);
   assert.equal(connects, 0);
 });
+
+test("a large season is staged in bounded batches, never one giant statement", async () => {
+  const input = writerInput();
+  const template = input.rows[0];
+  const count = 2_500;
+  const rows = Array.from({ length: count }, (_, i) => ({ ...template, playId: i + 1 }));
+  const calls = [];
+  const client = { async query(query) {
+    calls.push(query); const name = typeof query === "string" ? query : query.name;
+    if (name === "warehouse-play-by-play-existing-v1") return { rows: [] };
+    if (name === "warehouse-play-by-play-start-v1") return { rows: [{ id: 9 }] };
+    if (name === "warehouse-play-by-play-stage-check-v1") return { rows: [{ row_count: count, invalid_count: 0 }] };
+    return { rows: [] };
+  }, release() {} };
+  const result = await createPlayByPlayWriter({ pool: { async connect() { return client; } } }).writeSeason({
+    ...input, rows, receipt: { ...input.receipt, sourceRows: count },
+  });
+  assert.equal(result.writtenRows, count);
+  const stage = calls.filter((q) => q.name === "warehouse-play-by-play-stage-v1");
+  assert.deepEqual(stage.map((q) => JSON.parse(q.values[0]).length), [1000, 1000, 500]);
+});
