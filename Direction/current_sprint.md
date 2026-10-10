@@ -58,6 +58,29 @@ founder, or store work.
   trends persist more than "coincidence" trends, and whether matchup fit lowers next-week error; the founder
   has read it before T2 is requested.
 
+### FM-REGISTRY — Omen stat registry v1: every stat defined once, names, position ratings (Augur)
+
+- **Status:** READY
+- **Blocked by:** FOUNDER_APPROVAL — definitions, and decisions D-NAMES, D-RATING-FAMILY, D-CROWN, D-IDP in the spec
+- **Priority:** P1
+- **Cost:** large (ratings phase R1); the registry itself is a document
+- **Scope:** `Blueprints/specs/football-data/omen-stat-registry-v1.md`. A stat not in the registry is not built;
+  definition changes are new versions logged in `Direction/decision_log.md`.
+- **Done when (R1):** each position rating has its stability, predictive and top/bottom-10 report in
+  `Direction/reviews/`, read by the founder.
+
+### TV-V3 — Trade value v3 ("Crown Odds"): title and playoff odds change, scarcity explicit
+
+- **Status:** READY
+- **Blocked by:** FOUNDER_APPROVAL — the spec; V3 (replacing the live v2 verdict) needs its own yes (deploy)
+- **Priority:** P1
+- **Cost:** large
+- **Do not touch:** the live `/api/trade/compare` verdict until V3 is approved; `mobile/`
+- **Scope:** `Blueprints/specs/football-data/omen-trade-value-v3.md`. V0 (bipartite-matching lineup solver)
+  comes first and has no data dependency.
+- **Done when (V1):** the calibration, provider-comparison and v2-vs-v3 saved-trade reports are in
+  `Direction/reviews/`; the founder has read them before V3 is requested.
+
 ## Needs a decision
 
 - **T2-FindATradeGenerator** — every PR it cited has merged (list in the archive file), but it was never

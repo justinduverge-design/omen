@@ -1,5 +1,28 @@
 # Omen Decision Log
 
+## 2026-10-10 — trade value v3 is "title odds", the stat registry is the single list
+
+- **Decisions (founder), applied in `Blueprints/specs/football-data/omen-trade-value-v3.md`:**
+  1. The league provider's projection stays the main number. Omen aims to beat it; Omen's read is evidence
+     until a season of results says otherwise.
+  2. Trade value is built on the lineup change, with scarcity covered explicitly. Scarcity enters through
+     the real waiver pool, the lineup change and the injury path, and is shown as the Scarcity Meter. It is
+     no longer an additive bonus.
+  3. Fantasy playoff weeks are weighted by the user's playoff odds.
+  4. Replacement level is the best player actually free in the league, with a formula fallback.
+  5. Floor versus ceiling is automatic from standing. Maximising title odds produces it.
+  6. Dynasty leagues include future seasons (Horizon value).
+- **Vision (founder):** v3 values a trade by its change in title and playoff chances ("Crown Odds"), not
+  just points. The v2 constants (fixed replacement levels, +2.0/+0.5/−0.5 scarcity bonus, 1.0/0.5/0.25
+  depth discount) are retired by v3, once approved and shipped.
+- **Ask (founder):** "a QBR for every position group": position ratings for QB, RB, WR, TE, K and DST, OL
+  and defensive units, and IDP players. Scale 0–100, efficiency not volume, opponent-adjusted, shrunk,
+  predictive weights. Spec: `Blueprints/specs/football-data/omen-stat-registry-v1.md` §3.
+- **Ask (founder):** the stars need cool names. Names are proposed in the registry (provisional; brand table
+  and `slops-ux-copy` before any app use). Internal IDs never change, so renaming costs no rebuild.
+- **Rule:** the registry is the complete list of Omen-created stats. Anything outside it is not built, and a
+  definition change is a new version logged here.
+
 ## 2026-10-10 — trend evidence uses FTN charting (option A), on the football-intelligence path
 
 - **Decision (founder):** play-type splits use FTN charting (box count, blitz, pass rushers, play-action,
