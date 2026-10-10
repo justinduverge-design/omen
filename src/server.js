@@ -53,6 +53,10 @@ const {
 } = require("./middleware/security");
 const { applyHotRouteRateLimits } = require("./middleware/hotRouteLimits");
 const { errorHandler } = require("./middleware/errorEnvelope");
+const { assertFootballDataModeAtStartup } = require("./services/footballWarehouse/readRuntime");
+
+// Fail fast: a bad FOOTBALL_DATA_MODE must stop the API, not 404 /api/start-sit/detail.
+assertFootballDataModeAtStartup({ logger });
 
 const app = express();
 
@@ -413,7 +417,10 @@ const server = app.listen(config.port, () => {
 const shutdown = (signal, exitCode = 0) => {
   logger.info(`${signal} received, draining...`);
   server.close(async () => {
-    await closeWarehouseUsageRuntime().catch(() => {
+    await Promise.all([
+      closeWarehouseUsageRuntime(),
+      require("./services/footballWarehouse/sharedUsageAccess").closeRuntime(),
+    ]).catch(() => {
       logger.warn("Warehouse read pool did not close cleanly");
     });
     logger.info("HTTP server closed");

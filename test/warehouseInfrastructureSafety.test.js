@@ -38,6 +38,9 @@ test("warehouse PostgreSQL is internal-only and bounded", () => {
 
 test("warehouse ingest worker is exact-commit built and deployed only by digest", () => {
   const compose = withoutYamlComments(read("infra", "warehouse", "docker-compose.yml"));
+  assert.match(compose, /FOOTBALL_WAREHOUSE_DERIVED_ENABLED:\s*"true"/, "release runs the opportunity and RAT-QB stages after ingest");
+  assert.match(compose, /NODE_OPTIONS:\s*--max-old-space-size=3072/, "full historical seasons need a 3 GB heap");
+  assert.match(compose, /mem_limit:\s*4g/, "ingest container must be bounded above its heap");
   const dockerfile = read("Dockerfile.warehouse-ingest");
   const workflow = read(".github", "workflows", "warehouse-worker-image.yml");
 

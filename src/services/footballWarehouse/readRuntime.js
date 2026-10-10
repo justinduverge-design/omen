@@ -3,6 +3,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { createWarehouseUsageRepository } = require("./usageRepository");
+const { createWarehouseOutcomeRepository } = require("./outcomeRepository");
 
 const MODES = Object.freeze(["supabase", "shadow", "warehouse"]);
 const READ_ROLE = "omen_warehouse_read";
@@ -29,6 +30,20 @@ function footballDataMode(env = process.env) {
     throw new TypeError(`FOOTBALL_DATA_MODE must be one of ${MODES.join(", ")}`);
   }
   return mode;
+}
+
+/**
+ * An invalid FOOTBALL_DATA_MODE used to surface only when the start/sit detail router was lazily required,
+ * which server.js swallows, so the route silently 404ed. The entry point calls this first and exits.
+ */
+function assertFootballDataModeAtStartup({ env = process.env, logger, exit = process.exit } = {}) {
+  try {
+    return footballDataMode(env);
+  } catch (error) {
+    try { logger?.error?.("Invalid FOOTBALL_DATA_MODE; refusing to start", { err: error.message }); } catch {}
+    exit(1);
+    return null;
+  }
 }
 
 function readConnectionString(env, { readFileSync = fs.readFileSync, statSync = fs.statSync } = {}) {
@@ -151,7 +166,7 @@ function createVerifiedReadQuery({ pool, config }) {
 function createWarehouseReadRuntime({ env = process.env, Pool, fileSystem, onPoolError } = {}) {
   const config = parseWarehouseReadConfig({ env, fileSystem });
   if (!config.enabled) {
-    return Object.freeze({ mode: config.mode, enabled: false, repository: null, close: async () => {} });
+    return Object.freeze({ mode: config.mode, enabled: false, repository: null, outcomeRepository: null, close: async () => {} });
   }
   const pool = createWarehouseReadPool({ Pool, config, onPoolError });
   const query = createVerifiedReadQuery({ pool, config });
@@ -159,10 +174,15 @@ function createWarehouseReadRuntime({ env = process.env, Pool, fileSystem, onPoo
     timeoutMs: config.queryTimeoutMillis,
     query,
   });
+  const outcomeRepository = createWarehouseOutcomeRepository({
+    timeoutMs: config.queryTimeoutMillis,
+    query,
+  });
   return Object.freeze({
     mode: config.mode,
     enabled: true,
     repository,
+    outcomeRepository,
     close: async () => pool.end(),
   });
 }
@@ -193,7 +213,7 @@ function createFailSafeWarehouseReadRuntime({
         outcome: "unavailable",
       }));
     } catch {}
-    return Object.freeze({ mode, enabled: false, repository: null, close: async () => {} });
+    return Object.freeze({ mode, enabled: false, repository: null, outcomeRepository: null, close: async () => {} });
   }
 }
 
@@ -201,6 +221,7 @@ module.exports = {
   LIMITS,
   MODES,
   footballDataMode,
+  assertFootballDataModeAtStartup,
   readConnectionString,
   parseWarehouseReadConfig,
   createWarehouseReadPool,

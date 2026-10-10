@@ -36,7 +36,7 @@ const POSITION_GROUPS = {
   DEF:   ["DEF", "D/ST", "DST"],
 };
 
-const { assessConfidence, scoreForBand } = require("./confidencePolicy");
+const { assessConfidence, scoreForBand, usageCorroboration } = require("./confidencePolicy");
 
 const HEALTHY = new Set([null, undefined, "", "P", "PROBABLE"]);
 const RISKY   = new Set(["Q", "QUESTIONABLE", "GTD", "DTD"]);
@@ -127,8 +127,8 @@ function compatibleSlots(slot) {
 // Projection-only call: the optimizer sees rosters and provider projections, never observed usage,
 // so this can reach "Confident" only for an OUT starter. Callers holding observed evidence (usage
 // trends) re-assess with confidencePolicy.assessConfidence. The numeric is a band representative.
-function assessSwap(delta, fromStatus, toStatus) {
-  const verdict = assessConfidence({ gap: delta, startStatus: toStatus, sitStatus: fromStatus });
+function assessSwap(delta, fromStatus, toStatus, corroboration = []) {
+  const verdict = assessConfidence({ gap: delta, corroboration, startStatus: toStatus, sitStatus: fromStatus });
   return { ...verdict, score: scoreForBand(verdict.band) ?? 50 };
 }
 
@@ -157,6 +157,7 @@ function buildReasoning(from, to, delta) {
  */
 function evaluateLineup(roster, opts = {}, scoringConfig = {}) {
   const { lineupMinDelta: minDelta } = resolveOptimizerConfig(opts, scoringConfig);
+  const usage = opts.usage instanceof Map ? opts.usage : null; // player_key -> recent usage summary
   const recs = [];
 
   for (const starter of roster.slots.starters) {
@@ -177,7 +178,11 @@ function evaluateLineup(roster, opts = {}, scoringConfig = {}) {
     if (delta < minDelta) continue;
 
     const shownDelta = Number(delta.toFixed(2));
-    const swapVerdict = assessSwap(shownDelta, starter.status, best.player.status);
+    // Observed recent usage that favors the bench player corroborates the call, same helper Start/Sit
+    // uses. No usage map (the default) means no corroboration, i.e. today's behavior exactly.
+    const corroboration = [usageCorroboration(usage?.get?.(best.player.player_key), usage?.get?.(starter.player_key))]
+      .filter(Boolean);
+    const swapVerdict = assessSwap(shownDelta, starter.status, best.player.status, corroboration);
     recs.push({
       slot,
       from: {

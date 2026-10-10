@@ -25,6 +25,8 @@ const waiverSystemSvc = require("./waiverSystem");
 const sleeperAdapter = require("../adapters/sleeper");
 const espnAdapter = require("../adapters/espn");
 const { logger } = require("../middleware/logging");
+const { getUsageReader } = require("./footballWarehouse/sharedUsageAccess");
+const { readRosterUsage } = require("./usageCorroborationReader");
 const { findTradeCandidate } = require("./tradeLineup");
 const { compareTrade } = require("./tradeValue");
 const {
@@ -1593,6 +1595,8 @@ function espnRecoveryFromError(connection, err) {
   });
 }
 
+let usageReaderProvider = () => getUsageReader({ logger });
+
 async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
   if (suppressLiveFootballData()) return offSeasonMvpResponse();
 
@@ -1698,7 +1702,21 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
   // § Deterministic selection.
   const candidates = [];
 
-  const [swap] = optimizer.evaluateLineup(roster);
+  // Observed recent usage may corroborate the call's confidence band (same helper as Start/Sit).
+  // The read starts now, overlaps the waiver build, and is awaited only before the lineup evaluation.
+  // It never rejects; no reader, supabase mode, a failed or slow read all leave today's output as is.
+  const lineupUsagePromise = readRosterUsage({
+    reader: usageReaderProvider(),
+    supabase,
+    roster,
+    season: getCurrentNflWeekContext().season,
+    beforeWeek: roster.week || week,
+    log: logger,
+  });
+
+  const waiverAnalysis = await buildWaiverCandidateForConnection({ connection, roster, espnCredentials });
+  const lineupUsage = await lineupUsagePromise;
+  const [swap] = optimizer.evaluateLineup(roster, lineupUsage ? { usage: lineupUsage } : {});
   if (swap) {
     candidates.push({
       id: `live_omen_start_sit_${swap.to?.player_key || "unknown"}`,
@@ -1711,7 +1729,6 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
     });
   }
 
-  const waiverAnalysis = await buildWaiverCandidateForConnection({ connection, roster, espnCredentials });
   const waiverCandidate = waiverAnalysis.candidate;
   const waiverSignal = waiverAnalysis.waiverSignal;
   const waiverSystemModel = waiverAnalysis.waiverSystemModel || null;
@@ -2086,4 +2103,10 @@ module.exports = {
   mapYahooWaiverToMvpMove,
   mapTradeSuggestionToMvpMove,
   mapLineupSwapToMvpMove,
+  // Test seam: replace how the Omen call obtains its usage reader. Returns the previous provider.
+  __setUsageReaderProviderForTest(provider) {
+    const previous = usageReaderProvider;
+    usageReaderProvider = provider;
+    return previous;
+  },
 };

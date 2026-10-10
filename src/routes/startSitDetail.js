@@ -20,7 +20,6 @@
 
 const express = require("express");
 const { createClient } = require("@supabase/supabase-js");
-const { Pool } = require("pg");
 const config = require("../config");
 const { logger } = require("../middleware/logging");
 const { requireAuth } = require("../middleware/auth");
@@ -37,7 +36,7 @@ const {
 } = require("../services/startSitDetail");
 const { getUsageBundle, resolveGsis } = require("../services/playerUsage");
 const { getSeasonBundle } = require("../services/fantasyMetrics/fantasyMetricsData");
-const { createFailSafeWarehouseReadRuntime } = require("../services/footballWarehouse/readRuntime");
+const { getRuntime: getSharedWarehouseRuntime, closeRuntime: closeSharedWarehouseRuntime } = require("../services/footballWarehouse/sharedUsageAccess");
 const { createUsageShadowRunner } = require("../services/footballWarehouse/usageShadow");
 const { getWarehouseUsageBundle } = require("../services/footballWarehouse/warehouseUsageBundle");
 const { getTeamSystemSummaries } = require("../services/footballIntelligence/teamSystemLines");
@@ -51,10 +50,8 @@ const router = express.Router();
 // The points breakdown is advisory; its extra reads never hold the route longer than this.
 const PROJECTION_BREAKDOWN_BUDGET_MS = 2500;
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
-const warehouseUsageRuntime = createFailSafeWarehouseReadRuntime({
-  Pool,
-  onShadowUnavailable: (event) => logger.warn("Football warehouse reader unavailable", event),
-});
+// One process-wide runtime shared with the Omen call and Waiver Analysis; strict keeps warehouse mode fail-closed.
+const warehouseUsageRuntime = getSharedWarehouseRuntime({ logger, strict: true });
 const usageReader = createUsageShadowRunner({
   readLegacy: (input) => getUsageBundle(input),
   readWarehouse: (input) => getWarehouseUsageBundle({
@@ -301,4 +298,4 @@ router.get("/detail", requireAuth, async (req, res, next) => {
 
 module.exports = router;
 module.exports.scoringFormatFromSleeperLeague = scoringFormatFromSleeperLeague;
-module.exports.closeWarehouseUsageRuntime = () => warehouseUsageRuntime.close();
+module.exports.closeWarehouseUsageRuntime = () => closeSharedWarehouseRuntime();

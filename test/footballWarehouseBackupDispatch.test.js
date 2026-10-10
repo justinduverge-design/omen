@@ -34,6 +34,9 @@ test("KVM2 restore is pinned, networkless, isolated, and verifies restored evide
   assert.match(script, /verify-restore "\$manifest" "\$proof"/);
   assert.match(script, /e\.state <> 'succeeded'\)\)\)\nfrom football\.warehouse_ingest_events/);
   assert.match(script, /preserved container\/volume for bounded diagnosis/);
+  assert.match(script, /pg_isready --host 127\.0\.0\.1 --username postgres --dbname omen_football/);
+  assert.doesNotMatch(script, /pg_isready --username postgres --dbname omen_football/);
+  assert.match(script, /did not become ready on loopback TCP/);
   assert.doesNotMatch(script, /docker pull/);
   assert.doesNotMatch(script, /--publish|-p 5432/);
 });
@@ -95,4 +98,25 @@ test("scheduled backup and restore use separate timers, pinned trust, and clean 
   assert.match(backupTimer, /Persistent=true/);
   assert.match(restoreTimer, /OnCalendar=Sun \*-\*-\* 14:00:00 UTC/);
   assert.match(restoreTimer, /Persistent=true/);
+});
+
+test("credential proofs connect over the container's network address, not trusted loopback", () => {
+  const snapshot = fs.readFileSync(path.join(root, "create-snapshot.sh"), "utf8");
+  const provision = fs.readFileSync(path.join(root, "..", "provision-login-roles.sh"), "utf8");
+  // The backup passfile is keyed to the container name, so connect by that name (it resolves to a
+  // non-loopback address and falls under the scram rule). The login-role probe uses a wildcard passfile.
+  assert.match(snapshot, /--host "\$3" --port 5432/);
+  assert.match(snapshot, /"\$BACKUP_ROLE" "\$DATABASE" "\$CONTAINER" < "\$PGPASS_FILE"/);
+  assert.match(provision, /--host "\$\(hostname -i \| cut -d\\ {2}-f1\)" --port 5432/);
+  for (const script of [snapshot, provision]) assert.doesNotMatch(script, /--host 127\.0\.0\.1/);
+});
+
+test("scheduled backup heartbeat rebuilds the Kuma query and retention groups snapshots by tag", () => {
+  const nightly = fs.readFileSync(path.join(root, "run-nightly-backup.sh"), "utf8");
+  const retention = fs.readFileSync(path.join(root, "apply-retention.sh"), "utf8");
+  assert.match(nightly, /url="\$\{url%%\\\?\*\}"/);
+  assert.match(nightly, /\$\{url\}\?status=\$\{status\}&msg=\$\{message\}&ping=/);
+  assert.doesNotMatch(nightly, /\$\{url\}&status=/);
+  // every backup run has a distinct path, so the default host,paths grouping would never prune anything
+  assert.match(retention, /restic forget --no-cache --tag omen-football-warehouse --group-by host,tags --keep-daily/);
 });

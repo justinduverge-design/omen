@@ -37,6 +37,6 @@ repository="$(sed -n 's/^RESTIC_REPOSITORY="\([^"]*\)"$/\1/p' "$COMMISSIONED_BAC
 }
 
 runuser -u "$BACKUP_USER" -- env HOME="$BACKUP_HOME" RESTIC_REPOSITORY="$repository" RESTIC_PASSWORD_FILE="$RESTIC_PASSWORD_FILE" \
-  restic forget --no-cache --tag omen-football-warehouse --keep-daily "$keep_daily" \
+  restic forget --no-cache --tag omen-football-warehouse --group-by host,tags --keep-daily "$keep_daily" \
     --keep-weekly "$keep_weekly" --keep-monthly "$keep_monthly" --prune
 echo "warehouse retention completed"

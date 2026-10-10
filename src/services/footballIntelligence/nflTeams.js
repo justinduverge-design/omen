@@ -17,7 +17,7 @@ const TEAMS = Object.freeze({
 });
 
 // Provider spellings that differ from nflverse's.
-const ALIASES = Object.freeze({ JAC: "JAX", WSH: "WAS", LAR: "LA", OAK: "LV", SD: "LAC", STL: "LA", GNB: "GB", KAN: "KC", NWE: "NE", NOR: "NO", SFO: "SF", TAM: "TB" });
+const ALIASES = Object.freeze({ JAC: "JAX", WSH: "WAS", LAR: "LA", OAK: "LV", SD: "LAC", STL: "LA", ARZ: "ARI", BLT: "BAL", CLV: "CLE", HST: "HOU", SL: "LA", GNB: "GB", KAN: "KC", NWE: "NE", NOR: "NO", SFO: "SF", TAM: "TB" });
 
 function canonicalAbbreviation(value) {
   const upper = String(value || "").trim().toUpperCase();
