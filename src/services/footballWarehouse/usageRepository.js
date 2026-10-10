@@ -48,6 +48,28 @@ function mapRow(row) {
   };
 }
 
+function nullableCount(value) {
+  if (value == null) return null;
+  const number = Number(value);
+  return Number.isInteger(number) && number >= 0 ? number : null;
+}
+
+// Opportunity counts only. Snap counts and routes are deliberately never selected here: snap counts
+// have an open rights review, and a null count must stay null (unknown), never become zero.
+function mapOpportunityRow(row) {
+  return {
+    week: integerOrZero(row.week),
+    carries: nullableCount(row.carries),
+    targets: nullableCount(row.targets),
+    red_zone_carries: nullableCount(row.red_zone_carries),
+    red_zone_targets: nullableCount(row.red_zone_targets),
+    inside_10_touches: nullableCount(row.inside_10_touches),
+    inside_5_touches: nullableCount(row.inside_5_touches),
+    end_zone_targets: nullableCount(row.end_zone_targets),
+    deep_targets: nullableCount(row.deep_targets),
+  };
+}
+
 /**
  * Read public football facts only. Provider keys, Omen user ids, league ids and roster context are
  * deliberately outside this contract; those remain in Supabase and are resolved to GSIS first.
@@ -93,6 +115,40 @@ function createWarehouseUsageRepository({ query, timeoutMs = DEFAULT_TIMEOUT_MS 
       for (const row of result?.rows || []) {
         if (!out.has(row.gsis_id)) continue;
         out.get(row.gsis_id).push(mapRow(row));
+      }
+      return out;
+    },
+
+    async readOpportunityWeeks({ gsisIds, season, beforeWeek }) {
+      const ids = publicGsisIds(gsisIds);
+      integer(season, "season", { min: 1999, max: 2100 });
+      integer(beforeWeek, "beforeWeek", { min: 1, max: 23 });
+      if (!ids.length) return new Map();
+
+      const result = await query({
+        name: "warehouse-player-opportunity-v1",
+        text: `
+          SELECT players.gsis_id, opportunity.week,
+                 opportunity.carries, opportunity.targets,
+                 opportunity.red_zone_carries, opportunity.red_zone_targets,
+                 opportunity.inside_10_touches, opportunity.inside_5_touches,
+                 opportunity.end_zone_targets, opportunity.deep_targets
+          FROM football.nfl_player_weekly_opportunity AS opportunity
+          JOIN football.football_players AS players ON players.player_id = opportunity.player_id
+          WHERE players.gsis_id = ANY($1::text[])
+            AND opportunity.season = $2
+            AND opportunity.week < $3
+            AND opportunity.season_type = 'REG'
+          ORDER BY players.gsis_id, opportunity.week
+        `,
+        values: [ids, season, beforeWeek],
+        query_timeout: timeoutMs,
+      });
+
+      const out = new Map(ids.map((id) => [id, []]));
+      for (const row of result?.rows || []) {
+        if (!out.has(row.gsis_id)) continue;
+        out.get(row.gsis_id).push(mapOpportunityRow(row));
       }
       return out;
     },
