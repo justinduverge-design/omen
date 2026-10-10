@@ -108,3 +108,13 @@ test("credential proofs connect over the container's network address, not truste
     assert.doesNotMatch(script, /--host 127\.0\.0\.1/);
   }
 });
+
+test("scheduled backup heartbeat rebuilds the Kuma query and retention groups snapshots by tag", () => {
+  const nightly = fs.readFileSync(path.join(root, "run-nightly-backup.sh"), "utf8");
+  const retention = fs.readFileSync(path.join(root, "apply-retention.sh"), "utf8");
+  assert.match(nightly, /url="\$\{url%%\\\?\*\}"/);
+  assert.match(nightly, /\$\{url\}\?status=\$\{status\}&msg=\$\{message\}&ping=/);
+  assert.doesNotMatch(nightly, /\$\{url\}&status=/);
+  // every backup run has a distinct path, so the default host,paths grouping would never prune anything
+  assert.match(retention, /restic forget --no-cache --tag omen-football-warehouse --group-by host,tags --keep-daily/);
+});
