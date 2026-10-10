@@ -187,3 +187,16 @@ test("caller cancellation between committed stages prevents every later stage", 
   await assert.rejects(f.runner.run({ season: 2026, signal: controller.signal }), { name: "AbortError" });
   assert.deepEqual(f.calls.filter((call) => call[0].startsWith("write")).map((call) => call[0]), ["writeTeams"]);
 });
+
+test("seasons before 2002 skip the weekly roster stage because nflverse publishes no asset for them", async () => {
+  const { runner, calls } = fixture();
+  const summary = await runner.run({ season: 1999, mode: "ingest" });
+  assert.deepEqual(summary.stages.weeklyRosters, { state: "not_published", firstSeason: 2002 });
+  assert.equal(summary.sourceRefs.weeklyRosters, null);
+  assert.ok(!calls.some(([name]) => name === "acquireRosters" || name === "adaptRosters" || name === "writeRosters"));
+  assert.ok(calls.some(([name]) => name === "writePlayByPlay"));
+  const validated = await fixture().runner.run({ season: 2001, mode: "validate" });
+  assert.equal(validated.counts.rosterRows, 0);
+  const current = await fixture().runner.run({ season: 2002, mode: "ingest" });
+  assert.equal(current.stages.weeklyRosters.state, "succeeded");
+});
