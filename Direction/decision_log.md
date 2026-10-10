@@ -1,5 +1,35 @@
 # Omen Decision Log
 
+## 2026-10-10 — football warehouse takeover: what was decided and why
+
+- **RAT-QB v0 uses a real turnover rate, not the FTN field.** The registry's "turnover-worthy rate"
+  (`is_interception_worthy`) is FTN charting data, and the warehouse stays nflverse-only
+  (`rights_basis = nflverse_open_data`; FTN is never loaded into it). `omen_qb_grade` formula `v0` uses
+  `turnover_rate` = (interceptions + lost fumbles) per dropback from nflverse columns and drops the FTN blitz and
+  out-of-pocket components. v0 is unfitted (equal weights, fixed shrinkage constants) and not opponent-adjusted.
+  The FTN components return only through a separate rights decision. Spec: `Blueprints/specs/football-data/omen-rat-qb-v0.md`.
+- **Opportunity carries exclude QB kneel-downs; the reconciliation guard adds them back.** The weekly stats count a
+  kneel as a carry, play-by-play opportunity does not. The guard compares `pbp_carries + kneels` to the stat line, which
+  removed all 37 outliers on 2026 data. The table itself is unchanged.
+- **Early-season opportunity cannot be derived honestly.** nflverse play-by-play for 2003 carries a receiver id on only
+  55% of pass plays (about 91% in other seasons) and stat lines disagree with play attribution for most player-weeks.
+  The guard refuses; the failure is reported per season. The daily current-season run stays strict
+  (`FOOTBALL_WAREHOUSE_DERIVED_FAILURE_MODE` unset); the historical backfill uses `report`.
+- **Historical adapters (1999-2025 validated against the real sources):** weekly rosters are `not_published` before 2002
+  (404); old franchise codes ARZ/BLT/CLV/HST/SL alias to the current franchise; a repeated roster player-week keeps the
+  last row and counts the rest as unmatched (`duplicate_policy: last_row_wins`); an unreadable jersey number becomes null
+  and is counted; one stray team-less stat row (1999 week 9) is quarantined as unmatched. Unknown team codes stay a hard error.
+- **Backup transport:** the nightly backup connects by container name (the passfile host), which resolves to a
+  non-loopback address, so the scram password is actually verified. The first scheduled run was rehearsed manually.
+  Heartbeat query is rebuilt from the bare Kuma push URL (the copied URL already carries a query). Retention groups by
+  tags (`--group-by host,tags`); the default path grouping never pruned. Retention `7 4 3` is provisional.
+- **Provisioning and sizing:** the ingest container is 4 GB with a 3 GB Node heap (a full season needs about 2 GB), and
+  plays are staged in 1000-row batches (one statement over ~50k x 372 columns got the Postgres backend OOM-killed).
+- **Snap share is the one legacy-vs-warehouse difference** (parity run 2026-10-10, 25 sampled players): the warehouse holds
+  snaps null because the snap-count rights review is open. Promotion to `FOOTBALL_DATA_MODE=warehouse` needs a decision on
+  snap share (hybrid, accept the gap, or admit snap counts).
+- **Attribution:** nflverse data is CC BY 4.0; the app needs an "About / Data sources" line before the beta.
+
 ## 2026-10-04 — the "why" is built from the tagged evidence rows (engine step 5)
 
 - **Decision:** `src/services/evidenceWhy.js` turns the ordered evidence rows into at most three
