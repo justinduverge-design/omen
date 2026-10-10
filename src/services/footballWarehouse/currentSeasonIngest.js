@@ -2,6 +2,8 @@
 
 const crypto = require("node:crypto");
 
+// nflverse publishes weekly rosters from 2002; 1999-2001 have no asset (404), so that stage is not published, not failed.
+const FIRST_WEEKLY_ROSTER_SEASON = 2002;
 const DATASETS = new Set(["teams", "schedules", "players", "player-weekly", "team-weekly", "weekly-rosters", "play-by-play"]);
 const DEFAULT_ACQUISITION_TIMEOUT_MS = 120_000;
 const MAX_ACQUISITION_TIMEOUT_MS = 600_000;
@@ -140,7 +142,9 @@ function createCurrentSeasonIngest({
           dependencies.acquirePlayers({ signal: controller.signal }),
           dependencies.acquirePlayerWeekly({ season: selectedSeason, signal: controller.signal }),
           dependencies.acquireTeamWeekly({ season: selectedSeason, signal: controller.signal }),
-          dependencies.acquireWeeklyRosters({ season: selectedSeason, signal: controller.signal }),
+          selectedSeason >= FIRST_WEEKLY_ROSTER_SEASON
+            ? dependencies.acquireWeeklyRosters({ season: selectedSeason, signal: controller.signal })
+            : Promise.resolve(null),
           dependencies.acquirePlayByPlay({ season: selectedSeason, signal: controller.signal }),
         ];
         try {
@@ -164,7 +168,7 @@ function createCurrentSeasonIngest({
       const playersSource = acquisition(acquired[1], "players");
       const weeklySource = acquisition(acquired[2], "player weekly");
       const teamWeeklySource = acquisition(acquired[3], "team weekly");
-      const rosterSource = acquisition(acquired[4], "weekly rosters");
+      const rosterSource = selectedSeason >= FIRST_WEEKLY_ROSTER_SEASON ? acquisition(acquired[4], "weekly rosters") : null;
       const playByPlaySource = acquisition(acquired[5], "play by play");
       const ids = {
         teams: runIdFor({ dataset: "teams", season: selectedSeason, raw: schedulesSource.raw }),
@@ -172,7 +176,7 @@ function createCurrentSeasonIngest({
         players: runIdFor({ dataset: "players", season: selectedSeason, raw: playersSource.raw }),
         playerWeekly: runIdFor({ dataset: "player-weekly", season: selectedSeason, raw: weeklySource.raw }),
         teamWeekly: runIdFor({ dataset: "team-weekly", season: selectedSeason, raw: teamWeeklySource.raw }),
-        weeklyRosters: runIdFor({ dataset: "weekly-rosters", season: selectedSeason, raw: rosterSource.raw }),
+        weeklyRosters: rosterSource ? runIdFor({ dataset: "weekly-rosters", season: selectedSeason, raw: rosterSource.raw }) : null,
         playByPlay: runIdFor({ dataset: "play-by-play", season: selectedSeason, raw: playByPlaySource.raw }),
       };
 
@@ -192,10 +196,10 @@ function createCurrentSeasonIngest({
         ...teamWeeklySource, runId: ids.teamWeekly, season: selectedSeason, scoresByGameId,
       });
       throwIfAborted(signal);
-      const rosters = dependencies.adaptWeeklyRosters({
+      const rosters = rosterSource ? dependencies.adaptWeeklyRosters({
         ...rosterSource, runId: ids.weeklyRosters, season: selectedSeason,
         playerIdByGsis: players.playerIdByGsis,
-      });
+      }) : null;
       throwIfAborted(signal);
       const plays = dependencies.adaptPlayByPlay({
         ...playByPlaySource, runId: ids.playByPlay, season: selectedSeason,
@@ -214,8 +218,8 @@ function createCurrentSeasonIngest({
             playerWeeks: weekly.rows.length,
             unmatchedRows: weekly.unmatchedRows,
             teamWeeks: teamWeekly.rows.length,
-            rosterRows: rosters.rows.length,
-            unmatchedRosterRows: rosters.unmatchedRows,
+            rosterRows: rosters ? rosters.rows.length : 0,
+            unmatchedRosterRows: rosters ? rosters.unmatchedRows : 0,
             plays: plays.rows.length,
             unmatchedPlayRows: plays.unmatchedRows,
           },
@@ -224,7 +228,7 @@ function createCurrentSeasonIngest({
             players: players.receipt.sourceRef,
             playerWeekly: weekly.receipt.sourceRef,
             teamWeekly: teamWeekly.receipt.sourceRef,
-            weeklyRosters: rosters.receipt.sourceRef,
+            weeklyRosters: rosters ? rosters.receipt.sourceRef : null,
             playByPlay: plays.receipt.sourceRef,
           },
         };
@@ -252,10 +256,12 @@ function createCurrentSeasonIngest({
         unmatchedRows: teamWeekly.unmatchedRows,
       });
       throwIfAborted(signal);
-      stages.weeklyRosters = await dependencies.weeklyRosterWriter.writeSeason({
-        receipt: rosters.receipt, season: selectedSeason, rows: rosters.rows,
-        unmatchedRows: rosters.unmatchedRows,
-      });
+      stages.weeklyRosters = rosters
+        ? await dependencies.weeklyRosterWriter.writeSeason({
+          receipt: rosters.receipt, season: selectedSeason, rows: rosters.rows,
+          unmatchedRows: rosters.unmatchedRows,
+        })
+        : { state: "not_published", firstSeason: FIRST_WEEKLY_ROSTER_SEASON };
       throwIfAborted(signal);
       stages.playByPlay = await dependencies.playByPlayWriter.writeSeason({
         receipt: plays.receipt, season: selectedSeason, rows: plays.rows,
@@ -272,7 +278,7 @@ function createCurrentSeasonIngest({
           players: players.receipt.sourceRef,
           playerWeekly: weekly.receipt.sourceRef,
           teamWeekly: teamWeekly.receipt.sourceRef,
-          weeklyRosters: rosters.receipt.sourceRef,
+          weeklyRosters: rosters ? rosters.receipt.sourceRef : null,
           playByPlay: plays.receipt.sourceRef,
         },
       };
