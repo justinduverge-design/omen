@@ -95,4 +95,4 @@ function compareUsageBundles(legacy, warehouse) {
   return Object.freeze(result);
 }
 
-module.exports = { compareUsageBundles };
+module.exports = { compareUsageBundles, equalValue, WEEK_FIELDS, SUMMARY_FIELDS };
