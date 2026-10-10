@@ -1,5 +1,22 @@
 # Omen Decision Log
 
+## 2026-10-10 — build our own fantasy stats; no cap-space data in the warehouse
+
+- **Decision (founder):** answer the rights-excluded stats (Next Gen Stats, PFR advanced stats, ESPN QBR and
+  depth charts, OverTheCap contracts) by calculating Omen's own metrics from admitted nflverse data:
+  expected fantasy points, opportunity, a usage-based role chart and a dynasty outlook. Spec:
+  `Blueprints/specs/football-data/omen-fantasy-metrics-v1.md`; sprint item `FM-XFP`.
+- **Decision (founder):** team cap space and contracts are **not** added, because that would need a new
+  source and a change to the warehouse's nflverse-only `rights_basis` rule. The dynasty outlook uses vacated
+  opportunity, position-group age and draft capital instead. If a licence ever arrives, the data belongs
+  outside the warehouse.
+- **Design choice:** the warehouse stores a league-neutral expected stat line; league xFP is calculated at
+  read time with `calculateContractScore`, so expected and graded points share one scoring language.
+  Threshold and range bonus rules are excluded from xFP and named, never guessed.
+- **Not used in v1:** FTN charting (share-alike), snap counts (rights review open).
+- Research behind this (source options, prices, terms) was given in chat on 2026-10-10. It is not
+  legal advice.
+
 ## 2026-10-04 — the "why" is built from the tagged evidence rows (engine step 5)
 
 - **Decision:** `src/services/evidenceWhy.js` turns the ordered evidence rows into at most three

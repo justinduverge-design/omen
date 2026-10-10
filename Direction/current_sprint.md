@@ -32,6 +32,18 @@ founder, or store work.
   confirmation wording, Command/League waiver disagreement, smaller fixes). Store actions are founder-gated.
 - **Done when:** the founder ships the build; each "must fix" item in that file is done or descoped.
 
+### FM-XFP — Omen fantasy metrics v1: expected fantasy points, opportunity, role chart, dynasty outlook
+
+- **Status:** READY
+- **Blocked by:** FOUNDER_APPROVAL — the spec; M2 and later phases each need their own yes (production write, deploy)
+- **Priority:** P1
+- **Cost:** large
+- **Do not touch:** `mobile/`; warehouse schema and `rights_basis` (no migration); Supabase schema
+- **Scope:** `Blueprints/specs/football-data/omen-fantasy-metrics-v1.md`. Phase M1 is local only: calculators,
+  lookup-table builder and the backtest report.
+- **Done when (M1):** the backtest report is in `Direction/reviews/` and shows, per position, whether xFP beats
+  the last-3-weeks baseline; the founder has read it before M2 is requested.
+
 ## Needs a decision
 
 - **T2-FindATradeGenerator** — every PR it cited has merged (list in the archive file), but it was never
