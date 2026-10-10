@@ -4,6 +4,12 @@
 #
 # Secrets come from deploy/hostinger/.env.production on the VPS.
 # That file is intentionally ignored and must not be committed.
+#
+# Football warehouse prerequisites, required in EVERY FOOTBALL_DATA_MODE (including `supabase`):
+#   - the external Docker network `omen_warehouse_net` must exist (the warehouse stack creates it), and
+#   - /var/lib/omen/secrets/warehouse-reader-url must exist (the `warehouse_reader_url` secret below).
+# Compose resolves both while parsing, before the mode is read, so a host without them cannot start the
+# API at all, even when the warehouse is not used. Rolling back to `supabase` does not remove this need.
 name: omen
 services:
   api:

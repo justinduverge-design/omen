@@ -3,7 +3,7 @@ name: Warehouse ingest worker image
 on:
   push:
     branches:
-      - codex/football-warehouse-foundation
+      - main
     paths:
       - Dockerfile.warehouse-ingest
       - package.json

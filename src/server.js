@@ -53,6 +53,10 @@ const {
 } = require("./middleware/security");
 const { applyHotRouteRateLimits } = require("./middleware/hotRouteLimits");
 const { errorHandler } = require("./middleware/errorEnvelope");
+const { assertFootballDataModeAtStartup } = require("./services/footballWarehouse/readRuntime");
+
+// Fail fast: a bad FOOTBALL_DATA_MODE must stop the API, not 404 /api/start-sit/detail.
+assertFootballDataModeAtStartup({ logger });
 
 const app = express();
 
