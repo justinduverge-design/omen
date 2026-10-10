@@ -29,8 +29,9 @@ test("API warehouse reads are opt-in, read-role only, and attached to the privat
 
 test("Start/Sit routes usage through the staged reader without moving team-system facts", () => {
   const route = read("src/routes/startSitDetail.js");
-  assert.match(route, /createFailSafeWarehouseReadRuntime\(\{/);
-  assert.match(route, /Football warehouse reader unavailable/);
+  assert.match(route, /getSharedWarehouseRuntime\(\{ logger, strict: true \}\)/);
+  assert.match(read("src/services/footballWarehouse/sharedUsageAccess.js"), /createFailSafeWarehouseReadRuntime\(\{/);
+  assert.match(read("src/services/footballWarehouse/sharedUsageAccess.js"), /Football warehouse reader unavailable/);
   assert.match(route, /usageReader\.read\(\{/);
   assert.match(route, /mode: warehouseUsageRuntime\.mode/);
   assert.match(route, /getTeamSystemSummaries\(\{ supabase/);

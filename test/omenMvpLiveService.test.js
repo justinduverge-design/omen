@@ -49,6 +49,7 @@ function loadOmenService({
   sleeperPool,
   sleeperPoolError,
   sleeperLeagueRosters,
+  realOptimizer = false,
 } = {}) {
   const servicePath = require.resolve("../src/services/omen");
   delete require.cache[servicePath];
@@ -143,7 +144,7 @@ function loadOmenService({
         normalizeYahooWaivers: () => waiverPool || [],
       };
     }
-    if (request === "./optimizer" && parent?.filename === servicePath) {
+    if (!realOptimizer && request === "./optimizer" && parent?.filename === servicePath) {
       return {
         evaluateLineup: () => swaps || [{
           slot: "WR",
@@ -1271,4 +1272,58 @@ test("B2-D4 returns honest empty rather than substituting a type to fill the scr
 
   assert.equal(result.status, 200);
   assert.equal(result.body.recommendation, null);
+});
+
+// ---- Usage corroboration of the Omen call (additive; any reader problem leaves today's response) ----
+
+const YAHOO_CONNECTION = [{
+  user_id: "user-1", platform: "yahoo", is_active: true, league_id: "414.l.12345", token_secret_id: "secret-id",
+}];
+
+async function runWithUsageReader(reader) {
+  const { service } = loadOmenService({ connections: YAHOO_CONNECTION, realOptimizer: true });
+  const previous = service.__setUsageReaderProviderForTest(() => reader);
+  try {
+    const result = await service.buildLiveOmenMvpMoveForUser("user-1");
+    // request ids and timestamps are per-call; everything else must match.
+    const body = JSON.parse(JSON.stringify(result.body, (key, value) => (key === "observed_at" ? undefined : value)));
+    delete body.request_id;
+    delete body.generated_at;
+    return { status: result.status, body };
+  } finally {
+    service.__setUsageReaderProviderForTest(previous);
+  }
+}
+
+test("a null, throwing, or hanging usage reader leaves the Omen call identical to today", async () => {
+  const baseline = await runWithUsageReader(null);
+  assert.equal(baseline.status, 200);
+  assert.equal(baseline.body.recommendation.type, "start_sit");
+  const throwing = { mode: "shadow", read: async () => { throw new Error("warehouse down"); } };
+  const hanging = { mode: "warehouse", read: () => new Promise(() => {}) };
+  assert.deepEqual(await runWithUsageReader(throwing), baseline);
+  assert.deepEqual(await runWithUsageReader(hanging), baseline);
+});
+
+test("supabase mode never reads usage for the Omen call", async () => {
+  let reads = 0;
+  const baseline = await runWithUsageReader(null);
+  const supabaseMode = { mode: "supabase", read: async () => { reads += 1; return { usage: new Map() }; } };
+  assert.deepEqual(await runWithUsageReader(supabaseMode), baseline);
+  assert.equal(reads, 0);
+});
+
+test("favorable usage corroborates the Omen call: band and reason reach the response", async () => {
+  const baseline = await runWithUsageReader(null);
+  const usage = new Map([
+    ["bench-1", { target_share: 0.28, snap_share: 0.9 }],
+    ["starter-1", { target_share: 0.14, snap_share: 0.7 }],
+  ]);
+  const reader = { mode: "shadow", read: async () => ({ usage, weekly: new Map() }) };
+  const corroborated = await runWithUsageReader(reader);
+  assert.equal(baseline.body.recommendation.confidence.label, "medium");
+  assert.equal(corroborated.body.recommendation.confidence.label, "high");
+  assert.match(corroborated.body.recommendation.explanation.confidence, /^Confident\. .*observed recent usage/);
+  assert.doesNotMatch(JSON.stringify(corroborated.body.recommendation.confidence), /%/);
+  assert.equal(corroborated.body.recommendation.primary_player.name, baseline.body.recommendation.primary_player.name);
 });

@@ -23,8 +23,10 @@ const START_SIT = Object.freeze({
 // waiver-analysis.v1 `evidence[]` (waiverAnalysis.js). `kind` here is a roster-math label, not
 // the verified/projection scale.
 const WAIVER = Object.freeze({
-  categories: freeze(["immediate_need", "league_fact"]),
-  kinds: freeze(["roster_math", "league_context"]),
+  // current_role / observed_usage: usage sentence from warehouse opportunity counts
+  // (waiverUsageEvidence.js), appended only when real numbers exist.
+  categories: freeze(["immediate_need", "league_fact", "current_role"]),
+  kinds: freeze(["roster_math", "league_context", "observed_usage"]),
 });
 
 // move-detail.v1 `evidence_at_the_time[]`, code-built rows (routes/moves.js legacy builder and

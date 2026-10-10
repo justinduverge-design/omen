@@ -25,6 +25,8 @@ const { getCurrentNflWeekContext, suppressLiveFootballData } = require("../servi
 const { isOmenReadyConnection } = require("../services/omenReadiness");
 const { readConnectionsWithSelection, resolveActiveConnection } = require("../services/activeSelection");
 const { buildWaiverAnalysis } = require("../services/waiverAnalysis");
+const { createWaiverUsageEnricher } = require("../services/waiverUsageEvidence");
+const { getRuntime: getWarehouseRuntime } = require("../services/footballWarehouse/sharedUsageAccess");
 const { waiverCapabilitiesEnvelope } = require("../services/waiverScoringCapabilities");
 const { attachDecisionReceipt, createDecisionContext } = require("../services/decisionContext");
 const waiverSystem = require("../services/waiverSystem");
@@ -35,6 +37,14 @@ const espnAdapter = require("../adapters/espn");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
+
+// Adds a usage-based reason to the recommended add from warehouse opportunity counts. A no-op in
+// `supabase` mode and on any warehouse failure or timeout (the analysis is returned unchanged).
+const enrichWithUsage = createWaiverUsageEnricher({
+  getRuntime: () => getWarehouseRuntime({ logger }),
+  supabase,
+  log: logger,
+});
 
 const ERROR_CONTRACT = "waiver-analysis-error.v1";
 const WAIVER_ANALYSIS_V1 = "waiver-analysis.v1";
@@ -332,7 +342,7 @@ router.get("/analysis", requireAuth, async (req, res, next) => {
       }));
     }
 
-    const analysis = buildWaiverAnalysis({
+    const baseAnalysis = buildWaiverAnalysis({
       roster: loaded.roster,
       pool: loaded.pool,
       platform: connection.platform,
@@ -345,6 +355,7 @@ router.get("/analysis", requireAuth, async (req, res, next) => {
       deadline: null,
       offSeason: suppressLiveFootballData(),
     });
+    const analysis = await enrichWithUsage(baseAnalysis);
 
     const payload = presentAnalysis({ ...analysis, limitations: loaded.limitations }, requestedContract);
     // Only a confirmed analysis is kept. availability_unknown / engine_limitation
