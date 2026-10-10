@@ -3,6 +3,7 @@
 const { parseWarehouseRuntimeConfig } = require("./runtimeConfig");
 const { createWarehousePool, createCurrentSeasonComposition, createCurrentSeasonValidationComposition } = require("./currentSeasonComposition");
 const { verifyWarehouseTarget } = require("./targetIdentity");
+const { createDerivedStages } = require("./derivedStages");
 
 const MODES = new Set(["config", "source-validate", "ingest"]);
 
@@ -40,6 +41,7 @@ async function runCurrentSeasonCommand({
   createIngest = createCurrentSeasonComposition,
   createValidation = createCurrentSeasonValidationComposition,
   verifyTarget = verifyWarehouseTarget,
+  createDerived = ({ pool }) => createDerivedStages({ pool }),
 } = {}) {
   const args = parseArgs(argv);
   const config = parseConfig({ env, requireDatabase: args.mode === "ingest" });
@@ -73,7 +75,11 @@ async function runCurrentSeasonCommand({
     const runner = createIngest({ pool, acquisitionTimeoutMs: config.acquisitionTimeoutMs });
     const summary = await runner.run({ season: args.season, mode: "ingest", signal: controller.signal });
     if (interrupted) throw Object.assign(new Error("interrupted"), { code: "interrupted" });
-    completedResult = { job: "football-warehouse-current-season", state: "succeeded", ...summary };
+    // Opt-in: derived stages (opportunity table, RAT-QB v0) read the facts just committed above.
+    const derived = env.FOOTBALL_WAREHOUSE_DERIVED_ENABLED === "true"
+      ? await createDerived({ pool }).run({ season: args.season }) : undefined;
+    if (interrupted) throw Object.assign(new Error("interrupted"), { code: "interrupted" });
+    completedResult = { job: "football-warehouse-current-season", state: "succeeded", ...summary, ...(derived ? { derived } : {}) };
   } catch (error) {
     primaryError = error;
     output({ job: "football-warehouse-current-season", mode: args.mode, season: args.season, state: "failed", code: safeCode(error) });
