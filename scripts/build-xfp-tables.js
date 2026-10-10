@@ -16,35 +16,17 @@
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
-const readline = require("readline");
-const zlib = require("zlib");
-const { parseCsvLine } = require("../src/services/csvRows");
-const { FORMULA_VERSION, PBP_COLUMNS, compactPlay, targetKeys, carryKeys } = require("../src/services/fantasyMetrics/fatedPoints");
+const { FORMULA_VERSION, targetKeys, carryKeys } = require("../src/services/fantasyMetrics/fatedPoints");
+const { readPlaysFromGzip } = require("../src/services/fantasyMetrics/fantasyMetricsData");
 
 const OUT = path.join(__dirname, "..", "src", "services", "fantasyMetrics", "xfp-tables-v1.json");
 
 async function readPlays(file) {
-  const bytes = fs.readFileSync(file);
-  const sha256 = `sha256:${crypto.createHash("sha256").update(bytes).digest("hex")}`;
-  const lines = readline.createInterface({ input: fs.createReadStream(file).pipe(zlib.createGunzip()), crlfDelay: Infinity });
-  let keep = null;
-  const plays = [];
-  const seasons = new Set();
-  for await (const line of lines) {
-    if (!line) continue;
-    const values = parseCsvLine(line);
-    if (!keep) {
-      keep = PBP_COLUMNS.map((c) => [c, values.indexOf(c)]);
-      const missing = keep.filter(([, i]) => i < 0).map(([c]) => c);
-      if (missing.length) throw new Error(`${file} is missing columns: ${missing.join(", ")}`);
-      continue;
-    }
-    const row = {};
-    for (const [c, i] of keep) row[c] = values[i] == null ? "" : values[i].trim();
-    const play = compactPlay(row);
-    if (play) { plays.push(play); seasons.add(play.season); }
-  }
-  return { plays, sha256, seasons: [...seasons] };
+  const hash = crypto.createHash("sha256");
+  const source = fs.createReadStream(file);
+  source.on("data", (chunk) => hash.update(chunk));
+  const plays = await readPlaysFromGzip(source);
+  return { plays, sha256: `sha256:${hash.digest("hex")}`, seasons: [...new Set(plays.map((p) => p.season))] };
 }
 
 function accumulate(buckets, keys, values) {

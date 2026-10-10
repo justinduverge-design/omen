@@ -24,6 +24,8 @@ const NEXT_MAN_UP_MIN_DELTA = 3;
 const NEXT_MAN_UP_MIN_RATIO = 0.3;
 const NEXT_MAN_UP_MIN_MISSED = 2; // one game is a coincidence, not a pattern (trend evidence spec §6)
 const SKILL = new Set(["RB", "WR", "TE"]);
+const GROUP = { FB: "RB", HB: "RB" };
+const groupOf = (position) => GROUP[position] || position;
 
 const one = (n) => (Math.round(n * 10) / 10).toFixed(1);
 const signed = (n) => `${n >= 0 ? "+" : "−"}${one(Math.abs(n))}`;
@@ -47,7 +49,7 @@ function sumFacts(rows, side) {
 }
 
 /** FND-02/03: Fated Points and the Fate Gap over the last games. */
-function fatedLine({ name, rows, rec, label }) {
+function fatedLine({ name, rows, rec, label, verified = true }) {
   if (!rows.length) return null;
   const n = rows.length;
   const fated = formatPoints(sumFacts(rows, "expected"), rec) / n;
@@ -57,7 +59,8 @@ function fatedLine({ name, rows, rec, label }) {
   let read = "";
   if (gap >= HOT_COLD_PER_GAME) read = " He has been running hot.";
   else if (gap <= -HOT_COLD_PER_GAME) read = " He has been running cold.";
-  return `Fated Points (beta): ${name}'s usage was worth ${one(fated)} ${label} points ${span}; he scored ${one(actual)} (Fate Gap ${signed(gap)}).${read}`;
+  const scoring = verified ? `${label} points` : `points in ${label} scoring (Omen hasn't verified this league's scoring)`;
+  return `Fated Points (beta): ${name}'s usage was worth ${one(fated)} ${scoring} ${span}; he scored ${one(actual)} (Fate Gap ${signed(gap)}).${read}`;
 }
 
 /** FND-04: TDs against expected TDs, season to date. */
@@ -95,7 +98,7 @@ function peckingOrderLine({ name, gsis, position, team, beforeWeek, bundle }) {
   const weekSet = new Set(weeks);
   const totals = new Map();
   for (const row of bundle.byTeam.get(team) || []) {
-    if (!weekSet.has(row.week) || bundle.positions.get(row.player) !== position) continue;
+    if (!weekSet.has(row.week) || groupOf(bundle.positions.get(row.player)) !== position) continue;
     totals.set(row.player, (totals.get(row.player) || 0) + formatPoints(row.expected, 1));
   }
   const room = [...totals.values()].reduce((a, b) => a + b, 0);
@@ -107,14 +110,19 @@ function peckingOrderLine({ name, gsis, position, team, beforeWeek, bundle }) {
   return `Pecking Order (beta): ${name} is ${ordinal(rank)} among ${teamLabel} ${position}s, with ${pct(share)} of their Fated Points over the team's last ${weeks.length} game${weeks.length === 1 ? "" : "s"}.`;
 }
 
-/** ROL-03: the teammate whose absences moved this player's work the most. */
+/**
+ * ROL-03: the teammate whose quiet games moved this player's work the most. A "game without him" is a
+ * team game, after the teammate's first game for this team and before any move to another team, in
+ * which he had no target or carry. Play-by-play cannot tell an inactive player from one who played and
+ * was not used, so the line says exactly that, never "missed".
+ */
 function nextManUpLine({ name, gsis, position, team, beforeWeek, bundle }) {
   const teamWeeks = (bundle.teamWeeks.get(team) || []).filter((w) => w < beforeWeek);
   const mine = new Map((bundle.byPlayer.get(gsis) || []).filter((r) => r.team === team && r.week < beforeWeek).map((r) => [r.week, r]));
   if (mine.size < 3) return null;
   const mates = new Map();
   for (const row of bundle.byTeam.get(team) || []) {
-    if (row.player === gsis || row.week >= beforeWeek || bundle.positions.get(row.player) !== position) continue;
+    if (row.player === gsis || row.week >= beforeWeek || groupOf(bundle.positions.get(row.player)) !== position) continue;
     if (!mates.has(row.player)) mates.set(row.player, new Map());
     mates.get(row.player).set(row.week, row);
   }
@@ -123,18 +131,19 @@ function nextManUpLine({ name, gsis, position, team, beforeWeek, bundle }) {
     const avg = [...games.values()].reduce((a, r) => a + opportunities(r), 0) / games.size;
     if (avg < NEXT_MAN_UP_REGULAR) continue;
     const first = Math.min(...games.keys());
-    const missed = teamWeeks.filter((w) => w >= first && !games.has(w) && mine.has(w));
+    const movedAt = Math.min(Infinity, ...(bundle.byPlayer.get(mate) || []).filter((r) => r.team !== team && r.week > first).map((r) => r.week));
+    const quiet = teamWeeks.filter((w) => w >= first && w < movedAt && !games.has(w) && mine.has(w));
     const together = teamWeeks.filter((w) => games.has(w) && mine.has(w));
-    if (missed.length < NEXT_MAN_UP_MIN_MISSED || together.length < 2) continue;
-    const without = missed.reduce((a, w) => a + opportunities(mine.get(w)), 0) / missed.length;
+    if (quiet.length < NEXT_MAN_UP_MIN_MISSED || together.length < 2) continue;
+    const without = quiet.reduce((a, w) => a + opportunities(mine.get(w)), 0) / quiet.length;
     const withMate = together.reduce((a, w) => a + opportunities(mine.get(w)), 0) / together.length;
     const delta = without - withMate;
     if (Math.abs(delta) < NEXT_MAN_UP_MIN_DELTA || Math.abs(delta) < NEXT_MAN_UP_MIN_RATIO * Math.max(withMate, 1)) continue;
-    if (!best || Math.abs(delta) > Math.abs(best.delta)) best = { mate, missed: missed.length, without, withMate, delta };
+    if (!best || Math.abs(delta) > Math.abs(best.delta)) best = { mate, quiet: quiet.length, without, withMate, delta };
   }
   if (!best) return null;
   const mateName = bundle.names.get(best.mate) || "a teammate";
-  return `Next Man Up (beta): in the ${best.missed} games ${mateName} missed, ${name} averaged ${one(best.without)} targets and carries, against ${one(best.withMate)} when both played.`;
+  return `Next Man Up (beta): in the ${best.quiet} games ${mateName} had no targets or carries, ${name} averaged ${one(best.without)} targets and carries, against ${one(best.withMate)} when both were used.`;
 }
 
 /** ENV-01/02: expected team points from the game's spread and total, with blowout and shootout watch. */
@@ -164,16 +173,19 @@ function fantasyMetricsEvidence({ name, gsis, position, team, beforeWeek, scorin
   const teamAbbr = canonicalAbbreviation(team);
   if (!bundle || !name) return rows;
   if (gsis && SKILL.has(pos)) {
-    const { rec, label } = formatFromLabel(scoringFormat);
+    const { rec, label, verified } = formatFromLabel(scoringFormat);
+    // Group by nflverse's position for this player when it has one, so he is compared with the same
+    // room his teammates are sorted into (providers and nflverse sometimes disagree, e.g. FB vs RB).
+    const group = groupOf(bundle.positions.get(gsis) || pos);
     const all = (bundle.byPlayer.get(gsis) || []).filter((r) => r.week < beforeWeek);
     const recent = recentRows(all, beforeWeek);
     const playerTeam = recent[0]?.team || teamAbbr;
     const lines = [
-      fatedLine({ name, rows: recent, rec, label }),
+      fatedLine({ name, rows: recent, rec, label, verified }),
       tdLine({ name, rows: all }),
       redZoneLine({ name, rows: recent }),
-      playerTeam ? peckingOrderLine({ name, gsis, position: pos, team: playerTeam, beforeWeek, bundle }) : null,
-      playerTeam ? nextManUpLine({ name, gsis, position: pos, team: playerTeam, beforeWeek, bundle }) : null,
+      playerTeam ? peckingOrderLine({ name, gsis, position: group, team: playerTeam, beforeWeek, bundle }) : null,
+      playerTeam ? nextManUpLine({ name, gsis, position: group, team: playerTeam, beforeWeek, bundle }) : null,
     ];
     for (const statement of lines) if (statement) rows.push({ category: "omen_metric", kind: "observed_context", statement });
   }

@@ -34,8 +34,9 @@ founder, or store work.
 
 ### FM-XFP — Omen fantasy metrics v1: expected fantasy points, opportunity, role chart, dynasty outlook
 
-- **Status:** READY
-- **Blocked by:** FOUNDER_APPROVAL — the spec; M2 and later phases each need their own yes (production write, deploy)
+- **Status:** IN_PROGRESS
+- **Claim:** 2026-10-10 Claude — beta slice for the 2026-10-13 beta (spec §3.6): descriptive start/sit lines; deploy needs the founder's yes before Monday evening's freeze
+- **Blocked by:** FOUNDER_APPROVAL — the API deploy of the beta slice; M2 and later phases each need their own yes (production write, deploy)
 - **Priority:** P1
 - **Cost:** large
 - **Do not touch:** `mobile/`; warehouse schema and `rights_basis` (no migration); Supabase schema

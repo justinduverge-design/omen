@@ -109,10 +109,10 @@ test("formatPoints and scoring-format labels", () => {
   const facts = { receiving_receptions: 5, receiving_yards: 60, rushing_yards: 20, receiving_touchdowns: 1, fumbles_lost: 1 };
   assert.ok(Math.abs(fp.formatPoints(facts, 1) - (5 + 8 + 6 - 2)) < 1e-9);
   assert.ok(Math.abs(fp.formatPoints(facts, 0) - (8 + 6 - 2)) < 1e-9);
-  assert.deepEqual(fp.formatFromLabel("0.5 PPR"), { rec: 0.5, label: "half-PPR" });
-  assert.deepEqual(fp.formatFromLabel("standard scoring"), { rec: 0, label: "standard" });
-  assert.deepEqual(fp.formatFromLabel("1 point per reception"), { rec: 1, label: "PPR" });
-  assert.deepEqual(fp.formatFromLabel(null), { rec: 1, label: "PPR" });
+  assert.deepEqual(fp.formatFromLabel("0.5 PPR"), { rec: 0.5, label: "half-PPR", verified: true });
+  assert.deepEqual(fp.formatFromLabel("standard scoring"), { rec: 0, label: "standard", verified: true });
+  assert.deepEqual(fp.formatFromLabel("1 point per reception"), { rec: 1, label: "PPR", verified: true });
+  assert.deepEqual(fp.formatFromLabel(null), { rec: 1, label: "PPR", verified: false });
 });
 
 function week(w, { expected, actual, team = "CAR", player = "WR1", targets = 6, carries = 0, opportunity = {} }) {
@@ -126,6 +126,8 @@ test("Fated Points line states the gap, and running hot or cold only past the th
   const level = lines.fatedLine({ name: "A", rows: [week(1, { expected: exp, actual: exp })], rec: 1, label: "PPR" });
   assert.doesNotMatch(level, /running/);
   assert.doesNotMatch(level, /predict|will score/i);
+  const unverified = lines.fatedLine({ name: "A", rows: [week(1, { expected: exp, actual: exp })], rec: 1, label: "PPR", verified: false });
+  assert.match(unverified, /worth 11\.0 points in PPR scoring \(Omen hasn't verified this league's scoring\)/);
 });
 
 test("TD Fate Gap appears only when the gap is at least 1.5 TDs", () => {
@@ -161,15 +163,29 @@ test("Pecking Order ranks by Fated Points share within the position group", () =
   assert.match(line, /2nd among Carolina WRs, with 22% of their Fated Points over the team's last 3 games/);
 });
 
-test("Next Man Up needs at least two missed games", () => {
+test("Next Man Up needs two quiet games, never says 'missed', and ignores weeks after a teammate moves", () => {
   const mk = (player, w, targets) => week(w, { player, targets, expected: {}, actual: {} });
   const base = [1, 2, 3, 4, 5].map((w) => mk("WR1", w, w <= 3 ? 4 : 11));
   const mateAll = [1, 2, 3].map((w) => mk("WR2", w, 8));
   const bundle = bundleFrom([...base, ...mateAll], new Map([["WR1", "WR"], ["WR2", "WR"]]), new Map([["WR2", "Mate"]]));
   assert.match(lines.nextManUpLine({ name: "B", gsis: "WR1", position: "WR", team: "CAR", beforeWeek: 6, bundle }),
-    /in the 2 games Mate missed, B averaged 11\.0 targets and carries, against 4\.0 when both played/);
+    /in the 2 games Mate had no targets or carries, B averaged 11\.0 targets and carries, against 4\.0 when both were used/);
   const oneMissed = bundleFrom([...base.slice(0, 4), ...mateAll], new Map([["WR1", "WR"], ["WR2", "WR"]]));
   assert.equal(lines.nextManUpLine({ name: "B", gsis: "WR1", position: "WR", team: "CAR", beforeWeek: 5, bundle: oneMissed }), null);
+  // The teammate was traded after week 3: weeks 4-5 are not "without him" on this team.
+  const traded = bundleFrom([...base, ...mateAll, week(4, { player: "WR2", team: "NO", expected: {}, actual: {} })], new Map([["WR1", "WR"], ["WR2", "WR"]]));
+  assert.equal(lines.nextManUpLine({ name: "B", gsis: "WR1", position: "WR", team: "CAR", beforeWeek: 6, bundle: traded }), null);
+});
+
+test("a player nflverse lists as FB is grouped with his team's RBs", () => {
+  const big = { rushing_yards: 60 };
+  const rollups = [1, 2, 3].flatMap((w) => [
+    week(w, { player: "RB1", carries: 12, targets: 0, expected: big, actual: big }),
+    week(w, { player: "FB1", carries: 3, targets: 0, expected: { rushing_yards: 10 }, actual: { rushing_yards: 10 } }),
+  ]);
+  const bundle = bundleFrom(rollups, new Map([["RB1", "RB"], ["FB1", "FB"]]));
+  const rows = lines.fantasyMetricsEvidence({ name: "Full Back", gsis: "FB1", position: "RB", team: "CAR", beforeWeek: 4, scoringFormat: "0.5 PPR", bundle });
+  assert.ok(rows.some((r) => /2nd among Carolina RBs/.test(r.statement)));
 });
 
 test("Projected Team Score: nflverse spread is home-positive; flags at 10-point spread and 50 total", () => {
@@ -230,8 +246,24 @@ test("getSeasonBundle reads, caches with one download in flight, and returns nul
   assert.equal(a.positions.get("RB1"), "RB");
   assert.equal(a.games[0].home, "CAR");
 
+  // Expired: the old bundle is returned at once and one background refresh starts.
+  const SIX_HOURS = 6 * 60 * 60 * 1000;
+  const stale = await data.getSeasonBundle({ season: 2026, fetchImpl, now: SIX_HOURS + 10 });
+  assert.equal(stale, a);
+
   data._resetCache();
-  const failing = async () => ({ ok: false, status: 503 });
+  let failingCalls = 0;
+  const failing = async () => { failingCalls += 1; return { ok: false, status: 503 }; };
   assert.equal(await data.getSeasonBundle({ season: 2026, fetchImpl: failing, now: 3 }), null);
+  const afterFirst = failingCalls;
+  // Inside the failure window: no new downloads.
+  assert.equal(await data.getSeasonBundle({ season: 2026, fetchImpl: failing, now: 4 }), null);
+  assert.equal(failingCalls, afterFirst);
   data._resetCache();
+});
+
+test("readPlaysFromGzip rejects on a broken stream instead of hanging", async () => {
+  const broken = new Readable({ read() { this.destroy(new Error("connection reset")); } });
+  await assert.rejects(data.readPlaysFromGzip(broken), /connection reset|unexpected end/);
+  await assert.rejects(data.readPlaysFromGzip(Readable.from([gz("a,b\n1,2\n")])), /missing columns/);
 });

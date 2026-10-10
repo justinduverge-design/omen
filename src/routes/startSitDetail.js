@@ -251,6 +251,8 @@ router.get("/detail", requireAuth, async (req, res, next) => {
       .map((player) => player?.player_key).filter(Boolean);
     const rosterTeams = [...(loaded.roster?.slots?.starters || []), ...(loaded.roster?.slots?.bench || [])]
       .map((player) => player?.team).filter(Boolean);
+    // Started now, awaited after the other reads, so a cold metrics cache overlaps them.
+    const fantasyMetricsRead = suppressLiveFootballData() ? Promise.resolve(null) : loadFantasyMetrics({ supabase, rosterKeys, season: Number(context.season) });
     // One usage read yields both the summaries and the per-week rows (signal vs noise), so the second
     // costs no extra round trip; any failure is empty maps and the response is unchanged.
     const [{ usage, weekly: weeklyUsage }, teamSystem] = suppressLiveFootballData()
@@ -271,7 +273,7 @@ router.get("/detail", requireAuth, async (req, res, next) => {
     const breakdowns = suppressLiveFootballData()
       ? null
       : await loadProjectionBreakdowns({ connection, loaded, season: Number(context.season), week: Number(resolvedWeek) });
-    const fantasyMetrics = suppressLiveFootballData() ? null : await loadFantasyMetrics({ supabase, rosterKeys, season: Number(context.season) });
+    const fantasyMetrics = await fantasyMetricsRead;
 
     return res.json(buildStartSitDetail({
       usage,

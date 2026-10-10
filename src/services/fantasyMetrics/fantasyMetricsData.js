@@ -14,6 +14,7 @@
 const readline = require("readline");
 const zlib = require("zlib");
 const { Readable } = require("stream");
+const { pipeline } = require("stream/promises");
 const { parseCsv, parseCsvLine } = require("../csvRows");
 const { PBP_COLUMNS, compactPlay, rollupPlayerWeeks, num } = require("./fatedPoints");
 const { canonicalAbbreviation } = require("../footballIntelligence/nflTeams");
@@ -24,16 +25,52 @@ const PBP_URL = (season) => `${RELEASES}/pbp/play_by_play_${season}.csv.gz`;
 const PLAYERS_URL = `${RELEASES}/players/players.csv`;
 const GAMES_URL = `${RELEASES}/schedules/games.csv`;
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+const FAILURE_TTL_MS = 10 * 60 * 1000;
 const FETCH_TIMEOUT_MS = 60_000;
 
-const cache = new Map(); // key -> { at, promise }
+// key -> { at, promise, value?, failedAt?, refreshing? }
+const cache = new Map();
 
+/**
+ * Stale-while-revalidate cache with one build in flight per key:
+ *  - fresh entry: its promise;
+ *  - expired entry with a value: the old value now, and one background refresh;
+ *  - a failed build: null for FAILURE_TTL_MS, so an outage does not re-download on every request.
+ * An entry is only replaced or cleared by the build that owns it.
+ */
 function cached(key, build, now) {
   const hit = cache.get(key);
-  if (hit && now - hit.at < CACHE_TTL_MS) return hit.promise;
-  const promise = build().catch((error) => { cache.delete(key); throw error; });
-  cache.set(key, { at: now, promise });
-  return promise;
+  if (hit?.failedAt != null && now - hit.failedAt < FAILURE_TTL_MS) return Promise.resolve(null);
+  if (hit && hit.failedAt == null && now - hit.at < CACHE_TTL_MS) return hit.promise;
+  if (hit && "value" in hit) {
+    if (!hit.refreshing) {
+      hit.refreshing = true;
+      start(key, build, now).catch(() => {}).finally(() => { hit.refreshing = false; });
+    }
+    return Promise.resolve(hit.value);
+  }
+  return start(key, build, now);
+}
+
+function start(key, build, now) {
+  const previous = cache.get(key);
+  const entry = { at: now };
+  entry.promise = build().then((value) => {
+    if (cache.get(key) === entry || cache.get(key) === previous) cache.set(key, { at: now, promise: Promise.resolve(value), value });
+    return value;
+  }, (error) => {
+    const current = cache.get(key);
+    if (current === entry) {
+      // A failed first build is remembered briefly, so an outage does not re-download on every request.
+      cache.set(key, { at: now, failedAt: now, promise: Promise.resolve(null) });
+    } else if (current === previous && previous && "value" in previous) {
+      // A failed background refresh keeps the last good value and waits FAILURE_TTL_MS to retry.
+      previous.at = now - CACHE_TTL_MS + FAILURE_TTL_MS;
+    }
+    throw error;
+  });
+  if (!previous || !("value" in previous)) cache.set(key, entry);
+  return entry.promise;
 }
 
 async function open(url, fetchImpl) {
@@ -54,14 +91,18 @@ async function fetchText(url, fetchImpl) {
   try { return await res.text(); } finally { done(); }
 }
 
-/** Streams the season's play-by-play into compact target/carry records. */
-async function loadPlays(season, fetchImpl) {
-  const { res, done } = await open(PBP_URL(season), fetchImpl);
+/**
+ * Reads a gzipped nflverse play-by-play stream into compact target/carry records. Errors anywhere in
+ * the stream (network reset, abort, bad gzip) reject, and a header problem tears the stream down.
+ * Shared with scripts/build-xfp-tables.js so the runtime and the table builder parse identically.
+ */
+async function readPlaysFromGzip(readable) {
+  const gunzip = zlib.createGunzip();
+  const flowing = pipeline(readable, gunzip);
+  const lines = readline.createInterface({ input: gunzip, crlfDelay: Infinity });
+  let keep = null;
+  const plays = [];
   try {
-    const source = typeof res.body?.getReader === "function" ? Readable.fromWeb(res.body) : Readable.from(res.body);
-    const lines = readline.createInterface({ input: source.pipe(zlib.createGunzip()), crlfDelay: Infinity });
-    let keep = null;
-    const plays = [];
     for await (const line of lines) {
       if (!line) continue;
       const values = parseCsvLine(line);
@@ -76,7 +117,22 @@ async function loadPlays(season, fetchImpl) {
       const play = compactPlay(row);
       if (play) plays.push(play);
     }
+    await flowing;
     return plays;
+  } catch (error) {
+    readable.destroy?.();
+    gunzip.destroy();
+    await flowing.catch(() => {});
+    throw error;
+  }
+}
+
+/** Streams the season's play-by-play into compact target/carry records. */
+async function loadPlays(season, fetchImpl) {
+  const { res, done } = await open(PBP_URL(season), fetchImpl);
+  try {
+    const source = typeof res.body?.getReader === "function" ? Readable.fromWeb(res.body) : Readable.from(res.body);
+    return await readPlaysFromGzip(source);
   } finally { done(); }
 }
 
@@ -142,4 +198,4 @@ async function getSeasonBundle({ season, fetchImpl = fetch, now = Date.now(), lo
 
 function _resetCache() { cache.clear(); }
 
-module.exports = { getSeasonBundle, buildBundle, _resetCache };
+module.exports = { getSeasonBundle, buildBundle, readPlaysFromGzip, _resetCache };

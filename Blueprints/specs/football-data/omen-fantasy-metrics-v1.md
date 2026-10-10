@@ -126,6 +126,33 @@ out those rules and returns `bonus_rules_excluded: [...]`. The call states the o
 RB, WR and TE receiving and rushing, plus QB rushing. **QB passing xFP is v1.1.** Kickers, defence and IDP
 are out of scope.
 
+## 3.6 Beta slice for the 2026-10-13 beta (founder, 2026-10-10)
+
+The founder asked for these stats in beta users' hands by Tuesday so they can critique them. The beta slice
+ships **descriptive** start/sit evidence lines, computed in the API from nflverse files (6-hour cache,
+stale-while-revalidate, one download in flight), with no database writes and no iPhone build:
+
+| Line | Registry | File |
+|---|---|---|
+| Fated Points and Fate Gap (last 3 games) | FND-02/03 | `src/services/fantasyMetrics/fantasyMetricsLines.js` |
+| TD Fate Gap (season, shown at ≥ 1.5 TDs) | FND-04 | same |
+| Red-zone work (last 3 games) | FND-05 | same |
+| Pecking Order | ROL-01 | same |
+| Next Man Up (≥ 2 games without the teammate) | ROL-03 | same |
+| Projected Team Score, blowout and shootout watch | ENV-01/02 | same |
+
+- **Tables:** `src/services/fantasyMetrics/xfp-tables-v1.json`, built by `scripts/build-xfp-tables.js` from
+  2023–2025 play-by-play. Content SHA-256 `7a3012598ee9940b1113b11fa1068604734144d20a249ae5a07cab88e3f1e41a`.
+- **Checks on 2026 weeks 1–5:**
+  - play-by-play actual points equal nflverse `fantasy_points_ppr` on the checked player-weeks;
+  - targets reconcile with nflverse player-week stats exactly;
+  - season Fated Points against actual points: RB 0.98, WR 0.99, TE 1.06.
+- **What it skips:** the §7 "beat the baseline" gate. That gate guards *predictive* use. These lines only
+  describe what happened, so they are shown as evidence and never used to make the call. The backtest still
+  runs before any predictive use.
+- **Unknown league scoring** (ESPN and Yahoo today): the line says it is in PPR and that Omen hasn't verified
+  the league's scoring.
+
 ## 4. Opportunity table
 
 `football.nfl_player_weekly_opportunity` already exists and is empty. Each player-week row is filled from
@@ -135,7 +162,7 @@ play-by-play:
 |---|---|
 | `carries`, `targets` | counted from the same plays as xFP |
 | `red_zone_carries`, `red_zone_targets` | `yardline_100 ≤ 20` |
-| `inside_10_touches`, `inside_5_touches` | carries + targets with `yardline_100 ≤ 10` / `≤ 5` |
+| `inside_10_touches`, `inside_5_touches` | carries + targets with `yardline_100 ≤ 10`; carries with `yardline_100 ≤ 5` (goal-line carries). These match `nflverseFacts.buildOpportunity`, which Codex Batch C uses to fill this table. |
 | `end_zone_targets` | `air_yards ≥ yardline_100` |
 | `deep_targets` | `air_yards ≥ 20` |
 | `snaps`, `snap_share`, `routes` | **null** (snap rights open; routes have no licensed source) |

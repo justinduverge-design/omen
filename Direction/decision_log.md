@@ -1,5 +1,35 @@
 # Omen Decision Log
 
+## 2026-10-10 — beta slice of Omen's own stats ships descriptive lines first
+
+- **Decision:** for the 2026-10-13 beta, ship Fated Points, Fate Gap, TD Fate Gap, red-zone work, Pecking
+  Order, Next Man Up and Projected Team Score as start/sit evidence lines (spec `omen-fantasy-metrics-v1.md`
+  §3.6).
+  - Computed in the API from nflverse files: no schema change, no warehouse write, no iPhone build.
+  - Omen Grades, Crown Odds and the trend labels are **not** in the beta. They need history, fitted
+    weights, the lineup-solver rewrite and calibration first, so beta users would be critiquing numbers we
+    already know are unchecked.
+- **Why the backtest gate is skipped here:** these lines describe what happened and never drive the call. The
+  gate stays for any predictive use.
+- **Coordination with Codex:**
+  - Batch C's opportunity rules (`nflverseFacts.buildOpportunity`) are adopted unchanged.
+  - Batch C's "Omen QB value v0" is registered as `RAT-QB` v0, so it is built once.
+  - The Codex prompt's production freeze (Monday evening through Tuesday) means the deploy must land by Monday
+    afternoon.
+- **Review:** a `code-review` pass found 10 candidate findings. Fixed:
+  - stream error propagation;
+  - unknown league scoring now labelled as unverified;
+  - the cold cache read now overlaps the other reads, with stale-while-revalidate;
+  - a failed download is cached briefly instead of retried on every request;
+  - a cache-identity race;
+  - Next Man Up no longer says "missed", and ignores weeks after a trade;
+  - FB is grouped with RB;
+  - new lines rank after the projection gap in the "why";
+  - the duplicated parser is shared.
+
+  Not fixed: the second crosswalk query per request. It is one indexed lookup per provider, and reusing the
+  usage read's ids would touch the warehouse shadow comparison path.
+
 ## 2026-10-10 — registry decisions: Omen-tied rating name, title odds as a number, IDP now, draft groundwork
 
 - **Founder decisions:**

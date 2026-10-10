@@ -232,12 +232,17 @@ function formatPoints(facts, rec = 1) {
     - 2 * f("fumbles_lost");
 }
 
-/** Receptions-per-point from the start/sit route's scoring-format label; null label means PPR. */
+/**
+ * Points per reception from the start/sit route's scoring-format label. An unknown label (ESPN and
+ * Yahoo today) is reported as PPR with `verified: false`, and the line says so; it never presents PPR
+ * as the league's own scoring (the A6 lesson in routes/startSitDetail.js).
+ */
 function formatFromLabel(label) {
   const text = String(label || "").toLowerCase();
-  if (text.includes("standard")) return { rec: 0, label: "standard" };
-  if (text.includes("0.5")) return { rec: 0.5, label: "half-PPR" };
-  return { rec: 1, label: "PPR" };
+  if (text.includes("standard")) return { rec: 0, label: "standard", verified: true };
+  if (text.includes("0.5")) return { rec: 0.5, label: "half-PPR", verified: true };
+  if (text.includes("1 point per reception") || text === "ppr") return { rec: 1, label: "PPR", verified: true };
+  return { rec: 1, label: "PPR", verified: false };
 }
 
 module.exports = {

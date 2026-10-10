@@ -192,6 +192,11 @@ So the OL and coverage ratings are **unit** ratings, and the IDP ratings measure
 `pass_defense_1_player_id`, `interception_player_id`, `forced_fumble_player_1_player_id`, `kick_distance`,
 `field_goal_result`, `extra_point_result`, `qb_epa`, `success`, `first_down`.
 
+**Codex Batch C** (`Blueprints/prompts/2026-10-09-codex-warehouse-finish.md`) asks for an "Omen QB value v0"
+(EPA + CPOE) as the first warehouse metric run. It is registered here as **`RAT-QB` v0**: the same QB
+components as above, without opponent adjustment or fitted weights. It must use the `omen_` metric naming and
+this definition, so it is built once.
+
 ### 3.3 Proof before shipping
 
 For each rating, the report shows:
