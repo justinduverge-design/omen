@@ -197,7 +197,7 @@ test("fully resolved lookups stay quiet; partial ones log once", async () => {
   assert.equal(logger.lines[0][1].outcome, "partial");
 });
 
-test("importing the trade router opens no pool and closeTradeWarehouseRuntime is idempotent", async () => {
+test("importing the trade router opens no pool and the supabase default is a no-op", async () => {
   const pg = require("pg");
   const original = pg.Pool;
   let constructed = 0;
@@ -205,10 +205,14 @@ test("importing the trade router opens no pool and closeTradeWarehouseRuntime is
   try {
     const modulePath = require.resolve("../src/routes/trade");
     delete require.cache[modulePath];
-    const fresh = require("../src/routes/trade");
+    require("../src/routes/trade");
     assert.equal(constructed, 0);
-    await fresh.closeTradeWarehouseRuntime();
-    await fresh.closeTradeWarehouseRuntime();
+    const shared = require("../src/services/footballWarehouse/sharedUsageAccess");
+    shared._reset();
+    const rt = shared.getRuntime({});
+    assert.equal(rt.enabled, false);
+    const resolve = withWarehouseIdentityFallback(legacyResolver, { getRuntime: () => rt });
+    assert.equal((await resolve([{ player_key: "espn:1", name: "X" }]))[0].status, "unresolved");
     assert.equal(constructed, 0);
   } finally {
     pg.Pool = original;

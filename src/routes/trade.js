@@ -14,7 +14,7 @@ const { buildTradeShareOgSvg } = require("../services/tradeShareOg");
 const { compareTrade } = require("../services/tradeValue");
 const { resolveNflPlayerInputs } = require("../services/playerSearch");
 const { withWarehouseIdentityFallback } = require("../services/tradePlayerIdentity");
-const { createFailSafeWarehouseReadRuntime } = require("../services/footballWarehouse/readRuntime");
+const { getRuntime: getSharedWarehouseRuntime } = require("../services/footballWarehouse/sharedUsageAccess");
 const { resolveTradeLeagueContext } = require("../services/tradeLeagueContext");
 const { createDefaultTradeSavedQueueStore } = require("../services/tradeSavedQueueStore");
 const { createSupabaseSavedTradesStore } = require("../services/savedTradesStore");
@@ -332,26 +332,11 @@ function neutralAnalysisContext(reason = null) {
   };
 }
 
-// Identity-only warehouse reader (provider id -> Omen player). Built lazily on first use so importing
-// this module never opens a pool, and any configuration problem degrades to the legacy resolver.
-let tradeWarehouseRuntime;
-function getTradeWarehouseRuntime() {
-  if (tradeWarehouseRuntime !== undefined) return tradeWarehouseRuntime;
-  try {
-    tradeWarehouseRuntime = createFailSafeWarehouseReadRuntime({
-      Pool: require("pg").Pool,
-      onShadowUnavailable: (event) => logger.warn("Football warehouse reader unavailable", event),
-    });
-  } catch (error) {
-    logger.warn("Trade warehouse identity disabled", { event: "trade_identity_startup", outcome: "unavailable" });
-    tradeWarehouseRuntime = null;
-  }
-  return tradeWarehouseRuntime;
-}
-
+// Identity fallback shares the process-wide lazy warehouse runtime (one pool, closed at shutdown by
+// server.js). Built on first use; a configuration problem yields null and the legacy resolver is kept.
 const defaultPlayerResolver = withWarehouseIdentityFallback(
   (players) => resolveNflPlayerInputs(players, { fetchPlayers: sleeperAdapter.fetchSleeperPlayers }),
-  { getRuntime: getTradeWarehouseRuntime, logger },
+  { getRuntime: () => getSharedWarehouseRuntime({ logger }), logger },
 );
 
 function resolvedTradePlayers(inputs, resolutions) {
@@ -1735,11 +1720,6 @@ const router = createTradeRouter();
 
 module.exports = router;
 module.exports.createTradeRouter = createTradeRouter;
-module.exports.closeTradeWarehouseRuntime = async () => {
-  const runtime = tradeWarehouseRuntime;
-  tradeWarehouseRuntime = undefined;
-  if (runtime) await runtime.close();
-};
 module.exports.validateTradeSharePayload = validateTradeSharePayload;
 module.exports.validateTradePayload = validateTradePayload;
 module.exports.validateLeagueContext = validateLeagueContext;
