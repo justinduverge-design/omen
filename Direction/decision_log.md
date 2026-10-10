@@ -18,7 +18,8 @@
     afternoon.
 - **Review:** a `code-review` pass found 10 candidate findings. Fixed:
   - stream error propagation;
-  - unknown league scoring now labelled as unverified;
+  - unknown league scoring shows no points at all. The founder rejected a labelled PPR default
+    (2026-10-10, consistent with A6). Pecking Order uses share of targets and carries there instead;
   - the cold cache read now overlaps the other reads, with stale-while-revalidate;
   - a failed download is cached briefly instead of retried on every request;
   - a cache-identity race;

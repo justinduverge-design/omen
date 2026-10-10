@@ -88,7 +88,7 @@ test("start-sit evidence: every row from the real builder is in the vocabulary",
     positions: new Map([["G1", "WR"]]), names: new Map(), games: [{ week: 4, home: "SEA", away: "DEN", spread: 3, total: 44 }],
   };
   const metrics = buildEvidence({
-    start: player("a", "Alpha"), sit: player("b", "Beta"), delta: 3, scoringFormat: null,
+    start: player("a", "Alpha"), sit: player("b", "Beta"), delta: 3, scoringFormat: "1 point per reception",
     fantasyMetrics: { bundle, gsisByKey: new Map([["a", "G1"]]), week: 4 },
   });
   for (const r of metrics) seen.add(r.category);

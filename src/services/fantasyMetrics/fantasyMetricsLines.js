@@ -50,7 +50,9 @@ function sumFacts(rows, side) {
 
 /** FND-02/03: Fated Points and the Fate Gap over the last games. */
 function fatedLine({ name, rows, rec, label, verified = true }) {
-  if (!rows.length) return null;
+  // Points in a scoring the league may not use are the A6 defect (routes/startSitDetail.js), so an
+  // unverified league gets no points line at all, labelled or not.
+  if (!rows.length || !verified) return null;
   const n = rows.length;
   const fated = formatPoints(sumFacts(rows, "expected"), rec) / n;
   const actual = formatPoints(sumFacts(rows, "actual"), rec) / n;
@@ -59,8 +61,7 @@ function fatedLine({ name, rows, rec, label, verified = true }) {
   let read = "";
   if (gap >= HOT_COLD_PER_GAME) read = " He has been running hot.";
   else if (gap <= -HOT_COLD_PER_GAME) read = " He has been running cold.";
-  const scoring = verified ? `${label} points` : `points in ${label} scoring (Omen hasn't verified this league's scoring)`;
-  return `Fated Points (beta): ${name}'s usage was worth ${one(fated)} ${scoring} ${span}; he scored ${one(actual)} (Fate Gap ${signed(gap)}).${read}`;
+  return `Fated Points (beta): ${name}'s usage was worth ${one(fated)} ${label} points ${span}; he scored ${one(actual)} (Fate Gap ${signed(gap)}).${read}`;
 }
 
 /** FND-04: TDs against expected TDs, season to date. */
@@ -91,15 +92,20 @@ function redZoneLine({ name, rows }) {
   return `Red-zone work (beta): ${name} had ${parts.join(" and ")} inside the 20 over ${games}${tail}.`;
 }
 
-/** ROL-01: rank by Fated Points share within the team's position group over the team's last games. */
-function peckingOrderLine({ name, gsis, position, team, beforeWeek, bundle }) {
+/**
+ * ROL-01: rank within the team's position group over the team's last games. With verified league
+ * scoring the share is of Fated Points in that scoring; without it, the share is of targets and
+ * carries, so no points appear in a scoring the league may not use.
+ */
+function peckingOrderLine({ name, gsis, position, team, beforeWeek, bundle, rec = null }) {
   const weeks = (bundle.teamWeeks.get(team) || []).filter((w) => w < beforeWeek).slice(-RECENT_GAMES);
   if (!weeks.length) return null;
   const weekSet = new Set(weeks);
+  const value = rec == null ? (row) => opportunities(row) : (row) => formatPoints(row.expected, rec);
   const totals = new Map();
   for (const row of bundle.byTeam.get(team) || []) {
     if (!weekSet.has(row.week) || groupOf(bundle.positions.get(row.player)) !== position) continue;
-    totals.set(row.player, (totals.get(row.player) || 0) + formatPoints(row.expected, 1));
+    totals.set(row.player, (totals.get(row.player) || 0) + value(row));
   }
   const room = [...totals.values()].reduce((a, b) => a + b, 0);
   if (!room || !totals.has(gsis)) return null;
@@ -107,7 +113,8 @@ function peckingOrderLine({ name, gsis, position, team, beforeWeek, bundle }) {
   const rank = ranked.findIndex(([id]) => id === gsis) + 1;
   const share = totals.get(gsis) / room;
   const teamLabel = teamName(team) || team;
-  return `Pecking Order (beta): ${name} is ${ordinal(rank)} among ${teamLabel} ${position}s, with ${pct(share)} of their Fated Points over the team's last ${weeks.length} game${weeks.length === 1 ? "" : "s"}.`;
+  const of = rec == null ? "targets and carries" : "Fated Points";
+  return `Pecking Order (beta): ${name} is ${ordinal(rank)} among ${teamLabel} ${position}s, with ${pct(share)} of their ${of} over the team's last ${weeks.length} game${weeks.length === 1 ? "" : "s"}.`;
 }
 
 /**
@@ -184,7 +191,7 @@ function fantasyMetricsEvidence({ name, gsis, position, team, beforeWeek, scorin
       fatedLine({ name, rows: recent, rec, label, verified }),
       tdLine({ name, rows: all }),
       redZoneLine({ name, rows: recent }),
-      playerTeam ? peckingOrderLine({ name, gsis, position: group, team: playerTeam, beforeWeek, bundle }) : null,
+      playerTeam ? peckingOrderLine({ name, gsis, position: group, team: playerTeam, beforeWeek, bundle, rec: verified ? rec : null }) : null,
       playerTeam ? nextManUpLine({ name, gsis, position: group, team: playerTeam, beforeWeek, bundle }) : null,
     ];
     for (const statement of lines) if (statement) rows.push({ category: "omen_metric", kind: "observed_context", statement });

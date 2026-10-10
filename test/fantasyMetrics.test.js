@@ -126,8 +126,8 @@ test("Fated Points line states the gap, and running hot or cold only past the th
   const level = lines.fatedLine({ name: "A", rows: [week(1, { expected: exp, actual: exp })], rec: 1, label: "PPR" });
   assert.doesNotMatch(level, /running/);
   assert.doesNotMatch(level, /predict|will score/i);
-  const unverified = lines.fatedLine({ name: "A", rows: [week(1, { expected: exp, actual: exp })], rec: 1, label: "PPR", verified: false });
-  assert.match(unverified, /worth 11\.0 points in PPR scoring \(Omen hasn't verified this league's scoring\)/);
+  // Unverified league scoring (ESPN, Yahoo today): no points line at all (the A6 rule).
+  assert.equal(lines.fatedLine({ name: "A", rows: [week(1, { expected: exp, actual: exp })], rec: 1, label: "PPR", verified: false }), null);
 });
 
 test("TD Fate Gap appears only when the gap is at least 1.5 TDs", () => {
@@ -159,8 +159,11 @@ test("Pecking Order ranks by Fated Points share within the position group", () =
     week(w, { player: "TE1", expected: big, actual: big }),
   ]);
   const bundle = bundleFrom(rollups, new Map([["WR1", "WR"], ["WR2", "WR"], ["TE1", "TE"]]));
-  const line = lines.peckingOrderLine({ name: "B", gsis: "WR2", position: "WR", team: "CAR", beforeWeek: 4, bundle });
+  const line = lines.peckingOrderLine({ name: "B", gsis: "WR2", position: "WR", team: "CAR", beforeWeek: 4, bundle, rec: 1 });
   assert.match(line, /2nd among Carolina WRs, with 22% of their Fated Points over the team's last 3 games/);
+  // Without verified scoring the share is of targets and carries, and no points are named.
+  const plain = lines.peckingOrderLine({ name: "B", gsis: "WR2", position: "WR", team: "CAR", beforeWeek: 4, bundle });
+  assert.match(plain, /2nd among Carolina WRs, with 50% of their targets and carries/);
 });
 
 test("Next Man Up needs two quiet games, never says 'missed', and ignores weeks after a teammate moves", () => {
@@ -199,8 +202,10 @@ test("Projected Team Score: nflverse spread is home-positive; flags at 10-point 
 test("evidence rows use the closed vocabulary, skip non-skill players, and rank under observed usage", () => {
   const rollups = [1, 2, 3].map((w) => week(w, { player: "WR1", expected: { receiving_receptions: 5, receiving_yards: 60 }, actual: { receiving_receptions: 5, receiving_yards: 60 }, opportunity: { rz_targets: 1 } }));
   const bundle = bundleFrom(rollups, new Map([["WR1", "WR"]]), new Map(), [{ week: 4, home: "CAR", away: "NO", spread: 3, total: 44 }]);
-  const rows = lines.fantasyMetricsEvidence({ name: "A", gsis: "WR1", position: "WR", team: "CAR", beforeWeek: 4, scoringFormat: null, bundle });
+  const rows = lines.fantasyMetricsEvidence({ name: "A", gsis: "WR1", position: "WR", team: "CAR", beforeWeek: 4, scoringFormat: "1 point per reception", bundle });
   assert.ok(rows.length >= 2);
+  const unverified = lines.fantasyMetricsEvidence({ name: "A", gsis: "WR1", position: "WR", team: "CAR", beforeWeek: 4, scoringFormat: null, bundle });
+  assert.equal(unverified.some((r) => /points/i.test(r.statement)), false);
   for (const r of rows) {
     assert.ok(START_SIT.categories.includes(r.category));
     assert.ok(START_SIT.kinds.includes(r.kind));

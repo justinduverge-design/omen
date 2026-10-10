@@ -150,8 +150,9 @@ stale-while-revalidate, one download in flight), with no database writes and no 
 - **What it skips:** the §7 "beat the baseline" gate. That gate guards *predictive* use. These lines only
   describe what happened, so they are shown as evidence and never used to make the call. The backtest still
   runs before any predictive use.
-- **Unknown league scoring** (ESPN and Yahoo today): the line says it is in PPR and that Omen hasn't verified
-  the league's scoring.
+- **Unknown league scoring** (ESPN and Yahoo today): no Fated Points or Fate Gap line, and Pecking Order ranks
+  by share of targets and carries. No points appear in a scoring the league may not use (the A6 rule). TD
+  Fate Gap, red-zone work, Next Man Up and Projected Team Score are scoring-free and still show.
 
 ## 4. Opportunity table
 

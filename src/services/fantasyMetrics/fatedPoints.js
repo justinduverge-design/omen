@@ -234,8 +234,8 @@ function formatPoints(facts, rec = 1) {
 
 /**
  * Points per reception from the start/sit route's scoring-format label. An unknown label (ESPN and
- * Yahoo today) is reported as PPR with `verified: false`, and the line says so; it never presents PPR
- * as the league's own scoring (the A6 lesson in routes/startSitDetail.js).
+ * Yahoo today) returns `verified: false`, and callers then show no points at all: PPR is never
+ * presented as the league's own scoring (the A6 lesson in routes/startSitDetail.js).
  */
 function formatFromLabel(label) {
   const text = String(label || "").toLowerCase();
