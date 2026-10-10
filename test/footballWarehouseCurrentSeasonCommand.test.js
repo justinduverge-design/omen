@@ -135,3 +135,13 @@ test("a derived stage failure is a coded failure after facts commit", async () =
   assert.equal(out.at(-1).state, "failed");
   assert.equal(out.at(-1).code, "derived_opportunity_stats_missing");
 });
+
+test("report mode returns a failed derived stage instead of failing the command; strict stays the default", async () => {
+  const { createDerivedStages } = require("../src/services/footballWarehouse/derivedStages");
+  const failing = { writeSeason: async () => { throw Object.assign(new Error("x"), { code: "opportunity_reconciliation_failed" }); } };
+  const ok = { run: async () => ({ state: "succeeded", valueCount: 41 }) };
+  await assert.rejects(createDerivedStages({ opportunityWriter: failing, qbRunner: ok }).run({ season: 2003 }), (e) => e.code === "derived_opportunity_opportunity_reconciliation_failed");
+  const report = await createDerivedStages({ mode: "report", opportunityWriter: failing, qbRunner: ok }).run({ season: 2003 });
+  assert.deepEqual(report, { opportunity: { state: "failed", code: "derived_opportunity_opportunity_reconciliation_failed" }, ratQb: { state: "succeeded", valueCount: 41 } });
+  assert.throws(() => createDerivedStages({ mode: "lenient", opportunityWriter: failing, qbRunner: ok }), /strict or report/);
+});
