@@ -61,7 +61,7 @@ query_evidence() {
     cat > "$passfile"
     chmod 0600 "$passfile"
     PGPASSFILE="$passfile" psql --no-psqlrc --set ON_ERROR_STOP=1 --quiet \
-      --host "$(hostname -i | cut -d\  -f1)" --port 5432 --username "$1" --dbname "$2" \
+      --host "$3" --port 5432 --username "$1" --dbname "$2" \
       --tuples-only --no-align --command "
         set default_transaction_read_only=on;
         select json_build_object(
@@ -82,7 +82,7 @@ query_evidence() {
           )
         )
         from football.warehouse_ingest_events"
-  ' sh "$BACKUP_ROLE" "$DATABASE" < "$PGPASS_FILE" > "$destination"
+  ' sh "$BACKUP_ROLE" "$DATABASE" "$CONTAINER" < "$PGPASS_FILE" > "$destination"
 }
 
 query_evidence "$stage/before.json"
@@ -98,9 +98,9 @@ docker exec --interactive "$CONTAINER" sh -eu -c '
   trap '\''rm -f -- "$passfile"'\'' EXIT
   cat > "$passfile"
   chmod 0600 "$passfile"
-  PGPASSFILE="$passfile" pg_dump --host "$(hostname -i | cut -d\  -f1)" --port 5432 --username "$1" --dbname "$2" \
+  PGPASSFILE="$passfile" pg_dump --host "$3" --port 5432 --username "$1" --dbname "$2" \
     --format=custom --compress=9 --no-owner --no-privileges --schema=football
-' sh "$BACKUP_ROLE" "$DATABASE" < "$PGPASS_FILE" > "$stage/warehouse.dump"
+' sh "$BACKUP_ROLE" "$DATABASE" "$CONTAINER" < "$PGPASS_FILE" > "$stage/warehouse.dump"
 [[ -s "$stage/warehouse.dump" ]] || { echo "warehouse backup refused: dump is empty" >&2; exit 65; }
 
 query_evidence "$stage/after.json"
