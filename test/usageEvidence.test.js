@@ -83,7 +83,7 @@ test("waiver sentence is built only from real numbers", () => {
   const rows = [week(1, { targets: 3, red_zone_targets: 0 }), week(2, { targets: 4, red_zone_targets: 0 }),
     week(3, { targets: 9, red_zone_targets: 2 }), week(4, { targets: 10, red_zone_targets: 1 }), week(5, { targets: 11, red_zone_targets: 0 })];
   const sentence = waiverUsageSentence("Sam Rookie", "WR", rows);
-  assert.equal(sentence, "Sam Rookie: 10.0 targets a game over the last 3 games, with 3 red-zone touches in that stretch. Up from 3.5 targets a game over the first 2 games.");
+  assert.equal(sentence, "Sam Rookie: 10.0 targets a game over the last 3 games, with 3 red-zone touches in that stretch. Up from 3.5 targets a game over the earlier games.");
   const rb = waiverUsageSentence("Back", "RB", [week(7, { carries: 12, targets: 2, red_zone_carries: 1, red_zone_targets: 0 })]);
   assert.equal(rb, "Back: 12.0 carries and 2.0 targets in the last game, with 1 red-zone touch in that stretch.");
 });

@@ -1703,8 +1703,9 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
   const candidates = [];
 
   // Observed recent usage may corroborate the call's confidence band (same helper as Start/Sit).
-  // Strictly additive: no reader, a failed or slow read, or no usage all leave today's output as is.
-  const lineupUsage = await readRosterUsage({
+  // The read starts now, overlaps the waiver build, and is awaited only before the lineup evaluation.
+  // It never rejects; no reader, supabase mode, a failed or slow read all leave today's output as is.
+  const lineupUsagePromise = readRosterUsage({
     reader: usageReaderProvider(),
     supabase,
     roster,
@@ -1712,6 +1713,9 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
     beforeWeek: roster.week || week,
     log: logger,
   });
+
+  const waiverAnalysis = await buildWaiverCandidateForConnection({ connection, roster, espnCredentials });
+  const lineupUsage = await lineupUsagePromise;
   const [swap] = optimizer.evaluateLineup(roster, lineupUsage ? { usage: lineupUsage } : {});
   if (swap) {
     candidates.push({
@@ -1725,7 +1729,6 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
     });
   }
 
-  const waiverAnalysis = await buildWaiverCandidateForConnection({ connection, roster, espnCredentials });
   const waiverCandidate = waiverAnalysis.candidate;
   const waiverSignal = waiverAnalysis.waiverSignal;
   const waiverSystemModel = waiverAnalysis.waiverSystemModel || null;

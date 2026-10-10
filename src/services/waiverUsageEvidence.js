@@ -29,10 +29,10 @@ function known(rows, key) {
 
 const mean = (values) => values.reduce((a, b) => a + b, 0) / values.length;
 
-function movedStatement(recentAvg, priorAvg, label, priorGames) {
+function movedStatement(recentAvg, priorAvg, label) {
   const delta = recentAvg - priorAvg;
   if (Math.abs(delta) < TREND_MIN_DELTA || Math.abs(delta) < TREND_MIN_RATIO * Math.max(priorAvg, 1)) return null;
-  return `${delta > 0 ? "Up" : "Down"} from ${round1(priorAvg)} ${label} a game over the first ${priorGames} games.`;
+  return `${delta > 0 ? "Up" : "Down"} from ${round1(priorAvg)} ${label} a game over the earlier games.`;
 }
 
 /**
@@ -64,14 +64,14 @@ function waiverUsageSentence(name, position, rows) {
     if (usePrior) {
       const priorCarries = known(prior, "carries");
       const priorTargets = known(prior, "targets");
-      if (carries && priorCarries) trend = movedStatement(mean(carries), mean(priorCarries), "carries", prior.length);
-      if (!trend && targets && priorTargets) trend = movedStatement(mean(targets), mean(priorTargets), "targets", prior.length);
+      if (carries && priorCarries) trend = movedStatement(mean(carries), mean(priorCarries), "carries");
+      if (!trend && targets && priorTargets) trend = movedStatement(mean(targets), mean(priorTargets), "targets");
     }
   } else {
     if (targets) parts.push(count(mean(targets), "target", "targets"));
     if (usePrior) {
       const priorTargets = known(prior, "targets");
-      if (targets && priorTargets) trend = movedStatement(mean(targets), mean(priorTargets), "targets", prior.length);
+      if (targets && priorTargets) trend = movedStatement(mean(targets), mean(priorTargets), "targets");
     }
   }
   if (!parts.length) return null;
