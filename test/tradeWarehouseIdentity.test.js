@@ -133,12 +133,12 @@ function buildApp(resolver) {
   return app;
 }
 
-async function post(app, body) {
+async function post(app, body, headers = {}) {
   const server = http.createServer(app);
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   try {
     const res = await fetch(`http://127.0.0.1:${server.address().port}/api/trade/compare`, {
-      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body),
+      method: "POST", headers: { "content-type": "application/json", ...headers }, body: JSON.stringify(body),
     });
     return { status: res.status, body: await res.json() };
   } finally {
@@ -153,7 +153,9 @@ const TRADE = {
 
 test("route: ESPN-keyed roster player resolves via warehouse, no projection stays insufficient_data", async () => {
   const resolver = withWarehouseIdentityFallback(legacyResolver, { getRuntime: () => runtimeWith([ESPN_HIT]) });
-  const res = await post(buildApp(resolver), TRADE);
+  // Opts out of contract recording: a null projection is existing route behavior this slice does not
+  // change, and the recorded schema types projected_points as number only.
+  const res = await post(buildApp(resolver), TRADE, { "x-contract-record": "skip" });
   assert.equal(res.status, 200);
   assert.equal(res.body.contract_version, tradeRoutes.TRADE_COMPARE_CONTRACT);
   assert.equal(res.body.evaluability.status, "insufficient_data");
@@ -177,4 +179,38 @@ test("route: a warehouse outage keeps the old 422 unresolved_players behavior", 
   assert.equal(res.status, 422);
   assert.equal(res.body.error, "unresolved_players");
   assert.equal(res.body.unresolved[0].side, "send");
+});
+
+test("a warehouse-supplied position takes precedence over the caller's", async () => {
+  const resolve = withWarehouseIdentityFallback(legacyResolver, { getRuntime: () => runtimeWith([ESPN_HIT]) });
+  const out = await resolve([{ player_key: "espn:4242", name: "P. Nacua", position: "RB" }]);
+  assert.equal(out[0].player.position, "WR");
+});
+
+test("fully resolved lookups stay quiet; partial ones log once", async () => {
+  const logger = quietLogger();
+  const resolve = withWarehouseIdentityFallback(legacyResolver, { getRuntime: () => runtimeWith([ESPN_HIT]), logger });
+  await resolve([{ player_key: "espn:4242", name: "P", position: "WR" }]);
+  assert.equal(logger.lines.length, 0);
+  await resolve([{ player_key: "espn:4242", name: "P", position: "WR" }, { player_key: "espn:1", name: "Q", position: "WR" }]);
+  assert.equal(logger.lines.length, 1);
+  assert.equal(logger.lines[0][1].outcome, "partial");
+});
+
+test("importing the trade router opens no pool and closeTradeWarehouseRuntime is idempotent", async () => {
+  const pg = require("pg");
+  const original = pg.Pool;
+  let constructed = 0;
+  pg.Pool = class { constructor() { constructed += 1; } };
+  try {
+    const modulePath = require.resolve("../src/routes/trade");
+    delete require.cache[modulePath];
+    const fresh = require("../src/routes/trade");
+    assert.equal(constructed, 0);
+    await fresh.closeTradeWarehouseRuntime();
+    await fresh.closeTradeWarehouseRuntime();
+    assert.equal(constructed, 0);
+  } finally {
+    pg.Pool = original;
+  }
 });

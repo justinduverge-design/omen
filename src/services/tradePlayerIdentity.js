@@ -72,7 +72,9 @@ function withWarehouseIdentityFallback(baseResolver, { getRuntime, logger } = {}
       };
       filled += 1;
     }
-    log({ event: "trade_identity_fallback", outcome: "ok", mode: runtime.mode, requested: gaps.length, resolved: filled });
+    if (filled < gaps.length) {
+      log({ event: "trade_identity_fallback", outcome: "partial", mode: runtime.mode, requested: gaps.length, resolved: filled });
+    }
     return out;
   };
 }
