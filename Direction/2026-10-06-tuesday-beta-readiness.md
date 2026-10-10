@@ -1,7 +1,7 @@
 # Tuesday beta readiness — football warehouse
 
 **Written:** 2026-10-04. **Target:** Tuesday, 2026-10-06 beta update.
-**Status:** foundation verified locally; production warehouse, recovery proof, shadow reads, and physical-device proof remain open.
+**Status (updated 2026-10-10):** warehouse live in shadow, backed up and monitored; shadow comparison and physical-device proof remain open. See §2. Carried forward to the 2026-10-13 beta.
 **Authority:** this file is a readiness record and execution checklist. It does not authorize a deploy,
 host mutation, production SQL, feature-flag change, merge, or release.
 
@@ -53,30 +53,41 @@ Supabase Step 14 retirement are complete.
 
 ---
 
-## 2. Current truth — 2026-10-04
+## 2. Current truth — updated 2026-10-10 (for the 2026-10-13 beta)
 
-| Item | Status | Evidence or gap |
-|---|---|---|
-| Architecture and user/football data boundary | **VERIFIED locally** | `Blueprints/architecture/omen-football-warehouse-v1.md` |
-| Supabase Step 15 retirement fence | **VERIFIED locally** | Step 15 SQL is retired on `codex/football-warehouse-foundation`; it has not been applied to production |
-| PostgreSQL 17 schema and local migration proof | **VERIFIED locally** | `warehouse/migrations/0001_football_warehouse.sql` and PostgreSQL 17 schema tests |
-| Private Compose posture | **VERIFIED as configuration only** | no host port, internal warehouse network, resource/log/PID limits; not yet proved on KVM1 |
-| Transactional player-week writer | **VERIFIED locally** | atomic dataset/season replacement, strict receipts, rollback behavior, identity validation |
-| Strict `stats_player` source adapter | **VERIFIED locally** | exact URL allowlist, exact-byte hash, schema fingerprint, strict CSV and numeric validation, GSIS-only matching |
-| Deterministic one-season source-to-database proof | **VERIFIED locally** | adapter -> writer -> ephemeral PostgreSQL 17, including correction, replay, and forced-failure preservation |
-| Repository test suite | **VERIFIED on branch** | 1,909/1,909 passed after commit `a6e97617` |
-| Git branch | **PUBLISHED** | `codex/football-warehouse-foundation`, head `a6e97617`; no PR recorded in this file |
-| Current `main` Deploy workflow | **UNVERIFIED for this gate** | must be checked immediately before any KVM1 action |
-| KVM1 capacity and listener preflight | **NOT RUN** | earlier 83 GB disk/7 GB memory figures are planning assumptions, not current evidence |
-| KVM1 warehouse instance | **NOT CREATED** | no production host mutation performed by this work |
-| Real 2026 nflverse warehouse load | **NOT RUN** | local deterministic fixture is not production-data evidence |
-| KVM2 encrypted backup and isolated restore | **NOT IMPLEMENTED / NOT RUN** | no recovery claim may be made |
-| Kuma/Beszel/GlitchTip/Sentry/Pi warehouse coverage | **NOT INSTALLED** | architecture assigns roles; current warehouse checks are not deployed |
-| API shadow reads | **NOT IMPLEMENTED / NOT ENABLED** | initial repository exists; no production request path consumes it |
-| Physical iPhone warehouse-data proof | **NOT RUN** | simulator, fixture, or source inspection is insufficient |
-| Full 1999–2026 and play-by-play corpus | **NOT STARTED** | intentionally outside Tuesday minimum |
-| Warehouse-primary cutover | **NOT AUTHORIZED / NOT STARTED** | requires later evidence and founder approval |
-| Supabase Step 14 retirement | **DEFERRED** | keep Step 14 serving until the later observation and rollback gates pass |
+**Carried forward.** The Oct 6 beta ended with this file's boxes unticked, so nothing below is claimed from
+that day. Statuses come from the 2026-10-09 handoffs and the 2026-10-10 takeover session; "unverified"
+means nobody re-checked it this session. Gates F and G are the ones that decide whether users get a
+better beta, and both are still open.
+
+| Gate | Item | Status 2026-10-10 | Evidence or gap |
+|---|---|---|---|
+| A | Foundation merged, protected files unchanged | **DONE** | #577 merged `e5f11632`; Batches A–C merged (#587–#597); no protected decision-engine file touched |
+| B | Private PostgreSQL 17 on KVM1 | **DONE** | healthy, no host port, `omen_football_warehouse`; handoff 2026-10-09 |
+| C | Real 2026 current-season ingest | **DONE, daily** | `omen-warehouse-ingest.timer` 11:15 UTC; 2026 current through week 5; per-run receipts in `warehouse_ingest_events` |
+| C+ | Play-derived opportunity and first Omen metric (code) | **MERGED, NOT RUN** | #595 opportunity writer, #596 RAT-QB v0; no caller, no production run, not wired into the app |
+| D | Encrypted KVM2 backup and isolated restore | **PROVEN, SCHEDULED** | manual backups and a manual restore proof passed 2026-10-10; nightly (KVM1 12:30 UTC) and weekly (KVM2 Sun 14:00 UTC) timers enabled, **first scheduled runs due 2026-10-11** |
+| D | Recovery duration against the four-hour RTO | **NOT MEASURED** | |
+| D | Retention policy `7 4 3` | **PROVISIONAL** | fix `--group-by host,tags` is merged (#597) but not live: needs a new release on KVM1 |
+| E | Beszel on all five hosts, Discord alerts | **DONE** | handoff 2026-10-09 |
+| E | Kuma monitors for ingest and nightly backup | **DONE** | ingest #7; backup #8 proven `Up` with a real run 2026-10-10 |
+| E | Weekly restore-proof heartbeat | **NOT DONE** | its failures are silent; needs a monitor and a push in the script |
+| E | GlitchTip/Sentry correlation, Steward, Sentinel, forced checker-crash `DOWN`, changed-signature alert | **NOT DONE / UNVERIFIED** | `pi-watchdog` scripts not installed; the `down` path never fired on purpose |
+| F | API shadow reads | **ENABLED, NOT PROVEN** | `FOOTBALL_DATA_MODE=shadow` on KVM1; **no real Start/Sit request has produced a comparison event** |
+| F | Warehouse outage leaves auth, leagues, Ledger, trades working | **NOT TESTED** | |
+| G | Physical-iPhone proof of warehouse-backed screens | **NOT RUN** | simulator or fixture evidence does not count |
+| G | Device walk of every beta screen on current `main` | **NOT RUN SINCE 2026-10-01** | Oct 1 walk found 3 P0 and 4 P1; closure of each is **UNVERIFIED** (see `2026-10-01-device-walk-1.md`) |
+| — | Warehouse-primary mode, 1999–2025 backfill, Step 14 retirement | **NOT STARTED** | intentionally later (§11) |
+
+### Open items from the Oct 1 device walk, closure not re-checked
+
+- Contract drift: numeric `quality.confidence` broke every Omen call (fixed in #504; whether a live
+  `football_intelligence` fixture was added is **unverified**).
+- One league per platform saved server-side, with duplicate rows, so most leagues cannot get a call
+  (belongs to the connections redesign).
+- "Nothing to recommend" on a league where the engine finds a swap locally: reproduction **open**.
+- Command and League disagreed on waivers; Find-a-trade entry point undecided; lag measured at ~2 s after
+  #507 with no cache; scoring held, so Ledger rows read Pending.
 
 No status in this table implies production application. “Verified locally” is not “deployed,”
 “reachable,” “serving,” or “physically verified.”
