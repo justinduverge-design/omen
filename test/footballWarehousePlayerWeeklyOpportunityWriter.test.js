@@ -33,3 +33,11 @@ test("a season with no weekly stat rows fails with stats_missing before the guar
   assert.equal(pool.statements.at(-1), "ROLLBACK");
   assert.ok(!pool.statements.some((text) => /DELETE FROM/.test(text)));
 });
+
+test("the reconciliation adds each player-week's kneel-downs to play-by-play carries and reports the adjusted rows", () => {
+  const source = require("node:fs").readFileSync(require.resolve("../src/services/footballWarehouse/playerWeeklyOpportunityWriter"), "utf8");
+  assert.match(source, /play_type = 'qb_kneel'/);
+  assert.match(source, /abs\(pbp_carries \+ kneels - stat_carries\)/);
+  assert.match(source, /AS kneel_adjusted_rows/);
+  assert.match(source, /kneelAdjustedRows: stats\.kneel_adjusted_rows/);
+});
