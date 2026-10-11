@@ -86,7 +86,9 @@ const sleeperRequestMemo = requestScope.middleware;
 function memoKey(url, options) {
   let params = "";
   try { params = options.params ? JSON.stringify(options.params) : ""; } catch { params = "?"; }
-  return `${url}|${params}`;
+  // timeout is part of the key: a caller asking for a longer timeout must not be handed
+  // a request that was issued with a shorter one.
+  return `${url}|${params}|${options.timeout || ""}`;
 }
 
 function getJson(url, options = {}) {
@@ -553,23 +555,33 @@ async function loadSleeperPlayers() {
   return out;
 }
 
+const PLAYERS_REFRESH_BACKOFF_MS = 60 * 1000;
+
 async function fetchSleeperPlayers() {
   const now = Date.now();
   if (playersMemo.value && now - playersMemo.at < PLAYERS_MEMO_TTL_MS) return playersMemo.value;
-  if (playersMemo.promise) return playersMemo.promise;
 
-  const promise = loadSleeperPlayers()
-    .then((value) => {
-      playersMemo.value = value;
-      playersMemo.at = Date.now();
-      return value;
-    })
-    .finally(() => { if (playersMemo.promise === promise) playersMemo.promise = null; });
-  playersMemo.promise = promise;
+  let promise = playersMemo.promise;
+  if (!promise) {
+    promise = loadSleeperPlayers()
+      .then((value) => {
+        playersMemo.value = value;
+        playersMemo.at = Date.now();
+        return value;
+      })
+      .catch((err) => {
+        // A failed refresh with a stale map in hand backs off ~60s, so an outage does not make
+        // every request wait out the 30s players timeout.
+        if (playersMemo.value) playersMemo.at = Date.now() - PLAYERS_MEMO_TTL_MS + PLAYERS_REFRESH_BACKOFF_MS;
+        throw err;
+      })
+      .finally(() => { if (playersMemo.promise === promise) playersMemo.promise = null; });
+    playersMemo.promise = promise;
+  }
   try {
     return await promise;
   } catch (err) {
-    // Serve a stale map rather than fail when a refresh errors.
+    // Every caller (leader or joiner) serves the stale map rather than failing.
     if (playersMemo.value) return playersMemo.value;
     throw err;
   }

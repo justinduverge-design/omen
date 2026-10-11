@@ -174,14 +174,14 @@ function buildApp(options = {}) {
   return app;
 }
 
-async function request(app, { path = "/api/leagues", method = "GET", body = null } = {}) {
+async function request(app, { path = "/api/leagues", method = "GET", body = null, headers = {} } = {}) {
   const server = http.createServer(app);
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const { port } = server.address();
   try {
     const response = await fetch(`http://127.0.0.1:${port}${path}`, {
       method,
-      headers: { authorization: "Bearer valid-token", "content-type": "application/json" },
+      headers: { authorization: "Bearer valid-token", "content-type": "application/json", ...headers },
       body: body == null ? undefined : JSON.stringify(body),
     });
     return { status: response.status, body: await response.json() };
@@ -1209,7 +1209,7 @@ test("platform groups are read concurrently, and a failing platform does not fai
       },
     },
   });
-  const { status, body } = await request(app);
+  const { status, body } = await request(app, { headers: { "x-contract-record": "skip" } });
 
   assert.equal(status, 200);
   assert.equal(yahooStartedWhileSleeperPending, true);

@@ -243,3 +243,50 @@ test("selectTolerantly remembers absent optional columns instead of re-querying 
   assert.equal(queries[2], "id");
   moves.resetAbsentColumns();
 });
+
+test("with a stale players map, every concurrent caller gets it on refresh failure, and failures back off", async () => {
+  let fail = false;
+  const { adapter, calls } = loadAdapter(() => {
+    if (fail) throw new Error("down");
+    return { p1: { full_name: "One" } };
+  });
+  adapter.resetSleeperPlayersMemo();
+  const realNow = Date.now;
+  let clock = realNow();
+  Date.now = () => clock;
+  try {
+    const first = await adapter.fetchSleeperPlayers();
+    fail = true;
+    clock += 21 * 60 * 1000; // past the 20 min TTL
+    const results = await Promise.all([
+      adapter.fetchSleeperPlayers(), adapter.fetchSleeperPlayers(), adapter.fetchSleeperPlayers(),
+    ]);
+    for (const r of results) assert.equal(r, first);
+    assert.equal(count(calls, "/players/nfl"), 2);
+
+    // Within the backoff window nobody retries the upstream.
+    clock += 30 * 1000;
+    assert.equal(await adapter.fetchSleeperPlayers(), first);
+    assert.equal(count(calls, "/players/nfl"), 2);
+
+    // After the backoff it tries again.
+    clock += 40 * 1000;
+    assert.equal(await adapter.fetchSleeperPlayers(), first);
+    assert.equal(count(calls, "/players/nfl"), 3);
+  } finally {
+    Date.now = realNow;
+  }
+});
+
+test("absent-column memory is keyed per table", async () => {
+  const moves = require("../src/routes/moves");
+  moves.resetAbsentColumns();
+  const run = async (columns) => (columns.split(",").includes("x")
+    ? { data: null, error: { code: "42703", message: "column t.x does not exist" } }
+    : { data: {}, error: null });
+  await moves.selectTolerantly(["id", "x"], ["x"], run, "table_a");
+  const queries = [];
+  await moves.selectTolerantly(["id", "x"], ["x"], async (c) => { queries.push(c); return run(c); }, "table_b");
+  assert.equal(queries[0], "id,x", "table_b still tries x");
+  moves.resetAbsentColumns();
+});

@@ -685,7 +685,7 @@ test("GET /api/dashboard/summary is cached per user and invalidated by connectio
       const server = http.createServer(app);
       await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
       try {
-        const res = await fetch(`http://127.0.0.1:${server.address().port}/api/dashboard/summary`);
+        const res = await fetch(`http://127.0.0.1:${server.address().port}/api/dashboard/summary`, { headers: { "x-contract-record": "skip" } });
         return { cache: res.headers.get("x-omen-cache"), body: await res.json() };
       } finally {
         await new Promise((resolve) => server.close(resolve));
@@ -711,6 +711,43 @@ test("GET /api/dashboard/summary is cached per user and invalidated by connectio
     await responseCache.invalidateUser("user-a");
     const afterWrite = await getAs("user-a", [sleeperRow("user-a", "L1")]);
     assert.equal(afterWrite.cache, "miss");
+  } finally {
+    responseCache.setStoreForTests(undefined);
+  }
+});
+
+test("cached dashboard summaries never cross users, even with identical connections", async () => {
+  const responseCache = require("../src/services/responseCache");
+  responseCache.setStoreForTests(responseCache.createMemoryResponseCacheStore());
+  try {
+    const row = (userId) => ({
+      user_id: userId, platform: "sleeper", is_active: true, platform_username: `name-${userId}`, league_id: "SAME",
+    });
+    const get = async (userId) => {
+      const app = buildApp({
+        platformRows: [row(userId)],
+        requireAuth: (req, _res, next) => { req.user = { id: userId }; next(); },
+      });
+      const server = http.createServer(app);
+      await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+      try {
+        const res = await fetch(`http://127.0.0.1:${server.address().port}/api/dashboard/summary`, { headers: { "x-contract-record": "skip" } });
+        return { cache: res.headers.get("x-omen-cache"), body: await res.json() };
+      } finally {
+        await new Promise((resolve) => server.close(resolve));
+      }
+    };
+    const a1 = await get("user-a");
+    const b1 = await get("user-b");
+    const a2 = await get("user-a");
+    const b2 = await get("user-b");
+    assert.equal(a1.body.platforms.sleeper.username, "name-user-a");
+    assert.equal(b1.body.platforms.sleeper.username, "name-user-b");
+    assert.equal(b1.cache, "miss");
+    assert.equal(a2.cache, "hit");
+    assert.equal(b2.cache, "hit");
+    assert.equal(a2.body.platforms.sleeper.username, "name-user-a");
+    assert.equal(b2.body.platforms.sleeper.username, "name-user-b");
   } finally {
     responseCache.setStoreForTests(undefined);
   }

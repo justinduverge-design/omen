@@ -47,7 +47,7 @@ function namesColumn(error, column) {
 
 // Optional columns the database has told us are absent. Schema is not per-user, so this is
 // safe to share across requests; it expires so a migration that adds the column is picked up.
-const ABSENT_COLUMN_TTL_MS = 10 * 60 * 1000;
+const ABSENT_COLUMN_TTL_MS = 2 * 60 * 1000;
 const absentColumns = new Map();
 
 function resetAbsentColumns() {
@@ -64,16 +64,16 @@ function isKnownAbsent(column, now) {
   return true;
 }
 
-async function selectTolerantly(columns, optional, run) {
+async function selectTolerantly(columns, optional, run, table = "moves") {
   const startedAt = Date.now();
   // Start without the columns already known to be absent: no failing query per request.
-  let selected = columns.filter((column) => !(optional.includes(column) && isKnownAbsent(column, startedAt)));
+  let selected = columns.filter((column) => !(optional.includes(column) && isKnownAbsent(`${table}:${column}`, startedAt)));
   for (;;) {
     const result = await run(selected.join(","));
     if (!result.error || !isMissingColumnError(result.error)) return result;
     const absent = selected.find((column) => optional.includes(column) && namesColumn(result.error, column));
     if (!absent) return result;
-    absentColumns.set(absent, Date.now());
+    absentColumns.set(`${table}:${absent}`, Date.now());
     selected = selected.filter((column) => column !== absent);
   }
 }
