@@ -66,12 +66,12 @@ better beta, and both are still open.
 | B | Private PostgreSQL 17 on KVM1 | **DONE** | healthy, no host port, `omen_football_warehouse`; handoff 2026-10-09 |
 | C | Real 2026 current-season ingest | **DONE, daily** | `omen-warehouse-ingest.timer` 11:15 UTC; 2026 current through week 5; per-run receipts in `warehouse_ingest_events` |
 | C+ | Play-derived opportunity and first Omen metric (code) | **MERGED, NOT RUN** | #595 opportunity writer, #596 RAT-QB v0; no caller, no production run, not wired into the app |
-| D | Encrypted KVM2 backup and isolated restore | **PROVEN, SCHEDULED** | manual backups and a manual restore proof passed 2026-10-10; nightly (KVM1 12:30 UTC) and weekly (KVM2 Sun 14:00 UTC) timers enabled, **first scheduled runs due 2026-10-11** |
+| D | Encrypted KVM2 backup and isolated restore | **BACKUP PROVEN ON ITS TIMER; RESTORE PROOF PROVEN BY HAND** | chained ingest->backup ran on its own timer 2026-10-11 07:15 ET (success, snapshot ce74ecdc, retention ran). The first SCHEDULED restore proof (14:19 UTC) FAILED: a KVM2 cron (`docker image prune -af --filter until=24h`) had deleted the unused pinned PostgreSQL 17 image. Fixed (image re-pulled by digest, stopped anchor container `omen-restore-image-anchor`, #635); a re-run passed 19:54 UTC for the newest snapshot, Kuma #9 Up. **The done-condition needs one scheduled proof: next Sun 2026-10-18 14:10 UTC.** |
 | D | Recovery duration against the four-hour RTO | **NOT MEASURED** | |
 | D | Retention policy `7 4 3` | **PROVISIONAL** | fix `--group-by host,tags` is merged (#597) but not live: needs a new release on KVM1 |
 | E | Beszel on all five hosts, Discord alerts | **DONE** | handoff 2026-10-09 |
 | E | Kuma monitors for ingest and nightly backup | **DONE** | ingest #7; backup #8 proven `Up` with a real run 2026-10-10 |
-| E | Weekly restore-proof heartbeat | **NOT DONE** | its failures are silent; needs a monitor and a push in the script |
+| E | Weekly restore-proof heartbeat | **DONE** | Kuma #9, proven Up by a real run 2026-10-11 |
 | E | GlitchTip/Sentry correlation, Steward, Sentinel, forced checker-crash `DOWN`, changed-signature alert | **NOT DONE / UNVERIFIED** | `pi-watchdog` scripts not installed; the `down` path never fired on purpose |
 | F | API shadow reads | **ENABLED, NOT PROVEN** | `FOOTBALL_DATA_MODE=shadow` on KVM1; **no real Start/Sit request has produced a comparison event** |
 | F | Warehouse outage leaves auth, leagues, Ledger, trades working | **NOT TESTED** | |
@@ -104,26 +104,26 @@ Evidence key: **SIM** = seen in the iOS Simulator against production with the fo
 | # | Item | Status |
 |---|---|---|
 | 2 | Version bump | NOT NEEDED: founder decided 2026-10-11 that **build 7 is the next release** (hoped for Tuesday 2026-10-13); `CURRENT_PROJECT_VERSION` stays 7. Confirm App Store Connect has no earlier build 7 before archiving |
-| 3 | Connect confirmation names only the first league | OPEN (CODE; no `mobile/` change since Oct 1) |
-| 4 | Command vs League waivers can disagree (route ignores the on-screen league) | OPEN; matched on TTO in the simulator, unverified after a switch (CODE, SIM) |
-| 5 | Trade helper line hidden by tab bar; passkey copy truncated | OPEN (no iOS change) |
-| 6 | Founder design notes (system sheets, chip check marks, report card size, "See how Omen decides") | OPEN |
-| 7 | Find-a-trade entry point undecided; its Save is a stub that always says "Saved" | OPEN, founder decision |
+| 3 | Connect confirmation names only the first league | FIXED in #637 (lists every league, discloses a failed follow-write); device check pending |
+| 4 | Command vs League waivers can disagree | IMPROVED in #636 (every personalized call carries the picked league; the waivers route still follows the account-selected league, which the picker commits first); device check pending |
+| 5 | Trade helper line hidden by tab bar; passkey copy truncated | FIXED (#633 tab-bar clearance; #637 passkey sheet); device check pending |
+| 6 | Founder design notes (system sheets, chip check marks, report card size, "See how Omen decides") | FIXED in #631/#637 (system switcher sheet, one check, smaller pill, removed); device check pending |
+| 7 | Find-a-trade entry point; Save stub | FIXED in #633 (Find a trade is the Trade tab front door, Save is real); founder to confirm placement on the phone |
 
 **Newly found 2026-10-11**
 
 | Finding | Status |
 |---|---|
-| **Omen call is not populated for every team.** Root cause (CODE + SIM): the iPhone sends `POST /api/omen/mvp-move` with **no league** (`DashboardRepository.swift` body is only `contract_version` and `include_signals`). The server supports an optional `context_id` but the app never sends it, so it picks one live connection (Sleeper, then ESPN, then Yahoo, ordered by the persisted selection). The picker is also inconsistent: the app keeps one "active" league per provider (several chips ticked at once), so tapping a league that is already active for its provider commits nothing, and the Omen tab keeps showing the previous call (SIM: tapping Yahoo "Puk Around" left the Sleeper DSI call on screen). Separately a call exists only when a swap clears the threshold, a starter is OUT, or (Sleeper only) a trade candidate exists. **Sweep 2026-10-11 (SIM, 7 of 8 leagues):** call for TTO (ESPN), DarthSlops (Sleeper), Davante's Inferno (Sleeper); "Nothing to recommend" for PYE and HBT (ESPN, lineups already optimal or no edge) and The Gridiron Corps (Yahoo, no projections); Yahoo "Puk Around" could not be selected; Sleeper "Admin / Omen App Data" not checked | OPEN. Fix: send the picked league's connection id as `context_id` on every personalized call (Omen, Start/Sit, waivers, overview); make the picker commit when the league is not the globally selected one; return a "hold" call with reasons instead of "Nothing to recommend"; Yahoo needs a projection source |
-| League tab showed the previous league after a switch (chip TTO, table HBT's) | FIXED in iOS draft #624 (SIM both directions); not merged |
-| A lost directory response leaves the chip on the old league while content is the new one | OPEN (SIM); iOS should fail safe |
+| **Omen call is not populated for every team.** Root cause (CODE + SIM): the iPhone sends `POST /api/omen/mvp-move` with **no league** (`DashboardRepository.swift` body is only `contract_version` and `include_signals`). The server supports an optional `context_id` but the app never sends it, so it picks one live connection (Sleeper, then ESPN, then Yahoo, ordered by the persisted selection). The picker is also inconsistent: the app keeps one "active" league per provider (several chips ticked at once), so tapping a league that is already active for its provider commits nothing, and the Omen tab keeps showing the previous call (SIM: tapping Yahoo "Puk Around" left the Sleeper DSI call on screen). Separately a call exists only when a swap clears the threshold, a starter is OUT, or (Sleeper only) a trade candidate exists. **Sweep 2026-10-11 (SIM, 7 of 8 leagues):** call for TTO (ESPN), DarthSlops (Sleeper), Davante's Inferno (Sleeper); "Nothing to recommend" for PYE and HBT (ESPN, lineups already optimal or no edge) and The Gridiron Corps (Yahoo, no projections); Yahoo "Puk Around" could not be selected; Sleeper "Admin / Omen App Data" not checked | SERVER MERGED (#632: honours league, hold call, ESPN trade); iOS MERGED (#636: sends picked league, Hold card, fails safe on a wrong-league answer). Yahoo still has no projections. Device check pending. Original fix list: send the picked league's connection id as `context_id` on every personalized call (Omen, Start/Sit, waivers, overview); make the picker commit when the league is not the globally selected one; return a "hold" call with reasons instead of "Nothing to recommend"; Yahoo needs a projection source |
+| League tab showed the previous league after a switch | FIXED, merged in #636 (was #624) |
+| A lost directory response leaves the chip on the old league while content is the new one | FIXED in #637 (re-reads the directory; both follow the confirmed league) |
 | Reasons list is long and unranked; no "also considered" | OPEN, spec proposed (`omen-decision-drivers-v1.md`) |
 | LLM narration never finishes (gemma3:4b, 10 tok/s, 19 s cold load); breaker skips it | OPEN, plan in `omen-llm-batch-jobs-v1.md` |
 | `GET /api/leagues` 3.4-4.6 s when uncached (ESPN per-league lookups) | OPEN |
 | Trade targets "unavailable" (other managers' rosters not read); ESPN transactions "unavailable" | OPEN, provider reads |
 | `snap_share` blank in Start/Sit | INTENTIONAL (rights review open) |
-| No nflverse "About / Data sources" credit in the app (CC BY 4.0) | OPEN, needs a screen |
-| Cancelled request shows "couldn't reach Omen"; directory fetched twice per switch; screens blank before reload | OPEN (audit list) |
+| No nflverse "About / Data sources" credit in the app (CC BY 4.0) | FIXED in #637 (Account and Help); device check pending |
+| Cancelled request shows "couldn't reach Omen"; directory fetched twice per switch | FIXED in #637; screens blank before reload still OPEN |
 
 **Trade, and the Omen call as a trade (founder 2026-10-11).** The founder expects Trade to be built into the Omen call and believes there are
 several trade screens. Inventory (CODE, `mobile/ios/OmenIOS/OmenIOS`): `OmenTradeScreen` (front page: manual You send / You receive
@@ -419,3 +419,7 @@ Supabase plan.
 9. Install the beta build on the paired iPhone and capture real-route/data dark-mode evidence.
 10. Record which of the four decisions in §10 actually passed. Carry every other item forward without
     claiming readiness.
+
+### 2c. Update 2026-10-11 evening (what changed today, what the phone must still prove)
+
+Merged today: #630 football backup status path (a latched CRITICAL alert since 2026-09-30), #632 Omen call league scope + hold + ESPN trade, #633 Trade tab front door, #634 fixture re-record (I merged #633 with a red check; repaired in #634, now gated on the check result), #635 restore-proof retry fix, #636 iOS Omen call + switcher + lag fixes, #637 walk-1 leftovers. Open: trade built into the Omen call (PR in review), posture-baseline refresh for KVM1/KVM2 (drift is from the warehouse work; needs the exact key/unit diff shown first), KVM2 `failed_units`, dispatcher sort stability, GlitchTip issues #14/#9 (auto-resolve 2026-10-12 and 2026-10-14). Gate G (physical iPhone walk of every screen) is still the deciding gate; checklist in `2026-10-11-device-walk-2.md`.
