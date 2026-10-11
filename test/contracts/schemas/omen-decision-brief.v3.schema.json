@@ -116,6 +116,269 @@
         "null"
       ]
     },
+    "call_kind": {
+      "description": "What kind of call this is. A recommendation's type, or `hold` when nothing cleared the bar and `hold` carries the reasons. Optional: absent on states with no call.",
+      "enum": [
+        "start_sit",
+        "waiver_pickup",
+        "trade_suggestion",
+        "hold"
+      ]
+    },
+    "answered_for": {
+      "description": "Which league this answer is for. `selection` is `requested` when the client named a league (context_id, league_id, platform) and `account_selected` when it named none and the server used the account's selected league. `matched` is false when a requested league could not be served (the state is then context_unavailable).",
+      "type": "object",
+      "required": [
+        "selection",
+        "matched",
+        "requested"
+      ],
+      "properties": {
+        "context_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "platform": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "league_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "team_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "selection": {
+          "enum": [
+            "requested",
+            "account_selected"
+          ]
+        },
+        "matched": {
+          "type": "boolean"
+        },
+        "requested": {
+          "type": "object",
+          "required": [
+            "context_id",
+            "league_id",
+            "platform"
+          ],
+          "properties": {
+            "context_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "league_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "platform": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "hold": {
+      "description": "The HOLD call, present on an `empty` state when Omen weighed lineup, waiver and trade moves and none cleared its bar. Every number is one the engine computed; with no projections `best_alternative` is null and `projections.available` is false.",
+      "type": "object",
+      "required": [
+        "kind",
+        "headline",
+        "summary",
+        "reasons",
+        "considered",
+        "projections",
+        "threshold_points"
+      ],
+      "properties": {
+        "kind": {
+          "const": "hold"
+        },
+        "headline": {
+          "type": "string",
+          "minLength": 1
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "code",
+              "text"
+            ],
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "best_alternative": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "required": [
+                "kind",
+                "start",
+                "sit",
+                "delta",
+                "threshold",
+                "margin_to_threshold",
+                "why_not"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "start_sit"
+                },
+                "slot": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "start": {
+                  "type": "object",
+                  "required": [
+                    "name"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "projected": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    }
+                  }
+                },
+                "sit": {
+                  "type": "object",
+                  "required": [
+                    "name"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "projected": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    }
+                  }
+                },
+                "delta": {
+                  "type": "number"
+                },
+                "threshold": {
+                  "type": "number"
+                },
+                "margin_to_threshold": {
+                  "type": "number"
+                },
+                "why_not": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          ]
+        },
+        "considered": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "kind",
+              "outcome",
+              "detail"
+            ],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "start_sit",
+                  "waiver_pickup",
+                  "trade_suggestion"
+                ]
+              },
+              "outcome": {
+                "enum": [
+                  "below_threshold",
+                  "none_found",
+                  "unavailable",
+                  "not_needed"
+                ]
+              },
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "detail": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "projections": {
+          "type": "object",
+          "required": [
+            "available",
+            "players_with_projection",
+            "players_total"
+          ],
+          "properties": {
+            "available": {
+              "type": "boolean"
+            },
+            "players_with_projection": {
+              "type": "integer"
+            },
+            "players_total": {
+              "type": "integer"
+            }
+          }
+        },
+        "threshold_points": {
+          "type": "number"
+        }
+      }
+    },
     "signals": {
       "type": "object",
       "additionalProperties": {

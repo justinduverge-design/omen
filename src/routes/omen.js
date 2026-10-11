@@ -132,6 +132,40 @@ async function enrichWithFootballIntelligence(response, req) {
   });
 }
 
+const MAX_SCOPE_FIELD_LENGTH = 128;
+
+function scopeField(body, query, name) {
+  const raw = body?.[name] ?? query?.[name];
+  if (raw === undefined || raw === null) return undefined;
+  if (typeof raw !== "string" || raw.length > MAX_SCOPE_FIELD_LENGTH) return "";
+  return raw;
+}
+
+/**
+ * Which league the call is for. `context_id` (the connection id the app already knows) and
+ * `league_id` (+ optional `platform`) are accepted in the JSON body or the query string; the body
+ * wins. The server honours the request and states what it answered for in `answered_for`; with
+ * none of them it falls back to the account's selected league, exactly as before.
+ * `contextId` is always present (undefined when absent) so the existing call shape is unchanged.
+ */
+function requestedLeagueOptions(req) {
+  const options = { contextId: scopeField(req.body, req.query, "context_id") };
+  const leagueId = scopeField(req.body, req.query, "league_id");
+  const platform = scopeField(req.body, req.query, "platform");
+  if (leagueId !== undefined) options.leagueId = leagueId;
+  if (platform !== undefined) options.platform = platform;
+  return options;
+}
+
+function queryScopeParts(req) {
+  const query = {};
+  for (const name of ["context_id", "league_id", "platform"]) {
+    const value = req.query?.[name];
+    if (typeof value === "string") query[name] = value.slice(0, MAX_SCOPE_FIELD_LENGTH);
+  }
+  return Object.keys(query).length ? { query } : {};
+}
+
 function parseRequiredPositiveInteger(value) {
   const number = Number(value);
   if (!Number.isInteger(number) || number <= 0) return null;
@@ -522,9 +556,7 @@ async function liveOmenResult(req, trace, preAuth = null) {
     const result = await traceStage(trace, "core_decision", () => withinLatencyBudget(
       "core_decision",
       MVP_LATENCY_BUDGET_MS.core_decision,
-      () => buildLiveOmenMvpMoveForUser(user.id, {
-        contextId: req.body?.context_id,
-      })
+      () => buildLiveOmenMvpMoveForUser(user.id, requestedLeagueOptions(req))
     ));
     return { ...result, authenticatedUser: user };
   } catch (e) {
@@ -776,7 +808,9 @@ router.post("/mvp-move", async (req, res) => {
         cacheHandle = await responseCache.lookup({
           route: "mvp_move",
           userId: preAuth.user.id,
-          parts: { body: req.body || {} },
+          // The league can arrive in the query string too, so it is part of the key: a league
+          // switch must never be served the previous league's cached call.
+          parts: { body: req.body || {}, ...queryScopeParts(req) },
         });
         if (cacheHandle.hit) return responseCache.sendHit(res, cacheHandle);
         responseCache.setCacheHeader(res, cacheHandle);

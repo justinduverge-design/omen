@@ -27,8 +27,12 @@ const espnAdapter = require("../adapters/espn");
 const { logger } = require("../middleware/logging");
 const { getUsageReader } = require("./footballWarehouse/sharedUsageAccess");
 const { readRosterUsage } = require("./usageCorroborationReader");
-const { findTradeCandidate } = require("./tradeLineup");
-const { compareTrade } = require("./tradeValue");
+const yahooAdapter = require("../adapters/yahoo");
+const { evaluateTradeForConnection, TRADE_READ_BUDGET_MS } = require("./omenTradeCandidate");
+const { buildHold } = require("./omenHold");
+const { getRuntime: getSharedWarehouseRuntime } = require("./footballWarehouse/sharedUsageAccess");
+const { connectionForLeague } = require("./leagueDiscovery");
+const { withinLatencyBudget } = require("./latencyBudget");
 const {
   attachDecisionReceipt,
   createDecisionContext,
@@ -38,9 +42,6 @@ const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
 const ACTIVE_STATUSES = new Set(["", "P", "PROBABLE", "ACTIVE"]);
 const RISK_STATUSES = new Set(["Q", "QUESTIONABLE", "GTD", "DTD", "DOUBTFUL"]);
 const OUT_STATUSES = new Set(["O", "OUT", "IR", "IR-R", "PUP", "SUSP"]);
-// A weekly-lineup gain may justify only a bounded loss in season-long VORP.
-// Keep the policy explicit so it can be tuned without duplicating trade value.
-const MAX_VORP_LOSS_PER_WEEKLY_POINT = 1;
 const STATUS_LABELS = {
   Q: "questionable",
   GTD: "game-time decision",
@@ -722,7 +723,7 @@ function displayPlatform(platform) {
   return "Platform";
 }
 
-function liveEmptyMvpResponse({ roster, connection, connectedPlatforms, waiverSignal = null }) {
+function liveEmptyMvpResponse({ roster, connection, connectedPlatforms, waiverSignal = null, hold = null }) {
   const platform = connection.platform || roster.source || "unknown";
   const platformLabel = displayPlatform(platform);
   const response = liveBaseEnvelope({
@@ -744,6 +745,23 @@ function liveEmptyMvpResponse({ roster, connection, connectedPlatforms, waiverSi
   };
   response.confidence = leaningConfidence(`No ${platformLabel} lineup swap cleared the optimizer threshold.`);
   response.quiet_inputs = { injured_starter: require("./quietWeek").starterInjuryState(roster) };
+  // Additive: the state stays "empty" so shipped clients keep rendering their empty screen, and a
+  // client that knows `hold` can show the real reasons instead.
+  if (hold) {
+    response.call_kind = "hold";
+    response.hold = hold;
+    if (hold.projections && hold.projections.available === false) {
+      // "No move clears the threshold" would claim a comparison that never happened.
+      response.explanation = {
+        ...response.explanation,
+        summary: `Omen cannot rank a move for this ${platformLabel} league this week.`,
+        why_it_matters: `${platformLabel} does not give Omen weekly projections, so lineup swaps and trades cannot be scored.`,
+        confidence: "Omen has no projection to judge a move against.",
+        data_used: [`${platformLabel} roster`],
+      };
+      response.confidence = noConfidence(`${platformLabel} did not supply weekly projections.`);
+    }
+  }
   return { status: 200, body: response };
 }
 
@@ -1024,59 +1042,51 @@ async function buildWaiverCandidateForConnection({ connection, roster, espnCrede
   };
 }
 
-async function buildTradeCandidateForConnection({ connection, roster }) {
-  if (connection.platform !== "sleeper") return null;
-
-  let leagueRosters;
-  try {
-    leagueRosters = await sleeperAdapter.fetchSleeperLeagueRosters(
-      connection.league_id,
-      roster.week,
-      String(new Date().getFullYear())
-    );
-  } catch {
-    // Opponent-roster data is a required signal. A failed read means no trade
-    // recommendation, never a partial or guessed one.
-    return null;
-  }
-
-  const status = String(leagueRosters?.league_status || "").toLowerCase();
-  if (status === "pre_draft" || status === "drafting") return null;
-  const teams = Array.isArray(leagueRosters?.teams) ? leagueRosters.teams : [];
-  const ownTeam = teams.find((team) => String(team?.roster_id) === String(roster?.team_key));
-  if (!ownTeam) return null;
-
-  const candidate = findTradeCandidate({
-    ownTeam,
-    opponentTeams: teams,
-    rosterPositions: leagueRosters.roster_positions,
-    // The budget tripping means a user silently lost their trade suggestion. That must be
-    // visible: the 2026-09-05 outage ran for most of a day partly because the only signal was
-    // a watchdog restarting a wedged container 650 times, which nobody was reading as a bug.
-    onBudgetExceeded: (stats) => {
-      logger.warn("Trade search budget exceeded; no suggestion issued", {
-        solves: stats.solves,
-        elapsed_ms: stats.elapsedMs,
-        opponents: teams.length,
-        own_players: ownTeam.players.length,
-      });
-    },
-    fairnessGuard: ({ give, receive, userDelta }) => {
-      const valuation = compareTrade({ send: [give], receive: [receive] });
-      return Number.isFinite(valuation.net_value)
-        && valuation.net_value >= -(userDelta * MAX_VORP_LOSS_PER_WEEKLY_POINT);
+/**
+ * Weigh a trade for the selected league on any provider (see omenTradeCandidate.js for the rules
+ * and the honest-unavailable reasons). Returns the evaluation, plus the selector candidate when a
+ * trade cleared.
+ */
+async function evaluateTradeForSelectedConnection({ connection, roster, espnCredentials = null, yahooAuth = null }) {
+  const evaluation = await evaluateTradeForConnection({
+    connection,
+    roster,
+    platformLabel: displayPlatform(connection.platform),
+    deps: {
+      adapters: { sleeper: sleeperAdapter, espn: espnAdapter, yahoo: yahooAdapter },
+      credentials: espnCredentials,
+      yahooAuth,
+      getRuntime: () => getSharedWarehouseRuntime({ logger }),
+      logger,
+      // The league-wide read is an extra provider call on a request that already made one.
+      // It is bounded so a slow provider costs the user a stated reason, not a spinner.
+      withinBudget: (fn) => withinLatencyBudget("omen_trade_read", TRADE_READ_BUDGET_MS, fn),
+      // The budget tripping means a user silently lost their trade suggestion. That must be
+      // visible: the 2026-09-05 outage ran for most of a day partly because the only signal was
+      // a watchdog restarting a wedged container 650 times, which nobody was reading as a bug.
+      onBudgetExceeded: (stats, shape) => {
+        logger.warn("Trade search budget exceeded; no suggestion issued", {
+          solves: stats.solves,
+          elapsed_ms: stats.elapsedMs,
+          opponents: shape.opponents,
+          own_players: shape.own_players,
+        });
+      },
     },
   });
-  if (!candidate) return null;
-
+  if (evaluation.status !== "candidate") return { evaluation, selectorCandidate: null };
+  const candidate = evaluation.candidate;
   return {
-    id: `live_omen_trade_${candidate.give.player_key || "unknown"}_${candidate.receive.player_key || "unknown"}`,
-    type: "trade_suggestion",
-    decisionScore: candidate.userDelta,
-    requiredSignalsLive: true,
-    contextVerified: true,
-    inputKinds: ["live"],
-    trade: candidate,
+    evaluation,
+    selectorCandidate: {
+      id: `live_omen_trade_${candidate.give.player_key || "unknown"}_${candidate.receive.player_key || "unknown"}`,
+      type: "trade_suggestion",
+      decisionScore: candidate.userDelta,
+      requiredSignalsLive: true,
+      contextVerified: true,
+      inputKinds: ["live"],
+      trade: candidate,
+    },
   };
 }
 
@@ -1305,8 +1315,10 @@ function mapTradeSuggestionToMvpMove({ roster, connection, connectedPlatforms, t
   response.signals.trade_rosters = signal(
     "live",
     true,
-    "sleeper_league_rosters",
-    "Candidate trade used normalized public Sleeper league rosters without manager identity."
+    `${platform}_league_rosters`,
+    platform === "sleeper"
+      ? "Candidate trade used normalized public Sleeper league rosters without manager identity."
+      : `Candidate trade used the other ${platformLabel} rosters in this league, read with your connected account.`
   );
   response.recommendation = {
     id: `live_omen_trade_${give.id || "unknown"}_${receive.id || "unknown"}`,
@@ -1597,18 +1609,88 @@ function espnRecoveryFromError(connection, err) {
 
 let usageReaderProvider = () => getUsageReader({ logger });
 
-async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
+function requestedText(value) {
+  if (value === null || value === undefined) return null;
+  return typeof value === "string" ? value.trim() : "";
+}
+
+/**
+ * Which league this answer is for, stated in the response (`answered_for`), so a client that asked
+ * for league X can see that it got league X, and one that asked for nothing can see that the server
+ * fell back to the account's selected league (`selection: "account_selected"`).
+ */
+function annotateAnswerScope(result, scope) {
+  const body = result?.body;
+  if (!body || typeof body !== "object" || body.state === "off_season") return result;
+  const connection = scope.connection;
+  if (body.call_kind === undefined && body.recommendation?.type) body.call_kind = body.recommendation.type;
+  body.answered_for = {
+    context_id: connection?.id ?? null,
+    platform: connection?.platform ?? body.platform?.name ?? null,
+    league_id: connection?.league_id != null ? String(connection.league_id) : (body.league?.id ?? null),
+    team_id: body.team?.id ?? null,
+    selection: scope.explicit ? "requested" : "account_selected",
+    matched: scope.explicit ? Boolean(connection) : true,
+    requested: {
+      context_id: scope.requested.contextId,
+      league_id: scope.requested.leagueId,
+      platform: scope.requested.platform,
+    },
+  };
+  return result;
+}
+
+async function buildLiveOmenMvpMoveForUser(userId, { contextId = null, leagueId = null, platform = null } = {}) {
+  const requested = {
+    contextId: requestedText(contextId),
+    leagueId: requestedText(leagueId) || null,
+    platform: requestedText(platform) || null,
+  };
+  const scope = {
+    requested,
+    explicit: requested.contextId !== null || requested.leagueId !== null || requested.platform !== null,
+    connection: null,
+  };
+  const result = await buildLiveOmenMvpMoveForUserInner(userId, requested, scope);
+  return annotateAnswerScope(result, scope);
+}
+
+async function buildLiveOmenMvpMoveForUserInner(userId, requested, scope) {
   if (suppressLiveFootballData()) return offSeasonMvpResponse();
 
   const connections = await getActivePlatformConnections(userId);
   if (!connections.length) return platformDisconnectedMvpResponse();
 
-  const hasRequestedContext = contextId !== null && contextId !== undefined;
-  const selectedContextId = typeof contextId === "string" ? contextId.trim() : "";
-  const scopedConnections = hasRequestedContext
-    ? connections.filter((candidate) => candidate.id === selectedContextId)
-    : connections;
-  if (hasRequestedContext && !scopedConnections.length) return contextUnavailableMvpResponse();
+  let scopedConnections = connections;
+  if (requested.contextId !== null) {
+    scopedConnections = scopedConnections.filter((candidate) => candidate.id === requested.contextId);
+  }
+  if (requested.leagueId) {
+    const wantedPlatform = requested.platform ? requested.platform.toLowerCase() : null;
+    const bound = scopedConnections.filter((candidate) =>
+      String(candidate.league_id) === requested.leagueId && (!wantedPlatform || candidate.platform === wantedPlatform)
+    );
+    if (bound.length) {
+      scopedConnections = bound;
+    } else {
+      // A provider credential is per account, so it can read any league the account plays in. The
+      // connection row binds only one league per provider; widening asks the provider to confirm
+      // the requested league is the user's before serving it (a client id is never trusted alone).
+      const widened = scopedConnections.length
+        ? await connectionForLeague(scopedConnections, {
+          platform: wantedPlatform,
+          leagueId: requested.leagueId,
+          userId,
+          season: getCurrentNflWeekContext().season,
+          isUsable: (row) => pickLiveMvpConnections([row]).length > 0,
+        }).catch(() => null)
+        : null;
+      scopedConnections = widened ? [widened] : [];
+    }
+  } else if (requested.platform) {
+    scopedConnections = scopedConnections.filter((candidate) => candidate.platform === requested.platform.toLowerCase());
+  }
+  if (scope.explicit && !scopedConnections.length) return contextUnavailableMvpResponse();
 
   const connectedPlatforms = scopedConnections.map(safePlatformSummary);
   const liveConnections = pickLiveMvpConnections(scopedConnections);
@@ -1618,6 +1700,7 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
   let connection = null;
   let roster = null;
   let yahooClient = null;
+  let yahooAccessToken = null;
   let espnCredentials = null;
   let firstFailure = null;
 
@@ -1627,9 +1710,10 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
   for (const candidate of liveConnections) {
     let candidateYahooClient = null;
     let candidateEspnCredentials = null;
+    let candidateYahooAccessToken = null;
     try {
       if (candidate.platform === "yahoo") {
-        ({ client: candidateYahooClient } = await getAuthenticatedYahooClient(userId));
+        ({ client: candidateYahooClient, accessToken: candidateYahooAccessToken } = await getAuthenticatedYahooClient(userId));
       }
       if (candidate.platform === "espn") {
         candidateEspnCredentials = await espnCredentialsForConnection(candidate);
@@ -1639,7 +1723,9 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
         espnCredentials: candidateEspnCredentials,
       });
       connection = candidate;
+      scope.connection = candidate;
       yahooClient = candidateYahooClient;
+      yahooAccessToken = candidateYahooAccessToken;
       espnCredentials = candidateEspnCredentials;
       break;
     } catch (err) {
@@ -1649,6 +1735,7 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
 
   if (!connection) {
     const { connection: failed, err } = firstFailure;
+    scope.connection = failed;
     if (failed.platform === "espn") return espnRecoveryFromError(failed, err);
     if (failed.platform === "sleeper") {
       return platformRecoveryMvpResponse({
@@ -1739,11 +1826,33 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
   // surface off the common path and preserves the selected-context boundary.
   // A raw candidate with a zero/invalid score does not count as a move.
   let { selected } = omenSelector.selectDecision(candidates);
+  let tradeEvaluation = null;
   if (!selected) {
-    const tradeCandidate = await buildTradeCandidateForConnection({ connection, roster });
-    if (tradeCandidate) candidates.push(tradeCandidate);
+    // ESPN and Yahoo are evaluated too (omenTradeCandidate.js). A provider that cannot support a
+    // trade answers with a stated reason, which the HOLD call below reports instead of going quiet.
+    const trade = await evaluateTradeForSelectedConnection({
+      connection,
+      roster,
+      espnCredentials,
+      yahooAuth: { accessToken: yahooAccessToken },
+    });
+    tradeEvaluation = trade.evaluation;
+    if (trade.selectorCandidate) candidates.push(trade.selectorCandidate);
     ({ selected } = omenSelector.selectDecision(candidates));
   }
+
+  // The HOLD call: nothing cleared, so say what was weighed and why each option lost.
+  const holdFor = (waiver = {}) => buildHold({
+    roster,
+    platformLabel: displayPlatform(connection.platform),
+    waiver: {
+      signalMessage: waiver.signalMessage ?? waiverSignal?.message ?? null,
+      signalStatus: waiver.signalStatus ?? waiverSignal?.status ?? null,
+    },
+    trade: tradeEvaluation,
+    usage: lineupUsage || null,
+    isOut: isOutStatus,
+  });
 
   if (!selected) {
     // Yahoo's guarded waiver move is availability-based and deliberately has a
@@ -1753,7 +1862,7 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
     if (connection.platform === "yahoo") {
       if (unavailableYahooStarters(roster).length === 0) {
         return finalizeDecisionResult(
-          liveEmptyMvpResponse({ roster, connection, connectedPlatforms }),
+          liveEmptyMvpResponse({ roster, connection, connectedPlatforms, hold: holdFor() }),
           ["selected_context", "roster", "projections"]
         );
       }
@@ -1774,28 +1883,32 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
           }, ["selected_context", "roster", "waivers"]);
         }
         decisionContext.record("waivers", { state: "live", source: "yahoo_available_players" });
+        const yahooLiveSignal = signal(
+          "live",
+          true,
+          "yahoo_available_players",
+          "Yahoo returned live available-player data, but no safe same-position replacement was found."
+        );
         return finalizeDecisionResult(liveEmptyMvpResponse({
           roster,
           connection,
           connectedPlatforms,
-          waiverSignal: signal(
-            "live",
-            true,
-            "yahoo_available_players",
-            "Yahoo returned live available-player data, but no safe same-position replacement was found."
-          ),
+          waiverSignal: yahooLiveSignal,
+          hold: holdFor({ signalStatus: yahooLiveSignal.status, signalMessage: yahooLiveSignal.message }),
         }), ["selected_context", "roster", "projections", "waivers"]);
       } catch {
+        const yahooUnavailableSignal = signal(
+          "unavailable",
+          false,
+          "yahoo_available_players",
+          "Yahoo available-player data is unavailable, so Omen will not generate waiver advice."
+        );
         return finalizeDecisionResult(liveEmptyMvpResponse({
           roster,
           connection,
           connectedPlatforms,
-          waiverSignal: signal(
-            "unavailable",
-            false,
-            "yahoo_available_players",
-            "Yahoo available-player data is unavailable, so Omen will not generate waiver advice."
-          ),
+          waiverSignal: yahooUnavailableSignal,
+          hold: holdFor({ signalStatus: yahooUnavailableSignal.status, signalMessage: yahooUnavailableSignal.message }),
         }), ["selected_context", "roster", "projections"]);
       }
     }
@@ -1811,6 +1924,7 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
       connection,
       connectedPlatforms,
       waiverSignal,
+      hold: holdFor(),
     }), ["selected_context", "roster", "projections"]);
   }
 
@@ -1831,7 +1945,7 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
   }
 
   if (selected.type === "trade_suggestion") {
-    decisionContext.record("trade_rosters", { state: "live", source: "sleeper_league_rosters" });
+    decisionContext.record("trade_rosters", { state: "live", source: `${connection.platform}_league_rosters` });
     return finalizeDecisionResult({
       status: 200,
       body: mapTradeSuggestionToMvpMove({
@@ -2103,6 +2217,9 @@ module.exports = {
   mapYahooWaiverToMvpMove,
   mapTradeSuggestionToMvpMove,
   mapLineupSwapToMvpMove,
+  // Exported so contract fixtures are built by the production builders, not hand-written.
+  liveEmptyMvpResponse,
+  annotateAnswerScope,
   // Test seam: replace how the Omen call obtains its usage reader. Returns the previous provider.
   __setUsageReaderProviderForTest(provider) {
     const previous = usageReaderProvider;
