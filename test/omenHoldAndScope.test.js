@@ -476,3 +476,104 @@ test("a display name the provider omitted is filled from the warehouse identity 
   assert.equal(result.candidate.receive.name, "Jaxon Smith");
   assert.equal(result.candidate.receive.projected_points, 17, "identity never changes the projection");
 });
+
+// ---------------------------------------------------------------------------
+// Review fixes: invalid scope fails closed, cross-user refusal, honest summary
+// ---------------------------------------------------------------------------
+
+test("a numeric league_id is coerced to a string and honoured (ESPN ids are numeric)", async () => {
+  const { service, calls } = loadService({
+    connections: [sleeperConn(), espnConn({ league_id: "13338821" })],
+    sleeperRosterByLeague: { default: quietRoster("sleeper", "7") },
+    espnRoster: quietRoster("espn", "7"),
+    espnLeagueRosters: { teams: [] },
+  });
+  const result = await service.buildLiveOmenMvpMoveForUser("user-1", { leagueId: 13338821 });
+  assert.equal(result.body.answered_for.league_id, "13338821");
+  assert.equal(result.body.answered_for.selection, "requested");
+  assert.deepEqual(calls.sleeperRoster, []);
+});
+
+for (const [label, options] of [
+  ["over-length league_id", { leagueId: "x".repeat(129) }],
+  ["object league_id", { leagueId: { $ne: "" } }],
+  ["boolean platform", { leagueId: "sl-1", platform: true }],
+  ["non-finite number league_id", { leagueId: Number.NaN }],
+]) {
+  test(`an invalid scope field fails closed instead of falling back: ${label}`, async () => {
+    const { service, calls } = loadService({
+      connections: [sleeperConn()],
+      sleeperRosterByLeague: { default: quietRoster("sleeper", "7") },
+    });
+    const result = await service.buildLiveOmenMvpMoveForUser("user-1", options);
+    assert.equal(result.body.state, "context_unavailable");
+    assert.equal(result.body.answered_for.selection, "requested");
+    assert.equal(result.body.answered_for.matched, false);
+    assert.deepEqual(calls.sleeperRoster, [], "no provider read for the account-selected league");
+  });
+}
+
+test("cross-user: a league that belongs to another account is refused, and no roster is read", async () => {
+  // User A's provider account plays only in sl-A. The discovery stub answers like the real
+  // provider check: only for leagues in A's own list.
+  const accountA = new Set(["sl-A"]);
+  const { service, calls } = loadService({
+    connections: [sleeperConn({ league_id: "sl-A" })],
+    sleeperRosterByLeague: { default: quietRoster("sleeper", "7") },
+    discovery: (rows, { leagueId }) => (accountA.has(leagueId) ? { ...rows[0], league_id: leagueId } : null),
+  });
+  const result = await service.buildLiveOmenMvpMoveForUser("user-1", { leagueId: "sl-B-belongs-to-user-B", platform: "sleeper" });
+  assert.equal(result.body.state, "context_unavailable");
+  assert.equal(result.body.answered_for.matched, false);
+  assert.deepEqual(calls.discovery.map((d) => d.leagueId), ["sl-B-belongs-to-user-B"]);
+  assert.deepEqual(calls.sleeperRoster, []);
+  // Another account's connection id is refused too.
+  const byContext = await service.buildLiveOmenMvpMoveForUser("user-1", { contextId: "ctx-of-user-B" });
+  assert.equal(byContext.body.state, "context_unavailable");
+});
+
+test("a discovery call that hangs fails closed within its budget", async () => {
+  const { service } = loadService({
+    connections: [sleeperConn()],
+    sleeperRosterByLeague: { default: quietRoster("sleeper", "7") },
+    discovery: () => new Promise(() => {}),
+  });
+  const started = Date.now();
+  const result = await service.buildLiveOmenMvpMoveForUser("user-1", { leagueId: "slow" });
+  assert.equal(result.body.state, "context_unavailable");
+  assert.ok(Date.now() - started < 4000);
+});
+
+test("the hold summary does not claim trades were weighed when the trade could not be evaluated", () => {
+  const roster = { slots: { starters: [player("a", "Alpha", "WR", 12)], bench: [] } };
+  const unavailable = buildHold({
+    roster, platformLabel: "Yahoo", isOut: () => false,
+    trade: { status: "unavailable", reason: "rosters_unreadable", message: "x" },
+  });
+  assert.doesNotMatch(unavailable.summary, /trade/i);
+  const searched = buildHold({
+    roster, platformLabel: "ESPN", isOut: () => false,
+    trade: { status: "none_found", teams_checked: 5 },
+  });
+  assert.match(searched.summary, /lineup swaps, waivers and trades/);
+  const noProj = buildHold({
+    roster: { slots: { starters: [player("a", "Alpha", "WR", null)], bench: [] } },
+    platformLabel: "Yahoo", isOut: () => false, trade: null,
+  });
+  assert.doesNotMatch(noProj.summary, /lineup swaps/);
+});
+
+test("why_not and delta come from the same optimizer row, with or without observed usage", () => {
+  const roster = {
+    slots: {
+      starters: [player("a", "Alpha", "WR", 10)],
+      bench: [player("b", "Bravo", "WR", 10.3, { selected_position: "BN" })],
+    },
+  };
+  for (const usage of [null, new Map([["b", { recent: "up" }]])]) {
+    const hold = buildHold({ roster, platformLabel: "ESPN", isOut: () => false, usage });
+    const alt = hold.best_alternative;
+    assert.equal(Number((alt.start.projected - alt.sit.projected).toFixed(2)), alt.delta);
+    assert.match(alt.why_not, new RegExp(`\\(${alt.start.projected} vs ${alt.sit.projected}\\)`));
+  }
+});

@@ -172,9 +172,16 @@ function buildHold({ roster, platformLabel, waiver = {}, trade = null, usage = n
     }
   }
 
+  // Only claim what was actually weighed: a trade that could not be evaluated, or a lineup with no
+  // projections, was not weighed.
+  const weighed = [];
+  if (projectionsAvailable) weighed.push("lineup swaps");
+  weighed.push("waivers");
+  if (trade && trade.status === "none_found") weighed.push("trades");
+
   const summary = bestAlternative
     ? "Hold your lineup. The best alternative Omen found does not beat what you already have by enough to be worth the risk."
-    : "Hold your lineup. Omen weighed lineup swaps, waivers and trades and none is worth making this week.";
+    : `Hold your lineup. Omen weighed ${weighed.join(", ").replace(/, ([^,]*)$/, " and $1")} and none is worth making this week.`;
 
   return {
     kind: "hold",

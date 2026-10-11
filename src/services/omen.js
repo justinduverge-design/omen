@@ -1609,9 +1609,19 @@ function espnRecoveryFromError(connection, err) {
 
 let usageReaderProvider = () => getUsageReader({ logger });
 
+const MAX_SCOPE_LENGTH = 128;
+const LEAGUE_DISCOVERY_BUDGET_MS = 2000;
+
+// A present value is a request. Strings are trimmed; finite numbers are coerced (ESPN league ids are
+// numeric); anything else, or anything over-length, is INVALID and fails closed rather than
+// silently becoming "no request".
+const INVALID_SCOPE = Symbol("invalid_scope");
 function requestedText(value) {
   if (value === null || value === undefined) return null;
-  return typeof value === "string" ? value.trim() : "";
+  if (typeof value === "number" && Number.isFinite(value)) value = String(value);
+  if (typeof value !== "string") return INVALID_SCOPE;
+  const text = value.trim();
+  return text.length > MAX_SCOPE_LENGTH ? INVALID_SCOPE : text;
 }
 
 /**
@@ -1641,16 +1651,25 @@ function annotateAnswerScope(result, scope) {
 }
 
 async function buildLiveOmenMvpMoveForUser(userId, { contextId = null, leagueId = null, platform = null } = {}) {
-  const requested = {
+  const raw = {
     contextId: requestedText(contextId),
-    leagueId: requestedText(leagueId) || null,
-    platform: requestedText(platform) || null,
+    leagueId: requestedText(leagueId),
+    platform: requestedText(platform),
+  };
+  const invalid = Object.values(raw).includes(INVALID_SCOPE);
+  const clean = (v) => (v === INVALID_SCOPE ? null : v);
+  const requested = {
+    contextId: clean(raw.contextId),
+    // A blank league or platform is "not given"; a blank context_id keeps its legacy meaning (unavailable).
+    leagueId: clean(raw.leagueId) || null,
+    platform: clean(raw.platform) || null,
   };
   const scope = {
     requested,
-    explicit: requested.contextId !== null || requested.leagueId !== null || requested.platform !== null,
+    explicit: invalid || requested.contextId !== null || requested.leagueId !== null || requested.platform !== null,
     connection: null,
   };
+  if (invalid) return annotateAnswerScope(contextUnavailableMvpResponse(), scope);
   const result = await buildLiveOmenMvpMoveForUserInner(userId, requested, scope);
   return annotateAnswerScope(result, scope);
 }
@@ -1676,14 +1695,16 @@ async function buildLiveOmenMvpMoveForUserInner(userId, requested, scope) {
       // A provider credential is per account, so it can read any league the account plays in. The
       // connection row binds only one league per provider; widening asks the provider to confirm
       // the requested league is the user's before serving it (a client id is never trusted alone).
+      // Bounded: discovery is a provider call (ESPN fan lookup, Sleeper/Yahoo league lists); a slow
+      // one is treated as "not confirmed", which fails closed.
       const widened = scopedConnections.length
-        ? await connectionForLeague(scopedConnections, {
+        ? await withinLatencyBudget("league_discovery", LEAGUE_DISCOVERY_BUDGET_MS, () => connectionForLeague(scopedConnections, {
           platform: wantedPlatform,
           leagueId: requested.leagueId,
           userId,
           season: getCurrentNflWeekContext().season,
           isUsable: (row) => pickLiveMvpConnections([row]).length > 0,
-        }).catch(() => null)
+        })).catch(() => null)
         : null;
       scopedConnections = widened ? [widened] : [];
     }

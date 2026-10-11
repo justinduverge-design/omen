@@ -136,8 +136,9 @@ const MAX_SCOPE_FIELD_LENGTH = 128;
 
 function scopeField(body, query, name) {
   const raw = body?.[name] ?? query?.[name];
+  // Passed through as sent. The service validates: a present-but-invalid value (wrong type,
+  // over-length) fails closed there; it never falls back to the account-selected league.
   if (raw === undefined || raw === null) return undefined;
-  if (typeof raw !== "string" || raw.length > MAX_SCOPE_FIELD_LENGTH) return "";
   return raw;
 }
 
