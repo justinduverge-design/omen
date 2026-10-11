@@ -71,7 +71,8 @@ final class TradeViewModel: ObservableObject {
         ) {
         case .success(let response):
             rosterBrowseState = .loaded(response)
-            selectedPartnerTeamID = response.teams.first?.id
+            // Omen's own trade call names who it would deal with; open on that team, not the first one.
+            selectedPartnerTeamID = Self.partnerTeamID(in: response, for: prefill) ?? response.teams.first?.id
         case .failure(let error):
             if error == .unauthorized { sessionManager.onRefreshFailed() }
             rosterBrowseState = .failed(error)
@@ -80,6 +81,95 @@ final class TradeViewModel: ObservableObject {
 
     func selectPartnerTeam(_ id: String) {
         selectedPartnerTeamID = id
+    }
+
+    // MARK: - Omen's trade call -> Trade (prefill)
+
+    /// What the Trade screens know about the Omen call that put the offer here. Cleared the moment the offer is
+    /// edited: after that it is the user's own offer, and the screen must stop calling it Omen's.
+    struct Prefill: Equatable {
+        let giveName: String
+        let receiveName: String
+        /// The team named in the call, when the server's sentence named one.
+        let partnerName: String?
+        /// The player you get; the team that holds him on the roster read is the partner.
+        let receivePlayerKey: String?
+        let platform: String?
+    }
+
+    @Published private(set) var prefill: Prefill?
+
+    /// Replaces the offer with the one Omen's call made: the player you send, the player you get, in the league
+    /// the call was made for. Everything built on the previous offer (a verdict, a roster browse, a three-team
+    /// build) is dropped, because none of it is about this deal. Does nothing for a call that cannot be reviewed.
+    ///
+    /// A call with no known league is refused: its players would otherwise be compared in whatever league the
+    /// Trade tab last held. Returns whether the offer was filled in.
+    @discardableResult
+    func applyPrefill(from call: OmenTradeCall) -> Bool {
+        guard call.canReview, let scope = call.scope else { return false }
+        searchTask?.cancel()
+        invalidateCompare()
+        offer.send = [call.give.tradePlayer]
+        offer.receive = [call.receive.tradePlayer]
+        offer.leagueContext = .init(platform: scope.platform, leagueId: scope.leagueID)
+        prefillScope = scope
+        clearSuggestions()
+        viewState = .idle
+        rosterBrowseState = .idle
+        selectedPartnerTeamID = nil
+        thirdPartnerTeamID = nil
+        threeTeamLegs = []
+        threeTeamViewState = .idle
+        threeTeamSubmissionDoneSteps = []
+        thirdPartnerRemovalDisclosure = nil
+        shareState = .idle
+        prefill = Prefill(
+            giveName: call.give.name,
+            receiveName: call.receive.name,
+            partnerName: call.partnerName,
+            receivePlayerKey: call.receive.playerKey,
+            platform: call.platform
+        )
+        return true
+    }
+
+    /// The league the prefilled offer was made for. While a prefill stands, the offer is only ever compared in it.
+    private var prefillScope: OmenCallScope?
+
+    /// Prefill, then ask the server. This is what "Review this trade" does. Returns false when the call was
+    /// refused (no known league, or not reviewable), so the caller does not move the user anywhere.
+    @discardableResult
+    func review(_ call: OmenTradeCall, userID: String) async -> Bool {
+        guard applyPrefill(from: call) else { return false }
+        await compare(userID: userID)
+        return true
+    }
+
+    /// Bumped by every edit and every compare. A compare whose token is no longer current belongs to an offer
+    /// the user has since changed or replaced, and its answer is dropped.
+    private var compareGeneration = 0
+
+    private func invalidateCompare() {
+        compareGeneration += 1
+    }
+
+    /// The partner on a roster read: the team that holds the player you get (the provider's own key, so no name
+    /// has to match), else the team whose name the call gave. Nil when neither identifies one team, in which
+    /// case nothing is preselected on the guess.
+    static func partnerTeamID(in response: TradeRosterResponse, for prefill: Prefill?) -> String? {
+        guard let prefill else { return nil }
+        if let key = prefill.receivePlayerKey, !key.isEmpty {
+            let holders = response.teams.filter { team in team.players.contains { $0.playerKey == key } }
+            if holders.count == 1 { return holders[0].id }
+        }
+        if let name = prefill.partnerName?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(), !name.isEmpty {
+            let named = response.teams.filter {
+                $0.teamName?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == name
+            }
+            if named.count == 1 { return named[0].id }
+        }
+        return nil
     }
 
     // MARK: - T5: three-team trade builder
@@ -633,6 +723,9 @@ final class TradeViewModel: ObservableObject {
     }
 
     private func add(_ player: TradePlayer, to side: Side) {
+        prefill = nil
+        prefillScope = nil
+        invalidateCompare()
         switch side {
         case .send: offer.send.append(player)
         case .receive: offer.receive.append(player)
@@ -649,6 +742,9 @@ final class TradeViewModel: ObservableObject {
         case .receive where offer.receive.indices.contains(index): offer.receive.remove(at: index)
         default: return
         }
+        prefill = nil
+        prefillScope = nil
+        invalidateCompare()
         viewState = .idle
     }
 
@@ -657,11 +753,25 @@ final class TradeViewModel: ObservableObject {
     /// The league to personalize against, when the caller has one. Set by the shell from the
     /// same `league-overview.v1` read the League destination uses — never guessed here.
     func useLeague(platform: String?, leagueId: String?) {
-        guard let platform, let leagueId, !platform.isEmpty, !leagueId.isEmpty else {
-            offer.leagueContext = nil
-            return
+        let next: TradeOffer.LeagueContext?
+        if let platform, let leagueId, !platform.isEmpty, !leagueId.isEmpty {
+            next = .init(platform: platform, leagueId: leagueId)
+        } else {
+            next = nil
         }
-        offer.leagueContext = .init(platform: platform, leagueId: leagueId)
+        // A prefilled offer belongs to the league Omen's call was made for. The league sync must not point it
+        // at another one: if it names the same league nothing changes; if it names a different one (or none),
+        // the offer is no longer that call's, so it is dropped rather than compared in the wrong league.
+        if let scope = prefillScope {
+            if let next, scope.names(platform: next.platform, leagueID: next.leagueId) { return }
+            prefillScope = nil
+            prefill = nil
+            invalidateCompare()
+            offer.send = []
+            offer.receive = []
+            viewState = .idle
+        }
+        offer.leagueContext = next
     }
 
     func compare(userID: String) async {
@@ -673,6 +783,8 @@ final class TradeViewModel: ObservableObject {
             viewState = .idle
             return
         }
+        invalidateCompare()
+        let token = compareGeneration
 
         // `/compare` degrades an unauthenticated caller to a 200 neutral answer rather than a
         // 401, so a missing token is not a failure here — it just means no personalization.
@@ -685,8 +797,14 @@ final class TradeViewModel: ObservableObject {
             accessToken = nil
         }
 
+        // The offer may have been edited or replaced while the token was fetched.
+        guard token == compareGeneration, offer.isComparable else { return }
+        let sent = offer
         viewState = .loading
-        switch await repository.compare(offer: offer, accessToken: accessToken) {
+        let outcome = await repository.compare(offer: sent, accessToken: accessToken)
+        // A late answer to an offer the user has since changed, or to an earlier review, is not shown.
+        guard token == compareGeneration else { return }
+        switch outcome {
         case .success(let result):
             viewState = .loaded(result)
         case .failure(let error):
