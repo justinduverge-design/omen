@@ -761,3 +761,51 @@ test("fantasy metrics: the route adds Fated Points lines from the season bundle,
   assert.equal(plain.status, 200);
   assert.equal(plain.body.evidence.some((row) => row.category === "omen_metric"), false);
 });
+
+// --- Cold-start latency ------------------------------------------------------
+
+test("a cold fantasy-metrics read is capped: the route answers without it while the build keeps running", async () => {
+  let release;
+  let started = 0;
+  const gate = new Promise((resolve) => { release = resolve; });
+  const app = buildApp({
+    connections: [SLEEPER_CONN],
+    sleeperAdapter: {
+      fetchSleeperLeague: async () => ({ scoring_settings: PPR_SETTINGS }),
+      buildNormalizedRoster: async () => sleeperRosterWithKeys(),
+      fetchSleeperProjectionStatLines: async () => STAT_LINES,
+    },
+    getUsageBundle: async () => ({ usage: new Map(), weekly: new Map() }),
+    getSeasonBundle: () => { started += 1; return gate.then(() => null); },
+  });
+  const t0 = Date.now();
+  const { status, body } = await request(app);
+  const elapsed = Date.now() - t0;
+  assert.equal(status, 200);
+  assert.equal(body.recommendation.start.name, "DeVonta Smith");
+  assert.equal(started, 1);
+  assert.ok(elapsed >= 1400 && elapsed < 4000, `answered in ${elapsed}ms`);
+  release(); // the background build was still pending until now
+});
+
+test("Sleeper stat lines are requested in parallel with usage, not after it", async () => {
+  let statLinesRequested = false;
+  let requestedBeforeUsageFinished = null;
+  const app = buildApp({
+    connections: [SLEEPER_CONN],
+    sleeperAdapter: {
+      fetchSleeperLeague: async () => ({ scoring_settings: PPR_SETTINGS }),
+      buildNormalizedRoster: async () => sleeperRosterWithKeys(),
+      fetchSleeperProjectionStatLines: async () => { statLinesRequested = true; return STAT_LINES; },
+    },
+    getUsageBundle: async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      requestedBeforeUsageFinished = statLinesRequested;
+      return { usage: new Map(), weekly: new Map() };
+    },
+  });
+  const { status, body } = await request(app);
+  assert.equal(status, 200);
+  assert.equal(requestedBeforeUsageFinished, true);
+  assert.equal(body.evidence.some((e) => e.category === "points_breakdown"), true);
+});

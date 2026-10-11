@@ -409,6 +409,8 @@ const server = app.listen(config.port, () => {
     port: config.port,
     env:  config.nodeEnv,
   });
+  // Pre-warm after the port is open: readiness and health never wait on it, and it cannot throw.
+  try { require("./services/coldStartWarmup").warmUp({ logger }); } catch {}
 });
 
 // --- Graceful shutdown --------------------------------------------

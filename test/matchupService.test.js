@@ -1,10 +1,10 @@
 "use strict";
 
 const assert = require("node:assert/strict");
-const { describe, it, after } = require("node:test");
+const { describe, it, after, beforeEach } = require("node:test");
 
 const _originalFetch = global.fetch;
-const { getDvpContext } = require("../src/services/matchupService");
+const { getDvpContext, _resetCache } = require("../src/services/matchupService");
 
 function csvFor(rows) {
   return [
@@ -26,6 +26,9 @@ function mockFetchWithCsv(csv, counter) {
 }
 
 describe("matchupService.getDvpContext", () => {
+  // The cache is keyed by season, so each case starts from an empty one.
+  beforeEach(() => _resetCache());
+
   after(() => {
     if (_originalFetch) global.fetch = _originalFetch;
     else delete global.fetch;

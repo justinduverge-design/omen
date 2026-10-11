@@ -157,11 +157,24 @@ function createVerifiedReadQuery({ pool, config }) {
       throw error;
     }
   }
-  return async (request) => {
-    verification ||= verifyTarget();
-    await verification;
+  // A rejected verification must not be cached: one transient failure (pool still connecting, a
+  // dropped socket) would otherwise fail every later query on this process until restart. Only the
+  // owning attempt clears the slot, so a newer attempt is never discarded.
+  function verified() {
+    if (!verification) {
+      const attempt = verifyTarget();
+      verification = attempt;
+      attempt.catch(() => { if (verification === attempt) verification = undefined; });
+    }
+    return verification;
+  }
+  const query = async (request) => {
+    await verified();
     return pool.query(request);
   };
+  // Opens the first connection and runs the identity check ahead of the first request.
+  query.warm = () => verified();
+  return query;
 }
 
 function createWarehouseReadRuntime({ env = process.env, Pool, fileSystem, onPoolError } = {}) {
@@ -189,6 +202,8 @@ function createWarehouseReadRuntime({ env = process.env, Pool, fileSystem, onPoo
     repository,
     outcomeRepository,
     identityRepository,
+    // Fire-and-forget pre-warm: the caller swallows errors; a failure here is retried by the next query.
+    warm: () => query.warm(),
     close: async () => pool.end(),
   });
 }

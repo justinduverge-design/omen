@@ -49,6 +49,9 @@ const router = express.Router();
 
 // The points breakdown is advisory; its extra reads never hold the route longer than this.
 const PROJECTION_BREAKDOWN_BUDGET_MS = 2500;
+// A cold season bundle streams a large play-by-play file; the response never waits longer than this
+// for it. The build continues in the background (single flight), so the next request is warm.
+const FANTASY_METRICS_BUDGET_MS = 1500;
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
 // One process-wide runtime shared with the Omen call and Waiver Analysis; strict keeps warehouse mode fail-closed.
 const warehouseUsageRuntime = getSharedWarehouseRuntime({ logger, strict: true });
@@ -156,11 +159,19 @@ async function loadDetailContext(connection, userId, week, season) {
  * be computed. Advisory: any failure is logged without provider detail and costs only the
  * breakdown rows, never the route.
  */
-async function loadProjectionBreakdowns({ connection, loaded, season, week }) {
+function startSleeperStatLines({ connection, season, week }) {
+  if (connection.platform !== "sleeper") return null;
+  const promise = withinLatencyBudget("start_sit_projection_stat_lines", PROJECTION_BREAKDOWN_BUDGET_MS, () =>
+    sleeperAdapter.fetchSleeperProjectionStatLines(season, week));
+  promise.catch(() => {}); // consumed (and its failure handled) in loadProjectionBreakdowns
+  return promise;
+}
+
+async function loadProjectionBreakdowns({ connection, loaded, season, week, statLinesRead = null }) {
   try {
     if (connection.platform === "sleeper") {
-      const statLines = await withinLatencyBudget("start_sit_projection_stat_lines", PROJECTION_BREAKDOWN_BUDGET_MS, () =>
-        sleeperAdapter.fetchSleeperProjectionStatLines(season, week));
+      const statLines = await (statLinesRead || withinLatencyBudget("start_sit_projection_stat_lines", PROJECTION_BREAKDOWN_BUDGET_MS, () =>
+        sleeperAdapter.fetchSleeperProjectionStatLines(season, week)));
       return rosterProjectionBreakdowns({
         platform: "sleeper",
         roster: loaded.roster,
@@ -252,6 +263,10 @@ router.get("/detail", requireAuth, async (req, res, next) => {
     const fantasyMetricsRead = suppressLiveFootballData() ? Promise.resolve(null) : loadFantasyMetrics({ supabase, rosterKeys, season: Number(context.season) });
     // One usage read yields both the summaries and the per-week rows (signal vs noise), so the second
     // costs no extra round trip; any failure is empty maps and the response is unchanged.
+    // Independent of usage and team system, so it overlaps them (Sleeper only; null elsewhere).
+    const statLinesRead = suppressLiveFootballData()
+      ? null
+      : startSleeperStatLines({ connection, season: Number(context.season), week: Number(resolvedWeek) });
     const [{ usage, weekly: weeklyUsage }, teamSystem] = suppressLiveFootballData()
       ? [{ usage: new Map(), weekly: new Map() }, new Map()]
       : await Promise.all([
@@ -269,8 +284,11 @@ router.get("/detail", requireAuth, async (req, res, next) => {
       ]);
     const breakdowns = suppressLiveFootballData()
       ? null
-      : await loadProjectionBreakdowns({ connection, loaded, season: Number(context.season), week: Number(resolvedWeek) });
-    const fantasyMetrics = await fantasyMetricsRead;
+      : await loadProjectionBreakdowns({ connection, loaded, season: Number(context.season), week: Number(resolvedWeek), statLinesRead });
+    // Over budget is null, which the response already tolerates; the read keeps running underneath.
+    const fantasyMetrics = await withinLatencyBudget(
+      "start_sit_fantasy_metrics", FANTASY_METRICS_BUDGET_MS, () => fantasyMetricsRead,
+    ).catch(() => null);
 
     return res.json(buildStartSitDetail({
       usage,
