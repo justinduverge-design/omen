@@ -5,6 +5,7 @@ const { createClient } = require("@supabase/supabase-js");
 const responseCache = require("../services/responseCache");
 const config = require("../config");
 const { requireAuth } = require("../middleware/auth");
+const { sharedNarrationGuard } = require("../services/narrationBudget");
 const { logger } = require("../middleware/logging");
 const { LIVE_CONTRACT_VERSION } = require("../services/systemContracts");
 const { suppressLiveFootballData } = require("../services/nflSchedule");
@@ -464,22 +465,23 @@ async function enrichWithLlm(response, body, options) {
   if (LLM_BLOCKED_STATES.has(response.state)) return response;
   if (!LLM_ELIGIBLE_STATES.has(response.state)) return response;
 
-  try {
-    const narration = await withinLatencyBudget(
-      "llm_narration",
-      MVP_LATENCY_BUDGET_MS.llm_narration,
-      () => generateMvpLlmNarration(response, { timeoutMs: MVP_LATENCY_BUDGET_MS.llm_narration })
-    );
-    if (narration) applyMvpLlmNarration(response, narration);
-  } catch (error) {
-    if (isLatencyBudgetExceeded(error) && response.signals?.llm_reasoning) {
-      response.signals.llm_reasoning = {
-        status: "unavailable",
-        used: false,
-        source: "ollama_gemma",
-        message: "Private narration did not finish within Omen's response budget; the deterministic recommendation is unchanged.",
-      };
-    }
+  // Per-call budget + process-wide breaker (narrationBudget.js). Never throws:
+  // timeout/skip fall back to the "unavailable" state, other failures leave the
+  // deterministic template exactly as before.
+  const outcome = await sharedNarrationGuard.run(
+    "omen",
+    MVP_LATENCY_BUDGET_MS.llm_narration,
+    () => generateMvpLlmNarration(response, { timeoutMs: MVP_LATENCY_BUDGET_MS.llm_narration })
+  );
+  if (outcome.status === "ok") {
+    applyMvpLlmNarration(response, outcome.value);
+  } else if ((outcome.status === "timeout" || outcome.status === "skipped") && response.signals?.llm_reasoning) {
+    response.signals.llm_reasoning = {
+      status: "unavailable",
+      used: false,
+      source: "ollama_gemma",
+      message: "Private narration did not finish within Omen's response budget; the deterministic recommendation is unchanged.",
+    };
   }
   return response;
 }
@@ -541,6 +543,112 @@ async function liveOmenResult(req, trace, preAuth = null) {
       },
     };
   }
+}
+
+function backgroundBestEffort(name, operation) {
+  Promise.resolve().then(operation).catch((error) => {
+    logger.warn("Omen background write failed", { stage: name, code: error?.code || null });
+  });
+}
+
+function cloneForStage(body) {
+  try {
+    return structuredClone(body);
+  } catch {
+    return null;
+  }
+}
+
+async function runStage(trace, name, operation) {
+  try {
+    await traceStage(trace, name, () => withinLatencyBudget(name, MVP_LATENCY_BUDGET_MS[name], operation));
+    return true;
+  } catch {
+    // Every enrichment stage is advisory; a failed or slow one is simply absent.
+    return false;
+  }
+}
+
+/**
+ * Enrichment after the core decision. The independent stages (schedule,
+ * projection_breakdown, football_intelligence) run concurrently, each on its own
+ * clone of the body so they never mutate shared state while racing; their
+ * results are then merged into the real body in the original serial order, so
+ * the response (including key order) is identical to the serial pipeline.
+ *
+ * Write sets (verified by reading the stages):
+ *   schedule              -> recommendation.matchup_context, capability_overrides.{game_time_tv,travel_home_away}
+ *   (waiver capability)   -> capability_overrides.waivers (sync, after schedule)
+ *   projection_breakdown  -> projection_breakdown
+ *   football_intelligence -> recommendation.primary_player.omen_team_id, football_intelligence, signals.football_intelligence
+ *   matchup_dvp           -> in-place rewrites of existing strings/signals.matchup_dvp; reads
+ *                            recommendation.matchup_context, so it starts after the schedule merge.
+ * capability_overrides is touched by schedule and waiver only, and those merge serially.
+ */
+async function runEnrichmentStages(body, req, trace, requestedContract) {
+  const clones = { schedule: cloneForStage(body), projection: cloneForStage(body), intelligence: cloneForStage(body) };
+  if (!clones.schedule || !clones.projection || !clones.intelligence) {
+    return runEnrichmentStagesSerial(body, req, trace, requestedContract);
+  }
+
+  const schedule = runStage(trace, "schedule", () => enrichWithScheduleTravel(clones.schedule));
+  const projection = runStage(trace, "projection_breakdown", () => enrichWithProjectionBreakdown(clones.projection));
+  const intelligence = requestedContract === BRIEF_V3
+    ? runStage(trace, "football_intelligence", () => enrichWithFootballIntelligence(clones.intelligence, req))
+    : Promise.resolve(false);
+
+  // Merge whether or not a stage succeeded: the serial pipeline keeps whatever a
+  // failed stage wrote before it threw (e.g. the derived omen_team_id).
+  await schedule;
+  mergeScheduleStage(body, clones.schedule);
+  attachWaiverCapability(body);
+  // DvP needs the opponent the schedule stage found; it only rewrites existing fields.
+  const dvp = runStage(trace, "matchup_dvp", () => enrichWithDvp(body, req.body || {}));
+  await projection;
+  if (clones.projection.projection_breakdown !== undefined) {
+    body.projection_breakdown = clones.projection.projection_breakdown;
+  }
+  await intelligence;
+  if (requestedContract === BRIEF_V3) mergeIntelligenceStage(body, clones.intelligence);
+  await dvp;
+  return body;
+}
+
+function mergeScheduleStage(body, clone) {
+  if (clone.recommendation?.matchup_context !== undefined && body.recommendation) {
+    body.recommendation.matchup_context = clone.recommendation.matchup_context;
+  }
+  const overrides = clone.capability_overrides;
+  if (overrides && ("game_time_tv" in overrides || "travel_home_away" in overrides)) {
+    attachCapabilityOverrides(body, {
+      game_time_tv: overrides.game_time_tv,
+      travel_home_away: overrides.travel_home_away,
+    });
+  }
+}
+
+function mergeIntelligenceStage(body, clone) {
+  const teamId = clone.recommendation?.primary_player?.omen_team_id;
+  if (teamId && body.recommendation?.primary_player && !body.recommendation.primary_player.omen_team_id) {
+    body.recommendation.primary_player.omen_team_id = teamId;
+  }
+  if (clone.football_intelligence === undefined) return;
+  body.football_intelligence = clone.football_intelligence;
+  body.signals = body.signals || {};
+  body.signals.football_intelligence = clone.signals?.football_intelligence;
+}
+
+// The pre-parallel pipeline, kept as the fallback if a body cannot be cloned and
+// as the reference the regression test compares against.
+async function runEnrichmentStagesSerial(body, req, trace, requestedContract) {
+  await runStage(trace, "schedule", () => enrichWithScheduleTravel(body));
+  attachWaiverCapability(body);
+  await runStage(trace, "projection_breakdown", () => enrichWithProjectionBreakdown(body));
+  await runStage(trace, "matchup_dvp", () => enrichWithDvp(body, req.body || {}));
+  if (requestedContract === BRIEF_V3) {
+    await runStage(trace, "football_intelligence", () => enrichWithFootballIntelligence(body, req));
+  }
+  return body;
 }
 
 async function traceStage(trace, stage, operation) {
@@ -670,45 +778,7 @@ router.post("/mvp-move", async (req, res) => {
       () => ({ ok: true }),
       (error) => ({ ok: false, error })
     );
-    try {
-      await traceStage(trace, "schedule", () => withinLatencyBudget(
-        "schedule",
-        MVP_LATENCY_BUDGET_MS.schedule,
-        () => enrichWithScheduleTravel(result.body)
-      ));
-    } catch {
-      // Schedule context is advisory. Its capability record remains an explicit limitation.
-    }
-    attachWaiverCapability(result.body);
-    try {
-      await traceStage(trace, "projection_breakdown", () => withinLatencyBudget(
-        "projection_breakdown",
-        MVP_LATENCY_BUDGET_MS.projection_breakdown,
-        () => enrichWithProjectionBreakdown(result.body)
-      ));
-    } catch {
-      // The points breakdown is advisory. A failed or slow read means no breakdown, never a failed call.
-    }
-    try {
-      await traceStage(trace, "matchup_dvp", () => withinLatencyBudget(
-        "matchup_dvp",
-        MVP_LATENCY_BUDGET_MS.matchup_dvp,
-        () => enrichWithDvp(result.body, req.body || {})
-      ));
-    } catch {
-      // DvP is an enhancement only. Keep deterministic response.
-    }
-    if (requestedContract === BRIEF_V3) {
-      try {
-        await traceStage(trace, "football_intelligence", () => withinLatencyBudget(
-          "football_intelligence",
-          MVP_LATENCY_BUDGET_MS.football_intelligence,
-          () => enrichWithFootballIntelligence(result.body, req)
-        ));
-      } catch {
-        // Football intelligence is advisory. The deterministic recommendation remains unchanged.
-      }
-    }
+    await runEnrichmentStages(result.body, req, trace, requestedContract);
     try {
       await traceStage(trace, "llm_narration", () => enrichWithLlm(
         result.body,
@@ -734,14 +804,18 @@ router.post("/mvp-move", async (req, res) => {
       return res.status(503).json(body);
     }
     const body = present(result.body);
-    await recordLedgerCall(result.authenticatedUser, result.body, body, trace);
     emitLatencyTrace(trace, body.state);
+    // Both are best-effort and must not hold the response: respond first, finish
+    // in the background. The cacheability decision reads the un-presented body
+    // (`state` and `signals` live there in every contract version), so it is
+    // taken now, before anything else can touch the body.
+    const cacheVerdict = cacheHandle ? responseCache.omenMoveVerdict(result.body) : null;
+    res.status(result.status).json(body);
+    backgroundBestEffort("ledger", () => recordLedgerCall(result.authenticatedUser, result.body, body, trace));
     if (cacheHandle) {
-      // The cacheability decision reads the un-presented body: `state` and
-      // `signals` live there in every contract version.
-      await responseCache.store(cacheHandle, result.status, body, responseCache.omenMoveVerdict(result.body));
+      backgroundBestEffort("response_cache", () => responseCache.store(cacheHandle, result.status, body, cacheVerdict));
     }
-    return res.status(result.status).json(body);
+    return undefined;
   }
 
   const result = buildOmenMvpMoveResponse(req.body || {});
@@ -761,3 +835,5 @@ router.post("/mvp-move", async (req, res) => {
 });
 
 module.exports = router;
+module.exports.runEnrichmentStages = runEnrichmentStages;
+module.exports.runEnrichmentStagesSerial = runEnrichmentStagesSerial;
