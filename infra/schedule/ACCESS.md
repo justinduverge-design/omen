@@ -1,7 +1,7 @@
 # Omen host access: who logs in where, and by what route (inventory 2026-10-11)
 
 Every human and automation login goes over **Tailscale** (MagicDNS names or the 100.x addresses below). No host accepts
-password or root login (`passwordauthentication no`, `permitrootlogin no`, port 22). Use these aliases (`~/.ssh/config`):
+password or root login (`passwordauthentication no`, `permitrootlogin no`, port 22). Use these aliases (`~/.ssh/config`). **One naming scheme, no usernames to remember: `ssh omen-kvm1`, `ssh omen-kvm2`, `ssh omen-pi`** (each carries its user and the Tailscale address; the older aliases below still work):
 
 | Alias | Host | Tailnet address | Login user | Notes |
 |---|---|---|---|---|
