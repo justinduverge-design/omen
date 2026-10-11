@@ -79,6 +79,59 @@ better beta, and both are still open.
 | G | Device walk of every beta screen on current `main` | **NOT RUN SINCE 2026-10-01** | Oct 1 walk found 3 P0 and 4 P1; closure of each is **UNVERIFIED** (see `2026-10-01-device-walk-1.md`) |
 | — | Warehouse-primary mode, 1999–2025 backfill, Step 14 retirement | **NOT STARTED** | intentionally later (§11) |
 
+### 2b. Every Tuesday checklist item: fixed vs still open (re-checked 2026-10-11)
+
+Evidence key: **SIM** = seen in the iOS Simulator against production with the founder's signed-in session on 2026-10-11
+(not a physical iPhone, so Gate G stays open); **CODE** = read in code/git; **MEAS** = measured. Sources:
+`2026-10-01-tuesday-oct-6-release-prep.md`, `2026-10-01-device-walk-1.md`, this file's gates.
+
+**Fixed or improved**
+
+| Item (source) | Status | Evidence |
+|---|---|---|
+| Build must fail on empty Supabase/API config (release prep 1) | FIXED | #512 (CODE) |
+| Omen tab "Unable to build this recommendation" (walk P0-1) | FIXED | contract-drift fix #504; Omen call renders for the ESPN league TTO (SIM) |
+| Taps lag / switch ~5 s (walk P0-2) | IMPROVED, not closed | server #623, #625, #626 merged; Command critical path 4.2 s -> 1.1 s, Omen tab 6.3 s -> ~1.5 s (MEAS); league switch 7.5 s -> 3.4 s needs iOS draft #624 |
+| One league per platform saved (walk root cause 2) | FIXED | memberships (redo step 03, applied Oct 3); 8 leagues switch and each loads its own overview (SIM) |
+| Warehouse-backed usage lines in Start/Sit and the Omen call (FI-LEAGUE A2) | LIVE | "Verified: Alvin Kamara 8.3 carries and 4.7 targets a game..." (SIM); API in `warehouse` mode |
+| Ledger shows rows | EXPECTED STATE | rows read Pending because scoring is held (SIM) |
+| Gates A-E (foundation, private DB, 2026 ingest, backup/restore, monitoring) | DONE | see table above; chained ingest->backup ran on its own timer 2026-10-11 07:15 ET (MEAS) |
+| Gate F (shadow comparison) | DONE, then promoted | parity: only `snap_share` differs; mode now `warehouse` |
+| Stats beta slice (FM-XFP, #592) | MERGED and deployed | founder merged; API deploys on merge (CODE) |
+
+**Still open: must-fix list from release prep (iOS lane)**
+
+| # | Item | Status |
+|---|---|---|
+| 2 | Version bump: `CURRENT_PROJECT_VERSION` is still **7** (since 2026-09-24) | OPEN, needed before the archive (CODE) |
+| 3 | Connect confirmation names only the first league | OPEN (CODE; no `mobile/` change since Oct 1) |
+| 4 | Command vs League waivers can disagree (route ignores the on-screen league) | OPEN; matched on TTO in the simulator, unverified after a switch (CODE, SIM) |
+| 5 | Trade helper line hidden by tab bar; passkey copy truncated | OPEN (no iOS change) |
+| 6 | Founder design notes (system sheets, chip check marks, report card size, "See how Omen decides") | OPEN |
+| 7 | Find-a-trade entry point undecided; its Save is a stub that always says "Saved" | OPEN, founder decision |
+
+**Newly found 2026-10-11**
+
+| Finding | Status |
+|---|---|
+| **Omen call is not populated for every team.** It exists only when a lineup swap clears the threshold, a starter is OUT (waiver add), or (Sleeper only) a trade candidate exists. Otherwise the server answers `empty` and the tab says "Nothing to recommend right now". PYE (ESPN) shows it; the sign-in tagline promises "one call a week for every team". Yahoo has no projections, ESPN/Yahoo have no trade path | OPEN, design decision: always return a "hold" call with reasons and "also considered" (see `omen-decision-drivers-v1.md`) |
+| League tab showed the previous league after a switch (chip TTO, table HBT's) | FIXED in iOS draft #624 (SIM both directions); not merged |
+| A lost directory response leaves the chip on the old league while content is the new one | OPEN (SIM); iOS should fail safe |
+| Reasons list is long and unranked; no "also considered" | OPEN, spec proposed (`omen-decision-drivers-v1.md`) |
+| LLM narration never finishes (gemma3:4b, 10 tok/s, 19 s cold load); breaker skips it | OPEN, plan in `omen-llm-batch-jobs-v1.md` |
+| `GET /api/leagues` 3.4-4.6 s when uncached (ESPN per-league lookups) | OPEN |
+| Trade targets "unavailable" (other managers' rosters not read); ESPN transactions "unavailable" | OPEN, provider reads |
+| `snap_share` blank in Start/Sit | INTENTIONAL (rights review open) |
+| No nflverse "About / Data sources" credit in the app (CC BY 4.0) | OPEN, needs a screen |
+| Cancelled request shows "couldn't reach Omen"; directory fetched twice per switch; screens blank before reload | OPEN (audit list) |
+
+**Other Oct 1 findings with no change since**: "Nothing to recommend" when the engine finds a swap locally (partly explained by the
+threshold design above, not reproduced); contract fixture with a live `football_intelligence` block (unverified);
+Command quiet-state "Confident, Low risk" is fixed server copy, not computed (CODE: `quietWeek.js`).
+
+**Gates still open:** G (physical iPhone proof; the simulator walk above does not count). The four decisions in section 10 remain
+blank and are the founder's.
+
 ### Open items from the Oct 1 device walk, closure not re-checked
 
 - Contract drift: numeric `quality.confidence` broke every Omen call (fixed in #504; whether a live
