@@ -1,0 +1,31 @@
+#!/bin/sh
+# Weekly maintenance window (all hosts; installed to /usr/local/sbin). Applies pending security updates and
+# reboots ONLY when the OS says a reboot is required. Never reboots while a listed job is running.
+# Per-host settings in /etc/omen-maintenance.conf:  BUSY_UNITS="unit1.service unit2.service"
+set -eu
+conf=/etc/omen-maintenance.conf
+BUSY_UNITS=""
+[ -r "$conf" ] && . "$conf"
+log() { logger -t omen-maintenance -- "$*"; echo "$*"; }
+
+waited=0
+while :; do
+  busy=""
+  for unit in $BUSY_UNITS; do systemctl is-active --quiet "$unit" && busy="$busy $unit"; done
+  [ -z "$busy" ] && break
+  if [ "$waited" -ge 1800 ]; then log "skipped this week: still busy after 30 min:$busy"; exit 75; fi
+  sleep 60; waited=$((waited + 60))
+done
+
+log "applying pending security updates"
+unattended-upgrade >/dev/null 2>&1 || log "unattended-upgrade returned nonzero (continuing)"
+
+if [ -f /var/run/reboot-required ]; then
+  log "reboot required ($(tr '\n' ' ' </var/run/reboot-required.pkgs 2>/dev/null)); rebooting"
+  install -d -m 0755 /var/lib/omen-maintenance
+  date -u +%FT%TZ > /var/lib/omen-maintenance/reboot-requested
+  sync
+  systemctl reboot
+else
+  log "no reboot required"
+fi

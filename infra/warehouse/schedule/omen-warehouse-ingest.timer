@@ -2,9 +2,12 @@
 Description=Daily Omen football warehouse ingest (after nflverse's nightly publish)
 
 [Timer]
-# nflverse publishes nightly around 09:05 UTC; 11:15 UTC (07:15 ET) leaves margin and runs after the
-# 06:30 ET football-intelligence job. Persistent: a run missed while the host was down runs at boot.
-OnCalendar=*-*-* 11:15:00 UTC
+# nflverse publishes nightly around 09:05 UTC; 07:15 ET is 11:15 UTC in summer and 12:15 UTC in winter, so it is
+# always after that publish. The football-data pipeline on this host also runs on ET (Tue 05:15-07:45), so this
+# stays in the same clock instead of drifting an hour against it when daylight saving ends.
+# Persistent: a run missed while the host was down runs at boot. The nightly backup is chained to this job's
+# success (OnSuccess= in the service), not scheduled separately.
+OnCalendar=*-*-* 07:15:00 America/New_York
 Persistent=true
 
 [Install]

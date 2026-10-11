@@ -1,0 +1,13 @@
+[Unit]
+Description=Weekly Omen maintenance window (Friday 06:00 UTC = 02:00 ET, staggered per host)
+
+[Timer]
+# Friday is the quietest day for Omen all year: Thursday night's game is over (about 03:30 UTC), no NFL game starts
+# before Friday afternoon ET (only Thanksgiving Friday and Christmas in 2026), and Sunday is two days away. In the
+# off-season it is the same regular slot. Install with the host's slot: KVM1 06:00, KVM2 06:30, Pi 07:00
+# (the Pi last: it hosts the alerting that watches the others). Never Monday evening through Tuesday.
+OnCalendar=Fri *-*-* @SLOT@:00 UTC
+Persistent=false
+
+[Install]
+WantedBy=timers.target

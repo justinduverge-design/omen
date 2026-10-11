@@ -1,0 +1,7 @@
+[Unit]
+Description=Omen weekly maintenance window (security updates, reboot only if required)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/omen-maintenance
+TimeoutStartSec=45min
