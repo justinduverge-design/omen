@@ -165,7 +165,11 @@ final class CommandCenterViewModel: ObservableObject {
         return OmenQuietState.from(response: quietWeek, weekLabel: weekLabel)
     }
 
-    func load(userID: String) async {
+    /// `scope` names the picked league for the overview read, which is the read the Ledger scope and the
+    /// context strip hang off. Without it the server uses the account's selected league. The waiver and
+    /// quiet-week routes take no league, so they follow the account's selection; the picker commits that
+    /// selection before a reload, which is why the two agree after a switch.
+    func load(userID: String, scope: OmenCallScope? = nil) async {
         guard userID != SessionManager.demoUserID else {
             viewState = .demo
             return
@@ -198,7 +202,7 @@ final class CommandCenterViewModel: ObservableObject {
                 // asking a disconnected user's provider for standings is a guaranteed
                 // round-trip to an error.
                 guard summary.platforms.anyConnected else { return nil }
-                return await loadContext(accessToken: accessToken)
+                return await loadContext(accessToken: accessToken, scope: scope)
             }()
             async let waiverTask: Void = {
                 guard summary.tools.waiverWire.status != .needsPlatform else { return }
@@ -251,8 +255,12 @@ final class CommandCenterViewModel: ObservableObject {
     /// One `league-overview.v1` read fills the context strip, League Pulse, AND the Matchup
     /// Hero. It replaced a `league-standings.v1` read that filled only the strip while the
     /// other two sections were hardwired to states no connected user could escape.
-    private func loadContext(accessToken: String) async -> LeagueOverview? {
-        guard case .success(let overview) = await leagueRepository.fetchOverview(accessToken: accessToken) else {
+    private func loadContext(accessToken: String, scope: OmenCallScope?) async -> LeagueOverview? {
+        guard case .success(let overview) = await leagueRepository.fetchOverview(
+            accessToken: accessToken,
+            platform: scope?.platform,
+            leagueID: scope?.leagueID
+        ) else {
             // The shell-derived default is `.loading`, which would spin forever if left
             // alone — the original defect in a different costume. A failed read resolves to
             // an explicit resting state.

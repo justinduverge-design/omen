@@ -29,9 +29,14 @@ push_status() {
   config="url = \"${url}?status=${status}&msg=${message}&ping=\""
   printf '%s\n' "$config" | curl --config - --fail --silent --show-error --max-time 20 >/dev/null 2>&1 || true
 }
+already_proven=0
+source=""
 on_exit() {
   local result=$?
-  if [[ $result -ne 0 ]]; then push_status down restore_proof_failed; fi
+  # A failed run must not strand its received copy: the admission guard below would then refuse every retry.
+  if [[ $result -ne 0 && -n "$source" && -d "$source" ]]; then rm -rf -- "$source"; fi
+  # A duplicate run for an already proven snapshot is not a failure and must not turn the heartbeat Down.
+  if [[ $result -ne 0 && $already_proven -eq 0 ]]; then push_status down restore_proof_failed; fi
   exit "$result"
 }
 trap on_exit EXIT
@@ -57,7 +62,12 @@ run_id="${BASH_REMATCH[2]}"
 source="$SOURCE_ROOT/$run_id"
 install -d -m 0700 -o root -g root "$PROOF_ROOT"
 proof="$PROOF_ROOT/restore-proof-${run_id#warehouse-}.json"
-[[ ! -e "$source" && ! -e "$proof" ]] || { echo "warehouse scheduled restore refused: run was already admitted or proven" >&2; exit 65; }
+if [[ -e "$proof" ]]; then
+  already_proven=1
+  echo "warehouse scheduled restore refused: run was already proven" >&2; exit 65
+fi
+# No proof but a received copy: an earlier attempt failed. Start clean instead of refusing forever.
+[[ ! -e "$source" ]] || { echo "removing stale restore source from an earlier failed attempt" >&2; rm -rf -- "$source"; }
 
 "$RECEIVER" "$snapshot_id" "$run_id"
 "$RESTORER" "$source/manifest.json" "$proof"
