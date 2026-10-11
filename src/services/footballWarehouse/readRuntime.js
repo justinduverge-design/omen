@@ -134,9 +134,14 @@ function createWarehouseReadPool({ Pool, config, onPoolError = () => {} }) {
   return pool;
 }
 
-function createVerifiedReadQuery({ pool, config }) {
+// A persistent target mismatch is remembered this long so it does not re-run the identity query on
+// every request. It stays fail-closed: callers keep getting the mismatch error.
+const MISMATCH_RETRY_MS = 5_000;
+
+function createVerifiedReadQuery({ pool, config, now = Date.now }) {
   if (!pool || typeof pool.query !== "function") throw new TypeError("warehouse read pool is required");
   let verification;
+  let mismatch = null; // { error, at }
   async function verifyTarget() {
     const result = await pool.query({
       name: "warehouse-read-target-identity-v1",
@@ -161,10 +166,18 @@ function createVerifiedReadQuery({ pool, config }) {
   // dropped socket) would otherwise fail every later query on this process until restart. Only the
   // owning attempt clears the slot, so a newer attempt is never discarded.
   function verified() {
+    if (!verification && mismatch) {
+      if (now() - mismatch.at < MISMATCH_RETRY_MS) return Promise.reject(mismatch.error);
+      mismatch = null;
+    }
     if (!verification) {
       const attempt = verifyTarget();
       verification = attempt;
-      attempt.catch(() => { if (verification === attempt) verification = undefined; });
+      attempt.catch((error) => {
+        if (verification !== attempt) return;
+        verification = undefined;
+        if (error?.code === "WAREHOUSE_READ_TARGET_MISMATCH") mismatch = { error, at: now() };
+      });
     }
     return verification;
   }

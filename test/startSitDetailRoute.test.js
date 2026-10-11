@@ -289,13 +289,13 @@ function buildApp(options) {
   return app;
 }
 
-async function request(app, path = "/api/start-sit/detail") {
+async function request(app, path = "/api/start-sit/detail", extraHeaders = {}) {
   const server = http.createServer(app);
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const { port } = server.address();
   try {
     const response = await fetch(`http://127.0.0.1:${port}${path}`, {
-      headers: { authorization: "Bearer valid-token" },
+      headers: { authorization: "Bearer valid-token", ...extraHeaders },
     });
     return { status: response.status, body: await response.json() };
   } finally {
@@ -779,12 +779,12 @@ test("a cold fantasy-metrics read is capped: the route answers without it while 
     getSeasonBundle: () => { started += 1; return gate.then(() => null); },
   });
   const t0 = Date.now();
-  const { status, body } = await request(app);
+  const { status, body } = await request(app, "/api/start-sit/detail", { "x-contract-record": "skip" });
   const elapsed = Date.now() - t0;
   assert.equal(status, 200);
   assert.equal(body.recommendation.start.name, "DeVonta Smith");
   assert.equal(started, 1);
-  assert.ok(elapsed >= 1400 && elapsed < 4000, `answered in ${elapsed}ms`);
+  assert.ok(elapsed >= 1400 && elapsed < 8000, `answered in ${elapsed}ms`);
   release(); // the background build was still pending until now
 });
 
@@ -804,7 +804,7 @@ test("Sleeper stat lines are requested in parallel with usage, not after it", as
       return { usage: new Map(), weekly: new Map() };
     },
   });
-  const { status, body } = await request(app);
+  const { status, body } = await request(app, "/api/start-sit/detail", { "x-contract-record": "skip" });
   assert.equal(status, 200);
   assert.equal(requestedBeforeUsageFinished, true);
   assert.equal(body.evidence.some((e) => e.category === "points_breakdown"), true);

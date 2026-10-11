@@ -27,7 +27,7 @@ test("playerUsage: concurrent cold requests share one download", async () => {
 
 test("playerUsage: an expired entry is served stale while one background refresh runs", async () => {
   usage._resetCache();
-  const DAY = 24 * 3600_000;
+  const DAY = 12 * 3600_000; // expired (6h TTL) but inside the 24h maximum age
   let calls = 0;
   let release;
   const gate = new Promise((r) => { release = r; });
@@ -47,13 +47,13 @@ test("playerUsage: an expired entry is served stale while one background refresh
   await new Promise((r) => setTimeout(r, 10));
 });
 
-test("playerUsage: a failed first build rejects and is not remembered", async () => {
+test("playerUsage: a failed first build rejects and is retried once the backoff has passed", async () => {
   usage._resetCache();
   let calls = 0;
   const fetchImpl = async () => { calls += 1; throw new Error("down"); };
   await assert.rejects(() => usage.warm({ season: 2026, fetchImpl, now: 0 }), /down/);
   const before = calls;
-  await assert.rejects(() => usage.warm({ season: 2026, fetchImpl, now: 1 }), /down/);
+  await assert.rejects(() => usage.warm({ season: 2026, fetchImpl, now: 61_000 }), /down/);
   assert.ok(calls > before);
 });
 
@@ -130,4 +130,87 @@ test("warmUp: never throws, logs each failed task once, and does not wait on slo
   finishSlow();
   assert.deepEqual((await result).filter(Boolean).sort(), ["boom", "reject"]);
   assert.deepEqual(warnings.sort(), ["boom", "reject"]);
+});
+
+test("playerUsage: a stale value older than 4x the TTL is not served; the caller waits for a fresh build", async () => {
+  usage._resetCache();
+  const HOUR = 3600_000;
+  let version = 0;
+  const fetchImpl = async (url) => {
+    if (url.includes("players")) return csvResponse(PLAYERS_CSV);
+    version += 1;
+    return csvResponse([STATS_HEADER, `00-${version},A B,WR,2026,1,REG,CHI,0,0,5,6,0.2`].join("\n"));
+  };
+  await usage.warm({ season: 2026, fetchImpl, now: 0 });
+  assert.equal(version, 1);
+  await usage.warm({ season: 2026, fetchImpl, now: 25 * HOUR }); // 4x TTL = 24h: past it, so blocking
+  assert.equal(version, 2);
+});
+
+test("playerUsage: after a failed build nothing is re-downloaded for the backoff window", async () => {
+  usage._resetCache();
+  let calls = 0;
+  const fetchImpl = async () => { calls += 1; throw new Error("github down"); };
+  await assert.rejects(() => usage.warm({ season: 2026, fetchImpl, now: 0 }), /github down/);
+  const afterFirst = calls;
+  await assert.rejects(() => usage.warm({ season: 2026, fetchImpl, now: 30_000 }), /github down/);
+  assert.equal(calls, afterFirst, "no network inside the backoff window");
+  await assert.rejects(() => usage.warm({ season: 2026, fetchImpl, now: 61_000 }), /github down/);
+  assert.ok(calls > afterFirst, "retries once the window has passed");
+});
+
+test("playerUsage: a failed background refresh keeps serving the stale value without hammering", async () => {
+  usage._resetCache();
+  const DAY = 24 * 3600_000;
+  let fail = false;
+  let calls = 0;
+  const fetchImpl = async (url) => {
+    calls += 1;
+    if (fail) throw new Error("down");
+    return csvResponse(url.includes("players") ? PLAYERS_CSV : STATS_CSV);
+  };
+  await usage.warm({ season: 2026, fetchImpl, now: 0 });
+  fail = true;
+  await usage.warm({ season: 2026, fetchImpl, now: DAY / 2 + 1_000 * 3600 }); // expired, refresh starts and fails
+  await new Promise((r) => setTimeout(r, 10));
+  const afterFail = calls;
+  await usage.warm({ season: 2026, fetchImpl, now: DAY / 2 + 1_000 * 3600 + 5_000 });
+  await new Promise((r) => setTimeout(r, 10));
+  assert.equal(calls, afterFail);
+});
+
+test("scheduleWarmUp: skipped in tests, with the kill switch, and inside the crash-loop interval", () => {
+  const { scheduleWarmUp, MIN_INTERVAL_MS } = require("../src/services/coldStartWarmup");
+  const timers = [];
+  const writes = [];
+  let stamp = null;
+  const fs = {
+    readFileSync: () => { if (stamp == null) throw new Error("ENOENT"); return String(stamp); },
+    writeFileSync: (_p, v) => { stamp = Number(v); writes.push(v); },
+  };
+  const base = { fs, stampPath: "/x", now: () => 1_000_000, setTimer: (fn, ms) => { timers.push({ fn, ms }); return { unref() {} }; }, run: () => {} };
+  assert.equal(scheduleWarmUp({ ...base, env: { NODE_ENV: "test" } }), null);
+  assert.equal(scheduleWarmUp({ ...base, env: { OMEN_COLD_START_WARMUP: "off" } }), null);
+  assert.equal(timers.length, 0);
+
+  let ran = 0;
+  assert.ok(scheduleWarmUp({ ...base, env: { NODE_ENV: "production" }, run: () => { ran += 1; } }));
+  assert.equal(timers.length, 1);
+  assert.ok(timers[0].ms >= 1000, "delayed past startup");
+  assert.equal(ran, 0, "nothing runs until the timer fires");
+  timers[0].fn();
+  assert.equal(ran, 1);
+  assert.equal(writes.length, 1);
+
+  // A restart moments later is inside the interval, so it does not warm again.
+  assert.equal(scheduleWarmUp({ ...base, env: {}, now: () => 1_000_000 + 1000 }), null);
+  assert.ok(scheduleWarmUp({ ...base, env: {}, now: () => 1_000_000 + MIN_INTERVAL_MS + 1 }));
+});
+
+test("warmUp: off-season skips the football-data downloads but still warms the warehouse", async () => {
+  const seen = [];
+  const warm = { warm: async () => { seen.push("warehouse"); } };
+  const result = await warmUp({ logger: { warn() {} }, getRuntime: () => warm, getSeason: () => 2026, suppressDownloads: () => true });
+  assert.deepEqual(result, [null]);
+  assert.deepEqual(seen, ["warehouse"]);
 });

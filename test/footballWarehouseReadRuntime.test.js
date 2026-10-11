@@ -246,3 +246,28 @@ test("warm() pre-verifies the target so the first real query does not pay for it
   await query({ text: "x" });
   assert.equal(identityCalls, 1);
 });
+
+test("a persistent target mismatch is remembered briefly, then re-checked, and stays fail-closed", async () => {
+  const { createVerifiedReadQuery } = require("../src/services/footballWarehouse/readRuntime");
+  let identityCalls = 0;
+  let clock = 0;
+  let bad = true;
+  const pool = {
+    query: async (request) => {
+      if (request.name === IDENTITY_NAME) {
+        identityCalls += 1;
+        return { rows: [bad ? { ...GOOD_IDENTITY, role_name: "someone_else" } : GOOD_IDENTITY] };
+      }
+      return { rows: [{ ok: true }] };
+    },
+  };
+  const query = createVerifiedReadQuery({ pool, config: READ_CONFIG, now: () => clock });
+  for (let i = 0; i < 3; i += 1) {
+    await assert.rejects(() => query({ text: "x" }), (e) => e.code === "WAREHOUSE_READ_TARGET_MISMATCH");
+  }
+  assert.equal(identityCalls, 1, "no identity query per request inside the window");
+  clock = 6_000;
+  bad = false;
+  assert.deepEqual((await query({ text: "x" })).rows, [{ ok: true }]);
+  assert.equal(identityCalls, 2);
+});

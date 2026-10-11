@@ -42,28 +42,40 @@ const SNAP_MIN_DELTA = 0.1;
 
 const cache = new Map(); // `stats:<season>` | `snaps:<season>` | "pfr" -> { at, value }
 const inflight = new Map(); // key -> promise of the one build running for that key
+const failures = new Map(); // key -> { at, error } of the last failed build
+const MAX_STALE_MS = 4 * CACHE_TTL_MS; // beyond this a stale value is not served; the caller waits for a refresh
+const FAILURE_BACKOFF_MS = 60_000; // after a failed build, no new download for this long
 
 /**
  * One build in flight per key, and stale-while-revalidate: a fresh entry is returned as is; an expired
- * one is returned immediately while a single background refresh runs (a failed refresh keeps the old
- * value and retries on a later request). With no value yet, concurrent callers share one build, and a
- * failed first build rejects for all of them and is not remembered, as before.
+ * one (younger than MAX_STALE_MS) is returned immediately while a single background refresh runs; an
+ * older one is rebuilt before it is returned. After a failed build nothing is re-downloaded for
+ * FAILURE_BACKOFF_MS: a stale value keeps being served, and with none the callers get the same
+ * rejection without touching the network. A failed first build is otherwise not remembered.
  */
 function cached(key, build, now) {
   const hit = cache.get(key);
   if (hit && now - hit.at < CACHE_TTL_MS) return Promise.resolve(hit.value);
   const running = inflight.get(key);
-  if (hit) {
-    if (!running) refresh(key, build, now).catch(() => {});
+  const failure = failures.get(key);
+  const backingOff = Boolean(failure) && now - failure.at < FAILURE_BACKOFF_MS;
+  if (hit && now - hit.at < MAX_STALE_MS) {
+    if (!running && !backingOff) refresh(key, build, now).catch(() => {});
     return Promise.resolve(hit.value);
   }
-  return running || refresh(key, build, now);
+  if (running) return running;
+  if (backingOff) return Promise.reject(failure.error);
+  return refresh(key, build, now);
 }
 
 function refresh(key, build, now) {
   const promise = Promise.resolve().then(build).then((value) => {
     cache.set(key, { at: now, value });
+    failures.delete(key);
     return value;
+  }, (error) => {
+    failures.set(key, { at: now, error });
+    throw error;
   }).finally(() => { if (inflight.get(key) === promise) inflight.delete(key); });
   inflight.set(key, promise);
   return promise;
@@ -375,7 +387,7 @@ async function warm({ season, fetchImpl = fetch, now = Date.now() } = {}) {
   await Promise.all([loadSeason(season, { fetchImpl, now }), loadPfrIds({ fetchImpl, now })]);
 }
 
-function _resetCache() { cache.clear(); inflight.clear(); crosswalkCache.clear(); }
+function _resetCache() { cache.clear(); inflight.clear(); failures.clear(); crosswalkCache.clear(); }
 
 module.exports = {
   getRecentUsage,
