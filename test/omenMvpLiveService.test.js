@@ -50,6 +50,7 @@ function loadOmenService({
   sleeperPoolError,
   sleeperLeagueRosters,
   realOptimizer = false,
+  yahooPoolProjection = null,
 } = {}) {
   const servicePath = require.resolve("../src/services/omen");
   delete require.cache[servicePath];
@@ -106,6 +107,14 @@ function loadOmenService({
             },
           };
         },
+      };
+    }
+    if (yahooPoolProjection && request === "./yahooProjections" && parent?.filename === servicePath) {
+      return {
+        projectYahooPool: async (_client, _leagueKey, _week, pool) => ({
+          pool: yahooPoolProjection.pool || pool,
+          projectionMeta: yahooPoolProjection.meta,
+        }),
       };
     }
     if (request === "./roster" && parent?.filename === servicePath) {
@@ -1326,4 +1335,107 @@ test("favorable usage corroborates the Omen call: band and reason reach the resp
   assert.match(corroborated.body.recommendation.explanation.confidence, /^Confident\. .*observed recent usage/);
   assert.doesNotMatch(JSON.stringify(corroborated.body.recommendation.confidence), /%/);
   assert.equal(corroborated.body.recommendation.primary_player.name, baseline.body.recommendation.primary_player.name);
+});
+
+// --- Yahoo projections: Sleeper's public stat line scored with the Yahoo league's rules ---------
+
+const YAHOO_PROJ_CONNECTION = {
+  user_id: "user-1",
+  platform: "yahoo",
+  is_active: true,
+  league_id: "414.l.12345",
+  token_secret_id: "secret-id",
+};
+
+function projectedYahooRoster(meta, outProjection = 3) {
+  return {
+    week: 8,
+    team_key: "414.t.7",
+    source: "yahoo",
+    projection_meta: meta,
+    slots: {
+      starters: [{
+        player_key: "yahoo:1", name: "Out Wideout", position: "WR", eligible_positions: ["WR", "W/R/T", "BN"],
+        selected_position: "WR", team: "DAL", status: "OUT", projected_points: outProjection,
+      }],
+      bench: [],
+      ir: [],
+    },
+  };
+}
+
+const LEAGUE_META = { available: true, source: "sleeper_public_projections", scoring_basis: "league_scoring", players_total: 1, players_with_projection: 1, reason: null };
+const APPROX_META = { ...LEAGUE_META, scoring_basis: "approximate_scoring" };
+
+test("a Yahoo lineup call that rests on filled-in projections says where they came from", async () => {
+  const { service } = loadOmenService({
+    connections: [YAHOO_PROJ_CONNECTION],
+    roster: { ...projectedYahooRoster(LEAGUE_META), slots: { starters: [], bench: [], ir: [] } },
+  });
+  const result = await service.buildLiveOmenMvpMoveForUser("user-1");
+
+  assert.equal(result.body.recommendation.type, "start_sit");
+  assert.equal(result.body.signals.projections.source, "sleeper_public_projections_yahoo_scoring");
+  assert.match(result.body.signals.projections.message, /Sleeper's public weekly projections/);
+  assert.match(result.body.signals.projections.message, /Yahoo league's own scoring/);
+  assert.equal(result.body.warnings.some((w) => /approximate/.test(w)), false);
+  assert.ok(result.body.recommendation.explanation.data_used.some((line) => /Sleeper public projections, scored with your Yahoo league rules/.test(line)));
+});
+
+test("approximate Yahoo scoring is labelled approximate and never league-exact", async () => {
+  const { service } = loadOmenService({
+    connections: [YAHOO_PROJ_CONNECTION],
+    roster: { ...projectedYahooRoster(APPROX_META), slots: { starters: [], bench: [], ir: [] } },
+  });
+  const result = await service.buildLiveOmenMvpMoveForUser("user-1");
+
+  assert.equal(result.body.signals.projections.source, "sleeper_public_projections_yahoo_scoring_approximate");
+  assert.match(result.body.signals.projections.message, /approximate, not exact league scoring/);
+  assert.ok(result.body.warnings.some((w) => /approximate/.test(w)));
+  assert.ok(result.body.recommendation.explanation.data_used.some((line) => /approximately scored/.test(line)));
+});
+
+test("a Yahoo waiver add backed by a projection is a numeric waiver pickup, not an availability guess", async () => {
+  const projectedPool = [{
+    player_key: "yahoo:2", name: "Available Wideout", position: "WR", eligible_positions: ["WR", "W/R/T", "BN"],
+    team: "PHI", status: "", projected_points: 11.4, projection_source: "sleeper_public_projections", projection_basis: "league_scoring",
+  }, {
+    player_key: "yahoo:3", name: "Available Quarterback", position: "QB", eligible_positions: ["QB", "BN"],
+    team: "PHI", status: "", projected_points: 30,
+  }];
+  const { service, state } = loadOmenService({
+    connections: [YAHOO_PROJ_CONNECTION],
+    roster: projectedYahooRoster(LEAGUE_META, 0),
+    swaps: [],
+    waiverPool: projectedPool,
+    yahooPoolProjection: { pool: projectedPool, meta: LEAGUE_META },
+  });
+  const result = await service.buildLiveOmenMvpMoveForUser("user-1");
+
+  assert.equal(result.body.recommendation.type, "waiver_pickup");
+  assert.equal(result.body.recommendation.primary_player.name, "Available Wideout", "a quarterback never fills a receiver slot");
+  assert.equal(result.body.recommendation.expected_value_delta.points, 11.4);
+  assert.equal(result.body.signals.waivers.source, "yahoo_available_players");
+  assert.equal(result.body.signals.projections.source, "sleeper_public_projections_yahoo_scoring");
+  assert.equal(state.waiverCalls.length, 1, "the pool is read once");
+});
+
+test("a Yahoo pool with no projections keeps the availability-only fallback and reads the pool once", async () => {
+  const pool = [{
+    player_key: "yahoo:2", name: "Available Wideout", position: "WR", eligible_positions: ["WR"],
+    team: "PHI", status: "", projected_points: null,
+  }];
+  const { service, state } = loadOmenService({
+    connections: [YAHOO_PROJ_CONNECTION],
+    roster: projectedYahooRoster({ available: false, source: "sleeper_public_projections", scoring_basis: null, players_total: 1, players_with_projection: 0, reason: "scoring_unreadable" }, null),
+    swaps: [],
+    waiverPool: pool,
+    yahooPoolProjection: { pool, meta: { available: false, reason: "scoring_unreadable" } },
+  });
+  const result = await service.buildLiveOmenMvpMoveForUser("user-1");
+
+  assert.equal(result.body.recommendation.type, "waiver_pickup");
+  assert.equal(result.body.recommendation.expected_value_delta.points, null);
+  assert.equal(result.body.signals.projections.source, "yahoo_available_players");
+  assert.equal(state.waiverCalls.length, 1);
 });

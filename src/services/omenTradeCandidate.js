@@ -10,10 +10,11 @@
  * weighed and says why not when it cannot.
  *
  * Honesty rules:
- *   - A candidate needs a projection for every player it moves. Yahoo's roster reads carry no
- *     projections at all (`withYahooIds` sets `projected_points: null`), so a Yahoo league gets an
- *     explicit `projections_unavailable` result and no provider call is made. It never gets a
- *     guessed trade.
+ *   - A candidate needs a projection for every player it moves. Yahoo publishes none, so Yahoo
+ *     rosters carry projections only when `yahooProjections.js` could build them (Sleeper's public
+ *     stat line scored with the league's own rules). When it could not (scoring unreadable, no id
+ *     match, timeout), the league gets an explicit `projections_unavailable` result and no
+ *     provider call is made. It never gets a guessed trade.
  *   - The league's starting-slot layout comes from the user's own roster (the starter slots as the
  *     provider reports them). ESPN and Yahoo league reads do not return `roster_positions`, and a
  *     lineup solve with no slots scores every lineup at zero.

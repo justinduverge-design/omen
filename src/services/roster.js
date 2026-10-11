@@ -26,6 +26,7 @@ const { Redis }  = require("@upstash/redis");
 const config     = require("../config");
 const { logger } = require("../middleware/logging");
 const YahooClient = require("./yahoo");
+const { enrichYahooPlayers } = require("./yahooProjections");
 
 const redis = config.redisUrl
   ? new Redis({ url: config.redisUrl, token: config.redisToken })
@@ -148,6 +149,12 @@ async function fetchAndNormalizeRoster(yahoo, leagueKey, week, cacheKey) {
   const normalized    = normalizeYahooRoster(raw, effectiveWeek);
   normalized.team_key  = teamKey;
   normalized.league_key = leagueKey;
+  // Yahoo carries no projection of its own; fill it from Sleeper's public stat lines scored with this
+  // league's rules (yahooProjections.js). Best effort and bounded: it never fails the roster read.
+  normalized.projection_meta = await enrichYahooPlayers(
+    [...normalized.slots.starters, ...normalized.slots.bench, ...normalized.slots.ir],
+    { client: yahoo, leagueKey, week: effectiveWeek }
+  );
 
   if (cacheKey && redis) {
     await redis.set(cacheKey, JSON.stringify(normalized), { ex: ROSTER_TTL_S }).catch(() => {});

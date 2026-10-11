@@ -23,6 +23,7 @@ const { logger }              = require("../middleware/logging");
 const { requireAuth }         = require("../middleware/auth");
 const { getAuthenticatedYahooClient } = require("../services/yahooAuth");
 const rosterSvc               = require("../services/roster");
+const { projectYahooPool }    = require("../services/yahooProjections");
 const optimizer               = require("../services/optimizer");
 const { vorpForPlayer }       = require("../services/vorp");
 
@@ -220,7 +221,9 @@ router.get("/waivers", async (req, res, next) => {
 
     // Fetch waiver pool via Yahoo and normalize.
     const rawWaivers = await yahoo.getAvailablePlayers(leagueKey, { count: 50, sort: "AR" });
-    const waiverPool = rosterSvc.normalizeYahooWaivers(rawWaivers);
+    const { pool: waiverPool } = await projectYahooPool(
+      yahoo, leagueKey, roster.week, rosterSvc.normalizeYahooWaivers(rawWaivers)
+    );
 
     const recommendations = optimizer.findWaiverMoves(roster, waiverPool);
 
@@ -264,7 +267,9 @@ router.get("/waiver", async (req, res, next) => {
     let waiverPool = [];
     try {
       const rawWaivers = await yahoo.getAvailablePlayers(leagueId, { count: 50, sort: "AR" });
-      waiverPool = rosterSvc.normalizeYahooWaivers(rawWaivers);
+      ({ pool: waiverPool } = await projectYahooPool(
+        yahoo, leagueId, roster.week, rosterSvc.normalizeYahooWaivers(rawWaivers)
+      ));
     } catch (e) {
       if (e.message === "yahoo_token_expired") throw e;
       return res.json(mockWaiverResponse(roster));
