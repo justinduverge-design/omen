@@ -1,5 +1,19 @@
 # Omen Decision Log
 
+## 2026-10-11 — projections: accept the rights risk, store them, use them only inside the product
+
+- **Decision (founder, 2026-10-11):** Omen needs projections for every provider, so it carries the rights risk on Sleeper's
+  projection records (tagged `company: "rotowire"`; Sleeper's commercial-use permission is still pending, see
+  `scoringSnapshotResolver.js`). Projections are stored in the warehouse instead of fetched live per request.
+- **Safeguards that come with it:** every stored row keeps its source and company tag and a fetch time; projections are used
+  only to compute the user's own calls and are never exposed as a raw feed, an export or an API for others; a kill switch
+  (`YAHOO_PROJECTIONS_DISABLED`, and a stage flag for the stored feed) removes them without a deploy; the app says where a
+  number came from and labels approximate scoring. If Sleeper's permission is refused, Sleeper, ESPN-with-Sleeper-fill and
+  Yahoo projections go together and the calls return to an honest "cannot rank".
+- **Not decided here:** any resale, redistribution or public display of raw projections (not allowed under this decision).
+- **Yahoo and ESPN:** neither gives per-player projections the way Sleeper does, so their projections are Sleeper's projected
+  stat lines (mapped through the player crosswalk) scored with each league's own scoring settings (PR #645, store follows).
+
 ## 2026-10-10 — football warehouse takeover: what was decided and why
 
 - **RAT-QB v0 uses a real turnover rate, not the FTN field.** The registry's "turnover-worthy rate"
