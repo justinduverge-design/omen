@@ -5,6 +5,7 @@ const path = require("node:path");
 const { createWarehouseUsageRepository } = require("./usageRepository");
 const { createWarehouseOutcomeRepository } = require("./outcomeRepository");
 const { createWarehousePlayerIdentityRepository } = require("./playerIdentityRepository");
+const { createWarehouseProjectionRepository } = require("./projectionRepository");
 
 const MODES = Object.freeze(["supabase", "shadow", "warehouse"]);
 const READ_ROLE = "omen_warehouse_read";
@@ -193,7 +194,7 @@ function createVerifiedReadQuery({ pool, config, now = Date.now }) {
 function createWarehouseReadRuntime({ env = process.env, Pool, fileSystem, onPoolError } = {}) {
   const config = parseWarehouseReadConfig({ env, fileSystem });
   if (!config.enabled) {
-    return Object.freeze({ mode: config.mode, enabled: false, repository: null, outcomeRepository: null, identityRepository: null, close: async () => {} });
+    return Object.freeze({ mode: config.mode, enabled: false, repository: null, outcomeRepository: null, identityRepository: null, projectionRepository: null, close: async () => {} });
   }
   const pool = createWarehouseReadPool({ Pool, config, onPoolError });
   const query = createVerifiedReadQuery({ pool, config });
@@ -209,12 +210,17 @@ function createWarehouseReadRuntime({ env = process.env, Pool, fileSystem, onPoo
     timeoutMs: config.queryTimeoutMillis,
     query,
   });
+  const projectionRepository = createWarehouseProjectionRepository({
+    timeoutMs: config.queryTimeoutMillis,
+    query,
+  });
   return Object.freeze({
     mode: config.mode,
     enabled: true,
     repository,
     outcomeRepository,
     identityRepository,
+    projectionRepository,
     // Fire-and-forget pre-warm: the caller swallows errors; a failure here is retried by the next query.
     warm: () => query.warm(),
     close: async () => pool.end(),
@@ -247,7 +253,7 @@ function createFailSafeWarehouseReadRuntime({
         outcome: "unavailable",
       }));
     } catch {}
-    return Object.freeze({ mode, enabled: false, repository: null, outcomeRepository: null, identityRepository: null, close: async () => {} });
+    return Object.freeze({ mode, enabled: false, repository: null, outcomeRepository: null, identityRepository: null, projectionRepository: null, close: async () => {} });
   }
 }
 

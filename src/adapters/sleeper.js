@@ -12,6 +12,7 @@ const requestScope = require("../services/sleeperRequestScope");
 const { Redis } = require("@upstash/redis");
 const config = require("../config");
 const { captureProviderError } = require("../middleware/providerErrors");
+const storedProjections = require("../services/footballWarehouse/storedProjections");
 
 const BASE = "https://api.sleeper.app/v1";
 const PROJECTIONS_BASE = "https://api.sleeper.app/projections/nfl";
@@ -637,16 +638,42 @@ async function fetchAndCacheSleeperProjections(season, week) {
   return { points, statLines };
 }
 
+/**
+ * The warehouse's stored copy of the week's projections (football.player_weekly_projections), when the
+ * store read is switched on and the stored week is fresh and complete; otherwise null and the caller makes
+ * the live fetch. Never throws. Written to the same caches as a live fetch so one warehouse read serves the hour.
+ */
+async function loadStoredSleeperProjections(season, week) {
+  try {
+    const stored = await storedProjections.getStoredProjectionReader().readSleeperWeek({ season: Number(season), week: Number(week) });
+    if (!stored) return null;
+    const payload = stored.rows.map((row) => ({ player_id: row.source_player_id, stats: row.stat_line }));
+    const points = normalizeProjections(payload);
+    const statLines = normalizeProjectionStatLines(payload);
+    await Promise.all([
+      writeCache(projectionsCacheKey(season, week), points, PROJECTIONS_TTL_S),
+      writeCache(projectionStatLinesCacheKey(season, week), statLines, PROJECTIONS_TTL_S),
+    ]);
+    return { points, statLines };
+  } catch {
+    return null;
+  }
+}
+
 async function fetchSleeperProjections(season, week) {
   const cached = await readCache(projectionsCacheKey(season, week));
   // Normalized on read too: entries cached before this fix hold the raw array.
   if (cached) return normalizeProjections(cached);
+  const stored = await loadStoredSleeperProjections(season, week);
+  if (stored) return stored.points;
   return (await fetchAndCacheSleeperProjections(season, week)).points;
 }
 
 async function fetchSleeperProjectionStatLines(season, week) {
   const cached = await readCache(projectionStatLinesCacheKey(season, week));
   if (cached && typeof cached === "object" && !Array.isArray(cached)) return cached;
+  const stored = await loadStoredSleeperProjections(season, week);
+  if (stored) return stored.statLines;
   return (await fetchAndCacheSleeperProjections(season, week)).statLines;
 }
 

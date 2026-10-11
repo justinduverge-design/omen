@@ -8,10 +8,13 @@ select (
   current_database() = 'omen_football'
   and current_setting('transaction_read_only') = 'on'
   and (
-    select count(*) = 2
+    -- Versions 1 and 2 are required; version 3 (weekly projections) is optional until it is applied.
+    select count(*) between 2 and 3
+      and count(*) filter (where version in (1, 2)) = 2
       and bool_and((version, name, checksum) in (
         (1, '0001_football_warehouse', '27fb1e8dd4a5167ffc27660f165f326e7c9a6e3b4aaf2e04ec16ec4e55448f1c'),
-        (2, '0003_warehouse_access_policy', '0b0577edd8995fad967409a37012390d77447cf55595fd4a310270b56f7a169d')
+        (2, '0003_warehouse_access_policy', '0b0577edd8995fad967409a37012390d77447cf55595fd4a310270b56f7a169d'),
+        (3, '0005_weekly_projections', 'f0219156d480f6e4607e19e81a1dee2b4810c29df5c37c1b739142aa832b55fb')
       ))
     from football.warehouse_schema_migrations
   )
