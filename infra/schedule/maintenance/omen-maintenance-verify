@@ -1,0 +1,19 @@
+#!/bin/sh
+# Runs once after boot (omen-maintenance-verify.service). Only acts when the maintenance window caused the reboot.
+# Checks that every container that should be running is, and that no systemd unit failed. A failure exits nonzero
+# so the unit is marked failed; Beszel (host down 10 min) and Kuma (API checks) page independently.
+set -u
+marker=/var/lib/omen-maintenance/reboot-requested
+[ -f "$marker" ] || exit 0
+sleep 180
+bad=0
+if command -v docker >/dev/null 2>&1; then
+  down=$(docker ps -a --filter status=exited --filter status=restarting --filter status=dead --format '{{.Names}}' | tr '\n' ' ')
+  if [ -n "$down" ]; then logger -t omen-maintenance -- "containers not running after reboot: $down"; bad=1; fi
+  unhealthy=$(docker ps --filter health=unhealthy --format '{{.Names}}' | tr '\n' ' ')
+  if [ -n "$unhealthy" ]; then logger -t omen-maintenance -- "containers unhealthy after reboot: $unhealthy"; bad=1; fi
+fi
+failed=$(systemctl --failed --no-legend --plain | awk '{print $1}' | tr '\n' ' ')
+if [ -n "$failed" ]; then logger -t omen-maintenance -- "failed units after reboot: $failed"; bad=1; fi
+if [ "$bad" -eq 0 ]; then logger -t omen-maintenance -- "post-reboot check passed"; rm -f "$marker"; fi
+exit "$bad"

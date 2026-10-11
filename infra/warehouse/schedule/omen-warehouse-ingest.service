@@ -3,6 +3,8 @@ Description=Omen football warehouse daily current-season ingest
 Wants=network-online.target docker.service
 After=network-online.target docker.service
 OnFailure=omen-warehouse-alert@%n.service
+# The encrypted backup runs only after a successful ingest, so it can never dump a half-rewritten season.
+OnSuccess=omen-warehouse-backup.service
 
 [Service]
 Type=oneshot

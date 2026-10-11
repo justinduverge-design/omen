@@ -1,0 +1,11 @@
+[Unit]
+Description=Omen post-maintenance health check
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/omen-maintenance-verify
+
+[Install]
+WantedBy=multi-user.target
