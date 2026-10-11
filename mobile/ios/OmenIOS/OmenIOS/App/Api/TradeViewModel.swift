@@ -716,6 +716,8 @@ final class TradeViewModel: ObservableObject {
 
     static func searchMessage(for error: OmenApiError) -> String {
         switch error {
+        case .cancelled:
+            return "That was interrupted. Try again, or type the full name and press Add."
         case .server(let status) where status == 429:
             return "Omen limits searches to protect the service. Wait about a minute, "
                 + "or type the full name and press Add."
@@ -734,6 +736,8 @@ final class TradeViewModel: ObservableObject {
 
     static func message(for error: OmenApiError) -> String {
         switch error {
+        case .cancelled:
+            return "That was interrupted. Try again."
         case .network:
             return "Omen couldn't reach the server. Check your connection and try again."
         case .unauthorized:

@@ -326,7 +326,7 @@ struct ApiConnectRepository: ConnectRepository {
 
     private static func map(_ error: OmenApiError, notFoundMeans: ConnectFailure) -> ConnectFailure {
         switch error {
-        case .network: return .network
+        case .network, .cancelled: return .network
         case .unauthorized: return .server
         case .decode: return .server
         case .server(let status): return (400...499).contains(status) ? notFoundMeans : .server

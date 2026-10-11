@@ -80,6 +80,15 @@ final class ConnectViewModel: ObservableObject {
     /// Nil means "nothing to disclose" — either no multiselect ran, or it persisted.
     @Published private(set) var followsNotPersisted: Bool = false
 
+    /// Names of every league the user confirmed in the last multiselect, in pick order. The
+    /// connected screen lists all of them (walk-1 P1-4) instead of naming only the first.
+    @Published private(set) var confirmedLeagueNames: [String] = []
+
+    /// What the connected screen tells the user about what Omen kept.
+    var connectionConfirmation: ConnectConfirmation {
+        ConnectConfirmation(leagueNames: confirmedLeagueNames, remembered: !followsNotPersisted)
+    }
+
     func toggleLeague(_ id: String) {
         if selectedLeagueIDs.contains(id) {
             selectedLeagueIDs.remove(id)
@@ -115,12 +124,18 @@ final class ConnectViewModel: ObservableObject {
     /// succeeded, and turning a working connection into an error screen over the follow set
     /// would be the worse outcome.
     private func recordFollows(platform: String, leagues: [FollowedLeague]) async {
+        confirmedLeagueNames = leagues.map { $0.leagueName ?? "League \($0.leagueID)" }
         guard leagues.count > 1 else { return }
-        guard let accessToken = await bearer() else { return }
+        guard let accessToken = await bearer() else {
+            followsNotPersisted = true
+            return
+        }
         if case .success(let persisted) = await repository.followLeagues(
             platform: platform, leagues: leagues, accessToken: accessToken
         ) {
             followsNotPersisted = !persisted
+        } else {
+            followsNotPersisted = true
         }
     }
 
@@ -501,6 +516,7 @@ final class ConnectViewModel: ObservableObject {
         selectedProvider = nil
         clearLeagueSelection()
         followsNotPersisted = false
+        confirmedLeagueNames = []
         state = .notStarted
     }
 
@@ -658,5 +674,33 @@ final class ConnectViewModel: ObservableObject {
         case .failure(let failure):
             state = .retryableError(failure)
         }
+    }
+}
+
+
+/// What the connected screen says about the leagues the user just confirmed.
+///
+/// Pure so the copy is testable: the screen must list every league and say plainly what Omen
+/// keeps, never name only the first.
+struct ConnectConfirmation: Equatable {
+    let leagueNames: [String]
+    /// False when the server accepted the connect but could not store the full follow set.
+    let remembered: Bool
+
+    var title: String? {
+        switch leagueNames.count {
+        case 0, 1: return nil
+        default: return "\(leagueNames.count) leagues connected"
+        }
+    }
+
+    var message: String? {
+        guard leagueNames.count > 1 else { return nil }
+        let list = leagueNames.joined(separator: ", ")
+        if remembered {
+            return "Omen will remember all of them: \(list). Swipe between them on Command Center."
+        }
+        return "Omen connected \(list), but could only save \(leagueNames[0]) for next time. "
+            + "Connect the others again after you open Omen to keep them."
     }
 }

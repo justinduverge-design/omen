@@ -27,6 +27,10 @@ import SwiftUI
 struct OmenReportPill: View {
     var title: String = "Something look wrong?"
     var subtitle: String = "Sends this screen, your app version and the provider \u{2014} never your league data."
+    /// What the pill SHOWS. The full promise (`subtitle`) is still what VoiceOver reads and what
+    /// the composer repeats; the visible line is short so the pill stays a pill (walk-1: "report
+    /// card still too big" — three wrapped lines made it taller than the cards above it).
+    var visibleSubtitle: String = "Never your league data."
     var actionTitle: String = "Report"
     let action: () -> Void
 
@@ -37,20 +41,20 @@ struct OmenReportPill: View {
                 // *capabilities*; this is an attention mark on a control, not a capability
                 // rendering, and the control is labelled in words beside it.
                 Text("!")
-                    .omenTextStyle(OmenTypography.h3)
+                    .omenTextStyle(OmenTypography.label)
                     .foregroundStyle(OmenColor.accent)
-                    .frame(width: 30, height: 30)
+                    .frame(width: 24, height: 24)
                     .background(OmenColor.accentMuted)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
 
                 VStack(alignment: .leading, spacing: OmenSpacing.step2) {
                     Text(title)
                         .omenTextStyle(OmenTypography.name)
                         .foregroundStyle(OmenColor.textPrimary)
-                    Text(subtitle)
+                    Text(visibleSubtitle)
                         .omenTextStyle(OmenTypography.bodySmall)
                         .foregroundStyle(OmenColor.textTertiary)
-                        .fixedSize(horizontal: false, vertical: true)
+                        .lineLimit(1)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -59,7 +63,8 @@ struct OmenReportPill: View {
                     .foregroundStyle(OmenColor.accent)
                     .layoutPriority(1)
             }
-            .padding(OmenSpacing.step12)
+            .padding(.horizontal, OmenSpacing.step12)
+            .padding(.vertical, OmenSpacing.step8)
             .frame(maxWidth: .infinity, minHeight: OmenLayout.minTouchTarget, alignment: .leading)
             .background(OmenColor.surface2)
             .clipShape(RoundedRectangle(cornerRadius: 12))

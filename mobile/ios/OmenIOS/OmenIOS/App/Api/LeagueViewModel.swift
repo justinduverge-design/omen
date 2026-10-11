@@ -60,6 +60,10 @@ final class LeagueViewModel: ObservableObject {
         }) {
         case .success(let overview):
             viewState = .loaded(overview)
+        case .failure(.cancelled):
+            // Superseded by a newer load (or the screen went away). Not a failure: leave the
+            // loading state for the load that replaced this one to resolve.
+            break
         case .failure(let error):
             viewState = .failed(error)
         }
@@ -69,6 +73,8 @@ final class LeagueViewModel: ObservableObject {
     /// they are rendered per section rather than as a whole-screen error.
     static func message(for error: OmenApiError) -> String {
         switch error {
+        case .cancelled:
+            return "That was interrupted. Try again."
         case .network:
             return "Omen couldn't reach the server. Check your connection and try again."
         case .unauthorized:

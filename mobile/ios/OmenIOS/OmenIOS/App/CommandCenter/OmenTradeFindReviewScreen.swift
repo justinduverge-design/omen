@@ -229,6 +229,7 @@ struct OmenTradeFindReviewScreen: View {
 
     static func message(for error: OmenApiError) -> String {
         switch error {
+        case .cancelled: return "That was interrupted. Try again."
         case .network: return "Omen couldn't reach the server. Check your connection and try again."
         case .unauthorized: return "Your session expired. Sign in again to see your league's candidates."
         case .server: return "Omen is having trouble on our side. Try again in a moment."

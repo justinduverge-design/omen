@@ -262,7 +262,7 @@ struct OmenTeamPicker: View {
     /// this says so rather than repeating it.
     private func subtitle(_ page: LeagueCarouselViewModel.Page) -> String {
         let provider = platformDisplayName(page.platform)
-        guard page.teamName?.isEmpty == false else { return "\(provider) · unnamed team" }
+        guard page.teamName?.isEmpty == false else { return OmenTeamPicker.unnamedTeamSubtitle(provider: provider) }
         // ESPN exposes no league list, so `league_name` is routinely null and
         // `displayLeagueName` falls back to "League 884411". That id is a fine last resort on a
         // matchup card, where it is the only thing distinguishing two pages — but as a subtitle
@@ -270,6 +270,13 @@ struct OmenTeamPicker: View {
         // honest line: we know it is their ESPN team, and we do not know the league's name.
         guard page.leagueName?.isEmpty == false else { return provider }
         return "\(provider) · \(page.displayLeagueName)"
+    }
+
+    /// The second line for a team the provider gave no name for. ESPN routinely withholds it, so
+    /// this says what is known (it is their team on that provider) and what is not, instead of
+    /// "unnamed team", which read like Omen had lost something.
+    static func unnamedTeamSubtitle(provider: String) -> String {
+        "\(provider) team \u{00B7} name not shared"
     }
 
     /// Each chip carries its provider's colour, so the row doubles as the answer to "which of

@@ -1075,15 +1075,14 @@ extension OmenDeskState {
 
     /// A crest is a claim about identity, so it is derived from the name the provider gave and
     /// never invented — the same rule `OmenLeagueSwitcherBar` states for its own.
+    ///
+    /// Delegates to `omenCompactTeamLabel`, the function the league chip uses, so the chip and the
+    /// switcher sheet always agree ("Puk Around & Find Out" is "PAF" in both; the sheet used to
+    /// say "PA&" because it took the first character of every space-separated token, ampersands
+    /// included). Non-alphanumeric tokens are skipped.
     static func crest(from name: String) -> String {
-        let initials = name
-            .split(whereSeparator: { $0 == " " || $0 == "'" || $0 == "\u{2019}" })
-            .prefix(3)
-            .compactMap { $0.first }
-            .map(String.init)
-            .joined()
-            .uppercased()
-        return initials.isEmpty ? "—" : initials
+        guard name.contains(where: { $0.isLetter || $0.isNumber }) else { return "\u{2014}" }
+        return omenCompactTeamLabel(name)
     }
 
     private static func points(_ value: Double) -> String {

@@ -17,6 +17,17 @@ enum OmenApiError: Error, Equatable {
     case server(status: Int)
     /// 2xx with a body this app cannot read as the declared contract.
     case decode
+    /// The request was cancelled (`URLError.cancelled`, or the awaiting task was cancelled) because a
+    /// newer request superseded it or the screen went away. Not a failure and not a connectivity
+    /// problem: callers must NOT show "couldn't reach Omen" for it.
+    case cancelled
+
+    /// Maps a transport error from `URLSession` to the typed outcome.
+    static func transport(_ error: Error) -> OmenApiError {
+        if error is CancellationError { return .cancelled }
+        if let urlError = error as? URLError, urlError.code == .cancelled { return .cancelled }
+        return .network
+    }
 }
 
 /// Seam for tests. `URLSession` satisfies this without a subclass or a `URLProtocol` stub,
@@ -161,7 +172,7 @@ struct OmenApiClient {
             (data, response) = try await fetcher.data(for: request)
         } catch {
             OmenRequestTiming.log(request, status: nil, since: started)
-            return .failure(.network)
+            return .failure(OmenApiError.transport(error))
         }
 
         guard let http = response as? HTTPURLResponse else { return .failure(.network) }

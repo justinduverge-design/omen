@@ -25,6 +25,7 @@ struct AccountView: View {
     @State private var showingDeleteConfirmation = false
     @State private var showingPrivacyAndData = false
     @State private var showingHelpSupport = false
+    @State private var showingAbout = false
 
     private var isDemo: Bool { userID == SessionManager.demoUserID }
 
@@ -44,6 +45,9 @@ struct AccountView: View {
             .sheet(isPresented: $showingDeleteConfirmation) {
                 DeleteAccountConfirmationView(sessionManager: sessionManager)
             }
+            .sheet(isPresented: $showingAbout) {
+                NavigationStack { OmenAboutDataSourcesView() }
+            }
             .sheet(isPresented: $showingHelpSupport) {
                 NavigationStack { OmenHelpSupportView() }
             }
@@ -62,6 +66,7 @@ struct AccountView: View {
                 onReportProblem: onReportProblem,
                 onOpenHelpCentre: { showingHelpSupport = true },
                 onOpenPrivacyAndData: { showingPrivacyAndData = true },
+                onOpenAbout: { showingAbout = true },
                 onSignOut: { sessionManager.signOut() }
             )
         } else {
@@ -77,6 +82,7 @@ struct AccountView: View {
                 ),
                 onReportProblem: onReportProblem,
                 onOpenHelpCentre: { showingHelpSupport = true },
+                onOpenAbout: { showingAbout = true },
                 onSignOut: { sessionManager.signOut() }
             )
         }
@@ -154,6 +160,7 @@ private struct ConnectedAccountScreen: View {
     var onReportProblem: (() -> Void)?
     var onOpenHelpCentre: (() -> Void)?
     var onOpenPrivacyAndData: (() -> Void)?
+    var onOpenAbout: (() -> Void)?
     var onSignOut: (() -> Void)?
 
     init(
@@ -164,6 +171,7 @@ private struct ConnectedAccountScreen: View {
         onReportProblem: (() -> Void)?,
         onOpenHelpCentre: (() -> Void)?,
         onOpenPrivacyAndData: (() -> Void)?,
+        onOpenAbout: (() -> Void)? = nil,
         onSignOut: (() -> Void)?
     ) {
         self.state = state
@@ -174,6 +182,7 @@ private struct ConnectedAccountScreen: View {
         self.onReportProblem = onReportProblem
         self.onOpenHelpCentre = onOpenHelpCentre
         self.onOpenPrivacyAndData = onOpenPrivacyAndData
+        self.onOpenAbout = onOpenAbout
         self.onSignOut = onSignOut
     }
 
@@ -204,6 +213,7 @@ private struct ConnectedAccountScreen: View {
             onReportProblem: onReportProblem,
             onOpenHelpCentre: onOpenHelpCentre,
             onOpenPrivacyAndData: onOpenPrivacyAndData,
+            onOpenAbout: onOpenAbout,
             onSignOut: onSignOut,
             securitySection: securitySection
         )

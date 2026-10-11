@@ -31,7 +31,7 @@ struct OmenSwitchRow: Identifiable, Equatable {
     let id: String
     let crest: String
     let teamName: String
-    /// "ESPN · EB Football", or "unnamed team" when the provider never gave one. Composed by the
+    /// "ESPN · EB Football", or "ESPN team \u{00B7} name not shared" when the provider never gave one. Composed by the
     /// caller, which is the only layer that knows whether a name was absent or merely empty.
     let subtitle: String
     let isFavorite: Bool

@@ -224,8 +224,7 @@ struct CommandCenterView: View {
                     // screenshot of nothing. The Command Center's own furniture renders as a
                     // broken dashboard when there is no league; this says why it is empty.
                     OmenNoLeagueScreen(
-                        onConnect: { showConnectSheet = true },
-                        onSeeHowOmenDecides: { selectedTab = .omen }
+                        onConnect: { showConnectSheet = true }
                     )
                 } else if let quietState = commandCenterViewModel.quietWeekState {
                     // `quiet-week.v1`. Server-owned eligibility and variant — this only
@@ -584,6 +583,8 @@ enum CommandCenterTab: String, Hashable, CaseIterable {
 /// status code, so there is nothing sensitive to leak here by construction.
 private func commandCenterFailureMessage(_ error: OmenApiError) -> String {
     switch error {
+    case .cancelled:
+        return "That was interrupted. Try again."
     case .network:
         return "We couldn't reach Omen. Check your connection and try again."
     case .unauthorized:

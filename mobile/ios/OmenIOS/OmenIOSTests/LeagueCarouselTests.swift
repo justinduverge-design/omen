@@ -362,4 +362,155 @@ final class LeagueCarouselTests: XCTestCase {
         XCTAssertEqual(recorder.calls.count, 1)
         XCTAssertEqual(recorder.calls.first?.leagueID, "L2")
     }
+
+
+    // MARK: - Walk-1: crest consistency (chip vs sheet)
+
+    func testCrestAgreesWithTheChipLabelForAnAmpersandName() {
+        let name = "Puk Around & Find Out"
+        XCTAssertEqual(omenCompactTeamLabel(name), "PAF")
+        XCTAssertEqual(OmenDeskState.crest(from: name), "PAF")
+    }
+
+    func testCrestSkipsNonLettersAndNeverReturnsPunctuation() {
+        XCTAssertEqual(OmenDeskState.crest(from: "Fire & Ice"), "FI")
+        XCTAssertEqual(OmenDeskState.crest(from: "&"), "\u{2014}")
+        XCTAssertEqual(OmenDeskState.crest(from: ""), "\u{2014}")
+        XCTAssertEqual(OmenDeskState.crest(from: "Scaries"), "SCA")
+        XCTAssertFalse(OmenDeskState.crest(from: "Puk Around & Find Out").contains("&"))
+    }
+
+    // MARK: - Walk-1: honest wording for unnamed ESPN teams
+
+    func testUnnamedTeamSubtitleIsHonest() {
+        XCTAssertEqual(OmenTeamPicker.unnamedTeamSubtitle(provider: "ESPN"), "ESPN team \u{00B7} name not shared")
+        XCTAssertFalse(OmenTeamPicker.unnamedTeamSubtitle(provider: "ESPN").contains("unnamed"))
+    }
+
+    // MARK: - Walk-1: nflverse credit
+
+    func testDataSourcesCarryTheNflverseCreditAndLink() {
+        XCTAssertTrue(OmenDataSources.nflverseCredit.contains("nflverse data"))
+        XCTAssertTrue(OmenDataSources.nflverseCredit.contains("CC BY 4.0"))
+        XCTAssertEqual(OmenDataSources.nflverseURL.absoluteString, "https://github.com/nflverse/nflverse-data")
+        XCTAssertTrue(OmenDataSources.providerData.contains("your own data"))
+    }
+
+    // MARK: - Walk-1: a lost response, and one directory fetch per switch
+
+    /// Counts directory reads and lets the switch POST fail the way a dropped connection does.
+    private final class CountingRepository: LeagueDirectoryRepository, @unchecked Sendable {
+        var directories: [LeagueDirectory]
+        var selection: Result<LeagueSelectionResult, OmenApiError>
+        private(set) var fetches = 0
+        init(directories: [LeagueDirectory], selection: Result<LeagueSelectionResult, OmenApiError>) {
+            self.directories = directories
+            self.selection = selection
+        }
+        func fetchDirectory(accessToken: String) async -> Result<LeagueDirectory, OmenApiError> {
+            defer { fetches += 1 }
+            return .success(directories[min(fetches, directories.count - 1)])
+        }
+        func selectLeague(accessToken: String, platform: String, leagueID: String, teamID: String?) async -> Result<LeagueSelectionResult, OmenApiError> {
+            selection
+        }
+        func disconnect(accessToken: String, platform: String) async -> Result<Void, OmenApiError> { .success(()) }
+    }
+
+    @MainActor
+    private func viewModel(over repository: CountingRepository) -> LeagueCarouselViewModel {
+        LeagueCarouselViewModel(
+            directoryRepository: repository,
+            leagueRepository: StubLeagueRepository(result: .failure(.network)),
+            sessionManager: SessionManager(
+                store: InMemorySecureSessionStore(initial: Session(
+                    userID: "user-1", accessToken: "t", refreshToken: "r", expiresAtEpochSeconds: 2_000
+                )),
+                nowEpochSeconds: { 1_000 }
+            )
+        )
+    }
+
+    private func directory(active leagueID: String) throws -> LeagueDirectory {
+        try decode("""
+        {"contract_version":"league-directory.v1","season":2026,"follow_persistence":"explicit",
+         "active":{"platform":"sleeper","league_id":"\(leagueID)"},
+         "platforms":[{"platform":"sleeper","connection_state":"connected","discovery":"full",
+           "leagues":[
+             {"league_id":"L1","league_name":"Alpha","team_name":"Titans","is_active":\(leagueID == "L1")},
+             {"league_id":"L2","league_name":"Beta","team_name":"Sentinels","is_active":\(leagueID == "L2")}]}]}
+        """)
+    }
+
+    @MainActor
+    func testASwitchReadsTheDirectoryOncePerSwitch() async throws {
+        let repository = CountingRepository(
+            directories: [try directory(active: "L1"), try directory(active: "L2")],
+            selection: .success(LeagueSelectionResult(contractVersion: nil, selectionPersistence: nil, active: nil, refresh: ["omen"]))
+        )
+        let model = viewModel(over: repository)
+        await model.load(userID: "user-1")
+        XCTAssertEqual(repository.fetches, 1)
+
+        let target = try XCTUnwrap(model.allPages.first { $0.leagueID == "L2" })
+        _ = await model.commit(target)
+        await model.pendingDirectoryReload?.value
+
+        XCTAssertEqual(repository.fetches, 2, "one load + exactly one re-read for the switch")
+        XCTAssertTrue(model.isCurrent(target))
+    }
+
+    @MainActor
+    func testALostSwitchResponseThatTheServerAppliedKeepsChipAndContentTogether() async throws {
+        let repository = CountingRepository(
+            directories: [try directory(active: "L1"), try directory(active: "L2")],
+            selection: .failure(.network)
+        )
+        let model = viewModel(over: repository)
+        await model.load(userID: "user-1")
+
+        let target = try XCTUnwrap(model.allPages.first { $0.leagueID == "L2" })
+        let refresh = await model.commit(target)
+        await model.pendingDirectoryReload?.value
+
+        XCTAssertNotNil(refresh, "the server did switch, so the surfaces must reload")
+        XCTAssertTrue(model.isCurrent(target), "the chip follows the confirmed switch")
+        XCTAssertEqual(model.activePage?.id, target.id, "content follows the same league as the chip")
+        XCTAssertEqual(repository.fetches, 2, "the verifying read is the switch's one directory fetch")
+    }
+
+    @MainActor
+    func testALostSwitchResponseThatTheServerDidNotApplyChangesNothing() async throws {
+        let repository = CountingRepository(
+            directories: [try directory(active: "L1")],
+            selection: .failure(.network)
+        )
+        let model = viewModel(over: repository)
+        await model.load(userID: "user-1")
+        let before = model.activePage?.id
+
+        let target = try XCTUnwrap(model.allPages.first { $0.leagueID == "L2" })
+        let refresh = await model.commit(target)
+
+        XCTAssertNil(refresh)
+        XCTAssertEqual(model.activePage?.id, before, "chip and content both stay on the old league")
+        XCTAssertFalse(model.isCurrent(target))
+    }
+
+    @MainActor
+    func testALostDirectoryResponseAfterASwitchLeavesChipAndContentAgreeing() async throws {
+        let repository = CountingRepository(
+            directories: [try directory(active: "L1")],
+            selection: .success(LeagueSelectionResult(contractVersion: nil, selectionPersistence: nil, active: nil, refresh: ["omen"]))
+        )
+        let model = viewModel(over: repository)
+        await model.load(userID: "user-1")
+        // The re-read after the switch still answers with the OLD active league (stale/lost).
+        let target = try XCTUnwrap(model.allPages.first { $0.leagueID == "L2" })
+        _ = await model.commit(target)
+        await model.pendingDirectoryReload?.value
+
+        XCTAssertTrue(model.isCurrent(target))
+        XCTAssertEqual(model.activePage?.id, target.id)
+    }
 }
