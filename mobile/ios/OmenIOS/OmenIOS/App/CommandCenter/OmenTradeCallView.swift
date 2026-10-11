@@ -11,8 +11,8 @@ struct OmenTradeCallSwap: View {
     var body: some View {
         OmenCard(variant: .outlined, contentPadding: OmenSpacing.step12) {
             VStack(alignment: .leading, spacing: OmenSpacing.step12) {
-                row(title: "You send", side: call.give)
-                row(title: "You get", side: call.receive)
+                ForEach(Array(call.gives.enumerated()), id: \.offset) { _, side in row(title: "You send", side: side) }
+                ForEach(Array(call.receives.enumerated()), id: \.offset) { _, side in row(title: "You get", side: side) }
                 if let partner = call.partnerName {
                     VStack(alignment: .leading, spacing: OmenSpacing.step4) {
                         Text("Trade partner")

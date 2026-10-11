@@ -4,11 +4,11 @@ import Foundation
 /// it as a trade and hand it to the Trade screens.
 ///
 /// **Only fields the server returned.** The two players come from `primary_player` (the one you get) and
-/// `comparison_player` (the one you send). The partner team is not a structured field today: the server
-/// states it once, in `recommendation.move` ("Offer <give> to <team> for <get>."), so it is read from that
-/// sentence only when the sentence matches the server's template exactly, anchored on the two player names
-/// the server also sent. Anything else leaves it nil and the screen simply does not name a partner; it is
-/// never guessed. (A structured partner field on the recommendation would remove this reading.)
+/// `comparison_player` (the one you send), or from the structured `recommendation.trade` block when the
+/// server sends one (preferred: partner, give[] and receive[]). Only for an older server without that block
+/// is the partner read from `recommendation.move` ("Offer <give> to <team> for <get>."), and only when the
+/// sentence matches the template exactly for the two player names. Anything else leaves it nil and the screen
+/// simply does not name a partner; it is never guessed.
 struct OmenTradeCall: Equatable {
     struct Side: Equatable {
         let name: String
@@ -29,12 +29,18 @@ struct OmenTradeCall: Equatable {
         }
     }
 
-    /// The player you send (`comparison_player`).
-    let give: Side
-    /// The player you get (`primary_player`).
-    let receive: Side
-    /// The team on the other side, when the server's sentence names one.
+    /// Everyone you send: `recommendation.trade.give`, else the one `comparison_player`. Never empty.
+    let gives: [Side]
+    /// Everyone you get: `recommendation.trade.receive`, else the one `primary_player`. Never empty.
+    let receives: [Side]
+    /// The first player you send.
+    var give: Side { gives[0] }
+    /// The first player you get.
+    var receive: Side { receives[0] }
+    /// The team on the other side, when the server named one (structured field, else its sentence).
     let partnerName: String?
+    /// The provider's id for that team (`recommendation.trade.partner_team_id`), when sent.
+    let partnerTeamID: String?
     /// `espn`, `sleeper` or `yahoo`, from `signals.trade_rosters.source` (`<platform>_league_rosters`).
     let platform: String?
     /// The league the server answered for. The shell fills it from the picker when the server sent none.
@@ -48,6 +54,12 @@ struct OmenTradeCall: Equatable {
     /// it would not be offered for review: there would be nothing behind it to review.
     var canReview: Bool {
         platform?.lowercased() != "yahoo" && scope?.platform.lowercased() != "yahoo"
+    }
+
+    /// A server stand-in or blank is not a team.
+    static func namedPartner(_ raw: String?) -> String? {
+        guard let name = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty, name != "that team" else { return nil }
+        return name
     }
 
     /// "Offer A to Team for B." only when `move` is exactly that, for exactly these two names.
@@ -77,16 +89,37 @@ extension OmenDecisionEnvelope {
     /// The trade call this envelope carries, or nil for any other kind of call (and for a trade with a
     /// player the server did not name: a half-named swap is not shown as a trade).
     func tradeCall() -> OmenTradeCall? {
-        guard let recommendation, recommendation.type == "trade_suggestion",
-              let give = Self.tradeSide(recommendation.comparisonPlayer),
-              let receive = Self.tradeSide(recommendation.primaryPlayer) else { return nil }
+        guard let recommendation, recommendation.type == "trade_suggestion" else { return nil }
+        let legacyGive = Self.tradeSide(recommendation.comparisonPlayer)
+        let legacyReceive = Self.tradeSide(recommendation.primaryPlayer)
+        // The structured block wins when it names at least one player on each side; otherwise it is ignored
+        // whole and the older fields (and the sentence) are read as before.
+        var structured: (gives: [OmenTradeCall.Side], receives: [OmenTradeCall.Side], trade: Trade)?
+        if let trade = recommendation.trade {
+            let gives = trade.give.compactMap { Self.tradeSide($0, enrichedFrom: [legacyGive, legacyReceive]) }
+            let receives = trade.receive.compactMap { Self.tradeSide($0, enrichedFrom: [legacyGive, legacyReceive]) }
+            if !gives.isEmpty, !receives.isEmpty { structured = (gives, receives, trade) }
+        }
+        let gives: [OmenTradeCall.Side]
+        let receives: [OmenTradeCall.Side]
+        if let structured {
+            gives = structured.gives
+            receives = structured.receives
+        } else if let legacyGive, let legacyReceive {
+            gives = [legacyGive]
+            receives = [legacyReceive]
+        } else {
+            return nil
+        }
         let explanationBlock = recommendation.explanation ?? explanation
         let platform = OmenTradeCall.platform(fromRostersSource: signals?["trade_rosters"]?.source)
             ?? answeredFor?.platform?.lowercased()
         return OmenTradeCall(
-            give: give,
-            receive: receive,
-            partnerName: OmenTradeCall.partnerName(inMove: recommendation.move, give: give.name, receive: receive.name),
+            gives: gives,
+            receives: receives,
+            partnerName: OmenTradeCall.namedPartner(structured?.trade.partnerTeamName)
+                ?? OmenTradeCall.partnerName(inMove: recommendation.move, give: gives[0].name, receive: receives[0].name),
+            partnerTeamID: Self.nonEmpty(structured?.trade.partnerTeamID),
             platform: platform,
             scope: answeredFor?.scope,
             whyBothLineups: Self.nonEmpty(explanationBlock?.whyItMatters),
@@ -98,6 +131,19 @@ extension OmenDecisionEnvelope {
         guard let name = player?.name?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty,
               name != "Unknown" else { return nil }
         return OmenTradeCall.Side(name: name, position: player?.position, team: player?.team, playerKey: player?.id)
+    }
+
+    /// A structured player; the team (which the block does not carry) is borrowed from the call's own players
+    /// only when the name is the same one.
+    private static func tradeSide(_ player: Trade.TradePlayer, enrichedFrom known: [OmenTradeCall.Side?]) -> OmenTradeCall.Side? {
+        guard let name = player.name?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty, name != "Unknown" else { return nil }
+        let match = known.compactMap { $0 }.first { $0.name == name }
+        return OmenTradeCall.Side(
+            name: name,
+            position: nonEmpty(player.position) ?? match?.position,
+            team: match?.team,
+            playerKey: nonEmpty(player.playerKey) ?? match?.playerKey
+        )
     }
 
     private static func nonEmpty(_ text: String?) -> String? {
