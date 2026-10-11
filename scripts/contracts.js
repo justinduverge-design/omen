@@ -59,10 +59,71 @@ function normalize(body) {
   return stable(out);
 }
 
+// Variants of a state the mock builder cannot reach, built by the production LIVE builders from a
+// fixed roster. Each names the state it must produce, so a fixture still is what its name says.
+//   empty_hold        state `empty` carrying the HOLD call (`call_kind`, `hold`) and `answered_for`
+//   empty_hold_noproj the same for a provider with no projections (Yahoo): `projections.available` false
+const BRIEF_VARIANTS = Object.freeze({
+  empty_hold: "empty",
+  empty_hold_noproj: "empty",
+});
+
+function variantRoster(withProjections) {
+  const p = (key, name, position, projected, slot) => ({
+    player_key: key, player_id: key, name, position, eligible_positions: [position],
+    selected_position: slot, team: "DAL", status: "", projected_points: withProjections ? projected : null,
+  });
+  return {
+    week: 8, team_key: "7", source: withProjections ? "espn" : "yahoo",
+    slots: {
+      starters: [p("espn:1", "Quinn Back", "QB", 20, "QB"), p("espn:2", "Wes Receiver", "WR", 12, "WR")],
+      bench: [p("espn:3", "Ben Chwarmer", "WR", 11.8, "BN")],
+      ir: [],
+    },
+  };
+}
+
+function generateBriefVariantBodies() {
+  const omen = require("../src/services/omen");
+  const { buildHold } = require("../src/services/omenHold");
+  const out = {};
+  for (const name of Object.keys(BRIEF_VARIANTS)) {
+    const withProjections = name === "empty_hold";
+    const roster = variantRoster(withProjections);
+    const connection = {
+      id: "ctx-fixture", platform: withProjections ? "espn" : "yahoo", league_id: "1234567",
+    };
+    const trade = withProjections
+      ? { status: "none_found", reason: null, message: null, teams_checked: 11 }
+      : {
+        status: "unavailable", reason: "projections_unavailable", teams_checked: 0,
+        message: "Yahoo does not give Omen weekly projections, so a trade cannot be weighed.",
+      };
+    const hold = buildHold({
+      roster, platformLabel: withProjections ? "ESPN" : "Yahoo", trade, isOut: () => false,
+    });
+    const built = omen.liveEmptyMvpResponse({ roster, connection, connectedPlatforms: [], hold });
+    omen.annotateAnswerScope(built, {
+      connection,
+      explicit: true,
+      requested: { contextId: "ctx-fixture", leagueId: null, platform: null },
+    });
+    out[name] = built;
+  }
+  return out;
+}
+
 function generateBriefV3Fixtures() {
   const { buildOmenMvpMoveResponse } = require("../src/services/omen");
   const { decisionBriefV3 } = require("../src/services/decisionBriefV2");
   const out = {};
+  for (const [name, built] of Object.entries(generateBriefVariantBodies())) {
+    const body = normalize(decisionBriefV3(built.body));
+    if (body.state !== BRIEF_VARIANTS[name]) {
+      throw new Error(`variant "${name}" returned state "${body.state}", expected "${BRIEF_VARIANTS[name]}"`);
+    }
+    out[name] = { http_status: built.status, body };
+  }
   for (const state of BRIEF_STATES) {
     const built = buildOmenMvpMoveResponse({ use_mock_data: true, mock_state: state });
     const body = normalize(decisionBriefV3(built.body));
@@ -263,7 +324,7 @@ function readLock(contract) {
 }
 
 module.exports = {
-  BRIEF_STATES, generateBriefV3Fixtures, writeFixtures, fixtureFile, flattenSchema, compareToLock, mergeLock,
+  BRIEF_STATES, BRIEF_VARIANTS, generateBriefV3Fixtures, writeFixtures, fixtureFile, flattenSchema, compareToLock, mergeLock,
   readSchema, writeLock, readLock, normalize, serialize, allContracts, ROOT,
 };
 

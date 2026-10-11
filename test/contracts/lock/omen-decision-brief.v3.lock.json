@@ -70,6 +70,64 @@
       "required": true,
       "type": "array"
     },
+    "answered_for": {
+      "required": false,
+      "type": "object"
+    },
+    "answered_for.context_id": {
+      "required": false,
+      "type": "null|string"
+    },
+    "answered_for.league_id": {
+      "required": false,
+      "type": "null|string"
+    },
+    "answered_for.matched": {
+      "required": true,
+      "type": "boolean"
+    },
+    "answered_for.platform": {
+      "required": false,
+      "type": "null|string"
+    },
+    "answered_for.requested": {
+      "required": true,
+      "type": "object"
+    },
+    "answered_for.requested.context_id": {
+      "required": true,
+      "type": "null|string"
+    },
+    "answered_for.requested.league_id": {
+      "required": true,
+      "type": "null|string"
+    },
+    "answered_for.requested.platform": {
+      "required": true,
+      "type": "null|string"
+    },
+    "answered_for.selection": {
+      "required": true,
+      "type": "enum",
+      "values": [
+        "\"account_selected\"",
+        "\"requested\""
+      ]
+    },
+    "answered_for.team_id": {
+      "required": false,
+      "type": "null|string"
+    },
+    "call_kind": {
+      "required": false,
+      "type": "enum",
+      "values": [
+        "\"hold\"",
+        "\"start_sit\"",
+        "\"trade_suggestion\"",
+        "\"waiver_pickup\""
+      ]
+    },
     "capabilities": {
       "required": true,
       "type": "array"
@@ -266,6 +324,145 @@
     "generated_at": {
       "required": true,
       "type": "string"
+    },
+    "hold": {
+      "required": false,
+      "type": "object"
+    },
+    "hold.best_alternative": {
+      "required": false,
+      "type": "object"
+    },
+    "hold.best_alternative.delta": {
+      "required": true,
+      "type": "number"
+    },
+    "hold.best_alternative.kind": {
+      "required": true,
+      "type": "const:\"start_sit\""
+    },
+    "hold.best_alternative.margin_to_threshold": {
+      "required": true,
+      "type": "number"
+    },
+    "hold.best_alternative.sit": {
+      "required": true,
+      "type": "object"
+    },
+    "hold.best_alternative.sit.name": {
+      "required": true,
+      "type": "string"
+    },
+    "hold.best_alternative.sit.projected": {
+      "required": false,
+      "type": "null|number"
+    },
+    "hold.best_alternative.slot": {
+      "required": false,
+      "type": "null|string"
+    },
+    "hold.best_alternative.start": {
+      "required": true,
+      "type": "object"
+    },
+    "hold.best_alternative.start.name": {
+      "required": true,
+      "type": "string"
+    },
+    "hold.best_alternative.start.projected": {
+      "required": false,
+      "type": "null|number"
+    },
+    "hold.best_alternative.threshold": {
+      "required": true,
+      "type": "number"
+    },
+    "hold.best_alternative.why_not": {
+      "required": true,
+      "type": "string"
+    },
+    "hold.considered": {
+      "required": true,
+      "type": "array"
+    },
+    "hold.considered[]": {
+      "required": true,
+      "type": "object"
+    },
+    "hold.considered[].detail": {
+      "required": true,
+      "type": "string"
+    },
+    "hold.considered[].kind": {
+      "required": true,
+      "type": "enum",
+      "values": [
+        "\"start_sit\"",
+        "\"trade_suggestion\"",
+        "\"waiver_pickup\""
+      ]
+    },
+    "hold.considered[].outcome": {
+      "required": true,
+      "type": "enum",
+      "values": [
+        "\"below_threshold\"",
+        "\"none_found\"",
+        "\"not_needed\"",
+        "\"unavailable\""
+      ]
+    },
+    "hold.considered[].reason": {
+      "required": false,
+      "type": "null|string"
+    },
+    "hold.headline": {
+      "required": true,
+      "type": "string"
+    },
+    "hold.kind": {
+      "required": true,
+      "type": "const:\"hold\""
+    },
+    "hold.projections": {
+      "required": true,
+      "type": "object"
+    },
+    "hold.projections.available": {
+      "required": true,
+      "type": "boolean"
+    },
+    "hold.projections.players_total": {
+      "required": true,
+      "type": "integer"
+    },
+    "hold.projections.players_with_projection": {
+      "required": true,
+      "type": "integer"
+    },
+    "hold.reasons": {
+      "required": true,
+      "type": "array"
+    },
+    "hold.reasons[]": {
+      "required": true,
+      "type": "object"
+    },
+    "hold.reasons[].code": {
+      "required": true,
+      "type": "string"
+    },
+    "hold.reasons[].text": {
+      "required": true,
+      "type": "string"
+    },
+    "hold.summary": {
+      "required": true,
+      "type": "string"
+    },
+    "hold.threshold_points": {
+      "required": true,
+      "type": "number"
     },
     "league": {
       "required": false,

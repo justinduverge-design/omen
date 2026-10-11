@@ -863,3 +863,45 @@ test("an open narration breaker skips the model, leaves the stub signal untouche
     sharedNarrationGuard.reset();
   }
 });
+
+async function postQuery(app, { headers = {}, query = "", body = {} } = {}) {
+  const server = http.createServer(app);
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  try {
+    const res = await fetch(`http://127.0.0.1:${server.address().port}/api/omen/mvp-move${query}`, {
+      method: "POST",
+      headers: { "content-type": "application/json", ...headers },
+      body: JSON.stringify(body),
+    });
+    return { status: res.status, body: await res.json(), cache: res.headers.get("x-omen-cache") };
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
+
+test("mvp-move forwards an explicit league from the query string or body to live generation", async () => {
+  const { app, state } = buildApp();
+  const headers = { authorization: "Bearer valid-token" };
+  await postQuery(app, { headers, query: "?league_id=lg-9&platform=espn", body: QUIET });
+  await postQuery(app, { headers, body: { ...QUIET, context_id: "ctx-3", league_id: "lg-3" } });
+  await postQuery(app, { headers, body: QUIET });
+  assert.deepEqual(state.liveRequests.map((r) => r.options), [
+    { contextId: undefined, leagueId: "lg-9", platform: "espn" },
+    { contextId: "ctx-3", leagueId: "lg-3" },
+    { contextId: undefined },
+  ]);
+});
+
+test("mvp-move cache: a league named in the query string is a separate entry", async () => {
+  responseCache.setStoreForTests(responseCache.createMemoryResponseCacheStore());
+  try {
+    const { app, state } = buildApp();
+    const headers = { authorization: "Bearer valid-token" };
+    assert.equal((await postQuery(app, { headers, query: "?league_id=a", body: QUIET })).cache, "miss");
+    assert.equal((await postQuery(app, { headers, query: "?league_id=a", body: QUIET })).cache, "hit");
+    assert.equal((await postQuery(app, { headers, query: "?league_id=b", body: QUIET })).cache, "miss");
+    assert.deepEqual(state.liveRequests.map((r) => r.options.leagueId), ["a", "b"]);
+  } finally {
+    responseCache.setStoreForTests(undefined);
+  }
+});

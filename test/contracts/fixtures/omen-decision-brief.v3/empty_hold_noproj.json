@@ -1,0 +1,320 @@
+{
+  "http_status": 200,
+  "body": {
+    "alternatives": [],
+    "answered_for": {
+      "context_id": "ctx-fixture",
+      "league_id": "1234567",
+      "matched": true,
+      "platform": "yahoo",
+      "requested": {
+        "context_id": "ctx-fixture",
+        "league_id": null,
+        "platform": null
+      },
+      "selection": "requested",
+      "team_id": "7"
+    },
+    "call_kind": "hold",
+    "capabilities": [
+      {
+        "fresh_until": null,
+        "kind": "inference",
+        "name": "connected_platforms",
+        "observed_at": "2026-01-01T00:00:00.000Z",
+        "source": "platform_connections",
+        "state": "live",
+        "statement": "0 active platform connection(s) considered.",
+        "used": false
+      },
+      {
+        "fresh_until": null,
+        "kind": "limitation",
+        "name": "game_time_tv",
+        "observed_at": null,
+        "source": "pending_schedule_context",
+        "state": "unavailable",
+        "statement": "Kickoff and TV context are not decision-critical for this first live Yahoo MVP Move.",
+        "used": false
+      },
+      {
+        "fresh_until": null,
+        "kind": "limitation",
+        "name": "llm_reasoning",
+        "observed_at": null,
+        "source": "template_pending_llm_attempt",
+        "state": "unavailable",
+        "statement": "This response uses a deterministic template explanation from optimizer facts. Live Gemma narration runs only when requested via include_signals.llm_reasoning.",
+        "used": true
+      },
+      {
+        "fresh_until": null,
+        "kind": "limitation",
+        "name": "matchup_dvp",
+        "observed_at": null,
+        "source": "pending_nflverse_data",
+        "state": "unavailable",
+        "statement": "Matchup DvP is attempted only when the selected player has enough opponent context.",
+        "used": false
+      },
+      {
+        "fresh_until": null,
+        "kind": "projection",
+        "name": "projections",
+        "observed_at": "2026-01-01T00:00:00.000Z",
+        "source": "yahoo_roster_or_optimizer_projection",
+        "state": "live",
+        "statement": "Projection edge comes from normalized roster projection fields and optimizer math.",
+        "used": true
+      },
+      {
+        "fresh_until": null,
+        "kind": "verified",
+        "name": "roster",
+        "observed_at": "2026-01-01T00:00:00.000Z",
+        "source": "yahoo_roster",
+        "state": "live",
+        "statement": "Roster imported from the connected Yahoo league.",
+        "used": true
+      },
+      {
+        "fresh_until": null,
+        "kind": "limitation",
+        "name": "travel_home_away",
+        "observed_at": null,
+        "source": "pending_schedule_context",
+        "state": "unavailable",
+        "statement": "Home/away and travel context are not decision-critical for this first live Yahoo MVP Move.",
+        "used": false
+      },
+      {
+        "fresh_until": null,
+        "kind": "limitation",
+        "name": "waivers",
+        "observed_at": null,
+        "source": "not_in_scope_for_yahoo_mvp_v1",
+        "state": "unavailable",
+        "statement": "Waiver pool is not used in this first live Yahoo MVP Move.",
+        "used": false
+      },
+      {
+        "fresh_until": null,
+        "kind": "limitation",
+        "name": "weather",
+        "observed_at": null,
+        "source": "weather_not_used",
+        "state": "unavailable",
+        "statement": "Weather is not used in this first live Yahoo MVP Move.",
+        "used": false
+      }
+    ],
+    "capability_contract": "decision-capabilities.v1",
+    "confidence": {
+      "band": null,
+      "drivers": [],
+      "unavailable_reason": [
+        "Yahoo did not supply weekly projections.",
+        "Weather is not used in this first live Yahoo MVP Move.",
+        "Home/away and travel context are not decision-critical for this first live Yahoo MVP Move.",
+        "Kickoff and TV context are not decision-critical for this first live Yahoo MVP Move.",
+        "Matchup DvP is attempted only when the selected player has enough opponent context.",
+        "Waiver pool is not used in this first live Yahoo MVP Move.",
+        "This response uses a deterministic template explanation from optimizer facts. Live Gemma narration runs only when requested via include_signals.llm_reasoning."
+      ]
+    },
+    "confidence_policy": "engine-bands.v1",
+    "contract_version": "omen-decision-brief.v3",
+    "evidence": [
+      {
+        "kind": "inference",
+        "name": "connected_platforms",
+        "source_status": "live",
+        "statement": "0 active platform connection(s) considered.",
+        "used": false
+      },
+      {
+        "kind": "limitation",
+        "name": "game_time_tv",
+        "source_status": "unavailable",
+        "statement": "Kickoff and TV context are not decision-critical for this first live Yahoo MVP Move.",
+        "used": false
+      },
+      {
+        "kind": "limitation",
+        "name": "llm_reasoning",
+        "source_status": "unavailable",
+        "statement": "This response uses a deterministic template explanation from optimizer facts. Live Gemma narration runs only when requested via include_signals.llm_reasoning.",
+        "used": true
+      },
+      {
+        "kind": "limitation",
+        "name": "matchup_dvp",
+        "source_status": "unavailable",
+        "statement": "Matchup DvP is attempted only when the selected player has enough opponent context.",
+        "used": false
+      },
+      {
+        "kind": "projection",
+        "name": "projections",
+        "source_status": "live",
+        "statement": "Projection edge comes from normalized roster projection fields and optimizer math.",
+        "used": true
+      },
+      {
+        "kind": "verified",
+        "name": "roster",
+        "source_status": "live",
+        "statement": "Roster imported from the connected Yahoo league.",
+        "used": true
+      },
+      {
+        "kind": "limitation",
+        "name": "travel_home_away",
+        "source_status": "unavailable",
+        "statement": "Home/away and travel context are not decision-critical for this first live Yahoo MVP Move.",
+        "used": false
+      },
+      {
+        "kind": "limitation",
+        "name": "waivers",
+        "source_status": "unavailable",
+        "statement": "Waiver pool is not used in this first live Yahoo MVP Move.",
+        "used": false
+      },
+      {
+        "kind": "limitation",
+        "name": "weather",
+        "source_status": "unavailable",
+        "statement": "Weather is not used in this first live Yahoo MVP Move.",
+        "used": false
+      }
+    ],
+    "explanation": {
+      "confidence": "Omen has no projection to judge a move against.",
+      "data_used": [
+        "Yahoo roster"
+      ],
+      "risk": "Forcing a marginal lineup change can create avoidable downside.",
+      "summary": "Omen cannot rank a move for this Yahoo league this week.",
+      "why_it_matters": "Yahoo does not give Omen weekly projections, so lineup swaps and trades cannot be scored."
+    },
+    "feature": "omen_mvp_move",
+    "generated_at": "2026-01-01T00:00:00.000Z",
+    "hold": {
+      "best_alternative": null,
+      "considered": [
+        {
+          "detail": "No weekly projections from Yahoo, so no swap could be scored.",
+          "kind": "start_sit",
+          "outcome": "unavailable"
+        },
+        {
+          "detail": "None of your starters is ruled out, so no waiver pickup was needed.",
+          "kind": "waiver_pickup",
+          "outcome": "not_needed"
+        },
+        {
+          "detail": "Yahoo does not give Omen weekly projections, so a trade cannot be weighed.",
+          "kind": "trade_suggestion",
+          "outcome": "unavailable",
+          "reason": "projections_unavailable"
+        }
+      ],
+      "headline": "Hold your lineup this week",
+      "kind": "hold",
+      "projections": {
+        "available": false,
+        "players_total": 3,
+        "players_with_projection": 0
+      },
+      "reasons": [
+        {
+          "code": "projections_unavailable",
+          "text": "Yahoo does not give Omen weekly projections for this league, so Omen cannot rank lineup swaps or trades. Holding is the only call it can stand behind."
+        }
+      ],
+      "summary": "Hold your lineup. Omen weighed waivers and none is worth making this week.",
+      "threshold_points": 0.5
+    },
+    "league": {
+      "id": "1234567",
+      "name": null,
+      "scoring_format": null,
+      "season": 2026,
+      "week": 8
+    },
+    "mode": "live",
+    "platform": {
+      "name": "yahoo",
+      "recovery": null,
+      "status": "connected"
+    },
+    "quiet_inputs": {
+      "injured_starter": null
+    },
+    "recommendation": null,
+    "request_id": "omen_req_FIXTURE",
+    "signals": {
+      "connected_platforms": {
+        "message": "0 active platform connection(s) considered.",
+        "source": "platform_connections",
+        "status": "live",
+        "used": false
+      },
+      "game_time_tv": {
+        "message": "Kickoff and TV context are not decision-critical for this first live Yahoo MVP Move.",
+        "source": "pending_schedule_context",
+        "status": "stub",
+        "used": false
+      },
+      "llm_reasoning": {
+        "message": "This response uses a deterministic template explanation from optimizer facts. Live Gemma narration runs only when requested via include_signals.llm_reasoning.",
+        "source": "template_pending_llm_attempt",
+        "status": "stub",
+        "used": true
+      },
+      "matchup_dvp": {
+        "message": "Matchup DvP is attempted only when the selected player has enough opponent context.",
+        "source": "pending_nflverse_data",
+        "status": "stub",
+        "used": false
+      },
+      "projections": {
+        "message": "Projection edge comes from normalized roster projection fields and optimizer math.",
+        "source": "yahoo_roster_or_optimizer_projection",
+        "status": "live",
+        "used": true
+      },
+      "roster": {
+        "message": "Roster imported from the connected Yahoo league.",
+        "source": "yahoo_roster",
+        "status": "live",
+        "used": true
+      },
+      "travel_home_away": {
+        "message": "Home/away and travel context are not decision-critical for this first live Yahoo MVP Move.",
+        "source": "pending_schedule_context",
+        "status": "stub",
+        "used": false
+      },
+      "waivers": {
+        "message": "Waiver pool is not used in this first live Yahoo MVP Move.",
+        "source": "not_in_scope_for_yahoo_mvp_v1",
+        "status": "unavailable",
+        "used": false
+      },
+      "weather": {
+        "message": "Weather is not used in this first live Yahoo MVP Move.",
+        "source": "weather_not_used",
+        "status": "stub",
+        "used": false
+      }
+    },
+    "state": "empty",
+    "team": {
+      "id": "7",
+      "name": null
+    },
+    "warnings": []
+  }
+}

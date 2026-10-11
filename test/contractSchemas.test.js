@@ -47,6 +47,36 @@ for (const state of contracts.BRIEF_STATES) {
   });
 }
 
+for (const [name, state] of Object.entries(contracts.BRIEF_VARIANTS)) {
+  test(`variant fixture validates and is the state it claims: ${name}`, () => {
+    const { body } = load(name);
+    assert.ok(validate(body), explain());
+    assert.equal(body.state, state);
+    assert.equal(body.call_kind, "hold");
+    assert.equal(body.hold.kind, "hold");
+    assert.ok(body.answered_for, "a live call states which league it answered for");
+  });
+}
+
+test("the hold schema rejects a hold that drops its reasons, and a call_kind outside the known kinds", () => {
+  const good = load("empty_hold").body;
+  const noReasons = clone(good);
+  delete noReasons.hold.reasons;
+  assert.equal(validate(noReasons), false);
+  const badKind = clone(good);
+  badKind.call_kind = "guess";
+  assert.equal(validate(badKind), false);
+  const badSelection = clone(good);
+  badSelection.answered_for.selection = "whatever";
+  assert.equal(validate(badSelection), false);
+});
+
+test("a hold without projections carries no invented delta", () => {
+  const { body } = load("empty_hold_noproj");
+  assert.equal(body.hold.projections.available, false);
+  assert.equal(body.hold.best_alternative, null);
+});
+
 test("every state and recommendation type the SERVER emits is in the schema (universe read from source, not from the schema)", () => {
   // The universe comes from the server's own source. Deriving it from the schema being checked
   // would make the check circular: a state the server emits and the schema forgot could never fail
