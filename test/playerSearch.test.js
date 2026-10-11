@@ -172,3 +172,27 @@ test("searchNflPlayers caps results at ten", async () => {
 
   assert.equal(results.length, 10);
 });
+
+test("resolvePlayerInputs matches a generational suffix the source leaves out, but never guesses", () => {
+  const source = {
+    1: { full_name: "Luther Burden", position: "WR", team: "CHI", active: true, search_rank: 90 },
+    2: { full_name: "Marvin Harrison Jr.", position: "WR", team: "ARI", active: true, search_rank: 5 },
+    3: { full_name: "Marvin Harrison", position: "WR", team: "FA", active: true, search_rank: 400 },
+    4: { full_name: "Michael Pittman", position: "WR", team: "IND", active: true, search_rank: 20 },
+    5: { full_name: "Michael Pittman", position: "RB", team: "FA", active: true, search_rank: 900 },
+  };
+  const [burden, harrison, harrisonBare, wrongPosition, pittmanAnyPosition] = resolvePlayerInputs(source, [
+    { name: "Luther Burden III", position: "WR" },
+    { name: "Marvin Harrison Jr.", position: "WR" },
+    { name: "Marvin Harrison", position: "WR", team: "ARI" },
+    { name: "Luther Burden III", position: "QB" },
+    { name: "Michael Pittman Jr." },
+  ]);
+  assert.equal(burden.status, "resolved");
+  assert.equal(burden.player.name, "Luther Burden");
+  assert.equal(harrison.status, "resolved");
+  assert.equal(harrison.player.name, "Marvin Harrison Jr.");
+  assert.equal(harrisonBare.status, "resolved", "exact name+team still wins when unambiguous");
+  assert.equal(wrongPosition.status, "unresolved", "position remains a hard gate");
+  assert.equal(pittmanAnyPosition.status, "ambiguous", "two candidates are never guessed");
+});
