@@ -103,7 +103,7 @@ Evidence key: **SIM** = seen in the iOS Simulator against production with the fo
 
 | # | Item | Status |
 |---|---|---|
-| 2 | Version bump: `CURRENT_PROJECT_VERSION` is still **7** (since 2026-09-24) | OPEN, needed before the archive (CODE) |
+| 2 | Version bump | NOT NEEDED: founder decided 2026-10-11 that **build 7 is the next release** (hoped for Tuesday 2026-10-13); `CURRENT_PROJECT_VERSION` stays 7. Confirm App Store Connect has no earlier build 7 before archiving |
 | 3 | Connect confirmation names only the first league | OPEN (CODE; no `mobile/` change since Oct 1) |
 | 4 | Command vs League waivers can disagree (route ignores the on-screen league) | OPEN; matched on TTO in the simulator, unverified after a switch (CODE, SIM) |
 | 5 | Trade helper line hidden by tab bar; passkey copy truncated | OPEN (no iOS change) |
@@ -114,7 +114,7 @@ Evidence key: **SIM** = seen in the iOS Simulator against production with the fo
 
 | Finding | Status |
 |---|---|
-| **Omen call is not populated for every team.** It exists only when a lineup swap clears the threshold, a starter is OUT (waiver add), or (Sleeper only) a trade candidate exists. Otherwise the server answers `empty` and the tab says "Nothing to recommend right now". PYE (ESPN) shows it; the sign-in tagline promises "one call a week for every team". Yahoo has no projections, ESPN/Yahoo have no trade path | OPEN, design decision: always return a "hold" call with reasons and "also considered" (see `omen-decision-drivers-v1.md`) |
+| **Omen call is not populated for every team.** Root cause (CODE + SIM): the iPhone sends `POST /api/omen/mvp-move` with **no league** (`DashboardRepository.swift` body is only `contract_version` and `include_signals`). The server supports an optional `context_id` but the app never sends it, so it picks one live connection (Sleeper, then ESPN, then Yahoo, ordered by the persisted selection). The picker is also inconsistent: the app keeps one "active" league per provider (several chips ticked at once), so tapping a league that is already active for its provider commits nothing, and the Omen tab keeps showing the previous call (SIM: tapping Yahoo "Puk Around" left the Sleeper DSI call on screen). Separately a call exists only when a swap clears the threshold, a starter is OUT, or (Sleeper only) a trade candidate exists. **Sweep 2026-10-11 (SIM, 7 of 8 leagues):** call for TTO (ESPN), DarthSlops (Sleeper), Davante's Inferno (Sleeper); "Nothing to recommend" for PYE and HBT (ESPN, lineups already optimal or no edge) and The Gridiron Corps (Yahoo, no projections); Yahoo "Puk Around" could not be selected; Sleeper "Admin / Omen App Data" not checked | OPEN. Fix: send the picked league's connection id as `context_id` on every personalized call (Omen, Start/Sit, waivers, overview); make the picker commit when the league is not the globally selected one; return a "hold" call with reasons instead of "Nothing to recommend"; Yahoo needs a projection source |
 | League tab showed the previous league after a switch (chip TTO, table HBT's) | FIXED in iOS draft #624 (SIM both directions); not merged |
 | A lost directory response leaves the chip on the old league while content is the new one | OPEN (SIM); iOS should fail safe |
 | Reasons list is long and unranked; no "also considered" | OPEN, spec proposed (`omen-decision-drivers-v1.md`) |
@@ -124,6 +124,17 @@ Evidence key: **SIM** = seen in the iOS Simulator against production with the fo
 | `snap_share` blank in Start/Sit | INTENTIONAL (rights review open) |
 | No nflverse "About / Data sources" credit in the app (CC BY 4.0) | OPEN, needs a screen |
 | Cancelled request shows "couldn't reach Omen"; directory fetched twice per switch; screens blank before reload | OPEN (audit list) |
+
+**Trade, and the Omen call as a trade (founder 2026-10-11).** The founder expects Trade to be built into the Omen call and believes there are
+several trade screens. Inventory (CODE, `mobile/ios/OmenIOS/OmenIOS`): `OmenTradeScreen` (front page: manual You send / You receive
+compare), `TradePartnerPicker`, `OmenTradeJourneyScreens` (TradeBuild, three-team builder, TradeRoster, TradeShare), `TradeRosterFlowView`,
+`OmenTradeFindReview` (the swipe "Find a trade" review) and `OmenTradeControls`. Server: `/api/trade/capabilities`, `/roster`, `/find`,
+`/compare` (v2, incl. 3-team `legs`), `/share`, `/saved`; the Omen route builds a trade candidate only for **Sleeper**
+(`buildTradeCandidateForConnection`). Gaps: the Omen tab renders Start/Sit calls only (no trade-kind call and no path from the call into
+Trade), `OmenTradeFindReview` is not reachable from anywhere and its Save is a stub, ESPN and Yahoo roster players needed the new warehouse
+identity fallback (#611, merged) to resolve, trade targets on League are "unavailable" (other managers' rosters not read), and Yahoo has no
+projections. Status: OPEN. Needed: a trade call kind in the Omen contract, wiring from the call to the picker/build/review screens, and the
+founder's decision on where Find a trade lives.
 
 **Other Oct 1 findings with no change since**: "Nothing to recommend" when the engine finds a swap locally (partly explained by the
 threshold design above, not reproduced); contract fixture with a live `football_intelligence` block (unverified);
