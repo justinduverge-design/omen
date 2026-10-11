@@ -32,6 +32,56 @@ founder, or store work.
   confirmation wording, Command/League waiver disagreement, smaller fixes). Store actions are founder-gated.
 - **Done when:** the founder ships the build; each "must fix" item in that file is done or descoped.
 
+### FM-XFP — Omen fantasy metrics v1: expected fantasy points, opportunity, role chart, dynasty outlook
+
+- **Status:** IN_PROGRESS
+- **Claim:** 2026-10-10 Claude — beta slice for the 2026-10-13 beta (spec §3.6): descriptive start/sit lines; deploy needs the founder's yes before Monday evening's freeze
+- **Blocked by:** FOUNDER_APPROVAL — the API deploy of the beta slice; M2 and later phases each need their own yes (production write, deploy)
+- **Priority:** P1
+- **Cost:** large
+- **Do not touch:** `mobile/`; warehouse schema and `rights_basis` (no migration); Supabase schema
+- **Scope:** `Blueprints/specs/football-data/omen-fantasy-metrics-v1.md`. Phase M1 is local only: calculators,
+  lookup-table builder and the backtest report.
+- **Done when (M1):** the backtest report is in `Direction/reviews/` and shows, per position, whether xFP beats
+  the last-3-weeks baseline; the founder has read it before M2 is requested.
+
+### FM-TREND — Omen trend evidence v1: play-type splits, shrinkage, cause / correlation / coincidence
+
+- **Status:** READY
+- **Blocked by:** FOUNDER_APPROVAL — the spec; T2 and T3 each need their own yes (production write, deploy)
+- **Priority:** P1
+- **Cost:** large
+- **Depends on:** `FM-XFP` (the over-expected measure and the role chart)
+- **Do not touch:** `mobile/`; warehouse schema and `rights_basis` (FTN stays on the football-intelligence path)
+- **Scope:** `Blueprints/specs/football-data/omen-trend-evidence-v1.md`. Phase T1 is local only. Catalogue of
+  further stats and scenarios: `Direction/reviews/2026-10-10-fantasy-manager-stats-and-scenarios.md`.
+- **Done when (T1):** the trend backtest report is in `Direction/reviews/` and shows whether "likely cause"
+  trends persist more than "coincidence" trends, and whether matchup fit lowers next-week error; the founder
+  has read it before T2 is requested.
+
+### FM-REGISTRY — Omen stat registry v1: every stat defined once, names, position ratings (Augur)
+
+- **Status:** READY
+- **Blocked by:** FOUNDER_APPROVAL — definitions, and decisions D-NAMES, D-RATING-FAMILY, D-CROWN, D-IDP in the spec
+- **Priority:** P1
+- **Cost:** large (ratings phase R1); the registry itself is a document
+- **Scope:** `Blueprints/specs/football-data/omen-stat-registry-v1.md`. A stat not in the registry is not built;
+  definition changes are new versions logged in `Direction/decision_log.md`.
+- **Done when (R1):** each position rating has its stability, predictive and top/bottom-10 report in
+  `Direction/reviews/`, read by the founder.
+
+### TV-V3 — Trade value v3 ("Crown Odds"): title and playoff odds change, scarcity explicit
+
+- **Status:** READY
+- **Blocked by:** FOUNDER_APPROVAL — the spec; V3 (replacing the live v2 verdict) needs its own yes (deploy)
+- **Priority:** P1
+- **Cost:** large
+- **Do not touch:** the live `/api/trade/compare` verdict until V3 is approved; `mobile/`
+- **Scope:** `Blueprints/specs/football-data/omen-trade-value-v3.md`. V0 (bipartite-matching lineup solver)
+  comes first and has no data dependency.
+- **Done when (V1):** the calibration, provider-comparison and v2-vs-v3 saved-trade reports are in
+  `Direction/reviews/`; the founder has read them before V3 is requested.
+
 ## Needs a decision
 
 - **T2-FindATradeGenerator** — every PR it cited has merged (list in the archive file), but it was never

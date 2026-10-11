@@ -23,6 +23,16 @@
         "statement": "DeVonta Smith projects 15.2 and Chris Olave projects 11 in this league's scoring."
       },
       {
+        "category": "omen_metric",
+        "kind": "observed_context",
+        "statement": "Fated Points (beta): DeVonta Smith's usage was worth 8.5 half-PPR points a game over his last 3 games; he scored 8.5 (Fate Gap +0.0)."
+      },
+      {
+        "category": "omen_metric",
+        "kind": "observed_context",
+        "statement": "Pecking Order (beta): DeVonta Smith is 1st among Philadelphia WRs, with 100% of their Fated Points over the team's last 3 games."
+      },
+      {
         "category": "omen_inference",
         "kind": "inference",
         "statement": "The available data favors DeVonta Smith."

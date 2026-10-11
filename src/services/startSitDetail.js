@@ -17,6 +17,7 @@ const optimizer = require("./optimizer");
 const { usageStatement } = require("./playerUsage");
 const { breakdownEvidence } = require("./projectionBreakdown");
 const { buildEvidenceWhy } = require("./evidenceWhy");
+const { fantasyMetricsEvidence, gameEnvironmentEvidence } = require("./fantasyMetrics/fantasyMetricsLines");
 const { signalNoiseSummary } = require("./signalNoise");
 const { CAPABILITY_CONTRACT } = require("./decisionCapabilities");
 const { attachDecisionReceipt, createDecisionContext } = require("./decisionContext");
@@ -74,7 +75,7 @@ function playerView(player, roster) {
  * §5.2. Each entry names its own kind, so the client can never render a
  * projection or a model inference as a verified fact.
  */
-function buildEvidence({ start, sit, delta, scoringFormat, usage = null, teamSystem = null, breakdowns = null, weeklyUsage = null, signal = false, starterOut = false }) {
+function buildEvidence({ start, sit, delta, scoringFormat, usage = null, teamSystem = null, breakdowns = null, weeklyUsage = null, signal = false, starterOut = false, fantasyMetrics = null }) {
   const evidence = [];
 
   if (scoringFormat) {
@@ -136,6 +137,24 @@ function buildEvidence({ start, sit, delta, scoringFormat, usage = null, teamSys
     const statement = team && !seenTeams.has(team) ? teamSystem?.get?.(team) : null;
     seenTeams.add(team);
     if (statement) evidence.push({ category: "team_system", kind: "observed_context", statement });
+  }
+
+  // Omen's own stats, beta slice (registry FND-02..05, ROL-01, ROL-03, ENV-01/02): descriptive lines
+  // from nflverse play-by-play. No bundle (off season, read failure) means no rows.
+  if (fantasyMetrics?.bundle) {
+    const { bundle, gsisByKey, week } = fantasyMetrics;
+    for (const player of [start, sit]) {
+      evidence.push(...fantasyMetricsEvidence({
+        name: player.name,
+        gsis: gsisByKey?.get?.(player.player_key) || null,
+        position: player.position,
+        team: player.team,
+        beforeWeek: Number(week),
+        scoringFormat,
+        bundle,
+      }));
+    }
+    evidence.push(...gameEnvironmentEvidence({ teams: [start.team, sit.team], week: Number(week), bundle }));
   }
 
   for (const player of [start, sit]) {
@@ -275,6 +294,7 @@ function buildStartSitDetail({
   weeklyUsage = null,
   teamSystem = null,
   breakdowns = null,
+  fantasyMetrics = null,
 } = {}) {
   const context = {
     platform,
@@ -343,7 +363,7 @@ function buildStartSitDetail({
   if (starterOut) why.push(`${sit.name} is unavailable for this week.`);
   if (RISK_STATUSES.has(normalizedStatus(sit.status))) why.push(`${sit.name} carries an unresolved injury designation.`);
 
-  const evidence = buildEvidence({ start, sit, delta, scoringFormat, usage, teamSystem, breakdowns, weeklyUsage, signal: contractVersion === CONTRACT_VERSION_V2, starterOut });
+  const evidence = buildEvidence({ start, sit, delta, scoringFormat, usage, teamSystem, breakdowns, weeklyUsage, signal: contractVersion === CONTRACT_VERSION_V2, starterOut, fantasyMetrics: fantasyMetrics ? { ...fantasyMetrics, week: context.week } : null });
 
   const result = envelope({
     context,
