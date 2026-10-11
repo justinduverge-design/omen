@@ -91,7 +91,7 @@ function createScheduleWriter({ pool, transactionTimeouts } = {}) {
           FROM (
             SELECT COALESCE(s.game_id,g.game_id) AS game_id
             FROM stage_nfl_games s
-            FULL JOIN football.nfl_games g ON g.season=$1 AND g.game_id=s.game_id
+            FULL JOIN (SELECT game_id,week,game_type,away_team_id,home_team_id FROM football.nfl_games WHERE season=$1) g ON g.game_id=s.game_id
             WHERE s.game_id IS NULL OR g.game_id IS NULL
                OR s.week IS DISTINCT FROM g.week OR s.game_type IS DISTINCT FROM g.game_type
                OR s.away_team_id IS DISTINCT FROM g.away_team_id
