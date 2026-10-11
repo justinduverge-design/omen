@@ -194,13 +194,68 @@ struct OmenDecisionEnvelope: Decodable, Equatable {
         let confidence: Confidence?
         let risk: Risk?
         let explanation: Explanation?
+        /// The structured swap on a `trade_suggestion` call. Optional and lenient: absent on older servers
+        /// and on other call kinds, and a malformed block decodes to nil instead of discarding the brief.
+        @LenientDecoded var trade: Trade?
 
         enum CodingKeys: String, CodingKey {
-            case type, title, move, confidence, risk, explanation
+            case type, title, move, confidence, risk, explanation, trade
             case primaryPlayer = "primary_player"
             case comparisonPlayer = "comparison_player"
             case expectedValueDelta = "expected_value_delta"
         }
+    }
+
+    /// `recommendation.trade`: the partner and the players on each side, as the server computed them.
+    /// Each player entry decodes on its own, so one bad entry is dropped rather than failing the block.
+    struct Trade: Decodable, Equatable {
+        struct TradePlayer: Decodable, Equatable {
+            let name: String?
+            let position: String?
+            let playerKey: String?
+
+            enum CodingKeys: String, CodingKey {
+                case name, position
+                case playerKey = "player_key"
+            }
+        }
+
+        let partnerTeamName: String?
+        let partnerTeamID: String?
+        let give: [TradePlayer]
+        let receive: [TradePlayer]
+
+        enum CodingKeys: String, CodingKey {
+            case give, receive
+            case partnerTeamName = "partner_team_name"
+            case partnerTeamID = "partner_team_id"
+        }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            partnerTeamName = try? c.decodeIfPresent(String.self, forKey: .partnerTeamName)
+            // The id is a string on the wire; tolerate a number rather than losing the partner.
+            if let id = try? c.decodeIfPresent(String.self, forKey: .partnerTeamID) {
+                partnerTeamID = id
+            } else if let n = try? c.decodeIfPresent(Int.self, forKey: .partnerTeamID) {
+                partnerTeamID = String(n)
+            } else {
+                partnerTeamID = nil
+            }
+            give = Self.players(c, .give)
+            receive = Self.players(c, .receive)
+        }
+
+        private static func players(_ c: KeyedDecodingContainer<CodingKeys>, _ key: CodingKeys) -> [TradePlayer] {
+            guard var list = try? c.nestedUnkeyedContainer(forKey: key) else { return [] }
+            var out: [TradePlayer] = []
+            while !list.isAtEnd {
+                if let p = try? list.decode(TradePlayer.self) { out.append(p) } else { _ = try? list.decode(Skip.self) }
+            }
+            return out
+        }
+
+        private struct Skip: Decodable {}
     }
 
     /// The server's own user-safe recovery sentence for every non-success state. Rendered
