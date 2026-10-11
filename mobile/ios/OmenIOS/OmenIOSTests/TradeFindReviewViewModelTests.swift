@@ -204,7 +204,7 @@ final class TradeFindReviewViewModelTests: XCTestCase {
         XCTAssertEqual(degraded.degradedShowingLabel, "Showing 5 of 6 teams.")
         XCTAssertEqual(
             degraded.degradedSentence,
-            "ESPN couldn't read Chubb Rock's roster this week — Omen never proposes a trade against a roster it can't see."
+            "Sleeper couldn't read Chubb Rock's roster this week — Omen never proposes a trade against a roster it can't see."
         )
     }
 
