@@ -147,11 +147,33 @@ extension OmenDecisionRepository {
 
 /// One league, named the way `POST /api/omen/mvp-move` accepts it: `league_id` plus `platform`.
 /// The server confirms the league belongs to the account and never falls back to a different one.
-struct OmenCallScope: Equatable {
+struct OmenCallScope: Hashable {
     let platform: String
     let leagueID: String
 
     var requestFields: [String: String] { ["platform": platform, "league_id": leagueID] }
+
+    /// True when `platform`/`leagueID` name the same league as this scope, compared the way the facts can
+    /// legitimately differ rather than byte for byte: platform case, surrounding whitespace, and Yahoo's
+    /// league key (`nfl.l.123` or `461.l.123`) against its bare id (`123`). A real answer must never read as
+    /// "a different league" because of formatting.
+    func names(platform other: String?, leagueID otherID: String?) -> Bool {
+        guard let other, let otherID else { return false }
+        return Self.normalizedPlatform(platform) == Self.normalizedPlatform(other)
+            && Self.normalizedLeagueID(leagueID) == Self.normalizedLeagueID(otherID)
+    }
+
+    static func normalizedPlatform(_ raw: String) -> String {
+        raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
+    static func normalizedLeagueID(_ raw: String) -> String {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        // Yahoo league key: "<game>.l.<league>". Only the league part identifies the league within a game
+        // season, and a bare id carries just that part.
+        if let range = trimmed.range(of: ".l.") { return String(trimmed[range.upperBound...]) }
+        return trimmed
+    }
 }
 
 struct ApiOmenDecisionRepository: OmenDecisionRepository {

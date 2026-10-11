@@ -106,11 +106,18 @@ final class OmenDecisionViewModel: ObservableObject {
         guard userID != SessionManager.demoUserID, let scope, scope != requestedScope else { return }
         if case .loaded(let envelope) = viewState,
            let answered = envelope.answeredFor, answered.matched != false,
-           answered.platform == scope.platform, answered.leagueID == scope.leagueID {
+           scope.names(platform: answered.platform, leagueID: answered.leagueID) {
             requestedScope = scope
             return
         }
         await load(userID: userID, scope: scope)
+    }
+
+    /// Records, synchronously, the league a reload is about to be issued for. A caller that starts the load in
+    /// a concurrent child task calls this first so a picker-change observer running in between sees the load
+    /// as already covering this league and does not issue a second one.
+    func expect(scope: OmenCallScope?) {
+        requestedScope = scope
     }
 
     /// True when the server said which league it answered for and it is not the one asked for. Absent facts
@@ -118,7 +125,7 @@ final class OmenDecisionViewModel: ObservableObject {
     static func answeredForADifferentLeague(_ envelope: OmenDecisionEnvelope, than scope: OmenCallScope?) -> Bool {
         guard let scope, let answered = envelope.answeredFor,
               let platform = answered.platform, let leagueID = answered.leagueID else { return false }
-        return platform != scope.platform || leagueID != scope.leagueID
+        return !scope.names(platform: platform, leagueID: leagueID)
     }
 
     private static let wrongLeagueMessage =
@@ -157,7 +164,7 @@ final class OmenDecisionViewModel: ObservableObject {
                 // picked league is a different one, its detail would describe another team under this call.
                 if let expected = scope ?? envelope.answeredFor?.scope,
                    let platform = detail.platform, let leagueId = detail.leagueId,
-                   platform != expected.platform || leagueId != expected.leagueID {
+                   !expected.names(platform: platform, leagueID: leagueId) {
                     break
                 }
                 startSitDetail = detail

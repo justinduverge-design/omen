@@ -308,7 +308,9 @@ struct CommandCenterView: View {
             // The picker can change the league without this tab's own `.task` running again, and the
             // directory can arrive after the first call went out unscoped. Either way the Omen call must be
             // for the league on screen, never the one before it. A no-op when a reload already covers it.
-            .onChange(of: leagueCarouselViewModel.currentLeagueID) { _, _ in
+            // Keyed on the scope itself, not `currentLeagueID`: an old server that reports no active league leaves
+            // that nil while `activePage` falls back to the resting page, and the tab must still follow.
+            .onChange(of: pickedLeagueScope) { _, _ in
                 Task { await omenDecisionViewModel.loadIfLeagueChanged(userID: userID, scope: pickedLeagueScope) }
             }
             .tabItem { CommandCenterTab.omen.label }
@@ -544,6 +546,7 @@ struct CommandCenterView: View {
     /// team's numbers (§10.3); only the waiting overlaps.
     private func reloadAllAfterContextChange() async {
         let scope = pickedLeagueScope
+        omenDecisionViewModel.expect(scope: scope)
         async let command: Void = commandCenterViewModel.load(userID: userID, scope: scope)
         async let league: Void = loadLeagueForSelectedContext()
         async let omen: Void = omenDecisionViewModel.load(userID: userID, scope: scope)

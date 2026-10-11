@@ -1211,3 +1211,156 @@ final class OmenCallLeagueScopeTests: XCTestCase {
         guard case .success = viewModel.briefState else { return XCTFail("the call itself still renders") }
     }
 }
+
+// MARK: - Stale responses, and league identity formatting
+
+/// A repository that holds each request for a held league until the test releases it, so ordering is decided
+/// by the test and not by timing.
+private final class GatedDecisionRepository: OmenDecisionRepository {
+    private var gates: [OmenCallScope: [CheckedContinuation<Void, Never>]] = [:]
+    private(set) var started: [OmenCallScope?] = []
+    private let respond: (OmenCallScope?) -> OmenDecisionEnvelope
+    var holdScopes: Set<OmenCallScope> = []
+
+    init(respond: @escaping (OmenCallScope?) -> OmenDecisionEnvelope) { self.respond = respond }
+
+    func fetchDecision(accessToken: String, scope: OmenCallScope?) async -> Result<OmenDecisionEnvelope, OmenApiError> {
+        started.append(scope)
+        if let scope, holdScopes.contains(scope) {
+            await withCheckedContinuation { gates[scope, default: []].append($0) }
+        }
+        return .success(respond(scope))
+    }
+
+    func release(_ scope: OmenCallScope) {
+        let waiting = gates.removeValue(forKey: scope) ?? []
+        holdScopes.remove(scope)
+        waiting.forEach { $0.resume() }
+    }
+
+    func waitingCount(_ scope: OmenCallScope) -> Int { (gates[scope] ?? []).count }
+}
+
+@MainActor
+final class OmenDecisionStaleResponseTests: XCTestCase {
+    private let a = OmenCallScope(platform: "espn", leagueID: "1")
+    private let b = OmenCallScope(platform: "sleeper", leagueID: "2")
+
+    private func sessions() -> SessionManager {
+        SessionManager(
+            store: InMemorySecureSessionStore(initial: Session(userID: "u", accessToken: "t", refreshToken: "r", expiresAtEpochSeconds: 2_000)),
+            nowEpochSeconds: { 1_000 }
+        )
+    }
+
+    /// A call whose headline names the league it is for, so a test can tell whose call is on screen.
+    private func call(_ scope: OmenCallScope?, type: String = "waiver_pickup") -> OmenDecisionEnvelope {
+        let s = scope ?? OmenCallScope(platform: "espn", leagueID: "1")
+        let json = """
+        {"state":"success","mode":"live","recommendation":{"type":"\(type)","title":"Call for \(s.leagueID)","move":"Move."},
+         "answered_for":{"platform":"\(s.platform)","league_id":"\(s.leagueID)","matched":true}}
+        """
+        return try! JSONDecoder().decode(OmenDecisionEnvelope.self, from: Data(json.utf8))
+    }
+
+    private func verdict(_ vm: OmenDecisionViewModel) -> String? {
+        if case .success(let payload) = vm.briefState { return payload.verdict }
+        return nil
+    }
+
+    private func waitUntil(_ condition: @escaping () -> Bool) async {
+        for _ in 0..<400 where !condition() { try? await Task.sleep(nanoseconds: 5_000_000) }
+    }
+
+    func testALateAnswerForTheLeagueJustLeftNeverReplacesTheCurrentOne() async throws {
+        let repo = GatedDecisionRepository(respond: { self.call($0) })
+        repo.holdScopes = [a]
+        let vm = OmenDecisionViewModel(repository: repo, sessionManager: sessions())
+
+        let slowA = Task { await vm.load(userID: "u", scope: a) }
+        await waitUntil { repo.waitingCount(self.a) == 1 }
+        await vm.load(userID: "u", scope: b)               // B runs to completion while A is still out
+        XCTAssertEqual(verdict(vm), "Call for 2")
+
+        repo.release(a)
+        await slowA.value
+        XCTAssertEqual(verdict(vm), "Call for 2", "A's late answer must be dropped")
+        XCTAssertEqual(vm.requestedScope, b)
+    }
+
+    func testAThenBThenAKeepsOnlyTheLastRequestsAnswer() async throws {
+        let repo = GatedDecisionRepository(respond: { self.call($0) })
+        repo.holdScopes = [a]
+        let vm = OmenDecisionViewModel(repository: repo, sessionManager: sessions())
+
+        let firstA = Task { await vm.load(userID: "u", scope: a) }
+        await waitUntil { repo.waitingCount(self.a) == 1 }
+        await vm.load(userID: "u", scope: b)
+
+        let secondA = Task { await vm.load(userID: "u", scope: a) }
+        await waitUntil { repo.waitingCount(self.a) == 2 }
+
+        repo.release(a)                                     // releases both A requests
+        await firstA.value
+        await secondA.value
+        XCTAssertEqual(verdict(vm), "Call for 1")
+        XCTAssertEqual(vm.requestedScope, a)
+
+        await vm.load(userID: "u", scope: b)
+        XCTAssertEqual(verdict(vm), "Call for 2", "and B is not clobbered by anything left in flight")
+    }
+
+    func testALateStartSitDetailFromADroppedLoadIsNotApplied() async throws {
+        final class GatedDetail: StartSitDetailRepository {
+            var cont: CheckedContinuation<Void, Never>?
+            var waiting: Bool { cont != nil }
+            func fetchDetail(accessToken: String, slot: String?) async -> Result<StartSitDetail, OmenApiError> {
+                await withCheckedContinuation { cont = $0 }
+                return .success(try! JSONDecoder().decode(StartSitDetail.self, from: Data("""
+                {"state":"clear_decision","platform":"espn","league_id":"1","why":[],"what_could_change_this":[],"evidence":[],"alternatives":[],"capabilities":[]}
+                """.utf8)))
+            }
+            func release() { cont?.resume(); cont = nil }
+        }
+        let detail = GatedDetail()
+        let repo = GatedDecisionRepository(respond: { self.call($0, type: $0 == self.a ? "start_sit" : "waiver_pickup") })
+        let vm = OmenDecisionViewModel(repository: repo, startSitRepository: detail, sessionManager: sessions())
+
+        let loadA = Task { await vm.load(userID: "u", scope: a) }      // A is a start_sit: its detail read suspends
+        await waitUntil { detail.waiting }
+        await vm.load(userID: "u", scope: b)                            // user moved on
+        XCTAssertNil(vm.startSitDetail)
+
+        detail.release()
+        await loadA.value
+        XCTAssertNil(vm.startSitDetail, "a detail read that outlived its load must not attach to B's call")
+        XCTAssertEqual(verdict(vm), "Call for 2")
+    }
+}
+
+@MainActor
+final class OmenCallScopeIdentityTests: XCTestCase {
+    func testPlatformCaseAndWhitespaceDoNotMakeADifferentLeague() {
+        let scope = OmenCallScope(platform: "espn", leagueID: "13338821")
+        XCTAssertTrue(scope.names(platform: "ESPN", leagueID: " 13338821 "))
+    }
+
+    func testYahooLeagueKeyMatchesItsBareIdBothWays() {
+        XCTAssertTrue(OmenCallScope(platform: "yahoo", leagueID: "nfl.l.123456").names(platform: "yahoo", leagueID: "123456"))
+        XCTAssertTrue(OmenCallScope(platform: "yahoo", leagueID: "123456").names(platform: "yahoo", leagueID: "461.l.123456"))
+    }
+
+    func testDifferentLeaguesStillDiffer() {
+        let scope = OmenCallScope(platform: "yahoo", leagueID: "nfl.l.123456")
+        XCTAssertFalse(scope.names(platform: "yahoo", leagueID: "nfl.l.654321"))
+        XCTAssertFalse(scope.names(platform: "sleeper", leagueID: "123456"))
+        XCTAssertFalse(scope.names(platform: nil, leagueID: "123456"))
+    }
+
+    func testANumericLeagueIdInTheAnswerIsNotAMismatch() throws {
+        let envelope = try JSONDecoder().decode(OmenDecisionEnvelope.self, from: Data(
+            #"{"state":"empty","mode":"live","answered_for":{"platform":"ESPN","league_id":13338821,"matched":true}}"#.utf8))
+        XCTAssertFalse(OmenDecisionViewModel.answeredForADifferentLeague(
+            envelope, than: OmenCallScope(platform: "espn", leagueID: "13338821")))
+    }
+}

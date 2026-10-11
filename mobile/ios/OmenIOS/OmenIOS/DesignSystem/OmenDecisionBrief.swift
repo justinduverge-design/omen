@@ -244,17 +244,21 @@ struct OmenDecisionBrief<Feedback: View>: View {
                 Text(hold.headline)
                     .omenTextStyle(OmenTypography.h2)
                     .foregroundStyle(OmenColor.textPrimary)
+                    .accessibilityAddTraits(.isHeader)
                 if let summary = hold.summary {
                     Text(summary)
                         .omenTextStyle(OmenTypography.body)
                         .foregroundStyle(OmenColor.textPrimary)
                 }
             }
+            // Badge, headline and summary read as one statement: "Hold. Hold your lineup this week. ..."
+            .accessibilityElement(children: .combine)
             if !hold.reasons.isEmpty {
                 VStack(alignment: .leading, spacing: OmenSpacing.step8) {
                     Text("Why, most decisive first")
                         .omenTextStyle(OmenTypography.label)
                         .foregroundStyle(OmenColor.textSecondary)
+                        .accessibilityAddTraits(.isHeader)
                     ForEach(hold.reasons) { reason in
                         HStack(alignment: .firstTextBaseline, spacing: OmenSpacing.step8) {
                             Text("\(reason.id + 1)")
@@ -273,6 +277,7 @@ struct OmenDecisionBrief<Feedback: View>: View {
                     Text("Best alternative")
                         .omenTextStyle(OmenTypography.label)
                         .foregroundStyle(OmenColor.textSecondary)
+                        .accessibilityAddTraits(.isHeader)
                     Text(alternative.title)
                         .omenTextStyle(OmenTypography.name)
                         .foregroundStyle(OmenColor.textPrimary)
@@ -294,6 +299,7 @@ struct OmenDecisionBrief<Feedback: View>: View {
                     Text("Also weighed")
                         .omenTextStyle(OmenTypography.label)
                         .foregroundStyle(OmenColor.textSecondary)
+                        .accessibilityAddTraits(.isHeader)
                     ForEach(hold.considered) { item in
                         VStack(alignment: .leading, spacing: OmenSpacing.step4) {
                             Text(item.kind)
