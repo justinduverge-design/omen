@@ -45,13 +45,35 @@ function namesColumn(error, column) {
   return new RegExp(`column [^ ]*\\b${column}\\b|'${column}' column`, "i").test(message);
 }
 
+// Optional columns the database has told us are absent. Schema is not per-user, so this is
+// safe to share across requests; it expires so a migration that adds the column is picked up.
+const ABSENT_COLUMN_TTL_MS = 10 * 60 * 1000;
+const absentColumns = new Map();
+
+function resetAbsentColumns() {
+  absentColumns.clear();
+}
+
+function isKnownAbsent(column, now) {
+  const at = absentColumns.get(column);
+  if (at == null) return false;
+  if (now - at >= ABSENT_COLUMN_TTL_MS) {
+    absentColumns.delete(column);
+    return false;
+  }
+  return true;
+}
+
 async function selectTolerantly(columns, optional, run) {
-  let selected = [...columns];
+  const startedAt = Date.now();
+  // Start without the columns already known to be absent: no failing query per request.
+  let selected = columns.filter((column) => !(optional.includes(column) && isKnownAbsent(column, startedAt)));
   for (;;) {
     const result = await run(selected.join(","));
     if (!result.error || !isMissingColumnError(result.error)) return result;
     const absent = selected.find((column) => optional.includes(column) && namesColumn(result.error, column));
     if (!absent) return result;
+    absentColumns.set(absent, Date.now());
     selected = selected.filter((column) => column !== absent);
   }
 }
@@ -748,3 +770,5 @@ module.exports.attachLedgerDecisionReceipt = attachLedgerDecisionReceipt;
 module.exports.hasExactScoringOutcome = hasExactScoringOutcome;
 module.exports.hasLegacyEstimatedOutcome = hasLegacyEstimatedOutcome;
 module.exports.scoringOutcomeStatus = scoringOutcomeStatus;
+module.exports.selectTolerantly = selectTolerantly;
+module.exports.resetAbsentColumns = resetAbsentColumns;

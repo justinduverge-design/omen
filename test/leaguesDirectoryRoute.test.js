@@ -1186,3 +1186,35 @@ test("GET /api/leagues: a connection that needs reconnecting is never cached", a
     responseCache.setStoreForTests(undefined);
   }
 });
+
+test("platform groups are read concurrently, and a failing platform does not fail the others", async () => {
+  let releaseSleeper;
+  const sleeperGate = new Promise((resolve) => { releaseSleeper = resolve; });
+  let yahooStartedWhileSleeperPending = false;
+  const app = buildApp({
+    supabase: { rows: [SLEEPER_ROW, ESPN_ROW, YAHOO_ROW], missingSelectionColumn: false },
+    sleeperAdapter: defaultSleeperAdapter({
+      fetchSleeperLeagues: async () => {
+        // Only settles once Yahoo has started; a serial loop would deadlock here.
+        await Promise.race([sleeperGate, new Promise((resolve) => setTimeout(resolve, 1500))]);
+        throw new Error("sleeper 503");
+      },
+    }),
+    yahooClient: {
+      getUserLeagues: async () => [],
+      getUserLeaguesWithTeams: async () => {
+        yahooStartedWhileSleeperPending = true;
+        releaseSleeper();
+        return [{ league_id: "449.l.1", name: "Work League", season: 2026, team_id: "7", team_name: "Desk Jockeys" }];
+      },
+    },
+  });
+  const { status, body } = await request(app);
+
+  assert.equal(status, 200);
+  assert.equal(yahooStartedWhileSleeperPending, true);
+  assert.deepEqual(body.platforms.map((p) => p.platform).sort(), ["espn", "sleeper", "yahoo"]);
+  assert.equal(body.platforms.find((p) => p.platform === "sleeper").discovery, "unavailable");
+  assert.equal(body.platforms.find((p) => p.platform === "yahoo").leagues.length, 1);
+  assert.equal(body.platforms.find((p) => p.platform === "espn").leagues.length, 1);
+});
