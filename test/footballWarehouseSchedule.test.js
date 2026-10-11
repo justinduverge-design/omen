@@ -25,7 +25,7 @@ test("the daily ingest runs the release-pinned image, never recreates the databa
   const service = fs.readFileSync(path.join(DIR, "omen-warehouse-ingest.service"), "utf8");
   assert.match(service, /OnFailure=omen-warehouse-alert@%n\.service/);
   const timer = fs.readFileSync(path.join(DIR, "omen-warehouse-ingest.timer"), "utf8");
-  assert.match(timer, /OnCalendar=\*-\*-\* 11:15:00 UTC/);
+  assert.match(timer, /OnCalendar=\*-\*-\* 07:15:00 America\/New_York/);
   assert.match(timer, /Persistent=true/);
 });
 
