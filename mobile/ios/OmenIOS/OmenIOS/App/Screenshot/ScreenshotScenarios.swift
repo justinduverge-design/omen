@@ -64,6 +64,11 @@ enum ScreenshotScenarios {
         // Find a trade is the Trade tab's front door (the front page above carries it); these two
         // are the swipe review it opens, on fixtures: a real-shaped batch, and the honest
         // unavailable state for a provider that gives Omen no projections.
+        // The offer Omen's own trade call filled in ("Review this trade" on the Omen tab).
+        "trade.prefilled": ScreenshotScenario(
+            label: "Trade — offer filled in from Omen's trade call",
+            content: { AnyView(FauxShell(scenarioKey: "trade.prefilled", initialTab: .trade)) }
+        ),
         "trade.find-review": ScreenshotScenario(
             label: "Trade — Find a trade, swipe review",
             content: { AnyView(FindReviewScenarioHost(unavailableReason: nil)) }
@@ -99,6 +104,10 @@ enum ScreenshotScenarios {
         "omen.hold-no-projections": ScreenshotScenario(
             label: "Omen — Yahoo league with no projections: cannot rank a move",
             content: { AnyView(FauxShell(scenarioKey: "omen.hold-no-projections", initialTab: .omen)) }
+        ),
+        "omen.trade-call": ScreenshotScenario(
+            label: "Omen — trade call: who you send, who you get, partner, Review this trade",
+            content: { AnyView(FauxShell(scenarioKey: "omen.trade-call", initialTab: .omen)) }
         ),
         "omen.disconnected": ScreenshotScenario(
             label: "Omen — real user, disconnected",
@@ -1110,7 +1119,9 @@ private struct FauxShell: View {
                         providerName: "ESPN",
                         onMakeMove: {},
                         onDecline: {},
-                        onOpenFullArgument: {}
+                        onOpenFullArgument: {},
+                        onReviewTrade: { _ in },
+                        onFindOtherTrades: {}
                     )
                 }
             }
@@ -1126,7 +1137,12 @@ private struct FauxShell: View {
                 if let tradeContentOverride {
                     tradeContentOverride
                 } else {
-                    OmenTradeScreen(state: tradeState, offer: tradeOffer, onFindTrade: {})
+                    OmenTradeScreen(
+                        state: tradeState,
+                        offer: tradeOffer,
+                        onFindTrade: {},
+                        prefill: scenarioKey == "trade.prefilled" ? Self.prefilledTrade : nil
+                    )
                 }
             }
             .tabItem { CommandCenterTab.trade.label }
@@ -1183,11 +1199,26 @@ private struct FauxShell: View {
 
     private var tradeState: TradeViewModel.ViewState {
         guard let result = Self.decodeTrade(Self.tradeVerdictJSON) else { return .failed(.decode) }
-        return scenarioKey == "trade.empty" ? .idle : .loaded(result)
+        return (scenarioKey == "trade.empty" || scenarioKey == "trade.prefilled") ? .idle : .loaded(result)
+    }
+
+    /// What `TradeViewModel.applyPrefill` records for the `omen.trade-call` fixture, so the two screens in the
+    /// journey show the same deal.
+    private static var prefilledTrade: TradeViewModel.Prefill {
+        TradeViewModel.Prefill(
+            giveName: "Sample WR1", receiveName: "Sample RB1", partnerName: "Sample Rivals",
+            receivePlayerKey: "sample-rb1", platform: "espn"
+        )
     }
 
     private var tradeOffer: TradeOffer {
-        scenarioKey == "trade.empty"
+        if scenarioKey == "trade.prefilled" {
+            return TradeOffer(
+                send: [TradePlayer(name: "Sample WR1", position: "WR", team: "Sample Team", playerKey: "sample-wr1")],
+                receive: [TradePlayer(name: "Sample RB1", position: "RB", team: "Sample Team", playerKey: "sample-rb1")]
+            )
+        }
+        return scenarioKey == "trade.empty"
             ? TradeOffer()
             : TradeOffer(
                 send: [TradePlayer(name: "A.J. Brown", position: "WR", team: "PHI")],
@@ -1250,8 +1281,42 @@ private struct FauxShell: View {
         case "omen.degraded": return OmenDecisionFixtures.degraded
         case "omen.hold": return OmenHoldScreenshotFixtures.hold
         case "omen.hold-no-projections": return OmenHoldScreenshotFixtures.noProjections
+        case "omen.trade-call": return OmenTradeCallScreenshotFixtures.espnTrade
         default: return OmenDecisionFixtures.realDisconnected
         }
+    }
+}
+
+/// A `trade_suggestion` envelope shaped like `mapTradeSuggestionToMvpMove` in `src/services/omen.js` (ESPN), decoded
+/// through the production type so a capture fails loudly if the client and the route drift. Generic names only
+/// (see `OmenDecisionFixtures`).
+private enum OmenTradeCallScreenshotFixtures {
+    static var espnTrade: OmenDecisionBriefState {
+        let json = """
+        {"contract_version":"omen-decision-brief.v3","state":"success","mode":"live","call_kind":"trade_suggestion",
+         "answered_for":{"platform":"espn","league_id":"fixture-league","matched":true,"selection":"requested"},
+         "signals":{"trade_rosters":{"status":"live","source":"espn_league_rosters",
+           "message":"Candidate trade used the other ESPN rosters in this league, read with your connected account."}},
+         "recommendation":{"id":"live_omen_trade_sample-wr1_sample-rb1","type":"trade_suggestion",
+           "title":"Offer Sample WR1 for Sample RB1",
+           "move":"Offer Sample WR1 to Sample Rivals for Sample RB1.",
+           "primary_player":{"id":"sample-rb1","name":"Sample RB1","position":"RB","team":"Sample Team"},
+           "comparison_player":{"id":"sample-wr1","name":"Sample WR1","position":"WR","team":"Sample Team"},
+           "expected_value_delta":{"points":3.1,"label":"meaningful"},
+           "confidence":{"score":62,"band":"leaning","label":"Leaning"},
+           "risk":{"level":"medium","reasons":[
+             "The other lineup improves by +1.4 as well, but that does not predict acceptance.",
+             "This is a one-for-one, projection-backed candidate; packages, draft picks, and future weeks are not modeled."]},
+           "explanation":{
+             "summary":"Your best live trade candidate is Sample WR1 for Sample RB1.",
+             "why_it_matters":"The swap adds +3.1 to your optimal weekly lineup while also improving Sample Rivals's lineup.",
+             "risk":"A fair projected lineup gain is not a guarantee that the other manager will accept the offer.",
+             "confidence":"Leaning. The roster and projection inputs are live, while acceptance behavior is not modeled."}}}
+        """
+        guard let envelope = try? JSONDecoder().decode(OmenDecisionEnvelope.self, from: Data(json.utf8)) else {
+            return .error("Trade call fixture failed to decode.", retry: nil)
+        }
+        return envelope.briefState()
     }
 }
 

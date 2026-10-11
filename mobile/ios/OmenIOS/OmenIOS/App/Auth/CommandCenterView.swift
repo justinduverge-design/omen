@@ -297,7 +297,9 @@ struct CommandCenterView: View {
                 OmenDecisionScreen(
                     state: omenDecisionViewModel.briefState(visibleScope: pickedLeagueScope),
                     startSitDetail: omenDecisionViewModel.startSitDetail,
-                    onRetryStartSit: { Task { await omenDecisionViewModel.load(userID: userID, scope: pickedLeagueScope) } }
+                    onRetryStartSit: { Task { await omenDecisionViewModel.load(userID: userID, scope: pickedLeagueScope) } },
+                    onReviewTrade: { reviewTradeCall($0) },
+                    onFindOtherTrades: { findOtherTrades() }
                 )
             }
             .task {
@@ -359,7 +361,8 @@ struct CommandCenterView: View {
                     onCompare: { Task { await tradeViewModel.compare(userID: userID) } },
                     onBrowseRoster: { showTradeRosterSheet = true },
                     capabilities: tradeViewModel.capabilities,
-                    onFindTrade: { showTradeFindSheet = true }
+                    onFindTrade: { showTradeFindSheet = true },
+                    prefill: tradeViewModel.prefill
                 )
                 .task { await tradeViewModel.loadCapabilities() }
                 }
@@ -370,24 +373,6 @@ struct CommandCenterView: View {
             .onChange(of: leagueViewModel.viewState) { _, newValue in
                 guard case .loaded(let overview) = newValue else { return }
                 tradeViewModel.useLeague(platform: overview.platform, leagueId: overview.leagueId)
-            }
-            .sheet(isPresented: $showTradeFindSheet) {
-                // The league is the one the League destination is showing (the same read Trade
-                // personalizes against); the team comes from the league directory.
-                TradeFindFlowView(
-                    directoryRepository: leagueDirectoryRepository,
-                    sessionManager: sessionManager,
-                    apiBaseURL: environment.apiBaseURL,
-                    userID: userID,
-                    platform: tradeViewModel.offer.leagueContext?.platform,
-                    leagueId: tradeViewModel.offer.leagueContext?.leagueId,
-                    fallbackTeamId: loadedOverviewTeamId,
-                    onOpenAccount: {
-                        showTradeFindSheet = false
-                        showAccountSheet = true
-                    },
-                    onDismiss: { showTradeFindSheet = false }
-                )
             }
             .sheet(isPresented: $showTradeRosterSheet) {
                 TradeRosterFlowView(
@@ -456,6 +441,26 @@ struct CommandCenterView: View {
         // screen used the Omen accent — found on device 2026-09-01. Android's NavigationBar
         // already tinted correctly; only iOS had drifted.
         .tint(OmenColor.accent)
+        // Find a trade is opened from the Trade tab and from an Omen trade call, so its sheet hangs off the
+        // tab view rather than off the Trade tab's content, which may not exist yet when the call opens it.
+        .sheet(isPresented: $showTradeFindSheet) {
+            // The league is the one the picker says is on screen (the Omen tab's call was made for it); it falls
+            // back to the League destination's read. The team comes from the league directory.
+            TradeFindFlowView(
+                directoryRepository: leagueDirectoryRepository,
+                sessionManager: sessionManager,
+                apiBaseURL: environment.apiBaseURL,
+                userID: userID,
+                platform: pickedLeagueScope?.platform ?? tradeViewModel.offer.leagueContext?.platform,
+                leagueId: pickedLeagueScope?.leagueID ?? tradeViewModel.offer.leagueContext?.leagueId,
+                fallbackTeamId: loadedOverviewTeamId,
+                onOpenAccount: {
+                    showTradeFindSheet = false
+                    showAccountSheet = true
+                },
+                onDismiss: { showTradeFindSheet = false }
+            )
+        }
         .sheet(isPresented: $showConnectSheet) {
             NavigationStack {
                 ConnectView(
@@ -550,6 +555,22 @@ struct CommandCenterView: View {
         async let league: Void = loadLeagueForSelectedContext()
         async let omen: Void = omenDecisionViewModel.load(userID: userID, scope: scope)
         _ = await (command, league, omen)
+    }
+
+    /// "Review this trade" on the Omen tab: the Trade tab opens with the call's swap filled in, in the league
+    /// the call was made for, and Omen checks it. The call's own league wins; the picker fills in when the
+    /// server named none.
+    private func reviewTradeCall(_ call: OmenTradeCall) {
+        var call = call
+        if call.scope == nil { call.scope = pickedLeagueScope }
+        selectedTab = .trade
+        Task { await tradeViewModel.review(call, userID: userID) }
+    }
+
+    /// "Find other trades" on the Omen tab: the Trade tab, with Find a trade open over it.
+    private func findOtherTrades() {
+        selectedTab = .trade
+        showTradeFindSheet = true
     }
 
     /// The league the app is on, named for personalized requests. Nil until the directory has loaded, in
@@ -648,6 +669,11 @@ struct OmenDecisionScreen: View {
     /// E005–E012. Absent when the caller does not know the context; the bar is then not drawn
     /// at all rather than drawn empty.
     var context: OmenFirstCallContext?
+    /// "Review this trade": fills the Trade screen with this call's swap and checks it. Only offered for a trade
+    /// call that can be reviewed (never a Yahoo league: no projections). Absent means the action is not drawn.
+    var onReviewTrade: ((OmenTradeCall) -> Void)?
+    /// "Find other trades": opens Find a trade. Same gating as `onReviewTrade`.
+    var onFindOtherTrades: (() -> Void)?
     @State private var showingFullArgument = false
 
     var body: some View {
@@ -675,7 +701,11 @@ struct OmenDecisionScreen: View {
                 header
                 scopeLine
                 if case .success(let payload) = state {
-                    callCard(payload)
+                    if let tradeCall = payload.tradeCall {
+                        tradeCallCard(payload, tradeCall)
+                    } else {
+                        callCard(payload)
+                    }
                     // Blocks 5-7, `omencall-evidence-contract-v1`. Three labelled groups rather
                     // than one flat list: the capability contract's classes ARE the lesson.
                     capabilityGroups(payload)
@@ -990,9 +1020,64 @@ struct OmenDecisionScreen: View {
         }
     }
 
+    /// A trade call, laid out as a trade: the verdict sentence, who goes and who comes, why both lineups
+    /// improve, the band and risk, then the two actions. The actions sit here, above the evidence, because
+    /// "review it" is the next step and should not need a scroll to find.
+    private func tradeCallCard(_ payload: OmenDecisionBriefPayload, _ call: OmenTradeCall) -> some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step12) {
+            Text("Trade")
+                .omenTextStyle(OmenTypography.micro)
+                .foregroundStyle(OmenColor.textTertiary)
+            Text(payload.verdict)
+                .omenTextStyle(OmenTypography.call)
+                .foregroundStyle(OmenColor.textPrimary)
+            OmenTradeCallSwap(call: call)
+            // The band is a rule and a word, never a number and never a meter.
+            HStack(spacing: OmenSpacing.step14) {
+                if let band = payload.confidenceBand {
+                    OmenConfidenceBandLabel(band: band)
+                }
+                OmenRiskLabel(level: payload.risk, reason: payload.riskReasons.first)
+                Spacer(minLength: 0)
+            }
+            if !payload.confidenceUnavailableReason.isEmpty, payload.confidenceBand == nil {
+                ForEach(payload.confidenceUnavailableReason, id: \.self) { reason in
+                    Text(reason)
+                        .omenTextStyle(OmenTypography.bodySmall)
+                        .foregroundStyle(OmenColor.textSecondary)
+                }
+            }
+            tradeActions(call)
+            OmenTradeCallWhy(call: call, impact: payload.impact, riskReasons: payload.riskReasons)
+        }
+    }
+
+    @ViewBuilder
+    private func tradeActions(_ call: OmenTradeCall) -> some View {
+        if call.canReview {
+            VStack(spacing: OmenSpacing.step8) {
+                if let onReviewTrade {
+                    OmenButton(title: "Review this trade", action: { onReviewTrade(call) }, variant: .primary, size: .lg)
+                        .accessibilityHint("Opens the Trade tab with this swap filled in and checks it against your league.")
+                        .accessibilityIdentifier("omen-trade-review")
+                }
+                if let onFindOtherTrades {
+                    OmenButton(title: "Find other trades", action: onFindOtherTrades, variant: .secondary, size: .lg)
+                        .accessibilityHint("Opens Find a trade, where Omen looks through every other team in your league.")
+                        .accessibilityIdentifier("omen-trade-find-others")
+                }
+            }
+        } else {
+            Text("Omen can't review trades for this league yet, so there is no trade to open.")
+                .omenTextStyle(OmenTypography.bodySmall)
+                .foregroundStyle(OmenColor.textSecondary)
+        }
+    }
+
     private func actions(_ payload: OmenDecisionBriefPayload) -> some View {
         VStack(spacing: OmenSpacing.step8) {
-            if let providerName, let onMakeMove {
+            // A trade call is handed over through "Review this trade"; "make this move" is a lineup action.
+            if payload.tradeCall == nil, let providerName, let onMakeMove {
                 // `submission: handoff_only`. This never claims the offer was sent — it hands the
                 // user to the provider, which is the only thing Omen can honestly promise.
                 OmenButton(title: "Make this move in \(providerName)", action: onMakeMove, variant: .primary, size: .lg)

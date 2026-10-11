@@ -223,6 +223,8 @@ struct OmenDecisionEnvelope: Decodable, Equatable {
     }
 
     struct Player: Decodable, Equatable {
+        /// The provider's player key. Carried so a trade call can hand Compare the same ids the server used.
+        let id: String?
         let name: String?
         let position: String?
         let team: String?
@@ -536,7 +538,8 @@ extension OmenDecisionEnvelope {
             metrics: Self.metrics(from: recommendation),
             signals: Self.signalItems(capabilities: capabilities, legacySignals: signals),
             alternatives: Self.alternatives(from: recommendation),
-            footballIntelligence: Self.footballIntelligenceContext(footballIntelligence)
+            footballIntelligence: Self.footballIntelligenceContext(footballIntelligence),
+            tradeCall: tradeCall()
         )
     }
 

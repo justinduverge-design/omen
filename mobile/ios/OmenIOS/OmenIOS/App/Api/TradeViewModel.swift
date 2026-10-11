@@ -71,7 +71,8 @@ final class TradeViewModel: ObservableObject {
         ) {
         case .success(let response):
             rosterBrowseState = .loaded(response)
-            selectedPartnerTeamID = response.teams.first?.id
+            // Omen's own trade call names who it would deal with; open on that team, not the first one.
+            selectedPartnerTeamID = Self.partnerTeamID(in: response, for: prefill) ?? response.teams.first?.id
         case .failure(let error):
             if error == .unauthorized { sessionManager.onRefreshFailed() }
             rosterBrowseState = .failed(error)
@@ -80,6 +81,75 @@ final class TradeViewModel: ObservableObject {
 
     func selectPartnerTeam(_ id: String) {
         selectedPartnerTeamID = id
+    }
+
+    // MARK: - Omen's trade call -> Trade (prefill)
+
+    /// What the Trade screens know about the Omen call that put the offer here. Cleared the moment the offer is
+    /// edited: after that it is the user's own offer, and the screen must stop calling it Omen's.
+    struct Prefill: Equatable {
+        let giveName: String
+        let receiveName: String
+        /// The team named in the call, when the server's sentence named one.
+        let partnerName: String?
+        /// The player you get; the team that holds him on the roster read is the partner.
+        let receivePlayerKey: String?
+        let platform: String?
+    }
+
+    @Published private(set) var prefill: Prefill?
+
+    /// Replaces the offer with the one Omen's call made: the player you send, the player you get, in the league
+    /// the call was made for. Everything built on the previous offer (a verdict, a roster browse, a three-team
+    /// build) is dropped, because none of it is about this deal. Does nothing for a call that cannot be reviewed.
+    func applyPrefill(from call: OmenTradeCall) {
+        guard call.canReview else { return }
+        searchTask?.cancel()
+        offer.send = [call.give.tradePlayer]
+        offer.receive = [call.receive.tradePlayer]
+        if let scope = call.scope { useLeague(platform: scope.platform, leagueId: scope.leagueID) }
+        clearSuggestions()
+        viewState = .idle
+        rosterBrowseState = .idle
+        selectedPartnerTeamID = nil
+        thirdPartnerTeamID = nil
+        threeTeamLegs = []
+        threeTeamViewState = .idle
+        threeTeamSubmissionDoneSteps = []
+        thirdPartnerRemovalDisclosure = nil
+        shareState = .idle
+        prefill = Prefill(
+            giveName: call.give.name,
+            receiveName: call.receive.name,
+            partnerName: call.partnerName,
+            receivePlayerKey: call.receive.playerKey,
+            platform: call.platform
+        )
+    }
+
+    /// Prefill, then ask the server. This is what "Review this trade" does.
+    func review(_ call: OmenTradeCall, userID: String) async {
+        applyPrefill(from: call)
+        guard prefill != nil else { return }
+        await compare(userID: userID)
+    }
+
+    /// The partner on a roster read: the team that holds the player you get (the provider's own key, so no name
+    /// has to match), else the team whose name the call gave. Nil when neither identifies one team, in which
+    /// case nothing is preselected on the guess.
+    static func partnerTeamID(in response: TradeRosterResponse, for prefill: Prefill?) -> String? {
+        guard let prefill else { return nil }
+        if let key = prefill.receivePlayerKey, !key.isEmpty {
+            let holders = response.teams.filter { team in team.players.contains { $0.playerKey == key } }
+            if holders.count == 1 { return holders[0].id }
+        }
+        if let name = prefill.partnerName?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(), !name.isEmpty {
+            let named = response.teams.filter {
+                $0.teamName?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == name
+            }
+            if named.count == 1 { return named[0].id }
+        }
+        return nil
     }
 
     // MARK: - T5: three-team trade builder
@@ -633,6 +703,7 @@ final class TradeViewModel: ObservableObject {
     }
 
     private func add(_ player: TradePlayer, to side: Side) {
+        prefill = nil
         switch side {
         case .send: offer.send.append(player)
         case .receive: offer.receive.append(player)
@@ -649,6 +720,7 @@ final class TradeViewModel: ObservableObject {
         case .receive where offer.receive.indices.contains(index): offer.receive.remove(at: index)
         default: return
         }
+        prefill = nil
         viewState = .idle
     }
 

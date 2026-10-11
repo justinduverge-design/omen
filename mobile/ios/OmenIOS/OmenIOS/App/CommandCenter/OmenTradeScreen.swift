@@ -30,6 +30,9 @@ struct OmenTradeScreen: View {
     /// Opens Find a trade (the swipe review over `GET /api/trade/find`). The primary action of this
     /// tab: Omen does the searching. Nil hides the card (previews that predate the flow).
     var onFindTrade: (() -> Void)?
+    /// Set when the offer was filled in from Omen's own trade call. Says so, names the partner when the call
+    /// did, and says plainly when the re-check failed. Nil for an offer the user built.
+    var prefill: TradeViewModel.Prefill?
 
     /// Says what this build can actually analyse. With no capability read, it states that the
     /// limit is unknown rather than asserting one — "no additional team can be added" is a
@@ -61,6 +64,9 @@ struct OmenTradeScreen: View {
         ScrollView {
             VStack(alignment: .leading, spacing: OmenSpacing.step24) {
                 header
+                if let prefill {
+                    OmenTradePrefillCard(prefill: prefill, state: state)
+                }
                 if let onFindTrade {
                     findTradeCard(onFindTrade)
                 }
@@ -417,5 +423,61 @@ private struct OmenTradeVerdictCard: View {
         default:
             return "Omen used standard scoring for this one."
         }
+    }
+}
+
+
+/// "From Omen's call": why this offer is already filled in, and the honest status of re-checking it.
+///
+/// It states what the call said (who is sent, who is received, and the partner only when the call named one)
+/// and nothing the call did not say. When the re-check fails it says the check failed; it does not repeat the
+/// Omen tab's confidence as if it had been confirmed here.
+struct OmenTradePrefillCard: View {
+    let prefill: TradeViewModel.Prefill
+    let state: TradeViewModel.ViewState
+
+    static func summary(for prefill: TradeViewModel.Prefill) -> String {
+        let deal = "Send \(prefill.giveName), get \(prefill.receiveName)"
+        guard let partner = prefill.partnerName else { return deal + "." }
+        return deal + ", with \(partner)."
+    }
+
+    /// Nil while there is nothing to add beyond the summary.
+    static func status(for state: TradeViewModel.ViewState) -> String? {
+        switch state {
+        case .loading:
+            return "Omen is re-checking this trade against your league."
+        case .failed:
+            return "Omen couldn't re-check this trade just now. The call on the Omen tab is unchanged, but it has not been confirmed here. Try again, or edit the offer."
+        case .demo:
+            return "Demo mode does not re-check trades."
+        case .idle, .loaded:
+            return nil
+        }
+    }
+
+    var body: some View {
+        OmenCard(variant: .outlined) {
+            VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+                Text("From Omen's call")
+                    .omenTextStyle(OmenTypography.micro)
+                    .foregroundStyle(OmenColor.accent)
+                Text(Self.summary(for: prefill))
+                    .omenTextStyle(OmenTypography.body)
+                    .foregroundStyle(OmenColor.textPrimary)
+                Text("The offer below is filled in from that call. Change either side to make it your own.")
+                    .omenTextStyle(OmenTypography.bodySmall)
+                    .foregroundStyle(OmenColor.textSecondary)
+                if let status = Self.status(for: state) {
+                    Text(status)
+                        .omenTextStyle(OmenTypography.bodySmall)
+                        .foregroundStyle(OmenColor.textSecondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("From Omen's call. \(Self.summary(for: prefill)) " + (Self.status(for: state) ?? ""))
+        .accessibilityIdentifier("trade-prefill-card")
     }
 }

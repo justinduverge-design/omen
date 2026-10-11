@@ -84,6 +84,9 @@ struct OmenDecisionBriefPayload {
     /// `available` or `stale` signals with a real summary. Insufficient coverage remains a
     /// limitation and cannot become contextual advice.
     let footballIntelligence: OmenFootballIntelligenceContext?
+    /// Set only for `recommendation.type == "trade_suggestion"`. Drives the trade presentation and the
+    /// hand-off to the Trade screens.
+    let tradeCall: OmenTradeCall?
 
     init(
         verdict: String,
@@ -100,7 +103,8 @@ struct OmenDecisionBriefPayload {
         metrics: [OmenMetricItem] = [],
         signals: [OmenSignalItem] = [],
         alternatives: [OmenDecisionBriefAlternative] = [],
-        footballIntelligence: OmenFootballIntelligenceContext? = nil
+        footballIntelligence: OmenFootballIntelligenceContext? = nil,
+        tradeCall: OmenTradeCall? = nil
     ) {
         self.callType = callType
         self.verdict = verdict
@@ -117,6 +121,7 @@ struct OmenDecisionBriefPayload {
         self.signals = signals
         self.alternatives = alternatives
         self.footballIntelligence = footballIntelligence
+        self.tradeCall = tradeCall
     }
 }
 
