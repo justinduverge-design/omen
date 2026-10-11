@@ -4,6 +4,10 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 
 const startSit = require("../src/routes/startSit");
+const { sharedNarrationGuard } = require("../src/services/narrationBudget");
+
+// The breaker is process-wide; keep one test's stub failures from skipping the next test's narration.
+test.beforeEach(() => sharedNarrationGuard.reset());
 
 const loser = { name: "Josh Allen", position: "QB", projected_points: 18.2, status: null };
 const winner = { name: "Tyreek Hill", position: "WR", projected_points: 21.7, status: "questionable" };
@@ -75,4 +79,14 @@ test("route always returns a string explanation even with no model bridge", asyn
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }
+});
+
+test("an open breaker skips the model and serves the deterministic sentence", async () => {
+  const { createNarrationGuard } = require("../src/services/narrationBudget");
+  const guard = createNarrationGuard({ failureThreshold: 1, logger: { warn() {} } });
+  await guard.run("start_sit", 50, async () => { throw new Error("down"); });
+  let calls = 0;
+  const text = await startSit.explainSafely(args, { guard, llmService: stub(async () => { calls += 1; return "Tyreek Hill is ahead."; }) });
+  assert.equal(text, FALLBACK);
+  assert.equal(calls, 0);
 });

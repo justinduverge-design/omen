@@ -5,6 +5,7 @@ const express = require("express");
 const { Redis } = require("@upstash/redis");
 const config = require("../config");
 const llm = require("../services/llm");
+const { sharedNarrationGuard, NARRATION_BUDGET_MS } = require("../services/narrationBudget");
 const { buildLiveAdpResponse } = require("../services/adp");
 const {
   DEFAULT_SHARE_TTL_SECONDS,
@@ -545,6 +546,8 @@ function createTradeRouter({
   leagueContextResolver = defaultLeagueContextResolver,
   playerResolver = defaultPlayerResolver,
   tradeExplainer = llm.explainTrade,
+  // Budget + circuit breaker for the explainer (process-wide by default).
+  narrationGuard = sharedNarrationGuard,
   // Injected so the route is testable without a network call — the same
   // opponent-roster read `buildTradeCandidateForConnection` in services/omen.js
   // already uses internally for Omen's own weekly recommendation.
@@ -710,9 +713,28 @@ function createTradeRouter({
         week = nflWeekContext(now())?.week || 1;
       }
 
-      let result;
+      // /find keeps each league/week's roster bundle warm; reuse it before asking the provider.
+      let result = null;
       try {
-        result = await ROSTER_READERS[platform]({ userId: user.id, leagueId, week });
+        const cached = await tradeFindCache.read(tradeFindCacheKey({ userId: user.id, platform, leagueId, week }));
+        // The roster a user trades from must be fresh: only reuse a bundle younger
+        // than ROSTER_BUNDLE_MAX_AGE_MS (the /find cache itself lives 15 minutes),
+        // and `fresh=1` bypasses it entirely.
+        const bundleAge = cached ? now().getTime() - Date.parse(cached.generated_at) : Infinity;
+        const bypass = String(req.query.fresh || "") === "1";
+        if (!bypass && cached && Array.isArray(cached.teams) && bundleAge >= 0 && bundleAge <= ROSTER_BUNDLE_MAX_AGE_MS) {
+          result = {
+            status: "ok",
+            week: cached.week || week,
+            roster_positions: Array.isArray(cached.roster_positions) ? cached.roster_positions : [],
+            teams: cached.teams,
+          };
+        }
+      } catch (e) {
+        logger.warn("Trade roster cache read failed; reading the provider", { err: e.message });
+      }
+      try {
+        if (!result) result = await ROSTER_READERS[platform]({ userId: user.id, leagueId, week });
       } catch (e) {
         logger.warn("Trade roster read failed", { err: e.message, platform, league_id: leagueId });
         return res.status(503).json({ error: "roster_unavailable", code: "trade_roster_unavailable" });
@@ -743,6 +765,16 @@ function createTradeRouter({
       return next(e);
     }
   });
+
+  // Memo of the synchronous /find scan (see the /find handler). Bounded, oldest evicted.
+  const scanMemo = new Map();
+  const SCAN_MEMO_MAX_ENTRIES = 200;
+  const ROSTER_BUNDLE_MAX_AGE_MS = 60 * 1000;
+  function rememberScan(key, generatedAt, scan) {
+    scanMemo.delete(key);
+    scanMemo.set(key, { generatedAt, scan, expiresAt: Date.now() + DEFAULT_FIND_CACHE_TTL_SECONDS * 1000 });
+    while (scanMemo.size > SCAN_MEMO_MAX_ENTRIES) scanMemo.delete(scanMemo.keys().next().value);
+  }
 
   // Scoped to the caller. The cache is read before the provider roster read, and
   // that read is the only ownership check (it uses the caller's own ESPN/Yahoo
@@ -919,13 +951,27 @@ function createTradeRouter({
       }
 
       let budgetExceededStats = null;
-      const scan = findLeagueTradeCandidates({
-        ownTeamId: teamId,
-        teams: bundle.teams,
-        rosterPositions: bundle.roster_positions,
-        budget: createSearchBudget(),
-        onBudgetExceeded: (stats) => { budgetExceededStats = stats; },
-      });
+      // The scan is synchronous CPU on the event loop; a repeat /find against the
+      // same bundle reuses it. The memo is keyed by the bundle's cache key, team
+      // and generated_at, so a regenerated bundle never matches a stale entry.
+      const scanMemoKey = `${cacheKey}|${teamId}`;
+      const memoized = scanMemo.get(scanMemoKey);
+      let scan;
+      if (memoized && memoized.generatedAt === bundle.generated_at && memoized.expiresAt > Date.now()) {
+        scan = memoized.scan;
+      } else {
+        scan = findLeagueTradeCandidates({
+          ownTeamId: teamId,
+          teams: bundle.teams,
+          rosterPositions: bundle.roster_positions,
+          budget: createSearchBudget(),
+          onBudgetExceeded: (stats) => { budgetExceededStats = stats; },
+        });
+        // A budget trip is wall-clock dependent, so it is never frozen into the memo.
+        if (!scan.budget_exceeded && !budgetExceededStats && scan.status !== "own_team_not_found") {
+          rememberScan(scanMemoKey, bundle.generated_at, scan);
+        }
+      }
 
       if (scan.status === "own_team_not_found") {
         return res.status(404).json({ error: "team_not_found", code: "trade_find_team_not_found" });
@@ -1584,6 +1630,10 @@ function createTradeRouter({
       // invented name into a low-confidence fantasy asset.
       let sendResolutions;
       let receiveResolutions;
+      // Context resolution (auth + provider settings) is independent of identity
+      // resolution, so it starts now. Its outcome is only consulted after the
+      // identity gates below pass, so every early return is unchanged.
+      const analysisPromise = resolveAnalysisContext(req).then((value) => ({ value }), (error) => ({ error }));
       try {
         [sendResolutions, receiveResolutions] = await Promise.all([
           playerResolver(req.body.send),
@@ -1612,7 +1662,9 @@ function createTradeRouter({
       const send = resolvedTradePlayers(req.body.send, sendResolutions);
       const receive = resolvedTradePlayers(req.body.receive, receiveResolutions);
 
-      const { analysis, scoringConfig } = await resolveAnalysisContext(req);
+      const analysisOutcome = await analysisPromise;
+      if (analysisOutcome.error) throw analysisOutcome.error;
+      const { analysis, scoringConfig } = analysisOutcome.value;
       // A personalized run derives its scoring format from the provider's own
       // settings; the client-supplied label only governs the neutral path.
       const scoring_format = analysis.mode === "personalized"
@@ -1633,16 +1685,24 @@ function createTradeRouter({
       result.analysis_context = analysis;
       attachTradeDecisionReceipt(result, analysis);
 
-      result.explanation = await tradeExplainer({
-        send,
-        receive,
-        net_value: result.net_value,
-        a_score: result.a_score,
-        b_score: result.b_score,
-        combined_score: result.combined_score,
-        scarcity_analysis: result.scarcity_analysis,
-        verdict:   result.verdict,
-      });
+      // Budgeted + breaker-guarded (narrationBudget.js). Timeout, skip or error
+      // yields `explanation: null`, the same value the explainer returns today
+      // when the model is unreachable (the compare contract allows null).
+      const narration = await narrationGuard.run(
+        "trade_compare",
+        NARRATION_BUDGET_MS.trade_compare,
+        () => tradeExplainer({
+          send,
+          receive,
+          net_value: result.net_value,
+          a_score: result.a_score,
+          b_score: result.b_score,
+          combined_score: result.combined_score,
+          scarcity_analysis: result.scarcity_analysis,
+          verdict:   result.verdict,
+        })
+      );
+      result.explanation = narration.status === "ok" ? narration.value : null;
 
       return res.json(result);
     } catch (e) {

@@ -3,10 +3,11 @@
 const express = require("express");
 const optimizer = require("../services/optimizer");
 const llm = require("../services/llm");
+const { sharedNarrationGuard, NARRATION_BUDGET_MS } = require("../services/narrationBudget");
 const { validateGroundedText } = require("../services/narrationGrounding");
 
 const router = express.Router();
-const LLM_TIMEOUT_MS = 8000;
+const LLM_TIMEOUT_MS = NARRATION_BUDGET_MS.start_sit;
 
 function isPlainObject(value) {
   return value != null && typeof value === "object" && !Array.isArray(value);
@@ -48,18 +49,6 @@ function normalizePlayer(player, key, selectedPosition = null) {
     projected_points: player.projected_points,
     status: player.status || null,
   };
-}
-
-function withTimeout(promise, timeoutMs) {
-  return new Promise((resolve) => {
-    const timer = setTimeout(() => resolve(null), timeoutMs);
-    promise
-      .catch(() => null)
-      .then((value) => {
-        clearTimeout(timer);
-        resolve(value);
-      });
-  });
 }
 
 function statusText(status) {
@@ -135,13 +124,15 @@ function groundingFacts({ loser, winner, pointsDelta, slot }) {
  * overlong or ungrounded output all fall back to the deterministic sentence, so
  * `explanation` is always a bounded, grounded string.
  */
-async function explainSafely({ loser, winner, pointsDelta, slot }, { timeoutMs = LLM_TIMEOUT_MS, llmService = llm, validator = validateGroundedText } = {}) {
+async function explainSafely({ loser, winner, pointsDelta, slot }, { timeoutMs = LLM_TIMEOUT_MS, llmService = llm, validator = validateGroundedText, guard = sharedNarrationGuard } = {}) {
   const fallback = deterministicExplanation({ loser, winner, pointsDelta });
   const facts = groundingFacts({ loser, winner, pointsDelta, slot });
-  const generated = await withTimeout(
-    Promise.resolve().then(() => llmService.explainStartSit({ ...facts, timeoutMs })),
-    timeoutMs
+  const outcome = await guard.run(
+    "start_sit",
+    timeoutMs,
+    () => llmService.explainStartSit({ ...facts, timeoutMs })
   );
+  const generated = outcome.status === "ok" ? outcome.value : null;
   const text = typeof generated === "string" ? generated.trim() : "";
   try {
     return text && validator(text, facts).ok ? text : fallback;

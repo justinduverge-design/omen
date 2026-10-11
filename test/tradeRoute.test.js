@@ -8,6 +8,10 @@ const http = require("node:http");
 const test = require("node:test");
 const express = require("express");
 const tradeRoutes = require("../src/routes/trade");
+const { sharedNarrationGuard } = require("../src/services/narrationBudget");
+
+// The breaker is process-wide; keep one test's stub failures from skipping the next test's narration.
+test.beforeEach(() => sharedNarrationGuard.reset());
 
 async function resolveAsGiven(players) {
   return players.map((player, index) => ({
