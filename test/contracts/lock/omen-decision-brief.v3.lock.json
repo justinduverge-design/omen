@@ -663,6 +663,58 @@
       "required": false,
       "type": "string"
     },
+    "recommendation.trade": {
+      "required": false,
+      "type": "object"
+    },
+    "recommendation.trade.give": {
+      "required": true,
+      "type": "array"
+    },
+    "recommendation.trade.give[]": {
+      "required": true,
+      "type": "object"
+    },
+    "recommendation.trade.give[].name": {
+      "required": true,
+      "type": "string"
+    },
+    "recommendation.trade.give[].player_key": {
+      "required": false,
+      "type": "null|string"
+    },
+    "recommendation.trade.give[].position": {
+      "required": true,
+      "type": "null|string"
+    },
+    "recommendation.trade.partner_team_id": {
+      "required": false,
+      "type": "null|string"
+    },
+    "recommendation.trade.partner_team_name": {
+      "required": true,
+      "type": "string"
+    },
+    "recommendation.trade.receive": {
+      "required": true,
+      "type": "array"
+    },
+    "recommendation.trade.receive[]": {
+      "required": true,
+      "type": "object"
+    },
+    "recommendation.trade.receive[].name": {
+      "required": true,
+      "type": "string"
+    },
+    "recommendation.trade.receive[].player_key": {
+      "required": false,
+      "type": "null|string"
+    },
+    "recommendation.trade.receive[].position": {
+      "required": true,
+      "type": "null|string"
+    },
     "recommendation.type": {
       "required": false,
       "type": "enum",
