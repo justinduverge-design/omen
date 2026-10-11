@@ -90,7 +90,8 @@ test("adapts an exact global schedule with 32 canonical teams and explicit prese
       .update(Buffer.from(JSON.stringify([...REQUIRED_COLUMNS]))).digest("hex")}`,
     source_columns: [...REQUIRED_COLUMNS], selected_rows: 240, preseason_rows: 1, team_rows: 32,
   });
-  assert.equal(result.gameRows[0].kickoffAt, null);
+  // gameday 2026-09-10 gametime 20:20 is Eastern (EDT, UTC-4)
+  assert.equal(result.gameRows[0].kickoffAt, "2026-09-11T00:20:00.000Z");
   assert.equal(result.gameRows[0].sourceRow.gametime, "20:20");
   assert.equal(result.gameRows[0].divisionGame, false);
   assert.equal(result.gameRows[0].overtime, false);
@@ -174,4 +175,16 @@ test("rejects empty or truncated selected seasons and incomplete global team cov
   assert.throws(() => adapt(encode(validRows().slice(0, 10))), /empty or truncated/);
   const withoutHouston = validRows().filter((item) => item.away_team !== "HOU" && item.home_team !== "HOU");
   assert.throws(() => adapt(encode(withoutHouston)), /empty or truncated|all 32 canonical teams/);
+});
+
+test("kickoff instants convert Eastern gameday/gametime to UTC across daylight saving", () => {
+  const { kickoffInstantUtc } = require("../src/services/footballWarehouse/scheduleSource");
+  assert.equal(kickoffInstantUtc("2026-09-13", "13:00"), "2026-09-13T17:00:00.000Z"); // EDT
+  assert.equal(kickoffInstantUtc("2026-09-13", "20:20"), "2026-09-14T00:20:00.000Z"); // rolls into the next UTC day
+  assert.equal(kickoffInstantUtc("2026-11-29", "13:00"), "2026-11-29T18:00:00.000Z"); // EST after Nov 1
+  assert.equal(kickoffInstantUtc("2026-12-25", "16:30"), "2026-12-25T21:30:00.000Z");
+  assert.equal(kickoffInstantUtc("2026-03-08", "14:00"), "2026-03-08T18:00:00.000Z"); // spring-forward day, after the change
+  assert.equal(kickoffInstantUtc("2026-09-13", ""), null);
+  assert.equal(kickoffInstantUtc("not-a-date", "13:00"), null);
+  assert.equal(kickoffInstantUtc(undefined, undefined), null);
 });
