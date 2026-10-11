@@ -130,8 +130,7 @@ async function explainSafely({ loser, winner, pointsDelta, slot }, { timeoutMs =
   const outcome = await guard.run(
     "start_sit",
     timeoutMs,
-    () => llmService.explainStartSit({ ...facts, timeoutMs }),
-    { nullIsFailure: true }
+    () => llmService.explainStartSit({ ...facts, timeoutMs })
   );
   const generated = outcome.status === "ok" ? outcome.value : null;
   const text = typeof generated === "string" ? generated.trim() : "";

@@ -822,3 +822,44 @@ test("mvp-move cache: reauth/recovery states are not cached, with no store the r
     responseCache.setStoreForTests(undefined);
   }
 });
+
+test("mvp-move cache: a response whose narration timed out is not cached", async () => {
+  responseCache.setStoreForTests(responseCache.createMemoryResponseCacheStore());
+  try {
+    const { app, state } = buildApp({ llmDelayMs: 3000 });
+    const headers = { authorization: "Bearer valid-token", "x-contract-record": "skip" };
+    const body = { include_signals: { llm_reasoning: true, matchup_dvp: false } };
+    const first = await postRaw(app, { headers, body });
+    assert.equal(first.body.signals.llm_reasoning.status, "unavailable");
+    await new Promise((resolve) => setTimeout(resolve, 50)); // let any background store settle
+    const second = await postRaw(app, { headers, body });
+    assert.equal(second.cache, "miss", "a degraded-narration answer must not be served from cache");
+    assert.equal(state.liveUserIds.length, 2);
+  } finally {
+    responseCache.setStoreForTests(undefined);
+    require("../src/services/narrationBudget").sharedNarrationGuard.reset();
+  }
+});
+
+test("an open narration breaker skips the model, leaves the stub signal untouched and is not cached", async () => {
+  const { sharedNarrationGuard } = require("../src/services/narrationBudget");
+  sharedNarrationGuard.reset();
+  for (let i = 0; i < 3; i += 1) await sharedNarrationGuard.run("test", 50, async () => { throw new Error("down"); });
+  assert.equal(sharedNarrationGuard.state(), "open");
+  responseCache.setStoreForTests(responseCache.createMemoryResponseCacheStore());
+  try {
+    const { app, state } = buildApp();
+    const headers = { authorization: "Bearer valid-token", "x-contract-record": "skip" };
+    const body = { include_signals: { llm_reasoning: true, matchup_dvp: false } };
+    const first = await postRaw(app, { headers, body });
+    assert.equal(first.status, 200);
+    assert.deepEqual(first.body.signals.llm_reasoning, liveEnvelope().signals.llm_reasoning);
+    assert.doesNotMatch(first.body.signals.llm_reasoning.message, /response budget/i);
+    assert.deepEqual(state.llmPayloads, []);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    assert.equal((await postRaw(app, { headers, body })).cache, "miss");
+  } finally {
+    responseCache.setStoreForTests(undefined);
+    sharedNarrationGuard.reset();
+  }
+});

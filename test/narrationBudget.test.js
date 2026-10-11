@@ -87,12 +87,67 @@ test("only consecutive failures count: a success resets the streak", async (t) =
   assert.equal(guard.state(), "closed");
 });
 
-test("nullIsFailure counts empty results; log lines carry no prompt or secrets", async (t) => {
+test("a hard-down LLM returning null instantly neither opens the breaker nor masks real failures", async (t) => {
   t.mock.timers.enable({ apis: ["setTimeout", "Date"] });
   const { guard, lines } = harness();
-  for (let i = 0; i < 3; i += 1) await guard.run("start_sit", 1500, async () => null, { nullIsFailure: true });
+  const fail = async () => { throw new Error("x"); };
+  for (let i = 0; i < 10; i += 1) assert.equal((await guard.run("omen", 1250, async () => null)).status, "empty");
+  assert.equal(guard.state(), "closed");
+  // Empty results in between do not reset the failure streak...
+  await guard.run("omen", 1250, fail);
+  await guard.run("omen", 1250, async () => null);
+  await guard.run("omen", 1250, fail);
+  await guard.run("omen", 1250, async () => null);
+  assert.equal(guard.state(), "closed");
+  await guard.run("omen", 1250, fail);
+  // ...so three real failures still open it.
   assert.equal(guard.state(), "open");
   assert.deepEqual(Object.keys(lines[0]).sort(), ["consecutive_failures", "event", "half_open_probe_failed", "message", "reason", "site", "skip_ms"]);
+  // An empty probe does not close it and frees the slot for another probe.
+  t.mock.timers.tick(60_000);
+  assert.equal((await guard.run("omen", 1250, async () => null)).status, "empty");
+  assert.equal(guard.state(), "half_open");
+  assert.equal((await guard.run("omen", 1250, async () => "real")).status, "ok");
+  assert.equal(guard.state(), "closed");
+});
+
+test("results from an earlier epoch are ignored", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout", "Date"] });
+  const { guard, lines } = harness();
+  let lateOk;
+  let lateFail;
+  const slowOk = guard.run("x", 100_000, () => new Promise((resolve) => { lateOk = resolve; }));
+  const slowFail = guard.run("x", 100_000, () => new Promise((_, reject) => { lateFail = reject; }));
+  for (let i = 0; i < 3; i += 1) await guard.run("x", 1000, async () => { throw new Error("down"); });
+  assert.equal(guard.state(), "open");
+  // A late success from before the open must not close it.
+  lateOk("late");
+  assert.equal((await slowOk).status, "ok");
+  assert.equal(guard.state(), "open");
+  // A late failure must not extend the window or log a second "opened".
+  t.mock.timers.tick(50_000);
+  lateFail(new Error("late"));
+  assert.equal((await slowFail).status, "error");
+  t.mock.timers.tick(10_000);
+  assert.equal(guard.state(), "half_open", "window was not extended");
+  assert.equal(lines.filter((line) => line.event === "narration_breaker_opened").length, 1);
+});
+
+test("a late result from an earlier epoch cannot clear the in-flight probe", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout", "Date"] });
+  const { guard } = harness();
+  let lateEmpty;
+  const early = guard.run("x", 1_000_000, () => new Promise((resolve) => { lateEmpty = resolve; }));
+  for (let i = 0; i < 3; i += 1) await guard.run("x", 1000, async () => { throw new Error("down"); });
+  t.mock.timers.tick(60_000);
+  let finishProbe;
+  const probe = guard.run("x", 1_000_000, () => new Promise((resolve) => { finishProbe = resolve; }));
+  lateEmpty(null);
+  assert.equal((await early).status, "empty");
+  assert.equal((await guard.run("x", 1000, async () => "second")).status, "skipped", "probe slot still held");
+  finishProbe("ok");
+  assert.equal((await probe).status, "ok");
+  assert.equal(guard.state(), "closed");
 });
 
 test("only one probe is admitted while half-open", async (t) => {

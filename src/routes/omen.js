@@ -451,6 +451,12 @@ async function recordLedgerCall(user, response, served, trace) {
   } catch {
     // Budget exceeded. The trace records it; the response is not held for the Ledger.
   }
+  // The request's latency line is emitted before this background write finishes,
+  // so the ledger stage reports its own timing here (operational fields only).
+  logger.info("Omen MVP ledger stage", {
+    duration_ms: trace.ledger?.duration_ms ?? null,
+    outcome: trace.ledger?.outcome ?? "unknown",
+  });
 }
 
 async function enrichWithDvp(response, body, { explicitMock = false } = {}) {
@@ -459,6 +465,9 @@ async function enrichWithDvp(response, body, { explicitMock = false } = {}) {
   if (dvp) applyDvpContext(response, dvp);
   return response;
 }
+
+// Bodies whose narration fell back because of a timeout, error or open breaker.
+const narrationFellBack = new WeakSet();
 
 async function enrichWithLlm(response, body, options) {
   if (!includeLlmReasoning(body, options)) return response;
@@ -473,9 +482,16 @@ async function enrichWithLlm(response, body, options) {
     MVP_LATENCY_BUDGET_MS.llm_narration,
     () => generateMvpLlmNarration(response, { timeoutMs: MVP_LATENCY_BUDGET_MS.llm_narration })
   );
+  if (outcome.status === "timeout" || outcome.status === "skipped" || outcome.status === "error") {
+    // omenMoveVerdict ignores llm_reasoning, so a breaker/timeout fallback would
+    // otherwise be cached for the full TTL. Keep it out of the response cache.
+    narrationFellBack.add(response);
+  }
   if (outcome.status === "ok") {
     applyMvpLlmNarration(response, outcome.value);
-  } else if ((outcome.status === "timeout" || outcome.status === "skipped") && response.signals?.llm_reasoning) {
+  } else if (outcome.status === "timeout" && response.signals?.llm_reasoning) {
+    // Only a real timeout gets the budget message. A skipped call (breaker open)
+    // leaves the existing deterministic stub untouched, as for an unconfigured LLM.
     response.signals.llm_reasoning = {
       status: "unavailable",
       used: false,
@@ -812,7 +828,7 @@ router.post("/mvp-move", async (req, res) => {
     const cacheVerdict = cacheHandle ? responseCache.omenMoveVerdict(result.body) : null;
     res.status(result.status).json(body);
     backgroundBestEffort("ledger", () => recordLedgerCall(result.authenticatedUser, result.body, body, trace));
-    if (cacheHandle) {
+    if (cacheHandle && !narrationFellBack.has(result.body)) {
       backgroundBestEffort("response_cache", () => responseCache.store(cacheHandle, result.status, body, cacheVerdict));
     }
     return undefined;

@@ -30,7 +30,7 @@ function body() {
   };
 }
 
-function loadRoute({ scheduleDelay, projectionDelay, intelligenceDelay, dvpDelay, failing = [] }) {
+function loadRoute({ scheduleDelay, projectionDelay, intelligenceDelay, dvpDelay, failing = [], events = [] }) {
   const routePath = require.resolve("../src/routes/omen");
   delete require.cache[routePath];
   const originalLoad = Module._load;
@@ -39,7 +39,9 @@ function loadRoute({ scheduleDelay, projectionDelay, intelligenceDelay, dvpDelay
       if (request === "../services/scheduleTravelCapabilities") {
         return {
           resolveScheduleTravelCapabilities: async () => {
+            events.push("schedule:start");
             await sleep(scheduleDelay);
+            events.push("schedule:end");
             if (failing.includes("schedule")) throw new Error("schedule down");
             return {
               game_time_tv: { status: "live", resolution: "available", facts: [{ name: "opponent", value: "DAL" }] },
@@ -51,7 +53,9 @@ function loadRoute({ scheduleDelay, projectionDelay, intelligenceDelay, dvpDelay
       if (request === "../services/projectionBreakdown") {
         return {
           attachOmenProjectionBreakdown: async ({ response }) => {
+            events.push("projection:start");
             await sleep(projectionDelay);
+            events.push("projection:end");
             if (failing.includes("projection")) throw new Error("projection down");
             response.projection_breakdown = { player_id: "p1", status: "available", statement: "stat line" };
             return response;
@@ -61,7 +65,9 @@ function loadRoute({ scheduleDelay, projectionDelay, intelligenceDelay, dvpDelay
       if (request === "../services/footballIntelligence/omenExplanation") {
         return {
           enrichOmenWithFootballIntelligence: async ({ response }) => {
+            events.push("intelligence:start");
             await sleep(intelligenceDelay);
+            events.push("intelligence:end");
             if (failing.includes("intelligence")) throw new Error("fi down");
             response.football_intelligence = { status: "available", summary: "scheme" };
             response.signals = response.signals || {};
@@ -75,7 +81,9 @@ function loadRoute({ scheduleDelay, projectionDelay, intelligenceDelay, dvpDelay
         return {
           ...real,
           resolveMvpDvpContext: async (response) => {
+            events.push("dvp:start");
             await sleep(dvpDelay);
+            events.push("dvp:end");
             assert.equal(response.recommendation.matchup_context?.opponent_team, "DAL", "DvP must run after the schedule merge");
             return { opponent_team: "DAL", position: "WR", avg_points_allowed: 20, sample_weeks: 5, dvp_label: "favorable" };
           },
@@ -131,9 +139,13 @@ test("a failing stage is simply absent and does not disturb the others", async (
   }
 });
 
-test("stages overlap: wall time is the slowest chain, not the sum", async () => {
-  const route = loadRoute({ scheduleDelay: 60, projectionDelay: 60, intelligenceDelay: 60, dvpDelay: 10 });
-  const started = Date.now();
-  await route.runEnrichmentStages(body(), req, { started_at: started }, "omen-decision-brief.v3");
-  assert.ok(Date.now() - started < 150, `took ${Date.now() - started}ms`);
+test("stages overlap: all three independent stages start before any finishes; DvP waits for schedule", async () => {
+  const events = [];
+  const route = loadRoute({ scheduleDelay: 20, projectionDelay: 20, intelligenceDelay: 20, dvpDelay: 5, events });
+  await route.runEnrichmentStages(body(), req, { started_at: Date.now() }, "omen-decision-brief.v3");
+  const firstEnd = Math.min(...events.map((e, i) => (e.endsWith(":end") ? i : Infinity)));
+  for (const stage of ["schedule", "projection", "intelligence"]) {
+    assert.ok(events.indexOf(`${stage}:start`) < firstEnd, `${stage} started after another stage finished: ${events.join(",")}`);
+  }
+  assert.ok(events.indexOf("dvp:start") > events.indexOf("schedule:end"), events.join(","));
 });

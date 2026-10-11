@@ -717,7 +717,12 @@ function createTradeRouter({
       let result = null;
       try {
         const cached = await tradeFindCache.read(tradeFindCacheKey({ userId: user.id, platform, leagueId, week }));
-        if (cached && Array.isArray(cached.teams)) {
+        // The roster a user trades from must be fresh: only reuse a bundle younger
+        // than ROSTER_BUNDLE_MAX_AGE_MS (the /find cache itself lives 15 minutes),
+        // and `fresh=1` bypasses it entirely.
+        const bundleAge = cached ? now().getTime() - Date.parse(cached.generated_at) : Infinity;
+        const bypass = String(req.query.fresh || "") === "1";
+        if (!bypass && cached && Array.isArray(cached.teams) && bundleAge >= 0 && bundleAge <= ROSTER_BUNDLE_MAX_AGE_MS) {
           result = {
             status: "ok",
             week: cached.week || week,
@@ -764,6 +769,7 @@ function createTradeRouter({
   // Memo of the synchronous /find scan (see the /find handler). Bounded, oldest evicted.
   const scanMemo = new Map();
   const SCAN_MEMO_MAX_ENTRIES = 200;
+  const ROSTER_BUNDLE_MAX_AGE_MS = 60 * 1000;
   function rememberScan(key, generatedAt, scan) {
     scanMemo.delete(key);
     scanMemo.set(key, { generatedAt, scan, expiresAt: Date.now() + DEFAULT_FIND_CACHE_TTL_SECONDS * 1000 });
@@ -1694,8 +1700,7 @@ function createTradeRouter({
           combined_score: result.combined_score,
           scarcity_analysis: result.scarcity_analysis,
           verdict:   result.verdict,
-        }),
-        { nullIsFailure: true }
+        })
       );
       result.explanation = narration.status === "ok" ? narration.value : null;
 

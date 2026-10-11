@@ -248,3 +248,28 @@ test("compare: context resolution overlaps player resolution and unresolved play
     assert.ok(events.indexOf("context:start") < events.lastIndexOf("players:end"), events.join(","));
   });
 });
+
+test("/roster ignores a bundle older than 60s, and fresh=1 bypasses a young one", async () => {
+  const { routes } = loadTradeRoutes();
+  let providerReads = 0;
+  let clock = Date.UTC(2026, 9, 10, 12, 0, 0);
+  const router = routes.createTradeRouter({
+    authenticate: async () => ({ id: "user-1" }),
+    nflWeekContext: () => ({ week: 3 }),
+    tradeFindCache: createMemoryTradeFindCache(),
+    now: () => new Date(clock),
+    fetchLeagueRosters: async () => { providerReads += 1; return fixture(); },
+  });
+  await withServer(appFor(router), async (base) => {
+    await fetch(`${base}/api/trade/find?platform=sleeper&league_id=L1&team_id=1&week=3`, SKIP);
+    assert.equal(providerReads, 1);
+    clock += 30_000;
+    await fetch(`${base}/api/trade/roster?platform=sleeper&league_id=L1&week=3`, SKIP);
+    assert.equal(providerReads, 1, "30s old bundle is reused");
+    await fetch(`${base}/api/trade/roster?platform=sleeper&league_id=L1&week=3&fresh=1`, SKIP);
+    assert.equal(providerReads, 2, "fresh=1 reads the provider");
+    clock += 31_000;
+    await fetch(`${base}/api/trade/roster?platform=sleeper&league_id=L1&week=3`, SKIP);
+    assert.equal(providerReads, 3, "a bundle older than 60s is not used");
+  });
+});
