@@ -43,6 +43,11 @@ services:
     environment:
       FOOTBALL_WAREHOUSE_DATABASE_URL_FILE: /run/secrets/warehouse_ingest_url
       FOOTBALL_WAREHOUSE_INGEST_ENABLED: "true"
+      # After each season ingest: fill the opportunity table and recompute RAT-QB v0 (derivedStages.js).
+      FOOTBALL_WAREHOUSE_DERIVED_ENABLED: "true"
+      # A full historical season holds every play with all 372 columns while parsing (~2 GB heap measured on 2023);
+      # the default 760 MB heap was exhausted on the 1999 backfill trial.
+      NODE_OPTIONS: --max-old-space-size=3072
       FOOTBALL_WAREHOUSE_SSL_MODE: disable
       FOOTBALL_WAREHOUSE_EXPECTED_DATABASE: omen_football
       FOOTBALL_WAREHOUSE_EXPECTED_ROLE: omen_warehouse_ingest
@@ -59,7 +64,7 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
-    mem_limit: 1536m
+    mem_limit: 4g
     cpus: 1.0
     pids_limit: 128
     logging:

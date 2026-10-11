@@ -104,3 +104,44 @@ test("a stuck pool drain is bounded and fails with a safe code", async () => {
     verifyTarget: async () => {}, createIngest: () => ({ run: async () => ({ mode: "ingest", season: 2026, stages: {} }) }),
   }), (error) => error.code === "shutdown_timeout");
 });
+
+test("derived stages run only when explicitly enabled, after the facts, and report counts only", async () => {
+  const calls = [];
+  const base = {
+    argv: ["ingest", "--season", "2026"], Pool: class { on() {} async end() {} }, signalSource: new EventEmitter(),
+    parseConfig: ({ requireDatabase }) => config(requireDatabase), createPool: () => ({ on() {}, async end() {} }),
+    verifyTarget: async () => {},
+    createIngest: () => ({ run: async () => { calls.push("facts"); return { counts: { games: 1 } }; } }),
+    createDerived: () => ({ run: async ({ season }) => { calls.push(`derived:${season}`); return { opportunity: { state: "succeeded", writtenRows: 3 }, ratQb: { state: "unchanged", valueCount: null } }; } }),
+  };
+  const off = await runCurrentSeasonCommand({ ...base, env: { FOOTBALL_WAREHOUSE_INGEST_ENABLED: "true" }, output: () => {} });
+  assert.equal(off.derived, undefined);
+  assert.deepEqual(calls, ["facts"]);
+  calls.length = 0;
+  const on = await runCurrentSeasonCommand({ ...base, env: { FOOTBALL_WAREHOUSE_INGEST_ENABLED: "true", FOOTBALL_WAREHOUSE_DERIVED_ENABLED: "true" }, output: () => {} });
+  assert.deepEqual(calls, ["facts", "derived:2026"]);
+  assert.deepEqual(on.derived.opportunity, { state: "succeeded", writtenRows: 3 });
+});
+
+test("a derived stage failure is a coded failure after facts commit", async () => {
+  const out = [];
+  await assert.rejects(runCurrentSeasonCommand({
+    argv: ["ingest", "--season", "2026"], env: { FOOTBALL_WAREHOUSE_INGEST_ENABLED: "true", FOOTBALL_WAREHOUSE_DERIVED_ENABLED: "true" },
+    Pool: class {}, signalSource: new EventEmitter(), output: (row) => out.push(row),
+    parseConfig: ({ requireDatabase }) => config(requireDatabase), createPool: () => ({ on() {}, async end() {} }),
+    verifyTarget: async () => {}, createIngest: () => ({ run: async () => ({ counts: {} }) }),
+    createDerived: () => ({ run: async () => { throw Object.assign(new Error("x"), { code: "derived_opportunity_stats_missing" }); } }),
+  }), (error) => error.code === "derived_opportunity_stats_missing");
+  assert.equal(out.at(-1).state, "failed");
+  assert.equal(out.at(-1).code, "derived_opportunity_stats_missing");
+});
+
+test("report mode returns a failed derived stage instead of failing the command; strict stays the default", async () => {
+  const { createDerivedStages } = require("../src/services/footballWarehouse/derivedStages");
+  const failing = { writeSeason: async () => { throw Object.assign(new Error("x"), { code: "opportunity_reconciliation_failed" }); } };
+  const ok = { run: async () => ({ state: "succeeded", valueCount: 41 }) };
+  await assert.rejects(createDerivedStages({ opportunityWriter: failing, qbRunner: ok }).run({ season: 2003 }), (e) => e.code === "derived_opportunity_opportunity_reconciliation_failed");
+  const report = await createDerivedStages({ mode: "report", opportunityWriter: failing, qbRunner: ok }).run({ season: 2003 });
+  assert.deepEqual(report, { opportunity: { state: "failed", code: "derived_opportunity_opportunity_reconciliation_failed" }, ratQb: { state: "succeeded", valueCount: 41 } });
+  assert.throws(() => createDerivedStages({ mode: "lenient", opportunityWriter: failing, qbRunner: ok }), /strict or report/);
+});

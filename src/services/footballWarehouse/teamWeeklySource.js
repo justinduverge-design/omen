@@ -28,10 +28,12 @@ function adaptTeamWeeklyCsv({ raw, season, sourceUrl, runId, scoresByGameId } = 
   if (sourceUrl !== sourceUrlForSeason(season)) throw new TypeError("sourceUrl is not the allowlisted season asset");
   if (typeof runId !== "string" || !validRun.test(runId)) throw new TypeError("runId is invalid");
   if (!(scoresByGameId instanceof Map)) throw new TypeError("scoresByGameId must be a Map");
-  const parsed = parse(raw); const rows = []; const keys = new Set();
+  const parsed = parse(raw); const rows = []; const keys = new Set(); let teamMissing = 0;
   parsed.rows.forEach((sourceRow, i) => {
     const rowSeason = integer(sourceRow.season, `CSV row ${i + 2} season`, 1999, 2100); if (rowSeason !== season) throw new TypeError(`CSV row ${i + 2} season does not match requested season`);
     const week = integer(sourceRow.week, `CSV row ${i + 2} week`, 1, 23); const seasonType = String(sourceRow.season_type).trim(); if (!/^(REG|POST)$/.test(seasonType)) throw new TypeError(`CSV row ${i + 2} season_type is invalid`);
+    // A stray row with no team and no opponent (1999 week 9) cannot be attached to anything: count it unmatched.
+    if (!String(sourceRow.team ?? "").trim() && !String(sourceRow.opponent_team ?? "").trim()) { teamMissing += 1; return; }
     const teamId = teamIdFor(sourceRow.team); const opponentTeamId = teamIdFor(sourceRow.opponent_team); if (!teamId || !opponentTeamId || teamId === opponentTeamId) throw new TypeError(`CSV row ${i + 2} has an invalid team`);
     const gameId = nullable(sourceRow.game_id); if (!gameId) throw new TypeError(`CSV row ${i + 2} game_id is empty`);
     const key = `${week}\0${seasonType}\0${teamId}`; if (keys.has(key)) throw new TypeError("CSV contains a duplicate team-week row"); keys.add(key);
@@ -43,6 +45,6 @@ function adaptTeamWeeklyCsv({ raw, season, sourceUrl, runId, scoresByGameId } = 
     rows.push({ season, week, seasonType, teamId, opponentTeamId, gameId, pointsFor: pointsFor ?? null, pointsAgainst: pointsAgainst ?? null, stats: sparseStats(sourceRow), sourceRow });
   });
   const hash = (b) => `sha256:${crypto.createHash("sha256").update(b).digest("hex")}`;
-  return { receipt: { runId, sourceUrl, sourceRef: hash(raw), sourceBytes: raw.length, sourceRows: parsed.rows.length, metadata: { schema_fingerprint: hash(Buffer.from(JSON.stringify(parsed.headers))), source_columns: parsed.headers } }, rows, unmatchedRows: 0 };
+  return { receipt: { runId, sourceUrl, sourceRef: hash(raw), sourceBytes: raw.length, sourceRows: parsed.rows.length, metadata: { schema_fingerprint: hash(Buffer.from(JSON.stringify(parsed.headers))), source_columns: parsed.headers } }, rows, unmatchedRows: teamMissing };
 }
 module.exports = { adaptTeamWeeklyCsv, sourceUrlForSeason, MAX_SOURCE_BYTES, REQUIRED_COLUMNS };

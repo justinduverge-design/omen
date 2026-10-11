@@ -103,10 +103,12 @@ test("scheduled backup and restore use separate timers, pinned trust, and clean 
 test("credential proofs connect over the container's network address, not trusted loopback", () => {
   const snapshot = fs.readFileSync(path.join(root, "create-snapshot.sh"), "utf8");
   const provision = fs.readFileSync(path.join(root, "..", "provision-login-roles.sh"), "utf8");
-  for (const script of [snapshot, provision]) {
-    assert.match(script, /--host "\$\(hostname -i \| cut -d\\ {2}-f1\)" --port 5432/);
-    assert.doesNotMatch(script, /--host 127\.0\.0\.1/);
-  }
+  // The backup passfile is keyed to the container name, so connect by that name (it resolves to a
+  // non-loopback address and falls under the scram rule). The login-role probe uses a wildcard passfile.
+  assert.match(snapshot, /--host "\$3" --port 5432/);
+  assert.match(snapshot, /"\$BACKUP_ROLE" "\$DATABASE" "\$CONTAINER" < "\$PGPASS_FILE"/);
+  assert.match(provision, /--host "\$\(hostname -i \| cut -d\\ {2}-f1\)" --port 5432/);
+  for (const script of [snapshot, provision]) assert.doesNotMatch(script, /--host 127\.0\.0\.1/);
 });
 
 test("scheduled backup heartbeat rebuilds the Kuma query and retention groups snapshots by tag", () => {

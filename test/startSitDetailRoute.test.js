@@ -261,7 +261,11 @@ function loadRouter(options = {}) {
         return options.rosterSvc || { fetchAndNormalizeRoster: async () => ROSTER, normalizeYahooWaivers: () => [] };
       }
       if (request === "../services/playerUsage" && options.getUsageBundle) {
-        return { getUsageBundle: options.getUsageBundle };
+        return { getUsageBundle: options.getUsageBundle, resolveGsis: options.resolveGsis || (async () => new Map()) };
+      }
+      // Omen's own stats read nflverse over the network; route tests never do.
+      if (request === "../services/fantasyMetrics/fantasyMetricsData") {
+        return { getSeasonBundle: options.getSeasonBundle || (async () => null) };
       }
       if (request === "../adapters/sleeper") return options.sleeperAdapter || {};
       if (request === "../adapters/espn") return options.espnAdapter || {};
@@ -724,4 +728,36 @@ test("signal: the gap sentence agrees with the confidence band and the close sta
     assert.equal(inside, body.recommendation.confidence === "low", `${startPts}: ${gap.statement}`);
     assert.equal(inside, body.state === "close_decision", `${startPts}: ${gap.statement}`);
   }
+});
+
+test("fantasy metrics: the route adds Fated Points lines from the season bundle, and none without one", async () => {
+  const line = { receiving_receptions: 5, receiving_yards: 60 };
+  const rollups = [4, 5, 6].map((week) => ({
+    player: "00-SMITH", week, team: "PHI", targets: 7, carries: 0, expected: line, actual: line, fallbackPlays: 0,
+    opportunity: { rz_targets: 0, i10_targets: 0, ez_targets: 0, deep_targets: 0, rz_carries: 0, i10_carries: 0, gl_carries: 0 },
+  }));
+  const bundle = {
+    byPlayer: new Map([["00-SMITH", rollups]]), byTeam: new Map([["PHI", rollups]]), teamWeeks: new Map([["PHI", [4, 5, 6]]]),
+    positions: new Map([["00-SMITH", "WR"]]), names: new Map(), games: [],
+  };
+  const sleeperAdapter = {
+    fetchSleeperLeague: async () => ({ name: "Dynasty Dogs", scoring_settings: { rec: 0.5 } }),
+    buildNormalizedRoster: async () => ROSTER,
+  };
+  const empty = async () => ({ usage: new Map(), weekly: new Map() });
+  const withBundle = buildApp({
+    connections: [SLEEPER_CONN], sleeperAdapter, getUsageBundle: empty,
+    resolveGsis: async () => new Map([["p-DeVonta-Smith", "00-SMITH"]]),
+    getSeasonBundle: async ({ season }) => (season === 2026 ? bundle : null),
+  });
+  const { status, body } = await request(withBundle);
+  assert.equal(status, 200);
+  const metric = body.evidence.filter((row) => row.category === "omen_metric");
+  assert.ok(metric.length >= 2);
+  assert.match(metric[0].statement, /^Fated Points \(beta\): DeVonta Smith's usage was worth 8\.5 half-PPR points a game over his last 3 games/);
+
+  const without = buildApp({ connections: [SLEEPER_CONN], sleeperAdapter, getUsageBundle: empty });
+  const plain = await request(without);
+  assert.equal(plain.status, 200);
+  assert.equal(plain.body.evidence.some((row) => row.category === "omen_metric"), false);
 });

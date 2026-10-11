@@ -417,7 +417,10 @@ const server = app.listen(config.port, () => {
 const shutdown = (signal, exitCode = 0) => {
   logger.info(`${signal} received, draining...`);
   server.close(async () => {
-    await closeWarehouseUsageRuntime().catch(() => {
+    await Promise.all([
+      closeWarehouseUsageRuntime(),
+      require("./services/footballWarehouse/sharedUsageAccess").closeRuntime(),
+    ]).catch(() => {
       logger.warn("Warehouse read pool did not close cleanly");
     });
     logger.info("HTTP server closed");
