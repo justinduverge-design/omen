@@ -91,6 +91,13 @@ final class LeagueCarouselViewModel: ObservableObject {
     /// Set while a rest-on-page selection is being written, so the widget can say the
     /// context is changing rather than appear to have changed already.
     @Published private(set) var committingPageID: String?
+    /// The page `commit(_:)` last wrote to the server, until the directory re-read confirms it as active.
+    ///
+    /// The team picker on Omen, Trade and League commits a league BY NAME and deliberately leaves
+    /// `selectedIndex` alone, so `currentPage` keeps pointing at the carousel's old resting page. Screens that
+    /// reload "for the selected context" must therefore use `activePage`, not `currentPage`, or they re-read the
+    /// league the user just left (seen in the iOS Simulator on 2026-10-11: chip said TTO, table showed HBT's league).
+    @Published private(set) var committedPage: Page?
 
     /// Starred teams, in star order. Contract §3.
     @Published private(set) var favorites = LeagueFavorites()
@@ -210,6 +217,12 @@ final class LeagueCarouselViewModel: ObservableObject {
 
     var currentPage: Page? {
         pages.indices.contains(selectedIndex) ? pages[selectedIndex] : nil
+    }
+
+    /// The league the app is actually on: the one just committed, else the one the server reports active.
+    /// Falls back to the carousel's resting page only when neither is known yet.
+    var activePage: Page? {
+        committedPage ?? allPages.first(where: { $0.isActive }) ?? currentPage
     }
 
     /// The chip row: All first, then providers in the server's order. Only providers that
@@ -367,6 +380,7 @@ final class LeagueCarouselViewModel: ObservableObject {
 
         switch result {
         case .success(let selection):
+            committedPage = page
             // The directory is still re-read rather than flipped locally: the server decides what
             // is active now. But the screens' own re-reads no longer wait behind it. Measured on
             // the founder's iPhone 2026-10-01, `GET /api/leagues` alone took 2.0-3.0 s and ran
@@ -394,6 +408,8 @@ final class LeagueCarouselViewModel: ObservableObject {
 
         let restingID = currentPage?.id
         directory = loaded
+        // The server's own answer to "which league is active" is now in `directory`.
+        committedPage = nil
         availablePlatforms = loaded.platforms
             .filter { group in group.leagues.contains(where: { $0.isFollowed }) }
             .map(\.platform)

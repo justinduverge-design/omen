@@ -516,7 +516,7 @@ struct CommandCenterView: View {
     }
 
     private func loadLeagueForSelectedContext() async {
-        let page = leagueCarouselViewModel.currentPage ?? leagueCarouselViewModel.allPages.first(where: { $0.isActive })
+        let page = leagueCarouselViewModel.activePage
         await leagueViewModel.load(userID: userID, platform: page?.platform, leagueID: page?.leagueID)
     }
 }
