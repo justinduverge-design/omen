@@ -224,8 +224,31 @@ final class LeagueCarouselViewModel: ObservableObject {
     /// The league the app is actually on: the one just committed, else the one the server reports active.
     /// Falls back to the carousel's resting page only when neither is known yet.
     var activePage: Page? {
-        committedPage ?? allPages.first(where: { $0.isActive }) ?? currentPage
+        allPages.first(where: { isCurrent($0) }) ?? currentPage
     }
+
+    /// The id of the ONE league Omen is using right now, or nil when none can be named.
+    ///
+    /// Order of authority: the league this view model last wrote to the server (the account-wide
+    /// selection, and the freshest fact we have), then the directory's top-level `active`
+    /// (the server's own answer), and only for an old server that sends neither, the first page the
+    /// directory flagged `isActive`.
+    ///
+    /// `Page.isActive` must not be used to draw a tick, chip, highlight or accessibility label: the
+    /// directory sets it for one league per PROVIDER at once, so an ESPN, a Sleeper and a Yahoo
+    /// league all read "active" together and the sheet showed several unexplained check marks.
+    var currentLeagueID: String? {
+        if let id = lastCommittedPageID, allPages.contains(where: { $0.id == id }) { return id }
+        if let active = directory?.active, let platform = active.platform, let leagueID = active.leagueID {
+            let id = "\(platform):\(leagueID)"
+            if allPages.contains(where: { $0.id == id }) { return id }
+        }
+        return allPages.first(where: { $0.isActive })?.id
+    }
+
+    /// True for exactly one page: the league Omen is using now. The only predicate UI may use for
+    /// "this is the current league".
+    func isCurrent(_ page: Page) -> Bool { page.id == currentLeagueID }
 
     /// The chip row: All first, then providers in the server's order. Only providers that
     /// actually have a followed league get a chip — a chip that filters to nothing is a
@@ -277,7 +300,7 @@ final class LeagueCarouselViewModel: ObservableObject {
             // differ, and the old lookup would have landed the pager on an unrelated league.
             // Falls back to 0 when the active league is filtered out — the user is looking at
             // one provider, and yanking them to another to chase the active flag would fight them.
-            selectIndexProgrammatically(pages.firstIndex(where: { $0.isActive }) ?? 0)
+            selectIndexProgrammatically(pages.firstIndex(where: { isCurrent($0) }) ?? 0)
             viewState = allPages.isEmpty ? .empty : .loaded
             await loadCurrentPage()
         case .failure(let error):

@@ -75,7 +75,7 @@ struct OmenTeamPicker: View {
                         // accessibility label, which is where a long name belongs anyway.
                         label: compactChipLabel(page),
                         tone: chipTone(page.platform),
-                        selected: page.isActive,
+                        selected: viewModel.isCurrent(page),
                         enabled: viewModel.committingPageID == nil,
                         action: {
                             Task {
@@ -153,7 +153,8 @@ struct OmenTeamPicker: View {
                     OmenSwitchGroup(title: "Favourites", rows: switcherTeams.filter(\.isFavorite).map(switchRow)),
                     OmenSwitchGroup(title: "All teams", rows: switcherTeams.filter { !$0.isFavorite }.map(switchRow))
                 ].filter { !$0.rows.isEmpty },
-                notice: switcherNotice
+                notice: switcherNotice,
+                caption: Self.switcherCaption
             ),
             onSelectFilter: { viewModel.selectedPlatform = $0 },
             onSelectRow: { row in
@@ -175,8 +176,30 @@ struct OmenTeamPicker: View {
                 viewModel.toggleFavorite(page)
             }
         )
-        .presentationDetents([.height(sheetHeight)])
+        // The system's own sheet: detent, drag indicator, corners and dismiss gesture. Only the
+        // fill is ours, so the list sits on the app's surface rather than a stock material.
+        .presentationDetents(sheetDetents)
         .presentationDragIndicator(.visible)
+        .presentationBackground(OmenColor.surface1)
+    }
+
+    /// What the check and the star mean, in plain words. Founder, 2026-10-01: the check marks
+    /// were "unexplained".
+    static let switcherCaption =
+        "The check marks the one league Omen is using right now. Tap a team to switch to it; star a team to keep it at the top."
+
+    private var sheetDetents: Set<PresentationDetent> {
+        let height = OmenSwitchSheet.preferredHeight(
+            // Sized from every team, not the filtered list: the sheet must not resize under the
+            // user's thumb each time they tap a provider segment.
+            rowCount: viewModel.allPages.count,
+            groupCount: Set(viewModel.allPages.map { viewModel.isFavorite($0) }).count,
+            hasFilters: platformFilters.count > 1,
+            hasNotice: (viewModel.directory?.platforms ?? []).contains { !($0.notice ?? "").isEmpty },
+            hasCaption: true
+        )
+        // Capped sheets also open to full height, so a long list is not stuck behind a scroll view.
+        return height >= OmenSwitchSheet.maximumHeight ? [.height(height), .large] : [.height(height)]
     }
 
     /// The artboard's row. The crest is derived from the team name the provider gave, never
@@ -196,13 +219,6 @@ struct OmenTeamPicker: View {
     /// itself always shows every team.
     private var switcherTeams: [OmenSwitcherTeam] { viewModel.pages.map(switcherTeam) }
 
-    private var sheetHeight: CGFloat {
-        OmenTeamSwitcherSheet.preferredHeight(
-            forTeamCount: switcherTeams.count,
-            showsFilters: platformFilters.count > 1,
-            showsAddLeague: onAddLeague != nil
-        )
-    }
 
     /// All, then only the providers that actually have a team. A filter that can only ever
     /// return the same list is a control with nothing to do, so a single-provider user gets
@@ -276,7 +292,7 @@ struct OmenTeamPicker: View {
     }
 
     private func accessibilityLabel(_ page: LeagueCarouselViewModel.Page) -> String {
-        let state = page.isActive
+        let state = viewModel.isCurrent(page)
             ? ", the league Omen is using"
             : (viewModel.committingPageID == page.id ? ", switching" : "")
         let favorite = viewModel.isFavorite(page) ? ", favourite" : ""
@@ -301,7 +317,7 @@ extension OmenTeamPicker {
             platform: omenPlatform(page.platform),
             teamName: fullChipLabel(page),
             subtitle: subtitle(page),
-            isActive: page.isActive,
+            isActive: viewModel.isCurrent(page),
             isFavorite: viewModel.isFavorite(page),
             isCommitting: viewModel.committingPageID == page.id
         )
