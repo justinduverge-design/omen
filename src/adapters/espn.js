@@ -664,13 +664,29 @@ function leagueNameFromEspnData(data) {
   return typeof name === "string" && name.trim() ? name.trim() : null;
 }
 
-/** One fetch, both answers. Used by the routes that build an envelope carrying a league name. */
+/**
+ * The league's playoff-team count, from the `mSettings` payload this call already requests
+ * (`settings.scheduleSettings.playoffTeamCount`, the field ESPN's own web client and the
+ * community `espn-api` library read). Costs no extra provider call.
+ *
+ * Returns `null` unless the value is a whole number of at least 1. An absent, zero or malformed
+ * field must read as "not known" (the cut line stays unclaimed) and never as a guessed count.
+ */
+function playoffTeamCountFromEspnData(data) {
+  const raw = data?.settings?.scheduleSettings?.playoffTeamCount;
+  if (raw === null || raw === undefined || raw === "") return null;
+  const count = Number(raw);
+  return Number.isInteger(count) && count >= 1 ? count : null;
+}
+
+/** One fetch, all answers. Used by the routes that build an envelope carrying a league name. */
 async function buildLeagueContext(leagueId, espn_s2, swid, opts = {}) {
   const scoringPeriodId = Number(opts.week || opts.scoringPeriodId || 1);
   const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTeam", "mSettings"], scoringPeriodId, opts);
   return {
     league_name: leagueNameFromEspnData(data),
     standings: standingsFromEspnData(data, swid, opts),
+    playoff_teams: playoffTeamCountFromEspnData(data),
   };
 }
 
@@ -1326,6 +1342,7 @@ module.exports = {
   fetchEspnLastResult,
   fetchEspnMatchup,
   fetchEspnLeagueRosters,
+  playoffTeamCountFromEspnData,
   leagueRostersFromEspnSchedule,
   verifyLeagueAccess,
   lastResultFromEspnSchedule,

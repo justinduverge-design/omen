@@ -483,3 +483,88 @@ test("activity items are capped at three by the server, never by the client", as
 
   assert.ok(res.body.activity.items.length <= 3);
 });
+
+// ---------------------------------------------------------------------------
+// ESPN and Yahoo playoff-team counts (provider capability matrix v1, gap G1).
+// ---------------------------------------------------------------------------
+
+const THREE_TEAM_STANDINGS = [
+  { rank: 1, team_id: "3", team_name: "Top Dogs", is_current_user: false, wins: 7, losses: 1 },
+  { rank: 2, team_id: "9", team_name: "ESPN Team", is_current_user: true, wins: 6, losses: 2 },
+  { rank: 3, team_id: "5", team_name: "Also Rans", is_current_user: false, wins: 2, losses: 6 },
+];
+
+test("ESPN overview draws a real cut line when mSettings supplies the playoff-team count", async () => {
+  const app = buildApp({
+    connections: [ESPN_CONNECTION],
+    espnAdapter: defaultEspnAdapter({
+      buildLeagueContext: async () => ({ league_name: "L", standings: THREE_TEAM_STANDINGS, playoff_teams: 2 }),
+    }),
+  });
+
+  const res = await request(app, "/api/league/overview");
+  const picture = res.body.standings.playoff_picture;
+
+  assert.equal(picture.settings_known, true);
+  assert.equal(picture.line, "2nd of 3 · in a playoff spot");
+  assert.equal(picture.cut_line_note, "4 games clear of the cut line");
+  assert.equal(res.body.decision_context.inputs.league_playoff_settings.state, "live");
+});
+
+test("ESPN overview without a playoff-team count still claims no cut line", async () => {
+  const app = buildApp({
+    connections: [ESPN_CONNECTION],
+    espnAdapter: defaultEspnAdapter({
+      buildLeagueContext: async () => ({ league_name: "L", standings: THREE_TEAM_STANDINGS, playoff_teams: null }),
+    }),
+  });
+
+  const res = await request(app, "/api/league/overview");
+
+  assert.equal(res.body.standings.playoff_picture.settings_known, false);
+  assert.equal(res.body.standings.playoff_picture.cut_line_note, null);
+  assert.equal(res.body.decision_context.inputs.league_playoff_settings.reason_code, "settings_not_read");
+});
+
+function fakeYahooClient(overrides = {}) {
+  return {
+    getLeagueMetadata: async () => ({ league_name: "Yahoo League", season: 2026, week: 8 }),
+    getMyTeamKey: async () => "nfl.l.1.t.9",
+    getLeagueStandings: async () => THREE_TEAM_STANDINGS.map((t) => ({ ...t, team_id: `nfl.l.1.t.${t.team_id}` })),
+    getMatchup: async () => null,
+    getPlayoffTeamCount: async () => 2,
+    ...overrides,
+  };
+}
+
+const YAHOO_CONNECTION = {
+  user_id: "user-1",
+  platform: "yahoo",
+  is_active: true,
+  league_id: "nfl.l.1",
+  token_secret_id: "t",
+  refresh_secret_id: "r",
+};
+
+test("Yahoo overview reads the playoff-team count from league settings", async () => {
+  const app = buildApp({ connections: [YAHOO_CONNECTION], yahooClient: fakeYahooClient() });
+
+  const res = await request(app, "/api/league/overview");
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.platform, "yahoo");
+  assert.equal(res.body.standings.playoff_picture.settings_known, true);
+});
+
+test("Yahoo overview survives a failing or empty settings read with no cut line", async () => {
+  for (const getPlayoffTeamCount of [
+    async () => { throw new Error("yahoo down"); },
+    async () => null,
+  ]) {
+    const app = buildApp({ connections: [YAHOO_CONNECTION], yahooClient: fakeYahooClient({ getPlayoffTeamCount }) });
+    const res = await request(app, "/api/league/overview");
+    assert.equal(res.status, 200);
+    assert.equal(res.body.standings.status, "available");
+    assert.equal(res.body.standings.playoff_picture.settings_known, false);
+  }
+});

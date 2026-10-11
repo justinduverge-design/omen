@@ -340,6 +340,33 @@ class YahooClient {
     return d?.fantasy_content?.league ?? null;
   }
 
+  /**
+   * The league's playoff-team count from `/league/{key}/settings` (`num_playoff_teams`).
+   *
+   * The settings container sits in the SECOND element of `fantasy_content.league`, wrapped in a
+   * one-element array (verified 2026-09-06, see waiverSystem.fromYahoo). Every element is
+   * searched rather than indexing, and both Yahoo serialisations are accepted. Returns null
+   * unless the value is a whole number of at least 1, so an unreadable settings payload leaves
+   * the cut line unclaimed rather than guessed. Any provider error also yields null.
+   */
+  async getPlayoffTeamCount(leagueKey) {
+    try {
+      const league = await this.getLeagueSettings(leagueKey);
+      const parts = Array.isArray(league) ? league : [league];
+      for (const part of parts) {
+        const read = yahooAttrReader(part);
+        const found = read ? read("settings") : null;
+        if (!found) continue;
+        const container = Array.isArray(found) ? found[0] : found;
+        const count = numberOrNull(yahooAttrReader(container)?.("num_playoff_teams"));
+        return Number.isInteger(count) && count >= 1 ? count : null;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
   /** Roster for a team at a given week. Returns raw Yahoo response. */
   async getRoster(teamKey, week) {
     const path = week
