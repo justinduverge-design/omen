@@ -116,14 +116,10 @@ struct CommandCenterView: View {
                 viewModel: leagueCarouselViewModel,
                 userID: userID,
                 onContextChanged: { _ in
-                    Task {
-                        // Every personalized surface, not just the visible one — a user who
-                        // switches on Trade and then taps League must not find the old team
-                        // there.
-                        await commandCenterViewModel.load(userID: userID)
-                        await loadLeagueForSelectedContext()
-                        await omenDecisionViewModel.load(userID: userID)
-                    }
+                    // Every personalized surface, not just the visible one — a user who
+                    // switches on Trade and then taps League must not find the old team
+                    // there. Concurrent: see `reloadAllAfterContextChange`.
+                    Task { await reloadAllAfterContextChange() }
                 },
                 onAddLeague: { showConnectSheet = true },
                 // Command Center's Context Strip has its own "Switch". Both open this one
@@ -253,11 +249,7 @@ struct CommandCenterView: View {
                         carousel: leagueCarouselViewModel,
                         userID: userID,
                         onContextChanged: { _ in
-                            Task {
-                                await commandCenterViewModel.load(userID: userID)
-                                await loadLeagueForSelectedContext()
-                                await omenDecisionViewModel.load(userID: userID)
-                            }
+                            Task { await reloadAllAfterContextChange() }
                         }
                     )
                 } else {
@@ -280,11 +272,7 @@ struct CommandCenterView: View {
                         // Omen and League destinations reload lazily on their own `.task`,
                         // so the shell is the one that has to be told.
                         onContextChanged: { _ in
-                            Task {
-                                await commandCenterViewModel.load(userID: userID)
-                                await loadLeagueForSelectedContext()
-                                await omenDecisionViewModel.load(userID: userID)
-                            }
+                            Task { await reloadAllAfterContextChange() }
                         },
                         loadReceipt: { await commandCenterViewModel.loadReceipt(id: $0) }
                     )
@@ -511,6 +499,20 @@ struct CommandCenterView: View {
             return .none
         }
         return OmenBetaReportConnectionState(provider: provider, state: .connected)
+    }
+
+    /// Reloads every personalized surface after a context (league) change.
+    ///
+    /// The three reads are independent, so they run concurrently. They used to run one after another
+    /// (Command, then League, then the Omen engine), which made a switch cost the SUM of all three —
+    /// measured on 2026-10-11 at about 7.5 s end to end, most of it spent on tabs the user was not
+    /// looking at. Each load still resets its own state first, so no surface shows the previous
+    /// team's numbers (§10.3); only the waiting overlaps.
+    private func reloadAllAfterContextChange() async {
+        async let command: Void = commandCenterViewModel.load(userID: userID)
+        async let league: Void = loadLeagueForSelectedContext()
+        async let omen: Void = omenDecisionViewModel.load(userID: userID)
+        _ = await (command, league, omen)
     }
 
     private func loadLeagueForSelectedContext() async {
