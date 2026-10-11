@@ -37,6 +37,10 @@ function tierFor(row) {
   // Signal-vs-noise usage steadiness (signalNoise.js): last of the observed facts, so it never evicts a breakdown or team row.
   if (category === "recent_usage" && kind === "observed_context") return { tier: "observed", rank: 0.35 };
   if (category === "player_game_fact" && kind === "projection") return { tier: "projection", rank: 2 };
+  // Omen's own stats (beta): shown in full in `evidence`, but ranked after the projection gap so the
+  // three-statement "why" keeps explaining the provider's projection first.
+  if (category === "omen_metric" && kind === "observed_context") return { tier: "observed", rank: 2.5 };
+  if (category === "game_environment" && kind === "projection") return { tier: "projection", rank: 2.6 };
   if (category === "omen_inference" && kind === "inference") return { tier: "inference", rank: 4 };
   // league_fact and anything unrecognized is context, not a reason.
   return null;

@@ -20,7 +20,6 @@
 
 const express = require("express");
 const { createClient } = require("@supabase/supabase-js");
-const { Pool } = require("pg");
 const config = require("../config");
 const { logger } = require("../middleware/logging");
 const { requireAuth } = require("../middleware/auth");
@@ -35,8 +34,9 @@ const {
   CONTRACT_VERSION_V2,
   buildStartSitDetail,
 } = require("../services/startSitDetail");
-const { getUsageBundle } = require("../services/playerUsage");
-const { createFailSafeWarehouseReadRuntime } = require("../services/footballWarehouse/readRuntime");
+const { getUsageBundle, resolveGsis } = require("../services/playerUsage");
+const { getSeasonBundle } = require("../services/fantasyMetrics/fantasyMetricsData");
+const { getRuntime: getSharedWarehouseRuntime, closeRuntime: closeSharedWarehouseRuntime } = require("../services/footballWarehouse/sharedUsageAccess");
 const { createUsageShadowRunner } = require("../services/footballWarehouse/usageShadow");
 const { getWarehouseUsageBundle } = require("../services/footballWarehouse/warehouseUsageBundle");
 const { getTeamSystemSummaries } = require("../services/footballIntelligence/teamSystemLines");
@@ -50,10 +50,8 @@ const router = express.Router();
 // The points breakdown is advisory; its extra reads never hold the route longer than this.
 const PROJECTION_BREAKDOWN_BUDGET_MS = 2500;
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
-const warehouseUsageRuntime = createFailSafeWarehouseReadRuntime({
-  Pool,
-  onShadowUnavailable: (event) => logger.warn("Football warehouse reader unavailable", event),
-});
+// One process-wide runtime shared with the Omen call and Waiver Analysis; strict keeps warehouse mode fail-closed.
+const warehouseUsageRuntime = getSharedWarehouseRuntime({ logger, strict: true });
 const usageReader = createUsageShadowRunner({
   readLegacy: (input) => getUsageBundle(input),
   readWarehouse: (input) => getWarehouseUsageBundle({
@@ -77,6 +75,22 @@ function detailError({ code, message, action, platform = null }) {
     action,
     ...(platform ? { platform } : {}),
   };
+}
+
+// Omen's own stats (beta slice): the cached nflverse season bundle plus the roster's gsis ids. Any
+// failure is null and the response simply carries no metric lines.
+async function loadFantasyMetrics({ supabase, rosterKeys, season }) {
+  try {
+    if (!supabase || !rosterKeys.length || !Number.isInteger(season)) return null;
+    const [bundle, gsisByKey] = await Promise.all([
+      getSeasonBundle({ season, log: logger }),
+      resolveGsis(supabase, rosterKeys),
+    ]);
+    return bundle ? { bundle, gsisByKey } : null;
+  } catch (error) {
+    logger.warn("fantasy metrics skipped", { reason: error.message });
+    return null;
+  }
 }
 
 function scoringFormatFromSleeperLeague(league) {
@@ -234,6 +248,8 @@ router.get("/detail", requireAuth, async (req, res, next) => {
       .map((player) => player?.player_key).filter(Boolean);
     const rosterTeams = [...(loaded.roster?.slots?.starters || []), ...(loaded.roster?.slots?.bench || [])]
       .map((player) => player?.team).filter(Boolean);
+    // Started now, awaited after the other reads, so a cold metrics cache overlaps them.
+    const fantasyMetricsRead = suppressLiveFootballData() ? Promise.resolve(null) : loadFantasyMetrics({ supabase, rosterKeys, season: Number(context.season) });
     // One usage read yields both the summaries and the per-week rows (signal vs noise), so the second
     // costs no extra round trip; any failure is empty maps and the response is unchanged.
     const [{ usage, weekly: weeklyUsage }, teamSystem] = suppressLiveFootballData()
@@ -254,12 +270,14 @@ router.get("/detail", requireAuth, async (req, res, next) => {
     const breakdowns = suppressLiveFootballData()
       ? null
       : await loadProjectionBreakdowns({ connection, loaded, season: Number(context.season), week: Number(resolvedWeek) });
+    const fantasyMetrics = await fantasyMetricsRead;
 
     return res.json(buildStartSitDetail({
       usage,
       weeklyUsage,
       teamSystem,
       breakdowns,
+      fantasyMetrics,
       roster: loaded.roster,
       platform: connection.platform,
       leagueId: connection.league_id,
@@ -280,4 +298,4 @@ router.get("/detail", requireAuth, async (req, res, next) => {
 
 module.exports = router;
 module.exports.scoringFormatFromSleeperLeague = scoringFormatFromSleeperLeague;
-module.exports.closeWarehouseUsageRuntime = () => warehouseUsageRuntime.close();
+module.exports.closeWarehouseUsageRuntime = () => closeSharedWarehouseRuntime();

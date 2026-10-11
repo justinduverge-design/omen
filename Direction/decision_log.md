@@ -30,6 +30,106 @@
   snap share (hybrid, accept the gap, or admit snap counts).
 - **Attribution:** nflverse data is CC BY 4.0; the app needs an "About / Data sources" line before the beta.
 
+## 2026-10-10 — beta slice of Omen's own stats ships descriptive lines first
+
+- **Decision:** for the 2026-10-13 beta, ship Fated Points, Fate Gap, TD Fate Gap, red-zone work, Pecking
+  Order, Next Man Up and Projected Team Score as start/sit evidence lines (spec `omen-fantasy-metrics-v1.md`
+  §3.6).
+  - Computed in the API from nflverse files: no schema change, no warehouse write, no iPhone build.
+  - Omen Grades, Crown Odds and the trend labels are **not** in the beta. They need history, fitted
+    weights, the lineup-solver rewrite and calibration first, so beta users would be critiquing numbers we
+    already know are unchecked.
+- **Why the backtest gate is skipped here:** these lines describe what happened and never drive the call. The
+  gate stays for any predictive use.
+- **Coordination with Codex:**
+  - Batch C's opportunity rules (`nflverseFacts.buildOpportunity`) are adopted unchanged.
+  - Batch C's "Omen QB value v0" is registered as `RAT-QB` v0, so it is built once.
+  - The Codex prompt's production freeze (Monday evening through Tuesday) means the deploy must land by Monday
+    afternoon.
+- **Review:** a `code-review` pass found 10 candidate findings. Fixed:
+  - stream error propagation;
+  - unknown league scoring shows no points at all. The founder rejected a labelled PPR default
+    (2026-10-10, consistent with A6). Pecking Order uses share of targets and carries there instead;
+  - the cold cache read now overlaps the other reads, with stale-while-revalidate;
+  - a failed download is cached briefly instead of retried on every request;
+  - a cache-identity race;
+  - Next Man Up no longer says "missed", and ignores weeks after a trade;
+  - FB is grouped with RB;
+  - new lines rank after the projection gap in the "why";
+  - the duplicated parser is shared.
+
+  Not fixed: the second crosswalk query per request. It is one indexed lookup per provider, and reusing the
+  usage read's ids would touch the warehouse shadow comparison path.
+
+## 2026-10-10 — registry decisions: Omen-tied rating name, title odds as a number, IDP now, draft groundwork
+
+- **Founder decisions:**
+  - "Augur" rejected. Position ratings take one family name tied to Omen; working name **Omen Grade**
+    (alternatives listed in the registry).
+  - The other proposed stat names are approved as working names.
+  - **Title contention may carry a number** (D-CROWN). The confidence of a call stays a band (fact 16).
+  - **IDP ratings are built in R1** (D-IDP).
+  - Lay light foundations for a later draft tool. Registry §5 (`DRF-01`..`06`) holds internal definitions
+    only, per product rule 8. ADP needs its own source-rights review.
+- **Timing (founder):** these stats are for beta users to critique, ideally usable by Tuesday 2026-10-13.
+  Draft stats are not needed now.
+
+## 2026-10-10 — trade value v3 is "title odds", the stat registry is the single list
+
+- **Decisions (founder), applied in `Blueprints/specs/football-data/omen-trade-value-v3.md`:**
+  1. The league provider's projection stays the main number. Omen aims to beat it; Omen's read is evidence
+     until a season of results says otherwise.
+  2. Trade value is built on the lineup change, with scarcity covered explicitly. Scarcity enters through
+     the real waiver pool, the lineup change and the injury path, and is shown as the Scarcity Meter. It is
+     no longer an additive bonus.
+  3. Fantasy playoff weeks are weighted by the user's playoff odds.
+  4. Replacement level is the best player actually free in the league, with a formula fallback.
+  5. Floor versus ceiling is automatic from standing. Maximising title odds produces it.
+  6. Dynasty leagues include future seasons (Horizon value).
+- **Vision (founder):** v3 values a trade by its change in title and playoff chances ("Crown Odds"), not
+  just points. The v2 constants (fixed replacement levels, +2.0/+0.5/−0.5 scarcity bonus, 1.0/0.5/0.25
+  depth discount) are retired by v3, once approved and shipped.
+- **Ask (founder):** "a QBR for every position group": position ratings for QB, RB, WR, TE, K and DST, OL
+  and defensive units, and IDP players. Scale 0–100, efficiency not volume, opponent-adjusted, shrunk,
+  predictive weights. Spec: `Blueprints/specs/football-data/omen-stat-registry-v1.md` §3.
+- **Ask (founder):** the stars need cool names. Names are proposed in the registry (provisional; brand table
+  and `slops-ux-copy` before any app use). Internal IDs never change, so renaming costs no rebuild.
+- **Rule:** the registry is the complete list of Omen-created stats. Anything outside it is not built, and a
+  definition change is a new version logged here.
+
+## 2026-10-10 — trend evidence uses FTN charting (option A), on the football-intelligence path
+
+- **Decision (founder):** play-type splits use FTN charting (box count, blitz, pass rushers, play-action,
+  motion, screen, RPO, catchable ball) as well as play-by-play. FTN-derived output is labelled
+  `ftn_derived`, carries CC BY-SA 4.0 and "FTN Data via nflverse", and is stored on the
+  football-intelligence serving path, not in the warehouse, so the warehouse's nflverse-only `rights_basis`
+  is unchanged. Spec: `Blueprints/specs/football-data/omen-trend-evidence-v1.md`; sprint item `FM-TREND`.
+- **Decision (founder):** "keep it all in the same stack": the fantasy metrics spec, the trend evidence
+  spec and the stats-and-scenarios catalogue ship together in one PR.
+- **Design choices:**
+  - Trends are labelled coincidence / correlation / likely cause by fixed tests (stickiness, a confounder
+    check, a dated event from data Omen holds), never by judgement.
+  - A broad claim is suppressed when a context matching this week's opponent credibly points the other way
+    (the "curveball" rule).
+  - "Likely cause" is the strongest label; cause is never claimed as proven.
+
+## 2026-10-10 — build our own fantasy stats; no cap-space data in the warehouse
+
+- **Decision (founder):** answer the rights-excluded stats (Next Gen Stats, PFR advanced stats, ESPN QBR and
+  depth charts, OverTheCap contracts) by calculating Omen's own metrics from admitted nflverse data:
+  expected fantasy points, opportunity, a usage-based role chart and a dynasty outlook. Spec:
+  `Blueprints/specs/football-data/omen-fantasy-metrics-v1.md`; sprint item `FM-XFP`.
+- **Decision (founder):** team cap space and contracts are **not** added, because that would need a new
+  source and a change to the warehouse's nflverse-only `rights_basis` rule. The dynasty outlook uses vacated
+  opportunity, position-group age and draft capital instead. If a licence ever arrives, the data belongs
+  outside the warehouse.
+- **Design choice:** the warehouse stores a league-neutral expected stat line; league xFP is calculated at
+  read time with `calculateContractScore`, so expected and graded points share one scoring language.
+  Threshold and range bonus rules are excluded from xFP and named, never guessed.
+- **Not used in v1:** FTN charting (share-alike), snap counts (rights review open).
+- Research behind this (source options, prices, terms) was given in chat on 2026-10-10. It is not
+  legal advice.
+
 ## 2026-10-04 — the "why" is built from the tagged evidence rows (engine step 5)
 
 - **Decision:** `src/services/evidenceWhy.js` turns the ordered evidence rows into at most three

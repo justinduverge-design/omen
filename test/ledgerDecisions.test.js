@@ -557,11 +557,14 @@ function loadMovesRouter(db) {
   }
 }
 
+// A value no served timestamp or id can contain ("71" alone appears in an ISO clock reading by chance).
+const INTERNAL_SCORE = 71.318;
+
 function decisionRow(id, fields = {}) {
   return {
     id, user_id: USER, league_id: LEAGUE, provider_team_id: "414.l.12345.t.7", season: 2026, week: 1,
     call_type: "start_sit", contract_version: "omen-decision-brief.v3", engine_version: "omen-mvp-engine",
-    band: "leaning", band_drivers: ["Live edge."], band_unavailable_reason: null, internal_score: 71,
+    band: "leaning", band_drivers: ["Live edge."], band_unavailable_reason: null, internal_score: INTERNAL_SCORE,
     headline: "Start A over B", summary: "Start A.", recommendation: { id: "rec", primary_player: { name: "A" } },
     scoring_format: "ppr", scoring_contract_version: "scoring-contract.v1", scoring_coverage_state: "supported",
     issued_at: "2026-09-10T15:00:00.000Z", issued_at_timezone: "UTC", supersedes_id: null, legacy_move_id: null,
@@ -631,7 +634,7 @@ test("moves-history.v2 reads the league's current calls from the new Ledger tabl
   assert.equal(replacement.outcome, "pending");
   assert.equal(legacy.move_type, "hold", "legacy calls keep their original move type");
   assert.equal(JSON.stringify(response.body).includes("internal_score"), false);
-  assert.equal(JSON.stringify(response.body).includes("71"), false);
+  assert.equal(JSON.stringify(response.body).includes(String(INTERNAL_SCORE)), false);
 });
 
 test("moves-history.v2 for a league Omen has no record of is an empty Ledger, not an error", async () => {
@@ -670,7 +673,7 @@ test("move-detail.v1 for a decision is built from the issue-time factors, action
   assert.equal(typeof body.fairness_note, "string");
   assert.ok(Array.isArray(body.capabilities));
   assert.equal(JSON.stringify(body).includes("internal_score"), false);
-  assert.equal(JSON.stringify(body).includes("71"), false, "the engine's internal number is never served");
+  assert.equal(JSON.stringify(body).includes(String(INTERNAL_SCORE)), false, "the engine's internal number is never served");
 });
 
 test("a superseded call's receipt says so instead of waiting for a score that will not come", async () => {
