@@ -120,3 +120,13 @@ test("scheduled backup heartbeat rebuilds the Kuma query and retention groups sn
   // every backup run has a distinct path, so the default host,paths grouping would never prune anything
   assert.match(retention, /restic forget --no-cache --tag omen-football-warehouse --group-by host,tags --keep-daily/);
 });
+
+test("the weekly restore proof pushes a Kuma heartbeat built from the bare endpoint, up only after the proof verifies", () => {
+  const script = fs.readFileSync(path.join(root, "run-weekly-restore-proof.sh"), "utf8");
+  assert.match(script, /KUMA_URL_FILE="\/etc\/omen-warehouse\/kuma-restore-push-url"/);
+  assert.match(script, /url="\$\{url%%\\\?\*\}"/);
+  assert.match(script, /http:\/\/100\.98\.81\.0:3001\/api\/push\/\*\|https:\/\/\*\/api\/push\/\*/);
+  assert.match(script, /push_status down restore_proof_failed/);
+  assert.ok(script.indexOf("verify-restore") < script.indexOf("push_status up restore_proof_completed"));
+  assert.doesNotMatch(script, /echo "\$url"|printf '%s\\n' "\$url"/);
+});

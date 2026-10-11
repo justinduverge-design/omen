@@ -11,6 +11,31 @@ RESTORER="/opt/omen/warehouse-restore/restore-isolated.sh"
 SOURCE_ROOT="/var/lib/omen/warehouse-restore-sources"
 PROOF_ROOT="/var/lib/omen/warehouse-restore-proofs"
 
+KUMA_URL_FILE="/etc/omen-warehouse/kuma-restore-push-url"
+
+# Heartbeat to the dedicated Kuma push monitor on the Pi (same pattern as the nightly backup). The copied Kuma URL
+# already carries a query, so rebuild it from the bare endpoint. A missing file or unreachable Kuma never fails a
+# good proof; the monitor's own silence window catches a job that never ran.
+push_status() {
+  local status="$1" message="$2" url config
+  [[ -f "$KUMA_URL_FILE" && ! -L "$KUMA_URL_FILE" && "$(stat -c '%a:%U:%G' "$KUMA_URL_FILE")" == "600:root:root" ]] || return 0
+  url="$(<"$KUMA_URL_FILE")"
+  [[ "$url" != *$'\n'* && "$url" != *'"'* ]] || return 0
+  case "$url" in
+    http://100.98.81.0:3001/api/push/*|https://*/api/push/*) ;;
+    *) return 0 ;;
+  esac
+  url="${url%%\?*}"
+  config="url = \"${url}?status=${status}&msg=${message}&ping=\""
+  printf '%s\n' "$config" | curl --config - --fail --silent --show-error --max-time 20 >/dev/null 2>&1 || true
+}
+on_exit() {
+  local result=$?
+  if [[ $result -ne 0 ]]; then push_status down restore_proof_failed; fi
+  exit "$result"
+}
+trap on_exit EXIT
+
 [[ "$(hostname)" == "$EXPECTED_HOST" ]] || { echo "warehouse scheduled restore refused: wrong host" >&2; exit 69; }
 [[ "$(id -u)" -eq 0 ]] || { echo "warehouse scheduled restore requires root orchestration" >&2; exit 77; }
 for file in "$KEY" "$KNOWN_HOSTS"; do
@@ -39,3 +64,5 @@ proof="$PROOF_ROOT/restore-proof-${run_id#warehouse-}.json"
 node /opt/omen/warehouse-restore/manifest.js verify-restore "$source/manifest.json" "$proof" >/dev/null
 rm -rf -- "$source"
 printf 'warehouse scheduled restore proof completed: run=%s proof=%s\n' "$run_id" "$proof"
+push_status up restore_proof_completed
+trap - EXIT
