@@ -122,6 +122,30 @@ function isoDate(value, label) {
   return text;
 }
 
+const NEW_YORK_WALL = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/New_York", hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit",
+});
+
+function newYorkWallMillis(instant) {
+  const parts = Object.fromEntries(NEW_YORK_WALL.formatToParts(new Date(instant)).map((part) => [part.type, part.value]));
+  return Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day), Number(parts.hour), Number(parts.minute));
+}
+
+/**
+ * nflverse publishes `gameday` (YYYY-MM-DD) and `gametime` (HH:MM) in US Eastern time. Returns the UTC instant as an
+ * ISO string, correct across daylight-saving changes, or null when the game has no usable time. Same formula as
+ * (gameday || ' ' || gametime)::timestamp AT TIME ZONE 'America/New_York' in PostgreSQL.
+ */
+function kickoffInstantUtc(gameday, gametime) {
+  const day = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(gameday ?? "").trim());
+  const time = /^(\d{2}):(\d{2})$/.exec(String(gametime ?? "").trim());
+  if (!day || !time) return null;
+  const wall = Date.UTC(Number(day[1]), Number(day[2]) - 1, Number(day[3]), Number(time[1]), Number(time[2]));
+  let instant = wall - (newYorkWallMillis(wall) - wall);
+  instant = wall - (newYorkWallMillis(instant) - instant);
+  return new Date(instant).toISOString();
+}
+
 function validateGameTime(value, label) {
   const text = textOrNull(value);
   if (text != null && !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(text)) {
@@ -205,7 +229,7 @@ function adaptSchedulesCsv({ raw, sourceUrl, runId, season }) {
       gameId,
       week,
       gameType: type,
-      kickoffAt: null,
+      kickoffAt: kickoffInstantUtc(sourceRow.gameday, sourceRow.gametime),
       awayTeamId: away.teamId,
       homeTeamId: home.teamId,
       awayScore,
@@ -272,6 +296,7 @@ function adaptSchedulesCsv({ raw, sourceUrl, runId, season }) {
 }
 
 module.exports = {
+  kickoffInstantUtc,
   adaptSchedulesCsv,
   SCHEDULES_SOURCE_URL,
   REQUIRED_COLUMNS,
