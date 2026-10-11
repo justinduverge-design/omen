@@ -160,3 +160,14 @@ extra `F` reserves one independent full-snapshot-equivalent during repair. Write
 the chosen counts to the external policy only after founder approval; the timer
 cannot run successfully without it. Recalculate after historical backfill and
 after any schema or source-row retention expansion.
+
+## KVM2 prerequisite: keep the pinned PostgreSQL 17 image (2026-10-11)
+
+The restore proof needs the pinned image already on KVM2 (it refuses to pull). KVM2 has a daily cron
+(`/etc/cron.d/docker-image-prune`: `docker image prune -af --filter until=24h`) that deletes any image no container uses; it removed this
+one and the first scheduled proof failed with `requires the pre-staged pinned PostgreSQL 17 image`. Keep the image referenced by a stopped container:
+
+```sh
+docker pull postgres@sha256:91eb910c44c7ed13f7f1a4ccadaa9ca72ef14cddc04cacb6e070e48eb44731a3
+docker create --name omen-restore-image-anchor --entrypoint true postgres@sha256:91eb910c44c7ed13f7f1a4ccadaa9ca72ef14cddc04cacb6e070e48eb44731a3
+```
