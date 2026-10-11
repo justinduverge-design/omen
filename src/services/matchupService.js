@@ -54,9 +54,22 @@ function _nflverseUrlForSeason(season) {
   return `${NFLVERSE_BASE_URL}/stats_player_week_${season}.csv`;
 }
 
-async function _fetchRows(cacheKey, season) {
+// One download per season in flight; concurrent callers share it.
+const _inflight = new Map();
+
+function _fetchRows(cacheKey, season) {
   const cached = _cacheGet(cacheKey);
-  if (cached) return cached;
+  if (cached) return Promise.resolve(cached);
+  const running = _inflight.get(cacheKey);
+  if (running) return running;
+  const promise = _download(cacheKey, season).finally(() => {
+    if (_inflight.get(cacheKey) === promise) _inflight.delete(cacheKey);
+  });
+  _inflight.set(cacheKey, promise);
+  return promise;
+}
+
+async function _download(cacheKey, season) {
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
@@ -176,7 +189,8 @@ async function getDvpContext({ position, opponentTeam, season, week }) {
     const weekInt = Number.parseInt(week, 10);
     if (!opponent || !Number.isInteger(seasonInt) || !Number.isInteger(weekInt)) return null;
 
-    const cacheKey = `${seasonInt}-${weekInt}`;
+    // The file holds the whole season, so the download is keyed by season, not by week.
+    const cacheKey = `${seasonInt}`;
     const rows = await _fetchRows(cacheKey, seasonInt);
     if (!rows) return null;
 
@@ -224,4 +238,11 @@ async function getDvpContext({ position, opponentTeam, season, week }) {
   }
 }
 
-module.exports = { getDvpContext };
+function _resetCache() { _cache.clear(); _inflight.clear(); }
+
+/** Loads the season file into the cache ahead of the first request. Rejects on failure; callers swallow it. */
+async function warm({ season }) {
+  if (Number.isInteger(season)) await _fetchRows(`${season}`, season);
+}
+
+module.exports = { getDvpContext, warm, _resetCache };

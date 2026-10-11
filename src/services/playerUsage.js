@@ -41,13 +41,44 @@ const VOLUME_MIN_RATIO = 0.25;
 const SNAP_MIN_DELTA = 0.1;
 
 const cache = new Map(); // `stats:<season>` | `snaps:<season>` | "pfr" -> { at, value }
+const inflight = new Map(); // key -> promise of the one build running for that key
+const failures = new Map(); // key -> { at, error } of the last failed build
+const MAX_STALE_MS = 4 * CACHE_TTL_MS; // beyond this a stale value is not served; the caller waits for a refresh
+const FAILURE_BACKOFF_MS = 60_000; // after a failed build, no new download for this long
 
-async function cached(key, build, now) {
+/**
+ * One build in flight per key, and stale-while-revalidate: a fresh entry is returned as is; an expired
+ * one (younger than MAX_STALE_MS) is returned immediately while a single background refresh runs; an
+ * older one is rebuilt before it is returned. After a failed build nothing is re-downloaded for
+ * FAILURE_BACKOFF_MS: a stale value keeps being served, and with none the callers get the same
+ * rejection without touching the network. A failed first build is otherwise not remembered.
+ */
+function cached(key, build, now) {
   const hit = cache.get(key);
-  if (hit && now - hit.at < CACHE_TTL_MS) return hit.value;
-  const value = await build();
-  cache.set(key, { at: now, value });
-  return value;
+  if (hit && now - hit.at < CACHE_TTL_MS) return Promise.resolve(hit.value);
+  const running = inflight.get(key);
+  const failure = failures.get(key);
+  const backingOff = Boolean(failure) && now - failure.at < FAILURE_BACKOFF_MS;
+  if (hit && now - hit.at < MAX_STALE_MS) {
+    if (!running && !backingOff) refresh(key, build, now).catch(() => {});
+    return Promise.resolve(hit.value);
+  }
+  if (running) return running;
+  if (backingOff) return Promise.reject(failure.error);
+  return refresh(key, build, now);
+}
+
+function refresh(key, build, now) {
+  const promise = Promise.resolve().then(build).then((value) => {
+    cache.set(key, { at: now, value });
+    failures.delete(key);
+    return value;
+  }, (error) => {
+    failures.set(key, { at: now, error });
+    throw error;
+  }).finally(() => { if (inflight.get(key) === promise) inflight.delete(key); });
+  inflight.set(key, promise);
+  return promise;
 }
 
 async function fetchText(url, fetchImpl) {
@@ -146,8 +177,27 @@ function summarize(rows, beforeWeek, snapRows = null) {
   };
 }
 
-/** player_key -> gsis id, read from the crosswalk. */
-async function resolveGsis(supabase, playerKeys) {
+// provider:id -> { gsis, at }. The crosswalk changes rarely, so a hit skips the database round trip.
+// Only found ids are remembered (a miss may be a player added to the crosswalk later). Bounded, oldest out.
+const CROSSWALK_TTL_MS = 24 * 60 * 60 * 1000;
+const CROSSWALK_MAX = 20_000;
+const crosswalkCache = new Map();
+
+function crosswalkGet(key, now) {
+  const hit = crosswalkCache.get(key);
+  if (!hit) return null;
+  if (now - hit.at >= CROSSWALK_TTL_MS) { crosswalkCache.delete(key); return null; }
+  return hit.gsis;
+}
+
+function crosswalkSet(key, gsis, now) {
+  crosswalkCache.delete(key);
+  crosswalkCache.set(key, { gsis, at: now });
+  while (crosswalkCache.size > CROSSWALK_MAX) crosswalkCache.delete(crosswalkCache.keys().next().value);
+}
+
+/** player_key -> gsis id, read from the crosswalk (process cache first, then the database for the rest). */
+async function resolveGsis(supabase, playerKeys, { now = Date.now() } = {}) {
   const byProvider = new Map();
   for (const key of playerKeys) {
     const [provider, id] = String(key || "").split(":");
@@ -156,7 +206,13 @@ async function resolveGsis(supabase, playerKeys) {
     byProvider.get(provider).push(id);
   }
   const out = new Map();
-  for (const [provider, ids] of byProvider) {
+  for (const [provider, allIds] of byProvider) {
+    const ids = [];
+    for (const id of allIds) {
+      const known = crosswalkGet(`${provider}:${id}`, now);
+      if (known) out.set(`${provider}:${id}`, known); else ids.push(id);
+    }
+    if (!ids.length) continue;
     const { data, error } = await supabase
       .from("player_provider_ids")
       .select("provider_player_id, players!inner(gsis_id)")
@@ -165,7 +221,10 @@ async function resolveGsis(supabase, playerKeys) {
     if (error) throw new Error(`crosswalk read failed: ${error.code || "unknown"}`);
     for (const row of data || []) {
       const gsis = row.players?.gsis_id;
-      if (gsis) out.set(`${provider}:${row.provider_player_id}`, gsis);
+      if (gsis) {
+        out.set(`${provider}:${row.provider_player_id}`, gsis);
+        crosswalkSet(`${provider}:${row.provider_player_id}`, gsis, now);
+      }
     }
   }
   return out;
@@ -322,7 +381,13 @@ function usageStatement(name, position, usage) {
   return trend ? `${line} ${trend}` : line;
 }
 
-function _resetCache() { cache.clear(); }
+/** Loads the season CSVs into the cache ahead of the first request. Rejects on failure; callers swallow it. */
+async function warm({ season, fetchImpl = fetch, now = Date.now() } = {}) {
+  if (!Number.isInteger(season)) return;
+  await Promise.all([loadSeason(season, { fetchImpl, now }), loadPfrIds({ fetchImpl, now })]);
+}
+
+function _resetCache() { cache.clear(); inflight.clear(); failures.clear(); crosswalkCache.clear(); }
 
 module.exports = {
   getRecentUsage,
@@ -331,6 +396,7 @@ module.exports = {
   usageStatement,
   summarize,
   resolveGsis,
+  warm,
   _resetCache,
   RECENT_GAMES,
 };

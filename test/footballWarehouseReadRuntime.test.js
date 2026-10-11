@@ -189,3 +189,85 @@ test("an invalid FOOTBALL_DATA_MODE stops startup instead of silently disabling 
   assert.equal(assertFootballDataModeAtStartup({ env: {}, logger, exit: () => assert.fail("must not exit") }), "supabase");
   assert.equal(assertFootballDataModeAtStartup({ env: { FOOTBALL_DATA_MODE: "shadow" }, logger, exit: () => assert.fail("must not exit") }), "shadow");
 });
+
+const IDENTITY_NAME = "warehouse-read-target-identity-v1";
+const READ_CONFIG = { expectedDatabase: "omen_football", expectedRole: "omen_warehouse_read", queryTimeoutMillis: 2000 };
+const GOOD_IDENTITY = { database_name: "omen_football", role_name: "omen_warehouse_read", transaction_read_only: "on" };
+
+test("a failed identity verification is retried on the next query instead of being cached", async () => {
+  const { createVerifiedReadQuery } = require("../src/services/footballWarehouse/readRuntime");
+  let identityCalls = 0;
+  const pool = {
+    query: async (request) => {
+      if (request.name === IDENTITY_NAME) {
+        identityCalls += 1;
+        if (identityCalls === 1) throw new Error("connection reset");
+        return { rows: [GOOD_IDENTITY] };
+      }
+      return { rows: [{ ok: true }] };
+    },
+  };
+  const query = createVerifiedReadQuery({ pool, config: READ_CONFIG });
+  await assert.rejects(() => query({ text: "select 1" }), /connection reset/);
+  assert.deepEqual((await query({ text: "select 1" })).rows, [{ ok: true }]);
+  await query({ text: "select 1" });
+  assert.equal(identityCalls, 2, "a verified target is checked once, not per query");
+});
+
+test("concurrent first queries share one verification, and a mismatch still fails closed", async () => {
+  const { createVerifiedReadQuery } = require("../src/services/footballWarehouse/readRuntime");
+  let identityCalls = 0;
+  const pool = {
+    query: async (request) => {
+      if (request.name === IDENTITY_NAME) {
+        identityCalls += 1;
+        return { rows: [{ ...GOOD_IDENTITY, database_name: "other" }] };
+      }
+      return { rows: [] };
+    },
+  };
+  const query = createVerifiedReadQuery({ pool, config: READ_CONFIG });
+  const results = await Promise.allSettled([query({ text: "a" }), query({ text: "b" })]);
+  assert.deepEqual(results.map((r) => r.reason?.code), ["WAREHOUSE_READ_TARGET_MISMATCH", "WAREHOUSE_READ_TARGET_MISMATCH"]);
+  assert.equal(identityCalls, 1);
+});
+
+test("warm() pre-verifies the target so the first real query does not pay for it", async () => {
+  const { createVerifiedReadQuery } = require("../src/services/footballWarehouse/readRuntime");
+  let identityCalls = 0;
+  const pool = {
+    query: async (request) => {
+      if (request.name === IDENTITY_NAME) { identityCalls += 1; return { rows: [GOOD_IDENTITY] }; }
+      return { rows: [] };
+    },
+  };
+  const query = createVerifiedReadQuery({ pool, config: READ_CONFIG });
+  await query.warm();
+  await query({ text: "x" });
+  assert.equal(identityCalls, 1);
+});
+
+test("a persistent target mismatch is remembered briefly, then re-checked, and stays fail-closed", async () => {
+  const { createVerifiedReadQuery } = require("../src/services/footballWarehouse/readRuntime");
+  let identityCalls = 0;
+  let clock = 0;
+  let bad = true;
+  const pool = {
+    query: async (request) => {
+      if (request.name === IDENTITY_NAME) {
+        identityCalls += 1;
+        return { rows: [bad ? { ...GOOD_IDENTITY, role_name: "someone_else" } : GOOD_IDENTITY] };
+      }
+      return { rows: [{ ok: true }] };
+    },
+  };
+  const query = createVerifiedReadQuery({ pool, config: READ_CONFIG, now: () => clock });
+  for (let i = 0; i < 3; i += 1) {
+    await assert.rejects(() => query({ text: "x" }), (e) => e.code === "WAREHOUSE_READ_TARGET_MISMATCH");
+  }
+  assert.equal(identityCalls, 1, "no identity query per request inside the window");
+  clock = 6_000;
+  bad = false;
+  assert.deepEqual((await query({ text: "x" })).rows, [{ ok: true }]);
+  assert.equal(identityCalls, 2);
+});

@@ -409,6 +409,9 @@ const server = app.listen(config.port, () => {
     port: config.port,
     env:  config.nodeEnv,
   });
+  // Pre-warm a few seconds after the port is open (off with OMEN_COLD_START_WARMUP=off): readiness and
+  // health never wait on it, and it cannot throw.
+  try { require("./services/coldStartWarmup").scheduleWarmUp({ logger }); } catch {}
 });
 
 // --- Graceful shutdown --------------------------------------------
