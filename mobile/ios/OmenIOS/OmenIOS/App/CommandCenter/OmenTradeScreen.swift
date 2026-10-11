@@ -27,6 +27,9 @@ struct OmenTradeScreen: View {
     /// until a league is connected: there is nothing to browse without one.
     var onBrowseRoster: (() -> Void)?
     var capabilities: TradeCapabilities?
+    /// Opens Find a trade (the swipe review over `GET /api/trade/find`). The primary action of this
+    /// tab: Omen does the searching. Nil hides the card (previews that predate the flow).
+    var onFindTrade: (() -> Void)?
 
     /// Says what this build can actually analyse. With no capability read, it states that the
     /// limit is unknown rather than asserting one — "no additional team can be added" is a
@@ -58,6 +61,14 @@ struct OmenTradeScreen: View {
         ScrollView {
             VStack(alignment: .leading, spacing: OmenSpacing.step24) {
                 header
+                if let onFindTrade {
+                    findTradeCard(onFindTrade)
+                }
+                if onFindTrade != nil {
+                    Text("Or compare an offer yourself")
+                        .omenTextStyle(OmenTypography.h2)
+                        .foregroundStyle(OmenColor.textPrimary)
+                }
                 // Standing format note, not a state. `OmenStateSurface(.empty)` means "there
                 // is nothing here" and was rendering above a populated form on every visit —
                 // a state treatment used as chrome. This is a plain line in the screen's own
@@ -74,6 +85,9 @@ struct OmenTradeScreen: View {
             .padding(OmenSpacing.step24)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        // The tab bar floats over the scroll view. Without a bottom margin the last control (and
+        // the helper line under Compare) rests under it and cannot be tapped or read (walk P1-6).
+        .contentMargins(.bottom, Self.floatingTabBarClearance, for: .scrollContent)
         // Dragging the list dismisses the keyboard, the standard iOS gesture.
         .scrollDismissesKeyboard(.interactively)
         .background(OmenColor.bg)
@@ -90,6 +104,26 @@ struct OmenTradeScreen: View {
                     variant: .link,
                     size: .sm
                 )
+            }
+        }
+    }
+
+    /// Height the floating tab bar takes at the bottom of the screen, plus breathing room.
+    static let floatingTabBarClearance: CGFloat = 96
+
+    /// The primary entry. Omen scans every other team and brings back swaps; the manual compare
+    /// below is for a deal the user already has in mind.
+    private func findTradeCard(_ action: @escaping () -> Void) -> some View {
+        OmenCard(variant: .outlined) {
+            VStack(alignment: .leading, spacing: OmenSpacing.step12) {
+                Text("Find a trade")
+                    .omenTextStyle(OmenTypography.h2)
+                    .foregroundStyle(OmenColor.textPrimary)
+                Text("Omen reads every other team in your league and brings back swaps that fill a gap on your roster, with the reasoning shown.")
+                    .omenTextStyle(OmenTypography.body)
+                    .foregroundStyle(OmenColor.textSecondary)
+                OmenButton(title: "Find a trade", action: action, variant: .primary, size: .lg)
+                    .accessibilityIdentifier("trade-find-a-trade")
             }
         }
     }
@@ -241,7 +275,9 @@ struct OmenTradeScreen: View {
         OmenButton(
             title: "Compare",
             action: { onCompare?() },
-            variant: .primary,
+            // Secondary once Find a trade is the front door; still the lead action on a build
+            // that has no Find entry.
+            variant: onFindTrade == nil ? .primary : .secondary,
             size: .lg,
             enabled: offer.isComparable
         )

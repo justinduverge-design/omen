@@ -87,7 +87,7 @@ struct OmenTradeFindReviewScreen: View {
             OmenStateSurface(
                 kind: .empty,
                 title: "No real gaps to fill.",
-                message: "Omen checked \(viewModel.response?.totalOtherTeams ?? 0) teams against your roster and found nothing that clearly helps you. That's not a miss — some weeks there's nothing there."
+                message: "Omen checked \(viewModel.response?.teamsConsidered ?? 0) teams against your roster and found nothing that clearly helps you. That's not a miss — some weeks there's nothing there." + (viewModel.degradedSentence.map { " " + $0 } ?? "")
             )
             .padding(.horizontal, OmenSpacing.step16)
             .padding(.top, OmenSpacing.step32)
@@ -96,22 +96,38 @@ struct OmenTradeFindReviewScreen: View {
                 .padding(.horizontal, OmenSpacing.step16)
                 .padding(.top, OmenSpacing.step12)
 
-        case .routeElsewhere:
-            // Not this screen's job to render (own-roster-unreadable / league-not-active /
-            // team-not-found route to the existing ConnectFailed/LeagueDegraded family). This is
-            // the honest placeholder for a hosting flow that has not yet wired that redirect.
-            OmenStateSurface(
-                kind: .disconnected,
-                title: "Omen can't check this league right now",
-                message: "This isn't a \"no candidates found\" answer — Omen couldn't read what it needed to check. Try again from League."
-            )
-            .padding(.horizontal, OmenSpacing.step16)
-            .padding(.top, OmenSpacing.step32)
+        case .routeElsewhere(let reason):
+            // Not a "no candidates" answer: the search never completed. Named per reason, with a
+            // way out (retry only where retrying can help).
+            let copy = OmenTradeFindReviewScreen.unavailableCopy(reason: reason, platform: platform)
+            OmenStateSurface(kind: .disconnected, title: copy.title, message: copy.message)
+                .padding(.horizontal, OmenSpacing.step16)
+                .padding(.top, OmenSpacing.step32)
+            if reason == "own_roster_unavailable" {
+                OmenButton(title: "Try again", action: { Task { await viewModel.reload() } }, variant: .primary, size: .lg)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, OmenSpacing.step16)
+                    .padding(.top, OmenSpacing.step12)
+            }
+            OmenButton(title: "Back to Trade", action: { onExit?() }, variant: .secondary, size: .lg)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, OmenSpacing.step16)
+                .padding(.top, OmenSpacing.step12)
 
         case .failed(let error):
             OmenStateSurface(kind: .error, title: "Omen couldn't load candidates", message: OmenTradeFindReviewScreen.message(for: error))
                 .padding(.horizontal, OmenSpacing.step16)
                 .padding(.top, OmenSpacing.step32)
+            if error != .unauthorized {
+                OmenButton(title: "Try again", action: { Task { await viewModel.reload() } }, variant: .primary, size: .lg)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, OmenSpacing.step16)
+                    .padding(.top, OmenSpacing.step12)
+            }
+            OmenButton(title: "Back to Trade", action: { onExit?() }, variant: .secondary, size: .lg)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, OmenSpacing.step16)
+                .padding(.top, OmenSpacing.step12)
         }
     }
 
@@ -154,18 +170,60 @@ struct OmenTradeFindReviewScreen: View {
             OmenTradeFindActionRow(
                 saveState: viewModel.saveState(for: candidate.id),
                 onPass: { viewModel.pass() },
-                onSave: { Task { await viewModel.save() } }
+                onSave: { Task { await viewModel.save() } },
+                onRefresh: { Task { await viewModel.reload() } }
             )
             .padding(.horizontal, OmenSpacing.step16)
             .padding(.top, OmenSpacing.step8)
 
-            Text("Saved picks keep this reasoning.")
+            Text(saveFootnote(for: candidate.id))
                 .omenTextStyle(OmenTypography.micro)
                 .foregroundStyle(OmenColor.textTertiary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, OmenSpacing.step16)
                 .padding(.top, OmenSpacing.step8)
+        }
+    }
+
+    private func saveFootnote(for candidateId: String) -> String {
+        switch viewModel.saveState(for: candidateId) {
+        case .expired: return "These picks timed out on Omen's side, so nothing was saved. Search again for a fresh set."
+        case .error: return "Nothing was saved. Check your connection and try again."
+        default: return "Saved picks keep this reasoning."
+        }
+    }
+
+    /// Honest copy for each reason the server gives when it could not run the search at all. None
+    /// of these is "no gaps to fill": that answer is only for a search that completed.
+    static func unavailableCopy(reason: String, platform: String) -> (title: String, message: String) {
+        let provider = TradeFindReviewViewModel.providerName(platform)
+        switch reason {
+        case "projections_unavailable":
+            return (
+                "\(provider) doesn't share projections yet",
+                "Find a trade ranks swaps by how they change your projected lineup, and \(provider) gives Omen no projections to rank with. Omen won't guess. You can still compare an offer yourself."
+            )
+        case "provider_reauth_required":
+            return (
+                "Reconnect \(provider) to search",
+                "Omen's \(provider) sign-in has expired, so it can't read your league's rosters. Reconnect from Account, then search again."
+            )
+        case "league_not_active":
+            return (
+                "This league hasn't started",
+                "Rosters aren't set yet, so there's nothing to match. Come back once the season is underway."
+            )
+        case "own_roster_unavailable":
+            return (
+                "Omen can't read your roster",
+                "\(provider) didn't return your own roster, so there's nothing to match other teams against. Try again in a moment."
+            )
+        default:
+            return (
+                "Omen can't search this league yet",
+                "\(provider) doesn't give Omen what a search needs for this league. This isn't a \"no trades found\" answer. You can still compare an offer yourself."
+            )
         }
     }
 
@@ -602,6 +660,9 @@ private struct OmenTradeFindActionRow: View {
     let saveState: TradeFindReviewViewModel.SaveState
     var onPass: () -> Void
     var onSave: () -> Void
+    /// `.expired`: the server dropped the batch this card came from, so the useful action is a
+    /// fresh search, not a second tap on the same save.
+    var onRefresh: () -> Void = {}
 
     private var saveTitle: String {
         switch saveState {
@@ -609,6 +670,7 @@ private struct OmenTradeFindActionRow: View {
         case .saving: return "Saving…"
         case .saved: return "Saved ✓"
         case .error: return "Couldn't save — try again"
+        case .expired: return "Search again"
         }
     }
 
@@ -619,7 +681,7 @@ private struct OmenTradeFindActionRow: View {
                 .accessibilityLabel("Pass on this candidate")
             OmenButton(
                 title: saveTitle,
-                action: onSave,
+                action: saveState == .expired ? onRefresh : onSave,
                 variant: saveState == .saved ? .secondary : .primary,
                 size: .lg,
                 enabled: saveState != .saving && saveState != .saved,

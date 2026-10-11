@@ -26,7 +26,7 @@ final class TradeFindReviewViewModel: ObservableObject {
         case failed(OmenApiError)
     }
 
-    enum SaveState: Equatable { case idle, saving, saved, error }
+    enum SaveState: Equatable { case idle, saving, saved, error, expired }
 
     @Published private(set) var viewState: ViewState = .loading
     @Published private(set) var candidates: [TradeFindCandidate] = []
@@ -40,7 +40,7 @@ final class TradeFindReviewViewModel: ObservableObject {
 
     init(
         repository: TradeFindRepository,
-        saveAction: TradeFindSaveAction = StubTradeFindSaveAction(),
+        saveAction: TradeFindSaveAction,
         sessionManager: SessionManager
     ) {
         self.repository = repository
@@ -76,6 +76,7 @@ final class TradeFindReviewViewModel: ObservableObject {
     /// the first team and silently dropping the rest.
     var degradedSentence: String? {
         guard let response, response.showsDegradedBanner else { return nil }
+        let provider = Self.providerName(response.platform)
         let names = response.degradedTeams.compactMap { team -> String? in
             let trimmed = team.teamName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             return trimmed.isEmpty ? nil : trimmed
@@ -84,14 +85,35 @@ final class TradeFindReviewViewModel: ObservableObject {
         case 0:
             return "Omen couldn't read every team's roster this week — Omen never proposes a trade against a roster it can't see."
         case 1:
-            return "ESPN couldn't read \(names[0])'s roster this week — Omen never proposes a trade against a roster it can't see."
+            return "\(provider) couldn't read \(names[0])'s roster this week — Omen never proposes a trade against a roster it can't see."
         default:
             let joined = names.joined(separator: ", ")
-            return "ESPN couldn't read \(names.count) teams' rosters this week (\(joined)) — Omen never proposes a trade against a roster it can't see."
+            return "\(provider) couldn't read \(names.count) teams' rosters this week (\(joined)) — Omen never proposes a trade against a roster it can't see."
         }
     }
 
+    /// "ESPN" / "Yahoo" / "Sleeper" — the degraded sentence names the provider that actually
+    /// failed, not always ESPN.
+    static func providerName(_ platform: String) -> String {
+        switch platform.lowercased() {
+        case "espn": return "ESPN"
+        case "yahoo": return "Yahoo"
+        case "sleeper": return "Sleeper"
+        default: return "The provider"
+        }
+    }
+
+    private var lastQuery: (platform: String, leagueId: String, teamId: String, week: Int?)?
+
+    /// Runs the same search again (retry after a failure, or after a save found its batch
+    /// expired). A no-op before the first `load`.
+    func reload() async {
+        guard let q = lastQuery else { return }
+        await load(platform: q.platform, leagueId: q.leagueId, teamId: q.teamId, week: q.week)
+    }
+
     func load(platform: String, leagueId: String, teamId: String, week: Int?) async {
+        lastQuery = (platform, leagueId, teamId, week)
         viewState = .loading
         let accessToken: String?
         if case .token(let renewed) = await sessionManager.authorization() {
@@ -141,11 +163,15 @@ final class TradeFindReviewViewModel: ObservableObject {
     /// no saved-trades destination yet (T4).
     func save() async {
         guard let candidate = currentCandidate else { return }
+        // A swipe can land on a card that is already saved or mid-save; the button disables for
+        // the same states, so the gesture does too.
+        if saveStates[candidate.id] == .saving || saveStates[candidate.id] == .saved { return }
         saveStates[candidate.id] = .saving
         let outcome = await saveAction.save(candidateId: candidate.id, reasoning: candidate.reasoning)
         switch outcome {
         case .saved: saveStates[candidate.id] = .saved
         case .error: saveStates[candidate.id] = .error
+        case .expired: saveStates[candidate.id] = .expired
         }
     }
 

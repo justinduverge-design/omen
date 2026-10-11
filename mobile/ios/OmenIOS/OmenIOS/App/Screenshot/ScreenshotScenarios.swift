@@ -61,6 +61,17 @@ enum ScreenshotScenarios {
             label: "Trade — no offer entered yet",
             content: { AnyView(FauxShell(scenarioKey: "trade.empty", initialTab: .trade)) }
         ),
+        // Find a trade is the Trade tab's front door (the front page above carries it); these two
+        // are the swipe review it opens, on fixtures: a real-shaped batch, and the honest
+        // unavailable state for a provider that gives Omen no projections.
+        "trade.find-review": ScreenshotScenario(
+            label: "Trade — Find a trade, swipe review",
+            content: { AnyView(FindReviewScenarioHost(unavailableReason: nil)) }
+        ),
+        "trade.find-unavailable": ScreenshotScenario(
+            label: "Trade — Find a trade, provider has no projections",
+            content: { AnyView(FindReviewScenarioHost(unavailableReason: "projections_unavailable", platform: "yahoo")) }
+        ),
         "league.loaded": ScreenshotScenario(
             label: "League — live matchup, standings, empty activity",
             content: { AnyView(FauxShell(scenarioKey: "league.loaded", initialTab: .league)) }
@@ -850,6 +861,56 @@ private struct OnboardingAuthScreenshotHost: View {
     }
 }
 
+/// `OmenTradeFindReviewScreen` against a stubbed repository and save action: no network, no
+/// session. A fixture batch (one fair swap with its reasoning) or a server "unavailable" answer.
+private struct FindReviewScenarioHost: View {
+    var platform: String
+    @StateObject private var viewModel: TradeFindReviewViewModel
+
+    init(unavailableReason: String?, platform: String = "sleeper") {
+        self.platform = platform
+        let candidate = """
+        {
+          "id": "tok.find_2_waddle_pollard", "opponent_team_id": "2", "opponent_team_name": "Davante's Inferno",
+          "give": { "name": "Jaylen Waddle", "position": "WR", "team": "MIA", "projected_points": 14.8 },
+          "receive": { "name": "Tony Pollard", "position": "RB", "team": "TEN", "projected_points": 16.2 },
+          "user_lineup_delta": 4.2, "opponent_lineup_delta": 1.1,
+          "reasoning": {
+            "fills_need_for": ["user"],
+            "user_receives": { "position": "RB", "need": { "status": "hole", "have": 2, "required": 3 } },
+            "opponent_receives": { "position": "WR", "need": { "status": "surplus", "have": 6, "required": 3 } },
+            "evidence": ["live_roster_depth", "live_lineup_projection_delta"]
+          }
+        }
+        """
+        let json: String
+        if let unavailableReason {
+            json = """
+            { "contract_version": "trade-find.v1", "status": "unavailable", "platform": "\(platform)",
+              "league_id": "l", "week": 7, "reason": "\(unavailableReason)", "candidates": [] }
+            """
+        } else {
+            json = """
+            { "contract_version": "trade-find.v1", "status": "ok", "platform": "\(platform)",
+              "league_id": "l", "team_id": "1", "week": 7,
+              "bounds": { "teams_considered": 5, "teams_skipped_for_cap": [] },
+              "degraded_teams": [], "budget_exceeded": false, "candidates": [\(candidate)] }
+            """
+        }
+        let response = try? JSONDecoder().decode(TradeFindResponse.self, from: Data(json.utf8))
+        let session = Session(userID: "screenshot", accessToken: "t", refreshToken: "r", expiresAtEpochSeconds: 9_999_999_999)
+        _viewModel = StateObject(wrappedValue: TradeFindReviewViewModel(
+            repository: StubTradeFindRepository(result: response.map { .success($0) } ?? .failure(.decode)),
+            saveAction: StubTradeFindSaveAction(),
+            sessionManager: SessionManager(store: InMemorySecureSessionStore(initial: session), nowEpochSeconds: { 1_000 })
+        ))
+    }
+
+    var body: some View {
+        OmenTradeFindReviewScreen(viewModel: viewModel, platform: platform, leagueId: "l", teamId: "1", week: 7)
+    }
+}
+
 private struct OnboardingConnectScreenshotHost: View {
     var autoSelectProvider: ConnectProvider? = nil
 
@@ -1041,7 +1102,7 @@ private struct FauxShell: View {
                 if let tradeContentOverride {
                     tradeContentOverride
                 } else {
-                    OmenTradeScreen(state: tradeState, offer: tradeOffer)
+                    OmenTradeScreen(state: tradeState, offer: tradeOffer, onFindTrade: {})
                 }
             }
             .tabItem { CommandCenterTab.trade.label }

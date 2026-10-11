@@ -292,3 +292,48 @@ test("GET /api/trade/find never serves one user's cached ESPN league bundle to a
   assert.equal(ownerSecond.body.cache.hit, true);
   assert.equal(espnCallCount, 1);
 });
+
+function yahooApp({ projected }) {
+  const fixture = sleeperFixture(2);
+  const router = tradeRoutes.createTradeRouter({
+    authenticate: async () => ({ id: "user-y" }),
+    nflWeekContext: () => ({ week: 3 }),
+    yahooClient: async () => ({ accessToken: "yahoo-token" }),
+    fetchYahooLeagueRosters: async () => ({
+      week: 3,
+      roster_positions: fixture.roster_positions,
+      teams: fixture.teams.map((team) => ({
+        team_id: `nfl.l.555.t.${team.roster_id}`,
+        team_name: team.team_name,
+        players: team.players.map((p) => ({ ...p, projected_points: projected ? p.projected_points : null })),
+      })),
+    }),
+    tradeFindCache: createMemoryTradeFindCache(),
+  });
+  const app = express();
+  app.use("/api/trade", router);
+  return app;
+}
+
+test("GET /api/trade/find says projections are unavailable instead of scanning a league with none (Yahoo today)", async () => {
+  const res = await get(yahooApp({ projected: false }), "/api/trade/find?platform=yahoo&league_id=nfl.l.555&team_id=1", {
+    authorization: "Bearer t",
+  });
+  assert.equal(res.status, 200);
+  assert.equal(res.body.status, "unavailable");
+  assert.equal(res.body.reason, "projections_unavailable");
+  assert.deepEqual(res.body.candidates, []);
+  assert.equal(res.body.projection_coverage.projected, 0);
+  assert.ok(res.body.projection_coverage.players > 0);
+});
+
+test("GET /api/trade/find accepts the directory's numeric Yahoo team id for a roster keyed by Yahoo team key", async () => {
+  const res = await get(yahooApp({ projected: true }), "/api/trade/find?platform=yahoo&league_id=nfl.l.555&team_id=1", {
+    authorization: "Bearer t",
+  });
+  assert.equal(res.status, 200);
+  assert.equal(res.body.status, "ok");
+  assert.equal(res.body.team_id, "nfl.l.555.t.1");
+  assert.ok(res.body.candidates.length >= 1);
+  assert.ok(res.body.projection_coverage.projected > 0);
+});

@@ -266,22 +266,70 @@ struct TradeFindResponse: Decodable, Equatable {
     }
 }
 
-// MARK: - Save action (T4 does not exist yet)
+// MARK: - Save action
 
 /// The interface this screen calls, per the contract's "Save action interface":
 /// `save_action(candidate_id, reasoning) -> { status: "saved" | "error" }`.
 ///
-/// TODO(T4): wire to a real save/persist endpoint once `T4-SavedTradeQueue` builds one. This
-/// screen's own "do not touch" line is explicit — it must not build a save/persist mechanism
-/// itself — so the only conformance shipped here is a local stub with no network call.
+/// Production conformance is `ApiTradeFindSaveAction` (`POST /api/trade/saved`, T4).
 protocol TradeFindSaveAction {
     func save(candidateId: String, reasoning: TradeFindReasoning) async -> TradeFindSaveOutcome
 }
 
-enum TradeFindSaveOutcome: Equatable { case saved, error }
+enum TradeFindSaveOutcome: Equatable {
+    case saved
+    case error
+    /// `410 trade_saved_candidate_expired`: the server no longer holds the batch this card came
+    /// from (15-minute find cache), so nothing was written. Distinct from `.error` because the
+    /// fix is a fresh search, not a retry of the same tap.
+    case expired
+}
 
-/// TODO(T4): replace with a real repository call once the save/queue endpoint exists. Always
-/// answers `outcome` locally — no network call, nothing persisted, nothing to roll back.
+/// `POST /api/trade/saved` — T4's save. Sends `{candidate_id, reasoning}` only: the trade, league,
+/// season, week and team are resolved server side from the caller's own kept `/find` batch, so the
+/// client cannot save a trade it was never shown. Repeat saves are idempotent server side.
+struct ApiTradeFindSaveAction: TradeFindSaveAction {
+    private let client: OmenApiClient
+    private let sessionManager: SessionManager
+
+    init(client: OmenApiClient, sessionManager: SessionManager) {
+        self.client = client
+        self.sessionManager = sessionManager
+    }
+
+    private struct SaveResponse: Decodable { let status: String }
+
+    func save(candidateId: String, reasoning: TradeFindReasoning) async -> TradeFindSaveOutcome {
+        guard case .token(let accessToken) = await sessionManager.authorization() else { return .error }
+        guard let reasoningObject = Self.jsonObject(reasoning) else { return .error }
+        let result = await client.post(
+            "api/trade/saved",
+            accessToken: accessToken,
+            body: ["candidate_id": candidateId, "reasoning": reasoningObject],
+            as: SaveResponse.self
+        )
+        switch result {
+        case .success(let response):
+            return response.status == "saved" ? .saved : .error
+        case .failure(.server(status: 410)):
+            return .expired
+        case .failure(.unauthorized):
+            await sessionManager.onRefreshFailed()
+            return .error
+        case .failure:
+            return .error
+        }
+    }
+
+    /// The reasoning goes back to the server exactly as it arrived (T4 keeps it verbatim).
+    static func jsonObject(_ reasoning: TradeFindReasoning) -> Any? {
+        guard let data = try? JSONEncoder().encode(reasoning) else { return nil }
+        return try? JSONSerialization.jsonObject(with: data)
+    }
+}
+
+/// Local-only conformance for tests and screenshot scenarios. Production never uses it: it
+/// answers `outcome` locally, with no network call and nothing persisted.
 struct StubTradeFindSaveAction: TradeFindSaveAction {
     var outcome: TradeFindSaveOutcome = .saved
 

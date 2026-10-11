@@ -37,6 +37,8 @@ struct CommandCenterView: View {
     @State private var showSwitcherSheet: Bool = false
     /// J4: `TradeBuild`/`TradeRoster`, over `GET /api/trade/roster`.
     @State private var showTradeRosterSheet: Bool = false
+    /// Find a trade: the swipe review over `GET /api/trade/find`, the Trade tab's front door.
+    @State private var showTradeFindSheet: Bool = false
     /// J4: `TradeShare`, over `POST /api/trade/share`.
     @State private var showTradeShareSheet: Bool = false
     @State private var selectedTab: CommandCenterTab = .command
@@ -135,6 +137,13 @@ struct CommandCenterView: View {
             content()
         }
         .background(OmenColor.bg.ignoresSafeArea())
+    }
+
+    /// The user's own team id from the League destination's matchup, when that read landed.
+    /// Only a fallback for a directory that left the team blank.
+    private var loadedOverviewTeamId: String? {
+        guard case .loaded(let overview) = leagueViewModel.viewState else { return nil }
+        return overview.matchup.you?.teamId
     }
 
     /// The team a switch is currently writing to, or nil when nothing is in flight.
@@ -354,7 +363,8 @@ struct CommandCenterView: View {
                     onRemove: { index, side in tradeViewModel.remove(at: index, from: side) },
                     onCompare: { Task { await tradeViewModel.compare(userID: userID) } },
                     onBrowseRoster: { showTradeRosterSheet = true },
-                    capabilities: tradeViewModel.capabilities
+                    capabilities: tradeViewModel.capabilities,
+                    onFindTrade: { showTradeFindSheet = true }
                 )
                 .task { await tradeViewModel.loadCapabilities() }
                 }
@@ -365,6 +375,24 @@ struct CommandCenterView: View {
             .onChange(of: leagueViewModel.viewState) { _, newValue in
                 guard case .loaded(let overview) = newValue else { return }
                 tradeViewModel.useLeague(platform: overview.platform, leagueId: overview.leagueId)
+            }
+            .sheet(isPresented: $showTradeFindSheet) {
+                // The league is the one the League destination is showing (the same read Trade
+                // personalizes against); the team comes from the league directory.
+                TradeFindFlowView(
+                    directoryRepository: leagueDirectoryRepository,
+                    sessionManager: sessionManager,
+                    apiBaseURL: environment.apiBaseURL,
+                    userID: userID,
+                    platform: tradeViewModel.offer.leagueContext?.platform,
+                    leagueId: tradeViewModel.offer.leagueContext?.leagueId,
+                    fallbackTeamId: loadedOverviewTeamId,
+                    onOpenAccount: {
+                        showTradeFindSheet = false
+                        showAccountSheet = true
+                    },
+                    onDismiss: { showTradeFindSheet = false }
+                )
             }
             .sheet(isPresented: $showTradeRosterSheet) {
                 TradeRosterFlowView(

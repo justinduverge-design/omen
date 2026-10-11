@@ -766,6 +766,39 @@ function createTradeRouter({
     }
   });
 
+  /**
+   * The caller's own team id in the form the provider's roster read uses. The league directory
+   * (and so the phone) knows a Yahoo team by its numeric id ("4") while the roster read keys the
+   * same team by its Yahoo team key ("nfl.l.12345.t.4"); an exact match always wins, so Sleeper
+   * and ESPN pass through unchanged.
+   */
+  function resolveOwnTeamId({ platform, leagueId, teamId, teams }) {
+    const ids = new Set((Array.isArray(teams) ? teams : []).map((team) => String(team?.team_id)));
+    if (ids.has(teamId)) return teamId;
+    if (platform === "yahoo") {
+      const key = `${leagueId}.t.${teamId}`;
+      if (ids.has(key)) return key;
+    }
+    return teamId;
+  }
+
+  /**
+   * How many of the league's players carry a projection. Find-a-trade ranks swaps by projected
+   * lineup change, so a provider that supplies none (Yahoo today) cannot produce an honest
+   * candidate: the route says so instead of scanning and reporting "no gaps to fill".
+   */
+  function projectionCoverage(teams) {
+    let players = 0;
+    let projected = 0;
+    for (const team of Array.isArray(teams) ? teams : []) {
+      for (const p of Array.isArray(team?.players) ? team.players : []) {
+        players += 1;
+        if (p?.projected_points != null && Number.isFinite(Number(p.projected_points))) projected += 1;
+      }
+    }
+    return { players, projected };
+  }
+
   // Memo of the synchronous /find scan (see the /find handler). Bounded, oldest evicted.
   const scanMemo = new Map();
   const SCAN_MEMO_MAX_ENTRIES = 200;
@@ -879,7 +912,7 @@ function createTradeRouter({
 
       const platform = req.query.platform == null ? "" : String(req.query.platform).toLowerCase();
       const leagueId = req.query.league_id == null ? "" : String(req.query.league_id);
-      const teamId = req.query.team_id == null ? "" : String(req.query.team_id);
+      let teamId = req.query.team_id == null ? "" : String(req.query.team_id);
       if (!platform) {
         return res.status(400).json({ error: "platform query param required" });
       }
@@ -949,6 +982,22 @@ function createTradeRouter({
           logger.warn("Trade find cache write failed; serving uncached this request", { err: e.message });
         }
       }
+
+      const coverage = projectionCoverage(bundle.teams);
+      if (coverage.players > 0 && coverage.projected === 0) {
+        return res.json({
+          contract_version: TRADE_FIND_CONTRACT,
+          status: "unavailable",
+          platform,
+          league_id: leagueId,
+          week: bundle.week,
+          reason: "projections_unavailable",
+          projection_coverage: coverage,
+          candidates: [],
+        });
+      }
+
+      teamId = resolveOwnTeamId({ platform, leagueId, teamId, teams: bundle.teams });
 
       let budgetExceededStats = null;
       // The scan is synchronous CPU on the event loop; a repeat /find against the
@@ -1026,6 +1075,7 @@ function createTradeRouter({
         degraded_teams: scan.degraded_teams,
         budget_exceeded: scan.budget_exceeded,
         own_needs: scan.own_needs,
+        projection_coverage: coverage,
         candidates: await keepShownBatch({
           userId: user.id,
           platform,
