@@ -15,6 +15,9 @@ enum OmenDataSources {
 
 /// "About / Data sources", reachable from Account and from Help + Support.
 struct OmenAboutDataSourcesView: View {
+    /// Supplied when the screen is presented as a sheet, so it has an explicit way out.
+    var onDone: (() -> Void)?
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: OmenSpacing.sectionStack) {
@@ -55,6 +58,11 @@ struct OmenAboutDataSourcesView: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                if let onDone {
+                    OmenButton(title: "Done", action: onDone, variant: .secondary, size: .lg)
+                        .frame(maxWidth: .infinity)
                 }
 
                 if omenShowsYahooAttribution {

@@ -326,6 +326,8 @@ struct ApiConnectRepository: ConnectRepository {
 
     private static func map(_ error: OmenApiError, notFoundMeans: ConnectFailure) -> ConnectFailure {
         switch error {
+        // A cancelled connect step is surfaced as the retryable network failure: there is no
+        // successor request here, so it must stay a visible, retryable error rather than silence.
         case .network, .cancelled: return .network
         case .unauthorized: return .server
         case .decode: return .server

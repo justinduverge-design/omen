@@ -513,4 +513,53 @@ final class LeagueCarouselTests: XCTestCase {
         XCTAssertTrue(model.isCurrent(target))
         XCTAssertEqual(model.activePage?.id, target.id)
     }
+
+    // MARK: - A cancel while the task is still live is a failure, never a hung spinner
+
+    @MainActor
+    private func liveSession() -> SessionManager {
+        SessionManager(
+            store: InMemorySecureSessionStore(initial: Session(
+                userID: "user-1", accessToken: "t", refreshToken: "r", expiresAtEpochSeconds: 2_000
+            )),
+            nowEpochSeconds: { 1_000 }
+        )
+    }
+
+    @MainActor
+    func testCancelledFetchWithALiveTaskFailsInsteadOfSpinningForever() async {
+        let model = LeagueViewModel(
+            repository: StubLeagueRepository(result: .failure(.network), overviewResult: .failure(.cancelled)),
+            sessionManager: liveSession()
+        )
+        await model.load(userID: "user-1")
+        XCTAssertEqual(model.viewState, .failed(.cancelled))
+        XCTAssertEqual(LeagueViewModel.message(for: .cancelled), "That was interrupted. Try again.")
+    }
+
+    @MainActor
+    func testCarouselPageIsUnavailableNotLoadingWhenACancelHasNoSuccessor() async throws {
+        let repository = CountingRepository(
+            directories: [try directory(active: "L1")],
+            selection: .failure(.network)
+        )
+        let model = LeagueCarouselViewModel(
+            directoryRepository: repository,
+            leagueRepository: StubLeagueRepository(result: .failure(.network), overviewResult: .failure(.cancelled)),
+            sessionManager: liveSession()
+        )
+        await model.load(userID: "user-1")
+
+        let page = try XCTUnwrap(model.currentPage)
+        guard case .unavailable(let reason) = model.state(for: page) else {
+            return XCTFail("expected unavailable, got \(model.state(for: page))")
+        }
+        XCTAssertTrue(reason.contains("try again"))
+    }
+
+    func testConfirmationSaysNothingAboutMemoryWhileTheFollowWriteIsInFlight() {
+        let pending = ConnectConfirmation(leagueNames: ["A", "B"], remembered: true, pending: true)
+        XCTAssertTrue((pending.message ?? "").contains("Saving"))
+        XCTAssertFalse((pending.message ?? "").contains("remember"))
+    }
 }

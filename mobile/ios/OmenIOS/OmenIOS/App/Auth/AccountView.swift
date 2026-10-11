@@ -46,7 +46,7 @@ struct AccountView: View {
                 DeleteAccountConfirmationView(sessionManager: sessionManager)
             }
             .sheet(isPresented: $showingAbout) {
-                NavigationStack { OmenAboutDataSourcesView() }
+                NavigationStack { OmenAboutDataSourcesView(onDone: { showingAbout = false }) }
             }
             .sheet(isPresented: $showingHelpSupport) {
                 NavigationStack { OmenHelpSupportView() }

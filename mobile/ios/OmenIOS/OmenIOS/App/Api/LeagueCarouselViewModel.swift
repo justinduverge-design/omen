@@ -303,8 +303,9 @@ final class LeagueCarouselViewModel: ObservableObject {
             selectIndexProgrammatically(pages.firstIndex(where: { isCurrent($0) }) ?? 0)
             viewState = allPages.isEmpty ? .empty : .loaded
             await loadCurrentPage()
-        case .failure(.cancelled):
-            // Superseded; the load that replaced this one resolves the state.
+        case .failure(.cancelled) where Task.isCancelled:
+            // The awaiting task was cancelled: the load that replaced it resolves the state. A live-task
+            // cancel falls through to `.failed`, never an endless spinner.
             break
         case .failure(let error):
             viewState = .failed(error)
@@ -335,8 +336,9 @@ final class LeagueCarouselViewModel: ObservableObject {
             // section the provider failed. An explicit reason beats a blank card.
             pageStates[page.id] = overview.matchupHero.map(PageState.loaded)
                 ?? .loaded(.noMatchup(reason: Self.noMatchupReason(overview)))
-        case .failure(.cancelled):
-            // A cancelled read is not "unavailable": clear it so the next visit fetches again.
+        case .failure(.cancelled) where Task.isCancelled:
+            // The task itself was cancelled (swiped away): clear so the next visit fetches again. A
+            // cancel with a live task is the generic `.unavailable` below; nil would read as `.loading`.
             pageStates[page.id] = nil
         case .failure:
             pageStates[page.id] = .unavailable(
@@ -448,8 +450,9 @@ final class LeagueCarouselViewModel: ObservableObject {
             }
             return selection.refresh
         case .failure:
-            // Nothing was written, as far as the server can tell us: chip and content both stay
-            // where they were, and the caller does not reload.
+            // The switch did not verifiably land and the directory does not show it as active; the
+            // server's state is unknown rather than known-unchanged. Chip and content both stay where
+            // they were, and the caller does not reload, so they cannot disagree with each other.
             committingPageID = nil
             return nil
         }

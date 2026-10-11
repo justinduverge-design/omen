@@ -84,9 +84,19 @@ final class ConnectViewModel: ObservableObject {
     /// connected screen lists all of them (walk-1 P1-4) instead of naming only the first.
     @Published private(set) var confirmedLeagueNames: [String] = []
 
+    /// True from the moment a multi-league confirm starts until the follow write returns, so the
+    /// confirmation never claims "remembered" before the server has said so.
+    @Published private(set) var followWritePending: Bool = false
+
+    private func beginFollowWrite(names: [String]) {
+        confirmedLeagueNames = names
+        followsNotPersisted = false
+        followWritePending = names.count > 1
+    }
+
     /// What the connected screen tells the user about what Omen kept.
     var connectionConfirmation: ConnectConfirmation {
-        ConnectConfirmation(leagueNames: confirmedLeagueNames, remembered: !followsNotPersisted)
+        ConnectConfirmation(leagueNames: confirmedLeagueNames, remembered: !followsNotPersisted, pending: followWritePending)
     }
 
     func toggleLeague(_ id: String) {
@@ -124,7 +134,7 @@ final class ConnectViewModel: ObservableObject {
     /// succeeded, and turning a working connection into an error screen over the follow set
     /// would be the worse outcome.
     private func recordFollows(platform: String, leagues: [FollowedLeague]) async {
-        confirmedLeagueNames = leagues.map { $0.leagueName ?? "League \($0.leagueID)" }
+        defer { followWritePending = false }
         guard leagues.count > 1 else { return }
         guard let accessToken = await bearer() else {
             followsNotPersisted = true
@@ -318,7 +328,9 @@ final class ConnectViewModel: ObservableObject {
         let chosen = options.filter { selectedLeagueIDs.contains($0.id) }
         guard let primary = chosen.first else { return }
 
+        beginFollowWrite(names: chosen.map { $0.name ?? "League" })
         await connectEspnLeague(primary)
+        defer { followWritePending = false }
 
         if case .espnConnected = state {
             await recordFollows(platform: "espn", leagues: chosen.map {
@@ -333,7 +345,9 @@ final class ConnectViewModel: ObservableObject {
         let chosen = leagues.filter { selectedLeagueIDs.contains($0.id) }
         guard let primary = chosen.first else { return }
 
+        beginFollowWrite(names: chosen.map(\.name))
         await bindYahooLeague(primary)
+        defer { followWritePending = false }
 
         if case .yahooConnected = state {
             await recordFollows(platform: "yahoo", leagues: chosen.map {
@@ -348,8 +362,10 @@ final class ConnectViewModel: ObservableObject {
         let chosen = account.leagues.filter { selectedLeagueIDs.contains($0.id) }
         guard let primary = chosen.first else { return }
 
+        beginFollowWrite(names: chosen.map(\.name))
         pendingRequestId = makeRequestId()
         await connect(league: primary, username: account.username)
+        defer { followWritePending = false }
 
         if case .connected = state {
             await recordFollows(platform: "sleeper", leagues: chosen.map {
@@ -517,6 +533,7 @@ final class ConnectViewModel: ObservableObject {
         clearLeagueSelection()
         followsNotPersisted = false
         confirmedLeagueNames = []
+        followWritePending = false
         state = .notStarted
     }
 
@@ -686,6 +703,8 @@ struct ConnectConfirmation: Equatable {
     let leagueNames: [String]
     /// False when the server accepted the connect but could not store the full follow set.
     let remembered: Bool
+    /// The follow write has not returned yet; say nothing about what is remembered.
+    var pending: Bool = false
 
     var title: String? {
         switch leagueNames.count {
@@ -697,10 +716,11 @@ struct ConnectConfirmation: Equatable {
     var message: String? {
         guard leagueNames.count > 1 else { return nil }
         let list = leagueNames.joined(separator: ", ")
+        if pending { return "Connecting \(list). Saving your choice\u{2026}" }
         if remembered {
             return "Omen will remember all of them: \(list). Swipe between them on Command Center."
         }
         return "Omen connected \(list), but could only save \(leagueNames[0]) for next time. "
-            + "Connect the others again after you open Omen to keep them."
+            + "You can add the others again from Account."
     }
 }

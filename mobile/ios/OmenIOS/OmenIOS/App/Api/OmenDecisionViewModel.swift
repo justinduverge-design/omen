@@ -95,9 +95,11 @@ final class OmenDecisionViewModel: ObservableObject {
                 // envelope already gave honestly.
                 break
             }
-        case .failure(.cancelled):
-            // Superseded by a newer load (or the screen went away). Not a failure: leave the
-            // loading state for the load that replaced this one to resolve.
+        case .failure(.cancelled) where Task.isCancelled:
+            // Only the awaiting task being cancelled (lifecycle / superseded) is swallowed; the
+            // screen's `.task` re-runs on appear. A `URLError.cancelled` while this task is still
+            // live (e.g. session invalidation) has no successor and falls through to a real
+            // "interrupted, try again" failure, so a spinner cannot hang forever.
             break
         case .failure(let error):
             viewState = .failed(error)
