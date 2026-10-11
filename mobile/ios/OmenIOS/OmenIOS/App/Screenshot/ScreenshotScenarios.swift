@@ -92,6 +92,14 @@ enum ScreenshotScenarios {
             label: "Omen — a call with one source unread and one read-but-unused",
             content: { AnyView(FauxShell(scenarioKey: "omen.degraded", initialTab: .omen)) }
         ),
+        "omen.hold": ScreenshotScenario(
+            label: "Omen — Hold call with ranked reasons, best alternative and projection coverage",
+            content: { AnyView(FauxShell(scenarioKey: "omen.hold", initialTab: .omen)) }
+        ),
+        "omen.hold-no-projections": ScreenshotScenario(
+            label: "Omen — Yahoo league with no projections: cannot rank a move",
+            content: { AnyView(FauxShell(scenarioKey: "omen.hold-no-projections", initialTab: .omen)) }
+        ),
         "omen.disconnected": ScreenshotScenario(
             label: "Omen — real user, disconnected",
             content: { AnyView(FauxShell(scenarioKey: "omen.disconnected", initialTab: .omen)) }
@@ -598,6 +606,13 @@ enum ScreenshotScenarios {
         "chrome.report-pill.not-saved": ScreenshotScenario(
             label: "Report pill \u{2014} not saved, said plainly",
             content: { AnyView(ChromeFixtures.composer(.done(.notSaved))) }
+        ),
+        // The REAL presented system sheet over a directory where every provider flags one league
+        // `is_active` (as production does) while `active` names a single league: the capture must
+        // show exactly one check mark.
+        "switcher.real-sheet": ScreenshotScenario(
+            label: "Team switcher — the system sheet, five teams over three providers, one check",
+            content: { AnyView(RealSwitcherSheetScreenshotHost()) }
         ),
         "switcher.team-sheet": ScreenshotScenario(
             label: "Team switcher — pinned bar and the sheet, one favourite starred",
@@ -1224,8 +1239,56 @@ private struct FauxShell: View {
         // The capture obligation from `capability-expression-v1.md`: a profile is not covered by
         // a screenshot of its success state, because nothing is missing in a success state.
         case "omen.degraded": return OmenDecisionFixtures.degraded
+        case "omen.hold": return OmenHoldScreenshotFixtures.hold
+        case "omen.hold-no-projections": return OmenHoldScreenshotFixtures.noProjections
         default: return OmenDecisionFixtures.realDisconnected
         }
+    }
+}
+
+/// `empty` + `call_kind: hold` envelopes shaped like `test/contracts/fixtures/omen-decision-brief.v3/empty_hold*.json`,
+/// decoded through the production type so a capture fails loudly if the client and the route drift.
+private enum OmenHoldScreenshotFixtures {
+    static var hold: OmenDecisionBriefState {
+        decode("""
+        {"contract_version":"omen-decision-brief.v3","state":"empty","mode":"live","call_kind":"hold",
+         "answered_for":{"platform":"espn","league_id":"fixture-league","matched":true,"selection":"requested"},
+         "explanation":{"summary":"No move clears the recommendation threshold this week."},
+         "hold":{"kind":"hold","headline":"Hold your lineup this week",
+           "summary":"Hold your lineup. The best alternative Omen found does not beat what you already have by enough to be worth the risk.",
+           "reasons":[
+             {"code":"best_swap_below_bar","text":"Sample WR1 already projects 0.2 points above Sample WR2 (12.0 vs 11.8), so benching Sample WR1 would cost you."},
+             {"code":"no_fair_trade","text":"Omen searched 11 other rosters in this league for a one-for-one trade that improves both lineups and keeps the value fair. None cleared both."}],
+           "best_alternative":{"kind":"start_sit","slot":"WR","start":{"name":"Sample WR2","projected":11.8},"sit":{"name":"Sample WR1","projected":12.0},"delta":-0.2,"threshold":0.5,"margin_to_threshold":0.7,
+             "why_not":"Sample WR1 already projects 0.2 points above Sample WR2 (12.0 vs 11.8), so benching Sample WR1 would cost you."},
+           "considered":[
+             {"kind":"start_sit","outcome":"below_threshold","detail":"Sample WR1 already projects 0.2 points above Sample WR2, so benching Sample WR1 would cost you."},
+             {"kind":"waiver_pickup","outcome":"not_needed","detail":"None of your starters is ruled out, so no waiver pickup was needed."},
+             {"kind":"trade_suggestion","outcome":"none_found","detail":"Omen searched 11 other rosters for a one-for-one trade that improves both lineups and keeps the value fair. None cleared both."}],
+           "projections":{"available":true,"players_with_projection":14,"players_total":16},"threshold_points":0.5}}
+        """)
+    }
+
+    static var noProjections: OmenDecisionBriefState {
+        decode("""
+        {"contract_version":"omen-decision-brief.v3","state":"empty","mode":"live","call_kind":"hold",
+         "answered_for":{"platform":"yahoo","league_id":"fixture-league","matched":true,"selection":"requested"},
+         "hold":{"kind":"hold","headline":"Hold your lineup this week","summary":"Hold your lineup.",
+           "reasons":[{"code":"projections_unavailable","text":"Yahoo does not give Omen weekly projections for this league, so Omen cannot rank lineup swaps or trades. Holding is the only call it can stand behind."}],
+           "best_alternative":null,
+           "considered":[
+             {"kind":"start_sit","outcome":"unavailable","detail":"No weekly projections from Yahoo, so no swap could be scored."},
+             {"kind":"waiver_pickup","outcome":"not_needed","detail":"None of your starters is ruled out, so no waiver pickup was needed."},
+             {"kind":"trade_suggestion","outcome":"unavailable","reason":"projections_unavailable","detail":"Yahoo does not give Omen weekly projections, so a trade cannot be weighed."}],
+           "projections":{"available":false,"players_with_projection":0,"players_total":16},"threshold_points":0.5}}
+        """)
+    }
+
+    private static func decode(_ json: String) -> OmenDecisionBriefState {
+        guard let envelope = try? JSONDecoder().decode(OmenDecisionEnvelope.self, from: Data(json.utf8)) else {
+            return .error("Hold fixture failed to decode.", retry: nil)
+        }
+        return envelope.briefState()
     }
 }
 
@@ -1363,6 +1426,58 @@ struct LeagueSwitcherScreenshotHost: View {
     }
 }
 
+/// Presents the production `OmenTeamPicker` sheet, not an inline imitation of it.
+struct RealSwitcherSheetScreenshotHost: View {
+    @StateObject private var viewModel: LeagueCarouselViewModel
+    @State private var presented = true
+
+    init() {
+        let json = """
+        {"contract_version":"league-directory.v1","season":2026,"selection_persistence":"provider_binding_only",
+         "active":{"platform":"yahoo","league_id":"Y1","league_name":"Puk Around","season":2026,"team_id":"2","team_name":"Puk Around & Find Out"},
+         "platforms":[
+          {"platform":"espn","connection_state":"connected","discovery":"bound_only","notice":null,"leagues":[
+            {"league_id":"E1","league_name":"EB Football","season":2026,"team_id":"8","team_name":"Titans of Slopsilonia","is_active":true},
+            {"league_id":"E2","league_name":"Fantasy Madness","season":2026,"team_id":"3","team_name":"Davante\u{2019}s Inferno","is_active":false},
+            {"league_id":"884411","league_name":null,"season":2026,"team_id":"9","team_name":null,"is_active":false}]},
+          {"platform":"sleeper","connection_state":"connected","discovery":"full","notice":null,"leagues":[
+            {"league_id":"S1","league_name":"Omen App Data","season":2026,"team_id":"1","team_name":"Hall Pass Heroes","is_active":true}]},
+          {"platform":"yahoo","connection_state":"connected","discovery":"full","notice":null,"leagues":[
+            {"league_id":"Y1","league_name":"Puk Around","season":2026,"team_id":"2","team_name":"Puk Around & Find Out","is_active":true}]}]}
+        """
+        let directory = try! JSONDecoder().decode(LeagueDirectory.self, from: Data(json.utf8))
+        _viewModel = StateObject(wrappedValue: LeagueCarouselViewModel(
+            directoryRepository: StubLeagueDirectoryRepository(directory: .success(directory)),
+            leagueRepository: StubLeagueRepository(result: .failure(.network)),
+            sessionManager: SessionManager(
+                store: InMemorySecureSessionStore(initial: Session(
+                    userID: "screenshot", accessToken: "t", refreshToken: "r", expiresAtEpochSeconds: 9_999_999_999
+                )),
+                nowEpochSeconds: { 0 }
+            ),
+            preferences: InMemoryLeagueSwitcherPreferences(
+                favorites: ["screenshot": LeagueFavorites(ordered: ["espn:E1"])]
+            )
+        ))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step16) {
+            OmenTeamPicker(
+                viewModel: viewModel, userID: "screenshot", onContextChanged: { _ in }, onAddLeague: {},
+                externalPresentation: $presented
+            )
+            .padding(.horizontal, OmenSpacing.step16)
+            Text("Command").omenTextStyle(OmenTypography.h2).foregroundStyle(OmenColor.textPrimary)
+                .padding(.horizontal, OmenSpacing.step16)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(OmenColor.bg)
+        .task { await viewModel.load(userID: "screenshot") }
+    }
+}
+
 /// Screenshot host for the 2026-09-05 team switcher: the pinned context bar and the sheet's
 /// body, rendered together against one deterministic directory.
 ///
@@ -1433,7 +1548,7 @@ struct TeamSwitcherScreenshotHost: View {
                 platform: page.platform == "espn" ? .espn : (page.platform == "yahoo" ? .yahoo : .sleeper),
                 teamName: page.teamName?.isEmpty == false ? page.teamName! : page.displayLeagueName,
                 subtitle: Self.subtitle(page),
-                isActive: page.isActive,
+                isActive: viewModel.isCurrent(page),
                 isFavorite: viewModel.isFavorite(page),
                 isCommitting: false
             )

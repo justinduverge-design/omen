@@ -91,6 +91,15 @@ final class LeagueCarouselViewModel: ObservableObject {
     /// Set while a rest-on-page selection is being written, so the widget can say the
     /// context is changing rather than appear to have changed already.
     @Published private(set) var committingPageID: String?
+    /// The page `commit(_:)` last wrote to the server, until the directory re-read confirms it as active.
+    ///
+    /// The team picker on Omen, Trade and League commits a league BY NAME and deliberately leaves
+    /// `selectedIndex` alone, so `currentPage` keeps pointing at the carousel's old resting page. Screens that
+    /// reload "for the selected context" must therefore use `activePage`, not `currentPage`, or they re-read the
+    /// league the user just left (seen in the iOS Simulator on 2026-10-11: chip said TTO, table showed HBT's league).
+    @Published private(set) var committedPage: Page?
+    /// The league this view model last wrote to the server (the account-wide selection), for the lifetime of the session.
+    private var lastCommittedPageID: String?
 
     /// Starred teams, in star order. Contract §3.
     @Published private(set) var favorites = LeagueFavorites()
@@ -212,6 +221,35 @@ final class LeagueCarouselViewModel: ObservableObject {
         pages.indices.contains(selectedIndex) ? pages[selectedIndex] : nil
     }
 
+    /// The league the app is actually on: the one just committed, else the one the server reports active.
+    /// Falls back to the carousel's resting page only when neither is known yet.
+    var activePage: Page? {
+        allPages.first(where: { isCurrent($0) }) ?? currentPage
+    }
+
+    /// The id of the ONE league Omen is using right now, or nil when none can be named.
+    ///
+    /// Order of authority: the league this view model last wrote to the server (the account-wide
+    /// selection, and the freshest fact we have), then the directory's top-level `active`
+    /// (the server's own answer), and only for an old server that sends neither, the first page the
+    /// directory flagged `isActive`.
+    ///
+    /// `Page.isActive` must not be used to draw a tick, chip, highlight or accessibility label: the
+    /// directory sets it for one league per PROVIDER at once, so an ESPN, a Sleeper and a Yahoo
+    /// league all read "active" together and the sheet showed several unexplained check marks.
+    var currentLeagueID: String? {
+        if let id = lastCommittedPageID, allPages.contains(where: { $0.id == id }) { return id }
+        if let active = directory?.active, let platform = active.platform, let leagueID = active.leagueID {
+            let id = "\(platform):\(leagueID)"
+            if allPages.contains(where: { $0.id == id }) { return id }
+        }
+        return allPages.first(where: { $0.isActive })?.id
+    }
+
+    /// True for exactly one page: the league Omen is using now. The only predicate UI may use for
+    /// "this is the current league".
+    func isCurrent(_ page: Page) -> Bool { page.id == currentLeagueID }
+
     /// The chip row: All first, then providers in the server's order. Only providers that
     /// actually have a followed league get a chip — a chip that filters to nothing is a
     /// control that can only disappoint.
@@ -262,7 +300,7 @@ final class LeagueCarouselViewModel: ObservableObject {
             // differ, and the old lookup would have landed the pager on an unrelated league.
             // Falls back to 0 when the active league is filtered out — the user is looking at
             // one provider, and yanking them to another to chase the active flag would fight them.
-            selectIndexProgrammatically(pages.firstIndex(where: { $0.isActive }) ?? 0)
+            selectIndexProgrammatically(pages.firstIndex(where: { isCurrent($0) }) ?? 0)
             viewState = allPages.isEmpty ? .empty : .loaded
             await loadCurrentPage()
         case .failure(let error):
@@ -352,7 +390,14 @@ final class LeagueCarouselViewModel: ObservableObject {
     /// context and calling it new is exactly the stale-context failure the contract names.
     @discardableResult
     func commit(_ page: Page) async -> [String]? {
-        guard !page.isActive else { return nil }
+        // "Active" here is per PROVIDER: the directory ticks one league for ESPN, one for Sleeper and one for
+        // Yahoo at the same time, but the server keeps ONE selected league for the whole account and builds the
+        // Omen call, Start/Sit and waivers from it. A league that is already active for its provider is
+        // therefore not necessarily the one the server will answer for. Skip the write only when this view model
+        // itself already committed this league (nothing to say to the server); otherwise tell the server, which
+        // is idempotent. Without this, tapping Yahoo "Puk Around" left the Sleeper call on screen (iOS Simulator,
+        // 2026-10-11).
+        guard !(page.isActive && lastCommittedPageID == page.id) else { return nil }
 
         committingPageID = page.id
 
@@ -367,6 +412,8 @@ final class LeagueCarouselViewModel: ObservableObject {
 
         switch result {
         case .success(let selection):
+            committedPage = page
+            lastCommittedPageID = page.id
             // The directory is still re-read rather than flipped locally: the server decides what
             // is active now. But the screens' own re-reads no longer wait behind it. Measured on
             // the founder's iPhone 2026-10-01, `GET /api/leagues` alone took 2.0-3.0 s and ran
@@ -394,6 +441,8 @@ final class LeagueCarouselViewModel: ObservableObject {
 
         let restingID = currentPage?.id
         directory = loaded
+        // The server's own answer to "which league is active" is now in `directory`.
+        committedPage = nil
         availablePlatforms = loaded.platforms
             .filter { group in group.leagues.contains(where: { $0.isFollowed }) }
             .map(\.platform)

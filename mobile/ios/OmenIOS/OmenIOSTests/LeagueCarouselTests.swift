@@ -124,7 +124,7 @@ final class LeagueCarouselTests: XCTestCase {
     }
 
     @MainActor
-    func testCommittingTheAlreadyActiveLeagueWritesNothing() async throws {
+    func testCommittingTheAlreadyActiveLeagueWritesOnceThenNothing() async throws {
         let recorder = StubLeagueDirectoryRepository.Recorder()
         let viewModel = makeViewModel(
             directory: try twoLeagues(),
@@ -133,14 +133,31 @@ final class LeagueCarouselTests: XCTestCase {
         )
         await viewModel.load(userID: "user-1")
 
+        // The directory's active flag is per provider, not the account's selection, so the first
+        // pick of it is still told to the server (see commit(_:)). A failed write sends and
+        // reports nothing to refresh.
         let active = try XCTUnwrap(viewModel.allPages.first(where: { $0.isActive }))
         let refresh = await viewModel.commit(active)
-
-        // Nothing to change, so nothing is sent. Without this guard, dragging across a
-        // five-league carousel fires five verified provider writes to land where one reaches,
-        // and a tap on the picker's current chip costs a round trip for no reason.
         XCTAssertNil(refresh)
-        XCTAssertTrue(recorder.calls.isEmpty)
+        XCTAssertEqual(recorder.calls.count, 1)
+    }
+
+    @MainActor
+    func testExactlyOnePageIsCurrentEvenWhenEveryProviderFlagsOneActive() async throws {
+        let json = """
+        {"contract_version":"league-directory.v1","season":2026,
+         "active":{"platform":"yahoo","league_id":"Y1"},
+         "platforms":[
+          {"platform":"espn","leagues":[{"league_id":"E1","is_active":true},{"league_id":"E2"}]},
+          {"platform":"sleeper","leagues":[{"league_id":"S1","is_active":true}]},
+          {"platform":"yahoo","leagues":[{"league_id":"Y1","is_active":true}]}]}
+        """
+        let directory = try JSONDecoder().decode(LeagueDirectory.self, from: Data(json.utf8))
+        let viewModel = makeViewModel(directory: directory, selection: .failure(.network), recorder: StubLeagueDirectoryRepository.Recorder())
+        await viewModel.load(userID: "user-1")
+
+        XCTAssertEqual(viewModel.allPages.filter { $0.isActive }.count, 3)
+        XCTAssertEqual(viewModel.allPages.filter { viewModel.isCurrent($0) }.map(\.id), ["yahoo:Y1"])
     }
 
     @MainActor

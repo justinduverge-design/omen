@@ -130,11 +130,50 @@ struct StubLeagueRepository: LeagueRepository {
 /// so it is slower and independently failable, and the Omen destination owns its own
 /// loading state rather than blocking anything else.
 ///
-/// The server derives league, week, and provider from the authenticated session, so the client
-/// passes no league facts it could get wrong. It explicitly opts into bounded private narration:
-/// the server owns that request and returns the deterministic decision when narration is late.
+/// The league being asked about. `scope` is the picked league's provider and league id, the two facts the
+/// carousel already holds; nothing else about the league is sent, so there is no roster or score the
+/// client could get wrong. With no scope the server uses the account's selected league, which is how every
+/// pre-2026-10-11 client behaved. It explicitly opts into bounded private narration: the server owns that
+/// request and returns the deterministic decision when narration is late.
 protocol OmenDecisionRepository {
-    func fetchDecision(accessToken: String) async -> Result<OmenDecisionEnvelope, OmenApiError>
+    func fetchDecision(accessToken: String, scope: OmenCallScope?) async -> Result<OmenDecisionEnvelope, OmenApiError>
+}
+
+extension OmenDecisionRepository {
+    func fetchDecision(accessToken: String) async -> Result<OmenDecisionEnvelope, OmenApiError> {
+        await fetchDecision(accessToken: accessToken, scope: nil)
+    }
+}
+
+/// One league, named the way `POST /api/omen/mvp-move` accepts it: `league_id` plus `platform`.
+/// The server confirms the league belongs to the account and never falls back to a different one.
+struct OmenCallScope: Hashable {
+    let platform: String
+    let leagueID: String
+
+    var requestFields: [String: String] { ["platform": platform, "league_id": leagueID] }
+
+    /// True when `platform`/`leagueID` name the same league as this scope, compared the way the facts can
+    /// legitimately differ rather than byte for byte: platform case, surrounding whitespace, and Yahoo's
+    /// league key (`nfl.l.123` or `461.l.123`) against its bare id (`123`). A real answer must never read as
+    /// "a different league" because of formatting.
+    func names(platform other: String?, leagueID otherID: String?) -> Bool {
+        guard let other, let otherID else { return false }
+        return Self.normalizedPlatform(platform) == Self.normalizedPlatform(other)
+            && Self.normalizedLeagueID(leagueID) == Self.normalizedLeagueID(otherID)
+    }
+
+    static func normalizedPlatform(_ raw: String) -> String {
+        raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
+    static func normalizedLeagueID(_ raw: String) -> String {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        // Yahoo league key: "<game>.l.<league>". Only the league part identifies the league within a game
+        // season, and a bare id carries just that part.
+        if let range = trimmed.range(of: ".l.") { return String(trimmed[range.upperBound...]) }
+        return trimmed
+    }
 }
 
 struct ApiOmenDecisionRepository: OmenDecisionRepository {
@@ -144,14 +183,18 @@ struct ApiOmenDecisionRepository: OmenDecisionRepository {
         self.client = client
     }
 
-    func fetchDecision(accessToken: String) async -> Result<OmenDecisionEnvelope, OmenApiError> {
-        await client.post(
+    func fetchDecision(accessToken: String, scope: OmenCallScope?) async -> Result<OmenDecisionEnvelope, OmenApiError> {
+        var body: [String: Any] = [
+            "contract_version": "omen-decision-brief.v3",
+            "include_signals": ["llm_reasoning": true],
+        ]
+        if let scope {
+            for (key, value) in scope.requestFields { body[key] = value }
+        }
+        return await client.post(
             "api/omen/mvp-move",
             accessToken: accessToken,
-            body: [
-                "contract_version": "omen-decision-brief.v3",
-                "include_signals": ["llm_reasoning": true],
-            ],
+            body: body,
             as: OmenDecisionEnvelope.self
         )
     }
@@ -160,7 +203,7 @@ struct ApiOmenDecisionRepository: OmenDecisionRepository {
 struct StubOmenDecisionRepository: OmenDecisionRepository {
     let result: Result<OmenDecisionEnvelope, OmenApiError>
 
-    func fetchDecision(accessToken: String) async -> Result<OmenDecisionEnvelope, OmenApiError> {
+    func fetchDecision(accessToken: String, scope: OmenCallScope?) async -> Result<OmenDecisionEnvelope, OmenApiError> {
         result
     }
 }

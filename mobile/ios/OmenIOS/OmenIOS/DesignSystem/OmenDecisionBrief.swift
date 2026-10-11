@@ -14,6 +14,42 @@ enum OmenDecisionBriefState {
     case mock(OmenDecisionBriefPayload)
     case demo(OmenDecisionBriefPayload)
     case offSeason
+    /// `state: "empty"` with `call_kind: "hold"`: Omen weighed everything and the honest call is to keep
+    /// the lineup. Distinct from `.empty`, which says only that nothing cleared the bar and shows no work.
+    case hold(OmenHoldPayload)
+}
+
+/// What the Hold call shows. Every figure in it is one the engine computed and the server sent; nothing
+/// here is derived on the client except formatting, so a missing number is simply not drawn.
+struct OmenHoldPayload: Equatable {
+    struct Reason: Equatable, Identifiable {
+        let id: Int
+        let text: String
+    }
+
+    /// The closest swap that lost, with the engine's own explanation of why.
+    struct Alternative: Equatable {
+        let title: String
+        let figures: String?
+        let whyItLost: String?
+    }
+
+    struct Considered: Equatable, Identifiable {
+        let id: Int
+        let kind: String
+        let detail: String
+    }
+
+    /// True when the league has no projections to rank against (Yahoo today). Rendered as "cannot rank",
+    /// never as a confident hold.
+    let cannotRank: Bool
+    let headline: String
+    let summary: String?
+    let reasons: [Reason]
+    let alternative: Alternative?
+    let considered: [Considered]
+    /// "14 of 16 players have a projection", or the absence of projections, as the server reported it.
+    let coverage: String?
 }
 
 /// DecisionBrief payload per shell brief §2 field set. Any field may be absent.
@@ -193,6 +229,96 @@ struct OmenDecisionBrief<Feedback: View>: View {
                 title: "Omen is off this week",
                 message: "The regular season isn't running. Omen will be back when Week 1 kicks off."
             )
+        case let .hold(hold):
+            OmenCard {
+                holdBody(hold)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func holdBody(_ hold: OmenHoldPayload) -> some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step16) {
+            VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+                OmenBadge(label: hold.cannotRank ? "Can't rank" : "Hold", tone: .neutral)
+                Text(hold.headline)
+                    .omenTextStyle(OmenTypography.h2)
+                    .foregroundStyle(OmenColor.textPrimary)
+                    .accessibilityAddTraits(.isHeader)
+                if let summary = hold.summary {
+                    Text(summary)
+                        .omenTextStyle(OmenTypography.body)
+                        .foregroundStyle(OmenColor.textPrimary)
+                }
+            }
+            // Badge, headline and summary read as one statement: "Hold. Hold your lineup this week. ..."
+            .accessibilityElement(children: .combine)
+            if !hold.reasons.isEmpty {
+                VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+                    Text("Why, most decisive first")
+                        .omenTextStyle(OmenTypography.label)
+                        .foregroundStyle(OmenColor.textSecondary)
+                        .accessibilityAddTraits(.isHeader)
+                    ForEach(hold.reasons) { reason in
+                        HStack(alignment: .firstTextBaseline, spacing: OmenSpacing.step8) {
+                            Text("\(reason.id + 1)")
+                                .omenTextStyle(OmenTypography.numeric)
+                                .foregroundStyle(OmenColor.textTertiary)
+                            Text(reason.text)
+                                .omenTextStyle(OmenTypography.bodySmall)
+                                .foregroundStyle(OmenColor.textPrimary)
+                        }
+                        .accessibilityElement(children: .combine)
+                    }
+                }
+            }
+            if let alternative = hold.alternative {
+                VStack(alignment: .leading, spacing: OmenSpacing.step4) {
+                    Text("Best alternative")
+                        .omenTextStyle(OmenTypography.label)
+                        .foregroundStyle(OmenColor.textSecondary)
+                        .accessibilityAddTraits(.isHeader)
+                    Text(alternative.title)
+                        .omenTextStyle(OmenTypography.name)
+                        .foregroundStyle(OmenColor.textPrimary)
+                    if let figures = alternative.figures {
+                        Text(figures)
+                            .omenTextStyle(OmenTypography.bodySmall)
+                            .foregroundStyle(OmenColor.textSecondary)
+                    }
+                    if let why = alternative.whyItLost {
+                        Text(why)
+                            .omenTextStyle(OmenTypography.bodySmall)
+                            .foregroundStyle(OmenColor.textPrimary)
+                    }
+                }
+                .accessibilityElement(children: .combine)
+            }
+            if !hold.considered.isEmpty {
+                VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+                    Text("Also weighed")
+                        .omenTextStyle(OmenTypography.label)
+                        .foregroundStyle(OmenColor.textSecondary)
+                        .accessibilityAddTraits(.isHeader)
+                    ForEach(hold.considered) { item in
+                        VStack(alignment: .leading, spacing: OmenSpacing.step4) {
+                            Text(item.kind)
+                                .omenTextStyle(OmenTypography.name)
+                                .foregroundStyle(OmenColor.textPrimary)
+                            Text(item.detail)
+                                .omenTextStyle(OmenTypography.bodySmall)
+                                .foregroundStyle(OmenColor.textSecondary)
+                        }
+                        .accessibilityElement(children: .combine)
+                    }
+                }
+            }
+            if let coverage = hold.coverage {
+                Text(coverage)
+                    .omenTextStyle(OmenTypography.bodySmall)
+                    .foregroundStyle(OmenColor.textTertiary)
+            }
+            feedback
         }
     }
 

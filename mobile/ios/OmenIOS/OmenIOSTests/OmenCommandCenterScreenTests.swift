@@ -142,6 +142,8 @@ final class OmenCommandCenterScreenTests: XCTestCase {
         XCTAssertTrue(ScreenshotScenarios.isKnown("command-center.disconnected"))
         XCTAssertTrue(ScreenshotScenarios.isKnown("omen.demo"))
         XCTAssertTrue(ScreenshotScenarios.isKnown("omen.disconnected"))
+        XCTAssertTrue(ScreenshotScenarios.isKnown("omen.hold"))
+        XCTAssertTrue(ScreenshotScenarios.isKnown("omen.hold-no-projections"))
         XCTAssertFalse(ScreenshotScenarios.isKnown("command-center.no-such-fixture"))
         XCTAssertFalse(ScreenshotScenarios.isKnown(nil))
     }
