@@ -615,6 +615,10 @@
       "team_name": "Own Team"
     },
     "platform": "sleeper",
+    "projection_coverage": {
+      "players": 20,
+      "projected": 20
+    },
     "status": "ok",
     "team_id": "1",
     "week": 3
