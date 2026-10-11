@@ -234,6 +234,12 @@ final class CommandCenterViewModel: ObservableObject {
             }
             _ = await waiverTask
             _ = await quietWeekTask
+        case .failure(.cancelled) where Task.isCancelled:
+            // Only the awaiting task being cancelled (lifecycle / superseded) is swallowed; the
+            // screen's `.task` re-runs on appear. A `URLError.cancelled` while this task is still
+            // live (e.g. session invalidation) has no successor and falls through to a real
+            // "interrupted, try again" failure, so a spinner cannot hang forever.
+            break
         case .failure(let error):
             // `authorized` has already forced a refresh, retried once, and routed a genuine
             // authorization failure to re-auth. Nothing left to do but render honestly.
@@ -322,6 +328,8 @@ final class CommandCenterViewModel: ObservableObject {
     /// Transport failures only — this route has no in-band contract states to defer to.
     private static func ledgerMessage(for error: OmenApiError) -> String {
         switch error {
+        case .cancelled:
+            return "That was interrupted. Pull to try again."
         case .network:
             return "Omen couldn't reach the server to load your Ledger. Check your connection."
         case .unauthorized:

@@ -244,6 +244,75 @@ final class ConnectFlowTests: XCTestCase {
         XCTAssertEqual(Set(repository.recorder.followed.first?.leagueIDs ?? []), ["1", "2", "3"])
     }
 
+    // MARK: - Walk-1 P1-4: the confirmation lists every league and says what is remembered
+
+    private func threeEspn() -> [EspnLeagueOption] {
+        [
+            EspnLeagueOption(id: "1", name: "Slops Saloon FF Showdown", season: 2026, teamId: "3", teamName: "Titans"),
+            EspnLeagueOption(id: "2", name: "Everything Backwards", season: 2026, teamId: "5", teamName: "Scary Team"),
+            EspnLeagueOption(id: "3", name: "Third League", season: 2026, teamId: "9", teamName: "Third Team"),
+        ]
+    }
+
+    func testConfirmationNamesEveryConnectedLeagueAndSaysAllAreRemembered() async {
+        var repository = StubConnectRepository()
+        repository.espnDiscoverResult = .success(threeEspn())
+        repository.espnConnectResult = .success(())
+        repository.espnConnectionResult = .success(EspnConnection(leagueName: "Slops Saloon FF Showdown", teamName: "Titans"))
+        let viewModel = await espnReadyViewModel(repository: repository)
+        ["1", "2", "3"].forEach { viewModel.toggleLeague($0) }
+
+        await viewModel.confirmEspnSelection()
+
+        let confirmation = viewModel.connectionConfirmation
+        XCTAssertEqual(confirmation.title, "3 leagues connected")
+        let message = confirmation.message ?? ""
+        for name in ["Slops Saloon FF Showdown", "Everything Backwards", "Third League"] {
+            XCTAssertTrue(message.contains(name), "\(name) missing from: \(message)")
+        }
+        XCTAssertTrue(message.contains("remember all"), message)
+        XCTAssertFalse(viewModel.followsNotPersisted)
+    }
+
+    func testConfirmationIsHonestWhenOnlyTheFirstLeagueCouldBeSaved() async {
+        var repository = StubConnectRepository()
+        repository.espnDiscoverResult = .success(threeEspn())
+        repository.espnConnectResult = .success(())
+        repository.espnConnectionResult = .success(EspnConnection(leagueName: "Slops Saloon FF Showdown", teamName: "Titans"))
+        repository.followResult = .success(false)
+        let viewModel = await espnReadyViewModel(repository: repository)
+        ["1", "2", "3"].forEach { viewModel.toggleLeague($0) }
+
+        await viewModel.confirmEspnSelection()
+
+        let message = viewModel.connectionConfirmation.message ?? ""
+        XCTAssertTrue(message.contains("Everything Backwards"), "every league is still listed: \(message)")
+        XCTAssertTrue(message.contains("could only save Slops Saloon FF Showdown"), message)
+        XCTAssertFalse(message.contains("will stick"), "the old wording is gone")
+    }
+
+    func testAFailedFollowWriteIsDisclosedRatherThanSilentlyDropped() async {
+        var repository = StubConnectRepository()
+        repository.espnDiscoverResult = .success(threeEspn())
+        repository.espnConnectResult = .success(())
+        repository.espnConnectionResult = .success(EspnConnection(leagueName: "Slops Saloon FF Showdown", teamName: "Titans"))
+        repository.followResult = .failure(.network)
+        let viewModel = await espnReadyViewModel(repository: repository)
+        ["1", "2"].forEach { viewModel.toggleLeague($0) }
+
+        await viewModel.confirmEspnSelection()
+
+        XCTAssertTrue(viewModel.followsNotPersisted)
+        XCTAssertEqual(viewModel.connectionConfirmation.leagueNames.count, 2)
+    }
+
+    func testASingleLeagueKeepsTheOrdinaryConfirmation() {
+        let single = ConnectConfirmation(leagueNames: ["Only One"], remembered: true)
+        XCTAssertNil(single.title)
+        XCTAssertNil(single.message)
+        XCTAssertNil(ConnectConfirmation(leagueNames: [], remembered: true).title)
+    }
+
     /// Codex review, PR #494: ticks from one provider must not survive into the next picker, or
     /// Confirm reads as enabled with nothing chosen and silently does nothing.
     func testStartingOverClearsPriorLeagueSelection() async {
@@ -1279,5 +1348,4 @@ final class YahooConnectFlowTests: XCTestCase {
             ConnectViewModel.callbackStatus(URL(string: "com.slopssaloon.omen://auth/callback?code=abc&state=xyz")!)
         )
     }
-
 }

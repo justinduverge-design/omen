@@ -30,7 +30,6 @@ import SwiftUI
 /// decision by eighteen days. **Read the availability, do not remember it.**
 struct OmenNoLeagueScreen: View {
     var onConnect: (() -> Void)?
-    var onSeeHowOmenDecides: (() -> Void)?
 
     var body: some View {
         ScrollView {
@@ -77,17 +76,6 @@ struct OmenNoLeagueScreen: View {
             if let onConnect {
                 OmenButton(title: "Connect a league", action: onConnect, size: .lg)
                     .frame(maxWidth: .infinity)
-            }
-            // The second action exists so an empty screen is not a dead end. Someone who is not
-            // ready to hand over a league can still find out what they would get.
-            if let onSeeHowOmenDecides {
-                OmenButton(
-                    title: "See how Omen decides",
-                    action: onSeeHowOmenDecides,
-                    variant: .secondary,
-                    size: .lg
-                )
-                .frame(maxWidth: .infinity)
             }
         }
     }

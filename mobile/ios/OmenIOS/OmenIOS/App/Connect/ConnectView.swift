@@ -267,13 +267,6 @@ struct ConnectView: View {
                     .foregroundStyle(OmenColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            if viewModel.followsNotPersisted {
-                OmenStateSurface(
-                    kind: .stale,
-                    title: "Only the first league will stick for now",
-                    message: "Omen connected all of them, but can't yet remember a multi-league choice between sessions."
-                )
-            }
         }
     }
 
@@ -315,8 +308,7 @@ struct ConnectView: View {
 
     private func yahooConnectedSection(_ league: YahooLeague) -> some View {
         VStack(alignment: .leading, spacing: OmenSpacing.step16) {
-            OmenStateSurface(
-                kind: .empty,
+            connectedSurface(
                 title: "\(league.name) is connected",
                 message: "Omen can now read this league's roster, scoring, and matchup."
             )
@@ -376,8 +368,7 @@ struct ConnectView: View {
 
     private func connectedSection(_ league: SleeperLeague) -> some View {
         VStack(alignment: .leading, spacing: OmenSpacing.step16) {
-            OmenStateSurface(
-                kind: .empty,
+            connectedSurface(
                 title: "\(league.name) is connected",
                 message: "Omen can now read this league's roster, scoring, and matchup."
             )
@@ -385,18 +376,21 @@ struct ConnectView: View {
         }
     }
 
-    /// The connected screen's actions, preceded by the persistence warning when the server accepted
-    /// a multi-league choice but could not store it. The picker's footer is gone by the time
-    /// `recordFollows` learns this, so the warning has to live where the user is by then.
+    /// One league reads as before; several list every league and say what Omen remembers.
+    private func connectedSurface(title: String, message: String) -> some View {
+        let confirmation = viewModel.connectionConfirmation
+        return OmenStateSurface(
+            kind: confirmation.title != nil && viewModel.followsNotPersisted ? .stale : .empty,
+            title: confirmation.title ?? title,
+            message: confirmation.message ?? message
+        )
+    }
+
+    /// The connected screen's actions, preceded by the list of every league confirmed and what
+    /// Omen remembers. The picker's footer is gone by the time `recordFollows` learns this, so
+    /// the confirmation has to live where the user is by then.
     private var connectedActions: some View {
         VStack(alignment: .leading, spacing: OmenSpacing.step12) {
-            if viewModel.followsNotPersisted {
-                OmenStateSurface(
-                    kind: .stale,
-                    title: "Only the first league will stick for now",
-                    message: "Omen connected all of them, but can't yet remember a multi-league choice between sessions."
-                )
-            }
             connectedButtons
         }
     }
@@ -801,8 +795,7 @@ struct ConnectView: View {
 
     private func espnConnectedSection(_ connection: EspnConnection) -> some View {
         VStack(alignment: .leading, spacing: OmenSpacing.step16) {
-            OmenStateSurface(
-                kind: .empty,
+            connectedSurface(
                 title: "\(connection.displayLeagueName) is connected",
                 message: EspnHandoffCopy.connectedMessage(connection)
             )

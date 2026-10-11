@@ -119,8 +119,7 @@ enum ScreenshotScenarios {
                 AnyView(FauxShell(
                     initialTab: .command,
                     commandContentOverride: AnyView(OmenNoLeagueScreen(
-                        onConnect: {},
-                        onSeeHowOmenDecides: {}
+                        onConnect: {}
                     ))
                 ))
             }
@@ -586,6 +585,16 @@ enum ScreenshotScenarios {
         "chrome.account.delete-confirmation": ScreenshotScenario(
             label: "Account \u{2014} the delete phrase gate, unconfirmed",
             content: { AnyView(ChromeFixtures.deleteGate()) }
+        ),
+        // Walk-1 (2026-10-11): the passkey offer in the system sheet's own chrome, and the About /
+        // Data sources screen that carries the nflverse CC BY 4.0 credit.
+        "passkey.offer": ScreenshotScenario(
+            label: "Passkey offer \u{2014} system sheet, copy fully visible",
+            content: { AnyView(PasskeyOfferScenarioHost()) }
+        ),
+        "account.about-data-sources": ScreenshotScenario(
+            label: "About & data sources \u{2014} nflverse credit, provider data is the user's own",
+            content: { AnyView(NavigationStack { OmenAboutDataSourcesView() }) }
         ),
         "chrome.report-pill.resting": ScreenshotScenario(
             label: "Report pill \u{2014} in place on Command",
@@ -1560,7 +1569,7 @@ struct TeamSwitcherScreenshotHost: View {
     /// not exist.
     private static func subtitle(_ page: LeagueCarouselViewModel.Page) -> String {
         let provider = platformDisplayName(page.platform)
-        guard page.teamName?.isEmpty == false else { return "\(provider) · unnamed team" }
+        guard page.teamName?.isEmpty == false else { return OmenTeamPicker.unnamedTeamSubtitle(provider: provider) }
         guard page.leagueName?.isEmpty == false else { return provider }
         return "\(provider) · \(page.displayLeagueName)"
     }
@@ -1724,10 +1733,10 @@ enum J2ScreenshotFixtures {
             OmenSwitchRow(id: "dsi", crest: "DSI", teamName: "Davante\u{2019}s Inferno", subtitle: "ESPN · EB Football", isFavorite: true, isActive: false)
         ]),
         OmenSwitchGroup(title: "All teams", rows: [
-            OmenSwitchRow(id: "pak", crest: "PAK", teamName: "Puk Around & Find Out", subtitle: "ESPN · Fantasy Madness", isFavorite: false, isActive: false),
+            OmenSwitchRow(id: "pak", crest: "PAF", teamName: "Puk Around & Find Out", subtitle: "ESPN · Fantasy Madness", isFavorite: false, isActive: false),
             // The artboard's own honest row: a league the provider named and a team it did not.
             // "unnamed team" is the fallback and it is the caller's to decide, never the row's.
-            OmenSwitchRow(id: "dar", crest: "DAR", teamName: "League 884411", subtitle: "unnamed team", isFavorite: false, isActive: false)
+            OmenSwitchRow(id: "dar", crest: "DAR", teamName: "League 884411", subtitle: "ESPN team \u{00B7} name not shared", isFavorite: false, isActive: false)
         ])
     ]
 
@@ -2753,6 +2762,7 @@ enum ChromeFixtures {
                 onReportProblem: {},
                 onOpenHelpCentre: {},
                 onOpenPrivacyAndData: {},
+                onOpenAbout: {},
                 onSignOut: {}
             )
         ))
@@ -2866,5 +2876,17 @@ private struct DeleteGateHost: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(OmenColor.bg)
+    }
+}
+
+/// Presents the passkey offer exactly as the app shell does: a real `.sheet`, so the capture
+/// shows the system's own chrome and not a hand-drawn frame.
+private struct PasskeyOfferScenarioHost: View {
+    var body: some View {
+        OmenColor.bg
+            .ignoresSafeArea()
+            .sheet(isPresented: .constant(true)) {
+                PasskeyOfferSheet(isRegistering: false, errorMessage: nil, onSave: {}, onNotNow: {})
+            }
     }
 }

@@ -83,6 +83,22 @@ final class OmenApiClientTests: XCTestCase {
         XCTAssertEqual(error, .network)
     }
 
+    // MARK: - Walk-1: a cancelled request is not "couldn't reach Omen"
+
+    func testMapsURLErrorCancelledToCancelledNotNetwork() async {
+        let fetcher = StubFetcher(result: .failure(URLError(.cancelled)))
+        let result = await client(fetcher).get("api/dashboard/summary", accessToken: "t", as: Payload.self)
+
+        guard case .failure(let error) = result else { return XCTFail("expected failure") }
+        XCTAssertEqual(error, .cancelled)
+    }
+
+    func testMapsSwiftCancellationToCancelled() {
+        XCTAssertEqual(OmenApiError.transport(CancellationError()), .cancelled)
+        XCTAssertEqual(OmenApiError.transport(URLError(.timedOut)), .network)
+        XCTAssertEqual(OmenApiError.transport(URLError(.notConnectedToInternet)), .network)
+    }
+
     /// A 200 carrying an unreadable body is a decode failure, not a silent empty success —
     /// an empty state would read to the user as "you have no leagues."
     func testMapsUnreadableSuccessBodyToDecode() async {

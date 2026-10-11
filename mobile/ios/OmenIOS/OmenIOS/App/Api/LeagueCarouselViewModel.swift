@@ -303,6 +303,10 @@ final class LeagueCarouselViewModel: ObservableObject {
             selectIndexProgrammatically(pages.firstIndex(where: { isCurrent($0) }) ?? 0)
             viewState = allPages.isEmpty ? .empty : .loaded
             await loadCurrentPage()
+        case .failure(.cancelled) where Task.isCancelled:
+            // The awaiting task was cancelled: the load that replaced it resolves the state. A live-task
+            // cancel falls through to `.failed`, never an endless spinner.
+            break
         case .failure(let error):
             viewState = .failed(error)
         }
@@ -332,6 +336,10 @@ final class LeagueCarouselViewModel: ObservableObject {
             // section the provider failed. An explicit reason beats a blank card.
             pageStates[page.id] = overview.matchupHero.map(PageState.loaded)
                 ?? .loaded(.noMatchup(reason: Self.noMatchupReason(overview)))
+        case .failure(.cancelled) where Task.isCancelled:
+            // The task itself was cancelled (swiped away): clear so the next visit fetches again. A
+            // cancel with a live task is the generic `.unavailable` below; nil would read as `.loading`.
+            pageStates[page.id] = nil
         case .failure:
             pageStates[page.id] = .unavailable(
                 "Omen couldn't read this league's week just now. Swipe back to try again."
@@ -410,7 +418,19 @@ final class LeagueCarouselViewModel: ObservableObject {
             )
         }
 
-        switch result {
+        // A lost RESPONSE is not a failed switch: the server may have applied it. Re-reading the
+        // directory tells the truth; guessing either way would leave the chip and the content
+        // disagreeing (SIM 2026-10-11). The re-read is the one directory fetch of this switch.
+        var verifiedDirectory: LeagueDirectory?
+        var outcome = result
+        if case .failure(let error) = result, error == .network || error == .cancelled || error == .decode,
+           case .success(let loaded) = await fetchDirectoryOnce(),
+           loaded.activeID == page.id {
+            verifiedDirectory = loaded
+            outcome = .success(LeagueSelectionResult.recovered())
+        }
+
+        switch outcome {
         case .success(let selection):
             committedPage = page
             lastCommittedPageID = page.id
@@ -421,11 +441,18 @@ final class LeagueCarouselViewModel: ObservableObject {
             // two now overlap. `committingPageID` stays set until the re-read lands, so the chips
             // stay disabled and nothing can start a second switch against a half-updated list.
             pendingDirectoryReload = Task { [weak self] in
-                await self?.reloadDirectoryPreservingPages()
+                if let verifiedDirectory {
+                    self?.applyReloadedDirectory(verifiedDirectory)
+                } else {
+                    await self?.reloadDirectoryPreservingPages()
+                }
                 self?.committingPageID = nil
             }
             return selection.refresh
         case .failure:
+            // The switch did not verifiably land and the directory does not show it as active; the
+            // server's state is unknown rather than known-unchanged. Chip and content both stay where
+            // they were, and the caller does not reload, so they cannot disagree with each other.
             committingPageID = nil
             return nil
         }
@@ -434,11 +461,19 @@ final class LeagueCarouselViewModel: ObservableObject {
     /// The directory re-read started by the last successful switch. Tests await it; the app does not.
     private(set) var pendingDirectoryReload: Task<Void, Never>?
 
-    private func reloadDirectoryPreservingPages() async {
-        guard case .success(let loaded) = await sessionManager.authorized({
-            await directoryRepository.fetchDirectory(accessToken: $0)
-        }) else { return }
+    private func fetchDirectoryOnce() async -> Result<LeagueDirectory, OmenApiError> {
+        await sessionManager.authorized { await directoryRepository.fetchDirectory(accessToken: $0) }
+    }
 
+    private func reloadDirectoryPreservingPages() async {
+        // A lost directory response leaves the chip following `lastCommittedPageID` and the
+        // content following `activePage` (which reads the same id), so the two still agree; the
+        // stale directory only costs the provider ticks until the next successful read.
+        guard case .success(let loaded) = await fetchDirectoryOnce() else { return }
+        applyReloadedDirectory(loaded)
+    }
+
+    private func applyReloadedDirectory(_ loaded: LeagueDirectory) {
         let restingID = currentPage?.id
         directory = loaded
         // The server's own answer to "which league is active" is now in `directory`.

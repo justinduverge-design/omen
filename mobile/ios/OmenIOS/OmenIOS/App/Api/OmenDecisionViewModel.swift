@@ -174,6 +174,12 @@ final class OmenDecisionViewModel: ObservableObject {
                 // envelope already gave honestly.
                 break
             }
+        case .failure(.cancelled) where Task.isCancelled:
+            // Only the awaiting task being cancelled (lifecycle / superseded) is swallowed; the
+            // screen's `.task` re-runs on appear. A `URLError.cancelled` while this task is still
+            // live (e.g. session invalidation) has no successor and falls through to a real
+            // "interrupted, try again" failure, so a spinner cannot hang forever.
+            break
         case .failure(let error):
             viewState = .failed(error)
         }
@@ -184,6 +190,8 @@ final class OmenDecisionViewModel: ObservableObject {
     /// envelope arrived at all, so there is no server message to defer to.
     private static func message(for error: OmenApiError) -> String {
         switch error {
+        case .cancelled:
+            return "That was interrupted. Try again."
         case .network:
             return "Omen couldn't reach the server. Check your connection and try again."
         case .unauthorized:

@@ -121,6 +121,7 @@ struct OmenAccountScreen: View {
     var onReportProblem: (() -> Void)?
     var onOpenHelpCentre: (() -> Void)?
     var onOpenPrivacyAndData: (() -> Void)?
+    var onOpenAbout: (() -> Void)?
     var onSignOut: (() -> Void)?
     /// Rendered under Support when supplied. This is the shipped passkey management that
     /// `AccountView` already carried and the artboard does not draw — recorded drift, kept for
@@ -287,6 +288,13 @@ struct OmenAccountScreen: View {
             title: "Help centre",
             subtitle: "Connecting, waivers, trades",
             action: onOpenHelpCentre,
+            leading: { EmptyView() },
+            trailing: { chevron }
+        )
+        OmenListRow(
+            title: "About & data sources",
+            subtitle: "nflverse credit, and your league data is your own",
+            action: onOpenAbout,
             leading: { EmptyView() },
             trailing: { chevron }
         )

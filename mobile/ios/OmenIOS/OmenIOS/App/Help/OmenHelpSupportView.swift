@@ -159,6 +159,18 @@ struct OmenHelpSupportView: View {
                     }
                 }
 
+                OmenCard {
+                    NavigationLink {
+                        OmenAboutDataSourcesView()
+                    } label: {
+                        OmenListRow(
+                            title: "About & data sources",
+                            subtitle: "Where Omen's data comes from, and who to credit"
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+
                 OmenCard(variant: .outlined) {
                     Text("Privacy: Omen never automatically attaches your selected league, roster, credentials, tokens, cookies, or raw provider errors to support.")
                         .omenTextStyle(OmenTypography.bodySmall)

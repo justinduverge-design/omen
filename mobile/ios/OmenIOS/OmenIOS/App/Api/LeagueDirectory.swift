@@ -181,3 +181,23 @@ struct LeagueSelectionResult: Decodable, Equatable {
         }
     }
 }
+
+extension LeagueDirectory {
+    /// The directory's own answer to "which league is the account using", as a carousel page id
+    /// (`platform:leagueID`), or nil when it names none.
+    var activeID: String? {
+        guard let platform = active?.platform, let leagueID = active?.leagueID else { return nil }
+        return "\(platform):\(leagueID)"
+    }
+}
+
+extension LeagueSelectionResult {
+    /// Stands in for a lost `POST /api/leagues/active` response once a directory re-read has
+    /// confirmed the server applied the switch. The caller re-reads every surface anyway.
+    static func recovered() -> LeagueSelectionResult {
+        LeagueSelectionResult(
+            contractVersion: nil, selectionPersistence: nil, active: nil,
+            refresh: ["command", "omen", "trade", "league"]
+        )
+    }
+}
