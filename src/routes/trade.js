@@ -13,6 +13,8 @@ const {
 const { buildTradeShareOgSvg } = require("../services/tradeShareOg");
 const { compareTrade } = require("../services/tradeValue");
 const { resolveNflPlayerInputs } = require("../services/playerSearch");
+const { withWarehouseIdentityFallback } = require("../services/tradePlayerIdentity");
+const { getRuntime: getSharedWarehouseRuntime } = require("../services/footballWarehouse/sharedUsageAccess");
 const { resolveTradeLeagueContext } = require("../services/tradeLeagueContext");
 const { createDefaultTradeSavedQueueStore } = require("../services/tradeSavedQueueStore");
 const { createSupabaseSavedTradesStore } = require("../services/savedTradesStore");
@@ -330,9 +332,12 @@ function neutralAnalysisContext(reason = null) {
   };
 }
 
-async function defaultPlayerResolver(players) {
-  return resolveNflPlayerInputs(players, { fetchPlayers: sleeperAdapter.fetchSleeperPlayers });
-}
+// Identity fallback shares the process-wide lazy warehouse runtime (one pool, closed at shutdown by
+// server.js). Built on first use; a configuration problem yields null and the legacy resolver is kept.
+const defaultPlayerResolver = withWarehouseIdentityFallback(
+  (players) => resolveNflPlayerInputs(players, { fetchPlayers: sleeperAdapter.fetchSleeperPlayers }),
+  { getRuntime: () => getSharedWarehouseRuntime({ logger }), logger },
+);
 
 function resolvedTradePlayers(inputs, resolutions) {
   return inputs.map((input, index) => {
