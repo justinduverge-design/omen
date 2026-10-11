@@ -48,6 +48,12 @@ function foldText(value) {
     .trim();
 }
 
+const NAME_SUFFIX = /\s+(jr|sr|ii|iii|iv|v)$/;
+
+function stripNameSuffix(folded) {
+  return String(folded || "").replace(NAME_SUFFIX, "").trim();
+}
+
 function normalizePosition(value) {
   const raw = toTrimmedString(value).toUpperCase();
   if (!raw) return null;
@@ -378,6 +384,20 @@ function resolvePlayerInputs(source, players = []) {
     if (requestedPosition) exact = exact.filter((player) => player.position === requestedPosition);
     if (requestedTeam && requestedTeam !== "FA") {
       exact = exact.filter((player) => player.team === requestedTeam);
+    }
+
+    // A provider can spell a generational suffix the other side leaves out ("Luther Burden III" vs
+    // Sleeper's "Luther Burden"). Retry on the suffix-less name, still gated by position and team, and
+    // accept only a single match: identity stays a hard gate, an ambiguous name is never guessed.
+    if (exact.length === 0) {
+      const bare = stripNameSuffix(foldedName);
+      if (bare) {
+        exact = index.filter((player) => stripNameSuffix(player._search_name) === bare);
+        if (requestedPosition) exact = exact.filter((player) => player.position === requestedPosition);
+        if (requestedTeam && requestedTeam !== "FA") {
+          exact = exact.filter((player) => player.team === requestedTeam);
+        }
+      }
     }
 
     if (exact.length === 1) {
