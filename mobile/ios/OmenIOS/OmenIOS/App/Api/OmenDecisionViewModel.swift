@@ -26,6 +26,14 @@ final class OmenDecisionViewModel: ObservableObject {
     /// blocking or regressing what the brief already has.
     @Published private(set) var startSitDetail: StartSitDetail?
 
+    /// The league the current `viewState` was requested for. `nil` means the request named no league and the
+    /// server used the account's selected one.
+    @Published private(set) var requestedScope: OmenCallScope?
+
+    /// Bumped by every load. A response that comes back after a newer load started belongs to a league the
+    /// user has already left and is dropped, so a slow answer can never repaint the previous league's call.
+    private var generation = 0
+
     private let repository: OmenDecisionRepository
     private let startSitRepository: StartSitDetailRepository
     private let sessionManager: SessionManager
@@ -56,6 +64,9 @@ final class OmenDecisionViewModel: ObservableObject {
         case .demo:
             return OmenDecisionFixtures.demo
         case .loaded(let envelope):
+            if Self.answeredForADifferentLeague(envelope, than: requestedScope) {
+                return .error(Self.wrongLeagueMessage, retry: { [weak self] in Task { await self?.reload() } })
+            }
             return envelope.briefState(
                 onRetry: { [weak self] in Task { await self?.reload() } },
                 onConnect: onConnect
@@ -65,20 +76,72 @@ final class OmenDecisionViewModel: ObservableObject {
         }
     }
 
-    func load(userID: String) async {
+    /// What the Omen tab should draw while the picker says `visibleScope` is the league on screen.
+    ///
+    /// The picker can move before a reload has started, and a call for the league the user just left must not
+    /// be on screen even for that moment. If what is held was requested for, or answered for, any other league,
+    /// it is not shown: the tab reads as loading until the right call arrives.
+    func briefState(visibleScope: OmenCallScope?) -> OmenDecisionBriefState {
+        guard let visibleScope else { return briefState }
+        if case .loaded(let envelope) = viewState,
+           requestedScope != visibleScope || Self.answeredForADifferentLeague(envelope, than: visibleScope) {
+            return .loading
+        }
+        if case .failed = viewState, requestedScope != visibleScope { return .loading }
+        return briefState
+    }
+
+    func load(userID: String, scope: OmenCallScope? = nil) async {
         guard userID != SessionManager.demoUserID else {
             viewState = .demo
             return
         }
+        requestedScope = scope
         await reload()
     }
 
-    private func reload() async {
+    /// Reloads only when the picked league is not the one the held call was requested for or answered for.
+    /// The league-switch path and the picker's own change both land here without issuing two requests.
+    func loadIfLeagueChanged(userID: String, scope: OmenCallScope?) async {
+        guard userID != SessionManager.demoUserID, let scope, scope != requestedScope else { return }
+        if case .loaded(let envelope) = viewState,
+           let answered = envelope.answeredFor, answered.matched != false,
+           answered.platform == scope.platform, answered.leagueID == scope.leagueID {
+            requestedScope = scope
+            return
+        }
+        await load(userID: userID, scope: scope)
+    }
+
+    /// True when the server said which league it answered for and it is not the one asked for. Absent facts
+    /// are not a mismatch: an older server sends no `answered_for`, and then the request is all we know.
+    static func answeredForADifferentLeague(_ envelope: OmenDecisionEnvelope, than scope: OmenCallScope?) -> Bool {
+        guard let scope, let answered = envelope.answeredFor,
+              let platform = answered.platform, let leagueID = answered.leagueID else { return false }
+        return platform != scope.platform || leagueID != scope.leagueID
+    }
+
+    private static let wrongLeagueMessage =
+        "Omen answered for a different league than the one you picked, so this call is not shown. Try again."
+
+    private func reload(attempt: Int = 0) async {
+        let scope = requestedScope
+        generation += 1
+        let mine = generation
         viewState = .loading
         startSitDetail = nil
-        switch await sessionManager.authorized({ await repository.fetchDecision(accessToken: $0) }) {
+        let result = await sessionManager.authorized({ await repository.fetchDecision(accessToken: $0, scope: scope) })
+        guard mine == generation else { return }
+        switch result {
         case .success(let envelope):
+            // One honest refetch if the server answered for another league; then show it as an error rather
+            // than as this league's call.
+            if Self.answeredForADifferentLeague(envelope, than: scope), attempt == 0 {
+                await reload(attempt: 1)
+                return
+            }
             viewState = .loaded(envelope)
+            if Self.answeredForADifferentLeague(envelope, than: scope) { return }
             // Only a live `start_sit` call has a start/sit detail to read — a trade or
             // waiver recommendation would just make this an extra round trip to a route
             // that has nothing for it. Reuses the token `authorized` just proved good
@@ -86,8 +149,17 @@ final class OmenDecisionViewModel: ObservableObject {
             guard envelope.recommendation?.type == "start_sit",
                   case .token(let accessToken) = await sessionManager.authorization()
             else { return }
-            switch await startSitRepository.fetchDetail(accessToken: accessToken, slot: nil) {
+            let detailResult = await startSitRepository.fetchDetail(accessToken: accessToken, slot: nil)
+            guard mine == generation else { return }
+            switch detailResult {
             case .success(let detail):
+                // The start/sit detail route reads the account's selected league and takes no league. When the
+                // picked league is a different one, its detail would describe another team under this call.
+                if let expected = scope ?? envelope.answeredFor?.scope,
+                   let platform = detail.platform, let leagueId = detail.leagueId,
+                   platform != expected.platform || leagueId != expected.leagueID {
+                    break
+                }
                 startSitDetail = detail
             case .failure:
                 // The brief's own `.success` composition remains visible. A transport

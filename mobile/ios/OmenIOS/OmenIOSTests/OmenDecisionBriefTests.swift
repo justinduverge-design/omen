@@ -67,6 +67,7 @@ final class OmenDecisionBriefTests: XCTestCase {
         _ = OmenDecisionBrief(state: .mock(payload))
         _ = OmenDecisionBrief(state: .demo(payload))
         _ = OmenDecisionBrief(state: .offSeason)
+        _ = OmenDecisionBrief(state: .hold(OmenHoldPayload(cannotRank: false, headline: "Hold", summary: nil, reasons: [], alternative: nil, considered: [], coverage: nil)))
     }
 
     func testShellConstructsWithFeedbackSlot() {
@@ -104,6 +105,7 @@ final class OmenDecisionBriefTests: XCTestCase {
         case .mock: return "mock"
         case .demo: return "demo"
         case .offSeason: return "offSeason"
+        case .hold: return "hold"
         }
     }
 }

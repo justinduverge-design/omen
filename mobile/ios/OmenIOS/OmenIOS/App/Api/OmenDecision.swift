@@ -28,11 +28,160 @@ struct OmenDecisionEnvelope: Decodable, Equatable {
     /// is read leniently: an unreadable football-intelligence block becomes nil instead of failing
     /// the whole brief (this is exactly how a numeric `quality.confidence` broke every Omen call).
     @LenientDecoded var footballIntelligence: FootballIntelligence?
+    /// `success` carries the kind of call (`start_sit`, `waiver_pickup`, `trade_suggestion`); `empty` carries
+    /// `hold`. Read leniently, so a drifting value is nil, not a failure.
+    @LenientDecoded var callKind: String?
+    /// Which league the server actually answered for. Lenient for the same reason as every optional block
+    /// added after the first release: it must never discard the brief (#504).
+    @LenientDecoded var answeredFor: AnsweredFor?
+    /// The reasoned Hold call that replaced "Nothing to recommend". Lenient at every level.
+    @LenientDecoded var hold: Hold?
 
     enum CodingKeys: String, CodingKey {
         case contractVersion = "contract_version"
         case state, mode, recommendation, recovery, platform, error, explanation, confidence, warnings, signals, capabilities
         case footballIntelligence = "football_intelligence"
+        case callKind = "call_kind"
+        case answeredFor = "answered_for"
+        case hold
+    }
+
+    struct AnsweredFor: Decodable, Equatable {
+        let contextID: String?
+        let platform: String?
+        let leagueID: String?
+        let teamID: String?
+        /// `requested` or `account_selected`.
+        let selection: String?
+        /// False when the league asked for is not one the account plays in.
+        let matched: Bool?
+
+        enum CodingKeys: String, CodingKey {
+            case platform, selection, matched
+            case contextID = "context_id"
+            case leagueID = "league_id"
+            case teamID = "team_id"
+        }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            contextID = (try? c.decodeIfPresent(String.self, forKey: .contextID)) ?? nil
+            platform = (try? c.decodeIfPresent(String.self, forKey: .platform)) ?? nil
+            // Provider league ids are strings on the wire; tolerate a number rather than lose the field.
+            if let text = (try? c.decodeIfPresent(String.self, forKey: .leagueID)) ?? nil {
+                leagueID = text
+            } else if let number = (try? c.decodeIfPresent(Int.self, forKey: .leagueID)) ?? nil {
+                leagueID = String(number)
+            } else {
+                leagueID = nil
+            }
+            teamID = (try? c.decodeIfPresent(String.self, forKey: .teamID)) ?? nil
+            selection = (try? c.decodeIfPresent(String.self, forKey: .selection)) ?? nil
+            matched = (try? c.decodeIfPresent(Bool.self, forKey: .matched)) ?? nil
+        }
+
+        /// The league named, when both halves of it are present.
+        var scope: OmenCallScope? {
+            guard let platform, let leagueID else { return nil }
+            return OmenCallScope(platform: platform, leagueID: leagueID)
+        }
+
+        init(platform: String?, leagueID: String?, matched: Bool? = true, selection: String? = nil) {
+            self.contextID = nil
+            self.platform = platform
+            self.leagueID = leagueID
+            self.teamID = nil
+            self.selection = selection
+            self.matched = matched
+        }
+    }
+
+    struct Hold: Decodable, Equatable {
+        struct Reason: Decodable, Equatable {
+            let code: String?
+            let text: String?
+        }
+        struct Figure: Decodable, Equatable {
+            let name: String?
+            let projected: Double?
+        }
+        struct Alternative: Decodable, Equatable {
+            let kind: String?
+            let slot: String?
+            let start: Figure?
+            let sit: Figure?
+            let delta: Double?
+            let threshold: Double?
+            let whyNot: String?
+            enum CodingKeys: String, CodingKey {
+                case kind, slot, start, sit, delta, threshold
+                case whyNot = "why_not"
+            }
+            init(from decoder: Decoder) throws {
+                let c = try decoder.container(keyedBy: CodingKeys.self)
+                kind = (try? c.decodeIfPresent(String.self, forKey: .kind)) ?? nil
+                slot = (try? c.decodeIfPresent(String.self, forKey: .slot)) ?? nil
+                start = (try? c.decodeIfPresent(Figure.self, forKey: .start)) ?? nil
+                sit = (try? c.decodeIfPresent(Figure.self, forKey: .sit)) ?? nil
+                delta = (try? c.decodeIfPresent(Double.self, forKey: .delta)) ?? nil
+                threshold = (try? c.decodeIfPresent(Double.self, forKey: .threshold)) ?? nil
+                whyNot = (try? c.decodeIfPresent(String.self, forKey: .whyNot)) ?? nil
+            }
+        }
+        struct Considered: Decodable, Equatable {
+            let kind: String?
+            let outcome: String?
+            let reason: String?
+            let detail: String?
+        }
+        struct Projections: Decodable, Equatable {
+            let available: Bool?
+            let playersWithProjection: Int?
+            let playersTotal: Int?
+            enum CodingKeys: String, CodingKey {
+                case available
+                case playersWithProjection = "players_with_projection"
+                case playersTotal = "players_total"
+            }
+        }
+
+        let headline: String?
+        let summary: String?
+        let reasons: [Reason]
+        let bestAlternative: Alternative?
+        let considered: [Considered]
+        let projections: Projections?
+        let thresholdPoints: Double?
+
+        enum CodingKeys: String, CodingKey {
+            case headline, summary, reasons, considered, projections
+            case bestAlternative = "best_alternative"
+            case thresholdPoints = "threshold_points"
+        }
+
+        /// Each member is read on its own and each list element on its own, so one drifting reason does not
+        /// take the other reasons, or the brief, with it.
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            headline = (try? c.decodeIfPresent(String.self, forKey: .headline)) ?? nil
+            summary = (try? c.decodeIfPresent(String.self, forKey: .summary)) ?? nil
+            reasons = Self.lenientList(c, .reasons)
+            considered = Self.lenientList(c, .considered)
+            bestAlternative = (try? c.decodeIfPresent(Alternative.self, forKey: .bestAlternative)) ?? nil
+            projections = (try? c.decodeIfPresent(Projections.self, forKey: .projections)) ?? nil
+            thresholdPoints = (try? c.decodeIfPresent(Double.self, forKey: .thresholdPoints)) ?? nil
+        }
+
+        private static func lenientList<T: Decodable>(_ c: KeyedDecodingContainer<CodingKeys>, _ key: CodingKeys) -> [T] {
+            guard var list = try? c.nestedUnkeyedContainer(forKey: key) else { return [] }
+            var out: [T] = []
+            while !list.isAtEnd {
+                if let item = try? list.decode(T.self) { out.append(item) } else { _ = try? list.decode(Skip.self) }
+            }
+            return out
+        }
+
+        private struct Skip: Decodable {}
     }
 
     struct Recommendation: Decodable, Equatable {
@@ -222,6 +371,11 @@ struct OmenDecisionEnvelope: Decodable, Equatable {
 
 }
 
+extension LeagueCarouselViewModel.Page {
+    /// The league this page stands for, in the form every personalized request names it.
+    var omenCallScope: OmenCallScope { OmenCallScope(platform: platform, leagueID: leagueID) }
+}
+
 // MARK: - Contract → screen state
 
 extension OmenDecisionEnvelope {
@@ -252,6 +406,9 @@ extension OmenDecisionEnvelope {
             }
 
         case "empty":
+            if callKind == "hold", let holdState = holdPayload() {
+                return .hold(holdState)
+            }
             return .empty(explanation?.summary ?? "No move clears the recommendation threshold this week.")
 
         case "off_season":
@@ -280,6 +437,71 @@ extension OmenDecisionEnvelope {
         [recovery?.message, platform?.recovery?.message, error?.message]
             .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
             .first { !$0.isEmpty }
+    }
+
+    /// Maps the server's Hold block to what the screen draws. Returns nil when there is nothing to show, so
+    /// the caller falls back to the plain empty state rather than a blank card.
+    private func holdPayload() -> OmenHoldPayload? {
+        guard let hold else { return nil }
+        let reasons = hold.reasons.compactMap { $0.text.nonEmpty }
+        let cannotRank = hold.projections?.available == false
+            || hold.reasons.first?.code == "projections_unavailable"
+        let headline: String
+        if cannotRank {
+            headline = "Omen cannot rank a move for this league"
+        } else {
+            headline = hold.headline.nonEmpty ?? "Hold your lineup this week"
+        }
+        // With no projections the server's summary talks about waivers; the first reason carries the truth.
+        let summary = cannotRank ? reasons.first : hold.summary.nonEmpty
+        guard summary != nil || !reasons.isEmpty else { return nil }
+
+        let considered = hold.considered.enumerated().compactMap { index, item -> OmenHoldPayload.Considered? in
+            guard let detail = item.detail.nonEmpty else { return nil }
+            return .init(id: index, kind: Self.consideredLabel(item.kind), detail: detail)
+        }
+        return OmenHoldPayload(
+            cannotRank: cannotRank,
+            headline: headline,
+            summary: summary,
+            // When the first reason is already the summary it is not listed twice.
+            reasons: (cannotRank ? Array(reasons.dropFirst()) : reasons).enumerated().map { .init(id: $0.offset, text: $0.element) },
+            alternative: Self.holdAlternative(hold.bestAlternative, threshold: hold.thresholdPoints),
+            considered: considered,
+            coverage: Self.projectionCoverage(hold.projections)
+        )
+    }
+
+    private static func consideredLabel(_ kind: String?) -> String {
+        switch kind {
+        case "start_sit": return "Lineup swap"
+        case "waiver_pickup": return "Waiver pickup"
+        case "trade_suggestion": return "Trade"
+        default: return "Also weighed"
+        }
+    }
+
+    private static func holdAlternative(_ alt: Hold.Alternative?, threshold: Double?) -> OmenHoldPayload.Alternative? {
+        // `best_alternative` is null when there is nothing to compare; no number is invented in that case.
+        guard let alt, let start = alt.start?.name.nonEmpty, let sit = alt.sit?.name.nonEmpty else { return nil }
+        let slot = alt.slot.nonEmpty.map { " at \($0)" } ?? ""
+        var figures: String?
+        if let a = alt.start?.projected, let b = alt.sit?.projected {
+            var line = String(format: "%.1f vs %.1f projected", a, b)
+            if let delta = alt.delta {
+                line += String(format: ", %@%.1f", delta >= 0 ? "+" : "-", abs(delta))
+                if let bar = alt.threshold ?? threshold { line += String(format: " against a %.1f point bar", bar) }
+            }
+            figures = line
+        }
+        return .init(title: "Start \(start) over \(sit)\(slot)", figures: figures, whyItLost: alt.whyNot.nonEmpty)
+    }
+
+    private static func projectionCoverage(_ projections: Hold.Projections?) -> String? {
+        guard let projections else { return nil }
+        if projections.available == false { return "No projections for this league this week." }
+        guard let have = projections.playersWithProjection, let total = projections.playersTotal, total > 0 else { return nil }
+        return "\(have) of \(total) players on your roster have a projection."
     }
 
     private static let unreadableMessage =
@@ -493,6 +715,14 @@ extension OmenDecisionEnvelope {
     }
 }
 
+
+private extension Optional where Wrapped == String {
+    /// Trimmed text, or nil when absent or blank.
+    var nonEmpty: String? {
+        guard let text = self?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else { return nil }
+        return text
+    }
+}
 
 /// Decodes `T?` and swallows a shape mismatch inside it, so one drifting optional block cannot take
 /// down the whole response. Missing key and null are nil, as for any optional.

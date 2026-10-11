@@ -92,6 +92,14 @@ enum ScreenshotScenarios {
             label: "Omen — a call with one source unread and one read-but-unused",
             content: { AnyView(FauxShell(scenarioKey: "omen.degraded", initialTab: .omen)) }
         ),
+        "omen.hold": ScreenshotScenario(
+            label: "Omen — Hold call with ranked reasons, best alternative and projection coverage",
+            content: { AnyView(FauxShell(scenarioKey: "omen.hold", initialTab: .omen)) }
+        ),
+        "omen.hold-no-projections": ScreenshotScenario(
+            label: "Omen — Yahoo league with no projections: cannot rank a move",
+            content: { AnyView(FauxShell(scenarioKey: "omen.hold-no-projections", initialTab: .omen)) }
+        ),
         "omen.disconnected": ScreenshotScenario(
             label: "Omen — real user, disconnected",
             content: { AnyView(FauxShell(scenarioKey: "omen.disconnected", initialTab: .omen)) }
@@ -1231,8 +1239,56 @@ private struct FauxShell: View {
         // The capture obligation from `capability-expression-v1.md`: a profile is not covered by
         // a screenshot of its success state, because nothing is missing in a success state.
         case "omen.degraded": return OmenDecisionFixtures.degraded
+        case "omen.hold": return OmenHoldScreenshotFixtures.hold
+        case "omen.hold-no-projections": return OmenHoldScreenshotFixtures.noProjections
         default: return OmenDecisionFixtures.realDisconnected
         }
+    }
+}
+
+/// `empty` + `call_kind: hold` envelopes shaped like `test/contracts/fixtures/omen-decision-brief.v3/empty_hold*.json`,
+/// decoded through the production type so a capture fails loudly if the client and the route drift.
+private enum OmenHoldScreenshotFixtures {
+    static var hold: OmenDecisionBriefState {
+        decode("""
+        {"contract_version":"omen-decision-brief.v3","state":"empty","mode":"live","call_kind":"hold",
+         "answered_for":{"platform":"espn","league_id":"fixture-league","matched":true,"selection":"requested"},
+         "explanation":{"summary":"No move clears the recommendation threshold this week."},
+         "hold":{"kind":"hold","headline":"Hold your lineup this week",
+           "summary":"Hold your lineup. The best alternative Omen found does not beat what you already have by enough to be worth the risk.",
+           "reasons":[
+             {"code":"best_swap_below_bar","text":"Sample WR1 already projects 0.2 points above Sample WR2 (12.0 vs 11.8), so benching Sample WR1 would cost you."},
+             {"code":"no_fair_trade","text":"Omen searched 11 other rosters in this league for a one-for-one trade that improves both lineups and keeps the value fair. None cleared both."}],
+           "best_alternative":{"kind":"start_sit","slot":"WR","start":{"name":"Sample WR2","projected":11.8},"sit":{"name":"Sample WR1","projected":12.0},"delta":-0.2,"threshold":0.5,"margin_to_threshold":0.7,
+             "why_not":"Sample WR1 already projects 0.2 points above Sample WR2 (12.0 vs 11.8), so benching Sample WR1 would cost you."},
+           "considered":[
+             {"kind":"start_sit","outcome":"below_threshold","detail":"Sample WR1 already projects 0.2 points above Sample WR2, so benching Sample WR1 would cost you."},
+             {"kind":"waiver_pickup","outcome":"not_needed","detail":"None of your starters is ruled out, so no waiver pickup was needed."},
+             {"kind":"trade_suggestion","outcome":"none_found","detail":"Omen searched 11 other rosters for a one-for-one trade that improves both lineups and keeps the value fair. None cleared both."}],
+           "projections":{"available":true,"players_with_projection":14,"players_total":16},"threshold_points":0.5}}
+        """)
+    }
+
+    static var noProjections: OmenDecisionBriefState {
+        decode("""
+        {"contract_version":"omen-decision-brief.v3","state":"empty","mode":"live","call_kind":"hold",
+         "answered_for":{"platform":"yahoo","league_id":"fixture-league","matched":true,"selection":"requested"},
+         "hold":{"kind":"hold","headline":"Hold your lineup this week","summary":"Hold your lineup.",
+           "reasons":[{"code":"projections_unavailable","text":"Yahoo does not give Omen weekly projections for this league, so Omen cannot rank lineup swaps or trades. Holding is the only call it can stand behind."}],
+           "best_alternative":null,
+           "considered":[
+             {"kind":"start_sit","outcome":"unavailable","detail":"No weekly projections from Yahoo, so no swap could be scored."},
+             {"kind":"waiver_pickup","outcome":"not_needed","detail":"None of your starters is ruled out, so no waiver pickup was needed."},
+             {"kind":"trade_suggestion","outcome":"unavailable","reason":"projections_unavailable","detail":"Yahoo does not give Omen weekly projections, so a trade cannot be weighed."}],
+           "projections":{"available":false,"players_with_projection":0,"players_total":16},"threshold_points":0.5}}
+        """)
+    }
+
+    private static func decode(_ json: String) -> OmenDecisionBriefState {
+        guard let envelope = try? JSONDecoder().decode(OmenDecisionEnvelope.self, from: Data(json.utf8)) else {
+            return .error("Hold fixture failed to decode.", retry: nil)
+        }
+        return envelope.briefState()
     }
 }
 

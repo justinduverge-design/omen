@@ -632,7 +632,7 @@ final class OmenDecisionViewModelTests: XCTestCase {
     func testDemoRendersTheLabeledFixtureWithoutCallingTheNetwork() async throws {
         final class ExplodingRepository: OmenDecisionRepository {
             var called = false
-            func fetchDecision(accessToken: String) async -> Result<OmenDecisionEnvelope, OmenApiError> {
+            func fetchDecision(accessToken: String, scope: OmenCallScope?) async -> Result<OmenDecisionEnvelope, OmenApiError> {
                 called = true
                 return .failure(.network)
             }
@@ -959,5 +959,255 @@ final class ContractFixtureDecodeTests: XCTestCase {
             }
         }
         XCTAssertGreaterThan(checked, 0, "no FAAB or priority fixture exercised the native mapping")
+    }
+}
+
+// MARK: - League scope and the Hold call (2026-10-11)
+
+/// Every personalized Omen call names the picked league, the answer says which league it was for, and an
+/// empty answer with `call_kind: hold` shows its reasoning. Fixtures are the server's own
+/// (`test/contracts/fixtures/omen-decision-brief.v3/empty_hold*.json`).
+@MainActor
+final class OmenCallLeagueScopeTests: XCTestCase {
+
+    private func makeSessionManager() -> SessionManager {
+        SessionManager(
+            store: InMemorySecureSessionStore(initial: Session(userID: "user-1", accessToken: "t", refreshToken: "r", expiresAtEpochSeconds: 2_000)),
+            nowEpochSeconds: { 1_000 }
+        )
+    }
+
+    private func decode(_ json: String) throws -> OmenDecisionEnvelope {
+        try JSONDecoder().decode(OmenDecisionEnvelope.self, from: Data(json.utf8))
+    }
+
+    private func fixture(_ name: String) throws -> OmenDecisionEnvelope {
+        var url = URL(fileURLWithPath: #filePath)
+        for _ in 0..<5 { url.deleteLastPathComponent() }
+        url.appendPathComponent("test/contracts/fixtures/omen-decision-brief.v3/\(name).json")
+        let wrapper = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
+        let body = try JSONSerialization.data(withJSONObject: try XCTUnwrap(wrapper["body"]))
+        return try JSONDecoder().decode(OmenDecisionEnvelope.self, from: body)
+    }
+
+    private func answered(_ platform: String, _ leagueID: String, state: String = "empty") -> String {
+        """
+        {"state":"\(state)","mode":"live","answered_for":{"platform":"\(platform)","league_id":"\(leagueID)","matched":true,"selection":"requested"}}
+        """
+    }
+
+    // MARK: request
+
+    private final class Recorder: OmenHTTPFetching {
+        var bodies: [[String: Any]] = []
+        func data(for request: URLRequest) async throws -> (Data, URLResponse) {
+            if let data = request.httpBody, let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                bodies.append(object)
+            }
+            return (Data(#"{"state":"empty","mode":"live"}"#.utf8),
+                    HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
+        }
+    }
+
+    func testTheRequestCarriesThePickedLeagueAndPlatform() async throws {
+        let recorder = Recorder()
+        let client = OmenApiClient(baseURL: try XCTUnwrap(URL(string: "https://api.example.com")), fetcher: recorder)
+        _ = await ApiOmenDecisionRepository(client: client)
+            .fetchDecision(accessToken: "t", scope: OmenCallScope(platform: "yahoo", leagueID: "nfl.l.123"))
+
+        let body = try XCTUnwrap(recorder.bodies.first)
+        XCTAssertEqual(body["league_id"] as? String, "nfl.l.123")
+        XCTAssertEqual(body["platform"] as? String, "yahoo")
+        XCTAssertEqual(body["contract_version"] as? String, "omen-decision-brief.v3")
+    }
+
+    func testAnUnscopedRequestStaysUnscoped() async throws {
+        let recorder = Recorder()
+        let client = OmenApiClient(baseURL: try XCTUnwrap(URL(string: "https://api.example.com")), fetcher: recorder)
+        _ = await ApiOmenDecisionRepository(client: client).fetchDecision(accessToken: "t")
+        let body = try XCTUnwrap(recorder.bodies.first)
+        XCTAssertNil(body["league_id"])
+        XCTAssertNil(body["platform"])
+    }
+
+    func testTheViewModelSendsTheScopeItWasLoadedWith() async throws {
+        final class Spy: OmenDecisionRepository {
+            var scopes: [OmenCallScope?] = []
+            func fetchDecision(accessToken: String, scope: OmenCallScope?) async -> Result<OmenDecisionEnvelope, OmenApiError> {
+                scopes.append(scope)
+                return .success(try! JSONDecoder().decode(OmenDecisionEnvelope.self, from: Data(#"{"state":"empty","mode":"live"}"#.utf8)))
+            }
+        }
+        let spy = Spy()
+        let viewModel = OmenDecisionViewModel(repository: spy, sessionManager: makeSessionManager())
+        let espn = OmenCallScope(platform: "espn", leagueID: "13338821")
+        await viewModel.load(userID: "u", scope: espn)
+        XCTAssertEqual(spy.scopes, [espn])
+        XCTAssertEqual(viewModel.requestedScope, espn)
+    }
+
+    func testAPageNamesItsLeagueTheWayTheRouteExpects() {
+        let page = LeagueCarouselViewModel.Page(platform: "sleeper", leagueID: "99", leagueName: nil, teamName: nil, isActive: false)
+        XCTAssertEqual(page.omenCallScope, OmenCallScope(platform: "sleeper", leagueID: "99"))
+    }
+
+    // MARK: decoding
+
+    func testNewFieldsDecodeFromTheServersOwnHoldFixture() throws {
+        let envelope = try fixture("empty_hold")
+        XCTAssertEqual(envelope.callKind, "hold")
+        XCTAssertEqual(envelope.answeredFor?.platform, "espn")
+        XCTAssertEqual(envelope.answeredFor?.leagueID, "1234567")
+        XCTAssertEqual(envelope.answeredFor?.matched, true)
+        XCTAssertEqual(envelope.hold?.reasons.count, 2)
+        XCTAssertEqual(envelope.hold?.projections?.playersWithProjection, 3)
+    }
+
+    func testDriftingNewBlocksNeverDiscardTheBrief() throws {
+        let envelope = try decode("""
+        {"state":"empty","mode":"live","call_kind":7,"answered_for":"nope","hold":{"headline":4,"reasons":"x","best_alternative":{"start":"bad","delta":"?"},"projections":[]},
+         "explanation":{"summary":"No move clears the recommendation threshold this week."}}
+        """)
+        XCTAssertEqual(envelope.state, "empty")
+        XCTAssertNil(envelope.callKind)
+        XCTAssertNil(envelope.answeredFor)
+        // Even with call_kind lost, an unreadable hold falls back to the plain empty state, not a blank card.
+        guard case .empty(let sentence) = envelope.briefState() else { return XCTFail("unreadable hold must fall back to empty") }
+        XCTAssertEqual(sentence, "No move clears the recommendation threshold this week.")
+    }
+
+    func testOneBadReasonDoesNotDropTheOthers() throws {
+        let envelope = try decode("""
+        {"state":"empty","mode":"live","call_kind":"hold","hold":{"summary":"Hold.","reasons":[{"code":"a","text":"First."},42,{"code":"b","text":"Second."}]}}
+        """)
+        guard case .hold(let hold) = envelope.briefState() else { return XCTFail("expected hold") }
+        XCTAssertEqual(hold.reasons.map(\.text), ["First.", "Second."])
+    }
+
+    func testOldServerWithoutNewFieldsStillMapsToPlainEmpty() throws {
+        let envelope = try fixture("empty")
+        XCTAssertNil(envelope.answeredFor)
+        guard case .empty = envelope.briefState() else { return XCTFail("a pre-hold empty body stays empty") }
+    }
+
+    // MARK: rendering state
+
+    func testHoldShowsRankedReasonsAlternativeAndCoverage() throws {
+        guard case .hold(let hold) = try fixture("empty_hold").briefState() else { return XCTFail("expected hold") }
+        XCTAssertFalse(hold.cannotRank)
+        XCTAssertEqual(hold.headline, "Hold your lineup this week")
+        XCTAssertEqual(hold.reasons.first?.id, 0, "the server's order is the rank")
+        XCTAssertTrue(hold.reasons.first?.text.contains("would cost you") == true)
+        let alt = try XCTUnwrap(hold.alternative)
+        XCTAssertEqual(alt.title, "Start Ben Chwarmer over Wes Receiver at WR")
+        XCTAssertEqual(alt.figures, "11.8 vs 12.0 projected, -0.2 against a 0.5 point bar")
+        XCTAssertTrue(alt.whyItLost?.contains("would cost you") == true)
+        XCTAssertEqual(hold.considered.map(\.kind), ["Lineup swap", "Waiver pickup", "Trade"])
+        XCTAssertEqual(hold.coverage, "3 of 3 players on your roster have a projection.")
+    }
+
+    func testYahooWithNoProjectionsSaysItCannotRank() throws {
+        guard case .hold(let hold) = try fixture("empty_hold_noproj").briefState() else { return XCTFail("expected hold") }
+        XCTAssertTrue(hold.cannotRank)
+        XCTAssertEqual(hold.headline, "Omen cannot rank a move for this league")
+        XCTAssertNil(hold.alternative, "no alternative and no invented number")
+        XCTAssertEqual(hold.coverage, "No projections for this league this week.")
+        XCTAssertTrue(hold.summary?.contains("cannot rank") == true)
+        XCTAssertTrue(hold.reasons.isEmpty, "the one reason is the summary; it is not repeated")
+    }
+
+    func testAHoldNeverRendersWithoutTheHoldCallKind() throws {
+        let envelope = try decode(#"{"state":"empty","mode":"live","hold":{"summary":"Hold.","reasons":[{"code":"a","text":"Because."}]}}"#)
+        guard case .empty = envelope.briefState() else { return XCTFail("only call_kind hold may render a hold") }
+    }
+
+    // MARK: honesty about which league answered
+
+    func testAnswerForAnotherLeagueIsRefetchedOnceThenShownAsAnError() async throws {
+        final class Spy: OmenDecisionRepository {
+            var calls = 0
+            let wrong: OmenDecisionEnvelope
+            init(_ wrong: OmenDecisionEnvelope) { self.wrong = wrong }
+            func fetchDecision(accessToken: String, scope: OmenCallScope?) async -> Result<OmenDecisionEnvelope, OmenApiError> {
+                calls += 1
+                return .success(wrong)
+            }
+        }
+        let spy = Spy(try decode(answered("sleeper", "other")))
+        let viewModel = OmenDecisionViewModel(repository: spy, sessionManager: makeSessionManager())
+        await viewModel.load(userID: "u", scope: OmenCallScope(platform: "espn", leagueID: "13338821"))
+
+        XCTAssertEqual(spy.calls, 2, "one refetch, then stop")
+        guard case .error(let message, _) = viewModel.briefState else { return XCTFail("a wrong-league answer must not render as the call") }
+        XCTAssertTrue(message.contains("different league"))
+    }
+
+    func testAnAnswerForTheRightLeagueRenders() async throws {
+        let viewModel = OmenDecisionViewModel(
+            repository: StubOmenDecisionRepository(result: .success(try decode(answered("espn", "13338821")))),
+            sessionManager: makeSessionManager()
+        )
+        await viewModel.load(userID: "u", scope: OmenCallScope(platform: "espn", leagueID: "13338821"))
+        guard case .empty = viewModel.briefState else { return XCTFail("matching league should render") }
+    }
+
+    func testTheOmenTabNeverShowsThePreviousLeaguesCall() async throws {
+        let viewModel = OmenDecisionViewModel(
+            repository: StubOmenDecisionRepository(result: .success(try fixture("empty_hold"))),
+            sessionManager: makeSessionManager()
+        )
+        let espn = OmenCallScope(platform: "espn", leagueID: "1234567")
+        let yahoo = OmenCallScope(platform: "yahoo", leagueID: "nfl.l.1")
+        await viewModel.load(userID: "u", scope: espn)
+        guard case .hold = viewModel.briefState(visibleScope: espn) else { return XCTFail("the loaded league shows its call") }
+
+        // The picker moved; no reload has started yet.
+        guard case .loading = viewModel.briefState(visibleScope: yahoo) else {
+            return XCTFail("a call for the league just left must not stay on screen")
+        }
+    }
+
+    func testALeagueChangeReloadsTheCallAndAnAlreadyCoveredOneDoesNot() async throws {
+        final class Spy: OmenDecisionRepository {
+            var scopes: [OmenCallScope?] = []
+            func fetchDecision(accessToken: String, scope: OmenCallScope?) async -> Result<OmenDecisionEnvelope, OmenApiError> {
+                scopes.append(scope)
+                let json = """
+                {"state":"empty","mode":"live","answered_for":{"platform":"\(scope?.platform ?? "espn")","league_id":"\(scope?.leagueID ?? "1")","matched":true}}
+                """
+                return .success(try! JSONDecoder().decode(OmenDecisionEnvelope.self, from: Data(json.utf8)))
+            }
+        }
+        let spy = Spy()
+        let viewModel = OmenDecisionViewModel(repository: spy, sessionManager: makeSessionManager())
+        let a = OmenCallScope(platform: "espn", leagueID: "1")
+        let b = OmenCallScope(platform: "sleeper", leagueID: "2")
+
+        await viewModel.load(userID: "u")   // directory not loaded yet: unscoped, answered for espn:1
+        await viewModel.loadIfLeagueChanged(userID: "u", scope: a)
+        XCTAssertEqual(spy.scopes.count, 1, "the unscoped answer already covers the league that is now picked")
+        await viewModel.loadIfLeagueChanged(userID: "u", scope: b)
+        XCTAssertEqual(spy.scopes.last, b)
+        XCTAssertEqual(spy.scopes.count, 2)
+        await viewModel.loadIfLeagueChanged(userID: "u", scope: b)
+        XCTAssertEqual(spy.scopes.count, 2, "no second request for the same league")
+    }
+
+    func testStartSitDetailForAnotherLeagueIsDroppedNotShownUnderThisCall() async throws {
+        let envelope = try decode("""
+        {"state":"success","mode":"live","recommendation":{"type":"start_sit","title":"Start A","move":"Bench B."},
+         "answered_for":{"platform":"espn","league_id":"1","matched":true}}
+        """)
+        let detail = try JSONDecoder().decode(StartSitDetail.self, from: Data("""
+        {"state":"clear_decision","platform":"sleeper","league_id":"999","why":[],"what_could_change_this":[],"evidence":[],"alternatives":[],"capabilities":[]}
+        """.utf8))
+        let viewModel = OmenDecisionViewModel(
+            repository: StubOmenDecisionRepository(result: .success(envelope)),
+            startSitRepository: StubStartSitDetailRepository(result: .success(detail)),
+            sessionManager: makeSessionManager()
+        )
+        await viewModel.load(userID: "u", scope: OmenCallScope(platform: "espn", leagueID: "1"))
+        XCTAssertNil(viewModel.startSitDetail, "the detail route reads the account's league, which is not this one")
+        guard case .success = viewModel.briefState else { return XCTFail("the call itself still renders") }
     }
 }

@@ -210,7 +210,7 @@ struct CommandCenterView: View {
                         )
                         OmenButton(
                             title: "Try again",
-                            action: { Task { await commandCenterViewModel.load(userID: userID) } },
+                            action: { Task { await commandCenterViewModel.load(userID: userID, scope: pickedLeagueScope) } },
                             variant: .secondary,
                             size: .md
                         )
@@ -287,7 +287,7 @@ struct CommandCenterView: View {
                     )
                 }
             }
-            .task { await commandCenterViewModel.load(userID: userID) }
+            .task { await commandCenterViewModel.load(userID: userID, scope: pickedLeagueScope) }
             .tabItem { CommandCenterTab.command.label }
             .tag(CommandCenterTab.command)
 
@@ -296,14 +296,20 @@ struct CommandCenterView: View {
             // signed-in user, regardless of their actual leagues.
             withTeamPicker {
                 OmenDecisionScreen(
-                    state: omenDecisionViewModel.briefState,
+                    state: omenDecisionViewModel.briefState(visibleScope: pickedLeagueScope),
                     startSitDetail: omenDecisionViewModel.startSitDetail,
-                    onRetryStartSit: { Task { await omenDecisionViewModel.load(userID: userID) } }
+                    onRetryStartSit: { Task { await omenDecisionViewModel.load(userID: userID, scope: pickedLeagueScope) } }
                 )
             }
             .task {
                 omenDecisionViewModel.onConnect = { showConnectSheet = true }
-                await omenDecisionViewModel.load(userID: userID)
+                await omenDecisionViewModel.load(userID: userID, scope: pickedLeagueScope)
+            }
+            // The picker can change the league without this tab's own `.task` running again, and the
+            // directory can arrive after the first call went out unscoped. Either way the Omen call must be
+            // for the league on screen, never the one before it. A no-op when a reload already covers it.
+            .onChange(of: leagueCarouselViewModel.currentLeagueID) { _, _ in
+                Task { await omenDecisionViewModel.loadIfLeagueChanged(userID: userID, scope: pickedLeagueScope) }
             }
             .tabItem { CommandCenterTab.omen.label }
             .tag(CommandCenterTab.omen)
@@ -458,7 +464,7 @@ struct CommandCenterView: View {
                         showConnectSheet = false
                         // Re-read the shell so the new connection is reflected immediately
                         // rather than waiting for the next cold launch.
-                        Task { await commandCenterViewModel.load(userID: userID) }
+                        Task { await commandCenterViewModel.load(userID: userID, scope: pickedLeagueScope) }
                     },
                     onDismiss: { showConnectSheet = false }
                 )
@@ -537,10 +543,17 @@ struct CommandCenterView: View {
     /// looking at. Each load still resets its own state first, so no surface shows the previous
     /// team's numbers (§10.3); only the waiting overlaps.
     private func reloadAllAfterContextChange() async {
-        async let command: Void = commandCenterViewModel.load(userID: userID)
+        let scope = pickedLeagueScope
+        async let command: Void = commandCenterViewModel.load(userID: userID, scope: scope)
         async let league: Void = loadLeagueForSelectedContext()
-        async let omen: Void = omenDecisionViewModel.load(userID: userID)
+        async let omen: Void = omenDecisionViewModel.load(userID: userID, scope: scope)
         _ = await (command, league, omen)
+    }
+
+    /// The league the app is on, named for personalized requests. Nil until the directory has loaded, in
+    /// which case the server uses the account's selected league, as it always did.
+    private var pickedLeagueScope: OmenCallScope? {
+        leagueCarouselViewModel.activePage?.omenCallScope
     }
 
     private func loadLeagueForSelectedContext() async {
