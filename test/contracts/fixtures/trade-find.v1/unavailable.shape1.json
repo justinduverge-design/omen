@@ -1,0 +1,17 @@
+{
+  "http_status": 200,
+  "route": "/api/trade/find",
+  "body": {
+    "candidates": [],
+    "contract_version": "trade-find.v1",
+    "league_id": "nfl.l.555",
+    "platform": "yahoo",
+    "projection_coverage": {
+      "players": 12,
+      "projected": 0
+    },
+    "reason": "projections_unavailable",
+    "status": "unavailable",
+    "week": 3
+  }
+}
