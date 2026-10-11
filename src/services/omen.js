@@ -1294,6 +1294,17 @@ function mapLineupSwapToMvpMove({ roster, swap, connection, connectedPlatforms }
   return response;
 }
 
+function tradeStructure({ opponent, teamName, give, receive }) {
+  const rawId = opponent?.team_id ?? opponent?.roster_id ?? opponent?.team_key ?? null;
+  const side = (player) => ({ name: player.name, position: player.position || null, player_key: player.id || null });
+  return {
+    partner_team_name: teamName,
+    partner_team_id: rawId == null || rawId === "" ? null : String(rawId),
+    give: [side(give)],
+    receive: [side(receive)],
+  };
+}
+
 function mapTradeSuggestionToMvpMove({ roster, connection, connectedPlatforms, trade }) {
   const platform = connection.platform || roster.source || "unknown";
   const platformLabel = displayPlatform(platform);
@@ -1325,6 +1336,8 @@ function mapTradeSuggestionToMvpMove({ roster, connection, connectedPlatforms, t
     type: "trade_suggestion",
     title: `Offer ${give.name} for ${receive.name}`,
     move: `Offer ${give.name} to ${teamName} for ${receive.name}.`,
+    // Additive structured form of the same data the sentence above is built from.
+    trade: tradeStructure({ opponent: trade.opponent, teamName, give, receive }),
     primary_player: receive,
     comparison_player: give,
     expected_value_delta: { points: delta, label: expectedValueLabel(delta) },

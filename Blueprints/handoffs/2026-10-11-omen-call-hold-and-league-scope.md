@@ -76,3 +76,22 @@ Still not built (iOS and product): the Omen tab renders start/sit only, and ther
 - Schema `test/contracts/schemas/omen-decision-brief.v3.schema.json` gained optional `call_kind`, `answered_for`, `hold`; lock updated with `node scripts/contracts.js lock` (no `--accept-breaking`).
 - New fixtures `test/contracts/fixtures/omen-decision-brief.v3/empty_hold.json` and `empty_hold_noproj.json` (state `empty`). If the iOS contract test enumerates that directory, decode these too.
 - Server tests: `test/omenHoldAndScope.test.js`, additions in `test/omenMvpLiveRoute.test.js` and `test/contractSchemas.test.js`.
+
+## 4. Structured trade on a `trade_suggestion` call (additive)
+
+`recommendation.trade` is now sent on every `trade_suggestion` call so iOS can stop parsing the `recommendation.move` sentence (`Offer X to TEAM for Y.`):
+
+```json
+"trade": {
+  "partner_team_name": "South Stars",
+  "partner_team_id": "other-roster" | null,
+  "give":    [ { "name": "My RB",    "position": "RB", "player_key": "my-rb" | null } ],
+  "receive": [ { "name": "Their WR", "position": "WR", "player_key": "their-wr" | null } ]
+}
+```
+
+- Built from the same values as the sentence (`trade.opponent`, `trade.give`, `trade.receive`); nothing is invented. `partner_team_name` falls back to `"that team"` exactly as the sentence does.
+- `partner_team_id` is the provider team/roster id as a string, or `null` when the provider row has none. `player_key` is `null` when the player has no key.
+- Today `give` and `receive` hold one player each (one-for-one); they are arrays so packages can be added without a contract change. Render all entries.
+- Optional and absent on `start_sit` / `waiver_pickup` / hold. Keep the sentence parse only as a fallback for older servers.
+- Schema: `tradeStructure` in `test/contracts/schemas/omen-decision-brief.v3.schema.json`; lock extended without `--accept-breaking`.
