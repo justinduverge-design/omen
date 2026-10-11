@@ -46,7 +46,9 @@ struct OmenTradeCall: Equatable {
 
     /// Yahoo gives Omen no projections, so the server never issues a Yahoo trade call. If one ever arrived,
     /// it would not be offered for review: there would be nothing behind it to review.
-    var canReview: Bool { platform?.lowercased() != "yahoo" }
+    var canReview: Bool {
+        platform?.lowercased() != "yahoo" && scope?.platform.lowercased() != "yahoo"
+    }
 
     /// "Offer A to Team for B." only when `move` is exactly that, for exactly these two names.
     static func partnerName(inMove move: String?, give: String, receive: String) -> String? {

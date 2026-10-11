@@ -139,6 +139,11 @@ struct CommandCenterView: View {
     /// Only a fallback for a directory that left the team blank.
     private var loadedOverviewTeamId: String? {
         guard case .loaded(let overview) = leagueViewModel.viewState else { return nil }
+        // The overview can still be the previous league's while the picked league's loads; its team is not
+        // this league's team.
+        if let picked = pickedLeagueScope, !picked.names(platform: overview.platform, leagueID: overview.leagueId) {
+            return nil
+        }
         return overview.matchup.you?.teamId
     }
 
@@ -563,8 +568,11 @@ struct CommandCenterView: View {
     private func reviewTradeCall(_ call: OmenTradeCall) {
         var call = call
         if call.scope == nil { call.scope = pickedLeagueScope }
+        // Refused (no known league, or not reviewable): stay on the call rather than open a Trade tab that
+        // would compare these players in some other league.
+        guard tradeViewModel.applyPrefill(from: call) else { return }
         selectedTab = .trade
-        Task { await tradeViewModel.review(call, userID: userID) }
+        Task { await tradeViewModel.compare(userID: userID) }
     }
 
     /// "Find other trades" on the Omen tab: the Trade tab, with Find a trade open over it.
@@ -1047,30 +1055,13 @@ struct OmenDecisionScreen: View {
                         .foregroundStyle(OmenColor.textSecondary)
                 }
             }
-            tradeActions(call)
-            OmenTradeCallWhy(call: call, impact: payload.impact, riskReasons: payload.riskReasons)
-        }
-    }
-
-    @ViewBuilder
-    private func tradeActions(_ call: OmenTradeCall) -> some View {
-        if call.canReview {
-            VStack(spacing: OmenSpacing.step8) {
-                if let onReviewTrade {
-                    OmenButton(title: "Review this trade", action: { onReviewTrade(call) }, variant: .primary, size: .lg)
-                        .accessibilityHint("Opens the Trade tab with this swap filled in and checks it against your league.")
-                        .accessibilityIdentifier("omen-trade-review")
-                }
-                if let onFindOtherTrades {
-                    OmenButton(title: "Find other trades", action: onFindOtherTrades, variant: .secondary, size: .lg)
-                        .accessibilityHint("Opens Find a trade, where Omen looks through every other team in your league.")
-                        .accessibilityIdentifier("omen-trade-find-others")
-                }
-            }
-        } else {
-            Text("Omen can't review trades for this league yet, so there is no trade to open.")
-                .omenTextStyle(OmenTypography.bodySmall)
-                .foregroundStyle(OmenColor.textSecondary)
+            OmenTradeCallActions(call: call, onReview: onReviewTrade, onFindOthers: onFindOtherTrades)
+            // A high-risk label already carries the first reason; it is not listed a second time.
+            OmenTradeCallWhy(
+                call: call,
+                impact: payload.impact,
+                riskReasons: payload.risk == .high ? Array(payload.riskReasons.dropFirst()) : payload.riskReasons
+            )
         }
     }
 

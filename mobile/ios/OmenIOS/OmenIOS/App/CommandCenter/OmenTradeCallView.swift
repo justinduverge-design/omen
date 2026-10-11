@@ -60,6 +60,44 @@ struct OmenTradeCallSwap: View {
     }
 }
 
+/// The two actions under a trade call. Which of them exist is decided here, once, so the screen and its test
+/// cannot disagree: a call that cannot be reviewed (Yahoo: no projections) has neither.
+struct OmenTradeCallActions: View {
+    let call: OmenTradeCall
+    var onReview: ((OmenTradeCall) -> Void)?
+    var onFindOthers: (() -> Void)?
+
+    static let reviewTitle = "Review this trade"
+    static let findOthersTitle = "Find other trades"
+
+    /// The titles that are drawn, in order.
+    static func titles(for call: OmenTradeCall, canReview: Bool, canFindOthers: Bool) -> [String] {
+        guard call.canReview else { return [] }
+        return (canReview ? [reviewTitle] : []) + (canFindOthers ? [findOthersTitle] : [])
+    }
+
+    var body: some View {
+        if call.canReview {
+            VStack(spacing: OmenSpacing.step8) {
+                if let onReview {
+                    OmenButton(title: Self.reviewTitle, action: { onReview(call) }, variant: .primary, size: .lg)
+                        .accessibilityHint("Opens the Trade tab with this swap filled in and checks it against your league.")
+                        .accessibilityIdentifier("omen-trade-review")
+                }
+                if let onFindOthers {
+                    OmenButton(title: Self.findOthersTitle, action: onFindOthers, variant: .secondary, size: .lg)
+                        .accessibilityHint("Opens Find a trade, where Omen looks through every other team in your league.")
+                        .accessibilityIdentifier("omen-trade-find-others")
+                }
+            }
+        } else {
+            Text("Omen can't review trades for this league yet, so there is no trade to open.")
+                .omenTextStyle(OmenTypography.bodySmall)
+                .foregroundStyle(OmenColor.textSecondary)
+        }
+    }
+}
+
 /// Why a trade call helps both lineups, in the server's words, with the projected gain it computed.
 struct OmenTradeCallWhy: View {
     let call: OmenTradeCall

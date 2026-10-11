@@ -147,7 +147,19 @@ final class OmenTradeCallTests: XCTestCase {
         func capabilities() async -> Result<TradeCapabilities, OmenApiError> { .failure(.network) }
         func compare(offer: TradeOffer, accessToken: String?) async -> Result<TradeCompare, OmenApiError> {
             comparedOffers.append(offer)
+            if holdCompares {
+                // The answer is withheld until the test releases it, to model a slow server.
+                let result = await withCheckedContinuation { (c: CheckedContinuation<Result<TradeCompare, OmenApiError>, Never>) in
+                    held.append(c)
+                }
+                return result
+            }
             return compareResult
+        }
+        var holdCompares = false
+        var held: [CheckedContinuation<Result<TradeCompare, OmenApiError>, Never>] = []
+        func release(_ index: Int, _ result: Result<TradeCompare, OmenApiError>) {
+            held[index].resume(returning: result)
         }
         func roster(platform: String, leagueId: String, teamId: String?, week: Int?, accessToken: String) async -> Result<TradeRosterResponse, OmenApiError> {
             rosterResult
@@ -297,6 +309,137 @@ final class OmenTradeCallTests: XCTestCase {
         XCTAssertEqual(OmenTradeCallSwap.partnerAccessibilityLabel("Sample Rivals"), "Trade partner Sample Rivals.")
         let bare = OmenTradeCall.Side(name: "Solo", position: nil, team: nil, playerKey: nil)
         XCTAssertEqual(OmenTradeCallSwap.accessibilityLabel(title: "You get", side: bare), "You get Solo.")
+    }
+
+    // MARK: - League scope
+
+    func testCallWithNoKnownLeagueIsRefusedAndTheOldLeagueIsNotUsed() throws {
+        let vm = makeViewModel(RecordingTradeRepository())
+        vm.useLeague(platform: "sleeper", leagueId: "old-league")
+        var noScope = try call()
+        noScope.scope = nil
+
+        XCTAssertFalse(vm.applyPrefill(from: noScope))
+
+        XCTAssertNil(vm.prefill)
+        XCTAssertTrue(vm.offer.send.isEmpty, "nothing is filled in for a league that is not known")
+        XCTAssertEqual(vm.offer.leagueContext?.leagueId, "old-league")
+    }
+
+    func testReviewWithNoKnownLeagueNeverCompares() async throws {
+        let repo = RecordingTradeRepository()
+        let vm = makeViewModel(repo)
+        vm.useLeague(platform: "sleeper", leagueId: "old-league")
+        var noScope = try call()
+        noScope.scope = nil
+        let reviewed = await vm.review(noScope, userID: "user-1")
+        XCTAssertFalse(reviewed)
+        XCTAssertTrue(repo.comparedOffers.isEmpty)
+    }
+
+    func testStaleLeagueContextIsReplacedByTheCallsLeague() throws {
+        let vm = makeViewModel(RecordingTradeRepository())
+        vm.useLeague(platform: "sleeper", leagueId: "stale")
+        vm.applyPrefill(from: try call())
+        XCTAssertEqual(vm.offer.leagueContext, .init(platform: "espn", leagueId: "L1"))
+    }
+
+    func testLeagueSyncForADifferentLeagueDropsThePrefilledOffer() throws {
+        let vm = makeViewModel(RecordingTradeRepository())
+        vm.applyPrefill(from: try call())
+
+        vm.useLeague(platform: "sleeper", leagueId: "another")
+
+        XCTAssertNil(vm.prefill)
+        XCTAssertTrue(vm.offer.send.isEmpty)
+        XCTAssertTrue(vm.offer.receive.isEmpty)
+        XCTAssertEqual(vm.offer.leagueContext, .init(platform: "sleeper", leagueId: "another"))
+        XCTAssertEqual(vm.viewState, .idle)
+    }
+
+    func testLeagueSyncForTheSameLeagueLeavesThePrefillAlone() throws {
+        let vm = makeViewModel(RecordingTradeRepository())
+        vm.applyPrefill(from: try call())
+        vm.useLeague(platform: "ESPN", leagueId: "L1")
+        XCTAssertNotNil(vm.prefill)
+        XCTAssertEqual(vm.offer.send.map(\.name), ["Sample WR1"])
+        XCTAssertEqual(vm.offer.leagueContext, .init(platform: "espn", leagueId: "L1"))
+    }
+
+    func testLeagueSyncDuringTheTokenFetchCannotRedirectTheCompare() async throws {
+        let repo = RecordingTradeRepository()
+        let vm = makeViewModel(repo)
+        let reviewing = Task { await vm.review(try self.call(), userID: "user-1") }
+        // The league overview finishes for another league while the review is in flight.
+        vm.useLeague(platform: "sleeper", leagueId: "another")
+        _ = try await reviewing.value
+        for offer in repo.comparedOffers {
+            XCTAssertEqual(offer.leagueContext, .init(platform: "espn", leagueId: "L1"), "never compared in the other league")
+        }
+    }
+
+    func testYahooScopeAlsoMakesACallUnreviewable() throws {
+        var c = try call()
+        c.scope = OmenCallScope(platform: "yahoo", leagueID: "L1")
+        XCTAssertFalse(c.canReview)
+    }
+
+    func testYahooCallShowsNeitherAction() throws {
+        let yahoo = try XCTUnwrap(try payload(try envelope(source: "yahoo_league_rosters", platform: "yahoo")).tradeCall)
+        XCTAssertEqual(OmenTradeCallActions.titles(for: yahoo, canReview: true, canFindOthers: true), [])
+        XCTAssertEqual(
+            OmenTradeCallActions.titles(for: try call(), canReview: true, canFindOthers: true),
+            ["Review this trade", "Find other trades"]
+        )
+        XCTAssertEqual(OmenTradeCallActions.titles(for: try call(), canReview: false, canFindOthers: false), [])
+    }
+
+    // MARK: - Stale compare results
+
+    private func verdict() -> TradeCompare {
+        try! JSONDecoder().decode(TradeCompare.self, from: Data("""
+        {"contract_version":"trade-compare.v2","verdict_state":"favors_you",
+         "evaluability":{"status":"evaluable","reason":null,"missing_projection_count":0,"total_player_count":2},
+         "analysis_context":{"mode":"personalized","platform":"espn","league_id":"L1","league_name":"x","applied":[],"unavailable_reason":null},
+         "net_value":1.0,"explanation":null}
+        """.utf8))
+    }
+
+    private func waitForCompares(_ repo: RecordingTradeRepository, _ n: Int) async {
+        for _ in 0..<200 where repo.held.count < n { try? await Task.sleep(nanoseconds: 10_000_000) }
+    }
+
+    func testAResultThatArrivesAfterAnEditIsDropped() async throws {
+        let repo = RecordingTradeRepository()
+        repo.holdCompares = true
+        let vm = makeViewModel(repo)
+        let reviewing = Task { await vm.review(try self.call(), userID: "user-1") }
+        await waitForCompares(repo, 1)
+
+        vm.remove(at: 0, from: .send)
+        repo.release(0, .success(verdict()))
+        _ = try await reviewing.value
+
+        XCTAssertEqual(vm.viewState, .idle, "the answer was about an offer that no longer exists")
+        XCTAssertNil(vm.prefill)
+    }
+
+    func testReviewThenReviewKeepsOnlyTheSecondAnswer() async throws {
+        let repo = RecordingTradeRepository()
+        repo.holdCompares = true
+        let vm = makeViewModel(repo)
+        let first = Task { await vm.review(try self.call(), userID: "user-1") }
+        await waitForCompares(repo, 1)
+        let second = Task { await vm.review(try self.call(), userID: "user-1") }
+        await waitForCompares(repo, 2)
+
+        repo.release(1, .failure(.server(status: 503)))
+        _ = try await second.value
+        XCTAssertEqual(vm.viewState, .failed(.server(status: 503)))
+
+        repo.release(0, .success(verdict()))
+        _ = try await first.value
+        XCTAssertEqual(vm.viewState, .failed(.server(status: 503)), "the earlier review's late answer does not replace it")
     }
 
     // MARK: - Screenshot registry
