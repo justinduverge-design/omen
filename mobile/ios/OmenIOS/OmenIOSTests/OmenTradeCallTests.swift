@@ -17,13 +17,14 @@ final class OmenTradeCallTests: XCTestCase {
         move: String = "Offer Sample WR1 to Sample Rivals for Sample RB1.",
         primary: String = #"{"id":"sample-rb1","name":"Sample RB1","position":"RB","team":"Sample Team"}"#,
         comparison: String = #"{"id":"sample-wr1","name":"Sample WR1","position":"WR","team":"Sample Team"}"#,
-        type: String = "trade_suggestion"
+        type: String = "trade_suggestion",
+        trade: String? = nil
     ) throws -> OmenDecisionEnvelope {
         let json = """
         {"contract_version":"omen-decision-brief.v3","state":"success","mode":"live","call_kind":"\(type)",
          "answered_for":{"platform":"\(platform)","league_id":"L1","matched":true,"selection":"requested"},
          "signals":{"trade_rosters":{"status":"live","source":"\(source)","message":"x"}},
-         "recommendation":{"type":"\(type)","title":"Offer Sample WR1 for Sample RB1","move":"\(move)",
+         "recommendation":{"type":"\(type)","title":"Offer Sample WR1 for Sample RB1","move":"\(move)",\(trade.map { #""trade":\#($0),"# } ?? "")
            "primary_player":\(primary),"comparison_player":\(comparison),
            "expected_value_delta":{"points":3.1,"label":"meaningful"},
            "confidence":{"band":"leaning","label":"Leaning"},
@@ -95,6 +96,66 @@ final class OmenTradeCallTests: XCTestCase {
         XCTAssertEqual(OmenTradeCall.partnerName(inMove: "Offer A to Team X for B.", give: "A", receive: "B"), "Team X")
         let call = try XCTUnwrap(try payload(try envelope(move: "Offer Sample WR1 to that team for Sample RB1.")).tradeCall)
         XCTAssertNil(call.partnerName)
+    }
+
+    // MARK: - Structured recommendation.trade
+
+    private let structuredTrade = """
+    {"partner_team_name":"South Stars","partner_team_id":"7",
+     "give":[{"name":"Sample WR1","position":"WR","player_key":"sample-wr1"},{"name":"Sample TE1","position":"TE","player_key":null}],
+     "receive":[{"name":"Sample RB2","position":"RB","player_key":"sample-rb2"}]}
+    """
+
+    func testStructuredTradeIsPreferredOverTheSentenceAndPlayerFields() throws {
+        let call = try XCTUnwrap(try payload(try envelope(trade: structuredTrade)).tradeCall)
+        XCTAssertEqual(call.partnerName, "South Stars", "not Sample Rivals from the sentence")
+        XCTAssertEqual(call.partnerTeamID, "7")
+        XCTAssertEqual(call.gives.map(\.name), ["Sample WR1", "Sample TE1"])
+        XCTAssertEqual(call.receives.map(\.name), ["Sample RB2"])
+        XCTAssertEqual(call.receive.playerKey, "sample-rb2")
+        XCTAssertEqual(call.give.meta, "WR · Sample Team", "team is borrowed only for the same player name")
+        XCTAssertNil(call.gives[1].playerKey)
+    }
+
+    func testAbsentStructuredTradeFallsBackToTheSentence() throws {
+        let call = try XCTUnwrap(try payload(try envelope()).tradeCall)
+        XCTAssertEqual(call.partnerName, "Sample Rivals")
+        XCTAssertNil(call.partnerTeamID)
+        XCTAssertEqual(call.gives.count, 1)
+        XCTAssertEqual(call.receives.count, 1)
+    }
+
+    func testMalformedStructuredTradeIsIgnoredAndNeverDiscardsTheBrief() throws {
+        for bad in [#""oops""#, "[1,2]", #"{"give":"x","receive":5}"#, #"{"partner_team_name":"Z","give":[],"receive":[]}"#,
+                    #"{"give":[{"name":""}],"receive":[{"name":"Sample RB2"}]}"#] {
+            let p = try payload(try envelope(trade: bad))
+            let call = try XCTUnwrap(p.tradeCall, "brief survives \(bad)")
+            XCTAssertEqual(call.give.name, "Sample WR1", bad)
+            XCTAssertEqual(call.receive.name, "Sample RB1", bad)
+            XCTAssertEqual(call.partnerName, "Sample Rivals", bad)
+        }
+    }
+
+    func testStructuredThatTeamStandInNamesNoPartner() throws {
+        let t = #"{"partner_team_name":"that team","partner_team_id":null,"give":[{"name":"Sample WR1"}],"receive":[{"name":"Sample RB1"}]}"#
+        let call = try XCTUnwrap(try payload(try envelope(move: "Offer Sample WR1 to that team for Sample RB1.", trade: t)).tradeCall)
+        XCTAssertNil(call.partnerName)
+        XCTAssertNil(call.partnerTeamID)
+    }
+
+    func testPrefillUsesTheStructuredPlayersAndPartnerId() throws {
+        let vm = makeViewModel(RecordingTradeRepository())
+        vm.applyPrefill(from: try XCTUnwrap(try payload(try envelope(trade: structuredTrade)).tradeCall))
+        XCTAssertEqual(vm.offer.send.map(\.name), ["Sample WR1", "Sample TE1"])
+        XCTAssertEqual(vm.offer.receive.map(\.name), ["Sample RB2"])
+        XCTAssertEqual(vm.offer.receive.first?.playerKey, "sample-rb2")
+        XCTAssertEqual(vm.prefill?.partnerName, "South Stars")
+        XCTAssertEqual(vm.prefill?.partnerTeamID, "7")
+    }
+
+    func testPartnerResolvesByStructuredTeamIdFirst() {
+        let p = TradeViewModel.Prefill(giveName: "A", receiveName: "B", partnerName: "Other Team", receivePlayerKey: nil, platform: "espn", partnerTeamID: "3")
+        XCTAssertEqual(TradeViewModel.partnerTeamID(in: rosterFixture(), for: p), "3")
     }
 
     func testStartSitCallIsNotATradeCall() throws {
