@@ -599,6 +599,13 @@ enum ScreenshotScenarios {
             label: "Report pill \u{2014} not saved, said plainly",
             content: { AnyView(ChromeFixtures.composer(.done(.notSaved))) }
         ),
+        // The REAL presented system sheet over a directory where every provider flags one league
+        // `is_active` (as production does) while `active` names a single league: the capture must
+        // show exactly one check mark.
+        "switcher.real-sheet": ScreenshotScenario(
+            label: "Team switcher — the system sheet, five teams over three providers, one check",
+            content: { AnyView(RealSwitcherSheetScreenshotHost()) }
+        ),
         "switcher.team-sheet": ScreenshotScenario(
             label: "Team switcher — pinned bar and the sheet, one favourite starred",
             content: { AnyView(TeamSwitcherScreenshotHost()) }
@@ -1363,6 +1370,58 @@ struct LeagueSwitcherScreenshotHost: View {
     }
 }
 
+/// Presents the production `OmenTeamPicker` sheet, not an inline imitation of it.
+struct RealSwitcherSheetScreenshotHost: View {
+    @StateObject private var viewModel: LeagueCarouselViewModel
+    @State private var presented = true
+
+    init() {
+        let json = """
+        {"contract_version":"league-directory.v1","season":2026,"selection_persistence":"provider_binding_only",
+         "active":{"platform":"yahoo","league_id":"Y1","league_name":"Puk Around","season":2026,"team_id":"2","team_name":"Puk Around & Find Out"},
+         "platforms":[
+          {"platform":"espn","connection_state":"connected","discovery":"bound_only","notice":null,"leagues":[
+            {"league_id":"E1","league_name":"EB Football","season":2026,"team_id":"8","team_name":"Titans of Slopsilonia","is_active":true},
+            {"league_id":"E2","league_name":"Fantasy Madness","season":2026,"team_id":"3","team_name":"Davante\u{2019}s Inferno","is_active":false},
+            {"league_id":"884411","league_name":null,"season":2026,"team_id":"9","team_name":null,"is_active":false}]},
+          {"platform":"sleeper","connection_state":"connected","discovery":"full","notice":null,"leagues":[
+            {"league_id":"S1","league_name":"Omen App Data","season":2026,"team_id":"1","team_name":"Hall Pass Heroes","is_active":true}]},
+          {"platform":"yahoo","connection_state":"connected","discovery":"full","notice":null,"leagues":[
+            {"league_id":"Y1","league_name":"Puk Around","season":2026,"team_id":"2","team_name":"Puk Around & Find Out","is_active":true}]}]}
+        """
+        let directory = try! JSONDecoder().decode(LeagueDirectory.self, from: Data(json.utf8))
+        _viewModel = StateObject(wrappedValue: LeagueCarouselViewModel(
+            directoryRepository: StubLeagueDirectoryRepository(directory: .success(directory)),
+            leagueRepository: StubLeagueRepository(result: .failure(.network)),
+            sessionManager: SessionManager(
+                store: InMemorySecureSessionStore(initial: Session(
+                    userID: "screenshot", accessToken: "t", refreshToken: "r", expiresAtEpochSeconds: 9_999_999_999
+                )),
+                nowEpochSeconds: { 0 }
+            ),
+            preferences: InMemoryLeagueSwitcherPreferences(
+                favorites: ["screenshot": LeagueFavorites(ordered: ["espn:E1"])]
+            )
+        ))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step16) {
+            OmenTeamPicker(
+                viewModel: viewModel, userID: "screenshot", onContextChanged: { _ in }, onAddLeague: {},
+                externalPresentation: $presented
+            )
+            .padding(.horizontal, OmenSpacing.step16)
+            Text("Command").omenTextStyle(OmenTypography.h2).foregroundStyle(OmenColor.textPrimary)
+                .padding(.horizontal, OmenSpacing.step16)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(OmenColor.bg)
+        .task { await viewModel.load(userID: "screenshot") }
+    }
+}
+
 /// Screenshot host for the 2026-09-05 team switcher: the pinned context bar and the sheet's
 /// body, rendered together against one deterministic directory.
 ///
@@ -1433,7 +1492,7 @@ struct TeamSwitcherScreenshotHost: View {
                 platform: page.platform == "espn" ? .espn : (page.platform == "yahoo" ? .yahoo : .sleeper),
                 teamName: page.teamName?.isEmpty == false ? page.teamName! : page.displayLeagueName,
                 subtitle: Self.subtitle(page),
-                isActive: page.isActive,
+                isActive: viewModel.isCurrent(page),
                 isFavorite: viewModel.isFavorite(page),
                 isCommitting: false
             )

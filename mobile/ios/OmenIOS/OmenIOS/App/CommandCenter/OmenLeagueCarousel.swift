@@ -280,7 +280,7 @@ struct OmenLeagueCarousel: View {
                 Spacer(minLength: OmenSpacing.step8)
                 if viewModel.committingPageID == page.id {
                     ProgressView().controlSize(.small).tint(OmenColor.accent)
-                } else if page.isActive {
+                } else if viewModel.isCurrent(page) {
                     // A glyph, not a colour — §10.2's rule, and the reason the user can
                     // tell "the league I'm reading" from "the league Omen is reasoning
                     // about" while a swipe is still settling.
@@ -337,7 +337,7 @@ struct OmenLeagueCarousel: View {
     private func pageAccessibilityLabel(_ page: LeagueCarouselViewModel.Page) -> String {
         // Full names live here even when the visible labels truncate, per §10.2.
         let position = "\(viewModel.selectedIndex + 1) of \(viewModel.pages.count)"
-        let active = page.isActive ? ", the league Omen is using" : ""
+        let active = viewModel.isCurrent(page) ? ", the league Omen is using" : ""
         return "\(page.displayTeamName), \(page.displayLeagueName), "
             + "\(platformDisplayName(page.platform))\(active). \(position)."
     }
