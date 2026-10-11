@@ -17,6 +17,7 @@ const { quietWeek } = require("../services/quietWeek");
 const { CAPABILITY_CONTRACT } = require("../services/decisionCapabilities");
 
 const router = express.Router();
+router.use(require("../services/sleeperRequestScope").middleware);
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
 
 function nowIso() {
@@ -174,7 +175,9 @@ function withTimeout(promise, ms) {
   ]);
 }
 
-async function buildPlatformSummaryForUser(rows = [], userId, now = new Date()) {
+// `meta`, when passed, gets `failed = true` if any last-result lookup failed, so the caller
+// can keep a partly-failed summary out of the response cache for longer than a few seconds.
+async function buildPlatformSummaryForUser(rows = [], userId, now = new Date(), meta = null) {
   const summary = buildPlatformSummary(rows, now);
   const lastResultContext = previousWeekContext(getCurrentNflWeekContext(now));
   if (!lastResultContext) return summary;
@@ -203,6 +206,7 @@ async function buildPlatformSummaryForUser(rows = [], userId, now = new Date()) 
     try {
       applyLastResult(summary, platform, await withTimeout(run(row), LAST_RESULT_TIMEOUT_MS));
     } catch (e) {
+      if (meta) meta.failed = true;
       logger.warn("Dashboard platform last-result lookup failed", {
         platform,
         message: e?.message,
@@ -303,15 +307,54 @@ async function getUserProfile(userId) {
   };
 }
 
+// Cache key parts for the summary. Everything the body derives from is here, so a changed
+// connection, selection, profile, week or token-expiry state yields a different key even
+// before the invalidation epoch moves. Secret ids never appear: only presence booleans.
+function summaryCacheParts({ rows, userProfile, now }) {
+  const context = getCurrentNflWeekContext(now);
+  return {
+    season: context?.season ?? null,
+    week: context?.week ?? null,
+    game_week: getNflGameWeek(),
+    off_season: Boolean(suppressLiveFootballData()),
+    favorite_team: userProfile?.favorite_team ?? null,
+    connections: rows
+      .map((row) => ({
+        platform: row.platform,
+        is_active: Boolean(row.is_active),
+        league_id: row.league_id == null ? null : String(row.league_id),
+        platform_username: row.platform_username ?? null,
+        platform_user_id: row.platform_user_id ?? null,
+        team_id: row.espn_team_id == null ? null : String(row.espn_team_id),
+        has_token: Boolean(row.token_secret_id),
+        token_expires_at: row.token_expires_at ?? null,
+        // token_expired is time-derived; the flag itself is keyed so crossing expiry changes the key.
+        token_expired: isExpiredYahooToken(row, now),
+        has_espn: Boolean(row.espn_secret_id && row.swid_secret_id),
+      }))
+      .sort((a, b) => String(a.platform).localeCompare(String(b.platform))),
+  };
+}
+
 router.get("/summary", requireAuth, async (req, res, next) => {
   try {
     const [rows, userProfile] = await Promise.all([
       getPlatformRows(req.user.id),
       getUserProfile(req.user.id),
     ]);
-    const generatedAt = nowIso();
+    const now = new Date();
+    const cacheHandle = await responseCache.lookup({
+      route: "dashboard_summary",
+      userId: req.user.id,
+      parts: summaryCacheParts({ rows, userProfile, now }),
+    });
+    if (cacheHandle.hit) return responseCache.sendHit(res, cacheHandle);
+    responseCache.setCacheHeader(res, cacheHandle);
 
-    return res.json({
+    const generatedAt = nowIso();
+    const meta = { failed: false };
+
+    const body = {
       contract_version: "dashboard-summary.v1",
       generated_at: generatedAt,
       is_mock: false,
@@ -326,7 +369,7 @@ router.get("/summary", requireAuth, async (req, res, next) => {
       // `getNflGameWeek` for why that one is wrong on exactly the days that matter most.
       game_week: getNflGameWeek(),
       user: userProfile,
-      platforms: await buildPlatformSummaryForUser(rows, req.user.id),
+      platforms: await buildPlatformSummaryForUser(rows, req.user.id, now, meta),
       // Additive routing coverage only. This is deliberately not a
       // shared-decision-context receipt: Command does not issue a move here.
       capability_contract: CAPABILITY_CONTRACT,
@@ -342,7 +385,11 @@ router.get("/summary", requireAuth, async (req, res, next) => {
         trade_analyzer: { available: true, mode: "free", status: "ready" },
         waiver_wire: buildWaiverTool({ rows }),
       },
-    });
+    };
+    // A summary whose provider lookups partly failed is kept only briefly; a user who must
+    // reconnect Yahoo (token_expired) still gets a correct body, and the expiry flag is part of the key.
+    await responseCache.store(cacheHandle, 200, body, { cache: true, degraded: meta.failed });
+    return res.json(body);
   } catch (e) {
     return next(e);
   }

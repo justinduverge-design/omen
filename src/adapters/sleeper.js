@@ -8,6 +8,7 @@
  */
 
 const axios = require("axios");
+const requestScope = require("../services/sleeperRequestScope");
 const { Redis } = require("@upstash/redis");
 const config = require("../config");
 const { captureProviderError } = require("../middleware/providerErrors");
@@ -77,7 +78,33 @@ function safeSleeperPath(url) {
   }
 }
 
-async function getJson(url, options = {}) {
+// Request-scoped memo (see services/sleeperRequestScope). Within a request scope, repeated
+// GETs of the same URL+params collapse to one upstream call; outside one, getJson is unchanged.
+const runWithSleeperRequestMemo = requestScope.run;
+const sleeperRequestMemo = requestScope.middleware;
+
+function memoKey(url, options) {
+  let params = "";
+  try { params = options.params ? JSON.stringify(options.params) : ""; } catch { params = "?"; }
+  // timeout is part of the key: a caller asking for a longer timeout must not be handed
+  // a request that was issued with a shorter one.
+  return `${url}|${params}|${options.timeout || ""}`;
+}
+
+function getJson(url, options = {}) {
+  const store = requestScope.currentStore();
+  if (!store) return getJsonUncached(url, options);
+  const key = memoKey(url, options);
+  const hit = store.get(key);
+  if (hit) return hit;
+  const promise = getJsonUncached(url, options);
+  store.set(key, promise);
+  // A failed read must not poison later callers in the same request.
+  promise.catch(() => { if (store.get(key) === promise) store.delete(key); });
+  return promise;
+}
+
+async function getJsonUncached(url, options = {}) {
   sleeperRequestBudget.take();
   try {
     const res = await axios.get(url, {
@@ -507,7 +534,18 @@ async function fetchSleeperLastResult({ leagueId, userId, week, season } = {}) {
   });
 }
 
-async function fetchSleeperPlayers() {
+// The players map is global (not per user) and several MB; parse it once per process
+// per TTL and single-flight concurrent loads, ahead of the Redis read.
+const PLAYERS_MEMO_TTL_MS = 20 * 60 * 1000;
+const playersMemo = { value: null, at: 0, promise: null };
+
+function resetSleeperPlayersMemo() {
+  playersMemo.value = null;
+  playersMemo.at = 0;
+  playersMemo.promise = null;
+}
+
+async function loadSleeperPlayers() {
   const cached = await readCache(PLAYERS_CACHE_KEY);
   if (cached) return cached;
 
@@ -515,6 +553,38 @@ async function fetchSleeperPlayers() {
   const out = players && typeof players === "object" ? players : {};
   await writeCache(PLAYERS_CACHE_KEY, out, PLAYERS_TTL_S);
   return out;
+}
+
+const PLAYERS_REFRESH_BACKOFF_MS = 60 * 1000;
+
+async function fetchSleeperPlayers() {
+  const now = Date.now();
+  if (playersMemo.value && now - playersMemo.at < PLAYERS_MEMO_TTL_MS) return playersMemo.value;
+
+  let promise = playersMemo.promise;
+  if (!promise) {
+    promise = loadSleeperPlayers()
+      .then((value) => {
+        playersMemo.value = value;
+        playersMemo.at = Date.now();
+        return value;
+      })
+      .catch((err) => {
+        // A failed refresh with a stale map in hand backs off ~60s, so an outage does not make
+        // every request wait out the 30s players timeout.
+        if (playersMemo.value) playersMemo.at = Date.now() - PLAYERS_MEMO_TTL_MS + PLAYERS_REFRESH_BACKOFF_MS;
+        throw err;
+      })
+      .finally(() => { if (playersMemo.promise === promise) playersMemo.promise = null; });
+    playersMemo.promise = promise;
+  }
+  try {
+    return await promise;
+  } catch (err) {
+    // Every caller (leader or joiner) serves the stale map rather than failing.
+    if (playersMemo.value) return playersMemo.value;
+    throw err;
+  }
 }
 
 // Ranking and draft fields ride along in Sleeper's projection `stats`; they are not stats and
@@ -598,13 +668,12 @@ async function fetchSleeperProjectionStatLines(season, week) {
  * zero rather than absent data.
  */
 async function fetchSleeperAvailablePlayers(leagueId, week, season) {
-  const [rosters, players] = await Promise.all([
+  const targetSeason = season || currentSeason();
+  const [rosters, players, projections] = await Promise.all([
     getJson(`${BASE}/league/${encodeURIComponent(leagueId)}/rosters`),
     fetchSleeperPlayers(),
+    fetchSleeperProjections(targetSeason, week).catch(() => ({})),
   ]);
-
-  const targetSeason = season || currentSeason();
-  const projections = await fetchSleeperProjections(targetSeason, week).catch(() => ({}));
 
   const rostered = new Set();
   for (const roster of Array.isArray(rosters) ? rosters : []) {
@@ -652,16 +721,19 @@ async function fetchSleeperAvailablePlayers(leagueId, week, season) {
 }
 
 async function fetchSleeperLeagueRosters(leagueId, week, season) {
-  const [league, rosters, users, players] = await Promise.all([
-    fetchSleeperLeague(leagueId),
+  const leaguePromise = fetchSleeperLeague(leagueId);
+  // Projections only need the league's season when the caller did not pass one.
+  const projectionsPromise = (season
+    ? fetchSleeperProjections(season, week)
+    : leaguePromise.then((league) => fetchSleeperProjections(league?.season || currentSeason(), week))
+  ).catch(() => ({}));
+  const [league, rosters, users, players, projections] = await Promise.all([
+    leaguePromise,
     getJson(`${BASE}/league/${encodeURIComponent(leagueId)}/rosters`),
     getJson(`${BASE}/league/${encodeURIComponent(leagueId)}/users`),
     fetchSleeperPlayers(),
+    projectionsPromise,
   ]);
-  const projections = await fetchSleeperProjections(
-    season || league?.season || currentSeason(),
-    week
-  ).catch(() => ({}));
   const leagueUsers = Array.isArray(users) ? users : [];
   const rosterPositions = Array.isArray(league?.roster_positions) ? league.roster_positions : [];
 
@@ -696,13 +768,17 @@ async function fetchSleeperLeagueRosters(leagueId, week, season) {
 
 async function buildNormalizedRoster(leagueId, username, week, opts = {}) {
   const user = await fetchSleeperUser(username);
-  const [league, rosterInfo, players] = await Promise.all([
-    fetchSleeperLeague(leagueId).catch(() => null),
+  const leaguePromise = fetchSleeperLeague(leagueId).catch(() => null);
+  const projectionsPromise = (opts.season
+    ? fetchSleeperProjections(opts.season, week)
+    : leaguePromise.then((league) => fetchSleeperProjections(league?.season || currentSeason(), week))
+  ).catch(() => ({}));
+  const [league, rosterInfo, players, projections] = await Promise.all([
+    leaguePromise,
     fetchSleeperRoster(leagueId, user.user_id),
     fetchSleeperPlayers(),
+    projectionsPromise,
   ]);
-  const season = opts.season || league?.season || currentSeason();
-  const projections = await fetchSleeperProjections(season, week).catch(() => ({}));
 
   const roster = rosterInfo.roster || {};
   const starterIds = Array.isArray(roster.starters) ? roster.starters.map(String) : [];
@@ -789,6 +865,9 @@ async function fetchSleeperDraftPicks(draftId) {
 
 module.exports = {
   createWindowBudget,
+  sleeperRequestMemo,
+  runWithSleeperRequestMemo,
+  resetSleeperPlayersMemo,
   fetchSleeperUser,
   fetchSleeperLeagues,
   fetchSleeperLeague,

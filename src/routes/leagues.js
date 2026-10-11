@@ -40,6 +40,7 @@ const {
 } = require("../services/leagueMemberships");
 
 const router = express.Router();
+router.use(require("../services/sleeperRequestScope").middleware);
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
 
 const DIRECTORY_CONTRACT = "league-directory.v1";
@@ -541,10 +542,11 @@ router.get("/", requireAuth, async (req, res, next) => {
     responseCache.setCacheHeader(res, cacheHandle);
     const byPlatform = new Map(rows.map((row) => [row.platform, row]));
 
-    const discovered = [];
-    for (const platform of PLATFORM_GROUP_ORDER) {
-      discovered.push(await platformGroup(platform, byPlatform.get(platform), req.user.id, season));
-    }
+    // Providers are independent and platformGroup catches its own errors, so one
+    // slow or failing platform cannot hold up or fail the others. Promise.all keeps
+    // the output in PLATFORM_GROUP_ORDER.
+    const discovered = await Promise.all(PLATFORM_GROUP_ORDER.map((platform) =>
+      platformGroup(platform, byPlatform.get(platform), req.user.id, season)));
 
     // Write what the providers said, then read the stored memberships back: the switcher's
     // followed set and its fallback league list come from `leagues` + `league_memberships`.

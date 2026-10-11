@@ -13,6 +13,7 @@ const sleeperAdapter = require("../adapters/sleeper");
 const espnAdapter = require("../adapters/espn");
 
 const router = express.Router();
+router.use(require("../services/sleeperRequestScope").middleware);
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
 
 const VALID_PLATFORMS = new Set(["yahoo", "sleeper", "espn"]);
@@ -141,12 +142,19 @@ function baseEnvelope(connection, context, extra = {}) {
   };
 }
 
-async function yahooStandings(connection, userId, context) {
+// `shared`, when passed, receives the client and team key this read already fetched so a
+// caller in the same request (yahooOverview) does not fetch them again. It is a plain
+// per-call object: nothing here outlives the request.
+async function yahooStandings(connection, userId, context, shared = null) {
   const { client } = await getAuthenticatedYahooClient(userId);
   const [metadata, myTeamKey] = await Promise.all([
     client.getLeagueMetadata(connection.league_id).catch(() => ({})),
     client.getMyTeamKey(connection.league_id).catch(() => null),
   ]);
+  if (shared) {
+    shared.client = client;
+    shared.teamKey = myTeamKey || null;
+  }
   const standings = await client.getLeagueStandings(connection.league_id, myTeamKey);
   return baseEnvelope(connection, context, {
     league_name: metadata.league_name,
@@ -748,12 +756,15 @@ async function espnOverview(connection, userId, context) {
  * statement is no longer true.
  */
 async function yahooOverview(connection, userId, context) {
-  const standingsEnvelope = await yahooStandings(connection, userId, context);
+  const shared = {};
+  const standingsEnvelope = await yahooStandings(connection, userId, context, shared);
 
   let matchup = { status: "unavailable", you: null, opponent: null, unavailable_reason: "provider_failed" };
   try {
-    const { client } = await getAuthenticatedYahooClient(userId);
-    const teamKey = await client.getMyTeamKey(connection.league_id);
+    // Reuse the client and team key the standings read just fetched; fall back to a fresh
+    // lookup only when that read could not resolve the team key.
+    const client = shared.client || (await getAuthenticatedYahooClient(userId)).client;
+    const teamKey = shared.teamKey || await client.getMyTeamKey(connection.league_id);
     const week = standingsEnvelope.week || context.week;
     const read = teamKey ? await client.getMatchup(connection.league_id, teamKey, week) : null;
     if (read) {

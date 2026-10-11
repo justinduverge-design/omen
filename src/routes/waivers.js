@@ -36,6 +36,8 @@ const sleeperAdapter = require("../adapters/sleeper");
 const espnAdapter = require("../adapters/espn");
 
 const router = express.Router();
+// Request-scoped Sleeper read memo: repeated GETs of one URL inside a request collapse to one.
+router.use(require("../services/sleeperRequestScope").middleware);
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
 
 // Adds a usage-based reason to the recommended add from warehouse opportunity counts. A no-op in
@@ -121,28 +123,41 @@ function scoringFormatFromSleeperLeague(league) {
  * this must never collapse one into the other.
  */
 async function loadSleeper(connection, week, season) {
-  const league = await sleeperAdapter.fetchSleeperLeague(connection.league_id).catch(() => null);
-  const roster = await sleeperAdapter.buildNormalizedRoster(
+  // The stages are independent. The request-scoped memo makes the shared league,
+  // rosters, users and user reads happen once however many stages ask for them.
+  // The roster read is the only stage whose failure fails the load, as before.
+  const leaguePromise = sleeperAdapter.fetchSleeperLeague(connection.league_id).catch(() => null);
+  const rosterPromise = sleeperAdapter.buildNormalizedRoster(
     connection.league_id,
     connection.platform_username,
     week,
     { season }
   );
-  const pool = await sleeperAdapter
+  const poolPromise = sleeperAdapter
     .fetchSleeperAvailablePlayers(connection.league_id, week, String(season))
     .catch(() => null);
-
   // §6.2 verification. Needs the RAW roster row, not the normalized one: the
   // waiver fields live on roster.settings and normalization drops them. A
   // failure here is not_determined, never a guess — the analysis still renders.
-  let system = waiverSystem.undetermined("sleeper waiver settings unavailable");
-  try {
-    const user = await sleeperAdapter.fetchSleeperUser(connection.platform_username);
-    const raw = await sleeperAdapter.fetchSleeperRoster(connection.league_id, user.user_id);
-    system = waiverSystem.fromSleeper({ league, roster: raw.roster });
-  } catch (_) {
-    // keep not_determined
-  }
+  const systemPromise = (async () => {
+    try {
+      const user = await sleeperAdapter.fetchSleeperUser(connection.platform_username);
+      const [league, raw] = await Promise.all([
+        leaguePromise,
+        sleeperAdapter.fetchSleeperRoster(connection.league_id, user.user_id),
+      ]);
+      return waiverSystem.fromSleeper({ league, roster: raw.roster });
+    } catch (_) {
+      return waiverSystem.undetermined("sleeper waiver settings unavailable");
+    }
+  })();
+
+  const [league, roster, pool, system] = await Promise.all([
+    leaguePromise,
+    rosterPromise,
+    poolPromise,
+    systemPromise,
+  ]);
 
   return {
     roster,

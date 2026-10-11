@@ -661,3 +661,94 @@ test("GET /api/dashboard/summary does not advertise Draft Assistant", async () =
   assert.ok(res.body.tools.omen_of_the_week);
   assert.ok(res.body.tools.waiver_wire);
 });
+
+test("GET /api/dashboard/summary is cached per user and invalidated by connection changes", async () => {
+  const responseCache = require("../src/services/responseCache");
+  responseCache.setStoreForTests(responseCache.createMemoryResponseCacheStore());
+  try {
+    let lookups = 0;
+    const sleeperAdapter = {
+      fetchSleeperUser: async () => ({ user_id: "u1" }),
+      fetchSleeperLastResult: async () => { lookups += 1; return null; },
+    };
+    const sleeperRow = (userId, league) => ({
+      user_id: userId, platform: "sleeper", is_active: true, platform_username: "sleepy", league_id: league,
+    });
+    const context = { season: 2026, week: 5, season_type: "regular" };
+    async function getAs(userId, rows) {
+      const app = buildApp({
+        context,
+        sleeperAdapter,
+        platformRows: rows,
+        requireAuth: (req, _res, next) => { req.user = { id: userId }; next(); },
+      });
+      const server = http.createServer(app);
+      await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+      try {
+        const res = await fetch(`http://127.0.0.1:${server.address().port}/api/dashboard/summary`, { headers: { "x-contract-record": "skip" } });
+        return { cache: res.headers.get("x-omen-cache"), body: await res.json() };
+      } finally {
+        await new Promise((resolve) => server.close(resolve));
+      }
+    }
+
+    const first = await getAs("user-a", [sleeperRow("user-a", "L1")]);
+    const second = await getAs("user-a", [sleeperRow("user-a", "L1")]);
+    assert.equal(first.cache, "miss");
+    assert.equal(second.cache, "hit");
+    assert.equal(lookups, 1);
+    assert.deepEqual(second.body, first.body);
+
+    // Another user never reads user-a's entry.
+    const other = await getAs("user-b", [sleeperRow("user-b", "L1")]);
+    assert.equal(other.cache, "miss");
+
+    // A changed connection yields a different key.
+    const changed = await getAs("user-a", [sleeperRow("user-a", "L2")]);
+    assert.equal(changed.cache, "miss");
+
+    // A write bumps the epoch.
+    await responseCache.invalidateUser("user-a");
+    const afterWrite = await getAs("user-a", [sleeperRow("user-a", "L1")]);
+    assert.equal(afterWrite.cache, "miss");
+  } finally {
+    responseCache.setStoreForTests(undefined);
+  }
+});
+
+test("cached dashboard summaries never cross users, even with identical connections", async () => {
+  const responseCache = require("../src/services/responseCache");
+  responseCache.setStoreForTests(responseCache.createMemoryResponseCacheStore());
+  try {
+    const row = (userId) => ({
+      user_id: userId, platform: "sleeper", is_active: true, platform_username: `name-${userId}`, league_id: "SAME",
+    });
+    const get = async (userId) => {
+      const app = buildApp({
+        platformRows: [row(userId)],
+        requireAuth: (req, _res, next) => { req.user = { id: userId }; next(); },
+      });
+      const server = http.createServer(app);
+      await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+      try {
+        const res = await fetch(`http://127.0.0.1:${server.address().port}/api/dashboard/summary`, { headers: { "x-contract-record": "skip" } });
+        return { cache: res.headers.get("x-omen-cache"), body: await res.json() };
+      } finally {
+        await new Promise((resolve) => server.close(resolve));
+      }
+    };
+    const a1 = await get("user-a");
+    const b1 = await get("user-b");
+    const a2 = await get("user-a");
+    const b2 = await get("user-b");
+    assert.equal(a1.body.platforms.sleeper.username, "name-user-a");
+    assert.equal(b1.body.platforms.sleeper.username, "name-user-b");
+    assert.equal(b1.cache, "miss");
+    assert.equal(a2.cache, "hit");
+    assert.equal(b2.cache, "hit");
+    assert.equal(a2.body.platforms.sleeper.username, "name-user-a");
+    assert.equal(b2.body.platforms.sleeper.username, "name-user-b");
+  } finally {
+    responseCache.setStoreForTests(undefined);
+  }
+});
