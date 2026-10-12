@@ -1,5 +1,19 @@
 # Omen Decision Log
 
+## 2026-10-12 — projections: Omen's own projections are the point of view, for every provider
+
+- **Decision (founder, 2026-10-12):** "Yahoo will use Omen projections; we should take that point of view going forwards, we
+  have the data." Omen computes its own weekly player projections from the football warehouse (nflverse facts, Omen-owned
+  opportunity, usage and QB grade metrics, schedule and opponent context) and scores them with each league's own scoring
+  settings, the same for ESPN, Yahoo and Sleeper. Provider projections are inputs to compare against, not the source of truth.
+- **Why:** Yahoo's API exposes no per-player projections (probe 2026-10-12: every `type=projected` player route returns 400; only a
+  team total and player ranks exist), ESPN's are ESPN's own, and Sleeper's are Rotowire-tagged with commercial permission pending.
+  The warehouse holds 1999-2026, so a model can be backtested against actual results, and Omen can state its own method.
+- **Order of work:** spec and offline backtest first (is Omen's model at least as accurate as Sleeper's feed on the same weeks?);
+  then an Omen projections table in the warehouse; then serving Omen projections first with Sleeper as the benchmark and fallback.
+  Nothing replaces the live path until the backtest shows the model is not worse. No production change before the Tuesday release.
+- **Consequence for the stored Sleeper feed (#649):** it stays the benchmark and the fallback, not the long-term source.
+
 ## 2026-10-11 — projections: accept the rights risk, store them, use them only inside the product
 
 - **Decision (founder, 2026-10-11):** Omen needs projections for every provider, so it carries the rights risk on Sleeper's
