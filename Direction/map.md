@@ -37,7 +37,7 @@ Analyzer is the front door; Omen of the Week is the main event. Detail: `Directi
 
 ## Right now
 
-Focus: database redo and the Tuesday 2026-10-06 release prep. Pinned task: `Direction/agent_inbox.md`.
+Focus: release cadence is every other Tuesday; next is 2026-10-27, plan in `Direction/2026-10-27-beta-readiness.md`. Latest state: `Blueprints/handoffs/rate-limit-shutdown-checkpoint.md`. Pinned task: `Direction/agent_inbox.md`.
 What is shipped and open: `node scripts/shipped.js` → `Direction/shipped.md`.
 
 ## How work flows
@@ -59,6 +59,7 @@ and the risky-PR list: `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md` § Review. Cl
 | Public copy, analytics, demo mode, type | `Direction/facts-of-record.md` facts 16-21, `Brand/brand-system.md` | `slops-ux-copy` |
 | Auth, tokens, user data | `Blueprints/security-privacy.md` | `security-privacy-evidence`; request `@codex review` |
 | A bug or failed check | `Direction/known_issues.md` (open only) | `slops-investigate` |
+| Warehouse, timers, backups, SSH, rollback | `infra/schedule/TIMERS.md`, `infra/schedule/ACCESS.md`, `infra/warehouse/`, `Direction/2026-10-13-release-rollback-card.md` | `slops-canary` |
 | Release, deploy, store consoles | `Direction/release/`, `Direction/release_readiness.md` | `slops-ship`, `slops-canary`, `slops-founder-admin-runbook` |
 | Where a new file belongs | `RESOLVER.md` | — |
 | Why something was decided | `Direction/decision_log.md` (search, do not read whole) | — |

@@ -1,132 +1,47 @@
-# Rate-Limit Shutdown Checkpoint
+# Shutdown checkpoint, 2026-10-12 (founder weekly limit ~75%, resets Thursday)
 
-Session: 2026-09-13 — Omen football-data capture outage, diagnosis through merge.
+Restore: read this file, then `Direction/2026-10-27-beta-readiness.md` (the plan), then paste the prompt at the bottom.
+Cadence from now on: **a release every other Tuesday.** This cycle: Tue 2026-10-13. Next: **Tue 2026-10-27**.
 
 ## Current Project State
-
-Football-data capture on KVM1 (`srv1737978`) was **dead for 17 days** and nothing reported it. It
-is running again, and the fault class, the silence, and the alert noise all have fixes merged to
-`main`: [#428](https://github.com/justinduverge-design/omen/pull/428),
-[#429](https://github.com/justinduverge-design/omen/pull/429),
-[#430](https://github.com/justinduverge-design/omen/pull/430).
-
-Auto-heal is **deployed and proven under systemd** (19:39Z): a deliberately bogus pin was detected,
-rebuilt, verified and rewritten by `ExecStartPre`, after which capture returned `state: pass` with
-`alerts: []`. GlitchTip auto-resolve is live on a daily timer and the alert signature is empty.
-
-One condition remains active — `witness_mismatch` — expected on a Sunday, and the Tuesday cycle is
-the verification.
+- **Production is stable and quiet.** API live at `ab18af0` (canary PASS 2026-10-12). Monday 07:15 ET warehouse ingest succeeded (7 nflverse stages + opportunity + RAT-QB), chained backup and retention completed, disk 25%.
+- **Everything merged this week is deployed and reviewed** (fresh-agent review before each merge, CI green). Rollback path written: `Direction/2026-10-13-release-rollback-card.md`.
+- **Warehouse:** `FOOTBALL_DATA_MODE=warehouse`, 28 seasons. Projections store code is merged **with flags OFF and the schema NOT applied**; apply is a post-release step (handoff `2026-10-11-warehouse-weekly-projections.md`).
+- **iOS:** current `main` built and installed on the founder's iPhone 15 (launch was blocked by a locked screen). Founder's Gate G phone walk is not done.
+- **Direction set 2026-10-12 (decision log):** the league provider's projections lead; Omen's own projections are challenger and filler (Yahoo has none); read everything the providers expose; shape data around the questions a manager asks.
 
 ## Work Completed This Session
-
-**Root cause.** `/etc/omen-football/image-digest` was re-pinned 2026-08-26 23:33Z to a **bare image
-ID** (`sha256:<hex>`) rather than `repo@sha256:<hex>`, 18 minutes after source `d2d327f` deployed.
-A bare ID names a local image only and can never be pulled. A later prune removed it, so every
-capture from the next run (2026-08-27 09:15Z) exited 125 and the status payload froze with
-`datasets: {}`.
-
-**Why it was silent.** `slops-alert-dispatcher` is edge-triggered; the condition latched once and
-never re-sent. Compounding it, the witness's fetch of `kvm1-status.json` kept succeeding, so the
-file's mtime refreshed every 5 minutes while `generated_at_utc` inside it stayed frozen — invisible
-to any mtime-based check.
-
-**Outage closed.** Rebuilt the capture image from `d2d327f`, re-pinned, ran capture: `state: pass`,
-all three datasets populated, `alerts: []`.
-
-**Auto-heal shipped and proven.** `omen-football-image-guard` runs as `ExecStartPre`: prefers
-pulling a `repo@sha256` pin back, else rebuilds from the newest source tree carrying both the
-Dockerfile and `src/services/footballData`, probes with `status`, and re-pins only after that passes.
-If it cannot produce a verified image it leaves the pin alone and fails loudly.
-
-The first sandboxed run failed, which is the most valuable thing that happened today.
-`ProtectSystem=strict` keeping `/etc` read-only was a real defect found by reading the units — but
-it was the *second* barrier. The actual blocker was `docker build` going through buildx, whose state
-lives in `$HOME/.docker/buildx`, unreachable under `ProtectHome=true`. `docker run` needs no such
-state, which is why capture worked throughout and why only execution surfaced it.
-
-**Silence closed.** Dispatcher gained an explicit staleness probe on `generated_at_utc` (>30h) and a
-once-daily re-send of still-active conditions, spanning the football signature as well as `$sig`.
-
-**Alert noise closed.** Kuma monitors moved from `maxretries=0` to `2` — "Omen — API Ready" had 38
-down-beats in a day while Public HTTPS and API Health had zero; it flaps, it is not down.
-`slops-glitchtip-autoresolve` now resolves issues with no events in 7 days, daily, via the
-Sentry-compatible REST API.
-
-**Both reported bugs were not bugs.** #6 (`platform_connections update failed: duplicate key`) was
-real and had already been fixed by the founder on 2026-09-05 in `src/routes/leagues.js` (commit
-`23334ec`) — 25 minutes after its last-ever event. #9 (CORS to Mozilla's observatory) does not exist
-in the codebase at all; `git grep` and a full filesystem scan both return zero hits. The nine-issue
-backlog was history, not a to-do list.
-
-**Credential question answered.** ESPN cookie expiry and Yahoo 403 first appeared 2026-08-27 02:12,
-seven hours before capture froze. The capture pipeline reads **only** nflverse GitHub releases and
-touches neither provider. Coincidence, not causation. All three providers were re-authenticated
-anyway, with zero new errors in the following hours.
+- Warehouse Batch A-E closed out: scheduled backup chain proven; first scheduled restore proof FAILED (KVM2 prune cron deleted the pinned Postgres image), fixed (#635 plus image anchor on KVM2), proof passed by hand, Kuma #9 Up. **The scheduled-run done-condition is next Sun 2026-10-18 14:10 UTC.**
+- Ops: football backup status path fixed (#630); KVM2 nginx boot order fixed and started (Joplin WebDAV, not Omen); Pi alert dispatcher sort and pending-monitor fixes (backup `slops-alert-dispatcher.bak-pre-sortfix-*`); GlitchTip issues resolved; SSH aliases `omen-kvm1/omen-kvm2/omen-pi` and `infra/schedule/ACCESS.md` (#641, #642).
+- App and API merged: #632 league scope + hold call + ESPN trade; #633 Trade front door; #636 Omen call carries the picked league + Hold card + lag fixes; #637 walk-1 leftovers; #639 trade call in Omen; #640 trade suffix names; #644/#646 structured trade partner; #645 Yahoo projections; #648 provider matrix + playoff cut line; #649 projections store (flags off); #650 injury/projection freshness tiers.
+- Docs: readiness `2026-10-06-tuesday-beta-readiness.md` §2c-2e, rollback card, decision log entries (rights risk accepted; Omen/provider projections direction).
 
 ## Files Changed
-
-Merged in #428 / #429:
-
-- `ops/football-data/kvm1/omen-football-image-guard` — created, then fixed for buildx
-- `ops/football-data/kvm1/omen-football-{capture,validate,retry}.service` — guard as `ExecStartPre`,
-  `/etc/omen-football` added to `ReadWritePaths`
-- `ops/command-center/slops-alert-dispatcher` — staleness probe, daily re-send
-
-Merged in #430:
-
-- `ops/command-center/slops-glitchtip-autoresolve` — created
-- `ops/command-center/slops-glitchtip-autoresolve.{service,timer}` — created
-
-This checkpoint pass:
-
-- `Blueprints/handoffs/rate-limit-shutdown-checkpoint.md`
-- `Direction/decision_log.md`
-- `Direction/known_issues.md` — one entry opened and resolved same session
+Created: `Direction/2026-10-27-beta-readiness.md`, this file (rewritten). Updated: `Direction/map.md` (Right now + one routing row), `Direction/2026-10-06-tuesday-beta-readiness.md` (pointer). Earlier this session (already merged): rollback card, TIMERS.md, ACCESS.md, decision log, capability matrix.
 
 ## Files Not Found
-
-- No `ops/` tree existed in the local checkout at session start — HEAD was 2026-08-20, predating the
-  football-data work. `git fetch` was required before anything could be written. L0/L1 was separately
-  22 commits behind `master`.
-- `/var/lib/slops-alerting/last-reminder-day` did not exist until the patched dispatcher first ran.
+None missing for this checkpoint.
 
 ## What Was Not Done
-
-- **The auto-resolve `PUT` path is untested.** The query path is proven (the sweep authenticated and
-  returned cleanly), but with every issue already resolved there was nothing stale to act on, so the
-  resolve call never fired. It will exercise itself the first time an issue goes quiet for 7 days,
-  and it fails safe: logs `FAILED to resolve`, changes nothing, retries tomorrow.
-- **Tuesday verification** — not yet possible.
-- **The L2 close-out in `CLAUDE.md`** — `skill-usage-ledger.md`, `done/LEDGER.md`, and the four gate
-  commands were not run. This session used the `clean-up-checkpoint` format instead.
-- No app code, secrets, deploy config, SQL, tests, or package files were touched.
+- **Founder-only for this cycle:** Gate G phone walk; Sentinel baseline refresh (`sudo sentinel-omen-posture-baseline-refresh kvm1` then `kvm2`); App Store Connect check for an earlier build 7, archive, upload; the four section-10 decisions (explained in `Direction/2026-10-27-beta-readiness.md`).
+- **PR #654 (Omen projections v1) is OPEN with one unresolved P1** (the "relevant universe" filter is not independent of the baselines, so the ship rule can pass a losing model) plus P2s; the fixing agent was cut off by the rate limit. Branch `omen-projections-v1`, review verdict in this session's transcript.
+- **Provider-reads agent (G3 trade targets, G4 transactions, G5-G8) was cut off with 13 uncommitted files** in worktree `.claude/worktrees/agent-adc5dd7f231affd7f`, branch `feat/provider-gap-g3-g8`. Not committed, not reviewed.
+- **Three spec agents produced nothing** (cut off at start): evidence-layer map, fantasy-week information architecture, provider discovery + probe plan. Re-run them.
+- Real backtest of Omen projections (needs a restored warehouse copy on KVM2, read-only).
+- Pi alert state was not re-read after the sort fix (Tailscale SSH wants a browser re-auth: `https://login.tailscale.com/a/laded74930b0cd`). Kuma #7/#8/#9 not read through the browser pane (site not allowed).
+- SSH `omen` user unification (decided: after the release). Truth-gate P0 cleanup (268 P0, 250 before this week). Kickoff times into the freshness policy (matters from December).
 
 ## Current Risks / Open Questions
-
-1. **`witness_mismatch` is still active.** Believed expected: the witness holds only 2025 snapshots
-   for `stats_player`/`stats_team` (captured 2026-08-26, before any 2026 games), so it has nothing to
-   compare against. Should clear once the Tuesday witness capture crosses the season boundary. If it
-   persists past Tuesday afternoon it is a genuine data-integrity signal.
-2. **Three identical pending batches** exist from repeated manual captures on 2026-09-13. Validate
-   has not met that input shape before. If Tuesday's validate fails, look here first — it is an
-   artifact of the fix session, not a pre-existing condition.
-3. **Why the Pi rebooted** at 10:29 local on 2026-09-13 is unexplained; `last -x reboot` returned
-   nothing.
-4. **What re-pinned the digest on 2026-08-26** is unknown. The guard now recovers from it, but the
-   origin is worth understanding — nothing prevents the same bare-ID mistake being made again.
+- Gate G (device evidence) is the deciding gate and is unrun. Nothing else in the engineering list blocks Tuesday.
+- Each API deploy swaps one container (a few seconds of 502). No code merges Monday evening through Tuesday unless it is a rollback.
+- Rights: Sleeper projections are Rotowire-tagged, commercial permission pending; risk accepted by the founder with safeguards (decision log 2026-10-11).
+- Open decisions for the founder: where Find a trade lives (built as the Trade tab front door, confirm on the phone); whether to touch the protected brief builder for decision-drivers (spec proposed); LLM direction (batch jobs, not built).
+- Open worktrees under `.claude/worktrees/` hold stale agent branches; clean up with `mcp__ccd_host__clean_up_worktrees` after the work above is committed or abandoned.
 
 ## Recommended Next Step
-
-Tuesday 2026-09-15 after 10:00 UTC, confirm the football chain completed cleanly. Everything else
-from this session is closed.
+Do the founder-only items first (phone walk, Sentinel refresh), then resume engineering in this order: (1) fix and merge #654, (2) commit/review the provider-reads work, (3) re-run the three spec agents, (4) restore a warehouse copy on KVM2 and run the Omen projections backtest, (5) apply the projections schema (handoff steps) once the release is out.
 
 ## Exact Next Prompt For Justin
-
-> On command-center, run `sudo cat /var/lib/omen-football-witness/signals.json`. Empty `conditions`
-> means the witness crossed the season boundary and picked up 2026 `stats_player`/`stats_team` —
-> confirm with `sudo ls /var/lib/omen-football-witness/snapshots/stats_player/`, which should now
-> show a `2026` directory. If `witness_mismatch` is still present, treat it as a real data-integrity
-> signal rather than the expected Sunday state. Then on KVM1 check
-> `sudo /usr/local/sbin/omen-football-run status | grep -E 'state|authorized'` — `publication_authorized`
-> and `production_scoring_authorized` turning true means the first clean Tuesday scoring since the
-> outage. Also check whether validate coped with the three identical pending batches from 2026-09-13.
+```
+Read Blueprints/handoffs/rate-limit-shutdown-checkpoint.md and Direction/2026-10-27-beta-readiness.md. First tell me what is still open from my side (phone walk, Sentinel refresh, build 7, section 10). Then, without merging anything that deploys before the 2026-10-13 release is finished, (1) resume PR #654 (fix the P1 relevant-universe filter), (2) inspect worktree .claude/worktrees/agent-adc5dd7f231affd7f (branch feat/provider-gap-g3-g8), commit it and get a fresh-agent review, then (3) re-run the evidence-layer map, information-architecture and provider-discovery specs. Review each PR with slops-code-review before merge and gate every merge on gh pr checks.
+```

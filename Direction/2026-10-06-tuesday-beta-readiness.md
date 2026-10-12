@@ -1,5 +1,6 @@
 # Tuesday beta readiness — football warehouse
 
+> **Cadence update 2026-10-12:** releases are every other Tuesday. State for the 2026-10-13 cycle is §2c-2e below; the plan for 2026-10-27 is `Direction/2026-10-27-beta-readiness.md`.
 **Written:** 2026-10-04. **Target:** Tuesday, 2026-10-06 beta update.
 **Status (updated 2026-10-10):** warehouse live in shadow, backed up and monitored; shadow comparison and physical-device proof remain open. See §2. Carried forward to the 2026-10-13 beta.
 **Authority:** this file is a readiness record and execution checklist. It does not authorize a deploy,
