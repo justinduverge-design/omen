@@ -245,6 +245,8 @@ test("selectTolerantly remembers absent optional columns instead of re-querying 
 });
 
 test("with a stale players map, every concurrent caller gets it on refresh failure, and failures back off", async () => {
+  // Pins the legacy (kill-switch) path; the tiered path is covered in injuryFreshnessAdapter.test.js.
+  process.env.INJURY_FRESHNESS_TIERS_DISABLED = "1";
   let fail = false;
   const { adapter, calls } = loadAdapter(() => {
     if (fail) throw new Error("down");
@@ -275,6 +277,7 @@ test("with a stale players map, every concurrent caller gets it on refresh failu
     assert.equal(count(calls, "/players/nfl"), 3);
   } finally {
     Date.now = realNow;
+    delete process.env.INJURY_FRESHNESS_TIERS_DISABLED;
   }
 });
 

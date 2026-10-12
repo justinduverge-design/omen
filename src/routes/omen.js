@@ -782,6 +782,29 @@ router.post("/feedback", requireAuth, async (req, res, next) => {
   }
 });
 
+/**
+ * Additive `signals.data_freshness` for Sleeper calls: when the injury report (players file) and
+ * projections behind this call were fetched, so the app can say "injury report as of HH:MM".
+ * Absent when the provider is not Sleeper or the adapter has no stamp. Never throws.
+ */
+function attachDataFreshness(body) {
+  try {
+    if (!body || body.platform?.name !== "sleeper" || !body.signals || typeof body.signals !== "object") return;
+    const f = require("../adapters/sleeper").getSleeperDataFreshness();
+    if (!f.players_as_of) return;
+    body.signals.data_freshness = {
+      status: "live",
+      used: true,
+      source: "sleeper_players_projections",
+      message: "Injury report and projections timestamps for the data behind this call.",
+      players_as_of: f.players_as_of,
+      projections_as_of: f.projections_as_of,
+    };
+  } catch {
+    // Freshness is informational only.
+  }
+}
+
 router.post("/mvp-move", async (req, res) => {
   const trace = { started_at: Date.now() };
   const requestedContract = req.body?.contract_version;
@@ -854,6 +877,7 @@ router.post("/mvp-move", async (req, res) => {
       emitLatencyTrace(trace, body.state);
       return res.status(503).json(body);
     }
+    attachDataFreshness(result.body);
     const body = present(result.body);
     emitLatencyTrace(trace, body.state);
     // Both are best-effort and must not hold the response: respond first, finish
@@ -888,3 +912,5 @@ router.post("/mvp-move", async (req, res) => {
 module.exports = router;
 module.exports.runEnrichmentStages = runEnrichmentStages;
 module.exports.runEnrichmentStagesSerial = runEnrichmentStagesSerial;
+
+module.exports.attachDataFreshness = attachDataFreshness;

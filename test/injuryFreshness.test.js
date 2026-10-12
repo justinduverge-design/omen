@@ -1,0 +1,340 @@
+"use strict";
+
+process.env.SUPABASE_URL ||= "https://example.supabase.co";
+process.env.SUPABASE_SERVICE_KEY ||= "test-service-key";
+delete process.env.REDIS_URL;
+delete process.env.REDIS_TOKEN;
+delete process.env.INJURY_FRESHNESS_TIERS_DISABLED;
+
+const assert = require("node:assert/strict");
+const Module = require("node:module");
+const test = require("node:test");
+const {
+  freshnessPolicy, buildInjuryOverlay, diffInjuryOverlay, TIERS, LEGACY,
+} = require("../src/services/injuryFreshness");
+
+const MIN = 60 * 1000;
+const HOUR = 60 * MIN;
+
+// ---- policy (pure) -----------------------------------------------------------------------------
+
+test("game-window days refresh fast: Thursday evening, Sunday, Monday evening and the hours before kickoff", () => {
+  const cases = [
+    ["2026-10-08T20:00:00Z", "Thu 16:00 ET"],
+    ["2026-10-08T16:00:00Z", "Thu 12:00 ET, hours before kickoff"],
+    ["2026-10-11T12:00:00Z", "Sun 08:00 ET, London window"],
+    ["2026-10-11T23:30:00Z", "Sun evening"],
+    ["2026-10-12T07:59:00Z", "Mon 03:59 ET, still Sunday night"],
+    ["2026-10-12T17:00:00Z", "Mon 13:00 ET"],
+    ["2026-10-13T02:00:00Z", "Mon 22:00 ET"],
+  ];
+  for (const [iso, why] of cases) {
+    const p = freshnessPolicy(new Date(iso), { offSeason: false });
+    assert.equal(p.tier, "game_window", why);
+    assert.equal(p.players_ttl_ms, 10 * MIN);
+    assert.equal(p.projections_ttl_ms, 20 * MIN);
+  }
+});
+
+test("other in-season days refresh every couple of hours", () => {
+  for (const iso of ["2026-10-07T15:00:00Z", "2026-10-13T15:00:00Z", "2026-10-12T14:00:00Z", "2026-10-09T15:00:00Z", "2026-10-10T15:00:00Z"]) {
+    const p = freshnessPolicy(new Date(iso), { offSeason: false });
+    assert.equal(p.tier, "in_season", iso);
+    assert.equal(p.players_ttl_ms, 2 * HOUR);
+  }
+});
+
+test("off-season is slow, and falls back to a month rule when the schedule is unavailable", () => {
+  assert.equal(freshnessPolicy(new Date("2026-10-11T17:00:00Z"), { offSeason: true }).tier, "off_season");
+  const july = new Date("2026-07-15T17:00:00Z");
+  assert.equal(freshnessPolicy(july, { offSeason: null }).tier, "off_season");
+  assert.equal(freshnessPolicy(july).players_ttl_ms, TIERS.off_season.players_ttl_ms);
+  // Schedule unavailable in season: the day-of-week rule still applies.
+  assert.equal(freshnessPolicy(new Date("2026-10-11T17:00:00Z"), { offSeason: null }).tier, "game_window");
+});
+
+test("known kickoffs open a window on days the weekday rule would miss (Saturday, holidays)", () => {
+  const kickoff = "2026-12-19T20:00:00Z";
+  const sat = new Date("2026-12-19T17:00:00Z");
+  assert.equal(freshnessPolicy(sat, { offSeason: false }).tier, "in_season");
+  assert.equal(freshnessPolicy(sat, { offSeason: false, kickoffs: [kickoff] }).tier, "game_window");
+  assert.equal(freshnessPolicy(new Date("2026-12-20T09:00:00Z"), { offSeason: false, kickoffs: [kickoff] }).tier, "in_season");
+});
+
+test("INJURY_FRESHNESS_TIERS_DISABLED=1 returns the legacy TTLs", () => {
+  const p = freshnessPolicy(new Date("2026-10-11T17:00:00Z"), { offSeason: false, env: { INJURY_FRESHNESS_TIERS_DISABLED: "1" } });
+  assert.equal(p.tier, "legacy");
+  assert.equal(p.players_ttl_ms, LEGACY.players_ttl_ms);
+  assert.equal(p.projections_ttl_ms, HOUR);
+});
+
+test("healthy-player projection tolerance is never shorter than the hurt-safe TTL", () => {
+  for (const tier of Object.values(TIERS)) assert.ok(tier.healthy_projections_ttl_ms >= tier.projections_ttl_ms);
+});
+
+// ---- overlay + diff -----------------------------------------------------------------------------
+
+const roster = (over = {}) => ({
+  a: { full_name: "A", status: "Active", injury_status: null },
+  b: { full_name: "B", status: "Active", injury_status: "Questionable", injury_body_part: "Knee" },
+  c: { full_name: "C", status: "Inactive", injury_status: null },
+  ...over,
+});
+
+test("overlay keeps only players with an injury designation or a non-active status", () => {
+  const overlay = buildInjuryOverlay(roster());
+  assert.deepEqual([...overlay.keys()].sort(), ["b", "c"]);
+  assert.equal(overlay.get("b").injury_body_part, "Knee");
+});
+
+test("diff reports designation changes and counts severe, questionable and cleared", () => {
+  const prev = buildInjuryOverlay(roster({ d: { status: "Active", injury_status: "Questionable" } }));
+  const next = buildInjuryOverlay(roster({
+    b: { status: "Active", injury_status: "Out", injury_body_part: "Knee" }, // Q -> Out
+    d: { status: "Active", injury_status: null }, // cleared
+    e: { status: "Active", injury_status: "Questionable" }, // newly questionable
+  }));
+  const { changes, counts } = diffInjuryOverlay(prev, next);
+  assert.equal(changes.length, 3);
+  assert.deepEqual(counts, { tracked: 3, changed: 3, newly_severe: 1, newly_questionable: 1, cleared: 1 });
+});
+
+test("a body-part or news edit alone is not a designation change", () => {
+  const prev = buildInjuryOverlay(roster());
+  const next = buildInjuryOverlay(roster({ b: { status: "Active", injury_status: "Questionable", injury_body_part: "Ankle", news_updated: 9 } }));
+  assert.equal(diffInjuryOverlay(prev, next).changes.length, 0);
+});
+
+// ---- adapter: stale-while-revalidate with a fake clock ------------------------------------------
+
+function loadAdapter(handler) {
+  const adapterPath = require.resolve("../src/adapters/sleeper");
+  delete require.cache[adapterPath];
+  const calls = [];
+  const originalLoad = Module._load;
+  Module._load = function patched(request, parent, isMain) {
+    if (request === "axios" && parent?.filename === adapterPath) {
+      return {
+        get: async (url, options = {}) => {
+          calls.push(url);
+          await new Promise((resolve) => setImmediate(resolve));
+          return { data: await handler(url, options) };
+        },
+      };
+    }
+    return originalLoad.call(this, request, parent, isMain);
+  };
+  try {
+    return { adapter: require("../src/adapters/sleeper"), calls };
+  } finally {
+    Module._load = originalLoad;
+  }
+}
+
+const playerCalls = (calls) => calls.filter((u) => u.includes("/players/nfl")).length;
+const flush = async () => { for (let i = 0; i < 6; i += 1) await new Promise((r) => setImmediate(r)); };
+
+function withClock(startIso, fn) {
+  const realNow = Date.now;
+  let clock = new Date(startIso).getTime();
+  Date.now = () => clock;
+  const api = { advance: (ms) => { clock += ms; } };
+  return Promise.resolve(fn(api)).finally(() => { Date.now = realNow; });
+}
+
+const GAME_DAY = "2026-10-11T17:00:00Z"; // Sunday 13:00 ET
+const QUIET_DAY = "2026-10-07T15:00:00Z"; // Wednesday 11:00 ET
+
+test("stale map is served immediately while one background refresh runs, then the new map appears", async () => {
+  let version = 1;
+  const { adapter, calls } = loadAdapter(() => ({ p1: { full_name: "One", injury_status: version === 1 ? "Questionable" : "Out" } }));
+  adapter.resetSleeperPlayersMemo();
+  await withClock(GAME_DAY, async (clock) => {
+    const first = await adapter.fetchSleeperPlayers();
+    assert.equal(first.p1.injury_status, "Questionable");
+
+    clock.advance(5 * MIN); // inside the 10 min game-window TTL
+    await adapter.fetchSleeperPlayers();
+    await flush();
+    assert.equal(playerCalls(calls), 1);
+
+    version = 2;
+    clock.advance(6 * MIN); // 11 min: stale
+    const results = await Promise.all([adapter.fetchSleeperPlayers(), adapter.fetchSleeperPlayers(), adapter.fetchSleeperPlayers()]);
+    for (const r of results) assert.equal(r, first, "callers get the cached map without waiting");
+    await flush();
+    assert.equal(playerCalls(calls), 2, "single-flight: one refresh for three callers");
+
+    const fresh = await adapter.fetchSleeperPlayers();
+    assert.equal(fresh.p1.injury_status, "Out");
+    assert.equal(adapter.getSleeperDataFreshness().players_as_of, new Date(Date.now()).toISOString());
+  });
+});
+
+test("a quiet in-season day tolerates a 90 minute old map and refreshes after 2 hours", async () => {
+  const { adapter, calls } = loadAdapter(() => ({ p1: { full_name: "One" } }));
+  adapter.resetSleeperPlayersMemo();
+  await withClock(QUIET_DAY, async (clock) => {
+    await adapter.fetchSleeperPlayers();
+    clock.advance(90 * MIN);
+    await adapter.fetchSleeperPlayers();
+    await flush();
+    assert.equal(playerCalls(calls), 1);
+    clock.advance(40 * MIN);
+    await adapter.fetchSleeperPlayers();
+    await flush();
+    assert.equal(playerCalls(calls), 2);
+    assert.equal(adapter.getSleeperDataFreshness().tier, "in_season");
+  });
+});
+
+test("a failed background refresh keeps the old map, never throws into a request, and backs off", async () => {
+  let fail = false;
+  const { adapter, calls } = loadAdapter(() => {
+    if (fail) throw new Error("down");
+    return { p1: { full_name: "One" } };
+  });
+  adapter.resetSleeperPlayersMemo();
+  await withClock(GAME_DAY, async (clock) => {
+    const first = await adapter.fetchSleeperPlayers();
+    fail = true;
+    clock.advance(11 * MIN);
+    assert.equal(await adapter.fetchSleeperPlayers(), first);
+    await flush();
+    assert.equal(playerCalls(calls), 2);
+
+    clock.advance(30 * 1000); // inside the 60 s backoff
+    assert.equal(await adapter.fetchSleeperPlayers(), first);
+    await flush();
+    assert.equal(playerCalls(calls), 2);
+
+    clock.advance(40 * 1000); // past 60 s: retry, fails again, backoff doubles to 120 s
+    assert.equal(await adapter.fetchSleeperPlayers(), first);
+    await flush();
+    assert.equal(playerCalls(calls), 3);
+
+    clock.advance(90 * 1000);
+    await adapter.fetchSleeperPlayers();
+    await flush();
+    assert.equal(playerCalls(calls), 3, "still inside the doubled backoff");
+
+    fail = false;
+    clock.advance(60 * 1000);
+    await adapter.fetchSleeperPlayers();
+    await flush();
+    assert.equal(playerCalls(calls), 4);
+    assert.equal((await adapter.fetchSleeperPlayers()), (await adapter.fetchSleeperPlayers()));
+  });
+});
+
+test("a designation change is logged as a PII-free structured event with counts", async () => {
+  let version = 1;
+  const { adapter } = loadAdapter(() => ({
+    p1: { full_name: "Secret Name", status: "Active", injury_status: version === 1 ? "Questionable" : "Out" },
+    p2: { full_name: "Other", status: "Active", injury_status: null },
+  }));
+  adapter.resetSleeperPlayersMemo();
+  const logged = [];
+  const realLog = console.log;
+  console.log = (line) => logged.push(String(line));
+  try {
+    await withClock(GAME_DAY, async (clock) => {
+      await adapter.fetchSleeperPlayers();
+      version = 2;
+      clock.advance(11 * MIN);
+      await adapter.fetchSleeperPlayers();
+      await flush();
+    });
+  } finally {
+    console.log = realLog;
+  }
+  const events = logged.map((l) => JSON.parse(l)).filter((e) => e.event === "sleeper_injury_designation_changes");
+  assert.equal(events.length, 1);
+  assert.equal(events[0].changed, 1);
+  assert.equal(events[0].newly_severe, 1);
+  assert.equal(events[0].tier, "game_window");
+  assert.ok(!logged.join("\n").includes("Secret Name"));
+  assert.ok(!logged.join("\n").includes("p1"));
+});
+
+test("INJURY_FRESHNESS_TIERS_DISABLED=1 restores the blocking fixed-TTL behaviour", async () => {
+  process.env.INJURY_FRESHNESS_TIERS_DISABLED = "1";
+  try {
+    let version = 1;
+    const { adapter, calls } = loadAdapter(() => ({ p1: { full_name: "One", injury_status: version === 1 ? null : "Out" } }));
+    adapter.resetSleeperPlayersMemo();
+    await withClock(GAME_DAY, async (clock) => {
+      await adapter.fetchSleeperPlayers();
+      version = 2;
+      clock.advance(15 * MIN); // legacy memo is 20 min: still cached
+      assert.equal((await adapter.fetchSleeperPlayers()).p1.injury_status, null);
+      assert.equal(playerCalls(calls), 1);
+      clock.advance(10 * MIN);
+      assert.equal((await adapter.fetchSleeperPlayers()).p1.injury_status, "Out", "legacy waits for the refresh");
+    });
+  } finally {
+    delete process.env.INJURY_FRESHNESS_TIERS_DISABLED;
+  }
+});
+
+test("projections are served stale while refreshing in the background after the tier TTL", async () => {
+  let points = 10;
+  const { adapter, calls } = loadAdapter((url) => {
+    if (url.includes("/projections/")) return [{ player_id: "p1", stats: { pts_ppr: points } }];
+    return {};
+  });
+  adapter.resetSleeperPlayersMemo();
+  const projCalls = () => calls.filter((u) => u.includes("/projections/")).length;
+  await withClock(GAME_DAY, async (clock) => {
+    assert.equal((await adapter.fetchSleeperProjections(2026, 5)).p1, 10);
+    points = 14;
+    clock.advance(10 * MIN); // inside the 20 min game-window TTL
+    assert.equal((await adapter.fetchSleeperProjections(2026, 5)).p1, 10);
+    await flush();
+    assert.equal(projCalls(), 1);
+
+    clock.advance(11 * MIN); // 21 min: stale
+    assert.equal((await adapter.fetchSleeperProjections(2026, 5)).p1, 10, "served stale, not blocked");
+    await adapter.fetchSleeperProjectionStatLines(2026, 5);
+    await flush();
+    assert.equal(projCalls(), 2, "one refresh covers points and stat lines");
+    assert.equal((await adapter.fetchSleeperProjections(2026, 5)).p1, 14);
+    assert.ok(adapter.getSleeperDataFreshness().projections_as_of);
+  });
+});
+
+test("attachDataFreshness adds an additive signal for Sleeper calls only, once the adapter has a stamp", async () => {
+  const { attachDataFreshness } = require("../src/routes/omen");
+  // loadAdapter leaves a fresh adapter in the require cache, which the route resolves lazily.
+  const { adapter } = loadAdapter(() => ({ p1: { full_name: "One" } }));
+  adapter.resetSleeperPlayersMemo();
+  const none = { platform: { name: "sleeper" }, signals: {} };
+  attachDataFreshness(none);
+  assert.equal(none.signals.data_freshness, undefined, "no stamp yet");
+
+  await adapter.fetchSleeperPlayers();
+  const sleeperBody = { platform: { name: "sleeper" }, signals: { roster: {} } };
+  attachDataFreshness(sleeperBody);
+  assert.match(sleeperBody.signals.data_freshness.players_as_of, /^\d{4}-\d{2}-\d{2}T/);
+  assert.equal(sleeperBody.signals.data_freshness.used, true);
+
+  const yahoo = { platform: { name: "yahoo" }, signals: {} };
+  attachDataFreshness(yahoo);
+  assert.equal(yahoo.signals.data_freshness, undefined);
+});
+
+test("a healthy-only caller may accept the longer healthy projections TTL; the default is strict", async () => {
+  const { adapter, calls } = loadAdapter((url) => (url.includes("/projections/") ? [{ player_id: "p1", stats: { pts_ppr: 9 } }] : {}));
+  adapter.resetSleeperPlayersMemo();
+  const projCalls = () => calls.filter((u) => u.includes("/projections/")).length;
+  await withClock(GAME_DAY, async (clock) => {
+    await adapter.fetchSleeperProjections(2026, 5);
+    clock.advance(30 * MIN); // past 20 min hurt-safe TTL, inside the 40 min healthy TTL
+    await adapter.fetchSleeperProjections(2026, 5, { hurtPlayers: false });
+    await flush();
+    assert.equal(projCalls(), 1);
+    await adapter.fetchSleeperProjections(2026, 5);
+    await flush();
+    assert.equal(projCalls(), 2);
+  });
+});

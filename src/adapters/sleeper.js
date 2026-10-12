@@ -12,10 +12,15 @@ const requestScope = require("../services/sleeperRequestScope");
 const { Redis } = require("@upstash/redis");
 const config = require("../config");
 const { captureProviderError } = require("../middleware/providerErrors");
+const injuryFreshness = require("../services/injuryFreshness");
 
 const BASE = "https://api.sleeper.app/v1";
 const PROJECTIONS_BASE = "https://api.sleeper.app/projections/nfl";
 const PLAYERS_CACHE_KEY = "ssff:sleeper:players";
+const PLAYERS_AT_KEY = "ssff:sleeper:players:at";
+// Tiered mode keeps data in Redis as a stale-while-revalidate store; freshness is judged by the
+// as-of stamp, not key expiry. This TTL is only the "Sleeper down for a day" horizon.
+const STORE_TTL_S = 86400;
 const PLAYERS_TTL_S = 86400;
 const PROJECTIONS_TTL_S = 3600;
 const DRAFT_META_TTL_S = 2;
@@ -543,6 +548,13 @@ function resetSleeperPlayersMemo() {
   playersMemo.value = null;
   playersMemo.at = 0;
   playersMemo.promise = null;
+  tieredPlayers.overlay = null;
+  tieredPlayers.refreshing = null;
+  tieredPlayers.nextRefreshAt = 0;
+  tieredPlayers.failures = 0;
+  tieredPlayers.cold = null;
+  tieredPlayers.tier = null;
+  projectionsMemo.clear();
 }
 
 async function loadSleeperPlayers() {
@@ -557,7 +569,7 @@ async function loadSleeperPlayers() {
 
 const PLAYERS_REFRESH_BACKOFF_MS = 60 * 1000;
 
-async function fetchSleeperPlayers() {
+async function fetchSleeperPlayersLegacy() {
   const now = Date.now();
   if (playersMemo.value && now - playersMemo.at < PLAYERS_MEMO_TTL_MS) return playersMemo.value;
 
@@ -585,6 +597,111 @@ async function fetchSleeperPlayers() {
     if (playersMemo.value) return playersMemo.value;
     throw err;
   }
+}
+
+// ---- tiered freshness (injury designations) -------------------------------------------------
+// Serve the cached players map immediately; when it is older than the current tier's TTL, refresh in
+// the background (single-flight). A failed refresh keeps the old map and backs off. No request waits
+// on a refresh except the very first load in a cold process with an empty Redis.
+const REFRESH_BACKOFF_BASE_MS = 60 * 1000;
+const REFRESH_BACKOFF_MAX_MS = 10 * 60 * 1000;
+const tieredPlayers = { overlay: null, refreshing: null, nextRefreshAt: 0, failures: 0, cold: null, tier: null };
+
+function currentFreshnessPolicy(nowMs = Date.now()) {
+  let offSeason = null;
+  try {
+    offSeason = require("../services/nflSchedule").isOffSeason(new Date(nowMs));
+  } catch {
+    offSeason = null; // schedule unavailable: the policy falls back to a month rule
+  }
+  return injuryFreshness.freshnessPolicy(new Date(nowMs), { offSeason });
+}
+
+function backoffMs(failures) {
+  return Math.min(REFRESH_BACKOFF_MAX_MS, REFRESH_BACKOFF_BASE_MS * 2 ** Math.max(0, failures - 1));
+}
+
+function installPlayers(value, asOfMs) {
+  const overlay = injuryFreshness.buildInjuryOverlay(value);
+  if (tieredPlayers.overlay) {
+    const { changes, counts } = injuryFreshness.diffInjuryOverlay(tieredPlayers.overlay, overlay);
+    if (changes.length) {
+      // PII-free: counts only. Per-user response caches are keyed by user, not by player, so there is
+      // no safe targeted invalidation; the short response-cache TTL bounds how long a call built on
+      // the old designation can be served.
+      console.log(JSON.stringify({ event: "sleeper_injury_designation_changes", tier: tieredPlayers.tier, ...counts }));
+    }
+  }
+  tieredPlayers.overlay = overlay;
+  playersMemo.value = value;
+  playersMemo.at = asOfMs;
+}
+
+function startPlayersRefresh(policy) {
+  if (tieredPlayers.refreshing) return tieredPlayers.refreshing;
+  const run = (async () => {
+    try {
+      // Another instance may have refreshed already: adopt its copy instead of refetching ~5 MB.
+      const sharedAt = Number(await readCache(PLAYERS_AT_KEY));
+      if (Number.isFinite(sharedAt) && sharedAt > playersMemo.at && Date.now() - sharedAt < policy.players_ttl_ms) {
+        const shared = await readCache(PLAYERS_CACHE_KEY);
+        if (shared) { installPlayers(shared, sharedAt); tieredPlayers.failures = 0; return; }
+      }
+      const players = await getJson(`${BASE}/players/nfl`, { timeout: 30000 });
+      const out = players && typeof players === "object" ? players : {};
+      const asOf = Date.now();
+      installPlayers(out, asOf);
+      tieredPlayers.failures = 0;
+      await Promise.all([writeCache(PLAYERS_CACHE_KEY, out, STORE_TTL_S), writeCache(PLAYERS_AT_KEY, asOf, STORE_TTL_S)]);
+    } catch {
+      tieredPlayers.failures += 1;
+      tieredPlayers.nextRefreshAt = Date.now() + backoffMs(tieredPlayers.failures);
+    }
+  })().finally(() => { tieredPlayers.refreshing = null; });
+  tieredPlayers.refreshing = run;
+  return run;
+}
+
+async function loadPlayersCold() {
+  const [cached, at] = await Promise.all([readCache(PLAYERS_CACHE_KEY), readCache(PLAYERS_AT_KEY)]);
+  if (cached) {
+    installPlayers(cached, Number.isFinite(Number(at)) ? Number(at) : 0);
+    return;
+  }
+  const players = await getJson(`${BASE}/players/nfl`, { timeout: 30000 });
+  const out = players && typeof players === "object" ? players : {};
+  const asOf = Date.now();
+  installPlayers(out, asOf);
+  await Promise.all([writeCache(PLAYERS_CACHE_KEY, out, STORE_TTL_S), writeCache(PLAYERS_AT_KEY, asOf, STORE_TTL_S)]);
+}
+
+async function fetchSleeperPlayersTiered() {
+  if (!playersMemo.value) {
+    if (!tieredPlayers.cold) {
+      const cold = loadPlayersCold().finally(() => { if (tieredPlayers.cold === cold) tieredPlayers.cold = null; });
+      tieredPlayers.cold = cold;
+    }
+    await tieredPlayers.cold;
+  }
+  const now = Date.now();
+  const policy = currentFreshnessPolicy(now);
+  tieredPlayers.tier = policy.tier;
+  if (now - playersMemo.at >= policy.players_ttl_ms && now >= tieredPlayers.nextRefreshAt) {
+    startPlayersRefresh(policy); // not awaited: the caller gets the cached map now
+  }
+  return playersMemo.value;
+}
+
+async function fetchSleeperPlayers() {
+  return injuryFreshness.tiersDisabled() ? fetchSleeperPlayersLegacy() : fetchSleeperPlayersTiered();
+}
+
+/** When the data behind recent calls was fetched (ISO), for "injury report as of HH:MM". */
+function getSleeperDataFreshness() {
+  let projectionsAt = 0;
+  for (const entry of projectionsMemo.values()) projectionsAt = Math.max(projectionsAt, entry.at);
+  const iso = (ms) => (ms > 0 ? new Date(ms).toISOString() : null);
+  return { players_as_of: iso(playersMemo.at), projections_as_of: iso(projectionsAt), tier: tieredPlayers.tier };
 }
 
 // Ranking and draft fields ride along in Sleeper's projection `stats`; they are not stats and
@@ -630,21 +747,85 @@ async function fetchAndCacheSleeperProjections(season, week) {
   });
   const points = normalizeProjections(projections);
   const statLines = normalizeProjectionStatLines(projections);
-  await Promise.all([
-    writeCache(projectionsCacheKey(season, week), points, PROJECTIONS_TTL_S),
-    writeCache(projectionStatLinesCacheKey(season, week), statLines, PROJECTIONS_TTL_S),
-  ]);
+  const tiered = !injuryFreshness.tiersDisabled();
+  const asOf = Date.now();
+  const ttl = tiered ? STORE_TTL_S : PROJECTIONS_TTL_S;
+  const writes = [
+    writeCache(projectionsCacheKey(season, week), points, ttl),
+    writeCache(projectionStatLinesCacheKey(season, week), statLines, ttl),
+  ];
+  if (tiered) {
+    rememberProjections(season, week, { points, statLines, at: asOf });
+    writes.push(writeCache(projectionsAtKey(season, week), asOf, ttl));
+  }
+  await Promise.all(writes);
   return { points, statLines };
 }
 
-async function fetchSleeperProjections(season, week) {
+// ---- tiered freshness (projections) ----------------------------------------------------------
+// Same stale-while-revalidate shape as the players map. The projections file is one payload for
+// every player, so one tier TTL covers it; `hurtPlayers: false` lets a caller that knows it only
+// holds healthy players accept the longer healthy TTL. Default is the strict (hurt-safe) TTL.
+const projectionsAtKey = (season, week) => `ssff:sleeper:projections-at:${season}:${week}`;
+const projectionsMemo = new Map();
+const PROJECTIONS_MEMO_MAX = 4;
+
+function rememberProjections(season, week, data) {
+  const key = `${season}:${week}`;
+  // Mutate in place: an in-flight refresh holds a reference to this entry.
+  const entry = projectionsMemo.get(key) || { refreshing: null, nextRefreshAt: 0, failures: 0 };
+  projectionsMemo.delete(key);
+  Object.assign(entry, data);
+  projectionsMemo.set(key, entry);
+  while (projectionsMemo.size > PROJECTIONS_MEMO_MAX) projectionsMemo.delete(projectionsMemo.keys().next().value);
+}
+
+function maybeRefreshProjections(season, week, entry, ttlMs) {
+  const now = Date.now();
+  if (now - entry.at < ttlMs || entry.refreshing || now < entry.nextRefreshAt) return;
+  entry.refreshing = fetchAndCacheSleeperProjections(season, week)
+    .then(() => { entry.failures = 0; entry.nextRefreshAt = 0; })
+    .catch(() => {
+      entry.failures += 1;
+      entry.nextRefreshAt = Date.now() + backoffMs(entry.failures);
+    })
+    .finally(() => { entry.refreshing = null; });
+}
+
+async function loadProjectionsTiered(season, week, { hurtPlayers = true } = {}) {
+  const key = `${season}:${week}`;
+  let entry = projectionsMemo.get(key);
+  if (!entry) {
+    const [points, statLines, at] = await Promise.all([
+      readCache(projectionsCacheKey(season, week)),
+      readCache(projectionStatLinesCacheKey(season, week)),
+      readCache(projectionsAtKey(season, week)),
+    ]);
+    const haveStatLines = statLines && typeof statLines === "object" && !Array.isArray(statLines);
+    if (points && haveStatLines) {
+      // Normalized on read too: entries cached before an earlier fix hold the raw array.
+      rememberProjections(season, week, { points: normalizeProjections(points), statLines, at: Number(at) || 0 });
+    } else {
+      // First load: nothing to serve yet, so this one waits (single-flight across concurrent callers).
+      await singleFlight(`projections:${key}`, () => fetchAndCacheSleeperProjections(season, week));
+    }
+    entry = projectionsMemo.get(key);
+  }
+  const policy = currentFreshnessPolicy();
+  maybeRefreshProjections(season, week, entry, hurtPlayers ? policy.projections_ttl_ms : policy.healthy_projections_ttl_ms);
+  return entry;
+}
+
+async function fetchSleeperProjections(season, week, opts = {}) {
+  if (!injuryFreshness.tiersDisabled()) return (await loadProjectionsTiered(season, week, opts)).points;
   const cached = await readCache(projectionsCacheKey(season, week));
   // Normalized on read too: entries cached before this fix hold the raw array.
   if (cached) return normalizeProjections(cached);
   return (await fetchAndCacheSleeperProjections(season, week)).points;
 }
 
-async function fetchSleeperProjectionStatLines(season, week) {
+async function fetchSleeperProjectionStatLines(season, week, opts = {}) {
+  if (!injuryFreshness.tiersDisabled()) return (await loadProjectionsTiered(season, week, opts)).statLines;
   const cached = await readCache(projectionStatLinesCacheKey(season, week));
   if (cached && typeof cached === "object" && !Array.isArray(cached)) return cached;
   return (await fetchAndCacheSleeperProjections(season, week)).statLines;
@@ -868,6 +1049,7 @@ module.exports = {
   sleeperRequestMemo,
   runWithSleeperRequestMemo,
   resetSleeperPlayersMemo,
+  getSleeperDataFreshness,
   fetchSleeperUser,
   fetchSleeperLeagues,
   fetchSleeperLeague,
