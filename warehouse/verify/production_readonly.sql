@@ -14,7 +14,7 @@ select (
       and bool_and((version, name, checksum) in (
         (1, '0001_football_warehouse', '27fb1e8dd4a5167ffc27660f165f326e7c9a6e3b4aaf2e04ec16ec4e55448f1c'),
         (2, '0003_warehouse_access_policy', '0b0577edd8995fad967409a37012390d77447cf55595fd4a310270b56f7a169d'),
-        (3, '0005_weekly_projections', 'f0219156d480f6e4607e19e81a1dee2b4810c29df5c37c1b739142aa832b55fb')
+        (3, '0005_weekly_projections', 'e689d5878bbe51f3bbe6aa0188b725e33bde7f9da8497bd8b002a2307505917d')
       ))
     from football.warehouse_schema_migrations
   )
@@ -52,6 +52,29 @@ select (
   and not has_table_privilege('omen_warehouse_reader', 'football.nfl_plays', 'insert')
   and has_table_privilege('omen_warehouse_writer', 'football.nfl_plays', 'select,insert,update,delete')
   and not has_table_privilege('omen_warehouse_backup', 'football.nfl_plays', 'insert')
+  -- Weekly projections (ledger version 3), checked only once applied: tables, append-only history (grants and
+  -- triggers), least-privilege reader, and the rights_basis marker on the receipts. CASE keeps each privilege
+  -- check from running against a table that does not exist.
+  and case when not exists (select 1 from football.warehouse_schema_migrations where version = 3) then true
+    else (
+      to_regclass('football.projection_fetch_runs') is not null
+      and to_regclass('football.player_weekly_projections') is not null
+      and to_regclass('football.player_weekly_projection_versions') is not null
+      and exists (select 1 from pg_trigger where tgrelid = to_regclass('football.player_weekly_projection_versions')
+                  and tgname = 'player_weekly_projection_versions_append_only' and not tgisinternal)
+      and exists (select 1 from pg_trigger where tgrelid = to_regclass('football.player_weekly_projection_versions')
+                  and tgname = 'player_weekly_projection_versions_no_truncate' and not tgisinternal)
+      and exists (select 1 from pg_constraint where conrelid = to_regclass('football.projection_fetch_runs') and contype = 'c'
+                  and pg_get_constraintdef(oid) like '%provider_projection_permission_pending%')
+      and has_table_privilege('omen_warehouse_writer', 'football.player_weekly_projection_versions', 'select')
+      and has_table_privilege('omen_warehouse_writer', 'football.player_weekly_projection_versions', 'insert')
+      and not has_table_privilege('omen_warehouse_writer', 'football.player_weekly_projection_versions', 'update')
+      and not has_table_privilege('omen_warehouse_writer', 'football.player_weekly_projection_versions', 'delete')
+      and has_table_privilege('omen_warehouse_reader', 'football.player_weekly_projections', 'select')
+      and not has_table_privilege('omen_warehouse_reader', 'football.player_weekly_projection_versions', 'select')
+      and not has_table_privilege('omen_warehouse_reader', 'football.player_weekly_projections', 'insert')
+      and has_table_privilege('omen_warehouse_backup', 'football.player_weekly_projection_versions', 'select')
+    ) end
 ) as warehouse_verified
 \gset
 

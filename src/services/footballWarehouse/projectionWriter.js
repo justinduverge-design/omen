@@ -12,6 +12,8 @@ const { runBoundedFailureReceipt, setLocalTransactionTimeouts, validateTransacti
 // receipt's rights_basis; nothing here is exported or redistributed.
 
 const DEFAULT_MIN_ROWS = 50;
+// A fetch with fewer than this share of the previous successful fetch's rows is treated as partial and refused.
+const MIN_SHARE_OF_PREVIOUS = 0.8;
 const RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 
 class ProjectionWriteError extends Error {
@@ -30,6 +32,12 @@ const RECEIPT_SQL = `
      rows_inserted, rows_changed, rows_unchanged, rows_unmatched)
   VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'succeeded',$10,0,0,0,0)
   RETURNING id`;
+
+const PREVIOUS_SQL = `
+  SELECT (rows_inserted + rows_changed + rows_unchanged)::integer AS total
+    FROM football.projection_fetch_runs
+   WHERE source = $1 AND season = $2 AND week = $3 AND state = 'succeeded'
+   ORDER BY id DESC LIMIT 1`;
 
 const UPSERT_SQL = `
   INSERT INTO football.player_weekly_projections AS p
@@ -135,6 +143,11 @@ function createProjectionWriter({ pool, transactionTimeouts, minRows = DEFAULT_M
         await client.query("BEGIN"); began = true;
         await setLocalTransactionTimeouts(client, timeouts);
         await client.query({ name: "warehouse-projection-lock-v1", text: "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))", values: [lockKey] });
+        const previous = await client.query({ name: "warehouse-projection-previous-v1", text: PREVIOUS_SQL, values: [source, season, week] });
+        const previousTotal = previous.rows[0]?.total;
+        if (previousTotal > 0 && rows.length < MIN_SHARE_OF_PREVIOUS * previousTotal) {
+          throw new ProjectionWriteError("source_partial", `projection source returned ${rows.length} rows against ${previousTotal} on the previous fetch`);
+        }
         const receipt = await client.query({
           name: "warehouse-projection-receipt-v1", text: RECEIPT_SQL,
           values: [runId, source, season, week, fetched.rightsBasis, fetched.sourceUrl, fetched.sourceRef, fetched.sourceBytes, fetched.sourceRows, at],
@@ -166,4 +179,4 @@ function createProjectionWriter({ pool, transactionTimeouts, minRows = DEFAULT_M
   };
 }
 
-module.exports = { createProjectionWriter, ProjectionWriteError, DEFAULT_MIN_ROWS };
+module.exports = { createProjectionWriter, ProjectionWriteError, DEFAULT_MIN_ROWS, MIN_SHARE_OF_PREVIOUS };

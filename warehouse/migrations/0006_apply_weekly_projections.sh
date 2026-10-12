@@ -2,7 +2,7 @@
 set -euo pipefail
 
 migration="${WAREHOUSE_WEEKLY_PROJECTIONS_FILE:-/opt/omen-warehouse/migrations/0005_weekly_projections.sql}"
-expected_checksum="f0219156d480f6e4607e19e81a1dee2b4810c29df5c37c1b739142aa832b55fb"
+expected_checksum="e689d5878bbe51f3bbe6aa0188b725e33bde7f9da8497bd8b002a2307505917d"
 if [[ ! -f "$migration" ]]; then
   echo "warehouse weekly-projections migration file is missing" >&2
   exit 1
@@ -16,7 +16,10 @@ fi
 
 stripped="$(mktemp)"
 trap 'rm -f -- "$stripped"' EXIT
-sed -e '/^begin;$/d' -e '/^commit;$/d' "$migration" > "$stripped"
+# NOT idempotent: a second run fails cleanly on "relation already exists" and the single transaction rolls back.
+# Bounded waits so the apply fails fast instead of queueing behind (or blocking) a running ingest.
+printf "set local lock_timeout = '5s';\nset local statement_timeout = '60s';\n" > "$stripped"
+sed -e '/^begin;$/d' -e '/^commit;$/d' "$migration" >> "$stripped"
 cat >> "$stripped" <<'SQL'
 insert into football.warehouse_schema_migrations (version, name, checksum)
 values (3, '0005_weekly_projections', :'migration_checksum')

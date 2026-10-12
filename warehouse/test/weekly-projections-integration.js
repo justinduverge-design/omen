@@ -115,6 +115,11 @@ async function main() {
     const late = await pool.query("SELECT player_id, version FROM football.player_weekly_projections WHERE source_player_id='9999'");
     assert.deepEqual(late.rows, [{ player_id: "omen:player:fixture-wr", version: 1 }]);
 
+    // A partial response (under 80% of the previous fetch) is refused and leaves the stored week alone.
+    await assert.rejects(run(8, payload().slice(0, 50)), (error) => error.code === "source_partial");
+    assert.deepEqual((await pool.query("SELECT state, error_code FROM football.projection_fetch_runs WHERE run_id='proj-run-8'")).rows, [{ state: "failed", error_code: "source_partial" }]);
+    assert.equal((await pool.query("SELECT count(*)::integer n FROM football.player_weekly_projections")).rows[0].n, 63);
+
     // Append-only history: a trigger refuses update, delete and truncate, even for the owner.
     await assert.rejects(pool.query("UPDATE football.player_weekly_projection_versions SET company='x'"), /append-only/);
     await assert.rejects(pool.query("DELETE FROM football.player_weekly_projection_versions"), /append-only/);
@@ -128,10 +133,11 @@ async function main() {
       has_table_privilege('omen_warehouse_writer', 'football.player_weekly_projections', 'update') AS writer_current_update,
       has_table_privilege('omen_warehouse_reader', 'football.player_weekly_projections', 'select') AS reader_select,
       has_table_privilege('omen_warehouse_reader', 'football.player_weekly_projections', 'insert') AS reader_insert,
-      has_table_privilege('omen_warehouse_backup', 'football.projection_fetch_runs', 'select') AS backup_select`);
+      has_table_privilege('omen_warehouse_reader', 'football.player_weekly_projection_versions', 'select') AS reader_versions_select,
+      has_table_privilege('omen_warehouse_backup', 'football.player_weekly_projection_versions', 'select') AS backup_select`);
     assert.deepEqual(privileges.rows[0], {
       writer_insert: true, writer_update: false, writer_delete: false, writer_current_update: true,
-      reader_select: true, reader_insert: false, backup_select: true,
+      reader_select: true, reader_insert: false, reader_versions_select: false, backup_select: true,
     });
     console.log("VERIFIED PostgreSQL 17 weekly projections writer");
   } finally {

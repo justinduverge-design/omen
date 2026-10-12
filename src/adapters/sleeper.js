@@ -641,7 +641,7 @@ async function fetchAndCacheSleeperProjections(season, week) {
 /**
  * The warehouse's stored copy of the week's projections (football.player_weekly_projections), when the
  * store read is switched on and the stored week is fresh and complete; otherwise null and the caller makes
- * the live fetch. Never throws. Written to the same caches as a live fetch so one warehouse read serves the hour.
+ * the live fetch. Never throws. Deliberately NOT written to the 1 h Redis cache: the reader memoises it for minutes instead.
  */
 async function loadStoredSleeperProjections(season, week) {
   try {
@@ -650,10 +650,6 @@ async function loadStoredSleeperProjections(season, week) {
     const payload = stored.rows.map((row) => ({ player_id: row.source_player_id, stats: row.stat_line }));
     const points = normalizeProjections(payload);
     const statLines = normalizeProjectionStatLines(payload);
-    await Promise.all([
-      writeCache(projectionsCacheKey(season, week), points, PROJECTIONS_TTL_S),
-      writeCache(projectionStatLinesCacheKey(season, week), statLines, PROJECTIONS_TTL_S),
-    ]);
     return { points, statLines };
   } catch {
     return null;

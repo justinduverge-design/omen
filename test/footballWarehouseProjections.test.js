@@ -107,7 +107,7 @@ test("writer: one transaction per week in lock, receipt, upsert, versions, count
   const pool = fakePool();
   const result = await createProjectionWriter({ pool }).writeWeek({ runId: "r1", fetched: fetchedOf(60) });
   assert.deepEqual(pool.log.filter((n) => n.startsWith("warehouse-projection") || ["BEGIN", "COMMIT"].includes(n)), [
-    "BEGIN", "warehouse-projection-lock-v1", "warehouse-projection-receipt-v1", "warehouse-projection-upsert-v1",
+    "BEGIN", "warehouse-projection-lock-v1", "warehouse-projection-previous-v1", "warehouse-projection-receipt-v1", "warehouse-projection-upsert-v1",
     "warehouse-projection-versions-v1", "warehouse-projection-counts-v1", "warehouse-projection-receipt-counts-v1", "COMMIT",
   ]);
   assert.equal(result.state, "succeeded");
@@ -260,7 +260,7 @@ test("read: serves a fresh stored week", async () => {
 test("read: missing, stale, incomplete and failing reads all return null (caller falls back to live)", async () => {
   const read = (runtime, env = ON) => reader({ env, runtime }).readSleeperWeek({ season: SEASON, week: 6 });
   assert.equal(await read(runtimeWith(async () => null)), null, "missing");
-  assert.equal(await read(runtimeWith(async () => ({ fetchedAt: new Date(NOW - 40 * 3_600_000), rows: storedRows(80) }))), null, "older than 36h");
+  assert.equal(await read(runtimeWith(async () => ({ fetchedAt: new Date(NOW - 40 * 3_600_000), rows: storedRows(80) }))), null, "older than 26h");
   assert.notEqual(await read(runtimeWith(async () => ({ fetchedAt: new Date(NOW - 40 * 3_600_000), rows: storedRows(80) })), { ...ON, FOOTBALL_PROJECTIONS_MAX_AGE_HOURS: "48" }), null, "threshold is configurable");
   assert.equal(await read(runtimeWith(async () => ({ fetchedAt: new Date(NOW), rows: storedRows(10) }))), null, "incomplete week");
   assert.equal(await read(runtimeWith(async () => { throw new Error("db down"); })), null, "query failure");

@@ -110,8 +110,10 @@ revoke all on football.projection_fetch_runs, football.player_weekly_projections
 revoke all on football.projection_fetch_runs, football.player_weekly_projections,
   football.player_weekly_projection_versions
   from omen_warehouse_reader, omen_warehouse_writer, omen_warehouse_backup;
+-- The API reader only needs the current rows. Receipts and history are for operators and the backup.
+grant select on football.player_weekly_projections to omen_warehouse_reader;
 grant select on football.projection_fetch_runs, football.player_weekly_projections,
-  football.player_weekly_projection_versions to omen_warehouse_reader, omen_warehouse_backup;
+  football.player_weekly_projection_versions to omen_warehouse_backup;
 grant select, insert, update on football.projection_fetch_runs, football.player_weekly_projections
   to omen_warehouse_writer;
 -- History is append-only: the writer can add versions and read them, never rewrite or remove one.

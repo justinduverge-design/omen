@@ -27,7 +27,7 @@ version 3 by `0006_apply_weekly_projections.sh`. It is not part of the pinned re
 - Always report mode: a failed week becomes `{ state: "failed", code }` in the command's JSON summary. It never fails the
   nflverse ingest, never changes the exit code, never turns the daily heartbeat down. Read failures in the journal, or
   `SELECT * FROM football.projection_fetch_runs WHERE state = 'failed' ORDER BY id DESC`.
-- A source that returns fewer than 50 usable rows is refused (receipt `source_too_small`), so an outage that returns an empty
+- A source that returns fewer than 50 usable rows, or fewer than 80% of the previous successful fetch of that week (`source_partial`), is refused with a failed receipt, so an outage that returns an empty
   array cannot look like a successful refresh.
 - Idempotent: an identical re-fetch only advances `fetched_at`. A changed stat line bumps `version` and appends a history row.
   A player the source stops delivering keeps its older `fetched_at` and is excluded by the read path; history keeps it.
@@ -44,10 +44,18 @@ A stored week is used only when every gate holds; otherwise the adapter makes to
 3. `FOOTBALL_DATA_MODE` is `shadow` or `warehouse` (`supabase` never reads the warehouse). Warehouse mode keeps its existing
    fail-closed startup behavior for a bad credential or target. A per-request query failure degrades to the live fetch, not to
    a missing projection, because the live fetch is what runs today.
-4. The latest fetch of that week is no older than `FOOTBALL_PROJECTIONS_MAX_AGE_HOURS` (default 36, range 1-168) and holds at
+4. The latest fetch of that week is no older than `FOOTBALL_PROJECTIONS_MAX_AGE_HOURS` (default 26, range 1-168) and holds at
    least 50 players.
 
-The raw rows are never returned by any route; callers turn stat lines into per-league scores.
+The raw rows are never returned by any route; callers turn stat lines into per-league scores. Nothing is written to the 1 h Redis
+cache from this path (a stored value must not outlive its age limit); the reader keeps one shared read per week for 5 minutes and
+remembers a failed read for 60 seconds.
+
+Freshness: the stage runs daily, so a stored week is up to about a day old. Live Sleeper is the more current source on game days.
+See the handoff for the trade-off.
+
+Backups: the nightly dump now includes these provider projection tables. Restore-proof row counts are a fixed set and do not
+cover them.
 
 ## Kill switch and removal
 
