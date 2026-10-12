@@ -440,6 +440,19 @@ test("buildLiveOmenMvpMoveForUser returns a sanitized Sleeper trade only when bo
   assert.equal(result.body.recommendation.type, "trade_suggestion");
   assert.ok(result.body.recommendation.expected_value_delta.points > 0);
   assert.equal(JSON.stringify(result.body).includes("sleepy"), false);
+  // Structured trade is built from the same data as the move sentence, never invented.
+  const structured = result.body.recommendation.trade;
+  assert.equal(structured.partner_team_name, "South Stars");
+  assert.equal(structured.partner_team_id, "other-roster");
+  assert.equal(structured.give.length, 1);
+  assert.equal(structured.receive.length, 1);
+  assert.equal(
+    result.body.recommendation.move,
+    `Offer ${structured.give[0].name} to ${structured.partner_team_name} for ${structured.receive[0].name}.`
+  );
+  const { comparison_player: giveP, primary_player: receiveP } = result.body.recommendation;
+  assert.deepEqual(structured.give[0], { name: giveP.name, position: giveP.position, player_key: giveP.id });
+  assert.deepEqual(structured.receive[0], { name: receiveP.name, position: receiveP.position, player_key: receiveP.id });
   assert.deepEqual(state.sleeperLeagueRosterCalls, [{ leagueId: "sleeper-league-1", week: 8, season: "2026" }]);
 });
 

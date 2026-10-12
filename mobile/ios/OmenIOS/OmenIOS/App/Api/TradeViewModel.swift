@@ -95,6 +95,8 @@ final class TradeViewModel: ObservableObject {
         /// The player you get; the team that holds him on the roster read is the partner.
         let receivePlayerKey: String?
         let platform: String?
+        /// The provider's id for the partner team, when the server sent one.
+        var partnerTeamID: String? = nil
     }
 
     @Published private(set) var prefill: Prefill?
@@ -110,8 +112,8 @@ final class TradeViewModel: ObservableObject {
         guard call.canReview, let scope = call.scope else { return false }
         searchTask?.cancel()
         invalidateCompare()
-        offer.send = [call.give.tradePlayer]
-        offer.receive = [call.receive.tradePlayer]
+        offer.send = call.gives.map(\.tradePlayer)
+        offer.receive = call.receives.map(\.tradePlayer)
         offer.leagueContext = .init(platform: scope.platform, leagueId: scope.leagueID)
         prefillScope = scope
         clearSuggestions()
@@ -129,7 +131,8 @@ final class TradeViewModel: ObservableObject {
             receiveName: call.receive.name,
             partnerName: call.partnerName,
             receivePlayerKey: call.receive.playerKey,
-            platform: call.platform
+            platform: call.platform,
+            partnerTeamID: call.partnerTeamID
         )
         return true
     }
@@ -159,6 +162,7 @@ final class TradeViewModel: ObservableObject {
     /// case nothing is preselected on the guess.
     static func partnerTeamID(in response: TradeRosterResponse, for prefill: Prefill?) -> String? {
         guard let prefill else { return nil }
+        if let id = prefill.partnerTeamID, !id.isEmpty, response.teams.filter({ $0.id == id }).count == 1 { return id }
         if let key = prefill.receivePlayerKey, !key.isEmpty {
             let holders = response.teams.filter { team in team.players.contains { $0.playerKey == key } }
             if holders.count == 1 { return holders[0].id }

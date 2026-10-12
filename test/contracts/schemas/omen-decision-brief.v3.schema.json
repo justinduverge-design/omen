@@ -787,6 +787,9 @@
         },
         "explanation": {
           "$ref": "#/definitions/explanation"
+        },
+        "trade": {
+          "$ref": "#/definitions/tradeStructure"
         }
       }
     },
@@ -884,6 +887,83 @@
             "string",
             "null"
           ]
+        }
+      }
+    },
+    "tradeStructure": {
+      "type": "object",
+      "description": "Additive, optional. Present on trade_suggestion only. Built from the same data as recommendation.move; clients should prefer it over parsing the sentence.",
+      "required": [
+        "partner_team_name",
+        "give",
+        "receive"
+      ],
+      "properties": {
+        "partner_team_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "partner_team_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "give": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "position"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "position": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "player_key": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "receive": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "position"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "position": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "player_key": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
         }
       }
     }

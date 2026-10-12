@@ -1,0 +1,171 @@
+{
+  "http_status": 200,
+  "route": "/api/league/overview",
+  "body": {
+    "activity": {
+      "items": [],
+      "status": "empty",
+      "unavailable_families": [
+        "transactions"
+      ]
+    },
+    "capabilities": [
+      {
+        "fresh_until": null,
+        "kind": "limitation",
+        "name": "league_activity",
+        "observed_at": null,
+        "reason_code": "off_season",
+        "source": "derived_standings",
+        "state": "unavailable",
+        "statement": "Omen cannot evaluate standings-backed activity with the available league context.",
+        "used": false
+      },
+      {
+        "fresh_until": null,
+        "kind": "limitation",
+        "name": "league_matchup",
+        "observed_at": null,
+        "reason_code": "off_season",
+        "source": "sleeper_matchups",
+        "state": "unavailable",
+        "statement": "Omen could not read this week's matchup for this league.",
+        "used": false
+      },
+      {
+        "fresh_until": null,
+        "kind": "limitation",
+        "name": "league_playoff_settings",
+        "observed_at": null,
+        "reason_code": "off_season",
+        "source": "sleeper_league_settings",
+        "state": "unavailable",
+        "statement": "Omen has not read a playoff-team setting for this league.",
+        "used": false
+      },
+      {
+        "fresh_until": null,
+        "kind": "limitation",
+        "name": "league_standings",
+        "observed_at": null,
+        "reason_code": "off_season",
+        "source": "sleeper_league_standings",
+        "state": "unavailable",
+        "statement": "Omen could not read current standings for this league.",
+        "used": false
+      },
+      {
+        "fresh_until": null,
+        "kind": "limitation",
+        "name": "league_transactions",
+        "observed_at": null,
+        "reason_code": "not_requested",
+        "source": "provider_transactions",
+        "state": "unavailable",
+        "statement": "Omen has not read league transactions for this overview.",
+        "used": false
+      },
+      {
+        "fresh_until": null,
+        "kind": "verified",
+        "name": "selected_context",
+        "observed_at": "2026-01-01T00:00:00.000Z",
+        "source": "owned_platform_connection",
+        "state": "live",
+        "statement": "Omen scoped this overview to your connected Sleeper league.",
+        "used": true
+      }
+    ],
+    "capability_contract": "decision-capabilities.v1",
+    "contract_version": "league-overview.v1",
+    "decision_context": {
+      "contract_version": "shared-decision-context.v1",
+      "inputs": {
+        "league_activity": {
+          "reason_code": "off_season",
+          "source": "derived_standings",
+          "state": "unavailable",
+          "used": false
+        },
+        "league_matchup": {
+          "reason_code": "off_season",
+          "source": "sleeper_matchups",
+          "state": "unavailable",
+          "used": false
+        },
+        "league_playoff_settings": {
+          "reason_code": "off_season",
+          "source": "sleeper_league_settings",
+          "state": "unavailable",
+          "used": false
+        },
+        "league_standings": {
+          "reason_code": "off_season",
+          "source": "sleeper_league_standings",
+          "state": "unavailable",
+          "used": false
+        },
+        "league_transactions": {
+          "reason_code": "not_requested",
+          "source": "provider_transactions",
+          "state": "not_requested",
+          "used": false
+        },
+        "selected_context": {
+          "observed_at": "2026-01-01T00:00:00.000Z",
+          "source": "owned_platform_connection",
+          "state": "live",
+          "used": true
+        }
+      },
+      "inputs_used": [
+        "selected_context"
+      ],
+      "limitations": [
+        {
+          "name": "league_activity",
+          "reason_code": "off_season",
+          "state": "unavailable"
+        },
+        {
+          "name": "league_matchup",
+          "reason_code": "off_season",
+          "state": "unavailable"
+        },
+        {
+          "name": "league_playoff_settings",
+          "reason_code": "off_season",
+          "state": "unavailable"
+        },
+        {
+          "name": "league_standings",
+          "reason_code": "off_season",
+          "state": "unavailable"
+        },
+        {
+          "name": "league_transactions",
+          "reason_code": "not_requested",
+          "state": "not_requested"
+        }
+      ],
+      "profile": "league"
+    },
+    "generated_at": "2026-01-01T00:00:00.000Z",
+    "league_id": "league-1",
+    "league_name": null,
+    "matchup": {
+      "opponent": null,
+      "status": "unavailable",
+      "unavailable_reason": "off_season",
+      "you": null
+    },
+    "platform": "sleeper",
+    "season": 2026,
+    "standings": {
+      "playoff_picture": null,
+      "status": "off_season",
+      "teams": []
+    },
+    "week": 8
+  }
+}

@@ -93,7 +93,7 @@ class YahooClient {
 
   // ---- Low-level GET --------------------------------------------
 
-  async get(path) {
+  async get(path, opts = {}) {
     const separator = path.includes("?") ? "&" : "?";
     const res = await fetch(`${BASE}${path}${separator}format=json`, {
       headers: { Authorization: `Bearer ${this.accessToken}` },
@@ -130,12 +130,17 @@ class YahooClient {
       // the ordinary expired-token path the refresh handles, and it is the
       // single highest-volume Yahoo error there is. Everything that reaches
       // here is a condition a human has to look at.
-      captureProviderError({
-        provider: "yahoo",
-        operation: "api_get",
-        error: err,
-        context: { path: path.split("?")[0], http_status: res.status },
-      });
+      // `opts.report === false` is for optional, best-effort reads (the playoff-team count)
+      // that run on every uncached overview: a persistent 403 there must not page a human
+      // once per request. The error is still thrown and the caller degrades to null.
+      if (opts.report !== false) {
+        captureProviderError({
+          provider: "yahoo",
+          operation: "api_get",
+          error: err,
+          context: { path: path.split("?")[0], http_status: res.status },
+        });
+      }
 
       throw err;
     }
@@ -325,19 +330,47 @@ class YahooClient {
    * Raw league settings, for waiver-system verification
    * (league-aware-waiver-system-v1 Phase 0, Yahoo).
    *
-   * Returns the RAW settings entity rather than a parsed shape. Nothing here
-   * has been seen in live traffic: this call has never been run, so its shape
-   * is unknown. (The entitlement itself is live — facts-of-record #11.) Parsing it here would repeat the 2026-08-28 defect documented at
-   * the top of this file — three parsers written against an assumed shape,
-   * silently returning empty against the real one, with unit tests passing
-   * throughout because the fixtures were hand-built.
+   * Returns the RAW league payload rather than a parsed shape. The
+   * container shape was captured live on 2026-09-06 (three real leagues):
+   * `fantasy_content.league = [ {metadata}, { settings: [ {...} ] } ]`, so the
+   * settings are in the SECOND element. Callers (waiverSystem.fromYahoo,
+   * getPlayoffTeamCount) search every element and fail closed; individual
+   * fields beyond the waiver ones have not been captured. Keep parsing in the
+   * caller: the 2026-08-28 defect at the top of this file came from parsers
+   * written against an assumed shape and tested with hand-built fixtures.
    *
-   * The caller maps it and fails closed. Do not add parsing here until captured
-   * traffic exists.
+   * `opts` is passed to `get` (e.g. `{ report: false }` for best-effort reads).
    */
-  async getLeagueSettings(leagueKey) {
-    const d = await this.get(`/league/${leagueKey}/settings`);
+  async getLeagueSettings(leagueKey, opts = {}) {
+    const d = await this.get(`/league/${leagueKey}/settings`, opts);
     return d?.fantasy_content?.league ?? null;
+  }
+
+  /**
+   * The league's playoff-team count from `/league/{key}/settings` (`num_playoff_teams`).
+   *
+   * The settings container sits in the SECOND element of `fantasy_content.league`, wrapped in a
+   * one-element array (verified 2026-09-06, see waiverSystem.fromYahoo). Every element is
+   * searched rather than indexing, and both Yahoo serialisations are accepted. Returns null
+   * unless the value is a whole number of at least 1, so an unreadable settings payload leaves
+   * the cut line unclaimed rather than guessed. Any provider error also yields null.
+   */
+  async getPlayoffTeamCount(leagueKey) {
+    try {
+      const league = await this.getLeagueSettings(leagueKey, { report: false });
+      const parts = Array.isArray(league) ? league : [league];
+      for (const part of parts) {
+        const read = yahooAttrReader(part);
+        const found = read ? read("settings") : null;
+        if (!found) continue;
+        const container = Array.isArray(found) ? found[0] : found;
+        const count = numberOrNull(yahooAttrReader(container)?.("num_playoff_teams"));
+        return Number.isInteger(count) && count >= 1 ? count : null;
+      }
+      return null;
+    } catch {
+      return null;
+    }
   }
 
   /** Roster for a team at a given week. Returns raw Yahoo response. */

@@ -423,3 +423,22 @@ Supabase plan.
 ### 2c. Update 2026-10-11 evening (what changed today, what the phone must still prove)
 
 Merged today: #630 football backup status path (a latched CRITICAL alert since 2026-09-30), #632 Omen call league scope + hold + ESPN trade, #633 Trade tab front door, #634 fixture re-record (I merged #633 with a red check; repaired in #634, now gated on the check result), #635 restore-proof retry fix, #636 iOS Omen call + switcher + lag fixes, #637 walk-1 leftovers. Open: trade built into the Omen call (PR in review), posture-baseline refresh for KVM1/KVM2 (drift is from the warehouse work; needs the exact key/unit diff shown first), KVM2 `failed_units`, dispatcher sort stability, GlitchTip issues #14/#9 (auto-resolve 2026-10-12 and 2026-10-14). Gate G (physical iPhone walk of every screen) is still the deciding gate; checklist in `2026-10-11-device-walk-2.md`.
+
+### 2d. Build 7 ship checklist (prepared 2026-10-11 night)
+
+**Evidence gathered (MEAS, 2026-10-11):** production `GET /api/ready` 200; every `main` deploy since #637 succeeded; contract check and backend suite green in CI on each merged PR; `harness-cost` 2735 tokens (budget 10000); Valor Brain 3/3 valid.
+
+**Gates that did not pass (read honestly):**
+- **Truth gate: FAIL, 268 P0** across 806 markdown files. It was already failing before this week (250 P0 at `6dd0025f`, 2026-10-08). The 18 new P0s are the three 2026-10-10 spec drafts (`omen-fantasy-metrics-v1`, `omen-trade-value-v3`, `omen-trend-evidence-v1`) citing planned source files that do not exist yet. Per `CLAUDE.md` an open P0 blocks a *close-out*; it does not touch the app or the API. Needs a docs pass (mark planned paths, fix old audits), separate from the release.
+- **Sprint staleness:** `FI-LEAGUE` is `IN_PROGRESS` with four merged PRs; several `known_issues` entries name no GitHub issue. Housekeeping, not release blocking.
+- **Scheduled restore proof:** one proven by hand (2026-10-11), the first scheduled run failed and was fixed; next scheduled run Sun 2026-10-18 14:10 UTC. Gate D's strict wording is not met until then.
+
+**Founder-only steps (I cannot do these):**
+1. Walk every screen on the phone (`2026-10-11-device-walk-2.md`), record the build number and the action times. This is Gate G.
+2. Confirm in App Store Connect that no earlier **build 7** exists, then archive and upload (`CURRENT_PROJECT_VERSION` 7, marketing 0.1.0, real `Config/Local.xcconfig`, the build guard fails an empty config).
+3. Fill in the four decisions in section 10.
+4. Release notes: say what is accepted, below.
+
+**Accept and say in the release notes:** Yahoo has no projections (Omen says it cannot rank a move; no trade call) unless the Yahoo projection PR lands; Tuesday scoring is held so Ledger rows read Pending; `snap_share` is intentionally blank (rights review open); trade targets and ESPN transactions read "unavailable" where the provider cannot confirm; the language model narration is off the request path (batch plan, not built).
+**No longer true (remove from old notes):** "Only one league per platform is saved" (memberships live since Oct 3).
+**Freeze:** no production changes Monday 2026-10-13 evening through Tuesday unless the founder asks. SSH username unification (`omen` user on both VPSes) is scheduled for the week after.

@@ -26,7 +26,7 @@
         "name": "league_matchup",
         "observed_at": "2026-01-01T00:00:00.000Z",
         "reason_code": "no_matchup",
-        "source": "sleeper_matchups",
+        "source": "yahoo_scoreboard",
         "state": "live",
         "statement": "Your provider confirmed that your team has no matchup this week.",
         "used": true
@@ -36,7 +36,7 @@
         "kind": "verified",
         "name": "league_playoff_settings",
         "observed_at": "2026-01-01T00:00:00.000Z",
-        "source": "sleeper_league_settings",
+        "source": "yahoo_league_settings",
         "state": "live",
         "statement": "Omen read this league's playoff-team setting.",
         "used": true
@@ -46,9 +46,9 @@
         "kind": "verified",
         "name": "league_standings",
         "observed_at": "2026-01-01T00:00:00.000Z",
-        "source": "sleeper_league_standings",
+        "source": "yahoo_league_standings",
         "state": "live",
-        "statement": "Omen read the current standings from your connected Sleeper league.",
+        "statement": "Omen read the current standings from your connected Yahoo league.",
         "used": true
       },
       {
@@ -69,7 +69,7 @@
         "observed_at": "2026-01-01T00:00:00.000Z",
         "source": "owned_platform_connection",
         "state": "live",
-        "statement": "Omen scoped this overview to your connected Sleeper league.",
+        "statement": "Omen scoped this overview to your connected Yahoo league.",
         "used": true
       }
     ],
@@ -87,19 +87,19 @@
         "league_matchup": {
           "observed_at": "2026-01-01T00:00:00.000Z",
           "reason_code": "no_matchup",
-          "source": "sleeper_matchups",
+          "source": "yahoo_scoreboard",
           "state": "live",
           "used": true
         },
         "league_playoff_settings": {
           "observed_at": "2026-01-01T00:00:00.000Z",
-          "source": "sleeper_league_settings",
+          "source": "yahoo_league_settings",
           "state": "live",
           "used": true
         },
         "league_standings": {
           "observed_at": "2026-01-01T00:00:00.000Z",
-          "source": "sleeper_league_standings",
+          "source": "yahoo_league_standings",
           "state": "live",
           "used": true
         },
@@ -133,14 +133,14 @@
       "profile": "league"
     },
     "generated_at": "2026-01-01T00:00:00.000Z",
-    "league_id": "league-1",
-    "league_name": "Sleeper League",
+    "league_id": "nfl.l.1",
+    "league_name": "Yahoo League",
     "matchup": {
       "opponent": null,
       "status": "no_matchup",
       "you": null
     },
-    "platform": "sleeper",
+    "platform": "yahoo",
     "season": 2026,
     "standings": {
       "playoff_picture": {
@@ -156,7 +156,7 @@
           "is_current_user": false,
           "losses": 1,
           "rank": 1,
-          "team_id": "3",
+          "team_id": "nfl.l.1.t.3",
           "team_name": "Top Dogs",
           "wins": 7
         },
@@ -164,15 +164,15 @@
           "is_current_user": true,
           "losses": 2,
           "rank": 2,
-          "team_id": "7",
-          "team_name": "Ravens Flock",
+          "team_id": "nfl.l.1.t.9",
+          "team_name": "ESPN Team",
           "wins": 6
         },
         {
           "is_current_user": false,
           "losses": 6,
           "rank": 3,
-          "team_id": "9",
+          "team_id": "nfl.l.1.t.5",
           "team_name": "Also Rans",
           "wins": 2
         }
