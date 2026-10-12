@@ -126,8 +126,16 @@ test("a failed players load is not cached and a later call retries", async () =>
     return { p1: { full_name: "One" } };
   });
   adapter.resetSleeperPlayersMemo();
-  await assert.rejects(adapter.fetchSleeperPlayers());
-  assert.deepEqual(await adapter.fetchSleeperPlayers(), { p1: { full_name: "One" } });
+  const realNow = Date.now;
+  let clock = realNow();
+  Date.now = () => clock;
+  try {
+    await assert.rejects(adapter.fetchSleeperPlayers());
+    clock += 31 * 1000; // a cold failure is remembered for 30 s so requests do not each retry a slow fetch
+    assert.deepEqual(await adapter.fetchSleeperPlayers(), { p1: { full_name: "One" } });
+  } finally {
+    Date.now = realNow;
+  }
   assert.equal(count(calls, "/players/nfl"), 2);
 });
 
@@ -245,6 +253,8 @@ test("selectTolerantly remembers absent optional columns instead of re-querying 
 });
 
 test("with a stale players map, every concurrent caller gets it on refresh failure, and failures back off", async () => {
+  // Pins the legacy (kill-switch) path; the tiered path is covered in injuryFreshnessAdapter.test.js.
+  process.env.INJURY_FRESHNESS_TIERS_DISABLED = "1";
   let fail = false;
   const { adapter, calls } = loadAdapter(() => {
     if (fail) throw new Error("down");
@@ -275,6 +285,7 @@ test("with a stale players map, every concurrent caller gets it on refresh failu
     assert.equal(count(calls, "/players/nfl"), 3);
   } finally {
     Date.now = realNow;
+    delete process.env.INJURY_FRESHNESS_TIERS_DISABLED;
   }
 });
 
