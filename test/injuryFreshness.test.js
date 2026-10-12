@@ -337,7 +337,7 @@ test("playoff weeks are in-season even when the regular-season week count says o
 
 // ---- Redis ordering, failure memo, cold backoff, kill switch ---------------------------------------
 
-function loadAdapterWithRedis(handler, store, log) {
+function loadAdapterWithRedis(handler, store, log, failKey = null) {
   const adapterPath = require.resolve("../src/adapters/sleeper");
   const configPath = require.resolve("../src/config");
   delete require.cache[adapterPath];
@@ -355,6 +355,7 @@ function loadAdapterWithRedis(handler, store, log) {
         Redis: class MockRedis {
           async get(key) { return store.get(key) ?? null; }
           async set(key, value) {
+            if (failKey && failKey.test(key)) throw new Error("redis write failed");
             // Large blobs are slow to write; a stamp written in parallel would land first.
             if (!key.includes(":at") && !key.includes("-at:")) {
               for (let i = 0; i < 5; i += 1) await new Promise((r) => setImmediate(r));
@@ -388,6 +389,128 @@ test("the as-of stamp is written only after the data blob, for players and proje
   assert.ok(idx("ssff:sleeper:players") >= 0 && idx("ssff:sleeper:players:at") > idx("ssff:sleeper:players"), log.join(","));
   assert.ok(idx("ssff:sleeper:projections-at:2026:5") > idx("ssff:sleeper:projections:2026:5"), log.join(","));
   assert.ok(idx("ssff:sleeper:projections-at:2026:5") > idx("ssff:sleeper:projection-stat-lines:2026:5"), log.join(","));
+});
+
+test("players: a failed data write leaves the stamp untouched, so the old blob is never adopted as fresh", async () => {
+  const oldAt = new Date(GAME_DAY).getTime() - 3 * HOUR;
+  const store = new Map([
+    ["ssff:sleeper:players", JSON.stringify({ p1: { full_name: "One", injury_status: "Questionable" } })],
+    ["ssff:sleeper:players:at", oldAt],
+  ]);
+  const log = [];
+  const { adapter } = loadAdapterWithRedis(() => ({ p1: { full_name: "One", injury_status: "Out" } }), store, log, /^ssff:sleeper:players$/);
+  adapter.resetSleeperPlayersMemo();
+  await withClock(GAME_DAY, async (clock) => {
+    await adapter.fetchSleeperPlayers();
+    clock.advance(11 * MIN);
+    await adapter.fetchSleeperPlayers(); // refresh: data write throws
+    await flush();
+    assert.ok(!log.includes("ssff:sleeper:players:at"), "stamp must not be written");
+    assert.equal(store.get("ssff:sleeper:players:at"), oldAt);
+  });
+  // A second instance sees the old stamp, which is stale: it must refresh, not adopt the old blob as current.
+  adapter.resetSleeperPlayersMemo();
+  await withClock(GAME_DAY, async () => {
+    const served = await adapter.fetchSleeperPlayers();
+    assert.equal(served.p1.injury_status, "Questionable"); // served stale, for now
+    assert.equal(adapter.getSleeperDataFreshness().players_as_of, new Date(oldAt).toISOString(), "asOf stays honest");
+    assert.equal(adapter.getSleeperDataFreshness().stale, true);
+  });
+});
+
+test("projections: a failed stat-line write leaves the stamp untouched", async () => {
+  const store = new Map();
+  const log = [];
+  const { adapter } = loadAdapterWithRedis(() => [{ player_id: "p1", stats: { rec: 5, pts_ppr: 9 } }], store, log, /projection-stat-lines/);
+  adapter.resetSleeperPlayersMemo();
+  await adapter.fetchSleeperProjections(2026, 5);
+  assert.ok(!log.includes("ssff:sleeper:projections-at:2026:5"));
+  assert.ok(!store.has("ssff:sleeper:projections-at:2026:5"));
+});
+
+test("a refresh that returns an empty map is rejected: the old map stays and nobody turns healthy", async () => {
+  let body = { p1: { full_name: "One", injury_status: "Out" } };
+  const { adapter } = loadAdapter(() => body);
+  adapter.resetSleeperPlayersMemo();
+  const logged = [];
+  const realLog = console.log;
+  console.log = (l) => logged.push(String(l));
+  try {
+    await withClock(GAME_DAY, async (clock) => {
+      await adapter.fetchSleeperPlayers();
+      body = {};
+      clock.advance(11 * MIN);
+      await adapter.fetchSleeperPlayers();
+      await flush();
+      assert.equal((await adapter.fetchSleeperPlayers()).p1.injury_status, "Out");
+      assert.equal(adapter.getSleeperDataFreshness().stale, true, "failed refresh marks the data stale");
+    });
+  } finally {
+    console.log = realLog;
+  }
+  const rejected = logged.map((l) => JSON.parse(l)).find((e) => e.event === "sleeper_players_refresh_rejected");
+  assert.deepEqual([rejected.reason, rejected.previous, rejected.received], ["empty", 1, 0]);
+});
+
+test("a refresh under the floor or shrinking by more than half is rejected; a normal one is accepted", async () => {
+  const big = (n) => Object.fromEntries(Array.from({ length: n }, (_, i) => [`p${i}`, { full_name: `P${i}`, injury_status: null }]));
+  let body = big(2000);
+  const { adapter } = loadAdapter(() => body);
+  adapter.resetSleeperPlayersMemo();
+  const realLog = console.log;
+  console.log = () => {};
+  try {
+    await withClock(GAME_DAY, async (clock) => {
+      const first = await adapter.fetchSleeperPlayers();
+      body = big(500); // under the 1000 floor
+      clock.advance(11 * MIN);
+      await adapter.fetchSleeperPlayers();
+      await flush();
+      assert.equal(await adapter.fetchSleeperPlayers(), first);
+      body = big(900); // would pass 50% but is under the floor
+      clock.advance(11 * MIN + 60 * 1000);
+      await adapter.fetchSleeperPlayers();
+      await flush();
+      assert.equal(await adapter.fetchSleeperPlayers(), first);
+      body = big(1900); // ordinary churn
+      clock.advance(20 * MIN);
+      await adapter.fetchSleeperPlayers();
+      await flush();
+      assert.equal(Object.keys(await adapter.fetchSleeperPlayers()).length, 1900);
+    });
+  } finally {
+    console.log = realLog;
+  }
+});
+
+test("data_freshness reports stale when the data is older than twice the tier TTL", async () => {
+  const { adapter } = loadAdapter(() => ({ p1: { full_name: "One" } }));
+  adapter.resetSleeperPlayersMemo();
+  await withClock(GAME_DAY, async (clock) => {
+    await adapter.fetchSleeperPlayers();
+    assert.equal(adapter.getSleeperDataFreshness().stale, false);
+    clock.advance(25 * MIN); // > 2 x 10 min, and the background refresh has not been triggered by a read
+    assert.equal(adapter.getSleeperDataFreshness().stale, true);
+  });
+});
+
+test("kill-switch legacy reads ignore a tiered-written projections entry older than the legacy 1 h TTL", async () => {
+  const at = new Date(GAME_DAY).getTime() - 2 * HOUR;
+  const store = new Map([
+    ["ssff:sleeper:projections:2026:5", JSON.stringify({ p1: 1 })],
+    ["ssff:sleeper:projection-stat-lines:2026:5", JSON.stringify({ p1: { rec: 1 } })],
+    ["ssff:sleeper:projections-at:2026:5", at],
+  ]);
+  const { adapter, calls } = loadAdapterWithRedis((url) => (url.includes("/projections/") ? [{ player_id: "p1", stats: { rec: 5, pts_ppr: 9 } }] : {}), store, []);
+  process.env.INJURY_FRESHNESS_TIERS_DISABLED = "1";
+  try {
+    await withClock(GAME_DAY, async () => {
+      assert.equal((await adapter.fetchSleeperProjections(2026, 5)).p1, 9);
+      assert.equal(calls.filter((u) => u.includes("/projections/")).length, 1);
+    });
+  } finally {
+    delete process.env.INJURY_FRESHNESS_TIERS_DISABLED;
+  }
 });
 
 test("a stamp-less (pre-deploy) Redis entry is served now and refreshed immediately in the background", async () => {

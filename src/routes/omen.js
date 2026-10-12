@@ -794,7 +794,9 @@ function attachDataFreshness(body) {
     const f = require("../adapters/sleeper").getSleeperDataFreshness();
     if (!f.players_as_of) return;
     body.signals.data_freshness = {
+      // `status` stays inside the contract's enum; staleness is its own additive flag.
       status: "live",
+      stale: Boolean(f.stale),
       used: true,
       source: "sleeper_players_projections",
       message: "Injury report and projections timestamps for the data behind this call.",

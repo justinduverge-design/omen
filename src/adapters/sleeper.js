@@ -153,9 +153,15 @@ async function readCache(key) {
   return typeof cached === "string" ? JSON.parse(cached) : cached;
 }
 
+/** Resolves true only when Redis accepted the write (false: no Redis, or the write failed). Never throws. */
 async function writeCache(key, value, ttlSeconds) {
-  if (!redis) return;
-  await redis.set(key, JSON.stringify(value), { ex: ttlSeconds }).catch(() => {});
+  if (!redis) return false;
+  try {
+    await redis.set(key, JSON.stringify(value), { ex: ttlSeconds });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // In-flight promise map for single-flight dedupe of concurrent
@@ -621,6 +627,19 @@ function currentFreshnessPolicy(nowMs = Date.now()) {
   return injuryFreshness.freshnessPolicy(new Date(nowMs), { offSeason });
 }
 
+const PLAYERS_MIN_COUNT = 1000; // the real file has ~11k entries
+const PLAYERS_MAX_SHRINK = 0.5;
+
+/** Is a freshly fetched players map plausible next to the one we hold? Counts only, no content. */
+function playersMapVerdict(previous, next) {
+  const received = next ? Object.keys(next).length : 0;
+  const prev = previous ? Object.keys(previous).length : 0;
+  if (received === 0) return { ok: false, reason: "empty", previous: prev, received };
+  if (prev >= PLAYERS_MIN_COUNT && received < PLAYERS_MIN_COUNT) return { ok: false, reason: "under_floor", previous: prev, received };
+  if (prev > 0 && received < prev * (1 - PLAYERS_MAX_SHRINK)) return { ok: false, reason: "shrunk", previous: prev, received };
+  return { ok: true, previous: prev, received };
+}
+
 function backoffMs(failures) {
   return Math.min(REFRESH_BACKOFF_MAX_MS, REFRESH_BACKOFF_BASE_MS * 2 ** Math.max(0, failures - 1));
 }
@@ -653,11 +672,18 @@ function startPlayersRefresh(policy) {
       }
       const players = await getJson(`${BASE}/players/nfl`, { timeout: 30000 });
       const out = players && typeof players === "object" ? players : {};
+      const verdict = playersMapVerdict(playersMemo.value, out);
+      if (!verdict.ok) {
+        // Keep the old map: an empty or truncated file would otherwise turn every Out player healthy.
+        console.log(JSON.stringify({ event: "sleeper_players_refresh_rejected", reason: verdict.reason, previous: verdict.previous, received: verdict.received }));
+        throw new Error("sleeper players refresh rejected");
+      }
       const asOf = Date.now();
       installPlayers(out, asOf);
       tieredPlayers.failures = 0;
-      await writeCache(PLAYERS_CACHE_KEY, out, STORE_TTL_S);
-      await writeCache(PLAYERS_AT_KEY, asOf, STORE_TTL_S); // stamp only after the data landed
+      // The stamp is written only if the data write succeeded; otherwise another instance would adopt
+      // an old blob under a fresh stamp.
+      if (await writeCache(PLAYERS_CACHE_KEY, out, STORE_TTL_S)) await writeCache(PLAYERS_AT_KEY, asOf, STORE_TTL_S);
     } catch {
       tieredPlayers.failures += 1;
       tieredPlayers.nextRefreshAt = Date.now() + backoffMs(tieredPlayers.failures);
@@ -675,10 +701,14 @@ async function loadPlayersCold() {
   }
   const players = await getJson(`${BASE}/players/nfl`, { timeout: 30000 });
   const out = players && typeof players === "object" ? players : {};
+  const verdict = playersMapVerdict(null, out);
+  if (!verdict.ok) {
+    console.log(JSON.stringify({ event: "sleeper_players_refresh_rejected", reason: verdict.reason, previous: 0, received: verdict.received }));
+    throw new Error("sleeper players load rejected");
+  }
   const asOf = Date.now();
   installPlayers(out, asOf);
-  await writeCache(PLAYERS_CACHE_KEY, out, STORE_TTL_S);
-  await writeCache(PLAYERS_AT_KEY, asOf, STORE_TTL_S); // stamp only after the data landed
+  if (await writeCache(PLAYERS_CACHE_KEY, out, STORE_TTL_S)) await writeCache(PLAYERS_AT_KEY, asOf, STORE_TTL_S);
 }
 
 async function fetchSleeperPlayersTiered() {
@@ -712,7 +742,14 @@ function getSleeperDataFreshness() {
   let projectionsAt = 0;
   for (const entry of projectionsMemo.values()) projectionsAt = Math.max(projectionsAt, entry.at);
   const iso = (ms) => (ms > 0 ? new Date(ms).toISOString() : null);
-  return { players_as_of: iso(playersMemo.at), projections_as_of: iso(projectionsAt), tier: tieredPlayers.tier };
+  // Stale: the last refresh attempt failed, or the data is older than twice its tier TTL.
+  const now = Date.now();
+  const policy = currentFreshnessPolicy(now);
+  let stale = tieredPlayers.failures > 0 || (playersMemo.at > 0 && now - playersMemo.at > 2 * policy.players_ttl_ms);
+  for (const entry of projectionsMemo.values()) {
+    if (entry.failures > 0 || (entry.at > 0 && now - entry.at > 2 * policy.projections_ttl_ms)) stale = true;
+  }
+  return { players_as_of: iso(playersMemo.at), projections_as_of: iso(projectionsAt), tier: tieredPlayers.tier, stale };
 }
 
 // Ranking and draft fields ride along in Sleeper's projection `stats`; they are not stats and
@@ -769,12 +806,13 @@ async function fetchAndCacheSleeperProjectionsOnce(season, week) {
   const asOf = Date.now();
   const ttl = tiered ? STORE_TTL_S : PROJECTIONS_TTL_S;
   if (tiered) rememberProjections(season, week, { points, statLines, at: asOf });
-  await Promise.all([
+  const written = await Promise.all([
     writeCache(projectionsCacheKey(season, week), points, ttl),
     writeCache(projectionStatLinesCacheKey(season, week), statLines, ttl),
   ]);
-  // Stamp strictly AFTER the data: another instance that sees the new stamp must find the new blob.
-  if (tiered) await writeCache(projectionsAtKey(season, week), asOf, ttl);
+  // Stamp strictly AFTER the data, and only if both writes landed: another instance that sees the new
+  // stamp must find the new blob, never an old one.
+  if (tiered && written.every(Boolean)) await writeCache(projectionsAtKey(season, week), asOf, ttl);
   return { points, statLines };
 }
 
@@ -861,9 +899,18 @@ async function loadProjectionsTiered(season, week, { hurtPlayers = true } = {}) 
   return entry;
 }
 
+/**
+ * Kill-switch path: a tiered-written entry carries an as-of stamp and a 24 h key TTL. Honour the stamp so
+ * legacy mode never serves projections older than its own 1 h TTL. Entries with no stamp are legacy-written.
+ */
+async function legacyProjectionsExpired(season, week) {
+  const stamp = Number(await readCache(projectionsAtKey(season, week)));
+  return Number.isFinite(stamp) && stamp > 0 && Date.now() - stamp > PROJECTIONS_TTL_S * 1000;
+}
+
 async function fetchSleeperProjections(season, week, opts = {}) {
   if (!injuryFreshness.tiersDisabled()) return (await loadProjectionsTiered(season, week, opts)).points;
-  const cached = await readCache(projectionsCacheKey(season, week));
+  const cached = (await legacyProjectionsExpired(season, week)) ? null : await readCache(projectionsCacheKey(season, week));
   // Normalized on read too: entries cached before this fix hold the raw array.
   if (cached) return normalizeProjections(cached);
   const stored = await loadStoredSleeperProjections(season, week);
@@ -890,7 +937,7 @@ async function fetchLiveProjectionsRemembering(season, week) {
 
 async function fetchSleeperProjectionStatLines(season, week, opts = {}) {
   if (!injuryFreshness.tiersDisabled()) return (await loadProjectionsTiered(season, week, opts)).statLines;
-  const cached = await readCache(projectionStatLinesCacheKey(season, week));
+  const cached = (await legacyProjectionsExpired(season, week)) ? null : await readCache(projectionStatLinesCacheKey(season, week));
   if (cached && typeof cached === "object" && !Array.isArray(cached)) return cached;
   const stored = await loadStoredSleeperProjections(season, week);
   if (stored) return stored.statLines;
