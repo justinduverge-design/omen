@@ -358,6 +358,36 @@ function sleeperLeagueTeamName(user, roster) {
   return user?.metadata?.team_name || `Team ${roster?.roster_id || "Unknown"}`;
 }
 
+/**
+ * One round (week) of a league's transactions: `GET /league/{id}/transactions/{round}` (G4).
+ * Public and documented by Sleeper; returns the raw array. `round` is the week for in-season
+ * rounds. Bounded by a short timeout and the shared Sleeper request budget (`getJson`).
+ */
+async function fetchSleeperTransactions(leagueId, round) {
+  const week = Math.max(0, Math.min(Number.parseInt(round, 10) || 0, 30));
+  const data = await getJson(`${BASE}/league/${encodeURIComponent(leagueId)}/transactions/${week}`, { timeout: 5000 });
+  return Array.isArray(data) ? data : [];
+}
+
+/**
+ * roster_id -> display name for a league, using the same league-scoped team name the rest of the
+ * app exposes (never a manager's display name or username). The rosters and users reads are the
+ * ones the standings read already makes, so inside one request they collapse via the request memo.
+ */
+async function fetchSleeperTeamNames(leagueId) {
+  const [rosters, users] = await Promise.all([
+    getJson(`${BASE}/league/${encodeURIComponent(leagueId)}/rosters`),
+    getJson(`${BASE}/league/${encodeURIComponent(leagueId)}/users`),
+  ]);
+  const leagueUsers = Array.isArray(users) ? users : [];
+  const names = {};
+  for (const roster of Array.isArray(rosters) ? rosters : []) {
+    const user = leagueUsers.find((leagueUser) => String(leagueUser?.user_id) === String(roster?.owner_id));
+    names[String(roster?.roster_id)] = sleeperLeagueTeamName(user, roster);
+  }
+  return names;
+}
+
 async function fetchSleeperStandings(leagueId, currentUserId = null) {
   const [rosters, users] = await Promise.all([
     getJson(`${BASE}/league/${encodeURIComponent(leagueId)}/rosters`),
@@ -1168,6 +1198,8 @@ module.exports = {
   fetchSleeperLeague,
   fetchSleeperRoster,
   fetchSleeperStandings,
+  fetchSleeperTransactions,
+  fetchSleeperTeamNames,
   fetchSleeperMatchups,
   fetchSleeperLastResult,
   fetchSleeperPlayers,

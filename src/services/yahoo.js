@@ -68,6 +68,56 @@ function yahooAttrReader(raw) {
     : key => raw[key] ?? null;
 }
 
+/**
+ * Yahoo's `roster_positions` -> the slot names the trade solver understands (G5).
+ *
+ * Documented by Yahoo (`settings.roster_positions[].roster_position {position, count}`), NOT yet
+ * exercised against a live league: the parser accepts both serialisations Yahoo uses elsewhere
+ * (array of single-key objects, or an index-keyed object) and returns `null` for anything it does
+ * not recognise, so a wrong guess about the payload leaves the caller on its existing fallback
+ * instead of installing a wrong lineup.
+ *
+ *   exact:        QB RB WR TE K DEF, BN (bench), IR / IR+ (injured reserve)
+ *   flex:         W/R/T -> FLEX, W/T -> REC_FLEX, Q/W/R/T -> SUPER_FLEX
+ *   dropped:      NA (non-roster) and IDP / specialist slots, which no offensive player can fill
+ *   withheld:     W/R (RB or WR only) has no faithful solver name, so the whole list is withheld,
+ *                 as is any slot name this table has never seen.
+ */
+const YAHOO_SLOT_NAMES = Object.freeze({
+  QB: "QB", RB: "RB", WR: "WR", TE: "TE", K: "K", DEF: "DEF",
+  "W/R/T": "FLEX", "W/T": "REC_FLEX", "Q/W/R/T": "SUPER_FLEX",
+  BN: "BN", IR: "IR", "IR+": "IR",
+});
+const YAHOO_DROPPED_SLOTS = new Set(["NA", "D", "DL", "DE", "DT", "LB", "DB", "CB", "S", "P", "D/DB", "DP"]);
+
+function yahooRosterPositionsFromSettings(league) {
+  const parts = Array.isArray(league) ? league : [league];
+  let found = null;
+  for (const part of parts) {
+    const read = yahooAttrReader(part);
+    const settings = read ? read("settings") : null;
+    if (!settings) continue;
+    const container = Array.isArray(settings) ? settings[0] : settings;
+    found = yahooAttrReader(container)?.("roster_positions") ?? null;
+    break;
+  }
+  if (!found || typeof found !== "object") return null;
+  const entries = Array.isArray(found) ? found : Object.values(found);
+  const out = [];
+  for (const entry of entries) {
+    const slot = entry?.roster_position ?? entry;
+    if (!slot || typeof slot !== "object") continue;
+    const position = String(slot.position ?? "").toUpperCase().trim();
+    const count = numberOrNull(slot.count);
+    if (!position || !Number.isInteger(count) || count < 1) continue;
+    if (YAHOO_DROPPED_SLOTS.has(position)) continue;
+    const name = YAHOO_SLOT_NAMES[position];
+    if (!name) return null;
+    for (let i = 0; i < count; i += 1) out.push(name);
+  }
+  return out.some((slot) => slot !== "BN" && slot !== "IR") ? out : null;
+}
+
 class YahooClient {
   constructor(accessToken) {
     this.accessToken = accessToken;
@@ -373,6 +423,29 @@ class YahooClient {
     }
   }
 
+  /**
+   * The league's starting slots (G5), as slot names, or null. One settings call; any provider error
+   * or unrecognised payload yields null so the caller keeps its fallback.
+   */
+  async getRosterPositions(leagueKey) {
+    try {
+      const league = await this.getLeagueSettings(leagueKey, { report: false });
+      return yahooRosterPositionsFromSettings(league);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * League transactions (G4): `/league/{key}/transactions`. Documented by Yahoo, not yet exercised
+   * against a live league, so the caller keeps it behind `LEAGUE_TRANSACTIONS_YAHOO`. Returns the
+   * RAW payload; parsing lives in `src/services/leagueTransactions.js` and fails closed.
+   */
+  async getTransactions(leagueKey, opts = {}) {
+    const count = Math.min(Math.max(parseInt(opts.count, 10) || 25, 1), 25);
+    return this.get(`/league/${leagueKey}/transactions;types=add,drop,trade;count=${count}`, { report: false });
+  }
+
   /** Roster for a team at a given week. Returns raw Yahoo response. */
   async getRoster(teamKey, week) {
     const path = week
@@ -406,7 +479,67 @@ class YahooClient {
   async getAvailablePlayers(leagueKey, opts = {}) {
     const count = Math.min(opts.count || 50, 50);
     const sort  = opts.sort  || "AR";    // AR = Average Rank
-    return this.get(`/league/${leagueKey}/players;status=A;sort=${sort};count=${count};start=0`);
+    // G6: `status` (A all available | FA free agents | W on waivers), `start` (pagination offset) and
+    // `ownership` (also request percent_owned) are optional. With none of them this is the call it
+    // always was.
+    const status = ["A", "FA", "W"].includes(opts.status) ? opts.status : "A";
+    const start = Math.max(parseInt(opts.start, 10) || 0, 0);
+    const out = opts.ownership ? ";out=percent_owned" : "";
+    return this.get(`/league/${leagueKey}/players;status=${status};sort=${sort};count=${count};start=${start}${out}`);
+  }
+
+  /**
+   * The league's available players split by how a user can get them (G6): free agents (`FA`, add
+   * now) and players on waivers (`W`, claim). Each status is read page by page (Yahoo returns at
+   * most 25 per page) up to `pages` pages, the two statuses in parallel, with percent owned
+   * requested alongside.
+   *
+   * Returns `{ pages: [{ availability: "free_agent" | "waivers", raw }], truncated, failed }`.
+   * `truncated` is true when a status still had a full last page after `pages` pages, so a caller
+   * can say the pool is a window rather than the whole pool. `failed` lists statuses whose first
+   * page could not be read. Documented by Yahoo, not yet exercised against a live league: the
+   * caller keeps this behind `YAHOO_POOL_STATUS_SPLIT` and falls back to `getAvailablePlayers`.
+   */
+  async getAvailablePlayerPool(leagueKey, opts = {}) {
+    const count = Math.min(Math.max(parseInt(opts.count, 10) || 25, 1), 25);
+    const maxPages = Math.min(Math.max(parseInt(opts.pages, 10) || 2, 1), 4);
+    const sort = opts.sort || "AR";
+    const countPlayers = (raw) => {
+      const players = raw?.fantasy_content?.league?.[1]?.players;
+      return players && typeof players === "object"
+        ? Object.keys(players).filter((k) => k !== "count").length
+        : 0;
+    };
+    const readStatus = async (status, availability) => {
+      const pages = [];
+      let truncated = false;
+      for (let page = 0; page < maxPages; page += 1) {
+        const raw = await this.getAvailablePlayers(leagueKey, {
+          status, sort, count, start: page * count, ownership: true,
+        });
+        pages.push({ availability, raw });
+        const got = countPlayers(raw);
+        if (got < count) break;
+        if (page === maxPages - 1) truncated = true;
+      }
+      return { pages, truncated };
+    };
+    const settled = await Promise.allSettled([
+      readStatus("FA", "free_agent"),
+      readStatus("W", "waivers"),
+    ]);
+    const failed = [];
+    const pages = [];
+    let truncated = false;
+    settled.forEach((result, index) => {
+      if (result.status === "fulfilled") {
+        pages.push(...result.value.pages);
+        truncated = truncated || result.value.truncated;
+      } else {
+        failed.push(index === 0 ? "free_agent" : "waivers");
+      }
+    });
+    return { pages, truncated, failed };
   }
 
   async getGameKeyForSeason(year) {
@@ -470,3 +603,4 @@ class YahooClient {
 }
 
 module.exports = YahooClient;
+module.exports.yahooRosterPositionsFromSettings = yahooRosterPositionsFromSettings;

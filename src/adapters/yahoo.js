@@ -12,6 +12,7 @@ const config = require("../config");
 const YahooClient = require("../services/yahoo");
 const { normalizeYahooRoster } = require("../services/roster");
 const { enrichYahooPlayers } = require("../services/yahooProjections");
+const { logger } = require("../middleware/logging");
 
 const ROSTER_TTL_S = 300;
 
@@ -203,31 +204,115 @@ async function buildNormalizedRoster(leagueKey, accessToken, week, opts = {}) {
  * Used by Trade's opponent-roster read (`GET /api/trade/roster`). No new Yahoo surface, no
  * new auth — the standings and per-team roster reads already run in production today.
  */
+// G5: league lineup slots (one settings call, cached for an hour) and G8: a per-team time budget.
+const ROSTER_POSITIONS_TTL_S = 3600;
+const ROSTER_POSITIONS_BUDGET_MS = 2000;
+const TEAM_ROSTER_BUDGET_MS = 6000;
+
+function timeBoxed(promise, ms, onTimeout) {
+  let timer;
+  const budget = new Promise((resolve) => {
+    timer = setTimeout(() => resolve(onTimeout), ms);
+    timer.unref?.();
+  });
+  return Promise.race([promise, budget]).finally(() => clearTimeout(timer));
+}
+
+/** Why a per-team read failed, as a code that carries no provider body or user data. */
+function teamReadFailureReason(error) {
+  const status = Number(error?.status);
+  if (error?.message === "yahoo_token_expired" || status === 401) return "reauth_required";
+  if (status === 429 || status === 999) return "rate_limited";
+  if (status === 403) return "forbidden";
+  return "provider_error";
+}
+
+/**
+ * The league's starting slots from Yahoo's settings (G5), or `null`.
+ *
+ * Cached for an hour (a league's lineup does not change mid-season) and bounded: a slow or failing
+ * settings call yields `null` and the caller keeps its existing fallback. The `roster_positions`
+ * node is documented by Yahoo but has not been exercised against a live league; a payload that
+ * does not match yields `null`, never a guessed lineup.
+ */
+async function readLeagueRosterPositions(client, leagueKey) {
+  if (typeof client.getRosterPositions !== "function") return null;
+  const cacheKey = `ssff:yahoo:rosterpos:${leagueKey}`;
+  const cached = await readCache(cacheKey).catch(() => null);
+  if (Array.isArray(cached) && cached.length) return cached;
+  const positions = await timeBoxed(
+    Promise.resolve().then(() => client.getRosterPositions(leagueKey)).catch(() => null),
+    ROSTER_POSITIONS_BUDGET_MS,
+    null
+  );
+  if (Array.isArray(positions) && positions.length) {
+    await writeCache(cacheKey, positions, ROSTER_POSITIONS_TTL_S);
+    return positions;
+  }
+  return null;
+}
+
+/**
+ * Every team's roster for a week.
+ *
+ * `getRoster(teamKey, week)` already takes an arbitrary team key — `buildNormalizedRoster`
+ * above just never called it with anyone else's. `getLeagueStandings` already lists every
+ * team key in the league. This composes the two: same authenticated client, same calls,
+ * called once per team instead of once for the caller's own.
+ *
+ * A team whose roster read failed or timed out is returned with `read_failed: true` and a reason
+ * code (G8). Before, it came back as a team with no players, which every consumer then read as an
+ * empty roster. `players` stays `[]` for such a team, so existing consumers still skip it as
+ * unreadable; the flag is what lets a screen say "could not read this team".
+ *
+ * Used by Trade's opponent-roster read (`GET /api/trade/roster`). No new auth.
+ */
 async function fetchYahooLeagueRosters(leagueKey, accessToken, week) {
   const client = new YahooClient(accessToken);
   const effectiveWeek = week || await client.getCurrentWeek(leagueKey);
-  const standings = await client.getLeagueStandings(leagueKey);
+  const [standings, rosterPositions] = await Promise.all([
+    client.getLeagueStandings(leagueKey),
+    readLeagueRosterPositions(client, leagueKey),
+  ]);
 
   const teams = await Promise.all(standings.map(async (team) => {
     if (!team?.team_id) {
-      return { team_id: null, team_name: team?.team_name || null, players: [] };
+      return { team_id: null, team_name: team?.team_name || null, players: [], read_failed: true, read_failed_reason: "no_team_key" };
     }
-    let players = [];
     try {
-      const raw = await client.getRoster(team.team_id, effectiveWeek);
+      const raw = await timeBoxed(
+        client.getRoster(team.team_id, effectiveWeek),
+        TEAM_ROSTER_BUDGET_MS,
+        Promise.reject(Object.assign(new Error("team roster read timed out"), { code: "team_roster_timeout" }))
+      );
       const normalized = normalizeYahooRoster(raw, effectiveWeek);
-      players = [
+      const players = [
         ...(normalized.slots.starters || []),
         ...(normalized.slots.bench || []),
         ...(normalized.slots.ir || []),
       ].map(withYahooIds);
-    } catch {
-      // One team's roster failing to read must not fail the whole league read. Partial
-      // data with that team's players empty is more honest than aborting the request.
-      players = [];
+      return { team_id: team.team_id, team_name: team.team_name || null, players };
+    } catch (error) {
+      const reason = error?.code === "team_roster_timeout" ? "timed_out" : teamReadFailureReason(error);
+      return {
+        team_id: team.team_id,
+        team_name: team.team_name || null,
+        players: [],
+        read_failed: true,
+        read_failed_reason: reason,
+      };
     }
-    return { team_id: team.team_id, team_name: team.team_name || null, players };
   }));
+
+  const failed = teams.filter((team) => team.read_failed);
+  if (failed.length) {
+    // Counts and reason codes only: no team names, no player names, no provider bodies.
+    logger.warn("Yahoo league roster read was partial", {
+      teams_total: teams.length,
+      teams_failed: failed.length,
+      reasons: [...new Set(failed.map((team) => team.read_failed_reason))].join(","),
+    });
+  }
 
   // Yahoo carries no projection; fill every team's players from Sleeper's public stat lines scored
   // with this league's rules (yahooProjections.js). Best effort and bounded.
@@ -239,7 +324,8 @@ async function fetchYahooLeagueRosters(leagueKey, accessToken, week) {
   return {
     week: rosterWeek(effectiveWeek),
     league_status: null,
-    roster_positions: [],
+    roster_positions: rosterPositions || [],
+    roster_positions_source: rosterPositions ? "provider_settings" : null,
     teams,
     projection_meta: projectionMeta,
   };

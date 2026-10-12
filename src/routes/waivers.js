@@ -245,10 +245,29 @@ async function loadYahoo(connection, userId, week) {
 
   let pool = null;
   let poolProjection = null;
+  let poolStatusSplit = null;
   try {
-    const raw = await client.getAvailablePlayers(connection.league_id, { count: 50, sort: "AR" });
+    // G6: with YAHOO_POOL_STATUS_SPLIT=1 the pool is read as free agents and waivers separately
+    // (paginated, with percent owned). Documented by Yahoo, not yet exercised live, so it is off by
+    // default and any failure or partial read falls back to the single status=A page below.
+    let normalizedPool = null;
+    if (process.env.YAHOO_POOL_STATUS_SPLIT === "1" && typeof client.getAvailablePlayerPool === "function") {
+      try {
+        const split = await client.getAvailablePlayerPool(connection.league_id, { pages: 2, sort: "AR" });
+        if (split.pages.length && !split.failed.length) {
+          normalizedPool = rosterSvc.normalizeYahooPool(split);
+          poolStatusSplit = { truncated: Boolean(split.truncated) };
+        }
+      } catch {
+        normalizedPool = null;
+      }
+    }
+    if (!normalizedPool) {
+      const raw = await client.getAvailablePlayers(connection.league_id, { count: 50, sort: "AR" });
+      normalizedPool = rosterSvc.normalizeYahooWaivers(raw);
+    }
     ({ pool, projectionMeta: poolProjection } = await projectYahooPool(
-      client, connection.league_id, roster.week, rosterSvc.normalizeYahooWaivers(raw),
+      client, connection.league_id, roster.week, normalizedPool,
       { rosterMeta: roster.projection_meta }
     ));
   } catch {
@@ -283,7 +302,14 @@ async function loadYahoo(connection, userId, week) {
     // (yahooProjections.js). Without them no candidate is evidence-backed, and availability alone is
     // not enough to rank a §6 recommendation, so it stays unconfirmed and says so.
     availabilityConfirmed: pool != null && poolProjection?.available === true,
-    limitations: yahooWaiverLimitations(poolProjection),
+    limitations: [
+      ...yahooWaiverLimitations(poolProjection),
+      ...(poolStatusSplit
+        ? [poolStatusSplit.truncated
+          ? "Free agents and players on waivers were read separately; this is the top of the pool by Yahoo's average rank, not every available player."
+          : "Free agents and players on waivers were read separately."]
+        : []),
+    ],
   };
 }
 

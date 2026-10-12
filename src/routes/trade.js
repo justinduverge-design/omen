@@ -39,6 +39,12 @@ const espnAdapter = require("../adapters/espn");
 const yahooAdapter = require("../adapters/yahoo");
 const { getAuthenticatedEspnCredentials } = require("../services/espnAuth");
 const { getAuthenticatedYahooClient } = require("../services/yahooAuth");
+const {
+  failedTeams,
+  normalizeEspnRosters,
+  normalizeSleeperRosters,
+  normalizeYahooRosters,
+} = require("../services/leagueRosterBundle");
 
 const MAX_PLAYERS_PER_SIDE = 10;
 const MAX_SHARE_PAYLOAD_BYTES = 16 * 1024;
@@ -536,6 +542,25 @@ function handleStorageError(res, error) {
   return false;
 }
 
+const DEFAULT_ROSTER_READ_BUDGET_MS = (() => {
+  const parsed = Number(process.env.TRADE_ROSTER_READ_BUDGET_MS);
+  return Number.isFinite(parsed) && parsed >= 500 ? parsed : 8000;
+})();
+
+/** Rejects with `roster_read_budget_exceeded` if `promise` has not settled inside `budgetMs`. */
+function withReadBudget(promise, budgetMs) {
+  let timer;
+  const budget = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      reject(Object.assign(new Error("roster read exceeded its time budget"), { code: "roster_read_budget_exceeded" }));
+    }, budgetMs);
+    timer.unref?.();
+  });
+  // The read keeps running after the budget trips; its eventual rejection must not go unhandled.
+  Promise.resolve(promise).catch(() => {});
+  return Promise.race([promise, budget]).finally(() => clearTimeout(timer));
+}
+
 function createTradeRouter({
   tradeShareStore = createDefaultTradeShareStore(),
   generateHash = () => crypto.randomUUID(),
@@ -571,6 +596,8 @@ function createTradeRouter({
   tradeSavedQueueStore = createDefaultTradeSavedQueueStore(),
   // T4 storage of record: the `saved_trades` table (redo step 12).
   savedTradesStore = createSupabaseSavedTradesStore(),
+  // G8: time budget for the provider roster read behind GET /api/trade/roster.
+  rosterReadBudgetMs = DEFAULT_ROSTER_READ_BUDGET_MS,
 } = {}) {
   const router = express.Router();
 
@@ -588,29 +615,15 @@ function createTradeRouter({
    */
   async function readSleeperRosters({ leagueId, week }) {
     const leagueRosters = await fetchLeagueRosters(leagueId, week, String(now().getFullYear()));
-    const status = String(leagueRosters?.league_status || "").toLowerCase();
-    if (status === "pre_draft" || status === "drafting") {
-      return { status: "unavailable", reason: "league_not_active" };
-    }
-    const teams = (Array.isArray(leagueRosters?.teams) ? leagueRosters.teams : []).map((team) => ({
-      team_id: String(team?.roster_id || ""),
-      team_name: team?.team_name || null,
-      players: Array.isArray(team?.players) ? team.players : [],
-    }));
-    return {
-      status: "ok",
-      week,
-      roster_positions: Array.isArray(leagueRosters?.roster_positions) ? leagueRosters.roster_positions : [],
-      teams,
-    };
+    return normalizeSleeperRosters(leagueRosters, week);
   }
 
   /**
    * Every team's roster for an ESPN league. `fetchEspnLeagueRosters` (src/adapters/espn.js)
    * walks the same `mMatchup`+`mMatchupScore` read `fetchEspnMatchup` already makes for the
-   * caller's own matchup — ESPN's response already carries every team that week, this just
-   * doesn't stop at the caller's own game. Credentials come from the user's own stored
-   * connection (`getAuthenticatedEspnCredentials`), never from the request.
+   * caller's own matchup, and (G5) the `mSettings` view in the same request for the league's
+   * lineup slots. Credentials come from the user's own stored connection
+   * (`getAuthenticatedEspnCredentials`), never from the request.
    */
   async function readEspnRosters({ userId, leagueId, week }) {
     let credentials;
@@ -620,25 +633,15 @@ function createTradeRouter({
       return { status: "unavailable", reason: "provider_reauth_required" };
     }
     const rosters = await fetchEspnLeagueRosters(leagueId, credentials.espn_s2, credentials.swid, { week });
-    const teams = (Array.isArray(rosters?.teams) ? rosters.teams : []).map((team) => ({
-      team_id: String(team?.team_id || ""),
-      team_name: team?.team_name || null,
-      players: Array.isArray(team?.players) ? team.players : [],
-    }));
-    return {
-      status: "ok",
-      week,
-      roster_positions: Array.isArray(rosters?.roster_positions) ? rosters.roster_positions : [],
-      teams,
-    };
+    return normalizeEspnRosters(rosters, week);
   }
 
   /**
    * Every team's roster for a Yahoo league. `fetchYahooLeagueRosters` (src/adapters/yahoo.js)
    * composes two already-working calls: the standings read that lists every team key, and the
-   * per-team roster read (`getRoster`) that already accepts an arbitrary key — it was never
-   * restricted to the caller's own. The authenticated client comes from the user's own stored
-   * connection (`getAuthenticatedYahooClient`), never from the request.
+   * per-team roster read (`getRoster`) that already accepts an arbitrary key. A team whose read
+   * failed comes back flagged `read_failed` (G8) instead of as an empty team. The authenticated
+   * client comes from the user's own stored connection, never from the request.
    */
   async function readYahooRosters({ userId, leagueId, week }) {
     let auth;
@@ -648,17 +651,7 @@ function createTradeRouter({
       return { status: "unavailable", reason: "provider_reauth_required" };
     }
     const rosters = await fetchYahooLeagueRosters(leagueId, auth.accessToken, week);
-    const teams = (Array.isArray(rosters?.teams) ? rosters.teams : []).map((team) => ({
-      team_id: team?.team_id ? String(team.team_id) : "",
-      team_name: team?.team_name || null,
-      players: Array.isArray(team?.players) ? team.players : [],
-    }));
-    return {
-      status: "ok",
-      week: rosters?.week || week,
-      roster_positions: Array.isArray(rosters?.roster_positions) ? rosters.roster_positions : [],
-      teams,
-    };
+    return normalizeYahooRosters(rosters, week);
   }
 
   const ROSTER_READERS = Object.freeze({
@@ -734,8 +727,25 @@ function createTradeRouter({
         logger.warn("Trade roster cache read failed; reading the provider", { err: e.message });
       }
       try {
-        if (!result) result = await ROSTER_READERS[platform]({ userId: user.id, leagueId, week });
+        // G8: the provider read has a time budget. Yahoo reads one roster per team, so a slow
+        // league could otherwise hold this request for as long as the slowest call takes.
+        if (!result) {
+          result = await withReadBudget(
+            ROSTER_READERS[platform]({ userId: user.id, leagueId, week }),
+            rosterReadBudgetMs
+          );
+        }
       } catch (e) {
+        if (e?.code === "roster_read_budget_exceeded") {
+          logger.warn("Trade roster read exceeded its time budget", { platform, budget_ms: rosterReadBudgetMs });
+          return res.json({
+            contract_version: "trade-roster.v1",
+            status: "unavailable",
+            platform,
+            reason: "timed_out",
+            teams: [],
+          });
+        }
         logger.warn("Trade roster read failed", { err: e.message, platform, league_id: leagueId });
         return res.status(503).json({ error: "roster_unavailable", code: "trade_roster_unavailable" });
       }
@@ -753,12 +763,20 @@ function createTradeRouter({
       const teamId = req.query.team_id == null ? null : String(req.query.team_id);
       const teams = teamId ? result.teams.filter((team) => team.team_id === teamId) : result.teams;
 
+      const unreadable = failedTeams(result.teams);
       return res.json({
         contract_version: "trade-roster.v1",
         status: "ok",
         platform,
         week: result.week,
         roster_positions: result.roster_positions,
+        // Where the league's slots came from (`provider_settings`), or null when the provider gave
+        // none. Additive: a consumer that needs slots can tell "league has none" from "not read".
+        roster_positions_source: result.roster_positions_source
+          ?? (Array.isArray(result.roster_positions) && result.roster_positions.length ? "provider_settings" : null),
+        // Additive (G8): teams whose roster read failed are named here and carry `read_failed` on
+        // the team row, so a partial league is never presented as a complete one.
+        ...(unreadable.length ? { partial: true, unreadable_teams: unreadable } : {}),
         teams,
       });
     } catch (e) {
@@ -973,6 +991,7 @@ function createTradeRouter({
           generated_at: now().toISOString(),
           week: result.week || week,
           roster_positions: result.roster_positions,
+          roster_positions_source: result.roster_positions_source ?? null,
           teams: result.teams,
         };
 

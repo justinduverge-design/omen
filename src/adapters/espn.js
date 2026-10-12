@@ -1150,6 +1150,50 @@ async function fetchEspnLastResult(leagueId, espn_s2, swid, opts = {}) {
 
 
 /**
+ * The league's own starting lineup, from `settings.rosterSettings.lineupSlotCounts` (G5).
+ *
+ * `lineupSlotCounts` is `{ "<lineupSlotId>": count }` and rides on the `mSettings` view, which the
+ * league-roster read now requests in the same call (no extra ESPN request). Slot ids are ESPN's
+ * own table (see `ESPN_NON_STARTER_SLOT_IDS` for the source), translated here to the slot names
+ * the trade solver already understands.
+ *
+ * Returns `null` (the caller falls back to the user's own slots and says so) unless EVERY offensive
+ * starting slot can be named exactly:
+ *   - a slot the solver cannot represent faithfully (slot 3, RB/WR) makes the list incomplete, so
+ *     the whole list is withheld rather than approximated with a FLEX that would admit a TE;
+ *   - IDP and specialist slots (8-15, 18, 19, 24) are dropped, the same policy the user's-own-slots
+ *     fallback already applied to unknown slots, because no offensive player can fill them.
+ * Field names are community-documented, not an official ESPN contract; a payload without the
+ * field yields `null`.
+ */
+const ESPN_SLOT_NAMES = Object.freeze({
+  0: "QB", 2: "RB", 4: "WR", 6: "TE", 16: "DEF", 17: "K", 23: "FLEX",
+  5: "REC_FLEX", 7: "SUPER_FLEX", 20: "BN", 21: "IR",
+});
+const ESPN_UNREPRESENTABLE_SLOT_IDS = new Set([3]);
+const ESPN_DROPPED_SLOT_IDS = new Set([1, 8, 9, 10, 11, 12, 13, 14, 15, 18, 19, 22, 24, 25]);
+
+function rosterPositionsFromEspnData(data) {
+  const counts = data?.settings?.rosterSettings?.lineupSlotCounts;
+  if (!counts || typeof counts !== "object" || Array.isArray(counts)) return null;
+  const out = [];
+  for (const id of Object.keys(counts).map(Number).filter(Number.isFinite).sort((a, b) => a - b)) {
+    const count = Number(counts[id]);
+    if (!Number.isInteger(count) || count < 1) continue;
+    if (ESPN_UNREPRESENTABLE_SLOT_IDS.has(id)) return null;
+    const name = ESPN_SLOT_NAMES[id];
+    if (!name) {
+      if (ESPN_DROPPED_SLOT_IDS.has(id)) continue;
+      // An id this table has never seen: do not guess what it is.
+      return null;
+    }
+    for (let i = 0; i < count; i += 1) out.push(name);
+  }
+  // A list with no offensive starter is not a lineup.
+  return out.some((slot) => slot !== "BN" && slot !== "IR") ? out : null;
+}
+
+/**
  * Every team's roster for a week, from the same `mMatchup`+`mMatchupScore` read
  * `fetchEspnMatchup` already makes for the caller's own matchup. ESPN's response
  * (`data.schedule`) already carries every game that week, home and away, each side
@@ -1199,17 +1243,36 @@ function leagueRostersFromEspnSchedule(data, week) {
     });
   }
 
+  const rosterPositions = rosterPositionsFromEspnData(data);
   return {
     league_status: null,
-    roster_positions: [],
+    roster_positions: rosterPositions || [],
+    roster_positions_source: rosterPositions ? "provider_settings" : null,
     teams: [...byTeam.values()],
   };
 }
 
 async function fetchEspnLeagueRosters(leagueId, espn_s2, swid, opts = {}) {
   const week = Number(opts.week || opts.scoringPeriodId || 1);
-  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTeam", "mMatchup", "mMatchupScore"], week, opts);
+  // `mSettings` rides in the same request (G5): it carries the league's lineup slot counts.
+  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTeam", "mMatchup", "mMatchupScore", "mSettings"], week, opts);
   return leagueRostersFromEspnSchedule(data, week);
+}
+
+/**
+ * The league's recent transactions (G4) from `view=mTransactions2`, with team names from `mTeam` in
+ * the same request. Community-documented, not exercised live: the caller keeps it behind
+ * `LEAGUE_TRANSACTIONS_ESPN` and the parser (`leagueTransactions.js`) fails closed.
+ */
+async function fetchEspnTransactions(leagueId, espn_s2, swid, opts = {}) {
+  const scoringPeriodId = Number(opts.week || opts.scoringPeriodId || 1);
+  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTransactions2", "mTeam"], scoringPeriodId, opts);
+  const teamNames = {};
+  for (const team of Array.isArray(data?.teams) ? data.teams : []) {
+    const id = teamId(team);
+    if (id != null) teamNames[String(id)] = teamName(team);
+  }
+  return { data, teamNames };
 }
 
 async function fetchEspnMatchup(leagueId, espn_s2, swid, opts = {}) {
@@ -1342,8 +1405,10 @@ module.exports = {
   fetchEspnLastResult,
   fetchEspnMatchup,
   fetchEspnLeagueRosters,
+  fetchEspnTransactions,
   playoffTeamCountFromEspnData,
   leagueRostersFromEspnSchedule,
+  rosterPositionsFromEspnData,
   verifyLeagueAccess,
   lastResultFromEspnSchedule,
   matchupFromEspnSchedule,

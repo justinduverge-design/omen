@@ -11,6 +11,14 @@ const { getAuthenticatedYahooClient } = require("../services/yahooAuth");
 const { getAuthenticatedEspnCredentials } = require("../services/espnAuth");
 const sleeperAdapter = require("../adapters/sleeper");
 const espnAdapter = require("../adapters/espn");
+const leagueTransactions = require("../services/leagueTransactions");
+const leagueTradeTargets = require("../services/leagueTradeTargets");
+const {
+  normalizeEspnRosters,
+  normalizeSleeperRosters,
+  normalizeYahooRosters,
+} = require("../services/leagueRosterBundle");
+const { createDefaultTradeFindCache } = require("../services/tradeFindCacheStore");
 
 const router = express.Router();
 router.use(require("../services/sleeperRequestScope").middleware);
@@ -632,6 +640,56 @@ function ordinal(n) {
   return `${n}${suffix}`;
 }
 
+/**
+ * Trade targets (G3) read the roster bundle Trade already caches; they never read a provider on the
+ * overview request. On a miss the section answers \`pending\` and \`readBundle\` fills the cache in the
+ * background (see services/leagueTradeTargets.js). Dependencies are a mutable object so tests can
+ * replace the cache and the provider reads without a network.
+ */
+const tradeTargetDeps = {
+  tradeFindCache: createDefaultTradeFindCache(),
+  readBundleFor: ({ connection, userId, context }) => async () => {
+    const week = Number(context.week);
+    if (connection.platform === "sleeper") {
+      const rosters = await sleeperAdapter.fetchSleeperLeagueRosters(connection.league_id, week, String(context.season));
+      return normalizeSleeperRosters(rosters, week);
+    }
+    if (connection.platform === "espn") {
+      const credentials = await getAuthenticatedEspnCredentials(userId);
+      const rosters = await espnAdapter.fetchEspnLeagueRosters(connection.league_id, credentials.espn_s2, credentials.swid, { week });
+      return normalizeEspnRosters(rosters, week);
+    }
+    if (connection.platform === "yahoo") {
+      const { accessToken } = await getAuthenticatedYahooClient(userId);
+      const rosters = await require("../adapters/yahoo").fetchYahooLeagueRosters(connection.league_id, accessToken, week);
+      return normalizeYahooRosters(rosters, week);
+    }
+    return { status: "unavailable", reason: "unsupported_platform" };
+  },
+};
+
+/** Never throws and never waits on a provider: a section failure must not touch the overview. */
+async function tradeTargetsSection({ connection, userId, context, standings, fallbackTeamId }) {
+  try {
+    const mine = (Array.isArray(standings) ? standings : []).find((team) => team?.is_current_user);
+    const ownTeamId = mine?.team_id ?? fallbackTeamId ?? null;
+    if (ownTeamId == null) return leagueTradeTargets.buildTradeTargets({ ownTeamId: null, teams: [], rosterPositions: [] });
+    return await leagueTradeTargets.resolveTradeTargets({
+      userId,
+      connection,
+      context,
+      ownTeamId,
+      deps: {
+        tradeFindCache: tradeTargetDeps.tradeFindCache,
+        readBundle: tradeTargetDeps.readBundleFor({ connection, userId, context }),
+        logger,
+      },
+    });
+  } catch {
+    return null;
+  }
+}
+
 async function sleeperOverview(connection, context) {
   const sleeperUserId = connection.platform_user_id
     || (connection.platform_username
@@ -851,13 +909,27 @@ function yahooMatchupEnvelope(read, standings = []) {
   return { status: mapped, you, opponent, game_id: `yahoo:${read.week}:${you?.team_id}:${opponent?.team_id}` };
 }
 
-function fetchOverview(connection, userId, context) {
+function dispatchOverview(connection, userId, context) {
   if (connection.platform === "sleeper") return sleeperOverview(connection, context);
   if (connection.platform === "espn") return espnOverview(connection, userId, context);
   if (connection.platform === "yahoo") return yahooOverview(connection, userId, context);
   const err = new Error(`Unsupported platform: ${connection.platform}`);
   err.status = 400;
   return Promise.reject(err);
+}
+
+async function fetchOverview(connection, userId, context) {
+  const overview = await dispatchOverview(connection, userId, context);
+  // G3: an additive section, computed from cached rosters. It is its own failure domain and is
+  // skipped (not faked) when there are no standings rows to anchor "your team" on.
+  const teams = overview?.standings?.teams;
+  if (Array.isArray(teams) && teams.length) {
+    const section = await tradeTargetsSection({
+      connection, userId, context, standings: teams, fallbackTeamId: connection.espn_team_id,
+    });
+    if (section) overview.trade_targets = section;
+  }
+  return overview;
 }
 
 router.get("/overview", requireAuth, async (req, res, next) => {
@@ -918,7 +990,9 @@ router.get("/overview", requireAuth, async (req, res, next) => {
         // Earlier candidates failing means this answer came from a fallback
         // provider, and a section that reads "unavailable" is a partial read:
         // both are kept only briefly.
-        const sectionUnavailable = ["matchup", "standings"].some((k) => overview?.[k]?.status === "unavailable");
+        const sectionUnavailable = ["matchup", "standings"].some((k) => overview?.[k]?.status === "unavailable")
+          // A trade-targets fill in flight is kept only briefly so the filled section appears soon.
+          || overview?.trade_targets?.status === "pending";
         await responseCache.store(cacheHandle, 200, overview, {
           cache: !responseCache.hasRecoveryBlock(overview),
           degraded: failures.length > 0 || sectionUnavailable,
@@ -961,6 +1035,81 @@ router.get("/overview", requireAuth, async (req, res, next) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// GET /api/league/transactions  ->  league-transactions.v1   (G4)
+//
+// The league's recent adds, drops, waiver claims and trades. Sleeper is read live; Yahoo and ESPN
+// are documented-but-unexercised and stay dark behind LEAGUE_TRANSACTIONS_YAHOO / _ESPN (see
+// services/leagueTransactions.js). Its own route and its own failure domain: the League overview's
+// hot path never waits on it, and a provider that cannot answer says `unavailable` with a reason.
+// ---------------------------------------------------------------------------
+router.get("/transactions", requireAuth, async (req, res, next) => {
+  const platform = normalizePlatform(req.query.platform);
+  const leagueId = normalizeLeagueId(req.query.leagueId);
+  const limit = leagueTransactions.clampLimit(req.query.limit);
+
+  if (platform && !VALID_PLATFORMS.has(platform)) {
+    const result = errorEnvelope({ code: "invalid_platform", status: 400 });
+    return res.status(result.status).json(result.body);
+  }
+
+  try {
+    const context = getCurrentNflWeekContext();
+    const rows = await getConnectionRows(req.user.id);
+    const cacheHandle = await responseCache.lookup({
+      route: "league_transactions",
+      userId: req.user.id,
+      parts: {
+        platform: platform || null,
+        league_id: leagueId || null,
+        week: context.week,
+        season: context.season,
+        limit,
+        connections: rows
+          .map((row) => ({
+            platform: row.platform,
+            league_id: row.league_id == null ? null : String(row.league_id),
+            selected: Boolean(row.is_selected),
+          }))
+          .sort((a, b) => String(a.platform).localeCompare(String(b.platform))),
+      },
+    });
+    if (cacheHandle.hit) return responseCache.sendHit(res, cacheHandle);
+    responseCache.setCacheHeader(res, cacheHandle);
+
+    const candidates = await candidatesForRequest(rows, {
+      platform, leagueId, userId: req.user.id, season: context.season,
+    });
+    if (!candidates.length) {
+      const result = errorEnvelope({ code: "league_not_connected", status: 404 });
+      return res.status(result.status).json(result.body);
+    }
+
+    const connection = candidates[0];
+    const body = await leagueTransactions.readLeagueTransactions({
+      connection,
+      userId: req.user.id,
+      context,
+      limit,
+      deps: {
+        sleeper: sleeperAdapter,
+        espn: espnAdapter,
+        getYahooClient: getAuthenticatedYahooClient,
+        getEspnCredentials: getAuthenticatedEspnCredentials,
+        env: process.env,
+      },
+    });
+    // A failed or dark read is kept only briefly so a recovered provider is not hidden for a minute.
+    await responseCache.store(cacheHandle, 200, body, {
+      cache: true,
+      degraded: body.status === "unavailable",
+    });
+    return res.json(body);
+  } catch (e) {
+    return next(e);
+  }
+});
+
 module.exports = router;
 module.exports.selectConnection = selectConnection;
 module.exports.selectConnections = selectConnections;
@@ -970,3 +1119,4 @@ module.exports.playoffPicture = playoffPicture;
 module.exports.standingsActivity = standingsActivity;
 module.exports.emptyActivity = emptyActivity;
 module.exports.ordinal = ordinal;
+module.exports.tradeTargetDeps = tradeTargetDeps;

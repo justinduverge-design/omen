@@ -216,9 +216,67 @@ function normalizeYahooWaivers(yahooResponse) {
   return out;
 }
 
+/**
+ * `percent_owned` off a Yahoo player node (G6). Yahoo nests it as an element of the player array,
+ * `{ percent_owned: [ {coverage_type, coverage_value}, { value: "34" } ] }`. Returns a number 0-100
+ * or null; an absent or non-numeric value is "not read", never 0.
+ */
+function yahooPercentOwned(node) {
+  const elements = Array.isArray(node) ? node : [];
+  for (const element of elements) {
+    if (!element || typeof element !== "object" || !("percent_owned" in element)) continue;
+    const raw = element.percent_owned;
+    const parts = Array.isArray(raw) ? raw : [raw];
+    for (const part of parts) {
+      const value = part && typeof part === "object" ? part.value : part;
+      if (value === null || value === undefined || value === "") continue;
+      const n = Number(value);
+      if (Number.isFinite(n) && n >= 0 && n <= 100) return n;
+    }
+  }
+  return null;
+}
+
+/**
+ * Flatten `getAvailablePlayerPool()` into the pool shape `normalizeYahooWaivers` returns, with each
+ * player tagged `availability` ("free_agent" | "waivers") and `percent_owned` (number | null). A
+ * player seen in both statuses keeps the more restrictive one (waivers).
+ */
+function normalizeYahooPool(pool) {
+  const byKey = new Map();
+  for (const page of Array.isArray(pool?.pages) ? pool.pages : []) {
+    const nodes = page?.raw?.fantasy_content?.league?.[1]?.players;
+    const normalized = normalizeYahooWaivers(page?.raw);
+    const percentByKey = new Map();
+    if (nodes && typeof nodes === "object") {
+      for (const k of Object.keys(nodes)) {
+        if (k === "count") continue;
+        const node = nodes[k]?.player;
+        const meta = Array.isArray(node) ? node[0] : null;
+        const key = meta ? pickField(meta, "player_key") : null;
+        if (key) percentByKey.set(key, yahooPercentOwned(node));
+      }
+    }
+    for (const player of normalized) {
+      const entry = {
+        ...player,
+        availability: page.availability,
+        percent_owned: percentByKey.has(player.player_key) ? percentByKey.get(player.player_key) : null,
+      };
+      const existing = byKey.get(player.player_key);
+      if (!existing || (existing.availability === "free_agent" && entry.availability === "waivers")) {
+        byKey.set(player.player_key, entry);
+      }
+    }
+  }
+  return [...byKey.values()];
+}
+
 module.exports = {
   normalizeYahooRoster,
   normalizeYahooWaivers,
+  normalizeYahooPool,
+  yahooPercentOwned,
   fetchAndNormalizeRoster,
   BENCH_SLOTS,
   IR_SLOTS,
