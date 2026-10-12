@@ -119,10 +119,18 @@ function adjustedProjection(player) {
   return proj * (1 - statusPenalty(player.status));
 }
 
-// A null projection is "no number", not a projection of zero. Treating it as zero invents an edge
-// for any projected player facing an unprojected one, so such pairs are never compared.
 function hasProjection(player) {
   return player != null && player.projected_points != null && Number.isFinite(Number(player.projected_points));
+}
+
+// Sleeper and ESPN rosters leave a bye-week player's projection null, and a null there has always
+// meant zero: the bye starter is swapped for a projected bench player (the most common October
+// call). That behaviour is unchanged. A roster carrying `projection_meta` was filled in by Omen
+// (Yahoo, yahooProjections.js), where a null can also mean "Omen could not match this player", so
+// it is "no number": a pair with an unprojected side is never compared. Yahoo bye-week players are
+// recognised in yahooProjections.js and carry an explicit 0, so they still swap.
+function partialProjections(roster) {
+  return roster != null && roster.projection_meta != null;
 }
 
 function compatibleSlots(slot) {
@@ -165,16 +173,17 @@ function evaluateLineup(roster, opts = {}, scoringConfig = {}) {
   const { lineupMinDelta: minDelta } = resolveOptimizerConfig(opts, scoringConfig);
   const usage = opts.usage instanceof Map ? opts.usage : null; // player_key -> recent usage summary
   const recs = [];
+  const strict = partialProjections(roster);
 
   for (const starter of roster.slots.starters) {
     const slot   = starter.selected_position || starter.position;
     const compat = compatibleSlots(slot);
     const sProj  = adjustedProjection(starter);
     // An unprojected starter can only be replaced when he is OUT (status alone scores him zero).
-    if (!hasProjection(starter) && statusPenalty(starter.status) < 1) continue;
+    if (strict && !hasProjection(starter) && statusPenalty(starter.status) < 1) continue;
 
     const candidates = roster.slots.bench
-      .filter(b => hasProjection(b)
+      .filter(b => (!strict || hasProjection(b))
                 && Array.isArray(b.eligible_positions)
                 && b.eligible_positions.some(p => compat.includes(p)))
       .map(b => ({ player: b, adj: adjustedProjection(b) }))
@@ -231,11 +240,12 @@ function findWaiverMoves(roster, waiverPool, opts = {}, scoringConfig = {}) {
     waiverMinDelta: minDelta,
   } = resolveOptimizerConfig(opts, scoringConfig);
 
+  const strict = partialProjections(roster);
   // Index waiver pool by primary position, sorted by projection desc.
   const byPos = {};
   for (const wp of waiverPool || []) {
     const pos = wp.position;
-    if (!pos || !hasProjection(wp)) continue;
+    if (!pos || (strict && !hasProjection(wp))) continue;
     if (!byPos[pos]) byPos[pos] = [];
     byPos[pos].push(wp);
   }
@@ -249,7 +259,7 @@ function findWaiverMoves(roster, waiverPool, opts = {}, scoringConfig = {}) {
   for (const p of allRostered) {
     const pos = p.position;
     if (!pos) continue;
-    if (!hasProjection(p) && statusPenalty(p.status) < 1) continue;
+    if (strict && !hasProjection(p) && statusPenalty(p.status) < 1) continue;
     const adj = adjustedProjection(p);
     if (!weakestByPos[pos] || adj < adjustedProjection(weakestByPos[pos])) {
       weakestByPos[pos] = p;

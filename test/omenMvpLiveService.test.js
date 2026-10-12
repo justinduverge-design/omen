@@ -1439,3 +1439,23 @@ test("a Yahoo pool with no projections keeps the availability-only fallback and 
   assert.equal(result.body.signals.projections.source, "yahoo_available_players");
   assert.equal(state.waiverCalls.length, 1);
 });
+
+test("a Yahoo waiver pickup discloses its projection source even when the roster pass timed out", async () => {
+  const pool = [{
+    player_key: "yahoo:2", name: "Available Wideout", position: "WR", eligible_positions: ["WR"],
+    team: "PHI", status: "", projected_points: 9, projection_source: "sleeper_public_projections", projection_basis: "approximate_scoring",
+  }];
+  const { service } = loadOmenService({
+    connections: [YAHOO_PROJ_CONNECTION],
+    roster: projectedYahooRoster({ available: false, source: "sleeper_public_projections", scoring_basis: null, players_total: 1, players_with_projection: 0, reason: "timed_out" }, 0),
+    swaps: [],
+    waiverPool: pool,
+    yahooPoolProjection: { pool, meta: APPROX_META },
+  });
+  const result = await service.buildLiveOmenMvpMoveForUser("user-1");
+
+  assert.equal(result.body.recommendation.type, "waiver_pickup");
+  assert.equal(result.body.signals.projections.source, "sleeper_public_projections_yahoo_scoring_approximate");
+  assert.ok(result.body.recommendation.explanation.data_used.some((line) => /approximately scored/.test(line)));
+  assert.ok(result.body.warnings.some((warning) => /approximate/.test(warning)));
+});

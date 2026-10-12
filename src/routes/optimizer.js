@@ -222,7 +222,8 @@ router.get("/waivers", async (req, res, next) => {
     // Fetch waiver pool via Yahoo and normalize.
     const rawWaivers = await yahoo.getAvailablePlayers(leagueKey, { count: 50, sort: "AR" });
     const { pool: waiverPool } = await projectYahooPool(
-      yahoo, leagueKey, roster.week, rosterSvc.normalizeYahooWaivers(rawWaivers)
+      yahoo, leagueKey, roster.week, rosterSvc.normalizeYahooWaivers(rawWaivers),
+      { rosterMeta: roster.projection_meta }
     );
 
     const recommendations = optimizer.findWaiverMoves(roster, waiverPool);
@@ -268,7 +269,8 @@ router.get("/waiver", async (req, res, next) => {
     try {
       const rawWaivers = await yahoo.getAvailablePlayers(leagueId, { count: 50, sort: "AR" });
       ({ pool: waiverPool } = await projectYahooPool(
-        yahoo, leagueId, roster.week, rosterSvc.normalizeYahooWaivers(rawWaivers)
+        yahoo, leagueId, roster.week, rosterSvc.normalizeYahooWaivers(rawWaivers),
+        { rosterMeta: roster.projection_meta }
       ));
     } catch (e) {
       if (e.message === "yahoo_token_expired") throw e;

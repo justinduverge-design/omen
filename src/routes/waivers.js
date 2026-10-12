@@ -248,7 +248,8 @@ async function loadYahoo(connection, userId, week) {
   try {
     const raw = await client.getAvailablePlayers(connection.league_id, { count: 50, sort: "AR" });
     ({ pool, projectionMeta: poolProjection } = await projectYahooPool(
-      client, connection.league_id, roster.week, rosterSvc.normalizeYahooWaivers(raw)
+      client, connection.league_id, roster.week, rosterSvc.normalizeYahooWaivers(raw),
+      { rosterMeta: roster.projection_meta }
     ));
   } catch {
     pool = null;

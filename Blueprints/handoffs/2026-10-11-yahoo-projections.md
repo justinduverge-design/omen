@@ -29,11 +29,13 @@ Wiring (all call the same function; it never throws):
 | `routes/waivers.js` (waiver analysis) | pool projected; `availabilityConfirmed` true only when projections exist; limitations say the numbers are Sleeper's, re-scored, and say "approximate" when so |
 | `routes/optimizer.js` | pools projected |
 | Omen call response | `signals.projections.source` is `sleeper_public_projections_yahoo_scoring` or `..._approximate`, with a message naming the source; `data_used` gains a line; an approximate league adds a warning |
-| `services/optimizer.js` | null-safe: a null projection is never treated as 0 (it used to invent an edge for a projected bench player over an unmapped starter). An OUT starter with no projection is still replaced. Affects Sleeper/ESPN only when a player is unprojected there too |
+| `services/optimizer.js` | null-safe ONLY for rosters carrying `projection_meta` (i.e. Yahoo, filled in by Omen): there a null projection is "no number" and is never compared (it used to invent an edge for a projected bench player over an unmapped starter); an OUT starter with no projection is still replaced. Sleeper and ESPN are unchanged: a null there (bye week) still counts as zero, so a bye-week starter still swaps for a projected bench player (review P1-2, tests added). Yahoo bye-week players are recognised in `yahooProjections.js` (their whole NFL team has no projection this week, feed of at least 100 lines) and carry an explicit `projected_points: 0`, `projection_basis: "bye_week"` |
 
 Trade: Yahoo rosters now carry projections when the above succeeds, so `omenTradeCandidate` weighs a Yahoo trade like ESPN. When projections are unavailable it still reports `projections_unavailable`.
 
-No schema change. No contract fixtures needed: the new strings use existing fields (`signals.projections`, `warnings`, `explanation.data_used`, waiver `limitations`). `node scripts/contracts.js check` passes.
+No schema change. One recorded contract fixture changed: `test/contracts/fixtures/waiver-analysis.v1/availability_unknown.json`, whose Yahoo `limitations` string now says Omen could not build a projection from Sleeper's public projections (free text in an existing field; additive-safe, no shape change). Other new strings use existing fields (`signals.projections`, `warnings`, `explanation.data_used`, hold `reasons` gains a `projections_partial` code). `node scripts/contracts.js check` and `node scripts/contract-recorded.js compare <dir>` (recorded the way CI does) pass.
+
+Review follow-ups (PR #645): one 2.5 s budget per request (after a timed-out roster pass the pool gets a 150 ms grace); `fetchSleeperProjectionStatLines` is single-flight with a 30 s failure memory; a timed-out or errored pass is cached for 20 s instead of the 5-minute roster TTL; the kill switch accepts `1`/`true` and strips projections from a cached roster at once; Yahoo/Sleeper name matches also need the same position; the waiver pass discloses its source when the roster pass timed out; the Yahoo hold says Omen could not build projections (rather than blaming Yahoo) and notes partial coverage.
 
 ## Rights (read before the beta)
 
