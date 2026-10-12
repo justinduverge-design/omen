@@ -7,7 +7,7 @@ the 2026-08-29 M11A provider proof, and the screen matrix (`Direction/reviews/20
 Provider API facts come from the repo's own measured notes first, then public provider documentation and the
 community-documented ESPN "kona" API. **Nothing here was run against a live account in this session**; every
 "API offers" cell not already exercised by Omen is marked *documented, not exercised* and needs a probe before it is
-built on. Line numbers are on `main` at `f57c6091` unless noted.
+built on. Line numbers are on `main` at `f57c6091`. Bare `yahoo.js:N` means `src/services/yahoo.js` (the client) except where a cell says `adapters/yahoo.js`; PR #648 shifts lines in `services/yahoo.js` after ~130 by about +4 and in `espn.js` after ~680 by about +15, so use the symbol names when the numbers drift.
 
 ## Legend
 
@@ -54,7 +54,7 @@ built on. Line numbers are on `main` at `f57c6091` unless noted.
 |---|---|---|---|---|
 | Sleeper | `fetchSleeperLeague` (`sleeper.js:297`): name, season, status, `roster_positions`, `scoring_settings`, `settings.playoff_teams`, `trade_deadline`, `playoff_week_start`. Waiver system and scoring format derived (`waivers.js` `loadSleeper`, `scoringSnapshotResolver.js:216-235`). | `GET /v1/league/{id}` returns all of it; fully documented. | Public. Fails only on a wrong id (404). | Honest. |
 | ESPN | `mSettings` read three ways: name + standings (`buildLeagueContext`, `espn.js:683`), scoring rules (`fetchEspnScoringSettings` `espn.js:844`, `espnScoringRules` `:763`, reproduced `appliedTotal` for 15/15 players, 1 h cache), waiver settings (`waivers.js` `loadEspn`). **Playoff-team count added by G1** (`scheduleSettings.playoffTeamCount`). Trade deadline field still **unproven** (M11A claim 3). | `view=mSettings` carries scoring items, roster slot counts (`rosterSettings.lineupSlotCounts`), schedule/playoff settings, waiver and trade settings. Community-documented, not an official API. | Private leagues need the user's `espn_s2` + `SWID`; public leagues answer without. 401/403/400 means session expired, reconnect (`espn.js:464`). No official support: field names can change without notice. | Honest on scoring (`limitations` string on waivers; `scoringFormat: null` rather than default PPR). Roster slots are not read from settings, see gap G5. |
-| Yahoo | `getLeagueMetadata` (`yahoo.js:312`), raw `getLeagueSettings` (`:338`) used for waiver system (`waiverSystem.fromYahoo`, priority branch verified 2026-09-06, FAAB branch unverified) and scoring snapshot (`scoringSnapshotResolver.js:201`). **Playoff-team count added by G1** (`num_playoff_teams`, extra settings call, parallel, 2.5 s cap). | `/league/{key}/settings` returns stat categories, `stat_modifiers`, `roster_positions`, `num_playoff_teams`, `playoff_start_week`, `trade_end_date`, `uses_faab`, `waiver_type`. | OAuth `fspt-r`. 401 refreshes; 403 has four distinct causes (entitlement, IP block, rate limit, wrong audience), `get()` attaches Yahoo's body (`yahoo.js:96-130`). | Honest where used; Yahoo `roster_positions` and trade deadline not parsed (silent, they just do not appear). |
+| Yahoo | `getLeagueMetadata` (`yahoo.js:312`), raw `getLeagueSettings` (`:338`) used for waiver system (`waiverSystem.fromYahoo`, priority branch verified 2026-09-06, FAAB branch unverified) and scoring snapshot (`scoringSnapshotResolver.js:201`). **Playoff-team count added by G1** (`num_playoff_teams`, *documented, not exercised live*; extra settings call, parallel, 1.2 s cap). | `/league/{key}/settings` returns stat categories, `stat_modifiers`, `roster_positions`, `num_playoff_teams`, `playoff_start_week`, `trade_end_date` (these three *documented, not exercised*), `uses_faab`, `waiver_type` (exercised, verified 2026-09-06). | OAuth `fspt-r`. 401 refreshes; 403 has four distinct causes (entitlement, IP block, rate limit, wrong audience), `get()` attaches Yahoo's body (`yahoo.js:96-130`). | Honest where used; Yahoo `roster_positions` and trade deadline not parsed (silent, they just do not appear). |
 
 ### 2. User's roster and lineup slots
 
@@ -108,7 +108,7 @@ built on. Line numbers are on `main` at `f57c6091` unless noted.
 
 | Provider | Omen reads today | API offers | Auth / failure | Degrades |
 |---|---|---|---|---|
-| All | Omen does **not** use the providers for the NFL schedule. It uses its own `nflSchedule.js` (calendar context) and, for opponents, the warehouse/nflverse path. Bye detection from the provider is limited to "no matchup this week" (`no_matchup` for fantasy bye, `espn.js:1108`, `yahoo.js` null matchup). | Sleeper `/players/nfl` has team only; ESPN `proTeamId` plus `proTeamSchedules` in `kona_player_info`; Yahoo roster rows carry `bye_weeks`. | n/a | Honest for fantasy bye. A player's NFL bye is not a provider read, so it cannot disagree with the provider. |
+| All | Omen does **not** use the providers for the NFL schedule. It uses its own `nflSchedule.js` (calendar context) and, for opponents, the warehouse/nflverse path. Bye detection from the provider is limited to "no matchup this week" (`no_matchup` for fantasy bye, `espn.js:1108`, `yahoo.js` null matchup). | Sleeper `/players/nfl` has team only; ESPN `proTeamId` plus `proTeamSchedules` in `kona_player_info`; Yahoo roster rows carry `bye_weeks` (*documented, not exercised*). | n/a | Honest for fantasy bye. A player's NFL bye is not a provider read, so it cannot disagree with the provider. |
 
 ### 9. Injury and status
 
@@ -171,10 +171,11 @@ features.
 - `src/services/yahoo.js`: `YahooClient#getPlayoffTeamCount` reads `num_playoff_teams` from the verified
   `league[1].settings[0]` shape, returns null on any error.
 - `src/routes/league.js`: both overviews pass the count to `playoffPicture` and `standingsActivity`. The Yahoo settings
-  read starts beside the matchup read, so it adds no serial latency, and is capped at 2.5 s so it can never hold the
+  read starts beside the matchup read, so it adds no serial latency, and is capped at 1.2 s so it can never hold the
   overview. The overview is response-cached, so the extra Yahoo call is paid once per cache window.
 - Contract: no change to `league-overview.v1`. `settings_known`, `cut_line_note` and `activity` already exist; they now
-  fill for ESPN and Yahoo. `npm run contracts:check` passes with no lock change.
+  fill for ESPN and Yahoo. The recorded contract fixtures changed (`test/contracts/fixtures/league-overview.v1/200.shape1,5,6,7` re-recorded, `shape8-11` added): ESPN and Yahoo overviews now carry a populated `playoff_picture` (`settings_known: true`) and standings-derived `activity`. That is additive field population, reviewed as an API change; the schema lock (`scripts/contracts.js`) needed no change. Verified as CI does: `npm test` with the recorder, then `node scripts/contract-recorded.js compare <dir>` reports `fixtures current (141)`.
+- Sentry: the Yahoo settings read for the playoff count passes `{ report: false }`, so a persistent settings 403 does not report once per uncached overview; the waiver-path settings read still reports.
 - Tests: `test/providerPlayoffTeams.test.js` (parsers) and four cases in `test/leagueOverviewRoute.test.js`.
 - Unverified live: ESPN `scheduleSettings.playoffTeamCount` and Yahoo `num_playoff_teams` need one read against a real
   league (device walk 2). If either is absent the cut line stays unclaimed, exactly as before.

@@ -801,7 +801,7 @@ async function yahooOverview(connection, userId, context) {
   });
 }
 
-const YAHOO_PLAYOFF_SETTINGS_BUDGET_MS = 2500;
+const YAHOO_PLAYOFF_SETTINGS_BUDGET_MS = 1200;
 
 /** `num_playoff_teams` for a Yahoo league, or null. Never throws and never waits past the budget. */
 function readYahooPlayoffTeams(client, leagueKey) {

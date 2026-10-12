@@ -556,6 +556,94 @@ test("Yahoo overview reads the playoff-team count from league settings", async (
   assert.equal(res.body.standings.playoff_picture.settings_known, true);
 });
 
+// Real ESPN adapter, only the network stubbed, so the playoff count travels the whole real path:
+// HTTPS body -> buildLeagueContext -> route -> league-overview.v1.
+function realEspnAdapterReturning(body) {
+  const adapterPath = require.resolve("../src/adapters/espn");
+  const { EventEmitter } = require("node:events");
+  delete require.cache[adapterPath];
+  const originalLoad = Module._load;
+  Module._load = function patched(request, parent, isMain) {
+    if (request === "https" && parent?.filename === adapterPath) {
+      return {
+        request: (_options, callback) => {
+          const req = new EventEmitter();
+          req.end = () => {
+            const res = new EventEmitter();
+            res.statusCode = 200;
+            callback(res);
+            res.emit("data", Buffer.from(JSON.stringify(body)));
+            res.emit("end");
+          };
+          return req;
+        },
+      };
+    }
+    return originalLoad.call(this, request, parent, isMain);
+  };
+  try {
+    return require("../src/adapters/espn");
+  } finally {
+    Module._load = originalLoad;
+    delete require.cache[adapterPath];
+  }
+}
+
+function espnLeagueBody(scheduleSettings) {
+  const team = (id, wins, losses, pf) => ({
+    id,
+    name: `Team ${id}`,
+    record: { overall: { wins, losses, pointsFor: pf, pointsAgainst: 100 } },
+  });
+  return {
+    settings: { name: "Real Path League", ...(scheduleSettings ? { scheduleSettings } : {}) },
+    teams: [team(3, 7, 1, 900), team(9, 6, 2, 850), team(5, 2, 6, 600)],
+  };
+}
+
+test("ESPN overview: playoffTeamCount travels the real adapter parse path to the cut line", async () => {
+  const real = realEspnAdapterReturning(espnLeagueBody({ playoffTeamCount: 2 }));
+  const app = buildApp({
+    connections: [ESPN_CONNECTION],
+    espnAdapter: { buildLeagueContext: real.buildLeagueContext, fetchEspnMatchup: defaultEspnAdapter().fetchEspnMatchup },
+  });
+
+  const res = await request(app, "/api/league/overview");
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.league_name, "Real Path League");
+  assert.equal(res.body.standings.playoff_picture.settings_known, true);
+  assert.equal(res.body.standings.playoff_picture.line, "2nd of 3 · in a playoff spot");
+});
+
+test("ESPN overview: an mSettings payload without the field claims no cut line (real parse path)", async () => {
+  const real = realEspnAdapterReturning(espnLeagueBody(null));
+  const app = buildApp({
+    connections: [ESPN_CONNECTION],
+    espnAdapter: { buildLeagueContext: real.buildLeagueContext, fetchEspnMatchup: defaultEspnAdapter().fetchEspnMatchup },
+  });
+
+  const res = await request(app, "/api/league/overview");
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.standings.playoff_picture.settings_known, false);
+});
+
+test("Yahoo overview: a hanging settings read cannot hold the overview past its cap", async () => {
+  const app = buildApp({
+    connections: [YAHOO_CONNECTION],
+    yahooClient: fakeYahooClient({ getPlayoffTeamCount: () => new Promise(() => {}) }),
+  });
+
+  const started = Date.now();
+  const res = await request(app, "/api/league/overview");
+  const elapsed = Date.now() - started;
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.standings.playoff_picture.settings_known, false);
+  assert.ok(elapsed < 2500, `overview took ${elapsed} ms with a hung settings read`);
+});
+
 test("Yahoo overview survives a failing or empty settings read with no cut line", async () => {
   for (const getPlayoffTeamCount of [
     async () => { throw new Error("yahoo down"); },

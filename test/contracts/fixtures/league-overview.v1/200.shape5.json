@@ -12,14 +12,13 @@
     "capabilities": [
       {
         "fresh_until": null,
-        "kind": "limitation",
+        "kind": "inference",
         "name": "league_activity",
-        "observed_at": null,
-        "reason_code": "settings_not_read",
+        "observed_at": "2026-01-01T00:00:00.000Z",
         "source": "derived_standings",
-        "state": "unavailable",
-        "statement": "Omen cannot evaluate standings-backed activity with the available league context.",
-        "used": false
+        "state": "live",
+        "statement": "Omen evaluated standings-backed league activity from the verified league table.",
+        "used": true
       },
       {
         "fresh_until": null,
@@ -33,14 +32,13 @@
       },
       {
         "fresh_until": null,
-        "kind": "limitation",
+        "kind": "verified",
         "name": "league_playoff_settings",
-        "observed_at": null,
-        "reason_code": "settings_not_read",
+        "observed_at": "2026-01-01T00:00:00.000Z",
         "source": "espn_league_settings",
-        "state": "unavailable",
-        "statement": "Omen has not read a playoff-team setting for this league.",
-        "used": false
+        "state": "live",
+        "statement": "Omen read this league's playoff-team setting.",
+        "used": true
       },
       {
         "fresh_until": null,
@@ -80,10 +78,10 @@
       "contract_version": "shared-decision-context.v1",
       "inputs": {
         "league_activity": {
-          "reason_code": "settings_not_read",
+          "observed_at": "2026-01-01T00:00:00.000Z",
           "source": "derived_standings",
-          "state": "unavailable",
-          "used": false
+          "state": "live",
+          "used": true
         },
         "league_matchup": {
           "observed_at": "2026-01-01T00:00:00.000Z",
@@ -92,10 +90,10 @@
           "used": true
         },
         "league_playoff_settings": {
-          "reason_code": "settings_not_read",
+          "observed_at": "2026-01-01T00:00:00.000Z",
           "source": "espn_league_settings",
-          "state": "unavailable",
-          "used": false
+          "state": "live",
+          "used": true
         },
         "league_standings": {
           "observed_at": "2026-01-01T00:00:00.000Z",
@@ -117,21 +115,13 @@
         }
       },
       "inputs_used": [
+        "league_activity",
         "league_matchup",
+        "league_playoff_settings",
         "league_standings",
         "selected_context"
       ],
       "limitations": [
-        {
-          "name": "league_activity",
-          "reason_code": "settings_not_read",
-          "state": "unavailable"
-        },
-        {
-          "name": "league_playoff_settings",
-          "reason_code": "settings_not_read",
-          "state": "unavailable"
-        },
         {
           "name": "league_transactions",
           "reason_code": "not_requested",
@@ -142,7 +132,7 @@
     },
     "generated_at": "2026-01-01T00:00:00.000Z",
     "league_id": "espn-1",
-    "league_name": "The Titans of Slopsilonia",
+    "league_name": "L",
     "matchup": {
       "game_id": "g-1",
       "opponent": {
@@ -165,21 +155,37 @@
     "season": 2026,
     "standings": {
       "playoff_picture": {
-        "cut_line_note": null,
-        "line": "1st of 1",
-        "rank": 1,
-        "settings_known": false,
-        "team_count": 1
+        "cut_line_note": "4 games clear of the cut line",
+        "line": "2nd of 3 · in a playoff spot",
+        "rank": 2,
+        "settings_known": true,
+        "team_count": 3
       },
       "status": "available",
       "teams": [
         {
-          "is_current_user": true,
-          "losses": 3,
+          "is_current_user": false,
+          "losses": 1,
           "rank": 1,
+          "team_id": "3",
+          "team_name": "Top Dogs",
+          "wins": 7
+        },
+        {
+          "is_current_user": true,
+          "losses": 2,
+          "rank": 2,
           "team_id": "9",
           "team_name": "ESPN Team",
-          "wins": 5
+          "wins": 6
+        },
+        {
+          "is_current_user": false,
+          "losses": 6,
+          "rank": 3,
+          "team_id": "5",
+          "team_name": "Also Rans",
+          "wins": 2
         }
       ]
     },
