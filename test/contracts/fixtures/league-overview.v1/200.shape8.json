@@ -1,0 +1,187 @@
+{
+  "http_status": 200,
+  "route": "/api/league/overview",
+  "body": {
+    "activity": {
+      "items": [],
+      "status": "empty",
+      "unavailable_families": [
+        "transactions"
+      ]
+    },
+    "capabilities": [
+      {
+        "fresh_until": null,
+        "kind": "inference",
+        "name": "league_activity",
+        "observed_at": "2026-01-01T00:00:00.000Z",
+        "source": "derived_standings",
+        "state": "live",
+        "statement": "Omen evaluated standings-backed league activity from the verified league table.",
+        "used": true
+      },
+      {
+        "fresh_until": null,
+        "kind": "limitation",
+        "name": "league_matchup",
+        "observed_at": null,
+        "reason_code": "provider_failed",
+        "source": "sleeper_matchups",
+        "state": "unavailable",
+        "statement": "Omen could not read this week's matchup for this league.",
+        "used": false
+      },
+      {
+        "fresh_until": null,
+        "kind": "verified",
+        "name": "league_playoff_settings",
+        "observed_at": "2026-01-01T00:00:00.000Z",
+        "source": "sleeper_league_settings",
+        "state": "live",
+        "statement": "Omen read this league's playoff-team setting.",
+        "used": true
+      },
+      {
+        "fresh_until": null,
+        "kind": "verified",
+        "name": "league_standings",
+        "observed_at": "2026-01-01T00:00:00.000Z",
+        "source": "sleeper_league_standings",
+        "state": "live",
+        "statement": "Omen read the current standings from your connected Sleeper league.",
+        "used": true
+      },
+      {
+        "fresh_until": null,
+        "kind": "limitation",
+        "name": "league_transactions",
+        "observed_at": null,
+        "reason_code": "not_requested",
+        "source": "provider_transactions",
+        "state": "unavailable",
+        "statement": "Omen has not read league transactions for this overview.",
+        "used": false
+      },
+      {
+        "fresh_until": null,
+        "kind": "verified",
+        "name": "selected_context",
+        "observed_at": "2026-01-01T00:00:00.000Z",
+        "source": "owned_platform_connection",
+        "state": "live",
+        "statement": "Omen scoped this overview to your connected Sleeper league.",
+        "used": true
+      }
+    ],
+    "capability_contract": "decision-capabilities.v1",
+    "contract_version": "league-overview.v1",
+    "decision_context": {
+      "contract_version": "shared-decision-context.v1",
+      "inputs": {
+        "league_activity": {
+          "observed_at": "2026-01-01T00:00:00.000Z",
+          "source": "derived_standings",
+          "state": "live",
+          "used": true
+        },
+        "league_matchup": {
+          "reason_code": "provider_failed",
+          "source": "sleeper_matchups",
+          "state": "unavailable",
+          "used": false
+        },
+        "league_playoff_settings": {
+          "observed_at": "2026-01-01T00:00:00.000Z",
+          "source": "sleeper_league_settings",
+          "state": "live",
+          "used": true
+        },
+        "league_standings": {
+          "observed_at": "2026-01-01T00:00:00.000Z",
+          "source": "sleeper_league_standings",
+          "state": "live",
+          "used": true
+        },
+        "league_transactions": {
+          "reason_code": "not_requested",
+          "source": "provider_transactions",
+          "state": "not_requested",
+          "used": false
+        },
+        "selected_context": {
+          "observed_at": "2026-01-01T00:00:00.000Z",
+          "source": "owned_platform_connection",
+          "state": "live",
+          "used": true
+        }
+      },
+      "inputs_used": [
+        "league_activity",
+        "league_playoff_settings",
+        "league_standings",
+        "selected_context"
+      ],
+      "limitations": [
+        {
+          "name": "league_matchup",
+          "reason_code": "provider_failed",
+          "state": "unavailable"
+        },
+        {
+          "name": "league_transactions",
+          "reason_code": "not_requested",
+          "state": "not_requested"
+        }
+      ],
+      "profile": "league"
+    },
+    "generated_at": "2026-01-01T00:00:00.000Z",
+    "league_id": "league-1",
+    "league_name": "Sleeper League",
+    "matchup": {
+      "opponent": null,
+      "status": "unavailable",
+      "unavailable_reason": "provider_failed",
+      "you": null
+    },
+    "platform": "sleeper",
+    "season": 2026,
+    "standings": {
+      "playoff_picture": {
+        "cut_line_note": "4 games clear of the cut line",
+        "line": "2nd of 3 · in a playoff spot",
+        "rank": 2,
+        "settings_known": true,
+        "team_count": 3
+      },
+      "status": "available",
+      "teams": [
+        {
+          "is_current_user": false,
+          "losses": 1,
+          "rank": 1,
+          "team_id": "3",
+          "team_name": "Top Dogs",
+          "wins": 7
+        },
+        {
+          "is_current_user": true,
+          "losses": 2,
+          "rank": 2,
+          "team_id": "7",
+          "team_name": "Ravens Flock",
+          "wins": 6
+        },
+        {
+          "is_current_user": false,
+          "losses": 6,
+          "rank": 3,
+          "team_id": "9",
+          "team_name": "Also Rans",
+          "wins": 2
+        }
+      ]
+    },
+    "week": 8
+  }
+}

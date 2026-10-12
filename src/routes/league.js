@@ -701,7 +701,7 @@ async function sleeperOverview(connection, context) {
 
 async function espnOverview(connection, userId, context) {
   const credentials = await getAuthenticatedEspnCredentials(userId);
-  const { league_name: espnLeagueName, standings } = await espnAdapter.buildLeagueContext(
+  const { league_name: espnLeagueName, standings, playoff_teams: espnPlayoffTeams } = await espnAdapter.buildLeagueContext(
     connection.league_id,
     credentials.espn_s2,
     credentials.swid,
@@ -724,12 +724,14 @@ async function espnOverview(connection, userId, context) {
     league_name: espnLeagueName,
     matchup,
     standings: {
-      // No playoff-team count: ESPN's settings field is M11A claim 3 and is still unproven.
-      // Passing `undefined` keeps `settings_known: false`, which is the honest answer.
-      playoff_picture: playoffPicture(standings, undefined),
+      // The count comes from the `mSettings` payload this read already makes
+      // (`settings.scheduleSettings.playoffTeamCount`). When ESPN omits it or it is malformed it
+      // is null, `settings_known` stays false and no cut line is claimed.
+      playoff_picture: playoffPicture(standings, espnPlayoffTeams ?? undefined),
       status: standings.length ? "available" : "off_season",
       teams: standings,
     },
+    activity: standingsActivity(standings, espnPlayoffTeams ?? undefined),
   });
 }
 
@@ -759,6 +761,12 @@ async function yahooOverview(connection, userId, context) {
   const shared = {};
   const standingsEnvelope = await yahooStandings(connection, userId, context, shared);
 
+  // The playoff-team count is a separate, best-effort settings read. It starts now and runs
+  // beside the matchup read (no added serial latency), is capped so a slow settings call can
+  // never hold the overview, and resolves to null on any failure: the cut line is then simply
+  // not claimed.
+  const playoffTeamsPromise = readYahooPlayoffTeams(shared.client, connection.league_id);
+
   let matchup = { status: "unavailable", you: null, opponent: null, unavailable_reason: "provider_failed" };
   try {
     // Reuse the client and team key the standings read just fetched; fall back to a fresh
@@ -777,6 +785,8 @@ async function yahooOverview(connection, userId, context) {
     logger.warn("League overview matchup read failed", { err: e.message, platform: "yahoo" });
   }
 
+  const yahooPlayoffTeams = await playoffTeamsPromise;
+
   return overviewEnvelope(connection, context, {
     league_name: standingsEnvelope.league_name,
     season: standingsEnvelope.season,
@@ -784,11 +794,27 @@ async function yahooOverview(connection, userId, context) {
     matchup,
     standings: {
       status: standingsEnvelope.standings.length ? "available" : "off_season",
-      // Yahoo's playoff-team count is a separate settings read Omen has not mapped yet.
-      playoff_picture: playoffPicture(standingsEnvelope.standings, undefined),
+      playoff_picture: playoffPicture(standingsEnvelope.standings, yahooPlayoffTeams ?? undefined),
       teams: standingsEnvelope.standings,
     },
+    activity: standingsActivity(standingsEnvelope.standings, yahooPlayoffTeams ?? undefined),
   });
+}
+
+const YAHOO_PLAYOFF_SETTINGS_BUDGET_MS = 1200;
+
+/** `num_playoff_teams` for a Yahoo league, or null. Never throws and never waits past the budget. */
+function readYahooPlayoffTeams(client, leagueKey) {
+  if (!client || typeof client.getPlayoffTeamCount !== "function") return Promise.resolve(null);
+  let timer;
+  const budget = new Promise((resolve) => {
+    timer = setTimeout(() => resolve(null), YAHOO_PLAYOFF_SETTINGS_BUDGET_MS);
+    timer.unref?.();
+  });
+  return Promise.race([
+    Promise.resolve().then(() => client.getPlayoffTeamCount(leagueKey)).catch(() => null),
+    budget,
+  ]).finally(() => clearTimeout(timer));
 }
 
 /**

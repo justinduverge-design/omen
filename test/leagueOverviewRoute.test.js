@@ -483,3 +483,176 @@ test("activity items are capped at three by the server, never by the client", as
 
   assert.ok(res.body.activity.items.length <= 3);
 });
+
+// ---------------------------------------------------------------------------
+// ESPN and Yahoo playoff-team counts (provider capability matrix v1, gap G1).
+// ---------------------------------------------------------------------------
+
+const THREE_TEAM_STANDINGS = [
+  { rank: 1, team_id: "3", team_name: "Top Dogs", is_current_user: false, wins: 7, losses: 1 },
+  { rank: 2, team_id: "9", team_name: "ESPN Team", is_current_user: true, wins: 6, losses: 2 },
+  { rank: 3, team_id: "5", team_name: "Also Rans", is_current_user: false, wins: 2, losses: 6 },
+];
+
+test("ESPN overview draws a real cut line when mSettings supplies the playoff-team count", async () => {
+  const app = buildApp({
+    connections: [ESPN_CONNECTION],
+    espnAdapter: defaultEspnAdapter({
+      buildLeagueContext: async () => ({ league_name: "L", standings: THREE_TEAM_STANDINGS, playoff_teams: 2 }),
+    }),
+  });
+
+  const res = await request(app, "/api/league/overview");
+  const picture = res.body.standings.playoff_picture;
+
+  assert.equal(picture.settings_known, true);
+  assert.equal(picture.line, "2nd of 3 · in a playoff spot");
+  assert.equal(picture.cut_line_note, "4 games clear of the cut line");
+  assert.equal(res.body.decision_context.inputs.league_playoff_settings.state, "live");
+});
+
+test("ESPN overview without a playoff-team count still claims no cut line", async () => {
+  const app = buildApp({
+    connections: [ESPN_CONNECTION],
+    espnAdapter: defaultEspnAdapter({
+      buildLeagueContext: async () => ({ league_name: "L", standings: THREE_TEAM_STANDINGS, playoff_teams: null }),
+    }),
+  });
+
+  const res = await request(app, "/api/league/overview");
+
+  assert.equal(res.body.standings.playoff_picture.settings_known, false);
+  assert.equal(res.body.standings.playoff_picture.cut_line_note, null);
+  assert.equal(res.body.decision_context.inputs.league_playoff_settings.reason_code, "settings_not_read");
+});
+
+function fakeYahooClient(overrides = {}) {
+  return {
+    getLeagueMetadata: async () => ({ league_name: "Yahoo League", season: 2026, week: 8 }),
+    getMyTeamKey: async () => "nfl.l.1.t.9",
+    getLeagueStandings: async () => THREE_TEAM_STANDINGS.map((t) => ({ ...t, team_id: `nfl.l.1.t.${t.team_id}` })),
+    getMatchup: async () => null,
+    getPlayoffTeamCount: async () => 2,
+    ...overrides,
+  };
+}
+
+const YAHOO_CONNECTION = {
+  user_id: "user-1",
+  platform: "yahoo",
+  is_active: true,
+  league_id: "nfl.l.1",
+  token_secret_id: "t",
+  refresh_secret_id: "r",
+};
+
+test("Yahoo overview reads the playoff-team count from league settings", async () => {
+  const app = buildApp({ connections: [YAHOO_CONNECTION], yahooClient: fakeYahooClient() });
+
+  const res = await request(app, "/api/league/overview");
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.platform, "yahoo");
+  assert.equal(res.body.standings.playoff_picture.settings_known, true);
+});
+
+// Real ESPN adapter, only the network stubbed, so the playoff count travels the whole real path:
+// HTTPS body -> buildLeagueContext -> route -> league-overview.v1.
+function realEspnAdapterReturning(body) {
+  const adapterPath = require.resolve("../src/adapters/espn");
+  const { EventEmitter } = require("node:events");
+  delete require.cache[adapterPath];
+  const originalLoad = Module._load;
+  Module._load = function patched(request, parent, isMain) {
+    if (request === "https" && parent?.filename === adapterPath) {
+      return {
+        request: (_options, callback) => {
+          const req = new EventEmitter();
+          req.end = () => {
+            const res = new EventEmitter();
+            res.statusCode = 200;
+            callback(res);
+            res.emit("data", Buffer.from(JSON.stringify(body)));
+            res.emit("end");
+          };
+          return req;
+        },
+      };
+    }
+    return originalLoad.call(this, request, parent, isMain);
+  };
+  try {
+    return require("../src/adapters/espn");
+  } finally {
+    Module._load = originalLoad;
+    delete require.cache[adapterPath];
+  }
+}
+
+function espnLeagueBody(scheduleSettings) {
+  const team = (id, wins, losses, pf) => ({
+    id,
+    name: `Team ${id}`,
+    record: { overall: { wins, losses, pointsFor: pf, pointsAgainst: 100 } },
+  });
+  return {
+    settings: { name: "Real Path League", ...(scheduleSettings ? { scheduleSettings } : {}) },
+    teams: [team(3, 7, 1, 900), team(9, 6, 2, 850), team(5, 2, 6, 600)],
+  };
+}
+
+test("ESPN overview: playoffTeamCount travels the real adapter parse path to the cut line", async () => {
+  const real = realEspnAdapterReturning(espnLeagueBody({ playoffTeamCount: 2 }));
+  const app = buildApp({
+    connections: [ESPN_CONNECTION],
+    espnAdapter: { buildLeagueContext: real.buildLeagueContext, fetchEspnMatchup: defaultEspnAdapter().fetchEspnMatchup },
+  });
+
+  const res = await request(app, "/api/league/overview");
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.league_name, "Real Path League");
+  assert.equal(res.body.standings.playoff_picture.settings_known, true);
+  assert.equal(res.body.standings.playoff_picture.line, "2nd of 3 · in a playoff spot");
+});
+
+test("ESPN overview: an mSettings payload without the field claims no cut line (real parse path)", async () => {
+  const real = realEspnAdapterReturning(espnLeagueBody(null));
+  const app = buildApp({
+    connections: [ESPN_CONNECTION],
+    espnAdapter: { buildLeagueContext: real.buildLeagueContext, fetchEspnMatchup: defaultEspnAdapter().fetchEspnMatchup },
+  });
+
+  const res = await request(app, "/api/league/overview");
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.standings.playoff_picture.settings_known, false);
+});
+
+test("Yahoo overview: a hanging settings read cannot hold the overview past its cap", async () => {
+  const app = buildApp({
+    connections: [YAHOO_CONNECTION],
+    yahooClient: fakeYahooClient({ getPlayoffTeamCount: () => new Promise(() => {}) }),
+  });
+
+  const started = Date.now();
+  const res = await request(app, "/api/league/overview");
+  const elapsed = Date.now() - started;
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.standings.playoff_picture.settings_known, false);
+  assert.ok(elapsed < 2500, `overview took ${elapsed} ms with a hung settings read`);
+});
+
+test("Yahoo overview survives a failing or empty settings read with no cut line", async () => {
+  for (const getPlayoffTeamCount of [
+    async () => { throw new Error("yahoo down"); },
+    async () => null,
+  ]) {
+    const app = buildApp({ connections: [YAHOO_CONNECTION], yahooClient: fakeYahooClient({ getPlayoffTeamCount }) });
+    const res = await request(app, "/api/league/overview");
+    assert.equal(res.status, 200);
+    assert.equal(res.body.standings.status, "available");
+    assert.equal(res.body.standings.playoff_picture.settings_known, false);
+  }
+});
