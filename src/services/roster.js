@@ -26,12 +26,19 @@ const { Redis }  = require("@upstash/redis");
 const config     = require("../config");
 const { logger } = require("../middleware/logging");
 const YahooClient = require("./yahoo");
+const {
+  enrichYahooPlayers,
+  isDisabled: isProjectionKillSwitchOn,
+  isTransientMeta,
+  stripYahooProjections,
+} = require("./yahooProjections");
 
 const redis = config.redisUrl
   ? new Redis({ url: config.redisUrl, token: config.redisToken })
   : null;
 
 const ROSTER_TTL_S = 300; // 5 minutes - rosters change as users start/sit
+const PROJECTION_RETRY_TTL_S = 20; // a roster whose projection build timed out is re-tried soon
 
 /**
  * Bench positions in Yahoo: "BN" (bench), "IR" (injured reserve),
@@ -134,6 +141,11 @@ async function fetchAndNormalizeRoster(yahoo, leagueKey, week, cacheKey) {
     const cached = await redis.get(cacheKey).catch(() => null);
     if (cached) {
       const parsed = typeof cached === "string" ? JSON.parse(cached) : cached;
+      if (isProjectionKillSwitchOn() && parsed?.slots) {
+        // The kill switch must work now, not when this entry expires.
+        stripYahooProjections([...(parsed.slots.starters || []), ...(parsed.slots.bench || []), ...(parsed.slots.ir || [])]);
+        parsed.projection_meta = { available: false, source: "sleeper_public_projections", scoring_basis: null, players_total: 0, players_with_projection: 0, reason: "disabled" };
+      }
       return { ...parsed, source: "cache" };
     }
   }
@@ -148,9 +160,18 @@ async function fetchAndNormalizeRoster(yahoo, leagueKey, week, cacheKey) {
   const normalized    = normalizeYahooRoster(raw, effectiveWeek);
   normalized.team_key  = teamKey;
   normalized.league_key = leagueKey;
+  // Yahoo carries no projection of its own; fill it from Sleeper's public stat lines scored with this
+  // league's rules (yahooProjections.js). Best effort and bounded: it never fails the roster read.
+  normalized.projection_meta = await enrichYahooPlayers(
+    [...normalized.slots.starters, ...normalized.slots.bench, ...normalized.slots.ir],
+    { client: yahoo, leagueKey, week: effectiveWeek }
+  );
 
   if (cacheKey && redis) {
-    await redis.set(cacheKey, JSON.stringify(normalized), { ex: ROSTER_TTL_S }).catch(() => {});
+    // A pass that timed out or hit a provider error says nothing lasting about this league, so it is
+    // kept only briefly instead of pinning the user on "cannot rank" for the whole roster TTL.
+    const ttl = isTransientMeta(normalized.projection_meta) ? PROJECTION_RETRY_TTL_S : ROSTER_TTL_S;
+    await redis.set(cacheKey, JSON.stringify(normalized), { ex: ttl }).catch(() => {});
   }
   return { ...normalized, source: "yahoo" };
 }
