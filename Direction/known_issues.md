@@ -2,7 +2,7 @@
 
 Last updated: 2026-09-13 (auto-heal deployed and proven under systemd; entry resolved same day)
 
-## 🟡 OPEN — proxying through Cloudflare costs ~4% of requests as 522s — found and reverted 2026-09-05
+## 🟡 OPEN — proxying through Cloudflare costs ~4% of requests as 522s — found and reverted 2026-09-05 ([#657](https://github.com/justinduverge-design/omen/issues/657))
 
 **Cloudflare is live as the DNS provider. The proxy (orange cloud) is OFF for the web records,
 deliberately.** `slopssaloon.com` and `www` are `dns-only` and resolve straight to `2.25.182.1`.
@@ -64,7 +64,7 @@ fine. The check queried `hostingermail-a.slopssaloon.com` when the actual record
 shape as the NXDOMAIN mistake above: **an empty result is only evidence when you are certain you
 asked the right question.**
 
-## 🟡 OPEN — the only off-host database backup lives on a VPS scheduled to expire 2027-05-06 — noted 2026-09-05
+## 🟡 OPEN — the only off-host database backup lives on a VPS scheduled to expire 2027-05-06 — noted 2026-09-05 ([#657](https://github.com/justinduverge-design/omen/issues/657))
 
 **Not urgent. Easy to forget. Expensive if forgotten.**
 
@@ -100,7 +100,7 @@ proven. Restart with
 `Blueprints/prompts/football-intelligence-artifact-dr-decision.md`; do not infer that KVM2
 will be renewed or replaced.
 
-## 🟡 OPEN — one ESPN connection row has no `espn_team_id`
+## 🟡 OPEN — one ESPN connection row has no `espn_team_id` ([#657](https://github.com/justinduverge-design/omen/issues/657))
 
 Surfaced 2026-09-07 by `scripts/espn-projection-live-proof.js` running over every connected ESPN
 league. One row (league `2114292181`) resolves to
@@ -117,7 +117,7 @@ rejecting. Discovery cannot run, so nothing ever binds a team id. It should stop
 row the moment that connection is re-established — the directory now tells the user to do exactly
 that. Re-check after a reconnect before treating it as a separate defect.
 
-## 🟡 OPEN — an undrafted Sleeper league says the wrong true thing
+## 🟡 OPEN — an undrafted Sleeper league says the wrong true thing ([#657](https://github.com/justinduverge-design/omen/issues/657))
 
 Founder on a real device, 2026-09-07: "Sleeper doesn't display the matchup on every league, which
 is funky... Oh, I think that's because that was not drafted."
@@ -135,7 +135,7 @@ Not done because it is a `league-overview.v1` contract addition, not a copy twea
 to reach the client as data, and the other two providers need a defined answer for the same field.
 Scoped, not skipped.
 
-## 🟡 OPEN — iOS `CanvasChevronLeft` has the Android chevron's bug, and `OmenIconButton` cannot fix it
+## 🟡 OPEN — iOS `CanvasChevronLeft` has the Android chevron's bug, and `OmenIconButton` cannot fix it ([#657](https://github.com/justinduverge-design/omen/issues/657))
 
 Found 2026-09-07 while fixing the Android twin; **not** fixed, to keep that session's change inside
 the founder's stated Android + ESPN scope.
@@ -156,7 +156,7 @@ Checked before proposing: `CanvasChevronLeft` is the **only** asset image passed
 `OmenIconButton` — the other eleven call sites use SF Symbols — so template rendering cannot
 recolour a multicolour mark.
 
-## 🟡 OPEN — the stacked Omen lockup is a dark-only asset on both platforms
+## 🟡 OPEN — the stacked Omen lockup is a dark-only asset on both platforms ([#657](https://github.com/justinduverge-design/omen/issues/657))
 
 Deliberately **not** fixed on 2026-09-07, because it is a brand decision and not a bug fix.
 
