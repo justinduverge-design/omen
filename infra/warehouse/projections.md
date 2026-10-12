@@ -62,7 +62,15 @@ cover them.
 - `FOOTBALL_PROJECTIONS_DISABLED=1` on the API stops stored reads (live fetch continues) and on the ingest unit stops the stage.
 - Unset `FOOTBALL_WAREHOUSE_PROJECTIONS_ENABLED` to stop storing; unset `FOOTBALL_PROJECTIONS_STORE_READ_ENABLED` to stop reading.
 - If permission is refused: set the kill switch, then drop the three tables (`player_weekly_projection_versions`,
-  `player_weekly_projections`, `projection_fetch_runs`, in that order) and delete ledger row version 3. Nothing else depends on them.
+  `player_weekly_projections`, `projection_fetch_runs`, in that order), the function `football.reject_projection_version_change()`, and
+  delete ledger row version 3, all in one transaction. Exact SQL, plus the post-drop verify, is in the handoff's Rollback section
+  (`Blueprints/handoffs/2026-10-11-warehouse-weekly-projections.md`). Nothing else depends on them.
+- **Never run an ingest worker image older than this release while ledger version 3 is applied**: older `verifyWarehouseTarget` accepts only
+  version 2, so every ingest fails and, because backups run on `OnSuccess`, no backups are taken. Drop the schema back to version 2 first.
+- A legitimate shrink of more than 20% (`source_partial`) needs the baseline moved by hand; the handoff has the exact SQL.
+- Backups: retention groups by `host,tags`; schema-v3 snapshots form a new group and schema-v2 snapshots will not age out by themselves.
+- Re-running the 0003 access policy after version 3 over-grants (writer UPDATE/DELETE and reader SELECT on the history table);
+  `production_readonly.sql` flags it.
 
 ## Tests
 

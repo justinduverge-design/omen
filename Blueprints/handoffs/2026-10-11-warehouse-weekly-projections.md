@@ -4,9 +4,8 @@ Founder decision 2026-10-11: accept the rights risk on Sleeper's rotowire-tagged
 pending), STORE them, use them only inside the product, never redistribute raw projections, keep source and provenance
 on every row, keep a kill switch. Nothing here was deployed or applied to production.
 
-Design and operations notes: `infra/warehouse/projections.md`. Stacked on PR #645 (Yahoo projections), which has not merged:
-`src/adapters/sleeper.js` and `yahooProjections.js` are the consumers, so the PR base is `yahoo-projections-sleeper-scored`.
-If #645 merges first, retarget this PR to `main`.
+Design and operations notes: `infra/warehouse/projections.md`. PR #645 (Yahoo projections) has merged; this PR targets `main`.
+`src/adapters/sleeper.js` and `yahooProjections.js` are the consumers of the stored read path.
 
 ## What exists now
 
@@ -69,7 +68,9 @@ next 07:15 ET ingest stops at its target check.
 1. **Deploy first.** Build and select a release that includes this code (the ingest worker image carries `src`). Do NOT yet add the
    projections flag. This release accepts ledger versions 2 and 3, so it runs unchanged against today's schema. Confirm with a
    manual run: `sudo systemctl start omen-warehouse-ingest`, then `journalctl -u omen-warehouse-ingest -n 40` shows a succeeded run.
-2. **Back up.** `sudo systemctl start omen-warehouse-backup` and confirm it finished.
+2. **Confirm the backup from step 1 finished.** The manual ingest in step 1 already starts `omen-warehouse-backup` through
+   `OnSuccess`, so do not start a second one: `systemctl status omen-warehouse-backup` (or `journalctl -u omen-warehouse-backup -n 40`)
+   must show it completed, and that snapshot (schema version 2) is your pre-apply restore point.
 3. **Apply the schema, outside the 07:15 ET ingest window** (the apply has a 5 s lock timeout, but do not race the ingest). From a
    checkout of this PR on KVM1:
 
@@ -90,6 +91,12 @@ bash infra/warehouse/verify-production-readonly.sh
 sudo systemctl start omen-warehouse-ingest          # or the release's `ingest --season YYYY` / `source-validate` command
 journalctl -u omen-warehouse-ingest -n 40           # must show state "succeeded", not warehouse_target_mismatch
 ```
+
+   This run succeeding also triggers `omen-warehouse-backup` (`OnSuccess`). That is the post-apply backup: after it finishes, confirm
+   the snapshot manifest records `schema_version` 3 (the backup tags it `schema-v3`; check the newest snapshot's `manifest.json`
+   on the backup target, or `journalctl -u omen-warehouse-backup -n 40`). Optionally run `infra/warehouse/backup/run-weekly-restore-proof.sh`
+   once on KVM2 so the first schema-v3 snapshot has a restore proof before you rely on it. Note that restore-proof row counts do not
+   cover the new tables (fixed required set in `manifest.js`).
 
 5. **Enable the stage.** In the release's `infra/warehouse/docker-compose.yml`, `ingest` service, `environment:`, next to the derived flag:
 
@@ -113,7 +120,56 @@ docker exec omen_football_warehouse psql -U postgres -d omen_football -c \
    on game days the stored projections can be up to a day old while the live Sleeper fetch is not. Kill switch, either side,
    immediate: `FOOTBALL_PROJECTIONS_DISABLED=1`.
 
-Rollback: unset the two enable flags (and restart the API). Full removal is in `infra/warehouse/projections.md`.
+### Rollback
+
+- **Soft rollback (normal):** unset `FOOTBALL_WAREHOUSE_PROJECTIONS_ENABLED` and `FOOTBALL_PROJECTIONS_STORE_READ_ENABLED` (and restart the
+  API), or set `FOOTBALL_PROJECTIONS_DISABLED=1`. The tables stay; nothing reads or writes them.
+- **NEVER roll the ingest worker image back below this release while ledger version 3 is applied.** Older releases' `verifyWarehouseTarget`
+  accepts only version 2 and throws `warehouse_target_mismatch`: every ingest fails before writing, and because the backup runs on
+  `OnSuccess` of the ingest, no backups are taken either. If you must run an older release, first take the schema back to version 2
+  with the block below, then verify, then roll the image back.
+- **Schema rollback (drops all stored projections and their history; take a backup first and confirm it finished).** One transaction,
+  in dependency order (history, current, receipts), and the ledger row:
+
+```sh
+docker exec -i omen_football_warehouse psql -U postgres -d omen_football --set ON_ERROR_STOP=1 --single-transaction <<'SQL'
+set local lock_timeout = '5s';
+drop table football.player_weekly_projection_versions;
+drop table football.player_weekly_projections;
+drop table football.projection_fetch_runs;
+drop function football.reject_projection_version_change();
+delete from football.warehouse_schema_migrations
+  where version = 3 and name = '0005_weekly_projections';
+SQL
+bash infra/warehouse/verify-production-readonly.sh
+```
+
+  The verify must print `VERIFIED production football warehouse read-only`. Do this with the projections flags already off. Existing
+  snapshots made after the apply still contain the tables (see backups note below).
+
+### Other operational notes
+
+- **Backup retention groups.** Retention groups by `host,tags` (`--group-by host,tags`), and snapshots are tagged `schema-v<N>`. The first
+  schema-v3 snapshot starts a new group: schema-v2 snapshots form a separate group that no new snapshot joins, so they will not age out
+  through normal retention (the pre-apply restore point stays until pruned by hand, e.g. `restic forget` on that tag, once you no longer
+  need it).
+- **Do not re-run `0004_apply_access_policy.sh` (0003) after version 3 is applied.** 0003 grants SELECT/INSERT/UPDATE/DELETE on every table in
+  the schema, so it would hand the writer UPDATE and DELETE on the history table (the trigger still blocks the change, but the grant is wrong)
+  and the reader SELECT on it. `warehouse/verify/production_readonly.sql` checks those grants and will print the verification-failed message;
+  re-apply the `revoke`/`grant` lines at the end of `0005_weekly_projections.sql` to restore them.
+- **A legitimate shrink of more than 20% is refused.** The writer compares each fetch with the previous successful fetch of the same week and
+  refuses one under 80% of it (`source_partial`, failed receipt, stored rows unchanged); the API keeps serving the last stored copy until it
+  passes the 26 h limit, then falls back to the live fetch. If the drop is real (a week with many byes, a provider purge), move the baseline by
+  hand, then re-run the ingest:
+
+```sh
+docker exec omen_football_warehouse psql -U postgres -d omen_football -c \
+ "update football.projection_fetch_runs set rows_inserted = 0, rows_changed = 0, rows_unchanged = 0
+   where id = (select max(id) from football.projection_fetch_runs
+               where source = 'sleeper' and season = <SEASON> and week = <WEEK> and state = 'succeeded');"
+```
+
+  A zero baseline disables the guard for that week's next fetch only; the next successful run records the new row count as the baseline.
 
 ## Open items
 
