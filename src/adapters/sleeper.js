@@ -620,8 +620,15 @@ function normalizeProjectionStatLines(payload) {
 const projectionsCacheKey = (season, week) => `ssff:sleeper:projections:${season}:${week}`;
 const projectionStatLinesCacheKey = (season, week) => `ssff:sleeper:projection-stat-lines:${season}:${week}`;
 
-/** One fetch of the week's projections, written to both the points and stat-line caches. */
-async function fetchAndCacheSleeperProjections(season, week) {
+/**
+ * One fetch of the week's projections, written to both the points and stat-line caches.
+ * Single-flight: a cold cache or a slow Sleeper must cost one request, not one per caller.
+ */
+function fetchAndCacheSleeperProjections(season, week) {
+  return singleFlight(`projections:${season}:${week}`, () => fetchAndCacheSleeperProjectionsOnce(season, week));
+}
+
+async function fetchAndCacheSleeperProjectionsOnce(season, week) {
   const projections = await getJson(`${PROJECTIONS_BASE}/${season}/${week}`, {
     params: {
       season_type: "regular",
@@ -665,12 +672,32 @@ async function fetchSleeperProjections(season, week) {
   return (await fetchAndCacheSleeperProjections(season, week)).points;
 }
 
+// A failed stat-line fetch is remembered briefly so an outage is not retried by every request.
+const STAT_LINE_FAILURE_TTL_MS = 30 * 1000;
+const statLineFailures = new Map();
+
+function resetSleeperStatLineFailures() {
+  statLineFailures.clear();
+}
+
 async function fetchSleeperProjectionStatLines(season, week) {
   const cached = await readCache(projectionStatLinesCacheKey(season, week));
   if (cached && typeof cached === "object" && !Array.isArray(cached)) return cached;
   const stored = await loadStoredSleeperProjections(season, week);
   if (stored) return stored.statLines;
-  return (await fetchAndCacheSleeperProjections(season, week)).statLines;
+  const key = `${season}:${week}`;
+  const failedAt = statLineFailures.get(key);
+  if (failedAt && Date.now() - failedAt < STAT_LINE_FAILURE_TTL_MS) {
+    throw Object.assign(new Error("Sleeper projections recently unavailable"), { code: "sleeper_projections_recently_failed" });
+  }
+  try {
+    const result = await fetchAndCacheSleeperProjections(season, week);
+    statLineFailures.delete(key);
+    return result.statLines;
+  } catch (error) {
+    statLineFailures.set(key, Date.now());
+    throw error;
+  }
 }
 
 /**
@@ -901,6 +928,7 @@ module.exports = {
   fetchSleeperPlayers,
   fetchSleeperProjections,
   fetchSleeperProjectionStatLines,
+  resetSleeperStatLineFailures,
   normalizeProjectionStatLines,
   fetchSleeperAvailablePlayers,
   fetchSleeperLeagueRosters,

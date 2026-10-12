@@ -577,3 +577,37 @@ test("why_not and delta come from the same optimizer row, with or without observ
     assert.match(alt.why_not, new RegExp(`\\(${alt.start.projected} vs ${alt.sit.projected}\\)`));
   }
 });
+
+test("a Yahoo hold whose projection build failed does not blame Yahoo for what Omen could not build", () => {
+  const roster = {
+    projection_meta: { available: false, reason: "timed_out" },
+    slots: { starters: [player("a", "Alpha", "WR", null)], bench: [player("b", "Bravo", "WR", null, { selected_position: "BN" })] },
+  };
+  const hold = buildHold({ roster, platformLabel: "Yahoo", isOut: () => false });
+  assert.equal(hold.reasons[0].code, "projections_unavailable");
+  assert.match(hold.reasons[0].text, /Omen could not build them for this league this time/);
+  assert.match(hold.reasons[0].text, /too slow/);
+});
+
+test("a Yahoo hold with partial projection coverage says players were left out of the comparison", () => {
+  const roster = {
+    projection_meta: { available: true },
+    slots: {
+      starters: [player("a", "Alpha", "WR", 12), player("c", "Charlie", "RB", null)],
+      bench: [player("b", "Bravo", "WR", 11.8, { selected_position: "BN" })],
+    },
+  };
+  const hold = buildHold({ roster, platformLabel: "Yahoo", isOut: () => false });
+  const partial = hold.reasons.find((reason) => reason.code === "projections_partial");
+  assert.ok(partial);
+  assert.match(partial.text, /2 of your 3 lineup players/);
+  assert.equal(hold.projections.players_with_projection, 2);
+});
+
+test("a roster Omen did not fill in (Sleeper, ESPN) gets no partial-coverage reason", () => {
+  const roster = {
+    slots: { starters: [player("a", "Alpha", "WR", 12), player("c", "Charlie", "RB", null)], bench: [player("b", "Bravo", "WR", 11.8, { selected_position: "BN" })] },
+  };
+  const hold = buildHold({ roster, platformLabel: "Sleeper", isOut: () => false });
+  assert.equal(hold.reasons.some((reason) => reason.code === "projections_partial"), false);
+});

@@ -926,9 +926,21 @@ function yahooProjectionDisclosure(meta) {
   };
 }
 
-function applyYahooProjectionDisclosure(body, roster, connection) {
+/** The roster and the waiver pool are separate passes; either may have projected, and approximate wins. */
+function mergeYahooProjectionMeta(...metas) {
+  const available = metas.filter((meta) => meta && meta.available === true);
+  if (!available.length) return null;
+  return {
+    ...available[0],
+    scoring_basis: available.some((meta) => meta.scoring_basis === "approximate_scoring")
+      ? "approximate_scoring"
+      : available[0].scoring_basis,
+  };
+}
+
+function applyYahooProjectionDisclosure(body, roster, connection, poolMeta = null) {
   if (!body || connection?.platform !== "yahoo") return;
-  const disclosure = yahooProjectionDisclosure(roster?.projection_meta);
+  const disclosure = yahooProjectionDisclosure(mergeYahooProjectionMeta(roster?.projection_meta, poolMeta));
   if (!disclosure) return;
   if (body.signals && typeof body.signals === "object") {
     body.signals.projections = signal("live", true, disclosure.source, disclosure.message);
@@ -985,7 +997,8 @@ async function buildWaiverCandidateForConnection({ connection, roster, espnCrede
     if (connection.platform === "yahoo") {
       const raw = await yahooClient.getAvailablePlayers(connection.league_id, { count: 50, sort: "AR" });
       const projected = await projectYahooPool(
-        yahooClient, connection.league_id, roster.week, rosterSvc.normalizeYahooWaivers(raw)
+        yahooClient, connection.league_id, roster.week, rosterSvc.normalizeYahooWaivers(raw),
+        { rosterMeta: roster.projection_meta }
       );
       pool = projected.pool;
       yahooProjection = projected.projectionMeta;
@@ -1070,7 +1083,12 @@ async function buildWaiverCandidateForConnection({ connection, roster, espnCrede
     Number(right.projected_points) - Number(left.projected_points)
     || String(left.player_key).localeCompare(String(right.player_key))
   )[0];
-  if (!candidate) return { candidate: null, waiverSignal, waiverSystemModel, yahooPool: connection.platform === "yahoo" ? pool : null };
+  if (!candidate) {
+    return {
+      candidate: null, waiverSignal, waiverSystemModel, yahooProjection,
+      yahooPool: connection.platform === "yahoo" ? pool : null,
+    };
+  }
 
   // Same unit as a lineup swap's delta: expected points gained this week. An
   // OUT starter's own projection is subtracted rather than assumed to be zero,
@@ -1091,6 +1109,7 @@ async function buildWaiverCandidateForConnection({ connection, roster, espnCrede
       pickup: candidate,
     },
     waiverSignal,
+    yahooProjection,
   };
 }
 
@@ -1850,9 +1869,13 @@ async function buildLiveOmenMvpMoveForUserInner(userId, requested, scope) {
   });
   await decisionContext.resolveMany(["selected_context", "roster", "projections"]);
 
+  // The waiver pool is projected in its own pass; if the roster pass timed out but this one landed,
+  // the response still has to say where its numbers came from.
+  let waiverPoolProjection = null;
+
   function finalizeDecisionResult(result, inputNames = []) {
     for (const name of inputNames) decisionContext.use(name);
-    applyYahooProjectionDisclosure(result.body, roster, connection);
+    applyYahooProjectionDisclosure(result.body, roster, connection, waiverPoolProjection);
     attachDecisionReceipt(result.body, decisionContext);
     return result;
   }
@@ -1876,6 +1899,7 @@ async function buildLiveOmenMvpMoveForUserInner(userId, requested, scope) {
   });
 
   const waiverAnalysis = await buildWaiverCandidateForConnection({ connection, roster, espnCredentials, yahooClient });
+  waiverPoolProjection = waiverAnalysis.yahooProjection || null;
   const lineupUsage = await lineupUsagePromise;
   const [swap] = optimizer.evaluateLineup(roster, lineupUsage ? { usage: lineupUsage } : {});
   if (swap) {

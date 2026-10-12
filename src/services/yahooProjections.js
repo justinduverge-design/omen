@@ -36,8 +36,10 @@ const { getCurrentNflWeekContext } = require("./nflSchedule");
 const SOURCE = "sleeper_public_projections";
 const BASIS_LEAGUE = "league_scoring";
 const BASIS_APPROX = "approximate_scoring";
+const BASIS_BYE = "bye_week";
 
 const BUDGET_MS = 2500;
+const POOL_GRACE_MS = 150;
 const RULES_TTL_MS = 30 * 60 * 1000;
 const RULES_FAILURE_TTL_MS = 60 * 1000;
 const RULES_MAX_ENTRIES = 200;
@@ -48,7 +50,30 @@ const POSITION_TYPE = Object.freeze({ QB: "O", RB: "O", WR: "O", TE: "O", K: "K"
 const rulesMemo = new Map();
 
 function isDisabled() {
-  return process.env.YAHOO_PROJECTIONS_DISABLED === "1";
+  const value = String(process.env.YAHOO_PROJECTIONS_DISABLED || "").trim().toLowerCase();
+  return value === "1" || value === "true";
+}
+
+// Reasons that mean "try again soon", not "this league has no projections": callers keep such a
+// pass out of long-lived caches.
+const TRANSIENT_REASONS = new Set(["timed_out", "provider_error"]);
+
+function isTransientMeta(meta) {
+  return Boolean(meta && TRANSIENT_REASONS.has(meta.reason));
+}
+
+/**
+ * Remove projections this module wrote. Used on a cached roster when the kill switch is on, so
+ * flipping it takes effect now instead of when the 5-minute roster cache expires.
+ */
+function stripYahooProjections(players) {
+  for (const player of Array.isArray(players) ? players : []) {
+    if (player && player.projection_source === SOURCE) {
+      player.projected_points = null;
+      delete player.projection_source;
+      delete player.projection_basis;
+    }
+  }
 }
 
 function round2(value) {
@@ -189,6 +214,30 @@ function sleeperFullName(player) {
   return player?.full_name || `${player?.first_name || ""} ${player?.last_name || ""}`.trim();
 }
 
+/** Yahoo's primary position must be one Sleeper lists for the player (a same-named namesake differs). */
+function positionsAgree(yahooPlayer, sleeperPlayer) {
+  const wanted = String(yahooPlayer?.position || "").toUpperCase();
+  const listed = [sleeperPlayer?.position, ...(Array.isArray(sleeperPlayer?.fantasy_positions) ? sleeperPlayer.fantasy_positions : [])]
+    .filter(Boolean)
+    .map((position) => String(position).toUpperCase());
+  return Boolean(wanted) && listed.includes(wanted);
+}
+
+// A projection feed this small is a partial read, not a league-wide bye: do not infer byes from it.
+const MIN_STAT_LINES_FOR_BYE_INFERENCE = 100;
+
+/** NFL teams with at least one projected player this week, or null when the feed is too thin to tell. */
+function teamsWithProjections(statLines, sleeperPlayers) {
+  const ids = statLines && typeof statLines === "object" ? Object.keys(statLines) : [];
+  if (ids.length < MIN_STAT_LINES_FOR_BYE_INFERENCE) return null;
+  const teams = new Set();
+  for (const id of ids) {
+    const team = sleeperPlayers?.[id]?.team;
+    if (team) teams.add(team);
+  }
+  return teams.size ? teams : null;
+}
+
 function namesAgree(yahooName, sleeperPlayer) {
   const a = normalizeName(yahooName);
   const b = normalizeName(sleeperFullName(sleeperPlayer));
@@ -255,15 +304,26 @@ async function enrichYahooPlayers(players, { client, leagueKey, week, season, bu
 
   const { scoring, statLines, sleeperPlayers } = loaded;
   const index = yahooIndex(sleeperPlayers);
+  const playingTeams = teamsWithProjections(statLines, sleeperPlayers);
   let projected = 0;
   let approximate = false;
   for (const player of projectable) {
     const yahooId = String(player.yahoo_id ?? player.player_id);
     const sleeperId = index.get(yahooId);
     const sleeperPlayer = sleeperId ? sleeperPlayers[sleeperId] : null;
-    if (!sleeperPlayer || !namesAgree(player.name, sleeperPlayer)) continue;
+    if (!sleeperPlayer || !namesAgree(player.name, sleeperPlayer) || !positionsAgree(player, sleeperPlayer)) continue;
     const points = scoreStatLine(statLines?.[sleeperId], scoring.values);
-    if (points == null) continue;
+    if (points == null) {
+      // A player whose whole NFL team has no projection this week is on a bye: he scores zero, which is
+      // a fact, and the lineup must be able to move him (a null would block the swap).
+      if (playingTeams && sleeperPlayer.team && !playingTeams.has(sleeperPlayer.team)) {
+        player.projected_points = 0;
+        player.projection_source = SOURCE;
+        player.projection_basis = BASIS_BYE;
+        projected += 1;
+      }
+      continue;
+    }
     const basis = scoring.approximateFor.has(positionTypeOf(player)) ? BASIS_APPROX : BASIS_LEAGUE;
     if (basis === BASIS_APPROX) approximate = true;
     player.projected_points = points;
@@ -286,8 +346,11 @@ async function enrichYahooPlayers(players, { client, leagueKey, week, season, bu
  * Project an available-player pool the same way as a roster. The pool keeps its shape
  * (`projected_points` stays null where no honest number exists); the meta says what was covered.
  */
-async function projectYahooPool(client, leagueKey, week, pool) {
-  const projectionMeta = await enrichYahooPlayers(pool, { client, leagueKey, week });
+async function projectYahooPool(client, leagueKey, week, pool, { rosterMeta = null } = {}) {
+  // One budget per request: when the roster pass already spent it and timed out, the pool only gets a
+  // short grace for the in-flight reads to land, not a second 2.5 s.
+  const budgetMs = isTransientMeta(rosterMeta) ? POOL_GRACE_MS : BUDGET_MS;
+  const projectionMeta = await enrichYahooPlayers(pool, { client, leagueKey, week, budgetMs });
   return { pool, projectionMeta };
 }
 
@@ -300,6 +363,9 @@ module.exports = {
   BASIS_LEAGUE,
   SOURCE,
   enrichYahooPlayers,
+  isDisabled,
+  isTransientMeta,
+  stripYahooProjections,
   positionTypesByStat,
   projectYahooPool,
   resetYahooProjectionMemo,
