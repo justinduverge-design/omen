@@ -37,7 +37,10 @@ Analyzer is the front door; Omen of the Week is the main event. Detail: `Directi
 
 ## Right now
 
-Focus: release cadence is every other Tuesday; next is 2026-10-27, plan in `Direction/2026-10-27-beta-readiness.md`. Latest state: `Blueprints/handoffs/rate-limit-shutdown-checkpoint.md`. Pinned task: `Direction/agent_inbox.md`.
+Focus: rolling Tuesday betas, planned one release at a time with two Tuesdays visible. The cadence,
+inspection gate and unallocated horizon live in `Direction/2026-10-12-rolling-three-beta-frame.md`;
+the 2026-10-27 readiness index remains in `Direction/2026-10-27-beta-readiness.md`. Latest state:
+`Blueprints/handoffs/2026-10-12-rolling-beta-frame.md`. Pinned task: `Direction/agent_inbox.md`.
 What is shipped and open: `node scripts/shipped.js` → `Direction/shipped.md`.
 
 ## How work flows

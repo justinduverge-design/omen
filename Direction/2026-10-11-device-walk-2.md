@@ -51,3 +51,23 @@ Mark each: OK / WRONG / MISSING / HONEST-UNAVAILABLE. Screenshot anything not OK
 ## Not in scope for this walk
 
 Draft Assistant (2027, locked wording only), Android (paused), anything needing a store console.
+
+## Founder summary received 2026-10-12
+
+This is sufficient for release triage but is not yet correlated to an exact build number, action
+time, API log or screenshot. Do not upgrade these statements to root-cause claims.
+
+| Surface | Founder observation | Triage |
+|---|---|---|
+| Command | "OK" | accepted for this candidate |
+| Account | coming together, still needs work | later refinement unless a safety/correctness P0/P1 appears |
+| Omen | needs something like a summary of the stats | foundation/product gap; inspect evidence model before assigning a release |
+| Trade | still does not work; cannot choose a partner | genuine P0/P1 candidate for reproduce-and-repair or exclusion |
+| Manual Trade | attempt gave no answer | genuine P0/P1; a submitted analysis must reach an answer or honest terminal state |
+| Find a Trade | liked, but does not work | `T2-FindATradeGenerator` remains open despite shipped source |
+| League | many unfulfilled features | inspection inventory; do not turn the comment into unsourced feature scope |
+
+Release rule from the founder: fix only genuine P0/P1 walkthrough findings before finalizing the
+current build. Sentinel posture and Discord alerts are founder-confirmed healthy. The founder owns
+App Store Connect. The rolling release plan is
+`Direction/2026-10-12-rolling-three-beta-frame.md`.

@@ -1,7 +1,12 @@
 # Shutdown checkpoint, 2026-10-12 (founder weekly limit ~75%, resets Thursday)
 
-Restore: read this file, then `Direction/2026-10-27-beta-readiness.md` (the plan), then paste the prompt at the bottom.
-Cadence from now on: **a release every other Tuesday.** This cycle: Tue 2026-10-13. Next: **Tue 2026-10-27**.
+Restore: read `Blueprints/handoffs/2026-10-12-rolling-beta-frame.md`, then
+`Direction/2026-10-12-rolling-three-beta-frame.md`. This checkpoint remains evidence for the work
+that preceded the founder's cadence and phone-walk corrections.
+**2026-10-12 founder correction:** cadence is now a rolling Tuesday beta, not every other Tuesday.
+This cycle is Tue 2026-10-13; Tue 2026-10-20 is provisional after the Omen foundation inspection;
+Tue 2026-10-27 is a hopeful horizon. Current authority:
+`Direction/2026-10-12-rolling-three-beta-frame.md`.
 
 ## Current Project State
 - **Production is stable and quiet.** API live at `ab18af0` (canary PASS 2026-10-12). Monday 07:15 ET warehouse ingest succeeded (7 nflverse stages + opportunity + RAT-QB), chained backup and retention completed, disk 25%.
@@ -23,7 +28,10 @@ Created: `Direction/2026-10-27-beta-readiness.md`, this file (rewritten). Update
 None missing for this checkpoint.
 
 ## What Was Not Done
-- **Founder-only for this cycle:** Gate G phone walk; Sentinel baseline refresh (`sudo sentinel-omen-posture-baseline-refresh kvm1` then `kvm2`); App Store Connect check for an earlier build 7, archive, upload; the four section-10 decisions (explained in `Direction/2026-10-27-beta-readiness.md`).
+- **Founder update:** the Gate G summary is now recorded in `Direction/2026-10-11-device-walk-2.md`;
+  exact build/time/log evidence remains open. Sentinel refresh and Discord alerts are
+  founder-confirmed healthy. The four section-10 decisions are approved. App Store Connect,
+  archive and upload remain founder-owned.
 - **PR #654 (Omen projections v1) is OPEN with one unresolved P1** (the "relevant universe" filter is not independent of the baselines, so the ship rule can pass a losing model) plus P2s; the fixing agent was cut off by the rate limit. Branch `omen-projections-v1`, review verdict in this session's transcript.
 - **Provider-reads agent (G3 trade targets, G4 transactions, G5-G8) was cut off with 13 uncommitted files** in worktree `.claude/worktrees/agent-adc5dd7f231affd7f`, branch `feat/provider-gap-g3-g8`. Not committed, not reviewed.
 - **Three spec agents produced nothing** (cut off at start): evidence-layer map, fantasy-week information architecture, provider discovery + probe plan. Re-run them.
@@ -39,9 +47,16 @@ None missing for this checkpoint.
 - Open worktrees under `.claude/worktrees/` hold stale agent branches; clean up with `mcp__ccd_host__clean_up_worktrees` after the work above is committed or abandoned.
 
 ## Recommended Next Step
-Do the founder-only items first (phone walk, Sentinel refresh), then resume engineering in this order: (1) fix and merge #654, (2) commit/review the provider-reads work, (3) re-run the three spec agents, (4) restore a warehouse copy on KVM2 and run the Omen projections backtest, (5) apply the projections schema (handoff steps) once the release is out.
+Freeze the 2026-10-13 candidate with only genuine P0/P1 corrections or honest exclusions. Then
+inspect Omen's shared football foundations before assigning any recovery item to the 2026-10-20
+or 2026-10-27 beta. The rolling frame owns the inspection questions and admission gate.
 
 ## Exact Next Prompt For Justin
 ```
-Read Blueprints/handoffs/rate-limit-shutdown-checkpoint.md and Direction/2026-10-27-beta-readiness.md. First tell me what is still open from my side (phone walk, Sentinel refresh, build 7, section 10). Then, without merging anything that deploys before the 2026-10-13 release is finished, (1) resume PR #654 (fix the P1 relevant-universe filter), (2) inspect worktree .claude/worktrees/agent-adc5dd7f231affd7f (branch feat/provider-gap-g3-g8), commit it and get a fresh-agent review, then (3) re-run the evidence-layer map, information-architecture and provider-discovery specs. Review each PR with slops-code-review before merge and gate every merge on gh pr checks.
+Read Blueprints/handoffs/2026-10-12-rolling-beta-frame.md and
+Direction/2026-10-12-rolling-three-beta-frame.md. Inspect Omen before allocating Beta 2: map the
+shared football primitives, certify current behavior for ESPN/Yahoo/Sleeper by feature, compare
+the canvas to the product, inventory Xcode evidence automation, and classify each foundation as
+preserve/consolidate/repair/replace/exclude. Do not implement the recovery backlog or promise it to
+a release until the inspection supports the Monday scope decision.
 ```

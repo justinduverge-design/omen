@@ -1,5 +1,24 @@
 # Omen Decision Log
 
+## 2026-10-12 (rolling beta correction) — plan one Tuesday at a time; inspect Omen before allocating later builds
+
+- **Decision (founder):** Omen uses a rolling weekly Tuesday frame. Plan and freeze Monday
+  afternoon, release/canary Tuesday, observe Wednesday, and use Thursday through Sunday as the
+  primary engineering window because the token allowance resets Thursday.
+- **Three-release meaning:** 2026-10-13 is the committed candidate; 2026-10-20 is a provisional
+  date whose contents are chosen only after the Omen foundation inspection; 2026-10-27 is a
+  hopeful horizon, not a pre-built roadmap. Each Monday the frame rolls forward.
+- **Current build:** fix only genuine P0/P1 phone-walk findings. If a broken feature cannot be
+  repaired within the freeze, exclude or disable it honestly rather than delaying the entire
+  build or leaving a silent dead end. The founder owns App Store Connect.
+- **Inspection before allocation:** assess shared football primitives, ESPN/Yahoo/Sleeper truth,
+  feature coherence, canvas drift and Xcode evidence automation. Use the result to classify
+  foundations as preserve, consolidate, repair, replace or exclude before assigning Beta 2 work.
+- **Valor boundary:** solve Omen's need correctly first. Extract a tool or procedure upward only
+  after repeated Omen use proves it reusable; Omen does not wait for a generalized consulting
+  framework.
+- **Plan:** `Direction/2026-10-12-rolling-three-beta-frame.md`.
+
 ## 2026-10-12 (later) — projections: the league's provider leads, Omen is the challenger and the filler; read everything the providers expose
 
 - **Decision (founder, 2026-10-12), refining the entry above:** the league provider's own projections LEAD for that league

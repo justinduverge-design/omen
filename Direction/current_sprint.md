@@ -1,6 +1,6 @@
 # Omen Current Sprint
 
-**Refreshed:** 2026-10-12 (staleness pass; release cadence is every other Tuesday, plan: `Direction/2026-10-27-beta-readiness.md`). **Rebuilt:** 2026-10-03. The previous file (202 KB, 85 non-closed items, last updated 2026-09-27) is archived
+**Refreshed:** 2026-10-12 (founder set a rolling weekly Tuesday frame; scope is chosen one release at a time after inspection: `Direction/2026-10-12-rolling-three-beta-frame.md`). **Rebuilt:** 2026-10-03. The previous file (202 KB, 85 non-closed items, last updated 2026-09-27) is archived
 verbatim at `Archive/sprints/2026-10-03-current_sprint-full.md`. Its item statuses were not re-verified; most
 work since 2026-09-27 shipped from PRs, not sprint items. What has shipped: `Direction/shipped.md`
 (regenerate with `node scripts/shipped.js`).
@@ -10,6 +10,16 @@ A pin in `Direction/agent_inbox.md` overrides this file. Do not auto-pull databa
 founder, or store work.
 
 ## Active
+
+### OMEN-FOUNDATION — inspect the shared football decision foundation before allocating Beta 2
+
+- **Status:** IN_PROGRESS
+- **Claim:** Codex, 2026-10-12, founder direction to begin future-build work after archive/upload
+- **Priority:** P0 planning gate
+- **Cost:** medium inspection; implementation explicitly excluded from this claim
+- **Do not touch:** production/provider accounts, protected decision-engine files, preserved WIP branches, or future-release scope before the evidence is reviewed
+- **Scope:** `Direction/2026-10-12-rolling-three-beta-frame.md` inspection gate; pass 1 evidence in `Direction/reviews/2026-10-12-omen-foundation-reassessment-pass-1.md`
+- **Done when:** provider-by-feature matrix, shared-primitives map, canvas behavior delta, Xcode automation opportunities and preserve/consolidate/repair/replace/exclude register are evidence-backed enough to propose the smallest coherent 2026-10-20 outcome.
 
 ### FI-LEAGUE — Football intelligence for the whole league (the "why" behind every call)
 
@@ -21,14 +31,14 @@ founder, or store work.
 - **Scope and running checklist:** `Blueprints/handoffs/2026-10-03-football-intelligence-league-build.md`.
 - **Done when:** every team has a published system signal, and the founder sees team-system and usage lines on the phone for players on any team. Evidence: the walk notes (`Direction/2026-10-11-device-walk-2.md`).
 
-### RELEASE-CYCLE — every other Tuesday (2026-10-13, then 2026-10-27), iOS plus API
+### RELEASE-CYCLE — rolling Tuesdays (2026-10-13 committed; 2026-10-20 provisional; 2026-10-27 hopeful), iOS plus API
 
 - **Status:** READY
-- **Blocked by:** FOUNDER_APPROVAL — store submission, App Store Connect actions, the section 10 decisions, Gate G phone walk
+- **Blocked by:** current-candidate disposition — founder owns App Store Connect; section-10 decisions are approved and the phone-walk summary is recorded, but Trade partner/manual/Find failures require repair-or-exclude triage before the candidate is described as ready
 - **Priority:** P0
 - **Cost:** medium
 - **Do not touch:** store consoles without approval; merge cutoff is the Monday afternoon before each release, no deploying merges Monday evening through the release day
-- **Scope:** `Direction/2026-10-27-beta-readiness.md` (index), `Direction/2026-10-06-tuesday-beta-readiness.md` §2c-2e (state), `Direction/2026-10-13-release-rollback-card.md` (rollback).
+- **Scope:** `Direction/2026-10-12-rolling-three-beta-frame.md` (cadence and rolling scope), `Direction/2026-10-27-beta-readiness.md` (unallocated horizon/index), `Direction/2026-10-06-tuesday-beta-readiness.md` §2c-2e (current state), `Direction/2026-10-13-release-rollback-card.md` (rollback).
 - **Done when:** the founder ships the build and the release day's canary passes.
 
 ### FM-XFP — Omen fantasy metrics v1: expected fantasy points, opportunity, role chart, dynasty outlook
@@ -127,6 +137,6 @@ founder, or store work.
 
 ## Needs a decision
 
-- **T2-FindATradeGenerator** — shipped (#501 swipe review, #633 front door and real Save, #639 trade call in Omen). Close with a `Closure:` once the phone walk confirms Find a trade end to end.
+- **T2-FindATradeGenerator** — source shipped (#501 swipe review, #633 front door and real Save, #639 trade call in Omen), but the 2026-10-12 founder phone walk says it does not work. Do not close. Reproduce after the freeze and decide repair versus honest exclusion from the affected beta.
 - **Archived backlog** — 85 items. Before pulling one back, confirm with `Direction/shipped.md` that it has
   not already shipped, then copy it here with a fresh `Status:`.
