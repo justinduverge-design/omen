@@ -29,6 +29,13 @@
 
 const optimizer = require("./optimizer");
 
+const BUILD_FAILURE_COPY = Object.freeze({
+  timed_out: "the projection sources were too slow",
+  provider_error: "the projection sources could not be reached",
+  scoring_unreadable: "the league's scoring rules could not be read",
+  no_matching_projections: "none of your players could be matched to a projection",
+});
+
 function round2(value) {
   return Number(Number(value).toFixed(2));
 }
@@ -108,10 +115,15 @@ function buildHold({ roster, platformLabel, waiver = {}, trade = null, usage = n
   let bestAlternative = null;
 
   // 1. Start/sit.
+  // A roster Omen tried to fill in itself (Yahoo) says why that did not work, instead of blaming the
+  // provider for something Omen was supposed to build.
+  const buildFailure = BUILD_FAILURE_COPY[roster?.projection_meta?.reason] || null;
   if (!projectionsAvailable) {
     reasons.push({
       code: "projections_unavailable",
-      text: `${platformLabel} does not give Omen weekly projections for this league, so Omen cannot rank lineup swaps or trades. Holding is the only call it can stand behind.`,
+      text: buildFailure
+        ? `${platformLabel} does not publish weekly projections and Omen could not build them for this league this time (${buildFailure}), so it cannot rank lineup swaps or trades. Holding is the only call it can stand behind.`
+        : `${platformLabel} does not give Omen weekly projections for this league, so Omen cannot rank lineup swaps or trades. Holding is the only call it can stand behind.`,
     });
     considered.push({
       kind: "start_sit",
@@ -132,6 +144,14 @@ function buildHold({ roster, platformLabel, waiver = {}, trade = null, usage = n
       const text = "No bench player is eligible for any of your starting slots, so there is no lineup swap to weigh.";
       reasons.push({ code: "no_eligible_bench", text });
       considered.push({ kind: "start_sit", outcome: "none_found", detail: text });
+    }
+    // Partial coverage: a player with no projection is never compared, so the hold must not read as
+    // if every swap was weighed.
+    if (roster?.projection_meta && withProjection < players.length) {
+      reasons.push({
+        code: "projections_partial",
+        text: `Omen could project ${withProjection} of your ${players.length} lineup players, so any player without a projection was left out of the comparison.`,
+      });
     }
   }
 

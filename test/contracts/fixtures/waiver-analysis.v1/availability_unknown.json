@@ -12,7 +12,7 @@
     "generated_at": "2026-01-01T00:00:00.000Z",
     "league_id": "449.l.1",
     "limitations": [
-      "Yahoo's available-player response carries no weekly projection, so Omen cannot rank waiver adds for this league."
+      "Yahoo's available-player response carries no weekly projection and Omen could not build one from Sleeper's public projections, so it cannot rank waiver adds for this league."
     ],
     "message": "Omen cannot confirm free-agent status in this league, and no available player clears your current lineup.",
     "platform": "yahoo",

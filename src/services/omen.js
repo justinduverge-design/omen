@@ -28,6 +28,7 @@ const { logger } = require("../middleware/logging");
 const { getUsageReader } = require("./footballWarehouse/sharedUsageAccess");
 const { readRosterUsage } = require("./usageCorroborationReader");
 const yahooAdapter = require("../adapters/yahoo");
+const { projectYahooPool } = require("./yahooProjections");
 const { evaluateTradeForConnection, TRADE_READ_BUDGET_MS } = require("./omenTradeCandidate");
 const { buildHold } = require("./omenHold");
 const { getRuntime: getSharedWarehouseRuntime } = require("./footballWarehouse/sharedUsageAccess");
@@ -903,6 +904,53 @@ function mapWaiverPickupToMvpMove({ roster, connection, connectedPlatforms, outS
 }
 
 /**
+ * Yahoo publishes no player projections. When Omen filled them in (yahooProjections.js: Sleeper's
+ * public stat line scored with the Yahoo league's own rules) the response must say so, and must say
+ * "approximate" when the league has a scoring rule Omen cannot reproduce. Never claims the number
+ * is Yahoo's, and never calls approximate scoring exact.
+ */
+function yahooProjectionDisclosure(meta) {
+  if (!meta || meta.available !== true) return null;
+  const approximate = meta.scoring_basis === "approximate_scoring";
+  return {
+    source: approximate ? "sleeper_public_projections_yahoo_scoring_approximate" : "sleeper_public_projections_yahoo_scoring",
+    message: approximate
+      ? "Yahoo gives no projections. These are Sleeper's public weekly projections scored with your Yahoo league's rules; the league has scoring rules Omen cannot reproduce, so the totals are approximate, not exact league scoring."
+      : "Yahoo gives no projections. These are Sleeper's public weekly projections re-scored with your Yahoo league's own scoring rules.",
+    dataUsed: approximate
+      ? "Sleeper public projections, approximately scored with your Yahoo league rules"
+      : "Sleeper public projections, scored with your Yahoo league rules",
+    warning: approximate
+      ? "Projection totals are approximate: this Yahoo league has scoring rules Omen cannot yet reproduce."
+      : null,
+  };
+}
+
+/** The roster and the waiver pool are separate passes; either may have projected, and approximate wins. */
+function mergeYahooProjectionMeta(...metas) {
+  const available = metas.filter((meta) => meta && meta.available === true);
+  if (!available.length) return null;
+  return {
+    ...available[0],
+    scoring_basis: available.some((meta) => meta.scoring_basis === "approximate_scoring")
+      ? "approximate_scoring"
+      : available[0].scoring_basis,
+  };
+}
+
+function applyYahooProjectionDisclosure(body, roster, connection, poolMeta = null) {
+  if (!body || connection?.platform !== "yahoo") return;
+  const disclosure = yahooProjectionDisclosure(mergeYahooProjectionMeta(roster?.projection_meta, poolMeta));
+  if (!disclosure) return;
+  if (body.signals && typeof body.signals === "object") {
+    body.signals.projections = signal("live", true, disclosure.source, disclosure.message);
+  }
+  const explanation = body.recommendation?.explanation || body.explanation;
+  if (explanation && Array.isArray(explanation.data_used)) explanation.data_used.push(disclosure.dataUsed);
+  if (disclosure.warning && Array.isArray(body.warnings)) body.warnings.push(disclosure.warning);
+}
+
+/**
  * Sleeper and ESPN provide projection-backed pools. Yahoo's availability-only
  * fallback remains separate because it deliberately has no numeric decision
  * score. The analysis returns an optional candidate plus the provider signal
@@ -911,9 +959,10 @@ function mapWaiverPickupToMvpMove({ roster, connection, connectedPlatforms, outS
  * Returns the raw pieces plus a decision score rather than a finished envelope,
  * so the selector can compare it against start/sit before anything is rendered.
  */
-async function buildWaiverCandidateForConnection({ connection, roster, espnCredentials = null }) {
+async function buildWaiverCandidateForConnection({ connection, roster, espnCredentials = null, yahooClient = null }) {
   const noAnalysis = { candidate: null, waiverSignal: null };
-  if (connection.platform !== "sleeper" && connection.platform !== "espn") return noAnalysis;
+  if (connection.platform !== "sleeper" && connection.platform !== "espn" && connection.platform !== "yahoo") return noAnalysis;
+  if (connection.platform === "yahoo" && !yahooClient) return noAnalysis;
 
   const starters = Array.isArray(roster?.slots?.starters) ? roster.slots.starters : [];
   const outStarter = starters.find((player) => isOutStatus(player?.status));
@@ -932,8 +981,10 @@ async function buildWaiverCandidateForConnection({ connection, roster, espnCrede
     };
   }
 
+  // Yahoo's eligible_positions also list flex and bench slots (W/R/T, BN, IR); matching on those
+  // would offer a quarterback for a receiver slot, so a Yahoo add must share the primary position.
   const slotPositions = new Set(
-    (Array.isArray(outStarter.eligible_positions) && outStarter.eligible_positions.length
+    (connection.platform !== "yahoo" && Array.isArray(outStarter.eligible_positions) && outStarter.eligible_positions.length
       ? outStarter.eligible_positions
       : [outStarter.position]
     ).filter(Boolean)
@@ -941,8 +992,17 @@ async function buildWaiverCandidateForConnection({ connection, roster, espnCrede
   if (!slotPositions.size) return noAnalysis;
 
   let pool;
+  let yahooProjection = null;
   try {
-    if (connection.platform === "sleeper") {
+    if (connection.platform === "yahoo") {
+      const raw = await yahooClient.getAvailablePlayers(connection.league_id, { count: 50, sort: "AR" });
+      const projected = await projectYahooPool(
+        yahooClient, connection.league_id, roster.week, rosterSvc.normalizeYahooWaivers(raw),
+        { rosterMeta: roster.projection_meta }
+      );
+      pool = projected.pool;
+      yahooProjection = projected.projectionMeta;
+    } else if (connection.platform === "sleeper") {
       pool = await sleeperAdapter.fetchSleeperAvailablePlayers(
         connection.league_id,
         roster.week,
@@ -959,8 +1019,10 @@ async function buildWaiverCandidateForConnection({ connection, roster, espnCrede
     }
   } catch {
     // A pool failure degrades to the normal empty response. It must never
-    // surface as an error or as a recommendation built on partial data.
+    // surface as an error or as a recommendation built on partial data. Yahoo's availability
+    // fallback (selectedYahooWaiverCandidate below) reports the unreadable pool without a retry.
     return {
+      yahooPoolFailed: connection.platform === "yahoo",
       candidate: null,
       waiverSignal: connection.platform === "espn"
         ? signal(
@@ -973,6 +1035,7 @@ async function buildWaiverCandidateForConnection({ connection, roster, espnCrede
     };
   }
 
+  const yahooDisclosure = yahooProjectionDisclosure(yahooProjection);
   const waiverSignal = connection.platform === "espn"
     ? signal(
       "live",
@@ -980,7 +1043,9 @@ async function buildWaiverCandidateForConnection({ connection, roster, espnCrede
       "espn_available_players",
       "Available-player and projection data came from the selected ESPN league."
     )
-    : null;
+    : connection.platform === "yahoo" && yahooDisclosure
+      ? signal("live", true, "yahoo_available_players", `Available players came from the selected Yahoo league. ${yahooDisclosure.message}`)
+      : null;
 
   // §6.2 verification for this surface. Omen of the Week previously told every
   // user "FAAB budget is not modeled" — true then, but false for a Sleeper
@@ -1018,7 +1083,12 @@ async function buildWaiverCandidateForConnection({ connection, roster, espnCrede
     Number(right.projected_points) - Number(left.projected_points)
     || String(left.player_key).localeCompare(String(right.player_key))
   )[0];
-  if (!candidate) return { candidate: null, waiverSignal, waiverSystemModel };
+  if (!candidate) {
+    return {
+      candidate: null, waiverSignal, waiverSystemModel, yahooProjection,
+      yahooPool: connection.platform === "yahoo" ? pool : null,
+    };
+  }
 
   // Same unit as a lineup swap's delta: expected points gained this week. An
   // OUT starter's own projection is subtracted rather than assumed to be zero,
@@ -1039,6 +1109,7 @@ async function buildWaiverCandidateForConnection({ connection, roster, espnCrede
       pickup: candidate,
     },
     waiverSignal,
+    yahooProjection,
   };
 }
 
@@ -1805,14 +1876,19 @@ async function buildLiveOmenMvpMoveForUserInner(userId, requested, scope) {
       selected_context: async () => ({ state: "live", source: "owned_platform_connection" }),
       roster: async () => ({ state: "live", source: `${connection.platform}_normalized_roster` }),
       projections: async () => hasLiveProjection
-        ? { state: "live", source: `${connection.platform}_weekly_projections` }
+        ? { state: "live", source: connection.platform === "yahoo" ? "sleeper_public_projections_yahoo_scoring" : `${connection.platform}_weekly_projections` }
         : { state: "unavailable", source: `${connection.platform}_weekly_projections`, reason_code: "projection_unavailable" },
     },
   });
   await decisionContext.resolveMany(["selected_context", "roster", "projections"]);
 
+  // The waiver pool is projected in its own pass; if the roster pass timed out but this one landed,
+  // the response still has to say where its numbers came from.
+  let waiverPoolProjection = null;
+
   function finalizeDecisionResult(result, inputNames = []) {
     for (const name of inputNames) decisionContext.use(name);
+    applyYahooProjectionDisclosure(result.body, roster, connection, waiverPoolProjection);
     attachDecisionReceipt(result.body, decisionContext);
     return result;
   }
@@ -1835,7 +1911,8 @@ async function buildLiveOmenMvpMoveForUserInner(userId, requested, scope) {
     log: logger,
   });
 
-  const waiverAnalysis = await buildWaiverCandidateForConnection({ connection, roster, espnCredentials });
+  const waiverAnalysis = await buildWaiverCandidateForConnection({ connection, roster, espnCredentials, yahooClient });
+  waiverPoolProjection = waiverAnalysis.yahooProjection || null;
   const lineupUsage = await lineupUsagePromise;
   const [swap] = optimizer.evaluateLineup(roster, lineupUsage ? { usage: lineupUsage } : {});
   if (swap) {
@@ -1901,14 +1978,14 @@ async function buildLiveOmenMvpMoveForUserInner(userId, requested, scope) {
         );
       }
       try {
-        const rawWaiverPool = await yahooClient.getAvailablePlayers(connection.league_id, {
-          count: 50,
-          sort: "AR",
-        });
-        const waiver = selectedYahooWaiverCandidate(
-          roster,
-          rosterSvc.normalizeYahooWaivers(rawWaiverPool)
+        if (waiverAnalysis.yahooPoolFailed) throw new Error("yahoo_pool_unavailable");
+        const yahooPool = waiverAnalysis.yahooPool || rosterSvc.normalizeYahooWaivers(
+          await yahooClient.getAvailablePlayers(connection.league_id, {
+            count: 50,
+            sort: "AR",
+          })
         );
+        const waiver = selectedYahooWaiverCandidate(roster, yahooPool);
         if (waiver) {
           decisionContext.record("waivers", { state: "live", source: "yahoo_available_players" });
           return finalizeDecisionResult({
@@ -1965,7 +2042,7 @@ async function buildLiveOmenMvpMoveForUserInner(userId, requested, scope) {
   if (selected.type === "waiver_pickup") {
     decisionContext.record("waivers", {
       state: "live",
-      source: connection.platform === "espn" ? "espn_available_players" : "sleeper_available_players",
+      source: `${connection.platform}_available_players`,
     });
     return finalizeDecisionResult(mapWaiverPickupToMvpMove({
       roster,

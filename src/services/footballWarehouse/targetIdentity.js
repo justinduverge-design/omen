@@ -10,12 +10,17 @@ class WarehouseTargetIdentityError extends Error {
 
 const IDENTIFIER = /^[a-z][a-z0-9_]{0,62}$/;
 const COMPOSED_SCHEMA_VERSION = 2;
+// Ledger versions an ingest worker accepts: 2 is the original composed schema (0001 + 0003); 3 adds the weekly
+// projections tables (0005). A worker that tolerates 3 can be deployed BEFORE the schema is applied.
+const ACCEPTED_SCHEMA_VERSIONS = Object.freeze([2, 3]);
 
-async function verifyWarehouseTarget({ pool, expectedDatabase, expectedRole, expectedVersion = COMPOSED_SCHEMA_VERSION }) {
+async function verifyWarehouseTarget({ pool, expectedDatabase, expectedRole, expectedVersion, acceptedVersions = ACCEPTED_SCHEMA_VERSIONS }) {
   if (!pool || typeof pool.query !== "function") throw new TypeError("pool.query must be a function");
   if (!IDENTIFIER.test(expectedDatabase || "")) throw new TypeError("expectedDatabase is invalid");
   if (!IDENTIFIER.test(expectedRole || "")) throw new TypeError("expectedRole is invalid");
-  if (!Number.isInteger(expectedVersion) || expectedVersion < 1) throw new TypeError("expectedVersion is invalid");
+  // expectedVersion pins one exact version (tests, strict callers); otherwise any of acceptedVersions passes.
+  const accepted = expectedVersion === undefined ? acceptedVersions : [expectedVersion];
+  if (!Array.isArray(accepted) || !accepted.length || accepted.some((v) => !Number.isInteger(v) || v < 1)) throw new TypeError("expectedVersion is invalid");
   const identity = await pool.query({
     name: "warehouse-target-identity-v1",
     text: `SELECT current_database() AS database_name,
@@ -36,12 +41,13 @@ async function verifyWarehouseTarget({ pool, expectedDatabase, expectedRole, exp
     query_timeout: 5_000,
   });
   const receipt = version?.rows?.[0];
-  if (receipt?.migration_count !== expectedVersion
-      || receipt?.first_version !== 1
-      || receipt?.schema_version !== expectedVersion) {
+  // The ledger is contiguous (count == highest version) and starts at 1.
+  if (!accepted.includes(receipt?.schema_version)
+      || receipt?.migration_count !== receipt?.schema_version
+      || receipt?.first_version !== 1) {
     throw new WarehouseTargetIdentityError("warehouse_target_mismatch", "warehouse target identity did not match");
   }
-  return Object.freeze({ state: "verified", schemaVersion: expectedVersion });
+  return Object.freeze({ state: "verified", schemaVersion: receipt.schema_version });
 }
 
-module.exports = { verifyWarehouseTarget, WarehouseTargetIdentityError, COMPOSED_SCHEMA_VERSION };
+module.exports = { verifyWarehouseTarget, WarehouseTargetIdentityError, COMPOSED_SCHEMA_VERSION, ACCEPTED_SCHEMA_VERSIONS };

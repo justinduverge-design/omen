@@ -11,6 +11,7 @@ const { Redis } = require("@upstash/redis");
 const config = require("../config");
 const YahooClient = require("../services/yahoo");
 const { normalizeYahooRoster } = require("../services/roster");
+const { enrichYahooPlayers } = require("../services/yahooProjections");
 
 const ROSTER_TTL_S = 300;
 
@@ -228,11 +229,19 @@ async function fetchYahooLeagueRosters(leagueKey, accessToken, week) {
     return { team_id: team.team_id, team_name: team.team_name || null, players };
   }));
 
+  // Yahoo carries no projection; fill every team's players from Sleeper's public stat lines scored
+  // with this league's rules (yahooProjections.js). Best effort and bounded.
+  const projectionMeta = await enrichYahooPlayers(
+    teams.flatMap((team) => team.players),
+    { client, leagueKey, week: effectiveWeek }
+  );
+
   return {
     week: rosterWeek(effectiveWeek),
     league_status: null,
     roster_positions: [],
     teams,
+    projection_meta: projectionMeta,
   };
 }
 

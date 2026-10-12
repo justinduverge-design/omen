@@ -31,6 +31,7 @@ const { waiverCapabilitiesEnvelope } = require("../services/waiverScoringCapabil
 const { attachDecisionReceipt, createDecisionContext } = require("../services/decisionContext");
 const waiverSystem = require("../services/waiverSystem");
 const rosterSvc = require("../services/roster");
+const { projectYahooPool } = require("../services/yahooProjections");
 const responseCache = require("../services/responseCache");
 const sleeperAdapter = require("../adapters/sleeper");
 const espnAdapter = require("../adapters/espn");
@@ -226,15 +227,30 @@ async function loadEspn(connection, userId, week) {
   };
 }
 
+function yahooWaiverLimitations(meta) {
+  if (!meta?.available) {
+    return ["Yahoo's available-player response carries no weekly projection and Omen could not build one from Sleeper's public projections, so it cannot rank waiver adds for this league."];
+  }
+  const notes = ["Projections are Sleeper's public weekly projections, re-scored with this Yahoo league's rules; Yahoo does not publish player projections."];
+  if (meta.scoring_basis === "approximate_scoring") {
+    notes.push("This league has scoring rules Omen cannot reproduce, so these point totals are approximate, not exact league scoring.");
+  }
+  return notes;
+}
+
 async function loadYahoo(connection, userId, week) {
   const { client } = await getAuthenticatedYahooClient(userId);
   const cacheKey = `ssff:waiver-analysis:${userId}:${connection.league_id}:${week || "current"}`;
   const roster = await rosterSvc.fetchAndNormalizeRoster(client, connection.league_id, week, cacheKey);
 
   let pool = null;
+  let poolProjection = null;
   try {
     const raw = await client.getAvailablePlayers(connection.league_id, { count: 50, sort: "AR" });
-    pool = rosterSvc.normalizeYahooWaivers(raw);
+    ({ pool, projectionMeta: poolProjection } = await projectYahooPool(
+      client, connection.league_id, roster.week, rosterSvc.normalizeYahooWaivers(raw),
+      { rosterMeta: roster.projection_meta }
+    ));
   } catch {
     pool = null;
   }
@@ -262,11 +278,12 @@ async function loadYahoo(connection, userId, week) {
     pool,
     waiverSystem: system,
     scoringFormat: null,
-    // Yahoo's /players;status=A carries no projection, so every candidate is
-    // unprojected and none is evidence-backed. Availability alone is not enough
-    // to rank a §6 recommendation, and saying so beats ranking on nothing.
-    availabilityConfirmed: false,
-    limitations: ["Yahoo's available-player response carries no weekly projection, so Omen cannot rank waiver adds for this league."],
+    // Yahoo's /players;status=A is Yahoo's own list of this league's free agents but carries no
+    // projection. Projections come from Sleeper's public stat lines scored with this league's rules
+    // (yahooProjections.js). Without them no candidate is evidence-backed, and availability alone is
+    // not enough to rank a §6 recommendation, so it stays unconfirmed and says so.
+    availabilityConfirmed: pool != null && poolProjection?.available === true,
+    limitations: yahooWaiverLimitations(poolProjection),
   };
 }
 

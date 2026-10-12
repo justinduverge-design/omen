@@ -39,10 +39,11 @@ function easternParts(now) {
     hour: "2-digit",
     hourCycle: "h23",
     month: "numeric",
+    day: "numeric",
   }).formatToParts(now);
   const get = (type) => parts.find((p) => p.type === type)?.value;
   const days = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
-  return { dow: days[get("weekday")], hour: Number(get("hour")), month: Number(get("month")) };
+  return { dow: days[get("weekday")], hour: Number(get("hour")), month: Number(get("month")), day: Number(get("day")) };
 }
 
 /** Fallback when the schedule service is unavailable: the NFL year runs September to early February. */
@@ -55,10 +56,16 @@ function fallbackIsOffSeason(month) {
  *   Thu 12:00 -> Fri 04:00, Sun 07:00 -> Mon 04:00 (early London games), Mon 12:00 -> Tue 04:00.
  * Saturday and holiday games (late season) are covered by `kickoffs` when the caller has them.
  */
-function inDayWindow({ dow, hour }) {
+function inDayWindow({ dow, hour }, playoffs = false) {
   const at = dow * 24 + hour;
   const within = (fromDow, fromHour, toDow, toHour) => at >= fromDow * 24 + fromHour && at < toDow * 24 + toHour;
-  return within(4, 12, 5, 4) || within(0, 7, 1, 4) || within(1, 12, 2, 4);
+  // Playoffs add Saturday games (Sat 12:00 -> Sun 04:00).
+  return within(4, 12, 5, 4) || within(0, 7, 1, 4) || within(1, 12, 2, 4) || (playoffs && within(6, 12, 7, 4));
+}
+
+/** Wild card through the Super Bowl: January 1 to February 15. The regular-season week count calls these "off-season". */
+function inPlayoffPeriod({ month, day }) {
+  return month === 1 || (month === 2 && day <= 15);
 }
 
 /**
@@ -71,7 +78,9 @@ function freshnessPolicy(now = new Date(), { kickoffs = null, offSeason = null, 
   if (tiersDisabled(env)) return { ...LEGACY };
   const at = now instanceof Date ? now : new Date(now);
   const parts = easternParts(at);
-  const off = typeof offSeason === "boolean" ? offSeason : fallbackIsOffSeason(parts.month);
+  const playoffs = inPlayoffPeriod(parts);
+  // Playoff weeks (raw week > 18) are still games and still injury reports: in-season, not off-season.
+  const off = !playoffs && (typeof offSeason === "boolean" ? offSeason : fallbackIsOffSeason(parts.month));
   if (off) return { tier: "off_season", ...TIERS.off_season };
 
   const t = at.getTime();
@@ -79,7 +88,7 @@ function freshnessPolicy(now = new Date(), { kickoffs = null, offSeason = null, 
     const ms = new Date(k).getTime();
     return Number.isFinite(ms) && t >= ms - 4 * HOUR && t <= ms + 5 * HOUR;
   });
-  if (nearKickoff || inDayWindow(parts)) return { tier: "game_window", ...TIERS.game_window };
+  if (nearKickoff || inDayWindow(parts, playoffs)) return { tier: "game_window", ...TIERS.game_window };
   return { tier: "in_season", ...TIERS.in_season };
 }
 

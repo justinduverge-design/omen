@@ -4,6 +4,7 @@ const { parseWarehouseRuntimeConfig } = require("./runtimeConfig");
 const { createWarehousePool, createCurrentSeasonComposition, createCurrentSeasonValidationComposition } = require("./currentSeasonComposition");
 const { verifyWarehouseTarget } = require("./targetIdentity");
 const { createDerivedStages } = require("./derivedStages");
+const { createProjectionStages } = require("./projectionStages");
 
 const MODES = new Set(["config", "source-validate", "ingest"]);
 
@@ -42,6 +43,7 @@ async function runCurrentSeasonCommand({
   createValidation = createCurrentSeasonValidationComposition,
   verifyTarget = verifyWarehouseTarget,
   createDerived = ({ pool, mode }) => createDerivedStages({ pool, mode }),
+  createProjections = ({ pool, mode, env: stageEnv }) => createProjectionStages({ pool, mode, env: stageEnv }),
 } = {}) {
   const args = parseArgs(argv);
   const config = parseConfig({ env, requireDatabase: args.mode === "ingest" });
@@ -79,7 +81,16 @@ async function runCurrentSeasonCommand({
     const derived = env.FOOTBALL_WAREHOUSE_DERIVED_ENABLED === "true"
       ? await createDerived({ pool, mode: env.FOOTBALL_WAREHOUSE_DERIVED_FAILURE_MODE === "report" ? "report" : "strict" }).run({ season: args.season }) : undefined;
     if (interrupted) throw Object.assign(new Error("interrupted"), { code: "interrupted" });
-    completedResult = { job: "football-warehouse-current-season", state: "succeeded", ...summary, ...(derived ? { derived } : {}) };
+    // Opt-in: third-party weekly projections (rights pending, kill switch FOOTBALL_PROJECTIONS_DISABLED=1). Always
+    // report mode here: whatever happens, projections never fail the nflverse ingest that already committed.
+    let projections;
+    if (env.FOOTBALL_WAREHOUSE_PROJECTIONS_ENABLED === "true") {
+      try { projections = await createProjections({ pool, mode: "report", env }).run({ season: args.season }); } catch (error) {
+        projections = { state: "failed", code: safeCode(error) };
+      }
+    }
+    if (interrupted) throw Object.assign(new Error("interrupted"), { code: "interrupted" });
+    completedResult = { job: "football-warehouse-current-season", state: "succeeded", ...summary, ...(derived ? { derived } : {}), ...(projections ? { projections } : {}) };
   } catch (error) {
     primaryError = error;
     output({ job: "football-warehouse-current-season", mode: args.mode, season: args.season, state: "failed", code: safeCode(error) });

@@ -303,6 +303,153 @@ test("projections are served stale while refreshing in the background after the 
   });
 });
 
+// ---- DST, playoffs ------------------------------------------------------------------------------
+
+test("Sunday 07:00 ET opens the window on both sides of the November fall-back change", () => {
+  // 2026-11-01 is the first Sunday of November: clocks fall back at 02:00, so 07:00 ET is 12:00Z (EST).
+  assert.equal(freshnessPolicy(new Date("2026-11-01T11:59:00Z"), { offSeason: false }).tier, "in_season");
+  assert.equal(freshnessPolicy(new Date("2026-11-01T12:00:00Z"), { offSeason: false }).tier, "game_window");
+  // The Sunday before it is still EDT: 07:00 ET is 11:00Z.
+  assert.equal(freshnessPolicy(new Date("2026-10-25T10:59:00Z"), { offSeason: false }).tier, "in_season");
+  assert.equal(freshnessPolicy(new Date("2026-10-25T11:00:00Z"), { offSeason: false }).tier, "game_window");
+  // Monday 04:00 ET closes it: 09:00Z in EST.
+  assert.equal(freshnessPolicy(new Date("2026-11-02T08:59:00Z"), { offSeason: false }).tier, "game_window");
+  assert.equal(freshnessPolicy(new Date("2026-11-02T09:00:00Z"), { offSeason: false }).tier, "in_season");
+});
+
+test("Sunday 07:00 ET is right across the March spring-forward change", () => {
+  // 2026-03-08: clocks spring forward at 02:00, so 07:00 ET is 11:00Z (EDT); the Sunday before is EST (12:00Z).
+  assert.equal(freshnessPolicy(new Date("2026-03-08T10:59:00Z"), { offSeason: false }).tier, "in_season");
+  assert.equal(freshnessPolicy(new Date("2026-03-08T11:00:00Z"), { offSeason: false }).tier, "game_window");
+  assert.equal(freshnessPolicy(new Date("2026-03-01T11:59:00Z"), { offSeason: false }).tier, "in_season");
+  assert.equal(freshnessPolicy(new Date("2026-03-01T12:00:00Z"), { offSeason: false }).tier, "game_window");
+});
+
+test("playoff weeks are in-season even when the regular-season week count says off-season", () => {
+  // Saturday 2027-01-16 17:00Z = 12:00 ET, divisional round.
+  assert.equal(freshnessPolicy(new Date("2027-01-16T17:00:00Z"), { offSeason: true }).tier, "game_window");
+  assert.equal(freshnessPolicy(new Date("2027-01-19T17:00:00Z"), { offSeason: true }).tier, "in_season");
+  // Super Bowl Sunday 2027-02-14.
+  assert.equal(freshnessPolicy(new Date("2027-02-14T20:00:00Z"), { offSeason: true }).tier, "game_window");
+  // Late February is off-season again.
+  assert.equal(freshnessPolicy(new Date("2027-02-24T17:00:00Z"), { offSeason: true }).tier, "off_season");
+});
+
+// ---- Redis ordering, failure memo, cold backoff, kill switch ---------------------------------------
+
+function loadAdapterWithRedis(handler, store, log) {
+  const adapterPath = require.resolve("../src/adapters/sleeper");
+  const configPath = require.resolve("../src/config");
+  delete require.cache[adapterPath];
+  delete require.cache[configPath];
+  process.env.REDIS_URL = "https://redis.example";
+  process.env.REDIS_TOKEN = "t";
+  const calls = [];
+  const originalLoad = Module._load;
+  Module._load = function patched(request, parent, isMain) {
+    if (request === "axios" && parent?.filename === adapterPath) {
+      return { get: async (url) => { calls.push(url); await new Promise((r) => setImmediate(r)); return { data: await handler(url) }; } };
+    }
+    if (request === "@upstash/redis" && parent?.filename === adapterPath) {
+      return {
+        Redis: class MockRedis {
+          async get(key) { return store.get(key) ?? null; }
+          async set(key, value) {
+            // Large blobs are slow to write; a stamp written in parallel would land first.
+            if (!key.includes(":at") && !key.includes("-at:")) {
+              for (let i = 0; i < 5; i += 1) await new Promise((r) => setImmediate(r));
+            }
+            log.push(key);
+            store.set(key, value);
+          }
+        },
+      };
+    }
+    return originalLoad.call(this, request, parent, isMain);
+  };
+  try {
+    return { adapter: require("../src/adapters/sleeper"), calls };
+  } finally {
+    Module._load = originalLoad;
+    delete process.env.REDIS_URL;
+    delete process.env.REDIS_TOKEN;
+    delete require.cache[configPath];
+  }
+}
+
+test("the as-of stamp is written only after the data blob, for players and projections", async () => {
+  const store = new Map();
+  const log = [];
+  const { adapter } = loadAdapterWithRedis((url) => (url.includes("/projections/") ? [{ player_id: "p1", stats: { rec: 5, pts_ppr: 9 } }] : { p1: { full_name: "One" } }), store, log);
+  adapter.resetSleeperPlayersMemo();
+  await adapter.fetchSleeperPlayers();
+  await adapter.fetchSleeperProjections(2026, 5);
+  const idx = (k) => log.indexOf(k);
+  assert.ok(idx("ssff:sleeper:players") >= 0 && idx("ssff:sleeper:players:at") > idx("ssff:sleeper:players"), log.join(","));
+  assert.ok(idx("ssff:sleeper:projections-at:2026:5") > idx("ssff:sleeper:projections:2026:5"), log.join(","));
+  assert.ok(idx("ssff:sleeper:projections-at:2026:5") > idx("ssff:sleeper:projection-stat-lines:2026:5"), log.join(","));
+});
+
+test("a stamp-less (pre-deploy) Redis entry is served now and refreshed immediately in the background", async () => {
+  const store = new Map([["ssff:sleeper:players", JSON.stringify({ p1: { full_name: "Old", injury_status: "Questionable" } })]]);
+  const { adapter, calls } = loadAdapterWithRedis(() => ({ p1: { full_name: "New", injury_status: "Out" } }), store, []);
+  adapter.resetSleeperPlayersMemo();
+  const served = await adapter.fetchSleeperPlayers();
+  assert.equal(served.p1.full_name, "Old", "no waiting on the refresh");
+  await flush();
+  assert.equal(playerCalls(calls), 1, "refresh started at once");
+  assert.equal((await adapter.fetchSleeperPlayers()).p1.injury_status, "Out");
+});
+
+test("a cold-start projections failure is remembered for 30 s on every read path (points and stat lines)", async () => {
+  const { adapter, calls } = loadAdapter(() => { throw new Error("down"); });
+  adapter.resetSleeperPlayersMemo();
+  adapter.resetSleeperStatLineFailures();
+  const projCalls = () => calls.filter((u) => u.includes("/projections/")).length;
+  await withClock(GAME_DAY, async (clock) => {
+    await assert.rejects(adapter.fetchSleeperProjectionStatLines(2026, 5));
+    await assert.rejects(adapter.fetchSleeperProjections(2026, 5), (e) => e.code === "sleeper_projections_recently_failed");
+    await assert.rejects(adapter.fetchSleeperProjectionStatLines(2026, 5), (e) => e.code === "sleeper_projections_recently_failed");
+    assert.equal(projCalls(), 1);
+    clock.advance(31 * 1000);
+    await assert.rejects(adapter.fetchSleeperProjections(2026, 5));
+    assert.equal(projCalls(), 2);
+    adapter.resetSleeperStatLineFailures();
+    await assert.rejects(adapter.fetchSleeperProjections(2026, 5));
+    assert.equal(projCalls(), 3, "reset clears the memo");
+  });
+});
+
+test("a cold process with no cache does not retry a failing players fetch on every request", async () => {
+  const { adapter, calls } = loadAdapter(() => { throw new Error("down"); });
+  adapter.resetSleeperPlayersMemo();
+  await withClock(GAME_DAY, async (clock) => {
+    await assert.rejects(adapter.fetchSleeperPlayers());
+    await assert.rejects(adapter.fetchSleeperPlayers());
+    await assert.rejects(adapter.fetchSleeperPlayers());
+    assert.equal(playerCalls(calls), 1);
+    clock.advance(31 * 1000);
+    await assert.rejects(adapter.fetchSleeperPlayers());
+    assert.equal(playerCalls(calls), 2);
+  });
+});
+
+test("with the kill switch on, attachDataFreshness leaves the body byte-for-byte unchanged", async () => {
+  const { attachDataFreshness } = require("../src/routes/omen");
+  const { adapter } = loadAdapter(() => ({ p1: { full_name: "One" } }));
+  adapter.resetSleeperPlayersMemo();
+  await adapter.fetchSleeperPlayers();
+  process.env.INJURY_FRESHNESS_TIERS_DISABLED = "1";
+  try {
+    const body = { platform: { name: "sleeper" }, signals: { roster: {} } };
+    const before = JSON.stringify(body);
+    attachDataFreshness(body);
+    assert.equal(JSON.stringify(body), before);
+  } finally {
+    delete process.env.INJURY_FRESHNESS_TIERS_DISABLED;
+  }
+});
+
 test("attachDataFreshness adds an additive signal for Sleeper calls only, once the adapter has a stamp", async () => {
   const { attachDataFreshness } = require("../src/routes/omen");
   // loadAdapter leaves a fresh adapter in the require cache, which the route resolves lazily.

@@ -13,6 +13,7 @@ const { Redis } = require("@upstash/redis");
 const config = require("../config");
 const { captureProviderError } = require("../middleware/providerErrors");
 const injuryFreshness = require("../services/injuryFreshness");
+const storedProjections = require("../services/footballWarehouse/storedProjections");
 
 const BASE = "https://api.sleeper.app/v1";
 const PROJECTIONS_BASE = "https://api.sleeper.app/projections/nfl";
@@ -553,6 +554,7 @@ function resetSleeperPlayersMemo() {
   tieredPlayers.nextRefreshAt = 0;
   tieredPlayers.failures = 0;
   tieredPlayers.cold = null;
+  tieredPlayers.coldFailure = null;
   tieredPlayers.tier = null;
   projectionsMemo.clear();
 }
@@ -605,7 +607,9 @@ async function fetchSleeperPlayersLegacy() {
 // on a refresh except the very first load in a cold process with an empty Redis.
 const REFRESH_BACKOFF_BASE_MS = 60 * 1000;
 const REFRESH_BACKOFF_MAX_MS = 10 * 60 * 1000;
-const tieredPlayers = { overlay: null, refreshing: null, nextRefreshAt: 0, failures: 0, cold: null, tier: null };
+// With nothing cached, a failed first load is remembered briefly so each request does not retry a 30 s fetch.
+const COLD_FAILURE_TTL_MS = 30 * 1000;
+const tieredPlayers = { coldFailure: null, overlay: null, refreshing: null, nextRefreshAt: 0, failures: 0, cold: null, tier: null };
 
 function currentFreshnessPolicy(nowMs = Date.now()) {
   let offSeason = null;
@@ -652,7 +656,8 @@ function startPlayersRefresh(policy) {
       const asOf = Date.now();
       installPlayers(out, asOf);
       tieredPlayers.failures = 0;
-      await Promise.all([writeCache(PLAYERS_CACHE_KEY, out, STORE_TTL_S), writeCache(PLAYERS_AT_KEY, asOf, STORE_TTL_S)]);
+      await writeCache(PLAYERS_CACHE_KEY, out, STORE_TTL_S);
+      await writeCache(PLAYERS_AT_KEY, asOf, STORE_TTL_S); // stamp only after the data landed
     } catch {
       tieredPlayers.failures += 1;
       tieredPlayers.nextRefreshAt = Date.now() + backoffMs(tieredPlayers.failures);
@@ -672,13 +677,19 @@ async function loadPlayersCold() {
   const out = players && typeof players === "object" ? players : {};
   const asOf = Date.now();
   installPlayers(out, asOf);
-  await Promise.all([writeCache(PLAYERS_CACHE_KEY, out, STORE_TTL_S), writeCache(PLAYERS_AT_KEY, asOf, STORE_TTL_S)]);
+  await writeCache(PLAYERS_CACHE_KEY, out, STORE_TTL_S);
+  await writeCache(PLAYERS_AT_KEY, asOf, STORE_TTL_S); // stamp only after the data landed
 }
 
 async function fetchSleeperPlayersTiered() {
   if (!playersMemo.value) {
+    const failed = tieredPlayers.coldFailure;
+    if (failed && Date.now() - failed.at < COLD_FAILURE_TTL_MS) throw failed.error;
     if (!tieredPlayers.cold) {
-      const cold = loadPlayersCold().finally(() => { if (tieredPlayers.cold === cold) tieredPlayers.cold = null; });
+      const cold = loadPlayersCold()
+        .then(() => { tieredPlayers.coldFailure = null; })
+        .catch((error) => { tieredPlayers.coldFailure = { at: Date.now(), error }; throw error; })
+        .finally(() => { if (tieredPlayers.cold === cold) tieredPlayers.cold = null; });
       tieredPlayers.cold = cold;
     }
     await tieredPlayers.cold;
@@ -736,8 +747,15 @@ function normalizeProjectionStatLines(payload) {
 const projectionsCacheKey = (season, week) => `ssff:sleeper:projections:${season}:${week}`;
 const projectionStatLinesCacheKey = (season, week) => `ssff:sleeper:projection-stat-lines:${season}:${week}`;
 
-/** One fetch of the week's projections, written to both the points and stat-line caches. */
-async function fetchAndCacheSleeperProjections(season, week) {
+/**
+ * One fetch of the week's projections, written to both the points and stat-line caches.
+ * Single-flight: a cold cache or a slow Sleeper must cost one request, not one per caller.
+ */
+function fetchAndCacheSleeperProjections(season, week) {
+  return singleFlight(`projections:${season}:${week}`, () => fetchAndCacheSleeperProjectionsOnce(season, week));
+}
+
+async function fetchAndCacheSleeperProjectionsOnce(season, week) {
   const projections = await getJson(`${PROJECTIONS_BASE}/${season}/${week}`, {
     params: {
       season_type: "regular",
@@ -750,16 +768,40 @@ async function fetchAndCacheSleeperProjections(season, week) {
   const tiered = !injuryFreshness.tiersDisabled();
   const asOf = Date.now();
   const ttl = tiered ? STORE_TTL_S : PROJECTIONS_TTL_S;
-  const writes = [
+  if (tiered) rememberProjections(season, week, { points, statLines, at: asOf });
+  await Promise.all([
     writeCache(projectionsCacheKey(season, week), points, ttl),
     writeCache(projectionStatLinesCacheKey(season, week), statLines, ttl),
-  ];
-  if (tiered) {
-    rememberProjections(season, week, { points, statLines, at: asOf });
-    writes.push(writeCache(projectionsAtKey(season, week), asOf, ttl));
-  }
-  await Promise.all(writes);
+  ]);
+  // Stamp strictly AFTER the data: another instance that sees the new stamp must find the new blob.
+  if (tiered) await writeCache(projectionsAtKey(season, week), asOf, ttl);
   return { points, statLines };
+}
+
+/**
+ * The warehouse's stored copy of the week's projections (football.player_weekly_projections), when the
+ * store read is switched on and the stored week is fresh and complete; otherwise null and the caller makes
+ * the live fetch. Never throws. Deliberately NOT written to the 1 h Redis cache: the reader memoises it for minutes instead.
+ */
+async function loadStoredSleeperProjections(season, week) {
+  try {
+    const stored = await storedProjections.getStoredProjectionReader().readSleeperWeek({ season: Number(season), week: Number(week) });
+    if (!stored) return null;
+    const payload = stored.rows.map((row) => ({ player_id: row.source_player_id, stats: row.stat_line }));
+    const points = normalizeProjections(payload);
+    const statLines = normalizeProjectionStatLines(payload);
+    return { points, statLines };
+  } catch {
+    return null;
+  }
+}
+
+// A failed stat-line fetch is remembered briefly so an outage is not retried by every request.
+const STAT_LINE_FAILURE_TTL_MS = 30 * 1000;
+const statLineFailures = new Map();
+
+function resetSleeperStatLineFailures() {
+  statLineFailures.clear();
 }
 
 // ---- tiered freshness (projections) ----------------------------------------------------------
@@ -806,8 +848,11 @@ async function loadProjectionsTiered(season, week, { hurtPlayers = true } = {}) 
       // Normalized on read too: entries cached before an earlier fix hold the raw array.
       rememberProjections(season, week, { points: normalizeProjections(points), statLines, at: Number(at) || 0 });
     } else {
-      // First load: nothing to serve yet, so this one waits (single-flight across concurrent callers).
-      await singleFlight(`projections:${key}`, () => fetchAndCacheSleeperProjections(season, week));
+      // First load: nothing cached to serve. The warehouse copy (when on) comes first and is not
+      // remembered here; otherwise the live fetch (single-flight inside) sits behind the failure memo.
+      const stored = await loadStoredSleeperProjections(season, week);
+      if (stored) return stored;
+      await fetchLiveProjectionsRemembering(season, week);
     }
     entry = projectionsMemo.get(key);
   }
@@ -821,14 +866,35 @@ async function fetchSleeperProjections(season, week, opts = {}) {
   const cached = await readCache(projectionsCacheKey(season, week));
   // Normalized on read too: entries cached before this fix hold the raw array.
   if (cached) return normalizeProjections(cached);
+  const stored = await loadStoredSleeperProjections(season, week);
+  if (stored) return stored.points;
   return (await fetchAndCacheSleeperProjections(season, week)).points;
+}
+
+/** A live fetch behind the short failure memo: an outage is not retried by every request. */
+async function fetchLiveProjectionsRemembering(season, week) {
+  const key = `${season}:${week}`;
+  const failedAt = statLineFailures.get(key);
+  if (failedAt && Date.now() - failedAt < STAT_LINE_FAILURE_TTL_MS) {
+    throw Object.assign(new Error("Sleeper projections recently unavailable"), { code: "sleeper_projections_recently_failed" });
+  }
+  try {
+    const result = await fetchAndCacheSleeperProjections(season, week);
+    statLineFailures.delete(key);
+    return result;
+  } catch (error) {
+    statLineFailures.set(key, Date.now());
+    throw error;
+  }
 }
 
 async function fetchSleeperProjectionStatLines(season, week, opts = {}) {
   if (!injuryFreshness.tiersDisabled()) return (await loadProjectionsTiered(season, week, opts)).statLines;
   const cached = await readCache(projectionStatLinesCacheKey(season, week));
   if (cached && typeof cached === "object" && !Array.isArray(cached)) return cached;
-  return (await fetchAndCacheSleeperProjections(season, week)).statLines;
+  const stored = await loadStoredSleeperProjections(season, week);
+  if (stored) return stored.statLines;
+  return (await fetchLiveProjectionsRemembering(season, week)).statLines;
 }
 
 /**
@@ -1060,6 +1126,7 @@ module.exports = {
   fetchSleeperPlayers,
   fetchSleeperProjections,
   fetchSleeperProjectionStatLines,
+  resetSleeperStatLineFailures,
   normalizeProjectionStatLines,
   fetchSleeperAvailablePlayers,
   fetchSleeperLeagueRosters,

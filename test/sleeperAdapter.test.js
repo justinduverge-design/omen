@@ -687,3 +687,31 @@ test("a Sleeper projections fetch writes the stat-line cache too, so the explain
   assert.deepEqual(lines, { 4046: { rec: 6, pts_ppr: 6 } });
   assert.equal(calls.filter((call) => call.url.includes("/projections/")).length, 1);
 });
+
+test("concurrent stat-line reads on a cold cache make one projections request", async () => {
+  const data = fixtures();
+  data.projections = [{ player_id: "4046", stats: { rec: 6, pts_ppr: 6 } }];
+  const { adapter, calls } = loadSleeperAdapterWithFixtures(data);
+
+  const [a, b, c] = await Promise.all([
+    adapter.fetchSleeperProjectionStatLines(2026, 1),
+    adapter.fetchSleeperProjectionStatLines(2026, 1),
+    adapter.fetchSleeperProjectionStatLines(2026, 1),
+  ]);
+
+  assert.deepEqual(a, b);
+  assert.deepEqual(b, c);
+  assert.equal(calls.filter((call) => call.url.includes("/projections/")).length, 1);
+});
+
+test("a failed stat-line fetch is not retried by the next caller for a short while", async () => {
+  const { adapter, calls } = loadSleeperAdapterWithFixtures(fixtures());
+  adapter.resetSleeperStatLineFailures();
+
+  // Week 2 is not served by the fixture, so the provider read fails.
+  await assert.rejects(() => adapter.fetchSleeperProjectionStatLines(2026, 2));
+  await assert.rejects(() => adapter.fetchSleeperProjectionStatLines(2026, 2), /recently unavailable/);
+
+  assert.equal(calls.filter((call) => call.url.includes("/projections/")).length, 1);
+  adapter.resetSleeperStatLineFailures();
+});

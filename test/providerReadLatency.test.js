@@ -126,8 +126,16 @@ test("a failed players load is not cached and a later call retries", async () =>
     return { p1: { full_name: "One" } };
   });
   adapter.resetSleeperPlayersMemo();
-  await assert.rejects(adapter.fetchSleeperPlayers());
-  assert.deepEqual(await adapter.fetchSleeperPlayers(), { p1: { full_name: "One" } });
+  const realNow = Date.now;
+  let clock = realNow();
+  Date.now = () => clock;
+  try {
+    await assert.rejects(adapter.fetchSleeperPlayers());
+    clock += 31 * 1000; // a cold failure is remembered for 30 s so requests do not each retry a slow fetch
+    assert.deepEqual(await adapter.fetchSleeperPlayers(), { p1: { full_name: "One" } });
+  } finally {
+    Date.now = realNow;
+  }
   assert.equal(count(calls, "/players/nfl"), 2);
 });
 

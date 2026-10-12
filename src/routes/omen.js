@@ -789,6 +789,7 @@ router.post("/feedback", requireAuth, async (req, res, next) => {
  */
 function attachDataFreshness(body) {
   try {
+    if (require("../services/injuryFreshness").tiersDisabled()) return; // kill switch: response identical to pre-change
     if (!body || body.platform?.name !== "sleeper" || !body.signals || typeof body.signals !== "object") return;
     const f = require("../adapters/sleeper").getSleeperDataFreshness();
     if (!f.players_as_of) return;
