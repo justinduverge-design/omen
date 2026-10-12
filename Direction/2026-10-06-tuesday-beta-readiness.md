@@ -442,3 +442,17 @@ Merged today: #630 football backup status path (a latched CRITICAL alert since 2
 **Accept and say in the release notes:** Yahoo has no projections (Omen says it cannot rank a move; no trade call) unless the Yahoo projection PR lands; Tuesday scoring is held so Ledger rows read Pending; `snap_share` is intentionally blank (rights review open); trade targets and ESPN transactions read "unavailable" where the provider cannot confirm; the language model narration is off the request path (batch plan, not built).
 **No longer true (remove from old notes):** "Only one league per platform is saved" (memberships live since Oct 3).
 **Freeze:** no production changes Monday 2026-10-13 evening through Tuesday unless the founder asks. SSH username unification (`omen` user on both VPSes) is scheduled for the week after.
+
+### 2e. Update 2026-10-12 early morning (everything merged since 2c/2d)
+
+**Merged to main (all reviewed by a fresh agent first, CI green, deployed, canary PASS):**
+- #639 Omen trade call first class in the app; #646 app reads the structured trade partner; #644 server structured `recommendation.trade`.
+- #640 trade player names with a generational suffix resolve (Luther Burden III; found on the founder's phone).
+- #645 Yahoo projections (Sleeper stat lines through the Yahoo id, scored with the Yahoo league's own rules; kill switch `YAHOO_PROJECTIONS_DISABLED`). #648 provider capability matrix + ESPN/Yahoo playoff cut line.
+- #649 warehouse weekly projections store, **code merged, flags OFF, schema NOT applied**; production apply deferred until after the Tuesday release (handoff `2026-10-11-warehouse-weekly-projections.md`: tolerant release first, backup, apply outside 07:15 ET, verify, ingest, then flags; never roll the worker below this release after apply).
+- #650 tiered injury and projection freshness (game windows every 10-20 min, otherwise 2 h, off-season 12 h; stale-while-revalidate; sanity floor on the players map; kill switch `INJURY_FRESHNESS_TIERS_DISABLED`). Real kickoff times are not wired in yet: Saturday and holiday games rely on weekday windows (fine for October; do before December).
+- Decision log: projections rights risk accepted with safeguards (#647). Ops: KVM2 nginx boot order fixed, football backup status path fixed, restore-proof retry fixed, dispatcher sort and pending-monitor fixes (Pi, backed up).
+
+**Still open for Tuesday:** Gate G (the founder's phone walk, incl. one real Yahoo call showing source `sleeper_public_projections_yahoo_scoring...`, ESPN/Yahoo cut line, trade call end to end); Sentinel baseline refresh for KVM1 and KVM2 (founder runs `sudo sentinel-omen-posture-baseline-refresh kvm1|kvm2`); build 7 archive and upload; section 10 decisions; scheduled restore proof Sun 2026-10-18 14:10 UTC.
+**Known behaviour to expect:** each API deploy swaps one container, so a few seconds of 502s; no deploys after Monday evening.
+**Deferred (after Tuesday):** warehouse projections apply + read flags; `omen` SSH user on both VPSes; League trade-targets section (reads exist); transactions feed; Yahoo waiver status; truth-gate P0 cleanup (268, mostly historical).
