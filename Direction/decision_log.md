@@ -1,5 +1,22 @@
 # Omen Decision Log
 
+## 2026-10-12 (later) — projections: the league's provider leads, Omen is the challenger and the filler; read everything the providers expose
+
+- **Decision (founder, 2026-10-12), refining the entry above:** the league provider's own projections LEAD for that league
+  (ESPN's for ESPN, Sleeper's for Sleeper). Where a provider exposes none (Yahoo), Omen's own projection leads. Omen's own
+  projection is computed for every player in every league and shown beside the provider's.
+- **Disagreement is a product signal, not noise:** when Omen and the provider differ by a meaningful margin, the call carries a
+  `challenger` reason ("provider has him at X, Omen at Y, because ...") ranked by the decision-drivers model. The decision itself
+  follows the lead source unless the founder decides otherwise for a specific surface.
+- **Read as much as possible from the providers:** the capability matrix gap list (G3 trade targets from the roster reads,
+  G4 transactions, G5 roster slots, G6 Yahoo waiver status, G7 deadlines, G8 failed-team flags, G9 drafts) is the backlog. Each
+  gap is built provider by provider, honest "unavailable" where a provider refuses.
+- **Compile and break down the data at every turn:** the derived-metric catalogue (opportunity, role, usage trend, pecking order,
+  schedule and opponent context, QB grade, scenario views) is the evidence layer that feeds every call, the challenger reason and
+  the "also considered" row. New slices are added as specs with a backtest, not as one-off screen logic.
+- **Unchanged:** nothing replaces a live path until a backtest shows it is not worse; no production change before the Tuesday release;
+  Sleeper projections stay stored as the benchmark and fallback.
+
 ## 2026-10-12 — projections: Omen's own projections are the point of view, for every provider
 
 - **Decision (founder, 2026-10-12):** "Yahoo will use Omen projections; we should take that point of view going forwards, we
