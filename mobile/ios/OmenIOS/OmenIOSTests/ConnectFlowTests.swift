@@ -150,6 +150,7 @@ final class ConnectFlowTests: XCTestCase {
     ) async -> ConnectViewModel {
         let viewModel = ConnectViewModel(repository: repository, sessionManager: sessionManager())
         viewModel.espnSessionSettleDelay = .zero
+        viewModel.espnDiscoveryRetryDelay = .zero
         viewModel.selectProvider(.espn)
         viewModel.beginEspnSignIn(cookieStore: scripted ?? store ?? FakeEspnCookieStore())
         viewModel.espnSignInProgressed(.signedIn(detectedLeagueId: "123456", detectedTeamId: "7"))
@@ -183,10 +184,10 @@ final class ConnectFlowTests: XCTestCase {
         XCTAssertEqual(repository.recorder.espnConnectAttempts.first?.leagueId, "123456")
         XCTAssertEqual(repository.recorder.espnConnectAttempts.first?.teamId, "7")
         XCTAssertEqual(repository.recorder.espnConnectAttempts.first?.sentSession, true)
-        // Bounded, never polled: two reads to settle the pair, one re-read on discovery's single
-        // retry, and one fresh read for the connect (a failed pair is dropped, not reused). The
+        // Bounded, never polled: two reads to settle the pair, one re-read per discovery retry
+        // (three), and one fresh read for the connect (a failed pair is dropped, not reused). The
         // session still lives only in memory and only for the length of this flow.
-        XCTAssertEqual(store.takeCount, 4)
+        XCTAssertEqual(store.takeCount, 2 + (ConnectViewModel.maxEspnDiscoveryAttempts - 1) + 1)
     }
 
     /// A first-time ESPN sign-in can land `espn_s2` before the account's real `SWID`. Discovery
@@ -208,6 +209,23 @@ final class ConnectFlowTests: XCTestCase {
         guard case .choosingEspnLeague = viewModel.state else {
             return XCTFail("expected the league picker, got \(viewModel.state)")
         }
+    }
+
+    /// "Check again" gives the account another bounded round, with a fresh read of the cookies,
+    /// and hides the fallback while it runs.
+    @MainActor
+    func testCheckAgainRunsAnotherBoundedRoundOfDiscovery() async {
+        var repository = StubConnectRepository()
+        repository.espnDiscoverResult = .failure(.network)
+        let viewModel = await espnReadyViewModel(repository: repository)
+        XCTAssertTrue(viewModel.espnDiscoveryFallbackAvailable)
+
+        viewModel.checkEspnLeaguesAgain()
+        XCTAssertFalse(viewModel.espnDiscoveryFallbackAvailable)
+        await viewModel.awaitEspnDiscovery()
+
+        XCTAssertEqual(repository.recorder.espnDiscoveries, ConnectViewModel.maxEspnDiscoveryAttempts * 2)
+        XCTAssertTrue(viewModel.espnDiscoveryFallbackAvailable)
     }
 
     /// While the pair settles the flow is busy: Connect cannot be pressed on an unsettled pair.
@@ -257,7 +275,11 @@ final class ConnectFlowTests: XCTestCase {
         ])
         _ = await espnReadyViewModel(repository: repository, store: nil, scripted: store)
 
-        XCTAssertEqual(repository.recorder.espnDiscoverySwidMatched, [false, true])
+        // First attempt carries the stale pair; every retry carries the re-read one.
+        XCTAssertEqual(
+            repository.recorder.espnDiscoverySwidMatched,
+            [false] + Array(repeating: true, count: ConnectViewModel.maxEspnDiscoveryAttempts - 1)
+        )
     }
 
     /// **The point of W1-A's second half.** Signing in should produce a list, not a homework
@@ -429,7 +451,7 @@ final class ConnectFlowTests: XCTestCase {
         XCTAssertEqual(viewModel.state, .espnSigningIn)
         XCTAssertEqual(viewModel.espnCheckNotice, EspnHandoffCopy.discoveryUnavailable)
         XCTAssertTrue(viewModel.espnDiscoveryFallbackAvailable)
-        XCTAssertEqual(repository.recorder.espnDiscoveries, 2)
+        XCTAssertEqual(repository.recorder.espnDiscoveries, ConnectViewModel.maxEspnDiscoveryAttempts)
     }
 
     /// An account with no football leagues is an honest empty answer, not an error.

@@ -456,7 +456,7 @@ enum EspnHandoffCopy {
     /// Shown when ESPN accepts the session but reports no football leagues on the account.
     static let noLeaguesFound = "ESPN didn't report any football leagues on this account. If you know the league ID, you can enter it."
     /// Shown when discovery itself could not run. Not a failed connection — a failed lookup.
-    static let discoveryUnavailable = "Omen couldn't ask ESPN for your leagues. Enter the league ID and we'll connect it directly."
+    static let discoveryUnavailable = "Omen couldn't get your leagues from ESPN yet. A brand-new ESPN login can take a moment, so try Check again, or enter the league ID."
 
     static let openSetupTitle = "Open ESPN setup"
     static let checkConnectionTitle = "I connected ESPN"

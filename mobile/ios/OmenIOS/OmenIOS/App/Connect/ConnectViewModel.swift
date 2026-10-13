@@ -50,7 +50,12 @@ final class ConnectViewModel: ObservableObject {
     /// Type-level because it is a **policy**, not per-instance state: it bounds how many requests
     /// one sign-in may make carrying the ESPN session, so a test can assert against the policy
     /// instead of hardcoding a number that goes stale the next time the policy moves.
-    static let maxEspnDiscoveryAttempts = 2
+    static let maxEspnDiscoveryAttempts = 4
+
+    /// Wait between discovery attempts. A brand-new ESPN login (a recorded tester went from the
+    /// MyDisney code straight to discovery) can have a valid session before ESPN's fan directory
+    /// knows the account; two attempts one second apart gave up too early. Settable for tests.
+    var espnDiscoveryRetryDelay: Duration = .seconds(2)
 
     /// How long the cookie jar must hold the same session before Omen first uses it. A first-time
     /// ESPN sign-in lands its cookies in steps (a fresh `espn_s2` can arrive while `SWID` is still
@@ -284,6 +289,18 @@ final class ConnectViewModel: ObservableObject {
         }
     }
 
+    /// "Check again" on the fallback panel: another bounded round of discovery with a fresh read of
+    /// the cookies, for an account ESPN's directory was not ready to answer for the first time.
+    func checkEspnLeaguesAgain() {
+        guard case .espnSigningIn = state, espnCookieStore != nil else { return }
+        espnDiscoveryTask?.cancel()
+        espnDiscoveryAttempts = 0
+        espnDiscoveryFallbackAvailable = false
+        espnCheckNotice = nil
+        espnSession = nil
+        espnDiscoveryTask = Task { [weak self] in await self?.discoverEspnLeagues() }
+    }
+
     /// Awaits the discovery that sign-in started, if one is in flight. A no-op when none is.
     ///
     /// This exists so callers can observe the automatic discovery instead of racing it. Calling
@@ -340,7 +357,7 @@ final class ConnectViewModel: ObservableObject {
             }
             finalResult = result
             if espnDiscoveryAttempts < Self.maxEspnDiscoveryAttempts {
-                try? await Task.sleep(for: .seconds(1))
+                try? await Task.sleep(for: espnDiscoveryRetryDelay)
                 guard stillCurrent() else { return }
                 // Read the jar again rather than resend what just failed: if the first pair was
                 // caught mid-update, the same values will fail the same way.
