@@ -41,6 +41,11 @@ founder, or store work.
 - **Scope:** `Direction/2026-10-20-build-12-plan.md` (active build), `Direction/2026-10-12-rolling-three-beta-frame.md` (cadence), `Direction/2026-10-27-beta-readiness.md` (unallocated horizon/index), `Direction/2026-10-13-release-rollback-card.md` (Build 9 rollback provenance).
 - **Done when:** the founder ships the build and the release day's canary passes.
 
+**2026-10-13 execution note:** no new beta version has installs yet. ESPN fresh-login verification is
+deferred until the founder reports an install and explicitly resumes it. The three no-install lanes
+are Trade reliability trace, shared-foundation/provider honesty, and Omen-summary plus League audit;
+see the active Build 12 plan.
+
 ### FM-XFP — Omen fantasy metrics v1: expected fantasy points, opportunity, role chart, dynasty outlook
 
 - **Status:** READY

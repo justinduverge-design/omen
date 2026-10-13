@@ -29,6 +29,10 @@ two weeks. Next build number is **Build 12** (planned Tue 2026-10-20 at the earl
 6. Open alert, not from this work: `Omen football: witness_mismatch` (2026-10-13 05:48 ET). The witness data lives on command-center under
    `/var/lib/omen-football-witness` and needs sudo to read. Not checked.
 
+**Founder deferment, 2026-10-13:** the new beta version has no installs yet. Do not perform the ESPN
+log check, request a tester attempt, or change the login flow until the founder says an install exists
+and asks to resume this watch item. Preserve this list for later; it is not an active Build 12 lane.
+
 ## Codex: where the work is
 - Planning docs for 2026-10-20 (renumbered Build 12) are uncommitted in `~/.codex/worktrees/three-beta-release-plan/omen`.
 - 23 unpushed trade-context commits sit on `codex/tuesday-beta-ready-20260929` (448 commits behind main). Candidate for trade reliability.

@@ -59,6 +59,7 @@ Do not fall back to `postgres`, production data, or a password in argv/environme
 
 ## Next safe step
 
-Design and independently review the retained-analysis restore procedure before any KVM2 execution.
-In parallel, collect one real Build 11 fresh-account ESPN result and continue the Build 12 scope gate:
-current Trade reproduction, shared-primitives trace and provider-by-feature certification.
+Keep KVM2 execution on hold. The founder has also deferred ESPN verification until a new beta build
+has an install and explicitly resumes that check. Continue the Build 12 scope gate through three
+no-install lanes: Trade reliability trace; shared-primitives/provider-honesty certification; and the
+Omen-summary plus League completion/canvas audit.

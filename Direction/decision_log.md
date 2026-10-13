@@ -1,5 +1,16 @@
 # Omen Decision Log
 
+## 2026-10-13 — Defer ESPN verification until the new beta has an install
+
+- **Founder fact:** the new beta version has no installs yet, so checking the Build 11 ESPN fix now
+  cannot produce useful tester evidence.
+- **Decision:** preserve the merged ESPN watch list but do not inspect logs, request a tester attempt,
+  or modify the login flow until the founder reports an install and resumes the check.
+- **Replacement lane:** use the no-install window for the Omen-summary plus League completion audit,
+  alongside the Trade reliability trace and shared-foundation/provider-honesty inspection.
+- **KVM2 boundary:** no KVM2 action is authorized by this planning change. Projection analysis remains
+  a documented HOLD until a separately reviewed retained-analysis procedure is ready.
+
 ## 2026-10-13 — Build 12 projection certification is family-specific and evidence-gated
 
 - **Decision:** projection eligibility is decided independently for standard, half-PPR and PPR, by
