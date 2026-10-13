@@ -413,9 +413,15 @@ async function validateEspnConnection({ leagueId, espn_s2, swid, espnTeamId }) {
     });
     return { valid: Boolean(roster && roster.source === "espn") };
   } catch (error) {
+    const status = error?.status || error?.response?.status || null;
+    // The caller turns every one of these into a single 400/404, which hides whether ESPN
+    // refused the session (401/403), could not find the team (404) or was unreachable. Record the
+    // status only: no cookie, league id, user id or message text, and warn level so it stays out of
+    // Sentry/GlitchTip.
+    logger.warn("ESPN connect validation failed", { http_status: status ? Number(status) : null });
     return {
       valid: false,
-      status: error?.status || error?.response?.status || null,
+      status,
       message: error?.message || "ESPN connection validation failed",
     };
   }
