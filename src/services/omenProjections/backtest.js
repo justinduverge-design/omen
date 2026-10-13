@@ -25,7 +25,11 @@ const SCORINGS = Object.freeze(["standard", "half_ppr", "ppr"]);
 const PREDICTORS = Object.freeze(["model", "model_no_context", "last3", "season_avg", "sleeper"]);
 const BASELINES = Object.freeze(["model_no_context", "last3", "season_avg", "sleeper"]);
 const BANDS = Object.freeze(["low", "medium", "high"]);
-const RELEVANCE_MIN_PPR = 5; // trailing-3-game PPR average, known before the week and independent of the model
+const RELEVANCE_POLICY = Object.freeze({
+  version: "preweek-opportunity-v1",
+  window_games: 3,
+  minimum_average_opportunities: Object.freeze({ QB: 20, RB: 8, WR: 4, TE: 3 }),
+});
 const MIN_RESIDUALS_FOR_INTERVAL = 100;
 const Z_80 = 1.2815515655446004;
 const MIN_GROUP_FOR_RANK = 8;
@@ -50,6 +54,28 @@ function mean(values) {
 
 function scoreAll(statLine) {
   return Object.fromEntries(SCORINGS.map((scoring) => [scoring, scoreStatLine(statLine, scoring)]));
+}
+
+/** Select the evaluation population from pre-week opportunity only, never from a predictor. */
+function relevanceFromHistory(position, history) {
+  const threshold = RELEVANCE_POLICY.minimum_average_opportunities[position];
+  if (!Number.isFinite(threshold)) return { eligible: false, average_opportunities: null, games: 0 };
+  const rows = Array.isArray(history) ? history.slice(-RELEVANCE_POLICY.window_games) : [];
+  if (rows.length < RELEVANCE_POLICY.window_games) {
+    return { eligible: false, average_opportunities: null, games: rows.length };
+  }
+  const opportunities = rows.map((row) => {
+    const stats = row?.stats || {};
+    return position === "QB"
+      ? Number(stats.attempts || 0) + Number(stats.carries || 0)
+      : Number(stats.carries || 0) + Number(stats.targets || 0);
+  });
+  const average = mean(opportunities);
+  return {
+    eligible: Number.isFinite(average) && average >= threshold,
+    average_opportunities: round(average),
+    games: rows.length,
+  };
 }
 
 function ranks(values) {
@@ -153,6 +179,7 @@ async function walkForward({ source, testSeasons, warmupSeasons = 2, positions =
           const model = projectPlayerWeek(common, { useGameContext: true });
           const noContext = projectPlayerWeek(common, { useGameContext: false });
           const recent = history.slice(-3);
+          const relevance = relevanceFromHistory(row.position, history);
           const sameSeason = history.filter((h) => h.season === season);
           const seasonRows = sameSeason.length ? sameSeason : history.filter((h) => h.season === season - 1);
           const baselineScores = (selected) => (selected.length
@@ -174,7 +201,9 @@ async function walkForward({ source, testSeasons, warmupSeasons = 2, positions =
               season_avg: baselineScores(seasonRows),
               sleeper: sleeperLine ? Object.fromEntries(SCORINGS.map((s) => [s, scoreSleeperStatLine(sleeperLine, s)])) : null,
             },
-            relevance_ppr: last3 ? last3.ppr : null,
+            relevance_eligible: relevance.eligible,
+            relevance_opportunities: relevance.average_opportunities,
+            relevance_games: relevance.games,
             sd_hat_ppr: null,
           };
           const acc = residuals.get(`${row.position}|${record.band}`);
@@ -398,9 +427,30 @@ function bySeason(records, predictors = ["model", "last3", "season_avg"]) {
   return out;
 }
 
+function shipRuleForPosition(records) {
+  const seasons = [...new Set(records.map((r) => r.season))].sort((a, b) => a - b);
+  const bySeasonVerdict = {};
+  let passingSeasons = 0;
+  for (const season of seasons) {
+    const rows = records.filter((r) => r.season === season);
+    const last3 = pairedComparison(rows, "model", "last3", "ppr");
+    const seasonAvg = pairedComparison(rows, "model", "season_avg", "ppr");
+    const passes = last3.verdict === "a_better" && seasonAvg.verdict === "a_better";
+    if (passes) passingSeasons += 1;
+    bySeasonVerdict[season] = { passes, model_vs_last3: last3, model_vs_season_avg: seasonAvg };
+  }
+  return {
+    status: seasons.length < 3 ? "HOLD" : passingSeasons >= 2 ? "PASS" : "FAIL",
+    passing_seasons: passingSeasons,
+    required_passing_seasons: 2,
+    tested_seasons: seasons.length,
+    by_season: bySeasonVerdict,
+  };
+}
+
 function evaluate(records, { positions = POSITIONS } = {}) {
   const universes = {
-    relevant: records.filter((r) => r.relevance_ppr != null && r.relevance_ppr >= RELEVANCE_MIN_PPR),
+    relevant: records.filter((r) => r.relevance_eligible === true),
     all: records,
   };
   const results = {};
@@ -420,6 +470,7 @@ function evaluate(records, { positions = POSITIONS } = {}) {
         })),
         calibration: calibration(rows),
         disagreement: Object.fromEntries(SCORINGS.map((scoring) => [scoring, disagreement(rows, scoring)]).filter(([, v]) => v)),
+        ship_rule: shipRuleForPosition(rows),
       };
     }
   }
@@ -429,6 +480,19 @@ function evaluate(records, { positions = POSITIONS } = {}) {
 async function runBacktest({ source, testSeasons, warmupSeasons = 2, positions = POSITIONS, onProgress, now = () => new Date() }) {
   const { records, meta } = await walkForward({ source, testSeasons, warmupSeasons, positions, onProgress });
   const check = meta.scoring_check;
+  const results = evaluate(records, { positions });
+  const positionDecisions = {};
+  for (const position of positions) {
+    const relevant = results.relevant.positions[position]?.ship_rule;
+    const all = results.all.positions[position]?.ship_rule;
+    let status = "HOLD";
+    if (relevant && all) {
+      status = relevant.status === "PASS" && all.status === "PASS"
+        ? "PASS"
+        : relevant.status === "HOLD" || all.status === "HOLD" ? "HOLD" : "FAIL";
+    }
+    positionDecisions[position] = { status, relevant: relevant?.status || "HOLD", all: all?.status || "HOLD" };
+  }
   return {
     meta: {
       generated_at: now().toISOString(),
@@ -438,7 +502,8 @@ async function runBacktest({ source, testSeasons, warmupSeasons = 2, positions =
       positions,
       scorings: SCORINGS,
       scoring_presets: Object.fromEntries(Object.entries(SCORING_PRESETS).map(([k, v]) => [k, v.rules.map((r) => `${r.event_key}=${r.value}`)])),
-      relevant_universe: `trailing-3-game PPR average >= ${RELEVANCE_MIN_PPR} before the week (model-independent)`,
+      relevant_universe: `${RELEVANCE_POLICY.version}: trailing ${RELEVANCE_POLICY.window_games} pre-week games meet the position opportunity threshold ${JSON.stringify(RELEVANCE_POLICY.minimum_average_opportunities)}; no fantasy-points predictor participates in selection`,
+      relevance_policy: RELEVANCE_POLICY,
       universe_note: "Only players who actually played the week are scored (the warehouse has no historical injury report); every predictor is conditional on playing.",
       seasons: meta.seasons,
       constants: {
@@ -460,7 +525,8 @@ async function runBacktest({ source, testSeasons, warmupSeasons = 2, positions =
       sleeper: meta.sleeper,
       records: records.length,
     },
-    results: evaluate(records, { positions }),
+    results,
+    position_decisions: positionDecisions,
   };
 }
 
@@ -480,6 +546,16 @@ function renderMarkdown(report) {
   lines.push(`- Leakage guards: ${meta.leakage_guards.join("; ")}.`);
   lines.push(`- Scoring check (recomputed PPR vs nflverse): n=${meta.scoring_check.n}, mean abs diff ${fmt(meta.scoring_check.mean_abs_diff, 3)}, within 0.5: ${fmt(meta.scoring_check.share_within_half_point, 3)}, max ${fmt(meta.scoring_check.max_abs_diff)}.`);
   lines.push(`- Sleeper benchmark: ${meta.sleeper.requested ? (meta.sleeper.available ? `${meta.sleeper.rows} stored projection rows` : "requested but none available") : "not requested"}.`);
+  lines.push("");
+  lines.push("## Position ship decisions");
+  lines.push("");
+  lines.push("A position passes only when the per-season rule passes in both the independent relevant universe and the all-player universe.");
+  lines.push("");
+  lines.push("| position | decision | relevant universe | all-player universe |");
+  lines.push("|---|---|---|---|");
+  for (const [position, decision] of Object.entries(report.position_decisions || {})) {
+    lines.push(`| ${position} | ${decision.status} | ${decision.relevant} | ${decision.all} |`);
+  }
   lines.push("");
   for (const universe of ["relevant", "all"]) {
     const block = results[universe];
@@ -551,7 +627,7 @@ function renderMarkdown(report) {
   }
   lines.push("## How to read this");
   lines.push("");
-  lines.push("- Ship rule (spec section 8): the model must beat both `last3` and `season_avg` on PPR MAE with a clustered-SE verdict of `a_better` in the relevant universe for a position, in at least two of three test seasons, to be served for that position.");
+  lines.push("- Ship rule (spec section 8): the model must beat both `last3` and `season_avg` on PPR MAE with a clustered-SE verdict of `a_better`, in at least two of three test seasons, in both the independent relevant universe and the all-player universe, to be served for that position.");
   lines.push("- A `no_clear_difference` verdict is not a pass.");
   lines.push("- Confidence bands are labels, never percentages. The 80% interval share is a check on how wide the bands' error really is.");
   lines.push("");
@@ -559,7 +635,7 @@ function renderMarkdown(report) {
 }
 
 module.exports = {
-  BANDS, BASELINES, PREDICTORS, RELEVANCE_MIN_PPR, SCORINGS,
+  BANDS, BASELINES, PREDICTORS, RELEVANCE_POLICY, SCORINGS,
   calibration, disagreement, errorStats, evaluate, impliedPoints, pairedComparison, ranks, renderMarkdown, runBacktest, spearman, walkForward,
-  weeklyRankCorrelation,
+  relevanceFromHistory, shipRuleForPosition, weeklyRankCorrelation,
 };

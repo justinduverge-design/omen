@@ -3,8 +3,8 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
-  calibration, errorStats, impliedPoints, pairedComparison, ranks, renderMarkdown, runBacktest, spearman, walkForward,
-  weeklyRankCorrelation,
+  calibration, errorStats, evaluate, impliedPoints, pairedComparison, ranks, relevanceFromHistory, renderMarkdown, runBacktest,
+  shipRuleForPosition, spearman, walkForward, weeklyRankCorrelation,
 } = require("../src/services/omenProjections/backtest");
 const { createPgSource, GAMES_SQL, PLAYER_WEEKS_SQL, SLEEPER_SQL, statsFromRow } = require("../src/services/omenProjections/pgSource");
 const { parseArgs, parseSeasons, poolConfig } = require("../scripts/omen-projections-backtest");
@@ -142,6 +142,58 @@ test("metrics are computed correctly on a hand-made set", () => {
   assert.equal(spearman([1, 2], [1, 2]), null);
   // weekly rank correlation skips groups smaller than 8
   assert.equal(weeklyRankCorrelation(records, "model", "ppr").weeks, 0);
+});
+
+test("relevance is selected from pre-week opportunity and cannot be changed by a fantasy-points baseline", () => {
+  const history = [1, 2, 3].map((week) => ({
+    season: 2024,
+    week,
+    stats: { carries: 6, targets: 4, receptions: 0, rushing_yards: 0, receiving_yards: 0 },
+  }));
+  const selected = relevanceFromHistory("RB", history);
+  assert.deepEqual(selected, { eligible: true, average_opportunities: 10, games: 3 });
+
+  const fantasyInflated = history.map((row) => ({
+    ...row,
+    stats: { ...row.stats, receptions: 50, rushing_yards: 500, receiving_yards: 500 },
+  }));
+  assert.deepEqual(relevanceFromHistory("RB", fantasyInflated), selected);
+  assert.equal(relevanceFromHistory("WR", history.slice(0, 2)).eligible, false, "three pre-week games are required");
+});
+
+test("the ship rule is explicit by season and must pass in both universes", () => {
+  const records = [];
+  for (const season of [2022, 2023, 2024]) {
+    for (let i = 0; i < 40; i += 1) {
+      const actual = 10;
+      const modelError = season === 2024 ? 4 : 1;
+      const baselineError = season === 2024 ? 1 : 4;
+      records.push({
+        season,
+        week: 1 + (i % 17),
+        player_id: `${season}-p${i}`,
+        position: "WR",
+        bucket: "established",
+        band: "high",
+        relevance_eligible: i < 30,
+        sd_hat_ppr: null,
+        actual: { standard: actual, half_ppr: actual, ppr: actual },
+        pred: {
+          model: { standard: actual + modelError, half_ppr: actual + modelError, ppr: actual + modelError },
+          last3: { standard: actual + baselineError, half_ppr: actual + baselineError, ppr: actual + baselineError },
+          season_avg: { standard: actual - baselineError, half_ppr: actual - baselineError, ppr: actual - baselineError },
+        },
+      });
+    }
+  }
+  const rule = shipRuleForPosition(records);
+  assert.equal(rule.status, "PASS");
+  assert.equal(rule.passing_seasons, 2);
+  assert.equal(rule.by_season[2024].passes, false);
+
+  const evaluated = evaluate(records, { positions: ["WR"] });
+  assert.equal(evaluated.relevant.positions.WR.ship_rule.status, "PASS");
+  assert.equal(evaluated.all.positions.WR.ship_rule.status, "PASS");
 });
 
 test("paired comparison: model clearly better, clearly worse, and indistinguishable", () => {

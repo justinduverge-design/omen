@@ -241,8 +241,10 @@ test changes the data at and after a week (and the whole test season) and assert
 three games played), `season_avg` (this season's games so far, else last season's), and `sleeper` (stored provider projections
 from `football.player_weekly_projections`, only where present, `--sleeper`).
 
-**Metrics** (per position, for standard, half-PPR and PPR points, over two universes: `relevant` = trailing-3-game PPR average
->= 5 before the week, independent of the model; `all` = everyone who played):
+**Metrics** (per position, for standard, half-PPR and PPR points, over two universes: `relevant` = three prior games meeting the
+versioned `preweek-opportunity-v1` average-opportunity threshold — QB 20 attempts+carries, RB 8 carries+targets, WR 4
+carries+targets, TE 3 carries+targets — and `all` = everyone who played). The relevant population reads no fantasy-points
+predictor: Omen, `last3`, `season_avg` and provider projections cannot select the rows on which they are judged:
 MAE, RMSE, bias; mean within-week Spearman rank correlation of projected vs actual points among a position's players (weeks
 with at least 8); a paired comparison of absolute error against each other predictor with a **player-clustered** standard
 error and a verdict (`a_better`, `b_better`, `no_clear_difference`); MAE by season; MAE by experience bucket (debut / 1-3
@@ -256,9 +258,10 @@ n, mean gap, Omen MAE, provider MAE, the share of decided cases where Omen was c
 challenger weight cap (section 7). ESPN's projection is not in the warehouse, so ESPN gets no such evidence until it is stored;
 the challenger row on ESPN leagues stays at `slight` until then.
 
-**Ship rule.** Omen leads (Yahoo, or as the fallback) for a position only if, in the `relevant` universe on PPR points, the paired
-verdict against both `last3` and `season_avg` is `a_better` in at least two of three test seasons. `no_clear_difference` is not a
-pass. A position that fails keeps the Sleeper-feed fallback and the report says so.
+**Ship rule.** Omen leads (Yahoo, or as the fallback) for a position only if, in both the independently selected `relevant`
+universe and the `all` universe on PPR points, the per-season paired verdict against both `last3` and `season_avg` is `a_better`
+in at least two of three test seasons. `no_clear_difference` is not a pass. Fewer than three test seasons is `HOLD`; otherwise a
+position that misses either universe is `FAIL`, keeps the Sleeper-feed fallback, and the report says so explicitly.
 
 ### Exact read-only command (founder's agent, on a restored warehouse copy)
 
