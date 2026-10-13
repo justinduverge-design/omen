@@ -20,8 +20,8 @@ hopeful horizon that becomes real only as the frame rolls forward.
 
 | Release | Date | Confidence | Scope now | Scope is chosen when |
 |---|---|---|---|---|
-| Build 9 | Tue 2026-10-13 | distributed to beta users, founder-confirmed | Treat as the observation baseline. Command is accepted; phone-walk Trade failures and incomplete Account/Omen/League surfaces remain evidence for future work, not retroactive Build 9 scope. | release/canary and observation |
-| Build 12 | Tue 2026-10-20 | active planning; scope unallocated | Choose the smallest coherent outcome only after the foundation inspection. Plan: `Direction/2026-10-20-build-12-plan.md`. | after the foundation inspection and first Thu-Sun build window |
+| Build 11 | uploaded 2026-10-12 | current tester baseline; fresh-account ESPN path remains on the watch list | Observe the repaired first-login flow. The Build 9 phone-walk Trade failures remain historical product evidence, not proof of Build 11 behavior. | beta feedback and status-only log correlation |
+| Build 12 | Tue 2026-10-20 at the earliest | active planning; scope unallocated | Choose the smallest coherent outcome only after the foundation inspection. Plan: `Direction/2026-10-20-build-12-plan.md`. | after the foundation inspection and first Thu-Sun build window |
 | Beta 3 | Tue 2026-10-27 | hopeful horizon | Candidate backlog only: projection recovery, provider-read slices, evidence/IA/discovery specs, Omen evidence summary, League completion and Account refinement. None is promised to this release before inspection and Beta 2 evidence. | when the frame rolls on Mon 2026-10-19 and again on Mon 2026-10-26 |
 
 Every Monday, remove the shipped Tuesday, promote the next Tuesday to the committed position, and
@@ -75,7 +75,8 @@ Beta 2.
 
 These items remain visible but are deliberately **not assigned to a beta yet**:
 
-- Fix the unresolved P1 on branch `omen-projections-v1`, rebase and independently review PR #654.
+- Close the two P1s from PR #654's independent review (scoring-family certification and minimum
+  paired evidence), rerun fresh review, then decide whether the local Build 12 staging merge is retained.
 - Run the projection model read-only against a restored warehouse and decide pass/hold/fail by
   position; no live use because an overall average looks good.
 - Split branch `feat/provider-gap-g3-g8` into independently reviewable provider-capability slices.
@@ -119,4 +120,3 @@ second real consumer.
 4. What is the smallest coherent outcome for the next Tuesday?
 5. What is explicitly excluded from that build?
 6. What remains merely hopeful for the third Tuesday?
-

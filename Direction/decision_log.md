@@ -1,5 +1,17 @@
 # Omen Decision Log
 
+## 2026-10-13 — Build 12 projection certification is family-specific and evidence-gated
+
+- **Decision:** projection eligibility is decided independently for standard, half-PPR and PPR, by
+  position, in both the relevant and all-player universes. A PPR pass cannot authorize another family.
+- **Evidence floor:** every season/baseline comparison requires at least 100 paired player-weeks and
+  20 player clusters (`paired-evidence-v1`). Insufficient evidence is `HOLD`.
+- **Reader boundary:** the backtest requires LOGIN `omen_warehouse_read`, database `omen_football`
+  and a read-only session. A read-only superuser is rejected.
+- **Activation boundary:** source repair may be committed locally, but restored-warehouse execution
+  and customer-visible activation remain blocked until a bounded retained-analysis restore path and
+  position/scoring-family results exist.
+
 ## 2026-10-12 — Renumber: the planned Build 10 is now Build 12
 
 - **Why:** Build 9 had stale code, so Build 10 shipped the same night from current main, and Build 11 followed with the ESPN first-login fix (settle the cookie pair, patient discovery, Check again; server logs the real ESPN status).

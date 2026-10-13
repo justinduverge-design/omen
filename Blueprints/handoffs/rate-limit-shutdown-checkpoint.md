@@ -8,7 +8,7 @@ This cycle is Tue 2026-10-13; Tue 2026-10-20 is provisional after the Omen found
 Tue 2026-10-27 is a hopeful horizon. Current authority:
 `Direction/2026-10-12-rolling-three-beta-frame.md`.
 
-## Current Project State
+## Historical project state at shutdown
 - **Production is stable and quiet.** API live at `ab18af0` (canary PASS 2026-10-12). Monday 07:15 ET warehouse ingest succeeded (7 nflverse stages + opportunity + RAT-QB), chained backup and retention completed, disk 25%.
 - **Everything merged this week is deployed and reviewed** (fresh-agent review before each merge, CI green). Rollback path written: `Direction/2026-10-13-release-rollback-card.md`.
 - **Warehouse:** `FOOTBALL_DATA_MODE=warehouse`, 28 seasons. Projections store code is merged **with flags OFF and the schema NOT applied**; apply is a post-release step (handoff `2026-10-11-warehouse-weekly-projections.md`).
@@ -27,7 +27,7 @@ Created: `Direction/2026-10-27-beta-readiness.md`, this file (rewritten). Update
 ## Files Not Found
 None missing for this checkpoint.
 
-## What Was Not Done
+## Historical work not done at shutdown
 - **Founder update:** the Gate G summary is now recorded in `Direction/2026-10-11-device-walk-2.md`;
   exact build/time/log evidence remains open. Sentinel refresh and Discord alerts are
   founder-confirmed healthy. The four section-10 decisions are approved. App Store Connect,
@@ -39,7 +39,7 @@ None missing for this checkpoint.
 - Pi alert state was not re-read after the sort fix (Tailscale SSH wants a browser re-auth: `https://login.tailscale.com/a/laded74930b0cd`). Kuma #7/#8/#9 not read through the browser pane (site not allowed).
 - SSH `omen` user unification (decided: after the release). Truth-gate P0 cleanup (268 P0, 250 before this week). Kickoff times into the freshness policy (matters from December).
 
-## Current Risks / Open Questions
+## Historical risks / open questions
 - Gate G (device evidence) is the deciding gate and is unrun. Nothing else in the engineering list blocks Tuesday.
 
 ## 2026-10-12 Build 12 continuation
@@ -56,10 +56,11 @@ None missing for this checkpoint.
 - Open decisions for the founder: where Find a trade lives (built as the Trade tab front door, confirm on the phone); whether to touch the protected brief builder for decision-drivers (spec proposed); LLM direction (batch jobs, not built).
 - Open worktrees under `.claude/worktrees/` hold stale agent branches; clean up with `mcp__ccd_host__clean_up_worktrees` after the work above is committed or abandoned.
 
-## Recommended Next Step
-Freeze the 2026-10-13 candidate with only genuine P0/P1 corrections or honest exclusions. Then
-inspect Omen's shared football foundations before assigning any recovery item to the 2026-10-20
-or 2026-10-27 beta. The rolling frame owns the inspection questions and admission gate.
+## Current continuation pointer
+
+Build 11 superseded Build 10 and was uploaded on 2026-10-12. The current watch list and Build 12
+pickup are in `Blueprints/handoffs/2026-10-13-build-11-shipped-codex-handoff.md`. The older sections
+above are retained only as historical evidence and must not route current release work.
 
 ## Exact Next Prompt For Justin
 ```

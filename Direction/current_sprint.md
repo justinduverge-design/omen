@@ -31,7 +31,7 @@ founder, or store work.
 - **Scope and running checklist:** `Blueprints/handoffs/2026-10-03-football-intelligence-league-build.md`.
 - **Done when:** every team has a published system signal, and the founder sees team-system and usage lines on the phone for players on any team. Evidence: the walk notes (`Direction/2026-10-11-device-walk-2.md`).
 
-### RELEASE-CYCLE — Build 9 distributed; Build 12 targets 2026-10-20; 2026-10-27 remains hopeful
+### RELEASE-CYCLE — Build 11 uploaded; Build 12 targets 2026-10-20 at the earliest; 2026-10-27 remains hopeful
 
 - **Status:** READY
 - **Blocked by:** Build 12 scope-selection gate — Trade diagnosis, shared-primitives trace, provider capability matrix and unfinished-work recovery review
@@ -97,8 +97,8 @@ founder, or store work.
 - **Priority:** P1
 - **Cost:** large
 - **Do not touch:** `vorp.js`, `decisionBriefV2.js`, `decisionContext.js`, `systemContracts.js`, `llm.js`; the live projection paths until a backtest shows Omen is not worse
-- **Claim:** Codex, 2026-10-12, P1 fixed and rebased as `3ff05456`; PR checks green; independent review and restored-warehouse run remain open
-- **Scope:** PR #654 (spec `Blueprints/specs/football-data/omen-projections-v1.md`, pure model, offline backtest). The relevance-universe P1 is repaired: an independent opportunity population and the all-player population must both pass. Decision: `Direction/decision_log.md` 2026-10-12; audit: `Direction/reviews/2026-10-12-build-12-unfinished-work-audit.md`.
+- **Claim:** Codex, 2026-10-13, PR #654 is locally staged on `codex/build-12`; scoring-family, minimum-evidence, and reader-role repairs pass 34/34 focused tests and fresh review with no P0/P1/P2; restored-warehouse run remains open
+- **Scope:** PR #654 (spec `Blueprints/specs/football-data/omen-projections-v1.md`, pure model, offline backtest). The relevance-universe P1 is repaired. A later review found two more P1s: PPR-only certification and sparse paired evidence. Their local repair makes decisions per scoring family and requires versioned row/player floors. Decision: `Direction/decision_log.md` 2026-10-12; audit: `Direction/reviews/2026-10-12-build-12-unfinished-work-audit.md`.
 - **Done when (backtest):** a read-only backtest on a restored warehouse copy (KVM2) is in `Direction/reviews/` and shows whether Omen beats the last-3 and season-average baselines per position.
 
 ### PROVIDER-READS — read everything the providers expose (trade targets, transactions, roster slots, Yahoo waiver status)

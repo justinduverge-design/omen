@@ -34,3 +34,9 @@ two weeks. Next build number is **Build 12** (planned Tue 2026-10-20 at the earl
 - 23 unpushed trade-context commits sit on `codex/tuesday-beta-ready-20260929` (448 commits behind main). Candidate for trade reliability.
 - Trade is the unfinished feature. Founder: partner selection and manual trade still failed on the phone on 2026-10-12.
 - Loop: fresh branch from main, diff review in a fresh agent, PR, merge on green, never past an open P0/P1.
+
+## 2026-10-13 Codex continuation
+
+The formerly uncommitted planning work now lives on local, unpushed `codex/build-12`, rebased onto
+this handoff's merge commit. Projection work is staged there only; see
+`Blueprints/handoffs/2026-10-13-build-12-local-staging.md`. PR #654 and `main` remain unchanged.

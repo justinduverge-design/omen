@@ -78,8 +78,18 @@ enough.
   independent relevant universe and all-player universe must pass.
 - Focused suite: 32/32 passed after the repair and again after the rebase.
 - PR #654 head is `3ff05456`; backend/audit, frontend/client, SPA boot and docs-quality checks pass.
-- Independent review remains open. No restored warehouse is running locally, so real QB/RB/WR/TE
-  decisions remain open rather than silently substituting production.
+- Independent review of `3ff05456` found two additional P1s: PPR-only certification could authorize
+  standard/half-PPR leagues, and two observations could produce a decisive season. It also found a
+  P2 least-privilege gap in socket mode.
+- Local Build 12 staging repairs now compute decisions independently for standard, half-PPR and PPR;
+  require `paired-evidence-v1` floors of 100 player-weeks and 20 player clusters for each seasonal
+  comparison; apply a finite-cluster correction; and verify the `omen_warehouse_read` LOGIN role,
+  `omen_football` database and read-only session before loading facts.
+- Focused projection tests pass 34/34. Fresh review found no remaining P0/P1/P2 in the local source,
+  spec, tests or owner-facing certification report.
+- The official isolated-restore proof destroys a successful restore and creates only NOLOGIN
+  capability roles, so it does not yet provide the bounded `omen_warehouse_read` analysis session
+  required by the CLI. No restored-warehouse QB/RB/WR/TE decision has been claimed.
 
 ## `feat/provider-gap-g3-g8`
 
@@ -113,9 +123,11 @@ are League work and must not expand a Trade-reliability build.
 
 ## Next evidence
 
-1. Fix the PR #654 relevance-population P1 on its existing isolated branch, then rebase and review.
-2. Run the repaired model against the restored warehouse and record QB/RB/WR/TE pass/hold/fail.
-3. Reproduce Build 9 Trade against real ESPN/Yahoo/Sleeper contexts and determine whether R1/R2/R3
+1. Close fresh review of the local scoring-family/evidence-floor/reader-identity repair.
+2. Design and review a bounded restored-analysis procedure that provisions `omen_warehouse_read`,
+   keeps the isolated copy only long enough for the read-only run, captures evidence, then destroys it.
+3. Run the repaired model against that restored warehouse and record QB/RB/WR/TE results by scoring family.
+4. Reproduce the historical Build 9 Trade failures against current Build 11/12 real ESPN/Yahoo/Sleeper contexts and determine whether R1/R2/R3
    address the actual failure.
-4. Cherry-pick nothing from the provider WIP. Reimplement each earned slice with new focused tests,
+5. Cherry-pick nothing from the provider WIP. Reimplement each earned slice with new focused tests,
    recorded contracts and independent review.

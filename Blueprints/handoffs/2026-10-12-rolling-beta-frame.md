@@ -18,8 +18,8 @@ merge, deploy or touch App Store Connect.
 
 ## Release horizon
 
-- **Build 9 / 2026-10-13:** distributed to beta users, founder-confirmed; now the observation baseline.
-- **Build 12 / 2026-10-20:** active planning; scope waits for the foundation inspection in
+- **Build 11 / uploaded 2026-10-12:** current tester baseline; fresh-account ESPN remains unproven.
+- **Build 12 / 2026-10-20 at the earliest:** active planning; scope waits for the foundation inspection in
   `Direction/2026-10-20-build-12-plan.md`.
 - **2026-10-27:** hopeful horizon populated only as the rolling frame advances.
 
@@ -63,7 +63,8 @@ preselected implementation bundle.
 
 ## Boundaries
 
-- No app or infrastructure changes occurred.
+- No app or infrastructure changes occurred in this documentation worktree. Projection code changed
+  separately on PR #654 and is now merged only into local `codex/build-12`; it is not customer-visible.
 - No root cause was assigned to the phone findings.
 - No item in the projection/provider/spec backlog was promised to Beta 2 or Beta 3.
 - Valor reuse remains downstream of proven Omen use.

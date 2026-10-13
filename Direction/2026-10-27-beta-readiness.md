@@ -1,8 +1,8 @@
 # Release readiness: Tuesday 2026-10-27 (started 2026-10-12)
 
 Cadence is now a **rolling Tuesday beta**, updated one release at a time; see
-`Direction/2026-10-12-rolling-three-beta-frame.md`. Build 9 was distributed to beta users according
-to the founder, Build 12 targets 2026-10-20 pending the foundation inspection, and 2026-10-27 is a hopeful
+`Direction/2026-10-12-rolling-three-beta-frame.md`. Build 11 was uploaded according to the founder,
+Build 12 targets 2026-10-20 at the earliest pending the foundation inspection, and 2026-10-27 is a hopeful
 horizon rather than a pre-committed bundle. The 2026-10-13 engineering state is in
 `Direction/2026-10-06-tuesday-beta-readiness.md` §2c-2e; rollback is
 `Direction/2026-10-13-release-rollback-card.md`. This file is an index, not a report: it points at
@@ -35,7 +35,7 @@ foundation inspection; Beta 3 remains hopeful and rolls forward from Beta 2 evid
 |---|---|---|---|
 | 1 | Fixes from the phone walk | OPEN | walk notes |
 | 2 | Apply the projections schema, then ingest stage, then store read flag (tolerant code is already live) | DEFERRED | `Blueprints/handoffs/2026-10-11-warehouse-weekly-projections.md`, `infra/warehouse/projections.md` |
-| 3 | Omen projections v1: fix P1 in PR #654, run the backtest on a restored warehouse copy; Omen leads only where the backtest says it does | OPEN | `Blueprints/specs/football-data/omen-projections-v1.md` |
+| 3 | Omen projections v1: close fresh-review P1s, rerun independent review, then run the backtest on a restored warehouse copy; Omen leads only for position/scoring-family combinations that pass | OPEN, local repair staged on `codex/build-12` | `Blueprints/specs/football-data/omen-projections-v1.md` |
 | 4 | Provider reads: trade targets on League (G3), transactions (G4), roster slots (G5), Yahoo waiver status (G6), failed-team flags (G8) | OPEN, partial work in worktree `agent-adc5dd7f231affd7f` | `Blueprints/specs/football-data/omen-provider-capability-matrix-v1.md` |
 | 5 | Specs to re-run: evidence-layer map, fantasy-week information architecture, provider discovery + probe plan | OPEN | `Direction/decision_log.md` 2026-10-12 entries |
 | 6 | Challenger row ("provider says X, Omen says Y") in the decision-drivers model | DEFERRED until 3 | `Blueprints/specs/football-data/omen-decision-drivers-v1.md` |

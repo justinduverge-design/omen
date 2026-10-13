@@ -1,7 +1,7 @@
 # Omen foundation reassessment — pass 1: runtime shape and release implications
 
-**Date:** 2026-10-12  
-**Status:** Inspection evidence; not an implementation authorization or Beta 2 commitment  
+**Date:** 2026-10-12
+**Status:** Inspection evidence; not an implementation authorization or Beta 2 commitment
 **Method:** Read-only source/contract trace plus focused tests. No production/provider account read.
 
 ## Executive result
@@ -192,4 +192,3 @@ Xcode tooling. It must not contain credentials or pretend authentication ceremon
 - Paired physical device: iPhone 15 available.
 - App Store status: founder reported Build 9 distributed to Apple TestFlight beta users;
   store state was not independently read by this inspection.
-
