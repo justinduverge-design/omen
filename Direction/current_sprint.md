@@ -31,14 +31,14 @@ founder, or store work.
 - **Scope and running checklist:** `Blueprints/handoffs/2026-10-03-football-intelligence-league-build.md`.
 - **Done when:** every team has a published system signal, and the founder sees team-system and usage lines on the phone for players on any team. Evidence: the walk notes (`Direction/2026-10-11-device-walk-2.md`).
 
-### RELEASE-CYCLE — Build 9 distributed; Build 10 targets 2026-10-20; 2026-10-27 remains hopeful
+### RELEASE-CYCLE — Build 9 distributed; Build 12 targets 2026-10-20; 2026-10-27 remains hopeful
 
 - **Status:** READY
-- **Blocked by:** Build 10 scope-selection gate — Trade diagnosis, shared-primitives trace, provider capability matrix and unfinished-work recovery review
+- **Blocked by:** Build 12 scope-selection gate — Trade diagnosis, shared-primitives trace, provider capability matrix and unfinished-work recovery review
 - **Priority:** P0
 - **Cost:** medium
 - **Do not touch:** store consoles without approval; merge cutoff is the Monday afternoon before each release, no deploying merges Monday evening through the release day
-- **Scope:** `Direction/2026-10-20-build-10-plan.md` (active build), `Direction/2026-10-12-rolling-three-beta-frame.md` (cadence), `Direction/2026-10-27-beta-readiness.md` (unallocated horizon/index), `Direction/2026-10-13-release-rollback-card.md` (Build 9 rollback provenance).
+- **Scope:** `Direction/2026-10-20-build-12-plan.md` (active build), `Direction/2026-10-12-rolling-three-beta-frame.md` (cadence), `Direction/2026-10-27-beta-readiness.md` (unallocated horizon/index), `Direction/2026-10-13-release-rollback-card.md` (Build 9 rollback provenance).
 - **Done when:** the founder ships the build and the release day's canary passes.
 
 ### FM-XFP — Omen fantasy metrics v1: expected fantasy points, opportunity, role chart, dynasty outlook
@@ -98,7 +98,7 @@ founder, or store work.
 - **Cost:** large
 - **Do not touch:** `vorp.js`, `decisionBriefV2.js`, `decisionContext.js`, `systemContracts.js`, `llm.js`; the live projection paths until a backtest shows Omen is not worse
 - **Claim:** Codex, 2026-10-12, P1 fixed and rebased as `3ff05456`; PR checks green; independent review and restored-warehouse run remain open
-- **Scope:** PR #654 (spec `Blueprints/specs/football-data/omen-projections-v1.md`, pure model, offline backtest). The relevance-universe P1 is repaired: an independent opportunity population and the all-player population must both pass. Decision: `Direction/decision_log.md` 2026-10-12; audit: `Direction/reviews/2026-10-12-build-10-unfinished-work-audit.md`.
+- **Scope:** PR #654 (spec `Blueprints/specs/football-data/omen-projections-v1.md`, pure model, offline backtest). The relevance-universe P1 is repaired: an independent opportunity population and the all-player population must both pass. Decision: `Direction/decision_log.md` 2026-10-12; audit: `Direction/reviews/2026-10-12-build-12-unfinished-work-audit.md`.
 - **Done when (backtest):** a read-only backtest on a restored warehouse copy (KVM2) is in `Direction/reviews/` and shows whether Omen beats the last-3 and season-average baselines per position.
 
 ### PROVIDER-READS — read everything the providers expose (trade targets, transactions, roster slots, Yahoo waiver status)

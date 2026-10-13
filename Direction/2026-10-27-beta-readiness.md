@@ -2,7 +2,7 @@
 
 Cadence is now a **rolling Tuesday beta**, updated one release at a time; see
 `Direction/2026-10-12-rolling-three-beta-frame.md`. Build 9 was distributed to beta users according
-to the founder, Build 10 targets 2026-10-20 pending the foundation inspection, and 2026-10-27 is a hopeful
+to the founder, Build 12 targets 2026-10-20 pending the foundation inspection, and 2026-10-27 is a hopeful
 horizon rather than a pre-committed bundle. The 2026-10-13 engineering state is in
 `Direction/2026-10-06-tuesday-beta-readiness.md` §2c-2e; rollback is
 `Direction/2026-10-13-release-rollback-card.md`. This file is an index, not a report: it points at

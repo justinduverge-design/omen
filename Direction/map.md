@@ -37,8 +37,8 @@ Analyzer is the front door; Omen of the Week is the main event. Detail: `Directi
 
 ## Right now
 
-Focus: Build 9 is distributed and Build 10 targets Tuesday 2026-10-20. The active sprint frame is
-`Direction/2026-10-20-build-10-plan.md`; cadence, inspection gate and unallocated horizon live in
+Focus: Build 9 is distributed and Build 12 targets Tuesday 2026-10-20. The active sprint frame is
+`Direction/2026-10-20-build-12-plan.md`; cadence, inspection gate and unallocated horizon live in
 `Direction/2026-10-12-rolling-three-beta-frame.md`;
 the 2026-10-27 readiness index remains in `Direction/2026-10-27-beta-readiness.md`. Latest state:
 `Blueprints/handoffs/2026-10-12-rolling-beta-frame.md`. Pinned task: `Direction/agent_inbox.md`.

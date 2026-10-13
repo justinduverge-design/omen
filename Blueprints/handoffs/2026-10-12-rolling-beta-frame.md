@@ -19,8 +19,8 @@ merge, deploy or touch App Store Connect.
 ## Release horizon
 
 - **Build 9 / 2026-10-13:** distributed to beta users, founder-confirmed; now the observation baseline.
-- **Build 10 / 2026-10-20:** active planning; scope waits for the foundation inspection in
-  `Direction/2026-10-20-build-10-plan.md`.
+- **Build 12 / 2026-10-20:** active planning; scope waits for the foundation inspection in
+  `Direction/2026-10-20-build-12-plan.md`.
 - **2026-10-27:** hopeful horizon populated only as the rolling frame advances.
 
 ## Known findings, not diagnoses
@@ -50,13 +50,13 @@ preselected implementation bundle.
 - Focused backend foundation tests passed 157/157; focused iOS Trade tests passed 56/56; J4
   simulator interaction tests passed 12/12; canvas structural checks passed 35/35. Xcode 27 and
   the paired iPhone 15 are available. None of those fixture checks supersedes the failed phone walk.
-- Build 10 remains unallocated. Next evidence is Trade log/build correlation and real-provider
+- Build 12 remains unallocated. Next evidence is Trade log/build correlation and real-provider
   reproduction, one tuple traced across engines, and read-only inspection of the projection/provider
   branches.
 - Unfinished-work inspection completed in
-  `Direction/reviews/2026-10-12-build-10-unfinished-work-audit.md`: PR #654's exact relevance-filter
+  `Direction/reviews/2026-10-12-build-12-unfinished-work-audit.md`: PR #654's exact relevance-filter
   P1 is confirmed; provider WIP is divided into eight slices, with only shared roster normalization
-  and Yahoo partial-read honesty currently plausible for a Trade-focused Build 10.
+  and Yahoo partial-read honesty currently plausible for a Trade-focused Build 12.
 - PR #654 continuation: P1 fixed as `3ff05456`, rebased onto current `main`, force-with-lease pushed,
   focused 32/32 and all PR checks green. Independent review and restored-warehouse position results
   remain open; no production database was used as a substitute.

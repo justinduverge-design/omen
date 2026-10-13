@@ -21,7 +21,7 @@ hopeful horizon that becomes real only as the frame rolls forward.
 | Release | Date | Confidence | Scope now | Scope is chosen when |
 |---|---|---|---|---|
 | Build 9 | Tue 2026-10-13 | distributed to beta users, founder-confirmed | Treat as the observation baseline. Command is accepted; phone-walk Trade failures and incomplete Account/Omen/League surfaces remain evidence for future work, not retroactive Build 9 scope. | release/canary and observation |
-| Build 10 | Tue 2026-10-20 | active planning; scope unallocated | Choose the smallest coherent outcome only after the foundation inspection. Plan: `Direction/2026-10-20-build-10-plan.md`. | after the foundation inspection and first Thu-Sun build window |
+| Build 12 | Tue 2026-10-20 | active planning; scope unallocated | Choose the smallest coherent outcome only after the foundation inspection. Plan: `Direction/2026-10-20-build-12-plan.md`. | after the foundation inspection and first Thu-Sun build window |
 | Beta 3 | Tue 2026-10-27 | hopeful horizon | Candidate backlog only: projection recovery, provider-read slices, evidence/IA/discovery specs, Omen evidence summary, League completion and Account refinement. None is promised to this release before inspection and Beta 2 evidence. | when the frame rolls on Mon 2026-10-19 and again on Mon 2026-10-26 |
 
 Every Monday, remove the shipped Tuesday, promote the next Tuesday to the committed position, and
@@ -47,7 +47,7 @@ page, Account polish, unfinished projection work or broad provider parity. Senti
 founder-confirmed healthy. **Founder update:** Build 9 was pushed to Apple TestFlight beta users.
 This repo records that report but did not independently read App Store Connect.
 
-## Inspection gate before Build 10 scope
+## Inspection gate before Build 12 scope
 
 Do not assign the foundation backlog to Beta 2 or Beta 3 until this inspection answers:
 

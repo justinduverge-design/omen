@@ -1,4 +1,4 @@
-# Build 10 unfinished-work audit — 2026-10-12
+# Build 12 unfinished-work audit — 2026-10-12
 
 **Scope:** read-only inspection of PR #654 / `omen-projections-v1` and
 `feat/provider-gap-g3-g8`. No rebase, merge, production read or provider-account action occurred.
@@ -10,7 +10,7 @@
   harness. Repair the unresolved P1 before rebase or warehouse execution.
 - Do not merge `feat/provider-gap-g3-g8` as one change. It is explicitly unreviewed WIP spanning
   roster truth, lineup settings, Trade targets and transactions. Recover it in capability slices.
-- Build 10 should prefer the roster/Trade reliability slices if real-provider reproduction confirms
+- Build 12 should prefer the roster/Trade reliability slices if real-provider reproduction confirms
   they address the founder's phone failures. Projection work remains an evidence task until the
   restored-warehouse backtest produces position-specific decisions.
 
@@ -20,7 +20,7 @@
 
 - Open PR, clean GitHub merge state at inspection time.
 - One commit (`a249b2f6`), 14 files, 2,476 added lines.
-- Six commits behind the Build 10 documentation baseline.
+- Six commits behind the Build 12 documentation baseline.
 - GitHub checks: backend/audit, frontend/client, SPA boot and docs-quality all pass.
 - Focused local suite: 30/30 passed.
 - No app route, migration or production wiring is included.
@@ -62,9 +62,9 @@ Repair requirements:
 - The disagreement threshold is explicitly in-sample in the report. Never promote it as a live
   challenger threshold until it is fitted on earlier seasons and evaluated out of sample.
 
-### Build 10 gate
+### Build 12 gate
 
-The branch may earn Build 10 foundation inclusion only after P1 repair, rebase, independent review
+The branch may earn Build 12 foundation inclusion only after P1 repair, rebase, independent review
 and restored-warehouse execution. Customer-visible projection leadership is separately gated by
 position-specific backtest results and physical-device behavior; a green synthetic suite is not
 enough.
@@ -86,27 +86,27 @@ enough.
 ### Current state
 
 - One preserved WIP commit (`8a8c78b9`), 13 files, 1,438 additions / 63 deletions.
-- Five commits behind the Build 10 documentation baseline.
+- Five commits behind the Build 12 documentation baseline.
 - Commit labels itself not reviewed and not tested; syntax checking is its only recorded local gate.
 - It modifies ESPN, Yahoo and Sleeper adapters plus League, Trade, Waiver, caching and roster
   services, so recovering it wholesale would join unrelated risk domains.
 
 ### Safe recovery slices
 
-| Slice | Capability | Files/purpose | Build 10 disposition |
+| Slice | Capability | Files/purpose | Build 12 disposition |
 |---|---|---|---|
 | R1 | Shared normalized league-roster bundle | Extract `leagueRosterBundle` and adapter-neutral contract tests | Preserve/consolidate; prerequisite candidate |
 | R2 | Yahoo partial-roster honesty | Per-team timeout/failure state instead of silently empty roster | Repair candidate; directly relevant to Trade reliability |
 | R3 | Provider lineup positions | ESPN/Yahoo provider setting parsers with exact fallback semantics | Review separately; useful to personalized Trade only after fixtures/live proof |
 | R4 | Trade targets | `leagueTradeTargets` over a certified roster bundle and selected team | Hold until R1/R2 and phone failure diagnosis; do not hide provider reads in overview |
 | R5 | Sleeper transactions | Documented public read plus normalized `league-transactions.v1` | Separate League candidate, not required for Trade repair |
-| R6 | Yahoo transactions | Documented but unexercised parser behind a dark flag | Exclude from Build 10 until recorded/live contract proof |
-| R7 | ESPN transactions | Community-documented parser behind a dark flag | Exclude from Build 10 until rights/shape/live proof |
+| R6 | Yahoo transactions | Documented but unexercised parser behind a dark flag | Exclude from Build 12 until recorded/live contract proof |
+| R7 | ESPN transactions | Community-documented parser behind a dark flag | Exclude from Build 12 until rights/shape/live proof |
 | R8 | Route integration and caching | League overview, Trade and Waiver wiring | Rebuild only after the underlying slice contracts pass |
 
-### Build 10 priority
+### Build 12 priority
 
-R1 and R2 are the only provider-WIP slices with a plausible direct path into Build 10 today. They
+R1 and R2 are the only provider-WIP slices with a plausible direct path into Build 12 today. They
 address the shared roster primitive and the specific risk that a failed Yahoo team read appears to
 be an empty roster. R3/R4 may follow only if the real Trade reproduction requires them. Transactions
 are League work and must not expand a Trade-reliability build.

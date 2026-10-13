@@ -1,5 +1,10 @@
 # Omen Decision Log
 
+## 2026-10-12 — Renumber: the planned Build 10 is now Build 12
+
+- **Why:** Build 9 had stale code, so Build 10 shipped the same night from current main, and Build 11 followed with the ESPN first-login fix (settle the cookie pair, patient discovery, Check again; server logs the real ESPN status).
+- **Rule:** the 2026-10-20 plan is Build 12 (`Direction/2026-10-20-build-12-plan.md`). Earlier entries that say "Build 10" for 2026-10-20 mean Build 12.
+
 ## 2026-10-12 — Build 9 is distributed; Build 10 becomes the active release target
 
 - **Founder report:** Build 9 was pushed to Apple TestFlight beta users.
