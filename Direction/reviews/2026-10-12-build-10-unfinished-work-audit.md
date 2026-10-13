@@ -69,6 +69,18 @@ and restored-warehouse execution. Customer-visible projection leadership is sepa
 position-specific backtest results and physical-device behavior; a green synthetic suite is not
 enough.
 
+### Continuation result
+
+- P1 repaired on the isolated branch in commit `3ff05456` after rebase onto current `origin/main`.
+- Relevance is now `preweek-opportunity-v1`, based on three prior games of position-specific
+  attempts/carries/targets and never on a fantasy-points predictor.
+- The report now emits per-season comparisons and position-level `PASS` / `HOLD` / `FAIL`; both the
+  independent relevant universe and all-player universe must pass.
+- Focused suite: 32/32 passed after the repair and again after the rebase.
+- PR #654 head is `3ff05456`; backend/audit, frontend/client, SPA boot and docs-quality checks pass.
+- Independent review remains open. No restored warehouse is running locally, so real QB/RB/WR/TE
+  decisions remain open rather than silently substituting production.
+
 ## `feat/provider-gap-g3-g8`
 
 ### Current state

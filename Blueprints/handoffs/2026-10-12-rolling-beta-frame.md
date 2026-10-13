@@ -57,6 +57,9 @@ preselected implementation bundle.
   `Direction/reviews/2026-10-12-build-10-unfinished-work-audit.md`: PR #654's exact relevance-filter
   P1 is confirmed; provider WIP is divided into eight slices, with only shared roster normalization
   and Yahoo partial-read honesty currently plausible for a Trade-focused Build 10.
+- PR #654 continuation: P1 fixed as `3ff05456`, rebased onto current `main`, force-with-lease pushed,
+  focused 32/32 and all PR checks green. Independent review and restored-warehouse position results
+  remain open; no production database was used as a substitute.
 
 ## Boundaries
 

@@ -41,6 +41,16 @@ None missing for this checkpoint.
 
 ## Current Risks / Open Questions
 - Gate G (device evidence) is the deciding gate and is unrun. Nothing else in the engineering list blocks Tuesday.
+
+## 2026-10-12 Build 10 continuation
+
+- Build 9 was pushed to Apple TestFlight beta users, founder-confirmed.
+- PR #654's relevance-universe P1 was fixed in `3ff05456`, rebased onto current `main` and pushed
+  with force-with-lease. Focused projection tests pass 32/32 and all PR checks are green.
+- Independent review and the restored-KVM2 warehouse backtest remain open. The earlier unresolved-P1
+  paragraph above is retained as checkpoint history, not current state.
+- Provider WIP remains unmerged and is now divided into capability slices in
+  `Direction/reviews/2026-10-12-build-10-unfinished-work-audit.md`.
 - Each API deploy swaps one container (a few seconds of 502). No code merges Monday evening through Tuesday unless it is a rollback.
 - Rights: Sleeper projections are Rotowire-tagged, commercial permission pending; risk accepted by the founder with safeguards (decision log 2026-10-11).
 - Open decisions for the founder: where Find a trade lives (built as the Trade tab front door, confirm on the phone); whether to touch the protected brief builder for decision-drivers (spec proposed); LLM direction (batch jobs, not built).

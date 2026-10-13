@@ -92,12 +92,13 @@ founder, or store work.
 
 ### PROJ-OMEN — Omen's own projections: league provider leads, Omen challenges and fills Yahoo
 
-- **Status:** READY
+- **Status:** IN_PROGRESS
 - **Blocked by:** FOUNDER_APPROVAL — wiring any Omen projection into a live path needs its own yes after the backtest
 - **Priority:** P1
 - **Cost:** large
 - **Do not touch:** `vorp.js`, `decisionBriefV2.js`, `decisionContext.js`, `systemContracts.js`, `llm.js`; the live projection paths until a backtest shows Omen is not worse
-- **Scope:** PR #654 (spec `Blueprints/specs/football-data/omen-projections-v1.md`, pure model, offline backtest; **one unresolved review P1**: the relevant-universe filter must not depend on the baselines, ship rule must hold in both universes). Decision: `Direction/decision_log.md` 2026-10-12.
+- **Claim:** Codex, 2026-10-12, P1 fixed and rebased as `3ff05456`; PR checks green; independent review and restored-warehouse run remain open
+- **Scope:** PR #654 (spec `Blueprints/specs/football-data/omen-projections-v1.md`, pure model, offline backtest). The relevance-universe P1 is repaired: an independent opportunity population and the all-player population must both pass. Decision: `Direction/decision_log.md` 2026-10-12; audit: `Direction/reviews/2026-10-12-build-10-unfinished-work-audit.md`.
 - **Done when (backtest):** a read-only backtest on a restored warehouse copy (KVM2) is in `Direction/reviews/` and shows whether Omen beats the last-3 and season-average baselines per position.
 
 ### PROVIDER-READS — read everything the providers expose (trade targets, transactions, roster slots, Yahoo waiver status)
