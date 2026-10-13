@@ -1,8 +1,8 @@
 # Release readiness: Tuesday 2026-10-27 (started 2026-10-12)
 
 Cadence is now a **rolling Tuesday beta**, updated one release at a time; see
-`Direction/2026-10-12-rolling-three-beta-frame.md`. The 2026-10-13 candidate is the committed
-release, 2026-10-20 is provisional pending the foundation inspection, and 2026-10-27 is a hopeful
+`Direction/2026-10-12-rolling-three-beta-frame.md`. Build 9 was distributed to beta users according
+to the founder, Build 10 targets 2026-10-20 pending the foundation inspection, and 2026-10-27 is a hopeful
 horizon rather than a pre-committed bundle. The 2026-10-13 engineering state is in
 `Direction/2026-10-06-tuesday-beta-readiness.md` §2c-2e; rollback is
 `Direction/2026-10-13-release-rollback-card.md`. This file is an index, not a report: it points at
@@ -15,7 +15,7 @@ Status words: DONE / OPEN / FOUNDER / DEFERRED. Nothing is VERIFIED without devi
 | Gate G: phone walk completed at founder-summary level; Trade partner selection, manual Trade and Find a Trade failed; log correlation and exact build evidence remain open | OPEN | `Direction/2026-10-11-device-walk-2.md` |
 | Sentinel baseline refresh KVM1 then KVM2 | DONE, founder-confirmed healthy including Discord alerts | `Blueprints/handoffs/rate-limit-shutdown-checkpoint.md` |
 | Scheduled restore proof passes on its own timer (Sun 2026-10-18 14:10 UTC); Gate D done-condition | OPEN | `Direction/2026-10-06-tuesday-beta-readiness.md` Gate D |
-| Current build: archive and upload | DONE, founder-reported; release scheduled 2026-10-13 | readiness §2d |
+| Build 9: archive, upload and TestFlight beta distribution | DONE, founder-reported | readiness §2d |
 | Retention `7 4 3` re-measure | OPEN, about 2026-10-18 | `infra/warehouse/backup/README.md` |
 
 ## 2. The section 10 decisions in plain words (original table: `2026-10-06-tuesday-beta-readiness.md` §10)

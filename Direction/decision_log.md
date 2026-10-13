@@ -1,5 +1,15 @@
 # Omen Decision Log
 
+## 2026-10-12 — Build 9 is distributed; Build 10 becomes the active release target
+
+- **Founder report:** Build 9 was pushed to Apple TestFlight beta users.
+- **Decision:** stop treating the October 13 candidate as pending. It is the observation baseline;
+  active planning now targets Build 10 for Tuesday 2026-10-20.
+- **Scope rule:** Build 10 remains unallocated until the Trade, shared-primitives, provider-capability
+  and unfinished-work evidence packets are complete.
+- **Plan:** `Direction/2026-10-20-build-10-plan.md`.
+- **Boundary:** App Store Connect was not independently read in this session.
+
 ## 2026-10-12 (rolling beta correction) — plan one Tuesday at a time; inspect Omen before allocating later builds
 
 - **Decision (founder):** Omen uses a rolling weekly Tuesday frame. Plan and freeze Monday

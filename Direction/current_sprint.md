@@ -31,14 +31,14 @@ founder, or store work.
 - **Scope and running checklist:** `Blueprints/handoffs/2026-10-03-football-intelligence-league-build.md`.
 - **Done when:** every team has a published system signal, and the founder sees team-system and usage lines on the phone for players on any team. Evidence: the walk notes (`Direction/2026-10-11-device-walk-2.md`).
 
-### RELEASE-CYCLE — rolling Tuesdays (2026-10-13 committed; 2026-10-20 provisional; 2026-10-27 hopeful), iOS plus API
+### RELEASE-CYCLE — Build 9 distributed; Build 10 targets 2026-10-20; 2026-10-27 remains hopeful
 
 - **Status:** READY
-- **Blocked by:** current-candidate disposition — founder owns App Store Connect; section-10 decisions are approved and the phone-walk summary is recorded, but Trade partner/manual/Find failures require repair-or-exclude triage before the candidate is described as ready
+- **Blocked by:** Build 10 scope-selection gate — Trade diagnosis, shared-primitives trace, provider capability matrix and unfinished-work recovery review
 - **Priority:** P0
 - **Cost:** medium
 - **Do not touch:** store consoles without approval; merge cutoff is the Monday afternoon before each release, no deploying merges Monday evening through the release day
-- **Scope:** `Direction/2026-10-12-rolling-three-beta-frame.md` (cadence and rolling scope), `Direction/2026-10-27-beta-readiness.md` (unallocated horizon/index), `Direction/2026-10-06-tuesday-beta-readiness.md` §2c-2e (current state), `Direction/2026-10-13-release-rollback-card.md` (rollback).
+- **Scope:** `Direction/2026-10-20-build-10-plan.md` (active build), `Direction/2026-10-12-rolling-three-beta-frame.md` (cadence), `Direction/2026-10-27-beta-readiness.md` (unallocated horizon/index), `Direction/2026-10-13-release-rollback-card.md` (Build 9 rollback provenance).
 - **Done when:** the founder ships the build and the release day's canary passes.
 
 ### FM-XFP — Omen fantasy metrics v1: expected fantasy points, opportunity, role chart, dynasty outlook

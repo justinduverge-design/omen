@@ -18,9 +18,9 @@ merge, deploy or touch App Store Connect.
 
 ## Release horizon
 
-- **2026-10-13:** committed current candidate; Command accepted; only genuine Trade P0/P1 work may
-  change the candidate, otherwise the broken path is excluded. Founder handles App Store Connect.
-- **2026-10-20:** provisional date, scope intentionally open until the Omen foundation inspection.
+- **Build 9 / 2026-10-13:** distributed to beta users, founder-confirmed; now the observation baseline.
+- **Build 10 / 2026-10-20:** active planning; scope waits for the foundation inspection in
+  `Direction/2026-10-20-build-10-plan.md`.
 - **2026-10-27:** hopeful horizon populated only as the rolling frame advances.
 
 ## Known findings, not diagnoses
@@ -43,16 +43,20 @@ preselected implementation bundle.
 
 ## Continuation update — future-build inspection started
 
-- Founder reported the current build archived/uploaded with release scheduled for 2026-10-13.
+- Founder reported Build 9 pushed to Apple TestFlight beta users.
 - Pass 1 inspection: `Direction/reviews/2026-10-12-omen-foundation-reassessment-pass-1.md`.
 - Central finding: the shared decision receipt is real, but the football inputs beneath it are
   still loaded and normalized independently by feature.
 - Focused backend foundation tests passed 157/157; focused iOS Trade tests passed 56/56; J4
   simulator interaction tests passed 12/12; canvas structural checks passed 35/35. Xcode 27 and
   the paired iPhone 15 are available. None of those fixture checks supersedes the failed phone walk.
-- Beta 2 remains unallocated. Next evidence is Trade log/build correlation and real-provider
+- Build 10 remains unallocated. Next evidence is Trade log/build correlation and real-provider
   reproduction, one tuple traced across engines, and read-only inspection of the projection/provider
   branches.
+- Unfinished-work inspection completed in
+  `Direction/reviews/2026-10-12-build-10-unfinished-work-audit.md`: PR #654's exact relevance-filter
+  P1 is confirmed; provider WIP is divided into eight slices, with only shared roster normalization
+  and Yahoo partial-read honesty currently plausible for a Trade-focused Build 10.
 
 ## Boundaries
 

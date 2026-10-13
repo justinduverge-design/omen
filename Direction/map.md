@@ -37,8 +37,9 @@ Analyzer is the front door; Omen of the Week is the main event. Detail: `Directi
 
 ## Right now
 
-Focus: rolling Tuesday betas, planned one release at a time with two Tuesdays visible. The cadence,
-inspection gate and unallocated horizon live in `Direction/2026-10-12-rolling-three-beta-frame.md`;
+Focus: Build 9 is distributed and Build 10 targets Tuesday 2026-10-20. The active sprint frame is
+`Direction/2026-10-20-build-10-plan.md`; cadence, inspection gate and unallocated horizon live in
+`Direction/2026-10-12-rolling-three-beta-frame.md`;
 the 2026-10-27 readiness index remains in `Direction/2026-10-27-beta-readiness.md`. Latest state:
 `Blueprints/handoffs/2026-10-12-rolling-beta-frame.md`. Pinned task: `Direction/agent_inbox.md`.
 What is shipped and open: `node scripts/shipped.js` → `Direction/shipped.md`.

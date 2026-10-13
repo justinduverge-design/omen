@@ -190,6 +190,6 @@ Xcode tooling. It must not contain credentials or pretend authentication ceremon
   Trade success was proven.
 - Xcode: 27.0 (`27A266a`).
 - Paired physical device: iPhone 15 available.
-- App Store status: founder reported archive/upload complete with release scheduled for 2026-10-13;
+- App Store status: founder reported Build 9 distributed to Apple TestFlight beta users;
   store state was not independently read by this inspection.
 

@@ -20,8 +20,8 @@ hopeful horizon that becomes real only as the frame rolls forward.
 
 | Release | Date | Confidence | Scope now | Scope is chosen when |
 |---|---|---|---|---|
-| Beta 1 | Tue 2026-10-13 | committed candidate | Close the current build honestly. Command is accepted. Repair only the phone-walk Trade P0/P1s if they fit the freeze; otherwise exclude or disable the broken entry point. Account polish, Omen stats summary and League completeness do not expand this build. | now, from the 2026-10-12 phone walk |
-| Beta 2 | Tue 2026-10-20 | provisional date, scope open | No feature allocation yet. First inspect Omen's shared football foundations and provider truth. Monday 2026-10-19 selects only work that has evidence and can be certified. | after the foundation inspection and first Thu-Sun build window |
+| Build 9 | Tue 2026-10-13 | distributed to beta users, founder-confirmed | Treat as the observation baseline. Command is accepted; phone-walk Trade failures and incomplete Account/Omen/League surfaces remain evidence for future work, not retroactive Build 9 scope. | release/canary and observation |
+| Build 10 | Tue 2026-10-20 | active planning; scope unallocated | Choose the smallest coherent outcome only after the foundation inspection. Plan: `Direction/2026-10-20-build-10-plan.md`. | after the foundation inspection and first Thu-Sun build window |
 | Beta 3 | Tue 2026-10-27 | hopeful horizon | Candidate backlog only: projection recovery, provider-read slices, evidence/IA/discovery specs, Omen evidence summary, League completion and Account refinement. None is promised to this release before inspection and Beta 2 evidence. | when the frame rolls on Mon 2026-10-19 and again on Mon 2026-10-26 |
 
 Every Monday, remove the shipped Tuesday, promote the next Tuesday to the committed position, and
@@ -42,13 +42,12 @@ Founder phone-walk findings, not yet correlated with API/device logs:
 | Find a Trade | promising but does not work | cannot close `T2-FindATradeGenerator`; repair if bounded, otherwise disable/exclude |
 | League | many unfulfilled features | inventory after inspection; only dead or materially false exposed controls can enter Beta 1 |
 
-Beta 1 freezes on Monday 2026-10-12. It is not delayed for Omen-summary design, a complete League
+Build 9 froze on Monday 2026-10-12. It was not delayed for Omen-summary design, a complete League
 page, Account polish, unfinished projection work or broad provider parity. Sentinel posture is
-founder-confirmed healthy. **Founder update:** the archive and upload are complete and the release
-is scheduled for Tuesday 2026-10-13. This repo records that report but did not independently read
-App Store Connect.
+founder-confirmed healthy. **Founder update:** Build 9 was pushed to Apple TestFlight beta users.
+This repo records that report but did not independently read App Store Connect.
 
-## Inspection gate before Beta 2 scope
+## Inspection gate before Build 10 scope
 
 Do not assign the foundation backlog to Beta 2 or Beta 3 until this inspection answers:
 
