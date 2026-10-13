@@ -11,7 +11,7 @@ final class ConnectViewModel: ObservableObject {
     /// A status line under the ESPN steps — "not yet", or "we couldn't check".
     ///
     /// Deliberately not a `retryableError` state: the ESPN handoff finishes on a computer, so
-    /// "no league yet" is almost always a user who is mid-way through, not a failure. Pushing
+`    /// "no league yet" is almost always a user who is mid-way through, not a failure. Pushing
     /// them to the error screen would lose the steps they are following.
     @Published private(set) var espnCheckNotice: String?
 
