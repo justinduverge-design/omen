@@ -255,6 +255,7 @@ final class ConnectViewModel: ObservableObject {
         espnDiscoveryTask?.cancel()
         espnDiscoveryTask = nil
         espnDiscoveryAttempts = 0
+        espnCheckAgainRounds = 0
         espnDiscoveryFallbackAvailable = false
         state = .espnSigningIn
     }
@@ -289,10 +290,18 @@ final class ConnectViewModel: ObservableObject {
         }
     }
 
+    /// Check again is user-paced but not unlimited: each round sends up to
+    /// `maxEspnDiscoveryAttempts` requests carrying the ESPN session, so rounds are capped per
+    /// sign-in. After the last one only the manual League ID path remains.
+    static let maxEspnCheckAgainRounds = 3
+    private var espnCheckAgainRounds = 0
+    var espnCanCheckAgain: Bool { espnCheckAgainRounds < Self.maxEspnCheckAgainRounds }
+
     /// "Check again" on the fallback panel: another bounded round of discovery with a fresh read of
     /// the cookies, for an account ESPN's directory was not ready to answer for the first time.
     func checkEspnLeaguesAgain() {
-        guard case .espnSigningIn = state, espnCookieStore != nil else { return }
+        guard case .espnSigningIn = state, espnCookieStore != nil, espnCanCheckAgain else { return }
+        espnCheckAgainRounds += 1
         espnDiscoveryTask?.cancel()
         espnDiscoveryAttempts = 0
         espnDiscoveryFallbackAvailable = false
@@ -329,6 +338,10 @@ final class ConnectViewModel: ObservableObject {
         func abandon() {
             guard stillCurrent() else { return }
             if startedFromSignIn { state = .espnSigningIn }
+            // Never leave the user on a bare web view: an early exit offers the same way out a
+            // failed round does.
+            espnDiscoveryFallbackAvailable = true
+            espnCheckNotice = EspnHandoffCopy.discoveryUnavailable
             espnDiscoveryTask = nil
         }
 
@@ -342,6 +355,7 @@ final class ConnectViewModel: ObservableObject {
         state = .discoveringEspnLeagues
         var finalResult: Result<[EspnLeagueOption], ConnectFailure>?
         while espnDiscoveryAttempts < Self.maxEspnDiscoveryAttempts {
+            guard stillCurrent() else { return }
             espnDiscoveryAttempts += 1
             let result = await repository.discoverEspnLeagues(
                 espnS2: session.espnS2,

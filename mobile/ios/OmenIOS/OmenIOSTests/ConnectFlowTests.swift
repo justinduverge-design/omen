@@ -228,6 +228,58 @@ final class ConnectFlowTests: XCTestCase {
         XCTAssertTrue(viewModel.espnDiscoveryFallbackAvailable)
     }
 
+    /// An early exit (nothing readable in the jar) must still leave the user a way forward, not a
+    /// bare web view.
+    @MainActor
+    func testAnEarlyDiscoveryExitStillOffersTheFallback() async {
+        let viewModel = await espnReadyViewModel(
+            repository: StubConnectRepository(),
+            store: FakeEspnCookieStore(session: nil)
+        )
+
+        XCTAssertTrue(viewModel.espnDiscoveryFallbackAvailable)
+        XCTAssertEqual(viewModel.espnCheckNotice, EspnHandoffCopy.discoveryUnavailable)
+        XCTAssertEqual(viewModel.state, .espnSigningIn)
+    }
+
+    /// Check again is capped per sign-in; afterwards only the League ID path remains.
+    @MainActor
+    func testCheckAgainStopsAfterItsRoundsAreSpent() async {
+        var repository = StubConnectRepository()
+        repository.espnDiscoverResult = .failure(.network)
+        let viewModel = await espnReadyViewModel(repository: repository)
+
+        for _ in 0..<ConnectViewModel.maxEspnCheckAgainRounds {
+            XCTAssertTrue(viewModel.espnCanCheckAgain)
+            viewModel.checkEspnLeaguesAgain()
+            await viewModel.awaitEspnDiscovery()
+        }
+        let sent = repository.recorder.espnDiscoveries
+        XCTAssertFalse(viewModel.espnCanCheckAgain)
+
+        viewModel.checkEspnLeaguesAgain()
+        await viewModel.awaitEspnDiscovery()
+        XCTAssertEqual(repository.recorder.espnDiscoveries, sent, "a spent Check again must send nothing")
+        XCTAssertEqual(sent, ConnectViewModel.maxEspnDiscoveryAttempts * (1 + ConnectViewModel.maxEspnCheckAgainRounds))
+    }
+
+    /// Cancelling during a Check again round sends nothing further and writes no state.
+    @MainActor
+    func testCancelDuringCheckAgainSendsNothingFurther() async {
+        var repository = StubConnectRepository()
+        repository.espnDiscoverResult = .failure(.network)
+        let viewModel = await espnReadyViewModel(repository: repository)
+        let before = repository.recorder.espnDiscoveries
+
+        viewModel.checkEspnLeaguesAgain()
+        viewModel.cancel()
+        await viewModel.awaitEspnDiscovery()
+        try? await Task.sleep(for: .milliseconds(100))
+
+        XCTAssertEqual(viewModel.state, .canceled)
+        XCTAssertEqual(repository.recorder.espnDiscoveries, before)
+    }
+
     /// While the pair settles the flow is busy: Connect cannot be pressed on an unsettled pair.
     @MainActor
     func testConnectIsDisabledWhileTheCookiePairSettles() async {
