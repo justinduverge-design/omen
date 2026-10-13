@@ -642,6 +642,16 @@ struct ConnectView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
+            if viewModel.espnCanCheckAgain {
+                OmenButton(
+                    title: EspnHandoffCopy.checkAgainTitle,
+                    action: { viewModel.checkEspnLeaguesAgain() },
+                    variant: .secondary,
+                    size: .md,
+                    enabled: !viewModel.state.isBusy
+                )
+            }
+
             OmenTextField(
                 value: $viewModel.espnLeagueId,
                 label: "ESPN League ID",

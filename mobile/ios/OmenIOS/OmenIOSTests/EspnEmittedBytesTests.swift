@@ -113,6 +113,7 @@ final class EspnEmittedBytesTests: XCTestCase {
         )
         let viewModel = ConnectViewModel(repository: repository, sessionManager: sessionManager())
         viewModel.espnSessionSettleDelay = .zero
+        viewModel.espnDiscoveryRetryDelay = .zero
         viewModel.selectProvider(.espn)
         viewModel.beginEspnSignIn(cookieStore: SentinelCookieStore((espnS2Sentinel, swidSentinel)))
 
