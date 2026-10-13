@@ -33,6 +33,11 @@ const RELEVANCE_POLICY = Object.freeze({
 const MIN_RESIDUALS_FOR_INTERVAL = 100;
 const Z_80 = 1.2815515655446004;
 const MIN_GROUP_FOR_RANK = 8;
+const PAIRED_EVIDENCE_POLICY = Object.freeze({
+  version: "paired-evidence-v1",
+  minimum_rows: 100,
+  minimum_player_clusters: 20,
+});
 
 function impliedPoints(game, team) {
   const spread = Number(game.spread_line);
@@ -287,7 +292,24 @@ function weeklyRankCorrelation(records, predictor, scoring) {
  */
 function pairedComparison(records, a, b, scoring) {
   const rows = records.filter((r) => r.pred[a] && r.pred[b]);
-  if (rows.length < 2) return { n: rows.length, a, b, mean_abs_error_a: null, mean_abs_error_b: null, mean_diff: null, se: null, a_closer_share: null, verdict: "insufficient_data" };
+  const playerClusters = new Set(rows.map((r) => r.player_id)).size;
+  const insufficient = rows.length < PAIRED_EVIDENCE_POLICY.minimum_rows
+    || playerClusters < PAIRED_EVIDENCE_POLICY.minimum_player_clusters;
+  if (insufficient) return {
+    n: rows.length,
+    player_clusters: playerClusters,
+    adequately_powered: false,
+    evidence_policy: PAIRED_EVIDENCE_POLICY.version,
+    minimum_rows: PAIRED_EVIDENCE_POLICY.minimum_rows,
+    minimum_player_clusters: PAIRED_EVIDENCE_POLICY.minimum_player_clusters,
+    a, b,
+    mean_abs_error_a: rows.length ? round(mean(rows.map((r) => Math.abs(r.pred[a][scoring] - r.actual[scoring])))) : null,
+    mean_abs_error_b: rows.length ? round(mean(rows.map((r) => Math.abs(r.pred[b][scoring] - r.actual[scoring])))) : null,
+    mean_diff: rows.length ? round(mean(rows.map((r) => Math.abs(r.pred[a][scoring] - r.actual[scoring]) - Math.abs(r.pred[b][scoring] - r.actual[scoring])))) : null,
+    se: null,
+    a_closer_share: null,
+    verdict: "insufficient_data",
+  };
   const diffs = rows.map((r) => Math.abs(r.pred[a][scoring] - r.actual[scoring]) - Math.abs(r.pred[b][scoring] - r.actual[scoring]));
   const m = mean(diffs);
   const clusters = new Map();
@@ -298,11 +320,13 @@ function pairedComparison(records, a, b, scoring) {
   });
   let ss = 0;
   for (const c of clusters.values()) ss += (c.sum - c.n * m) ** 2;
-  const se = Math.sqrt(ss) / rows.length;
+  const finiteClusterCorrection = playerClusters / (playerClusters - 1);
+  const se = Math.sqrt(finiteClusterCorrection * ss) / rows.length;
   const verdict = se === 0 ? (m < 0 ? "a_better" : m > 0 ? "b_better" : "no_clear_difference")
     : m + 1.96 * se < 0 ? "a_better" : m - 1.96 * se > 0 ? "b_better" : "no_clear_difference";
   return {
-    n: rows.length, a, b,
+    n: rows.length, player_clusters: playerClusters, adequately_powered: true,
+    evidence_policy: PAIRED_EVIDENCE_POLICY.version, a, b,
     mean_abs_error_a: round(mean(rows.map((r) => Math.abs(r.pred[a][scoring] - r.actual[scoring])))),
     mean_abs_error_b: round(mean(rows.map((r) => Math.abs(r.pred[b][scoring] - r.actual[scoring])))),
     mean_diff: round(m), se: round(se),
@@ -429,22 +453,38 @@ function bySeason(records, predictors = ["model", "last3", "season_avg"]) {
 
 function shipRuleForPosition(records) {
   const seasons = [...new Set(records.map((r) => r.season))].sort((a, b) => a - b);
-  const bySeasonVerdict = {};
-  let passingSeasons = 0;
-  for (const season of seasons) {
-    const rows = records.filter((r) => r.season === season);
-    const last3 = pairedComparison(rows, "model", "last3", "ppr");
-    const seasonAvg = pairedComparison(rows, "model", "season_avg", "ppr");
-    const passes = last3.verdict === "a_better" && seasonAvg.verdict === "a_better";
-    if (passes) passingSeasons += 1;
-    bySeasonVerdict[season] = { passes, model_vs_last3: last3, model_vs_season_avg: seasonAvg };
+  const scoringFamilies = {};
+  for (const scoring of SCORINGS) {
+    const bySeasonVerdict = {};
+    let passingSeasons = 0;
+    let insufficientSeasons = 0;
+    for (const season of seasons) {
+      const rows = records.filter((r) => r.season === season);
+      const last3 = pairedComparison(rows, "model", "last3", scoring);
+      const seasonAvg = pairedComparison(rows, "model", "season_avg", scoring);
+      const insufficient = last3.verdict === "insufficient_data" || seasonAvg.verdict === "insufficient_data";
+      const passes = last3.verdict === "a_better" && seasonAvg.verdict === "a_better";
+      if (passes) passingSeasons += 1;
+      if (insufficient) insufficientSeasons += 1;
+      bySeasonVerdict[season] = { passes, insufficient, model_vs_last3: last3, model_vs_season_avg: seasonAvg };
+    }
+    scoringFamilies[scoring] = {
+      status: seasons.length < 3 || insufficientSeasons > 0 ? "HOLD" : passingSeasons >= 2 ? "PASS" : "FAIL",
+      passing_seasons: passingSeasons,
+      insufficient_seasons: insufficientSeasons,
+      required_passing_seasons: 2,
+      tested_seasons: seasons.length,
+      by_season: bySeasonVerdict,
+    };
   }
+  const familyStatuses = Object.values(scoringFamilies).map((family) => family.status);
   return {
-    status: seasons.length < 3 ? "HOLD" : passingSeasons >= 2 ? "PASS" : "FAIL",
-    passing_seasons: passingSeasons,
-    required_passing_seasons: 2,
+    status: familyStatuses.every((status) => status === "PASS")
+      ? "PASS"
+      : familyStatuses.some((status) => status === "HOLD") ? "HOLD" : "FAIL",
     tested_seasons: seasons.length,
-    by_season: bySeasonVerdict,
+    evidence_policy: PAIRED_EVIDENCE_POLICY,
+    scoring_families: scoringFamilies,
   };
 }
 
@@ -485,13 +525,23 @@ async function runBacktest({ source, testSeasons, warmupSeasons = 2, positions =
   for (const position of positions) {
     const relevant = results.relevant.positions[position]?.ship_rule;
     const all = results.all.positions[position]?.ship_rule;
-    let status = "HOLD";
-    if (relevant && all) {
-      status = relevant.status === "PASS" && all.status === "PASS"
-        ? "PASS"
-        : relevant.status === "HOLD" || all.status === "HOLD" ? "HOLD" : "FAIL";
+    const scoringFamilies = {};
+    for (const scoring of SCORINGS) {
+      const relevantStatus = relevant?.scoring_families?.[scoring]?.status || "HOLD";
+      const allStatus = all?.scoring_families?.[scoring]?.status || "HOLD";
+      scoringFamilies[scoring] = {
+        status: relevantStatus === "PASS" && allStatus === "PASS"
+          ? "PASS"
+          : relevantStatus === "HOLD" || allStatus === "HOLD" ? "HOLD" : "FAIL",
+        relevant: relevantStatus,
+        all: allStatus,
+      };
     }
-    positionDecisions[position] = { status, relevant: relevant?.status || "HOLD", all: all?.status || "HOLD" };
+    const statuses = Object.values(scoringFamilies).map((family) => family.status);
+    const status = statuses.every((familyStatus) => familyStatus === "PASS")
+      ? "PASS"
+      : statuses.some((familyStatus) => familyStatus === "HOLD") ? "HOLD" : "FAIL";
+    positionDecisions[position] = { status, scoring_families: scoringFamilies };
   }
   return {
     meta: {
@@ -549,12 +599,12 @@ function renderMarkdown(report) {
   lines.push("");
   lines.push("## Position ship decisions");
   lines.push("");
-  lines.push("A position passes only when the per-season rule passes in both the independent relevant universe and the all-player universe.");
+  lines.push("A position/scoring family passes only when the per-season rule passes in both the independent relevant universe and the all-player universe.");
   lines.push("");
-  lines.push("| position | decision | relevant universe | all-player universe |");
-  lines.push("|---|---|---|---|");
+  lines.push("| position | overall | standard | half-PPR | PPR |");
+  lines.push("|---|---|---|---|---|");
   for (const [position, decision] of Object.entries(report.position_decisions || {})) {
-    lines.push(`| ${position} | ${decision.status} | ${decision.relevant} | ${decision.all} |`);
+    lines.push(`| ${position} | ${decision.status} | ${decision.scoring_families.standard.status} | ${decision.scoring_families.half_ppr.status} | ${decision.scoring_families.ppr.status} |`);
   }
   lines.push("");
   for (const universe of ["relevant", "all"]) {
@@ -563,6 +613,18 @@ function renderMarkdown(report) {
     lines.push("");
     for (const [position, data] of Object.entries(block.positions)) {
       lines.push(`### ${position} (${data.n})`);
+      lines.push("");
+      lines.push("Certification evidence by scoring family and season:");
+      lines.push("");
+      lines.push("| scoring | season | passes | insufficient | vs last3 (rows / players / verdict) | vs season avg (rows / players / verdict) |");
+      lines.push("|---|---:|---|---|---|---|");
+      for (const [scoring, family] of Object.entries(data.ship_rule.scoring_families)) {
+        for (const [season, verdict] of Object.entries(family.by_season)) {
+          const last3 = verdict.model_vs_last3;
+          const seasonAvg = verdict.model_vs_season_avg;
+          lines.push(`| ${scoring} | ${season} | ${verdict.passes} | ${verdict.insufficient} | ${last3.n} / ${last3.player_clusters} / ${last3.verdict} | ${seasonAvg.n} / ${seasonAvg.player_clusters} / ${seasonAvg.verdict} |`);
+        }
+      }
       lines.push("");
       for (const scoring of SCORINGS) {
         const table = data.predictors[scoring];
@@ -627,7 +689,7 @@ function renderMarkdown(report) {
   }
   lines.push("## How to read this");
   lines.push("");
-  lines.push("- Ship rule (spec section 8): the model must beat both `last3` and `season_avg` on PPR MAE with a clustered-SE verdict of `a_better`, in at least two of three test seasons, in both the independent relevant universe and the all-player universe, to be served for that position.");
+  lines.push(`- Ship rule (spec section 9): for each scoring family, the model must beat both \`last3\` and \`season_avg\` with a clustered-SE verdict of \`a_better\`, in at least two of three test seasons, in both universes. Every season/baseline comparison requires at least ${PAIRED_EVIDENCE_POLICY.minimum_rows} paired rows and ${PAIRED_EVIDENCE_POLICY.minimum_player_clusters} player clusters (${PAIRED_EVIDENCE_POLICY.version}).`);
   lines.push("- A `no_clear_difference` verdict is not a pass.");
   lines.push("- Confidence bands are labels, never percentages. The 80% interval share is a check on how wide the bands' error really is.");
   lines.push("");
@@ -635,7 +697,7 @@ function renderMarkdown(report) {
 }
 
 module.exports = {
-  BANDS, BASELINES, PREDICTORS, RELEVANCE_POLICY, SCORINGS,
+  BANDS, BASELINES, PAIRED_EVIDENCE_POLICY, PREDICTORS, RELEVANCE_POLICY, SCORINGS,
   calibration, disagreement, errorStats, evaluate, impliedPoints, pairedComparison, ranks, renderMarkdown, runBacktest, spearman, walkForward,
   relevanceFromHistory, shipRuleForPosition, weeklyRankCorrelation,
 };

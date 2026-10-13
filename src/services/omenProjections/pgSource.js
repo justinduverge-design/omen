@@ -9,6 +9,12 @@
  */
 
 const SKILL_POSITIONS = ["QB", "RB", "WR", "TE"];
+const EXPECTED_DATABASE = "omen_football";
+const EXPECTED_LOGIN_ROLE = "omen_warehouse_read";
+const SESSION_IDENTITY_SQL = `
+  SELECT current_database() AS database_name,
+         session_user AS role_name,
+         current_setting('transaction_read_only') AS transaction_read_only`;
 
 const PLAYER_WEEKS_SQL = `
   SELECT w.week, w.player_id, p.display_name, w.football_position AS position, t.nflverse_abbr AS team,
@@ -77,9 +83,14 @@ function createPgSource({ query, includeSleeper = false }) {
   if (typeof query !== "function") throw new TypeError("query must be a function");
   return {
     async assertReadOnly() {
-      const result = await query("SHOW transaction_read_only", []);
-      const value = result.rows?.[0]?.transaction_read_only;
-      if (value !== "on") throw new Error("refusing to run: the session is not read-only (transaction_read_only is not on)");
+      const result = await query(SESSION_IDENTITY_SQL, []);
+      const row = result.rows?.[0] || {};
+      if (row.transaction_read_only !== "on") {
+        throw new Error("refusing to run: the session is not read-only (transaction_read_only is not on)");
+      }
+      if (row.database_name !== EXPECTED_DATABASE || row.role_name !== EXPECTED_LOGIN_ROLE) {
+        throw new Error(`refusing to run: expected ${EXPECTED_LOGIN_ROLE} on ${EXPECTED_DATABASE}`);
+      }
     },
     async loadSeason(season) {
       const [weeks, games] = await Promise.all([
@@ -107,4 +118,7 @@ function createPgSource({ query, includeSleeper = false }) {
   };
 }
 
-module.exports = { GAMES_SQL, PLAYER_WEEKS_SQL, SLEEPER_SQL, createPgSource, playerWeekFromRow, statsFromRow };
+module.exports = {
+  EXPECTED_DATABASE, EXPECTED_LOGIN_ROLE, GAMES_SQL, PLAYER_WEEKS_SQL, SESSION_IDENTITY_SQL, SLEEPER_SQL,
+  createPgSource, playerWeekFromRow, statsFromRow,
+};

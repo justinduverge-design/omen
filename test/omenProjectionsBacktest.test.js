@@ -3,10 +3,12 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
-  calibration, errorStats, evaluate, impliedPoints, pairedComparison, ranks, relevanceFromHistory, renderMarkdown, runBacktest,
+  calibration, errorStats, evaluate, impliedPoints, PAIRED_EVIDENCE_POLICY, pairedComparison, ranks, relevanceFromHistory, renderMarkdown, runBacktest,
   shipRuleForPosition, spearman, walkForward, weeklyRankCorrelation,
 } = require("../src/services/omenProjections/backtest");
-const { createPgSource, GAMES_SQL, PLAYER_WEEKS_SQL, SLEEPER_SQL, statsFromRow } = require("../src/services/omenProjections/pgSource");
+const {
+  createPgSource, EXPECTED_DATABASE, EXPECTED_LOGIN_ROLE, GAMES_SQL, PLAYER_WEEKS_SQL, SESSION_IDENTITY_SQL, SLEEPER_SQL, statsFromRow,
+} = require("../src/services/omenProjections/pgSource");
 const { parseArgs, parseSeasons, poolConfig } = require("../scripts/omen-projections-backtest");
 
 function lcg(seed) {
@@ -164,7 +166,7 @@ test("relevance is selected from pre-week opportunity and cannot be changed by a
 test("the ship rule is explicit by season and must pass in both universes", () => {
   const records = [];
   for (const season of [2022, 2023, 2024]) {
-    for (let i = 0; i < 40; i += 1) {
+    for (let i = 0; i < 120; i += 1) {
       const actual = 10;
       const modelError = season === 2024 ? 4 : 1;
       const baselineError = season === 2024 ? 1 : 4;
@@ -175,7 +177,7 @@ test("the ship rule is explicit by season and must pass in both universes", () =
         position: "WR",
         bucket: "established",
         band: "high",
-        relevance_eligible: i < 30,
+        relevance_eligible: i < 110,
         sd_hat_ppr: null,
         actual: { standard: actual, half_ppr: actual, ppr: actual },
         pred: {
@@ -188,8 +190,8 @@ test("the ship rule is explicit by season and must pass in both universes", () =
   }
   const rule = shipRuleForPosition(records);
   assert.equal(rule.status, "PASS");
-  assert.equal(rule.passing_seasons, 2);
-  assert.equal(rule.by_season[2024].passes, false);
+  assert.equal(rule.scoring_families.ppr.passing_seasons, 2);
+  assert.equal(rule.scoring_families.ppr.by_season[2024].passes, false);
 
   const evaluated = evaluate(records, { positions: ["WR"] });
   assert.equal(evaluated.relevant.positions.WR.ship_rule.status, "PASS");
@@ -197,7 +199,7 @@ test("the ship rule is explicit by season and must pass in both universes", () =
 });
 
 test("paired comparison: model clearly better, clearly worse, and indistinguishable", () => {
-  const make = (modelErr, otherErr, n = 60) => Array.from({ length: n }, (_, i) => ({
+  const make = (modelErr, otherErr, n = 120) => Array.from({ length: n }, (_, i) => ({
     season: 2024, week: 1 + (i % 17), player_id: `p${i}`, position: "RB", band: "high", sd_hat_ppr: null,
     actual: { standard: 10, half_ppr: 10, ppr: 10 },
     pred: {
@@ -213,6 +215,57 @@ test("paired comparison: model clearly better, clearly worse, and indistinguisha
   // pairs only where both predictors exist
   const mixed = make(1, 3, 10).map((r, i) => (i < 4 ? { ...r, pred: { model: r.pred.model } } : r));
   assert.equal(pairedComparison(mixed, "model", "other", "ppr").n, 6);
+});
+
+test("paired comparison holds below the versioned row and player-cluster evidence floors", () => {
+  const make = (n, clusters) => Array.from({ length: n }, (_, i) => ({
+    season: 2024,
+    week: 1 + (i % 17),
+    player_id: `p${i % clusters}`,
+    position: "WR",
+    actual: { standard: 10, half_ppr: 10, ppr: 10 },
+    pred: {
+      model: { standard: 10, half_ppr: 10, ppr: 10 },
+      last3: { standard: 20, half_ppr: 20, ppr: 20 },
+    },
+  }));
+  assert.equal(pairedComparison(make(1, 1), "model", "last3", "ppr").verdict, "insufficient_data");
+  assert.equal(pairedComparison(make(2, 2), "model", "last3", "ppr").verdict, "insufficient_data");
+  assert.equal(pairedComparison(make(120, 1), "model", "last3", "ppr").verdict, "insufficient_data");
+  assert.equal(pairedComparison(make(PAIRED_EVIDENCE_POLICY.minimum_rows, PAIRED_EVIDENCE_POLICY.minimum_player_clusters - 1), "model", "last3", "ppr").verdict, "insufficient_data");
+  const boundary = pairedComparison(make(PAIRED_EVIDENCE_POLICY.minimum_rows, PAIRED_EVIDENCE_POLICY.minimum_player_clusters), "model", "last3", "ppr");
+  assert.equal(boundary.verdict, "a_better");
+  assert.equal(boundary.player_clusters, PAIRED_EVIDENCE_POLICY.minimum_player_clusters);
+});
+
+test("ship decisions are isolated by scoring family and sparse seasons hold", () => {
+  const records = [];
+  for (const season of [2022, 2023, 2024]) {
+    for (let i = 0; i < 120; i += 1) {
+      records.push({
+        season,
+        week: 1 + (i % 17),
+        player_id: `${season}-p${i}`,
+        position: "WR",
+        relevance_eligible: true,
+        actual: { standard: 10, half_ppr: 10, ppr: 10 },
+        pred: {
+          model: { standard: 15, half_ppr: 11, ppr: 11 },
+          last3: { standard: 11, half_ppr: 14, ppr: 14 },
+          season_avg: { standard: 9, half_ppr: 6, ppr: 6 },
+        },
+      });
+    }
+  }
+  const rule = shipRuleForPosition(records);
+  assert.equal(rule.scoring_families.standard.status, "FAIL");
+  assert.equal(rule.scoring_families.half_ppr.status, "PASS");
+  assert.equal(rule.scoring_families.ppr.status, "PASS");
+  assert.equal(rule.status, "FAIL");
+
+  const sparse = shipRuleForPosition(records.filter((row) => row.player_id.endsWith("p0") || row.player_id.endsWith("p1")));
+  assert.equal(sparse.status, "HOLD");
+  assert.equal(sparse.scoring_families.ppr.insufficient_seasons, 3);
 });
 
 test("calibration reports error by band and the share of outcomes inside the 80% interval", () => {
@@ -258,6 +311,8 @@ test("end to end on synthetic data: report shape, sensible errors, model not wor
   const markdown = renderMarkdown(report);
   assert.match(markdown, /^# Omen projections backtest \(omen-proj-v1\)/);
   assert.match(markdown, /### WR/);
+  assert.match(markdown, /Certification evidence by scoring family and season/);
+  assert.match(markdown, /rows \/ players \/ verdict/);
   assert.match(markdown, /model against/);
   assert.match(markdown, /Confidence-band calibration/);
   assert.equal(/\d+(\.\d+)?%/.test(markdown.split("## How to read this")[0].replace(/80% interval|~0\.80/g, "")), false, "no percentages as confidence");
@@ -296,9 +351,14 @@ test("the postgres source only reads, refuses a writable session, and never sele
     assert.equal(/\b(insert|update|delete|truncate|drop|alter|create|grant)\b/i.test(sql), false);
     assert.equal(/snap/i.test(sql), false);
   }
-  const writable = createPgSource({ query: async () => ({ rows: [{ transaction_read_only: "off" }] }) });
+  assert.match(SESSION_IDENTITY_SQL.trim(), /^SELECT/i);
+  const writable = createPgSource({ query: async () => ({ rows: [{ database_name: EXPECTED_DATABASE, role_name: EXPECTED_LOGIN_ROLE, transaction_read_only: "off" }] }) });
   await assert.rejects(() => writable.assertReadOnly(), /not read-only/);
-  const readOnly = createPgSource({ query: async () => ({ rows: [{ transaction_read_only: "on" }] }) });
+  const superuser = createPgSource({ query: async () => ({ rows: [{ database_name: EXPECTED_DATABASE, role_name: "postgres", transaction_read_only: "on" }] }) });
+  await assert.rejects(() => superuser.assertReadOnly(), /expected omen_warehouse_read/);
+  const wrongDatabase = createPgSource({ query: async () => ({ rows: [{ database_name: "postgres", role_name: EXPECTED_LOGIN_ROLE, transaction_read_only: "on" }] }) });
+  await assert.rejects(() => wrongDatabase.assertReadOnly(), /expected omen_warehouse_read/);
+  const readOnly = createPgSource({ query: async () => ({ rows: [{ database_name: EXPECTED_DATABASE, role_name: EXPECTED_LOGIN_ROLE, transaction_read_only: "on" }] }) });
   await readOnly.assertReadOnly();
 
   const calls = [];
@@ -323,7 +383,7 @@ test("the postgres source only reads, refuses a writable session, and never sele
   assert.equal(season.playerWeeks[0].opp, null);
   assert.equal(season.games[0].spread_line, -3.5);
   assert.equal(await source.loadSleeper(2024), null);
-  assert.ok(calls.every((c) => /^\s*(SELECT|SHOW)/i.test(c)));
+  assert.ok(calls.every((c) => /^\s*SELECT/i.test(c)));
   assert.equal(statsFromRow({ stats: null }).targets, 0);
 });
 
@@ -340,5 +400,6 @@ test("the script parses its flags strictly and forces a read-only session", () =
   assert.throws(() => parseArgs(["--out-dir", "/tmp/x"]), /--seasons/);
   const config = poolConfig(args, {});
   assert.match(config.options, /default_transaction_read_only=on/);
+  assert.equal(config.user, "omen_warehouse_read");
   assert.throws(() => poolConfig({ ...args, socket: null }, {}), /url-file/);
 });

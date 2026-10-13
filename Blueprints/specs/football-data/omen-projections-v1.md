@@ -258,30 +258,38 @@ n, mean gap, Omen MAE, provider MAE, the share of decided cases where Omen was c
 challenger weight cap (section 7). ESPN's projection is not in the warehouse, so ESPN gets no such evidence until it is stored;
 the challenger row on ESPN leagues stays at `slight` until then.
 
-**Ship rule.** Omen leads (Yahoo, or as the fallback) for a position only if, in both the independently selected `relevant`
-universe and the `all` universe on PPR points, the per-season paired verdict against both `last3` and `season_avg` is `a_better`
-in at least two of three test seasons. `no_clear_difference` is not a pass. Fewer than three test seasons is `HOLD`; otherwise a
-position that misses either universe is `FAIL`, keeps the Sleeper-feed fallback, and the report says so explicitly.
+**Ship rule.** Eligibility is decided separately for each `(position, scoring family)` across standard, half-PPR and PPR.
+Omen leads (Yahoo, or as the fallback) for that combination only if, in both the independently selected `relevant` universe
+and the `all` universe, the per-season paired verdict against both `last3` and `season_avg` is `a_better` in at least two of
+three test seasons. A season/baseline comparison is eligible to vote only with at least 100 paired player-weeks and at least
+20 distinct player clusters (`paired-evidence-v1`). Below either floor the verdict is `insufficient_data`, the scoring family
+is `HOLD`, and that season cannot count as a pass. `no_clear_difference` is not a pass. Fewer than three test seasons is
+`HOLD`; otherwise a combination that misses either universe is `FAIL` and keeps the provider/Sleeper-feed fallback. The
+position-level summary is conservative: it is `PASS` only when every scoring family passes, while serving uses the specific
+family result mapped from the league's reception scoring.
 
 ### Exact read-only command (founder's agent, on a restored warehouse copy)
 
-Put a postgres URL for the `omen_warehouse_reader` role in a 0600 file (never pass it on the command line or paste it into a
-log), then:
+Put a postgres URL for the `omen_warehouse_read` LOGIN principal (a member of the NOLOGIN capability role
+`omen_warehouse_reader`) in a 0600 file. Never pass it on the command line or paste it into a log. Then:
 
 ```bash
-# from the repo root; the URL file is a single line: postgres://omen_warehouse_reader:...@HOST:5432/omen_football
+# from the repo root; the URL file is a single line: postgres://omen_warehouse_read:...@HOST:5432/omen_football
 chmod 600 /abs/path/reader.url
 node scripts/omen-projections-backtest.js \
   --url-file /abs/path/reader.url \
   --seasons 2023-2025 --warmup 3 --sleeper \
   --out-dir /abs/path/backtest-out
-# or, against a local restore reachable by unix socket (user postgres, database omen_football):
+# or, against a local restore reachable by unix socket (LOGIN role omen_warehouse_read,
+# member of the NOLOGIN capability role omen_warehouse_reader; database omen_football):
 node scripts/omen-projections-backtest.js --socket /path/to/pg/socket --seasons 2023-2025 --warmup 3 --sleeper --out-dir /abs/path/backtest-out
 ```
 
-The pool is started with `-c default_transaction_read_only=on -c statement_timeout=300000` and the script refuses to run unless
-`SHOW transaction_read_only` returns `on`. Every statement is a `SELECT` against `football.*` (stats, opportunity, players,
-teams, games, and the stored Sleeper projections). Output: `omen-projections-backtest.json` and `.md` in `--out-dir`. Warm-up
+The pool is started with `-c default_transaction_read_only=on -c statement_timeout=300000`. Before reading football facts,
+the script verifies all three boundaries: database `omen_football`, session login `omen_warehouse_read`, and
+`transaction_read_only=on`. A read-only superuser session is rejected. Every statement is a `SELECT` (identity plus
+`football.*` stats, opportunity, players, teams, games, and stored Sleeper projections). Output:
+`omen-projections-backtest.json` and `.md` in `--out-dir`. Warm-up
 seasons supply history and priors only and are not scored; use at least 2 (3 gives priors from three full seasons for 2023).
 Expect on the order of 1,000-1,500 relevant player-weeks per position per season, and a few minutes of runtime.
 `--sleeper` returns no rows for historical seasons unless projections were stored for them (the stage only fetches the current

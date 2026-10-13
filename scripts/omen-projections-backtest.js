@@ -8,9 +8,10 @@
 //
 // Connection (never printed, never logged):
 //   --url-file /abs/path   a 0600 file holding a postgres:// URL (preferred), or
-//   --socket DIR           a local Postgres unix-socket directory (user postgres), or
+//   --socket DIR           a local Postgres unix-socket directory (LOGIN role omen_warehouse_read), or
 //   OMEN_BACKTEST_DATABASE_URL_FILE=/abs/path (same as --url-file).
-// Use the omen_warehouse_reader role. The session is forced read-only (default_transaction_read_only=on) and the
+// URL mode uses a LOGIN role with membership in omen_warehouse_reader; socket mode uses omen_warehouse_read.
+// The session is forced read-only (default_transaction_read_only=on) and the
 // script refuses to start when SHOW transaction_read_only is not "on". Statements are SELECT only.
 //
 // Output: <out-dir>/omen-projections-backtest.json and omen-projections-backtest.md.
@@ -52,7 +53,7 @@ function parseArgs(argv) {
 
 function poolConfig(args, env) {
   const readOnly = "-c default_transaction_read_only=on -c statement_timeout=300000";
-  if (args.socket) return { host: args.socket, user: "postgres", database: "omen_football", options: readOnly, max: 2 };
+  if (args.socket) return { host: args.socket, user: "omen_warehouse_read", database: "omen_football", options: readOnly, max: 2 };
   const file = args.urlFile || env.OMEN_BACKTEST_DATABASE_URL_FILE;
   if (!file) throw new TypeError("give --url-file, --socket or OMEN_BACKTEST_DATABASE_URL_FILE");
   const { connectionStringFromFile } = require("../src/services/footballWarehouse/runtimeConfig");
