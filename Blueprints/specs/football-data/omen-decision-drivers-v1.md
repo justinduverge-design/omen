@@ -34,6 +34,7 @@ Each evidence row maps to one **role**:
 | `supporting` | independent evidence that agrees | targets up 3.5 -> 10.0 a game over the last 3; red-zone work; matchup |
 | `caveat` | independent evidence that disagrees, or a limitation | steadiness flag, injury designation, snap/route data unavailable |
 | `context` | true but does not move the call | environment, team system |
+| `challenger` (**proposed 2026-10-12**) | Omen's own projection differs from the league provider's by more than Omen's backtested error band; shown beside the provider's number with the two or three real facts behind the gap. Never decides the call by itself. Spec: `omen-projections-v1.md` section 7 | "Omen projection 14.2 vs ESPN projection 9.8: targets 8.1 a game vs his last-3 average 5.0" |
 
 and one **weight** for `supporting` and `caveat` rows only: `strong`, `moderate`, `slight`, from per-category
 thresholds on the underlying number (tables live next to the classifier and are unit-tested; any change is a version bump
