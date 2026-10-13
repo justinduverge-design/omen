@@ -112,6 +112,7 @@ final class EspnEmittedBytesTests: XCTestCase {
             client: OmenApiClient(baseURL: URL(string: "https://example.invalid")!, fetcher: fetcher)
         )
         let viewModel = ConnectViewModel(repository: repository, sessionManager: sessionManager())
+        viewModel.espnSessionSettleDelay = .zero
         viewModel.selectProvider(.espn)
         viewModel.beginEspnSignIn(cookieStore: SentinelCookieStore((espnS2Sentinel, swidSentinel)))
 

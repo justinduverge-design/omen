@@ -127,14 +127,31 @@ final class ConnectFlowTests: XCTestCase {
     /// `store` is optional rather than defaulted for the same reason `ConnectViewModel.init`
     /// documents: a default argument is evaluated in the *caller's* context, which is not
     /// guaranteed to be the main actor, and `FakeEspnCookieStore` is main-actor isolated.
+    /// Returns scripted sessions in order, repeating the last. Test-only values, never a real session.
+    @MainActor
+    private final class ScriptedEspnCookieStore: EspnCookieReading {
+        private let reads: [(espnS2: String, swid: String)]
+        private var index = 0
+        let dataStore = WKWebsiteDataStore.nonPersistent()
+        init(reads: [(espnS2: String, swid: String)]) { self.reads = reads }
+        func hasSession() async -> Bool { true }
+        func sessionDiagnostic() async -> String { "espn_s2: www.espn.com" }
+        func takeSession() async -> (espnS2: String, swid: String)? {
+            defer { index += 1 }
+            return reads[min(index, reads.count - 1)]
+        }
+    }
+
     @MainActor
     private func espnReadyViewModel(
         repository: StubConnectRepository,
-        store: FakeEspnCookieStore? = nil
+        store: FakeEspnCookieStore? = nil,
+        scripted: ScriptedEspnCookieStore? = nil
     ) async -> ConnectViewModel {
         let viewModel = ConnectViewModel(repository: repository, sessionManager: sessionManager())
+        viewModel.espnSessionSettleDelay = .zero
         viewModel.selectProvider(.espn)
-        viewModel.beginEspnSignIn(cookieStore: store ?? FakeEspnCookieStore())
+        viewModel.beginEspnSignIn(cookieStore: scripted ?? store ?? FakeEspnCookieStore())
         viewModel.espnSignInProgressed(.signedIn(detectedLeagueId: "123456", detectedTeamId: "7"))
         // Sign-in kicks discovery off in a Task, which makes ordering nondeterministic in a test.
         // Await *that* task rather than calling `discoverEspnLeagues()` again: the second call is
@@ -166,10 +183,81 @@ final class ConnectFlowTests: XCTestCase {
         XCTAssertEqual(repository.recorder.espnConnectAttempts.first?.leagueId, "123456")
         XCTAssertEqual(repository.recorder.espnConnectAttempts.first?.teamId, "7")
         XCTAssertEqual(repository.recorder.espnConnectAttempts.first?.sentSession, true)
-        // Read once by discovery and then reused for the connect — never re-read, and never
-        // polled. If this becomes 2, the session is being pulled out of the jar again after
-        // discovery already had it, which widens the window it exists in.
-        XCTAssertEqual(store.takeCount, 1)
+        // Bounded, never polled: two reads to settle the pair, one re-read on discovery's single
+        // retry, and one fresh read for the connect (a failed pair is dropped, not reused). The
+        // session still lives only in memory and only for the length of this flow.
+        XCTAssertEqual(store.takeCount, 4)
+    }
+
+    /// A first-time ESPN sign-in can land `espn_s2` before the account's real `SWID`. Discovery
+    /// must wait for the pair to stop changing and send the settled one — the stale pair is what
+    /// ESPN answered "fan not found" to for a new tester.
+    @MainActor
+    func testDiscoveryWaitsForTheCookiePairToSettleBeforeSendingIt() async {
+        var repository = StubConnectRepository()
+        repository.espnDiscoverResult = .success([
+            EspnLeagueOption(id: "1", name: "League", season: 2026, teamId: "3", teamName: "Team"),
+        ])
+        repository.espnDiscoverExpectedSwid = "{NEW}"
+        let store = ScriptedEspnCookieStore(reads: [
+            ("S2", "{GUEST}"), ("S2", "{NEW}"), ("S2", "{NEW}"),
+        ])
+        let viewModel = await espnReadyViewModel(repository: repository, store: nil, scripted: store)
+
+        XCTAssertEqual(repository.recorder.espnDiscoverySwidMatched, [true])
+        guard case .choosingEspnLeague = viewModel.state else {
+            return XCTFail("expected the league picker, got \(viewModel.state)")
+        }
+    }
+
+    /// While the pair settles the flow is busy: Connect cannot be pressed on an unsettled pair.
+    @MainActor
+    func testConnectIsDisabledWhileTheCookiePairSettles() async {
+        let repository = StubConnectRepository()
+        let viewModel = ConnectViewModel(repository: repository, sessionManager: sessionManager())
+        viewModel.espnSessionSettleDelay = .milliseconds(150)
+        viewModel.selectProvider(.espn)
+        viewModel.beginEspnSignIn(cookieStore: ScriptedEspnCookieStore(reads: [("S2", "{A}"), ("S2", "{A}")]))
+        viewModel.espnSignInProgressed(.signedIn(detectedLeagueId: "123456", detectedTeamId: "7"))
+        await Task.yield()
+
+        XCTAssertEqual(viewModel.state, .discoveringEspnLeagues)
+        XCTAssertFalse(viewModel.canConnectEspn)
+        await viewModel.awaitEspnDiscovery()
+    }
+
+    /// Cancelling during the settle window must leave nothing behind: no request, no session
+    /// brought back, and the screen stays cancelled.
+    @MainActor
+    func testCancelDuringTheSettleWindowLeavesNothingBehind() async {
+        let repository = StubConnectRepository()
+        let viewModel = ConnectViewModel(repository: repository, sessionManager: sessionManager())
+        viewModel.espnSessionSettleDelay = .milliseconds(150)
+        viewModel.selectProvider(.espn)
+        viewModel.beginEspnSignIn(cookieStore: ScriptedEspnCookieStore(reads: [("S2", "{A}"), ("S2", "{B}"), ("S2", "{B}")]))
+        viewModel.espnSignInProgressed(.signedIn(detectedLeagueId: "123456", detectedTeamId: "7"))
+        await Task.yield()
+        viewModel.cancel()
+        await viewModel.awaitEspnDiscovery()
+        try? await Task.sleep(for: .milliseconds(400))
+
+        XCTAssertEqual(viewModel.state, .canceled)
+        XCTAssertEqual(repository.recorder.espnDiscoveries, 0)
+        XCTAssertNil(viewModel.espnCookieStore)
+    }
+
+    /// If the first request fails, the retry carries a fresh read of the jar, not the same pair.
+    @MainActor
+    func testDiscoveryRetryReadsTheCookieJarAgain() async {
+        var repository = StubConnectRepository()
+        repository.espnDiscoverResult = .failure(.network)
+        repository.espnDiscoverExpectedSwid = "{NEW}"
+        let store = ScriptedEspnCookieStore(reads: [
+            ("S2", "{GUEST}"), ("S2", "{GUEST}"), ("S2", "{NEW}"),
+        ])
+        _ = await espnReadyViewModel(repository: repository, store: nil, scripted: store)
+
+        XCTAssertEqual(repository.recorder.espnDiscoverySwidMatched, [false, true])
     }
 
     /// **The point of W1-A's second half.** Signing in should produce a list, not a homework

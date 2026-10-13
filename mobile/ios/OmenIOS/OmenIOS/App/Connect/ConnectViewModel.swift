@@ -52,6 +52,28 @@ final class ConnectViewModel: ObservableObject {
     /// instead of hardcoding a number that goes stale the next time the policy moves.
     static let maxEspnDiscoveryAttempts = 2
 
+    /// How long the cookie jar must hold the same session before Omen first uses it. A first-time
+    /// ESPN sign-in lands its cookies in steps (a fresh `espn_s2` can arrive while `SWID` is still
+    /// the anonymous visitor's), and discovery used to fire on the first read where both existed.
+    /// That paired a new `espn_s2` with an old `SWID`, ESPN answered "fan not found", and the retry
+    /// and the manual League ID connect then reused the same stale pair. Settable so tests do not wait.
+    var espnSessionSettleDelay: Duration = .seconds(1)
+    private static let maxEspnSettleReads = 4
+
+    /// Reads the session until two consecutive reads agree (or the bounded read count runs out),
+    /// so the first request carries a pair that was stable, not one caught mid-update.
+    private func settledEspnSession(from store: EspnCookieReading) async -> (espnS2: String, swid: String)? {
+        guard var current = await store.takeSession() else { return nil }
+        for _ in 1..<Self.maxEspnSettleReads {
+            try? await Task.sleep(for: espnSessionSettleDelay)
+            if Task.isCancelled { return nil }
+            guard let next = await store.takeSession() else { return current }
+            if next.espnS2 == current.espnS2 && next.swid == current.swid { return next }
+            current = next
+        }
+        return current
+    }
+
     /// The auto-discovery `espnSignInProgressed` starts. Retained so a caller can await the work
     /// sign-in already kicked off rather than starting a second discovery — a fire-and-forget
     /// `Task` is unobservable, which is exactly how a test ends up double-firing the request it
@@ -225,6 +247,7 @@ final class ConnectViewModel: ObservableObject {
         espnSignInProgress = .signedOut(diagnostic: "")
         espnCookieStore = cookieStore ?? EspnWebCookieStore()
         // A fresh attempt must not be able to await the previous attempt's discovery.
+        espnDiscoveryTask?.cancel()
         espnDiscoveryTask = nil
         espnDiscoveryAttempts = 0
         espnDiscoveryFallbackAvailable = false
@@ -256,7 +279,7 @@ final class ConnectViewModel: ObservableObject {
         // The moment ESPN has a session, ask it what leagues the account plays in. This is what
         // turns "go find your league id in a URL" into a list — the user should never have to
         // hunt for an id we can simply ask for. Runs once; the guard is `espnSession`.
-        if progress.isSignedIn, espnSession == nil {
+        if progress.isSignedIn, espnSession == nil, espnDiscoveryTask == nil {
             espnDiscoveryTask = Task { [weak self] in await self?.discoverEspnLeagues() }
         }
     }
@@ -278,12 +301,26 @@ final class ConnectViewModel: ObservableObject {
     /// with the same in-memory session before offering the manual escape hatch.
     func discoverEspnLeagues() async {
         guard let cookieStore = espnCookieStore else { return }
-        if espnSession == nil {
-            guard let session = await cookieStore.takeSession() else { return }
-            espnSession = session
+        // Busy from the first moment, so the Connect button cannot be pressed on an unsettled
+        // pair while the settle window runs, and the user sees progress rather than a still screen.
+        let startedFromSignIn: Bool
+        if case .espnSigningIn = state { startedFromSignIn = true } else { startedFromSignIn = false }
+        if startedFromSignIn { state = .discoveringEspnLeagues }
+        func stillCurrent() -> Bool {
+            !Task.isCancelled && (espnCookieStore as AnyObject?) === (cookieStore as AnyObject)
         }
-        guard let session = espnSession else { return }
-        guard let accessToken = await bearer() else { return }
+        func abandon() {
+            guard stillCurrent() else { return }
+            if startedFromSignIn { state = .espnSigningIn }
+            espnDiscoveryTask = nil
+        }
+
+        if espnSession == nil {
+            guard let settled = await settledEspnSession(from: cookieStore), stillCurrent() else { return abandon() }
+            espnSession = settled
+        }
+        guard var session = espnSession else { return abandon() }
+        guard let accessToken = await bearer(), stillCurrent() else { return abandon() }
 
         state = .discoveringEspnLeagues
         var finalResult: Result<[EspnLeagueOption], ConnectFailure>?
@@ -294,6 +331,8 @@ final class ConnectViewModel: ObservableObject {
                 swid: session.swid,
                 accessToken: accessToken
             )
+            // Cancelled, started over, or connected while the request was out: drop the result.
+            guard stillCurrent() else { return }
             if case .success(let leagues) = result, !leagues.isEmpty {
                 clearLeagueSelection()
                 state = .choosingEspnLeague(leagues)
@@ -302,9 +341,18 @@ final class ConnectViewModel: ObservableObject {
             finalResult = result
             if espnDiscoveryAttempts < Self.maxEspnDiscoveryAttempts {
                 try? await Task.sleep(for: .seconds(1))
-        }
+                guard stillCurrent() else { return }
+                // Read the jar again rather than resend what just failed: if the first pair was
+                // caught mid-update, the same values will fail the same way.
+                if let fresh = await cookieStore.takeSession(), stillCurrent() {
+                    session = fresh
+                    espnSession = fresh
+                }
+            }
         }
 
+        // The fallback's manual connect must read the jar afresh, not reuse a pair that failed.
+        espnSession = nil
         espnDiscoveryFallbackAvailable = true
         switch finalResult {
         case .some(.success):
@@ -399,6 +447,8 @@ final class ConnectViewModel: ObservableObject {
     /// Drops every in-memory trace of the ESPN session. Called on success, failure, cancel, and
     /// start-over — there is no path that keeps one.
     private func clearEspnSession() {
+        espnDiscoveryTask?.cancel()
+        espnDiscoveryTask = nil
         espnSession = nil
         espnCookieStore = nil
         espnSignInProgress = .signedOut(diagnostic: "")
@@ -518,7 +568,7 @@ final class ConnectViewModel: ObservableObject {
     func cancel() {
         pendingRequestId = nil
         espnCheckNotice = nil
-        espnCookieStore = nil
+        clearEspnSession()
         state = .canceled
     }
 
