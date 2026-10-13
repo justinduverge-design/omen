@@ -540,6 +540,7 @@ struct StubConnectRepository: ConnectRepository {
     var espnConnectionResult: Result<EspnConnection?, ConnectFailure> = .success(nil)
     var espnConnectResult: Result<Void, ConnectFailure> = .failure(.network)
     var espnDiscoverResult: Result<[EspnLeagueOption], ConnectFailure> = .success([])
+    var espnDiscoverExpectedSwid: String?
     var followResult: Result<Bool, ConnectFailure> = .success(true)
     /// Records every request id the flow sent, so tests can prove idempotency behavior.
     final class Recorder {
@@ -547,6 +548,9 @@ struct StubConnectRepository: ConnectRepository {
         var boundYahooLeagueIds: [String] = []
         var espnConnectionChecks = 0
         var espnDiscoveries = 0
+        /// Per discovery request: did it carry the SWID the test expects? A bool, not the value, so
+        /// the double still holds no session material. Empty unless `espnDiscoverExpectedSwid` is set.
+        var espnDiscoverySwidMatched: [Bool] = []
         var espnConnectAttempts: [(leagueId: String, teamId: String?, sentSession: Bool)] = []
         /// What the multiselect actually asked to follow, so a test can prove the extra
         /// leagues were sent rather than only that the UI let them be ticked.
@@ -595,6 +599,7 @@ struct StubConnectRepository: ConnectRepository {
         accessToken: String
     ) async -> Result<[EspnLeagueOption], ConnectFailure> {
         recorder.espnDiscoveries += 1
+        if let expected = espnDiscoverExpectedSwid { recorder.espnDiscoverySwidMatched.append(swid == expected) }
         return espnDiscoverResult
     }
 
