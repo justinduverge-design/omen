@@ -804,6 +804,25 @@ test("POST /api/platforms/espn/connect returns safe message when ESPN rejects co
   assert.equal(JSON.stringify(res.body).includes("swid-cookie"), false);
 });
 
+test("POST /api/platforms/espn/connect logs only the ESPN status when validation fails", async () => {
+  const espnError = Object.assign(new Error("ESPN request failed with spoof-secret-text"), { status: 401 });
+  const { app, state } = buildApp({ espnError });
+  const res = await request(app, "/api/platforms/espn/connect", {
+    method: "POST",
+    body: { espn_s2: "espn-cookie", swid: "{swid-cookie}", league_id: "12345" },
+  });
+
+  assert.equal(res.status, 400);
+  const entry = state.logs.find((l) => l.message === "ESPN connect validation failed");
+  assert.ok(entry, "the real ESPN status must be recorded");
+  assert.equal(entry.level, "warn");
+  assert.deepEqual(entry.meta, { http_status: 401 });
+  const everything = JSON.stringify(state.logs);
+  for (const secret of ["espn-cookie", "swid-cookie", "spoof-secret-text", "12345"]) {
+    assert.equal(everything.includes(secret), false, `log must not contain ${secret}`);
+  }
+});
+
 test("POST /api/platforms/espn/connect returns safe league/team message for ESPN 404", async () => {
   const espnError = Object.assign(new Error("ESPN team not found in this league"), { status: 404 });
   const { app } = buildApp({ espnError });
