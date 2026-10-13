@@ -210,6 +210,42 @@ final class ConnectFlowTests: XCTestCase {
         }
     }
 
+    /// While the pair settles the flow is busy: Connect cannot be pressed on an unsettled pair.
+    @MainActor
+    func testConnectIsDisabledWhileTheCookiePairSettles() async {
+        let repository = StubConnectRepository()
+        let viewModel = ConnectViewModel(repository: repository, sessionManager: sessionManager())
+        viewModel.espnSessionSettleDelay = .milliseconds(150)
+        viewModel.selectProvider(.espn)
+        viewModel.beginEspnSignIn(cookieStore: ScriptedEspnCookieStore(reads: [("S2", "{A}"), ("S2", "{A}")]))
+        viewModel.espnSignInProgressed(.signedIn(detectedLeagueId: "123456", detectedTeamId: "7"))
+        await Task.yield()
+
+        XCTAssertEqual(viewModel.state, .discoveringEspnLeagues)
+        XCTAssertFalse(viewModel.canConnectEspn)
+        await viewModel.awaitEspnDiscovery()
+    }
+
+    /// Cancelling during the settle window must leave nothing behind: no request, no session
+    /// brought back, and the screen stays cancelled.
+    @MainActor
+    func testCancelDuringTheSettleWindowLeavesNothingBehind() async {
+        let repository = StubConnectRepository()
+        let viewModel = ConnectViewModel(repository: repository, sessionManager: sessionManager())
+        viewModel.espnSessionSettleDelay = .milliseconds(150)
+        viewModel.selectProvider(.espn)
+        viewModel.beginEspnSignIn(cookieStore: ScriptedEspnCookieStore(reads: [("S2", "{A}"), ("S2", "{B}"), ("S2", "{B}")]))
+        viewModel.espnSignInProgressed(.signedIn(detectedLeagueId: "123456", detectedTeamId: "7"))
+        await Task.yield()
+        viewModel.cancel()
+        await viewModel.awaitEspnDiscovery()
+        try? await Task.sleep(for: .milliseconds(400))
+
+        XCTAssertEqual(viewModel.state, .canceled)
+        XCTAssertEqual(repository.recorder.espnDiscoveries, 0)
+        XCTAssertNil(viewModel.espnCookieStore)
+    }
+
     /// If the first request fails, the retry carries a fresh read of the jar, not the same pair.
     @MainActor
     func testDiscoveryRetryReadsTheCookieJarAgain() async {
