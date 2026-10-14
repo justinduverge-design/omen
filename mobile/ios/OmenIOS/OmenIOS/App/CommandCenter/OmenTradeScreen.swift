@@ -140,7 +140,7 @@ struct OmenTradeScreen: View {
                 .omenTextStyle(OmenTypography.h1)
                 .foregroundStyle(OmenColor.textPrimary)
             Text(offer.leagueContext == nil
-                 ? "No league settings applied. Connect a league to check what its provider can use."
+                 ? "No league settings are applied yet. Select or connect a league to check what its provider can use."
                  : "Omen will check whether this provider can apply your league's scoring and roster.")
                 .omenTextStyle(OmenTypography.bodySmall)
                 .foregroundStyle(OmenColor.textSecondary)
