@@ -51,6 +51,7 @@ paths=(
   infra/warehouse/backup/omen-warehouse-backup.timer
   infra/warehouse/backup/omen-warehouse-restore-proof.service
   infra/warehouse/backup/omen-warehouse-restore-proof.timer
+  infra/warehouse/backup/projection-analysis-session.js
   infra/warehouse/backup/receive-restore-source.sh
   infra/warehouse/backup/restore-isolated.sh
   infra/warehouse/backup/run-nightly-backup.sh

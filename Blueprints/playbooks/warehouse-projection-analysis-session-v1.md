@@ -8,7 +8,9 @@
 
 **Frequency:** As needed for projection certification
 
-**Approval boundary:** Every KVM2 install or run command below is a production-host mutation and requires a fresh, exact founder approval packet.
+**Approval boundary:** Installing tools, receiving a decrypted source or starting the supervisor
+requires a fresh, exact founder approval packet. Phase 1 and Phase 5 inspection commands are
+non-mutating checks; running them does not authorize any later phase.
 
 ## Purpose
 
@@ -110,7 +112,15 @@ already-proven guards authoritative.
 
 ## Required implementation before commissioning
 
-The host-side supervisor is not implemented by this document. Its reviewed implementation must:
+The pure planning/refusal core is implemented locally in
+`infra/warehouse/backup/projection-analysis-session.js`. It validates the session/run IDs and TTL,
+derives only analysis-namespaced resources, and refuses both the fixed protected window and a
+reported timer elapse that intersects TTL plus cleanup reserve. It creates nothing and is safe to
+include in a release, but is not a runnable analysis session.
+
+The receiver, resource-owning supervisor, reaper, HBA transition and completion interface remain
+unimplemented. No KVM2 install/run is earned until their reviewed implementation satisfies all of
+the following:
 
 - accept only an absolute verified manifest, an absolute receipt path and a bounded integer TTL;
 - derive all other names from the verified backup run ID plus a random, validated session suffix;
