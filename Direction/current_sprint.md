@@ -34,7 +34,7 @@ founder, or store work.
 ### RELEASE-CYCLE — Build 11 uploaded; Build 12 targets 2026-10-20 at the earliest; 2026-10-27 remains hopeful
 
 - **Status:** READY
-- **Blocked by:** Build 12 scope-selection gate — Trade diagnosis, shared-primitives trace, provider capability matrix and unfinished-work recovery review
+- **Blocked by:** Build 12 paired-iPhone Trade journey, provider terminal-state certification and release integration
 - **Priority:** P0
 - **Cost:** medium
 - **Do not touch:** store consoles without approval; merge cutoff is the Monday afternoon before each release, no deploying merges Monday evening through the release day
@@ -45,6 +45,13 @@ founder, or store work.
 deferred until the founder reports an install and explicitly resumes it. The three no-install lanes
 are Trade reliability trace, shared-foundation/provider honesty, and Omen-summary plus League audit;
 see the active Build 12 plan.
+
+**2026-10-14 candidate note:** all four scope-selection packets exist. Trade reliability is the
+primary candidate. Local native repairs exclude the viewer from partner choices, resolve viewer
+identity independently of weekly matchup, invalidate all league-dependent state on a switch, reject
+late responses from the previous league, and keep personalization copy honest. Focused Trade tests
+pass 24/24 and fresh independent review is clean. Release readiness still requires the paired-iPhone
+partner/manual-compare journey and ESPN/Yahoo/Sleeper terminal-state evidence; Rhody remains deferred.
 
 ### FM-XFP — Omen fantasy metrics v1: expected fantasy points, opportunity, role chart, dynasty outlook
 
@@ -102,7 +109,7 @@ see the active Build 12 plan.
 - **Priority:** P1
 - **Cost:** large
 - **Do not touch:** `vorp.js`, `decisionBriefV2.js`, `decisionContext.js`, `systemContracts.js`, `llm.js`; the live projection paths until a backtest shows Omen is not worse
-- **Claim:** Codex, 2026-10-13, PR #654 is locally staged on `codex/build-12`; scoring-family, minimum-evidence, and reader-role repairs pass 34/34 focused tests and fresh review with no P0/P1/P2; restored-warehouse run remains open
+- **Claim:** Codex, 2026-10-14, PR #654 is locally staged on `codex/build-12`; scoring-family, minimum-evidence, and reader-role repairs pass 34/34 focused tests and fresh review with no P0/P1/P2. The retained-analysis runbook passed review and its pure planning/cleanup gate passes focused tests, but receiver/supervisor/reaper implementation and the restored-warehouse run remain open.
 - **Scope:** PR #654 (spec `Blueprints/specs/football-data/omen-projections-v1.md`, pure model, offline backtest). The relevance-universe P1 is repaired. A later review found two more P1s: PPR-only certification and sparse paired evidence. Their local repair makes decisions per scoring family and requires versioned row/player floors. Decision: `Direction/decision_log.md` 2026-10-12; audit: `Direction/reviews/2026-10-12-build-12-unfinished-work-audit.md`.
 - **Done when (backtest):** a read-only backtest on a restored warehouse copy (KVM2) is in `Direction/reviews/` and shows whether Omen beats the last-3 and season-average baselines per position.
 

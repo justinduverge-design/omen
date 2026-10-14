@@ -72,3 +72,24 @@ iOS copies League into Trade only from `CommandCenterView.swift:376-381` via `on
 3. Add the initial League→Trade synchronization regression.
 4. Re-run the exact deterministic suites, then reproduce manual Compare on a controlled native journey and capture its terminal state before declaring the walkthrough P1 closed.
 
+## 2026-10-14 implementation and review closeout
+
+The source-confirmed defects above are repaired locally on `codex/build-12`:
+
+- the league directory, independent of weekly matchup/bye state, supplies authoritative viewer-team identity;
+- the viewer is excluded before default, primary-partner, prefill and third-team selection;
+- unknown viewer identity fails closed;
+- loading, failure and league switching invalidate roster, verdict, share and three-team state;
+- generation guards reject late roster, authorization, three-team and share completions from the previous league; and
+- neutral/pre-answer copy no longer claims unsupported scoring or assumes the user is disconnected.
+
+Focused `TradeRosterAndShareTests` pass **24/24**. The unsigned generic iOS build and test-target
+compilation succeed. A fresh independent review found and drove closure of the bye-week identity,
+stale context and async completion races; its final re-review is clean with no remaining actionable
+finding. The focused backend suite was attempted but could not start from this managed worktree
+because its Node dependency directory is absent; no backend source changed in this repair.
+
+This closes the source P1s, not the historical phone observation. The paired-iPhone journey must
+still prove that the viewer is absent from partner choices and that manual Compare reaches a visible
+terminal state before Build 12 is called release-ready.
+

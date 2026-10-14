@@ -14,6 +14,13 @@
   - the CLI and source verify `omen_warehouse_read` on `omen_football` in a read-only session;
   - the owner-facing Markdown exposes rows, player clusters and verdicts for every season/baseline.
 - Focused projection suite passes 34/34.
+- Completed the Build 12 foundation/provider/League/Omen certification and Trade reliability trace.
+- Staged the reviewed Trade repair locally: authoritative directory-based viewer identity, own-team
+  exclusion, initial and cross-league context isolation, stale-response rejection and honest neutral
+  copy. Focused native Trade tests pass 24/24 and final independent re-review is clean.
+- Designed and reviewed the isolated KVM2 retained-analysis runbook. Its local planning/refusal and
+  exact-resource cleanup core is included in the verified warehouse release inventory and passes
+  focused tests; the resource-owning receiver/supervisor/reaper is not implemented or installed.
 
 ## Build truth
 
@@ -59,7 +66,8 @@ Do not fall back to `postgres`, production data, or a password in argv/environme
 
 ## Next safe step
 
-Keep KVM2 execution on hold. The founder has also deferred ESPN verification until a new beta build
-has an install and explicitly resumes that check. Continue the Build 12 scope gate through three
-no-install lanes: Trade reliability trace; shared-primitives/provider-honesty certification; and the
-Omen-summary plus League completion/canvas audit.
+Trade reliability is the Build 12 primary candidate. Run the paired-iPhone partner/manual-compare
+journey and record ESPN/Yahoo/Sleeper terminal states before release integration. Keep Rhody's fresh
+ESPN login deferred until the founder explicitly resumes it. Keep KVM2 restored analysis on HOLD
+until the separate receiver/supervisor/reaper implementation is complete, independently reviewed,
+and presented as an exact founder-approved host command packet.
