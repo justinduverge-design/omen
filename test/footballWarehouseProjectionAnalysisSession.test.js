@@ -2,7 +2,7 @@
 
 const assert = require("node:assert/strict");
 const test = require("node:test");
-const { parseArgs, planSession, resourceNames } = require("../infra/warehouse/backup/projection-analysis-session");
+const { cleanupPlan, parseArgs, planSession, resourceNames } = require("../infra/warehouse/backup/projection-analysis-session");
 
 const GOOD = Object.freeze({
   sessionId: "analysis-20261014T180000Z-deadbeef",
@@ -55,4 +55,23 @@ test("analysis CLI parser is strict and never invents current time", () => {
   assert.throws(() => parseArgs(["--session-id", GOOD.sessionId]), /missing|usage/);
   assert.throws(() => parseArgs(["--session-id", GOOD.sessionId, "--session-id", GOOD.sessionId, "--run-id", GOOD.runId, "--ttl-seconds", "7200", "--now", GOOD.now]), /duplicate/);
   assert.throws(() => parseArgs(["--session-id", GOOD.sessionId, "--run-id", GOOD.runId, "--ttl-seconds", "7e3", "--now", GOOD.now]), (error) => error.code === "invalid_ttl");
+  assert.throws(() => planSession({ ...GOOD, now: "October 14 2026 18:00 UTC" }), (error) => error.code === "invalid_time");
+  assert.throws(() => planSession({ ...GOOD, now: "2026-02-30T18:00:00Z" }), (error) => error.code === "invalid_time");
+});
+
+test("cleanup core returns only exact labeled analysis resources in safe order", () => {
+  const names = resourceNames(GOOD.sessionId);
+  const observed = {
+    container: { name: names.container, label: names.label },
+    volume: { name: names.volume, label: names.label },
+    socketDir: { path: names.socketDir, owner: "root", mode: "710", symlink: false },
+    sourceDir: { path: names.sourceDir, owner: "root", mode: "700", symlink: false },
+  };
+  assert.deepEqual(cleanupPlan(GOOD.sessionId, observed).map((item) => item.kind), ["container", "volume", "socketDir", "sourceDir"]);
+  assert.throws(() => cleanupPlan(GOOD.sessionId, { ...observed, container: { ...observed.container, label: "omen.restore=true" } }),
+    (error) => error.code === "unsafe_cleanup_target");
+  assert.throws(() => cleanupPlan(GOOD.sessionId, { ...observed, sourceDir: { ...observed.sourceDir, path: "/var/lib/omen/warehouse-restore-sources/x" } }),
+    (error) => error.code === "unsafe_cleanup_target");
+  assert.throws(() => cleanupPlan(GOOD.sessionId, { ...observed, extra: {} }),
+    (error) => error.code === "invalid_cleanup_inventory");
 });

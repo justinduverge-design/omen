@@ -18,8 +18,13 @@ function fail(code, message) {
 }
 
 function instant(value, name) {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value || "")) {
+    fail("invalid_time", `${name} must be an ISO UTC instant`);
+  }
   const result = new Date(value);
   if (!value || !Number.isFinite(result.getTime())) fail("invalid_time", `${name} must be an ISO instant`);
+  const canonical = value.includes(".") ? value : value.replace(/Z$/, ".000Z");
+  if (result.toISOString() !== canonical) fail("invalid_time", `${name} is not a real calendar instant`);
   return result;
 }
 
@@ -46,6 +51,33 @@ function resourceNames(sessionId) {
     receipt: `/var/lib/omen/warehouse-analysis-receipts/${sessionId}.json`,
     label: `omen.analysis.session=${sessionId}`,
   });
+}
+
+function cleanupPlan(sessionId, observed) {
+  const expected = resourceNames(sessionId);
+  const exactKeys = ["container", "volume", "socketDir", "sourceDir"];
+  if (!observed || typeof observed !== "object" || Array.isArray(observed) ||
+      Object.keys(observed).sort().join("|") !== exactKeys.sort().join("|")) {
+    fail("invalid_cleanup_inventory", "cleanup inventory must contain exactly four resources");
+  }
+  for (const kind of ["container", "volume"]) {
+    const item = observed[kind];
+    if (!item || item.name !== expected[kind] || item.label !== expected.label) {
+      fail("unsafe_cleanup_target", `${kind} identity or label is unsafe`);
+    }
+  }
+  for (const [kind, modes] of [["sourceDir", ["700"]], ["socketDir", ["710", "770"]]]) {
+    const item = observed[kind];
+    if (!item || item.path !== expected[kind] || item.owner !== "root" || !modes.includes(item.mode) || item.symlink !== false) {
+      fail("unsafe_cleanup_target", `${kind} path or metadata is unsafe`);
+    }
+  }
+  return Object.freeze([
+    { kind: "container", name: expected.container },
+    { kind: "volume", name: expected.volume },
+    { kind: "socketDir", path: expected.socketDir },
+    { kind: "sourceDir", path: expected.sourceDir },
+  ]);
 }
 
 function planSession({ sessionId, runId, ttlSeconds, now, nextRestoreElapse }) {
@@ -109,4 +141,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { CLEANUP_RESERVE_SECONDS, MAX_TTL, MIN_TTL, parseArgs, planSession, resourceNames };
+module.exports = { CLEANUP_RESERVE_SECONDS, MAX_TTL, MIN_TTL, cleanupPlan, parseArgs, planSession, resourceNames };
