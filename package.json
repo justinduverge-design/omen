@@ -4,6 +4,7 @@
   "description": "Omen — Slops Saloon Fantasy Football Intelligence",
   "main": "src/server.js",
   "scripts": {
+    "native:retired-paths:check": "node scripts/check-retired-native-paths.mjs",
     "start": "node src/server.js",
     "dev": "node src/server.js",
     "cron": "node src/omen_tuesday_cron.js",

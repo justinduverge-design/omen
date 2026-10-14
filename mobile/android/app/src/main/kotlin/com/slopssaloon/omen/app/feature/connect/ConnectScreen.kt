@@ -340,32 +340,32 @@ fun ConnectScreen(
             // not decorative — Disney's Terms of Use §2.B.vii bars use suggesting association.
             is ConnectState.EspnConsent -> {
                 Text(
-                    EspnHandoffCopy.CONSENT_EYEBROW,
+                    EspnConnectCopy.CONSENT_EYEBROW,
                     style = OmenTheme.typography.micro.toTextStyle(),
                     color = OmenTheme.color.accent,
                 )
                 Text(
-                    EspnHandoffCopy.CONSENT_TITLE,
+                    EspnConnectCopy.CONSENT_TITLE,
                     style = OmenTheme.typography.h2.toTextStyle(),
                     color = OmenTheme.color.textPrimary,
                 )
                 Text(
-                    EspnHandoffCopy.CONSENT_LEAD,
+                    EspnConnectCopy.CONSENT_LEAD,
                     style = OmenTheme.typography.body.toTextStyle(),
                     color = OmenTheme.color.textSecondary,
                 )
                 // Two itemised lists rather than one paragraph: a promise buried mid-sentence is
                 // not one a user can check. Same structure and strings as iOS.
-                ConsentList(EspnHandoffCopy.CONSENT_TAKES_TITLE, EspnHandoffCopy.CONSENT_TAKES)
-                ConsentList(EspnHandoffCopy.CONSENT_NEVER_TITLE, EspnHandoffCopy.CONSENT_NEVER)
+                ConsentList(EspnConnectCopy.CONSENT_TAKES_TITLE, EspnConnectCopy.CONSENT_TAKES)
+                ConsentList(EspnConnectCopy.CONSENT_NEVER_TITLE, EspnConnectCopy.CONSENT_NEVER)
                 Text(
-                    EspnHandoffCopy.CONSENT_FOOTER,
+                    EspnConnectCopy.CONSENT_FOOTER,
                     style = OmenTheme.typography.bodySmall.toTextStyle(),
                     color = OmenTheme.color.textTertiary,
                 )
-                OmenButton(EspnHandoffCopy.CONSENT_CONTINUE, { viewModel.beginEspnSignIn() })
+                OmenButton(EspnConnectCopy.CONSENT_CONTINUE, { viewModel.beginEspnSignIn() })
                 OmenButton(
-                    EspnHandoffCopy.CONSENT_DECLINE,
+                    EspnConnectCopy.CONSENT_DECLINE,
                     { viewModel.startOver() },
                     variant = OmenButtonVariant.Secondary,
                 )
@@ -381,9 +381,9 @@ fun ConnectScreen(
                 }
                 Text(
                     if (viewModel.espnSignInProgress.isSignedIn) {
-                        EspnHandoffCopy.SIGN_IN_READY
+                        EspnConnectCopy.SIGN_IN_READY
                     } else {
-                        EspnHandoffCopy.SIGN_IN_WAITING
+                        EspnConnectCopy.SIGN_IN_WAITING
                     },
                     style = OmenTheme.typography.bodySmall.toTextStyle(),
                     color = OmenTheme.color.textSecondary,
@@ -409,7 +409,7 @@ fun ConnectScreen(
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Text(
-                        EspnHandoffCopy.LEAGUE_ID_HINT,
+                        EspnConnectCopy.LEAGUE_ID_HINT,
                         style = OmenTheme.typography.bodySmall.toTextStyle(),
                         color = OmenTheme.color.textTertiary,
                     )
@@ -421,14 +421,14 @@ fun ConnectScreen(
                         color = OmenTheme.color.textSecondary,
                     )
                 }
-                // Omen never submits on the user's behalf — the rule the desktop helper follows.
+                // Omen never submits provider actions on the user's behalf.
                 OmenButton(
-                    EspnHandoffCopy.SIGN_IN_CONNECT,
+                    EspnConnectCopy.SIGN_IN_CONNECT,
                     { scope.launch { viewModel.confirmEspnConnection() } },
                     enabled = viewModel.canConnectEspn,
                 )
                 OmenButton(
-                    EspnHandoffCopy.SIGN_IN_CANCEL,
+                    EspnConnectCopy.SIGN_IN_CANCEL,
                     { viewModel.cancelEspnSignIn() },
                     variant = OmenButtonVariant.Secondary,
                 )
@@ -438,12 +438,12 @@ fun ConnectScreen(
             // by the time they see this.
             is ConnectState.ChoosingEspnLeague -> {
                 Text(
-                    EspnHandoffCopy.foundLeaguesTitle(state.options.size),
+                    EspnConnectCopy.foundLeaguesTitle(state.options.size),
                     style = OmenTheme.typography.h2.toTextStyle(),
                     color = OmenTheme.color.textPrimary,
                 )
                 Text(
-                    EspnHandoffCopy.FOUND_LEAGUES_SUBTITLE,
+                    EspnConnectCopy.FOUND_LEAGUES_SUBTITLE,
                     style = OmenTheme.typography.bodySmall.toTextStyle(),
                     color = OmenTheme.color.textSecondary,
                 )
@@ -476,7 +476,7 @@ fun ConnectScreen(
                 OmenStateSurface(
                     kind = OmenStateSurfaceKind.Empty,
                     title = "${state.connection.displayLeagueName} is connected",
-                    message = EspnHandoffCopy.connectedMessage(state.connection),
+                    message = EspnConnectCopy.connectedMessage(state.connection),
                 )
                 OmenButton("Go to Command Center", onConnected)
                 OmenButton(
@@ -497,26 +497,6 @@ fun ConnectScreen(
                 )
             }
 
-            // Never a dead end — name the path that works.
-            is ConnectState.UnsupportedOnMobile -> {
-                OmenStateSurface(
-                    kind = OmenStateSurfaceKind.Disconnected,
-                    title = "${state.provider.displayName} can't be connected in the app yet",
-                    message = when (val availability = state.provider.availability) {
-                        is ConnectAvailability.OnHold -> availability.reason
-                        is ConnectAvailability.UseWeb -> availability.reason
-                        is ConnectAvailability.Available -> ""
-                    },
-                )
-                if (state.provider == ConnectProvider.Espn) {
-                    Text(
-                        text = ESPN_CONSENT_TEXT,
-                        style = OmenTheme.typography.bodySmall.toTextStyle(),
-                        color = OmenTheme.color.textSecondary,
-                    )
-                }
-                OmenButton("Choose another provider", { viewModel.startOver() }, variant = OmenButtonVariant.Secondary)
-            }
         }
     }
 }

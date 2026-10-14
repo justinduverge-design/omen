@@ -27,6 +27,10 @@
 - Hardened `scripts/install-latest-ios.sh` so an invocation cannot silently jump to another checkout
   and cannot build without that checkout's ignored local configuration. The worktree's ignored config
   link was restored locally without reading or committing its values.
+- Removed the retired native ESPN desktop-helper fallback from both iOS and Android. Repeated session
+  failures now remain in the current typed native recovery flow; the separate public web guide remains
+  available but is not a native destination. Added `native:retired-paths:check` to prevent the old
+  states and copy from returning. Focused iOS and Android connection suites pass.
 - Designed and reviewed the isolated KVM2 retained-analysis runbook. Its local planning/refusal and
   exact-resource cleanup core is included in the verified warehouse release inventory and passes
   focused tests; the resource-owning receiver/supervisor/reaper is not implemented or installed.
@@ -71,6 +75,9 @@ Do not fall back to `postgres`, production data, or a password in argv/environme
 - The 2026-10-14 phone follow-up used the repository `run-slops-saloon` QA skill for evidence and
   provenance discipline, plus three bounded read-only agents for canvas, Find and Xcode-checkout
   audits. Their conclusions agreed on the stale checkout and the remaining product gaps.
+- The provider-resilience skill named by `Direction/map.md` was not available in this runtime's skill
+  catalog; the approved mobile connection contract, ESPN guide, deterministic native suites and a
+  new source retirement gate were used as the documented fallback.
 - Repository-routed skills `slops-tdd` and `slops-provider-resilience` were unavailable to the lead
   runtime; existing deterministic tests and governing provider contracts were used as the fallback.
 - Tools: Git and GitHub CLI inspection, Node focused tests, repository gates, Xcode focused evidence

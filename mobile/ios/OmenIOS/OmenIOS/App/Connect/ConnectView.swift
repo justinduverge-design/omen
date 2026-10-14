@@ -81,12 +81,10 @@ struct ConnectView: View {
                         espnSignInPlaceholder
                     case .choosingEspnLeague(let options):
                         espnLeaguePicker(options)
-                    case .checkingEspnConnection, .validatingEspnConnection, .discoveringEspnLeagues:
+                    case .validatingEspnConnection, .discoveringEspnLeagues:
                         busySection
                     case .espnConnected(let connection):
                         espnConnectedSection(connection)
-                    case .unsupportedOnMobile(let provider):
-                        unsupportedSection(provider)
                     }
                 }
                 .padding(.horizontal, OmenSpacing.step24)
@@ -187,20 +185,9 @@ struct ConnectView: View {
     /// says "browser" plainly: the user is about to leave the app, and being told after the
     /// fact is how a connect flow reads as a hijack.
     private func availabilityLabel(_ provider: ConnectProvider) -> String {
-        switch provider.availability {
-        case .available:
-            if provider == .yahoo { return "Sign in with Yahoo. Read-only access." }
-            // "Sign in with ESPN" implied parity with Yahoo's one-tap OAuth. It is not parity,
-            // and the missing phone path is the one confirmed beta failure on record — users
-            // were told to find a desktop and sideload a Chrome extension. The artboard's line
-            // says what actually happens, and that it happens here.
-            if provider == .espn { return "A few more steps — ESPN has no read-only sign-in. We walk you through it here, on your phone." }
-            return "Username only. About ten seconds."
-        // The reason is read from `availability`, not restated. It was restated once, and the
-        // two copies drifted the moment the ESPN line was reworded — the picker row kept
-        // saying "needs a computer" while the destination screen said something else.
-        case .onHold(let reason), .useWeb(let reason): return reason
-        }
+        if provider == .yahoo { return "Sign in with Yahoo. Read-only access." }
+        if provider == .espn { return "A few more steps — ESPN has no read-only sign-in. We walk you through it here, on your phone." }
+        return "Username only. About ten seconds."
     }
 
     // MARK: - Step 5 — connect
@@ -500,28 +487,6 @@ struct ConnectView: View {
         }
     }
 
-    /// A provider Omen cannot connect here. Never a dead end — it names the path that works.
-    @ViewBuilder
-    private func unsupportedSection(_ provider: ConnectProvider) -> some View {
-        if provider == .espn {
-            espnSyncSection
-        } else {
-            VStack(alignment: .leading, spacing: OmenSpacing.step16) {
-                OmenStateSurface(
-                    kind: .disconnected,
-                    title: "\(provider.displayName) can't be connected in the app yet",
-                    message: unsupportedMessage(provider)
-                )
-                OmenButton(
-                    title: "Choose another provider",
-                    action: { viewModel.startOver() },
-                    variant: .secondary,
-                    size: .md
-                )
-            }
-        }
-    }
-
     // MARK: - ESPN sign-in (W1-A)
 
     /// Consent, before anything opens.
@@ -536,35 +501,35 @@ struct ConnectView: View {
     private var espnConsentSection: some View {
         VStack(alignment: .leading, spacing: OmenSpacing.step16) {
             VStack(alignment: .leading, spacing: OmenSpacing.step4) {
-                Text(EspnHandoffCopy.consentEyebrow)
+                Text(EspnConnectCopy.consentEyebrow)
                     .omenTextStyle(OmenTypography.micro)
                     .foregroundStyle(OmenColor.accent)
-                Text(EspnHandoffCopy.consentTitle)
+                Text(EspnConnectCopy.consentTitle)
                     .omenTextStyle(OmenTypography.h1)
                     .foregroundStyle(OmenColor.textPrimary)
             }
 
-            Text(EspnHandoffCopy.consentLead)
+            Text(EspnConnectCopy.consentLead)
                 .omenTextStyle(OmenTypography.body)
                 .foregroundStyle(OmenColor.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            consentList(EspnHandoffCopy.consentTakesTitle, EspnHandoffCopy.consentTakes)
-            consentList(EspnHandoffCopy.consentNeverTitle, EspnHandoffCopy.consentNever)
+            consentList(EspnConnectCopy.consentTakesTitle, EspnConnectCopy.consentTakes)
+            consentList(EspnConnectCopy.consentNeverTitle, EspnConnectCopy.consentNever)
 
-            Text(EspnHandoffCopy.consentFooter)
+            Text(EspnConnectCopy.consentFooter)
                 .omenTextStyle(OmenTypography.bodySmall)
                 .foregroundStyle(OmenColor.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)
 
             OmenButton(
-                title: EspnHandoffCopy.consentContinueTitle,
+                title: EspnConnectCopy.consentContinueTitle,
                 action: { viewModel.beginEspnSignIn() },
                 variant: .primary,
                 size: .md
             )
             OmenButton(
-                title: EspnHandoffCopy.consentDeclineTitle,
+                title: EspnConnectCopy.consentDeclineTitle,
                 action: { viewModel.startOver() },
                 variant: .secondary,
                 size: .md
@@ -602,7 +567,7 @@ struct ConnectView: View {
         OmenStateSurface(
             kind: .loading,
             title: "Just a moment",
-            message: EspnHandoffCopy.signInWaiting
+            message: EspnConnectCopy.signInWaiting
         )
     }
 
@@ -644,7 +609,7 @@ struct ConnectView: View {
 
             if viewModel.espnCanCheckAgain {
                 OmenButton(
-                    title: EspnHandoffCopy.checkAgainTitle,
+                    title: EspnConnectCopy.checkAgainTitle,
                     action: { viewModel.checkEspnLeaguesAgain() },
                     variant: .secondary,
                     size: .md,
@@ -658,20 +623,20 @@ struct ConnectView: View {
                 placeholder: "e.g. 156664",
                 enabled: !viewModel.state.isBusy
             )
-            Text(EspnHandoffCopy.leagueIdHint)
+            Text(EspnConnectCopy.leagueIdHint)
                 .omenTextStyle(OmenTypography.bodySmall)
                 .foregroundStyle(OmenColor.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)
 
             OmenButton(
-                title: EspnHandoffCopy.signInConnectTitle,
+                title: EspnConnectCopy.signInConnectTitle,
                 action: { Task { await viewModel.confirmEspnConnection() } },
                 variant: .primary,
                 size: .md,
                 enabled: viewModel.canConnectEspn
             )
             OmenButton(
-                title: EspnHandoffCopy.signInCancelTitle,
+                title: EspnConnectCopy.signInCancelTitle,
                 action: { viewModel.cancelEspnSignIn() },
                 variant: .link,
                 size: .sm
@@ -681,94 +646,14 @@ struct ConnectView: View {
         .background(OmenColor.bg)
     }
 
-    // MARK: - ESPN handoff
-
-    /// The ESPN screen is a **handoff**, not a connect flow, and it is built to read like one.
-    ///
-    /// It previously rendered as the generic `disconnected` state surface — one grey box saying
-    /// ESPN can't be connected in the app, which is accurate and useless. What a user needs is
-    /// the shape of the whole errand before they go and do it, so the steps are laid out up
-    /// front and the app tells them what to do when they come back.
-    ///
-    /// What it must never become: an ESPN sign-in. No password field, no cookie field, no
-    /// embedded provider login, no in-app credential capture of any kind (onboarding contract
-    /// §2 and §5). Every action here either opens Omen's own public guide in the system browser
-    /// or re-reads Omen's own API.
-    private var espnSyncSection: some View {
-        VStack(alignment: .leading, spacing: OmenSpacing.step16) {
-            VStack(alignment: .leading, spacing: OmenSpacing.step8) {
-                Text(EspnHandoffCopy.title)
-                    .omenTextStyle(OmenTypography.h1)
-                    .foregroundStyle(OmenColor.textPrimary)
-                Text(EspnHandoffCopy.subtitle)
-                    .omenTextStyle(OmenTypography.body)
-                    .foregroundStyle(OmenColor.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            VStack(alignment: .leading, spacing: OmenSpacing.step12) {
-                ForEach(EspnHandoffCopy.steps) { step in
-                    EspnHandoffStepRow(step: step)
-                }
-            }
-            .padding(OmenSpacing.step16)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(OmenColor.surface1)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(OmenColor.border, lineWidth: 1)
-            )
-
-            OmenButton(
-                title: EspnHandoffCopy.openSetupTitle,
-                action: { openURL(ConnectProvider.espnSetupURL) },
-                variant: .primary,
-                size: .md
-            )
-
-            // The "did it work?" button. It exists because the alternative is worse: without
-            // it a user who finished on a computer has to guess whether to close the sheet,
-            // relaunch, or wait. It performs a read, never a connect.
-            OmenButton(
-                title: viewModel.espnCheckNotice == nil
-                    ? EspnHandoffCopy.checkConnectionTitle
-                    : EspnHandoffCopy.checkAgainTitle,
-                action: { Task { await viewModel.checkEspnConnection() } },
-                variant: .secondary,
-                size: .md,
-                enabled: !viewModel.state.isBusy
-            )
-
-            if let notice = viewModel.espnCheckNotice {
-                // A status line, not an error surface. Nothing has gone wrong when a user taps
-                // this before finishing the desktop steps, and the copy must not imply it has.
-                Text(notice)
-                    .omenTextStyle(OmenTypography.bodySmall)
-                    .foregroundStyle(OmenColor.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityAddTraits(.updatesFrequently)
-            }
-
-            espnConsentNote
-
-            OmenButton(
-                title: "Choose another provider",
-                action: { viewModel.startOver() },
-                variant: .link,
-                size: .sm
-            )
-        }
-    }
-
     /// The leagues ESPN reported. Omen's own list, in Omen's own design — the user is out of
     /// ESPN's web view by the time they see this.
     private func espnLeaguePicker(_ options: [EspnLeagueOption]) -> some View {
         VStack(alignment: .leading, spacing: OmenSpacing.step12) {
-            Text(EspnHandoffCopy.foundLeaguesTitle(options.count))
+            Text(EspnConnectCopy.foundLeaguesTitle(options.count))
                 .omenTextStyle(OmenTypography.h2)
                 .foregroundStyle(OmenColor.textPrimary)
-            Text(EspnHandoffCopy.foundLeaguesSubtitle)
+            Text(EspnConnectCopy.foundLeaguesSubtitle)
                 .omenTextStyle(OmenTypography.bodySmall)
                 .foregroundStyle(OmenColor.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -807,71 +692,10 @@ struct ConnectView: View {
         VStack(alignment: .leading, spacing: OmenSpacing.step16) {
             connectedSurface(
                 title: "\(connection.displayLeagueName) is connected",
-                message: EspnHandoffCopy.connectedMessage(connection)
+                message: EspnConnectCopy.connectedMessage(connection)
             )
             connectedActions
         }
     }
 
-    /// Disclosure required by the 2026-08-31 ESPN decision (`Direction/decision_log.md`). The
-    /// connection runs on the user's own ESPN session, so the user is told that plainly before
-    /// they go and make one. The affiliation disclaimer is not decorative — Disney's Terms of Use
-    /// §2.B.vii bars use that suggests an association with their brands.
-    private var espnConsentNote: some View {
-        Text(Self.espnConsentText)
-            .omenTextStyle(OmenTypography.bodySmall)
-            .foregroundStyle(OmenColor.textSecondary)
-            .fixedSize(horizontal: false, vertical: true)
-            .accessibilityLabel(Self.espnConsentText)
-    }
-
-    static let espnConsentText = """
-    The desktop helper fills Omen's ESPN form from your ESPN browser session. You review it and choose Connect yourself. \
-    It is your account and your choice, and you can disconnect it any time in Account. \
-    Omen is not affiliated with or endorsed by ESPN.
-    """
-
-    private func unsupportedMessage(_ provider: ConnectProvider) -> String {
-        switch provider.availability {
-        case .onHold(let reason), .useWeb(let reason):
-            return reason
-        case .available:
-            return ""
-        }
-    }
-}
-
-/// One numbered line of the ESPN errand.
-///
-/// Not a `ListRow`: those are tappable navigation targets, and every one of these is a thing
-/// that happens somewhere else. Making them look tappable would be the lie.
-private struct EspnHandoffStepRow: View {
-    let step: EspnHandoffCopy.Step
-
-    var body: some View {
-        HStack(alignment: .top, spacing: OmenSpacing.step12) {
-            Text("\(step.index)")
-                .omenTextStyle(OmenTypography.bodySmall)
-                .fontWeight(.bold)
-                .foregroundStyle(OmenColor.textPrimary)
-                .frame(width: 24, height: 24)
-                .background(OmenColor.omen.opacity(0.18))
-                .clipShape(Circle())
-                .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: OmenSpacing.step4) {
-                Text(step.title)
-                    .omenTextStyle(OmenTypography.body)
-                    .foregroundStyle(OmenColor.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text(step.detail)
-                    .omenTextStyle(OmenTypography.bodySmall)
-                    .foregroundStyle(OmenColor.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: 0)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Step \(step.index). \(step.title). \(step.detail)")
-    }
 }
