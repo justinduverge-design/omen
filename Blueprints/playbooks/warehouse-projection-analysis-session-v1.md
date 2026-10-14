@@ -74,10 +74,12 @@ argv/environment, or the scheduled restore-proof container/volume/source/proof p
     data, password, URL, provider credential or private user data.
 11. The analysis never pushes the weekly restore-proof Kuma heartbeat and never creates a
     `restore-proof-*.json`; its success cannot be mistaken for scheduled recovery proof.
-12. One session at a time. Refuse while `omen-warehouse-restore-proof.service` is active, while an
-    analysis session exists, when the timer's next elapse is less than three hours away, or from
-    Sunday 12:00 through 17:00 UTC. The fixed window covers the 14:00 UTC schedule and its observed
-    randomized delay without relying only on wall-clock equality.
+12. One session at a time. Refuse while `omen-warehouse-restore-proof.service` is active or while an
+    analysis session exists. Also refuse if the entire requested interval (`now` through
+    `now + TTL + 30 minutes cleanup reserve`) intersects Sunday 12:00:00 through 17:00:00 UTC, or if
+    the timer's reported next elapse is less than `TTL + 30 minutes` away. The fixed window covers
+    the 14:00 UTC schedule and its observed randomized delay without relying only on wall-clock
+    equality.
 
 ## Resource model
 
@@ -115,6 +117,8 @@ The host-side supervisor is not implemented by this document. Its reviewed imple
 - refuse a pre-existing container, volume, socket directory, source or receipt;
 - create the capability roles before restore, restore with `--no-owner --no-privileges`, then create
   the LOGIN reader and grant only the NOLOGIN reader role;
+- revoke database `CONNECT` from `PUBLIC`, grant it only to `omen_warehouse_reader`, and verify the
+  ordered HBA contains the one reader allow rule followed by local rejection;
 - rewrite and reload `pg_hba.conf` before making the host socket reachable;
 - keep the non-listable parent `0711 root:root`; create the session socket directory initially as
   `root:<container-postgres-gid>` with no operator access,
@@ -122,8 +126,8 @@ The host-side supervisor is not implemented by this document. Its reviewed imple
   rejection probes from inside the container, and only then change the session directory to
   `0710 root:<operator-group>` so the SSH operator can traverse it; this ordering closes the
   broad-init-HBA exposure window without making the parent block forwarding;
-- prove rejection of `postgres`, a fabricated role and the wrong database through the forwarded
-  socket before printing `READY socket=<fixed non-secret path>`;
+- prove rejection of `postgres`, a fabricated role and the wrong database directly through the
+  hardened host socket before printing `SOCKET_READY socket=<fixed non-secret path>`;
 - verify `session_user`, `current_database()`, `transaction_read_only`, role attributes and exact
   membership through the same socket;
 - run the bounded lease waiter as a child under `timeout --signal=TERM --kill-after=30s`; never wrap
@@ -173,8 +177,9 @@ socket path, expiry and non-secret state transitions.
 ssh -tt kvm2 'sudo /opt/omen/warehouse-restore/run-projection-analysis-session.sh --manifest /var/lib/omen/warehouse-analysis-sources/APPROVED_SESSION_ID/manifest.json --receipt /var/lib/omen/warehouse-analysis-receipts/APPROVED_SESSION_ID.json --ttl-seconds 7200'
 ```
 
-Expected: restore/identity/refusal probes pass, then `READY`. If it exits before `READY`, confirm its
-cleanup receipt says every ephemeral resource is absent. Do not manually reuse its names.
+Expected: restore, ordered-HBA, identity and host-socket refusal probes pass, then `SOCKET_READY`.
+If it exits before `SOCKET_READY`, confirm its cleanup receipt says every ephemeral resource is
+absent. Do not manually reuse its names.
 
 ### Phase 3 — forward only the allowlisted socket
 
@@ -188,6 +193,18 @@ ssh -N -o ExitOnForwardFailure=yes -o StreamLocalBindUnlink=no -L /ABSOLUTE/LOCA
 ```
 
 Keep this connection open. Never forward a TCP port.
+
+Before running the backtest, repeat the identity boundary from the Mac through the forwarded socket:
+
+```sh
+test "$(psql --no-psqlrc --host /ABSOLUTE/LOCAL/SESSION --username omen_warehouse_read --dbname omen_football --tuples-only --no-align --command "select session_user || '|' || current_database() || '|' || current_setting('transaction_read_only')")" = "omen_warehouse_read|omen_football|on"
+! psql --no-psqlrc --host /ABSOLUTE/LOCAL/SESSION --username postgres --dbname omen_football --command 'select 1'
+! psql --no-psqlrc --host /ABSOLUTE/LOCAL/SESSION --username omen_warehouse_read --dbname postgres --command 'select 1'
+```
+
+Expected: the exact reader identity succeeds; superuser and wrong-database attempts fail. These
+client-side probes happen after `SOCKET_READY`, so readiness does not depend circularly on a tunnel
+that has not been created yet.
 
 ### Phase 4 — run the local read-only backtest
 
@@ -249,7 +266,7 @@ Sentinel baseline refresh or weekly proof invocation belongs to this procedure.
 
 | Symptom | Required response |
 |---|---|
-| Scheduled proof active or due inside protected window | Do not start; choose another window. |
+| Scheduled proof active, or requested TTL plus cleanup reserve overlaps its protected window | Do not start; choose another window. |
 | Image or anchor absent | Stop. Image restoration is a separate approved change. |
 | Manifest/digest/proof mismatch | Stop, cleanup analysis copy, investigate the backup chain. Do not select an older snapshot silently. |
 | Any socket identity other than fixed reader succeeds | P0 for this procedure: terminate, cleanup, retain receipt/log metadata and repair before retry. |
