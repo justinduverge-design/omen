@@ -27,7 +27,7 @@ final class TradeRosterAndShareTests: XCTestCase {
             playerSearch: StubPlayerSearchRepository(result: .success([])),
             sessionManager: signedInSessionManager()
         )
-        vm.useLeague(platform: "sleeper", leagueId: "league-1")
+        vm.useLeague(platform: "sleeper", leagueId: "league-1", viewerTeamId: "1")
         return vm
     }
 
@@ -61,7 +61,8 @@ final class TradeRosterAndShareTests: XCTestCase {
         }
         XCTAssertTrue(response.isAvailable)
         XCTAssertEqual(response.teams.count, 2)
-        XCTAssertEqual(sut.selectedPartnerTeamID, "1")
+        XCTAssertEqual(sut.rosterPartners.map(\.id), ["2"])
+        XCTAssertEqual(sut.selectedPartnerTeamID, "2")
 
         sut.selectPartnerTeam("2")
         let screenState = sut.rosterScreenState
@@ -91,6 +92,22 @@ final class TradeRosterAndShareTests: XCTestCase {
             return XCTFail("Expected .read")
         }
         XCTAssertEqual(rows.first?.availability, .added)
+    }
+
+    func testRosterPartnersFailClosedWhenViewerIdentityIsUnknown() async {
+        let repo = StubTradeRepository(result: .failure(.network), rosterResult: .success(rosterFixture()))
+        let sut = TradeViewModel(
+            repository: repo,
+            playerSearch: StubPlayerSearchRepository(result: .success([])),
+            sessionManager: signedInSessionManager()
+        )
+        sut.useLeague(platform: "sleeper", leagueId: "league-1")
+
+        await sut.loadRoster(userID: "user-1")
+
+        XCTAssertTrue(sut.rosterPartners.isEmpty, "unknown viewer identity must not expose the viewer as a partner")
+        XCTAssertNil(sut.selectedPartnerTeamID)
+        XCTAssertTrue(sut.partnerPickerCandidates.isEmpty)
     }
 
     // MARK: - Roster: honest unavailable, never fabricated, never a crash
@@ -206,7 +223,7 @@ final class TradeRosterAndShareTests: XCTestCase {
             threeTeamResult: threeTeamResult
         )
         let vm = TradeViewModel(repository: repo, playerSearch: StubPlayerSearchRepository(result: .success([])), sessionManager: signedInSessionManager())
-        vm.useLeague(platform: "sleeper", leagueId: "league-1")
+        vm.useLeague(platform: "sleeper", leagueId: "league-1", viewerTeamId: "1")
         return vm
     }
 

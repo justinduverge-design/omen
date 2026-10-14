@@ -35,6 +35,9 @@ final class TradeViewModel: ObservableObject {
 
     @Published private(set) var rosterBrowseState: RosterBrowseState = .idle
     @Published private(set) var selectedPartnerTeamID: String?
+    /// Provider-confirmed identity for the team the signed-in user manages in `offer.leagueContext`.
+    /// Without it Omen cannot distinguish an opponent from the viewer and must offer no partner.
+    @Published private(set) var viewerTeamID: String?
 
     /// Loads every team's roster for the offer's connected league. `offer.leagueContext` is set
     /// from the SAME `league-overview.v1` read the League destination uses — this never
@@ -72,7 +75,10 @@ final class TradeViewModel: ObservableObject {
         case .success(let response):
             rosterBrowseState = .loaded(response)
             // Omen's own trade call names who it would deal with; open on that team, not the first one.
-            selectedPartnerTeamID = Self.partnerTeamID(in: response, for: prefill) ?? response.teams.first?.id
+            let preferred = Self.partnerTeamID(in: response, for: prefill)
+            selectedPartnerTeamID = rosterPartners.contains(where: { $0.id == preferred })
+                ? preferred
+                : rosterPartners.first?.id
         case .failure(let error):
             if error == .unauthorized { sessionManager.onRefreshFailed() }
             rosterBrowseState = .failed(error)
@@ -373,8 +379,12 @@ final class TradeViewModel: ObservableObject {
     }
 
     var rosterPartners: [OmenTradePartner] {
-        guard case .loaded(let response) = rosterBrowseState, response.isAvailable else { return [] }
-        return response.teams.map {
+        guard case .loaded(let response) = rosterBrowseState,
+              response.isAvailable,
+              let viewerTeamID,
+              !viewerTeamID.isEmpty
+        else { return [] }
+        return response.teams.filter { $0.id != viewerTeamID }.map {
             OmenTradePartner(id: $0.id, crest: crest(for: $0.teamName), name: $0.teamName ?? "Team \($0.id)", need: nil)
         }
     }
@@ -756,7 +766,8 @@ final class TradeViewModel: ObservableObject {
 
     /// The league to personalize against, when the caller has one. Set by the shell from the
     /// same `league-overview.v1` read the League destination uses — never guessed here.
-    func useLeague(platform: String?, leagueId: String?) {
+    func useLeague(platform: String?, leagueId: String?, viewerTeamId: String? = nil) {
+        viewerTeamID = viewerTeamId.flatMap { $0.isEmpty ? nil : $0 }
         let next: TradeOffer.LeagueContext?
         if let platform, let leagueId, !platform.isEmpty, !leagueId.isEmpty {
             next = .init(platform: platform, leagueId: leagueId)

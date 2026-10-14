@@ -375,9 +375,13 @@ struct CommandCenterView: View {
             // The league to personalize against comes from the SAME `league-overview.v1` read
             // the League destination uses. Trade never discovers a league on its own, so the
             // two screens can never disagree about which league the user is in.
-            .onChange(of: leagueViewModel.viewState) { _, newValue in
+            .onChange(of: leagueViewModel.viewState, initial: true) { _, newValue in
                 guard case .loaded(let overview) = newValue else { return }
-                tradeViewModel.useLeague(platform: overview.platform, leagueId: overview.leagueId)
+                tradeViewModel.useLeague(
+                    platform: overview.platform,
+                    leagueId: overview.leagueId,
+                    viewerTeamId: overview.matchup.you?.teamId
+                )
             }
             .sheet(isPresented: $showTradeRosterSheet) {
                 TradeRosterFlowView(
