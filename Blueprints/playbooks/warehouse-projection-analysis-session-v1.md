@@ -53,24 +53,31 @@ argv/environment, or the scheduled restore-proof container/volume/source/proof p
    rechecked before restore.
 5. Analysis resource names use an `omen-warehouse-analysis-` prefix and can never equal the
    `omen-warehouse-restore-` scheduled-proof names.
-6. The host socket directory is unique, root-owned, not a symlink, and reachable only by the selected
-   human SSH operator plus the container's PostgreSQL process.
+6. `/run/omen-warehouse-analysis` is `0711 root:root` (traversable but not listable). Each host socket
+   directory is unique, root-owned, not a symlink, and becomes `0710 root:<operator-group>` only
+   after HBA hardening. It is reachable only by the selected human SSH operator plus the container's
+   PostgreSQL process.
 7. Socket HBA is an allowlist: `local omen_football omen_warehouse_read trust`, followed by rejection
    of every other local role/database. Administrative restore checks use container-internal loopback
    and are never forwarded.
 8. `omen_warehouse_read` is LOGIN, NOSUPERUSER, NOCREATEDB, NOCREATEROLE, NOREPLICATION,
    NOBYPASSRLS, inherits only `omen_warehouse_reader`, and has database/role default
    `default_transaction_read_only=on` plus bounded statement/idle timeouts.
-9. The supervisor has both a hard TTL (maximum two hours) and traps for EXIT, HUP, INT and TERM.
+9. The root supervisor owns the resources and traps EXIT, HUP, INT and TERM. It applies the hard TTL
+   (maximum two hours) to a child lease waiter, never to itself: expiry or SSH disconnect ends the
+   child, then the still-running supervisor performs cleanup. A separately reviewed boot/start reaper
+   handles the untrappable host-power-loss or supervisor-SIGKILL case before any new session.
    Cleanup removes the container, volume, socket directory and decrypted analysis source even when
-   the backtest fails or the SSH supervisor disconnects.
+   the backtest fails.
 10. Cleanup writes a root-owned `0400` receipt containing identifiers, timestamps, manifest/dump
     digests, result, cleanup status and backtest artifact hashes. It contains no query rows, player
     data, password, URL, provider credential or private user data.
 11. The analysis never pushes the weekly restore-proof Kuma heartbeat and never creates a
     `restore-proof-*.json`; its success cannot be mistaken for scheduled recovery proof.
 12. One session at a time. Refuse while `omen-warehouse-restore-proof.service` is active, while an
-    analysis session exists, or within a protected window around Sunday 14:00 UTC.
+    analysis session exists, when the timer's next elapse is less than three hours away, or from
+    Sunday 12:00 through 17:00 UTC. The fixed window covers the 14:00 UTC schedule and its observed
+    randomized delay without relying only on wall-clock equality.
 
 ## Resource model
 
@@ -109,16 +116,21 @@ The host-side supervisor is not implemented by this document. Its reviewed imple
 - create the capability roles before restore, restore with `--no-owner --no-privileges`, then create
   the LOGIN reader and grant only the NOLOGIN reader role;
 - rewrite and reload `pg_hba.conf` before making the host socket reachable;
-- create the socket directory initially as `root:<container-postgres-gid>` with no operator access,
+- keep the non-listable parent `0711 root:root`; create the session socket directory initially as
+  `root:<container-postgres-gid>` with no operator access,
   start the container with the operator's host GID as a supplemental group, harden/reload HBA, run
-  rejection probes from inside the container, and only then change the directory group/mode so the
-  SSH operator can traverse it; this ordering closes the broad-init-HBA exposure window;
+  rejection probes from inside the container, and only then change the session directory to
+  `0710 root:<operator-group>` so the SSH operator can traverse it; this ordering closes the
+  broad-init-HBA exposure window without making the parent block forwarding;
 - prove rejection of `postgres`, a fabricated role and the wrong database through the forwarded
   socket before printing `READY socket=<fixed non-secret path>`;
 - verify `session_user`, `current_database()`, `transaction_read_only`, role attributes and exact
   membership through the same socket;
-- wait in the foreground under `timeout --signal=TERM --kill-after=30s` so SSH disconnect and TTL
-  converge on the same cleanup trap;
+- run the bounded lease waiter as a child under `timeout --signal=TERM --kill-after=30s`; never wrap
+  the resource-owning supervisor in `timeout`, because SIGKILL cannot run a shell trap;
+- on every start, run a reviewed reaper that refuses or removes only fully validated stale
+  `omen-warehouse-analysis-*` resources and writes a cleanup-failure receipt; it must never match
+  scheduled `omen-warehouse-restore-*` resources;
 - accept a backtest completion record containing only artifact SHA-256 hashes and certification
   metadata; and
 - verify after cleanup that the container, volume, socket and decrypted source are absent before
@@ -158,7 +170,7 @@ Open a dedicated terminal and keep it open. The final reviewed script must print
 socket path, expiry and non-secret state transitions.
 
 ```sh
-ssh -tt kvm2 'sudo /opt/omen/warehouse-restore/run-projection-analysis-session.sh --manifest /var/lib/omen/warehouse-analysis-sources/APPROVED_RUN_ID/manifest.json --receipt /var/lib/omen/warehouse-analysis-receipts/APPROVED_SESSION_ID.json --ttl-seconds 7200'
+ssh -tt kvm2 'sudo /opt/omen/warehouse-restore/run-projection-analysis-session.sh --manifest /var/lib/omen/warehouse-analysis-sources/APPROVED_SESSION_ID/manifest.json --receipt /var/lib/omen/warehouse-analysis-receipts/APPROVED_SESSION_ID.json --ttl-seconds 7200'
 ```
 
 Expected: restore/identity/refusal probes pass, then `READY`. If it exits before `READY`, confirm its
@@ -219,7 +231,7 @@ filled list does not approve a later snapshot, release, session or rerun.
 ssh kvm2 'sudo install -m 0755 -o root -g root /opt/omen/warehouse/releases/APPROVED_COMMIT/infra/warehouse/backup/run-projection-analysis-session.sh /opt/omen/warehouse-restore/run-projection-analysis-session.sh'
 
 # Create private analysis roots without changing scheduled-proof roots or units.
-ssh kvm2 'sudo install -d -m 0700 -o root -g root /var/lib/omen/warehouse-analysis-sources /var/lib/omen/warehouse-analysis-receipts /run/omen-warehouse-analysis'
+ssh kvm2 'sudo install -d -m 0700 -o root -g root /var/lib/omen/warehouse-analysis-sources /var/lib/omen/warehouse-analysis-receipts; sudo install -d -m 0711 -o root -g root /run/omen-warehouse-analysis'
 
 # Receive/copy the exact already-approved snapshot into a distinct analysis source through the
 # reviewed analysis receiver. This command must be supplied by the implementation review; do not
@@ -242,8 +254,9 @@ Sentinel baseline refresh or weekly proof invocation belongs to this procedure.
 | Manifest/digest/proof mismatch | Stop, cleanup analysis copy, investigate the backup chain. Do not select an older snapshot silently. |
 | Any socket identity other than fixed reader succeeds | P0 for this procedure: terminate, cleanup, retain receipt/log metadata and repair before retry. |
 | Backtest fails | Mark receipt incomplete, hash any non-sensitive diagnostic output, cleanup everything, repair locally. |
-| SSH supervisor disconnects | Trap cleanup; verify absence with Phase 5 read-only commands. |
-| TTL expires | TERM then KILL after grace; cleanup and receipt say `expired`, never success. |
+| SSH supervisor disconnects | The supervisor trap cleans up; verify absence with Phase 5 read-only commands. |
+| TTL expires | TERM then KILL the child lease waiter after grace; the supervisor cleans up and the receipt says `expired`, never success. |
+| Host power loss or supervisor receives SIGKILL | The next start must run the narrow reaper and refuse to continue unless every stale analysis resource is removed and receipted. |
 | Cleanup cannot remove a resource | Receipt says cleanup failed; do not refresh Sentinel posture or start another session. Escalate with exact resource names. |
 
 Rollback is removal of the installed analysis scripts and empty analysis roots in a separately
