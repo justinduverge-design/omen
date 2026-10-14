@@ -11,6 +11,40 @@ import XCTest
 @MainActor
 final class TradeRosterAndShareTests: XCTestCase {
 
+    private actor HoldingRosterRepository: TradeRepository {
+        private var rosterContinuation: CheckedContinuation<Result<TradeRosterResponse, OmenApiError>, Never>?
+        private var startWaiters: [CheckedContinuation<Void, Never>] = []
+
+        func compare(offer: TradeOffer, accessToken: String?) async -> Result<TradeCompare, OmenApiError> { .failure(.network) }
+        func capabilities() async -> Result<TradeCapabilities, OmenApiError> { .failure(.network) }
+        func share(offer: TradeOffer, accessToken: String?) async -> Result<TradeShareResponse, OmenApiError> { .failure(.network) }
+        func compareThreeTeam(offer: TradeThreeTeamOffer, accessToken: String?) async -> Result<TradeThreeTeamCompare, OmenApiError> { .failure(.network) }
+
+        func roster(
+            platform: String,
+            leagueId: String,
+            teamId: String?,
+            week: Int?,
+            accessToken: String
+        ) async -> Result<TradeRosterResponse, OmenApiError> {
+            return await withCheckedContinuation { continuation in
+                rosterContinuation = continuation
+                startWaiters.forEach { $0.resume() }
+                startWaiters = []
+            }
+        }
+
+        func waitUntilRosterRequestIsHeld() async {
+            if rosterContinuation != nil { return }
+            await withCheckedContinuation { startWaiters.append($0) }
+        }
+
+        func releaseRoster(with result: Result<TradeRosterResponse, OmenApiError>) {
+            rosterContinuation?.resume(returning: result)
+            rosterContinuation = nil
+        }
+    }
+
     private func signedInSessionManager() -> SessionManager {
         let session = Session(userID: "user-1", accessToken: "t", refreshToken: "r", expiresAtEpochSeconds: 2_000)
         return SessionManager(store: InMemorySecureSessionStore(initial: session), nowEpochSeconds: { 1_000 })
@@ -156,6 +190,46 @@ final class TradeRosterAndShareTests: XCTestCase {
         XCTAssertNil(sut.selectedPartnerTeamID)
         XCTAssertEqual(sut.viewerTeamID, "9")
         XCTAssertEqual(sut.offer.leagueContext, .init(platform: "yahoo", leagueId: "league-2"))
+    }
+
+    func testLateLeagueARosterCannotReturnAfterLeagueBStartsLoadingOrFails() async {
+        let repo = HoldingRosterRepository()
+        let sut = TradeViewModel(
+            repository: repo,
+            playerSearch: StubPlayerSearchRepository(result: .success([])),
+            sessionManager: signedInSessionManager()
+        )
+        sut.useLeague(platform: "sleeper", leagueId: "league-a", viewerTeamId: "1")
+        let load = Task { await sut.loadRoster(userID: "user-1") }
+        await repo.waitUntilRosterRequestIsHeld()
+
+        sut.useLeague(platform: nil, leagueId: nil, viewerTeamId: nil)
+        await repo.releaseRoster(with: .success(rosterFixture()))
+        await load.value
+
+        XCTAssertEqual(sut.rosterBrowseState, .idle)
+        XCTAssertTrue(sut.rosterPartners.isEmpty)
+        XCTAssertNil(sut.offer.leagueContext)
+    }
+
+    func testLateLeagueARosterCannotReturnAfterLeagueBLoads() async {
+        let repo = HoldingRosterRepository()
+        let sut = TradeViewModel(
+            repository: repo,
+            playerSearch: StubPlayerSearchRepository(result: .success([])),
+            sessionManager: signedInSessionManager()
+        )
+        sut.useLeague(platform: "sleeper", leagueId: "league-a", viewerTeamId: "1")
+        let load = Task { await sut.loadRoster(userID: "user-1") }
+        await repo.waitUntilRosterRequestIsHeld()
+
+        sut.useLeague(platform: "yahoo", leagueId: "league-b", viewerTeamId: "9")
+        await repo.releaseRoster(with: .success(rosterFixture()))
+        await load.value
+
+        XCTAssertEqual(sut.rosterBrowseState, .idle)
+        XCTAssertTrue(sut.rosterPartners.isEmpty)
+        XCTAssertEqual(sut.offer.leagueContext, .init(platform: "yahoo", leagueId: "league-b"))
     }
 
     // MARK: - Roster: honest unavailable, never fabricated, never a crash

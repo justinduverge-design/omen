@@ -38,6 +38,8 @@ final class TradeViewModel: ObservableObject {
     /// Provider-confirmed identity for the team the signed-in user manages in `offer.leagueContext`.
     /// Without it Omen cannot distinguish an opponent from the viewer and must offer no partner.
     @Published private(set) var viewerTeamID: String?
+    /// Invalidates every asynchronous result whose meaning depends on the selected league.
+    private var leagueGeneration = 0
 
     /// Loads every team's roster for the offer's connected league. `offer.leagueContext` is set
     /// from the SAME `league-overview.v1` read the League destination uses — this never
@@ -52,6 +54,7 @@ final class TradeViewModel: ObservableObject {
             rosterBrowseState = .failed(.network)
             return
         }
+        let generation = leagueGeneration
         let accessToken: String?
         if case .token(let renewed) = await sessionManager.authorization() {
             accessToken = renewed
@@ -62,16 +65,19 @@ final class TradeViewModel: ObservableObject {
             rosterBrowseState = .failed(.unauthorized)
             return
         }
+        guard generation == leagueGeneration else { return }
 
         rosterBrowseState = .loading
         selectedPartnerTeamID = nil
-        switch await repository.roster(
+        let result = await repository.roster(
             platform: leagueContext.platform,
             leagueId: leagueContext.leagueId,
             teamId: nil,
             week: nil,
             accessToken: accessToken
-        ) {
+        )
+        guard generation == leagueGeneration else { return }
+        switch result {
         case .success(let response):
             rosterBrowseState = .loaded(response)
             // Omen's own trade call names who it would deal with; open on that team, not the first one.
@@ -310,16 +316,20 @@ final class TradeViewModel: ObservableObject {
             threeTeamViewState = .idle
             return
         }
+        let generation = leagueGeneration
         let accessToken: String?
         if case .token(let renewed) = await sessionManager.authorization() {
             accessToken = renewed
         } else {
             accessToken = nil
         }
+        guard generation == leagueGeneration else { return }
 
         threeTeamViewState = .loading
         threeTeamSubmissionDoneSteps = []
-        switch await repository.compareThreeTeam(offer: threeTeamOffer, accessToken: accessToken) {
+        let result = await repository.compareThreeTeam(offer: threeTeamOffer, accessToken: accessToken)
+        guard generation == leagueGeneration else { return }
+        switch result {
         case .success(let result):
             threeTeamViewState = .loaded(result)
         case .failure(let error):
@@ -603,15 +613,19 @@ final class TradeViewModel: ObservableObject {
 
     func share(userID: String) async {
         guard offer.isComparable else { return }
+        let generation = leagueGeneration
         let accessToken: String?
         if case .token(let renewed) = await sessionManager.authorization() {
             accessToken = renewed
         } else {
             accessToken = nil
         }
+        guard generation == leagueGeneration else { return }
         let payloadOffer = shareIncludeNames ? offer : maskedForShare(offer)
         shareState = .sharing
-        switch await repository.share(offer: payloadOffer, accessToken: accessToken) {
+        let result = await repository.share(offer: payloadOffer, accessToken: accessToken)
+        guard generation == leagueGeneration else { return }
+        switch result {
         case .success(let response):
             shareState = .shared(response)
         case .failure(let error):
@@ -798,6 +812,7 @@ final class TradeViewModel: ObservableObject {
     /// Drop all of it as soon as that context starts changing (including loading/failure),
     /// before another league can inherit the previous league's teams on screen.
     private func invalidateLeagueDependentState() {
+        leagueGeneration += 1
         invalidateCompare()
         viewState = .idle
         rosterBrowseState = .idle
