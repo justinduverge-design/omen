@@ -476,6 +476,10 @@ struct CommandCenterView: View {
                     showTradeFindSheet = false
                     showAccountSheet = true
                 },
+                onConnectLeague: {
+                    showTradeFindSheet = false
+                    showConnectSheet = true
+                },
                 onDismiss: { showTradeFindSheet = false }
             )
         }

@@ -12,6 +12,9 @@ final class TradeFindLauncher: ObservableObject {
         /// The league is known but Omen could not tell which team is the user's. Never guessed:
         /// a search against the wrong team would propose trades for somebody else's roster.
         case teamUnknown
+        /// Leagues exist, but neither the caller nor the directory named the active one. This
+        /// is a selection/context problem, not evidence that the user needs to connect again.
+        case leagueUnknown
         case noLeague
         case demo
         case failed(OmenApiError)
@@ -45,21 +48,28 @@ final class TradeFindLauncher: ObservableObject {
             state = .demo
             return
         }
-        guard let platform, let leagueId, !platform.isEmpty, !leagueId.isEmpty else {
-            state = .noLeague
-            return
-        }
         guard case .token(let accessToken) = await sessionManager.authorization() else {
             state = .failed(.unauthorized)
             return
         }
         switch await directoryRepository.fetchDirectory(accessToken: accessToken) {
         case .success(let directory):
-            if let team = Self.teamID(in: directory, platform: platform, leagueID: leagueId) {
-                state = .ready(platform: platform, leagueId: leagueId, teamId: team)
+            let requestedPlatform = platform.flatMap { $0.isEmpty ? nil : $0 }
+            let requestedLeagueID = leagueId.flatMap { $0.isEmpty ? nil : $0 }
+            let resolvedPlatform = requestedPlatform ?? directory.active?.platform
+            let resolvedLeagueID = requestedLeagueID ?? directory.active?.leagueID
+
+            guard let resolvedPlatform, let resolvedLeagueID else {
+                let hasAnyLeague = directory.platforms.contains { !$0.leagues.isEmpty }
+                state = hasAnyLeague ? .leagueUnknown : .noLeague
+                return
+            }
+
+            if let team = Self.teamID(in: directory, platform: resolvedPlatform, leagueID: resolvedLeagueID) {
+                state = .ready(platform: resolvedPlatform, leagueId: resolvedLeagueID, teamId: team)
             } else if let fallbackTeamId, !fallbackTeamId.isEmpty {
                 // The league overview's own "you" side, for a directory that left the team blank.
-                state = .ready(platform: platform, leagueId: leagueId, teamId: fallbackTeamId)
+                state = .ready(platform: resolvedPlatform, leagueId: resolvedLeagueID, teamId: fallbackTeamId)
             } else {
                 state = .teamUnknown
             }
@@ -82,6 +92,7 @@ struct TradeFindFlowView: View {
     let apiBaseURL: URL
     let sessionManager: SessionManager
     var onOpenAccount: (() -> Void)?
+    var onConnectLeague: (() -> Void)?
     var onDismiss: () -> Void
 
     init(
@@ -93,6 +104,7 @@ struct TradeFindFlowView: View {
         leagueId: String?,
         fallbackTeamId: String?,
         onOpenAccount: (() -> Void)? = nil,
+        onConnectLeague: (() -> Void)? = nil,
         onDismiss: @escaping () -> Void
     ) {
         _launcher = StateObject(wrappedValue: TradeFindLauncher(
@@ -106,6 +118,7 @@ struct TradeFindFlowView: View {
         self.apiBaseURL = apiBaseURL
         self.sessionManager = sessionManager
         self.onOpenAccount = onOpenAccount
+        self.onConnectLeague = onConnectLeague
         self.onDismiss = onDismiss
     }
 
@@ -141,12 +154,21 @@ struct TradeFindFlowView: View {
                     retry: false
                 )
 
+            case .leagueUnknown:
+                message(
+                    kind: .disconnected,
+                    title: "Choose the league for this trade",
+                    body: "Omen can see connected leagues, but none is selected for this trade. Go back to Trade, choose your team at the top, then try again.",
+                    retry: false
+                )
+
             case .noLeague:
                 message(
                     kind: .empty,
                     title: "Connect a league first",
                     body: "Find a trade reads every team in your league. Connect ESPN, Yahoo or Sleeper to use it.",
-                    retry: false
+                    retry: false,
+                    connect: true
                 )
 
             case .demo:
@@ -166,18 +188,33 @@ struct TradeFindFlowView: View {
                 )
             }
         }
-        .task { await resolve() }
+        // The selected league is loaded asynchronously by the shell. If the user opens Find
+        // first, re-resolve when that scope lands instead of preserving the initial nil snapshot.
+        .task(id: resolutionKey) { await resolve() }
+    }
+
+    private var resolutionKey: String {
+        [platform ?? "", leagueId ?? "", fallbackTeamId ?? ""].joined(separator: "|")
     }
 
     private func resolve() async {
         await launcher.resolve(userID: userID, platform: platform, leagueId: leagueId, fallbackTeamId: fallbackTeamId)
     }
 
-    private func message(kind: OmenStateSurfaceKind, title: String, body: String, retry: Bool) -> some View {
+    private func message(
+        kind: OmenStateSurfaceKind,
+        title: String,
+        body: String,
+        retry: Bool,
+        connect: Bool = false
+    ) -> some View {
         VStack(spacing: OmenSpacing.step12) {
             OmenStateSurface(kind: kind, title: title, message: body)
             if retry {
                 OmenButton(title: "Try again", action: { Task { await resolve() } }, variant: .primary, size: .lg)
+            }
+            if connect, let onConnectLeague {
+                OmenButton(title: "Connect a league", action: onConnectLeague, variant: .primary, size: .lg)
             }
             OmenButton(title: "Back to Trade", action: onDismiss, variant: .secondary, size: .lg)
         }

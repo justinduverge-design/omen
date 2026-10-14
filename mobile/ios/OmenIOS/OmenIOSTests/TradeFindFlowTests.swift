@@ -87,7 +87,11 @@ final class TradeFindFlowTests: XCTestCase {
     func testLauncherHandlesNoLeagueDemoAndFailure() async {
         let sut = launcher(.success(threeProviderDirectory))
         await sut.resolve(userID: "user-1", platform: nil, leagueId: nil, fallbackTeamId: nil)
-        XCTAssertEqual(sut.state, .noLeague)
+        XCTAssertEqual(sut.state, .leagueUnknown, "connected leagues without an active selection are not an empty account")
+
+        let empty = launcher(.success(directory(#"{"contract_version":"league-directory.v1","platforms":[]}"#)))
+        await empty.resolve(userID: "user-1", platform: nil, leagueId: nil, fallbackTeamId: nil)
+        XCTAssertEqual(empty.state, .noLeague)
 
         await sut.resolve(userID: SessionManager.demoUserID, platform: "espn", leagueId: "1", fallbackTeamId: nil)
         XCTAssertEqual(sut.state, .demo)
@@ -95,6 +99,27 @@ final class TradeFindFlowTests: XCTestCase {
         let failing = launcher(.failure(.network))
         await failing.resolve(userID: "user-1", platform: "espn", leagueId: "517756847", fallbackTeamId: nil)
         XCTAssertEqual(failing.state, .failed(.network))
+    }
+
+    func testLauncherRecoversActiveLeagueWhenSheetOpenedBeforeScopeLands() async {
+        let active = directory("""
+        {
+          "contract_version": "league-directory.v1",
+          "active": { "platform": "sleeper", "league_id": "s-1", "team_id": "4" },
+          "platforms": [
+            { "platform": "sleeper", "connection_state": "connected", "leagues": [
+              { "league_id": "s-1", "team_id": "4", "team_name": "DarthSlops" }
+            ] }
+          ]
+        }
+        """)
+        let sut = launcher(.success(active))
+
+        // This is the physical-device race: the sheet receives nil before the shell's
+        // asynchronous selected scope arrives. The directory's active context is authoritative.
+        await sut.resolve(userID: "user-1", platform: nil, leagueId: nil, fallbackTeamId: nil)
+
+        XCTAssertEqual(sut.state, .ready(platform: "sleeper", leagueId: "s-1", teamId: "4"))
     }
 
     // MARK: - Save hits the real endpoint
