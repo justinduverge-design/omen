@@ -61,11 +61,11 @@ final class TradeViewModel: ObservableObject {
         } else {
             accessToken = nil
         }
+        guard generation == leagueGeneration else { return }
         guard let accessToken else {
             rosterBrowseState = .failed(.unauthorized)
             return
         }
-        guard generation == leagueGeneration else { return }
 
         rosterBrowseState = .loading
         selectedPartnerTeamID = nil

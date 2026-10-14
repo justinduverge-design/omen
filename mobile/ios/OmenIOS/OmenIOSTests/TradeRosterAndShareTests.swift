@@ -11,6 +11,29 @@ import XCTest
 @MainActor
 final class TradeRosterAndShareTests: XCTestCase {
 
+    private final class HoldingSessionRefresher: SessionRefreshing {
+        private var continuation: CheckedContinuation<SessionRefreshOutcome, Never>?
+        private var startWaiters: [CheckedContinuation<Void, Never>] = []
+
+        func refreshedSession() async -> SessionRefreshOutcome {
+            await withCheckedContinuation { continuation in
+                self.continuation = continuation
+                startWaiters.forEach { $0.resume() }
+                startWaiters = []
+            }
+        }
+
+        func waitUntilHeld() async {
+            if continuation != nil { return }
+            await withCheckedContinuation { startWaiters.append($0) }
+        }
+
+        func release(_ outcome: SessionRefreshOutcome) {
+            continuation?.resume(returning: outcome)
+            continuation = nil
+        }
+    }
+
     private actor HoldingRosterRepository: TradeRepository {
         private var rosterContinuation: CheckedContinuation<Result<TradeRosterResponse, OmenApiError>, Never>?
         private var startWaiters: [CheckedContinuation<Void, Never>] = []
@@ -229,6 +252,36 @@ final class TradeRosterAndShareTests: XCTestCase {
 
         XCTAssertEqual(sut.rosterBrowseState, .idle)
         XCTAssertTrue(sut.rosterPartners.isEmpty)
+        XCTAssertEqual(sut.offer.leagueContext, .init(platform: "yahoo", leagueId: "league-b"))
+    }
+
+    func testLateLeagueAAuthorizationFailureCannotOverwriteLeagueBState() async {
+        let expiring = Session(
+            userID: "user-1",
+            accessToken: "old",
+            refreshToken: "refresh",
+            expiresAtEpochSeconds: 1_050
+        )
+        let sessionManager = SessionManager(
+            store: InMemorySecureSessionStore(initial: expiring),
+            nowEpochSeconds: { 1_000 }
+        )
+        let refresher = HoldingSessionRefresher()
+        sessionManager.attach(refresher: refresher)
+        let sut = TradeViewModel(
+            repository: StubTradeRepository(result: .failure(.network), rosterResult: .success(rosterFixture())),
+            playerSearch: StubPlayerSearchRepository(result: .success([])),
+            sessionManager: sessionManager
+        )
+        sut.useLeague(platform: "sleeper", leagueId: "league-a", viewerTeamId: "1")
+        let load = Task { await sut.loadRoster(userID: "user-1") }
+        await refresher.waitUntilHeld()
+
+        sut.useLeague(platform: "yahoo", leagueId: "league-b", viewerTeamId: "9")
+        refresher.release(.rejected)
+        await load.value
+
+        XCTAssertEqual(sut.rosterBrowseState, .idle)
         XCTAssertEqual(sut.offer.leagueContext, .init(platform: "yahoo", leagueId: "league-b"))
     }
 
