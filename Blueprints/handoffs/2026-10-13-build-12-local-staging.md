@@ -18,6 +18,15 @@
 - Staged the reviewed Trade repair locally: authoritative directory-based viewer identity, own-team
   exclusion, initial and cross-league context isolation, stale-response rejection and honest neutral
   copy. Focused native Trade tests pass 24/24 and final independent re-review is clean.
+- Recorded the founder's 2026-10-14 physical-phone Trade walk. Its exact header proves Xcode built
+  `main`, not this branch, but the screenshots also confirm the default Trade entry still diverges
+  from the approved league-aware canvas and accepts unresolved name-only players.
+- Repaired Find's nil-scope race locally: it can recover the directory's authoritative active league,
+  distinguishes connected-but-unselected from truly empty, re-resolves when the shell scope lands,
+  and offers Connect only for a truly empty directory. Focused `TradeFindFlowTests` pass 14/14.
+- Hardened `scripts/install-latest-ios.sh` so an invocation cannot silently jump to another checkout
+  and cannot build without that checkout's ignored local configuration. The worktree's ignored config
+  link was restored locally without reading or committing its values.
 - Designed and reviewed the isolated KVM2 retained-analysis runbook. Its local planning/refusal and
   exact-resource cleanup core is included in the verified warehouse release inventory and passes
   focused tests; the resource-owning receiver/supervisor/reaper is not implemented or installed.
@@ -59,6 +68,9 @@ Do not fall back to `postgres`, production data, or a password in argv/environme
 
 - Skills invoked: `engineering:debug`, `engineering:testing-strategy`; fresh-agent reviews used
   `engineering:code-review` / the repository's `slops-tdd` review posture.
+- The 2026-10-14 phone follow-up used the repository `run-slops-saloon` QA skill for evidence and
+  provenance discipline, plus three bounded read-only agents for canvas, Find and Xcode-checkout
+  audits. Their conclusions agreed on the stale checkout and the remaining product gaps.
 - Repository-routed skills `slops-tdd` and `slops-provider-resilience` were unavailable to the lead
   runtime; existing deterministic tests and governing provider contracts were used as the fallback.
 - Tools: Git and GitHub CLI inspection, Node focused tests, repository gates, Xcode focused evidence
@@ -66,8 +78,11 @@ Do not fall back to `postgres`, production data, or a password in argv/environme
 
 ## Next safe step
 
-Trade reliability is the Build 12 primary candidate. Run the paired-iPhone partner/manual-compare
-journey and record ESPN/Yahoo/Sleeper terminal states before release integration. Keep Rhody's fresh
-ESPN login deferred until the founder explicitly resumes it. Keep KVM2 restored analysis on HOLD
-until the separate receiver/supervisor/reaper implementation is complete, independently reviewed,
-and presented as an exact founder-approved host command packet.
+Trade reliability is the Build 12 primary candidate. First promote the connected, roster-backed
+builder to the canvas-aligned primary mode and prevent unresolved name-only players from reaching
+Compare. Then rebuild from this exact checkout and run the paired-iPhone partner/manual/Find journey,
+starting with an already connected Yahoo or Sleeper league. Record ESPN/Yahoo/Sleeper terminal states
+before release integration, but keep Rhody's fresh ESPN login deferred until the founder explicitly
+resumes it. Keep KVM2 restored analysis on HOLD until the separate receiver/supervisor/reaper
+implementation is complete, independently reviewed, and presented as an exact founder-approved host
+command packet.
