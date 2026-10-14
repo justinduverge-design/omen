@@ -141,7 +141,7 @@ struct OmenTradeScreen: View {
                 .foregroundStyle(OmenColor.textPrimary)
             Text(offer.leagueContext == nil
                  ? "Standard scoring. Connect a league to use your own settings."
-                 : "Using your connected league's scoring and roster.")
+                 : "Omen will check whether this provider can apply your league's scoring and roster.")
                 .omenTextStyle(OmenTypography.bodySmall)
                 .foregroundStyle(OmenColor.textSecondary)
 
