@@ -767,13 +767,18 @@ final class TradeViewModel: ObservableObject {
     /// The league to personalize against, when the caller has one. Set by the shell from the
     /// same `league-overview.v1` read the League destination uses — never guessed here.
     func useLeague(platform: String?, leagueId: String?, viewerTeamId: String? = nil) {
-        viewerTeamID = viewerTeamId.flatMap { $0.isEmpty ? nil : $0 }
+        let nextViewerTeamID = viewerTeamId.flatMap { $0.isEmpty ? nil : $0 }
         let next: TradeOffer.LeagueContext?
         if let platform, let leagueId, !platform.isEmpty, !leagueId.isEmpty {
             next = .init(platform: platform, leagueId: leagueId)
         } else {
             next = nil
         }
+        let contextChanged = offer.leagueContext != next || viewerTeamID != nextViewerTeamID
+        if contextChanged {
+            invalidateLeagueDependentState()
+        }
+        viewerTeamID = nextViewerTeamID
         // A prefilled offer belongs to the league Omen's call was made for. The league sync must not point it
         // at another one: if it names the same league nothing changes; if it names a different one (or none),
         // the offer is no longer that call's, so it is dropped rather than compared in the wrong league.
@@ -787,6 +792,23 @@ final class TradeViewModel: ObservableObject {
             viewState = .idle
         }
         offer.leagueContext = next
+    }
+
+    /// A roster, verdict, share result, or three-team build is evidence about one league.
+    /// Drop all of it as soon as that context starts changing (including loading/failure),
+    /// before another league can inherit the previous league's teams on screen.
+    private func invalidateLeagueDependentState() {
+        invalidateCompare()
+        viewState = .idle
+        rosterBrowseState = .idle
+        selectedPartnerTeamID = nil
+        thirdPartnerTeamID = nil
+        isPartnerPickerPresented = false
+        threeTeamLegs = []
+        threeTeamViewState = .idle
+        threeTeamSubmissionDoneSteps = []
+        thirdPartnerRemovalDisclosure = nil
+        shareState = .idle
     }
 
     func compare(userID: String) async {

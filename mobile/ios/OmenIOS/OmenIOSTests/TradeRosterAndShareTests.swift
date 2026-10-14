@@ -110,6 +110,54 @@ final class TradeRosterAndShareTests: XCTestCase {
         XCTAssertTrue(sut.partnerPickerCandidates.isEmpty)
     }
 
+    func testDirectoryIdentitySurvivesAByeWithNoMatchupTeam() throws {
+        let directory = try JSONDecoder().decode(LeagueDirectory.self, from: Data("""
+        {
+          "platforms": [{
+            "platform": "sleeper",
+            "leagues": [{
+              "league_id": "league-1",
+              "team_id": "1",
+              "is_active": true
+            }]
+          }]
+        }
+        """.utf8))
+
+        XCTAssertEqual(directory.teamID(platform: "SLEEPER", leagueID: "league-1"), "1")
+        XCTAssertNil(directory.teamID(platform: "sleeper", leagueID: "bye-week-matchup"))
+    }
+
+    func testLoadingOrFailedLeagueClearsPreviouslyLoadedRoster() async {
+        let sut = makeViewModel(rosterResult: .success(rosterFixture()))
+        await sut.loadRoster(userID: "user-1")
+        XCTAssertEqual(sut.rosterPartners.map(\.id), ["2"])
+
+        // The shell sends an unavailable context for both `.loading` and `.failed`; neither
+        // may retain league A while league B is unresolved.
+        sut.useLeague(platform: nil, leagueId: nil, viewerTeamId: nil)
+
+        XCTAssertEqual(sut.rosterBrowseState, .idle)
+        XCTAssertTrue(sut.rosterPartners.isEmpty)
+        XCTAssertNil(sut.selectedPartnerTeamID)
+        XCTAssertNil(sut.viewerTeamID)
+        XCTAssertNil(sut.offer.leagueContext)
+    }
+
+    func testLoadedLeagueBInvalidatesLoadedLeagueARoster() async {
+        let sut = makeViewModel(rosterResult: .success(rosterFixture()))
+        await sut.loadRoster(userID: "user-1")
+        XCTAssertEqual(sut.rosterPartners.map(\.id), ["2"])
+
+        sut.useLeague(platform: "yahoo", leagueId: "league-2", viewerTeamId: "9")
+
+        XCTAssertEqual(sut.rosterBrowseState, .idle)
+        XCTAssertTrue(sut.rosterPartners.isEmpty)
+        XCTAssertNil(sut.selectedPartnerTeamID)
+        XCTAssertEqual(sut.viewerTeamID, "9")
+        XCTAssertEqual(sut.offer.leagueContext, .init(platform: "yahoo", leagueId: "league-2"))
+    }
+
     // MARK: - Roster: honest unavailable, never fabricated, never a crash
 
     func testUnavailableResponseRendersPermanentlyUnavailableWithTheServerReason() async {

@@ -376,12 +376,21 @@ struct CommandCenterView: View {
             // the League destination uses. Trade never discovers a league on its own, so the
             // two screens can never disagree about which league the user is in.
             .onChange(of: leagueViewModel.viewState, initial: true) { _, newValue in
-                guard case .loaded(let overview) = newValue else { return }
-                tradeViewModel.useLeague(
-                    platform: overview.platform,
-                    leagueId: overview.leagueId,
-                    viewerTeamId: overview.matchup.you?.teamId
-                )
+                guard case .loaded(let overview) = newValue else {
+                    // Loading and failure are context boundaries too. Clear the previous
+                    // league immediately so its opponents cannot remain visible under the
+                    // newly selected league while that read is unresolved.
+                    tradeViewModel.useLeague(platform: nil, leagueId: nil, viewerTeamId: nil)
+                    return
+                }
+                syncTradeLeague(overview)
+            }
+            .onChange(of: leagueCarouselViewModel.directory) { _, _ in
+                // Directory and overview are independent reads. If the overview wins the
+                // race during a bye, apply the authoritative team identity when the
+                // directory arrives instead of waiting for another weekly matchup.
+                guard case .loaded(let overview) = leagueViewModel.viewState else { return }
+                syncTradeLeague(overview)
             }
             .sheet(isPresented: $showTradeRosterSheet) {
                 TradeRosterFlowView(
@@ -594,6 +603,17 @@ struct CommandCenterView: View {
     private func loadLeagueForSelectedContext() async {
         let page = leagueCarouselViewModel.activePage
         await leagueViewModel.load(userID: userID, platform: page?.platform, leagueID: page?.leagueID)
+    }
+
+    private func syncTradeLeague(_ overview: LeagueOverview) {
+        let directoryTeamID = overview.leagueId.flatMap { leagueID in
+            leagueCarouselViewModel.directory?.teamID(platform: overview.platform, leagueID: leagueID)
+        }
+        tradeViewModel.useLeague(
+            platform: overview.platform,
+            leagueId: overview.leagueId,
+            viewerTeamId: directoryTeamID ?? overview.matchup.you?.teamId
+        )
     }
 }
 
