@@ -36,7 +36,7 @@ fi
 
 if [ -z "$DEVICE" ]; then
   DEVICE=$(xcrun devicectl list devices 2>/dev/null \
-    | awk '/available \(paired\)/ {print $3; exit}')
+    | grep 'available (paired)' | grep -Eo '[0-9A-Fa-f]{8}-[0-9A-Fa-f]{16}|[0-9A-F]{8}-([0-9A-F]{4}-){3}[0-9A-F]{12}' | head -1 || true)
 fi
 
 if [ -z "$DEVICE" ]; then
