@@ -352,6 +352,11 @@ function normalizePlayer(entry, week) {
     actual_points: firstFinite(entry?.totalPoints, entry?.actualPoints, player?.totalPoints, player?.actual_points, actualPointsForEspnPlayer(player, week)),
     image_url: player?.headshotUrl || player?.imageUrl || null,
     is_starter: isStarter,
+    // Provider lock flags (ESPN playerPoolEntry). Only an explicit true locks; absent is unknown,
+    // never "unlocked". Trade skips trade_locked players rather than propose an impossible swap.
+    lineup_locked: entry?.lineupLocked === true,
+    roster_locked: entry?.rosterLocked === true,
+    trade_locked: entry?.tradeLocked === true,
     espn_id: id,
     yahoo_id: null,
     gsis_id: null,

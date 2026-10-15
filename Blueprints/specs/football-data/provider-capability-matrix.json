@@ -377,12 +377,19 @@
       "capability": "user_roster",
       "status": "available",
       "reason": null,
-      "detail": "mTeam and mRoster with lineup slots, injury status and ESPN's own projection.",
+      "detail": "mTeam and mRoster with lineup slots, injury status and ESPN's own projection. Lock flags (lineupLocked, rosterLocked, tradeLocked) are read onto each player; Trade skips trade-locked players. Start/Sit and Waiver do not yet act on lineup_locked/roster_locked.",
       "evidence": [
         {
           "file": "src/adapters/espn.js",
           "includes": [
             "buildNormalizedRoster"
+          ]
+        },
+        {
+          "file": "src/adapters/espn.js",
+          "includes": [
+            "trade_locked",
+            "lineup_locked"
           ]
         }
       ],
@@ -915,20 +922,6 @@
   ],
   "surface_note": "Provider fields and endpoints that are observed or documented but that no code in src/ reads. 'observed' means a recorded live response in this repo showed the field; 'documented' means the provider's docs or community docs list it and nobody here has seen it live. The test fails when any of these starts being read, so move it into entries when that happens.",
   "unused_surface": [
-    {
-      "provider": "espn",
-      "field": "lineupLocked / rosterLocked / tradeLocked",
-      "kind": "observed",
-      "evidence": "Blueprints/specs/b2d-espn-e0-verdict-v1.md (pool entry keys, live 2026-07-27)",
-      "opportunity": "Do not recommend a start, drop or trade for a player the provider says is locked. Today a lock would not stop the recommendation.",
-      "value": "high",
-      "needs": "none; fields already arrive in the responses Omen reads",
-      "tokens": [
-        "lineupLocked",
-        "rosterLocked",
-        "tradeLocked"
-      ]
-    },
     {
       "provider": "espn",
       "field": "eligibleSlots",

@@ -305,3 +305,25 @@ test("evaluateTradeForConnection skips an unreadable Yahoo team instead of treat
   // Own roster unreadable: honest unavailable, never "no trade found".
   assert.equal(result.status === "none_found", false);
 });
+
+test("ESPN carries provider lock flags and Trade never proposes a trade-locked player", () => {
+  const { findTradeCandidate } = require("../src/services/tradeLineup");
+  const mk = (id, position, pts, extra = {}) => ({ player_id: id, player_key: id, name: id, position, eligible_positions: [position], projected_points: pts, ...extra });
+  const own = { roster_id: "a", players: [mk("r1", "RB", 5), mk("w1", "WR", 15), mk("w2", "WR", 14)] };
+  const mkOpp = (locked) => ({ roster_id: "b", players: [mk("r2", "RB", 15, { trade_locked: locked }), mk("r3", "RB", 14), mk("w3", "WR", 4)] });
+  const run = (opp) => findTradeCandidate({ ownTeam: own, opponentTeams: [opp], rosterPositions: ["RB", "WR"] });
+  const open = run(mkOpp(false));
+  const locked = run(mkOpp(true));
+  assert.equal(open.receive.player_id, "r2", "control: the best RB upgrade is the unlocked r2");
+  assert.notEqual(locked && locked.receive.player_id, "r2", "a trade-locked player is never the one Omen proposes to receive");
+});
+
+test("ESPN roster normalization reads lineup/roster/trade lock flags; absent means not locked", () => {
+  const { leagueRostersFromEspnSchedule } = require("../src/adapters/espn");
+  const entry = (id, flags) => ({ playerId: id, lineupSlotId: 0, ...flags, playerPoolEntry: { player: { id, fullName: `P${id}`, defaultPositionId: 1 } } });
+  const data = { teams: [{ id: 1 }], schedule: [{ matchupPeriodId: 5, home: { teamId: 1, rosterForCurrentScoringPeriod: { entries: [entry(1, { tradeLocked: true, lineupLocked: true }), entry(2, {})] } } }] };
+  const [team] = leagueRostersFromEspnSchedule(data, 5).teams;
+  assert.equal(team.players[0].trade_locked, true);
+  assert.equal(team.players[0].lineup_locked, true);
+  assert.equal(team.players[1].trade_locked, false);
+});

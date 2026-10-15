@@ -52,7 +52,6 @@ Provider fields and endpoints that are observed or documented but that no code i
 
 | Provider | Field | Seen | Opportunity | Value | Needs |
 |---|---|---|---|---|---|
-| espn | lineupLocked / rosterLocked / tradeLocked | observed | Do not recommend a start, drop or trade for a player the provider says is locked. Today a lock would not stop the recommendation. | high | none; fields already arrive in the responses Omen reads |
 | espn | eligibleSlots | observed | Real positional eligibility (FLEX, SUPERFLEX, IDP, bench) per player. Also the missing slot list for league_roster_positions. | high | none; already arrives |
 | espn | ownership.percentOwned / percentChange | observed | Waiver heat: who the market is adding. Free signal for waiver ranking and for trade market value. | medium | none; already arrives |
 | espn | keeperValue / draftAuctionValue | observed | Keeper and auction leagues: the league's own valuation of each player. | low | only matters for keeper leagues |
