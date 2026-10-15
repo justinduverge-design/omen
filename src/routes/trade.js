@@ -784,8 +784,8 @@ function createTradeRouter({
 
   /**
    * How many of the league's players carry a projection. Find-a-trade ranks swaps by projected
-   * lineup change, so a provider that supplies none (Yahoo today) cannot produce an honest
-   * candidate: the route says so instead of scanning and reporting "no gaps to fill".
+   * lineup change, so a roster read whose provider/native-or-derived path supplies none cannot
+   * produce an honest candidate: the route says so instead of reporting "no gaps to fill".
    */
   function projectionCoverage(teams) {
     let players = 0;

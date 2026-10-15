@@ -315,7 +315,7 @@ function yahooApp({ projected }) {
   return app;
 }
 
-test("GET /api/trade/find says projections are unavailable instead of scanning a league with none (Yahoo today)", async () => {
+test("GET /api/trade/find says projections are unavailable when Yahoo enrichment yields no usable coverage", async () => {
   const res = await get(yahooApp({ projected: false }), "/api/trade/find?platform=yahoo&league_id=nfl.l.555&team_id=1", {
     authorization: "Bearer t",
   });

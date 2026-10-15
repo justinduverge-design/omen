@@ -151,6 +151,104 @@ test("fetchYahooLeagueRosters reads every team's roster by composing standings +
   delete require.cache[yahooAdapterPath];
 });
 
+test("fetchYahooLeagueRosters enriches the whole league with source-labelled projections before Trade scans it", async () => {
+  const yahooAdapterPath = require.resolve("../src/adapters/yahoo");
+  const yahooServicePath = require.resolve("../src/services/yahoo");
+  const yahooProjectionsPath = require.resolve("../src/services/yahooProjections");
+  const originalYahooService = require.cache[yahooServicePath];
+  const originalYahooProjections = require.cache[yahooProjectionsPath];
+  delete require.cache[yahooAdapterPath];
+
+  class FakeYahooClient {
+    async getCurrentWeek() { return 5; }
+    async getLeagueStandings() {
+      return [
+        { team_id: "411.l.1.t.1", team_name: "Own Team" },
+        { team_id: "411.l.1.t.2", team_name: "Rival Team" },
+      ];
+    }
+    async getRoster(teamKey) {
+      const playerID = teamKey.endsWith(".1") ? "101" : "202";
+      return {
+        fantasy_content: {
+          team: [
+            [],
+            { roster: { "0": { players: {
+              "0": { player: [[
+                { player_key: `${teamKey}.p.${playerID}` },
+                { player_id: playerID },
+                { name: { full: `Player ${playerID}` } },
+                { eligible_positions: [{ position: "WR" }] },
+              ], { selected_position: { position: "WR" } }] },
+              count: 1,
+            } } } },
+          ],
+        },
+      };
+    }
+  }
+
+  let enrichedPlayers = null;
+  require.cache[yahooServicePath] = {
+    id: yahooServicePath,
+    filename: yahooServicePath,
+    loaded: true,
+    exports: FakeYahooClient,
+  };
+  require.cache[yahooProjectionsPath] = {
+    id: yahooProjectionsPath,
+    filename: yahooProjectionsPath,
+    loaded: true,
+    exports: {
+      enrichYahooPlayers: async (players) => {
+        enrichedPlayers = players;
+        for (const [index, player] of players.entries()) {
+          player.projected_points = 10 + index;
+          player.projection_source = "sleeper_public_projections";
+          player.projection_basis = "league_scoring";
+        }
+        return {
+          available: true,
+          source: "sleeper_public_projections",
+          scoring_basis: "league_scoring",
+          players_total: players.length,
+          players_with_projection: players.length,
+          reason: null,
+        };
+      },
+    },
+  };
+
+  try {
+    const yahooAdapter = require("../src/adapters/yahoo");
+    const result = await yahooAdapter.fetchYahooLeagueRosters("411.l.1", "token", 5);
+
+    assert.equal(enrichedPlayers.length, 2, "the enrichment receives players from every team");
+    assert.deepEqual(
+      result.teams.flatMap((team) => team.players).map((player) => player.projected_points),
+      [10, 11],
+      "the enriched values are the values Find receives from the adapter"
+    );
+    assert.ok(result.teams.flatMap((team) => team.players).every(
+      (player) => player.projection_source === "sleeper_public_projections"
+    ));
+    assert.deepEqual(result.projection_meta, {
+      available: true,
+      source: "sleeper_public_projections",
+      scoring_basis: "league_scoring",
+      players_total: 2,
+      players_with_projection: 2,
+      reason: null,
+    });
+  } finally {
+    delete require.cache[yahooAdapterPath];
+    if (originalYahooService) require.cache[yahooServicePath] = originalYahooService;
+    else delete require.cache[yahooServicePath];
+    if (originalYahooProjections) require.cache[yahooProjectionsPath] = originalYahooProjections;
+    else delete require.cache[yahooProjectionsPath];
+  }
+});
+
 test("fetchYahooLeagueRosters does not fail the whole read when one team's roster call throws", async () => {
   const yahooAdapterPath = require.resolve("../src/adapters/yahoo");
   const yahooServicePath = require.resolve("../src/services/yahoo");

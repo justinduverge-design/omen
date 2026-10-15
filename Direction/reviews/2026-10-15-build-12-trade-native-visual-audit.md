@@ -65,7 +65,10 @@ shows all three actions with Build selected.
 - corrected nominal Build capture: live Add-team control and no stale two-team notice, written and
   visually inspected;
 - focused J4 interaction UI tests: 2/2 pass, including discovery of all three named Trade modes and
-  the live third-team/no-stale-limit assertion.
+  the live third-team/no-stale-limit assertion;
+- Yahoo provider seam: a focused adapter integration test now requires the whole-league roster read
+  to pass every team's players through source-labelled projection enrichment before Find scans it;
+  provider/adaptor/Find tests pass 45/45.
 
 ## Still open before promotion
 
