@@ -7,6 +7,13 @@ const FLEX_ELIGIBILITY = {
   FLEX: ["RB", "WR", "TE"],
   REC_FLEX: ["WR", "TE"],
   SUPER_FLEX: ["QB", "RB", "WR", "TE"],
+  // Yahoo's own names for the same slots, and ESPN's RB/WR flex. Without these a Yahoo "W/R/T"
+  // slot accepted nobody and the flex spot silently stayed empty in every lineup solve.
+  "W/R/T": ["RB", "WR", "TE"],
+  "W/R": ["RB", "WR"],
+  "W/T": ["WR", "TE"],
+  "Q/W/R/T": ["QB", "RB", "WR", "TE"],
+  WRRB_FLEX: ["RB", "WR"],
 };
 
 const NON_STARTER_SLOTS = new Set(["BN", "BENCH", "IR", "TAXI"]);
@@ -392,11 +399,11 @@ function findTradeCandidate({
 
     for (const give of ownTeam.players) {
       if (ranOut || budget.exceeded) { ranOut = true; break; }
-      if (finiteProjection(give) === null) continue;
+      if (finiteProjection(give) === null || give.trade_locked === true) continue;
       for (const receive of opponent.players) {
         if (ranOut || budget.exceeded) { ranOut = true; break; }
         const receivePoints = finiteProjection(receive);
-        if (receivePoints === null) continue;
+        if (receivePoints === null || receive.trade_locked === true) continue;
         // Bound obvious non-candidates without excluding cross-position trades:
         // a bench opponent asset needs to beat the user's weakest starter.
         const receiveId = String(receive.player_id || receive.player_key);

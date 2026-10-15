@@ -341,3 +341,71 @@ test("Yahoo: a bye-week starter carries an explicit zero and does swap", () => {
   };
   assert.equal(optimizer.evaluateLineup(roster).length, 1);
 });
+
+test("a player Sleeper's yahoo_id map misses is paired by name + position + team, only when exactly one fits", async () => {
+  const sleeperPlayers = {
+    "S-A": { full_name: "Gap Receiver", position: "WR", team: "JAX", active: true },
+    "S-B": { full_name: "Twin Name", position: "WR", team: "DAL", active: true },
+    "S-C": { full_name: "Twin Name", position: "WR", team: "DAL", active: true },
+    "S-D": { full_name: "Wrong Team", position: "WR", team: "SEA", active: true },
+    "S-E": { full_name: "Retired Guy", position: "WR", team: "KC", active: false },
+  };
+  const statLines = { "S-A": WR_LINE, "S-B": WR_LINE, "S-C": WR_LINE, "S-D": WR_LINE, "S-E": WR_LINE };
+  const { client, deps } = fixture({ sleeperPlayers, statLines });
+  const roster = [
+    { player_id: "1", name: "Gap Receiver", position: "WR", team: "JAC", projected_points: null }, // alias JAC=JAX
+    { player_id: "2", name: "Twin Name", position: "WR", team: "DAL", projected_points: null },    // ambiguous
+    { player_id: "3", name: "Wrong Team", position: "WR", team: "DAL", projected_points: null },   // team differs
+    { player_id: "4", name: "Retired Guy", position: "WR", team: "KC", projected_points: null },   // inactive
+    { player_id: "5", name: "Gap Receiver", position: "WR", team: null, projected_points: null },   // no team: refuse
+  ];
+  await enrichYahooPlayers(roster, { client, leagueKey: "L", week: 8, season: 2026, deps });
+  assert.deepEqual(roster.map((p) => p.projected_points != null), [true, false, false, false, false]);
+});
+
+test("getAvailablePlayers pages past Yahoo's 25-per-page cap and keeps the response shape", async () => {
+  const YahooClient = require("../src/services/yahoo");
+  const client = new YahooClient("token");
+  const urls = [];
+  const mk = (from, n) => ({ fantasy_content: { league: [{}, { players: { count: n, ...Object.fromEntries(Array.from({ length: n }, (_, i) => [String(i), { player: [[{ player_key: `p${from + i}` }]] }])) } }] } });
+  client.get = async (url) => {
+    urls.push(url);
+    return url.includes("start=0") ? mk(0, 25) : mk(25, 25);
+  };
+  const raw = await client.getAvailablePlayers("L", { count: 50 });
+  const players = raw.fantasy_content.league[1].players;
+  assert.equal(players.count, 50);
+  assert.equal(Object.keys(players).filter((k) => k !== "count").length, 50);
+  assert.equal(urls.length, 2);
+  assert.ok(urls[0].includes("count=25;start=0") && urls[1].includes("count=25;start=25"));
+});
+
+test("fallback pairing refuses suffix namesakes on one team and secondary-position matches", async () => {
+  const sleeperPlayers = {
+    "S-1": { full_name: "Marcus Same Jr.", position: "WR", team: "ARI", active: true },
+    "S-2": { full_name: "Marcus Same Sr.", position: "WR", team: "ARI", active: true },
+    "S-3": { full_name: "Flex Man", position: "WR", fantasy_positions: ["WR", "RB"], team: "KC", active: true },
+    "S-4": { full_name: "Solo Back", position: "RB", team: "KC", active: true },
+  };
+  const statLines = { "S-1": WR_LINE, "S-2": WR_LINE, "S-3": WR_LINE, "S-4": WR_LINE };
+  const { client, deps } = fixture({ sleeperPlayers, statLines });
+  const roster = [
+    { player_id: "1", name: "Marcus Same Jr.", position: "WR", team: "ARI", projected_points: null }, // two fit: refuse
+    { player_id: "2", name: "Flex Man", position: "RB", team: "KC", projected_points: null },          // secondary position: refuse
+    { player_id: "3", name: "Solo Back", position: "RB", team: "KC", projected_points: null },         // clean: pair
+  ];
+  await enrichYahooPlayers(roster, { client, leagueKey: "L", week: 8, season: 2026, deps });
+  assert.deepEqual(roster.map((p) => p.projected_points != null), [false, false, true]);
+});
+
+test("getAvailablePlayers dedupes players that shift between pages and survives a failed page", async () => {
+  const YahooClient = require("../src/services/yahoo");
+  const client = new YahooClient("token");
+  const page = (keys) => ({ fantasy_content: { league: [{}, { players: { count: keys.length, ...Object.fromEntries(keys.map((k, i) => [String(i), { player: [[{ player_key: k }]] }])) } }] } });
+  client.get = async (url) => (url.includes("start=0") ? page(["a", "b"]) : url.includes("start=25") ? page(["b", "c"]) : Promise.reject(new Error("page down")));
+  const raw = await client.getAvailablePlayers("L", { count: 75 });
+  const players = raw.fantasy_content.league[1].players;
+  const keys = Object.entries(players).filter(([k]) => k !== "count").map(([, v]) => v.player[0][0].player_key);
+  assert.deepEqual(keys, ["a", "b", "c"], "b is not repeated and the failed third page is skipped");
+  assert.equal(players.count, 3);
+});

@@ -203,16 +203,47 @@ async function buildNormalizedRoster(leagueKey, accessToken, week, opts = {}) {
  * Used by Trade's opponent-roster read (`GET /api/trade/roster`). No new Yahoo surface, no
  * new auth — the standings and per-team roster reads already run in production today.
  */
+/**
+ * League starting slots from Yahoo's `/league/{key}/settings` `roster_positions`
+ * (`[{roster_position: {position, count, is_starting_position}}]`), expanded by count, in Yahoo's
+ * own slot names (W/R/T, Q/W/R/T, DEF, K...). Starting positions only. Empty when the payload has
+ * none, in which case callers fall back to the user's own lineup.
+ */
+function rosterPositionsFromYahooSettings(league) {
+  const found = [];
+  const walk = (node) => {
+    if (!node || typeof node !== "object") return;
+    if (Array.isArray(node)) { node.forEach(walk); return; }
+    if (Array.isArray(node.roster_positions)) found.push(...node.roster_positions);
+    Object.values(node).forEach(walk);
+  };
+  walk(league);
+  const slots = [];
+  for (const wrapper of found) {
+    const entry = wrapper?.roster_position || wrapper;
+    const position = String(entry?.position || "").toUpperCase();
+    const count = Number(entry?.count);
+    const starting = Number(entry?.is_starting_position) === 1;
+    if (!position || !starting || !Number.isInteger(count) || count < 1) continue;
+    for (let i = 0; i < count; i += 1) slots.push(position);
+  }
+  return slots;
+}
+
 async function fetchYahooLeagueRosters(leagueKey, accessToken, week) {
   const client = new YahooClient(accessToken);
   const effectiveWeek = week || await client.getCurrentWeek(leagueKey);
   const standings = await client.getLeagueStandings(leagueKey);
 
+  const settingsRead = Promise.resolve()
+    .then(() => client.getLeagueSettings(leagueKey, { report: false }))
+    .catch(() => null);
   const teams = await Promise.all(standings.map(async (team) => {
     if (!team?.team_id) {
-      return { team_id: null, team_name: team?.team_name || null, players: [] };
+      return { team_id: null, team_name: team?.team_name || null, players: [], read_status: "unreadable" };
     }
     let players = [];
+    let readStatus = "ok";
     try {
       const raw = await client.getRoster(team.team_id, effectiveWeek);
       const normalized = normalizeYahooRoster(raw, effectiveWeek);
@@ -223,11 +254,16 @@ async function fetchYahooLeagueRosters(leagueKey, accessToken, week) {
       ].map(withYahooIds);
     } catch {
       // One team's roster failing to read must not fail the whole league read. Partial
-      // data with that team's players empty is more honest than aborting the request.
+      // data is more honest than aborting the request, but the team is flagged so Trade can
+      // tell "the read failed" from "this roster is empty" and skip it instead of assuming.
       players = [];
+      readStatus = "unreadable";
     }
-    return { team_id: team.team_id, team_name: team.team_name || null, players };
+    return { team_id: team.team_id, team_name: team.team_name || null, players, read_status: readStatus };
   }));
+  // Settings unreadable (null) leaves the slot list empty: callers fall back to the user's own lineup.
+  const rosterPositions = rosterPositionsFromYahooSettings(await settingsRead);
+  const unreadableTeamIds = teams.filter((team) => team.read_status === "unreadable").map((team) => team.team_id);
 
   // Yahoo carries no projection; fill every team's players from Sleeper's public stat lines scored
   // with this league's rules (yahooProjections.js). Best effort and bounded.
@@ -239,8 +275,9 @@ async function fetchYahooLeagueRosters(leagueKey, accessToken, week) {
   return {
     week: rosterWeek(effectiveWeek),
     league_status: null,
-    roster_positions: [],
+    roster_positions: rosterPositions,
     teams,
+    unreadable_team_ids: unreadableTeamIds,
     projection_meta: projectionMeta,
   };
 }
@@ -250,4 +287,5 @@ module.exports = {
   fetchYahooLastResult,
   fetchYahooLeagueRosters,
   lastResultFromYahooScoreboard,
+  rosterPositionsFromYahooSettings,
 };

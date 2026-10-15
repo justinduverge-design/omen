@@ -296,7 +296,7 @@ test("with no projections the hold says so and invents no delta", () => {
   assert.equal(hold.projections.available, false);
   assert.equal(hold.best_alternative, null);
   assert.equal(hold.reasons[0].code, "projections_unavailable");
-  assert.match(hold.reasons[0].text, /Yahoo does not give Omen weekly projections/);
+  assert.match(hold.reasons[0].text, /could not build enough usable weekly projections for this Yahoo league/);
 });
 
 test("an OUT starter with no usable pickup is reported as its own reason", () => {
@@ -389,6 +389,9 @@ test("ESPN now gets a trade call when a one-for-one improves both lineups", asyn
   assert.equal(body.platform.name, "espn");
   assert.deepEqual(calls.espnLeagueRosters, ["esp-1"]);
   assert.equal(body.answered_for.platform, "espn");
+  // Warehouse usage is additive evidence: present and empty when the warehouse is not enabled.
+  assert.deepEqual(body.recommendation.usage_evidence, []);
+  assert.ok(!body.recommendation.explanation.data_used.some((line) => /weekly usage/.test(line)));
 });
 
 test("ESPN with no trade that clears both lineups holds, and the hold says it searched", async () => {

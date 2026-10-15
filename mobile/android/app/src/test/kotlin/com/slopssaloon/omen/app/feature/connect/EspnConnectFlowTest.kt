@@ -81,16 +81,16 @@ class EspnConnectFlowTest {
      */
     @Test
     fun `consent names the cookies and never their values`() {
-        val takes = EspnHandoffCopy.CONSENT_TAKES.joinToString(" ")
+        val takes = EspnConnectCopy.CONSENT_TAKES.joinToString(" ")
         assertTrue(takes.contains("SWID"))
         assertTrue(takes.contains("espn_s2"))
 
-        val never = EspnHandoffCopy.CONSENT_NEVER.joinToString(" ").lowercase()
+        val never = EspnConnectCopy.CONSENT_NEVER.joinToString(" ").lowercase()
         assertTrue(never.contains("show those cookies back to you"))
         assertTrue(never.contains("log them"))
 
         for (leaked in listOf("{", "}", "AEB", "%7B")) {
-            assertFalse(EspnHandoffCopy.CONSENT_ALL_COPY.contains(leaked))
+            assertFalse(EspnConnectCopy.CONSENT_ALL_COPY.contains(leaked))
         }
     }
 
@@ -99,7 +99,7 @@ class EspnConnectFlowTest {
     fun `consent copy names who the user signs in to and disclaims affiliation`() {
         // The screen is several constants now rather than one paragraph. The guarantees are
         // about what the user reads, so this asserts against the whole screen's copy.
-        val copy = EspnHandoffCopy.CONSENT_ALL_COPY
+        val copy = EspnConnectCopy.CONSENT_ALL_COPY
 
         assertTrue(copy.contains("ESPN's own sign-in"))
         assertTrue(copy.contains("never sees your ESPN password"))
@@ -111,20 +111,20 @@ class EspnConnectFlowTest {
     @Test
     fun `espn copy never uses credential vocabulary`() {
         val surfaces = listOf(
-            EspnHandoffCopy.CONSENT_TITLE, EspnHandoffCopy.CONSENT_EYEBROW,
-            EspnHandoffCopy.CONSENT_LEAD, EspnHandoffCopy.CONSENT_FOOTER,
-            EspnHandoffCopy.CONSENT_TAKES_TITLE, EspnHandoffCopy.CONSENT_NEVER_TITLE,
-            EspnHandoffCopy.CONSENT_DECLINE,
+            EspnConnectCopy.CONSENT_TITLE, EspnConnectCopy.CONSENT_EYEBROW,
+            EspnConnectCopy.CONSENT_LEAD, EspnConnectCopy.CONSENT_FOOTER,
+            EspnConnectCopy.CONSENT_TAKES_TITLE, EspnConnectCopy.CONSENT_NEVER_TITLE,
+            EspnConnectCopy.CONSENT_DECLINE,
             // CONSENT_TAKES and CONSENT_NEVER are deliberately excluded. Founder, 2026-09-19:
             // name the cookies. A user cannot weigh handing something over if the screen will
             // not say what it is, and this screen exists because the ESPN terms answer was No.
             // The ban still covers every other surface — naming the fields is disclosure,
             // showing their values is forbidden by fact-of-record #6. See
             // `consent names the cookies and never their values`.
-            EspnHandoffCopy.CONSENT_CONTINUE, EspnHandoffCopy.SIGN_IN_WAITING,
-            EspnHandoffCopy.SIGN_IN_READY, EspnHandoffCopy.SIGN_IN_CONNECT,
-            EspnHandoffCopy.NO_LEAGUES_FOUND, EspnHandoffCopy.DISCOVERY_UNAVAILABLE,
-            EspnHandoffCopy.SIGN_IN_FELL_BACK, EspnHandoffCopy.LEAGUE_ID_HINT,
+            EspnConnectCopy.CONSENT_CONTINUE, EspnConnectCopy.SIGN_IN_WAITING,
+            EspnConnectCopy.SIGN_IN_READY, EspnConnectCopy.SIGN_IN_CONNECT,
+            EspnConnectCopy.NO_LEAGUES_FOUND, EspnConnectCopy.DISCOVERY_UNAVAILABLE,
+            EspnConnectCopy.LEAGUE_ID_HINT,
         )
 
         for (copy in surfaces) {
@@ -187,7 +187,7 @@ class EspnConnectFlowTest {
         val viewModel = signedIn(repository)
 
         assertEquals(ConnectState.EspnSigningIn, viewModel.state)
-        assertEquals(EspnHandoffCopy.DISCOVERY_UNAVAILABLE, viewModel.espnNotice)
+        assertEquals(EspnConnectCopy.DISCOVERY_UNAVAILABLE, viewModel.espnNotice)
         assertTrue(viewModel.espnDiscoveryFallbackAvailable)
     }
 
@@ -199,7 +199,7 @@ class EspnConnectFlowTest {
         val viewModel = signedIn(repository)
 
         assertEquals(ConnectState.EspnSigningIn, viewModel.state)
-        assertEquals(EspnHandoffCopy.NO_LEAGUES_FOUND, viewModel.espnNotice)
+        assertEquals(EspnConnectCopy.NO_LEAGUES_FOUND, viewModel.espnNotice)
     }
 
     // ---- Manual entry, and the dead-button bug ----
@@ -280,10 +280,10 @@ class EspnConnectFlowTest {
         viewModel.connectEspnLeague(EspnLeagueOption("1", "L", 2026, null, null))
 
         assertTrue(
-            "second failure should route to the desktop path, got ${viewModel.state}",
-            viewModel.state is ConnectState.UnsupportedOnMobile,
+            "second failure should remain native and retryable, got ${viewModel.state}",
+            viewModel.state is ConnectState.RetryableError,
         )
-        assertEquals(EspnHandoffCopy.SIGN_IN_FELL_BACK, viewModel.espnNotice)
+        assertFalse((viewModel.espnNotice ?: "").contains("desktop", ignoreCase = true))
     }
 
     // ---- ConnectFailed diagnostic wiring ----
@@ -464,7 +464,7 @@ class EspnConnectFlowTest {
 
     @Test
     fun `found-leagues heading is singular for one league`() {
-        assertEquals("Found your league", EspnHandoffCopy.foundLeaguesTitle(1))
-        assertEquals("Found 3 leagues", EspnHandoffCopy.foundLeaguesTitle(3))
+        assertEquals("Found your league", EspnConnectCopy.foundLeaguesTitle(1))
+        assertEquals("Found 3 leagues", EspnConnectCopy.foundLeaguesTitle(3))
     }
 }

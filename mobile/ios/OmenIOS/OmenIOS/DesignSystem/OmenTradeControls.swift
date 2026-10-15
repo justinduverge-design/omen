@@ -16,11 +16,10 @@ import SwiftUI
 /// A control that is drawn, named, and **not usable** — the `unavailable` carrier applied to an
 /// affordance rather than to a data source.
 ///
-/// This exists because of one line in `CONTRACTS.md` that is easy to satisfy the wrong way:
-/// *"Current capability says `max_teams: 2`. Three-team controls must render unavailable until
-/// that changes."* Unavailable, not hidden and not functional. Hiding the control would make the
-/// product look like it never imagined a three-team trade; leaving it live would let a user build
-/// an offer the server cannot score.
+/// This remains the carrier for any capability read that says a control is unavailable. The
+/// current Trade contract supports three teams, so its Add-team control uses the live primitive;
+/// this treatment still prevents an unread or explicitly unsupported capability from looking like
+/// a broken button.
 ///
 /// Carriers, per registry §2.3 and D7 — colour is never the only one:
 ///   - `text-tertiary` ink,

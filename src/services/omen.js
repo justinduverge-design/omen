@@ -40,6 +40,13 @@ const {
 } = require("./decisionContext");
 
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
+const { createTradeUsageEvidence, usageRowsForTrade } = require("./tradeUsageEvidence");
+// Observed usage for the two players in Omen's trade call. Evidence only; a no-op in `supabase` mode.
+const tradeUsageEvidence = createTradeUsageEvidence({
+  getRuntime: () => getSharedWarehouseRuntime({ logger }),
+  getSupabase: () => supabase,
+  log: logger,
+});
 const ACTIVE_STATUSES = new Set(["", "P", "PROBABLE", "ACTIVE"]);
 const RISK_STATUSES = new Set(["Q", "QUESTIONABLE", "GTD", "DTD", "DOUBTFUL"]);
 const OUT_STATUSES = new Set(["O", "OUT", "IR", "IR-R", "PUP", "SUSP"]);
@@ -756,7 +763,7 @@ function liveEmptyMvpResponse({ roster, connection, connectedPlatforms, waiverSi
       response.explanation = {
         ...response.explanation,
         summary: `Omen cannot rank a move for this ${platformLabel} league this week.`,
-        why_it_matters: `${platformLabel} does not give Omen weekly projections, so lineup swaps and trades cannot be scored.`,
+        why_it_matters: `Omen could not build enough usable weekly projections for this ${platformLabel} league, so lineup swaps and trades cannot be scored.`,
         confidence: "Omen has no projection to judge a move against.",
         data_used: [`${platformLabel} roster`],
       };
@@ -1147,6 +1154,11 @@ async function evaluateTradeForSelectedConnection({ connection, roster, espnCred
   });
   if (evaluation.status !== "candidate") return { evaluation, selectorCandidate: null };
   const candidate = evaluation.candidate;
+  const usage = await tradeUsageEvidence([candidate.give, candidate.receive], {
+    season: getCurrentNflWeekContext().season,
+    week: roster?.week,
+  });
+  candidate.usage_evidence = usageRowsForTrade(candidate, usage.byKey);
   return {
     evaluation,
     selectorCandidate: {
@@ -1409,6 +1421,8 @@ function mapTradeSuggestionToMvpMove({ roster, connection, connectedPlatforms, t
     move: `Offer ${give.name} to ${teamName} for ${receive.name}.`,
     // Additive structured form of the same data the sentence above is built from.
     trade: tradeStructure({ opponent: trade.opponent, teamName, give, receive }),
+    // Observed warehouse usage for the two players; empty when the warehouse has nothing real to say.
+    usage_evidence: Array.isArray(trade.usage_evidence) ? trade.usage_evidence : [],
     primary_player: receive,
     comparison_player: give,
     expected_value_delta: { points: delta, label: expectedValueLabel(delta) },
@@ -1431,6 +1445,7 @@ function mapTradeSuggestionToMvpMove({ roster, connection, connectedPlatforms, t
         "weekly player projections",
         "optimal lineup comparison",
         "VORP fairness guard",
+        ...(Array.isArray(trade.usage_evidence) && trade.usage_evidence.length ? ["NFL weekly usage (targets, carries, red-zone work)"] : []),
       ],
     },
   };

@@ -201,8 +201,8 @@ struct OmenTradeFindReviewScreen: View {
         switch reason {
         case "projections_unavailable":
             return (
-                "\(provider) doesn't share projections yet",
-                "Find a trade ranks swaps by how they change your projected lineup, and \(provider) gives Omen no projections to rank with. Omen won't guess. You can still compare an offer yourself."
+                "Not enough projections to rank trades",
+                "Find a trade ranks swaps by how they change your projected lineup, and Omen could not build enough usable projections for this \(provider) league. Omen won't guess. You can still compare an offer yourself."
             )
         case "provider_reauth_required":
             return (

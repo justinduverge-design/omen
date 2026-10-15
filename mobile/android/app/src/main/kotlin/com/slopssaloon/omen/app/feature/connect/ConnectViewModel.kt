@@ -195,40 +195,25 @@ class ConnectViewModel(
     var espnDiscoveryFallbackAvailable: Boolean by mutableStateOf(false)
         private set
 
-    /** Contract §W1-A allows one retry on an unreadable session, then the desktop path. */
-    private var espnUnreadableRetries = 0
-
     val canSubmitUsername: Boolean
         get() = username.trim().isNotEmpty() && !state.isBusy
 
     suspend fun selectProvider(provider: ConnectProvider) {
-        when (provider.availability) {
-            // Sleeper's next step is the username field the picker already renders beneath
-            // itself; Yahoo's is a browser round trip that has to be started explicitly.
-            is ConnectAvailability.Available ->
-                when (provider) {
-                    ConnectProvider.Yahoo -> {
-                        selectedProvider = provider
-                        connectYahoo()
-                    }
-                    // Consent first, always. W1-A's binding constraint: the user is told what is
-                    // about to open before it opens, and declining writes no state.
-                    ConnectProvider.Espn -> {
-                        selectedProvider = provider
-                        espnNotice = null
-                        espnUnreadableRetries = 0
-                        state = ConnectState.EspnConsent
-                    }
-                    else -> {
-                        selectedProvider = provider
-                        state = ConnectState.NotStarted
-                    }
-                }
-            // Not an error and not a dead end — the screen renders the provider's own reason
-            // and a safe next action.
+        // Every provider in the native picker has one current production path. A failure may
+        // retry or switch providers, but it cannot resurrect an obsolete handoff screen.
+        when (provider) {
+            ConnectProvider.Yahoo -> {
+                selectedProvider = provider
+                connectYahoo()
+            }
+            ConnectProvider.Espn -> {
+                selectedProvider = provider
+                espnNotice = null
+                state = ConnectState.EspnConsent
+            }
             else -> {
                 selectedProvider = provider
-                state = ConnectState.UnsupportedOnMobile(provider)
+                state = ConnectState.NotStarted
             }
         }
     }
@@ -245,7 +230,6 @@ class ConnectViewModel(
         clearEspnSession()
         espnNotice = null
         espnLeagueId = ""
-        espnUnreadableRetries = 0
         selectedProvider = null
         state = ConnectState.NotStarted
     }
@@ -318,9 +302,9 @@ class ConnectViewModel(
 
         espnDiscoveryFallbackAvailable = true
         espnNotice = if (finalResult?.isSuccess == true) {
-            EspnHandoffCopy.NO_LEAGUES_FOUND
+            EspnConnectCopy.NO_LEAGUES_FOUND
         } else {
-            EspnHandoffCopy.DISCOVERY_UNAVAILABLE
+            EspnConnectCopy.DISCOVERY_UNAVAILABLE
         }
         state = ConnectState.EspnSigningIn
     }
@@ -390,21 +374,9 @@ class ConnectViewModel(
             .onFailure { state = ConnectState.EspnConnected(EspnConnection(null, null)) }
     }
 
-    /**
-     * Contract §W1-A failure table: one retry on an unreadable session, then the desktop path.
-     * Never a loop, and never copy that blames the user.
-     */
+    /** Keeps ESPN failure recovery inside the current native flow. */
     private fun failEspnSignIn(failure: ConnectFailure) {
         clearEspnSession()
-
-        if (failure is ConnectFailure.EspnSessionUnreadable) {
-            espnUnreadableRetries++
-            if (espnUnreadableRetries > 1) {
-                espnNotice = EspnHandoffCopy.SIGN_IN_FELL_BACK
-                state = ConnectState.UnsupportedOnMobile(ConnectProvider.Espn)
-                return
-            }
-        }
         state = ConnectState.RetryableError(failure)
     }
 

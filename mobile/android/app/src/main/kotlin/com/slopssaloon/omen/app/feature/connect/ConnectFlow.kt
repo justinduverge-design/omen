@@ -43,9 +43,6 @@ sealed interface ConnectState {
     /** The Omen session, not the provider, is the problem. */
     data object NeedsReauth : ConnectState
 
-    /** A provider Omen cannot connect here. Never a dead end. */
-    data class UnsupportedOnMobile(val provider: ConnectProvider) : ConnectState
-
     // ESPN — W1-A. Consent, then ESPN's own sign-in in an app-controlled WebView, then the
     // leagues ESPN reports for that account. iOS mirror: `App/Connect/ConnectFlow.swift`.
 
@@ -164,7 +161,7 @@ sealed class ConnectFailure(val message: String) {
      * `ConnectRepository.swift` maps 401/422, never fabricated.
      */
     data class EspnSessionUnreadable(val diagnostic: EspnDiagnostic? = null) :
-        ConnectFailure("Omen couldn't read your ESPN session. That's on us, not you — try once more, or finish on a computer.")
+        ConnectFailure("Omen couldn't read your ESPN session. That's on us, not you — try the ESPN sign-in again, or choose another provider.")
 
     /**
      * The session read fine and ESPN refused the league — wrong league, or no access to it.
@@ -245,7 +242,6 @@ enum class ConnectProvider(val displayName: String, val platform: OmenPlatform) 
             // permission: onboarding contract §87's WebView ban was lifted for ESPN by the
             // founder on 2026-09-02, with the guideline 5.2.2 exposure stated and accepted.
             //
-            // The desktop helper and `/espn-connect` stay as the documented fallback.
             Espn -> ConnectAvailability.Available
         }
 }
@@ -358,10 +354,10 @@ sealed interface EspnSignInProgress {
  * The ESPN handoff copy, written once so the app and its tests agree on what the user is told.
  *
  * Every line survives App Store and Play review reading it as store-facing copy: no password, no
- * cookie, no token, no `espn_s2`, no `SWID`. Kept byte-identical to iOS `EspnHandoffCopy` so the
+ * cookie, no token, no `espn_s2`, no `SWID`. Kept byte-identical to iOS `EspnConnectCopy` so the
  * two platforms cannot drift into telling users different things.
  */
-object EspnHandoffCopy {
+object EspnConnectCopy {
     const val CONSENT_EYEBROW = "ESPN"
     const val CONSENT_TITLE = "Before we start"
 
@@ -395,7 +391,7 @@ object EspnHandoffCopy {
      * Every consent surface as one string, for the App Review guardrails that check the screen as
      * a whole. Replaces `CONSENT_BODY`, which was the single paragraph this screen used to be —
      * the assertions are about what the screen says, not which constant holds it.
-     * iOS mirror: `EspnHandoffCopy.consentAllCopy`.
+     * iOS mirror: `EspnConnectCopy.consentAllCopy`.
      */
     val CONSENT_ALL_COPY: String
         get() = (
@@ -421,9 +417,6 @@ object EspnHandoffCopy {
         "ESPN didn't report any football leagues on this account. If you know the league ID, you can enter it."
     const val DISCOVERY_UNAVAILABLE =
         "Omen couldn't ask ESPN for your leagues. Enter the league ID and we'll connect it directly."
-    const val SIGN_IN_FELL_BACK =
-        "We couldn't read your ESPN session on this phone. The desktop helper still works — here's how."
-
     fun foundLeaguesTitle(count: Int): String =
         if (count == 1) "Found your league" else "Found $count leagues"
 

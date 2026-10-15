@@ -1,5 +1,62 @@
 # Omen Decision Log
 
+## 2026-10-13 — Defer ESPN verification until the new beta has an install
+
+- **Founder fact:** the new beta version has no installs yet, so checking the Build 11 ESPN fix now
+  cannot produce useful tester evidence.
+- **Decision:** preserve the merged ESPN watch list but do not inspect logs, request a tester attempt,
+  or modify the login flow until the founder reports an install and resumes the check.
+- **Replacement lane:** use the no-install window for the Omen-summary plus League completion audit,
+  alongside the Trade reliability trace and shared-foundation/provider-honesty inspection.
+- **KVM2 boundary:** no KVM2 action is authorized by this planning change. Projection analysis remains
+  a documented HOLD until a separately reviewed retained-analysis procedure is ready.
+
+## 2026-10-13 — Build 12 projection certification is family-specific and evidence-gated
+
+- **Decision:** projection eligibility is decided independently for standard, half-PPR and PPR, by
+  position, in both the relevant and all-player universes. A PPR pass cannot authorize another family.
+- **Evidence floor:** every season/baseline comparison requires at least 100 paired player-weeks and
+  20 player clusters (`paired-evidence-v1`). Insufficient evidence is `HOLD`.
+- **Reader boundary:** the backtest requires LOGIN `omen_warehouse_read`, database `omen_football`
+  and a read-only session. A read-only superuser is rejected.
+- **Activation boundary:** source repair may be committed locally, but restored-warehouse execution
+  and customer-visible activation remain blocked until a bounded retained-analysis restore path and
+  position/scoring-family results exist.
+
+## 2026-10-12 — Renumber: the planned Build 10 is now Build 12
+
+- **Why:** Build 9 had stale code, so Build 10 shipped the same night from current main, and Build 11 followed with the ESPN first-login fix (settle the cookie pair, patient discovery, Check again; server logs the real ESPN status).
+- **Rule:** the 2026-10-20 plan is Build 12 (`Direction/2026-10-20-build-12-plan.md`). Earlier entries that say "Build 10" for 2026-10-20 mean Build 12.
+
+## 2026-10-12 — Build 9 is distributed; Build 10 becomes the active release target
+
+- **Founder report:** Build 9 was pushed to Apple TestFlight beta users.
+- **Decision:** stop treating the October 13 candidate as pending. It is the observation baseline;
+  active planning now targets Build 10 for Tuesday 2026-10-20.
+- **Scope rule:** Build 10 remains unallocated until the Trade, shared-primitives, provider-capability
+  and unfinished-work evidence packets are complete.
+- **Plan:** `Direction/2026-10-20-build-10-plan.md`.
+- **Boundary:** App Store Connect was not independently read in this session.
+
+## 2026-10-12 (rolling beta correction) — plan one Tuesday at a time; inspect Omen before allocating later builds
+
+- **Decision (founder):** Omen uses a rolling weekly Tuesday frame. Plan and freeze Monday
+  afternoon, release/canary Tuesday, observe Wednesday, and use Thursday through Sunday as the
+  primary engineering window because the token allowance resets Thursday.
+- **Three-release meaning:** 2026-10-13 is the committed candidate; 2026-10-20 is a provisional
+  date whose contents are chosen only after the Omen foundation inspection; 2026-10-27 is a
+  hopeful horizon, not a pre-built roadmap. Each Monday the frame rolls forward.
+- **Current build:** fix only genuine P0/P1 phone-walk findings. If a broken feature cannot be
+  repaired within the freeze, exclude or disable it honestly rather than delaying the entire
+  build or leaving a silent dead end. The founder owns App Store Connect.
+- **Inspection before allocation:** assess shared football primitives, ESPN/Yahoo/Sleeper truth,
+  feature coherence, canvas drift and Xcode evidence automation. Use the result to classify
+  foundations as preserve, consolidate, repair, replace or exclude before assigning Beta 2 work.
+- **Valor boundary:** solve Omen's need correctly first. Extract a tool or procedure upward only
+  after repeated Omen use proves it reusable; Omen does not wait for a generalized consulting
+  framework.
+- **Plan:** `Direction/2026-10-12-rolling-three-beta-frame.md`.
+
 ## 2026-10-12 (later) — projections: the league's provider leads, Omen is the challenger and the filler; read everything the providers expose
 
 - **Decision (founder, 2026-10-12), refining the entry above:** the league provider's own projections LEAD for that league
@@ -4691,3 +4748,6 @@ on the second one.
 2026-10-09 — Omen's API may run warehouse shadow reads while Supabase remains response authority. Shadow reader startup degrades safely to Supabase; warehouse-primary startup remains fail-closed. The warehouse backup root is root-owned 0711 so the dedicated backup account can traverse an exact path without listing it; per-run directories remain 0700 and artifacts 0400. The first encrypted KVM2 snapshot is storage proof, not recovery proof: primary promotion and historical backfill still wait for an isolated KVM2 restore, real authenticated comparison evidence, and exercised monitoring.
 2026-10-09 — The first football-warehouse KVM2 recovery proof passed. Docker save/load is pinned by the exact image content ID because it does not preserve a source registry RepoDigest reference; accepting a mutable local tag is forbidden. Restic credentials remain only on omen-prod: decrypted public-football snapshot bytes may stream over existing Tailscale SSH trust into a root-only KVM2 source, must be checksum-verified before a networkless disposable restore, and must be removed after the retained proof verifies. This closes one-time restore proof, not scheduled recovery automation or monitoring notification.
 2026-10-09 — Sentry's Express integration runs with every layer type ignored (`ignoreLayersType: middleware, router, request_handler`). With `tracesSampleRate: 0` its per-layer spans were never sent, but each one hung a `finish` listener on the response, and the synchronous `/api/health` chain crossed Node's 10-listener warning on every probe. The warning predates PR #577 (reproduced at 981bf645). Route-named error events and layer error capture are kept. Raising `tracesSampleRate` later must revisit this, or Express layer spans will silently be absent.
+2026-10-14 — Build 12 selects Trade reliability as its primary candidate after the four inspection packets completed. The local repair uses league-directory membership, not weekly matchup state, as the primary viewer-team identity; excludes that team from every partner path; invalidates all league-dependent Trade state during a context transition; rejects late async responses from a previous league; and keeps pre-answer provider/scoring copy conditional. Focused native Trade tests pass 24/24 and final independent review is clean. This is source-verified, not release-ready: paired-iPhone partner selection and a visible manual-compare terminal result remain required, and Rhody's ESPN check remains deferred.
+2026-10-15 — The provider capability matrix is one machine-readable file (`Blueprints/specs/football-data/provider-capability-matrix.json`); the markdown is generated and never edited. Every entry carries source evidence (strings the code must, or must not, contain), and `test/providerCapabilityMatrix.test.js` fails when code drifts from it, including when a capability marked not-read starts being read. `last_verified` is a code-check date unless the entry cites a live proof. The earlier prose matrix (#648) is superseded on Yahoo projections: Yahoo is `degraded: derived_projection`, not absent. Reconciliation against the live database is in `Direction/reviews/2026-10-15-provider-matrix-db-reconciliation.md`: league scoring rules and credential health have no app-side writer, so those gaps are missing code, not provider limits.
+2026-10-15 — Foreign-key indexes: three are added (step 16: `projection_shadow_log` on `(player_id, season, week)` and on `league_id`, `projection_snapshots` on `league_id`, the last two partial), because those logs are empty now and grow weekly. Five advisor findings and the `nflverse_weekly_stats (season, week)` index are deliberately not built, each with row counts or a reader search as proof (`Direction/reviews/2026-10-15-fk-index-decision.md`): the tables are a few pages, the parents are never deleted, and nothing reads `nflverse_weekly_stats`. A skipped FK is re-opened by a data-quality check once its table passes 10,000 rows. Step 16 is rehearsed on Postgres 16 only and is not applied to any Supabase project.

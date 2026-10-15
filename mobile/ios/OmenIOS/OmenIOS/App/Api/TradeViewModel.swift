@@ -35,6 +35,11 @@ final class TradeViewModel: ObservableObject {
 
     @Published private(set) var rosterBrowseState: RosterBrowseState = .idle
     @Published private(set) var selectedPartnerTeamID: String?
+    /// Provider-confirmed identity for the team the signed-in user manages in `offer.leagueContext`.
+    /// Without it Omen cannot distinguish an opponent from the viewer and must offer no partner.
+    @Published private(set) var viewerTeamID: String?
+    /// Invalidates every asynchronous result whose meaning depends on the selected league.
+    private var leagueGeneration = 0
 
     /// Loads every team's roster for the offer's connected league. `offer.leagueContext` is set
     /// from the SAME `league-overview.v1` read the League destination uses — this never
@@ -49,12 +54,14 @@ final class TradeViewModel: ObservableObject {
             rosterBrowseState = .failed(.network)
             return
         }
+        let generation = leagueGeneration
         let accessToken: String?
         if case .token(let renewed) = await sessionManager.authorization() {
             accessToken = renewed
         } else {
             accessToken = nil
         }
+        guard generation == leagueGeneration else { return }
         guard let accessToken else {
             rosterBrowseState = .failed(.unauthorized)
             return
@@ -62,17 +69,22 @@ final class TradeViewModel: ObservableObject {
 
         rosterBrowseState = .loading
         selectedPartnerTeamID = nil
-        switch await repository.roster(
+        let result = await repository.roster(
             platform: leagueContext.platform,
             leagueId: leagueContext.leagueId,
             teamId: nil,
             week: nil,
             accessToken: accessToken
-        ) {
+        )
+        guard generation == leagueGeneration else { return }
+        switch result {
         case .success(let response):
             rosterBrowseState = .loaded(response)
             // Omen's own trade call names who it would deal with; open on that team, not the first one.
-            selectedPartnerTeamID = Self.partnerTeamID(in: response, for: prefill) ?? response.teams.first?.id
+            let preferred = Self.partnerTeamID(in: response, for: prefill)
+            selectedPartnerTeamID = rosterPartners.contains(where: { $0.id == preferred })
+                ? preferred
+                : rosterPartners.first?.id
         case .failure(let error):
             if error == .unauthorized { sessionManager.onRefreshFailed() }
             rosterBrowseState = .failed(error)
@@ -304,16 +316,20 @@ final class TradeViewModel: ObservableObject {
             threeTeamViewState = .idle
             return
         }
+        let generation = leagueGeneration
         let accessToken: String?
         if case .token(let renewed) = await sessionManager.authorization() {
             accessToken = renewed
         } else {
             accessToken = nil
         }
+        guard generation == leagueGeneration else { return }
 
         threeTeamViewState = .loading
         threeTeamSubmissionDoneSteps = []
-        switch await repository.compareThreeTeam(offer: threeTeamOffer, accessToken: accessToken) {
+        let result = await repository.compareThreeTeam(offer: threeTeamOffer, accessToken: accessToken)
+        guard generation == leagueGeneration else { return }
+        switch result {
         case .success(let result):
             threeTeamViewState = .loaded(result)
         case .failure(let error):
@@ -373,8 +389,12 @@ final class TradeViewModel: ObservableObject {
     }
 
     var rosterPartners: [OmenTradePartner] {
-        guard case .loaded(let response) = rosterBrowseState, response.isAvailable else { return [] }
-        return response.teams.map {
+        guard case .loaded(let response) = rosterBrowseState,
+              response.isAvailable,
+              let viewerTeamID,
+              !viewerTeamID.isEmpty
+        else { return [] }
+        return response.teams.filter { $0.id != viewerTeamID }.map {
             OmenTradePartner(id: $0.id, crest: crest(for: $0.teamName), name: $0.teamName ?? "Team \($0.id)", need: nil)
         }
     }
@@ -593,15 +613,19 @@ final class TradeViewModel: ObservableObject {
 
     func share(userID: String) async {
         guard offer.isComparable else { return }
+        let generation = leagueGeneration
         let accessToken: String?
         if case .token(let renewed) = await sessionManager.authorization() {
             accessToken = renewed
         } else {
             accessToken = nil
         }
+        guard generation == leagueGeneration else { return }
         let payloadOffer = shareIncludeNames ? offer : maskedForShare(offer)
         shareState = .sharing
-        switch await repository.share(offer: payloadOffer, accessToken: accessToken) {
+        let result = await repository.share(offer: payloadOffer, accessToken: accessToken)
+        guard generation == leagueGeneration else { return }
+        switch result {
         case .success(let response):
             shareState = .shared(response)
         case .failure(let error):
@@ -756,13 +780,19 @@ final class TradeViewModel: ObservableObject {
 
     /// The league to personalize against, when the caller has one. Set by the shell from the
     /// same `league-overview.v1` read the League destination uses — never guessed here.
-    func useLeague(platform: String?, leagueId: String?) {
+    func useLeague(platform: String?, leagueId: String?, viewerTeamId: String? = nil) {
+        let nextViewerTeamID = viewerTeamId.flatMap { $0.isEmpty ? nil : $0 }
         let next: TradeOffer.LeagueContext?
         if let platform, let leagueId, !platform.isEmpty, !leagueId.isEmpty {
             next = .init(platform: platform, leagueId: leagueId)
         } else {
             next = nil
         }
+        let contextChanged = offer.leagueContext != next || viewerTeamID != nextViewerTeamID
+        if contextChanged {
+            invalidateLeagueDependentState()
+        }
+        viewerTeamID = nextViewerTeamID
         // A prefilled offer belongs to the league Omen's call was made for. The league sync must not point it
         // at another one: if it names the same league nothing changes; if it names a different one (or none),
         // the offer is no longer that call's, so it is dropped rather than compared in the wrong league.
@@ -776,6 +806,24 @@ final class TradeViewModel: ObservableObject {
             viewState = .idle
         }
         offer.leagueContext = next
+    }
+
+    /// A roster, verdict, share result, or three-team build is evidence about one league.
+    /// Drop all of it as soon as that context starts changing (including loading/failure),
+    /// before another league can inherit the previous league's teams on screen.
+    private func invalidateLeagueDependentState() {
+        leagueGeneration += 1
+        invalidateCompare()
+        viewState = .idle
+        rosterBrowseState = .idle
+        selectedPartnerTeamID = nil
+        thirdPartnerTeamID = nil
+        isPartnerPickerPresented = false
+        threeTeamLegs = []
+        threeTeamViewState = .idle
+        threeTeamSubmissionDoneSteps = []
+        thirdPartnerRemovalDisclosure = nil
+        shareState = .idle
     }
 
     func compare(userID: String) async {
@@ -839,20 +887,17 @@ final class TradeViewModel: ObservableObject {
     static func searchMessage(for error: OmenApiError) -> String {
         switch error {
         case .cancelled:
-            return "That was interrupted. Try again, or type the full name and press Add."
+            return "That was interrupted. Try the search again."
         case .server(let status) where status == 429:
-            return "Omen limits searches to protect the service. Wait about a minute, "
-                + "or type the full name and press Add."
+            return "Omen limits searches to protect the service. Wait about a minute, then try again."
         case .network:
-            return "Omen couldn't reach the server. Check your connection, "
-                + "or type the full name and press Add."
+            return "Omen couldn't reach the server. Check your connection, then try the search again."
         case .unauthorized:
-            return "Omen couldn't authorize this search. Type the full name and press Add."
+            return "Omen couldn't authorize this search. Sign in again before choosing a player."
         case .server:
-            return "Omen is having trouble on our side. Type the full name and press Add."
+            return "Omen is having trouble on our side. Try the search again in a moment."
         case .decode:
-            return "Omen sent something this version of the app couldn't read. "
-                + "Type the full name and press Add."
+            return "Omen sent player results this version of the app couldn't read. Updating the app may fix it."
         }
     }
 

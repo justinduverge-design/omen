@@ -37,13 +37,8 @@ protocol ConnectRepository {
     /// Binds the chosen league to the Yahoo connection.
     func bindYahooLeague(id: String, accessToken: String) async -> Result<Void, ConnectFailure>
 
-    /// Reads back whether the ESPN connection made on a computer has reached this account.
-    ///
-    /// The app never *makes* an ESPN connection — the desktop helper fills Omen's web form and
-    /// the user presses Connect there. This is the read side only: `GET /api/leagues` is the
-    /// provider-neutral directory the server already publishes, and it is the single honest
-    /// answer to "did it work?". Returning `nil` means "not yet", which is a normal status and
-    /// not a failure.
+    /// Reads back the ESPN connection after native iPhone connect succeeds. `GET /api/leagues`
+    /// is the provider-neutral, already-redacted directory and never carries session material.
     func espnConnection(accessToken: String) async -> Result<EspnConnection?, ConnectFailure>
 
     /// W1-A — the one request that carries the ESPN session, and the only one that ever will.

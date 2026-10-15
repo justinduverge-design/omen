@@ -205,6 +205,19 @@ function buildCandidateRecord({ candidate, opponentTeamId, opponentTeamName, own
  * `budget_exceeded: true`, and whatever candidates were already found are
  * still returned.
  */
+// A side's weekly lineup gain must be real, and neither side may give up more season-long value (VORP)
+// than its own weekly gain justifies. Without the second half a manager "improves" by trading a star
+// for a depth piece they would never accept; without the first, "+0.0 to theirs" counts as mutual.
+const MIN_SIDE_LINEUP_GAIN = 0.5;
+const MAX_VORP_LOSS_PER_WEEKLY_POINT = 1;
+
+function mutualFairnessGuard({ give, receive, userDelta, opponentDelta } = {}) {
+  if (!(userDelta >= MIN_SIDE_LINEUP_GAIN) || !(opponentDelta >= MIN_SIDE_LINEUP_GAIN)) return false;
+  const net = compareTrade({ send: [give], receive: [receive] }).net_value; // your VORP gain, their VORP loss
+  if (!Number.isFinite(net)) return false;
+  return net >= -(userDelta * MAX_VORP_LOSS_PER_WEEKLY_POINT) && net <= opponentDelta * MAX_VORP_LOSS_PER_WEEKLY_POINT;
+}
+
 function findLeagueTradeCandidates({
   ownTeamId,
   teams = [],
@@ -213,7 +226,7 @@ function findLeagueTradeCandidates({
   maxCandidates = MAX_CANDIDATES_RETURNED,
   budget = createSearchBudget(),
   onBudgetExceeded = null,
-  fairnessGuard,
+  fairnessGuard = mutualFairnessGuard,
 } = {}) {
   const allTeams = Array.isArray(teams) ? teams : [];
   const ownTeam = allTeams.find((team) => String(team?.team_id) === String(ownTeamId));
@@ -322,6 +335,8 @@ function findLeagueTradeCandidates({
 }
 
 module.exports = {
+  mutualFairnessGuard,
+  MIN_SIDE_LINEUP_GAIN,
   MAX_OPPONENT_TEAMS_PER_SCAN,
   MAX_CANDIDATES_RETURNED,
   buildTeamNeedProfile,

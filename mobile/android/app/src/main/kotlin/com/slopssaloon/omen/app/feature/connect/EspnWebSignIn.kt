@@ -107,7 +107,7 @@ object EspnWebSignIn {
     }
 
     /**
-     * Picks a cookie out of the jar string by the same domain preference the desktop helper uses.
+     * Picks a cookie out of the jar string by the server adapter's domain preference.
      *
      * Exact host first, across the whole preference order, **before** any suffix fallback — a
      * dot-prefixed `.espn.com` cookie is a suffix of `www.espn.com`, so folding the two passes

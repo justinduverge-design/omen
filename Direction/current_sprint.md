@@ -1,6 +1,6 @@
 # Omen Current Sprint
 
-**Refreshed:** 2026-10-12 (staleness pass; release cadence is every other Tuesday, plan: `Direction/2026-10-27-beta-readiness.md`). **Rebuilt:** 2026-10-03. The previous file (202 KB, 85 non-closed items, last updated 2026-09-27) is archived
+**Refreshed:** 2026-10-12 (founder set a rolling weekly Tuesday frame; scope is chosen one release at a time after inspection: `Direction/2026-10-12-rolling-three-beta-frame.md`). **Rebuilt:** 2026-10-03. The previous file (202 KB, 85 non-closed items, last updated 2026-09-27) is archived
 verbatim at `Archive/sprints/2026-10-03-current_sprint-full.md`. Its item statuses were not re-verified; most
 work since 2026-09-27 shipped from PRs, not sprint items. What has shipped: `Direction/shipped.md`
 (regenerate with `node scripts/shipped.js`).
@@ -10,6 +10,16 @@ A pin in `Direction/agent_inbox.md` overrides this file. Do not auto-pull databa
 founder, or store work.
 
 ## Active
+
+### OMEN-FOUNDATION — inspect the shared football decision foundation before allocating Beta 2
+
+- **Status:** IN_PROGRESS
+- **Claim:** Codex, 2026-10-12, founder direction to begin future-build work after archive/upload
+- **Priority:** P0 planning gate
+- **Cost:** medium inspection; implementation explicitly excluded from this claim
+- **Do not touch:** production/provider accounts, protected decision-engine files, preserved WIP branches, or future-release scope before the evidence is reviewed
+- **Scope:** `Direction/2026-10-12-rolling-three-beta-frame.md` inspection gate; pass 1 evidence in `Direction/reviews/2026-10-12-omen-foundation-reassessment-pass-1.md`
+- **Done when:** provider-by-feature matrix, shared-primitives map, canvas behavior delta, Xcode automation opportunities and preserve/consolidate/repair/replace/exclude register are evidence-backed enough to propose the smallest coherent 2026-10-20 outcome.
 
 ### FI-LEAGUE — Football intelligence for the whole league (the "why" behind every call)
 
@@ -21,15 +31,27 @@ founder, or store work.
 - **Scope and running checklist:** `Blueprints/handoffs/2026-10-03-football-intelligence-league-build.md`.
 - **Done when:** every team has a published system signal, and the founder sees team-system and usage lines on the phone for players on any team. Evidence: the walk notes (`Direction/2026-10-11-device-walk-2.md`).
 
-### RELEASE-CYCLE — every other Tuesday (2026-10-13, then 2026-10-27), iOS plus API
+### RELEASE-CYCLE — Build 11 uploaded; Build 12 targets 2026-10-20 at the earliest; 2026-10-27 remains hopeful
 
 - **Status:** READY
-- **Blocked by:** FOUNDER_APPROVAL — store submission, App Store Connect actions, the section 10 decisions, Gate G phone walk
+- **Blocked by:** Build 12 paired-iPhone Trade journey, provider terminal-state certification and release integration
 - **Priority:** P0
 - **Cost:** medium
 - **Do not touch:** store consoles without approval; merge cutoff is the Monday afternoon before each release, no deploying merges Monday evening through the release day
-- **Scope:** `Direction/2026-10-27-beta-readiness.md` (index), `Direction/2026-10-06-tuesday-beta-readiness.md` §2c-2e (state), `Direction/2026-10-13-release-rollback-card.md` (rollback).
+- **Scope:** `Direction/2026-10-20-build-12-plan.md` (active build), `Direction/2026-10-12-rolling-three-beta-frame.md` (cadence), `Direction/2026-10-27-beta-readiness.md` (unallocated horizon/index), `Direction/2026-10-13-release-rollback-card.md` (Build 9 rollback provenance).
 - **Done when:** the founder ships the build and the release day's canary passes.
+
+**2026-10-13 execution note:** no new beta version has installs yet. ESPN fresh-login verification is
+deferred until the founder reports an install and explicitly resumes it. The three no-install lanes
+are Trade reliability trace, shared-foundation/provider honesty, and Omen-summary plus League audit;
+see the active Build 12 plan.
+
+**2026-10-14 candidate note:** all four scope-selection packets exist. Trade reliability is the
+primary candidate. Local native repairs exclude the viewer from partner choices, resolve viewer
+identity independently of weekly matchup, invalidate all league-dependent state on a switch, reject
+late responses from the previous league, and keep personalization copy honest. Focused Trade tests
+pass 24/24 and fresh independent review is clean. Release readiness still requires the paired-iPhone
+partner/manual-compare journey and ESPN/Yahoo/Sleeper terminal-state evidence; Rhody remains deferred.
 
 ### FM-XFP — Omen fantasy metrics v1: expected fantasy points, opportunity, role chart, dynasty outlook
 
@@ -82,12 +104,13 @@ founder, or store work.
 
 ### PROJ-OMEN — Omen's own projections: league provider leads, Omen challenges and fills Yahoo
 
-- **Status:** READY
+- **Status:** IN_PROGRESS
 - **Blocked by:** FOUNDER_APPROVAL — wiring any Omen projection into a live path needs its own yes after the backtest
 - **Priority:** P1
 - **Cost:** large
 - **Do not touch:** `vorp.js`, `decisionBriefV2.js`, `decisionContext.js`, `systemContracts.js`, `llm.js`; the live projection paths until a backtest shows Omen is not worse
-- **Scope:** PR #654 (spec `Blueprints/specs/football-data/omen-projections-v1.md`, pure model, offline backtest; **one unresolved review P1**: the relevant-universe filter must not depend on the baselines, ship rule must hold in both universes). Decision: `Direction/decision_log.md` 2026-10-12.
+- **Claim:** Codex, 2026-10-14, PR #654 is locally staged on `codex/build-12`; scoring-family, minimum-evidence, and reader-role repairs pass 34/34 focused tests and fresh review with no P0/P1/P2. The retained-analysis runbook passed review and its pure planning/cleanup gate passes focused tests, but receiver/supervisor/reaper implementation and the restored-warehouse run remain open.
+- **Scope:** PR #654 (spec `Blueprints/specs/football-data/omen-projections-v1.md`, pure model, offline backtest). The relevance-universe P1 is repaired. A later review found two more P1s: PPR-only certification and sparse paired evidence. Their local repair makes decisions per scoring family and requires versioned row/player floors. Decision: `Direction/decision_log.md` 2026-10-12; audit: `Direction/reviews/2026-10-12-build-12-unfinished-work-audit.md`.
 - **Done when (backtest):** a read-only backtest on a restored warehouse copy (KVM2) is in `Direction/reviews/` and shows whether Omen beats the last-3 and season-average baselines per position.
 
 ### PROVIDER-READS — read everything the providers expose (trade targets, transactions, roster slots, Yahoo waiver status)
@@ -127,6 +150,6 @@ founder, or store work.
 
 ## Needs a decision
 
-- **T2-FindATradeGenerator** — shipped (#501 swipe review, #633 front door and real Save, #639 trade call in Omen). Close with a `Closure:` once the phone walk confirms Find a trade end to end.
+- **T2-FindATradeGenerator** — source shipped (#501 swipe review, #633 front door and real Save, #639 trade call in Omen), but the 2026-10-12 founder phone walk says it does not work. Do not close. Reproduce after the freeze and decide repair versus honest exclusion from the affected beta.
 - **Archived backlog** — 85 items. Before pulling one back, confirm with `Direction/shipped.md` that it has
   not already shipped, then copy it here with a fresh `Status:`.

@@ -69,6 +69,7 @@
           "projected_points": 20,
           "selected_position": "BN"
         },
+        "usage_evidence": [],
         "user_lineup_delta": 15,
         "valuation": {
           "a_score": 0.5,
@@ -213,6 +214,7 @@
           "projected_points": 20,
           "selected_position": "BN"
         },
+        "usage_evidence": [],
         "user_lineup_delta": 15,
         "valuation": {
           "a_score": 0.5,
@@ -357,6 +359,7 @@
           "projected_points": 20,
           "selected_position": "BN"
         },
+        "usage_evidence": [],
         "user_lineup_delta": 15,
         "valuation": {
           "a_score": 0.5,
@@ -501,6 +504,7 @@
           "projected_points": 20,
           "selected_position": "BN"
         },
+        "usage_evidence": [],
         "user_lineup_delta": 15,
         "valuation": {
           "a_score": 0.5,
@@ -621,6 +625,7 @@
     },
     "status": "ok",
     "team_id": "1",
+    "usage_evidence_state": "not_in_season",
     "week": 3
   }
 }
