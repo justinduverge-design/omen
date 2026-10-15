@@ -382,13 +382,15 @@ struct OmenTradeBuildScreen: View {
                 title: state.title,
                 onOpenAccount: onOpenAccount
             )
-            OmenTradeTabs(
-                titles: state.tabTitles,
-                selectedIndex: state.selectedTabIndex,
-                onSelect: onSelectTab
-            )
-            .padding(.horizontal, OmenSpacing.step16)
-            .padding(.top, OmenSpacing.step12)
+            if !state.tabTitles.isEmpty {
+                OmenTradeTabs(
+                    titles: state.tabTitles,
+                    selectedIndex: state.selectedTabIndex,
+                    onSelect: onSelectTab
+                )
+                .padding(.horizontal, OmenSpacing.step16)
+                .padding(.top, OmenSpacing.step12)
+            }
 
             partners
             if let disclosure = state.removalDisclosure {

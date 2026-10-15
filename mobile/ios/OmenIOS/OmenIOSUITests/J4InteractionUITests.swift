@@ -129,9 +129,9 @@ final class J4InteractionUITests: XCTestCase {
 
     func testTheBuildScreenOffersItsTabsFiltersAndPartners() {
         let app = launch("journey-j4.nominal.01-trade-build")
-        // The artboard's two tabs. `Type a trade` is the shipped `OmenTradeScreen` path and
-        // `Build a trade` is this journey; the first build invented "Build"/"Rosters", which
-        // hid the typed path that actually ships.
+        // The production Trade shell owns one mode control. It must expose Find explicitly and
+        // must not be replaced by the journey's retired nested Type / Build selector.
+        assertTappable(app.buttons["Find a trade"], "the Find-a-trade mode")
         assertTappable(app.buttons["Type a trade"], "the typed-trade tab")
         assertTappable(app.buttons["Build a trade"], "the built-trade tab")
         assertTappable(app.buttons["All"], "All filter")

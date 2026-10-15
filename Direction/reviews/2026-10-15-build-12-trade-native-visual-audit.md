@@ -46,6 +46,14 @@ or explicitly unsupported, the supported fixture carries no retired reason code,
 requires a tappable third-team control with no two-team-limit copy. The corrected frame was rebuilt,
 installed on the simulator, recaptured, and visually inspected.
 
+Founder review found a third evidence gap: that corrected J4 frame still did not show Find a Trade.
+The live destination owned an outer `Find / Build / Type` selector, while the J4 scenarios mounted
+the inner Build journey directly and kept a retired second `Type a trade / Build a trade` selector.
+The Trade destination now names the single production selector explicitly as `Find a trade`,
+`Build a trade`, and `Type a trade`; the inner Build screen omits an empty or duplicate selector;
+and J4 captures mount through the shared production mode container. The new nominal capture visibly
+shows all three actions with Build selected.
+
 ## Verification
 
 - simulator restart: iPhone 16 / iOS 26.5 booted cleanly;
@@ -56,7 +64,8 @@ installed on the simulator, recaptured, and visually inspected.
 - corrected dark typed-entry capture: written and visually inspected;
 - corrected nominal Build capture: live Add-team control and no stale two-team notice, written and
   visually inspected;
-- focused J4 interaction UI test for that exact contradiction: 1/1 pass.
+- focused J4 interaction UI tests: 2/2 pass, including discovery of all three named Trade modes and
+  the live third-team/no-stale-limit assertion.
 
 ## Still open before promotion
 

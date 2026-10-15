@@ -791,11 +791,18 @@ enum ScreenshotScenarios {
         FauxShell(initialTab: .command, commandContentOverride: content)
     }
 
-    /// J4 opens on the Trade tab. Trade is the front door — `context.md` says so — and all five
-    /// of its artboards are that destination, so a capture that opened anywhere else would be a
-    /// picture of the wrong screen.
+    /// J4 opens on the Trade tab through the same Find / Build / Type mode control production
+    /// uses. Mounting the inner journey screen directly hid Find a trade from every J4 capture
+    /// even though it was available in the live destination.
     private static func j4Shell(_ content: AnyView) -> some View {
-        FauxShell(initialTab: .trade, tradeContentOverride: content)
+        FauxShell(
+            initialTab: .trade,
+            tradeContentOverride: AnyView(
+                OmenTradeModeContainer(selectedMode: .constant(.build)) { mode in
+                    mode == .build ? content : AnyView(EmptyView())
+                }
+            )
+        )
     }
 
     /// J5 opens on the League tab. All six of its artboards live in that destination — the wire
@@ -2030,11 +2037,10 @@ enum J4ScreenshotFixtures {
     static let nominalBuild = OmenTradeBuildState(
         kicker: "Two teams",
         title: "Build a deal",
-        // The artboard's two tabs, not "Build"/"Rosters". `Type a trade` is the shipped
-        // `OmenTradeScreen` path and `Build a trade` is this journey — the split is real
-        // product, and both `TradeBuild` and `TradeRoster` draw it with the same tab on.
-        tabTitles: ["Type a trade", "Build a trade"],
-        selectedTabIndex: 1,
+        // The production Trade shell owns Find / Build / Type. The journey itself must not draw
+        // a second, competing Type / Build selector underneath it.
+        tabTitles: [],
+        selectedTabIndex: 0,
         partners: partners,
         selectedPartnerID: "dsi",
         filters: filters,
@@ -2049,11 +2055,8 @@ enum J4ScreenshotFixtures {
     static let degradedBuild = OmenTradeBuildState(
         kicker: "Two teams",
         title: "Build a deal",
-        // The artboard's two tabs, not "Build"/"Rosters". `Type a trade` is the shipped
-        // `OmenTradeScreen` path and `Build a trade` is this journey — the split is real
-        // product, and both `TradeBuild` and `TradeRoster` draw it with the same tab on.
-        tabTitles: ["Type a trade", "Build a trade"],
-        selectedTabIndex: 1,
+        tabTitles: [],
+        selectedTabIndex: 0,
         partners: partners,
         selectedPartnerID: "dsi",
         filters: filters,

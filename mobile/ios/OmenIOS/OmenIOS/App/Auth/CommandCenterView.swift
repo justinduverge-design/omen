@@ -646,9 +646,9 @@ enum TradeMode: String, CaseIterable {
 
     var title: String {
         switch self {
-        case .find: return "Find"
-        case .build: return "Build"
-        case .type: return "Type"
+        case .find: return "Find a trade"
+        case .build: return "Build a trade"
+        case .type: return "Type a trade"
         }
     }
 }
