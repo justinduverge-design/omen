@@ -242,8 +242,10 @@ function nameIndex(sleeperPlayers) {
  * either side or any ambiguity leaves the player unprojected.
  */
 function fallbackSleeperId(yahooPlayer, sleeperPlayers) {
+  const wanted = String(yahooPlayer?.position || "").toUpperCase();
+  // Primary position only: a secondary fantasy position is how a namesake slips in.
   const candidates = (nameIndex(sleeperPlayers).get(normalizeName(yahooPlayer?.name)) || [])
-    .filter((id) => positionsAgree(yahooPlayer, sleeperPlayers[id]));
+    .filter((id) => wanted && String(sleeperPlayers[id]?.position || "").toUpperCase() === wanted);
   const team = normTeam(yahooPlayer?.team);
   if (!team) return null;
   const fits = candidates.filter((id) => normTeam(sleeperPlayers[id]?.team) === team);

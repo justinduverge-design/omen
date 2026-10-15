@@ -6,13 +6,15 @@
  *
  *   node scripts/probe-provider-leagues.js <account-email | user-id-prefix>
  *
+ * Writes nothing of its own. One caveat: it uses the app's normal auth path, which refreshes and stores a
+ * Yahoo token that is near expiry (exactly as a normal app request would).
+ *
  * Needs SUPABASE_URL and SUPABASE_SERVICE_KEY in the environment (see .env).
  * Goes through the same adapters Trade uses. Writes nothing. Prints ONLY counts, field presence,
  * HTTP-ish status words and league-config slot counts. Never prints credentials, tokens, cookies,
- * league ids, team names or player names; league ids appear as a short hash.
+ * league ids, team names or player names; league ids appear as an index (league_1...).
  */
 
-const crypto = require("crypto");
 const [email] = process.argv.slice(2);
 if (!email || email === "--help") {
   console.error("usage: node scripts/probe-provider-leagues.js <account-email>");
@@ -31,7 +33,8 @@ const { projectYahooPool } = require("../src/services/yahooProjections");
 const rosterSvc = require("../src/services/roster");
 
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
-const tag = (id) => crypto.createHash("sha256").update(String(id)).digest("hex").slice(0, 6);
+const labels = new Map();
+const tag = (id) => { if (!labels.has(id)) labels.set(id, `league_${labels.size + 1}`); return labels.get(id); };
 const safeErr = (e) => String(e?.status || e?.code || e?.name || "error").slice(0, 40);
 
 function shape(teams) {

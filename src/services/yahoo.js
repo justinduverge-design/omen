@@ -397,7 +397,7 @@ class YahooClient {
 
   /**
    * Fetch available (waiver/free agent) players for a league.
-   * Yahoo paginates at 25 max; we'll request `count` (capped at 50) sorted
+   * Yahoo returns at most 25 per page; `count` (default 50, capped at 100) is paged and merged, sorted
    * by Average Rank ('AR') so the highest-value players come first.
    *
    * Returns: raw Yahoo response. Use rosterSvc.normalizeYahooWaivers()
@@ -417,12 +417,16 @@ class YahooClient {
     const starts = [];
     for (let start = PAGE; start < want; start += PAGE) starts.push(start);
     const later = await Promise.all(starts.map((start) => page(start, Math.min(PAGE, want - start)).catch(() => null)));
+    const seen = new Set(Object.values(firstPlayers).map((entry) => entry?.player?.[0]?.[0]?.player_key).filter(Boolean));
     let next = Object.keys(firstPlayers).filter((k) => k !== "count").length;
     for (const response of later) {
       const players = response?.fantasy_content?.league?.[1]?.players;
       if (!players) continue;
       for (const k of Object.keys(players)) {
         if (k === "count") continue;
+        const key = players[k]?.player?.[0]?.[0]?.player_key;
+        if (key && seen.has(key)) continue; // the pool shifted between parallel pages
+        if (key) seen.add(key);
         firstPlayers[String(next)] = players[k];
         next += 1;
       }

@@ -379,3 +379,33 @@ test("getAvailablePlayers pages past Yahoo's 25-per-page cap and keeps the respo
   assert.equal(urls.length, 2);
   assert.ok(urls[0].includes("count=25;start=0") && urls[1].includes("count=25;start=25"));
 });
+
+test("fallback pairing refuses suffix namesakes on one team and secondary-position matches", async () => {
+  const sleeperPlayers = {
+    "S-1": { full_name: "Marcus Same Jr.", position: "WR", team: "ARI", active: true },
+    "S-2": { full_name: "Marcus Same Sr.", position: "WR", team: "ARI", active: true },
+    "S-3": { full_name: "Flex Man", position: "WR", fantasy_positions: ["WR", "RB"], team: "KC", active: true },
+    "S-4": { full_name: "Solo Back", position: "RB", team: "KC", active: true },
+  };
+  const statLines = { "S-1": WR_LINE, "S-2": WR_LINE, "S-3": WR_LINE, "S-4": WR_LINE };
+  const { client, deps } = fixture({ sleeperPlayers, statLines });
+  const roster = [
+    { player_id: "1", name: "Marcus Same Jr.", position: "WR", team: "ARI", projected_points: null }, // two fit: refuse
+    { player_id: "2", name: "Flex Man", position: "RB", team: "KC", projected_points: null },          // secondary position: refuse
+    { player_id: "3", name: "Solo Back", position: "RB", team: "KC", projected_points: null },         // clean: pair
+  ];
+  await enrichYahooPlayers(roster, { client, leagueKey: "L", week: 8, season: 2026, deps });
+  assert.deepEqual(roster.map((p) => p.projected_points != null), [false, false, true]);
+});
+
+test("getAvailablePlayers dedupes players that shift between pages and survives a failed page", async () => {
+  const YahooClient = require("../src/services/yahoo");
+  const client = new YahooClient("token");
+  const page = (keys) => ({ fantasy_content: { league: [{}, { players: { count: keys.length, ...Object.fromEntries(keys.map((k, i) => [String(i), { player: [[{ player_key: k }]] }])) } }] } });
+  client.get = async (url) => (url.includes("start=0") ? page(["a", "b"]) : url.includes("start=25") ? page(["b", "c"]) : Promise.reject(new Error("page down")));
+  const raw = await client.getAvailablePlayers("L", { count: 75 });
+  const players = raw.fantasy_content.league[1].players;
+  const keys = Object.entries(players).filter(([k]) => k !== "count").map(([, v]) => v.player[0][0].player_key);
+  assert.deepEqual(keys, ["a", "b", "c"], "b is not repeated and the failed third page is skipped");
+  assert.equal(players.count, 3);
+});

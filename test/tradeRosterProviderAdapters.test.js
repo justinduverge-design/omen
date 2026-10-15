@@ -296,14 +296,32 @@ test("evaluateTradeForConnection skips an unreadable Yahoo team instead of treat
     { team_id: "t.2", team_name: "Rival", players: [], read_status: "unreadable" },
   ];
   const adapters = { yahoo: { fetchYahooLeagueRosters: async () => ({ teams, roster_positions: ["QB"] }) } };
-  const roster = { week: 5, team_key: "t.1", slots: { starters: [{ projection: 10 }], bench: [] } };
+  const roster = { week: 5, team_key: "t.1", slots: { starters: [{ projected_points: 10 }], bench: [] } };
   const result = await evaluateTradeForConnection({
     connection: { platform: "yahoo", league_id: "411.l.1" },
     roster,
     deps: { adapters, yahooAuth: { accessToken: "x" } },
   });
   // Own roster unreadable: honest unavailable, never "no trade found".
-  assert.equal(result.status === "none_found", false);
+  assert.equal(result.status, "unavailable");
+  assert.equal(result.reason, "rosters_unreadable");
+
+  // Only an opponent unreadable: the others are still searched and the skipped one is counted.
+  const mk = (id, pos, pts) => ({ player_id: id, player_key: id, position: pos, eligible_positions: [pos], projected_points: pts });
+  const mixed = [
+    { team_id: "t.1", players: [mk("r1", "RB", 5), mk("w1", "WR", 15), mk("w2", "WR", 14)], read_status: "ok" },
+    { team_id: "t.2", players: [], read_status: "unreadable" },
+    { team_id: "t.3", players: [mk("r2", "RB", 15), mk("r3", "RB", 14), mk("w3", "WR", 4)], read_status: "ok" },
+  ];
+  const mixedAdapters = { yahoo: { fetchYahooLeagueRosters: async () => ({ teams: mixed, roster_positions: ["RB", "WR"] }) } };
+  const ok = await evaluateTradeForConnection({
+    connection: { platform: "yahoo", league_id: "411.l.1" },
+    roster: { week: 5, team_key: "t.1", slots: { starters: [{ projected_points: 10 }], bench: [] } },
+    deps: { adapters: mixedAdapters, yahooAuth: { accessToken: "x" } },
+  });
+  assert.equal(ok.status, "candidate");
+  assert.equal(ok.teams_checked, 1);
+  assert.equal(ok.teams_unreadable, 1);
 });
 
 test("ESPN carries provider lock flags and Trade never proposes a trade-locked player", () => {

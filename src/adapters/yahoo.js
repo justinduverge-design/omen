@@ -235,6 +235,9 @@ async function fetchYahooLeagueRosters(leagueKey, accessToken, week) {
   const effectiveWeek = week || await client.getCurrentWeek(leagueKey);
   const standings = await client.getLeagueStandings(leagueKey);
 
+  const settingsRead = Promise.resolve()
+    .then(() => client.getLeagueSettings(leagueKey, { report: false }))
+    .catch(() => null);
   const teams = await Promise.all(standings.map(async (team) => {
     if (!team?.team_id) {
       return { team_id: null, team_name: team?.team_name || null, players: [], read_status: "unreadable" };
@@ -258,12 +261,8 @@ async function fetchYahooLeagueRosters(leagueKey, accessToken, week) {
     }
     return { team_id: team.team_id, team_name: team.team_name || null, players, read_status: readStatus };
   }));
-  let rosterPositions = [];
-  try {
-    rosterPositions = rosterPositionsFromYahooSettings(await client.getLeagueSettings(leagueKey, { report: false }));
-  } catch {
-    // Settings unreadable: callers fall back to the user's own lineup slots.
-  }
+  // Settings unreadable (null) leaves the slot list empty: callers fall back to the user's own lineup.
+  const rosterPositions = rosterPositionsFromYahooSettings(await settingsRead);
   const unreadableTeamIds = teams.filter((team) => team.read_status === "unreadable").map((team) => team.team_id);
 
   // Yahoo carries no projection; fill every team's players from Sleeper's public stat lines scored
