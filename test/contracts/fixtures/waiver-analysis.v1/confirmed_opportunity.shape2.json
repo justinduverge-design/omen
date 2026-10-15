@@ -37,10 +37,10 @@
     "contract_version": "waiver-analysis.v1",
     "cost": {
       "accepted_because": [
-        "Deep RB projects 3 points, the lowest on your bench.",
+        "Deep RB projects 3 points, the lowest on your bench among players who can play this week.",
         "Tracy addresses a more immediate roster need."
       ],
-      "removes": "Deep RB was your only remaining bench option at that position."
+      "removes": "Deep RB was your RB depth; 1 other option remains at that position."
     },
     "deadline": null,
     "evidence": [
