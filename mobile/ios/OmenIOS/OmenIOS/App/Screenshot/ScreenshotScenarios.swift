@@ -1137,12 +1137,19 @@ private struct FauxShell: View {
                 if let tradeContentOverride {
                     tradeContentOverride
                 } else {
-                    OmenTradeScreen(
-                        state: tradeState,
-                        offer: tradeOffer,
-                        onFindTrade: {},
-                        prefill: scenarioKey == "trade.prefilled" ? Self.prefilledTrade : nil
-                    )
+                    OmenTradeModeContainer(selectedMode: .constant(.type)) { mode in
+                        switch mode {
+                        case .type:
+                            OmenTradeScreen(
+                                state: tradeState,
+                                offer: tradeOffer,
+                                onFindTrade: {},
+                                prefill: scenarioKey == "trade.prefilled" ? Self.prefilledTrade : nil
+                            )
+                        case .find, .build:
+                            EmptyView()
+                        }
+                    }
                 }
             }
             .tabItem { CommandCenterTab.trade.label }

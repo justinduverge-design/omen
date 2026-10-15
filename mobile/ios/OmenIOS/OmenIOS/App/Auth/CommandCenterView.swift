@@ -353,19 +353,8 @@ struct CommandCenterView: View {
                         )
                     }
                 } else {
-                    VStack(alignment: .leading, spacing: 0) {
-                        OmenTradeTabs(
-                            titles: TradeMode.allCases.map(\.title),
-                            selectedIndex: TradeMode.allCases.firstIndex(of: selectedTradeMode) ?? 0,
-                            onSelect: { index in
-                                guard TradeMode.allCases.indices.contains(index) else { return }
-                                selectedTradeMode = TradeMode.allCases[index]
-                            }
-                        )
-                        .padding(.horizontal, OmenSpacing.step16)
-                        .padding(.top, OmenSpacing.step12)
-
-                        switch selectedTradeMode {
+                    OmenTradeModeContainer(selectedMode: $selectedTradeMode) { mode in
+                        switch mode {
                         case .find:
                             TradeFindFlowView(
                                 directoryRepository: leagueDirectoryRepository,
@@ -652,7 +641,7 @@ enum CommandCenterTab: String, Hashable, CaseIterable {
     var label: some View { Label(title, systemImage: systemImage) }
 }
 
-private enum TradeMode: String, CaseIterable {
+enum TradeMode: String, CaseIterable {
     case find, build, type
 
     var title: String {
@@ -660,6 +649,38 @@ private enum TradeMode: String, CaseIterable {
         case .find: return "Find"
         case .build: return "Build"
         case .type: return "Type"
+        }
+    }
+}
+
+/// The shared Trade destination chrome. Production and screenshot evidence both use this
+/// container so a fixture cannot silently bypass the Find / Build / Type entry point.
+struct OmenTradeModeContainer<Content: View>: View {
+    @Binding var selectedMode: TradeMode
+    @ViewBuilder let content: (TradeMode) -> Content
+
+    init(
+        selectedMode: Binding<TradeMode>,
+        @ViewBuilder content: @escaping (TradeMode) -> Content
+    ) {
+        _selectedMode = selectedMode
+        self.content = content
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            OmenTradeTabs(
+                titles: TradeMode.allCases.map(\.title),
+                selectedIndex: TradeMode.allCases.firstIndex(of: selectedMode) ?? 0,
+                onSelect: { index in
+                    guard TradeMode.allCases.indices.contains(index) else { return }
+                    selectedMode = TradeMode.allCases[index]
+                }
+            )
+            .padding(.horizontal, OmenSpacing.step16)
+            .padding(.top, OmenSpacing.step12)
+
+            content(selectedMode)
         }
     }
 }
