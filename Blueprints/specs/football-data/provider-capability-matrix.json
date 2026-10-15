@@ -1055,5 +1055,6 @@
         "has_recent_player_notes"
       ]
     }
-  ]
+  ],
+  "founder_vocabulary": "Build 12 plan (PR 670, Provider direction correction) names four states that must never masquerade as one another. In this file: not implemented = status not_read; not yet proven = verification code (shape never seen live) on any entry; temporarily failed = a runtime outcome, never a matrix row (see runtime_reasons); provider unavailable = status unavailable, which no entry uses today because every capability above is either read or simply not read."
 }

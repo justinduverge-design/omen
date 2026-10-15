@@ -4,6 +4,8 @@
 
 As of 2026-10-15. Canonical machine-readable provider capability matrix. test/providerCapabilityMatrix.test.js fails when the code drifts from it. The markdown view is generated: node scripts/generate-provider-matrix.js. Edit this file, never the view.
 
+Build 12 plan (PR 670, Provider direction correction) names four states that must never masquerade as one another. In this file: not implemented = status not_read; not yet proven = verification code (shape never seen live) on any entry; temporarily failed = a runtime outcome, never a matrix row (see runtime_reasons); provider unavailable = status unavailable, which no entry uses today because every capability above is either read or simply not read.
+
 ## Status
 
 | Capability | sleeper | espn | yahoo |

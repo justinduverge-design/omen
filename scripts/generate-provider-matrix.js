@@ -34,6 +34,8 @@ function render(matrix) {
   lines.push("");
   lines.push(`As of ${matrix.as_of}. ${matrix.note}`);
   lines.push("");
+  lines.push(matrix.founder_vocabulary);
+  lines.push("");
   lines.push("## Status");
   lines.push("");
   lines.push(`| ${["Capability", ...PROVIDERS].join(" | ")} |`);
