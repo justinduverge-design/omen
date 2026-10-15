@@ -44,7 +44,9 @@ const TRADE_READ_BUDGET_MS = 1500;
 const TRADE_SEARCH_BUDGET_MS = 1200;
 
 const UNAVAILABLE_COPY = Object.freeze({
-  projections_unavailable: (label) => `${label} does not give Omen weekly projections, so a trade cannot be weighed.`,
+  projections_unavailable: (label) => label === "Yahoo"
+    ? "Omen could not build enough usable projections for this Yahoo league this week, so a trade cannot be weighed."
+    : `${label} did not provide enough usable weekly projections, so a trade cannot be weighed.`,
   rosters_unreadable: (label) => `Omen could not read the other ${label} rosters in this league.`,
   league_not_active: () => "This league has not finished drafting, so there are no rosters to trade from.",
   own_team_not_found: (label) => `Omen could not find your team in the ${label} league rosters.`,

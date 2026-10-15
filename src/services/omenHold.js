@@ -123,7 +123,7 @@ function buildHold({ roster, platformLabel, waiver = {}, trade = null, usage = n
       code: "projections_unavailable",
       text: buildFailure
         ? `${platformLabel} does not publish weekly projections and Omen could not build them for this league this time (${buildFailure}), so it cannot rank lineup swaps or trades. Holding is the only call it can stand behind.`
-        : `${platformLabel} does not give Omen weekly projections for this league, so Omen cannot rank lineup swaps or trades. Holding is the only call it can stand behind.`,
+        : `Omen could not build enough usable weekly projections for this ${platformLabel} league, so it cannot rank lineup swaps or trades. Holding is the only call it can stand behind.`,
     });
     considered.push({
       kind: "start_sit",

@@ -155,41 +155,18 @@ final class J4InteractionUITests: XCTestCase {
         assertTapDoesNotBreak(app.buttons["Type a trade"], app)
     }
 
-    /// **`max_teams: 2`, and the third-team control renders UNAVAILABLE.**
-    ///
-    /// Three things have to hold at once and each fails differently:
-    ///
-    ///   1. The control is **present**. Hiding it denies the product ever meant to do this.
-    ///   2. It is **not a button**. A control that answers a tap by doing nothing is worse than
-    ///      one that plainly does not respond, and `.disabled()` on a live-looking control reads
-    ///      as a bug in the app rather than a limit of the product.
-    ///   3. The reason is **named in words a user can read**, not a code and not only a
-    ///      VoiceOver label — a dashed control with no visible explanation is the thing users
-    ///      file bug reports about.
-    func testTheThirdTeamControlIsUnavailableRatherThanHiddenOrWorking() {
+    /// The current contract supports three-team comparison, so the build screen must expose a
+    /// live Add-team control and must not simultaneously claim that only two teams work.
+    func testTheThirdTeamControlIsLiveAndDoesNotShowAStaleLimit() {
         let app = launch("journey-j4.nominal.01-trade-build")
 
-        // 1 and 3 together: the accessibility label carries the name, the word "Unavailable",
-        // and the server's reason said as English.
-        let control = app.descendants(matching: .any)
-            .matching(NSPredicate(format: "label BEGINSWITH %@", "Add a third team. Unavailable."))
-            .firstMatch
-        XCTAssertTrue(control.waitForExistence(timeout: 10), "the third-team control is not on screen at all")
-        XCTAssertTrue(
-            (control.label as String).contains("has not been built yet"),
-            "the third-team control does not say why: \(control.label)"
-        )
-
-        // 2: nothing in the button tree offers to add a team.
-        let asButton = app.buttons
+        let control = app.buttons
             .matching(NSPredicate(format: "label CONTAINS %@", "Add a third team"))
             .firstMatch
-        XCTAssertFalse(asButton.exists, "the third-team control is a live button — it must not be tappable")
-
-        // And the sighted reader gets the same sentence, outside the accessibility label.
-        XCTAssertTrue(
-            text(containing: "only compare two teams", in: app).waitForExistence(timeout: 10),
-            "the two-team limit is not stated in visible copy"
+        assertTappable(control, "the live third-team control")
+        XCTAssertFalse(
+            text(containing: "only compare two teams", in: app).exists,
+            "the live Add-team control is contradicted by stale two-team-limit copy"
         )
     }
 

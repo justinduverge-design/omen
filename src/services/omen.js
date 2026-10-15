@@ -756,7 +756,7 @@ function liveEmptyMvpResponse({ roster, connection, connectedPlatforms, waiverSi
       response.explanation = {
         ...response.explanation,
         summary: `Omen cannot rank a move for this ${platformLabel} league this week.`,
-        why_it_matters: `${platformLabel} does not give Omen weekly projections, so lineup swaps and trades cannot be scored.`,
+        why_it_matters: `Omen could not build enough usable weekly projections for this ${platformLabel} league, so lineup swaps and trades cannot be scored.`,
         confidence: "Omen has no projection to judge a move against.",
         data_used: [`${platformLabel} roster`],
       };

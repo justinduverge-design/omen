@@ -21,12 +21,13 @@ The league-aware journey answers the defects reported from the physical-phone wa
 - the selected opponent roster is browsable and explains why a player is or is not a fit;
 - Find a Trade presents a named opponent, both sides of the offer, projected lineup
   deltas, roster needs, evidence, and save/pass actions;
-- three-team controls stay unavailable while the server capability contract says the
-  comparison itself is not implemented.
+- three-team controls are capability-gated; the current server contract supports exactly three
+  participants and returns ordered linked two-team handoffs because providers do not supply a
+  native three-team write API.
 
 No layout-blocking defect was found in those deterministic states. Both themes rendered.
 
-## Evidence defect found and repaired
+## Evidence defects found and repaired
 
 The generic `trade.empty`, `trade.verdict`, and `trade.prefilled` screenshot scenarios
 still mounted `OmenTradeScreen` directly. They therefore bypassed the production
@@ -38,18 +39,29 @@ fixtures open with Type selected and no longer inject Find a Trade inside that m
 Journey scenarios continue to mount the real Build, roster, Find review, and verdict
 screens inside the permanent Trade tab shell.
 
+A fresh nominal Build capture then found a second contradiction: the capability fixture exposed a
+live `Add team` button while the screen still rendered the retired sentence that Omen could only
+compare two teams. The screen now renders that limit notice only when the capability read is absent
+or explicitly unsupported, the supported fixture carries no retired reason code, and the J4 UI test
+requires a tappable third-team control with no two-team-limit copy. The corrected frame was rebuilt,
+installed on the simulator, recaptured, and visually inspected.
+
 ## Verification
 
 - simulator restart: iPhone 16 / iOS 26.5 booted cleanly;
-- focused XCTest: `TradeFindFlowTests`, `OmenTradeCallTests`, and
-  `TradeSearchStateTests` pass with parallel testing disabled;
+- focused XCTest: `TradeFindFlowTests`, `TradeRosterAndShareTests`, `OmenTradeCallTests`, and
+  `TradeSearchStateTests` pass, 83/83, with parallel testing disabled;
 - iOS build after the shared destination extraction: pass;
 - native capture batch: 16 of 16 images written before the fixture correction;
-- corrected dark typed-entry capture: written and visually inspected.
+- corrected dark typed-entry capture: written and visually inspected;
+- corrected nominal Build capture: live Add-team control and no stale two-team notice, written and
+  visually inspected;
+- focused J4 interaction UI test for that exact contradiction: 1/1 pass.
 
 ## Still open before promotion
 
-- navigate the exact branch build on the paired iPhone;
+- navigate the exact branch build on the paired iPhone after the source, simulator and review work
+  is otherwise complete; the founder explicitly deferred this while away from home;
 - exercise Build and Find with an authenticated Yahoo or Sleeper league;
 - verify real provider team identity, opponent rosters, projection coverage, and partial
   roster-read failures;

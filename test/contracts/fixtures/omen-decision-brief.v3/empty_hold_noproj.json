@@ -196,7 +196,7 @@
       ],
       "risk": "Forcing a marginal lineup change can create avoidable downside.",
       "summary": "Omen cannot rank a move for this Yahoo league this week.",
-      "why_it_matters": "Yahoo does not give Omen weekly projections, so lineup swaps and trades cannot be scored."
+      "why_it_matters": "Omen could not build enough usable weekly projections for this Yahoo league, so lineup swaps and trades cannot be scored."
     },
     "feature": "omen_mvp_move",
     "generated_at": "2026-01-01T00:00:00.000Z",
@@ -214,7 +214,7 @@
           "outcome": "not_needed"
         },
         {
-          "detail": "Yahoo does not give Omen weekly projections, so a trade cannot be weighed.",
+          "detail": "Omen could not build enough usable projections for this Yahoo league this week, so a trade cannot be weighed.",
           "kind": "trade_suggestion",
           "outcome": "unavailable",
           "reason": "projections_unavailable"
@@ -230,7 +230,7 @@
       "reasons": [
         {
           "code": "projections_unavailable",
-          "text": "Yahoo does not give Omen weekly projections for this league, so Omen cannot rank lineup swaps or trades. Holding is the only call it can stand behind."
+          "text": "Omen could not build enough usable weekly projections for this Yahoo league, so it cannot rank lineup swaps or trades. Holding is the only call it can stand behind."
         }
       ],
       "summary": "Hold your lineup. Omen weighed waivers and none is worth making this week.",

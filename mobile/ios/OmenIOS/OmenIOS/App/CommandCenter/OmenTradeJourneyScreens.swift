@@ -38,11 +38,11 @@ import SwiftUI
 // ## The three places the artboards claim more than the contract can pay for
 //
 // 1. **Three teams.** `TradeBuild.dc.html` and `TradeRoster.dc.html` draw a working three-team
-//    deal, an `Add team` chip and a three-leg offer. `trade-capabilities.v1` says `max_teams: 2`
-//    and `three_team.supported: false`, `reason: "multi_team_comparison_not_implemented"`, and
-//    `CONTRACTS.md` is explicit that three-team controls **render unavailable** — not hidden, not
-//    functional. So the composition is kept, the `Add team` chip renders through
-//    `OmenUnavailableControl`, the legs are two-team, and the reason is a sentence beside it.
+//    deal, an `Add team` chip and a three-leg offer. `trade-capabilities.v1` now pays for that
+//    composition with `max_teams: 3`, `comparison: "multi_sided"` and
+//    `three_team.supported: true`. Submission remains `handoff_only`: the server evaluates all
+//    three participants but returns ordered linked two-team handoffs because no connected
+//    provider exposes a native three-team write API.
 //
 // 2. **The confidence band and the risk chip.** Three artboards draw a band (`Leaning`,
 //    `Coin flip`) and two draw `Medium risk`. **`trade-compare.v2` returns neither.** Its fields
@@ -396,9 +396,10 @@ struct OmenTradeBuildScreen: View {
                     .padding(.top, OmenSpacing.step8)
             }
             filters
-            // Once three teams are active there is nothing left to explain about the chip row —
-            // both slots are filled and the "why can't I add a team" sentence would be stale.
-            if state.thirdPartner == nil {
+            // Explain a disabled or unread Add-team control. When the capability read says
+            // three-team comparison is supported, the control is live and a limit notice would
+            // directly contradict it.
+            if state.thirdPartner == nil, state.capability?.threeTeamSupported != true {
                 threeTeamNotice
             }
 

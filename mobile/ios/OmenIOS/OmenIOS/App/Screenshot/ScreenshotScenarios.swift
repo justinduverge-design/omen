@@ -334,7 +334,7 @@ enum ScreenshotScenarios {
         // `TradeNeedsContext` holds it in the degraded one — same seat, two states of the same
         // answer. See `J4ScreenshotFixtures` for why that split is a contract and not a choice.
         "journey-j4.nominal.01-trade-build": ScreenshotScenario(
-            label: "J4 nominal 1/4 — build a deal, third team unavailable",
+            label: "J4 nominal 1/4 — build a deal, third team available",
             content: { AnyView(j4Shell(AnyView(OmenTradeBuildScreen(
                 state: J4ScreenshotFixtures.nominalBuild,
                 context: J4ScreenshotFixtures.titansContext,
@@ -342,7 +342,8 @@ enum ScreenshotScenarios {
                 onSelectTab: { _ in },
                 onSelectPartner: { _ in },
                 onSelectFilter: { _ in },
-                onPrimaryAction: {}
+                onPrimaryAction: {},
+                onOpenPartnerPicker: {}
             )))) }
         ),
         "journey-j4.nominal.02-trade-roster": ScreenshotScenario(
@@ -388,7 +389,8 @@ enum ScreenshotScenarios {
                 onSelectTab: { _ in },
                 onSelectPartner: { _ in },
                 onSelectFilter: { _ in },
-                onPrimaryAction: {}
+                onPrimaryAction: {},
+                onOpenPartnerPicker: {}
             )))) }
         ),
         "journey-j4.degraded.02-trade-roster": ScreenshotScenario(
@@ -1895,9 +1897,8 @@ enum J2ScreenshotFixtures {
 ///
 /// ## Facts of record pinned by these fixtures, not decorated by them
 ///
-///   - `max_teams: 2`, `three_team.supported: false`,
-///     `reason: "multi_team_comparison_not_implemented"`. The `Add team` chip renders
-///     **unavailable** on both Build frames — not hidden and not working.
+///   - `max_teams: 3`, `three_team.supported: true`, `comparison: "multi_sided"`. The `Add team`
+///     chip is available on Build; provider submission remains an ordered split handoff.
 ///   - `TradeRoster`'s degraded frame is `permanentlyUnavailable`. A provider that will not hand
 ///     over the other teams' rosters is a **permanent limit, not an outage**, so there is no
 ///     retry fixture here and there must never be one.
@@ -1920,10 +1921,10 @@ enum J4ScreenshotFixtures {
 
     // MARK: Capability
 
-    static let twoTeamsOnly = OmenTradeCapability(
-        maxTeams: 2,
-        threeTeamSupported: false,
-        threeTeamReason: "multi_team_comparison_not_implemented"
+    static let threeTeamsSupported = OmenTradeCapability(
+        maxTeams: 3,
+        threeTeamSupported: true,
+        threeTeamReason: nil
     )
 
     // MARK: Partners and filters
@@ -2038,7 +2039,7 @@ enum J4ScreenshotFixtures {
         selectedPartnerID: "dsi",
         filters: filters,
         selectedFilterID: "all",
-        capability: twoTeamsOnly,
+        capability: threeTeamsSupported,
         sides: sides,
         read: nominalRead,
         submission: submission,
@@ -2057,7 +2058,7 @@ enum J4ScreenshotFixtures {
         selectedPartnerID: "dsi",
         filters: filters,
         selectedFilterID: "all",
-        capability: twoTeamsOnly,
+        capability: threeTeamsSupported,
         sides: sides,
         read: degradedRead,
         // No submission block. The handoff steps come from `trade-capabilities.v1`'s
@@ -2078,7 +2079,7 @@ enum J4ScreenshotFixtures {
         selectedPartnerID: "dsi",
         filters: filters,
         selectedFilterID: "rb",
-        capability: twoTeamsOnly,
+        capability: threeTeamsSupported,
         rosters: .read(
             teamName: "Davante\u{2019}s Inferno",
             playerCount: 16,
@@ -2122,7 +2123,7 @@ enum J4ScreenshotFixtures {
         selectedPartnerID: "dsi",
         filters: filters,
         selectedFilterID: "rb",
-        capability: twoTeamsOnly,
+        capability: threeTeamsSupported,
         rosters: .permanentlyUnavailable(
             capability: "Opponent rosters",
             sentence: "ESPN does not give Omen the other teams\u{2019} rosters in this league, so there is no trade call to make here. This will not change by trying again."

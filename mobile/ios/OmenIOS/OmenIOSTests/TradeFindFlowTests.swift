@@ -270,7 +270,7 @@ final class TradeFindFlowTests: XCTestCase {
         XCTAssertEqual(sut.viewState, .routeElsewhere(reason: "projections_unavailable"))
 
         let copy = OmenTradeFindReviewScreen.unavailableCopy(reason: "projections_unavailable", platform: "yahoo")
-        XCTAssertEqual(copy.title, "Yahoo doesn't share projections yet")
+        XCTAssertEqual(copy.title, "Not enough projections to rank trades")
         XCTAssertFalse(copy.message.localizedCaseInsensitiveContains("no real gaps"))
     }
 

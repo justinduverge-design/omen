@@ -296,7 +296,7 @@ test("with no projections the hold says so and invents no delta", () => {
   assert.equal(hold.projections.available, false);
   assert.equal(hold.best_alternative, null);
   assert.equal(hold.reasons[0].code, "projections_unavailable");
-  assert.match(hold.reasons[0].text, /Yahoo does not give Omen weekly projections/);
+  assert.match(hold.reasons[0].text, /could not build enough usable weekly projections for this Yahoo league/);
 });
 
 test("an OUT starter with no usable pickup is reported as its own reason", () => {
