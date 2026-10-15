@@ -404,9 +404,31 @@ class YahooClient {
    * to flatten into the shape the optimizer expects.
    */
   async getAvailablePlayers(leagueKey, opts = {}) {
-    const count = Math.min(opts.count || 50, 50);
-    const sort  = opts.sort  || "AR";    // AR = Average Rank
-    return this.get(`/league/${leagueKey}/players;status=A;sort=${sort};count=${count};start=0`);
+    // Yahoo returns at most 25 players per page, so a request for 50 silently came back as 25.
+    // Page it: the first page is the response, later pages are folded into its `players` map.
+    const PAGE = 25;
+    const want = Math.min(Math.max(parseInt(opts.count, 10) || 50, 1), 100);
+    const sort = opts.sort || "AR";    // AR = Average Rank
+    const page = (start, count) => this.get(`/league/${leagueKey}/players;status=A;sort=${sort};count=${count};start=${start}`);
+    const first = await page(0, Math.min(want, PAGE));
+    const firstPlayers = first?.fantasy_content?.league?.[1]?.players;
+    if (want <= PAGE || !firstPlayers) return first;
+
+    const starts = [];
+    for (let start = PAGE; start < want; start += PAGE) starts.push(start);
+    const later = await Promise.all(starts.map((start) => page(start, Math.min(PAGE, want - start)).catch(() => null)));
+    let next = Object.keys(firstPlayers).filter((k) => k !== "count").length;
+    for (const response of later) {
+      const players = response?.fantasy_content?.league?.[1]?.players;
+      if (!players) continue;
+      for (const k of Object.keys(players)) {
+        if (k === "count") continue;
+        firstPlayers[String(next)] = players[k];
+        next += 1;
+      }
+    }
+    firstPlayers.count = next;
+    return first;
   }
 
   async getGameKeyForSeason(year) {

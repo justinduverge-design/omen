@@ -18,7 +18,7 @@ Build 12 plan (PR 670, Provider direction correction) names four states that mus
 | standings | available | available | available |
 | league_rosters | available | available | available |
 | waiver_pool | available | available | degraded (requires_derived_projection) |
-| waiver_system | available | degraded (probe_pending) | degraded (probe_pending) |
+| waiver_system | available | available | degraded (probe_pending) |
 | transactions | not_read (not_read_by_omen) | not_read (not_read_by_omen) | not_read (not_read_by_omen) |
 | player_projections | available | available | degraded (derived_projection) |
 | injury_status | available | available | available |
@@ -33,12 +33,11 @@ Build 12 plan (PR 670, Provider direction correction) names four states that mus
 | sleeper | transactions | not_read | not_read_by_omen | Sleeper documents a per-round transactions endpoint. Omen reads none; the league overview names transactions as an unavailable family. | 2026-10-15 (code) |
 | sleeper | trade_deadline | not_read | deliberately_omitted | settings.trade_deadline is a week number, and the league overview deliberately leaves the deadline signal out until a week-to-date conversion exists. | 2026-10-15 (code) |
 | espn | league_scoring_rules | degraded | provider_restricted | Rules are read and recognised, but the Omen call states it cannot verify every scoring rule and final ESPN result, so point-based guidance is not exact scoring (A6 scoring-rights question is open). | 2026-10-15 (code) |
-| espn | waiver_system | degraded | probe_pending | fromEspn fails closed to not_determined until the settings mapping is confirmed by a probe. | 2026-10-15 (code) |
 | espn | transactions | not_read | not_read_by_omen | ESPN's mTransactions2 view is community-documented. Omen reads none. | 2026-10-15 (code) |
 | espn | draft_data | not_read | not_read_by_omen | ESPN's mDraftDetail is documented by the community. Omen does not read the league's own draft. | 2026-10-15 (code) |
 | espn | trade_deadline | not_read | deliberately_omitted | The ESPN trade deadline field is unproven, and the deadline signal is deliberately left out. | 2026-10-15 (code) |
-| yahoo | waiver_pool | degraded | requires_derived_projection | The available-player list is read, but availability stays unconfirmed unless a derived projection exists, so waiver adds cannot be ranked without one. | 2026-10-15 (code) |
-| yahoo | waiver_system | degraded | probe_pending | The priority branch was verified on three real leagues (2026-09-06). The FAAB branch is unverified and returns not_determined. | 2026-10-15 (code) |
+| yahoo | waiver_pool | degraded | requires_derived_projection | The available-player list is paged past Yahoo's 25-per-page cap (live: 50 players, 40 with a derived projection). Availability is still only confirmed where a derived projection exists. | 2026-10-15 (live) |
+| yahoo | waiver_system | degraded | probe_pending | Priority branch read live on one connected league on 2026-10-15 (determined as priority; earlier verified on three leagues 2026-09-06). The FAAB branch is still unverified and returns not_determined. | 2026-10-15 (live) |
 | yahoo | transactions | not_read | not_read_by_omen | Yahoo documents /league/{key}/transactions. Omen reads none. | 2026-10-15 (code) |
 | yahoo | player_projections | degraded | derived_projection | Yahoo publishes no per-player projection. Omen builds one from Sleeper's public stat line, matched through the Yahoo id, scored with this league's own rules; a player with no unambiguous match, unreadable rules or a timeout stays null. | 2026-10-15 (code) |
 | yahoo | draft_data | not_read | not_read_by_omen | Only ADP is read (getDraftAnalysis). The league's own draftresults are not read. | 2026-10-15 (code) |

@@ -362,3 +362,20 @@ test("a player Sleeper's yahoo_id map misses is paired by name + position + team
   await enrichYahooPlayers(roster, { client, leagueKey: "L", week: 8, season: 2026, deps });
   assert.deepEqual(roster.map((p) => p.projected_points != null), [true, false, false, false, false]);
 });
+
+test("getAvailablePlayers pages past Yahoo's 25-per-page cap and keeps the response shape", async () => {
+  const YahooClient = require("../src/services/yahoo");
+  const client = new YahooClient("token");
+  const urls = [];
+  const mk = (from, n) => ({ fantasy_content: { league: [{}, { players: { count: n, ...Object.fromEntries(Array.from({ length: n }, (_, i) => [String(i), { player: [[{ player_key: `p${from + i}` }]] }])) } }] } });
+  client.get = async (url) => {
+    urls.push(url);
+    return url.includes("start=0") ? mk(0, 25) : mk(25, 25);
+  };
+  const raw = await client.getAvailablePlayers("L", { count: 50 });
+  const players = raw.fantasy_content.league[1].players;
+  assert.equal(players.count, 50);
+  assert.equal(Object.keys(players).filter((k) => k !== "count").length, 50);
+  assert.equal(urls.length, 2);
+  assert.ok(urls[0].includes("count=25;start=0") && urls[1].includes("count=25;start=25"));
+});

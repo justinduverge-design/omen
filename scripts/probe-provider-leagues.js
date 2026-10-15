@@ -26,6 +26,9 @@ const { getAuthenticatedYahooClient } = require("../src/services/yahooAuth");
 const espn = require("../src/adapters/espn");
 const yahoo = require("../src/adapters/yahoo");
 const sleeper = require("../src/adapters/sleeper");
+const waiverSystem = require("../src/services/waiverSystem");
+const { projectYahooPool } = require("../src/services/yahooProjections");
+const rosterSvc = require("../src/services/roster");
 
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
 const tag = (id) => crypto.createHash("sha256").update(String(id)).digest("hex").slice(0, 6);
@@ -93,11 +96,31 @@ async function main() {
           const counts = s?.settings?.rosterSettings?.lineupSlotCounts;
           out.settings_lineup_slot_counts = counts && typeof counts === "object" ? counts : null;
         } catch (e) { out.settings_error = safeErr(e); }
+        try {
+          const data = await espn.fetchEspnApi(row.league_id, c.espn_s2, c.swid, ["mTeam", "mSettings"], null);
+          const model = waiverSystem.fromEspn({ settings: data?.settings, team: null });
+          out.waiver_system = { system: model.system, reason: model.reason, has_acquisition_settings: !!data?.settings?.acquisitionSettings };
+        } catch (e) { out.waiver_system_error = safeErr(e); }
+        try {
+          const pool = await espn.fetchEspnWaiverPool(row.league_id, c.espn_s2, c.swid, week || 6);
+          const list = Array.isArray(pool) ? pool : (pool?.players || []);
+          out.waiver_pool = { players: list.length, with_projection: list.filter((p) => p.projected_points != null).length };
+        } catch (e) { out.waiver_pool_error = safeErr(e); }
       } else if (row.platform === "yahoo") {
         const { accessToken, client } = await getAuthenticatedYahooClient(userId);
         const r = await yahoo.fetchYahooLeagueRosters(row.league_id, accessToken, week);
         out.result = "ok"; out.roster_positions = Array.isArray(r?.roster_positions) ? r.roster_positions.length : 0;
         out.shape = shape(r?.teams || []);
+        try {
+          const raw = await client.getAvailablePlayers(row.league_id, { count: 50, sort: "AR" });
+          const { pool, projectionMeta } = await projectYahooPool(client, row.league_id, r.week, rosterSvc.normalizeYahooWaivers(raw));
+          out.waiver_pool = { players: pool.length, with_projection: pool.filter((p) => p.projected_points != null).length, meta_reason: projectionMeta?.reason ?? null };
+        } catch (e) { out.waiver_pool_error = safeErr(e); }
+        try {
+          const rawSettings = await client.getLeagueSettings(row.league_id);
+          const model = waiverSystem.fromYahoo({ settings: rawSettings, team: null });
+          out.waiver_system = { system: model.system, reason: model.reason };
+        } catch (e) { out.waiver_system_error = safeErr(e); }
         out.projection_meta = r?.projection_meta ?? null;
         const nul = (r?.teams || []).flatMap((t) => t.players || []).filter((p) => p.projected_points == null);
         out.unprojected_by_position = nul.reduce((a, p) => ({ ...a, [p.position]: (a[p.position] || 0) + 1 }), {});

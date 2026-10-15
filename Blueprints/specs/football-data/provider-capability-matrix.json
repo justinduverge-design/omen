@@ -490,9 +490,9 @@
     {
       "provider": "espn",
       "capability": "waiver_system",
-      "status": "degraded",
-      "reason": "probe_pending",
-      "detail": "fromEspn fails closed to not_determined until the settings mapping is confirmed by a probe.",
+      "status": "available",
+      "reason": null,
+      "detail": "fromEspn reads acquisitionSettings. Read live on one connected league on 2026-10-15: determined as FAAB. The priority branch has not been seen live.",
       "evidence": [
         {
           "file": "src/routes/waivers.js",
@@ -502,7 +502,7 @@
           ]
         }
       ],
-      "verification": "code",
+      "verification": "live",
       "last_verified": "2026-10-15"
     },
     {
@@ -745,7 +745,7 @@
       "capability": "waiver_pool",
       "status": "degraded",
       "reason": "requires_derived_projection",
-      "detail": "The available-player list is read, but availability stays unconfirmed unless a derived projection exists, so waiver adds cannot be ranked without one.",
+      "detail": "The available-player list is paged past Yahoo's 25-per-page cap (live: 50 players, 40 with a derived projection). Availability is still only confirmed where a derived projection exists.",
       "evidence": [
         {
           "file": "src/routes/waivers.js",
@@ -758,9 +758,15 @@
           "includes": [
             "getAvailablePlayers"
           ]
+        },
+        {
+          "file": "src/services/yahoo.js",
+          "includes": [
+            "PAGE = 25"
+          ]
         }
       ],
-      "verification": "code",
+      "verification": "live",
       "last_verified": "2026-10-15"
     },
     {
@@ -768,7 +774,7 @@
       "capability": "waiver_system",
       "status": "degraded",
       "reason": "probe_pending",
-      "detail": "The priority branch was verified on three real leagues (2026-09-06). The FAAB branch is unverified and returns not_determined.",
+      "detail": "Priority branch read live on one connected league on 2026-10-15 (determined as priority; earlier verified on three leagues 2026-09-06). The FAAB branch is still unverified and returns not_determined.",
       "evidence": [
         {
           "file": "src/routes/waivers.js",
@@ -783,7 +789,7 @@
           ]
         }
       ],
-      "verification": "code",
+      "verification": "live",
       "last_verified": "2026-10-15"
     },
     {
