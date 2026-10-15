@@ -341,3 +341,24 @@ test("Yahoo: a bye-week starter carries an explicit zero and does swap", () => {
   };
   assert.equal(optimizer.evaluateLineup(roster).length, 1);
 });
+
+test("a player Sleeper's yahoo_id map misses is paired by name + position + team, only when exactly one fits", async () => {
+  const sleeperPlayers = {
+    "S-A": { full_name: "Gap Receiver", position: "WR", team: "JAX", active: true },
+    "S-B": { full_name: "Twin Name", position: "WR", team: "DAL", active: true },
+    "S-C": { full_name: "Twin Name", position: "WR", team: "DAL", active: true },
+    "S-D": { full_name: "Wrong Team", position: "WR", team: "SEA", active: true },
+    "S-E": { full_name: "Retired Guy", position: "WR", team: "KC", active: false },
+  };
+  const statLines = { "S-A": WR_LINE, "S-B": WR_LINE, "S-C": WR_LINE, "S-D": WR_LINE, "S-E": WR_LINE };
+  const { client, deps } = fixture({ sleeperPlayers, statLines });
+  const roster = [
+    { player_id: "1", name: "Gap Receiver", position: "WR", team: "JAC", projected_points: null }, // alias JAC=JAX
+    { player_id: "2", name: "Twin Name", position: "WR", team: "DAL", projected_points: null },    // ambiguous
+    { player_id: "3", name: "Wrong Team", position: "WR", team: "DAL", projected_points: null },   // team differs
+    { player_id: "4", name: "Retired Guy", position: "WR", team: "KC", projected_points: null },   // inactive
+    { player_id: "5", name: "Gap Receiver", position: "WR", team: null, projected_points: null },   // no team: refuse
+  ];
+  await enrichYahooPlayers(roster, { client, leagueKey: "L", week: 8, season: 2026, deps });
+  assert.deepEqual(roster.map((p) => p.projected_points != null), [true, false, false, false, false]);
+});

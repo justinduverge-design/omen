@@ -210,6 +210,46 @@ function yahooIndex(sleeperPlayers) {
   return index;
 }
 
+const TEAM_ALIASES = Object.freeze({ JAC: "JAX", WSH: "WAS", LA: "LAR", SD: "LAC", OAK: "LV", STL: "LAR", ARZ: "ARI", CLV: "CLE", BLT: "BAL", HST: "HOU" });
+function normTeam(team) {
+  const t = String(team || "").trim().toUpperCase();
+  return TEAM_ALIASES[t] || t;
+}
+
+const nameIndexMemo = new WeakMap();
+
+/** normalized full name -> [sleeper ids], for the fallback when Sleeper's yahoo_id map has no entry. */
+function nameIndex(sleeperPlayers) {
+  if (!sleeperPlayers || typeof sleeperPlayers !== "object") return new Map();
+  const cached = nameIndexMemo.get(sleeperPlayers);
+  if (cached) return cached;
+  const index = new Map();
+  for (const [sleeperId, player] of Object.entries(sleeperPlayers)) {
+    if (!player || player.active === false) continue;
+    const key = normalizeName(sleeperFullName(player));
+    if (!key) continue;
+    if (!index.has(key)) index.set(key, []);
+    index.get(key).push(String(sleeperId));
+  }
+  nameIndexMemo.set(sleeperPlayers, index);
+  return index;
+}
+
+/**
+ * Sleeper's `yahoo_id` field is incomplete (on a live 12-team league it matched about a quarter of
+ * rostered players), so an unmatched Yahoo player is paired by name + position + NFL team instead.
+ * Used only when exactly one active Sleeper player fits all three; a namesake, a missing team on
+ * either side or any ambiguity leaves the player unprojected.
+ */
+function fallbackSleeperId(yahooPlayer, sleeperPlayers) {
+  const candidates = (nameIndex(sleeperPlayers).get(normalizeName(yahooPlayer?.name)) || [])
+    .filter((id) => positionsAgree(yahooPlayer, sleeperPlayers[id]));
+  const team = normTeam(yahooPlayer?.team);
+  if (!team) return null;
+  const fits = candidates.filter((id) => normTeam(sleeperPlayers[id]?.team) === team);
+  return fits.length === 1 ? fits[0] : null;
+}
+
 function sleeperFullName(player) {
   return player?.full_name || `${player?.first_name || ""} ${player?.last_name || ""}`.trim();
 }
@@ -309,7 +349,8 @@ async function enrichYahooPlayers(players, { client, leagueKey, week, season, bu
   let approximate = false;
   for (const player of projectable) {
     const yahooId = String(player.yahoo_id ?? player.player_id);
-    const sleeperId = index.get(yahooId);
+    let sleeperId = index.get(yahooId);
+    if (!sleeperId) sleeperId = fallbackSleeperId(player, sleeperPlayers);
     const sleeperPlayer = sleeperId ? sleeperPlayers[sleeperId] : null;
     if (!sleeperPlayer || !namesAgree(player.name, sleeperPlayer) || !positionsAgree(player, sleeperPlayer)) continue;
     const points = scoreStatLine(statLines?.[sleeperId], scoring.values);

@@ -98,6 +98,10 @@ async function main() {
         const r = await yahoo.fetchYahooLeagueRosters(row.league_id, accessToken, week);
         out.result = "ok"; out.roster_positions = Array.isArray(r?.roster_positions) ? r.roster_positions.length : 0;
         out.shape = shape(r?.teams || []);
+        out.projection_meta = r?.projection_meta ?? null;
+        const nul = (r?.teams || []).flatMap((t) => t.players || []).filter((p) => p.projected_points == null);
+        out.unprojected_by_position = nul.reduce((a, p) => ({ ...a, [p.position]: (a[p.position] || 0) + 1 }), {});
+        out.unprojected_have_gsis_or_sleeper = nul.filter((p) => p.gsis_id || p.sleeper_id).length;
         out.unreadable_team_ids_count = (r?.unreadable_team_ids || []).length;
         try {
           const league = await client.getLeagueSettings(row.league_id, { report: false });
