@@ -1143,7 +1143,6 @@ private struct FauxShell: View {
                             OmenTradeScreen(
                                 state: tradeState,
                                 offer: tradeOffer,
-                                onFindTrade: {},
                                 prefill: scenarioKey == "trade.prefilled" ? Self.prefilledTrade : nil
                             )
                         case .find, .build:
