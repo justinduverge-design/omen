@@ -279,4 +279,37 @@ final class TradeFindFlowTests: XCTestCase {
         let titles = reasons.map { OmenTradeFindReviewScreen.unavailableCopy(reason: $0, platform: "espn").title }
         XCTAssertEqual(Set(titles).count, reasons.count)
     }
+
+    // MARK: - League trade targets
+
+    func testLeagueTradeTargetsReadsOneRowPerOpponentFromTheFindScan() {
+        guard case .read(let targets) = LeagueTradeTargetsViewModel.targets(from: response(platform: "yahoo")) else {
+            return XCTFail("a scan with candidates is a read section")
+        }
+        XCTAssertEqual(targets.count, 1)
+        XCTAssertEqual(targets[0].teamName, "Them")
+        XCTAssertEqual(targets[0].crest, "T")
+        XCTAssertEqual(targets[0].read, "B for A: +2.0 to your lineup, +1.0 to theirs.")
+    }
+
+    func testLeagueTradeTargetsIsAnEmptyReadNotAnUnreadWhenTheScanFoundNothing() {
+        let scan = response(platform: "yahoo", candidates: false)
+        XCTAssertEqual(LeagueTradeTargetsViewModel.targets(from: scan), .read([]))
+    }
+
+    func testLeagueTradeTargetsNamesTheRealReasonWhenTheScanIsUnavailable() {
+        let scan = response(platform: "yahoo", status: "unavailable", reason: "own_roster_unavailable", candidates: false)
+        guard case .unread(_, let sentence) = LeagueTradeTargetsViewModel.targets(from: scan) else {
+            return XCTFail("an unavailable scan is unread")
+        }
+        XCTAssertTrue(sentence.contains("your own roster"))
+    }
+
+    func testLeagueTradeTargetsLoadsThroughTheRepositoryOncePerLeague() async {
+        let repo = StubTradeFindRepository(result: .success(response(platform: "yahoo")))
+        let vm = LeagueTradeTargetsViewModel(repository: repo, sessionManager: sessionManager())
+        await vm.load(platform: "yahoo", leagueId: "l", teamId: "1", week: 3)
+        guard case .read(let targets) = vm.section else { return XCTFail("expected a read section") }
+        XCTAssertEqual(targets.map(\.teamName), ["Them"])
+    }
 }

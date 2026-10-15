@@ -386,3 +386,98 @@ struct StubTradeFindRepository: TradeFindRepository {
         result
     }
 }
+
+// MARK: - League: trade targets
+
+/// The League destination's "Trade targets" section, read from the same `GET /api/trade/find` scan
+/// the Trade tab uses, so the two screens cannot disagree about who a good partner is.
+///
+/// This section used to be a constant "Omen has not read the other managers' rosters" because nothing
+/// ever made the read. That is a missing call, not a provider limit, so it now reads.
+@MainActor
+final class LeagueTradeTargetsViewModel: ObservableObject {
+    @Published private(set) var section: OmenScoutSection<[OmenScoutTradeTarget]> = OmenLeagueScreen.tradeTargetsUnread
+
+    private let repository: TradeFindRepository
+    private let sessionManager: SessionManager
+    private var loadedKey: String?
+    private var inFlightKey: String?
+
+    init(repository: TradeFindRepository, sessionManager: SessionManager) {
+        self.repository = repository
+        self.sessionManager = sessionManager
+    }
+
+    /// Reads once per (league, team, week); a changed league resets the section first so one league's
+    /// opponents never sit under another's name.
+    func load(platform: String, leagueId: String, teamId: String, week: Int?) async {
+        let key = [platform, leagueId, teamId, week.map(String.init) ?? ""].joined(separator: "|")
+        guard key != loadedKey, key != inFlightKey else { return }
+        if loadedKey != nil { section = OmenLeagueScreen.tradeTargetsUnread }
+        inFlightKey = key
+        defer { if inFlightKey == key { inFlightKey = nil } }
+
+        guard case .token(let accessToken) = await sessionManager.authorization() else { return }
+        let result = await repository.find(
+            platform: platform, leagueId: leagueId, teamId: teamId, week: week, accessToken: accessToken
+        )
+        guard inFlightKey == key else { return } // a newer league was requested meanwhile
+        switch result {
+        case .success(let response):
+            section = Self.targets(from: response)
+            loadedKey = key
+        case .failure(let error):
+            if error == .unauthorized { sessionManager.onRefreshFailed() }
+            section = .unread(
+                capability: "Trade rosters",
+                sentence: "Omen could not read the other managers\u{2019} rosters just now. Pull to refresh to try again."
+            )
+        }
+    }
+
+    /// One target per opponent, best candidate first (the route already ranks them).
+    static func targets(from response: TradeFindResponse) -> OmenScoutSection<[OmenScoutTradeTarget]> {
+        if response.status == "unavailable" {
+            return .unread(
+                capability: "Trade rosters",
+                sentence: unavailableSentence(reason: response.reason)
+            )
+        }
+        var seen = Set<String>()
+        var targets: [OmenScoutTradeTarget] = []
+        for candidate in response.candidates {
+            let key = candidate.opponentTeamId ?? candidate.opponentDisplayName
+            guard seen.insert(key).inserted else { continue }
+            targets.append(OmenScoutTradeTarget(
+                crest: crest(for: candidate.opponentDisplayName),
+                teamName: candidate.opponentDisplayName,
+                read: read(for: candidate)
+            ))
+        }
+        return .read(targets)
+    }
+
+    static func crest(for name: String) -> String {
+        let initials = name.split(separator: " ").compactMap { $0.first.map { String($0).uppercased() } }
+        let joined = initials.prefix(3).joined()
+        return joined.isEmpty ? "?" : joined
+    }
+
+    static func read(for candidate: TradeFindCandidate) -> String {
+        func pts(_ value: Double?) -> String { value.map { String(format: "%+.1f", $0) } ?? "n/a" }
+        return "\(candidate.receive.name) for \(candidate.give.name): \(pts(candidate.userLineupDelta)) to your lineup, \(pts(candidate.opponentLineupDelta)) to theirs."
+    }
+
+    private static func unavailableSentence(reason: String?) -> String {
+        switch reason {
+        case "own_roster_unavailable":
+            return "Omen could not read your own roster for this league, so it names no trade targets."
+        case "league_not_active":
+            return "This league has not started its season yet, so there are no trade targets."
+        case "projections_unavailable":
+            return "This league has no usable projections yet, so Omen will not rank trade targets."
+        default:
+            return "Omen could not read the other managers\u{2019} rosters for this league, so it names no trade targets."
+        }
+    }
+}
