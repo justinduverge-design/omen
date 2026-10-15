@@ -45,6 +45,7 @@ const {
 const { createFootballIntelligenceServingRepository } = require("../services/footballIntelligence/servingRepository");
 const { enrichOmenWithFootballIntelligence } = require("../services/footballIntelligence/omenExplanation");
 const { teamIdFor } = require("../services/footballIntelligence/nflTeams");
+const { recordLeagueScoringRulesSafely } = require("../services/leagueScoringRules");
 const ledger = require("../services/ledger");
 const { attachOmenProjectionBreakdown } = require("../services/projectionBreakdown");
 const sleeperAdapter = require("../adapters/sleeper");
@@ -438,6 +439,15 @@ async function persistLiveRecommendation(user, response) {
     }),
   });
   await ensureAppUser(user);
+
+  // Keep the league's rules for grading. Best-effort and off the answer's critical path: it logs a stage
+  // and a database code on failure, never throws, and only ever stores a body the rights gate retained.
+  void recordLeagueScoringRulesSafely(supabase, {
+    platform: response.platform?.name,
+    providerLeagueId: response.league?.id,
+    season,
+    scoring,
+  }, { log: logger });
 
   const recommendation = response.recommendation;
   const { data, error } = await upsertMoveTolerantly({
