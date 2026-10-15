@@ -95,13 +95,14 @@ final class TradeSearchStateTests: XCTestCase {
         XCTAssertTrue(TradeViewModel.searchMessage(for: limited).contains("minute"))
     }
 
-    /// Every failure keeps the manual path open — autocomplete is an accelerator, never a gate.
-    func testEverySearchFailureMessageOffersTheManualPath() {
+    /// A failed search must not invite an unverified raw-name submission. Trade analysis
+    /// requires a canonical player identity from search or the connected league roster.
+    func testEverySearchFailureMessageKeepsCanonicalIdentityRequired() {
         for error in [OmenApiError.network, .unauthorized, .decode,
                       .server(status: 429), .server(status: 500)] {
-            XCTAssertTrue(
+            XCTAssertFalse(
                 TradeViewModel.searchMessage(for: error).contains("press Add"),
-                "\(error) must still tell the user they can type the name."
+                "\(error) must not offer the removed raw-name bypass."
             )
         }
     }

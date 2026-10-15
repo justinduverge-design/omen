@@ -333,7 +333,7 @@ final class OmenTradeCallTests: XCTestCase {
         XCTAssertEqual(vm.selectedPartnerTeamID, "3")
     }
 
-    func testRosterBrowseWithoutAPrefillStillOpensOnTheFirstTeam() async throws {
+    func testRosterBrowseWithoutAPrefillOpensOnTheFirstOpponentTeam() async throws {
         let repo = RecordingTradeRepository()
         repo.rosterResult = .success(rosterFixture())
         let vm = makeViewModel(repo)
@@ -341,7 +341,7 @@ final class OmenTradeCallTests: XCTestCase {
 
         await vm.loadRoster(userID: "user-1")
 
-        XCTAssertEqual(vm.selectedPartnerTeamID, "1")
+        XCTAssertEqual(vm.selectedPartnerTeamID, "2")
     }
 
     func testPartnerResolvesByNameWhenTheKeyIsAbsentAndNeverOnAnAmbiguousMatch() {
