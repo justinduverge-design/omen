@@ -203,6 +203,33 @@ async function buildNormalizedRoster(leagueKey, accessToken, week, opts = {}) {
  * Used by Trade's opponent-roster read (`GET /api/trade/roster`). No new Yahoo surface, no
  * new auth — the standings and per-team roster reads already run in production today.
  */
+/**
+ * League starting slots from Yahoo's `/league/{key}/settings` `roster_positions`
+ * (`[{roster_position: {position, count, is_starting_position}}]`), expanded by count, in Yahoo's
+ * own slot names (W/R/T, Q/W/R/T, DEF, K...). Starting positions only. Empty when the payload has
+ * none, in which case callers fall back to the user's own lineup.
+ */
+function rosterPositionsFromYahooSettings(league) {
+  const found = [];
+  const walk = (node) => {
+    if (!node || typeof node !== "object") return;
+    if (Array.isArray(node)) { node.forEach(walk); return; }
+    if (Array.isArray(node.roster_positions)) found.push(...node.roster_positions);
+    Object.values(node).forEach(walk);
+  };
+  walk(league);
+  const slots = [];
+  for (const wrapper of found) {
+    const entry = wrapper?.roster_position || wrapper;
+    const position = String(entry?.position || "").toUpperCase();
+    const count = Number(entry?.count);
+    const starting = Number(entry?.is_starting_position) === 1;
+    if (!position || !starting || !Number.isInteger(count) || count < 1) continue;
+    for (let i = 0; i < count; i += 1) slots.push(position);
+  }
+  return slots;
+}
+
 async function fetchYahooLeagueRosters(leagueKey, accessToken, week) {
   const client = new YahooClient(accessToken);
   const effectiveWeek = week || await client.getCurrentWeek(leagueKey);
@@ -231,6 +258,12 @@ async function fetchYahooLeagueRosters(leagueKey, accessToken, week) {
     }
     return { team_id: team.team_id, team_name: team.team_name || null, players, read_status: readStatus };
   }));
+  let rosterPositions = [];
+  try {
+    rosterPositions = rosterPositionsFromYahooSettings(await client.getLeagueSettings(leagueKey, { report: false }));
+  } catch {
+    // Settings unreadable: callers fall back to the user's own lineup slots.
+  }
   const unreadableTeamIds = teams.filter((team) => team.read_status === "unreadable").map((team) => team.team_id);
 
   // Yahoo carries no projection; fill every team's players from Sleeper's public stat lines scored
@@ -243,7 +276,7 @@ async function fetchYahooLeagueRosters(leagueKey, accessToken, week) {
   return {
     week: rosterWeek(effectiveWeek),
     league_status: null,
-    roster_positions: [],
+    roster_positions: rosterPositions,
     teams,
     unreadable_team_ids: unreadableTeamIds,
     projection_meta: projectionMeta,
@@ -255,4 +288,5 @@ module.exports = {
   fetchYahooLastResult,
   fetchYahooLeagueRosters,
   lastResultFromYahooScoreboard,
+  rosterPositionsFromYahooSettings,
 };

@@ -327,3 +327,26 @@ test("ESPN roster normalization reads lineup/roster/trade lock flags; absent mea
   assert.equal(team.players[0].lineup_locked, true);
   assert.equal(team.players[1].trade_locked, false);
 });
+
+test("league starting slots come from provider settings, in names the lineup solver fills", () => {
+  const { rosterPositionsFromEspnSettings } = require("../src/adapters/espn");
+  const { rosterPositionsFromYahooSettings } = require("../src/adapters/yahoo");
+  const { solveOptimalLineup } = require("../src/services/tradeLineup");
+  assert.deepEqual(
+    rosterPositionsFromEspnSettings({ settings: { rosterSettings: { lineupSlotCounts: { 0: 1, 2: 2, 4: 2, 6: 1, 17: 1, 20: 6, 21: 1, 23: 1, 16: 0 } } } }),
+    ["QB", "RB", "RB", "WR", "WR", "TE", "K", "FLEX"]
+  );
+  assert.deepEqual(rosterPositionsFromEspnSettings({}), []);
+  const yahooSettings = [{ league_key: "x" }, { settings: [{ roster_positions: [
+    { roster_position: { position: "QB", count: 1, is_starting_position: 1 } },
+    { roster_position: { position: "RB", count: 2, is_starting_position: 1 } },
+    { roster_position: { position: "W/R/T", count: 1, is_starting_position: 1 } },
+    { roster_position: { position: "BN", count: 5, is_starting_position: 0 } },
+  ] }] }];
+  const slots = rosterPositionsFromYahooSettings(yahooSettings);
+  assert.deepEqual(slots, ["QB", "RB", "RB", "W/R/T"]);
+  // Yahoo's flex slot is actually filled by an eligible player.
+  const mk = (id, position, pts) => ({ player_id: id, player_key: id, position, eligible_positions: [position], projected_points: pts });
+  const lineup = solveOptimalLineup({ players: [mk("q", "QB", 20), mk("a", "RB", 10), mk("b", "RB", 9), mk("c", "WR", 8)], rosterPositions: slots });
+  assert.equal(lineup.total, 47, "the WR fills W/R/T");
+});

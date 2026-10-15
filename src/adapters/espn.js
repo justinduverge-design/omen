@@ -84,6 +84,31 @@ const LINEUP_SLOT_MAP = {
   25: "ALL",
 };
 
+/**
+ * League starting slots from ESPN's own settings (`settings.rosterSettings.lineupSlotCounts`,
+ * `{slotId: count}`), in the slot names the trade solver reads. Bench, IR and invalid slots are
+ * left out. Slot ids ESPN uses that Omen has no name for (IDP, head coach) are skipped rather than
+ * invented; the league's other slots still come back. Empty when the payload carries no counts, in
+ * which case callers fall back to the user's own lineup.
+ */
+const ESPN_SETTINGS_SLOT_NAMES = {
+  0: "QB", 2: "RB", 3: "WRRB_FLEX", 4: "WR", 5: "REC_FLEX", 6: "TE", 7: "SUPER_FLEX",
+  16: "DEF", 17: "K", 23: "FLEX", 24: "FLEX",
+};
+
+function rosterPositionsFromEspnSettings(data) {
+  const counts = data?.settings?.rosterSettings?.lineupSlotCounts;
+  if (!counts || typeof counts !== "object") return [];
+  const slots = [];
+  for (const id of Object.keys(counts).map(Number).sort((a, b) => a - b)) {
+    const name = ESPN_SETTINGS_SLOT_NAMES[id];
+    const count = Number(counts[id]);
+    if (!name || !Number.isInteger(count) || count < 1) continue;
+    for (let i = 0; i < count; i += 1) slots.push(name);
+  }
+  return slots;
+}
+
 const POSITION_ID_MAP = {
   1: "QB",
   2: "RB",
@@ -1206,14 +1231,14 @@ function leagueRostersFromEspnSchedule(data, week) {
 
   return {
     league_status: null,
-    roster_positions: [],
+    roster_positions: rosterPositionsFromEspnSettings(data),
     teams: [...byTeam.values()],
   };
 }
 
 async function fetchEspnLeagueRosters(leagueId, espn_s2, swid, opts = {}) {
   const week = Number(opts.week || opts.scoringPeriodId || 1);
-  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTeam", "mMatchup", "mMatchupScore"], week, opts);
+  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTeam", "mMatchup", "mMatchupScore", "mSettings"], week, opts);
   return leagueRostersFromEspnSchedule(data, week);
 }
 
@@ -1349,6 +1374,7 @@ module.exports = {
   fetchEspnLeagueRosters,
   playoffTeamCountFromEspnData,
   leagueRostersFromEspnSchedule,
+  rosterPositionsFromEspnSettings,
   verifyLeagueAccess,
   lastResultFromEspnSchedule,
   matchupFromEspnSchedule,

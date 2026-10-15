@@ -32,7 +32,6 @@
   },
   "reason_codes": {
     "provider_restricted": "The provider's terms or Omen's own verification stop it claiming an exact result.",
-    "borrowed_from_user_lineup": "The league-wide read has no slot list, so the user's own lineup slots stand in for it.",
     "requires_derived_projection": "Availability is not confirmed unless a derived projection exists.",
     "probe_pending": "The mapping fails closed to not_determined until a live probe confirms it.",
     "derived_projection": "The provider gives none; Omen derives one from another source, or leaves it null.",
@@ -399,24 +398,19 @@
     {
       "provider": "espn",
       "capability": "league_roster_positions",
-      "status": "degraded",
-      "reason": "borrowed_from_user_lineup",
-      "detail": "The league-wide roster read returns roster_positions: []. The trade solver borrows the slots from the user's own lineup, which is wrong when that lineup has an empty or unusual slot.",
+      "status": "available",
+      "reason": null,
+      "detail": "Read from the league's own settings (mSettings lineupSlotCounts) into solver slot names. Slot ids Omen has no name for (IDP, head coach) are skipped. Falls back to the user's lineup slots only when settings carry none.",
       "evidence": [
         {
           "file": "src/adapters/espn.js",
           "includes": [
-            "roster_positions: []"
-          ]
-        },
-        {
-          "file": "src/services/omenTradeCandidate.js",
-          "includes": [
-            "rosterPositionsFromRoster"
+            "rosterPositionsFromEspnSettings",
+            "mSettings"
           ]
         }
       ],
-      "verification": "code",
+      "verification": "live",
       "last_verified": "2026-10-15"
     },
     {
@@ -674,24 +668,18 @@
     {
       "provider": "yahoo",
       "capability": "league_roster_positions",
-      "status": "degraded",
-      "reason": "borrowed_from_user_lineup",
-      "detail": "The league-wide roster read returns roster_positions: [], so the trade solver borrows the user's own slots.",
+      "status": "available",
+      "reason": null,
+      "detail": "Read from the league's own settings (roster_positions, starting positions, expanded by count) in Yahoo's slot names. Falls back to the user's lineup slots only when settings are unreadable.",
       "evidence": [
         {
           "file": "src/adapters/yahoo.js",
           "includes": [
-            "roster_positions: []"
-          ]
-        },
-        {
-          "file": "src/services/omenTradeCandidate.js",
-          "includes": [
-            "rosterPositionsFromRoster"
+            "rosterPositionsFromYahooSettings"
           ]
         }
       ],
-      "verification": "code",
+      "verification": "live",
       "last_verified": "2026-10-15"
     },
     {
