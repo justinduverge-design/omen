@@ -369,3 +369,14 @@ test("GET /api/trade/find attaches warehouse usage evidence to candidates, witho
   assert.ok(a.body.candidates.every((c) => Array.isArray(c.usage_evidence) && c.usage_evidence.length === 0));
   assert.notEqual(a.body.usage_evidence_state, "ok");
 });
+
+test("find-a-trade refuses lopsided 'mutual improvements' (a star QB for a depth WR with +0.0 to theirs)", () => {
+  const { mutualFairnessGuard } = require("../src/services/tradeFind");
+  const P = (id, position, pts) => ({ player_id: id, player_key: id, name: id, position, projected_points: pts });
+  // Phone screenshot 2026-10-15: WR 8.7 out, QB 20.3 in, +6.8 to you, +0.0 to them.
+  assert.equal(mutualFairnessGuard({ give: P("wr", "WR", 8.7), receive: P("qb", "QB", 20.3), userDelta: 6.8, opponentDelta: 0.04 }), false);
+  // QB 16.9 out, RB 21.9 in, +13.0 to you, +8.3 to them: you win far more season-long value than they gain.
+  assert.equal(mutualFairnessGuard({ give: P("qb", "QB", 16.9), receive: P("rb", "RB", 21.9), userDelta: 13.0, opponentDelta: 8.3 }), false);
+  // A near-even swap that helps both lineups is still proposed.
+  assert.equal(mutualFairnessGuard({ give: P("rb", "RB", 18), receive: P("wr", "WR", 17), userDelta: 3, opponentDelta: 3 }), true);
+});
