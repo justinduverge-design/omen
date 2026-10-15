@@ -652,6 +652,7 @@ function createTradeRouter({
       team_id: team?.team_id ? String(team.team_id) : "",
       team_name: team?.team_name || null,
       players: Array.isArray(team?.players) ? team.players : [],
+      read_status: team?.read_status === "unreadable" ? "unreadable" : "ok",
     }));
     return {
       status: "ok",
@@ -760,6 +761,8 @@ function createTradeRouter({
         week: result.week,
         roster_positions: result.roster_positions,
         teams,
+        // Additive: teams the provider failed to read. Empty for a clean read.
+        unreadable_team_ids: result.teams.filter((team) => team.read_status === "unreadable").map((team) => team.team_id),
       });
     } catch (e) {
       return next(e);

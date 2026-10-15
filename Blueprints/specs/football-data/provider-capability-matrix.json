@@ -33,7 +33,6 @@
   "reason_codes": {
     "provider_restricted": "The provider's terms or Omen's own verification stop it claiming an exact result.",
     "borrowed_from_user_lineup": "The league-wide read has no slot list, so the user's own lineup slots stand in for it.",
-    "silent_partial_read": "A failed sub-read becomes an empty result with no flag.",
     "requires_derived_projection": "Availability is not confirmed unless a derived projection exists.",
     "probe_pending": "The mapping fails closed to not_determined until a live probe confirms it.",
     "derived_projection": "The provider gives none; Omen derives one from another source, or leaves it null.",
@@ -725,15 +724,21 @@
     {
       "provider": "yahoo",
       "capability": "league_rosters",
-      "status": "degraded",
-      "reason": "silent_partial_read",
-      "detail": "One standings call plus one roster call per team. A team whose roster read fails comes back as an empty team with no flag, so Trade cannot tell it from a genuinely empty roster.",
+      "status": "available",
+      "reason": null,
+      "detail": "One standings call plus one roster call per team. A team whose roster read fails is flagged read_status=unreadable (and listed in unreadable_team_ids on /api/trade/roster), so Trade skips it instead of treating it as empty.",
       "evidence": [
         {
           "file": "src/adapters/yahoo.js",
           "includes": [
-            "fetchYahooLeagueRosters",
-            "One team's roster failing to read must not fail"
+            "unreadable_team_ids",
+            "read_status"
+          ]
+        },
+        {
+          "file": "src/services/omenTradeCandidate.js",
+          "includes": [
+            "teams_unreadable"
           ]
         }
       ],

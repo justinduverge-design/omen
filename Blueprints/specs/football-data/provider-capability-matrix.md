@@ -16,7 +16,7 @@ Build 12 plan (PR 670, Provider direction correction) names four states that mus
 | league_roster_positions | available | degraded (borrowed_from_user_lineup) | degraded (borrowed_from_user_lineup) |
 | matchup | available | available | available |
 | standings | available | available | available |
-| league_rosters | available | available | degraded (silent_partial_read) |
+| league_rosters | available | available | available |
 | waiver_pool | available | available | degraded (requires_derived_projection) |
 | waiver_system | available | degraded (probe_pending) | degraded (probe_pending) |
 | transactions | not_read (not_read_by_omen) | not_read (not_read_by_omen) | not_read (not_read_by_omen) |
@@ -39,7 +39,6 @@ Build 12 plan (PR 670, Provider direction correction) names four states that mus
 | espn | draft_data | not_read | not_read_by_omen | ESPN's mDraftDetail is documented by the community. Omen does not read the league's own draft. | 2026-10-15 (code) |
 | espn | trade_deadline | not_read | deliberately_omitted | The ESPN trade deadline field is unproven, and the deadline signal is deliberately left out. | 2026-10-15 (code) |
 | yahoo | league_roster_positions | degraded | borrowed_from_user_lineup | The league-wide roster read returns roster_positions: [], so the trade solver borrows the user's own slots. | 2026-10-15 (code) |
-| yahoo | league_rosters | degraded | silent_partial_read | One standings call plus one roster call per team. A team whose roster read fails comes back as an empty team with no flag, so Trade cannot tell it from a genuinely empty roster. | 2026-10-15 (code) |
 | yahoo | waiver_pool | degraded | requires_derived_projection | The available-player list is read, but availability stays unconfirmed unless a derived projection exists, so waiver adds cannot be ranked without one. | 2026-10-15 (code) |
 | yahoo | waiver_system | degraded | probe_pending | The priority branch was verified on three real leagues (2026-09-06). The FAAB branch is unverified and returns not_determined. | 2026-10-15 (code) |
 | yahoo | transactions | not_read | not_read_by_omen | Yahoo documents /league/{key}/transactions. Omen reads none. | 2026-10-15 (code) |
@@ -76,7 +75,6 @@ Provider fields and endpoints that are observed or documented but that no code i
 
 - `provider_restricted`: The provider's terms or Omen's own verification stop it claiming an exact result.
 - `borrowed_from_user_lineup`: The league-wide read has no slot list, so the user's own lineup slots stand in for it.
-- `silent_partial_read`: A failed sub-read becomes an empty result with no flag.
 - `requires_derived_projection`: Availability is not confirmed unless a derived projection exists.
 - `probe_pending`: The mapping fails closed to not_determined until a live probe confirms it.
 - `derived_projection`: The provider gives none; Omen derives one from another source, or leaves it null.

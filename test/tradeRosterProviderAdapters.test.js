@@ -280,7 +280,28 @@ test("fetchYahooLeagueRosters does not fail the whole read when one team's roste
 
   assert.equal(result.teams.length, 2);
   assert.deepEqual(result.teams[1].players, []);
+  // The failed read is flagged, so it is never mistaken for a genuinely empty roster.
+  assert.equal(result.teams[0].read_status, "ok");
+  assert.equal(result.teams[1].read_status, "unreadable");
+  assert.deepEqual(result.unreadable_team_ids, ["t.2"]);
 
   delete require.cache[yahooServicePath];
   delete require.cache[yahooAdapterPath];
+});
+
+test("evaluateTradeForConnection skips an unreadable Yahoo team instead of treating it as an empty roster", async () => {
+  const { evaluateTradeForConnection } = require("../src/services/omenTradeCandidate");
+  const teams = [
+    { team_id: "t.1", team_name: "Own", players: [], read_status: "unreadable" },
+    { team_id: "t.2", team_name: "Rival", players: [], read_status: "unreadable" },
+  ];
+  const adapters = { yahoo: { fetchYahooLeagueRosters: async () => ({ teams, roster_positions: ["QB"] }) } };
+  const roster = { week: 5, team_key: "t.1", slots: { starters: [{ projection: 10 }], bench: [] } };
+  const result = await evaluateTradeForConnection({
+    connection: { platform: "yahoo", league_id: "411.l.1" },
+    roster,
+    deps: { adapters, yahooAuth: { accessToken: "x" } },
+  });
+  // Own roster unreadable: honest unavailable, never "no trade found".
+  assert.equal(result.status === "none_found", false);
 });

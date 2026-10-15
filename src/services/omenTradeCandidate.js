@@ -174,6 +174,7 @@ async function readYahoo({ connection, roster, yahooAuth, adapters }) {
     team_id: team?.team_id ? String(team.team_id) : "",
     team_name: team?.team_name || null,
     players: Array.isArray(team?.players) ? team.players : [],
+    read_status: team?.read_status === "unreadable" ? "unreadable" : "ok",
   }));
   return {
     teams,
@@ -228,11 +229,13 @@ async function evaluateTradeForConnection({ connection, roster, platformLabel, d
   const teams = leagueRead.teams;
   const ownTeam = teams.find((team) => team.team_id === leagueRead.ownTeamId);
   if (!ownTeam) return unavailable("own_team_not_found");
+  if (ownTeam.read_status === "unreadable") return unavailable("rosters_unreadable");
   const rosterPositions = leagueRead.rosterPositions;
   if (!Array.isArray(rosterPositions) || rosterPositions.length === 0) return unavailable("no_starting_slots");
 
   // Another manager whose roster the provider did not disclose is skipped, never assumed empty.
-  const opponents = teams.filter((team) => team.team_id !== ownTeam.team_id && Array.isArray(team.players) && team.players.length > 0);
+  const opponents = teams.filter((team) => team.team_id !== ownTeam.team_id && team.read_status !== "unreadable" && Array.isArray(team.players) && team.players.length > 0);
+  const teamsUnreadable = teams.filter((team) => team.team_id !== ownTeam.team_id && team.read_status === "unreadable").length;
   if (!opponents.length) return unavailable("rosters_unreadable");
 
   let budgetTripped = false;
@@ -255,7 +258,7 @@ async function evaluateTradeForConnection({ connection, roster, platformLabel, d
   if (!candidate) {
     return budgetTripped
       ? unavailable("search_budget_exceeded")
-      : { status: "none_found", reason: null, message: null, teams_checked: opponents.length, candidate: null };
+      : { status: "none_found", reason: null, message: null, teams_checked: opponents.length, teams_unreadable: teamsUnreadable, candidate: null };
   }
 
   const [give, receive] = await fillDisplayNames([candidate.give, candidate.receive], deps);
@@ -264,6 +267,7 @@ async function evaluateTradeForConnection({ connection, roster, platformLabel, d
     reason: null,
     message: null,
     teams_checked: opponents.length,
+    teams_unreadable: teamsUnreadable,
     candidate: { ...candidate, give, receive },
   };
 }
