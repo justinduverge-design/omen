@@ -24,7 +24,7 @@ function cell(entry) {
 
 function render(matrix) {
   const entries = matrix.entries;
-  const capabilities = [...new Set(entries.map((entry) => entry.capability))];
+  const capabilities = matrix.capabilities;
   const find = (provider, capability) =>
     entries.find((entry) => entry.provider === provider && entry.capability === capability);
   const lines = [];

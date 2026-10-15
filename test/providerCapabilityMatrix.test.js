@@ -17,8 +17,21 @@ const read = (file) => fs.readFileSync(path.join(ROOT, file), "utf8");
 const STATUSES = Object.keys(matrix.statuses);
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
+// Pinned on purpose. Dropping a capability from the matrix must be a deliberate edit here AND in the JSON.
+const EXPECTED_CAPABILITIES = [
+  "league_settings", "league_scoring_rules", "user_roster", "league_roster_positions", "matchup", "standings",
+  "league_rosters", "waiver_pool", "waiver_system", "transactions", "player_projections", "injury_status",
+  "draft_data", "playoff_settings", "trade_deadline",
+];
+
+test("the capability list is the pinned one, with no extras and none missing", () => {
+  assert.deepEqual(matrix.capabilities, EXPECTED_CAPABILITIES);
+  assert.equal(new Set(matrix.capabilities).size, matrix.capabilities.length, "duplicate capability in the list");
+  const inEntries = [...new Set(matrix.entries.map((entry) => entry.capability))].sort();
+  assert.deepEqual(inEntries, [...EXPECTED_CAPABILITIES].sort(), "entries use a capability that is not listed, or a listed one has no entries");
+});
+
 test("every provider has exactly one entry for every capability", () => {
-  const capabilities = [...new Set(matrix.entries.map((entry) => entry.capability))];
   const seen = new Set();
   for (const entry of matrix.entries) {
     const key = `${entry.provider}/${entry.capability}`;
@@ -27,10 +40,11 @@ test("every provider has exactly one entry for every capability", () => {
     assert.ok(PROVIDERS.includes(entry.provider), `unknown provider in ${key}`);
   }
   for (const provider of PROVIDERS) {
-    for (const capability of capabilities) {
+    for (const capability of EXPECTED_CAPABILITIES) {
       assert.ok(seen.has(`${provider}/${capability}`), `missing ${provider}/${capability}`);
     }
   }
+  assert.equal(matrix.entries.length, PROVIDERS.length * EXPECTED_CAPABILITIES.length);
 });
 
 test("entries are well formed: status, reason, verification and date agree", () => {
