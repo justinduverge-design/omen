@@ -45,6 +45,26 @@ As of 2026-10-15. Canonical machine-readable provider capability matrix. test/pr
 | yahoo | draft_data | not_read | not_read_by_omen | Only ADP is read (getDraftAnalysis). The league's own draftresults are not read. | 2026-10-15 (code) |
 | yahoo | trade_deadline | not_read | deliberately_omitted | trade_end_date is documented but not parsed, and the deadline signal is deliberately left out. | 2026-10-15 (code) |
 
+## Provider data Omen receives or could receive but does not read
+
+Provider fields and endpoints that are observed or documented but that no code in src/ reads. 'observed' means a recorded live response in this repo showed the field; 'documented' means the provider's docs or community docs list it and nobody here has seen it live. The test fails when any of these starts being read, so move it into entries when that happens.
+
+| Provider | Field | Seen | Opportunity | Value | Needs |
+|---|---|---|---|---|---|
+| espn | lineupLocked / rosterLocked / tradeLocked | observed | Do not recommend a start, drop or trade for a player the provider says is locked. Today a lock would not stop the recommendation. | high | none; fields already arrive in the responses Omen reads |
+| espn | eligibleSlots | observed | Real positional eligibility (FLEX, SUPERFLEX, IDP, bench) per player. Also the missing slot list for league_roster_positions. | high | none; already arrives |
+| espn | ownership.percentOwned / percentChange | observed | Waiver heat: who the market is adding. Free signal for waiver ranking and for trade market value. | medium | none; already arrives |
+| espn | keeperValue / draftAuctionValue | observed | Keeper and auction leagues: the league's own valuation of each player. | low | only matters for keeper leagues |
+| espn | proTeamSchedules | documented | Provider-side NFL schedule and bye per player. | low | a live probe; Omen already has nflSchedule.js |
+| sleeper | depth_chart_order / depth_chart_position | documented | Depth-chart role per player on a list Omen already fetches. | medium | none technically; check it against the warehouse depth data first |
+| sleeper | practice_participation / practice_description / injury_notes | documented | Practice status and injury notes are the injury-report data the 2026-10-09 handoff lists as the biggest open start/sit gain. | high | founder rights decision: whether to admit NFL injury-report data via Sleeper |
+| sleeper | traded_picks | documented | Pick ownership for trade context and trade value. | low | a live probe |
+| sleeper | winners_bracket / losers_bracket | documented | Playoff bracket and outcomes for late-season screens. | low | a live probe |
+| yahoo | percent_owned | documented | Same waiver-heat signal as ESPN; also the waiver versus free-agent distinction (status W vs FA). | medium | a live probe; needs the founder's Yahoo session |
+| yahoo | is_editable | documented | Lineup-lock flag, the Yahoo equivalent of ESPN lineupLocked. | high | a live probe; needs the founder's Yahoo session |
+| yahoo | bye_weeks | documented | Provider-side bye per player. | low | a live probe |
+| yahoo | has_recent_player_notes | documented | Flags a news item on a player; a prompt to look, not content. | low | a live probe; news rights are undecided |
+
 ## Vocabulary
 
 - **available**: Omen reads it and uses it as the provider gives it.

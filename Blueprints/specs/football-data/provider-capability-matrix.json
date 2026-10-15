@@ -889,5 +889,171 @@
       "verification": "code",
       "last_verified": "2026-10-15"
     }
+  ],
+  "surface_note": "Provider fields and endpoints that are observed or documented but that no code in src/ reads. 'observed' means a recorded live response in this repo showed the field; 'documented' means the provider's docs or community docs list it and nobody here has seen it live. The test fails when any of these starts being read, so move it into entries when that happens.",
+  "unused_surface": [
+    {
+      "provider": "espn",
+      "field": "lineupLocked / rosterLocked / tradeLocked",
+      "kind": "observed",
+      "evidence": "Blueprints/specs/b2d-espn-e0-verdict-v1.md (pool entry keys, live 2026-07-27)",
+      "opportunity": "Do not recommend a start, drop or trade for a player the provider says is locked. Today a lock would not stop the recommendation.",
+      "value": "high",
+      "needs": "none; fields already arrive in the responses Omen reads",
+      "tokens": [
+        "lineupLocked",
+        "rosterLocked",
+        "tradeLocked"
+      ]
+    },
+    {
+      "provider": "espn",
+      "field": "eligibleSlots",
+      "kind": "observed",
+      "evidence": "Blueprints/specs/b2d-espn-e0-verdict-v1.md (live 2026-07-27)",
+      "opportunity": "Real positional eligibility (FLEX, SUPERFLEX, IDP, bench) per player. Also the missing slot list for league_roster_positions.",
+      "value": "high",
+      "needs": "none; already arrives",
+      "tokens": [
+        "eligibleSlots"
+      ]
+    },
+    {
+      "provider": "espn",
+      "field": "ownership.percentOwned / percentChange",
+      "kind": "observed",
+      "evidence": "Blueprints/specs/b2d-espn-e0-verdict-v1.md (percentOwned 97.3-99.8 on the sample)",
+      "opportunity": "Waiver heat: who the market is adding. Free signal for waiver ranking and for trade market value.",
+      "value": "medium",
+      "needs": "none; already arrives",
+      "tokens": [
+        "percentOwned",
+        "percentChange"
+      ]
+    },
+    {
+      "provider": "espn",
+      "field": "keeperValue / draftAuctionValue",
+      "kind": "observed",
+      "evidence": "Blueprints/specs/b2d-espn-e0-verdict-v1.md (live 2026-07-27)",
+      "opportunity": "Keeper and auction leagues: the league's own valuation of each player.",
+      "value": "low",
+      "needs": "only matters for keeper leagues",
+      "tokens": [
+        "keeperValue",
+        "draftAuctionValue"
+      ]
+    },
+    {
+      "provider": "espn",
+      "field": "proTeamSchedules",
+      "kind": "documented",
+      "evidence": "community-documented kona_player_info; not seen live here",
+      "opportunity": "Provider-side NFL schedule and bye per player.",
+      "value": "low",
+      "needs": "a live probe; Omen already has nflSchedule.js",
+      "tokens": [
+        "proTeamSchedules"
+      ]
+    },
+    {
+      "provider": "sleeper",
+      "field": "depth_chart_order / depth_chart_position",
+      "kind": "documented",
+      "evidence": "Sleeper players list (already downloaded, about 5 MB, cached)",
+      "opportunity": "Depth-chart role per player on a list Omen already fetches.",
+      "value": "medium",
+      "needs": "none technically; check it against the warehouse depth data first",
+      "tokens": [
+        "depth_chart_order"
+      ]
+    },
+    {
+      "provider": "sleeper",
+      "field": "practice_participation / practice_description / injury_notes",
+      "kind": "documented",
+      "evidence": "Sleeper players list (already downloaded and cached)",
+      "opportunity": "Practice status and injury notes are the injury-report data the 2026-10-09 handoff lists as the biggest open start/sit gain.",
+      "value": "high",
+      "needs": "founder rights decision: whether to admit NFL injury-report data via Sleeper",
+      "tokens": [
+        "practice_participation",
+        "practice_description",
+        "injury_notes"
+      ]
+    },
+    {
+      "provider": "sleeper",
+      "field": "traded_picks",
+      "kind": "documented",
+      "evidence": "Sleeper API docs: /league/{id}/traded_picks",
+      "opportunity": "Pick ownership for trade context and trade value.",
+      "value": "low",
+      "needs": "a live probe",
+      "tokens": [
+        "traded_picks"
+      ]
+    },
+    {
+      "provider": "sleeper",
+      "field": "winners_bracket / losers_bracket",
+      "kind": "documented",
+      "evidence": "Sleeper API docs",
+      "opportunity": "Playoff bracket and outcomes for late-season screens.",
+      "value": "low",
+      "needs": "a live probe",
+      "tokens": [
+        "winners_bracket",
+        "losers_bracket"
+      ]
+    },
+    {
+      "provider": "yahoo",
+      "field": "percent_owned",
+      "kind": "documented",
+      "evidence": "Yahoo Fantasy API player sub-resource",
+      "opportunity": "Same waiver-heat signal as ESPN; also the waiver versus free-agent distinction (status W vs FA).",
+      "value": "medium",
+      "needs": "a live probe; needs the founder's Yahoo session",
+      "tokens": [
+        "percent_owned"
+      ]
+    },
+    {
+      "provider": "yahoo",
+      "field": "is_editable",
+      "kind": "documented",
+      "evidence": "Yahoo Fantasy API roster player field",
+      "opportunity": "Lineup-lock flag, the Yahoo equivalent of ESPN lineupLocked.",
+      "value": "high",
+      "needs": "a live probe; needs the founder's Yahoo session",
+      "tokens": [
+        "is_editable"
+      ]
+    },
+    {
+      "provider": "yahoo",
+      "field": "bye_weeks",
+      "kind": "documented",
+      "evidence": "Yahoo Fantasy API player field",
+      "opportunity": "Provider-side bye per player.",
+      "value": "low",
+      "needs": "a live probe",
+      "tokens": [
+        "bye_weeks"
+      ]
+    },
+    {
+      "provider": "yahoo",
+      "field": "has_recent_player_notes",
+      "kind": "documented",
+      "evidence": "Yahoo Fantasy API player field",
+      "opportunity": "Flags a news item on a player; a prompt to look, not content.",
+      "value": "low",
+      "needs": "a live probe; news rights are undecided",
+      "tokens": [
+        "has_recent_player_notes"
+      ]
+    }
   ]
 }

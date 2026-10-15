@@ -81,6 +81,35 @@ test("source still matches each entry's evidence", () => {
   }
 });
 
+function sourceFiles(dir) {
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((item) => {
+    const full = path.join(dir, item.name);
+    if (item.isDirectory()) return sourceFiles(full);
+    return item.name.endsWith(".js") ? [full] : [];
+  });
+}
+
+test("provider fields listed as unused are still unread anywhere in src", () => {
+  const sources = sourceFiles(path.join(ROOT, "src")).map((file) => [file, fs.readFileSync(file, "utf8")]);
+  for (const item of matrix.unused_surface) {
+    assert.ok(PROVIDERS.includes(item.provider), `${item.field}: unknown provider`);
+    assert.ok(["observed", "documented"].includes(item.kind), `${item.field}: kind must be observed or documented`);
+    assert.ok(["high", "medium", "low"].includes(item.value), `${item.field}: value must be high, medium or low`);
+    assert.ok(Array.isArray(item.tokens) && item.tokens.length > 0, `${item.field}: tokens required`);
+    for (const token of item.tokens) {
+      const hit = sources.find(([, text]) => text.includes(token));
+      assert.ok(
+        !hit,
+        `${item.provider}/${token} is read in ${hit && path.relative(ROOT, hit[0])}. Move it from unused_surface into entries and update the matrix.`
+      );
+    }
+    if (item.kind === "observed") {
+      const doc = item.evidence.split(" ")[0];
+      assert.ok(fs.existsSync(path.join(ROOT, doc)), `${item.field}: observed evidence file ${doc} is missing`);
+    }
+  }
+});
+
 test("runtime reason codes equal what the trade candidate path can return", () => {
   const source = read("src/services/omenTradeCandidate.js");
   const block = source.match(/UNAVAILABLE_COPY = Object\.freeze\(\{([\s\S]*?)\n\}\);/);

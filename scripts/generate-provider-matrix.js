@@ -51,6 +51,16 @@ function render(matrix) {
     lines.push(`| ${entry.provider} | ${entry.capability} | ${entry.status} | ${entry.reason} | ${entry.detail} | ${verified} |`);
   }
   lines.push("");
+  lines.push("## Provider data Omen receives or could receive but does not read");
+  lines.push("");
+  lines.push(matrix.surface_note);
+  lines.push("");
+  lines.push("| Provider | Field | Seen | Opportunity | Value | Needs |");
+  lines.push("|---|---|---|---|---|---|");
+  for (const item of matrix.unused_surface) {
+    lines.push(`| ${item.provider} | ${item.field} | ${item.kind} | ${item.opportunity} | ${item.value} | ${item.needs} |`);
+  }
+  lines.push("");
   lines.push("## Vocabulary");
   lines.push("");
   for (const [name, text] of Object.entries(matrix.statuses)) lines.push(`- **${name}**: ${text}`);
