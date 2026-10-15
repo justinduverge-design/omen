@@ -35,3 +35,22 @@ production credentials held in the production database or on the device. This se
 use them, and nothing in this document is derived from private league data. Every `PASS-CONTRACT` above
 is fixture-based. The sanitized receipts needed (counts, field presence, status codes only) are listed
 in the PR for the next step, which needs the founder's go-ahead on how the server read is run.
+
+## Addendum: warehouse usage evidence in Trade (source and tests only)
+
+`src/services/tradeUsageEvidence.js` reads the warehouse's per-week opportunity counts (targets, carries,
+red-zone work) for both sides of a trade through the existing shared read runtime and the same wording
+Waiver uses. It is evidence only: it never changes who is proposed or how candidates rank.
+
+- `GET /api/trade/find`: each candidate gains `usage_evidence` (rows of `side`, `player_key`, `statement`,
+  `source: nfl_weekly_opportunity`, `kind: observed_usage`) and the response gains `usage_evidence_state`
+  (`ok`, `no_usage_for_these_players`, `warehouse_not_enabled`, `unavailable`, `not_in_season`).
+- Omen of the Week trade call: `recommendation.usage_evidence`, plus one `data_used` line when rows exist.
+- In `supabase` mode, with no runtime, on a warehouse error or past a 1.5 s budget, nothing changes and the
+  state says why. Shadow and warehouse modes read it.
+
+Evidence state: `PASS-CONTRACT` (6 new tests, suite 2430/2430). **Not run against the real warehouse**:
+this session has no route to it, and no warehouse service, schema, timer or production setting was touched.
+Nothing here needs a production apply. Whether it shows on a phone depends on the server's
+`FOOTBALL_DATA_MODE` being `shadow` or `warehouse` and on the iOS client rendering `usage_evidence`, which
+is not built yet.

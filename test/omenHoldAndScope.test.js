@@ -389,6 +389,9 @@ test("ESPN now gets a trade call when a one-for-one improves both lineups", asyn
   assert.equal(body.platform.name, "espn");
   assert.deepEqual(calls.espnLeagueRosters, ["esp-1"]);
   assert.equal(body.answered_for.platform, "espn");
+  // Warehouse usage is additive evidence: present and empty when the warehouse is not enabled.
+  assert.deepEqual(body.recommendation.usage_evidence, []);
+  assert.ok(!body.recommendation.explanation.data_used.some((line) => /weekly usage/.test(line)));
 });
 
 test("ESPN with no trade that clears both lineups holds, and the hold says it searched", async () => {

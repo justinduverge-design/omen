@@ -39,6 +39,8 @@ const espnAdapter = require("../adapters/espn");
 const yahooAdapter = require("../adapters/yahoo");
 const { getAuthenticatedEspnCredentials } = require("../services/espnAuth");
 const { getAuthenticatedYahooClient } = require("../services/yahooAuth");
+const { createClient } = require("@supabase/supabase-js");
+const { createTradeUsageEvidence, usageRowsForTrade } = require("../services/tradeUsageEvidence");
 
 const MAX_PLAYERS_PER_SIDE = 10;
 const MAX_SHARE_PAYLOAD_BYTES = 16 * 1024;
@@ -322,6 +324,13 @@ function verdictStateFor(result, evaluability) {
   return VERDICT_STATE_BY_VERDICT[result?.verdict] || "close_needs_context";
 }
 
+let supabaseClient = null;
+// Crosswalk reads only (provider key -> public GSIS id); built on first use.
+function defaultSupabase() {
+  if (!supabaseClient) supabaseClient = createClient(config.supabaseUrl, config.supabaseServiceKey);
+  return supabaseClient;
+}
+
 function neutralAnalysisContext(reason = null) {
   return {
     mode: "neutral",
@@ -571,8 +580,28 @@ function createTradeRouter({
   tradeSavedQueueStore = createDefaultTradeSavedQueueStore(),
   // T4 storage of record: the `saved_trades` table (redo step 12).
   savedTradesStore = createSupabaseSavedTradesStore(),
+  // Warehouse opportunity counts for the players in a candidate, as evidence beside the projection
+  // math. Evidence only: a no-op in `supabase` mode and on any warehouse failure or timeout.
+  tradeUsage = createTradeUsageEvidence({
+    getRuntime: () => getSharedWarehouseRuntime({ logger }),
+    getSupabase: () => defaultSupabase(),
+    log: logger,
+  }),
 } = {}) {
   const router = express.Router();
+
+  /** `{ candidates, usage_evidence_state }`: each candidate gains `usage_evidence` rows (possibly empty). */
+  async function withUsageEvidence(candidates, week) {
+    const shown = Array.isArray(candidates) ? candidates : [];
+    const usage = await tradeUsage(
+      shown.flatMap((candidate) => [candidate?.give, candidate?.receive]),
+      { season: nflWeekContext(now())?.season, week }
+    );
+    return {
+      candidates: shown.map((candidate) => ({ ...candidate, usage_evidence: usageRowsForTrade(candidate, usage.byKey) })),
+      usage_evidence_state: usage.state,
+    };
+  }
 
   router.get("/capabilities", (_req, res) => res.json({
     contract_version: "trade-capabilities.v1", max_teams: THREE_TEAM_COUNT,
@@ -1079,14 +1108,14 @@ function createTradeRouter({
         budget_exceeded: scan.budget_exceeded,
         own_needs: scan.own_needs,
         projection_coverage: coverage,
-        candidates: await keepShownBatch({
+        ...(await withUsageEvidence(await keepShownBatch({
           userId: user.id,
           platform,
           leagueId,
           teamId,
           week: bundle.week,
           candidates: scan.candidates,
-        }),
+        }), bundle.week)),
       });
     } catch (e) {
       return next(e);

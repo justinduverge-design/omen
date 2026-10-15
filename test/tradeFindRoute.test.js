@@ -63,6 +63,7 @@ function buildApp({
   fetchLeagueRosters,
   nflWeekContext = () => ({ week: 3 }),
   tradeFindCache = createMemoryTradeFindCache(),
+  tradeUsage,
 } = {}) {
   let sleeperCallCount = 0;
   const wrappedFetch = fetchLeagueRosters || (async () => {
@@ -79,6 +80,7 @@ function buildApp({
     fetchLeagueRosters: countingFetch,
     nflWeekContext,
     tradeFindCache,
+    ...(tradeUsage ? { tradeUsage } : {}),
   });
   const app = express();
   app.use(express.json());
@@ -336,4 +338,34 @@ test("GET /api/trade/find accepts the directory's numeric Yahoo team id for a ro
   assert.equal(res.body.team_id, "nfl.l.555.t.1");
   assert.ok(res.body.candidates.length >= 1);
   assert.ok(res.body.projection_coverage.projected > 0);
+});
+
+test("GET /api/trade/find attaches warehouse usage evidence to candidates, without changing which are proposed", async () => {
+  const seen = [];
+  const tradeUsage = async (players, ctx) => {
+    seen.push({ keys: players.map((p) => p.player_key), ...ctx });
+    return {
+      state: "ok",
+      byKey: new Map(players.filter((p) => p.position === "WR").map((p) => [p.player_key, { statement: `${p.name}: 9.0 targets a game.`, source: "nfl_weekly_opportunity" }])),
+    };
+  };
+  const plain = buildApp({ fetchLeagueRosters: async () => sleeperFixture(2) });
+  const withUsage = buildApp({ fetchLeagueRosters: async () => sleeperFixture(2), nflWeekContext: () => ({ week: 3, season: 2026 }), tradeUsage });
+  const headers = { authorization: "Bearer t" };
+  const q = "/api/trade/find?platform=sleeper&league_id=abc123&team_id=1";
+  const a = await get(plain.app, q, headers);
+  const b = await get(withUsage.app, q, headers);
+
+  assert.equal(b.status, 200);
+  assert.equal(b.body.usage_evidence_state, "ok");
+  const tail = (c) => String(c.id).split(".").pop(); // the prefix is a per-batch token
+  assert.deepEqual(b.body.candidates.map(tail), a.body.candidates.map(tail), "same candidates, same order");
+  assert.ok(b.body.candidates.every((c) => Array.isArray(c.usage_evidence)));
+  assert.ok(b.body.candidates.some((c) => c.usage_evidence.some((row) => row.side === "receive" && row.kind === "observed_usage")));
+  assert.equal(seen.length, 1, "one usage lookup for the whole batch");
+  assert.equal(seen[0].season, 2026);
+  assert.equal(seen[0].week, 3);
+  // Without a warehouse reader the field is present and empty, with the reason.
+  assert.ok(a.body.candidates.every((c) => Array.isArray(c.usage_evidence) && c.usage_evidence.length === 0));
+  assert.notEqual(a.body.usage_evidence_state, "ok");
 });
