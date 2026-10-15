@@ -35,10 +35,9 @@ struct CommandCenterView: View {
     @State private var reportingScreen: OmenBetaReportScreen?
     @State private var showConnectSheet: Bool = false
     @State private var showSwitcherSheet: Bool = false
-    /// J4: `TradeBuild`/`TradeRoster`, over `GET /api/trade/roster`.
-    @State private var showTradeRosterSheet: Bool = false
-    /// Find a trade: the swipe review over `GET /api/trade/find`, the Trade tab's front door.
-    @State private var showTradeFindSheet: Bool = false
+    /// Trade has three distinct jobs. Build is the canvas-governed default; Find is the
+    /// later sports-game-style candidate search; Type compares a deal already proposed.
+    @State private var selectedTradeMode: TradeMode = .build
     /// J4: `TradeShare`, over `POST /api/trade/share`.
     @State private var showTradeShareSheet: Bool = false
     @State private var selectedTab: CommandCenterTab = .command
@@ -354,22 +353,55 @@ struct CommandCenterView: View {
                         )
                     }
                 } else {
-                OmenTradeScreen(
-                    state: tradeViewModel.viewState,
-                    offer: tradeViewModel.offer,
-                    searchState: tradeViewModel.searchState,
-                    searchingSide: tradeViewModel.searchingSide,
-                    onQueryChanged: { query, side in tradeViewModel.search(query, side: side) },
-                    onAdd: { name, side in tradeViewModel.add(name, to: side) },
-                    onAddResult: { player, side in tradeViewModel.add(player, to: side) },
-                    onRemove: { index, side in tradeViewModel.remove(at: index, from: side) },
-                    onCompare: { Task { await tradeViewModel.compare(userID: userID) } },
-                    onBrowseRoster: { showTradeRosterSheet = true },
-                    capabilities: tradeViewModel.capabilities,
-                    onFindTrade: { showTradeFindSheet = true },
-                    prefill: tradeViewModel.prefill
-                )
-                .task { await tradeViewModel.loadCapabilities() }
+                    VStack(alignment: .leading, spacing: 0) {
+                        OmenTradeTabs(
+                            titles: TradeMode.allCases.map(\.title),
+                            selectedIndex: TradeMode.allCases.firstIndex(of: selectedTradeMode) ?? 0,
+                            onSelect: { index in
+                                guard TradeMode.allCases.indices.contains(index) else { return }
+                                selectedTradeMode = TradeMode.allCases[index]
+                            }
+                        )
+                        .padding(.horizontal, OmenSpacing.step16)
+                        .padding(.top, OmenSpacing.step12)
+
+                        switch selectedTradeMode {
+                        case .find:
+                            TradeFindFlowView(
+                                directoryRepository: leagueDirectoryRepository,
+                                sessionManager: sessionManager,
+                                apiBaseURL: environment.apiBaseURL,
+                                userID: userID,
+                                platform: pickedLeagueScope?.platform ?? tradeViewModel.offer.leagueContext?.platform,
+                                leagueId: pickedLeagueScope?.leagueID ?? tradeViewModel.offer.leagueContext?.leagueId,
+                                fallbackTeamId: loadedOverviewTeamId,
+                                onOpenAccount: { showAccountSheet = true },
+                                onConnectLeague: { showConnectSheet = true },
+                                onDismiss: { selectedTradeMode = .build }
+                            )
+                        case .build:
+                            TradeRosterFlowView(
+                                tradeViewModel: tradeViewModel,
+                                userID: userID,
+                                onOpenAccount: { showAccountSheet = true },
+                                onDismiss: { selectedTradeMode = .type }
+                            )
+                        case .type:
+                            OmenTradeScreen(
+                                state: tradeViewModel.viewState,
+                                offer: tradeViewModel.offer,
+                                searchState: tradeViewModel.searchState,
+                                searchingSide: tradeViewModel.searchingSide,
+                                onQueryChanged: { query, side in tradeViewModel.search(query, side: side) },
+                                onAddResult: { player, side in tradeViewModel.add(player, to: side) },
+                                onRemove: { index, side in tradeViewModel.remove(at: index, from: side) },
+                                onCompare: { Task { await tradeViewModel.compare(userID: userID) } },
+                                capabilities: tradeViewModel.capabilities,
+                                prefill: tradeViewModel.prefill
+                            )
+                        }
+                    }
+                    .task { await tradeViewModel.loadCapabilities() }
                 }
             }
             // The league to personalize against comes from the SAME `league-overview.v1` read
@@ -391,14 +423,6 @@ struct CommandCenterView: View {
                 // directory arrives instead of waiting for another weekly matchup.
                 guard case .loaded(let overview) = leagueViewModel.viewState else { return }
                 syncTradeLeague(overview)
-            }
-            .sheet(isPresented: $showTradeRosterSheet) {
-                TradeRosterFlowView(
-                    tradeViewModel: tradeViewModel,
-                    userID: userID,
-                    onOpenAccount: { showAccountSheet = true },
-                    onDismiss: { showTradeRosterSheet = false }
-                )
             }
             .sheet(isPresented: $showTradeShareSheet) {
                 if let state = tradeViewModel.shareScreenState {
@@ -459,30 +483,6 @@ struct CommandCenterView: View {
         // screen used the Omen accent — found on device 2026-09-01. Android's NavigationBar
         // already tinted correctly; only iOS had drifted.
         .tint(OmenColor.accent)
-        // Find a trade is opened from the Trade tab and from an Omen trade call, so its sheet hangs off the
-        // tab view rather than off the Trade tab's content, which may not exist yet when the call opens it.
-        .sheet(isPresented: $showTradeFindSheet) {
-            // The league is the one the picker says is on screen (the Omen tab's call was made for it); it falls
-            // back to the League destination's read. The team comes from the league directory.
-            TradeFindFlowView(
-                directoryRepository: leagueDirectoryRepository,
-                sessionManager: sessionManager,
-                apiBaseURL: environment.apiBaseURL,
-                userID: userID,
-                platform: pickedLeagueScope?.platform ?? tradeViewModel.offer.leagueContext?.platform,
-                leagueId: pickedLeagueScope?.leagueID ?? tradeViewModel.offer.leagueContext?.leagueId,
-                fallbackTeamId: loadedOverviewTeamId,
-                onOpenAccount: {
-                    showTradeFindSheet = false
-                    showAccountSheet = true
-                },
-                onConnectLeague: {
-                    showTradeFindSheet = false
-                    showConnectSheet = true
-                },
-                onDismiss: { showTradeFindSheet = false }
-            )
-        }
         .sheet(isPresented: $showConnectSheet) {
             NavigationStack {
                 ConnectView(
@@ -588,14 +588,15 @@ struct CommandCenterView: View {
         // Refused (no known league, or not reviewable): stay on the call rather than open a Trade tab that
         // would compare these players in some other league.
         guard tradeViewModel.applyPrefill(from: call) else { return }
+        selectedTradeMode = .type
         selectedTab = .trade
         Task { await tradeViewModel.compare(userID: userID) }
     }
 
-    /// "Find other trades" on the Omen tab: the Trade tab, with Find a trade open over it.
+    /// "Find other trades" on the Omen tab: open the Trade tab's Find mode.
     private func findOtherTrades() {
+        selectedTradeMode = .find
         selectedTab = .trade
-        showTradeFindSheet = true
     }
 
     /// The league the app is on, named for personalized requests. Nil until the directory has loaded, in
@@ -649,6 +650,18 @@ enum CommandCenterTab: String, Hashable, CaseIterable {
     }
 
     var label: some View { Label(title, systemImage: systemImage) }
+}
+
+private enum TradeMode: String, CaseIterable {
+    case find, build, type
+
+    var title: String {
+        switch self {
+        case .find: return "Find"
+        case .build: return "Build"
+        case .type: return "Type"
+        }
+    }
 }
 
 /// User-facing copy for a shell read failure. Deliberately says what the user can do and

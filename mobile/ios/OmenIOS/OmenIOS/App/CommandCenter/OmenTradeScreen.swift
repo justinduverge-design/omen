@@ -17,8 +17,8 @@ struct OmenTradeScreen: View {
     var searchState: TradeViewModel.SearchState = .idle
     var searchingSide: TradeViewModel.Side?
     var onQueryChanged: ((String, TradeViewModel.Side) -> Void)?
-    var onAdd: ((String, TradeViewModel.Side) -> Void)?
-    /// Picking a row keeps position/team/id; typing a name keeps only the name.
+    /// Picking a row keeps position/team/id. A name is never committed by itself: the
+    /// comparison needs the canonical player identity selected from these results.
     var onAddResult: ((PlayerSearchResult, TradeViewModel.Side) -> Void)?
     var onRemove: ((Int, TradeViewModel.Side) -> Void)?
     var onCompare: (() -> Void)?
@@ -195,22 +195,17 @@ struct OmenTradeScreen: View {
                 .onChange(of: draft.wrappedValue) { _, newValue in
                     onQueryChanged?(newValue, side)
                 }
-                // Return adds the player, so the common path never needs the Done button.
+                // Return only commits an exact canonical result. A free-typed name has no
+                // player key, team or position and produced the phone's "no projection"
+                // result for players Omen actually knows.
                 .submitLabel(.done)
-                .onSubmit {
-                    onAdd?(draft.wrappedValue, side)
-                    draft.wrappedValue = ""
-                    focusedField = nil
-                }
+                .onSubmit { commitExactResult(for: side, draft: draft) }
                 OmenButton(
                     title: "Add",
-                    action: {
-                        onAdd?(draft.wrappedValue, side)
-                        draft.wrappedValue = ""
-                        focusedField = nil
-                    },
+                    action: { commitExactResult(for: side, draft: draft) },
                     variant: .secondary,
-                    size: .md
+                    size: .md,
+                    enabled: exactResult(for: draft.wrappedValue) != nil
                 )
             }
         }
@@ -263,7 +258,7 @@ struct OmenTradeScreen: View {
             OmenStateSurface(
                 kind: .empty,
                 title: "No player matches \u{201C}\(query)\u{201D}",
-                message: "Check the spelling, or type the full name and press Add."
+                message: "Check the spelling. Choose a player from the search results so Omen can use the right projections."
             )
         case .failed(let error):
             OmenStateSurface(
@@ -272,6 +267,19 @@ struct OmenTradeScreen: View {
                 message: TradeViewModel.searchMessage(for: error)
             )
         }
+    }
+
+    private func exactResult(for draft: String) -> PlayerSearchResult? {
+        guard case .results(let rows) = searchState else { return nil }
+        let name = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        return rows.first { $0.name.compare(name, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame }
+    }
+
+    private func commitExactResult(for side: TradeViewModel.Side, draft: Binding<String>) {
+        guard let result = exactResult(for: draft.wrappedValue) else { return }
+        onAddResult?(result, side)
+        draft.wrappedValue = ""
+        focusedField = nil
     }
 
     // MARK: - Compare

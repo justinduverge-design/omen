@@ -887,20 +887,17 @@ final class TradeViewModel: ObservableObject {
     static func searchMessage(for error: OmenApiError) -> String {
         switch error {
         case .cancelled:
-            return "That was interrupted. Try again, or type the full name and press Add."
+            return "That was interrupted. Try the search again."
         case .server(let status) where status == 429:
-            return "Omen limits searches to protect the service. Wait about a minute, "
-                + "or type the full name and press Add."
+            return "Omen limits searches to protect the service. Wait about a minute, then try again."
         case .network:
-            return "Omen couldn't reach the server. Check your connection, "
-                + "or type the full name and press Add."
+            return "Omen couldn't reach the server. Check your connection, then try the search again."
         case .unauthorized:
-            return "Omen couldn't authorize this search. Type the full name and press Add."
+            return "Omen couldn't authorize this search. Sign in again before choosing a player."
         case .server:
-            return "Omen is having trouble on our side. Type the full name and press Add."
+            return "Omen is having trouble on our side. Try the search again in a moment."
         case .decode:
-            return "Omen sent something this version of the app couldn't read. "
-                + "Type the full name and press Add."
+            return "Omen sent player results this version of the app couldn't read. Updating the app may fix it."
         }
     }
 
