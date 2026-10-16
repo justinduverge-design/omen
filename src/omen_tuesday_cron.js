@@ -24,6 +24,7 @@ const { bandFromScore } = require("./services/confidencePolicy");
 const { getCurrentNflWeekContext } = require("./services/nflSchedule");
 const { footballDataMode, createFailSafeWarehouseReadRuntime } = require("./services/footballWarehouse/readRuntime");
 const { resolveWarehouseOutcomes } = require("./services/footballWarehouse/ledgerOutcomes");
+const { resolveGsis } = require("./services/playerUsage");
 
 const REQUIRED_SCORING_ENV = Object.freeze([
   "SUPABASE_URL",
@@ -586,7 +587,7 @@ async function previewLedgerOutcomes(supabase, { season, week, repository, depen
   const entries = (await fetchScorable(supabase, { season, beforeWeek: week + 1 }))
     .filter((entry) => entry.decision.week === week);
   const needsLine = entries.filter((entry) => entry.action?.followed !== false);
-  const found = await resolveWarehouseOutcomes({ entries: needsLine, repository });
+  const found = await resolveWarehouseOutcomes({ entries: needsLine, repository, resolveGsis: (keys) => resolveGsis(supabase, keys) });
 
   const counts = { calls: entries.length, graded: 0, data_incomplete: 0, not_executed: 0, pending: 0 };
   const preview = entries.map((entry) => {
@@ -644,6 +645,7 @@ async function scoreLedgerDecisions(supabase, {
       warehouseFound = await resolveWarehouseOutcomes({
         entries: pending.filter((entry) => entry.action?.followed !== false),
         repository: warehouse.repository,
+        resolveGsis: (keys) => resolveGsis(supabase, keys),
       });
     }
   } catch (error) {

@@ -20,7 +20,21 @@ function providerRefFromDecision(decision) {
  *   points      { ppr, receptions } a usable line
  * Throws if the warehouse cannot be read; the caller then falls back to the existing path.
  */
-async function resolveWarehouseOutcomes({ entries, repository }) {
+async function resolveWarehouseOutcomes({ entries, repository, resolveGsis = null }) {
+  // The warehouse keys players by NFL GSIS id only; provider ids (sleeper:, espn:, yahoo:) are mapped
+  // through the Supabase crosswalk first. Without this every call read as "unresolved".
+  let gsisByKey = new Map();
+  if (typeof resolveGsis === "function") {
+    const keys = [...new Set(entries.map(({ decision }) => providerRefFromDecision(decision))
+      .filter(Boolean).map((ref) => `${ref.provider}:${ref.providerId}`))];
+    try { gsisByKey = keys.length ? await resolveGsis(keys) : new Map(); } catch { gsisByKey = new Map(); }
+  }
+  const lookupRef = (decision) => {
+    const ref = providerRefFromDecision(decision);
+    if (!ref) return null;
+    const gsis = gsisByKey.get(`${ref.provider}:${ref.providerId}`);
+    return gsis ? { provider: "gsis", providerId: String(gsis) } : ref;
+  };
   const results = new Map();
   const byWeek = new Map();
   for (const entry of entries) {
@@ -37,14 +51,14 @@ async function resolveWarehouseOutcomes({ entries, repository }) {
     }
     const refs = [];
     for (const { decision } of group.entries) {
-      const ref = providerRefFromDecision(decision);
+      const ref = lookupRef(decision);
       if (ref) refs.push(ref);
     }
     const found = refs.length
       ? await repository.readWeekOutcomes({ refs, season: group.season, week: group.week })
       : new Map();
     for (const { decision } of group.entries) {
-      const ref = providerRefFromDecision(decision);
+      const ref = lookupRef(decision);
       const row = ref ? found.get(refKey(ref.provider, ref.providerId)) : null;
       if (!row || !row.resolved) results.set(decision.id, { kind: "unresolved" });
       else if (!row.hasLine || row.ppr == null) results.set(decision.id, { kind: "no_line" });
