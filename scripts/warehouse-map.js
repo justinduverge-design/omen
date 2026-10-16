@@ -83,8 +83,10 @@ function migrationTables() {
   for (const file of fs.readdirSync(MIGRATIONS).filter((f) => f.endsWith(".sql"))) {
     const text = fs.readFileSync(path.join(MIGRATIONS, file), "utf8");
     for (const m of text.matchAll(/create table football\.([a-z_]+)\s*\(/g)) names.add(m[1]);
+    for (const m of text.matchAll(/create view football\.([a-z_]+)\s+as/g)) names.add(m[1]);
   }
   names.delete("nfl_plays_"); // dynamic per-season partitions of nfl_plays
+  names.delete("warehouse_map_drift"); // the map's own self-check
   return names;
 }
 

@@ -212,6 +212,49 @@
       "purpose": "The team index: provider team and defense codes (Sleeper PHI, ESPN -16012, Yahoo 100033) point at one Omen team.",
       "gaps": [],
       "migration": "0011"
+    },
+    {
+      "name": "coach_index_runs",
+      "layer": "ledger",
+      "grain": "one row per coach-graph load",
+      "source": "Wikipedia team-season pages",
+      "refresh": "daily 07:15 ET (backfill once, then the current season)",
+      "purpose": "Receipt for coach-graph loads, so every coach and assignment says where it came from.",
+      "gaps": [],
+      "migration": "0013"
+    },
+    {
+      "name": "coaches",
+      "layer": "identity",
+      "grain": "one row per coach",
+      "source": "Wikipedia team-season staff lists",
+      "refresh": "daily 07:15 ET",
+      "purpose": "Coaches keyed by Wikipedia page title, so one coach links across teams and seasons.",
+      "gaps": [],
+      "migration": "0013"
+    },
+    {
+      "name": "coach_assignments",
+      "layer": "facts",
+      "grain": "one row per (coach, team, season, role)",
+      "source": "Wikipedia team-season staff lists (CC BY-SA facts, title + revision kept)",
+      "refresh": "daily 07:15 ET",
+      "purpose": "The coach graph: who was head coach, coordinator or assistant head coach for which team each season.",
+      "gaps": [
+        "Play caller is not listed on the pages; inferred scheme influence (Scheme DNA) is a later edge type.",
+        "Pages that omit a staff section leave that team-season without assignments."
+      ],
+      "migration": "0013"
+    },
+    {
+      "name": "coach_lineage",
+      "layer": "facts",
+      "grain": "one row per (staff coach, head coach, team, season)",
+      "source": "derived from coach_assignments",
+      "refresh": "always current (a view)",
+      "purpose": "Who worked under whom: every staff member and the head coach he served, per team-season. Derived, never typed in.",
+      "gaps": [],
+      "migration": "0013"
     }
   ]
 }
