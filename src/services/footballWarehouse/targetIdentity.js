@@ -11,9 +11,9 @@ class WarehouseTargetIdentityError extends Error {
 const IDENTIFIER = /^[a-z][a-z0-9_]{0,62}$/;
 const COMPOSED_SCHEMA_VERSION = 2;
 // Ledger versions an ingest worker accepts: 2 is the original composed schema (0001 + 0003); 3 adds the weekly
-// projections tables (0005); 4 adds the warehouse map (0007); 5 the player index receipts (0009); 6 the team index (0011); 7 the coach graph (0013). A worker that tolerates a version can be deployed
+// projections tables (0005); 4 adds the warehouse map (0007); 5 the player index receipts (0009); 6 the team index (0011); 7 the coach graph (0013); 8 game weather forecasts (0015). A worker that tolerates a version can be deployed
 // BEFORE that schema is applied.
-const ACCEPTED_SCHEMA_VERSIONS = Object.freeze([2, 3, 4, 5, 6, 7]);
+const ACCEPTED_SCHEMA_VERSIONS = Object.freeze([2, 3, 4, 5, 6, 7, 8]);
 
 async function verifyWarehouseTarget({ pool, expectedDatabase, expectedRole, expectedVersion, acceptedVersions = ACCEPTED_SCHEMA_VERSIONS }) {
   if (!pool || typeof pool.query !== "function") throw new TypeError("pool.query must be a function");

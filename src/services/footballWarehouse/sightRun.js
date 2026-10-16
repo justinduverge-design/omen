@@ -45,7 +45,19 @@ const INPUTS_SQL = `
 const STATS_SQL = `
   SELECT week, player_id, team_id, opponent_team_id, football_position, fantasy_points_ppr FROM football.nfl_player_weekly_stats
    WHERE season = $1 AND season_type = 'REG' AND week <= $2`;
-const GAMES_SQL = "SELECT week, home_team_id, away_team_id, home_score, away_score, spread_line, total_line FROM football.nfl_games WHERE season = $1 AND game_type = 'REG'";
+// Games with weather: recorded weather for played games, otherwise the latest stored forecast (a dome
+// forecast is "not applicable", read as a dome).
+const GAMES_SQL = `
+  SELECT g.week, g.home_team_id, g.away_team_id, g.home_score, g.away_score, g.spread_line, g.total_line,
+         CASE WHEN f.status = 'not_applicable' THEN 'dome' ELSE g.roof END AS roof,
+         coalesce(g.wind_mph, f.wind_mph) AS wind_mph, coalesce(g.temperature_f, f.temperature_f) AS temperature_f
+    FROM football.nfl_games g
+    LEFT JOIN LATERAL (SELECT status, wind_mph, temperature_f FROM football.game_weather_forecasts w
+                        WHERE w.game_id = g.game_id ORDER BY w.fetched_at DESC LIMIT 1) f ON true
+   WHERE g.season = $1 AND g.game_type = 'REG'`;
+
+// Bump when Sight's computation changes without its inputs or weights changing, so every week recomputes.
+const SIGHT_CODE_REVISION = "2026-10-17.v2-weather-flex";
 
 // Kicking and defensive plays for K and DEF Sight (v2).
 const KDEF_PLAYS_SQL = `
@@ -131,7 +143,7 @@ function createSightRunner({ pool, transactionTimeouts } = {}) {
           const inputs = await client.query({ name: "sight-inputs-v1", text: INPUTS_SQL, values: [season, through] });
           return {
             ingestEventIds: inputs.rows.map((row) => Number(row.ingest_event_id)),
-            parameters: { metric: "SIGHT", version, weights_sha256: WEIGHTS_SHA, scope: { season_type: "REG", through_week: through } },
+            parameters: { metric: "SIGHT", version, weights_sha256: WEIGHTS_SHA, code_revision: SIGHT_CODE_REVISION, scope: { season_type: "REG", through_week: through } },
           };
         },
         async computeValues(client) {

@@ -255,6 +255,18 @@
       "purpose": "Who worked under whom: every staff member and the head coach he served, per team-season. Derived, never typed in.",
       "gaps": [],
       "migration": "0013"
+    },
+    {
+      "name": "game_weather_forecasts",
+      "layer": "facts",
+      "grain": "one row per (game, fetch)",
+      "source": "Open-Meteo forecast API (CC BY 4.0), stadium coordinates from src/data/stadiums.json",
+      "refresh": "daily 07:15 ET, games kicking off in the next 10 days",
+      "purpose": "Forecast wind, cold and rain for upcoming games, so Sight reads the next game with the weather it was trained on.",
+      "gaps": [
+        "Retractable roofs: open or closed is unknown in advance; stored as retractable with the outdoor forecast."
+      ],
+      "migration": "0015"
     }
   ]
 }

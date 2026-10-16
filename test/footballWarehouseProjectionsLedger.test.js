@@ -50,7 +50,7 @@ test("command: the real target check lets the ingest run on a ledger holding ver
 test("command: an unknown ledger version still stops the ingest before any fact is written", async () => {
   const calls = [];
   await assert.rejects(runCurrentSeasonCommand({
-    ...commandBase(calls, 8), env: { FOOTBALL_WAREHOUSE_INGEST_ENABLED: "true" },
+    ...commandBase(calls, 9), env: { FOOTBALL_WAREHOUSE_INGEST_ENABLED: "true" },
   }), (error) => error.code === "warehouse_target_mismatch");
   assert.deepEqual(calls, []);
 });
