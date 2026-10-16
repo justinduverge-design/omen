@@ -48,3 +48,50 @@ function buildContext(statRows, gameRows) {
 
 
 module.exports = { buildContext };
+
+// --- Role changes: usage trend and vacated opportunity -------------------------------------------------------
+
+const OUT_STATUSES = new Set(["RES", "INA", "CUT", "TRD", "RET", "EXE", "TRT"]);
+
+/** The share that drives each position's role: QB dropbacks, RB carries, WR/TE targets. */
+function roleShare(position, a) {
+  if (!a) return null;
+  if (position === "QB") return a.teamDropbacks > 0 ? a.dropbacks / a.teamDropbacks : null;
+  if (position === "RB") return a.teamRushAttempts > 0 ? (a.carries + a.targets) / (a.teamRushAttempts + a.teamPassAttempts) : null;
+  return a.teamPassAttempts > 0 ? a.targets / a.teamPassAttempts : null;
+}
+
+/**
+ * Role context for one player through week W.
+ *   usage_trend     role share over the last three weeks minus the season-to-date share
+ *   vacated_share   season target+carry share of teammates who are out for week W+1 (roster status), summed
+ * seasonAgg / recentAgg: aggregateSkillPlays over weeks <= W and over W-2..W.
+ * statusNext: Map(player id -> roster status in week W+1); teamOf: player id -> team id through W.
+ */
+function buildRoleContext({ seasonAgg, recentAgg, positions, statusNext, teamOf }) {
+  const byTeam = new Map(); // team -> [{ id, share }]
+  for (const [id, a] of seasonAgg) {
+    const team = teamOf(id);
+    if (!team) continue;
+    const total = a.teamPassAttempts + a.teamRushAttempts;
+    const share = total > 0 ? (a.targets + a.carries) / total : 0;
+    if (!byTeam.has(team)) byTeam.set(team, []);
+    byTeam.get(team).push({ id, share });
+  }
+  return (id, position) => {
+    const season = roleShare(position, seasonAgg.get(id));
+    const recent = roleShare(position, recentAgg.get(id));
+    const team = teamOf(id);
+    let vacated = null;
+    if (team && statusNext.size) {
+      vacated = 0;
+      for (const mate of byTeam.get(team) || []) {
+        if (mate.id !== id && OUT_STATUSES.has(statusNext.get(mate.id))) vacated += mate.share;
+      }
+    }
+    return { usageTrend: season != null && recent != null ? recent - season : null, vacated };
+  };
+}
+
+module.exports.buildRoleContext = buildRoleContext;
+module.exports.OUT_STATUSES = OUT_STATUSES;
