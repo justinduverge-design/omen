@@ -48,6 +48,8 @@ services:
       # Sight: weekly reads always run; grading them (and serving them in the API) is the switch.
       # SIGHT_VERSION picks which Sight version is graded, so a new version can be built alongside.
       SIGHT_ENABLED: "true"
+      # Store the provider's weekly projections (Sleeper public, upstream Rotowire) so Sight is graded against them.
+      FOOTBALL_WAREHOUSE_PROJECTIONS_ENABLED: "true"
       SIGHT_VERSION: "v1"
       # A full historical season holds every play with all 372 columns while parsing (~2 GB heap measured on 2023);
       # the default 760 MB heap was exhausted on the 1999 backfill trial.
