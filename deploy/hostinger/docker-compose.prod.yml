@@ -74,6 +74,18 @@ services:
     environment:
       NODE_ENV: production
       TZ: America/New_York
+      # Ledger grading reads the warehouse (read-only role) to grade calls by player id. Without this the
+      # Tuesday cron fell back to the old name-matched path and every call stayed data_incomplete.
+      FOOTBALL_DATA_MODE: ${FOOTBALL_DATA_MODE:-supabase}
+      FOOTBALL_WAREHOUSE_READ_DATABASE_URL_FILE: /run/secrets/warehouse_reader_url
+      FOOTBALL_WAREHOUSE_READ_EXPECTED_DATABASE: omen_football
+      FOOTBALL_WAREHOUSE_READ_SSL_MODE: disable
+    secrets:
+      - source: warehouse_reader_url
+        target: warehouse_reader_url
+    networks:
+      - default
+      - warehouse_net
     restart: unless-stopped
     # Same reasoning as the api service, scaled to the 2-vCPU box. A runaway cron
     # job must not be able to take the public site down with it, and cron is the
