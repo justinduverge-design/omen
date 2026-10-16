@@ -68,5 +68,18 @@ test("the Sight switch: grading is off unless SIGHT_ENABLED=true, and the versio
   const off = await createDerivedStages({ opportunityWriter: ok, qbRunner: ok, skillRunner: ok, sightRunner: ok, sightAccuracyRunner: acc, env: {} }).run({ season: 2026 });
   assert.equal(off.sightAccuracy.state, "disabled");
   const on = await createDerivedStages({ opportunityWriter: ok, qbRunner: ok, skillRunner: ok, sightRunner: ok, sightAccuracyRunner: acc, env: { SIGHT_ENABLED: "true" } }).run({ season: 2026 });
-  assert.deepEqual(on.sightAccuracy, { state: "succeeded", gradedWeeks: 2, version: "v1" });
+  assert.equal(on.sightAccuracy.version, "v1");
+  assert.deepEqual(Object.keys(on.sightAccuracy.versions), ["v1", "v2"], "every version is graded side by side");
+});
+
+test("Sight v2 adds game context; a missing line is neutral, never a penalty", () => {
+  const { buildContext } = require("../src/services/footballWarehouse/sightContext");
+  const ctx = buildContext(
+    [{ week: 5, player_id: "p", team_id: "BUF", opponent_team_id: "MIA", football_position: "WR", fantasy_points_ppr: 10 },
+     { week: 5, player_id: "q", team_id: "NYJ", opponent_team_id: "KC", football_position: "WR", fantasy_points_ppr: 30 }],
+    [{ week: 6, home_team_id: "BUF", away_team_id: "KC", spread_line: 3, total_line: 50 }]);
+  const c = ctx.contextFor("p", "WR", 5);
+  assert.equal(c.implied, 26.5, "home favored by 3 in a 50 total");
+  assert.equal(c.oppAllowed, 30, "KC allowed 30 to WRs so far");
+  assert.equal(ctx.contextFor("q", "WR", 5), null, "no game next week: no context");
 });

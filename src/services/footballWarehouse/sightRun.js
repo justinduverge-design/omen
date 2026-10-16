@@ -2,7 +2,12 @@
 
 const { createMetricRunWriter } = require("./metricRunWriter");
 const { aggregateSkillPlays } = require("./ratSkillMetric");
-const { VERSION, computeSight } = require("./sightV1");
+const { computeSight } = require("./sightV1");
+const { buildContext } = require("./sightContext");
+
+// Every Sight version is computed every day, so versions are graded side by side; SIGHT_VERSION only
+// chooses which one the API serves.
+const VERSIONS = Object.freeze(["v1", "v2"]);
 
 const METRIC_NAME = "omen_sight";
 
@@ -36,6 +41,11 @@ const INPUTS_SQL = `
    WHERE p.season = $1 AND g.game_type = 'REG' AND p.week <= $2
    GROUP BY p.ingest_event_id ORDER BY p.ingest_event_id`;
 
+const STATS_SQL = `
+  SELECT week, player_id, team_id, opponent_team_id, football_position, fantasy_points_ppr FROM football.nfl_player_weekly_stats
+   WHERE season = $1 AND season_type = 'REG' AND week <= $2`;
+const GAMES_SQL = "SELECT week, home_team_id, away_team_id, spread_line, total_line FROM football.nfl_games WHERE season = $1 AND game_type = 'REG'";
+
 const PPG_SQL = `
   SELECT player_id, avg(fantasy_points_ppr)::float8 AS ppg FROM football.nfl_player_weekly_stats
    WHERE season = $1 AND season_type = 'REG' AND week <= $2 GROUP BY player_id`;
@@ -59,32 +69,32 @@ function createSightRunner({ pool, transactionTimeouts } = {}) {
      * inputs did not change is left as it is, so the daily run only computes what is new.
      */
     async run({ season, week = null }) {
-      if (week != null) return runWeek(season, week);
+      if (week != null) return runWeek(season, week, "v1");
       const latest = await pool.query({ name: "sight-latest-week-v1", text: LATEST_WEEK_SQL, values: [season] });
       const last = latest.rows[0]?.week ?? null;
       if (!Number.isInteger(last) || last < 1) return { state: "skipped", reason: "no_regular_season_plays" };
       let valueCount = 0;
       let state = "unchanged";
-      for (let w = 1; w <= Math.min(last, 18); w += 1) {
-        const r = await runWeek(season, w);
+      for (let w = 1; w <= Math.min(last, 18); w += 1) for (const version of VERSIONS) {
+        const r = await runWeek(season, w, version);
         if (r.state === "succeeded") state = "succeeded";
-        if (w === last) valueCount = r.valueCount ?? 0;
+        if (w === last && version === "v1") valueCount = r.valueCount ?? 0;
       }
       return { state, valueCount, throughWeek: last };
     },
   };
 
-  async function runWeek(season, through) {
+  async function runWeek(season, through, version) {
       return writer.writeRun({
         metricName: METRIC_NAME,
-        formulaVersion: VERSION,
+        formulaVersion: version,
         season,
         week: through,
         async resolveInputs(client) {
           const inputs = await client.query({ name: "sight-inputs-v1", text: INPUTS_SQL, values: [season, through] });
           return {
             ingestEventIds: inputs.rows.map((row) => Number(row.ingest_event_id)),
-            parameters: { metric: "SIGHT", version: VERSION, weights_sha256: WEIGHTS_SHA, scope: { season_type: "REG", through_week: through } },
+            parameters: { metric: "SIGHT", version, weights_sha256: WEIGHTS_SHA, scope: { season_type: "REG", through_week: through } },
           };
         },
         async computeValues(client) {
@@ -92,12 +102,21 @@ function createSightRunner({ pool, transactionTimeouts } = {}) {
           const positions = new Map(players.rows.map((r) => [r.player_id, { position: r.football_position === "FB" ? "RB" : r.football_position, gsis: r.gsis_id }]));
           const plays = await client.query({ name: "sight-plays-v1", text: PLAYS_SQL, values: [season, through] });
           const ppg = await client.query({ name: "sight-ppg-v1", text: PPG_SQL, values: [season, through] });
+          let context = null;
+          if (version === "v2") {
+            const stats = await client.query({ name: "sight-stats-v1", text: STATS_SQL, values: [season, through] });
+            const games = await client.query({ name: "sight-games-v1", text: GAMES_SQL, values: [season] });
+            const built = buildContext(stats.rows, games.rows);
+            context = (id, position) => built.contextFor(id, position, through);
+          }
           return computeSight({
             season,
             week: through,
             aggregates: aggregateSkillPlays(plays.rows.map(play), positions),
             positions,
             ppgToDate: new Map(ppg.rows.map((r) => [r.player_id, Number(r.ppg)])),
+            context,
+            version,
           });
         },
       });
