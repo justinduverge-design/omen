@@ -5,7 +5,8 @@ const { FORMULA_VERSION, SPECS, aggregateSkillPlays, computeSkillGrades, metricC
 
 // Regular-season pass and rush plays of one season, through `week` (or the whole season when null).
 const PLAYS_SQL = `
-  SELECT p.game_id, p.posteam_id, p.receiver_player_id, p.rusher_player_id, p.epa, p.yac_epa, p.success,
+  SELECT p.game_id, p.posteam_id, p.receiver_player_id, p.rusher_player_id, p.passer_player_id, p.epa, p.yac_epa, p.success, p.cpoe,
+         p.source_row->>'qb_dropback' AS qb_dropback, p.source_row->>'interception' AS interception,
          p.source_row->>'pass_attempt' AS pass_attempt, p.source_row->>'rush_attempt' AS rush_attempt,
          p.source_row->>'sack' AS sack, p.source_row->>'qb_scramble' AS qb_scramble,
          p.source_row->>'two_point_attempt' AS two_point, p.source_row->>'complete_pass' AS complete_pass,
@@ -16,7 +17,7 @@ const PLAYS_SQL = `
     JOIN football.nfl_games g ON g.season = p.season AND g.game_id = p.game_id
    WHERE p.season = $1 AND g.game_type = 'REG' AND ($2::integer IS NULL OR p.week <= $2::integer)
      AND p.epa IS NOT NULL
-     AND (p.source_row->>'pass_attempt' IN ('1', '1.0') OR p.source_row->>'rush_attempt' IN ('1', '1.0'))`;
+     AND (p.source_row->>'pass_attempt' IN ('1', '1.0') OR p.source_row->>'rush_attempt' IN ('1', '1.0') OR p.source_row->>'qb_dropback' IN ('1', '1.0'))`;
 
 const INPUTS_SQL = `
   SELECT p.ingest_event_id, count(*)::integer AS play_count
@@ -25,11 +26,11 @@ const INPUTS_SQL = `
    WHERE p.season = $1 AND g.game_type = 'REG' AND ($2::integer IS NULL OR p.week <= $2::integer)
    GROUP BY p.ingest_event_id ORDER BY p.ingest_event_id`;
 
-const PLAYERS_SQL = "SELECT player_id, gsis_id, football_position FROM football.football_players WHERE football_position IN ('RB', 'FB', 'WR', 'TE')";
+const PLAYERS_SQL = "SELECT player_id, gsis_id, football_position FROM football.football_players WHERE football_position IN ('QB', 'RB', 'FB', 'WR', 'TE')";
 
 const IDENTITY_SQL = `
   SELECT (SELECT md5(COALESCE(string_agg(player_id || ':' || coalesce(gsis_id, '') || ':' || football_position, ',' ORDER BY player_id), ''))
-            FROM football.football_players WHERE football_position IN ('RB', 'FB', 'WR', 'TE')) AS players_hash,
+            FROM football.football_players WHERE football_position IN ('QB', 'RB', 'FB', 'WR', 'TE')) AS players_hash,
          (SELECT md5(COALESCE(string_agg(game_id || ':' || game_type, ',' ORDER BY game_id), ''))
             FROM football.nfl_games WHERE season = $1) AS games_hash`;
 
@@ -38,7 +39,8 @@ const play = (r) => ({
   epa: r.epa, yacEpa: r.yac_epa, success: r.success, passAttempt: r.pass_attempt, rushAttempt: r.rush_attempt,
   sack: r.sack, qbScramble: r.qb_scramble, twoPoint: r.two_point, completePass: r.complete_pass, cp: r.cp,
   yardsGained: r.yards_gained, airYards: r.air_yards, yardline100: r.yardline_100, fumbleLost: r.fumble_lost,
-  fumbledGsisId: r.fumbled_gsis_id,
+  fumbledGsisId: r.fumbled_gsis_id, passerId: r.passer_player_id, qbDropback: r.qb_dropback, interception: r.interception,
+  cpoe: r.cpoe,
 });
 
 function createRatSkillRunner({ pool, transactionTimeouts } = {}) {

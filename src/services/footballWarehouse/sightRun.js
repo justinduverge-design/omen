@@ -8,7 +8,8 @@ const METRIC_NAME = "omen_sight";
 
 // The same play selection RAT-RB/WR/TE use, plus the week so the run can stop at the through-week.
 const PLAYS_SQL = `
-  SELECT p.week, p.game_id, p.posteam_id, p.receiver_player_id, p.rusher_player_id, p.epa, p.yac_epa, p.success,
+  SELECT p.week, p.game_id, p.posteam_id, p.receiver_player_id, p.rusher_player_id, p.passer_player_id, p.epa, p.yac_epa, p.success, p.cpoe,
+         p.source_row->>'qb_dropback' AS qb_dropback, p.source_row->>'interception' AS interception,
          p.source_row->>'pass_attempt' AS pass_attempt, p.source_row->>'rush_attempt' AS rush_attempt,
          p.source_row->>'sack' AS sack, p.source_row->>'qb_scramble' AS qb_scramble,
          p.source_row->>'two_point_attempt' AS two_point, p.source_row->>'complete_pass' AS complete_pass,
@@ -18,7 +19,7 @@ const PLAYS_SQL = `
     FROM football.nfl_plays p
     JOIN football.nfl_games g ON g.season = p.season AND g.game_id = p.game_id
    WHERE p.season = $1 AND g.game_type = 'REG' AND p.week <= $2 AND p.epa IS NOT NULL
-     AND (p.source_row->>'pass_attempt' IN ('1', '1.0') OR p.source_row->>'rush_attempt' IN ('1', '1.0'))`;
+     AND (p.source_row->>'pass_attempt' IN ('1', '1.0') OR p.source_row->>'rush_attempt' IN ('1', '1.0') OR p.source_row->>'qb_dropback' IN ('1', '1.0'))`;
 
 const LATEST_WEEK_SQL = `
   SELECT max(p.week)::integer AS week FROM football.nfl_plays p
@@ -35,14 +36,15 @@ const PPG_SQL = `
   SELECT player_id, avg(fantasy_points_ppr)::float8 AS ppg FROM football.nfl_player_weekly_stats
    WHERE season = $1 AND season_type = 'REG' AND week <= $2 GROUP BY player_id`;
 
-const PLAYERS_SQL = "SELECT player_id, gsis_id, football_position FROM football.football_players WHERE football_position IN ('RB', 'FB', 'WR', 'TE')";
+const PLAYERS_SQL = "SELECT player_id, gsis_id, football_position FROM football.football_players WHERE football_position IN ('QB', 'RB', 'FB', 'WR', 'TE')";
 
 const play = (r) => ({
   gameId: r.game_id, posteamId: r.posteam_id, receiverId: r.receiver_player_id, rusherId: r.rusher_player_id,
   epa: r.epa, yacEpa: r.yac_epa, success: r.success, passAttempt: r.pass_attempt, rushAttempt: r.rush_attempt,
   sack: r.sack, qbScramble: r.qb_scramble, twoPoint: r.two_point, completePass: r.complete_pass, cp: r.cp,
   yardsGained: r.yards_gained, airYards: r.air_yards, yardline100: r.yardline_100, fumbleLost: r.fumble_lost,
-  fumbledGsisId: r.fumbled_gsis_id,
+  fumbledGsisId: r.fumbled_gsis_id, passerId: r.passer_player_id, qbDropback: r.qb_dropback, interception: r.interception,
+  cpoe: r.cpoe,
 });
 
 function createSightRunner({ pool, transactionTimeouts } = {}) {

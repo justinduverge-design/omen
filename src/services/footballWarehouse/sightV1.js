@@ -36,6 +36,7 @@ function weightsFor(season, position, phase) {
 }
 
 function qualifies(position, agg, week) {
+  if (position === "QB") return agg.dropbacks >= Math.max(30, Math.round(100 * week / 17));
   if (position === "RB") return agg.carries >= Math.max(10, Math.round(40 * week / 17));
   if (position === "WR") return agg.targets >= Math.max(8, Math.round(25 * week / 17));
   return agg.targets >= Math.max(6, Math.round(20 * week / 17));

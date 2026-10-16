@@ -51,6 +51,7 @@ const sd = (v) => { const m = mean(v); return Math.sqrt(mean(v.map((x) => (x - m
 
 // Qualification scales with the week so early-season cohorts exist: a fixed 25 targets would leave week 3 empty.
 function qualifies(position, agg, week) {
+  if (position === "QB") return agg.dropbacks >= Math.max(30, Math.round(100 * week / 17));
   if (position === "RB") return agg.carries >= Math.max(10, Math.round(40 * week / 17));
   if (position === "WR") return agg.targets >= Math.max(8, Math.round(25 * week / 17));
   return agg.targets >= Math.max(6, Math.round(20 * week / 17));
@@ -134,7 +135,7 @@ async function main() {
   const pool = new Pool({ connectionString: fs.readFileSync(process.env.FOOTBALL_WAREHOUSE_READ_DATABASE_URL_FILE, "utf8").trim(), ssl: false });
   const playsSql = fs.readFileSync(fs.existsSync(path.join(here, "plays.sql")) ? path.join(here, "plays.sql") : "/tmp/sight/plays.sql", "utf8")
     .replace("SELECT p.game_id", "SELECT p.week, p.game_id");
-  const players = await pool.query("SELECT player_id, gsis_id, football_position FROM football.football_players WHERE football_position IN ('RB','FB','WR','TE')");
+  const players = await pool.query("SELECT player_id, gsis_id, football_position FROM football.football_players WHERE football_position IN ('QB','RB','FB','WR','TE')");
   const positions = new Map(players.rows.map((r) => [r.player_id, { position: r.football_position === "FB" ? "RB" : r.football_position, gsis: r.gsis_id }]));
 
   const all = [];
@@ -152,6 +153,7 @@ async function main() {
       epa: r.epa, yacEpa: r.yac_epa, success: r.success, passAttempt: r.pass_attempt, rushAttempt: r.rush_attempt, sack: r.sack,
       qbScramble: r.qb_scramble, twoPoint: r.two_point, completePass: r.complete_pass, cp: r.cp, yardsGained: r.yards_gained,
       airYards: r.air_yards, yardline100: r.yardline_100, fumbleLost: r.fumble_lost, fumbledGsisId: r.fumbled_gsis_id,
+      passerId: r.passer_player_id, qbDropback: r.qb_dropback, interception: r.interception, cpoe: r.cpoe,
     })), positions, weekly);
     all.push(...rows);
     process.stderr.write(`season ${season}: ${rows.length} rows\n`);
