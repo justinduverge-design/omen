@@ -26,3 +26,18 @@ test("staff lines become coach, role and stable id; a coach with two roles appea
   ]);
   assert.equal(coachIdFor("John Fox (American football)"), "omen:coach:john-fox-american-football");
 });
+
+test("the coach stage stops at the first rate-limit refusal and keeps what it read", async () => {
+  const { createCoachingStage } = require("../src/services/footballWarehouse/coachingStage");
+  let calls = 0;
+  const fetchImpl = async () => { calls += 1; return calls === 1
+    ? { ok: true, json: async () => ({ parse: { revid: 1, wikitext: { "*": "* Head coach – [[A Coach]]" } } }) }
+    : { ok: false, status: 429 }; };
+  const queries = [];
+  const client = { query: async (q) => { queries.push(typeof q === "string" ? q : q.name); return { rows: [{ id: 1 }], rowCount: 1 }; }, release() {} };
+  const pool = { query: async () => ({ rows: [] }), connect: async () => client };
+  const out = await createCoachingStage({ pool, fetchImpl, pauseMs: 0 }).run({ season: 2026 });
+  assert.equal(calls, 2, "stopped right after the refusal");
+  assert.equal(out.pages, 1);
+  assert.equal(out.failed, 1);
+});

@@ -95,3 +95,13 @@ test("role changes: usage trend and the share vacated by teammates who are out n
   assert.ok(backup.usageTrend < 0.01);
   assert.equal(role("rb1", "RB").vacated, 0);
 });
+
+test("flex grade puts RB, WR and TE on one scale; QB, K and DEF are left out", () => {
+  const { withFlexGrade } = require("../src/services/footballWarehouse/sightRun");
+  const mk = (id, position, value) => ({ entityId: id, value, components: { position } });
+  const values = [...Array(9).keys()].map((i) => mk(`p${i}`, ["RB", "WR", "TE"][i % 3], 5 + i)).concat([mk("q", "QB", 25), mk("k", "K", 8)]);
+  withFlexGrade(values);
+  assert.ok(values.find((v) => v.entityId === "p8").components.flex_grade > values.find((v) => v.entityId === "p0").components.flex_grade);
+  assert.equal(values.find((v) => v.entityId === "q").components.flex_grade, undefined);
+  assert.equal(values.find((v) => v.entityId === "k").components.flex_grade, undefined);
+});

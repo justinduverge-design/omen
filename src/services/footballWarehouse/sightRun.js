@@ -82,6 +82,22 @@ const play = (r) => ({
   cpoe: r.cpoe,
 });
 
+const FLEX_POSITIONS = new Set(["RB", "WR", "TE"]);
+
+/**
+ * The flex view: Sight's number is expected fantasy points, one scale for every position, so RB, WR and TE are
+ * graded together (0-100) for flex decisions. Mutates and returns the values.
+ */
+function withFlexGrade(values) {
+  const flex = values.filter((v) => FLEX_POSITIONS.has(v.components?.position));
+  if (flex.length < 8) return values;
+  const pts = flex.map((v) => v.value);
+  const m = pts.reduce((a, b) => a + b, 0) / pts.length;
+  const sd = Math.sqrt(pts.reduce((a, b) => a + (b - m) ** 2, 0) / pts.length);
+  for (const v of flex) v.components.flex_grade = Math.round(Math.min(100, Math.max(0, 50 + 10 * (sd > 1e-9 ? (v.value - m) / sd : 0))) * 10000) / 10000;
+  return values;
+}
+
 function createSightRunner({ pool, transactionTimeouts } = {}) {
   const writer = createMetricRunWriter({ pool, transactionTimeouts });
   return {
@@ -162,10 +178,11 @@ function createSightRunner({ pool, transactionTimeouts } = {}) {
           for (const p of kdefPlays) { const id = p.kickerGsis ? kickers.get(p.kickerGsis) : null; if (id && p.posteamId) kickerTeam.set(`${id}|${p.week}`, p.posteamId); }
           const kickerTeamByWeek = (id, week) => { for (let w = week; w >= 1; w -= 1) { const t = kickerTeam.get(`${id}|${w}`); if (t) return t; } return null; };
           const kdef = computeKdefSight({ season, week: through, lines, gameRows, kickerTeamByWeek, weightsFor, phase: phaseOf(through) });
-          return { values: [...skill.values, ...kdef.values], summary: { ...skill.summary, positions: { ...skill.summary.positions, ...kdef.summary } } };
+          const values = withFlexGrade([...skill.values, ...kdef.values]);
+          return { values, summary: { ...skill.summary, positions: { ...skill.summary.positions, ...kdef.summary } } };
         },
       });
   }
 }
 
-module.exports = { createSightRunner, METRIC_NAME };
+module.exports = { createSightRunner, METRIC_NAME, withFlexGrade };

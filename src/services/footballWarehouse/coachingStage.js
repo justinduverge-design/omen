@@ -4,8 +4,10 @@ const { TEAMS } = require("../footballIntelligence/nflTeams");
 const { fetchTeamSeason, coachIdFor } = require("./coachingSource");
 
 const FIRST_SEASON = 1999;
-const MAX_PAGES_PER_RUN = 1000;
-const PAUSE_MS = 250; // be polite to Wikipedia: about four page reads a second at most
+// Wikipedia rate-limits bursts (the first run got 47 pages before 843 refusals), so each daily run reads at most
+// 150 pages at about one a second and stops at the first refusal; the backfill completes over a few days.
+const MAX_PAGES_PER_RUN = 150;
+const PAUSE_MS = 1000;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -32,8 +34,9 @@ function createCoachingStage({ pool, fetchImpl = globalThis.fetch, pauseMs = PAU
         try {
           const page = await fetchTeamSeason({ abbr: item.abbr, season: item.season, fetchImpl });
           if (page && page.staff.length) pages.push({ ...item, page });
-        } catch {
+        } catch (error) {
           failed += 1;
+          if (/source_http_(429|503)/.test(error?.code || "")) break; // refused: stop, keep what we have, resume tomorrow
         }
         if (pauseMs) await sleep(pauseMs);
       }
