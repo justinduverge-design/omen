@@ -2,7 +2,8 @@
 
 const { createMetricRunWriter } = require("./metricRunWriter");
 const { aggregateSkillPlays } = require("./ratSkillMetric");
-const { computeSight } = require("./sightV1");
+const { computeSight, weightsFor, phaseOf } = require("./sightV1");
+const { weeklyLines, computeKdefSight } = require("./kdefMetric");
 const { buildContext } = require("./sightContext");
 
 // Every Sight version is computed every day, so versions are graded side by side; SIGHT_VERSION only
@@ -44,7 +45,26 @@ const INPUTS_SQL = `
 const STATS_SQL = `
   SELECT week, player_id, team_id, opponent_team_id, football_position, fantasy_points_ppr FROM football.nfl_player_weekly_stats
    WHERE season = $1 AND season_type = 'REG' AND week <= $2`;
-const GAMES_SQL = "SELECT week, home_team_id, away_team_id, spread_line, total_line FROM football.nfl_games WHERE season = $1 AND game_type = 'REG'";
+const GAMES_SQL = "SELECT week, home_team_id, away_team_id, home_score, away_score, spread_line, total_line FROM football.nfl_games WHERE season = $1 AND game_type = 'REG'";
+
+// Kicking and defensive plays for K and DEF Sight (v2).
+const KDEF_PLAYS_SQL = `
+  SELECT p.week, p.game_id, p.posteam_id, p.defteam_id, p.epa, p.play_type,
+         p.source_row->>'kicker_player_id' AS kicker_gsis, p.source_row->>'field_goal_attempt' AS fga,
+         p.source_row->>'field_goal_result' AS fg_result, p.source_row->>'kick_distance' AS kick_distance,
+         p.source_row->>'extra_point_attempt' AS xpa, p.source_row->>'extra_point_result' AS xp_result,
+         p.source_row->>'sack' AS sack, p.source_row->>'interception' AS interception,
+         p.source_row->>'fumble_lost' AS fumble_lost, p.source_row->>'fumble_recovery_1_team' AS fr_team,
+         p.source_row->>'touchdown' AS touchdown, p.source_row->>'td_team' AS td_team, p.source_row->>'safety' AS safety,
+         p.source_row->>'qb_dropback' AS qb_dropback
+    FROM football.nfl_plays p JOIN football.nfl_games g ON g.season = p.season AND g.game_id = p.game_id
+   WHERE p.season = $1 AND g.game_type = 'REG' AND p.week <= $2`;
+const KICKERS_SQL = "SELECT player_id, gsis_id FROM football.football_players WHERE football_position = 'K' AND gsis_id IS NOT NULL";
+
+const kdefPlay = (r) => ({ week: r.week, gameId: r.game_id, posteamId: r.posteam_id, defteamId: r.defteam_id, epa: r.epa, playType: r.play_type,
+  kickerGsis: r.kicker_gsis, fieldGoalAttempt: r.fga, fieldGoalResult: r.fg_result, kickDistance: r.kick_distance,
+  extraPointAttempt: r.xpa, extraPointResult: r.xp_result, sack: r.sack, interception: r.interception, fumbleLost: r.fumble_lost,
+  fumbleRecoveryTeam: r.fr_team, touchdown: r.touchdown, tdTeam: r.td_team, safety: r.safety, qbDropback: r.qb_dropback });
 
 const PPG_SQL = `
   SELECT player_id, avg(fantasy_points_ppr)::float8 AS ppg FROM football.nfl_player_weekly_stats
@@ -109,7 +129,7 @@ function createSightRunner({ pool, transactionTimeouts } = {}) {
             const built = buildContext(stats.rows, games.rows);
             context = (id, position) => built.contextFor(id, position, through);
           }
-          return computeSight({
+          const skill = computeSight({
             season,
             week: through,
             aggregates: aggregateSkillPlays(plays.rows.map(play), positions),
@@ -118,6 +138,17 @@ function createSightRunner({ pool, transactionTimeouts } = {}) {
             context,
             version,
           });
+          if (version !== "v2") return skill;
+          const kickers = new Map((await client.query({ name: "sight-kickers-v1", text: KICKERS_SQL })).rows.map((r) => [r.gsis_id, r.player_id]));
+          const kdefPlays = (await client.query({ name: "sight-kdef-plays-v1", text: KDEF_PLAYS_SQL, values: [season, through] })).rows.map(kdefPlay);
+          const gameRows = (await client.query({ name: "sight-games-v1", text: GAMES_SQL, values: [season] })).rows;
+          const scored = gameRows.filter((g) => g.week <= through).map((g) => ({ week: g.week, homeTeamId: g.home_team_id, awayTeamId: g.away_team_id, homeScore: g.home_score, awayScore: g.away_score }));
+          const lines = weeklyLines(kdefPlays, scored, kickers);
+          const kickerTeam = new Map();
+          for (const p of kdefPlays) { const id = p.kickerGsis ? kickers.get(p.kickerGsis) : null; if (id && p.posteamId) kickerTeam.set(`${id}|${p.week}`, p.posteamId); }
+          const kickerTeamByWeek = (id, week) => { for (let w = week; w >= 1; w -= 1) { const t = kickerTeam.get(`${id}|${w}`); if (t) return t; } return null; };
+          const kdef = computeKdefSight({ season, week: through, lines, gameRows, kickerTeamByWeek, weightsFor, phase: phaseOf(through) });
+          return { values: [...skill.values, ...kdef.values], summary: { ...skill.summary, positions: { ...skill.summary.positions, ...kdef.summary } } };
         },
       });
   }

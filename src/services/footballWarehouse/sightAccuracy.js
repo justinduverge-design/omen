@@ -30,7 +30,7 @@ function gradeSight(sight, actual, provider = new Map()) {
     const position = s.components?.position || "UNK";
     const row = { predicted: s.value, actual: y, ppg_baseline: s.components?.production_ppg ?? null, provider: provider.get(s.entityId) ?? null };
     (byPosition[position] ||= []).push(row);
-    values.push({ entityType: "player", entityId: s.entityId, value: r2(y - s.value), components: { position, ...row } });
+    values.push({ entityType: s.entityType || "player", entityId: s.entityId, value: r2(y - s.value), components: { position, ...row } });
   }
   const positions = {};
   for (const [position, rows] of Object.entries(byPosition)) {
