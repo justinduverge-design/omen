@@ -41,6 +41,7 @@ const { getAuthenticatedEspnCredentials } = require("../services/espnAuth");
 const { getAuthenticatedYahooClient } = require("../services/yahooAuth");
 const { createClient } = require("@supabase/supabase-js");
 const { createTradeUsageEvidence, usageRowsForTrade } = require("../services/tradeUsageEvidence");
+const { createSightEnricher } = require("../services/sightEnrichment");
 
 const MAX_PLAYERS_PER_SIDE = 10;
 const MAX_SHARE_PAYLOAD_BYTES = 16 * 1024;
@@ -587,6 +588,8 @@ function createTradeRouter({
     getSupabase: () => defaultSupabase(),
     log: logger,
   }),
+  // Sight on every player in Trade responses, behind SIGHT_ENABLED (see sightEnrichment.js).
+  attachSight = createSightEnricher({ getRuntime: () => getSharedWarehouseRuntime({ logger }), log: logger }),
 } = {}) {
   const router = express.Router();
 
@@ -597,8 +600,10 @@ function createTradeRouter({
       shown.flatMap((candidate) => [candidate?.give, candidate?.receive]),
       { season: nflWeekContext(now())?.season, week }
     );
+    const candidatesOut = shown.map((candidate) => ({ ...candidate, usage_evidence: usageRowsForTrade(candidate, usage.byKey) }));
+    await attachSight(candidatesOut);
     return {
-      candidates: shown.map((candidate) => ({ ...candidate, usage_evidence: usageRowsForTrade(candidate, usage.byKey) })),
+      candidates: candidatesOut,
       usage_evidence_state: usage.state,
     };
   }
@@ -783,6 +788,7 @@ function createTradeRouter({
       const teamId = req.query.team_id == null ? null : String(req.query.team_id);
       const teams = teamId ? result.teams.filter((team) => team.team_id === teamId) : result.teams;
 
+      await attachSight(teams);
       return res.json({
         contract_version: "trade-roster.v1",
         status: "ok",

@@ -46,6 +46,9 @@ const { createFootballIntelligenceServingRepository } = require("../services/foo
 const { enrichOmenWithFootballIntelligence } = require("../services/footballIntelligence/omenExplanation");
 const { teamIdFor } = require("../services/footballIntelligence/nflTeams");
 const { recordLeagueScoringRulesSafely } = require("../services/leagueScoringRules");
+const { createSightEnricher } = require("../services/sightEnrichment");
+const { getRuntime: getSightRuntime } = require("../services/footballWarehouse/sharedUsageAccess");
+const attachSight = createSightEnricher({ getRuntime: () => getSightRuntime({ logger }), log: logger });
 const ledger = require("../services/ledger");
 const { attachOmenProjectionBreakdown } = require("../services/projectionBreakdown");
 const sleeperAdapter = require("../adapters/sleeper");
@@ -892,6 +895,8 @@ router.post("/mvp-move", async (req, res) => {
     }
     attachDataFreshness(result.body);
     const body = present(result.body);
+    // Sight on every player in the call, behind SIGHT_ENABLED. The Ledger then records what Sight said too.
+    await attachSight(body);
     emitLatencyTrace(trace, body.state);
     // Both are best-effort and must not hold the response: respond first, finish
     // in the background. The cacheability decision reads the un-presented body
