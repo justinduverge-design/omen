@@ -86,6 +86,7 @@ function createWarehouseSightRepository({ query, timeoutMs = 2_000 }) {
           phase: c.phase || null,
           grade: Number.isFinite(Number(c.grade)) ? Math.round(Number(c.grade)) : null,
           confidence: c.confidence || "normal",
+          flex_grade: Number.isFinite(Number(c.flex_grade)) ? Math.round(Number(c.flex_grade)) : null,
           sight_points: Number.isFinite(Number(row.value)) ? Math.round(Number(row.value) * 10) / 10 : null,
           // The three inputs that moved the number most, in points; the full breakdown stays in the warehouse.
           drivers: contributions.slice(0, 3).map((p) => ({ name: p.name, points: Math.round(p.points * 10) / 10 })),
