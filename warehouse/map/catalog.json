@@ -51,11 +51,11 @@
       "name": "football_player_ids",
       "layer": "identity",
       "grain": "one row per (provider, provider id)",
-      "source": "nflverse players (GSIS only today)",
+      "source": "nflverse players (GSIS, ESPN) and the Sleeper player list (Sleeper, Yahoo, matched by GSIS)",
       "refresh": "daily 07:15 ET",
-      "purpose": "Maps provider ids to the warehouse player. Grading and usage resolve through it.",
+      "purpose": "The player index: every provider id (GSIS, ESPN, Sleeper, Yahoo) pointing at one Omen player. Grading, usage and projections resolve through it.",
       "gaps": [
-        "Holds GSIS ids only. Sleeper, ESPN and Yahoo ids live in the Supabase crosswalk (player_provider_ids), so readers map through Supabase first."
+        "A Yahoo id is indexed only where Sleeper lists it; players Sleeper does not map stay unindexed for Yahoo."
       ]
     },
     {
@@ -192,6 +192,16 @@
       "purpose": "This map, inside the warehouse: what each table is, its layer, grain, source, refresh and known gaps. Query it before writing SQL.",
       "gaps": [],
       "migration": "0007"
+    },
+    {
+      "name": "player_index_runs",
+      "layer": "ledger",
+      "grain": "one row per player-index load from a non-nflverse source",
+      "source": "Sleeper public player list",
+      "refresh": "daily 07:15 ET, after the player ingest",
+      "purpose": "Receipt for provider ids indexed from outside nflverse, so every index row says where it came from.",
+      "gaps": [],
+      "migration": "0009"
     }
   ]
 }
