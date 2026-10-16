@@ -18,7 +18,7 @@ test("accepts only the expected database, role, marker, and schema version", asy
 test("fails closed with a status-only error for every target mismatch", async () => {
   for (const changed of [
     { database_name: "wrong" }, { role_name: "wrong" }, { marker_exists: false },
-    { migration_count: 1 }, { first_version: 2 }, { schema_version: 1 }, { schema_version: 4, migration_count: 4 }, { schema_version: 3, migration_count: 2 },
+    { migration_count: 1 }, { first_version: 2 }, { schema_version: 1 }, { schema_version: 5, migration_count: 5 }, { schema_version: 3, migration_count: 2 },
   ]) {
     const row = { database_name: "omen_football", role_name: "omen_warehouse_ingest", marker_exists: true, ...changed };
     let calls = 0;
