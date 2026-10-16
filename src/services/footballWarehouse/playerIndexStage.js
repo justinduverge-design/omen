@@ -28,7 +28,8 @@ const crypto = require("node:crypto");
 
 const SLEEPER_PLAYERS_URL = "https://api.sleeper.app/v1/players/nfl";
 const MAX_BYTES = 40 * 1024 * 1024;
-const MIN_SLEEPER_ROWS = 5000;
+// Sleeper lists a GSIS id for about 3,900 players (active and recent); fewer than 2,000 means a broken download.
+const MIN_SLEEPER_ROWS = 2000;
 
 /** [{ sleeperId, gsisId, yahooId }] from Sleeper's player map; records without a GSIS id cannot be matched. */
 function sleeperRows(payload) {
