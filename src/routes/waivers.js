@@ -26,6 +26,7 @@ const { isOmenReadyConnection } = require("../services/omenReadiness");
 const { readConnectionsWithSelection, resolveActiveConnection } = require("../services/activeSelection");
 const { buildWaiverAnalysis } = require("../services/waiverAnalysis");
 const { createWaiverUsageEnricher } = require("../services/waiverUsageEvidence");
+const { createSightEnricher } = require("../services/sightEnrichment");
 const { getRuntime: getWarehouseRuntime } = require("../services/footballWarehouse/sharedUsageAccess");
 const { waiverCapabilitiesEnvelope } = require("../services/waiverScoringCapabilities");
 const { attachDecisionReceipt, createDecisionContext } = require("../services/decisionContext");
@@ -48,6 +49,9 @@ const enrichWithUsage = createWaiverUsageEnricher({
   supabase,
   log: logger,
 });
+
+// Sight on every player in the waiver answer, behind SIGHT_ENABLED.
+const attachSight = createSightEnricher({ getRuntime: () => getWarehouseRuntime({ logger }), log: logger });
 
 const ERROR_CONTRACT = "waiver-analysis-error.v1";
 const WAIVER_ANALYSIS_V1 = "waiver-analysis.v1";
@@ -390,6 +394,7 @@ router.get("/analysis", requireAuth, async (req, res, next) => {
     const analysis = await enrichWithUsage(baseAnalysis);
 
     const payload = presentAnalysis({ ...analysis, limitations: loaded.limitations }, requestedContract);
+    await attachSight(payload);
     // Only a confirmed analysis is kept. availability_unknown / engine_limitation
     // mean a provider could not confirm the pool, which the user may fix or retry.
     await responseCache.store(cacheHandle, 200, payload, {
