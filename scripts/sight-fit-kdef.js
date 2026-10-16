@@ -36,7 +36,7 @@ const PLAYS_SQL = `
          p.source_row->>'qb_dropback' AS qb_dropback
     FROM football.nfl_plays p JOIN football.nfl_games g ON g.season = p.season AND g.game_id = p.game_id
    WHERE p.season = $1 AND g.game_type = 'REG'`;
-const GAMES_SQL = "SELECT week, home_team_id, away_team_id, home_score, away_score, spread_line, total_line FROM football.nfl_games WHERE season = $1 AND game_type = 'REG'";
+const GAMES_SQL = "SELECT week, home_team_id, away_team_id, home_score, away_score, spread_line, total_line, roof, wind_mph, temperature_f FROM football.nfl_games WHERE season = $1 AND game_type = 'REG'";
 const KICKERS_SQL = "SELECT player_id, gsis_id FROM football.football_players WHERE football_position = 'K' AND gsis_id IS NOT NULL";
 
 function mapPlay(r) {
@@ -54,8 +54,11 @@ function nextGames(games) {
     const spread = g.spread_line == null ? null : Number(g.spread_line);
     const home = total != null && spread != null ? total / 2 + spread / 2 : null;
     const away = total != null && spread != null ? total / 2 - spread / 2 : null;
-    m.set(`${g.week}|${g.home_team_id}`, { opp: g.away_team_id, own: home, oppImplied: away });
-    m.set(`${g.week}|${g.away_team_id}`, { opp: g.home_team_id, own: away, oppImplied: home });
+    const dome = g.roof === "dome" || g.roof === "closed";
+    const wind = dome ? 0 : (g.wind_mph == null ? null : Number(g.wind_mph));
+    const cold = dome ? 0 : (g.temperature_f == null ? null : Math.max(0, 40 - Number(g.temperature_f)));
+    m.set(`${g.week}|${g.home_team_id}`, { opp: g.away_team_id, own: home, oppImplied: away, wind, cold, dome: dome ? 1 : 0 });
+    m.set(`${g.week}|${g.away_team_id}`, { opp: g.home_team_id, own: away, oppImplied: home, wind, cold, dome: dome ? 1 : 0 });
   }
   return m;
 }
@@ -104,12 +107,20 @@ function rowsForSeason(season, playRows, gameRows, kickerByGsis) {
       });
       const vals = ctxRaw.filter((v) => v != null);
       const cm = vals.length ? mean(vals) : 0; const cs = vals.length ? sd(vals) : 0;
+      // Weather for the same next game, z-scored (null = unknown = neutral).
+      const nextGame = ids.map((id) => {
+        let team = id;
+        if (position === "K") team = [...Array(week).keys()].map((i) => kickerTeam.get(`${id}|${week - i}`)).find(Boolean);
+        return team ? next.get(`${week + 1}|${team}`) : null;
+      });
+      const zw = (key) => { const v = nextGame.map((g) => g?.[key]).filter((x) => x != null); const m0 = v.length ? mean(v) : 0; const s0 = v.length ? sd(v) : 0; return nextGame.map((g) => (g?.[key] == null || s0 <= 1e-9 ? 0 : (g[key] - m0) / s0)); };
+      const zWind = zw("wind"); const zCold = zw("cold"); const zDome = zw("dome");
       ids.forEach((id, i) => {
         const weeks = position === "K" ? lines.kickers.get(id) : lines.defenses.get(id);
         const nextLine = weeks?.get(week + 1);
         if (!nextLine || (position === "DEF" && nextLine.pointsAllowed == null) || (position === "K" && nextLine.fga + nextLine.xpa === 0)) return;
         rows.push({ season, week, position, phase, id, x: feats.map((f) => f[i]), xp: ps > 1e-9 ? (prod[i] - pm) / ps : 0,
-          xc: [ctxRaw[i] == null || cs <= 1e-9 ? 0 : (ctxRaw[i] - cm) / cs], production: prod[i], y: nextLine.fp });
+          xc: [ctxRaw[i] == null || cs <= 1e-9 ? 0 : (ctxRaw[i] - cm) / cs], xw: [zWind[i], zCold[i], zDome[i]], production: prod[i], y: nextLine.fp });
       });
     }
   }
@@ -153,15 +164,19 @@ async function main() {
       if (fit.length < 150) continue;
       const comps = SPECS[position].components.map((c) => c.key);
       const beta = ridge(fit.map((r) => ({ ...r, x: [...r.x, r.xp, ...r.xc] })), comps.length + 2);
+      const betaW = ridge(fit.map((r) => ({ ...r, x: [...r.x, r.xp, ...r.xc, ...r.xw] })), comps.length + 5);
       const names = [...comps, "production_ppg", position === "K" ? "implied_team_total" : "opponent_implied_total"];
       ((weights[target] ||= {})[position] ||= {})[phase] = { fitted_on: [target - ERA_SEASONS, target - 1], rows: fit.length,
-        with_context: { intercept: Number(beta[0].toFixed(4)), weights: Object.fromEntries(names.map((k, i) => [k, Number(beta[i + 1].toFixed(4))])) } };
+        with_context: { intercept: Number(beta[0].toFixed(4)), weights: Object.fromEntries(names.map((k, i) => [k, Number(beta[i + 1].toFixed(4))])) },
+        with_weather: { intercept: Number(betaW[0].toFixed(4)), weights: Object.fromEntries([...names, "wind_mph", "cold", "dome"].map((k, i) => [k, Number(betaW[i + 1].toFixed(4))])) } };
       if (opts.test.includes(target)) {
         const test = all.filter((r) => r.position === position && r.phase === phase && r.season === target);
         if (test.length < 30) continue;
         const pred = test.map((r) => beta[0] + [...r.x, r.xp, ...r.xc].reduce((s, x, i) => s + beta[i + 1] * x, 0));
+        const predW = test.map((r) => betaW[0] + [...r.x, r.xp, ...r.xc, ...r.xw].reduce((s, x, i) => s + betaW[i + 1] * x, 0));
         ((evaluation[target] ||= {})[position] ||= {})[phase] = { n: test.length,
-          corr_sight: Number(corr(pred, test.map((r) => r.y)).toFixed(3)), corr_production: Number(corr(test.map((r) => r.production), test.map((r) => r.y)).toFixed(3)) };
+          corr_sight: Number(corr(pred, test.map((r) => r.y)).toFixed(3)), corr_weather: Number(corr(predW, test.map((r) => r.y)).toFixed(3)),
+          weather_weights: betaW.slice(-3).map((x) => Number(x.toFixed(3))), corr_production: Number(corr(test.map((r) => r.production), test.map((r) => r.y)).toFixed(3)) };
       }
     }
   }

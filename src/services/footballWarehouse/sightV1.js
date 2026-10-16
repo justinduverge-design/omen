@@ -26,13 +26,13 @@ function phaseOf(week) {
 }
 
 // v1 = eye test + production; v2 adds game context (Vegas implied team total, opponent allowed to position).
-// v2 = v1 + game context + role changes (usage trend, vacated opportunity).
-const VARIANTS = Object.freeze({ v1: "with_production", v2: "with_role" });
+// v2 = v1 + game context + role changes + weather (forecast for the next game; recorded weather in training).
+const VARIANTS = Object.freeze({ v1: "with_production", v2: "with_weather" });
 
 /** Weights for (season, position, phase): that season's era fit, else the latest earlier one. */
 function weightsFor(season, position, phase, version = "v1") {
   // A position without a layer (K and DEF have no role layer) uses its richest variant available.
-  const variants = version === "v2" ? ["with_role", "with_context"] : [VARIANTS[version] || VARIANTS.v1];
+  const variants = version === "v2" ? ["with_weather", "with_role", "with_context"] : [VARIANTS[version] || VARIANTS.v1];
   const seasons = Object.keys(WEIGHTS.weights).map(Number).filter((s) => s <= season).sort((a, b) => b - a);
   for (const s of seasons) {
     const entry = WEIGHTS.weights[s]?.[position]?.[phase];
@@ -86,6 +86,8 @@ function computeSight({ season, week, aggregates, positions, ppgToDate, context 
       };
       features.implied_team_total = z("implied");
       features.opponent_allowed_to_position = z("oppAllowed");
+      features.wind_mph = z("wind");
+      features.cold = z("cold");
       const roles = ids.map((id) => role?.(id, position) || null);
       const zr = (key) => {
         const vals = roles.map((c) => c?.[key]).filter((v) => v != null);

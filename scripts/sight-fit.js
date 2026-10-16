@@ -99,7 +99,7 @@ function rowsForSeason(season, plays, positions, weekly, ctx, role) {
         const m = vals.length ? mean(vals) : 0; const sdv = vals.length ? sd(vals) : 0;
         return context.map((c) => (c?.[key] == null || sdv <= 1e-9 ? 0 : (c[key] - m) / sdv));
       };
-      const zImplied = zOf("implied"); const zOpp = zOf("oppAllowed"); const zWind = zOf("wind"); const zCold = zOf("cold");
+      const zImplied = zOf("implied"); const zOpp = zOf("oppAllowed"); const zWind = zOf("wind"); const zCold = zOf("cold"); const zWarm = zOf("coldForWarmTeam");
       const roleRows = ids.map((id) => roleFor(id, position));
       const zRole = (key) => {
         const vals = roleRows.map((c) => c?.[key]).filter((v) => v != null);
@@ -111,7 +111,7 @@ function rowsForSeason(season, plays, positions, weekly, ctx, role) {
         const y = next.get(id);
         if (y == null) return; // did not play next week: no label (injury/bye is not the model's question)
         rows.push({ season, week, position, phase, id, x: feats.map((f) => f[i]), xp: ps > 1e-9 ? (ppg[i] - pm) / ps : 0,
-          xc: [zImplied[i], zOpp[i]], xr: [zTrend[i], zVacated[i]], xw: [zWind[i], zCold[i]], hasLine: context[i]?.implied != null, ppgToDate: ppg[i], y });
+          xc: [zImplied[i], zOpp[i]], xr: [zTrend[i], zVacated[i]], xw: [zWind[i], zCold[i]], xx: [zWarm[i]], hasLine: context[i]?.implied != null, ppgToDate: ppg[i], y });
       });
     }
   }
@@ -162,7 +162,9 @@ async function main() {
   for (let season = opts.from; season <= opts.to; season += 1) {
     const plays = await pool.query(playsSql, [season, null]);
     const stats = await pool.query("SELECT week, player_id, team_id, opponent_team_id, football_position, fantasy_points_ppr FROM football.nfl_player_weekly_stats WHERE season = $1 AND season_type = 'REG'", [season]);
-    const games = await pool.query("SELECT week, home_team_id, away_team_id, spread_line, total_line, roof, wind_mph, temperature_f FROM football.nfl_games WHERE season = $1 AND game_type = 'REG'", [season]);
+    const games = await pool.query("SELECT week, home_team_id, away_team_id, spread_line, total_line, roof, wind_mph, temperature_f, roof AS home_roof, source_row->>'stadium_id' AS stadium_id FROM football.nfl_games WHERE season = $1 AND game_type = 'REG'", [season]);
+    const STADIUMS = (() => { try { return req("src/data/stadiums.json").stadiums; } catch { return {}; } })();
+    for (const g of games.rows) g.home_lat = STADIUMS[g.stadium_id]?.lat ?? null;
     const ctx = buildContext(stats.rows, games.rows);
     const rosters = await pool.query("SELECT week, player_id, roster_status FROM football.nfl_weekly_rosters WHERE season = $1", [season]);
     const statusByWeek = new Map();
@@ -208,6 +210,7 @@ async function main() {
         const withRole = fit.map((r) => ({ ...r, x: [...r.x, r.xp, ...r.xc, ...r.xr] }));
         const betaR = ridge(withRole, SPECS[position].components.length + 5);
         const betaW = ridge(fit.map((r) => ({ ...r, x: [...r.x, r.xp, ...r.xc, ...r.xr, ...r.xw] })), SPECS[position].components.length + 7);
+        const betaX = ridge(fit.map((r) => ({ ...r, x: [...r.x, r.xp, ...r.xc, ...r.xr, ...r.xw, ...r.xx] })), SPECS[position].components.length + 8);
         (weights[target] ||= {})[position] ||= {};
         weights[target][position][phase] = {
           fitted_on: [target - ERA_SEASONS, target - 1], rows: fit.length,
@@ -237,6 +240,7 @@ async function main() {
           const sight = test.map((r) => betaP[0] + [...r.x, r.xp].reduce((s, x, i) => s + betaP[i + 1] * x, 0));
           const sightCtx = test.map((r) => betaC[0] + [...r.x, r.xp, ...r.xc].reduce((s, x, i) => s + betaC[i + 1] * x, 0));
           const sightRole = test.map((r) => betaR[0] + [...r.x, r.xp, ...r.xc, ...r.xr].reduce((s, x, i) => s + betaR[i + 1] * x, 0));
+          const sightWarm = test.map((r) => betaX[0] + [...r.x, r.xp, ...r.xc, ...r.xr, ...r.xw, ...r.xx].reduce((s, x, i) => s + betaX[i + 1] * x, 0));
           const sightWeather = test.map((r) => betaW[0] + [...r.x, r.xp, ...r.xc, ...r.xr, ...r.xw].reduce((s, x, i) => s + betaW[i + 1] * x, 0));
           const v0 = test.map((r) => r.x.reduce((s, x, i) => s + SPECS[position].components[i].weight * x, 0));
           const ppg = test.map((r) => r.ppgToDate);
@@ -244,6 +248,7 @@ async function main() {
           (evaluation[target] ||= {})[position] ||= {};
           evaluation[target][position][phase] = {
             n: test.length,
+            corr_sight_warm: Number(corr(sightWarm, y).toFixed(3)), warm_weight: Number(betaX[betaX.length - 1].toFixed(3)),
             corr_sight_weather: Number(corr(sightWeather, y).toFixed(3)),
             corr_sight_role: Number(corr(sightRole, y).toFixed(3)),
             corr_sight_context: Number(corr(sightCtx, y).toFixed(3)),

@@ -23,6 +23,14 @@ function buildContext(statRows, gameRows) {
       byWeek.set(r.week, (byWeek.get(r.week) || 0) + Number(r.fantasy_points_ppr || 0));
     }
   }
+  // A team's home climate: warm if it plays home games in a dome or south of about 34 degrees N (Miami,
+  // Tampa, Jacksonville, Houston, the LA and Arizona teams). Cold for a warm team is a different event.
+  const warmTeam = new Map();
+  for (const g of gameRows) {
+    if (g.home_lat == null && g.home_roof == null) continue;
+    const warm = g.home_roof === "dome" || g.home_roof === "closed" || (g.home_lat != null && Number(g.home_lat) < 34);
+    warmTeam.set(g.home_team_id, warm);
+  }
   const game = new Map(); // `${week}|${team}` -> { opp, implied, wind, cold, dome }
   for (const g of gameRows) {
     // Weather: indoor games have none. Wind and cold matter for passing and kicking; null means unknown.
@@ -34,8 +42,9 @@ function buildContext(statRows, gameRows) {
     const spread = g.spread_line == null ? null : Number(g.spread_line); // nflverse: positive = home favored
     const home = total != null && spread != null ? total / 2 + spread / 2 : null;
     const away = total != null && spread != null ? total / 2 - spread / 2 : null;
-    game.set(`${g.week}|${g.home_team_id}`, { opp: g.away_team_id, implied: home, wind, cold });
-    game.set(`${g.week}|${g.away_team_id}`, { opp: g.home_team_id, implied: away, wind, cold });
+    const coldFor = (team) => (cold == null ? null : cold * (warmTeam.get(team) ? 1 : 0));
+    game.set(`${g.week}|${g.home_team_id}`, { opp: g.away_team_id, implied: home, wind, cold, coldForWarmTeam: coldFor(g.home_team_id) });
+    game.set(`${g.week}|${g.away_team_id}`, { opp: g.home_team_id, implied: away, wind, cold, coldForWarmTeam: coldFor(g.away_team_id) });
   }
   return {
     contextFor(playerId, position, week) {
@@ -46,7 +55,7 @@ function buildContext(statRows, gameRows) {
       if (!next) return null;
       const byWeek = allowed.get(`${next.opp}|${position}`);
       const weeks = byWeek ? [...byWeek].filter(([w]) => w <= week) : [];
-      return { implied: next.implied, oppAllowed: weeks.length ? mean(weeks.map(([, v]) => v)) : null, wind: next.wind ?? null, cold: next.cold ?? null };
+      return { implied: next.implied, oppAllowed: weeks.length ? mean(weeks.map(([, v]) => v)) : null, wind: next.wind ?? null, cold: next.cold ?? null, coldForWarmTeam: next.coldForWarmTeam ?? null };
     },
   };
 }

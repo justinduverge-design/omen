@@ -194,8 +194,11 @@ function nextGames(gameRows) {
     const spread = g.spread_line == null ? null : Number(g.spread_line);
     const home = total != null && spread != null ? total / 2 + spread / 2 : null;
     const away = total != null && spread != null ? total / 2 - spread / 2 : null;
-    m.set(`${g.week}|${g.home_team_id}`, { opp: g.away_team_id, own: home, oppImplied: away });
-    m.set(`${g.week}|${g.away_team_id}`, { opp: g.home_team_id, own: away, oppImplied: home });
+    const dome = g.roof === "dome" || g.roof === "closed";
+    const wind = dome ? 0 : (g.wind_mph == null ? null : Number(g.wind_mph));
+    const cold = dome ? 0 : (g.temperature_f == null ? null : Math.max(0, 40 - Number(g.temperature_f)));
+    m.set(`${g.week}|${g.home_team_id}`, { opp: g.away_team_id, own: home, oppImplied: away, wind, cold, dome: dome ? 1 : 0 });
+    m.set(`${g.week}|${g.away_team_id}`, { opp: g.home_team_id, own: away, oppImplied: home, wind, cold, dome: dome ? 1 : 0 });
   }
   return m;
 }
@@ -235,6 +238,12 @@ function computeKdefSight({ season, week, lines, gameRows, kickerTeamByWeek, wei
     });
     const cv = ctx.filter((v) => v != null); const cm = cv.length ? mean(cv) : 0; const cs = cv.length ? sd(cv) : 0;
     features[ctxKey] = ctx.map((v) => (v == null || cs <= 1e-9 ? 0 : (v - cm) / cs));
+    // Weather for the next game (forecast live, recorded in training); unknown is neutral.
+    const games = ids.map((id) => { const team = position === "K" ? kickerTeamByWeek(id, week) : id; return team ? next.get(`${week + 1}|${team}`) : null; });
+    for (const key of ["wind", "cold", "dome"]) {
+      const v = games.map((g) => g?.[key]).filter((x) => x != null); const m0 = v.length ? mean(v) : 0; const s0 = v.length ? sd(v) : 0;
+      features[key === "wind" ? "wind_mph" : key] = games.map((g) => (g?.[key] == null || s0 <= 1e-9 ? 0 : (g[key] - m0) / s0));
+    }
     const points = ids.map((_, i) => w.intercept + Object.entries(w.weights).reduce((s, [k, b]) => s + b * (features[k]?.[i] ?? 0), 0));
     const m = mean(points); const s = sd(points);
     ids.forEach((id, i) => {

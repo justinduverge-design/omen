@@ -21,8 +21,9 @@ function createCoachingStage({ pool, fetchImpl = globalThis.fetch, pauseMs = PAU
     async run({ season }) {
       const existing = await pool.query({ name: "coach-existing-v1", text: "SELECT DISTINCT team_id, season FROM football.coach_assignments WHERE role = 'head_coach'" });
       const have = new Set(existing.rows.map((r) => `${r.team_id}|${r.season}`));
+      // The current season first (staffs change during a year), then missing seasons newest first.
       const wanted = [];
-      for (let s = FIRST_SEASON; s <= season; s += 1) {
+      for (let s = season; s >= FIRST_SEASON; s -= 1) {
         for (const abbr of Object.keys(TEAMS)) {
           const teamId = `omen:team:${abbr.toLowerCase()}`;
           if (s === season || !have.has(`${teamId}|${s}`)) wanted.push({ abbr, teamId, season: s });

@@ -39,3 +39,4 @@ The warehouse's routing table. One entry per table. Edit this file, then run `no
 | [coaches](coaches.md) | identity | one row per coach |
 | [coach_assignments](coach_assignments.md) | facts | one row per (coach, team, season, role) |
 | [coach_lineage](coach_lineage.md) | facts | one row per (staff coach, head coach, team, season) |
+| [game_weather_forecasts](game_weather_forecasts.md) | facts | one row per (game, fetch) |

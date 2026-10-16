@@ -24,3 +24,26 @@ test("standard kicker and defense scoring", () => {
   assert.equal(td.defenses.get("omen:team:buf").takeaways, 1);
   assert.equal(td.kickers.get("omen:player:k").fga, 2);
 });
+
+test("the weather stage stores forecasts for upcoming games and marks domes not applicable", async () => {
+  const { createWeatherForecastStage } = require("../src/services/footballWarehouse/weatherForecastStage");
+  const inserted = [];
+  const pool = { query: async (q) => {
+    if (q.name === "weather-upcoming-games-v1") return { rows: [
+      { game_id: "g1", season: 2026, week: 7, kickoff_at: "2026-10-25T17:00:00Z", stadium_id: "BAL00", roof: "outdoors" },
+      { game_id: "g2", season: 2026, week: 7, kickoff_at: "2026-10-25T17:00:00Z", stadium_id: "DET00", roof: "dome" },
+      { game_id: "g3", season: 2026, week: 7, kickoff_at: "2026-10-25T17:00:00Z", stadium_id: "NOWHERE", roof: "outdoors" },
+    ] };
+    inserted.push(...JSON.parse(q.values[0])); return { rowCount: JSON.parse(q.values[0]).length };
+  } };
+  const hours = [...Array(6).keys()].map((i) => `2026-10-25T${String(17 + i).padStart(2, "0")}:00`);
+  const fetchImpl = async () => ({ ok: true, json: async () => ({ hourly: { time: hours, temperature_2m: hours.map(() => 38), wind_speed_10m: hours.map(() => 18),
+    wind_gusts_10m: hours.map(() => 30), precipitation: hours.map(() => 0.1), precipitation_probability: hours.map(() => 60) } }) });
+  const out = await createWeatherForecastStage({ pool, fetchImpl, now: () => new Date("2026-10-20T12:00:00Z") }).run({ season: 2026 });
+  assert.equal(out.state, "succeeded");
+  assert.equal(out.skipped, 1, "an unknown stadium is skipped, never guessed");
+  const bal = inserted.find((r) => r.game_id === "g1");
+  assert.equal(bal.status, "read");
+  assert.equal(bal.wind_mph, 18);
+  assert.equal(inserted.find((r) => r.game_id === "g2").status, "not_applicable");
+});
