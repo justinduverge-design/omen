@@ -23,14 +23,19 @@ function buildContext(statRows, gameRows) {
       byWeek.set(r.week, (byWeek.get(r.week) || 0) + Number(r.fantasy_points_ppr || 0));
     }
   }
-  const game = new Map(); // `${week}|${team}` -> { opp, implied }
+  const game = new Map(); // `${week}|${team}` -> { opp, implied, wind, cold, dome }
   for (const g of gameRows) {
+    // Weather: indoor games have none. Wind and cold matter for passing and kicking; null means unknown.
+    const dome = g.roof === "dome" || g.roof === "closed";
+    const wind = dome ? 0 : (g.wind_mph == null ? null : Number(g.wind_mph));
+    const temp = dome ? 70 : (g.temperature_f == null ? null : Number(g.temperature_f));
+    const cold = temp == null ? null : Math.max(0, 40 - temp);
     const total = g.total_line == null ? null : Number(g.total_line);
     const spread = g.spread_line == null ? null : Number(g.spread_line); // nflverse: positive = home favored
     const home = total != null && spread != null ? total / 2 + spread / 2 : null;
     const away = total != null && spread != null ? total / 2 - spread / 2 : null;
-    game.set(`${g.week}|${g.home_team_id}`, { opp: g.away_team_id, implied: home });
-    game.set(`${g.week}|${g.away_team_id}`, { opp: g.home_team_id, implied: away });
+    game.set(`${g.week}|${g.home_team_id}`, { opp: g.away_team_id, implied: home, wind, cold });
+    game.set(`${g.week}|${g.away_team_id}`, { opp: g.home_team_id, implied: away, wind, cold });
   }
   return {
     contextFor(playerId, position, week) {
@@ -41,7 +46,7 @@ function buildContext(statRows, gameRows) {
       if (!next) return null;
       const byWeek = allowed.get(`${next.opp}|${position}`);
       const weeks = byWeek ? [...byWeek].filter(([w]) => w <= week) : [];
-      return { implied: next.implied, oppAllowed: weeks.length ? mean(weeks.map(([, v]) => v)) : null };
+      return { implied: next.implied, oppAllowed: weeks.length ? mean(weeks.map(([, v]) => v)) : null, wind: next.wind ?? null, cold: next.cold ?? null };
     },
   };
 }
