@@ -141,7 +141,18 @@ test("report mode returns a failed derived stage instead of failing the command;
   const failing = { writeSeason: async () => { throw Object.assign(new Error("x"), { code: "opportunity_reconciliation_failed" }); } };
   const ok = { run: async () => ({ state: "succeeded", valueCount: 41 }) };
   await assert.rejects(createDerivedStages({ opportunityWriter: failing, qbRunner: ok }).run({ season: 2003 }), (e) => e.code === "derived_opportunity_opportunity_reconciliation_failed");
-  const report = await createDerivedStages({ mode: "report", opportunityWriter: failing, qbRunner: ok }).run({ season: 2003 });
-  assert.deepEqual(report, { opportunity: { state: "failed", code: "derived_opportunity_opportunity_reconciliation_failed" }, ratQb: { state: "succeeded", valueCount: 41 } });
+  const skill = { run: async () => ({ RB: { state: "succeeded", valueCount: 30 } }) };
+  const report = await createDerivedStages({ mode: "report", opportunityWriter: failing, qbRunner: ok, skillRunner: skill }).run({ season: 2003 });
+  assert.deepEqual(report, { opportunity: { state: "failed", code: "derived_opportunity_opportunity_reconciliation_failed" }, ratQb: { state: "succeeded", valueCount: 41 }, ratSkill: { RB: { state: "succeeded", valueCount: 30 } } });
   assert.throws(() => createDerivedStages({ mode: "lenient", opportunityWriter: failing, qbRunner: ok }), /strict or report/);
+});
+
+test("a failing Sight skill rating never fails the strict daily run", async () => {
+  const { createDerivedStages } = require("../src/services/footballWarehouse/derivedStages");
+  const okOpp = { writeSeason: async () => ({ state: "succeeded", writtenRows: 1 }) };
+  const okQb = { run: async () => ({ state: "succeeded", valueCount: 1 }) };
+  const broken = { run: async () => { throw Object.assign(new Error("boom"), { code: "cohort_bug" }); } };
+  const out = await createDerivedStages({ opportunityWriter: okOpp, qbRunner: okQb, skillRunner: broken }).run({ season: 2026 });
+  assert.equal(out.ratSkill.state, "failed");
+  assert.equal(out.ratSkill.code, "derived_rat_skill_cohort_bug");
 });
