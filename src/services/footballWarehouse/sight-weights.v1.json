@@ -568,6 +568,121 @@
             }
           }
         }
+      },
+      "K": {
+        "early": {
+          "fitted_on": [
+            1999,
+            2003
+          ],
+          "rows": 367,
+          "with_context": {
+            "intercept": 7.107,
+            "weights": {
+              "fg_attempts_per_game": -0.3226,
+              "long_attempt_share": -0.0638,
+              "accuracy_over_expected": -0.0834,
+              "xp_attempts_per_game": 0.0612,
+              "production_ppg": 0.6019,
+              "implied_team_total": 0.4804
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            1999,
+            2003
+          ],
+          "rows": 521,
+          "with_context": {
+            "intercept": 6.9513,
+            "weights": {
+              "fg_attempts_per_game": 0.1881,
+              "long_attempt_share": 0.0213,
+              "accuracy_over_expected": 0.197,
+              "xp_attempts_per_game": 0.4168,
+              "production_ppg": 0.1811,
+              "implied_team_total": -0.1124
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            1999,
+            2003
+          ],
+          "rows": 965,
+          "with_context": {
+            "intercept": 6.6371,
+            "weights": {
+              "fg_attempts_per_game": 0.0664,
+              "long_attempt_share": -0.0812,
+              "accuracy_over_expected": 0.3397,
+              "xp_attempts_per_game": 0.1845,
+              "production_ppg": 0.0299,
+              "implied_team_total": 0.1744
+            }
+          }
+        }
+      },
+      "DEF": {
+        "early": {
+          "fitted_on": [
+            1999,
+            2003
+          ],
+          "rows": 420,
+          "with_context": {
+            "intercept": 8.1273,
+            "weights": {
+              "sack_rate": -0.4725,
+              "takeaway_rate": 0.2939,
+              "epa_allowed_per_play": -0.25,
+              "points_allowed_per_game": 0.5252,
+              "defensive_td_per_game": 0.1194,
+              "production_ppg": 0.1311,
+              "opponent_implied_total": -0.8294
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            1999,
+            2003
+          ],
+          "rows": 568,
+          "with_context": {
+            "intercept": 8.0314,
+            "weights": {
+              "sack_rate": -0.1392,
+              "takeaway_rate": 0.1448,
+              "epa_allowed_per_play": 0.8338,
+              "points_allowed_per_game": 0.0446,
+              "defensive_td_per_game": 0.154,
+              "production_ppg": -0.3095,
+              "opponent_implied_total": -1.0749
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            1999,
+            2003
+          ],
+          "rows": 1078,
+          "with_context": {
+            "intercept": 8.2978,
+            "weights": {
+              "sack_rate": -0.2867,
+              "takeaway_rate": -0.1604,
+              "epa_allowed_per_play": 0.9969,
+              "points_allowed_per_game": -0.4448,
+              "defensive_td_per_game": -0.0957,
+              "production_ppg": 0.2251,
+              "opponent_implied_total": -1.6724
+            }
+          }
+        }
       }
     },
     "2005": {
@@ -1115,6 +1230,121 @@
               "yac_epa_per_reception": 0,
               "air_yards_per_target": 0,
               "production_ppg": 1.1783
+            }
+          }
+        }
+      },
+      "K": {
+        "early": {
+          "fitted_on": [
+            2000,
+            2004
+          ],
+          "rows": 366,
+          "with_context": {
+            "intercept": 7.022,
+            "weights": {
+              "fg_attempts_per_game": -0.0453,
+              "long_attempt_share": -0.1881,
+              "accuracy_over_expected": 0.2027,
+              "xp_attempts_per_game": 0.2618,
+              "production_ppg": 0.2412,
+              "implied_team_total": 0.2439
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2000,
+            2004
+          ],
+          "rows": 525,
+          "with_context": {
+            "intercept": 7.0275,
+            "weights": {
+              "fg_attempts_per_game": 0.182,
+              "long_attempt_share": -0.071,
+              "accuracy_over_expected": 0.3297,
+              "xp_attempts_per_game": 0.3716,
+              "production_ppg": 0.105,
+              "implied_team_total": -0.1379
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2000,
+            2004
+          ],
+          "rows": 973,
+          "with_context": {
+            "intercept": 6.6037,
+            "weights": {
+              "fg_attempts_per_game": -0.0964,
+              "long_attempt_share": -0.1272,
+              "accuracy_over_expected": 0.1747,
+              "xp_attempts_per_game": 0.1432,
+              "production_ppg": 0.1372,
+              "implied_team_total": 0.2682
+            }
+          }
+        }
+      },
+      "DEF": {
+        "early": {
+          "fitted_on": [
+            2000,
+            2004
+          ],
+          "rows": 420,
+          "with_context": {
+            "intercept": 7.8261,
+            "weights": {
+              "sack_rate": -0.5469,
+              "takeaway_rate": 0.3769,
+              "epa_allowed_per_play": -0.3495,
+              "points_allowed_per_game": 0.3027,
+              "defensive_td_per_game": 0.0064,
+              "production_ppg": 0.3257,
+              "opponent_implied_total": -1.0955
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2000,
+            2004
+          ],
+          "rows": 566,
+          "with_context": {
+            "intercept": 7.8035,
+            "weights": {
+              "sack_rate": -0.1931,
+              "takeaway_rate": 0.3869,
+              "epa_allowed_per_play": 0.6019,
+              "points_allowed_per_game": -0.3329,
+              "defensive_td_per_game": 0.2996,
+              "production_ppg": 0.1285,
+              "opponent_implied_total": -1.0109
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2000,
+            2004
+          ],
+          "rows": 1092,
+          "with_context": {
+            "intercept": 8.2443,
+            "weights": {
+              "sack_rate": -0.2858,
+              "takeaway_rate": -0.3195,
+              "epa_allowed_per_play": 0.6801,
+              "points_allowed_per_game": -0.2839,
+              "defensive_td_per_game": -0.1964,
+              "production_ppg": 0.3345,
+              "opponent_implied_total": -1.9918
             }
           }
         }
@@ -1668,6 +1898,121 @@
             }
           }
         }
+      },
+      "K": {
+        "early": {
+          "fitted_on": [
+            2001,
+            2005
+          ],
+          "rows": 374,
+          "with_context": {
+            "intercept": 7.0064,
+            "weights": {
+              "fg_attempts_per_game": -0.3231,
+              "long_attempt_share": -0.133,
+              "accuracy_over_expected": 0.0408,
+              "xp_attempts_per_game": 0.072,
+              "production_ppg": 0.5051,
+              "implied_team_total": 0.1709
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2001,
+            2005
+          ],
+          "rows": 523,
+          "with_context": {
+            "intercept": 7.0462,
+            "weights": {
+              "fg_attempts_per_game": -0.1252,
+              "long_attempt_share": -0.021,
+              "accuracy_over_expected": 0.344,
+              "xp_attempts_per_game": 0.3548,
+              "production_ppg": 0.2319,
+              "implied_team_total": -0.0869
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2001,
+            2005
+          ],
+          "rows": 984,
+          "with_context": {
+            "intercept": 6.7164,
+            "weights": {
+              "fg_attempts_per_game": -0.1356,
+              "long_attempt_share": -0.2119,
+              "accuracy_over_expected": 0.1098,
+              "xp_attempts_per_game": 0.0597,
+              "production_ppg": 0.1531,
+              "implied_team_total": 0.4822
+            }
+          }
+        }
+      },
+      "DEF": {
+        "early": {
+          "fitted_on": [
+            2001,
+            2005
+          ],
+          "rows": 420,
+          "with_context": {
+            "intercept": 7.7834,
+            "weights": {
+              "sack_rate": -0.5759,
+              "takeaway_rate": 0.1206,
+              "epa_allowed_per_play": -0.5786,
+              "points_allowed_per_game": 0.2055,
+              "defensive_td_per_game": -0.3891,
+              "production_ppg": 0.8254,
+              "opponent_implied_total": -1.2767
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2001,
+            2005
+          ],
+          "rows": 564,
+          "with_context": {
+            "intercept": 7.7844,
+            "weights": {
+              "sack_rate": -0.1553,
+              "takeaway_rate": 0.4969,
+              "epa_allowed_per_play": 0.1388,
+              "points_allowed_per_game": -0.5765,
+              "defensive_td_per_game": 0.1101,
+              "production_ppg": 0.5239,
+              "opponent_implied_total": -1.1196
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2001,
+            2005
+          ],
+          "rows": 1106,
+          "with_context": {
+            "intercept": 8.0349,
+            "weights": {
+              "sack_rate": -0.5242,
+              "takeaway_rate": -0.5065,
+              "epa_allowed_per_play": 0.7713,
+              "points_allowed_per_game": -0.1676,
+              "defensive_td_per_game": -0.1952,
+              "production_ppg": 0.1638,
+              "opponent_implied_total": -2.0439
+            }
+          }
+        }
       }
     },
     "2007": {
@@ -2215,6 +2560,121 @@
               "yac_epa_per_reception": 0.3982,
               "air_yards_per_target": 0.3149,
               "production_ppg": 1.083
+            }
+          }
+        }
+      },
+      "K": {
+        "early": {
+          "fitted_on": [
+            2002,
+            2006
+          ],
+          "rows": 364,
+          "with_context": {
+            "intercept": 7.2447,
+            "weights": {
+              "fg_attempts_per_game": -0.1923,
+              "long_attempt_share": -0.1797,
+              "accuracy_over_expected": -0.0909,
+              "xp_attempts_per_game": 0.2085,
+              "production_ppg": 0.5134,
+              "implied_team_total": -0.024
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2002,
+            2006
+          ],
+          "rows": 517,
+          "with_context": {
+            "intercept": 7.0406,
+            "weights": {
+              "fg_attempts_per_game": -0.2681,
+              "long_attempt_share": -0.159,
+              "accuracy_over_expected": 0.1939,
+              "xp_attempts_per_game": 0.2039,
+              "production_ppg": 0.4591,
+              "implied_team_total": -0.0021
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2002,
+            2006
+          ],
+          "rows": 1006,
+          "with_context": {
+            "intercept": 6.8178,
+            "weights": {
+              "fg_attempts_per_game": -0.1357,
+              "long_attempt_share": -0.1296,
+              "accuracy_over_expected": -0.0777,
+              "xp_attempts_per_game": 0.1302,
+              "production_ppg": 0.2476,
+              "implied_team_total": 0.4389
+            }
+          }
+        }
+      },
+      "DEF": {
+        "early": {
+          "fitted_on": [
+            2002,
+            2006
+          ],
+          "rows": 418,
+          "with_context": {
+            "intercept": 7.6631,
+            "weights": {
+              "sack_rate": -0.4945,
+              "takeaway_rate": 0.0488,
+              "epa_allowed_per_play": -0.524,
+              "points_allowed_per_game": 0.3567,
+              "defensive_td_per_game": -0.0484,
+              "production_ppg": 0.5588,
+              "opponent_implied_total": -1.9404
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2002,
+            2006
+          ],
+          "rows": 562,
+          "with_context": {
+            "intercept": 7.5479,
+            "weights": {
+              "sack_rate": -0.1904,
+              "takeaway_rate": 0.0224,
+              "epa_allowed_per_play": 0.3153,
+              "points_allowed_per_game": -0.8754,
+              "defensive_td_per_game": 0.0924,
+              "production_ppg": 0.6733,
+              "opponent_implied_total": -1.2185
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2002,
+            2006
+          ],
+          "rows": 1120,
+          "with_context": {
+            "intercept": 7.9277,
+            "weights": {
+              "sack_rate": -0.2574,
+              "takeaway_rate": -0.2933,
+              "epa_allowed_per_play": 0.8548,
+              "points_allowed_per_game": -0.6444,
+              "defensive_td_per_game": -0.1837,
+              "production_ppg": 0.1384,
+              "opponent_implied_total": -1.9913
             }
           }
         }
@@ -2768,6 +3228,121 @@
             }
           }
         }
+      },
+      "K": {
+        "early": {
+          "fitted_on": [
+            2003,
+            2007
+          ],
+          "rows": 371,
+          "with_context": {
+            "intercept": 7.3491,
+            "weights": {
+              "fg_attempts_per_game": -0.1501,
+              "long_attempt_share": -0.2154,
+              "accuracy_over_expected": 0.0647,
+              "xp_attempts_per_game": 0.1854,
+              "production_ppg": 0.4452,
+              "implied_team_total": 0.0927
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2003,
+            2007
+          ],
+          "rows": 524,
+          "with_context": {
+            "intercept": 7.088,
+            "weights": {
+              "fg_attempts_per_game": -0.4599,
+              "long_attempt_share": -0.2382,
+              "accuracy_over_expected": -0.0152,
+              "xp_attempts_per_game": 0.0051,
+              "production_ppg": 0.4761,
+              "implied_team_total": 0.0871
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2003,
+            2007
+          ],
+          "rows": 1021,
+          "with_context": {
+            "intercept": 6.9486,
+            "weights": {
+              "fg_attempts_per_game": -0.1899,
+              "long_attempt_share": -0.066,
+              "accuracy_over_expected": -0.0863,
+              "xp_attempts_per_game": 0.1076,
+              "production_ppg": 0.2879,
+              "implied_team_total": 0.3581
+            }
+          }
+        }
+      },
+      "DEF": {
+        "early": {
+          "fitted_on": [
+            2003,
+            2007
+          ],
+          "rows": 416,
+          "with_context": {
+            "intercept": 7.6437,
+            "weights": {
+              "sack_rate": -0.3343,
+              "takeaway_rate": 0.1236,
+              "epa_allowed_per_play": -0.6744,
+              "points_allowed_per_game": 0.6602,
+              "defensive_td_per_game": -0.097,
+              "production_ppg": 0.2878,
+              "opponent_implied_total": -1.94
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2003,
+            2007
+          ],
+          "rows": 560,
+          "with_context": {
+            "intercept": 7.5586,
+            "weights": {
+              "sack_rate": -0.0481,
+              "takeaway_rate": 0.1666,
+              "epa_allowed_per_play": 0.2287,
+              "points_allowed_per_game": -1.0966,
+              "defensive_td_per_game": -0.1703,
+              "production_ppg": 1.0184,
+              "opponent_implied_total": -1.4056
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2003,
+            2007
+          ],
+          "rows": 1120,
+          "with_context": {
+            "intercept": 7.8357,
+            "weights": {
+              "sack_rate": -0.3301,
+              "takeaway_rate": -0.2927,
+              "epa_allowed_per_play": 0.3206,
+              "points_allowed_per_game": -0.525,
+              "defensive_td_per_game": -0.0892,
+              "production_ppg": 0.3103,
+              "opponent_implied_total": -2.1782
+            }
+          }
+        }
       }
     },
     "2009": {
@@ -3315,6 +3890,121 @@
               "yac_epa_per_reception": -0.111,
               "air_yards_per_target": 0.4067,
               "production_ppg": 1.1125
+            }
+          }
+        }
+      },
+      "K": {
+        "early": {
+          "fitted_on": [
+            2004,
+            2008
+          ],
+          "rows": 372,
+          "with_context": {
+            "intercept": 7.5208,
+            "weights": {
+              "fg_attempts_per_game": -0.2403,
+              "long_attempt_share": -0.1798,
+              "accuracy_over_expected": -0.1349,
+              "xp_attempts_per_game": 0.2337,
+              "production_ppg": 0.3843,
+              "implied_team_total": -0.0685
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2004,
+            2008
+          ],
+          "rows": 525,
+          "with_context": {
+            "intercept": 7.2497,
+            "weights": {
+              "fg_attempts_per_game": -0.0174,
+              "long_attempt_share": -0.1315,
+              "accuracy_over_expected": -0.0584,
+              "xp_attempts_per_game": 0.1232,
+              "production_ppg": 0.0381,
+              "implied_team_total": 0.089
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2004,
+            2008
+          ],
+          "rows": 1036,
+          "with_context": {
+            "intercept": 7.1249,
+            "weights": {
+              "fg_attempts_per_game": -0.1633,
+              "long_attempt_share": -0.0868,
+              "accuracy_over_expected": -0.0152,
+              "xp_attempts_per_game": 0.2091,
+              "production_ppg": -0.025,
+              "implied_team_total": 0.4147
+            }
+          }
+        }
+      },
+      "DEF": {
+        "early": {
+          "fitted_on": [
+            2004,
+            2008
+          ],
+          "rows": 414,
+          "with_context": {
+            "intercept": 7.7478,
+            "weights": {
+              "sack_rate": -0.5352,
+              "takeaway_rate": -0.1892,
+              "epa_allowed_per_play": -0.758,
+              "points_allowed_per_game": 0.128,
+              "defensive_td_per_game": -0.2766,
+              "production_ppg": 0.9652,
+              "opponent_implied_total": -1.9065
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2004,
+            2008
+          ],
+          "rows": 560,
+          "with_context": {
+            "intercept": 7.4656,
+            "weights": {
+              "sack_rate": 0.1209,
+              "takeaway_rate": 0.0476,
+              "epa_allowed_per_play": 0.0961,
+              "points_allowed_per_game": -0.8606,
+              "defensive_td_per_game": -0.3688,
+              "production_ppg": 1,
+              "opponent_implied_total": -1.3743
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2004,
+            2008
+          ],
+          "rows": 1120,
+          "with_context": {
+            "intercept": 7.6286,
+            "weights": {
+              "sack_rate": -0.1549,
+              "takeaway_rate": -0.3871,
+              "epa_allowed_per_play": 0.2136,
+              "points_allowed_per_game": -0.3474,
+              "defensive_td_per_game": -0.2913,
+              "production_ppg": 0.3797,
+              "opponent_implied_total": -2.186
             }
           }
         }
@@ -3868,6 +4558,121 @@
             }
           }
         }
+      },
+      "K": {
+        "early": {
+          "fitted_on": [
+            2005,
+            2009
+          ],
+          "rows": 369,
+          "with_context": {
+            "intercept": 7.5289,
+            "weights": {
+              "fg_attempts_per_game": -0.1633,
+              "long_attempt_share": -0.1888,
+              "accuracy_over_expected": -0.2397,
+              "xp_attempts_per_game": 0.045,
+              "production_ppg": 0.3556,
+              "implied_team_total": -0.0316
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2005,
+            2009
+          ],
+          "rows": 515,
+          "with_context": {
+            "intercept": 7.2476,
+            "weights": {
+              "fg_attempts_per_game": -0.1811,
+              "long_attempt_share": -0.2421,
+              "accuracy_over_expected": -0.1756,
+              "xp_attempts_per_game": 0.094,
+              "production_ppg": 0.1181,
+              "implied_team_total": 0.0584
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2005,
+            2009
+          ],
+          "rows": 1020,
+          "with_context": {
+            "intercept": 7.2522,
+            "weights": {
+              "fg_attempts_per_game": -0.0959,
+              "long_attempt_share": -0.0042,
+              "accuracy_over_expected": -0.0181,
+              "xp_attempts_per_game": 0.1272,
+              "production_ppg": 0.017,
+              "implied_team_total": 0.3231
+            }
+          }
+        }
+      },
+      "DEF": {
+        "early": {
+          "fitted_on": [
+            2005,
+            2009
+          ],
+          "rows": 414,
+          "with_context": {
+            "intercept": 7.9239,
+            "weights": {
+              "sack_rate": -0.2976,
+              "takeaway_rate": -0.4693,
+              "epa_allowed_per_play": -0.4059,
+              "points_allowed_per_game": -0.2489,
+              "defensive_td_per_game": -0.4453,
+              "production_ppg": 1.0046,
+              "opponent_implied_total": -2.1089
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2005,
+            2009
+          ],
+          "rows": 556,
+          "with_context": {
+            "intercept": 7.5004,
+            "weights": {
+              "sack_rate": 0.218,
+              "takeaway_rate": -0.1185,
+              "epa_allowed_per_play": 0.173,
+              "points_allowed_per_game": -0.8546,
+              "defensive_td_per_game": -0.4633,
+              "production_ppg": 0.6048,
+              "opponent_implied_total": -1.6511
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2005,
+            2009
+          ],
+          "rows": 1120,
+          "with_context": {
+            "intercept": 7.4196,
+            "weights": {
+              "sack_rate": -0.2593,
+              "takeaway_rate": -0.4584,
+              "epa_allowed_per_play": 0.6237,
+              "points_allowed_per_game": -0.5722,
+              "defensive_td_per_game": -0.3064,
+              "production_ppg": 0.4716,
+              "opponent_implied_total": -1.9961
+            }
+          }
+        }
       }
     },
     "2011": {
@@ -4415,6 +5220,121 @@
               "yac_epa_per_reception": -0.079,
               "air_yards_per_target": -0.1578,
               "production_ppg": 1.4241
+            }
+          }
+        }
+      },
+      "K": {
+        "early": {
+          "fitted_on": [
+            2006,
+            2010
+          ],
+          "rows": 377,
+          "with_context": {
+            "intercept": 7.586,
+            "weights": {
+              "fg_attempts_per_game": -0.1272,
+              "long_attempt_share": 0.0203,
+              "accuracy_over_expected": -0.2787,
+              "xp_attempts_per_game": 0.1787,
+              "production_ppg": 0.2845,
+              "implied_team_total": -0.0496
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2006,
+            2010
+          ],
+          "rows": 518,
+          "with_context": {
+            "intercept": 7.3218,
+            "weights": {
+              "fg_attempts_per_game": -0.0272,
+              "long_attempt_share": -0.5011,
+              "accuracy_over_expected": -0.2953,
+              "xp_attempts_per_game": 0.0091,
+              "production_ppg": -0.0843,
+              "implied_team_total": 0.1038
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2006,
+            2010
+          ],
+          "rows": 1006,
+          "with_context": {
+            "intercept": 7.3028,
+            "weights": {
+              "fg_attempts_per_game": -0.0699,
+              "long_attempt_share": 0.0746,
+              "accuracy_over_expected": -0.0663,
+              "xp_attempts_per_game": 0.2929,
+              "production_ppg": -0.0101,
+              "implied_team_total": 0.2295
+            }
+          }
+        }
+      },
+      "DEF": {
+        "early": {
+          "fitted_on": [
+            2006,
+            2010
+          ],
+          "rows": 414,
+          "with_context": {
+            "intercept": 7.8764,
+            "weights": {
+              "sack_rate": -0.1682,
+              "takeaway_rate": -0.3597,
+              "epa_allowed_per_play": 0.5382,
+              "points_allowed_per_game": -0.8191,
+              "defensive_td_per_game": -0.4783,
+              "production_ppg": 0.4769,
+              "opponent_implied_total": -1.7299
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2006,
+            2010
+          ],
+          "rows": 552,
+          "with_context": {
+            "intercept": 7.3532,
+            "weights": {
+              "sack_rate": 0.3112,
+              "takeaway_rate": -0.5043,
+              "epa_allowed_per_play": -0.0769,
+              "points_allowed_per_game": -0.3234,
+              "defensive_td_per_game": 0.0806,
+              "production_ppg": 0.4401,
+              "opponent_implied_total": -1.3439
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2006,
+            2010
+          ],
+          "rows": 1120,
+          "with_context": {
+            "intercept": 7.383,
+            "weights": {
+              "sack_rate": -0.1295,
+              "takeaway_rate": -0.142,
+              "epa_allowed_per_play": 0.5724,
+              "points_allowed_per_game": -0.6023,
+              "defensive_td_per_game": -0.2068,
+              "production_ppg": 0.2697,
+              "opponent_implied_total": -1.9627
             }
           }
         }
@@ -4968,6 +5888,121 @@
             }
           }
         }
+      },
+      "K": {
+        "early": {
+          "fitted_on": [
+            2007,
+            2011
+          ],
+          "rows": 393,
+          "with_context": {
+            "intercept": 7.7059,
+            "weights": {
+              "fg_attempts_per_game": -0.1292,
+              "long_attempt_share": 0.0458,
+              "accuracy_over_expected": -0.1866,
+              "xp_attempts_per_game": 0.268,
+              "production_ppg": 0.1909,
+              "implied_team_total": 0.1058
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2007,
+            2011
+          ],
+          "rows": 520,
+          "with_context": {
+            "intercept": 7.5063,
+            "weights": {
+              "fg_attempts_per_game": 0.1986,
+              "long_attempt_share": -0.501,
+              "accuracy_over_expected": -0.0232,
+              "xp_attempts_per_game": 0.281,
+              "production_ppg": -0.3648,
+              "implied_team_total": 0.1914
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2007,
+            2011
+          ],
+          "rows": 1009,
+          "with_context": {
+            "intercept": 7.3921,
+            "weights": {
+              "fg_attempts_per_game": 0.0974,
+              "long_attempt_share": -0.0288,
+              "accuracy_over_expected": 0.0523,
+              "xp_attempts_per_game": 0.3209,
+              "production_ppg": -0.0812,
+              "implied_team_total": 0.1804
+            }
+          }
+        }
+      },
+      "DEF": {
+        "early": {
+          "fitted_on": [
+            2007,
+            2011
+          ],
+          "rows": 416,
+          "with_context": {
+            "intercept": 7.6659,
+            "weights": {
+              "sack_rate": -0.1982,
+              "takeaway_rate": 0.0886,
+              "epa_allowed_per_play": 0.2636,
+              "points_allowed_per_game": -0.9166,
+              "defensive_td_per_game": -0.5801,
+              "production_ppg": 0.8305,
+              "opponent_implied_total": -1.3028
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2007,
+            2011
+          ],
+          "rows": 550,
+          "with_context": {
+            "intercept": 7.3948,
+            "weights": {
+              "sack_rate": 0.1876,
+              "takeaway_rate": -0.2614,
+              "epa_allowed_per_play": -0.2081,
+              "points_allowed_per_game": -0.2343,
+              "defensive_td_per_game": 0.2465,
+              "production_ppg": 0.1791,
+              "opponent_implied_total": -1.5665
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2007,
+            2011
+          ],
+          "rows": 1116,
+          "with_context": {
+            "intercept": 7.239,
+            "weights": {
+              "sack_rate": -0.2969,
+              "takeaway_rate": -0.2247,
+              "epa_allowed_per_play": 0.3436,
+              "points_allowed_per_game": -0.3995,
+              "defensive_td_per_game": -0.2561,
+              "production_ppg": 0.2445,
+              "opponent_implied_total": -2.1342
+            }
+          }
+        }
       }
     },
     "2013": {
@@ -5515,6 +6550,121 @@
               "yac_epa_per_reception": 0.1796,
               "air_yards_per_target": 0.0967,
               "production_ppg": 2.194
+            }
+          }
+        }
+      },
+      "K": {
+        "early": {
+          "fitted_on": [
+            2008,
+            2012
+          ],
+          "rows": 396,
+          "with_context": {
+            "intercept": 7.8227,
+            "weights": {
+              "fg_attempts_per_game": 0.1944,
+              "long_attempt_share": 0.2096,
+              "accuracy_over_expected": -0.0331,
+              "xp_attempts_per_game": 0.1253,
+              "production_ppg": 0.1288,
+              "implied_team_total": 0.0457
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2008,
+            2012
+          ],
+          "rows": 518,
+          "with_context": {
+            "intercept": 7.6775,
+            "weights": {
+              "fg_attempts_per_game": 0.3175,
+              "long_attempt_share": -0.4235,
+              "accuracy_over_expected": 0.1427,
+              "xp_attempts_per_game": 0.3768,
+              "production_ppg": -0.3444,
+              "implied_team_total": 0.0498
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2008,
+            2012
+          ],
+          "rows": 998,
+          "with_context": {
+            "intercept": 7.4705,
+            "weights": {
+              "fg_attempts_per_game": 0.0207,
+              "long_attempt_share": -0.0632,
+              "accuracy_over_expected": 0.0618,
+              "xp_attempts_per_game": 0.3528,
+              "production_ppg": -0.0916,
+              "implied_team_total": 0.2577
+            }
+          }
+        }
+      },
+      "DEF": {
+        "early": {
+          "fitted_on": [
+            2008,
+            2012
+          ],
+          "rows": 420,
+          "with_context": {
+            "intercept": 7.6427,
+            "weights": {
+              "sack_rate": -0.1466,
+              "takeaway_rate": 0.2612,
+              "epa_allowed_per_play": 0.2925,
+              "points_allowed_per_game": -1.1369,
+              "defensive_td_per_game": -0.5225,
+              "production_ppg": 0.9922,
+              "opponent_implied_total": -1.4868
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2008,
+            2012
+          ],
+          "rows": 550,
+          "with_context": {
+            "intercept": 7.1932,
+            "weights": {
+              "sack_rate": 0.1794,
+              "takeaway_rate": -0.4297,
+              "epa_allowed_per_play": -0.0983,
+              "points_allowed_per_game": 0.0947,
+              "defensive_td_per_game": 0.6237,
+              "production_ppg": -0.1795,
+              "opponent_implied_total": -1.5707
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2008,
+            2012
+          ],
+          "rows": 1112,
+          "with_context": {
+            "intercept": 7.2483,
+            "weights": {
+              "sack_rate": -0.2578,
+              "takeaway_rate": -0.2405,
+              "epa_allowed_per_play": 0.2621,
+              "points_allowed_per_game": -0.405,
+              "defensive_td_per_game": -0.3111,
+              "production_ppg": 0.4951,
+              "opponent_implied_total": -2.1116
             }
           }
         }
@@ -6068,6 +7218,121 @@
             }
           }
         }
+      },
+      "K": {
+        "early": {
+          "fitted_on": [
+            2009,
+            2013
+          ],
+          "rows": 403,
+          "with_context": {
+            "intercept": 7.9586,
+            "weights": {
+              "fg_attempts_per_game": 0.2771,
+              "long_attempt_share": 0.1164,
+              "accuracy_over_expected": 0.1729,
+              "xp_attempts_per_game": 0.3339,
+              "production_ppg": 0.109,
+              "implied_team_total": 0.0547
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2009,
+            2013
+          ],
+          "rows": 521,
+          "with_context": {
+            "intercept": 7.7274,
+            "weights": {
+              "fg_attempts_per_game": -0.0827,
+              "long_attempt_share": -0.4018,
+              "accuracy_over_expected": 0.2059,
+              "xp_attempts_per_game": 0.2421,
+              "production_ppg": 0.0134,
+              "implied_team_total": -0.0421
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2009,
+            2013
+          ],
+          "rows": 999,
+          "with_context": {
+            "intercept": 7.6455,
+            "weights": {
+              "fg_attempts_per_game": -0.017,
+              "long_attempt_share": 0.0611,
+              "accuracy_over_expected": 0.0851,
+              "xp_attempts_per_game": 0.2792,
+              "production_ppg": 0.1317,
+              "implied_team_total": 0.1142
+            }
+          }
+        }
+      },
+      "DEF": {
+        "early": {
+          "fitted_on": [
+            2009,
+            2013
+          ],
+          "rows": 426,
+          "with_context": {
+            "intercept": 7.7518,
+            "weights": {
+              "sack_rate": 0.2307,
+              "takeaway_rate": 0.602,
+              "epa_allowed_per_play": 0.0086,
+              "points_allowed_per_game": -0.5599,
+              "defensive_td_per_game": -0.3271,
+              "production_ppg": 0.6022,
+              "opponent_implied_total": -1.6846
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2009,
+            2013
+          ],
+          "rows": 548,
+          "with_context": {
+            "intercept": 7.2975,
+            "weights": {
+              "sack_rate": -0.0176,
+              "takeaway_rate": -0.2297,
+              "epa_allowed_per_play": -0.1149,
+              "points_allowed_per_game": -0.0541,
+              "defensive_td_per_game": 0.382,
+              "production_ppg": 0.0189,
+              "opponent_implied_total": -1.6539
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2009,
+            2013
+          ],
+          "rows": 1106,
+          "with_context": {
+            "intercept": 7.2314,
+            "weights": {
+              "sack_rate": -0.3561,
+              "takeaway_rate": 0.0076,
+              "epa_allowed_per_play": 0.195,
+              "points_allowed_per_game": -0.174,
+              "defensive_td_per_game": -0.2533,
+              "production_ppg": 0.2456,
+              "opponent_implied_total": -2.0389
+            }
+          }
+        }
       }
     },
     "2015": {
@@ -6615,6 +7880,121 @@
               "yac_epa_per_reception": 0.179,
               "air_yards_per_target": 0.1982,
               "production_ppg": 1.9952
+            }
+          }
+        }
+      },
+      "K": {
+        "early": {
+          "fitted_on": [
+            2010,
+            2014
+          ],
+          "rows": 411,
+          "with_context": {
+            "intercept": 8.2078,
+            "weights": {
+              "fg_attempts_per_game": 0.0368,
+              "long_attempt_share": -0.0688,
+              "accuracy_over_expected": 0.0716,
+              "xp_attempts_per_game": 0.3929,
+              "production_ppg": 0.1641,
+              "implied_team_total": 0.1147
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2010,
+            2014
+          ],
+          "rows": 532,
+          "with_context": {
+            "intercept": 7.7953,
+            "weights": {
+              "fg_attempts_per_game": 0.0352,
+              "long_attempt_share": -0.351,
+              "accuracy_over_expected": 0.1856,
+              "xp_attempts_per_game": 0.3501,
+              "production_ppg": 0.0555,
+              "implied_team_total": -0.0081
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2010,
+            2014
+          ],
+          "rows": 1015,
+          "with_context": {
+            "intercept": 7.7287,
+            "weights": {
+              "fg_attempts_per_game": -0.0332,
+              "long_attempt_share": 0.0996,
+              "accuracy_over_expected": 0.0313,
+              "xp_attempts_per_game": 0.2873,
+              "production_ppg": 0.1605,
+              "implied_team_total": 0.0913
+            }
+          }
+        }
+      },
+      "DEF": {
+        "early": {
+          "fitted_on": [
+            2010,
+            2014
+          ],
+          "rows": 428,
+          "with_context": {
+            "intercept": 7.3975,
+            "weights": {
+              "sack_rate": 0.0359,
+              "takeaway_rate": 0.464,
+              "epa_allowed_per_play": 0.2614,
+              "points_allowed_per_game": -0.3404,
+              "defensive_td_per_game": 0.0655,
+              "production_ppg": 0.3734,
+              "opponent_implied_total": -1.4137
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2010,
+            2014
+          ],
+          "rows": 552,
+          "with_context": {
+            "intercept": 7.1535,
+            "weights": {
+              "sack_rate": -0.0483,
+              "takeaway_rate": -0.2919,
+              "epa_allowed_per_play": 0.0426,
+              "points_allowed_per_game": -0.124,
+              "defensive_td_per_game": 0.4502,
+              "production_ppg": 0.1868,
+              "opponent_implied_total": -1.5352
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2010,
+            2014
+          ],
+          "rows": 1100,
+          "with_context": {
+            "intercept": 7.3266,
+            "weights": {
+              "sack_rate": -0.2379,
+              "takeaway_rate": 0.2946,
+              "epa_allowed_per_play": 0.0074,
+              "points_allowed_per_game": -0.2387,
+              "defensive_td_per_game": -0.2708,
+              "production_ppg": 0.0805,
+              "opponent_implied_total": -2.0159
             }
           }
         }
@@ -7168,6 +8548,121 @@
             }
           }
         }
+      },
+      "K": {
+        "early": {
+          "fitted_on": [
+            2011,
+            2015
+          ],
+          "rows": 408,
+          "with_context": {
+            "intercept": 8.3279,
+            "weights": {
+              "fg_attempts_per_game": -0.1647,
+              "long_attempt_share": -0.1923,
+              "accuracy_over_expected": 0.0319,
+              "xp_attempts_per_game": 0.1745,
+              "production_ppg": 0.4417,
+              "implied_team_total": 0.2886
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2011,
+            2015
+          ],
+          "rows": 530,
+          "with_context": {
+            "intercept": 7.9734,
+            "weights": {
+              "fg_attempts_per_game": 0.1426,
+              "long_attempt_share": -0.2572,
+              "accuracy_over_expected": 0.2483,
+              "xp_attempts_per_game": 0.3953,
+              "production_ppg": 0.1066,
+              "implied_team_total": -0.061
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2011,
+            2015
+          ],
+          "rows": 1032,
+          "with_context": {
+            "intercept": 7.6834,
+            "weights": {
+              "fg_attempts_per_game": -0.0615,
+              "long_attempt_share": 0.0706,
+              "accuracy_over_expected": 0.017,
+              "xp_attempts_per_game": 0.1952,
+              "production_ppg": 0.2561,
+              "implied_team_total": 0.138
+            }
+          }
+        }
+      },
+      "DEF": {
+        "early": {
+          "fitted_on": [
+            2011,
+            2015
+          ],
+          "rows": 430,
+          "with_context": {
+            "intercept": 7.3147,
+            "weights": {
+              "sack_rate": -0.0524,
+              "takeaway_rate": 0.2049,
+              "epa_allowed_per_play": -0.3107,
+              "points_allowed_per_game": 0.4764,
+              "defensive_td_per_game": 0.0783,
+              "production_ppg": 0.5659,
+              "opponent_implied_total": -1.2497
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2011,
+            2015
+          ],
+          "rows": 554,
+          "with_context": {
+            "intercept": 7.1251,
+            "weights": {
+              "sack_rate": -0.1534,
+              "takeaway_rate": -0.0574,
+              "epa_allowed_per_play": 0.3573,
+              "points_allowed_per_game": -0.5323,
+              "defensive_td_per_game": 0.1986,
+              "production_ppg": 0.1024,
+              "opponent_implied_total": -1.7042
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2011,
+            2015
+          ],
+          "rows": 1096,
+          "with_context": {
+            "intercept": 7.1971,
+            "weights": {
+              "sack_rate": -0.1918,
+              "takeaway_rate": 0.2741,
+              "epa_allowed_per_play": 0.0043,
+              "points_allowed_per_game": -0.328,
+              "defensive_td_per_game": -0.6143,
+              "production_ppg": 0.4502,
+              "opponent_implied_total": -1.8792
+            }
+          }
+        }
       }
     },
     "2017": {
@@ -7715,6 +9210,121 @@
               "yac_epa_per_reception": 0.0456,
               "air_yards_per_target": 0.0584,
               "production_ppg": 1.4553
+            }
+          }
+        }
+      },
+      "K": {
+        "early": {
+          "fitted_on": [
+            2012,
+            2016
+          ],
+          "rows": 412,
+          "with_context": {
+            "intercept": 8.2308,
+            "weights": {
+              "fg_attempts_per_game": -0.0874,
+              "long_attempt_share": -0.038,
+              "accuracy_over_expected": 0.2901,
+              "xp_attempts_per_game": 0.2469,
+              "production_ppg": 0.2077,
+              "implied_team_total": 0.3829
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2012,
+            2016
+          ],
+          "rows": 527,
+          "with_context": {
+            "intercept": 7.9894,
+            "weights": {
+              "fg_attempts_per_game": 0.1816,
+              "long_attempt_share": -0.1022,
+              "accuracy_over_expected": 0.2243,
+              "xp_attempts_per_game": 0.4142,
+              "production_ppg": 0.0873,
+              "implied_team_total": -0.0811
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2012,
+            2016
+          ],
+          "rows": 1022,
+          "with_context": {
+            "intercept": 7.6582,
+            "weights": {
+              "fg_attempts_per_game": -0.0461,
+              "long_attempt_share": 0.2618,
+              "accuracy_over_expected": 0.0877,
+              "xp_attempts_per_game": 0.2397,
+              "production_ppg": 0.2582,
+              "implied_team_total": 0.1714
+            }
+          }
+        }
+      },
+      "DEF": {
+        "early": {
+          "fitted_on": [
+            2012,
+            2016
+          ],
+          "rows": 434,
+          "with_context": {
+            "intercept": 7.0877,
+            "weights": {
+              "sack_rate": 0.0782,
+              "takeaway_rate": -0.0115,
+              "epa_allowed_per_play": -0.5477,
+              "points_allowed_per_game": 0.6498,
+              "defensive_td_per_game": 0.3301,
+              "production_ppg": 0.3838,
+              "opponent_implied_total": -1.2773
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2012,
+            2016
+          ],
+          "rows": 552,
+          "with_context": {
+            "intercept": 6.687,
+            "weights": {
+              "sack_rate": -0.0589,
+              "takeaway_rate": 0.0854,
+              "epa_allowed_per_play": 0.2283,
+              "points_allowed_per_game": -0.4498,
+              "defensive_td_per_game": 0.2352,
+              "production_ppg": 0.147,
+              "opponent_implied_total": -1.5676
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2012,
+            2016
+          ],
+          "rows": 1094,
+          "with_context": {
+            "intercept": 7.0172,
+            "weights": {
+              "sack_rate": -0.1417,
+              "takeaway_rate": 0.2998,
+              "epa_allowed_per_play": 0.0992,
+              "points_allowed_per_game": -0.401,
+              "defensive_td_per_game": -0.5761,
+              "production_ppg": 0.5139,
+              "opponent_implied_total": -1.8259
             }
           }
         }
@@ -8268,6 +9878,121 @@
             }
           }
         }
+      },
+      "K": {
+        "early": {
+          "fitted_on": [
+            2013,
+            2017
+          ],
+          "rows": 410,
+          "with_context": {
+            "intercept": 8.2807,
+            "weights": {
+              "fg_attempts_per_game": 0.1269,
+              "long_attempt_share": -0.1208,
+              "accuracy_over_expected": 0.3949,
+              "xp_attempts_per_game": 0.4015,
+              "production_ppg": -0.1163,
+              "implied_team_total": 0.214
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2013,
+            2017
+          ],
+          "rows": 511,
+          "with_context": {
+            "intercept": 8.0654,
+            "weights": {
+              "fg_attempts_per_game": 0.1908,
+              "long_attempt_share": 0.0296,
+              "accuracy_over_expected": -0.0906,
+              "xp_attempts_per_game": 0.3248,
+              "production_ppg": 0.5272,
+              "implied_team_total": -0.0022
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2013,
+            2017
+          ],
+          "rows": 1011,
+          "with_context": {
+            "intercept": 7.6521,
+            "weights": {
+              "fg_attempts_per_game": 0.1894,
+              "long_attempt_share": 0.1693,
+              "accuracy_over_expected": 0.2411,
+              "xp_attempts_per_game": 0.0797,
+              "production_ppg": 0.3014,
+              "implied_team_total": 0.0153
+            }
+          }
+        }
+      },
+      "DEF": {
+        "early": {
+          "fitted_on": [
+            2013,
+            2017
+          ],
+          "rows": 436,
+          "with_context": {
+            "intercept": 6.9898,
+            "weights": {
+              "sack_rate": 0.3095,
+              "takeaway_rate": 0.0729,
+              "epa_allowed_per_play": -0.6324,
+              "points_allowed_per_game": 0.8472,
+              "defensive_td_per_game": 0.5346,
+              "production_ppg": 0.0739,
+              "opponent_implied_total": -1.0098
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2013,
+            2017
+          ],
+          "rows": 552,
+          "with_context": {
+            "intercept": 6.6386,
+            "weights": {
+              "sack_rate": 0.0666,
+              "takeaway_rate": 0.0884,
+              "epa_allowed_per_play": 0.2268,
+              "points_allowed_per_game": -0.6801,
+              "defensive_td_per_game": 0.111,
+              "production_ppg": 0.22,
+              "opponent_implied_total": -1.6374
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2013,
+            2017
+          ],
+          "rows": 1094,
+          "with_context": {
+            "intercept": 6.894,
+            "weights": {
+              "sack_rate": -0.1722,
+              "takeaway_rate": 0.3559,
+              "epa_allowed_per_play": 0.2815,
+              "points_allowed_per_game": -0.2062,
+              "defensive_td_per_game": -0.5393,
+              "production_ppg": 0.2298,
+              "opponent_implied_total": -1.7108
+            }
+          }
+        }
       }
     },
     "2019": {
@@ -8815,6 +10540,121 @@
               "yac_epa_per_reception": 0.1964,
               "air_yards_per_target": 0.0302,
               "production_ppg": 1.3166
+            }
+          }
+        }
+      },
+      "K": {
+        "early": {
+          "fitted_on": [
+            2014,
+            2018
+          ],
+          "rows": 404,
+          "with_context": {
+            "intercept": 8.3151,
+            "weights": {
+              "fg_attempts_per_game": -0.0339,
+              "long_attempt_share": -0.0794,
+              "accuracy_over_expected": 0.4821,
+              "xp_attempts_per_game": 0.0967,
+              "production_ppg": -0.0725,
+              "implied_team_total": 0.2943
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2014,
+            2018
+          ],
+          "rows": 505,
+          "with_context": {
+            "intercept": 7.884,
+            "weights": {
+              "fg_attempts_per_game": 0.3587,
+              "long_attempt_share": -0.0393,
+              "accuracy_over_expected": -0.0643,
+              "xp_attempts_per_game": 0.442,
+              "production_ppg": 0.4529,
+              "implied_team_total": 0.2435
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2014,
+            2018
+          ],
+          "rows": 993,
+          "with_context": {
+            "intercept": 7.4608,
+            "weights": {
+              "fg_attempts_per_game": 0.3747,
+              "long_attempt_share": 0.1439,
+              "accuracy_over_expected": 0.1013,
+              "xp_attempts_per_game": 0.0501,
+              "production_ppg": 0.265,
+              "implied_team_total": 0.1563
+            }
+          }
+        }
+      },
+      "DEF": {
+        "early": {
+          "fitted_on": [
+            2014,
+            2018
+          ],
+          "rows": 438,
+          "with_context": {
+            "intercept": 6.6397,
+            "weights": {
+              "sack_rate": 0.2226,
+              "takeaway_rate": -0.1187,
+              "epa_allowed_per_play": -0.2361,
+              "points_allowed_per_game": 0.3884,
+              "defensive_td_per_game": 0.4129,
+              "production_ppg": 0.0796,
+              "opponent_implied_total": -0.9769
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2014,
+            2018
+          ],
+          "rows": 552,
+          "with_context": {
+            "intercept": 6.3547,
+            "weights": {
+              "sack_rate": 0.1075,
+              "takeaway_rate": 0.3677,
+              "epa_allowed_per_play": -0.1,
+              "points_allowed_per_game": -0.5532,
+              "defensive_td_per_game": 0.3697,
+              "production_ppg": -0.0854,
+              "opponent_implied_total": -2.0298
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2014,
+            2018
+          ],
+          "rows": 1092,
+          "with_context": {
+            "intercept": 6.833,
+            "weights": {
+              "sack_rate": -0.104,
+              "takeaway_rate": 0.2629,
+              "epa_allowed_per_play": 0.0475,
+              "points_allowed_per_game": -0.0107,
+              "defensive_td_per_game": -0.2131,
+              "production_ppg": 0.1182,
+              "opponent_implied_total": -1.6563
             }
           }
         }
@@ -9368,6 +11208,121 @@
             }
           }
         }
+      },
+      "K": {
+        "early": {
+          "fitted_on": [
+            2015,
+            2019
+          ],
+          "rows": 401,
+          "with_context": {
+            "intercept": 8.2154,
+            "weights": {
+              "fg_attempts_per_game": -0.0139,
+              "long_attempt_share": 0.1261,
+              "accuracy_over_expected": 0.3421,
+              "xp_attempts_per_game": 0.0432,
+              "production_ppg": 0.1616,
+              "implied_team_total": 0.2247
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2015,
+            2019
+          ],
+          "rows": 494,
+          "with_context": {
+            "intercept": 7.9022,
+            "weights": {
+              "fg_attempts_per_game": 0.3489,
+              "long_attempt_share": -0.0032,
+              "accuracy_over_expected": -0.0421,
+              "xp_attempts_per_game": 0.455,
+              "production_ppg": 0.405,
+              "implied_team_total": 0.3293
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2015,
+            2019
+          ],
+          "rows": 981,
+          "with_context": {
+            "intercept": 7.3916,
+            "weights": {
+              "fg_attempts_per_game": 0.4045,
+              "long_attempt_share": 0.0114,
+              "accuracy_over_expected": 0.1654,
+              "xp_attempts_per_game": 0.012,
+              "production_ppg": 0.2027,
+              "implied_team_total": 0.3012
+            }
+          }
+        }
+      },
+      "DEF": {
+        "early": {
+          "fitted_on": [
+            2015,
+            2019
+          ],
+          "rows": 440,
+          "with_context": {
+            "intercept": 6.8328,
+            "weights": {
+              "sack_rate": 0.4213,
+              "takeaway_rate": 0.1522,
+              "epa_allowed_per_play": -0.2744,
+              "points_allowed_per_game": 0.5132,
+              "defensive_td_per_game": 0.1398,
+              "production_ppg": 0.0334,
+              "opponent_implied_total": -1.0456
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2015,
+            2019
+          ],
+          "rows": 552,
+          "with_context": {
+            "intercept": 6.3595,
+            "weights": {
+              "sack_rate": 0.2222,
+              "takeaway_rate": 0.6895,
+              "epa_allowed_per_play": -0.4091,
+              "points_allowed_per_game": -0.2838,
+              "defensive_td_per_game": 0.4516,
+              "production_ppg": -0.42,
+              "opponent_implied_total": -2.0162
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2015,
+            2019
+          ],
+          "rows": 1090,
+          "with_context": {
+            "intercept": 6.5879,
+            "weights": {
+              "sack_rate": -0.2756,
+              "takeaway_rate": -0.0687,
+              "epa_allowed_per_play": 0.1881,
+              "points_allowed_per_game": 0.0205,
+              "defensive_td_per_game": -0.0886,
+              "production_ppg": 0.2632,
+              "opponent_implied_total": -1.6158
+            }
+          }
+        }
       }
     },
     "2021": {
@@ -9915,6 +11870,121 @@
               "yac_epa_per_reception": 0.1404,
               "air_yards_per_target": 0.0594,
               "production_ppg": 1.21
+            }
+          }
+        }
+      },
+      "K": {
+        "early": {
+          "fitted_on": [
+            2016,
+            2020
+          ],
+          "rows": 405,
+          "with_context": {
+            "intercept": 8.2535,
+            "weights": {
+              "fg_attempts_per_game": 0.2343,
+              "long_attempt_share": 0.0386,
+              "accuracy_over_expected": 0.6325,
+              "xp_attempts_per_game": -0.0601,
+              "production_ppg": -0.1095,
+              "implied_team_total": 0.0367
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2016,
+            2020
+          ],
+          "rows": 498,
+          "with_context": {
+            "intercept": 7.8447,
+            "weights": {
+              "fg_attempts_per_game": 0.1743,
+              "long_attempt_share": -0.0261,
+              "accuracy_over_expected": 0.0032,
+              "xp_attempts_per_game": 0.4721,
+              "production_ppg": 0.3944,
+              "implied_team_total": 0.5016
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2016,
+            2020
+          ],
+          "rows": 957,
+          "with_context": {
+            "intercept": 7.429,
+            "weights": {
+              "fg_attempts_per_game": 0.5272,
+              "long_attempt_share": 0.02,
+              "accuracy_over_expected": 0.2249,
+              "xp_attempts_per_game": 0.0197,
+              "production_ppg": 0.1469,
+              "implied_team_total": 0.0181
+            }
+          }
+        }
+      },
+      "DEF": {
+        "early": {
+          "fitted_on": [
+            2016,
+            2020
+          ],
+          "rows": 440,
+          "with_context": {
+            "intercept": 6.4677,
+            "weights": {
+              "sack_rate": 0.5481,
+              "takeaway_rate": 0.0676,
+              "epa_allowed_per_play": -0.148,
+              "points_allowed_per_game": 0.2941,
+              "defensive_td_per_game": 0.0449,
+              "production_ppg": 0.0563,
+              "opponent_implied_total": -1.2448
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2016,
+            2020
+          ],
+          "rows": 554,
+          "with_context": {
+            "intercept": 6.1027,
+            "weights": {
+              "sack_rate": 0.2507,
+              "takeaway_rate": 0.3676,
+              "epa_allowed_per_play": -0.3326,
+              "points_allowed_per_game": -0.2492,
+              "defensive_td_per_game": 0.2449,
+              "production_ppg": 0.0111,
+              "opponent_implied_total": -1.9349
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2016,
+            2020
+          ],
+          "rows": 1088,
+          "with_context": {
+            "intercept": 6.3922,
+            "weights": {
+              "sack_rate": -0.1813,
+              "takeaway_rate": -0.0984,
+              "epa_allowed_per_play": 0.1219,
+              "points_allowed_per_game": 0.0478,
+              "defensive_td_per_game": 0.0929,
+              "production_ppg": 0.1523,
+              "opponent_implied_total": -1.6772
             }
           }
         }
@@ -10468,6 +12538,121 @@
             }
           }
         }
+      },
+      "K": {
+        "early": {
+          "fitted_on": [
+            2017,
+            2021
+          ],
+          "rows": 398,
+          "with_context": {
+            "intercept": 8.2186,
+            "weights": {
+              "fg_attempts_per_game": 0.113,
+              "long_attempt_share": 0.0439,
+              "accuracy_over_expected": 0.277,
+              "xp_attempts_per_game": -0.073,
+              "production_ppg": 0.1458,
+              "implied_team_total": -0.0879
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2017,
+            2021
+          ],
+          "rows": 481,
+          "with_context": {
+            "intercept": 7.7816,
+            "weights": {
+              "fg_attempts_per_game": 0.2058,
+              "long_attempt_share": -0.0766,
+              "accuracy_over_expected": 0.0914,
+              "xp_attempts_per_game": 0.2754,
+              "production_ppg": 0.3108,
+              "implied_team_total": 0.5002
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2017,
+            2021
+          ],
+          "rows": 929,
+          "with_context": {
+            "intercept": 7.5431,
+            "weights": {
+              "fg_attempts_per_game": 0.408,
+              "long_attempt_share": -0.0922,
+              "accuracy_over_expected": 0.1377,
+              "xp_attempts_per_game": 0.015,
+              "production_ppg": 0.2365,
+              "implied_team_total": 0.1466
+            }
+          }
+        }
+      },
+      "DEF": {
+        "early": {
+          "fitted_on": [
+            2017,
+            2021
+          ],
+          "rows": 444,
+          "with_context": {
+            "intercept": 6.3175,
+            "weights": {
+              "sack_rate": 0.5324,
+              "takeaway_rate": 0.31,
+              "epa_allowed_per_play": 0.1692,
+              "points_allowed_per_game": 0.0969,
+              "defensive_td_per_game": 0.0072,
+              "production_ppg": -0.2359,
+              "opponent_implied_total": -1.3889
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2017,
+            2021
+          ],
+          "rows": 556,
+          "with_context": {
+            "intercept": 6.2264,
+            "weights": {
+              "sack_rate": 0.1249,
+              "takeaway_rate": 0.2969,
+              "epa_allowed_per_play": -0.4355,
+              "points_allowed_per_game": -0.1586,
+              "defensive_td_per_game": 0.3231,
+              "production_ppg": 0.1642,
+              "opponent_implied_total": -1.85
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2017,
+            2021
+          ],
+          "rows": 1082,
+          "with_context": {
+            "intercept": 6.4073,
+            "weights": {
+              "sack_rate": -0.1217,
+              "takeaway_rate": -0.026,
+              "epa_allowed_per_play": -0.0383,
+              "points_allowed_per_game": 0.2103,
+              "defensive_td_per_game": 0.2584,
+              "production_ppg": 0.0287,
+              "opponent_implied_total": -1.6511
+            }
+          }
+        }
       }
     },
     "2023": {
@@ -11015,6 +13200,121 @@
               "yac_epa_per_reception": 0.1223,
               "air_yards_per_target": 0.1107,
               "production_ppg": 1.519
+            }
+          }
+        }
+      },
+      "K": {
+        "early": {
+          "fitted_on": [
+            2018,
+            2022
+          ],
+          "rows": 398,
+          "with_context": {
+            "intercept": 8.2461,
+            "weights": {
+              "fg_attempts_per_game": -0.0684,
+              "long_attempt_share": 0.2277,
+              "accuracy_over_expected": 0.3091,
+              "xp_attempts_per_game": -0.0656,
+              "production_ppg": 0.1092,
+              "implied_team_total": 0.1124
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2018,
+            2022
+          ],
+          "rows": 488,
+          "with_context": {
+            "intercept": 7.5961,
+            "weights": {
+              "fg_attempts_per_game": -0.0375,
+              "long_attempt_share": -0.2226,
+              "accuracy_over_expected": 0.1691,
+              "xp_attempts_per_game": 0.2711,
+              "production_ppg": 0.1304,
+              "implied_team_total": 0.4579
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2018,
+            2022
+          ],
+          "rows": 937,
+          "with_context": {
+            "intercept": 7.6879,
+            "weights": {
+              "fg_attempts_per_game": 0.156,
+              "long_attempt_share": 0.0362,
+              "accuracy_over_expected": -0.0359,
+              "xp_attempts_per_game": 0.1271,
+              "production_ppg": 0.2374,
+              "implied_team_total": 0.1796
+            }
+          }
+        }
+      },
+      "DEF": {
+        "early": {
+          "fitted_on": [
+            2018,
+            2022
+          ],
+          "rows": 448,
+          "with_context": {
+            "intercept": 6.053,
+            "weights": {
+              "sack_rate": 0.6046,
+              "takeaway_rate": 0.3616,
+              "epa_allowed_per_play": 0.2062,
+              "points_allowed_per_game": 0.0626,
+              "defensive_td_per_game": 0.0454,
+              "production_ppg": -0.4982,
+              "opponent_implied_total": -1.4737
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2018,
+            2022
+          ],
+          "rows": 558,
+          "with_context": {
+            "intercept": 6.1339,
+            "weights": {
+              "sack_rate": 0.1271,
+              "takeaway_rate": 0.2813,
+              "epa_allowed_per_play": -0.3033,
+              "points_allowed_per_game": 0.0023,
+              "defensive_td_per_game": 0.3565,
+              "production_ppg": -0.0881,
+              "opponent_implied_total": -1.5468
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2018,
+            2022
+          ],
+          "rows": 1072,
+          "with_context": {
+            "intercept": 6.299,
+            "weights": {
+              "sack_rate": 0.0093,
+              "takeaway_rate": -0.0466,
+              "epa_allowed_per_play": 0.0266,
+              "points_allowed_per_game": -0.0133,
+              "defensive_td_per_game": 0.2961,
+              "production_ppg": 0.0408,
+              "opponent_implied_total": -1.5305
             }
           }
         }
@@ -11568,6 +13868,121 @@
             }
           }
         }
+      },
+      "K": {
+        "early": {
+          "fitted_on": [
+            2019,
+            2023
+          ],
+          "rows": 409,
+          "with_context": {
+            "intercept": 8.0209,
+            "weights": {
+              "fg_attempts_per_game": 0.3118,
+              "long_attempt_share": 0.1471,
+              "accuracy_over_expected": 0.2664,
+              "xp_attempts_per_game": -0.0193,
+              "production_ppg": -0.1603,
+              "implied_team_total": 0.0134
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2019,
+            2023
+          ],
+          "rows": 494,
+          "with_context": {
+            "intercept": 7.8396,
+            "weights": {
+              "fg_attempts_per_game": 0.0856,
+              "long_attempt_share": -0.1987,
+              "accuracy_over_expected": 0.2206,
+              "xp_attempts_per_game": 0.1891,
+              "production_ppg": -0.1425,
+              "implied_team_total": 0.4434
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2019,
+            2023
+          ],
+          "rows": 932,
+          "with_context": {
+            "intercept": 7.7559,
+            "weights": {
+              "fg_attempts_per_game": 0.0134,
+              "long_attempt_share": 0.0251,
+              "accuracy_over_expected": 0.1183,
+              "xp_attempts_per_game": 0.2929,
+              "production_ppg": 0.1476,
+              "implied_team_total": 0.0633
+            }
+          }
+        }
+      },
+      "DEF": {
+        "early": {
+          "fitted_on": [
+            2019,
+            2023
+          ],
+          "rows": 448,
+          "with_context": {
+            "intercept": 6.2423,
+            "weights": {
+              "sack_rate": 0.2849,
+              "takeaway_rate": 0.2285,
+              "epa_allowed_per_play": -0.2597,
+              "points_allowed_per_game": 0.2483,
+              "defensive_td_per_game": 0.0303,
+              "production_ppg": -0.0023,
+              "opponent_implied_total": -1.3457
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2019,
+            2023
+          ],
+          "rows": 562,
+          "with_context": {
+            "intercept": 6.3092,
+            "weights": {
+              "sack_rate": 0.2409,
+              "takeaway_rate": 0.0773,
+              "epa_allowed_per_play": 0.1267,
+              "points_allowed_per_game": -0.2766,
+              "defensive_td_per_game": 0.2483,
+              "production_ppg": -0.0341,
+              "opponent_implied_total": -1.2558
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2019,
+            2023
+          ],
+          "rows": 1068,
+          "with_context": {
+            "intercept": 6.316,
+            "weights": {
+              "sack_rate": -0.1334,
+              "takeaway_rate": -0.0514,
+              "epa_allowed_per_play": 0.3264,
+              "points_allowed_per_game": -0.316,
+              "defensive_td_per_game": 0.1512,
+              "production_ppg": 0.1664,
+              "opponent_implied_total": -1.5813
+            }
+          }
+        }
       }
     },
     "2025": {
@@ -12115,6 +14530,121 @@
               "yac_epa_per_reception": 0.4204,
               "air_yards_per_target": 0.3287,
               "production_ppg": 1.6273
+            }
+          }
+        }
+      },
+      "K": {
+        "early": {
+          "fitted_on": [
+            2020,
+            2024
+          ],
+          "rows": 416,
+          "with_context": {
+            "intercept": 8.1714,
+            "weights": {
+              "fg_attempts_per_game": -0.1076,
+              "long_attempt_share": 0.1134,
+              "accuracy_over_expected": 0.3399,
+              "xp_attempts_per_game": -0.1373,
+              "production_ppg": -0.0272,
+              "implied_team_total": 0.1849
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2020,
+            2024
+          ],
+          "rows": 504,
+          "with_context": {
+            "intercept": 7.837,
+            "weights": {
+              "fg_attempts_per_game": 0.12,
+              "long_attempt_share": -0.1818,
+              "accuracy_over_expected": 0.188,
+              "xp_attempts_per_game": 0.149,
+              "production_ppg": -0.1529,
+              "implied_team_total": 0.198
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2020,
+            2024
+          ],
+          "rows": 913,
+          "with_context": {
+            "intercept": 7.8896,
+            "weights": {
+              "fg_attempts_per_game": -0.0645,
+              "long_attempt_share": 0.1299,
+              "accuracy_over_expected": 0.2263,
+              "xp_attempts_per_game": 0.4084,
+              "production_ppg": 0.2706,
+              "implied_team_total": -0.2051
+            }
+          }
+        }
+      },
+      "DEF": {
+        "early": {
+          "fitted_on": [
+            2020,
+            2024
+          ],
+          "rows": 448,
+          "with_context": {
+            "intercept": 5.9381,
+            "weights": {
+              "sack_rate": 0.3091,
+              "takeaway_rate": 0.3051,
+              "epa_allowed_per_play": -0.6739,
+              "points_allowed_per_game": 0.5552,
+              "defensive_td_per_game": -0.0512,
+              "production_ppg": 0.0144,
+              "opponent_implied_total": -1.3124
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2020,
+            2024
+          ],
+          "rows": 570,
+          "with_context": {
+            "intercept": 6.1279,
+            "weights": {
+              "sack_rate": 0.1241,
+              "takeaway_rate": -0.0928,
+              "epa_allowed_per_play": -0.1472,
+              "points_allowed_per_game": -0.1859,
+              "defensive_td_per_game": 0.0135,
+              "production_ppg": 0.2613,
+              "opponent_implied_total": -1.334
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2020,
+            2024
+          ],
+          "rows": 1060,
+          "with_context": {
+            "intercept": 6.2104,
+            "weights": {
+              "sack_rate": -0.1331,
+              "takeaway_rate": -0.0589,
+              "epa_allowed_per_play": 0.223,
+              "points_allowed_per_game": -0.3443,
+              "defensive_td_per_game": 0.1159,
+              "production_ppg": 0.3047,
+              "opponent_implied_total": -1.7943
             }
           }
         }
@@ -12668,6 +15198,121 @@
             }
           }
         }
+      },
+      "K": {
+        "early": {
+          "fitted_on": [
+            2021,
+            2025
+          ],
+          "rows": 417,
+          "with_context": {
+            "intercept": 8.1566,
+            "weights": {
+              "fg_attempts_per_game": 0.047,
+              "long_attempt_share": 0.3215,
+              "accuracy_over_expected": -0.0704,
+              "xp_attempts_per_game": -0.0292,
+              "production_ppg": -0.1976,
+              "implied_team_total": 0.1836
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2021,
+            2025
+          ],
+          "rows": 499,
+          "with_context": {
+            "intercept": 7.6354,
+            "weights": {
+              "fg_attempts_per_game": -0.0246,
+              "long_attempt_share": -0.0844,
+              "accuracy_over_expected": 0.3097,
+              "xp_attempts_per_game": 0.0164,
+              "production_ppg": 0.0557,
+              "implied_team_total": -0.0625
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2021,
+            2025
+          ],
+          "rows": 909,
+          "with_context": {
+            "intercept": 8.1238,
+            "weights": {
+              "fg_attempts_per_game": 0.057,
+              "long_attempt_share": 0.1729,
+              "accuracy_over_expected": 0.2764,
+              "xp_attempts_per_game": 0.5864,
+              "production_ppg": 0.2027,
+              "implied_team_total": -0.0328
+            }
+          }
+        }
+      },
+      "DEF": {
+        "early": {
+          "fitted_on": [
+            2021,
+            2025
+          ],
+          "rows": 452,
+          "with_context": {
+            "intercept": 5.9242,
+            "weights": {
+              "sack_rate": 0.3812,
+              "takeaway_rate": 0.532,
+              "epa_allowed_per_play": -0.7393,
+              "points_allowed_per_game": 0.3334,
+              "defensive_td_per_game": -0.1062,
+              "production_ppg": 0.0375,
+              "opponent_implied_total": -1.3779
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2021,
+            2025
+          ],
+          "rows": 570,
+          "with_context": {
+            "intercept": 6.2852,
+            "weights": {
+              "sack_rate": 0.145,
+              "takeaway_rate": 0.0809,
+              "epa_allowed_per_play": 0.0328,
+              "points_allowed_per_game": -0.1559,
+              "defensive_td_per_game": 0.2234,
+              "production_ppg": -0.3328,
+              "opponent_implied_total": -1.4604
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2021,
+            2025
+          ],
+          "rows": 1056,
+          "with_context": {
+            "intercept": 6.1883,
+            "weights": {
+              "sack_rate": -0.2422,
+              "takeaway_rate": 0.0336,
+              "epa_allowed_per_play": 0.2042,
+              "points_allowed_per_game": -0.3703,
+              "defensive_td_per_game": 0.1697,
+              "production_ppg": 0.2842,
+              "opponent_implied_total": -1.7806
+            }
+          }
+        }
       }
     }
   },
@@ -13093,6 +15738,152 @@
           "corr_fitted": 0.48,
           "corr_v0": 0.406,
           "corr_ppg_to_date": 0.454
+        }
+      }
+    }
+  },
+  "kdef_evaluation": {
+    "2022": {
+      "K": {
+        "early": {
+          "n": 80,
+          "corr_sight": 0.015,
+          "corr_production": -0.018
+        },
+        "pre_deadline": {
+          "n": 97,
+          "corr_sight": -0.051,
+          "corr_production": -0.032
+        },
+        "post_deadline": {
+          "n": 198,
+          "corr_sight": -0.028,
+          "corr_production": -0.01
+        }
+      },
+      "DEF": {
+        "early": {
+          "n": 92,
+          "corr_sight": 0.193,
+          "corr_production": 0.018
+        },
+        "pre_deadline": {
+          "n": 112,
+          "corr_sight": 0.216,
+          "corr_production": 0.082
+        },
+        "post_deadline": {
+          "n": 210,
+          "corr_sight": 0.243,
+          "corr_production": 0.107
+        }
+      }
+    },
+    "2023": {
+      "K": {
+        "early": {
+          "n": 89,
+          "corr_sight": -0.028,
+          "corr_production": 0.019
+        },
+        "pre_deadline": {
+          "n": 107,
+          "corr_sight": 0.042,
+          "corr_production": -0.025
+        },
+        "post_deadline": {
+          "n": 189,
+          "corr_sight": 0.061,
+          "corr_production": 0.067
+        }
+      },
+      "DEF": {
+        "early": {
+          "n": 90,
+          "corr_sight": 0.152,
+          "corr_production": -0.002
+        },
+        "pre_deadline": {
+          "n": 114,
+          "corr_sight": 0.257,
+          "corr_production": -0.022
+        },
+        "post_deadline": {
+          "n": 212,
+          "corr_sight": 0.3,
+          "corr_production": 0.065
+        }
+      }
+    },
+    "2024": {
+      "K": {
+        "early": {
+          "n": 84,
+          "corr_sight": 0.017,
+          "corr_production": -0.041
+        },
+        "pre_deadline": {
+          "n": 106,
+          "corr_sight": -0.046,
+          "corr_production": 0.105
+        },
+        "post_deadline": {
+          "n": 171,
+          "corr_sight": 0.212,
+          "corr_production": 0.215
+        }
+      },
+      "DEF": {
+        "early": {
+          "n": 88,
+          "corr_sight": 0.433,
+          "corr_production": 0.22
+        },
+        "pre_deadline": {
+          "n": 120,
+          "corr_sight": 0.341,
+          "corr_production": 0.092
+        },
+        "post_deadline": {
+          "n": 208,
+          "corr_sight": 0.466,
+          "corr_production": 0.079
+        }
+      }
+    },
+    "2025": {
+      "K": {
+        "early": {
+          "n": 83,
+          "corr_sight": -0.131,
+          "corr_production": -0.163
+        },
+        "pre_deadline": {
+          "n": 99,
+          "corr_sight": 0.014,
+          "corr_production": 0.145
+        },
+        "post_deadline": {
+          "n": 180,
+          "corr_sight": 0.199,
+          "corr_production": 0.203
+        }
+      },
+      "DEF": {
+        "early": {
+          "n": 90,
+          "corr_sight": 0.365,
+          "corr_production": 0.117
+        },
+        "pre_deadline": {
+          "n": 112,
+          "corr_sight": 0.287,
+          "corr_production": -0.01
+        },
+        "post_deadline": {
+          "n": 214,
+          "corr_sight": 0.313,
+          "corr_production": 0.154
         }
       }
     }
