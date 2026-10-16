@@ -3,6 +3,13 @@
 const { createPlayerWeeklyOpportunityWriter } = require("./playerWeeklyOpportunityWriter");
 const { createRatQbRunner } = require("./ratQbRun");
 const { createRatSkillRunner } = require("./ratSkillRun");
+const { createSightRunner } = require("./sightRun");
+const { createSightAccuracyRunner } = require("./sightAccuracyRun");
+
+/** The Sight switch. SIGHT_ENABLED turns grading (and, in the API, serving) on; SIGHT_VERSION picks the version. */
+function sightSettings(env = process.env) {
+  return { enabled: String(env.SIGHT_ENABLED || "").toLowerCase() === "true", version: env.SIGHT_VERSION || "v1" };
+}
 
 function stageError(stage, error) {
   const code = typeof error?.code === "string" && /^[a-z0-9_]{1,64}$/.test(error.code) ? error.code : "failed";
@@ -17,7 +24,7 @@ function stageError(stage, error) {
  * so one season whose early play-by-play cannot be reconciled does not stop the load of every later season.
  * Either way, an already-committed fact is never undone.
  */
-function createDerivedStages({ pool, mode = "strict", opportunityWriter = createPlayerWeeklyOpportunityWriter({ pool }), qbRunner = createRatQbRunner({ pool }), skillRunner = null } = {}) {
+function createDerivedStages({ pool, mode = "strict", opportunityWriter = createPlayerWeeklyOpportunityWriter({ pool }), qbRunner = createRatQbRunner({ pool }), skillRunner = null, sightRunner = null, sightAccuracyRunner = null, env = process.env } = {}) {
   if (mode !== "strict" && mode !== "report") throw new TypeError("derived stage mode must be strict or report");
   async function stage(name, fn, shape) {
     try { return shape(await fn()); } catch (error) {
@@ -39,9 +46,28 @@ function createDerivedStages({ pool, mode = "strict", opportunityWriter = create
       } catch (error) {
         ratSkill = { state: "failed", code: stageError("rat_skill", error).code };
       }
-      return { opportunity, ratQb, ratSkill };
+      // Sight (weekly read, fitted weights): same rule, reported and never fatal.
+      let sight;
+      try {
+        const r = await (sightRunner || createSightRunner({ pool })).run({ season });
+        sight = { state: r.state, valueCount: r.valueCount ?? null };
+      } catch (error) {
+        sight = { state: "failed", code: stageError("sight", error).code };
+      }
+      // Sight grading runs only with the switch on, for the selected version.
+      let sightAccuracy = { state: "disabled" };
+      const settings = sightSettings(env);
+      if (settings.enabled) {
+        try {
+          const r = await (sightAccuracyRunner || createSightAccuracyRunner({ pool, version: settings.version })).run({ season });
+          sightAccuracy = { state: r.state, gradedWeeks: r.graded_weeks ?? null, version: settings.version };
+        } catch (error) {
+          sightAccuracy = { state: "failed", code: stageError("sight_accuracy", error).code };
+        }
+      }
+      return { opportunity, ratQb, ratSkill, sight, sightAccuracy };
     },
   };
 }
 
-module.exports = { createDerivedStages };
+module.exports = { createDerivedStages, sightSettings };

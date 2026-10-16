@@ -1,0 +1,72 @@
+"use strict";
+
+const assert = require("node:assert/strict");
+const test = require("node:test");
+const { computeSight, phaseOf, weightsFor } = require("../src/services/footballWarehouse/sightV1");
+const { aggregateSkillPlays } = require("../src/services/footballWarehouse/ratSkillMetric");
+
+test("phases follow the season: early, pre-deadline, post-deadline", () => {
+  assert.equal(phaseOf(2), "early");
+  assert.equal(phaseOf(7), "pre_deadline");
+  assert.equal(phaseOf(14), "post_deadline");
+});
+
+test("each season uses weights learned from the five seasons before it", () => {
+  const w = weightsFor(2026, "WR", "pre_deadline");
+  assert.deepEqual(w.fitted_on, [2021, 2025]);
+  assert.ok(w.weights.target_share > 0 && w.weights.production_ppg > 0);
+  assert.deepEqual(weightsFor(2030, "TE", "early").season <= 2030, true, "a future season falls back to the latest fit");
+});
+
+test("Sight gives an expected points total and a grade, with every input's contribution", () => {
+  const plays = [];
+  const positions = new Map();
+  const ppg = new Map();
+  for (let i = 0; i < 10; i += 1) {
+    const id = `omen:player:wr${i}`;
+    positions.set(id, { position: "WR" });
+    ppg.set(id, 5 + i * 1.5);
+    for (let g = 0; g < 6; g += 1) for (let t = 0; t < 30; t += 1) {
+      const mine = t < 4 + i;
+      plays.push({ gameId: `g${g}_${i}`, posteamId: `T${i}`, receiverId: mine ? id : `x${i}`, epa: mine ? i * 0.05 : 0,
+        passAttempt: "1", completePass: mine && t % 2 ? "1" : "0", cp: "0.6", yardsGained: 9, airYards: 7, yardline100: 40 });
+    }
+  }
+  const out = computeSight({ season: 2026, week: 6, aggregates: aggregateSkillPlays(plays, positions), positions, ppgToDate: ppg });
+  const wr9 = out.values.find((v) => v.entityId === "omen:player:wr9");
+  const wr2 = out.values.find((v) => v.entityId === "omen:player:wr2");
+  assert.ok(wr9.value > wr2.value);
+  assert.equal(wr9.components.phase, "pre_deadline");
+  assert.ok(wr9.components.grade > wr2.components.grade);
+  const sum = wr9.components.intercept + Object.values(wr9.components.contributions).reduce((s, c) => s + c.points, 0);
+  assert.ok(Math.abs(sum - wr9.value) < 0.01, "contributions add up to the number");
+});
+
+test("grading compares Sight with what happened, beside points-per-game and the provider", () => {
+  const { gradeSight } = require("../src/services/footballWarehouse/sightAccuracy");
+  const sight = [10, 12, 8, 15].map((v, i) => ({ entityId: `p${i}`, value: v, components: { position: "WR", production_ppg: 11 } }));
+  const actual = new Map([["p0", 11], ["p1", 14], ["p2", 6], ["p3", 18]]);
+  const out = gradeSight(sight, actual, new Map([["p0", 12], ["p1", 12], ["p2", 12], ["p3", 12]]));
+  assert.equal(out.summary.positions.WR.n, 4);
+  assert.ok(out.summary.positions.WR.sight.corr > 0.9);
+  assert.equal(out.summary.positions.WR.provider.n, 4);
+  assert.equal(out.values.find((v) => v.entityId === "p3").value, 3);
+});
+
+test("a player who did not play is not graded", () => {
+  const { gradeSight } = require("../src/services/footballWarehouse/sightAccuracy");
+  const out = gradeSight([{ entityId: "p0", value: 10, components: { position: "RB" } }], new Map());
+  assert.equal(out.values.length, 0);
+});
+
+test("the Sight switch: grading is off unless SIGHT_ENABLED=true, and the version is selectable", async () => {
+  const { createDerivedStages, sightSettings } = require("../src/services/footballWarehouse/derivedStages");
+  assert.deepEqual(sightSettings({}), { enabled: false, version: "v1" });
+  assert.deepEqual(sightSettings({ SIGHT_ENABLED: "true", SIGHT_VERSION: "v2" }), { enabled: true, version: "v2" });
+  const ok = { run: async () => ({ state: "succeeded", valueCount: 1 }), writeSeason: async () => ({ state: "succeeded", writtenRows: 1 }) };
+  const acc = { run: async () => ({ state: "succeeded", graded_weeks: 2 }) };
+  const off = await createDerivedStages({ opportunityWriter: ok, qbRunner: ok, skillRunner: ok, sightRunner: ok, sightAccuracyRunner: acc, env: {} }).run({ season: 2026 });
+  assert.equal(off.sightAccuracy.state, "disabled");
+  const on = await createDerivedStages({ opportunityWriter: ok, qbRunner: ok, skillRunner: ok, sightRunner: ok, sightAccuracyRunner: acc, env: { SIGHT_ENABLED: "true" } }).run({ season: 2026 });
+  assert.deepEqual(on.sightAccuracy, { state: "succeeded", gradedWeeks: 2, version: "v1" });
+});
