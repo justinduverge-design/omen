@@ -19,20 +19,14 @@ MODULE = importlib.util.module_from_spec(SPEC)
 assert SPEC and SPEC.loader
 SPEC.loader.exec_module(MODULE)
 
-RELEASE_FILES = [
-    "Dockerfile.warehouse-ingest",
-    "infra/warehouse/build-release.sh",
-    "infra/warehouse/docker-compose.yml",
-    "infra/warehouse/verify-release.sh",
-    "infra/warehouse/provision-credentials.sh",
-    "infra/warehouse/provision-login-roles.sh",
-    "infra/warehouse/verify-production-readonly.sh",
-    "warehouse/migrations/0001_football_warehouse.sql",
-    "warehouse/migrations/0002_record_migration.sh",
-    "warehouse/migrations/0003_warehouse_access_policy.sql",
-    "warehouse/migrations/0004_apply_access_policy.sh",
-    "warehouse/verify/production_readonly.sql",
-]
+def _builder_paths():
+    # The files the release builder ships, read from the builder itself so this fixture cannot drift.
+    text = (REPO / "infra/warehouse/build-release.sh").read_text()
+    block = text.split("paths=(", 1)[1].split("\n)", 1)[0]
+    return [line.strip() for line in block.splitlines() if line.strip()]
+
+
+RELEASE_FILES = _builder_paths()
 WORKER_IMAGE = f"ghcr.io/justinduverge-design/omen-warehouse-ingest@sha256:{'a' * 64}"
 
 
