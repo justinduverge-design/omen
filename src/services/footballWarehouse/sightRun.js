@@ -4,7 +4,7 @@ const { createMetricRunWriter } = require("./metricRunWriter");
 const { aggregateSkillPlays } = require("./ratSkillMetric");
 const { computeSight, weightsFor, phaseOf } = require("./sightV1");
 const { weeklyLines, computeKdefSight } = require("./kdefMetric");
-const { buildContext } = require("./sightContext");
+const { buildContext, buildRoleContext } = require("./sightContext");
 
 // Every Sight version is computed every day, so versions are graded side by side; SIGHT_VERSION only
 // chooses which one the API serves.
@@ -59,6 +59,7 @@ const KDEF_PLAYS_SQL = `
          p.source_row->>'qb_dropback' AS qb_dropback
     FROM football.nfl_plays p JOIN football.nfl_games g ON g.season = p.season AND g.game_id = p.game_id
    WHERE p.season = $1 AND g.game_type = 'REG' AND p.week <= $2`;
+const ROSTER_STATUS_SQL = "SELECT player_id, roster_status FROM football.nfl_weekly_rosters WHERE season = $1 AND week = $2";
 const KICKERS_SQL = "SELECT player_id, gsis_id FROM football.football_players WHERE football_position = 'K' AND gsis_id IS NOT NULL";
 
 const kdefPlay = (r) => ({ week: r.week, gameId: r.game_id, posteamId: r.posteam_id, defteamId: r.defteam_id, epa: r.epa, playType: r.play_type,
@@ -123,19 +124,32 @@ function createSightRunner({ pool, transactionTimeouts } = {}) {
           const plays = await client.query({ name: "sight-plays-v1", text: PLAYS_SQL, values: [season, through] });
           const ppg = await client.query({ name: "sight-ppg-v1", text: PPG_SQL, values: [season, through] });
           let context = null;
+          let role = null;
+          const allPlays = plays.rows.map(play);
           if (version === "v2") {
             const stats = await client.query({ name: "sight-stats-v1", text: STATS_SQL, values: [season, through] });
             const games = await client.query({ name: "sight-games-v1", text: GAMES_SQL, values: [season] });
             const built = buildContext(stats.rows, games.rows);
             context = (id, position) => built.contextFor(id, position, through);
+            const statuses = await client.query({ name: "sight-roster-status-v1", text: ROSTER_STATUS_SQL, values: [season, through + 1] });
+            const teamWeeks = new Map();
+            for (const r of stats.rows) { if (!r.team_id) continue; if (!teamWeeks.has(r.player_id)) teamWeeks.set(r.player_id, []); teamWeeks.get(r.player_id).push([r.week, r.team_id]); }
+            role = buildRoleContext({
+              seasonAgg: aggregateSkillPlays(allPlays, positions),
+              recentAgg: aggregateSkillPlays(plays.rows.filter((r) => r.week >= through - 2).map(play), positions),
+              positions,
+              statusNext: new Map(statuses.rows.map((r) => [r.player_id, r.roster_status])),
+              teamOf: (id) => (teamWeeks.get(id) || []).sort((a, b) => b[0] - a[0])[0]?.[1] || null,
+            });
           }
           const skill = computeSight({
             season,
             week: through,
-            aggregates: aggregateSkillPlays(plays.rows.map(play), positions),
+            aggregates: aggregateSkillPlays(allPlays, positions),
             positions,
             ppgToDate: new Map(ppg.rows.map((r) => [r.player_id, Number(r.ppg)])),
             context,
+            role,
             version,
           });
           if (version !== "v2") return skill;

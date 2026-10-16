@@ -26,14 +26,18 @@ function phaseOf(week) {
 }
 
 // v1 = eye test + production; v2 adds game context (Vegas implied team total, opponent allowed to position).
-const VARIANTS = Object.freeze({ v1: "with_production", v2: "with_context" });
+// v2 = v1 + game context + role changes (usage trend, vacated opportunity).
+const VARIANTS = Object.freeze({ v1: "with_production", v2: "with_role" });
 
 /** Weights for (season, position, phase): that season's era fit, else the latest earlier one. */
 function weightsFor(season, position, phase, version = "v1") {
-  const variant = VARIANTS[version] || VARIANTS.v1;
+  // A position without a layer (K and DEF have no role layer) uses its richest variant available.
+  const variants = version === "v2" ? ["with_role", "with_context"] : [VARIANTS[version] || VARIANTS.v1];
   const seasons = Object.keys(WEIGHTS.weights).map(Number).filter((s) => s <= season).sort((a, b) => b - a);
   for (const s of seasons) {
-    const w = WEIGHTS.weights[s]?.[position]?.[phase]?.[variant];
+    const entry = WEIGHTS.weights[s]?.[position]?.[phase];
+    const variant = variants.find((v) => entry?.[v]);
+    const w = variant ? entry[variant] : null;
     if (w) return { ...w, season: s, fitted_on: WEIGHTS.weights[s][position][phase].fitted_on };
   }
   return null;
@@ -51,7 +55,7 @@ function qualifies(position, agg, week) {
  * @param {Map} positions omen player id -> { position }
  * @param {Map} ppgToDate omen player id -> points per game through week (games played only)
  */
-function computeSight({ season, week, aggregates, positions, ppgToDate, context = null, version = VERSION }) {
+function computeSight({ season, week, aggregates, positions, ppgToDate, context = null, role = null, version = VERSION }) {
   const phase = phaseOf(week);
   const values = [];
   const summary = { phase, version, positions: {} };
@@ -82,6 +86,14 @@ function computeSight({ season, week, aggregates, positions, ppgToDate, context 
       };
       features.implied_team_total = z("implied");
       features.opponent_allowed_to_position = z("oppAllowed");
+      const roles = ids.map((id) => role?.(id, position) || null);
+      const zr = (key) => {
+        const vals = roles.map((c) => c?.[key]).filter((v) => v != null);
+        const m0 = vals.length ? mean(vals) : 0; const s0 = vals.length ? sd(vals) : 0;
+        return roles.map((c) => (c?.[key] == null || s0 <= 1e-9 ? 0 : (c[key] - m0) / s0));
+      };
+      features.usage_trend = zr("usageTrend");
+      features.vacated_share = zr("vacated");
     }
 
     const points = ids.map((_, i) => w.intercept + Object.entries(w.weights).reduce((s, [k, b]) => s + b * (features[k]?.[i] ?? 0), 0));

@@ -83,3 +83,15 @@ test("Sight v2 adds game context; a missing line is neutral, never a penalty", (
   assert.equal(c.oppAllowed, 30, "KC allowed 30 to WRs so far");
   assert.equal(ctx.contextFor("q", "WR", 5), null, "no game next week: no context");
 });
+
+test("role changes: usage trend and the share vacated by teammates who are out next week", () => {
+  const { buildRoleContext } = require("../src/services/footballWarehouse/sightContext");
+  const agg = (targets, carries) => ({ targets, carries, dropbacks: 0, teamPassAttempts: 100, teamRushAttempts: 100, teamDropbacks: 0 });
+  const season = new Map([["rb1", agg(10, 60)], ["rb2", agg(5, 20)]]);
+  const recent = new Map([["rb1", agg(2, 10)], ["rb2", agg(3, 15)]]);
+  const role = buildRoleContext({ seasonAgg: season, recentAgg: recent, positions: new Map(), statusNext: new Map([["rb1", "RES"]]), teamOf: () => "T" });
+  const backup = role("rb2", "RB");
+  assert.equal(backup.vacated, 0.35, "the starter on injured reserve leaves 70 of 200 team touches");
+  assert.ok(backup.usageTrend < 0.01);
+  assert.equal(role("rb1", "RB").vacated, 0);
+});
