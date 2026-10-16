@@ -10,13 +10,14 @@ select (
   and (
     -- Versions 1 and 2 are required; 3 (weekly projections) and 4 (warehouse map) are optional until applied,
     -- and the ledger stays contiguous (count equals the highest version).
-    select count(*) between 2 and 5
+    select count(*) between 2 and 6
       and count(*) = max(version)
       and count(*) filter (where version in (1, 2)) = 2
       and bool_and((version, name, checksum) in (
         (1, '0001_football_warehouse', '27fb1e8dd4a5167ffc27660f165f326e7c9a6e3b4aaf2e04ec16ec4e55448f1c'),
         (2, '0003_warehouse_access_policy', '0b0577edd8995fad967409a37012390d77447cf55595fd4a310270b56f7a169d'),
         (3, '0005_weekly_projections', 'e689d5878bbe51f3bbe6aa0188b725e33bde7f9da8497bd8b002a2307505917d'),
+        (6, '0011_team_index', '4eba21134b978a806190e8c3ac74218547a0f870d107487d49345b92099a5359'),
         (5, '0009_player_index', '114d2619650b3b5795b84a507107e2a77c7bbacfa680c0261193fb12f6548cc6'),
         (4, '0007_warehouse_map', 'c078344a7fb3f6f884f584617915b0b3c3c053cf5b8463d668859013e7d4a5cb')
       ))

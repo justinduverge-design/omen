@@ -202,6 +202,16 @@
       "purpose": "Receipt for provider ids indexed from outside nflverse, so every index row says where it came from.",
       "gaps": [],
       "migration": "0009"
+    },
+    {
+      "name": "team_ids",
+      "layer": "identity",
+      "grain": "one row per (provider, provider code, team or defense)",
+      "source": "provider team numbering and codes, verified against live leagues (migration 0011)",
+      "refresh": "on migration",
+      "purpose": "The team index: provider team and defense codes (Sleeper PHI, ESPN -16012, Yahoo 100033) point at one Omen team.",
+      "gaps": [],
+      "migration": "0011"
     }
   ]
 }
