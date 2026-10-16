@@ -65,6 +65,12 @@ function harness(entries, query, extra = {}) {
 }
 
 const entry = (decision) => ({ decision, outcome: null, action: null });
+// A start/sit call: start `start`, sit `sit`. Graded against each other, never a fixed number.
+const startSit = (id, start, sit, over = {}) => legacyDecision(id, start, {
+  call_type: "start_sit",
+  recommendation: { primary_player: { id: start, name: "Starter" }, comparison_player: { id: sit, name: "Benched" } },
+  ...over,
+});
 const CROSSWALK = { "sleeper:111": "omen:player:a", "sleeper:222": "omen:player:b" };
 const LINES = {
   "omen:player:a": { ppr: 22.4, receptions: 6 },
@@ -72,7 +78,7 @@ const LINES = {
 };
 
 test("a graded win from the warehouse is an estimate, never verified", async () => {
-  const { saved, dependencies } = harness([entry(legacyDecision("d1", "sleeper:111"))], fakeQuery({ crosswalk: CROSSWALK, lines: LINES }));
+  const { saved, dependencies } = harness([entry(startSit("d1", "sleeper:111", "sleeper:222"))], fakeQuery({ crosswalk: CROSSWALK, lines: LINES }));
   const fetchScores = async () => { throw new Error("GitHub CSV must not be used"); };
   const tally = await cron.scoreLedgerDecisions({}, { now: TUESDAY, fetchScores, dependencies });
 
@@ -80,11 +86,11 @@ test("a graded win from the warehouse is an estimate, never verified", async () 
   assert.equal(saved[0].outcome.state, "resolved");
   assert.equal(saved[0].outcome.result, "win");
   assert.equal(saved[0].outcome.provenance, "legacy_estimate");
-  assert.match(saved[0].outcome.summary, /22\.4/);
+  assert.match(saved[0].outcome.summary, /Started Starter: 22\.4; sat Benched: 3\.2 \(PPR estimate\)\. The call gained 19\.2\./);
 });
 
 test("a graded loss from the warehouse", async () => {
-  const { saved, dependencies } = harness([entry(legacyDecision("d2", "sleeper:222"))], fakeQuery({ crosswalk: CROSSWALK, lines: LINES }));
+  const { saved, dependencies } = harness([entry(startSit("d2", "sleeper:222", "sleeper:111"))], fakeQuery({ crosswalk: CROSSWALK, lines: LINES }));
   await cron.scoreLedgerDecisions({}, { now: TUESDAY, fetchScores: async () => ({}), dependencies });
   assert.equal(saved[0].outcome.state, "resolved");
   assert.equal(saved[0].outcome.result, "loss");
@@ -92,21 +98,33 @@ test("a graded loss from the warehouse", async () => {
 });
 
 test("Half PPR and Standard totals are derived from the PPR line and receptions", async () => {
-  const half = cron.gradeDecisionFromWarehouse(
-    { decision: legacyDecision("d", "sleeper:111", { scoring_format: "half_ppr" }), action: null },
-    { kind: "points", ppr: 20, receptions: 6 },
-  );
-  assert.match(half.summary, /17\.0 fantasy points \(Half PPR\)/);
-  const std = cron.gradeDecisionFromWarehouse(
-    { decision: legacyDecision("d", "sleeper:111", { scoring_format: "standard" }), action: null },
-    { kind: "points", ppr: 20, receptions: 6 },
-  );
-  assert.match(std.summary, /14\.0 fantasy points \(Standard\)/);
+  const found = { kind: "points", ppr: 20, receptions: 6, comparison: { kind: "points", ppr: 10, receptions: 2 } };
+  const half = cron.gradeDecisionFromWarehouse({ decision: startSit("d", "sleeper:111", "sleeper:222", { scoring_format: "half_ppr" }), action: null }, found);
+  assert.match(half.summary, /17\.0; sat Benched: 9\.0 \(Half PPR estimate\)/);
+  const std = cron.gradeDecisionFromWarehouse({ decision: startSit("d", "sleeper:111", "sleeper:222", { scoring_format: "standard" }), action: null }, found);
+  assert.match(std.summary, /14\.0; sat Benched: 8\.0 \(Standard estimate\)/);
   const unknown = cron.gradeDecisionFromWarehouse(
-    { decision: legacyDecision("d", "sleeper:111", { scoring_format: "standard" }), action: null },
-    { kind: "points", ppr: 20, receptions: null },
+    { decision: startSit("d", "sleeper:111", "sleeper:222", { scoring_format: "standard" }), action: null },
+    { ...found, receptions: null },
   );
   assert.equal(unknown.state, "data_incomplete");
+});
+
+test("a call is never graded against a fixed number: no alternative means not graded", () => {
+  const graded = cron.gradeDecisionFromWarehouse(
+    { decision: legacyDecision("d", "sleeper:111"), action: null },
+    { kind: "points", ppr: 30, receptions: 5 },
+  );
+  assert.equal(graded.state, "data_incomplete");
+});
+
+test("an inactive player (resolved, no stat line) scored zero and is graded, not skipped", () => {
+  const graded = cron.gradeDecisionFromWarehouse(
+    { decision: startSit("d", "sleeper:111", "sleeper:222"), action: null },
+    { kind: "no_line", comparison: { kind: "points", ppr: 8, receptions: 2 } },
+  );
+  assert.equal(graded.state, "resolved");
+  assert.equal(graded.result, "loss");
 });
 
 test("an unresolved provider id is data_incomplete, never a guess by name", async () => {
@@ -177,8 +195,8 @@ test("supabase mode never opens the warehouse", async () => {
 
 test("the dry-run preview computes outcomes for a week and writes nothing", async () => {
   const entries = [
-    entry(legacyDecision("p1", "sleeper:111")),
-    entry(legacyDecision("p2", "sleeper:222")),
+    entry(startSit("p1", "sleeper:111", "sleeper:222")),
+    entry(startSit("p2", "sleeper:222", "sleeper:111")),
     entry(legacyDecision("p3", "sleeper:999")),
     { decision: legacyDecision("p4", "sleeper:111"), outcome: null, action: { followed: false } },
     entry(legacyDecision("p5", "sleeper:111", { week: 3 })), // other week: excluded
