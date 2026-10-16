@@ -521,32 +521,66 @@ function gradeDecisionFromWarehouse({ decision, action }, found) {
       summary: "The recommended player could not be matched to the football warehouse by provider id.",
     };
   }
-  if (found.kind === "no_line") {
-    return {
-      state: "data_incomplete",
-      provenance: "legacy_estimate",
-      summary: "No public stat line matched the recommended player.",
-    };
-  }
+  // A resolved player with no stat line did not play: he scored 0, which is a real outcome for the call.
 
   const label = LEGACY_SCORING_LABELS[decision.scoring_format] || decision.scoring_format || "PPR";
-  const ppr = found.ppr;
-  const receptions = found.receptions;
-  // nflverse PPR = standard + receptions, so Standard and Half PPR follow exactly from the same line.
-  if (label !== "PPR" && !Number.isFinite(receptions)) {
+  return gradeAgainstAlternative(decision, found, label, target);
+}
+
+// What each call type compares: the player Omen picked against the one it passed over.
+const COMPARISON_WORDS = Object.freeze({
+  start_sit: ["Started", "sat"],
+  waiver_pickup: ["Added", "dropped"],
+  trade_suggestion: ["Received", "gave"],
+});
+
+/** Points for one warehouse line in the call's format; a resolved player with no line played 0. */
+function formatPoints(line, label) {
+  if (!line || line.kind === "unresolved") return null;
+  if (line.kind === "no_line") return 0;
+  const { ppr, receptions } = line;
+  if (label === "PPR") return ppr;
+  if (!Number.isFinite(receptions)) return null;
+  return label === "Half PPR" ? ppr - receptions / 2 : ppr - receptions;
+}
+
+/**
+ * A call is graded against its own alternative, never against a fixed number: did the player Omen
+ * picked outscore the one it passed over that week? Points are derived from public stat lines in the
+ * call's format, so the provenance is an estimate, not the league's exact scoring.
+ */
+function gradeAgainstAlternative(decision, found, label, target) {
+  const words = COMPARISON_WORDS[decision.call_type];
+  const comparisonName = decision?.recommendation?.comparison_player?.name || "the alternative";
+  if (!words || !found.comparison) {
     return {
       state: "data_incomplete",
       provenance: "legacy_estimate",
-      summary: `The ${label} total cannot be derived because the stat line has no reception count.`,
+      summary: "This call names no alternative player, so there is nothing to grade it against.",
     };
   }
-  const stats = {
-    name: target,
-    rec_ppr: ppr,
-    rec_std: Number.isFinite(receptions) ? ppr - receptions : undefined,
-    rec_half: Number.isFinite(receptions) ? ppr - receptions / 2 : undefined,
+  const picked = formatPoints(found, label);
+  const passed = formatPoints(found.comparison, label);
+  if (picked == null || passed == null) {
+    return {
+      state: "data_incomplete",
+      provenance: "legacy_estimate",
+      summary: picked == null
+        ? `${target} could not be matched to a public stat line.`
+        : `${comparisonName} could not be matched to a public stat line.`,
+    };
+  }
+  const margin = Math.round((picked - passed) * 10) / 10;
+  const result = margin >= 0 ? "win" : "loss";
+  return {
+    state: "resolved",
+    result,
+    provenance: "legacy_estimate",
+    reconciliation_state: null,
+    effectiveness: Math.max(0, Math.min(100, Math.round(50 + margin * 4))),
+    summary: `${words[0]} ${target}: ${picked.toFixed(1)}; ${words[1]} ${comparisonName}: ${passed.toFixed(1)} (${label} estimate). `
+      + (margin >= 0 ? `The call gained ${margin.toFixed(1)}.` : `The call cost ${Math.abs(margin).toFixed(1)}.`),
   };
-  return gradeMatched(decision, stats, target);
 }
 
 async function openWarehouseOutcomeRepository({ env, dependencies, Pool } = {}) {
@@ -823,6 +857,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  gradeAgainstAlternative,
   archiveNotExecutedMoves,
   confidenceFlags,
   fetchNFLScores,
