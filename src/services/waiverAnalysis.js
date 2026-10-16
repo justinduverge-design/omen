@@ -62,6 +62,46 @@ function positionsOf(player) {
   return eligible.length ? eligible : [player?.position].filter(Boolean);
 }
 
+// Real playing positions. Yahoo (and ESPN) list slot names in a player's eligible positions too
+// (BN, IR, W/R/T...). Matching on those made every bench player "eligible" for every starter's slot,
+// so a TE could be offered for an injured RB's slot and "RB depth" counted the whole bench.
+const REAL_POSITIONS = new Set(["QB", "RB", "WR", "TE", "K", "DEF"]);
+const POSITION_ALIASES = { DST: "DEF", "D/ST": "DEF", D: "DEF", PK: "K" };
+const FLEX_SLOT_POSITIONS = {
+  FLEX: ["RB", "WR", "TE"], "W/R/T": ["RB", "WR", "TE"], WRT: ["RB", "WR", "TE"],
+  "W/R": ["RB", "WR"], "W/T": ["WR", "TE"], REC_FLEX: ["WR", "TE"],
+  SUPER_FLEX: ["QB", "RB", "WR", "TE"], "Q/W/R/T": ["QB", "RB", "WR", "TE"], OP: ["QB", "RB", "WR", "TE"],
+  UTIL: ["QB", "RB", "WR", "TE"],
+};
+
+function realPositionOf(value) {
+  const token = String(value || "").trim().toUpperCase();
+  const position = POSITION_ALIASES[token] || token;
+  return REAL_POSITIONS.has(position) ? position : null;
+}
+
+function realPositions(player) {
+  const found = new Set();
+  for (const value of [player?.position, ...positionsOf(player)]) {
+    const position = realPositionOf(value);
+    if (position) found.add(position);
+  }
+  return [...found];
+}
+
+/** What a starter's SLOT accepts: the flex set for a flex slot, else its own position. */
+function slotPositions(starter) {
+  const slot = String(starter?.selected_position || "").trim().toUpperCase();
+  if (FLEX_SLOT_POSITIONS[slot]) return FLEX_SLOT_POSITIONS[slot];
+  const own = realPositionOf(slot);
+  return own ? [own] : realPositions(starter);
+}
+
+/** A player on a bye contributes nothing this week by schedule, not by quality. */
+function isBye(player) {
+  return player?.projection_basis === "bye_week" || String(player?.status || "").trim().toUpperCase() === "BYE";
+}
+
 function isOut(player) {
   return OUT_STATUSES.has(String(player?.status || "").trim().toUpperCase());
 }
@@ -80,8 +120,8 @@ function nameOf(player) {
  * regardless of projection, because they will not play.
  */
 function displacedStarter(candidate, starters) {
-  const eligible = new Set(positionsOf(candidate));
-  const matches = starters.filter((starter) => positionsOf(starter).some((pos) => eligible.has(pos)));
+  const eligible = new Set(realPositions(candidate));
+  const matches = starters.filter((starter) => slotPositions(starter).some((pos) => eligible.has(pos)));
   if (!matches.length) return null;
 
   return matches.reduce((weakest, starter) => {
@@ -120,11 +160,26 @@ function rankCandidates(pool, starters) {
  * an unprojected bench player is not evidence of low cost, so it is never
  * offered as one.
  */
-function chooseDrop(bench, addedPositions) {
-  const droppable = bench
-    .filter((player) => !isOut(player))
+function chooseDrop(bench, addedPositions, { starters = null } = {}) {
+  const all = Array.isArray(bench) ? bench : [];
+  // Players who can actually play this week at each position, across the whole roster. A player on a
+  // bye or out for the week is rostered but is not depth for this week's lineup.
+  const rostered = [...(Array.isArray(starters) ? starters : []), ...all];
+  const available = (player) => !isOut(player) && !isBye(player);
+  const requiredAt = (position) => (Array.isArray(starters)
+    ? starters.filter((starter) => slotPositions(starter).length === 1 && slotPositions(starter)[0] === position).length
+    : 0);
+  const healthyAt = (position) => rostered.filter((player) => available(player) && realPositions(player).includes(position)).length;
+
+  const droppable = all
+    // A bye week is not a reason to drop someone: his projection is 0 by schedule, not by value.
+    .filter((player) => !isOut(player) && !isBye(player))
     .map((player) => ({ player, points: projection(player) }))
-    .filter((entry) => entry.points != null);
+    // 0.0 is a schedule or availability signal (bye, inactive), not evidence of low value; only a
+    // positive projection can say a player is the cheapest to lose.
+    .filter((entry) => entry.points != null && entry.points > 0)
+    // Never drop into a hole: if the lineup needs N at this position, keep at least N healthy ones.
+    .filter(({ player }) => realPositions(player).every((position) => healthyAt(position) - 1 >= requiredAt(position)));
 
   if (!droppable.length) return null;
 
@@ -132,10 +187,10 @@ function chooseDrop(bench, addedPositions) {
     a.points - b.points || String(a.player.player_key).localeCompare(String(b.player.player_key)));
   const weakest = sorted[0];
 
-  // Depth at the dropped player's position, so the cost statement is specific
-  // rather than a generic "you lose depth".
-  const positions = positionsOf(weakest.player);
-  const samePosition = bench.filter((player) => positionsOf(player).some((pos) => positions.includes(pos)));
+  // Depth at the dropped player's real position (never the bench as a whole), so the cost statement is
+  // specific rather than a generic "you lose depth".
+  const positions = realPositions(weakest.player);
+  const samePosition = rostered.filter((player) => available(player) && realPositions(player).some((pos) => positions.includes(pos)));
 
   return {
     player: weakest.player,
@@ -177,7 +232,7 @@ function costFor(drop, best) {
   return {
     removes,
     accepted_because: [
-      `${nameOf(drop.player)} projects ${round2(drop.projected_points)} points, the lowest on your bench.`,
+      `${nameOf(drop.player)} projects ${round2(drop.projected_points)} points, the lowest on your bench among players who can play this week.`,
       `${nameOf(best.player)} addresses a more immediate roster need.`,
     ],
   };
@@ -326,7 +381,7 @@ function buildWaiverAnalysis({
   }
 
   const best = ranked[0];
-  const drop = chooseDrop(bench, positionsOf(best.player));
+  const drop = chooseDrop(bench, realPositions(best.player), { starters });
   const alternatives = alternativesFrom(ranked, scoringFormat);
 
   return envelope({

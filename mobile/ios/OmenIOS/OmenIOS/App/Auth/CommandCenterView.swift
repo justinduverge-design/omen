@@ -43,6 +43,8 @@ struct CommandCenterView: View {
     @State private var selectedTab: CommandCenterTab = .command
     @StateObject private var leagueViewModel: LeagueViewModel
     @StateObject private var tradeViewModel: TradeViewModel
+    /// League's "Trade targets" section, read from the same `/api/trade/find` scan Trade uses.
+    @StateObject private var leagueTradeTargetsViewModel: LeagueTradeTargetsViewModel
 
     init(
         userID: String,
@@ -58,7 +60,8 @@ struct CommandCenterView: View {
         connectRepository: ConnectRepository,
         leagueDirectoryRepository: LeagueDirectoryRepository,
         tradeRepository: TradeRepository,
-        playerSearchRepository: PlayerSearchRepository
+        playerSearchRepository: PlayerSearchRepository,
+        tradeFindRepository: TradeFindRepository
     ) {
         self.connectRepository = connectRepository
         self.userID = userID
@@ -84,6 +87,10 @@ struct CommandCenterView: View {
         ))
         _leagueViewModel = StateObject(wrappedValue: LeagueViewModel(
             repository: leagueRepository,
+            sessionManager: sessionManager
+        ))
+        _leagueTradeTargetsViewModel = StateObject(wrappedValue: LeagueTradeTargetsViewModel(
+            repository: tradeFindRepository,
             sessionManager: sessionManager
         ))
         _leagueSwitcherViewModel = StateObject(wrappedValue: LeagueSwitcherViewModel(
@@ -460,6 +467,7 @@ struct CommandCenterView: View {
                     wire: commandCenterViewModel.waiverAnalysis.map {
                         OmenScoutWireState.from(analysis: $0, weekLabel: leagueViewModel.wireWeekLabel)
                     },
+                    tradeTargets: leagueTradeTargetsViewModel.section,
                     waiverSummary: commandCenterViewModel.waiverAnalysis?.scoutSummary
                         ?? OmenLeagueScreen.waiverUnread
                 )
@@ -608,6 +616,16 @@ struct CommandCenterView: View {
             leagueId: overview.leagueId,
             viewerTeamId: directoryTeamID ?? overview.matchup.you?.teamId
         )
+        // The League tab's trade targets come from the same scan, for the same league and team.
+        if userID != SessionManager.demoUserID,
+           let leagueId = overview.leagueId,
+           let teamId = directoryTeamID ?? overview.matchup.you?.teamId, !teamId.isEmpty {
+            Task {
+                await leagueTradeTargetsViewModel.load(
+                    platform: overview.platform, leagueId: leagueId, teamId: teamId, week: overview.week
+                )
+            }
+        }
     }
 }
 
