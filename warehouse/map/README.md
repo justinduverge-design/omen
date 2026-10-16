@@ -33,3 +33,4 @@ The warehouse's routing table. One entry per table. Edit this file, then run `no
 | [player_weekly_projections](player_weekly_projections.md) | provider | one row per (source, season, week, player): the current projection |
 | [player_weekly_projection_versions](player_weekly_projection_versions.md) | provider | one row per change to a projection |
 | [warehouse_map](warehouse_map.md) | ledger | one row per warehouse table |
+| [player_index_runs](player_index_runs.md) | ledger | one row per player-index load from a non-nflverse source |

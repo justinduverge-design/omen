@@ -4,6 +4,7 @@ const { createPlayerWeeklyOpportunityWriter } = require("./playerWeeklyOpportuni
 const { createRatQbRunner } = require("./ratQbRun");
 const { createRatSkillRunner } = require("./ratSkillRun");
 const { createSightRunner } = require("./sightRun");
+const { createPlayerIndexStage } = require("./playerIndexStage");
 const { createSightAccuracyRunner } = require("./sightAccuracyRun");
 
 /** The Sight switch. SIGHT_ENABLED turns grading (and, in the API, serving) on; SIGHT_VERSION picks the version. */
@@ -24,7 +25,7 @@ function stageError(stage, error) {
  * so one season whose early play-by-play cannot be reconciled does not stop the load of every later season.
  * Either way, an already-committed fact is never undone.
  */
-function createDerivedStages({ pool, mode = "strict", opportunityWriter = createPlayerWeeklyOpportunityWriter({ pool }), qbRunner = createRatQbRunner({ pool }), skillRunner = null, sightRunner = null, sightAccuracyRunner = null, env = process.env } = {}) {
+function createDerivedStages({ pool, mode = "strict", opportunityWriter = createPlayerWeeklyOpportunityWriter({ pool }), qbRunner = createRatQbRunner({ pool }), skillRunner = null, sightRunner = null, sightAccuracyRunner = null, indexStage = null, env = process.env } = {}) {
   if (mode !== "strict" && mode !== "report") throw new TypeError("derived stage mode must be strict or report");
   async function stage(name, fn, shape) {
     try { return shape(await fn()); } catch (error) {
@@ -37,6 +38,13 @@ function createDerivedStages({ pool, mode = "strict", opportunityWriter = create
     async run({ season }) {
       const opportunity = await stage("opportunity", () => opportunityWriter.writeSeason({ season }), (r) => ({ state: r.state, writtenRows: r.writtenRows }));
       const ratQb = await stage("rat_qb", () => qbRunner.run({ season }), (r) => ({ state: r.state, valueCount: r.valueCount ?? null }));
+      // The player index (provider ids -> Omen player). Reported, never fatal.
+      let playerIndex;
+      try {
+        playerIndex = await (indexStage || createPlayerIndexStage({ pool })).run();
+      } catch (error) {
+        playerIndex = { state: "failed", code: stageError("player_index", error).code };
+      }
       // Sight's skill ratings are new and unproven: a failure is reported, never fatal, even in strict mode,
       // so they can never take the facts pipeline or its backup down.
       let ratSkill;
@@ -65,7 +73,7 @@ function createDerivedStages({ pool, mode = "strict", opportunityWriter = create
           sightAccuracy = { state: "failed", code: stageError("sight_accuracy", error).code };
         }
       }
-      return { opportunity, ratQb, ratSkill, sight, sightAccuracy };
+      return { opportunity, playerIndex, ratQb, ratSkill, sight, sightAccuracy };
     },
   };
 }
