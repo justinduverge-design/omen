@@ -35,3 +35,7 @@ The warehouse's routing table. One entry per table. Edit this file, then run `no
 | [warehouse_map](warehouse_map.md) | ledger | one row per warehouse table |
 | [player_index_runs](player_index_runs.md) | ledger | one row per player-index load from a non-nflverse source |
 | [team_ids](team_ids.md) | identity | one row per (provider, provider code, team or defense) |
+| [coach_index_runs](coach_index_runs.md) | ledger | one row per coach-graph load |
+| [coaches](coaches.md) | identity | one row per coach |
+| [coach_assignments](coach_assignments.md) | facts | one row per (coach, team, season, role) |
+| [coach_lineage](coach_lineage.md) | facts | one row per (staff coach, head coach, team, season) |
