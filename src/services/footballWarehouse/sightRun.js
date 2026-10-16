@@ -6,6 +6,10 @@ const { VERSION, computeSight } = require("./sightV1");
 
 const METRIC_NAME = "omen_sight";
 
+// A change to the fitted weights must recompute every week, so their fingerprint is part of each run's inputs.
+const WEIGHTS_SHA = require("node:crypto").createHash("sha256")
+  .update(require("node:fs").readFileSync(require.resolve("./sight-weights.v1.json"))).digest("hex");
+
 // The same play selection RAT-RB/WR/TE use, plus the week so the run can stop at the through-week.
 const PLAYS_SQL = `
   SELECT p.week, p.game_id, p.posteam_id, p.receiver_player_id, p.rusher_player_id, p.passer_player_id, p.epa, p.yac_epa, p.success, p.cpoe,
@@ -80,7 +84,7 @@ function createSightRunner({ pool, transactionTimeouts } = {}) {
           const inputs = await client.query({ name: "sight-inputs-v1", text: INPUTS_SQL, values: [season, through] });
           return {
             ingestEventIds: inputs.rows.map((row) => Number(row.ingest_event_id)),
-            parameters: { metric: "SIGHT", version: VERSION, scope: { season_type: "REG", through_week: through } },
+            parameters: { metric: "SIGHT", version: VERSION, weights_sha256: WEIGHTS_SHA, scope: { season_type: "REG", through_week: through } },
           };
         },
         async computeValues(client) {
