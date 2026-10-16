@@ -1,6 +1,6 @@
 "use strict";
 
-// RAT-RB, RAT-WR and RAT-TE v0: Sight's position ratings for skill players, from play-by-play.
+// RAT-QB-S (QB), RAT-RB, RAT-WR and RAT-TE v0: Sight's position ratings for skill players, from play-by-play.
 // Pure math only (no database, no clock); grading is sightGrade.gradeCohort, the RAT-QB method.
 // Spec: Blueprints/specs/football-data/omen-sight-v0.md. v0 is UNFITTED and not opponent-adjusted:
 // weights and shrinkage constants are documented judgment values, to be graded and then fitted.
@@ -23,19 +23,22 @@ function empty() {
     targets: 0, targetEpa: 0, receptions: 0, cpoeTargets: 0, cpoeSum: 0, yacEpaSum: 0,
     airYardsTargets: 0, airYardsSum: 0, explosiveCatches: 0, redZoneTargets: 0,
     carries: 0, rushEpa: 0, rushSuccess: 0, explosiveRuns: 0, fumblesLost: 0,
+    teamDropbacks: 0, teamPlays: 0,
+    dropbacks: 0, dropbackEpa: 0, passCpoeN: 0, passCpoeSum: 0, sacks: 0, interceptions: 0, qbFumblesLost: 0,
   };
 }
 
 /**
  * plays: [{ gameId, posteamId, receiverId, rusherId, epa, yacEpa, success, passAttempt, rushAttempt, sack,
- *           qbScramble, twoPoint, completePass, cp, yardsGained, airYards, yardline100, fumbleLost, fumbledGsisId }]
- * players: Map(omen player id -> { position: "RB"|"WR"|"TE", gsis })
+ *           qbScramble, twoPoint, completePass, cp, yardsGained, airYards, yardline100, fumbleLost, fumbledGsisId,
+ *           passerId, qbDropback, interception, cpoe }]
+ * players: Map(omen player id -> { position: "QB"|"RB"|"WR"|"TE", gsis })
  */
 function aggregateSkillPlays(plays, players) {
   const team = new Map(); // `${gameId}|${team}` -> { pass, rush }
   const teamOf = (play) => {
     const key = `${play.gameId}|${play.posteamId}`;
-    if (!team.has(key)) team.set(key, { pass: 0, rush: 0 });
+    if (!team.has(key)) team.set(key, { pass: 0, rush: 0, dropbacks: 0 });
     return team.get(key);
   };
   const byPlayer = new Map();
@@ -51,6 +54,23 @@ function aggregateSkillPlays(plays, players) {
     const epa = num(play.epa);
     if (epa == null) continue;
     const key = `${play.gameId}|${play.posteamId}`;
+    // Quarterback dropbacks: passes, sacks and scrambles. Counted for the team, and for the passer when he is
+    // a rated QB (a scramble's QB is the rusher).
+    if (flag(play.qbDropback)) {
+      teamOf(play).dropbacks += 1;
+      const qbId = play.passerId || (flag(play.qbScramble) ? play.rusherId : null);
+      if (qbId && players.get(qbId)?.position === "QB") {
+        const a = get(qbId, key);
+        a.dropbacks += 1;
+        a.dropbackEpa += epa;
+        if (flag(play.sack)) a.sacks += 1;
+        if (flag(play.interception)) a.interceptions += 1;
+        const cpoe = num(play.cpoe);
+        if (flag(play.passAttempt) && cpoe != null) { a.passCpoeN += 1; a.passCpoeSum += cpoe; }
+        const gsis = players.get(qbId).gsis;
+        if (flag(play.fumbleLost) && gsis && play.fumbledGsisId === gsis) a.qbFumblesLost += 1;
+      }
+    }
     if (flag(play.passAttempt) && !flag(play.sack)) {
       teamOf(play).pass += 1;
       if (play.receiverId && players.has(play.receiverId)) {
@@ -85,9 +105,11 @@ function aggregateSkillPlays(plays, players) {
   // Role denominators: the team's plays in the games this player appeared in.
   for (const [id, a] of byPlayer) {
     for (const key of playerGames.get(id)) {
-      const t = team.get(key) || { pass: 0, rush: 0 };
+      const t = team.get(key) || { pass: 0, rush: 0, dropbacks: 0 };
       a.teamPassAttempts += t.pass;
       a.teamRushAttempts += t.rush;
+      a.teamDropbacks += t.dropbacks;
+      a.teamPlays += t.dropbacks + t.rush;
       a.games.add(key);
     }
   }
@@ -107,12 +129,36 @@ const RECEIVING = (a) => ({
 });
 
 const describe = (a) => ({
-  games: a.games.size, targets: a.targets, receptions: a.receptions, carries: a.carries,
+  games: a.games.size, dropbacks: a.dropbacks, targets: a.targets, receptions: a.receptions, carries: a.carries,
   red_zone_targets: a.redZoneTargets, fumbles_lost: a.fumblesLost,
 });
 
 // shrinkK: pseudo-observations pulling toward the cohort mean (targets, carries or team plays).
 const SPECS = Object.freeze({
+  QB: {
+    metricName: "omen_qb_sight_grade", registryId: "RAT-QB-S", position: "QB",
+    qualifies: (a) => a.dropbacks >= 100,
+    components: [
+      { key: "dropback_share", sign: 1, weight: 0.15, shrinkK: 200 },
+      { key: "pass_rate", sign: 1, weight: 0.1, shrinkK: 300 },
+      { key: "designed_rush_share", sign: 1, weight: 0.15, shrinkK: 200 },
+      { key: "epa_per_dropback", sign: 1, weight: 0.2, shrinkK: 150 },
+      { key: "cpoe", sign: 1, weight: 0.1, shrinkK: 250 },
+      { key: "sack_avoidance_rate", sign: 1, weight: 0.05, shrinkK: 300 },
+      { key: "turnover_rate", sign: -1, weight: 0.1, shrinkK: 500 },
+      { key: "rush_epa_per_carry", sign: 1, weight: 0.15, shrinkK: 60 },
+    ],
+    raw: (a) => ({
+      dropback_share: rate(a.dropbacks, a.teamDropbacks),
+      pass_rate: rate(a.teamDropbacks, a.teamPlays),
+      designed_rush_share: rate(a.carries, a.teamRushAttempts),
+      epa_per_dropback: rate(a.dropbackEpa, a.dropbacks),
+      cpoe: rate(a.passCpoeSum, a.passCpoeN),
+      sack_avoidance_rate: rate(a.dropbacks - a.sacks, a.dropbacks),
+      turnover_rate: rate(a.interceptions + a.qbFumblesLost, a.dropbacks),
+      rush_epa_per_carry: rate(a.rushEpa, a.carries),
+    }),
+  },
   RB: {
     metricName: "omen_rb_grade", registryId: "RAT-RB", position: "RB",
     qualifies: (a) => a.carries >= 40,

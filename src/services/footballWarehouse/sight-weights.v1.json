@@ -21,6 +21,104 @@
   "ridge": 5,
   "weights": {
     "2004": {
+      "QB": {
+        "early": {
+          "fitted_on": [
+            1999,
+            2003
+          ],
+          "rows": 401,
+          "intercept": 12.7728,
+          "weights": {
+            "dropback_share": 0.3705,
+            "pass_rate": 0.7087,
+            "designed_rush_share": 0.517,
+            "epa_per_dropback": 1.8853,
+            "cpoe": 0,
+            "sack_avoidance_rate": -0.0626,
+            "turnover_rate": -0.5094,
+            "rush_epa_per_carry": 0.2168
+          },
+          "with_production": {
+            "intercept": 12.7747,
+            "weights": {
+              "dropback_share": -0.0995,
+              "pass_rate": 0.432,
+              "designed_rush_share": 0.33,
+              "epa_per_dropback": 0.8612,
+              "cpoe": 0,
+              "sack_avoidance_rate": -0.0385,
+              "turnover_rate": -0.6918,
+              "rush_epa_per_carry": -0.1652,
+              "production_ppg": 1.7519
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            1999,
+            2003
+          ],
+          "rows": 546,
+          "intercept": 12.1208,
+          "weights": {
+            "dropback_share": 1.0239,
+            "pass_rate": 0.2366,
+            "designed_rush_share": 0.8997,
+            "epa_per_dropback": 1.5871,
+            "cpoe": 0,
+            "sack_avoidance_rate": -0.0918,
+            "turnover_rate": 0.4582,
+            "rush_epa_per_carry": 0.0399
+          },
+          "with_production": {
+            "intercept": 12.0726,
+            "weights": {
+              "dropback_share": 0.4502,
+              "pass_rate": -0.0767,
+              "designed_rush_share": 0.6789,
+              "epa_per_dropback": 0.8195,
+              "cpoe": 0,
+              "sack_avoidance_rate": -0.0412,
+              "turnover_rate": 0.3113,
+              "rush_epa_per_carry": -0.1355,
+              "production_ppg": 1.3927
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            1999,
+            2003
+          ],
+          "rows": 1076,
+          "intercept": 11.6799,
+          "weights": {
+            "dropback_share": 0.7604,
+            "pass_rate": 0.5471,
+            "designed_rush_share": 0.9611,
+            "epa_per_dropback": 1.5486,
+            "cpoe": 0,
+            "sack_avoidance_rate": -0.0505,
+            "turnover_rate": -0.0845,
+            "rush_epa_per_carry": 0.2254
+          },
+          "with_production": {
+            "intercept": 11.6364,
+            "weights": {
+              "dropback_share": 0.2779,
+              "pass_rate": 0.2878,
+              "designed_rush_share": 0.8267,
+              "epa_per_dropback": 0.8688,
+              "cpoe": 0,
+              "sack_avoidance_rate": 0.0202,
+              "turnover_rate": -0.1735,
+              "rush_epa_per_carry": 0.1005,
+              "production_ppg": 1.2202
+            }
+          }
+        }
+      },
       "RB": {
         "early": {
           "fitted_on": [
@@ -293,6 +391,104 @@
       }
     },
     "2005": {
+      "QB": {
+        "early": {
+          "fitted_on": [
+            2000,
+            2004
+          ],
+          "rows": 402,
+          "intercept": 13.1826,
+          "weights": {
+            "dropback_share": 0.3716,
+            "pass_rate": 0.7272,
+            "designed_rush_share": 0.3207,
+            "epa_per_dropback": 2.0427,
+            "cpoe": 0,
+            "sack_avoidance_rate": -0.2816,
+            "turnover_rate": -0.4319,
+            "rush_epa_per_carry": 0.3122
+          },
+          "with_production": {
+            "intercept": 13.1071,
+            "weights": {
+              "dropback_share": -0.1446,
+              "pass_rate": 0.3094,
+              "designed_rush_share": 0.061,
+              "epa_per_dropback": 0.792,
+              "cpoe": 0,
+              "sack_avoidance_rate": -0.3066,
+              "turnover_rate": -0.7271,
+              "rush_epa_per_carry": -0.1434,
+              "production_ppg": 2.1525
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2000,
+            2004
+          ],
+          "rows": 546,
+          "intercept": 12.4392,
+          "weights": {
+            "dropback_share": 0.9595,
+            "pass_rate": 0.4338,
+            "designed_rush_share": 1.1152,
+            "epa_per_dropback": 1.3358,
+            "cpoe": 0,
+            "sack_avoidance_rate": 0.5396,
+            "turnover_rate": 0.4685,
+            "rush_epa_per_carry": 0.3632
+          },
+          "with_production": {
+            "intercept": 12.3917,
+            "weights": {
+              "dropback_share": 0.2394,
+              "pass_rate": -0.01,
+              "designed_rush_share": 0.8374,
+              "epa_per_dropback": 0.3431,
+              "cpoe": 0,
+              "sack_avoidance_rate": 0.5708,
+              "turnover_rate": 0.2554,
+              "rush_epa_per_carry": 0.1587,
+              "production_ppg": 1.8375
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2000,
+            2004
+          ],
+          "rows": 1048,
+          "intercept": 11.9666,
+          "weights": {
+            "dropback_share": 0.5599,
+            "pass_rate": 0.5155,
+            "designed_rush_share": 1.1294,
+            "epa_per_dropback": 1.5067,
+            "cpoe": 0,
+            "sack_avoidance_rate": 0.2854,
+            "turnover_rate": -0.0313,
+            "rush_epa_per_carry": 0.4041
+          },
+          "with_production": {
+            "intercept": 11.9317,
+            "weights": {
+              "dropback_share": 0.1288,
+              "pass_rate": 0.2536,
+              "designed_rush_share": 1.0134,
+              "epa_per_dropback": 0.8344,
+              "cpoe": 0,
+              "sack_avoidance_rate": 0.346,
+              "turnover_rate": -0.1224,
+              "rush_epa_per_carry": 0.2934,
+              "production_ppg": 1.1827
+            }
+          }
+        }
+      },
       "RB": {
         "early": {
           "fitted_on": [
@@ -565,6 +761,104 @@
       }
     },
     "2006": {
+      "QB": {
+        "early": {
+          "fitted_on": [
+            2001,
+            2005
+          ],
+          "rows": 403,
+          "intercept": 13.1143,
+          "weights": {
+            "dropback_share": 0.1112,
+            "pass_rate": 0.665,
+            "designed_rush_share": 0.0371,
+            "epa_per_dropback": 2.1734,
+            "cpoe": 0,
+            "sack_avoidance_rate": -0.3874,
+            "turnover_rate": -0.3296,
+            "rush_epa_per_carry": 0.2157
+          },
+          "with_production": {
+            "intercept": 13.0756,
+            "weights": {
+              "dropback_share": -0.2368,
+              "pass_rate": 0.3806,
+              "designed_rush_share": -0.1253,
+              "epa_per_dropback": 1.4255,
+              "cpoe": 0,
+              "sack_avoidance_rate": -0.3769,
+              "turnover_rate": -0.4701,
+              "rush_epa_per_carry": 0.0065,
+              "production_ppg": 1.2386
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2001,
+            2005
+          ],
+          "rows": 537,
+          "intercept": 12.368,
+          "weights": {
+            "dropback_share": 1.0975,
+            "pass_rate": 0.4011,
+            "designed_rush_share": 1.0802,
+            "epa_per_dropback": 1.0241,
+            "cpoe": 0,
+            "sack_avoidance_rate": 0.5515,
+            "turnover_rate": 0.2956,
+            "rush_epa_per_carry": 0.6364
+          },
+          "with_production": {
+            "intercept": 12.3272,
+            "weights": {
+              "dropback_share": 0.5102,
+              "pass_rate": 0.0211,
+              "designed_rush_share": 0.8436,
+              "epa_per_dropback": 0.1891,
+              "cpoe": 0,
+              "sack_avoidance_rate": 0.5589,
+              "turnover_rate": 0.1663,
+              "rush_epa_per_carry": 0.4872,
+              "production_ppg": 1.505
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2001,
+            2005
+          ],
+          "rows": 1046,
+          "intercept": 11.909,
+          "weights": {
+            "dropback_share": 0.6456,
+            "pass_rate": 0.5437,
+            "designed_rush_share": 0.9219,
+            "epa_per_dropback": 1.2937,
+            "cpoe": 0,
+            "sack_avoidance_rate": 0.269,
+            "turnover_rate": -0.0063,
+            "rush_epa_per_carry": 0.3568
+          },
+          "with_production": {
+            "intercept": 11.8862,
+            "weights": {
+              "dropback_share": 0.3042,
+              "pass_rate": 0.3503,
+              "designed_rush_share": 0.8018,
+              "epa_per_dropback": 0.7994,
+              "cpoe": 0,
+              "sack_avoidance_rate": 0.2709,
+              "turnover_rate": -0.0599,
+              "rush_epa_per_carry": 0.2678,
+              "production_ppg": 0.9001
+            }
+          }
+        }
+      },
       "RB": {
         "early": {
           "fitted_on": [
@@ -837,6 +1131,104 @@
       }
     },
     "2007": {
+      "QB": {
+        "early": {
+          "fitted_on": [
+            2002,
+            2006
+          ],
+          "rows": 398,
+          "intercept": 13.1278,
+          "weights": {
+            "dropback_share": -0.0069,
+            "pass_rate": 0.4372,
+            "designed_rush_share": -0.0606,
+            "epa_per_dropback": 2.3639,
+            "cpoe": -1.0991,
+            "sack_avoidance_rate": -0.4945,
+            "turnover_rate": -0.0882,
+            "rush_epa_per_carry": 0.1234
+          },
+          "with_production": {
+            "intercept": 13.1153,
+            "weights": {
+              "dropback_share": -0.201,
+              "pass_rate": 0.2625,
+              "designed_rush_share": -0.176,
+              "epa_per_dropback": 1.906,
+              "cpoe": -1.0985,
+              "sack_avoidance_rate": -0.4657,
+              "turnover_rate": -0.1645,
+              "rush_epa_per_carry": 0.0127,
+              "production_ppg": 0.6995
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2002,
+            2006
+          ],
+          "rows": 533,
+          "intercept": 12.4417,
+          "weights": {
+            "dropback_share": 0.7956,
+            "pass_rate": 0.1222,
+            "designed_rush_share": 1.0414,
+            "epa_per_dropback": 1.5505,
+            "cpoe": -0.687,
+            "sack_avoidance_rate": 0.8585,
+            "turnover_rate": -0.1396,
+            "rush_epa_per_carry": 0.6211
+          },
+          "with_production": {
+            "intercept": 12.4178,
+            "weights": {
+              "dropback_share": 0.3534,
+              "pass_rate": -0.1593,
+              "designed_rush_share": 0.8291,
+              "epa_per_dropback": 0.8115,
+              "cpoe": -0.6093,
+              "sack_avoidance_rate": 0.8811,
+              "turnover_rate": -0.268,
+              "rush_epa_per_carry": 0.4636,
+              "production_ppg": 1.2283
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2002,
+            2006
+          ],
+          "rows": 1058,
+          "intercept": 11.7109,
+          "weights": {
+            "dropback_share": 0.465,
+            "pass_rate": 0.5586,
+            "designed_rush_share": 0.8562,
+            "epa_per_dropback": 1.4678,
+            "cpoe": -0.2293,
+            "sack_avoidance_rate": 0.209,
+            "turnover_rate": -0.021,
+            "rush_epa_per_carry": 0.4514
+          },
+          "with_production": {
+            "intercept": 11.6971,
+            "weights": {
+              "dropback_share": 0.2162,
+              "pass_rate": 0.4214,
+              "designed_rush_share": 0.7326,
+              "epa_per_dropback": 1.0402,
+              "cpoe": -0.161,
+              "sack_avoidance_rate": 0.1905,
+              "turnover_rate": -0.0699,
+              "rush_epa_per_carry": 0.3662,
+              "production_ppg": 0.7454
+            }
+          }
+        }
+      },
       "RB": {
         "early": {
           "fitted_on": [
@@ -1109,6 +1501,104 @@
       }
     },
     "2008": {
+      "QB": {
+        "early": {
+          "fitted_on": [
+            2003,
+            2007
+          ],
+          "rows": 394,
+          "intercept": 12.5491,
+          "weights": {
+            "dropback_share": 0.2131,
+            "pass_rate": 0.293,
+            "designed_rush_share": -0.1226,
+            "epa_per_dropback": 2.3057,
+            "cpoe": -0.5888,
+            "sack_avoidance_rate": -0.199,
+            "turnover_rate": 0.0406,
+            "rush_epa_per_carry": 0.0061
+          },
+          "with_production": {
+            "intercept": 12.5426,
+            "weights": {
+              "dropback_share": 0.0838,
+              "pass_rate": 0.1708,
+              "designed_rush_share": -0.1998,
+              "epa_per_dropback": 1.954,
+              "cpoe": -0.5919,
+              "sack_avoidance_rate": -0.1833,
+              "turnover_rate": 0.0046,
+              "rush_epa_per_carry": -0.0551,
+              "production_ppg": 0.4936
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2003,
+            2007
+          ],
+          "rows": 537,
+          "intercept": 12.0696,
+          "weights": {
+            "dropback_share": 0.8388,
+            "pass_rate": 0.2471,
+            "designed_rush_share": 0.7142,
+            "epa_per_dropback": 2.3544,
+            "cpoe": -0.2375,
+            "sack_avoidance_rate": 0.7143,
+            "turnover_rate": -0.4993,
+            "rush_epa_per_carry": 0.785
+          },
+          "with_production": {
+            "intercept": 12.0645,
+            "weights": {
+              "dropback_share": 0.4877,
+              "pass_rate": -0.0291,
+              "designed_rush_share": 0.5159,
+              "epa_per_dropback": 1.4583,
+              "cpoe": -0.1842,
+              "sack_avoidance_rate": 0.7338,
+              "turnover_rate": -0.5364,
+              "rush_epa_per_carry": 0.6436,
+              "production_ppg": 1.2237
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2003,
+            2007
+          ],
+          "rows": 1047,
+          "intercept": 11.5171,
+          "weights": {
+            "dropback_share": 0.5169,
+            "pass_rate": 0.4971,
+            "designed_rush_share": 0.7892,
+            "epa_per_dropback": 1.5408,
+            "cpoe": 0.2032,
+            "sack_avoidance_rate": 0.25,
+            "turnover_rate": -0.0891,
+            "rush_epa_per_carry": 0.2899
+          },
+          "with_production": {
+            "intercept": 11.499,
+            "weights": {
+              "dropback_share": 0.192,
+              "pass_rate": 0.2781,
+              "designed_rush_share": 0.6269,
+              "epa_per_dropback": 0.8315,
+              "cpoe": 0.2621,
+              "sack_avoidance_rate": 0.2255,
+              "turnover_rate": -0.1214,
+              "rush_epa_per_carry": 0.1659,
+              "production_ppg": 1.0793
+            }
+          }
+        }
+      },
       "RB": {
         "early": {
           "fitted_on": [
@@ -1381,6 +1871,104 @@
       }
     },
     "2009": {
+      "QB": {
+        "early": {
+          "fitted_on": [
+            2004,
+            2008
+          ],
+          "rows": 392,
+          "intercept": 12.3595,
+          "weights": {
+            "dropback_share": 0.5185,
+            "pass_rate": 0.4673,
+            "designed_rush_share": 0.0355,
+            "epa_per_dropback": 2.3811,
+            "cpoe": -0.1437,
+            "sack_avoidance_rate": -0.4751,
+            "turnover_rate": -0.218,
+            "rush_epa_per_carry": -0.3316
+          },
+          "with_production": {
+            "intercept": 12.3545,
+            "weights": {
+              "dropback_share": 0.3388,
+              "pass_rate": 0.2977,
+              "designed_rush_share": -0.072,
+              "epa_per_dropback": 1.8738,
+              "cpoe": -0.1672,
+              "sack_avoidance_rate": -0.4632,
+              "turnover_rate": -0.2563,
+              "rush_epa_per_carry": -0.3798,
+              "production_ppg": 0.7052
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2004,
+            2008
+          ],
+          "rows": 539,
+          "intercept": 12.3809,
+          "weights": {
+            "dropback_share": 0.5809,
+            "pass_rate": 0.4763,
+            "designed_rush_share": 0.475,
+            "epa_per_dropback": 2.0357,
+            "cpoe": -0.5265,
+            "sack_avoidance_rate": 1.017,
+            "turnover_rate": -0.1747,
+            "rush_epa_per_carry": 1.0124
+          },
+          "with_production": {
+            "intercept": 12.3824,
+            "weights": {
+              "dropback_share": 0.2286,
+              "pass_rate": 0.2242,
+              "designed_rush_share": 0.314,
+              "epa_per_dropback": 1.2369,
+              "cpoe": -0.511,
+              "sack_avoidance_rate": 1.0339,
+              "turnover_rate": -0.185,
+              "rush_epa_per_carry": 0.908,
+              "production_ppg": 1.1271
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2004,
+            2008
+          ],
+          "rows": 1048,
+          "intercept": 11.8951,
+          "weights": {
+            "dropback_share": 0.0921,
+            "pass_rate": 0.5316,
+            "designed_rush_share": 0.6313,
+            "epa_per_dropback": 1.5356,
+            "cpoe": 0.2529,
+            "sack_avoidance_rate": 0.3078,
+            "turnover_rate": -0.0861,
+            "rush_epa_per_carry": 0.4759
+          },
+          "with_production": {
+            "intercept": 11.8734,
+            "weights": {
+              "dropback_share": -0.1486,
+              "pass_rate": 0.3643,
+              "designed_rush_share": 0.5091,
+              "epa_per_dropback": 1.0045,
+              "cpoe": 0.2882,
+              "sack_avoidance_rate": 0.2711,
+              "turnover_rate": -0.1062,
+              "rush_epa_per_carry": 0.404,
+              "production_ppg": 0.83
+            }
+          }
+        }
+      },
       "RB": {
         "early": {
           "fitted_on": [
@@ -1653,6 +2241,104 @@
       }
     },
     "2010": {
+      "QB": {
+        "early": {
+          "fitted_on": [
+            2005,
+            2009
+          ],
+          "rows": 392,
+          "intercept": 12.315,
+          "weights": {
+            "dropback_share": 0.5845,
+            "pass_rate": 0.5786,
+            "designed_rush_share": 0.1653,
+            "epa_per_dropback": 1.9633,
+            "cpoe": 0.4136,
+            "sack_avoidance_rate": -0.1121,
+            "turnover_rate": 0.2743,
+            "rush_epa_per_carry": -0.0317
+          },
+          "with_production": {
+            "intercept": 12.3154,
+            "weights": {
+              "dropback_share": 0.6239,
+              "pass_rate": 0.614,
+              "designed_rush_share": 0.1912,
+              "epa_per_dropback": 2.0814,
+              "cpoe": 0.4172,
+              "sack_avoidance_rate": -0.1185,
+              "turnover_rate": 0.2816,
+              "rush_epa_per_carry": -0.0212,
+              "production_ppg": -0.161
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2005,
+            2009
+          ],
+          "rows": 534,
+          "intercept": 12.0466,
+          "weights": {
+            "dropback_share": 0.7572,
+            "pass_rate": 0.575,
+            "designed_rush_share": 0.42,
+            "epa_per_dropback": 2.212,
+            "cpoe": -0.4139,
+            "sack_avoidance_rate": 0.4287,
+            "turnover_rate": -0.0908,
+            "rush_epa_per_carry": 0.8155
+          },
+          "with_production": {
+            "intercept": 12.0376,
+            "weights": {
+              "dropback_share": 0.3227,
+              "pass_rate": 0.2747,
+              "designed_rush_share": 0.2427,
+              "epa_per_dropback": 1.165,
+              "cpoe": -0.3833,
+              "sack_avoidance_rate": 0.4821,
+              "turnover_rate": -0.1057,
+              "rush_epa_per_carry": 0.6445,
+              "production_ppg": 1.4623
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2005,
+            2009
+          ],
+          "rows": 1070,
+          "intercept": 11.6884,
+          "weights": {
+            "dropback_share": 0.2649,
+            "pass_rate": 0.3036,
+            "designed_rush_share": 0.6076,
+            "epa_per_dropback": 1.5195,
+            "cpoe": 0.5384,
+            "sack_avoidance_rate": -0.0692,
+            "turnover_rate": 0.0338,
+            "rush_epa_per_carry": 0.4396
+          },
+          "with_production": {
+            "intercept": 11.6597,
+            "weights": {
+              "dropback_share": -0.0499,
+              "pass_rate": 0.1117,
+              "designed_rush_share": 0.4744,
+              "epa_per_dropback": 0.9027,
+              "cpoe": 0.5635,
+              "sack_avoidance_rate": -0.0948,
+              "turnover_rate": 0.0017,
+              "rush_epa_per_carry": 0.3569,
+              "production_ppg": 0.9825
+            }
+          }
+        }
+      },
       "RB": {
         "early": {
           "fitted_on": [
@@ -1925,6 +2611,104 @@
       }
     },
     "2011": {
+      "QB": {
+        "early": {
+          "fitted_on": [
+            2006,
+            2010
+          ],
+          "rows": 400,
+          "intercept": 12.0688,
+          "weights": {
+            "dropback_share": 1.0526,
+            "pass_rate": 0.5772,
+            "designed_rush_share": 0.2238,
+            "epa_per_dropback": 1.145,
+            "cpoe": 0.7337,
+            "sack_avoidance_rate": 0.4218,
+            "turnover_rate": 0.3815,
+            "rush_epa_per_carry": -0.1003
+          },
+          "with_production": {
+            "intercept": 12.0682,
+            "weights": {
+              "dropback_share": 1.0008,
+              "pass_rate": 0.538,
+              "designed_rush_share": 0.1973,
+              "epa_per_dropback": 1.0045,
+              "cpoe": 0.7238,
+              "sack_avoidance_rate": 0.4256,
+              "turnover_rate": 0.3705,
+              "rush_epa_per_carry": -0.1172,
+              "production_ppg": 0.2083
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2006,
+            2010
+          ],
+          "rows": 539,
+          "intercept": 12.5836,
+          "weights": {
+            "dropback_share": 0.6657,
+            "pass_rate": 0.4407,
+            "designed_rush_share": 0.7584,
+            "epa_per_dropback": 2.6582,
+            "cpoe": -0.7726,
+            "sack_avoidance_rate": 0.167,
+            "turnover_rate": -0.0669,
+            "rush_epa_per_carry": 0.4952
+          },
+          "with_production": {
+            "intercept": 12.5576,
+            "weights": {
+              "dropback_share": -0.0107,
+              "pass_rate": 0.0111,
+              "designed_rush_share": 0.5299,
+              "epa_per_dropback": 1.239,
+              "cpoe": -0.7819,
+              "sack_avoidance_rate": 0.2429,
+              "turnover_rate": -0.0983,
+              "rush_epa_per_carry": 0.2578,
+              "production_ppg": 2.1499
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2006,
+            2010
+          ],
+          "rows": 1061,
+          "intercept": 12.04,
+          "weights": {
+            "dropback_share": 0.3532,
+            "pass_rate": 0.318,
+            "designed_rush_share": 0.8335,
+            "epa_per_dropback": 1.7994,
+            "cpoe": 0.3378,
+            "sack_avoidance_rate": -0.0479,
+            "turnover_rate": -0.0391,
+            "rush_epa_per_carry": 0.5463
+          },
+          "with_production": {
+            "intercept": 12.0118,
+            "weights": {
+              "dropback_share": 0.0134,
+              "pass_rate": 0.1161,
+              "designed_rush_share": 0.6959,
+              "epa_per_dropback": 1.1075,
+              "cpoe": 0.3656,
+              "sack_avoidance_rate": -0.0471,
+              "turnover_rate": -0.0468,
+              "rush_epa_per_carry": 0.4774,
+              "production_ppg": 1.0676
+            }
+          }
+        }
+      },
       "RB": {
         "early": {
           "fitted_on": [
@@ -2197,6 +2981,104 @@
       }
     },
     "2012": {
+      "QB": {
+        "early": {
+          "fitted_on": [
+            2007,
+            2011
+          ],
+          "rows": 403,
+          "intercept": 12.5495,
+          "weights": {
+            "dropback_share": 0.8585,
+            "pass_rate": 0.5493,
+            "designed_rush_share": 0.2638,
+            "epa_per_dropback": 0.6243,
+            "cpoe": 1.469,
+            "sack_avoidance_rate": 0.5016,
+            "turnover_rate": 0.4301,
+            "rush_epa_per_carry": 0.0188
+          },
+          "with_production": {
+            "intercept": 12.5455,
+            "weights": {
+              "dropback_share": 0.8144,
+              "pass_rate": 0.5147,
+              "designed_rush_share": 0.2493,
+              "epa_per_dropback": 0.5096,
+              "cpoe": 1.4586,
+              "sack_avoidance_rate": 0.5014,
+              "turnover_rate": 0.4195,
+              "rush_epa_per_carry": 0.0045,
+              "production_ppg": 0.1767
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2007,
+            2011
+          ],
+          "rows": 534,
+          "intercept": 12.5182,
+          "weights": {
+            "dropback_share": 1.1139,
+            "pass_rate": 0.3875,
+            "designed_rush_share": 0.5132,
+            "epa_per_dropback": 2.6061,
+            "cpoe": -0.2824,
+            "sack_avoidance_rate": -0.2853,
+            "turnover_rate": 0.0558,
+            "rush_epa_per_carry": 0.4284
+          },
+          "with_production": {
+            "intercept": 12.4662,
+            "weights": {
+              "dropback_share": 0.3132,
+              "pass_rate": -0.1535,
+              "designed_rush_share": 0.2769,
+              "epa_per_dropback": 0.8008,
+              "cpoe": -0.3809,
+              "sack_avoidance_rate": -0.2255,
+              "turnover_rate": -0.027,
+              "rush_epa_per_carry": 0.1685,
+              "production_ppg": 2.8206
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2007,
+            2011
+          ],
+          "rows": 1051,
+          "intercept": 12.6023,
+          "weights": {
+            "dropback_share": 0.5545,
+            "pass_rate": 0.4647,
+            "designed_rush_share": 0.7134,
+            "epa_per_dropback": 1.6336,
+            "cpoe": 0.7867,
+            "sack_avoidance_rate": -0.0155,
+            "turnover_rate": 0.1811,
+            "rush_epa_per_carry": 0.5862
+          },
+          "with_production": {
+            "intercept": 12.5499,
+            "weights": {
+              "dropback_share": 0.0579,
+              "pass_rate": 0.1838,
+              "designed_rush_share": 0.5091,
+              "epa_per_dropback": 0.6762,
+              "cpoe": 0.7442,
+              "sack_avoidance_rate": 0.012,
+              "turnover_rate": 0.1297,
+              "rush_epa_per_carry": 0.4899,
+              "production_ppg": 1.582
+            }
+          }
+        }
+      },
       "RB": {
         "early": {
           "fitted_on": [
@@ -2469,6 +3351,104 @@
       }
     },
     "2013": {
+      "QB": {
+        "early": {
+          "fitted_on": [
+            2008,
+            2012
+          ],
+          "rows": 413,
+          "intercept": 13.5456,
+          "weights": {
+            "dropback_share": 0.5465,
+            "pass_rate": 0.862,
+            "designed_rush_share": 0.7757,
+            "epa_per_dropback": -0.3761,
+            "cpoe": 2.0439,
+            "sack_avoidance_rate": 0.3715,
+            "turnover_rate": 0.7516,
+            "rush_epa_per_carry": 0.0984
+          },
+          "with_production": {
+            "intercept": 13.5388,
+            "weights": {
+              "dropback_share": 0.4815,
+              "pass_rate": 0.8058,
+              "designed_rush_share": 0.7416,
+              "epa_per_dropback": -0.5303,
+              "cpoe": 2.0211,
+              "sack_avoidance_rate": 0.3718,
+              "turnover_rate": 0.7287,
+              "rush_epa_per_carry": 0.0768,
+              "production_ppg": 0.2654
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2008,
+            2012
+          ],
+          "rows": 533,
+          "intercept": 13.3186,
+          "weights": {
+            "dropback_share": 1.0298,
+            "pass_rate": 0.7486,
+            "designed_rush_share": 0.9055,
+            "epa_per_dropback": 1.8474,
+            "cpoe": -0.2397,
+            "sack_avoidance_rate": -0.1518,
+            "turnover_rate": 0.3014,
+            "rush_epa_per_carry": 0.0139
+          },
+          "with_production": {
+            "intercept": 13.2727,
+            "weights": {
+              "dropback_share": 0.1333,
+              "pass_rate": 0.1079,
+              "designed_rush_share": 0.5798,
+              "epa_per_dropback": 0.2718,
+              "cpoe": -0.428,
+              "sack_avoidance_rate": -0.1123,
+              "turnover_rate": 0.0858,
+              "rush_epa_per_carry": -0.2504,
+              "production_ppg": 2.8823
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2008,
+            2012
+          ],
+          "rows": 1051,
+          "intercept": 13.0022,
+          "weights": {
+            "dropback_share": 0.7508,
+            "pass_rate": 0.4598,
+            "designed_rush_share": 0.8899,
+            "epa_per_dropback": 1.8984,
+            "cpoe": 0.736,
+            "sack_avoidance_rate": -0.0613,
+            "turnover_rate": 0.2662,
+            "rush_epa_per_carry": 0.631
+          },
+          "with_production": {
+            "intercept": 12.9689,
+            "weights": {
+              "dropback_share": 0.3286,
+              "pass_rate": 0.2071,
+              "designed_rush_share": 0.6715,
+              "epa_per_dropback": 1.1313,
+              "cpoe": 0.6905,
+              "sack_avoidance_rate": -0.0261,
+              "turnover_rate": 0.189,
+              "rush_epa_per_carry": 0.5504,
+              "production_ppg": 1.3188
+            }
+          }
+        }
+      },
       "RB": {
         "early": {
           "fitted_on": [
@@ -2741,6 +3721,104 @@
       }
     },
     "2014": {
+      "QB": {
+        "early": {
+          "fitted_on": [
+            2009,
+            2013
+          ],
+          "rows": 416,
+          "intercept": 14.0295,
+          "weights": {
+            "dropback_share": 0.206,
+            "pass_rate": 0.6249,
+            "designed_rush_share": 0.8355,
+            "epa_per_dropback": -0.1181,
+            "cpoe": 1.9957,
+            "sack_avoidance_rate": 0.3881,
+            "turnover_rate": 0.9887,
+            "rush_epa_per_carry": 0.1876
+          },
+          "with_production": {
+            "intercept": 14.0229,
+            "weights": {
+              "dropback_share": 0.1521,
+              "pass_rate": 0.5838,
+              "designed_rush_share": 0.8077,
+              "epa_per_dropback": -0.2342,
+              "cpoe": 1.9757,
+              "sack_avoidance_rate": 0.388,
+              "turnover_rate": 0.9669,
+              "rush_epa_per_carry": 0.1678,
+              "production_ppg": 0.2109
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2009,
+            2013
+          ],
+          "rows": 532,
+          "intercept": 13.6072,
+          "weights": {
+            "dropback_share": 0.9428,
+            "pass_rate": 0.4435,
+            "designed_rush_share": 0.9962,
+            "epa_per_dropback": 2.4265,
+            "cpoe": -0.2523,
+            "sack_avoidance_rate": -0.31,
+            "turnover_rate": 0.1981,
+            "rush_epa_per_carry": -0.1659
+          },
+          "with_production": {
+            "intercept": 13.5467,
+            "weights": {
+              "dropback_share": 0.0764,
+              "pass_rate": -0.0721,
+              "designed_rush_share": 0.5588,
+              "epa_per_dropback": 0.8288,
+              "cpoe": -0.4817,
+              "sack_avoidance_rate": -0.3075,
+              "turnover_rate": -0.1984,
+              "rush_epa_per_carry": -0.3874,
+              "production_ppg": 2.997
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2009,
+            2013
+          ],
+          "rows": 1051,
+          "intercept": 13.3966,
+          "weights": {
+            "dropback_share": 0.9497,
+            "pass_rate": 0.3789,
+            "designed_rush_share": 1.0735,
+            "epa_per_dropback": 1.9184,
+            "cpoe": 0.7429,
+            "sack_avoidance_rate": 0.0319,
+            "turnover_rate": 0.3255,
+            "rush_epa_per_carry": 0.4696
+          },
+          "with_production": {
+            "intercept": 13.394,
+            "weights": {
+              "dropback_share": 0.6342,
+              "pass_rate": 0.2185,
+              "designed_rush_share": 0.8972,
+              "epa_per_dropback": 1.3708,
+              "cpoe": 0.6911,
+              "sack_avoidance_rate": 0.0166,
+              "turnover_rate": 0.2384,
+              "rush_epa_per_carry": 0.3982,
+              "production_ppg": 0.9739
+            }
+          }
+        }
+      },
       "RB": {
         "early": {
           "fitted_on": [
@@ -3013,6 +4091,104 @@
       }
     },
     "2015": {
+      "QB": {
+        "early": {
+          "fitted_on": [
+            2010,
+            2014
+          ],
+          "rows": 417,
+          "intercept": 14.7695,
+          "weights": {
+            "dropback_share": 0.3671,
+            "pass_rate": 0.7005,
+            "designed_rush_share": 0.7685,
+            "epa_per_dropback": -0.4393,
+            "cpoe": 2.0833,
+            "sack_avoidance_rate": 0.3778,
+            "turnover_rate": 0.7513,
+            "rush_epa_per_carry": -0.2093
+          },
+          "with_production": {
+            "intercept": 14.7483,
+            "weights": {
+              "dropback_share": 0.2037,
+              "pass_rate": 0.57,
+              "designed_rush_share": 0.7153,
+              "epa_per_dropback": -0.7825,
+              "cpoe": 2.0199,
+              "sack_avoidance_rate": 0.3625,
+              "turnover_rate": 0.7075,
+              "rush_epa_per_carry": -0.2707,
+              "production_ppg": 0.6035
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2010,
+            2014
+          ],
+          "rows": 534,
+          "intercept": 14.4161,
+          "weights": {
+            "dropback_share": 0.7335,
+            "pass_rate": 0.2911,
+            "designed_rush_share": 0.7392,
+            "epa_per_dropback": 1.6391,
+            "cpoe": 0.4695,
+            "sack_avoidance_rate": -0.3054,
+            "turnover_rate": 0.6706,
+            "rush_epa_per_carry": -0.0621
+          },
+          "with_production": {
+            "intercept": 14.3568,
+            "weights": {
+              "dropback_share": -0.1826,
+              "pass_rate": -0.2744,
+              "designed_rush_share": 0.2673,
+              "epa_per_dropback": 0.2241,
+              "cpoe": 0.1251,
+              "sack_avoidance_rate": -0.4027,
+              "turnover_rate": 0.2613,
+              "rush_epa_per_carry": -0.2054,
+              "production_ppg": 2.902
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2010,
+            2014
+          ],
+          "rows": 1039,
+          "intercept": 13.8584,
+          "weights": {
+            "dropback_share": 0.8478,
+            "pass_rate": 0.4992,
+            "designed_rush_share": 1.1218,
+            "epa_per_dropback": 1.7952,
+            "cpoe": 0.8135,
+            "sack_avoidance_rate": 0.19,
+            "turnover_rate": 0.3292,
+            "rush_epa_per_carry": 0.5501
+          },
+          "with_production": {
+            "intercept": 13.8611,
+            "weights": {
+              "dropback_share": 0.6094,
+              "pass_rate": 0.3627,
+              "designed_rush_share": 0.9599,
+              "epa_per_dropback": 1.3673,
+              "cpoe": 0.7531,
+              "sack_avoidance_rate": 0.1457,
+              "turnover_rate": 0.2663,
+              "rush_epa_per_carry": 0.5149,
+              "production_ppg": 0.7696
+            }
+          }
+        }
+      },
       "RB": {
         "early": {
           "fitted_on": [
@@ -3285,6 +4461,104 @@
       }
     },
     "2016": {
+      "QB": {
+        "early": {
+          "fitted_on": [
+            2011,
+            2015
+          ],
+          "rows": 417,
+          "intercept": 15.5736,
+          "weights": {
+            "dropback_share": 0.2945,
+            "pass_rate": 0.9515,
+            "designed_rush_share": 0.9362,
+            "epa_per_dropback": 0.3229,
+            "cpoe": 1.7451,
+            "sack_avoidance_rate": 0.0897,
+            "turnover_rate": 0.2863,
+            "rush_epa_per_carry": -0.1896
+          },
+          "with_production": {
+            "intercept": 15.5405,
+            "weights": {
+              "dropback_share": 0.0902,
+              "pass_rate": 0.7888,
+              "designed_rush_share": 0.8613,
+              "epa_per_dropback": -0.1032,
+              "cpoe": 1.6838,
+              "sack_avoidance_rate": 0.0727,
+              "turnover_rate": 0.2291,
+              "rush_epa_per_carry": -0.2698,
+              "production_ppg": 0.7033
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2011,
+            2015
+          ],
+          "rows": 536,
+          "intercept": 14.763,
+          "weights": {
+            "dropback_share": 0.8071,
+            "pass_rate": 0.6695,
+            "designed_rush_share": 0.2407,
+            "epa_per_dropback": 1.7495,
+            "cpoe": 0.4158,
+            "sack_avoidance_rate": 0.0113,
+            "turnover_rate": 0.4647,
+            "rush_epa_per_carry": 0.2724
+          },
+          "with_production": {
+            "intercept": 14.7044,
+            "weights": {
+              "dropback_share": -0.085,
+              "pass_rate": 0.0946,
+              "designed_rush_share": -0.2591,
+              "epa_per_dropback": 0.3557,
+              "cpoe": 0.1645,
+              "sack_avoidance_rate": -0.1116,
+              "turnover_rate": 0.0884,
+              "rush_epa_per_carry": 0.1296,
+              "production_ppg": 2.7304
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2011,
+            2015
+          ],
+          "rows": 1041,
+          "intercept": 14.3944,
+          "weights": {
+            "dropback_share": 0.9851,
+            "pass_rate": 0.6294,
+            "designed_rush_share": 1.2676,
+            "epa_per_dropback": 1.8605,
+            "cpoe": 0.8191,
+            "sack_avoidance_rate": -0.0088,
+            "turnover_rate": 0.1858,
+            "rush_epa_per_carry": 0.4135
+          },
+          "with_production": {
+            "intercept": 14.3961,
+            "weights": {
+              "dropback_share": 0.6831,
+              "pass_rate": 0.424,
+              "designed_rush_share": 1.0595,
+              "epa_per_dropback": 1.3167,
+              "cpoe": 0.7608,
+              "sack_avoidance_rate": -0.0706,
+              "turnover_rate": 0.0997,
+              "rush_epa_per_carry": 0.359,
+              "production_ppg": 0.9474
+            }
+          }
+        }
+      },
       "RB": {
         "early": {
           "fitted_on": [
@@ -3557,6 +4831,104 @@
       }
     },
     "2017": {
+      "QB": {
+        "early": {
+          "fitted_on": [
+            2012,
+            2016
+          ],
+          "rows": 420,
+          "intercept": 15.8831,
+          "weights": {
+            "dropback_share": 0.841,
+            "pass_rate": 0.8802,
+            "designed_rush_share": 0.6818,
+            "epa_per_dropback": 0.8723,
+            "cpoe": 0.8531,
+            "sack_avoidance_rate": -0.1122,
+            "turnover_rate": 0.2668,
+            "rush_epa_per_carry": -0.0335
+          },
+          "with_production": {
+            "intercept": 15.8332,
+            "weights": {
+              "dropback_share": 0.5264,
+              "pass_rate": 0.6392,
+              "designed_rush_share": 0.5612,
+              "epa_per_dropback": 0.2403,
+              "cpoe": 0.7738,
+              "sack_avoidance_rate": -0.1291,
+              "turnover_rate": 0.2297,
+              "rush_epa_per_carry": -0.1763,
+              "production_ppg": 0.985
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2012,
+            2016
+          ],
+          "rows": 540,
+          "intercept": 15.3299,
+          "weights": {
+            "dropback_share": 1.071,
+            "pass_rate": 0.7712,
+            "designed_rush_share": 0.3585,
+            "epa_per_dropback": 1.424,
+            "cpoe": 0.1794,
+            "sack_avoidance_rate": 0.4056,
+            "turnover_rate": 0.4406,
+            "rush_epa_per_carry": 0.2651
+          },
+          "with_production": {
+            "intercept": 15.2565,
+            "weights": {
+              "dropback_share": -0.1029,
+              "pass_rate": 0.0634,
+              "designed_rush_share": -0.1531,
+              "epa_per_dropback": -0.2832,
+              "cpoe": -0.0234,
+              "sack_avoidance_rate": 0.2421,
+              "turnover_rate": 0.2411,
+              "rush_epa_per_carry": 0.005,
+              "production_ppg": 3.0544
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2012,
+            2016
+          ],
+          "rows": 1047,
+          "intercept": 14.6019,
+          "weights": {
+            "dropback_share": 1.1101,
+            "pass_rate": 0.6833,
+            "designed_rush_share": 1.3243,
+            "epa_per_dropback": 1.837,
+            "cpoe": 0.6613,
+            "sack_avoidance_rate": -0.1575,
+            "turnover_rate": 0.0744,
+            "rush_epa_per_carry": 0.1248
+          },
+          "with_production": {
+            "intercept": 14.6042,
+            "weights": {
+              "dropback_share": 0.8546,
+              "pass_rate": 0.5087,
+              "designed_rush_share": 1.1784,
+              "epa_per_dropback": 1.3837,
+              "cpoe": 0.6224,
+              "sack_avoidance_rate": -0.2083,
+              "turnover_rate": 0.0488,
+              "rush_epa_per_carry": 0.0731,
+              "production_ppg": 0.7226
+            }
+          }
+        }
+      },
       "RB": {
         "early": {
           "fitted_on": [
@@ -3829,6 +5201,104 @@
       }
     },
     "2018": {
+      "QB": {
+        "early": {
+          "fitted_on": [
+            2013,
+            2017
+          ],
+          "rows": 419,
+          "intercept": 15.8279,
+          "weights": {
+            "dropback_share": 0.6771,
+            "pass_rate": 0.6072,
+            "designed_rush_share": 0.7013,
+            "epa_per_dropback": 1.0477,
+            "cpoe": 0.8485,
+            "sack_avoidance_rate": -0.2257,
+            "turnover_rate": -0.0601,
+            "rush_epa_per_carry": 0.1631
+          },
+          "with_production": {
+            "intercept": 15.7802,
+            "weights": {
+              "dropback_share": 0.3572,
+              "pass_rate": 0.3774,
+              "designed_rush_share": 0.5995,
+              "epa_per_dropback": 0.3579,
+              "cpoe": 0.7934,
+              "sack_avoidance_rate": -0.2197,
+              "turnover_rate": -0.0967,
+              "rush_epa_per_carry": 0.0186,
+              "production_ppg": 1.0239
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2013,
+            2017
+          ],
+          "rows": 533,
+          "intercept": 15.6117,
+          "weights": {
+            "dropback_share": 1.071,
+            "pass_rate": 0.4023,
+            "designed_rush_share": 0.3477,
+            "epa_per_dropback": 1.4978,
+            "cpoe": 0.0617,
+            "sack_avoidance_rate": 0.3831,
+            "turnover_rate": 0.333,
+            "rush_epa_per_carry": 0.2138
+          },
+          "with_production": {
+            "intercept": 15.5274,
+            "weights": {
+              "dropback_share": -0.0292,
+              "pass_rate": -0.1938,
+              "designed_rush_share": -0.0549,
+              "epa_per_dropback": -0.0657,
+              "cpoe": -0.0961,
+              "sack_avoidance_rate": 0.2439,
+              "turnover_rate": 0.1858,
+              "rush_epa_per_carry": -0.0846,
+              "production_ppg": 2.7982
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2013,
+            2017
+          ],
+          "rows": 1044,
+          "intercept": 14.6639,
+          "weights": {
+            "dropback_share": 1.2664,
+            "pass_rate": 0.5972,
+            "designed_rush_share": 1.1345,
+            "epa_per_dropback": 1.6208,
+            "cpoe": 0.4273,
+            "sack_avoidance_rate": -0.0838,
+            "turnover_rate": -0.0705,
+            "rush_epa_per_carry": -0.0044
+          },
+          "with_production": {
+            "intercept": 14.6643,
+            "weights": {
+              "dropback_share": 1.0403,
+              "pass_rate": 0.45,
+              "designed_rush_share": 1.0191,
+              "epa_per_dropback": 1.2652,
+              "cpoe": 0.4016,
+              "sack_avoidance_rate": -0.1198,
+              "turnover_rate": -0.0841,
+              "rush_epa_per_carry": -0.0601,
+              "production_ppg": 0.5869
+            }
+          }
+        }
+      },
       "RB": {
         "early": {
           "fitted_on": [
@@ -4101,6 +5571,104 @@
       }
     },
     "2019": {
+      "QB": {
+        "early": {
+          "fitted_on": [
+            2014,
+            2018
+          ],
+          "rows": 422,
+          "intercept": 16.3858,
+          "weights": {
+            "dropback_share": 1.1054,
+            "pass_rate": 0.6812,
+            "designed_rush_share": 0.1781,
+            "epa_per_dropback": 0.5641,
+            "cpoe": 0.5388,
+            "sack_avoidance_rate": -0.237,
+            "turnover_rate": 0.0548,
+            "rush_epa_per_carry": 0.2521
+          },
+          "with_production": {
+            "intercept": 16.3514,
+            "weights": {
+              "dropback_share": 0.7964,
+              "pass_rate": 0.4385,
+              "designed_rush_share": 0.0551,
+              "epa_per_dropback": -0.1089,
+              "cpoe": 0.5048,
+              "sack_avoidance_rate": -0.2263,
+              "turnover_rate": 0.0278,
+              "rush_epa_per_carry": 0.1364,
+              "production_ppg": 0.9821
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2014,
+            2018
+          ],
+          "rows": 535,
+          "intercept": 15.9006,
+          "weights": {
+            "dropback_share": 1.5058,
+            "pass_rate": 0.5527,
+            "designed_rush_share": 0.3155,
+            "epa_per_dropback": 1.3666,
+            "cpoe": 0.4965,
+            "sack_avoidance_rate": 0.2562,
+            "turnover_rate": 0.1596,
+            "rush_epa_per_carry": 0.3358
+          },
+          "with_production": {
+            "intercept": 15.7465,
+            "weights": {
+              "dropback_share": 0.3882,
+              "pass_rate": -0.1711,
+              "designed_rush_share": -0.1125,
+              "epa_per_dropback": -0.2821,
+              "cpoe": 0.3432,
+              "sack_avoidance_rate": 0.147,
+              "turnover_rate": 0.1265,
+              "rush_epa_per_carry": 0.0628,
+              "production_ppg": 2.9279
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2014,
+            2018
+          ],
+          "rows": 1027,
+          "intercept": 14.7748,
+          "weights": {
+            "dropback_share": 1.2377,
+            "pass_rate": 0.4795,
+            "designed_rush_share": 1.2433,
+            "epa_per_dropback": 1.7886,
+            "cpoe": 0.3133,
+            "sack_avoidance_rate": -0.1381,
+            "turnover_rate": -0.3194,
+            "rush_epa_per_carry": -0.1494
+          },
+          "with_production": {
+            "intercept": 14.7596,
+            "weights": {
+              "dropback_share": 0.8171,
+              "pass_rate": 0.2332,
+              "designed_rush_share": 1.0459,
+              "epa_per_dropback": 1.18,
+              "cpoe": 0.2719,
+              "sack_avoidance_rate": -0.1661,
+              "turnover_rate": -0.3185,
+              "rush_epa_per_carry": -0.2279,
+              "production_ppg": 1.0147
+            }
+          }
+        }
+      },
       "RB": {
         "early": {
           "fitted_on": [
@@ -4373,6 +5941,104 @@
       }
     },
     "2020": {
+      "QB": {
+        "early": {
+          "fitted_on": [
+            2015,
+            2019
+          ],
+          "rows": 426,
+          "intercept": 16.0278,
+          "weights": {
+            "dropback_share": 1.1304,
+            "pass_rate": 0.6567,
+            "designed_rush_share": 0.6205,
+            "epa_per_dropback": 0.5411,
+            "cpoe": 0.7436,
+            "sack_avoidance_rate": -0.2598,
+            "turnover_rate": 0.0436,
+            "rush_epa_per_carry": 0.5004
+          },
+          "with_production": {
+            "intercept": 15.9683,
+            "weights": {
+              "dropback_share": 0.7609,
+              "pass_rate": 0.352,
+              "designed_rush_share": 0.3978,
+              "epa_per_dropback": -0.3067,
+              "cpoe": 0.7155,
+              "sack_avoidance_rate": -0.2186,
+              "turnover_rate": -0.0211,
+              "rush_epa_per_carry": 0.3607,
+              "production_ppg": 1.245
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2015,
+            2019
+          ],
+          "rows": 532,
+          "intercept": 16.2082,
+          "weights": {
+            "dropback_share": 0.9813,
+            "pass_rate": 0.5585,
+            "designed_rush_share": 0.9042,
+            "epa_per_dropback": 1.6565,
+            "cpoe": 0.345,
+            "sack_avoidance_rate": 0.279,
+            "turnover_rate": -0.3828,
+            "rush_epa_per_carry": 0.2822
+          },
+          "with_production": {
+            "intercept": 16.0377,
+            "weights": {
+              "dropback_share": 0.0392,
+              "pass_rate": -0.0941,
+              "designed_rush_share": 0.4681,
+              "epa_per_dropback": 0.1675,
+              "cpoe": 0.2467,
+              "sack_avoidance_rate": 0.2262,
+              "turnover_rate": -0.4179,
+              "rush_epa_per_carry": -0.029,
+              "production_ppg": 2.61
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2015,
+            2019
+          ],
+          "rows": 1027,
+          "intercept": 15.0178,
+          "weights": {
+            "dropback_share": 1.0616,
+            "pass_rate": 0.8306,
+            "designed_rush_share": 1.6031,
+            "epa_per_dropback": 1.995,
+            "cpoe": 0.4025,
+            "sack_avoidance_rate": -0.156,
+            "turnover_rate": -0.6371,
+            "rush_epa_per_carry": -0.2944
+          },
+          "with_production": {
+            "intercept": 14.9595,
+            "weights": {
+              "dropback_share": 0.4748,
+              "pass_rate": 0.4645,
+              "designed_rush_share": 1.2911,
+              "epa_per_dropback": 1.128,
+              "cpoe": 0.35,
+              "sack_avoidance_rate": -0.162,
+              "turnover_rate": -0.6843,
+              "rush_epa_per_carry": -0.4474,
+              "production_ppg": 1.5118
+            }
+          }
+        }
+      },
       "RB": {
         "early": {
           "fitted_on": [
@@ -4645,6 +6311,104 @@
       }
     },
     "2021": {
+      "QB": {
+        "early": {
+          "fitted_on": [
+            2016,
+            2020
+          ],
+          "rows": 421,
+          "intercept": 16.2528,
+          "weights": {
+            "dropback_share": 1.8005,
+            "pass_rate": 0.4611,
+            "designed_rush_share": 0.5464,
+            "epa_per_dropback": 0.0038,
+            "cpoe": 0.8961,
+            "sack_avoidance_rate": -0.1368,
+            "turnover_rate": 0.3197,
+            "rush_epa_per_carry": 0.8337
+          },
+          "with_production": {
+            "intercept": 16.2007,
+            "weights": {
+              "dropback_share": 1.225,
+              "pass_rate": -0.0729,
+              "designed_rush_share": 0.1807,
+              "epa_per_dropback": -1.2899,
+              "cpoe": 0.8602,
+              "sack_avoidance_rate": -0.1122,
+              "turnover_rate": 0.2234,
+              "rush_epa_per_carry": 0.5601,
+              "production_ppg": 1.9313
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2016,
+            2020
+          ],
+          "rows": 531,
+          "intercept": 16.4193,
+          "weights": {
+            "dropback_share": 1.251,
+            "pass_rate": 0.4854,
+            "designed_rush_share": 1.0751,
+            "epa_per_dropback": 1.5238,
+            "cpoe": 0.4603,
+            "sack_avoidance_rate": 0.217,
+            "turnover_rate": -0.3251,
+            "rush_epa_per_carry": 0.3245
+          },
+          "with_production": {
+            "intercept": 16.2746,
+            "weights": {
+              "dropback_share": 0.3155,
+              "pass_rate": -0.1079,
+              "designed_rush_share": 0.6541,
+              "epa_per_dropback": 0.1712,
+              "cpoe": 0.2941,
+              "sack_avoidance_rate": 0.1479,
+              "turnover_rate": -0.3727,
+              "rush_epa_per_carry": -0.0594,
+              "production_ppg": 2.5117
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2016,
+            2020
+          ],
+          "rows": 1023,
+          "intercept": 15.2022,
+          "weights": {
+            "dropback_share": 0.688,
+            "pass_rate": 0.4391,
+            "designed_rush_share": 1.335,
+            "epa_per_dropback": 2.3555,
+            "cpoe": 0.1101,
+            "sack_avoidance_rate": -0.0567,
+            "turnover_rate": -0.5661,
+            "rush_epa_per_carry": -0.5764
+          },
+          "with_production": {
+            "intercept": 15.1331,
+            "weights": {
+              "dropback_share": -0.0075,
+              "pass_rate": 0.0455,
+              "designed_rush_share": 0.9616,
+              "epa_per_dropback": 1.3823,
+              "cpoe": -0.0298,
+              "sack_avoidance_rate": -0.0655,
+              "turnover_rate": -0.5912,
+              "rush_epa_per_carry": -0.7856,
+              "production_ppg": 1.7617
+            }
+          }
+        }
+      },
       "RB": {
         "early": {
           "fitted_on": [
@@ -4917,6 +6681,104 @@
       }
     },
     "2022": {
+      "QB": {
+        "early": {
+          "fitted_on": [
+            2017,
+            2021
+          ],
+          "rows": 428,
+          "intercept": 16.5033,
+          "weights": {
+            "dropback_share": 1.8254,
+            "pass_rate": 0.3948,
+            "designed_rush_share": 0.9114,
+            "epa_per_dropback": -0.2943,
+            "cpoe": 1.3991,
+            "sack_avoidance_rate": 0.2978,
+            "turnover_rate": -0.1127,
+            "rush_epa_per_carry": 0.8454
+          },
+          "with_production": {
+            "intercept": 16.4668,
+            "weights": {
+              "dropback_share": 1.2227,
+              "pass_rate": -0.1158,
+              "designed_rush_share": 0.5276,
+              "epa_per_dropback": -1.5719,
+              "cpoe": 1.3,
+              "sack_avoidance_rate": 0.307,
+              "turnover_rate": -0.232,
+              "rush_epa_per_carry": 0.5819,
+              "production_ppg": 2.0187
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2017,
+            2021
+          ],
+          "rows": 527,
+          "intercept": 16.2465,
+          "weights": {
+            "dropback_share": 0.7557,
+            "pass_rate": 0.17,
+            "designed_rush_share": 1.0146,
+            "epa_per_dropback": 1.5532,
+            "cpoe": 0.4941,
+            "sack_avoidance_rate": -0.0811,
+            "turnover_rate": -0.0468,
+            "rush_epa_per_carry": 0.2147
+          },
+          "with_production": {
+            "intercept": 16.1804,
+            "weights": {
+              "dropback_share": 0.1697,
+              "pass_rate": -0.1967,
+              "designed_rush_share": 0.6941,
+              "epa_per_dropback": 0.705,
+              "cpoe": 0.3782,
+              "sack_avoidance_rate": -0.1347,
+              "turnover_rate": -0.1554,
+              "rush_epa_per_carry": 0.0052,
+              "production_ppg": 1.6731
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2017,
+            2021
+          ],
+          "rows": 1010,
+          "intercept": 15.1547,
+          "weights": {
+            "dropback_share": 0.6307,
+            "pass_rate": 0.3004,
+            "designed_rush_share": 1.0825,
+            "epa_per_dropback": 2.3566,
+            "cpoe": 0.1547,
+            "sack_avoidance_rate": -0.1719,
+            "turnover_rate": -0.4303,
+            "rush_epa_per_carry": -0.2889
+          },
+          "with_production": {
+            "intercept": 15.1044,
+            "weights": {
+              "dropback_share": -0.0402,
+              "pass_rate": -0.0773,
+              "designed_rush_share": 0.6737,
+              "epa_per_dropback": 1.4425,
+              "cpoe": 0.0048,
+              "sack_avoidance_rate": -0.1892,
+              "turnover_rate": -0.5015,
+              "rush_epa_per_carry": -0.4547,
+              "production_ppg": 1.7462
+            }
+          }
+        }
+      },
       "RB": {
         "early": {
           "fitted_on": [
@@ -5189,6 +7051,104 @@
       }
     },
     "2023": {
+      "QB": {
+        "early": {
+          "fitted_on": [
+            2018,
+            2022
+          ],
+          "rows": 429,
+          "intercept": 16.4068,
+          "weights": {
+            "dropback_share": 2.3339,
+            "pass_rate": 0.5228,
+            "designed_rush_share": 0.7772,
+            "epa_per_dropback": -0.0242,
+            "cpoe": 0.9022,
+            "sack_avoidance_rate": 0.5198,
+            "turnover_rate": 0.0488,
+            "rush_epa_per_carry": 0.3707
+          },
+          "with_production": {
+            "intercept": 16.3844,
+            "weights": {
+              "dropback_share": 1.9253,
+              "pass_rate": 0.1784,
+              "designed_rush_share": 0.5037,
+              "epa_per_dropback": -0.7674,
+              "cpoe": 0.8491,
+              "sack_avoidance_rate": 0.5022,
+              "turnover_rate": -0.0625,
+              "rush_epa_per_carry": 0.1929,
+              "production_ppg": 1.2648
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2018,
+            2022
+          ],
+          "rows": 525,
+          "intercept": 16.3071,
+          "weights": {
+            "dropback_share": 0.8446,
+            "pass_rate": 0.3575,
+            "designed_rush_share": 1.2043,
+            "epa_per_dropback": 2.0348,
+            "cpoe": 0.3408,
+            "sack_avoidance_rate": -0.8112,
+            "turnover_rate": 0.0349,
+            "rush_epa_per_carry": 0.0689
+          },
+          "with_production": {
+            "intercept": 16.2501,
+            "weights": {
+              "dropback_share": 0.3721,
+              "pass_rate": 0.072,
+              "designed_rush_share": 0.8952,
+              "epa_per_dropback": 1.3385,
+              "cpoe": 0.2593,
+              "sack_avoidance_rate": -0.8456,
+              "turnover_rate": -0.0297,
+              "rush_epa_per_carry": -0.0623,
+              "production_ppg": 1.3365
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2018,
+            2022
+          ],
+          "rows": 990,
+          "intercept": 15.2335,
+          "weights": {
+            "dropback_share": 0.7346,
+            "pass_rate": 0.3647,
+            "designed_rush_share": 1.2473,
+            "epa_per_dropback": 2.6424,
+            "cpoe": 0.0261,
+            "sack_avoidance_rate": -0.4068,
+            "turnover_rate": -0.1849,
+            "rush_epa_per_carry": -0.2836
+          },
+          "with_production": {
+            "intercept": 15.1756,
+            "weights": {
+              "dropback_share": -0.0251,
+              "pass_rate": -0.0365,
+              "designed_rush_share": 0.7368,
+              "epa_per_dropback": 1.5363,
+              "cpoe": -0.1108,
+              "sack_avoidance_rate": -0.4194,
+              "turnover_rate": -0.2219,
+              "rush_epa_per_carry": -0.4333,
+              "production_ppg": 1.9656
+            }
+          }
+        }
+      },
       "RB": {
         "early": {
           "fitted_on": [
@@ -5461,6 +7421,104 @@
       }
     },
     "2024": {
+      "QB": {
+        "early": {
+          "fitted_on": [
+            2019,
+            2023
+          ],
+          "rows": 432,
+          "intercept": 15.8546,
+          "weights": {
+            "dropback_share": 1.896,
+            "pass_rate": 0.3334,
+            "designed_rush_share": 1.0461,
+            "epa_per_dropback": 0.4363,
+            "cpoe": 1.2141,
+            "sack_avoidance_rate": 0.0752,
+            "turnover_rate": -0.2414,
+            "rush_epa_per_carry": 0.3673
+          },
+          "with_production": {
+            "intercept": 15.811,
+            "weights": {
+              "dropback_share": 1.4999,
+              "pass_rate": -0.0566,
+              "designed_rush_share": 0.7075,
+              "epa_per_dropback": -0.4028,
+              "cpoe": 1.1202,
+              "sack_avoidance_rate": 0.0497,
+              "turnover_rate": -0.3735,
+              "rush_epa_per_carry": 0.1401,
+              "production_ppg": 1.4485
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2019,
+            2023
+          ],
+          "rows": 530,
+          "intercept": 16.0569,
+          "weights": {
+            "dropback_share": 0.7623,
+            "pass_rate": 0.5034,
+            "designed_rush_share": 1.0531,
+            "epa_per_dropback": 1.8897,
+            "cpoe": 0.2565,
+            "sack_avoidance_rate": -0.7276,
+            "turnover_rate": 0.3989,
+            "rush_epa_per_carry": 0.494
+          },
+          "with_production": {
+            "intercept": 16.0268,
+            "weights": {
+              "dropback_share": 0.2791,
+              "pass_rate": 0.2699,
+              "designed_rush_share": 0.7775,
+              "epa_per_dropback": 1.2985,
+              "cpoe": 0.1464,
+              "sack_avoidance_rate": -0.7629,
+              "turnover_rate": 0.3049,
+              "rush_epa_per_carry": 0.3219,
+              "production_ppg": 1.2317
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2019,
+            2023
+          ],
+          "rows": 984,
+          "intercept": 15.1801,
+          "weights": {
+            "dropback_share": 0.8888,
+            "pass_rate": 0.3728,
+            "designed_rush_share": 0.9869,
+            "epa_per_dropback": 2.5196,
+            "cpoe": 0.2329,
+            "sack_avoidance_rate": -0.2645,
+            "turnover_rate": -0.2591,
+            "rush_epa_per_carry": 0.1656
+          },
+          "with_production": {
+            "intercept": 15.1284,
+            "weights": {
+              "dropback_share": 0.1065,
+              "pass_rate": -0.0485,
+              "designed_rush_share": 0.4695,
+              "epa_per_dropback": 1.4641,
+              "cpoe": 0.0767,
+              "sack_avoidance_rate": -0.2718,
+              "turnover_rate": -0.3208,
+              "rush_epa_per_carry": -0.0586,
+              "production_ppg": 2.0031
+            }
+          }
+        }
+      },
       "RB": {
         "early": {
           "fitted_on": [
@@ -5733,6 +7791,104 @@
       }
     },
     "2025": {
+      "QB": {
+        "early": {
+          "fitted_on": [
+            2020,
+            2024
+          ],
+          "rows": 430,
+          "intercept": 16.0222,
+          "weights": {
+            "dropback_share": 1.9112,
+            "pass_rate": 0.1028,
+            "designed_rush_share": 0.8716,
+            "epa_per_dropback": 0.723,
+            "cpoe": 0.622,
+            "sack_avoidance_rate": 0.4369,
+            "turnover_rate": -0.204,
+            "rush_epa_per_carry": 0.3191
+          },
+          "with_production": {
+            "intercept": 15.9978,
+            "weights": {
+              "dropback_share": 1.4292,
+              "pass_rate": -0.3293,
+              "designed_rush_share": 0.5135,
+              "epa_per_dropback": -0.2387,
+              "cpoe": 0.5865,
+              "sack_avoidance_rate": 0.4005,
+              "turnover_rate": -0.3328,
+              "rush_epa_per_carry": 0.0602,
+              "production_ppg": 1.6205
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2020,
+            2024
+          ],
+          "rows": 543,
+          "intercept": 15.5114,
+          "weights": {
+            "dropback_share": 1.5666,
+            "pass_rate": 0.2095,
+            "designed_rush_share": 1.0054,
+            "epa_per_dropback": 1.7153,
+            "cpoe": 0.1962,
+            "sack_avoidance_rate": -0.2886,
+            "turnover_rate": 0.5721,
+            "rush_epa_per_carry": 0.7284
+          },
+          "with_production": {
+            "intercept": 15.5133,
+            "weights": {
+              "dropback_share": 1.179,
+              "pass_rate": 0.0494,
+              "designed_rush_share": 0.8145,
+              "epa_per_dropback": 1.2539,
+              "cpoe": 0.1429,
+              "sack_avoidance_rate": -0.3202,
+              "turnover_rate": 0.5344,
+              "rush_epa_per_carry": 0.6239,
+              "production_ppg": 0.9046
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2020,
+            2024
+          ],
+          "rows": 975,
+          "intercept": 15.499,
+          "weights": {
+            "dropback_share": 0.68,
+            "pass_rate": 0.23,
+            "designed_rush_share": 0.6463,
+            "epa_per_dropback": 2.527,
+            "cpoe": 0.1282,
+            "sack_avoidance_rate": -0.0674,
+            "turnover_rate": 0.0281,
+            "rush_epa_per_carry": 0.4685
+          },
+          "with_production": {
+            "intercept": 15.4743,
+            "weights": {
+              "dropback_share": -0.0455,
+              "pass_rate": -0.0996,
+              "designed_rush_share": 0.2033,
+              "epa_per_dropback": 1.6045,
+              "cpoe": 0.0277,
+              "sack_avoidance_rate": -0.0867,
+              "turnover_rate": 0.0012,
+              "rush_epa_per_carry": 0.2835,
+              "production_ppg": 1.7097
+            }
+          }
+        }
+      },
       "RB": {
         "early": {
           "fitted_on": [
@@ -6005,6 +8161,104 @@
       }
     },
     "2026": {
+      "QB": {
+        "early": {
+          "fitted_on": [
+            2021,
+            2025
+          ],
+          "rows": 435,
+          "intercept": 15.8437,
+          "weights": {
+            "dropback_share": 1.3427,
+            "pass_rate": -0.1019,
+            "designed_rush_share": 0.9051,
+            "epa_per_dropback": 0.953,
+            "cpoe": 0.5556,
+            "sack_avoidance_rate": 0.586,
+            "turnover_rate": 0.0496,
+            "rush_epa_per_carry": -0.0343
+          },
+          "with_production": {
+            "intercept": 15.8272,
+            "weights": {
+              "dropback_share": 1.038,
+              "pass_rate": -0.3698,
+              "designed_rush_share": 0.6287,
+              "epa_per_dropback": 0.2699,
+              "cpoe": 0.5172,
+              "sack_avoidance_rate": 0.5805,
+              "turnover_rate": -0.0709,
+              "rush_epa_per_carry": -0.1822,
+              "production_ppg": 1.1326
+            }
+          }
+        },
+        "pre_deadline": {
+          "fitted_on": [
+            2021,
+            2025
+          ],
+          "rows": 545,
+          "intercept": 15.4039,
+          "weights": {
+            "dropback_share": 0.8436,
+            "pass_rate": 0.1759,
+            "designed_rush_share": 1.4851,
+            "epa_per_dropback": 1.8747,
+            "cpoe": -0.1588,
+            "sack_avoidance_rate": -0.285,
+            "turnover_rate": 0.4653,
+            "rush_epa_per_carry": 0.1078
+          },
+          "with_production": {
+            "intercept": 15.3941,
+            "weights": {
+              "dropback_share": 0.513,
+              "pass_rate": 0.0439,
+              "designed_rush_share": 1.2905,
+              "epa_per_dropback": 1.4177,
+              "cpoe": -0.1872,
+              "sack_avoidance_rate": -0.305,
+              "turnover_rate": 0.4133,
+              "rush_epa_per_carry": 0.042,
+              "production_ppg": 0.8426
+            }
+          }
+        },
+        "post_deadline": {
+          "fitted_on": [
+            2021,
+            2025
+          ],
+          "rows": 975,
+          "intercept": 15.0332,
+          "weights": {
+            "dropback_share": 1.0305,
+            "pass_rate": 0.4346,
+            "designed_rush_share": 0.6329,
+            "epa_per_dropback": 2.3023,
+            "cpoe": 0.0398,
+            "sack_avoidance_rate": -0.0269,
+            "turnover_rate": 0.0529,
+            "rush_epa_per_carry": 0.6053
+          },
+          "with_production": {
+            "intercept": 15.0126,
+            "weights": {
+              "dropback_share": 0.4425,
+              "pass_rate": 0.2034,
+              "designed_rush_share": 0.2344,
+              "epa_per_dropback": 1.5147,
+              "cpoe": 0.0234,
+              "sack_avoidance_rate": -0.0331,
+              "turnover_rate": -0.0196,
+              "rush_epa_per_carry": 0.4986,
+              "production_ppg": 1.3828
+            }
+          }
+        }
+      },
       "RB": {
         "early": {
           "fitted_on": [
@@ -6279,6 +8533,29 @@
   },
   "evaluation": {
     "2022": {
+      "QB": {
+        "early": {
+          "n": 86,
+          "corr_sight": 0.212,
+          "corr_fitted": 0.234,
+          "corr_v0": 0.29,
+          "corr_ppg_to_date": 0.282
+        },
+        "pre_deadline": {
+          "n": 103,
+          "corr_sight": 0.407,
+          "corr_fitted": 0.402,
+          "corr_v0": 0.336,
+          "corr_ppg_to_date": 0.364
+        },
+        "post_deadline": {
+          "n": 186,
+          "corr_sight": 0.469,
+          "corr_fitted": 0.472,
+          "corr_v0": 0.457,
+          "corr_ppg_to_date": 0.461
+        }
+      },
       "RB": {
         "early": {
           "n": 163,
@@ -6350,6 +8627,29 @@
       }
     },
     "2023": {
+      "QB": {
+        "early": {
+          "n": 88,
+          "corr_sight": 0.233,
+          "corr_fitted": 0.22,
+          "corr_v0": 0.206,
+          "corr_ppg_to_date": 0.194
+        },
+        "pre_deadline": {
+          "n": 110,
+          "corr_sight": 0.379,
+          "corr_fitted": 0.372,
+          "corr_v0": 0.441,
+          "corr_ppg_to_date": 0.381
+        },
+        "post_deadline": {
+          "n": 194,
+          "corr_sight": 0.412,
+          "corr_fitted": 0.394,
+          "corr_v0": 0.401,
+          "corr_ppg_to_date": 0.41
+        }
+      },
       "RB": {
         "early": {
           "n": 154,
@@ -6421,6 +8721,29 @@
       }
     },
     "2024": {
+      "QB": {
+        "early": {
+          "n": 84,
+          "corr_sight": 0.296,
+          "corr_fitted": 0.261,
+          "corr_v0": 0.319,
+          "corr_ppg_to_date": 0.348
+        },
+        "pre_deadline": {
+          "n": 118,
+          "corr_sight": 0.433,
+          "corr_fitted": 0.432,
+          "corr_v0": 0.462,
+          "corr_ppg_to_date": 0.416
+        },
+        "post_deadline": {
+          "n": 201,
+          "corr_sight": 0.299,
+          "corr_fitted": 0.306,
+          "corr_v0": 0.326,
+          "corr_ppg_to_date": 0.282
+        }
+      },
       "RB": {
         "early": {
           "n": 152,
@@ -6492,6 +8815,29 @@
       }
     },
     "2025": {
+      "QB": {
+        "early": {
+          "n": 85,
+          "corr_sight": 0.303,
+          "corr_fitted": 0.285,
+          "corr_v0": 0.31,
+          "corr_ppg_to_date": 0.328
+        },
+        "pre_deadline": {
+          "n": 110,
+          "corr_sight": 0.159,
+          "corr_fitted": 0.149,
+          "corr_v0": 0.155,
+          "corr_ppg_to_date": 0.185
+        },
+        "post_deadline": {
+          "n": 201,
+          "corr_sight": 0.244,
+          "corr_fitted": 0.235,
+          "corr_v0": 0.206,
+          "corr_ppg_to_date": 0.23
+        }
+      },
       "RB": {
         "early": {
           "n": 152,
