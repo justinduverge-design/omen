@@ -583,6 +583,83 @@ function gradeAgainstAlternative(decision, found, label, target) {
   };
 }
 
+/** The provider's own id for a recommendation player: "sleeper:4046" -> 4046, "espn:3054211" -> 3054211, Yahoo keys as-is. */
+function leaguePlayerId(decision, which) {
+  const id = decision?.recommendation?.[which]?.id;
+  if (typeof id !== "string" || !id) return null;
+  const match = /^(sleeper|espn|yahoo):(.+)$/.exec(id);
+  return match ? match[2] : id;
+}
+
+/**
+ * The points each call's two players actually scored, as the league itself scored them, read from the
+ * connected provider. Map(decisionId -> { primary, comparison }); a player the league did not report is
+ * undefined. Never throws: a league that cannot be read is simply absent and grading falls back.
+ */
+async function resolveLeagueOutcomes(supabase, entries, deps = {}) {
+  const out = new Map();
+  const groups = new Map();
+  if (!supabase || typeof supabase.from !== "function") return out;
+  for (const entry of entries) {
+    const { decision } = entry;
+    if (!decision?.league_id) continue;
+    const key = `${decision.league_id}|${decision.week}|${decision.user_id}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(decision);
+  }
+  const espnCreds = deps.espnCredentials || ((userId) => require("./services/espnAuth").getAuthenticatedEspnCredentials(userId));
+  const yahooAuth = deps.yahooClient || ((userId) => require("./services/yahooAuth").getAuthenticatedYahooClient(userId));
+  // Lazy: the provider adapters load config, which this module must not require at import time.
+  const points = deps.leagueActualPoints || require("./services/leagueActualPoints");
+
+  for (const decisions of groups.values()) {
+    const first = decisions[0];
+    try {
+      const { data: league } = await supabase.from("leagues").select("provider,provider_league_id")
+        .eq("id", first.league_id).maybeSingle();
+      if (!league?.provider_league_id) continue;
+      const week = Number(first.week);
+      let scored = new Map();
+      if (league.provider === "sleeper") {
+        scored = await points.sleeperPoints({ leagueId: league.provider_league_id, week });
+      } else if (league.provider === "espn") {
+        scored = await points.espnPoints({ leagueId: league.provider_league_id, week, credentials: await espnCreds(first.user_id) });
+      } else if (league.provider === "yahoo") {
+        const { client } = await yahooAuth(first.user_id);
+        const keys = decisions.flatMap((d) => [leaguePlayerId(d, "primary_player"), leaguePlayerId(d, "comparison_player")]).filter(Boolean);
+        scored = await points.yahooPoints({ leagueKey: league.provider_league_id, week, playerKeys: keys, client });
+      }
+      for (const decision of decisions) {
+        out.set(decision.id, {
+          primary: scored.get(String(leaguePlayerId(decision, "primary_player"))),
+          comparison: scored.get(String(leaguePlayerId(decision, "comparison_player"))),
+        });
+      }
+    } catch (error) {
+      log.warn(`League points unavailable for one league-week; falling back (reason=${error.code || error.status || error.name})`);
+    }
+  }
+  return out;
+}
+
+/** Grade from the league's own scored points: exact, so provenance is verified. Null when either is missing. */
+function gradeFromLeaguePoints(decision, league) {
+  const words = COMPARISON_WORDS[decision.call_type];
+  if (!words || !league || league.primary == null || league.comparison == null) return null;
+  const target = decisionTargetPlayer(decision) || "the recommended player";
+  const comparisonName = decision?.recommendation?.comparison_player?.name || "the alternative";
+  const margin = Math.round((league.primary - league.comparison) * 10) / 10;
+  return {
+    state: "resolved",
+    result: margin >= 0 ? "win" : "loss",
+    provenance: "verified",
+    reconciliation_state: RECONCILIATION_STATES.EXACT,
+    effectiveness: Math.max(0, Math.min(100, Math.round(50 + margin * 4))),
+    summary: `${words[0]} ${target}: ${league.primary.toFixed(1)}; ${words[1]} ${comparisonName}: ${league.comparison.toFixed(1)} (your league's scoring). `
+      + (margin >= 0 ? `The call gained ${margin.toFixed(1)}.` : `The call cost ${Math.abs(margin).toFixed(1)}.`),
+  };
+}
+
 async function openWarehouseOutcomeRepository({ env, dependencies, Pool } = {}) {
   if (dependencies?.warehouseOutcomeRepository !== undefined) {
     return { repository: dependencies.warehouseOutcomeRepository, close: async () => {} };
@@ -624,8 +701,10 @@ async function previewLedgerOutcomes(supabase, { season, week, repository, depen
   const found = await resolveWarehouseOutcomes({ entries: needsLine, repository, resolveGsis: (keys) => resolveGsis(supabase, keys) });
 
   const counts = { calls: entries.length, graded: 0, data_incomplete: 0, not_executed: 0, pending: 0 };
+  const leagueFound = await resolveLeagueOutcomes(supabase, needsLine, dependencies);
   const preview = entries.map((entry) => {
-    const outcome = gradeDecisionFromWarehouse(entry, found.get(entry.decision.id));
+    const outcome = (entry.action?.followed === false ? null : gradeFromLeaguePoints(entry.decision, leagueFound.get(entry.decision.id)))
+      || gradeDecisionFromWarehouse(entry, found.get(entry.decision.id));
     if (!outcome) {
       counts.pending += 1;
       return { decision_id: entry.decision.id, week, state: "pending", basis: "week_not_in_warehouse" };
@@ -689,9 +768,17 @@ async function scoreLedgerDecisions(supabase, {
     try { await warehouse.close(); } catch { /* closing a read pool must not fail scoring */ }
   }
 
+  const leagueFound = await resolveLeagueOutcomes(supabase, pending.filter((entry) => entry.action?.followed !== false), dependencies);
+
   for (const entry of pending) {
     const { decision } = entry;
     try {
+      const fromLeague = entry.action?.followed === false ? null : gradeFromLeaguePoints(decision, leagueFound.get(decision.id));
+      if (fromLeague) {
+        const status = await saveOutcome(supabase, { decision, existing: entry.outcome, outcome: fromLeague, now });
+        tally[status === "inserted" ? "inserted" : status === "updated" ? "updated" : "unchanged"] += 1;
+        continue;
+      }
       if (warehouseFound) {
         const outcome = gradeDecisionFromWarehouse(entry, warehouseFound.get(decision.id));
         if (!outcome) {
@@ -857,6 +944,8 @@ if (require.main === module) {
 }
 
 module.exports = {
+  gradeFromLeaguePoints,
+  resolveLeagueOutcomes,
   gradeAgainstAlternative,
   archiveNotExecutedMoves,
   confidenceFlags,

@@ -49,7 +49,7 @@ const DECISION_DETAIL_COLUMNS = [
   "supersedes_id", "legacy_move_id",
 ].join(",");
 const SCORABLE_COLUMNS = [
-  "id", "user_id", "season", "week", "call_type", "headline", "recommendation", "internal_score",
+  "id", "user_id", "league_id", "season", "week", "call_type", "headline", "recommendation", "internal_score",
   "scoring_format", "scoring_contract_version", "scoring_contract_hash", "scoring_coverage_state",
 ].join(",");
 
