@@ -1,5 +1,7 @@
 "use strict";
 
+const { abbreviationForProviderNumber } = require("../services/footballIntelligence/nflTeams");
+
 /**
  * ESPN platform adapter.
  *
@@ -351,7 +353,8 @@ function normalizePlayer(entry, week) {
     position: primaryPosition,
     eligible_positions: eligiblePositions(player, primaryPosition),
     selected_position: selectedPosition,
-    team: player?.proTeamAbbreviation || player?.teamAbbrev || player?.team || null,
+    // ESPN sends only proTeamId on roster players; without this every ESPN player had no NFL team.
+    team: player?.proTeamAbbreviation || player?.teamAbbrev || player?.team || abbreviationForProviderNumber(player?.proTeamId) || null,
     opponent: null,
     status: statusFrom(player?.injuryStatus || player?.injury_status || player?.status),
     // The `stats` lookup is last because the flat fields above are what ESPN's older shapes
