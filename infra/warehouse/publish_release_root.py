@@ -47,6 +47,7 @@ FILE_MODES = {
     "infra/warehouse/backup/omen-warehouse-backup.timer": 0o644,
     "infra/warehouse/backup/omen-warehouse-restore-proof.service": 0o644,
     "infra/warehouse/backup/omen-warehouse-restore-proof.timer": 0o644,
+    "infra/warehouse/backup/projection-analysis-session.js": 0o644,
     "infra/warehouse/backup/receive-restore-source.sh": 0o755,
     "infra/warehouse/backup/restore-isolated.sh": 0o755,
     "infra/warehouse/backup/run-nightly-backup.sh": 0o755,
