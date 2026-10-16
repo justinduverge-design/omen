@@ -25,11 +25,15 @@ function phaseOf(week) {
   return "post_deadline";
 }
 
+// v1 = eye test + production; v2 adds game context (Vegas implied team total, opponent allowed to position).
+const VARIANTS = Object.freeze({ v1: "with_production", v2: "with_context" });
+
 /** Weights for (season, position, phase): that season's era fit, else the latest earlier one. */
-function weightsFor(season, position, phase) {
+function weightsFor(season, position, phase, version = "v1") {
+  const variant = VARIANTS[version] || VARIANTS.v1;
   const seasons = Object.keys(WEIGHTS.weights).map(Number).filter((s) => s <= season).sort((a, b) => b - a);
   for (const s of seasons) {
-    const w = WEIGHTS.weights[s]?.[position]?.[phase]?.with_production;
+    const w = WEIGHTS.weights[s]?.[position]?.[phase]?.[variant];
     if (w) return { ...w, season: s, fitted_on: WEIGHTS.weights[s][position][phase].fitted_on };
   }
   return null;
@@ -47,13 +51,13 @@ function qualifies(position, agg, week) {
  * @param {Map} positions omen player id -> { position }
  * @param {Map} ppgToDate omen player id -> points per game through week (games played only)
  */
-function computeSight({ season, week, aggregates, positions, ppgToDate }) {
+function computeSight({ season, week, aggregates, positions, ppgToDate, context = null, version = VERSION }) {
   const phase = phaseOf(week);
   const values = [];
-  const summary = { phase, version: VERSION, positions: {} };
+  const summary = { phase, version, positions: {} };
   for (const position of Object.keys(SPECS)) {
     const spec = SPECS[position];
-    const w = weightsFor(season, position, phase);
+    const w = weightsFor(season, position, phase, version);
     const ids = [...aggregates.keys()].filter((id) => positions.get(id)?.position === position && qualifies(position, aggregates.get(id), week)).sort();
     if (!w || ids.length < MIN_COHORT) { summary.positions[position] = { graded: 0, reason: w ? "cohort_too_small" : "no_weights" }; continue; }
     const raws = ids.map((id) => spec.raw(aggregates.get(id)));
@@ -68,6 +72,17 @@ function computeSight({ season, week, aggregates, positions, ppgToDate }) {
     const ppg = ids.map((id) => ppgToDate.get(id) ?? 0);
     const pm = mean(ppg); const ps = sd(ppg);
     features.production_ppg = ppg.map((v) => (ps > 1e-9 ? (v - pm) / ps : 0));
+    if (version === "v2") {
+      // Game context for the next game, z-scored within the cohort; a missing value (no line yet) is neutral.
+      const ctx = ids.map((id) => context?.(id, position) || null);
+      const z = (key) => {
+        const vals = ctx.map((c) => c?.[key]).filter((v) => v != null);
+        const m0 = vals.length ? mean(vals) : 0; const s0 = vals.length ? sd(vals) : 0;
+        return ctx.map((c) => (c?.[key] == null || s0 <= 1e-9 ? 0 : (c[key] - m0) / s0));
+      };
+      features.implied_team_total = z("implied");
+      features.opponent_allowed_to_position = z("oppAllowed");
+    }
 
     const points = ids.map((_, i) => w.intercept + Object.entries(w.weights).reduce((s, [k, b]) => s + b * (features[k]?.[i] ?? 0), 0));
     const m = mean(points); const s = sd(points);
@@ -78,7 +93,7 @@ function computeSight({ season, week, aggregates, positions, ppgToDate }) {
         entityId: id,
         value: r4(points[i]),
         components: {
-          metric: "SIGHT", version: VERSION, position, phase,
+          metric: "SIGHT", version, position, phase,
           grade: r4(Math.min(100, Math.max(0, 50 + 10 * (s > 1e-9 ? (points[i] - m) / s : 0)))),
           sight_points: r4(points[i]),
           production_ppg: r4(ppg[i]),
@@ -94,4 +109,4 @@ function computeSight({ season, week, aggregates, positions, ppgToDate }) {
   return { values, summary: { ...summary, outcome: values.length ? "graded" : "no_qualified_entities" } };
 }
 
-module.exports = { VERSION, computeSight, phaseOf, weightsFor };
+module.exports = { VERSION, VARIANTS, computeSight, phaseOf, weightsFor };

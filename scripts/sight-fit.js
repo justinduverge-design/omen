@@ -21,6 +21,7 @@ const path = require("node:path");
 const here = __dirname.endsWith("scripts") ? path.join(__dirname, "..") : "/tmp/sight";
 const req = (p) => require(fs.existsSync(path.join(here, p)) ? path.join(here, p) : path.join(here, path.basename(p)));
 const { SPECS, aggregateSkillPlays } = req("src/services/footballWarehouse/ratSkillMetric.js");
+const { buildContext } = req("src/services/footballWarehouse/sightContext.js");
 
 const PHASES = Object.freeze([
   { key: "early", from: 3, to: 5 },          // role still forming; small samples
@@ -58,7 +59,7 @@ function qualifies(position, agg, week) {
 }
 
 /** Rows {season, week, position, phase, id, x: number[], ppgToDate, y} for one season. */
-function rowsForSeason(season, plays, positions, weekly) {
+function rowsForSeason(season, plays, positions, weekly, ctx) {
   const byWeek = new Map();
   for (const p of plays) { if (!byWeek.has(p.week)) byWeek.set(p.week, []); byWeek.get(p.week).push(p); }
   const rows = [];
@@ -88,10 +89,20 @@ function rowsForSeason(season, plays, positions, weekly) {
         return toDate.length ? mean(toDate) : 0;
       });
       const pm = mean(ppg); const ps = sd(ppg);
+      // Context for the game being predicted (week + 1): the team's implied points from the Vegas total and
+      // spread, and how many PPR points that opponent has allowed per game to this position so far.
+      const context = ids.map((id) => ctx.contextFor(id, position, week));
+      const zOf = (key) => {
+        const vals = context.map((c) => c?.[key]).filter((v) => v != null);
+        const m = vals.length ? mean(vals) : 0; const sdv = vals.length ? sd(vals) : 0;
+        return context.map((c) => (c?.[key] == null || sdv <= 1e-9 ? 0 : (c[key] - m) / sdv));
+      };
+      const zImplied = zOf("implied"); const zOpp = zOf("oppAllowed");
       ids.forEach((id, i) => {
         const y = next.get(id);
         if (y == null) return; // did not play next week: no label (injury/bye is not the model's question)
-        rows.push({ season, week, position, phase, id, x: feats.map((f) => f[i]), xp: ps > 1e-9 ? (ppg[i] - pm) / ps : 0, ppgToDate: ppg[i], y });
+        rows.push({ season, week, position, phase, id, x: feats.map((f) => f[i]), xp: ps > 1e-9 ? (ppg[i] - pm) / ps : 0,
+          xc: [zImplied[i], zOpp[i]], hasLine: context[i]?.implied != null, ppgToDate: ppg[i], y });
       });
     }
   }
@@ -141,7 +152,9 @@ async function main() {
   const all = [];
   for (let season = opts.from; season <= opts.to; season += 1) {
     const plays = await pool.query(playsSql, [season, null]);
-    const stats = await pool.query("SELECT week, player_id, fantasy_points_ppr FROM football.nfl_player_weekly_stats WHERE season = $1 AND season_type = 'REG'", [season]);
+    const stats = await pool.query("SELECT week, player_id, team_id, opponent_team_id, football_position, fantasy_points_ppr FROM football.nfl_player_weekly_stats WHERE season = $1 AND season_type = 'REG'", [season]);
+    const games = await pool.query("SELECT week, home_team_id, away_team_id, spread_line, total_line FROM football.nfl_games WHERE season = $1 AND game_type = 'REG'", [season]);
+    const ctx = buildContext(stats.rows, games.rows);
     const weekly = new Map();
     for (const r of stats.rows) {
       const key = `${season}|${r.week}`;
@@ -154,7 +167,7 @@ async function main() {
       qbScramble: r.qb_scramble, twoPoint: r.two_point, completePass: r.complete_pass, cp: r.cp, yardsGained: r.yards_gained,
       airYards: r.air_yards, yardline100: r.yardline_100, fumbleLost: r.fumble_lost, fumbledGsisId: r.fumbled_gsis_id,
       passerId: r.passer_player_id, qbDropback: r.qb_dropback, interception: r.interception, cpoe: r.cpoe,
-    })), positions, weekly);
+    })), positions, weekly, ctx);
     all.push(...rows);
     process.stderr.write(`season ${season}: ${rows.length} rows\n`);
   }
@@ -172,11 +185,17 @@ async function main() {
         const beta = ridge(fit, SPECS[position].components.length);
         const withProd = fit.map((r) => ({ ...r, x: [...r.x, r.xp] }));
         const betaP = ridge(withProd, SPECS[position].components.length + 1);
+        const withCtx = fit.map((r) => ({ ...r, x: [...r.x, r.xp, ...r.xc] }));
+        const betaC = ridge(withCtx, SPECS[position].components.length + 3);
         (weights[target] ||= {})[position] ||= {};
         weights[target][position][phase] = {
           fitted_on: [target - ERA_SEASONS, target - 1], rows: fit.length,
           intercept: Number(beta[0].toFixed(4)),
           weights: Object.fromEntries(SPECS[position].components.map((c, i) => [c.key, Number(beta[i + 1].toFixed(4))])),
+          with_context: {
+            intercept: Number(betaC[0].toFixed(4)),
+            weights: Object.fromEntries([...SPECS[position].components.map((c) => c.key), "production_ppg", "implied_team_total", "opponent_allowed_to_position"].map((k, i) => [k, Number(betaC[i + 1].toFixed(4))])),
+          },
           with_production: {
             intercept: Number(betaP[0].toFixed(4)),
             weights: Object.fromEntries([...SPECS[position].components.map((c) => c.key), "production_ppg"].map((k, i) => [k, Number(betaP[i + 1].toFixed(4))])),
@@ -187,12 +206,14 @@ async function main() {
           if (test.length < 30) continue;
           const fitted = test.map((r) => beta[0] + r.x.reduce((s, x, i) => s + beta[i + 1] * x, 0));
           const sight = test.map((r) => betaP[0] + [...r.x, r.xp].reduce((s, x, i) => s + betaP[i + 1] * x, 0));
+          const sightCtx = test.map((r) => betaC[0] + [...r.x, r.xp, ...r.xc].reduce((s, x, i) => s + betaC[i + 1] * x, 0));
           const v0 = test.map((r) => r.x.reduce((s, x, i) => s + SPECS[position].components[i].weight * x, 0));
           const ppg = test.map((r) => r.ppgToDate);
           const y = test.map((r) => r.y);
           (evaluation[target] ||= {})[position] ||= {};
           evaluation[target][position][phase] = {
             n: test.length,
+            corr_sight_context: Number(corr(sightCtx, y).toFixed(3)),
             corr_sight: Number(corr(sight, y).toFixed(3)),
             corr_fitted: Number(corr(fitted, y).toFixed(3)),
             corr_v0: Number(corr(v0, y).toFixed(3)),

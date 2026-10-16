@@ -67,8 +67,13 @@ function createDerivedStages({ pool, mode = "strict", opportunityWriter = create
       const settings = sightSettings(env);
       if (settings.enabled) {
         try {
-          const r = await (sightAccuracyRunner || createSightAccuracyRunner({ pool, version: settings.version })).run({ season });
-          sightAccuracy = { state: r.state, gradedWeeks: r.graded_weeks ?? null, version: settings.version };
+          // Every version is graded, so a new one earns the switch on evidence; SIGHT_VERSION is what is served.
+          const byVersion = {};
+          for (const version of ["v1", "v2"]) {
+            const r = await (sightAccuracyRunner || createSightAccuracyRunner({ pool, version })).run({ season });
+            byVersion[version] = { state: r.state, gradedWeeks: r.graded_weeks ?? null };
+          }
+          sightAccuracy = { ...byVersion.v1, version: settings.version, versions: byVersion };
         } catch (error) {
           sightAccuracy = { state: "failed", code: stageError("sight_accuracy", error).code };
         }
