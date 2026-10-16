@@ -8,13 +8,16 @@ select (
   current_database() = 'omen_football'
   and current_setting('transaction_read_only') = 'on'
   and (
-    -- Versions 1 and 2 are required; version 3 (weekly projections) is optional until it is applied.
-    select count(*) between 2 and 3
+    -- Versions 1 and 2 are required; 3 (weekly projections) and 4 (warehouse map) are optional until applied,
+    -- and the ledger stays contiguous (count equals the highest version).
+    select count(*) between 2 and 4
+      and count(*) = max(version)
       and count(*) filter (where version in (1, 2)) = 2
       and bool_and((version, name, checksum) in (
         (1, '0001_football_warehouse', '27fb1e8dd4a5167ffc27660f165f326e7c9a6e3b4aaf2e04ec16ec4e55448f1c'),
         (2, '0003_warehouse_access_policy', '0b0577edd8995fad967409a37012390d77447cf55595fd4a310270b56f7a169d'),
-        (3, '0005_weekly_projections', 'e689d5878bbe51f3bbe6aa0188b725e33bde7f9da8497bd8b002a2307505917d')
+        (3, '0005_weekly_projections', 'e689d5878bbe51f3bbe6aa0188b725e33bde7f9da8497bd8b002a2307505917d'),
+        (4, '0007_warehouse_map', 'c078344a7fb3f6f884f584617915b0b3c3c053cf5b8463d668859013e7d4a5cb')
       ))
     from football.warehouse_schema_migrations
   )
@@ -74,6 +77,15 @@ select (
       and not has_table_privilege('omen_warehouse_reader', 'football.player_weekly_projection_versions', 'select')
       and not has_table_privilege('omen_warehouse_reader', 'football.player_weekly_projections', 'insert')
       and has_table_privilege('omen_warehouse_backup', 'football.player_weekly_projection_versions', 'select')
+    ) end
+  -- Warehouse map (ledger version 4), checked only once applied: readable by every role, written by none, and current.
+  and case when not exists (select 1 from football.warehouse_schema_migrations where version = 4) then true
+    else (
+      to_regclass('football.warehouse_map') is not null
+      and has_table_privilege('omen_warehouse_reader', 'football.warehouse_map', 'select')
+      and not has_table_privilege('omen_warehouse_writer', 'football.warehouse_map', 'insert')
+      and not has_table_privilege('omen_warehouse_writer', 'football.warehouse_map', 'update')
+      and not exists (select 1 from football.warehouse_map_drift)
     ) end
 ) as warehouse_verified
 \gset
