@@ -41,3 +41,14 @@ judgment values; v1 fits them against graded outcomes.
 
 Weekly (through-week) runs so each week's grade can be graded; K and DEF; the Sight composite; grading Sight
 and provider projections against league-scored outcomes; the `sight` block in API responses.
+
+## Context layers (v2, built 2026-10-16, served once the bundle is complete)
+
+Held out 2022-2025 unless noted; correlation with next-week fantasy points.
+
+| Layer | Inputs | Result |
+|---|---|---|
+| Game context | team implied total (Vegas total and spread), opponent points allowed to position | QB 0.320 -> 0.373; small gains elsewhere. Kept. |
+| K and DEF | Omen's own standard scoring from play-by-play | DEF 0.297 vs production 0.075 (12/12). K ~0.02: kicker weeks are near random; served with confidence low. |
+| Role changes | usage trend (last 3 weeks vs season), vacated share of teammates out next week | 2024-2025: RB 0.551 vs 0.542 (vacated +0.83), QB/TE via trend; WR flat. Kept. |
+| Weather | game-day wind, cold (recorded weather as a perfect forecast) | No gain (QB 0.375 vs 0.379, RB 0.539 vs 0.541). The Vegas line already prices it. Not added; no forecast pipeline. |
