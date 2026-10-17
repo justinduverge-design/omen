@@ -1,12 +1,8 @@
-# Trade Components
+# Trade components
 
-Tier 2 landing zone for extracting reusable Trade Analyzer pieces.
+An empty home for Trade Analyzer pieces pulled out of `pages/TradeAnalyzer.jsx` and `pages/TradeShare.jsx`. Put a
+piece here once a second page needs it.
 
-Current product decision:
-- User-facing Phase 1 fields are Position and Name.
-- Projection and Status are intentionally Omen-owned analysis/enrichment signals, not user-entered fields.
-- Static autocomplete uses `frontend/src/data/nflPlayers.js`.
-
-Future backend Phase 2:
-- `GET /api/players/search`
-- `GET /api/trade/pulse`
+- Data: `POST /api/trade/compare` (`trade-compare.v2`), `GET /api/trade/find`, `GET /api/trade/roster`,
+  `GET /api/players/search`, `/api/trade/share/*`.
+- The user picks players. Projections, status and value are always Omen's, never typed in by the user.
