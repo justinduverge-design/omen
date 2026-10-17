@@ -376,7 +376,7 @@
       "capability": "user_roster",
       "status": "available",
       "reason": null,
-      "detail": "mTeam and mRoster with lineup slots, injury status and ESPN's own projection. Lock flags (lineupLocked, rosterLocked, tradeLocked) are read onto each player; Trade skips trade-locked players. Start/Sit and Waiver do not yet act on lineup_locked/roster_locked.",
+      "detail": "mTeam and mRoster with lineup slots, injury status and ESPN's own projection. Lock flags (lineupLocked, rosterLocked, tradeLocked) are read onto each player; Trade skips trade-locked players. Start/Sit and Waivers skip locked players (sightDecision.isLocked).",
       "evidence": [
         {
           "file": "src/adapters/espn.js",
@@ -653,12 +653,18 @@
       "capability": "user_roster",
       "status": "available",
       "reason": null,
-      "detail": "Slots and status are read. The roster itself carries no projection; see player_projections.",
+      "detail": "Slots and status are read. The roster itself carries no projection; see player_projections. is_editable is read onto each player; Start/Sit and Waivers skip a player Yahoo marks not editable.",
       "evidence": [
         {
           "file": "src/adapters/yahoo.js",
           "includes": [
             "buildNormalizedRoster"
+          ]
+        },
+        {
+          "file": "src/services/roster.js",
+          "includes": [
+            "is_editable"
           ]
         }
       ],
@@ -1027,18 +1033,6 @@
       "needs": "a live probe; needs the founder's Yahoo session",
       "tokens": [
         "percent_owned"
-      ]
-    },
-    {
-      "provider": "yahoo",
-      "field": "is_editable",
-      "kind": "documented",
-      "evidence": "Yahoo Fantasy API roster player field",
-      "opportunity": "Lineup-lock flag, the Yahoo equivalent of ESPN lineupLocked.",
-      "value": "high",
-      "needs": "a live probe; needs the founder's Yahoo session",
-      "tokens": [
-        "is_editable"
       ]
     },
     {

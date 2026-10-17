@@ -378,6 +378,8 @@ router.get("/analysis", requireAuth, async (req, res, next) => {
       }));
     }
 
+    // Sight first, so the decision itself weighs Omen's read (not just the display).
+    await attachSight({ roster: loaded.roster, pool: loaded.pool });
     const baseAnalysis = buildWaiverAnalysis({
       roster: loaded.roster,
       pool: loaded.pool,

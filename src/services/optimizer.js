@@ -37,6 +37,7 @@ const POSITION_GROUPS = {
 };
 
 const { assessConfidence, scoreForBand, usageCorroboration } = require("./confidencePolicy");
+const { blendWithSight, isLocked } = require("./sightDecision");
 
 const HEALTHY = new Set([null, undefined, "", "P", "PROBABLE"]);
 const RISKY   = new Set(["Q", "QUESTIONABLE", "GTD", "DTD"]);
@@ -115,7 +116,10 @@ function statusPenalty(status) {
 }
 
 function adjustedProjection(player) {
-  const proj = Number(player.projected_points) || 0;
+  const raw = Number(player.projected_points) || 0;
+  // Omen's Sight moves the number when it is attached; without it this is the provider projection, unchanged.
+  // Only a real provider number is blended: a missing one stays 0 here, exactly as before.
+  const proj = hasProjection(player) ? blendWithSight(raw, player) : raw;
   return proj * (1 - statusPenalty(player.status));
 }
 
@@ -176,6 +180,8 @@ function evaluateLineup(roster, opts = {}, scoringConfig = {}) {
   const strict = partialProjections(roster);
 
   for (const starter of roster.slots.starters) {
+    // A locked starter (the game started) cannot be benched; never suggest it.
+    if (isLocked(starter)) continue;
     const slot   = starter.selected_position || starter.position;
     const compat = compatibleSlots(slot);
     const sProj  = adjustedProjection(starter);
@@ -183,7 +189,8 @@ function evaluateLineup(roster, opts = {}, scoringConfig = {}) {
     if (strict && !hasProjection(starter) && statusPenalty(starter.status) < 1) continue;
 
     const candidates = roster.slots.bench
-      .filter(b => (!strict || hasProjection(b))
+      .filter(b => !isLocked(b)
+                && (!strict || hasProjection(b))
                 && Array.isArray(b.eligible_positions)
                 && b.eligible_positions.some(p => compat.includes(p)))
       .map(b => ({ player: b, adj: adjustedProjection(b) }))

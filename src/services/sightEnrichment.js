@@ -46,7 +46,8 @@ function createSightEnricher({ getRuntime, env = process.env, budgetMs = DEFAULT
   /** Adds `sight` to every player object found in `payload` (any response shape). Mutates and returns it. */
   return async function attachSight(payload) {
     const players = payload;
-    const list = collectPlayers(payload);
+    // A player that already carries Sight (attached before a decision) is not read twice.
+    const list = collectPlayers(payload).filter((player) => !player.sight);
     const settings = sightSettings(env);
     if (!settings.enabled || !list.length) return players;
     try {

@@ -32,6 +32,7 @@ const { projectYahooPool } = require("./yahooProjections");
 const { evaluateTradeForConnection, TRADE_READ_BUDGET_MS } = require("./omenTradeCandidate");
 const { buildHold } = require("./omenHold");
 const { getRuntime: getSharedWarehouseRuntime } = require("./footballWarehouse/sharedUsageAccess");
+const { createSightEnricher } = require("./sightEnrichment");
 const { connectionForLeague } = require("./leagueDiscovery");
 const { withinLatencyBudget } = require("./latencyBudget");
 const {
@@ -1707,6 +1708,7 @@ function espnRecoveryFromError(connection, err) {
 }
 
 let usageReaderProvider = () => getUsageReader({ logger });
+const attachRosterSight = createSightEnricher({ getRuntime: () => getSharedWarehouseRuntime({ logger }), log: logger });
 
 const MAX_SCOPE_LENGTH = 128;
 const LEAGUE_DISCOVERY_BUDGET_MS = 2000;
@@ -1929,6 +1931,8 @@ async function buildLiveOmenMvpMoveForUserInner(userId, requested, scope) {
   const waiverAnalysis = await buildWaiverCandidateForConnection({ connection, roster, espnCredentials, yahooClient });
   waiverPoolProjection = waiverAnalysis.yahooProjection || null;
   const lineupUsage = await lineupUsagePromise;
+  // Sight on the roster before the lineup call, so Start/Sit weighs Omen's read (never throws, budgeted).
+  await attachRosterSight(roster);
   const [swap] = optimizer.evaluateLineup(roster, lineupUsage ? { usage: lineupUsage } : {});
   if (swap) {
     candidates.push({
