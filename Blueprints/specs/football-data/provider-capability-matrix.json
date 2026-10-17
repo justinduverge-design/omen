@@ -475,12 +475,19 @@
       "capability": "waiver_pool",
       "status": "available",
       "reason": null,
-      "detail": "kona_player_info free agents and waivers, paginated. The waiver deadline is always null.",
+      "detail": "kona_player_info free agents and waivers, paginated. The waiver deadline is always null. ownership.percentOwned/percentChange are read onto pool players; Waivers name a large weekly change as a market signal.",
       "evidence": [
         {
           "file": "src/adapters/espn.js",
           "includes": [
             "fetchEspnWaiverPool"
+          ]
+        },
+        {
+          "file": "src/adapters/espn.js",
+          "includes": [
+            "percentOwned",
+            "percentChange"
           ]
         }
       ],
@@ -932,19 +939,6 @@
       "needs": "none; already arrives",
       "tokens": [
         "eligibleSlots"
-      ]
-    },
-    {
-      "provider": "espn",
-      "field": "ownership.percentOwned / percentChange",
-      "kind": "observed",
-      "evidence": "Blueprints/specs/b2d-espn-e0-verdict-v1.md (percentOwned 97.3-99.8 on the sample)",
-      "opportunity": "Waiver heat: who the market is adding. Free signal for waiver ranking and for trade market value.",
-      "value": "medium",
-      "needs": "none; already arrives",
-      "tokens": [
-        "percentOwned",
-        "percentChange"
       ]
     },
     {

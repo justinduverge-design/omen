@@ -50,7 +50,6 @@ Provider fields and endpoints that are observed or documented but that no code i
 | Provider | Field | Seen | Opportunity | Value | Needs |
 |---|---|---|---|---|---|
 | espn | eligibleSlots | observed | Real positional eligibility (FLEX, SUPERFLEX, IDP, bench) per player. Also the missing slot list for league_roster_positions. | high | none; already arrives |
-| espn | ownership.percentOwned / percentChange | observed | Waiver heat: who the market is adding. Free signal for waiver ranking and for trade market value. | medium | none; already arrives |
 | espn | keeperValue / draftAuctionValue | observed | Keeper and auction leagues: the league's own valuation of each player. | low | only matters for keeper leagues |
 | espn | proTeamSchedules | documented | Provider-side NFL schedule and bye per player. | low | a live probe; Omen already has nflSchedule.js |
 | sleeper | depth_chart_order / depth_chart_position | documented | Depth-chart role per player on a list Omen already fetches. | medium | none technically; check it against the warehouse depth data first |

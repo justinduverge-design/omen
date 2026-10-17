@@ -26,8 +26,9 @@ const WAIVER = Object.freeze({
   // current_role / observed_usage: usage sentence from warehouse opportunity counts
   // (waiverUsageEvidence.js), appended only when real numbers exist.
   // omen_read / omen_sight: Omen's own Sight read of the add, when SIGHT_ENABLED attached one.
-  categories: freeze(["immediate_need", "league_fact", "current_role", "omen_read"]),
-  kinds: freeze(["roster_math", "league_context", "observed_usage", "omen_sight"]),
+  // market_signal / provider_ownership: ESPN's league-wide roster rate and its weekly change.
+  categories: freeze(["immediate_need", "league_fact", "current_role", "omen_read", "market_signal"]),
+  kinds: freeze(["roster_math", "league_context", "observed_usage", "omen_sight", "provider_ownership"]),
 });
 
 // move-detail.v1 `evidence_at_the_time[]`, code-built rows (routes/moves.js legacy builder and

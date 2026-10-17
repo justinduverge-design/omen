@@ -42,3 +42,11 @@ test("locked players are never swapped, displaced or dropped", () => {
   const out = buildWaiverAnalysis({ roster, pool: [p("x", "WR", 14)], platform: "espn", leagueId: "1", availabilityConfirmed: true });
   assert.equal(out.best_move, null);
 });
+
+test("ESPN market movement on the add is named as a signal, not a verdict", () => {
+  const roster = { slots: { starters: [p("s1", "WR", 8, { selected_position: "WR" })], bench: [p("b1", "WR", 3), p("b2", "WR", 4)] } };
+  const pool = [p("x", "WR", 14, { owned_pct: 41.2, owned_pct_change: 18.5 })];
+  const out = buildWaiverAnalysis({ roster, pool, platform: "espn", leagueId: "1", availabilityConfirmed: true });
+  const row = out.evidence.find((e) => e.category === "market_signal");
+  assert.match(row.statement, /41\.2% of ESPN leagues, up 18\.5/);
+});
