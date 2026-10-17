@@ -49,8 +49,31 @@ function hintOf(key, hint) {
   return { key, name, team: `omen:team:${(TEAM_ALIASES[team] || team).toLowerCase()}`, position };
 }
 
-function createWarehouseSightRepository({ query, timeoutMs = 2_000 }) {
+const BYE_TTL_MS = 60 * 60 * 1000;
+
+function createWarehouseSightRepository({ query, timeoutMs = 2_000, now = () => Date.now() }) {
   if (typeof query !== "function") throw new TypeError("query must be a function");
+  // Each team's bye week this season, from the schedule (the REG week it has no game). Cached for an hour.
+  let byes = { at: 0, season: null, map: new Map() };
+  async function byeWeeks() {
+    if (now() - byes.at < BYE_TTL_MS) return byes.map;
+    const result = await query({
+      name: "warehouse-bye-weeks-v1",
+      text: `
+        WITH season AS (SELECT max(season) AS season FROM football.nfl_games WHERE game_type = 'REG'),
+        played AS (
+          SELECT g.week, g.home_team_id AS team_id FROM football.nfl_games g, season WHERE g.season = season.season AND g.game_type = 'REG'
+          UNION SELECT g.week, g.away_team_id FROM football.nfl_games g, season WHERE g.season = season.season AND g.game_type = 'REG'
+        ), teams AS (SELECT DISTINCT team_id FROM played)
+        SELECT t.team_id, min(w) AS bye_week
+          FROM teams t CROSS JOIN generate_series(1, 18) w
+         WHERE NOT EXISTS (SELECT 1 FROM played p WHERE p.team_id = t.team_id AND p.week = w)
+         GROUP BY t.team_id`,
+      query_timeout: timeoutMs,
+    });
+    byes = { at: now(), map: new Map((result?.rows || []).map((r) => [r.team_id, Number(r.bye_week)])) };
+    return byes.map;
+  }
   return {
     /** Map(app player key -> sight block). Players Sight has no read for are absent. */
     async readSight({ playerKeys, version = "v1", hints = null }) {
@@ -147,6 +170,16 @@ function createWarehouseSightRepository({ query, timeoutMs = 2_000 }) {
           // Sleeper's injury report (once a day). Absent means Sleeper lists no injury, not "healthy for sure".
           ...(row.injury_status ? { injury: { status: row.injury_status, body_part: row.injury_body_part || null, practice: row.injury_practice || null, source: "sleeper" } } : {}),
         });
+      }
+      // The bye week of the NFL team the provider lists for each player (League-GM planning: who covers it).
+      if (out.size && hints instanceof Map) {
+        let map = new Map();
+        try { map = await byeWeeks(); } catch { map = new Map(); }
+        for (const [key, block] of out) {
+          const team = String(hints.get(key)?.team || "").trim().toUpperCase();
+          const bye = /^[A-Z]{2,3}$/.test(team) ? map.get(`omen:team:${(TEAM_ALIASES[team] || team).toLowerCase()}`) : undefined;
+          if (Number.isInteger(bye)) block.bye_week = bye;
+        }
       }
       return out;
     },

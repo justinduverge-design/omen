@@ -61,3 +61,15 @@ test("Sleeper's injury status fills in only when the league provider reports non
   const bench = p("b", "WR", 6, { selected_position: "BN", eligible_positions: ["WR"] });
   assert.equal(evaluateLineup({ slots: { starters: [starter], bench: [bench] } })[0]?.to.player_key, "sleeper:b");
 });
+
+test("League GM: the last cover for a starter's upcoming bye is not the drop, and an add that covers it says so", () => {
+  const starter = p("rb1", "RB", 15, { selected_position: "RB", sight: { sight_points: 15, grade: 60, confidence: "normal", bye_week: 8 } });
+  const wrStarter = p("wr1", "WR", 12, { selected_position: "WR" });
+  const roster = { slots: { starters: [starter, wrStarter], bench: [p("rbBack", "RB", 2), p("wrA", "WR", 3), p("wrB", "WR", 4)] } };
+  const out = buildWaiverAnalysis({ roster, pool: [p("wrX", "WR", 16)], platform: "sleeper", leagueId: "1", week: 7, availabilityConfirmed: true });
+  assert.notEqual(out.best_move.drop.player_key, "sleeper:rbBack");
+
+  const rbAdd = buildWaiverAnalysis({ roster: { slots: { starters: [{ ...starter, projected_points: 3 }, wrStarter], bench: roster.slots.bench } },
+    pool: [p("rbX", "RB", 14)], platform: "sleeper", leagueId: "1", week: 7, availabilityConfirmed: true });
+  assert.ok(rbAdd.evidence.some((e) => e.category === "upcoming_need" && /week 8 bye/.test(e.statement)));
+});
