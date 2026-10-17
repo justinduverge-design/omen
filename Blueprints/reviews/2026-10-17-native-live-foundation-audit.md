@@ -302,3 +302,7 @@ from `command-center.demo-connected`. Both current-desk scenarios publish the sa
 Contextual-help interaction checks now use the populated current desk rather than requiring the no-league
 terminus to impersonate a full Command header. Fresh simulator captures confirm both migrated compositions.
 
+The design-system gallery no longer advertises the retired Command assembly. Its Command section now
+shows the current populated desk, the real no-league terminus and the current switching skeleton. This
+removes another place where old typography could survive as an apparent design authority.
+
