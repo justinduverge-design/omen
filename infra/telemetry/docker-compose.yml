@@ -1,20 +1,19 @@
-# Command Center (Raspberry Pi 4, arm64). Reference only, not deployed. See README.md.
+# Command Center (Raspberry Pi 4, arm64). Deployed 2026-10-17 at /opt/omen-telemetry. See README.md.
 services:
   otel-collector:
-    # Pin to an exact, reviewed tag before deploying (do not use :latest).
-    image: otel/opentelemetry-collector-contrib:0.139.0
+    # Tag verified 2026-10-17; pinned by digest (multi-arch list). Update both together.
+    image: otel/opentelemetry-collector-contrib:0.139.0@sha256:faf125d656fa47cea568b2f3b4494efd2525083bc75c1e96038bc23f05cd68fd
     container_name: omen-otel-collector
     restart: unless-stopped
     command: ["--config=/etc/otelcol/config.yaml"]
     volumes:
       - ./otel-collector.yaml:/etc/otelcol/config.yaml:ro
-      - otelcol-data:/var/lib/otelcol
+      # Bind mount, owned by the image user 10001:10001 (a named volume is created root-owned
+      # and the file exporter cannot write). Create it once: sudo install -d -o 10001 -g 10001 data
+      - ./data:/var/lib/otelcol
     # host networking so the receiver can bind the Tailscale IP itself; Docker-published
     # ports would bypass UFW (fleet rule 4), so nothing is published.
     network_mode: host
     read_only: true
     security_opt: ["no-new-privileges:true"]
     mem_limit: 256m
-
-volumes:
-  otelcol-data:
