@@ -24,7 +24,8 @@ const {
   currentNeedFor,
   staleness: computeStaleness,
 } = require("../services/tradeSavedQueue");
-const { findLeagueTradeCandidates, MAX_OPPONENT_TEAMS_PER_SCAN, MAX_CANDIDATES_RETURNED } = require("../services/tradeFind");
+const { MAX_OPPONENT_TEAMS_PER_SCAN, MAX_CANDIDATES_RETURNED } = require("../services/tradeFind");
+const { findLeagueTradeCandidatesAsync } = require("../services/tradeSearchPool");
 const { createSearchBudget } = require("../services/tradeLineup");
 const {
   DEFAULT_FIND_CACHE_TTL_SECONDS,
@@ -1038,7 +1039,7 @@ function createTradeRouter({
       teamId = resolveOwnTeamId({ platform, leagueId, teamId, teams: bundle.teams });
 
       let budgetExceededStats = null;
-      // The scan is synchronous CPU on the event loop; a repeat /find against the
+      // The scan is CPU-heavy (run on a worker thread, see tradeSearchPool.js); a repeat /find against the
       // same bundle reuses it. The memo is keyed by the bundle's cache key, team
       // and generated_at, so a regenerated bundle never matches a stale entry.
       const scanMemoKey = `${cacheKey}|${teamId}`;
@@ -1047,7 +1048,7 @@ function createTradeRouter({
       if (memoized && memoized.generatedAt === bundle.generated_at && memoized.expiresAt > Date.now()) {
         scan = memoized.scan;
       } else {
-        scan = findLeagueTradeCandidates({
+        scan = await findLeagueTradeCandidatesAsync({
           ownTeamId: teamId,
           teams: bundle.teams,
           rosterPositions: bundle.roster_positions,
