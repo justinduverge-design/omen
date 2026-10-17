@@ -21,12 +21,12 @@ function loadTradeRoutes() {
   const originalLoad = Module._load;
   Module._load = function patched(request, parent) {
     const loaded = originalLoad.apply(this, arguments);
-    if (request === "../services/tradeFind" && parent?.filename === routePath) {
+    if (request === "../services/tradeSearchPool" && parent?.filename === routePath) {
       return {
         ...loaded,
-        findLeagueTradeCandidates: (...args) => {
+        findLeagueTradeCandidatesAsync: (...args) => {
           counters.scans += 1;
-          return loaded.findLeagueTradeCandidates(...args);
+          return loaded.findLeagueTradeCandidatesAsync(...args);
         },
       };
     }

@@ -28,7 +28,8 @@
  *   status "unavailable" the trade could not be weighed; `reason` is a stable code
  */
 
-const { findTradeCandidate, createSearchBudget } = require("./tradeLineup");
+const { createSearchBudget } = require("./tradeLineup");
+const { findTradeCandidateAsync } = require("./tradeSearchPool");
 const { mutualFairnessGuard } = require("./tradeFind");
 const { normalizePosition } = require("./playerSearch");
 
@@ -239,7 +240,7 @@ async function evaluateTradeForConnection({ connection, roster, platformLabel, d
   if (!opponents.length) return unavailable("rosters_unreadable");
 
   let budgetTripped = false;
-  const candidate = findTradeCandidate({
+  const candidate = await findTradeCandidateAsync({
     ownTeam: { ...ownTeam, roster_id: ownTeam.team_id },
     opponentTeams: opponents.map((team) => ({ ...team, roster_id: team.team_id })),
     rosterPositions,

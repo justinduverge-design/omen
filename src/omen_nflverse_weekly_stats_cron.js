@@ -367,7 +367,8 @@ if (require.main === module) {
   const { createClient } = require("@supabase/supabase-js");
   const { getCurrentNflWeekContext } = require("./services/nflSchedule");
   const missing = ["SUPABASE_URL", "SUPABASE_SERVICE_KEY"].filter((key) => !process.env[key]);
-  (async () => {
+  const { traceCronJob } = require("./services/telemetry");
+  traceCronJob("nflverse_weekly_stats", async () => {
     if (missing.length) throw new Error(`missing env: ${missing.join(", ")}`);
     const client = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, { auth: { persistSession: false } });
     // Daily: the current season. Backfill: `--seasons 2021-2025` runs one season at a time (memory).
@@ -383,7 +384,7 @@ if (require.main === module) {
     } else {
       await runNflverseIngest({ client, seasons: seasonsFor({ season: Number(context.season), week: context.week }), force, rosterFromSeason });
     }
-  })().then(
+  }).then(
     async () => { await flushSentry(); process.exit(0); },
     async (err) => { defaultLog.error(err.message); Sentry.captureException(err); await flushSentry(); process.exit(1); }
   );

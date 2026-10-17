@@ -23,6 +23,10 @@
 // (including ./config), so init errors get captured.
 const { initSentry, drainSentry, flushSentry } = require("./middleware/sentry");
 initSentry({ component: "api" });
+// Self-hosted OpenTelemetry tracing. A no-op unless OTEL_EXPORTER_OTLP_ENDPOINT is set
+// (services/telemetry.js). It owns no global OTel state, so it cannot collide with Sentry.
+const telemetry = require("./services/telemetry");
+telemetry.initTelemetry({ component: "api" });
 
 const Sentry = require("@sentry/node");
 const express = require("express");
@@ -64,6 +68,10 @@ const app = express();
 // and the rate limiter doesn't see all traffic as coming from the proxy.
 // SY0-701 4.5: required for accurate access logs + rate-limit attribution.
 app.set("trust proxy", 1);
+
+// One span per request, named by route template only. Before everything else so
+// the span covers the whole chain. No-op when tracing is off.
+app.use(telemetry.requestSpanMiddleware);
 
 // --- Security FIRST -----------------------------------------------
 app.use(helmetMiddleware);
@@ -170,7 +178,7 @@ const AASA_FILE = path.join(SPA_DIR, ".well-known", "apple-app-site-association"
 const HAS_SPA = fs.existsSync(SPA_INDEX);
 
 if (HAS_SPA) {
-  logger.info("Serving SPA from client/dist", { path: SPA_DIR });
+  logger.info("Serving SPA from frontend/dist", { path: SPA_DIR });
   // Express static ignores dot-prefixed paths by default. Serve the AASA
   // contract explicitly so iOS can validate the webcredentials association.
   if (fs.existsSync(AASA_FILE)) {
@@ -312,7 +320,8 @@ try {
 // --- Mount /api/trade (free, auth-gated trade comparison) --------
 try {
   const tradeRoutes = require("./routes/trade");
-  app.use("/api/trade", publicToolRateLimit, tradeRoutes);
+  // Trade search is timed here, at the route level, not inside the search modules.
+  app.use("/api/trade", telemetry.routeSpanMiddleware("trade.request"), publicToolRateLimit, tradeRoutes);
 } catch (e) {
   logger.error("Trade router failed to load", { err: e.message, stack: e.stack });
 }
@@ -423,8 +432,10 @@ const shutdown = (signal, exitCode = 0) => {
     await Promise.all([
       closeWarehouseUsageRuntime(),
       require("./services/footballWarehouse/sharedUsageAccess").closeRuntime(),
+      telemetry.shutdownTelemetry(),
+      require("./services/tradeSearchPool").closeTradeSearchPool(),
     ]).catch(() => {
-      logger.warn("Warehouse read pool did not close cleanly");
+      logger.warn("Warehouse pool, telemetry or trade search pool did not close cleanly");
     });
     logger.info("HTTP server closed");
     process.exit(exitCode);

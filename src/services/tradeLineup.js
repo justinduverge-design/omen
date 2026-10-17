@@ -79,6 +79,8 @@ function createSearchBudget({ budgetMs = TRADE_SEARCH_BUDGET_MS, now = Date.now 
   let solves = 0;
   return {
     get exceeded() { return exceeded; },
+    // Read by tradeSearchPool.js to hand a worker the time this budget has left.
+    get budgetMs() { return budgetMs; },
     countSolve() {
       solves += 1;
       if (solves > TRADE_SEARCH_MAX_SOLVES) exceeded = true;

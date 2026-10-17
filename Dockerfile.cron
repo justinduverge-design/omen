@@ -16,7 +16,6 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY src/    ./src/
-COPY client/ ./client/
 
 
 # ── STAGE 2: Production ──────────────────────────────────────────
@@ -32,7 +31,6 @@ WORKDIR /app
 
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/src    ./src
-COPY --from=builder /app/client ./client
 COPY package.json ./
 
 # ── CRONTAB ──────────────────────────────────────────────────────

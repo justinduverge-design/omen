@@ -7,6 +7,7 @@ const config = require("../config");
 const { requireAuth } = require("../middleware/auth");
 const { sharedNarrationGuard } = require("../services/narrationBudget");
 const { logger } = require("../middleware/logging");
+const { withSpan } = require("../services/telemetry");
 const { LIVE_CONTRACT_VERSION } = require("../services/systemContracts");
 const { suppressLiveFootballData } = require("../services/nflSchedule");
 const { ensureAppUser } = require("../services/appUser");
@@ -528,7 +529,7 @@ async function enrichWithLlm(response, body, options) {
   const outcome = await sharedNarrationGuard.run(
     "omen",
     MVP_LATENCY_BUDGET_MS.llm_narration,
-    () => generateMvpLlmNarration(response, { timeoutMs: MVP_LATENCY_BUDGET_MS.llm_narration })
+    () => withSpan("omen.llm.enrich", () => generateMvpLlmNarration(response, { timeoutMs: MVP_LATENCY_BUDGET_MS.llm_narration }))
   );
   if (outcome.status === "timeout" || outcome.status === "skipped" || outcome.status === "error") {
     // omenMoveVerdict ignores llm_reasoning, so a breaker/timeout fallback would
@@ -821,7 +822,9 @@ function attachDataFreshness(body) {
   }
 }
 
-router.post("/mvp-move", async (req, res) => {
+router.post("/mvp-move", (req, res) => withSpan("omen.request", (span) => mvpMove(req, res, span)));
+
+async function mvpMove(req, res, span) {
   const trace = { started_at: Date.now() };
   const requestedContract = req.body?.contract_version;
   if (requestedContract != null && ![BRIEF_V2, BRIEF_V3, LIVE_CONTRACT_VERSION].includes(requestedContract)) {
@@ -898,6 +901,7 @@ router.post("/mvp-move", async (req, res) => {
     // Sight on every player in the call, behind SIGHT_ENABLED. The Ledger then records what Sight said too.
     await attachSight(body);
     emitLatencyTrace(trace, body.state);
+    span.setAttribute("omen.state", body.state || "unknown");
     // Both are best-effort and must not hold the response: respond first, finish
     // in the background. The cacheability decision reads the un-presented body
     // (`state` and `signals` live there in every contract version), so it is
@@ -925,7 +929,7 @@ router.post("/mvp-move", async (req, res) => {
     // LLM explanation is an enhancement only. Keep deterministic response.
   }
   return res.status(result.status).json(present(result.body));
-});
+}
 
 module.exports = router;
 module.exports.runEnrichmentStages = runEnrichmentStages;
