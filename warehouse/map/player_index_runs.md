@@ -7,7 +7,7 @@ Receipt for provider ids indexed from outside nflverse, so every index row says 
 |---|---|
 | Layer | ledger: How data got here: ingest receipts and schema versions. |
 | Grain | one row per player-index load from a non-nflverse source |
-| Source | Sleeper public player list |
+| Source | Sleeper public player list; DynastyProcess player id crosswalk (GPL-3.0, founder-accepted 2026-10-17) |
 | Refresh | daily 07:15 ET, after the player ingest |
 | Created by | migration 0009 |
 
