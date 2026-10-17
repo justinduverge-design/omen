@@ -752,16 +752,18 @@ private func commandCenterFailureMessage(_ error: OmenApiError) -> String {
 /// never ranks candidates — other destinations explore, this one commits — so there is no list
 /// affordance here and `alternatives` is deliberately not rendered.
 ///
-/// `.success` is laid out here because the artboard specifies this screen's composition.
-/// **Every other state still belongs to `OmenDecisionBrief`**, which owns all nine of them and is
-/// exercised state-by-state in the design-system gallery; duplicating them here would create a
-/// second set to keep honest, which is the failure `demo-mode-pre-empty-state` warns about.
+/// `.success` is laid out here because the artboard specifies this screen's composition. Richer
+/// start/sit detail enriches that composition in place; it must not replace the destination with
+/// the older standalone J3 screen after the network response arrives.
+/// **Every non-success state still belongs to `OmenDecisionBrief`**, which owns all nine of them
+/// and is exercised state-by-state in the design-system gallery; duplicating them here would
+/// create a second set to keep honest, which is the failure `demo-mode-pre-empty-state` warns about.
 struct OmenDecisionScreen: View {
     let state: OmenDecisionBriefState
     /// `start-sit-detail.v2`, read only when the live call is a start/sit
     /// (`payload.callType == "start_sit"`). `nil` keeps this screen's ordinary `.success`
-    /// composition — the carried-over `OmenStartSitScreen` renders only once there is a real
-    /// detail answer to give it; it is never shown with fabricated or partial state.
+    /// composition. A real detail answer enriches that composition in place; fabricated or
+    /// partial player rows are never shown.
     var startSitDetail: StartSitDetail?
     var onRetryStartSit: (() -> Void)?
     /// Rendered as the header eyebrow (E015). Absent when the caller does not know the week —
@@ -787,24 +789,7 @@ struct OmenDecisionScreen: View {
     var onFindOtherTrades: (() -> Void)?
     @State private var showingFullArgument = false
 
-    var body: some View {
-        // The carried-over J3 screen renders wholesale, with its own header, rather than as a
-        // block inside this screen's composition — it is a different screen contract
-        // (`start-sit-detail.v2`), not a section of `OmenCall-v1.md`'s. Only a live,
-        // successful start/sit call with a real detail answer takes this branch; anything
-        // else — loading, a trade/waiver call, a failed detail read — falls through to the
-        // ordinary composition below, unchanged.
-        if case .success(let payload) = state, payload.callType == "start_sit", let startSitDetail {
-            OmenStartSitScreen(
-                detail: startSitDetail,
-                onRetry: onRetryStartSit,
-                onOpenAccount: onOpenAccount,
-                context: context
-            )
-        } else {
-            ordinaryBody
-        }
-    }
+    var body: some View { ordinaryBody }
 
     private var ordinaryBody: some View {
         ScrollView {
@@ -816,6 +801,13 @@ struct OmenDecisionScreen: View {
                         tradeCallCard(payload, tradeCall)
                     } else {
                         callCard(payload)
+                    }
+                    // The richer start/sit read used to replace this entire destination with
+                    // the carried-over J3 screen after the request completed. That made Omen's
+                    // header, type hierarchy and spatial rhythm visibly snap between two screen
+                    // generations. Keep one destination mounted and enrich its call in place.
+                    if payload.callType == "start_sit", let startSitDetail {
+                        startSitDetailCard(startSitDetail)
                     }
                     // The source that earned the lead belongs immediately after the verdict.
                     // Keeping it only in the expanded argument made the compact call look like
@@ -1115,6 +1107,86 @@ struct OmenDecisionScreen: View {
                 .fill(OmenColor.surface2)
                 .overlay(RoundedRectangle(cornerRadius: 14).stroke(OmenColor.borderSubtle, lineWidth: 1))
         )
+    }
+
+    @ViewBuilder
+    private func startSitDetailCard(_ detail: StartSitDetail) -> some View {
+        if let recommendation = detail.recommendation,
+           let start = recommendation.start,
+           let over = recommendation.over {
+            OmenCard(contentPadding: OmenSpacing.step12) {
+                VStack(alignment: .leading, spacing: OmenSpacing.step10) {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("Lineup detail")
+                            .omenTextStyle(OmenTypography.micro)
+                            .foregroundStyle(OmenColor.textTertiary)
+                        Spacer(minLength: OmenSpacing.step8)
+                        if let slot = recommendation.slot {
+                            Text(slot)
+                                .omenTextStyle(OmenTypography.micro)
+                                .foregroundStyle(OmenColor.textTertiary)
+                        }
+                    }
+                    startSitDetailRow(start, role: "Start", emphasized: true)
+                    Divider().overlay(OmenColor.borderSubtle)
+                    startSitDetailRow(over, role: "Sit", emphasized: false)
+                    if !detail.why.isEmpty {
+                        ForEach(detail.why, id: \.self) { reason in
+                            Text(reason)
+                                .omenTextStyle(OmenTypography.bodySmall)
+                                .foregroundStyle(OmenColor.textSecondary)
+                        }
+                    }
+                    if !detail.whatCouldChangeThis.isEmpty {
+                        Text("What could change this")
+                            .omenTextStyle(OmenTypography.micro)
+                            .foregroundStyle(OmenColor.textTertiary)
+                        ForEach(detail.whatCouldChangeThis, id: \.self) { condition in
+                            Text(condition)
+                                .omenTextStyle(OmenTypography.bodySmall)
+                                .foregroundStyle(OmenColor.textSecondary)
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        } else if detail.state == "incomplete_data" {
+            VStack(alignment: .leading, spacing: OmenSpacing.step10) {
+                OmenStateSurface(
+                    kind: .disconnected,
+                    title: "Lineup detail is incomplete",
+                    message: detail.message ?? "Omen could not read every input needed for the lineup detail. The call above remains the available answer."
+                )
+                if let onRetryStartSit {
+                    OmenButton(title: "Try the lineup read again", action: onRetryStartSit, variant: .secondary, size: .md)
+                }
+            }
+        }
+    }
+
+    private func startSitDetailRow(
+        _ player: StartSitDetail.Player,
+        role: String,
+        emphasized: Bool
+    ) -> some View {
+        HStack(alignment: .center, spacing: OmenSpacing.step10) {
+            VStack(alignment: .leading, spacing: OmenSpacing.step2) {
+                Text(player.name ?? "Unnamed player")
+                    .omenTextStyle(OmenTypography.name)
+                    .foregroundStyle(emphasized ? OmenColor.textPrimary : OmenColor.textSecondary)
+                Text([role, player.position, player.team, player.status].compactMap { $0 }.joined(separator: " · "))
+                    .omenTextStyle(OmenTypography.micro)
+                    .foregroundStyle(OmenColor.textTertiary)
+            }
+            Spacer(minLength: OmenSpacing.step8)
+            if let projection = player.projectedPoints {
+                Text(String(format: "%.1f", projection))
+                    .omenTextStyle(OmenTypography.numeric)
+                    .foregroundStyle(emphasized ? OmenColor.textPrimary : OmenColor.textTertiary)
+            }
+        }
+        .padding(.vertical, OmenSpacing.step4)
+        .accessibilityElement(children: .combine)
     }
 
     /// E029–E041, and the capability expression for profile `omen_mvp`.

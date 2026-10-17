@@ -403,7 +403,9 @@ private struct OmenTradeFindCandidateCard: View {
     var onSave: () -> Void
 
     @State private var dragTranslationWidth: CGFloat = 0
+    @State private var announcedCommitDirection: Int = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.omenHaptics) private var haptics
 
     /// Distance a drag must travel before it commits, matching the deck-swipe precedent's own
     /// "past the commit threshold" language.
@@ -460,19 +462,28 @@ private struct OmenTradeFindCandidateCard: View {
         DragGesture(minimumDistance: 12)
             .onChanged { value in
                 dragTranslationWidth = value.translation.width
+                let direction = value.translation.width <= -Self.commitThreshold ? -1
+                    : value.translation.width >= Self.commitThreshold ? 1 : 0
+                if direction != 0, direction != announcedCommitDirection {
+                    haptics.play(.selection)
+                }
+                announcedCommitDirection = direction
             }
             .onEnded { value in
                 let translation = value.translation.width
                 let animation: Animation? = reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8)
                 if translation <= -Self.commitThreshold {
+                    haptics.play(.mediumImpact)
                     withAnimation(animation) { dragTranslationWidth = 0 }
                     onPass()
                 } else if translation >= Self.commitThreshold {
+                    haptics.play(.mediumImpact)
                     withAnimation(animation) { dragTranslationWidth = 0 }
                     onSave()
                 } else {
                     withAnimation(animation) { dragTranslationWidth = 0 }
                 }
+                announcedCommitDirection = 0
             }
     }
 
@@ -677,7 +688,7 @@ private struct OmenTradeFindActionRow: View {
 
     var body: some View {
         HStack(spacing: OmenSpacing.step10) {
-            OmenButton(title: "Pass", action: onPass, variant: .secondary, size: .lg)
+            OmenButton(title: "Pass", action: onPass, variant: .secondary, size: .lg, haptic: .mediumImpact)
                 .frame(maxWidth: .infinity)
                 .accessibilityLabel("Pass on this candidate")
             OmenButton(
@@ -686,7 +697,8 @@ private struct OmenTradeFindActionRow: View {
                 variant: saveState == .saved ? .secondary : .primary,
                 size: .lg,
                 enabled: saveState != .saving && saveState != .saved,
-                loading: saveState == .saving
+                loading: saveState == .saving,
+                haptic: .mediumImpact
             )
             .frame(maxWidth: .infinity)
             .accessibilityLabel(saveState == .saved ? "Saved" : "Save this candidate for later")
