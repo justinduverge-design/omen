@@ -70,7 +70,14 @@ digest, ops summaries, and data-quality suggestions.
 - Done when: Vector delivers every host's logs, the Rust watchdog runs on the Pi, and every timer has a monitor.
 
 ### Phase 5 — Shared Rust decision core
-- First measure where CPU time goes using the existing OpenTelemetry dependency.
+- Local baseline (`rust-prep/phase5-decision-core-baseline.md`, synthetic inputs): the only CPU hot path is the trade
+  search (`tradeLineup.js`, `tradeFind.js`). It takes about 340 ms for a 10-team league and 1.2–1.4 s for 16×20, and
+  it blocks the event loop. Everything else runs under 1.5 ms.
+- Interim step: move the trade search into a `worker_threads` worker. That removes the blocking without Rust.
+- OpenTelemetry is installed but **not wired**, so there is no production baseline. Add the spans listed in the baseline
+  doc before sizing the core.
+- Porting the rest is justified by one shared server-and-mobile core, not by speed. A golden file of real league
+  trade inputs and outputs is needed as the parity fixture.
 - One Rust library for the optimizer, projections and confidence rules, served to Node via **napi-rs**, to iOS via
   **UniFFI** (Android when it resumes), and to the web via **WebAssembly**.
 - Shadow first: Rust and JS run side by side on real weeks until outputs match exactly. Then cut over, and keep JS as
