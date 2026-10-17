@@ -89,3 +89,6 @@ dd/
 
 # Generated code graph (~34 MB). Rebuild with `graphify update .` (about a minute, no API cost); see Direction/map.md.
 graphify-out/
+
+# OpenTelemetry collector trace output
+infra/telemetry/data/

@@ -1,7 +1,7 @@
 # Omen tracing (OpenTelemetry), self-hosted
 
-Status: **code shipped off by default; collector NOT deployed.** Deploying the collector and
-setting the env var on KVM1 is a separate production step that needs founder approval.
+Status: **collector deployed on Command Center 2026-10-17 (`/opt/omen-telemetry`), healthy, reachable
+from KVM1. App tracing still off:** setting the env var on KVM1 is a separate founder-approved step.
 
 ## What the app does
 
@@ -78,10 +78,13 @@ Later, if file output is not enough to read p50/p95: add a small local backend o
 (for example Jaeger v2 with on-disk Badger storage, bound to the Tailscale IP) and point a
 second `otlp` exporter at it. Watch RAM on the 4 GB Pi.
 
-## Deploy steps (need founder approval; not done)
+## Deploy steps (steps 1–3 done 2026-10-17; 4–5 need founder approval)
 
-1. On Command Center: copy this directory, pin the image tag, `sudo docker compose up -d`.
-2. Check: `curl -s http://127.0.0.1:13133/` on Command Center returns healthy.
+1. On Command Center: copy this directory to `/opt/omen-telemetry`, create the data dir owned by the
+   image user (`sudo install -d -o 10001 -g 10001 data`), then `sudo docker compose up -d`. The image is
+   pinned by digest in `docker-compose.yml`.
+2. Check: `curl -s http://127.0.0.1:13133/` on Command Center returns healthy, and
+   `ss -ltn | grep 4318` shows the receiver on the Tailscale IP (it waits for Tailscale after a reboot).
 3. Confirm the port is reachable from KVM1 over Tailscale only, and not on the public interface.
 4. Set `OTEL_EXPORTER_OTLP_ENDPOINT` for `omen_api` and `omen_cron` in
    `deploy/hostinger/.env.production`, redeploy.

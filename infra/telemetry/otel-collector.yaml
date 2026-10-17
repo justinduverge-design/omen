@@ -1,5 +1,5 @@
 # OpenTelemetry Collector (otelcol-contrib) for Omen traces. Self-hosted on Command Center.
-# Not deployed. See README.md in this directory; deploying is a separate, founder-approved step.
+# Deployed on Command Center 2026-10-17 (/opt/omen-telemetry). See README.md in this directory.
 #
 # Receives OTLP/HTTP from omen_api and omen_cron on KVM1 over the tailnet only, batches,
 # strips anything that should never be there, and writes rotated JSON files on local disk.
