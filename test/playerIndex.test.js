@@ -22,3 +22,11 @@ test("Sleeper records index through their GSIS or ESPN id; neither means no inde
 test("a non-object payload is refused", () => {
   assert.throws(() => sleeperRows([]), /not an object/);
 });
+
+test("a record with neither id still indexes by name and birth date, with suffixes and punctuation ignored", () => {
+  const { normalName } = require("../src/services/footballWarehouse/playerIndexStage");
+  assert.equal(normalName("Marvin Harrison Jr."), normalName("Marvin Harrison"));
+  assert.equal(normalName("D.K. Metcalf"), normalName("DK Metcalf"));
+  const rows = sleeperRows({ "7569": { full_name: "Nico Collins", birth_date: "1999-03-19", yahoo_id: 34000 }, "1": { full_name: "No Date" } });
+  assert.deepEqual(rows, [{ sleeperId: "7569", gsisId: null, espnId: null, name: "nicocollins", birthDate: "1999-03-19", yahooId: "34000" }]);
+});
