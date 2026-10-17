@@ -38,6 +38,8 @@ struct OmenLeagueSwitcherBar: View {
     /// E012. Absent when the product cannot currently add a league.
     var onAddLeague: (() -> Void)?
 
+    @Environment(\.omenHaptics) private var haptics
+
     private var providerLine: String {
         let provider: String
         switch platform {
@@ -59,13 +61,27 @@ struct OmenLeagueSwitcherBar: View {
 
     var body: some View {
         HStack(spacing: OmenSpacing.step10) {
-            crestMark
-            identity
-            if onSwitch != nil {
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(OmenColor.textTertiary)
-                    .accessibilityHidden(true)
+            if let onSwitch {
+                Button(action: {
+                    haptics.play(.lightImpact)
+                    onSwitch()
+                }) {
+                    HStack(spacing: OmenSpacing.step10) {
+                        crestMark
+                        identity
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(OmenColor.textTertiary)
+                            .accessibilityHidden(true)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(OmenPressableButtonStyle())
+                .accessibilityLabel("\(teamName), \(providerLine)")
+                .accessibilityHint("Switch team or league")
+            } else {
+                crestMark
+                identity
             }
             if let onAddLeague {
                 Button(action: onAddLeague) {
@@ -139,11 +155,7 @@ struct OmenLeagueSwitcherBar: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .contentShape(Rectangle())
-        .onTapGesture { onSwitch?() }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(teamName), \(providerLine)")
-        .accessibilityHint(onSwitch == nil ? "" : "Switch team or league")
-        .accessibilityAddTraits(onSwitch == nil ? [] : .isButton)
     }
 }

@@ -208,6 +208,30 @@ system detents, drag dismissal and accessibility behavior—not deleting necessa
 | 6 | Accessibility/device feel | primitive press states and haptic client exist | VoiceOver, Reduce Motion, Dynamic Type and physical haptic walk |
 | 7 | J1 no-league exit | contract contradiction remains | real explainer destination or approved removal |
 
-No signing identity, entitlement, local configuration, installed app, provider account, deployment or
-store state was changed by this audit.
+The initial read-only audit changed no signing identity, entitlement, local configuration, installed
+app, provider account, deployment or store state. Section 13 records the later founder-authorized
+development install; no provider, production, deployment or store state changed.
+
+## 13. Paired-iPhone development install and tactile slice
+
+After the founder explicitly approved using the paired phone as a normal development target, the
+branch was built with the existing ignored local public configuration, signed with the established
+development identity, installed over the existing Omen bundle and launched on the paired iPhone 15.
+The existing Keychain-backed session remained valid and the live Command destination resolved real
+league content. Private captures stayed under `/tmp/omen-native-device-private-2026-10-17` and were
+not added to the repository.
+
+The first tactile propagation closes the switcher's primitive-level gaps:
+
+- the league identity is a real accessible button instead of `onTapGesture`;
+- chips, provider filters, league rows and favourite stars share the canonical pressed treatment;
+- filters, chips and stars use selection feedback;
+- opening the league sheet uses light impact;
+- committing a different active league uses medium impact;
+- selecting the already-active filter or league does not replay a haptic or issue a redundant action;
+- Reduce Motion keeps immediate non-motion emphasis while removing scale.
+
+Evidence after the change: signed device build/install/launch PASS; live Command composition PASS;
+39 focused native unit tests PASS; 10/10 J2 interaction tests PASS. Physical tactile quality still
+requires the founder's hand because screenshots and automation cannot feel the Taptic Engine.
 

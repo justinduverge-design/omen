@@ -70,3 +70,30 @@ these aggregate fields.
 For every primary journey action: automated state-transition coverage, pressed/selected/loading/error
 screens, Reduce Motion, VoiceOver announcement, duplicate-submit proof, injected slow/failure response,
 and a physical-device timing receipt. Simulator capture proves composition only.
+
+## 7. Apple-native tactile baseline
+
+Omen uses Apple's semantic feedback meanings rather than inventing a vibration language. System
+controls keep their system behavior; Omen primitives add feedback only where custom presentation has
+replaced an otherwise-native control response.
+
+| Omen interaction | Feedback | Visual response | Rule |
+|---|---|---|---|
+| filter, chip, favourite | selection | immediate pressed treatment; persistent selected carrier when applicable | do not replay when the value did not change |
+| open a focused disclosure or sheet | light impact | pressed treatment followed by system presentation | the sheet itself uses system motion and dismissal |
+| commit active league | medium impact | row presses immediately; sheet dismisses; new context placeholder mounts | one impact for the commit, never again when data later arrives |
+| meaningful save/connect/share completion | success | resolved state replaces its local working state | completion only, not ordinary loading |
+| user-triggered failed operation | error | local error and recovery action | background failures stay silent |
+
+Every custom interactive primitive uses the shared press style. Reduce Motion removes scale and travel
+while preserving brightness, fill, border or label response. Haptics complement those visible and
+spoken states; they never carry meaning alone. The system's global haptics setting remains
+authoritative. An Omen-specific mute preference is required before Omen introduces any custom
+Core Haptics pattern or long-running tactile sequence.
+
+Apple's Human Interface Guidelines are the platform authority: use documented system meanings,
+maintain a clear cause-and-effect relationship, synchronize touch with visual response, prefer short
+discrete feedback, and avoid overuse. Meta is a product-behavior reference: the useful principle is
+that an interaction becomes responsive before its remote content is ready, and every idle, pressed,
+selected, working, disabled and failed state is designed. Neither company's brand styling, layout or
+copy is an Omen source.

@@ -179,7 +179,10 @@ struct OmenButton: View {
 
 /// Keeps the control native and tactile without introducing a custom 3D treatment. The pressed
 /// state is visible through a small opacity/scale response and respects Reduce Motion.
-private struct OmenPressableButtonStyle: ButtonStyle {
+/// Shared press response for text-bearing Omen controls. Keeping this in the primitive layer
+/// gives chips, switcher segments and rows the same immediate touch-down acknowledgement as a
+/// canonical button. The semantic haptic remains owned by the control's action.
+struct OmenPressableButtonStyle: ButtonStyle {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {

@@ -116,6 +116,8 @@ struct OmenSwitchSheet: View {
     /// (the real team switcher) renders exactly as it did before T5.
     var showsFavoriteAffordance: Bool = true
 
+    @Environment(\.omenHaptics) private var haptics
+
     var body: some View {
         VStack(spacing: 0) {
             if state.filters.count > 1 { filterRow }
@@ -176,7 +178,11 @@ struct OmenSwitchSheet: View {
         HStack(spacing: 2) {
             ForEach(state.filters) { filter in
                 let selected = filter.id == state.selectedFilterID
-                Button(action: { onSelectFilter?(filter.id) }) {
+                Button(action: {
+                    guard !selected else { return }
+                    haptics.play(.selection)
+                    onSelectFilter?(filter.id)
+                }) {
                     Text(filter.label)
                         .omenTextStyle(OmenTypography.micro)
                         .foregroundStyle(selected ? OmenColor.textPrimary : OmenColor.textTertiary)
@@ -188,7 +194,7 @@ struct OmenSwitchSheet: View {
                         )
                         .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(OmenPressableButtonStyle())
                 .accessibilityLabel(filter.label)
                 .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
             }
@@ -245,8 +251,15 @@ struct OmenSwitchSheet: View {
                     ForEach(group.rows) { row in
                         OmenSwitchSheetRow(
                             row: row,
-                            onSelect: { onSelectRow?(row) },
-                            onToggleFavorite: onToggleFavorite == nil ? nil : { onToggleFavorite?(row) },
+                            onSelect: {
+                                guard !row.isActive else { return }
+                                haptics.play(.mediumImpact)
+                                onSelectRow?(row)
+                            },
+                            onToggleFavorite: onToggleFavorite == nil ? nil : {
+                                haptics.play(.selection)
+                                onToggleFavorite?(row)
+                            },
                             showsFavoriteAffordance: showsFavoriteAffordance
                         )
                     }
@@ -300,7 +313,7 @@ private struct OmenSwitchSheetRow: View {
                 .frame(minHeight: OmenSwitchSheet.rowHeight)
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(OmenPressableButtonStyle())
             .accessibilityLabel(row.subtitle.isEmpty ? row.teamName : "\(row.teamName), \(row.subtitle)")
             .accessibilityValue(row.isActive ? "Current league" : "")
             .accessibilityHint(row.isActive ? "" : "Switch to this team")
@@ -313,7 +326,7 @@ private struct OmenSwitchSheetRow: View {
                             .frame(width: OmenLayout.minTouchTarget, height: OmenLayout.minTouchTarget)
                             .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(OmenPressableButtonStyle())
                     .accessibilityLabel(row.isFavorite ? "Unstar \(row.teamName)" : "Star \(row.teamName)")
                 } else {
                     star.frame(width: OmenLayout.minTouchTarget)
