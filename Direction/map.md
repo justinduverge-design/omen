@@ -64,7 +64,7 @@ and the risky-PR list: `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md` § Review. Cl
 | Auth, tokens, user data | `Blueprints/security-privacy.md` | `security-privacy-evidence`; request `@codex review` |
 | A bug or failed check | `Direction/known_issues.md` (open only) | `slops-investigate` |
 | Warehouse, timers, backups, SSH, rollback | `infra/schedule/TIMERS.md`, `infra/schedule/ACCESS.md`, `infra/warehouse/`, `Direction/2026-10-13-release-rollback-card.md` | `slops-canary` |
-| Release, deploy, store consoles | `Direction/release/`, `Direction/release_readiness.md` | `slops-ship`, `slops-canary`, `slops-founder-admin-runbook` |
+| Release, deploy, store consoles, build packages | `Direction/release/builds/` (one package per build), `Direction/release/`, `Direction/release_readiness.md` | `slops-ship`, `slops-canary`, `slops-founder-admin-runbook` |
 | Where a new file belongs | `RESOLVER.md` | — |
 | Why something was decided | `Direction/decision_log.md` (search, do not read whole) | — |
 | What a code area touches or depends on | Run `graphify update .` (about a minute, no API cost; the graph is generated and not in git), then `graphify explain "X"`, `graphify path "A" "B"` or `graphify query "question"`. Covers code only; scope in `.graphifyignore` | `slops-graphify` |
