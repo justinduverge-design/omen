@@ -27,6 +27,7 @@ const espnAdapter = require("../adapters/espn");
 const { logger } = require("../middleware/logging");
 const { getUsageReader } = require("./footballWarehouse/sharedUsageAccess");
 const { readRosterUsage } = require("./usageCorroborationReader");
+const { withSpan } = require("./telemetry");
 const yahooAdapter = require("../adapters/yahoo");
 const { projectYahooPool } = require("./yahooProjections");
 const { evaluateTradeForConnection, TRADE_READ_BUDGET_MS } = require("./omenTradeCandidate");
@@ -1780,7 +1781,7 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null, leagueId 
 async function buildLiveOmenMvpMoveForUserInner(userId, requested, scope) {
   if (suppressLiveFootballData()) return offSeasonMvpResponse();
 
-  const connections = await getActivePlatformConnections(userId);
+  const connections = await withSpan("omen.db.read", () => getActivePlatformConnections(userId));
   if (!connections.length) return platformDisconnectedMvpResponse();
 
   let scopedConnections = connections;
@@ -1842,10 +1843,10 @@ async function buildLiveOmenMvpMoveForUserInner(userId, requested, scope) {
       if (candidate.platform === "espn") {
         candidateEspnCredentials = await espnCredentialsForConnection(candidate);
       }
-      roster = await buildRosterForConnection(userId, candidate, week, {
+      roster = await withSpan("omen.provider.read", () => buildRosterForConnection(userId, candidate, week, {
         yahooClient: candidateYahooClient,
         espnCredentials: candidateEspnCredentials,
-      });
+      }), { "omen.platform": candidate.platform });
       connection = candidate;
       scope.connection = candidate;
       yahooClient = candidateYahooClient;
@@ -1921,21 +1922,25 @@ async function buildLiveOmenMvpMoveForUserInner(userId, requested, scope) {
   // Observed recent usage may corroborate the call's confidence band (same helper as Start/Sit).
   // The read starts now, overlaps the waiver build, and is awaited only before the lineup evaluation.
   // It never rejects; no reader, supabase mode, a failed or slow read all leave today's output as is.
-  const lineupUsagePromise = readRosterUsage({
+  const lineupUsagePromise = withSpan("omen.warehouse.usage", () => readRosterUsage({
     reader: usageReaderProvider(),
     supabase,
     roster,
     season: getCurrentNflWeekContext().season,
     beforeWeek: roster.week || week,
     log: logger,
-  });
+  }));
 
-  const waiverAnalysis = await buildWaiverCandidateForConnection({ connection, roster, espnCredentials, yahooClient });
+  const waiverAnalysis = await withSpan(
+    "omen.decision.waiver",
+    () => buildWaiverCandidateForConnection({ connection, roster, espnCredentials, yahooClient }),
+    { "omen.platform": connection.platform },
+  );
   waiverPoolProjection = waiverAnalysis.yahooProjection || null;
   const lineupUsage = await lineupUsagePromise;
   // Sight on the roster before the lineup call, so Start/Sit weighs Omen's read (never throws, budgeted).
   await attachRosterSight(roster);
-  const [swap] = optimizer.evaluateLineup(roster, lineupUsage ? { usage: lineupUsage } : {});
+  const [swap] = withSpan("omen.decision.lineup", () => optimizer.evaluateLineup(roster, lineupUsage ? { usage: lineupUsage } : {}));
   if (swap) {
     candidates.push({
       id: `live_omen_start_sit_${swap.to?.player_key || "unknown"}`,
@@ -1957,7 +1962,12 @@ async function buildLiveOmenMvpMoveForUserInner(userId, requested, scope) {
   // waiver analysis produced no scoreable move. This keeps the larger public
   // surface off the common path and preserves the selected-context boundary.
   // A raw candidate with a zero/invalid score does not count as a move.
-  let { selected } = omenSelector.selectDecision(candidates);
+  const selectDecision = () => withSpan("omen.decision.select", (span) => {
+    const decision = omenSelector.selectDecision(candidates);
+    span.setAttributes({ "omen.candidates": candidates.length, "omen.selected_type": decision.selected?.type || "none" });
+    return decision;
+  });
+  let { selected } = selectDecision();
   let tradeEvaluation = null;
   if (!selected) {
     // ESPN and Yahoo are evaluated too (omenTradeCandidate.js). A provider that cannot support a
@@ -1970,7 +1980,7 @@ async function buildLiveOmenMvpMoveForUserInner(userId, requested, scope) {
     });
     tradeEvaluation = trade.evaluation;
     if (trade.selectorCandidate) candidates.push(trade.selectorCandidate);
-    ({ selected } = omenSelector.selectDecision(candidates));
+    ({ selected } = selectDecision());
   }
 
   // The HOLD call: nothing cleared, so say what was weighed and why each option lost.

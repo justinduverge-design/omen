@@ -29,3 +29,4 @@ three-weekly skill check (`Direction/reviews/2026-10-03-harness-design-outline.m
 2026-10-17 | Trade horizons, Sleeper injuries, bye planning, Yahoo name fallback, step 16/18 applied | none by name | slops-code-review not in this session's skill list; fresh general-purpose agent reviewed each PR (no open P0/P1).
 2026-10-17 | Build 12 PR list and retro in the build package | none by name | docs only; gates run below.
 2026-10-17 | Rust infrastructure plan spec + decision | none by name | docs only, no code; gates run below.
+2026-10-17 | Rust plan prep; OpenTelemetry wiring; trade search worker; retire client/ | none by name | slops-code-review not in this session's skill list; a fresh general-purpose agent reviewed the worker and telemetry diffs (no P0/P1; P2s fixed).

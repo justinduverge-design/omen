@@ -128,13 +128,14 @@ if (require.main === module) {
   const Sentry = require("@sentry/node");
   const { createClient } = require("@supabase/supabase-js");
   const missing = ["SUPABASE_URL", "SUPABASE_SERVICE_KEY"].filter((key) => !process.env[key]);
-  (async () => {
+  const { traceCronJob } = require("./services/telemetry");
+  traceCronJob("player_crosswalk", async () => {
     if (missing.length) throw new Error(`missing env: ${missing.join(", ")}`);
     const client = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, {
       auth: { persistSession: false },
     });
     await runCrosswalk({ client });
-  })().then(
+  }).then(
     async () => { await flushSentry(); process.exit(0); },
     async (err) => {
       defaultLog.error(err.message);

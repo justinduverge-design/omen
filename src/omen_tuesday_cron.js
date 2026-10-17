@@ -939,7 +939,8 @@ function installSentryProcessHandlers() {
 
 if (require.main === module) {
   installSentryProcessHandlers();
-  main()
+  const { traceCronJob } = require("./services/telemetry");
+  traceCronJob("tuesday_scoring", () => main())
     .then(async () => {
       await flushSentry();
       process.exit(0);

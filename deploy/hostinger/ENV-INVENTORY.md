@@ -22,6 +22,10 @@ public Ollama/OpenClaw address.
 | `REDIS_URL` | Upstash Redis REST URL for cache-backed services. | Upstash | Treat as sensitive |
 | `REDIS_TOKEN` | Upstash Redis REST token. | Upstash | Yes |
 | `SENTRY_DSN` | Sentry project DSN for backend error capture (api + cron). Empty = SDK no-op. | Sentry | Yes |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Self-hosted OTLP/HTTP collector for traces (api + cron), e.g. Command Center's Tailscale address `http://100.98.81.0:4318`. Unset = tracing off. Public hosts are refused. See `infra/telemetry/README.md`. | Telemetry | Private-only endpoint |
+| `OTEL_TRACES_SAMPLER_ARG` | Optional trace sample ratio 0..1. Default `0.1` (api), `1` (cron). | Telemetry | No |
+| `OTEL_ENABLED` | Optional kill switch; `false` disables tracing even when an endpoint is set. | Telemetry | No |
+| `OTEL_TAILNET_SUFFIX` | Optional, e.g. `tail1234.ts.net`. Only needed to use a MagicDNS name instead of a 100.x address; other tailnets stay refused. | Telemetry | No |
 | `YAHOO_CLIENT_ID` | Yahoo OAuth app client id. | Yahoo | No |
 | `YAHOO_CLIENT_SECRET` | Yahoo OAuth app client secret. | Yahoo | Yes |
 | `YAHOO_REDIRECT_URI` | Yahoo OAuth callback URL. | Yahoo | No |
