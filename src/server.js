@@ -170,7 +170,7 @@ const AASA_FILE = path.join(SPA_DIR, ".well-known", "apple-app-site-association"
 const HAS_SPA = fs.existsSync(SPA_INDEX);
 
 if (HAS_SPA) {
-  logger.info("Serving SPA from client/dist", { path: SPA_DIR });
+  logger.info("Serving SPA from frontend/dist", { path: SPA_DIR });
   // Express static ignores dot-prefixed paths by default. Serve the AASA
   // contract explicitly so iOS can validate the webcredentials association.
   if (fs.existsSync(AASA_FILE)) {
