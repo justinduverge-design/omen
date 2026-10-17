@@ -188,10 +188,12 @@ router.get("/", requireAuth, async (req, res, next) => {
         logger.warn("moves ledger cannot be league-scoped: Ledger tables unreadable", { message: err.message });
         return res.status(503).json(ledgerScopeUnavailable());
       }
+      const rows = calls.map(decisionLedgerRow);
       return res.json({
         contract_version: "moves-history.v2",
         generated_at: nowIso(), season,
-        moves: calls.map(decisionLedgerRow),
+        record: ledgerRecord(rows),
+        moves: rows,
       });
     }
 
@@ -237,10 +239,36 @@ function isVerifiedOutcome(outcome) {
  * not-executed call is `not_verified`; no outcome, or an incomplete one, is `pending`. A user's
  * follow report is never equated with verified scoring. The engine's internal number is not read.
  */
+// The alternative could not play: the call was right by schedule or injury, not by football judgment.
+const UNCONTESTED_STATUSES = new Set(["O", "OUT", "IR", "IR-R", "PUP", "SUSP", "BYE", "NA", "D", "DOUBTFUL"]);
+
+/** true: a real choice between two players who could play. false: the alternative could not. null: unknown (older calls). */
+function isContestedCall(decision) {
+  const status = decision?.recommendation?.comparison_player?.status;
+  if (typeof status !== "string" || !status.trim()) return null;
+  return !UNCONTESTED_STATUSES.has(status.trim().toUpperCase());
+}
+
+/** The Ledger's record over the listed calls: every verified call, and the contested ones on their own (the honest hit rate). */
+function ledgerRecord(rows) {
+  const record = { worked: 0, did_not_work: 0, contested_worked: 0, contested_did_not_work: 0, uncontested: 0, contest_unknown: 0 };
+  for (const row of rows) {
+    if (row.outcome !== "worked" && row.outcome !== "did_not_work") continue;
+    record[row.outcome] += 1;
+    if (row.contested === true) record[`contested_${row.outcome}`] += 1;
+    else if (row.contested === false) record.uncontested += 1;
+    else record.contest_unknown += 1;
+  }
+  const contested = record.contested_worked + record.contested_did_not_work;
+  record.contested_hit_rate = contested ? Math.round((record.contested_worked / contested) * 1000) / 1000 : null;
+  return record;
+}
+
 function decisionLedgerRow({ decision, action, outcome }) {
   const followed = typeof action?.followed === "boolean" ? action.followed : null;
   const verified = isVerifiedOutcome(outcome);
   return {
+    contested: isContestedCall(decision),
     id: decision.id, season: decision.season, week: decision.week,
     move_type: decisionCallType(decision),
     headline: textOrNull(decision.headline) || textOrNull(decision.summary),
@@ -772,3 +800,5 @@ module.exports.hasLegacyEstimatedOutcome = hasLegacyEstimatedOutcome;
 module.exports.scoringOutcomeStatus = scoringOutcomeStatus;
 module.exports.selectTolerantly = selectTolerantly;
 module.exports.resetAbsentColumns = resetAbsentColumns;
+module.exports.ledgerRecord = ledgerRecord;
+module.exports.decisionLedgerRow = decisionLedgerRow;
