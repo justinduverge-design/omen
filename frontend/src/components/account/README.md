@@ -1,8 +1,6 @@
-# Account Components
+# Account components
 
-Tier 2 landing zone for Account-page UI that is not backend-owned.
+An empty home for account panels pulled out of `pages/Account.jsx` (connections, preferences, data export and
+delete). Provider connection UI already lives in `components/platforms/`.
 
-Planned first use:
-- Shared account panels that should not stay embedded in `frontend/src/pages/Account.jsx`.
-
-Do not put secrets or Supabase migrations here.
+Never put secrets, tokens or SQL here.

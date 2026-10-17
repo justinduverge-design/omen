@@ -1,5 +1,11 @@
 # Omen Design Authority Index
 
+> **Scope note, 2026-10-17:** this index was written for the 2026-07 web UI overhaul. For the native iPhone app,
+> which is now the product, design authority is the native gate in `CLAUDE.md`, starting with
+> `Blueprints/specs/mobile/omen-native-design-house-v1.md` and `omen-native-design-system-registry-v1.md`, plus
+> the locked canvas in `design/native-visual-lock-2026-09-13/`. The type system is Alegreya Sans and Alegreya
+> (facts-of-record #21). Use this file only for the React web app.
+
 **Status:** Active routing index  
 **Date:** 2026-07-15  
 **Purpose:** Tell agents which UX/UI files are current authority, which are companions, and which are historical evidence only.

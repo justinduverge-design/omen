@@ -4,13 +4,8 @@ This folder holds Omen product prompts.
 
 ## Current Use
 
-Use active prompts only when they match the current route:
-
-```text
-SLOPS/
-  slops-saloon/
-    omen/
-```
+This repo is the Omen product layer (L2). In the full Slops tree it sits at `slops-saloon/omen/`. Use only
+the active prompts below. Dated prompts (`2026-10-*`) are one-off run records.
 
 ## Active Build Loop Prompts
 
