@@ -8,6 +8,7 @@ declare
   n int;
   row public.platform_connections%rowtype;
 begin
+  insert into auth.users (id, email) values (uid, 'step17@example.invalid');
   insert into public.users (id, email) values (uid, 'step17@example.invalid');
   s1 := vault.create_secret('cookie-a');
   s2 := vault.create_secret('cookie-b');
