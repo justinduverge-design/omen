@@ -126,6 +126,25 @@ Positions: `off` → `shadow` → `on` → `pruned`.
 - **Pi builds:** the Pi fleet is ARM. Cross-compile in CI with `cross` or `cargo-zigbuild`.
 - **Parity before removal:** every replacement proves it matches before the old path is deleted.
 
+## Founder decisions (2026-10-17)
+
+1. **Approval:** the programme is approved. Building behind switches set to off or shadow needs no further approval.
+   Each production flip still gets a one-line founder approval ("flip Phase N"), per map rule 5.
+2. **Phase 5 timing:** build the shared core after the season, once `is_off_season` is true. The trade-search worker
+   (below) handles speed until then.
+3. **Model:** **Ministral 3 3B Instruct** is the primary candidate: Apache 2.0, smaller than `gemma3:4b`, and similar on
+   instruction-following benchmarks. `gemma3:4b` stays installed as the fallback. The grounding pass rate during shadow
+   decides; if Ministral loses, Gemma stays.
+4. **Action pinning:** use the industry standard (GitHub's security hardening guide, OpenSSF Scorecard). Pin every
+   third-party action by full commit SHA with the version as a comment, and let Dependabot propose updates. New workflows
+   start this way; existing ones convert in Phase 1.
+5. **OpenTelemetry:** turn it on. It is installed but not wired.
+6. **Trade search:** move it to a `worker_threads` worker now, without Rust.
+7. **`client/`:** retire it. `src/server.js` serves only `frontend/dist` (its "Serving SPA from client/dist" log line
+   is stale), nginx proxies everything to the app, and `frontend/` already has Privacy, Terms, Login and the emblem
+   asset. The only references are the Dockerfile build stage, `Dockerfile.cron`'s copy and the `pr-quality.yml`
+   build step.
+
 ## Readiness checklist (prep before execution)
 
 These have to be true before the programme can run end to end. The founder decides the items marked **(founder)**.
