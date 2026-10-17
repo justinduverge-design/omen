@@ -103,6 +103,38 @@ final class CommandCenterViewModel: ObservableObject {
         }
     }
 
+    /// Current Ledger truth without routing through the retired Command aggregate.
+    /// Production desk and J6 callers use this seam; `commandCenterState` remains only until
+    /// legacy fixture and mapping tests are retired.
+    var ledgerState: OmenLedgerPreviewState {
+        if let ledger { return ledger }
+        switch viewState {
+        case .loading:
+            return .loading
+        case .demo:
+            return .entries([
+                OmenLedgerEntry(
+                    id: "demo-start-sit-week-6",
+                    period: "DEMO WEEK 6",
+                    callType: "START/SIT",
+                    summary: "Start DeVonta Smith over Chris Olave",
+                    outcome: "Smith 18.4 · Olave 11.2 · Demo outcome aligned."
+                ),
+                OmenLedgerEntry(
+                    id: "demo-waiver-week-6",
+                    period: "DEMO WEEK 6",
+                    callType: "WAIVER",
+                    summary: "Add Tyrone Tracy Jr.",
+                    outcome: "Demo claim pending."
+                )
+            ])
+        case .loaded(let summary):
+            return summary.tools.omenOfTheWeek.status == .needsPlatform ? .notConnected : .empty
+        case .failed:
+            return .error("The Ledger could not be read. Try again when the connection recovers.")
+        }
+    }
+
     /// The lock's Command Center, from the same reads the legacy screen used. `nil` until the
     /// shell has loaded; sections resolve independently, so a dead matchup read never blanks the
     /// waiver or Ledger sections beside it.
@@ -112,7 +144,7 @@ final class CommandCenterViewModel: ObservableObject {
             return OmenDeskState.from(
                 overview: overview,
                 waiver: .from(analysis: waiverAnalysis),
-                ledger: .from(ledger: commandCenterState.ledger),
+                ledger: .from(ledger: ledgerState),
                 weekLabel: summary.gameWeek?.week.map { "Week \($0)" } ?? "",
                 railCount: railCount,
                 railIndex: railIndex,

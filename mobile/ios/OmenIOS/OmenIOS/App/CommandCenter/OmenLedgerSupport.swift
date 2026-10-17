@@ -1,5 +1,20 @@
 import SwiftUI
 
+/// Read lifecycle for the compact Ledger section. This remains separate from the retired Command
+/// aggregate because Moves History, the current desk, and J6 all consume it directly.
+enum OmenLedgerPreviewState {
+    case entries([OmenLedgerEntry])
+    case empty
+    case notConnected
+    case loading
+    case error(String)
+
+    var entries: [OmenLedgerEntry] {
+        guard case .entries(let entries) = self else { return [] }
+        return entries
+    }
+}
+
 /// Fetches a frozen `move-detail.v1` receipt and renders the current Ledger detail screen.
 /// This support belongs to the live J6 route, independent of the retired Command composition.
 struct LedgerReceiptView: View {

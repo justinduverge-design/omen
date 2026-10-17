@@ -732,22 +732,6 @@ struct OmenCommandCenterState {
     }
 }
 
-enum OmenLedgerPreviewState {
-    case entries([OmenLedgerEntry])
-    case empty
-    case notConnected
-    /// Slice E. The Ledger loads on its own request after the shell is already on screen, so
-    /// it needs its own in-flight and failure states. Both render through `OmenStateSurface`;
-    /// neither substitutes a fixture (facts-of-record #7).
-    case loading
-    case error(String)
-
-    var entries: [OmenLedgerEntry] {
-        guard case .entries(let entries) = self else { return [] }
-        return entries
-    }
-}
-
 enum OmenLeaguePulseState {
     case available(position: String, cutLine: String?, activity: String?)
     case offSeason(summary: String)

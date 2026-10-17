@@ -289,3 +289,9 @@ The first dependency split after that deletion moves `OmenLedgerEntry`, `LedgerR
 and J6; extracting them makes the remaining old Command state, fixtures, gallery and waiver scenarios
 a bounded legacy island that can be migrated and deleted without copying or sacrificing Ledger behavior.
 
+The follow-on split moves `OmenLedgerPreviewState` into the same live support file. Production Command
+and J6 now read `CommandCenterViewModel.ledgerState` directly; they no longer route Ledger rows through
+`OmenCommandCenterState`. Demo rows are constructed as labeled Ledger entries rather than borrowed from
+`OmenCommandCenterFixtures`. The aggregate remains temporarily for legacy screenshots and mapping tests,
+but it is no longer on the current screen's data path.
+

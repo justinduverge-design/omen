@@ -305,7 +305,7 @@ struct CommandCenterView: View {
                             bar.onAddLeague = { showConnectSheet = true }
                             return bar
                         },
-                        ledgerEntries: commandCenterViewModel.commandCenterState.ledger.entries,
+                        ledgerEntries: commandCenterViewModel.ledgerState.entries,
                         onOpenAccount: { showAccountSheet = true },
                         onOpenLeague: { selectedTab = .league },
                         onReportProblem: { reportingScreen = .commandCenter },
