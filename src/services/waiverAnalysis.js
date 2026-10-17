@@ -25,7 +25,7 @@
 
 const { mayShowFaab, mayShowPriority } = require("./waiverSystem");
 const { recommendBid } = require("./waiverBid");
-const { SIGHT_WEIGHT, blendWithSight, isLocked } = require("./sightDecision");
+const { SIGHT_WEIGHT, blendWithSight, isLocked, effectiveStatus } = require("./sightDecision");
 
 const CONTRACT_VERSION = "waiver-analysis.v1";
 const MAX_ALTERNATIVES = 3;
@@ -131,7 +131,7 @@ function isBye(player) {
 }
 
 function isOut(player) {
-  return OUT_STATUSES.has(String(player?.status || "").trim().toUpperCase());
+  return OUT_STATUSES.has(String(effectiveStatus(player) || "").trim().toUpperCase());
 }
 
 function round2(value) {

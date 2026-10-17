@@ -57,18 +57,20 @@ function createWarehouseSightRepository({ query, timeoutMs = 2_000 }) {
       const refs = [...new Map((Array.isArray(playerKeys) ? playerKeys : []).map(parseRef).filter(Boolean).map((r) => [r.key, r])).values()].slice(0, MAX_REFS);
       if (!/^v[0-9]{1,3}$/.test(version)) return new Map();
       const result = !refs.length ? { rows: [] } : await query({
-        name: "warehouse-sight-read-v1",
+        name: "warehouse-sight-read-v2",
         text: `
           WITH run AS (
             SELECT id, season, week FROM football.football_metric_runs
              WHERE metric_name = 'omen_sight' AND formula_version = $4 AND state = 'succeeded'
              ORDER BY season DESC, week DESC LIMIT 1
           )
-          SELECT refs.key, run.season, run.week, v.value, v.components
+          SELECT refs.key, run.season, run.week, v.value, v.components, ir.status AS injury_status, ir.body_part AS injury_body_part,
+                 ir.practice_participation AS injury_practice
             FROM unnest($1::text[], $2::text[], $3::text[]) AS refs(key, provider, provider_id)
             JOIN football.football_player_ids x ON x.provider = refs.provider AND x.provider_id = refs.provider_id
             CROSS JOIN run
-            JOIN football.football_metric_values v ON v.metric_run_id = run.id AND v.entity_type = 'player' AND v.entity_id = x.player_id`,
+            JOIN football.football_metric_values v ON v.metric_run_id = run.id AND v.entity_type = 'player' AND v.entity_id = x.player_id
+            LEFT JOIN football.player_injury_reports ir ON ir.player_id = x.player_id`,
         values: [refs.map((r) => r.key), refs.map((r) => r.provider), refs.map((r) => r.providerId), version],
         query_timeout: timeoutMs,
       });
@@ -95,7 +97,7 @@ function createWarehouseSightRepository({ query, timeoutMs = 2_000 }) {
       const pending = refs.filter((r) => !found.has(r.key) && hints instanceof Map)
         .map((r) => hintOf(r.key, hints.get(r.key))).filter(Boolean).slice(0, 200);
       const hintRows = pending.length ? (await query({
-        name: "warehouse-sight-read-hint-v1",
+        name: "warehouse-sight-read-hint-v2",
         text: `
           WITH run AS (
             SELECT id, season, week FROM football.football_metric_runs
@@ -115,9 +117,11 @@ function createWarehouseSightRepository({ query, timeoutMs = 2_000 }) {
               JOIN roster ro ON ro.name = h.name AND ro.team_id = h.team_id AND ro.football_position = h.position
              GROUP BY h.key HAVING count(*) = 1
           )
-          SELECT m.key, run.season, run.week, v.value, v.components
+          SELECT m.key, run.season, run.week, v.value, v.components, ir.status AS injury_status, ir.body_part AS injury_body_part,
+                 ir.practice_participation AS injury_practice
             FROM matched m CROSS JOIN run
-            JOIN football.football_metric_values v ON v.metric_run_id = run.id AND v.entity_type = 'player' AND v.entity_id = m.player_id`,
+            JOIN football.football_metric_values v ON v.metric_run_id = run.id AND v.entity_type = 'player' AND v.entity_id = m.player_id
+            LEFT JOIN football.player_injury_reports ir ON ir.player_id = m.player_id`,
         values: [pending.map((h) => h.key), pending.map((h) => h.name), pending.map((h) => h.team), pending.map((h) => h.position), version],
         query_timeout: timeoutMs,
       }))?.rows || [] : [];
@@ -140,6 +144,8 @@ function createWarehouseSightRepository({ query, timeoutMs = 2_000 }) {
           sight_points: Number.isFinite(Number(row.value)) ? Math.round(Number(row.value) * 10) / 10 : null,
           // The three inputs that moved the number most, in points; the full breakdown stays in the warehouse.
           drivers: contributions.slice(0, 3).map((p) => ({ name: p.name, points: Math.round(p.points * 10) / 10 })),
+          // Sleeper's injury report (once a day). Absent means Sleeper lists no injury, not "healthy for sure".
+          ...(row.injury_status ? { injury: { status: row.injury_status, body_part: row.injury_body_part || null, practice: row.injury_practice || null, source: "sleeper" } } : {}),
         });
       }
       return out;

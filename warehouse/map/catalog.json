@@ -204,6 +204,19 @@
       "migration": "0009"
     },
     {
+      "name": "player_injury_reports",
+      "layer": "facts",
+      "grain": "one current row per injured player",
+      "source": "Sleeper public player list (same daily download as the player index); founder-approved 2026-10-17",
+      "refresh": "daily 07:15 ET, with the player index",
+      "purpose": "Injury status and body part for every player, so Start/Sit can weigh an injury the league's provider did not report.",
+      "gaps": [
+        "Once a day: a Sunday-morning inactive is not seen until the next run.",
+        "Sleeper's practice fields are often empty."
+      ],
+      "migration": "0023"
+    },
+    {
       "name": "team_ids",
       "layer": "identity",
       "grain": "one row per (provider, provider code, team or defense)",

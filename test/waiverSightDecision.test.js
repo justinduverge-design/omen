@@ -50,3 +50,14 @@ test("ESPN market movement on the add is named as a signal, not a verdict", () =
   const row = out.evidence.find((e) => e.category === "market_signal");
   assert.match(row.statement, /41\.2% of ESPN leagues, up 18\.5/);
 });
+
+test("Sleeper's injury status fills in only when the league provider reports none", () => {
+  const { effectiveStatus } = require("../src/services/sightDecision");
+  const { evaluateLineup } = require("../src/services/optimizer");
+  assert.equal(effectiveStatus({ status: "Q", sight: { injury: { status: "Out" } } }), "Q");
+  assert.equal(effectiveStatus({ status: null, sight: { injury: { status: "Out" } } }), "OUT");
+  assert.equal(effectiveStatus({ status: "", sight: { injury: { status: "NA" } } }), null);
+  const starter = p("s", "WR", 12, { selected_position: "WR", eligible_positions: ["WR"], status: null, sight: { injury: { status: "IR" } } });
+  const bench = p("b", "WR", 6, { selected_position: "BN", eligible_positions: ["WR"] });
+  assert.equal(evaluateLineup({ slots: { starters: [starter], bench: [bench] } })[0]?.to.player_key, "sleeper:b");
+});

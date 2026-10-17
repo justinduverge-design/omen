@@ -53,7 +53,6 @@ Provider fields and endpoints that are observed or documented but that no code i
 | espn | keeperValue / draftAuctionValue | observed | Keeper and auction leagues: the league's own valuation of each player. | low | only matters for keeper leagues |
 | espn | proTeamSchedules | documented | Provider-side NFL schedule and bye per player. | low | a live probe; Omen already has nflSchedule.js |
 | sleeper | depth_chart_order / depth_chart_position | documented | Depth-chart role per player on a list Omen already fetches. | medium | none technically; check it against the warehouse depth data first |
-| sleeper | practice_participation / practice_description / injury_notes | documented | Practice status and injury notes are the injury-report data the 2026-10-09 handoff lists as the biggest open start/sit gain. | high | founder rights decision: whether to admit NFL injury-report data via Sleeper |
 | sleeper | traded_picks | documented | Pick ownership for trade context and trade value. | low | a live probe |
 | sleeper | winners_bracket / losers_bracket | documented | Playoff bracket and outcomes for late-season screens. | low | a live probe |
 | yahoo | percent_owned | documented | Same waiver-heat signal as ESPN; also the waiver versus free-agent distinction (status W vs FA). | medium | a live probe; needs the founder's Yahoo session |
