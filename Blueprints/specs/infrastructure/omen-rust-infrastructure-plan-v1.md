@@ -53,7 +53,12 @@ digest, ops summaries, and data-quality suggestions.
   queries.
 - Proof on one season: identical rows to the current writer, with memory and time measured. Then backfill and retire
   the `--max-old-space-size=3072` workaround.
-- Fix the open `nfl_games.kickoff_at` gap (TIMERS.md open items).
+- `nfl_games.kickoff_at`: TIMERS.md lists it as empty, but `scheduleSource.js` already derives it
+  (`kickoffInstantUtc`) and `scheduleWriter.js` writes it. Check the live column. If old rows are empty, re-run the
+  schedule ingest, then close the TIMERS.md open item. The Polars path must keep the same derivation.
+- Parity risk: adapters store the raw row as strings in `source_row`, and some SQL compares that text (for example
+  `two_point_attempt IS DISTINCT FROM '1'`). Parquet must not turn `1` into `1.0` (see
+  `rust-prep/phase3-parquet-column-map.md`).
 - Done when: a full-season ingest runs under 1 GB and every `warehouse/test` script passes.
 
 ### Phase 4 — Server ops
