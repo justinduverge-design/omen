@@ -271,7 +271,9 @@ function costFor(drop, best) {
   return {
     removes,
     accepted_because: [
-      `${nameOf(drop.player)} is the lowest-valued player on your bench who can play this week (${round2(drop.projected_points)} points).`,
+      drop.player?.sight
+        ? `${nameOf(drop.player)} is the lowest-valued player on your bench who can play this week (${round2(drop.projected_points)} points with Omen's Sight).`
+        : `${nameOf(drop.player)} projects ${round2(drop.projected_points)} points, the lowest on your bench among players who can play this week.`,
       `${nameOf(best.player)} addresses a more immediate roster need.`,
     ],
   };

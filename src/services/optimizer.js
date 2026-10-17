@@ -118,7 +118,8 @@ function statusPenalty(status) {
 function adjustedProjection(player) {
   const raw = Number(player.projected_points) || 0;
   // Omen's Sight moves the number when it is attached; without it this is the provider projection, unchanged.
-  const proj = blendWithSight(raw, player);
+  // Only a real provider number is blended: a missing one stays 0 here, exactly as before.
+  const proj = hasProjection(player) ? blendWithSight(raw, player) : raw;
   return proj * (1 - statusPenalty(player.status));
 }
 
