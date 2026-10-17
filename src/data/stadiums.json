@@ -7,49 +7,520 @@
       "dome": "Fixed roof or canopy. Weather does not apply.",
       "retractable": "Roof state is decided close to kickoff and is not known in advance. Weather applies only when the roof is open, so consumers must weight it by an open-roof probability, never assume either state."
     },
-    "reviewed": "2026-09-30"
+    "reviewed": "2026-09-30",
+    "historic_note": "Venues used 1999-2019 that are closed, replaced or one-off (London, Baton Rouge, San Antonio, Champaign) were added 2026-10-17 for the historical weather backfill, coordinates to about 0.01 degrees; roof is the venue type when used."
   },
   "stadiums": {
-    "ATL97": { "name": "Mercedes-Benz Stadium", "lat": 33.7554, "lon": -84.4009, "tz": "America/New_York", "roof_type": "retractable" },
-    "BAL00": { "name": "M&T Bank Stadium", "lat": 39.2780, "lon": -76.6227, "tz": "America/New_York", "roof_type": "outdoors" },
-    "BOS00": { "name": "Gillette Stadium", "lat": 42.0909, "lon": -71.2643, "tz": "America/New_York", "roof_type": "outdoors" },
-    "BUF00": { "name": "Highmark Stadium", "lat": 42.7738, "lon": -78.7870, "tz": "America/New_York", "roof_type": "outdoors" },
-    "CAR00": { "name": "Bank of America Stadium", "lat": 35.2258, "lon": -80.8528, "tz": "America/New_York", "roof_type": "outdoors" },
-    "CHI98": { "name": "Soldier Field", "lat": 41.8623, "lon": -87.6167, "tz": "America/Chicago", "roof_type": "outdoors" },
-    "CIN00": { "name": "Paycor Stadium", "lat": 39.0955, "lon": -84.5161, "tz": "America/New_York", "roof_type": "outdoors" },
-    "CLE00": { "name": "Huntington Bank Field", "lat": 41.5061, "lon": -81.6995, "tz": "America/New_York", "roof_type": "outdoors" },
-    "DAL00": { "name": "AT&T Stadium", "lat": 32.7473, "lon": -97.0945, "tz": "America/Chicago", "roof_type": "retractable" },
-    "DEN00": { "name": "Empower Field at Mile High", "lat": 39.7439, "lon": -105.0201, "tz": "America/Denver", "roof_type": "outdoors" },
-    "DET00": { "name": "Ford Field", "lat": 42.3400, "lon": -83.0456, "tz": "America/Detroit", "roof_type": "dome" },
-    "GNB00": { "name": "Lambeau Field", "lat": 44.5013, "lon": -88.0622, "tz": "America/Chicago", "roof_type": "outdoors" },
-    "HOU00": { "name": "NRG Stadium", "lat": 29.6847, "lon": -95.4107, "tz": "America/Chicago", "roof_type": "retractable" },
-    "IND00": { "name": "Lucas Oil Stadium", "lat": 39.7601, "lon": -86.1639, "tz": "America/Indiana/Indianapolis", "roof_type": "retractable" },
-    "JAX00": { "name": "EverBank Stadium", "lat": 30.3239, "lon": -81.6373, "tz": "America/New_York", "roof_type": "outdoors" },
-    "KAN00": { "name": "GEHA Field at Arrowhead Stadium", "lat": 39.0489, "lon": -94.4839, "tz": "America/Chicago", "roof_type": "outdoors" },
-    "LAX01": { "name": "SoFi Stadium", "lat": 33.9535, "lon": -118.3392, "tz": "America/Los_Angeles", "roof_type": "dome", "note": "Canopy over open sides; nflverse records it as a dome. Treated as weather-neutral, which understates wind." },
-    "MIA00": { "name": "Hard Rock Stadium", "lat": 25.9580, "lon": -80.2389, "tz": "America/New_York", "roof_type": "outdoors" },
-    "MIN01": { "name": "U.S. Bank Stadium", "lat": 44.9735, "lon": -93.2575, "tz": "America/Chicago", "roof_type": "dome" },
-    "NAS00": { "name": "Nissan Stadium", "lat": 36.1665, "lon": -86.7713, "tz": "America/Chicago", "roof_type": "outdoors" },
-    "NOR00": { "name": "Caesars Superdome", "lat": 29.9511, "lon": -90.0812, "tz": "America/Chicago", "roof_type": "dome" },
-    "NYC01": { "name": "MetLife Stadium", "lat": 40.8135, "lon": -74.0745, "tz": "America/New_York", "roof_type": "outdoors" },
-    "PHI00": { "name": "Lincoln Financial Field", "lat": 39.9008, "lon": -75.1675, "tz": "America/New_York", "roof_type": "outdoors" },
-    "PHO00": { "name": "State Farm Stadium", "lat": 33.5276, "lon": -112.2626, "tz": "America/Phoenix", "roof_type": "retractable" },
-    "PIT00": { "name": "Acrisure Stadium", "lat": 40.4468, "lon": -80.0158, "tz": "America/New_York", "roof_type": "outdoors" },
-    "SEA00": { "name": "Lumen Field", "lat": 47.5952, "lon": -122.3316, "tz": "America/Los_Angeles", "roof_type": "outdoors" },
-    "SFO01": { "name": "Levi's Stadium", "lat": 37.4032, "lon": -121.9698, "tz": "America/Los_Angeles", "roof_type": "outdoors" },
-    "TAM00": { "name": "Raymond James Stadium", "lat": 27.9759, "lon": -82.5033, "tz": "America/New_York", "roof_type": "outdoors" },
-    "VEG00": { "name": "Allegiant Stadium", "lat": 36.0909, "lon": -115.1833, "tz": "America/Los_Angeles", "roof_type": "dome" },
-    "WAS00": { "name": "Northwest Stadium", "lat": 38.9076, "lon": -76.8645, "tz": "America/New_York", "roof_type": "outdoors" },
-    "FRA00": { "name": "Deutsche Bank Park", "lat": 50.0686, "lon": 8.6455, "tz": "Europe/Berlin", "roof_type": "outdoors", "international": true },
-    "GER00": { "name": "Allianz Arena", "lat": 48.2188, "lon": 11.6247, "tz": "Europe/Berlin", "roof_type": "outdoors", "international": true },
-    "MUN01": { "name": "FC Bayern Munich Stadium", "lat": 48.2188, "lon": 11.6247, "tz": "Europe/Berlin", "roof_type": "outdoors", "international": true, "note": "Same venue as GER00 under a different nflverse id; nflverse records a dome, the venue is open-air." },
-    "LON00": { "name": "Wembley Stadium", "lat": 51.5560, "lon": -0.2796, "tz": "Europe/London", "roof_type": "outdoors", "international": true },
-    "LON02": { "name": "Tottenham Hotspur Stadium", "lat": 51.6043, "lon": -0.0664, "tz": "Europe/London", "roof_type": "outdoors", "international": true },
-    "MAD01": { "name": "Santiago Bernabeu", "lat": 40.4531, "lon": -3.6884, "tz": "Europe/Madrid", "roof_type": "retractable", "international": true, "note": "Retractable roof; state is unknown in advance." },
-    "MEL00": { "name": "Melbourne Cricket Ground", "lat": -37.8200, "lon": 144.9834, "tz": "Australia/Melbourne", "roof_type": "outdoors", "international": true, "note": "nflverse records a dome; the ground is open-air." },
-    "MEX00": { "name": "Estadio Banorte", "lat": 19.3029, "lon": -99.1505, "tz": "America/Mexico_City", "roof_type": "outdoors", "international": true },
-    "PAR00": { "name": "Stade de France", "lat": 48.9245, "lon": 2.3601, "tz": "Europe/Paris", "roof_type": "outdoors", "international": true, "note": "nflverse records a dome; the stadium is open-air." },
-    "RIO00": { "name": "Maracana Stadium", "lat": -22.9122, "lon": -43.2302, "tz": "America/Sao_Paulo", "roof_type": "outdoors", "international": true },
-    "SAO00": { "name": "Arena Corinthians", "lat": -23.5453, "lon": -46.4742, "tz": "America/Sao_Paulo", "roof_type": "outdoors", "international": true }
+    "ATL97": {
+      "name": "Mercedes-Benz Stadium",
+      "lat": 33.7554,
+      "lon": -84.4009,
+      "tz": "America/New_York",
+      "roof_type": "retractable"
+    },
+    "BAL00": {
+      "name": "M&T Bank Stadium",
+      "lat": 39.278,
+      "lon": -76.6227,
+      "tz": "America/New_York",
+      "roof_type": "outdoors"
+    },
+    "BOS00": {
+      "name": "Gillette Stadium",
+      "lat": 42.0909,
+      "lon": -71.2643,
+      "tz": "America/New_York",
+      "roof_type": "outdoors"
+    },
+    "BUF00": {
+      "name": "Highmark Stadium",
+      "lat": 42.7738,
+      "lon": -78.787,
+      "tz": "America/New_York",
+      "roof_type": "outdoors"
+    },
+    "CAR00": {
+      "name": "Bank of America Stadium",
+      "lat": 35.2258,
+      "lon": -80.8528,
+      "tz": "America/New_York",
+      "roof_type": "outdoors"
+    },
+    "CHI98": {
+      "name": "Soldier Field",
+      "lat": 41.8623,
+      "lon": -87.6167,
+      "tz": "America/Chicago",
+      "roof_type": "outdoors"
+    },
+    "CIN00": {
+      "name": "Paycor Stadium",
+      "lat": 39.0955,
+      "lon": -84.5161,
+      "tz": "America/New_York",
+      "roof_type": "outdoors"
+    },
+    "CLE00": {
+      "name": "Huntington Bank Field",
+      "lat": 41.5061,
+      "lon": -81.6995,
+      "tz": "America/New_York",
+      "roof_type": "outdoors"
+    },
+    "DAL00": {
+      "name": "AT&T Stadium",
+      "lat": 32.7473,
+      "lon": -97.0945,
+      "tz": "America/Chicago",
+      "roof_type": "retractable"
+    },
+    "DEN00": {
+      "name": "Empower Field at Mile High",
+      "lat": 39.7439,
+      "lon": -105.0201,
+      "tz": "America/Denver",
+      "roof_type": "outdoors"
+    },
+    "DET00": {
+      "name": "Ford Field",
+      "lat": 42.34,
+      "lon": -83.0456,
+      "tz": "America/Detroit",
+      "roof_type": "dome"
+    },
+    "GNB00": {
+      "name": "Lambeau Field",
+      "lat": 44.5013,
+      "lon": -88.0622,
+      "tz": "America/Chicago",
+      "roof_type": "outdoors"
+    },
+    "HOU00": {
+      "name": "NRG Stadium",
+      "lat": 29.6847,
+      "lon": -95.4107,
+      "tz": "America/Chicago",
+      "roof_type": "retractable"
+    },
+    "IND00": {
+      "name": "Lucas Oil Stadium",
+      "lat": 39.7601,
+      "lon": -86.1639,
+      "tz": "America/Indiana/Indianapolis",
+      "roof_type": "retractable"
+    },
+    "JAX00": {
+      "name": "EverBank Stadium",
+      "lat": 30.3239,
+      "lon": -81.6373,
+      "tz": "America/New_York",
+      "roof_type": "outdoors"
+    },
+    "KAN00": {
+      "name": "GEHA Field at Arrowhead Stadium",
+      "lat": 39.0489,
+      "lon": -94.4839,
+      "tz": "America/Chicago",
+      "roof_type": "outdoors"
+    },
+    "LAX01": {
+      "name": "SoFi Stadium",
+      "lat": 33.9535,
+      "lon": -118.3392,
+      "tz": "America/Los_Angeles",
+      "roof_type": "dome",
+      "note": "Canopy over open sides; nflverse records it as a dome. Treated as weather-neutral, which understates wind."
+    },
+    "MIA00": {
+      "name": "Hard Rock Stadium",
+      "lat": 25.958,
+      "lon": -80.2389,
+      "tz": "America/New_York",
+      "roof_type": "outdoors"
+    },
+    "MIN01": {
+      "name": "U.S. Bank Stadium",
+      "lat": 44.9735,
+      "lon": -93.2575,
+      "tz": "America/Chicago",
+      "roof_type": "dome"
+    },
+    "NAS00": {
+      "name": "Nissan Stadium",
+      "lat": 36.1665,
+      "lon": -86.7713,
+      "tz": "America/Chicago",
+      "roof_type": "outdoors"
+    },
+    "NOR00": {
+      "name": "Caesars Superdome",
+      "lat": 29.9511,
+      "lon": -90.0812,
+      "tz": "America/Chicago",
+      "roof_type": "dome"
+    },
+    "NYC01": {
+      "name": "MetLife Stadium",
+      "lat": 40.8135,
+      "lon": -74.0745,
+      "tz": "America/New_York",
+      "roof_type": "outdoors"
+    },
+    "PHI00": {
+      "name": "Lincoln Financial Field",
+      "lat": 39.9008,
+      "lon": -75.1675,
+      "tz": "America/New_York",
+      "roof_type": "outdoors"
+    },
+    "PHO00": {
+      "name": "State Farm Stadium",
+      "lat": 33.5276,
+      "lon": -112.2626,
+      "tz": "America/Phoenix",
+      "roof_type": "retractable"
+    },
+    "PIT00": {
+      "name": "Acrisure Stadium",
+      "lat": 40.4468,
+      "lon": -80.0158,
+      "tz": "America/New_York",
+      "roof_type": "outdoors"
+    },
+    "SEA00": {
+      "name": "Lumen Field",
+      "lat": 47.5952,
+      "lon": -122.3316,
+      "tz": "America/Los_Angeles",
+      "roof_type": "outdoors"
+    },
+    "SFO01": {
+      "name": "Levi's Stadium",
+      "lat": 37.4032,
+      "lon": -121.9698,
+      "tz": "America/Los_Angeles",
+      "roof_type": "outdoors"
+    },
+    "TAM00": {
+      "name": "Raymond James Stadium",
+      "lat": 27.9759,
+      "lon": -82.5033,
+      "tz": "America/New_York",
+      "roof_type": "outdoors"
+    },
+    "VEG00": {
+      "name": "Allegiant Stadium",
+      "lat": 36.0909,
+      "lon": -115.1833,
+      "tz": "America/Los_Angeles",
+      "roof_type": "dome"
+    },
+    "WAS00": {
+      "name": "Northwest Stadium",
+      "lat": 38.9076,
+      "lon": -76.8645,
+      "tz": "America/New_York",
+      "roof_type": "outdoors"
+    },
+    "FRA00": {
+      "name": "Deutsche Bank Park",
+      "lat": 50.0686,
+      "lon": 8.6455,
+      "tz": "Europe/Berlin",
+      "roof_type": "outdoors",
+      "international": true
+    },
+    "GER00": {
+      "name": "Allianz Arena",
+      "lat": 48.2188,
+      "lon": 11.6247,
+      "tz": "Europe/Berlin",
+      "roof_type": "outdoors",
+      "international": true
+    },
+    "MUN01": {
+      "name": "FC Bayern Munich Stadium",
+      "lat": 48.2188,
+      "lon": 11.6247,
+      "tz": "Europe/Berlin",
+      "roof_type": "outdoors",
+      "international": true,
+      "note": "Same venue as GER00 under a different nflverse id; nflverse records a dome, the venue is open-air."
+    },
+    "LON00": {
+      "name": "Wembley Stadium",
+      "lat": 51.556,
+      "lon": -0.2796,
+      "tz": "Europe/London",
+      "roof_type": "outdoors",
+      "international": true
+    },
+    "LON02": {
+      "name": "Tottenham Hotspur Stadium",
+      "lat": 51.6043,
+      "lon": -0.0664,
+      "tz": "Europe/London",
+      "roof_type": "outdoors",
+      "international": true
+    },
+    "MAD01": {
+      "name": "Santiago Bernabeu",
+      "lat": 40.4531,
+      "lon": -3.6884,
+      "tz": "Europe/Madrid",
+      "roof_type": "retractable",
+      "international": true,
+      "note": "Retractable roof; state is unknown in advance."
+    },
+    "MEL00": {
+      "name": "Melbourne Cricket Ground",
+      "lat": -37.82,
+      "lon": 144.9834,
+      "tz": "Australia/Melbourne",
+      "roof_type": "outdoors",
+      "international": true,
+      "note": "nflverse records a dome; the ground is open-air."
+    },
+    "MEX00": {
+      "name": "Estadio Banorte",
+      "lat": 19.3029,
+      "lon": -99.1505,
+      "tz": "America/Mexico_City",
+      "roof_type": "outdoors",
+      "international": true
+    },
+    "PAR00": {
+      "name": "Stade de France",
+      "lat": 48.9245,
+      "lon": 2.3601,
+      "tz": "Europe/Paris",
+      "roof_type": "outdoors",
+      "international": true,
+      "note": "nflverse records a dome; the stadium is open-air."
+    },
+    "RIO00": {
+      "name": "Maracana Stadium",
+      "lat": -22.9122,
+      "lon": -43.2302,
+      "tz": "America/Sao_Paulo",
+      "roof_type": "outdoors",
+      "international": true
+    },
+    "SAO00": {
+      "name": "Arena Corinthians",
+      "lat": -23.5453,
+      "lon": -46.4742,
+      "tz": "America/Sao_Paulo",
+      "roof_type": "outdoors",
+      "international": true
+    },
+    "ATL00": {
+      "name": "Georgia Dome",
+      "lat": 33.758,
+      "lon": -84.401,
+      "tz": "America/New_York",
+      "roof_type": "dome",
+      "historic": true
+    },
+    "BOS99": {
+      "name": "Foxboro Stadium",
+      "lat": 42.091,
+      "lon": -71.264,
+      "tz": "America/New_York",
+      "roof_type": "outdoors",
+      "historic": true
+    },
+    "BRG00": {
+      "name": "Tiger Stadium (Baton Rouge)",
+      "lat": 30.412,
+      "lon": -91.184,
+      "tz": "America/Chicago",
+      "roof_type": "outdoors",
+      "historic": true
+    },
+    "BUF01": {
+      "name": "Rogers Centre",
+      "lat": 43.641,
+      "lon": -79.389,
+      "tz": "America/Toronto",
+      "roof_type": "dome",
+      "historic": true
+    },
+    "CHI99": {
+      "name": "Memorial Stadium (Champaign)",
+      "lat": 40.099,
+      "lon": -88.236,
+      "tz": "America/Chicago",
+      "roof_type": "outdoors",
+      "historic": true
+    },
+    "CIN99": {
+      "name": "Cinergy Field",
+      "lat": 39.097,
+      "lon": -84.508,
+      "tz": "America/New_York",
+      "roof_type": "outdoors",
+      "historic": true
+    },
+    "DAL99": {
+      "name": "Texas Stadium",
+      "lat": 32.84,
+      "lon": -96.911,
+      "tz": "America/Chicago",
+      "roof_type": "outdoors",
+      "historic": true
+    },
+    "DEN99": {
+      "name": "Mile High Stadium",
+      "lat": 39.744,
+      "lon": -105.022,
+      "tz": "America/Denver",
+      "roof_type": "outdoors",
+      "historic": true
+    },
+    "DET99": {
+      "name": "Pontiac Silverdome",
+      "lat": 42.646,
+      "lon": -83.255,
+      "tz": "America/Detroit",
+      "roof_type": "dome",
+      "historic": true
+    },
+    "IND99": {
+      "name": "RCA Dome",
+      "lat": 39.764,
+      "lon": -86.163,
+      "tz": "America/Indiana/Indianapolis",
+      "roof_type": "dome",
+      "historic": true
+    },
+    "LAX97": {
+      "name": "StubHub Center",
+      "lat": 33.864,
+      "lon": -118.261,
+      "tz": "America/Los_Angeles",
+      "roof_type": "outdoors",
+      "historic": true
+    },
+    "LAX99": {
+      "name": "Los Angeles Memorial Coliseum",
+      "lat": 34.014,
+      "lon": -118.288,
+      "tz": "America/Los_Angeles",
+      "roof_type": "outdoors",
+      "historic": true
+    },
+    "LON01": {
+      "name": "Twickenham Stadium",
+      "lat": 51.456,
+      "lon": -0.341,
+      "tz": "Europe/London",
+      "roof_type": "outdoors",
+      "historic": true
+    },
+    "MIN00": {
+      "name": "Hubert H. Humphrey Metrodome",
+      "lat": 44.974,
+      "lon": -93.258,
+      "tz": "America/Chicago",
+      "roof_type": "dome",
+      "historic": true
+    },
+    "MIN98": {
+      "name": "TCF Bank Stadium",
+      "lat": 44.976,
+      "lon": -93.224,
+      "tz": "America/Chicago",
+      "roof_type": "outdoors",
+      "historic": true
+    },
+    "NYC00": {
+      "name": "Giants Stadium",
+      "lat": 40.812,
+      "lon": -74.077,
+      "tz": "America/New_York",
+      "roof_type": "outdoors",
+      "historic": true
+    },
+    "OAK00": {
+      "name": "Oakland Coliseum",
+      "lat": 37.751,
+      "lon": -122.2,
+      "tz": "America/Los_Angeles",
+      "roof_type": "outdoors",
+      "historic": true
+    },
+    "PHI99": {
+      "name": "Veterans Stadium",
+      "lat": 39.907,
+      "lon": -75.171,
+      "tz": "America/New_York",
+      "roof_type": "outdoors",
+      "historic": true
+    },
+    "PHO99": {
+      "name": "Sun Devil Stadium",
+      "lat": 33.426,
+      "lon": -111.933,
+      "tz": "America/Phoenix",
+      "roof_type": "outdoors",
+      "historic": true
+    },
+    "PIT99": {
+      "name": "Three Rivers Stadium",
+      "lat": 40.447,
+      "lon": -80.013,
+      "tz": "America/New_York",
+      "roof_type": "outdoors",
+      "historic": true
+    },
+    "SAN00": {
+      "name": "Alamodome",
+      "lat": 29.417,
+      "lon": -98.479,
+      "tz": "America/Chicago",
+      "roof_type": "dome",
+      "historic": true
+    },
+    "SDG00": {
+      "name": "Qualcomm Stadium",
+      "lat": 32.783,
+      "lon": -117.12,
+      "tz": "America/Los_Angeles",
+      "roof_type": "outdoors",
+      "historic": true
+    },
+    "SEA98": {
+      "name": "Kingdome",
+      "lat": 47.595,
+      "lon": -122.332,
+      "tz": "America/Los_Angeles",
+      "roof_type": "dome",
+      "historic": true
+    },
+    "SEA99": {
+      "name": "Husky Stadium",
+      "lat": 47.65,
+      "lon": -122.302,
+      "tz": "America/Los_Angeles",
+      "roof_type": "outdoors",
+      "historic": true
+    },
+    "SFO00": {
+      "name": "Candlestick Park",
+      "lat": 37.713,
+      "lon": -122.386,
+      "tz": "America/Los_Angeles",
+      "roof_type": "outdoors",
+      "historic": true
+    },
+    "STL00": {
+      "name": "Edward Jones Dome",
+      "lat": 38.633,
+      "lon": -90.188,
+      "tz": "America/Chicago",
+      "roof_type": "dome",
+      "historic": true
+    }
   }
 }
