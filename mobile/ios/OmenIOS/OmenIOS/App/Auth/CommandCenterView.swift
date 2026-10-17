@@ -794,6 +794,12 @@ struct OmenDecisionScreen: View {
                     } else {
                         callCard(payload)
                     }
+                    // The source that earned the lead belongs immediately after the verdict.
+                    // Keeping it only in the expanded argument made the compact call look like
+                    // the old provider-first product even when the server supplied a receipt.
+                    if let comparison = payload.readComparison {
+                        OmenLeadingReadCard(comparison: comparison)
+                    }
                     // Blocks 5-7, `omencall-evidence-contract-v1`. Three labelled groups rather
                     // than one flat list: the capability contract's classes ARE the lesson.
                     capabilityGroups(payload)
@@ -1238,7 +1244,23 @@ enum OmenDecisionFixtures {
                 team: "Sample Team",
                 meta: "Lower projected floor"
             )
-        ]
+        ],
+        readComparison: OmenReadComparison(
+            authority: .omenLeads,
+            providerLabel: "ESPN",
+            providerPoints: 13.7,
+            omenPoints: 17.5,
+            position: "WR",
+            scoringFamily: "ppr",
+            sampleSize: 65,
+            weeks: 2,
+            evaluatedAt: "2026-10-15T12:00:00Z",
+            omenMAE: 4.2,
+            providerMAE: 4.8,
+            crosswindGap: 3.8,
+            crosswindThreshold: 3.5,
+            portents: ["Target share +1.2", "Route participation +0.8"]
+        )
     )
 
     static let journeyNominal: OmenDecisionBriefState = .success(journeyNominalPayload)
@@ -1284,7 +1306,23 @@ enum OmenDecisionFixtures {
                            detail: "Omen could not read kickoff weather for this game.",
                            kind: .limitation, used: false)
         ],
-        alternatives: []
+        alternatives: [],
+        readComparison: OmenReadComparison(
+            authority: .unresolvedLowSample,
+            providerLabel: "Yahoo",
+            providerPoints: 14.1,
+            omenPoints: 15.3,
+            position: "WR",
+            scoringFamily: "ppr",
+            sampleSize: 31,
+            weeks: 1,
+            evaluatedAt: "2026-10-15T12:00:00Z",
+            omenMAE: nil,
+            providerMAE: nil,
+            crosswindGap: nil,
+            crosswindThreshold: nil,
+            portents: []
+        )
     )
 
     static let degraded: OmenDecisionBriefState = .success(journeyDegradedPayload)

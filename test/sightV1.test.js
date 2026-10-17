@@ -50,6 +50,7 @@ test("grading compares Sight with what happened, beside points-per-game and the 
   assert.equal(out.summary.positions.WR.n, 4);
   assert.ok(out.summary.positions.WR.sight.corr > 0.9);
   assert.equal(out.summary.positions.WR.provider.n, 4);
+  assert.equal(out.summary.positions.WR.provider.sight_mae_same_players, 2);
   assert.equal(out.values.find((v) => v.entityId === "p3").value, 3);
 });
 

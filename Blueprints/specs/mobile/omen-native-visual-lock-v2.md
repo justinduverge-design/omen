@@ -32,10 +32,10 @@ No screen labels a block `Sight`. Internal `sight` payloads decode into Omen Rea
 
 ### Current implementation boundary
 
-The current server still emits a fixed Sight/provider blend and does not yet return the versioned
-authority receipt defined below. That response may be shown as separately-labelled evidence, but it
-must not produce `provider_leads` or `omen_leads` in native UI. Until the server ships a qualifying
-receipt, the truthful state is unresolved. This lock is not authority to infer a winner on-device.
+The recommendation engine still emits a fixed Sight/provider blend, while the read-enrichment layer
+now returns the versioned authority receipt defined below. Native may display that server-owned
+receipt, but it may not infer a winner on-device or claim that the receipt already controls the
+optimizer. Missing or legacy evidence resolves closed.
 
 ## 3. Forecast authority
 
@@ -55,6 +55,11 @@ A lead requires the same-player evaluation set, minimum sample, current method/v
 holdout, and a predeclared metric policy. MAE is the primary fantasy-points error measure; correlation
 is supporting evidence and cannot override worse error alone. The receipt carries sample size, window,
 metrics and evaluated-at time. Missing receipt means unresolved, never inherited provider authority.
+
+The preregistered `forecast-authority.v1` policy is weekly PPR only: at least 50 same-player rows across
+at least two graded weeks, a 0.15 MAE tie margin, and an evaluation no older than 21 days. It includes
+the season/week range and model version in the receipt. These constants must change under a new policy
+version, not through client presentation logic.
 
 ## 4. Journey revision order
 

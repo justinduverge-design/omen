@@ -20,6 +20,69 @@ struct OmenEvidenceScreen: View {
                 header
                 scope
 
+                if let comparison = payload.readComparison {
+                    sectionHeader("Leading Read")
+                    OmenLeadingReadCard(comparison: comparison)
+
+                    if !payload.explanation.isEmpty {
+                        sectionHeader("Counsel")
+                        OmenCard(contentPadding: OmenSpacing.step12) {
+                            VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+                                ForEach(payload.explanation, id: \.self) { line in
+                                    Text(line)
+                                        .omenTextStyle(OmenTypography.bodySmall)
+                                        .foregroundStyle(OmenColor.textPrimary)
+                                }
+                            }
+                        }
+                    }
+
+                    if let gap = comparison.crosswindGap, let threshold = comparison.crosswindThreshold {
+                        sectionHeader("Crosswind")
+                        OmenCard(contentPadding: OmenSpacing.step12) {
+                            Text(String(format: "The reads differ by %+.1f points, beyond the %.1f-point evaluated error boundary.", gap, threshold))
+                                .omenTextStyle(OmenTypography.bodySmall)
+                                .foregroundStyle(OmenColor.textSecondary)
+                        }
+                    }
+
+                    if !comparison.portents.isEmpty {
+                        sectionHeader("Portents")
+                        OmenCard(contentPadding: OmenSpacing.step12) {
+                            VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+                                ForEach(comparison.portents, id: \.self) { portent in
+                                    Text(portent)
+                                        .omenTextStyle(OmenTypography.bodySmall)
+                                        .foregroundStyle(OmenColor.textSecondary)
+                                }
+                            }
+                        }
+                    }
+
+                    if comparison.authority != .providerLeads && comparison.authority != .omenLeads {
+                        sectionHeader("Fog")
+                        OmenCard(contentPadding: OmenSpacing.step12) {
+                            Text(fogCopy(comparison.authority))
+                                .omenTextStyle(OmenTypography.bodySmall)
+                                .foregroundStyle(OmenColor.textSecondary)
+                        }
+                    }
+
+                    sectionHeader("Receipt")
+                    OmenCard(contentPadding: OmenSpacing.step12) {
+                        VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+                            if let scope = comparison.scopeLabel { OmenEvidenceRow(key: "Cohort", statement: scope) }
+                            if let sample = comparison.sampleSize, let weeks = comparison.weeks {
+                                OmenEvidenceRow(key: "Coverage", statement: "\(sample) same-player results across \(weeks) weeks")
+                            }
+                            if let omen = comparison.omenMAE, let provider = comparison.providerMAE {
+                                OmenEvidenceRow(key: "Error", statement: String(format: "Omen %.2f MAE · %@ %.2f MAE", omen, comparison.providerLabel, provider))
+                            }
+                            if let evaluated = comparison.evaluatedAt { OmenEvidenceRow(key: "Evaluated", statement: evaluated) }
+                        }
+                    }
+                }
+
                 VStack(alignment: .leading, spacing: OmenSpacing.step10) {
                     ForEach(Array(payload.signals.enumerated()), id: \.offset) { _, signal in
                         OmenCapabilityEvidenceRow(signal: signal)
@@ -90,6 +153,16 @@ struct OmenEvidenceScreen: View {
         }
         .background(OmenColor.bg)
         .accessibilityIdentifier("j3.omen-evidence")
+    }
+
+    private func fogCopy(_ authority: OmenReadAuthority) -> String {
+        switch authority {
+        case .unresolvedTie: "The measured errors are too close to name a leading read."
+        case .unresolvedStale: "The comparison is too old to govern this call."
+        case .singleSourceOnly: "Only one usable read is available, so Omen cannot make a head-to-head claim."
+        case .unresolvedLowSample: "There are not enough current same-player results to name a leading read."
+        case .providerLeads, .omenLeads: ""
+        }
     }
 
     private var header: some View {
