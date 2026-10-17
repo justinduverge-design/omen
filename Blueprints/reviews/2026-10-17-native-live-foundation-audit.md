@@ -295,3 +295,10 @@ and J6 now read `CommandCenterViewModel.ledgerState` directly; they no longer ro
 `OmenCommandCenterFixtures`. The aggregate remains temporarily for legacy screenshots and mapping tests,
 but it is no longer on the current screen's data path.
 
+The first legacy evidence migration preserves stable scenario names while correcting what they prove:
+`command-center.disconnected` now mounts the real `OmenNoLeagueScreen`, and
+`chrome.report-pill.resting` now mounts the current desk with the report callback as the only difference
+from `command-center.demo-connected`. Both current-desk scenarios publish the same fit-probe identifier.
+Contextual-help interaction checks now use the populated current desk rather than requiring the no-league
+terminus to impersonate a full Command header. Fresh simulator captures confirm both migrated compositions.
+

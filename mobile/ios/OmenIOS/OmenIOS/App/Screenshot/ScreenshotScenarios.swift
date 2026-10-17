@@ -38,7 +38,7 @@ enum ScreenshotScenarios {
                         onOpenAccount: {},
                         onOpenLeague: {},
                         onOpenLedger: {},
-                        onReportProblem: {}
+                        fitProbeIdentifier: "chrome.fit.command-center"
                     ))
                 ))
             }
@@ -60,7 +60,12 @@ enum ScreenshotScenarios {
         ),
         "command-center.disconnected": ScreenshotScenario(
             label: "Command Center — real user, disconnected",
-            content: { AnyView(FauxShell(scenarioKey: "command-center.disconnected")) }
+            content: {
+                AnyView(FauxShell(
+                    initialTab: .command,
+                    commandContentOverride: AnyView(OmenNoLeagueScreen(onConnect: {}))
+                ))
+            }
         ),
         // `M5` slices F and G. Added 2026-08-30 with `F-VET-B03`: the two newest screens in
         // the product had no scenario at all, so nothing — not the harness, not an
@@ -2901,17 +2906,14 @@ enum ChromeFixtures {
             scenarioKey: "chrome.report-pill.resting",
             initialTab: .command,
             commandContentOverride: AnyView(
-                OmenCommandCenterScreen(
-                    state: OmenCommandCenterFixtures.demoConnected,
+                OmenCommandDeskScreen(
+                    state: J2ScreenshotFixtures.nominalDesk,
+                    context: J2ScreenshotFixtures.titansContext,
                     onOpenAccount: {},
-                    onOpenOmen: {},
-                    onOpenLedger: { _ in },
                     onOpenLeague: {},
-                    // The only difference from `command-center.demo-connected`. Every other
-                    // Command Center scenario leaves this nil and captures exactly what it
-                    // captured before, which is how the pill was added without re-certifying
-                    // eight existing frames.
-                    onReportProblem: {}
+                    onOpenLedger: {},
+                    onReportProblem: {},
+                    fitProbeIdentifier: "chrome.fit.command-center"
                 )
             )
         )
