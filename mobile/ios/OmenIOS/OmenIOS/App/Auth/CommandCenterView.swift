@@ -130,9 +130,10 @@ struct CommandCenterView: View {
                     Task { await reloadAllAfterContextChange() }
                 },
                 onAddLeague: { showConnectSheet = true },
-                // Command Center's Context Strip has its own "Switch". Both open this one
-                // sheet, so the order and the favourites cannot differ by entry point.
-                externalPresentation: $showSwitcherSheet
+                // This picker owns its pinned Switch button locally. Cross-screen switch
+                // affordances route to the shell's one presenter below; binding every off-tab
+                // picker to the same Boolean created competing SwiftUI presentation anchors.
+                externalPresentation: nil
             )
             .padding(.horizontal, OmenSpacing.step16)
             .padding(.top, OmenSpacing.step12)
@@ -480,6 +481,9 @@ struct CommandCenterView: View {
         // screen used the Omen accent — found on device 2026-09-01. Android's NavigationBar
         // already tinted correctly; only iOS had drifted.
         .tint(OmenColor.accent)
+        .sheet(isPresented: $showSwitcherSheet) {
+            shellSwitcherSheet
+        }
         .sheet(isPresented: $showConnectSheet) {
             NavigationStack {
                 ConnectView(
@@ -543,6 +547,25 @@ struct CommandCenterView: View {
                 onDismiss: { reportingScreen = nil }
             )
         }
+    }
+
+    /// One Apple system-sheet presenter for every context-strip / screen-shell switch action.
+    ///
+    /// Before this lived here, the shared Boolean was passed to the Omen, Trade and League tab
+    /// pickers simultaneously. Command itself has no picker, so a Command tap depended on one of
+    /// three off-tab views winning SwiftUI's presentation race. That is the device-visible
+    /// "nothing happened until I tapped something else" failure this ownership removes.
+    private var shellSwitcherSheet: some View {
+        OmenTeamPicker(
+            viewModel: leagueCarouselViewModel,
+            userID: userID,
+            onContextChanged: { _ in
+                Task { await reloadAllAfterContextChange() }
+            },
+            onAddLeague: { showConnectSheet = true },
+            externalPresentation: $showSwitcherSheet
+        )
+        .switcherSheet
     }
 
     /// The one provider fact a report carries, and the reason it is derived here rather than in

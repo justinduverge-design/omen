@@ -151,3 +151,63 @@ timing event.
 - **UNPROVEN:** exact cold/warm timings, physical haptic quality, complete live-tab walk, VoiceOver,
   accessibility text sizes on device, background recovery, and current branch installed on device.
 
+## 10. Xcode-native foundation audit
+
+The project is a real Xcode project rather than only a cross-platform source tree:
+
+- shared `OmenIOS` scheme with build, test, profile, analyze and archive actions;
+- iOS 17 deployment target, automatic signing, app and test targets;
+- committed non-secret base configuration with an optional ignored local override;
+- explicit Info.plist, Sign in with Apple entitlement and associated web-credentials domain;
+- portrait iPhone policy and dark system chrome;
+- Wix Madefor Display/Text font resources;
+- build guard that permits an unconfigured Debug compile but rejects an unconfigured Release/archive.
+
+The 2026-10-17 local baseline uses Xcode 27.0 (`27A266a`) and the iOS 27 SDK while compiling in
+Swift 5 language mode. The app builds successfully for the iPhone 17 simulator. It is **not** yet
+ready to flip to Swift 6 mode blindly: the first compiler pass found actor-isolation and capture
+diagnostics in authentication/session code. The warnings in source were repaired in this slice;
+the remaining warnings are the intentional missing-local-config guard and Apple's harmless
+AppIntents metadata notice for an app with no AppIntents dependency.
+
+Foundation decision: adopt current Xcode warnings as errors incrementally before changing
+`SWIFT_VERSION`. A clean Swift 5 build is the starting line; Swift 6 is a separately measured
+migration, not a project-setting checkbox.
+
+## 11. League-switcher presentation root cause and repair
+
+The reported first-tap failure had a structural cause. `CommandCenterView` owned one
+`showSwitcherSheet` Boolean and passed it into the Omen, Trade and League `OmenTeamPicker` views.
+Command itself had no picker. A Switch tap from Command therefore activated the same presentation
+binding on three off-tab views and depended on SwiftUI choosing a presentation anchor. A later UI
+update could make one presenter win, which matches the observed "tap something else and it appears"
+behavior.
+
+The repaired ownership is:
+
+1. the signed-in shell is the only presenter for context-strip and screen-shell switch actions;
+2. every one of those actions routes to the shell's native `.sheet`;
+3. a picker may still own a local sheet for its own pinned control in an isolated feature host;
+4. the existing rich sheet content remains Omen-owned inside Apple's presentation container.
+
+A `Picker` with menu style is intentionally not substituted here. Apple's menu picker is right for
+a compact mutually-exclusive list, but the approved Omen contract also requires provider filters,
+favourite ordering and mutation, partial-provider notices, active-state explanation and adaptive
+content height. Those jobs require a focused sheet. The native win is using one system presenter,
+system detents, drag dismissal and accessibility behavior—not deleting necessary product behavior.
+
+## 12. Foundation backlog after this slice
+
+| Order | Foundation seam | Current state | Exit evidence |
+|---:|---|---|---|
+| 1 | App/league context state | `nil` still conflates unresolved and confirmed none | cold-launch test never renders false empty copy |
+| 2 | Presentation routing | Switcher centralized; connect, account, report and share remain separate flags | one typed route per presentation scope; cancellation/back tests |
+| 3 | Performance signposts | contract exists; no measured local signposts | cold/warm paired-iPhone Instruments receipts |
+| 4 | Shell geometry | per-screen fit/scroll policies still mixed | canonical inset/scroll owner with compact and large-device probes |
+| 5 | Swift concurrency | current warnings repaired; Swift 5 mode remains | strict-concurrency audit and staged Swift 6 plan |
+| 6 | Accessibility/device feel | primitive press states and haptic client exist | VoiceOver, Reduce Motion, Dynamic Type and physical haptic walk |
+| 7 | J1 no-league exit | contract contradiction remains | real explainer destination or approved removal |
+
+No signing identity, entitlement, local configuration, installed app, provider account, deployment or
+store state was changed by this audit.
+

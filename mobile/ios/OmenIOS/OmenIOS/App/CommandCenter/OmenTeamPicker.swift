@@ -141,7 +141,12 @@ struct OmenTeamPicker: View {
     ///
     /// `OmenTeamSwitcherSheet` is not deleted. It is still the Account destination's list and it
     /// still has its own preview and height contract; retiring it is that screen's call.
-    private var switcherSheet: some View {
+    /// The sheet content is internal so the signed-in app shell can be the single presenter for
+    /// every cross-tab switch affordance. The picker still presents it locally when it owns the
+    /// trigger (for previews and isolated feature hosts), but a shell must not bind several
+    /// off-tab pickers to the same presentation Boolean — SwiftUI then has several competing
+    /// presentation anchors and the first tap can appear to do nothing until another update.
+    var switcherSheet: some View {
         OmenSwitchSheet(
             state: OmenSwitchSheetState(
                 filters: platformFilters.map { OmenSwitchFilter(id: $0.id, label: $0.label) },
