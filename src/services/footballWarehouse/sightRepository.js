@@ -31,11 +31,29 @@ function parseRef(key) {
   return { key: String(key), provider: match[1], providerId };
 }
 
+// Provider team codes that differ from nflverse's.
+const TEAM_ALIASES = { LAR: "LA", WSH: "WAS", JAC: "JAX", LVR: "LV", OAK: "LV", SD: "LAC", STL: "LA" };
+const SKILL_POSITIONS = new Set(["QB", "RB", "WR", "TE", "K"]);
+
+// Same rule as the player index (playerIndexStage.normalName) and its SQL twin below.
+function normalName(value) {
+  return String(value || "").toLowerCase().replace(/\b(jr|sr|ii|iii|iv|v)\b\.?/g, "").replace(/[^a-z]/g, "");
+}
+
+/** A provider player the index cannot place yet (a rookie Yahoo or Sleeper has not paired): name, team, position. */
+function hintOf(key, hint) {
+  const name = normalName(hint?.name);
+  const team = String(hint?.team || "").trim().toUpperCase();
+  const position = String(hint?.position || "").trim().toUpperCase();
+  if (!name || !/^[A-Z]{2,3}$/.test(team) || !SKILL_POSITIONS.has(position)) return null;
+  return { key, name, team: `omen:team:${(TEAM_ALIASES[team] || team).toLowerCase()}`, position };
+}
+
 function createWarehouseSightRepository({ query, timeoutMs = 2_000 }) {
   if (typeof query !== "function") throw new TypeError("query must be a function");
   return {
     /** Map(app player key -> sight block). Players Sight has no read for are absent. */
-    async readSight({ playerKeys, version = "v1" }) {
+    async readSight({ playerKeys, version = "v1", hints = null }) {
       const refs = [...new Map((Array.isArray(playerKeys) ? playerKeys : []).map(parseRef).filter(Boolean).map((r) => [r.key, r])).values()].slice(0, MAX_REFS);
       if (!/^v[0-9]{1,3}$/.test(version)) return new Map();
       const result = !refs.length ? { rows: [] } : await query({
@@ -71,8 +89,40 @@ function createWarehouseSightRepository({ query, timeoutMs = 2_000 }) {
         values: [defenses.map((r) => r.key), defenses.map((r) => r.provider), defenses.map((r) => r.providerId), version],
         query_timeout: timeoutMs,
       }))?.rows || [] : [];
+      // Fallback for players the index has not paired: the one player on that NFL team's current roster at that
+      // position whose name matches. Unique or nothing; it never guesses between two.
+      const found = new Set((result?.rows || []).map((row) => row.key));
+      const pending = refs.filter((r) => !found.has(r.key) && hints instanceof Map)
+        .map((r) => hintOf(r.key, hints.get(r.key))).filter(Boolean).slice(0, 200);
+      const hintRows = pending.length ? (await query({
+        name: "warehouse-sight-read-hint-v1",
+        text: `
+          WITH run AS (
+            SELECT id, season, week FROM football.football_metric_runs
+             WHERE metric_name = 'omen_sight' AND formula_version = $5 AND state = 'succeeded'
+             ORDER BY season DESC, week DESC LIMIT 1
+          ), latest AS (
+            SELECT max(season) AS season FROM football.nfl_weekly_rosters
+          ), roster AS (
+            SELECT DISTINCT ON (r.player_id) r.player_id, r.team_id, r.football_position,
+                   regexp_replace(regexp_replace(lower(p.display_name), '\\m(jr|sr|ii|iii|iv|v)\\M\\.?', '', 'g'), '[^a-z]', '', 'g') AS name
+              FROM football.nfl_weekly_rosters r JOIN latest ON r.season = latest.season
+              JOIN football.football_players p ON p.player_id = r.player_id
+             ORDER BY r.player_id, r.week DESC
+          ), matched AS (
+            SELECT h.key, min(ro.player_id) AS player_id
+              FROM unnest($1::text[], $2::text[], $3::text[], $4::text[]) AS h(key, name, team_id, position)
+              JOIN roster ro ON ro.name = h.name AND ro.team_id = h.team_id AND ro.football_position = h.position
+             GROUP BY h.key HAVING count(*) = 1
+          )
+          SELECT m.key, run.season, run.week, v.value, v.components
+            FROM matched m CROSS JOIN run
+            JOIN football.football_metric_values v ON v.metric_run_id = run.id AND v.entity_type = 'player' AND v.entity_id = m.player_id`,
+        values: [pending.map((h) => h.key), pending.map((h) => h.name), pending.map((h) => h.team), pending.map((h) => h.position), version],
+        query_timeout: timeoutMs,
+      }))?.rows || [] : [];
       const out = new Map();
-      for (const row of [...(result?.rows || []), ...teamRows]) {
+      for (const row of [...(result?.rows || []), ...teamRows, ...hintRows]) {
         const c = row.components || {};
         const contributions = Object.entries(c.contributions || {})
           .map(([name, part]) => ({ name, points: Number(part?.points) }))
@@ -97,4 +147,4 @@ function createWarehouseSightRepository({ query, timeoutMs = 2_000 }) {
   };
 }
 
-module.exports = { createWarehouseSightRepository, parseRef, parseDefenseRef };
+module.exports = { createWarehouseSightRepository, parseRef, parseDefenseRef, hintOf, normalName };
