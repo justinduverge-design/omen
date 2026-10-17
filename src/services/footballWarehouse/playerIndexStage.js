@@ -128,7 +128,7 @@ function parseCsv(text) {
 
 /** [{ gsisId, yahooId, sleeperId }] from the crosswalk; a row without a valid GSIS id is skipped. */
 function dynastyProcessRows(text) {
-  const [header, ...body] = parseCsv(String(text || ""));
+  const [header, ...body] = parseCsv(String(text || "").replace(/^\uFEFF/, ""));
   const col = (name) => (header || []).indexOf(name);
   const g = col("gsis_id"); const y = col("yahoo_id"); const sl = col("sleeper_id");
   if (g < 0 || y < 0 || sl < 0) throw Object.assign(new Error("crosswalk header is missing an id column"), { code: "source_shape" });
@@ -200,8 +200,9 @@ function createPlayerIndexStage({ pool, fetchImpl = globalThis.fetch, now = () =
     let rows;
     try { rows = dynastyProcessRows(buffer.toString("utf8")); } catch (error) { return { state: "failed", code: error.code || "source_shape" }; }
     if (rows.length < MIN_DP_ROWS) return { state: "failed", code: "source_partial", rows: rows.length };
-    const client = await pool.connect();
+    let client;
     try {
+      client = await pool.connect();
       await client.query("BEGIN");
       await client.query("SET LOCAL lock_timeout = '5s'");
       const receipt = await client.query({ name: "player-index-dp-run-v1", text: `
@@ -216,10 +217,10 @@ function createPlayerIndexStage({ pool, fetchImpl = globalThis.fetch, now = () =
       await client.query("COMMIT");
       return { state: "succeeded", rows: rows.length, yahoo: yahoo.rowCount, sleeper: sleeper.rowCount, runId: Number(runId) };
     } catch (error) {
-      try { await client.query("ROLLBACK"); } catch { /* keep the original error */ }
+      try { await client?.query("ROLLBACK"); } catch { /* keep the original error */ }
       return { state: "failed", code: error.code || "write_failed" };
     } finally {
-      client.release();
+      client?.release();
     }
   }
 
@@ -233,8 +234,9 @@ function createPlayerIndexStage({ pool, fetchImpl = globalThis.fetch, now = () =
     }
     const rows = sleeperRows(fetched.payload);
     if (rows.length < MIN_SLEEPER_ROWS) return { sleeper: { state: "failed", code: "source_partial", rows: rows.length } };
-    const client = await pool.connect();
+    let client;
     try {
+      client = await pool.connect();
       await client.query("BEGIN");
       await client.query("SET LOCAL lock_timeout = '5s'");
       const receipt = await client.query({ name: "player-index-run-v1", text: `
@@ -250,10 +252,10 @@ function createPlayerIndexStage({ pool, fetchImpl = globalThis.fetch, now = () =
       await client.query("COMMIT");
       return { sleeper: { state: "succeeded", rows: rows.length, sleeper: sleeper.rowCount, yahoo: yahoo.rowCount, runId: Number(runId) } };
     } catch (error) {
-      try { await client.query("ROLLBACK"); } catch { /* keep the original error */ }
+      try { await client?.query("ROLLBACK"); } catch { /* keep the original error */ }
       return { sleeper: { state: "failed", code: error.code || "write_failed" } };
     } finally {
-      client.release();
+      client?.release();
     }
   }
 }
