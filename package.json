@@ -37,8 +37,8 @@
   "devDependencies": {
     "acorn": "^8.19.0",
     "ajv": "^8.20.0",
-    "impeccable": "^4.1.0",
-    "playwright-core": "^1.63.0"
+    "impeccable": "^4.5.2",
+    "playwright-core": "^1.64.0"
   },
   "overrides": {
     "adm-zip": "0.6.0",
