@@ -28,30 +28,43 @@ const crypto = require("node:crypto");
 
 const SLEEPER_PLAYERS_URL = "https://api.sleeper.app/v1/players/nfl";
 const MAX_BYTES = 40 * 1024 * 1024;
-// Sleeper lists a GSIS id for about 3,900 players (active and recent); fewer than 2,000 means a broken download.
+// Sleeper lists a GSIS or ESPN id for well over 3,900 players (active and recent); fewer than 2,000 means a broken download.
 const MIN_SLEEPER_ROWS = 2000;
 
-/** [{ sleeperId, gsisId, yahooId }] from Sleeper's player map; records without a GSIS id cannot be matched. */
+/**
+ * [{ sleeperId, gsisId, espnId, yahooId }] from Sleeper's player map. Sleeper lists a GSIS id for only about a
+ * third of active players but an ESPN id for most, so a record matches on GSIS directly or, failing that, through
+ * its ESPN id and the nflverse ESPN crosswalk already in football_player_ids. A record with neither is skipped.
+ */
 function sleeperRows(payload) {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) throw Object.assign(new Error("sleeper players payload is not an object"), { code: "source_shape" });
   const rows = [];
   for (const [id, p] of Object.entries(payload)) {
-    const gsis = typeof p?.gsis_id === "string" ? p.gsis_id.trim() : "";
-    if (!/^[0-9]{1,12}$/.test(id) || !/^[0-9A-Za-z-]{1,50}$/.test(gsis)) continue;
+    const gsisRaw = typeof p?.gsis_id === "string" ? p.gsis_id.trim() : "";
+    const espnRaw = p?.espn_id == null ? "" : String(p.espn_id).trim();
+    const gsis = /^[0-9A-Za-z-]{1,50}$/.test(gsisRaw) ? gsisRaw : null;
+    const espn = /^[0-9]{1,12}$/.test(espnRaw) ? espnRaw : null;
+    if (!/^[0-9]{1,12}$/.test(id) || (!gsis && !espn)) continue;
     const yahoo = p?.yahoo_id == null ? null : String(p.yahoo_id).trim();
-    rows.push({ sleeperId: id, gsisId: gsis, yahooId: /^[0-9]{1,12}$/.test(yahoo || "") ? yahoo : null });
+    rows.push({ sleeperId: id, gsisId: gsis, espnId: espn, yahooId: /^[0-9]{1,12}$/.test(yahoo || "") ? yahoo : null });
   }
   return rows;
 }
 
 const SLEEPER_INSERT_SQL = `
-  WITH src AS (
-    SELECT r.provider_id, p.player_id FROM jsonb_to_recordset($1::jsonb) AS r(provider_id text, gsis_id text)
-      JOIN football.football_players p ON p.gsis_id = r.gsis_id
+  WITH recs AS (
+    SELECT * FROM jsonb_to_recordset($1::jsonb) AS r(provider_id text, gsis_id text, espn_id text)
+  ), by_gsis AS (
+    SELECT r.provider_id, p.player_id, 'provider_gsis' AS method FROM recs r JOIN football.football_players p ON p.gsis_id = r.gsis_id
+  ), by_espn AS (
+    SELECT r.provider_id, e.player_id, 'source_crosswalk' AS method FROM recs r
+      JOIN football.football_player_ids e ON e.provider = 'espn' AND e.provider_id = r.espn_id
+     WHERE NOT EXISTS (SELECT 1 FROM by_gsis g WHERE g.provider_id = r.provider_id)
+  ), src AS (SELECT * FROM by_gsis UNION ALL SELECT * FROM by_espn
   ), unique_ids AS (SELECT provider_id FROM src GROUP BY provider_id HAVING count(*) = 1),
      unique_players AS (SELECT player_id FROM src GROUP BY player_id HAVING count(*) = 1)
   INSERT INTO football.football_player_ids (provider, provider_id, player_id, match_method, index_run_id)
-  SELECT $2::text, s.provider_id, s.player_id, 'provider_gsis', $3::bigint
+  SELECT $2::text, s.provider_id, s.player_id, s.method, $3::bigint
     FROM src s JOIN unique_ids USING (provider_id) JOIN unique_players USING (player_id)`;
 
 async function fetchSleeperPlayers(fetchImpl) {
@@ -103,10 +116,10 @@ function createPlayerIndexStage({ pool, fetchImpl = globalThis.fetch, now = () =
         values: [SLEEPER_PLAYERS_URL, `sha256:${crypto.createHash("sha256").update(fetched.buffer).digest("hex")}`, rows.length, now().toISOString()] });
       const runId = receipt.rows[0].id;
       await client.query({ name: "player-index-provider-delete-v1", text: "DELETE FROM football.football_player_ids WHERE provider IN ('sleeper', 'yahoo') AND index_run_id IS NOT NULL" });
-      const sleeper = await client.query({ name: "player-index-sleeper-insert-v1", text: SLEEPER_INSERT_SQL,
-        values: [JSON.stringify(rows.map((r) => ({ provider_id: r.sleeperId, gsis_id: r.gsisId }))), "sleeper", runId] });
-      const yahoo = await client.query({ name: "player-index-yahoo-insert-v1", text: SLEEPER_INSERT_SQL,
-        values: [JSON.stringify(rows.filter((r) => r.yahooId).map((r) => ({ provider_id: r.yahooId, gsis_id: r.gsisId }))), "yahoo", runId] });
+      const sleeper = await client.query({ name: "player-index-sleeper-insert-v2", text: SLEEPER_INSERT_SQL,
+        values: [JSON.stringify(rows.map((r) => ({ provider_id: r.sleeperId, gsis_id: r.gsisId, espn_id: r.espnId }))), "sleeper", runId] });
+      const yahoo = await client.query({ name: "player-index-yahoo-insert-v2", text: SLEEPER_INSERT_SQL,
+        values: [JSON.stringify(rows.filter((r) => r.yahooId).map((r) => ({ provider_id: r.yahooId, gsis_id: r.gsisId, espn_id: r.espnId }))), "yahoo", runId] });
       await client.query("COMMIT");
       return { sleeper: { state: "succeeded", rows: rows.length, sleeper: sleeper.rowCount, yahoo: yahoo.rowCount, runId: Number(runId) } };
     } catch (error) {
