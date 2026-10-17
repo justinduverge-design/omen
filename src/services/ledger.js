@@ -481,7 +481,22 @@ async function loadLedgerCall(supabase, { userId, id }) {
     outcome: must(outcome, "detail_outcome"),
     superseded: (must(successors, "detail_successor") || []).length > 0,
     league: must(league, "detail_league"),
+    horizons: decision.call_type === "trade_suggestion" ? await loadHorizons(supabase, { userId, decisionId: decision.id }) : [],
   };
+}
+
+/** Step 18 horizon grades for a trade call. A read problem (or the table not applied yet) is an empty list, never an error. */
+async function loadHorizons(supabase, { userId, decisionId }) {
+  try {
+    const { data, error } = await supabase.from("decision_horizon_grades")
+      .select("horizon,from_week,through_week,weeks_counted,received_points,given_points,margin,result,complete,provenance")
+      .eq("decision_id", decisionId).eq("user_id", userId);
+    if (error) return [];
+    const order = { week: 0, next_4: 1, season: 2 };
+    return (data || []).sort((a, b) => (order[a.horizon] ?? 9) - (order[b.horizon] ?? 9));
+  } catch {
+    return [];
+  }
 }
 
 // --- Tuesday scoring -------------------------------------------------------------------------------
