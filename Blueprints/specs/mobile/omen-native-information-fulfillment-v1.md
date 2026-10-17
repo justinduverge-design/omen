@@ -91,8 +91,10 @@ stat inventory:
 4. put additional evidence, source vintages and methodology behind disclosure.
 
 A number appears only when it changes the decision, quantifies a named disagreement, or identifies the
-receipt. Five available facts are not five required bullets. Repeated facts, decorative rankings and
-numbers without a claim are omitted. The client may cap a longer server list for presentation, but it
+receipt. Five available facts are not five required bullets. Repeated facts and numbers presented as
+evidence without a claim are omitted. Decorative rankings may remain as clearly secondary competitive
+texture or orientation; they cannot be cited, colored, or positioned as the deciding factor unless the
+decision receipt actually used them. The client may cap a longer server list for presentation, but it
 must preserve server order and expose the remainder through the evidence disclosure rather than silently
 rewriting priority.
 

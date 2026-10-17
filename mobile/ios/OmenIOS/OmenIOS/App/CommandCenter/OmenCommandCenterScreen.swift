@@ -748,88 +748,6 @@ enum OmenLedgerPreviewState {
     }
 }
 
-/// J6. The receipt sheet: fetch `move-detail.v1`, then render `LedgerDetail.dc.html`.
-///
-/// The fetch, the failure surface and the loading surface are unchanged from slice E. What
-/// changed is the success branch, which used to stack four bare `Text`s and now renders the
-/// built screen.
-struct LedgerReceiptView: View {
-    let entry: OmenLedgerEntry
-    let load: ((String) async -> Result<MoveReceipt, OmenApiError>)?
-    var onOpenAccount: (() -> Void)?
-    @State private var result: Result<MoveReceipt, OmenApiError>?
-
-    var body: some View {
-        Group {
-            switch result {
-            case .success(let receipt):
-                OmenLedgerDetailScreen(
-                    state: OmenLedgerReceiptState.from(entry: entry, receipt: receipt),
-                    onOpenAccount: onOpenAccount
-                )
-            case .failure:
-                surface(OmenStateSurface(
-                    kind: .error,
-                    title: "The receipt didn\u{2019}t load",
-                    message: "The recorded evidence is unavailable. Return to the Ledger and try again."
-                ))
-            case nil:
-                surface(OmenStateSurface(
-                    kind: .loading,
-                    title: "Reading the receipt",
-                    message: "Loading the evidence recorded at issue time."
-                ))
-            }
-        }
-        .background(OmenColor.bg)
-        .task(id: entry.id) { result = nil; result = await load?(entry.id) ?? .failure(.network) }
-    }
-
-    private func surface<Content: View>(_ content: Content) -> some View {
-        ScrollView {
-            content
-                .foregroundStyle(OmenColor.textPrimary)
-                .padding(OmenSpacing.step16)
-        }
-    }
-}
-
-struct OmenLedgerEntry: Identifiable {
-    let id: String
-    let period: String
-    let callType: String
-    let summary: String
-    /// The rendered outcome line, for the v1.1 preview rows that consume a string.
-    let outcome: String
-    let actionStatus: String?
-    let outcomeProvenance: String?
-    /// J6. The same two facts as structure rather than as prose.
-    ///
-    /// `outcome` and `actionStatus` are sentences, and `OmenLedgerScreen` needs the values
-    /// behind them — the Ledger's rule is that verified outcome, self-reported action and
-    /// unknown follow-through stay *semantically* separate, and a screen that recovered them by
-    /// reading its own rendered strings would have re-merged them to do it.
-    ///
-    /// Defaulted so the existing preview call sites did not have to change. `MovesHistory`
-    /// fills both from the payload.
-    let action: OmenLedgerAction
-    let ledgerOutcome: OmenLedgerOutcome
-
-    init(id: String, period: String, callType: String, summary: String, outcome: String, actionStatus: String? = nil, outcomeProvenance: String? = nil, action: OmenLedgerAction = .unknown, ledgerOutcome: OmenLedgerOutcome = .pending) {
-        self.id = id
-        self.period = period
-        self.callType = callType
-        self.summary = summary
-        self.outcome = outcome
-        self.actionStatus = actionStatus
-        self.outcomeProvenance = outcomeProvenance
-        self.action = action
-        self.ledgerOutcome = ledgerOutcome
-    }
-
-    var accessibilityLabel: String { [period, callType, summary, outcome, actionStatus].compactMap { $0 }.joined(separator: ", ") }
-}
-
 enum OmenLeaguePulseState {
     case available(position: String, cutLine: String?, activity: String?)
     case offSeason(summary: String)
@@ -863,27 +781,6 @@ struct OmenWaiverOpportunity: Identifiable {
         [rank.map { "Opportunity \($0)" }, playerName, position, team, availability, reason]
             .compactMap { $0 }
             .joined(separator: ", ")
-    }
-}
-
-struct CommandCenterDetailSheet<Content: View>: View {
-    let title: String
-    @ViewBuilder let content: () -> Content
-
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: OmenSpacing.step16) {
-                    content()
-                }
-                .padding(OmenSpacing.step16)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .background(OmenColor.bg.ignoresSafeArea())
-            .navigationTitle(title)
-            .navigationBarTitleDisplayMode(.inline)
-        }
-        .presentationDetents([.large])
     }
 }
 

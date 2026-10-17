@@ -270,7 +270,7 @@ ordered by reachability and dependency rather than filename age:
 |---|---|---|---|
 | `OmenCommandDeskScreen` | production Command and current J2 evidence | production authority | keep; all Command states and captures converge here |
 | `OmenCommandCenterScreen` view | no longer mounted by production after this slice; still mounted by older screenshot fixtures | migration fixture | move shared models and receipt/detail views out of its file, replace remaining fixture captures, then delete the view |
-| types and receipt/detail views co-located in `OmenCommandCenterScreen.swift` | used outside the retired view | shared dependency trapped in legacy file | extract without behavior change before deleting the file |
+| Ledger entry, receipt loader and detail-sheet support formerly co-located in `OmenCommandCenterScreen.swift` | used by the current Command desk and J6 | extracted live support | complete: `OmenLedgerSupport.swift` now owns the live types without the retired screen |
 | `OmenStartSitScreen` | no remaining references; deleted in this slice | retired standalone composition | complete: both J3 scenarios now render the current Omen screen with nominal or incomplete inline detail |
 | `OmenDecisionScreen` with inline start/sit detail | production Omen destination | production authority | keep and make the first fulfillment target for the new argument-density contract |
 
@@ -283,4 +283,9 @@ screen mount from `CommandCenterView`.
 The standalone Start/Sit composition is now deleted. Its two named J3 scenarios retain their stable
 keys but mount `OmenDecisionScreen` with nominal or incomplete `start-sit-detail.v2` data. This exercises
 the same in-place enrichment production mounts and prevents the former post-load typography/layout swap.
+
+The first dependency split after that deletion moves `OmenLedgerEntry`, `LedgerReceiptView` and
+`CommandCenterDetailSheet` into `OmenLedgerSupport.swift`. Those types remain live in the current desk
+and J6; extracting them makes the remaining old Command state, fixtures, gallery and waiver scenarios
+a bounded legacy island that can be migrated and deleted without copying or sacrificing Ledger behavior.
 
