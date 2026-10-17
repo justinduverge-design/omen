@@ -37,7 +37,7 @@ const POSITION_GROUPS = {
 };
 
 const { assessConfidence, scoreForBand, usageCorroboration } = require("./confidencePolicy");
-const { blendWithSight, isLocked } = require("./sightDecision");
+const { blendWithSight, isLocked, effectiveStatus } = require("./sightDecision");
 
 const HEALTHY = new Set([null, undefined, "", "P", "PROBABLE"]);
 const RISKY   = new Set(["Q", "QUESTIONABLE", "GTD", "DTD"]);
@@ -120,7 +120,7 @@ function adjustedProjection(player) {
   // Omen's Sight moves the number when it is attached; without it this is the provider projection, unchanged.
   // Only a real provider number is blended: a missing one stays 0 here, exactly as before.
   const proj = hasProjection(player) ? blendWithSight(raw, player) : raw;
-  return proj * (1 - statusPenalty(player.status));
+  return proj * (1 - statusPenalty(effectiveStatus(player)));
 }
 
 function hasProjection(player) {
@@ -158,8 +158,8 @@ function waiverConfidence(delta) {
 
 function buildReasoning(from, to, delta) {
   const parts = [`${to.name} projects ${delta.toFixed(2)} pts higher than ${from.name}`];
-  const fStat = String(from.status || "").toUpperCase();
-  const tStat = String(to.status   || "").toUpperCase();
+  const fStat = String(effectiveStatus(from) || "").toUpperCase();
+  const tStat = String(effectiveStatus(to)   || "").toUpperCase();
   if (OUT.has(fStat))   parts.push(`(${from.name} is OUT)`);
   else if (RISKY.has(fStat)) parts.push(`(${from.name} is questionable)`);
   if (RISKY.has(tStat)) parts.push(`(${to.name} is questionable - some risk)`);
@@ -186,7 +186,7 @@ function evaluateLineup(roster, opts = {}, scoringConfig = {}) {
     const compat = compatibleSlots(slot);
     const sProj  = adjustedProjection(starter);
     // An unprojected starter can only be replaced when he is OUT (status alone scores him zero).
-    if (strict && !hasProjection(starter) && statusPenalty(starter.status) < 1) continue;
+    if (strict && !hasProjection(starter) && statusPenalty(effectiveStatus(starter)) < 1) continue;
 
     const candidates = roster.slots.bench
       .filter(b => !isLocked(b)
@@ -207,7 +207,7 @@ function evaluateLineup(roster, opts = {}, scoringConfig = {}) {
     // uses. No usage map (the default) means no corroboration, i.e. today's behavior exactly.
     const corroboration = [usageCorroboration(usage?.get?.(best.player.player_key), usage?.get?.(starter.player_key))]
       .filter(Boolean);
-    const swapVerdict = assessSwap(shownDelta, starter.status, best.player.status, corroboration);
+    const swapVerdict = assessSwap(shownDelta, effectiveStatus(starter), effectiveStatus(best.player), corroboration);
     recs.push({
       slot,
       from: {
@@ -266,7 +266,7 @@ function findWaiverMoves(roster, waiverPool, opts = {}, scoringConfig = {}) {
   for (const p of allRostered) {
     const pos = p.position;
     if (!pos) continue;
-    if (strict && !hasProjection(p) && statusPenalty(p.status) < 1) continue;
+    if (strict && !hasProjection(p) && statusPenalty(effectiveStatus(p)) < 1) continue;
     const adj = adjustedProjection(p);
     if (!weakestByPos[pos] || adj < adjustedProjection(weakestByPos[pos])) {
       weakestByPos[pos] = p;

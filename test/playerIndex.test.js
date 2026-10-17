@@ -37,3 +37,13 @@ test("the DynastyProcess crosswalk yields GSIS-keyed Yahoo and Sleeper ids, quot
   assert.deepEqual(dynastyProcessRows(csv), [{ gsisId: "00-0036554", yahooId: "33477", sleeperId: "7569" }]);
   assert.throws(() => dynastyProcessRows("a,b\n1,2\n"), /missing an id column/);
 });
+
+test("Sleeper injury fields are kept with their record; unknown statuses are dropped", () => {
+  const rows = sleeperRows({
+    "4046": { gsis_id: "00-0033873", injury_status: "Questionable", injury_body_part: "Ankle", news_updated: 1760000000000 },
+    "4047": { gsis_id: "00-0033874", injury_status: "Weird" },
+  });
+  assert.equal(rows[0].injury.status, "Questionable");
+  assert.equal(rows[0].injury.body_part, "Ankle");
+  assert.equal(rows[1].injury, undefined);
+});

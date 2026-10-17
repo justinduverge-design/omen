@@ -36,6 +36,34 @@ const MIN_SLEEPER_ROWS = 2000;
  * third of active players but an ESPN id for most, so a record matches on GSIS directly or, failing that, through
  * its ESPN id and the nflverse ESPN crosswalk already in football_player_ids. A record with neither is skipped.
  */
+const INJURY_STATUSES = new Set(["Questionable", "Doubtful", "Out", "IR", "PUP", "NA", "Sus", "COV", "DNR"]);
+// Cut by code point, never inside a surrogate pair (Postgres refuses a lone surrogate in jsonb).
+const text = (value, max) => (typeof value === "string" && value.trim() ? Array.from(value.trim()).slice(0, max).join("") : null);
+
+/** Sleeper's injury report for one player, or nothing. An unknown status is skipped, never stored as something else. */
+function injuryOf(p) {
+  const status = typeof p?.injury_status === "string" ? p.injury_status.trim() : "";
+  if (!INJURY_STATUSES.has(status)) return {};
+  const updated = Number(p?.news_updated);
+  return { injury: {
+    status,
+    body_part: text(p?.injury_body_part, 80),
+    notes: text(p?.injury_notes, 200),
+    practice_participation: text(p?.practice_participation, 40),
+    practice_description: text(p?.practice_description, 200),
+    source_updated_at: Number.isFinite(updated) && updated > 0 && Number.isFinite(new Date(updated).getTime()) ? new Date(updated).toISOString() : null,
+  } };
+}
+
+const INJURY_SQL = `
+  INSERT INTO football.player_injury_reports
+    (player_id, status, body_part, notes, practice_participation, practice_description, source_updated_at, index_run_id)
+  SELECT x.player_id, r.status, r.body_part, r.notes, r.practice_participation, r.practice_description, r.source_updated_at, $2::bigint
+    FROM jsonb_to_recordset($1::jsonb) AS r(provider_id text, status text, body_part text, notes text,
+         practice_participation text, practice_description text, source_updated_at timestamptz)
+    JOIN football.football_player_ids x ON x.provider = 'sleeper' AND x.provider_id = r.provider_id
+  ON CONFLICT (player_id) DO NOTHING`;
+
 /** Name and birth date for the provider_bio match: a normalized full name plus an ISO date, or nothing. */
 function bioOf(p) {
   const date = typeof p?.birth_date === "string" ? p.birth_date.trim() : "";
@@ -61,7 +89,7 @@ function sleeperRows(payload) {
     const espn = /^[0-9]{1,12}$/.test(espnRaw) ? espnRaw : null;
     if (!/^[0-9]{1,12}$/.test(id) || (!gsis && !espn && !bioOf(p).birthDate)) continue;
     const yahoo = p?.yahoo_id == null ? null : String(p.yahoo_id).trim();
-    rows.push({ sleeperId: id, gsisId: gsis, espnId: espn, ...bioOf(p), yahooId: /^[0-9]{1,12}$/.test(yahoo || "") ? yahoo : null });
+    rows.push({ sleeperId: id, gsisId: gsis, espnId: espn, ...bioOf(p), yahooId: /^[0-9]{1,12}$/.test(yahoo || "") ? yahoo : null, ...injuryOf(p) });
   }
   return rows;
 }
@@ -249,8 +277,20 @@ function createPlayerIndexStage({ pool, fetchImpl = globalThis.fetch, now = () =
         values: [JSON.stringify(rows.map((r) => ({ provider_id: r.sleeperId, gsis_id: r.gsisId, espn_id: r.espnId, name: r.name || null, birth_date: r.birthDate || null }))), "sleeper", runId] });
       const yahoo = await client.query({ name: "player-index-yahoo-insert-v3", text: SLEEPER_INSERT_SQL,
         values: [JSON.stringify(rows.filter((r) => r.yahooId).map((r) => ({ provider_id: r.yahooId, gsis_id: r.gsisId, espn_id: r.espnId, name: r.name || null, birth_date: r.birthDate || null }))), "yahoo", runId] });
+      // The current injury report replaces the last one, in the same transaction as the ids it keys on.
+      // A savepoint: an injury-report problem never costs the ids written above.
+      let injuries = { rowCount: null };
+      await client.query("SAVEPOINT injuries");
+      try {
+        await client.query({ name: "player-injury-delete-v1", text: "DELETE FROM football.player_injury_reports" });
+        injuries = await client.query({ name: "player-injury-insert-v1", text: INJURY_SQL,
+          values: [JSON.stringify(rows.filter((r) => r.injury).map((r) => ({ provider_id: r.sleeperId, ...r.injury }))), runId] });
+        await client.query("RELEASE SAVEPOINT injuries");
+      } catch {
+        await client.query("ROLLBACK TO SAVEPOINT injuries");
+      }
       await client.query("COMMIT");
-      return { sleeper: { state: "succeeded", rows: rows.length, sleeper: sleeper.rowCount, yahoo: yahoo.rowCount, runId: Number(runId) } };
+      return { sleeper: { state: "succeeded", rows: rows.length, sleeper: sleeper.rowCount, yahoo: yahoo.rowCount, injuries: injuries.rowCount, runId: Number(runId) } };
     } catch (error) {
       try { await client?.query("ROLLBACK"); } catch { /* keep the original error */ }
       return { sleeper: { state: "failed", code: error.code || "write_failed" } };

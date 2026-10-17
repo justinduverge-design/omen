@@ -96,12 +96,19 @@
       "capability": "user_roster",
       "status": "available",
       "reason": null,
-      "detail": "Starters, bench, IR, taxi, projection and injury status.",
+      "detail": "Starters, bench, IR, taxi, projection and injury status. Injury status, body part, notes and practice fields from Sleeper's daily player list are stored in football.player_injury_reports (founder-approved 2026-10-17) and fill a missing provider status in Start/Sit and Waivers.",
       "evidence": [
         {
           "file": "src/adapters/sleeper.js",
           "includes": [
             "buildNormalizedRoster"
+          ]
+        },
+        {
+          "file": "src/services/footballWarehouse/playerIndexStage.js",
+          "includes": [
+            "injury_status",
+            "practice_participation"
           ]
         }
       ],
@@ -976,20 +983,6 @@
       "needs": "none technically; check it against the warehouse depth data first",
       "tokens": [
         "depth_chart_order"
-      ]
-    },
-    {
-      "provider": "sleeper",
-      "field": "practice_participation / practice_description / injury_notes",
-      "kind": "documented",
-      "evidence": "Sleeper players list (already downloaded and cached)",
-      "opportunity": "Practice status and injury notes are the injury-report data the 2026-10-09 handoff lists as the biggest open start/sit gain.",
-      "value": "high",
-      "needs": "founder rights decision: whether to admit NFL injury-report data via Sleeper",
-      "tokens": [
-        "practice_participation",
-        "practice_description",
-        "injury_notes"
       ]
     },
     {
