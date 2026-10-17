@@ -56,7 +56,9 @@ function createSightEnricher({ getRuntime, env = process.env, budgetMs = DEFAULT
       if (!repo || runtime.mode === "supabase") return players;
       const keys = [...new Set(list.map(keyOf).filter(Boolean))];
       if (!keys.length) return players;
-      const byKey = await withinLatencyBudget("sight_read", budgetMs, () => repo.readSight({ playerKeys: keys, version: settings.version }));
+      // Name, team and position let Sight place a player the index has not paired yet (new Yahoo rookies).
+      const hints = new Map(list.map((player) => [keyOf(player), { name: player.name, team: player.team, position: player.position }]));
+      const byKey = await withinLatencyBudget("sight_read", budgetMs, () => repo.readSight({ playerKeys: keys, version: settings.version, hints }));
       for (const player of list) {
         const block = byKey.get(keyOf(player));
         if (block) player.sight = block;
