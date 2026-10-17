@@ -4,7 +4,7 @@ const { createMetricRunWriter } = require("./metricRunWriter");
 const { aggregateSkillPlays } = require("./ratSkillMetric");
 const { computeSight, weightsFor, phaseOf } = require("./sightV1");
 const { weeklyLines, computeKdefSight } = require("./kdefMetric");
-const { buildContext, buildRoleContext } = require("./sightContext");
+const { buildContext, buildRoleContext, elementsGaps, isBadWeather } = require("./sightContext");
 
 // Every Sight version is computed every day, so versions are graded side by side; SIGHT_VERSION only
 // chooses which one the API serves.
@@ -48,16 +48,29 @@ const STATS_SQL = `
 // Games with weather: recorded weather for played games, otherwise the latest stored forecast (a dome
 // forecast is "not applicable", read as a dome).
 const GAMES_SQL = `
-  SELECT g.week, g.home_team_id, g.away_team_id, g.home_score, g.away_score, g.spread_line, g.total_line,
-         CASE WHEN f.status = 'not_applicable' THEN 'dome' ELSE g.roof END AS roof,
-         coalesce(g.wind_mph, f.wind_mph) AS wind_mph, coalesce(g.temperature_f, f.temperature_f) AS temperature_f
+  SELECT g.game_id, g.week, g.home_team_id, g.away_team_id, g.home_score, g.away_score, g.spread_line, g.total_line,
+         CASE WHEN f.status = 'not_applicable' OR o.status = 'not_applicable' THEN 'dome' ELSE g.roof END AS roof,
+         coalesce(o.wind_mph, g.wind_mph, f.wind_mph) AS wind_mph, coalesce(o.temperature_f, g.temperature_f, f.temperature_f) AS temperature_f,
+         coalesce(o.precip_in, f.precip_in) AS precip_in
     FROM football.nfl_games g
-    LEFT JOIN LATERAL (SELECT status, wind_mph, temperature_f FROM football.game_weather_forecasts w
+    LEFT JOIN football.game_weather_observed o ON o.game_id = g.game_id
+    LEFT JOIN LATERAL (SELECT status, wind_mph, temperature_f, precip_in FROM football.game_weather_forecasts w
                         WHERE w.game_id = g.game_id ORDER BY w.fetched_at DESC LIMIT 1) f ON true
    WHERE g.season = $1 AND g.game_type = 'REG'`;
 
+// Each offense's elements gap from the three seasons before this one: offensive plays and their games' weather.
+const ELEMENTS_PLAYS_SQL = `
+  SELECT p.posteam_id, p.game_id, p.epa FROM football.nfl_plays p
+    JOIN football.nfl_games g ON g.season = p.season AND g.game_id = p.game_id
+   WHERE p.season BETWEEN $1 - 3 AND $1 - 1 AND g.game_type = 'REG' AND p.epa IS NOT NULL AND p.posteam_id IS NOT NULL
+     AND (p.source_row->>'pass_attempt' IN ('1', '1.0') OR p.source_row->>'rush_attempt' IN ('1', '1.0'))`;
+const ELEMENTS_GAMES_SQL = `
+  SELECT g.game_id, g.roof, coalesce(o.wind_mph, g.wind_mph) AS wind_mph, coalesce(o.temperature_f, g.temperature_f) AS temperature_f, o.precip_in
+    FROM football.nfl_games g LEFT JOIN football.game_weather_observed o ON o.game_id = g.game_id
+   WHERE g.season BETWEEN $1 - 3 AND $1 - 1 AND g.game_type = 'REG'`;
+
 // Bump when Sight's computation changes without its inputs or weights changing, so every week recomputes.
-const SIGHT_CODE_REVISION = "2026-10-17.v2-weather-flex";
+const SIGHT_CODE_REVISION = "2026-10-17.v2-complete";
 
 // Kicking and defensive plays for K and DEF Sight (v2).
 const KDEF_PLAYS_SQL = `
@@ -156,8 +169,13 @@ function createSightRunner({ pool, transactionTimeouts } = {}) {
           const allPlays = plays.rows.map(play);
           if (version === "v2") {
             const stats = await client.query({ name: "sight-stats-v1", text: STATS_SQL, values: [season, through] });
-            const games = await client.query({ name: "sight-games-v1", text: GAMES_SQL, values: [season] });
-            const built = buildContext(stats.rows, games.rows);
+            const games = await client.query({ name: "sight-games-v2", text: GAMES_SQL, values: [season] });
+            const priorGames = await client.query({ name: "sight-elements-games-v1", text: ELEMENTS_GAMES_SQL, values: [season] });
+            const badGame = new Map(priorGames.rows.map((g) => [g.game_id, isBadWeather({ dome: g.roof === "dome" || g.roof === "closed",
+              wind: g.wind_mph == null ? null : Number(g.wind_mph), temp: g.temperature_f == null ? null : Number(g.temperature_f), precip: g.precip_in == null ? null : Number(g.precip_in) })]));
+            const priorPlays = await client.query({ name: "sight-elements-plays-v1", text: ELEMENTS_PLAYS_SQL, values: [season] });
+            const gaps = elementsGaps(priorPlays.rows.map((r) => ({ posteamId: r.posteam_id, gameId: r.game_id, epa: r.epa })), badGame);
+            const built = buildContext(stats.rows, games.rows, gaps);
             context = (id, position) => built.contextFor(id, position, through);
             const statuses = await client.query({ name: "sight-roster-status-v1", text: ROSTER_STATUS_SQL, values: [season, through + 1] });
             const teamWeeks = new Map();
@@ -183,7 +201,7 @@ function createSightRunner({ pool, transactionTimeouts } = {}) {
           if (version !== "v2") return skill;
           const kickers = new Map((await client.query({ name: "sight-kickers-v1", text: KICKERS_SQL })).rows.map((r) => [r.gsis_id, r.player_id]));
           const kdefPlays = (await client.query({ name: "sight-kdef-plays-v1", text: KDEF_PLAYS_SQL, values: [season, through] })).rows.map(kdefPlay);
-          const gameRows = (await client.query({ name: "sight-games-v1", text: GAMES_SQL, values: [season] })).rows;
+          const gameRows = (await client.query({ name: "sight-games-v2", text: GAMES_SQL, values: [season] })).rows;
           const scored = gameRows.filter((g) => g.week <= through).map((g) => ({ week: g.week, homeTeamId: g.home_team_id, awayTeamId: g.away_team_id, homeScore: g.home_score, awayScore: g.away_score }));
           const lines = weeklyLines(kdefPlays, scored, kickers);
           const kickerTeam = new Map();

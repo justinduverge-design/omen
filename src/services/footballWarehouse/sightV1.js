@@ -32,7 +32,7 @@ const VARIANTS = Object.freeze({ v1: "with_production", v2: "with_weather" });
 /** Weights for (season, position, phase): that season's era fit, else the latest earlier one. */
 function weightsFor(season, position, phase, version = "v1") {
   // A position without a layer (K and DEF have no role layer) uses its richest variant available.
-  const variants = version === "v2" ? ["with_weather", "with_role", "with_context"] : [VARIANTS[version] || VARIANTS.v1];
+  const variants = version === "v2" ? ["with_elements", "with_weather", "with_role", "with_context"] : [VARIANTS[version] || VARIANTS.v1];
   const seasons = Object.keys(WEIGHTS.weights).map(Number).filter((s) => s <= season).sort((a, b) => b - a);
   for (const s of seasons) {
     const entry = WEIGHTS.weights[s]?.[position]?.[phase];
@@ -88,6 +88,8 @@ function computeSight({ season, week, aggregates, positions, ppgToDate, context 
       features.opponent_allowed_to_position = z("oppAllowed");
       features.wind_mph = z("wind");
       features.cold = z("cold");
+      features.precip_in = z("precip");
+      features.team_elements_gap = z("elements");
       const roles = ids.map((id) => role?.(id, position) || null);
       const zr = (key) => {
         const vals = roles.map((c) => c?.[key]).filter((v) => v != null);
