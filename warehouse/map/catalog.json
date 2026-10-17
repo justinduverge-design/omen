@@ -197,7 +197,7 @@
       "name": "player_index_runs",
       "layer": "ledger",
       "grain": "one row per player-index load from a non-nflverse source",
-      "source": "Sleeper public player list",
+      "source": "Sleeper public player list; DynastyProcess player id crosswalk (GPL-3.0, founder-accepted 2026-10-17)",
       "refresh": "daily 07:15 ET, after the player ingest",
       "purpose": "Receipt for provider ids indexed from outside nflverse, so every index row says where it came from.",
       "gaps": [],

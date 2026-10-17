@@ -30,3 +30,10 @@ test("a record with neither id still indexes by name and birth date, with suffix
   const rows = sleeperRows({ "7569": { full_name: "Nico Collins", birth_date: "1999-03-19", yahoo_id: 34000 }, "1": { full_name: "No Date" } });
   assert.deepEqual(rows, [{ sleeperId: "7569", gsisId: null, espnId: null, name: "nicocollins", birthDate: "1999-03-19", yahooId: "34000" }]);
 });
+
+test("the DynastyProcess crosswalk yields GSIS-keyed Yahoo and Sleeper ids, quoted fields included", () => {
+  const { dynastyProcessRows } = require("../src/services/footballWarehouse/playerIndexStage");
+  const csv = 'mfl_id,gsis_id,sleeper_id,yahoo_id,name\n1,00-0036554,7569,33477,"Collins, Nico"\n2,NA,1,2,x\n3,00-0000001,NA,NA,"no ids"\n';
+  assert.deepEqual(dynastyProcessRows(csv), [{ gsisId: "00-0036554", yahooId: "33477", sleeperId: "7569" }]);
+  assert.throws(() => dynastyProcessRows("a,b\n1,2\n"), /missing an id column/);
+});

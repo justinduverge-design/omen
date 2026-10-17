@@ -97,6 +97,65 @@ const SLEEPER_INSERT_SQL = `
   SELECT $2::text, s.provider_id, s.player_id, s.method, $3::bigint
     FROM src s JOIN unique_ids USING (provider_id) JOIN unique_players USING (player_id)`;
 
+// DynastyProcess player id crosswalk (GPL-3.0; the founder accepted the rights risk 2026-10-17). Pairs GSIS ids
+// with Yahoo and Sleeper ids, filling the established players Sleeper's own list leaves without a Yahoo id.
+const DP_IDS_URL = "https://raw.githubusercontent.com/dynastyprocess/data/master/files/db_playerids.csv";
+// The file lists about 12,500 players, over 5,000 with both a GSIS and a Yahoo id; fewer than 3,000 is a broken file.
+const MIN_DP_ROWS = 3000;
+
+/** RFC 4180 CSV: quoted fields may hold commas, quotes ("") and newlines. Returns arrays of strings. */
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let field = "";
+  let quoted = false;
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (quoted) {
+      if (ch === '"' && text[i + 1] === '"') { field += '"'; i += 1; }
+      else if (ch === '"') quoted = false;
+      else field += ch;
+    } else if (ch === '"') quoted = true;
+    else if (ch === ",") { row.push(field); field = ""; }
+    else if (ch === "\n" || ch === "\r") {
+      if (ch === "\r" && text[i + 1] === "\n") i += 1;
+      row.push(field); rows.push(row); row = []; field = "";
+    } else field += ch;
+  }
+  if (field || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+
+/** [{ gsisId, yahooId, sleeperId }] from the crosswalk; a row without a valid GSIS id is skipped. */
+function dynastyProcessRows(text) {
+  const [header, ...body] = parseCsv(String(text || ""));
+  const col = (name) => (header || []).indexOf(name);
+  const g = col("gsis_id"); const y = col("yahoo_id"); const sl = col("sleeper_id");
+  if (g < 0 || y < 0 || sl < 0) throw Object.assign(new Error("crosswalk header is missing an id column"), { code: "source_shape" });
+  const id = (value) => (/^[0-9]{1,12}$/.test(String(value || "").trim()) ? String(value).trim() : null);
+  const rows = [];
+  for (const r of body) {
+    const gsis = String(r[g] || "").trim();
+    if (!/^00-[0-9]{7}$/.test(gsis)) continue;
+    const yahooId = id(r[y]); const sleeperId = id(r[sl]);
+    if (yahooId || sleeperId) rows.push({ gsisId: gsis, yahooId, sleeperId });
+  }
+  return rows;
+}
+
+// Only fills gaps: an id or a player the Sleeper list already placed is left alone (ON CONFLICT DO NOTHING
+// covers both the provider-id key and the one-id-per-player-per-provider key).
+const DP_INSERT_SQL = `
+  WITH src AS (
+    SELECT r.provider_id, p.player_id FROM jsonb_to_recordset($1::jsonb) AS r(provider_id text, gsis_id text)
+      JOIN football.football_players p ON p.gsis_id = r.gsis_id
+  ), unique_ids AS (SELECT provider_id FROM src GROUP BY provider_id HAVING count(*) = 1),
+     unique_players AS (SELECT player_id FROM src GROUP BY player_id HAVING count(*) = 1)
+  INSERT INTO football.football_player_ids (provider, provider_id, player_id, match_method, index_run_id)
+  SELECT $2::text, s.provider_id, s.player_id, 'source_crosswalk', $3::bigint
+    FROM src s JOIN unique_ids USING (provider_id) JOIN unique_players USING (player_id)
+  ON CONFLICT DO NOTHING`;
+
 async function fetchSleeperPlayers(fetchImpl) {
   const response = await fetchImpl(SLEEPER_PLAYERS_URL, { signal: AbortSignal.timeout(60_000) });
   if (!response.ok) throw Object.assign(new Error("sleeper players fetch failed"), { code: `source_http_${response.status}` });
@@ -116,7 +175,8 @@ function createPlayerIndexStage({ pool, fetchImpl = globalThis.fetch, now = () =
         const inserted = await client.query({ name: "player-index-espn-insert-v1", text: ESPN_SQL });
         await client.query("COMMIT");
         const sleeper = await indexSleeper();
-        return { state: "succeeded", espn: inserted.rowCount, ...sleeper };
+        const dynastyProcess = await indexDynastyProcess();
+        return { state: "succeeded", espn: inserted.rowCount, ...sleeper, dynastyProcess };
       } catch (error) {
         try { await client.query("ROLLBACK"); } catch { /* the original error matters */ }
         throw error;
@@ -125,6 +185,43 @@ function createPlayerIndexStage({ pool, fetchImpl = globalThis.fetch, now = () =
       }
     },
   };
+
+  // Yahoo and Sleeper ids the Sleeper list could not place, from the DynastyProcess crosswalk. Never fatal.
+  async function indexDynastyProcess() {
+    let buffer;
+    try {
+      const response = await fetchImpl(DP_IDS_URL, { signal: AbortSignal.timeout(60_000) });
+      if (!response.ok) return { state: "failed", code: `source_http_${response.status}` };
+      buffer = Buffer.from(await response.arrayBuffer());
+      if (buffer.length > MAX_BYTES) return { state: "failed", code: "source_too_large" };
+    } catch (error) {
+      return { state: "failed", code: error.code || "source_failed" };
+    }
+    let rows;
+    try { rows = dynastyProcessRows(buffer.toString("utf8")); } catch (error) { return { state: "failed", code: error.code || "source_shape" }; }
+    if (rows.length < MIN_DP_ROWS) return { state: "failed", code: "source_partial", rows: rows.length };
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("SET LOCAL lock_timeout = '5s'");
+      const receipt = await client.query({ name: "player-index-dp-run-v1", text: `
+        INSERT INTO football.player_index_runs (source, rights_basis, source_url, source_ref, source_rows, fetched_at)
+        VALUES ('dynastyprocess_playerids', 'gpl_3_0_founder_accepted', $1, $2, $3, $4) RETURNING id`,
+        values: [DP_IDS_URL, `sha256:${crypto.createHash("sha256").update(buffer).digest("hex")}`, rows.length, now().toISOString()] });
+      const runId = receipt.rows[0].id;
+      const yahoo = await client.query({ name: "player-index-dp-yahoo-v1", text: DP_INSERT_SQL,
+        values: [JSON.stringify(rows.filter((r) => r.yahooId).map((r) => ({ provider_id: r.yahooId, gsis_id: r.gsisId }))), "yahoo", runId] });
+      const sleeper = await client.query({ name: "player-index-dp-sleeper-v1", text: DP_INSERT_SQL,
+        values: [JSON.stringify(rows.filter((r) => r.sleeperId).map((r) => ({ provider_id: r.sleeperId, gsis_id: r.gsisId }))), "sleeper", runId] });
+      await client.query("COMMIT");
+      return { state: "succeeded", rows: rows.length, yahoo: yahoo.rowCount, sleeper: sleeper.rowCount, runId: Number(runId) };
+    } catch (error) {
+      try { await client.query("ROLLBACK"); } catch { /* keep the original error */ }
+      return { state: "failed", code: error.code || "write_failed" };
+    } finally {
+      client.release();
+    }
+  }
 
   // Sleeper and Yahoo ids, from Sleeper's player list. A failed or thin fetch leaves the existing rows alone.
   async function indexSleeper() {
@@ -161,4 +258,4 @@ function createPlayerIndexStage({ pool, fetchImpl = globalThis.fetch, now = () =
   }
 }
 
-module.exports = { normalName, createPlayerIndexStage, ESPN_SQL, SLEEPER_INSERT_SQL, sleeperRows };
+module.exports = { normalName, dynastyProcessRows, parseCsv, DP_INSERT_SQL, createPlayerIndexStage, ESPN_SQL, SLEEPER_INSERT_SQL, sleeperRows };
