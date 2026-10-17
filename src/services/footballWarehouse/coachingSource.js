@@ -7,7 +7,9 @@
 const crypto = require("node:crypto");
 
 const API = "https://en.wikipedia.org/w/api.php";
-const USER_AGENT = "OmenFootballWarehouse/1.0 (fantasy football research; contact via slopssaloon.com)";
+// Wikimedia's API policy wants "<name>/<version> (<contact URL or email>) <library>"; a request without a
+// reachable contact is rate-limited (429) far sooner. Api-User-Agent carries the same for browser-like clients.
+const USER_AGENT = "OmenFootballWarehouse/1.0 (https://slopssaloon.com/; football data research) node";
 
 // Franchise names as Wikipedia titles them, by season (relocations and renames since 1999).
 function franchiseName(abbr, season) {
@@ -79,7 +81,7 @@ async function fetchTeamSeason({ abbr, season, fetchImpl = globalThis.fetch }) {
   const title = `${season} ${name} season`;
   const url = new URL(API);
   for (const [k, v] of Object.entries({ action: "parse", page: title, prop: "wikitext|revid", format: "json", redirects: "1" })) url.searchParams.set(k, v);
-  const response = await fetchImpl(url, { headers: { "User-Agent": USER_AGENT }, signal: AbortSignal.timeout(20_000) });
+  const response = await fetchImpl(url, { headers: { "User-Agent": USER_AGENT, "Api-User-Agent": USER_AGENT }, signal: AbortSignal.timeout(20_000) });
   if (!response.ok) throw Object.assign(new Error("wikipedia fetch failed"), { code: `source_http_${response.status}` });
   const body = await response.json();
   if (body?.error) return null;
