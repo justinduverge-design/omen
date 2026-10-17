@@ -25,6 +25,7 @@
 
 const { mayShowFaab, mayShowPriority } = require("./waiverSystem");
 const { recommendBid } = require("./waiverBid");
+const { SIGHT_WEIGHT, blendWithSight, isLocked } = require("./sightDecision");
 
 const CONTRACT_VERSION = "waiver-analysis.v1";
 const MAX_ALTERNATIVES = 3;
@@ -55,6 +56,33 @@ function projection(player) {
   if (raw == null) return null;
   const value = Number(raw);
   return Number.isFinite(value) ? value : null;
+}
+
+// Sight (Omen's own read, attached before ranking when SIGHT_ENABLED) moves the decision value, it does not
+// replace the provider: the provider projection leads and Sight pulls it toward what Omen sees. A low-confidence
+// Sight (kickers) never moves anything. Where the provider has no projection (Yahoo gaps), a normal-confidence
+// Sight fills it, labeled as Omen's.
+// A season-strong player (cohort grade at or above this) is not "the cheapest to lose" because of one weak week.
+const PROTECTED_GRADE = 70;
+
+function sightOf(player) {
+  const block = player?.sight;
+  if (!block || block.confidence === "low") return null;
+  const points = Number(block.sight_points);
+  return Number.isFinite(points) ? { points, grade: Number.isFinite(Number(block.grade)) ? Number(block.grade) : null } : null;
+}
+
+/** The number decisions use: provider projection blended with Sight, or Sight alone when the provider is silent. */
+function decisionValue(player) {
+  const provider = projection(player);
+  const sight = sightOf(player);
+  if (provider == null) return sight ? sight.points : null;
+  return blendWithSight(provider, player);
+}
+
+function isSeasonStrong(player) {
+  const grade = sightOf(player)?.grade;
+  return grade != null && grade >= PROTECTED_GRADE;
 }
 
 function positionsOf(player) {
@@ -121,12 +149,12 @@ function nameOf(player) {
  */
 function displacedStarter(candidate, starters) {
   const eligible = new Set(realPositions(candidate));
-  const matches = starters.filter((starter) => slotPositions(starter).some((pos) => eligible.has(pos)));
+  const matches = starters.filter((starter) => !isLocked(starter) && slotPositions(starter).some((pos) => eligible.has(pos)));
   if (!matches.length) return null;
 
   return matches.reduce((weakest, starter) => {
-    const current = isOut(starter) ? 0 : (projection(starter) ?? 0);
-    const best = isOut(weakest) ? 0 : (projection(weakest) ?? 0);
+    const current = isOut(starter) ? 0 : (decisionValue(starter) ?? 0);
+    const best = isOut(weakest) ? 0 : (decisionValue(weakest) ?? 0);
     return current < best ? starter : weakest;
   });
 }
@@ -134,11 +162,11 @@ function displacedStarter(candidate, starters) {
 function rankCandidates(pool, starters) {
   return (Array.isArray(pool) ? pool : [])
     .map((player) => {
-      const points = projection(player);
+      const points = decisionValue(player);
       if (points == null) return null;
       const starter = displacedStarter(player, starters);
       if (!starter) return null;
-      const starterPoints = isOut(starter) ? 0 : (projection(starter) ?? 0);
+      const starterPoints = isOut(starter) ? 0 : (decisionValue(starter) ?? 0);
       return {
         player,
         displaced: starter,
@@ -173,13 +201,15 @@ function chooseDrop(bench, addedPositions, { starters = null } = {}) {
 
   const droppable = all
     // A bye week is not a reason to drop someone: his projection is 0 by schedule, not by value.
-    .filter((player) => !isOut(player) && !isBye(player))
-    .map((player) => ({ player, points: projection(player) }))
+    .filter((player) => !isOut(player) && !isBye(player) && !isLocked(player))
+    .map((player) => ({ player, points: decisionValue(player) }))
     // 0.0 is a schedule or availability signal (bye, inactive), not evidence of low value; only a
     // positive projection can say a player is the cheapest to lose.
     .filter((entry) => entry.points != null && entry.points > 0)
     // Never drop into a hole: if the lineup needs N at this position, keep at least N healthy ones.
-    .filter(({ player }) => realPositions(player).every((position) => healthyAt(position) - 1 >= requiredAt(position)));
+    .filter(({ player }) => realPositions(player).every((position) => healthyAt(position) - 1 >= requiredAt(position)))
+    // Omen's season read outranks one low week: a player Sight grades strong is not the cheap drop.
+    .filter(({ player }) => !isSeasonStrong(player));
 
   if (!droppable.length) return null;
 
@@ -218,8 +248,17 @@ function evidenceFor(best, scoringFormat) {
     });
   }
 
-  // "Current role" and "Season value" (§6.3) need usage and rest-of-season data
-  // Omen does not have. Naming the absence beats inventing a sentence.
+  const sight = sightOf(best.player);
+  if (sight) {
+    const provider = projection(best.player);
+    evidence.push({
+      category: "omen_read",
+      statement: provider == null
+        ? `Omen's Sight reads ${nameOf(best.player)} at ${round2(sight.points)} points; the provider has no projection.`
+        : `Omen's Sight reads ${nameOf(best.player)} at ${round2(sight.points)} points against the provider's ${round2(provider)}${sight.grade != null ? `, a ${sight.grade} grade at the position` : ""}.`,
+      kind: "omen_sight",
+    });
+  }
   return evidence;
 }
 
@@ -232,7 +271,7 @@ function costFor(drop, best) {
   return {
     removes,
     accepted_because: [
-      `${nameOf(drop.player)} projects ${round2(drop.projected_points)} points, the lowest on your bench among players who can play this week.`,
+      `${nameOf(drop.player)} is the lowest-valued player on your bench who can play this week (${round2(drop.projected_points)} points).`,
       `${nameOf(best.player)} addresses a more immediate roster need.`,
     ],
   };
@@ -256,6 +295,7 @@ function playerView(player) {
     team: player?.team || null,
     projected_points: projection(player),
     status: player?.status || null,
+    ...(player?.sight ? { sight: player.sight } : {}),
   };
 }
 
@@ -425,5 +465,7 @@ module.exports = {
   evidenceFor,
   displacedStarter,
   projection,
+  decisionValue,
+  SIGHT_WEIGHT,
   rankCandidates,
 };

@@ -69,6 +69,8 @@ function normalizePlayer(playerNode) {
   const editorialTeamAbbr= pickField(meta, "editorial_team_abbr");
   const status           = pickField(meta, "status") || pickField(meta, "status_full") || null;
   const image_url        = pickField(meta, "image_url");
+  // Yahoo marks a player whose game has started (or whose lineup is otherwise frozen) is_editable 0.
+  const editable         = pickField(meta, "is_editable") ?? playerNode[1]?.is_editable;
   const eligibleArr      = pickField(meta, "eligible_positions") || [];
   const eligible_positions = eligibleArr
     .map(p => p?.position)
@@ -99,6 +101,7 @@ function normalizePlayer(playerNode) {
     actual_points:      null,
     image_url,
     is_starter:         !BENCH_SLOTS.has(selected_position) && !IR_SLOTS.has(selected_position),
+    ...(editable == null ? {} : { is_editable: String(editable) !== "0" }),
   };
 }
 

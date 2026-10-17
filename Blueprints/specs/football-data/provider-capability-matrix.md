@@ -58,7 +58,6 @@ Provider fields and endpoints that are observed or documented but that no code i
 | sleeper | traded_picks | documented | Pick ownership for trade context and trade value. | low | a live probe |
 | sleeper | winners_bracket / losers_bracket | documented | Playoff bracket and outcomes for late-season screens. | low | a live probe |
 | yahoo | percent_owned | documented | Same waiver-heat signal as ESPN; also the waiver versus free-agent distinction (status W vs FA). | medium | a live probe; needs the founder's Yahoo session |
-| yahoo | is_editable | documented | Lineup-lock flag, the Yahoo equivalent of ESPN lineupLocked. | high | a live probe; needs the founder's Yahoo session |
 | yahoo | bye_weeks | documented | Provider-side bye per player. | low | a live probe |
 | yahoo | has_recent_player_notes | documented | Flags a news item on a player; a prompt to look, not content. | low | a live probe; news rights are undecided |
 
