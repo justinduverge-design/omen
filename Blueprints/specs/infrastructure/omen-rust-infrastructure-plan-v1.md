@@ -72,6 +72,33 @@ digest, ops summaries, and data-quality suggestions.
   the rollback path for one release.
 - Done when: the shadow parity record is clean across a full week's slate, and the founder approves the cutover.
 
+## Build alongside, then swap
+
+Every phase is built next to the thing it replaces, the same way the warehouse shadow reads and `SIGHT_VERSION` already
+work. The lifecycle is **build alongside → shadow → flip → watch → prune**.
+
+1. The old path stays in charge until the flip. Shadow output is never shown to users.
+2. Flipping back is the rollback: no redeploy and no data restore.
+3. Each phase has its own switch, because each runs in a different place. One phase failing never blocks or undoes
+   another.
+4. Prune only after the watch period (at least a full week of games with no flip-back). Pruning removes the old code,
+   config and the switch itself.
+5. Flipping a production switch is a one-line founder approval ("flip Phase 3"). It is not a change window.
+
+### Switchboard
+
+The one page that shows where the whole migration stands. Update a row whenever its switch moves.
+
+| Phase | Switch | Lives on | Position | Proof to flip | Pruned after flip |
+|---|---|---|---|---|---|
+| 1 Tooling | CI workflow config | GitHub Actions | off | old and new tools pass on the same commit | old linters, PostCSS setup, `client/` |
+| 2 Model jobs | `PLAYER_NOTES_ENABLED` | KVM2 + API | off | grounding pass rate, founder spot check | live narration call and its circuit breaker |
+| 3 Ingest | `WAREHOUSE_INGEST_ENGINE=csv\|polars` | KVM1 warehouse worker | off | row-for-row match in a shadow schema | CSV parser, 3 GB heap workaround |
+| 4 Ops | systemd units | Pi fleet, all hosts | off | a week of matching alerts | old watchdog and status scripts |
+| 5 Decision core | `DECISION_ENGINE=js\|shadow\|rust` | API | off | identical outputs across a full week's slate | JS engine, one release after cutover |
+
+Positions: `off` → `shadow` → `on` → `pruned`.
+
 ## Constraints that bind every phase
 
 - **Season:** Build 12 targets 2026-10-20 and the season is live. Phase 1 can run any time. Production changes in phases
