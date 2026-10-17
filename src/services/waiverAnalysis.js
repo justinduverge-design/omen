@@ -188,7 +188,19 @@ function rankCandidates(pool, starters) {
  * an unprojected bench player is not evidence of low cost, so it is never
  * offered as one.
  */
-function chooseDrop(bench, addedPositions, { starters = null } = {}) {
+/**
+ * League-GM planning: starters whose bye is one or two weeks out, by real position. Read from the bye week
+ * Sight carries; without it this is empty and nothing changes.
+ */
+function upcomingByes(starters, week) {
+  const now = Number(week);
+  if (!Number.isInteger(now)) return [];
+  return (Array.isArray(starters) ? starters : [])
+    .filter((starter) => Number.isInteger(starter?.sight?.bye_week) && starter.sight.bye_week > now && starter.sight.bye_week <= now + 2)
+    .map((starter) => ({ starter, week: starter.sight.bye_week, positions: realPositions(starter) }));
+}
+
+function chooseDrop(bench, addedPositions, { starters = null, week = null } = {}) {
   const all = Array.isArray(bench) ? bench : [];
   // Players who can actually play this week at each position, across the whole roster. A player on a
   // bye or out for the week is rostered but is not depth for this week's lineup.
@@ -209,7 +221,15 @@ function chooseDrop(bench, addedPositions, { starters = null } = {}) {
     // Never drop into a hole: if the lineup needs N at this position, keep at least N healthy ones.
     .filter(({ player }) => realPositions(player).every((position) => healthyAt(position) - 1 >= requiredAt(position)))
     // Omen's season read outranks one low week: a player Sight grades strong is not the cheap drop.
-    .filter(({ player }) => !isSeasonStrong(player));
+    .filter(({ player }) => !isSeasonStrong(player))
+    // Never drop the last bench cover for a starter whose bye is one or two weeks out (unless the add covers it).
+    .filter(({ player }) => !upcomingByes(starters, week).some((bye) => {
+      const positions = realPositions(player);
+      if (!bye.positions.some((pos) => positions.includes(pos)) || bye.positions.some((pos) => addedPositions.includes(pos))) return false;
+      const covers = all.filter((other) => available(other) && other.sight?.bye_week !== bye.week
+        && realPositions(other).some((pos) => bye.positions.includes(pos)));
+      return covers.length <= 1 && covers.includes(player);
+    }));
 
   if (!droppable.length) return null;
 
@@ -231,7 +251,7 @@ function chooseDrop(bench, addedPositions, { starters = null } = {}) {
 }
 
 /** §6.3 categories, emitted only where the data genuinely supports one. */
-function evidenceFor(best, scoringFormat) {
+function evidenceFor(best, scoringFormat, { starters = [], week = null } = {}) {
   const evidence = [{
     category: "immediate_need",
     statement: best.solves_out_starter
@@ -245,6 +265,18 @@ function evidenceFor(best, scoringFormat) {
       category: "league_fact",
       statement: `This comparison uses your league's ${scoringFormat} scoring.`,
       kind: "league_context",
+    });
+  }
+
+  // League-GM planning: the add covers a starter's bye one or two weeks out.
+  const addPositions = realPositions(best.player);
+  const bye = upcomingByes(starters, week).find((b) => b.positions.some((pos) => addPositions.includes(pos))
+    && best.player?.sight?.bye_week !== b.week);
+  if (bye) {
+    evidence.push({
+      category: "upcoming_need",
+      statement: `${nameOf(best.player)} also covers ${nameOf(bye.starter)}'s week ${bye.week} bye.`,
+      kind: "roster_math",
     });
   }
 
@@ -434,7 +466,7 @@ function buildWaiverAnalysis({
   }
 
   const best = ranked[0];
-  const drop = chooseDrop(bench, realPositions(best.player), { starters });
+  const drop = chooseDrop(bench, realPositions(best.player), { starters, week: base.week });
   const alternatives = alternativesFrom(ranked, scoringFormat);
 
   return envelope({
@@ -463,7 +495,7 @@ function buildWaiverAnalysis({
         }),
       },
       cost: costFor(drop, best),
-      evidence: evidenceFor(best, scoringFormat),
+      evidence: evidenceFor(best, scoringFormat, { starters, week: base.week }),
       alternatives,
     },
   });

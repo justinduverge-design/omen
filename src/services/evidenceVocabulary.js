@@ -27,7 +27,7 @@ const WAIVER = Object.freeze({
   // (waiverUsageEvidence.js), appended only when real numbers exist.
   // omen_read / omen_sight: Omen's own Sight read of the add, when SIGHT_ENABLED attached one.
   // market_signal / provider_ownership: ESPN's league-wide roster rate and its weekly change.
-  categories: freeze(["immediate_need", "league_fact", "current_role", "omen_read", "market_signal"]),
+  categories: freeze(["immediate_need", "league_fact", "current_role", "omen_read", "market_signal", "upcoming_need"]),
   kinds: freeze(["roster_math", "league_context", "observed_usage", "omen_sight", "provider_ownership"]),
 });
 
