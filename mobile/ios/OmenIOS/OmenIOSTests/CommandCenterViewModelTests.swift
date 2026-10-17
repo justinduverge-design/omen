@@ -479,7 +479,7 @@ extension CommandCenterViewModelTests {
         )
     }
 
-    func testWaiverAnalysisFillsWaiverWatchAfterTheShellLoads() async throws {
+    func testWaiverAnalysisFillsCurrentDeskAfterTheShellLoads() async throws {
         let viewModel = CommandCenterViewModel(
             repository: StubDashboardRepository(result: .success(try summary(omenStatus: "ready"))),
             leagueRepository: StubLeagueRepository(result: .failure(.network)),
@@ -508,17 +508,20 @@ extension CommandCenterViewModelTests {
 
         await viewModel.load(userID: "user-1")
 
-        guard case let .urgent(deadline, bestMove, alternatives) = viewModel.commandCenterState.waiverWatch else {
-            return XCTFail("expected confirmed waiver opportunity to reach Waiver Watch")
+        let desk = try XCTUnwrap(viewModel.deskState(railCount: 1, railIndex: 0))
+        guard case let .read(bestMove) = desk.waiver else {
+            return XCTFail("expected confirmed waiver opportunity to reach the current desk")
         }
-        XCTAssertEqual(deadline, "Deadline Wed 3:00 AM")
-        XCTAssertEqual(bestMove.playerName, "Sample Waiver RB")
-        XCTAssertEqual(bestMove.position, "RB")
-        XCTAssertTrue(bestMove.availability.contains("Suggested bid 7"))
-        XCTAssertEqual(alternatives.first?.playerName, "Sample Pivot")
+        XCTAssertEqual(bestMove.addName, "Sample Waiver RB")
+        XCTAssertEqual(bestMove.addMeta, "RB · NYG")
+        XCTAssertEqual(bestMove.addPoints, "12.4")
+        XCTAssertEqual(bestMove.dropName, "Bench Depth")
+        XCTAssertEqual(bestMove.reasoning, "Sample Waiver RB covers an unavailable starter.")
+        XCTAssertNil(bestMove.band, "waiver-analysis.v1 carries no confidence band")
+        XCTAssertNil(bestMove.risk, "waiver-analysis.v1 carries no risk classification")
     }
 
-    func testWaiverAnalysisFailureLeavesDashboardWaiverStateInPlace() async throws {
+    func testWaiverAnalysisFailureLeavesCurrentDeskExplicitlyUnread() async throws {
         let viewModel = CommandCenterViewModel(
             repository: StubDashboardRepository(result: .success(try summary(omenStatus: "ready"))),
             leagueRepository: StubLeagueRepository(result: .failure(.network)),
@@ -531,9 +534,13 @@ extension CommandCenterViewModelTests {
 
         await viewModel.load(userID: "user-1")
 
-        guard case .availabilityUnknown = viewModel.commandCenterState.waiverWatch else {
-            return XCTFail("a failed waiver detail read must not claim no moves")
+        XCTAssertNil(viewModel.waiverAnalysis)
+        let desk = try XCTUnwrap(viewModel.deskState(railCount: 1, railIndex: 0))
+        guard case let .unread(capability, sentence) = desk.waiver else {
+            return XCTFail("a failed waiver detail read must remain explicitly unread")
         }
+        XCTAssertEqual(capability, "Waivers")
+        XCTAssertEqual(sentence, "Omen has not read this league's waiver wire yet.")
     }
 
     // MARK: - Quiet week

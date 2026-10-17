@@ -1101,9 +1101,6 @@ private struct FauxShell: View {
     var initialTab: CommandCenterTab = .command
     /// Set by scenarios that supply a state directly instead of naming a whole fixture.
     var commandStateOverride: OmenCommandCenterState?
-    /// Supplied by the carousel scenarios. Everything else leaves this nil and gets the
-    /// stacked `carousel == nil` layout, which is what those captures have always been of.
-    var carousel: LeagueCarouselViewModel?
     /// A real destination composition supplied by a journey scenario. This keeps the permanent
     /// tab shell while avoiding any network/session state and does not duplicate screen markup.
     var omenContentOverride: AnyView? = nil
@@ -1133,7 +1130,7 @@ private struct FauxShell: View {
                 onOpenOmen: {},
                 onOpenLedger: { _ in },
                 onOpenLeague: {},
-                carousel: carousel
+                carousel: nil
             )
                 }
             }
@@ -1217,8 +1214,6 @@ private struct FauxShell: View {
         switch scenarioKey {
         case "command-center.demo-connected": return OmenCommandCenterFixtures.demoConnected
         case "command-center.disconnected": return OmenCommandCenterFixtures.realDisconnected
-        case "command-center.carousel", "command-center.carousel-provider-down":
-            return OmenCommandCenterFixtures.realConnected
         default: return OmenCommandCenterFixtures.realDisconnected
         }
     }
@@ -1712,11 +1707,24 @@ private struct CarouselScenarioHost: View {
     }
 
     var body: some View {
-        // The scenario key was omitted here until 2026-09-17, so `commandState` fell through to
-        // `default:` and every carousel capture rendered the DISCONNECTED Command Center beneath
-        // a live carousel. Pass it, and the switch below resolves a connected state.
-        FauxShell(scenarioKey: scenarioKey, carousel: viewModel)
-            .task { await viewModel.load(userID: "fixture") }
+        FauxShell(
+            scenarioKey: scenarioKey,
+            commandContentOverride: AnyView(
+                OmenCommandDeskHost(
+                    state: CarouselFixtures.deskState(
+                        for: viewModel,
+                        failingPlatform: failingPlatform
+                    ),
+                    context: CarouselFixtures.context(for: viewModel),
+                    onOpenAccount: {},
+                    onOpenLeague: {},
+                    onReportProblem: {},
+                    carousel: viewModel,
+                    userID: "fixture",
+                    onContextChanged: { _ in }
+                )
+            )
+        )
     }
 }
 

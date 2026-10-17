@@ -38,10 +38,6 @@ final class CommandCenterViewModel: ObservableObject {
     /// no real-data path at all.
     @Published private(set) var matchup: OmenMatchupHeroState?
 
-    /// Waiver Watch detail from `waiver-analysis.v1`. `nil` keeps the dashboard-derived
-    /// status until the route has produced a real decision state.
-    @Published private(set) var waiverWatch: OmenWaiverWatchState?
-
     /// The whole `waiver-analysis.v1` payload, kept rather than reduced.
     ///
     /// Until J5 this read was consumed for `waiverWatch` alone and the payload thrown away, so
@@ -97,7 +93,7 @@ final class CommandCenterViewModel: ObservableObject {
         case .demo:
             return OmenCommandCenterFixtures.demoConnected
         case .loaded(let summary):
-            return .from(summary: summary, context: context, ledger: ledger, leaguePulse: leaguePulse, matchup: matchup, waiverWatch: waiverWatch)
+            return .from(summary: summary, context: context, ledger: ledger, leaguePulse: leaguePulse, matchup: matchup)
         case .failed:
             return OmenCommandCenterFixtures.realDisconnected
         }
@@ -260,7 +256,7 @@ final class CommandCenterViewModel: ObservableObject {
         ledger = nil
         leaguePulse = nil
         matchup = nil
-        waiverWatch = nil
+        waiverAnalysis = nil
         quietWeek = nil
         overview = nil
 
@@ -396,10 +392,9 @@ final class CommandCenterViewModel: ObservableObject {
     private func loadWaiverWatch(accessToken: String) async {
         switch await waiverRepository.fetchWaiverAnalysis(accessToken: accessToken) {
         case .success(let analysis):
-            waiverWatch = analysis.waiverWatchState
             waiverAnalysis = analysis
         case .failure:
-            // The dashboard-derived state remains visible. Waiver analysis has in-band
+            // The current desk keeps its explicit unread state. Waiver analysis has in-band
             // uncertainty states, but a transport failure cannot truthfully become one.
             break
         }
