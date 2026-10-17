@@ -267,6 +267,18 @@
         "Retractable roofs: open or closed is unknown in advance; stored as retractable with the outdoor forecast."
       ],
       "migration": "0015"
+    },
+    {
+      "name": "game_weather_observed",
+      "layer": "facts",
+      "grain": "one row per played game",
+      "source": "Open-Meteo historical archive (CC BY 4.0), venue coordinates from src/data/stadiums.json",
+      "refresh": "daily 07:15 ET (backfill 1999 onward, then new games)",
+      "purpose": "What the weather actually was for every game, including rain, for Sight's weather and team-elements layers.",
+      "gaps": [
+        "Retractable roofs use the game's recorded roof state when nflverse has it; otherwise the outdoor reading."
+      ],
+      "migration": "0017"
     }
   ]
 }

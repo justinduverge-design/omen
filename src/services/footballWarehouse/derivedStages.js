@@ -7,6 +7,7 @@ const { createSightRunner } = require("./sightRun");
 const { createPlayerIndexStage } = require("./playerIndexStage");
 const { createCoachingStage } = require("./coachingStage");
 const { createWeatherForecastStage } = require("./weatherForecastStage");
+const { createWeatherObservedStage } = require("./weatherObservedStage");
 const { createSightAccuracyRunner } = require("./sightAccuracyRun");
 
 /** The Sight switch. SIGHT_ENABLED turns grading (and, in the API, serving) on; SIGHT_VERSION picks the version. */
@@ -27,7 +28,7 @@ function stageError(stage, error) {
  * so one season whose early play-by-play cannot be reconciled does not stop the load of every later season.
  * Either way, an already-committed fact is never undone.
  */
-function createDerivedStages({ pool, mode = "strict", opportunityWriter = createPlayerWeeklyOpportunityWriter({ pool }), qbRunner = createRatQbRunner({ pool }), skillRunner = null, sightRunner = null, sightAccuracyRunner = null, indexStage = null, coachingStage = null, weatherStage = null, env = process.env } = {}) {
+function createDerivedStages({ pool, mode = "strict", opportunityWriter = createPlayerWeeklyOpportunityWriter({ pool }), qbRunner = createRatQbRunner({ pool }), skillRunner = null, sightRunner = null, sightAccuracyRunner = null, indexStage = null, coachingStage = null, weatherStage = null, observedWeatherStage = null, env = process.env } = {}) {
   if (mode !== "strict" && mode !== "report") throw new TypeError("derived stage mode must be strict or report");
   async function stage(name, fn, shape) {
     try { return shape(await fn()); } catch (error) {
@@ -60,6 +61,13 @@ function createDerivedStages({ pool, mode = "strict", opportunityWriter = create
         weather = await (weatherStage || createWeatherForecastStage({ pool })).run({ season });
       } catch (error) {
         weather = { state: "failed", code: stageError("weather", error).code };
+      }
+      // Observed weather for played games (rain, backfill from 1999). Reported, never fatal.
+      let observedWeather;
+      try {
+        observedWeather = await (observedWeatherStage || createWeatherObservedStage({ pool })).run();
+      } catch (error) {
+        observedWeather = { state: "failed", code: stageError("observed_weather", error).code };
       }
       // Sight's skill ratings are new and unproven: a failure is reported, never fatal, even in strict mode,
       // so they can never take the facts pipeline or its backup down.
@@ -94,7 +102,7 @@ function createDerivedStages({ pool, mode = "strict", opportunityWriter = create
           sightAccuracy = { state: "failed", code: stageError("sight_accuracy", error).code };
         }
       }
-      return { opportunity, playerIndex, coaching, weather, ratQb, ratSkill, sight, sightAccuracy };
+      return { opportunity, playerIndex, coaching, weather, observedWeather, ratQb, ratSkill, sight, sightAccuracy };
     },
   };
 }

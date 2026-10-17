@@ -65,9 +65,9 @@ test("the Sight switch: grading is off unless SIGHT_ENABLED=true, and the versio
   assert.deepEqual(sightSettings({ SIGHT_ENABLED: "true", SIGHT_VERSION: "v2" }), { enabled: true, version: "v2" });
   const ok = { run: async () => ({ state: "succeeded", valueCount: 1 }), writeSeason: async () => ({ state: "succeeded", writtenRows: 1 }) };
   const acc = { run: async () => ({ state: "succeeded", graded_weeks: 2 }) };
-  const off = await createDerivedStages({ opportunityWriter: ok, qbRunner: ok, skillRunner: ok, sightRunner: ok, sightAccuracyRunner: acc, indexStage: ok, coachingStage: ok, weatherStage: ok, env: {} }).run({ season: 2026 });
+  const off = await createDerivedStages({ opportunityWriter: ok, qbRunner: ok, skillRunner: ok, sightRunner: ok, sightAccuracyRunner: acc, indexStage: ok, coachingStage: ok, weatherStage: ok, observedWeatherStage: ok, env: {} }).run({ season: 2026 });
   assert.equal(off.sightAccuracy.state, "disabled");
-  const on = await createDerivedStages({ opportunityWriter: ok, qbRunner: ok, skillRunner: ok, sightRunner: ok, sightAccuracyRunner: acc, indexStage: ok, coachingStage: ok, weatherStage: ok, env: { SIGHT_ENABLED: "true" } }).run({ season: 2026 });
+  const on = await createDerivedStages({ opportunityWriter: ok, qbRunner: ok, skillRunner: ok, sightRunner: ok, sightAccuracyRunner: acc, indexStage: ok, coachingStage: ok, weatherStage: ok, observedWeatherStage: ok, env: { SIGHT_ENABLED: "true" } }).run({ season: 2026 });
   assert.equal(on.sightAccuracy.version, "v1");
   assert.deepEqual(Object.keys(on.sightAccuracy.versions), ["v1", "v2"], "every version is graded side by side");
 });

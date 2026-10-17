@@ -142,8 +142,8 @@ test("report mode returns a failed derived stage instead of failing the command;
   const ok = { run: async () => ({ state: "succeeded", valueCount: 41 }) };
   await assert.rejects(createDerivedStages({ opportunityWriter: failing, qbRunner: ok }).run({ season: 2003 }), (e) => e.code === "derived_opportunity_opportunity_reconciliation_failed");
   const skill = { run: async () => ({ RB: { state: "succeeded", valueCount: 30 } }) };
-  const report = await createDerivedStages({ mode: "report", opportunityWriter: failing, qbRunner: ok, skillRunner: skill, sightRunner: ok, indexStage: { run: async () => ({ state: "succeeded", espn: 5 }) }, coachingStage: { run: async () => ({ state: "unchanged" }) }, weatherStage: { run: async () => ({ state: "unchanged" }) } }).run({ season: 2003 });
-  assert.deepEqual(report, { opportunity: { state: "failed", code: "derived_opportunity_opportunity_reconciliation_failed" }, playerIndex: { state: "succeeded", espn: 5 }, coaching: { state: "unchanged" }, weather: { state: "unchanged" }, ratQb: { state: "succeeded", valueCount: 41 }, ratSkill: { RB: { state: "succeeded", valueCount: 30 } }, sight: { state: "succeeded", valueCount: 41 }, sightAccuracy: { state: "disabled" } });
+  const report = await createDerivedStages({ mode: "report", opportunityWriter: failing, qbRunner: ok, skillRunner: skill, sightRunner: ok, indexStage: { run: async () => ({ state: "succeeded", espn: 5 }) }, coachingStage: { run: async () => ({ state: "unchanged" }) }, weatherStage: { run: async () => ({ state: "unchanged" }) }, observedWeatherStage: { run: async () => ({ state: "unchanged" }) } }).run({ season: 2003 });
+  assert.deepEqual(report, { opportunity: { state: "failed", code: "derived_opportunity_opportunity_reconciliation_failed" }, playerIndex: { state: "succeeded", espn: 5 }, coaching: { state: "unchanged" }, weather: { state: "unchanged" }, observedWeather: { state: "unchanged" }, ratQb: { state: "succeeded", valueCount: 41 }, ratSkill: { RB: { state: "succeeded", valueCount: 30 } }, sight: { state: "succeeded", valueCount: 41 }, sightAccuracy: { state: "disabled" } });
   assert.throws(() => createDerivedStages({ mode: "lenient", opportunityWriter: failing, qbRunner: ok }), /strict or report/);
 });
 
@@ -152,7 +152,7 @@ test("a failing Sight skill rating never fails the strict daily run", async () =
   const okOpp = { writeSeason: async () => ({ state: "succeeded", writtenRows: 1 }) };
   const okQb = { run: async () => ({ state: "succeeded", valueCount: 1 }) };
   const broken = { run: async () => { throw Object.assign(new Error("boom"), { code: "cohort_bug" }); } };
-  const out = await createDerivedStages({ opportunityWriter: okOpp, qbRunner: okQb, skillRunner: broken, sightRunner: broken, indexStage: broken, coachingStage: broken, weatherStage: broken }).run({ season: 2026 });
+  const out = await createDerivedStages({ opportunityWriter: okOpp, qbRunner: okQb, skillRunner: broken, sightRunner: broken, indexStage: broken, coachingStage: broken, weatherStage: broken, observedWeatherStage: broken }).run({ season: 2026 });
   assert.equal(out.sight.state, "failed");
   assert.equal(out.ratSkill.state, "failed");
   assert.equal(out.ratSkill.code, "derived_rat_skill_cohort_bug");

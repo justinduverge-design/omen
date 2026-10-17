@@ -21,7 +21,7 @@ const path = require("node:path");
 const here = __dirname.endsWith("scripts") ? path.join(__dirname, "..") : "/tmp/sight";
 const req = (p) => require(fs.existsSync(path.join(here, p)) ? path.join(here, p) : path.join(here, path.basename(p)));
 const { SPECS, aggregateSkillPlays } = req("src/services/footballWarehouse/ratSkillMetric.js");
-const { buildContext, buildRoleContext } = req("src/services/footballWarehouse/sightContext.js");
+const { buildContext, buildRoleContext, elementsGaps, isBadWeather } = req("src/services/footballWarehouse/sightContext.js");
 
 const PHASES = Object.freeze([
   { key: "early", from: 3, to: 5 },          // role still forming; small samples
@@ -99,7 +99,7 @@ function rowsForSeason(season, plays, positions, weekly, ctx, role) {
         const m = vals.length ? mean(vals) : 0; const sdv = vals.length ? sd(vals) : 0;
         return context.map((c) => (c?.[key] == null || sdv <= 1e-9 ? 0 : (c[key] - m) / sdv));
       };
-      const zImplied = zOf("implied"); const zOpp = zOf("oppAllowed"); const zWind = zOf("wind"); const zCold = zOf("cold"); const zWarm = zOf("coldForWarmTeam");
+      const zImplied = zOf("implied"); const zOpp = zOf("oppAllowed"); const zWind = zOf("wind"); const zCold = zOf("cold"); const zWarm = zOf("coldForWarmTeam"); const zPrecip = zOf("precip"); const zElements = zOf("elements");
       const roleRows = ids.map((id) => roleFor(id, position));
       const zRole = (key) => {
         const vals = roleRows.map((c) => c?.[key]).filter((v) => v != null);
@@ -111,7 +111,7 @@ function rowsForSeason(season, plays, positions, weekly, ctx, role) {
         const y = next.get(id);
         if (y == null) return; // did not play next week: no label (injury/bye is not the model's question)
         rows.push({ season, week, position, phase, id, x: feats.map((f) => f[i]), xp: ps > 1e-9 ? (ppg[i] - pm) / ps : 0,
-          xc: [zImplied[i], zOpp[i]], xr: [zTrend[i], zVacated[i]], xw: [zWind[i], zCold[i]], xx: [zWarm[i]], hasLine: context[i]?.implied != null, ppgToDate: ppg[i], y });
+          xc: [zImplied[i], zOpp[i]], xr: [zTrend[i], zVacated[i]], xw: [zWind[i], zCold[i]], xx: [zWarm[i]], xe: [zPrecip[i], zElements[i]], hasLine: context[i]?.implied != null, ppgToDate: ppg[i], y });
       });
     }
   }
@@ -159,13 +159,25 @@ async function main() {
   const positions = new Map(players.rows.map((r) => [r.player_id, { position: r.football_position === "FB" ? "RB" : r.football_position, gsis: r.gsis_id }]));
 
   const all = [];
+  const history = []; // per season: offensive plays and which games were in bad weather, for elements gaps
   for (let season = opts.from; season <= opts.to; season += 1) {
     const plays = await pool.query(playsSql, [season, null]);
     const stats = await pool.query("SELECT week, player_id, team_id, opponent_team_id, football_position, fantasy_points_ppr FROM football.nfl_player_weekly_stats WHERE season = $1 AND season_type = 'REG'", [season]);
-    const games = await pool.query("SELECT week, home_team_id, away_team_id, spread_line, total_line, roof, wind_mph, temperature_f, roof AS home_roof, source_row->>'stadium_id' AS stadium_id FROM football.nfl_games WHERE season = $1 AND game_type = 'REG'", [season]);
+    const games = await pool.query(`SELECT g.game_id, g.week, g.home_team_id, g.away_team_id, g.spread_line, g.total_line, g.roof, g.roof AS home_roof,
+         coalesce(o.wind_mph, g.wind_mph) AS wind_mph, coalesce(o.temperature_f, g.temperature_f) AS temperature_f, o.precip_in,
+         g.source_row->>'stadium_id' AS stadium_id
+    FROM football.nfl_games g LEFT JOIN football.game_weather_observed o ON o.game_id = g.game_id AND o.status = 'read'
+   WHERE g.season = $1 AND g.game_type = 'REG'`, [season]);
     const STADIUMS = (() => { try { return req("src/data/stadiums.json").stadiums; } catch { return {}; } })();
     for (const g of games.rows) g.home_lat = STADIUMS[g.stadium_id]?.lat ?? null;
-    const ctx = buildContext(stats.rows, games.rows);
+    // Team elements gaps from the three seasons before this one (prior plays and their games' weather).
+    const badGame = new Map(games.rows.map((g) => {
+      const dome = g.roof === "dome" || g.roof === "closed";
+      return [g.game_id, isBadWeather({ dome, wind: g.wind_mph == null ? null : Number(g.wind_mph), temp: g.temperature_f == null ? null : Number(g.temperature_f), precip: g.precip_in == null ? null : Number(g.precip_in) })];
+    }));
+    const prior = history.filter((h) => h.season >= season - 3 && h.season < season);
+    const gaps = elementsGaps(prior.flatMap((h) => h.plays), new Map(prior.flatMap((h) => [...h.badGame])));
+    const ctx = buildContext(stats.rows, games.rows, gaps);
     const rosters = await pool.query("SELECT week, player_id, roster_status FROM football.nfl_weekly_rosters WHERE season = $1", [season]);
     const statusByWeek = new Map();
     for (const r of rosters.rows) { if (!statusByWeek.has(r.week)) statusByWeek.set(r.week, new Map()); statusByWeek.get(r.week).set(r.player_id, r.roster_status); }
@@ -189,6 +201,7 @@ async function main() {
       passerId: r.passer_player_id, qbDropback: r.qb_dropback, interception: r.interception, cpoe: r.cpoe,
     })), positions, weekly, ctx, role);
     all.push(...rows);
+    history.push({ season, badGame, plays: plays.rows.filter((r) => r.posteam_id && r.epa != null && (r.pass_attempt === "1" || r.pass_attempt === "1.0" || r.rush_attempt === "1" || r.rush_attempt === "1.0")).map((r) => ({ posteamId: r.posteam_id, gameId: r.game_id, epa: r.epa })) });
     process.stderr.write(`season ${season}: ${rows.length} rows\n`);
   }
   await pool.end();
@@ -210,12 +223,17 @@ async function main() {
         const withRole = fit.map((r) => ({ ...r, x: [...r.x, r.xp, ...r.xc, ...r.xr] }));
         const betaR = ridge(withRole, SPECS[position].components.length + 5);
         const betaW = ridge(fit.map((r) => ({ ...r, x: [...r.x, r.xp, ...r.xc, ...r.xr, ...r.xw] })), SPECS[position].components.length + 7);
+        const betaE = ridge(fit.map((r) => ({ ...r, x: [...r.x, r.xp, ...r.xc, ...r.xr, ...r.xw, ...r.xe] })), SPECS[position].components.length + 9);
         const betaX = ridge(fit.map((r) => ({ ...r, x: [...r.x, r.xp, ...r.xc, ...r.xr, ...r.xw, ...r.xx] })), SPECS[position].components.length + 8);
         (weights[target] ||= {})[position] ||= {};
         weights[target][position][phase] = {
           fitted_on: [target - ERA_SEASONS, target - 1], rows: fit.length,
           intercept: Number(beta[0].toFixed(4)),
           weights: Object.fromEntries(SPECS[position].components.map((c, i) => [c.key, Number(beta[i + 1].toFixed(4))])),
+          with_elements: {
+            intercept: Number(betaE[0].toFixed(4)),
+            weights: Object.fromEntries([...SPECS[position].components.map((c) => c.key), "production_ppg", "implied_team_total", "opponent_allowed_to_position", "usage_trend", "vacated_share", "wind_mph", "cold", "precip_in", "team_elements_gap"].map((k, i) => [k, Number(betaE[i + 1].toFixed(4))])),
+          },
           with_weather: {
             intercept: Number(betaW[0].toFixed(4)),
             weights: Object.fromEntries([...SPECS[position].components.map((c) => c.key), "production_ppg", "implied_team_total", "opponent_allowed_to_position", "usage_trend", "vacated_share", "wind_mph", "cold"].map((k, i) => [k, Number(betaW[i + 1].toFixed(4))])),
@@ -240,6 +258,7 @@ async function main() {
           const sight = test.map((r) => betaP[0] + [...r.x, r.xp].reduce((s, x, i) => s + betaP[i + 1] * x, 0));
           const sightCtx = test.map((r) => betaC[0] + [...r.x, r.xp, ...r.xc].reduce((s, x, i) => s + betaC[i + 1] * x, 0));
           const sightRole = test.map((r) => betaR[0] + [...r.x, r.xp, ...r.xc, ...r.xr].reduce((s, x, i) => s + betaR[i + 1] * x, 0));
+          const sightElements = test.map((r) => betaE[0] + [...r.x, r.xp, ...r.xc, ...r.xr, ...r.xw, ...r.xe].reduce((s, x, i) => s + betaE[i + 1] * x, 0));
           const sightWarm = test.map((r) => betaX[0] + [...r.x, r.xp, ...r.xc, ...r.xr, ...r.xw, ...r.xx].reduce((s, x, i) => s + betaX[i + 1] * x, 0));
           const sightWeather = test.map((r) => betaW[0] + [...r.x, r.xp, ...r.xc, ...r.xr, ...r.xw].reduce((s, x, i) => s + betaW[i + 1] * x, 0));
           const v0 = test.map((r) => r.x.reduce((s, x, i) => s + SPECS[position].components[i].weight * x, 0));
@@ -248,6 +267,7 @@ async function main() {
           (evaluation[target] ||= {})[position] ||= {};
           evaluation[target][position][phase] = {
             n: test.length,
+            corr_sight_elements: Number(corr(sightElements, y).toFixed(3)), elements_weights: betaE.slice(-2).map((x) => Number(x.toFixed(3))),
             corr_sight_warm: Number(corr(sightWarm, y).toFixed(3)), warm_weight: Number(betaX[betaX.length - 1].toFixed(3)),
             corr_sight_weather: Number(corr(sightWeather, y).toFixed(3)),
             corr_sight_role: Number(corr(sightRole, y).toFixed(3)),

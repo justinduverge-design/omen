@@ -8,8 +8,40 @@
 
 const mean = (v) => v.reduce((s, x) => s + x, 0) / v.length;
 
+/** Bad weather for football: outdoors and cold (< 40F), windy (>= 15 mph) or wet (>= 0.1 in). Null when unknown. */
+function isBadWeather({ dome, wind, temp, precip }) {
+  if (dome) return false;
+  if (wind == null && temp == null && precip == null) return null;
+  return (temp != null && temp < 40) || (wind != null && wind >= 15) || (precip != null && precip >= 0.1);
+}
+
+const ELEMENTS_SHRINK = 150; // plays: a team with few bad-weather snaps is pulled toward no gap
+
+/**
+ * Each offense's elements gap from prior seasons' plays: EPA per play in bad-weather games minus elsewhere,
+ * shrunk toward zero by the bad-weather sample. playRows: [{ posteamId, gameId, epa }]; badGame: game_id -> bool.
+ */
+function elementsGaps(playRows, badGame) {
+  const t = new Map();
+  for (const p of playRows) {
+    const bad = badGame.get(p.gameId);
+    const epa = p.epa == null ? null : Number(p.epa);
+    if (bad == null || epa == null || !Number.isFinite(epa) || !p.posteamId) continue;
+    const r = t.get(p.posteamId) || { badSum: 0, badN: 0, goodSum: 0, goodN: 0 };
+    if (bad) { r.badSum += epa; r.badN += 1; } else { r.goodSum += epa; r.goodN += 1; }
+    t.set(p.posteamId, r);
+  }
+  const out = new Map();
+  for (const [team, r] of t) {
+    if (!r.badN || !r.goodN) continue;
+    const gap = r.badSum / r.badN - r.goodSum / r.goodN;
+    out.set(team, gap * (r.badN / (r.badN + ELEMENTS_SHRINK)));
+  }
+  return out;
+}
+
 /** Per-season context: a player's team by week, each team's next game, and points allowed by position. */
-function buildContext(statRows, gameRows) {
+function buildContext(statRows, gameRows, elementsGap = null) {
   const teamByWeek = new Map(); // player -> [[week, team]]
   const allowed = new Map(); // `${opp}|${pos}` -> Map(week -> points)
   for (const r of statRows) {
@@ -43,8 +75,10 @@ function buildContext(statRows, gameRows) {
     const home = total != null && spread != null ? total / 2 + spread / 2 : null;
     const away = total != null && spread != null ? total / 2 - spread / 2 : null;
     const coldFor = (team) => (cold == null ? null : cold * (warmTeam.get(team) ? 1 : 0));
-    game.set(`${g.week}|${g.home_team_id}`, { opp: g.away_team_id, implied: home, wind, cold, coldForWarmTeam: coldFor(g.home_team_id) });
-    game.set(`${g.week}|${g.away_team_id}`, { opp: g.home_team_id, implied: away, wind, cold, coldForWarmTeam: coldFor(g.away_team_id) });
+    const precip = dome ? 0 : (g.precip_in == null ? null : Number(g.precip_in));
+    const bad = isBadWeather({ dome, wind, temp, precip });
+    game.set(`${g.week}|${g.home_team_id}`, { opp: g.away_team_id, implied: home, wind, cold, precip, bad, coldForWarmTeam: coldFor(g.home_team_id) });
+    game.set(`${g.week}|${g.away_team_id}`, { opp: g.home_team_id, implied: away, wind, cold, precip, bad, coldForWarmTeam: coldFor(g.away_team_id) });
   }
   return {
     contextFor(playerId, position, week) {
@@ -55,13 +89,17 @@ function buildContext(statRows, gameRows) {
       if (!next) return null;
       const byWeek = allowed.get(`${next.opp}|${position}`);
       const weeks = byWeek ? [...byWeek].filter(([w]) => w <= week) : [];
-      return { implied: next.implied, oppAllowed: weeks.length ? mean(weeks.map(([, v]) => v)) : null, wind: next.wind ?? null, cold: next.cold ?? null, coldForWarmTeam: next.coldForWarmTeam ?? null };
+      return { implied: next.implied, oppAllowed: weeks.length ? mean(weeks.map(([, v]) => v)) : null, wind: next.wind ?? null, cold: next.cold ?? null, precip: next.precip ?? null,
+        coldForWarmTeam: next.coldForWarmTeam ?? null,
+        // The team's elements gap (how much worse its offense plays in bad weather), applied only when the next
+        // game is in bad weather; 0 in a dome or mild game, null when the weather is unknown.
+        elements: next.bad == null ? null : (next.bad ? (elementsGap?.get(team) ?? 0) : 0) };
     },
   };
 }
 
 
-module.exports = { buildContext };
+module.exports = { buildContext, elementsGaps, isBadWeather };
 
 // --- Role changes: usage trend and vacated opportunity -------------------------------------------------------
 
