@@ -5,6 +5,15 @@
     "contract_version": "moves-history.v2",
     "generated_at": "2026-01-01T00:00:00.000Z",
     "moves": [],
+    "record": {
+      "contest_unknown": 0,
+      "contested_did_not_work": 0,
+      "contested_hit_rate": null,
+      "contested_worked": 0,
+      "did_not_work": 0,
+      "uncontested": 0,
+      "worked": 0
+    },
     "season": 2026
   }
 }

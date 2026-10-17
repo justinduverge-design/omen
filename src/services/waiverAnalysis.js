@@ -248,6 +248,17 @@ function evidenceFor(best, scoringFormat) {
     });
   }
 
+  // The market: how many ESPN leagues roster the add and how fast that is moving. A signal, never the verdict.
+  const owned = Number(best.player?.owned_pct);
+  const change = Number(best.player?.owned_pct_change);
+  if (best.player?.owned_pct != null && Number.isFinite(owned) && best.player?.owned_pct_change != null && Number.isFinite(change) && Math.abs(change) >= 1) {
+    evidence.push({
+      category: "market_signal",
+      statement: `${nameOf(best.player)} is rostered in ${round2(owned)}% of ESPN leagues, ${change > 0 ? "up" : "down"} ${round2(Math.abs(change))} points this week.`,
+      kind: "provider_ownership",
+    });
+  }
+
   const sight = sightOf(best.player);
   if (sight) {
     const provider = projection(best.player);

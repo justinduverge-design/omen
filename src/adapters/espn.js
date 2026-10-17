@@ -322,6 +322,17 @@ function playerName(player, id) {
     || "Unknown";
 }
 
+/** ESPN's league-wide ownership: how widely a player is rostered and the week's change, in percent. Absent stays null. */
+function ownershipOf(player) {
+  const owned = Number(player?.ownership?.percentOwned);
+  const change = Number(player?.ownership?.percentChange);
+  if (player?.ownership?.percentOwned == null || !Number.isFinite(owned)) return {};
+  return {
+    owned_pct: Math.round(owned * 10) / 10,
+    owned_pct_change: player.ownership.percentChange != null && Number.isFinite(change) ? Math.round(change * 10) / 10 : null,
+  };
+}
+
 function eligiblePositions(player, primaryPosition) {
   const positions = Array.isArray(player?.eligiblePositions)
     ? player.eligiblePositions.map(positionFrom).filter(Boolean)
@@ -455,8 +466,9 @@ function waiverPoolFromEspnData(data, opts = {}) {
       name: playerName(player, id),
       position: primaryPosition,
       eligible_positions: eligiblePositions(player, primaryPosition),
-      team: player?.proTeamAbbreviation || player?.teamAbbrev || player?.team || null,
+      team: player?.proTeamAbbreviation || player?.teamAbbrev || player?.team || abbreviationForProviderNumber(player?.proTeamId) || null,
       status: statusFrom(player?.injuryStatus || player?.injury_status),
+      ...ownershipOf(player),
       // ESPN marks projected stats with statSourceId 1. Actuals (0) are never
       // substituted, even when a projection is unavailable for this period. Confirmed
       // 2026-09-07 against ESPN's own `statSettings.sources` table:
