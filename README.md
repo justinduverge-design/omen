@@ -2,132 +2,193 @@
 
 > See the winning move.
 
-Omen is a free fantasy football app from Slops Saloon. You connect an ESPN, Yahoo or Sleeper league, and Omen
-tells you the best move for your team this week: what to do, why, what the risk is and how confident it is. It
-explains all of this in plain English, not math.
+Omen is a free fantasy football app from Slops Saloon. Connect your ESPN, Yahoo or Sleeper league, and every
+week Omen tells you the single best move for your team: **what** to do, **why**, **what could go wrong** and
+**how sure it is**, in plain English. Behind that one sentence sits:
+- a provider-neutral decision engine
+- Omen's own football warehouse, with nflverse history back to 1999
+- Omen's own player read (Sight)
+- a Ledger that grades every call against what actually happened
 
-**Last refreshed:** 2026-10-17. Dates and build numbers in this file go stale quickly. When this file disagrees
-with the files it links to, trust the linked files.
+**Last refreshed:** 2026-10-17. When this file disagrees with the files it links to, trust the linked files.
 
 ---
 
 ## Where Omen is today
 
-- **Stage:** friends-and-family beta on TestFlight (iPhone). Build 11 is in testers' hands. Build 12's backend
-  is in production, and its app release is still open. A build ships when it is ready, not on a fixed day.
-  Per-build records: [`Direction/release/builds/`](Direction/release/builds/).
-- **Platform:** a native iPhone app (SwiftUI) is the product. The Android app (Kotlin) exists but is paused. The
-  React web app is secondary.
-- **Price:** free. There is no billing, no subscription and no Stripe. MVP Move is not a paid tier.
-- **Providers:** ESPN, Yahoo and Sleeper are all live. "Connected" is not treated as "usable": Omen checks that
-  a connection can actually serve data, and it says so when it can't.
+- **Stage:** friends beta on TestFlight. Build 11 is in testers' hands. Build 12's backend is in production, and
+  its app release is in progress. During the beta a build ships when it is ready, and a fixed schedule returns at
+  the public launch. Build records: [`Direction/release/builds/`](Direction/release/builds/).
+- **Platform:** the native **iPhone app** (SwiftUI) is the product. The Android app (Kotlin) is built but paused.
+  The React web app is secondary.
+- **Price:** free. There is no billing, no subscription and no Stripe.
+- **Providers:** ESPN, Yahoo and Sleeper are all live.
 
-## What the app does
+## Features
 
-| Area | What it is |
+| Feature | What the user gets |
 |---|---|
-| **Omen of the Week** (MVP Move) | The main event. Omen makes **one call per week**, and the type isn't fixed: a start/sit, a pickup, a drop or a trade. |
-| **Trade Analyzer** | The front door. Lets you **build**, **find** or **type** a trade against real rosters. A two-sided fairness check makes sure both teams gain, and locked players are never offered. |
-| **League** (with Waivers) | Standings and other managers' teams. Waivers ranks pickups with reasons, pairs each one with a drop and plans around byes. |
-| **Command Center** | The home screen. Omen's advisors (one voice, with seats labelled by subject) each give a short read, and you choose what to dig into. |
-| **Ledger** | Omen's track record. Each call is graded against the player it passed over, on the league's own scoring. Trades are graded over the week, the next 4 weeks and the season so far. |
-| **Sight** | Omen's own player read, built from its football warehouse (v2 since 2026-10-17). It covers QB, RB, WR, TE, K and DEF and uses Vegas totals, opponent, role changes and weather. It is blended into decisions, with the provider's projection still leading. Confidence is shown as a band, never a percentage. |
-| **Demo Mode** | A labelled sample league, used for App Store review. It stays until the first approval. |
+| **Omen of the Week** (MVP Move) | The main event: **one call per week**. It may be a start/sit, a pickup, a drop or a trade, whichever is worth the most to this team this week. Each call comes with its evidence, its risk and a confidence band. |
+| **Trade Analyzer** | The front door. **Build** a trade (two or three teams, real rosters), **find** one (Omen scans every other roster in the league for deals that help both sides), or **type** an offer you received. Trades can be saved, marked sent, have their outcome recorded, and be shared through a public link with a preview card. |
+| **League** | Standings, matchups, other managers' rosters and a league switcher for people in several leagues. |
+| **Waivers** (inside League) | Pickups ranked with reasons. Each is paired with the drop it costs, and byes are planned around. A FAAB budget is suggested only when the league's waiver system is verified. |
+| **Start/Sit detail** | The full comparison behind a lineup call. |
+| **Command Center** | The home screen. Omen's advisors (one voice, with seats labelled by subject) each give a short read on the team, the matchup, waivers and trades, and you pick what to dig into. |
+| **Ledger** | Omen's track record for your league: every call, what you did, and how it turned out. |
+| **Account and privacy** | Sign in with Apple, a passkey or an email code. Export or delete your data in the app. |
+| **Demo Mode** | A clearly labelled sample league, used for App Store review. |
 
 Draft Assistant is not part of this version.
 
-## How it runs
+## How Omen decides (the math, briefly)
+
+Omen's stance is to **explain** provider projections honestly, not to claim it beats them.
+
+- **Start from the league's own numbers.** Each provider's projection and the league's actual scoring rules
+  (PPR, half-PPR, standard, custom) and lineup slots (FLEX, SUPERFLEX and so on) are read from the provider, not
+  assumed. Locked players are never moved, swapped or dropped.
+- **Sight, Omen's own read.** It is computed in the warehouse for QB, RB, WR, TE, K and DEF from usage, Vegas
+  totals, the opponent, role changes and weather, with weights that shift by phase of the season. In decisions,
+  Sight pulls the provider projection 30% of the way toward itself
+  (`blended = provider + 0.3 × (sight − provider)`). A low-confidence Sight (kickers, for now) never moves a
+  number. On held-out 2022–2025 seasons, Sight v2 correlates with actual points about as well as or better than
+  production (for example RB 0.535 vs 0.506).
+- **Value over replacement (VORP).** A player's value is points above the best freely available player at the
+  position. The replacement levels depend on the scoring format.
+- **Trades must be fair both ways.** A found trade must lift **both** lineups by at least 0.5 points a week. And
+  neither side may give up more season-long value than its weekly gain justifies. That stops "+0.0 for them" and
+  star-for-depth offers.
+- **Choosing the weekly call.** Every eligible candidate is scored on one scale, and the highest score wins. Any
+  candidate built on missing, mock, stale or cross-league data is thrown out. If nothing survives, Omen says so
+  honestly instead of inventing a move.
+- **Confidence is a band, never a percentage.** It is **coin flip** (gap under 1.5 points), **leaning** or
+  **confident**. "Confident" needs a gap of at least 4 points **and** observed corroborating evidence, such as a
+  usage trend or a verified injury, because a projection gap alone is right only about 52% of the time when it
+  is within a point.
+- **The Ledger grades honestly.** Each call is scored against the player it passed over, on the league's own
+  scoring. Easy calls against an OUT or bye player don't count toward the hit rate. Trades are graded over the
+  week, the next 4 weeks and the season so far.
+- **Narration is optional.** A private self-hosted model (Gemma) can phrase the reasoning. It is grounded in the
+  deterministic labels, never chooses the move, and the app works without it.
+
+Specs: [`Blueprints/specs/omen-decision-engine-v2.md`](Blueprints/specs/omen-decision-engine-v2.md) and
+[`Blueprints/specs/football-data/`](Blueprints/specs/football-data/).
+
+## Data: the football warehouse
+
+Omen keeps its own football database (PostgreSQL 17 on KVM1) instead of trusting any one provider. It has five
+layers:
+
+| Layer | Holds |
+|---|---|
+| ledger | Where every row came from: ingest receipts and schema versions |
+| identity | Teams, players and coaches, with each player's ESPN, Yahoo, Sleeper and GSIS IDs mapped to one person |
+| facts | Public nflverse data: games, rosters, weekly stats, play-by-play back to 1999, weather forecasts and observations, and injury reports. Never edited |
+| provider | Third-party projections, stored and labelled separately |
+| sight | Omen's own versioned metrics, graded against what happened |
+
+Ingest runs every day at 07:15 ET. A successful run triggers an encrypted backup, and a restore is proven every
+week. User data never goes in the warehouse; it stays in Supabase. Table map: [`warehouse/map/`](warehouse/map/).
+
+## Backend and API
 
 ```
-iPhone app (SwiftUI)          web app (React / Vite, secondary)
+iPhone app (SwiftUI)          web app (React / Vite)
         \                      /
-         Nginx (TLS) on KVM1, a Hostinger VPS
+       Nginx (TLS) on KVM1, a Hostinger VPS
                    |
-         Express API, Node.js  (src/server.js)
-          |            |              |                 |
-  ESPN / Yahoo /   Supabase        Upstash Redis     Football warehouse (Postgres on KVM1)
-  Sleeper adapters (auth, RLS,     (cache)           nflverse facts, player index, weather,
-  (src/adapters)   Vault secrets)                    provider projections, Sight
-                                                           |
-                                  scheduled jobs (systemd timers, chained; see infra/schedule/TIMERS.md)
+       Express API, Node.js  (src/server.js)
+        |             |             |               |
+ ESPN / Yahoo /   Supabase       Upstash Redis   Football warehouse
+ Sleeper adapters (auth, RLS,    (short cache,   (Postgres 17 on KVM1)
+                  Vault secrets,  trade shares)
+                  Ledger)
 ```
 
-- **KVM1** runs production: the API, the cron container, Nginx, the football warehouse and the football-data
-  pipeline. Deploys run through a self-hosted GitHub Actions runner.
-- **KVM2** stores the encrypted Restic backups and runs a weekly isolated restore proof. It also hosts a private
-  Ollama/Gemma model. The model is optional: the app works without it.
-- **The Raspberry Pi fleet** is the monitoring side. **Command Center** (Pi 4) runs Uptime Kuma, Beszel,
-  GlitchTip and alerting. **Steward** and **Sentinel** (Pi Zero 2 W) handle routine automation and passive
-  security watching, and they check host posture.
-- Every machine-to-machine and admin connection goes over **Tailscale**. No host accepts password or root SSH.
-  Details: [`infra/schedule/ACCESS.md`](infra/schedule/ACCESS.md) and
-  [`Blueprints/specs/infrastructure/slops-os-raspberry-pi-fleet-v1.md`](Blueprints/specs/infrastructure/slops-os-raspberry-pi-fleet-v1.md).
+- **Adapters** turn ESPN (cookie-based), Yahoo (OAuth) and Sleeper (public API) into one normalized roster
+  shape, so nothing downstream knows which provider a league came from. A connection that exists but can't
+  serve data is reported as unusable, never treated as an empty league.
+- **Main API routes** (the full list with contract versions is in
+  [`Blueprints/api-routes.md`](Blueprints/api-routes.md)):
 
-### The football warehouse
+| Area | Routes |
+|---|---|
+| Omen of the Week | `POST /api/omen/mvp-move`, `POST /api/omen/feedback` |
+| Trade | `POST /api/trade/compare`, `GET /api/trade/find`, `GET /api/trade/roster`, `/api/trade/saved/*`, `/api/trade/share/*` |
+| Waivers and lineup | `GET /api/waivers/analysis`, `GET /api/optimizer/lineup`, `GET /api/start-sit/detail` |
+| League | `GET /api/league/overview`, `GET /api/league/standings`, `GET /api/leagues`, `POST /api/leagues/active` |
+| Ledger | `GET /api/moves`, `GET /api/moves/:id` |
+| App shell | `GET /api/dashboard/summary`, `GET /api/dashboard/quiet-week`, `GET /api/session`, `GET /api/system/min-version` |
+| Connections | `/api/platforms/*` (ESPN, Sleeper, status and disconnect), `/api/yahoo/*` (OAuth and leagues) |
+| Privacy | `GET /api/user/export`, `DELETE /api/user/delete` |
+| Public | `GET /api/health`, `/api/ready`, `/api/version`, `/api/demo`, `/api/players/search` |
 
-Omen keeps its own football database instead of relying on one provider's numbers. It has five layers:
-**ledger** (where the data came from), **identity** (teams, players and every provider ID mapped to them),
-**facts** (public nflverse data, never edited), **provider** (third-party projections, stored separately and
-labelled) and **sight** (Omen's own versioned numbers, graded against real results). Ingest runs every day at
-07:15 ET, then a backup is taken. Table-by-table map: [`warehouse/map/`](warehouse/map/).
+- **Contracts are locked.** Every response shape the app depends on has a JSON schema, recorded fixtures and a
+  lock in `test/contracts/`. The iPhone tests decode the same fixtures, so a server change can't quietly break a
+  screen.
+- **Jobs:** credential health (every 6 hours; a refused login is deleted and the connection marked
+  needs-reconnect), Tuesday scoring for the Ledger, nflverse stats, the player crosswalk, and the daily warehouse
+  ingest.
+
+## Infrastructure
+
+- **KVM1** (Hostinger VPS): production. It runs the API and cron containers, Nginx, the warehouse and the
+  football-data pipeline. Deploys go through a self-hosted GitHub Actions runner.
+- **KVM2** (Hostinger VPS): encrypted Restic backups, the weekly isolated restore proof, and the private Gemma
+  model.
+- **Raspberry Pi fleet:** **Command Center** (Pi 4) runs Uptime Kuma, Beszel, GlitchTip and Discord alerting.
+  **Steward** and **Sentinel** (Pi Zero 2 W) handle routine automation, passive security watching and
+  host-posture checks.
+- Every admin and machine-to-machine connection goes over **Tailscale**. No host accepts password or root SSH.
+  Maintenance runs Friday mornings, never Monday night through Tuesday. Details: [`infra/`](infra/).
 
 ## Rules that never bend
 
-Omen is free. ESPN cookies are never logged or shown. Mock data is always labelled. Confidence is a band, never a
-percentage. Production database changes and deploys each need explicit founder approval. The full list and its
-history are in [`Direction/facts-of-record.md`](Direction/facts-of-record.md).
+- Omen is free.
+- ESPN cookies are never logged or shown.
+- Mock data is always labelled.
+- Confidence is a band, never a percentage.
+- Production database changes, deploys and store actions each need the founder's explicit approval.
+
+Full list: [`Direction/facts-of-record.md`](Direction/facts-of-record.md).
 
 ---
 
 ## Repository map
 
+Every major folder has its own README that explains what's inside and how to work in it.
+
 | Folder | What's in it |
 |---|---|
-| `src/` | Express API: `routes/`, `services/` (decisions, trades, waivers, Sight, Ledger, providers), `adapters/` (ESPN, Yahoo, Sleeper), `middleware/`, and the `omen_*_cron.js` jobs |
-| `test/` | Node test suite (`npm test`) and API contract tests |
-| `mobile/ios/` | The iPhone app (`OmenIOS/OmenIOS.xcodeproj`), with unit and UI tests |
-| `mobile/android/` | Android app (paused) |
-| `mobile/contracts/` | Native auth and QA runbooks |
-| `frontend/` | React web app (Vite and Tailwind) |
-| `client/` | Small React shell built into the Docker image |
-| `warehouse/` | Football warehouse migrations, the table map, and verification |
-| `sql/` | Supabase schema: what is applied, what is pending, and the 2026-10 redo |
-| `infra/` | Host schedules, access, and warehouse backup and timer units |
-| `deploy/hostinger/` | Production compose file, Nginx config, watchdog and deploy notes |
-| `ops/command-center/` | Reference copies of what runs on the Command Center Pi (editing them deploys nothing) |
-| `scripts/` | Repo checks, gates and generators |
-| `evals/` | Prompt-safety evals |
-| `extension/` | Browser extension that helps connect an ESPN account |
-| `Direction/` | Product direction: the map, sprint, decisions, known issues, release records |
-| `Blueprints/` | Specs, playbooks, prompts, handoffs, API route list, security and privacy |
-| `Brand/`, `logos/`, `design/` | Brand system, marks and design canvases |
+| [`src/`](src/) | The Express API: routes, decision services, provider adapters, middleware and scheduled jobs |
+| [`test/`](test/) | Node test suite (`npm test`) and the API contract locks |
+| [`mobile/`](mobile/) | The iPhone app (`ios/OmenIOS/OmenIOS.xcodeproj`) and the paused Android app |
+| [`warehouse/`](warehouse/) | Warehouse migrations, table map and verification |
+| [`sql/`](sql/) | Supabase schema history and the 2026-10 database redo |
+| [`infra/`](infra/), [`deploy/hostinger/`](deploy/hostinger/), [`ops/command-center/`](ops/command-center/) | Hosts, schedules, backups, production deploy and Pi monitoring |
+| [`frontend/`](frontend/), `client/` | React web app and the small shell built into the Docker image |
+| [`extension/`](extension/) | Omen ESPN Connect browser extension (Chrome and Edge) |
+| [`scripts/`](scripts/), `evals/` | Repo checks, gates, generators and prompt-safety evals |
+| [`Direction/`](Direction/) | What and why: the map, rules, sprint, decisions, known issues and build records |
+| [`Blueprints/`](Blueprints/) | How: specs, architecture, playbooks, prompts and handoffs |
+| [`Brand/`](Brand/), `logos/`, `design/` | Brand system, marks and the native design canvases |
 | `Legal/` | Provider and brand-use requests and agreement drafts |
-| `References/`, `Solutions/` | Research, evidence and solved-problem write-ups |
-| `Archive/` | Retired material, kept for history only |
+| [`References/`](References/), [`Solutions/`](Solutions/), `Archive/` | Research and evidence, finished reports, and retired material |
 
-## Start here (for people and AI assistants)
-
-1. [`Direction/map.md`](Direction/map.md): one page that says what to read for any task.
-2. [`Direction/context.md`](Direction/context.md): the product and its tool hierarchy.
-3. [`Direction/release/builds/`](Direction/release/builds/): what each beta build fixed, what shipped, and what's
-   still broken.
-4. [`Direction/known_issues.md`](Direction/known_issues.md): open problems.
-5. [`Blueprints/api-routes.md`](Blueprints/api-routes.md): every API route.
-
-Coding agents (Claude Code, Codex) start from `CLAUDE.md` / `AGENTS.md`.
+**Start here:** [`Direction/map.md`](Direction/map.md) (what to read for any task), then
+[`Direction/context.md`](Direction/context.md). Coding agents start from `CLAUDE.md` / `AGENTS.md`.
 
 ## Local development
 
 ```bash
 npm install
-npm test                 # backend test suite
-npm start                # API on port 3000 (needs Supabase and the other env vars)
+npm test                 # backend tests, including the contract locks
+npm start                # API on port 3000 (needs Supabase and the env vars in deploy/hostinger/ENV-INVENTORY.md)
 cd frontend && npm install && npm run build
 ```
 
-Open `mobile/ios/OmenIOS/OmenIOS.xcodeproj` in Xcode for the iPhone app. Production secrets are injected at
-runtime and never committed. The list of environment variables is in
-[`deploy/hostinger/ENV-INVENTORY.md`](deploy/hostinger/ENV-INVENTORY.md).
+For the iPhone app, open `mobile/ios/OmenIOS/OmenIOS.xcodeproj` in Xcode. Secrets are injected at runtime and
+never committed.
 
 ---
 
