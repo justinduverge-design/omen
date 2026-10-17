@@ -26,9 +26,9 @@ disclosure, but may not change their meaning.
 |---|---|---|---|
 | Verdict | What should I do? | feature decision state and recommendation | Hold or refuse with the named limiting reason |
 | Leading Read | Which forecast earned the lead here? | `sight.authority.state` plus its cohort fields | `Reads unresolved`; never infer from which number exists first |
-| Counsel | Why is that the bounded action? | recommendation rationale plus decision evidence actually used | Omit unsupported prose; show Fog if the decision is constrained |
+| Deciding factor | What broke the tie between the available actions? | one short sentence grounded in the highest-priority decision evidence actually used | State that no single factor separated the choices; never fill the space with a summary |
 | Crosswind | Where do usable reads materially disagree? | `sight.crosswind` with both source values | Omit when no material disagreement; missing data is Fog, not Crosswind |
-| Portents | What changed enough to matter? | ordered `sight.drivers` and typed feature evidence | Show only source-backed, material drivers; never manufacture three rows |
+| Portents | What changed enough to matter? | ordered `sight.drivers` and typed feature evidence | Show only source-backed, material drivers; never manufacture or pad rows |
 | Fog | What could Omen not see or prove? | `decision_context.limitations`, confidence-unavailable reasons, stale/low-sample authority | Name the missing input and the safe remaining action |
 | Receipt | What exact context and method produced this? | league/scoring/week, freshness, authority and decision-context versions | Mark unavailable fields; do not substitute current values into an issued receipt |
 
@@ -41,7 +41,8 @@ disclosure, but may not change their meaning.
 | Omen value | `player.sight.sight_points` | `through_week`, `version`, `confidence`, `grade`, `flex_grade` | Label as Omen's read and retain its vintage |
 | Provider value | `player.projected_points` | connected platform, response observation time when supplied | Name the provider only when known; preserve missing as missing |
 | Crosswind gap | `player.sight.crosswind.gap_points` | `threshold_points`, both read values, `crosswind.drivers` | Render only from a server-issued Crosswind; do not derive a threshold |
-| Portents | `player.sight.drivers[]` | typed start/sit, waiver, trade or league evidence | Preserve server order; cap visually without changing evidence priority |
+| Deciding factor | primary rationale or first material `player.sight.drivers[]` item | recommendation and authority receipt | Render one plain-language sentence; it must explain the choice, not restate the verdict |
+| Portents | remaining `player.sight.drivers[]` | typed start/sit, waiver, trade or league evidence | Preserve server order; show no more than three decision-changing bullets before disclosure |
 | Fog | `decision_context.limitations[]` | authority unresolved state, confidence `unavailable_reason`, per-section status | Merge duplicate limitations by input identity; never relabel failure as empty |
 | Receipt | `decision_context`, authority receipt, selected context | scoring, player, week, issued/evaluated/observed times | Present the issued snapshot; technical identifiers live behind disclosure |
 
@@ -74,10 +75,26 @@ complete:
 7. Context resolving: shaped placeholders, no factual zero-state copy.
 8. Request failure: local recovery action and no stale recommendation presented as current.
 
-The call screen shows Verdict, one sentence of Counsel, the compact Leading Read receipt, at most one
-urgent Portent, and a disclosure action. The evidence screen carries the complete comparison,
+The call screen shows Verdict, one sentence naming the deciding factor, the compact Leading Read
+receipt, at most one urgent Portent, and a disclosure action. The evidence screen carries the comparison,
 evaluation scope, ordered Portents, Crosswind, Fog and Receipt. Opening evidence must not trigger a
 second decision request when the call response already contains those facts.
+
+### 5.1 Argument density
+
+Omen is an argument, not a box score. The first viewport must be understandable without scanning a
+stat inventory:
+
+1. state the action;
+2. explain the deciding factor in one short sentence;
+3. show zero to three Portents that materially support or challenge that factor;
+4. put additional evidence, source vintages and methodology behind disclosure.
+
+A number appears only when it changes the decision, quantifies a named disagreement, or identifies the
+receipt. Five available facts are not five required bullets. Repeated facts, decorative rankings and
+numbers without a claim are omitted. The client may cap a longer server list for presentation, but it
+must preserve server order and expose the remainder through the evidence disclosure rather than silently
+rewriting priority.
 
 ## 6. Loading, caching and time
 
@@ -117,3 +134,21 @@ A screen-data binding passes only when:
 - VoiceOver reads Verdict, leadership scope, Crosswind and Fog in that order;
 - paired-iPhone evidence records cold and warm shell/data timings;
 - a receipt can identify every displayed number's source and vintage.
+
+## 9. Native handoff policy
+
+Omen uses platform capabilities where they already solve the operating-system job, while keeping the
+decision and its evidence Omen-owned:
+
+| User job | Native boundary | Omen boundary |
+|---|---|---|
+| Share a trade or receipt | SwiftUI `ShareLink`, or `UIActivityViewController` where a richer payload is required; Messages and installed apps are destinations selected by the user | neutral share copy, standalone image, public link, privacy filtering and provenance |
+| Copy an offer | explicit system pasteboard action with visible and tactile success feedback | the exact provider-handoff offer and its source context |
+| Choose a compact mode or filter | `Menu`, `Picker` or `confirmationDialog` when the options fit their native semantics | labels, availability and selected value |
+| Present focused multi-control work | one shell-owned native `sheet` with system detents and dismissal | rich league picker, filters, partial-provider state and Omen styling |
+| Complete a real purchase | Apple Pay only when a future feature has an actual eligible transaction | product, price, fulfillment, legal and server receipt |
+| Save a durable credential or pass | Wallet only when Omen has a genuine pass-like artifact | pass content, lifecycle and revocation |
+
+Trade sharing does not request Messages access and does not imitate a Messages composer. The system
+share sheet performs that handoff. Apple Pay and Wallet are not visual treatments or generic sharing
+shortcuts; they stay out of the app until their real transaction or pass contracts exist.

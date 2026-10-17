@@ -55,6 +55,14 @@ final class CommandCenterViewModelTests: XCTestCase {
         XCTAssertFalse(repository.called, "demo must not issue a network request")
         XCTAssertEqual(viewModel.viewState, .demo)
         XCTAssertNil(viewModel.failure)
+
+        let desk = try XCTUnwrap(viewModel.deskState(railCount: 0, railIndex: 0))
+        XCTAssertTrue(desk.weekLabel.lowercased().contains("demo"))
+        guard case .read(let matchup) = desk.matchup else {
+            return XCTFail("demo must use the current Command desk, not the retired screen")
+        }
+        XCTAssertEqual(matchup.status, "Sample")
+        XCTAssertTrue(matchup.leader.name.lowercased().contains("demo"))
     }
 
     func testSuccessfulLoadMapsSummaryIntoCommandCenterState() async throws {

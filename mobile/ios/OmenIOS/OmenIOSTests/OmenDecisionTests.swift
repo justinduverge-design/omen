@@ -721,9 +721,8 @@ final class OmenDecisionViewModelTests: XCTestCase {
         }
     }
 
-    /// The reachability-closing case: a live `start_sit` call must fetch the richer
-    /// `start-sit-detail.v2` read and expose it, so the Omen destination can swap in the
-    /// carried-over `OmenStartSitScreen` instead of the generic call card.
+    /// A live `start_sit` call fetches the richer `start-sit-detail.v2` read so the current
+    /// Omen destination can enrich its call in place without swapping screen generations.
     func testLiveStartSitCallFetchesStartSitDetail() async throws {
         final class RecordingStartSitRepository: StartSitDetailRepository {
             var calledWithSlot: String??
@@ -743,7 +742,10 @@ final class OmenDecisionViewModelTests: XCTestCase {
 
         await viewModel.load(userID: "real-user")
 
-        XCTAssertNotNil(startSitRepo.calledWithSlot, "a live start_sit call must fetch start-sit-detail.v2")
+        XCTAssertTrue(
+            startSitRepo.calledWithSlot != nil,
+            "a live start_sit call must fetch start-sit-detail.v2"
+        )
         XCTAssertEqual(viewModel.startSitDetail?.state, "clear_decision")
         XCTAssertEqual(viewModel.startSitDetail?.recommendation?.start?.name, "McCaffrey")
     }

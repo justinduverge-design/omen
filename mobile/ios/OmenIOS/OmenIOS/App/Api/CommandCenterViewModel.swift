@@ -132,7 +132,55 @@ final class CommandCenterViewModel: ObservableObject {
                 ledger: .switching,
                 footnote: nil
             )
-        case .demo, .failed:
+        case .demo:
+            // App Review enters through Demo, so Demo must exercise the same Command
+            // composition real users receive. Keeping the legacy Command screen alive only
+            // for Demo preserved a second typography and layout authority in production.
+            return OmenDeskState(
+                weekLabel: "Demo · Week 7",
+                deadlineLabel: nil,
+                deadlineTime: nil,
+                matchup: .read(OmenDeskMatchup(
+                    platform: .espn,
+                    status: "Sample",
+                    leader: OmenDeskTeam(
+                        crest: "DT", name: "Demo Titans", record: "6–1 · you",
+                        score: "64.8", isMine: true
+                    ),
+                    trailer: OmenDeskTeam(
+                        crest: "DR", name: "Demo Rivals", record: "5–2",
+                        score: "58.1", isMine: false
+                    ),
+                    projection: "119.6 – 114.2",
+                    projectionNote: "Sample projection",
+                    leadFraction: nil,
+                    watch: "Opponent has two sample players remaining Monday night."
+                )),
+                railCount: 1,
+                railIndex: 0,
+                waiver: .read(OmenDeskWaiverMove(
+                    addName: "Tyrone Tracy Jr.",
+                    addMeta: "RB · NYG · sample",
+                    addPoints: nil,
+                    dropName: nil,
+                    dropMeta: nil,
+                    dropPoints: nil,
+                    reasoning: "Sample move: immediate help at RB during a thin week.",
+                    band: nil,
+                    risk: nil,
+                    riskReason: nil
+                )),
+                ledger: .read(OmenDeskLedgerLine(
+                    summary: "Start DeVonta Smith over Chris Olave",
+                    meta: "Demo week 6 · start / sit",
+                    outcome: .worked
+                )),
+                footnote: OmenDeskFootnote(
+                    text: "Demo uses clearly labeled sample league data.",
+                    emphasis: nil
+                )
+            )
+        case .failed:
             return nil
         }
     }

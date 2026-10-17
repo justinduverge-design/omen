@@ -317,29 +317,16 @@ struct CommandCenterView: View {
                         }
                     )
                 } else {
-                    OmenCommandCenterScreen(
-                        state: commandCenterViewModel.commandCenterState,
-                        // Passing this is what makes the strip's "Switch" control render
-                        // at all — `OmenContextStrip` hides it when `onSwitch` is nil,
-                        // which is why a user with a connected league previously had no
-                        // way to choose it.
-                        onSwitchContext: { showSwitcherSheet = true },
-                        onOpenAccount: { showAccountSheet = true },
-                        onConnect: { showConnectSheet = true },
-                        onOpenOmen: { selectedTab = .omen },
-                        onOpenLeague: { selectedTab = .league },
-                        onReportProblem: { reportingScreen = .commandCenter },
-                        carousel: leagueCarouselViewModel,
-                        userID: userID,
-                        // §10.3: the server names the surfaces a context change invalidates,
-                        // and the client re-reads them rather than deciding for itself. The
-                        // Omen and League destinations reload lazily on their own `.task`,
-                        // so the shell is the one that has to be told.
-                        onContextChanged: { _ in
-                            Task { await reloadAllAfterContextChange() }
-                        },
-                        loadReceipt: { await commandCenterViewModel.loadReceipt(id: $0) }
+                    // The state machine above is exhaustive. This is a fail-closed guard for a
+                    // future state, not a route back into the retired Command composition.
+                    OmenStateSurface(
+                        kind: .error,
+                        title: "Command isn't ready",
+                        message: "This version of Omen couldn't present the current Command state."
                     )
+                    .padding(OmenSpacing.step24)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    .background(OmenColor.bg)
                 }
             }
             .task {

@@ -29,7 +29,19 @@ enum ScreenshotScenarios {
         ),
         "command-center.demo-connected": ScreenshotScenario(
             label: "Command Center — demo/mock connected",
-            content: { AnyView(FauxShell(scenarioKey: "command-center.demo-connected")) }
+            content: {
+                AnyView(FauxShell(
+                    scenarioKey: "command-center.demo-connected",
+                    commandContentOverride: AnyView(OmenCommandDeskScreen(
+                        state: J2ScreenshotFixtures.nominalDesk,
+                        context: J2ScreenshotFixtures.titansContext,
+                        onOpenAccount: {},
+                        onOpenLeague: {},
+                        onOpenLedger: {},
+                        onReportProblem: {}
+                    ))
+                ))
+            }
         ),
         // The `carousel != nil` branch — a real multi-league account. Every other Command
         // Center scenario runs the stacked layout, which is why three clipping bugs reached
@@ -181,10 +193,15 @@ enum ScreenshotScenarios {
             }
         ),
         "journey-j3.nominal.03-start-sit": ScreenshotScenario(
-            label: "J3 nominal 3/3 — clear Start/Sit call",
+            label: "J3 nominal 3/3 — inline Start/Sit detail",
             content: {
-                AnyView(j3Shell(AnyView(OmenStartSitScreen(
-                    detail: J3ScreenshotFixtures.nominalStartSit,
+                AnyView(j3Shell(AnyView(OmenDecisionScreen(
+                    state: OmenDecisionFixtures.journeyNominal,
+                    startSitDetail: J3ScreenshotFixtures.nominalStartSit,
+                    weekLabel: "Week 7",
+                    providerName: "ESPN",
+                    onMakeMove: {},
+                    onDecline: {},
                     onOpenAccount: {},
                     context: J3ScreenshotFixtures.context
                 ))))
@@ -216,11 +233,16 @@ enum ScreenshotScenarios {
             }
         ),
         "journey-j3.degraded.03-start-sit": ScreenshotScenario(
-            label: "J3 degraded 3/3 — incomplete Start/Sit read",
+            label: "J3 degraded 3/3 — inline incomplete Start/Sit read",
             content: {
-                AnyView(j3Shell(AnyView(OmenStartSitScreen(
-                    detail: J3ScreenshotFixtures.degradedStartSit,
-                    onRetry: {},
+                AnyView(j3Shell(AnyView(OmenDecisionScreen(
+                    state: OmenDecisionFixtures.degraded,
+                    startSitDetail: J3ScreenshotFixtures.degradedStartSit,
+                    onRetryStartSit: {},
+                    weekLabel: "Week 7",
+                    providerName: "ESPN",
+                    onMakeMove: {},
+                    onDecline: {},
                     onOpenAccount: {},
                     context: J3ScreenshotFixtures.context
                 ))))

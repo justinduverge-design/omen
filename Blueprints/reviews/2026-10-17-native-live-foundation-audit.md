@@ -261,3 +261,26 @@ Counsel, Crosswind, Portents, Fog and Receipt to current response fields, define
 behavior, and requires eight concrete J3 canvas/native states. It also prevents either native client
 from electing forecast authority locally or exposing the internal `sight` name to customers.
 
+## 15. Clean-slate retirement inventory
+
+The source audit found two generations of native composition living beside each other. Removal is
+ordered by reachability and dependency rather than filename age:
+
+| Surface | Current reachability | Classification | Retirement gate |
+|---|---|---|---|
+| `OmenCommandDeskScreen` | production Command and current J2 evidence | production authority | keep; all Command states and captures converge here |
+| `OmenCommandCenterScreen` view | no longer mounted by production after this slice; still mounted by older screenshot fixtures | migration fixture | move shared models and receipt/detail views out of its file, replace remaining fixture captures, then delete the view |
+| types and receipt/detail views co-located in `OmenCommandCenterScreen.swift` | used outside the retired view | shared dependency trapped in legacy file | extract without behavior change before deleting the file |
+| `OmenStartSitScreen` | no remaining references; deleted in this slice | retired standalone composition | complete: both J3 scenarios now render the current Omen screen with nominal or incomplete inline detail |
+| `OmenDecisionScreen` with inline start/sit detail | production Omen destination | production authority | keep and make the first fulfillment target for the new argument-density contract |
+
+This slice removes the production fallback to `OmenCommandCenterScreen`. Demo now produces a clearly
+labeled sample `OmenDeskState`, so App Review, screenshots and real accounts use one Command typography
+and layout authority. The fallback for an unknown future state is a fail-closed error surface, not the
+retired composition. Regression tests assert both the Demo desk shape and the absence of the retired
+screen mount from `CommandCenterView`.
+
+The standalone Start/Sit composition is now deleted. Its two named J3 scenarios retain their stable
+keys but mount `OmenDecisionScreen` with nominal or incomplete `start-sit-detail.v2` data. This exercises
+the same in-place enrichment production mounts and prevents the former post-load typography/layout swap.
+
