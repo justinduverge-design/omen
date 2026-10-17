@@ -1221,6 +1221,8 @@ function playerForMvp(player, fallback) {
     position: source.position || null,
     team: source.team || null,
     opponent_team: source.opponent || null,
+    // Kept on the Ledger so grading can tell a contested call from an easy one (the alternative was OUT or on bye).
+    status: source.projection_basis === "bye_week" ? "BYE" : (source.status || null),
   };
 }
 

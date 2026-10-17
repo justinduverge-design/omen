@@ -622,6 +622,7 @@ test("moves-history.v2 reads the league's current calls from the new Ledger tabl
   const [legacy, replacement, waiver, verified] = response.body.moves;
 
   assert.deepEqual(verified, {
+    contested: null,
     id: D1, season: 2026, week: 1, move_type: "start_sit", headline: "Start A over B",
     issued_at: "2026-09-10T15:00:00.000Z", issued_at_timezone: "UTC",
     followed: true, action_provenance: "self_reported", provenance: "verified", outcome: "worked",
