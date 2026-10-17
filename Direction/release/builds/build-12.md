@@ -75,6 +75,56 @@ Omen's own read (Sight), not on one provider number.
   and position (#703, #705, #706, #708).
 - Sleeper injury reports (v12, #709). Step 16 FK indexes applied.
 
+## PRs in this build
+
+43 PRs, #670 to #713, merged 2026-10-15 to 2026-10-17. Builds 10 and 11 were #645 to #669.
+
+| PR | Area | Title |
+|---|---|---|
+| #670 | Trades | Build 12: Trade reliability and projection foundation |
+| #672 | Ledger | Ledger: keep each league's scoring rules (writer only; grading stays off) |
+| #673 | Start/Sit & Waivers | Waiver fix + League trade targets (phone report 2026-10-15) |
+| #674 | Ledger | Ledger grading: resolve provider ids through the crosswalk |
+| #675 | Ledger | Ledger grading: compare each call against its alternative |
+| #676 | Ledger | Cron: warehouse reader for Ledger grading (already applied on KVM1) |
+| #677 | Ledger | Ledger: grade on the league's own scored points |
+| #678 | Warehouse | Warehouse map: routing files in the repo and in the warehouse (0007) |
+| #679 | Warehouse | Warehouse verifier: accept v4 and check the map |
+| #680 | Warehouse | Warehouse publisher: admit the file Build 12 added to releases |
+| #681 | Sight | Sight v0: RB, WR and TE ratings |
+| #682 | Sight | Sight v1: fitted weekly reads, weekly grading, version switch |
+| #683 | Sight | Warehouse: store provider projections (the yardstick for Sight) |
+| #684 | Warehouse | Warehouse: the player index (ESPN, Sleeper, Yahoo -> one Omen player) |
+| #685 | Warehouse | Player index: Sleeper floor 2,000 |
+| #686 | Sight | Sight in the API behind SIGHT_ENABLED / SIGHT_VERSION |
+| #687 | Sight | Sight v1: QB |
+| #688 | Sight | Sight: recompute when the weights change |
+| #689 | Sight | Sight v2: game context (Vegas + opponent) |
+| #690 | Warehouse | Warehouse: team and defense index (0011); ESPN players carry their NFL team |
+| #691 | Sight | Sight v2: kickers and defenses |
+| #692 | Sight | Sight v2: role changes (usage trend, vacated opportunity) |
+| #693 | Sight | Sight: weather tested and not added; v2 layer results in the spec |
+| #694 | Warehouse | Warehouse: the coach graph (0013) |
+| #695 | Sight | Sight v2 flex grade; polite coach backfill |
+| #696 | Sight | Sight v2 complete: weather, forecasts, code-version stamp |
+| #697 | Sight | Sight v2: rain and team-elements inputs; observed game weather (0017) |
+| #698 | Connections | Connections: credential health (refused credentials are removed) |
+| #699 | Warehouse | Coach backfill: Wikimedia-policy User-Agent |
+| #700 | Sight | Sight v2 final: rain and team elements in the live run |
+| #701 | Sight | Start/Sit and Waivers decide on Sight plus lock flags |
+| #702 | Ledger | Ledger: contested hit rate |
+| #703 | Warehouse | Player index: Sleeper and Yahoo through the ESPN crosswalk |
+| #704 | Start/Sit & Waivers | Waivers: ESPN market signal; fix main's contract fixtures |
+| #705 | Warehouse | Player index: name and birth date match (warehouse v10) |
+| #706 | Warehouse | Player index: DynastyProcess crosswalk for Yahoo (warehouse v11) |
+| #707 | Docs | Close-out: Sight v2, decisions, player index |
+| #708 | Sight | Sight for every Yahoo player: name + team + position fallback |
+| #709 | Sight | Sleeper injury data: warehouse table, Sight block, decision fallback |
+| #710 | Ledger | Ledger: trade grading over three horizons (redo step 18) |
+| #711 | Start/Sit & Waivers | League GM: bye-week planning in Waivers |
+| #712 | Docs | Close-out: trade horizons, injuries, bye planning |
+| #713 | Docs | Build packages: Build 12 record and ship-when-ready cadence |
+
 ## Where it lives
 
 - **Production API and warehouse:** everything above.
@@ -147,3 +197,33 @@ PLEASE TEST
   each schema version up to v12.
 - **Production:** Sight v2 recomputed for weeks 1-6 on code revision 2026-10-17.v2-complete.
 - **Not yet done:** the paired-iPhone walk.
+
+## Retro
+
+**What worked**
+- Live probes against real leagues found the real gaps. Lineup slots were never read, Yahoo projections
+  covered only a quarter of players, and the waiver pool stopped at 25. Guessing would not have found these.
+- Sight was measured before it was trusted. Every layer was scored on held-out seasons against a plain
+  points-per-game read. Layers that did not help were recorded; the founder kept some of them.
+- Version switching was done as one bundle. v2 was built on the side and switched on once.
+- Database steps were rehearsed before production. Each warehouse version was proven on a scratch Postgres
+  with a refused re-apply, then backed up, applied and verified. The Supabase steps were rehearsed in CI.
+- Every PR got a fresh-agent review, and real bugs were caught before merge:
+  - a wrong-person name match;
+  - a week the warehouse had not loaded being scored 0-0;
+  - an injury write that could roll back the player-id writes.
+
+**What went wrong**
+- #702 and #703 merged before CI started, which kept the main deploy red until #704. The merge script now
+  waits for checks to exist. A later version of that wait hung on a PR with only three checks.
+- A test User-Agent once carried the founder's email to Wikipedia. It is not in code; never send personal
+  data to third parties.
+- Work moved fast enough that the build record was written at the end, not as it went. Packages fix that.
+
+**Where we get better**
+- Open the package when the build starts and add each PR as it merges.
+- Make one merge helper the only merge path. It should wait for every check to exist and pass.
+- Measure coverage after each index change. Yahoo 233 of 305 was measured; the name fallback was not
+  re-counted.
+- Pair the screens with the backend. Sight, injuries and trade horizons are live, but users cannot see them
+  yet.

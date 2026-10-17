@@ -13,9 +13,11 @@ record when it ships.
 3. **What was wrong**: the problems that started this build, with where they came from (tester, screenshot,
    probe, audit).
 4. **What we fixed**: grouped by area. Each line says what changed and cites the PR.
-5. **Where it lives**: what is in the app, what is backend-only, and what is behind a switch.
-6. **Known issues / next**: what is still broken or deferred, and why. This list seeds the next package.
-7. **Tester notes**: the paste-ready "What to Test" text, under 4,000 characters.
-8. **Proof**: the tests, the device walk and the production checks that back the claims above.
+5. **PRs in this build**: every merged PR, with its number, area and title. Add each one as it merges.
+6. **Where it lives**: what is in the app, what is backend-only, and what is behind a switch.
+7. **Known issues / next**: what is still broken or deferred, and why. This list seeds the next package.
+8. **Tester notes**: the paste-ready "What to Test" text, under 4,000 characters.
+9. **Proof**: the tests, the device walk and the production checks that back the claims above.
+10. **Retro**: what worked, what went wrong, and where we get better.
 
 Keep it short: link to the PRs and the decision log instead of copying them.
