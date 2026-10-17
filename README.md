@@ -1,339 +1,137 @@
-# Omen — Fantasy Football Decision Layer
+# Omen: Fantasy Football Decision Layer
 
 > See the winning move.
 
-Omen is a multi-platform fantasy football decision layer from Slops Saloon. It connects to Yahoo, Sleeper, and ESPN, normalizes roster data across all three, and surfaces the highest-value action for your team each week — with math you can follow and reasoning you can trust.
+Omen is a free fantasy football app from Slops Saloon. You connect an ESPN, Yahoo or Sleeper league, and Omen
+tells you the best move for your team this week: what to do, why, what the risk is and how confident it is. It
+explains all of this in plain English, not math.
 
-Slops Saloon is the parent company, mission site, and long-term product studio. Omen is the fantasy football product inside that ecosystem.
-
----
-
-## DBS Navigation
-
-- Layer 0 is `SLOPS/`.
-- Layer 1 is `SLOPS/slops-saloon/`.
-- Layer 2 is this repo: `SLOPS/slops-saloon/omen/`.
-- If Justin says "Layer 3," treat that as this third layer in plain English.
-- Product, brand, handoff, prompt, and spec context lives at this repo root under `Direction`, `Blueprints`, `Brand`, `Solutions`, and `References`.
-- The old nested `Corvus/` folder is retired.
-- Do not use old `Projects\slops-saloon` copies for active work.
-- Do not touch `Archive\quarantine`.
-
-Baseline context entry files:
-
-- `context.md`
-- `DBS_INDEX.md`
-- `README.md`
-- `AGENTS.md`
-- `CLAUDE.md`
-
-On this Windows workspace, lowercase `agents.md` / `claude.md` references resolve to the canonical `AGENTS.md` / `CLAUDE.md` files.
+**Last refreshed:** 2026-10-17. Dates and build numbers in this file go stale quickly. When this file disagrees
+with the files it links to, trust the linked files.
 
 ---
 
-## What It Does
+## Where Omen is today
 
-**Trade Analyzer (free)** evaluates any trade using VORP v2 — a positional scarcity model that accounts for replacement-level value, injury risk, and roster depth. Every verdict is explainable.
+- **Stage:** friends-and-family beta on TestFlight (iPhone). Build 11 is in testers' hands. Build 12's backend
+  is in production, and its app release is still open. A build ships when it is ready, not on a fixed day.
+  Per-build records: [`Direction/release/builds/`](Direction/release/builds/).
+- **Platform:** a native iPhone app (SwiftUI) is the product. The Android app (Kotlin) exists but is paused. The
+  React web app is secondary.
+- **Price:** free. There is no billing, no subscription and no Stripe. MVP Move is not a paid tier.
+- **Providers:** ESPN, Yahoo and Sleeper are all live. "Connected" is not treated as "usable": Omen checks that
+  a connection can actually serve data, and it says so when it can't.
 
-**MVP Move (paid — coming soon)** surfaces the single highest-value action for your team each week: lineup swap, waiver pickup, or trade. Reasoned by an on-premise LLM against live roster data, live ESPN schedule context, and optional live OpenWeatherMap venue weather.
+## What the app does
 
-Current MVP Move data status:
-
-| Signal | Status |
+| Area | What it is |
 |---|---|
-| Weather | Live via OpenWeatherMap when `OPENWEATHER_API_KEY` is set in Infisical; stub fallback otherwise |
-| Travel/Home-Away | Live via ESPN scoreboard API |
-| Game time/TV slate | Live via ESPN scoreboard API |
-| Matchup DvP | Live through nflverse-data when enough matchup history is available; fallback otherwise |
+| **Omen of the Week** (MVP Move) | The main event. Omen makes **one call per week**, and the type isn't fixed: a start/sit, a pickup, a drop or a trade. |
+| **Trade Analyzer** | The front door. Lets you **build**, **find** or **type** a trade against real rosters. A two-sided fairness check makes sure both teams gain, and locked players are never offered. |
+| **League** (with Waivers) | Standings and other managers' teams. Waivers ranks pickups with reasons, pairs each one with a drop and plans around byes. |
+| **Command Center** | The home screen. Omen's advisors (one voice, with seats labelled by subject) each give a short read, and you choose what to dig into. |
+| **Ledger** | Omen's track record. Each call is graded against the player it passed over, on the league's own scoring. Trades are graded over the week, the next 4 weeks and the season so far. |
+| **Sight** | Omen's own player read, built from its football warehouse (v2 since 2026-10-17). It covers QB, RB, WR, TE, K and DEF and uses Vegas totals, opponent, role changes and weather. It is blended into decisions, with the provider's projection still leading. Confidence is shown as a band, never a percentage. |
+| **Demo Mode** | A labelled sample league, used for App Store review. It stays until the first approval. |
 
----
+Draft Assistant is not part of this version.
 
-## Supported Platforms
-
-| Platform | Status | Connection |
-|---|---|---|
-| Yahoo Fantasy | ✅ Live | OAuth 2.0 |
-| Sleeper | ✅ Live | Username lookup (public API) |
-| ESPN | ✅ Live | ESPN_S2 + SWID cookies (Vault-encrypted) |
-
-Platform trademarks belong to their respective owners. Omen is not endorsed by, sponsored by,
-or affiliated with Yahoo, Sleeper, ESPN, Disney, or the NFL. "Live" above describes Omen's own
-connection status, not a claim of official real-time data rights from those platforms.
-
----
-
-## Architecture
+## How it runs
 
 ```
-Browser (React / Vite)
-        ↓
-  Nginx  (reverse proxy, SSL, serves frontend/dist)
-        ↓
-  Express API  (Node.js 20, port 3000)
-        ↓                         ↓
-Platform Adapters          VORP Engine + Trade Analysis
-(Yahoo / Sleeper / ESPN)   (src/services/vorp.js + tradeValue.js)
-        ↓                         ↓
-  Supabase                   Upstash Redis
-  (Auth + Vault + RLS)       (roster cache, 5-min TTL)
-        ↓
-  Gemma on Hostinger  (LLM reasoning — internal, never user-facing)
+iPhone app (SwiftUI)          web app (React / Vite, secondary)
+        \                      /
+         Nginx (TLS) on KVM1, a Hostinger VPS
+                   |
+         Express API, Node.js  (src/server.js)
+          |            |              |                 |
+  ESPN / Yahoo /   Supabase        Upstash Redis     Football warehouse (Postgres on KVM1)
+  Sleeper adapters (auth, RLS,     (cache)           nflverse facts, player index, weather,
+  (src/adapters)   Vault secrets)                    provider projections, Sight
+                                                           |
+                                  scheduled jobs (systemd timers, chained; see infra/schedule/TIMERS.md)
 ```
 
-All three platform adapters produce an identical normalized roster and player shape. Downstream services are platform-agnostic — they never know whether data came from Yahoo, Sleeper, or ESPN.
+- **KVM1** runs production: the API, the cron container, Nginx, the football warehouse and the football-data
+  pipeline. Deploys run through a self-hosted GitHub Actions runner.
+- **KVM2** stores the encrypted Restic backups and runs a weekly isolated restore proof. It also hosts a private
+  Ollama/Gemma model. The model is optional: the app works without it.
+- **The Raspberry Pi fleet** is the monitoring side. **Command Center** (Pi 4) runs Uptime Kuma, Beszel,
+  GlitchTip and alerting. **Steward** and **Sentinel** (Pi Zero 2 W) handle routine automation and passive
+  security watching, and they check host posture.
+- Every machine-to-machine and admin connection goes over **Tailscale**. No host accepts password or root SSH.
+  Details: [`infra/schedule/ACCESS.md`](infra/schedule/ACCESS.md) and
+  [`Blueprints/specs/infrastructure/slops-os-raspberry-pi-fleet-v1.md`](Blueprints/specs/infrastructure/slops-os-raspberry-pi-fleet-v1.md).
+
+### The football warehouse
+
+Omen keeps its own football database instead of relying on one provider's numbers. It has five layers:
+**ledger** (where the data came from), **identity** (teams, players and every provider ID mapped to them),
+**facts** (public nflverse data, never edited), **provider** (third-party projections, stored separately and
+labelled) and **sight** (Omen's own versioned numbers, graded against real results). Ingest runs every day at
+07:15 ET, then a backup is taken. Table-by-table map: [`warehouse/map/`](warehouse/map/).
+
+## Rules that never bend
+
+Omen is free. ESPN cookies are never logged or shown. Mock data is always labelled. Confidence is a band, never a
+percentage. Production database changes and deploys each need explicit founder approval. The full list and its
+history are in [`Direction/facts-of-record.md`](Direction/facts-of-record.md).
 
 ---
 
-## Trade Analysis — VORP v2
+## Repository map
 
-The Trade Analyzer uses a two-component A+B scoring model:
-
-**A — Net VORP (Value Over Replacement Player)**
-Each player's weekly projected points, adjusted for injury risk, minus the replacement-level floor at their position — representing the best player freely available on the waiver wire in a 12-team league.
-
-| Position | PPR | Half-PPR | Standard |
-|---|---|---|---|
-| QB | 15 pts/wk | 14 | 13 |
-| RB | 6.5 pts/wk | 5.5 | 5 |
-| WR | 8 pts/wk | 7 | 6.5 |
-| TE | 4.5 pts/wk | 4 | 3.5 |
-
-**B — Positional Scarcity Bonus**
-Players who exceed the elite VORP threshold (QB ≥10 VORP, RB/WR ≥8 VORP, TE ≥7 VORP, DST ≥8 VORP) receive a +2.0 scarcity bonus per player, recognizing that they are genuinely hard to replace mid-season.
-
-**Combined score = A + (B × 0.6)**
-
-**Depth discount** — in uneven trades (e.g. 1-for-3), surplus receive players are discounted at 0.5× and 0.25× to reflect limited roster slots. Applied symmetrically to both sides.
-
-Verdicts: `accept` (>2.0), `neutral` (±2.0), `decline` (<−2.0).
-
----
-
-## Tech Stack
-
-| Layer | Technology |
+| Folder | What's in it |
 |---|---|
-| Frontend | React (Vite) + Tailwind CSS |
-| API | Node.js 20 + Express |
-| Auth | Supabase Auth + Yahoo OAuth 2.0 + ESPN cookie-based |
-| Database | Supabase (PostgreSQL + Row Level Security + Vault encryption) |
-| Cache | Upstash Redis |
-| Secrets | Infisical — no `.env` file on the production server |
-| LLM | Ollama + Gemma (self-hosted on Hostinger, internal only) |
-| Deploy | Docker + docker-compose + Nginx on Oracle VPS |
+| `src/` | Express API: `routes/`, `services/` (decisions, trades, waivers, Sight, Ledger, providers), `adapters/` (ESPN, Yahoo, Sleeper), `middleware/`, and the `omen_*_cron.js` jobs |
+| `test/` | Node test suite (`npm test`) and API contract tests |
+| `mobile/ios/` | The iPhone app (`OmenIOS/OmenIOS.xcodeproj`), with unit and UI tests |
+| `mobile/android/` | Android app (paused) |
+| `mobile/contracts/` | Native auth and QA runbooks |
+| `frontend/` | React web app (Vite and Tailwind) |
+| `client/` | Small React shell built into the Docker image |
+| `warehouse/` | Football warehouse migrations, the table map, and verification |
+| `sql/` | Supabase schema: what is applied, what is pending, and the 2026-10 redo |
+| `infra/` | Host schedules, access, and warehouse backup and timer units |
+| `deploy/hostinger/` | Production compose file, Nginx config, watchdog and deploy notes |
+| `ops/command-center/` | Reference copies of what runs on the Command Center Pi (editing them deploys nothing) |
+| `scripts/` | Repo checks, gates and generators |
+| `evals/` | Prompt-safety evals |
+| `extension/` | Browser extension that helps connect an ESPN account |
+| `Direction/` | Product direction: the map, sprint, decisions, known issues, release records |
+| `Blueprints/` | Specs, playbooks, prompts, handoffs, API route list, security and privacy |
+| `Brand/`, `logos/`, `design/` | Brand system, marks and design canvases |
+| `Legal/` | Provider and brand-use requests and agreement drafts |
+| `References/`, `Solutions/` | Research, evidence and solved-problem write-ups |
+| `Archive/` | Retired material, kept for history only |
 
----
+## Start here (for people and AI assistants)
 
-## Getting Started
+1. [`Direction/map.md`](Direction/map.md): one page that says what to read for any task.
+2. [`Direction/context.md`](Direction/context.md): the product and its tool hierarchy.
+3. [`Direction/release/builds/`](Direction/release/builds/): what each beta build fixed, what shipped, and what's
+   still broken.
+4. [`Direction/known_issues.md`](Direction/known_issues.md): open problems.
+5. [`Blueprints/api-routes.md`](Blueprints/api-routes.md): every API route.
 
-### Prerequisites
+Coding agents (Claude Code, Codex) start from `CLAUDE.md` / `AGENTS.md`.
 
-- Node.js 20+
-- Docker + Docker Compose
-- Supabase project
-- Upstash Redis instance
-- Infisical account (or set env vars manually for local dev)
-
-### 1. Clone
-
-```bash
-git clone https://github.com/justinduverge-design/omen.git
-cd omen
-```
-
-### 2. Environment variables
-
-For local development, copy `.env.example` and fill in the values. For production, secrets are injected via Infisical — no `.env` file lives on the server.
-
-Key variables:
-
-```env
-# Supabase
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_KEY=your-service-role-key
-
-# Yahoo OAuth 2.0
-YAHOO_CLIENT_ID=your-yahoo-client-id
-YAHOO_CLIENT_SECRET=your-yahoo-client-secret
-YAHOO_REDIRECT_URI=https://yourdomain.com/api/yahoo/callback
-
-# Upstash Redis
-REDIS_URL=rediss://...
-REDIS_TOKEN=your-token
-
-# App
-APP_BASE_URL=https://yourdomain.com
-NODE_ENV=production
-
-# Optional MVP Move weather data
-OPENWEATHER_API_KEY=your-openweathermap-key
-```
-
-### 3. Start with Docker
+## Local development
 
 ```bash
-docker-compose up --build -d
-docker-compose ps          # verify healthy
-curl http://localhost:3000/api/health
-```
-
-### 4. Build the frontend
-
-```bash
-cd frontend
 npm install
-npm run build
+npm test                 # backend test suite
+npm start                # API on port 3000 (needs Supabase and the other env vars)
+cd frontend && npm install && npm run build
 ```
 
-The built `frontend/dist` is served by Nginx in production.
-
-### 5. Run tests
-
-```bash
-npm test
-```
+Open `mobile/ios/OmenIOS/OmenIOS.xcodeproj` in Xcode for the iPhone app. Production secrets are injected at
+runtime and never committed. The list of environment variables is in
+[`deploy/hostinger/ENV-INVENTORY.md`](deploy/hostinger/ENV-INVENTORY.md).
 
 ---
 
-## Project Structure
+Platform trademarks belong to their owners. Omen is not endorsed by, sponsored by or affiliated with Yahoo,
+Sleeper, ESPN, Disney or the NFL.
 
-```
-corvus/
-├── src/
-│   ├── adapters/
-│   │   ├── yahoo.js               # Yahoo platform adapter
-│   │   ├── sleeper.js             # Sleeper platform adapter
-│   │   └── espn.js                # ESPN platform adapter
-│   ├── middleware/
-│   │   ├── auth.js                # Supabase auth guard (requireAuth)
-│   │   ├── logging.js             # Structured JSON logging
-│   │   └── yahooOAuth.js          # Yahoo OAuth 2.0 via axios (ADR-004)
-│   ├── routes/
-│   │   ├── trade.js               # POST /api/trade/compare
-│   │   ├── yahoo.js               # Yahoo auth + roster routes
-│   │   ├── platforms.js           # Platform connection CRUD
-│   │   └── optimizer.js           # Start/Sit + waiver routes
-│   ├── services/
-│   │   ├── vorp.js                # VORP calculation engine (v2)
-│   │   ├── tradeValue.js          # Trade A+B scoring model
-│   │   ├── optimizer.js           # Start/Sit + waiver math (pure)
-│   │   ├── roster.js              # Yahoo roster normalization
-│   │   ├── yahoo.js               # Yahoo Fantasy API client
-│   │   ├── yahooAuth.js           # Yahoo token management + refresh
-│   │   ├── espnAuth.js            # ESPN credential decryption (Vault)
-│   │   └── llm.js                 # Ollama/Gemma wrapper (internal)
-│   └── config.js
-├── frontend/
-│   ├── src/
-│   │   ├── pages/
-│   │   │   ├── Landing.jsx
-│   │   │   ├── Football.jsx       # Trade Analyzer + dashboard
-│   │   │   ├── Account.jsx        # Platform connection manager
-│   │   │   └── NotFound.jsx
-│   │   ├── components/
-│   │   │   ├── layout/
-│   │   │   └── platforms/PlatformConnections.jsx
-│   │   └── lib/
-│   │       ├── api.js
-│   │       └── supabase.js
-│   └── dist/                      # Built output served by Nginx
-├── test/
-│   ├── vorp.test.js               # VORP engine unit tests
-│   ├── tradeValue.test.js         # Trade model unit tests
-│   └── tradeRoute.test.js         # Trade route integration tests
-├── Blueprints/
-│   ├── handoffs/                   # frontend/backend coordination docs
-│   ├── prompts/                    # repo prompt docs moved from root prompts/
-│   └── specs/
-│       └── docs/                   # ADRs and app docs moved from root docs/
-├── Dockerfile
-├── docker-compose.yml
-└── package.json
-```
-
----
-
-## API Reference
-
-### System
-
-| Method | Route | Description |
-|---|---|---|
-| GET | `/api/health` | Health check — used by Docker |
-
-### Platform Auth
-
-| Method | Route | Auth | Description |
-|---|---|---|---|
-| GET | `/api/yahoo/auth?userId=` | — | Initiate Yahoo OAuth 2.0 flow |
-| GET | `/api/yahoo/callback` | — | Yahoo OAuth callback handler |
-| POST | `/api/platforms/sleeper/connect` | Required | Connect Sleeper by username + league |
-| POST | `/api/platforms/espn/connect` | Required | Connect ESPN via cookies (Vault-encrypted) |
-| GET | `/api/platforms/status` | Required | All platform connection statuses |
-| DELETE | `/api/platforms/:platform` | Required | Disconnect a platform |
-
-### Roster
-
-| Method | Route | Auth | Description |
-|---|---|---|---|
-| GET | `/api/yahoo/roster?leagueKey=&week=` | Required | Authenticated Yahoo roster (normalized) |
-| GET | `/api/optimizer` | Required | Start/Sit + waiver recommendations |
-
-### Trade
-
-| Method | Route | Auth | Description |
-|---|---|---|---|
-| POST | `/api/trade/compare` | Required | VORP v2 A+B trade analysis |
-
-**POST /api/trade/compare** body:
-```json
-{
-  "send": [{ "name": "Player A", "position": "RB", "projected_points": 15, "status": null }],
-  "receive": [{ "name": "Player B", "position": "TE", "projected_points": 13, "status": null }],
-  "scoring_format": "ppr"
-}
-```
-
-**Response includes:** `net_value`, `verdict`, `a_score`, `b_score`, `combined_score`, `depth_discounted`, `scarcity_analysis`, `explanation` (LLM narration).
-
----
-
-## Security
-
-- **ESPN cookies** — encrypted at rest via Supabase Vault (pg_sodium). Only UUID secret_ids in database columns. Never logged anywhere.
-- **Yahoo tokens** — encrypted via Vault. Automatically refreshed on expiry.
-- **Row Level Security** — all Supabase tables enforce `auth.uid() = user_id`. Users can only access their own data.
-- **Infisical** — all production secrets injected at runtime. No `.env` file on the server.
-- **npm audit** — 0 vulnerabilities. The `passport` / `request` dependency chain was fully removed (ADR-004). 48 packages eliminated.
-- **HTTPS** — Let's Encrypt via Nginx on Oracle VPS.
-- **ESPN logging** — all ESPN request bodies are scrubbed from logs at the middleware level.
-
----
-
-## Roadmap
-
-- [x] Yahoo, Sleeper, ESPN platform adapters (normalized output)
-- [x] Platform connection UI (OAuth, username, cookie flows with in-app instructions)
-- [x] VORP v2 trade analysis — A+B model, positional scarcity, depth discount
-- [x] Supabase auth + Vault encryption (ESPN cookies, Yahoo tokens)
-- [x] Docker deployment on Oracle VPS
-- [x] 0 npm audit vulnerabilities
-- [x] Structured logging
-- [ ] MVP Move engine — Intelligence Layer (weather, travel/home-away, and game time live; Matchup DvP still stubbed)
-- [ ] Start/Sit recommendations with LLM reasoning
-- [ ] Waiver wire optimizer
-- [ ] Dashboard polish (Hall of Records)
-- [ ] Security hardening pass (helmet, rate limiting)
-- [ ] Load testing + final deploy
-
----
-
-## License
-
-MIT — see [LICENSE](LICENSE) for details.
-
----
-
-Built by [@justinduverge-design](https://github.com/justinduverge-design)
-
-*Omen — See the winning move.*
+Built by [@justinduverge-design](https://github.com/justinduverge-design). *Omen: see the winning move.*

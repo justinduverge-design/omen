@@ -1,5 +1,13 @@
 # Omen References
 
-This folder is for Omen supporting material: product research, source captures, examples, historical context, and non-authoritative notes.
+Supporting material: research, source captures, evidence from device walks and tests, and older handoffs.
 
-References inform decisions. They do not override `context.md`, `DBS_INDEX.md`, `Direction/context.md`, or active handoffs.
+| Path | What it holds |
+|---|---|
+| `research/` | Product and football research |
+| `evidence/` | Dated proof folders (screenshots, logs) cited by sprint items and builds |
+| `docs/` | Captured external and internal docs |
+| `historical-handoffs/` | Old handoffs, kept for history |
+
+References inform decisions but never override `Direction/` (start at `Direction/map.md`) or
+`Direction/facts-of-record.md`.
