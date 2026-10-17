@@ -5,6 +5,7 @@
 **Data baseline:** current `origin/main` after Build 12 and Sight v2 integration.  
 **Product language:** `Blueprints/specs/design/omen-language-v1.md`.  
 **Interaction authority:** `omen-native-interaction-response-v1.md`.
+**Information binding:** `omen-native-information-fulfillment-v1.md`.
 
 ## 1. What remains locked
 

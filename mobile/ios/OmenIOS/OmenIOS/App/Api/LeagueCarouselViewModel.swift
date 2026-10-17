@@ -72,6 +72,17 @@ final class LeagueCarouselViewModel: ObservableObject {
         case empty
     }
 
+    /// Shell-level meaning of the directory state. Feature screens must not infer this from an
+    /// optional scope: `nil` while the directory is loading and `nil` after a confirmed empty
+    /// directory are opposite facts and therefore require different presentation.
+    enum ContextResolution: Equatable {
+        case resolving
+        case selected(OmenCallScope)
+        case confirmedNone
+        case failed(OmenApiError)
+        case demo
+    }
+
     /// The "All" chip. A sentinel rather than an optional so the filter is one value with
     /// one meaning, and `Picker`-style selection has something concrete to bind to.
     static let allPlatforms = "__all__"
@@ -118,6 +129,11 @@ final class LeagueCarouselViewModel: ObservableObject {
     private var isRestoringFilter = false
     /// Guards against a swipe-through: swiping across five pages must not fire five writes.
     private var commitTask: Task<Void, Never>?
+    /// One directory read for every surface sharing this view model. SwiftUI may mount several
+    /// TabView children at once, and each child legitimately asks for context in its `.task`.
+    /// Without coalescing, a later cancelled request can write `.loading` after the successful
+    /// request has already resolved, leaving the whole app in placeholders forever.
+    private var directoryLoadTask: Task<Void, Never>?
 
     /// How many pending `selectedIndex` changes this view model made ITSELF, and which the
     /// carousel's `.onChange` must therefore not treat as a user resting on a new page.
@@ -227,6 +243,22 @@ final class LeagueCarouselViewModel: ObservableObject {
         allPages.first(where: { isCurrent($0) }) ?? currentPage
     }
 
+    var contextResolution: ContextResolution {
+        switch viewState {
+        case .loading:
+            return .resolving
+        case .loaded:
+            guard let scope = activePage?.omenCallScope else { return .confirmedNone }
+            return .selected(scope)
+        case .empty:
+            return .confirmedNone
+        case .failed(let error):
+            return .failed(error)
+        case .demo:
+            return .demo
+        }
+    }
+
     /// The id of the ONE league Omen is using right now, or nil when none can be named.
     ///
     /// Order of authority: the league this view model last wrote to the server (the account-wide
@@ -272,6 +304,23 @@ final class LeagueCarouselViewModel: ObservableObject {
     // MARK: - Loading
 
     func load(userID: String? = nil) async {
+        if let directoryLoadTask {
+            await directoryLoadTask.value
+            return
+        }
+
+        // This unstructured task owns the request independently of whichever SwiftUI child
+        // happened to ask first. Removing that child must not cancel shared app context.
+        let task = Task { [weak self] () -> Void in
+            guard let self else { return }
+            await self.performLoad(userID: userID)
+        }
+        directoryLoadTask = task
+        await task.value
+        directoryLoadTask = nil
+    }
+
+    private func performLoad(userID: String?) async {
         guard userID != SessionManager.demoUserID else {
             viewState = .demo
             return

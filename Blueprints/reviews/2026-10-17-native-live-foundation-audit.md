@@ -200,7 +200,7 @@ system detents, drag dismissal and accessibility behavior—not deleting necessa
 
 | Order | Foundation seam | Current state | Exit evidence |
 |---:|---|---|---|
-| 1 | App/league context state | `nil` still conflates unresolved and confirmed none | cold-launch test never renders false empty copy |
+| 1 | App/league context state | Explicit resolving, selected, confirmed-none, failed and demo states now drive Command | physical cold-launch walk and timing receipt remain |
 | 2 | Presentation routing | Switcher centralized; connect, account, report and share remain separate flags | one typed route per presentation scope; cancellation/back tests |
 | 3 | Performance signposts | contract exists; no measured local signposts | cold/warm paired-iPhone Instruments receipts |
 | 4 | Shell geometry | per-screen fit/scroll policies still mixed | canonical inset/scroll owner with compact and large-device probes |
@@ -234,4 +234,30 @@ The first tactile propagation closes the switcher's primitive-level gaps:
 Evidence after the change: signed device build/install/launch PASS; live Command composition PASS;
 39 focused native unit tests PASS; 10/10 J2 interaction tests PASS. Physical tactile quality still
 requires the founder's hand because screenshots and automation cannot feel the Taptic Engine.
+
+## 14. Context truth repair and screen-data binding
+
+The first foundation seam is now represented explicitly by `LeagueCarouselViewModel.ContextResolution`:
+`resolving`, `selected`, `confirmedNone`, `failed` and `demo`. Command holds its shaped loading
+composition while the directory resolves, gives directory failure its own retry surface, and renders
+the no-league terminus only after a successful empty directory. Its initial personalized dashboard
+read now waits for directory resolution, so cold launch does not intentionally issue an unscoped read
+that immediately needs replacement.
+
+The first paired-phone install exposed one more ownership race: SwiftUI mounted several tab children,
+two directory reads began, the first succeeded, and the cancelled second read left the shared model in
+`.loading`. The directory model now coalesces concurrent surface requests into one lifecycle-independent
+task. A regression test fires three simultaneous surface loads and requires exactly one repository read.
+
+Evidence after the repair: 27/27 `LeagueCarouselTests` pass; signed device build/install/launch passes;
+the live console records exactly one `GET /api/leagues` (`200`, 381ms in the recorded run); and the
+paired iPhone resolves from shaped context placeholders to the selected live league without displaying
+the former factual zero-state. This promotes the original context-truth finding to **PASS-PHYSICAL**.
+It does not establish a cold/warm latency SLO; that still requires in-app signposts and repeated samples.
+
+The next screen/canvas propagation is governed by
+`Blueprints/specs/mobile/omen-native-information-fulfillment-v1.md`. It binds Verdict, Leading Read,
+Counsel, Crosswind, Portents, Fog and Receipt to current response fields, defines absence and freshness
+behavior, and requires eight concrete J3 canvas/native states. It also prevents either native client
+from electing forecast authority locally or exposing the internal `sight` name to customers.
 

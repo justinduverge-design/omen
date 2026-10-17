@@ -197,13 +197,57 @@ struct CommandCenterView: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             Group {
+                // A missing scope before the directory answers is not evidence that the user
+                // has no league. Hold the honest loading composition until context resolves;
+                // this prevents the cold-launch flash of factual zero-state copy.
+                if case .resolving = leagueCarouselViewModel.contextResolution {
+                    OmenCommandDeskScreen(
+                        state: OmenDeskState(
+                            weekLabel: "",
+                            deadlineLabel: nil,
+                            deadlineTime: nil,
+                            matchup: .switching,
+                            railCount: 0,
+                            railIndex: 0,
+                            waiver: .switching,
+                            ledger: .switching,
+                            footnote: nil
+                        ),
+                        context: nil,
+                        onOpenAccount: { showAccountSheet = true },
+                        onOpenLeague: { selectedTab = .league },
+                        onOpenLedger: nil,
+                        onReportProblem: { reportingScreen = .commandCenter }
+                    )
+                } else if case .failed(let directoryError) = leagueCarouselViewModel.contextResolution {
+                    VStack(alignment: .leading, spacing: OmenSpacing.step16) {
+                        OmenStateSurface(
+                            kind: .error,
+                            title: "Couldn't load your leagues",
+                            message: commandCenterFailureMessage(directoryError)
+                        )
+                        OmenButton(
+                            title: "Try again",
+                            action: {
+                                Task {
+                                    await leagueCarouselViewModel.load(userID: userID)
+                                    await commandCenterViewModel.load(userID: userID, scope: pickedLeagueScope)
+                                }
+                            },
+                            variant: .secondary,
+                            size: .md
+                        )
+                    }
+                    .padding(OmenSpacing.step24)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    .background(OmenColor.bg)
                 // §10.3, wired. A league switch used to leave the outgoing team's scoreboard on
                 // screen until the new read landed — for that second the numbers belonged to one
                 // team and the name above them to another. The contract is explicit that "the
                 // previous team's numbers are discarded, never reused while loading", so the
                 // desk goes to its mid-switch state instead and the switcher bar commits to the
                 // new team immediately, which is the only thing on the screen we actually know.
-                if let switching = switchingContext {
+                } else if let switching = switchingContext {
                     OmenSwitchLoadingScreen(
                         context: switching.context,
                         weekLabel: switching.weekLabel,
@@ -230,7 +274,7 @@ struct CommandCenterView: View {
                     .padding(OmenSpacing.step24)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     .background(OmenColor.bg)
-                } else if commandCenterViewModel.hasNoConnectedLeague {
+                } else if case .confirmedNone = leagueCarouselViewModel.contextResolution {
                     // J1's terminus, wired. Until now this screen existed only in a screenshot
                     // scenario — captured, and unreachable by any real user, which is a
                     // screenshot of nothing. The Command Center's own furniture renders as a
@@ -298,7 +342,13 @@ struct CommandCenterView: View {
                     )
                 }
             }
-            .task { await commandCenterViewModel.load(userID: userID, scope: pickedLeagueScope) }
+            .task {
+                // Resolve context before making a personalized read. An unscoped dashboard
+                // request is not a useful head start: it can return another league or a false
+                // empty state, then immediately require a second request once the directory lands.
+                await leagueCarouselViewModel.load(userID: userID)
+                await commandCenterViewModel.load(userID: userID, scope: pickedLeagueScope)
+            }
             .tabItem { CommandCenterTab.command.label }
             .tag(CommandCenterTab.command)
 

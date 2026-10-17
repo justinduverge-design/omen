@@ -124,6 +124,62 @@ final class LeagueCarouselTests: XCTestCase {
     }
 
     @MainActor
+    func testContextIsResolvingBeforeTheDirectoryAnswers() throws {
+        let viewModel = makeViewModel(
+            directory: try twoLeagues(),
+            selection: .failure(.network),
+            recorder: StubLeagueDirectoryRepository.Recorder()
+        )
+
+        XCTAssertEqual(viewModel.contextResolution, .resolving)
+    }
+
+    @MainActor
+    func testLoadedDirectoryResolvesToItsActiveLeagueScope() async throws {
+        let viewModel = makeViewModel(
+            directory: try twoLeagues(),
+            selection: .failure(.network),
+            recorder: StubLeagueDirectoryRepository.Recorder()
+        )
+
+        await viewModel.load(userID: "user-1")
+
+        XCTAssertEqual(
+            viewModel.contextResolution,
+            .selected(OmenCallScope(platform: "sleeper", leagueID: "L1"))
+        )
+    }
+
+    @MainActor
+    func testEmptyDirectoryIsConfirmedNoneNotStillResolving() async throws {
+        let empty = try decode("""
+        {"contract_version":"league-directory.v1","season":2026,"platforms":[]}
+        """)
+        let viewModel = makeViewModel(
+            directory: empty,
+            selection: .failure(.network),
+            recorder: StubLeagueDirectoryRepository.Recorder()
+        )
+
+        await viewModel.load(userID: "user-1")
+
+        XCTAssertEqual(viewModel.contextResolution, .confirmedNone)
+    }
+
+    @MainActor
+    func testDirectoryFailureDoesNotMasqueradeAsNoLeague() async {
+        let viewModel = LeagueCarouselViewModel(
+            directoryRepository: StubLeagueDirectoryRepository(directory: .failure(.network)),
+            leagueRepository: StubLeagueRepository(result: .failure(.network)),
+            sessionManager: liveSession()
+        )
+
+        await viewModel.load(userID: "user-1")
+
+        XCTAssertEqual(viewModel.contextResolution, .failed(.network))
+    }
+
+    @MainActor
     func testCommittingTheAlreadyActiveLeagueWritesOnceThenNothing() async throws {
         let recorder = StubLeagueDirectoryRepository.Recorder()
         let viewModel = makeViewModel(
@@ -402,12 +458,21 @@ final class LeagueCarouselTests: XCTestCase {
     private final class CountingRepository: LeagueDirectoryRepository, @unchecked Sendable {
         var directories: [LeagueDirectory]
         var selection: Result<LeagueSelectionResult, OmenApiError>
+        var fetchDelayNanoseconds: UInt64
         private(set) var fetches = 0
-        init(directories: [LeagueDirectory], selection: Result<LeagueSelectionResult, OmenApiError>) {
+        init(
+            directories: [LeagueDirectory],
+            selection: Result<LeagueSelectionResult, OmenApiError>,
+            fetchDelayNanoseconds: UInt64 = 0
+        ) {
             self.directories = directories
             self.selection = selection
+            self.fetchDelayNanoseconds = fetchDelayNanoseconds
         }
         func fetchDirectory(accessToken: String) async -> Result<LeagueDirectory, OmenApiError> {
+            if fetchDelayNanoseconds > 0 {
+                try? await Task.sleep(nanoseconds: fetchDelayNanoseconds)
+            }
             defer { fetches += 1 }
             return .success(directories[min(fetches, directories.count - 1)])
         }
@@ -440,6 +505,26 @@ final class LeagueCarouselTests: XCTestCase {
              {"league_id":"L1","league_name":"Alpha","team_name":"Titans","is_active":\(leagueID == "L1")},
              {"league_id":"L2","league_name":"Beta","team_name":"Sentinels","is_active":\(leagueID == "L2")}]}]}
         """)
+    }
+
+    @MainActor
+    func testConcurrentSurfaceLoadsShareOneDirectoryRequest() async throws {
+        let repository = CountingRepository(
+            directories: [try directory(active: "L1")],
+            selection: .failure(.network),
+            fetchDelayNanoseconds: 50_000_000
+        )
+        let model = viewModel(over: repository)
+
+        async let command: Void = model.load(userID: "user-1")
+        async let omen: Void = model.load(userID: "user-1")
+        async let league: Void = model.load(userID: "user-1")
+        _ = await (command, omen, league)
+
+        XCTAssertEqual(repository.fetches, 1)
+        guard case .selected = model.contextResolution else {
+            return XCTFail("shared load must resolve selected context, got \(model.contextResolution)")
+        }
     }
 
     @MainActor
