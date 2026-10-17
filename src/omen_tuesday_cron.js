@@ -760,6 +760,15 @@ async function scoreLedgerDecisions(supabase, {
         repository: warehouse.repository,
         resolveGsis: (keys) => resolveGsis(supabase, keys),
       });
+      // Trades are also graded over the next four weeks and the season so far (step 18). Never fails scoring.
+      if (!dryRun) {
+        const scoreHorizons = dependencies.scoreTradeHorizons || require("./services/tradeHorizons").scoreTradeHorizons;
+        const horizons = await scoreHorizons(supabase, {
+          season, lastFinishedWeek: beforeWeek - 1, repository: warehouse.repository,
+          resolveGsis: (keys) => resolveGsis(supabase, keys), log,
+        });
+        if (horizons.trades || horizons.written || horizons.failed) tally.trade_horizons = horizons;
+      }
     }
   } catch (error) {
     warehouseFound = null;

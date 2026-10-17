@@ -696,8 +696,14 @@ function decisionObservedOutcome({ decision, outcome, superseded }) {
   };
 }
 
-function decisionDetail({ decision, factors = [], action = null, outcome = null, superseded = false, league = null }) {
+function decisionDetail({ decision, factors = [], action = null, outcome = null, superseded = false, league = null, horizons = [] }) {
   const response = {
+    // Trades only: the call graded over its week, the next four weeks and the season so far (estimates).
+    horizons: (Array.isArray(horizons) ? horizons : []).map((h) => ({
+      horizon: h.horizon, from_week: h.from_week, through_week: h.through_week, weeks_counted: h.weeks_counted,
+      received_points: Number(h.received_points), given_points: Number(h.given_points), margin: Number(h.margin),
+      result: h.result, complete: h.complete === true, provenance: h.provenance,
+    })),
     contract_version: DETAIL_CONTRACT,
     generated_at: nowIso(),
     id: decision.id,
