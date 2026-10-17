@@ -60,6 +60,8 @@ const SLEEPER_INSERT_SQL = `
     SELECT r.provider_id, e.player_id, 'source_crosswalk' AS method FROM recs r
       JOIN football.football_player_ids e ON e.provider = 'espn' AND e.provider_id = r.espn_id
      WHERE NOT EXISTS (SELECT 1 FROM by_gsis g WHERE g.provider_id = r.provider_id)
+       -- A GSIS match wins: never let an ESPN-bridged record knock out a player GSIS already placed.
+       AND NOT EXISTS (SELECT 1 FROM by_gsis g WHERE g.player_id = e.player_id)
   ), src AS (SELECT * FROM by_gsis UNION ALL SELECT * FROM by_espn
   ), unique_ids AS (SELECT provider_id FROM src GROUP BY provider_id HAVING count(*) = 1),
      unique_players AS (SELECT player_id FROM src GROUP BY player_id HAVING count(*) = 1)
