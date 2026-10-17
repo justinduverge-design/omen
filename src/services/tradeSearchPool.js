@@ -18,7 +18,8 @@
  *   - `budget` crosses as the milliseconds it has left; the worker builds its own.
  *   - `onBudgetExceeded` calls are collected in the worker and replayed here, in order.
  *
- * `TRADE_SEARCH_MODE=inline` is the old path exactly (rollback). If a worker errors, crashes or
+ * Off by default: the search runs inline (the old path exactly) unless `TRADE_SEARCH_MODE=worker`.
+ * Turning the worker on in production is a separate approved step. If a worker errors, crashes or
  * outlives its budget plus `WORKER_GRACE_MS`, it is terminated, the call runs inline with the
  * caller's own budget (by then usually spent, so that is a fast, honest budget trip), and the next
  * call spawns a fresh worker.
@@ -39,7 +40,7 @@ function logger() {
 }
 
 function searchMode() {
-  return process.env.TRADE_SEARCH_MODE === "inline" ? "inline" : "worker";
+  return process.env.TRADE_SEARCH_MODE === "worker" ? "worker" : "inline";
 }
 
 function poolSize() {

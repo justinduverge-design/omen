@@ -17,8 +17,8 @@ the off-season.
 
 ## Shipped in PR #716
 
-- The trade search runs on `worker_threads` (`src/services/tradeSearchPool.js`). `TRADE_SEARCH_MODE=inline` is the
-  rollback.
+- The trade search runs on `worker_threads` (`src/services/tradeSearchPool.js`). It is off by default
+  (inline); `TRADE_SEARCH_MODE=worker` turns it on, a separate approved production step.
 - OpenTelemetry is wired and off by default (`src/services/telemetry.js`). The collector config is in
   `infra/telemetry/` and is **not deployed**.
 - The legacy `client/` app is retired.
