@@ -240,7 +240,7 @@ function isVerifiedOutcome(outcome) {
  * follow report is never equated with verified scoring. The engine's internal number is not read.
  */
 // The alternative could not play: the call was right by schedule or injury, not by football judgment.
-const UNCONTESTED_STATUSES = new Set(["O", "OUT", "IR", "IR-R", "PUP", "SUSP", "BYE", "NA", "D", "DOUBTFUL"]);
+const UNCONTESTED_STATUSES = new Set(["O", "OUT", "IR", "IR-R", "PUP", "SUSP", "BYE", "NA"]);
 
 /** true: a real choice between two players who could play. false: the alternative could not. null: unknown (older calls). */
 function isContestedCall(decision) {
