@@ -225,6 +225,10 @@ function platformStatusContract(rows) {
 function providerState(platform, row) {
   const base = { platform, state: "not_started", recovery_action: "start_connection", error_code: null };
   if (!row?.is_active) return base;
+  // A credential the provider refused was removed by the health check; the user must reconnect.
+  if ((platform === "espn" || platform === "yahoo") && row.credential_state === "needs_reauth") {
+    return { ...base, state: "needs_reauth", recovery_action: "reauthenticate", error_code: row.last_failure_code || `${platform}_credential_refused` };
+  }
 
   if (platform === "yahoo") {
     if (!row.token_secret_id) {
@@ -446,7 +450,7 @@ function espnValidationError(result) {
 async function getPlatformConnectionRows(userId) {
   const { data, error } = await supabase
     .from("platform_connections")
-    .select("platform,is_active,platform_username,token_secret_id,espn_secret_id,swid_secret_id,league_id,espn_team_id")
+    .select("platform,is_active,platform_username,token_secret_id,espn_secret_id,swid_secret_id,league_id,espn_team_id,credential_state,last_failure_code")
     .eq("user_id", userId);
 
   if (error) throw new Error(`platform_connections lookup failed: ${error.message}`);
