@@ -78,7 +78,7 @@ const SLEEPER_INSERT_SQL = `
        -- A GSIS match wins: never let an ESPN-bridged record knock out a player GSIS already placed.
        AND NOT EXISTS (SELECT 1 FROM by_gsis g WHERE g.player_id = e.player_id)
   ), players_bio AS (
-    SELECT p.player_id, p.birth_date::text AS birth_date,
+    SELECT p.player_id, p.gsis_id, p.birth_date::text AS birth_date,
            regexp_replace(regexp_replace(lower(p.display_name), '\\m(jr|sr|ii|iii|iv|v)\\M\\.?', '', 'g'), '[^a-z]', '', 'g') AS name
       FROM football.football_players p WHERE p.birth_date IS NOT NULL
   ), unique_bio AS (SELECT name, birth_date FROM players_bio GROUP BY 1, 2 HAVING count(*) = 1
@@ -86,7 +86,9 @@ const SLEEPER_INSERT_SQL = `
     SELECT r.provider_id, b.player_id, 'provider_bio' AS method FROM recs r
       JOIN players_bio b ON b.name = r.name AND b.birth_date = r.birth_date
       JOIN unique_bio u ON u.name = b.name AND u.birth_date = b.birth_date
-     WHERE NOT EXISTS (SELECT 1 FROM by_gsis g WHERE g.provider_id = r.provider_id OR g.player_id = b.player_id)
+     -- Two different GSIS ids on the two sides mean two different people, whatever the name and date say.
+     WHERE (r.gsis_id IS NULL OR b.gsis_id IS NULL OR r.gsis_id = b.gsis_id)
+       AND NOT EXISTS (SELECT 1 FROM by_gsis g WHERE g.provider_id = r.provider_id OR g.player_id = b.player_id)
        AND NOT EXISTS (SELECT 1 FROM by_espn e WHERE e.provider_id = r.provider_id OR e.player_id = b.player_id)
   ), src AS (SELECT * FROM by_gsis UNION ALL SELECT * FROM by_espn UNION ALL SELECT * FROM by_bio
   ), unique_ids AS (SELECT provider_id FROM src GROUP BY provider_id HAVING count(*) = 1),
