@@ -16,6 +16,8 @@ const HORIZONS = Object.freeze({ week: 1, next_4: 4, season: 18 });
 const LABELS = Object.freeze({ ppr: "PPR", half_ppr: "Half PPR", standard: "Standard" });
 const PLAYER_KEY = /^(yahoo|espn|sleeper):([0-9A-Za-z_-]{1,64})$/;
 const LAST_REG_WEEK = 18;
+// Under the warehouse's 2,000-ref query cap.
+const REF_BATCH = 1_000;
 
 function refOf(decision, which) {
   const id = decision?.recommendation?.[which]?.id;
@@ -119,16 +121,27 @@ async function scoreTradeHorizons(supabase, { season, lastFinishedWeek, reposito
       .map((r) => [keyOf(r), r])).values()];
     const firstWeek = Math.min(...open.map((d) => Number(d.week)));
     const byWeek = new Map();
+    // Only weeks the warehouse has fully ingested count; the first one that is not stops every horizon there,
+    // so a not-yet-loaded week is never scored 0-0 and closed for good.
+    let readableThrough = firstWeek - 1;
     for (let week = firstWeek; week <= lastFinishedWeek; week += 1) {
-      byWeek.set(week, await repository.readWeekOutcomes({ refs, season, week }));
+      if (typeof repository.isWeekIngested === "function" && !(await repository.isWeekIngested({ season, week }))) break;
+      const lines = new Map();
+      for (let i = 0; i < refs.length; i += REF_BATCH) {
+        for (const [k, v] of await repository.readWeekOutcomes({ refs: refs.slice(i, i + REF_BATCH), season, week })) lines.set(k, v);
+      }
+      byWeek.set(week, lines);
+      readableThrough = week;
     }
+    if (readableThrough < firstWeek) return tally;
 
     for (const decision of open) {
       try {
         const received = keyOf(lookup(refOf(decision, "primary_player")));
         const given = keyOf(lookup(refOf(decision, "comparison_player")));
         const weeks = new Map([...byWeek].map(([week, lines]) => [week, { received: lines.get(received), given: lines.get(given) }]));
-        const rows = horizonRows({ decision, weeks, lastFinishedWeek })
+        if (Number(decision.week) > readableThrough) continue;
+        const rows = horizonRows({ decision, weeks, lastFinishedWeek: readableThrough })
           .filter((row) => !closed.has(`${row.decision_id}|${row.horizon}`));
         if (!rows.length) continue;
         const { error: writeError } = await supabase.from("decision_horizon_grades").upsert(rows, { onConflict: "decision_id,horizon" });

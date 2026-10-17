@@ -45,3 +45,19 @@ test("Half PPR subtracts half a point per catch; a declined trade is not graded"
   assert.equal(tally.trades, 0);
   assert.equal(upserts.length, 0);
 });
+
+test("a week the warehouse has not ingested stops every horizon there", async () => {
+  const upserts = [];
+  const open = { ...decision, week: 4 };
+  const from = (table) => {
+    const q = { select: () => q, eq: () => q, lte: () => q, in: () => q, upsert: async (rows) => { upserts.push(...rows); return {}; } };
+    q.then = (resolve) => resolve(table === "ledger_current_calls" ? { data: [open] } : { data: [] });
+    return q;
+  };
+  const lines = new Map([["sleeper:1", line(10)], ["sleeper:2", line(4)]]);
+  const repository = { isWeekIngested: async ({ week }) => week <= 4, readWeekOutcomes: async () => lines };
+  await scoreTradeHorizons({ from }, { season: 2026, lastFinishedWeek: 6, repository });
+  assert.ok(upserts.length > 0);
+  assert.ok(upserts.every((row) => row.through_week === 4));
+  assert.equal(upserts.find((row) => row.horizon === "next_4").complete, false);
+});

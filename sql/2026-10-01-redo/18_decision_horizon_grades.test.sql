@@ -3,16 +3,16 @@ begin;
 
 do $$
 declare
-  uid uuid := gen_random_uuid();
+  uid uuid := '00000000-0000-4000-8000-000000000001';
   lg uuid;
   d uuid;
 begin
-  insert into auth.users (id, email) values (uid, 'step18@example.invalid');
-  insert into public.users (id, email) values (uid, 'step18@example.invalid');
-  insert into public.leagues (provider, provider_league_id, season) values ('sleeper', 'step18', 2026) returning id into lg;
+  -- A call needs a league the person follows (decisions_check_insert, step 05).
+  perform public.league_follows_replace(uid, 'espn', 2026, '[{"league_id":"180018","team_id":"3"}]');
+  select id into lg from public.leagues where provider = 'espn' and provider_league_id = '180018';
   insert into public.decisions (user_id, league_id, provider_team_id, season, week, call_type, contract_version, engine_version,
                                 band, band_drivers, headline, recommendation)
-  values (uid, lg, '1', 2026, 4, 'trade_suggestion', 'omen-decision-brief.v3', 'e', 'leaning', '["x"]', 'h', '{}') returning id into d;
+  values (uid, lg, '3', 2026, 4, 'trade_suggestion', 'omen-decision-brief.v3', 'e', 'leaning', '["x"]', 'h', '{}') returning id into d;
 
   insert into public.decision_horizon_grades (decision_id, user_id, horizon, from_week, through_week, weeks_counted,
     received_points, given_points, margin, result, complete, provenance)
