@@ -9,6 +9,10 @@ migration is applied anywhere. The table in section 8 is a design only.
   **provider's own projection leads for that league** (ESPN's for ESPN, Sleeper's for Sleeper); where the provider exposes none
   (Yahoo) **Omen's leads**; Omen's is shown **beside** the provider's, and a large disagreement becomes a `challenger` evidence row.
   (Those 2026-10-12 entries are not on `main` at the time of writing; this spec records the rule so the log entry can point here.)
+- 2026-10-16: **supersedes the provider-first rule above.** Neither source leads by identity. The
+  leakage-safe evaluation result for the matching position, scoring family, horizon and cohort
+  selects the leading read. An absent, stale, tied or underpowered receipt is unresolved. Source
+  labels and provenance remain mandatory. See `omen-native-visual-lock-v2.md` §3.
 **Depends on:** `omen-fantasy-metrics-v1.md` (opportunity counts, xFP), `omen-trend-evidence-v1.md` (shrinkage honesty),
 `omen-rat-qb-v0.md` (the same style of unfitted, shrunk, flagged metric), `omen-stat-registry-v1.md` (`OUT-01`, `OUT-02`),
 `omen-decision-drivers-v1.md` (evidence roles), `infra/warehouse/projections.md` (the stored Sleeper feed, PR #649).
@@ -124,7 +128,21 @@ Expected stat line = volume x efficiency x play probability.
 - `stat_line` holds only counts. There is no `points` anywhere in the contract.
 - `inputs` is the provenance: method version, the data as-of, what history was used, what was missing.
 
-## 6. Serving: who leads in which league
+## 6. Serving: evaluated authority, not provider authority
+
+> **2026-10-16 amendment:** The provider-specific lead table below is retained as historical design
+> context and is superseded. It must not be used for new serving or native presentation work.
+
+The serving contract now requires an evaluation receipt keyed by position, scoring family, forecast
+horizon and method cohort. It returns `provider_leads`, `omen_leads`, an explicit unresolved reason,
+or `single_source_only`. MAE on the same player-weeks is the primary selection metric; correlation is
+supporting evidence. Minimum sample, holdout window, freshness and materiality thresholds are fixed
+before a result is promoted. A missing receipt never silently falls back to provider leadership.
+
+Both usable numbers remain source-labelled. Leadership controls emphasis and decision input, not
+whether the other honest read may be inspected.
+
+### Superseded 2026-10-12 provider table
 
 Omen's projection is **computed for every player in every league and shown beside the provider's**. Which one *leads* (is the
 number the call uses and the headline shows) depends on the provider:

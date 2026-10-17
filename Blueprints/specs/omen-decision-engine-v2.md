@@ -1,5 +1,18 @@
 # Omen decision engine v2 — Omen's own read
 
+> **2026-10-16 founder amendment — evaluated authority replaces provider-first authority.**
+>
+> Omen Sight now supplies leakage-safe, recorded comparisons between provider forecasts and Omen forecasts.
+> The leading read is selected only for the supported position, scoring family, forecast horizon and cohort in
+> the applicable evaluation receipt. Provider leads where its recorded error is lower; Omen leads where its
+> recorded error is lower. A tie, stale receipt, underpowered sample or missing comparison is unresolved and
+> must not be converted into a winner. Both forecast values and their provenance remain explicit.
+>
+> `Sight` is an internal evaluation-system name, not customer-facing vocabulary. Native surfaces use the
+> language contract in `Blueprints/specs/design/omen-language-v1.md` and the authority states in
+> `Blueprints/specs/mobile/omen-native-visual-lock-v2.md`. The historical banner below remains useful evidence
+> of the previous decision, but its blanket provider-first conclusion is superseded by this amendment.
+
 > **⚠ 2026-10-04: PARTIALLY SUPERSEDED. Read this first.**
 >
 > The **factor-adjusted "Omen read"** (a recomputed expected-points number with per-factor contributions, the

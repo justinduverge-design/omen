@@ -283,6 +283,53 @@ struct OmenDecisionEnvelope: Decodable, Equatable {
         let name: String?
         let position: String?
         let team: String?
+        /// Internal wire key is `sight`; native product copy always presents this as Omen's Read.
+        /// Lenient so an experimental driver cannot discard the recommendation.
+        @LenientDecoded var omenRead: OmenRead?
+
+        enum CodingKeys: String, CodingKey {
+            case id, name, position, team
+            case omenRead = "sight"
+        }
+    }
+
+    struct OmenRead: Decodable, Equatable {
+        struct Driver: Decodable, Equatable {
+            let name: String?
+            let points: Double?
+        }
+
+        let version: String?
+        let season: Int?
+        let throughWeek: Int?
+        let position: String?
+        let phase: String?
+        let grade: Int?
+        let confidence: String?
+        let flexGrade: Int?
+        let points: Double?
+        let drivers: [Driver]
+
+        enum CodingKeys: String, CodingKey {
+            case version, season, position, phase, grade, confidence, drivers
+            case throughWeek = "through_week"
+            case flexGrade = "flex_grade"
+            case points = "sight_points"
+        }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            version = try? c.decodeIfPresent(String.self, forKey: .version)
+            season = try? c.decodeIfPresent(Int.self, forKey: .season)
+            throughWeek = try? c.decodeIfPresent(Int.self, forKey: .throughWeek)
+            position = try? c.decodeIfPresent(String.self, forKey: .position)
+            phase = try? c.decodeIfPresent(String.self, forKey: .phase)
+            grade = try? c.decodeIfPresent(Int.self, forKey: .grade)
+            confidence = try? c.decodeIfPresent(String.self, forKey: .confidence)
+            flexGrade = try? c.decodeIfPresent(Int.self, forKey: .flexGrade)
+            points = try? c.decodeIfPresent(Double.self, forKey: .points)
+            drivers = (try? c.decodeIfPresent([Driver].self, forKey: .drivers)) ?? []
+        }
     }
 
     struct ExpectedValueDelta: Decodable, Equatable {

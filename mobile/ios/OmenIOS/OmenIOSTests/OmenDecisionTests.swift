@@ -1364,3 +1364,24 @@ final class OmenCallScopeIdentityTests: XCTestCase {
             envelope, than: OmenCallScope(platform: "espn", leagueID: "13338821")))
     }
 }
+
+final class OmenReadDecodingTests: XCTestCase {
+    func testInternalSightBlockDecodesAsAnOmenRead() throws {
+        let json = #"{"state":"success","recommendation":{"primary_player":{"id":"sleeper:4046","name":"Example Player","position":"WR","team":"NYJ","sight":{"version":"v2","season":2026,"through_week":6,"position":"WR","phase":"in_season","grade":74,"confidence":"normal","flex_grade":70,"sight_points":14.2,"drivers":[{"name":"usage_trend","points":1.7}]}}}}"#
+        let envelope = try JSONDecoder().decode(OmenDecisionEnvelope.self, from: Data(json.utf8))
+
+        let read = try XCTUnwrap(envelope.recommendation?.primaryPlayer?.omenRead)
+        XCTAssertEqual(read.version, "v2")
+        XCTAssertEqual(read.throughWeek, 6)
+        XCTAssertEqual(read.grade, 74)
+        XCTAssertEqual(read.points, 14.2)
+        XCTAssertEqual(read.drivers.first?.name, "usage_trend")
+    }
+
+    func testAuthorityLabelsNeverExposeTheInternalSightName() {
+        XCTAssertEqual(OmenReadAuthority.omenLeads.customerLabel, "Omen Read leads")
+        XCTAssertEqual(OmenReadAuthority.providerLeads.customerLabel, "Provider Read leads")
+        XCTAssertEqual(OmenReadAuthority.unresolvedLowSample.customerLabel, "Reads unresolved")
+        XCTAssertFalse(OmenReadAuthority.omenLeads.customerLabel.localizedCaseInsensitiveContains("sight"))
+    }
+}
