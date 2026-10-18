@@ -1,5 +1,14 @@
 # Omen Decision Log
 
+## 2026-10-18 — Branch triage: retire stale work, archive what was never pushed
+
+- **Decision (delegated by the founder):** the ~30 local branches left after the prune were triaged against main by
+  behavior. 23 were already on main or superseded and are deleted; PR #654 closed (landed in #670).
+  `codex/root-cause-containment-20260928`, `codex/tuesday-beta-ready-20260929` and `codex/founder-closeout-existing-work`
+  are retired: main rebuilt those areas since, so they are reference only, not merge candidates.
+- **Rule applied:** never delete unpushed or uncommitted work outright; commit it and push to `origin/archive/<name>`.
+- **Open:** `feat/provider-gap-g3-g8` → BRANCH-SALVAGE in `current_sprint.md`. Evidence: `Direction/reviews/2026-10-18-branch-triage.md`.
+
 ## 2026-10-13 — Defer ESPN verification until the new beta has an install
 
 - **Founder fact:** the new beta version has no installs yet, so checking the Build 11 ESPN fix now
