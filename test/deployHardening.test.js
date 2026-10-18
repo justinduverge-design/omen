@@ -18,7 +18,7 @@ test("deploy workflow has a quality gate before image build", () => {
   assert.match(workflow, /npm test/);
   assert.match(workflow, /npm audit --audit-level=moderate/);
   assert.match(workflow, /npm --prefix frontend run build/);
-  assert.match(workflow, /npm --prefix client run build/);
+  assert.doesNotMatch(workflow, /--prefix client/); // client/ retired in #716
   assert.match(workflow, /\n\s+build:\n[\s\S]*?\n\s+needs: quality\n/);
 });
 
