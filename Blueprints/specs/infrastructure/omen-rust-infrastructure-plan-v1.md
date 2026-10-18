@@ -135,7 +135,7 @@ worker is **off** (`TRADE_SEARCH_MODE=worker` turns it on).
    Each production flip still gets a one-line founder approval ("flip Phase N"), per map rule 5.
 2. **Phase 5 timing:** build the shared core after the season, once `is_off_season` is true. The trade-search worker
    (below) handles speed until then.
-3. **Model:** **Ministral 3 3B Instruct** is the primary candidate: Apache 2.0, smaller than `gemma3:4b`, and similar on
+3. **Model (superseded 2026-10-18):** small models instead, **`qwen3:1.7b`** won the grounding bake-off (`scripts/research/model-bakeoff/README.md`). Original text: **Ministral 3 3B Instruct** was the primary candidate: Apache 2.0, smaller than `gemma3:4b`, and similar on
    instruction-following benchmarks. `gemma3:4b` stays installed as the fallback. The grounding pass rate during shadow
    decides; if Ministral loses, Gemma stays.
 4. **Action pinning:** use the industry standard (GitHub's security hardening guide, OpenSSF Scorecard). Pin every
