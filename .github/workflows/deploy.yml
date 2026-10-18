@@ -83,11 +83,6 @@ jobs:
           npm --prefix frontend ci
           npm --prefix frontend run build
 
-      - name: Build legacy client bundle
-        run: |
-          npm --prefix client ci
-          npm --prefix client run build
-
   build:
     runs-on: ubuntu-latest
     needs: quality
