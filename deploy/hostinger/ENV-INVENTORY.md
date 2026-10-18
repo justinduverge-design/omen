@@ -32,6 +32,9 @@ public Ollama/OpenClaw address.
 | `YAHOO_ENABLED` | Gates starting a **new** Yahoo connection. Defaults to `false` while Yahoo's Fantasy Sports API entitlement for app `ZcZJXm8V` is pending. Set to `true` on **both** `omen_api` and `omen_cron` once granted. | Omen | No |
 | `LLM_BASE_URL` | Private KVM2 Ollama/OpenClaw model base URL for narration. | LLM | Private-only endpoint |
 | `LLM_MODEL` | Model name sent to the LLM service. | LLM | No |
+| `DECISION_EXPLANATIONS_MODE` | `off` (default) or `shadow`. Shadow queues each start/sit decision's reasons and the drain cron writes grounded explanations with the local model; nothing is shown to users. | LLM | No |
+| `DECISION_EXPLANATION_MODEL` | Model for decision explanations (default `qwen3:1.7b`, chosen by the 2026-10-18 bake-off). | LLM | No |
+| `DECISION_EXPLANATION_BATCH` | Inputs drained per cron run (default 50). | LLM | No |
 | `LLM_TIMEOUT` | LLM request timeout in milliseconds. | LLM | No |
 | `OPENWEATHER_API_KEY` | Optional OpenWeather key for weather-aware Omen signals. | OpenWeather | Yes |
 | `RESEND_API_KEY` | Optional transactional email key for waitlist email. | Resend | Yes |

@@ -17,6 +17,7 @@ const optimizer = require("./optimizer");
 const { usageStatement } = require("./playerUsage");
 const { breakdownEvidence } = require("./projectionBreakdown");
 const { buildEvidenceWhy } = require("./evidenceWhy");
+const { queueDecisionExplanation } = require("./decisionExplanationShadow");
 const { fantasyMetricsEvidence, gameEnvironmentEvidence } = require("./fantasyMetrics/fantasyMetricsLines");
 const { signalNoiseSummary } = require("./signalNoise");
 const { CAPABILITY_CONTRACT } = require("./decisionCapabilities");
@@ -365,6 +366,10 @@ function buildStartSitDetail({
 
   const evidence = buildEvidence({ start, sit, delta, scoringFormat, usage, teamSystem, breakdowns, weeklyUsage, signal: contractVersion === CONTRACT_VERSION_V2, starterOut, fantasyMetrics: fantasyMetrics ? { ...fantasyMetrics, week: context.week } : null });
 
+  const whyStatements = contractVersion === CONTRACT_VERSION_V2 ? buildEvidenceWhy(evidence) : null;
+  // Shadow only (DECISION_EXPLANATIONS_MODE): queue this decision's reasons for the local model. No response change.
+  if (whyStatements) queueDecisionExplanation({ type: "start_sit", decision: `Start ${start.name} over ${sit.name} at ${top.slot}.`, why: whyStatements });
+
   const result = envelope({
     context,
     state: starterOut
@@ -387,7 +392,7 @@ function buildStartSitDetail({
       what_could_change_this: whatCouldChangeThis({ start, sit, delta }),
       evidence,
       // Additive, v2 only: at most three ranked statements built deterministically from `evidence`.
-      ...(contractVersion === CONTRACT_VERSION_V2 ? { why_statements: buildEvidenceWhy(evidence) } : {}),
+      ...(whyStatements ? { why_statements: whyStatements } : {}),
       // §5.3: the user may switch slots. These are the other slots that have one.
       alternatives: ordered.slice(1, 4).map((rec) => ({
         slot: rec.slot,

@@ -12,6 +12,7 @@ const { getAuthenticatedYahooClient } = require("./yahooAuth");
 const rosterSvc = require("./roster");
 const optimizer = require("./optimizer");
 const { buildEvidenceWhy } = require("./evidenceWhy");
+const { queueDecisionExplanation } = require("./decisionExplanationShadow");
 const { assessConfidence, bandFromScore, bandSentence, mvpLabelForBand, scoreForBand } = require("./confidencePolicy");
 const omenSelector = require("./omenSelector");
 const { isOmenReadyConnection } = require("./omenReadiness");
@@ -1343,6 +1344,9 @@ function mapLineupSwapToMvpMove({ roster, swap, connection, connectedPlatforms }
   });
 
   response.signals = buildLiveMvpSignals({ connectedPlatforms, platform });
+  const swapWhy = buildEvidenceWhy(swapEvidenceRows({ swap, startPlayer, sitPlayer }));
+  // Shadow only (DECISION_EXPLANATIONS_MODE): queue this decision's reasons for the local model. No response change.
+  queueDecisionExplanation({ type: "start_sit", decision: `Start ${primary.name} over ${comparison.name} at ${rosterSlot}.`, why: swapWhy });
   response.recommendation = {
     id: `live_omen_start_sit_${swap.to.player_key || "unknown"}`,
     type: "start_sit",
@@ -1368,7 +1372,7 @@ function mapLineupSwapToMvpMove({ roster, swap, connection, connectedPlatforms }
         `Risk is ${riskLevel} because this recommendation uses roster and projection math, not waiver availability or trade-acceptance forecasting.`,
       confidence: bandSentence(bandFromScore(confidenceScore), swap.confidence_reason || "The optimizer weighed the projected point edge."),
       // Additive: ranked statements built deterministically from tagged evidence rows.
-      why_statements: buildEvidenceWhy(swapEvidenceRows({ swap, startPlayer, sitPlayer })),
+      why_statements: swapWhy,
       data_used: [
         `${platformLabel} roster`,
         "starter and bench slots",
