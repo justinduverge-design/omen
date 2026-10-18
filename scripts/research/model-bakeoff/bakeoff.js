@@ -44,6 +44,7 @@ async function chat(model, msgs, keepAlive) {
   if (model.startsWith("qwen3")) body.think = false;
   const t0 = Date.now();
   const res = await fetch(`${HOST}/api/chat`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  if (!res.ok) throw new Error(`${model}: Ollama HTTP ${res.status}`);
   const json = await res.json();
   return { text: (json.message?.content || "").replace(/<think>[\s\S]*?<\/think>/g, "").trim(), ms: Date.now() - t0 };
 }
