@@ -13,13 +13,13 @@ function Header() {
         {/* Nav */}
         <div className="flex items-center gap-5">
           <a
-            className="flex min-h-[44px] items-center text-xs uppercase tracking-[0.28em] text-[#F4EFE1]/45 transition-colors hover:text-[#F4EFE1]/75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A44C] rounded-sm"
+            className="flex min-h-[44px] items-center text-xs uppercase tracking-[0.28em] text-[#F4EFE1]/45 transition-colors hover:text-[#F4EFE1]/75 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A44C] rounded-xs"
             href="/"
           >
             ← Slops Saloon
           </a>
           <a
-            className="flex min-h-[44px] items-center text-xs uppercase tracking-[0.28em] text-[#C9A44C]/80 transition-colors hover:text-[#C9A44C] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A44C] rounded-sm"
+            className="flex min-h-[44px] items-center text-xs uppercase tracking-[0.28em] text-[#C9A44C]/80 transition-colors hover:text-[#C9A44C] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A44C] rounded-xs"
             href="/login"
           >
             Sign In →
@@ -57,7 +57,7 @@ function FeaturePitch() {
           {FEATURES.map((f) => (
             <div
               key={f.label}
-              className="relative rounded-xl border border-white/10 bg-white/[0.03] px-5 py-4"
+              className="relative rounded-xl border border-white/10 bg-white/3 px-5 py-4"
             >
               <p className="text-sm font-semibold text-[#F4EFE1]">{f.label}</p>
               <p className="mt-1 text-xs leading-5 text-[#F4EFE1]/45">{f.desc}</p>
@@ -92,7 +92,7 @@ function FeaturePitch() {
 
 export default function OmenLanding() {
   return (
-    <div className="min-h-[100dvh] bg-[#050505] text-[#F4EFE1]">
+    <div className="min-h-dvh bg-[#050505] text-[#F4EFE1]">
       <Header />
 
       <main className="relative overflow-hidden">
@@ -113,7 +113,7 @@ export default function OmenLanding() {
           <p className="text-xs font-semibold uppercase tracking-[0.38em] text-[#C9A44C]">
             Omen · Trade Analyzer
           </p>
-          <h1 className="mt-3 font-display text-3xl font-semibold leading-tight text-[var(--color-text-primary)] md:text-4xl">
+          <h1 className="mt-3 font-display text-3xl font-semibold leading-tight text-(--color-text-primary) md:text-4xl">
             See the move before the league does.
           </h1>
           <p className="mt-3 text-sm leading-6 text-[#F4EFE1]/50">

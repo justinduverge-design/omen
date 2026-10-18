@@ -52,7 +52,7 @@ const PlatformBadge = React.forwardRef(function PlatformBadge({
     >
       {/* Icon fallback container */}
       <div
-        className={`flex items-center justify-center rounded shrink-0 font-bold ${iconSizeClasses}`}
+        className={`flex items-center justify-center rounded-sm shrink-0 font-bold ${iconSizeClasses}`}
         style={{
           backgroundColor: bgToken,
           color: iconTextToken,

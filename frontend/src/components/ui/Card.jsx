@@ -84,7 +84,7 @@ export function Card({ variant = 'solid', tone = 'neutral', className = '', styl
         // card fill -- deliberately outside the cardTextScope wrapper below
         // so it keeps the shell's own text color instead of the card's.
         <span
-          className="absolute right-3 top-3 rounded-full px-2 py-0.5 text-[11px] font-medium uppercase tracking-[0.10em]"
+          className="absolute right-3 top-3 rounded-full px-2 py-0.5 text-[11px] font-medium uppercase tracking-widest"
           style={{ background: 'var(--color-surface-2)', color: 'var(--color-text-secondary)' }}
         >
           Preview

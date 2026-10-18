@@ -79,7 +79,7 @@ function PlatformStatusBar({ platforms, loading }) {
             );
           })}
           <Link
-            className="ml-auto text-xs transition-colors hover:text-[var(--color-text-primary)]"
+            className="ml-auto text-xs transition-colors hover:text-(--color-text-primary)"
             to="/account"
           >
             Manage

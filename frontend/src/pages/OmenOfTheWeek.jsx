@@ -83,7 +83,7 @@ function LoadingState({ cry }) {
     <div aria-busy="true" aria-label="Loading omen">
       {/* Real header — branded, not a skeleton block */}
       <div className="mb-5 space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-team-accent)]">
+        <p className="text-xs font-semibold uppercase tracking-widest text-(--color-team-accent)">
           Omen of the Week
         </p>
         {cry && (
@@ -100,8 +100,8 @@ function LoadingState({ cry }) {
       <div className="animate-pulse motion-reduce:animate-none space-y-4">
         <div className="h-8 w-2/3 rounded-md bg-slate-800" />
         <div className="space-y-3 rounded-xl border border-slate-800 bg-slate-900 p-5">
-          <div className="h-4 w-full rounded bg-slate-800" />
-          <div className="h-4 w-5/6 rounded bg-slate-800" />
+          <div className="h-4 w-full rounded-sm bg-slate-800" />
+          <div className="h-4 w-5/6 rounded-sm bg-slate-800" />
         </div>
         <div className="h-2 rounded-full bg-slate-800" />
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -345,7 +345,7 @@ function ReasoningList({ explanation }) {
       <ol className="space-y-3">
         {reasoning.map((line, i) => (
           <li key={line} className="flex gap-3 text-sm leading-6 text-slate-300">
-            <span className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border border-amber-400/30 bg-amber-400/10 text-xs font-semibold text-amber-400">
+            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-amber-400/30 bg-amber-400/10 text-xs font-semibold text-amber-400">
               {i + 1}
             </span>
             {line}
@@ -383,10 +383,10 @@ function CapabilitiesPanel({ capabilities, signals }) {
     <div>
       <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
         <div>
-          <p className="text-xs uppercase tracking-widest text-[var(--color-text-secondary)]">
+          <p className="text-xs uppercase tracking-widest text-(--color-text-secondary)">
             Input honesty
           </p>
-          <p className="mt-1 text-xs leading-5 text-[var(--color-text-tertiary)]">
+          <p className="mt-1 text-xs leading-5 text-(--color-text-tertiary)">
             Live inputs drive the call. Stub, mock, and unavailable inputs are labeled before the reasoning.
           </p>
         </div>
@@ -399,22 +399,22 @@ function CapabilitiesPanel({ capabilities, signals }) {
           return (
           <div
             key={key}
-            className="flex flex-col gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] px-4 py-3 sm:flex-row sm:items-start sm:justify-between"
+            className="flex flex-col gap-2 rounded-xl border border-(--color-border) bg-(--color-surface-1) px-4 py-3 sm:flex-row sm:items-start sm:justify-between"
           >
             <div>
-              <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+              <p className="text-sm font-semibold text-(--color-text-primary)">
                 {formatOmenSignalKey(key)}
               </p>
-              <p className="mt-1 text-xs font-semibold text-[var(--color-text-secondary)]">
+              <p className="mt-1 text-xs font-semibold text-(--color-text-secondary)">
                 {meta.description}
               </p>
               {capability?.statement ? (
-                <p className="mt-1 text-xs leading-5 text-[var(--color-text-tertiary)]">{capability.statement}</p>
+                <p className="mt-1 text-xs leading-5 text-(--color-text-tertiary)">{capability.statement}</p>
               ) : null}
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <SignalBadge status={state} />
-              <span className="text-xs font-semibold text-[var(--color-text-tertiary)]">
+              <span className="text-xs font-semibold text-(--color-text-tertiary)">
                 {usedLabel}
               </span>
             </div>
@@ -455,7 +455,7 @@ function AlternativeCard({ alt }) {
         <p className="text-xs capitalize text-slate-500">{moveType?.replace(/_/g, ' ')}</p>
         <p className="mt-0.5 truncate text-sm font-semibold text-white">{title}</p>
       </div>
-      <div className="flex-shrink-0 text-right">
+      <div className="shrink-0 text-right">
         {confidence ? (
           <p className="text-sm font-semibold text-white">{confidence.label}</p>
         ) : null}

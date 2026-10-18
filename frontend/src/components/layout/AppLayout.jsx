@@ -5,7 +5,7 @@ import Header from './Header.jsx';
 export default function AppLayout({ children }) {
   return (
     <div
-      className="min-h-[100dvh] bg-[var(--color-bg)] text-[var(--color-text-primary)]"
+      className="min-h-dvh bg-(--color-bg) text-(--color-text-primary)"
     >
       <Header />
       <main

@@ -102,7 +102,7 @@ export function Modal({
           aria-labelledby={titleId}
           aria-describedby={ariaDescribedBy}
           tabIndex={-1}
-          className={`w-full ${maxWidth} rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] shadow-2xl focus:outline-none ${className}`.trim().replace(/\s+/g, ' ')}
+          className={`w-full ${maxWidth} rounded-lg border border-(--color-border) bg-(--color-surface-1) shadow-2xl focus:outline-hidden ${className}`.trim().replace(/\s+/g, ' ')}
           {...rest}
         >
           {title && (
@@ -116,7 +116,7 @@ export function Modal({
                     {eyebrow}
                   </p>
                 )}
-                <h3 id={titleId} className="mt-1 text-2xl font-bold tracking-tight text-[var(--color-text-primary)]">
+                <h3 id={titleId} className="mt-1 text-2xl font-bold tracking-tight text-(--color-text-primary)">
                   {title}
                 </h3>
               </div>
@@ -125,7 +125,7 @@ export function Modal({
                 aria-label="Close dialog"
                 disabled={closeDisabled}
                 onClick={onClose}
-                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-[var(--color-text-tertiary)] transition-colors duration-150 hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)] disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-(--color-text-tertiary) transition-colors duration-150 hover:bg-(--color-surface-2) hover:text-(--color-text-primary) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-team-accent) disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
                   <path d="M1 1l11 11M12 1L1 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />

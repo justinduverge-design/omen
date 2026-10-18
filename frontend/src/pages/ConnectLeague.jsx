@@ -22,12 +22,12 @@ import {
 
 function ManualEntryCard({ children }) {
   return (
-    <article className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5">
+    <article className="rounded-xl border border-(--color-border) bg-(--color-surface-1) p-5">
       <div className="mb-4">
-        <h2 className="font-sans text-sm font-semibold text-[var(--color-text-primary)]">
+        <h2 className="font-sans text-sm font-semibold text-(--color-text-primary)">
           Manual Entry
         </h2>
-        <p className="mt-0.5 text-xs text-[var(--color-text-secondary)]">
+        <p className="mt-0.5 text-xs text-(--color-text-secondary)">
           Enter your league details without a platform connection.
         </p>
       </div>
@@ -39,7 +39,7 @@ function ManualEntryCard({ children }) {
 function ErrorMsg({ message }) {
   if (!message) return null;
   return (
-    <p className="text-xs text-[var(--color-risk-high)]" role="alert">
+    <p className="text-xs text-(--color-risk-high)" role="alert">
       {message}
     </p>
   );
@@ -117,8 +117,8 @@ function SleeperCard({ connected, connectedUsername, onRefresh, disabled }) {
         stepGuide={(
           <>
             {connectedUsername && (
-              <p className="mb-3 text-xs text-[var(--color-text-secondary)]">
-                Username: <span className="text-[var(--color-text-primary)]">{connectedUsername}</span>
+              <p className="mb-3 text-xs text-(--color-text-secondary)">
+                Username: <span className="text-(--color-text-primary)">{connectedUsername}</span>
               </p>
             )}
             <ErrorMsg message={error} />
@@ -153,15 +153,15 @@ function SleeperCard({ connected, connectedUsername, onRefresh, disabled }) {
         )}
 
       {step === 'resolving' && (
-        <p className="text-xs text-[var(--color-text-secondary)]">Looking up your Sleeper leagues…</p>
+        <p className="text-xs text-(--color-text-secondary)">Looking up your Sleeper leagues…</p>
       )}
 
       {step === 'selecting' && resolvedData && (
         <div className="flex flex-col gap-3">
-          <p className="text-xs text-[var(--color-text-secondary)]">
-            Found <span className="text-[var(--color-text-primary)]">{resolvedData.leagues?.length || 0}</span> league
+          <p className="text-xs text-(--color-text-secondary)">
+            Found <span className="text-(--color-text-primary)">{resolvedData.leagues?.length || 0}</span> league
             {resolvedData.leagues?.length !== 1 ? 's' : ''} for{' '}
-            <span className="text-[var(--color-text-primary)]">{resolvedData.username}</span>.
+            <span className="text-(--color-text-primary)">{resolvedData.username}</span>.
             Pick one to connect.
           </p>
 
@@ -173,8 +173,8 @@ function SleeperCard({ connected, connectedUsername, onRefresh, disabled }) {
                   key={league.id}
                   className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors ${
                     selectedLeagueId === league.id
-                      ? 'border-[var(--color-accent)] bg-[var(--color-accent-muted)]'
-                      : 'border-[var(--color-border)] bg-[var(--color-surface-2)] hover:border-[var(--color-border)]'
+                      ? 'border-(--color-accent) bg-(--color-accent-muted)'
+                      : 'border-(--color-border) bg-(--color-surface-2) hover:border-(--color-border)'
                   }`}
                 >
                   <input
@@ -186,11 +186,11 @@ function SleeperCard({ connected, connectedUsername, onRefresh, disabled }) {
                     onChange={() => setSelectedLeagueId(league.id)}
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="truncate text-sm font-medium text-[var(--color-text-primary)]">
+                    <p className="truncate text-sm font-medium text-(--color-text-primary)">
                       {league.name || `League ${league.id}`}
                     </p>
                     {league.scoring_format && (
-                      <p className="text-[10px] uppercase tracking-wider text-[var(--color-text-tertiary)]">
+                      <p className="text-[10px] uppercase tracking-wider text-(--color-text-tertiary)">
                         {league.scoring_format}
                       </p>
                     )}
@@ -199,7 +199,7 @@ function SleeperCard({ connected, connectedUsername, onRefresh, disabled }) {
               ))}
             </fieldset>
           ) : (
-            <p className="text-xs text-[var(--color-text-secondary)]">
+            <p className="text-xs text-(--color-text-secondary)">
               No active leagues found for this season.
             </p>
           )}
@@ -314,7 +314,7 @@ function YahooCard({ connected, leagues = [], disabled, onRefresh }) {
         stepGuide={(
           <>
             {loadingLeagues && (
-              <p className="text-xs text-[var(--color-text-secondary)]">Looking up your Yahoo leagues…</p>
+              <p className="text-xs text-(--color-text-secondary)">Looking up your Yahoo leagues…</p>
             )}
             {!loadingLeagues && leagueOptions?.length > 0 && (
               <RadioCardGroup
@@ -333,7 +333,7 @@ function YahooCard({ connected, leagues = [], disabled, onRefresh }) {
               </RadioCardGroup>
             )}
             {!loadingLeagues && leagueOptions && leagueOptions.length === 0 && (
-              <p className="text-xs text-[var(--color-text-secondary)]">
+              <p className="text-xs text-(--color-text-secondary)">
                 No active Yahoo leagues found for this season.
               </p>
             )}
@@ -478,7 +478,7 @@ function EspnGuide({ browser, setBrowser }) {
       className="rounded-lg p-4 text-sm"
       style={{ background: 'var(--color-surface-2)', border: '1px solid var(--color-border)' }}
     >
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-(--color-text-secondary)">
         How to find your ESPN cookies
       </p>
       <SegmentedControl
@@ -496,10 +496,10 @@ function EspnGuide({ browser, setBrowser }) {
       </SegmentedControl>
       <ol className="list-decimal space-y-1.5 pl-4">
         {guide.steps.map((step, i) => (
-          <li key={i} className="text-xs leading-5 text-[var(--color-text-secondary)]">{step}</li>
+          <li key={i} className="text-xs leading-5 text-(--color-text-secondary)">{step}</li>
         ))}
       </ol>
-      <p className="mt-3 text-[10px] text-[var(--color-text-tertiary)]">
+      <p className="mt-3 text-[10px] text-(--color-text-tertiary)">
         ESPN cookies expire when you sign out or after long inactivity. If Omen loses access, return here with fresh values.
         Your credentials are encrypted and stored securely.
       </p>
@@ -673,8 +673,8 @@ function ManualCard() {
         className="rounded-lg px-4 py-3 text-xs"
         style={{ background: 'var(--color-surface-2)', border: '1px solid var(--color-border)' }}
       >
-        <p className="font-semibold text-[var(--color-text-secondary)]">Coming soon</p>
-        <p className="mt-1 text-[var(--color-text-tertiary)]">
+        <p className="font-semibold text-(--color-text-secondary)">Coming soon</p>
+        <p className="mt-1 text-(--color-text-tertiary)">
           Manual entry is under development. Connect Sleeper, Yahoo, or ESPN for full Omen access now.
         </p>
       </div>
@@ -746,29 +746,29 @@ export default function ConnectLeague() {
   if (checkingAuth) {
     return (
       <div
-        className="flex min-h-[100dvh] items-center justify-center"
+        className="flex min-h-dvh items-center justify-center"
         style={{ background: 'var(--color-bg)' }}
       >
-        <p className="text-sm text-[var(--color-text-secondary)]">Checking your account…</p>
+        <p className="text-sm text-(--color-text-secondary)">Checking your account…</p>
       </div>
     );
   }
 
   return (
     <div
-      className="min-h-[100dvh] px-4 py-12"
+      className="min-h-dvh px-4 py-12"
       style={{ background: 'var(--color-bg)' }}
     >
       <div className="mx-auto max-w-lg">
         {/* Header */}
         <div className="mb-8">
-          <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-[var(--color-accent)]">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-(--color-accent)">
             Step 2 of 2
           </p>
-          <h1 className="font-display text-4xl font-bold tracking-tight text-[var(--color-text-primary)]">
+          <h1 className="font-display text-4xl font-bold tracking-tight text-(--color-text-primary)">
             Connect Your League
           </h1>
-          <p className="mt-2 text-sm leading-6 text-[var(--color-text-secondary)]">
+          <p className="mt-2 text-sm leading-6 text-(--color-text-secondary)">
             Omen needs your league to find your Most Valuable Play.
             Connect the platform your league runs on.
           </p>
@@ -819,7 +819,7 @@ export default function ConnectLeague() {
           <Button className="w-full" variant="tertiary" size="lg" onClick={handleSkip}>
             Skip for now — I'll connect later
           </Button>
-          <p className="text-center text-[10px] text-[var(--color-text-tertiary)]">
+          <p className="text-center text-[10px] text-(--color-text-tertiary)">
             Skipping keeps Trade Analyzer available. Omen requires a connected league.
           </p>
         </div>

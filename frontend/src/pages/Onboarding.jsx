@@ -71,7 +71,7 @@ function WelcomeStep({ onNext }) {
       <button
         type="button"
         onClick={onNext}
-        className="rounded-md px-8 py-4 font-sans text-lg font-semibold transition-all hover:brightness-110 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+        className="rounded-md px-8 py-4 font-sans text-lg font-semibold transition-all hover:brightness-110 active:scale-[0.97] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent)"
         style={{ background: 'var(--color-accent)', color: 'var(--color-text-on-accent)' }}
       >
         Get started →
@@ -119,7 +119,7 @@ function ConnectStep({ onCheck, checking, status }) {
             <div key={name} className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <span
-                  className="h-1.5 w-1.5 rounded-full flex-shrink-0"
+                  className="h-1.5 w-1.5 rounded-full shrink-0"
                   style={{ background: 'var(--color-accent)' }}
                 />
                 <span className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
@@ -141,7 +141,7 @@ function ConnectStep({ onCheck, checking, status }) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <Link
           to="/account/connect"
-          className="rounded-md px-6 py-3 text-center font-sans text-base font-semibold transition-all hover:brightness-110 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+          className="rounded-md px-6 py-3 text-center font-sans text-base font-semibold transition-all hover:brightness-110 active:scale-[0.97] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent)"
           style={{ background: 'var(--color-accent)', color: 'var(--color-text-on-accent)' }}
         >
           Connect a platform →
@@ -150,7 +150,7 @@ function ConnectStep({ onCheck, checking, status }) {
           type="button"
           onClick={onCheck}
           disabled={checking}
-          className="rounded-md border px-6 py-3 font-sans text-base font-semibold transition-all hover:bg-[var(--color-surface-2)] active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-md border px-6 py-3 font-sans text-base font-semibold transition-all hover:bg-(--color-surface-2) active:scale-[0.97] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent) disabled:cursor-not-allowed disabled:opacity-50"
           style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
         >
           {checking ? 'Checking…' : "I've connected →"}
@@ -180,7 +180,7 @@ function ConnectStep({ onCheck, checking, status }) {
         You can also connect or switch platforms later in{' '}
         <Link
           to="/account/connect"
-          className="underline underline-offset-2 transition-colors hover:text-[var(--color-text-secondary)]"
+          className="underline underline-offset-2 transition-colors hover:text-(--color-text-secondary)"
         >
           Account → Connect League
         </Link>
@@ -226,7 +226,7 @@ function CompleteStep({ onDone }) {
       <button
         type="button"
         onClick={onDone}
-        className="rounded-md px-8 py-4 font-sans text-lg font-semibold transition-all hover:brightness-110 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+        className="rounded-md px-8 py-4 font-sans text-lg font-semibold transition-all hover:brightness-110 active:scale-[0.97] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent)"
         style={{ background: 'var(--color-accent)', color: 'var(--color-text-on-accent)' }}
       >
         Go to Omen →
@@ -331,7 +331,7 @@ export default function Onboarding() {
 
   return (
     <div
-      className="flex min-h-[100dvh] flex-col"
+      className="flex min-h-dvh flex-col"
       style={{ background: 'var(--color-bg)' }}
     >
       {/* Minimal header */}

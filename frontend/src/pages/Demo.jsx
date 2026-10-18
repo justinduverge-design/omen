@@ -29,7 +29,7 @@ function DemoBanner({ notice }) {
       className="flex items-start gap-2.5 rounded-md border border-sky-400/30 bg-sky-400/5 px-3.5 py-3 text-xs"
       style={{ color: 'var(--color-demo-text)' }}
     >
-      <span aria-hidden="true" className="mt-0.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-sky-400" />
+      <span aria-hidden="true" className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-sky-400" />
       <div>
         <p className="font-semibold uppercase tracking-widest">{label}</p>
         <p
@@ -124,13 +124,13 @@ function ConversionFooter() {
       <div className="mt-4 flex flex-col gap-2 sm:mt-0 sm:flex-row">
         <Link
           to="/account/connect"
-          className="inline-flex min-h-[44px] items-center justify-center rounded-md bg-[var(--color-team-accent)] px-5 py-2.5 text-sm font-semibold text-slate-950 transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)]"
+          className="inline-flex min-h-[44px] items-center justify-center rounded-md bg-(--color-team-accent) px-5 py-2.5 text-sm font-semibold text-slate-950 transition-opacity hover:opacity-90 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-team-accent)"
         >
           Connect a league
         </Link>
         <Link
           to="/"
-          className="inline-flex min-h-[44px] items-center justify-center rounded-md border px-5 py-2.5 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)]"
+          className="inline-flex min-h-[44px] items-center justify-center rounded-md border px-5 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-team-accent)"
           style={{
             borderColor: 'var(--color-border)',
             color: 'var(--color-text-primary)',

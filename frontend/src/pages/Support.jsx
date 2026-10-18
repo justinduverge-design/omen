@@ -11,7 +11,7 @@ export default function Support() {
 
       <InfoSection title="Account and connection help">
         <p>Sign in to manage platform connections and account data. If a platform needs to be reconnected, use the Account page rather than sharing credentials elsewhere.</p>
-        <Link className="inline-flex min-h-[44px] items-center font-semibold text-[var(--color-accent)] underline underline-offset-4" to="/account">
+        <Link className="inline-flex min-h-[44px] items-center font-semibold text-(--color-accent) underline underline-offset-4" to="/account">
           Open Account
         </Link>
       </InfoSection>
@@ -19,15 +19,15 @@ export default function Support() {
       <InfoSection title="Privacy and deletion">
         <p>Read the privacy policy for the information Omen processes, or use the account deletion guide to remove Omen-stored account data.</p>
         <div className="flex flex-wrap gap-x-5 gap-y-2">
-          <Link className="inline-flex min-h-[44px] items-center font-semibold text-[var(--color-accent)] underline underline-offset-4" to="/privacy">Privacy Policy</Link>
-          <Link className="inline-flex min-h-[44px] items-center font-semibold text-[var(--color-accent)] underline underline-offset-4" to="/delete-account">Delete account data</Link>
+          <Link className="inline-flex min-h-[44px] items-center font-semibold text-(--color-accent) underline underline-offset-4" to="/privacy">Privacy Policy</Link>
+          <Link className="inline-flex min-h-[44px] items-center font-semibold text-(--color-accent) underline underline-offset-4" to="/delete-account">Delete account data</Link>
         </div>
       </InfoSection>
 
       <InfoSection title="Contact channel">
         <p>
           For account or product help, contact{' '}
-          <a className="font-semibold text-[var(--color-accent)] underline underline-offset-4" href="mailto:support@slopssaloon.com">support@slopssaloon.com</a>.
+          <a className="font-semibold text-(--color-accent) underline underline-offset-4" href="mailto:support@slopssaloon.com">support@slopssaloon.com</a>.
           {' '}Do not include platform cookies, OAuth tokens, authentication headers, or screenshots containing them.
         </p>
       </InfoSection>
