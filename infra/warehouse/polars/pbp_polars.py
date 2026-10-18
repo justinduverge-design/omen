@@ -54,8 +54,14 @@ def csv_text(series: pl.Series) -> pl.Series:
 def build(parquet: str, season: int, gsis_map: dict[str, str], team_ids: dict[str, str]):
     raw = pl.read_parquet(parquet)
     headers = raw.columns
-    if (raw["season"] != season).any():
+    if raw["season"].ne_missing(season).any():
         raise ValueError("a row's season does not match the requested season")
+    week = raw["week"]
+    if (week.is_null() | (week < 1) | (week > 23)).any():
+        raise ValueError("week is invalid")
+    game_len = raw["game_id"].str.strip_chars().str.len_chars()
+    if (game_len.is_null() | (game_len == 0) | (game_len > 64)).any():
+        raise ValueError("game_id is invalid")
     text = pl.DataFrame([csv_text(raw[c]) for c in headers])
 
     play_id = raw["play_id"]
@@ -65,7 +71,10 @@ def build(parquet: str, season: int, gsis_map: dict[str, str], team_ids: dict[st
     if keys.is_duplicated().any():
         raise ValueError("duplicate play key")
 
-    blank = lambda c: pl.when(pl.col(c).str.strip_chars() == "").then(None).otherwise(pl.col(c).str.strip_chars())
+    # Node's nullable(): trimmed "" or "NA" (any case) is missing.
+    def blank(c):
+        t = pl.col(c).str.strip_chars()
+        return pl.when((t == "") | (t.str.to_uppercase() == "NA")).then(None).otherwise(t).alias(c)
     gsis = pl.DataFrame({"gsis": list(gsis_map), "pid": list(gsis_map.values())})
     df = text.with_columns([blank(c).alias(f"_{c}") for c in PARTICIPANTS])
     unmatched = pl.lit(False)
@@ -77,7 +86,7 @@ def build(parquet: str, season: int, gsis_map: dict[str, str], team_ids: dict[st
     df = df.filter(~pl.col("_unmatched"))
 
     def team(c):
-        ids = df[c].str.strip_chars().replace("", None)
+        ids = df.select(blank(c))[c]
         unknown = ids.drop_nulls().filter(~ids.drop_nulls().is_in(list(team_ids)))
         if len(unknown):
             raise ValueError(f"{c} is not a known NFL team: {unknown[0]}")
@@ -85,7 +94,7 @@ def build(parquet: str, season: int, gsis_map: dict[str, str], team_ids: dict[st
 
     source_row = df.select(pl.struct(headers).struct.json_encode().alias("source_row"))["source_row"]
     floats = lambda c: df[f"{c}__raw"].cast(pl.Float64).fill_nan(None)
-    success = df["success"].replace("", None)
+    success = df.select(blank("success"))["success"].str.to_lowercase().replace({"true": "1", "false": "0"})
     if not success.drop_nulls().is_in(["0", "1"]).all():
         raise ValueError("success is invalid")
     out = pl.DataFrame({
@@ -96,8 +105,8 @@ def build(parquet: str, season: int, gsis_map: dict[str, str], team_ids: dict[st
         "posteam_id": team("posteam"),
         "defteam_id": team("defteam"),
         **{c: df[f"{c}__id"] for c in PARTICIPANTS},
-        "play_type": df["play_type"].replace("", None),
-        "desc_text": df["desc"].str.strip_chars().replace("", None),
+        "play_type": df.select(blank("play_type"))["play_type"],
+        "desc_text": df.select(blank("desc"))["desc"],
         **{c: floats(c) for c in FLOAT_COLUMNS},
         "success": success.replace_strict({"1": True, "0": False}, default=None, return_dtype=pl.Boolean),
         "source_row": source_row,
