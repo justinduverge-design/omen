@@ -103,13 +103,16 @@ The one page that shows where the whole migration stands. Update a row whenever 
 
 | Phase | Switch | Lives on | Position | Proof to flip | Pruned after flip |
 |---|---|---|---|---|---|
-| 1 Tooling | CI workflow config | GitHub Actions | off | old and new tools pass on the same commit | old linters, PostCSS setup, `client/` |
+| 1 Tooling | CI workflow config | GitHub Actions | shadow (actions SHA-pinned; shellcheck and typos report-only, 2026-10-18) | old and new tools pass on the same commit | old linters, PostCSS setup, `client/` |
 | 2 Model jobs | `PLAYER_NOTES_ENABLED` | KVM2 + API | off | grounding pass rate, founder spot check | live narration call and its circuit breaker |
 | 3 Ingest | `WAREHOUSE_INGEST_ENGINE=csv\|polars` | KVM1 warehouse worker | off | row-for-row match in a shadow schema | CSV parser, 3 GB heap workaround |
 | 4 Ops | systemd units | Pi fleet, all hosts | off | a week of matching alerts | old watchdog and status scripts |
 | 5 Decision core | `DECISION_ENGINE=js\|shadow\|rust` | API | off | identical outputs across a full week's slate | JS engine, one release after cutover |
 
 Positions: `off` → `shadow` → `on` → `pruned`.
+
+Outside the phases: OpenTelemetry tracing is **on** (2026-10-18, `OTEL_EXPORTER_OTLP_ENDPOINT` on KVM1). The trade-search
+worker is **off** (`TRADE_SEARCH_MODE=worker` turns it on).
 
 ## Constraints that bind every phase
 

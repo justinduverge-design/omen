@@ -1,7 +1,8 @@
 # Omen tracing (OpenTelemetry), self-hosted
 
-Status: **collector deployed on Command Center 2026-10-17 (`/opt/omen-telemetry`), healthy, reachable
-from KVM1. App tracing still off:** setting the env var on KVM1 is a separate founder-approved step.
+Status: **live since 2026-10-18.** Collector on Command Center (`/opt/omen-telemetry`); KVM1 sets
+`OTEL_EXPORTER_OTLP_ENDPOINT` in `.env.production` (founder-approved 2026-10-17). First spans checked for privacy:
+route templates and allowlisted keys only.
 
 ## What the app does
 
@@ -19,8 +20,8 @@ from KVM1. App tracing still off:** setting the env var on KVM1 is a separate fo
   cookies, tokens, headers, query strings or bodies. Errors record `error.type` (the class
   name) only, never the message. Incoming `traceparent` headers are ignored.
 - **Sentry coexistence.** `@sentry/node` 11 does not register an OpenTelemetry tracer provider
-  or context manager unless `enableOpenTelemetrySetup: true` (default `false`; see
-  `node_modules/@sentry/node/build/cjs/sdk/index.js` and `sdk/client.js`). Our tracer is also
+  or context manager unless `enableOpenTelemetrySetup: true` (default `false`; see the
+  SDK init and client sources in the installed `@sentry/node` package). Our tracer is also
   never registered globally: it keeps its own provider and its own `AsyncLocalStorage`. So
   neither side can replace the other, and libraries that self-instrument through the global
   `@opentelemetry/api` (supabase-js) still get the no-op tracer.
@@ -33,10 +34,10 @@ from KVM1. App tracing still off:** setting the env var on KVM1 is a separate fo
 | Span | Where |
 |---|---|
 | `http.request` (renamed `METHOD /route/template`) | every request, `server.js` |
-| `omen.request` | `POST /api/omen/mvp-move`, `routes/omen.js` |
-| `omen.db.read` | active platform connections, `services/omen.js` |
-| `omen.provider.read` (`omen.platform`) | roster read per connection, `services/omen.js` |
-| `omen.warehouse.usage` | `readRosterUsage`, `services/omen.js` |
+| `omen.request` | `POST /api/omen/mvp-move`, `src/routes/omen.js` |
+| `omen.db.read` | active platform connections, `src/services/omen.js` |
+| `omen.provider.read` (`omen.platform`) | roster read per connection, `src/services/omen.js` |
+| `omen.warehouse.usage` | `readRosterUsage`, `src/services/omen.js` |
 | `omen.decision.waiver` (`omen.platform`) | `buildWaiverCandidateForConnection` |
 | `omen.decision.lineup` | `optimizer.evaluateLineup` in the MVP path |
 | `omen.decision.select` (`omen.candidates`, `omen.selected_type`) | `omenSelector.selectDecision` |
@@ -45,7 +46,7 @@ from KVM1. App tracing still off:** setting the env var on KVM1 is a separate fo
 | `cron.<job>` | each `src/omen_*_cron.js` entry point |
 
 Not yet instrumented: inside the trade search (`omenTradeCandidate.js`, `tradeLineup.js`,
-`tradeFind.js`, `routes/trade.js`), so the baseline's `omen.decision.trade` / `trade.find.scan`
+`tradeFind.js`, `src/routes/trade.js`), so the baseline's `omen.decision.trade` / `trade.find.scan`
 attributes (`teams`, `players`, `solves`, `budget_exceeded`) and event-loop delay are still to add.
 
 ## Env vars (KVM1, both `omen_api` and `omen_cron`)
@@ -78,7 +79,7 @@ Later, if file output is not enough to read p50/p95: add a small local backend o
 (for example Jaeger v2 with on-disk Badger storage, bound to the Tailscale IP) and point a
 second `otlp` exporter at it. Watch RAM on the 4 GB Pi.
 
-## Deploy steps (steps 1–3 done 2026-10-17; 4–5 need founder approval)
+## Deploy steps (all done 2026-10-18)
 
 1. On Command Center: copy this directory to `/opt/omen-telemetry`, create the data dir owned by the
    image user (`sudo install -d -o 10001 -g 10001 data`), then `sudo docker compose up -d`. The image is
