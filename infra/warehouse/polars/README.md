@@ -7,6 +7,9 @@ warehouse yet; the production switch is `WAREHOUSE_INGEST_ENGINE=csv|polars` (pl
 ```bash
 uv run --no-project --with "polars>=1.30" --with numpy python -I pbp_polars.py build <parquet> <season> <gsis.csv> <teams.json> <out.parquet>
 uv run --no-project --with "polars>=1.30" --with numpy python -I pbp_polars.py diff  <out.parquet> <prod-plays.csv.gz>
+# with libpq env (PGHOST, PGDATABASE, PGUSER, ...) and --with "psycopg[binary]>=3.2":
+... pbp_polars.py load    <out.parquet> <season> <source-url>   # replaces that season in football_shadow.nfl_plays, one transaction
+... pbp_polars.py diff-db <season>                             # football_shadow vs football, same parity rule
 ```
 
 `teams.json` maps each team abbreviation in the file to Node's own `teamIdFor`, so the alias table is never copied.
@@ -24,9 +27,22 @@ the CSV's 15 significant digits, including all 372 `source_row` columns. The col
 
 For comparison, the Node CSV path needs `--max-old-space-size=3072` for one season.
 
-## Next (each needs approval)
+## Shadow table
 
-1. A `football_shadow` schema in the warehouse (migration, change window), and a `load` command that COPYs these
-   rows into `football_shadow.nfl_plays`.
-2. Polars and numpy in the warehouse worker image (uv lock), then a shadow run beside the CSV ingest and a SQL diff.
-3. Flip `WAREHOUSE_INGEST_ENGINE` only after a clean week of shadow diffs.
+`warehouse/migrations/0025_football_shadow.sql` (applied by `0026_apply_football_shadow.sh`, version 13) creates
+`football_shadow.nfl_plays`. It has no foreign keys, so it can't block the real tables. The writer role can insert and
+delete, and the reader and backup roles can read. Rollback: `drop schema football_shadow cascade`.
+
+Tested 2026-10-18 on local Postgres 17.11 holding production's 2025 plays: the migration applied through its script and
+the receipt verified. `load` wrote 48,771 rows in 12.8 s at a 0.5 GB peak, and a re-run replaced them. `diff-db`
+reported **parity**.
+
+## Production steps (each needs founder approval)
+
+1. Apply `0026_apply_football_shadow.sh` on KVM1 in a change window (`infra/warehouse/runbook.md`). It writes schema
+   version 13. The app (`targetIdentity.js`) and `warehouse/verify/production_readonly.sql` accept 13 from this PR on,
+   so **deploy the app first, then apply**. Snapshots dump `--schema=football` only, so the shadow is not backed up;
+   it is rebuilt from source.
+2. Add Polars, numpy and psycopg to the warehouse worker image (uv lock), and run `build` then `load` after the 07:15 ET
+   ingest, then `diff-db`. Shadow week: report parity daily.
+3. Flip `WAREHOUSE_INGEST_ENGINE` to `polars` only after a clean week. Then retire the 3 GB heap flag.
