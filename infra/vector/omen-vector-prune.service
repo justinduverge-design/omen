@@ -1,0 +1,10 @@
+[Unit]
+Description=Prune shipped logs older than 14 days
+
+[Service]
+Type=oneshot
+ExecStart=/opt/omen-vector/omen-vector-prune.sh
+ProtectSystem=strict
+ReadWritePaths=/opt/omen-vector/logs
+PrivateTmp=yes
+NoNewPrivileges=yes

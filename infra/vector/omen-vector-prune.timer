@@ -1,0 +1,9 @@
+[Unit]
+Description=Daily prune of shipped logs
+
+[Timer]
+OnCalendar=*-*-* 04:40:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target
