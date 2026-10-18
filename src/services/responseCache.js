@@ -55,6 +55,7 @@ const ROUTE_TTL_SECONDS = Object.freeze({
   leagues_directory: () => envTtl("OMEN_CACHE_TTL_LEAGUES_DIRECTORY", 60),
   quiet_week: () => envTtl("OMEN_CACHE_TTL_QUIET_WEEK", 60),
   league_overview: () => envTtl("OMEN_CACHE_TTL_LEAGUE_OVERVIEW", 60),
+  league_transactions: () => envTtl("OMEN_CACHE_TTL_LEAGUE_TRANSACTIONS", 60),
   dashboard_summary: () => envTtl("OMEN_CACHE_TTL_DASHBOARD_SUMMARY", 60),
 });
 

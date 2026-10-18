@@ -230,6 +230,19 @@ function rosterPositionsFromYahooSettings(league) {
   return slots;
 }
 
+// G8: one slow team must not hold the whole league read (and Trade) hostage.
+const TEAM_ROSTER_BUDGET_MS = Number(process.env.YAHOO_TEAM_ROSTER_BUDGET_MS) || 6000;
+
+/** Resolves like `promise`, or rejects with `code: "team_roster_timeout"` after `ms`. */
+function withinBudget(promise, ms) {
+  let timer;
+  const budget = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(Object.assign(new Error("team roster read timed out"), { code: "team_roster_timeout" })), ms);
+    timer.unref?.();
+  });
+  return Promise.race([promise, budget]).finally(() => clearTimeout(timer));
+}
+
 async function fetchYahooLeagueRosters(leagueKey, accessToken, week) {
   const client = new YahooClient(accessToken);
   const effectiveWeek = week || await client.getCurrentWeek(leagueKey);
@@ -245,7 +258,7 @@ async function fetchYahooLeagueRosters(leagueKey, accessToken, week) {
     let players = [];
     let readStatus = "ok";
     try {
-      const raw = await client.getRoster(team.team_id, effectiveWeek);
+      const raw = await withinBudget(client.getRoster(team.team_id, effectiveWeek), TEAM_ROSTER_BUDGET_MS);
       const normalized = normalizeYahooRoster(raw, effectiveWeek);
       players = [
         ...(normalized.slots.starters || []),
@@ -256,6 +269,7 @@ async function fetchYahooLeagueRosters(leagueKey, accessToken, week) {
       // One team's roster failing to read must not fail the whole league read. Partial
       // data is more honest than aborting the request, but the team is flagged so Trade can
       // tell "the read failed" from "this roster is empty" and skip it instead of assuming.
+      // A team past its time budget (G8) is unreadable the same way.
       players = [];
       readStatus = "unreadable";
     }
@@ -283,6 +297,7 @@ async function fetchYahooLeagueRosters(leagueKey, accessToken, week) {
 }
 
 module.exports = {
+  withinBudget,
   buildNormalizedRoster,
   fetchYahooLastResult,
   fetchYahooLeagueRosters,

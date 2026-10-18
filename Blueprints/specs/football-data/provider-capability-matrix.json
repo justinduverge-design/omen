@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "as_of": "2026-10-15",
+  "as_of": "2026-10-18",
   "note": "Canonical machine-readable provider capability matrix. test/providerCapabilityMatrix.test.js fails when the code drifts from it. The markdown view is generated: node scripts/generate-provider-matrix.js. Edit this file, never the view.",
   "capabilities": [
     "league_settings",
@@ -232,25 +232,25 @@
     {
       "provider": "sleeper",
       "capability": "transactions",
-      "status": "not_read",
-      "reason": "not_read_by_omen",
-      "detail": "Sleeper documents a per-round transactions endpoint. Omen reads none; the league overview names transactions as an unavailable family.",
+      "status": "available",
+      "reason": null,
+      "detail": "GET /api/league/transactions (league-transactions.v1) reads this round and the one before from Sleeper's documented per-round endpoint. Only complete transactions are items; an outage is unavailable with a reason, never empty.",
       "evidence": [
         {
           "file": "src/adapters/sleeper.js",
-          "excludes": [
-            "/transactions"
+          "includes": [
+            "fetchSleeperTransactions"
           ]
         },
         {
-          "file": "src/routes/league.js",
+          "file": "src/services/leagueTransactions.js",
           "includes": [
-            "unavailable_families: [\"transactions\"]"
+            "provider_read: \"live\""
           ]
         }
       ],
       "verification": "code",
-      "last_verified": "2026-10-15"
+      "last_verified": "2026-10-18"
     },
     {
       "provider": "sleeper",
@@ -523,24 +523,24 @@
       "provider": "espn",
       "capability": "transactions",
       "status": "not_read",
-      "reason": "not_read_by_omen",
-      "detail": "ESPN's mTransactions2 view is community-documented. Omen reads none.",
+      "reason": "probe_pending",
+      "detail": "fetchEspnTransactions reads mTransactions2 only with LEAGUE_TRANSACTIONS_ESPN=1 (off). Community-documented, not exercised live; an unrecognised shape is unavailable, not empty.",
       "evidence": [
         {
           "file": "src/adapters/espn.js",
-          "excludes": [
-            "mTransactions"
+          "includes": [
+            "mTransactions2"
           ]
         },
         {
-          "file": "src/routes/league.js",
+          "file": "src/services/leagueTransactions.js",
           "includes": [
-            "unavailable_families: [\"transactions\"]"
+            "LEAGUE_TRANSACTIONS_ESPN"
           ]
         }
       ],
       "verification": "code",
-      "last_verified": "2026-10-15"
+      "last_verified": "2026-10-18"
     },
     {
       "provider": "espn",
@@ -765,7 +765,7 @@
       "capability": "waiver_pool",
       "status": "degraded",
       "reason": "requires_derived_projection",
-      "detail": "The available-player list is paged past Yahoo's 25-per-page cap (live: 50 players, 40 with a derived projection). Availability is still only confirmed where a derived projection exists.",
+      "detail": "The available-player list is paged past Yahoo's 25-per-page cap (live: 50 players, 40 with a derived projection). Availability is still only confirmed where a derived projection exists. With YAHOO_POOL_STATUS_SPLIT=1 (off, not exercised live) free agents (FA) and waivers (W) are read separately with percent_owned; any failure falls back to the single status=A read.",
       "evidence": [
         {
           "file": "src/routes/waivers.js",
@@ -783,6 +783,12 @@
           "file": "src/services/yahoo.js",
           "includes": [
             "PAGE = 25"
+          ]
+        },
+        {
+          "file": "src/services/yahoo.js",
+          "includes": [
+            "getAvailablePlayerPool"
           ]
         }
       ],
@@ -816,24 +822,24 @@
       "provider": "yahoo",
       "capability": "transactions",
       "status": "not_read",
-      "reason": "not_read_by_omen",
-      "detail": "Yahoo documents /league/{key}/transactions. Omen reads none.",
+      "reason": "probe_pending",
+      "detail": "getTransactions reads /league/{key}/transactions only with LEAGUE_TRANSACTIONS_YAHOO=1 (off). Documented by Yahoo, not exercised live; an unrecognised shape is unavailable, not empty.",
       "evidence": [
         {
           "file": "src/services/yahoo.js",
-          "excludes": [
-            "/transactions"
+          "includes": [
+            "/transactions;types=add,drop,trade"
           ]
         },
         {
-          "file": "src/routes/league.js",
+          "file": "src/services/leagueTransactions.js",
           "includes": [
-            "unavailable_families: [\"transactions\"]"
+            "LEAGUE_TRANSACTIONS_YAHOO"
           ]
         }
       ],
       "verification": "code",
-      "last_verified": "2026-10-15"
+      "last_verified": "2026-10-18"
     },
     {
       "provider": "yahoo",
@@ -1008,18 +1014,6 @@
       "tokens": [
         "winners_bracket",
         "losers_bracket"
-      ]
-    },
-    {
-      "provider": "yahoo",
-      "field": "percent_owned",
-      "kind": "documented",
-      "evidence": "Yahoo Fantasy API player sub-resource",
-      "opportunity": "Same waiver-heat signal as ESPN; also the waiver versus free-agent distinction (status W vs FA).",
-      "value": "medium",
-      "needs": "a live probe; needs the founder's Yahoo session",
-      "tokens": [
-        "percent_owned"
       ]
     },
     {
