@@ -41,6 +41,7 @@ on:
       - "biome.json"
       - ".graphifyignore"
       - "scripts/research/**"
+      - "infra/warehouse/polars/**"
       - "**/*.md"
       - "Blueprints/**"
       - "Direction/**"

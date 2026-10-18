@@ -95,3 +95,5 @@ infra/telemetry/data/
 
 # uv
 .venv/
+__pycache__/
+*.pyc

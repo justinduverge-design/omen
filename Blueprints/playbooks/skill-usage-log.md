@@ -36,3 +36,4 @@ three-weekly skill check (`Direction/reviews/2026-10-03-harness-design-outline.m
 2026-10-18 | Phase 1 part 3: Biome report-only | slops-code-review (fresh agent) | skipped slops-tdd (CI config only)
 2026-10-18 | Phase 1 part 5: Rust map row, slops-rust-tdd skill (Slops-OS#29) | slops-skill-author, slops-code-review | none skipped
 2026-10-18 | Phase 2: decision explanations (shadow), grounding fixes | slops-code-review (fresh agent) | skipped slops-tdd as a ritual; tests written with each slice (11 new)
+2026-10-18 | Phase 3: Polars pbp reader + parity proof | slops-code-review (fresh agent) | skipped slops-tdd ritual; fixture tests added for every Node rejection case
