@@ -116,8 +116,10 @@ Five pillars for what "healthy" should eventually mean for Omen, beyond uptime: 
 - **Hardening applied 2026-10-18 on Steward and Sentinel:**
   - Wi-Fi power saving is off. The netplan connection has `802-11-wireless.powersave 2`, and NetworkManager has a global
     `90-slops-wifi-powersave.conf`.
-  - The local `slops-link-watchdog.timer` runs every minute: after 10 minutes without the gateway it restarts Wi-Fi, and
-    after 30 minutes it reboots.
+  - The local `slops-link-watchdog.timer` runs every minute. The link counts as up when the gateway answers ICMP or ARP.
+    After 10 minutes down it reconnects Wi-Fi. After 30 it reboots, with backoff (30, 60, 120 min) and at most 3 reboots
+    per outage; after that it only reconnects every 30 minutes. Timing uses uptime, never the wall clock, and each
+    reboot reason is kept in `/var/lib/slops-link-watchdog/reboot-reasons`.
   - Sources are in `ops/pi-fleet/`.
 
 ## Layer 4 — Sentinel Network/Security Observation
