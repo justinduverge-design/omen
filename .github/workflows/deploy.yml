@@ -43,6 +43,7 @@ on:
       - "scripts/research/**"
       - "infra/warehouse/polars/**"
       - "warehouse/migrations/**"
+      - "ops/pi-fleet/**"
       - "**/*.md"
       - "Blueprints/**"
       - "Direction/**"
