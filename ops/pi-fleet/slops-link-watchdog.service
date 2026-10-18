@@ -1,0 +1,6 @@
+[Unit]
+Description=Slops Pi link watchdog (restart Wi-Fi, then reboot, when the gateway is lost)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/slops-link-watchdog.sh

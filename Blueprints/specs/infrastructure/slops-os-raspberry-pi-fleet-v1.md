@@ -105,6 +105,21 @@ Five pillars for what "healthy" should eventually mean for Omen, beyond uptime: 
 - **Steward's freshness check never touches Supabase or Restic credentials.** It connects to a dedicated, forced-command-restricted `steward-status` identity on KVM1 that can only run one read-only status-export script — proven by testing that an arbitrary requested command is ignored. Freshness state (HEALTHY / WARNING at >8h old / DOWN) was proven with controlled tests, and reboot-survival was proven on Steward.
 - **Known limitation, carried forward honestly:** KVM1 and KVM2 are both Hostinger — this is off-host but not off-provider disaster separation. A second copy on a different provider or local storage remains a real, undone improvement if stronger separation is wanted. This is now the accurate scope of what's *not* proven, replacing the old "never verified" framing entirely.
 
+### Incident 2026-10-16: Steward Wi-Fi hang (about 37 h)
+
+- **What happened:** at 23:01 ET on Oct 16, Steward tried to roam to another eero access point. Authentication timed out,
+  and the link stayed half-up ("magicsock: network down") until the founder power-cycled it at 12:32 ET on Oct 18.
+  Steward kept running, with no throttling (`get_throttled=0x0`), but reached nothing.
+- **Alerting:** the dispatcher ran 447 times with no send failures, and its 10-minute `steward-unreachable` rule fired.
+  The alert reached `#slops-alerts` but was easy to miss, because other unresolved items (GlitchTip #2 for an ESPN 404,
+  and status-channel checks) kept the signature busy.
+- **Hardening applied 2026-10-18 on Steward and Sentinel:**
+  - Wi-Fi power saving is off. The netplan connection has `802-11-wireless.powersave 2`, and NetworkManager has a global
+    `90-slops-wifi-powersave.conf`.
+  - The local `slops-link-watchdog.timer` runs every minute: after 10 minutes without the gateway it restarts Wi-Fi, and
+    after 30 minutes it reboots.
+  - Sources are in `ops/pi-fleet/`.
+
 ## Layer 4 — Sentinel Network/Security Observation
 
 **Status: COMPLETE.** Three commissioned sensors, each proven through the same manual → controlled-failure → controlled-recovery → systemd → reboot-survival discipline as Layer 3:
