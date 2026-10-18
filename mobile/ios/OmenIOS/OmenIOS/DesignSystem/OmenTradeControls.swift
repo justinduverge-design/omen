@@ -112,8 +112,22 @@ struct OmenTradePartnerChip: View {
     var action: (() -> Void)?
 
     var body: some View {
-        Button(action: { action?() }) {
-            VStack(spacing: OmenSpacing.step4) {
+        Group {
+            if let action {
+                Button(action: action) { content }
+                    .buttonStyle(OmenPressableButtonStyle())
+                    .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+            } else {
+                content
+                    .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel([name, need].compactMap { $0 }.joined(separator: ", "))
+    }
+
+    private var content: some View {
+        VStack(spacing: OmenSpacing.step4) {
                 Text(crest)
                     .omenTextStyle(OmenTypography.micro)
                     .foregroundStyle(isSelected ? OmenColor.accentHover : OmenColor.textSecondary)
@@ -139,14 +153,9 @@ struct OmenTradePartnerChip: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
                 }
-            }
-            .frame(width: 66)
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel([name, need].compactMap { $0 }.joined(separator: ", "))
-        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+        .frame(width: 66)
+        .contentShape(Rectangle())
     }
 }
 

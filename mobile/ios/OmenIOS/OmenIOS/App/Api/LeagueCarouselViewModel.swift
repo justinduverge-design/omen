@@ -425,6 +425,10 @@ final class LeagueCarouselViewModel: ObservableObject {
         }
         commitTask?.cancel()
         guard let page = currentPage else { return nil }
+        // The accepted swipe changes context immediately. Publish the target before either the
+        // per-page read or the verified server write begins so callers can remove the outgoing
+        // league's values and mount the shaped switch placeholder in the same interaction turn.
+        committingPageID = page.id
         // The carousel shows the page it is committing, so its matchup has to be in flight
         // before the write. The picker has no such page and skips this.
         await loadCurrentPage()

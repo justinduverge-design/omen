@@ -4,12 +4,13 @@ import SwiftUI
 enum OmenStateSurfaceKind { case empty, loading, error, disconnected, stale, mock }
 
 /// Token-backed, non-interactive content state. Supply contextual loading copy rather than a
-/// generic "Loading…" label. `reduceMotion` replaces the spinner with a static state.
+/// generic "Loading…" label. The system Reduce Motion setting replaces the spinner with a
+/// static, fully labelled state; callers cannot accidentally opt out of that preference.
 struct OmenStateSurface: View {
     let kind: OmenStateSurfaceKind
     let title: String
     let message: String
-    var reduceMotion = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var cardVariant: OmenCardVariant {
         switch kind {

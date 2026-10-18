@@ -100,6 +100,54 @@ final class J4InteractionUITests: XCTestCase {
         app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", fragment)).firstMatch
     }
 
+    // MARK: - Find a Trade review
+
+    func testFindReviewKeepsVisibleButtonAlternativesAndPersistsASave() {
+        let app = launch("trade.find-review")
+        app.swipeUp()
+        app.swipeUp()
+        let pass = app.buttons["PASS ON THIS CANDIDATE"]
+        let save = app.buttons["SAVE THIS CANDIDATE FOR LATER"]
+
+        assertTappable(pass, "the visible Pass alternative")
+        assertTappable(save, "the visible Save alternative")
+        save.tap()
+
+        XCTAssertTrue(
+            app.buttons["SAVED"].waitForExistence(timeout: 5),
+            "the save action never resolved into its local Saved state"
+        )
+        XCTAssertTrue(
+            text(containing: "Davante's Inferno", in: app).exists,
+            "saving unexpectedly advanced or removed the candidate"
+        )
+    }
+
+    func testFindReviewPassButtonAndSwipeLeftHaveTheSameOutcome() {
+        var app = launch("trade.find-review")
+        app.swipeUp()
+        app.swipeUp()
+        let pass = app.buttons["PASS ON THIS CANDIDATE"]
+        assertTapDoesNotBreak(pass, app)
+        XCTAssertTrue(
+            text(containing: "That's everyone this week", in: app).waitForExistence(timeout: 5),
+            "the Pass button did not exhaust the one-card fixture"
+        )
+        app.terminate()
+
+        app = launch("trade.find-review")
+        let cardText = text(containing: "Davante's Inferno", in: app)
+        XCTAssertTrue(cardText.waitForExistence(timeout: 10), "the swipe card did not load")
+        let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.82, dy: 0.52))
+        let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.18, dy: 0.52))
+        start.press(forDuration: 0.08, thenDragTo: end)
+
+        XCTAssertTrue(
+            text(containing: "That's everyone this week", in: app).waitForExistence(timeout: 5),
+            "swipe-left did not produce the same Pass outcome as the visible button"
+        )
+    }
+
     // MARK: - E017, on every screen that carries it
 
     /// The header slot carries **both** controls, help then account, on all five screens.

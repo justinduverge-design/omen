@@ -449,11 +449,7 @@ struct OmenTradeBuildScreen: View {
                         crest: primary?.crest ?? "",
                         name: primary?.name ?? "",
                         need: primary?.need,
-                        isSelected: true,
-                        // Not the removal affordance — per contract, the primary chip keeps
-                        // today's 2-team behavior (a no-op with three teams active; there is
-                        // nothing to swap it with here).
-                        action: {}
+                        isSelected: true
                     )
                     OmenTradePartnerChip(
                         crest: thirdPartner.crest,

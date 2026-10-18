@@ -1236,7 +1236,6 @@ struct OmenCommandDeskHost: View {
         )
         .onChange(of: carousel.selectedIndex) { _, _ in
             Task {
-                await carousel.loadCurrentPage()
                 if let refresh = await carousel.commitSelection() {
                     onContextChanged?(refresh)
                 }
