@@ -564,8 +564,8 @@ function createTradeRouter({
    * (src/services/omen.js) already uses internally for Omen's own weekly recommendation —
    * no new Sleeper surface.
    */
-  async function readSleeperRosters({ leagueId, week }) {
-    const leagueRosters = await fetchLeagueRosters(leagueId, week, String(now().getFullYear()));
+  async function readSleeperRosters({ leagueId, week, season }) {
+    const leagueRosters = await fetchLeagueRosters(leagueId, week, String(season));
     const status = String(leagueRosters?.league_status || "").toLowerCase();
     if (status === "pre_draft" || status === "drafting") {
       return { status: "unavailable", reason: "league_not_active" };
@@ -590,14 +590,14 @@ function createTradeRouter({
    * doesn't stop at the caller's own game. Credentials come from the user's own stored
    * connection (`getAuthenticatedEspnCredentials`), never from the request.
    */
-  async function readEspnRosters({ userId, leagueId, week }) {
+  async function readEspnRosters({ userId, leagueId, week, season }) {
     let credentials;
     try {
       credentials = await espnCredentials(userId);
     } catch {
       return { status: "unavailable", reason: "provider_reauth_required" };
     }
-    const rosters = await fetchEspnLeagueRosters(leagueId, credentials.espn_s2, credentials.swid, { week });
+    const rosters = await fetchEspnLeagueRosters(leagueId, credentials.espn_s2, credentials.swid, { week, season });
     const teams = (Array.isArray(rosters?.teams) ? rosters.teams : []).map((team) => ({
       team_id: String(team?.team_id || ""),
       team_name: team?.team_name || null,
@@ -685,6 +685,10 @@ function createTradeRouter({
       if (leagueId.length > MAX_LEAGUE_ID_LENGTH) {
         return res.status(400).json({ error: "league_id is too long" });
       }
+      const season = Number(req.query.season);
+      if (!Number.isInteger(season) || season < 2000 || season > 2100) {
+        return res.status(400).json({ error: "season query param must be a valid calendar year" });
+      }
 
       let week = parseInt(req.query.week, 10);
       if (!Number.isFinite(week) || week < 1) {
@@ -693,7 +697,7 @@ function createTradeRouter({
 
       let result;
       try {
-        result = await ROSTER_READERS[platform]({ userId: user.id, leagueId, week });
+        result = await ROSTER_READERS[platform]({ userId: user.id, leagueId, week, season });
       } catch (e) {
         logger.warn("Trade roster read failed", { err: e.message, platform, league_id: leagueId });
         return res.status(503).json({ error: "roster_unavailable", code: "trade_roster_unavailable" });
@@ -704,6 +708,7 @@ function createTradeRouter({
           contract_version: "trade-roster.v1",
           status: "unavailable",
           platform,
+          season,
           reason: result.reason || "provider_unsupported",
           teams: [],
         });
@@ -716,6 +721,7 @@ function createTradeRouter({
         contract_version: "trade-roster.v1",
         status: "ok",
         platform,
+        season,
         week: result.week,
         roster_positions: result.roster_positions,
         teams,
@@ -725,8 +731,8 @@ function createTradeRouter({
     }
   });
 
-  function tradeFindCacheKey({ platform, leagueId, week }) {
-    return `${platform}:${leagueId}:${week}`;
+  function tradeFindCacheKey({ userId, platform, leagueId, season, week }) {
+    return `${userId}:${platform}:${leagueId}:${season}:${week}`;
   }
 
   /**
@@ -791,13 +797,17 @@ function createTradeRouter({
           code: "trade_find_team_id_required",
         });
       }
+      const season = Number(req.query.season);
+      if (!Number.isInteger(season) || season < 2000 || season > 2100) {
+        return res.status(400).json({ error: "season query param must be a valid calendar year" });
+      }
 
       let week = parseInt(req.query.week, 10);
       if (!Number.isFinite(week) || week < 1) {
         week = nflWeekContext(now())?.week || 1;
       }
 
-      const cacheKey = tradeFindCacheKey({ platform, leagueId, week });
+      const cacheKey = tradeFindCacheKey({ userId: user.id, platform, leagueId, season, week });
       let bundle = null;
       let cacheHit = false;
       try {
@@ -811,7 +821,7 @@ function createTradeRouter({
       } else {
         let result;
         try {
-          result = await ROSTER_READERS[platform]({ userId: user.id, leagueId, week });
+          result = await ROSTER_READERS[platform]({ userId: user.id, leagueId, week, season });
         } catch (e) {
           logger.warn("Trade find roster read failed", { err: e.message, platform, league_id: leagueId });
           return res.status(503).json({ error: "roster_unavailable", code: "trade_find_unavailable" });
@@ -823,6 +833,7 @@ function createTradeRouter({
             status: "unavailable",
             platform,
             league_id: leagueId,
+            season,
             week,
             reason: result.reason || "provider_unsupported",
             candidates: [],
@@ -831,6 +842,7 @@ function createTradeRouter({
 
         bundle = {
           generated_at: now().toISOString(),
+          season,
           week: result.week || week,
           roster_positions: result.roster_positions,
           teams: result.teams,

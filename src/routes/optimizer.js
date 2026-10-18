@@ -30,40 +30,17 @@ const { canonicalLeagueContext } = require("../services/leagueContext");
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
 const VALID_SCORING_FORMATS = ["standard", "half_ppr", "ppr"];
-const MOCK_WAIVER_CANDIDATES = Object.freeze([
-  Object.freeze({
-    name: "Mock RB Pickup",
-    position: "RB",
-    team: "EXA",
-    projected_points: 11.0,
-    vorp_delta: 3.5,
-    reason: "Mock: high-volume back in a favorable matchup. Addresses your weakest roster spot.",
-    available: true,
-  }),
-  Object.freeze({
-    name: "Sample WR Add",
-    position: "WR",
-    team: "SAM",
-    projected_points: 10.2,
-    vorp_delta: 2.8,
-    reason: "Mock: target-volume receiver with a useful short-term role.",
-    available: true,
-  }),
-  Object.freeze({
-    name: "Example TE Stream",
-    position: "TE",
-    team: "COR",
-    projected_points: 8.1,
-    vorp_delta: 1.9,
-    reason: "Mock: matchup-based tight end option for teams thin at TE.",
-    available: true,
-  }),
-]);
-
 function parseWeek(week) {
   if (week == null || week === "") return null;
   const parsed = Number(week);
   if (!Number.isInteger(parsed) || parsed < 1 || parsed > 18) return undefined;
+  return parsed;
+}
+
+function parseSeason(season) {
+  if (season == null || season === "") return undefined;
+  const parsed = Number(season);
+  if (!Number.isInteger(parsed) || parsed < 2000 || parsed > 2100) return undefined;
   return parsed;
 }
 
@@ -149,14 +126,16 @@ function buildWaiverRecommendations(roster, waiverPool, scoringFormat) {
     .slice(0, 5);
 }
 
-function mockWaiverResponse(roster) {
+function unavailableWaiverResponse(roster, season, reason) {
   return {
+    status: "unavailable",
     week: roster.week,
     platform: "yahoo",
+    league_context: optimizerLeagueContext(roster, roster.league_key, season),
     pool_size: 0,
-    is_mock: true,
-    note: "Player availability API not connected. Returning mock waiver candidates for UI integration.",
-    recommendations: MOCK_WAIVER_CANDIDATES.map((candidate) => ({ ...candidate })),
+    is_mock: false,
+    reason,
+    recommendations: [],
     generated_at: new Date().toISOString(),
   };
 }
@@ -194,9 +173,13 @@ router.get("/lineup", async (req, res, next) => {
     if (wk === undefined) {
       return res.status(400).json({ error: "week must be between 1 and 18" });
     }
+    const season = parseSeason(req.query.season);
+    if (season === undefined) {
+      return res.status(400).json({ error: "season query param must be a valid calendar year" });
+    }
 
     const { client: yahoo } = await getAuthenticatedYahooClient(req.user.id);
-    const cacheKey = `ssff:roster:${req.user.id}:${leagueKey}:${wk || "current"}`;
+    const cacheKey = `ssff:roster:yahoo:${req.user.id}:${leagueKey}:${season}:${wk || "current"}`;
     const roster   = await rosterSvc.fetchAndNormalizeRoster(yahoo, leagueKey, wk, cacheKey);
 
     const recommendations = optimizer.evaluateLineup(roster);
@@ -205,7 +188,7 @@ router.get("/lineup", async (req, res, next) => {
       week:  roster.week,
       league_key: roster.league_key,
       team_key:   roster.team_key,
-      league_context: optimizerLeagueContext(roster, leagueKey, req.query.season),
+      league_context: optimizerLeagueContext(roster, leagueKey, season),
       starter_count: roster.slots.starters.length,
       bench_count:   roster.slots.bench.length,
       recommendations,
@@ -229,9 +212,13 @@ router.get("/waivers", async (req, res, next) => {
     if (wk === undefined) {
       return res.status(400).json({ error: "week must be between 1 and 18" });
     }
+    const season = parseSeason(req.query.season);
+    if (season === undefined) {
+      return res.status(400).json({ error: "season query param must be a valid calendar year" });
+    }
 
     const { client: yahoo } = await getAuthenticatedYahooClient(req.user.id);
-    const cacheKey = `ssff:roster:${req.user.id}:${leagueKey}:${wk || "current"}`;
+    const cacheKey = `ssff:roster:yahoo:${req.user.id}:${leagueKey}:${season}:${wk || "current"}`;
     const roster   = await rosterSvc.fetchAndNormalizeRoster(yahoo, leagueKey, wk, cacheKey);
 
     // Fetch waiver pool via Yahoo and normalize.
@@ -243,7 +230,7 @@ router.get("/waivers", async (req, res, next) => {
     res.json({
       week:        roster.week,
       league_key:  roster.league_key,
-      league_context: optimizerLeagueContext(roster, leagueKey, req.query.season),
+      league_context: optimizerLeagueContext(roster, leagueKey, season),
       pool_size:   waiverPool.length,
       recommendations,
       note:        waiverPool.every(p => p.projected_points == null)
@@ -265,6 +252,10 @@ router.get("/waiver", async (req, res, next) => {
     if (wk === undefined) {
       return res.status(400).json({ error: "week must be between 1 and 18" });
     }
+    const season = parseSeason(req.query.season);
+    if (season === undefined) {
+      return res.status(400).json({ error: "season query param must be a valid calendar year" });
+    }
 
     const leagueId = await resolveActiveYahooLeagueId(req.user.id);
     if (!leagueId) {
@@ -275,7 +266,7 @@ router.get("/waiver", async (req, res, next) => {
       ? req.query.scoringFormat
       : "ppr";
     const { client: yahoo } = await getAuthenticatedYahooClient(req.user.id);
-    const cacheKey = `ssff:waiver:${req.user.id}:${leagueId}:${wk || "current"}`;
+    const cacheKey = `ssff:waiver:yahoo:${req.user.id}:${leagueId}:${season}:${wk || "current"}`;
     const roster = await rosterSvc.fetchAndNormalizeRoster(yahoo, leagueId, wk, cacheKey);
 
     let waiverPool = [];
@@ -284,17 +275,17 @@ router.get("/waiver", async (req, res, next) => {
       waiverPool = rosterSvc.normalizeYahooWaivers(rawWaivers);
     } catch (e) {
       if (e.message === "yahoo_token_expired") throw e;
-      return res.json(mockWaiverResponse(roster));
+      return res.status(502).json(unavailableWaiverResponse(roster, season, "provider_unavailable"));
     }
 
     if (!waiverPool.length) {
-      return res.json(mockWaiverResponse(roster));
+      return res.json(unavailableWaiverResponse(roster, season, "no_available_players"));
     }
 
     return res.json({
       week: roster.week,
       platform: "yahoo",
-      league_context: optimizerLeagueContext(roster, leagueId, req.query.season),
+      league_context: optimizerLeagueContext(roster, leagueId, season),
       pool_size: waiverPool.length,
       is_mock: false,
       recommendations: buildWaiverRecommendations(roster, waiverPool, scoringFormat),

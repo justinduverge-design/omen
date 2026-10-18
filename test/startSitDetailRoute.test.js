@@ -352,7 +352,17 @@ test("ESPN: a rejected cookie returns a reconnect envelope with no credential fr
 });
 
 test("Yahoo: detail is built from the normalized Yahoo roster and its league metadata", async () => {
-  const app = buildApp({ connections: [YAHOO_CONN] });
+  const rosterCalls = [];
+  const app = buildApp({
+    connections: [YAHOO_CONN],
+    rosterSvc: {
+      fetchAndNormalizeRoster: async (_client, leagueId, week, cacheKey) => {
+        rosterCalls.push({ leagueId, week, cacheKey });
+        return ROSTER;
+      },
+      normalizeYahooWaivers: () => [],
+    },
+  });
   const { status, body } = await request(app);
 
   assert.equal(status, 200);
@@ -360,6 +370,7 @@ test("Yahoo: detail is built from the normalized Yahoo roster and its league met
   assert.equal(body.league_name, "Work League");
   // Yahoo scoring settings are a separate entitled call; null, not guessed.
   assert.equal(body.scoring_format, null);
+  assert.equal(rosterCalls[0].cacheKey, "ssff:start-sit-detail:yahoo:user-1:449.l.1:2026:7");
 });
 
 test("Yahoo: an expired token returns a reconnect envelope", async () => {

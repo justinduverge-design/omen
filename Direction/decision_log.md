@@ -3878,3 +3878,20 @@ on the second one.
   after this call returns. Whether that refresh is itself serial/slow client-side is unexamined —
   flagged in `Direction/2026-09-29-tuesday-readiness.md` as the next place to look if switch lag
   is still noticeable after this fix.
+
+## 2026-09-28 — Freeze the final pre-archive scope; route deferred work to 2026-10-06
+
+- **Decision:** the 2026-09-29 session is the final preparation and verification session before
+  Justin archives the iOS beta candidate. Agents may complete the authorized implementation,
+  quality, API health/readiness/version, production-compatibility, merge/deploy, and release-
+  preparation sequence, but the archive remains Justin's action tomorrow.
+- **Decision:** deadline pressure does not pull unrelated work into the candidate. Football-
+  intelligence production activation/SQL, T3/T4/T5, Android release parity, #338, optional #340,
+  remaining client league-switch profiling, sprint reconciliation, and non-blocking beta follow-ups
+  are explicitly routed to `Direction/2026-10-06-tuesday-readiness.md`.
+- **Truth correction:** `Direction/2026-09-29-tuesday-readiness.md` carried a stale Build 6 row and
+  historical gap sections under present-tense headings. The app target is version 7 in source; the
+  actual upload number still requires App Store Connect confirmation, and source/version/build/test
+  evidence never constitutes an archive.
+- **Boundary:** this documentation reconciliation itself changes no code, SQL, production service,
+  provider/store account, secret, deployment, upload, or archive state.

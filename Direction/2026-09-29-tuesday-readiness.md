@@ -3,6 +3,17 @@
 **Written:** 2026-09-24. **Target:** a TestFlight build Justin can push to his own phone and
 present, archived and pushed by Justin on Tuesday.
 
+**Reconciled 2026-09-28 for the final pre-archive session.** Sections 1, 2, and 5 below preserve the
+investigation and implementation history; they are not a current to-do list. Reachability is zero,
+Trade roster/build/share wiring works across ESPN, Yahoo, and Sleeper, and the app target is now
+`CURRENT_PROJECT_VERSION = 7` in Debug and Release. The exact upload build must still be checked in
+App Store Connect because repository version 7 does not prove Build 7 is unused. This session owns
+only the verified 2026-09-29 iOS candidate. Football-intelligence production activation/SQL,
+T3/T4/T5, Android release parity, #338, optional #340, client league-switch profiling, sprint
+reconciliation, and non-blocking beta follow-ups move to
+`Direction/2026-10-06-tuesday-readiness.md`. **Justin performs the archive tomorrow; no agent should
+represent preparation, validation, export, or upload as that archive.**
+
 **Closed out 2026-09-24: all 11 reachability findings resolved (0 remaining), Trade works on
 all three providers, LLM reasoning gap corrected (was already live, not a stub).** Merged and
 pushed to `origin/main` at `c8020dc4`, verified post-merge: 1175 backend tests, 332 Android
@@ -16,7 +27,7 @@ Sourced from `node scripts/check-screen-reachability.mjs` and direct code inspec
 
 ---
 
-## 1. Canvas-to-code reachability gaps — 7 screens, 11 findings
+## 1. Historical canvas-to-code reachability gaps — closed, retained for provenance
 
 All six journeys (J1–J6) and chrome (Account, ReportPill) are built, merged, and verified on
 `main`. These seven screens exist, render correctly to their artboards, and photograph
@@ -47,7 +58,7 @@ stay silently unreachable, and it does not lie.
 
 ---
 
-## 2. Trade gaps — the demo centerpiece
+## 2. Historical Trade gaps — closed, retained for provenance
 
 Justin: *"If you're telling me all the pages are done, all the screens are done, then trade
 has to be in there for Tuesday."* Agreed — this is now a hard requirement, not a stretch item.
@@ -108,10 +119,10 @@ These affect how the app looks and feels to a real tester, separate from what's 
 
 | Item | Status | Tuesday call |
 |---|---|---|
-| **#340 — Command Center contrast** | Real, reproducing failure, confirmed by unmasking the `XCTExpectFailure` and running the audit | Small, scoped fix — in scope if time allows |
+| **#340 — Command Center contrast** | Real, reproducing failure, confirmed by unmasking the `XCTExpectFailure` and running the audit | Deferred to the 2026-10-06 readiness plan; it does not enter the final candidate without complete native verification |
 | **#338 — App-wide Dynamic Type audit blindness** | Real. **Already attempted once this week and reverted** — `Font.custom` clears the audit finding but breaks layout, because Wix Madefor's weight is only reachable via a `UIFontDescriptor` variation axis that `Font.custom` can't carry. A real fix needs font-instance registration, not a one-line swap. Full writeup in `Direction/known_issues.md`, entry dated 2026-09-19/20 | **Out of scope for Tuesday.** Re-attempting under deadline pressure is how the ramp goes flat again, silently — the file's own header already documents that exact failure shipping once. Text does scale correctly at runtime; this is audit visibility, not a user-facing break |
 | **`Brand/brand-system.md` §7** | Stale — still shows the retired numeric-confidence example (`"74 — Medium-High Confidence"`), which fact-of-record #16 replaced with a confidence band | Trivial doc fix, low priority, can ride along with anything else touching that file |
-| **Build/archive readiness** | `CURRENT_PROJECT_VERSION` is still `6` in `project.pbxproj`, dated to the Sep 11 archive — before any of this week's work. Release-config archive dry-run **succeeded** on current `main` (verified, not assumed) | Bump the version number before Justin archives Tuesday; otherwise unchanged |
+| **Build/archive readiness** | Reconciled 2026-09-27: the Omen iOS app target is `CURRENT_PROJECT_VERSION = 7` in both Debug and Release. Source version does not establish whether Build 7 already exists in App Store Connect. | Verify build-number availability on the exact candidate, complete the final phone smoke, and leave the archive to Justin on Tuesday |
 
 ---
 
@@ -161,7 +172,7 @@ production-reachability grep proving it.
 
 ---
 
-## 5. Tuesday parallel track — football intelligence + canvas foundation
+## 5. Historical parallel track — foundation complete locally; production activation deferred
 
 **Added 2026-09-25.** This is the architecture track that should inform the next canvas-to-code
 conversation. It is parallel to the remaining presentation items above, but it must not be mixed into

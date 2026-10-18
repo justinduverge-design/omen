@@ -88,26 +88,36 @@ async function get(app, path, headers = {}) {
 
 test("GET /api/trade/roster requires authentication", async () => {
   const app = buildApp({ authenticate: async () => { throw new Error("no session"); } });
-  const res = await get(app, "/api/trade/roster?platform=sleeper&league_id=abc");
+  const res = await get(app, "/api/trade/roster?platform=sleeper&league_id=abc&season=2026");
   assert.equal(res.status, 401);
   assert.equal(res.body.code, "trade_roster_auth_required");
 });
 
 test("GET /api/trade/roster requires platform and league_id", async () => {
   const app = buildApp();
-  const missingPlatform = await get(app, "/api/trade/roster?league_id=abc", { authorization: "Bearer t" });
+  const missingPlatform = await get(app, "/api/trade/roster?league_id=abc&season=2026", { authorization: "Bearer t" });
   assert.equal(missingPlatform.status, 400);
 
-  const missingLeague = await get(app, "/api/trade/roster?platform=sleeper", { authorization: "Bearer t" });
+  const missingLeague = await get(app, "/api/trade/roster?platform=sleeper&season=2026", { authorization: "Bearer t" });
   assert.equal(missingLeague.status, 400);
 
-  const badPlatform = await get(app, "/api/trade/roster?platform=nope&league_id=abc", { authorization: "Bearer t" });
+  const badPlatform = await get(app, "/api/trade/roster?platform=nope&league_id=abc&season=2026", { authorization: "Bearer t" });
   assert.equal(badPlatform.status, 400);
+});
+
+test("GET /api/trade/roster requires an explicit valid season", async () => {
+  const app = buildApp();
+  const missing = await get(app, "/api/trade/roster?platform=sleeper&league_id=abc", { authorization: "Bearer t" });
+  assert.equal(missing.status, 400);
+  assert.equal(missing.body.error, "season query param must be a valid calendar year");
+
+  const invalid = await get(app, "/api/trade/roster?platform=sleeper&league_id=abc&season=unknown", { authorization: "Bearer t" });
+  assert.equal(invalid.status, 400);
 });
 
 test("GET /api/trade/roster resolves a real Sleeper opponent roster", async () => {
   const app = buildApp();
-  const res = await get(app, "/api/trade/roster?platform=sleeper&league_id=abc123&team_id=2", {
+  const res = await get(app, "/api/trade/roster?platform=sleeper&league_id=abc123&team_id=2&season=2026", {
     authorization: "Bearer t",
   });
   assert.equal(res.status, 200);
@@ -122,7 +132,7 @@ test("GET /api/trade/roster resolves a real Sleeper opponent roster", async () =
 
 test("GET /api/trade/roster returns every Sleeper team when team_id is omitted", async () => {
   const app = buildApp();
-  const res = await get(app, "/api/trade/roster?platform=sleeper&league_id=abc123", {
+  const res = await get(app, "/api/trade/roster?platform=sleeper&league_id=abc123&season=2026", {
     authorization: "Bearer t",
   });
   assert.equal(res.status, 200);
@@ -131,7 +141,7 @@ test("GET /api/trade/roster returns every Sleeper team when team_id is omitted",
 
 test("GET /api/trade/roster resolves a real ESPN opponent roster from the schedule-walk normalizer", async () => {
   const app = buildApp();
-  const res = await get(app, "/api/trade/roster?platform=espn&league_id=espnleague&team_id=20", {
+  const res = await get(app, "/api/trade/roster?platform=espn&league_id=espnleague&team_id=20&season=2026", {
     authorization: "Bearer t",
   });
   assert.equal(res.status, 200);
@@ -144,7 +154,7 @@ test("GET /api/trade/roster resolves a real ESPN opponent roster from the schedu
 
 test("GET /api/trade/roster resolves a real Yahoo opponent roster from the per-team-key composition", async () => {
   const app = buildApp();
-  const res = await get(app, "/api/trade/roster?platform=yahoo&league_id=411.l.1&team_id=411.l.1.t.2", {
+  const res = await get(app, "/api/trade/roster?platform=yahoo&league_id=411.l.1&team_id=411.l.1.t.2&season=2026", {
     authorization: "Bearer t",
   });
   assert.equal(res.status, 200);
@@ -159,7 +169,7 @@ test("GET /api/trade/roster gives the honest unavailable shape, never a crash, w
   const app = buildApp({
     espnCredentials: async () => { throw Object.assign(new Error("ESPN not connected"), { status: 404 }); },
   });
-  const res = await get(app, "/api/trade/roster?platform=espn&league_id=espnleague", {
+  const res = await get(app, "/api/trade/roster?platform=espn&league_id=espnleague&season=2026", {
     authorization: "Bearer t",
   });
   assert.equal(res.status, 200);
@@ -173,7 +183,7 @@ test("GET /api/trade/roster gives the honest unavailable shape, never a crash, w
   const app = buildApp({
     yahooClient: async () => { throw Object.assign(new Error("Yahoo refresh token missing"), { status: 401 }); },
   });
-  const res = await get(app, "/api/trade/roster?platform=yahoo&league_id=411.l.1", {
+  const res = await get(app, "/api/trade/roster?platform=yahoo&league_id=411.l.1&season=2026", {
     authorization: "Bearer t",
   });
   assert.equal(res.status, 200);
@@ -184,7 +194,7 @@ test("GET /api/trade/roster gives the honest unavailable shape, never a crash, w
 
 test("GET /api/trade/roster never leaks ESPN cookie values onto the wire", async () => {
   const app = buildApp();
-  const res = await get(app, "/api/trade/roster?platform=espn&league_id=espnleague", {
+  const res = await get(app, "/api/trade/roster?platform=espn&league_id=espnleague&season=2026", {
     authorization: "Bearer t",
   });
   const serialized = JSON.stringify(res.body);
@@ -196,7 +206,7 @@ test("GET /api/trade/roster reports unavailable, not a 500, when a Sleeper leagu
   const app = buildApp({
     fetchLeagueRosters: async () => ({ league_status: "drafting", roster_positions: [], teams: [] }),
   });
-  const res = await get(app, "/api/trade/roster?platform=sleeper&league_id=abc123", {
+  const res = await get(app, "/api/trade/roster?platform=sleeper&league_id=abc123&season=2026", {
     authorization: "Bearer t",
   });
   assert.equal(res.status, 200);
@@ -208,7 +218,7 @@ test("GET /api/trade/roster answers 503, never a fabricated roster, when the Sle
   const app = buildApp({
     fetchLeagueRosters: async () => { throw new Error("sleeper down"); },
   });
-  const res = await get(app, "/api/trade/roster?platform=sleeper&league_id=abc123", {
+  const res = await get(app, "/api/trade/roster?platform=sleeper&league_id=abc123&season=2026", {
     authorization: "Bearer t",
   });
   assert.equal(res.status, 503);
@@ -219,7 +229,7 @@ test("GET /api/trade/roster answers 503, never a fabricated roster, when the ESP
   const app = buildApp({
     fetchEspnLeagueRosters: async () => { throw new Error("espn 502"); },
   });
-  const res = await get(app, "/api/trade/roster?platform=espn&league_id=espnleague", {
+  const res = await get(app, "/api/trade/roster?platform=espn&league_id=espnleague&season=2026", {
     authorization: "Bearer t",
   });
   assert.equal(res.status, 503);

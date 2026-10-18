@@ -200,7 +200,7 @@ function buildApp(options = {}) {
   return { app, state: loaded.state };
 }
 
-async function request(app, path = "/api/optimizer/waiver?week=3") {
+async function request(app, path = "/api/optimizer/waiver?week=3&season=2026") {
   const server = http.createServer(app);
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
 
@@ -251,26 +251,47 @@ test("GET /api/optimizer/waiver returns live Yahoo waiver recommendations", asyn
   assert.deepEqual(state.availableCalls[0][1], { count: 50, sort: "AR" });
 });
 
-test("GET /api/optimizer/waiver returns mock fallback when availability fetch fails", async () => {
+test("GET /api/optimizer/waiver fails closed when availability fetch fails", async () => {
   const { app } = buildApp({
     availableError: new Error("Yahoo availability unavailable"),
   });
 
   const res = await request(app);
 
-  assert.equal(res.status, 200);
-  assert.equal(res.body.is_mock, true);
+  assert.equal(res.status, 502);
+  assert.equal(res.body.status, "unavailable");
+  assert.equal(res.body.is_mock, false);
   assert.equal(res.body.pool_size, 0);
-  assert.equal(
-    res.body.note,
-    "Player availability API not connected. Returning mock waiver candidates for UI integration."
-  );
-  assert.equal(res.body.recommendations[0].name, "Mock RB Pickup");
+  assert.equal(res.body.reason, "provider_unavailable");
+  assert.deepEqual(res.body.recommendations, []);
+});
+
+test("GET /api/optimizer/waiver returns an honest unavailable response for an empty live pool", async () => {
+  const { app } = buildApp({ waiverPool: [] });
+  const res = await request(app);
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.status, "unavailable");
+  assert.equal(res.body.is_mock, false);
+  assert.equal(res.body.reason, "no_available_players");
+  assert.deepEqual(res.body.recommendations, []);
+});
+
+test("GET /api/optimizer/waiver requires season and isolates its roster cache by provider, user, league, season, and week", async () => {
+  const { app, state } = buildApp();
+  const missing = await request(app, "/api/optimizer/waiver?week=3");
+  assert.equal(missing.status, 400);
+  assert.equal(missing.body.error, "season query param must be a valid calendar year");
+
+  const live = await request(app, "/api/optimizer/waiver?week=3&season=2025");
+  assert.equal(live.status, 200);
+  assert.equal(state.rosterCalls[0].cacheKey, "ssff:waiver:yahoo:test-user:449.l.123:2025:3");
+  assert.equal(live.body.league_context.season, 2025);
 });
 
 test("GET /api/optimizer/waiver returns 400 for invalid week", async () => {
   const { app } = buildApp();
-  const res = await request(app, "/api/optimizer/waiver?week=19");
+  const res = await request(app, "/api/optimizer/waiver?week=19&season=2026");
 
   assert.equal(res.status, 400);
   assert.equal(res.body.error, "week must be between 1 and 18");
@@ -283,4 +304,3 @@ test("GET /api/optimizer/waiver returns 400 without usable Yahoo league", async 
   assert.equal(res.status, 400);
   assert.equal(res.body.error, "Yahoo league connection required");
 });
-

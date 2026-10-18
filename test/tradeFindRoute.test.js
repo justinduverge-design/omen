@@ -102,7 +102,7 @@ async function get(app, path, headers = {}) {
 
 test("GET /api/trade/find requires authentication", async () => {
   const { app } = buildApp({ authenticate: async () => { throw new Error("no session"); } });
-  const res = await get(app, "/api/trade/find?platform=sleeper&league_id=abc&team_id=1");
+  const res = await get(app, "/api/trade/find?platform=sleeper&league_id=abc&team_id=1&season=2026");
   assert.equal(res.status, 401);
   assert.equal(res.body.code, "trade_find_auth_required");
 });
@@ -111,23 +111,32 @@ test("GET /api/trade/find requires platform, league_id, and team_id", async () =
   const { app } = buildApp();
   const authorization = "Bearer t";
 
-  const missingPlatform = await get(app, "/api/trade/find?league_id=abc&team_id=1", { authorization });
+  const missingPlatform = await get(app, "/api/trade/find?league_id=abc&team_id=1&season=2026", { authorization });
   assert.equal(missingPlatform.status, 400);
 
-  const missingLeague = await get(app, "/api/trade/find?platform=sleeper&team_id=1", { authorization });
+  const missingLeague = await get(app, "/api/trade/find?platform=sleeper&team_id=1&season=2026", { authorization });
   assert.equal(missingLeague.status, 400);
 
-  const missingTeamId = await get(app, "/api/trade/find?platform=sleeper&league_id=abc", { authorization });
+  const missingTeamId = await get(app, "/api/trade/find?platform=sleeper&league_id=abc&season=2026", { authorization });
   assert.equal(missingTeamId.status, 400);
   assert.equal(missingTeamId.body.code, "trade_find_team_id_required");
 
-  const badPlatform = await get(app, "/api/trade/find?platform=nope&league_id=abc&team_id=1", { authorization });
+  const badPlatform = await get(app, "/api/trade/find?platform=nope&league_id=abc&team_id=1&season=2026", { authorization });
   assert.equal(badPlatform.status, 400);
+});
+
+test("GET /api/trade/find requires an explicit valid season", async () => {
+  const { app } = buildApp();
+  const missing = await get(app, "/api/trade/find?platform=sleeper&league_id=abc&team_id=1", {
+    authorization: "Bearer t",
+  });
+  assert.equal(missing.status, 400);
+  assert.equal(missing.body.error, "season query param must be a valid calendar year");
 });
 
 test("GET /api/trade/find returns ranked candidates with reasoning for a real league shape", async () => {
   const { app } = buildApp({ fetchLeagueRosters: async () => sleeperFixture(2) });
-  const res = await get(app, "/api/trade/find?platform=sleeper&league_id=abc123&team_id=1", {
+  const res = await get(app, "/api/trade/find?platform=sleeper&league_id=abc123&team_id=1&season=2026", {
     authorization: "Bearer t",
   });
 
@@ -148,7 +157,7 @@ test("GET /api/trade/find returns ranked candidates with reasoning for a real le
 
 test("GET /api/trade/find reports own_team not found rather than guessing", async () => {
   const { app } = buildApp({ fetchLeagueRosters: async () => sleeperFixture(1) });
-  const res = await get(app, "/api/trade/find?platform=sleeper&league_id=abc123&team_id=does-not-exist", {
+  const res = await get(app, "/api/trade/find?platform=sleeper&league_id=abc123&team_id=does-not-exist&season=2026", {
     authorization: "Bearer t",
   });
   assert.equal(res.status, 404);
@@ -159,7 +168,7 @@ test("GET /api/trade/find gives the honest unavailable shape, never a crash, whe
   const { app } = buildApp({
     fetchLeagueRosters: async () => ({ league_status: "drafting", roster_positions: [], teams: [] }),
   });
-  const res = await get(app, "/api/trade/find?platform=sleeper&league_id=abc123&team_id=1", {
+  const res = await get(app, "/api/trade/find?platform=sleeper&league_id=abc123&team_id=1&season=2026", {
     authorization: "Bearer t",
   });
   assert.equal(res.status, 200);
@@ -170,7 +179,7 @@ test("GET /api/trade/find gives the honest unavailable shape, never a crash, whe
 
 test("GET /api/trade/find answers 503, never a fabricated batch, when the roster read fails", async () => {
   const { app } = buildApp({ fetchLeagueRosters: async () => { throw new Error("sleeper down"); } });
-  const res = await get(app, "/api/trade/find?platform=sleeper&league_id=abc123&team_id=1", {
+  const res = await get(app, "/api/trade/find?platform=sleeper&league_id=abc123&team_id=1&season=2026", {
     authorization: "Bearer t",
   });
   assert.equal(res.status, 503);
@@ -189,7 +198,7 @@ test("GET /api/trade/find degrades with a named reason when one team's roster is
       ],
     }),
   });
-  const res = await get(app, "/api/trade/find?platform=sleeper&league_id=abc123&team_id=1", {
+  const res = await get(app, "/api/trade/find?platform=sleeper&league_id=abc123&team_id=1&season=2026", {
     authorization: "Bearer t",
   });
 
@@ -209,7 +218,7 @@ test("GET /api/trade/find degrades with a named reason when one team's roster is
 
 test("GET /api/trade/find stays bounded against a many-team league (#404 shape)", async () => {
   const { app } = buildApp({ fetchLeagueRosters: async () => sleeperFixture(30) });
-  const res = await get(app, "/api/trade/find?platform=sleeper&league_id=abc123&team_id=1", {
+  const res = await get(app, "/api/trade/find?platform=sleeper&league_id=abc123&team_id=1&season=2026", {
     authorization: "Bearer t",
   });
 
@@ -227,14 +236,14 @@ test("GET /api/trade/find serves a second request from cache without re-reading 
     tradeFindCache: cache,
   });
 
-  const first = await get(app, "/api/trade/find?platform=sleeper&league_id=abc123&team_id=1&week=3", {
+  const first = await get(app, "/api/trade/find?platform=sleeper&league_id=abc123&team_id=1&week=3&season=2026", {
     authorization: "Bearer t",
   });
   assert.equal(first.status, 200);
   assert.equal(first.body.cache.hit, false);
   assert.equal(getSleeperCallCount(), 1);
 
-  const second = await get(app, "/api/trade/find?platform=sleeper&league_id=abc123&team_id=1&week=3", {
+  const second = await get(app, "/api/trade/find?platform=sleeper&league_id=abc123&team_id=1&week=3&season=2026", {
     authorization: "Bearer t",
   });
   assert.equal(second.status, 200);
@@ -242,4 +251,22 @@ test("GET /api/trade/find serves a second request from cache without re-reading 
   // The whole point of the cache: a repeat request for the same league/week
   // must not fan out to the provider again.
   assert.equal(getSleeperCallCount(), 1, "cache hit must not re-read the provider roster");
+});
+
+test("GET /api/trade/find isolates cached rosters by user and season", async () => {
+  const cache = createMemoryTradeFindCache();
+  let activeUser = "user-1";
+  const { app, getSleeperCallCount } = buildApp({
+    authenticate: async () => ({ id: activeUser }),
+    fetchLeagueRosters: async () => sleeperFixture(2),
+    tradeFindCache: cache,
+  });
+  const headers = { authorization: "Bearer t" };
+
+  await get(app, "/api/trade/find?platform=sleeper&league_id=abc123&team_id=1&week=3&season=2025", headers);
+  await get(app, "/api/trade/find?platform=sleeper&league_id=abc123&team_id=1&week=3&season=2026", headers);
+  activeUser = "user-2";
+  await get(app, "/api/trade/find?platform=sleeper&league_id=abc123&team_id=1&week=3&season=2026", headers);
+
+  assert.equal(getSleeperCallCount(), 3, "different season or user must not share a roster cache entry");
 });

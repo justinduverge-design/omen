@@ -79,7 +79,7 @@ async function loadDetailContext(connection, userId, week, season) {
     const credentials = await getAuthenticatedEspnCredentials(userId);
     const roster = await espnAdapter.buildNormalizedRoster(
       connection.league_id, credentials.espn_s2, credentials.swid, week,
-      { teamId: connection.espn_team_id }
+      { teamId: connection.espn_team_id, season }
     );
     // ESPN scoring rules are unverified, so this stays null rather than
     // defaulting to PPR — that default is the A6 defect.
@@ -88,7 +88,7 @@ async function loadDetailContext(connection, userId, week, season) {
 
   if (connection.platform === "yahoo") {
     const { client } = await getAuthenticatedYahooClient(userId);
-    const cacheKey = `ssff:start-sit-detail:${userId}:${connection.league_id}:${week || "current"}`;
+    const cacheKey = `ssff:start-sit-detail:yahoo:${userId}:${connection.league_id}:${season}:${week || "current"}`;
     const [roster, metadata] = await Promise.all([
       rosterSvc.fetchAndNormalizeRoster(client, connection.league_id, week, cacheKey),
       client.getLeagueMetadata(connection.league_id).catch(() => ({})),
