@@ -90,8 +90,8 @@ function AdpRow({ rec, adpMap, adpLoading, connectedPlatform }) {
     return (
       <div className="flex flex-wrap items-center gap-2 border-t pt-3" style={{ borderColor: 'var(--color-border)' }}>
         <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>ADP</p>
-        <div className="h-4 w-20 animate-pulse motion-reduce:animate-none rounded" style={{ background: 'var(--color-surface-1)' }} />
-        <div className="h-4 w-16 animate-pulse motion-reduce:animate-none rounded" style={{ background: 'var(--color-surface-1)' }} />
+        <div className="h-4 w-20 animate-pulse motion-reduce:animate-none rounded-sm" style={{ background: 'var(--color-surface-1)' }} />
+        <div className="h-4 w-16 animate-pulse motion-reduce:animate-none rounded-sm" style={{ background: 'var(--color-surface-1)' }} />
       </div>
     );
   }
@@ -164,7 +164,7 @@ function RecommendationCard({ rec, adpMap, adpLoading, connectedPlatform }) {
       variant="solid"
       className={`space-y-4 p-5 ${
         isTop
-          ? 'border-[var(--color-team-accent)]/40 bg-[var(--color-team-accent)]/5 shadow-lg shadow-[var(--color-team-accent)]/5'
+          ? 'border-(--color-team-accent)/40 bg-(--color-team-accent)/5 shadow-lg shadow-(--color-team-accent)/5'
           : ''
       }`}
       style={isTop ? { borderColor: undefined, background: undefined } : undefined}
@@ -172,7 +172,7 @@ function RecommendationCard({ rec, adpMap, adpLoading, connectedPlatform }) {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
           <span
-            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border text-xs font-semibold tabular-nums"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-semibold tabular-nums"
             style={tierStyle ?? { borderColor: 'var(--color-border)', background: 'var(--color-surface-1)', color: 'var(--color-text-primary)' }}
           >
             {rec.rank}
@@ -182,7 +182,7 @@ function RecommendationCard({ rec, adpMap, adpLoading, connectedPlatform }) {
             <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{rec.player.team}</p>
           </div>
         </div>
-        <div className="flex flex-shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <Badge tone="neutral">
             {REC_TYPE_LABELS[rec.recommendation_type] ?? rec.recommendation_type}
           </Badge>
@@ -206,7 +206,7 @@ function RecommendationCard({ rec, adpMap, adpLoading, connectedPlatform }) {
         <ol className="space-y-2">
           {rec.reasoning.map((line, i) => (
             <li key={i} className="flex gap-3 text-sm leading-6" style={{ color: 'var(--color-text-primary)' }}>
-              <span className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border text-xs font-semibold tabular-nums" style={{ borderColor: 'var(--color-team-accent)', background: 'var(--color-accent-muted)', color: 'var(--color-team-accent)' }}>
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs font-semibold tabular-nums" style={{ borderColor: 'var(--color-team-accent)', background: 'var(--color-accent-muted)', color: 'var(--color-team-accent)' }}>
                 {i + 1}
               </span>
               {line}
@@ -236,14 +236,14 @@ function LoadingRecommendations() {
         >
           <div className="flex items-center gap-3">
             <div className="h-7 w-7 rounded-full" style={{ background: 'var(--color-surface-2)' }} />
-            <div className="h-5 w-36 rounded" style={{ background: 'var(--color-surface-2)' }} />
+            <div className="h-5 w-36 rounded-sm" style={{ background: 'var(--color-surface-2)' }} />
           </div>
-          <div className="h-5 w-3/4 rounded" style={{ background: 'var(--color-surface-2)' }} />
+          <div className="h-5 w-3/4 rounded-sm" style={{ background: 'var(--color-surface-2)' }} />
           <div className="h-2 rounded-full" style={{ background: 'var(--color-surface-2)' }} />
           <div className="space-y-2">
-            <div className="h-4 w-full rounded" style={{ background: 'var(--color-surface-2)' }} />
-            <div className="h-4 w-5/6 rounded" style={{ background: 'var(--color-surface-2)' }} />
-            <div className="h-4 w-4/6 rounded" style={{ background: 'var(--color-surface-2)' }} />
+            <div className="h-4 w-full rounded-sm" style={{ background: 'var(--color-surface-2)' }} />
+            <div className="h-4 w-5/6 rounded-sm" style={{ background: 'var(--color-surface-2)' }} />
+            <div className="h-4 w-4/6 rounded-sm" style={{ background: 'var(--color-surface-2)' }} />
           </div>
         </Card>
       ))}
@@ -461,7 +461,7 @@ export default function DraftAssistant({ platforms }) {
                 <button
                   key={pos}
                   aria-pressed={isSelected}
-                  className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
+                  className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--color-accent)"
                   type="button"
                   onClick={() => toggleNeed(pos)}
                 >

@@ -52,7 +52,7 @@ function MoveTypeBadge({ type }) {
   };
   return (
     <span
-      className="rounded border px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide"
+      className="rounded-sm border px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide"
       style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-tertiary)' }}
     >
       {labels[type] ?? type}
@@ -231,7 +231,7 @@ function EmptyHistory() {
       )}
       <Link
         to="/omen"
-        className="mt-6 inline-block rounded-md border px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-[var(--color-surface-2)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+        className="mt-6 inline-block rounded-md border px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-(--color-surface-2) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent)"
         style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
       >
         Go to Omen →
@@ -298,7 +298,7 @@ export default function MoveHistory({ onDataState, fixture = null }) {
           Couldn't load history.
         </p>
         <button
-          className="mt-3 text-xs font-semibold transition-colors hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
+          className="mt-3 text-xs font-semibold transition-colors hover:opacity-80 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--color-accent)"
           style={{ color: 'var(--color-accent)' }}
           type="button"
           onClick={load}

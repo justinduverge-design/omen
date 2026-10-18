@@ -45,7 +45,7 @@ const TabNav = ({
         ref={containerRef}
         role="tablist"
         aria-label={ariaLabel}
-        className={`flex items-center gap-6 border-b border-[var(--color-border)] ${className}`}
+        className={`flex items-center gap-6 border-b border-(--color-border) ${className}`}
         onKeyDown={handleKeyDown}
         {...props}
       >
@@ -63,13 +63,13 @@ const TabNavItem = ({ value, children, disabled = false, className = '', ...prop
   const baseClasses = `
     relative flex items-center justify-center font-medium transition-colors duration-150 ease-in-out motion-reduce:transition-none motion-reduce:duration-0
     cursor-pointer pb-3 pt-3 min-h-[44px] whitespace-nowrap
-    focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]
+    focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent)
   `;
 
   // Underline tab chrome
   const stateClasses = isSelected
-    ? 'text-[var(--color-accent)] border-b-2 border-[var(--color-accent)] -mb-[1px]'
-    : 'text-[var(--color-text-secondary)] border-b-2 border-transparent hover:text-[var(--color-text-primary)] hover:border-[var(--color-border-subtle)] -mb-[1px]';
+    ? 'text-(--color-accent) border-b-2 border-(--color-accent) -mb-px'
+    : 'text-(--color-text-secondary) border-b-2 border-transparent hover:text-(--color-text-primary) hover:border-(--color-border-subtle) -mb-px';
 
   const disabledClasses = disabled ? 'opacity-50 cursor-not-allowed pointer-events-none' : '';
 

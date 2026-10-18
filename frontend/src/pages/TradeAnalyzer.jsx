@@ -99,8 +99,8 @@ function TradeAnalyzerPlayerRow({ sectionTitle, index, player, totalCount, activ
     <div
       className={`grid grid-cols-[auto_minmax(0,1fr)_44px] items-center gap-2 rounded-md border p-2 transition-colors ${
         active
-          ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/5'
-          : 'border-[var(--color-border)] bg-[var(--color-surface-1)]'
+          ? 'border-(--color-accent) bg-(--color-accent)/5'
+          : 'border-(--color-border) bg-(--color-surface-1)'
       }`}
       onFocusCapture={() => onActivate(index)}
     >
@@ -133,7 +133,7 @@ function TradeAnalyzerPlayerRow({ sectionTitle, index, player, totalCount, activ
           <ul
             id={`${sectionTitle}-${index}-suggestions`}
             aria-label="Player suggestions"
-            className="absolute left-0 right-0 top-full z-20 mt-1 max-h-52 overflow-y-auto rounded-md border border-[var(--color-border)] bg-[var(--color-surface-2)] py-1 shadow-lg"
+            className="absolute left-0 right-0 top-full z-20 mt-1 max-h-52 overflow-y-auto rounded-md border border-(--color-border) bg-(--color-surface-2) py-1 shadow-lg"
             role="listbox"
           >
             {suggestions.map((p, si) => (
@@ -143,8 +143,8 @@ function TradeAnalyzerPlayerRow({ sectionTitle, index, player, totalCount, activ
                 aria-selected={si === activeIdx}
                 className={`flex cursor-pointer items-center justify-between px-3 py-2 text-sm transition-colors ${
                   si === activeIdx
-                    ? 'bg-[var(--color-accent)]/15 text-[var(--color-text-primary)]'
-                    : 'text-[var(--color-text-primary)] hover:bg-[var(--color-surface-3)]'
+                    ? 'bg-(--color-accent)/15 text-(--color-text-primary)'
+                    : 'text-(--color-text-primary) hover:bg-(--color-surface-3)'
                 }`}
                 role="option"
                 onMouseDown={(e) => {
@@ -168,7 +168,7 @@ function TradeAnalyzerPlayerRow({ sectionTitle, index, player, totalCount, activ
       <div className="flex items-center">
         <button
           aria-label={`Remove ${sectionTitle} player ${index + 1}`}
-          className="flex h-11 w-11 items-center justify-center rounded-md border border-[var(--color-border)] text-base text-[var(--color-text-secondary)] transition-colors hover:border-red-400 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex h-11 w-11 items-center justify-center rounded-md border border-(--color-border) text-base text-(--color-text-secondary) transition-colors hover:border-red-400 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-40"
           disabled={totalCount === 1}
           type="button"
           onClick={() => onRemove(index)}
@@ -202,14 +202,14 @@ function PlayerRows({ title, players, onChange, onAdd, onRemove }) {
   }
 
   return (
-    <section className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5">
+    <section className="rounded-lg border border-(--color-border) bg-(--color-surface-1) p-5">
       <div className="mb-4">
-        <h2 className="font-display text-lg font-semibold text-[var(--color-text-primary)]">{title}</h2>
+        <h2 className="font-display text-lg font-semibold text-(--color-text-primary)">{title}</h2>
       </div>
 
-      <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] p-3">
+      <div className="rounded-md border border-(--color-border) bg-(--color-bg) p-3">
         <fieldset className="min-w-0 space-y-1.5">
-          <legend className="text-xs font-semibold text-[var(--color-text-secondary)]">
+          <legend className="text-xs font-semibold text-(--color-text-secondary)">
             Position
             <span className="sr-only">
               {' '}for {activePlayer?.name || `${title} player ${safeActiveIndex + 1}`}
@@ -223,10 +223,10 @@ function PlayerRows({ title, players, onChange, onAdd, onRemove }) {
                   key={pos}
                   type="button"
                   aria-pressed={selected}
-                  className={`min-h-[44px] min-w-0 rounded-md border px-2 text-xs font-bold uppercase tracking-wide transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] ${
+                  className={`min-h-[44px] min-w-0 rounded-md border px-2 text-xs font-bold uppercase tracking-wide transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent) ${
                     selected
-                      ? 'ring-2 ring-[var(--color-accent)] ring-offset-2 ring-offset-[var(--color-bg)]'
-                      : 'hover:border-[var(--color-accent)]'
+                      ? 'ring-2 ring-(--color-accent) ring-offset-2 ring-offset-(--color-bg)'
+                      : 'hover:border-(--color-accent)'
                   }`}
                   style={selected ? {
                     background: 'var(--color-accent)',
@@ -243,7 +243,7 @@ function PlayerRows({ title, players, onChange, onAdd, onRemove }) {
         </fieldset>
 
         <div className="mt-3 flex items-center justify-between gap-3">
-          <p className="text-xs font-semibold text-[var(--color-text-secondary)]">Players</p>
+          <p className="text-xs font-semibold text-(--color-text-secondary)">Players</p>
           <Button
             variant="secondary"
             size="lg"
@@ -278,13 +278,13 @@ function PlayerRows({ title, players, onChange, onAdd, onRemove }) {
 
 function ShareControls({ onCreateShare, shareStatus, shareUrl, shareError }) {
   return (
-    <div className="mt-5 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] p-4">
+    <div className="mt-5 rounded-md border border-(--color-border) bg-(--color-bg) p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="font-display text-sm font-semibold text-[var(--color-text-primary)]">
+          <p className="font-display text-sm font-semibold text-(--color-text-primary)">
             Share this result
           </p>
-          <p className="mt-1 text-xs leading-5 text-[var(--color-text-secondary)]">
+          <p className="mt-1 text-xs leading-5 text-(--color-text-secondary)">
             Creates a public snapshot. No connected-platform data or private league context is included.
           </p>
         </div>
@@ -302,29 +302,29 @@ function ShareControls({ onCreateShare, shareStatus, shareUrl, shareError }) {
       </div>
 
       {shareError && (
-        <p className="mt-3 text-sm text-[var(--color-risk-high)]" role="alert">
+        <p className="mt-3 text-sm text-(--color-risk-high)" role="alert">
           {shareError}
         </p>
       )}
 
       {shareUrl && (
         <div className="mt-4">
-          <label className="text-xs font-semibold uppercase tracking-widest text-[var(--color-text-tertiary)]" htmlFor="trade-share-url">
+          <label className="text-xs font-semibold uppercase tracking-widest text-(--color-text-tertiary)" htmlFor="trade-share-url">
             Public link
           </label>
           <input
             id="trade-share-url"
-            className="mt-2 w-full min-h-[44px] rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 font-mono text-xs text-[var(--color-text-primary)] outline-none focus:border-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
+            className="mt-2 w-full min-h-[44px] rounded-md border border-(--color-border) bg-(--color-surface-1) px-3 py-2 font-mono text-xs text-(--color-text-primary) outline-hidden focus:border-(--color-accent) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--color-accent)"
             readOnly
             value={shareUrl}
             onFocus={(event) => event.currentTarget.select()}
           />
           <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs text-[var(--color-text-secondary)]" role="status">
+            <p className="text-xs text-(--color-text-secondary)" role="status">
               {shareStatus === 'copied' ? 'Link copied. Public snapshot expires in 30 days.' : 'Public snapshot expires in 30 days.'}
             </p>
             <a
-              className="inline-flex min-h-[44px] items-center justify-center rounded-md bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[var(--color-text-on-accent)] transition-colors duration-150 hover:bg-[var(--color-accent-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+              className="inline-flex min-h-[44px] items-center justify-center rounded-md bg-(--color-accent) px-4 py-2 text-sm font-semibold text-(--color-text-on-accent) transition-colors duration-150 hover:bg-(--color-accent-hover) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent)"
               href={shareUrl}
             >
               Open share card
@@ -346,20 +346,20 @@ function ResultPanel({ result, onCreateShare, shareStatus, shareUrl, shareError,
   if (!result) return null;
 
   const verdictStyles = {
-    accept: 'border-[var(--color-risk-low)]/30 bg-[var(--color-risk-low)]/10 text-[var(--color-risk-low)]',
-    decline: 'border-[var(--color-risk-high)]/30 bg-[var(--color-risk-high)]/10 text-[var(--color-risk-high)]',
-    neutral: 'border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 text-[var(--color-accent-hover)]',
+    accept: 'border-(--color-risk-low)/30 bg-(--color-risk-low)/10 text-(--color-risk-low)',
+    decline: 'border-(--color-risk-high)/30 bg-(--color-risk-high)/10 text-(--color-risk-high)',
+    neutral: 'border-(--color-accent)/30 bg-(--color-accent)/10 text-(--color-accent-hover)',
   };
 
   return (
-    <section className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-6">
+    <section className="rounded-lg border border-(--color-border) bg-(--color-surface-1) p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">
+            <p className="text-xs font-semibold uppercase tracking-widest text-(--color-accent)">
               Result
             </p>
-            <span className="rounded-full border border-[var(--color-data-stub)]/40 px-2.5 py-0.5 text-xs font-semibold text-[var(--color-text-secondary)]">
+            <span className="rounded-full border border-(--color-data-stub)/40 px-2.5 py-0.5 text-xs font-semibold text-(--color-text-secondary)">
               Input-based analysis · not connected league data
             </span>
             {cultureTag && (
@@ -381,7 +381,7 @@ function ResultPanel({ result, onCreateShare, shareStatus, shareUrl, shareError,
             value={`${result.net_value > 0 ? '+' : ''}${result.net_value}`}
             tone={result.net_value > 0 ? 'positive' : result.net_value < 0 ? 'negative' : 'neutral'}
           />
-          <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
+          <p className="mt-2 text-sm text-(--color-text-secondary)">
             Confidence: {result.confidence}
           </p>
         </div>
@@ -391,7 +391,7 @@ function ResultPanel({ result, onCreateShare, shareStatus, shareUrl, shareError,
       </div>
 
       {result.explanation ? (
-        <p className="mt-4 rounded-md border border-[var(--color-accent)]/20 bg-[var(--color-accent)]/10 px-4 py-3 text-sm leading-6 text-[var(--color-text-primary)]">
+        <p className="mt-4 rounded-md border border-(--color-accent)/20 bg-(--color-accent)/10 px-4 py-3 text-sm leading-6 text-(--color-text-primary)">
           {result.explanation}
         </p>
       ) : null}
@@ -410,7 +410,7 @@ function ResultPanel({ result, onCreateShare, shareStatus, shareUrl, shareError,
           ['Send', result.send],
           ['Receive', result.receive],
         ].map(([label, side]) => (
-          <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] p-4" key={label}>
+          <div className="rounded-md border border-(--color-border) bg-(--color-bg) p-4" key={label}>
             <MetricStrip label={`${label} total`} value={side.total_value} />
             <ul className="mt-3 space-y-2">
               {side.players.map((player, index) => (
@@ -419,7 +419,7 @@ function ResultPanel({ result, onCreateShare, shareStatus, shareUrl, shareError,
                     name={player.name}
                     position={player.position}
                     team={player.team}
-                    valueSlot={<span className="text-sm text-[var(--color-text-tertiary)]">{player.value}</span>}
+                    valueSlot={<span className="text-sm text-(--color-text-tertiary)">{player.value}</span>}
                   />
                 </li>
               ))}
@@ -454,11 +454,11 @@ const TRADE_TIPS = [
 
 function TradeTipsCard() {
   return (
-    <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5">
-      <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">
+    <div className="rounded-lg border border-(--color-border) bg-(--color-surface-1) p-5">
+      <p className="text-xs font-semibold uppercase tracking-widest text-(--color-accent)">
         Omen · Strategy
       </p>
-      <h3 className="mt-1 font-display text-lg font-bold text-[var(--color-text-primary)]">Trade Room</h3>
+      <h3 className="mt-1 font-display text-lg font-bold text-(--color-text-primary)">Trade Room</h3>
       <ul className="mt-4 space-y-4">
         {TRADE_TIPS.map((tip) => (
           <li key={tip.title} className="flex gap-3">
@@ -468,8 +468,8 @@ function TradeTipsCard() {
               style={{ background: 'var(--color-accent)' }}
             />
             <div>
-              <p className="font-display text-sm font-semibold text-[var(--color-text-primary)]">{tip.title}</p>
-              <p className="mt-0.5 text-xs leading-5 text-[var(--color-text-secondary)]">{tip.body}</p>
+              <p className="font-display text-sm font-semibold text-(--color-text-primary)">{tip.title}</p>
+              <p className="mt-0.5 text-xs leading-5 text-(--color-text-secondary)">{tip.body}</p>
             </div>
           </li>
         ))}
@@ -480,26 +480,26 @@ function TradeTipsCard() {
 
 function BuyLowCard() {
   return (
-    <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5">
-      <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">
+    <div className="rounded-lg border border-(--color-border) bg-(--color-surface-1) p-5">
+      <p className="text-xs font-semibold uppercase tracking-widest text-(--color-accent)">
         Mock · Buy Low
       </p>
-      <h3 className="mt-1 font-display text-lg font-bold text-[var(--color-text-primary)]">Targets</h3>
-      <ul className="mt-4 divide-y divide-[var(--color-border)]">
+      <h3 className="mt-1 font-display text-lg font-bold text-(--color-text-primary)">Targets</h3>
+      <ul className="mt-4 divide-y divide-(--color-border)">
         {TRADE_PULSE.buy_low.map((target) => (
           <li key={target.id} className="py-3 first:pt-0 last:pb-0">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-semibold text-[var(--color-text-primary)]">
+              <span className="text-sm font-semibold text-(--color-text-primary)">
                 {target.name}
               </span>
               <div className="flex shrink-0 items-center gap-1.5">
                 <Chip tone={`pos-${target.position.toLowerCase()}`} size="sm">
                   {target.position}
                 </Chip>
-                <span className="text-xs text-[var(--color-text-tertiary)]">{target.team}</span>
+                <span className="text-xs text-(--color-text-tertiary)">{target.team}</span>
               </div>
             </div>
-            <p className="mt-0.5 text-xs leading-5 text-[var(--color-text-secondary)]">
+            <p className="mt-0.5 text-xs leading-5 text-(--color-text-secondary)">
               {target.reason}
             </p>
           </li>
@@ -634,10 +634,10 @@ export default function TradeAnalyzer({
       {/* ── Main column: form + result ─────────────────────────────────────── */}
       <div className="flex flex-col gap-8">
         <form className="space-y-5" onSubmit={handleSubmit}>
-          <section className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5">
+          <section className="rounded-lg border border-(--color-border) bg-(--color-surface-1) p-5">
             <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
               <fieldset className="space-y-2">
-                <legend className="text-xs font-semibold uppercase tracking-widest text-[var(--color-text-tertiary)]">
+                <legend className="text-xs font-semibold uppercase tracking-widest text-(--color-text-tertiary)">
                   Scoring
                 </legend>
                 <SegmentedControl
@@ -656,7 +656,7 @@ export default function TradeAnalyzer({
               </fieldset>
               <div>
                 <fieldset className="space-y-2">
-                  <legend className="text-xs font-semibold uppercase tracking-widest text-[var(--color-text-tertiary)]">
+                  <legend className="text-xs font-semibold uppercase tracking-widest text-(--color-text-tertiary)">
                     Deal shape
                   </legend>
                   <SegmentedControl
@@ -673,7 +673,7 @@ export default function TradeAnalyzer({
                     ))}
                   </SegmentedControl>
                 </fieldset>
-                <p className="mt-2 text-xs leading-5 text-[var(--color-text-secondary)]">
+                <p className="mt-2 text-xs leading-5 text-(--color-text-secondary)">
                   {dealShapeMeta.description}
                 </p>
               </div>
@@ -689,7 +689,7 @@ export default function TradeAnalyzer({
               onRemove={(index) => removeSidePlayer(setSend, index)}
             />
             <div className="hidden items-center justify-center xl:flex" aria-hidden="true">
-              <span className="flex h-12 w-12 items-center justify-center rounded-full border border-[var(--color-accent)]/40 bg-[var(--color-accent)]/10 text-xl font-semibold text-[var(--color-accent)]">
+              <span className="flex h-12 w-12 items-center justify-center rounded-full border border-(--color-accent)/40 bg-(--color-accent)/10 text-xl font-semibold text-(--color-accent)">
                 &harr;
               </span>
             </div>

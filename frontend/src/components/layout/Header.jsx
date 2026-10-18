@@ -72,7 +72,7 @@ function NavItem({ to, label, note, active, onClick }) {
     <Link
       to={to}
       onClick={onClick}
-      className="group flex min-h-[44px] items-center justify-between rounded-md px-3 py-2.5 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
+      className="group flex min-h-[44px] items-center justify-between rounded-md px-3 py-2.5 text-sm transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--color-accent)"
       style={{
         color: active ? 'var(--color-accent)' : 'var(--color-text-secondary)',
         background: active ? 'var(--color-accent-muted)' : 'transparent',
@@ -174,7 +174,7 @@ function NavDrawer({ open, onClose, isAuthenticated }) {
             type="button"
             aria-label="Close navigation"
             onClick={onClose}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-md transition-colors hover:bg-[var(--color-surface-2)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-md transition-colors hover:bg-(--color-surface-2) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--color-accent)"
             style={{ color: 'var(--color-text-tertiary)' }}
           >
             <CloseIcon />
@@ -239,7 +239,7 @@ function NavDrawer({ open, onClose, isAuthenticated }) {
                 onClose();
                 supabase.auth.signOut();
               }}
-              className="mb-3 w-full rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-[var(--color-surface-2)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
+              className="mb-3 w-full rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-(--color-surface-2) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--color-accent)"
               style={{ color: 'var(--color-text-secondary)' }}
             >
               Sign out
@@ -291,7 +291,7 @@ export default function Header() {
             aria-expanded={drawerOpen}
             aria-controls="omen-nav-drawer"
             onClick={openDrawer}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-md transition-colors hover:bg-[var(--color-surface-1)] active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-md transition-colors hover:bg-(--color-surface-1) active:scale-95 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--color-accent)"
             style={{ color: 'var(--color-text-secondary)' }}
           >
             <HamburgerIcon />
@@ -299,7 +299,7 @@ export default function Header() {
 
           <Link
             to="/"
-            className="flex min-h-[44px] items-center gap-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] rounded-sm"
+            className="flex min-h-[44px] items-center gap-2.5 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent) rounded-xs"
           >
             <img
               src="/omen-horizontal-lockup-transparent.png"

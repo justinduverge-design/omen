@@ -150,7 +150,7 @@ export default function Terms() {
           23 Darrow St<br />
           New London, CT 06320<br />
           United States<br />
-          <a className="font-semibold text-[var(--color-accent)] underline underline-offset-4" href="mailto:legal@slopssaloon.com">legal@slopssaloon.com</a>
+          <a className="font-semibold text-(--color-accent) underline underline-offset-4" href="mailto:legal@slopssaloon.com">legal@slopssaloon.com</a>
         </address>
       </InfoSection>
 

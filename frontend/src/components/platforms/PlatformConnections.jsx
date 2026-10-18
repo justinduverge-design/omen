@@ -52,7 +52,7 @@ function Field({ id, label, value, onChange, autoComplete = 'off', type = 'text'
       <input
         id={id}
         autoComplete={autoComplete}
-        className="w-full rounded-lg px-3 py-2.5 text-sm outline-none transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
+        className="w-full rounded-lg px-3 py-2.5 text-sm outline-hidden transition-colors duration-150 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--color-accent)"
         style={{
           border: '1px solid var(--color-border)',
           background: 'var(--color-surface-1)',
@@ -138,7 +138,7 @@ function EspnCookieInstructions() {
 
 function AccentButton({ children, disabled, onClick, type = 'button', as: Tag = 'button', href, platform = null }) {
   const base =
-    'inline-flex min-h-[36px] items-center rounded-lg px-4 py-2 text-sm font-semibold transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50' +
+    'inline-flex min-h-[36px] items-center rounded-lg px-4 py-2 text-sm font-semibold transition-colors duration-150 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent) disabled:cursor-not-allowed disabled:opacity-50' +
     (platform ? ' hover:brightness-110' : '');
   const restingStyle = platform
     ? platformButtonStyle(platform)
@@ -160,7 +160,7 @@ function GhostButton({ children, disabled, onClick, danger = false }) {
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="inline-flex min-h-[36px] items-center rounded-lg border px-4 py-2 text-xs font-semibold transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50"
+      className="inline-flex min-h-[36px] items-center rounded-lg border px-4 py-2 text-xs font-semibold transition-colors duration-150 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent) disabled:cursor-not-allowed disabled:opacity-50"
       style={{
         borderColor: 'var(--color-border)',
         color: danger ? 'var(--color-text-tertiary)' : 'var(--color-text-secondary)',

@@ -133,7 +133,7 @@ function Skeleton() {
       {[1, 2, 3, 4, 5, 6, 7, 8, 10, 12].map((i) => (
         <div
           key={i}
-          className="h-10 animate-pulse motion-reduce:animate-none rounded"
+          className="h-10 animate-pulse motion-reduce:animate-none rounded-sm"
           style={{ background: 'var(--color-surface-2)' }}
         />
       ))}
@@ -193,7 +193,7 @@ export default function Standings() {
           </p>
           <Link
             to="/account/connect"
-            className="mt-6 inline-flex min-h-[44px] items-center rounded-md bg-[var(--color-team-accent)] px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)]"
+            className="mt-6 inline-flex min-h-[44px] items-center rounded-md bg-(--color-team-accent) px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-(--color-accent-hover)"
           >
             Connect a league →
           </Link>

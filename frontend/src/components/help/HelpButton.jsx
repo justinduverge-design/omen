@@ -176,7 +176,7 @@ function HelpPanel({ open, onClose, pathname }) {
             type="button"
             aria-label="Close help"
             onClick={onClose}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-md transition-colors hover:bg-[var(--color-surface-2)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-md transition-colors hover:bg-(--color-surface-2) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--color-accent)"
             style={{ color: 'var(--color-text-tertiary)' }}
           >
             <CloseIcon />
@@ -246,7 +246,7 @@ function HelpPanel({ open, onClose, pathname }) {
                   key={to}
                   to={to}
                   onClick={onClose}
-                  className="flex min-h-[44px] items-center justify-between rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-[var(--color-surface-1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
+                  className="flex min-h-[44px] items-center justify-between rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-(--color-surface-1) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--color-accent)"
                   style={{ color: pathname === to || pathname.startsWith(to + '/') ? 'var(--color-accent)' : 'var(--color-text-primary)' }}
                 >
                   {label}
@@ -274,7 +274,7 @@ function HelpPanel({ open, onClose, pathname }) {
               <Link
                 to="/onboarding"
                 onClick={onClose}
-                className="flex min-h-[44px] items-center text-xs font-semibold transition-colors hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
+                className="flex min-h-[44px] items-center text-xs font-semibold transition-colors hover:opacity-80 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--color-accent)"
                 style={{ color: 'var(--color-accent)' }}
               >
                 Continue setup →
@@ -311,7 +311,7 @@ export default function HelpButton() {
         aria-label="Open help"
         aria-expanded={open}
         onClick={openPanel}
-        className="fixed right-5 z-30 flex h-11 w-11 items-center justify-center rounded-full shadow-lg transition-all hover:scale-105 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+        className="fixed right-5 z-30 flex h-11 w-11 items-center justify-center rounded-full shadow-lg transition-all hover:scale-105 active:scale-95 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent)"
         style={{
           background: 'var(--color-surface-1)',
           border: '1px solid var(--color-border)',

@@ -18,7 +18,7 @@ const PlayerChip = React.forwardRef(function PlayerChip({
     sizeClasses = 'text-sm gap-2';
   }
 
-  const baseClasses = 'inline-flex items-center font-medium text-[var(--color-text-primary)] whitespace-nowrap';
+  const baseClasses = 'inline-flex items-center font-medium text-(--color-text-primary) whitespace-nowrap';
   const combinedClasses = `${baseClasses} ${sizeClasses} ${className}`.trim().replace(/\s+/g, ' ');
 
   return (

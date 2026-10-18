@@ -8,12 +8,12 @@ import { supabase } from '../lib/supabase.js';
 
 function AuthButton({ children, onClick, disabled = false, variant = 'default' }) {
   const base =
-    'w-full flex items-center justify-center gap-3 min-h-[48px] px-5 rounded-lg text-sm font-semibold transition-all duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2';
+    'w-full flex items-center justify-center gap-3 min-h-[48px] px-5 rounded-lg text-sm font-semibold transition-all duration-150 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2';
   const variants = {
     default:
-      'border border-[var(--color-border)] bg-[var(--color-surface-1)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] focus-visible:outline-[var(--color-accent)]',
+      'border border-(--color-border) bg-(--color-surface-1) text-(--color-text-primary) hover:bg-(--color-surface-2) focus-visible:outline-(--color-accent)',
     gold:
-      'bg-[var(--color-accent)] text-black hover:bg-[var(--color-accent-hover)] focus-visible:outline-[var(--color-accent)]',
+      'bg-(--color-accent) text-black hover:bg-(--color-accent-hover) focus-visible:outline-(--color-accent)',
   };
   return (
     <button
@@ -30,9 +30,9 @@ function AuthButton({ children, onClick, disabled = false, variant = 'default' }
 function Divider({ label }) {
   return (
     <div className="flex items-center gap-3">
-      <div className="h-px flex-1 bg-[var(--color-border)]" />
-      <span className="text-xs text-[var(--color-text-tertiary)]">{label}</span>
-      <div className="h-px flex-1 bg-[var(--color-border)]" />
+      <div className="h-px flex-1 bg-(--color-border)" />
+      <span className="text-xs text-(--color-text-tertiary)">{label}</span>
+      <div className="h-px flex-1 bg-(--color-border)" />
     </div>
   );
 }
@@ -107,7 +107,7 @@ function MagicLinkForm({ onBeforeSubmit, onSent }) {
         id="login-email"
         aria-label="Email address"
         autoComplete="email"
-        className="w-full min-h-[48px] rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] px-4 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none transition-colors focus:border-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
+        className="w-full min-h-[48px] rounded-lg border border-(--color-border) bg-(--color-surface-1) px-4 text-sm text-(--color-text-primary) placeholder-(--color-text-tertiary) outline-hidden transition-colors focus:border-(--color-accent) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--color-accent)"
         placeholder="you@example.com"
         required
         type="email"
@@ -115,7 +115,7 @@ function MagicLinkForm({ onBeforeSubmit, onSent }) {
         onChange={(e) => setEmail(e.target.value)}
       />
       <button
-        className="w-full min-h-[48px] rounded-lg bg-[var(--color-accent)] px-5 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50"
+        className="w-full min-h-[48px] rounded-lg bg-(--color-accent) px-5 text-sm font-semibold text-black transition-colors hover:bg-(--color-accent-hover) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent) disabled:cursor-not-allowed disabled:opacity-50"
         aria-busy={loading}
         disabled={loading}
         type="submit"
@@ -235,10 +235,10 @@ function EmailCodeStep({ email, onResend }) {
   }
 
   return (
-    <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] px-5 py-5">
-      <p className="text-sm font-semibold text-[var(--color-text-primary)]">Enter your sign-in code</p>
-      <p className="mt-1 text-xs leading-5 text-[var(--color-text-secondary)]">
-        We sent a 6-digit code to <span className="text-[var(--color-text-primary)]">{email}</span>.
+    <div className="rounded-lg border border-(--color-border) bg-(--color-surface-1) px-5 py-5">
+      <p className="text-sm font-semibold text-(--color-text-primary)">Enter your sign-in code</p>
+      <p className="mt-1 text-xs leading-5 text-(--color-text-secondary)">
+        We sent a 6-digit code to <span className="text-(--color-text-primary)">{email}</span>.
       </p>
 
       <form className="mt-4 flex flex-col gap-3" onSubmit={handleVerify}>
@@ -253,14 +253,14 @@ function EmailCodeStep({ email, onResend }) {
           pattern="[0-9]*"
           maxLength={6}
           autoFocus
-          className="w-full min-h-[52px] rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] px-4 text-center text-lg font-semibold tracking-[0.4em] text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none transition-colors focus:border-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
+          className="w-full min-h-[52px] rounded-lg border border-(--color-border) bg-(--color-surface-2) px-4 text-center text-lg font-semibold tracking-[0.4em] text-(--color-text-primary) placeholder-(--color-text-tertiary) outline-hidden transition-colors focus:border-(--color-accent) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--color-accent)"
           placeholder="000000"
           type="text"
           value={normalized}
           onChange={(e) => setCode(e.target.value)}
         />
         <button
-          className="w-full min-h-[48px] rounded-lg bg-[var(--color-accent)] px-5 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full min-h-[48px] rounded-lg bg-(--color-accent) px-5 text-sm font-semibold text-black transition-colors hover:bg-(--color-accent-hover) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent) disabled:cursor-not-allowed disabled:opacity-50"
           aria-busy={verifying}
           disabled={!canVerify}
           type="submit"
@@ -270,7 +270,7 @@ function EmailCodeStep({ email, onResend }) {
         {verifyError && <p className="text-xs text-red-400" role="alert">{verifyError}</p>}
       </form>
 
-      <p className="mt-4 text-xs leading-5 text-[var(--color-text-tertiary)]">
+      <p className="mt-4 text-xs leading-5 text-(--color-text-tertiary)">
         If the email has a sign-in button instead, that works too. Codes usually land within a
         minute — if it hasn&apos;t, check your spam or junk folder, and on Yahoo or iCloud look in
         Promotions.
@@ -281,7 +281,7 @@ function EmailCodeStep({ email, onResend }) {
         onClick={handleResend}
         disabled={resending || secondsLeft > 0}
         aria-busy={resending}
-        className="mt-3 min-h-[44px] w-full rounded-lg border border-[var(--color-border)] px-4 text-xs font-semibold text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-surface-2)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50"
+        className="mt-3 min-h-[44px] w-full rounded-lg border border-(--color-border) px-4 text-xs font-semibold text-(--color-text-primary) transition-colors hover:bg-(--color-surface-2) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent) disabled:cursor-not-allowed disabled:opacity-50"
       >
         {resending
           ? 'Sending…'
@@ -291,17 +291,17 @@ function EmailCodeStep({ email, onResend }) {
       </button>
 
       {resent && (
-        <p className="mt-2 text-xs text-[var(--color-text-secondary)]" role="status">
+        <p className="mt-2 text-xs text-(--color-text-secondary)" role="status">
           Sent again. Use the newest code — the earlier one stops working.
         </p>
       )}
       {resendError && <p className="mt-2 text-xs text-red-400" role="alert">{resendError}</p>}
 
-      <p className="mt-4 text-xs text-[var(--color-text-tertiary)]">
+      <p className="mt-4 text-xs text-(--color-text-tertiary)">
         Still nothing?{' '}
         <Link
           to="/support"
-          className="underline underline-offset-2 transition-colors hover:text-[var(--color-text-secondary)]"
+          className="underline underline-offset-2 transition-colors hover:text-(--color-text-secondary)"
         >
           Get help
         </Link>
@@ -426,17 +426,17 @@ export default function Login() {
   if (redirecting) {
     return (
       <div
-        className="flex min-h-[100dvh] items-center justify-center"
+        className="flex min-h-dvh items-center justify-center"
         style={{ background: 'var(--color-bg)' }}
       >
-        <p className="text-sm text-[var(--color-text-secondary)]">Signing you in…</p>
+        <p className="text-sm text-(--color-text-secondary)">Signing you in…</p>
       </div>
     );
   }
 
   return (
     <div
-      className="flex min-h-[100dvh] flex-col items-center justify-center px-4 py-12"
+      className="flex min-h-dvh flex-col items-center justify-center px-4 py-12"
       style={{ background: 'var(--color-bg)' }}
     >
       {/* Atmospheric glow */}
@@ -463,17 +463,17 @@ export default function Login() {
             alt="Omen"
             className="omen-lockup-on-light mx-auto h-12 w-auto"
           />
-          <p className="mt-1 text-[11px] uppercase tracking-[0.3em] text-[var(--color-text-tertiary)]">
+          <p className="mt-1 text-[11px] uppercase tracking-[0.3em] text-(--color-text-tertiary)">
             Fantasy Intelligence
           </p>
         </div>
 
         {/* Headline */}
         <div className="mb-8 text-center">
-          <h1 className="font-display text-3xl font-semibold text-[var(--color-text-primary)]">
+          <h1 className="font-display text-3xl font-semibold text-(--color-text-primary)">
             Your best call,<br />every time.
           </h1>
-          <p className="mt-3 text-sm leading-6 text-[var(--color-text-secondary)]">
+          <p className="mt-3 text-sm leading-6 text-(--color-text-secondary)">
             Sign in to get your weekly Omen — your Most Valuable Play.
             Or try Trade Analyzer without an account.
           </p>
@@ -481,9 +481,9 @@ export default function Login() {
 
         {/* Auth options */}
         {accountDeleted && (
-          <div className="mb-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] px-5 py-4">
-            <p className="text-sm font-semibold text-[var(--color-text-primary)]">Omen data deleted.</p>
-            <p className="mt-1 text-xs leading-5 text-[var(--color-text-secondary)]">
+          <div className="mb-4 rounded-lg border border-(--color-border) bg-(--color-surface-1) px-5 py-4">
+            <p className="text-sm font-semibold text-(--color-text-primary)">Omen data deleted.</p>
+            <p className="mt-1 text-xs leading-5 text-(--color-text-secondary)">
               Sign in again when you want to rebuild your setup.
             </p>
           </div>
@@ -515,17 +515,17 @@ export default function Login() {
           </div>
         )}
 
-        <p className="mt-5 text-center text-xs leading-5 text-[var(--color-text-tertiary)]">
+        <p className="mt-5 text-center text-xs leading-5 text-(--color-text-tertiary)">
           By continuing, you confirm that you are at least 13 and agree to Omen&apos;s{' '}
-          <Link className="underline underline-offset-4 hover:text-[var(--color-text-secondary)]" to="/terms">Terms of Use</Link>
+          <Link className="underline underline-offset-4 hover:text-(--color-text-secondary)" to="/terms">Terms of Use</Link>
           {' '}and acknowledge the{' '}
-          <Link className="underline underline-offset-4 hover:text-[var(--color-text-secondary)]" to="/privacy">Privacy Notice</Link>.
+          <Link className="underline underline-offset-4 hover:text-(--color-text-secondary)" to="/privacy">Privacy Notice</Link>.
         </p>
 
         {/* Footer links */}
         <div className="mt-8 text-center">
           <a
-            className="flex min-h-[44px] items-center justify-center text-xs text-[var(--color-text-tertiary)] transition-colors hover:text-[var(--color-text-secondary)]"
+            className="flex min-h-[44px] items-center justify-center text-xs text-(--color-text-tertiary) transition-colors hover:text-(--color-text-secondary)"
             href="/trade"
           >
             Try Trade Analyzer without signing in →

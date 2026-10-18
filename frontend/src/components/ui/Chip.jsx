@@ -35,7 +35,7 @@ const Chip = React.forwardRef(function Chip({
     color: toneConfig.text,
   };
 
-  const baseClasses = 'inline-flex items-center justify-center font-bold uppercase tracking-wide rounded-sm whitespace-nowrap';
+  const baseClasses = 'inline-flex items-center justify-center font-bold uppercase tracking-wide rounded-xs whitespace-nowrap';
 
   const combinedClasses = `${baseClasses} ${sizeClasses} ${className}`.trim().replace(/\s+/g, ' ');
 

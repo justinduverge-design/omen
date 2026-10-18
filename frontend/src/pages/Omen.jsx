@@ -418,7 +418,7 @@ export default function Omen() {
             <label className="text-xs font-semibold text-slate-400">
               Platform
               <select
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400"
+                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-hidden transition-colors focus:border-amber-400"
                 value={platform}
                 onChange={(e) => setPlatform(e.target.value)}
               >
@@ -433,7 +433,7 @@ export default function Omen() {
             <label className="text-xs font-semibold text-slate-400">
               League ID
               <input
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400"
+                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-hidden transition-colors focus:border-amber-400"
                 placeholder="e.g. 414.l.12345"
                 value={leagueId}
                 onChange={(e) => setLeagueId(e.target.value)}
@@ -444,7 +444,7 @@ export default function Omen() {
               Team ID
               <span className="ml-1 font-normal text-slate-600">(optional)</span>
               <input
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400"
+                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-hidden transition-colors focus:border-amber-400"
                 placeholder="e.g. 7"
                 value={teamId}
                 onChange={(e) => setTeamId(e.target.value)}
@@ -454,7 +454,7 @@ export default function Omen() {
             <label className="text-xs font-semibold text-slate-400">
               Week
               <input
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400"
+                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-hidden transition-colors focus:border-amber-400"
                 max={18}
                 min={1}
                 type="number"
@@ -466,7 +466,7 @@ export default function Omen() {
             <label className="text-xs font-semibold text-slate-400">
               Scoring format
               <select
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400"
+                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-hidden transition-colors focus:border-amber-400"
                 value={scoringFormat}
                 onChange={(e) => setScoringFormat(e.target.value)}
               >
@@ -497,7 +497,7 @@ export default function Omen() {
               <label className="text-xs font-semibold text-slate-400">
                 Mock state
                 <select
-                  className="ml-2 rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-white outline-none focus:border-amber-400"
+                  className="ml-2 rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-white outline-hidden focus:border-amber-400"
                   value={mockState}
                   onChange={(e) => setMockState(e.target.value)}
                 >

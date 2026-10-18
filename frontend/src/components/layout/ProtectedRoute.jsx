@@ -62,7 +62,7 @@ export default function ProtectedRoute({ children }) {
   if (session === undefined || (session && onboarding === undefined && location.pathname !== '/onboarding')) {
     return (
       <div
-        className="flex min-h-[100dvh] items-center justify-center"
+        className="flex min-h-dvh items-center justify-center"
         style={{ background: 'var(--color-bg)' }}
       >
         <span

@@ -51,7 +51,7 @@ const SegmentedControl = ({
         ref={containerRef}
         role="radiogroup"
         aria-label={ariaLabel}
-        className={`inline-flex items-center gap-1 p-1 rounded-lg bg-[var(--color-surface-2)] border border-[var(--color-border-subtle)] ${className}`}
+        className={`inline-flex items-center gap-1 p-1 rounded-lg bg-(--color-surface-2) border border-(--color-border-subtle) ${className}`}
         onKeyDown={handleKeyDown}
         {...props}
       >
@@ -72,8 +72,8 @@ const SegmentedControlItem = ({ value, children, disabled = false, className = '
   `;
 
   const stateClasses = isSelected
-    ? 'bg-[var(--color-accent)] text-[var(--color-text-on-accent)] border border-[var(--color-accent)]'
-    : 'bg-transparent text-[var(--color-text-secondary)] border border-[var(--color-border)] hover:text-[var(--color-text-primary)] hover:border-[var(--color-border)]';
+    ? 'bg-(--color-accent) text-(--color-text-on-accent) border border-(--color-accent)'
+    : 'bg-transparent text-(--color-text-secondary) border border-(--color-border) hover:text-(--color-text-primary) hover:border-(--color-border)';
 
   const disabledClasses = disabled ? 'opacity-50 cursor-not-allowed pointer-events-none' : '';
 
@@ -82,7 +82,7 @@ const SegmentedControlItem = ({ value, children, disabled = false, className = '
   return (
     <label
       htmlFor={id}
-      className={`${combinedClasses} has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--color-accent)]`}
+      className={`${combinedClasses} has-focus-visible:outline-solid has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-(--color-accent)`}
       {...props}
     >
       <input

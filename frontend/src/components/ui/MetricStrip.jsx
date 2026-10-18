@@ -48,10 +48,10 @@ const MetricStrip = ({
   }
 
   const labelEl = (
-    <span className="text-xs uppercase tracking-widest font-semibold text-[var(--color-text-tertiary)] flex items-center gap-1.5">
+    <span className="text-xs uppercase tracking-widest font-semibold text-(--color-text-tertiary) flex items-center gap-1.5">
       {label}
       {explanation && (
-        <span className="text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] transition-colors motion-reduce:transition-none motion-reduce:duration-0 cursor-help inline-flex items-center">
+        <span className="text-(--color-text-tertiary) hover:text-(--color-text-primary) transition-colors motion-reduce:transition-none motion-reduce:duration-0 cursor-help inline-flex items-center">
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z" />
           </svg>
@@ -62,7 +62,7 @@ const MetricStrip = ({
 
   return (
     <div
-      className={`flex items-center justify-between py-2 border-b border-[var(--color-border-subtle)] last:border-0 ${className}`}
+      className={`flex items-center justify-between py-2 border-b border-(--color-border-subtle) last:border-0 ${className}`}
       {...props}
     >
       <div className="flex items-center gap-1.5">
@@ -70,7 +70,7 @@ const MetricStrip = ({
           <Tooltip content={explanation} side="top">
             <button
               type="button"
-              className="focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] rounded-sm appearance-none bg-transparent border-none p-0 m-0"
+              className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-(--color-accent) rounded-xs appearance-none bg-transparent border-none p-0 m-0"
               aria-label={`${label} explanation`}
             >
                {labelEl}

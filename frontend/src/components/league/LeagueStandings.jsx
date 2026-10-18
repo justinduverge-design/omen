@@ -89,7 +89,7 @@ function SkeletonTable() {
       {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
         <div
           key={i}
-          className="h-9 animate-pulse motion-reduce:animate-none rounded"
+          className="h-9 animate-pulse motion-reduce:animate-none rounded-sm"
           style={{ background: 'var(--color-surface-2)' }}
         />
       ))}
@@ -176,7 +176,7 @@ export default function LeagueStandings({ postWinActive = false }) {
     >
       <button
         type="button"
-        className="flex w-full items-center justify-between px-4 py-3 transition-colors hover:bg-[var(--color-surface-2)]"
+        className="flex w-full items-center justify-between px-4 py-3 transition-colors hover:bg-(--color-surface-2)"
         onClick={() => setCollapsed((v) => !v)}
       >
         <div className="flex items-center gap-2">

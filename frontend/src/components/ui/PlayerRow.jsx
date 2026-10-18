@@ -19,16 +19,16 @@ const PlayerRow = React.forwardRef(function PlayerRow({
 
   const baseClasses = 'flex items-center justify-between p-3 rounded-lg border transition-colors text-left w-full';
 
-  let stateClasses = 'bg-[var(--color-surface-1)] border-[var(--color-border-subtle)]';
+  let stateClasses = 'bg-(--color-surface-1) border-(--color-border-subtle)';
 
   if (selected) {
-    stateClasses = 'bg-[color-mix(in_srgb,var(--color-accent)_8%,var(--color-surface-1))] border-[var(--color-accent)]';
+    stateClasses = 'bg-[color-mix(in_srgb,var(--color-accent)_8%,var(--color-surface-1))] border-(--color-accent)';
   } else if (recommended) {
-    stateClasses = 'bg-[color-mix(in_srgb,var(--color-omen)_8%,var(--color-surface-1))] border-[var(--color-omen)]';
+    stateClasses = 'bg-[color-mix(in_srgb,var(--color-omen)_8%,var(--color-surface-1))] border-(--color-omen)';
   }
 
   const interactiveClasses = isInteractive
-    ? 'cursor-pointer hover:border-[var(--color-border)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] active:scale-[0.99] active:transition-transform motion-reduce:active:transform-none'
+    ? 'cursor-pointer hover:border-(--color-border) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent) active:scale-[0.99] active:transition-transform motion-reduce:active:transform-none'
     : '';
 
   const combinedClasses = `${baseClasses} ${stateClasses} ${interactiveClasses} ${className}`.trim().replace(/\s+/g, ' ');
@@ -40,15 +40,15 @@ const PlayerRow = React.forwardRef(function PlayerRow({
 
         <span className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 truncate">
           {team && (
-            <span className="text-xs text-[var(--color-text-secondary)] font-medium uppercase tracking-wider">
+            <span className="text-xs text-(--color-text-secondary) font-medium uppercase tracking-wider">
               {team}
             </span>
           )}
 
           {(unavailable || injuryNote) && (
             <span className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-risk-medium)] shrink-0" aria-hidden="true" />
-              <span className="text-xs text-[var(--color-text-secondary)] truncate">
+              <span className="w-1.5 h-1.5 rounded-full bg-(--color-risk-medium) shrink-0" aria-hidden="true" />
+              <span className="text-xs text-(--color-text-secondary) truncate">
                 {injuryNote || 'Unavailable'}
               </span>
             </span>

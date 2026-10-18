@@ -105,12 +105,12 @@ export default function Privacy() {
           fantasy platform or a separate identity-provider account.
         </p>
         <div className="flex flex-wrap gap-x-6 gap-y-2">
-          <Link className="inline-flex min-h-[44px] items-center font-semibold text-[var(--color-accent)] underline underline-offset-4" to="/delete-account">Delete your Omen data</Link>
-          <Link className="inline-flex min-h-[44px] items-center font-semibold text-[var(--color-accent)] underline underline-offset-4" to="/unsubscribe">Leave the waitlist</Link>
+          <Link className="inline-flex min-h-[44px] items-center font-semibold text-(--color-accent) underline underline-offset-4" to="/delete-account">Delete your Omen data</Link>
+          <Link className="inline-flex min-h-[44px] items-center font-semibold text-(--color-accent) underline underline-offset-4" to="/unsubscribe">Leave the waitlist</Link>
         </div>
         <p>
           You may also ask to access, correct, or delete personal information by emailing{' '}
-          <a className="font-semibold text-[var(--color-accent)] underline underline-offset-4" href="mailto:privacy@slopssaloon.com">privacy@slopssaloon.com</a>.
+          <a className="font-semibold text-(--color-accent) underline underline-offset-4" href="mailto:privacy@slopssaloon.com">privacy@slopssaloon.com</a>.
           We may verify your identity before completing a request and will not discriminate against you for exercising a privacy right.
         </p>
       </InfoSection>
@@ -144,7 +144,7 @@ export default function Privacy() {
           23 Darrow St<br />
           New London, CT 06320<br />
           United States<br />
-          <a className="font-semibold text-[var(--color-accent)] underline underline-offset-4" href="mailto:privacy@slopssaloon.com">privacy@slopssaloon.com</a>
+          <a className="font-semibold text-(--color-accent) underline underline-offset-4" href="mailto:privacy@slopssaloon.com">privacy@slopssaloon.com</a>
         </address>
       </InfoSection>
 

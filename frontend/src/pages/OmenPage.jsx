@@ -18,7 +18,7 @@ function OmenHeader() {
 
   return (
     <section className="max-w-2xl">
-      <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-team-accent)]">
+      <p className="text-xs font-semibold uppercase tracking-widest text-(--color-team-accent)">
         Omen
       </p>
       {cry && (
@@ -112,7 +112,7 @@ export default function OmenPage() {
 
       <div className="border-t pt-4" style={{ borderColor: 'var(--color-border)' }}>
         <Link
-          className="inline-flex min-h-[44px] items-center rounded-sm text-xs text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)]"
+          className="inline-flex min-h-[44px] items-center rounded-xs text-xs text-(--color-text-secondary) transition-colors hover:text-(--color-text-primary) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-team-accent)"
           to="/football"
         >
           ← Back to dashboard

@@ -31,7 +31,7 @@ const PageHero = ({
     <div className={`flex flex-col gap-4 mb-8 ${className}`} {...props}>
       {/* Top row: Eyebrow + Status (if either exists) */}
       {(eyebrow || status) && (
-        <div className="flex items-center gap-3 text-[var(--color-text-tertiary)]">
+        <div className="flex items-center gap-3 text-(--color-text-tertiary)">
           {eyebrow && (
             <p
               aria-hidden="false"
@@ -52,18 +52,18 @@ const PageHero = ({
       {/* Main row: Title + Trailing slot */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div className="flex flex-col gap-2">
-          <h1 className={`font-display ${titleSize} font-bold text-[var(--color-text-primary)]`}>
+          <h1 className={`font-display ${titleSize} font-bold text-(--color-text-primary)`}>
             {title}
           </h1>
           {subtitle && (
-            <p className="font-sans text-base text-[var(--color-text-secondary)] max-w-2xl">
+            <p className="font-sans text-base text-(--color-text-secondary) max-w-2xl">
               {subtitle}
             </p>
           )}
         </div>
 
         {trailing && (
-          <div className="flex-shrink-0 flex items-center gap-3">
+          <div className="shrink-0 flex items-center gap-3">
             {trailing}
           </div>
         )}
