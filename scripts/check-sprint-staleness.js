@@ -74,6 +74,7 @@ const CHECKERS = [
   require("./checks/issue-state-conflicts"),
   require("./checks/known-issues-missing-paths"),
   require("./checks/sprint-closed-without-ledger-row"),
+  require("./checks/orphan-candidates"),
 ];
 
 /**
