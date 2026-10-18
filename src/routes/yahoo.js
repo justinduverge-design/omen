@@ -4,13 +4,9 @@
  * =================================================================
  * Yahoo data routes
  * -----------------------------------------------------------------
- * GET /api/yahoo/roster?leagueKey=...&week=...  (auth required)
- *
- * Returns the authenticated user's normalized Yahoo roster for the
- * given league. If `week` is omitted, uses the league's current week.
- *
- * Roster is table-stakes data (free + pro), so this only requires
- * auth - subscription gating goes on the optimizer routes.
+ * OAuth connect/callback, league listing and the access probe. The
+ * roster read (GET /api/yahoo/roster) was removed 2026-10-18: no client
+ * called it; rosters come through the provider adapters on /api/league.
  *
  * Token plumbing (decrypt, refresh-if-expired, persist) lives in
  * src/services/yahooAuth.js so the optimizer router can reuse it.
@@ -27,7 +23,6 @@ const { requireAuth }         = require("../middleware/auth");
 const { ensureAppUser }       = require("../services/appUser");
 const { getYahooAuthUrl, exchangeYahooCode } = require("../middleware/yahooOAuth");
 const { getAuthenticatedYahooClient, persistYahooTokens } = require("../services/yahooAuth");
-const yahooAdapter            = require("../adapters/yahoo");
 const leagueMemberships       = require("../services/leagueMemberships");
 
 const router = express.Router();
@@ -183,28 +178,6 @@ router.get("/callback", async (req, res, next) => {
   } catch (e) {
     logger.error("Yahoo OAuth callback failed", { err: e.message });
     return next(e);
-  }
-});
-
-router.get("/roster", requireAuth, async (req, res, next) => {
-  try {
-    const { leagueKey, week } = req.query;
-    if (!leagueKey) {
-      return res.status(400).json({ error: "leagueKey query param required (e.g. nfl.l.12345)" });
-    }
-    const wk = week ? parseInt(week, 10) : null;
-
-    const { accessToken } = await getAuthenticatedYahooClient(req.user.id);
-    const roster = await yahooAdapter.buildNormalizedRoster(leagueKey, accessToken, wk, {
-      cacheScope: req.user.id,
-    });
-
-    res.json(roster);
-  } catch (e) {
-    if (e.message === "yahoo_token_expired") {
-      return res.status(401).json({ error: "Yahoo token expired - re-authenticate" });
-    }
-    next(e);
   }
 });
 
