@@ -42,3 +42,17 @@ No remote branch was deleted.
 | fix-fixtures-554 | 0 (not ahead) | ALREADY ON MAIN, worktree dirty | `agent-af5d…`: 15 re-recorded fixtures. |
 
 Not reviewed by rule: `infra/vector-logs` (main checkout, another session).
+
+## Decisions (2026-10-18, delegated by the founder)
+
+- **root-cause-containment + tuesday-beta-ready: RETIRED.** Three weeks behind a main that has since rebuilt provider errors
+  (`providerErrors.js`), league scoping (#636) and trade find (#633); landing 24 commits with migrations would be a rewrite, not
+  a rebase. Kept for reference: `origin/codex/root-cause-containment-20260928`, and `origin/archive/tuesday-beta-ready-20260929`
+  (its 14 uncommitted worktree files committed as one WIP commit). Mine them for ideas, do not merge them.
+- **founder-closeout-existing-work: RETIRED.** Superseded; pushed to `origin/archive/founder-closeout-existing-work`.
+- **Dirty agent worktrees: DISCARDED.** league-memberships, ledger-write-path, projection-layer1, fix-fixtures-554 held only
+  re-recorded contract fixtures (test byproducts). saved-trades-table's `trade.js` change only swapped the shown-batch token from
+  16-hex to a UUID, which is not needed; archived anyway as `origin/archive/saved-trades-table-wip`. native-journeys (Android + iOS
+  screenshot scenarios, 637 lines) archived as `origin/archive/native-journeys-20260918`. All worktrees removed, local branches deleted.
+
+Local branches left: `omen-projections-v1` (#654), `feat/provider-gap-g3-g8` (BRANCH-SALVAGE), `codex/omen-native-lock-v2` (active).
