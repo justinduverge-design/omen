@@ -1,5 +1,23 @@
 # Phase 3 prep: nflverse Parquet column map
 
+## Verified 2026-10-18 (on the founder's Mac, Polars 1.x)
+
+- **Schemas read** for `pbp/play_by_play_2025.parquet` (372 columns) and `schedules/games.parquet` (46). The Parquet
+  column order is identical to the CSV header, so `schema_fingerprint` can match. `play_id`, `success`,
+  `two_point_attempt`, `yardline_100` and `air_yards` are Float64. `season`, `week` and scores are Int32.
+- **Text parity is not achievable byte for byte, and doesn't need to be.** The CSV writer prints floats with its own
+  15-significant-digit routine. Neither `%.15g` nor half-up decimal rounding reproduces it for every cell: 30,119 of
+  18.1 M cells still differ in the 15th digit.
+- **Value parity holds.** Across the 2025 season (48,771 plays), every float cell equals the CSV value within the CSV's
+  own printed precision. The 203 boundary cases are values just above 1, off by a half unit in the 15th digit. Every
+  column the SQL reads as text (`two_point_attempt`, `yardline_100`, `air_yards`, `season_type`, `play_id`, `success`)
+  matches **exactly** when whole floats print without `.0` and -0 prints as `0`. Script: `scripts/research/parquet-parity/`.
+- **Parity rule for the Polars path:** integer and text columns must be exactly equal. Float columns must be equal within
+  15 significant digits. `source_row` floats may differ from the CSV in the last printed digit; no SQL reads those as text.
+- **`kickoff_at` is filled** for every season from 2000 on (checked live). The 259 null rows are 1999 games, whose
+  source rows have no game time. The TIMERS.md open item is closed.
+
+
 Status: PREP. No code changed. Written 2026-10-17 from a read of `src/services/footballWarehouse/*`,
 `src/services/nflverseFacts.js`, `infra/warehouse/docker-compose.yml` and `warehouse/test/*`.
 
