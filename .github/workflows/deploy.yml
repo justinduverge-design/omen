@@ -33,6 +33,7 @@ on:
     paths-ignore:
       # Doctrine/docs/CI-config-only pushes should not rebuild images or restart KVM1.
       - ".github/workflows/**"
+      - ".github/_typos.toml"
       - "**/*.md"
       - "Blueprints/**"
       - "Direction/**"
