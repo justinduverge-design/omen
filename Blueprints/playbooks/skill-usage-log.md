@@ -34,3 +34,4 @@ three-weekly skill check (`Direction/reviews/2026-10-03-harness-design-outline.m
 2026-10-18 | Rust programme: OTel collector + KVM1 endpoint live (#718–#720), Phase 1 part 1 (SHA pins, shellcheck, typos, cargo-deny) | slops-code-review (fresh agent, 4 reviews) | skipped slops-tdd (config and CI only, no new runtime code), slops-canary (deploy health checked by hand: /api/health 200, spans landing).
 2026-10-18 | Phase 1 part 2: uv + ruff, warehouse unittests in CI | slops-code-review (fresh agent) | skipped slops-tdd (tests already exist; now wired into CI)
 2026-10-18 | Phase 1 part 3: Biome report-only | slops-code-review (fresh agent) | skipped slops-tdd (CI config only)
+2026-10-18 | Phase 1 part 5: Rust map row, slops-rust-tdd skill (Slops-OS#29) | slops-skill-author, slops-code-review | none skipped

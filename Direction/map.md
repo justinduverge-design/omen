@@ -65,6 +65,7 @@ and the risky-PR list: `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md` § Review. Cl
 | Auth, tokens, user data | `Blueprints/security-privacy.md` | `security-privacy-evidence`; request `@codex review` |
 | A bug or failed check | `Direction/known_issues.md` (open only) | `slops-investigate` |
 | Warehouse, timers, backups, SSH, rollback | `infra/schedule/TIMERS.md`, `infra/schedule/ACCESS.md`, `infra/warehouse/`, `Direction/2026-10-13-release-rollback-card.md` | `slops-canary` |
+| Rust crates, Pi binaries, Rust core bindings | `Blueprints/specs/infrastructure/omen-rust-infrastructure-plan-v1.md`, `Blueprints/specs/infrastructure/rust-prep/harness-and-ci-prep.md` | `slops-rust-tdd`, `slops-code-review` |
 | Release, deploy, store consoles, build packages | `Direction/release/builds/` (one package per build), `Direction/release/`, `Direction/release_readiness.md` | `slops-ship`, `slops-canary`, `slops-founder-admin-runbook` |
 | Where a new file belongs | `RESOLVER.md` | — |
 | Why something was decided | `Direction/decision_log.md` (search, do not read whole) | — |

@@ -19,3 +19,7 @@ graphify-out/
 **/build/
 **/node_modules/
 **/.build/
+
+# Cargo build output and vendored crates are not code structure.
+**/target/
+**/vendor/

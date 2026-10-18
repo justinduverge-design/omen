@@ -103,7 +103,7 @@ The one page that shows where the whole migration stands. Update a row whenever 
 
 | Phase | Switch | Lives on | Position | Proof to flip | Pruned after flip |
 |---|---|---|---|---|---|
-| 1 Tooling | CI workflow config | GitHub Actions | shadow (actions SHA-pinned; shellcheck and typos report-only, 2026-10-18) | old and new tools pass on the same commit | old linters, PostCSS setup, `client/` |
+| 1 Tooling | CI workflow config | GitHub Actions | shadow (2026-10-18: actions SHA-pinned; uv/ruff, Biome, shellcheck, typos report-only; Tailwind 4 + Vite 8 live; Rust map row + slops-rust-tdd) | old and new tools pass on the same commit | old linters, PostCSS setup, `client/` |
 | 2 Model jobs | `PLAYER_NOTES_ENABLED` | KVM2 + API | off | grounding pass rate, founder spot check | live narration call and its circuit breaker |
 | 3 Ingest | `WAREHOUSE_INGEST_ENGINE=csv\|polars` | KVM1 warehouse worker | off | row-for-row match in a shadow schema | CSV parser, 3 GB heap workaround |
 | 4 Ops | systemd units | Pi fleet, all hosts | off | a week of matching alerts | old watchdog and status scripts |
