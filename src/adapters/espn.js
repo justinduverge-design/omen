@@ -1257,6 +1257,22 @@ async function fetchEspnLeagueRosters(leagueId, espn_s2, swid, opts = {}) {
   return leagueRostersFromEspnSchedule(data, week);
 }
 
+/**
+ * The league's recent transactions (G4) from `view=mTransactions2`, with team names from `mTeam` in
+ * the same request. Community-documented, not exercised live: the caller keeps it behind
+ * `LEAGUE_TRANSACTIONS_ESPN` and the parser (`leagueTransactions.js`) fails closed.
+ */
+async function fetchEspnTransactions(leagueId, espn_s2, swid, opts = {}) {
+  const scoringPeriodId = Number(opts.week || opts.scoringPeriodId || 1);
+  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTransactions2", "mTeam"], scoringPeriodId, opts);
+  const teamNames = {};
+  for (const team of Array.isArray(data?.teams) ? data.teams : []) {
+    const id = teamId(team);
+    if (id != null) teamNames[String(id)] = teamName(team);
+  }
+  return { data, teamNames };
+}
+
 async function fetchEspnMatchup(leagueId, espn_s2, swid, opts = {}) {
   const scoringPeriodId = Number(opts.week || opts.scoringPeriodId || 1);
   // `mMatchupScore` is what carries the projected totals and the per-side roster the PROJ
@@ -1386,6 +1402,7 @@ module.exports = {
   fetchEspnWaiverPool,
   fetchEspnLastResult,
   fetchEspnMatchup,
+  fetchEspnTransactions,
   fetchEspnLeagueRosters,
   playoffTeamCountFromEspnData,
   leagueRostersFromEspnSchedule,

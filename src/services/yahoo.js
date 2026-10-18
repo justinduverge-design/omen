@@ -373,6 +373,12 @@ class YahooClient {
     }
   }
 
+  /** The league's recent adds, drops and trades (G4). Raw Yahoo response; parsed in leagueTransactions.js. */
+  async getTransactions(leagueKey, opts = {}) {
+    const count = Math.min(Math.max(parseInt(opts.count, 10) || 25, 1), 25);
+    return this.get(`/league/${leagueKey}/transactions;types=add,drop,trade;count=${count}`, { report: false });
+  }
+
   /** Roster for a team at a given week. Returns raw Yahoo response. */
   async getRoster(teamKey, week) {
     const path = week
@@ -403,13 +409,49 @@ class YahooClient {
    * Returns: raw Yahoo response. Use rosterSvc.normalizeYahooWaivers()
    * to flatten into the shape the optimizer expects.
    */
+  /**
+   * The league's available players split by how a user can get them (G6): free agents (`FA`, add
+   * now) and players on waivers (`W`, claim), read in parallel with percent owned.
+   *
+   * Returns `{ pages: [{ availability: "free_agent" | "waivers", raw }], truncated, failed }`.
+   * `truncated` is true when a status filled its whole window, so a caller can say the pool is the
+   * top of the pool rather than all of it. `failed` lists statuses that could not be read.
+   * Documented by Yahoo, not yet exercised against a live league: the caller keeps this behind
+   * `YAHOO_POOL_STATUS_SPLIT` and falls back to `getAvailablePlayers`.
+   */
+  async getAvailablePlayerPool(leagueKey, opts = {}) {
+    const count = Math.min(Math.max(parseInt(opts.count, 10) || 25, 1), 100);
+    const sort = opts.sort || "AR";
+    const size = (raw) => {
+      const players = raw?.fantasy_content?.league?.[1]?.players;
+      return players && typeof players === "object" ? Object.keys(players).filter((k) => k !== "count").length : 0;
+    };
+    const statuses = [["FA", "free_agent"], ["W", "waivers"]];
+    const settled = await Promise.allSettled(statuses.map(([status]) =>
+      this.getAvailablePlayers(leagueKey, { status, sort, count, ownership: true })));
+    const pages = [];
+    const failed = [];
+    let truncated = false;
+    settled.forEach((result, index) => {
+      const availability = statuses[index][1];
+      if (result.status !== "fulfilled") { failed.push(availability); return; }
+      pages.push({ availability, raw: result.value });
+      if (size(result.value) >= count) truncated = true;
+    });
+    return { pages, truncated, failed };
+  }
+
   async getAvailablePlayers(leagueKey, opts = {}) {
     // Yahoo returns at most 25 players per page, so a request for 50 silently came back as 25.
     // Page it: the first page is the response, later pages are folded into its `players` map.
     const PAGE = 25;
     const want = Math.min(Math.max(parseInt(opts.count, 10) || 50, 1), 100);
     const sort = opts.sort || "AR";    // AR = Average Rank
-    const page = (start, count) => this.get(`/league/${leagueKey}/players;status=A;sort=${sort};count=${count};start=${start}`);
+    // G6: `status` (A all available | FA free agents | W on waivers) and `ownership` (also request
+    // percent_owned) are optional; with neither this is the call it always was.
+    const status = ["A", "FA", "W"].includes(opts.status) ? opts.status : "A";
+    const out = opts.ownership ? ";out=percent_owned" : "";
+    const page = (start, count) => this.get(`/league/${leagueKey}/players;status=${status};sort=${sort};count=${count};start=${start}${out}`);
     const first = await page(0, Math.min(want, PAGE));
     const firstPlayers = first?.fantasy_content?.league?.[1]?.players;
     if (want <= PAGE || !firstPlayers) return first;

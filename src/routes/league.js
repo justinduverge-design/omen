@@ -11,6 +11,7 @@ const { getAuthenticatedYahooClient } = require("../services/yahooAuth");
 const { getAuthenticatedEspnCredentials } = require("../services/espnAuth");
 const sleeperAdapter = require("../adapters/sleeper");
 const espnAdapter = require("../adapters/espn");
+const leagueTransactions = require("../services/leagueTransactions");
 
 const router = express.Router();
 router.use(require("../services/sleeperRequestScope").middleware);
@@ -956,6 +957,84 @@ router.get("/overview", requireAuth, async (req, res, next) => {
       platform: failures[0]?.platform || null,
     });
     return res.status(result.status).json(result.body);
+  } catch (e) {
+    return next(e);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/league/transactions  ->  league-transactions.v1   (G4)
+//
+// The league's recent adds, drops, waiver claims and trades. Sleeper is read live; Yahoo and ESPN
+// are documented-but-unexercised and stay dark behind LEAGUE_TRANSACTIONS_YAHOO / _ESPN (see
+// services/leagueTransactions.js). Its own route and its own failure domain: the League overview's
+// hot path never waits on it, and a provider that cannot answer says `unavailable` with a reason.
+// ---------------------------------------------------------------------------
+router.get("/transactions", requireAuth, async (req, res, next) => {
+  const platform = normalizePlatform(req.query.platform);
+  const leagueId = normalizeLeagueId(req.query.leagueId);
+  const limit = leagueTransactions.clampLimit(req.query.limit);
+
+  if (platform && !VALID_PLATFORMS.has(platform)) {
+    const result = errorEnvelope({ code: "invalid_platform", status: 400 });
+    return res.status(result.status).json(result.body);
+  }
+
+  try {
+    const context = getCurrentNflWeekContext();
+    const rows = await getConnectionRows(req.user.id);
+    const cacheHandle = await responseCache.lookup({
+      route: "league_transactions",
+      userId: req.user.id,
+      parts: {
+        platform: platform || null,
+        league_id: leagueId || null,
+        week: context.week,
+        season: context.season,
+        limit,
+        connections: rows
+          .map((row) => ({
+            platform: row.platform,
+            league_id: row.league_id == null ? null : String(row.league_id),
+            selected: Boolean(row.is_selected),
+          }))
+          .sort((a, b) => `${a.platform}:${a.league_id}`.localeCompare(`${b.platform}:${b.league_id}`)),
+      },
+    });
+    if (cacheHandle.hit) return responseCache.sendHit(res, cacheHandle);
+    responseCache.setCacheHeader(res, cacheHandle);
+
+    const candidates = await candidatesForRequest(rows, {
+      platform, leagueId, userId: req.user.id, season: context.season,
+    });
+    if (!candidates.length) {
+      const result = errorEnvelope({ code: "league_not_connected", status: 404 });
+      return res.status(result.status).json(result.body);
+    }
+
+    const connection = candidates[0];
+    if (suppressLiveFootballData()) {
+      return res.json(leagueTransactions.offSeasonEnvelope(connection, context, limit));
+    }
+    const body = await leagueTransactions.readLeagueTransactions({
+      connection,
+      userId: req.user.id,
+      context,
+      limit,
+      deps: {
+        sleeper: sleeperAdapter,
+        espn: espnAdapter,
+        getYahooClient: getAuthenticatedYahooClient,
+        getEspnCredentials: getAuthenticatedEspnCredentials,
+        env: process.env,
+      },
+    });
+    // A failed or dark read is kept only briefly so a recovered provider is not hidden for a minute.
+    await responseCache.store(cacheHandle, 200, body, {
+      cache: true,
+      degraded: body.status === "unavailable",
+    });
+    return res.json(body);
   } catch (e) {
     return next(e);
   }

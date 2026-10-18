@@ -341,6 +341,10 @@ function playerView(player) {
     projected_points: projection(player),
     status: player?.status || null,
     ...(player?.sight ? { sight: player.sight } : {}),
+    // Additive (G6): only when the provider read supplied them. Yahoo splits free agents from
+    // players on waivers and reports percent owned; absent means "not read", never a default.
+    ...(player?.availability ? { availability: player.availability } : {}),
+    ...(Number.isFinite(player?.percent_owned) ? { percent_owned: player.percent_owned } : {}),
   };
 }
 
