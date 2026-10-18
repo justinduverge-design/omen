@@ -49,6 +49,7 @@ export function Meter({
   const resolvedFill = fillStyle ?? confidenceBarStyle(pct);
 
   const bar = (
+    // biome-ignore lint/a11y/useSemanticElements: native <meter> cannot take the team-skin track and fill styling
     <div
       role="meter"
       aria-valuenow={pct}

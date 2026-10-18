@@ -267,7 +267,6 @@ export default function Football() {
           {postWinSignal && (
             <span
               className="post-win-chip inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-widest"
-              aria-label={teamWinLabel(postWinTeam)}
             >
               <span aria-hidden="true">✦</span>
               <span>{teamWinLabel(postWinTeam)}</span>
@@ -322,6 +321,7 @@ export default function Football() {
         role="tabpanel"
         id={`tab-panel-${activeTab}`}
         aria-labelledby={`tab-${activeTab}`}
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: WAI-ARIA tabs pattern makes the tabpanel focusable
         tabIndex={0}
       >
         {renderTab(activeTab)}

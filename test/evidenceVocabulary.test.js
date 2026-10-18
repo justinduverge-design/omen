@@ -145,7 +145,7 @@ test("every evidence row in a recorded fixture is in its contract's vocabulary",
     for (const file of fs.readdirSync(dir)) {
       const body = JSON.parse(fs.readFileSync(path.join(dir, file), "utf8"));
       const walk = (node, key) => {
-        if (Array.isArray(node)) return node.forEach((n) => walk(n, key));
+        if (Array.isArray(node)) { for (const n of node) walk(n, key); return; }
         if (!node || typeof node !== "object") return;
         const isRow = "category" in node && "kind" in node && "statement" in node;
         const inScope = contract === "move-detail.v1" ? key === "evidence_at_the_time" : keys.includes(key);

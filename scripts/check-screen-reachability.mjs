@@ -116,7 +116,7 @@ for (const platform of PLATFORMS) {
 if (!quiet) {
   console.log('Screen reachability — every screen a screenshot scenario mounts must also be');
   console.log('reachable from production code.\n');
-  coverage.forEach((l) => console.log('  ' + l));
+  coverage.forEach((l) => { console.log('  ' + l); });
   console.log('');
 }
 

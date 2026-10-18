@@ -168,7 +168,7 @@ async function getGameWeather({
   // Index the series by UTC instant. `timezone=UTC` makes the strings naive UTC; append Z rather
   // than trusting the host zone.
   const at = new Map();
-  h.time.forEach((t, i) => at.set(Date.parse(`${t}:00Z`), i));
+  h.time.forEach((t, i) => { at.set(Date.parse(`${t}:00Z`), i); });
   const val = (name, ms) => {
     const i = at.get(ms);
     return i == null ? null : finite(h[`${name}${suffix}`] && h[`${name}${suffix}`][i]);

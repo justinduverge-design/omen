@@ -103,6 +103,7 @@ async function runCurrentSeasonCommand({
       try { await withDeadline(pool.end(), config.shutdownTimeoutMillis); } catch (error) {
         if (!primaryError) {
           output({ job: "football-warehouse-current-season", mode: args.mode, season: args.season, state: "failed", code: safeCode(error) });
+          // biome-ignore lint/correctness/noUnsafeFinally: surface a shutdown failure only when the run itself succeeded
           throw error;
         }
       }

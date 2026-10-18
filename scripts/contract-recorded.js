@@ -99,7 +99,7 @@ function pick(records) {
   const out = [];
   for (const list of byVariant.values()) {
     list.sort((a, b) => a.hash.localeCompare(b.hash));
-    list.slice(0, MAX_SHAPES).forEach((entry, i) => out.push({ ...entry, index: list.length > 1 ? i : null }));
+    list.slice(0, MAX_SHAPES).forEach((entry, i) => { out.push({ ...entry, index: list.length > 1 ? i : null }); });
   }
   return out;
 }
@@ -185,7 +185,7 @@ function infer(samples, key = "", depth = 0) {
   // status) is free text and must not be closed over the few values the tests happened to use.
   if (strings.length && depth === 1 && ENUM_KEYS.has(key)) {
     const values = [...new Set(strings)].sort();
-    if (values.length <= 12) schema.enum = values.length === samples.length || true ? values : undefined;
+    if (values.length <= 12) schema.enum = values;
   }
   return schema;
 }

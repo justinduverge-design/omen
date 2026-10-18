@@ -146,6 +146,7 @@ export default function OmenFeedback({ week, season, moveTitle, moveSubtext }) {
               {stars > 0 ? `${stars} / 5` : '—'}
             </span>
           </div>
+          {/* biome-ignore lint/a11y/useSemanticElements: a fieldset would bring legend layout; role=group is equivalent */}
           <div className="flex" role="group" aria-label="Star rating">
             {[1, 2, 3, 4, 5].map((n) => (
               <button

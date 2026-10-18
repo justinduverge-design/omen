@@ -134,9 +134,11 @@ function TradeAnalyzerPlayerRow({ sectionTitle, index, player, totalCount, activ
             id={`${sectionTitle}-${index}-suggestions`}
             aria-label="Player suggestions"
             className="absolute left-0 right-0 top-full z-20 mt-1 max-h-52 overflow-y-auto rounded-md border border-(--color-border) bg-(--color-surface-2) py-1 shadow-lg"
+            // biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: ARIA combobox listbox; focus stays on the input
             role="listbox"
           >
             {suggestions.map((p, si) => (
+              // biome-ignore lint/a11y/useFocusableInteractive: options are driven by aria-activedescendant from the input
               <li
                 key={p.id}
                 id={`${sectionTitle}-${index}-suggestions-${si}`}
@@ -146,6 +148,7 @@ function TradeAnalyzerPlayerRow({ sectionTitle, index, player, totalCount, activ
                     ? 'bg-(--color-accent)/15 text-(--color-text-primary)'
                     : 'text-(--color-text-primary) hover:bg-(--color-surface-3)'
                 }`}
+                // biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: ARIA combobox option
                 role="option"
                 onMouseDown={(e) => {
                   e.preventDefault(); // prevent blur before click

@@ -129,7 +129,7 @@ export function validateAgainstSchema(value, schema, path = '$') {
       const unique = new Set(value.map(item => JSON.stringify(item)));
       if (unique.size !== value.length) add('uniqueItems', 'must not contain duplicates');
     }
-    if (schema.items) value.forEach((item, index) => errors.push(...validateAgainstSchema(item, schema.items, `${path}[${index}]`)));
+    if (schema.items) value.forEach((item, index) => { errors.push(...validateAgainstSchema(item, schema.items, `${path}[${index}]`)); });
   }
 
   if (type === 'object') {

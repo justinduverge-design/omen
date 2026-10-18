@@ -83,7 +83,7 @@ async function verify(leagueId) {
 
   if (leaked.length) {
     console.log(`  SUBTRACTION           : FAIL — ${leaked.length} rostered player(s) leaked into the pool`);
-    leaked.slice(0, 10).forEach((p) => console.log(`      leaked: ${p.name} (${p.player_id})`));
+    leaked.slice(0, 10).forEach((p) => { console.log(`      leaked: ${p.name} (${p.player_id})`); });
     return { ok: false, decidable: true };
   }
 

@@ -721,6 +721,7 @@ export default function ConnectLeague() {
     }
   }
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: fetch once auth resolves; fetchPlatforms is recreated every render
   useEffect(() => {
     if (!checkingAuth) fetchPlatforms();
   }, [checkingAuth]);

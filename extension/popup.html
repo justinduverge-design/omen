@@ -1,5 +1,5 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <title>Omen ESPN Connect</title>
@@ -77,19 +77,19 @@
   <h1>Omen ESPN Connect</h1>
   <div id="needsAccess" hidden>
     <p>Omen needs your permission to read your ESPN session from this browser. It only ever reads espn.com, and the values go straight into Omen's connect form — nowhere else.</p>
-    <button class="primary" id="grantAccess">Allow access to ESPN</button>
+    <button type="button" class="primary" id="grantAccess">Allow access to ESPN</button>
     <div id="accessStatus"></div>
   </div>
   <div id="notLoggedIn" hidden>
     <p>No ESPN session found in this browser. Log into ESPN Fantasy first, then reopen this popup.</p>
-    <button class="secondary" id="openEspn">Open ESPN Fantasy</button>
+    <button type="button" class="secondary" id="openEspn">Open ESPN Fantasy</button>
     <div id="cookieDiagnostic"></div>
   </div>
   <div id="loggedIn" hidden>
     <p>ESPN session found in this browser.</p>
     <label for="leagueId">ESPN League ID</label>
     <input id="leagueId" type="text" placeholder="e.g. 156664" />
-    <button class="primary" id="fillOmen">Fill into Omen</button>
+    <button type="button" class="primary" id="fillOmen">Fill into Omen</button>
     <div id="status"></div>
   </div>
   <script src="popup.js"></script>

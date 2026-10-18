@@ -169,25 +169,25 @@ const TITLES = {
 };
 
 module.exports = { collect, TITLES };
-if (require.main !== module) return;
-
-const report = collect();
-if (JSON_OUT) {
-  console.log(JSON.stringify(report, null, 2));
-} else {
-  const fmt = {
-    routes: (x) => `${x.route}  (${x.file})`,
-    tables: (x) => `${x.table}  (${x.file})`,
-    envVars: (x) => x.name,
-    branches: (x) => `${x.branch}  — ${x.reason}`,
-    untracked: (x) => x.path,
-    screens: (x) => x.line,
-  };
-  let total = 0;
-  for (const k of Object.keys(report)) {
-    console.log(`\n${TITLES[k]}: ${report[k].length}`);
-    for (const x of report[k]) console.log(`  - ${fmt[k](x)}`);
-    total += report[k].length;
+if (require.main === module) {
+  const report = collect();
+  if (JSON_OUT) {
+    console.log(JSON.stringify(report, null, 2));
+  } else {
+    const fmt = {
+      routes: (x) => `${x.route}  (${x.file})`,
+      tables: (x) => `${x.table}  (${x.file})`,
+      envVars: (x) => x.name,
+      branches: (x) => `${x.branch}  — ${x.reason}`,
+      untracked: (x) => x.path,
+      screens: (x) => x.line,
+    };
+    let total = 0;
+    for (const k of Object.keys(report)) {
+      console.log(`\n${TITLES[k]}: ${report[k].length}`);
+      for (const x of report[k]) console.log(`  - ${fmt[k](x)}`);
+      total += report[k].length;
+    }
+    console.log(`\n${total} candidates. Candidates, not verdicts — confirm each before removing.`);
   }
-  console.log(`\n${total} candidates. Candidates, not verdicts — confirm each before removing.`);
 }

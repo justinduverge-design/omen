@@ -134,7 +134,7 @@ test("fetchSleeperDraft dedupes concurrent cache-miss callers to one upstream fe
 
   assert.equal(calls.length, 1, "axios should only be called once across 5 concurrent requesters");
   assert.equal(results.length, 5);
-  results.forEach((r) => assert.equal(r.draft_id, "draft-1"));
+  results.forEach((r) => { assert.equal(r.draft_id, "draft-1"); });
 });
 
 test("fetchSleeperDraftPicks dedupes concurrent cache-miss callers to one upstream fetch", async () => {
@@ -154,7 +154,7 @@ test("fetchSleeperDraftPicks dedupes concurrent cache-miss callers to one upstre
 
   assert.equal(calls.length, 1, "axios should only be called once across 3 concurrent requesters");
   assert.equal(results.length, 3);
-  results.forEach((r) => assert.equal(r.length, 2));
+  results.forEach((r) => { assert.equal(r.length, 2); });
 });
 
 test("fetchSleeperDraft re-fetches after the in-flight promise settles", async () => {
