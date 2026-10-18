@@ -1,0 +1,56 @@
+name: Python quality
+
+# Phase 1 tooling (Blueprints/specs/infrastructure/omen-rust-infrastructure-plan-v1.md).
+# Omen Python is stdlib-only; uv manages dev tools (ruff) from pyproject.toml / uv.lock.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "**/*.py"
+      - "warehouse/**"
+      - "infra/warehouse/**"
+  pull_request:
+    paths:
+      - "**/*.py"
+      - "warehouse/**"
+      - "infra/warehouse/**"
+      - ".python-version"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/python-quality.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: python-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  warehouse-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - name: Warehouse release-root tests (unittest)
+        run: uv run python -m unittest discover -s warehouse/test -p "test_*.py"
+
+  ruff:
+    # Report-only: the trusted warehouse scripts are not reformatted in a tooling PR.
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv run ruff check --output-format=github
+      - if: always()
+        run: uv run ruff format --check

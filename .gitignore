@@ -92,3 +92,6 @@ graphify-out/
 
 # OpenTelemetry collector trace output
 infra/telemetry/data/
+
+# uv
+.venv/
