@@ -102,6 +102,8 @@ final class LeagueCarouselViewModel: ObservableObject {
     /// Set while a rest-on-page selection is being written, so the widget can say the
     /// context is changing rather than appear to have changed already.
     @Published private(set) var committingPageID: String?
+    /// Visible recovery for a user-triggered switch that did not verifiably land.
+    @Published private(set) var selectionError: OmenApiError?
     /// The page `commit(_:)` last wrote to the server, until the directory re-read confirms it as active.
     ///
     /// The team picker on Omen, Trade and League commits a league BY NAME and deliberately leaves
@@ -460,6 +462,7 @@ final class LeagueCarouselViewModel: ObservableObject {
         // 2026-10-11).
         guard !(page.isActive && lastCommittedPageID == page.id) else { return nil }
 
+        selectionError = nil
         committingPageID = page.id
 
         let result = await sessionManager.authorized {
@@ -502,11 +505,12 @@ final class LeagueCarouselViewModel: ObservableObject {
                 self?.committingPageID = nil
             }
             return selection.refresh
-        case .failure:
+        case .failure(let error):
             // The switch did not verifiably land and the directory does not show it as active; the
             // server's state is unknown rather than known-unchanged. Chip and content both stay where
             // they were, and the caller does not reload, so they cannot disagree with each other.
             committingPageID = nil
+            selectionError = error
             return nil
         }
     }

@@ -781,6 +781,8 @@ struct OmenTradeShareScreen: View {
     var onToggleInclusion: ((String) -> Void)?
     var onShare: (() -> Void)?
     var onCopyAsText: (() -> Void)?
+    @State private var copiedAsText = false
+    @Environment(\.omenHaptics) private var haptics
 
     var body: some View {
         OmenTradeScrollShell(
@@ -818,9 +820,22 @@ struct OmenTradeShareScreen: View {
                 .padding(.horizontal, OmenSpacing.step16)
                 .padding(.top, OmenSpacing.step12)
             if let secondary = state.secondaryActionTitle {
-                OmenButton(title: secondary, action: { onCopyAsText?() }, variant: .secondary, size: .lg)
+                OmenButton(
+                    title: copiedAsText ? "Copied" : secondary,
+                    action: {
+                        guard let onCopyAsText else { return }
+                        onCopyAsText()
+                        copiedAsText = true
+                        haptics.play(.success)
+                    },
+                    variant: .secondary,
+                    size: .lg,
+                    enabled: onCopyAsText != nil,
+                    haptic: OmenHaptic.none
+                )
                     .padding(.horizontal, OmenSpacing.step16)
                     .padding(.top, OmenSpacing.step8)
+                    .accessibilityValue(copiedAsText ? "Copied to clipboard" : "")
             }
         }
     }

@@ -173,6 +173,25 @@ final class J4InteractionUITests: XCTestCase {
         }
     }
 
+    /// Clipboard work used to complete with no visible response. The control now resolves in
+    /// place so sighted users and VoiceOver both receive confirmation independent of haptics.
+    func testCopyAsTextConfirmsCompletionInPlace() {
+        let app = launch("journey-j4.nominal.04-trade-share")
+        let copy = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "Copy as text")
+        ).firstMatch
+
+        for _ in 0..<3 where !copy.exists { app.swipeUp() }
+        assertTappable(copy, "Copy as text")
+        copy.tap()
+
+        XCTAssertTrue(
+            app.buttons.matching(NSPredicate(format: "label ==[c] %@", "Copied")).firstMatch
+                .waitForExistence(timeout: 3),
+            "the clipboard action completed without visible confirmation"
+        )
+    }
+
     // MARK: - TradeBuild
 
     func testTheBuildScreenOffersItsTabsFiltersAndPartners() {

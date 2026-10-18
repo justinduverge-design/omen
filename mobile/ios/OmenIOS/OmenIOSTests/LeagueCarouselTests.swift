@@ -578,6 +578,7 @@ final class LeagueCarouselTests: XCTestCase {
         let refresh = await model.commit(target)
 
         XCTAssertNil(refresh)
+        XCTAssertEqual(model.selectionError, .network, "the visible switcher owns a retryable failure state")
         XCTAssertEqual(model.activePage?.id, before, "chip and content both stay on the old league")
         XCTAssertFalse(model.isCurrent(target))
     }

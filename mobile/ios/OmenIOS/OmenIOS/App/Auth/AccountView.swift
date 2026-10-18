@@ -155,6 +155,7 @@ private struct ConnectedAccountScreen: View {
     let state: OmenAccountState
     @StateObject private var viewModel: ConnectedPlatformsViewModel
     @State private var pendingDisconnect: OmenAccountConnection?
+    @Environment(\.omenHaptics) private var haptics
 
     let securitySection: AnyView
     var onReportProblem: (() -> Void)?
@@ -186,13 +187,13 @@ private struct ConnectedAccountScreen: View {
         self.onSignOut = onSignOut
     }
 
-    /// `.loading` renders as `.unavailable` — *"couldn't read"* — rather than as an empty list.
-    /// A list that is still arriving is also a list that has not been read, and the sentence is
-    /// true of both. Rendering it empty for the first second is the same false claim, briefly.
+    /// Loading, empty, and unread are different claims. Account used to show the failure sentence
+    /// during every healthy first read; that made opening the screen look broken before the server
+    /// had even answered.
     private var connections: OmenAccountConnections {
         switch viewModel.state {
-        case .loading, .failed:
-            return .unavailable
+        case .loading: return .loading
+        case .failed: return .unavailable
         case .loaded(let rows) where rows.isEmpty:
             return .none
         case .loaded(let rows):
@@ -210,6 +211,8 @@ private struct ConnectedAccountScreen: View {
                 isDemo: state.isDemo
             ),
             onDisconnect: { pendingDisconnect = $0 },
+            disconnectingConnectionID: viewModel.disconnecting,
+            disconnectErrorMessage: viewModel.errorMessage,
             onReportProblem: onReportProblem,
             onOpenHelpCentre: onOpenHelpCentre,
             onOpenPrivacyAndData: onOpenPrivacyAndData,
@@ -233,7 +236,10 @@ private struct ConnectedAccountScreen: View {
                         action: {
                             let platform = row.id
                             pendingDisconnect = nil
-                            Task { await viewModel.disconnect(platform) }
+                            Task {
+                                let disconnected = await viewModel.disconnect(platform)
+                                haptics.play(disconnected ? .success : .error)
+                            }
                         },
                         variant: .danger,
                         size: .lg

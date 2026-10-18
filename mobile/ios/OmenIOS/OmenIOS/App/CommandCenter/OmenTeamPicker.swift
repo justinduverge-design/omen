@@ -41,6 +41,7 @@ struct OmenTeamPicker: View {
     var externalPresentation: Binding<Bool>?
 
     @State private var localPresentation = false
+    @Environment(\.omenHaptics) private var haptics
 
     private var isSwitcherPresented: Binding<Bool> { externalPresentation ?? $localPresentation }
 
@@ -158,19 +159,18 @@ struct OmenTeamPicker: View {
                     OmenSwitchGroup(title: "Favourites", rows: switcherTeams.filter(\.isFavorite).map(switchRow)),
                     OmenSwitchGroup(title: "All teams", rows: switcherTeams.filter { !$0.isFavorite }.map(switchRow))
                 ].filter { !$0.rows.isEmpty },
-                notice: switcherNotice,
+                notice: switcherFailureNotice ?? switcherNotice,
                 caption: Self.switcherCaption
             ),
             onSelectFilter: { viewModel.selectedPlatform = $0 },
             onSelectRow: { row in
                 guard let page = viewModel.allPages.first(where: { $0.id == row.id }) else { return }
-                // Dismiss first. The switch is fast but not instant, and holding the sheet open
-                // over a screen that is already updating underneath it hides the very thing the
-                // user asked for. The write continues after dismissal.
-                isSwitcherPresented.wrappedValue = false
                 Task {
                     if let refresh = await viewModel.commit(page) {
+                        isSwitcherPresented.wrappedValue = false
                         onContextChanged(refresh)
+                    } else if viewModel.selectionError != nil {
+                        haptics.play(.error)
                     }
                 }
             },
@@ -192,6 +192,11 @@ struct OmenTeamPicker: View {
     /// were "unexplained".
     static let switcherCaption =
         "The check marks the one league Omen is using right now. Tap a team to switch to it; star a team to keep it at the top."
+
+    private var switcherFailureNotice: String? {
+        guard let error = viewModel.selectionError else { return nil }
+        return "That switch did not take. \(switcherErrorMessage(error))"
+    }
 
     private var sheetDetents: Set<PresentationDetent> {
         let height = OmenSwitchSheet.preferredHeight(
