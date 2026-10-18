@@ -43,7 +43,20 @@ test("gap classification uses the raw gap, the same comparison confidencePolicy 
 });
 
 test("odd values never throw and blank strings are missing", () => {
-  for (const v of ["", "   ", "\t", Symbol("x"), {}, [], { valueOf() { throw new Error("no"); } }, true]) {
+  for (const v of [
+    "",
+    "   ",
+    "\t",
+    Symbol("x"),
+    {},
+    [],
+    {
+      valueOf() {
+        throw new Error("no");
+      },
+    },
+    true,
+  ]) {
     assert.equal(gapNoise(v).classification, null);
   }
   const r = usageStability([wk(1, "  ", " "), wk(2, Symbol("x"), {}), wk(3, "", "")]);
@@ -67,17 +80,33 @@ test("usageStability: float boundary and sparse-data wording", () => {
   assert.equal(usageStability([wk(1, 0.7), wk(2, 0.5), wk(3, 0.7), wk(4, 0.5)]).stability, "volatile");
   assert.match(usageStability([wk(1, 0.7, 5)]).sentence, /Only 1 game of usage on record \(3 needed\)/);
   assert.match(usageStability([]).sentence, /^No usage history on record/);
-  const sparse = usageStability([wk(1, 0.7, 5), wk(2, null, null, { receptions: 3 }), wk(3, 0.6, null), wk(4, null, 4)]);
+  const sparse = usageStability([
+    wk(1, 0.7, 5),
+    wk(2, null, null, { receptions: 3 }),
+    wk(3, 0.6, null),
+    wk(4, null, 4),
+  ]);
   assert.equal(sparse.stability, "insufficient_data");
   assert.match(sparse.sentence, /4 games are on record, but fewer than 3 have snap share, targets or carries/);
 });
 
 test("gapNoise boundaries", () => {
   const cases = [
-    [0, "inside_noise"], [1.49, "inside_noise"], [-1.49, "inside_noise"],
-    [1.5, "real_edge"], [-3, "real_edge"], [7.99, "real_edge"],
-    [8, "large_edge"], [-12, "large_edge"], ["9", "large_edge"],
-    [NaN, null], [null, null], [undefined, null], ["", null], ["abc", null], [Infinity, null],
+    [0, "inside_noise"],
+    [1.49, "inside_noise"],
+    [-1.49, "inside_noise"],
+    [1.5, "real_edge"],
+    [-3, "real_edge"],
+    [7.99, "real_edge"],
+    [8, "large_edge"],
+    [-12, "large_edge"],
+    ["9", "large_edge"],
+    [NaN, null],
+    [null, null],
+    [undefined, null],
+    ["", null],
+    ["abc", null],
+    [Infinity, null],
   ];
   for (const [input, want] of cases) assert.equal(gapNoise(input).classification, want, String(input));
   assert.match(gapNoise(0.8).sentence, /0\.8 pts\) is inside normal projection variance/);
@@ -107,15 +136,25 @@ test("usageStability: stable, volatile, boundaries", () => {
 });
 
 test("usageStability: volume metrics without snap share", () => {
-  const r = usageStability([{ week: 1, carries: 20 }, { week: 2, carries: 10 }, { week: 3, carries: 21 }]);
+  const r = usageStability([
+    { week: 1, carries: 20 },
+    { week: 2, carries: 10 },
+    { week: 3, carries: 21 },
+  ]);
   assert.equal(r.stability, "volatile");
   assert.equal(r.change_since_last_week.metric, "carries");
 });
 
 test("usageStability: insufficient data, never guesses", () => {
   const cases = [
-    undefined, null, [], "x", [wk(1, 0.7, 5)], [wk(1, 0.7, 5), wk(2, 0.6, 4)],
-    [wk(1, NaN, null), wk(2, "", undefined), wk(3, null, null)], [null, 5, {}],
+    undefined,
+    null,
+    [],
+    "x",
+    [wk(1, 0.7, 5)],
+    [wk(1, 0.7, 5), wk(2, 0.6, 4)],
+    [wk(1, NaN, null), wk(2, "", undefined), wk(3, null, null)],
+    [null, 5, {}],
   ];
   for (const c of cases) {
     const r = usageStability(c);
@@ -151,9 +190,16 @@ test("usageStability: accepts offense_pct and percent values, window caps at 6",
 });
 
 test("signalNoiseSummary: max 2, vocabulary kinds, numbers from inputs", () => {
-  const s = signalNoiseSummary({ gapPts: 0.8, usageRows: [wk(1, 0.7, 6), wk(2, 0.7, 6), wk(3, 0.7, 6)], name: "Smith" });
+  const s = signalNoiseSummary({
+    gapPts: 0.8,
+    usageRows: [wk(1, 0.7, 6), wk(2, 0.7, 6), wk(3, 0.7, 6)],
+    name: "Smith",
+  });
   assert.equal(s.statements.length, 2);
-  assert.deepEqual(s.statements.map((x) => x.kind), ["projection", "observed_context"]);
+  assert.deepEqual(
+    s.statements.map((x) => x.kind),
+    ["projection", "observed_context"],
+  );
   for (const st of s.statements) assert.ok(START_SIT.kinds.includes(st.kind));
   assert.match(s.statements[1].text, /Smith's recent usage is steady/);
   assert.equal(signalNoiseSummary({ gapPts: NaN }).statements.length, 0);

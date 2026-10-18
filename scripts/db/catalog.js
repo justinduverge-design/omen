@@ -96,15 +96,18 @@ async function dataChecksums() {
   await client.connect();
   const out = { data: [] };
   for (const [table, spec] of Object.entries(fixture.columns)) {
-    const cols = spec.split(", ").map((c) => `"${c.split(":")[0]}"`).join(", ");
+    const cols = spec
+      .split(", ")
+      .map((c) => `"${c.split(":")[0]}"`)
+      .join(", ");
     const { rows } = await client.query(
       `select count(*)::int n, coalesce(md5(string_agg(r::text, '|' order by r::text)), '') h
-         from (select ${cols} from public."${table}") r`
+         from (select ${cols} from public."${table}") r`,
     );
     out.data.push(`${table}|${rows[0].n}|${rows[0].h}`);
   }
   const vault = await client.query(
-    "select count(*)::int n, coalesce(md5(string_agg(id::text || secret, '|' order by id)), '') h from vault.secrets"
+    "select count(*)::int n, coalesce(md5(string_agg(id::text || secret, '|' order by id)), '') h from vault.secrets",
   );
   out.data.push(`vault.secrets|${vault.rows[0].n}|${vault.rows[0].h}`);
   await client.end();
@@ -134,7 +137,9 @@ async function main() {
     const fixture = JSON.parse(fs.readFileSync(FIXTURE, "utf8"));
     const live = await dump();
     // The fixture records the five families read from production; compare exactly those.
-    const scoped = Object.fromEntries(["columns", "constraints", "indexes", "policies", "acls"].map((k) => [k, live[k]]));
+    const scoped = Object.fromEntries(
+      ["columns", "constraints", "indexes", "policies", "acls"].map((k) => [k, live[k]]),
+    );
     const lines = diff(fixture, scoped);
     if (lines.length) {
       console.error("scratch snapshot differs from production (- production, + scratch):");
@@ -150,7 +155,9 @@ async function main() {
     const fixture = JSON.parse(fs.readFileSync(FIXTURE, "utf8"));
     const read = JSON.parse(fs.readFileSync(a, "utf8"));
     const live = read.catalog || read;
-    const scoped = Object.fromEntries(["columns", "constraints", "indexes", "policies", "acls"].map((k) => [k, live[k]]));
+    const scoped = Object.fromEntries(
+      ["columns", "constraints", "indexes", "policies", "acls"].map((k) => [k, live[k]]),
+    );
     const lines = diff(fixture, scoped);
     if (lines.length) {
       console.error("production differs from the fixture (- fixture, + production):");
@@ -165,7 +172,8 @@ async function main() {
     // (expected before -> after). Comparing changes, not whole catalogs, keeps Supabase-only objects that
     // exist before the step (and never change) out of the comparison.
     // Catalogs saved from the connector arrive wrapped as {"catalog": {...}}; unwrap every input (Codex, #530).
-    const [expBefore, expAfter, actBefore, actAfter] = process.argv.slice(3)
+    const [expBefore, expAfter, actBefore, actAfter] = process.argv
+      .slice(3)
       .map((f) => JSON.parse(fs.readFileSync(f, "utf8")))
       .map((doc) => doc.catalog || doc);
     const expected = diff(expBefore, expAfter).sort();
@@ -180,7 +188,9 @@ async function main() {
     console.log(`catalog delta: as expected (${expected.length} changes)`);
     return;
   }
-  console.error("usage: catalog.js dump | diff a.json b.json | compare-production | compare-fixture read.json | delta-check expBefore expAfter actBefore actAfter");
+  console.error(
+    "usage: catalog.js dump | diff a.json b.json | compare-production | compare-fixture read.json | delta-check expBefore expAfter actBefore actAfter",
+  );
   process.exit(2);
 }
 

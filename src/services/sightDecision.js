@@ -28,7 +28,16 @@ function isLocked(player) {
 }
 
 // Sleeper's injury status in the provider status vocabulary. "NA" is left out: Sleeper uses it loosely.
-const SLEEPER_STATUS = { Questionable: "Q", Doubtful: "DOUBTFUL", Out: "OUT", IR: "IR", PUP: "PUP", Sus: "SUSP", COV: "OUT", DNR: "OUT" };
+const SLEEPER_STATUS = {
+  Questionable: "Q",
+  Doubtful: "DOUBTFUL",
+  Out: "OUT",
+  IR: "IR",
+  PUP: "PUP",
+  Sus: "SUSP",
+  COV: "OUT",
+  DNR: "OUT",
+};
 
 /**
  * The status a decision uses: the league provider's own, or, when the provider reports none, Sleeper's injury

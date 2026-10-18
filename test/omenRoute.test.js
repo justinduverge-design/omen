@@ -153,7 +153,8 @@ test("POST /api/omen/mvp-move labels every ESPN recommendation as exact-scoring 
     status: "unavailable",
     used: false,
     source: "provider_restricted",
-    message: "Omen may recognize some league settings, but cannot yet verify every scoring rule and final ESPN result for this league. Any point-based guidance is not an exact final-score calculation.",
+    message:
+      "Omen may recognize some league settings, but cannot yet verify every scoring rule and final ESPN result for this league. Any point-based guidance is not an exact final-score calculation.",
   });
 });
 
@@ -183,170 +184,199 @@ test("POST /api/omen/mvp-move uses live LLM explanation for eligible success res
     data_used: ["connected roster", "weekly projections"],
   };
 
-  await withMockOmenLlm(async (payload) => {
-    assert.equal(payload.state, "success");
-    assert.equal(payload.title, "Start Marquise Vale over Trent Holloway");
-    assert.equal(payload.primary_player.name, "Marquise Vale");
-    assert.equal(payload.comparison_player.name, "Trent Holloway");
-    assert.equal(payload.confidence.score, 68); // Leaning, pinned by confidencePolicy
-    assert.equal(payload.risk.level, "medium");
-    assert.ok(payload.signal_statuses.llm_reasoning);
-    return liveExplanation;
-  }, async () => {
-    const res = await postMvpMove(baseRequest());
+  await withMockOmenLlm(
+    async (payload) => {
+      assert.equal(payload.state, "success");
+      assert.equal(payload.title, "Start Marquise Vale over Trent Holloway");
+      assert.equal(payload.primary_player.name, "Marquise Vale");
+      assert.equal(payload.comparison_player.name, "Trent Holloway");
+      assert.equal(payload.confidence.score, 68); // Leaning, pinned by confidencePolicy
+      assert.equal(payload.risk.level, "medium");
+      assert.ok(payload.signal_statuses.llm_reasoning);
+      return liveExplanation;
+    },
+    async () => {
+      const res = await postMvpMove(baseRequest());
 
-    assert.equal(res.status, 200);
-    assert.equal(res.body.recommendation.explanation.summary, liveExplanation.summary);
-    assert.deepEqual(res.body.recommendation.explanation.data_used, [
-      "connected roster",
-      "weekly projections",
-      "home/away context",
-      "game time context",
-    ]);
-    assert.equal(res.body.signals.llm_reasoning.status, "live");
-    assert.equal(res.body.signals.llm_reasoning.used, true);
-    assert.equal(res.body.signals.llm_reasoning.source, "ollama_gemma");
-  });
+      assert.equal(res.status, 200);
+      assert.equal(res.body.recommendation.explanation.summary, liveExplanation.summary);
+      assert.deepEqual(res.body.recommendation.explanation.data_used, [
+        "connected roster",
+        "weekly projections",
+        "home/away context",
+        "game time context",
+      ]);
+      assert.equal(res.body.signals.llm_reasoning.status, "live");
+      assert.equal(res.body.signals.llm_reasoning.used, true);
+      assert.equal(res.body.signals.llm_reasoning.source, "ollama_gemma");
+    },
+  );
 });
 
 test("POST /api/omen/mvp-move falls back when LLM helper returns null", async () => {
-  await withMockOmenLlm(async () => null, async () => {
-    const res = await postMvpMove(baseRequest());
+  await withMockOmenLlm(
+    async () => null,
+    async () => {
+      const res = await postMvpMove(baseRequest());
 
-    assert.equal(res.status, 200);
-    assert.equal(
-      res.body.recommendation.explanation.summary,
-      "Your best move is to start Marquise Vale over Trent Holloway."
-    );
-    assert.equal(res.body.signals.llm_reasoning.status, "stub");
-    assert.notEqual(res.body.signals.llm_reasoning.source, "ollama_gemma");
-  });
+      assert.equal(res.status, 200);
+      assert.equal(
+        res.body.recommendation.explanation.summary,
+        "Your best move is to start Marquise Vale over Trent Holloway.",
+      );
+      assert.equal(res.body.signals.llm_reasoning.status, "stub");
+      assert.notEqual(res.body.signals.llm_reasoning.source, "ollama_gemma");
+    },
+  );
 });
 
 test("POST /api/omen/mvp-move falls back when LLM helper returns invalid output", async () => {
-  await withMockOmenLlm(async () => ({
-    summary: "",
-    why_it_matters: "Not enough shape.",
-    data_used: [],
-  }), async () => {
-    const res = await postMvpMove(baseRequest());
+  await withMockOmenLlm(
+    async () => ({
+      summary: "",
+      why_it_matters: "Not enough shape.",
+      data_used: [],
+    }),
+    async () => {
+      const res = await postMvpMove(baseRequest());
 
-    assert.equal(res.status, 200);
-    assert.equal(
-      res.body.recommendation.explanation.summary,
-      "Your best move is to start Marquise Vale over Trent Holloway."
-    );
-    assert.equal(res.body.signals.llm_reasoning.status, "stub");
-  });
+      assert.equal(res.status, 200);
+      assert.equal(
+        res.body.recommendation.explanation.summary,
+        "Your best move is to start Marquise Vale over Trent Holloway.",
+      );
+      assert.equal(res.body.signals.llm_reasoning.status, "stub");
+    },
+  );
 });
 
 test("POST /api/omen/mvp-move marks matchup DvP live when context is available", async () => {
-  await withMockOmenDvp(async (lookup) => {
-    assert.equal(lookup.position, "WR");
-    assert.equal(lookup.opponentTeam, "PHI");
-    assert.equal(lookup.season, 2026);
-    assert.equal(lookup.week, 8);
-    return {
-      opponent_team: "PHI",
-      position: "WR",
-      avg_points_allowed: 18.4,
-      sample_weeks: 5,
-      dvp_label: "favorable",
-    };
-  }, async () => {
-    const res = await postMvpMove(baseRequest({
-      include_signals: {
-        weather: true,
-        travel_home_away: true,
-        game_time_tv: true,
-        matchup_dvp: true,
-        llm_reasoning: false,
-      },
-    }));
+  await withMockOmenDvp(
+    async (lookup) => {
+      assert.equal(lookup.position, "WR");
+      assert.equal(lookup.opponentTeam, "PHI");
+      assert.equal(lookup.season, 2026);
+      assert.equal(lookup.week, 8);
+      return {
+        opponent_team: "PHI",
+        position: "WR",
+        avg_points_allowed: 18.4,
+        sample_weeks: 5,
+        dvp_label: "favorable",
+      };
+    },
+    async () => {
+      const res = await postMvpMove(
+        baseRequest({
+          include_signals: {
+            weather: true,
+            travel_home_away: true,
+            game_time_tv: true,
+            matchup_dvp: true,
+            llm_reasoning: false,
+          },
+        }),
+      );
 
-    assert.equal(res.status, 200);
-    assert.equal(res.body.signals.matchup_dvp.status, "live");
-    assert.equal(res.body.signals.matchup_dvp.used, true);
-    assert.equal(res.body.signals.matchup_dvp.source, "nflverse_data");
-    assert.match(res.body.signals.matchup_dvp.message, /nflverse-data/);
-    assert.match(res.body.recommendation.confidence.rationale, /Matchup DvP is live/);
-    assert.ok(res.body.recommendation.explanation.data_used.includes("matchup DvP"));
-  });
+      assert.equal(res.status, 200);
+      assert.equal(res.body.signals.matchup_dvp.status, "live");
+      assert.equal(res.body.signals.matchup_dvp.used, true);
+      assert.equal(res.body.signals.matchup_dvp.source, "nflverse_data");
+      assert.match(res.body.signals.matchup_dvp.message, /nflverse-data/);
+      assert.match(res.body.recommendation.confidence.rationale, /Matchup DvP is live/);
+      assert.ok(res.body.recommendation.explanation.data_used.includes("matchup DvP"));
+    },
+  );
 });
 
 test("POST /api/omen/mvp-move uses live DvP only when context shape is valid", async () => {
-  await withMockOmenDvp(async () => ({
-    opponent_team: "PHI",
-    position: "WR",
-    avg_points_allowed: 18.4,
-    sample_weeks: 2,
-    dvp_label: "favorable",
-  }), async () => {
-    const res = await postMvpMove(baseRequest({
-      include_signals: {
-        weather: true,
-        travel_home_away: true,
-        game_time_tv: true,
-        matchup_dvp: true,
-        llm_reasoning: false,
-      },
-    }));
+  await withMockOmenDvp(
+    async () => ({
+      opponent_team: "PHI",
+      position: "WR",
+      avg_points_allowed: 18.4,
+      sample_weeks: 2,
+      dvp_label: "favorable",
+    }),
+    async () => {
+      const res = await postMvpMove(
+        baseRequest({
+          include_signals: {
+            weather: true,
+            travel_home_away: true,
+            game_time_tv: true,
+            matchup_dvp: true,
+            llm_reasoning: false,
+          },
+        }),
+      );
 
-    assert.equal(res.status, 200);
-    assert.equal(res.body.signals.matchup_dvp.status, "stub");
-    assert.equal(res.body.signals.matchup_dvp.used, false);
-    assert.equal(res.body.signals.matchup_dvp.source, "pending_nflverse_data");
-  });
+      assert.equal(res.status, 200);
+      assert.equal(res.body.signals.matchup_dvp.status, "stub");
+      assert.equal(res.body.signals.matchup_dvp.used, false);
+      assert.equal(res.body.signals.matchup_dvp.source, "pending_nflverse_data");
+    },
+  );
 });
 
 test("POST /api/omen/mvp-move falls back when matchup DvP returns null", async () => {
-  await withMockOmenDvp(async () => null, async () => {
-    const res = await postMvpMove(baseRequest({
-      include_signals: {
-        weather: true,
-        travel_home_away: true,
-        game_time_tv: true,
-        matchup_dvp: true,
-        llm_reasoning: false,
-      },
-    }));
+  await withMockOmenDvp(
+    async () => null,
+    async () => {
+      const res = await postMvpMove(
+        baseRequest({
+          include_signals: {
+            weather: true,
+            travel_home_away: true,
+            game_time_tv: true,
+            matchup_dvp: true,
+            llm_reasoning: false,
+          },
+        }),
+      );
 
-    assert.equal(res.status, 200);
-    assert.equal(res.body.signals.matchup_dvp.status, "stub");
-    assert.equal(res.body.signals.matchup_dvp.used, false);
-    assert.equal(
-      res.body.recommendation.confidence.rationale,
-      "The projection gap is clear, but matchup DvP is still stubbed."
-    );
-  });
+      assert.equal(res.status, 200);
+      assert.equal(res.body.signals.matchup_dvp.status, "stub");
+      assert.equal(res.body.signals.matchup_dvp.used, false);
+      assert.equal(
+        res.body.recommendation.confidence.rationale,
+        "The projection gap is clear, but matchup DvP is still stubbed.",
+      );
+    },
+  );
 });
 
 test("POST /api/omen/mvp-move skips matchup DvP when include_signals.matchup_dvp is false", async () => {
   let calls = 0;
-  await withMockOmenDvp(async () => {
-    calls += 1;
-    return {
-      opponent_team: "PHI",
-      position: "WR",
-      avg_points_allowed: 18.4,
-      sample_weeks: 5,
-      dvp_label: "favorable",
-    };
-  }, async () => {
-    const res = await postMvpMove(baseRequest({
-      include_signals: {
-        weather: true,
-        travel_home_away: true,
-        game_time_tv: true,
-        matchup_dvp: false,
-        llm_reasoning: false,
-      },
-    }));
+  await withMockOmenDvp(
+    async () => {
+      calls += 1;
+      return {
+        opponent_team: "PHI",
+        position: "WR",
+        avg_points_allowed: 18.4,
+        sample_weeks: 5,
+        dvp_label: "favorable",
+      };
+    },
+    async () => {
+      const res = await postMvpMove(
+        baseRequest({
+          include_signals: {
+            weather: true,
+            travel_home_away: true,
+            game_time_tv: true,
+            matchup_dvp: false,
+            llm_reasoning: false,
+          },
+        }),
+      );
 
-    assert.equal(res.status, 200);
-    assert.equal(calls, 0);
-    assert.equal(res.body.signals.matchup_dvp.status, "stub");
-  });
+      assert.equal(res.status, 200);
+      assert.equal(calls, 0);
+      assert.equal(res.body.signals.matchup_dvp.status, "stub");
+    },
+  );
 });
 
 test("POST /api/omen/mvp-move returns empty state", async () => {
@@ -360,10 +390,12 @@ test("POST /api/omen/mvp-move returns empty state", async () => {
 });
 
 test("POST /api/omen/mvp-move returns platform disconnected state", async () => {
-  const res = await postMvpMove(baseRequest({
-    platform: "sleeper",
-    mock_state: "platform_disconnected",
-  }));
+  const res = await postMvpMove(
+    baseRequest({
+      platform: "sleeper",
+      mock_state: "platform_disconnected",
+    }),
+  );
 
   assert.equal(res.status, 200);
   assertEnvelope(res.body, "platform_disconnected");
@@ -380,10 +412,12 @@ for (const state of [
   "espn_recovery_needed",
 ]) {
   test(`POST /api/omen/mvp-move returns ${state} recovery state`, async () => {
-    const res = await postMvpMove(baseRequest({
-      platform: "espn",
-      mock_state: state,
-    }));
+    const res = await postMvpMove(
+      baseRequest({
+        platform: "espn",
+        mock_state: state,
+      }),
+    );
 
     assert.equal(res.status, 200);
     assertEnvelope(res.body, state);
@@ -405,26 +439,31 @@ for (const state of [
 ]) {
   test(`POST /api/omen/mvp-move does not call matchup DvP for ${state}`, async () => {
     let calls = 0;
-    await withMockOmenDvp(async () => {
-      calls += 1;
-      return null;
-    }, async () => {
-      const res = await postMvpMove(baseRequest({
-        platform: "espn",
-        mock_state: state,
-        include_signals: {
-          weather: true,
-          travel_home_away: true,
-          game_time_tv: true,
-          matchup_dvp: true,
-          llm_reasoning: false,
-        },
-      }));
+    await withMockOmenDvp(
+      async () => {
+        calls += 1;
+        return null;
+      },
+      async () => {
+        const res = await postMvpMove(
+          baseRequest({
+            platform: "espn",
+            mock_state: state,
+            include_signals: {
+              weather: true,
+              travel_home_away: true,
+              game_time_tv: true,
+              matchup_dvp: true,
+              llm_reasoning: false,
+            },
+          }),
+        );
 
-      assert.equal(res.status, 200);
-      assert.equal(res.body.state, state);
-      assert.equal(calls, 0);
-    });
+        assert.equal(res.status, 200);
+        assert.equal(res.body.state, state);
+        assert.equal(calls, 0);
+      },
+    );
   });
 }
 
@@ -436,61 +475,76 @@ for (const state of [
 ]) {
   test(`POST /api/omen/mvp-move does not call LLM for ${state}`, async () => {
     let calls = 0;
-    await withMockOmenLlm(async () => {
-      calls += 1;
-      return null;
-    }, async () => {
-      const res = await postMvpMove(baseRequest({
-        platform: "espn",
-        mock_state: state,
-      }));
+    await withMockOmenLlm(
+      async () => {
+        calls += 1;
+        return null;
+      },
+      async () => {
+        const res = await postMvpMove(
+          baseRequest({
+            platform: "espn",
+            mock_state: state,
+          }),
+        );
 
-      assert.equal(res.status, 200);
-      assert.equal(res.body.state, state);
-      assert.equal(calls, 0);
-    });
+        assert.equal(res.status, 200);
+        assert.equal(res.body.state, state);
+        assert.equal(calls, 0);
+      },
+    );
   });
 }
 
 test("POST /api/omen/mvp-move does not call LLM for platform disconnected state", async () => {
   let calls = 0;
-  await withMockOmenLlm(async () => {
-    calls += 1;
-    return null;
-  }, async () => {
-    const res = await postMvpMove(baseRequest({
-      platform: "sleeper",
-      mock_state: "platform_disconnected",
-    }));
+  await withMockOmenLlm(
+    async () => {
+      calls += 1;
+      return null;
+    },
+    async () => {
+      const res = await postMvpMove(
+        baseRequest({
+          platform: "sleeper",
+          mock_state: "platform_disconnected",
+        }),
+      );
 
-    assert.equal(res.status, 200);
-    assert.equal(res.body.state, "platform_disconnected");
-    assert.equal(calls, 0);
-  });
+      assert.equal(res.status, 200);
+      assert.equal(res.body.state, "platform_disconnected");
+      assert.equal(calls, 0);
+    },
+  );
 });
 
 test("POST /api/omen/mvp-move does not call matchup DvP for platform disconnected state", async () => {
   let calls = 0;
-  await withMockOmenDvp(async () => {
-    calls += 1;
-    return null;
-  }, async () => {
-    const res = await postMvpMove(baseRequest({
-      platform: "sleeper",
-      mock_state: "platform_disconnected",
-      include_signals: {
-        weather: true,
-        travel_home_away: true,
-        game_time_tv: true,
-        matchup_dvp: true,
-        llm_reasoning: false,
-      },
-    }));
+  await withMockOmenDvp(
+    async () => {
+      calls += 1;
+      return null;
+    },
+    async () => {
+      const res = await postMvpMove(
+        baseRequest({
+          platform: "sleeper",
+          mock_state: "platform_disconnected",
+          include_signals: {
+            weather: true,
+            travel_home_away: true,
+            game_time_tv: true,
+            matchup_dvp: true,
+            llm_reasoning: false,
+          },
+        }),
+      );
 
-    assert.equal(res.status, 200);
-    assert.equal(res.body.state, "platform_disconnected");
-    assert.equal(calls, 0);
-  });
+      assert.equal(res.status, 200);
+      assert.equal(res.body.state, "platform_disconnected");
+      assert.equal(calls, 0);
+    },
+  );
 });
 
 test("POST /api/omen/mvp-move returns stable error state", async () => {
@@ -505,71 +559,84 @@ test("POST /api/omen/mvp-move returns stable error state", async () => {
 
 test("POST /api/omen/mvp-move does not call LLM for error state", async () => {
   let calls = 0;
-  await withMockOmenLlm(async () => {
-    calls += 1;
-    return null;
-  }, async () => {
-    const res = await postMvpMove(baseRequest({ mock_state: "error" }));
+  await withMockOmenLlm(
+    async () => {
+      calls += 1;
+      return null;
+    },
+    async () => {
+      const res = await postMvpMove(baseRequest({ mock_state: "error" }));
 
-    assert.equal(res.status, 500);
-    assert.equal(res.body.state, "error");
-    assert.equal(calls, 0);
-  });
+      assert.equal(res.status, 500);
+      assert.equal(res.body.state, "error");
+      assert.equal(calls, 0);
+    },
+  );
 });
 
 test("POST /api/omen/mvp-move does not call matchup DvP for error state", async () => {
   let calls = 0;
-  await withMockOmenDvp(async () => {
-    calls += 1;
-    return null;
-  }, async () => {
-    const res = await postMvpMove(baseRequest({
-      mock_state: "error",
-      include_signals: {
-        weather: true,
-        travel_home_away: true,
-        game_time_tv: true,
-        matchup_dvp: true,
-        llm_reasoning: false,
-      },
-    }));
+  await withMockOmenDvp(
+    async () => {
+      calls += 1;
+      return null;
+    },
+    async () => {
+      const res = await postMvpMove(
+        baseRequest({
+          mock_state: "error",
+          include_signals: {
+            weather: true,
+            travel_home_away: true,
+            game_time_tv: true,
+            matchup_dvp: true,
+            llm_reasoning: false,
+          },
+        }),
+      );
 
-    assert.equal(res.status, 500);
-    assert.equal(res.body.state, "error");
-    assert.equal(calls, 0);
-  });
+      assert.equal(res.status, 500);
+      assert.equal(res.body.state, "error");
+      assert.equal(calls, 0);
+    },
+  );
 });
 
 test("POST /api/omen/mvp-move skips LLM when include_signals.llm_reasoning is false", async () => {
   let calls = 0;
-  await withMockOmenLlm(async () => {
-    calls += 1;
-    return {
-      summary: "Should not be used.",
-      why_it_matters: "Should not be used.",
-      risk: "Should not be used.",
-      confidence: "Should not be used.",
-      data_used: ["should not be used"],
-    };
-  }, async () => {
-    const res = await postMvpMove(baseRequest({
-      include_signals: {
-        weather: true,
-        travel_home_away: true,
-        game_time_tv: true,
-        matchup_dvp: false,
-        llm_reasoning: false,
-      },
-    }));
+  await withMockOmenLlm(
+    async () => {
+      calls += 1;
+      return {
+        summary: "Should not be used.",
+        why_it_matters: "Should not be used.",
+        risk: "Should not be used.",
+        confidence: "Should not be used.",
+        data_used: ["should not be used"],
+      };
+    },
+    async () => {
+      const res = await postMvpMove(
+        baseRequest({
+          include_signals: {
+            weather: true,
+            travel_home_away: true,
+            game_time_tv: true,
+            matchup_dvp: false,
+            llm_reasoning: false,
+          },
+        }),
+      );
 
-    assert.equal(res.status, 200);
-    assert.equal(calls, 0);
-    assert.equal(
-      res.body.recommendation.explanation.summary,
-      "Your best move is to start Marquise Vale over Trent Holloway."
-    );
-    assert.equal(res.body.signals.llm_reasoning.status, "stub");
-  });
+      assert.equal(res.status, 200);
+      assert.equal(calls, 0);
+      assert.equal(
+        res.body.recommendation.explanation.summary,
+        "Your best move is to start Marquise Vale over Trent Holloway.",
+      );
+      assert.equal(res.body.signals.llm_reasoning.status, "stub");
+    },
+  );
 });
 
 test("POST /api/omen/mvp-move rejects unsupported platform with error envelope", async () => {

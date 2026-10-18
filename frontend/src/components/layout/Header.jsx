@@ -13,26 +13,26 @@ const NAV_SECTIONS = [
     label: 'Dashboard',
     auth: true,
     items: [
-      { label: 'Football',         to: '/football' },
+      { label: 'Football', to: '/football' },
       { label: 'Omen of the Week', to: '/omen' },
-      { label: 'The Ledger',       to: '/ledger', note: 'Your record' },
+      { label: 'The Ledger', to: '/ledger', note: 'Your record' },
     ],
   },
   {
     label: 'Tools',
     auth: false,
     items: [
-      { label: 'Trade Analyzer',  to: '/trade' },
+      { label: 'Trade Analyzer', to: '/trade' },
       // Draft Assistant removed 2026-08-16 — cut from 1.0, returns for the
       // 2027 fantasy draft (P1-DraftAssistantSideline).
-      { label: 'Waiver Wire',     to: '/waiver', auth: true },
+      { label: 'Waiver Wire', to: '/waiver', auth: true },
     ],
   },
   {
     label: 'League',
     auth: true,
     items: [
-      { label: 'Standings',      to: '/standings' },
+      { label: 'Standings', to: '/standings' },
       { label: 'Connect League', to: '/account/connect' },
     ],
   },
@@ -40,8 +40,8 @@ const NAV_SECTIONS = [
     label: 'Account',
     auth: false,
     items: [
-      { label: 'Account',         to: '/account',            auth: true  },
-      { label: 'Sign In',         to: '/login',              auth: 'guest' },
+      { label: 'Account', to: '/account', auth: true },
+      { label: 'Sign In', to: '/login', auth: 'guest' },
     ],
   },
 ];
@@ -50,8 +50,8 @@ const NAV_SECTIONS = [
 function HamburgerIcon() {
   return (
     <svg width="18" height="14" viewBox="0 0 18 14" fill="none" aria-hidden="true">
-      <rect x="0" y="0"  width="18" height="2" rx="1" fill="currentColor" />
-      <rect x="0" y="6"  width="14" height="2" rx="1" fill="currentColor" />
+      <rect x="0" y="0" width="18" height="2" rx="1" fill="currentColor" />
+      <rect x="0" y="6" width="14" height="2" rx="1" fill="currentColor" />
       <rect x="0" y="12" width="18" height="2" rx="1" fill="currentColor" />
     </svg>
   );
@@ -79,9 +79,7 @@ function NavItem({ to, label, note, active, onClick }) {
         borderLeft: active ? '2px solid var(--color-accent)' : '2px solid transparent',
       }}
     >
-      <span style={{ color: active ? 'var(--color-accent)' : 'var(--color-text-primary)' }}>
-        {label}
-      </span>
+      <span style={{ color: active ? 'var(--color-accent)' : 'var(--color-text-primary)' }}>{label}</span>
       {note && (
         <span
           className="text-[11px] font-medium"
@@ -98,7 +96,7 @@ function NavItem({ to, label, note, active, onClick }) {
 function NavDrawer({ open, onClose, isAuthenticated }) {
   const location = useLocation();
   const drawerRef = useRef(null);
-  const closeRef  = useRef(null);
+  const closeRef = useRef(null);
   const navSections = NAV_SECTIONS;
 
   // Focus the close button when drawer opens
@@ -109,13 +107,17 @@ function NavDrawer({ open, onClose, isAuthenticated }) {
     } else {
       document.body.style.overflow = '';
     }
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, [open]);
 
   // Escape key closes
   useEffect(() => {
     if (!open) return;
-    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    const handler = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, [open, onClose]);
@@ -157,16 +159,8 @@ function NavDrawer({ open, onClose, isAuthenticated }) {
           style={{ borderBottom: '1px solid var(--color-border)' }}
         >
           <div className="flex items-center">
-            <img
-              src="/omen-horizontal-lockup-transparent.png"
-              alt="Omen"
-              className="omen-lockup-on-dark h-7 w-auto"
-            />
-            <img
-              src="/omen-horizontal-lockup-raven.png"
-              alt="Omen"
-              className="omen-lockup-on-light h-7 w-auto"
-            />
+            <img src="/omen-horizontal-lockup-transparent.png" alt="Omen" className="omen-lockup-on-dark h-7 w-auto" />
+            <img src="/omen-horizontal-lockup-raven.png" alt="Omen" className="omen-lockup-on-light h-7 w-auto" />
           </div>
 
           <button
@@ -191,7 +185,7 @@ function NavDrawer({ open, onClose, isAuthenticated }) {
 
               // Filter items by per-item auth
               const visibleItems = section.items.filter((item) => {
-                if (item.auth === true)    return isAuthenticated;
+                if (item.auth === true) return isAuthenticated;
                 if (item.auth === 'guest') return !isAuthenticated;
                 return true;
               });
@@ -212,11 +206,7 @@ function NavDrawer({ open, onClose, isAuthenticated }) {
                         to={item.to}
                         label={item.label}
                         note={item.note}
-                        active={
-                          item.to === '/'
-                            ? location.pathname === '/'
-                            : location.pathname.startsWith(item.to)
-                        }
+                        active={item.to === '/' ? location.pathname === '/' : location.pathname.startsWith(item.to)}
                         onClick={onClose}
                       />
                     ))}
@@ -262,18 +252,31 @@ export default function Header() {
 
   useEffect(() => {
     let mounted = true;
-    supabase.auth.getSession()
-      .then(({ data }) => { if (mounted) setIsAuthenticated(Boolean(data?.session)); })
-      .catch(() => { if (mounted) setIsAuthenticated(false); });
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (mounted) setIsAuthenticated(Boolean(data?.session));
+      })
+      .catch(() => {
+        if (mounted) setIsAuthenticated(false);
+      });
 
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsAuthenticated(Boolean(session));
     });
-    return () => { mounted = false; data?.subscription?.unsubscribe(); };
+    return () => {
+      mounted = false;
+      data?.subscription?.unsubscribe();
+    };
   }, []);
 
-  function openDrawer()  { setDrawerOpen(true); }
-  function closeDrawer() { setDrawerOpen(false); setTimeout(() => burgerRef.current?.focus(), 50); }
+  function openDrawer() {
+    setDrawerOpen(true);
+  }
+  function closeDrawer() {
+    setDrawerOpen(false);
+    setTimeout(() => burgerRef.current?.focus(), 50);
+  }
 
   return (
     <>
@@ -282,7 +285,6 @@ export default function Header() {
         style={{ background: 'var(--color-bg)', borderColor: 'var(--color-border)' }}
       >
         <div className="mx-auto flex max-w-6xl items-center gap-4 px-6 py-4">
-
           {/* Hamburger */}
           <button
             ref={burgerRef}
@@ -301,26 +303,13 @@ export default function Header() {
             to="/"
             className="flex min-h-[44px] items-center gap-2.5 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent) rounded-xs"
           >
-            <img
-              src="/omen-horizontal-lockup-transparent.png"
-              alt="Omen"
-              className="omen-lockup-on-dark h-8 w-auto"
-            />
-            <img
-              src="/omen-horizontal-lockup-raven.png"
-              alt="Omen"
-              className="omen-lockup-on-light h-8 w-auto"
-            />
+            <img src="/omen-horizontal-lockup-transparent.png" alt="Omen" className="omen-lockup-on-dark h-8 w-auto" />
+            <img src="/omen-horizontal-lockup-raven.png" alt="Omen" className="omen-lockup-on-light h-8 w-auto" />
           </Link>
-
         </div>
       </header>
 
-      <NavDrawer
-        open={drawerOpen}
-        onClose={closeDrawer}
-        isAuthenticated={isAuthenticated}
-      />
+      <NavDrawer open={drawerOpen} onClose={closeDrawer} isAuthenticated={isAuthenticated} />
     </>
   );
 }

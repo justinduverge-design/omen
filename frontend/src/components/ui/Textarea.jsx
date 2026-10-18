@@ -1,17 +1,20 @@
 import React, { forwardRef, useId } from 'react';
 
-const Textarea = forwardRef(function Textarea({
-  size = 'md',
-  state = 'default',
-  leadingIcon,
-  trailingIcon,
-  label,
-  hint,
-  errorMessage,
-  className = '',
-  id,
-  ...props
-}, ref) {
+const Textarea = forwardRef(function Textarea(
+  {
+    size = 'md',
+    state = 'default',
+    leadingIcon,
+    trailingIcon,
+    label,
+    hint,
+    errorMessage,
+    className = '',
+    id,
+    ...props
+  },
+  ref,
+) {
   const generatedId = useId();
   const textareaId = id || generatedId;
 
@@ -25,13 +28,15 @@ const Textarea = forwardRef(function Textarea({
     sizeClasses = 'min-h-[48px] p-5 text-lg';
   }
 
-  const baseClasses = 'flex w-full rounded-md border bg-(--color-surface-1) text-(--color-text-primary) placeholder:text-(--color-text-secondary) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 transition-colors disabled:cursor-not-allowed disabled:opacity-50 resize-y';
+  const baseClasses =
+    'flex w-full rounded-md border bg-(--color-surface-1) text-(--color-text-primary) placeholder:text-(--color-text-secondary) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 transition-colors disabled:cursor-not-allowed disabled:opacity-50 resize-y';
 
   let stateClasses = '';
   if (state === 'error') {
     stateClasses = 'border-(--color-risk-high) focus-visible:outline-(--color-risk-high)';
   } else {
-    stateClasses = 'border-(--color-border) hover:border-(--color-border-hover,var(--color-border)) focus-visible:outline-(--color-accent)';
+    stateClasses =
+      'border-(--color-border) hover:border-(--color-border-hover,var(--color-border)) focus-visible:outline-(--color-accent)';
   }
 
   const hasLeadingIcon = !!leadingIcon;
@@ -45,8 +50,10 @@ const Textarea = forwardRef(function Textarea({
 
   if (hasTrailingIcon) {
     if (size === 'sm') sizeClasses = sizeClasses.replace('p-3', 'py-3 pl-3 pr-9').replace('pr-3 pl-9', 'pl-9 pr-9');
-    else if (size === 'md') sizeClasses = sizeClasses.replace('p-4', 'py-4 pl-4 pr-10').replace('pr-4 pl-10', 'pl-10 pr-10');
-    else if (size === 'lg') sizeClasses = sizeClasses.replace('p-5', 'py-5 pl-5 pr-12').replace('pr-5 pl-12', 'pl-12 pr-12');
+    else if (size === 'md')
+      sizeClasses = sizeClasses.replace('p-4', 'py-4 pl-4 pr-10').replace('pr-4 pl-10', 'pl-10 pr-10');
+    else if (size === 'lg')
+      sizeClasses = sizeClasses.replace('p-5', 'py-5 pl-5 pr-12').replace('pr-5 pl-12', 'pl-12 pr-12');
   }
 
   const combinedClasses = `${baseClasses} ${sizeClasses} ${stateClasses} ${className}`.trim().replace(/\s+/g, ' ');
@@ -54,8 +61,18 @@ const Textarea = forwardRef(function Textarea({
   const renderTrailingIcon = () => {
     if (state === 'success') {
       return (
-        <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" className="h-5 w-5 text-(--color-risk-low)" viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+          className="h-5 w-5 text-(--color-risk-low)"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+        >
+          <path
+            fillRule="evenodd"
+            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+            clipRule="evenodd"
+          />
         </svg>
       );
     }
@@ -75,12 +92,7 @@ const Textarea = forwardRef(function Textarea({
             {leadingIcon}
           </div>
         )}
-        <textarea
-          ref={ref}
-          id={textareaId}
-          className={combinedClasses}
-          {...props}
-        />
+        <textarea ref={ref} id={textareaId} className={combinedClasses} {...props} />
         {hasTrailingIcon && (
           <div className="absolute top-3 right-3 flex items-center justify-center pointer-events-none text-(--color-text-secondary)">
             {renderTrailingIcon()}

@@ -101,7 +101,13 @@ function withUsageEvidence(analysis, sentence) {
  * @param {() => ({mode: string, repository: object|null}|null)} deps.getRuntime
  * @param {object} deps.supabase crosswalk reads only (provider key -> public GSIS id)
  */
-function createWaiverUsageEnricher({ getRuntime, supabase, budgetMs = DEFAULT_BUDGET_MS, log = null, resolve = resolveGsis }) {
+function createWaiverUsageEnricher({
+  getRuntime,
+  supabase,
+  budgetMs = DEFAULT_BUDGET_MS,
+  log = null,
+  resolve = resolveGsis,
+}) {
   return async function enrich(analysis) {
     try {
       const add = analysis?.best_move?.add;
@@ -123,7 +129,9 @@ function createWaiverUsageEnricher({ getRuntime, supabase, budgetMs = DEFAULT_BU
       });
       return withUsageEvidence(analysis, sentence);
     } catch (error) {
-      try { log?.warn?.("Waiver usage evidence unavailable", { code: error?.code || "failure" }); } catch {}
+      try {
+        log?.warn?.("Waiver usage evidence unavailable", { code: error?.code || "failure" });
+      } catch {}
       return analysis;
     }
   };

@@ -24,12 +24,22 @@ function toKey(input) {
  */
 function withWarehouseIdentityFallback(baseResolver, { getRuntime, logger } = {}) {
   if (typeof baseResolver !== "function") throw new TypeError("baseResolver must be a function");
-  const log = (event) => { try { logger?.info?.("Trade warehouse identity", event); } catch { /* logging never throws */ } };
+  const log = (event) => {
+    try {
+      logger?.info?.("Trade warehouse identity", event);
+    } catch {
+      /* logging never throws */
+    }
+  };
 
   return async function resolveWithFallback(players, ...rest) {
     const resolutions = await baseResolver(players, ...rest);
     let runtime;
-    try { runtime = typeof getRuntime === "function" ? getRuntime() : null; } catch { runtime = null; }
+    try {
+      runtime = typeof getRuntime === "function" ? getRuntime() : null;
+    } catch {
+      runtime = null;
+    }
     if (!runtime?.enabled || !runtime.identityRepository || runtime.mode === "supabase") return resolutions;
 
     const gaps = [];
@@ -47,8 +57,11 @@ function withWarehouseIdentityFallback(baseResolver, { getRuntime, logger } = {}
       });
     } catch (error) {
       log({
-        event: "trade_identity_fallback", outcome: "unavailable", mode: runtime.mode,
-        requested: gaps.length, code: typeof error?.code === "string" ? error.code.slice(0, 32) : null,
+        event: "trade_identity_fallback",
+        outcome: "unavailable",
+        mode: runtime.mode,
+        requested: gaps.length,
+        code: typeof error?.code === "string" ? error.code.slice(0, 32) : null,
       });
       return resolutions;
     }
@@ -73,7 +86,13 @@ function withWarehouseIdentityFallback(baseResolver, { getRuntime, logger } = {}
       filled += 1;
     }
     if (filled < gaps.length) {
-      log({ event: "trade_identity_fallback", outcome: "partial", mode: runtime.mode, requested: gaps.length, resolved: filled });
+      log({
+        event: "trade_identity_fallback",
+        outcome: "partial",
+        mode: runtime.mode,
+        requested: gaps.length,
+        resolved: filled,
+      });
     }
     return out;
   };

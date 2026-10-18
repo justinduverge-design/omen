@@ -19,12 +19,7 @@ const SOURCE_CONTRACTS = Object.freeze({
     sourceUrl: (season) =>
       `https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_${season}.csv`,
     extension: ".csv",
-    acceptedContentTypes: Object.freeze([
-      "text/csv",
-      "application/csv",
-      "application/octet-stream",
-      "text/plain",
-    ]),
+    acceptedContentTypes: Object.freeze(["text/csv", "application/csv", "application/octet-stream", "text/plain"]),
     requiredColumns: Object.freeze([
       "player_id",
       "player_name",
@@ -50,12 +45,7 @@ const SOURCE_CONTRACTS = Object.freeze({
     sourceUrl: (season) =>
       `https://github.com/nflverse/nflverse-data/releases/download/stats_team/stats_team_week_${season}.csv`,
     extension: ".csv",
-    acceptedContentTypes: Object.freeze([
-      "text/csv",
-      "application/csv",
-      "application/octet-stream",
-      "text/plain",
-    ]),
+    acceptedContentTypes: Object.freeze(["text/csv", "application/csv", "application/octet-stream", "text/plain"]),
     requiredColumns: Object.freeze([
       "season",
       "week",
@@ -82,15 +72,9 @@ const SOURCE_CONTRACTS = Object.freeze({
     dataset: "schedules",
     releaseTag: "schedules",
     assetName: () => "games.csv",
-    sourceUrl: () =>
-      "https://github.com/nflverse/nflverse-data/releases/download/schedules/games.csv",
+    sourceUrl: () => "https://github.com/nflverse/nflverse-data/releases/download/schedules/games.csv",
     extension: ".csv",
-    acceptedContentTypes: Object.freeze([
-      "text/csv",
-      "application/csv",
-      "application/octet-stream",
-      "text/plain",
-    ]),
+    acceptedContentTypes: Object.freeze(["text/csv", "application/csv", "application/octet-stream", "text/plain"]),
     requiredColumns: Object.freeze([
       "game_id",
       "season",
@@ -150,10 +134,7 @@ function normalizeSeason(value) {
 function sourceContract(dataset, season) {
   const contract = SOURCE_CONTRACTS[dataset];
   if (!contract) {
-    fail(
-      "SOURCE_NOT_ALLOWLISTED",
-      `dataset ${String(dataset || "(missing)")} is not enabled for the local collector`,
-    );
+    fail("SOURCE_NOT_ALLOWLISTED", `dataset ${String(dataset || "(missing)")} is not enabled for the local collector`);
   }
   const normalizedSeason = normalizeSeason(season);
   return {
@@ -237,15 +218,10 @@ function assertRightsReviewCurrent({ now, rightsReviewDate }) {
   if (Number.isNaN(reviewed.getTime())) {
     fail("RIGHTS_REVIEW_INVALID", "rights review date is invalid");
   }
-  const reviewYear = current.getUTCMonth() >= 6
-    ? current.getUTCFullYear()
-    : current.getUTCFullYear() - 1;
+  const reviewYear = current.getUTCMonth() >= 6 ? current.getUTCFullYear() : current.getUTCFullYear() - 1;
   const requiredSince = new Date(Date.UTC(reviewYear, 6, 15));
   if (reviewed < requiredSince) {
-    fail(
-      "RIGHTS_REVIEW_STALE",
-      `rights review must be dated ${requiredSince.toISOString().slice(0, 10)} or later`,
-    );
+    fail("RIGHTS_REVIEW_STALE", `rights review must be dated ${requiredSince.toISOString().slice(0, 10)} or later`);
   }
 }
 
@@ -282,7 +258,10 @@ function parseCsvLine(line) {
 function inspectCsvSchema(bytes, contract) {
   const newline = bytes.indexOf(0x0a);
   const headerBytes = newline === -1 ? bytes : bytes.subarray(0, newline);
-  const headerLine = headerBytes.toString("utf8").replace(/^\uFEFF/, "").replace(/\r$/, "");
+  const headerLine = headerBytes
+    .toString("utf8")
+    .replace(/^\uFEFF/, "")
+    .replace(/\r$/, "");
   if (!headerLine) fail("SCHEMA_DRIFT", "CSV header is empty");
   const headers = parseCsvLine(headerLine).map((header) => header.trim());
   if (new Set(headers).size !== headers.length) {
@@ -333,10 +312,7 @@ function assertContentType(response, contract) {
   const raw = String(headerValue(response.headers, "content-type") || "").toLowerCase();
   const contentType = raw.split(";", 1)[0].trim();
   if (!contract.acceptedContentTypes.includes(contentType)) {
-    fail(
-      "CONTENT_TYPE_MISMATCH",
-      `unexpected content type ${contentType || "(missing)"} for ${contract.dataset}`,
-    );
+    fail("CONTENT_TYPE_MISMATCH", `unexpected content type ${contentType || "(missing)"} for ${contract.dataset}`);
   }
   return contentType;
 }
@@ -422,12 +398,9 @@ async function captureSnapshot({
   const retrievalEndedAt = toIso(now(), "retrieval end");
   const contentHash = sha256(bytes);
   const vaultRoot = await prepareLocalRoot(selectedRoot);
-  const snapshotId = [
-    contract.source,
-    contract.dataset,
-    manifestTime(retrievalEndedAt),
-    contentHash.slice(0, 16),
-  ].join(".");
+  const snapshotId = [contract.source, contract.dataset, manifestTime(retrievalEndedAt), contentHash.slice(0, 16)].join(
+    ".",
+  );
 
   const rawRelativePath = path.posix.join(
     "raw",
@@ -566,7 +539,11 @@ async function readExactSnapshot({ root, manifestPath, expectedDataset = null } 
   if (typeof manifestPath !== "string" || !manifestPath.trim()) {
     fail("EXACT_MANIFEST_REQUIRED", "one exact manifest path is required");
   }
-  if (String(manifestPath).split(/[\\/]+/).some((segment) => /latest/i.test(segment))) {
+  if (
+    String(manifestPath)
+      .split(/[\\/]+/)
+      .some((segment) => /latest/i.test(segment))
+  ) {
     fail("LATEST_FORBIDDEN", "latest aliases are forbidden; provide one exact manifest path");
   }
   const selectedManifestPath = assertPathInside(
@@ -574,11 +551,7 @@ async function readExactSnapshot({ root, manifestPath, expectedDataset = null } 
     path.isAbsolute(manifestPath) ? manifestPath : path.join(vaultRoot, manifestPath),
     "manifest path",
   );
-  const exactManifestPath = assertPathInside(
-    vaultRoot,
-    await fs.realpath(selectedManifestPath),
-    "manifest path",
-  );
+  const exactManifestPath = assertPathInside(vaultRoot, await fs.realpath(selectedManifestPath), "manifest path");
   const manifestBytes = await fs.readFile(exactManifestPath);
   let manifest;
   try {
@@ -617,15 +590,7 @@ async function readExactSnapshot({ root, manifestPath, expectedDataset = null } 
 async function replaySnapshot({ root, manifestPath, outputRoot, now = () => new Date() } = {}) {
   const selectedReplayRoot = assertLocalVaultRoot(outputRoot);
   const exact = await readExactSnapshot({ root, manifestPath });
-  const {
-    contract,
-    exactManifestPath,
-    manifest,
-    manifestHash,
-    rawBytes,
-    schema,
-    vaultRoot,
-  } = exact;
+  const { contract, exactManifestPath, manifest, manifestHash, rawBytes, schema, vaultRoot } = exact;
 
   const replayedAt = toIso(now(), "replay time");
   const runId = `${manifestTime(replayedAt)}-${manifestHash.slice(0, 16)}`;

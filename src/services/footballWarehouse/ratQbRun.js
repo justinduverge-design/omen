@@ -1,9 +1,7 @@
 "use strict";
 
 const { createMetricRunWriter } = require("./metricRunWriter");
-const {
-  METRIC_NAME, FORMULA_VERSION, aggregateQbPlays, computeQbGrades, metricConstants,
-} = require("./ratQbMetric");
+const { METRIC_NAME, FORMULA_VERSION, aggregateQbPlays, computeQbGrades, metricConstants } = require("./ratQbMetric");
 
 // Scope: regular-season plays (nfl_games.game_type = 'REG') of one season,
 // through `week` inclusive, or the whole regular season when week is null.
@@ -30,7 +28,8 @@ const INPUTS_SQL = `
    GROUP BY p.ingest_event_id
    ORDER BY p.ingest_event_id`;
 
-const QB_SQL = "SELECT player_id, gsis_id FROM football.football_players WHERE football_position = 'QB' AND gsis_id IS NOT NULL";
+const QB_SQL =
+  "SELECT player_id, gsis_id FROM football.football_players WHERE football_position = 'QB' AND gsis_id IS NOT NULL";
 
 const IDENTITY_SQL = `
   SELECT (SELECT md5(COALESCE(string_agg(player_id || ':' || gsis_id, ',' ORDER BY player_id), ''))
@@ -40,10 +39,20 @@ const IDENTITY_SQL = `
 
 function playFromRow(row) {
   return {
-    passerId: row.passer_player_id, rusherId: row.rusher_player_id, epa: row.epa, cpoe: row.cpoe,
-    qbDropback: row.qb_dropback, qbScramble: row.qb_scramble, qbSpike: row.qb_spike, qbKneel: row.qb_kneel,
-    sack: row.sack, passAttempt: row.pass_attempt, rushAttempt: row.rush_attempt,
-    interception: row.interception, fumbleLost: row.fumble_lost, fumbledGsisId: row.fumbled_gsis_id,
+    passerId: row.passer_player_id,
+    rusherId: row.rusher_player_id,
+    epa: row.epa,
+    cpoe: row.cpoe,
+    qbDropback: row.qb_dropback,
+    qbScramble: row.qb_scramble,
+    qbSpike: row.qb_spike,
+    qbKneel: row.qb_kneel,
+    sack: row.sack,
+    passAttempt: row.pass_attempt,
+    rushAttempt: row.rush_attempt,
+    interception: row.interception,
+    fumbleLost: row.fumble_lost,
+    fumbledGsisId: row.fumbled_gsis_id,
   };
 }
 

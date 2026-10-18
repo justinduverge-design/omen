@@ -17,17 +17,14 @@ test("Tuesday cron is disabled unless explicitly enabled", () => {
 });
 
 test("Tuesday cron requires only Supabase for public nflverse scoring", () => {
-  assert.deepEqual(cron.missingScoringEnv({}), [
-    "SUPABASE_URL",
-    "SUPABASE_SERVICE_KEY",
-  ]);
+  assert.deepEqual(cron.missingScoringEnv({}), ["SUPABASE_URL", "SUPABASE_SERVICE_KEY"]);
 
   assert.deepEqual(
     cron.missingScoringEnv({
       SUPABASE_URL: "https://example.supabase.co",
       SUPABASE_SERVICE_KEY: "service-role",
     }),
-    []
+    [],
   );
 });
 
@@ -44,7 +41,10 @@ test("cron runtime config keeps scoring explicitly gated", () => {
   const compose = fs.readFileSync(path.join(root, "docker-compose.yml"), "utf8");
   const envExample = fs.readFileSync(path.join(root, ".env.example"), "utf8");
 
-  assert.match(compose, /OMEN_CRON_SCORING_ENABLED:\s*\$\{OMEN_CRON_SCORING_ENABLED:-\$\{CORVUS_CRON_SCORING_ENABLED:-false\}\}/);
+  assert.match(
+    compose,
+    /OMEN_CRON_SCORING_ENABLED:\s*\$\{OMEN_CRON_SCORING_ENABLED:-\$\{CORVUS_CRON_SCORING_ENABLED:-false\}\}/,
+  );
   assert.match(compose, /SPORTRADAR_API_KEY:\s*\$\{SPORTRADAR_API_KEY\}/);
   assert.match(envExample, /OMEN_CRON_SCORING_ENABLED=false/);
   assert.match(envExample, /SPORTRADAR_API_KEY=/);

@@ -1,9 +1,6 @@
 "use strict";
 
-const {
-  ALLOWED_CONTENT_TYPES,
-  readBoundedBody,
-} = require("./playerWeeklyAcquisition");
+const { ALLOWED_CONTENT_TYPES, readBoundedBody } = require("./playerWeeklyAcquisition");
 const { MAX_SOURCE_BYTES } = require("./playerWeeklySource");
 const { PLAYERS_SOURCE_URL } = require("./playerIdentitySource");
 

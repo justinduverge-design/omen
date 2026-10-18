@@ -4,8 +4,7 @@ const crypto = require("node:crypto");
 const { playerIdFor } = require("../playerCrosswalk");
 const { parseStrictCsv, MAX_SOURCE_BYTES } = require("./playerWeeklySource");
 
-const PLAYERS_SOURCE_URL =
-  "https://github.com/nflverse/nflverse-data/releases/download/players/players.csv";
+const PLAYERS_SOURCE_URL = "https://github.com/nflverse/nflverse-data/releases/download/players/players.csv";
 const REQUIRED_COLUMNS = Object.freeze(["gsis_id", "display_name", "position"]);
 const RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 const GSIS_ID = /^[A-Za-z0-9._-]{1,128}$/;
@@ -28,7 +27,11 @@ function isoDateOrNull(value, label) {
 
 function validateSourceUrl(value) {
   let parsed;
-  try { parsed = new URL(value); } catch { throw new TypeError("sourceUrl is invalid"); }
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new TypeError("sourceUrl is invalid");
+  }
   if (parsed.protocol !== "https:" || parsed.username || parsed.password) {
     throw new TypeError("sourceUrl is invalid");
   }
@@ -42,7 +45,9 @@ function parseObjects(raw) {
   if (raw.length > MAX_SOURCE_BYTES) throw new RangeError(`CSV source exceeds ${MAX_SOURCE_BYTES} bytes`);
 
   let text;
-  try { text = new TextDecoder("utf-8", { fatal: true }).decode(raw); } catch {
+  try {
+    text = new TextDecoder("utf-8", { fatal: true }).decode(raw);
+  } catch {
     throw new TypeError("CSV source is not valid UTF-8");
   }
   if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
@@ -108,8 +113,10 @@ function adaptPlayersCsv({ raw, sourceUrl, runId }) {
   }
 
   const sourceRef = `sha256:${crypto.createHash("sha256").update(raw).digest("hex")}`;
-  const schemaFingerprint = `sha256:${crypto.createHash("sha256")
-    .update(Buffer.from(JSON.stringify(parsed.headers))).digest("hex")}`;
+  const schemaFingerprint = `sha256:${crypto
+    .createHash("sha256")
+    .update(Buffer.from(JSON.stringify(parsed.headers)))
+    .digest("hex")}`;
   return {
     receipt: {
       runId,

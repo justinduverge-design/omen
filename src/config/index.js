@@ -11,31 +11,32 @@
  * =================================================================
  */
 
-const REQUIRED = [
-  "SUPABASE_URL",
-  "SUPABASE_SERVICE_KEY",
-];
+const REQUIRED = ["SUPABASE_URL", "SUPABASE_SERVICE_KEY"];
 
 const llmTimeoutMs = Number(process.env.LLM_TIMEOUT);
-const aiProvider = String(process.env.AI_PROVIDER || "local").trim().toLowerCase();
+const aiProvider = String(process.env.AI_PROVIDER || "local")
+  .trim()
+  .toLowerCase();
 
 const config = {
   // --- Server ---------------------------------------------------
-  port:        parseInt(process.env.PORT, 10) || 3000,
-  nodeEnv:     process.env.NODE_ENV || "development",
-  appBaseUrl:  process.env.APP_BASE_URL || "http://localhost:3000",
+  port: parseInt(process.env.PORT, 10) || 3000,
+  nodeEnv: process.env.NODE_ENV || "development",
+  appBaseUrl: process.env.APP_BASE_URL || "http://localhost:3000",
   corsOrigins: (process.env.CORS_ORIGINS || "")
-    .split(",").map(s => s.trim()).filter(Boolean),
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean),
 
   // --- Logging --------------------------------------------------
   logLevel: process.env.LOG_LEVEL || "info",
 
   // --- Supabase -------------------------------------------------
-  supabaseUrl:        process.env.SUPABASE_URL,
+  supabaseUrl: process.env.SUPABASE_URL,
   supabaseServiceKey: process.env.SUPABASE_SERVICE_KEY,
 
   // --- Upstash Redis --------------------------------------------
-  redisUrl:   process.env.REDIS_URL,
+  redisUrl: process.env.REDIS_URL,
   redisToken: process.env.REDIS_TOKEN,
 
   // --- OpenWeatherMap (optional - graceful fallback when not set)
@@ -43,9 +44,9 @@ const config = {
 
   // --- Local LLM / Ollama (optional - internal only) -------------
   llm: {
-    provider:  aiProvider,
-    baseUrl:   process.env.LLM_BASE_URL || "",
-    model:     process.env.LLM_MODEL || "gemma4:e2b-q4_0",
+    provider: aiProvider,
+    baseUrl: process.env.LLM_BASE_URL || "",
+    model: process.env.LLM_MODEL || "gemma4:e2b-q4_0",
     timeoutMs: Number.isFinite(llmTimeoutMs) && llmTimeoutMs > 0 ? llmTimeoutMs : 30000,
   },
 
@@ -70,10 +71,13 @@ const config = {
   // four 403s = revoked). To pause again: YAHOO_ENABLED=false here AND
   // YAHOO_CONNECTIONS_ENABLED=false in frontend/src/lib/yahooAuth.js.
   yahoo: {
-    clientId:     process.env.YAHOO_CLIENT_ID,
+    clientId: process.env.YAHOO_CLIENT_ID,
     clientSecret: process.env.YAHOO_CLIENT_SECRET,
-    redirectUri:  process.env.YAHOO_REDIRECT_URI,
-    enabled:      String(process.env.YAHOO_ENABLED || "").trim().toLowerCase() === "true",
+    redirectUri: process.env.YAHOO_REDIRECT_URI,
+    enabled:
+      String(process.env.YAHOO_ENABLED || "")
+        .trim()
+        .toLowerCase() === "true",
   },
 
   // --- Draft Assistant (sidelined to 2027) ----------------------
@@ -95,7 +99,10 @@ const config = {
   // path, and re-add the `draft_assistant` entry to the dashboard tool list.
   // Nothing else needs to change.
   draftAssistant: {
-    enabled: String(process.env.DRAFT_ASSISTANT_ENABLED || "").trim().toLowerCase() === "true",
+    enabled:
+      String(process.env.DRAFT_ASSISTANT_ENABLED || "")
+        .trim()
+        .toLowerCase() === "true",
   },
 
   // --- Resend (transactional email) -----------------------------
@@ -111,18 +118,16 @@ const config = {
   // GET /api/system/min-version reports. Raise deliberately and only
   // once the corresponding store version is actually live.
   minAppVersion: {
-    ios:     process.env.MIN_APP_VERSION_IOS || "0.1.0",
+    ios: process.env.MIN_APP_VERSION_IOS || "0.1.0",
     android: process.env.MIN_APP_VERSION_ANDROID || "0.1.0",
   },
 };
 
 // Validate at boot - never let the process come up with required vars missing.
-const missing = REQUIRED.filter(k => !process.env[k]);
+const missing = REQUIRED.filter((k) => !process.env[k]);
 if (missing.length) {
   // eslint-disable-next-line no-console
-  console.error(
-    `FATAL: missing required environment variables: ${missing.join(", ")}`
-  );
+  console.error(`FATAL: missing required environment variables: ${missing.join(", ")}`);
   process.exit(1);
 }
 
@@ -135,6 +140,6 @@ if (missing.length) {
 // REDIS_URL / REDIS_TOKEN - roster caching
 
 config.isProd = config.nodeEnv === "production";
-config.isDev  = !config.isProd;
+config.isDev = !config.isProd;
 
 module.exports = config;

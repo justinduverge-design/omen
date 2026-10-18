@@ -22,10 +22,7 @@
     },
     "status": {
       "type": "string",
-      "enum": [
-        "ok",
-        "unavailable"
-      ]
+      "enum": ["ok", "unavailable"]
     },
     "teams": {
       "type": "array",
@@ -47,10 +44,7 @@
                   "type": "string"
                 }
               },
-              "required": [
-                "name",
-                "player_key"
-              ]
+              "required": ["name", "player_key"]
             }
           },
           "team_id": {
@@ -60,21 +54,12 @@
             "type": "string"
           }
         },
-        "required": [
-          "players",
-          "team_id",
-          "team_name"
-        ]
+        "required": ["players", "team_id", "team_name"]
       }
     },
     "week": {
       "type": "number"
     }
   },
-  "required": [
-    "contract_version",
-    "platform",
-    "status",
-    "teams"
-  ]
+  "required": ["contract_version", "platform", "status", "teams"]
 }

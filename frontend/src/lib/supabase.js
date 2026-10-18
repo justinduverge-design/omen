@@ -9,9 +9,7 @@ function normalizeSupabaseUrl(url) {
 }
 
 function makeStub() {
-  const err = () => Promise.reject(
-    new Error('Supabase is not configured for this frontend build.')
-  );
+  const err = () => Promise.reject(new Error('Supabase is not configured for this frontend build.'));
 
   return {
     auth: {
@@ -24,14 +22,15 @@ function makeStub() {
   };
 }
 
-export const supabase = URL && KEY
-  ? createClient(URL, KEY, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
-      },
-    })
-  : makeStub();
+export const supabase =
+  URL && KEY
+    ? createClient(URL, KEY, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+        },
+      })
+    : makeStub();
 
 export const isSupabaseConfigured = !supabase.__stub;

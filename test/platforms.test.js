@@ -33,9 +33,7 @@ class FakeQuery {
   }
 
   applyFilters() {
-    return this.state.rows.filter((row) =>
-      this.filters.every(({ field, value }) => row[field] === value)
-    );
+    return this.state.rows.filter((row) => this.filters.every(({ field, value }) => row[field] === value));
   }
 
   execute() {
@@ -66,8 +64,8 @@ function makeSupabase(state) {
         },
         upsert(payload, options) {
           state.upserts.push({ payload, options });
-          const index = state.rows.findIndex((row) =>
-            row.user_id === payload.user_id && row.platform === payload.platform
+          const index = state.rows.findIndex(
+            (row) => row.user_id === payload.user_id && row.platform === payload.platform,
           );
           state.nextRowId = (state.nextRowId || 0) + 1;
           if (index === -1) state.rows.push({ id: `row-${state.nextRowId}`, ...payload });
@@ -94,7 +92,9 @@ function makeSupabase(state) {
             return Promise.resolve({ data: null, error: { code: "P0001", message: state.revokeError } });
           }
           const before = state.rows.length;
-          state.rows = state.rows.filter((row) => !(row.user_id === params.p_user_id && row.platform === params.p_platform));
+          state.rows = state.rows.filter(
+            (row) => !(row.user_id === params.p_user_id && row.platform === params.p_platform),
+          );
           return Promise.resolve({ data: state.rows.length !== before, error: null });
         }
       }
@@ -216,9 +216,15 @@ function loadPlatformsRouter({
     if (request === "../middleware/logging" && parent?.filename === routePath) {
       return {
         logger: {
-          error(message, meta) { state.logs.push({ level: "error", message, meta }); },
-          warn(message, meta) { state.logs.push({ level: "warn", message, meta }); },
-          info(message, meta) { state.logs.push({ level: "info", message, meta }); },
+          error(message, meta) {
+            state.logs.push({ level: "error", message, meta });
+          },
+          warn(message, meta) {
+            state.logs.push({ level: "warn", message, meta });
+          },
+          info(message, meta) {
+            state.logs.push({ level: "info", message, meta });
+          },
         },
       };
     }
@@ -226,28 +232,36 @@ function loadPlatformsRouter({
       return {
         fetchSleeperUser: async (username) => {
           if (sleeperError) throw sleeperError;
-          return sleeperUser || {
-            user_id: "sleeper-user-1",
-            username,
-            display_name: username,
-          };
+          return (
+            sleeperUser || {
+              user_id: "sleeper-user-1",
+              username,
+              display_name: username,
+            }
+          );
         },
-        fetchSleeperLeagues: async () => sleeperLeagues || [{
-          league_id: "league-1",
-          name: "The Bird Board",
-          season: "2026",
-          scoring_settings: { rec: 1 },
-        }],
-        fetchSleeperRoster: async () => sleeperRosterInfo || {
-          roster_id: 7,
-          users: [{
-            user_id: "sleeper-user-1",
-            username: "sleepy",
-            display_name: "Sleepy",
-            metadata: { team_name: "Old School Whistles" },
-          }],
-          roster: { roster_id: 7, owner_id: "sleeper-user-1" },
-        },
+        fetchSleeperLeagues: async () =>
+          sleeperLeagues || [
+            {
+              league_id: "league-1",
+              name: "The Bird Board",
+              season: "2026",
+              scoring_settings: { rec: 1 },
+            },
+          ],
+        fetchSleeperRoster: async () =>
+          sleeperRosterInfo || {
+            roster_id: 7,
+            users: [
+              {
+                user_id: "sleeper-user-1",
+                username: "sleepy",
+                display_name: "Sleepy",
+                metadata: { team_name: "Old School Whistles" },
+              },
+            ],
+            roster: { roster_id: 7, owner_id: "sleeper-user-1" },
+          },
       };
     }
     if (request === "../adapters/espn" && parent?.filename === routePath) {
@@ -337,9 +351,7 @@ test("Yahoo reports connected-but-unavailable while the entitlement is pending",
   // The trap this guards: a row written before the pause still reads
   // `connected: true`, which says nothing about whether Yahoo can serve data.
   const { app } = buildApp({
-    rows: [
-      { user_id: "test-slops-user", platform: "yahoo", is_active: true, token_secret_id: "yahoo-token" },
-    ],
+    rows: [{ user_id: "test-slops-user", platform: "yahoo", is_active: true, token_secret_id: "yahoo-token" }],
   });
   const res = await request(app, "/api/platforms/status");
 
@@ -413,15 +425,17 @@ test("GET /api/platforms returns UX contract with manual and selected league met
   assert.equal(res.status, 200);
   assert.equal(res.body.platforms.sleeper.status, "connected");
   assert.equal(res.body.platforms.sleeper.username, "sleepy");
-  assert.deepEqual(res.body.platforms.sleeper.leagues, [{
-    id: "league-1",
-    name: null,
-    season: null,
-    scoring_format: null,
-    team_id: null,
-    team_name: null,
-    selected: true,
-  }]);
+  assert.deepEqual(res.body.platforms.sleeper.leagues, [
+    {
+      id: "league-1",
+      name: null,
+      season: null,
+      scoring_format: null,
+      team_id: null,
+      team_name: null,
+      selected: true,
+    },
+  ]);
   assert.equal(res.body.platforms.espn.status, "connected");
   assert.equal(res.body.platforms.espn.leagues[0].team_id, "7");
   assert.deepEqual(res.body.platforms.manual, {
@@ -530,12 +544,14 @@ test("GET /api/platforms/state reports choosing_league for the Yahoo league_id p
 
 test("GET /api/platforms/state reports not_started and resolving_account without inferring an HTTP error", async () => {
   const { app } = buildApp({
-    rows: [{
-      user_id: "test-slops-user",
-      platform: "sleeper",
-      is_active: true,
-      league_id: "league-1",
-    }],
+    rows: [
+      {
+        user_id: "test-slops-user",
+        platform: "sleeper",
+        is_active: true,
+        league_id: "league-1",
+      },
+    ],
   });
 
   const res = await request(app, "/api/platforms/state");
@@ -585,14 +601,16 @@ test("POST /api/platforms/sleeper/resolve returns leagues for username-first flo
   assert.equal(res.body.platform, "sleeper");
   assert.equal(res.body.username, "sleepy");
   assert.equal(res.body.sleeper_user_id, "sleeper-user-1");
-  assert.deepEqual(res.body.leagues, [{
-    id: "league-1",
-    name: "The Bird Board",
-    season: 2026,
-    scoring_format: "ppr",
-    team_id: "7",
-    team_name: "Old School Whistles",
-  }]);
+  assert.deepEqual(res.body.leagues, [
+    {
+      id: "league-1",
+      name: "The Bird Board",
+      season: 2026,
+      scoring_format: "ppr",
+      team_id: "7",
+      team_name: "Old School Whistles",
+    },
+  ]);
 });
 
 test("POST /api/platforms/sleeper/connect bootstraps app user before saving connection", async () => {
@@ -667,10 +685,9 @@ test("POST /api/platforms/sleeper/connect fails closed for invalid or unavailabl
 test("POST /api/platforms/sleeper/connect keeps in-progress duplicates inert and distinct request IDs independent", async () => {
   const inProgressId = "native-connect-request-0003";
   const inProgress = buildApp({
-    redisStore: new Map([[
-      `omen:connection-replay:test-slops-user:sleeper:${inProgressId}`,
-      JSON.stringify({ status: "in_progress" }),
-    ]]),
+    redisStore: new Map([
+      [`omen:connection-replay:test-slops-user:sleeper:${inProgressId}`, JSON.stringify({ status: "in_progress" })],
+    ]),
   });
   const inProgressRes = await request(inProgress.app, "/api/platforms/sleeper/connect", {
     method: "POST",
@@ -769,7 +786,7 @@ test("POST /api/platforms/espn/connect accepts copied cookie pairs and league UR
   assert.equal(state.rpcs.find((rpc) => rpc.params.name === "espn_s2_test-slops-user").params.secret, "espn-cookie");
   assert.equal(
     state.rpcs.find((rpc) => rpc.params.name === "espn_swid_test-slops-user").params.secret,
-    "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}"
+    "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}",
   );
 });
 
@@ -870,7 +887,7 @@ test("DELETE /api/platforms/espn destroys Vault secrets and removes row", async 
   assert.equal(state.rows.length, 0);
   assert.deepEqual(
     state.rpcs.filter((rpc) => rpc.name === "vault_delete_secret").map((rpc) => rpc.params.secret_id),
-    ["espn-secret", "swid-secret"]
+    ["espn-secret", "swid-secret"],
   );
 });
 
@@ -907,9 +924,16 @@ test("POST /api/platforms/espn/connect stores through connection_store_espn when
 
   assert.equal(res.status, 200);
   assert.equal(res.body.connected, true);
-  assert.deepEqual(state.rpcs.map((rpc) => rpc.name), ["connection_store_espn"]);
+  assert.deepEqual(
+    state.rpcs.map((rpc) => rpc.name),
+    ["connection_store_espn"],
+  );
   assert.deepEqual(state.rpcs[0].params, {
-    p_user_id: "test-slops-user", p_league_id: "12345", p_team_id: "7", p_espn_s2: "espn-cookie", p_swid: "{swid-cookie}",
+    p_user_id: "test-slops-user",
+    p_league_id: "12345",
+    p_team_id: "7",
+    p_espn_s2: "espn-cookie",
+    p_swid: "{swid-cookie}",
   });
   assert.equal(state.upserts.length, 0);
 });
@@ -923,20 +947,34 @@ test("POST /api/platforms/espn/connect keeps today's path while step 02 is not a
 
   assert.equal(res.status, 200);
   assert.equal(state.rpcs[0].name, "connection_store_espn");
-  assert.deepEqual(state.rpcs.slice(1).map((rpc) => rpc.name), ["vault_create_secret", "vault_create_secret"]);
+  assert.deepEqual(
+    state.rpcs.slice(1).map((rpc) => rpc.name),
+    ["vault_create_secret", "vault_create_secret"],
+  );
   assert.equal(state.upserts.length, 1);
 });
 
 test("DELETE /api/platforms/espn revokes through connection_revoke when step 02 is present", async () => {
   const { app, state } = buildApp({
     step02: true,
-    rows: [{ user_id: "test-slops-user", platform: "espn", is_active: true, espn_secret_id: "espn-secret", swid_secret_id: "swid-secret" }],
+    rows: [
+      {
+        user_id: "test-slops-user",
+        platform: "espn",
+        is_active: true,
+        espn_secret_id: "espn-secret",
+        swid_secret_id: "swid-secret",
+      },
+    ],
   });
   const res = await request(app, "/api/platforms/espn", { method: "DELETE" });
 
   assert.equal(res.status, 200);
   assert.deepEqual(res.body, { disconnected: true, platform: "espn" });
-  assert.deepEqual(state.rpcs.map((rpc) => rpc.name), ["connection_revoke"]);
+  assert.deepEqual(
+    state.rpcs.map((rpc) => rpc.name),
+    ["connection_revoke"],
+  );
   assert.deepEqual(state.rpcs[0].params, { p_user_id: "test-slops-user", p_platform: "espn" });
   assert.equal(state.rows.length, 0);
 });
@@ -945,13 +983,24 @@ test("DELETE /api/platforms/espn reports failure, not success, when connection_r
   const { app, state } = buildApp({
     step02: true,
     revokeError: "connection_revoke: 1 of 2 secrets found; refusing to drop the pointers",
-    rows: [{ user_id: "test-slops-user", platform: "espn", is_active: true, espn_secret_id: "espn-secret", swid_secret_id: "swid-secret" }],
+    rows: [
+      {
+        user_id: "test-slops-user",
+        platform: "espn",
+        is_active: true,
+        espn_secret_id: "espn-secret",
+        swid_secret_id: "swid-secret",
+      },
+    ],
   });
   const res = await request(app, "/api/platforms/espn", { method: "DELETE" });
 
   assert.equal(res.status, 500);
   assert.equal(state.rows.length, 1);
-  assert.equal(state.rpcs.some((rpc) => rpc.name === "vault_delete_secret"), false);
+  assert.equal(
+    state.rpcs.some((rpc) => rpc.name === "vault_delete_secret"),
+    false,
+  );
   const serialized = JSON.stringify(state.logs) + JSON.stringify(res.body);
   assert.equal(serialized.includes("espn-secret"), false);
   assert.equal(serialized.includes("swid-secret"), false);
@@ -968,7 +1017,10 @@ const TEN_FAN_LEAGUES = Array.from({ length: 10 }, (_, i) => ({
 }));
 
 const ESPN_CONNECT_BODY = Object.freeze({
-  espn_s2: "espn-cookie-value", swid: "{swid-cookie-value}", league_id: "12345", espn_team_id: "7",
+  espn_s2: "espn-cookie-value",
+  swid: "{swid-cookie-value}",
+  league_id: "12345",
+  espn_team_id: "7",
 });
 
 function espnMemberships(state) {
@@ -1015,7 +1067,10 @@ test("ESPN connect still writes the bound league when ESPN discovery is down", a
   const res = await request(app, "/api/platforms/espn/connect", { method: "POST", body: ESPN_CONNECT_BODY });
 
   assert.equal(res.status, 200);
-  assert.deepEqual(espnMemberships(state).map((m) => m.provider_league_id), ["12345"]);
+  assert.deepEqual(
+    espnMemberships(state).map((m) => m.provider_league_id),
+    ["12345"],
+  );
   assert.ok(state.logs.some((log) => log.level === "warn" && log.meta?.http_status === 503));
 });
 
@@ -1044,7 +1099,10 @@ test("ESPN connect before step 03 exists changes nothing and logs nothing about 
   const res = await request(app, "/api/platforms/espn/connect", { method: "POST", body: ESPN_CONNECT_BODY });
 
   assert.equal(res.status, 200);
-  assert.equal(state.logs.some((log) => /membership/i.test(log.message)), false);
+  assert.equal(
+    state.logs.some((log) => /membership/i.test(log.message)),
+    false,
+  );
 });
 
 test("Sleeper connect writes a followed membership for every league on the account", async () => {
@@ -1076,5 +1134,8 @@ test("Sleeper connect does not write a membership for a league the account is no
     body: { sleeper_username: "sleepy", league_id: "someone-elses" },
   });
 
-  assert.deepEqual(state.membershipDb.membershipsOf("test-slops-user").map((m) => m.provider_league_id), ["league-1"]);
+  assert.deepEqual(
+    state.membershipDb.membershipsOf("test-slops-user").map((m) => m.provider_league_id),
+    ["league-1"],
+  );
 });

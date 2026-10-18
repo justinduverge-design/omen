@@ -51,7 +51,7 @@ function safeSignalFacts(signals = {}) {
         // a future source cannot create an unbounded private-model prompt.
         message: shortSafeString(signal?.message, 240),
       },
-    ])
+    ]),
   );
 }
 
@@ -67,11 +67,14 @@ function buildMvpLlmPayload(response = {}) {
   const risk = recommendation.risk || response.risk || {};
   const confidence = recommendation.confidence || response.confidence || {};
 
-  const player = (value) => value ? {
-    name: shortSafeString(value.name),
-    position: shortSafeString(value.position, 12),
-    team: shortSafeString(value.team, 12),
-  } : null;
+  const player = (value) =>
+    value
+      ? {
+          name: shortSafeString(value.name),
+          position: shortSafeString(value.position, 12),
+          team: shortSafeString(value.team, 12),
+        }
+      : null;
 
   return {
     state: shortSafeString(response.state, 32),
@@ -96,17 +99,26 @@ function buildMvpLlmPayload(response = {}) {
     risk: {
       level: shortSafeString(risk.level, 32),
       reasons: Array.isArray(risk.reasons)
-        ? risk.reasons.map((value) => shortSafeString(value)).filter(Boolean).slice(0, 8)
+        ? risk.reasons
+            .map((value) => shortSafeString(value))
+            .filter(Boolean)
+            .slice(0, 8)
         : [],
     },
     // Deterministic ranked statements (evidenceWhy.js). Listed so the grounding gate accepts the
     // numbers and names a rephrase of them uses.
     why_statements: Array.isArray(explanation.why_statements)
-      ? explanation.why_statements.map((item) => shortSafeString(item?.text)).filter(Boolean).slice(0, 3)
+      ? explanation.why_statements
+          .map((item) => shortSafeString(item?.text))
+          .filter(Boolean)
+          .slice(0, 3)
       : [],
     signal_statuses: safeSignalFacts(response.signals),
     data_used: Array.isArray(explanation.data_used)
-      ? explanation.data_used.map((value) => shortSafeString(value, 120)).filter(Boolean).slice(0, MAX_LLM_DATA_USED)
+      ? explanation.data_used
+          .map((value) => shortSafeString(value, 120))
+          .filter(Boolean)
+          .slice(0, MAX_LLM_DATA_USED)
       : [],
   };
 }
@@ -153,9 +165,7 @@ function groundedFields(generated, payload, validator) {
     maxSentences: 2,
     disallowNumbers: [payload?.confidence?.score],
   };
-  return ["summary", "why_it_matters"].every(
-    (field) => validator(generated?.[field], payload, options).ok
-  );
+  return ["summary", "why_it_matters"].every((field) => validator(generated?.[field], payload, options).ok);
 }
 
 function safeModelLabel(value) {
@@ -184,11 +194,10 @@ async function generateMvpLlmNarration(response, { llmService = llm, timeoutMs, 
     ...(timeoutMs == null ? {} : { timeoutMs }),
   });
   if (!isBoundedLlmExplanation(generated, payload.data_used)) return null;
-  if (!isGroundedLlmExplanation(generated, payload, groundingValidator ? { validator: groundingValidator } : undefined)) return null;
+  if (!isGroundedLlmExplanation(generated, payload, groundingValidator ? { validator: groundingValidator } : undefined))
+    return null;
 
-  const bridge = typeof llmService.getLlmBridgeStatus === "function"
-    ? llmService.getLlmBridgeStatus()
-    : null;
+  const bridge = typeof llmService.getLlmBridgeStatus === "function" ? llmService.getLlmBridgeStatus() : null;
   if (bridge && bridge.status !== "configured_private") return null;
   const model = safeModelLabel(bridge?.model);
   return {
@@ -223,7 +232,9 @@ function applyMvpLlmNarration(response, narration) {
 }
 
 function normalizedTeam(value) {
-  const team = String(value || "").trim().toUpperCase();
+  const team = String(value || "")
+    .trim()
+    .toUpperCase();
   return /^[A-Z]{2,3}$/.test(team) ? team : null;
 }
 
@@ -237,14 +248,17 @@ function deriveVerifiedDvpLookup(response = {}, { explicitMock = false } = {}) {
   if (response.state !== "success" || response.recommendation?.type === "waiver_pickup") return null;
   const primary = response.recommendation?.primary_player;
   const context = response.recommendation?.matchup_context;
-  const position = String(primary?.position || "").trim().toUpperCase();
+  const position = String(primary?.position || "")
+    .trim()
+    .toUpperCase();
   const opponentTeam = normalizedTeam(context?.opponent_team);
   const source = String(context?.source || "").trim();
   const contextStatus = String(context?.status || "").trim();
   const season = Number.parseInt(response.league?.season, 10);
   const week = Number.parseInt(response.league?.week, 10);
 
-  if (!DVP_POSITIONS.has(position) || !opponentTeam || !Number.isInteger(season) || !Number.isInteger(week)) return null;
+  if (!DVP_POSITIONS.has(position) || !opponentTeam || !Number.isInteger(season) || !Number.isInteger(week))
+    return null;
   if (response.mode === "live") {
     if (!LIVE_SCHEDULE_SOURCES.has(source) || contextStatus !== "live") return null;
   } else if (explicitMock && response.mode === "mock") {
@@ -258,12 +272,16 @@ function deriveVerifiedDvpLookup(response = {}, { explicitMock = false } = {}) {
 
 function isValidDvpContextForLookup(value, lookup) {
   if (!value || !lookup || typeof value !== "object" || Array.isArray(value)) return false;
-  return normalizedTeam(value.opponent_team) === lookup.opponentTeam
-    && String(value.position || "").trim().toUpperCase() === lookup.position
-    && Number.isFinite(Number(value.avg_points_allowed))
-    && Number.isInteger(Number(value.sample_weeks))
-    && Number(value.sample_weeks) >= 3
-    && ["favorable", "neutral", "tough"].includes(value.dvp_label);
+  return (
+    normalizedTeam(value.opponent_team) === lookup.opponentTeam &&
+    String(value.position || "")
+      .trim()
+      .toUpperCase() === lookup.position &&
+    Number.isFinite(Number(value.avg_points_allowed)) &&
+    Number.isInteger(Number(value.sample_weeks)) &&
+    Number(value.sample_weeks) >= 3 &&
+    ["favorable", "neutral", "tough"].includes(value.dvp_label)
+  );
 }
 
 function applyDvpContext(response, dvp) {
@@ -287,19 +305,18 @@ function applyDvpContext(response, dvp) {
   if (typeof recommendation?.confidence?.rationale === "string") {
     recommendation.confidence.rationale = recommendation.confidence.rationale.replace(
       /matchup DvP is still stubbed\./i,
-      "Matchup DvP is live from nflverse-data."
+      "Matchup DvP is live from nflverse-data.",
     );
   }
   if (Array.isArray(recommendation?.risk?.reasons)) {
-    recommendation.risk.reasons = recommendation.risk.reasons.map((reason) => String(reason).replace(
-      /one matchup signal is still stubbed\./i,
-      "Matchup DvP is live from nflverse-data."
-    ));
+    recommendation.risk.reasons = recommendation.risk.reasons.map((reason) =>
+      String(reason).replace(/one matchup signal is still stubbed\./i, "Matchup DvP is live from nflverse-data."),
+    );
   }
   if (typeof explanation?.risk === "string") {
     explanation.risk = explanation.risk.replace(
       /matchup DvP and some projection inputs are still stubbed\./i,
-      "some projection inputs remain unavailable; matchup DvP is live from nflverse-data."
+      "some projection inputs remain unavailable; matchup DvP is live from nflverse-data.",
     );
   }
   return true;

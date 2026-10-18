@@ -617,11 +617,7 @@
     "status": {
       "required": true,
       "type": "enum",
-      "values": [
-        "\"degraded\"",
-        "\"ok\"",
-        "\"unavailable\""
-      ]
+      "values": ["\"degraded\"", "\"ok\"", "\"unavailable\""]
     },
     "team_id": {
       "required": false,

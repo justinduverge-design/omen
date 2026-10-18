@@ -15,7 +15,9 @@ const path = require("node:path");
 const test = require("node:test");
 
 const root = path.join(__dirname, "..");
-const catalog = JSON.parse(fs.readFileSync(path.join(root, "sql", "2026-10-01-redo", "production-catalog-2026-10-01.json"), "utf8"));
+const catalog = JSON.parse(
+  fs.readFileSync(path.join(root, "sql", "2026-10-01-redo", "production-catalog-2026-10-01.json"), "utf8"),
+);
 
 function columns(table) {
   const spec = catalog.columns[table];
@@ -76,14 +78,26 @@ test("known gaps: columns the server still references that production does not h
   // Each one is a live defect, recorded in the 2026-10-01 review. When a redo step adds one, or a code
   // change stops referencing it, update this list and the fixture together.
   assert.equal(columns("moves").includes("result"), false, "moves.result now exists: update the review and this test");
-  assert.equal(columns("moves").includes("scored_at"), false, "moves.scored_at now exists: update the review and this test");
-  assert.equal(columns("users").includes("updated_at"), false, "users.updated_at now exists (step 01?): update this test");
+  assert.equal(
+    columns("moves").includes("scored_at"),
+    false,
+    "moves.scored_at now exists: update the review and this test",
+  );
+  assert.equal(
+    columns("users").includes("updated_at"),
+    false,
+    "users.updated_at now exists (step 01?): update this test",
+  );
   assert.equal(catalog.columns.league_follows, undefined, "league_follows now exists: update this test");
   assert.equal(catalog.columns.beta_reports, undefined, "beta_reports now exists: update this test");
 });
 
 test("moves feedback upsert has its unique key (one row per user per week: the flaw step 05 replaces)", () => {
-  assert.ok(catalog.indexes.some((i) => /idx_moves_user_week_unique ON public\.moves USING btree \(user_id, week_num, season\)/.test(i)));
+  assert.ok(
+    catalog.indexes.some((i) =>
+      /idx_moves_user_week_unique ON public\.moves USING btree \(user_id, week_num, season\)/.test(i),
+    ),
+  );
 });
 
 test("compliance evidence manifest points at current Omen files", () => {

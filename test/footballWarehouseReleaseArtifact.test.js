@@ -44,7 +44,10 @@ const workerImage = `ghcr.io/justinduverge-design/omen-warehouse-ingest@sha256:$
 
 function treeManifest(directory) {
   return execFileSync("find", [".", "-mindepth", "1", "-print"], { cwd: directory, encoding: "utf8" })
-    .trim().split("\n").sort().map((relative) => {
+    .trim()
+    .split("\n")
+    .sort()
+    .map((relative) => {
       const full = path.join(directory, relative);
       const stat = fs.lstatSync(full);
       return `${relative}|${stat.isDirectory() ? "d" : "f"}|${(stat.mode & 0o7777).toString(8)}|${stat.isFile() ? fs.readFileSync(full).toString("hex") : ""}`;
@@ -56,8 +59,11 @@ function approvedManifest(release) {
 }
 
 function refreshManifest(release) {
-  const listed = fs.readFileSync(path.join(release, "SHA256SUMS"), "utf8")
-    .trim().split("\n").map((line) => line.slice(line.indexOf("  ") + 2));
+  const listed = fs
+    .readFileSync(path.join(release, "SHA256SUMS"), "utf8")
+    .trim()
+    .split("\n")
+    .map((line) => line.slice(line.indexOf("  ") + 2));
   const sums = execFileSync("sha256sum", listed, { cwd: release });
   fs.chmodSync(path.join(release, "SHA256SUMS"), 0o644);
   fs.writeFileSync(path.join(release, "SHA256SUMS"), sums);
@@ -103,8 +109,18 @@ test("release builder rejects an existing destination and unknown commit", (t) =
   const output = path.join(item.dir, "already");
   fs.mkdirSync(output);
   assert.notEqual(spawnSync(build, [item.commit, output, workerImage], { cwd: item.dir }).status, 0);
-  assert.notEqual(spawnSync(build, ["not-a-commit", path.join(item.dir, "other"), workerImage], { cwd: item.dir }).status, 0);
-  assert.notEqual(spawnSync(build, [item.commit, path.join(item.dir, "tagged"), "ghcr.io/justinduverge-design/omen-warehouse-ingest:latest"], { cwd: item.dir }).status, 0);
+  assert.notEqual(
+    spawnSync(build, ["not-a-commit", path.join(item.dir, "other"), workerImage], { cwd: item.dir }).status,
+    0,
+  );
+  assert.notEqual(
+    spawnSync(
+      build,
+      [item.commit, path.join(item.dir, "tagged"), "ghcr.io/justinduverge-design/omen-warehouse-ingest:latest"],
+      { cwd: item.dir },
+    ).status,
+    0,
+  );
 });
 
 test("release verifier accepts approved bytes and rejects tampering", (t) => {
@@ -136,21 +152,31 @@ test("release verifier fails closed across structural, mode, contract, and appro
     fs.rmSync(target);
     fs.symlinkSync("provision-credentials.sh", target);
   });
-  mutate("hardlink", (release) => fs.linkSync(
-    path.join(release, "infra/warehouse/docker-compose.yml"),
-    path.join(item.dir, `outside-link-${sequence}`),
-  ));
+  mutate("hardlink", (release) =>
+    fs.linkSync(
+      path.join(release, "infra/warehouse/docker-compose.yml"),
+      path.join(item.dir, `outside-link-${sequence}`),
+    ),
+  );
   mutate("world-writable", (release) => fs.chmodSync(path.join(release, "infra/warehouse/docker-compose.yml"), 0o666));
-  mutate("noncanonical-contract", (release) => {
-    fs.chmodSync(path.join(release, "RELEASE-CONTRACT"), 0o644);
-    fs.appendFileSync(path.join(release, "RELEASE-CONTRACT"), "unexpected=true\n");
-    fs.chmodSync(path.join(release, "RELEASE-CONTRACT"), 0o444);
-  }, true);
-  mutate("commit-mismatch", (release) => {
-    fs.chmodSync(path.join(release, "COMMIT"), 0o644);
-    fs.writeFileSync(path.join(release, "COMMIT"), `${"0".repeat(40)}\n`);
-    fs.chmodSync(path.join(release, "COMMIT"), 0o444);
-  }, true);
+  mutate(
+    "noncanonical-contract",
+    (release) => {
+      fs.chmodSync(path.join(release, "RELEASE-CONTRACT"), 0o644);
+      fs.appendFileSync(path.join(release, "RELEASE-CONTRACT"), "unexpected=true\n");
+      fs.chmodSync(path.join(release, "RELEASE-CONTRACT"), 0o444);
+    },
+    true,
+  );
+  mutate(
+    "commit-mismatch",
+    (release) => {
+      fs.chmodSync(path.join(release, "COMMIT"), 0o644);
+      fs.writeFileSync(path.join(release, "COMMIT"), `${"0".repeat(40)}\n`);
+      fs.chmodSync(path.join(release, "COMMIT"), 0o444);
+    },
+    true,
+  );
   assert.notEqual(spawnSync(verify, [base, "0".repeat(64)], { cwd: item.dir }).status, 0, "wrong approved manifest");
 });
 

@@ -9,8 +9,12 @@ function publicKeys(values) {
   if (!Array.isArray(values)) throw new TypeError("keys must be an array");
   const seen = new Map();
   for (const value of values) {
-    if (!value || !PROVIDERS.includes(value.provider)
-        || typeof value.providerId !== "string" || !PROVIDER_ID.test(value.providerId)) {
+    if (
+      !value ||
+      !PROVIDERS.includes(value.provider) ||
+      typeof value.providerId !== "string" ||
+      !PROVIDER_ID.test(value.providerId)
+    ) {
       throw new TypeError("keys may contain only espn, yahoo or sleeper public provider ids");
     }
     seen.set(`${value.provider}:${value.providerId}`, { provider: value.provider, providerId: value.providerId });

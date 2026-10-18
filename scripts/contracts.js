@@ -35,13 +35,22 @@ const FIXED = Object.freeze({ request_id: "omen_req_FIXTURE", generated_at: "202
 // its name would overclaim coverage, so those are NOT listed here and are tracked as gaps in
 // test/contractSchemas.test.js until a live harness can produce them.
 const BRIEF_STATES = Object.freeze([
-  "success", "empty", "off_season", "platform_disconnected", "espn_reauth_required", "error",
+  "success",
+  "empty",
+  "off_season",
+  "platform_disconnected",
+  "espn_reauth_required",
+  "error",
 ]);
 
 function stable(value) {
   if (Array.isArray(value)) return value.map(stable);
   if (value && typeof value === "object") {
-    return Object.fromEntries(Object.keys(value).sort().map((k) => [k, stable(value[k])]));
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort()
+        .map((k) => [k, stable(value[k])]),
+    );
   }
   return value;
 }
@@ -70,11 +79,20 @@ const BRIEF_VARIANTS = Object.freeze({
 
 function variantRoster(withProjections) {
   const p = (key, name, position, projected, slot) => ({
-    player_key: key, player_id: key, name, position, eligible_positions: [position],
-    selected_position: slot, team: "DAL", status: "", projected_points: withProjections ? projected : null,
+    player_key: key,
+    player_id: key,
+    name,
+    position,
+    eligible_positions: [position],
+    selected_position: slot,
+    team: "DAL",
+    status: "",
+    projected_points: withProjections ? projected : null,
   });
   return {
-    week: 8, team_key: "7", source: withProjections ? "espn" : "yahoo",
+    week: 8,
+    team_key: "7",
+    source: withProjections ? "espn" : "yahoo",
     slots: {
       starters: [p("espn:1", "Quinn Back", "QB", 20, "QB"), p("espn:2", "Wes Receiver", "WR", 12, "WR")],
       bench: [p("espn:3", "Ben Chwarmer", "WR", 11.8, "BN")],
@@ -91,16 +109,23 @@ function generateBriefVariantBodies() {
     const withProjections = name === "empty_hold";
     const roster = variantRoster(withProjections);
     const connection = {
-      id: "ctx-fixture", platform: withProjections ? "espn" : "yahoo", league_id: "1234567",
+      id: "ctx-fixture",
+      platform: withProjections ? "espn" : "yahoo",
+      league_id: "1234567",
     };
     const trade = withProjections
       ? { status: "none_found", reason: null, message: null, teams_checked: 11 }
       : {
-        status: "unavailable", reason: "projections_unavailable", teams_checked: 0,
-        message: "Yahoo does not give Omen weekly projections, so a trade cannot be weighed.",
-      };
+          status: "unavailable",
+          reason: "projections_unavailable",
+          teams_checked: 0,
+          message: "Yahoo does not give Omen weekly projections, so a trade cannot be weighed.",
+        };
     const hold = buildHold({
-      roster, platformLabel: withProjections ? "ESPN" : "Yahoo", trade, isOut: () => false,
+      roster,
+      platformLabel: withProjections ? "ESPN" : "Yahoo",
+      trade,
+      isOut: () => false,
     });
     const built = omen.liveEmptyMvpResponse({ roster, connection, connectedPlatforms: [], hold });
     omen.annotateAnswerScope(built, {
@@ -128,7 +153,9 @@ function generateBriefV3Fixtures() {
     const built = buildOmenMvpMoveResponse({ use_mock_data: true, mock_state: state });
     const body = normalize(decisionBriefV3(built.body));
     if (body.state !== state) {
-      throw new Error(`mock builder returned state "${body.state}" for "${state}"; a fixture must be what its name says`);
+      throw new Error(
+        `mock builder returned state "${body.state}" for "${state}"; a fixture must be what its name says`,
+      );
     }
     out[state] = { http_status: built.status, body };
   }
@@ -174,7 +201,11 @@ function flattenSchema(schema) {
     if (!node) return "any";
     if (node.const !== undefined) return `const:${JSON.stringify(node.const)}`;
     if (node.enum) return "enum";
-    if (node.oneOf) return node.oneOf.map((n) => typeOf(resolve(n).node)).sort().join("|");
+    if (node.oneOf)
+      return node.oneOf
+        .map((n) => typeOf(resolve(n).node))
+        .sort()
+        .join("|");
     const t = node.type;
     return Array.isArray(t) ? [...t].sort().join("|") : t || (node.properties ? "object" : "any");
   };
@@ -209,9 +240,14 @@ function flattenSchema(schema) {
       if (b && b.type !== "null") walk(branch, p, required, condition, guard);
     }
     for (const rule of node.allOf || []) {
-      const cond = rule.if && rule.if.properties
-        ? Object.entries(rule.if.properties).map(([k, v]) => (v.const !== undefined ? `${k}=${v.const}` : v.enum ? `${k}=${v.enum.join("|")}` : `${k}:${v.type}`)).join(",")
-        : null;
+      const cond =
+        rule.if && rule.if.properties
+          ? Object.entries(rule.if.properties)
+              .map(([k, v]) =>
+                v.const !== undefined ? `${k}=${v.const}` : v.enum ? `${k}=${v.enum.join("|")}` : `${k}:${v.type}`,
+              )
+              .join(",")
+          : null;
       if (rule.then) {
         const thenNode = rule.then;
         for (const req of thenNode.required || []) {
@@ -249,7 +285,10 @@ function compareToLock(lockEntries, currentEntries) {
   const breaks = [];
   for (const [key, was] of Object.entries(lockEntries)) {
     const now = currentEntries[key];
-    if (!now) { breaks.push(`removed: ${key}`); continue; }
+    if (!now) {
+      breaks.push(`removed: ${key}`);
+      continue;
+    }
     if (now.type !== was.type) breaks.push(`retyped: ${key} (${was.type} -> ${now.type})`);
     if (was.required && !now.required) breaks.push(`no longer required: ${key}`);
     for (const value of was.values || []) {
@@ -285,8 +324,14 @@ function mergeLock(baseline, current) {
   for (const key of new Set([...Object.keys(baseline), ...Object.keys(current)])) {
     const was = baseline[key];
     const now = current[key];
-    if (!was) { merged[key] = now; continue; }
-    if (!now) { merged[key] = was; continue; }
+    if (!was) {
+      merged[key] = now;
+      continue;
+    }
+    if (!now) {
+      merged[key] = was;
+      continue;
+    }
     const values = [...new Set([...(was.values || []), ...(now.values || [])])].sort();
     merged[key] = {
       type: was.type,
@@ -311,11 +356,20 @@ function writeLock(contract, { acceptBreaking = false } = {}) {
     const baseline = readLock(contract);
     const breaks = compareToLock(baseline, current);
     if (breaks.length) {
-      throw new Error(`${contract}: the schema BREAKS its lock:\n  ${breaks.join("\n  ")}\nA breaking change needs a new contract version. (--accept-breaking overrides, and should be rare and reviewed.)`);
+      throw new Error(
+        `${contract}: the schema BREAKS its lock:\n  ${breaks.join("\n  ")}\nA breaking change needs a new contract version. (--accept-breaking overrides, and should be rare and reviewed.)`,
+      );
     }
     entries = mergeLock(baseline, current);
   }
-  fs.writeFileSync(lockFile(contract), serialize({ contract, note: "Generated by scripts/contracts.js lock. Regenerating this file to make a test pass is the act it exists to prevent: a removal, retype or loosening here is a breaking change and needs a new contract version.", entries }));
+  fs.writeFileSync(
+    lockFile(contract),
+    serialize({
+      contract,
+      note: "Generated by scripts/contracts.js lock. Regenerating this file to make a test pass is the act it exists to prevent: a removal, retype or loosening here is a breaking change and needs a new contract version.",
+      entries,
+    }),
+  );
   return Object.keys(entries).length;
 }
 
@@ -324,8 +378,21 @@ function readLock(contract) {
 }
 
 module.exports = {
-  BRIEF_STATES, BRIEF_VARIANTS, generateBriefV3Fixtures, writeFixtures, fixtureFile, flattenSchema, compareToLock, mergeLock,
-  readSchema, writeLock, readLock, normalize, serialize, allContracts, ROOT,
+  BRIEF_STATES,
+  BRIEF_VARIANTS,
+  generateBriefV3Fixtures,
+  writeFixtures,
+  fixtureFile,
+  flattenSchema,
+  compareToLock,
+  mergeLock,
+  readSchema,
+  writeLock,
+  readLock,
+  normalize,
+  serialize,
+  allContracts,
+  ROOT,
 };
 
 if (require.main === module) {
@@ -335,8 +402,12 @@ if (require.main === module) {
   } else if (cmd === "lock") {
     const acceptBreaking = process.argv.includes("--accept-breaking");
     for (const name of allContracts()) {
-      try { console.log(`${name}: lock with ${writeLock(name, { acceptBreaking })} entries`); }
-      catch (err) { console.error(err.message); process.exit(1); }
+      try {
+        console.log(`${name}: lock with ${writeLock(name, { acceptBreaking })} entries`);
+      } catch (err) {
+        console.error(err.message);
+        process.exit(1);
+      }
     }
   } else if (cmd === "check") {
     let bad = 0;
@@ -344,11 +415,17 @@ if (require.main === module) {
     for (const [state, fx] of Object.entries(fresh)) {
       const file = fixtureFile("omen-decision-brief.v3", state);
       const committed = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : null;
-      if (committed !== serialize(fx)) { console.error(`fixture out of date: ${state}`); bad += 1; }
+      if (committed !== serialize(fx)) {
+        console.error(`fixture out of date: ${state}`);
+        bad += 1;
+      }
     }
     for (const name of allContracts()) {
       const breaks = compareToLock(readLock(name), flattenSchema(readSchema(name)));
-      for (const b of breaks) { console.error(`BREAKING ${name}: ${b}`); bad += 1; }
+      for (const b of breaks) {
+        console.error(`BREAKING ${name}: ${b}`);
+        bad += 1;
+      }
     }
     process.exit(bad ? 1 : 0);
   } else {

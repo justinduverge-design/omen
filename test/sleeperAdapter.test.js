@@ -247,8 +247,7 @@ test("projections map by player_id, not by array position", async () => {
   const roster = await adapter.buildNormalizedRoster("league-1", "testuser", 1);
 
   const byId = Object.fromEntries(
-    [...roster.slots.starters, ...roster.slots.bench, ...roster.slots.ir]
-      .map((p) => [p.player_id, p.projected_points]),
+    [...roster.slots.starters, ...roster.slots.bench, ...roster.slots.ir].map((p) => [p.player_id, p.projected_points]),
   );
 
   // Correct id-keyed values regardless of array order.
@@ -315,14 +314,70 @@ function poolFixtures() {
   ];
 
   data.players = {
-    100: { player_id: "100", full_name: "Owned QB", position: "QB", fantasy_positions: ["QB"], team: "KC", active: true },
-    200: { player_id: "200", full_name: "Owned RB", position: "RB", fantasy_positions: ["RB"], team: "BUF", active: true },
-    300: { player_id: "300", full_name: "Rival WR", position: "WR", fantasy_positions: ["WR"], team: "NYJ", active: true },
-    400: { player_id: "400", full_name: "Free WR", position: "WR", fantasy_positions: ["WR"], team: "DAL", active: true },
-    500: { player_id: "500", full_name: "Free TE", position: "TE", fantasy_positions: ["TE"], team: "DET", active: true },
-    600: { player_id: "600", full_name: "Retired K", position: "K", fantasy_positions: ["K"], team: null, active: false },
-    700: { player_id: "700", full_name: "Head Coach", position: "HC", fantasy_positions: ["HC"], team: "MIA", active: true },
-    800: { player_id: "800", full_name: "Unprojected WR", position: "WR", fantasy_positions: ["WR"], team: "SF", active: true },
+    100: {
+      player_id: "100",
+      full_name: "Owned QB",
+      position: "QB",
+      fantasy_positions: ["QB"],
+      team: "KC",
+      active: true,
+    },
+    200: {
+      player_id: "200",
+      full_name: "Owned RB",
+      position: "RB",
+      fantasy_positions: ["RB"],
+      team: "BUF",
+      active: true,
+    },
+    300: {
+      player_id: "300",
+      full_name: "Rival WR",
+      position: "WR",
+      fantasy_positions: ["WR"],
+      team: "NYJ",
+      active: true,
+    },
+    400: {
+      player_id: "400",
+      full_name: "Free WR",
+      position: "WR",
+      fantasy_positions: ["WR"],
+      team: "DAL",
+      active: true,
+    },
+    500: {
+      player_id: "500",
+      full_name: "Free TE",
+      position: "TE",
+      fantasy_positions: ["TE"],
+      team: "DET",
+      active: true,
+    },
+    600: {
+      player_id: "600",
+      full_name: "Retired K",
+      position: "K",
+      fantasy_positions: ["K"],
+      team: null,
+      active: false,
+    },
+    700: {
+      player_id: "700",
+      full_name: "Head Coach",
+      position: "HC",
+      fantasy_positions: ["HC"],
+      team: "MIA",
+      active: true,
+    },
+    800: {
+      player_id: "800",
+      full_name: "Unprojected WR",
+      position: "WR",
+      fantasy_positions: ["WR"],
+      team: "SF",
+      active: true,
+    },
   };
 
   data.projections = [
@@ -401,7 +456,10 @@ test("available pool ranks by projected points, unprojected players last", async
   const { adapter } = loadSleeperAdapterWithFixtures(poolFixtures());
   const pool = await adapter.fetchSleeperAvailablePlayers("league-1", 1, "2026");
 
-  assert.deepEqual(pool.map((p) => p.player_id), ["500", "400", "800"]);
+  assert.deepEqual(
+    pool.map((p) => p.player_id),
+    ["500", "400", "800"],
+  );
   assert.equal(pool[0].projected_points, 14.8);
   assert.equal(pool[1].projected_points, 11.2);
   assert.equal(pool[2].projected_points, null, "no projection must be null, never 0");
@@ -509,7 +567,12 @@ test("fetchSleeperStandings ranks by wins then points for", async () => {
 test("fetchSleeperLeagueRosters returns projection-joined teams without manager identity", async () => {
   const data = fixtures();
   data.users = [
-    { user_id: "user-1", display_name: "Private Manager", username: "private-manager", metadata: { team_name: "North Stars" } },
+    {
+      user_id: "user-1",
+      display_name: "Private Manager",
+      username: "private-manager",
+      metadata: { team_name: "North Stars" },
+    },
     { user_id: "user-2", display_name: "Other Private Manager", username: "other-private-manager" },
   ];
   data.rosters = [
@@ -523,7 +586,10 @@ test("fetchSleeperLeagueRosters returns projection-joined teams without manager 
   assert.deepEqual(result.roster_positions, ["QB", "SUPER_FLEX", "FLEX", "BN", "IR"]);
   assert.equal(result.teams[0].team_name, "North Stars");
   assert.equal(result.teams[1].team_name, "Team 8");
-  assert.equal(JSON.stringify(result), JSON.stringify(result).replace(/Private Manager|private-manager|Other Private Manager|other-private-manager/g, ""));
+  assert.equal(
+    JSON.stringify(result),
+    JSON.stringify(result).replace(/Private Manager|private-manager|Other Private Manager|other-private-manager/g, ""),
+  );
   assert.deepEqual(result.teams[1].players.map((player) => player.player_id).sort(), ["200", "300", "500"]);
   assert.equal(result.teams[1].players.find((player) => player.player_id === "200").projected_points, 21.2);
   assert.equal(result.teams[1].players.find((player) => player.player_id === "300").selected_position, "TAXI");
@@ -602,7 +668,10 @@ test("a Sleeper side's projection is summed from its starters", () => {
   ];
 
   const matchup = adapter.matchupFromMatchups({
-    leagueId: "L", week: 3, rosterId: 7, matchups,
+    leagueId: "L",
+    week: 3,
+    rosterId: 7,
+    matchups,
     projections: { 1001: 12.5, 1002: 9.25, 2001: 18 },
   });
 
@@ -620,7 +689,10 @@ test("bench players are not summed into a Sleeper projection", () => {
   ];
 
   const matchup = adapter.matchupFromMatchups({
-    leagueId: "L", week: 3, rosterId: 7, matchups,
+    leagueId: "L",
+    week: 3,
+    rosterId: 7,
+    matchups,
     projections: { 1001: 12.5, 2001: 18, 9999: 500 },
   });
 
@@ -637,7 +709,10 @@ test("an unfilled Sleeper starting slot is skipped, not looked up", () => {
   ];
 
   const matchup = adapter.matchupFromMatchups({
-    leagueId: "L", week: 3, rosterId: 7, matchups,
+    leagueId: "L",
+    week: 3,
+    rosterId: 7,
+    matchups,
     projections: { 1001: 12.5, 0: 77, 2001: 18 },
   });
 

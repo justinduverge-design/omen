@@ -3,10 +3,7 @@
 const express = require("express");
 const { logger } = require("../middleware/logging");
 const { fetchSleeperPlayers } = require("../adapters/sleeper");
-const {
-  normalizePlayerSearchQuery,
-  searchNflPlayers,
-} = require("../services/playerSearch");
+const { normalizePlayerSearchQuery, searchNflPlayers } = require("../services/playerSearch");
 
 const router = express.Router();
 

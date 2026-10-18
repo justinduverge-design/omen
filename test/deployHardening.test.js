@@ -69,10 +69,7 @@ test("deploy workflows use sudo only when Compose must read the root-owned produ
       workflow,
       /sudo docker compose -f docker-compose\.prod\.yml --project-name omen up -d --no-build api cron/,
     );
-    assert.doesNotMatch(
-      workflow,
-      /sudo docker compose -f docker-compose\.prod\.yml --project-name omen pull api cron/,
-    );
+    assert.doesNotMatch(workflow, /sudo docker compose -f docker-compose\.prod\.yml --project-name omen pull api cron/);
   }
 });
 
@@ -108,12 +105,14 @@ test("both images bake build provenance so a running container can name its comm
   // Both images, not just the API one — the cron container is where a silent
   // stale deploy is hardest to notice.
   assert.equal(
-    (workflow.match(/GIT_SHA=\$\{\{ github\.sha \}\}/g) || []).length, 2,
-    "both image builds must receive GIT_SHA"
+    (workflow.match(/GIT_SHA=\$\{\{ github\.sha \}\}/g) || []).length,
+    2,
+    "both image builds must receive GIT_SHA",
   );
   assert.equal(
-    (workflow.match(/BUILD_ID=\$\{\{ github\.run_id \}\}/g) || []).length, 2,
-    "both image builds must receive BUILD_ID"
+    (workflow.match(/BUILD_ID=\$\{\{ github\.run_id \}\}/g) || []).length,
+    2,
+    "both image builds must receive BUILD_ID",
   );
 
   // And the route must still be reading the name the Dockerfile exports.

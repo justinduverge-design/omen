@@ -23,9 +23,7 @@ const { logger } = require("../middleware/logging");
 const { captureProviderError } = require("../middleware/providerErrors");
 
 const LAST_RESULT_TTL_S = 21600; // 6h - a completed week's matchup result never changes
-const redis = config.redisUrl
-  ? new Redis({ url: config.redisUrl, token: config.redisToken })
-  : null;
+const redis = config.redisUrl ? new Redis({ url: config.redisUrl, token: config.redisToken }) : null;
 
 async function readCache(key) {
   if (!redis) return null;
@@ -94,15 +92,26 @@ const LINEUP_SLOT_MAP = {
  * which case callers fall back to the user's own lineup.
  */
 const ESPN_SETTINGS_SLOT_NAMES = {
-  0: "QB", 2: "RB", 3: "WRRB_FLEX", 4: "WR", 5: "REC_FLEX", 6: "TE", 7: "SUPER_FLEX",
-  16: "DEF", 17: "K", 23: "FLEX", 24: "FLEX",
+  0: "QB",
+  2: "RB",
+  3: "WRRB_FLEX",
+  4: "WR",
+  5: "REC_FLEX",
+  6: "TE",
+  7: "SUPER_FLEX",
+  16: "DEF",
+  17: "K",
+  23: "FLEX",
+  24: "FLEX",
 };
 
 function rosterPositionsFromEspnSettings(data) {
   const counts = data?.settings?.rosterSettings?.lineupSlotCounts;
   if (!counts || typeof counts !== "object") return [];
   const slots = [];
-  for (const id of Object.keys(counts).map(Number).sort((a, b) => a - b)) {
+  for (const id of Object.keys(counts)
+    .map(Number)
+    .sort((a, b) => a - b)) {
     const name = ESPN_SETTINGS_SLOT_NAMES[id];
     const count = Number(counts[id]);
     if (!name || !Number.isInteger(count) || count < 1) continue;
@@ -136,7 +145,9 @@ function activeSeason() {
 }
 
 function normalizeSwid(swid) {
-  return String(swid || "").replace(/[{}]/g, "").toLowerCase();
+  return String(swid || "")
+    .replace(/[{}]/g, "")
+    .toLowerCase();
 }
 
 function slotFromId(slotId) {
@@ -172,9 +183,7 @@ function positionFrom(value) {
 
 function statusFrom(value) {
   if (value == null || value === "") return null;
-  return Object.prototype.hasOwnProperty.call(INJURY_STATUS_MAP, value)
-    ? INJURY_STATUS_MAP[value]
-    : value;
+  return Object.prototype.hasOwnProperty.call(INJURY_STATUS_MAP, value) ? INJURY_STATUS_MAP[value] : value;
 }
 
 /**
@@ -215,7 +224,9 @@ function findUserTeam(teams, swid, opts = {}) {
   if (!Array.isArray(teams)) return null;
   const requestedTeamId = opts.teamId != null ? String(opts.teamId) : null;
   if (requestedTeamId) {
-    return teams.find((team) => String(team?.id) === requestedTeamId || String(team?.teamId) === requestedTeamId) || null;
+    return (
+      teams.find((team) => String(team?.id) === requestedTeamId || String(team?.teamId) === requestedTeamId) || null
+    );
   }
 
   const targetSwid = normalizeSwid(swid);
@@ -248,32 +259,27 @@ function teamId(team) {
  * same class of typing artifact and no team means the extra spaces.
  */
 function teamName(team) {
-  const clean = (v) => String(v || "").replace(/\s+/g, " ").trim();
+  const clean = (v) =>
+    String(v || "")
+      .replace(/\s+/g, " ")
+      .trim();
   const combined = `${clean(team?.location)} ${clean(team?.nickname)}`.trim();
-  return clean(team?.name)
-    || clean(team?.teamName)
-    || combined
-    || clean(team?.abbrev)
-    || clean(team?.abbreviation)
-    || "Unknown";
+  return (
+    clean(team?.name) ||
+    clean(team?.teamName) ||
+    combined ||
+    clean(team?.abbrev) ||
+    clean(team?.abbreviation) ||
+    "Unknown"
+  );
 }
 
 function teamWins(team) {
-  return finiteOrZero(
-    team?.wins,
-    team?.record?.overall?.wins,
-    team?.record?.wins,
-    team?.overallRecord?.wins
-  );
+  return finiteOrZero(team?.wins, team?.record?.overall?.wins, team?.record?.wins, team?.overallRecord?.wins);
 }
 
 function teamLosses(team) {
-  return finiteOrZero(
-    team?.losses,
-    team?.record?.overall?.losses,
-    team?.record?.losses,
-    team?.overallRecord?.losses
-  );
+  return finiteOrZero(team?.losses, team?.record?.overall?.losses, team?.record?.losses, team?.overallRecord?.losses);
 }
 
 function teamPointsFor(team) {
@@ -282,16 +288,12 @@ function teamPointsFor(team) {
     team?.pointsFor,
     team?.totalPointsScored,
     team?.totalPoints,
-    team?.record?.overall?.pointsFor
+    team?.record?.overall?.pointsFor,
   );
 }
 
 function teamPointsAgainst(team) {
-  return finiteOrZero(
-    team?.regularSeasonPointsAgainst,
-    team?.pointsAgainst,
-    team?.record?.overall?.pointsAgainst
-  );
+  return finiteOrZero(team?.regularSeasonPointsAgainst, team?.pointsAgainst, team?.record?.overall?.pointsAgainst);
 }
 
 function rankingHint(team) {
@@ -303,23 +305,18 @@ function unwrapPlayer(entry) {
 }
 
 function playerId(entry, player) {
-  return String(
-    player?.id
-    || player?.playerId
-    || player?.player_id
-    || entry?.playerId
-    || entry?.id
-    || "unknown"
-  );
+  return String(player?.id || player?.playerId || player?.player_id || entry?.playerId || entry?.id || "unknown");
 }
 
 function playerName(player, id) {
-  return player?.fullName
-    || player?.full_name
-    || player?.name
-    || `${player?.firstName || ""} ${player?.lastName || ""}`.trim()
-    || id
-    || "Unknown";
+  return (
+    player?.fullName ||
+    player?.full_name ||
+    player?.name ||
+    `${player?.firstName || ""} ${player?.lastName || ""}`.trim() ||
+    id ||
+    "Unknown"
+  );
 }
 
 /** ESPN's league-wide ownership: how widely a player is rostered and the week's change, in percent. Absent stays null. */
@@ -329,7 +326,8 @@ function ownershipOf(player) {
   if (player?.ownership?.percentOwned == null || !Number.isFinite(owned)) return {};
   return {
     owned_pct: Math.round(owned * 10) / 10,
-    owned_pct_change: player.ownership.percentChange != null && Number.isFinite(change) ? Math.round(change * 10) / 10 : null,
+    owned_pct_change:
+      player.ownership.percentChange != null && Number.isFinite(change) ? Math.round(change * 10) / 10 : null,
   };
 }
 
@@ -365,7 +363,12 @@ function normalizePlayer(entry, week) {
     eligible_positions: eligiblePositions(player, primaryPosition),
     selected_position: selectedPosition,
     // ESPN sends only proTeamId on roster players; without this every ESPN player had no NFL team.
-    team: player?.proTeamAbbreviation || player?.teamAbbrev || player?.team || abbreviationForProviderNumber(player?.proTeamId) || null,
+    team:
+      player?.proTeamAbbreviation ||
+      player?.teamAbbrev ||
+      player?.team ||
+      abbreviationForProviderNumber(player?.proTeamId) ||
+      null,
     opponent: null,
     status: statusFrom(player?.injuryStatus || player?.injury_status || player?.status),
     // The `stats` lookup is last because the flat fields above are what ESPN's older shapes
@@ -386,9 +389,15 @@ function normalizePlayer(entry, week) {
       player?.projected_points,
       player?.projectedRawStatsForScoringPeriod?.appliedTotal,
       player?.projectedStats?.appliedTotal,
-      projectedPointsForEspnPlayer(player, week)
+      projectedPointsForEspnPlayer(player, week),
     ),
-    actual_points: firstFinite(entry?.totalPoints, entry?.actualPoints, player?.totalPoints, player?.actual_points, actualPointsForEspnPlayer(player, week)),
+    actual_points: firstFinite(
+      entry?.totalPoints,
+      entry?.actualPoints,
+      player?.totalPoints,
+      player?.actual_points,
+      actualPointsForEspnPlayer(player, week),
+    ),
     image_url: player?.headshotUrl || player?.imageUrl || null,
     is_starter: isStarter,
     // Provider lock flags (ESPN playerPoolEntry). Only an explicit true locks; absent is unknown,
@@ -425,9 +434,10 @@ const ESPN_WAIVER_STATUSES = new Set(["FREEAGENT", "WAIVERS"]);
 function projectedPointsForEspnPlayer(player, week) {
   const requestedWeek = Number(week);
   const stats = Array.isArray(player?.stats) ? player.stats : [];
-  const projection = stats.find((stat) =>
-    Number(stat?.statSourceId) === ESPN_PROJECTED_STAT_SOURCE_ID
-    && (Number.isFinite(requestedWeek) ? Number(stat?.scoringPeriodId) === requestedWeek : true)
+  const projection = stats.find(
+    (stat) =>
+      Number(stat?.statSourceId) === ESPN_PROJECTED_STAT_SOURCE_ID &&
+      (Number.isFinite(requestedWeek) ? Number(stat?.scoringPeriodId) === requestedWeek : true),
   );
   return firstFinite(projection?.appliedTotal);
 }
@@ -436,9 +446,10 @@ function projectedPointsForEspnPlayer(player, week) {
 function actualPointsForEspnPlayer(player, week) {
   const requestedWeek = Number(week);
   const stats = Array.isArray(player?.stats) ? player.stats : [];
-  const actual = stats.find((stat) =>
-    Number(stat?.statSourceId) === 0
-    && (Number.isFinite(requestedWeek) ? Number(stat?.scoringPeriodId) === requestedWeek : true)
+  const actual = stats.find(
+    (stat) =>
+      Number(stat?.statSourceId) === 0 &&
+      (Number.isFinite(requestedWeek) ? Number(stat?.scoringPeriodId) === requestedWeek : true),
   );
   return firstFinite(actual?.appliedTotal);
 }
@@ -457,24 +468,32 @@ function waiverPoolFromEspnData(data, opts = {}) {
     const player = unwrapPlayer(entry);
     const availability = String(poolEntry?.status || player?.status || "").toUpperCase();
     const primaryPosition = positionFrom(player?.defaultPosition || player?.defaultPositionId || player?.position);
-    if (Number(poolEntry?.onTeamId) !== 0 || !ESPN_WAIVER_STATUSES.has(availability) || primaryPosition === "UNK") return [];
+    if (Number(poolEntry?.onTeamId) !== 0 || !ESPN_WAIVER_STATUSES.has(availability) || primaryPosition === "UNK")
+      return [];
 
     const id = playerId(poolEntry, player);
-    return [{
-      player_key: `espn:${id}`,
-      player_id: id,
-      name: playerName(player, id),
-      position: primaryPosition,
-      eligible_positions: eligiblePositions(player, primaryPosition),
-      team: player?.proTeamAbbreviation || player?.teamAbbrev || player?.team || abbreviationForProviderNumber(player?.proTeamId) || null,
-      status: statusFrom(player?.injuryStatus || player?.injury_status),
-      ...ownershipOf(player),
-      // ESPN marks projected stats with statSourceId 1. Actuals (0) are never
-      // substituted, even when a projection is unavailable for this period. Confirmed
-      // 2026-09-07 against ESPN's own `statSettings.sources` table:
-      // `[{id: 0, description: "Real"}, {id: 1, description: "Projected"}]`.
-      projected_points: projectedPointsForEspnPlayer(player, requestedWeek),
-    }];
+    return [
+      {
+        player_key: `espn:${id}`,
+        player_id: id,
+        name: playerName(player, id),
+        position: primaryPosition,
+        eligible_positions: eligiblePositions(player, primaryPosition),
+        team:
+          player?.proTeamAbbreviation ||
+          player?.teamAbbrev ||
+          player?.team ||
+          abbreviationForProviderNumber(player?.proTeamId) ||
+          null,
+        status: statusFrom(player?.injuryStatus || player?.injury_status),
+        ...ownershipOf(player),
+        // ESPN marks projected stats with statSourceId 1. Actuals (0) are never
+        // substituted, even when a projection is unavailable for this period. Confirmed
+        // 2026-09-07 against ESPN's own `statSettings.sources` table:
+        // `[{id: 0, description: "Real"}, {id: 1, description: "Projected"}]`.
+        projected_points: projectedPointsForEspnPlayer(player, requestedWeek),
+      },
+    ];
   });
 }
 
@@ -486,11 +505,12 @@ function swidWithBraces(swid) {
 
 function makeEspnHeaders(espn_s2, swid, fantasyFilter) {
   return {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-    "Referer": "https://fantasy.espn.com/",
-    "Accept": "application/json",
+    "User-Agent":
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    Referer: "https://fantasy.espn.com/",
+    Accept: "application/json",
     "Accept-Language": "en-US,en;q=0.9",
-    "Cookie": `espn_s2=${espn_s2}; SWID=${swidWithBraces(swid)}`,
+    Cookie: `espn_s2=${espn_s2}; SWID=${swidWithBraces(swid)}`,
     // Required by ESPN's reads API — omitting either causes fantasy.espn.com
     // to redirect instead of returning JSON, even with valid cookies. See
     // Direction/reviews/2026-07-07-espn-ios-cookie-sync-research.md.
@@ -503,18 +523,22 @@ function makeEspnHeaders(espn_s2, swid, fantasyFilter) {
 // The fan-profile path carries the user's SWID ({GUID}); it and the query string never reach logs or Sentry.
 const SWID_PATTERN = /(\{|%7B)[0-9a-f-]{36}(\}|%7D)/gi;
 function redactEspnPath(path) {
-  return String(path || "").split("?")[0].replace(SWID_PATTERN, "[swid]");
+  return String(path || "")
+    .split("?")[0]
+    .replace(SWID_PATTERN, "[swid]");
 }
 
 function isEspnReconnectResponse(hostname, status) {
   const code = Number(status);
-  return code === 401
-    || code === 403
+  return (
+    code === 401 ||
+    code === 403 ||
     // ESPN's fan-directory endpoint answers 400, rather than 401, when the
     // user-supplied ESPN web session is no longer accepted. Reconnecting is
     // the only useful recovery and the same request commonly pairs with a 401
     // from lm-api-reads during one refresh.
-    || (hostname === ESPN_FAN_HOSTNAME && code === 400);
+    (hostname === ESPN_FAN_HOSTNAME && code === 400)
+  );
 }
 
 function reportEspnFailure(operation, error, hostname, path, httpStatus) {
@@ -541,12 +565,22 @@ function doEspnRequest(hostname, path, espn_s2, swid, redirectsLeft, fantasyFilt
     const req = https.request(
       { hostname, path, method: "GET", headers: makeEspnHeaders(espn_s2, swid, fantasyFilter) },
       (res) => {
-        if ((res.statusCode === 301 || res.statusCode === 302 || res.statusCode === 307 || res.statusCode === 308) && res.headers.location && redirectsLeft > 0) {
+        if (
+          (res.statusCode === 301 || res.statusCode === 302 || res.statusCode === 307 || res.statusCode === 308) &&
+          res.headers.location &&
+          redirectsLeft > 0
+        ) {
           res.resume();
           try {
             const loc = new URL(res.headers.location, `https://${hostname}`);
-            doEspnRequest(loc.hostname, loc.pathname + loc.search, espn_s2, swid, redirectsLeft - 1, fantasyFilter)
-              .then(resolve, reject);
+            doEspnRequest(
+              loc.hostname,
+              loc.pathname + loc.search,
+              espn_s2,
+              swid,
+              redirectsLeft - 1,
+              fantasyFilter,
+            ).then(resolve, reject);
           } catch {
             const err = new Error("ESPN API returned an invalid redirect");
             err.status = 502;
@@ -582,7 +616,7 @@ function doEspnRequest(hostname, path, espn_s2, swid, redirectsLeft, fantasyFilt
             reject(err);
           }
         });
-      }
+      },
     );
     req.on("error", (err) => {
       err.status = 502;
@@ -637,14 +671,10 @@ async function fetchEspnWaiverPool(leagueId, espn_s2, swid, week, opts = {}) {
   const pool = [];
   for (let page = 0; page < ESPN_WAIVER_MAX_PAGES; page += 1) {
     const offset = page * ESPN_WAIVER_PAGE_SIZE;
-    const data = await fetchEspnApi(
-      leagueId,
-      espn_s2,
-      swid,
-      ["kona_player_info"],
-      scoringPeriodId,
-      { ...opts, fantasyFilter: espnWaiverFilter(offset) }
-    );
+    const data = await fetchEspnApi(leagueId, espn_s2, swid, ["kona_player_info"], scoringPeriodId, {
+      ...opts,
+      fantasyFilter: espnWaiverFilter(offset),
+    });
     const entries = Array.isArray(data?.players) ? data.players : [];
     pool.push(...waiverPoolFromEspnData(data, { week: scoringPeriodId }));
     if (entries.length < ESPN_WAIVER_PAGE_SIZE) return pool;
@@ -677,12 +707,13 @@ function standingsFromEspnData(data, swid, opts = {}) {
       points_for: teamPointsFor(team),
       points_against: teamPointsAgainst(team),
     }))
-    .sort((a, b) => (
-      (a.rank || Number.MAX_SAFE_INTEGER) - (b.rank || Number.MAX_SAFE_INTEGER)
-      || b.wins - a.wins
-      || b.points_for - a.points_for
-      || String(a.team_id || "").localeCompare(String(b.team_id || ""))
-    ))
+    .sort(
+      (a, b) =>
+        (a.rank || Number.MAX_SAFE_INTEGER) - (b.rank || Number.MAX_SAFE_INTEGER) ||
+        b.wins - a.wins ||
+        b.points_for - a.points_for ||
+        String(a.team_id || "").localeCompare(String(b.team_id || "")),
+    )
     .map((team, index) => ({ ...team, rank: index + 1 }));
 }
 
@@ -784,7 +815,6 @@ function rosterFromEspnData(data, leagueId, swid, week, opts = {}) {
     source: "espn",
   };
 }
-
 
 /**
  * ESPN's own scoring rules for a league, as `statId -> points`, including per-position
@@ -921,9 +951,10 @@ function projectionLinesFromEspnData(data, swid, week, opts = {}) {
   for (const entry of rosterEntries(team)) {
     const player = unwrapPlayer(entry);
     const stats = Array.isArray(player?.stats) ? player.stats : [];
-    const row = stats.find((stat) =>
-      Number(stat?.statSourceId) === ESPN_PROJECTED_STAT_SOURCE_ID
-      && Number(stat?.scoringPeriodId) === requestedWeek);
+    const row = stats.find(
+      (stat) =>
+        Number(stat?.statSourceId) === ESPN_PROJECTED_STAT_SOURCE_ID && Number(stat?.scoringPeriodId) === requestedWeek,
+    );
     if (!row?.stats || typeof row.stats !== "object") continue;
     lines.set(`espn:${playerId(entry, player)}`, {
       position_id: player?.defaultPositionId ?? null,
@@ -959,10 +990,7 @@ function espnMatchupTeamId(side) {
 }
 
 function espnMatchupPoints(side) {
-  const value = side?.totalPoints
-    ?? side?.points
-    ?? side?.team?.totalPoints
-    ?? side?.team?.points;
+  const value = side?.totalPoints ?? side?.points ?? side?.team?.totalPoints ?? side?.team?.points;
   return Number.isFinite(Number(value)) ? Number(value) : null;
 }
 
@@ -1018,7 +1046,7 @@ function espnMatchupProjected(side, week) {
     side?.totalProjectedPoints,
     side?.team?.totalProjectedPoints,
     side?.totalProjectedPointsLive,
-    side?.team?.totalProjectedPointsLive
+    side?.team?.totalProjectedPointsLive,
   );
 }
 
@@ -1049,7 +1077,7 @@ function espnStarterProjectionSum(side, week) {
     const points = firstFinite(
       entry?.projectedPoints,
       entry?.projected_points,
-      projectedPointsForEspnPlayer(unwrapPlayer(entry), week)
+      projectedPointsForEspnPlayer(unwrapPlayer(entry), week),
     );
     if (points == null) continue;
     total += points;
@@ -1074,9 +1102,7 @@ function lastResultFromEspnSchedule({ leagueId, week, teamId: requestedTeamId, s
     const awayId = espnMatchupTeamId(away);
     if (!homeId || !awayId) continue;
 
-    const mine = targetTeamId
-      ? (homeId === targetTeamId ? home : awayId === targetTeamId ? away : null)
-      : null;
+    const mine = targetTeamId ? (homeId === targetTeamId ? home : awayId === targetTeamId ? away : null) : null;
     if (!mine) continue;
 
     const opponent = mine === home ? away : home;
@@ -1101,7 +1127,6 @@ function lastResultFromEspnSchedule({ leagueId, week, teamId: requestedTeamId, s
 
   return normalizeLastResult();
 }
-
 
 /**
  * The matchup this week's schedule describes, as `league-overview.v1` states it.
@@ -1143,9 +1168,10 @@ function matchupFromEspnSchedule({ leagueId, week, teamId: requestedTeamId, sche
       return {
         team_id: id,
         team_name: standingsRow?.team_name || null,
-        record: standingsRow && standingsRow.wins != null && standingsRow.losses != null
-          ? `${standingsRow.wins}-${standingsRow.losses}`
-          : null,
+        record:
+          standingsRow && standingsRow.wins != null && standingsRow.losses != null
+            ? `${standingsRow.wins}-${standingsRow.losses}`
+            : null,
         points: espnMatchupPoints(entry),
         projected: espnMatchupProjected(entry, week),
       };
@@ -1176,9 +1202,7 @@ async function fetchEspnLastResult(leagueId, espn_s2, swid, opts = {}) {
   // Only cache when teamId is known - never key a cache entry off the SWID
   // cookie, which would persist an ESPN credential in plaintext. Without a
   // teamId, lastResultFromEspnSchedule can't resolve a result anyway.
-  const cacheKey = opts.teamId != null
-    ? `ssff:espn:lastresult:${leagueId}:${scoringPeriodId}:${opts.teamId}`
-    : null;
+  const cacheKey = opts.teamId != null ? `ssff:espn:lastresult:${leagueId}:${scoringPeriodId}:${opts.teamId}` : null;
   const cached = cacheKey ? await readCache(cacheKey) : null;
   if (cached) return cached;
 
@@ -1192,7 +1216,6 @@ async function fetchEspnLastResult(leagueId, espn_s2, swid, opts = {}) {
   if (cacheKey) await writeCache(cacheKey, result, LAST_RESULT_TTL_S);
   return result;
 }
-
 
 /**
  * Every team's roster for a week, from the same `mMatchup`+`mMatchupScore` read
@@ -1253,7 +1276,14 @@ function leagueRostersFromEspnSchedule(data, week) {
 
 async function fetchEspnLeagueRosters(leagueId, espn_s2, swid, opts = {}) {
   const week = Number(opts.week || opts.scoringPeriodId || 1);
-  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTeam", "mMatchup", "mMatchupScore", "mSettings"], week, opts);
+  const data = await fetchEspnApi(
+    leagueId,
+    espn_s2,
+    swid,
+    ["mTeam", "mMatchup", "mMatchupScore", "mSettings"],
+    week,
+    opts,
+  );
   return leagueRostersFromEspnSchedule(data, week);
 }
 
@@ -1287,7 +1317,6 @@ async function fetchEspnMatchup(leagueId, espn_s2, swid, opts = {}) {
     standings: opts.standings || [],
   });
 }
-
 
 const ESPN_FAN_HOSTNAME = "fan.api.espn.com";
 /** ESPN game ids. 1 is football — the fan payload also carries basketball, baseball, hockey. */

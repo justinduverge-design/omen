@@ -18,26 +18,26 @@
  * Usage: node scripts/check-token-parity.js
  */
 
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
-const ROOT = path.resolve(__dirname, '..');
-const SWIFT = path.join(ROOT, 'mobile/ios/OmenIOS/OmenIOS/DesignSystem/OmenColor.swift');
+const ROOT = path.resolve(__dirname, "..");
+const SWIFT = path.join(ROOT, "mobile/ios/OmenIOS/OmenIOS/DesignSystem/OmenColor.swift");
 const KOTLIN = path.join(
   ROOT,
-  'mobile/android/core/designsystem/src/main/kotlin/com/slopssaloon/omen/core/designsystem/token/OmenColor.kt',
+  "mobile/android/core/designsystem/src/main/kotlin/com/slopssaloon/omen/core/designsystem/token/OmenColor.kt",
 );
 
 /** token -> why it legitimately lives on one platform only. */
 const KNOWN_SINGLE_PLATFORM = {
-  platinum: 'iOS-only: the team-switcher favourite star has no Android counterpart yet.',
+  platinum: "iOS-only: the team-switcher favourite star has no Android counterpart yet.",
 };
 
 // Swift writes alpha as a separate `alpha:` argument; Kotlin bakes it into an 8-digit
 // literal (`0xCCBAE6FD`). Both reduce to the same six RGB digits, which is what this compares
 // — alpha divergence is out of scope and would need the Swift argument parsed too.
 const norm = (hex) => {
-  const h = hex.toUpperCase().replace(/^0X/, '');
+  const h = hex.toUpperCase().replace(/^0X/, "");
   return h.length === 8 ? h.slice(2) : h;
 };
 
@@ -68,12 +68,12 @@ function parseSwift(src) {
 function parseKotlinBlock(src, blockName) {
   const start = src.indexOf(blockName);
   if (start === -1) throw new Error(`could not find ${blockName} in OmenColor.kt`);
-  const open = src.indexOf('(', start);
+  const open = src.indexOf("(", start);
   let depth = 0;
   let end = open;
   for (let i = open; i < src.length; i += 1) {
-    if (src[i] === '(') depth += 1;
-    else if (src[i] === ')') {
+    if (src[i] === "(") depth += 1;
+    else if (src[i] === ")") {
       depth -= 1;
       if (depth === 0) {
         end = i;
@@ -90,11 +90,11 @@ function parseKotlinBlock(src, blockName) {
 }
 
 function parseKotlin(src) {
-  const darkCore = parseKotlinBlock(src, 'val OmenDarkColors = OmenColorScheme');
-  const lightCore = parseKotlinBlock(src, 'val OmenLightColors = OmenColorScheme');
-  const darkData = parseKotlinBlock(src, 'private val darkDataSemantics = OmenDataSemanticColors');
+  const darkCore = parseKotlinBlock(src, "val OmenDarkColors = OmenColorScheme");
+  const lightCore = parseKotlinBlock(src, "val OmenLightColors = OmenColorScheme");
+  const darkData = parseKotlinBlock(src, "private val darkDataSemantics = OmenDataSemanticColors");
   // lightDataSemantics is a `.copy(...)` of the dark one; overrides layer on top.
-  const lightCopy = parseKotlinBlock(src, 'private val lightDataSemantics = darkDataSemantics.copy');
+  const lightCopy = parseKotlinBlock(src, "private val lightDataSemantics = darkDataSemantics.copy");
   const lightData = { ...darkData, ...lightCopy };
 
   const out = {};
@@ -106,8 +106,8 @@ function parseKotlin(src) {
   return out;
 }
 
-const swift = parseSwift(fs.readFileSync(SWIFT, 'utf8'));
-const kotlin = parseKotlin(fs.readFileSync(KOTLIN, 'utf8'));
+const swift = parseSwift(fs.readFileSync(SWIFT, "utf8"));
+const kotlin = parseKotlin(fs.readFileSync(KOTLIN, "utf8"));
 
 const drift = [];
 const onlyOne = [];
@@ -117,10 +117,10 @@ for (const name of new Set([...Object.keys(swift), ...Object.keys(kotlin)])) {
   const b = kotlin[name];
   if (!a || !b) {
     if (KNOWN_SINGLE_PLATFORM[name]) continue;
-    onlyOne.push(`${name}: present on ${a ? 'iOS' : 'Android'} only`);
+    onlyOne.push(`${name}: present on ${a ? "iOS" : "Android"} only`);
     continue;
   }
-  for (const theme of ['dark', 'light']) {
+  for (const theme of ["dark", "light"]) {
     if (a[theme] !== b[theme]) {
       drift.push(`${name}.${theme}: iOS #${a[theme]} vs Android #${b[theme]}`);
     }
@@ -139,13 +139,13 @@ if (drift.length === 0 && onlyOne.length === 0) {
 }
 
 if (drift.length) {
-  console.error('token parity: values disagree between platforms\n  ' + drift.join('\n  '));
+  console.error("token parity: values disagree between platforms\n  " + drift.join("\n  "));
 }
 if (onlyOne.length) {
   console.error(
-    '\ntoken parity: token missing on one platform\n  ' +
-      onlyOne.join('\n  ') +
-      '\n\n  If the absence is deliberate, add it to KNOWN_SINGLE_PLATFORM with a reason.',
+    "\ntoken parity: token missing on one platform\n  " +
+      onlyOne.join("\n  ") +
+      "\n\n  If the absence is deliberate, add it to KNOWN_SINGLE_PLATFORM with a reason.",
   );
 }
 process.exit(1);

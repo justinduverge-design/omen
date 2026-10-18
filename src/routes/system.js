@@ -4,11 +4,7 @@ const express = require("express");
 const { createClient } = require("@supabase/supabase-js");
 const config = require("../config");
 const packageJson = require("../../package.json");
-const {
-  getHealthStatus,
-  getPlatformStatus,
-  getMinVersionStatus,
-} = require("../services/systemContracts");
+const { getHealthStatus, getPlatformStatus, getMinVersionStatus } = require("../services/systemContracts");
 const { getLlmBridgeStatus } = require("../services/llm");
 const { describeSentryDsn } = require("../middleware/sentry");
 const { authenticateOmenRequest } = require("../services/omen");
@@ -77,15 +73,13 @@ router.get("/version", (_req, res) => {
     package_name: packageJson.name,
     package_version: packageJson.version,
     node_env: config.nodeEnv,
-    git_sha: process.env.GITHUB_SHA
-      || process.env.COMMIT_SHA
-      || process.env.SOURCE_VERSION
-      || process.env.RENDER_GIT_COMMIT
-      || null,
-    build_id: process.env.GITHUB_RUN_ID
-      || process.env.BUILD_ID
-      || process.env.RENDER_SERVICE_ID
-      || null,
+    git_sha:
+      process.env.GITHUB_SHA ||
+      process.env.COMMIT_SHA ||
+      process.env.SOURCE_VERSION ||
+      process.env.RENDER_GIT_COMMIT ||
+      null,
+    build_id: process.env.GITHUB_RUN_ID || process.env.BUILD_ID || process.env.RENDER_SERVICE_ID || null,
     image_tag: process.env.IMAGE_TAG || process.env.GHCR_IMAGE_TAG || null,
     generated_at: new Date().toISOString(),
   });
@@ -127,12 +121,7 @@ router.get("/system/current-week", (_req, res) => {
 });
 
 router.get("/system/min-version", (req, res) => {
-  res.json(
-    getMinVersionStatus(
-      { platform: req.query.platform, version: req.query.version },
-      config
-    )
-  );
+  res.json(getMinVersionStatus({ platform: req.query.platform, version: req.query.version }, config));
 });
 
 router.get("/platform-status", (_req, res) => {

@@ -7,14 +7,17 @@ export default function Privacy() {
   return (
     <PublicInfoLayout eyebrow="Privacy" title="Privacy Notice" updatedAt="August 2, 2026">
       <p>
-        Effective August 2, 2026. {COMPANY} (&quot;Valor Ventures,&quot; &quot;we,&quot; or &quot;us&quot;) operates Omen.
-        This notice explains how Omen collects, uses, discloses, and retains personal information through its websites,
-        applications, waitlist, and fantasy-football features.
+        Effective August 2, 2026. {COMPANY} (&quot;Valor Ventures,&quot; &quot;we,&quot; or &quot;us&quot;) operates
+        Omen. This notice explains how Omen collects, uses, discloses, and retains personal information through its
+        websites, applications, waitlist, and fantasy-football features.
       </p>
 
       <InfoSection title="Information we collect">
         <ul className="list-disc space-y-2 pl-5">
-          <li><strong>Account information:</strong> email address, authentication identifier, display name, and account timestamps.</li>
+          <li>
+            <strong>Account information:</strong> email address, authentication identifier, display name, and account
+            timestamps.
+          </li>
           {/* "drafts" removed 2026-08-16 (P1-DraftAssistantSideline, founder
               decision: the whole draft path is dark for 1.0). This list states
               what Omen actually collects. With /api/sleeper/draft* unmounted,
@@ -22,27 +25,42 @@ export default function Privacy() {
               collection. Restore this word in the same pass that re-enables
               DRAFT_ASSISTANT_ENABLED — collection copy and the routes that do
               the collecting have to move together, in both directions. */}
-          <li><strong>Fantasy-platform information:</strong> platform identifiers, usernames, selected leagues and teams, rosters, standings, matchups, transactions, players, and related metadata.</li>
-          <li><strong>Connection credentials:</strong> OAuth tokens and, when you choose ESPN connection, ESPN session-cookie values needed to attempt that connection.</li>
-          <li><strong>Omen activity:</strong> recommendations, saved moves, consent records, connection status, and feature interactions.</li>
-          <li><strong>Device and diagnostic information:</strong> IP address, user agent, request details, security events, and error or performance data.</li>
-          <li><strong>Communications:</strong> waitlist email and platform preference, plus information you send to support.</li>
+          <li>
+            <strong>Fantasy-platform information:</strong> platform identifiers, usernames, selected leagues and teams,
+            rosters, standings, matchups, transactions, players, and related metadata.
+          </li>
+          <li>
+            <strong>Connection credentials:</strong> OAuth tokens and, when you choose ESPN connection, ESPN
+            session-cookie values needed to attempt that connection.
+          </li>
+          <li>
+            <strong>Omen activity:</strong> recommendations, saved moves, consent records, connection status, and
+            feature interactions.
+          </li>
+          <li>
+            <strong>Device and diagnostic information:</strong> IP address, user agent, request details, security
+            events, and error or performance data.
+          </li>
+          <li>
+            <strong>Communications:</strong> waitlist email and platform preference, plus information you send to
+            support.
+          </li>
         </ul>
         <p>
-          We receive this information from you, your sign-in provider, connected fantasy platforms, and your use of Omen.
-          Omen does not request your Sleeper password.
+          We receive this information from you, your sign-in provider, connected fantasy platforms, and your use of
+          Omen. Omen does not request your Sleeper password.
         </p>
       </InfoSection>
 
       <InfoSection title="How we use information">
         <p>
           We use information to authenticate you; connect the leagues you select; provide rosters, standings,
-          recommendations, and history; operate the waitlist; respond to requests; secure, debug, and improve
-          Omen; enforce our Terms; and meet legal obligations.
+          recommendations, and history; operate the waitlist; respond to requests; secure, debug, and improve Omen;
+          enforce our Terms; and meet legal obligations.
         </p>
         <p>
-          Omen&apos;s recommendation engine is local by default. Omen does not currently send user or fantasy-platform data
-          to a cloud AI provider. We will update this notice before materially changing that practice.
+          Omen&apos;s recommendation engine is local by default. Omen does not currently send user or fantasy-platform
+          data to a cloud AI provider. We will update this notice before materially changing that practice.
         </p>
       </InfoSection>
 
@@ -63,7 +81,10 @@ export default function Privacy() {
           <li>Resend for Omen waitlist email;</li>
           <li>Google or Discord when you choose that sign-in method, and Google for hosted fonts;</li>
           <li>Yahoo, Sleeper, ESPN, or another fantasy platform when you request a connection or data refresh;</li>
-          <li>hosting, security, professional, or government recipients when reasonably necessary to operate Omen, protect rights and safety, complete a business transaction, or comply with law.</li>
+          <li>
+            hosting, security, professional, or government recipients when reasonably necessary to operate Omen, protect
+            rights and safety, complete a business transaction, or comply with law.
+          </li>
         </ul>
         <p>
           Omen does not sell personal information, share it for cross-context behavioral advertising, or use it for
@@ -73,27 +94,46 @@ export default function Privacy() {
 
       <InfoSection title="Retention">
         <ul className="list-disc space-y-2 pl-5">
-          <li>Account, connection, recommendation, and consent records are generally kept while your account is active and removed when you complete account deletion, subject to limited records described below.</li>
-          <li>Connection credentials are kept until you disconnect, they expire or are replaced, or you delete your account.</li>
-          <li>Yahoo API response caches expire within 24 hours; Omen&apos;s current operational cache windows are shorter.</li>
+          <li>
+            Account, connection, recommendation, and consent records are generally kept while your account is active and
+            removed when you complete account deletion, subject to limited records described below.
+          </li>
+          <li>
+            Connection credentials are kept until you disconnect, they expire or are replaced, or you delete your
+            account.
+          </li>
+          <li>
+            Yahoo API response caches expire within 24 hours; Omen&apos;s current operational cache windows are shorter.
+          </li>
           <li>Waitlist information is kept until you unsubscribe, ask us to remove it, or the list is retired.</li>
           <li>Public trade-share snapshots automatically expire after 30 days.</li>
-          <li>Application logs are size-rotated. Sentry retains diagnostic information under its configured service settings.</li>
-          <li>A one-way account hash may be retained only as reasonably needed to document a deletion request, prevent abuse, and protect Omen.</li>
+          <li>
+            Application logs are size-rotated. Sentry retains diagnostic information under its configured service
+            settings.
+          </li>
+          <li>
+            A one-way account hash may be retained only as reasonably needed to document a deletion request, prevent
+            abuse, and protect Omen.
+          </li>
         </ul>
-        <p>Where a fixed period does not apply, we use the shortest period reasonably needed for the purpose described above.</p>
+        <p>
+          Where a fixed period does not apply, we use the shortest period reasonably needed for the purpose described
+          above.
+        </p>
       </InfoSection>
 
       <InfoSection title="Cookies, local storage, and tracking preferences">
         <p>
           Omen and its authentication providers use browser storage and similar technologies for sessions, security,
-          preferences, and product operation. Omen does not currently respond differently to browser Do Not Track signals
-          because there is no accepted technical standard, and Omen does not track users across unaffiliated sites for
-          behavioral advertising. Global Privacy Control signals are treated consistently with our no-sale and no-targeted-advertising practices.
+          preferences, and product operation. Omen does not currently respond differently to browser Do Not Track
+          signals because there is no accepted technical standard, and Omen does not track users across unaffiliated
+          sites for behavioral advertising. Global Privacy Control signals are treated consistently with our no-sale and
+          no-targeted-advertising practices.
         </p>
         <p>
           Service providers may receive technical information such as your IP address when their authentication, font,
-          or diagnostic resources load. We do not permit them to use Omen personal information for cross-site behavioral advertising.
+          or diagnostic resources load. We do not permit them to use Omen personal information for cross-site behavioral
+          advertising.
         </p>
       </InfoSection>
 
@@ -105,13 +145,29 @@ export default function Privacy() {
           fantasy platform or a separate identity-provider account.
         </p>
         <div className="flex flex-wrap gap-x-6 gap-y-2">
-          <Link className="inline-flex min-h-[44px] items-center font-semibold text-(--color-accent) underline underline-offset-4" to="/delete-account">Delete your Omen data</Link>
-          <Link className="inline-flex min-h-[44px] items-center font-semibold text-(--color-accent) underline underline-offset-4" to="/unsubscribe">Leave the waitlist</Link>
+          <Link
+            className="inline-flex min-h-[44px] items-center font-semibold text-(--color-accent) underline underline-offset-4"
+            to="/delete-account"
+          >
+            Delete your Omen data
+          </Link>
+          <Link
+            className="inline-flex min-h-[44px] items-center font-semibold text-(--color-accent) underline underline-offset-4"
+            to="/unsubscribe"
+          >
+            Leave the waitlist
+          </Link>
         </div>
         <p>
           You may also ask to access, correct, or delete personal information by emailing{' '}
-          <a className="font-semibold text-(--color-accent) underline underline-offset-4" href="mailto:privacy@slopssaloon.com">privacy@slopssaloon.com</a>.
-          We may verify your identity before completing a request and will not discriminate against you for exercising a privacy right.
+          <a
+            className="font-semibold text-(--color-accent) underline underline-offset-4"
+            href="mailto:privacy@slopssaloon.com"
+          >
+            privacy@slopssaloon.com
+          </a>
+          . We may verify your identity before completing a request and will not discriminate against you for exercising
+          a privacy right.
         </p>
       </InfoSection>
 
@@ -140,16 +196,28 @@ export default function Privacy() {
 
       <InfoSection title="Contact us">
         <address className="not-italic">
-          {COMPANY}<br />
-          23 Darrow St<br />
-          New London, CT 06320<br />
-          United States<br />
-          <a className="font-semibold text-(--color-accent) underline underline-offset-4" href="mailto:privacy@slopssaloon.com">privacy@slopssaloon.com</a>
+          {COMPANY}
+          <br />
+          23 Darrow St
+          <br />
+          New London, CT 06320
+          <br />
+          United States
+          <br />
+          <a
+            className="font-semibold text-(--color-accent) underline underline-offset-4"
+            href="mailto:privacy@slopssaloon.com"
+          >
+            privacy@slopssaloon.com
+          </a>
         </address>
       </InfoSection>
 
       <InfoSection title="Platform attribution">
-        <p>Platform trademarks belong to their respective owners. Omen is not endorsed by or affiliated with Yahoo, Sleeper, ESPN, Disney, or the NFL.</p>
+        <p>
+          Platform trademarks belong to their respective owners. Omen is not endorsed by or affiliated with Yahoo,
+          Sleeper, ESPN, Disney, or the NFL.
+        </p>
       </InfoSection>
     </PublicInfoLayout>
   );

@@ -28,19 +28,13 @@ class FakeQuery {
 
   then(resolve, reject) {
     return Promise.resolve({
-      data: this.rows.filter((row) =>
-        this.filters.every(({ field, value }) => row[field] === value)
-      ),
+      data: this.rows.filter((row) => this.filters.every(({ field, value }) => row[field] === value)),
       error: null,
     }).then(resolve, reject);
   }
 }
 
-function loadSystemRouter({
-  authUser = { id: "test-user" },
-  authError = null,
-  rows = [],
-} = {}) {
+function loadSystemRouter({ authUser = { id: "test-user" }, authError = null, rows = [] } = {}) {
   const routePath = require.resolve("../src/routes/system");
   const omenPath = require.resolve("../src/services/omen");
   const systemContractsPath = require.resolve("../src/services/systemContracts");
@@ -54,11 +48,7 @@ function loadSystemRouter({
 
   const fakeSupabase = {
     auth: {
-      getUser: async () => (
-        authError
-          ? { data: null, error: authError }
-          : { data: { user: authUser }, error: null }
-      ),
+      getUser: async () => (authError ? { data: null, error: authError } : { data: { user: authUser }, error: null }),
     },
     from(table) {
       assert.ok(["platform_connections", "users"].includes(table));

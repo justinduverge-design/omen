@@ -17,7 +17,10 @@ function bounded(operation, milliseconds) {
   return Promise.race([
     Promise.resolve().then(operation),
     new Promise((_, reject) => {
-      timer = setTimeout(() => reject(Object.assign(new Error("warehouse shadow timed out"), { code: "shadow_timeout" })), milliseconds);
+      timer = setTimeout(
+        () => reject(Object.assign(new Error("warehouse shadow timed out"), { code: "shadow_timeout" })),
+        milliseconds,
+      );
       timer.unref?.();
     }),
   ]).finally(() => clearTimeout(timer));
@@ -42,7 +45,9 @@ function createUsageShadowRunner({
   const pending = new Set();
 
   function emit(event) {
-    try { emitTelemetry(Object.freeze({ event: "football_warehouse_usage_shadow", ...event })); } catch {}
+    try {
+      emitTelemetry(Object.freeze({ event: "football_warehouse_usage_shadow", ...event }));
+    } catch {}
   }
 
   function observe(legacyPromise, warehouseOperation) {
@@ -64,7 +69,9 @@ function createUsageShadowRunner({
       }
       return legacyPromise;
     },
-    async drain() { await Promise.allSettled([...pending]); },
+    async drain() {
+      await Promise.allSettled([...pending]);
+    },
   };
 }
 

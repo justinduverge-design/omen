@@ -55,10 +55,7 @@ test("POST /api/draft-assistant/recommendations returns UI-compatible mock recom
   assert.equal(res.body.scoring_format, "half_ppr");
   assert.equal(res.body.draft_position, 4);
   assert.equal(res.body.round, 2);
-  assert.equal(
-    res.body.note,
-    "Mock recommendations — live Draft Assistant requires session + platform data."
-  );
+  assert.equal(res.body.note, "Mock recommendations — live Draft Assistant requires session + platform data.");
   assert.equal(res.body.recommendations.length, 3);
 
   for (const rec of res.body.recommendations) {

@@ -4,9 +4,7 @@
 const fs = require("node:fs/promises");
 const path = require("node:path");
 
-const {
-  buildProductionReadinessAssessment,
-} = require("../src/services/footballData/productionReadiness");
+const { buildProductionReadinessAssessment } = require("../src/services/footballData/productionReadiness");
 
 const USAGE = "Usage: node scripts/football-data-readiness.js assess --evidence <sanitized-json>";
 

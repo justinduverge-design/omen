@@ -90,7 +90,9 @@ export function Meter({
             <span className="text-xs uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>
               {label}
             </span>
-          ) : <span />}
+          ) : (
+            <span />
+          )}
           {valueEl}
         </div>
       )}

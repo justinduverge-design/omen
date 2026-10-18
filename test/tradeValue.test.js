@@ -150,10 +150,13 @@ describe("depth discount", () => {
 });
 
 test("uses half_ppr replacement levels for RB and WR trade baselines", () => {
-  const result = tradeValue.compareTrade({
-    send: [{ name: "Starter RB", position: "RB", projected_points: 10 }],
-    receive: [{ name: "Starter WR", position: "WR", projected_points: 10 }],
-  }, { scoringFormat: "half_ppr" });
+  const result = tradeValue.compareTrade(
+    {
+      send: [{ name: "Starter RB", position: "RB", projected_points: 10 }],
+      receive: [{ name: "Starter WR", position: "WR", projected_points: 10 }],
+    },
+    { scoringFormat: "half_ppr" },
+  );
 
   assert.equal(result.send.players[0].replacement_level, 5.5);
   assert.equal(result.receive.players[0].replacement_level, 7);
@@ -161,10 +164,13 @@ test("uses half_ppr replacement levels for RB and WR trade baselines", () => {
 });
 
 test("uses standard replacement levels for TE trade baselines", () => {
-  const result = tradeValue.compareTrade({
-    send: [{ name: "Starter WR", position: "WR", projected_points: 12 }],
-    receive: [{ name: "TE Value", position: "TE", projected_points: 12 }],
-  }, { scoringFormat: "standard" });
+  const result = tradeValue.compareTrade(
+    {
+      send: [{ name: "Starter WR", position: "WR", projected_points: 12 }],
+      receive: [{ name: "TE Value", position: "TE", projected_points: 12 }],
+    },
+    { scoringFormat: "standard" },
+  );
 
   assert.equal(result.receive.players[0].replacement_level, 3.5);
   assert.equal(result.scoring_format, "standard");
@@ -196,10 +202,13 @@ test("consumes a scoring-config row without changing the existing call shape", (
       { position: "WR", baseline_points: 2, scarcity_weight: 1 },
     ],
   };
-  const result = tradeValue.compareTrade({
-    send: [{ name: "Configured RB", position: "RB", projected_points: 10 }],
-    receive: [{ name: "Configured WR", position: "WR", projected_points: 10 }],
-  }, scoringConfig);
+  const result = tradeValue.compareTrade(
+    {
+      send: [{ name: "Configured RB", position: "RB", projected_points: 10 }],
+      receive: [{ name: "Configured WR", position: "WR", projected_points: 10 }],
+    },
+    scoringConfig,
+  );
 
   assert.equal(result.scoring_format, "half_ppr");
   assert.equal(result.send.players[0].replacement_level, 9);
@@ -208,32 +217,39 @@ test("consumes a scoring-config row without changing the existing call shape", (
 });
 
 test("trade config can tune the neutral band and scarcity signal weight", () => {
-  const result = tradeValue.compareTrade({
-    send: [{ name: "Bench RB", position: "RB", projected_points: 10 }],
-    receive: [{ name: "Starter WR", position: "WR", projected_points: 14 }],
-  }, {
-    default_scoring_rules: {
-      trade_value: {
-        neutral_band: 3,
-        scarcity_signal_weight: 0,
+  const result = tradeValue.compareTrade(
+    {
+      send: [{ name: "Bench RB", position: "RB", projected_points: 10 }],
+      receive: [{ name: "Starter WR", position: "WR", projected_points: 14 }],
+    },
+    {
+      default_scoring_rules: {
+        trade_value: {
+          neutral_band: 3,
+          scarcity_signal_weight: 0,
+        },
       },
     },
-  });
+  );
 
   assert.equal(result.combined_score, 2.5);
   assert.equal(result.verdict, "neutral");
 });
 
 test("per-position scarcity weights parameterize the scarcity score", () => {
-  const result = tradeValue.compareTrade({
-    send: [{ name: "Starter RB", position: "RB", projected_points: 12.8 }],
-    receive: [{ name: "Elite TE", position: "TE", projected_points: 12 }],
-  }, {}, {
-    league_scarcity_weights: [
-      { position: "RB", scarcity_weight: 1 },
-      { position: "TE", scarcity_weight: 2 },
-    ],
-  });
+  const result = tradeValue.compareTrade(
+    {
+      send: [{ name: "Starter RB", position: "RB", projected_points: 12.8 }],
+      receive: [{ name: "Elite TE", position: "TE", projected_points: 12 }],
+    },
+    {},
+    {
+      league_scarcity_weights: [
+        { position: "RB", scarcity_weight: 1 },
+        { position: "TE", scarcity_weight: 2 },
+      ],
+    },
+  );
 
   assert.equal(result.b_score, 3.5);
   assert.equal(result.combined_score, 3.3);
@@ -241,12 +257,16 @@ test("per-position scarcity weights parameterize the scarcity score", () => {
 });
 
 test("explicit trade options override a separately supplied scoring config", () => {
-  const result = tradeValue.compareTrade({
-    send: [{ name: "Starter RB", position: "RB", projected_points: 10 }],
-    receive: [{ name: "Starter WR", position: "WR", projected_points: 10 }],
-  }, { scoringFormat: "standard" }, {
-    scoring_format: "half_ppr",
-  });
+  const result = tradeValue.compareTrade(
+    {
+      send: [{ name: "Starter RB", position: "RB", projected_points: 10 }],
+      receive: [{ name: "Starter WR", position: "WR", projected_points: 10 }],
+    },
+    { scoringFormat: "standard" },
+    {
+      scoring_format: "half_ppr",
+    },
+  );
 
   assert.equal(result.scoring_format, "standard");
   assert.equal(result.send.players[0].replacement_level, 5);
@@ -254,16 +274,17 @@ test("explicit trade options override a separately supplied scoring config", () 
 });
 
 test("playerValue accepts the same scoring-config convention", () => {
-  const player = tradeValue.playerValue({
-    name: "Custom Baseline TE",
-    position: "TE",
-    projected_points: 10,
-  }, {
-    scoring_format: "custom",
-    scarcity_weights: [
-      { position: "TE", baseline_points: 8 },
-    ],
-  });
+  const player = tradeValue.playerValue(
+    {
+      name: "Custom Baseline TE",
+      position: "TE",
+      projected_points: 10,
+    },
+    {
+      scoring_format: "custom",
+      scarcity_weights: [{ position: "TE", baseline_points: 8 }],
+    },
+  );
 
   assert.equal(player.replacement_level, 8);
   assert.equal(player.value, 2);
@@ -277,9 +298,7 @@ test("invalid config-only weights fall back to safe engine defaults", () => {
         scarcity_signal_weight: -2,
       },
     },
-    league_scarcity_weights: [
-      { position: "TE", scarcity_weight: 11 },
-    ],
+    league_scarcity_weights: [{ position: "TE", scarcity_weight: 11 }],
   });
 
   assert.equal(resolved.neutralBand, 2);

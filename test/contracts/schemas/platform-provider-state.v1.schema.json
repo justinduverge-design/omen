@@ -24,37 +24,20 @@
               "type": "string"
             },
             "recovery_action": {
-              "type": [
-                "null",
-                "string"
-              ]
+              "type": ["null", "string"]
             },
             "state": {
               "type": "string",
-              "enum": [
-                "not_started",
-                "needs_reauth",
-                "choosing_league",
-                "resolving_account",
-                "connected"
-              ]
+              "enum": ["not_started", "needs_reauth", "choosing_league", "resolving_account", "connected"]
             }
           },
-          "required": [
-            "error_code",
-            "platform",
-            "recovery_action",
-            "state"
-          ]
+          "required": ["error_code", "platform", "recovery_action", "state"]
         },
         "sleeper": {
           "type": "object",
           "properties": {
             "error_code": {
-              "type": [
-                "null",
-                "string"
-              ]
+              "type": ["null", "string"]
             },
             "platform": {
               "type": "string"
@@ -64,30 +47,16 @@
             },
             "state": {
               "type": "string",
-              "enum": [
-                "not_started",
-                "needs_reauth",
-                "choosing_league",
-                "resolving_account",
-                "connected"
-              ]
+              "enum": ["not_started", "needs_reauth", "choosing_league", "resolving_account", "connected"]
             }
           },
-          "required": [
-            "error_code",
-            "platform",
-            "recovery_action",
-            "state"
-          ]
+          "required": ["error_code", "platform", "recovery_action", "state"]
         },
         "yahoo": {
           "type": "object",
           "properties": {
             "error_code": {
-              "type": [
-                "null",
-                "string"
-              ]
+              "type": ["null", "string"]
             },
             "platform": {
               "type": "string"
@@ -97,40 +66,21 @@
             },
             "state": {
               "type": "string",
-              "enum": [
-                "not_started",
-                "needs_reauth",
-                "choosing_league",
-                "resolving_account",
-                "connected"
-              ]
+              "enum": ["not_started", "needs_reauth", "choosing_league", "resolving_account", "connected"]
             }
           },
-          "required": [
-            "error_code",
-            "platform",
-            "recovery_action",
-            "state"
-          ]
+          "required": ["error_code", "platform", "recovery_action", "state"]
         }
       },
-      "required": [
-        "espn",
-        "sleeper",
-        "yahoo"
-      ]
+      "required": ["espn", "sleeper", "yahoo"]
     },
     "recovery_action": {
       "type": "string"
     },
     "state": {
       "type": "string",
-      "enum": [
-        "retryable_error"
-      ]
+      "enum": ["retryable_error"]
     }
   },
-  "required": [
-    "contract_version"
-  ]
+  "required": ["contract_version"]
 }

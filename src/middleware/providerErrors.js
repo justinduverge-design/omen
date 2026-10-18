@@ -27,12 +27,7 @@
  */
 
 const Sentry = require("@sentry/node");
-const {
-  DEMO_MODE_TAG,
-  DEMO_MODE_TAG_VALUE,
-  scrubText,
-  scrubValue,
-} = require("./sentry");
+const { DEMO_MODE_TAG, DEMO_MODE_TAG_VALUE, scrubText, scrubValue } = require("./sentry");
 
 const SUPPORTED_PROVIDERS = Object.freeze(["yahoo", "sleeper", "espn"]);
 
@@ -96,21 +91,12 @@ function normalizeProvider(provider) {
  * the provider contract decides whether the failure is an actionable incident
  * or an honest reconnect state.
  */
-function captureProviderError({
-  provider,
-  operation,
-  error,
-  context = {},
-  demo = false,
-  expected = false,
-} = {}) {
+function captureProviderError({ provider, operation, error, context = {}, demo = false, expected = false } = {}) {
   try {
     if (demo || expected) return null;
 
     const normalizedProvider = normalizeProvider(provider);
-    const reported = error instanceof Error
-      ? error
-      : new Error(scrubText(String(error ?? "unknown provider error")));
+    const reported = error instanceof Error ? error : new Error(scrubText(String(error ?? "unknown provider error")));
 
     const status = context.http_status ?? error?.status ?? null;
 
@@ -138,12 +124,8 @@ function captureProviderError({
         provider: normalizedProvider,
         operation: String(operation || "unknown"),
         ...pickAllowedContext({ ...context, http_status: status }),
-        ...(providerBodySnippet(error) !== undefined
-          ? { provider_body_snippet: providerBodySnippet(error) }
-          : {}),
-        ...(error?.wwwAuthenticate
-          ? { www_authenticate: scrubText(String(error.wwwAuthenticate).slice(0, 200)) }
-          : {}),
+        ...(providerBodySnippet(error) !== undefined ? { provider_body_snippet: providerBodySnippet(error) } : {}),
+        ...(error?.wwwAuthenticate ? { www_authenticate: scrubText(String(error.wwwAuthenticate).slice(0, 200)) } : {}),
       },
     });
   } catch (_captureFailure) {

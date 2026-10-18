@@ -34,7 +34,10 @@ function collectPlayers(root) {
   const walk = (node, depth) => {
     if (!node || typeof node !== "object" || depth > MAX_DEPTH || seen.has(node) || found.length >= MAX_PLAYERS) return;
     seen.add(node);
-    if (Array.isArray(node)) { for (const item of node) walk(item, depth + 1); return; }
+    if (Array.isArray(node)) {
+      for (const item of node) walk(item, depth + 1);
+      return;
+    }
     if (keyOf(node)) found.push(node);
     for (const [k, value] of Object.entries(node)) if (k !== "sight") walk(value, depth + 1);
   };
@@ -57,14 +60,22 @@ function createSightEnricher({ getRuntime, env = process.env, budgetMs = DEFAULT
       const keys = [...new Set(list.map(keyOf).filter(Boolean))];
       if (!keys.length) return players;
       // Name, team and position let Sight place a player the index has not paired yet (new Yahoo rookies).
-      const hints = new Map(list.map((player) => [keyOf(player), { name: player.name, team: player.team, position: player.position }]));
-      const byKey = await withinLatencyBudget("sight_read", budgetMs, () => repo.readSight({ playerKeys: keys, version: settings.version, hints }));
+      const hints = new Map(
+        list.map((player) => [keyOf(player), { name: player.name, team: player.team, position: player.position }]),
+      );
+      const byKey = await withinLatencyBudget("sight_read", budgetMs, () =>
+        repo.readSight({ playerKeys: keys, version: settings.version, hints }),
+      );
       for (const player of list) {
         const block = byKey.get(keyOf(player));
         if (block) player.sight = block;
       }
     } catch (error) {
-      try { log?.warn?.("Sight unavailable for this response", { code: error?.code || "failure" }); } catch { /* never throws */ }
+      try {
+        log?.warn?.("Sight unavailable for this response", { code: error?.code || "failure" });
+      } catch {
+        /* never throws */
+      }
     }
     return players;
   };

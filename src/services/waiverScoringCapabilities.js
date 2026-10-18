@@ -54,7 +54,19 @@ function safeText(value, fallback) {
   return typeof value === "string" && value.trim() ? value.trim() : fallback;
 }
 
-function capability({ name, state, used = false, kind, source, statement, observedAt = null, reasonCode, detailRef = null, coverageState = null, reconciliationState = null }) {
+function capability({
+  name,
+  state,
+  used = false,
+  kind,
+  source,
+  statement,
+  observedAt = null,
+  reasonCode,
+  detailRef = null,
+  coverageState = null,
+  reconciliationState = null,
+}) {
   return {
     name,
     // The shared contract's current state vocabulary is live/unavailable. The
@@ -99,9 +111,7 @@ function waiverFallback(state) {
  * limitation and never gets represented as an empty waiver wire.
  */
 function waiverCapability(analysis = {}, { used = false } = {}) {
-  const waiverState = WAIVER_STATES.has(analysis?.state)
-    ? analysis.state
-    : "availability_unknown";
+  const waiverState = WAIVER_STATES.has(analysis?.state) ? analysis.state : "availability_unknown";
   const state = ["confirmed_opportunity", "no_low_cost_drop", "no_credible_move"].includes(waiverState)
     ? "live"
     : "unavailable";
@@ -154,9 +164,7 @@ function scoringFallback(coverageState, reconciliationState) {
  * a final-score claim until reconciliation says exact.
  */
 function scoringCoverageCapability(scoring = {}, { used = false, observedAt = null } = {}) {
-  const coverageState = SCORING_COVERAGE_STATES.has(scoring?.coverage_state)
-    ? scoring.coverage_state
-    : "pending";
+  const coverageState = SCORING_COVERAGE_STATES.has(scoring?.coverage_state) ? scoring.coverage_state : "pending";
   const reconciliationState = RECONCILIATION_STATES.has(scoring?.reconciliation_state)
     ? scoring.reconciliation_state
     : "pending";

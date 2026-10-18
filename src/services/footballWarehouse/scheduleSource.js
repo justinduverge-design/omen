@@ -1,22 +1,37 @@
 "use strict";
 
 const crypto = require("node:crypto");
-const {
-  TEAMS,
-  canonicalAbbreviation,
-  teamIdFor,
-  teamName,
-} = require("../footballIntelligence/nflTeams");
+const { TEAMS, canonicalAbbreviation, teamIdFor, teamName } = require("../footballIntelligence/nflTeams");
 const { parseStrictCsv, MAX_SOURCE_BYTES } = require("./playerWeeklySource");
 
-const SCHEDULES_SOURCE_URL =
-  "https://github.com/nflverse/nflverse-data/releases/download/schedules/games.csv";
+const SCHEDULES_SOURCE_URL = "https://github.com/nflverse/nflverse-data/releases/download/schedules/games.csv";
 const REQUIRED_COLUMNS = Object.freeze([
-  "game_id", "season", "game_type", "week", "gameday", "gametime",
-  "away_team", "away_score", "home_team", "home_score", "overtime",
-  "stadium", "location", "roof", "surface", "temp", "wind",
-  "away_rest", "home_rest", "div_game", "spread_line", "total_line",
-  "away_moneyline", "home_moneyline", "away_coach", "home_coach",
+  "game_id",
+  "season",
+  "game_type",
+  "week",
+  "gameday",
+  "gametime",
+  "away_team",
+  "away_score",
+  "home_team",
+  "home_score",
+  "overtime",
+  "stadium",
+  "location",
+  "roof",
+  "surface",
+  "temp",
+  "wind",
+  "away_rest",
+  "home_rest",
+  "div_game",
+  "spread_line",
+  "total_line",
+  "away_moneyline",
+  "home_moneyline",
+  "away_coach",
+  "home_coach",
 ]);
 const RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 const GAME_TYPES = new Set(["PRE", "REG", "WC", "DIV", "CON", "SB"]);
@@ -66,7 +81,11 @@ function booleanOrNull(value, label) {
 
 function validateSourceUrl(value) {
   let parsed;
-  try { parsed = new URL(value); } catch { throw new TypeError("sourceUrl is invalid"); }
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new TypeError("sourceUrl is invalid");
+  }
   if (parsed.protocol !== "https:" || parsed.username || parsed.password) {
     throw new TypeError("sourceUrl is invalid");
   }
@@ -82,7 +101,9 @@ function parseObjects(raw) {
     throw new RangeError(`CSV source exceeds ${MAX_SOURCE_BYTES} bytes`);
   }
   let text;
-  try { text = new TextDecoder("utf-8", { fatal: true }).decode(raw); } catch {
+  try {
+    text = new TextDecoder("utf-8", { fatal: true }).decode(raw);
+  } catch {
     throw new TypeError("CSV source is not valid UTF-8");
   }
   if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
@@ -123,12 +144,26 @@ function isoDate(value, label) {
 }
 
 const NEW_YORK_WALL = new Intl.DateTimeFormat("en-US", {
-  timeZone: "America/New_York", hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit",
+  timeZone: "America/New_York",
+  hourCycle: "h23",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
 });
 
 function newYorkWallMillis(instant) {
-  const parts = Object.fromEntries(NEW_YORK_WALL.formatToParts(new Date(instant)).map((part) => [part.type, part.value]));
-  return Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day), Number(parts.hour), Number(parts.minute));
+  const parts = Object.fromEntries(
+    NEW_YORK_WALL.formatToParts(new Date(instant)).map((part) => [part.type, part.value]),
+  );
+  return Date.UTC(
+    Number(parts.year),
+    Number(parts.month) - 1,
+    Number(parts.day),
+    Number(parts.hour),
+    Number(parts.minute),
+  );
 }
 
 /**
@@ -171,7 +206,9 @@ function adaptSchedulesCsv({ raw, sourceUrl, runId, season }) {
     const sourceRow = parsed.rows[index];
     const label = `CSV row ${index + 2}`;
     const rowSeason = requiredInteger(sourceRow.season, `${label} season`, 1999, 2100);
-    const type = String(sourceRow.game_type ?? "").trim().toUpperCase();
+    const type = String(sourceRow.game_type ?? "")
+      .trim()
+      .toUpperCase();
     if (!GAME_TYPES.has(type)) throw new TypeError(`${label} game_type is invalid`);
     const away = canonicalTeam(sourceRow.away_team, `${label} away_team`);
     const home = canonicalTeam(sourceRow.home_team, `${label} home_team`);
@@ -203,9 +240,7 @@ function adaptSchedulesCsv({ raw, sourceUrl, runId, season }) {
     if (!ADMITTED_GAME_TYPES.has(type)) throw new TypeError(`${label} game_type is not admitted`);
 
     const gameId = textOrNull(sourceRow.game_id);
-    const gameIdMatch = gameId?.match(
-      new RegExp(`^${season}_((?:0[1-9]|[12][0-9]))_([A-Z0-9]{2,3})_([A-Z0-9]{2,3})$`),
-    );
+    const gameIdMatch = gameId?.match(new RegExp(`^${season}_((?:0[1-9]|[12][0-9]))_([A-Z0-9]{2,3})_([A-Z0-9]{2,3})$`));
     if (!gameIdMatch) {
       throw new TypeError(`${label} game_id is malformed`);
     }
@@ -262,16 +297,20 @@ function adaptSchedulesCsv({ raw, sourceUrl, runId, season }) {
     throw new TypeError(`global schedules do not cover all 32 canonical teams: found ${observations.size}`);
   }
 
-  const teamRows = Object.keys(TEAMS).sort().map((abbr) => ({
-    teamId: teamIdFor(abbr),
-    nflverseAbbr: abbr,
-    displayName: teamName(abbr),
-    firstSeason: observations.get(abbr).min,
-    lastSeason: observations.get(abbr).max,
-  }));
+  const teamRows = Object.keys(TEAMS)
+    .sort()
+    .map((abbr) => ({
+      teamId: teamIdFor(abbr),
+      nflverseAbbr: abbr,
+      displayName: teamName(abbr),
+      firstSeason: observations.get(abbr).min,
+      lastSeason: observations.get(abbr).max,
+    }));
   const sourceRef = `sha256:${crypto.createHash("sha256").update(raw).digest("hex")}`;
-  const schemaFingerprint = `sha256:${crypto.createHash("sha256")
-    .update(Buffer.from(JSON.stringify(parsed.headers))).digest("hex")}`;
+  const schemaFingerprint = `sha256:${crypto
+    .createHash("sha256")
+    .update(Buffer.from(JSON.stringify(parsed.headers)))
+    .digest("hex")}`;
   return {
     receipt: {
       runId,
@@ -290,8 +329,9 @@ function adaptSchedulesCsv({ raw, sourceUrl, runId, season }) {
     teamRows,
     gameRows: selected.sort((a, b) => a.week - b.week || a.gameId.localeCompare(b.gameId)),
     excludedRows,
-    observedAliases: [...aliases.values()].sort((a, b) =>
-      a.teamId.localeCompare(b.teamId) || a.alias.localeCompare(b.alias)),
+    observedAliases: [...aliases.values()].sort(
+      (a, b) => a.teamId.localeCompare(b.teamId) || a.alias.localeCompare(b.alias),
+    ),
   };
 }
 

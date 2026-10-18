@@ -67,7 +67,10 @@ function createContext({ prLimit = 100 } = {}) {
     for (const dir of ["Direction", "Blueprints/handoffs"]) {
       const abs = path.join(ROOT, dir);
       out[dir] = fs.existsSync(abs)
-        ? fs.readdirSync(abs).filter((n) => n.endsWith(".md")).sort()
+        ? fs
+            .readdirSync(abs)
+            .filter((n) => n.endsWith(".md"))
+            .sort()
         : [];
     }
     return out;
@@ -83,17 +86,17 @@ function createContext({ prLimit = 100 } = {}) {
     markdownFiles: (dir) => listMarkdown()[dir] || [],
 
     mergedPrs: memo(() =>
-      ghJson(["pr", "list", "--state", "merged", "--limit", String(prLimit),
-        "--json", "number,title,mergedAt"])),
+      ghJson(["pr", "list", "--state", "merged", "--limit", String(prLimit), "--json", "number,title,mergedAt"]),
+    ),
 
     /** Every PR regardless of state, so a checker can tell "closed unmerged" from "open". */
     allPrs: memo(() =>
-      ghJson(["pr", "list", "--state", "all", "--limit", String(prLimit * 2),
-        "--json", "number,title,state"])),
+      ghJson(["pr", "list", "--state", "all", "--limit", String(prLimit * 2), "--json", "number,title,state"]),
+    ),
 
     issues: memo(() =>
-      ghJson(["issue", "list", "--state", "all", "--limit", String(prLimit * 2),
-        "--json", "number,title,state"])),
+      ghJson(["issue", "list", "--state", "all", "--limit", String(prLimit * 2), "--json", "number,title,state"]),
+    ),
   };
 
   // Assigned after the literal so it can close over `ctx` — `this` would not survive the

@@ -29,19 +29,11 @@
                 "type": "string"
               }
             },
-            "required": [
-              "team_id",
-              "team_name"
-            ]
+            "required": ["team_id", "team_name"]
           }
         }
       },
-      "required": [
-        "max_candidates",
-        "max_opponent_teams",
-        "teams_considered",
-        "teams_skipped_for_cap"
-      ]
+      "required": ["max_candidates", "max_opponent_teams", "teams_considered", "teams_skipped_for_cap"]
     },
     "budget_exceeded": {
       "type": "boolean"
@@ -59,11 +51,7 @@
           "type": "number"
         }
       },
-      "required": [
-        "generated_at",
-        "hit",
-        "ttl_seconds"
-      ]
+      "required": ["generated_at", "hit", "ttl_seconds"]
     },
     "candidates": {
       "type": "array",
@@ -154,21 +142,13 @@
                         "type": "number"
                       }
                     },
-                    "required": [
-                      "have",
-                      "required",
-                      "status",
-                      "weight"
-                    ]
+                    "required": ["have", "required", "status", "weight"]
                   },
                   "position": {
                     "type": "string"
                   }
                 },
-                "required": [
-                  "need",
-                  "position"
-                ]
+                "required": ["need", "position"]
               },
               "user_receives": {
                 "type": "object",
@@ -189,29 +169,16 @@
                         "type": "number"
                       }
                     },
-                    "required": [
-                      "have",
-                      "required",
-                      "status",
-                      "weight"
-                    ]
+                    "required": ["have", "required", "status", "weight"]
                   },
                   "position": {
                     "type": "string"
                   }
                 },
-                "required": [
-                  "need",
-                  "position"
-                ]
+                "required": ["need", "position"]
               }
             },
-            "required": [
-              "evidence",
-              "fills_need_for",
-              "opponent_receives",
-              "user_receives"
-            ]
+            "required": ["evidence", "fills_need_for", "opponent_receives", "user_receives"]
           },
           "receive": {
             "type": "object",
@@ -363,25 +330,14 @@
                           "type": "number"
                         }
                       },
-                      "required": [
-                        "name",
-                        "position",
-                        "tier",
-                        "vorp"
-                      ]
+                      "required": ["name", "position", "tier", "vorp"]
                     }
                   },
                   "total_value": {
                     "type": "number"
                   }
                 },
-                "required": [
-                  "missing_projection_count",
-                  "player_count",
-                  "players",
-                  "scarcity_details",
-                  "total_value"
-                ]
+                "required": ["missing_projection_count", "player_count", "players", "scarcity_details", "total_value"]
               },
               "scarcity_analysis": {
                 "type": "object",
@@ -404,12 +360,7 @@
                           "type": "number"
                         }
                       },
-                      "required": [
-                        "name",
-                        "position",
-                        "tier",
-                        "vorp"
-                      ]
+                      "required": ["name", "position", "tier", "vorp"]
                     }
                   },
                   "send": {
@@ -430,23 +381,14 @@
                           "type": "number"
                         }
                       },
-                      "required": [
-                        "name",
-                        "position",
-                        "tier",
-                        "vorp"
-                      ]
+                      "required": ["name", "position", "tier", "vorp"]
                     }
                   },
                   "summary": {
                     "type": "string"
                   }
                 },
-                "required": [
-                  "receive",
-                  "send",
-                  "summary"
-                ]
+                "required": ["receive", "send", "summary"]
               },
               "scoring_format": {
                 "type": "string"
@@ -536,25 +478,14 @@
                           "type": "number"
                         }
                       },
-                      "required": [
-                        "name",
-                        "position",
-                        "tier",
-                        "vorp"
-                      ]
+                      "required": ["name", "position", "tier", "vorp"]
                     }
                   },
                   "total_value": {
                     "type": "number"
                   }
                 },
-                "required": [
-                  "missing_projection_count",
-                  "player_count",
-                  "players",
-                  "scarcity_details",
-                  "total_value"
-                ]
+                "required": ["missing_projection_count", "player_count", "players", "scarcity_details", "total_value"]
               },
               "verdict": {
                 "type": "string"
@@ -607,11 +538,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "reason",
-          "team_id",
-          "team_name"
-        ]
+        "required": ["reason", "team_id", "team_name"]
       }
     },
     "league_id": {
@@ -639,12 +566,7 @@
                   "type": "number"
                 }
               },
-              "required": [
-                "have",
-                "required",
-                "status",
-                "weight"
-              ]
+              "required": ["have", "required", "status", "weight"]
             },
             "WR": {
               "type": "object",
@@ -662,18 +584,10 @@
                   "type": "number"
                 }
               },
-              "required": [
-                "have",
-                "required",
-                "status",
-                "weight"
-              ]
+              "required": ["have", "required", "status", "weight"]
             }
           },
-          "required": [
-            "RB",
-            "WR"
-          ]
+          "required": ["RB", "WR"]
         },
         "player_count": {
           "type": "number"
@@ -685,12 +599,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "needs",
-        "player_count",
-        "team_id",
-        "team_name"
-      ]
+      "required": ["needs", "player_count", "team_id", "team_name"]
     },
     "platform": {
       "type": "string"
@@ -700,11 +609,7 @@
     },
     "status": {
       "type": "string",
-      "enum": [
-        "degraded",
-        "ok",
-        "unavailable"
-      ]
+      "enum": ["degraded", "ok", "unavailable"]
     },
     "team_id": {
       "type": "string"
@@ -713,12 +618,5 @@
       "type": "number"
     }
   },
-  "required": [
-    "candidates",
-    "contract_version",
-    "league_id",
-    "platform",
-    "status",
-    "week"
-  ]
+  "required": ["candidates", "contract_version", "league_id", "platform", "status", "week"]
 }

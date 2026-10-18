@@ -15,10 +15,7 @@ initSentry({ component: "cron" });
 const Sentry = require("@sentry/node");
 const { createClient } = require("@supabase/supabase-js");
 const { Redis } = require("@upstash/redis");
-const {
-  RECONCILIATION_STATES,
-  reconcileMoveScoring,
-} = require("./services/scoringReconciliation");
+const { RECONCILIATION_STATES, reconcileMoveScoring } = require("./services/scoringReconciliation");
 const ledgerStore = require("./services/ledger");
 const { bandFromScore } = require("./services/confidencePolicy");
 const { getCurrentNflWeekContext } = require("./services/nflSchedule");
@@ -26,10 +23,7 @@ const { footballDataMode, createFailSafeWarehouseReadRuntime } = require("./serv
 const { resolveWarehouseOutcomes } = require("./services/footballWarehouse/ledgerOutcomes");
 const { resolveGsis } = require("./services/playerUsage");
 
-const REQUIRED_SCORING_ENV = Object.freeze([
-  "SUPABASE_URL",
-  "SUPABASE_SERVICE_KEY",
-]);
+const REQUIRED_SCORING_ENV = Object.freeze(["SUPABASE_URL", "SUPABASE_SERVICE_KEY"]);
 
 const CURRENT_SEASON = new Date().getFullYear();
 // nflverse reorganized its releases: the `player_stats` tag stopped receiving new
@@ -37,8 +31,7 @@ const CURRENT_SEASON = new Date().getFullYear();
 // `stats_player_week_<season>.csv`. The old path 404s for every season from 2025
 // on, which the 404-deferral path would otherwise read as "not published yet"
 // forever. Verified against the live release index 2026-08-15.
-const NFLVERSE_BASE_URL =
-  "https://github.com/nflverse/nflverse-data/releases/download/stats_player";
+const NFLVERSE_BASE_URL = "https://github.com/nflverse/nflverse-data/releases/download/stats_player";
 
 function nflverseStatsFileName(season) {
   return `stats_player_week_${season}.csv`;
@@ -159,7 +152,10 @@ function parseCsvLine(line = "") {
 }
 
 function nflverseScoresFromCsv(csvText, { season, weekNum, seasonType = DEFAULT_SEASON_TYPE } = {}) {
-  const lines = String(csvText || "").trim().split(/\r?\n/).filter(Boolean);
+  const lines = String(csvText || "")
+    .trim()
+    .split(/\r?\n/)
+    .filter(Boolean);
   if (lines.length < 2) return {};
   const headers = parseCsvLine(lines[0]).map((header) => header.trim());
   // `season_type` is required rather than optional-when-present: a file without it
@@ -201,7 +197,9 @@ async function fetchPendingMoves(supabase, now = new Date()) {
     // scoring-enable order is mandatory: approval -> staging schema -> verification
     // -> production schema -> scoring enablement. Until then this code must not
     // run Tuesday scoring against a live database.
-    .select("id, week_num, season, headline, confidence, target_player, scoring, scoring_contract, scoring_contract_required, scoring_coverage_state, outcome, followed, created_at")
+    .select(
+      "id, week_num, season, headline, confidence, target_player, scoring, scoring_contract, scoring_contract_required, scoring_coverage_state, outcome, followed, created_at",
+    )
     .eq("outcome", "pending")
     .eq("followed", true)
     .lt("created_at", cutoff)
@@ -228,7 +226,10 @@ async function archiveNotExecutedMoves(supabase, now = new Date(), { dryRun = fa
   const { error: updateError } = await supabase
     .from("moves")
     .update({ outcome: "not_executed", scored_at: new Date().toISOString() })
-    .in("id", rows.map((row) => row.id));
+    .in(
+      "id",
+      rows.map((row) => row.id),
+    );
 
   if (updateError) throw new Error(`Not-executed archive failed: ${updateError.message}`);
   return rows.length;
@@ -412,8 +413,7 @@ async function saveScoredMove(supabase, moveId, score) {
   // `reconciliation_state` arrives with the reviewed A6 schema, and applying it
   // is the gated founder sequence. Until then, save without it rather than
   // failing the run.
-  if (error && Object.hasOwn(patch, "reconciliation_state")
-    && /reconciliation_state/.test(error.message || "")) {
+  if (error && Object.hasOwn(patch, "reconciliation_state") && /reconciliation_state/.test(error.message || "")) {
     const { reconciliation_state: _dropped, ...withoutState } = patch;
     ({ error } = await supabase.from("moves").update(withoutState).eq("id", moveId));
   }
@@ -468,8 +468,8 @@ function gradeDecision({ decision, action }, playerScores) {
 }
 
 function decisionAsMove(decision, target) {
-  const contractRequired = decision.call_type !== "legacy"
-    || Boolean(decision.scoring_contract_version || decision.scoring_contract_hash);
+  const contractRequired =
+    decision.call_type !== "legacy" || Boolean(decision.scoring_contract_version || decision.scoring_contract_hash);
   return {
     target_player: target,
     headline: decision.headline,
@@ -565,9 +565,10 @@ function gradeAgainstAlternative(decision, found, label, target) {
     return {
       state: "data_incomplete",
       provenance: "legacy_estimate",
-      summary: picked == null
-        ? `${target} could not be matched to a public stat line.`
-        : `${comparisonName} could not be matched to a public stat line.`,
+      summary:
+        picked == null
+          ? `${target} could not be matched to a public stat line.`
+          : `${comparisonName} could not be matched to a public stat line.`,
     };
   }
   const margin = Math.round((picked - passed) * 10) / 10;
@@ -578,8 +579,9 @@ function gradeAgainstAlternative(decision, found, label, target) {
     provenance: "legacy_estimate",
     reconciliation_state: null,
     effectiveness: Math.max(0, Math.min(100, Math.round(50 + margin * 4))),
-    summary: `${words[0]} ${target}: ${picked.toFixed(1)}; ${words[1]} ${comparisonName}: ${passed.toFixed(1)} (${label} estimate). `
-      + (margin >= 0 ? `The call gained ${margin.toFixed(1)}.` : `The call cost ${Math.abs(margin).toFixed(1)}.`),
+    summary:
+      `${words[0]} ${target}: ${picked.toFixed(1)}; ${words[1]} ${comparisonName}: ${passed.toFixed(1)} (${label} estimate). ` +
+      (margin >= 0 ? `The call gained ${margin.toFixed(1)}.` : `The call cost ${Math.abs(margin).toFixed(1)}.`),
   };
 }
 
@@ -607,26 +609,37 @@ async function resolveLeagueOutcomes(supabase, entries, deps = {}) {
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(decision);
   }
-  const espnCreds = deps.espnCredentials || ((userId) => require("./services/espnAuth").getAuthenticatedEspnCredentials(userId));
-  const yahooAuth = deps.yahooClient || ((userId) => require("./services/yahooAuth").getAuthenticatedYahooClient(userId));
+  const espnCreds =
+    deps.espnCredentials || ((userId) => require("./services/espnAuth").getAuthenticatedEspnCredentials(userId));
+  const yahooAuth =
+    deps.yahooClient || ((userId) => require("./services/yahooAuth").getAuthenticatedYahooClient(userId));
   // Lazy: the provider adapters load config, which this module must not require at import time.
   const points = deps.leagueActualPoints || require("./services/leagueActualPoints");
 
   for (const decisions of groups.values()) {
     const first = decisions[0];
     try {
-      const { data: league } = await supabase.from("leagues").select("provider,provider_league_id")
-        .eq("id", first.league_id).maybeSingle();
+      const { data: league } = await supabase
+        .from("leagues")
+        .select("provider,provider_league_id")
+        .eq("id", first.league_id)
+        .maybeSingle();
       if (!league?.provider_league_id) continue;
       const week = Number(first.week);
       let scored = new Map();
       if (league.provider === "sleeper") {
         scored = await points.sleeperPoints({ leagueId: league.provider_league_id, week });
       } else if (league.provider === "espn") {
-        scored = await points.espnPoints({ leagueId: league.provider_league_id, week, credentials: await espnCreds(first.user_id) });
+        scored = await points.espnPoints({
+          leagueId: league.provider_league_id,
+          week,
+          credentials: await espnCreds(first.user_id),
+        });
       } else if (league.provider === "yahoo") {
         const { client } = await yahooAuth(first.user_id);
-        const keys = decisions.flatMap((d) => [leaguePlayerId(d, "primary_player"), leaguePlayerId(d, "comparison_player")]).filter(Boolean);
+        const keys = decisions
+          .flatMap((d) => [leaguePlayerId(d, "primary_player"), leaguePlayerId(d, "comparison_player")])
+          .filter(Boolean);
         scored = await points.yahooPoints({ leagueKey: league.provider_league_id, week, playerKeys: keys, client });
       }
       for (const decision of decisions) {
@@ -636,7 +649,9 @@ async function resolveLeagueOutcomes(supabase, entries, deps = {}) {
         });
       }
     } catch (error) {
-      log.warn(`League points unavailable for one league-week; falling back (reason=${error.code || error.status || error.name})`);
+      log.warn(
+        `League points unavailable for one league-week; falling back (reason=${error.code || error.status || error.name})`,
+      );
     }
   }
   return out;
@@ -655,8 +670,9 @@ function gradeFromLeaguePoints(decision, league) {
     provenance: "verified",
     reconciliation_state: RECONCILIATION_STATES.EXACT,
     effectiveness: Math.max(0, Math.min(100, Math.round(50 + margin * 4))),
-    summary: `${words[0]} ${target}: ${league.primary.toFixed(1)}; ${words[1]} ${comparisonName}: ${league.comparison.toFixed(1)} (your league's scoring). `
-      + (margin >= 0 ? `The call gained ${margin.toFixed(1)}.` : `The call cost ${Math.abs(margin).toFixed(1)}.`),
+    summary:
+      `${words[0]} ${target}: ${league.primary.toFixed(1)}; ${words[1]} ${comparisonName}: ${league.comparison.toFixed(1)} (your league's scoring). ` +
+      (margin >= 0 ? `The call gained ${margin.toFixed(1)}.` : `The call cost ${Math.abs(margin).toFixed(1)}.`),
   };
 }
 
@@ -695,16 +711,24 @@ async function previewLedgerOutcomes(supabase, { season, week, repository, depen
   }
   if (!repository) throw new Error("warehouse outcome repository is not available");
   const fetchScorable = dependencies.fetchScorableDecisions || ledgerStore.fetchScorableDecisions;
-  const entries = (await fetchScorable(supabase, { season, beforeWeek: week + 1 }))
-    .filter((entry) => entry.decision.week === week);
+  const entries = (await fetchScorable(supabase, { season, beforeWeek: week + 1 })).filter(
+    (entry) => entry.decision.week === week,
+  );
   const needsLine = entries.filter((entry) => entry.action?.followed !== false);
-  const found = await resolveWarehouseOutcomes({ entries: needsLine, repository, resolveGsis: (keys) => resolveGsis(supabase, keys) });
+  const found = await resolveWarehouseOutcomes({
+    entries: needsLine,
+    repository,
+    resolveGsis: (keys) => resolveGsis(supabase, keys),
+  });
 
   const counts = { calls: entries.length, graded: 0, data_incomplete: 0, not_executed: 0, pending: 0 };
   const leagueFound = await resolveLeagueOutcomes(supabase, needsLine, dependencies);
   const preview = entries.map((entry) => {
-    const outcome = (entry.action?.followed === false ? null : gradeFromLeaguePoints(entry.decision, leagueFound.get(entry.decision.id)))
-      || gradeDecisionFromWarehouse(entry, found.get(entry.decision.id));
+    const outcome =
+      (entry.action?.followed === false
+        ? null
+        : gradeFromLeaguePoints(entry.decision, leagueFound.get(entry.decision.id))) ||
+      gradeDecisionFromWarehouse(entry, found.get(entry.decision.id));
     if (!outcome) {
       counts.pending += 1;
       return { decision_id: entry.decision.id, week, state: "pending", basis: "week_not_in_warehouse" };
@@ -730,14 +754,17 @@ async function previewLedgerOutcomes(supabase, { season, week, repository, depen
  * so a missed run is caught up next time. Re-runs are idempotent: a final outcome is never touched
  * and an unchanged incomplete one is not rewritten.
  */
-async function scoreLedgerDecisions(supabase, {
-  now = new Date(),
-  dryRun = false,
-  fetchScores = fetchNFLScores,
-  redis = null,
-  env = process.env,
-  dependencies = {},
-} = {}) {
+async function scoreLedgerDecisions(
+  supabase,
+  {
+    now = new Date(),
+    dryRun = false,
+    fetchScores = fetchNFLScores,
+    redis = null,
+    env = process.env,
+    dependencies = {},
+  } = {},
+) {
   const tally = emptyLedgerTally();
   const { season, raw_week: rawWeek } = getCurrentNflWeekContext(now);
   if (!Number.isInteger(rawWeek) || rawWeek < 2) return tally;
@@ -764,8 +791,11 @@ async function scoreLedgerDecisions(supabase, {
       if (!dryRun) {
         const scoreHorizons = dependencies.scoreTradeHorizons || require("./services/tradeHorizons").scoreTradeHorizons;
         const horizons = await scoreHorizons(supabase, {
-          season, lastFinishedWeek: beforeWeek - 1, repository: warehouse.repository,
-          resolveGsis: (keys) => resolveGsis(supabase, keys), log,
+          season,
+          lastFinishedWeek: beforeWeek - 1,
+          repository: warehouse.repository,
+          resolveGsis: (keys) => resolveGsis(supabase, keys),
+          log,
         });
         if (horizons.trades || horizons.written || horizons.failed) tally.trade_horizons = horizons;
       }
@@ -774,15 +804,24 @@ async function scoreLedgerDecisions(supabase, {
     warehouseFound = null;
     log.warn(`Warehouse outcome read failed; using the existing scoring path (reason=${error.code || error.name})`);
   } finally {
-    try { await warehouse.close(); } catch { /* closing a read pool must not fail scoring */ }
+    try {
+      await warehouse.close();
+    } catch {
+      /* closing a read pool must not fail scoring */
+    }
   }
 
-  const leagueFound = await resolveLeagueOutcomes(supabase, pending.filter((entry) => entry.action?.followed !== false), dependencies);
+  const leagueFound = await resolveLeagueOutcomes(
+    supabase,
+    pending.filter((entry) => entry.action?.followed !== false),
+    dependencies,
+  );
 
   for (const entry of pending) {
     const { decision } = entry;
     try {
-      const fromLeague = entry.action?.followed === false ? null : gradeFromLeaguePoints(decision, leagueFound.get(decision.id));
+      const fromLeague =
+        entry.action?.followed === false ? null : gradeFromLeaguePoints(decision, leagueFound.get(decision.id));
       if (fromLeague) {
         const status = await saveOutcome(supabase, { decision, existing: entry.outcome, outcome: fromLeague, now });
         tally[status === "inserted" ? "inserted" : status === "updated" ? "updated" : "unchanged"] += 1;
@@ -859,7 +898,10 @@ async function runScoring({ env = process.env, now = new Date(), dependencies = 
   const scoreLedger = async () => {
     try {
       return await resolvedScoreLedger(supabase, {
-        now, dryRun, redis, env,
+        now,
+        dryRun,
+        redis,
+        env,
         fetchScores: dependencies.fetchNFLScores || fetchNFLScores,
       });
     } catch (error) {
@@ -916,9 +958,13 @@ async function main({ env = process.env } = {}) {
   }
 
   const result = await runScoring({ env });
-  log.info(`Tuesday scoring complete: archived=${result.archiveCount} scored=${result.scoredCount} failed=${result.failedCount} deferred=${result.deferredCount}`);
+  log.info(
+    `Tuesday scoring complete: archived=${result.archiveCount} scored=${result.scoredCount} failed=${result.failedCount} deferred=${result.deferredCount}`,
+  );
   const ledger = result.ledger || {};
-  log.info(`Ledger scoring: inserted=${ledger.inserted} updated=${ledger.updated} unchanged=${ledger.unchanged} deferred=${ledger.deferred} failed=${ledger.failed}${ledger.error ? " error=true" : ""}`);
+  log.info(
+    `Ledger scoring: inserted=${ledger.inserted} updated=${ledger.updated} unchanged=${ledger.unchanged} deferred=${ledger.deferred} failed=${ledger.failed}${ledger.error ? " error=true" : ""}`,
+  );
   return result;
 }
 

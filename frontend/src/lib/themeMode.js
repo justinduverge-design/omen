@@ -20,7 +20,9 @@ const VALID_MODES = ['system', 'omen'];
 // ── In-tab change notification ────────────────────────────────────────────
 
 const listeners = new Set();
-function notify() { for (const cb of listeners) cb(); }
+function notify() {
+  for (const cb of listeners) cb();
+}
 
 export function subscribeTheme(cb) {
   listeners.add(cb);
@@ -35,13 +37,19 @@ export function getThemeMode() {
     const v = stored === 'corvus' || stored === 'team' ? 'omen' : stored;
     if (v && !localStorage.getItem(MODE_KEY)) localStorage.setItem(MODE_KEY, v);
     return VALID_MODES.includes(v) ? v : 'system';
-  } catch { return 'system'; }
+  } catch {
+    return 'system';
+  }
 }
 
 export function setThemeMode(mode) {
   const next = mode === 'team' ? 'omen' : mode;
   if (!VALID_MODES.includes(next)) return;
-  try { localStorage.setItem(MODE_KEY, next); } catch { /* ignore */ }
+  try {
+    localStorage.setItem(MODE_KEY, next);
+  } catch {
+    /* ignore */
+  }
   applyThemeMode();
   notify();
 }

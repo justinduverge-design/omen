@@ -25,23 +25,23 @@
 // be replaced by any benched player whose eligible_positions
 // intersect with this group.
 const POSITION_GROUPS = {
-  QB:    ["QB"],
-  RB:    ["RB", "FLEX", "W/R/T", "W/R", "W/T"],
-  WR:    ["WR", "FLEX", "W/R/T", "W/R"],
-  TE:    ["TE", "FLEX", "W/R/T", "W/T"],
-  FLEX:  ["RB", "WR", "TE", "FLEX", "W/R/T", "W/R", "W/T"],
+  QB: ["QB"],
+  RB: ["RB", "FLEX", "W/R/T", "W/R", "W/T"],
+  WR: ["WR", "FLEX", "W/R/T", "W/R"],
+  TE: ["TE", "FLEX", "W/R/T", "W/T"],
+  FLEX: ["RB", "WR", "TE", "FLEX", "W/R/T", "W/R", "W/T"],
   "W/R": ["WR", "RB", "W/R", "FLEX"],
   "W/R/T": ["WR", "RB", "TE", "W/R/T", "FLEX"],
-  K:     ["K"],
-  DEF:   ["DEF", "D/ST", "DST"],
+  K: ["K"],
+  DEF: ["DEF", "D/ST", "DST"],
 };
 
 const { assessConfidence, scoreForBand, usageCorroboration } = require("./confidencePolicy");
 const { blendWithSight, isLocked, effectiveStatus } = require("./sightDecision");
 
 const HEALTHY = new Set([null, undefined, "", "P", "PROBABLE"]);
-const RISKY   = new Set(["Q", "QUESTIONABLE", "GTD", "DTD"]);
-const OUT     = new Set(["O", "OUT", "IR", "IR-R", "PUP", "DOUBTFUL", "SUSP"]);
+const RISKY = new Set(["Q", "QUESTIONABLE", "GTD", "DTD"]);
+const OUT = new Set(["O", "OUT", "IR", "IR-R", "PUP", "DOUBTFUL", "SUSP"]);
 
 const DEFAULT_OPTIMIZER_CONFIG = Object.freeze({
   lineupMinDelta: 0.5,
@@ -55,16 +55,16 @@ function finiteNumber(value) {
 }
 
 function looksLikeScoringConfig(value) {
-  return value != null
-    && typeof value === "object"
-    && !Array.isArray(value)
-    && (
-      Object.prototype.hasOwnProperty.call(value, "default_scoring_rules")
-      || Object.prototype.hasOwnProperty.call(value, "scoring_format")
-      || Object.prototype.hasOwnProperty.call(value, "league_roster_slots")
-      || Object.prototype.hasOwnProperty.call(value, "league_scarcity_weights")
-      || Object.prototype.hasOwnProperty.call(value, "scarcity_weights")
-    );
+  return (
+    value != null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    (Object.prototype.hasOwnProperty.call(value, "default_scoring_rules") ||
+      Object.prototype.hasOwnProperty.call(value, "scoring_format") ||
+      Object.prototype.hasOwnProperty.call(value, "league_roster_slots") ||
+      Object.prototype.hasOwnProperty.call(value, "league_scarcity_weights") ||
+      Object.prototype.hasOwnProperty.call(value, "scarcity_weights"))
+  );
 }
 
 function resolveScoringConfig(opts, scoringConfig) {
@@ -76,33 +76,23 @@ function resolveScoringConfig(opts, scoringConfig) {
 function resolveOptimizerConfig(opts = {}, scoringConfig = {}) {
   const config = resolveScoringConfig(opts, scoringConfig);
   const rules = config?.default_scoring_rules?.optimizer;
-  const optimizerRules = rules && typeof rules === "object" && !Array.isArray(rules)
-    ? rules
-    : {};
+  const optimizerRules = rules && typeof rules === "object" && !Array.isArray(rules) ? rules : {};
   const explicitOpts = looksLikeScoringConfig(opts) ? {} : opts;
-  const explicitMinDelta = typeof explicitOpts.minDelta === "number"
-    && !Number.isNaN(explicitOpts.minDelta)
-    ? explicitOpts.minDelta
-    : null;
-  const configuredLineupMinDelta = finiteNumber(
-    optimizerRules.lineup_min_delta ?? optimizerRules.min_delta
-  );
+  const explicitMinDelta =
+    typeof explicitOpts.minDelta === "number" && !Number.isNaN(explicitOpts.minDelta) ? explicitOpts.minDelta : null;
+  const configuredLineupMinDelta = finiteNumber(optimizerRules.lineup_min_delta ?? optimizerRules.min_delta);
   const configuredWaiverMinDelta = finiteNumber(optimizerRules.waiver_min_delta);
   const configuredWaiverLimit = finiteNumber(optimizerRules.waiver_limit);
   const explicitLimit = finiteNumber(explicitOpts.limit);
 
   return {
-    lineupMinDelta: explicitMinDelta
-      ?? configuredLineupMinDelta
-      ?? DEFAULT_OPTIMIZER_CONFIG.lineupMinDelta,
-    waiverMinDelta: finiteNumber(explicitOpts.minDelta)
-      ?? configuredWaiverMinDelta
-      ?? DEFAULT_OPTIMIZER_CONFIG.waiverMinDelta,
-    waiverLimit: Math.max(1, Math.floor(
-      explicitLimit
-      ?? configuredWaiverLimit
-      ?? DEFAULT_OPTIMIZER_CONFIG.waiverLimit
-    )),
+    lineupMinDelta: explicitMinDelta ?? configuredLineupMinDelta ?? DEFAULT_OPTIMIZER_CONFIG.lineupMinDelta,
+    waiverMinDelta:
+      finiteNumber(explicitOpts.minDelta) ?? configuredWaiverMinDelta ?? DEFAULT_OPTIMIZER_CONFIG.waiverMinDelta,
+    waiverLimit: Math.max(
+      1,
+      Math.floor(explicitLimit ?? configuredWaiverLimit ?? DEFAULT_OPTIMIZER_CONFIG.waiverLimit),
+    ),
   };
 }
 
@@ -110,9 +100,9 @@ function statusPenalty(status) {
   if (status == null) return 0;
   const s = String(status).toUpperCase();
   if (HEALTHY.has(s)) return 0;
-  if (RISKY.has(s))   return 0.15;   // 15% haircut for questionable
-  if (OUT.has(s))     return 1.0;    // 100% haircut - treat as zero
-  return 0.05;                       // unknown status, small haircut
+  if (RISKY.has(s)) return 0.15; // 15% haircut for questionable
+  if (OUT.has(s)) return 1.0; // 100% haircut - treat as zero
+  return 0.05; // unknown status, small haircut
 }
 
 function adjustedProjection(player) {
@@ -153,14 +143,18 @@ function assessSwap(delta, fromStatus, toStatus, corroboration = []) {
 function waiverConfidence(delta) {
   // Waiver adds are projection-only and the add still has to clear waivers: never above a lean.
   const verdict = assessConfidence({ gap: delta, maxBand: "leaning" });
-  return { confidence: scoreForBand(verdict.band) ?? 50, confidence_band: verdict.band, confidence_reason: verdict.reason };
+  return {
+    confidence: scoreForBand(verdict.band) ?? 50,
+    confidence_band: verdict.band,
+    confidence_reason: verdict.reason,
+  };
 }
 
 function buildReasoning(from, to, delta) {
   const parts = [`${to.name} projects ${delta.toFixed(2)} pts higher than ${from.name}`];
   const fStat = String(effectiveStatus(from) || "").toUpperCase();
-  const tStat = String(effectiveStatus(to)   || "").toUpperCase();
-  if (OUT.has(fStat))   parts.push(`(${from.name} is OUT)`);
+  const tStat = String(effectiveStatus(to) || "").toUpperCase();
+  if (OUT.has(fStat)) parts.push(`(${from.name} is OUT)`);
   else if (RISKY.has(fStat)) parts.push(`(${from.name} is questionable)`);
   if (RISKY.has(tStat)) parts.push(`(${to.name} is questionable - some risk)`);
   return parts.join(" ");
@@ -182,22 +176,25 @@ function evaluateLineup(roster, opts = {}, scoringConfig = {}) {
   for (const starter of roster.slots.starters) {
     // A locked starter (the game started) cannot be benched; never suggest it.
     if (isLocked(starter)) continue;
-    const slot   = starter.selected_position || starter.position;
+    const slot = starter.selected_position || starter.position;
     const compat = compatibleSlots(slot);
-    const sProj  = adjustedProjection(starter);
+    const sProj = adjustedProjection(starter);
     // An unprojected starter can only be replaced when he is OUT (status alone scores him zero).
     if (strict && !hasProjection(starter) && statusPenalty(effectiveStatus(starter)) < 1) continue;
 
     const candidates = roster.slots.bench
-      .filter(b => !isLocked(b)
-                && (!strict || hasProjection(b))
-                && Array.isArray(b.eligible_positions)
-                && b.eligible_positions.some(p => compat.includes(p)))
-      .map(b => ({ player: b, adj: adjustedProjection(b) }))
+      .filter(
+        (b) =>
+          !isLocked(b) &&
+          (!strict || hasProjection(b)) &&
+          Array.isArray(b.eligible_positions) &&
+          b.eligible_positions.some((p) => compat.includes(p)),
+      )
+      .map((b) => ({ player: b, adj: adjustedProjection(b) }))
       .sort((a, b) => b.adj - a.adj);
 
     if (!candidates.length) continue;
-    const best  = candidates[0];
+    const best = candidates[0];
     const delta = best.adj - sProj;
 
     if (delta < minDelta) continue;
@@ -205,28 +202,29 @@ function evaluateLineup(roster, opts = {}, scoringConfig = {}) {
     const shownDelta = Number(delta.toFixed(2));
     // Observed recent usage that favors the bench player corroborates the call, same helper Start/Sit
     // uses. No usage map (the default) means no corroboration, i.e. today's behavior exactly.
-    const corroboration = [usageCorroboration(usage?.get?.(best.player.player_key), usage?.get?.(starter.player_key))]
-      .filter(Boolean);
+    const corroboration = [
+      usageCorroboration(usage?.get?.(best.player.player_key), usage?.get?.(starter.player_key)),
+    ].filter(Boolean);
     const swapVerdict = assessSwap(shownDelta, effectiveStatus(starter), effectiveStatus(best.player), corroboration);
     recs.push({
       slot,
       from: {
         player_key: starter.player_key,
-        name:       starter.name,
-        status:     starter.status,
-        projected:  Number(sProj.toFixed(2)),
+        name: starter.name,
+        status: starter.status,
+        projected: Number(sProj.toFixed(2)),
       },
       to: {
         player_key: best.player.player_key,
-        name:       best.player.name,
-        status:     best.player.status,
-        projected:  Number(best.adj.toFixed(2)),
+        name: best.player.name,
+        status: best.player.status,
+        projected: Number(best.adj.toFixed(2)),
       },
-      delta:      shownDelta,
+      delta: shownDelta,
       confidence: swapVerdict.score,
       confidence_band: swapVerdict.band,
       confidence_reason: swapVerdict.reason,
-      reasoning:  buildReasoning(starter, best.player, delta),
+      reasoning: buildReasoning(starter, best.player, delta),
     });
   }
 
@@ -242,10 +240,7 @@ function evaluateLineup(roster, opts = {}, scoringConfig = {}) {
  * Returns: array of { position, drop, add, delta, confidence }
  */
 function findWaiverMoves(roster, waiverPool, opts = {}, scoringConfig = {}) {
-  const {
-    waiverLimit: limit,
-    waiverMinDelta: minDelta,
-  } = resolveOptimizerConfig(opts, scoringConfig);
+  const { waiverLimit: limit, waiverMinDelta: minDelta } = resolveOptimizerConfig(opts, scoringConfig);
 
   const strict = partialProjections(roster);
   // Index waiver pool by primary position, sorted by projection desc.
@@ -281,22 +276,22 @@ function findWaiverMoves(roster, waiverPool, opts = {}, scoringConfig = {}) {
     if (!top) continue;
 
     const topProj = Number(top.projected_points) || 0;
-    const delta   = topProj - adjustedProjection(weakest);
+    const delta = topProj - adjustedProjection(weakest);
     if (delta <= minDelta) continue;
 
     recs.push({
       position: pos,
       drop: {
         player_key: weakest.player_key,
-        name:       weakest.name,
-        projected:  Number(adjustedProjection(weakest).toFixed(2)),
+        name: weakest.name,
+        projected: Number(adjustedProjection(weakest).toFixed(2)),
       },
       add: {
         player_key: top.player_key,
-        name:       top.name,
-        projected:  Number(topProj.toFixed(2)),
+        name: top.name,
+        projected: Number(topProj.toFixed(2)),
       },
-      delta:      Number(delta.toFixed(2)),
+      delta: Number(delta.toFixed(2)),
       ...waiverConfidence(Number(delta.toFixed(2))),
     });
   }

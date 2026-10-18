@@ -17,7 +17,7 @@ test("the committed coverage matrix matches what the code actually supports", ()
   assert.equal(
     committed,
     render(),
-    "Blueprints/specs/a6-scoring-coverage-matrix.md is stale — run: node scripts/generate-scoring-coverage-matrix.js --write"
+    "Blueprints/specs/a6-scoring-coverage-matrix.md is stale — run: node scripts/generate-scoring-coverage-matrix.js --write",
   );
 });
 

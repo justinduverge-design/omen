@@ -29,9 +29,7 @@ class FakeQuery {
   }
 
   then(resolve, reject) {
-    const data = this.rows.filter((row) =>
-      this.filters.every(({ field, value }) => row[field] === value)
-    );
+    const data = this.rows.filter((row) => this.filters.every(({ field, value }) => row[field] === value));
     return Promise.resolve({ data, error: null }).then(resolve, reject);
   }
 }
@@ -57,11 +55,11 @@ function defaultSleeperAdapter(overrides = {}) {
     }),
     fetchSleeperStandings: async () => SLEEPER_STANDINGS,
     fetchSleeperRoster: async () => ({ roster_id: 7 }),
-    fetchSleeperMatchups: async () => ([
+    fetchSleeperMatchups: async () => [
       { roster_id: 7, matchup_id: 2, points: 88.4, starters: ["1001", "1002"] },
       { roster_id: 3, matchup_id: 2, points: 91.1, starters: ["2001", "0"] },
       { roster_id: 9, matchup_id: 1, points: 60.0, starters: [] },
-    ]),
+    ],
     // Sleeper's matchup rows carry no projected total, so the PROJ column is summed from the
     // per-player projections endpoint. Stubbed here so the route's own wiring is exercised.
     fetchSleeperProjections: async () => ({ 1001: 12.5, 1002: 9.25, 2001: 18.0 }),
@@ -77,9 +75,7 @@ function defaultEspnAdapter(overrides = {}) {
     // building every envelope without one.
     buildLeagueContext: async () => ({
       league_name: "The Titans of Slopsilonia",
-      standings: [
-        { rank: 1, team_id: "9", team_name: "ESPN Team", is_current_user: true, wins: 5, losses: 3 },
-      ],
+      standings: [{ rank: 1, team_id: "9", team_name: "ESPN Team", is_current_user: true, wins: 5, losses: 3 }],
     }),
     fetchEspnMatchup: async () => ({
       status: "final",
@@ -98,7 +94,11 @@ function loadLeagueRouter(options = {}) {
   const rows = options.connections || [];
   const fakeSupabase = {
     from() {
-      return { select() { return new FakeQuery(rows); } };
+      return {
+        select() {
+          return new FakeQuery(rows);
+        },
+      };
     },
   };
 
@@ -108,10 +108,12 @@ function loadLeagueRouter(options = {}) {
       if (request === "@supabase/supabase-js") return { createClient: () => fakeSupabase };
       if (request === "../middleware/auth") {
         return {
-          requireAuth: options.requireAuth || ((req, _res, next) => {
-            req.user = { id: "user-1" };
-            next();
-          }),
+          requireAuth:
+            options.requireAuth ||
+            ((req, _res, next) => {
+              req.user = { id: "user-1" };
+              next();
+            }),
         };
       }
       if (request === "../middleware/logging") {
@@ -216,14 +218,24 @@ test("GET /api/league/overview returns a real matchup built from data that was b
     "selected_context",
   ]);
   assert.deepEqual(res.body.decision_context.inputs.league_standings, {
-    state: "live", used: true, source: "sleeper_league_standings", observed_at: res.body.generated_at,
+    state: "live",
+    used: true,
+    source: "sleeper_league_standings",
+    observed_at: res.body.generated_at,
   });
   assert.deepEqual(res.body.decision_context.inputs.league_transactions, {
-    state: "not_requested", used: false, source: "provider_transactions", reason_code: "not_requested",
+    state: "not_requested",
+    used: false,
+    source: "provider_transactions",
+    reason_code: "not_requested",
   });
-  assert.deepEqual(res.body.decision_context.limitations, [{
-    name: "league_transactions", state: "not_requested", reason_code: "not_requested",
-  }]);
+  assert.deepEqual(res.body.decision_context.limitations, [
+    {
+      name: "league_transactions",
+      state: "not_requested",
+      reason_code: "not_requested",
+    },
+  ]);
   assert.deepEqual(byName(res.body.capabilities, "league_standings"), {
     name: "league_standings",
     state: "live",
@@ -254,11 +266,26 @@ test("League receipt decorates already-resolved sections without a second provid
   const base = defaultSleeperAdapter();
   const sleeperAdapter = {
     ...base,
-    fetchSleeperLeague: async (...args) => { calls.push("league"); return base.fetchSleeperLeague(...args); },
-    fetchSleeperStandings: async (...args) => { calls.push("standings"); return base.fetchSleeperStandings(...args); },
-    fetchSleeperRoster: async (...args) => { calls.push("roster"); return base.fetchSleeperRoster(...args); },
-    fetchSleeperMatchups: async (...args) => { calls.push("matchups"); return base.fetchSleeperMatchups(...args); },
-    fetchSleeperProjections: async (...args) => { calls.push("projections"); return base.fetchSleeperProjections(...args); },
+    fetchSleeperLeague: async (...args) => {
+      calls.push("league");
+      return base.fetchSleeperLeague(...args);
+    },
+    fetchSleeperStandings: async (...args) => {
+      calls.push("standings");
+      return base.fetchSleeperStandings(...args);
+    },
+    fetchSleeperRoster: async (...args) => {
+      calls.push("roster");
+      return base.fetchSleeperRoster(...args);
+    },
+    fetchSleeperMatchups: async (...args) => {
+      calls.push("matchups");
+      return base.fetchSleeperMatchups(...args);
+    },
+    fetchSleeperProjections: async (...args) => {
+      calls.push("projections");
+      return base.fetchSleeperProjections(...args);
+    },
   };
 
   const res = await request(buildApp({ connections: [SLEEPER_CONNECTION], sleeperAdapter }), "/api/league/overview");
@@ -289,7 +316,9 @@ test("a dead matchup read still returns standings — sections fail independentl
   const app = buildApp({
     connections: [SLEEPER_CONNECTION],
     sleeperAdapter: defaultSleeperAdapter({
-      fetchSleeperMatchups: async () => { throw new Error("provider exploded"); },
+      fetchSleeperMatchups: async () => {
+        throw new Error("provider exploded");
+      },
     }),
   });
 
@@ -302,7 +331,10 @@ test("a dead matchup read still returns standings — sections fail independentl
   assert.equal(res.body.standings.status, "available");
   assert.equal(res.body.standings.teams.length, 3);
   assert.deepEqual(res.body.decision_context.inputs.league_matchup, {
-    state: "unavailable", used: false, source: "sleeper_matchups", reason_code: "provider_failed",
+    state: "unavailable",
+    used: false,
+    source: "sleeper_matchups",
+    reason_code: "provider_failed",
   });
   assert.ok(!res.body.decision_context.inputs_used.includes("league_matchup"));
   assert.equal(byName(res.body.capabilities, "league_matchup").kind, "limitation");
@@ -312,7 +344,7 @@ test("a bye week is reported as no_matchup, not as a provider failure", async ()
   const app = buildApp({
     connections: [SLEEPER_CONNECTION],
     sleeperAdapter: defaultSleeperAdapter({
-      fetchSleeperMatchups: async () => ([{ roster_id: 7, matchup_id: 2, points: 0 }]),
+      fetchSleeperMatchups: async () => [{ roster_id: 7, matchup_id: 2, points: 0 }],
     }),
   });
 
@@ -322,7 +354,11 @@ test("a bye week is reported as no_matchup, not as a provider failure", async ()
   assert.equal(res.body.matchup.you, null);
   // A provider-confirmed bye is a completed live read, not a provider outage.
   assert.deepEqual(res.body.decision_context.inputs.league_matchup, {
-    state: "live", used: true, source: "sleeper_matchups", reason_code: "no_matchup", observed_at: res.body.generated_at,
+    state: "live",
+    used: true,
+    source: "sleeper_matchups",
+    reason_code: "no_matchup",
+    observed_at: res.body.generated_at,
   });
   assert.equal(byName(res.body.capabilities, "league_matchup").state, "live");
   assert.equal(byName(res.body.capabilities, "league_matchup").reason_code, "no_matchup");
@@ -432,10 +468,16 @@ test("a provider that does not supply playoff settings stays honestly unknown", 
   assert.equal(picture.line, "2nd of 3");
   assert.equal(res.body.activity.status, "empty");
   assert.deepEqual(res.body.decision_context.inputs.league_playoff_settings, {
-    state: "unavailable", used: false, source: "sleeper_league_settings", reason_code: "settings_not_read",
+    state: "unavailable",
+    used: false,
+    source: "sleeper_league_settings",
+    reason_code: "settings_not_read",
   });
   assert.deepEqual(res.body.decision_context.inputs.league_activity, {
-    state: "unavailable", used: false, source: "derived_standings", reason_code: "settings_not_read",
+    state: "unavailable",
+    used: false,
+    source: "derived_standings",
+    reason_code: "settings_not_read",
   });
 });
 
@@ -446,11 +488,11 @@ test("standings-derived activity populates, and names the family it still lacks"
   const app = buildApp({
     connections: [SLEEPER_CONNECTION],
     sleeperAdapter: defaultSleeperAdapter({
-      fetchSleeperStandings: async () => ([
+      fetchSleeperStandings: async () => [
         { rank: 1, team_id: "3", team_name: "Top Dogs", is_current_user: false, wins: 7, losses: 1 },
         { rank: 2, team_id: "7", team_name: "Ravens Flock", is_current_user: true, wins: 4, losses: 4 },
         { rank: 3, team_id: "9", team_name: "Also Rans", is_current_user: false, wins: 4, losses: 4 },
-      ]),
+      ],
     }),
   });
 
@@ -605,7 +647,10 @@ test("ESPN overview: playoffTeamCount travels the real adapter parse path to the
   const real = realEspnAdapterReturning(espnLeagueBody({ playoffTeamCount: 2 }));
   const app = buildApp({
     connections: [ESPN_CONNECTION],
-    espnAdapter: { buildLeagueContext: real.buildLeagueContext, fetchEspnMatchup: defaultEspnAdapter().fetchEspnMatchup },
+    espnAdapter: {
+      buildLeagueContext: real.buildLeagueContext,
+      fetchEspnMatchup: defaultEspnAdapter().fetchEspnMatchup,
+    },
   });
 
   const res = await request(app, "/api/league/overview");
@@ -620,7 +665,10 @@ test("ESPN overview: an mSettings payload without the field claims no cut line (
   const real = realEspnAdapterReturning(espnLeagueBody(null));
   const app = buildApp({
     connections: [ESPN_CONNECTION],
-    espnAdapter: { buildLeagueContext: real.buildLeagueContext, fetchEspnMatchup: defaultEspnAdapter().fetchEspnMatchup },
+    espnAdapter: {
+      buildLeagueContext: real.buildLeagueContext,
+      fetchEspnMatchup: defaultEspnAdapter().fetchEspnMatchup,
+    },
   });
 
   const res = await request(app, "/api/league/overview");
@@ -646,7 +694,9 @@ test("Yahoo overview: a hanging settings read cannot hold the overview past its 
 
 test("Yahoo overview survives a failing or empty settings read with no cut line", async () => {
   for (const getPlayoffTeamCount of [
-    async () => { throw new Error("yahoo down"); },
+    async () => {
+      throw new Error("yahoo down");
+    },
     async () => null,
   ]) {
     const app = buildApp({ connections: [YAHOO_CONNECTION], yahooClient: fakeYahooClient({ getPlayoffTeamCount }) });

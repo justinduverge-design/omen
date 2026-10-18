@@ -41,7 +41,7 @@ test("Yahoo: settings container as a flat object or an array of single-key objec
   assert.equal(await yahooWith([{}, { settings: { num_playoff_teams: 4 } }]).getPlayoffTeamCount("k"), 4);
   assert.equal(
     await yahooWith([{}, { settings: [[{ uses_faab: "0" }, { num_playoff_teams: "8" }]] }]).getPlayoffTeamCount("k"),
-    8
+    8,
   );
 });
 

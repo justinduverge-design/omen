@@ -32,10 +32,7 @@ function createMemoryTradeShareStore({ now = () => new Date() } = {}) {
   };
 }
 
-function createRedisTradeShareStore({
-  redis,
-  keyPrefix = KEY_PREFIX,
-} = {}) {
+function createRedisTradeShareStore({ redis, keyPrefix = KEY_PREFIX } = {}) {
   if (!redis) throw storageUnavailableError();
 
   return {

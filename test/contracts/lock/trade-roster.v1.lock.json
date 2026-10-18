@@ -25,10 +25,7 @@
     "status": {
       "required": true,
       "type": "enum",
-      "values": [
-        "\"ok\"",
-        "\"unavailable\""
-      ]
+      "values": ["\"ok\"", "\"unavailable\""]
     },
     "teams": {
       "required": true,

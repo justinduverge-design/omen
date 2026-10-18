@@ -22,8 +22,8 @@
  * =================================================================
  */
 
-const { Redis }  = require("@upstash/redis");
-const config     = require("../config");
+const { Redis } = require("@upstash/redis");
+const config = require("../config");
 const { logger } = require("../middleware/logging");
 const YahooClient = require("./yahoo");
 const {
@@ -33,9 +33,7 @@ const {
   stripYahooProjections,
 } = require("./yahooProjections");
 
-const redis = config.redisUrl
-  ? new Redis({ url: config.redisUrl, token: config.redisToken })
-  : null;
+const redis = config.redisUrl ? new Redis({ url: config.redisUrl, token: config.redisToken }) : null;
 
 const ROSTER_TTL_S = 300; // 5 minutes - rosters change as users start/sit
 const PROJECTION_RETRY_TTL_S = 20; // a roster whose projection build timed out is re-tried soon
@@ -45,7 +43,7 @@ const PROJECTION_RETRY_TTL_S = 20; // a roster whose projection build timed out 
  * "IL" (injured list, older alias). Anything else is a starter slot.
  */
 const BENCH_SLOTS = new Set(["BN"]);
-const IR_SLOTS    = new Set(["IR", "IL", "IR+", "NA"]);
+const IR_SLOTS = new Set(["IR", "IL", "IR+", "NA"]);
 
 /**
  * Yahoo team[0] is an array of 1-key objects. Find a key.
@@ -63,44 +61,39 @@ function normalizePlayer(playerNode) {
   if (!Array.isArray(playerNode) || !playerNode[0]) return null;
   const meta = playerNode[0];
 
-  const player_key       = pickField(meta, "player_key");
-  const player_id        = pickField(meta, "player_id");
-  const nameObj          = pickField(meta, "name") || {};
-  const editorialTeamAbbr= pickField(meta, "editorial_team_abbr");
-  const status           = pickField(meta, "status") || pickField(meta, "status_full") || null;
-  const image_url        = pickField(meta, "image_url");
+  const player_key = pickField(meta, "player_key");
+  const player_id = pickField(meta, "player_id");
+  const nameObj = pickField(meta, "name") || {};
+  const editorialTeamAbbr = pickField(meta, "editorial_team_abbr");
+  const status = pickField(meta, "status") || pickField(meta, "status_full") || null;
+  const image_url = pickField(meta, "image_url");
   // Yahoo marks a player whose game has started (or whose lineup is otherwise frozen) is_editable 0.
-  const editable         = pickField(meta, "is_editable") ?? playerNode[1]?.is_editable;
-  const eligibleArr      = pickField(meta, "eligible_positions") || [];
-  const eligible_positions = eligibleArr
-    .map(p => p?.position)
-    .filter(Boolean);
+  const editable = pickField(meta, "is_editable") ?? playerNode[1]?.is_editable;
+  const eligibleArr = pickField(meta, "eligible_positions") || [];
+  const eligible_positions = eligibleArr.map((p) => p?.position).filter(Boolean);
 
   // selected_position is in playerNode[1]
   const selSlot = playerNode[1]?.selected_position;
-  const selected_position = Array.isArray(selSlot)
-    ? pickField(selSlot, "position")
-    : selSlot?.position;
+  const selected_position = Array.isArray(selSlot) ? pickField(selSlot, "position") : selSlot?.position;
 
   // Primary position: first non-bench eligible slot, fallback to selected
-  const primary_position = eligible_positions.find(p => !BENCH_SLOTS.has(p) && !IR_SLOTS.has(p))
-                         || selected_position
-                         || "UNK";
+  const primary_position =
+    eligible_positions.find((p) => !BENCH_SLOTS.has(p) && !IR_SLOTS.has(p)) || selected_position || "UNK";
 
   return {
     player_key,
     player_id,
-    name:               nameObj.full || `${nameObj.first || ""} ${nameObj.last || ""}`.trim() || "Unknown",
-    position:           primary_position,
+    name: nameObj.full || `${nameObj.first || ""} ${nameObj.last || ""}`.trim() || "Unknown",
+    position: primary_position,
     eligible_positions,
     selected_position,
-    team:               editorialTeamAbbr || null,
-    opponent:           null,           // filled by matchup agent later
+    team: editorialTeamAbbr || null,
+    opponent: null, // filled by matchup agent later
     status,
-    projected_points:   null,           // filled by stats fetch later
-    actual_points:      null,
+    projected_points: null, // filled by stats fetch later
+    actual_points: null,
     image_url,
-    is_starter:         !BENCH_SLOTS.has(selected_position) && !IR_SLOTS.has(selected_position),
+    is_starter: !BENCH_SLOTS.has(selected_position) && !IR_SLOTS.has(selected_position),
     ...(editable == null ? {} : { is_editable: String(editable) !== "0" }),
   };
 }
@@ -112,7 +105,7 @@ function normalizePlayer(playerNode) {
 function normalizeYahooRoster(yahooResponse, week) {
   const teamNode = yahooResponse?.fantasy_content?.team;
   // teamNode[1].roster.0.players  -> {0: {...}, 1: {...}, count: N}
-  const players  = teamNode?.[1]?.roster?.["0"]?.players || teamNode?.[1]?.roster?.players;
+  const players = teamNode?.[1]?.roster?.["0"]?.players || teamNode?.[1]?.roster?.players;
   if (!players) {
     logger.warn("Yahoo roster: no players node", { week });
     return { week, slots: { starters: [], bench: [], ir: [] } };
@@ -124,7 +117,7 @@ function normalizeYahooRoster(yahooResponse, week) {
     const node = players[k]?.player;
     const norm = normalizePlayer(node);
     if (!norm) continue;
-    if (IR_SLOTS.has(norm.selected_position))      out.ir.push(norm);
+    if (IR_SLOTS.has(norm.selected_position)) out.ir.push(norm);
     else if (BENCH_SLOTS.has(norm.selected_position)) out.bench.push(norm);
     else out.starters.push(norm);
   }
@@ -146,8 +139,19 @@ async function fetchAndNormalizeRoster(yahoo, leagueKey, week, cacheKey) {
       const parsed = typeof cached === "string" ? JSON.parse(cached) : cached;
       if (isProjectionKillSwitchOn() && parsed?.slots) {
         // The kill switch must work now, not when this entry expires.
-        stripYahooProjections([...(parsed.slots.starters || []), ...(parsed.slots.bench || []), ...(parsed.slots.ir || [])]);
-        parsed.projection_meta = { available: false, source: "sleeper_public_projections", scoring_basis: null, players_total: 0, players_with_projection: 0, reason: "disabled" };
+        stripYahooProjections([
+          ...(parsed.slots.starters || []),
+          ...(parsed.slots.bench || []),
+          ...(parsed.slots.ir || []),
+        ]);
+        parsed.projection_meta = {
+          available: false,
+          source: "sleeper_public_projections",
+          scoring_basis: null,
+          players_total: 0,
+          players_with_projection: 0,
+          reason: "disabled",
+        };
       }
       return { ...parsed, source: "cache" };
     }
@@ -159,15 +163,15 @@ async function fetchAndNormalizeRoster(yahoo, leagueKey, week, cacheKey) {
   }
 
   const effectiveWeek = week || (await yahoo.getCurrentWeek(leagueKey));
-  const raw           = await yahoo.getRoster(teamKey, effectiveWeek);
-  const normalized    = normalizeYahooRoster(raw, effectiveWeek);
-  normalized.team_key  = teamKey;
+  const raw = await yahoo.getRoster(teamKey, effectiveWeek);
+  const normalized = normalizeYahooRoster(raw, effectiveWeek);
+  normalized.team_key = teamKey;
   normalized.league_key = leagueKey;
   // Yahoo carries no projection of its own; fill it from Sleeper's public stat lines scored with this
   // league's rules (yahooProjections.js). Best effort and bounded: it never fails the roster read.
   normalized.projection_meta = await enrichYahooPlayers(
     [...normalized.slots.starters, ...normalized.slots.bench, ...normalized.slots.ir],
-    { client: yahoo, leagueKey, week: effectiveWeek }
+    { client: yahoo, leagueKey, week: effectiveWeek },
   );
 
   if (cacheKey && redis) {
@@ -196,24 +200,23 @@ function normalizeYahooWaivers(yahooResponse) {
     const meta = Array.isArray(node) ? node[0] : null;
     if (!meta) continue;
 
-    const name              = pickField(meta, "name") || {};
-    const eligibleArr       = pickField(meta, "eligible_positions") || [];
-    const eligible_positions = eligibleArr.map(p => p?.position).filter(Boolean);
-    const primary_position  = eligible_positions.find(p => !BENCH_SLOTS.has(p) && !IR_SLOTS.has(p))
-                            || eligible_positions[0]
-                            || "UNK";
+    const name = pickField(meta, "name") || {};
+    const eligibleArr = pickField(meta, "eligible_positions") || [];
+    const eligible_positions = eligibleArr.map((p) => p?.position).filter(Boolean);
+    const primary_position =
+      eligible_positions.find((p) => !BENCH_SLOTS.has(p) && !IR_SLOTS.has(p)) || eligible_positions[0] || "UNK";
 
     out.push({
-      player_key:        pickField(meta, "player_key"),
-      player_id:         pickField(meta, "player_id"),
-      name:              name.full || `${name.first || ""} ${name.last || ""}`.trim() || "Unknown",
-      position:          primary_position,
+      player_key: pickField(meta, "player_key"),
+      player_id: pickField(meta, "player_id"),
+      name: name.full || `${name.first || ""} ${name.last || ""}`.trim() || "Unknown",
+      position: primary_position,
       eligible_positions,
-      team:              pickField(meta, "editorial_team_abbr") || null,
-      status:            pickField(meta, "status") || null,
+      team: pickField(meta, "editorial_team_abbr") || null,
+      status: pickField(meta, "status") || null,
       // Yahoo doesn't include projections in the basic players;status=A response.
       // Filled by stats sub-resource later (see TODO).
-      projected_points:  null,
+      projected_points: null,
     });
   }
   return out;

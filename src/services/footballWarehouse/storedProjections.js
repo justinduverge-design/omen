@@ -49,13 +49,22 @@ function isEnabled(env) {
 }
 
 function createStoredProjectionReader({ env = process.env, now = Date.now, getRuntime, logger } = {}) {
-  const log = (event) => { try { logger?.info?.("Football warehouse stored projections", event); } catch { /* logging never throws */ } };
+  const log = (event) => {
+    try {
+      logger?.info?.("Football warehouse stored projections", event);
+    } catch {
+      /* logging never throws */
+    }
+  };
   const memo = new Map(); // "season:week" -> { promise, expires }
 
   async function load({ season, week, runtime }) {
     try {
       const stored = await runtime.projectionRepository.readWeek({ source: "sleeper", season, week });
-      if (!stored) { log({ event: "stored_projections", outcome: "missing", mode: runtime.mode, season, week }); return null; }
+      if (!stored) {
+        log({ event: "stored_projections", outcome: "missing", mode: runtime.mode, season, week });
+        return null;
+      }
       if (stored.rows.length < MIN_PLAYERS) {
         log({ event: "stored_projections", outcome: "incomplete", mode: runtime.mode, season, week });
         return null;
@@ -74,7 +83,11 @@ function createStoredProjectionReader({ env = process.env, now = Date.now, getRu
     async readSleeperWeek({ season, week }) {
       if (!isEnabled(env)) return null;
       let runtime;
-      try { runtime = typeof getRuntime === "function" ? getRuntime() : null; } catch { runtime = null; }
+      try {
+        runtime = typeof getRuntime === "function" ? getRuntime() : null;
+      } catch {
+        runtime = null;
+      }
       if (!runtime?.enabled || !runtime.projectionRepository || runtime.mode === "supabase") return null;
 
       const key = `${season}:${week}`;
@@ -113,8 +126,15 @@ function getStoredProjectionReader({ logger } = {}) {
   return shared;
 }
 
-function _reset() { shared = undefined; }
+function _reset() {
+  shared = undefined;
+}
 
 module.exports = {
-  DEFAULT_MAX_AGE_HOURS, MIN_PLAYERS, createStoredProjectionReader, getStoredProjectionReader, isEnabled, _reset,
+  DEFAULT_MAX_AGE_HOURS,
+  MIN_PLAYERS,
+  createStoredProjectionReader,
+  getStoredProjectionReader,
+  isEnabled,
+  _reset,
 };

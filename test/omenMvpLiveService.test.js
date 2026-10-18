@@ -27,9 +27,7 @@ class FakeQuery {
   }
 
   applyFilters() {
-    return this.rows.filter((row) =>
-      this.filters.every(({ field, value }) => row[field] === value)
-    );
+    return this.rows.filter((row) => this.filters.every(({ field, value }) => row[field] === value));
   }
 }
 
@@ -121,58 +119,67 @@ function loadOmenService({
       return {
         fetchAndNormalizeRoster: async (client, leagueId, week, cacheKey) => {
           state.rosterCalls.push({ client, leagueId, week, cacheKey });
-          return roster || {
-            week: 8,
-            team_key: "414.t.7",
-            source: "yahoo",
-            slots: {
-              starters: [{
-                player_key: "starter-1",
-                name: "Starter Wideout",
-                position: "WR",
-                eligible_positions: ["WR"],
-                selected_position: "WR",
-                team: "DAL",
-                status: "",
-                projected_points: 10,
-              }],
-              bench: [{
-                player_key: "bench-1",
-                name: "Bench Breakout",
-                position: "WR",
-                eligible_positions: ["WR"],
-                selected_position: "BN",
-                team: "PHI",
-                status: "",
-                projected_points: 14,
-              }],
-              ir: [],
-            },
-          };
+          return (
+            roster || {
+              week: 8,
+              team_key: "414.t.7",
+              source: "yahoo",
+              slots: {
+                starters: [
+                  {
+                    player_key: "starter-1",
+                    name: "Starter Wideout",
+                    position: "WR",
+                    eligible_positions: ["WR"],
+                    selected_position: "WR",
+                    team: "DAL",
+                    status: "",
+                    projected_points: 10,
+                  },
+                ],
+                bench: [
+                  {
+                    player_key: "bench-1",
+                    name: "Bench Breakout",
+                    position: "WR",
+                    eligible_positions: ["WR"],
+                    selected_position: "BN",
+                    team: "PHI",
+                    status: "",
+                    projected_points: 14,
+                  },
+                ],
+                ir: [],
+              },
+            }
+          );
         },
         normalizeYahooWaivers: () => waiverPool || [],
       };
     }
     if (!realOptimizer && request === "./optimizer" && parent?.filename === servicePath) {
       return {
-        evaluateLineup: () => swaps || [{
-          slot: "WR",
-          from: {
-            player_key: "starter-1",
-            name: "Starter Wideout",
-            status: "",
-            projected: 10,
-          },
-          to: {
-            player_key: "bench-1",
-            name: "Bench Breakout",
-            status: "",
-            projected: 14,
-          },
-          delta: 4,
-          confidence: 82,
-          reasoning: "Bench Breakout projects 4.00 pts higher than Starter Wideout",
-        }],
+        evaluateLineup: () =>
+          swaps || [
+            {
+              slot: "WR",
+              from: {
+                player_key: "starter-1",
+                name: "Starter Wideout",
+                status: "",
+                projected: 10,
+              },
+              to: {
+                player_key: "bench-1",
+                name: "Bench Breakout",
+                status: "",
+                projected: 14,
+              },
+              delta: 4,
+              confidence: 82,
+              reasoning: "Bench Breakout projects 4.00 pts higher than Starter Wideout",
+            },
+          ],
       };
     }
     if (request === "./nflSchedule" && parent?.filename === servicePath) {
@@ -206,34 +213,40 @@ function loadOmenService({
         },
         buildNormalizedRoster: async (leagueId, username, week) => {
           state.sleeperCalls.push({ leagueId, username, week });
-          return sleeperRoster || {
-            week,
-            team_key: "sleeper-roster-7",
-            source: "sleeper",
-            slots: {
-              starters: [{
-                player_key: "starter-1",
-                name: "Starter Wideout",
-                position: "WR",
-                eligible_positions: ["WR"],
-                selected_position: "WR",
-                team: "DAL",
-                status: "",
-                projected_points: 10,
-              }],
-              bench: [{
-                player_key: "bench-1",
-                name: "Bench Breakout",
-                position: "WR",
-                eligible_positions: ["WR"],
-                selected_position: "BN",
-                team: "PHI",
-                status: "",
-                projected_points: 14,
-              }],
-              ir: [],
-            },
-          };
+          return (
+            sleeperRoster || {
+              week,
+              team_key: "sleeper-roster-7",
+              source: "sleeper",
+              slots: {
+                starters: [
+                  {
+                    player_key: "starter-1",
+                    name: "Starter Wideout",
+                    position: "WR",
+                    eligible_positions: ["WR"],
+                    selected_position: "WR",
+                    team: "DAL",
+                    status: "",
+                    projected_points: 10,
+                  },
+                ],
+                bench: [
+                  {
+                    player_key: "bench-1",
+                    name: "Bench Breakout",
+                    position: "WR",
+                    eligible_positions: ["WR"],
+                    selected_position: "BN",
+                    team: "PHI",
+                    status: "",
+                    projected_points: 14,
+                  },
+                ],
+                ir: [],
+              },
+            }
+          );
         },
       };
     }
@@ -241,34 +254,40 @@ function loadOmenService({
       return {
         buildNormalizedRoster: async (leagueId, espnS2, swid, week, opts) => {
           state.espnCalls.push({ leagueId, espnS2, swid, week, opts });
-          return espnRoster || {
-            week,
-            team_key: "7",
-            source: "espn",
-            slots: {
-              starters: [{
-                player_key: "starter-1",
-                name: "Starter Wideout",
-                position: "WR",
-                eligible_positions: ["WR"],
-                selected_position: "WR",
-                team: "DAL",
-                status: "",
-                projected_points: 10,
-              }],
-              bench: [{
-                player_key: "bench-1",
-                name: "Bench Breakout",
-                position: "WR",
-                eligible_positions: ["WR"],
-                selected_position: "BN",
-                team: "PHI",
-                status: "",
-                projected_points: 14,
-              }],
-              ir: [],
-            },
-          };
+          return (
+            espnRoster || {
+              week,
+              team_key: "7",
+              source: "espn",
+              slots: {
+                starters: [
+                  {
+                    player_key: "starter-1",
+                    name: "Starter Wideout",
+                    position: "WR",
+                    eligible_positions: ["WR"],
+                    selected_position: "WR",
+                    team: "DAL",
+                    status: "",
+                    projected_points: 10,
+                  },
+                ],
+                bench: [
+                  {
+                    player_key: "bench-1",
+                    name: "Bench Breakout",
+                    position: "WR",
+                    eligible_positions: ["WR"],
+                    selected_position: "BN",
+                    team: "PHI",
+                    status: "",
+                    projected_points: 14,
+                  },
+                ],
+                ir: [],
+              },
+            }
+          );
         },
         fetchEspnWaiverPool: async (leagueId, espnS2, swid, week) => {
           state.espnWaiverCalls.push({ leagueId, espnS2, swid, week });
@@ -347,13 +366,15 @@ test("buildLiveOmenMvpMoveForUser returns platform_disconnected without platform
 test("buildLiveOmenMvpMoveForUser returns off_season before platform adapter calls", async () => {
   const { service, state } = loadOmenService({
     offSeason: true,
-    connections: [{
-      user_id: "user-1",
-      platform: "sleeper",
-      is_active: true,
-      league_id: "sleeper-league-1",
-      platform_username: "sleepy",
-    }],
+    connections: [
+      {
+        user_id: "user-1",
+        platform: "sleeper",
+        is_active: true,
+        league_id: "sleeper-league-1",
+        platform_username: "sleepy",
+      },
+    ],
   });
   const result = await service.buildLiveOmenMvpMoveForUser("user-1");
 
@@ -372,13 +393,15 @@ test("buildLiveOmenMvpMoveForUser returns off_season before platform adapter cal
 
 test("buildLiveOmenMvpMoveForUser maps Sleeper lineup swap into live omen_mvp_move envelope", async () => {
   const { service, state } = loadOmenService({
-    connections: [{
-      user_id: "user-1",
-      platform: "sleeper",
-      is_active: true,
-      league_id: "sleeper-league-1",
-      platform_username: "sleepy",
-    }],
+    connections: [
+      {
+        user_id: "user-1",
+        platform: "sleeper",
+        is_active: true,
+        league_id: "sleeper-league-1",
+        platform_username: "sleepy",
+      },
+    ],
   });
   const result = await service.buildLiveOmenMvpMoveForUser("user-1");
   assert.equal(result.body.league.scoring_format, null, "an uncaptured provider format must not default to PPR");
@@ -399,13 +422,15 @@ test("buildLiveOmenMvpMoveForUser maps Sleeper lineup swap into live omen_mvp_mo
 
 test("buildLiveOmenMvpMoveForUser returns a sanitized Sleeper trade only when both lineups improve", async () => {
   const { service, state } = loadOmenService({
-    connections: [{
-      user_id: "user-1",
-      platform: "sleeper",
-      is_active: true,
-      league_id: "sleeper-league-1",
-      platform_username: "sleepy",
-    }],
+    connections: [
+      {
+        user_id: "user-1",
+        platform: "sleeper",
+        is_active: true,
+        league_id: "sleeper-league-1",
+        platform_username: "sleepy",
+      },
+    ],
     swaps: [],
     sleeperLeagueRosters: {
       roster_positions: ["RB", "RB", "WR"],
@@ -414,20 +439,76 @@ test("buildLiveOmenMvpMoveForUser returns a sanitized Sleeper trade only when bo
           roster_id: "sleeper-roster-7",
           team_name: "North Stars",
           players: [
-            { player_key: "my-rb", player_id: "my-rb", name: "My RB", position: "RB", eligible_positions: ["RB"], projected_points: 18 },
-            { player_key: "rb-one", player_id: "rb-one", name: "RB One", position: "RB", eligible_positions: ["RB"], projected_points: 20 },
-            { player_key: "rb-two", player_id: "rb-two", name: "RB Two", position: "RB", eligible_positions: ["RB"], projected_points: 19 },
-            { player_key: "low-wr", player_id: "low-wr", name: "Low WR", position: "WR", eligible_positions: ["WR"], projected_points: 5 },
+            {
+              player_key: "my-rb",
+              player_id: "my-rb",
+              name: "My RB",
+              position: "RB",
+              eligible_positions: ["RB"],
+              projected_points: 18,
+            },
+            {
+              player_key: "rb-one",
+              player_id: "rb-one",
+              name: "RB One",
+              position: "RB",
+              eligible_positions: ["RB"],
+              projected_points: 20,
+            },
+            {
+              player_key: "rb-two",
+              player_id: "rb-two",
+              name: "RB Two",
+              position: "RB",
+              eligible_positions: ["RB"],
+              projected_points: 19,
+            },
+            {
+              player_key: "low-wr",
+              player_id: "low-wr",
+              name: "Low WR",
+              position: "WR",
+              eligible_positions: ["WR"],
+              projected_points: 5,
+            },
           ],
         },
         {
           roster_id: "other-roster",
           team_name: "South Stars",
           players: [
-            { player_key: "their-wr", player_id: "their-wr", name: "Their WR", position: "WR", eligible_positions: ["WR"], projected_points: 12 },
-            { player_key: "wr-one", player_id: "wr-one", name: "WR One", position: "WR", eligible_positions: ["WR"], projected_points: 20 },
-            { player_key: "wr-two", player_id: "wr-two", name: "WR Two", position: "WR", eligible_positions: ["WR"], projected_points: 19 },
-            { player_key: "low-rb", player_id: "low-rb", name: "Low RB", position: "RB", eligible_positions: ["RB"], projected_points: 5 },
+            {
+              player_key: "their-wr",
+              player_id: "their-wr",
+              name: "Their WR",
+              position: "WR",
+              eligible_positions: ["WR"],
+              projected_points: 12,
+            },
+            {
+              player_key: "wr-one",
+              player_id: "wr-one",
+              name: "WR One",
+              position: "WR",
+              eligible_positions: ["WR"],
+              projected_points: 20,
+            },
+            {
+              player_key: "wr-two",
+              player_id: "wr-two",
+              name: "WR Two",
+              position: "WR",
+              eligible_positions: ["WR"],
+              projected_points: 19,
+            },
+            {
+              player_key: "low-rb",
+              player_id: "low-rb",
+              name: "Low RB",
+              position: "RB",
+              eligible_positions: ["RB"],
+              projected_points: 5,
+            },
           ],
         },
       ],
@@ -448,31 +529,38 @@ test("buildLiveOmenMvpMoveForUser returns a sanitized Sleeper trade only when bo
   assert.equal(structured.receive.length, 1);
   assert.equal(
     result.body.recommendation.move,
-    `Offer ${structured.give[0].name} to ${structured.partner_team_name} for ${structured.receive[0].name}.`
+    `Offer ${structured.give[0].name} to ${structured.partner_team_name} for ${structured.receive[0].name}.`,
   );
   const { comparison_player: giveP, primary_player: receiveP } = result.body.recommendation;
   assert.deepEqual(structured.give[0], { name: giveP.name, position: giveP.position, player_key: giveP.id });
-  assert.deepEqual(structured.receive[0], { name: receiveP.name, position: receiveP.position, player_key: receiveP.id });
+  assert.deepEqual(structured.receive[0], {
+    name: receiveP.name,
+    position: receiveP.position,
+    player_key: receiveP.id,
+  });
   assert.deepEqual(state.sleeperLeagueRosterCalls, [{ leagueId: "sleeper-league-1", week: 8, season: "2026" }]);
 });
 
 test("buildLiveOmenMvpMoveForUser uses the owned selected context instead of provider priority", async () => {
   const { service, state } = loadOmenService({
-    connections: [{
-      id: "context-yahoo",
-      user_id: "user-1",
-      platform: "yahoo",
-      is_active: true,
-      league_id: "414.l.12345",
-      token_secret_id: "secret-id",
-    }, {
-      id: "context-sleeper",
-      user_id: "user-1",
-      platform: "sleeper",
-      is_active: true,
-      league_id: "sleeper-league-2",
-      platform_username: "sleepy",
-    }],
+    connections: [
+      {
+        id: "context-yahoo",
+        user_id: "user-1",
+        platform: "yahoo",
+        is_active: true,
+        league_id: "414.l.12345",
+        token_secret_id: "secret-id",
+      },
+      {
+        id: "context-sleeper",
+        user_id: "user-1",
+        platform: "sleeper",
+        is_active: true,
+        league_id: "sleeper-league-2",
+        platform_username: "sleepy",
+      },
+    ],
   });
 
   const result = await service.buildLiveOmenMvpMoveForUser("user-1", {
@@ -483,20 +571,25 @@ test("buildLiveOmenMvpMoveForUser uses the owned selected context instead of pro
   assertLiveEnvelope(result.body, "success");
   assert.equal(result.body.platform.name, "sleeper");
   assert.equal(result.body.league.id, "sleeper-league-2");
-  assert.deepEqual(state.sleeperCalls.map((call) => call.leagueId), ["sleeper-league-2"]);
+  assert.deepEqual(
+    state.sleeperCalls.map((call) => call.leagueId),
+    ["sleeper-league-2"],
+  );
   assert.deepEqual(state.yahooCalls, []);
 });
 
 test("buildLiveOmenMvpMoveForUser fails closed when the selected context is unavailable", async () => {
   const { service, state } = loadOmenService({
-    connections: [{
-      id: "context-yahoo",
-      user_id: "user-1",
-      platform: "yahoo",
-      is_active: true,
-      league_id: "414.l.12345",
-      token_secret_id: "secret-id",
-    }],
+    connections: [
+      {
+        id: "context-yahoo",
+        user_id: "user-1",
+        platform: "yahoo",
+        is_active: true,
+        league_id: "414.l.12345",
+        token_secret_id: "secret-id",
+      },
+    ],
   });
 
   const result = await service.buildLiveOmenMvpMoveForUser("user-1", {
@@ -515,12 +608,14 @@ test("buildLiveOmenMvpMoveForUser fails closed when the selected context is unav
 
 test("buildLiveOmenMvpMoveForUser keeps Yahoo pending when the token is not usable", async () => {
   const { service, state } = loadOmenService({
-    connections: [{
-      user_id: "user-1",
-      platform: "yahoo",
-      is_active: true,
-      league_id: "414.l.12345",
-    }],
+    connections: [
+      {
+        user_id: "user-1",
+        platform: "yahoo",
+        is_active: true,
+        league_id: "414.l.12345",
+      },
+    ],
   });
   const result = await service.buildLiveOmenMvpMoveForUser("user-1");
 
@@ -537,13 +632,15 @@ test("buildLiveOmenMvpMoveForUser keeps Yahoo pending when the token is not usab
 
 test("buildLiveOmenMvpMoveForUser maps Yahoo lineup swap into omen_mvp_move envelope", async () => {
   const { service, state } = loadOmenService({
-    connections: [{
-      user_id: "user-1",
-      platform: "yahoo",
-      is_active: true,
-      league_id: "414.l.12345",
-      token_secret_id: "secret-id",
-    }],
+    connections: [
+      {
+        user_id: "user-1",
+        platform: "yahoo",
+        is_active: true,
+        league_id: "414.l.12345",
+        token_secret_id: "secret-id",
+      },
+    ],
   });
   const result = await service.buildLiveOmenMvpMoveForUser("user-1");
 
@@ -568,13 +665,15 @@ test("buildLiveOmenMvpMoveForUser maps Yahoo lineup swap into omen_mvp_move enve
 
 test("buildLiveOmenMvpMoveForUser returns empty state when Yahoo has no lineup edge", async () => {
   const { service } = loadOmenService({
-    connections: [{
-      user_id: "user-1",
-      platform: "yahoo",
-      is_active: true,
-      league_id: "414.l.12345",
-      token_secret_id: "secret-id",
-    }],
+    connections: [
+      {
+        user_id: "user-1",
+        platform: "yahoo",
+        is_active: true,
+        league_id: "414.l.12345",
+        token_secret_id: "secret-id",
+      },
+    ],
     swaps: [],
   });
   const result = await service.buildLiveOmenMvpMoveForUser("user-1");
@@ -592,43 +691,49 @@ test("buildLiveOmenMvpMoveForUser returns empty state when Yahoo has no lineup e
 
 test("buildLiveOmenMvpMoveForUser returns a Yahoo waiver pickup from the selected live context", async () => {
   const { service, state } = loadOmenService({
-    connections: [{
-      id: "context-yahoo-waiver",
-      user_id: "user-1",
-      platform: "yahoo",
-      is_active: true,
-      league_id: "414.l.waiver",
-      token_secret_id: "secret-id",
-    }],
+    connections: [
+      {
+        id: "context-yahoo-waiver",
+        user_id: "user-1",
+        platform: "yahoo",
+        is_active: true,
+        league_id: "414.l.waiver",
+        token_secret_id: "secret-id",
+      },
+    ],
     roster: {
       week: 8,
       team_key: "414.t.7",
       source: "yahoo",
       slots: {
-        starters: [{
-          player_key: "out-wr",
-          name: "Out Wideout",
-          position: "WR",
-          eligible_positions: ["WR"],
-          selected_position: "WR",
-          team: "DAL",
-          status: "OUT",
-          projected_points: 0,
-        }],
+        starters: [
+          {
+            player_key: "out-wr",
+            name: "Out Wideout",
+            position: "WR",
+            eligible_positions: ["WR"],
+            selected_position: "WR",
+            team: "DAL",
+            status: "OUT",
+            projected_points: 0,
+          },
+        ],
         bench: [],
         ir: [],
       },
     },
     swaps: [],
-    waiverPool: [{
-      player_key: "waiver-wr",
-      name: "Available Wideout",
-      position: "WR",
-      eligible_positions: ["WR"],
-      team: "PHI",
-      status: "",
-      projected_points: null,
-    }],
+    waiverPool: [
+      {
+        player_key: "waiver-wr",
+        name: "Available Wideout",
+        position: "WR",
+        eligible_positions: ["WR"],
+        team: "PHI",
+        status: "",
+        projected_points: null,
+      },
+    ],
   });
 
   const result = await service.buildLiveOmenMvpMoveForUser("user-1", {
@@ -643,35 +748,44 @@ test("buildLiveOmenMvpMoveForUser returns a Yahoo waiver pickup from the selecte
   assert.equal(result.body.recommendation.expected_value_delta.points, null);
   assert.equal(result.body.signals.waivers.status, "live");
   assert.equal(result.body.signals.waivers.used, true);
-  assert.deepEqual(state.rosterCalls.map((call) => call.leagueId), ["414.l.waiver"]);
-  assert.deepEqual(state.waiverCalls, [{
-    leagueId: "414.l.waiver",
-    opts: { count: 50, sort: "AR" },
-  }]);
+  assert.deepEqual(
+    state.rosterCalls.map((call) => call.leagueId),
+    ["414.l.waiver"],
+  );
+  assert.deepEqual(state.waiverCalls, [
+    {
+      leagueId: "414.l.waiver",
+      opts: { count: 50, sort: "AR" },
+    },
+  ]);
 });
 
 test("buildLiveOmenMvpMoveForUser fails closed when Yahoo waiver data is unavailable", async () => {
   const { service, state } = loadOmenService({
-    connections: [{
-      id: "context-yahoo-waiver",
-      user_id: "user-1",
-      platform: "yahoo",
-      is_active: true,
-      league_id: "414.l.waiver",
-      token_secret_id: "secret-id",
-    }],
+    connections: [
+      {
+        id: "context-yahoo-waiver",
+        user_id: "user-1",
+        platform: "yahoo",
+        is_active: true,
+        league_id: "414.l.waiver",
+        token_secret_id: "secret-id",
+      },
+    ],
     roster: {
       week: 8,
       team_key: "414.t.7",
       source: "yahoo",
       slots: {
-        starters: [{
-          player_key: "out-wr",
-          name: "Out Wideout",
-          position: "WR",
-          status: "OUT",
-          projected_points: 0,
-        }],
+        starters: [
+          {
+            player_key: "out-wr",
+            name: "Out Wideout",
+            position: "WR",
+            status: "OUT",
+            projected_points: 0,
+          },
+        ],
         bench: [],
         ir: [],
       },
@@ -691,34 +805,40 @@ test("buildLiveOmenMvpMoveForUser fails closed when Yahoo waiver data is unavail
   assert.equal(result.body.signals.waivers.status, "unavailable");
   assert.equal(result.body.signals.waivers.used, false);
   assert.equal(result.body.signals.waivers.source, "yahoo_available_players");
-  assert.deepEqual(state.waiverCalls, [{
-    leagueId: "414.l.waiver",
-    opts: { count: 50, sort: "AR" },
-  }]);
+  assert.deepEqual(state.waiverCalls, [
+    {
+      leagueId: "414.l.waiver",
+      opts: { count: 50, sort: "AR" },
+    },
+  ]);
 });
 
 test("buildLiveOmenMvpMoveForUser does not fetch Yahoo waivers without an unavailable starter", async () => {
   const { service, state } = loadOmenService({
-    connections: [{
-      id: "context-yahoo-no-waiver-need",
-      user_id: "user-1",
-      platform: "yahoo",
-      is_active: true,
-      league_id: "414.l.no-waiver-need",
-      token_secret_id: "secret-id",
-    }],
+    connections: [
+      {
+        id: "context-yahoo-no-waiver-need",
+        user_id: "user-1",
+        platform: "yahoo",
+        is_active: true,
+        league_id: "414.l.no-waiver-need",
+        token_secret_id: "secret-id",
+      },
+    ],
     roster: {
       week: 8,
       team_key: "414.t.7",
       source: "yahoo",
       slots: {
-        starters: [{
-          player_key: "healthy-wr",
-          name: "Healthy Wideout",
-          position: "WR",
-          status: "",
-          projected_points: 12,
-        }],
+        starters: [
+          {
+            player_key: "healthy-wr",
+            name: "Healthy Wideout",
+            position: "WR",
+            status: "",
+            projected_points: 12,
+          },
+        ],
         bench: [],
         ir: [],
       },
@@ -738,15 +858,17 @@ test("buildLiveOmenMvpMoveForUser does not fetch Yahoo waivers without an unavai
 
 test("buildLiveOmenMvpMoveForUser maps ESPN lineup swap into live omen_mvp_move envelope", async () => {
   const { service, state } = loadOmenService({
-    connections: [{
-      user_id: "user-1",
-      platform: "espn",
-      is_active: true,
-      league_id: "12345",
-      espn_secret_id: "espnSecret",
-      swid_secret_id: "swidSecret",
-      espn_team_id: "7",
-    }],
+    connections: [
+      {
+        user_id: "user-1",
+        platform: "espn",
+        is_active: true,
+        league_id: "12345",
+        espn_secret_id: "espnSecret",
+        swid_secret_id: "swidSecret",
+        espn_team_id: "7",
+      },
+    ],
   });
   const result = await service.buildLiveOmenMvpMoveForUser("user-1");
 
@@ -763,7 +885,8 @@ test("buildLiveOmenMvpMoveForUser maps ESPN lineup swap into live omen_mvp_move 
     status: "unavailable",
     used: false,
     source: "provider_restricted",
-    message: "Omen may recognize some league settings, but cannot yet verify every scoring rule and final ESPN result for this league. Any point-based guidance is not an exact final-score calculation.",
+    message:
+      "Omen may recognize some league settings, but cannot yet verify every scoring rule and final ESPN result for this league. Any point-based guidance is not an exact final-score calculation.",
   });
   Object.values(result.body.signals).forEach(assertSignal);
   assert.deepEqual(state.vaultCalls, ["espnSecret", "swidSecret"]);
@@ -805,16 +928,18 @@ test("buildLiveOmenMvpMoveForUser returns an ESPN waiver pickup only from the se
       team_key: "7",
       source: "espn",
       slots: {
-        starters: [{
-          player_key: "espn:out-wr",
-          name: "Out ESPN Wideout",
-          position: "WR",
-          eligible_positions: ["WR"],
-          selected_position: "WR",
-          team: "DAL",
-          status: "OUT",
-          projected_points: 0,
-        }],
+        starters: [
+          {
+            player_key: "espn:out-wr",
+            name: "Out ESPN Wideout",
+            position: "WR",
+            eligible_positions: ["WR"],
+            selected_position: "WR",
+            team: "DAL",
+            status: "OUT",
+            projected_points: 0,
+          },
+        ],
         bench: [],
         ir: [],
       },
@@ -861,43 +986,50 @@ test("buildLiveOmenMvpMoveForUser returns an ESPN waiver pickup only from the se
   assert.equal(result.body.signals.waivers.used, true);
   assert.equal(result.body.signals.waivers.source, "espn_available_players");
   assert.deepEqual(state.vaultCalls, ["selectedEspnSecret", "selectedSwidSecret"]);
-  assert.deepEqual(state.espnCalls.map((call) => ({ leagueId: call.leagueId, teamId: call.opts.teamId })), [
-    { leagueId: "22222", teamId: "7" },
+  assert.deepEqual(
+    state.espnCalls.map((call) => ({ leagueId: call.leagueId, teamId: call.opts.teamId })),
+    [{ leagueId: "22222", teamId: "7" }],
+  );
+  assert.deepEqual(state.espnWaiverCalls, [
+    {
+      leagueId: "22222",
+      espnS2: "selected-espn-s2",
+      swid: "{selected-swid}",
+      week: 8,
+    },
   ]);
-  assert.deepEqual(state.espnWaiverCalls, [{
-    leagueId: "22222",
-    espnS2: "selected-espn-s2",
-    swid: "{selected-swid}",
-    week: 8,
-  }]);
 });
 
 test("buildLiveOmenMvpMoveForUser reports ESPN waiver data unavailable without inventing advice", async () => {
   const { service, state } = loadOmenService({
-    connections: [{
-      id: "context-espn-waiver",
-      user_id: "user-1",
-      platform: "espn",
-      is_active: true,
-      league_id: "22222",
-      espn_secret_id: "espnSecret",
-      swid_secret_id: "swidSecret",
-      espn_team_id: "7",
-    }],
+    connections: [
+      {
+        id: "context-espn-waiver",
+        user_id: "user-1",
+        platform: "espn",
+        is_active: true,
+        league_id: "22222",
+        espn_secret_id: "espnSecret",
+        swid_secret_id: "swidSecret",
+        espn_team_id: "7",
+      },
+    ],
     espnRoster: {
       week: 8,
       team_key: "7",
       source: "espn",
       slots: {
-        starters: [{
-          player_key: "espn:out-wr",
-          name: "Out ESPN Wideout",
-          position: "WR",
-          eligible_positions: ["WR"],
-          selected_position: "WR",
-          status: "OUT",
-          projected_points: 0,
-        }],
+        starters: [
+          {
+            player_key: "espn:out-wr",
+            name: "Out ESPN Wideout",
+            position: "WR",
+            eligible_positions: ["WR"],
+            selected_position: "WR",
+            status: "OUT",
+            projected_points: 0,
+          },
+        ],
         bench: [],
         ir: [],
       },
@@ -922,30 +1054,34 @@ test("buildLiveOmenMvpMoveForUser reports ESPN waiver data unavailable without i
 
 test("buildLiveOmenMvpMoveForUser returns a live empty ESPN waiver result when no eligible replacement exists", async () => {
   const { service, state } = loadOmenService({
-    connections: [{
-      id: "context-espn-waiver",
-      user_id: "user-1",
-      platform: "espn",
-      is_active: true,
-      league_id: "22222",
-      espn_secret_id: "espnSecret",
-      swid_secret_id: "swidSecret",
-      espn_team_id: "7",
-    }],
+    connections: [
+      {
+        id: "context-espn-waiver",
+        user_id: "user-1",
+        platform: "espn",
+        is_active: true,
+        league_id: "22222",
+        espn_secret_id: "espnSecret",
+        swid_secret_id: "swidSecret",
+        espn_team_id: "7",
+      },
+    ],
     espnRoster: {
       week: 8,
       team_key: "7",
       source: "espn",
       slots: {
-        starters: [{
-          player_key: "espn:out-wr",
-          name: "Out ESPN Wideout",
-          position: "WR",
-          eligible_positions: ["WR"],
-          selected_position: "WR",
-          status: "OUT",
-          projected_points: 0,
-        }],
+        starters: [
+          {
+            player_key: "espn:out-wr",
+            name: "Out ESPN Wideout",
+            position: "WR",
+            eligible_positions: ["WR"],
+            selected_position: "WR",
+            status: "OUT",
+            projected_points: 0,
+          },
+        ],
         bench: [],
         ir: [],
       },
@@ -969,14 +1105,16 @@ test("buildLiveOmenMvpMoveForUser returns a live empty ESPN waiver result when n
 
 test("buildLiveOmenMvpMoveForUser returns ESPN reauth recovery when Vault secrets are missing", async () => {
   const { service, state } = loadOmenService({
-    connections: [{
-      user_id: "user-1",
-      platform: "espn",
-      is_active: true,
-      league_id: "12345",
-      espn_secret_id: "espnSecret",
-      swid_secret_id: "swidSecret",
-    }],
+    connections: [
+      {
+        user_id: "user-1",
+        platform: "espn",
+        is_active: true,
+        league_id: "12345",
+        espn_secret_id: "espnSecret",
+        swid_secret_id: "swidSecret",
+      },
+    ],
     vaultSecrets: {},
   });
   const result = await service.buildLiveOmenMvpMoveForUser("user-1");
@@ -1015,17 +1153,19 @@ function rosterWithOutStarter() {
     team_key: "sleeper-roster-7",
     source: "sleeper",
     slots: {
-      starters: [{
-        player_key: "sleeper:starter-1",
-        player_id: "starter-1",
-        name: "Injured Starter",
-        position: "WR",
-        eligible_positions: ["WR"],
-        selected_position: "WR",
-        team: "DAL",
-        status: "IR",
-        projected_points: 0,
-      }],
+      starters: [
+        {
+          player_key: "sleeper:starter-1",
+          player_id: "starter-1",
+          name: "Injured Starter",
+          position: "WR",
+          eligible_positions: ["WR"],
+          selected_position: "WR",
+          team: "DAL",
+          status: "IR",
+          projected_points: 0,
+        },
+      ],
       bench: [],
       ir: [],
     },
@@ -1067,8 +1207,26 @@ test("waiver pickup is offered when a starter is OUT and a same-position player 
     swaps: [],
     sleeperRoster: rosterWithOutStarter(),
     sleeperPool: [
-      { player_key: "sleeper:900", player_id: "900", name: "Available WR", position: "WR", eligible_positions: ["WR"], team: "SF", status: null, projected_points: 12.4 },
-      { player_key: "sleeper:901", player_id: "901", name: "Available QB", position: "QB", eligible_positions: ["QB"], team: "KC", status: null, projected_points: 22.1 },
+      {
+        player_key: "sleeper:900",
+        player_id: "900",
+        name: "Available WR",
+        position: "WR",
+        eligible_positions: ["WR"],
+        team: "SF",
+        status: null,
+        projected_points: 12.4,
+      },
+      {
+        player_key: "sleeper:901",
+        player_id: "901",
+        name: "Available QB",
+        position: "QB",
+        eligible_positions: ["QB"],
+        team: "KC",
+        status: null,
+        projected_points: 22.1,
+      },
     ],
   });
 
@@ -1089,7 +1247,16 @@ test("waiver pickup declines when the pool has no same-position player", async (
     swaps: [],
     sleeperRoster: rosterWithOutStarter(),
     sleeperPool: [
-      { player_key: "sleeper:901", player_id: "901", name: "Available QB", position: "QB", eligible_positions: ["QB"], team: "KC", status: null, projected_points: 22.1 },
+      {
+        player_key: "sleeper:901",
+        player_id: "901",
+        name: "Available QB",
+        position: "QB",
+        eligible_positions: ["QB"],
+        team: "KC",
+        status: null,
+        projected_points: 22.1,
+      },
     ],
   });
 
@@ -1110,7 +1277,16 @@ test("waiver pickup declines when no starter is OUT", async () => {
     swaps: [],
     sleeperRoster: healthy,
     sleeperPool: [
-      { player_key: "sleeper:900", player_id: "900", name: "Available WR", position: "WR", eligible_positions: ["WR"], team: "SF", status: null, projected_points: 99 },
+      {
+        player_key: "sleeper:900",
+        player_id: "900",
+        name: "Available WR",
+        position: "WR",
+        eligible_positions: ["WR"],
+        team: "SF",
+        status: null,
+        projected_points: 99,
+      },
     ],
   });
 
@@ -1129,7 +1305,16 @@ test("waiver pickup declines an available player with no projection", async () =
     swaps: [],
     sleeperRoster: rosterWithOutStarter(),
     sleeperPool: [
-      { player_key: "sleeper:900", player_id: "900", name: "Unprojected WR", position: "WR", eligible_positions: ["WR"], team: "SF", status: null, projected_points: null },
+      {
+        player_key: "sleeper:900",
+        player_id: "900",
+        name: "Unprojected WR",
+        position: "WR",
+        eligible_positions: ["WR"],
+        team: "SF",
+        status: null,
+        projected_points: null,
+      },
     ],
   });
 
@@ -1156,12 +1341,14 @@ test("a failed pool fetch degrades to empty, never to an error or invented advic
 test("waiver wiring does not change the Yahoo path", async () => {
   // Yahoo waiver is PR #211's scope and is gated on Yahoo API reapproval.
   const { service, state } = loadOmenService({
-    connections: [{
-      user_id: "user-1",
-      platform: "yahoo",
-      is_active: true,
-      league_id: "414.l.1",
-    }],
+    connections: [
+      {
+        user_id: "user-1",
+        platform: "yahoo",
+        is_active: true,
+        league_id: "414.l.1",
+      },
+    ],
     swaps: [],
   });
 
@@ -1207,7 +1394,16 @@ function rosterWithOutStarterAndSwap() {
 }
 
 const WAIVER_POOL_WR_12 = [
-  { player_key: "sleeper:900", player_id: "900", name: "Available WR", position: "WR", eligible_positions: ["WR"], team: "SF", status: null, projected_points: 12.4 },
+  {
+    player_key: "sleeper:900",
+    player_id: "900",
+    name: "Available WR",
+    position: "WR",
+    eligible_positions: ["WR"],
+    team: "SF",
+    status: null,
+    projected_points: 12.4,
+  },
 ];
 
 test("B2-D4 selects the waiver add when it out-scores the lineup swap", async () => {
@@ -1231,13 +1427,15 @@ test("B2-D4 selects the waiver add when it out-scores the lineup swap", async ()
 test("B2-D4 selects the lineup swap when it out-scores the waiver add", async () => {
   const { service } = loadOmenService({
     connections: [SLEEPER_CONNECTION],
-    swaps: [{
-      slot: "WR",
-      from: { player_key: "starter-1", name: "Starter Wideout", status: "", projected: 10 },
-      to: { player_key: "bench-1", name: "Bench Breakout", status: "", projected: 30 },
-      delta: 20,
-      confidence: 82,
-    }],
+    swaps: [
+      {
+        slot: "WR",
+        from: { player_key: "starter-1", name: "Starter Wideout", status: "", projected: 10 },
+        to: { player_key: "bench-1", name: "Bench Breakout", status: "", projected: 30 },
+        delta: 20,
+        confidence: 82,
+      },
+    ],
     sleeperRoster: rosterWithOutStarterAndSwap(),
     sleeperPool: WAIVER_POOL_WR_12,
   });
@@ -1251,11 +1449,12 @@ test("B2-D4 selects the lineup swap when it out-scores the waiver add", async ()
 test("B2-D4 selection does not depend on which type was generated first", async () => {
   // Same inputs, run twice. A deterministic selector returns the same type
   // both times; an order-dependent one can drift.
-  const build = () => loadOmenService({
-    connections: [SLEEPER_CONNECTION],
-    sleeperRoster: rosterWithOutStarterAndSwap(),
-    sleeperPool: WAIVER_POOL_WR_12,
-  });
+  const build = () =>
+    loadOmenService({
+      connections: [SLEEPER_CONNECTION],
+      sleeperRoster: rosterWithOutStarterAndSwap(),
+      sleeperPool: WAIVER_POOL_WR_12,
+    });
 
   const first = await build().service.buildLiveOmenMvpMoveForUser("user-1");
   const second = await build().service.buildLiveOmenMvpMoveForUser("user-1");
@@ -1286,7 +1485,16 @@ test("B2-D4 returns honest empty rather than substituting a type to fill the scr
     swaps: [],
     sleeperRoster: rosterWithOutStarter(),
     sleeperPool: [
-      { player_key: "sleeper:902", player_id: "902", name: "Unprojected WR", position: "WR", eligible_positions: ["WR"], team: "NYJ", status: null, projected_points: null },
+      {
+        player_key: "sleeper:902",
+        player_id: "902",
+        name: "Unprojected WR",
+        position: "WR",
+        eligible_positions: ["WR"],
+        team: "NYJ",
+        status: null,
+        projected_points: null,
+      },
     ],
   });
 
@@ -1298,9 +1506,15 @@ test("B2-D4 returns honest empty rather than substituting a type to fill the scr
 
 // ---- Usage corroboration of the Omen call (additive; any reader problem leaves today's response) ----
 
-const YAHOO_CONNECTION = [{
-  user_id: "user-1", platform: "yahoo", is_active: true, league_id: "414.l.12345", token_secret_id: "secret-id",
-}];
+const YAHOO_CONNECTION = [
+  {
+    user_id: "user-1",
+    platform: "yahoo",
+    is_active: true,
+    league_id: "414.l.12345",
+    token_secret_id: "secret-id",
+  },
+];
 
 async function runWithUsageReader(reader) {
   const { service } = loadOmenService({ connections: YAHOO_CONNECTION, realOptimizer: true });
@@ -1321,7 +1535,12 @@ test("a null, throwing, or hanging usage reader leaves the Omen call identical t
   const baseline = await runWithUsageReader(null);
   assert.equal(baseline.status, 200);
   assert.equal(baseline.body.recommendation.type, "start_sit");
-  const throwing = { mode: "shadow", read: async () => { throw new Error("warehouse down"); } };
+  const throwing = {
+    mode: "shadow",
+    read: async () => {
+      throw new Error("warehouse down");
+    },
+  };
   const hanging = { mode: "warehouse", read: () => new Promise(() => {}) };
   assert.deepEqual(await runWithUsageReader(throwing), baseline);
   assert.deepEqual(await runWithUsageReader(hanging), baseline);
@@ -1330,7 +1549,13 @@ test("a null, throwing, or hanging usage reader leaves the Omen call identical t
 test("supabase mode never reads usage for the Omen call", async () => {
   let reads = 0;
   const baseline = await runWithUsageReader(null);
-  const supabaseMode = { mode: "supabase", read: async () => { reads += 1; return { usage: new Map() }; } };
+  const supabaseMode = {
+    mode: "supabase",
+    read: async () => {
+      reads += 1;
+      return { usage: new Map() };
+    },
+  };
   assert.deepEqual(await runWithUsageReader(supabaseMode), baseline);
   assert.equal(reads, 0);
 });
@@ -1367,17 +1592,32 @@ function projectedYahooRoster(meta, outProjection = 3) {
     source: "yahoo",
     projection_meta: meta,
     slots: {
-      starters: [{
-        player_key: "yahoo:1", name: "Out Wideout", position: "WR", eligible_positions: ["WR", "W/R/T", "BN"],
-        selected_position: "WR", team: "DAL", status: "OUT", projected_points: outProjection,
-      }],
+      starters: [
+        {
+          player_key: "yahoo:1",
+          name: "Out Wideout",
+          position: "WR",
+          eligible_positions: ["WR", "W/R/T", "BN"],
+          selected_position: "WR",
+          team: "DAL",
+          status: "OUT",
+          projected_points: outProjection,
+        },
+      ],
       bench: [],
       ir: [],
     },
   };
 }
 
-const LEAGUE_META = { available: true, source: "sleeper_public_projections", scoring_basis: "league_scoring", players_total: 1, players_with_projection: 1, reason: null };
+const LEAGUE_META = {
+  available: true,
+  source: "sleeper_public_projections",
+  scoring_basis: "league_scoring",
+  players_total: 1,
+  players_with_projection: 1,
+  reason: null,
+};
 const APPROX_META = { ...LEAGUE_META, scoring_basis: "approximate_scoring" };
 
 test("a Yahoo lineup call that rests on filled-in projections says where they came from", async () => {
@@ -1391,8 +1631,15 @@ test("a Yahoo lineup call that rests on filled-in projections says where they ca
   assert.equal(result.body.signals.projections.source, "sleeper_public_projections_yahoo_scoring");
   assert.match(result.body.signals.projections.message, /Sleeper's public weekly projections/);
   assert.match(result.body.signals.projections.message, /Yahoo league's own scoring/);
-  assert.equal(result.body.warnings.some((w) => /approximate/.test(w)), false);
-  assert.ok(result.body.recommendation.explanation.data_used.some((line) => /Sleeper public projections, scored with your Yahoo league rules/.test(line)));
+  assert.equal(
+    result.body.warnings.some((w) => /approximate/.test(w)),
+    false,
+  );
+  assert.ok(
+    result.body.recommendation.explanation.data_used.some((line) =>
+      /Sleeper public projections, scored with your Yahoo league rules/.test(line),
+    ),
+  );
 });
 
 test("approximate Yahoo scoring is labelled approximate and never league-exact", async () => {
@@ -1409,13 +1656,28 @@ test("approximate Yahoo scoring is labelled approximate and never league-exact",
 });
 
 test("a Yahoo waiver add backed by a projection is a numeric waiver pickup, not an availability guess", async () => {
-  const projectedPool = [{
-    player_key: "yahoo:2", name: "Available Wideout", position: "WR", eligible_positions: ["WR", "W/R/T", "BN"],
-    team: "PHI", status: "", projected_points: 11.4, projection_source: "sleeper_public_projections", projection_basis: "league_scoring",
-  }, {
-    player_key: "yahoo:3", name: "Available Quarterback", position: "QB", eligible_positions: ["QB", "BN"],
-    team: "PHI", status: "", projected_points: 30,
-  }];
+  const projectedPool = [
+    {
+      player_key: "yahoo:2",
+      name: "Available Wideout",
+      position: "WR",
+      eligible_positions: ["WR", "W/R/T", "BN"],
+      team: "PHI",
+      status: "",
+      projected_points: 11.4,
+      projection_source: "sleeper_public_projections",
+      projection_basis: "league_scoring",
+    },
+    {
+      player_key: "yahoo:3",
+      name: "Available Quarterback",
+      position: "QB",
+      eligible_positions: ["QB", "BN"],
+      team: "PHI",
+      status: "",
+      projected_points: 30,
+    },
+  ];
   const { service, state } = loadOmenService({
     connections: [YAHOO_PROJ_CONNECTION],
     roster: projectedYahooRoster(LEAGUE_META, 0),
@@ -1426,7 +1688,11 @@ test("a Yahoo waiver add backed by a projection is a numeric waiver pickup, not 
   const result = await service.buildLiveOmenMvpMoveForUser("user-1");
 
   assert.equal(result.body.recommendation.type, "waiver_pickup");
-  assert.equal(result.body.recommendation.primary_player.name, "Available Wideout", "a quarterback never fills a receiver slot");
+  assert.equal(
+    result.body.recommendation.primary_player.name,
+    "Available Wideout",
+    "a quarterback never fills a receiver slot",
+  );
   assert.equal(result.body.recommendation.expected_value_delta.points, 11.4);
   assert.equal(result.body.signals.waivers.source, "yahoo_available_players");
   assert.equal(result.body.signals.projections.source, "sleeper_public_projections_yahoo_scoring");
@@ -1434,13 +1700,30 @@ test("a Yahoo waiver add backed by a projection is a numeric waiver pickup, not 
 });
 
 test("a Yahoo pool with no projections keeps the availability-only fallback and reads the pool once", async () => {
-  const pool = [{
-    player_key: "yahoo:2", name: "Available Wideout", position: "WR", eligible_positions: ["WR"],
-    team: "PHI", status: "", projected_points: null,
-  }];
+  const pool = [
+    {
+      player_key: "yahoo:2",
+      name: "Available Wideout",
+      position: "WR",
+      eligible_positions: ["WR"],
+      team: "PHI",
+      status: "",
+      projected_points: null,
+    },
+  ];
   const { service, state } = loadOmenService({
     connections: [YAHOO_PROJ_CONNECTION],
-    roster: projectedYahooRoster({ available: false, source: "sleeper_public_projections", scoring_basis: null, players_total: 1, players_with_projection: 0, reason: "scoring_unreadable" }, null),
+    roster: projectedYahooRoster(
+      {
+        available: false,
+        source: "sleeper_public_projections",
+        scoring_basis: null,
+        players_total: 1,
+        players_with_projection: 0,
+        reason: "scoring_unreadable",
+      },
+      null,
+    ),
     swaps: [],
     waiverPool: pool,
     yahooPoolProjection: { pool, meta: { available: false, reason: "scoring_unreadable" } },
@@ -1454,13 +1737,32 @@ test("a Yahoo pool with no projections keeps the availability-only fallback and 
 });
 
 test("a Yahoo waiver pickup discloses its projection source even when the roster pass timed out", async () => {
-  const pool = [{
-    player_key: "yahoo:2", name: "Available Wideout", position: "WR", eligible_positions: ["WR"],
-    team: "PHI", status: "", projected_points: 9, projection_source: "sleeper_public_projections", projection_basis: "approximate_scoring",
-  }];
+  const pool = [
+    {
+      player_key: "yahoo:2",
+      name: "Available Wideout",
+      position: "WR",
+      eligible_positions: ["WR"],
+      team: "PHI",
+      status: "",
+      projected_points: 9,
+      projection_source: "sleeper_public_projections",
+      projection_basis: "approximate_scoring",
+    },
+  ];
   const { service } = loadOmenService({
     connections: [YAHOO_PROJ_CONNECTION],
-    roster: projectedYahooRoster({ available: false, source: "sleeper_public_projections", scoring_basis: null, players_total: 1, players_with_projection: 0, reason: "timed_out" }, 0),
+    roster: projectedYahooRoster(
+      {
+        available: false,
+        source: "sleeper_public_projections",
+        scoring_basis: null,
+        players_total: 1,
+        players_with_projection: 0,
+        reason: "timed_out",
+      },
+      0,
+    ),
     swaps: [],
     waiverPool: pool,
     yahooPoolProjection: { pool, meta: APPROX_META },

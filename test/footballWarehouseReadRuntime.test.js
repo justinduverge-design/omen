@@ -25,15 +25,29 @@ test("football data mode defaults to Supabase and rejects unknown states", () =>
 test("Supabase mode never reads warehouse credentials or creates a pool", async () => {
   let fileReads = 0;
   let pools = 0;
-  class Pool { constructor() { pools += 1; } }
+  class Pool {
+    constructor() {
+      pools += 1;
+    }
+  }
   const runtime = createWarehouseReadRuntime({
     env: {},
     Pool,
-    fileSystem: { readFileSync: () => { fileReads += 1; throw new Error("must not read"); } },
+    fileSystem: {
+      readFileSync: () => {
+        fileReads += 1;
+        throw new Error("must not read");
+      },
+    },
   });
-  assert.deepEqual({ mode: runtime.mode, enabled: runtime.enabled, repository: runtime.repository }, {
-    mode: "supabase", enabled: false, repository: null,
-  });
+  assert.deepEqual(
+    { mode: runtime.mode, enabled: runtime.enabled, repository: runtime.repository },
+    {
+      mode: "supabase",
+      enabled: false,
+      repository: null,
+    },
+  );
   await runtime.close();
   assert.equal(fileReads, 0);
   assert.equal(pools, 0);
@@ -46,22 +60,33 @@ test("shadow startup failure leaves Supabase authoritative and emits aggregate-o
     Pool: class Pool {},
     onShadowUnavailable: (event) => events.push(event),
   });
-  assert.deepEqual({ mode: runtime.mode, enabled: runtime.enabled, repository: runtime.repository }, {
-    mode: "shadow", enabled: false, repository: null,
-  });
-  assert.deepEqual(events, [{
-    event: "football_warehouse_read_startup",
-    outcome: "unavailable",
-  }]);
+  assert.deepEqual(
+    { mode: runtime.mode, enabled: runtime.enabled, repository: runtime.repository },
+    {
+      mode: "shadow",
+      enabled: false,
+      repository: null,
+    },
+  );
+  assert.deepEqual(events, [
+    {
+      event: "football_warehouse_read_startup",
+      outcome: "unavailable",
+    },
+  ]);
   assert.doesNotMatch(JSON.stringify(events), /credential|password|secret|database_url/i);
   await runtime.close();
 });
 
 test("warehouse startup failure remains fail-closed", () => {
-  assert.throws(() => createFailSafeWarehouseReadRuntime({
-    env: { FOOTBALL_DATA_MODE: "warehouse" },
-    Pool: class Pool {},
-  }), /READ_DATABASE_URL_FILE/);
+  assert.throws(
+    () =>
+      createFailSafeWarehouseReadRuntime({
+        env: { FOOTBALL_DATA_MODE: "warehouse" },
+        Pool: class Pool {},
+      }),
+    /READ_DATABASE_URL_FILE/,
+  );
 });
 
 test("warehouse modes require a restricted dedicated read-role credential file", () => {
@@ -73,22 +98,54 @@ test("warehouse modes require a restricted dedicated read-role credential file",
   assert.equal(config.poolMax, 2);
 
   assert.throws(() => parseWarehouseReadConfig({ env: { FOOTBALL_DATA_MODE: "warehouse" } }), /READ_DATABASE_URL_FILE/);
-  assert.throws(() => parseWarehouseReadConfig({ env: base, fileSystem: {
-    ...safeFileSystem, statSync: () => ({ isFile: () => true, size: secret.length, mode: 0o100404 }),
-  }}), /must not be accessible/);
-  assert.throws(() => parseWarehouseReadConfig({ env: base, fileSystem: {
-    ...safeFileSystem, readFileSync: () => secret.replace("omen_warehouse_read", "omen_warehouse_ingest"),
-  }}), /EXPECTED_ROLE/);
+  assert.throws(
+    () =>
+      parseWarehouseReadConfig({
+        env: base,
+        fileSystem: {
+          ...safeFileSystem,
+          statSync: () => ({ isFile: () => true, size: secret.length, mode: 0o100404 }),
+        },
+      }),
+    /must not be accessible/,
+  );
+  assert.throws(
+    () =>
+      parseWarehouseReadConfig({
+        env: base,
+        fileSystem: {
+          ...safeFileSystem,
+          readFileSync: () => secret.replace("omen_warehouse_read", "omen_warehouse_ingest"),
+        },
+      }),
+    /EXPECTED_ROLE/,
+  );
 });
 
 test("configuration errors never disclose warehouse read credentials", () => {
   const env = { FOOTBALL_DATA_MODE: "warehouse", FOOTBALL_WAREHOUSE_READ_DATABASE_URL_FILE: "/secret" };
-  assert.throws(() => parseWarehouseReadConfig({ env, fileSystem: {
-    ...safeFileSystem, readFileSync: () => `${secret}?options=do-not-print`,
-  }}), (error) => !String(error).includes("do-not-print"));
-  assert.throws(() => parseWarehouseReadConfig({ env: {
-    ...env, FOOTBALL_WAREHOUSE_READ_QUERY_TIMEOUT_MS: "5001",
-  }, fileSystem: safeFileSystem }), /100 through 5000/);
+  assert.throws(
+    () =>
+      parseWarehouseReadConfig({
+        env,
+        fileSystem: {
+          ...safeFileSystem,
+          readFileSync: () => `${secret}?options=do-not-print`,
+        },
+      }),
+    (error) => !String(error).includes("do-not-print"),
+  );
+  assert.throws(
+    () =>
+      parseWarehouseReadConfig({
+        env: {
+          ...env,
+          FOOTBALL_WAREHOUSE_READ_QUERY_TIMEOUT_MS: "5001",
+        },
+        fileSystem: safeFileSystem,
+      }),
+    /100 through 5000/,
+  );
 });
 
 test("runtime creates a bounded read-only pool and wires the usage repository", async () => {
@@ -96,15 +153,21 @@ test("runtime creates a bounded read-only pool and wires the usage repository", 
   let ended = false;
   const calls = [];
   class Pool {
-    constructor(value) { options = value; }
+    constructor(value) {
+      options = value;
+    }
     async query(request) {
       calls.push(request);
       if (request.name === "warehouse-read-target-identity-v1") {
-        return { rows: [{ database_name: "omen_football", role_name: "omen_warehouse_read", transaction_read_only: "on" }] };
+        return {
+          rows: [{ database_name: "omen_football", role_name: "omen_warehouse_read", transaction_read_only: "on" }],
+        };
       }
       return { rows: [] };
     }
-    async end() { ended = true; }
+    async end() {
+      ended = true;
+    }
   }
   const runtime = createWarehouseReadRuntime({
     env: {
@@ -137,7 +200,9 @@ test("runtime fails closed before fact reads when server identity or read-only m
   class Pool {
     async query(request) {
       if (request.name === "warehouse-read-target-identity-v1") {
-        return { rows: [{ database_name: "omen_football", role_name: "omen_warehouse_read", transaction_read_only: "off" }] };
+        return {
+          rows: [{ database_name: "omen_football", role_name: "omen_warehouse_read", transaction_read_only: "off" }],
+        };
       }
       factQueries.push(request);
       return { rows: [] };
@@ -160,8 +225,13 @@ test("an idle warehouse connection dropping never crashes the API: the pool erro
   const { EventEmitter } = require("node:events");
   let pool;
   class Pool extends EventEmitter {
-    constructor() { super(); pool = this; }
-    async query() { return { rows: [] }; }
+    constructor() {
+      super();
+      pool = this;
+    }
+    async query() {
+      return { rows: [] };
+    }
     async end() {}
   }
   const events = [];
@@ -183,15 +253,33 @@ test("an invalid FOOTBALL_DATA_MODE stops startup instead of silently disabling 
   const logged = [];
   const exits = [];
   const logger = { error: (message, meta) => logged.push([message, meta]) };
-  assertFootballDataModeAtStartup({ env: { FOOTBALL_DATA_MODE: "warehose" }, logger, exit: (code) => exits.push(code) });
+  assertFootballDataModeAtStartup({
+    env: { FOOTBALL_DATA_MODE: "warehose" },
+    logger,
+    exit: (code) => exits.push(code),
+  });
   assert.deepEqual(exits, [1]);
   assert.match(logged[0][0], /refusing to start/);
-  assert.equal(assertFootballDataModeAtStartup({ env: {}, logger, exit: () => assert.fail("must not exit") }), "supabase");
-  assert.equal(assertFootballDataModeAtStartup({ env: { FOOTBALL_DATA_MODE: "shadow" }, logger, exit: () => assert.fail("must not exit") }), "shadow");
+  assert.equal(
+    assertFootballDataModeAtStartup({ env: {}, logger, exit: () => assert.fail("must not exit") }),
+    "supabase",
+  );
+  assert.equal(
+    assertFootballDataModeAtStartup({
+      env: { FOOTBALL_DATA_MODE: "shadow" },
+      logger,
+      exit: () => assert.fail("must not exit"),
+    }),
+    "shadow",
+  );
 });
 
 const IDENTITY_NAME = "warehouse-read-target-identity-v1";
-const READ_CONFIG = { expectedDatabase: "omen_football", expectedRole: "omen_warehouse_read", queryTimeoutMillis: 2000 };
+const READ_CONFIG = {
+  expectedDatabase: "omen_football",
+  expectedRole: "omen_warehouse_read",
+  queryTimeoutMillis: 2000,
+};
 const GOOD_IDENTITY = { database_name: "omen_football", role_name: "omen_warehouse_read", transaction_read_only: "on" };
 
 test("a failed identity verification is retried on the next query instead of being cached", async () => {
@@ -228,7 +316,10 @@ test("concurrent first queries share one verification, and a mismatch still fail
   };
   const query = createVerifiedReadQuery({ pool, config: READ_CONFIG });
   const results = await Promise.allSettled([query({ text: "a" }), query({ text: "b" })]);
-  assert.deepEqual(results.map((r) => r.reason?.code), ["WAREHOUSE_READ_TARGET_MISMATCH", "WAREHOUSE_READ_TARGET_MISMATCH"]);
+  assert.deepEqual(
+    results.map((r) => r.reason?.code),
+    ["WAREHOUSE_READ_TARGET_MISMATCH", "WAREHOUSE_READ_TARGET_MISMATCH"],
+  );
   assert.equal(identityCalls, 1);
 });
 
@@ -237,7 +328,10 @@ test("warm() pre-verifies the target so the first real query does not pay for it
   let identityCalls = 0;
   const pool = {
     query: async (request) => {
-      if (request.name === IDENTITY_NAME) { identityCalls += 1; return { rows: [GOOD_IDENTITY] }; }
+      if (request.name === IDENTITY_NAME) {
+        identityCalls += 1;
+        return { rows: [GOOD_IDENTITY] };
+      }
       return { rows: [] };
     },
   };
@@ -263,7 +357,10 @@ test("a persistent target mismatch is remembered briefly, then re-checked, and s
   };
   const query = createVerifiedReadQuery({ pool, config: READ_CONFIG, now: () => clock });
   for (let i = 0; i < 3; i += 1) {
-    await assert.rejects(() => query({ text: "x" }), (e) => e.code === "WAREHOUSE_READ_TARGET_MISMATCH");
+    await assert.rejects(
+      () => query({ text: "x" }),
+      (e) => e.code === "WAREHOUSE_READ_TARGET_MISMATCH",
+    );
   }
   assert.equal(identityCalls, 1, "no identity query per request inside the window");
   clock = 6_000;

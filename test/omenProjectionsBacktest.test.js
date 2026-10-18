@@ -3,11 +3,30 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
-  calibration, errorStats, evaluate, impliedPoints, PAIRED_EVIDENCE_POLICY, pairedComparison, ranks, relevanceFromHistory, renderMarkdown, runBacktest,
-  shipRuleForPosition, spearman, walkForward, weeklyRankCorrelation,
+  calibration,
+  errorStats,
+  evaluate,
+  impliedPoints,
+  PAIRED_EVIDENCE_POLICY,
+  pairedComparison,
+  ranks,
+  relevanceFromHistory,
+  renderMarkdown,
+  runBacktest,
+  shipRuleForPosition,
+  spearman,
+  walkForward,
+  weeklyRankCorrelation,
 } = require("../src/services/omenProjections/backtest");
 const {
-  createPgSource, EXPECTED_DATABASE, EXPECTED_LOGIN_ROLE, GAMES_SQL, PLAYER_WEEKS_SQL, SESSION_IDENTITY_SQL, SLEEPER_SQL, statsFromRow,
+  createPgSource,
+  EXPECTED_DATABASE,
+  EXPECTED_LOGIN_ROLE,
+  GAMES_SQL,
+  PLAYER_WEEKS_SQL,
+  SESSION_IDENTITY_SQL,
+  SLEEPER_SQL,
+  statsFromRow,
 } = require("../src/services/omenProjections/pgSource");
 const { parseArgs, parseSeasons, poolConfig } = require("../scripts/omen-projections-backtest");
 
@@ -26,7 +45,13 @@ function makeWorld() {
   const players = [];
   for (let i = 0; i < 24; i += 1) {
     const kind = i % 3 === 0 ? "RB" : i % 3 === 1 ? "WR" : "TE";
-    players.push({ id: `omen:player:${kind.toLowerCase()}${i}`, kind, team: TEAMS[i % TEAMS.length], base: 3 + (i % 7) * 1.4, rb: 8 + (i % 5) * 3 });
+    players.push({
+      id: `omen:player:${kind.toLowerCase()}${i}`,
+      kind,
+      team: TEAMS[i % TEAMS.length],
+      base: 3 + (i % 7) * 1.4,
+      rb: 8 + (i % 5) * 3,
+    });
   }
   const seasons = {};
   for (const season of [2021, 2022, 2023]) {
@@ -35,7 +60,14 @@ function makeWorld() {
     const games = [];
     for (let week = 1; week <= 17; week += 1) {
       for (let t = 0; t < TEAMS.length; t += 2) {
-        games.push({ week, game_id: `${season}_${week}_${t}`, home: TEAMS[t], away: TEAMS[t + 1], spread_line: (rand() - 0.5) * 10, total_line: 40 + rand() * 10 });
+        games.push({
+          week,
+          game_id: `${season}_${week}_${t}`,
+          home: TEAMS[t],
+          away: TEAMS[t + 1],
+          spread_line: (rand() - 0.5) * 10,
+          total_line: 40 + rand() * 10,
+        });
       }
       for (const p of players) {
         if (rand() < 0.08) continue; // missed game
@@ -44,13 +76,27 @@ function makeWorld() {
         const targets = Math.max(0, Math.round((p.kind === "RB" ? p.base / 2 : p.base) + noise()));
         const receptions = Math.round(targets * 0.65);
         const stats = {
-          attempts: 0, completions: 0, passing_yards: 0, passing_tds: 0, passing_interceptions: 0,
-          carries, rushing_yards: Math.round(carries * (4 + noise() / 2)), rushing_tds: rand() < carries * 0.003 ? 1 : 0,
-          targets, receptions, receiving_yards: Math.round(receptions * (9 + noise())), receiving_tds: rand() < targets * 0.006 ? 1 : 0,
+          attempts: 0,
+          completions: 0,
+          passing_yards: 0,
+          passing_tds: 0,
+          passing_interceptions: 0,
+          carries,
+          rushing_yards: Math.round(carries * (4 + noise() / 2)),
+          rushing_tds: rand() < carries * 0.003 ? 1 : 0,
+          targets,
+          receptions,
+          receiving_yards: Math.round(receptions * (9 + noise())),
+          receiving_tds: rand() < targets * 0.006 ? 1 : 0,
           fumbles_lost: 0,
         };
         playerWeeks.push({
-          player_id: p.id, position: p.kind, team: p.team, week, stats, opp: { red_zone_carries: Math.round(carries * 0.1), red_zone_targets: Math.round(targets * 0.1) },
+          player_id: p.id,
+          position: p.kind,
+          team: p.team,
+          week,
+          stats,
+          opp: { red_zone_carries: Math.round(carries * 0.1), red_zone_targets: Math.round(targets * 0.1) },
           reported_ppr: null,
         });
       }
@@ -73,9 +119,18 @@ function sourceFor(world, extra = {}) {
 }
 
 function comparable(records, maxWeek) {
-  return records.filter((r) => r.week <= maxWeek).map((r) => ({
-    season: r.season, week: r.week, id: r.player_id, pred: r.pred, band: r.band, sd: r.sd_hat_ppr, bucket: r.bucket, flags: r.flags,
-  }));
+  return records
+    .filter((r) => r.week <= maxWeek)
+    .map((r) => ({
+      season: r.season,
+      week: r.week,
+      id: r.player_id,
+      pred: r.pred,
+      band: r.band,
+      sd: r.sd_hat_ppr,
+      bucket: r.bucket,
+      flags: r.flags,
+    }));
 }
 
 test("no leakage: changing data at and after a week changes nothing projected up to and including that week", async () => {
@@ -95,25 +150,50 @@ test("no leakage: changing data at and after a week changes nothing projected up
   const week6b = b.records.filter((r) => r.week === 6).map((r) => r.actual.ppr);
   assert.notDeepEqual(week6a, week6b);
   // and week 7 predictions DO see week 6 (history was appended after week 6 was projected).
-  assert.notDeepEqual(comparable(a.records, 7).filter((r) => r.week === 7), comparable(b.records, 7).filter((r) => r.week === 7));
+  assert.notDeepEqual(
+    comparable(a.records, 7).filter((r) => r.week === 7),
+    comparable(b.records, 7).filter((r) => r.week === 7),
+  );
 });
 
 test("no leakage: the whole test season, even its first week, never feeds its own priors", async () => {
   const world = makeWorld();
   const tainted = JSON.parse(JSON.stringify(world));
-  for (const row of tainted[2023].playerWeeks) for (const key of Object.keys(row.stats)) row.stats[key] = row.stats[key] * 5 + 3;
+  for (const row of tainted[2023].playerWeeks)
+    for (const key of Object.keys(row.stats)) row.stats[key] = row.stats[key] * 5 + 3;
   const options = { testSeasons: [2023], warmupSeasons: 2, positions: ["RB", "WR", "TE"] };
   const a = await walkForward({ source: sourceFor(world), ...options });
   const b = await walkForward({ source: sourceFor(tainted), ...options });
   assert.deepEqual(comparable(a.records, 1), comparable(b.records, 1));
   // A later test season does not leak backwards either: season 2022's projections ignore 2023.
-  const both = await walkForward({ source: sourceFor(world), testSeasons: [2022, 2023], warmupSeasons: 1, positions: ["RB", "WR", "TE"] });
-  const onlyEarly = await walkForward({ source: sourceFor({ 2021: world[2021], 2022: world[2022] }), testSeasons: [2022], warmupSeasons: 1, positions: ["RB", "WR", "TE"] });
-  assert.deepEqual(comparable(both.records.filter((r) => r.season === 2022), 99), comparable(onlyEarly.records, 99));
+  const both = await walkForward({
+    source: sourceFor(world),
+    testSeasons: [2022, 2023],
+    warmupSeasons: 1,
+    positions: ["RB", "WR", "TE"],
+  });
+  const onlyEarly = await walkForward({
+    source: sourceFor({ 2021: world[2021], 2022: world[2022] }),
+    testSeasons: [2022],
+    warmupSeasons: 1,
+    positions: ["RB", "WR", "TE"],
+  });
+  assert.deepEqual(
+    comparable(
+      both.records.filter((r) => r.season === 2022),
+      99,
+    ),
+    comparable(onlyEarly.records, 99),
+  );
 });
 
 test("interval widths come from earlier weeks only (no sd before enough earlier residuals)", async () => {
-  const { records } = await walkForward({ source: sourceFor(makeWorld()), testSeasons: [2023], warmupSeasons: 2, positions: ["RB", "WR", "TE"] });
+  const { records } = await walkForward({
+    source: sourceFor(makeWorld()),
+    testSeasons: [2023],
+    warmupSeasons: 2,
+    positions: ["RB", "WR", "TE"],
+  });
   assert.ok(records.filter((r) => r.week === 1).every((r) => r.sd_hat_ppr == null));
   assert.ok(records.some((r) => r.sd_hat_ppr != null && r.sd_hat_ppr > 0));
 });
@@ -128,8 +208,16 @@ test("implied team points follow nflverse's home-favoured sign convention", () =
 
 test("metrics are computed correctly on a hand-made set", () => {
   const rec = (week, player, predicted, actual, extra = {}) => ({
-    season: 2024, week, player_id: player, position: "WR", band: "high", sd_hat_ppr: null,
-    pred: { model: { standard: predicted, half_ppr: predicted, ppr: predicted }, ...(extra.last3 !== undefined ? { last3: extra.last3 } : {}) },
+    season: 2024,
+    week,
+    player_id: player,
+    position: "WR",
+    band: "high",
+    sd_hat_ppr: null,
+    pred: {
+      model: { standard: predicted, half_ppr: predicted, ppr: predicted },
+      ...(extra.last3 !== undefined ? { last3: extra.last3 } : {}),
+    },
     actual: { standard: actual, half_ppr: actual, ppr: actual },
   });
   const records = [rec(1, "a", 10, 12), rec(1, "b", 8, 5), rec(1, "c", 3, 3), rec(2, "a", 11, 8)];
@@ -183,7 +271,11 @@ test("the ship rule is explicit by season and must pass in both universes", () =
         pred: {
           model: { standard: actual + modelError, half_ppr: actual + modelError, ppr: actual + modelError },
           last3: { standard: actual + baselineError, half_ppr: actual + baselineError, ppr: actual + baselineError },
-          season_avg: { standard: actual - baselineError, half_ppr: actual - baselineError, ppr: actual - baselineError },
+          season_avg: {
+            standard: actual - baselineError,
+            half_ppr: actual - baselineError,
+            ppr: actual - baselineError,
+          },
         },
       });
     }
@@ -199,14 +291,20 @@ test("the ship rule is explicit by season and must pass in both universes", () =
 });
 
 test("paired comparison: model clearly better, clearly worse, and indistinguishable", () => {
-  const make = (modelErr, otherErr, n = 120) => Array.from({ length: n }, (_, i) => ({
-    season: 2024, week: 1 + (i % 17), player_id: `p${i}`, position: "RB", band: "high", sd_hat_ppr: null,
-    actual: { standard: 10, half_ppr: 10, ppr: 10 },
-    pred: {
-      model: { standard: 10 + modelErr * (i % 2 ? 1 : -1), half_ppr: 0, ppr: 10 + modelErr * (i % 2 ? 1 : -1) },
-      other: { standard: 10 + otherErr, half_ppr: 0, ppr: 10 + otherErr },
-    },
-  }));
+  const make = (modelErr, otherErr, n = 120) =>
+    Array.from({ length: n }, (_, i) => ({
+      season: 2024,
+      week: 1 + (i % 17),
+      player_id: `p${i}`,
+      position: "RB",
+      band: "high",
+      sd_hat_ppr: null,
+      actual: { standard: 10, half_ppr: 10, ppr: 10 },
+      pred: {
+        model: { standard: 10 + modelErr * (i % 2 ? 1 : -1), half_ppr: 0, ppr: 10 + modelErr * (i % 2 ? 1 : -1) },
+        other: { standard: 10 + otherErr, half_ppr: 0, ppr: 10 + otherErr },
+      },
+    }));
   assert.equal(pairedComparison(make(1, 3), "model", "other", "ppr").verdict, "a_better");
   assert.equal(pairedComparison(make(3, 1), "model", "other", "ppr").verdict, "b_better");
   const same = pairedComparison(make(2, 2), "model", "other", "ppr");
@@ -218,22 +316,36 @@ test("paired comparison: model clearly better, clearly worse, and indistinguisha
 });
 
 test("paired comparison holds below the versioned row and player-cluster evidence floors", () => {
-  const make = (n, clusters) => Array.from({ length: n }, (_, i) => ({
-    season: 2024,
-    week: 1 + (i % 17),
-    player_id: `p${i % clusters}`,
-    position: "WR",
-    actual: { standard: 10, half_ppr: 10, ppr: 10 },
-    pred: {
-      model: { standard: 10, half_ppr: 10, ppr: 10 },
-      last3: { standard: 20, half_ppr: 20, ppr: 20 },
-    },
-  }));
+  const make = (n, clusters) =>
+    Array.from({ length: n }, (_, i) => ({
+      season: 2024,
+      week: 1 + (i % 17),
+      player_id: `p${i % clusters}`,
+      position: "WR",
+      actual: { standard: 10, half_ppr: 10, ppr: 10 },
+      pred: {
+        model: { standard: 10, half_ppr: 10, ppr: 10 },
+        last3: { standard: 20, half_ppr: 20, ppr: 20 },
+      },
+    }));
   assert.equal(pairedComparison(make(1, 1), "model", "last3", "ppr").verdict, "insufficient_data");
   assert.equal(pairedComparison(make(2, 2), "model", "last3", "ppr").verdict, "insufficient_data");
   assert.equal(pairedComparison(make(120, 1), "model", "last3", "ppr").verdict, "insufficient_data");
-  assert.equal(pairedComparison(make(PAIRED_EVIDENCE_POLICY.minimum_rows, PAIRED_EVIDENCE_POLICY.minimum_player_clusters - 1), "model", "last3", "ppr").verdict, "insufficient_data");
-  const boundary = pairedComparison(make(PAIRED_EVIDENCE_POLICY.minimum_rows, PAIRED_EVIDENCE_POLICY.minimum_player_clusters), "model", "last3", "ppr");
+  assert.equal(
+    pairedComparison(
+      make(PAIRED_EVIDENCE_POLICY.minimum_rows, PAIRED_EVIDENCE_POLICY.minimum_player_clusters - 1),
+      "model",
+      "last3",
+      "ppr",
+    ).verdict,
+    "insufficient_data",
+  );
+  const boundary = pairedComparison(
+    make(PAIRED_EVIDENCE_POLICY.minimum_rows, PAIRED_EVIDENCE_POLICY.minimum_player_clusters),
+    "model",
+    "last3",
+    "ppr",
+  );
   assert.equal(boundary.verdict, "a_better");
   assert.equal(boundary.player_clusters, PAIRED_EVIDENCE_POLICY.minimum_player_clusters);
 });
@@ -263,7 +375,9 @@ test("ship decisions are isolated by scoring family and sparse seasons hold", ()
   assert.equal(rule.scoring_families.ppr.status, "PASS");
   assert.equal(rule.status, "FAIL");
 
-  const sparse = shipRuleForPosition(records.filter((row) => row.player_id.endsWith("p0") || row.player_id.endsWith("p1")));
+  const sparse = shipRuleForPosition(
+    records.filter((row) => row.player_id.endsWith("p0") || row.player_id.endsWith("p1")),
+  );
   assert.equal(sparse.status, "HOLD");
   assert.equal(sparse.scoring_families.ppr.insufficient_seasons, 3);
 });
@@ -272,7 +386,12 @@ test("calibration reports error by band and the share of outcomes inside the 80%
   const records = [];
   for (let i = 0; i < 100; i += 1) {
     records.push({
-      season: 2024, week: 1, player_id: `p${i}`, position: "WR", band: i < 50 ? "high" : "low", sd_hat_ppr: 2,
+      season: 2024,
+      week: 1,
+      player_id: `p${i}`,
+      position: "WR",
+      band: i < 50 ? "high" : "low",
+      sd_hat_ppr: 2,
       actual: { ppr: 10 + (i % 10 < 8 ? 1 : 5), standard: 0, half_ppr: 0 },
       pred: { model: { ppr: 10, standard: 0, half_ppr: 0 } },
     });
@@ -286,7 +405,11 @@ test("calibration reports error by band and the share of outcomes inside the 80%
 
 test("end to end on synthetic data: report shape, sensible errors, model not worse than naive on stable usage", async () => {
   const report = await runBacktest({
-    source: sourceFor(makeWorld()), testSeasons: [2023], warmupSeasons: 2, positions: ["RB", "WR", "TE"], now: () => new Date("2026-10-12T00:00:00Z"),
+    source: sourceFor(makeWorld()),
+    testSeasons: [2023],
+    warmupSeasons: 2,
+    positions: ["RB", "WR", "TE"],
+    now: () => new Date("2026-10-12T00:00:00Z"),
   });
   assert.equal(report.meta.method_version, "omen-proj-v1");
   assert.equal(report.meta.generated_at, "2026-10-12T00:00:00.000Z");
@@ -315,21 +438,36 @@ test("end to end on synthetic data: report shape, sensible errors, model not wor
   assert.match(markdown, /rows \/ players \/ verdict/);
   assert.match(markdown, /model against/);
   assert.match(markdown, /Confidence-band calibration/);
-  assert.equal(/\d+(\.\d+)?%/.test(markdown.split("## How to read this")[0].replace(/80% interval|~0\.80/g, "")), false, "no percentages as confidence");
+  assert.equal(
+    /\d+(\.\d+)?%/.test(markdown.split("## How to read this")[0].replace(/80% interval|~0\.80/g, "")),
+    false,
+    "no percentages as confidence",
+  );
 });
 
 test("the Sleeper benchmark appears only where stored projections exist", async () => {
   const world = makeWorld();
   const sleeper = new Map();
   for (const row of world[2023].playerWeeks) {
-    if (row.week >= 3 && row.position === "WR") sleeper.set(`${row.week}|${row.player_id}`, { rec: 4, rec_yd: 50, rec_td: 0.3, pts_ppr: 999 });
+    if (row.week >= 3 && row.position === "WR")
+      sleeper.set(`${row.week}|${row.player_id}`, { rec: 4, rec_yd: 50, rec_td: 0.3, pts_ppr: 999 });
   }
-  const report = await runBacktest({ source: sourceFor(world, { loadSleeper: async () => sleeper }), testSeasons: [2023], warmupSeasons: 2, positions: ["WR", "RB"] });
+  const report = await runBacktest({
+    source: sourceFor(world, { loadSleeper: async () => sleeper }),
+    testSeasons: [2023],
+    warmupSeasons: 2,
+    positions: ["WR", "RB"],
+  });
   assert.equal(report.meta.sleeper.available, true);
   assert.ok(report.results.all.positions.WR.predictors.ppr.sleeper.n > 50);
   assert.equal(report.results.all.positions.RB.predictors.ppr.sleeper, undefined);
   assert.ok(report.results.all.positions.WR.model_vs.ppr.sleeper.n > 50);
-  const none = await runBacktest({ source: sourceFor(world, { loadSleeper: async () => null }), testSeasons: [2023], warmupSeasons: 2, positions: ["WR"] });
+  const none = await runBacktest({
+    source: sourceFor(world, { loadSleeper: async () => null }),
+    testSeasons: [2023],
+    warmupSeasons: 2,
+    positions: ["WR"],
+  });
   assert.equal(none.meta.sleeper.requested, true);
   assert.equal(none.meta.sleeper.available, false);
 });
@@ -337,9 +475,18 @@ test("the Sleeper benchmark appears only where stored projections exist", async 
 test("scoring check compares recomputed PPR with nflverse's number", async () => {
   const world = makeWorld();
   for (const row of world[2023].playerWeeks) {
-    row.reported_ppr = row.stats.rushing_yards * 0.1 + row.stats.receiving_yards * 0.1 + row.stats.receptions + 6 * (row.stats.rushing_tds + row.stats.receiving_tds);
+    row.reported_ppr =
+      row.stats.rushing_yards * 0.1 +
+      row.stats.receiving_yards * 0.1 +
+      row.stats.receptions +
+      6 * (row.stats.rushing_tds + row.stats.receiving_tds);
   }
-  const report = await runBacktest({ source: sourceFor(world), testSeasons: [2023], warmupSeasons: 2, positions: ["RB", "WR", "TE"] });
+  const report = await runBacktest({
+    source: sourceFor(world),
+    testSeasons: [2023],
+    warmupSeasons: 2,
+    positions: ["RB", "WR", "TE"],
+  });
   assert.ok(report.meta.scoring_check.n > 300);
   assert.ok(report.meta.scoring_check.max_abs_diff < 1e-6);
   assert.equal(report.meta.scoring_check.share_within_half_point, 1);
@@ -352,13 +499,29 @@ test("the postgres source only reads, refuses a writable session, and never sele
     assert.equal(/snap/i.test(sql), false);
   }
   assert.match(SESSION_IDENTITY_SQL.trim(), /^SELECT/i);
-  const writable = createPgSource({ query: async () => ({ rows: [{ database_name: EXPECTED_DATABASE, role_name: EXPECTED_LOGIN_ROLE, transaction_read_only: "off" }] }) });
+  const writable = createPgSource({
+    query: async () => ({
+      rows: [{ database_name: EXPECTED_DATABASE, role_name: EXPECTED_LOGIN_ROLE, transaction_read_only: "off" }],
+    }),
+  });
   await assert.rejects(() => writable.assertReadOnly(), /not read-only/);
-  const superuser = createPgSource({ query: async () => ({ rows: [{ database_name: EXPECTED_DATABASE, role_name: "postgres", transaction_read_only: "on" }] }) });
+  const superuser = createPgSource({
+    query: async () => ({
+      rows: [{ database_name: EXPECTED_DATABASE, role_name: "postgres", transaction_read_only: "on" }],
+    }),
+  });
   await assert.rejects(() => superuser.assertReadOnly(), /expected omen_warehouse_read/);
-  const wrongDatabase = createPgSource({ query: async () => ({ rows: [{ database_name: "postgres", role_name: EXPECTED_LOGIN_ROLE, transaction_read_only: "on" }] }) });
+  const wrongDatabase = createPgSource({
+    query: async () => ({
+      rows: [{ database_name: "postgres", role_name: EXPECTED_LOGIN_ROLE, transaction_read_only: "on" }],
+    }),
+  });
   await assert.rejects(() => wrongDatabase.assertReadOnly(), /expected omen_warehouse_read/);
-  const readOnly = createPgSource({ query: async () => ({ rows: [{ database_name: EXPECTED_DATABASE, role_name: EXPECTED_LOGIN_ROLE, transaction_read_only: "on" }] }) });
+  const readOnly = createPgSource({
+    query: async () => ({
+      rows: [{ database_name: EXPECTED_DATABASE, role_name: EXPECTED_LOGIN_ROLE, transaction_read_only: "on" }],
+    }),
+  });
   await readOnly.assertReadOnly();
 
   const calls = [];
@@ -367,18 +530,50 @@ test("the postgres source only reads, refuses a writable session, and never sele
     query: async (text, values) => {
       calls.push(text);
       if (text.includes("nfl_player_weekly_stats")) {
-        return { rows: [{ week: 3, player_id: "omen:player:x", display_name: "X", position: "WR", team: "KC", fantasy_points_ppr: "12.5",
-          passing_attempts: null, carries: "1", targets: "7", receptions: "5", passing_yards: null, rushing_yards: "3", receiving_yards: "80",
-          stats: { receiving_tds: 1, receiving_fumbles_lost: 1, sack_fumbles_lost: 1 }, has_opportunity: false, red_zone_targets: null, red_zone_carries: null }] };
+        return {
+          rows: [
+            {
+              week: 3,
+              player_id: "omen:player:x",
+              display_name: "X",
+              position: "WR",
+              team: "KC",
+              fantasy_points_ppr: "12.5",
+              passing_attempts: null,
+              carries: "1",
+              targets: "7",
+              receptions: "5",
+              passing_yards: null,
+              rushing_yards: "3",
+              receiving_yards: "80",
+              stats: { receiving_tds: 1, receiving_fumbles_lost: 1, sack_fumbles_lost: 1 },
+              has_opportunity: false,
+              red_zone_targets: null,
+              red_zone_carries: null,
+            },
+          ],
+        };
       }
-      if (text.includes("nfl_games")) return { rows: [{ week: 3, game_id: "g", home: "KC", away: "LV", spread_line: "-3.5", total_line: "47" }] };
+      if (text.includes("nfl_games"))
+        return { rows: [{ week: 3, game_id: "g", home: "KC", away: "LV", spread_line: "-3.5", total_line: "47" }] };
       throw new Error("relation does not exist");
     },
   });
   const season = await source.loadSeason(2024);
   assert.deepEqual(season.playerWeeks[0].stats, {
-    attempts: 0, completions: 0, passing_yards: 0, passing_tds: 0, passing_interceptions: 0, carries: 1, rushing_yards: 3, rushing_tds: 0,
-    targets: 7, receptions: 5, receiving_yards: 80, receiving_tds: 1, fumbles_lost: 2,
+    attempts: 0,
+    completions: 0,
+    passing_yards: 0,
+    passing_tds: 0,
+    passing_interceptions: 0,
+    carries: 1,
+    rushing_yards: 3,
+    rushing_tds: 0,
+    targets: 7,
+    receptions: 5,
+    receiving_yards: 80,
+    receiving_tds: 1,
+    fumbles_lost: 2,
   });
   assert.equal(season.playerWeeks[0].opp, null);
   assert.equal(season.games[0].spread_line, -3.5);
@@ -392,7 +587,17 @@ test("the script parses its flags strictly and forces a read-only session", () =
   assert.deepEqual(parseSeasons("2025"), [2025]);
   assert.throws(() => parseSeasons("2025-2020"), RangeError);
   assert.throws(() => parseSeasons("abc"), TypeError);
-  const args = parseArgs(["--seasons", "2023-2024", "--out-dir", "/tmp/x", "--socket", "/var/run/pg", "--sleeper", "--positions", "wr,rb"]);
+  const args = parseArgs([
+    "--seasons",
+    "2023-2024",
+    "--out-dir",
+    "/tmp/x",
+    "--socket",
+    "/var/run/pg",
+    "--sleeper",
+    "--positions",
+    "wr,rb",
+  ]);
   assert.deepEqual(args.positions, ["WR", "RB"]);
   assert.equal(args.sleeper, true);
   assert.throws(() => parseArgs(["--seasons", "2024", "--out-dir", "relative"]), /absolute/);

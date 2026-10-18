@@ -19,7 +19,10 @@ function startTracing() {
 test("tracing is off by default and withSpan is a pass-through", async () => {
   assert.equal(telemetry.initTelemetry({ component: "api", env: {} }), false);
   assert.equal(telemetry.isTelemetryEnabled(), false);
-  assert.equal(telemetry.withSpan("x", () => 41 + 1), 42);
+  assert.equal(
+    telemetry.withSpan("x", () => 41 + 1),
+    42,
+  );
   assert.equal(await telemetry.withSpan("x", async () => "ok"), "ok");
 });
 
@@ -32,11 +35,21 @@ test("OTEL_ENABLED=false wins over a configured endpoint", () => {
 });
 
 test("only private, self-hosted endpoints are accepted", () => {
-  const ok = (endpoint) => telemetry.describeTelemetryConfig({ OTEL_EXPORTER_OTLP_ENDPOINT: endpoint, OTEL_TAILNET_SUFFIX: "tail1234.ts.net" });
-  assert.equal(ok("http://command-center.tail1234.ts.net:4318").url, "http://command-center.tail1234.ts.net:4318/v1/traces");
+  const ok = (endpoint) =>
+    telemetry.describeTelemetryConfig({
+      OTEL_EXPORTER_OTLP_ENDPOINT: endpoint,
+      OTEL_TAILNET_SUFFIX: "tail1234.ts.net",
+    });
+  assert.equal(
+    ok("http://command-center.tail1234.ts.net:4318").url,
+    "http://command-center.tail1234.ts.net:4318/v1/traces",
+  );
   // Another tailnet's name (for example a public Funnel host) is not ours.
   assert.equal(ok("https://evil.tail9999.ts.net").reason, "not_private_host");
-  assert.equal(telemetry.describeTelemetryConfig({ OTEL_EXPORTER_OTLP_ENDPOINT: "http://cc.tail1234.ts.net:4318" }).reason, "not_private_host");
+  assert.equal(
+    telemetry.describeTelemetryConfig({ OTEL_EXPORTER_OTLP_ENDPOINT: "http://cc.tail1234.ts.net:4318" }).reason,
+    "not_private_host",
+  );
   assert.equal(ok("http://100.101.102.103:4318/").enabled, true);
   assert.equal(ok("http://otel-collector:4318").enabled, true);
   assert.equal(ok("http://192.168.1.20:4318/v1/traces").url, "http://192.168.1.20:4318/v1/traces");
@@ -71,17 +84,25 @@ test("attributes outside the allowlist are dropped", () => {
 
 test("withSpan nests spans and records only the error class", async () => {
   const exporter = startTracing();
-  await assert.rejects(telemetry.withSpan("outer", async () => {
-    telemetry.withSpan("inner", () => 1);
-    const error = new TypeError("secret detail for user@example.com");
-    throw error;
-  }), TypeError);
+  await assert.rejects(
+    telemetry.withSpan("outer", async () => {
+      telemetry.withSpan("inner", () => 1);
+      const error = new TypeError("secret detail for user@example.com");
+      throw error;
+    }),
+    TypeError,
+  );
   const spans = exporter.getFinishedSpans();
   const outer = spans.find((s) => s.name === "outer");
   const inner = spans.find((s) => s.name === "inner");
   assert.equal(inner.parentSpanContext.spanId, outer.spanContext().spanId);
   assert.equal(outer.attributes["error.type"], "TypeError");
-  assert.equal(JSON.stringify({ name: outer.name, attributes: outer.attributes, status: outer.status }).includes("user@example.com"), false);
+  assert.equal(
+    JSON.stringify({ name: outer.name, attributes: outer.attributes, status: outer.status }).includes(
+      "user@example.com",
+    ),
+    false,
+  );
   assert.equal(outer.events.length, 0);
 });
 
@@ -130,8 +151,18 @@ test("request span carries the route template and none of the cookie, query, hea
     for (const key of Object.keys(span.attributes)) assert.ok(telemetry.SAFE_ATTRIBUTE_KEYS.has(key), key);
     const serialized = JSON.stringify({ name: span.name, attributes: span.attributes, events: span.events });
     for (const leaked of [
-      "abc-123", "987654", "tok-xyz", "fan@example.com", "fan%40example.com", "COOKIEVALUE", "SWIDVALUE",
-      "BEARERVALUE", "user-555", "league_id", "access_token", "?",
+      "abc-123",
+      "987654",
+      "tok-xyz",
+      "fan@example.com",
+      "fan%40example.com",
+      "COOKIEVALUE",
+      "SWIDVALUE",
+      "BEARERVALUE",
+      "user-555",
+      "league_id",
+      "access_token",
+      "?",
     ]) {
       assert.equal(serialized.includes(leaked), false, `${span.name} leaked ${leaked}`);
     }

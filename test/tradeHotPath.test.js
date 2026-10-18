@@ -40,7 +40,15 @@ function loadTradeRoutes() {
 }
 
 function player(id, position, points) {
-  return { player_id: id, player_key: id, name: id, position, eligible_positions: [position], selected_position: "BN", projected_points: points };
+  return {
+    player_id: id,
+    player_key: id,
+    name: id,
+    position,
+    eligible_positions: [position],
+    selected_position: "BN",
+    projected_points: points,
+  };
 }
 
 function fixture() {
@@ -48,8 +56,26 @@ function fixture() {
     league_status: "in_season",
     roster_positions: ["RB", "RB", "WR"],
     teams: [
-      { roster_id: "1", team_name: "Own", players: [player("my-rb", "RB", 18), player("rb-one", "RB", 20), player("rb-two", "RB", 19), player("low-wr", "WR", 5)] },
-      { roster_id: "2", team_name: "Opp", players: [player("their-wr", "WR", 12), player("wr-one", "WR", 20), player("wr-two", "WR", 19), player("low-rb", "RB", 5)] },
+      {
+        roster_id: "1",
+        team_name: "Own",
+        players: [
+          player("my-rb", "RB", 18),
+          player("rb-one", "RB", 20),
+          player("rb-two", "RB", 19),
+          player("low-wr", "WR", 5),
+        ],
+      },
+      {
+        roster_id: "2",
+        team_name: "Opp",
+        players: [
+          player("their-wr", "WR", 12),
+          player("wr-one", "WR", 20),
+          player("wr-two", "WR", 19),
+          player("low-rb", "RB", 5),
+        ],
+      },
     ],
   };
 }
@@ -80,10 +106,15 @@ test("/roster serves the warm /find bundle without touching the provider", async
     authenticate: async () => ({ id: "user-1" }),
     nflWeekContext: () => ({ week: 3 }),
     tradeFindCache,
-    fetchLeagueRosters: async () => { providerReads += 1; return fixture(); },
+    fetchLeagueRosters: async () => {
+      providerReads += 1;
+      return fixture();
+    },
   });
   await withServer(appFor(router), async (base) => {
-    const find = await (await fetch(`${base}/api/trade/find?platform=sleeper&league_id=L1&team_id=1&week=3`, SKIP)).json();
+    const find = await (
+      await fetch(`${base}/api/trade/find?platform=sleeper&league_id=L1&team_id=1&week=3`, SKIP)
+    ).json();
     assert.equal(find.cache.hit, false);
     assert.equal(providerReads, 1);
     const roster = await (await fetch(`${base}/api/trade/roster?platform=sleeper&league_id=L1&week=3`, SKIP)).json();
@@ -153,7 +184,8 @@ test("an expired/regenerated bundle invalidates the scan memo", async () => {
     await fetch(url, SKIP);
     // Drop the cached bundle (as TTL expiry would); the next /find regenerates it.
     const bundle = await tradeFindCache.read("user-1:sleeper:L1:3");
-    if (bundle) await tradeFindCache.write("user-1:sleeper:L1:3", { ...bundle, generated_at: "2000-01-01T00:00:00.000Z" }, 900);
+    if (bundle)
+      await tradeFindCache.write("user-1:sleeper:L1:3", { ...bundle, generated_at: "2000-01-01T00:00:00.000Z" }, 900);
     await fetch(url, SKIP);
     assert.equal(counters.scans, 2);
   });
@@ -162,10 +194,17 @@ test("an expired/regenerated bundle invalidates the scan memo", async () => {
 test("compare: a hung explainer is cut at the budget and the response carries explanation null", async () => {
   const { routes } = loadTradeRoutes();
   const router = routes.createTradeRouter({
-    playerResolver: async (players) => players.map((p, i) => ({
-      status: "resolved",
-      player: { id: `t:${i}:${p.name}`, name: p.name, position: p.position || "UNK", team: "FA", projected_points: p.projected_points ?? null },
-    })),
+    playerResolver: async (players) =>
+      players.map((p, i) => ({
+        status: "resolved",
+        player: {
+          id: `t:${i}:${p.name}`,
+          name: p.name,
+          position: p.position || "UNK",
+          team: "FA",
+          projected_points: p.projected_points ?? null,
+        },
+      })),
     tradeExplainer: () => new Promise(() => {}),
     narrationGuard: createNarrationGuard({ logger: { warn() {} } }),
   });
@@ -191,14 +230,26 @@ test("compare: a hung explainer is cut at the budget and the response carries ex
 test("compare: an open breaker skips the explainer entirely", async () => {
   const { routes } = loadTradeRoutes();
   const guard = createNarrationGuard({ failureThreshold: 1, logger: { warn() {} } });
-  await guard.run("trade_compare", 50, async () => { throw new Error("down"); });
+  await guard.run("trade_compare", 50, async () => {
+    throw new Error("down");
+  });
   let explainCalls = 0;
   const router = routes.createTradeRouter({
-    playerResolver: async (players) => players.map((p, i) => ({
-      status: "resolved",
-      player: { id: `t:${i}:${p.name}`, name: p.name, position: p.position || "UNK", team: "FA", projected_points: p.projected_points ?? null },
-    })),
-    tradeExplainer: async () => { explainCalls += 1; return "text"; },
+    playerResolver: async (players) =>
+      players.map((p, i) => ({
+        status: "resolved",
+        player: {
+          id: `t:${i}:${p.name}`,
+          name: p.name,
+          position: p.position || "UNK",
+          team: "FA",
+          projected_points: p.projected_points ?? null,
+        },
+      })),
+    tradeExplainer: async () => {
+      explainCalls += 1;
+      return "text";
+    },
     narrationGuard: guard,
   });
   await withServer(appFor(router), async (base) => {
@@ -258,7 +309,10 @@ test("/roster ignores a bundle older than 60s, and fresh=1 bypasses a young one"
     nflWeekContext: () => ({ week: 3 }),
     tradeFindCache: createMemoryTradeFindCache(),
     now: () => new Date(clock),
-    fetchLeagueRosters: async () => { providerReads += 1; return fixture(); },
+    fetchLeagueRosters: async () => {
+      providerReads += 1;
+      return fixture();
+    },
   });
   await withServer(appFor(router), async (base) => {
     await fetch(`${base}/api/trade/find?platform=sleeper&league_id=L1&team_id=1&week=3`, SKIP);

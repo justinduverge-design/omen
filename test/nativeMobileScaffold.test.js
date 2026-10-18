@@ -26,7 +26,10 @@ test("native app-shell scaffold keeps platform projects, safe environment seams,
   assert.match(read("mobile/ios/OmenIOS/OmenIOS/Info.plist"), /com\.slopssaloon\.omen/);
   assert.match(read("mobile/android/app/src/main/AndroidManifest.xml"), /com\.slopssaloon\.omen/);
   assert.match(read("mobile/ios/OmenIOS/OmenIOS/App/AppEnvironment.swift"), /apiBaseURL/);
-  assert.match(read("mobile/android/app/src/main/kotlin/com/slopssaloon/omen/core/network/AppEnvironment.kt"), /apiBaseUrl/);
+  assert.match(
+    read("mobile/android/app/src/main/kotlin/com/slopssaloon/omen/core/network/AppEnvironment.kt"),
+    /apiBaseUrl/,
+  );
 
   // iOS split the M3 placeholder's single AppShellView into per-screen files
   // (M3A-iOS, #159). M4 moved signed-in Command content into the feature-layer

@@ -12,16 +12,8 @@
 const assert = require("node:assert/strict");
 const { test } = require("node:test");
 const Sentry = require("@sentry/node");
-const {
-  captureProviderError,
-  MAX_BODY_CHARS,
-} = require("../src/middleware/providerErrors");
-const {
-  DEMO_MODE_TAG,
-  DEMO_MODE_TAG_VALUE,
-  isDemoEvent,
-  scrubSentryEvent,
-} = require("../src/middleware/sentry");
+const { captureProviderError, MAX_BODY_CHARS } = require("../src/middleware/providerErrors");
+const { DEMO_MODE_TAG, DEMO_MODE_TAG_VALUE, isDemoEvent, scrubSentryEvent } = require("../src/middleware/sentry");
 
 /** Capture what captureProviderError hands Sentry, without a network call. */
 function recordCapture(fn) {
@@ -43,13 +35,16 @@ function recordCapture(fn) {
 function capturedEvent(args) {
   const [call] = recordCapture(() => captureProviderError(args));
   if (!call) return null;
-  return scrubSentryEvent({
-    exception: {
-      values: [{ value: call.error.message, stacktrace: { frames: [] } }],
+  return scrubSentryEvent(
+    {
+      exception: {
+        values: [{ value: call.error.message, stacktrace: { frames: [] } }],
+      },
+      tags: call.hint.tags,
+      extra: call.hint.extra,
     },
-    tags: call.hint.tags,
-    extra: call.hint.extra,
-  }, { originalException: call.error });
+    { originalException: call.error },
+  );
 }
 
 // --- Credential / PII containment ---------------------------------
@@ -115,10 +110,7 @@ test("provider capture does not forward a Yahoo access token or refresh token", 
   assert.equal("access_token" in event.extra, false);
   assert.equal("refresh_token" in event.extra, false);
   // Yahoo's own explanation — the whole point of reading the body — survives.
-  assert.equal(
-    event.extra.provider_body_snippet.includes("not authorized to perform this action"),
-    true,
-  );
+  assert.equal(event.extra.provider_body_snippet.includes("not authorized to perform this action"), true);
 });
 
 test("provider capture does not forward an unlisted context key of any name", () => {
@@ -157,12 +149,14 @@ test("provider body snippet is capped so a vendor HTML error page cannot flood t
 // --- Demo-mode isolation ------------------------------------------
 
 test("demo-mode provider errors are never captured at all", () => {
-  const calls = recordCapture(() => captureProviderError({
-    provider: "sleeper",
-    operation: "api_get",
-    error: new Error("demo_fixture_invalid: expected a lineup recommendation"),
-    demo: true,
-  }));
+  const calls = recordCapture(() =>
+    captureProviderError({
+      provider: "sleeper",
+      operation: "api_get",
+      error: new Error("demo_fixture_invalid: expected a lineup recommendation"),
+      demo: true,
+    }),
+  );
 
   assert.deepEqual(calls, []);
 });
@@ -171,13 +165,15 @@ test("expected provider reconnect states are never captured as incidents", () =>
   const error = new Error("ESPN rejected the request — cookies may be invalid or expired");
   error.status = 401;
 
-  const calls = recordCapture(() => captureProviderError({
-    provider: "espn",
-    operation: "auth_rejected",
-    error,
-    expected: true,
-    context: { http_status: 401 },
-  }));
+  const calls = recordCapture(() =>
+    captureProviderError({
+      provider: "espn",
+      operation: "auth_rejected",
+      error,
+      expected: true,
+      context: { http_status: 401 },
+    }),
+  );
 
   assert.deepEqual(calls, []);
 });
@@ -186,12 +182,14 @@ test("an unexpected provider 401 is still captured unless its adapter classifies
   const error = new Error("provider service credential rejected");
   error.status = 401;
 
-  const calls = recordCapture(() => captureProviderError({
-    provider: "espn",
-    operation: "service_probe",
-    error,
-    context: { http_status: 401 },
-  }));
+  const calls = recordCapture(() =>
+    captureProviderError({
+      provider: "espn",
+      operation: "service_probe",
+      error,
+      context: { http_status: 401 },
+    }),
+  );
 
   assert.equal(calls.length, 1);
   assert.deepEqual(calls[0].hint.fingerprint, ["provider", "espn", "service_probe", "401"]);
@@ -214,19 +212,25 @@ test("beforeSend drops any event thrown under a demo route", () => {
     "https://slopssaloon.com/api/demo/omen",
     "/api/demo/omen?week=1",
   ]) {
-    const result = scrubSentryEvent({
-      request: { method: "GET", url },
-      exception: { values: [{ value: "demo_fixture_invalid" }] },
-    }, {});
+    const result = scrubSentryEvent(
+      {
+        request: { method: "GET", url },
+        exception: { values: [{ value: "demo_fixture_invalid" }] },
+      },
+      {},
+    );
     assert.equal(result, null, `${url} must not be reported`);
   }
 });
 
 test("beforeSend drops any event explicitly tagged as demo mode", () => {
-  const result = scrubSentryEvent({
-    tags: { [DEMO_MODE_TAG]: DEMO_MODE_TAG_VALUE },
-    exception: { values: [{ value: "demo_fixture_invalid" }] },
-  }, {});
+  const result = scrubSentryEvent(
+    {
+      tags: { [DEMO_MODE_TAG]: DEMO_MODE_TAG_VALUE },
+      exception: { values: [{ value: "demo_fixture_invalid" }] },
+    },
+    {},
+  );
 
   assert.equal(result, null);
 });
@@ -234,10 +238,13 @@ test("beforeSend drops any event explicitly tagged as demo mode", () => {
 test("a route that merely contains the word demo is still reported", () => {
   // /api/demonstrations is not /api/demo — prefix matching must respect the
   // path segment boundary or a real route could be silently unreportable.
-  const result = scrubSentryEvent({
-    request: { method: "GET", url: "https://slopssaloon.com/api/demographics" },
-    exception: { values: [{ value: "real error" }] },
-  }, {});
+  const result = scrubSentryEvent(
+    {
+      request: { method: "GET", url: "https://slopssaloon.com/api/demographics" },
+      exception: { values: [{ value: "real error" }] },
+    },
+    {},
+  );
 
   assert.notEqual(result, null);
 });
@@ -266,20 +273,24 @@ test("capture never throws, whatever it is handed", () => {
 
   assert.doesNotThrow(() => captureProviderError());
   assert.doesNotThrow(() => captureProviderError({ provider: null, error: null }));
-  assert.doesNotThrow(() => captureProviderError({
-    provider: "yahoo",
-    operation: "api_get",
-    error: "a bare string, not an Error",
-    context: circular,
-  }));
+  assert.doesNotThrow(() =>
+    captureProviderError({
+      provider: "yahoo",
+      operation: "api_get",
+      error: "a bare string, not an Error",
+      context: circular,
+    }),
+  );
 });
 
 test("an unrecognized provider name is normalized rather than passed through", () => {
-  const [call] = recordCapture(() => captureProviderError({
-    provider: "<script>alert(1)</script>",
-    operation: "api_get",
-    error: new Error("boom"),
-  }));
+  const [call] = recordCapture(() =>
+    captureProviderError({
+      provider: "<script>alert(1)</script>",
+      operation: "api_get",
+      error: new Error("boom"),
+    }),
+  );
 
   assert.equal(call.hint.tags.provider, "unknown");
 });

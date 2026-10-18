@@ -100,8 +100,11 @@ module.exports = {
     if (!ctx.read(LEDGER_FILE)) return { applies: false, reason: `${LEDGER_FILE} not present` };
 
     const items = closedItems(text).length;
-    const live = new Set(parseSprintItems(text).filter((i) => i.status && !isClosed(i.status))
-      .map((i) => i.key));
+    const live = new Set(
+      parseSprintItems(text)
+        .filter((i) => i.status && !isClosed(i.status))
+        .map((i) => i.key),
+    );
     const claims = proseClaims(text, live).size;
     if (items + claims === 0) {
       return { applies: false, reason: "nothing in the sprint file is declared CLOSED" };
@@ -123,8 +126,11 @@ module.exports = {
       });
     }
 
-    const live = new Set(parseSprintItems(text).filter((i) => i.status && !isClosed(i.status))
-      .map((i) => i.key));
+    const live = new Set(
+      parseSprintItems(text)
+        .filter((i) => i.status && !isClosed(i.status))
+        .map((i) => i.key),
+    );
     const seen = new Set(findings.map((f) => f.key));
     for (const [key, where] of proseClaims(text, live)) {
       if (recorded.has(key) || seen.has(key)) continue;

@@ -3,10 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router';
 import AppLayout from '../components/layout/AppLayout.jsx';
 import PlatformConnections from '../components/platforms/PlatformConnections.jsx';
 import { apiFetch } from '../lib/api.js';
-import {
-  ACCOUNT_DELETE_CONFIRMATION,
-  isAccountDeleteConfirmation,
-} from '../lib/accountDeletion.js';
+import { ACCOUNT_DELETE_CONFIRMATION, isAccountDeleteConfirmation } from '../lib/accountDeletion.js';
 import { setDataMode } from '../lib/dataMode.js';
 import { storeNextUrl } from '../lib/nextUrl.js';
 import { supabase } from '../lib/supabase.js';
@@ -30,7 +27,9 @@ function AccountDeleteDialog({ open, onClose }) {
     setSubmitting(false);
     setTimeout(() => inputRef.current?.focus(), 50);
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, [open]);
 
   useEffect(() => {
@@ -92,7 +91,10 @@ function AccountDeleteDialog({ open, onClose }) {
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-(--color-risk-high)">Final check</p>
-              <h3 id="account-delete-title" className="mt-1 text-2xl font-bold tracking-tight text-(--color-text-primary)">
+              <h3
+                id="account-delete-title"
+                className="mt-1 text-2xl font-bold tracking-tight text-(--color-text-primary)"
+              >
                 Delete Omen data
               </h3>
             </div>
@@ -110,18 +112,22 @@ function AccountDeleteDialog({ open, onClose }) {
           </div>
 
           <p id="account-delete-copy" className="mt-4 text-sm leading-6 text-(--color-text-secondary)">
-            This removes Omen-stored platform connections, saved moves, consent records, and profile data.
-            It does not change data held by fantasy platforms or sign-in providers.
+            This removes Omen-stored platform connections, saved moves, consent records, and profile data. It does not
+            change data held by fantasy platforms or sign-in providers.
           </p>
 
           <div className="mt-4 rounded-lg border border-(--color-risk-high)/40 bg-(--color-risk-high)/10 px-4 py-3">
             <p className="text-sm font-semibold text-(--color-text-primary)">This cannot be undone.</p>
             <p className="mt-1 text-xs leading-5 text-(--color-text-secondary)">
-              Type <span className="font-mono text-(--color-text-primary)">{ACCOUNT_DELETE_CONFIRMATION}</span> to confirm.
+              Type <span className="font-mono text-(--color-text-primary)">{ACCOUNT_DELETE_CONFIRMATION}</span> to
+              confirm.
             </p>
           </div>
 
-          <label className="mt-5 block text-xs font-semibold uppercase tracking-widest text-(--color-text-tertiary)" htmlFor="account-delete-confirmation">
+          <label
+            className="mt-5 block text-xs font-semibold uppercase tracking-widest text-(--color-text-tertiary)"
+            htmlFor="account-delete-confirmation"
+          >
             Confirmation phrase
           </label>
           <input
@@ -209,7 +215,8 @@ export default function Account() {
   // Session gate.
   useEffect(() => {
     let mounted = true;
-    supabase.auth.getSession()
+    supabase.auth
+      .getSession()
       .then(({ data }) => {
         if (!mounted) return;
         if (!data?.session) {
@@ -225,7 +232,9 @@ export default function Account() {
           navigate('/login', { replace: true });
         }
       });
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [navigate]);
 
   // Phase 1.5g.3: Account is settings-only — no live fantasy recommendation

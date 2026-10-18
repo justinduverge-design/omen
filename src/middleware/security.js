@@ -13,18 +13,12 @@
  * ════════════════════════════════════════════════════════════════
  */
 
-const helmet    = require("helmet");
-const cors      = require("cors");
+const helmet = require("helmet");
+const cors = require("cors");
 const rateLimit = require("express-rate-limit");
-const config    = require("../config");
+const config = require("../config");
 
-const PERMISSIONS_POLICY = [
-  "camera=()",
-  "geolocation=()",
-  "microphone=()",
-  "payment=()",
-  "usb=()",
-].join(", ");
+const PERMISSIONS_POLICY = ["camera=()", "geolocation=()", "microphone=()", "payment=()", "usb=()"].join(", ");
 
 // ── helmet ────────────────────────────────────────────────────────
 // Sets ~12 hardening headers (X-Frame-Options, HSTS, X-Content-Type-Options,
@@ -33,13 +27,13 @@ const helmetMiddleware = helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc:  ["'self'"],
-      styleSrc:   ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      imgSrc:     ["'self'", "data:", "https:"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      imgSrc: ["'self'", "data:", "https:"],
       connectSrc: ["'self'", "https://*.supabase.co"],
-      fontSrc:    ["'self'", "data:", "https://fonts.gstatic.com"],
-      objectSrc:  ["'none'"],
-      frameSrc:   ["'none'"],
+      fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
+      objectSrc: ["'none'"],
+      frameSrc: ["'none'"],
       // `useDefaults` stays on (true) so Helmet's other CSP defaults
       // (base-uri, form-action, frame-ancestors, script-src-attr, etc.)
       // still apply as extra hardening. But `upgrade-insecure-requests` is
@@ -88,7 +82,9 @@ const corsMiddleware = cors((req, cb) => {
     if (originHost && originHost === req.headers.host) {
       return cb(null, { origin: true, credentials: true });
     }
-  } catch (_) { /* malformed Origin -> fall through to allowlist */ }
+  } catch (_) {
+    /* malformed Origin -> fall through to allowlist */
+  }
 
   // 3. Explicit allowlist from CORS_ORIGINS env var.
   if (config.corsOrigins.includes(origin)) {
@@ -125,22 +121,22 @@ const corsMiddleware = cors((req, cb) => {
 // Raised from 100 on 2026-08-31 for exactly that reason. Uses standard headers
 // (RFC draft) so clients can implement real backoff.
 const generalRateLimit = rateLimit({
-  windowMs:        60 * 1000,
-  limit:           600,
+  windowMs: 60 * 1000,
+  limit: 600,
   standardHeaders: "draft-7",
-  legacyHeaders:   false,
-  message:         { error: "Too many requests, please slow down." },
+  legacyHeaders: false,
+  message: { error: "Too many requests, please slow down." },
 });
 
 // ── Auth rate limit ───────────────────────────────────────────────
 // Stricter — applied to /api/auth/* only. Brute-force / credential-stuffing
 // defense. 20 attempts per IP per 10 minutes.
 const authRateLimit = rateLimit({
-  windowMs:        10 * 60 * 1000,
-  limit:           20,
+  windowMs: 10 * 60 * 1000,
+  limit: 20,
   standardHeaders: "draft-7",
-  legacyHeaders:   false,
-  message:         { error: "Too many auth attempts. Try again in 10 minutes." },
+  legacyHeaders: false,
+  message: { error: "Too many auth attempts. Try again in 10 minutes." },
 });
 
 // ── Public tool rate limit ───────────────────────────────────────
@@ -157,11 +153,11 @@ const authRateLimit = rateLimit({
 // its own tighter 20/min/IP + 20/min/credential limiter, so this prefix-wide
 // number is the loose outer bound and not the thing protecting spend.
 const publicToolRateLimit = rateLimit({
-  windowMs:        60 * 1000,
-  limit:           120,
+  windowMs: 60 * 1000,
+  limit: 120,
   standardHeaders: "draft-7",
-  legacyHeaders:   false,
-  message:         {
+  legacyHeaders: false,
+  message: {
     error: "Too many tool requests, please slow down.",
     code: "public_tool_rate_limited",
   },
@@ -190,11 +186,11 @@ const publicToolRateLimit = rateLimit({
 const PLAYER_SEARCH_PER_MINUTE = 300;
 
 const playerSearchRateLimit = rateLimit({
-  windowMs:        60 * 1000,
-  limit:           PLAYER_SEARCH_PER_MINUTE,
+  windowMs: 60 * 1000,
+  limit: PLAYER_SEARCH_PER_MINUTE,
   standardHeaders: "draft-7",
-  legacyHeaders:   false,
-  message:         {
+  legacyHeaders: false,
+  message: {
     error: "Too many player searches, please slow down.",
     code: "player_search_rate_limited",
   },

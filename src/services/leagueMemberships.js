@@ -30,8 +30,8 @@ const PLATFORMS = new Set(["espn", "yahoo", "sleeper"]);
 const MISSING_CODES = new Set(["PGRST205", "42P01", "PGRST202", "42883"]);
 
 const MEMBERSHIP_COLUMNS =
-  "league_id,connection_id,provider_team_id,team_name,is_followed,is_active_selection,sort_order,source,"
-  + "leagues(provider,provider_league_id,season,name,scoring_format,team_count)";
+  "league_id,connection_id,provider_team_id,team_name,is_followed,is_active_selection,sort_order,source," +
+  "leagues(provider,provider_league_id,season,name,scoring_format,team_count)";
 
 function isSchemaAbsent(error) {
   if (!error) return false;
@@ -107,7 +107,12 @@ async function connectionIdFor(supabase, userId, platform) {
 async function upsertLeagues(supabase, platform, entries, now) {
   const groups = new Map();
   for (const entry of entries) {
-    const row = { provider: platform, provider_league_id: entry.provider_league_id, season: entry.season, last_synced_at: now };
+    const row = {
+      provider: platform,
+      provider_league_id: entry.provider_league_id,
+      season: entry.season,
+      last_synced_at: now,
+    };
     if (entry.name != null) row.name = entry.name;
     if (entry.scoring_format != null) row.scoring_format = entry.scoring_format;
     if (entry.team_count != null) row.team_count = entry.team_count;
@@ -129,10 +134,7 @@ async function upsertLeagues(supabase, platform, entries, now) {
 }
 
 async function readRawMemberships(supabase, userId) {
-  const { data, error } = await supabase
-    .from("league_memberships")
-    .select(MEMBERSHIP_COLUMNS)
-    .eq("user_id", userId);
+  const { data, error } = await supabase.from("league_memberships").select(MEMBERSHIP_COLUMNS).eq("user_id", userId);
   if (error) throw dbError("league_memberships read", error);
   return data || [];
 }
@@ -161,16 +163,19 @@ async function updateMembership(supabase, userId, leagueId, patch) {
  * @param {string[]} [args.keepLeagueIds] never unfollowed by markMissing (the bound league)
  * @returns {Promise<{persisted: boolean, reason?: string, inserted: number, updated: number, unfollowed: number}>}
  */
-async function syncMemberships(supabase, {
-  userId,
-  platform,
-  connectionId = null,
-  season = null,
-  leagues,
-  source = "connect",
-  markMissing = false,
-  keepLeagueIds = [],
-}) {
+async function syncMemberships(
+  supabase,
+  {
+    userId,
+    platform,
+    connectionId = null,
+    season = null,
+    leagues,
+    source = "connect",
+    markMissing = false,
+    keepLeagueIds = [],
+  },
+) {
   if (!userId || !PLATFORMS.has(platform)) throw new Error("syncMemberships: user and a known platform are required");
   const fallbackSeason = validSeason(season) ?? currentSeason();
   const entries = normalizeEntries(platform, leagues, fallbackSeason);
@@ -178,7 +183,7 @@ async function syncMemberships(supabase, {
   if (!entries.length) return { persisted: false, reason: "no_leagues", ...counts };
 
   try {
-    const connId = connectionId || await connectionIdFor(supabase, userId, platform);
+    const connId = connectionId || (await connectionIdFor(supabase, userId, platform));
     if (!connId) return { persisted: false, reason: "no_connection", ...counts };
 
     const now = new Date().toISOString();
@@ -263,17 +268,20 @@ async function syncMemberships(supabase, {
  * Never throws. Returns the sync result plus `discoveryFailed` and the provider's HTTP status
  * only (a discovery error message can carry a URL, so it is not returned).
  */
-async function syncAfterConnect(supabase, {
-  userId,
-  platform,
-  connectionId = null,
-  season = null,
-  discover,
-  boundLeagueId = null,
-  boundTeamId = null,
-  boundVerified = false,
-  trustDiscoveredTeams = true,
-}) {
+async function syncAfterConnect(
+  supabase,
+  {
+    userId,
+    platform,
+    connectionId = null,
+    season = null,
+    discover,
+    boundLeagueId = null,
+    boundTeamId = null,
+    boundVerified = false,
+    trustDiscoveredTeams = true,
+  },
+) {
   const fallbackSeason = validSeason(season) ?? currentSeason();
   let discovered = null;
   let discoveryError = null;
@@ -287,9 +295,9 @@ async function syncAfterConnect(supabase, {
     discoveryStatus: Number(discoveryError?.status) || null,
   };
 
-  const leagues = (discovered || []).map((league) => (trustDiscoveredTeams
-    ? league
-    : { ...league, team_id: null, team_name: null }));
+  const leagues = (discovered || []).map((league) =>
+    trustDiscoveredTeams ? league : { ...league, team_id: null, team_name: null },
+  );
   const bound = text(boundLeagueId);
   if (bound && bound !== platform) {
     const index = leagues.findIndex((league) => text(league?.league_id) === bound);
@@ -302,7 +310,12 @@ async function syncAfterConnect(supabase, {
 
   try {
     const result = await syncMemberships(supabase, {
-      userId, platform, connectionId, season: fallbackSeason, leagues, source: "connect",
+      userId,
+      platform,
+      connectionId,
+      season: fallbackSeason,
+      leagues,
+      source: "connect",
     });
     return { ...result, ...discovery };
   } catch (error) {
@@ -319,19 +332,21 @@ async function readMemberships(supabase, userId) {
     const rows = await readRawMemberships(supabase, userId);
     return {
       persisted: true,
-      memberships: rows.filter((m) => m.leagues).map((m) => ({
-        platform: m.leagues.provider,
-        league_id: String(m.leagues.provider_league_id),
-        season: m.leagues.season == null ? null : Number(m.leagues.season),
-        league_name: m.leagues.name ?? null,
-        scoring_format: m.leagues.scoring_format ?? null,
-        team_id: m.provider_team_id ?? null,
-        team_name: m.team_name ?? null,
-        is_followed: m.is_followed !== false,
-        is_active_selection: m.is_active_selection === true,
-        sort_order: m.sort_order ?? null,
-        connection_id: m.connection_id,
-      })),
+      memberships: rows
+        .filter((m) => m.leagues)
+        .map((m) => ({
+          platform: m.leagues.provider,
+          league_id: String(m.leagues.provider_league_id),
+          season: m.leagues.season == null ? null : Number(m.leagues.season),
+          league_name: m.leagues.name ?? null,
+          scoring_format: m.leagues.scoring_format ?? null,
+          team_id: m.provider_team_id ?? null,
+          team_name: m.team_name ?? null,
+          is_followed: m.is_followed !== false,
+          is_active_selection: m.is_active_selection === true,
+          sort_order: m.sort_order ?? null,
+          connection_id: m.connection_id,
+        })),
     };
   } catch (error) {
     if (error instanceof SchemaAbsent) return { persisted: false, memberships: [] };

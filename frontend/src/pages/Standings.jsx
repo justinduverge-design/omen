@@ -48,9 +48,7 @@ function StandingsTable({ standings }) {
               key={row.team_id}
               className="border-b last:border-0"
               style={{
-                borderColor: row.is_current_user
-                  ? 'var(--color-team-accent)'
-                  : 'var(--color-border)',
+                borderColor: row.is_current_user ? 'var(--color-team-accent)' : 'var(--color-border)',
                 background: row.is_current_user
                   ? 'color-mix(in srgb, var(--color-team-accent) 12%, transparent)'
                   : 'transparent',
@@ -59,13 +57,9 @@ function StandingsTable({ standings }) {
               <td
                 className="py-3 pr-4 font-mono text-xs tabular-nums"
                 style={{
-                  color: row.is_current_user
-                    ? 'var(--color-text-secondary)'
-                    : 'var(--color-text-tertiary)',
+                  color: row.is_current_user ? 'var(--color-text-secondary)' : 'var(--color-text-tertiary)',
                   width: 32,
-                  borderLeft: row.is_current_user
-                    ? '4px solid var(--color-team-accent)'
-                    : '4px solid transparent',
+                  borderLeft: row.is_current_user ? '4px solid var(--color-team-accent)' : '4px solid transparent',
                   paddingLeft: row.is_current_user ? 12 : 0,
                 }}
               >
@@ -92,9 +86,7 @@ function StandingsTable({ standings }) {
               <td
                 className="py-3 pr-4 font-mono text-xs tabular-nums"
                 style={{
-                  color: row.is_current_user
-                    ? 'var(--color-text-primary)'
-                    : 'var(--color-text-secondary)',
+                  color: row.is_current_user ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
                 }}
               >
                 {row.wins}–{row.losses}
@@ -102,9 +94,7 @@ function StandingsTable({ standings }) {
               <td
                 className="py-3 pr-4 font-mono text-xs tabular-nums"
                 style={{
-                  color: row.is_current_user
-                    ? 'var(--color-text-primary)'
-                    : 'var(--color-text-secondary)',
+                  color: row.is_current_user ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
                 }}
               >
                 {row.points_for != null ? row.points_for.toFixed(1) : '—'}
@@ -112,9 +102,7 @@ function StandingsTable({ standings }) {
               <td
                 className="py-3 font-mono text-xs tabular-nums"
                 style={{
-                  color: row.is_current_user
-                    ? 'var(--color-text-primary)'
-                    : 'var(--color-text-secondary)',
+                  color: row.is_current_user ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
                 }}
               >
                 {row.points_against != null ? row.points_against.toFixed(1) : '—'}
@@ -163,10 +151,12 @@ export default function Standings() {
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const isDisconnected = errorCode === 'league_not_connected';
-  const isReconnect    = errorCode?.endsWith('_reconnect_required');
+  const isReconnect = errorCode?.endsWith('_reconnect_required');
 
   // Phase 1.5g.3: populated standings are live league data → 'live' (moment
   // chrome suppressed); disconnected / reconnect / error / empty are mock-safe.
@@ -204,7 +194,7 @@ export default function Standings() {
     // Platform auth expired — prompt reconnect
     if (isReconnect) {
       const platform = errorCode.replace('_reconnect_required', '');
-      const label    = PLATFORM_LABELS[platform] ?? platform;
+      const label = PLATFORM_LABELS[platform] ?? platform;
       return (
         <Card variant="solid" className="p-6">
           <p className="text-sm leading-6" style={{ color: 'var(--color-text-secondary)' }}>
@@ -272,10 +262,7 @@ export default function Standings() {
             </span>
           )}
           {data.season && (
-            <span
-              className="ml-auto font-mono text-xs tabular-nums"
-              style={{ color: 'var(--color-text-tertiary)' }}
-            >
+            <span className="ml-auto font-mono text-xs tabular-nums" style={{ color: 'var(--color-text-tertiary)' }}>
               {data.season}
             </span>
           )}
@@ -292,29 +279,17 @@ export default function Standings() {
     <AppLayout>
       {/* Page header */}
       <div>
-        <p
-          className="text-xs font-semibold uppercase tracking-[0.2em]"
-          style={{ color: 'var(--color-team-accent)' }}
-        >
+        <p className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: 'var(--color-team-accent)' }}>
           League
         </p>
-        <h1
-          className="mt-3 font-display text-3xl font-semibold"
-          style={{ color: 'var(--color-text-primary)' }}
-        >
+        <h1 className="mt-3 font-display text-3xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>
           Standings
         </h1>
-        <p
-          className="mt-2 text-sm leading-6"
-          style={{ color: 'var(--color-text-secondary)' }}
-        >
+        <p className="mt-2 text-sm leading-6" style={{ color: 'var(--color-text-secondary)' }}>
           Where every manager sits after the last whistle.
         </p>
         {wardRoom && (
-          <p
-            className="mt-3 text-base italic"
-            style={{ color: 'var(--color-text-secondary)' }}
-          >
+          <p className="mt-3 text-base italic" style={{ color: 'var(--color-text-secondary)' }}>
             {wardRoom}
           </p>
         )}

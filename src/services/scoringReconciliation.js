@@ -49,9 +49,7 @@ function finite(value) {
  */
 function missingFactsFor(contract, facts) {
   const rules = Array.isArray(contract?.rules) ? contract.rules : [];
-  return [...new Set(rules
-    .map((rule) => rule.event_key)
-    .filter((key) => facts?.[key] == null))].sort();
+  return [...new Set(rules.map((rule) => rule.event_key).filter((key) => facts?.[key] == null))].sort();
 }
 
 /**
@@ -88,27 +86,24 @@ function reconcileMoveScoring({
   if (snapshotCoverageState === "provider_restricted") {
     return outcome(
       RECONCILIATION_STATES.PROVIDER_RESTRICTED,
-      "This provider has not granted Omen a path to its complete private scoring rules, so a league-exact result is not available."
+      "This provider has not granted Omen a path to its complete private scoring rules, so a league-exact result is not available.",
     );
   }
   if (snapshotCoverageState === "ambiguous") {
     return outcome(
       RECONCILIATION_STATES.AMBIGUOUS,
-      "At least one of this league's scoring rules could not be reproduced, so Omen will not claim a league-exact result."
+      "At least one of this league's scoring rules could not be reproduced, so Omen will not claim a league-exact result.",
     );
   }
   if (snapshotCoverageState === "pending" || !contract) {
-    return outcome(
-      RECONCILIATION_STATES.PENDING,
-      "This league's scoring rules have not been captured yet."
-    );
+    return outcome(RECONCILIATION_STATES.PENDING, "This league's scoring rules have not been captured yet.");
   }
 
   const inspection = inspectScoringContract(contract);
   if (inspection.coverage_state !== "supported") {
     return outcome(
       RECONCILIATION_STATES.UNSUPPORTED,
-      `The captured contract is not usable for scoring (${inspection.coverage_state}).`
+      `The captured contract is not usable for scoring (${inspection.coverage_state}).`,
     );
   }
 
@@ -121,7 +116,7 @@ function reconcileMoveScoring({
     return outcome(
       RECONCILIATION_STATES.UNSUPPORTED,
       `Omen is missing lawful event facts for ${missing.length} priced rule${missing.length === 1 ? "" : "s"}, and will not score a missing fact as zero.`,
-      { missing_facts: missing }
+      { missing_facts: missing },
     );
   }
 
@@ -135,7 +130,10 @@ function reconcileMoveScoring({
   const omenPoints = Number(calculated.points.toFixed(2));
   if (providerPoints == null) {
     return {
-      ...outcome(RECONCILIATION_STATES.PENDING, "The provider's final score for this scoring period is not available yet."),
+      ...outcome(
+        RECONCILIATION_STATES.PENDING,
+        "The provider's final score for this scoring period is not available yet.",
+      ),
       omen_points: omenPoints,
     };
   }
@@ -162,7 +160,8 @@ function reconcileMoveScoring({
       provider_points: providerPoints,
       difference,
       league_exact: false,
-      reason: "The provider's final score differs slightly from Omen's calculation, consistent with a post-publication stat adjustment.",
+      reason:
+        "The provider's final score differs slightly from Omen's calculation, consistent with a post-publication stat adjustment.",
       missing_facts: [],
     };
   }

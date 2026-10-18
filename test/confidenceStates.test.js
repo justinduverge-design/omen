@@ -13,9 +13,21 @@ const { confidenceFlags } = require("../src/omen_tuesday_cron");
 
 const connection = { platform: "yahoo", league_id: "L1" };
 const player = (key, name, extra = {}) => ({
-  player_key: key, name, position: "RB", selected_position: "RB", eligible_positions: ["RB"], projected_points: 10, status: null, ...extra,
+  player_key: key,
+  name,
+  position: "RB",
+  selected_position: "RB",
+  eligible_positions: ["RB"],
+  projected_points: 10,
+  status: null,
+  ...extra,
 });
-const roster = { team_key: "t1", week: 5, source: "yahoo", slots: { starters: [player("a", "A", { status: "OUT", projected_points: 0 })], bench: [] } };
+const roster = {
+  team_key: "t1",
+  week: 5,
+  source: "yahoo",
+  slots: { starters: [player("a", "A", { status: "OUT", projected_points: 0 })], bench: [] },
+};
 
 function band(confidence) {
   return bandedConfidence(confidence).band;
@@ -38,11 +50,19 @@ test("off-season, pre-draft and mock off-season states carry no band, never Conf
 test("waiver, trade and stand-pat states are pinned to Leaning by policy, never Confident", () => {
   const out = player("a", "Out Starter", { status: "OUT", projected_points: 0 });
   const pickup = player("b", "Pickup", { projected_points: 25 });
-  const waiver = omen.mapWaiverPickupToMvpMove({ roster, connection, connectedPlatforms: ["yahoo"], outStarter: out, pickup }).body;
+  const waiver = omen.mapWaiverPickupToMvpMove({
+    roster,
+    connection,
+    connectedPlatforms: ["yahoo"],
+    outStarter: out,
+    pickup,
+  }).body;
   assert.equal(band(waiver.recommendation.confidence), "leaning");
 
   const yahoo = omen.mapYahooWaiverToMvpMove({
-    roster, connection, connectedPlatforms: ["yahoo"],
+    roster,
+    connection,
+    connectedPlatforms: ["yahoo"],
     waiver: { add: player("c", "Add"), drop: player("d", "Drop", { status: "OUT" }) },
   });
   assert.equal(band(yahoo.recommendation.confidence), "leaning");
@@ -91,7 +111,15 @@ test("policy edge cases: exactly 4, NaN, null, out starter with a negative gap, 
 
 test("the optimizer assesses the rounded delta it displays", () => {
   const { evaluateLineup } = require("../src/services/optimizer");
-  const p = (key, proj) => ({ player_key: key, name: key, position: "WR", selected_position: "WR", eligible_positions: ["WR"], projected_points: proj, status: null });
+  const p = (key, proj) => ({
+    player_key: key,
+    name: key,
+    position: "WR",
+    selected_position: "WR",
+    eligible_positions: ["WR"],
+    projected_points: proj,
+    status: null,
+  });
   const [swap] = evaluateLineup({ slots: { starters: [p("a", 10)], bench: [p("b", 13.996)] } });
   assert.equal(swap.delta, 4);
   assert.equal(swap.confidence_band, "leaning"); // projection-only at exactly 4.00 is still a lean

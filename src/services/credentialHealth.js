@@ -26,26 +26,61 @@ function createCredentialHealthChecker({ supabase, checks, log = null }) {
   return {
     /** Probe every active ESPN/Yahoo connection once. Returns counts by outcome. */
     async run() {
-      const { data, error } = await supabase.from("platform_connections")
+      const { data, error } = await supabase
+        .from("platform_connections")
         .select("user_id, platform, league_id, espn_secret_id, swid_secret_id, token_secret_id, refresh_secret_id")
-        .in("platform", ["espn", "yahoo"]).eq("is_active", true);
+        .in("platform", ["espn", "yahoo"])
+        .eq("is_active", true);
       if (error) throw new Error(`connection lookup failed (${error.code || "unknown"})`);
       const tally = { checked: 0, valid: 0, invalidated: 0, transient: 0, skipped: 0 };
       for (const row of data || []) {
-        const hasSecrets = row.platform === "espn" ? row.espn_secret_id && row.swid_secret_id : row.token_secret_id || row.refresh_secret_id;
-        if (!hasSecrets || !row.league_id) { tally.skipped += 1; continue; }
+        const hasSecrets =
+          row.platform === "espn"
+            ? row.espn_secret_id && row.swid_secret_id
+            : row.token_secret_id || row.refresh_secret_id;
+        if (!hasSecrets || !row.league_id) {
+          tally.skipped += 1;
+          continue;
+        }
         tally.checked += 1;
         try {
           await checks[row.platform](row);
-          await supabase.rpc("connection_record_health", { p_user_id: row.user_id, p_platform: row.platform, p_ok: true, p_failure_code: null });
+          await supabase.rpc("connection_record_health", {
+            p_user_id: row.user_id,
+            p_platform: row.platform,
+            p_ok: true,
+            p_failure_code: null,
+          });
           tally.valid += 1;
         } catch (err) {
           const code = classify(row.platform, err);
-          if (!code) { tally.transient += 1; continue; }
-          const { error: rpcError } = await supabase.rpc("connection_invalidate", { p_user_id: row.user_id, p_platform: row.platform, p_failure_code: code });
-          if (rpcError) { tally.transient += 1; try { log?.warn?.("Credential invalidation failed", { platform: row.platform, code: rpcError.code || "unknown" }); } catch { /* ignore */ } continue; }
+          if (!code) {
+            tally.transient += 1;
+            continue;
+          }
+          const { error: rpcError } = await supabase.rpc("connection_invalidate", {
+            p_user_id: row.user_id,
+            p_platform: row.platform,
+            p_failure_code: code,
+          });
+          if (rpcError) {
+            tally.transient += 1;
+            try {
+              log?.warn?.("Credential invalidation failed", {
+                platform: row.platform,
+                code: rpcError.code || "unknown",
+              });
+            } catch {
+              /* ignore */
+            }
+            continue;
+          }
           tally.invalidated += 1;
-          try { log?.info?.("Credential refused and removed", { platform: row.platform, code }); } catch { /* ignore */ }
+          try {
+            log?.info?.("Credential refused and removed", { platform: row.platform, code });
+          } catch {
+            /* ignore */
+          }
         }
       }
       return tally;

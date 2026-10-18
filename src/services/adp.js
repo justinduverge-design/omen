@@ -26,7 +26,9 @@ function nowIso() {
 }
 
 function normalizeFormat(value) {
-  const raw = String(value || "half-ppr").trim().toLowerCase();
+  const raw = String(value || "half-ppr")
+    .trim()
+    .toLowerCase();
   const normalized = raw === "half_ppr" ? "half-ppr" : raw;
   return VALID_FORMATS.has(normalized) ? normalized : null;
 }
@@ -68,7 +70,9 @@ function normalizePlayerIdentity(name, position) {
     .replace(/\b(jr|sr|ii|iii|iv)\b/g, "")
     .replace(/[^a-z0-9]+/g, "")
     .trim();
-  const normalizedPosition = String(position || "UNKNOWN").trim().toUpperCase();
+  const normalizedPosition = String(position || "UNKNOWN")
+    .trim()
+    .toUpperCase();
   return normalizedName ? `${normalizedName}:${normalizedPosition}` : null;
 }
 
@@ -93,15 +97,15 @@ function resolveAdpSourceWeights(scoringConfig = {}) {
   return {
     config_path: ADP_SOURCE_WEIGHT_CONFIG_PATH,
     defaults_applied: !configured || usedDefaults,
-    weights: Object.fromEntries(
-      ADP_SOURCE_KEYS.map((source) => [source, round(rawWeights[source] / total)])
-    ),
+    weights: Object.fromEntries(ADP_SOURCE_KEYS.map((source) => [source, round(rawWeights[source] / total)])),
   };
 }
 
 function normalizeWeightedPlayer(player) {
   const name = String(player?.name || player?.player_name || "").trim();
-  const position = String(player?.position || "UNKNOWN").trim().toUpperCase();
+  const position = String(player?.position || "UNKNOWN")
+    .trim()
+    .toUpperCase();
   const adp = toFiniteNumber(player?.adp ?? player?.overall_adp ?? player?.average_pick);
   const identity = normalizePlayerIdentity(name, position);
   if (!identity || adp == null || adp <= 0) return null;
@@ -110,7 +114,10 @@ function normalizeWeightedPlayer(player) {
     identity,
     name,
     position,
-    team: String(player?.team || player?.team_abbr || "").trim().toUpperCase() || null,
+    team:
+      String(player?.team || player?.team_abbr || "")
+        .trim()
+        .toUpperCase() || null,
     adp,
   };
 }
@@ -120,9 +127,7 @@ function buildWeightedAdpBoard(sources = {}, scoringConfig = {}) {
   const playersByIdentity = new Map();
 
   for (const source of ADP_SOURCE_KEYS) {
-    const sourcePlayers = Array.isArray(sources?.[source]?.players)
-      ? sources[source].players
-      : [];
+    const sourcePlayers = Array.isArray(sources?.[source]?.players) ? sources[source].players : [];
     const seenForSource = new Set();
 
     for (const rawPlayer of sourcePlayers) {
@@ -145,12 +150,9 @@ function buildWeightedAdpBoard(sources = {}, scoringConfig = {}) {
   const weightedPlayers = [];
   for (const player of playersByIdentity.values()) {
     const availableSources = ADP_SOURCE_KEYS.filter(
-      (source) => player.source_adp[source] != null && weighting.weights[source] > 0
+      (source) => player.source_adp[source] != null && weighting.weights[source] > 0,
     );
-    const availableWeight = availableSources.reduce(
-      (sum, source) => sum + weighting.weights[source],
-      0
-    );
+    const availableWeight = availableSources.reduce((sum, source) => sum + weighting.weights[source], 0);
     if (!availableSources.length || availableWeight <= 0) continue;
 
     const contributions = {};
@@ -254,12 +256,7 @@ function parseYahooName(player) {
 function parseYahooPlayer(player) {
   const key = player?.player_key || findFirstValue(player, "player_key");
   const draft = player?.draft_analysis || findFirstValue(player, "draft_analysis") || {};
-  const adp = toFiniteNumber(
-    draft.average_pick
-      ?? draft.avg_pick
-      ?? draft.average_draft_position
-      ?? draft.adp
-  );
+  const adp = toFiniteNumber(draft.average_pick ?? draft.avg_pick ?? draft.average_draft_position ?? draft.adp);
 
   if (!key || adp == null) return null;
 
@@ -276,11 +273,11 @@ function shouldMergeYahooFragments(node) {
   if (!Array.isArray(node) || !node.length) return false;
   const objects = node.filter((item) => item && typeof item === "object" && !Array.isArray(item));
   if (objects.length !== node.length) return false;
-  const hasPlayerFields = objects.some((item) =>
-    item.player_key || item.draft_analysis || item.name || item.display_position
+  const hasPlayerFields = objects.some(
+    (item) => item.player_key || item.draft_analysis || item.name || item.display_position,
   );
-  const hasFullPlayerObjects = objects.some((item) =>
-    item.player_key && (item.draft_analysis || item.name || item.display_position)
+  const hasFullPlayerObjects = objects.some(
+    (item) => item.player_key && (item.draft_analysis || item.name || item.display_position),
   );
   return hasPlayerFields && !hasFullPlayerObjects;
 }
@@ -368,7 +365,7 @@ async function fetchYahoo(yahooClient, year, options = {}) {
   const players = [];
 
   for (const batch of batches) {
-    players.push(...await fetchYahooDraftAnalysisBatch(yahooClient, batch));
+    players.push(...(await fetchYahooDraftAnalysisBatch(yahooClient, batch)));
   }
 
   const byId = new Map();
@@ -387,13 +384,7 @@ function mflPlayerId(row) {
 }
 
 function mflAdp(row) {
-  return toFiniteNumber(
-    row?.averagePick
-      ?? row?.avgPick
-      ?? row?.average_pick
-      ?? row?.adp
-      ?? row?.rank
-  );
+  return toFiniteNumber(row?.averagePick ?? row?.avgPick ?? row?.average_pick ?? row?.adp ?? row?.rank);
 }
 
 async function fetchMFL(teams, year, fetchImpl = fetch) {
@@ -401,10 +392,7 @@ async function fetchMFL(teams, year, fetchImpl = fetch) {
   const adpUrl = `https://api.myfantasyleague.com/${year}/export?TYPE=adp&FCOUNT=${fcount}&PERIOD=ADP&JSON=1`;
   const playersUrl = `https://api.myfantasyleague.com/${year}/export?TYPE=players&DETAILS=1&JSON=1`;
 
-  const [adpRes, playersRes] = await Promise.all([
-    fetchImpl(adpUrl),
-    fetchImpl(playersUrl),
-  ]);
+  const [adpRes, playersRes] = await Promise.all([fetchImpl(adpUrl), fetchImpl(playersUrl)]);
   const [adpData, playersData] = await Promise.all([
     readJsonResponse(adpRes, "MFL ADP"),
     readJsonResponse(playersRes, "MFL players"),
@@ -493,16 +481,12 @@ async function buildLiveAdpResponse({
       {
         attribution: FFC_ATTRIBUTION,
         attribution_url: FFC_ATTRIBUTION_URL,
-      }
+      },
     ),
     yahooSource(redis, year, yahooClient),
-    cachedSource(
-      redis,
-      `adp:mfl:${teams}:${year}`,
-      MFL_TTL_SECONDS,
-      () => fetchMFL(teams, year, fetchImpl),
-      { attribution: MFL_ATTRIBUTION }
-    ),
+    cachedSource(redis, `adp:mfl:${teams}:${year}`, MFL_TTL_SECONDS, () => fetchMFL(teams, year, fetchImpl), {
+      attribution: MFL_ATTRIBUTION,
+    }),
   ]);
 
   const weighted = buildWeightedAdpBoard({ ffc, yahoo, mfl }, scoringConfig);

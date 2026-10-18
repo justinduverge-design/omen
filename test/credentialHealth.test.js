@@ -11,7 +11,13 @@ test("only a definite provider refusal counts; outages and expired-but-refreshab
   assert.equal(classify("espn", Object.assign(new Error("ESPN rejected"), { status: 401 })), "espn_unauthorized");
   assert.equal(classify("espn", Object.assign(new Error("ESPN 502"), { status: 502 })), null);
   assert.equal(classify("espn", Object.assign(new Error("timeout"), { code: "ETIMEDOUT" })), null);
-  assert.equal(classify("yahoo", Object.assign(new Error("refresh failed (400)"), { status: 400, yahoo_error: { error: "invalid_grant" } })), "yahoo_refresh_refused");
+  assert.equal(
+    classify(
+      "yahoo",
+      Object.assign(new Error("refresh failed (400)"), { status: 400, yahoo_error: { error: "invalid_grant" } }),
+    ),
+    "yahoo_refresh_refused",
+  );
   assert.equal(classify("yahoo", Object.assign(new Error("yahoo_token_expired"), { status: 401 })), null);
   assert.equal(classify("yahoo", Object.assign(new Error("Yahoo API error: 500"), { status: 500 })), null);
 });
@@ -20,9 +26,21 @@ function harness(rows, outcomes) {
   const rpcs = [];
   const supabase = {
     from: () => ({ select: () => ({ in: () => ({ eq: async () => ({ data: rows, error: null }) }) }) }),
-    rpc: async (name, args) => { rpcs.push({ name, args }); return { error: null }; },
+    rpc: async (name, args) => {
+      rpcs.push({ name, args });
+      return { error: null };
+    },
   };
-  const checks = { espn: async (row) => { const o = outcomes[row.user_id]; if (o) throw o; }, yahoo: async (row) => { const o = outcomes[row.user_id]; if (o) throw o; } };
+  const checks = {
+    espn: async (row) => {
+      const o = outcomes[row.user_id];
+      if (o) throw o;
+    },
+    yahoo: async (row) => {
+      const o = outcomes[row.user_id];
+      if (o) throw o;
+    },
+  };
   return { checker: createCredentialHealthChecker({ supabase, checks }), rpcs };
 }
 
@@ -42,6 +60,8 @@ test("a refused credential is invalidated; an accepted one is marked valid; an o
   const tally = await checker.run();
   assert.deepEqual(tally, { checked: 4, valid: 1, invalidated: 2, transient: 1, skipped: 1 });
   assert.deepEqual(rpcs.map((r) => `${r.name}:${r.args.p_user_id}:${r.args.p_failure_code ?? ""}`).sort(), [
-    "connection_invalidate:dead:espn_unauthorized", "connection_invalidate:gone:yahoo_refresh_refused", "connection_record_health:ok:",
+    "connection_invalidate:dead:espn_unauthorized",
+    "connection_invalidate:gone:yahoo_refresh_refused",
+    "connection_record_health:ok:",
   ]);
 });

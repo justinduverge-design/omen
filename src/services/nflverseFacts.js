@@ -17,9 +17,21 @@ const { teamIdFor } = require("./footballIntelligence/nflTeams");
 
 // stats_player_week / stats_team_week columns that are identity or text, not stats.
 const NON_STAT_COLUMNS = new Set([
-  "player_id", "player_name", "player_display_name", "position", "position_group", "headshot_url",
-  "season", "week", "season_type", "game_id", "team", "opponent_team",
-  "fg_made_list", "fg_missed_list", "fg_blocked_list",
+  "player_id",
+  "player_name",
+  "player_display_name",
+  "position",
+  "position_group",
+  "headshot_url",
+  "season",
+  "week",
+  "season_type",
+  "game_id",
+  "team",
+  "opponent_team",
+  "fg_made_list",
+  "fg_missed_list",
+  "fg_blocked_list",
 ]);
 
 /** Every numeric, non-zero stat by its nflverse name. Absent means 0 or not recorded. */
@@ -47,8 +59,18 @@ function numOrNull(value) {
   return Number.isFinite(n) ? n : null;
 }
 
-const PBP_COLUMNS = ["game_id", "season", "season_type", "week", "play_type", "yardline_100", "air_yards",
-  "two_point_attempt", "receiver_player_id", "rusher_player_id"];
+const PBP_COLUMNS = [
+  "game_id",
+  "season",
+  "season_type",
+  "week",
+  "play_type",
+  "yardline_100",
+  "air_yards",
+  "two_point_attempt",
+  "receiver_player_id",
+  "rusher_player_id",
+];
 
 /**
  * Usage near the goal line and downfield, from play-by-play. Counts real snaps only: pass and run plays,
@@ -126,9 +148,15 @@ function buildTeamWeekRows({ teamRows, games }) {
     }
     const score = scores.get(`${teamId}|${season}|${week}`) || {};
     rows.push({
-      team_id: teamId, season, week, season_type: r.season_type, game_id: r.game_id || null,
-      opponent_team_id: teamIdFor(r.opponent_team), points_for: score.points_for ?? null,
-      points_against: score.points_against ?? null, stats: sparseStats(r),
+      team_id: teamId,
+      season,
+      week,
+      season_type: r.season_type,
+      game_id: r.game_id || null,
+      opponent_team_id: teamIdFor(r.opponent_team),
+      points_for: score.points_for ?? null,
+      points_against: score.points_against ?? null,
+      stats: sparseStats(r),
     });
   }
   return { rows, unmatched, considered: teamRows.length };
@@ -153,14 +181,32 @@ function buildGameRows(games, seasons) {
       continue;
     }
     rows.push({
-      game_id: g.game_id, season, week: intOrNull(g.week), game_type: g.game_type,
-      gameday: /^\d{4}-\d{2}-\d{2}$/.test(g.gameday || "") ? g.gameday : null, gametime: textOrNull(g.gametime),
-      away_team_id: away, home_team_id: home, away_score: intOrNull(g.away_score), home_score: intOrNull(g.home_score),
-      overtime: bool01(g.overtime), location: textOrNull(g.location), roof: textOrNull(g.roof), surface: textOrNull(g.surface),
-      temp: intOrNull(g.temp), wind: intOrNull(g.wind), away_rest: intOrNull(g.away_rest), home_rest: intOrNull(g.home_rest),
-      div_game: bool01(g.div_game), spread_line: numOrNull(g.spread_line), total_line: numOrNull(g.total_line),
-      away_moneyline: intOrNull(g.away_moneyline), home_moneyline: intOrNull(g.home_moneyline),
-      away_coach: textOrNull(g.away_coach), home_coach: textOrNull(g.home_coach), stadium: textOrNull(g.stadium),
+      game_id: g.game_id,
+      season,
+      week: intOrNull(g.week),
+      game_type: g.game_type,
+      gameday: /^\d{4}-\d{2}-\d{2}$/.test(g.gameday || "") ? g.gameday : null,
+      gametime: textOrNull(g.gametime),
+      away_team_id: away,
+      home_team_id: home,
+      away_score: intOrNull(g.away_score),
+      home_score: intOrNull(g.home_score),
+      overtime: bool01(g.overtime),
+      location: textOrNull(g.location),
+      roof: textOrNull(g.roof),
+      surface: textOrNull(g.surface),
+      temp: intOrNull(g.temp),
+      wind: intOrNull(g.wind),
+      away_rest: intOrNull(g.away_rest),
+      home_rest: intOrNull(g.home_rest),
+      div_game: bool01(g.div_game),
+      spread_line: numOrNull(g.spread_line),
+      total_line: numOrNull(g.total_line),
+      away_moneyline: intOrNull(g.away_moneyline),
+      home_moneyline: intOrNull(g.home_moneyline),
+      away_coach: textOrNull(g.away_coach),
+      home_coach: textOrNull(g.home_coach),
+      stadium: textOrNull(g.stadium),
     });
   }
   return { rows, unmatched, considered: rows.length + unmatched.length };
@@ -177,14 +223,26 @@ function buildRosterRows({ rosterRows, playerIdByGsis }) {
     if (season == null || week == null || !teamId) continue;
     const playerId = r.gsis_id ? playerIdByGsis.get(r.gsis_id) : null;
     if (!playerId) {
-      unmatched.push({ source: "rosters", provider_id: r.gsis_id || null, name: r.full_name || null, season, week,
-                       reason: r.gsis_id ? "gsis_id_not_in_crosswalk" : "no_gsis_id" });
+      unmatched.push({
+        source: "rosters",
+        provider_id: r.gsis_id || null,
+        name: r.full_name || null,
+        season,
+        week,
+        reason: r.gsis_id ? "gsis_id_not_in_crosswalk" : "no_gsis_id",
+      });
       continue;
     }
     rows.set(`${playerId}|${season}|${week}|${teamId}`, {
-      player_id: playerId, season, week, team_id: teamId, game_type: textOrNull(r.game_type),
-      position: textOrNull(r.position), depth_chart_position: textOrNull(r.depth_chart_position),
-      jersey_number: intOrNull(r.jersey_number), status: textOrNull(r.status),
+      player_id: playerId,
+      season,
+      week,
+      team_id: teamId,
+      game_type: textOrNull(r.game_type),
+      position: textOrNull(r.position),
+      depth_chart_position: textOrNull(r.depth_chart_position),
+      jersey_number: intOrNull(r.jersey_number),
+      status: textOrNull(r.status),
       status_detail: textOrNull(r.status_description_abbr),
     });
   }

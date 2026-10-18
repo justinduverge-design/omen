@@ -20,8 +20,7 @@ import { OmenRecommendationView } from './OmenOfTheWeek.jsx';
 
 function DemoBanner({ notice }) {
   const label = notice?.label ?? 'Demo Mode';
-  const message = notice?.message
-    ?? 'Sample league and roster data. This is not live fantasy advice.';
+  const message = notice?.message ?? 'Sample league and roster data. This is not live fantasy advice.';
   return (
     <div
       role="status"
@@ -32,10 +31,7 @@ function DemoBanner({ notice }) {
       <span aria-hidden="true" className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-sky-400" />
       <div>
         <p className="font-semibold uppercase tracking-widest">{label}</p>
-        <p
-          className="mt-0.5 leading-5"
-          style={{ color: 'var(--color-demo-text-secondary)' }}
-        >
+        <p className="mt-0.5 leading-5" style={{ color: 'var(--color-demo-text-secondary)' }}>
           {message}
         </p>
       </div>
@@ -46,10 +42,7 @@ function DemoBanner({ notice }) {
 function DemoHeader() {
   return (
     <section className="max-w-2xl">
-      <p
-        className="text-xs font-semibold uppercase tracking-widest"
-        style={{ color: 'var(--color-demo-text)' }}
-      >
+      <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-demo-text)' }}>
         Omen Demo
       </p>
       <h1
@@ -58,13 +51,9 @@ function DemoHeader() {
       >
         See Omen on a sample league.
       </h1>
-      <p
-        className="mt-4 text-sm leading-6"
-        style={{ color: 'var(--color-text-secondary)' }}
-      >
-        This is a fixed example so you can read the shape of an Omen call before
-        you connect your own league. Numbers and rosters here are illustrative —
-        the real version reads your roster from Yahoo, Sleeper, or ESPN.
+      <p className="mt-4 text-sm leading-6" style={{ color: 'var(--color-text-secondary)' }}>
+        This is a fixed example so you can read the shape of an Omen call before you connect your own league. Numbers
+        and rosters here are illustrative — the real version reads your roster from Yahoo, Sleeper, or ESPN.
       </p>
     </section>
   );
@@ -83,9 +72,7 @@ function LoadingGate() {
 function ErrorBlock({ message, onRetry }) {
   return (
     <div className="rounded-xl border border-red-400/30 bg-red-400/10 p-6">
-      <p className="text-sm font-semibold text-red-300">
-        Demo Mode is temporarily unavailable
-      </p>
+      <p className="text-sm font-semibold text-red-300">Demo Mode is temporarily unavailable</p>
       <p className="mt-1 text-sm text-red-200/70">{message}</p>
       <button
         className="mt-4 inline-flex min-h-[44px] items-center rounded-md bg-red-400/20 px-4 py-2 text-sm font-semibold text-red-200 transition-colors hover:bg-red-400/30"
@@ -108,16 +95,10 @@ function ConversionFooter() {
       }}
     >
       <div>
-        <p
-          className="text-xs font-semibold uppercase tracking-widest"
-          style={{ color: 'var(--color-demo-text)' }}
-        >
+        <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-demo-text)' }}>
           Ready for the real call?
         </p>
-        <p
-          className="mt-1 text-sm leading-6"
-          style={{ color: 'var(--color-text-secondary)' }}
-        >
+        <p className="mt-1 text-sm leading-6" style={{ color: 'var(--color-text-secondary)' }}>
           Connect Sleeper or ESPN and Omen reads your actual roster.
         </p>
       </div>
@@ -154,16 +135,16 @@ function useDemoData() {
     apiFetch('/api/demo')
       .then((result) => setData(result))
       .catch((err) => {
-        const msg = err instanceof ApiError
-          ? err.message
-          : 'Could not load the demo payload. Please try again.';
+        const msg = err instanceof ApiError ? err.message : 'Could not load the demo payload. Please try again.';
         setError(msg);
       })
       .finally(() => setLoading(false));
   };
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: load once on mount; load is recreated every render
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   return { data, loading, error, retry: load };
 }
@@ -190,11 +171,7 @@ export default function Demo() {
       {loading && <LoadingGate />}
       {error && !loading && <ErrorBlock message={error} onRetry={retry} />}
       {data?.omen && !loading && !error && (
-        <OmenRecommendationView
-          data={data.omen}
-          showFeedback={false}
-          banner={null}
-        />
+        <OmenRecommendationView data={data.omen} showFeedback={false} banner={null} />
       )}
 
       <ConversionFooter />

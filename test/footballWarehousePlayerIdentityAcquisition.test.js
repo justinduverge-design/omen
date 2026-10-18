@@ -3,9 +3,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const {
-  acquirePlayerIdentitySource,
-} = require("../src/services/footballWarehouse/playerIdentityAcquisition");
+const { acquirePlayerIdentitySource } = require("../src/services/footballWarehouse/playerIdentityAcquisition");
 const { PLAYERS_SOURCE_URL } = require("../src/services/footballWarehouse/playerIdentitySource");
 const { MAX_SOURCE_BYTES } = require("../src/services/footballWarehouse/playerWeeklySource");
 
@@ -62,7 +60,10 @@ test("requests only the exact players asset and returns its exact bytes", async 
 
 test("rejects alternate, insecure and credential-bearing URLs before fetch", async () => {
   let calls = 0;
-  const fetchImpl = async () => { calls += 1; return response(); };
+  const fetchImpl = async () => {
+    calls += 1;
+    return response();
+  };
   for (const sourceUrl of [
     PLAYERS_SOURCE_URL.replace("https:", "http:"),
     PLAYERS_SOURCE_URL.replace("https://", "https://user:secret@"),
@@ -81,10 +82,15 @@ test("rejects non-2xx responses and cancels their bodies", async () => {
   let cancelled = false;
   await assert.rejects(
     acquirePlayerIdentitySource({
-      fetchImpl: async () => response({
-        status: 503,
-        body: stream([Buffer.from("upstream detail")], { onCancel: () => { cancelled = true; } }),
-      }),
+      fetchImpl: async () =>
+        response({
+          status: 503,
+          body: stream([Buffer.from("upstream detail")], {
+            onCancel: () => {
+              cancelled = true;
+            },
+          }),
+        }),
     }),
     /HTTP 503/,
   );
@@ -96,10 +102,15 @@ test("requires an allowlisted Content-Type and cancels rejected bodies", async (
     let cancelled = false;
     await assert.rejects(
       acquirePlayerIdentitySource({
-        fetchImpl: async () => response({
-          type,
-          body: stream([Buffer.from("rejected")], { onCancel: () => { cancelled = true; } }),
-        }),
+        fetchImpl: async () =>
+          response({
+            type,
+            body: stream([Buffer.from("rejected")], {
+              onCancel: () => {
+                cancelled = true;
+              },
+            }),
+          }),
       }),
       /Content-Type/,
     );
@@ -122,10 +133,15 @@ test("rejects invalid, empty and oversized declared lengths before reading", asy
   let cancelled = false;
   await assert.rejects(
     acquirePlayerIdentitySource({
-      fetchImpl: async () => response({
-        length: MAX_SOURCE_BYTES + 1,
-        body: stream([Buffer.from("never read")], { onCancel: () => { cancelled = true; } }),
-      }),
+      fetchImpl: async () =>
+        response({
+          length: MAX_SOURCE_BYTES + 1,
+          body: stream([Buffer.from("never read")], {
+            onCancel: () => {
+              cancelled = true;
+            },
+          }),
+        }),
     }),
     new RegExp(`exceeds ${MAX_SOURCE_BYTES} bytes`),
   );
@@ -180,7 +196,10 @@ test("passes through AbortSignal and stops an already-aborted request before fet
   await assert.rejects(
     acquirePlayerIdentitySource({
       signal: controller.signal,
-      fetchImpl: async () => { calls += 1; return response(); },
+      fetchImpl: async () => {
+        calls += 1;
+        return response();
+      },
     }),
     { name: "AbortError" },
   );

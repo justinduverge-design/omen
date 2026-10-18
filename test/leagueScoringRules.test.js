@@ -6,7 +6,11 @@ const { recordLeagueScoringRules, recordLeagueScoringRulesSafely } = require("..
 
 const HASH = "a".repeat(64);
 const supported = (over = {}) => ({
-  contract: { ruleset_version: "scoring-contract.v1", coverage_state: "supported", rules: [{ event_key: "receiving_receptions", operator: "per_event", value: 1 }] },
+  contract: {
+    ruleset_version: "scoring-contract.v1",
+    coverage_state: "supported",
+    rules: [{ event_key: "receiving_receptions", operator: "per_event", value: 1 }],
+  },
   contract_version: "scoring-contract.v1",
   contract_hash: HASH,
   coverage_state: "supported",
@@ -20,8 +24,13 @@ function fake({ league = { id: "lg-uuid" }, existing = null, insertError = null,
   const from = (table) => {
     const q = { table, filters: {} };
     const builder = {
-      select() { return builder; },
-      eq(col, val) { q.filters[col] = val; return builder; },
+      select() {
+        return builder;
+      },
+      eq(col, val) {
+        q.filters[col] = val;
+        return builder;
+      },
       maybeSingle: async () => {
         log.selects.push({ table, filters: { ...q.filters } });
         return { data: table === "leagues" ? league : existing, error: null };
@@ -32,7 +41,8 @@ function fake({ league = { id: "lg-uuid" }, existing = null, insertError = null,
         return {
           select: () => ({
             single: async () => {
-              if (table === "data_events") return eventError ? { data: null, error: eventError } : { data: { id: 7 }, error: null };
+              if (table === "data_events")
+                return eventError ? { data: null, error: eventError } : { data: { id: 7 }, error: null };
               return insertError ? { data: null, error: insertError } : { data: { id: 99 }, error: null };
             },
           }),
@@ -85,13 +95,19 @@ test("nothing is stored when the rights gate withheld the body, coverage is part
 
 test("a league Omen has not registered is skipped, never created here", async () => {
   const { supabase, log } = fake({ league: null });
-  assert.deepEqual(await recordLeagueScoringRules(supabase, { ...INPUT, scoring: supported() }), { written: false, reason: "league_not_registered" });
+  assert.deepEqual(await recordLeagueScoringRules(supabase, { ...INPUT, scoring: supported() }), {
+    written: false,
+    reason: "league_not_registered",
+  });
   assert.deepEqual(log.inserts, []);
 });
 
 test("a concurrent writer winning the race is success, not an error", async () => {
   const { supabase } = fake({ insertError: { code: "23505" } });
-  assert.deepEqual(await recordLeagueScoringRules(supabase, { ...INPUT, scoring: supported() }), { written: false, reason: "unchanged" });
+  assert.deepEqual(await recordLeagueScoringRules(supabase, { ...INPUT, scoring: supported() }), {
+    written: false,
+    reason: "unchanged",
+  });
 });
 
 test("the safe wrapper never throws and logs only the stage and database code", async () => {

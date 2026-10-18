@@ -10,11 +10,13 @@ function canonicalize(value) {
   }
   if (Array.isArray(value)) return value.map(canonicalize);
   if (typeof value === "object" && Object.getPrototypeOf(value) === Object.prototype) {
-    return Object.keys(value).sort().reduce((result, key) => {
-      if (value[key] === undefined) throw integrityError(`Canonical value has undefined property: ${key}`);
-      result[key] = canonicalize(value[key]);
-      return result;
-    }, {});
+    return Object.keys(value)
+      .sort()
+      .reduce((result, key) => {
+        if (value[key] === undefined) throw integrityError(`Canonical value has undefined property: ${key}`);
+        result[key] = canonicalize(value[key]);
+        return result;
+      }, {});
   }
   throw integrityError(`Unsupported canonical value type: ${typeof value}`);
 }

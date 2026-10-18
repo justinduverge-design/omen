@@ -16,15 +16,8 @@
     },
     "status": {
       "type": "string",
-      "enum": [
-        "received"
-      ]
+      "enum": ["received"]
     }
   },
-  "required": [
-    "contract_version",
-    "id",
-    "message",
-    "status"
-  ]
+  "required": ["contract_version", "id", "message", "status"]
 }

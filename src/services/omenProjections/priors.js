@@ -12,18 +12,54 @@
 const { POSITIONS } = require("./constants");
 
 const DEFAULT_RATES = Object.freeze({
-  QB: { rush_yards_per_carry: 5.2, rush_td_per_carry: 0.04, catch_rate: 0.7, rec_yards_per_target: 6, rec_td_per_target: 0.03,
-    completions_per_attempt: 0.645, pass_yards_per_attempt: 6.9, pass_td_per_attempt: 0.043, int_per_attempt: 0.025,
-    fumbles_lost_per_touch: 0.008 },
-  RB: { rush_yards_per_carry: 4.3, rush_td_per_carry: 0.036, catch_rate: 0.77, rec_yards_per_target: 5.9, rec_td_per_target: 0.03,
-    completions_per_attempt: 0.5, pass_yards_per_attempt: 5, pass_td_per_attempt: 0.03, int_per_attempt: 0.03,
-    fumbles_lost_per_touch: 0.006 },
-  WR: { rush_yards_per_carry: 6, rush_td_per_carry: 0.03, catch_rate: 0.64, rec_yards_per_target: 8.2, rec_td_per_target: 0.05,
-    completions_per_attempt: 0.5, pass_yards_per_attempt: 5, pass_td_per_attempt: 0.03, int_per_attempt: 0.03,
-    fumbles_lost_per_touch: 0.005 },
-  TE: { rush_yards_per_carry: 3, rush_td_per_carry: 0.03, catch_rate: 0.7, rec_yards_per_target: 7.3, rec_td_per_target: 0.052,
-    completions_per_attempt: 0.5, pass_yards_per_attempt: 5, pass_td_per_attempt: 0.03, int_per_attempt: 0.03,
-    fumbles_lost_per_touch: 0.004 },
+  QB: {
+    rush_yards_per_carry: 5.2,
+    rush_td_per_carry: 0.04,
+    catch_rate: 0.7,
+    rec_yards_per_target: 6,
+    rec_td_per_target: 0.03,
+    completions_per_attempt: 0.645,
+    pass_yards_per_attempt: 6.9,
+    pass_td_per_attempt: 0.043,
+    int_per_attempt: 0.025,
+    fumbles_lost_per_touch: 0.008,
+  },
+  RB: {
+    rush_yards_per_carry: 4.3,
+    rush_td_per_carry: 0.036,
+    catch_rate: 0.77,
+    rec_yards_per_target: 5.9,
+    rec_td_per_target: 0.03,
+    completions_per_attempt: 0.5,
+    pass_yards_per_attempt: 5,
+    pass_td_per_attempt: 0.03,
+    int_per_attempt: 0.03,
+    fumbles_lost_per_touch: 0.006,
+  },
+  WR: {
+    rush_yards_per_carry: 6,
+    rush_td_per_carry: 0.03,
+    catch_rate: 0.64,
+    rec_yards_per_target: 8.2,
+    rec_td_per_target: 0.05,
+    completions_per_attempt: 0.5,
+    pass_yards_per_attempt: 5,
+    pass_td_per_attempt: 0.03,
+    int_per_attempt: 0.03,
+    fumbles_lost_per_touch: 0.005,
+  },
+  TE: {
+    rush_yards_per_carry: 3,
+    rush_td_per_carry: 0.03,
+    catch_rate: 0.7,
+    rec_yards_per_target: 7.3,
+    rec_td_per_target: 0.052,
+    completions_per_attempt: 0.5,
+    pass_yards_per_attempt: 5,
+    pass_td_per_attempt: 0.03,
+    int_per_attempt: 0.03,
+    fumbles_lost_per_touch: 0.004,
+  },
 });
 
 const DEFAULT_VOLUME = Object.freeze({
@@ -87,11 +123,35 @@ function buildPriors(rows) {
 
   let impliedSum = 0;
   let impliedN = 0;
-  const acc = Object.fromEntries(POSITIONS.map((position) => [position, {
-    rows: 0, att: 0, car: 0, tgt: 0, debutRows: 0, dAtt: 0, dCar: 0, dTgt: 0,
-    rushYds: 0, rushTd: 0, rec: 0, recYds: 0, recTd: 0, cmp: 0, passYds: 0, passTd: 0, int: 0, fl: 0,
-    rzCar: 0, rzCarDen: 0, rzTgt: 0, rzTgtDen: 0,
-  }]));
+  const acc = Object.fromEntries(
+    POSITIONS.map((position) => [
+      position,
+      {
+        rows: 0,
+        att: 0,
+        car: 0,
+        tgt: 0,
+        debutRows: 0,
+        dAtt: 0,
+        dCar: 0,
+        dTgt: 0,
+        rushYds: 0,
+        rushTd: 0,
+        rec: 0,
+        recYds: 0,
+        recTd: 0,
+        cmp: 0,
+        passYds: 0,
+        passTd: 0,
+        int: 0,
+        fl: 0,
+        rzCar: 0,
+        rzCarDen: 0,
+        rzTgt: 0,
+        rzTgtDen: 0,
+      },
+    ]),
+  );
 
   for (const row of list) {
     const a = acc[row.position];

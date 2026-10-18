@@ -7,8 +7,12 @@ const { execFileSync } = require("node:child_process");
 const test = require("node:test");
 
 const DIR = path.join(__dirname, "..", "infra", "warehouse", "schedule");
-const seasonOn = (today) => execFileSync("sh", [path.join(DIR, "omen-warehouse-run-current-season"), "--print-season"],
-  { env: { ...process.env, OMEN_WAREHOUSE_TODAY: today } }).toString().trim();
+const seasonOn = (today) =>
+  execFileSync("sh", [path.join(DIR, "omen-warehouse-run-current-season"), "--print-season"], {
+    env: { ...process.env, OMEN_WAREHOUSE_TODAY: today },
+  })
+    .toString()
+    .trim();
 
 test("the daily ingest picks the NFL season: September on is new, January through August is last season", () => {
   assert.equal(seasonOn("2026-10-09"), "2026");
@@ -36,9 +40,14 @@ function runAlert(arg, urlFileContents) {
   fs.writeFileSync(path.join(dir, "curl"), `#!/bin/sh\nprintf '%s\\n' "$@" >> "${calls}"\n`, { mode: 0o755 });
   const urlFile = path.join(dir, "url");
   if (urlFileContents != null) fs.writeFileSync(urlFile, urlFileContents);
-  const script = fs.readFileSync(path.join(DIR, "omen-warehouse-alert"), "utf8").replace("/etc/omen-warehouse/kuma-push-url", urlFile);
+  const script = fs
+    .readFileSync(path.join(DIR, "omen-warehouse-alert"), "utf8")
+    .replace("/etc/omen-warehouse/kuma-push-url", urlFile);
   fs.writeFileSync(path.join(dir, "alert"), script, { mode: 0o755 });
-  const out = execFileSync("sh", [path.join(dir, "alert"), arg], { env: { ...process.env, PATH: `${dir}:${process.env.PATH}` }, stdio: ["ignore", "pipe", "pipe"] }).toString();
+  const out = execFileSync("sh", [path.join(dir, "alert"), arg], {
+    env: { ...process.env, PATH: `${dir}:${process.env.PATH}` },
+    stdio: ["ignore", "pipe", "pipe"],
+  }).toString();
   return { out, calls: fs.existsSync(calls) ? fs.readFileSync(calls, "utf8") : "" };
 }
 

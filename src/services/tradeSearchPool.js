@@ -48,8 +48,8 @@ function poolSize() {
   return Number.isInteger(size) && size > 0 ? size : 1;
 }
 
-const slots = [];   // { worker, busy }
-const queue = [];   // tasks waiting for a free worker
+const slots = []; // { worker, busy }
+const queue = []; // tasks waiting for a free worker
 let nextId = 0;
 let closing = false;
 
@@ -59,7 +59,9 @@ function spawnSlot() {
   const fail = (error) => {
     retire(slot);
     if (slot.busy) slot.busy.settle({ error });
-    try { drain(); } catch {}
+    try {
+      drain();
+    } catch {}
   };
   slot.worker.on("message", (message) => {
     if (!slot.busy || message.id !== slot.busy.id) return;
@@ -67,7 +69,9 @@ function spawnSlot() {
     slot.busy = null;
     slot.worker.unref();
     task.settle(message.error ? { error: new Error(message.error) } : { message });
-    try { drain(); } catch {}
+    try {
+      drain();
+    } catch {}
   });
   slot.worker.on("error", fail);
   slot.worker.on("exit", (code) => fail(new Error(`trade search worker exited (${code})`)));
@@ -83,8 +87,7 @@ function retire(slot) {
 
 function drain() {
   while (queue.length && !closing) {
-    const slot = slots.find((candidate) => !candidate.busy)
-      || (slots.length < poolSize() ? spawnSlot() : null);
+    const slot = slots.find((candidate) => !candidate.busy) || (slots.length < poolSize() ? spawnSlot() : null);
     if (!slot) return;
     const task = queue.shift();
     // Measured at dispatch, so time spent queued behind another search counts against the budget.
@@ -119,17 +122,23 @@ function runOnWorker(payload) {
     };
     if (closing) return task.settle({ error: new Error("trade search pool is closed") });
     queue.push(task);
-    try { drain(); } catch (error) { task.settle({ error }); }
+    try {
+      drain();
+    } catch (error) {
+      task.settle({ error });
+    }
   });
 }
 
 async function runSearch(kind, input, inline, defaultGuard) {
   const { budget, onBudgetExceeded, fairnessGuard = defaultGuard, ...args } = input || {};
-  const fairness = fairnessGuard === mutualFairnessGuard ? "mutual"
-    : fairnessGuard === NO_GUARD ? null : undefined;
+  const fairness = fairnessGuard === mutualFairnessGuard ? "mutual" : fairnessGuard === NO_GUARD ? null : undefined;
   const startedAt = Date.now();
-  const remainingMs = !budget ? () => TRADE_SEARCH_BUDGET_MS - (Date.now() - startedAt)
-    : Number.isFinite(budget.budgetMs) ? () => budget.budgetMs - budget.stats.elapsedMs : null;
+  const remainingMs = !budget
+    ? () => TRADE_SEARCH_BUDGET_MS - (Date.now() - startedAt)
+    : Number.isFinite(budget.budgetMs)
+      ? () => budget.budgetMs - budget.stats.elapsedMs
+      : null;
   if (searchMode() === "inline" || fairness === undefined || !remainingMs) return inline(input);
 
   const outcome = await runOnWorker({ kind, args, fairness, remainingMs });
@@ -137,7 +146,10 @@ async function runSearch(kind, input, inline, defaultGuard) {
     logger().warn("Trade search worker failed; ran inline", { kind, error: outcome.error.message });
     return inline(input);
   }
-  if (onBudgetExceeded) outcome.message.budgetEvents.forEach((stats) => { onBudgetExceeded(stats); });
+  if (onBudgetExceeded)
+    outcome.message.budgetEvents.forEach((stats) => {
+      onBudgetExceeded(stats);
+    });
   return outcome.message.result;
 }
 
@@ -155,17 +167,24 @@ function findLeagueTradeCandidatesAsync(input) {
 async function closeTradeSearchPool() {
   closing = true;
   const error = new Error("trade search pool is closed");
-  queue.splice(0).forEach((task) => { task.settle({ error }); });
-  await Promise.all(slots.splice(0).map((slot) => {
-    if (slot.busy) slot.busy.settle({ error });
-    return slot.worker.terminate();
-  }));
+  queue.splice(0).forEach((task) => {
+    task.settle({ error });
+  });
+  await Promise.all(
+    slots.splice(0).map((slot) => {
+      if (slot.busy) slot.busy.settle({ error });
+      return slot.worker.terminate();
+    }),
+  );
 }
 
 module.exports = {
   findTradeCandidateAsync,
   // Tests point the pool at a worker that crashes or hangs, to prove the inline fallback.
-  setWorkerPathForTests(next) { workerPath = next; closing = false; },
+  setWorkerPathForTests(next) {
+    workerPath = next;
+    closing = false;
+  },
   findLeagueTradeCandidatesAsync,
   closeTradeSearchPool,
   WORKER_GRACE_MS,

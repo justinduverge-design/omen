@@ -43,7 +43,15 @@ function normalizeState(value) {
 }
 
 function unavailableInput(name, reasonCode = "input_unavailable") {
-  return { name, state: "unavailable", used: false, source: "unknown", reason_code: reasonCode, observed_at: null, fresh_until: null };
+  return {
+    name,
+    state: "unavailable",
+    used: false,
+    source: "unknown",
+    reason_code: reasonCode,
+    observed_at: null,
+    fresh_until: null,
+  };
 }
 
 /** Value is private/context-local and is intentionally excluded by receipt(). */
@@ -84,7 +92,7 @@ function createDecisionContext({ profile, loaders = {}, now = () => new Date().t
       const loader = loaders[name];
       if (typeof loader !== "function") return unavailableInput(name, "not_requested");
       try {
-        const record = normalizeInput(name, await loader() || {});
+        const record = normalizeInput(name, (await loader()) || {});
         if (record.state === "live" && !record.observed_at) record.observed_at = safeIso(now());
         records.set(name, record);
         return record;
@@ -123,7 +131,9 @@ function createDecisionContext({ profile, loaders = {}, now = () => new Date().t
     return true;
   }
 
-  function value(name) { return records.get(name)?.value ?? null; }
+  function value(name) {
+    return records.get(name)?.value ?? null;
+  }
 
   function receipt() {
     const names = [...new Set([...PROFILES[profile], ...records.keys()])].sort();
@@ -134,7 +144,8 @@ function createDecisionContext({ profile, loaders = {}, now = () => new Date().t
       const record = records.get(name) || unavailableInput(name, "not_requested");
       inputs[name] = publicInput(record);
       if (record.used) inputsUsed.push(name);
-      if (record.state !== "live") limitations.push({ name, state: record.state, reason_code: record.reason_code || "input_unavailable" });
+      if (record.state !== "live")
+        limitations.push({ name, state: record.state, reason_code: record.reason_code || "input_unavailable" });
     }
     return { contract_version: DECISION_CONTEXT_VERSION, profile, inputs, inputs_used: inputsUsed.sort(), limitations };
   }
@@ -143,8 +154,17 @@ function createDecisionContext({ profile, loaders = {}, now = () => new Date().t
 }
 
 function attachDecisionReceipt(response, context) {
-  if (response && typeof response === "object" && context && typeof context.receipt === "function") response.decision_context = context.receipt();
+  if (response && typeof response === "object" && context && typeof context.receipt === "function")
+    response.decision_context = context.receipt();
   return response;
 }
 
-module.exports = { DECISION_CONTEXT_VERSION, INPUT_STATES, PROFILES, attachDecisionReceipt, createDecisionContext, normalizeInput, unavailableInput };
+module.exports = {
+  DECISION_CONTEXT_VERSION,
+  INPUT_STATES,
+  PROFILES,
+  attachDecisionReceipt,
+  createDecisionContext,
+  normalizeInput,
+  unavailableInput,
+};

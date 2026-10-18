@@ -55,10 +55,7 @@ function FeaturePitch() {
 
         <div className="grid gap-4 sm:grid-cols-3">
           {FEATURES.map((f) => (
-            <div
-              key={f.label}
-              className="relative rounded-xl border border-white/10 bg-white/3 px-5 py-4"
-            >
+            <div key={f.label} className="relative rounded-xl border border-white/10 bg-white/3 px-5 py-4">
               <p className="text-sm font-semibold text-[#F4EFE1]">{f.label}</p>
               <p className="mt-1 text-xs leading-5 text-[#F4EFE1]/45">{f.desc}</p>
             </div>
@@ -110,9 +107,7 @@ export default function OmenLanding() {
 
         {/* ── Hero ── */}
         <section className="relative mx-auto max-w-4xl px-5 pb-12 pt-12 md:pt-16">
-          <p className="text-xs font-semibold uppercase tracking-[0.38em] text-[#C9A44C]">
-            Omen · Trade Analyzer
-          </p>
+          <p className="text-xs font-semibold uppercase tracking-[0.38em] text-[#C9A44C]">Omen · Trade Analyzer</p>
           <h1 className="mt-3 font-display text-3xl font-semibold leading-tight text-(--color-text-primary) md:text-4xl">
             See the move before the league does.
           </h1>

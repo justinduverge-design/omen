@@ -12,11 +12,11 @@ const express = require("express");
 let mockConnRow = {
   espn_secret_id: "secret-espn-s2",
   swid_secret_id: "secret-swid",
-  league_id:      "12345",
+  league_id: "12345",
 };
 let mockVaultDecryptFn = async (secretId) => {
   if (secretId === "secret-espn-s2") return { data: { decrypted_secret: "fake-s2" }, error: null };
-  if (secretId === "secret-swid")    return { data: { decrypted_secret: "fake-swid" }, error: null };
+  if (secretId === "secret-swid") return { data: { decrypted_secret: "fake-swid" }, error: null };
   return { data: null, error: null };
 };
 
@@ -65,7 +65,7 @@ function loadEspnRouter() {
               eq: (_col1, _val1) => ({
                 eq: (_col2, _val2) => ({
                   maybeSingle: async () => ({
-                    data:  mockConnRow,
+                    data: mockConnRow,
                     error: null,
                   }),
                 }),
@@ -162,7 +162,7 @@ test("GET /api/espn/roster returns 401 when ESPN not connected", async () => {
   mockConnRow = {
     espn_secret_id: "secret-espn-s2",
     swid_secret_id: "secret-swid",
-    league_id:      "12345",
+    league_id: "12345",
   };
   assert.equal(res.status, 401);
   assert.equal(res.body.error, "ESPN not connected");
@@ -173,7 +173,7 @@ test("GET /api/espn/roster returns 401 when Vault credentials are missing", asyn
   const res = await request(buildApp(), "/api/espn/roster?leagueId=12345&week=1");
   mockVaultDecryptFn = async (secretId) => {
     if (secretId === "secret-espn-s2") return { data: { decrypted_secret: "fake-s2" }, error: null };
-    if (secretId === "secret-swid")    return { data: { decrypted_secret: "fake-swid" }, error: null };
+    if (secretId === "secret-swid") return { data: { decrypted_secret: "fake-swid" }, error: null };
     return { data: null, error: null };
   };
   assert.equal(res.status, 401);

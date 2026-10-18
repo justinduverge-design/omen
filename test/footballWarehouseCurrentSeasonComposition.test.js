@@ -9,15 +9,22 @@ const {
 
 test("creates a dedicated bounded pool with exit-on-idle enabled", () => {
   let options;
-  class Pool { constructor(value) { options = value; } }
-  const pool = createWarehousePool({ Pool, config: {
-    connectionString: "postgresql://u:p@warehouse.internal/football",
-    ssl: false,
-    poolMax: 2,
-    connectionTimeoutMillis: 5000,
-    idleTimeoutMillis: 10000,
-    queryTimeoutMillis: 65000,
-  } });
+  class Pool {
+    constructor(value) {
+      options = value;
+    }
+  }
+  const pool = createWarehousePool({
+    Pool,
+    config: {
+      connectionString: "postgresql://u:p@warehouse.internal/football",
+      ssl: false,
+      poolMax: 2,
+      connectionTimeoutMillis: 5000,
+      idleTimeoutMillis: 10000,
+      queryTimeoutMillis: 65000,
+    },
+  });
   assert.ok(pool instanceof Pool);
   assert.deepEqual(options, {
     connectionString: "postgresql://u:p@warehouse.internal/football",
@@ -37,7 +44,11 @@ test("refuses to construct a pool without explicit warehouse configuration", () 
 });
 
 test("builds the source-validation path without a database pool", () => {
-  assert.doesNotThrow(() => createCurrentSeasonValidationComposition({
-    fetchImpl: async () => { throw new Error("not called during composition"); },
-  }));
+  assert.doesNotThrow(() =>
+    createCurrentSeasonValidationComposition({
+      fetchImpl: async () => {
+        throw new Error("not called during composition");
+      },
+    }),
+  );
 });

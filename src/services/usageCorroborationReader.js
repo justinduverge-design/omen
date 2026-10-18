@@ -24,12 +24,15 @@ async function readRosterUsage({ reader, supabase, roster, season, beforeWeek, l
     const playerKeys = [...new Set(players.map((p) => p?.player_key).filter(Boolean))];
     const seasonNumber = Number(season);
     const weekNumber = Number(beforeWeek);
-    if (!playerKeys.length || !Number.isInteger(seasonNumber) || !Number.isInteger(weekNumber) || weekNumber < 1) return null;
+    if (!playerKeys.length || !Number.isInteger(seasonNumber) || !Number.isInteger(weekNumber) || weekNumber < 1)
+      return null;
 
-    const bundle = await withinLatencyBudget("omen_usage_corroboration", budgetMs, (signal) => reader.read({
-      mode: reader.mode,
-      input: { signal, supabase, playerKeys, season: seasonNumber, beforeWeek: weekNumber, log },
-    }));
+    const bundle = await withinLatencyBudget("omen_usage_corroboration", budgetMs, (signal) =>
+      reader.read({
+        mode: reader.mode,
+        input: { signal, supabase, playerKeys, season: seasonNumber, beforeWeek: weekNumber, log },
+      }),
+    );
     const usage = bundle?.usage;
     return usage instanceof Map && usage.size ? usage : null;
   } catch {

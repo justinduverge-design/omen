@@ -3,9 +3,25 @@
 const { CONTRACTS, MODELS } = require("./contracts");
 
 const REQUIRED_COLUMNS = Object.freeze([
-  "game_id", "play_id", "season", "week", "season_type", "posteam", "defteam",
-  "down", "ydstogo", "yardline_100", "game_seconds_remaining", "play_type",
-  "pass", "rush", "qb_scramble", "no_huddle", "no_play", "touchdown", "yards_gained",
+  "game_id",
+  "play_id",
+  "season",
+  "week",
+  "season_type",
+  "posteam",
+  "defteam",
+  "down",
+  "ydstogo",
+  "yardline_100",
+  "game_seconds_remaining",
+  "play_type",
+  "pass",
+  "rush",
+  "qb_scramble",
+  "no_huddle",
+  "no_play",
+  "touchdown",
+  "yards_gained",
 ]);
 
 class OrdinaryPbpError extends Error {
@@ -25,7 +41,11 @@ function string(value, field) {
   return value.trim();
 }
 
-function integer(value, field, { min = Number.MIN_SAFE_INTEGER, max = Number.MAX_SAFE_INTEGER, nullable = false } = {}) {
+function integer(
+  value,
+  field,
+  { min = Number.MIN_SAFE_INTEGER, max = Number.MAX_SAFE_INTEGER, nullable = false } = {},
+) {
   if (nullable && (value === null || value === undefined || value === "")) return null;
   const parsed = typeof value === "number" ? value : Number(value);
   if (!Number.isSafeInteger(parsed) || parsed < min || parsed > max) {
@@ -55,14 +75,19 @@ function assertTable(table, receipt) {
   }
   const present = new Set(table.columns);
   const missing = REQUIRED_COLUMNS.filter((column) => !present.has(column));
-  if (missing.length) fail("TABULAR_SCHEMA_MISMATCH", `ordinary PBP is missing required columns: ${missing.join(", ")}`);
+  if (missing.length)
+    fail("TABULAR_SCHEMA_MISMATCH", `ordinary PBP is missing required columns: ${missing.join(", ")}`);
   if (table.rows.length !== receipt.row_count) {
-    fail("TABULAR_ROW_COUNT_MISMATCH", `receipt declares ${receipt.row_count} rows but TabularReader returned ${table.rows.length}`);
+    fail(
+      "TABULAR_ROW_COUNT_MISMATCH",
+      `receipt declares ${receipt.row_count} rows but TabularReader returned ${table.rows.length}`,
+    );
   }
 }
 
 function normalizePlay(row, provenance) {
-  if (!row || typeof row !== "object" || Array.isArray(row)) fail("INVALID_OBSERVED_PLAY", "ordinary PBP rows must be objects");
+  if (!row || typeof row !== "object" || Array.isArray(row))
+    fail("INVALID_OBSERVED_PLAY", "ordinary PBP rows must be objects");
   if (flag(row.no_play, "no_play")) return { exclusion: "no_play" };
   const isPass = flag(row.pass, "pass");
   const isRush = flag(row.rush, "rush");
@@ -94,11 +119,19 @@ function normalizePlay(row, provenance) {
         down: integer(row.down, "down", { min: 1, max: 4, nullable: true }),
         yards_to_go: finite(row.ydstogo, "ydstogo", { min: 0, nullable: true }),
         yardline_100: finite(row.yardline_100, "yardline_100", { min: 0, max: 100, nullable: true }),
-        game_seconds_remaining: finite(row.game_seconds_remaining, "game_seconds_remaining", { min: 0, max: 3600, nullable: true }),
+        game_seconds_remaining: finite(row.game_seconds_remaining, "game_seconds_remaining", {
+          min: 0,
+          max: 3600,
+          nullable: true,
+        }),
       },
       play: {
-        type: canonicalType, source_type: sourcePlayType, pass: isPass, rush: isRush,
-        qb_scramble: isScramble, no_huddle: flag(row.no_huddle, "no_huddle"),
+        type: canonicalType,
+        source_type: sourcePlayType,
+        pass: isPass,
+        rush: isRush,
+        qb_scramble: isScramble,
+        no_huddle: flag(row.no_huddle, "no_huddle"),
       },
       result: {
         touchdown: flag(row.touchdown, "touchdown"),
@@ -110,11 +143,17 @@ function normalizePlay(row, provenance) {
 }
 
 async function ingestOrdinaryPbpReceipt({ registry, receiptId, tabularReader } = {}) {
-  if (!registry || typeof registry.replayReceipt !== "function") fail("ARTIFACT_REGISTRY_REQUIRED", "registry with replayReceipt is required");
-  if (!tabularReader || typeof tabularReader.readRows !== "function") fail("TABULAR_READER_REQUIRED", "TabularReader.readRows is required");
+  if (!registry || typeof registry.replayReceipt !== "function")
+    fail("ARTIFACT_REGISTRY_REQUIRED", "registry with replayReceipt is required");
+  if (!tabularReader || typeof tabularReader.readRows !== "function")
+    fail("TABULAR_READER_REQUIRED", "TabularReader.readRows is required");
   const replay = await registry.replayReceipt(receiptId);
   const { receipt, bytes } = replay;
-  if (receipt.source.family !== "play_by_play" || receipt.intended_use !== "current_denominator" || receipt.artifact_type !== "raw_source") {
+  if (
+    receipt.source.family !== "play_by_play" ||
+    receipt.intended_use !== "current_denominator" ||
+    receipt.artifact_type !== "raw_source"
+  ) {
     fail("ORDINARY_PBP_RECEIPT_REQUIRED", "receipt must be an admitted raw play_by_play current_denominator capture");
   }
   const table = await tabularReader.readRows({
@@ -133,7 +172,12 @@ async function ingestOrdinaryPbpReceipt({ registry, receiptId, tabularReader } =
     source_schema_fingerprint: receipt.schema_fingerprint,
   });
   const facts = [];
-  const coverage = { source_rows: table.rows.length, canonical_plays: 0, excluded_no_play: 0, excluded_non_scrimmage: 0 };
+  const coverage = {
+    source_rows: table.rows.length,
+    canonical_plays: 0,
+    excluded_no_play: 0,
+    excluded_non_scrimmage: 0,
+  };
   const identities = new Set();
   for (const row of table.rows) {
     const normalized = normalizePlay(row, provenance);
@@ -142,13 +186,22 @@ async function ingestOrdinaryPbpReceipt({ registry, receiptId, tabularReader } =
       continue;
     }
     const identity = `${normalized.fact.game_id}\u0000${normalized.fact.play_id}`;
-    if (identities.has(identity)) fail("DUPLICATE_OBSERVED_PLAY", `duplicate ordinary PBP play identity: ${normalized.fact.game_id}/${normalized.fact.play_id}`);
+    if (identities.has(identity))
+      fail(
+        "DUPLICATE_OBSERVED_PLAY",
+        `duplicate ordinary PBP play identity: ${normalized.fact.game_id}/${normalized.fact.play_id}`,
+      );
     identities.add(identity);
     facts.push(normalized.fact);
   }
   facts.sort((a, b) => a.game_id.localeCompare(b.game_id) || a.play_id - b.play_id);
   coverage.canonical_plays = facts.length;
-  return Object.freeze({ receipt_id: receipt.receipt_id, artifact_id: receipt.artifact.sha256, coverage: Object.freeze(coverage), facts: Object.freeze(facts) });
+  return Object.freeze({
+    receipt_id: receipt.receipt_id,
+    artifact_id: receipt.artifact.sha256,
+    coverage: Object.freeze(coverage),
+    facts: Object.freeze(facts),
+  });
 }
 
 module.exports = { OrdinaryPbpError, REQUIRED_COLUMNS, ingestOrdinaryPbpReceipt };

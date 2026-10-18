@@ -86,12 +86,18 @@ async function main() {
   assert.equal(/espn_s2=\S/.test(wire), false, "LEAK: an espn_s2 assignment appeared on the wire");
 
   // 2. The report must be usable: provider tagged, stack trace present.
-  const envelope = received.find((r) => r.body.includes("\"exception\""));
+  const envelope = received.find((r) => r.body.includes('"exception"'));
   assert.ok(envelope, "no envelope carried an exception");
   const parsed = envelope.body
     .split("\n")
     .filter(Boolean)
-    .map((line) => { try { return JSON.parse(line); } catch { return null; } })
+    .map((line) => {
+      try {
+        return JSON.parse(line);
+      } catch {
+        return null;
+      }
+    })
     .filter(Boolean);
   const event = parsed.find((item) => item?.exception);
 
@@ -115,7 +121,9 @@ async function main() {
   console.log(`  credential leaks      : 0`);
 }
 
-main().then(() => process.exit(0)).catch((error) => {
-  console.error("FAIL —", error.message);
-  process.exit(1);
-});
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error("FAIL —", error.message);
+    process.exit(1);
+  });

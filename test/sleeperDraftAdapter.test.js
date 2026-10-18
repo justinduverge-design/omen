@@ -45,9 +45,7 @@ test("fetchSleeperLeagueDrafts returns an array even if upstream returns null", 
 });
 
 test("fetchSleeperLeagueDrafts passes leagueId through encodeURIComponent", async () => {
-  const { adapter, calls } = loadAdapterWithAxiosStub(() => [
-    { draft_id: "d1", status: "drafting" },
-  ]);
+  const { adapter, calls } = loadAdapterWithAxiosStub(() => [{ draft_id: "d1", status: "drafting" }]);
 
   await adapter.fetchSleeperLeagueDrafts("league space");
   assert.equal(calls.length, 1);
@@ -86,7 +84,9 @@ function loadAdapterWithDelayedAxios(payload) {
 
   const calls = [];
   let resolveGate;
-  const gate = new Promise((resolve) => { resolveGate = resolve; });
+  const gate = new Promise((resolve) => {
+    resolveGate = resolve;
+  });
 
   const originalLoad = Module._load;
   Module._load = function patchedLoad(request, parent, isMain) {
@@ -134,7 +134,9 @@ test("fetchSleeperDraft dedupes concurrent cache-miss callers to one upstream fe
 
   assert.equal(calls.length, 1, "axios should only be called once across 5 concurrent requesters");
   assert.equal(results.length, 5);
-  results.forEach((r) => { assert.equal(r.draft_id, "draft-1"); });
+  results.forEach((r) => {
+    assert.equal(r.draft_id, "draft-1");
+  });
 });
 
 test("fetchSleeperDraftPicks dedupes concurrent cache-miss callers to one upstream fetch", async () => {
@@ -154,7 +156,9 @@ test("fetchSleeperDraftPicks dedupes concurrent cache-miss callers to one upstre
 
   assert.equal(calls.length, 1, "axios should only be called once across 3 concurrent requesters");
   assert.equal(results.length, 3);
-  results.forEach((r) => { assert.equal(r.length, 2); });
+  results.forEach((r) => {
+    assert.equal(r.length, 2);
+  });
 });
 
 test("fetchSleeperDraft re-fetches after the in-flight promise settles", async () => {
@@ -189,8 +193,7 @@ test("Sleeper request budget fails closed and resets with its window", () => {
   budget.take();
   assert.throws(
     () => budget.take(),
-    (error) => error.code === "sleeper_request_budget_exhausted"
-      && error.retryAfterMs === 1_000,
+    (error) => error.code === "sleeper_request_budget_exhausted" && error.retryAfterMs === 1_000,
   );
   now += 1_000;
   assert.doesNotThrow(() => budget.take());

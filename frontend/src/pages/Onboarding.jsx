@@ -2,12 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { apiFetch } from '../lib/api.js';
 import { Card } from '../components/ui/Card.jsx';
-import {
-  OnboardingStatus,
-  isOnboardingDone,
-  markOnboardingDone,
-  resolveOnboardingStatus,
-} from '../lib/onboarding.js';
+import { OnboardingStatus, isOnboardingDone, markOnboardingDone, resolveOnboardingStatus } from '../lib/onboarding.js';
 
 // Onboarding step, kept across remounts.
 //
@@ -47,10 +42,7 @@ function clearStep() {
 function WelcomeStep({ onNext }) {
   return (
     <div>
-      <p
-        className="mb-4 text-xs font-semibold uppercase tracking-widest"
-        style={{ color: 'var(--color-accent)' }}
-      >
+      <p className="mb-4 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-accent)' }}>
         Welcome to Omen
       </p>
       <h1
@@ -61,12 +53,9 @@ function WelcomeStep({ onNext }) {
         <br />
         Better moves.
       </h1>
-      <p
-        className="mb-10 text-lg leading-relaxed"
-        style={{ color: 'var(--color-text-secondary)', maxWidth: '44ch' }}
-      >
-        Omen watches your roster, reads the matchups, and surfaces the one
-        move that matters most each week. Plain English. No heavy math required.
+      <p className="mb-10 text-lg leading-relaxed" style={{ color: 'var(--color-text-secondary)', maxWidth: '44ch' }}>
+        Omen watches your roster, reads the matchups, and surfaces the one move that matters most each week. Plain
+        English. No heavy math required.
       </p>
       <button
         type="button"
@@ -83,10 +72,7 @@ function WelcomeStep({ onNext }) {
 function ConnectStep({ onCheck, checking, status }) {
   return (
     <div>
-      <p
-        className="mb-4 text-xs font-semibold uppercase tracking-widest"
-        style={{ color: 'var(--color-accent)' }}
-      >
+      <p className="mb-4 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-accent)' }}>
         Step 2 of 2
       </p>
       <h2
@@ -95,12 +81,9 @@ function ConnectStep({ onCheck, checking, status }) {
       >
         Connect your league.
       </h2>
-      <p
-        className="mb-8 text-lg leading-relaxed"
-        style={{ color: 'var(--color-text-secondary)', maxWidth: '44ch' }}
-      >
-        Omen needs your roster and matchup data to generate your weekly move.
-        Connect one of the supported platforms to unlock Omen of the Week.
+      <p className="mb-8 text-lg leading-relaxed" style={{ color: 'var(--color-text-secondary)', maxWidth: '44ch' }}>
+        Omen needs your roster and matchup data to generate your weekly move. Connect one of the supported platforms to
+        unlock Omen of the Week.
       </p>
 
       <Card variant="solid" className="mb-8 p-5">
@@ -113,15 +96,12 @@ function ConnectStep({ onCheck, checking, status }) {
         <div className="space-y-3">
           {[
             { name: 'Yahoo Fantasy', note: 'Most popular — full Omen support' },
-            { name: 'Sleeper',       note: 'Full Omen support' },
-            { name: 'ESPN Fantasy',  note: 'Supported — finish setup on a computer' },
+            { name: 'Sleeper', note: 'Full Omen support' },
+            { name: 'ESPN Fantasy', note: 'Supported — finish setup on a computer' },
           ].map(({ name, note }) => (
             <div key={name} className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <span
-                  className="h-1.5 w-1.5 rounded-full shrink-0"
-                  style={{ background: 'var(--color-accent)' }}
-                />
+                <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: 'var(--color-accent)' }} />
                 <span className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
                   {name}
                 </span>
@@ -133,8 +113,8 @@ function ConnectStep({ onCheck, checking, status }) {
           ))}
         </div>
         <p className="mt-4 text-[11px] leading-relaxed" style={{ color: 'var(--color-text-tertiary)' }}>
-          Platform trademarks belong to their respective owners. Omen is not endorsed by or
-          affiliated with those platforms.
+          Platform trademarks belong to their respective owners. Omen is not endorsed by or affiliated with those
+          platforms.
         </p>
       </Card>
 
@@ -165,14 +145,13 @@ function ConnectStep({ onCheck, checking, status }) {
       */}
       {status === OnboardingStatus.NOT_CONNECTED && (
         <p className="mt-5 text-sm leading-relaxed" style={{ color: 'var(--color-risk-high)' }}>
-          No platform detected yet. Connect a league using the button above — this page moves on
-          by itself once the connection lands.
+          No platform detected yet. Connect a league using the button above — this page moves on by itself once the
+          connection lands.
         </p>
       )}
       {status === OnboardingStatus.UNKNOWN && (
         <p className="mt-5 text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
-          We couldn't check your setup just now — that's on us, not on you. Nothing is lost.
-          Try again in a moment.
+          We couldn't check your setup just now — that's on us, not on you. Nothing is lost. Try again in a moment.
         </p>
       )}
 
@@ -216,12 +195,8 @@ function CompleteStep({ onDone }) {
       >
         You're set.
       </h2>
-      <p
-        className="mb-10 text-lg leading-relaxed"
-        style={{ color: 'var(--color-text-primary)', maxWidth: '44ch' }}
-      >
-        League connected. Omen reads the matchup the moment your roster locks
-        — your first call lands Tuesday.
+      <p className="mb-10 text-lg leading-relaxed" style={{ color: 'var(--color-text-primary)', maxWidth: '44ch' }}>
+        League connected. Omen reads the matchup the moment your roster locks — your first call lands Tuesday.
       </p>
       <button
         type="button"
@@ -330,24 +305,15 @@ export default function Onboarding() {
   }
 
   return (
-    <div
-      className="flex min-h-dvh flex-col"
-      style={{ background: 'var(--color-bg)' }}
-    >
+    <div className="flex min-h-dvh flex-col" style={{ background: 'var(--color-bg)' }}>
       {/* Minimal header */}
-      <div
-        className="border-b px-6 py-5"
-        style={{ borderColor: 'var(--color-border)' }}
-      >
+      <div className="border-b px-6 py-5" style={{ borderColor: 'var(--color-border)' }}>
         <div className="mx-auto flex max-w-6xl items-center gap-2.5">
           <div
             className="grid h-7 w-7 place-items-center rounded-full"
             style={{ border: '1px solid var(--color-border)' }}
           >
-            <span
-              className="font-display text-sm leading-none"
-              style={{ color: 'var(--color-accent)' }}
-            >
+            <span className="font-display text-sm leading-none" style={{ color: 'var(--color-accent)' }}>
               O
             </span>
           </div>
@@ -364,13 +330,7 @@ export default function Onboarding() {
       <div className="flex flex-1 items-center justify-center px-6 py-16">
         <div className="w-full max-w-lg">
           {step === 0 && <WelcomeStep onNext={() => setStep(1)} />}
-          {step === 1 && (
-            <ConnectStep
-              onCheck={checkConnection}
-              checking={checking}
-              status={status}
-            />
-          )}
+          {step === 1 && <ConnectStep onCheck={checkConnection} checking={checking} status={status} />}
           {step === 2 && <CompleteStep onDone={complete} />}
         </div>
       </div>

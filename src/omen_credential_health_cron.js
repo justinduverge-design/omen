@@ -33,7 +33,10 @@ async function main() {
 
 if (require.main === module) {
   const { traceCronJob } = require("./services/telemetry");
-  traceCronJob("credential_health", main).catch((error) => { logger.error("Credential health check failed", { code: error.code || "failure" }); process.exit(1); });
+  traceCronJob("credential_health", main).catch((error) => {
+    logger.error("Credential health check failed", { code: error.code || "failure" });
+    process.exit(1);
+  });
 }
 
 module.exports = { main };

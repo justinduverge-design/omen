@@ -20,10 +20,7 @@
             "type": "string"
           },
           "observed_at": {
-            "type": [
-              "null",
-              "string"
-            ]
+            "type": ["null", "string"]
           },
           "reason_code": {
             "type": "string"
@@ -41,16 +38,7 @@
             "type": "boolean"
           }
         },
-        "required": [
-          "fresh_until",
-          "kind",
-          "name",
-          "observed_at",
-          "source",
-          "state",
-          "statement",
-          "used"
-        ]
+        "required": ["fresh_until", "kind", "name", "observed_at", "source", "state", "statement", "used"]
       }
     },
     "capability_contract": {
@@ -78,13 +66,7 @@
           "type": "number"
         }
       },
-      "required": [
-        "day",
-        "is_off_season",
-        "phase",
-        "season",
-        "week"
-      ]
+      "required": ["day", "is_off_season", "phase", "season", "week"]
     },
     "generated_at": {
       "type": "string"
@@ -111,12 +93,7 @@
               "description": "Observed only as null in recorded responses; the real type is not constrained."
             }
           },
-          "required": [
-            "connected",
-            "lastGameId",
-            "lastGameKickoff",
-            "lastResult"
-          ]
+          "required": ["connected", "lastGameId", "lastGameKickoff", "lastResult"]
         },
         "sleeper": {
           "type": "object",
@@ -125,34 +102,19 @@
               "type": "boolean"
             },
             "lastGameId": {
-              "type": [
-                "null",
-                "string"
-              ]
+              "type": ["null", "string"]
             },
             "lastGameKickoff": {
               "description": "Observed only as null in recorded responses; the real type is not constrained."
             },
             "lastResult": {
-              "type": [
-                "null",
-                "string"
-              ]
+              "type": ["null", "string"]
             },
             "username": {
-              "type": [
-                "null",
-                "string"
-              ]
+              "type": ["null", "string"]
             }
           },
-          "required": [
-            "connected",
-            "lastGameId",
-            "lastGameKickoff",
-            "lastResult",
-            "username"
-          ]
+          "required": ["connected", "lastGameId", "lastGameKickoff", "lastResult", "username"]
         },
         "yahoo": {
           "type": "object",
@@ -170,29 +132,16 @@
               "description": "Observed only as null in recorded responses; the real type is not constrained."
             },
             "league_id": {
-              "type": [
-                "null",
-                "string"
-              ]
+              "type": ["null", "string"]
             },
             "status": {
               "type": "string"
             }
           },
-          "required": [
-            "connected",
-            "lastGameId",
-            "lastGameKickoff",
-            "lastResult",
-            "league_id"
-          ]
+          "required": ["connected", "lastGameId", "lastGameKickoff", "lastResult", "league_id"]
         }
       },
-      "required": [
-        "espn",
-        "sleeper",
-        "yahoo"
-      ]
+      "required": ["espn", "sleeper", "yahoo"]
     },
     "tools": {
       "type": "object",
@@ -210,11 +159,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "available",
-            "mode",
-            "status"
-          ]
+          "required": ["available", "mode", "status"]
         },
         "start_sit": {
           "type": "object",
@@ -229,11 +174,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "available",
-            "mode",
-            "status"
-          ]
+          "required": ["available", "mode", "status"]
         },
         "trade_analyzer": {
           "type": "object",
@@ -248,11 +189,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "available",
-            "mode",
-            "status"
-          ]
+          "required": ["available", "mode", "status"]
         },
         "waiver_wire": {
           "type": "object",
@@ -267,33 +204,19 @@
               "type": "string"
             }
           },
-          "required": [
-            "available",
-            "mode",
-            "status"
-          ]
+          "required": ["available", "mode", "status"]
         }
       },
-      "required": [
-        "omen_of_the_week",
-        "start_sit",
-        "trade_analyzer",
-        "waiver_wire"
-      ]
+      "required": ["omen_of_the_week", "start_sit", "trade_analyzer", "waiver_wire"]
     },
     "user": {
       "type": "object",
       "properties": {
         "favorite_team": {
-          "type": [
-            "null",
-            "string"
-          ]
+          "type": ["null", "string"]
         }
       },
-      "required": [
-        "favorite_team"
-      ]
+      "required": ["favorite_team"]
     }
   },
   "required": [

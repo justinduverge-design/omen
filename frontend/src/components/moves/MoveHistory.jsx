@@ -33,8 +33,16 @@ function OutcomeBadge({ outcome }) {
       className="rounded-full border px-2 py-0.5 text-xs font-semibold"
       style={
         isWin
-          ? { borderColor: 'color-mix(in srgb, var(--color-risk-low) 30%, transparent)', background: 'color-mix(in srgb, var(--color-risk-low) 8%, transparent)', color: 'var(--color-risk-low)' }
-          : { borderColor: 'color-mix(in srgb, var(--color-risk-high) 30%, transparent)', background: 'color-mix(in srgb, var(--color-risk-high) 8%, transparent)', color: 'var(--color-risk-high)' }
+          ? {
+              borderColor: 'color-mix(in srgb, var(--color-risk-low) 30%, transparent)',
+              background: 'color-mix(in srgb, var(--color-risk-low) 8%, transparent)',
+              color: 'var(--color-risk-low)',
+            }
+          : {
+              borderColor: 'color-mix(in srgb, var(--color-risk-high) 30%, transparent)',
+              background: 'color-mix(in srgb, var(--color-risk-high) 8%, transparent)',
+              color: 'var(--color-risk-high)',
+            }
       }
     >
       {isWin ? 'Win' : 'Loss'}
@@ -45,10 +53,10 @@ function OutcomeBadge({ outcome }) {
 function MoveTypeBadge({ type }) {
   if (!type) return null;
   const labels = {
-    start_sit:        'Start/Sit',
-    waiver_pickup:    'Waiver',
+    start_sit: 'Start/Sit',
+    waiver_pickup: 'Waiver',
     trade_suggestion: 'Trade',
-    matchup_note:     'Matchup',
+    matchup_note: 'Matchup',
   };
   return (
     <span
@@ -65,7 +73,10 @@ function FollowedLabel({ followed }) {
     return (
       <span
         className="shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
-        style={{ borderColor: 'color-mix(in srgb, var(--color-risk-low) 25%, transparent)', color: 'var(--color-risk-low)' }}
+        style={{
+          borderColor: 'color-mix(in srgb, var(--color-risk-low) 25%, transparent)',
+          color: 'var(--color-risk-low)',
+        }}
       >
         Ran it
       </span>
@@ -89,7 +100,12 @@ function SummaryStats({ summary, season }) {
   return (
     <div
       className="rounded-xl border"
-      style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)', '--color-text-secondary': 'var(--color-card-text-secondary, var(--color-text-secondary))', '--color-text-primary': 'var(--color-card-text-primary, var(--color-text-primary))' }}
+      style={{
+        borderColor: 'var(--color-border)',
+        background: 'var(--color-surface-1)',
+        '--color-text-secondary': 'var(--color-card-text-secondary, var(--color-text-secondary))',
+        '--color-text-primary': 'var(--color-card-text-primary, var(--color-text-primary))',
+      }}
     >
       {/* Header row */}
       <div
@@ -102,10 +118,7 @@ function SummaryStats({ summary, season }) {
         >
           Season {season ?? '—'}
         </span>
-        <span
-          className="font-mono text-[11px] tabular-nums"
-          style={{ color: 'var(--color-text-tertiary)' }}
-        >
+        <span className="font-mono text-[11px] tabular-nums" style={{ color: 'var(--color-text-tertiary)' }}>
           {total_count} move{total_count !== 1 ? 's' : ''}
         </span>
       </div>
@@ -116,22 +129,33 @@ function SummaryStats({ summary, season }) {
           <p className="font-mono text-2xl font-bold tabular-nums" style={{ color: 'var(--color-text-primary)' }}>
             {wins}–{losses}
           </p>
-          <p className="mt-0.5 text-xs" style={{ color: 'var(--color-text-tertiary)' }}>Record</p>
+          <p className="mt-0.5 text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
+            Record
+          </p>
         </div>
         <div className="text-center">
           <p
             className="font-mono text-2xl font-bold tabular-nums"
-            style={{ color: avg_effectiveness_pct != null ? effectivenessColor(avg_effectiveness_pct) : 'var(--color-text-tertiary)' }}
+            style={{
+              color:
+                avg_effectiveness_pct != null
+                  ? effectivenessColor(avg_effectiveness_pct)
+                  : 'var(--color-text-tertiary)',
+            }}
           >
             {avg_effectiveness_pct != null ? `${avg_effectiveness_pct}%` : '—'}
           </p>
-          <p className="mt-0.5 text-xs" style={{ color: 'var(--color-text-tertiary)' }}>Avg effectiveness</p>
+          <p className="mt-0.5 text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
+            Avg effectiveness
+          </p>
         </div>
         <div className="text-center">
           <p className="font-mono text-2xl font-bold tabular-nums" style={{ color: 'var(--color-text-secondary)' }}>
             {pending}
           </p>
-          <p className="mt-0.5 text-xs" style={{ color: 'var(--color-text-tertiary)' }}>Pending</p>
+          <p className="mt-0.5 text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
+            Pending
+          </p>
         </div>
       </div>
     </div>
@@ -148,7 +172,12 @@ function MoveRow({ move }) {
   return (
     <div
       className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-start sm:gap-4"
-      style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)', '--color-text-secondary': 'var(--color-card-text-secondary, var(--color-text-secondary))', '--color-text-primary': 'var(--color-card-text-primary, var(--color-text-primary))' }}
+      style={{
+        borderColor: 'var(--color-border)',
+        background: 'var(--color-surface-1)',
+        '--color-text-secondary': 'var(--color-card-text-secondary, var(--color-text-secondary))',
+        '--color-text-primary': 'var(--color-card-text-primary, var(--color-text-primary))',
+      }}
     >
       {/* Week + type */}
       <div className="flex shrink-0 flex-row items-center gap-2 sm:w-20 sm:flex-col sm:items-start sm:gap-1.5">
@@ -159,7 +188,10 @@ function MoveRow({ move }) {
       </div>
 
       {/* Recommendation */}
-      <p className="flex-1 text-sm leading-5" style={{ color: rec ? 'var(--color-text-primary)' : 'var(--color-text-tertiary)' }}>
+      <p
+        className="flex-1 text-sm leading-5"
+        style={{ color: rec ? 'var(--color-text-primary)' : 'var(--color-text-tertiary)' }}
+      >
         {rec ?? 'No summary recorded.'}
       </p>
 
@@ -184,11 +216,7 @@ function SkeletonRows() {
   return (
     <div className="space-y-2">
       {[1, 2, 3, 4].map((i) => (
-        <div
-          key={i}
-          className="h-16 animate-pulse rounded-lg"
-          style={{ background: 'var(--color-surface-2)' }}
-        />
+        <div key={i} className="h-16 animate-pulse rounded-lg" style={{ background: 'var(--color-surface-2)' }} />
       ))}
     </div>
   );
@@ -204,28 +232,28 @@ function EmptyHistory() {
   return (
     <div
       className="rounded-xl border px-6 py-12 text-center"
-      style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)', '--color-text-secondary': 'var(--color-card-text-secondary, var(--color-text-secondary))', '--color-text-primary': 'var(--color-card-text-primary, var(--color-text-primary))' }}
+      style={{
+        borderColor: 'var(--color-border)',
+        background: 'var(--color-surface-1)',
+        '--color-text-secondary': 'var(--color-card-text-secondary, var(--color-text-secondary))',
+        '--color-text-primary': 'var(--color-card-text-primary, var(--color-text-primary))',
+      }}
     >
       {/* Raven glyph */}
-      <p
-        className="mb-4 text-4xl leading-none"
-        aria-hidden="true"
-        style={{ color: 'var(--color-border)' }}
-      >
+      <p className="mb-4 text-4xl leading-none" aria-hidden="true" style={{ color: 'var(--color-border)' }}>
         ◈
       </p>
       <p className="font-display text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>
         No moves yet.
       </p>
-      <p className="mt-2 text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)', maxWidth: '36ch', margin: '8px auto 0' }}>
-        Run your first Omen, follow the move, and Omen will start tracking
-        your season record here.
+      <p
+        className="mt-2 text-sm leading-relaxed"
+        style={{ color: 'var(--color-text-secondary)', maxWidth: '36ch', margin: '8px auto 0' }}
+      >
+        Run your first Omen, follow the move, and Omen will start tracking your season record here.
       </p>
       {wardRoom && (
-        <p
-          className="mt-3 text-base italic"
-          style={{ color: 'var(--color-text-secondary)' }}
-        >
+        <p className="mt-3 text-base italic" style={{ color: 'var(--color-text-secondary)' }}>
           {wardRoom}
         </p>
       )}
@@ -262,7 +290,9 @@ export default function MoveHistory({ onDataState, fixture = null }) {
       .finally(() => setLoading(false));
   }, [fixture]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   // Phase 1.5g.3: surface live-vs-mock so the host page (Ledger) can gate
   // cultural-moment chrome. Populated history is real user data → 'live';
@@ -271,7 +301,10 @@ export default function MoveHistory({ onDataState, fixture = null }) {
   // ownership of its own data mode).
   useEffect(() => {
     if (!onDataState) return;
-    if (loading) { onDataState(null); return; }
+    if (loading) {
+      onDataState(null);
+      return;
+    }
     if (data?.is_mock || data?.mode === 'mock') {
       onDataState('mock');
       return;
@@ -292,7 +325,12 @@ export default function MoveHistory({ onDataState, fixture = null }) {
     return (
       <div
         className="rounded-xl border p-6 text-center"
-        style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)', '--color-text-secondary': 'var(--color-card-text-secondary, var(--color-text-secondary))', '--color-text-primary': 'var(--color-card-text-primary, var(--color-text-primary))' }}
+        style={{
+          borderColor: 'var(--color-border)',
+          background: 'var(--color-surface-1)',
+          '--color-text-secondary': 'var(--color-card-text-secondary, var(--color-text-secondary))',
+          '--color-text-primary': 'var(--color-card-text-primary, var(--color-text-primary))',
+        }}
       >
         <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
           Couldn't load history.
@@ -315,9 +353,7 @@ export default function MoveHistory({ onDataState, fixture = null }) {
 
   return (
     <div className="space-y-3">
-      {isFixture && (
-        <MockBanner message={`${data.fixture_label} Ledger previous results are mock.`} />
-      )}
+      {isFixture && <MockBanner message={`${data.fixture_label} Ledger previous results are mock.`} />}
       <SummaryStats summary={data.summary} season={data.season} />
       <div className="space-y-2">
         {data.moves.map((move) => (

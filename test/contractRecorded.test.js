@@ -31,8 +31,16 @@ const registry = JSON.parse(fs.readFileSync(path.join(ROOT, "registry.json"), "u
 const ajv = new Ajv({ allErrors: true, strict: false });
 
 const clone = (v) => JSON.parse(JSON.stringify(v));
-const fixtureFiles = (name) => fs.readdirSync(path.join(ROOT, "fixtures", name)).filter((f) => f.endsWith(".json")).sort();
-const fixtures = (name) => fixtureFiles(name).map((f) => ({ file: f, ...JSON.parse(fs.readFileSync(path.join(ROOT, "fixtures", name, f), "utf8")) }));
+const fixtureFiles = (name) =>
+  fs
+    .readdirSync(path.join(ROOT, "fixtures", name))
+    .filter((f) => f.endsWith(".json"))
+    .sort();
+const fixtures = (name) =>
+  fixtureFiles(name).map((f) => ({
+    file: f,
+    ...JSON.parse(fs.readFileSync(path.join(ROOT, "fixtures", name, f), "utf8")),
+  }));
 
 // Enum values that have no fixture, per contract. A new schema enum value without a fixture or an
 // entry here fails. Each entry is a real gap, not an exemption.
@@ -52,7 +60,13 @@ function enumFields(schema) {
 }
 
 // One example value per JSON type, used to retype a field to a type it does NOT declare.
-const EXAMPLES = [["string", "x"], ["number", 12345], ["boolean", true], ["object", { x: 1 }], ["array", [1]]];
+const EXAMPLES = [
+  ["string", "x"],
+  ["number", 12345],
+  ["boolean", true],
+  ["object", { x: 1 }],
+  ["array", [1]],
+];
 const declares = (declared, type) => declared.includes(type) || (type === "number" && declared.includes("integer"));
 
 for (const name of Object.keys(registry)) {
@@ -64,7 +78,8 @@ for (const name of Object.keys(registry)) {
   test(`${name}: has fixtures and they carry this contract_version${registry[name].unversioned ? " (none: unversioned route)" : ""}`, () => {
     assert.ok(cases.length >= 1, "no fixtures");
     for (const c of cases) {
-      if (registry[name].unversioned) assert.equal(c.body.contract_version, undefined, `${c.file} now sends a contract_version: update the registry`);
+      if (registry[name].unversioned)
+        assert.equal(c.body.contract_version, undefined, `${c.file} now sends a contract_version: update the registry`);
       else assert.equal(c.body.contract_version, name, c.file);
     }
   });
@@ -89,7 +104,11 @@ for (const name of Object.keys(registry)) {
       if (wrong) {
         const retyped = clone(sample.body);
         retyped[key] = wrong[1];
-        assert.equal(validate(retyped), false, `retyping "${key}" (declared ${declared.join("|")}) to ${wrong[0]} must fail`);
+        assert.equal(
+          validate(retyped),
+          false,
+          `retyping "${key}" (declared ${declared.join("|")}) to ${wrong[0]} must fail`,
+        );
       }
     }
   });
@@ -124,18 +143,31 @@ for (const name of Object.keys(registry)) {
 }
 
 test("no fixture contains a credential, cookie value or token (facts-of-record #6)", () => {
-  const FORBIDDEN = [/espn_s2\s*[:=]\s*["']?[A-Za-z0-9%]{20,}/i, /swid\s*[:=]\s*["']?\{[0-9A-F-]{36}\}/i, /Bearer\s+[A-Za-z0-9._-]{20,}/, /eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}/, /sb_(secret|publishable)_[A-Za-z0-9_-]+/, /sk-[A-Za-z0-9]{20,}/];
+  const FORBIDDEN = [
+    /espn_s2\s*[:=]\s*["']?[A-Za-z0-9%]{20,}/i,
+    /swid\s*[:=]\s*["']?\{[0-9A-F-]{36}\}/i,
+    /Bearer\s+[A-Za-z0-9._-]{20,}/,
+    /eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}/,
+    /sb_(secret|publishable)_[A-Za-z0-9_-]+/,
+    /sk-[A-Za-z0-9]{20,}/,
+  ];
   const dir = path.join(ROOT, "fixtures");
   for (const contract of fs.readdirSync(dir)) {
     for (const file of fs.readdirSync(path.join(dir, contract))) {
       const text = fs.readFileSync(path.join(dir, contract, file), "utf8");
-      for (const pattern of FORBIDDEN) assert.equal(pattern.test(text), false, `${contract}/${file} matches ${pattern}`);
+      for (const pattern of FORBIDDEN)
+        assert.equal(pattern.test(text), false, `${contract}/${file} matches ${pattern}`);
     }
   }
 });
 
 test("the registry and the requirements file agree (known differences are documented)", () => {
-  const req = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "Blueprints", "specs", "design", "canvas-contract-requirements-v1.json"), "utf8"));
+  const req = JSON.parse(
+    fs.readFileSync(
+      path.join(__dirname, "..", "Blueprints", "specs", "design", "canvas-contract-requirements-v1.json"),
+      "utf8",
+    ),
+  );
   const required = new Set(req.screens.flatMap((s) => s.api_contracts));
   // Differences that are real and recorded, not silently tolerated:
   //  - active-league.v1: the server sends league-active-selection.v1 (registry note).

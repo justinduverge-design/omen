@@ -12,11 +12,11 @@
  */
 
 const VARIANT_CLASSES = {
-  solid:    'border',
+  solid: 'border',
   outlined: 'border bg-transparent',
-  empty:    'border border-dashed bg-transparent',
-  error:    'border',
-  preview:  'border relative',
+  empty: 'border border-dashed bg-transparent',
+  error: 'border',
+  preview: 'border relative',
 };
 
 // `preview` is intentionally included even though its base fill is
@@ -94,9 +94,7 @@ export function Card({ variant = 'solid', tone = 'neutral', className = '', styl
           box, no effect on Card.Header/Body/Footer spacing) while still
           scoping the card/shell text-color split via CSS cascade to
           everything that's actually rendered on the resolved card fill. */}
-      <div style={{ display: 'contents', ...cardTextScope(variant) }}>
-        {children}
-      </div>
+      <div style={{ display: 'contents', ...cardTextScope(variant) }}>{children}</div>
     </div>
   );
 }

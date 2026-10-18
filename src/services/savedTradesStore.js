@@ -22,8 +22,20 @@ const { createClient } = require("@supabase/supabase-js");
 const TABLE = "saved_trades";
 const UNIQUE_KEY = "user_id,provider,provider_league_id,season,week,candidate_id";
 const COLUMNS = [
-  "provider", "provider_league_id", "season", "week", "provider_team_id", "candidate_id", "trade",
-  "reasoning", "state", "outcome", "outcome_provenance", "saved_at", "sent_at", "outcome_at",
+  "provider",
+  "provider_league_id",
+  "season",
+  "week",
+  "provider_team_id",
+  "candidate_id",
+  "trade",
+  "reasoning",
+  "state",
+  "outcome",
+  "outcome_provenance",
+  "saved_at",
+  "sent_at",
+  "outcome_at",
 ].join(",");
 
 function storageError(error) {
@@ -50,8 +62,9 @@ function createSupabaseSavedTradesStore({ client } = {}) {
   };
 
   async function get(userId, candidateId) {
-    const rows = must(await db().from(TABLE).select(COLUMNS)
-      .eq("user_id", userId).eq("candidate_id", candidateId).limit(1));
+    const rows = must(
+      await db().from(TABLE).select(COLUMNS).eq("user_id", userId).eq("candidate_id", candidateId).limit(1),
+    );
     return Array.isArray(rows) && rows.length ? rows[0] : null;
   }
 
@@ -60,34 +73,46 @@ function createSupabaseSavedTradesStore({ client } = {}) {
 
     /** Inserts the row unless this user already saved this candidate in this scope. */
     async insertIfAbsent(row) {
-      const rows = must(await db().from(TABLE)
-        .upsert(row, { onConflict: UNIQUE_KEY, ignoreDuplicates: true })
-        .select("candidate_id"));
+      const rows = must(
+        await db().from(TABLE).upsert(row, { onConflict: UNIQUE_KEY, ignoreDuplicates: true }).select("candidate_id"),
+      );
       return { inserted: Array.isArray(rows) && rows.length > 0 };
     },
 
     async list(userId) {
-      return must(await db().from(TABLE).select(COLUMNS)
-        .eq("user_id", userId).order("saved_at", { ascending: true })) || [];
+      return (
+        must(await db().from(TABLE).select(COLUMNS).eq("user_id", userId).order("saved_at", { ascending: true })) || []
+      );
     },
 
     get,
 
     /** saved -> sent once. An already-sent row is returned unchanged (idempotent). */
     async markSent(userId, candidateId, sentAt) {
-      const rows = must(await db().from(TABLE).update({ state: "sent", sent_at: sentAt })
-        .eq("user_id", userId).eq("candidate_id", candidateId).eq("state", "saved")
-        .select(COLUMNS));
+      const rows = must(
+        await db()
+          .from(TABLE)
+          .update({ state: "sent", sent_at: sentAt })
+          .eq("user_id", userId)
+          .eq("candidate_id", candidateId)
+          .eq("state", "saved")
+          .select(COLUMNS),
+      );
       if (Array.isArray(rows) && rows.length) return rows[0];
       return get(userId, candidateId);
     },
 
     /** Self-reported outcome, only on a sent row. Returns { status: ok | not_found | not_sent, row }. */
     async setOutcome(userId, candidateId, outcome, reportedAt) {
-      const rows = must(await db().from(TABLE)
-        .update({ outcome, outcome_provenance: "self_reported", outcome_at: reportedAt })
-        .eq("user_id", userId).eq("candidate_id", candidateId).eq("state", "sent")
-        .select(COLUMNS));
+      const rows = must(
+        await db()
+          .from(TABLE)
+          .update({ outcome, outcome_provenance: "self_reported", outcome_at: reportedAt })
+          .eq("user_id", userId)
+          .eq("candidate_id", candidateId)
+          .eq("state", "sent")
+          .select(COLUMNS),
+      );
       if (Array.isArray(rows) && rows.length) return { status: "ok", row: rows[0] };
       const existing = await get(userId, candidateId);
       return { status: existing ? "not_sent" : "not_found", row: existing };
@@ -95,9 +120,9 @@ function createSupabaseSavedTradesStore({ client } = {}) {
 
     /** Unsave. Returns true when a row was deleted. */
     async remove(userId, candidateId) {
-      const rows = must(await db().from(TABLE).delete()
-        .eq("user_id", userId).eq("candidate_id", candidateId)
-        .select("candidate_id"));
+      const rows = must(
+        await db().from(TABLE).delete().eq("user_id", userId).eq("candidate_id", candidateId).select("candidate_id"),
+      );
       return Array.isArray(rows) && rows.length > 0;
     },
   };

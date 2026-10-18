@@ -71,7 +71,9 @@ function playerWeekFromRow(row) {
     team: row.team,
     week: Number(row.week),
     stats: statsFromRow(row),
-    opp: row.has_opportunity ? { red_zone_carries: n(row.red_zone_carries), red_zone_targets: n(row.red_zone_targets) } : null,
+    opp: row.has_opportunity
+      ? { red_zone_carries: n(row.red_zone_carries), red_zone_targets: n(row.red_zone_targets) }
+      : null,
     reported_ppr: row.fantasy_points_ppr == null ? null : Number(row.fantasy_points_ppr),
   };
 }
@@ -100,25 +102,41 @@ function createPgSource({ query, includeSleeper = false }) {
       return {
         playerWeeks: weeks.rows.map(playerWeekFromRow),
         games: games.rows.map((g) => ({
-          week: Number(g.week), game_id: g.game_id, home: g.home, away: g.away,
+          week: Number(g.week),
+          game_id: g.game_id,
+          home: g.home,
+          away: g.away,
           spread_line: g.spread_line == null ? null : Number(g.spread_line),
           total_line: g.total_line == null ? null : Number(g.total_line),
         })),
       };
     },
-    ...(includeSleeper ? {
-      /** Stored Sleeper projections by "week|player_id", or null when the table is absent or empty for the season. */
-      async loadSleeper(season) {
-        let result;
-        try { result = await query(SLEEPER_SQL, [season]); } catch { return null; }
-        if (!result.rows.length) return null;
-        return new Map(result.rows.map((r) => [`${Number(r.week)}|${r.player_id}`, r.stat_line]));
-      },
-    } : {}),
+    ...(includeSleeper
+      ? {
+          /** Stored Sleeper projections by "week|player_id", or null when the table is absent or empty for the season. */
+          async loadSleeper(season) {
+            let result;
+            try {
+              result = await query(SLEEPER_SQL, [season]);
+            } catch {
+              return null;
+            }
+            if (!result.rows.length) return null;
+            return new Map(result.rows.map((r) => [`${Number(r.week)}|${r.player_id}`, r.stat_line]));
+          },
+        }
+      : {}),
   };
 }
 
 module.exports = {
-  EXPECTED_DATABASE, EXPECTED_LOGIN_ROLE, GAMES_SQL, PLAYER_WEEKS_SQL, SESSION_IDENTITY_SQL, SLEEPER_SQL,
-  createPgSource, playerWeekFromRow, statsFromRow,
+  EXPECTED_DATABASE,
+  EXPECTED_LOGIN_ROLE,
+  GAMES_SQL,
+  PLAYER_WEEKS_SQL,
+  SESSION_IDENTITY_SQL,
+  SLEEPER_SQL,
+  createPgSource,
+  playerWeekFromRow,
+  statsFromRow,
 };

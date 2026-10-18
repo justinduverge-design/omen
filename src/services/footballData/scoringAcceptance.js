@@ -4,10 +4,7 @@ const crypto = require("node:crypto");
 const fs = require("node:fs/promises");
 const path = require("node:path");
 
-const {
-  assertLocalVaultRoot,
-  readExactSnapshot,
-} = require("./rawVault");
+const { assertLocalVaultRoot, readExactSnapshot } = require("./rawVault");
 
 const ACCEPTANCE_SCHEMA = "omen-football-scoring-acceptance.v1";
 const NORMALIZATION_VERSION = "omen-football-normalization.v1";
@@ -52,65 +49,223 @@ const DST_RULESET = Object.freeze({
 });
 
 const PLAYER_REQUIRED_COLUMNS = Object.freeze([
-  "player_id", "player_name", "position", "season", "week", "season_type", "game_id",
-  "team", "opponent_team", "passing_yards", "passing_tds", "passing_interceptions",
-  "sack_fumbles_lost", "passing_2pt_conversions", "rushing_yards", "rushing_tds",
-  "rushing_fumbles_lost", "rushing_2pt_conversions", "receptions", "receiving_yards",
-  "receiving_tds", "receiving_fumbles_lost", "receiving_2pt_conversions",
-  "special_teams_tds", "fg_made", "fg_att", "fg_missed", "fg_blocked",
-  "fg_made_0_19", "fg_made_20_29", "fg_made_30_39", "fg_made_40_49",
-  "fg_made_50_59", "fg_made_60_", "pat_made", "pat_att", "pat_missed",
-  "pat_blocked", "fantasy_points", "fantasy_points_ppr",
+  "player_id",
+  "player_name",
+  "position",
+  "season",
+  "week",
+  "season_type",
+  "game_id",
+  "team",
+  "opponent_team",
+  "passing_yards",
+  "passing_tds",
+  "passing_interceptions",
+  "sack_fumbles_lost",
+  "passing_2pt_conversions",
+  "rushing_yards",
+  "rushing_tds",
+  "rushing_fumbles_lost",
+  "rushing_2pt_conversions",
+  "receptions",
+  "receiving_yards",
+  "receiving_tds",
+  "receiving_fumbles_lost",
+  "receiving_2pt_conversions",
+  "special_teams_tds",
+  "fg_made",
+  "fg_att",
+  "fg_missed",
+  "fg_blocked",
+  "fg_made_0_19",
+  "fg_made_20_29",
+  "fg_made_30_39",
+  "fg_made_40_49",
+  "fg_made_50_59",
+  "fg_made_60_",
+  "pat_made",
+  "pat_att",
+  "pat_missed",
+  "pat_blocked",
+  "fantasy_points",
+  "fantasy_points_ppr",
 ]);
 
 const TEAM_REQUIRED_COLUMNS = Object.freeze([
-  "season", "week", "team", "season_type", "game_id", "opponent_team", "def_sacks",
-  "def_interceptions", "fumble_recovery_opp", "def_tds", "fumble_recovery_tds",
-  "special_teams_tds", "def_safeties", "def_punt_blocks", "def_pat_blocks",
-  "def_fg_blocks", "fg_made", "fg_att", "fg_missed", "fg_blocked", "fg_made_0_19",
-  "fg_made_20_29", "fg_made_30_39", "fg_made_40_49", "fg_made_50_59",
-  "fg_made_60_", "pat_made", "pat_att", "pat_missed", "pat_blocked",
+  "season",
+  "week",
+  "team",
+  "season_type",
+  "game_id",
+  "opponent_team",
+  "def_sacks",
+  "def_interceptions",
+  "fumble_recovery_opp",
+  "def_tds",
+  "fumble_recovery_tds",
+  "special_teams_tds",
+  "def_safeties",
+  "def_punt_blocks",
+  "def_pat_blocks",
+  "def_fg_blocks",
+  "fg_made",
+  "fg_att",
+  "fg_missed",
+  "fg_blocked",
+  "fg_made_0_19",
+  "fg_made_20_29",
+  "fg_made_30_39",
+  "fg_made_40_49",
+  "fg_made_50_59",
+  "fg_made_60_",
+  "pat_made",
+  "pat_att",
+  "pat_missed",
+  "pat_blocked",
 ]);
 
 const SCHEDULE_REQUIRED_COLUMNS = Object.freeze([
-  "game_id", "season", "game_type", "week", "gameday", "away_team", "away_score",
-  "home_team", "home_score", "old_game_id", "gsis", "pfr", "pff", "espn",
+  "game_id",
+  "season",
+  "game_type",
+  "week",
+  "gameday",
+  "away_team",
+  "away_score",
+  "home_team",
+  "home_score",
+  "old_game_id",
+  "gsis",
+  "pfr",
+  "pff",
+  "espn",
 ]);
 
 const NONNEGATIVE_PLAYER_FIELDS = Object.freeze([
-  "passing_tds", "passing_interceptions", "sack_fumbles_lost", "passing_2pt_conversions",
-  "carries", "rushing_tds", "rushing_fumbles_lost", "rushing_2pt_conversions",
-  "receptions", "receiving_tds", "receiving_fumbles_lost", "receiving_2pt_conversions",
-  "special_teams_tds", "fg_made", "fg_att", "fg_missed", "fg_blocked", "fg_made_0_19",
-  "fg_made_20_29", "fg_made_30_39", "fg_made_40_49", "fg_made_50_59",
-  "fg_made_60_", "pat_made", "pat_att", "pat_missed", "pat_blocked",
+  "passing_tds",
+  "passing_interceptions",
+  "sack_fumbles_lost",
+  "passing_2pt_conversions",
+  "carries",
+  "rushing_tds",
+  "rushing_fumbles_lost",
+  "rushing_2pt_conversions",
+  "receptions",
+  "receiving_tds",
+  "receiving_fumbles_lost",
+  "receiving_2pt_conversions",
+  "special_teams_tds",
+  "fg_made",
+  "fg_att",
+  "fg_missed",
+  "fg_blocked",
+  "fg_made_0_19",
+  "fg_made_20_29",
+  "fg_made_30_39",
+  "fg_made_40_49",
+  "fg_made_50_59",
+  "fg_made_60_",
+  "pat_made",
+  "pat_att",
+  "pat_missed",
+  "pat_blocked",
 ]);
 
 const SCOREABLE_PLAYER_FIELDS = Object.freeze([
-  "passing_yards", "passing_tds", "passing_interceptions", "sack_fumbles_lost",
-  "passing_2pt_conversions", "rushing_yards", "rushing_tds", "rushing_fumbles_lost",
-  "rushing_2pt_conversions", "receptions", "receiving_yards", "receiving_tds",
-  "receiving_fumbles_lost", "receiving_2pt_conversions", "special_teams_tds", "fg_made",
-  "fg_att", "fg_missed", "fg_blocked", "pat_made", "pat_att", "pat_missed", "pat_blocked",
-  "fantasy_points", "fantasy_points_ppr",
+  "passing_yards",
+  "passing_tds",
+  "passing_interceptions",
+  "sack_fumbles_lost",
+  "passing_2pt_conversions",
+  "rushing_yards",
+  "rushing_tds",
+  "rushing_fumbles_lost",
+  "rushing_2pt_conversions",
+  "receptions",
+  "receiving_yards",
+  "receiving_tds",
+  "receiving_fumbles_lost",
+  "receiving_2pt_conversions",
+  "special_teams_tds",
+  "fg_made",
+  "fg_att",
+  "fg_missed",
+  "fg_blocked",
+  "pat_made",
+  "pat_att",
+  "pat_missed",
+  "pat_blocked",
+  "fantasy_points",
+  "fantasy_points_ppr",
 ]);
 
 const NONNEGATIVE_TEAM_FIELDS = Object.freeze([
-  "def_sacks", "def_interceptions", "fumble_recovery_opp", "def_tds",
-  "fumble_recovery_tds", "special_teams_tds", "def_safeties", "def_punt_blocks",
-  "def_pat_blocks", "def_fg_blocks", "fg_made", "fg_att", "fg_missed", "fg_blocked",
-  "fg_made_0_19", "fg_made_20_29", "fg_made_30_39", "fg_made_40_49",
-  "fg_made_50_59", "fg_made_60_", "pat_made", "pat_att", "pat_missed", "pat_blocked",
+  "def_sacks",
+  "def_interceptions",
+  "fumble_recovery_opp",
+  "def_tds",
+  "fumble_recovery_tds",
+  "special_teams_tds",
+  "def_safeties",
+  "def_punt_blocks",
+  "def_pat_blocks",
+  "def_fg_blocks",
+  "fg_made",
+  "fg_att",
+  "fg_missed",
+  "fg_blocked",
+  "fg_made_0_19",
+  "fg_made_20_29",
+  "fg_made_30_39",
+  "fg_made_40_49",
+  "fg_made_50_59",
+  "fg_made_60_",
+  "pat_made",
+  "pat_att",
+  "pat_missed",
+  "pat_blocked",
 ]);
 
 const FRANCHISE_BY_ABBREVIATION = Object.freeze({
-  ARI: "ARI", ATL: "ATL", BAL: "BAL", BUF: "BUF", CAR: "CAR", CHI: "CHI",
-  CIN: "CIN", CLE: "CLE", DAL: "DAL", DEN: "DEN", DET: "DET", GB: "GB",
-  HOU: "HOU", IND: "IND", JAX: "JAX", JAC: "JAX", KC: "KC", LV: "LV",
-  OAK: "LV", LAC: "LAC", SD: "LAC", SDG: "LAC", LA: "LAR", LAR: "LAR",
-  STL: "LAR", MIA: "MIA", MIN: "MIN", NE: "NE", NO: "NO", NYG: "NYG",
-  NYJ: "NYJ", PHI: "PHI", PIT: "PIT", SEA: "SEA", SF: "SF", TB: "TB",
-  TEN: "TEN", WAS: "WAS", WSH: "WAS",
+  ARI: "ARI",
+  ATL: "ATL",
+  BAL: "BAL",
+  BUF: "BUF",
+  CAR: "CAR",
+  CHI: "CHI",
+  CIN: "CIN",
+  CLE: "CLE",
+  DAL: "DAL",
+  DEN: "DEN",
+  DET: "DET",
+  GB: "GB",
+  HOU: "HOU",
+  IND: "IND",
+  JAX: "JAX",
+  JAC: "JAX",
+  KC: "KC",
+  LV: "LV",
+  OAK: "LV",
+  LAC: "LAC",
+  SD: "LAC",
+  SDG: "LAC",
+  LA: "LAR",
+  LAR: "LAR",
+  STL: "LAR",
+  MIA: "MIA",
+  MIN: "MIN",
+  NE: "NE",
+  NO: "NO",
+  NYG: "NYG",
+  NYJ: "NYJ",
+  PHI: "PHI",
+  PIT: "PIT",
+  SEA: "SEA",
+  SF: "SF",
+  TB: "TB",
+  TEN: "TEN",
+  WAS: "WAS",
+  WSH: "WAS",
 });
 
 class FootballDataAcceptanceError extends Error {
@@ -175,9 +330,7 @@ function parseCsvRows(value) {
 function parseCsvObjects(value, requiredColumns = []) {
   const rows = parseCsvRows(value);
   if (!rows.length) fail("EMPTY_DATASET", "CSV dataset is empty");
-  const headers = rows[0].map((header, index) => (
-    index === 0 ? header.replace(/^\uFEFF/, "").trim() : header.trim()
-  ));
+  const headers = rows[0].map((header, index) => (index === 0 ? header.replace(/^\uFEFF/, "").trim() : header.trim()));
   if (headers.some((header) => !header) || new Set(headers).size !== headers.length) {
     fail("SCHEMA_DRIFT", "CSV header contains an empty or duplicate column");
   }
@@ -186,10 +339,7 @@ function parseCsvObjects(value, requiredColumns = []) {
 
   return rows.slice(1).map((values, rowIndex) => {
     if (values.length !== headers.length) {
-      fail(
-        "MALFORMED_CSV",
-        `CSV row ${rowIndex + 2} has ${values.length} fields; expected ${headers.length}`,
-      );
+      fail("MALFORMED_CSV", `CSV row ${rowIndex + 2} has ${values.length} fields; expected ${headers.length}`);
     }
     return Object.fromEntries(headers.map((header, index) => [header, values[index]]));
   });
@@ -222,7 +372,9 @@ function assertNonnegative(row, fields, context) {
 }
 
 function canonicalTeam(abbreviation, season) {
-  const alias = String(abbreviation || "").trim().toUpperCase();
+  const alias = String(abbreviation || "")
+    .trim()
+    .toUpperCase();
   const franchise = FRANCHISE_BY_ABBREVIATION[alias];
   if (!franchise) fail("INVALID_TEAM_IDENTITY", `unknown nflverse team abbreviation: ${alias || "(missing)"}`);
   return { canonical_id: `nfl:${franchise}:${season}`, franchise, alias };
@@ -258,9 +410,7 @@ function normalizeWeeks(values) {
 }
 
 function rowInScope(row, season, weeks, seasonTypeField) {
-  return Number(row.season) === season
-    && String(row[seasonTypeField]) === "REG"
-    && weeks.includes(Number(row.week));
+  return Number(row.season) === season && String(row[seasonTypeField]) === "REG" && weeks.includes(Number(row.week));
 }
 
 function scheduleScore(row, field, context) {
@@ -354,22 +504,25 @@ function offensiveFacts(row, playerId, team, context) {
     receiving_touchdowns: finite(row.receiving_tds, `${context}.receiving_tds`),
     receiving_two_point_conversions: finite(row.receiving_2pt_conversions, `${context}.receiving_2pt_conversions`),
     special_teams_touchdowns: finite(row.special_teams_tds, `${context}.special_teams_tds`),
-    lost_fumbles: finite(row.sack_fumbles_lost, `${context}.sack_fumbles_lost`)
-      + finite(row.rushing_fumbles_lost, `${context}.rushing_fumbles_lost`)
-      + finite(row.receiving_fumbles_lost, `${context}.receiving_fumbles_lost`),
+    lost_fumbles:
+      finite(row.sack_fumbles_lost, `${context}.sack_fumbles_lost`) +
+      finite(row.rushing_fumbles_lost, `${context}.rushing_fumbles_lost`) +
+      finite(row.receiving_fumbles_lost, `${context}.receiving_fumbles_lost`),
   };
 }
 
 function scoreOffense(facts) {
-  const standard = facts.passing_yards / 25
-    + 4 * facts.passing_touchdowns
-    - 2 * facts.passing_interceptions
-    + (facts.rushing_yards + facts.receiving_yards) / 10
-    + 6 * (facts.rushing_touchdowns + facts.receiving_touchdowns + facts.special_teams_touchdowns)
-    + 2 * (facts.passing_two_point_conversions
-      + facts.rushing_two_point_conversions
-      + facts.receiving_two_point_conversions)
-    - 2 * facts.lost_fumbles;
+  const standard =
+    facts.passing_yards / 25 +
+    4 * facts.passing_touchdowns -
+    2 * facts.passing_interceptions +
+    (facts.rushing_yards + facts.receiving_yards) / 10 +
+    6 * (facts.rushing_touchdowns + facts.receiving_touchdowns + facts.special_teams_touchdowns) +
+    2 *
+      (facts.passing_two_point_conversions +
+        facts.rushing_two_point_conversions +
+        facts.receiving_two_point_conversions) -
+    2 * facts.lost_fumbles;
   return {
     standard,
     half_ppr: standard + 0.5 * facts.receptions,
@@ -397,11 +550,18 @@ function kickerFacts(row, playerId, team, context) {
     pat_missed: finite(row.pat_missed, `${context}.pat_missed`),
     pat_blocked: finite(row.pat_blocked, `${context}.pat_blocked`),
   };
-  const bucketMade = facts.fg_made_0_19 + facts.fg_made_20_29 + facts.fg_made_30_39
-    + facts.fg_made_40_49 + facts.fg_made_50_59 + facts.fg_made_60_plus;
-  if (bucketMade !== facts.fg_made
-      || facts.fg_att !== facts.fg_made + facts.fg_missed + facts.fg_blocked
-      || facts.pat_att !== facts.pat_made + facts.pat_missed + facts.pat_blocked) {
+  const bucketMade =
+    facts.fg_made_0_19 +
+    facts.fg_made_20_29 +
+    facts.fg_made_30_39 +
+    facts.fg_made_40_49 +
+    facts.fg_made_50_59 +
+    facts.fg_made_60_plus;
+  if (
+    bucketMade !== facts.fg_made ||
+    facts.fg_att !== facts.fg_made + facts.fg_missed + facts.fg_blocked ||
+    facts.pat_att !== facts.pat_made + facts.pat_missed + facts.pat_blocked
+  ) {
     fail("INCOMPLETE_KICKER_FACT", `${context} kicking attempts do not reconcile to outcomes/buckets`);
   }
   return facts;
@@ -409,19 +569,20 @@ function kickerFacts(row, playerId, team, context) {
 
 function scoreKicker(facts) {
   const rules = KICKER_RULESET.rules;
-  return facts.pat_made * rules.pat_made
-    + facts.fg_made_0_19 * rules.fg_made_0_19
-    + facts.fg_made_20_29 * rules.fg_made_20_29
-    + facts.fg_made_30_39 * rules.fg_made_30_39
-    + facts.fg_made_40_49 * rules.fg_made_40_49
-    + facts.fg_made_50_59 * rules.fg_made_50_59
-    + facts.fg_made_60_plus * rules.fg_made_60_plus;
+  return (
+    facts.pat_made * rules.pat_made +
+    facts.fg_made_0_19 * rules.fg_made_0_19 +
+    facts.fg_made_20_29 * rules.fg_made_20_29 +
+    facts.fg_made_30_39 * rules.fg_made_30_39 +
+    facts.fg_made_40_49 * rules.fg_made_40_49 +
+    facts.fg_made_50_59 * rules.fg_made_50_59 +
+    facts.fg_made_60_plus * rules.fg_made_60_plus
+  );
 }
 
 function pointsAllowedScore(pointsAllowed) {
   const tier = DST_RULESET.rules.points_allowed.find(
-    (candidate) => pointsAllowed >= candidate.min
-      && (candidate.max === null || pointsAllowed <= candidate.max),
+    (candidate) => pointsAllowed >= candidate.min && (candidate.max === null || pointsAllowed <= candidate.max),
   );
   if (!tier) fail("IMPOSSIBLE_VALUE", `no DST points-allowed tier covers ${pointsAllowed}`);
   return tier.points;
@@ -429,20 +590,33 @@ function pointsAllowedScore(pointsAllowed) {
 
 function scoreDst(facts) {
   const rules = DST_RULESET.rules;
-  return facts.sacks * rules.sack
-    + facts.interceptions * rules.interception
-    + facts.fumble_recoveries * rules.fumble_recovery
-    + facts.touchdowns * rules.touchdown
-    + facts.safeties * rules.safety
-    + facts.blocked_kicks * rules.blocked_kick
-    + pointsAllowedScore(facts.points_allowed);
+  return (
+    facts.sacks * rules.sack +
+    facts.interceptions * rules.interception +
+    facts.fumble_recoveries * rules.fumble_recovery +
+    facts.touchdowns * rules.touchdown +
+    facts.safeties * rules.safety +
+    facts.blocked_kicks * rules.blocked_kick +
+    pointsAllowedScore(facts.points_allowed)
+  );
 }
 
 function kickingAggregateTemplate() {
   return {
-    fg_made: 0, fg_att: 0, fg_missed: 0, fg_blocked: 0, fg_made_0_19: 0,
-    fg_made_20_29: 0, fg_made_30_39: 0, fg_made_40_49: 0, fg_made_50_59: 0,
-    fg_made_60_plus: 0, pat_made: 0, pat_att: 0, pat_missed: 0, pat_blocked: 0,
+    fg_made: 0,
+    fg_att: 0,
+    fg_missed: 0,
+    fg_blocked: 0,
+    fg_made_0_19: 0,
+    fg_made_20_29: 0,
+    fg_made_30_39: 0,
+    fg_made_40_49: 0,
+    fg_made_50_59: 0,
+    fg_made_60_plus: 0,
+    pat_made: 0,
+    pat_att: 0,
+    pat_missed: 0,
+    pat_blocked: 0,
   };
 }
 
@@ -453,8 +627,9 @@ function addKickingFacts(target, facts) {
 }
 
 function finalizeAliases(aliasMap) {
-  return [...aliasMap.values()]
-    .sort((a, b) => a.canonical_id.localeCompare(b.canonical_id) || a.alias.localeCompare(b.alias));
+  return [...aliasMap.values()].sort(
+    (a, b) => a.canonical_id.localeCompare(b.canonical_id) || a.alias.localeCompare(b.alias),
+  );
 }
 
 function buildScoringAcceptance({
@@ -504,10 +679,10 @@ function buildScoringAcceptance({
     if (existingAlias) {
       existingAlias.valid_from_week = Math.min(existingAlias.valid_from_week, game.week);
       existingAlias.valid_to_week = Math.max(existingAlias.valid_to_week, game.week);
-      existingAlias.valid_from_date = existingAlias.valid_from_date < game.gameday
-        ? existingAlias.valid_from_date : game.gameday;
-      existingAlias.valid_to_date = existingAlias.valid_to_date > game.gameday
-        ? existingAlias.valid_to_date : game.gameday;
+      existingAlias.valid_from_date =
+        existingAlias.valid_from_date < game.gameday ? existingAlias.valid_from_date : game.gameday;
+      existingAlias.valid_to_date =
+        existingAlias.valid_to_date > game.gameday ? existingAlias.valid_to_date : game.gameday;
     } else {
       teamAliases.set(aliasKey, {
         canonical_id: team.canonical_id,
@@ -542,9 +717,11 @@ function buildScoringAcceptance({
     const playerId = playerIdentity(row, context);
     const team = canonicalTeam(row.team, selectedSeason);
     const opponent = canonicalTeam(row.opponent_team, selectedSeason);
-    if (![game.away_team_id, game.home_team_id].includes(team.canonical_id)
-        || ![game.away_team_id, game.home_team_id].includes(opponent.canonical_id)
-        || team.canonical_id === opponent.canonical_id) {
+    if (
+      ![game.away_team_id, game.home_team_id].includes(team.canonical_id) ||
+      ![game.away_team_id, game.home_team_id].includes(opponent.canonical_id) ||
+      team.canonical_id === opponent.canonical_id
+    ) {
       fail("SCHEDULE_MISMATCH", `${context} team/opponent do not match ${game.game_id}`);
     }
     const factKey = `${game.game_id}|${playerId}`;
@@ -552,10 +729,7 @@ function buildScoringAcceptance({
     playerKeys.add(factKey);
     playerCountByGame.set(game.game_id, (playerCountByGame.get(game.game_id) || 0) + 1);
     const playerTeamGameKey = `${game.game_id}|${team.canonical_id}`;
-    playerCountByTeamGame.set(
-      playerTeamGameKey,
-      (playerCountByTeamGame.get(playerTeamGameKey) || 0) + 1,
-    );
+    playerCountByTeamGame.set(playerTeamGameKey, (playerCountByTeamGame.get(playerTeamGameKey) || 0) + 1);
     recordTeam(team, game);
     recordTeam(opponent, game);
 
@@ -608,10 +782,11 @@ function buildScoringAcceptance({
         ppr_delta: pprDelta,
       });
     }
-    if (Math.abs((scores.half_ppr - scores.standard) - 0.5 * offenseFacts.receptions) > SCORE_TOLERANCE
-        || Math.abs((scores.ppr - scores.standard) - offenseFacts.receptions) > SCORE_TOLERANCE
-        || (offenseFacts.receptions > 0
-          && !(scores.standard < scores.half_ppr && scores.half_ppr < scores.ppr))) {
+    if (
+      Math.abs(scores.half_ppr - scores.standard - 0.5 * offenseFacts.receptions) > SCORE_TOLERANCE ||
+      Math.abs(scores.ppr - scores.standard - offenseFacts.receptions) > SCORE_TOLERANCE ||
+      (offenseFacts.receptions > 0 && !(scores.standard < scores.half_ppr && scores.half_ppr < scores.ppr))
+    ) {
       fail("SCORING_IDENTITY_MISMATCH", `${factKey} violates Standard/Half/PPR identities`);
     }
     offensive.push(offenseFacts);
@@ -678,9 +853,11 @@ function buildScoringAcceptance({
     const game = gameRegistry.get(row.game_id);
     const team = canonicalTeam(row.team, selectedSeason);
     const opponent = canonicalTeam(row.opponent_team, selectedSeason);
-    if (![game.away_team_id, game.home_team_id].includes(team.canonical_id)
-        || ![game.away_team_id, game.home_team_id].includes(opponent.canonical_id)
-        || team.canonical_id === opponent.canonical_id) {
+    if (
+      ![game.away_team_id, game.home_team_id].includes(team.canonical_id) ||
+      ![game.away_team_id, game.home_team_id].includes(opponent.canonical_id) ||
+      team.canonical_id === opponent.canonical_id
+    ) {
       fail("SCHEDULE_MISMATCH", `${context} team/opponent do not match ${game.game_id}`);
     }
     recordTeam(team, game);
@@ -705,13 +882,15 @@ function buildScoringAcceptance({
       sacks: finite(row.def_sacks, `${context}.def_sacks`),
       interceptions: finite(row.def_interceptions, `${context}.def_interceptions`),
       fumble_recoveries: finite(row.fumble_recovery_opp, `${context}.fumble_recovery_opp`),
-      touchdowns: finite(row.def_tds, `${context}.def_tds`)
-        + finite(row.fumble_recovery_tds, `${context}.fumble_recovery_tds`)
-        + finite(row.special_teams_tds, `${context}.special_teams_tds`),
+      touchdowns:
+        finite(row.def_tds, `${context}.def_tds`) +
+        finite(row.fumble_recovery_tds, `${context}.fumble_recovery_tds`) +
+        finite(row.special_teams_tds, `${context}.special_teams_tds`),
       safeties: finite(row.def_safeties, `${context}.def_safeties`),
-      blocked_kicks: finite(row.def_punt_blocks, `${context}.def_punt_blocks`)
-        + finite(row.def_pat_blocks, `${context}.def_pat_blocks`)
-        + finite(row.def_fg_blocks, `${context}.def_fg_blocks`),
+      blocked_kicks:
+        finite(row.def_punt_blocks, `${context}.def_punt_blocks`) +
+        finite(row.def_pat_blocks, `${context}.def_pat_blocks`) +
+        finite(row.def_fg_blocks, `${context}.def_fg_blocks`),
       points_allowed: pointsAllowed,
     };
     dst.push(facts);
@@ -755,10 +934,10 @@ function buildScoringAcceptance({
   for (const target of recommendedTargets) {
     const targetType = String(target?.subject_type || "");
     const targetId = String(target?.subject_id || "");
-    const resolved = targetType === "player" ? playerIdSet.has(targetId)
-      : targetType === "team_dst" ? teamIdSet.has(targetId)
-        : false;
-    if (!resolved) fail("UNRESOLVED_TARGET", `${targetType || "unknown"}:${targetId || "(missing)"} did not resolve exactly once`);
+    const resolved =
+      targetType === "player" ? playerIdSet.has(targetId) : targetType === "team_dst" ? teamIdSet.has(targetId) : false;
+    if (!resolved)
+      fail("UNRESOLVED_TARGET", `${targetType || "unknown"}:${targetId || "(missing)"} did not resolve exactly once`);
   }
   const playerCounts = [...playerCountByGame.values()];
   const playerTeamCounts = [...playerCountByTeamGame.values()];

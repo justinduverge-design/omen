@@ -33,9 +33,7 @@
     "status": {
       "required": false,
       "type": "enum",
-      "values": [
-        "\"connected\""
-      ]
+      "values": ["\"connected\""]
     },
     "username": {
       "required": false,

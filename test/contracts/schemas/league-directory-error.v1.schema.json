@@ -24,11 +24,5 @@
       "type": "string"
     }
   },
-  "required": [
-    "action",
-    "code",
-    "contract_version",
-    "error",
-    "message"
-  ]
+  "required": ["action", "code", "contract_version", "error", "message"]
 }

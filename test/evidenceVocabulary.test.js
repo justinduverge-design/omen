@@ -18,7 +18,10 @@ const path = require("node:path");
 const { START_SIT, WAIVER, MOVE_DETAIL } = require("../src/services/evidenceVocabulary");
 const { buildEvidence } = require("../src/services/startSitDetail");
 const { breakdownEvidence } = require("../src/services/projectionBreakdown");
-const { fantasyMetricsEvidence, gameEnvironmentEvidence } = require("../src/services/fantasyMetrics/fantasyMetricsLines");
+const {
+  fantasyMetricsEvidence,
+  gameEnvironmentEvidence,
+} = require("../src/services/fantasyMetrics/fantasyMetricsLines");
 const { evidenceFor } = require("../src/services/waiverAnalysis");
 const moves = require("../src/routes/moves");
 
@@ -41,7 +44,8 @@ function literals(fn) {
 function assertLiteralsInside(fns, vocab, label) {
   for (const fn of fns) {
     const { categories, kinds } = literals(fn);
-    for (const c of categories) assert.ok(vocab.categories.includes(c), `${label} ${fn.name}: literal category "${c}" is unlisted`);
+    for (const c of categories)
+      assert.ok(vocab.categories.includes(c), `${label} ${fn.name}: literal category "${c}" is unlisted`);
     for (const k of kinds) assert.ok(vocab.kinds.includes(k), `${label} ${fn.name}: literal kind "${k}" is unlisted`);
   }
 }
@@ -53,47 +57,102 @@ const AVAILABLE_BREAKDOWN = {
   other_points: 0,
   lines: [{ stat: "rec", label: "receptions", quantity: 6, points_per: 1, points: 6 }],
 };
-const UNAVAILABLE = { status: "unavailable", provider: "yahoo", reason_code: "no_stat_line", reason: "Yahoo does not give Omen a projected stat line." };
+const UNAVAILABLE = {
+  status: "unavailable",
+  provider: "yahoo",
+  reason_code: "no_stat_line",
+  reason: "Yahoo does not give Omen a projected stat line.",
+};
 
 function player(key, name, status = null) {
   return { player_key: key, name, position: "WR", team: key === "a" ? "SEA" : "DEN", projected_points: 12, status };
 }
-const USAGE = { games: 3, targets_per_game: 7, target_share: 0.25, snap_share: 0.8, carries_per_game: 0, attempts_per_game: 0 };
+const USAGE = {
+  games: 3,
+  targets_per_game: 7,
+  target_share: 0.25,
+  snap_share: 0.8,
+  carries_per_game: 0,
+  attempts_per_game: 0,
+};
 
 test("start-sit evidence: every row from the real builder is in the vocabulary", () => {
   const start = player("a", "Alpha", "Q");
   const sit = player("b", "Beta", "OUT");
   const full = buildEvidence({
-    start, sit, delta: 3, scoringFormat: "1 point per reception",
-    usage: new Map([["a", USAGE], ["b", USAGE]]),
-    teamSystem: new Map([["SEA", "Seattle runs a pass-heavy offense."], ["DEN", "Denver runs the ball."]]),
-    breakdowns: new Map([["a", AVAILABLE_BREAKDOWN], ["b", UNAVAILABLE]]),
+    start,
+    sit,
+    delta: 3,
+    scoringFormat: "1 point per reception",
+    usage: new Map([
+      ["a", USAGE],
+      ["b", USAGE],
+    ]),
+    teamSystem: new Map([
+      ["SEA", "Seattle runs a pass-heavy offense."],
+      ["DEN", "Denver runs the ball."],
+    ]),
+    breakdowns: new Map([
+      ["a", AVAILABLE_BREAKDOWN],
+      ["b", UNAVAILABLE],
+    ]),
   });
   assertInside(full, START_SIT, "full start-sit");
 
   // Every category the builder can emit is exercised, so a new branch cannot hide.
   const seen = new Set(full.map((r) => r.category));
-  const bare = buildEvidence({ start: player("a", "Alpha"), sit: player("b", "Beta"), delta: 0.5, scoringFormat: null });
+  const bare = buildEvidence({
+    start: player("a", "Alpha"),
+    sit: player("b", "Beta"),
+    delta: 0.5,
+    scoringFormat: null,
+  });
   for (const r of bare) seen.add(r.category);
   assertInside(bare, START_SIT, "bare start-sit");
 
   // Omen's own stats (beta slice): a minimal season bundle emits omen_metric and game_environment.
   const line = { receiving_receptions: 5, receiving_yards: 60 };
   const rollups = [1, 2, 3].map((week) => ({
-    player: "G1", week, team: "SEA", targets: 6, carries: 0, expected: line, actual: line, fallbackPlays: 0,
-    opportunity: { rz_targets: 1, i10_targets: 0, ez_targets: 0, deep_targets: 0, rz_carries: 0, i10_carries: 0, gl_carries: 0 },
+    player: "G1",
+    week,
+    team: "SEA",
+    targets: 6,
+    carries: 0,
+    expected: line,
+    actual: line,
+    fallbackPlays: 0,
+    opportunity: {
+      rz_targets: 1,
+      i10_targets: 0,
+      ez_targets: 0,
+      deep_targets: 0,
+      rz_carries: 0,
+      i10_carries: 0,
+      gl_carries: 0,
+    },
   }));
   const bundle = {
-    byPlayer: new Map([["G1", rollups]]), byTeam: new Map([["SEA", rollups]]), teamWeeks: new Map([["SEA", [1, 2, 3]]]),
-    positions: new Map([["G1", "WR"]]), names: new Map(), games: [{ week: 4, home: "SEA", away: "DEN", spread: 3, total: 44 }],
+    byPlayer: new Map([["G1", rollups]]),
+    byTeam: new Map([["SEA", rollups]]),
+    teamWeeks: new Map([["SEA", [1, 2, 3]]]),
+    positions: new Map([["G1", "WR"]]),
+    names: new Map(),
+    games: [{ week: 4, home: "SEA", away: "DEN", spread: 3, total: 44 }],
   };
   const metrics = buildEvidence({
-    start: player("a", "Alpha"), sit: player("b", "Beta"), delta: 3, scoringFormat: "1 point per reception",
+    start: player("a", "Alpha"),
+    sit: player("b", "Beta"),
+    delta: 3,
+    scoringFormat: "1 point per reception",
     fantasyMetrics: { bundle, gsisByKey: new Map([["a", "G1"]]), week: 4 },
   });
   for (const r of metrics) seen.add(r.category);
   assertInside(metrics, START_SIT, "start-sit with fantasy metrics");
-  assert.deepEqual([...seen].sort(), [...START_SIT.categories].sort(), "vocabulary lists a category the builder never emits, or the test misses a branch");
+  assert.deepEqual(
+    [...seen].sort(),
+    [...START_SIT.categories].sort(),
+    "vocabulary lists a category the builder never emits, or the test misses a branch",
+  );
 });
 
 test("projection breakdown rows are in the start-sit vocabulary", () => {
@@ -125,7 +184,11 @@ test("move-detail code-built evidence is in the vocabulary", () => {
 });
 
 test("literal category/kind strings in the evidence builders' source are all listed", () => {
-  assertLiteralsInside([buildEvidence, breakdownEvidence, fantasyMetricsEvidence, gameEnvironmentEvidence], START_SIT, "start-sit");
+  assertLiteralsInside(
+    [buildEvidence, breakdownEvidence, fantasyMetricsEvidence, gameEnvironmentEvidence],
+    START_SIT,
+    "start-sit",
+  );
   assertLiteralsInside([evidenceFor], WAIVER, "waiver");
   assertLiteralsInside([moves.evidenceAtTheTime, moves.decisionEvidence], MOVE_DETAIL, "move-detail");
 });
@@ -145,13 +208,19 @@ test("every evidence row in a recorded fixture is in its contract's vocabulary",
     for (const file of fs.readdirSync(dir)) {
       const body = JSON.parse(fs.readFileSync(path.join(dir, file), "utf8"));
       const walk = (node, key) => {
-        if (Array.isArray(node)) { for (const n of node) walk(n, key); return; }
+        if (Array.isArray(node)) {
+          for (const n of node) walk(n, key);
+          return;
+        }
         if (!node || typeof node !== "object") return;
         const isRow = "category" in node && "kind" in node && "statement" in node;
         const inScope = contract === "move-detail.v1" ? key === "evidence_at_the_time" : keys.includes(key);
         if (isRow && inScope) {
           checked += 1;
-          assert.ok(vocab.categories.includes(node.category), `${contract}/${file}: category "${node.category}" unlisted`);
+          assert.ok(
+            vocab.categories.includes(node.category),
+            `${contract}/${file}: category "${node.category}" unlisted`,
+          );
           assert.ok(vocab.kinds.includes(node.kind), `${contract}/${file}: kind "${node.kind}" unlisted`);
         }
         for (const [k, v] of Object.entries(node)) walk(v, k === "evidence" || k === "evidence_at_the_time" ? k : key);
@@ -169,8 +238,15 @@ test("signal-vs-noise rows from the real builder, and the signalNoise kinds, are
   const start = player("a", "Alpha");
   const sit = player("b", "Beta");
   const evidence = buildEvidence({
-    start, sit, delta: 3, scoringFormat: "1 point per reception", signal: true,
-    weeklyUsage: new Map([["a", rows], ["b", rows]]),
+    start,
+    sit,
+    delta: 3,
+    scoringFormat: "1 point per reception",
+    signal: true,
+    weeklyUsage: new Map([
+      ["a", rows],
+      ["b", rows],
+    ]),
   });
   assert.ok(evidence.some((r) => r.category === "recent_usage" && r.kind === "observed_context"));
   assert.ok(evidence.some((r) => /projection gap/.test(r.statement)));

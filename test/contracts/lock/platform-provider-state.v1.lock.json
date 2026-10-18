@@ -33,13 +33,7 @@
     "providers.espn.state": {
       "required": true,
       "type": "enum",
-      "values": [
-        "\"choosing_league\"",
-        "\"connected\"",
-        "\"needs_reauth\"",
-        "\"not_started\"",
-        "\"resolving_account\""
-      ]
+      "values": ["\"choosing_league\"", "\"connected\"", "\"needs_reauth\"", "\"not_started\"", "\"resolving_account\""]
     },
     "providers.sleeper": {
       "required": true,
@@ -60,13 +54,7 @@
     "providers.sleeper.state": {
       "required": true,
       "type": "enum",
-      "values": [
-        "\"choosing_league\"",
-        "\"connected\"",
-        "\"needs_reauth\"",
-        "\"not_started\"",
-        "\"resolving_account\""
-      ]
+      "values": ["\"choosing_league\"", "\"connected\"", "\"needs_reauth\"", "\"not_started\"", "\"resolving_account\""]
     },
     "providers.yahoo": {
       "required": true,
@@ -87,13 +75,7 @@
     "providers.yahoo.state": {
       "required": true,
       "type": "enum",
-      "values": [
-        "\"choosing_league\"",
-        "\"connected\"",
-        "\"needs_reauth\"",
-        "\"not_started\"",
-        "\"resolving_account\""
-      ]
+      "values": ["\"choosing_league\"", "\"connected\"", "\"needs_reauth\"", "\"not_started\"", "\"resolving_account\""]
     },
     "recovery_action": {
       "required": false,
@@ -102,9 +84,7 @@
     "state": {
       "required": false,
       "type": "enum",
-      "values": [
-        "\"retryable_error\""
-      ]
+      "values": ["\"retryable_error\""]
     }
   }
 }

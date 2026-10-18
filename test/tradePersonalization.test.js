@@ -28,15 +28,9 @@ const {
  * ---------------------------------------------------------------- */
 
 // A conventional 12-team league: 2 RB, 2 WR, 1 FLEX.
-const SLOTS_STANDARD = [
-  "QB", "RB", "RB", "WR", "WR", "TE", "FLEX", "K", "DEF",
-  "BN", "BN", "BN", "BN", "BN", "BN",
-];
+const SLOTS_STANDARD = ["QB", "RB", "RB", "WR", "WR", "TE", "FLEX", "K", "DEF", "BN", "BN", "BN", "BN", "BN", "BN"];
 // The same league except it starts a third WR. This is the only difference.
-const SLOTS_WR_HEAVY = [
-  "QB", "RB", "RB", "WR", "WR", "WR", "TE", "FLEX", "K", "DEF",
-  "BN", "BN", "BN", "BN", "BN",
-];
+const SLOTS_WR_HEAVY = ["QB", "RB", "RB", "WR", "WR", "WR", "TE", "FLEX", "K", "DEF", "BN", "BN", "BN", "BN", "BN"];
 
 // Deep at RB (4 bodies for ~2.4 slots), thin at WR.
 const ROSTER_RB_DEEP = [
@@ -112,7 +106,9 @@ function routerForLeague(slots, { roster = ROSTER_RB_DEEP, format = "ppr", teamC
 
 const NEUTRAL_ROUTER = tradeRoutes.createTradeRouter({
   playerResolver: resolveAsGiven,
-  authenticate: async () => { throw new Error("no token"); },
+  authenticate: async () => {
+    throw new Error("no token");
+  },
   leagueContextResolver: async () => ({ status: "unavailable", reason: "no_connected_league" }),
 });
 
@@ -148,10 +144,12 @@ test("super-flex demand lands on QB", () => {
 test("a league that starts more WRs has a LOWER WR replacement baseline", () => {
   const shared = { scoringFormat: "ppr", teamCount: 12 };
   const standard = baselineForPosition("WR", {
-    ...shared, effective: effectiveStarters(parseRosterSlots(SLOTS_STANDARD)),
+    ...shared,
+    effective: effectiveStarters(parseRosterSlots(SLOTS_STANDARD)),
   });
   const wrHeavy = baselineForPosition("WR", {
-    ...shared, effective: effectiveStarters(parseRosterSlots(SLOTS_WR_HEAVY)),
+    ...shared,
+    effective: effectiveStarters(parseRosterSlots(SLOTS_WR_HEAVY)),
   });
   // Deeper demand drains the pool, so the best free WR is worse and every
   // rostered WR is worth more.
@@ -227,7 +225,7 @@ test("the same offer gets a different verdict in a WR-heavy league than neutrall
   assert.equal(personalized.body.verdict_state, "favors_you");
   assert.ok(
     personalized.body.net_value > neutral.body.net_value,
-    `expected ${personalized.body.net_value} > ${neutral.body.net_value}`
+    `expected ${personalized.body.net_value} > ${neutral.body.net_value}`,
   );
 });
 
@@ -254,7 +252,8 @@ test("roster depth alone changes the answer when league shape is identical", () 
     receive: [{ name: "RB B", position: "RB", projected_points: 13 }],
   };
   const deepAtRb = buildTradeScoringConfig({
-    rosterPositions: SLOTS_STANDARD, rosterPlayers: ROSTER_RB_DEEP,
+    rosterPositions: SLOTS_STANDARD,
+    rosterPlayers: ROSTER_RB_DEEP,
   }).scoringConfig;
   const thinAtRb = buildTradeScoringConfig({
     rosterPositions: SLOTS_STANDARD,
@@ -459,12 +458,14 @@ test("Sleeper is preferred because it needs no credential", () => {
 });
 
 test("an inactive or league-less connection is not usable context", () => {
-  assert.equal(selectContextConnection([
-    { platform: "sleeper", is_active: false, league_id: "s1", platform_username: "j" },
-  ]), null);
-  assert.equal(selectContextConnection([
-    { platform: "sleeper", is_active: true, league_id: null, platform_username: "j" },
-  ]), null);
+  assert.equal(
+    selectContextConnection([{ platform: "sleeper", is_active: false, league_id: "s1", platform_username: "j" }]),
+    null,
+  );
+  assert.equal(
+    selectContextConnection([{ platform: "sleeper", is_active: true, league_id: null, platform_username: "j" }]),
+    null,
+  );
 });
 
 test("sleeperScoringFormat reads the provider's own rec setting", () => {
@@ -477,9 +478,9 @@ test("ESPN is named unsupported rather than quietly personalized", async () => {
   const resolved = await resolveTradeLeagueContext({
     userId: "u1",
     deps: {
-      getConnections: async () => ([
+      getConnections: async () => [
         { platform: "espn", is_active: true, league_id: "e1", espn_secret_id: "a", swid_secret_id: "b" },
-      ]),
+      ],
     },
   });
   assert.equal(resolved.status, "unavailable");
@@ -491,10 +492,12 @@ test("a provider read failure falls back to neutral instead of throwing", async 
   const resolved = await resolveTradeLeagueContext({
     userId: "u1",
     deps: {
-      getConnections: async () => ([
+      getConnections: async () => [
         { platform: "sleeper", is_active: true, league_id: "s1", platform_username: "justin" },
-      ]),
-      fetchSleeperLeague: async () => { throw new Error("sleeper down"); },
+      ],
+      fetchSleeperLeague: async () => {
+        throw new Error("sleeper down");
+      },
       buildSleeperRoster: async () => [],
     },
   });
@@ -506,9 +509,9 @@ test("a healthy Sleeper league resolves to a personalized context", async () => 
   const resolved = await resolveTradeLeagueContext({
     userId: "u1",
     deps: {
-      getConnections: async () => ([
+      getConnections: async () => [
         { platform: "sleeper", is_active: true, league_id: "s1", platform_username: "justin" },
-      ]),
+      ],
       fetchSleeperLeague: async () => ({
         name: "Dynasty Dogs",
         season: "2026",

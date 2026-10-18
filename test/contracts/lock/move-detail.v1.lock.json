@@ -265,11 +265,7 @@
     "state": {
       "required": true,
       "type": "enum",
-      "values": [
-        "\"data_incomplete\"",
-        "\"pending\"",
-        "\"resolved\""
-      ]
+      "values": ["\"data_incomplete\"", "\"pending\"", "\"resolved\""]
     },
     "user_action": {
       "required": true,

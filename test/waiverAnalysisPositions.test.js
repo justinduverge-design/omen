@@ -22,20 +22,38 @@ function roster() {
     week: 6,
     slots: {
       starters: [
-        P("Stafford", "QB", 21.07, "QB"), P("Montgomery", "RB", 0, "RB", { status: "O" }), P("Gainwell", "RB", 6.41, "RB"),
-        P("Nacua", "WR", 19.3, "WR"), P("Tate", "WR", 9.86, "WR"), P("Kittle", "TE", 12.37, "TE"),
-        P("Concepcion", "WR", 4.06, "W/R/T", { status: "Q" }), P("Pineiro", "K", 8.91, "K"), P("Seahawks", "DEF", 6.34, "DEF"),
+        P("Stafford", "QB", 21.07, "QB"),
+        P("Montgomery", "RB", 0, "RB", { status: "O" }),
+        P("Gainwell", "RB", 6.41, "RB"),
+        P("Nacua", "WR", 19.3, "WR"),
+        P("Tate", "WR", 9.86, "WR"),
+        P("Kittle", "TE", 12.37, "TE"),
+        P("Concepcion", "WR", 4.06, "W/R/T", { status: "Q" }),
+        P("Pineiro", "K", 8.91, "K"),
+        P("Seahawks", "DEF", 6.34, "DEF"),
       ],
       bench: [
-        P("Gordon", "RB", 0, "BN", { projection_basis: "bye_week" }), P("Smith", "WR", 6.49, "BN", { status: "Q" }),
-        P("Okonkwo", "TE", 5.63, "BN"), P("Godwin", "WR", 7.09, "BN"), P("Dowdle", "RB", 6.62, "BN"),
+        P("Gordon", "RB", 0, "BN", { projection_basis: "bye_week" }),
+        P("Smith", "WR", 6.49, "BN", { status: "Q" }),
+        P("Okonkwo", "TE", 5.63, "BN"),
+        P("Godwin", "WR", 7.09, "BN"),
+        P("Dowdle", "RB", 6.62, "BN"),
       ],
       ir: [],
     },
   };
 }
 
-const run = (pool) => buildWaiverAnalysis({ roster: roster(), pool, platform: "yahoo", leagueId: "x", week: 6, season: 2026, availabilityConfirmed: true });
+const run = (pool) =>
+  buildWaiverAnalysis({
+    roster: roster(),
+    pool,
+    platform: "yahoo",
+    leagueId: "x",
+    week: 6,
+    season: 2026,
+    availabilityConfirmed: true,
+  });
 
 test("a tight end is never offered for an injured running back's slot, even though both list BN and IR", () => {
   const out = run([P("Freiermuth", "TE", 7.3, null), P("Free RB", "RB", 5.2, null)]);
@@ -62,7 +80,11 @@ test("a player on a bye, or projected 0.0, is never the drop", () => {
 test("a drop never leaves the lineup short at its position", () => {
   const r = roster();
   // Two healthy RBs, two RB slots: dropping either would leave a hole.
-  const drop = chooseDrop(r.slots.bench.filter((p) => p.position === "RB"), ["WR"], { starters: r.slots.starters });
+  const drop = chooseDrop(
+    r.slots.bench.filter((p) => p.position === "RB"),
+    ["WR"],
+    { starters: r.slots.starters },
+  );
   assert.equal(drop, null);
 });
 

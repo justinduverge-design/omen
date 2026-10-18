@@ -104,9 +104,11 @@ function statusClause(player) {
  * always present and can never be wrong about the facts.
  */
 function deterministicExplanation({ loser, winner, pointsDelta }) {
-  return `${winner.name.trim()}${statusClause(winner)} is projected for ${winner.projected_points} pts `
-    + `against ${loser.projected_points} for ${loser.name.trim()}${statusClause(loser)}, `
-    + `a ${pointsDelta}-point edge.`;
+  return (
+    `${winner.name.trim()}${statusClause(winner)} is projected for ${winner.projected_points} pts ` +
+    `against ${loser.projected_points} for ${loser.name.trim()}${statusClause(loser)}, ` +
+    `a ${pointsDelta}-point edge.`
+  );
 }
 
 function groundingFacts({ loser, winner, pointsDelta, slot }) {
@@ -124,14 +126,13 @@ function groundingFacts({ loser, winner, pointsDelta, slot }) {
  * overlong or ungrounded output all fall back to the deterministic sentence, so
  * `explanation` is always a bounded, grounded string.
  */
-async function explainSafely({ loser, winner, pointsDelta, slot }, { timeoutMs = LLM_TIMEOUT_MS, llmService = llm, validator = validateGroundedText, guard = sharedNarrationGuard } = {}) {
+async function explainSafely(
+  { loser, winner, pointsDelta, slot },
+  { timeoutMs = LLM_TIMEOUT_MS, llmService = llm, validator = validateGroundedText, guard = sharedNarrationGuard } = {},
+) {
   const fallback = deterministicExplanation({ loser, winner, pointsDelta });
   const facts = groundingFacts({ loser, winner, pointsDelta, slot });
-  const outcome = await guard.run(
-    "start_sit",
-    timeoutMs,
-    () => llmService.explainStartSit({ ...facts, timeoutMs })
-  );
+  const outcome = await guard.run("start_sit", timeoutMs, () => llmService.explainStartSit({ ...facts, timeoutMs }));
   const generated = outcome.status === "ok" ? outcome.value : null;
   const text = typeof generated === "string" ? generated.trim() : "";
   try {

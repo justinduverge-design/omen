@@ -29,7 +29,8 @@ const SUPPORT = [
     id: 'other-desktop',
     level: 'manual',
     name: 'Safari or Firefox, on a computer',
-    detail: 'Works, but you copy the two values yourself using the browser’s developer tools. The Omen helper cannot run here.',
+    detail:
+      'Works, but you copy the two values yourself using the browser’s developer tools. The Omen helper cannot run here.',
   },
   {
     id: 'phone',

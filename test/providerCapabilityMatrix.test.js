@@ -19,16 +19,32 @@ const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 // Pinned on purpose. Dropping a capability from the matrix must be a deliberate edit here AND in the JSON.
 const EXPECTED_CAPABILITIES = [
-  "league_settings", "league_scoring_rules", "user_roster", "league_roster_positions", "matchup", "standings",
-  "league_rosters", "waiver_pool", "waiver_system", "transactions", "player_projections", "injury_status",
-  "draft_data", "playoff_settings", "trade_deadline",
+  "league_settings",
+  "league_scoring_rules",
+  "user_roster",
+  "league_roster_positions",
+  "matchup",
+  "standings",
+  "league_rosters",
+  "waiver_pool",
+  "waiver_system",
+  "transactions",
+  "player_projections",
+  "injury_status",
+  "draft_data",
+  "playoff_settings",
+  "trade_deadline",
 ];
 
 test("the capability list is the pinned one, with no extras and none missing", () => {
   assert.deepEqual(matrix.capabilities, EXPECTED_CAPABILITIES);
   assert.equal(new Set(matrix.capabilities).size, matrix.capabilities.length, "duplicate capability in the list");
   const inEntries = [...new Set(matrix.entries.map((entry) => entry.capability))].sort();
-  assert.deepEqual(inEntries, [...EXPECTED_CAPABILITIES].sort(), "entries use a capability that is not listed, or a listed one has no entries");
+  assert.deepEqual(
+    inEntries,
+    [...EXPECTED_CAPABILITIES].sort(),
+    "entries use a capability that is not listed, or a listed one has no entries",
+  );
 });
 
 test("every provider has exactly one entry for every capability", () => {
@@ -82,13 +98,13 @@ test("source still matches each entry's evidence", () => {
       for (const needle of anchor.includes || []) {
         assert.ok(
           source.includes(needle),
-          `${key}: ${anchor.file} no longer contains ${JSON.stringify(needle)}. The code moved: re-verify this entry and update the matrix.`
+          `${key}: ${anchor.file} no longer contains ${JSON.stringify(needle)}. The code moved: re-verify this entry and update the matrix.`,
         );
       }
       for (const needle of anchor.excludes || []) {
         assert.ok(
           !source.includes(needle),
-          `${key}: ${anchor.file} now contains ${JSON.stringify(needle)}, so a capability the matrix says is not read has started to be read. Update the matrix.`
+          `${key}: ${anchor.file} now contains ${JSON.stringify(needle)}, so a capability the matrix says is not read has started to be read. Update the matrix.`,
         );
       }
     }
@@ -114,7 +130,7 @@ test("provider fields listed as unused are still unread anywhere in src", () => 
       const hit = sources.find(([, text]) => text.includes(token));
       assert.ok(
         !hit,
-        `${item.provider}/${token} is read in ${hit && path.relative(ROOT, hit[0])}. Move it from unused_surface into entries and update the matrix.`
+        `${item.provider}/${token} is read in ${hit && path.relative(ROOT, hit[0])}. Move it from unused_surface into entries and update the matrix.`,
       );
     }
     if (item.kind === "observed") {
@@ -145,7 +161,9 @@ test("the markdown view is current", () => {
 });
 
 test("behavior: a Yahoo roster with no derived projection cannot weigh a trade", async () => {
-  const yahooEntry = matrix.entries.find((entry) => entry.provider === "yahoo" && entry.capability === "player_projections");
+  const yahooEntry = matrix.entries.find(
+    (entry) => entry.provider === "yahoo" && entry.capability === "player_projections",
+  );
   assert.equal(yahooEntry.status, "degraded");
   assert.equal(yahooEntry.reason, "derived_projection");
   const player = (id) => ({ player_id: id, name: `P${id}`, position: "RB", projected_points: null });

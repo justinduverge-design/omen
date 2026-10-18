@@ -122,7 +122,16 @@ function buildWeeklyRows({ statRows, snapRows, playerIdByGsis, gsisByPfr, opport
     if (!rows.has(key)) {
       const empty = { player_id: playerId, season, week, snaps: null, snap_share: null, fantasy_points_ppr: null };
       for (const column of Object.keys(STAT_COLUMNS)) empty[column] = null;
-      if (full) Object.assign(empty, { team: null, opponent: null, game_id: null, season_type: null, position: null, stats: {}, opportunity: {} });
+      if (full)
+        Object.assign(empty, {
+          team: null,
+          opponent: null,
+          game_id: null,
+          season_type: null,
+          position: null,
+          stats: {},
+          opportunity: {},
+        });
       rows.set(key, empty);
     }
     return rows.get(key);
@@ -135,8 +144,14 @@ function buildWeeklyRows({ statRows, snapRows, playerIdByGsis, gsisByPfr, opport
     considered += 1;
     const playerId = r.player_id ? playerIdByGsis.get(r.player_id) : null;
     if (!playerId) {
-      unmatched.push({ source: "stats", provider_id: r.player_id || null, name: r.player_display_name || null, season, week,
-                       reason: r.player_id ? "gsis_id_not_in_crosswalk" : "no_gsis_id" });
+      unmatched.push({
+        source: "stats",
+        provider_id: r.player_id || null,
+        name: r.player_display_name || null,
+        season,
+        week,
+        reason: r.player_id ? "gsis_id_not_in_crosswalk" : "no_gsis_id",
+      });
       continue;
     }
     const row = rowFor(playerId, season, week);
@@ -155,8 +170,14 @@ function buildWeeklyRows({ statRows, snapRows, playerIdByGsis, gsisByPfr, opport
     const gsis = gsisByPfr.get(r.pfr_player_id);
     const playerId = gsis ? playerIdByGsis.get(gsis) : null;
     if (!playerId) {
-      unmatched.push({ source: "snaps", provider_id: r.pfr_player_id || null, name: r.player || null, season, week,
-                       reason: gsis ? "gsis_id_not_in_crosswalk" : "pfr_id_not_in_nflverse_players" });
+      unmatched.push({
+        source: "snaps",
+        provider_id: r.pfr_player_id || null,
+        name: r.player || null,
+        season,
+        week,
+        reason: gsis ? "gsis_id_not_in_crosswalk" : "pfr_id_not_in_nflverse_players",
+      });
       continue;
     }
     const row = rowFor(playerId, season, week);
@@ -189,7 +210,11 @@ async function hasStep15(client) {
 async function playerIdsByGsis(client) {
   const out = new Map();
   for (let from = 0; ; from += 1000) {
-    const { data, error } = await client.from("players").select("id, gsis_id").not("gsis_id", "is", null).range(from, from + 999);
+    const { data, error } = await client
+      .from("players")
+      .select("id, gsis_id")
+      .not("gsis_id", "is", null)
+      .range(from, from + 999);
     must({ error }, "players read");
     for (const p of data || []) out.set(p.gsis_id, p.id);
     if (!data || data.length < 1000) return out;
@@ -201,8 +226,13 @@ async function playerIdsByGsis(client) {
  * @param {number[]} p.seasons  seasons to read in full (normally just the current one)
  */
 async function lastSourceRef(client, subject = TABLE) {
-  const { data, error } = await client.from("data_events").select("source_ref")
-    .eq("subject", subject).order("id", { ascending: false }).limit(1).maybeSingle();
+  const { data, error } = await client
+    .from("data_events")
+    .select("source_ref")
+    .eq("subject", subject)
+    .order("id", { ascending: false })
+    .limit(1)
+    .maybeSingle();
   must({ error }, "data_events read");
   return data?.source_ref || null;
 }
@@ -217,29 +247,40 @@ async function writeSubject({ client, table, conflict, built, sourceRef, seasons
     return { skipped: "source_unchanged" };
   }
   const { rows, unmatched, considered } = built;
-  if (!rows.length) throw new Error(`${label} refused: no rows resolved from ${considered} source rows; sources likely empty or truncated`);
+  if (!rows.length)
+    throw new Error(
+      `${label} refused: no rows resolved from ${considered} source rows; sources likely empty or truncated`,
+    );
   const unmatchedShare = considered ? unmatched.length / considered : 0;
   for (const u of unmatched.slice(0, 50)) log.warn(`${label}: unmatched skipped`, u);
   if (unmatchedShare > maxUnmatched) {
-    throw new Error(`${label} refused: ${unmatched.length} of ${considered} rows unmatched (over ${maxUnmatched * 100}%); crosswalk likely stale`);
+    throw new Error(
+      `${label} refused: ${unmatched.length} of ${considered} rows unmatched (over ${maxUnmatched * 100}%); crosswalk likely stale`,
+    );
   }
   const weeks = [...new Set(rows.map((r) => `${r.season}-${r.week}`))].sort();
-  const { data: event, error: eventError } = await client.from("data_events").insert({
-    event: "ingest",
-    subject: table,
-    provider: "nflverse",
-    rights_basis: "nflverse_open_data",
-    job: JOB,
-    source_ref: sourceRef,
-    row_count: rows.length,
-    details: { seasons, weeks, source_rows: considered, unmatched: unmatched.length },
-  }).select("id").single();
+  const { data: event, error: eventError } = await client
+    .from("data_events")
+    .insert({
+      event: "ingest",
+      subject: table,
+      provider: "nflverse",
+      rights_basis: "nflverse_open_data",
+      job: JOB,
+      source_ref: sourceRef,
+      row_count: rows.length,
+      details: { seasons, weeks, source_rows: considered, unmatched: unmatched.length },
+    })
+    .select("id")
+    .single();
   must({ error: eventError }, "data_events ingest");
   for (let i = 0; i < rows.length; i += BATCH) {
     const batch = rows.slice(i, i + BATCH).map((r) => ({ ...r, ingest_event_id: event.id }));
     must(await client.from(table).upsert(batch, { onConflict: conflict }), `${table} upsert`);
   }
-  log.info(`${label}: ${rows.length} rows (${weeks.length} weeks), ${unmatched.length} unmatched skipped, event ${event.id}`);
+  log.info(
+    `${label}: ${rows.length} rows (${weeks.length} weeks), ${unmatched.length} unmatched skipped, event ${event.id}`,
+  );
   return { written: rows.length, unmatched: unmatched.length, eventId: event.id };
 }
 
@@ -257,7 +298,15 @@ async function loadGsisByPfr(fetchImpl) {
  * line and play-by-play opportunity. `players.csv` is a lookup (PFR -> gsis), not part of source_ref:
  * it changes daily, and folding it in would defeat the unchanged-source skip.
  */
-async function runWeeklyStats({ client, seasons, fetchImpl = fetch, log = defaultLog, force = false, full, playerIdByGsis }) {
+async function runWeeklyStats({
+  client,
+  seasons,
+  fetchImpl = fetch,
+  log = defaultLog,
+  force = false,
+  full,
+  playerIdByGsis,
+}) {
   if (!(await tableExists(client))) {
     log.info(`${TABLE} does not exist (redo step 14 not applied); nothing written`);
     return { skipped: "table_absent" };
@@ -277,16 +326,36 @@ async function runWeeklyStats({ client, seasons, fetchImpl = fetch, log = defaul
       withFull ? streamGzCsv(URLS.pbp(season), facts.PBP_COLUMNS, fetchImpl) : null,
     ]);
     hashes.push(statsRaw, snapsRaw);
-    if (pbp) { hashes.push(pbp.sha256); pbpRows.push(...pbp.rows); }
-    statRows.push(...parseCsv(statsRaw.toString("utf8"), withFull
-      ? { required: STATS_REQUIRED }
-      : { required: STATS_REQUIRED, columns: [...STATS_REQUIRED, "player_display_name"] }));
-    snapRows.push(...parseCsv(snapsRaw.toString("utf8"), { required: SNAPS_REQUIRED, columns: [...SNAPS_REQUIRED, "player"] }));
+    if (pbp) {
+      hashes.push(pbp.sha256);
+      pbpRows.push(...pbp.rows);
+    }
+    statRows.push(
+      ...parseCsv(
+        statsRaw.toString("utf8"),
+        withFull
+          ? { required: STATS_REQUIRED }
+          : { required: STATS_REQUIRED, columns: [...STATS_REQUIRED, "player_display_name"] },
+      ),
+    );
+    snapRows.push(
+      ...parseCsv(snapsRaw.toString("utf8"), { required: SNAPS_REQUIRED, columns: [...SNAPS_REQUIRED, "player"] }),
+    );
   }
   const opportunity = withFull ? facts.buildOpportunity(pbpRows) : null;
   const built = buildWeeklyRows({ statRows, snapRows, playerIdByGsis: byGsis, gsisByPfr, opportunity });
-  return writeSubject({ client, table: TABLE, conflict: "player_id,season,week", built, sourceRef: sha256(...hashes),
-                        seasons, force, log, maxUnmatched: MAX_UNMATCHED_SHARE, label: "player weeks" });
+  return writeSubject({
+    client,
+    table: TABLE,
+    conflict: "player_id,season,week",
+    built,
+    sourceRef: sha256(...hashes),
+    seasons,
+    force,
+    log,
+    maxUnmatched: MAX_UNMATCHED_SHARE,
+    label: "player weeks",
+  });
 }
 
 /**
@@ -299,7 +368,14 @@ async function runWeeklyStats({ client, seasons, fetchImpl = fetch, log = defaul
  * (2021, about 9 MB a season), weekly rosters only for `rosterFromSeason` on (the current and previous
  * season, about 10 MB each; older rosters are the largest and least used history).
  */
-async function runNflverseIngest({ client, seasons, fetchImpl = fetch, log = defaultLog, force = false, rosterFromSeason = -Infinity }) {
+async function runNflverseIngest({
+  client,
+  seasons,
+  fetchImpl = fetch,
+  log = defaultLog,
+  force = false,
+  rosterFromSeason = -Infinity,
+}) {
   const early = seasons.filter((season) => season < HISTORY_FROM_SEASON);
   if (early.length) throw new Error(`seasons before ${HISTORY_FROM_SEASON} are not stored: ${early.join(", ")}`);
   if (!(await tableExists(client))) {
@@ -311,35 +387,74 @@ async function runNflverseIngest({ client, seasons, fetchImpl = fetch, log = def
   const results = {};
   const failures = [];
   const attempt = async (name, fn) => {
-    try { results[name] = await fn(); } catch (err) { failures.push(`${name}: ${err.message}`); log.error(`${name}: ${err.message}`); }
+    try {
+      results[name] = await fn();
+    } catch (err) {
+      failures.push(`${name}: ${err.message}`);
+      log.error(`${name}: ${err.message}`);
+    }
   };
 
   await attempt("player_weeks", () => runWeeklyStats({ client, seasons, fetchImpl, log, force, full, playerIdByGsis }));
   if (full) {
     const gamesRaw = await fetchRaw(URLS.games, fetchImpl);
-    const games = parseCsv(gamesRaw.toString("utf8"), { required: ["game_id", "season", "week", "game_type", "away_team", "home_team", "away_score", "home_score"] });
+    const games = parseCsv(gamesRaw.toString("utf8"), {
+      required: ["game_id", "season", "week", "game_type", "away_team", "home_team", "away_score", "home_score"],
+    });
     await attempt("games", async () => {
       const seasonGames = games.filter((g) => seasons.includes(Number(g.season)));
-      return writeSubject({ client, table: "nflverse_games", conflict: "game_id", built: facts.buildGameRows(games, seasons),
-                            sourceRef: sha256(JSON.stringify(seasonGames)), seasons, force, log, maxUnmatched: MAX_UNMATCHED_SHARE, label: "games" });
+      return writeSubject({
+        client,
+        table: "nflverse_games",
+        conflict: "game_id",
+        built: facts.buildGameRows(games, seasons),
+        sourceRef: sha256(JSON.stringify(seasonGames)),
+        seasons,
+        force,
+        log,
+        maxUnmatched: MAX_UNMATCHED_SHARE,
+        label: "games",
+      });
     });
     await attempt("team_weeks", async () => {
       const raws = await Promise.all(seasons.map((season) => fetchRaw(URLS.teamStats(season), fetchImpl)));
-      const teamRows = raws.flatMap((raw) => parseCsv(raw.toString("utf8"), { required: ["team", "season", "week", "season_type"] }));
+      const teamRows = raws.flatMap((raw) =>
+        parseCsv(raw.toString("utf8"), { required: ["team", "season", "week", "season_type"] }),
+      );
       const seasonGames = games.filter((g) => seasons.includes(Number(g.season)));
-      return writeSubject({ client, table: "nflverse_team_weekly_stats", conflict: "team_id,season,week",
-                            built: facts.buildTeamWeekRows({ teamRows, games: seasonGames }),
-                            sourceRef: sha256(...raws, JSON.stringify(seasonGames.map((g) => [g.game_id, g.away_score, g.home_score]))),
-                            seasons, force, log, maxUnmatched: MAX_UNMATCHED_SHARE, label: "team weeks" });
+      return writeSubject({
+        client,
+        table: "nflverse_team_weekly_stats",
+        conflict: "team_id,season,week",
+        built: facts.buildTeamWeekRows({ teamRows, games: seasonGames }),
+        sourceRef: sha256(...raws, JSON.stringify(seasonGames.map((g) => [g.game_id, g.away_score, g.home_score]))),
+        seasons,
+        force,
+        log,
+        maxUnmatched: MAX_UNMATCHED_SHARE,
+        label: "team weeks",
+      });
     });
     const rosterSeasons = seasons.filter((season) => season >= rosterFromSeason);
-    if (rosterSeasons.length) await attempt("rosters", async () => {
-      const raws = await Promise.all(rosterSeasons.map((season) => fetchRaw(URLS.rosters(season), fetchImpl)));
-      const rosterRows = raws.flatMap((raw) => parseCsv(raw.toString("utf8"), { required: ["season", "week", "team", "gsis_id"] }));
-      return writeSubject({ client, table: "nflverse_weekly_rosters", conflict: "player_id,season,week,team_id",
-                            built: facts.buildRosterRows({ rosterRows, playerIdByGsis }), sourceRef: sha256(...raws),
-                            seasons: rosterSeasons, force, log, maxUnmatched: MAX_UNMATCHED_ROSTER_SHARE, label: "rosters" });
-    });
+    if (rosterSeasons.length)
+      await attempt("rosters", async () => {
+        const raws = await Promise.all(rosterSeasons.map((season) => fetchRaw(URLS.rosters(season), fetchImpl)));
+        const rosterRows = raws.flatMap((raw) =>
+          parseCsv(raw.toString("utf8"), { required: ["season", "week", "team", "gsis_id"] }),
+        );
+        return writeSubject({
+          client,
+          table: "nflverse_weekly_rosters",
+          conflict: "player_id,season,week,team_id",
+          built: facts.buildRosterRows({ rosterRows, playerIdByGsis }),
+          sourceRef: sha256(...raws),
+          seasons: rosterSeasons,
+          force,
+          log,
+          maxUnmatched: MAX_UNMATCHED_ROSTER_SHARE,
+          label: "rosters",
+        });
+      });
   }
   if (failures.length) throw new Error(`nflverse ingest: ${failures.join("; ")}`);
   return results;
@@ -370,7 +485,9 @@ if (require.main === module) {
   const { traceCronJob } = require("./services/telemetry");
   traceCronJob("nflverse_weekly_stats", async () => {
     if (missing.length) throw new Error(`missing env: ${missing.join(", ")}`);
-    const client = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, { auth: { persistSession: false } });
+    const client = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, {
+      auth: { persistSession: false },
+    });
     // Daily: the current season. Backfill: `--seasons 2021-2025` runs one season at a time (memory).
     const flag = process.argv.indexOf("--seasons");
     const force = process.argv.includes("--force");
@@ -382,12 +499,34 @@ if (require.main === module) {
         await runNflverseIngest({ client, seasons: [season], force, rosterFromSeason });
       }
     } else {
-      await runNflverseIngest({ client, seasons: seasonsFor({ season: Number(context.season), week: context.week }), force, rosterFromSeason });
+      await runNflverseIngest({
+        client,
+        seasons: seasonsFor({ season: Number(context.season), week: context.week }),
+        force,
+        rosterFromSeason,
+      });
     }
   }).then(
-    async () => { await flushSentry(); process.exit(0); },
-    async (err) => { defaultLog.error(err.message); Sentry.captureException(err); await flushSentry(); process.exit(1); }
+    async () => {
+      await flushSentry();
+      process.exit(0);
+    },
+    async (err) => {
+      defaultLog.error(err.message);
+      Sentry.captureException(err);
+      await flushSentry();
+      process.exit(1);
+    },
   );
 }
 
-module.exports = { runNflverseIngest, runWeeklyStats, buildWeeklyRows, seasonsFor, parseSeasons, intOrNull, URLS, MAX_UNMATCHED_SHARE };
+module.exports = {
+  runNflverseIngest,
+  runWeeklyStats,
+  buildWeeklyRows,
+  seasonsFor,
+  parseSeasons,
+  intOrNull,
+  URLS,
+  MAX_UNMATCHED_SHARE,
+};

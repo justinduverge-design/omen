@@ -93,7 +93,7 @@ function finalize(item) {
 function sleeperPlayer(playerId, rosterId, players) {
   const record = players?.[playerId] || null;
   const name = record
-    ? (record.full_name || [record.first_name, record.last_name].filter(Boolean).join(" ") || null)
+    ? record.full_name || [record.first_name, record.last_name].filter(Boolean).join(" ") || null
     : null;
   return {
     player_key: `sleeper:${playerId}`,
@@ -114,10 +114,12 @@ function parseSleeperTransactions(rows, { players = {}, teamNames = {} } = {}) {
   const items = [];
   for (const row of Array.isArray(rows) ? rows : []) {
     if (!row || typeof row !== "object" || row.status !== "complete") continue;
-    const adds = Object.entries(row.adds && typeof row.adds === "object" ? row.adds : {})
-      .map(([playerId, rosterId]) => sleeperPlayer(playerId, rosterId, players));
-    const drops = Object.entries(row.drops && typeof row.drops === "object" ? row.drops : {})
-      .map(([playerId, rosterId]) => sleeperPlayer(playerId, rosterId, players));
+    const adds = Object.entries(row.adds && typeof row.adds === "object" ? row.adds : {}).map(([playerId, rosterId]) =>
+      sleeperPlayer(playerId, rosterId, players),
+    );
+    const drops = Object.entries(row.drops && typeof row.drops === "object" ? row.drops : {}).map(
+      ([playerId, rosterId]) => sleeperPlayer(playerId, rosterId, players),
+    );
     const draftPicks = Array.isArray(row.draft_picks) ? row.draft_picks.length : 0;
     const rosterIds = (Array.isArray(row.roster_ids) ? row.roster_ids : []).map(String);
     const teams = rosterIds.map((id) => ({ team_id: id, team_name: teamNames[id] || null }));
@@ -129,17 +131,19 @@ function parseSleeperTransactions(rows, { players = {}, teamNames = {} } = {}) {
     else continue;
     if (kind === "other" && !draftPicks) continue;
 
-    items.push(finalize({
-      id: `sleeper:${row.transaction_id ?? `${row.leg}:${row.created}`}`,
-      kind,
-      status: "complete",
-      occurred_at: isoFromMs(row.status_updated || row.created),
-      round: Number.isFinite(Number(row.leg)) ? Number(row.leg) : null,
-      teams,
-      adds,
-      drops,
-      draft_picks: draftPicks,
-    }));
+    items.push(
+      finalize({
+        id: `sleeper:${row.transaction_id ?? `${row.leg}:${row.created}`}`,
+        kind,
+        status: "complete",
+        occurred_at: isoFromMs(row.status_updated || row.created),
+        round: Number.isFinite(Number(row.leg)) ? Number(row.leg) : null,
+        teams,
+        adds,
+        drops,
+        draft_picks: draftPicks,
+      }),
+    );
   }
   return items;
 }
@@ -151,7 +155,9 @@ function parseSleeperTransactions(rows, { players = {}, teamNames = {} } = {}) {
 function indexed(value) {
   if (!value || typeof value !== "object") return [];
   if (Array.isArray(value)) return value;
-  return Object.keys(value).filter((k) => k !== "count").map((k) => value[k]);
+  return Object.keys(value)
+    .filter((k) => k !== "count")
+    .map((k) => value[k]);
 }
 
 function mergeAttrs(list) {
@@ -183,14 +189,17 @@ function parseYahooTransactions(raw) {
     const teams = new Map();
     const rememberTeam = (key, name) => {
       if (!key) return;
-      if (!teams.has(key) || (!teams.get(key).team_name && name)) teams.set(key, { team_id: String(key), team_name: name || null });
+      if (!teams.has(key) || (!teams.get(key).team_name && name))
+        teams.set(key, { team_id: String(key), team_name: name || null });
     };
 
     for (const playerEntry of indexed(parts[1]?.players)) {
       const node = playerEntry?.player;
       if (!Array.isArray(node)) continue;
       const attrs = mergeAttrs(Array.isArray(node[0]) ? node[0] : []);
-      const data = mergeAttrs(Array.isArray(node[1]?.transaction_data) ? node[1].transaction_data : node[1]?.transaction_data);
+      const data = mergeAttrs(
+        Array.isArray(node[1]?.transaction_data) ? node[1].transaction_data : node[1]?.transaction_data,
+      );
       const type = String(data.type || "").toLowerCase();
       const player = {
         player_key: attrs.player_id != null ? `yahoo:${attrs.player_id}` : null,
@@ -219,17 +228,19 @@ function parseYahooTransactions(raw) {
     else continue;
     if (kind === "other") continue;
 
-    items.push(finalize({
-      id: `yahoo:${meta.transaction_key ?? meta.transaction_id ?? `${meta.timestamp}:${items.length}`}`,
-      kind,
-      status: "complete",
-      occurred_at: isoFromMs(Number(meta.timestamp) * 1000),
-      round: null,
-      teams: [...teams.values()],
-      adds,
-      drops,
-      draft_picks: 0,
-    }));
+    items.push(
+      finalize({
+        id: `yahoo:${meta.transaction_key ?? meta.transaction_id ?? `${meta.timestamp}:${items.length}`}`,
+        kind,
+        status: "complete",
+        occurred_at: isoFromMs(Number(meta.timestamp) * 1000),
+        round: null,
+        teams: [...teams.values()],
+        adds,
+        drops,
+        draft_picks: 0,
+      }),
+    );
   }
   return items;
 }
@@ -287,17 +298,19 @@ function parseEspnTransactions(data, { teamNames = {} } = {}) {
     else continue;
     if (kind === "other") continue;
 
-    items.push(finalize({
-      id: `espn:${row.id ?? `${row.scoringPeriodId}:${row.processDate}:${items.length}`}`,
-      kind,
-      status: "complete",
-      occurred_at: isoFromMs(row.processDate || row.proposedDate),
-      round: Number.isFinite(Number(row.scoringPeriodId)) ? Number(row.scoringPeriodId) : null,
-      teams: [...teams.values()],
-      adds,
-      drops,
-      draft_picks: 0,
-    }));
+    items.push(
+      finalize({
+        id: `espn:${row.id ?? `${row.scoringPeriodId}:${row.processDate}:${items.length}`}`,
+        kind,
+        status: "complete",
+        occurred_at: isoFromMs(row.processDate || row.proposedDate),
+        round: Number.isFinite(Number(row.scoringPeriodId)) ? Number(row.scoringPeriodId) : null,
+        teams: [...teams.values()],
+        adds,
+        drops,
+        draft_picks: 0,
+      }),
+    );
   }
   return items;
 }
@@ -350,7 +363,8 @@ function failureReason(error) {
 async function readLeagueTransactions({ connection, userId, context, deps, limit }) {
   const env = deps.env || process.env;
   const cap = clampLimit(limit);
-  const base = (fields) => envelope(connection, context, { coverage: { rounds: [], limit: cap, truncated: false }, ...fields });
+  const base = (fields) =>
+    envelope(connection, context, { coverage: { rounds: [], limit: cap, truncated: false }, ...fields });
 
   try {
     if (connection.platform === "sleeper") {
@@ -387,7 +401,9 @@ async function readLeagueTransactions({ connection, userId, context, deps, limit
         return base({
           reason: "provider_read_not_enabled",
           provider_read: "not_enabled",
-          limitations: ["Yahoo's transactions endpoint is documented but has not been exercised against a live league, so Omen does not read it yet."],
+          limitations: [
+            "Yahoo's transactions endpoint is documented but has not been exercised against a live league, so Omen does not read it yet.",
+          ],
         });
       }
       const { client } = await deps.getYahooClient(userId);
@@ -398,7 +414,9 @@ async function readLeagueTransactions({ connection, userId, context, deps, limit
         return base({
           reason: "shape_not_recognised",
           provider_read: "documented_not_exercised",
-          limitations: ["Yahoo returned no transactions Omen could read. The response shape is documented but not yet verified, so Omen does not call this an empty feed."],
+          limitations: [
+            "Yahoo returned no transactions Omen could read. The response shape is documented but not yet verified, so Omen does not call this an empty feed.",
+          ],
         });
       }
       return base({
@@ -415,7 +433,9 @@ async function readLeagueTransactions({ connection, userId, context, deps, limit
         return base({
           reason: "provider_read_not_enabled",
           provider_read: "not_enabled",
-          limitations: ["ESPN's transactions view is community-documented and has not been exercised against a live league, so Omen does not read it yet."],
+          limitations: [
+            "ESPN's transactions view is community-documented and has not been exercised against a live league, so Omen does not read it yet.",
+          ],
         });
       }
       const credentials = await deps.getEspnCredentials(userId);
@@ -429,7 +449,9 @@ async function readLeagueTransactions({ connection, userId, context, deps, limit
         return base({
           reason: "shape_not_recognised",
           provider_read: "documented_not_exercised",
-          limitations: ["ESPN returned no transactions Omen could read. The response shape is community-documented, so Omen does not call this an empty feed."],
+          limitations: [
+            "ESPN returned no transactions Omen could read. The response shape is community-documented, so Omen does not call this an empty feed.",
+          ],
         });
       }
       return base({
@@ -455,7 +477,10 @@ async function readLeagueTransactions({ connection, userId, context, deps, limit
 
 /** Off season: no provider call, and an honest unavailable rather than an empty feed. */
 function offSeasonEnvelope(connection, context, limit) {
-  return envelope(connection, context, { reason: "off_season", coverage: { rounds: [], limit: clampLimit(limit), truncated: false } });
+  return envelope(connection, context, {
+    reason: "off_season",
+    coverage: { rounds: [], limit: clampLimit(limit), truncated: false },
+  });
 }
 
 module.exports = {

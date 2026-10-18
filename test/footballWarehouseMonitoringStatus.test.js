@@ -5,13 +5,7 @@ const { spawnSync } = require("node:child_process");
 const path = require("node:path");
 const fs = require("node:fs");
 const test = require("node:test");
-const {
-  VERSION,
-  FACT_TABLES,
-  evaluateStatus,
-  collectEvidence,
-  failure,
-} = require("../infra/warehouse/monitor/status");
+const { VERSION, FACT_TABLES, evaluateStatus, collectEvidence, failure } = require("../infra/warehouse/monitor/status");
 
 const NOW = Date.parse("2026-10-08T18:00:00Z");
 
@@ -58,8 +52,19 @@ test("collector uses fixed read-only boundaries and returns no credentials", () 
   const run = (command, args) => {
     calls.push([command, args]);
     if (command === "ss") return "";
-    if (args[0] === "inspect") return JSON.stringify([{ State: { Status: "running", Health: { Status: "healthy" } }, HostConfig: { RestartPolicy: { Name: "unless-stopped" } } }]);
-    return JSON.stringify({ schema_verified: true, receipts: { started: 0, latest_state: "succeeded", latest_finished_at: "2026-10-08T17:00:00Z" }, rows: healthyEvidence().rows, orphan_facts: 0 });
+    if (args[0] === "inspect")
+      return JSON.stringify([
+        {
+          State: { Status: "running", Health: { Status: "healthy" } },
+          HostConfig: { RestartPolicy: { Name: "unless-stopped" } },
+        },
+      ]);
+    return JSON.stringify({
+      schema_verified: true,
+      receipts: { started: 0, latest_state: "succeeded", latest_finished_at: "2026-10-08T17:00:00Z" },
+      rows: healthyEvidence().rows,
+      orphan_facts: 0,
+    });
   };
   const evidence = collectEvidence({ run, now: () => new Date(NOW) });
   assert.equal(evaluateStatus(evidence, { nowMs: NOW }).state, "UP");
@@ -86,7 +91,9 @@ test("CLI evaluates an already-collected absolute evidence artifact", () => {
   const evidence = path.join(directory, "evidence.json");
   try {
     fs.writeFileSync(evidence, JSON.stringify(healthyEvidence()));
-    const result = spawnSync(process.execPath, [script, "evaluate", evidence, "2026-10-08T18:00:00Z"], { encoding: "utf8" });
+    const result = spawnSync(process.execPath, [script, "evaluate", evidence, "2026-10-08T18:00:00Z"], {
+      encoding: "utf8",
+    });
     assert.equal(result.status, 0);
     assert.equal(JSON.parse(result.stdout).state, "UP");
   } finally {
@@ -95,7 +102,10 @@ test("CLI evaluates an already-collected absolute evidence artifact", () => {
 });
 
 test("host exporter is read-only, payload-free, and emits failure evidence on checker crash", () => {
-  const exporter = fs.readFileSync(path.join(__dirname, "..", "infra", "warehouse", "monitor", "status-export"), "utf8");
+  const exporter = fs.readFileSync(
+    path.join(__dirname, "..", "infra", "warehouse", "monitor", "status-export"),
+    "utf8",
+  );
   assert.match(exporter, /PGOPTIONS='-c default_transaction_read_only=on'/);
   assert.match(exporter, /omen-football-warehouse-lifecycle-evidence\.v1/);
   assert.match(exporter, /"checker_completed":false/);

@@ -25,9 +25,13 @@ for (const [id, s] of Object.entries(stadiums)) {
     continue;
   }
   checked += 1;
-  if (canon(body.timezone) !== canon(s.tz)) failures.push(`${id} ${s.name}: recorded ${s.tz}, API says ${body.timezone}`);
-  if (!(body.elevation > -50 && body.elevation < 3000)) failures.push(`${id} ${s.name}: implausible elevation ${body.elevation}`);
-  console.log(`${id.padEnd(6)} ${s.name.padEnd(34)} ${String(body.timezone).padEnd(30)} ${String(Math.round(body.elevation)).padStart(5)} m  ${s.roof_type}`);
+  if (canon(body.timezone) !== canon(s.tz))
+    failures.push(`${id} ${s.name}: recorded ${s.tz}, API says ${body.timezone}`);
+  if (!(body.elevation > -50 && body.elevation < 3000))
+    failures.push(`${id} ${s.name}: implausible elevation ${body.elevation}`);
+  console.log(
+    `${id.padEnd(6)} ${s.name.padEnd(34)} ${String(body.timezone).padEnd(30)} ${String(Math.round(body.elevation)).padStart(5)} m  ${s.roof_type}`,
+  );
   await new Promise((r) => setTimeout(r, 120));
 }
 

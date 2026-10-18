@@ -43,7 +43,12 @@ function starterInjuryState(roster) {
   const players = roster?.slots?.starters;
   if (!Array.isArray(players) || !players.length) return null;
   const statuses = players.map((p) => String(p.status || "").toUpperCase());
-  if (statuses.some((s) => ["O", "OUT", "IR", "IR-R", "PUP", "SUSP", "Q", "QUESTIONABLE", "GTD", "DTD", "DOUBTFUL"].includes(s))) return true;
+  if (
+    statuses.some((s) =>
+      ["O", "OUT", "IR", "IR-R", "PUP", "SUSP", "Q", "QUESTIONABLE", "GTD", "DTD", "DOUBTFUL"].includes(s),
+    )
+  )
+    return true;
   return statuses.every((s) => ["ACTIVE", "HEALTHY", "A"].includes(s)) ? false : null;
 }
 
@@ -55,14 +60,20 @@ function quietWeek(body, lastResult) {
     else if (lastResult !== "W") reasons.push("recent_result_unknown");
     if (body.quiet_inputs?.injured_starter === true) reasons.push("injured_starter");
     else if (body.quiet_inputs?.injured_starter !== false) reasons.push("starter_health_unknown");
-    if (body.signals?.roster?.status !== "live" || Object.values(body.signals || {}).some((s) => s.used === true && s.status !== "live")) reasons.push("provider_read_incomplete");
+    if (
+      body.signals?.roster?.status !== "live" ||
+      Object.values(body.signals || {}).some((s) => s.used === true && s.status !== "live")
+    )
+      reasons.push("provider_read_incomplete");
   }
   const variant = eligible ? (reasons.length ? "straight" : "neutral") : null;
   const copy = quietCopy(variant, reasons);
   return {
-    contract_version: "quiet-week.v1", eligible,
+    contract_version: "quiet-week.v1",
+    eligible,
     variant,
-    reasons, source_state: body?.state || "unavailable",
+    reasons,
+    source_state: body?.state || "unavailable",
     headline: copy.headline,
     body: copy.body,
     next_read: eligible ? "Next read · Tuesday 3:00 AM waivers" : null,

@@ -1,11 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ApiError, apiFetch } from '../../lib/api.js';
 import { platformButtonStyle } from '../../lib/platformChip.js';
-import {
-  startYahooOAuth,
-  YAHOO_CONNECTIONS_ENABLED,
-  YAHOO_UNAVAILABLE_MESSAGE,
-} from '../../lib/yahooAuth.js';
+import { startYahooOAuth, YAHOO_CONNECTIONS_ENABLED, YAHOO_UNAVAILABLE_MESSAGE } from '../../lib/yahooAuth.js';
 
 const EMPTY_STATUS = {
   yahoo: { connected: false, platform: 'yahoo' },
@@ -16,14 +12,11 @@ const ESPN_ENABLED = import.meta.env.VITE_ESPN_ENABLED === 'true';
 const APP_STORE_BUILD = import.meta.env.VITE_APP_STORE_BUILD === 'true';
 
 const ESPN_RECOVERY_COPY = {
-  espn_reauth_required:
-    'Your ESPN session has expired. Re-enter your cookies below to reconnect.',
-  espn_league_context_missing:
-    'Omen needs your ESPN league ID. Enter it below to continue.',
+  espn_reauth_required: 'Your ESPN session has expired. Re-enter your cookies below to reconnect.',
+  espn_league_context_missing: 'Omen needs your ESPN league ID. Enter it below to continue.',
   espn_import_blocked:
     'Your ESPN league may be private or the season may be inactive. Try refreshing your credentials below.',
-  espn_recovery_needed:
-    'Omen lost access to your ESPN data. Reconnect below to continue.',
+  espn_recovery_needed: 'Omen lost access to your ESPN data. Reconnect below to continue.',
 };
 
 function errorMessage(error) {
@@ -84,7 +77,9 @@ function EspnCookieInstructions() {
       <p className="mt-3">You need two cookies from ESPN&apos;s website: espn_s2 and SWID.</p>
 
       <div className="mt-4">
-        <p className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>Chrome or Edge:</p>
+        <p className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+          Chrome or Edge:
+        </p>
         <ol className="mt-2 list-decimal space-y-1 pl-5">
           <li>Go to espn.com and make sure you&apos;re signed in.</li>
           <li>Press F12 to open DevTools.</li>
@@ -92,14 +87,16 @@ function EspnCookieInstructions() {
           <li>In the left sidebar, expand Cookies and click https://www.espn.com.</li>
           <li>Find the row named espn_s2. Copy the full value from the Value column.</li>
           <li>
-            Find the row named SWID. Copy the full value — it looks like{' '}
-            {'{xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}'} including the curly braces.
+            Find the row named SWID. Copy the full value — it looks like {'{xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}'}{' '}
+            including the curly braces.
           </li>
         </ol>
       </div>
 
       <div className="mt-4">
-        <p className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>Firefox:</p>
+        <p className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+          Firefox:
+        </p>
         <ol className="mt-2 list-decimal space-y-1 pl-5">
           <li>Go to espn.com and make sure you&apos;re signed in.</li>
           <li>Press F12 to open DevTools.</li>
@@ -111,7 +108,9 @@ function EspnCookieInstructions() {
       </div>
 
       <div className="mt-4">
-        <p className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>Safari:</p>
+        <p className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+          Safari:
+        </p>
         <ol className="mt-2 list-decimal space-y-1 pl-5">
           <li>In Safari, go to Settings → Advanced and enable &quot;Show features for web developers.&quot;</li>
           <li>Go to espn.com and make sure you&apos;re signed in.</li>
@@ -122,13 +121,13 @@ function EspnCookieInstructions() {
       </div>
 
       <p className="mt-4">
-        These cookies expire when you sign out of ESPN or after a long period of inactivity.
-        If Omen loses access to your ESPN data, return here and paste fresh values.
+        These cookies expire when you sign out of ESPN or after a long period of inactivity. If Omen loses access to
+        your ESPN data, return here and paste fresh values.
       </p>
 
       <p className="mt-3" style={{ color: 'var(--color-text-secondary)' }}>
-        Your credentials are encrypted and stored securely. Disconnect at any time to remove
-        Omen&apos;s access to your ESPN account.
+        Your credentials are encrypted and stored securely. Disconnect at any time to remove Omen&apos;s access to your
+        ESPN account.
       </p>
     </section>
   );
@@ -146,12 +145,25 @@ function AccentButton({ children, disabled, onClick, type = 'button', as: Tag = 
   const props = {
     className: base,
     style: restingStyle,
-    onMouseEnter: (e) => { if (!platform) e.currentTarget.style.background = 'var(--color-accent-hover)'; },
-    onMouseLeave: (e) => { if (!platform) e.currentTarget.style.background = restingStyle.background; },
+    onMouseEnter: (e) => {
+      if (!platform) e.currentTarget.style.background = 'var(--color-accent-hover)';
+    },
+    onMouseLeave: (e) => {
+      if (!platform) e.currentTarget.style.background = restingStyle.background;
+    },
   };
 
-  if (Tag === 'a') return <a href={href} {...props}>{children}</a>;
-  return <button type={type} disabled={disabled} onClick={onClick} {...props}>{children}</button>;
+  if (Tag === 'a')
+    return (
+      <a href={href} {...props}>
+        {children}
+      </a>
+    );
+  return (
+    <button type={type} disabled={disabled} onClick={onClick} {...props}>
+      {children}
+    </button>
+  );
 }
 
 function GhostButton({ children, disabled, onClick, danger = false }) {
@@ -250,7 +262,9 @@ export default function PlatformConnections({ recoveryState = null }) {
   }
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: load once on mount; refreshStatus is recreated every render
-  useEffect(() => { refreshStatus(); }, []);
+  useEffect(() => {
+    refreshStatus();
+  }, []);
 
   async function connectYahoo() {
     setAction('connect-yahoo');
@@ -350,11 +364,7 @@ export default function PlatformConnections({ recoveryState = null }) {
         </div>
       )}
 
-      <ul
-        className="overflow-hidden rounded-xl"
-        style={{ border: '1px solid var(--color-border)' }}
-      >
-
+      <ul className="overflow-hidden rounded-xl" style={{ border: '1px solid var(--color-border)' }}>
         {/* ── Yahoo ──────────────────────────────────────────────────────── */}
         <li style={{ borderBottom: '1px solid var(--color-border)' }}>
           <div className="flex min-h-[64px] items-center justify-between gap-4 px-5 py-4">
@@ -379,11 +389,7 @@ export default function PlatformConnections({ recoveryState = null }) {
               // with a row they cannot act on.
               <div className="flex shrink-0 items-center gap-3">
                 <ConnectedBadge />
-                <GhostButton
-                  danger
-                  disabled={disabled}
-                  onClick={() => disconnect('yahoo')}
-                >
+                <GhostButton danger disabled={disabled} onClick={() => disconnect('yahoo')}>
                   {action === 'disconnect-yahoo' ? 'Disconnecting…' : 'Disconnect'}
                 </GhostButton>
               </div>
@@ -404,7 +410,9 @@ export default function PlatformConnections({ recoveryState = null }) {
             )}
           </div>
           {errors.yahoo && (
-            <p className="px-5 pb-4 text-xs text-red-300" role="alert">{errors.yahoo}</p>
+            <p className="px-5 pb-4 text-xs text-red-300" role="alert">
+              {errors.yahoo}
+            </p>
           )}
         </li>
 
@@ -438,11 +446,7 @@ export default function PlatformConnections({ recoveryState = null }) {
                   {activeForm === 'sleeper' ? 'Cancel' : 'Switch league'}
                 </GhostButton>
                 {activeForm !== 'sleeper' && (
-                  <GhostButton
-                    danger
-                    disabled={disabled}
-                    onClick={() => disconnect('sleeper')}
-                  >
+                  <GhostButton danger disabled={disabled} onClick={() => disconnect('sleeper')}>
                     {action === 'disconnect-sleeper' ? 'Disconnecting…' : 'Disconnect'}
                   </GhostButton>
                 )}
@@ -473,7 +477,9 @@ export default function PlatformConnections({ recoveryState = null }) {
                     {sleeperStep === 'resolving' ? 'Looking up leagues…' : 'Find My Leagues'}
                   </AccentButton>
                   {errors.sleeper && (
-                    <p className="text-xs text-red-300" role="alert">{errors.sleeper}</p>
+                    <p className="text-xs text-red-300" role="alert">
+                      {errors.sleeper}
+                    </p>
                   )}
                 </form>
               ) : (
@@ -484,9 +490,7 @@ export default function PlatformConnections({ recoveryState = null }) {
                       {sleeperResolvedData?.leagues?.length || 0}
                     </span>{' '}
                     league{sleeperResolvedData?.leagues?.length !== 1 ? 's' : ''} for{' '}
-                    <span style={{ color: 'var(--color-text-primary)' }}>
-                      {sleeperResolvedData?.username}
-                    </span>.
+                    <span style={{ color: 'var(--color-text-primary)' }}>{sleeperResolvedData?.username}</span>.
                   </p>
 
                   {sleeperResolvedData?.leagues?.length > 0 ? (
@@ -517,10 +521,7 @@ export default function PlatformConnections({ recoveryState = null }) {
                             onChange={() => setSleeperSelectedLeagueId(league.id)}
                           />
                           <div className="min-w-0 flex-1">
-                            <p
-                              className="truncate text-sm font-medium"
-                              style={{ color: 'var(--color-text-primary)' }}
-                            >
+                            <p className="truncate text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
                               {league.name || `League ${league.id}`}
                             </p>
                             {league.scoring_format && (
@@ -550,19 +551,24 @@ export default function PlatformConnections({ recoveryState = null }) {
                       {sleeperStep === 'connecting'
                         ? 'Connecting…'
                         : status.sleeper.connected
-                        ? 'Switch to This League'
-                        : 'Connect League'}
+                          ? 'Switch to This League'
+                          : 'Connect League'}
                     </AccentButton>
                     <GhostButton
                       disabled={sleeperStep === 'connecting'}
-                      onClick={() => { setSleeperStep('idle'); setSleeperResolvedData(null); }}
+                      onClick={() => {
+                        setSleeperStep('idle');
+                        setSleeperResolvedData(null);
+                      }}
                     >
                       Change Username
                     </GhostButton>
                   </div>
 
                   {errors.sleeper && (
-                    <p className="text-xs text-red-300" role="alert">{errors.sleeper}</p>
+                    <p className="text-xs text-red-300" role="alert">
+                      {errors.sleeper}
+                    </p>
                   )}
                 </div>
               )}
@@ -570,7 +576,9 @@ export default function PlatformConnections({ recoveryState = null }) {
           )}
 
           {errors.sleeper && activeForm !== 'sleeper' && (
-            <p className="px-5 pb-4 text-xs text-red-300" role="alert">{errors.sleeper}</p>
+            <p className="px-5 pb-4 text-xs text-red-300" role="alert">
+              {errors.sleeper}
+            </p>
           )}
         </li>
 
@@ -583,9 +591,7 @@ export default function PlatformConnections({ recoveryState = null }) {
                   ESPN
                 </p>
                 <p className="mt-0.5 text-xs" style={{ color: 'var(--color-text-secondary)' }}>
-                  {status.espn.connected
-                    ? 'Connected via ESPN cookies.'
-                    : 'Connect via browser cookies.'}
+                  {status.espn.connected ? 'Connected via ESPN cookies.' : 'Connect via browser cookies.'}
                 </p>
               </div>
 
@@ -601,18 +607,11 @@ export default function PlatformConnections({ recoveryState = null }) {
               ) : status.espn.connected ? (
                 <div className="flex shrink-0 items-center gap-3">
                   <ConnectedBadge />
-                  <GhostButton
-                    disabled={disabled}
-                    onClick={() => toggleForm('espn')}
-                  >
+                  <GhostButton disabled={disabled} onClick={() => toggleForm('espn')}>
                     {activeForm === 'espn' ? 'Cancel' : 'Reconnect'}
                   </GhostButton>
                   {activeForm !== 'espn' && (
-                    <GhostButton
-                      danger
-                      disabled={disabled}
-                      onClick={() => disconnect('espn')}
-                    >
+                    <GhostButton danger disabled={disabled} onClick={() => disconnect('espn')}>
                       {action === 'disconnect-espn' ? 'Disconnecting…' : 'Disconnect'}
                     </GhostButton>
                   )}
@@ -664,21 +663,21 @@ export default function PlatformConnections({ recoveryState = null }) {
                     onChange={(league_id) => setEspnForm((c) => ({ ...c, league_id }))}
                   />
                   <AccentButton platform="espn" type="submit" disabled={disabled}>
-                    {action === 'espn'
-                      ? 'Connecting…'
-                      : status.espn.connected
-                      ? 'Reconnect ESPN'
-                      : 'Connect ESPN'}
+                    {action === 'espn' ? 'Connecting…' : status.espn.connected ? 'Reconnect ESPN' : 'Connect ESPN'}
                   </AccentButton>
                   {errors.espn && (
-                    <p className="text-xs text-red-300" role="alert">{errors.espn}</p>
+                    <p className="text-xs text-red-300" role="alert">
+                      {errors.espn}
+                    </p>
                   )}
                 </form>
               </FormPanel>
             )}
 
             {errors.espn && activeForm !== 'espn' && (
-              <p className="px-5 pb-4 text-xs text-red-300" role="alert">{errors.espn}</p>
+              <p className="px-5 pb-4 text-xs text-red-300" role="alert">
+                {errors.espn}
+              </p>
             )}
           </li>
         )}

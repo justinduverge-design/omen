@@ -56,8 +56,14 @@ test("grounding: non-string input is rejected", () => {
 });
 
 test("grounding: 'red zone' in text is grounded by 'red-zone' in facts, and the reverse", () => {
-  assert.equal(validateGroundedText("Smith has 4 red zone touches.", { name: "Smith", f: "4 red-zone touches" }).ok, true);
-  assert.equal(validateGroundedText("Smith has 4 red-zone touches.", { name: "Smith", f: "4 red zone touches" }).ok, true);
+  assert.equal(
+    validateGroundedText("Smith has 4 red zone touches.", { name: "Smith", f: "4 red-zone touches" }).ok,
+    true,
+  );
+  assert.equal(
+    validateGroundedText("Smith has 4 red-zone touches.", { name: "Smith", f: "4 red zone touches" }).ok,
+    true,
+  );
 });
 
 test("grounding: a number word is grounded by the same value in digits", () => {

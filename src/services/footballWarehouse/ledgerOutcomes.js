@@ -25,9 +25,22 @@ async function resolveWarehouseOutcomes({ entries, repository, resolveGsis = nul
   // through the Supabase crosswalk first. Without this every call read as "unresolved".
   let gsisByKey = new Map();
   if (typeof resolveGsis === "function") {
-    const keys = [...new Set(entries.flatMap(({ decision }) => [providerRefFromDecision(decision), providerRefFromDecision(decision, "comparison_player")])
-      .filter(Boolean).map((ref) => `${ref.provider}:${ref.providerId}`))];
-    try { gsisByKey = keys.length ? await resolveGsis(keys) : new Map(); } catch { gsisByKey = new Map(); }
+    const keys = [
+      ...new Set(
+        entries
+          .flatMap(({ decision }) => [
+            providerRefFromDecision(decision),
+            providerRefFromDecision(decision, "comparison_player"),
+          ])
+          .filter(Boolean)
+          .map((ref) => `${ref.provider}:${ref.providerId}`),
+      ),
+    ];
+    try {
+      gsisByKey = keys.length ? await resolveGsis(keys) : new Map();
+    } catch {
+      gsisByKey = new Map();
+    }
   }
   const lookupRef = (decision, which = "primary_player") => {
     const ref = providerRefFromDecision(decision, which);
@@ -40,7 +53,8 @@ async function resolveWarehouseOutcomes({ entries, repository, resolveGsis = nul
   for (const entry of entries) {
     const { decision } = entry;
     const key = `${decision.season}:${decision.week}`;
-    if (!byWeek.has(key)) byWeek.set(key, { season: Number(decision.season), week: Number(decision.week), entries: [] });
+    if (!byWeek.has(key))
+      byWeek.set(key, { season: Number(decision.season), week: Number(decision.week), entries: [] });
     byWeek.get(key).entries.push(entry);
   }
 

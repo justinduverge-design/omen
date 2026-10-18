@@ -18,41 +18,22 @@
           }
         },
         "league_id": {
-          "type": [
-            "null",
-            "string"
-          ]
+          "type": ["null", "string"]
         },
         "league_name": {
-          "type": [
-            "null",
-            "string"
-          ]
+          "type": ["null", "string"]
         },
         "mode": {
           "type": "string"
         },
         "platform": {
-          "type": [
-            "null",
-            "string"
-          ]
+          "type": ["null", "string"]
         },
         "unavailable_reason": {
-          "type": [
-            "null",
-            "string"
-          ]
+          "type": ["null", "string"]
         }
       },
-      "required": [
-        "applied",
-        "league_id",
-        "league_name",
-        "mode",
-        "platform",
-        "unavailable_reason"
-      ]
+      "required": ["applied", "league_id", "league_name", "mode", "platform", "unavailable_reason"]
     },
     "b_score": {
       "type": "number"
@@ -94,11 +75,7 @@
                   "type": "boolean"
                 }
               },
-              "required": [
-                "source",
-                "state",
-                "used"
-              ]
+              "required": ["source", "state", "used"]
             },
             "projections": {
               "type": "object",
@@ -119,11 +96,7 @@
                   "type": "boolean"
                 }
               },
-              "required": [
-                "source",
-                "state",
-                "used"
-              ]
+              "required": ["source", "state", "used"]
             },
             "roster": {
               "type": "object",
@@ -144,11 +117,7 @@
                   "type": "boolean"
                 }
               },
-              "required": [
-                "source",
-                "state",
-                "used"
-              ]
+              "required": ["source", "state", "used"]
             },
             "selected_context": {
               "type": "object",
@@ -169,11 +138,7 @@
                   "type": "boolean"
                 }
               },
-              "required": [
-                "source",
-                "state",
-                "used"
-              ]
+              "required": ["source", "state", "used"]
             },
             "trade_rosters": {
               "type": "object",
@@ -191,21 +156,10 @@
                   "type": "boolean"
                 }
               },
-              "required": [
-                "reason_code",
-                "source",
-                "state",
-                "used"
-              ]
+              "required": ["reason_code", "source", "state", "used"]
             }
           },
-          "required": [
-            "league_scoring",
-            "projections",
-            "roster",
-            "selected_context",
-            "trade_rosters"
-          ]
+          "required": ["league_scoring", "projections", "roster", "selected_context", "trade_rosters"]
         },
         "inputs_used": {
           "type": "array",
@@ -228,24 +182,14 @@
                 "type": "string"
               }
             },
-            "required": [
-              "name",
-              "reason_code",
-              "state"
-            ]
+            "required": ["name", "reason_code", "state"]
           }
         },
         "profile": {
           "type": "string"
         }
       },
-      "required": [
-        "contract_version",
-        "inputs",
-        "inputs_used",
-        "limitations",
-        "profile"
-      ]
+      "required": ["contract_version", "inputs", "inputs_used", "limitations", "profile"]
     },
     "depth_discounted": {
       "type": "boolean"
@@ -257,10 +201,7 @@
           "type": "number"
         },
         "reason": {
-          "type": [
-            "null",
-            "string"
-          ]
+          "type": ["null", "string"]
         },
         "status": {
           "type": "string"
@@ -269,18 +210,10 @@
           "type": "number"
         }
       },
-      "required": [
-        "missing_projection_count",
-        "reason",
-        "status",
-        "total_player_count"
-      ]
+      "required": ["missing_projection_count", "reason", "status", "total_player_count"]
     },
     "explanation": {
-      "type": [
-        "null",
-        "string"
-      ]
+      "type": ["null", "string"]
     },
     "generated_at": {
       "type": "string"
@@ -306,10 +239,7 @@
                 "type": "number"
               },
               "reason": {
-                "type": [
-                  "null",
-                  "string"
-                ]
+                "type": ["null", "string"]
               },
               "status": {
                 "type": "string"
@@ -318,12 +248,7 @@
                 "type": "number"
               }
             },
-            "required": [
-              "missing_projection_count",
-              "reason",
-              "status",
-              "total_player_count"
-            ]
+            "required": ["missing_projection_count", "reason", "status", "total_player_count"]
           },
           "net_value": {
             "type": "number"
@@ -364,10 +289,7 @@
                       "type": "string"
                     },
                     "projected_points": {
-                      "type": [
-                        "null",
-                        "number"
-                      ]
+                      "type": ["null", "number"]
                     },
                     "replacement_level": {
                       "type": "number"
@@ -419,25 +341,14 @@
                       "type": "number"
                     }
                   },
-                  "required": [
-                    "name",
-                    "position",
-                    "tier",
-                    "vorp"
-                  ]
+                  "required": ["name", "position", "tier", "vorp"]
                 }
               },
               "total_value": {
                 "type": "number"
               }
             },
-            "required": [
-              "missing_projection_count",
-              "player_count",
-              "players",
-              "scarcity_details",
-              "total_value"
-            ]
+            "required": ["missing_projection_count", "player_count", "players", "scarcity_details", "total_value"]
           },
           "roster_fit": {
             "type": "object",
@@ -449,10 +360,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "depth_discounted",
-              "summary"
-            ]
+            "required": ["depth_discounted", "summary"]
           },
           "sends": {
             "type": "object",
@@ -490,10 +398,7 @@
                       "type": "string"
                     },
                     "projected_points": {
-                      "type": [
-                        "null",
-                        "number"
-                      ]
+                      "type": ["null", "number"]
                     },
                     "replacement_level": {
                       "type": "number"
@@ -545,34 +450,20 @@
                       "type": "number"
                     }
                   },
-                  "required": [
-                    "name",
-                    "position",
-                    "tier",
-                    "vorp"
-                  ]
+                  "required": ["name", "position", "tier", "vorp"]
                 }
               },
               "total_value": {
                 "type": "number"
               }
             },
-            "required": [
-              "missing_projection_count",
-              "player_count",
-              "players",
-              "scarcity_details",
-              "total_value"
-            ]
+            "required": ["missing_projection_count", "player_count", "players", "scarcity_details", "total_value"]
           },
           "team_id": {
             "type": "string"
           },
           "team_name": {
-            "type": [
-              "null",
-              "string"
-            ]
+            "type": ["null", "string"]
           },
           "verdict": {
             "type": "string"
@@ -632,10 +523,7 @@
                 "type": "string"
               },
               "projected_points": {
-                "type": [
-                  "null",
-                  "number"
-                ]
+                "type": ["null", "number"]
               },
               "replacement_level": {
                 "type": "number"
@@ -687,25 +575,14 @@
                 "type": "number"
               }
             },
-            "required": [
-              "name",
-              "position",
-              "tier",
-              "vorp"
-            ]
+            "required": ["name", "position", "tier", "vorp"]
           }
         },
         "total_value": {
           "type": "number"
         }
       },
-      "required": [
-        "missing_projection_count",
-        "player_count",
-        "players",
-        "scarcity_details",
-        "total_value"
-      ]
+      "required": ["missing_projection_count", "player_count", "players", "scarcity_details", "total_value"]
     },
     "scarcity_analysis": {
       "type": "object",
@@ -728,12 +605,7 @@
                 "type": "number"
               }
             },
-            "required": [
-              "name",
-              "position",
-              "tier",
-              "vorp"
-            ]
+            "required": ["name", "position", "tier", "vorp"]
           }
         },
         "send": {
@@ -754,23 +626,14 @@
                 "type": "number"
               }
             },
-            "required": [
-              "name",
-              "position",
-              "tier",
-              "vorp"
-            ]
+            "required": ["name", "position", "tier", "vorp"]
           }
         },
         "summary": {
           "type": "string"
         }
       },
-      "required": [
-        "receive",
-        "send",
-        "summary"
-      ]
+      "required": ["receive", "send", "summary"]
     },
     "scoring_format": {
       "type": "string"
@@ -860,25 +723,14 @@
                 "type": "number"
               }
             },
-            "required": [
-              "name",
-              "position",
-              "tier",
-              "vorp"
-            ]
+            "required": ["name", "position", "tier", "vorp"]
           }
         },
         "total_value": {
           "type": "number"
         }
       },
-      "required": [
-        "missing_projection_count",
-        "player_count",
-        "players",
-        "scarcity_details",
-        "total_value"
-      ]
+      "required": ["missing_projection_count", "player_count", "players", "scarcity_details", "total_value"]
     },
     "submission": {
       "type": "object",
@@ -899,12 +751,7 @@
           }
         }
       },
-      "required": [
-        "caption",
-        "mode",
-        "reason",
-        "steps"
-      ]
+      "required": ["caption", "mode", "reason", "steps"]
     },
     "team_count": {
       "type": "number"
@@ -919,10 +766,5 @@
       "type": "string"
     }
   },
-  "required": [
-    "analysis_context",
-    "contract_version",
-    "evaluability",
-    "verdict_state"
-  ]
+  "required": ["analysis_context", "contract_version", "evaluability", "verdict_state"]
 }

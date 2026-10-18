@@ -66,7 +66,7 @@ if (require.main === module) {
       Sentry.captureException(err);
       await flushSentry();
       process.exit(1);
-    }
+    },
   );
 }
 

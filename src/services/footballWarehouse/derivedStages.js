@@ -28,10 +28,25 @@ function stageError(stage, error) {
  * so one season whose early play-by-play cannot be reconciled does not stop the load of every later season.
  * Either way, an already-committed fact is never undone.
  */
-function createDerivedStages({ pool, mode = "strict", opportunityWriter = createPlayerWeeklyOpportunityWriter({ pool }), qbRunner = createRatQbRunner({ pool }), skillRunner = null, sightRunner = null, sightAccuracyRunner = null, indexStage = null, coachingStage = null, weatherStage = null, observedWeatherStage = null, env = process.env } = {}) {
+function createDerivedStages({
+  pool,
+  mode = "strict",
+  opportunityWriter = createPlayerWeeklyOpportunityWriter({ pool }),
+  qbRunner = createRatQbRunner({ pool }),
+  skillRunner = null,
+  sightRunner = null,
+  sightAccuracyRunner = null,
+  indexStage = null,
+  coachingStage = null,
+  weatherStage = null,
+  observedWeatherStage = null,
+  env = process.env,
+} = {}) {
   if (mode !== "strict" && mode !== "report") throw new TypeError("derived stage mode must be strict or report");
   async function stage(name, fn, shape) {
-    try { return shape(await fn()); } catch (error) {
+    try {
+      return shape(await fn());
+    } catch (error) {
       const coded = stageError(name, error);
       if (mode === "strict") throw coded;
       return { state: "failed", code: coded.code };
@@ -39,8 +54,16 @@ function createDerivedStages({ pool, mode = "strict", opportunityWriter = create
   }
   return {
     async run({ season }) {
-      const opportunity = await stage("opportunity", () => opportunityWriter.writeSeason({ season }), (r) => ({ state: r.state, writtenRows: r.writtenRows }));
-      const ratQb = await stage("rat_qb", () => qbRunner.run({ season }), (r) => ({ state: r.state, valueCount: r.valueCount ?? null }));
+      const opportunity = await stage(
+        "opportunity",
+        () => opportunityWriter.writeSeason({ season }),
+        (r) => ({ state: r.state, writtenRows: r.writtenRows }),
+      );
+      const ratQb = await stage(
+        "rat_qb",
+        () => qbRunner.run({ season }),
+        (r) => ({ state: r.state, valueCount: r.valueCount ?? null }),
+      );
       // The player index (provider ids -> Omen player). Reported, never fatal.
       let playerIndex;
       try {
@@ -74,7 +97,9 @@ function createDerivedStages({ pool, mode = "strict", opportunityWriter = create
       let ratSkill;
       try {
         const r = await (skillRunner || createRatSkillRunner({ pool })).run({ season });
-        ratSkill = Object.fromEntries(Object.entries(r).map(([k, v]) => [k, { state: v.state, valueCount: v.valueCount ?? null }]));
+        ratSkill = Object.fromEntries(
+          Object.entries(r).map(([k, v]) => [k, { state: v.state, valueCount: v.valueCount ?? null }]),
+        );
       } catch (error) {
         ratSkill = { state: "failed", code: stageError("rat_skill", error).code };
       }

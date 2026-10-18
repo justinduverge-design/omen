@@ -50,9 +50,7 @@ class FakeQuery {
 
   then(resolve, reject) {
     return Promise.resolve({
-      data: this.rows.filter((row) =>
-        this.filters.every(({ field, value }) => row[field] === value)
-      ),
+      data: this.rows.filter((row) => this.filters.every(({ field, value }) => row[field] === value)),
       error: null,
     }).then(resolve, reject);
   }
@@ -147,10 +145,12 @@ function loadOptimizerRouter(options = {}) {
     }
     if (parent?.filename === routePath && request === "../middleware/auth") {
       return {
-        requireAuth: options.requireAuth || ((req, _res, next) => {
-          req.user = { id: "test-user" };
-          next();
-        }),
+        requireAuth:
+          options.requireAuth ||
+          ((req, _res, next) => {
+            req.user = { id: "test-user" };
+            next();
+          }),
       };
     }
     if (parent?.filename === routePath && request === "../services/yahooAuth") {
@@ -238,10 +238,8 @@ test("GET /api/optimizer/waiver returns live Yahoo waiver recommendations", asyn
   assert.equal(res.body.recommendations[0].name, "Live RB Add");
   assert.equal(res.body.recommendations[0].available, true);
   assert.equal(
-    res.body.recommendations.every((rec, index, arr) =>
-      index === 0 || arr[index - 1].vorp_delta >= rec.vorp_delta
-    ),
-    true
+    res.body.recommendations.every((rec, index, arr) => index === 0 || arr[index - 1].vorp_delta >= rec.vorp_delta),
+    true,
   );
   assert.equal(state.rosterCalls[0].leagueKey, "449.l.123");
   assert.equal(state.availableCalls[0][0], "449.l.123");
@@ -260,7 +258,7 @@ test("GET /api/optimizer/waiver returns mock fallback when availability fetch fa
   assert.equal(res.body.pool_size, 0);
   assert.equal(
     res.body.note,
-    "Player availability API not connected. Returning mock waiver candidates for UI integration."
+    "Player availability API not connected. Returning mock waiver candidates for UI integration.",
   );
   assert.equal(res.body.recommendations[0].name, "Mock RB Pickup");
 });
@@ -280,4 +278,3 @@ test("GET /api/optimizer/waiver returns 400 without usable Yahoo league", async 
   assert.equal(res.status, 400);
   assert.equal(res.body.error, "Yahoo league connection required");
 });
-

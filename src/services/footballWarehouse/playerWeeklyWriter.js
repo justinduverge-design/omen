@@ -1,6 +1,10 @@
 "use strict";
 
-const { runBoundedFailureReceipt, setLocalTransactionTimeouts, validateTransactionTimeouts } = require("./transactionTimeouts");
+const {
+  runBoundedFailureReceipt,
+  setLocalTransactionTimeouts,
+  validateTransactionTimeouts,
+} = require("./transactionTimeouts");
 const { sourceUrlForSeason } = require("./playerWeeklySource");
 
 const DATASET = "player_weekly_stats";
@@ -68,7 +72,11 @@ function plainObject(value, name) {
 function sourceUrl(value) {
   requiredString(value, "receipt.sourceUrl", /^https:\/\/\S+$/);
   let parsed;
-  try { parsed = new URL(value); } catch { throw new TypeError("receipt.sourceUrl is invalid"); }
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new TypeError("receipt.sourceUrl is invalid");
+  }
   if (parsed.protocol !== "https:" || parsed.username || parsed.password) {
     throw new TypeError("receipt.sourceUrl is invalid");
   }
@@ -95,8 +103,11 @@ function validateReceipt(receipt, season) {
     "receipt.metadata.schema_fingerprint",
     SOURCE_REF,
   );
-  if (!Array.isArray(metadata.source_columns) || !metadata.source_columns.length ||
-      metadata.source_columns.some((column) => typeof column !== "string" || !column)) {
+  if (
+    !Array.isArray(metadata.source_columns) ||
+    !metadata.source_columns.length ||
+    metadata.source_columns.some((column) => typeof column !== "string" || !column)
+  ) {
     throw new TypeError("receipt.metadata.source_columns must be a nonempty string array");
   }
   return {
@@ -142,9 +153,8 @@ function validateRow(row, index, season) {
 }
 
 function sanitizeError(error) {
-  const code = typeof error?.code === "string" && /^[A-Za-z0-9_]{1,64}$/.test(error.code)
-    ? error.code
-    : "warehouse_ingest_failed";
+  const code =
+    typeof error?.code === "string" && /^[A-Za-z0-9_]{1,64}$/.test(error.code) ? error.code : "warehouse_ingest_failed";
   const raw = error instanceof WarehouseIngestError ? error.message : "player weekly ingest failed";
   const summary = String(raw)
     .replace(/(?:postgres(?:ql)?:\/\/|password=)[^\s]+/gi, "[redacted]")
@@ -155,7 +165,8 @@ function sanitizeError(error) {
 
 async function recordFailure(client, { receipt, season, sourceRows, unmatchedRows, error }) {
   const safe = sanitizeError(error);
-  await runBoundedFailureReceipt(client, () => client.query({
+  await runBoundedFailureReceipt(client, () =>
+    client.query({
       name: "warehouse-player-weekly-failed-receipt-v1",
       text: `
         INSERT INTO football.warehouse_ingest_events
@@ -172,22 +183,33 @@ async function recordFailure(client, { receipt, season, sourceRows, unmatchedRow
         WHERE football.warehouse_ingest_events.state <> 'succeeded'
           AND football.warehouse_ingest_events.source_ref = EXCLUDED.source_ref
       `,
-      values: [receipt.runId, DATASET, season, RIGHTS_BASIS, receipt.sourceUrl,
-        receipt.sourceRef, receipt.sourceBytes, sourceRows, safe.code, safe.summary,
-        JSON.stringify({ ...receipt.metadata, unmatched_rows: unmatchedRows })],
-    }));
+      values: [
+        receipt.runId,
+        DATASET,
+        season,
+        RIGHTS_BASIS,
+        receipt.sourceUrl,
+        receipt.sourceRef,
+        receipt.sourceBytes,
+        sourceRows,
+        safe.code,
+        safe.summary,
+        JSON.stringify({ ...receipt.metadata, unmatched_rows: unmatchedRows }),
+      ],
+    }),
+  );
 }
 
-function createPlayerWeeklyWriter({
-  pool,
-  maxUnmatchedRatio = DEFAULT_MAX_UNMATCHED_RATIO,
-  transactionTimeouts,
-} = {}) {
+function createPlayerWeeklyWriter({ pool, maxUnmatchedRatio = DEFAULT_MAX_UNMATCHED_RATIO, transactionTimeouts } = {}) {
   if (!pool || typeof pool.connect !== "function") {
     throw new TypeError("pool.connect must be a function");
   }
-  if (typeof maxUnmatchedRatio !== "number" || !Number.isFinite(maxUnmatchedRatio) ||
-      maxUnmatchedRatio < 0 || maxUnmatchedRatio > 1) {
+  if (
+    typeof maxUnmatchedRatio !== "number" ||
+    !Number.isFinite(maxUnmatchedRatio) ||
+    maxUnmatchedRatio < 0 ||
+    maxUnmatchedRatio > 1
+  ) {
     throw new TypeError("maxUnmatchedRatio must be between 0 and 1");
   }
   const timeouts = validateTransactionTimeouts(transactionTimeouts);
@@ -237,8 +259,12 @@ function createPlayerWeeklyWriter({
         });
         if (existing.rows.length) {
           await client.query("COMMIT");
-          return { state: "unchanged", ingestEventId: existing.rows[0].id,
-            sourceRows: receipt.sourceRows, writtenRows: validatedRows.length };
+          return {
+            state: "unchanged",
+            ingestEventId: existing.rows[0].id,
+            sourceRows: receipt.sourceRows,
+            writtenRows: validatedRows.length,
+          };
         }
 
         const started = await client.query({
@@ -258,9 +284,16 @@ function createPlayerWeeklyWriter({
               AND football.warehouse_ingest_events.source_ref = EXCLUDED.source_ref
             RETURNING id
           `,
-          values: [receipt.runId, DATASET, season, RIGHTS_BASIS, receipt.sourceUrl,
-            receipt.sourceRef, receipt.sourceBytes,
-            JSON.stringify({ ...receipt.metadata, unmatched_rows: unmatchedRows })],
+          values: [
+            receipt.runId,
+            DATASET,
+            season,
+            RIGHTS_BASIS,
+            receipt.sourceUrl,
+            receipt.sourceRef,
+            receipt.sourceBytes,
+            JSON.stringify({ ...receipt.metadata, unmatched_rows: unmatchedRows }),
+          ],
         });
         if (!started.rows.length) {
           throw new WarehouseIngestError("run_id_conflict", "run id already belongs to a succeeded ingest");
@@ -361,10 +394,17 @@ function createPlayerWeeklyWriter({
           values: [ingestEventId, receipt.sourceRows],
         });
         await client.query("COMMIT");
-        return { state: "succeeded", ingestEventId, sourceRows: receipt.sourceRows,
-          writtenRows: validatedRows.length, unmatchedRows };
+        return {
+          state: "succeeded",
+          ingestEventId,
+          sourceRows: receipt.sourceRows,
+          writtenRows: validatedRows.length,
+          unmatchedRows,
+        };
       } catch (error) {
-        try { await client.query("ROLLBACK"); } catch {}
+        try {
+          await client.query("ROLLBACK");
+        } catch {}
         await recordFailure(client, {
           receipt,
           season,

@@ -23,12 +23,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "over",
-          "points_delta",
-          "slot",
-          "start"
-        ]
+        "required": ["over", "points_delta", "slot", "start"]
       }
     },
     "contract_version": {
@@ -49,11 +44,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "category",
-          "kind",
-          "statement"
-        ]
+        "required": ["category", "kind", "statement"]
       }
     },
     "generated_at": {
@@ -63,10 +54,7 @@
       "type": "string"
     },
     "league_name": {
-      "type": [
-        "null",
-        "string"
-      ]
+      "type": ["null", "string"]
     },
     "message": {
       "type": "string"
@@ -75,10 +63,7 @@
       "type": "string"
     },
     "recommendation": {
-      "type": [
-        "null",
-        "object"
-      ],
+      "type": ["null", "object"],
       "properties": {
         "confidence": {
           "type": "string"
@@ -102,24 +87,13 @@
               "type": "number"
             },
             "status": {
-              "type": [
-                "null",
-                "string"
-              ]
+              "type": ["null", "string"]
             },
             "team": {
               "description": "Observed only as null in recorded responses; the real type is not constrained."
             }
           },
-          "required": [
-            "kickoff",
-            "name",
-            "player_key",
-            "position",
-            "projected_points",
-            "status",
-            "team"
-          ]
+          "required": ["kickoff", "name", "player_key", "position", "projected_points", "status", "team"]
         },
         "points_delta": {
           "type": "number"
@@ -152,30 +126,13 @@
               "description": "Observed only as null in recorded responses; the real type is not constrained."
             }
           },
-          "required": [
-            "kickoff",
-            "name",
-            "player_key",
-            "position",
-            "projected_points",
-            "status",
-            "team"
-          ]
+          "required": ["kickoff", "name", "player_key", "position", "projected_points", "status", "team"]
         }
       },
-      "required": [
-        "confidence",
-        "over",
-        "points_delta",
-        "slot",
-        "start"
-      ]
+      "required": ["confidence", "over", "points_delta", "slot", "start"]
     },
     "scoring_format": {
-      "type": [
-        "null",
-        "string"
-      ]
+      "type": ["null", "string"]
     },
     "season": {
       "type": "number"
@@ -193,10 +150,7 @@
       ]
     },
     "team_name": {
-      "type": [
-        "null",
-        "string"
-      ]
+      "type": ["null", "string"]
     },
     "week": {
       "type": "number"

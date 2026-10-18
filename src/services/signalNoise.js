@@ -21,7 +21,9 @@ const COIN_FLIP_FALLBACK = 1.5;
 
 const THRESHOLDS = Object.freeze({
   // Same coin-flip line as the confidence scale (imported, not duplicated).
-  GAP_NOISE_BELOW: Number.isFinite(CONFIDENCE_THRESHOLDS.COIN_FLIP_BELOW) ? CONFIDENCE_THRESHOLDS.COIN_FLIP_BELOW : COIN_FLIP_FALLBACK,
+  GAP_NOISE_BELOW: Number.isFinite(CONFIDENCE_THRESHOLDS.COIN_FLIP_BELOW)
+    ? CONFIDENCE_THRESHOLDS.COIN_FLIP_BELOW
+    : COIN_FLIP_FALLBACK,
   // Provider projections are right ~82% of the time at 8+ pts (omen-decision-engine-v2.md), the
   // research point where a gap stops being a lean. Describes the gap's size only.
   GAP_LARGE_AT: 8,
@@ -74,13 +76,28 @@ function gapNoise(gapPts) {
   const largeLine = THRESHOLDS.GAP_LARGE_AT;
   if (raw < noiseLine) {
     const shown = gap >= noiseLine ? `just under ${noiseLine} pts` : pts(gap);
-    return { classification: "inside_noise", gap, sentence: `The projection gap (${shown}) is inside normal projection variance.` };
+    return {
+      classification: "inside_noise",
+      gap,
+      sentence: `The projection gap (${shown}) is inside normal projection variance.`,
+    };
   }
   if (raw < largeLine) {
-    const lead = gap >= largeLine ? `A projection gap just under ${largeLine} points` : `${cap1(article(gap))} ${gap}-point projection gap`;
-    return { classification: "real_edge", gap, sentence: `${lead} is outside normal projection variance: a real edge on paper.` };
+    const lead =
+      gap >= largeLine
+        ? `A projection gap just under ${largeLine} points`
+        : `${cap1(article(gap))} ${gap}-point projection gap`;
+    return {
+      classification: "real_edge",
+      gap,
+      sentence: `${lead} is outside normal projection variance: a real edge on paper.`,
+    };
   }
-  return { classification: "large_edge", gap, sentence: `${cap1(article(gap))} ${gap}-point projection gap is a large edge on paper.` };
+  return {
+    classification: "large_edge",
+    gap,
+    sentence: `${cap1(article(gap))} ${gap}-point projection gap is a large edge on paper.`,
+  };
 }
 
 // Order is the preference order for the "change since last week" figure.
@@ -144,8 +161,14 @@ function usageStability(weeklyRows, { name = null } = {}) {
     const values = series.map((p) => p.v);
     const dev = meanAbsDev(values);
     metrics.push({
-      metric: m.key, label: m.label, share: !!m.share, games: series.length, mean: mean(values), mad: dev,
-      min: Math.min(...values), max: Math.max(...values),
+      metric: m.key,
+      label: m.label,
+      share: !!m.share,
+      games: series.length,
+      mean: mean(values),
+      mad: dev,
+      min: Math.min(...values),
+      max: Math.max(...values),
       volatile: Number(dev.toFixed(6)) >= m.mad, // rounded so 0.5/0.7 alternating (MAD 0.1) is not lost to float error
       series,
     });
@@ -164,27 +187,51 @@ function usageStability(weeklyRows, { name = null } = {}) {
     } else {
       sentence = `${n} games are on record, but fewer than ${need} have snap share, targets or carries, so Omen cannot call ${who} role stable or volatile.`;
     }
-    return { stability: "insufficient_data", games: n, change_since_last_week: null, metrics: [], excluded_injury_games: excluded, sentence };
+    return {
+      stability: "insufficient_data",
+      games: n,
+      change_since_last_week: null,
+      metrics: [],
+      excluded_injury_games: excluded,
+      sentence,
+    };
   }
 
   const lead = metrics.find((m) => m.volatile) || metrics[0];
   const stability = metrics.some((m) => m.volatile) ? "volatile" : "stable";
   const last2 = lead.series.slice(-2);
-  const change = last2.length === 2
-    ? { metric: lead.metric, from: last2[0].v, to: last2[1].v, delta: last2[1].v - last2[0].v, from_week: last2[0].week, to_week: last2[1].week }
-    : null;
+  const change =
+    last2.length === 2
+      ? {
+          metric: lead.metric,
+          from: last2[0].v,
+          to: last2[1].v,
+          delta: last2[1].v - last2[0].v,
+          from_week: last2[0].week,
+          to_week: last2[1].week,
+        }
+      : null;
 
   const show = (m, v) => (m.share ? pct(v) : String(fmt(v)));
   const span = `over the last ${lead.games} games`;
   const swing = lead.share ? `${Math.round(lead.mad * 100)} points` : `${fmt(lead.mad)}`;
-  const range = lead.min === lead.max
-    ? `held at ${show(lead, lead.min)}`
-    : `held between ${show(lead, lead.min)} and ${show(lead, lead.max)}`;
-  let sentence = stability === "volatile"
-    ? `${cap1(lead.label)} swung by about ${swing} a game ${span} (from ${show(lead, lead.min)} to ${show(lead, lead.max)}), so ${who} recent usage is uneven.`
-    : `${cap1(lead.label)} ${range} ${span}, so ${who} recent usage is steady.`;
+  const range =
+    lead.min === lead.max
+      ? `held at ${show(lead, lead.min)}`
+      : `held between ${show(lead, lead.min)} and ${show(lead, lead.max)}`;
+  let sentence =
+    stability === "volatile"
+      ? `${cap1(lead.label)} swung by about ${swing} a game ${span} (from ${show(lead, lead.min)} to ${show(lead, lead.max)}), so ${who} recent usage is uneven.`
+      : `${cap1(lead.label)} ${range} ${span}, so ${who} recent usage is steady.`;
   if (excluded) sentence += ` ${excluded} injury-shortened ${excluded === 1 ? "game was" : "games were"} left out.`;
-  return { stability, games: counted.length, change_since_last_week: change, metrics, excluded_injury_games: excluded, sentence };
+  return {
+    stability,
+    games: counted.length,
+    change_since_last_week: change,
+    metrics,
+    excluded_injury_games: excluded,
+    sentence,
+  };
 }
 
 /**
@@ -195,10 +242,17 @@ function usageStability(weeklyRows, { name = null } = {}) {
 function signalNoiseSummary({ gapPts, usageRows, name = null } = {}) {
   const statements = [];
   const gap = gapNoise(gapPts);
-  if (gap.sentence) statements.push({ source: "gap", kind: KIND.PROJECTION, classification: gap.classification, text: gap.sentence });
+  if (gap.sentence)
+    statements.push({ source: "gap", kind: KIND.PROJECTION, classification: gap.classification, text: gap.sentence });
   const usage = Array.isArray(usageRows) ? usageStability(usageRows, { name }) : null;
   if (usage) {
-    statements.push({ source: "usage", kind: KIND.OBSERVED, classification: usage.stability, text: usage.sentence, change_since_last_week: usage.change_since_last_week });
+    statements.push({
+      source: "usage",
+      kind: KIND.OBSERVED,
+      classification: usage.stability,
+      text: usage.sentence,
+      change_since_last_week: usage.change_since_last_week,
+    });
   }
   return { statements: statements.slice(0, 2), gap, usage };
 }

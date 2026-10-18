@@ -39,7 +39,10 @@ function ordinal(n) {
 }
 
 function recentRows(rows, beforeWeek, count = RECENT_GAMES) {
-  return (rows || []).filter((r) => r.week < beforeWeek).sort((a, b) => b.week - a.week).slice(0, count);
+  return (rows || [])
+    .filter((r) => r.week < beforeWeek)
+    .sort((a, b) => b.week - a.week)
+    .slice(0, count);
 }
 
 function sumFacts(rows, side) {
@@ -125,11 +128,14 @@ function peckingOrderLine({ name, gsis, position, team, beforeWeek, bundle, rec 
  */
 function nextManUpLine({ name, gsis, position, team, beforeWeek, bundle }) {
   const teamWeeks = (bundle.teamWeeks.get(team) || []).filter((w) => w < beforeWeek);
-  const mine = new Map((bundle.byPlayer.get(gsis) || []).filter((r) => r.team === team && r.week < beforeWeek).map((r) => [r.week, r]));
+  const mine = new Map(
+    (bundle.byPlayer.get(gsis) || []).filter((r) => r.team === team && r.week < beforeWeek).map((r) => [r.week, r]),
+  );
   if (mine.size < 3) return null;
   const mates = new Map();
   for (const row of bundle.byTeam.get(team) || []) {
-    if (row.player === gsis || row.week >= beforeWeek || groupOf(bundle.positions.get(row.player)) !== position) continue;
+    if (row.player === gsis || row.week >= beforeWeek || groupOf(bundle.positions.get(row.player)) !== position)
+      continue;
     if (!mates.has(row.player)) mates.set(row.player, new Map());
     mates.get(row.player).set(row.week, row);
   }
@@ -138,14 +144,18 @@ function nextManUpLine({ name, gsis, position, team, beforeWeek, bundle }) {
     const avg = [...games.values()].reduce((a, r) => a + opportunities(r), 0) / games.size;
     if (avg < NEXT_MAN_UP_REGULAR) continue;
     const first = Math.min(...games.keys());
-    const movedAt = Math.min(Infinity, ...(bundle.byPlayer.get(mate) || []).filter((r) => r.team !== team && r.week > first).map((r) => r.week));
+    const movedAt = Math.min(
+      Infinity,
+      ...(bundle.byPlayer.get(mate) || []).filter((r) => r.team !== team && r.week > first).map((r) => r.week),
+    );
     const quiet = teamWeeks.filter((w) => w >= first && w < movedAt && !games.has(w) && mine.has(w));
     const together = teamWeeks.filter((w) => games.has(w) && mine.has(w));
     if (quiet.length < NEXT_MAN_UP_MIN_MISSED || together.length < 2) continue;
     const without = quiet.reduce((a, w) => a + opportunities(mine.get(w)), 0) / quiet.length;
     const withMate = together.reduce((a, w) => a + opportunities(mine.get(w)), 0) / together.length;
     const delta = without - withMate;
-    if (Math.abs(delta) < NEXT_MAN_UP_MIN_DELTA || Math.abs(delta) < NEXT_MAN_UP_MIN_RATIO * Math.max(withMate, 1)) continue;
+    if (Math.abs(delta) < NEXT_MAN_UP_MIN_DELTA || Math.abs(delta) < NEXT_MAN_UP_MIN_RATIO * Math.max(withMate, 1))
+      continue;
     if (!best || Math.abs(delta) > Math.abs(best.delta)) best = { mate, quiet: quiet.length, without, withMate, delta };
   }
   if (!best) return null;
@@ -191,10 +201,21 @@ function fantasyMetricsEvidence({ name, gsis, position, team, beforeWeek, scorin
       fatedLine({ name, rows: recent, rec, label, verified }),
       tdLine({ name, rows: all }),
       redZoneLine({ name, rows: recent }),
-      playerTeam ? peckingOrderLine({ name, gsis, position: group, team: playerTeam, beforeWeek, bundle, rec: verified ? rec : null }) : null,
+      playerTeam
+        ? peckingOrderLine({
+            name,
+            gsis,
+            position: group,
+            team: playerTeam,
+            beforeWeek,
+            bundle,
+            rec: verified ? rec : null,
+          })
+        : null,
       playerTeam ? nextManUpLine({ name, gsis, position: group, team: playerTeam, beforeWeek, bundle }) : null,
     ];
-    for (const statement of lines) if (statement) rows.push({ category: "omen_metric", kind: "observed_context", statement });
+    for (const statement of lines)
+      if (statement) rows.push({ category: "omen_metric", kind: "observed_context", statement });
   }
   return rows;
 }

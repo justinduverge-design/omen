@@ -3,10 +3,7 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-const {
-  injectTradeShareMeta,
-  isTradeSharePagePath,
-} = require("../src/services/tradeShareMeta");
+const { injectTradeShareMeta, isTradeSharePagePath } = require("../src/services/tradeShareMeta");
 
 test("isTradeSharePagePath matches public share page UUID routes only", () => {
   const hash = "36f4c8af-7f8d-4f76-9cc2-3cbf5dca9f30";
@@ -24,7 +21,7 @@ test("injectTradeShareMeta adds escaped OG and Twitter tags for crawlers", () =>
     "<head>",
     "<title>Omen</title>",
     "</head>",
-    "<body><div id=\"root\"></div></body>",
+    '<body><div id="root"></div></body>',
     "</html>",
   ].join("");
 
@@ -37,6 +34,9 @@ test("injectTradeShareMeta adds escaped OG and Twitter tags for crawlers", () =>
 
   assert.match(rendered, /<title>Omen Trade Share<\/title>/);
   assert.match(rendered, /property="og:title" content="Omen Trade Share"/);
-  assert.match(rendered, /property="og:image" content="https:\/\/slopssaloon\.com\/api\/trade\/share\/36f4c8af-7f8d-4f76-9cc2-3cbf5dca9f30\/og\.svg"/);
+  assert.match(
+    rendered,
+    /property="og:image" content="https:\/\/slopssaloon\.com\/api\/trade\/share\/36f4c8af-7f8d-4f76-9cc2-3cbf5dca9f30\/og\.svg"/,
+  );
   assert.match(rendered, /name="twitter:card" content="summary_large_image"/);
 });

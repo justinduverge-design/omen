@@ -85,11 +85,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "consent_type",
-          "granted",
-          "user_id"
-        ]
+        "required": ["consent_type", "granted", "user_id"]
       }
     },
     "contract_version": {
@@ -116,12 +112,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "created_at",
-          "id",
-          "move_type",
-          "user_id"
-        ]
+        "required": ["created_at", "id", "move_type", "user_id"]
       }
     },
     "platform_connections": {
@@ -188,12 +179,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "created_at",
-        "email",
-        "id",
-        "updated_at"
-      ]
+      "required": ["created_at", "email", "id", "updated_at"]
     },
     "saved_trades": {
       "type": "array",
@@ -203,11 +189,7 @@
         "properties": {
           "provider": {
             "type": "string",
-            "enum": [
-              "sleeper",
-              "espn",
-              "yahoo"
-            ]
+            "enum": ["sleeper", "espn", "yahoo"]
           },
           "provider_league_id": {
             "type": "string"
@@ -226,58 +208,31 @@
           },
           "trade": {
             "type": "object",
-            "required": [
-              "give",
-              "receive",
-              "opponent_team_id"
-            ]
+            "required": ["give", "receive", "opponent_team_id"]
           },
           "reasoning": {
             "type": "object"
           },
           "state": {
             "type": "string",
-            "enum": [
-              "saved",
-              "sent"
-            ]
+            "enum": ["saved", "sent"]
           },
           "outcome": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "enum": [
-              "accepted",
-              "rejected",
-              "countered",
-              null
-            ]
+            "type": ["string", "null"],
+            "enum": ["accepted", "rejected", "countered", null]
           },
           "outcome_provenance": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "enum": [
-              "self_reported",
-              null
-            ]
+            "type": ["string", "null"],
+            "enum": ["self_reported", null]
           },
           "saved_at": {
             "type": "string"
           },
           "sent_at": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": ["string", "null"]
           },
           "outcome_at": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": ["string", "null"]
           }
         },
         "required": [
@@ -316,10 +271,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "id",
-          "call_type"
-        ]
+        "required": ["id", "call_type"]
       }
     }
   },

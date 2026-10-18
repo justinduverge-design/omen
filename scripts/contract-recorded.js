@@ -26,15 +26,34 @@ const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
 const REQ = /(omen_req_|req_)\d{8,}/g;
 // /trade/find issues a random 16-hex batch token per response, folded into each id as `{token}.{id}`.
 const BATCH_TOKEN = /^[0-9a-f]{16}\.(?=find_)/;
-const EPOCH_KEYS = new Set(["uptime", "timestamp", "generated_at", "updated_at", "created_at", "as_of", "observed_at", "fresh_until", "issued_at", "received_at"]);
+const EPOCH_KEYS = new Set([
+  "uptime",
+  "timestamp",
+  "generated_at",
+  "updated_at",
+  "created_at",
+  "as_of",
+  "observed_at",
+  "fresh_until",
+  "issued_at",
+  "received_at",
+]);
 
 function normalizeValue(value, key) {
   if (Array.isArray(value)) return value.map((v) => normalizeValue(v, key));
   if (value && typeof value === "object") {
-    return Object.fromEntries(Object.keys(value).sort().map((k) => [k, normalizeValue(value[k], k)]));
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort()
+        .map((k) => [k, normalizeValue(value[k], k)]),
+    );
   }
   if (typeof value === "string") {
-    return value.replace(ISO, "2026-01-01T00:00:00.000Z").replace(UUID, "00000000-0000-4000-8000-000000000000").replace(REQ, "$1FIXTURE").replace(BATCH_TOKEN, "0000000000000000.");
+    return value
+      .replace(ISO, "2026-01-01T00:00:00.000Z")
+      .replace(UUID, "00000000-0000-4000-8000-000000000000")
+      .replace(REQ, "$1FIXTURE")
+      .replace(BATCH_TOKEN, "0000000000000000.");
   }
   if (typeof value === "number" && EPOCH_KEYS.has(key)) return 0;
   return value;
@@ -42,7 +61,7 @@ function normalizeValue(value, key) {
 
 function variantKey(record) {
   const b = record.body;
-  const state = b.state ?? b.status ?? (b.variant !== undefined ? (b.variant || "ineligible") : undefined);
+  const state = b.state ?? b.status ?? (b.variant !== undefined ? b.variant || "ineligible" : undefined);
   return String(typeof state === "string" ? state : record.status).replace(/[^a-zA-Z0-9_.-]/g, "_");
 }
 
@@ -57,10 +76,20 @@ const MAX_SHAPES = 12;
 function shapeOf(v) {
   if (v === null) return "null";
   if (Array.isArray(v)) return [...new Set(v.map((x) => JSON.stringify(shapeOf(x))))].sort().map((x) => JSON.parse(x));
-  if (typeof v === "object") return Object.fromEntries(Object.keys(v).sort().map((k) => [k, shapeOf(v[k])]));
+  if (typeof v === "object")
+    return Object.fromEntries(
+      Object.keys(v)
+        .sort()
+        .map((k) => [k, shapeOf(v[k])]),
+    );
   return typeof v;
 }
-const shapeHash = (body) => crypto.createHash("sha1").update(JSON.stringify(shapeOf(body))).digest("hex").slice(0, 8);
+const shapeHash = (body) =>
+  crypto
+    .createHash("sha1")
+    .update(JSON.stringify(shapeOf(body)))
+    .digest("hex")
+    .slice(0, 8);
 
 /**
  * One example per (contract, variant, status, shape). Among examples with the same shape the richest
@@ -85,8 +114,10 @@ function pick(records) {
     const candidate = { ...r, body: normalizeValue(r.body) };
     const key = `${cv}\u0000${variantKey(r)}\u0000${r.status}\u0000${shapeHash(candidate.body)}`;
     const current = groups.get(key);
-    const better = !current || size(candidate) > size(current)
-      || (size(candidate) === size(current) && JSON.stringify(candidate) < JSON.stringify(current));
+    const better =
+      !current ||
+      size(candidate) > size(current) ||
+      (size(candidate) === size(current) && JSON.stringify(candidate) < JSON.stringify(current));
     if (better) groups.set(key, candidate);
   }
   const byVariant = new Map();
@@ -99,23 +130,35 @@ function pick(records) {
   const out = [];
   for (const list of byVariant.values()) {
     list.sort((a, b) => a.hash.localeCompare(b.hash));
-    list.slice(0, MAX_SHAPES).forEach((entry, i) => { out.push({ ...entry, index: list.length > 1 ? i : null }); });
+    list.slice(0, MAX_SHAPES).forEach((entry, i) => {
+      out.push({ ...entry, index: list.length > 1 ? i : null });
+    });
   }
   return out;
 }
 
-function serialize(v) { return `${JSON.stringify(v, null, 2)}\n`; }
+function serialize(v) {
+  return `${JSON.stringify(v, null, 2)}\n`;
+}
 
 function readRecords(dir) {
-  return fs.readdirSync(dir).filter((f) => f.endsWith(".json")).flatMap((f) => JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")));
+  return fs
+    .readdirSync(dir)
+    .filter((f) => f.endsWith(".json"))
+    .flatMap((f) => JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")));
 }
 
 function runRecording(dir) {
   fs.rmSync(dir, { recursive: true, force: true });
   fs.mkdirSync(dir, { recursive: true });
   const res = spawnSync("npm", ["test"], {
-    cwd: ROOT, encoding: "utf8",
-    env: { ...process.env, CONTRACT_RECORD_DIR: dir, NODE_OPTIONS: `--require ${path.join(__dirname, "contract-recorder.js")}` },
+    cwd: ROOT,
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      CONTRACT_RECORD_DIR: dir,
+      NODE_OPTIONS: `--require ${path.join(__dirname, "contract-recorder.js")}`,
+    },
     maxBuffer: 1 << 28,
   });
   return res.status === 0;
@@ -129,7 +172,10 @@ function outputs(dir) {
   for (const { contract, variant, record, index } of pick(all)) {
     const statusPart = record.status && !/^\d+$/.test(variant) && record.status !== 200 ? `.${record.status}` : "";
     const name = `${variant}${statusPart}${index == null ? "" : `.shape${index + 1}`}`;
-    files.set(path.join(FIXTURES, contract, `${name}.json`), serialize({ http_status: record.status, route: record.route || record.path, body: record.body }));
+    files.set(
+      path.join(FIXTURES, contract, `${name}.json`),
+      serialize({ http_status: record.status, route: record.route || record.path, body: record.body }),
+    );
   }
   return files;
 }
@@ -157,21 +203,33 @@ const ENUM_KEYS = new Set(["state", "status", "variant"]);
 function typeName(v) {
   if (v === null) return "null";
   if (Array.isArray(v)) return "array";
-  return typeof v === "object" ? "object" : typeof v === "number" ? (Number.isInteger(v) ? "number" : "number") : typeof v;
+  return typeof v === "object"
+    ? "object"
+    : typeof v === "number"
+      ? Number.isInteger(v)
+        ? "number"
+        : "number"
+      : typeof v;
 }
 
 function infer(samples, key = "", depth = 0) {
   const types = [...new Set(samples.map(typeName))].sort();
   // A field only ever observed as null tells us nothing about its real type (a deadline that was
   // never set in any test). Pinning it to null would make the lock forbid ever sending a value.
-  const schema = types.length === 1 && types[0] === "null"
-    ? { description: "Observed only as null in recorded responses; the real type is not constrained." }
-    : { type: types.length === 1 ? types[0] : types };
+  const schema =
+    types.length === 1 && types[0] === "null"
+      ? { description: "Observed only as null in recorded responses; the real type is not constrained." }
+      : { type: types.length === 1 ? types[0] : types };
   const objects = samples.filter((s) => s && typeof s === "object" && !Array.isArray(s));
   if (objects.length) {
     const keys = [...new Set(objects.flatMap(Object.keys))].sort();
     schema.properties = {};
-    for (const k of keys) schema.properties[k] = infer(objects.filter((o) => k in o).map((o) => o[k]), k, depth + 1);
+    for (const k of keys)
+      schema.properties[k] = infer(
+        objects.filter((o) => k in o).map((o) => o[k]),
+        k,
+        depth + 1,
+      );
     const required = keys.filter((k) => objects.every((o) => k in o));
     if (required.length) schema.required = required;
   }
@@ -214,7 +272,8 @@ function applyOverrides(name, schema) {
       }
     } else {
       node.enum = values;
-      if (values.includes(null) && !(Array.isArray(node.type) && node.type.includes("null"))) node.type = ["null", node.type].flat().filter(Boolean);
+      if (values.includes(null) && !(Array.isArray(node.type) && node.type.includes("null")))
+        node.type = ["null", node.type].flat().filter(Boolean);
     }
   }
   return schema;
@@ -222,33 +281,58 @@ function applyOverrides(name, schema) {
 
 function inferContract(name) {
   const dir = path.join(FIXTURES, name);
-  const bodies = fs.readdirSync(dir).filter((f) => f.endsWith(".json"))
+  const bodies = fs
+    .readdirSync(dir)
+    .filter((f) => f.endsWith(".json"))
     .map((f) => JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")).body);
   const schema = infer(bodies);
   return {
     $schema: "http://json-schema.org/draft-07/schema#",
     $id: name,
     title: `${name} (inferred from recorded server responses; review before relying on it)`,
-    description: "ADDITIVE ONLY within this version. Extra properties are allowed; removing, renaming or retyping anything listed here is a breaking change and fails the lock.",
+    description:
+      "ADDITIVE ONLY within this version. Extra properties are allowed; removing, renaming or retyping anything listed here is a breaking change and fails the lock.",
     ...schema,
   };
 }
 
-module.exports = { staleFixtures, applyOverrides, registry, pick, outputs, runRecording, inferContract, normalizeValue, serialize, FIXTURES };
+module.exports = {
+  staleFixtures,
+  applyOverrides,
+  registry,
+  pick,
+  outputs,
+  runRecording,
+  inferContract,
+  normalizeValue,
+  serialize,
+  FIXTURES,
+};
 
 if (require.main === module) {
   const cmd = process.argv[2];
   if (cmd === "record") {
     const dir = path.join(os.tmpdir(), "omen-contract-record");
-    if (!runRecording(dir)) { console.error("the test suite failed while recording; fixtures not written"); process.exit(1); }
+    if (!runRecording(dir)) {
+      console.error("the test suite failed while recording; fixtures not written");
+      process.exit(1);
+    }
     const out = outputs(dir);
-    for (const [file, text] of out) { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, text); }
-    console.log(`wrote ${out.size} recorded fixtures across ${new Set([...out.keys()].map((f) => path.basename(path.dirname(f)))).size} contracts`);
+    for (const [file, text] of out) {
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, text);
+    }
+    console.log(
+      `wrote ${out.size} recorded fixtures across ${new Set([...out.keys()].map((f) => path.basename(path.dirname(f)))).size} contracts`,
+    );
   } else if (cmd === "schemas") {
     const force = process.argv.includes("--force");
     for (const name of Object.keys(registry())) {
       const file = path.join(ROOT, "test", "contracts", "schemas", `${name}.schema.json`);
-      if (fs.existsSync(file) && !force) { console.log(`kept ${name}`); continue; }
+      if (fs.existsSync(file) && !force) {
+        console.log(`kept ${name}`);
+        continue;
+      }
       fs.writeFileSync(file, `${JSON.stringify(applyOverrides(name, inferContract(name)), null, 2)}\n`);
       console.log(`wrote ${name}`);
     }
@@ -258,24 +342,49 @@ if (require.main === module) {
     // Compare fixtures to a recording made during an ordinary `npm test` run (CI does this so the suite
     // is not run twice): CONTRACT_RECORD_DIR=<dir> NODE_OPTIONS=--require scripts/contract-recorder.js npm test
     const dir = process.argv[3];
-    if (!dir || !fs.existsSync(dir)) { console.error("usage: compare <recording dir>"); process.exit(2); }
+    if (!dir || !fs.existsSync(dir)) {
+      console.error("usage: compare <recording dir>");
+      process.exit(2);
+    }
     let bad = 0;
     const out = outputs(dir);
     for (const [file, text] of out) {
-      if (!fs.existsSync(file) || fs.readFileSync(file, "utf8") !== text) { console.error(`fixture out of date or new: ${path.relative(ROOT, file)}`); bad += 1; }
+      if (!fs.existsSync(file) || fs.readFileSync(file, "utf8") !== text) {
+        console.error(`fixture out of date or new: ${path.relative(ROOT, file)}`);
+        bad += 1;
+      }
     }
-    for (const full of staleFixtures(new Set(out.keys()))) { console.error(`fixture no longer produced: ${path.relative(ROOT, full)}`); bad += 1; }
-    console.log(bad ? `${bad} fixture problem(s). Run: node scripts/contract-recorded.js record, and review the diff as an API change.` : `fixtures current (${out.size})`);
+    for (const full of staleFixtures(new Set(out.keys()))) {
+      console.error(`fixture no longer produced: ${path.relative(ROOT, full)}`);
+      bad += 1;
+    }
+    console.log(
+      bad
+        ? `${bad} fixture problem(s). Run: node scripts/contract-recorded.js record, and review the diff as an API change.`
+        : `fixtures current (${out.size})`,
+    );
     process.exit(bad ? 1 : 0);
   } else if (cmd === "check") {
     const dir = path.join(os.tmpdir(), "omen-contract-record-check");
-    if (!runRecording(dir)) { console.error("suite failed while recording"); process.exit(1); }
+    if (!runRecording(dir)) {
+      console.error("suite failed while recording");
+      process.exit(1);
+    }
     let bad = 0;
     const out = outputs(dir);
     for (const [file, text] of out) {
-      if (!fs.existsSync(file) || fs.readFileSync(file, "utf8") !== text) { console.error(`fixture out of date or new: ${path.relative(ROOT, file)}`); bad += 1; }
+      if (!fs.existsSync(file) || fs.readFileSync(file, "utf8") !== text) {
+        console.error(`fixture out of date or new: ${path.relative(ROOT, file)}`);
+        bad += 1;
+      }
     }
-    for (const full of staleFixtures(new Set(out.keys()))) { console.error(`fixture no longer produced: ${path.relative(ROOT, full)}`); bad += 1; }
+    for (const full of staleFixtures(new Set(out.keys()))) {
+      console.error(`fixture no longer produced: ${path.relative(ROOT, full)}`);
+      bad += 1;
+    }
     process.exit(bad ? 1 : 0);
-  } else { console.error("usage: record | schemas | infer <contract> | compare <dir> | check"); process.exit(2); }
+  } else {
+    console.error("usage: record | schemas | infer <contract> | compare <dir> | check");
+    process.exit(2);
+  }
 }

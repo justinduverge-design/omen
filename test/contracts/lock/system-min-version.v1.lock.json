@@ -25,10 +25,7 @@
     "status": {
       "required": true,
       "type": "enum",
-      "values": [
-        "\"ok\"",
-        "\"update_required\""
-      ]
+      "values": ["\"ok\"", "\"update_required\""]
     },
     "update_required": {
       "required": true,

@@ -58,7 +58,10 @@ test("EspnConnectGuide.jsx desktop actions point at the published store listings
   const chrome = src.match(/const CHROME_STORE_URL =\s*'([^']*)'/)?.[1];
   const edge = src.match(/const EDGE_STORE_URL =\s*'([^']*)'/)?.[1];
   assert.equal(chrome, "https://chromewebstore.google.com/detail/omen-espn-connect/odfoahekibbfjipnofmfenabnnlgfljm");
-  assert.equal(edge, "https://microsoftedge.microsoft.com/addons/detail/omen-espn-connect/nkcbgdhpekbclicgcfbokjmcgkhfhddl");
+  assert.equal(
+    edge,
+    "https://microsoftedge.microsoft.com/addons/detail/omen-espn-connect/nkcbgdhpekbclicgcfbokjmcgkhfhddl",
+  );
   assert.doesNotMatch(src, /github\.com/, "must not send users to the source tree to sideload");
 
   // Surface detection decides ordering only. It must never gate the handoff away entirely —
@@ -67,7 +70,7 @@ test("EspnConnectGuide.jsx desktop actions point at the published store listings
   assert.match(
     src,
     /surface === 'desktop' \?\s*\(?\s*<>\s*\{installHere\}\s*\{handoff\}\s*<\/>\s*\)?\s*:\s*\(?\s*<>\s*\{handoff\}\s*\{installHere\}\s*<\/>/,
-    "both halves must render on every surface; only the order changes"
+    "both halves must render on every surface; only the order changes",
   );
 });
 
@@ -90,7 +93,7 @@ test("extension manifest.json keeps host_permissions and content-script scope ti
   assert.deepEqual(manifest.host_permissions, ["https://*.espn.com/*"]);
   assert.ok(
     !manifest.host_permissions.some((p) => p.includes("<all_urls>") || p === "*://*/*"),
-    "host_permissions must not broaden to all sites"
+    "host_permissions must not broaden to all sites",
   );
 
   const matches = manifest.content_scripts?.[0]?.matches || [];
@@ -99,7 +102,7 @@ test("extension manifest.json keeps host_permissions and content-script scope ti
     assert.match(
       pattern,
       /^https?:\/\/(slopssaloon\.com|localhost:5173)\/account\/connect/,
-      `content script match pattern too broad: ${pattern}`
+      `content script match pattern too broad: ${pattern}`,
     );
   }
 });
@@ -142,7 +145,7 @@ test("extension content-omen.js never logs the staged payload object directly", 
     assert.doesNotMatch(
       call,
       /\bpayload\b(?!\.diagnostics)/,
-      `console call must not log the raw payload object: ${call}`
+      `console call must not log the raw payload object: ${call}`,
     );
   }
 

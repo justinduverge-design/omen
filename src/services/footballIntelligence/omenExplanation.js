@@ -10,34 +10,51 @@ async function enrichOmenWithFootballIntelligence({ response, repository = null 
   const teamId = response.recommendation.primary_player?.omen_team_id || null;
   const season = Number(response.league?.season ?? response.season);
   if (!CANONICAL_TEAM_ID.test(teamId || "")) {
-    attach(response, unavailableSignal({
-      teamId: null,
-      season: Number.isInteger(season) ? season : null,
-      reasonCode: "identity_unresolved",
-      limitation: "The recommendation does not yet carry a confirmed Omen team identity.",
-    }));
+    attach(
+      response,
+      unavailableSignal({
+        teamId: null,
+        season: Number.isInteger(season) ? season : null,
+        reasonCode: "identity_unresolved",
+        limitation: "The recommendation does not yet carry a confirmed Omen team identity.",
+      }),
+    );
     return response;
   }
   if (!Number.isInteger(season) || !repository || typeof repository.findPublishedTeamSignal !== "function") {
-    attach(response, unavailableSignal({
-      teamId,
-      season: Number.isInteger(season) ? season : null,
-      reasonCode: "not_published",
-      limitation: "No accepted football-intelligence publication is available for this recommendation.",
-    }));
+    attach(
+      response,
+      unavailableSignal({
+        teamId,
+        season: Number.isInteger(season) ? season : null,
+        reasonCode: "not_published",
+        limitation: "No accepted football-intelligence publication is available for this recommendation.",
+      }),
+    );
     return response;
   }
   try {
     const signal = await repository.findPublishedTeamSignal({ teamId, season });
-    attach(response, signal || unavailableSignal({
-      teamId, season, reasonCode: "not_published",
-      limitation: "No accepted football-intelligence publication is available for this recommendation.",
-    }));
+    attach(
+      response,
+      signal ||
+        unavailableSignal({
+          teamId,
+          season,
+          reasonCode: "not_published",
+          limitation: "No accepted football-intelligence publication is available for this recommendation.",
+        }),
+    );
   } catch {
-    attach(response, unavailableSignal({
-      teamId, season, reasonCode: "serving_unavailable",
-      limitation: "Football-intelligence evidence could not be read for this recommendation.",
-    }));
+    attach(
+      response,
+      unavailableSignal({
+        teamId,
+        season,
+        reasonCode: "serving_unavailable",
+        limitation: "Football-intelligence evidence could not be read for this recommendation.",
+      }),
+    );
   }
   return response;
 }
@@ -47,16 +64,17 @@ function attach(response, signal) {
   response.signals = response.signals || {};
   const publication = signal.publication || {};
   const qualityState = signal.quality?.state;
-  const advisory = ADVISORY_STATUSES.has(signal.status)
-    && typeof signal.summary === "string"
-    && signal.summary.trim().length > 0
-    && typeof publication.artifact_id === "string"
-    && publication.artifact_id.length > 0
-    && typeof publication.artifact_version === "string"
-    && publication.artifact_version.length > 0
-    && typeof publication.published_at_utc === "string"
-    && Number.isFinite(Date.parse(publication.published_at_utc))
-    && !new Set(["candidate", "unaccepted", "disputed"]).has(qualityState);
+  const advisory =
+    ADVISORY_STATUSES.has(signal.status) &&
+    typeof signal.summary === "string" &&
+    signal.summary.trim().length > 0 &&
+    typeof publication.artifact_id === "string" &&
+    publication.artifact_id.length > 0 &&
+    typeof publication.artifact_version === "string" &&
+    publication.artifact_version.length > 0 &&
+    typeof publication.published_at_utc === "string" &&
+    Number.isFinite(Date.parse(publication.published_at_utc)) &&
+    !new Set(["candidate", "unaccepted", "disputed"]).has(qualityState);
   response.signals.football_intelligence = {
     status: advisory ? "live" : "unavailable",
     used: false,
@@ -80,8 +98,13 @@ function unavailableSignal({ teamId, season, reasonCode, limitation }) {
     scheme_dna: { contract_version: "scheme-dna.v1", artifact_id: "", dimensions: [] },
     coaching_tree: { contract_version: "coaching-tree.v1", confirmed_edges: [], inferred_edges: [] },
     evidence: {
-      source_artifacts: [], games: null, plays: null, charted_plays: null,
-      current_window: { start: null, end: null }, comparison_window: { start: null, end: null }, coverage_ratio: null,
+      source_artifacts: [],
+      games: null,
+      plays: null,
+      charted_plays: null,
+      current_window: { start: null, end: null },
+      comparison_window: { start: null, end: null },
+      coverage_ratio: null,
     },
     quality: { state: "unavailable", coverage: "not_evaluated", confidence: null, limitations: [limitation] },
     freshness: { state: "unknown", computed_at_utc: null, latest_observation_at_utc: null, stale_after_utc: null },

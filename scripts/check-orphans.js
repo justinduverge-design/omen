@@ -45,7 +45,11 @@ function walk(dir, exts, out = []) {
 
 const read = (p) => fs.readFileSync(p, "utf8");
 const rel = (p) => path.relative(ROOT, p);
-const corpus = (dirs, exts) => dirs.flatMap((d) => walk(path.join(ROOT, d), exts)).map(read).join("\n");
+const corpus = (dirs, exts) =>
+  dirs
+    .flatMap((d) => walk(path.join(ROOT, d), exts))
+    .map(read)
+    .join("\n");
 
 // ── Routes: mounted paths no client or job mentions ─────────────────────────
 function routes() {
@@ -74,7 +78,8 @@ function routes() {
       if (prefix.length <= base.length && m[2] !== "/") continue;
       // A caller names the path exactly: next char is not part of a longer path segment.
       const esc = prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      if (!new RegExp(`${esc}(?![\\w-])`).test(outside)) found.push({ route: `${m[1].toUpperCase()} ${full}`, file: rel(fp) });
+      if (!new RegExp(`${esc}(?![\\w-])`).test(outside))
+        found.push({ route: `${m[1].toUpperCase()} ${full}`, file: rel(fp) });
     }
   }
   return found;
@@ -87,7 +92,8 @@ function tables() {
   const dropped = new Set();
   for (const f of sqlFiles) {
     const s = read(f);
-    for (const m of s.matchAll(/create table (?:if not exists )?(?:"?(\w+)"?\.)?"?(\w+)"?/gi)) created.set(m[2].toLowerCase(), rel(f));
+    for (const m of s.matchAll(/create table (?:if not exists )?(?:"?(\w+)"?\.)?"?(\w+)"?/gi))
+      created.set(m[2].toLowerCase(), rel(f));
     for (const m of s.matchAll(/drop table (?:if exists )?(?:"?\w+"?\.)?"?(\w+)"?/gi)) dropped.add(m[1].toLowerCase());
   }
   // Drops written as `execute format('drop table %I', t)` over a name list: a table named anywhere
@@ -97,7 +103,10 @@ function tables() {
     if (!/drop table/i.test(s) || /create table/i.test(s)) continue;
     for (const t of created.keys()) if (new RegExp(`\\b${t}\\b`, "i").test(s)) dropped.add(t);
   }
-  const code = corpus(["src", "scripts", "warehouse", "mobile", "frontend/src"], [".js", ".mjs", ".ts", ".py", ".swift", ".kt"]);
+  const code = corpus(
+    ["src", "scripts", "warehouse", "mobile", "frontend/src"],
+    [".js", ".mjs", ".ts", ".py", ".swift", ".kt"],
+  );
   return [...created]
     .filter(([t]) => !dropped.has(t) && !new RegExp(`\\b${t}\\b`).test(code))
     .map(([table, file]) => ({ table, file }));
@@ -108,8 +117,14 @@ function envVars() {
   const ex = path.join(ROOT, ".env.example");
   if (!fs.existsSync(ex)) return [];
   const keys = [...read(ex).matchAll(/^([A-Z][A-Z0-9_]+)=/gm)].map((m) => m[1]);
-  const code = corpus(["src", "scripts", "warehouse", "deploy", "infra", ".github", "frontend/src"], [".js", ".mjs", ".ts", ".jsx", ".tsx", ".py", ".sh", ".yml", ".yaml"])
-    + ["docker-compose.yml", "docker-compose.hostinger.yml", "Dockerfile"].map((f) => (fs.existsSync(path.join(ROOT, f)) ? read(path.join(ROOT, f)) : "")).join("\n");
+  const code =
+    corpus(
+      ["src", "scripts", "warehouse", "deploy", "infra", ".github", "frontend/src"],
+      [".js", ".mjs", ".ts", ".jsx", ".tsx", ".py", ".sh", ".yml", ".yaml"],
+    ) +
+    ["docker-compose.yml", "docker-compose.hostinger.yml", "Dockerfile"]
+      .map((f) => (fs.existsSync(path.join(ROOT, f)) ? read(path.join(ROOT, f)) : ""))
+      .join("\n");
   return keys.filter((k) => !code.includes(k)).map((name) => ({ name }));
 }
 
@@ -131,13 +146,19 @@ function branches() {
     .map((l) => l.split("|"))
     .filter(([b]) => b !== "main" && b !== current)
     .filter(([b, t]) => merged.has(b) || Number(t) < cutoff)
-    .map(([branch, t]) => ({ branch, reason: merged.has(branch) ? "merged into main" : `idle since ${new Date(t * 1000).toISOString().slice(0, 10)}` }));
+    .map(([branch, t]) => ({
+      branch,
+      reason: merged.has(branch) ? "merged into main" : `idle since ${new Date(t * 1000).toISOString().slice(0, 10)}`,
+    }));
 }
 
 // ── Untracked output folders ──────────────────────────────────────────────
 function untracked() {
   try {
-    return execFileSync("git", ["status", "--porcelain", "-z", "--untracked-files=normal"], { cwd: ROOT, encoding: "utf8" })
+    return execFileSync("git", ["status", "--porcelain", "-z", "--untracked-files=normal"], {
+      cwd: ROOT,
+      encoding: "utf8",
+    })
       .split("\0")
       .filter((l) => l.startsWith("?? "))
       .map((l) => ({ path: l.slice(3) }));
@@ -148,15 +169,29 @@ function untracked() {
 
 // ── Screens: delegate to the existing reachability check ───────────────────
 function screens() {
-  const r = spawnSync(process.execPath, [path.join(__dirname, "check-screen-reachability.mjs"), "--quiet"], { cwd: ROOT, encoding: "utf8" });
-  if (r.error || (r.status !== 0 && r.status !== 1)) return [{ line: `reachability check did not run (${r.error?.message || `exit ${r.status}`})` }];
+  const r = spawnSync(process.execPath, [path.join(__dirname, "check-screen-reachability.mjs"), "--quiet"], {
+    cwd: ROOT,
+    encoding: "utf8",
+  });
+  if (r.error || (r.status !== 0 && r.status !== 1))
+    return [{ line: `reachability check did not run (${r.error?.message || `exit ${r.status}`})` }];
   if (r.status === 0) return [];
   // Exit 1 = findings; keep only lines naming a screen, not the header or footer.
-  return (r.stdout || "").split("\n").filter((l) => /Screen\b/.test(l) && /referenced only/i.test(l)).map((line) => ({ line: line.trim() }));
+  return (r.stdout || "")
+    .split("\n")
+    .filter((l) => /Screen\b/.test(l) && /referenced only/i.test(l))
+    .map((line) => ({ line: line.trim() }));
 }
 
 function collect() {
-  return { routes: routes(), tables: tables(), envVars: envVars(), branches: branches(), untracked: untracked(), screens: screens() };
+  return {
+    routes: routes(),
+    tables: tables(),
+    envVars: envVars(),
+    branches: branches(),
+    untracked: untracked(),
+    screens: screens(),
+  };
 }
 
 const TITLES = {

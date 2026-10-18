@@ -38,7 +38,13 @@ function playerKey(player) {
 /**
  * @returns {Promise<{state:string, byKey:Map<string,{statement:string, source:string}>}>}
  */
-function createTradeUsageEvidence({ getRuntime, getSupabase, budgetMs = DEFAULT_BUDGET_MS, log = null, resolve = resolveGsis }) {
+function createTradeUsageEvidence({
+  getRuntime,
+  getSupabase,
+  budgetMs = DEFAULT_BUDGET_MS,
+  log = null,
+  resolve = resolveGsis,
+}) {
   return async function usageFor(players, { season, week } = {}) {
     const empty = (state) => ({ state, byKey: new Map() });
     try {
@@ -49,7 +55,8 @@ function createTradeUsageEvidence({ getRuntime, getSupabase, budgetMs = DEFAULT_
       }
       if (!unique.size) return empty(STATES.NONE);
       if (unique.size > MAX_PLAYERS) return empty(STATES.UNAVAILABLE);
-      if (!Number.isInteger(Number(season)) || !Number.isInteger(Number(week)) || Number(week) < 1) return empty(STATES.NOT_IN_SEASON);
+      if (!Number.isInteger(Number(season)) || !Number.isInteger(Number(week)) || Number(week) < 1)
+        return empty(STATES.NOT_IN_SEASON);
 
       const runtime = getRuntime();
       if (!runtime || runtime.mode === "supabase" || typeof runtime.repository?.readOpportunityWeeks !== "function") {
@@ -60,18 +67,28 @@ function createTradeUsageEvidence({ getRuntime, getSupabase, budgetMs = DEFAULT_
         const gsisByKey = await resolve(getSupabase ? getSupabase() : null, [...unique.keys()]);
         const gsisIds = [...new Set([...unique.keys()].map((key) => gsisByKey.get(key)).filter(Boolean))];
         if (!gsisIds.length) return new Map();
-        const rows = await runtime.repository.readOpportunityWeeks({ gsisIds, season: Number(season), beforeWeek: Number(week) });
+        const rows = await runtime.repository.readOpportunityWeeks({
+          gsisIds,
+          season: Number(season),
+          beforeWeek: Number(week),
+        });
         const out = new Map();
         for (const [key, player] of unique) {
           const gsis = gsisByKey.get(key);
-          const statement = gsis ? waiverUsageSentence(player.name || "This player", player.position, rows.get(gsis)) : null;
+          const statement = gsis
+            ? waiverUsageSentence(player.name || "This player", player.position, rows.get(gsis))
+            : null;
           if (statement) out.set(key, { statement, source: SOURCE });
         }
         return out;
       });
       return { state: byKey && byKey.size ? STATES.OK : STATES.NONE, byKey: byKey || new Map() };
     } catch (error) {
-      try { log?.warn?.("Trade usage evidence unavailable", { code: error?.code || "failure" }); } catch { /* never throws */ }
+      try {
+        log?.warn?.("Trade usage evidence unavailable", { code: error?.code || "failure" });
+      } catch {
+        /* never throws */
+      }
       return empty(STATES.UNAVAILABLE);
     }
   };
@@ -80,9 +97,19 @@ function createTradeUsageEvidence({ getRuntime, getSupabase, budgetMs = DEFAULT_
 /** Evidence rows for one trade, in the order they should read: what you give, then what you get. */
 function usageRowsForTrade({ give, receive }, byKey) {
   const rows = [];
-  for (const [side, player] of [["give", give], ["receive", receive]]) {
+  for (const [side, player] of [
+    ["give", give],
+    ["receive", receive],
+  ]) {
     const hit = byKey.get(playerKey(player));
-    if (hit) rows.push({ side, player_key: playerKey(player), statement: hit.statement, source: hit.source, kind: "observed_usage" });
+    if (hit)
+      rows.push({
+        side,
+        player_key: playerKey(player),
+        statement: hit.statement,
+        source: hit.source,
+        kind: "observed_usage",
+      });
   }
   return rows;
 }

@@ -17,22 +17,46 @@ const COVERAGE_STATES = new Set([
 
 const EVENT_KEYS = new Set([
   // Offensive player facts.
-  "passing_yards", "passing_touchdowns", "passing_interceptions",
-  "rushing_yards", "rushing_touchdowns", "receiving_receptions",
-  "receiving_yards", "receiving_touchdowns", "fumbles_lost",
-  "two_point_conversions", "return_touchdowns",
+  "passing_yards",
+  "passing_touchdowns",
+  "passing_interceptions",
+  "rushing_yards",
+  "rushing_touchdowns",
+  "receiving_receptions",
+  "receiving_yards",
+  "receiving_touchdowns",
+  "fumbles_lost",
+  "two_point_conversions",
+  "return_touchdowns",
   // Kicker facts.
-  "extra_points_made", "extra_points_missed", "field_goals_made",
-  "field_goals_missed", "field_goals_made_0_39", "field_goals_made_40_49",
+  "extra_points_made",
+  "extra_points_missed",
+  "field_goals_made",
+  "field_goals_missed",
+  "field_goals_made_0_39",
+  "field_goals_made_40_49",
   "field_goals_made_50_plus",
   // Team defense / special teams facts.
-  "defense_sacks", "defense_interceptions", "defense_fumble_recoveries",
-  "defense_touchdowns", "defense_safeties", "defense_blocks",
-  "defense_return_touchdowns", "defense_points_allowed", "defense_yards_allowed",
+  "defense_sacks",
+  "defense_interceptions",
+  "defense_fumble_recoveries",
+  "defense_touchdowns",
+  "defense_safeties",
+  "defense_blocks",
+  "defense_return_touchdowns",
+  "defense_points_allowed",
+  "defense_yards_allowed",
   // Individual defensive player facts.
-  "idp_solo_tackles", "idp_assisted_tackles", "idp_tackles_for_loss",
-  "idp_sacks", "idp_interceptions", "idp_passes_defended", "idp_forced_fumbles",
-  "idp_fumble_recoveries", "idp_defensive_touchdowns", "idp_safeties",
+  "idp_solo_tackles",
+  "idp_assisted_tackles",
+  "idp_tackles_for_loss",
+  "idp_sacks",
+  "idp_interceptions",
+  "idp_passes_defended",
+  "idp_forced_fumbles",
+  "idp_fumble_recoveries",
+  "idp_defensive_touchdowns",
+  "idp_safeties",
 ]);
 
 const OPERATORS = new Set(["per_event", "per_unit", "threshold_bonus", "range_event"]);
@@ -45,18 +69,15 @@ function finite(value, field) {
 
 function inspectScoringContract(contract) {
   const rules = Array.isArray(contract?.rules) ? contract.rules : [];
-  const declared = COVERAGE_STATES.has(contract?.coverage_state)
-    ? contract.coverage_state
-    : "unsupported";
-  const unsupportedEventKeys = [...new Set(rules
-    .map((rule) => rule?.event_key)
-    .filter((eventKey) => !EVENT_KEYS.has(eventKey)))];
-  const invalidOperators = [...new Set(rules
-    .map((rule) => rule?.operator)
-    .filter((operator) => !OPERATORS.has(operator)))];
-  const coverageState = unsupportedEventKeys.length || invalidOperators.length || !rules.length
-    ? "unsupported"
-    : declared;
+  const declared = COVERAGE_STATES.has(contract?.coverage_state) ? contract.coverage_state : "unsupported";
+  const unsupportedEventKeys = [
+    ...new Set(rules.map((rule) => rule?.event_key).filter((eventKey) => !EVENT_KEYS.has(eventKey))),
+  ];
+  const invalidOperators = [
+    ...new Set(rules.map((rule) => rule?.operator).filter((operator) => !OPERATORS.has(operator))),
+  ];
+  const coverageState =
+    unsupportedEventKeys.length || invalidOperators.length || !rules.length ? "unsupported" : declared;
 
   return {
     contract_version: contract?.ruleset_version || null,

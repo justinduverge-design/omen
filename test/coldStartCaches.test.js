@@ -7,11 +7,14 @@ const usage = require("../src/services/playerUsage");
 const matchup = require("../src/services/matchupService");
 const { warmUp } = require("../src/services/coldStartWarmup");
 
-const STATS_HEADER = "player_id,player_display_name,position,season,week,season_type,team,attempts,carries,receptions,targets,target_share";
+const STATS_HEADER =
+  "player_id,player_display_name,position,season,week,season_type,team,attempts,carries,receptions,targets,target_share";
 const STATS_CSV = [STATS_HEADER, "00-1,A B,WR,2026,1,REG,CHI,0,0,5,6,0.2"].join("\n");
 const PLAYERS_CSV = "gsis_id,pfr_id\n00-1,P1";
 
-function csvResponse(text) { return { ok: true, status: 200, text: async () => text }; }
+function csvResponse(text) {
+  return { ok: true, status: 200, text: async () => text };
+}
 
 test("playerUsage: concurrent cold requests share one download", async () => {
   usage._resetCache();
@@ -30,7 +33,9 @@ test("playerUsage: an expired entry is served stale while one background refresh
   const DAY = 12 * 3600_000; // expired (6h TTL) but inside the 24h maximum age
   let calls = 0;
   let release;
-  const gate = new Promise((r) => { release = r; });
+  const gate = new Promise((r) => {
+    release = r;
+  });
   const fetchImpl = async (url) => {
     calls += 1;
     if (calls > 2) await gate;
@@ -50,7 +55,10 @@ test("playerUsage: an expired entry is served stale while one background refresh
 test("playerUsage: a failed first build rejects and is retried once the backoff has passed", async () => {
   usage._resetCache();
   let calls = 0;
-  const fetchImpl = async () => { calls += 1; throw new Error("down"); };
+  const fetchImpl = async () => {
+    calls += 1;
+    throw new Error("down");
+  };
   await assert.rejects(() => usage.warm({ season: 2026, fetchImpl, now: 0 }), /down/);
   const before = calls;
   await assert.rejects(() => usage.warm({ season: 2026, fetchImpl, now: 61_000 }), /down/);
@@ -66,7 +74,10 @@ function fakeCrosswalk(rows) {
         eq: (_c, provider) => ({
           in: async (_c2, ids) => {
             calls.push({ provider, ids });
-            return { data: rows.filter((r) => r.provider === provider && ids.includes(r.provider_player_id)), error: null };
+            return {
+              data: rows.filter((r) => r.provider === provider && ids.includes(r.provider_player_id)),
+              error: null,
+            };
           },
         }),
       }),
@@ -81,7 +92,10 @@ test("resolveGsis: found ids are cached per process, misses still go to the data
   assert.deepEqual([...first], [["sleeper:1", "00-1"]]);
   const second = await usage.resolveGsis(supabase, ["sleeper:1", "sleeper:2"]);
   assert.deepEqual([...second], [["sleeper:1", "00-1"]]);
-  assert.deepEqual(supabase.calls.map((c) => c.ids), [["1", "2"], ["2"]]);
+  assert.deepEqual(
+    supabase.calls.map((c) => c.ids),
+    [["1", "2"], ["2"]],
+  );
   const third = await usage.resolveGsis(supabase, ["sleeper:1"]);
   assert.equal(third.get("sleeper:1"), "00-1");
   assert.equal(supabase.calls.length, 2, "an all-cached request makes no database call");
@@ -107,7 +121,8 @@ test("matchupService: the season file is downloaded once for all weeks, in one f
     await matchup.getDvpContext({ position: "RB", opponentTeam: "DAL", season: 2026, week: 9 });
     assert.equal(calls, 1);
   } finally {
-    if (original) global.fetch = original; else delete global.fetch;
+    if (original) global.fetch = original;
+    else delete global.fetch;
     matchup._resetCache();
   }
 });
@@ -116,12 +131,18 @@ test("warmUp: never throws, logs each failed task once, and does not wait on slo
   const warnings = [];
   const logger = { warn: (_msg, meta) => warnings.push(meta.task) };
   let finishSlow;
-  const slowDone = new Promise((r) => { finishSlow = r; });
+  const slowDone = new Promise((r) => {
+    finishSlow = r;
+  });
   const result = warmUp({
     logger,
     loaders: {
-      boom: () => { throw new Error("sync"); },
-      reject: async () => { throw new Error("async"); },
+      boom: () => {
+        throw new Error("sync");
+      },
+      reject: async () => {
+        throw new Error("async");
+      },
       ok: async () => {},
       slow: () => slowDone,
     },
@@ -150,7 +171,10 @@ test("playerUsage: a stale value older than 4x the TTL is not served; the caller
 test("playerUsage: after a failed build nothing is re-downloaded for the backoff window", async () => {
   usage._resetCache();
   let calls = 0;
-  const fetchImpl = async () => { calls += 1; throw new Error("github down"); };
+  const fetchImpl = async () => {
+    calls += 1;
+    throw new Error("github down");
+  };
   await assert.rejects(() => usage.warm({ season: 2026, fetchImpl, now: 0 }), /github down/);
   const afterFirst = calls;
   await assert.rejects(() => usage.warm({ season: 2026, fetchImpl, now: 30_000 }), /github down/);
@@ -185,16 +209,39 @@ test("scheduleWarmUp: skipped in tests, with the kill switch, and inside the cra
   const writes = [];
   let stamp = null;
   const fs = {
-    readFileSync: () => { if (stamp == null) throw new Error("ENOENT"); return String(stamp); },
-    writeFileSync: (_p, v) => { stamp = Number(v); writes.push(v); },
+    readFileSync: () => {
+      if (stamp == null) throw new Error("ENOENT");
+      return String(stamp);
+    },
+    writeFileSync: (_p, v) => {
+      stamp = Number(v);
+      writes.push(v);
+    },
   };
-  const base = { fs, stampPath: "/x", now: () => 1_000_000, setTimer: (fn, ms) => { timers.push({ fn, ms }); return { unref() {} }; }, run: () => {} };
+  const base = {
+    fs,
+    stampPath: "/x",
+    now: () => 1_000_000,
+    setTimer: (fn, ms) => {
+      timers.push({ fn, ms });
+      return { unref() {} };
+    },
+    run: () => {},
+  };
   assert.equal(scheduleWarmUp({ ...base, env: { NODE_ENV: "test" } }), null);
   assert.equal(scheduleWarmUp({ ...base, env: { OMEN_COLD_START_WARMUP: "off" } }), null);
   assert.equal(timers.length, 0);
 
   let ran = 0;
-  assert.ok(scheduleWarmUp({ ...base, env: { NODE_ENV: "production" }, run: () => { ran += 1; } }));
+  assert.ok(
+    scheduleWarmUp({
+      ...base,
+      env: { NODE_ENV: "production" },
+      run: () => {
+        ran += 1;
+      },
+    }),
+  );
   assert.equal(timers.length, 1);
   assert.ok(timers[0].ms >= 1000, "delayed past startup");
   assert.equal(ran, 0, "nothing runs until the timer fires");
@@ -209,8 +256,17 @@ test("scheduleWarmUp: skipped in tests, with the kill switch, and inside the cra
 
 test("warmUp: off-season skips the football-data downloads but still warms the warehouse", async () => {
   const seen = [];
-  const warm = { warm: async () => { seen.push("warehouse"); } };
-  const result = await warmUp({ logger: { warn() {} }, getRuntime: () => warm, getSeason: () => 2026, suppressDownloads: () => true });
+  const warm = {
+    warm: async () => {
+      seen.push("warehouse");
+    },
+  };
+  const result = await warmUp({
+    logger: { warn() {} },
+    getRuntime: () => warm,
+    getSeason: () => 2026,
+    suppressDownloads: () => true,
+  });
   assert.deepEqual(result, [null]);
   assert.deepEqual(seen, ["warehouse"]);
 });

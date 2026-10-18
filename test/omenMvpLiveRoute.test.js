@@ -22,9 +22,24 @@ function liveEnvelope() {
     team: { id: "414.t.7", name: null },
     signals: {
       roster: { status: "live", used: true, source: "yahoo_roster", message: "Roster imported." },
-      matchup_dvp: { status: "stub", used: false, source: "pending_nflverse_data", message: "Matchup context is not available." },
-      llm_reasoning: { status: "unavailable", used: false, source: "ollama_gemma", message: "Private narration is not available." },
-      waivers: { status: "unavailable", used: false, source: "yahoo_waivers", message: "Waiver context is not available." },
+      matchup_dvp: {
+        status: "stub",
+        used: false,
+        source: "pending_nflverse_data",
+        message: "Matchup context is not available.",
+      },
+      llm_reasoning: {
+        status: "unavailable",
+        used: false,
+        source: "ollama_gemma",
+        message: "Private narration is not available.",
+      },
+      waivers: {
+        status: "unavailable",
+        used: false,
+        source: "yahoo_waivers",
+        message: "Waiver context is not available.",
+      },
     },
     recommendation: {
       id: "live_omen_start_sit_test",
@@ -156,7 +171,15 @@ function offSeasonEnvelope() {
   };
 }
 
-function loadOmenRouter({ offSeason = false, liveResponse = liveEnvelope, dvp = null, persistenceError = null, missingColumns = null, llmDelayMs = 0, liveNeverResolves = false } = {}) {
+function loadOmenRouter({
+  offSeason = false,
+  liveResponse = liveEnvelope,
+  dvp = null,
+  persistenceError = null,
+  missingColumns = null,
+  llmDelayMs = 0,
+  liveNeverResolves = false,
+} = {}) {
   const routePath = require.resolve("../src/routes/omen");
   delete require.cache[routePath];
 
@@ -239,15 +262,32 @@ function loadOmenRouter({ offSeason = false, liveResponse = liveEnvelope, dvp = 
           state.scheduleLookups.push(nflTeam);
           return {
             game_time_tv: {
-              status: "live", resolution: "available", used: false, source: "espn_scoreboard",
+              status: "live",
+              resolution: "available",
+              used: false,
+              source: "espn_scoreboard",
               message: "Kickoff is Sunday at 1:00 PM; away vs NYG.",
-              observed_at: "2026-05-25T00:00:00.000Z", fresh_until: null,
-              facts: [{ name: "opponent", kind: "verified", source: "espn_scoreboard", statement: "Opponent: NYG.", value: "NYG" }],
+              observed_at: "2026-05-25T00:00:00.000Z",
+              fresh_until: null,
+              facts: [
+                {
+                  name: "opponent",
+                  kind: "verified",
+                  source: "espn_scoreboard",
+                  statement: "Opponent: NYG.",
+                  value: "NYG",
+                },
+              ],
             },
             travel_home_away: {
-              status: "live", resolution: "available", used: false, source: "omen_stadium_distance",
+              status: "live",
+              resolution: "available",
+              used: false,
+              source: "omen_stadium_distance",
               message: "Away vs NYG. Omen estimates travel from static stadium coordinates.",
-              observed_at: "2026-05-25T00:00:00.000Z", fresh_until: null, facts: [],
+              observed_at: "2026-05-25T00:00:00.000Z",
+              fresh_until: null,
+              facts: [],
             },
           };
         },
@@ -263,7 +303,9 @@ function loadOmenRouter({ offSeason = false, liveResponse = liveEnvelope, dvp = 
         applyDvpContext: (response, value) => {
           if (!response.signals?.matchup_dvp || !value) return false;
           response.signals.matchup_dvp = {
-            status: "live", used: true, source: "nflverse_data",
+            status: "live",
+            used: true,
+            source: "nflverse_data",
             message: `Matchup DvP is ${value.dvp_label}.`,
           };
           return true;
@@ -272,7 +314,8 @@ function loadOmenRouter({ offSeason = false, liveResponse = liveEnvelope, dvp = 
           if (llmDelayMs) await new Promise((resolve) => setTimeout(resolve, llmDelayMs));
           state.llmPayloads.push({ state: response.state });
           return {
-            source: "ollama_gemma", model: "gemma4:e2b-q4_0",
+            source: "ollama_gemma",
+            model: "gemma4:e2b-q4_0",
             explanation: {
               summary: "Live Gemma says this is the move.",
               why_it_matters: "It adds value without changing the rest of the roster.",
@@ -285,8 +328,12 @@ function loadOmenRouter({ offSeason = false, liveResponse = liveEnvelope, dvp = 
         applyMvpLlmNarration: (response, narration) => {
           Object.assign(response.recommendation.explanation, narration.explanation);
           response.signals.llm_reasoning = {
-            status: "live", used: true, source: narration.source, model: narration.model,
-            generated_fields: ["summary", "why_it_matters"], message: "Live private narration.",
+            status: "live",
+            used: true,
+            source: narration.source,
+            model: narration.model,
+            generated_fields: ["summary", "why_it_matters"],
+            message: "Live private narration.",
           };
           return true;
         },
@@ -416,7 +463,10 @@ test("the live Omen call carries the primary player's projection_breakdown (Yaho
     assert.equal(res.body.projection_breakdown.label, "Projected");
     assert.equal(res.body.projection_breakdown.status, "unavailable");
     assert.equal(res.body.projection_breakdown.reason_code, "no_stat_line");
-    assert.equal(res.body.projection_breakdown.statement, "Points breakdown unavailable: Yahoo does not give Omen a projected stat line.");
+    assert.equal(
+      res.body.projection_breakdown.statement,
+      "Points breakdown unavailable: Yahoo does not give Omen a projected stat line.",
+    );
   }
 });
 
@@ -456,43 +506,45 @@ test("POST /api/omen/mvp-move returns live Omen MVP envelope for authorized user
   assert.equal(res.body.recommendation.type, "start_sit");
   assert.deepEqual(state.liveUserIds, ["user-1"]);
   assert.deepEqual(state.appUsers, [{ id: "user-1" }]);
-  assert.deepEqual(state.moveUpserts, [{
-    options: { onConflict: "user_id,week_num,season" },
-    payload: {
-      user_id: "user-1",
-      week_num: 8,
-      season: 2026,
-      move_type: "start_sit",
-      headline: "Start Bench Breakout over Starter Wideout",
-      reasoning: "Start Bench Breakout.",
-      confidence: 82,
-      target_player: "Bench Breakout",
-      // A6 step 2: this asserted `scoring: "PPR"` for a Yahoo league whose rules
-      // have never been read — Yahoo's API is refused at the entitlement level.
-      // The label came from the envelope's own default, not from the league, so
-      // the write path was persisting a fabricated scoring format: the exact
-      // defect A6 exists to remove, surviving one layer down. It is now null.
-      scoring: null,
-      platform: "yahoo",
-      league_id: "414.l.12345",
-      // The rule body stays unretained until a provider's rights path is
-      // evidenced (RETAIN_RULE_BODY). The hashes still pin which contract
-      // version and which rule set produced the row, so provenance survives.
-      // Yahoo used to short-circuit to a synthetic "pending" snapshot and hash *that*, which
-      // produced stable hashes standing in for no rules at all. Since 2026-09-06 Yahoo reads
-      // the league's real settings; this fixture has no reachable Yahoo credentials, so the
-      // read fails and the hashes are null. Hashing an empty snapshot was provenance for
-      // nothing — the ruleset version below is the part that genuinely survives a failed read.
-      scoring_contract: null,
-      scoring_contract_hash: null,
-      scoring_contract_version: "omen-scoring-contract-v1",
-      scoring_contract_required: true,
-      scoring_coverage_state: "pending",
-      provider_rule_snapshot_hash: null,
-      provider_final_outcome: null,
-      reconciliation_state: "pending",
+  assert.deepEqual(state.moveUpserts, [
+    {
+      options: { onConflict: "user_id,week_num,season" },
+      payload: {
+        user_id: "user-1",
+        week_num: 8,
+        season: 2026,
+        move_type: "start_sit",
+        headline: "Start Bench Breakout over Starter Wideout",
+        reasoning: "Start Bench Breakout.",
+        confidence: 82,
+        target_player: "Bench Breakout",
+        // A6 step 2: this asserted `scoring: "PPR"` for a Yahoo league whose rules
+        // have never been read — Yahoo's API is refused at the entitlement level.
+        // The label came from the envelope's own default, not from the league, so
+        // the write path was persisting a fabricated scoring format: the exact
+        // defect A6 exists to remove, surviving one layer down. It is now null.
+        scoring: null,
+        platform: "yahoo",
+        league_id: "414.l.12345",
+        // The rule body stays unretained until a provider's rights path is
+        // evidenced (RETAIN_RULE_BODY). The hashes still pin which contract
+        // version and which rule set produced the row, so provenance survives.
+        // Yahoo used to short-circuit to a synthetic "pending" snapshot and hash *that*, which
+        // produced stable hashes standing in for no rules at all. Since 2026-09-06 Yahoo reads
+        // the league's real settings; this fixture has no reachable Yahoo credentials, so the
+        // read fails and the hashes are null. Hashing an empty snapshot was provenance for
+        // nothing — the ruleset version below is the part that genuinely survives a failed read.
+        scoring_contract: null,
+        scoring_contract_hash: null,
+        scoring_contract_version: "omen-scoring-contract-v1",
+        scoring_contract_required: true,
+        scoring_coverage_state: "pending",
+        provider_rule_snapshot_hash: null,
+        provider_final_outcome: null,
+        reconciliation_state: "pending",
+      },
     },
-  }]);
+  ]);
   // The public envelope keeps exactly the seven fields #372 defined. Deriving
   // more internally must never widen the API, and the derived rule body must
   // never appear here.
@@ -567,10 +619,12 @@ test("POST /api/omen/mvp-move returns the selected-context ESPN waiver envelope"
   // settings read fails and the row records `pending` — the honest state for "we could not
   // read the rules", and never a fabricated contract.
   assert.equal(state.moveUpserts[0].payload.scoring_coverage_state, "pending");
-  assert.deepEqual(state.liveRequests, [{
-    userId: "user-1",
-    options: { contextId: "context-espn-waiver" },
-  }]);
+  assert.deepEqual(state.liveRequests, [
+    {
+      userId: "user-1",
+      options: { contextId: "context-espn-waiver" },
+    },
+  ]);
 });
 
 test("POST /api/omen/mvp-move forwards the selected opaque context to live generation", async () => {
@@ -584,10 +638,12 @@ test("POST /api/omen/mvp-move forwards the selected opaque context to live gener
   });
 
   assert.equal(res.status, 200);
-  assert.deepEqual(state.liveRequests, [{
-    userId: "user-1",
-    options: { contextId: "context-sleeper" },
-  }]);
+  assert.deepEqual(state.liveRequests, [
+    {
+      userId: "user-1",
+      options: { contextId: "context-sleeper" },
+    },
+  ]);
 });
 
 test("POST /api/omen/mvp-move returns off_season before live generation for authorized users", async () => {
@@ -749,8 +805,19 @@ test("mvp-move cache: a different context_id (league switch) or contract version
     await postRaw(app, { headers, body: { ...QUIET, context_id: "ctx-1" } });
     assert.equal((await postRaw(app, { headers, body: { ...QUIET, context_id: "ctx-1" } })).cache, "hit");
     assert.equal((await postRaw(app, { headers, body: { ...QUIET, context_id: "ctx-2" } })).cache, "miss");
-    assert.equal((await postRaw(app, { headers, body: { ...QUIET, context_id: "ctx-1", contract_version: "omen-decision-brief.v2" } })).cache, "miss");
-    assert.deepEqual(state.liveRequests.map((r) => r.options.contextId), ["ctx-1", "ctx-2", "ctx-1"]);
+    assert.equal(
+      (
+        await postRaw(app, {
+          headers,
+          body: { ...QUIET, context_id: "ctx-1", contract_version: "omen-decision-brief.v2" },
+        })
+      ).cache,
+      "miss",
+    );
+    assert.deepEqual(
+      state.liveRequests.map((r) => r.options.contextId),
+      ["ctx-1", "ctx-2", "ctx-1"],
+    );
   } finally {
     responseCache.setStoreForTests(undefined);
   }
@@ -803,7 +870,11 @@ test("mvp-move cache: reauth/recovery states are not cached, with no store the r
     const reauth = () => {
       const body = liveEnvelope();
       body.state = "espn_reauth_required";
-      body.platform = { name: "espn", status: "reauth_required", recovery: { code: "reconnect", message: "x", cta: "Reconnect" } };
+      body.platform = {
+        name: "espn",
+        status: "reauth_required",
+        recovery: { code: "reconnect", message: "x", cta: "Reconnect" },
+      };
       body.recommendation = null;
       return body;
     };
@@ -844,7 +915,10 @@ test("mvp-move cache: a response whose narration timed out is not cached", async
 test("an open narration breaker skips the model, leaves the stub signal untouched and is not cached", async () => {
   const { sharedNarrationGuard } = require("../src/services/narrationBudget");
   sharedNarrationGuard.reset();
-  for (let i = 0; i < 3; i += 1) await sharedNarrationGuard.run("test", 50, async () => { throw new Error("down"); });
+  for (let i = 0; i < 3; i += 1)
+    await sharedNarrationGuard.run("test", 50, async () => {
+      throw new Error("down");
+    });
   assert.equal(sharedNarrationGuard.state(), "open");
   responseCache.setStoreForTests(responseCache.createMemoryResponseCacheStore());
   try {
@@ -885,11 +959,14 @@ test("mvp-move forwards an explicit league from the query string or body to live
   await postQuery(app, { headers, query: "?league_id=lg-9&platform=espn", body: QUIET });
   await postQuery(app, { headers, body: { ...QUIET, context_id: "ctx-3", league_id: "lg-3" } });
   await postQuery(app, { headers, body: QUIET });
-  assert.deepEqual(state.liveRequests.map((r) => r.options), [
-    { contextId: undefined, leagueId: "lg-9", platform: "espn" },
-    { contextId: "ctx-3", leagueId: "lg-3" },
-    { contextId: undefined },
-  ]);
+  assert.deepEqual(
+    state.liveRequests.map((r) => r.options),
+    [
+      { contextId: undefined, leagueId: "lg-9", platform: "espn" },
+      { contextId: "ctx-3", leagueId: "lg-3" },
+      { contextId: undefined },
+    ],
+  );
 });
 
 test("mvp-move cache: a league named in the query string is a separate entry", async () => {
@@ -900,7 +977,10 @@ test("mvp-move cache: a league named in the query string is a separate entry", a
     assert.equal((await postQuery(app, { headers, query: "?league_id=a", body: QUIET })).cache, "miss");
     assert.equal((await postQuery(app, { headers, query: "?league_id=a", body: QUIET })).cache, "hit");
     assert.equal((await postQuery(app, { headers, query: "?league_id=b", body: QUIET })).cache, "miss");
-    assert.deepEqual(state.liveRequests.map((r) => r.options.leagueId), ["a", "b"]);
+    assert.deepEqual(
+      state.liveRequests.map((r) => r.options.leagueId),
+      ["a", "b"],
+    );
   } finally {
     responseCache.setStoreForTests(undefined);
   }

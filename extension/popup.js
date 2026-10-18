@@ -106,7 +106,7 @@ async function getCookie(name) {
     CANDIDATE_COOKIE_DOMAINS.map(async (domain) => {
       const read = await getCookieFrom(domain, name);
       return { domain, value: read.value, outcome: read.outcome };
-    })
+    }),
   );
 
   const present = results.filter((r) => r.value != null);
@@ -148,8 +148,7 @@ async function init() {
       el("needsAccess").hidden = false;
       el("grantAccess").addEventListener("click", async () => {
         // Must run from a user gesture; Safari shows its own consent sheet here.
-        const granted = await chrome.permissions.request({ origins: [ESPN_ORIGIN_PATTERN] })
-          .catch(() => false);
+        const granted = await chrome.permissions.request({ origins: [ESPN_ORIGIN_PATTERN] }).catch(() => false);
         if (granted) {
           el("needsAccess").hidden = true;
           await init();

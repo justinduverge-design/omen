@@ -25,25 +25,27 @@ function input(overrides = {}) {
       },
     },
     unmatchedRows: 0,
-    rows: [{
-      season: 2026,
-      week: 1,
-      seasonType: "REG",
-      playerId: "omen:player:gsis.00-0031234",
-      teamId: "omen:team:buf",
-      opponentTeamId: "omen:team:nyj",
-      gameId: "2026_01_BUF_NYJ",
-      footballPosition: "QB",
-      fantasyPointsPpr: 22.4,
-      passingYards: 280,
-      rushingYards: 31,
-      carries: 5,
-      passingAttempts: 34,
-      targetShare: 0.2,
-      stats: { attempts: 34 },
-      opportunity: { carries: 5 },
-      sourceRow: { player_id: "00-0031234", week: 1 },
-    }],
+    rows: [
+      {
+        season: 2026,
+        week: 1,
+        seasonType: "REG",
+        playerId: "omen:player:gsis.00-0031234",
+        teamId: "omen:team:buf",
+        opponentTeamId: "omen:team:nyj",
+        gameId: "2026_01_BUF_NYJ",
+        footballPosition: "QB",
+        fantasyPointsPpr: 22.4,
+        passingYards: 280,
+        rushingYards: 31,
+        carries: 5,
+        passingAttempts: 34,
+        targetShare: 0.2,
+        stats: { attempts: 34 },
+        opportunity: { carries: 5 },
+        sourceRow: { player_id: "00-0031234", week: 1 },
+      },
+    ],
     ...overrides,
   };
 }
@@ -53,7 +55,8 @@ function fakePool({ existing = [], failAt, startedRows = [{ id: 71 }] } = {}) {
   let released = false;
   const client = {
     async query(query) {
-      const name = typeof query === "string" ? query : query.name || query.text.trim().split(/\s+/).slice(0, 3).join(" ");
+      const name =
+        typeof query === "string" ? query : query.name || query.text.trim().split(/\s+/).slice(0, 3).join(" ");
       calls.push(query);
       if (name === failAt) {
         const error = new Error("postgres://admin:secret@warehouse.internal private detail");
@@ -66,17 +69,23 @@ function fakePool({ existing = [], failAt, startedRows = [{ id: 71 }] } = {}) {
       if (name === "warehouse-player-weekly-stage-references-v1") return { rows: [{ invalid_count: 0 }] };
       return { rows: [], rowCount: 1 };
     },
-    release() { released = true; },
+    release() {
+      released = true;
+    },
   };
   return {
-    pool: { async connect() { return client; } },
+    pool: {
+      async connect() {
+        return client;
+      },
+    },
     calls,
     wasReleased: () => released,
   };
 }
 
 function names(calls) {
-  return calls.map((query) => typeof query === "string" ? query : query.name).filter(Boolean);
+  return calls.map((query) => (typeof query === "string" ? query : query.name)).filter(Boolean);
 }
 
 test("writes player weekly facts and the succeeded receipt in one guarded transaction", async () => {
@@ -111,28 +120,30 @@ test("writes player weekly facts and the succeeded receipt in one guarded transa
   assert.deepEqual(lock.values, ["player_weekly_stats:2026"]);
   const staged = db.calls.find((call) => call.name === "warehouse-player-weekly-stage-v1");
   assert.equal(staged.values[1], 71);
-  assert.deepEqual(JSON.parse(staged.values[0]), [{
-    season: 2026,
-    week: 1,
-    season_type: "REG",
-    player_id: "omen:player:gsis.00-0031234",
-    team_id: "omen:team:buf",
-    opponent_team_id: "omen:team:nyj",
-    game_id: "2026_01_BUF_NYJ",
-    football_position: "QB",
-    fantasy_points_ppr: 22.4,
-    passing_yards: 280,
-    rushing_yards: 31,
-    receiving_yards: null,
-    targets: null,
-    receptions: null,
-    carries: 5,
-    passing_attempts: 34,
-    target_share: 0.2,
-    stats: { attempts: 34 },
-    opportunity: { carries: 5 },
-    source_row: { player_id: "00-0031234", week: 1 },
-  }]);
+  assert.deepEqual(JSON.parse(staged.values[0]), [
+    {
+      season: 2026,
+      week: 1,
+      season_type: "REG",
+      player_id: "omen:player:gsis.00-0031234",
+      team_id: "omen:team:buf",
+      opponent_team_id: "omen:team:nyj",
+      game_id: "2026_01_BUF_NYJ",
+      football_position: "QB",
+      fantasy_points_ppr: 22.4,
+      passing_yards: 280,
+      rushing_yards: 31,
+      receiving_yards: null,
+      targets: null,
+      receptions: null,
+      carries: 5,
+      passing_attempts: 34,
+      target_share: 0.2,
+      stats: { attempts: 34 },
+      opportunity: { carries: 5 },
+      source_row: { player_id: "00-0031234", week: 1 },
+    },
+  ]);
   const references = db.calls.find((call) => call.name === "warehouse-player-weekly-stage-references-v1");
   assert.match(references.text, /g\.week IS DISTINCT FROM s\.week/);
   assert.match(references.text, /g\.game_type NOT IN \('WC', 'DIV', 'CON', 'SB'\)/);
@@ -161,16 +172,13 @@ test("rolls back partial work before writing a bounded failed receipt", async ()
   const db = fakePool({ failAt: "warehouse-player-weekly-promote-v1" });
   const writer = createPlayerWeeklyWriter({ pool: db.pool });
 
-  await assert.rejects(
-    writer.writeSeason(input()),
-    (error) => {
-      assert.ok(error instanceof WarehouseIngestError);
-      assert.equal(error.code, "23505");
-      assert.equal(error.message, "player weekly ingest failed");
-      assert.doesNotMatch(error.message, /secret|warehouse\.internal/);
-      return true;
-    },
-  );
+  await assert.rejects(writer.writeSeason(input()), (error) => {
+    assert.ok(error instanceof WarehouseIngestError);
+    assert.equal(error.code, "23505");
+    assert.equal(error.message, "player weekly ingest failed");
+    assert.doesNotMatch(error.message, /secret|warehouse\.internal/);
+    return true;
+  });
 
   const callNames = names(db.calls);
   assert.ok(callNames.indexOf("ROLLBACK") > callNames.indexOf("warehouse-player-weekly-promote-v1"));
@@ -191,7 +199,12 @@ test("rolls back partial work before writing a bounded failed receipt", async ()
 test("rejects malformed source hashes and unmatched row metadata before connecting", async () => {
   let connects = 0;
   const writer = createPlayerWeeklyWriter({
-    pool: { async connect() { connects += 1; throw new Error("must not connect"); } },
+    pool: {
+      async connect() {
+        connects += 1;
+        throw new Error("must not connect");
+      },
+    },
   });
 
   await assert.rejects(
@@ -199,10 +212,14 @@ test("rejects malformed source hashes and unmatched row metadata before connecti
     /receipt\.sourceRef is invalid/,
   );
   await assert.rejects(
-    writer.writeSeason(input({ receipt: {
-      ...input().receipt,
-      sourceUrl: "https://user:secret@example.com/source.csv",
-    } })),
+    writer.writeSeason(
+      input({
+        receipt: {
+          ...input().receipt,
+          sourceUrl: "https://user:secret@example.com/source.csv",
+        },
+      }),
+    ),
     /receipt\.sourceUrl is invalid/,
   );
   await assert.rejects(writer.writeSeason(input({ unmatchedRows: -1 })), /unmatchedRows/);
@@ -233,15 +250,26 @@ test("rejects malformed source hashes and unmatched row metadata before connecti
 test("rejects a receipt for any source other than the exact season asset", async () => {
   const bad = input();
   bad.receipt.sourceUrl = "https://example.com/player-week.csv";
-  await assert.rejects(createPlayerWeeklyWriter({ pool: { connect() { throw new Error("must not connect"); } } }).writeSeason(bad), /allowlisted/);
+  await assert.rejects(
+    createPlayerWeeklyWriter({
+      pool: {
+        connect() {
+          throw new Error("must not connect");
+        },
+      },
+    }).writeSeason(bad),
+    /allowlisted/,
+  );
 });
 
 test("failed receipt upserts cannot rebind a run id to different source bytes", async () => {
   const db = fakePool({ startedRows: [] });
   const changed = input();
   changed.receipt.sourceRef = `sha256:${"b".repeat(64)}`;
-  await assert.rejects(createPlayerWeeklyWriter({ pool: db.pool }).writeSeason(changed),
-    (error) => error.code === "run_id_conflict");
+  await assert.rejects(
+    createPlayerWeeklyWriter({ pool: db.pool }).writeSeason(changed),
+    (error) => error.code === "run_id_conflict",
+  );
   const start = db.calls.find((call) => call.name === "warehouse-player-weekly-start-receipt-v1");
   const failure = db.calls.find((call) => call.name === "warehouse-player-weekly-failed-receipt-v1");
   assert.match(start.text, /source_ref = EXCLUDED\.source_ref/);
@@ -251,7 +279,12 @@ test("failed receipt upserts cannot rebind a run id to different source bytes", 
 test("rejects rows from another season and never performs name matching", async () => {
   let connects = 0;
   const writer = createPlayerWeeklyWriter({
-    pool: { async connect() { connects += 1; throw new Error("must not connect"); } },
+    pool: {
+      async connect() {
+        connects += 1;
+        throw new Error("must not connect");
+      },
+    },
   });
   const row = { ...input().rows[0], season: 2025, playerName: "Do Not Match Me" };
 
@@ -262,13 +295,15 @@ test("rejects rows from another season and never performs name matching", async 
 test("rejects duplicate player-week keys before connecting", async () => {
   let connects = 0;
   const writer = createPlayerWeeklyWriter({
-    pool: { async connect() { connects += 1; throw new Error("must not connect"); } },
+    pool: {
+      async connect() {
+        connects += 1;
+        throw new Error("must not connect");
+      },
+    },
   });
   const row = input().rows[0];
 
-  await assert.rejects(
-    writer.writeSeason(input({ rows: [row, { ...row }] })),
-    /duplicate player-week key/,
-  );
+  await assert.rejects(writer.writeSeason(input({ rows: [row, { ...row }] })), /duplicate player-week key/);
   assert.equal(connects, 0);
 });

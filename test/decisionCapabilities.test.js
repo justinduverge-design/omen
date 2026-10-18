@@ -107,7 +107,12 @@ test("promoted source records override legacy stubs only with explicit usable ev
     { state: "live", used: true, kind: "verified" },
   );
   assert.deepEqual(
-    { state: byName.matchup_dvp.state, used: byName.matchup_dvp.used, kind: byName.matchup_dvp.kind, reason: byName.matchup_dvp.reason_code },
+    {
+      state: byName.matchup_dvp.state,
+      used: byName.matchup_dvp.used,
+      kind: byName.matchup_dvp.kind,
+      reason: byName.matchup_dvp.reason_code,
+    },
     { state: "unavailable", used: false, kind: "inference", reason: "opponent_context_missing" },
   );
 });

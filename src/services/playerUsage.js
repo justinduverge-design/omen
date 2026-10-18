@@ -30,7 +30,17 @@ const RECENT_GAMES = 3;
 const MIN_PRIOR_GAMES = 2;
 const PROVIDERS = new Set(["espn", "sleeper", "yahoo"]);
 
-const STATS_COLUMNS = ["player_id", "week", "season_type", "team", "targets", "receptions", "carries", "attempts", "target_share"];
+const STATS_COLUMNS = [
+  "player_id",
+  "week",
+  "season_type",
+  "team",
+  "targets",
+  "receptions",
+  "carries",
+  "attempts",
+  "target_share",
+];
 const SNAP_COLUMNS = ["pfr_player_id", "week", "game_type", "offense_pct"];
 const PLAYER_COLUMNS = ["gsis_id", "pfr_id"];
 
@@ -69,14 +79,22 @@ function cached(key, build, now) {
 }
 
 function refresh(key, build, now) {
-  const promise = Promise.resolve().then(build).then((value) => {
-    cache.set(key, { at: now, value });
-    failures.delete(key);
-    return value;
-  }, (error) => {
-    failures.set(key, { at: now, error });
-    throw error;
-  }).finally(() => { if (inflight.get(key) === promise) inflight.delete(key); });
+  const promise = Promise.resolve()
+    .then(build)
+    .then(
+      (value) => {
+        cache.set(key, { at: now, value });
+        failures.delete(key);
+        return value;
+      },
+      (error) => {
+        failures.set(key, { at: now, error });
+        throw error;
+      },
+    )
+    .finally(() => {
+      if (inflight.get(key) === promise) inflight.delete(key);
+    });
   inflight.set(key, promise);
   return promise;
 }
@@ -105,28 +123,49 @@ function groupBy(rows, key, keep) {
 
 /** gsis id -> weekly stat rows (regular season). */
 function loadSeason(season, { fetchImpl = fetch, now = Date.now() } = {}) {
-  return cached(`stats:${season}`, async () => {
-    const rows = parseCsv(await fetchText(STATS_URL(season), fetchImpl), { required: ["player_id", "week", "season_type", "targets", "carries", "target_share", "team"], columns: STATS_COLUMNS });
-    return groupBy(rows, "player_id", (r) => r.season_type === "REG");
-  }, now);
+  return cached(
+    `stats:${season}`,
+    async () => {
+      const rows = parseCsv(await fetchText(STATS_URL(season), fetchImpl), {
+        required: ["player_id", "week", "season_type", "targets", "carries", "target_share", "team"],
+        columns: STATS_COLUMNS,
+      });
+      return groupBy(rows, "player_id", (r) => r.season_type === "REG");
+    },
+    now,
+  );
 }
 
 /** pfr id -> weekly snap rows (regular season). */
 function loadSnaps(season, { fetchImpl = fetch, now = Date.now() } = {}) {
-  return cached(`snaps:${season}`, async () => {
-    const rows = parseCsv(await fetchText(SNAPS_URL(season), fetchImpl), { required: SNAP_COLUMNS, columns: SNAP_COLUMNS });
-    return groupBy(rows, "pfr_player_id", (r) => r.game_type === "REG");
-  }, now);
+  return cached(
+    `snaps:${season}`,
+    async () => {
+      const rows = parseCsv(await fetchText(SNAPS_URL(season), fetchImpl), {
+        required: SNAP_COLUMNS,
+        columns: SNAP_COLUMNS,
+      });
+      return groupBy(rows, "pfr_player_id", (r) => r.game_type === "REG");
+    },
+    now,
+  );
 }
 
 /** gsis id -> pfr id, from nflverse players.csv. */
 function loadPfrIds({ fetchImpl = fetch, now = Date.now() } = {}) {
-  return cached("pfr", async () => {
-    const rows = parseCsv(await fetchText(PLAYERS_URL, fetchImpl), { required: PLAYER_COLUMNS, columns: PLAYER_COLUMNS });
-    const out = new Map();
-    for (const row of rows) if (row.gsis_id && row.pfr_id) out.set(row.gsis_id, row.pfr_id);
-    return out;
-  }, now);
+  return cached(
+    "pfr",
+    async () => {
+      const rows = parseCsv(await fetchText(PLAYERS_URL, fetchImpl), {
+        required: PLAYER_COLUMNS,
+        columns: PLAYER_COLUMNS,
+      });
+      const out = new Map();
+      for (const row of rows) if (row.gsis_id && row.pfr_id) out.set(row.gsis_id, row.pfr_id);
+      return out;
+    },
+    now,
+  );
 }
 
 function num(value) {
@@ -163,9 +202,7 @@ function averages(games, snapRows) {
  * the recent window is not full). Null without games.
  */
 function summarize(rows, beforeWeek, snapRows = null) {
-  const played = (rows || [])
-    .filter((r) => num(r.week) < beforeWeek)
-    .sort((a, b) => num(b.week) - num(a.week));
+  const played = (rows || []).filter((r) => num(r.week) < beforeWeek).sort((a, b) => num(b.week) - num(a.week));
   const games = played.slice(0, RECENT_GAMES);
   if (!games.length) return null;
   const earlier = played.slice(RECENT_GAMES);
@@ -186,7 +223,10 @@ const crosswalkCache = new Map();
 function crosswalkGet(key, now) {
   const hit = crosswalkCache.get(key);
   if (!hit) return null;
-  if (now - hit.at >= CROSSWALK_TTL_MS) { crosswalkCache.delete(key); return null; }
+  if (now - hit.at >= CROSSWALK_TTL_MS) {
+    crosswalkCache.delete(key);
+    return null;
+  }
   return hit.gsis;
 }
 
@@ -210,7 +250,8 @@ async function resolveGsis(supabase, playerKeys, { now = Date.now() } = {}) {
     const ids = [];
     for (const id of allIds) {
       const known = crosswalkGet(`${provider}:${id}`, now);
-      if (known) out.set(`${provider}:${id}`, known); else ids.push(id);
+      if (known) out.set(`${provider}:${id}`, known);
+      else ids.push(id);
     }
     if (!ids.length) continue;
     const { data, error } = await supabase
@@ -387,7 +428,12 @@ async function warm({ season, fetchImpl = fetch, now = Date.now() } = {}) {
   await Promise.all([loadSeason(season, { fetchImpl, now }), loadPfrIds({ fetchImpl, now })]);
 }
 
-function _resetCache() { cache.clear(); inflight.clear(); failures.clear(); crosswalkCache.clear(); }
+function _resetCache() {
+  cache.clear();
+  inflight.clear();
+  failures.clear();
+  crosswalkCache.clear();
+}
 
 module.exports = {
   getRecentUsage,

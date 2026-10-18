@@ -6,7 +6,8 @@ const test = require("node:test");
 const { getRecentUsage, usageStatement, summarize, _resetCache } = require("../src/services/playerUsage");
 const { buildStartSitDetail } = require("../src/services/startSitDetail");
 
-const HEADER = "player_id,player_display_name,position,season,week,season_type,team,attempts,carries,receptions,targets,target_share";
+const HEADER =
+  "player_id,player_display_name,position,season,week,season_type,team,attempts,carries,receptions,targets,target_share";
 const CSV = [
   HEADER,
   "00-0032464,Kalif Raymond,WR,2026,1,REG,CHI,0,0,8,9,0.346153846153846",
@@ -28,7 +29,10 @@ function fakeSupabase(rows, { error = null } = {}) {
           in: async (_c2, ids) => {
             calls.push({ table, provider, ids });
             if (error) return { data: null, error };
-            return { data: rows.filter((r) => r.provider === provider && ids.includes(r.provider_player_id)), error: null };
+            return {
+              data: rows.filter((r) => r.provider === provider && ids.includes(r.provider_player_id)),
+              error: null,
+            };
           },
         }),
       }),
@@ -42,7 +46,12 @@ const crosswalk = [
 const okFetch = async () => ({ ok: true, text: async () => CSV });
 
 test("usage covers the last three games before the week asked about, never a later one", () => {
-  const rows = CSV.split("\n").slice(1).map((l) => { const [player_id,, , , week,,, attempts, carries, receptions, targets, target_share] = l.split(","); return { player_id, week, attempts, carries, receptions, targets, target_share, team: "CHI" }; })
+  const rows = CSV.split("\n")
+    .slice(1)
+    .map((l) => {
+      const [player_id, , , , week, , , attempts, carries, receptions, targets, target_share] = l.split(",");
+      return { player_id, week, attempts, carries, receptions, targets, target_share, team: "CHI" };
+    })
     .filter((r) => r.player_id === "00-0032464");
   const u = summarize(rows, 4);
   assert.deepEqual(u.weeks, [1, 2, 3]);
@@ -52,12 +61,18 @@ test("usage covers the last three games before the week asked about, never a lat
 });
 
 test("usage sentences say what happened, by position, in plain words", () => {
-  assert.equal(usageStatement("Kalif Raymond", "WR", { games: 3, targets_per_game: 7, target_share: 0.2396 }),
-    "Kalif Raymond: 7.0 targets a game over the last 3 games (24% of the team's targets).");
-  assert.equal(usageStatement("Kyle Monangai", "RB", { games: 3, carries_per_game: 10, targets_per_game: 4 / 3 }),
-    "Kyle Monangai: 10.0 carries and 1.3 targets a game over the last 3 games.");
-  assert.equal(usageStatement("A QB", "QB", { games: 1, attempts_per_game: 31, carries_per_game: 4 }),
-    "A QB: 31.0 pass attempts and 4.0 carries in the last game.");
+  assert.equal(
+    usageStatement("Kalif Raymond", "WR", { games: 3, targets_per_game: 7, target_share: 0.2396 }),
+    "Kalif Raymond: 7.0 targets a game over the last 3 games (24% of the team's targets).",
+  );
+  assert.equal(
+    usageStatement("Kyle Monangai", "RB", { games: 3, carries_per_game: 10, targets_per_game: 4 / 3 }),
+    "Kyle Monangai: 10.0 carries and 1.3 targets a game over the last 3 games.",
+  );
+  assert.equal(
+    usageStatement("A QB", "QB", { games: 1, attempts_per_game: 31, carries_per_game: 4 }),
+    "A QB: 31.0 pass attempts and 4.0 carries in the last game.",
+  );
   assert.equal(usageStatement("A Kicker", "K", { games: 3 }), null);
   assert.equal(usageStatement("Nobody", "WR", null), null);
 });
@@ -65,7 +80,13 @@ test("usage sentences say what happened, by position, in plain words", () => {
 test("roster players resolve through the crosswalk to nflverse rows (ESPN and Sleeper keys)", async () => {
   _resetCache();
   const supabase = fakeSupabase(crosswalk);
-  const usage = await getRecentUsage({ supabase, playerKeys: ["espn:2973405", "sleeper:12534", "espn:999", "custom:1"], season: 2026, beforeWeek: 4, fetchImpl: okFetch });
+  const usage = await getRecentUsage({
+    supabase,
+    playerKeys: ["espn:2973405", "sleeper:12534", "espn:999", "custom:1"],
+    season: 2026,
+    beforeWeek: 4,
+    fetchImpl: okFetch,
+  });
   assert.equal(usage.get("espn:2973405").targets_per_game, 7);
   assert.equal(usage.get("sleeper:12534").carries_per_game, 10);
   assert.equal(usage.has("espn:999"), false, "an unmapped player has no usage");
@@ -77,15 +98,48 @@ test("any failure gives no usage at all, never a guess", async () => {
   const warnings = [];
   const log = { warn: (m, d) => warnings.push([m, d]) };
   const down = async () => ({ ok: false, status: 503, text: async () => "" });
-  assert.equal((await getRecentUsage({ supabase: fakeSupabase(crosswalk), playerKeys: ["espn:2973405"], season: 2026, beforeWeek: 4, fetchImpl: down, log })).size, 0);
+  assert.equal(
+    (
+      await getRecentUsage({
+        supabase: fakeSupabase(crosswalk),
+        playerKeys: ["espn:2973405"],
+        season: 2026,
+        beforeWeek: 4,
+        fetchImpl: down,
+        log,
+      })
+    ).size,
+    0,
+  );
   _resetCache();
-  assert.equal((await getRecentUsage({ supabase: fakeSupabase([], { error: { code: "42P01" } }), playerKeys: ["espn:2973405"], season: 2026, beforeWeek: 4, fetchImpl: okFetch, log })).size, 0);
+  assert.equal(
+    (
+      await getRecentUsage({
+        supabase: fakeSupabase([], { error: { code: "42P01" } }),
+        playerKeys: ["espn:2973405"],
+        season: 2026,
+        beforeWeek: 4,
+        fetchImpl: okFetch,
+        log,
+      })
+    ).size,
+    0,
+  );
   assert.equal(warnings.filter(([m]) => m === "player usage unavailable").length, 2);
   assert.equal((await getRecentUsage({ supabase: null, playerKeys: ["espn:1"], season: 2026, beforeWeek: 4 })).size, 0);
 });
 
 function roster() {
-  const p = (key, name, pos, proj, extra = {}) => ({ player_key: key, name, position: pos, team: "CHI", projected_points: proj, eligible_positions: [pos, "FLEX"], status: "", ...extra });
+  const p = (key, name, pos, proj, extra = {}) => ({
+    player_key: key,
+    name,
+    position: pos,
+    team: "CHI",
+    projected_points: proj,
+    eligible_positions: [pos, "FLEX"],
+    status: "",
+    ...extra,
+  });
   return {
     week: 4,
     slots: {
@@ -100,13 +154,31 @@ test("the start/sit call carries a verified usage line for each player, and none
     ["espn:2973405", { games: 3, targets_per_game: 7, target_share: 0.2396, carries_per_game: 0 }],
     ["sleeper:12534", { games: 3, carries_per_game: 10, targets_per_game: 4 / 3, target_share: 0.05 }],
   ]);
-  const withUsage = buildStartSitDetail({ roster: roster(), platform: "espn", leagueId: "1", week: 4, season: 2026, scoringFormat: "1 point per reception", usage });
+  const withUsage = buildStartSitDetail({
+    roster: roster(),
+    platform: "espn",
+    leagueId: "1",
+    week: 4,
+    season: 2026,
+    scoringFormat: "1 point per reception",
+    usage,
+  });
   assert.equal(withUsage.recommendation.start.name, "Kalif Raymond");
   const lines = withUsage.evidence.filter((e) => e.category === "recent_usage");
   assert.equal(lines.length, 2);
   assert.ok(lines.every((e) => e.kind === "verified"));
-  assert.match(lines.map((e) => e.statement).join(" "), /Kalif Raymond: 7\.0 targets a game over the last 3 games \(24% of the team's targets\)/);
-  const without = buildStartSitDetail({ roster: roster(), platform: "espn", leagueId: "1", week: 4, season: 2026, scoringFormat: "1 point per reception" });
+  assert.match(
+    lines.map((e) => e.statement).join(" "),
+    /Kalif Raymond: 7\.0 targets a game over the last 3 games \(24% of the team's targets\)/,
+  );
+  const without = buildStartSitDetail({
+    roster: roster(),
+    platform: "espn",
+    leagueId: "1",
+    week: 4,
+    season: 2026,
+    scoringFormat: "1 point per reception",
+  });
   assert.equal(without.evidence.filter((e) => e.category === "recent_usage").length, 0);
 });
 
@@ -129,7 +201,8 @@ function routedFetch({ snapsOk = true } = {}) {
   const urls = [];
   const impl = async (url) => {
     urls.push(url);
-    if (url.includes("snap_counts")) return snapsOk ? { ok: true, text: async () => SNAPS } : { ok: false, status: 404, text: async () => "" };
+    if (url.includes("snap_counts"))
+      return snapsOk ? { ok: true, text: async () => SNAPS } : { ok: false, status: 404, text: async () => "" };
     if (url.includes("/players/players.csv")) return { ok: true, text: async () => PLAYERS };
     return { ok: true, text: async () => CSV };
   };
@@ -140,7 +213,13 @@ function routedFetch({ snapsOk = true } = {}) {
 test("snap share joins nflverse snap counts through the players.csv pfr id", async () => {
   _resetCache();
   const fetchImpl = routedFetch();
-  const usage = await getRecentUsage({ supabase: fakeSupabase(crosswalk), playerKeys: ["espn:2973405", "sleeper:12534"], season: 2026, beforeWeek: 6, fetchImpl });
+  const usage = await getRecentUsage({
+    supabase: fakeSupabase(crosswalk),
+    playerKeys: ["espn:2973405", "sleeper:12534"],
+    season: 2026,
+    beforeWeek: 6,
+    fetchImpl,
+  });
   const kalif = usage.get("espn:2973405");
   assert.deepEqual(kalif.weeks, [2, 3, 5]);
   assert.ok(Math.abs(kalif.snap_share - (0.62 + 0.75 + 0.8) / 3) < 1e-9);
@@ -152,7 +231,14 @@ test("snap share joins nflverse snap counts through the players.csv pfr id", asy
 test("a snap-count outage keeps the target line and drops only the snap share", async () => {
   _resetCache();
   const warnings = [];
-  const usage = await getRecentUsage({ supabase: fakeSupabase(crosswalk), playerKeys: ["espn:2973405"], season: 2026, beforeWeek: 4, fetchImpl: routedFetch({ snapsOk: false }), log: { warn: (m) => warnings.push(m) } });
+  const usage = await getRecentUsage({
+    supabase: fakeSupabase(crosswalk),
+    playerKeys: ["espn:2973405"],
+    season: 2026,
+    beforeWeek: 4,
+    fetchImpl: routedFetch({ snapsOk: false }),
+    log: { warn: (m) => warnings.push(m) },
+  });
   assert.equal(usage.get("espn:2973405").targets_per_game, 7);
   assert.equal(usage.get("espn:2973405").snap_share, null);
   assert.equal(warnings.length, 1);
@@ -163,14 +249,30 @@ test("weeklyUsageRows merges stats and snap rows per week for usageStability, ol
   const { weeklyUsageRows } = require("../src/services/playerUsage");
   const { usageStability } = require("../src/services/signalNoise");
   const fetchImpl = routedFetch();
-  const rows = await weeklyUsageRows({ supabase: fakeSupabase(crosswalk), playerKey: "espn:2973405", season: 2026, beforeWeek: 5, fetchImpl });
-  assert.deepEqual(rows, [
-    { week: 1, snap_share: 0.6, targets: 9, carries: 0 },
-    { week: 2, snap_share: 0.62, targets: 5, carries: 0 },
-    { week: 3, snap_share: 0.75, targets: 7, carries: 0 },
-  ], "week 4 is a bye (no row) and week 5 is not before week 5");
+  const rows = await weeklyUsageRows({
+    supabase: fakeSupabase(crosswalk),
+    playerKey: "espn:2973405",
+    season: 2026,
+    beforeWeek: 5,
+    fetchImpl,
+  });
+  assert.deepEqual(
+    rows,
+    [
+      { week: 1, snap_share: 0.6, targets: 9, carries: 0 },
+      { week: 2, snap_share: 0.62, targets: 5, carries: 0 },
+      { week: 3, snap_share: 0.75, targets: 7, carries: 0 },
+    ],
+    "week 4 is a bye (no row) and week 5 is not before week 5",
+  );
   assert.equal(usageStability(rows).games, 3);
-  const sleeper = await weeklyUsageRows({ supabase: fakeSupabase(crosswalk), playerKey: "sleeper:12534", season: 2026, beforeWeek: 4, fetchImpl });
+  const sleeper = await weeklyUsageRows({
+    supabase: fakeSupabase(crosswalk),
+    playerKey: "sleeper:12534",
+    season: 2026,
+    beforeWeek: 4,
+    fetchImpl,
+  });
   assert.equal(sleeper[0].snap_share, 0.4);
   assert.equal(sleeper[1].snap_share, null, "a week without a snap row keeps a null snap share");
 });
@@ -188,48 +290,150 @@ test("weeklyUsageRows returns an empty list on any failure or unmapped player", 
   _resetCache();
   const rows = await weeklyUsageRows({ ...base, fetchImpl: routedFetch({ snapsOk: false }), log: { warn() {} } });
   assert.equal(rows.length, 3);
-  assert.ok(rows.every((r) => r.snap_share === null), "a snap outage drops only the snap share");
+  assert.ok(
+    rows.every((r) => r.snap_share === null),
+    "a snap outage drops only the snap share",
+  );
 });
 
 test("trend compares the last three games with the earlier games of the season", () => {
-  const rows = (weeks) => weeks.map(([week, targets]) => ({ week: String(week), targets: String(targets), carries: "0", attempts: "0", receptions: "0", target_share: "0.2", team: "CHI" }));
-  const u = summarize(rows([[1, 4], [2, 4], [3, 8], [4, 9], [5, 10]]), 6);
+  const rows = (weeks) =>
+    weeks.map(([week, targets]) => ({
+      week: String(week),
+      targets: String(targets),
+      carries: "0",
+      attempts: "0",
+      receptions: "0",
+      target_share: "0.2",
+      team: "CHI",
+    }));
+  const u = summarize(
+    rows([
+      [1, 4],
+      [2, 4],
+      [3, 8],
+      [4, 9],
+      [5, 10],
+    ]),
+    6,
+  );
   assert.deepEqual(u.weeks, [3, 4, 5]);
   assert.equal(u.prior.games, 2);
   assert.equal(u.prior.targets_per_game, 4);
-  assert.equal(summarize(rows([[1, 4], [2, 4], [3, 8]]), 4).prior, null, "no earlier games: no trend");
-  assert.equal(summarize(rows([[1, 4], [2, 4], [3, 8], [4, 9]]), 5).prior, null, "one earlier game: no trend");
-  const snaps = [1, 2, 3, 4, 5].map((week) => ({ week: String(week), offense_pct: week <= 2 ? (week === 1 ? "0.4" : "0.5") : "0.7" }));
-  const withSnaps = summarize(rows([[1, 4], [2, 4], [3, 4], [4, 4], [5, 4]]), 6, snaps);
+  assert.equal(
+    summarize(
+      rows([
+        [1, 4],
+        [2, 4],
+        [3, 8],
+      ]),
+      4,
+    ).prior,
+    null,
+    "no earlier games: no trend",
+  );
+  assert.equal(
+    summarize(
+      rows([
+        [1, 4],
+        [2, 4],
+        [3, 8],
+        [4, 9],
+      ]),
+      5,
+    ).prior,
+    null,
+    "one earlier game: no trend",
+  );
+  const snaps = [1, 2, 3, 4, 5].map((week) => ({
+    week: String(week),
+    offense_pct: week <= 2 ? (week === 1 ? "0.4" : "0.5") : "0.7",
+  }));
+  const withSnaps = summarize(
+    rows([
+      [1, 4],
+      [2, 4],
+      [3, 4],
+      [4, 4],
+      [5, 4],
+    ]),
+    6,
+    snaps,
+  );
   assert.ok(Math.abs(withSnaps.snap_share - 0.7) < 1e-9);
   assert.ok(Math.abs(withSnaps.prior.snap_share - 0.45) < 1e-9);
 });
 
 test("usage sentences add snap share and a meaningful trend, and nothing when the change is small", () => {
   const base = { games: 3, targets_per_game: 9.3, target_share: 0.26, carries_per_game: 0 };
-  const head = "Kalif Raymond: 9.3 targets a game over the last 3 games (26% of the team's targets), on the field for 72% of the offense's snaps.";
-  assert.equal(usageStatement("Kalif Raymond", "WR", { ...base, snap_share: 0.7233, prior: { games: 2, targets_per_game: 4, carries_per_game: 0, snap_share: 0.6 } }),
-    `${head} Up from 4.0 targets a game over the first 2 games.`);
-  assert.equal(usageStatement("Kalif Raymond", "WR", { ...base, snap_share: 0.72, prior: { games: 2, targets_per_game: 8.5, carries_per_game: 0, snap_share: 0.45 } }),
-    `${head} Snap share up from 45% over the first 2 games.`);
-  assert.equal(usageStatement("Kalif Raymond", "WR", { ...base, snap_share: 0.72, prior: { games: 2, targets_per_game: 8.5, carries_per_game: 0, snap_share: 0.68 } }), head);
-  assert.equal(usageStatement("Kyle Monangai", "RB", { games: 3, carries_per_game: 8, targets_per_game: 1, snap_share: null, prior: { games: 4, carries_per_game: 15, targets_per_game: 1, snap_share: null } }),
-    "Kyle Monangai: 8.0 carries and 1.0 targets a game over the last 3 games. Down from 15.0 carries a game over the first 4 games.");
-  assert.equal(usageStatement("Kyle Monangai", "RB", { games: 2, carries_per_game: 8, targets_per_game: 1, prior: null }),
-    "Kyle Monangai: 8.0 carries and 1.0 targets a game over the last 2 games.");
+  const head =
+    "Kalif Raymond: 9.3 targets a game over the last 3 games (26% of the team's targets), on the field for 72% of the offense's snaps.";
+  assert.equal(
+    usageStatement("Kalif Raymond", "WR", {
+      ...base,
+      snap_share: 0.7233,
+      prior: { games: 2, targets_per_game: 4, carries_per_game: 0, snap_share: 0.6 },
+    }),
+    `${head} Up from 4.0 targets a game over the first 2 games.`,
+  );
+  assert.equal(
+    usageStatement("Kalif Raymond", "WR", {
+      ...base,
+      snap_share: 0.72,
+      prior: { games: 2, targets_per_game: 8.5, carries_per_game: 0, snap_share: 0.45 },
+    }),
+    `${head} Snap share up from 45% over the first 2 games.`,
+  );
+  assert.equal(
+    usageStatement("Kalif Raymond", "WR", {
+      ...base,
+      snap_share: 0.72,
+      prior: { games: 2, targets_per_game: 8.5, carries_per_game: 0, snap_share: 0.68 },
+    }),
+    head,
+  );
+  assert.equal(
+    usageStatement("Kyle Monangai", "RB", {
+      games: 3,
+      carries_per_game: 8,
+      targets_per_game: 1,
+      snap_share: null,
+      prior: { games: 4, carries_per_game: 15, targets_per_game: 1, snap_share: null },
+    }),
+    "Kyle Monangai: 8.0 carries and 1.0 targets a game over the last 3 games. Down from 15.0 carries a game over the first 4 games.",
+  );
+  assert.equal(
+    usageStatement("Kyle Monangai", "RB", { games: 2, carries_per_game: 8, targets_per_game: 1, prior: null }),
+    "Kyle Monangai: 8.0 carries and 1.0 targets a game over the last 2 games.",
+  );
 });
 
 test("getUsageBundle returns summaries and weekly rows from one crosswalk read; failure is empty maps", async () => {
   const { getUsageBundle } = require("../src/services/playerUsage");
   _resetCache();
   const supabase = fakeSupabase(crosswalk);
-  const bundle = await getUsageBundle({ supabase, playerKeys: ["espn:2973405"], season: 2026, beforeWeek: 4, fetchImpl: okFetch });
+  const bundle = await getUsageBundle({
+    supabase,
+    playerKeys: ["espn:2973405"],
+    season: 2026,
+    beforeWeek: 4,
+    fetchImpl: okFetch,
+  });
   assert.equal(supabase.calls.length, 1, "one crosswalk read");
   assert.equal(bundle.usage.get("espn:2973405").targets_per_game, 7);
-  assert.deepEqual(bundle.weekly.get("espn:2973405").map((r) => r.week), [1, 2, 3]);
+  assert.deepEqual(
+    bundle.weekly.get("espn:2973405").map((r) => r.week),
+    [1, 2, 3],
+  );
   _resetCache();
   const down = async () => ({ ok: false, status: 500, text: async () => "" });
-  const failed = await getUsageBundle({ supabase: fakeSupabase(crosswalk), playerKeys: ["espn:2973405"], season: 2026, beforeWeek: 4, fetchImpl: down });
+  const failed = await getUsageBundle({
+    supabase: fakeSupabase(crosswalk),
+    playerKeys: ["espn:2973405"],
+    season: 2026,
+    beforeWeek: 4,
+    fetchImpl: down,
+  });
   assert.equal(failed.usage.size, 0);
   assert.equal(failed.weekly.size, 0);
 });

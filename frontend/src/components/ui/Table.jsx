@@ -23,11 +23,19 @@ export function Table({ className = '', style: styleOverride, children, ...rest 
 }
 
 Table.Head = function TableHead({ className = '', children, ...rest }) {
-  return <thead className={className} {...rest}>{children}</thead>;
+  return (
+    <thead className={className} {...rest}>
+      {children}
+    </thead>
+  );
 };
 
 Table.Body = function TableBody({ className = '', children, ...rest }) {
-  return <tbody className={className} {...rest}>{children}</tbody>;
+  return (
+    <tbody className={className} {...rest}>
+      {children}
+    </tbody>
+  );
 };
 
 Table.Row = function TableRow({ highlighted = false, className = '', style: styleOverride, children, ...rest }) {
@@ -47,7 +55,13 @@ Table.Row = function TableRow({ highlighted = false, className = '', style: styl
   );
 };
 
-Table.HeaderCell = function TableHeaderCell({ align = 'left', className = '', style: styleOverride, children, ...rest }) {
+Table.HeaderCell = function TableHeaderCell({
+  align = 'left',
+  className = '',
+  style: styleOverride,
+  children,
+  ...rest
+}) {
   const alignClass = CELL_ALIGN_CLASSES[align] ?? CELL_ALIGN_CLASSES.left;
   return (
     <th
@@ -63,7 +77,15 @@ Table.HeaderCell = function TableHeaderCell({ align = 'left', className = '', st
 // `accentEdge` reserves the 4px left border on every cell (transparent when
 // false) rather than only rendering it when true, so a highlighted row's
 // accent bar doesn't shift that column's content relative to other rows.
-Table.Cell = function TableCell({ align = 'left', mono = false, accentEdge = false, className = '', style: styleOverride, children, ...rest }) {
+Table.Cell = function TableCell({
+  align = 'left',
+  mono = false,
+  accentEdge = false,
+  className = '',
+  style: styleOverride,
+  children,
+  ...rest
+}) {
   const alignClass = CELL_ALIGN_CLASSES[align] ?? CELL_ALIGN_CLASSES.left;
   const monoClass = mono ? 'font-mono tabular-nums' : '';
   return (

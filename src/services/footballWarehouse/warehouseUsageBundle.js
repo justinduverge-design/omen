@@ -29,7 +29,9 @@ async function getWarehouseUsageBundle({ supabase, repository, playerKeys, seaso
   const gsisByKey = await resolveGsis(supabase, playerKeys);
   if (!gsisByKey.size) return { usage: new Map(), weekly: new Map() };
   const rowsByGsis = await repository.readPlayerWeeks({
-    gsisIds: [...new Set(gsisByKey.values())], season, beforeWeek,
+    gsisIds: [...new Set(gsisByKey.values())],
+    season,
+    beforeWeek,
   });
   const usage = new Map();
   const weekly = new Map();

@@ -231,13 +231,16 @@ test("witness evaluation distinguishes match, mismatch, and unavailability", () 
 });
 
 test("freshness and disk thresholds produce explicit alerts", () => {
-  assert.equal(evaluateOperationalHealth({
-    generatedAt: "2026-08-25T20:00:00.000Z",
-    now: "2026-08-25T21:00:00.000Z",
-    freeBytes: 10_000,
-    minFreeBytes: 1_000,
-    maxAgeMs: 2 * 60 * 60 * 1000,
-  }).status, "pass");
+  assert.equal(
+    evaluateOperationalHealth({
+      generatedAt: "2026-08-25T20:00:00.000Z",
+      now: "2026-08-25T21:00:00.000Z",
+      freeBytes: 10_000,
+      minFreeBytes: 1_000,
+      maxAgeMs: 2 * 60 * 60 * 1000,
+    }).status,
+    "pass",
+  );
   const unhealthy = evaluateOperationalHealth({
     generatedAt: "2026-08-24T20:00:00.000Z",
     now: "2026-08-25T21:00:00.000Z",
@@ -246,7 +249,10 @@ test("freshness and disk thresholds produce explicit alerts", () => {
     maxAgeMs: 2 * 60 * 60 * 1000,
   });
   assert.equal(unhealthy.status, "alert");
-  assert.deepEqual(unhealthy.alerts.map((alert) => alert.code), ["source_stale", "disk_low"]);
+  assert.deepEqual(
+    unhealthy.alerts.map((alert) => alert.code),
+    ["source_stale", "disk_low"],
+  );
 });
 
 test("correction candidates preserve supersession and exact changed subjects", () => {
@@ -365,14 +371,17 @@ test("primary recovery restores exact backup bytes only after witness verificati
 test("the failure-injection matrix proves every Phase 3 behavior without publication", () => {
   const matrix = runFailureInjectionMatrix({ acceptance: acceptanceFixture() });
   assert.equal(matrix.status, "pass");
-  assert.deepEqual(matrix.scenarios.map((scenario) => scenario.name), [
-    "source_loss",
-    "schema_drift",
-    "witness_mismatch",
-    "witness_unavailable",
-    "source_stale",
-    "disk_low",
-    "correction_candidate",
-  ]);
+  assert.deepEqual(
+    matrix.scenarios.map((scenario) => scenario.name),
+    [
+      "source_loss",
+      "schema_drift",
+      "witness_mismatch",
+      "witness_unavailable",
+      "source_stale",
+      "disk_low",
+      "correction_candidate",
+    ],
+  );
   assert.equal(matrix.publication_authorized, false);
 });

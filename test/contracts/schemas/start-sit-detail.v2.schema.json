@@ -23,12 +23,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "over",
-          "points_delta",
-          "slot",
-          "start"
-        ]
+        "required": ["over", "points_delta", "slot", "start"]
       }
     },
     "capabilities": {
@@ -61,16 +56,7 @@
             "type": "boolean"
           }
         },
-        "required": [
-          "fresh_until",
-          "kind",
-          "name",
-          "observed_at",
-          "source",
-          "state",
-          "statement",
-          "used"
-        ]
+        "required": ["fresh_until", "kind", "name", "observed_at", "source", "state", "statement", "used"]
       }
     },
     "capability_contract": {
@@ -104,12 +90,7 @@
                   "type": "boolean"
                 }
               },
-              "required": [
-                "observed_at",
-                "source",
-                "state",
-                "used"
-              ]
+              "required": ["observed_at", "source", "state", "used"]
             },
             "projections": {
               "type": "object",
@@ -130,11 +111,7 @@
                   "type": "boolean"
                 }
               },
-              "required": [
-                "source",
-                "state",
-                "used"
-              ]
+              "required": ["source", "state", "used"]
             },
             "roster": {
               "type": "object",
@@ -155,11 +132,7 @@
                   "type": "boolean"
                 }
               },
-              "required": [
-                "source",
-                "state",
-                "used"
-              ]
+              "required": ["source", "state", "used"]
             },
             "selected_context": {
               "type": "object",
@@ -177,20 +150,10 @@
                   "type": "boolean"
                 }
               },
-              "required": [
-                "observed_at",
-                "source",
-                "state",
-                "used"
-              ]
+              "required": ["observed_at", "source", "state", "used"]
             }
           },
-          "required": [
-            "league_scoring",
-            "projections",
-            "roster",
-            "selected_context"
-          ]
+          "required": ["league_scoring", "projections", "roster", "selected_context"]
         },
         "inputs_used": {
           "type": "array",
@@ -213,24 +176,14 @@
                 "type": "string"
               }
             },
-            "required": [
-              "name",
-              "reason_code",
-              "state"
-            ]
+            "required": ["name", "reason_code", "state"]
           }
         },
         "profile": {
           "type": "string"
         }
       },
-      "required": [
-        "contract_version",
-        "inputs",
-        "inputs_used",
-        "limitations",
-        "profile"
-      ]
+      "required": ["contract_version", "inputs", "inputs_used", "limitations", "profile"]
     },
     "evidence": {
       "type": "array",
@@ -247,11 +200,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "category",
-          "kind",
-          "statement"
-        ]
+        "required": ["category", "kind", "statement"]
       }
     },
     "why_statements": {
@@ -296,10 +245,7 @@
       "type": "string"
     },
     "recommendation": {
-      "type": [
-        "null",
-        "object"
-      ],
+      "type": ["null", "object"],
       "properties": {
         "confidence": {
           "type": "string"
@@ -323,24 +269,13 @@
               "type": "number"
             },
             "status": {
-              "type": [
-                "null",
-                "string"
-              ]
+              "type": ["null", "string"]
             },
             "team": {
               "description": "Observed only as null in recorded responses; the real type is not constrained."
             }
           },
-          "required": [
-            "kickoff",
-            "name",
-            "player_key",
-            "position",
-            "projected_points",
-            "status",
-            "team"
-          ]
+          "required": ["kickoff", "name", "player_key", "position", "projected_points", "status", "team"]
         },
         "points_delta": {
           "type": "number"
@@ -373,24 +308,10 @@
               "description": "Observed only as null in recorded responses; the real type is not constrained."
             }
           },
-          "required": [
-            "kickoff",
-            "name",
-            "player_key",
-            "position",
-            "projected_points",
-            "status",
-            "team"
-          ]
+          "required": ["kickoff", "name", "player_key", "position", "projected_points", "status", "team"]
         }
       },
-      "required": [
-        "confidence",
-        "over",
-        "points_delta",
-        "slot",
-        "start"
-      ]
+      "required": ["confidence", "over", "points_delta", "slot", "start"]
     },
     "scoring_format": {
       "type": "string"

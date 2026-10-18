@@ -45,7 +45,11 @@ function cached(key, build, now) {
   if (hit && "value" in hit) {
     if (!hit.refreshing) {
       hit.refreshing = true;
-      start(key, build, now).catch(() => {}).finally(() => { hit.refreshing = false; });
+      start(key, build, now)
+        .catch(() => {})
+        .finally(() => {
+          hit.refreshing = false;
+        });
     }
     return Promise.resolve(hit.value);
   }
@@ -55,20 +59,24 @@ function cached(key, build, now) {
 function start(key, build, now) {
   const previous = cache.get(key);
   const entry = { at: now };
-  entry.promise = build().then((value) => {
-    if (cache.get(key) === entry || cache.get(key) === previous) cache.set(key, { at: now, promise: Promise.resolve(value), value });
-    return value;
-  }, (error) => {
-    const current = cache.get(key);
-    if (current === entry) {
-      // A failed first build is remembered briefly, so an outage does not re-download on every request.
-      cache.set(key, { at: now, failedAt: now, promise: Promise.resolve(null) });
-    } else if (current === previous && previous && "value" in previous) {
-      // A failed background refresh keeps the last good value and waits FAILURE_TTL_MS to retry.
-      previous.at = now - CACHE_TTL_MS + FAILURE_TTL_MS;
-    }
-    throw error;
-  });
+  entry.promise = build().then(
+    (value) => {
+      if (cache.get(key) === entry || cache.get(key) === previous)
+        cache.set(key, { at: now, promise: Promise.resolve(value), value });
+      return value;
+    },
+    (error) => {
+      const current = cache.get(key);
+      if (current === entry) {
+        // A failed first build is remembered briefly, so an outage does not re-download on every request.
+        cache.set(key, { at: now, failedAt: now, promise: Promise.resolve(null) });
+      } else if (current === previous && previous && "value" in previous) {
+        // A failed background refresh keeps the last good value and waits FAILURE_TTL_MS to retry.
+        previous.at = now - CACHE_TTL_MS + FAILURE_TTL_MS;
+      }
+      throw error;
+    },
+  );
   if (!previous || !("value" in previous)) cache.set(key, entry);
   return entry.promise;
 }
@@ -88,7 +96,11 @@ async function open(url, fetchImpl) {
 
 async function fetchText(url, fetchImpl) {
   const { res, done } = await open(url, fetchImpl);
-  try { return await res.text(); } finally { done(); }
+  try {
+    return await res.text();
+  } finally {
+    done();
+  }
 }
 
 /**
@@ -133,7 +145,9 @@ async function loadPlays(season, fetchImpl) {
   try {
     const source = typeof res.body?.getReader === "function" ? Readable.fromWeb(res.body) : Readable.from(res.body);
     return await readPlaysFromGzip(source);
-  } finally { done(); }
+  } finally {
+    done();
+  }
 }
 
 function group(rows, key) {
@@ -151,7 +165,11 @@ function buildBundle({ plays, playerRows, gameRows, season }) {
   const byPlayer = group(rollups, "player");
   const byTeam = group(rollups, "team");
   const teamWeeks = new Map();
-  for (const [team, rows] of byTeam) teamWeeks.set(team, [...new Set(rows.map((r) => r.week))].sort((a, b) => a - b));
+  for (const [team, rows] of byTeam)
+    teamWeeks.set(
+      team,
+      [...new Set(rows.map((r) => r.week))].sort((a, b) => a - b),
+    );
   const positions = new Map();
   const names = new Map();
   for (const p of playerRows) {
@@ -168,7 +186,17 @@ function buildBundle({ plays, playerRows, gameRows, season }) {
       spread: num(g.spread_line),
       total: num(g.total_line),
     }));
-  return { season, formula_version: tables.formula_version, tables_sha256: tables.content_sha256, byPlayer, byTeam, teamWeeks, positions, names, games };
+  return {
+    season,
+    formula_version: tables.formula_version,
+    tables_sha256: tables.content_sha256,
+    byPlayer,
+    byTeam,
+    teamWeeks,
+    positions,
+    names,
+    games,
+  };
 }
 
 /**
@@ -177,25 +205,34 @@ function buildBundle({ plays, playerRows, gameRows, season }) {
 async function getSeasonBundle({ season, fetchImpl = fetch, now = Date.now(), log } = {}) {
   if (!Number.isInteger(season)) return null;
   try {
-    return await cached(`bundle:${season}`, async () => {
-      const [plays, playersText, gamesText] = await Promise.all([
-        loadPlays(season, fetchImpl),
-        fetchText(PLAYERS_URL, fetchImpl),
-        fetchText(GAMES_URL, fetchImpl),
-      ]);
-      const playerRows = parseCsv(playersText, { required: ["gsis_id", "position", "display_name"], columns: ["gsis_id", "position", "display_name"] });
-      const gameRows = parseCsv(gamesText, {
-        required: ["season", "game_type", "week", "home_team", "away_team", "spread_line", "total_line"],
-        columns: ["season", "game_type", "week", "home_team", "away_team", "spread_line", "total_line"],
-      });
-      return buildBundle({ plays, playerRows, gameRows, season });
-    }, now);
+    return await cached(
+      `bundle:${season}`,
+      async () => {
+        const [plays, playersText, gamesText] = await Promise.all([
+          loadPlays(season, fetchImpl),
+          fetchText(PLAYERS_URL, fetchImpl),
+          fetchText(GAMES_URL, fetchImpl),
+        ]);
+        const playerRows = parseCsv(playersText, {
+          required: ["gsis_id", "position", "display_name"],
+          columns: ["gsis_id", "position", "display_name"],
+        });
+        const gameRows = parseCsv(gamesText, {
+          required: ["season", "game_type", "week", "home_team", "away_team", "spread_line", "total_line"],
+          columns: ["season", "game_type", "week", "home_team", "away_team", "spread_line", "total_line"],
+        });
+        return buildBundle({ plays, playerRows, gameRows, season });
+      },
+      now,
+    );
   } catch (error) {
     log?.warn?.("fantasy metrics unavailable", { reason: error.message });
     return null;
   }
 }
 
-function _resetCache() { cache.clear(); }
+function _resetCache() {
+  cache.clear();
+}
 
 module.exports = { getSeasonBundle, buildBundle, readPlaysFromGzip, _resetCache };

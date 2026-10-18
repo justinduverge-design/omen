@@ -12,8 +12,7 @@ function AuthButton({ children, onClick, disabled = false, variant = 'default' }
   const variants = {
     default:
       'border border-(--color-border) bg-(--color-surface-1) text-(--color-text-primary) hover:bg-(--color-surface-2) focus-visible:outline-(--color-accent)',
-    gold:
-      'bg-(--color-accent) text-black hover:bg-(--color-accent-hover) focus-visible:outline-(--color-accent)',
+    gold: 'bg-(--color-accent) text-black hover:bg-(--color-accent-hover) focus-visible:outline-(--color-accent)',
   };
   return (
     <button
@@ -42,19 +41,33 @@ function Divider({ label }) {
 function GoogleIcon() {
   return (
     <svg aria-hidden="true" height="18" viewBox="0 0 18 18" width="18" xmlns="http://www.w3.org/2000/svg">
-      <path d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z" fill="#4285F4" />
-      <path d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2.01c-.72.48-1.63.76-2.7.76-2.07 0-3.83-1.4-4.46-3.29H1.86v2.07A8 8 0 0 0 8.98 17z" fill="#34A853" />
-      <path d="M4.52 10.52A4.8 4.8 0 0 1 4.27 9c0-.53.09-1.04.25-1.52V5.41H1.86A8 8 0 0 0 .98 9c0 1.29.31 2.51.88 3.59l2.66-2.07z" fill="#FBBC05" />
-      <path d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 8.98 1a8 8 0 0 0-7.12 4.41l2.66 2.07C5.16 5.58 6.92 4.18 8.98 4.18z" fill="#EA4335" />
+      <path
+        d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"
+        fill="#4285F4"
+      />
+      <path
+        d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2.01c-.72.48-1.63.76-2.7.76-2.07 0-3.83-1.4-4.46-3.29H1.86v2.07A8 8 0 0 0 8.98 17z"
+        fill="#34A853"
+      />
+      <path
+        d="M4.52 10.52A4.8 4.8 0 0 1 4.27 9c0-.53.09-1.04.25-1.52V5.41H1.86A8 8 0 0 0 .98 9c0 1.29.31 2.51.88 3.59l2.66-2.07z"
+        fill="#FBBC05"
+      />
+      <path
+        d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 8.98 1a8 8 0 0 0-7.12 4.41l2.66 2.07C5.16 5.58 6.92 4.18 8.98 4.18z"
+        fill="#EA4335"
+      />
     </svg>
   );
 }
 
-
 function DiscordIcon() {
   return (
     <svg aria-hidden="true" height="18" viewBox="0 0 127.14 96.36" width="18" xmlns="http://www.w3.org/2000/svg">
-      <path d="M107.7 8.07A105.15 105.15 0 0 0 81.47 0a72.06 72.06 0 0 0-3.36 6.83 97.68 97.68 0 0 0-29.11 0A72.37 72.37 0 0 0 45.64 0a105.89 105.89 0 0 0-26.25 8.09C2.79 32.65-1.71 56.6.54 80.21a105.73 105.73 0 0 0 32.17 16.15 77.7 77.7 0 0 0 6.89-11.11 68.42 68.42 0 0 1-10.85-5.18c.91-.66 1.8-1.34 2.66-2a75.57 75.57 0 0 0 64.32 0c.87.71 1.76 1.39 2.66 2a68.68 68.68 0 0 1-10.87 5.19 77 77 0 0 0 6.89 11.1 105.25 105.25 0 0 0 32.19-16.14c2.64-27.38-4.51-51.11-18.9-72.15zM42.45 65.69C36.18 65.69 31 60 31 53s5-12.74 11.43-12.74S54 46 53.89 53s-5.05 12.69-11.44 12.69zm42.24 0C78.41 65.69 73.25 60 73.25 53s5-12.74 11.44-12.74S96.23 46 96.12 53s-5.04 12.69-11.43 12.69z" fill="#5865F2" />
+      <path
+        d="M107.7 8.07A105.15 105.15 0 0 0 81.47 0a72.06 72.06 0 0 0-3.36 6.83 97.68 97.68 0 0 0-29.11 0A72.37 72.37 0 0 0 45.64 0a105.89 105.89 0 0 0-26.25 8.09C2.79 32.65-1.71 56.6.54 80.21a105.73 105.73 0 0 0 32.17 16.15 77.7 77.7 0 0 0 6.89-11.11 68.42 68.42 0 0 1-10.85-5.18c.91-.66 1.8-1.34 2.66-2a75.57 75.57 0 0 0 64.32 0c.87.71 1.76 1.39 2.66 2a68.68 68.68 0 0 1-10.87 5.19 77 77 0 0 0 6.89 11.1 105.25 105.25 0 0 0 32.19-16.14c2.64-27.38-4.51-51.11-18.9-72.15zM42.45 65.69C36.18 65.69 31 60 31 53s5-12.74 11.43-12.74S54 46 53.89 53s-5.05 12.69-11.44 12.69zm42.24 0C78.41 65.69 73.25 60 73.25 53s5-12.74 11.44-12.74S96.23 46 96.12 53s-5.04 12.69-11.43 12.69z"
+        fill="#5865F2"
+      />
     </svg>
   );
 }
@@ -101,7 +114,9 @@ function MagicLinkForm({ onBeforeSubmit, onSent }) {
 
   return (
     <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
-      <label className="sr-only" htmlFor="login-email">Email address</label>
+      <label className="sr-only" htmlFor="login-email">
+        Email address
+      </label>
       <input
         ref={inputRef}
         id="login-email"
@@ -123,7 +138,9 @@ function MagicLinkForm({ onBeforeSubmit, onSent }) {
         {loading ? 'Sending code…' : 'Email me a sign-in code'}
       </button>
       {error && (
-        <p className="text-xs text-red-400" role="alert">{error}</p>
+        <p className="text-xs text-red-400" role="alert">
+          {error}
+        </p>
       )}
     </form>
   );
@@ -242,7 +259,9 @@ function EmailCodeStep({ email, onResend }) {
       </p>
 
       <form className="mt-4 flex flex-col gap-3" onSubmit={handleVerify}>
-        <label className="sr-only" htmlFor="login-code">6-digit code</label>
+        <label className="sr-only" htmlFor="login-code">
+          6-digit code
+        </label>
         <input
           id="login-code"
           aria-label="6-digit code"
@@ -268,13 +287,16 @@ function EmailCodeStep({ email, onResend }) {
         >
           {verifying ? 'Verifying…' : 'Verify and sign in'}
         </button>
-        {verifyError && <p className="text-xs text-red-400" role="alert">{verifyError}</p>}
+        {verifyError && (
+          <p className="text-xs text-red-400" role="alert">
+            {verifyError}
+          </p>
+        )}
       </form>
 
       <p className="mt-4 text-xs leading-5 text-(--color-text-tertiary)">
-        If the email has a sign-in button instead, that works too. Codes usually land within a
-        minute — if it hasn&apos;t, check your spam or junk folder, and on Yahoo or iCloud look in
-        Promotions.
+        If the email has a sign-in button instead, that works too. Codes usually land within a minute — if it
+        hasn&apos;t, check your spam or junk folder, and on Yahoo or iCloud look in Promotions.
       </p>
 
       <button
@@ -284,11 +306,7 @@ function EmailCodeStep({ email, onResend }) {
         aria-busy={resending}
         className="mt-3 min-h-[44px] w-full rounded-lg border border-(--color-border) px-4 text-xs font-semibold text-(--color-text-primary) transition-colors hover:bg-(--color-surface-2) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent) disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {resending
-          ? 'Sending…'
-          : secondsLeft > 0
-            ? `Resend in ${secondsLeft}s`
-            : 'Send a new code'}
+        {resending ? 'Sending…' : secondsLeft > 0 ? `Resend in ${secondsLeft}s` : 'Send a new code'}
       </button>
 
       {resent && (
@@ -296,7 +314,11 @@ function EmailCodeStep({ email, onResend }) {
           Sent again. Use the newest code — the earlier one stops working.
         </p>
       )}
-      {resendError && <p className="mt-2 text-xs text-red-400" role="alert">{resendError}</p>}
+      {resendError && (
+        <p className="mt-2 text-xs text-red-400" role="alert">
+          {resendError}
+        </p>
+      )}
 
       <p className="mt-4 text-xs text-(--color-text-tertiary)">
         Still nothing?{' '}
@@ -305,8 +327,8 @@ function EmailCodeStep({ email, onResend }) {
           className="underline underline-offset-2 transition-colors hover:text-(--color-text-secondary)"
         >
           Get help
-        </Link>
-        {' '}— you don&apos;t need the email to reach us.
+        </Link>{' '}
+        — you don&apos;t need the email to reach us.
       </p>
     </div>
   );
@@ -325,10 +347,13 @@ export default function Login() {
   const legalVersion = '2026-08-02';
 
   function markLegalAcceptancePending() {
-    window.localStorage.setItem('omen.legal.pending', JSON.stringify({
-      version: legalVersion,
-      initiated_at: Date.now(),
-    }));
+    window.localStorage.setItem(
+      'omen.legal.pending',
+      JSON.stringify({
+        version: legalVersion,
+        initiated_at: Date.now(),
+      }),
+    );
   }
 
   function hasCurrentLegalAcceptancePending() {
@@ -390,7 +415,9 @@ export default function Login() {
             navigate('/account/connect?next=/omen', { replace: true });
             return;
           }
-        } catch (_) { /* fall through */ }
+        } catch (_) {
+          /* fall through */
+        }
       }
       navigate(dest, { replace: true });
     }
@@ -401,11 +428,11 @@ export default function Login() {
     });
 
     // Listen for session from OAuth/magic-link callback
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        if (session) handleSession(session);
-      }
-    );
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) handleSession(session);
+    });
 
     return () => {
       mounted = false;
@@ -427,10 +454,7 @@ export default function Login() {
 
   if (redirecting) {
     return (
-      <div
-        className="flex min-h-dvh items-center justify-center"
-        style={{ background: 'var(--color-bg)' }}
-      >
+      <div className="flex min-h-dvh items-center justify-center" style={{ background: 'var(--color-bg)' }}>
         <p className="text-sm text-(--color-text-secondary)">Signing you in…</p>
       </div>
     );
@@ -442,10 +466,7 @@ export default function Login() {
       style={{ background: 'var(--color-bg)' }}
     >
       {/* Atmospheric glow */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none fixed inset-0 overflow-hidden"
-      >
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 overflow-hidden">
         <div
           className="absolute left-1/2 top-0 h-96 w-96 -translate-x-1/2 rounded-full blur-3xl"
           style={{ background: 'radial-gradient(ellipse, rgba(184,149,42,0.10) 0%, transparent 70%)' }}
@@ -473,11 +494,12 @@ export default function Login() {
         {/* Headline */}
         <div className="mb-8 text-center">
           <h1 className="font-display text-3xl font-semibold text-(--color-text-primary)">
-            Your best call,<br />every time.
+            Your best call,
+            <br />
+            every time.
           </h1>
           <p className="mt-3 text-sm leading-6 text-(--color-text-secondary)">
-            Sign in to get your weekly Omen — your Most Valuable Play.
-            Or try Trade Analyzer without an account.
+            Sign in to get your weekly Omen — your Most Valuable Play. Or try Trade Analyzer without an account.
           </p>
         </div>
 
@@ -512,16 +534,23 @@ export default function Login() {
             <MagicLinkForm onBeforeSubmit={markLegalAcceptancePending} onSent={setSentEmail} />
 
             {oauthError && (
-              <p className="text-xs text-red-400" role="alert">{oauthError}</p>
+              <p className="text-xs text-red-400" role="alert">
+                {oauthError}
+              </p>
             )}
           </div>
         )}
 
         <p className="mt-5 text-center text-xs leading-5 text-(--color-text-tertiary)">
           By continuing, you confirm that you are at least 13 and agree to Omen&apos;s{' '}
-          <Link className="underline underline-offset-4 hover:text-(--color-text-secondary)" to="/terms">Terms of Use</Link>
-          {' '}and acknowledge the{' '}
-          <Link className="underline underline-offset-4 hover:text-(--color-text-secondary)" to="/privacy">Privacy Notice</Link>.
+          <Link className="underline underline-offset-4 hover:text-(--color-text-secondary)" to="/terms">
+            Terms of Use
+          </Link>{' '}
+          and acknowledge the{' '}
+          <Link className="underline underline-offset-4 hover:text-(--color-text-secondary)" to="/privacy">
+            Privacy Notice
+          </Link>
+          .
         </p>
 
         {/* Footer links */}

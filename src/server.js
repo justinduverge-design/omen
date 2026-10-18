@@ -30,9 +30,9 @@ telemetry.initTelemetry({ component: "api" });
 
 const Sentry = require("@sentry/node");
 const express = require("express");
-const path    = require("path");
-const fs      = require("fs");
-const config  = require("./config");
+const path = require("path");
+const fs = require("fs");
+const config = require("./config");
 const systemRoutes = require("./routes/system");
 const { logger, httpLogger } = require("./middleware/logging");
 const {
@@ -78,11 +78,10 @@ app.use(helmetMiddleware);
 app.use(permissionsPolicyMiddleware);
 app.use(corsMiddleware);
 app.use((req, res, next) => {
-  const carriesEspnCredentials = (
-    (req.method === "POST" && req.path === "/api/platforms/espn/connect")
-    || (req.method === "POST" && req.path === "/api/auth/espn/connect")
-    || (req.method === "GET" && req.path === "/api/espn/roster")
-  );
+  const carriesEspnCredentials =
+    (req.method === "POST" && req.path === "/api/platforms/espn/connect") ||
+    (req.method === "POST" && req.path === "/api/auth/espn/connect") ||
+    (req.method === "GET" && req.path === "/api/espn/roster");
   if (carriesEspnCredentials) {
     res.locals.__skipBodyLog = true;
   }
@@ -192,10 +191,12 @@ if (HAS_SPA) {
   // Static assets (JS, CSS, images) can be cached because Vite hashes
   // build outputs. The SPA shell must revalidate so deploys do not leave
   // browsers stuck on an old index.html that points at stale assets.
-  app.use(express.static(SPA_DIR, {
-    maxAge: "30d",
-    setHeaders: setSpaStaticCacheHeaders,
-  }));
+  app.use(
+    express.static(SPA_DIR, {
+      maxAge: "30d",
+      setHeaders: setSpaStaticCacheHeaders,
+    }),
+  );
 } else {
   logger.warn(`No SPA found at ${SPA_DIR} - falling back to JSON status`);
   app.get("/", (req, res) => {
@@ -376,7 +377,7 @@ if (HAS_SPA) {
 
   app.get(/.*/, (req, res, next) => {
     if (req.path.startsWith("/api/")) return next();
-    if (req.path.includes("."))       return next();  // missed static asset = 404
+    if (req.path.includes(".")) return next(); // missed static asset = 404
     setSpaIndexCacheHeaders(res);
     res.sendFile(SPA_INDEX, (err) => {
       if (err) {
@@ -416,11 +417,13 @@ app.use(errorHandler);
 const server = app.listen(config.port, () => {
   logger.info("Omen API listening", {
     port: config.port,
-    env:  config.nodeEnv,
+    env: config.nodeEnv,
   });
   // Pre-warm a few seconds after the port is open (off with OMEN_COLD_START_WARMUP=off): readiness and
   // health never wait on it, and it cannot throw.
-  try { require("./services/coldStartWarmup").scheduleWarmUp({ logger }); } catch {}
+  try {
+    require("./services/coldStartWarmup").scheduleWarmUp({ logger });
+  } catch {}
 });
 
 // --- Graceful shutdown --------------------------------------------
@@ -446,7 +449,7 @@ const shutdown = (signal, exitCode = 0) => {
   }, 10000).unref();
 };
 process.on("SIGTERM", () => shutdown("SIGTERM"));
-process.on("SIGINT",  () => shutdown("SIGINT"));
+process.on("SIGINT", () => shutdown("SIGINT"));
 
 // --- Last-resort error capture ------------------------------------
 // O8. Sentry.setupExpressErrorHandler above catches anything thrown

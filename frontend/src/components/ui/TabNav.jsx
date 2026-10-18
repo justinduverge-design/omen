@@ -2,14 +2,7 @@ import React, { createContext, useContext, useRef, useId } from 'react';
 
 const TabNavContext = createContext();
 
-const TabNav = ({
-  value,
-  onValueChange,
-  className = '',
-  'aria-label': ariaLabel,
-  children,
-  ...props
-}) => {
+const TabNav = ({ value, onValueChange, className = '', 'aria-label': ariaLabel, children, ...props }) => {
   const containerRef = useRef(null);
 
   const handleKeyDown = (e) => {
@@ -17,9 +10,7 @@ const TabNav = ({
     const isArrow = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key);
     if (!isArrow) return;
 
-    const tabs = Array.from(
-      containerRef.current.querySelectorAll('[role="tab"]:not([disabled])')
-    );
+    const tabs = Array.from(containerRef.current.querySelectorAll('[role="tab"]:not([disabled])'));
     if (tabs.length === 0) return;
 
     const currentIndex = tabs.findIndex((tab) => tab === document.activeElement);

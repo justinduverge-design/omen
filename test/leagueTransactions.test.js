@@ -12,16 +12,41 @@ const tx = require("../src/services/leagueTransactions");
 
 const SLEEPER_ROWS = [
   {
-    transaction_id: "t1", type: "waiver", status: "complete", leg: 7, created: 1760000000000,
-    roster_ids: [3], adds: { 4046: 3 }, drops: { 1234: 3 }, draft_picks: [],
+    transaction_id: "t1",
+    type: "waiver",
+    status: "complete",
+    leg: 7,
+    created: 1760000000000,
+    roster_ids: [3],
+    adds: { 4046: 3 },
+    drops: { 1234: 3 },
+    draft_picks: [],
   },
   {
-    transaction_id: "t2", type: "trade", status: "complete", leg: 7, created: 1760100000000,
-    roster_ids: [3, 7], adds: { 4046: 7, 1234: 3 }, drops: { 4046: 3, 1234: 7 }, draft_picks: [{}],
+    transaction_id: "t2",
+    type: "trade",
+    status: "complete",
+    leg: 7,
+    created: 1760100000000,
+    roster_ids: [3, 7],
+    adds: { 4046: 7, 1234: 3 },
+    drops: { 4046: 3, 1234: 7 },
+    draft_picks: [{}],
   },
-  { transaction_id: "t3", type: "waiver", status: "failed", leg: 7, created: 1760200000000, roster_ids: [9], adds: { 1: 9 } },
+  {
+    transaction_id: "t3",
+    type: "waiver",
+    status: "failed",
+    leg: 7,
+    created: 1760200000000,
+    roster_ids: [9],
+    adds: { 1: 9 },
+  },
 ];
-const PLAYERS = { 4046: { full_name: "Joe Burrow", position: "QB", team: "CIN" }, 1234: { first_name: "A", last_name: "Back" } };
+const PLAYERS = {
+  4046: { full_name: "Joe Burrow", position: "QB", team: "CIN" },
+  1234: { first_name: "A", last_name: "Back" },
+};
 const NAMES = { 3: "Top Dogs", 7: "Ravens Flock" };
 
 const connection = (platform) => ({ platform, league_id: "L1" });
@@ -35,7 +60,10 @@ test("Sleeper rows: complete only, kinds, names and summaries from provider fiel
   assert.equal(claim.summary, "Top Dogs claimed Joe Burrow and dropped A Back.");
   assert.equal(trade.kind, "trade");
   assert.equal(trade.draft_picks, 1);
-  assert.deepEqual(trade.teams.map((t) => t.team_name), ["Top Dogs", "Ravens Flock"]);
+  assert.deepEqual(
+    trade.teams.map((t) => t.team_name),
+    ["Top Dogs", "Ravens Flock"],
+  );
 });
 
 test("parsers fail closed on shapes they do not recognise", () => {
@@ -64,7 +92,12 @@ function sleeperDeps(overrides = {}) {
 
 test("Sleeper reads live, newest first, reads this round and the one before", async () => {
   const rounds = [];
-  const deps = sleeperDeps({ fetchSleeperTransactions: async (_id, r) => { rounds.push(r); return r === 7 ? SLEEPER_ROWS : []; } });
+  const deps = sleeperDeps({
+    fetchSleeperTransactions: async (_id, r) => {
+      rounds.push(r);
+      return r === 7 ? SLEEPER_ROWS : [];
+    },
+  });
   const body = await tx.readLeagueTransactions({ connection: connection("sleeper"), context, deps });
   assert.equal(body.contract_version, tx.CONTRACT);
   assert.equal(body.status, "available");
@@ -80,14 +113,22 @@ test("Sleeper with no transactions is empty, because the provider answered", asy
 });
 
 test("a failed players read costs names, not the feed", async () => {
-  const deps = sleeperDeps({ fetchSleeperPlayers: async () => { throw new Error("down"); } });
+  const deps = sleeperDeps({
+    fetchSleeperPlayers: async () => {
+      throw new Error("down");
+    },
+  });
   const body = await tx.readLeagueTransactions({ connection: connection("sleeper"), context, deps });
   assert.equal(body.status, "available");
   assert.ok(body.limitations.some((l) => /names/.test(l)));
 });
 
 test("a Sleeper outage is unavailable with a reason, never empty", async () => {
-  const deps = sleeperDeps({ fetchSleeperTransactions: async () => { throw new Error("boom"); } });
+  const deps = sleeperDeps({
+    fetchSleeperTransactions: async () => {
+      throw new Error("boom");
+    },
+  });
   const body = await tx.readLeagueTransactions({ connection: connection("sleeper"), context, deps });
   assert.equal(body.status, "unavailable");
   assert.equal(body.provider_read, "failed");
@@ -98,8 +139,14 @@ test("Yahoo and ESPN stay dark until their flags are on, and make no provider ca
   let called = false;
   const deps = {
     env: {},
-    getYahooClient: async () => { called = true; return {}; },
-    getEspnCredentials: async () => { called = true; return {}; },
+    getYahooClient: async () => {
+      called = true;
+      return {};
+    },
+    getEspnCredentials: async () => {
+      called = true;
+      return {};
+    },
     espn: {},
   };
   for (const platform of ["yahoo", "espn"]) {
@@ -113,7 +160,9 @@ test("Yahoo and ESPN stay dark until their flags are on, and make no provider ca
 test("a flagged-on Yahoo read with an unrecognised shape is unavailable, not empty", async () => {
   const deps = {
     env: { LEAGUE_TRANSACTIONS_YAHOO: "1" },
-    getYahooClient: async () => ({ client: { getTransactions: async () => ({ fantasy_content: { league: [{}, {}] } }) } }),
+    getYahooClient: async () => ({
+      client: { getTransactions: async () => ({ fantasy_content: { league: [{}, {}] } }) },
+    }),
   };
   const body = await tx.readLeagueTransactions({ connection: connection("yahoo"), context, deps });
   assert.equal(body.status, "unavailable");
@@ -123,7 +172,9 @@ test("a flagged-on Yahoo read with an unrecognised shape is unavailable, not emp
 test("an expired Yahoo token asks for reauth", async () => {
   const deps = {
     env: { LEAGUE_TRANSACTIONS_YAHOO: "1" },
-    getYahooClient: async () => { throw new Error("yahoo_token_expired"); },
+    getYahooClient: async () => {
+      throw new Error("yahoo_token_expired");
+    },
   };
   const body = await tx.readLeagueTransactions({ connection: connection("yahoo"), context, deps });
   assert.equal(body.reason, "reauth_required");
@@ -139,8 +190,17 @@ test("Sleeper can be switched off", async () => {
 
 test("week 0 makes no Sleeper call and is unavailable, not empty", async () => {
   let called = false;
-  const deps = sleeperDeps({ fetchSleeperTransactions: async () => { called = true; return []; } });
-  const body = await tx.readLeagueTransactions({ connection: connection("sleeper"), context: { week: 0, season: 2026 }, deps });
+  const deps = sleeperDeps({
+    fetchSleeperTransactions: async () => {
+      called = true;
+      return [];
+    },
+  });
+  const body = await tx.readLeagueTransactions({
+    connection: connection("sleeper"),
+    context: { week: 0, season: 2026 },
+    deps,
+  });
   assert.equal(called, false);
   assert.equal(body.status, "unavailable");
   assert.equal(body.reason, "no_round");

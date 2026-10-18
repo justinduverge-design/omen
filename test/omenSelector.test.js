@@ -102,7 +102,10 @@ test("chooses the highest decision_score regardless of type", () => {
 
   const result = selectDecision([startSit, waiver]);
   assert.equal(result.selected.type, "waiver_pickup");
-  assert.deepEqual(result.ranked.map((c) => c.type), ["waiver_pickup", "start_sit"]);
+  assert.deepEqual(
+    result.ranked.map((c) => c.type),
+    ["waiver_pickup", "start_sit"],
+  );
 });
 
 test("a lineup swap wins when it out-scores the waiver add", () => {
@@ -151,7 +154,10 @@ test("ranking is repeatable across many shuffles", () => {
   for (let i = 0; i < 24; i += 1) {
     const shuffled = candidates.slice().reverse();
     shuffled.push(shuffled.shift());
-    assert.deepEqual(selectDecision(shuffled).ranked.map((c) => c.id), expected);
+    assert.deepEqual(
+      selectDecision(shuffled).ranked.map((c) => c.id),
+      expected,
+    );
   }
 });
 
@@ -168,7 +174,7 @@ test("returns no selection when every candidate is rejected", () => {
   assert.deepEqual(result.ranked, []);
   assert.deepEqual(
     result.rejected.map((r) => r.reason),
-    [REJECTION.SIGNAL_NOT_LIVE, REJECTION.NON_LIVE_INPUT, REJECTION.NO_PROVIDER_CAPABILITY]
+    [REJECTION.SIGNAL_NOT_LIVE, REJECTION.NON_LIVE_INPUT, REJECTION.NO_PROVIDER_CAPABILITY],
   );
 });
 

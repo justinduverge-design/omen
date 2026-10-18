@@ -31,7 +31,12 @@ const DEFAULT_TEAM_COUNT = 12;
 // (see vorp.js). Demand is measured as a ratio against this, never in the
 // abstract.
 const DEFAULT_STARTERS = Object.freeze({
-  QB: 1, RB: 2, WR: 2, TE: 1, K: 1, DST: 1,
+  QB: 1,
+  RB: 2,
+  WR: 2,
+  TE: 1,
+  K: 1,
+  DST: 1,
 });
 
 const FLEX_ELIGIBLE = Object.freeze(["RB", "WR", "TE"]);
@@ -83,9 +88,18 @@ function parseRosterSlots(rosterPositions) {
     const slot = String(raw).toUpperCase().trim();
     if (!slot) continue;
 
-    if (NON_STARTING_SLOTS.has(slot)) { bench += 1; continue; }
-    if (FLEX_SLOTS.has(slot)) { flex += 1; continue; }
-    if (SUPER_FLEX_SLOTS.has(slot)) { superFlex += 1; continue; }
+    if (NON_STARTING_SLOTS.has(slot)) {
+      bench += 1;
+      continue;
+    }
+    if (FLEX_SLOTS.has(slot)) {
+      flex += 1;
+      continue;
+    }
+    if (SUPER_FLEX_SLOTS.has(slot)) {
+      superFlex += 1;
+      continue;
+    }
 
     const position = normalizePosition(slot);
     if (!Object.prototype.hasOwnProperty.call(DEFAULT_STARTERS, position)) continue;
@@ -109,9 +123,7 @@ function effectiveStarters(slotShape) {
 
   if (slotShape.flex > 0 && directTotal > 0) {
     for (const position of eligible) {
-      effective[position] = round2(
-        effective[position] + slotShape.flex * (effective[position] / directTotal)
-      );
+      effective[position] = round2(effective[position] + slotShape.flex * (effective[position] / directTotal));
     }
   }
   if (slotShape.superFlex > 0) {
@@ -251,9 +263,7 @@ function selectContextConnection(rows, { platform, leagueId } = {}) {
     .filter((row) => !platform || row.platform === platform)
     .filter((row) => !leagueId || String(row.league_id) === String(leagueId));
   // Sleeper first: it needs no credential and is the cheapest reliable read.
-  return candidates.sort((a, b) => (
-    (a.platform === "sleeper" ? 0 : 1) - (b.platform === "sleeper" ? 0 : 1)
-  ))[0] || null;
+  return candidates.sort((a, b) => (a.platform === "sleeper" ? 0 : 1) - (b.platform === "sleeper" ? 0 : 1))[0] || null;
 }
 
 function sleeperScoringFormat(league) {
@@ -271,18 +281,8 @@ function sleeperScoringFormat(league) {
  * neutral-fallback reason rather than throwing, because §8.3 requires that an
  * unverifiable league quietly retains neutral analysis.
  */
-async function resolveTradeLeagueContext({
-  userId,
-  platform = null,
-  leagueId = null,
-  deps = {},
-} = {}) {
-  const {
-    getConnections,
-    fetchSleeperLeague,
-    buildSleeperRoster,
-    logger = { warn() {} },
-  } = deps;
+async function resolveTradeLeagueContext({ userId, platform = null, leagueId = null, deps = {} } = {}) {
+  const { getConnections, fetchSleeperLeague, buildSleeperRoster, logger = { warn() {} } } = deps;
 
   if (!userId || typeof getConnections !== "function") {
     return { status: "unavailable", reason: UNRESOLVED.no_connection };
@@ -313,11 +313,7 @@ async function resolveTradeLeagueContext({
 
   try {
     const league = await fetchSleeperLeague(String(connection.league_id));
-    const roster = await buildSleeperRoster(
-      String(connection.league_id),
-      connection.platform_username,
-      league
-    );
+    const roster = await buildSleeperRoster(String(connection.league_id), connection.platform_username, league);
     const built = buildTradeScoringConfig({
       scoringFormat: sleeperScoringFormat(league),
       rosterPositions: league?.roster_positions,

@@ -161,14 +161,17 @@ test("GET /api/sleeper/draft returns normalized draft list", async () => {
 
 test("GET /api/sleeper/draft rejects a league outside the authenticated connection", async () => {
   const res = await request(
-    buildApp({}, {
-      assertLeagueAccess: async () => {
-        const error = new Error("Draft not found for the connected Sleeper league");
-        error.status = 404;
-        error.code = "sleeper_draft_not_found";
-        throw error;
+    buildApp(
+      {},
+      {
+        assertLeagueAccess: async () => {
+          const error = new Error("Draft not found for the connected Sleeper league");
+          error.status = 404;
+          error.code = "sleeper_draft_not_found";
+          throw error;
+        },
       },
-    }),
+    ),
     "/api/sleeper/draft?leagueId=other-league",
   );
   assert.equal(res.status, 404);

@@ -17,13 +17,7 @@ const MODELS = Object.freeze({
   coachingTree: "coaching-tree-model.v1",
 });
 
-const AVAILABILITY = Object.freeze([
-  "available",
-  "insufficient_data",
-  "source_unavailable",
-  "unsupported",
-  "invalid",
-]);
+const AVAILABILITY = Object.freeze(["available", "insufficient_data", "source_unavailable", "unsupported", "invalid"]);
 
 const CONFIDENCE = Object.freeze(["low", "medium", "high"]);
 

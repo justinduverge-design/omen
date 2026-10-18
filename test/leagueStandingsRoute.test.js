@@ -21,9 +21,7 @@ class FakeQuery {
   }
 
   then(resolve, reject) {
-    const data = this.rows.filter((row) =>
-      this.filters.every(({ field, value }) => row[field] === value)
-    );
+    const data = this.rows.filter((row) => this.filters.every(({ field, value }) => row[field] === value));
     return Promise.resolve({ data, error: null }).then(resolve, reject);
   }
 }
@@ -36,16 +34,18 @@ function defaultYahooClient() {
       week: 8,
     }),
     getMyTeamKey: async () => "449.l.1.t.7",
-    getLeagueStandings: async () => ([{
-      rank: 1,
-      team_id: "449.l.1.t.7",
-      team_name: "Yahoo Team",
-      is_current_user: true,
-      wins: 6,
-      losses: 2,
-      points_for: 1111.1,
-      points_against: 999.9,
-    }]),
+    getLeagueStandings: async () => [
+      {
+        rank: 1,
+        team_id: "449.l.1.t.7",
+        team_name: "Yahoo Team",
+        is_current_user: true,
+        wins: 6,
+        losses: 2,
+        points_for: 1111.1,
+        points_against: 999.9,
+      },
+    ],
   };
 }
 
@@ -57,16 +57,18 @@ function defaultSleeperAdapter() {
       name: "Sleeper League",
       season: "2026",
     }),
-    fetchSleeperStandings: async () => ([{
-      rank: 1,
-      team_id: "7",
-      team_name: "Ravens Flock",
-      is_current_user: true,
-      wins: 6,
-      losses: 2,
-      points_for: 1142.4,
-      points_against: 980.6,
-    }]),
+    fetchSleeperStandings: async () => [
+      {
+        rank: 1,
+        team_id: "7",
+        team_name: "Ravens Flock",
+        is_current_user: true,
+        wins: 6,
+        losses: 2,
+        points_for: 1142.4,
+        points_against: 980.6,
+      },
+    ],
   };
 }
 
@@ -74,16 +76,18 @@ function defaultEspnAdapter() {
   return {
     buildLeagueContext: async () => ({
       league_name: "The Titans of Slopsilonia",
-      standings: [{
-        rank: 1,
-        team_id: "9",
-        team_name: "ESPN Team",
-        is_current_user: true,
-        wins: 5,
-        losses: 3,
-        points_for: 1001.2,
-        points_against: 944.6,
-      }],
+      standings: [
+        {
+          rank: 1,
+          team_id: "9",
+          team_name: "ESPN Team",
+          is_current_user: true,
+          wins: 5,
+          losses: 3,
+          points_for: 1001.2,
+          points_against: 944.6,
+        },
+      ],
     }),
   };
 }
@@ -111,10 +115,12 @@ function loadLeagueRouter(options = {}) {
     }
     if (request === "../middleware/auth" && parent?.filename === routePath) {
       return {
-        requireAuth: options.requireAuth || ((req, _res, next) => {
-          req.user = { id: "user-1" };
-          next();
-        }),
+        requireAuth:
+          options.requireAuth ||
+          ((req, _res, next) => {
+            req.user = { id: "user-1" };
+            next();
+          }),
       };
     }
     if (request === "../middleware/logging" && parent?.filename === routePath) {
@@ -122,11 +128,12 @@ function loadLeagueRouter(options = {}) {
     }
     if (request === "../services/nflSchedule" && parent?.filename === routePath) {
       return {
-        getCurrentNflWeekContext: () => options.context || {
-          season: 2026,
-          week: 8,
-          season_type: "regular",
-        },
+        getCurrentNflWeekContext: () =>
+          options.context || {
+            season: 2026,
+            week: 8,
+            season_type: "regular",
+          },
         isOffSeason: () => options.offSeason || false,
         // The six user-facing gates now call suppressLiveFootballData(). Mirroring the
         // same flag keeps these cases testing the suppressed path, which is what
@@ -136,17 +143,21 @@ function loadLeagueRouter(options = {}) {
     }
     if (request === "../services/yahooAuth" && parent?.filename === routePath) {
       return {
-        getAuthenticatedYahooClient: options.getAuthenticatedYahooClient || (async () => ({
-          client: options.yahooClient || defaultYahooClient(),
-        })),
+        getAuthenticatedYahooClient:
+          options.getAuthenticatedYahooClient ||
+          (async () => ({
+            client: options.yahooClient || defaultYahooClient(),
+          })),
       };
     }
     if (request === "../services/espnAuth" && parent?.filename === routePath) {
       return {
-        getAuthenticatedEspnCredentials: options.getAuthenticatedEspnCredentials || (async () => ({
-          espn_s2: "espn-cookie-secret",
-          swid: "{swid-secret}",
-        })),
+        getAuthenticatedEspnCredentials:
+          options.getAuthenticatedEspnCredentials ||
+          (async () => ({
+            espn_s2: "espn-cookie-secret",
+            swid: "{swid-secret}",
+          })),
       };
     }
     if (request === "../adapters/sleeper" && parent?.filename === routePath) {
@@ -228,14 +239,16 @@ test("GET /api/league/standings returns 404 when no connected league exists", as
 
 test("GET /api/league/standings returns Sleeper standings", async () => {
   const app = buildApp({
-    connections: [{
-      user_id: "user-1",
-      platform: "sleeper",
-      is_active: true,
-      league_id: "league-1",
-      platform_username: "sleepy",
-      platform_user_id: "sleeper-user-1",
-    }],
+    connections: [
+      {
+        user_id: "user-1",
+        platform: "sleeper",
+        is_active: true,
+        league_id: "league-1",
+        platform_username: "sleepy",
+        platform_user_id: "sleeper-user-1",
+      },
+    ],
   });
 
   const res = await request(app, "/api/league/standings?platform=sleeper&leagueId=league-1");
@@ -261,14 +274,16 @@ test("GET /api/league/standings returns empty success during off-season before p
   let providerTouched = false;
   const app = buildApp({
     offSeason: true,
-    connections: [{
-      user_id: "user-1",
-      platform: "sleeper",
-      is_active: true,
-      league_id: "league-1",
-      platform_username: "sleepy",
-      platform_user_id: "sleeper-user-1",
-    }],
+    connections: [
+      {
+        user_id: "user-1",
+        platform: "sleeper",
+        is_active: true,
+        league_id: "league-1",
+        platform_username: "sleepy",
+        platform_user_id: "sleeper-user-1",
+      },
+    ],
     sleeperAdapter: {
       fetchSleeperUser: async () => {
         providerTouched = true;
@@ -300,13 +315,15 @@ test("GET /api/league/standings returns empty success during off-season before p
 
 test("GET /api/league/standings returns Yahoo standings", async () => {
   const app = buildApp({
-    connections: [{
-      user_id: "user-1",
-      platform: "yahoo",
-      is_active: true,
-      league_id: "449.l.1",
-      token_secret_id: "vault-yahoo-access",
-    }],
+    connections: [
+      {
+        user_id: "user-1",
+        platform: "yahoo",
+        is_active: true,
+        league_id: "449.l.1",
+        token_secret_id: "vault-yahoo-access",
+      },
+    ],
   });
 
   const res = await request(app, "/api/league/standings?platform=yahoo");
@@ -321,15 +338,17 @@ test("GET /api/league/standings returns Yahoo standings", async () => {
 
 test("GET /api/league/standings returns ESPN standings without leaking cookies", async () => {
   const app = buildApp({
-    connections: [{
-      user_id: "user-1",
-      platform: "espn",
-      is_active: true,
-      league_id: "12345",
-      espn_secret_id: "vault-espn-s2",
-      swid_secret_id: "vault-swid",
-      espn_team_id: "9",
-    }],
+    connections: [
+      {
+        user_id: "user-1",
+        platform: "espn",
+        is_active: true,
+        league_id: "12345",
+        espn_secret_id: "vault-espn-s2",
+        swid_secret_id: "vault-swid",
+        espn_team_id: "9",
+      },
+    ],
   });
 
   const res = await request(app, "/api/league/standings?platform=espn");
@@ -346,14 +365,16 @@ test("GET /api/league/standings returns ESPN standings without leaking cookies",
 
 test("GET /api/league/standings returns reconnect error for ESPN auth failures", async () => {
   const app = buildApp({
-    connections: [{
-      user_id: "user-1",
-      platform: "espn",
-      is_active: true,
-      league_id: "12345",
-      espn_secret_id: "vault-espn-s2",
-      swid_secret_id: "vault-swid",
-    }],
+    connections: [
+      {
+        user_id: "user-1",
+        platform: "espn",
+        is_active: true,
+        league_id: "12345",
+        espn_secret_id: "vault-espn-s2",
+        swid_secret_id: "vault-swid",
+      },
+    ],
     getAuthenticatedEspnCredentials: async () => {
       throw Object.assign(new Error("ESPN credentials unavailable"), { status: 401 });
     },
@@ -370,13 +391,15 @@ test("GET /api/league/standings returns reconnect error for ESPN auth failures",
 
 test("GET /api/league/standings returns safe provider failure", async () => {
   const app = buildApp({
-    connections: [{
-      user_id: "user-1",
-      platform: "sleeper",
-      is_active: true,
-      league_id: "league-1",
-      platform_username: "sleepy",
-    }],
+    connections: [
+      {
+        user_id: "user-1",
+        platform: "sleeper",
+        is_active: true,
+        league_id: "league-1",
+        platform_username: "sleepy",
+      },
+    ],
     sleeperAdapter: {
       fetchSleeperUser: async () => ({ user_id: "sleeper-user-1" }),
       fetchSleeperLeague: async () => {

@@ -18,10 +18,8 @@ class FakeMovesQuery {
 
   upsert(payload, options = {}) {
     this.state.upserts.push({ payload, options });
-    const existingIndex = this.rows.findIndex((row) =>
-      row.user_id === payload.user_id
-      && row.week_num === payload.week_num
-      && row.season === payload.season
+    const existingIndex = this.rows.findIndex(
+      (row) => row.user_id === payload.user_id && row.week_num === payload.week_num && row.season === payload.season,
     );
 
     if (existingIndex >= 0) {
@@ -62,13 +60,15 @@ function loadOmenRouter({ moveRows = [], requireAuth } = {}) {
     }
     if (request === "../middleware/auth" && parent?.filename === routePath) {
       return {
-        requireAuth: requireAuth || ((req, _res, next) => {
-          if (!req.headers.authorization) {
-            return _res.status(401).json({ error: "Missing bearer token" });
-          }
-          req.user = { id: "user-1", email: "user@example.com" };
-          return next();
-        }),
+        requireAuth:
+          requireAuth ||
+          ((req, _res, next) => {
+            if (!req.headers.authorization) {
+              return _res.status(401).json({ error: "Missing bearer token" });
+            }
+            req.user = { id: "user-1", email: "user@example.com" };
+            return next();
+          }),
       };
     }
     if (request === "../services/appUser" && parent?.filename === routePath) {
@@ -122,13 +122,18 @@ async function post(app, path, body, headers = { authorization: "Bearer valid-to
 test("POST /api/omen/feedback rejects missing auth", async () => {
   const { app } = buildApp();
 
-  const res = await post(app, "/api/omen/feedback", {
-    followed: true,
-    stars: 4,
-    note: "Worked",
-    week: 1,
-    season: 2026,
-  }, {});
+  const res = await post(
+    app,
+    "/api/omen/feedback",
+    {
+      followed: true,
+      stars: 4,
+      note: "Worked",
+      week: 1,
+      season: 2026,
+    },
+    {},
+  );
 
   assert.equal(res.status, 401);
   assert.equal(res.body.error, "Missing bearer token");
@@ -164,15 +169,17 @@ test("POST /api/omen/feedback records a new move feedback row", async () => {
 
 test("POST /api/omen/feedback is idempotent for the same week and season", async () => {
   const { app, moveRows } = buildApp({
-    moveRows: [{
-      id: "move-existing",
-      user_id: "user-1",
-      week_num: 1,
-      season: 2026,
-      followed: false,
-      user_stars: null,
-      user_note: null,
-    }],
+    moveRows: [
+      {
+        id: "move-existing",
+        user_id: "user-1",
+        week_num: 1,
+        season: 2026,
+        followed: false,
+        user_stars: null,
+        user_note: null,
+      },
+    ],
   });
 
   const first = await post(app, "/api/omen/feedback", {

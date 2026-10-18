@@ -2,10 +2,7 @@
 "use strict";
 
 const path = require("node:path");
-const {
-  captureSnapshot,
-  replaySnapshot,
-} = require("../src/services/footballData/rawVault");
+const { captureSnapshot, replaySnapshot } = require("../src/services/footballData/rawVault");
 const { runScoringAcceptance } = require("../src/services/footballData/scoringAcceptance");
 
 const USAGE = `Usage:
@@ -57,14 +54,20 @@ async function main(argv = process.argv.slice(2)) {
       season: options.season,
       root: path.resolve(options.root),
     });
-    process.stdout.write(`${JSON.stringify({
-      status: "captured",
-      snapshot_id: result.manifest.snapshot_id,
-      raw_sha256: result.manifest.raw.sha256,
-      raw_byte_length: result.manifest.raw.byte_length,
-      raw_created: result.rawCreated,
-      manifest_path: result.manifestPath,
-    }, null, 2)}\n`);
+    process.stdout.write(
+      `${JSON.stringify(
+        {
+          status: "captured",
+          snapshot_id: result.manifest.snapshot_id,
+          raw_sha256: result.manifest.raw.sha256,
+          raw_byte_length: result.manifest.raw.byte_length,
+          raw_created: result.rawCreated,
+          manifest_path: result.manifestPath,
+        },
+        null,
+        2,
+      )}\n`,
+    );
     return;
   }
 
@@ -75,14 +78,20 @@ async function main(argv = process.argv.slice(2)) {
       manifestPath: options.manifest,
       outputRoot: path.resolve(options.out),
     });
-    process.stdout.write(`${JSON.stringify({
-      status: "verified",
-      snapshot_id: result.receipt.snapshot_id,
-      manifest_sha256: result.receipt.manifest_sha256,
-      raw_sha256: result.receipt.raw_sha256,
-      promoted: false,
-      receipt_path: result.receiptPath,
-    }, null, 2)}\n`);
+    process.stdout.write(
+      `${JSON.stringify(
+        {
+          status: "verified",
+          snapshot_id: result.receipt.snapshot_id,
+          manifest_sha256: result.receipt.manifest_sha256,
+          raw_sha256: result.receipt.raw_sha256,
+          promoted: false,
+          receipt_path: result.receiptPath,
+        },
+        null,
+        2,
+      )}\n`,
+    );
     return;
   }
 
@@ -101,15 +110,21 @@ async function main(argv = process.argv.slice(2)) {
       weeks: options.weeks.split(","),
       outputRoot: path.resolve(options.out),
     });
-    process.stdout.write(`${JSON.stringify({
-      status: result.receipt.quality.status,
-      scope: result.receipt.scope,
-      source_bundle_hash: result.receipt.source_bundle_hash,
-      acceptance_sha256: result.receipt.acceptance_sha256,
-      promoted: false,
-      receipt_path: result.receiptPath,
-      acceptance_path: result.acceptancePath,
-    }, null, 2)}\n`);
+    process.stdout.write(
+      `${JSON.stringify(
+        {
+          status: result.receipt.quality.status,
+          scope: result.receipt.scope,
+          source_bundle_hash: result.receipt.source_bundle_hash,
+          acceptance_sha256: result.receipt.acceptance_sha256,
+          promoted: false,
+          receipt_path: result.receiptPath,
+          acceptance_path: result.acceptancePath,
+        },
+        null,
+        2,
+      )}\n`,
+    );
     return;
   }
 

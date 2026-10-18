@@ -15,16 +15,41 @@ const FORMULA_VERSION = "v0";
 const MIN_COHORT = 8;
 
 const flag = (v) => v === true || (v != null && v !== "" && v !== false && Number(v) === 1);
-const num = (v) => { if (v == null || v === "" || v === "NA") return null; const n = Number(v); return Number.isFinite(n) ? n : null; };
+const num = (v) => {
+  if (v == null || v === "" || v === "NA") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+};
 
 function empty() {
   return {
-    games: new Set(), teamPassAttempts: 0, teamRushAttempts: 0,
-    targets: 0, targetEpa: 0, receptions: 0, cpoeTargets: 0, cpoeSum: 0, yacEpaSum: 0,
-    airYardsTargets: 0, airYardsSum: 0, explosiveCatches: 0, redZoneTargets: 0,
-    carries: 0, rushEpa: 0, rushSuccess: 0, explosiveRuns: 0, fumblesLost: 0,
-    teamDropbacks: 0, teamPlays: 0,
-    dropbacks: 0, dropbackEpa: 0, passCpoeN: 0, passCpoeSum: 0, sacks: 0, interceptions: 0, qbFumblesLost: 0,
+    games: new Set(),
+    teamPassAttempts: 0,
+    teamRushAttempts: 0,
+    targets: 0,
+    targetEpa: 0,
+    receptions: 0,
+    cpoeTargets: 0,
+    cpoeSum: 0,
+    yacEpaSum: 0,
+    airYardsTargets: 0,
+    airYardsSum: 0,
+    explosiveCatches: 0,
+    redZoneTargets: 0,
+    carries: 0,
+    rushEpa: 0,
+    rushSuccess: 0,
+    explosiveRuns: 0,
+    fumblesLost: 0,
+    teamDropbacks: 0,
+    teamPlays: 0,
+    dropbacks: 0,
+    dropbackEpa: 0,
+    passCpoeN: 0,
+    passCpoeSum: 0,
+    sacks: 0,
+    interceptions: 0,
+    qbFumblesLost: 0,
   };
 }
 
@@ -44,7 +69,10 @@ function aggregateSkillPlays(plays, players) {
   const byPlayer = new Map();
   const playerGames = new Map(); // id -> Set(`${gameId}|${team}`)
   const get = (id, key) => {
-    if (!byPlayer.has(id)) { byPlayer.set(id, empty()); playerGames.set(id, new Set()); }
+    if (!byPlayer.has(id)) {
+      byPlayer.set(id, empty());
+      playerGames.set(id, new Set());
+    }
     playerGames.get(id).add(key);
     return byPlayer.get(id);
   };
@@ -66,7 +94,10 @@ function aggregateSkillPlays(plays, players) {
         if (flag(play.sack)) a.sacks += 1;
         if (flag(play.interception)) a.interceptions += 1;
         const cpoe = num(play.cpoe);
-        if (flag(play.passAttempt) && cpoe != null) { a.passCpoeN += 1; a.passCpoeSum += cpoe; }
+        if (flag(play.passAttempt) && cpoe != null) {
+          a.passCpoeN += 1;
+          a.passCpoeSum += cpoe;
+        }
         const gsis = players.get(qbId).gsis;
         if (flag(play.fumbleLost) && gsis && play.fumbledGsisId === gsis) a.qbFumblesLost += 1;
       }
@@ -79,9 +110,15 @@ function aggregateSkillPlays(plays, players) {
         a.targetEpa += epa;
         const cp = num(play.cp);
         const complete = flag(play.completePass);
-        if (cp != null) { a.cpoeTargets += 1; a.cpoeSum += (complete ? 1 : 0) - cp; }
+        if (cp != null) {
+          a.cpoeTargets += 1;
+          a.cpoeSum += (complete ? 1 : 0) - cp;
+        }
         const air = num(play.airYards);
-        if (air != null) { a.airYardsTargets += 1; a.airYardsSum += air; }
+        if (air != null) {
+          a.airYardsTargets += 1;
+          a.airYardsSum += air;
+        }
         if (num(play.yardline100) != null && num(play.yardline100) <= 20) a.redZoneTargets += 1;
         if (complete) {
           a.receptions += 1;
@@ -129,14 +166,21 @@ const RECEIVING = (a) => ({
 });
 
 const describe = (a) => ({
-  games: a.games.size, dropbacks: a.dropbacks, targets: a.targets, receptions: a.receptions, carries: a.carries,
-  red_zone_targets: a.redZoneTargets, fumbles_lost: a.fumblesLost,
+  games: a.games.size,
+  dropbacks: a.dropbacks,
+  targets: a.targets,
+  receptions: a.receptions,
+  carries: a.carries,
+  red_zone_targets: a.redZoneTargets,
+  fumbles_lost: a.fumblesLost,
 });
 
 // shrinkK: pseudo-observations pulling toward the cohort mean (targets, carries or team plays).
 const SPECS = Object.freeze({
   QB: {
-    metricName: "omen_qb_sight_grade", registryId: "RAT-QB-S", position: "QB",
+    metricName: "omen_qb_sight_grade",
+    registryId: "RAT-QB-S",
+    position: "QB",
     qualifies: (a) => a.dropbacks >= 100,
     components: [
       { key: "dropback_share", sign: 1, weight: 0.15, shrinkK: 200 },
@@ -160,7 +204,9 @@ const SPECS = Object.freeze({
     }),
   },
   RB: {
-    metricName: "omen_rb_grade", registryId: "RAT-RB", position: "RB",
+    metricName: "omen_rb_grade",
+    registryId: "RAT-RB",
+    position: "RB",
     qualifies: (a) => a.carries >= 40,
     components: [
       { key: "carry_share", sign: 1, weight: 0.25, shrinkK: 120 },
@@ -182,7 +228,9 @@ const SPECS = Object.freeze({
     }),
   },
   WR: {
-    metricName: "omen_wr_grade", registryId: "RAT-WR", position: "WR",
+    metricName: "omen_wr_grade",
+    registryId: "RAT-WR",
+    position: "WR",
     qualifies: (a) => a.targets >= 25,
     components: [
       { key: "target_share", sign: 1, weight: 0.25, shrinkK: 150 },
@@ -196,7 +244,9 @@ const SPECS = Object.freeze({
     raw: RECEIVING,
   },
   TE: {
-    metricName: "omen_te_grade", registryId: "RAT-TE", position: "TE",
+    metricName: "omen_te_grade",
+    registryId: "RAT-TE",
+    position: "TE",
     qualifies: (a) => a.targets >= 20,
     components: [
       { key: "target_share", sign: 1, weight: 0.3, shrinkK: 150 },
@@ -219,7 +269,10 @@ function computeSkillGrades(position, byPlayer, playerPositions) {
 function metricConstants(position) {
   const spec = SPECS[position];
   return {
-    registry_id: spec.registryId, fitted: false, opponent_adjusted: false, min_qualified_cohort: MIN_COHORT,
+    registry_id: spec.registryId,
+    fitted: false,
+    opponent_adjusted: false,
+    min_qualified_cohort: MIN_COHORT,
     components: spec.components.map(({ key, sign, weight, shrinkK }) => ({ key, sign, weight, shrink_k: shrinkK })),
   };
 }

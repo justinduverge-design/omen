@@ -92,7 +92,9 @@ async function run() {
     await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
   }
   if (!fieldsPresent()) {
-    console.error(`${LOG_PREFIX} gave up after ${POLL_TIMEOUT_MS}ms — the ESPN form fields never appeared on this page.`);
+    console.error(
+      `${LOG_PREFIX} gave up after ${POLL_TIMEOUT_MS}ms — the ESPN form fields never appeared on this page.`,
+    );
     return;
   }
 

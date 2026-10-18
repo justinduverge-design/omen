@@ -41,9 +41,7 @@ test("fetchFFC maps FFC ADP players from the documented endpoint", async () => {
     });
   });
 
-  assert.deepEqual(calls, [
-    "https://fantasyfootballcalculator.com/api/v1/adp/half-ppr?teams=12&year=2026",
-  ]);
+  assert.deepEqual(calls, ["https://fantasyfootballcalculator.com/api/v1/adp/half-ppr?teams=12&year=2026"]);
   assert.deepEqual(players, [
     {
       name: "FFC Example RB",
@@ -195,28 +193,27 @@ test("resolveAdpSourceWeights restores defaults when every configured source is 
 });
 
 test("buildWeightedAdpBoard combines matching providers and rebalances missing sources", () => {
-  const board = buildWeightedAdpBoard({
-    ffc: {
-      players: [
-        { name: "Consensus Runner Jr.", position: "RB", team: "BAL", adp: 10 },
-        { name: "FFC Only", position: "WR", team: "BUF", adp: 18 },
-      ],
+  const board = buildWeightedAdpBoard(
+    {
+      ffc: {
+        players: [
+          { name: "Consensus Runner Jr.", position: "RB", team: "BAL", adp: 10 },
+          { name: "FFC Only", position: "WR", team: "BUF", adp: 18 },
+        ],
+      },
+      yahoo: {
+        players: [{ name: "Consensus Runner", position: "RB", team: "BAL", adp: 20 }],
+      },
+      mfl: {
+        players: [{ name: "Consensus Runner II", position: "RB", team: "BAL", adp: 30 }],
+      },
     },
-    yahoo: {
-      players: [
-        { name: "Consensus Runner", position: "RB", team: "BAL", adp: 20 },
-      ],
+    {
+      default_scoring_rules: {
+        adp_source_weights: { ffc: 5, yahoo: 3, mfl: 2 },
+      },
     },
-    mfl: {
-      players: [
-        { name: "Consensus Runner II", position: "RB", team: "BAL", adp: 30 },
-      ],
-    },
-  }, {
-    default_scoring_rules: {
-      adp_source_weights: { ffc: 5, yahoo: 3, mfl: 2 },
-    },
-  });
+  );
 
   assert.equal(board.players.length, 2);
   assert.deepEqual(board.players[0], {
@@ -244,22 +241,28 @@ test("buildWeightedAdpBoard combines matching providers and rebalances missing s
 });
 
 test("buildWeightedAdpBoard rejects invalid rows and excludes disabled-only players", () => {
-  const board = buildWeightedAdpBoard({
-    ffc: { players: [{ name: "Disabled Player", position: "QB", adp: 12 }] },
-    yahoo: {
-      players: [
-        { name: "Valid Player", position: "WR", adp: "22.5" },
-        { name: "No ADP", position: "RB", adp: null },
-        { name: "Negative ADP", position: "TE", adp: -3 },
-      ],
+  const board = buildWeightedAdpBoard(
+    {
+      ffc: { players: [{ name: "Disabled Player", position: "QB", adp: 12 }] },
+      yahoo: {
+        players: [
+          { name: "Valid Player", position: "WR", adp: "22.5" },
+          { name: "No ADP", position: "RB", adp: null },
+          { name: "Negative ADP", position: "TE", adp: -3 },
+        ],
+      },
     },
-  }, {
-    default_scoring_rules: {
-      adp_source_weights: { ffc: 0, yahoo: 1, mfl: 0 },
+    {
+      default_scoring_rules: {
+        adp_source_weights: { ffc: 0, yahoo: 1, mfl: 0 },
+      },
     },
-  });
+  );
 
-  assert.deepEqual(board.players.map((player) => player.name), ["Valid Player"]);
+  assert.deepEqual(
+    board.players.map((player) => player.name),
+    ["Valid Player"],
+  );
 });
 
 test("buildMockAdpResponse keeps weighted output explicitly mock-labeled", () => {

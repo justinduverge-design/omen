@@ -59,7 +59,9 @@ function request(server, path, ip) {
       { host: "127.0.0.1", port, path, method: "GET", headers: { "X-Forwarded-For": ip } },
       (res) => {
         let body = "";
-        res.on("data", (c) => { body += c; });
+        res.on("data", (c) => {
+          body += c;
+        });
         res.on("end", () => resolve({ status: res.statusCode, body }));
       },
     );
@@ -82,7 +84,10 @@ test("player search serves its full documented budget before rejecting", async (
   t.after(() => server.close());
 
   const { allowed, body } = await drainUntil429(
-    server, "/api/players/search?q=jefferson", "203.0.113.10", PLAYER_SEARCH_PER_MINUTE + 5,
+    server,
+    "/api/players/search?q=jefferson",
+    "203.0.113.10",
+    PLAYER_SEARCH_PER_MINUTE + 5,
   );
 
   assert.equal(allowed, PLAYER_SEARCH_PER_MINUTE);
@@ -98,11 +103,15 @@ test("the dedicated budget is not shadowed by the app-wide limiter", async (t) =
   t.after(() => server.close());
 
   const { allowed } = await drainUntil429(
-    server, "/api/players/search?q=x", "203.0.113.11", PLAYER_SEARCH_PER_MINUTE + 5,
+    server,
+    "/api/players/search?q=x",
+    "203.0.113.11",
+    PLAYER_SEARCH_PER_MINUTE + 5,
   );
 
   assert.equal(
-    allowed, PLAYER_SEARCH_PER_MINUTE,
+    allowed,
+    PLAYER_SEARCH_PER_MINUTE,
     "the app-wide limiter must sit above the player-search budget, not below it",
   );
 });
@@ -114,9 +123,7 @@ test("exhausting player search does not lock the user out of trade analysis", as
   t.after(() => server.close());
 
   const ip = "203.0.113.12";
-  const { allowed } = await drainUntil429(
-    server, "/api/players/search?q=y", ip, PLAYER_SEARCH_PER_MINUTE + 5,
-  );
+  const { allowed } = await drainUntil429(server, "/api/players/search?q=y", ip, PLAYER_SEARCH_PER_MINUTE + 5);
   assert.equal(allowed, PLAYER_SEARCH_PER_MINUTE);
 
   const trade = await request(server, "/api/trade/compare", ip);
@@ -142,7 +149,10 @@ test("one IP's exhaustion never affects another IP", async (t) => {
   t.after(() => server.close());
 
   const { allowed } = await drainUntil429(
-    server, "/api/players/search?q=q", "203.0.113.14", PLAYER_SEARCH_PER_MINUTE + 5,
+    server,
+    "/api/players/search?q=q",
+    "203.0.113.14",
+    PLAYER_SEARCH_PER_MINUTE + 5,
   );
   assert.equal(allowed, PLAYER_SEARCH_PER_MINUTE);
 

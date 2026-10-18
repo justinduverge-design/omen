@@ -15,17 +15,10 @@
           "type": "string"
         },
         "team_id": {
-          "type": [
-            "null",
-            "string"
-          ]
+          "type": ["null", "string"]
         }
       },
-      "required": [
-        "league_id",
-        "platform",
-        "team_id"
-      ]
+      "required": ["league_id", "platform", "team_id"]
     },
     "contract_version": {
       "type": "string"
@@ -43,11 +36,5 @@
       "type": "string"
     }
   },
-  "required": [
-    "active",
-    "contract_version",
-    "generated_at",
-    "refresh",
-    "selection_persistence"
-  ]
+  "required": ["active", "contract_version", "generated_at", "refresh", "selection_persistence"]
 }

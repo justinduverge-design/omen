@@ -4,8 +4,13 @@
 // warehouse facts are compared through the shared summary fields instead.
 const WEEK_FIELDS = Object.freeze(["targets", "carries", "snap_share"]);
 const SUMMARY_FIELDS = Object.freeze([
-  "games", "targets_per_game", "receptions_per_game", "carries_per_game",
-  "attempts_per_game", "target_share", "snap_share",
+  "games",
+  "targets_per_game",
+  "receptions_per_game",
+  "carries_per_game",
+  "attempts_per_game",
+  "target_share",
+  "snap_share",
 ]);
 const FLOAT_TOLERANCE = 1e-6;
 
@@ -46,8 +51,10 @@ function compareUsageBundles(legacy, warehouse) {
   const warehouseUsage = map(warehouse?.usage, "warehouse.usage");
   const warehouseWeekly = map(warehouse?.weekly, "warehouse.weekly");
   const keys = new Set([
-    ...legacyUsage.keys(), ...legacyWeekly.keys(),
-    ...warehouseUsage.keys(), ...warehouseWeekly.keys(),
+    ...legacyUsage.keys(),
+    ...legacyWeekly.keys(),
+    ...warehouseUsage.keys(),
+    ...warehouseWeekly.keys(),
   ]);
 
   const result = {
@@ -82,14 +89,20 @@ function compareUsageBundles(legacy, warehouse) {
     for (const week of weeks) {
       if (!leftWeeks.has(week)) result.missing_legacy_weeks += 1;
       else if (!rightWeeks.has(week)) result.missing_warehouse_weeks += 1;
-      else for (const field of WEEK_FIELDS) {
-        if (!equalValue(leftWeeks.get(week)[field], rightWeeks.get(week)[field])) result.mismatched_fields += 1;
-      }
+      else
+        for (const field of WEEK_FIELDS) {
+          if (!equalValue(leftWeeks.get(week)[field], rightWeeks.get(week)[field])) result.mismatched_fields += 1;
+        }
     }
   }
 
-  if (result.missing_legacy_players || result.missing_warehouse_players
-    || result.missing_legacy_weeks || result.missing_warehouse_weeks || result.mismatched_fields) {
+  if (
+    result.missing_legacy_players ||
+    result.missing_warehouse_players ||
+    result.missing_legacy_weeks ||
+    result.missing_warehouse_weeks ||
+    result.mismatched_fields
+  ) {
     result.outcome = "mismatch";
   }
   return Object.freeze(result);

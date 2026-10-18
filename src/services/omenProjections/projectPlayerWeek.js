@@ -26,8 +26,18 @@
  */
 
 const {
-  CONFIDENCE, ENVIRONMENT, HALF_LIFE_GAMES_EFFICIENCY, HALF_LIFE_GAMES_VOLUME, MAX_HISTORY_GAMES, METHOD_VERSION,
-  PLAY_PROBABILITY, POSITIONS, RED_ZONE_RATIO_CLAMP, SEASON_DECAY, SHRINKAGE, STAT_KEYS,
+  CONFIDENCE,
+  ENVIRONMENT,
+  HALF_LIFE_GAMES_EFFICIENCY,
+  HALF_LIFE_GAMES_VOLUME,
+  MAX_HISTORY_GAMES,
+  METHOD_VERSION,
+  PLAY_PROBABILITY,
+  POSITIONS,
+  RED_ZONE_RATIO_CLAMP,
+  SEASON_DECAY,
+  SHRINKAGE,
+  STAT_KEYS,
 } = require("./constants");
 const { DEFAULT_PRIORS } = require("./priors");
 
@@ -47,16 +57,29 @@ function zeroLine() {
 
 /** Status text -> { state, probability, known }. Anything unrecognised plays at full strength and is flagged. */
 function interpretStatus(status) {
-  if (status == null || String(status).trim() === "") return { state: "unknown", probability: 1, known: false, recognised: true };
-  const key = String(status).trim().toUpperCase().replace(/[\s-]+/g, "_");
-  const alias = { INJURED_RESERVE: "IR", INACTIVE: "OUT", SUSPENSION: "SUSPENDED", SUSP: "SUSPENDED",
-    PHYSICALLY_UNABLE_TO_PERFORM: "PUP", NON_FOOTBALL_INJURY: "NFI", RESERVE: "RESERVED" }[key] || key;
+  if (status == null || String(status).trim() === "")
+    return { state: "unknown", probability: 1, known: false, recognised: true };
+  const key = String(status)
+    .trim()
+    .toUpperCase()
+    .replace(/[\s-]+/g, "_");
+  const alias =
+    {
+      INJURED_RESERVE: "IR",
+      INACTIVE: "OUT",
+      SUSPENSION: "SUSPENDED",
+      SUSP: "SUSPENDED",
+      PHYSICALLY_UNABLE_TO_PERFORM: "PUP",
+      NON_FOOTBALL_INJURY: "NFI",
+      RESERVE: "RESERVED",
+    }[key] || key;
   if (alias in PLAY_PROBABILITY) {
     const probability = PLAY_PROBABILITY[alias];
     const state = probability === 0 ? "out" : alias === "DOUBTFUL" ? "doubtful" : "questionable";
     return { state, probability, known: true, recognised: true };
   }
-  if (["ACTIVE", "HEALTHY", "PROBABLE", "NONE"].includes(alias)) return { state: "active", probability: 1, known: true, recognised: true };
+  if (["ACTIVE", "HEALTHY", "PROBABLE", "NONE"].includes(alias))
+    return { state: "active", probability: 1, known: true, recognised: true };
   return { state: "unknown", probability: 1, known: false, recognised: false };
 }
 
@@ -69,7 +92,8 @@ function projectPlayerWeek(input, options = {}) {
   if (!input || typeof input !== "object") throw new TypeError("input is required");
   const useGameContext = options.useGameContext !== false;
   const { season, week } = input;
-  if (!Number.isInteger(season) || !Number.isInteger(week) || week < 1) throw new TypeError("season and week must be integers");
+  if (!Number.isInteger(season) || !Number.isInteger(week) || week < 1)
+    throw new TypeError("season and week must be integers");
   const position = String(input.position || "").toUpperCase();
   const priors = input.priors || DEFAULT_PRIORS;
 
@@ -81,8 +105,16 @@ function projectPlayerWeek(input, options = {}) {
     week,
   };
   if (!POSITIONS.includes(position)) {
-    return { ...base, supported: false, stat_line: null, availability: null, confidence: { band: null, basis: "rule", reasons: ["position_not_supported"] },
-      flags: ["position_not_supported"], sample: null, inputs: { as_of: input.as_of ?? null, priors_version: priors.version } };
+    return {
+      ...base,
+      supported: false,
+      stat_line: null,
+      availability: null,
+      confidence: { band: null, basis: "rule", reasons: ["position_not_supported"] },
+      flags: ["position_not_supported"],
+      sample: null,
+      inputs: { as_of: input.as_of ?? null, priors_version: priors.version },
+    };
   }
   const pp = priors.positions[position];
 
@@ -116,12 +148,28 @@ function projectPlayerWeek(input, options = {}) {
   // Bye weeks and OUT-type statuses are facts of the schedule or of Omen's availability rule: an empty line,
   // never an estimate of what the player "would have" done.
   if (input.game && input.game.bye === true) {
-    return { ...base, supported: true, stat_line: zeroLine(), availability: { state: "bye", play_probability: 0 },
-      confidence: { band: null, basis: "rule", reasons: ["bye_week"] }, flags: ["bye_week"], sample: null, inputs: provenance };
+    return {
+      ...base,
+      supported: true,
+      stat_line: zeroLine(),
+      availability: { state: "bye", play_probability: 0 },
+      confidence: { band: null, basis: "rule", reasons: ["bye_week"] },
+      flags: ["bye_week"],
+      sample: null,
+      inputs: provenance,
+    };
   }
   if (availability.state === "out") {
-    return { ...base, supported: true, stat_line: zeroLine(), availability: { state: "out", play_probability: 0 },
-      confidence: { band: null, basis: "rule", reasons: ["status_out"] }, flags: ["status_out"], sample: null, inputs: provenance };
+    return {
+      ...base,
+      supported: true,
+      stat_line: zeroLine(),
+      availability: { state: "out", play_probability: 0 },
+      confidence: { band: null, basis: "rule", reasons: ["status_out"] },
+      flags: ["status_out"],
+      sample: null,
+      inputs: provenance,
+    };
   }
 
   // Weights by game index (most recent = 0) and season gap.
@@ -158,11 +206,14 @@ function projectPlayerWeek(input, options = {}) {
   if (!useGameContext) {
     provenance.game_context = "disabled";
   } else if (Number.isFinite(impliedNow) && impliedNow > 0) {
-    const withImplied = weights.filter((w) => Number.isFinite(Number(w.row.implied_points)) && Number(w.row.implied_points) > 0);
+    const withImplied = weights.filter(
+      (w) => Number.isFinite(Number(w.row.implied_points)) && Number(w.row.implied_points) > 0,
+    );
     const wSum = withImplied.reduce((sum, w) => sum + w.v, 0);
-    const reference = wSum > 0
-      ? withImplied.reduce((sum, w) => sum + w.v * Number(w.row.implied_points), 0) / wSum
-      : num(priors.league_implied_mean) || 22.5;
+    const reference =
+      wSum > 0
+        ? withImplied.reduce((sum, w) => sum + w.v * Number(w.row.implied_points), 0) / wSum
+        : num(priors.league_implied_mean) || 22.5;
     const relative = impliedNow / reference - 1;
     volumeMultiplier = clamp(1 + ENVIRONMENT.eps_volume * relative, ENVIRONMENT.volume_clamp);
     tdMultiplier = clamp(1 + ENVIRONMENT.eps_td * relative, ENVIRONMENT.td_clamp);
@@ -205,13 +256,24 @@ function projectPlayerWeek(input, options = {}) {
   const rzTarget = redZoneRatio("red_zone_targets", "targets", pp.red_zone?.target_share, SHRINKAGE.red_zone_targets);
   const rates = {
     rush_yards_per_carry: rate("rushing_yards", "carries", r.rush_yards_per_carry, SHRINKAGE.rush_yards_per_carry),
-    rush_td_per_carry: rate("rushing_tds", "carries", r.rush_td_per_carry * rzCarry, SHRINKAGE.rush_td_per_carry) * tdMultiplier,
+    rush_td_per_carry:
+      rate("rushing_tds", "carries", r.rush_td_per_carry * rzCarry, SHRINKAGE.rush_td_per_carry) * tdMultiplier,
     catch_rate: Math.min(1, rate("receptions", "targets", r.catch_rate, SHRINKAGE.catch_rate)),
     rec_yards_per_target: rate("receiving_yards", "targets", r.rec_yards_per_target, SHRINKAGE.rec_yards_per_target),
-    rec_td_per_target: rate("receiving_tds", "targets", r.rec_td_per_target * rzTarget, SHRINKAGE.rec_td_per_target) * tdMultiplier,
-    completions_per_attempt: Math.min(1, rate("completions", "attempts", r.completions_per_attempt, SHRINKAGE.completions_per_attempt)),
-    pass_yards_per_attempt: rate("passing_yards", "attempts", r.pass_yards_per_attempt, SHRINKAGE.pass_yards_per_attempt),
-    pass_td_per_attempt: rate("passing_tds", "attempts", r.pass_td_per_attempt, SHRINKAGE.pass_td_per_attempt) * tdMultiplier,
+    rec_td_per_target:
+      rate("receiving_tds", "targets", r.rec_td_per_target * rzTarget, SHRINKAGE.rec_td_per_target) * tdMultiplier,
+    completions_per_attempt: Math.min(
+      1,
+      rate("completions", "attempts", r.completions_per_attempt, SHRINKAGE.completions_per_attempt),
+    ),
+    pass_yards_per_attempt: rate(
+      "passing_yards",
+      "attempts",
+      r.pass_yards_per_attempt,
+      SHRINKAGE.pass_yards_per_attempt,
+    ),
+    pass_td_per_attempt:
+      rate("passing_tds", "attempts", r.pass_td_per_attempt, SHRINKAGE.pass_td_per_attempt) * tdMultiplier,
     int_per_attempt: rate("passing_interceptions", "attempts", r.int_per_attempt, SHRINKAGE.int_per_attempt),
   };
   // Fumbles lost per touch (carry, target or pass attempt).
@@ -223,8 +285,8 @@ function projectPlayerWeek(input, options = {}) {
       flDen += w.e * (num(w.row.stats?.carries) + num(w.row.stats?.targets) + num(w.row.stats?.attempts));
     }
   }
-  rates.fumbles_lost_per_touch = (flNum + SHRINKAGE.fumbles_lost_per_touch * r.fumbles_lost_per_touch)
-    / (flDen + SHRINKAGE.fumbles_lost_per_touch);
+  rates.fumbles_lost_per_touch =
+    (flNum + SHRINKAGE.fumbles_lost_per_touch * r.fumbles_lost_per_touch) / (flDen + SHRINKAGE.fumbles_lost_per_touch);
 
   // Expected line GIVEN the player plays; scaled by Omen's play probability.
   const p = availability.probability;

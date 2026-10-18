@@ -29,14 +29,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "id",
-          "name",
-          "scoring_format",
-          "season",
-          "team_id",
-          "team_name"
-        ]
+        "required": ["id", "name", "scoring_format", "season", "team_id", "team_name"]
       }
     },
     "platform": {
@@ -50,20 +43,11 @@
     },
     "status": {
       "type": "string",
-      "enum": [
-        "resolved"
-      ]
+      "enum": ["resolved"]
     },
     "username": {
       "type": "string"
     }
   },
-  "required": [
-    "leagues",
-    "platform",
-    "season",
-    "sleeper_user_id",
-    "status",
-    "username"
-  ]
+  "required": ["leagues", "platform", "season", "sleeper_user_id", "status", "username"]
 }

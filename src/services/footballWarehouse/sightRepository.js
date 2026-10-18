@@ -13,9 +13,10 @@ function parseDefenseRef(key) {
   const match = /^(sleeper|espn|yahoo):(.+)$/.exec(String(key || ""));
   if (!match) return null;
   const id = match[2];
-  const ok = (match[1] === "sleeper" && /^[A-Z]{2,3}$/.test(id))
-    || (match[1] === "espn" && /^-16[0-9]{3}$/.test(id))
-    || (match[1] === "yahoo" && /^1000[0-9]{2}$/.test(id));
+  const ok =
+    (match[1] === "sleeper" && /^[A-Z]{2,3}$/.test(id)) ||
+    (match[1] === "espn" && /^-16[0-9]{3}$/.test(id)) ||
+    (match[1] === "yahoo" && /^1000[0-9]{2}$/.test(id));
   return ok ? { key: String(key), provider: match[1], providerId: id } : null;
 }
 
@@ -37,14 +38,21 @@ const SKILL_POSITIONS = new Set(["QB", "RB", "WR", "TE", "K"]);
 
 // Same rule as the player index (playerIndexStage.normalName) and its SQL twin below.
 function normalName(value) {
-  return String(value || "").toLowerCase().replace(/\b(jr|sr|ii|iii|iv|v)\b\.?/g, "").replace(/[^a-z]/g, "");
+  return String(value || "")
+    .toLowerCase()
+    .replace(/\b(jr|sr|ii|iii|iv|v)\b\.?/g, "")
+    .replace(/[^a-z]/g, "");
 }
 
 /** A provider player the index cannot place yet (a rookie Yahoo or Sleeper has not paired): name, team, position. */
 function hintOf(key, hint) {
   const name = normalName(hint?.name);
-  const team = String(hint?.team || "").trim().toUpperCase();
-  const position = String(hint?.position || "").trim().toUpperCase();
+  const team = String(hint?.team || "")
+    .trim()
+    .toUpperCase();
+  const position = String(hint?.position || "")
+    .trim()
+    .toUpperCase();
   if (!name || !/^[A-Z]{2,3}$/.test(team) || !SKILL_POSITIONS.has(position)) return null;
   return { key, name, team: `omen:team:${(TEAM_ALIASES[team] || team).toLowerCase()}`, position };
 }
@@ -75,17 +83,29 @@ function createWarehouseSightRepository({ query, timeoutMs = 2_000, now = () => 
          GROUP BY t.team_id`,
       query_timeout: timeoutMs,
     });
-    byes = { until: now() + BYE_TTL_MS, map: new Map((result?.rows || []).map((r) => [r.team_id, Number(r.bye_week)])) };
+    byes = {
+      until: now() + BYE_TTL_MS,
+      map: new Map((result?.rows || []).map((r) => [r.team_id, Number(r.bye_week)])),
+    };
     return byes.map;
   }
   return {
     /** Map(app player key -> sight block). Players Sight has no read for are absent. */
     async readSight({ playerKeys, version = "v1", hints = null }) {
-      const refs = [...new Map((Array.isArray(playerKeys) ? playerKeys : []).map(parseRef).filter(Boolean).map((r) => [r.key, r])).values()].slice(0, MAX_REFS);
+      const refs = [
+        ...new Map(
+          (Array.isArray(playerKeys) ? playerKeys : [])
+            .map(parseRef)
+            .filter(Boolean)
+            .map((r) => [r.key, r]),
+        ).values(),
+      ].slice(0, MAX_REFS);
       if (!/^v[0-9]{1,3}$/.test(version)) return new Map();
-      const result = !refs.length ? { rows: [] } : await query({
-        name: "warehouse-sight-read-v2",
-        text: `
+      const result = !refs.length
+        ? { rows: [] }
+        : await query({
+            name: "warehouse-sight-read-v2",
+            text: `
           WITH run AS (
             SELECT id, season, week FROM football.football_metric_runs
              WHERE metric_name = 'omen_sight' AND formula_version = $4 AND state = 'succeeded'
@@ -98,13 +118,22 @@ function createWarehouseSightRepository({ query, timeoutMs = 2_000, now = () => 
             CROSS JOIN run
             JOIN football.football_metric_values v ON v.metric_run_id = run.id AND v.entity_type = 'player' AND v.entity_id = x.player_id
             LEFT JOIN football.player_injury_reports ir ON ir.player_id = x.player_id`,
-        values: [refs.map((r) => r.key), refs.map((r) => r.provider), refs.map((r) => r.providerId), version],
-        query_timeout: timeoutMs,
-      });
-      const defenses = [...new Map((Array.isArray(playerKeys) ? playerKeys : []).map(parseDefenseRef).filter(Boolean).map((r) => [r.key, r])).values()].slice(0, 64);
-      const teamRows = defenses.length ? (await query({
-        name: "warehouse-sight-read-defense-v1",
-        text: `
+            values: [refs.map((r) => r.key), refs.map((r) => r.provider), refs.map((r) => r.providerId), version],
+            query_timeout: timeoutMs,
+          });
+      const defenses = [
+        ...new Map(
+          (Array.isArray(playerKeys) ? playerKeys : [])
+            .map(parseDefenseRef)
+            .filter(Boolean)
+            .map((r) => [r.key, r]),
+        ).values(),
+      ].slice(0, 64);
+      const teamRows = defenses.length
+        ? (
+            await query({
+              name: "warehouse-sight-read-defense-v1",
+              text: `
           WITH run AS (
             SELECT id, season, week FROM football.football_metric_runs
              WHERE metric_name = 'omen_sight' AND formula_version = $4 AND state = 'succeeded'
@@ -115,17 +144,29 @@ function createWarehouseSightRepository({ query, timeoutMs = 2_000, now = () => 
             JOIN football.team_ids t ON t.provider = refs.provider AND t.provider_id = refs.provider_id AND t.kind = 'defense'
             CROSS JOIN run
             JOIN football.football_metric_values v ON v.metric_run_id = run.id AND v.entity_type = 'team' AND v.entity_id = t.team_id`,
-        values: [defenses.map((r) => r.key), defenses.map((r) => r.provider), defenses.map((r) => r.providerId), version],
-        query_timeout: timeoutMs,
-      }))?.rows || [] : [];
+              values: [
+                defenses.map((r) => r.key),
+                defenses.map((r) => r.provider),
+                defenses.map((r) => r.providerId),
+                version,
+              ],
+              query_timeout: timeoutMs,
+            })
+          )?.rows || []
+        : [];
       // Fallback for players the index has not paired: the one player on that NFL team's current roster at that
       // position whose name matches. Unique or nothing; it never guesses between two.
       const found = new Set((result?.rows || []).map((row) => row.key));
-      const pending = refs.filter((r) => !found.has(r.key) && hints instanceof Map)
-        .map((r) => hintOf(r.key, hints.get(r.key))).filter(Boolean).slice(0, 200);
-      const hintRows = pending.length ? (await query({
-        name: "warehouse-sight-read-hint-v2",
-        text: `
+      const pending = refs
+        .filter((r) => !found.has(r.key) && hints instanceof Map)
+        .map((r) => hintOf(r.key, hints.get(r.key)))
+        .filter(Boolean)
+        .slice(0, 200);
+      const hintRows = pending.length
+        ? (
+            await query({
+              name: "warehouse-sight-read-hint-v2",
+              text: `
           WITH run AS (
             SELECT id, season, week FROM football.football_metric_runs
              WHERE metric_name = 'omen_sight' AND formula_version = $5 AND state = 'succeeded'
@@ -149,9 +190,17 @@ function createWarehouseSightRepository({ query, timeoutMs = 2_000, now = () => 
             FROM matched m CROSS JOIN run
             JOIN football.football_metric_values v ON v.metric_run_id = run.id AND v.entity_type = 'player' AND v.entity_id = m.player_id
             LEFT JOIN football.player_injury_reports ir ON ir.player_id = m.player_id`,
-        values: [pending.map((h) => h.key), pending.map((h) => h.name), pending.map((h) => h.team), pending.map((h) => h.position), version],
-        query_timeout: timeoutMs,
-      }))?.rows || [] : [];
+              values: [
+                pending.map((h) => h.key),
+                pending.map((h) => h.name),
+                pending.map((h) => h.team),
+                pending.map((h) => h.position),
+                version,
+              ],
+              query_timeout: timeoutMs,
+            })
+          )?.rows || []
+        : [];
       const out = new Map();
       for (const row of [...(result?.rows || []), ...teamRows, ...hintRows]) {
         const c = row.components || {};
@@ -172,16 +221,33 @@ function createWarehouseSightRepository({ query, timeoutMs = 2_000, now = () => 
           // The three inputs that moved the number most, in points; the full breakdown stays in the warehouse.
           drivers: contributions.slice(0, 3).map((p) => ({ name: p.name, points: Math.round(p.points * 10) / 10 })),
           // Sleeper's injury report (once a day). Absent means Sleeper lists no injury, not "healthy for sure".
-          ...(row.injury_status ? { injury: { status: row.injury_status, body_part: row.injury_body_part || null, practice: row.injury_practice || null, source: "sleeper" } } : {}),
+          ...(row.injury_status
+            ? {
+                injury: {
+                  status: row.injury_status,
+                  body_part: row.injury_body_part || null,
+                  practice: row.injury_practice || null,
+                  source: "sleeper",
+                },
+              }
+            : {}),
         });
       }
       // The bye week of the NFL team the provider lists for each player (League-GM planning: who covers it).
       if (out.size && hints instanceof Map) {
         let map = new Map();
-        try { map = await byeWeeks(); } catch { map = new Map(); }
+        try {
+          map = await byeWeeks();
+        } catch {
+          map = new Map();
+        }
         for (const [key, block] of out) {
-          const team = String(hints.get(key)?.team || "").trim().toUpperCase();
-          const bye = /^[A-Z]{2,3}$/.test(team) ? map.get(`omen:team:${(TEAM_ALIASES[team] || team).toLowerCase()}`) : undefined;
+          const team = String(hints.get(key)?.team || "")
+            .trim()
+            .toUpperCase();
+          const bye = /^[A-Z]{2,3}$/.test(team)
+            ? map.get(`omen:team:${(TEAM_ALIASES[team] || team).toLowerCase()}`)
+            : undefined;
           if (Number.isInteger(bye)) block.bye_week = bye;
         }
       }

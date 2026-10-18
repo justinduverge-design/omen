@@ -58,22 +58,38 @@ test("leagueRostersFromEspnSchedule ignores games outside the requested week", (
     playerPoolEntry: { player: { id: playerId, fullName: `Player ${playerId}`, defaultPositionId: 2, stats: [] } },
   });
   const data = {
-    teams: [{ id: 1, location: "A", nickname: "" }, { id: 2, location: "B", nickname: "" }],
+    teams: [
+      { id: 1, location: "A", nickname: "" },
+      { id: 2, location: "B", nickname: "" },
+    ],
     schedule: [
-      { matchupPeriodId: 1, home: { teamId: 1, rosterForCurrentScoringPeriod: { entries: [entry(1)] } }, away: { teamId: 2, rosterForCurrentScoringPeriod: { entries: [entry(2)] } } },
+      {
+        matchupPeriodId: 1,
+        home: { teamId: 1, rosterForCurrentScoringPeriod: { entries: [entry(1)] } },
+        away: { teamId: 2, rosterForCurrentScoringPeriod: { entries: [entry(2)] } },
+      },
     ],
   };
   const result = espnAdapter.leagueRostersFromEspnSchedule(data, 3);
   // No game matches week 3, but `mTeam` still lists both teams — the defensive fallback
   // still returns them (empty rosters via rosterEntries()), never silently drops a team.
   assert.equal(result.teams.length, 2);
-  assert.deepEqual(result.teams.map((t) => t.players.length), [0, 0]);
+  assert.deepEqual(
+    result.teams.map((t) => t.players.length),
+    [0, 0],
+  );
 });
 
 test("leagueRostersFromEspnSchedule never carries espn_s2/SWID onto the wire", () => {
   const data = {
     teams: [{ id: 1, location: "A", nickname: "" }],
-    schedule: [{ matchupPeriodId: 1, home: { teamId: 1, rosterForCurrentScoringPeriod: { entries: [] } }, away: { teamId: 2, rosterForCurrentScoringPeriod: { entries: [] } } }],
+    schedule: [
+      {
+        matchupPeriodId: 1,
+        home: { teamId: 1, rosterForCurrentScoringPeriod: { entries: [] } },
+        away: { teamId: 2, rosterForCurrentScoringPeriod: { entries: [] } },
+      },
+    ],
   };
   const result = espnAdapter.leagueRostersFromEspnSchedule(data, 1);
   const serialized = JSON.stringify(result);
@@ -95,7 +111,9 @@ test("fetchYahooLeagueRosters reads every team's roster by composing standings +
     constructor(accessToken) {
       this.accessToken = accessToken;
     }
-    async getCurrentWeek() { return 5; }
+    async getCurrentWeek() {
+      return 5;
+    }
     async getLeagueStandings() {
       return [
         { team_id: "411.l.1.t.1", team_name: "Own Team" },
@@ -110,11 +128,16 @@ test("fetchYahooLeagueRosters reads every team's roster by composing standings +
             [],
             {
               roster: {
-                "0": {
+                0: {
                   players: {
-                    "0": {
+                    0: {
                       player: [
-                        [{ player_key: `${teamKey}:p1` }, { player_id: "1" }, { name: { full: `Player of ${teamKey}` } }, { eligible_positions: [{ position: "WR" }] }],
+                        [
+                          { player_key: `${teamKey}:p1` },
+                          { player_id: "1" },
+                          { name: { full: `Player of ${teamKey}` } },
+                          { eligible_positions: [{ position: "WR" }] },
+                        ],
                         { selected_position: { position: "WR" } },
                       ],
                     },
@@ -145,7 +168,10 @@ test("fetchYahooLeagueRosters reads every team's roster by composing standings +
   assert.equal(result.teams[1].team_name, "Rival Team");
   assert.equal(result.teams[1].players[0].name, "Player of 411.l.1.t.2");
   // Both teams actually read, not just the caller's own.
-  assert.deepEqual(rosterCallsByTeam.map((c) => c.teamKey), ["411.l.1.t.1", "411.l.1.t.2"]);
+  assert.deepEqual(
+    rosterCallsByTeam.map((c) => c.teamKey),
+    ["411.l.1.t.1", "411.l.1.t.2"],
+  );
 
   delete require.cache[yahooServicePath];
   delete require.cache[yahooAdapterPath];
@@ -160,7 +186,9 @@ test("fetchYahooLeagueRosters enriches the whole league with source-labelled pro
   delete require.cache[yahooAdapterPath];
 
   class FakeYahooClient {
-    async getCurrentWeek() { return 5; }
+    async getCurrentWeek() {
+      return 5;
+    }
     async getLeagueStandings() {
       return [
         { team_id: "411.l.1.t.1", team_name: "Own Team" },
@@ -173,15 +201,26 @@ test("fetchYahooLeagueRosters enriches the whole league with source-labelled pro
         fantasy_content: {
           team: [
             [],
-            { roster: { "0": { players: {
-              "0": { player: [[
-                { player_key: `${teamKey}.p.${playerID}` },
-                { player_id: playerID },
-                { name: { full: `Player ${playerID}` } },
-                { eligible_positions: [{ position: "WR" }] },
-              ], { selected_position: { position: "WR" } }] },
-              count: 1,
-            } } } },
+            {
+              roster: {
+                0: {
+                  players: {
+                    0: {
+                      player: [
+                        [
+                          { player_key: `${teamKey}.p.${playerID}` },
+                          { player_id: playerID },
+                          { name: { full: `Player ${playerID}` } },
+                          { eligible_positions: [{ position: "WR" }] },
+                        ],
+                        { selected_position: { position: "WR" } },
+                      ],
+                    },
+                    count: 1,
+                  },
+                },
+              },
+            },
           ],
         },
       };
@@ -227,11 +266,13 @@ test("fetchYahooLeagueRosters enriches the whole league with source-labelled pro
     assert.deepEqual(
       result.teams.flatMap((team) => team.players).map((player) => player.projected_points),
       [10, 11],
-      "the enriched values are the values Find receives from the adapter"
+      "the enriched values are the values Find receives from the adapter",
     );
-    assert.ok(result.teams.flatMap((team) => team.players).every(
-      (player) => player.projection_source === "sleeper_public_projections"
-    ));
+    assert.ok(
+      result.teams
+        .flatMap((team) => team.players)
+        .every((player) => player.projection_source === "sleeper_public_projections"),
+    );
     assert.deepEqual(result.projection_meta, {
       available: true,
       source: "sleeper_public_projections",
@@ -255,7 +296,9 @@ test("fetchYahooLeagueRosters does not fail the whole read when one team's roste
   delete require.cache[yahooAdapterPath];
 
   class FlakyYahooClient {
-    async getCurrentWeek() { return 5; }
+    async getCurrentWeek() {
+      return 5;
+    }
     async getLeagueStandings() {
       return [
         { team_id: "t.1", team_name: "Own Team" },
@@ -264,7 +307,7 @@ test("fetchYahooLeagueRosters does not fail the whole read when one team's roste
     }
     async getRoster(teamKey) {
       if (teamKey === "t.2") throw new Error("yahoo 500");
-      return { fantasy_content: { team: [[], { roster: { "0": { players: { count: 0 } } } }] } };
+      return { fantasy_content: { team: [[], { roster: { 0: { players: { count: 0 } } } }] } };
     }
   }
 
@@ -307,13 +350,21 @@ test("evaluateTradeForConnection skips an unreadable Yahoo team instead of treat
   assert.equal(result.reason, "rosters_unreadable");
 
   // Only an opponent unreadable: the others are still searched and the skipped one is counted.
-  const mk = (id, pos, pts) => ({ player_id: id, player_key: id, position: pos, eligible_positions: [pos], projected_points: pts });
+  const mk = (id, pos, pts) => ({
+    player_id: id,
+    player_key: id,
+    position: pos,
+    eligible_positions: [pos],
+    projected_points: pts,
+  });
   const mixed = [
     { team_id: "t.1", players: [mk("r1", "RB", 5), mk("w1", "WR", 15), mk("w2", "WR", 14)], read_status: "ok" },
     { team_id: "t.2", players: [], read_status: "unreadable" },
     { team_id: "t.3", players: [mk("r2", "RB", 15), mk("r3", "RB", 14), mk("w3", "WR", 4)], read_status: "ok" },
   ];
-  const mixedAdapters = { yahoo: { fetchYahooLeagueRosters: async () => ({ teams: mixed, roster_positions: ["RB", "WR"] }) } };
+  const mixedAdapters = {
+    yahoo: { fetchYahooLeagueRosters: async () => ({ teams: mixed, roster_positions: ["RB", "WR"] }) },
+  };
   const ok = await evaluateTradeForConnection({
     connection: { platform: "yahoo", league_id: "411.l.1" },
     roster: { week: 5, team_key: "t.1", slots: { starters: [{ projected_points: 10 }], bench: [] } },
@@ -326,20 +377,53 @@ test("evaluateTradeForConnection skips an unreadable Yahoo team instead of treat
 
 test("ESPN carries provider lock flags and Trade never proposes a trade-locked player", () => {
   const { findTradeCandidate } = require("../src/services/tradeLineup");
-  const mk = (id, position, pts, extra = {}) => ({ player_id: id, player_key: id, name: id, position, eligible_positions: [position], projected_points: pts, ...extra });
+  const mk = (id, position, pts, extra = {}) => ({
+    player_id: id,
+    player_key: id,
+    name: id,
+    position,
+    eligible_positions: [position],
+    projected_points: pts,
+    ...extra,
+  });
   const own = { roster_id: "a", players: [mk("r1", "RB", 5), mk("w1", "WR", 15), mk("w2", "WR", 14)] };
-  const mkOpp = (locked) => ({ roster_id: "b", players: [mk("r2", "RB", 15, { trade_locked: locked }), mk("r3", "RB", 14), mk("w3", "WR", 4)] });
+  const mkOpp = (locked) => ({
+    roster_id: "b",
+    players: [mk("r2", "RB", 15, { trade_locked: locked }), mk("r3", "RB", 14), mk("w3", "WR", 4)],
+  });
   const run = (opp) => findTradeCandidate({ ownTeam: own, opponentTeams: [opp], rosterPositions: ["RB", "WR"] });
   const open = run(mkOpp(false));
   const locked = run(mkOpp(true));
   assert.equal(open.receive.player_id, "r2", "control: the best RB upgrade is the unlocked r2");
-  assert.notEqual(locked && locked.receive.player_id, "r2", "a trade-locked player is never the one Omen proposes to receive");
+  assert.notEqual(
+    locked && locked.receive.player_id,
+    "r2",
+    "a trade-locked player is never the one Omen proposes to receive",
+  );
 });
 
 test("ESPN roster normalization reads lineup/roster/trade lock flags; absent means not locked", () => {
   const { leagueRostersFromEspnSchedule } = require("../src/adapters/espn");
-  const entry = (id, flags) => ({ playerId: id, lineupSlotId: 0, ...flags, playerPoolEntry: { player: { id, fullName: `P${id}`, defaultPositionId: 1 } } });
-  const data = { teams: [{ id: 1 }], schedule: [{ matchupPeriodId: 5, home: { teamId: 1, rosterForCurrentScoringPeriod: { entries: [entry(1, { tradeLocked: true, lineupLocked: true }), entry(2, {})] } } }] };
+  const entry = (id, flags) => ({
+    playerId: id,
+    lineupSlotId: 0,
+    ...flags,
+    playerPoolEntry: { player: { id, fullName: `P${id}`, defaultPositionId: 1 } },
+  });
+  const data = {
+    teams: [{ id: 1 }],
+    schedule: [
+      {
+        matchupPeriodId: 5,
+        home: {
+          teamId: 1,
+          rosterForCurrentScoringPeriod: {
+            entries: [entry(1, { tradeLocked: true, lineupLocked: true }), entry(2, {})],
+          },
+        },
+      },
+    ],
+  };
   const [team] = leagueRostersFromEspnSchedule(data, 5).teams;
   assert.equal(team.players[0].trade_locked, true);
   assert.equal(team.players[0].lineup_locked, true);
@@ -351,20 +435,40 @@ test("league starting slots come from provider settings, in names the lineup sol
   const { rosterPositionsFromYahooSettings } = require("../src/adapters/yahoo");
   const { solveOptimalLineup } = require("../src/services/tradeLineup");
   assert.deepEqual(
-    rosterPositionsFromEspnSettings({ settings: { rosterSettings: { lineupSlotCounts: { 0: 1, 2: 2, 4: 2, 6: 1, 17: 1, 20: 6, 21: 1, 23: 1, 16: 0 } } } }),
-    ["QB", "RB", "RB", "WR", "WR", "TE", "K", "FLEX"]
+    rosterPositionsFromEspnSettings({
+      settings: { rosterSettings: { lineupSlotCounts: { 0: 1, 2: 2, 4: 2, 6: 1, 17: 1, 20: 6, 21: 1, 23: 1, 16: 0 } } },
+    }),
+    ["QB", "RB", "RB", "WR", "WR", "TE", "K", "FLEX"],
   );
   assert.deepEqual(rosterPositionsFromEspnSettings({}), []);
-  const yahooSettings = [{ league_key: "x" }, { settings: [{ roster_positions: [
-    { roster_position: { position: "QB", count: 1, is_starting_position: 1 } },
-    { roster_position: { position: "RB", count: 2, is_starting_position: 1 } },
-    { roster_position: { position: "W/R/T", count: 1, is_starting_position: 1 } },
-    { roster_position: { position: "BN", count: 5, is_starting_position: 0 } },
-  ] }] }];
+  const yahooSettings = [
+    { league_key: "x" },
+    {
+      settings: [
+        {
+          roster_positions: [
+            { roster_position: { position: "QB", count: 1, is_starting_position: 1 } },
+            { roster_position: { position: "RB", count: 2, is_starting_position: 1 } },
+            { roster_position: { position: "W/R/T", count: 1, is_starting_position: 1 } },
+            { roster_position: { position: "BN", count: 5, is_starting_position: 0 } },
+          ],
+        },
+      ],
+    },
+  ];
   const slots = rosterPositionsFromYahooSettings(yahooSettings);
   assert.deepEqual(slots, ["QB", "RB", "RB", "W/R/T"]);
   // Yahoo's flex slot is actually filled by an eligible player.
-  const mk = (id, position, pts) => ({ player_id: id, player_key: id, position, eligible_positions: [position], projected_points: pts });
-  const lineup = solveOptimalLineup({ players: [mk("q", "QB", 20), mk("a", "RB", 10), mk("b", "RB", 9), mk("c", "WR", 8)], rosterPositions: slots });
+  const mk = (id, position, pts) => ({
+    player_id: id,
+    player_key: id,
+    position,
+    eligible_positions: [position],
+    projected_points: pts,
+  });
+  const lineup = solveOptimalLineup({
+    players: [mk("q", "QB", 20), mk("a", "RB", 10), mk("b", "RB", 9), mk("c", "WR", 8)],
+    rosterPositions: slots,
+  });
   assert.equal(lineup.total, 47, "the WR fills W/R/T");
 });

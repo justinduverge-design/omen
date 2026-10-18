@@ -63,7 +63,6 @@ function withTimeout(promise) {
   let timer;
   const timeout = new Promise((_, reject) => {
     timer = setTimeout(() => reject(new Error("response_cache_timeout")), STORE_TIMEOUT_MS);
-
   });
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
@@ -161,7 +160,11 @@ function canonicalize(value) {
 }
 
 function hashParts(parts) {
-  return crypto.createHash("sha256").update(JSON.stringify(canonicalize(parts))).digest("hex").slice(0, 40);
+  return crypto
+    .createHash("sha256")
+    .update(JSON.stringify(canonicalize(parts)))
+    .digest("hex")
+    .slice(0, 40);
 }
 
 /**

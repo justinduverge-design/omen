@@ -71,9 +71,10 @@ function toCapability(name, signal = {}, generatedAt = null) {
     used: signal.used === true,
     kind: evidenceKindFor(name, signal),
     source: typeof signal.source === "string" && signal.source.trim() ? signal.source : "unknown",
-    statement: typeof signal.message === "string" && signal.message.trim()
-      ? signal.message.trim()
-      : "Omen did not provide a readable statement for this capability.",
+    statement:
+      typeof signal.message === "string" && signal.message.trim()
+        ? signal.message.trim()
+        : "Omen did not provide a readable statement for this capability.",
     observed_at: observedAt,
     fresh_until: safeIso(signal.fresh_until),
   };
@@ -87,22 +88,29 @@ function promotedCapability(name, record = {}, generatedAt = null) {
   const resolution = String(record.resolution || "").toLowerCase();
   const suppliedState = capabilityState(record.state || record.status);
   const state = resolution
-    ? (["available", "live"].includes(resolution) ? suppliedState === "unavailable" ? "live" : suppliedState : "unavailable")
+    ? ["available", "live"].includes(resolution)
+      ? suppliedState === "unavailable"
+        ? "live"
+        : suppliedState
+      : "unavailable"
     : suppliedState;
   const kind = ["verified", "projection", "model", "inference", "limitation"].includes(record.kind)
     ? record.kind
-    : state === "live" ? evidenceKindFor(name, { status: state }) : "limitation";
+    : state === "live"
+      ? evidenceKindFor(name, { status: state })
+      : "limitation";
   return {
     name,
     state,
     used: record.used === true,
     kind,
     source: typeof record.source === "string" && record.source.trim() ? record.source : "unknown",
-    statement: typeof record.statement === "string" && record.statement.trim()
-      ? record.statement.trim()
-      : typeof record.message === "string" && record.message.trim()
-        ? record.message.trim()
-        : "Omen did not provide a readable statement for this capability.",
+    statement:
+      typeof record.statement === "string" && record.statement.trim()
+        ? record.statement.trim()
+        : typeof record.message === "string" && record.message.trim()
+          ? record.message.trim()
+          : "Omen did not provide a readable statement for this capability.",
     observed_at: safeIso(record.observed_at) || (state === "live" ? safeIso(generatedAt) : null),
     fresh_until: safeIso(record.fresh_until),
     ...(typeof record.reason_code === "string" && record.reason_code ? { reason_code: record.reason_code } : {}),
@@ -115,7 +123,7 @@ function promotedCapability(name, record = {}, generatedAt = null) {
 
 function buildDecisionCapabilities({ signals = {}, promoted = {}, generatedAt = null } = {}) {
   const all = new Map(
-    Object.entries(signals || {}).map(([name, signal]) => [name, toCapability(name, signal, generatedAt)])
+    Object.entries(signals || {}).map(([name, signal]) => [name, toCapability(name, signal, generatedAt)]),
   );
   for (const [name, record] of Object.entries(promoted || {})) {
     all.set(name, promotedCapability(name, record, generatedAt));
