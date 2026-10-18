@@ -27,6 +27,7 @@ import com.slopssaloon.omen.core.designsystem.component.OmenButton
 import com.slopssaloon.omen.core.designsystem.component.OmenButtonSize
 import com.slopssaloon.omen.core.designsystem.component.OmenButtonVariant
 import com.slopssaloon.omen.core.designsystem.component.OmenCard
+import com.slopssaloon.omen.core.designsystem.component.OmenConfidenceBand
 import com.slopssaloon.omen.core.designsystem.component.OmenSignalList
 import com.slopssaloon.omen.core.designsystem.component.OmenMetricDelta
 import com.slopssaloon.omen.core.designsystem.component.OmenMetricItem
@@ -38,7 +39,7 @@ import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
 
 /** M4 Omen destination assembly. It owns state selection; DecisionBrief owns rendering. */
 @Composable
-fun OmenDecisionScreen(state: OmenDecisionBriefState, modifier: Modifier = Modifier) {
+private fun LegacyOmenDecisionScreen(state: OmenDecisionBriefState, modifier: Modifier = Modifier) {
     var showingEvidence by remember { mutableStateOf(false) }
     Column(
         modifier = modifier
@@ -96,6 +97,89 @@ fun OmenDecisionScreen(state: OmenDecisionBriefState, modifier: Modifier = Modif
 
 /** Deterministic, explicitly mock fixture. It is never selected for a real account. */
 object OmenDecisionFixtures {
+    val journeyNominalPayload = OmenDecisionBriefPayload(
+        verdict = "Start Sample WR1 over Sample WR2",
+        callType = "start_sit",
+        move = "Move Sample WR1 into the flex slot before kickoff.",
+        impact = "+3.8 projected",
+        confidenceBand = OmenConfidenceBand.Confident,
+        confidenceDrivers = listOf(
+            "The roster and projection reads agree on the stronger option.",
+            "The usage gap stayed stable across the latest provider update.",
+        ),
+        risk = OmenRiskLevel.Low,
+        riskReasons = listOf("Both players remain active in the latest read."),
+        explanation = listOf("Sample WR1 has the stronger projection and the steadier route share."),
+        signals = listOf(
+            OmenSignalItem(
+                label = "Roster",
+                source = OmenSignalSource.Live,
+                detail = "The selected league roster was read successfully.",
+                kind = com.slopssaloon.omen.core.designsystem.component.OmenEvidenceKind.Verified,
+                used = true,
+            ),
+            OmenSignalItem(
+                label = "Projections",
+                source = OmenSignalSource.Live,
+                detail = "Current-week projections favor Sample WR1.",
+                kind = com.slopssaloon.omen.core.designsystem.component.OmenEvidenceKind.Projection,
+                used = true,
+            ),
+            OmenSignalItem(
+                label = "Start sit inference",
+                source = OmenSignalSource.Live,
+                detail = "The lineup model used both available players.",
+                kind = com.slopssaloon.omen.core.designsystem.component.OmenEvidenceKind.Inference,
+                used = true,
+            ),
+        ),
+        alternatives = listOf(
+            OmenDecisionBriefAlternative(
+                name = "Sample WR3",
+                position = OmenPosition.WR,
+                team = "Sample Team",
+                meta = "Lower projected floor",
+            ),
+        ),
+    )
+
+    val journeyNominal = OmenDecisionBriefState.Success(journeyNominalPayload)
+
+    val journeyDegradedPayload = OmenDecisionBriefPayload(
+        verdict = "Start Sample WR1 over Sample WR2",
+        callType = "start_sit",
+        move = "Sample WR2 draws the tougher coverage this week.",
+        confidenceBand = OmenConfidenceBand.Leaning,
+        confidenceDrivers = listOf("Target share held above 25% in three of the last four."),
+        risk = OmenRiskLevel.Low,
+        explanation = listOf("Sample WR1's routes-run share is the stable half of this call."),
+        signals = listOf(
+            OmenSignalItem(
+                label = "Roster",
+                source = OmenSignalSource.Live,
+                detail = "Live roster read for the selected league.",
+                kind = com.slopssaloon.omen.core.designsystem.component.OmenEvidenceKind.Verified,
+                used = true,
+            ),
+            OmenSignalItem(
+                label = "Matchup Dvp",
+                source = OmenSignalSource.Live,
+                detail = "Read, but it did not move this call.",
+                kind = com.slopssaloon.omen.core.designsystem.component.OmenEvidenceKind.Projection,
+                used = false,
+            ),
+            OmenSignalItem(
+                label = "Weather",
+                source = OmenSignalSource.Unavailable,
+                detail = "Omen could not read kickoff weather for this game.",
+                kind = com.slopssaloon.omen.core.designsystem.component.OmenEvidenceKind.Limitation,
+                used = false,
+            ),
+        ),
+    )
+
+    val journeyDegraded = OmenDecisionBriefState.Success(journeyDegradedPayload)
+
     val demo = OmenDecisionBriefState.Demo(
         OmenDecisionBriefPayload(
             verdict = "Start Sample RB1",

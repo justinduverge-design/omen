@@ -198,28 +198,67 @@ data class StartSitDetail(
     val contractVersion: String?,
     val state: String,
     val message: String?,
+    val platform: String?,
+    val leagueId: String?,
+    val leagueName: String?,
+    val teamName: String?,
+    val season: Int?,
+    val week: Int?,
+    val scoringFormat: String?,
     val recommendation: Recommendation?,
+    val why: List<String>,
+    val whatCouldChangeThis: List<String>,
     val evidence: List<Evidence>,
+    val alternatives: List<Alternative>,
     val capabilities: List<com.slopssaloon.omen.core.designsystem.component.OmenDecisionCapability>,
 ) {
-    data class Recommendation(val slot: String?, val pointsDelta: Double?)
+    data class Recommendation(
+        val slot: String?,
+        val start: Player?,
+        val over: Player?,
+        val pointsDelta: Double?,
+        val confidence: String?,
+    )
+    data class Player(
+        val playerKey: String?,
+        val name: String?,
+        val position: String?,
+        val team: String?,
+        val projectedPoints: Double?,
+        val status: String?,
+        val kickoff: String?,
+    )
     data class Evidence(val category: String?, val kind: String?, val statement: String?)
+    data class Alternative(val slot: String?, val start: String?, val over: String?, val pointsDelta: Double?)
 
     companion object {
         fun parse(json: String): StartSitDetail? = runCatching {
             val root = JSONObject(json)
             val rec = root.optJSONObject("recommendation")
             val evidence = root.optJSONArray("evidence")
+            val alternatives = root.optJSONArray("alternatives")
             StartSitDetail(
                 contractVersion = root.optStringOrNull("contract_version"),
                 state = root.optStringOrNull("state") ?: "incomplete_data",
                 message = root.optStringOrNull("message"),
+                platform = root.optStringOrNull("platform"),
+                leagueId = root.optStringOrNull("league_id"),
+                leagueName = root.optStringOrNull("league_name"),
+                teamName = root.optStringOrNull("team_name"),
+                season = root.optIntOrNull("season"),
+                week = root.optIntOrNull("week"),
+                scoringFormat = root.optStringOrNull("scoring_format"),
                 recommendation = rec?.let {
                     Recommendation(
-                        it.optStringOrNull("slot"),
-                        if (it.has("points_delta") && !it.isNull("points_delta")) it.optDouble("points_delta") else null,
+                        slot = it.optStringOrNull("slot"),
+                        start = it.optJSONObject("start")?.toStartSitPlayer(),
+                        over = it.optJSONObject("over")?.toStartSitPlayer(),
+                        pointsDelta = if (it.has("points_delta") && !it.isNull("points_delta")) it.optDouble("points_delta") else null,
+                        confidence = it.optStringOrNull("confidence"),
                     )
                 },
+                why = root.optJSONArray("why").strings(),
+                whatCouldChangeThis = root.optJSONArray("what_could_change_this").strings(),
                 evidence = buildList {
                     for (index in 0 until (evidence?.length() ?: 0)) {
                         evidence?.optJSONObject(index)?.let {
@@ -227,9 +266,39 @@ data class StartSitDetail(
                         }
                     }
                 },
+                alternatives = buildList {
+                    for (index in 0 until (alternatives?.length() ?: 0)) {
+                        alternatives?.optJSONObject(index)?.let {
+                            add(
+                                Alternative(
+                                    slot = it.optStringOrNull("slot"),
+                                    start = it.optStringOrNull("start"),
+                                    over = it.optStringOrNull("over"),
+                                    pointsDelta = if (it.has("points_delta") && !it.isNull("points_delta")) it.optDouble("points_delta") else null,
+                                ),
+                            )
+                        }
+                    }
+                },
                 capabilities = root.decisionCapabilities(),
             )
         }.getOrNull()
+
+        private fun JSONObject.toStartSitPlayer(): Player = Player(
+            playerKey = optStringOrNull("player_key"),
+            name = optStringOrNull("name"),
+            position = optStringOrNull("position"),
+            team = optStringOrNull("team"),
+            projectedPoints = if (has("projected_points") && !isNull("projected_points")) optDouble("projected_points") else null,
+            status = optStringOrNull("status"),
+            kickoff = optStringOrNull("kickoff"),
+        )
+
+        private fun org.json.JSONArray?.strings(): List<String> = buildList {
+            for (index in 0 until (this@strings?.length() ?: 0)) {
+                this@strings?.optString(index)?.takeIf { it.isNotBlank() }?.let(::add)
+            }
+        }
     }
 }
 
