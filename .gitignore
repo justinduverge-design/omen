@@ -99,3 +99,6 @@ __pycache__/
 *.pyc
 infra/vector/state/
 infra/vector/logs/
+
+# Rust
+/target

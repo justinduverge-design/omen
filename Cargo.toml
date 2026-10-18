@@ -1,0 +1,11 @@
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+
+[profile.release]
+# Pi Zero 2 W: ~415 MiB usable. Small static binaries.
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

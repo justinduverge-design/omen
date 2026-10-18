@@ -1,0 +1,6 @@
+#!/bin/sh
+# Fake forced-command channel: the last argument is the remote command; payload comes from $PAYLOAD_DIR.
+for a; do last=$a; done
+[ -n "${CHANNEL_DOWN:-}" ] && exit 255
+case "$last" in status) f=status.txt;; football-status) f=football-status.txt;; restic-status) f=restic-status.txt;; *) exit 2;; esac
+cat "$PAYLOAD_DIR/$f"
