@@ -13,7 +13,9 @@
     "evals:mock": "node evals/slops-prompt-guard.mjs",
     "contracts:record": "node scripts/contract-recorded.js record",
     "contracts:check": "node scripts/contracts.js check && node scripts/contract-recorded.js check",
-    "contracts:lock": "node scripts/contracts.js lock"
+    "contracts:lock": "node scripts/contracts.js lock",
+    "prune:check": "node scripts/check-orphans.js",
+    "prune:mac": "bash scripts/mac-sweep.sh"
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",

@@ -11,6 +11,13 @@ founder, or store work.
 
 ## Active
 
+### PRUNE — prune as we build (removal rule, orphan finder, Mac sweep)
+
+- **Status:** VERIFIED
+- **Claim:** Claude, 2026-10-18, founder direction ("put something in practice to prune as we build")
+- **Evidence:** `Blueprints/definition-of-done.md` → "Removal"; `scripts/check-orphans.js` (first run: 4 route candidates, 191 local branches merged or idle 30+ days, 0 tables, 0 env keys, 0 screens); `scripts/mac-sweep.sh` (dry run clean after the 2026-10-18 manual sweep, 5.7 GB → 68 GB free)
+- **Follow-up, needs a decision:** confirm or remove the four routes nothing in the repo calls: `GET /api/yahoo/roster`, `POST /api/user/consent`, `GET /api/football-intelligence/signals/coach-transfer` (not production-live), `GET /api/optimizer/lineup`. Prune the 191 stale local branches after review. Not yet swept by a finder: TestFlight builds, KVM1 backups and old shadow tables, Supabase columns.
+
 ### OMEN-FOUNDATION — inspect the shared football decision foundation before allocating Beta 2
 
 - **Status:** IN_PROGRESS
