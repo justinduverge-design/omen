@@ -38,6 +38,7 @@ on:
       - "uv.lock"
       - ".gitignore"
       - ".python-version"
+      - "biome.json"
       - "**/*.md"
       - "Blueprints/**"
       - "Direction/**"
