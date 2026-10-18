@@ -1,0 +1,38 @@
+# Vector receiver on Command Center (Phase 4, shadow). Accepts logs from the KVM1 and KVM2 agents over the tailnet
+# and writes them as daily JSON files. Nothing reads these files yet; the hosts keep their own journald and Docker
+# logs exactly as before.
+data_dir: /var/lib/vector
+
+sources:
+  agents:
+    type: vector
+    # Command Center's Tailscale IP only (fleet rule 3). Host networking, nothing published (fleet rule 4).
+    address: 100.98.81.0:6000
+    version: "2"
+
+transforms:
+  allowlist:
+    # Only the two known agents, only well-formed stream names. Anything else is dropped, so another tailnet node
+    # cannot create directories, escape the date folders the prune deletes, or fill the Pi's disk.
+    type: remap
+    inputs: [agents]
+    drop_on_abort: true
+    source: |
+      .host = downcase(to_string(.host) ?? "")
+      if !includes(["omen-prod", "model-host"], .host) { abort }
+      .stream = downcase(to_string(.stream) ?? "")
+      if !match(.stream, r'^(journal|container-[0-9a-f]{12})$') { abort }
+  throttle:
+    type: throttle
+    inputs: [allowlist]
+    key_field: "{{ host }}"
+    threshold: 2000
+    window_secs: 1
+
+sinks:
+  files:
+    type: file
+    inputs: [throttle]
+    path: /var/lib/vector-logs/%Y-%m-%d/{{ host }}/{{ stream }}.log
+    encoding:
+      codec: json

@@ -97,3 +97,5 @@ infra/telemetry/data/
 .venv/
 __pycache__/
 *.pyc
+infra/vector/state/
+infra/vector/logs/
