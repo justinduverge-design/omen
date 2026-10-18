@@ -12,6 +12,11 @@ Team ids come from Node's own teamIdFor (passed in as a dict) so the alias table
 Commands:
   build   <parquet> <season> <gsis.csv> <teams.json> <out.parquet>   rows in the nfl_plays column shape
   diff    <polars-rows.parquet> <prod-rows.csv.gz>                    row-for-row parity report (JSON)
+  load    <polars-rows.parquet> <season> <source-url>                 COPY into football_shadow.nfl_plays
+  diff-db <season>                                                     parity of football_shadow vs football
+
+load and diff-db connect with libpq settings from the environment (PGHOST, PGDATABASE, PGUSER, ...).
+They touch football_shadow only for writes; football.nfl_plays is read.
 """
 
 from __future__ import annotations
@@ -127,11 +132,18 @@ def _close(a, b):
     return abs(a - b) <= 1.5 * 10 ** (math.floor(math.log10(scale)) - 14)
 
 
-def diff(polars_rows: str, prod_rows: str) -> dict:
-    mine = pl.read_parquet(polars_rows)
-    prod = pl.read_csv(prod_rows, schema_overrides={"source_row": pl.String, "desc_text": pl.String, "play_type": pl.String})
-    prod = prod.with_columns(pl.col("success").replace_strict({"t": True, "f": False}, default=None, return_dtype=pl.Boolean)) \
-        if prod["success"].dtype == pl.String else prod
+def read_export(path_or_bytes) -> pl.DataFrame:
+    """A `copy ... to stdout with csv header` export of nfl_plays columns."""
+    frame = pl.read_csv(path_or_bytes, schema_overrides={"source_row": pl.String, "desc_text": pl.String, "play_type": pl.String,
+                                                          "game_id": pl.String, "play_id": pl.Int64})
+    if frame["success"].dtype == pl.String:
+        frame = frame.with_columns(pl.col("success").replace_strict({"t": True, "f": False}, default=None, return_dtype=pl.Boolean))
+    return frame
+
+
+def diff(polars_rows, prod_rows) -> dict:
+    mine = polars_rows if isinstance(polars_rows, pl.DataFrame) else pl.read_parquet(polars_rows)
+    prod = prod_rows if isinstance(prod_rows, pl.DataFrame) else read_export(prod_rows)
     joined = prod.join(mine, on=["game_id", "play_id"], how="full", suffix="_polars", coalesce=True)
     report = {"prod_rows": prod.height, "polars_rows": mine.height, "only_prod": 0, "only_polars": 0,
               "exact_mismatch": {}, "float_mismatch": {}, "source_row_key_mismatch": {}, "source_row_float_drift": 0}
@@ -171,6 +183,45 @@ def diff(polars_rows: str, prod_rows: str) -> dict:
     return report
 
 
+EXPORT_SQL = ("copy (select season,game_id,play_id,week,posteam_id,defteam_id,passer_player_id,rusher_player_id,"
+              "receiver_player_id,play_type,desc_text,epa,wpa,cpoe,air_epa,yac_epa,success,source_row::text as source_row "
+              "from {table} where season = {season}) to stdout with csv header")
+
+
+def _connect():
+    import psycopg  # only the load/diff-db commands need a database driver
+    return psycopg.connect()
+
+
+def load(rows_path: str, season: int, source_url: str) -> dict:
+    rows = pl.read_parquet(rows_path)
+    if rows.height == 0 or rows["season"].ne_missing(season).any():
+        raise ValueError("rows are empty or belong to another season")
+    columns = PLAY_COLUMNS + ["engine", "source_url"]
+    with _connect() as conn, conn.cursor() as cur:
+        cur.execute("set local lock_timeout = '5s'")
+        cur.execute("delete from football_shadow.nfl_plays where season = %s", (season,))
+        with cur.copy(f"copy football_shadow.nfl_plays ({','.join(columns)}) from stdin") as copy:
+            for row in rows.iter_rows():
+                copy.write_row([*row, "polars", source_url])
+        cur.execute("select count(*) from football_shadow.nfl_plays where season = %s", (season,))
+        written = cur.fetchone()[0]
+        if written != rows.height:
+            raise RuntimeError(f"shadow count {written} != {rows.height}")  # the context manager rolls back
+    return {"season": season, "written": written}
+
+
+def diff_db(season: int) -> dict:
+    def export(table):
+        buf = bytearray()
+        with _connect() as conn, conn.cursor() as cur:
+            with cur.copy(EXPORT_SQL.format(table=table, season=int(season))) as copy:
+                for chunk in copy:
+                    buf += chunk
+        return read_export(bytes(buf))
+    return diff(export("football_shadow.nfl_plays"), export("football.nfl_plays"))
+
+
 def main(argv):
     command = argv[1] if len(argv) > 1 else ""
     started = time.time()
@@ -183,6 +234,10 @@ def main(argv):
         result = {"rows": rows.height, "unmatched_rows": unmatched, "source_columns": len(headers)}
     elif command == "diff":
         result = diff(argv[2], argv[3])
+    elif command == "load":
+        result = load(argv[2], int(argv[3]), argv[4])
+    elif command == "diff-db":
+        result = diff_db(int(argv[2]))
     else:
         print(__doc__)
         return 2

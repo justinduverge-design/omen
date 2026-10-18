@@ -42,6 +42,7 @@ on:
       - ".graphifyignore"
       - "scripts/research/**"
       - "infra/warehouse/polars/**"
+      - "warehouse/migrations/**"
       - "**/*.md"
       - "Blueprints/**"
       - "Direction/**"
