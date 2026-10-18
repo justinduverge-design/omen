@@ -219,8 +219,6 @@ extension OmenQuietState {
 struct OmenCommandDeskScreen: View {
     let state: OmenDeskState
     var context: OmenScreenContext?
-    var leagueScores: [LeagueCarouselViewModel.ScoreSnapshot] = []
-    var onSelectLeagueScore: ((Int) -> Void)?
     var onOpenAccount: (() -> Void)?
     var onOpenLeague: (() -> Void)?
     var onOpenLedger: (() -> Void)?
@@ -345,41 +343,18 @@ struct OmenCommandDeskScreen: View {
     /// claims an affordance the screen does not have.
     @ViewBuilder private var rail: some View {
         if state.railCount > 1 {
-            if leagueScores.count == state.railCount {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: OmenSpacing.step8) {
-                        ForEach(leagueScores) { team in
-                            OmenChip(
-                                label: "\(team.compactTeamName)  \(team.scoreText)",
-                                tone: .omen,
-                                selected: team.index == state.railIndex,
-                                action: { onSelectLeagueScore?(team.index) }
-                            )
-                            .accessibilityLabel(
-                                "\(team.teamName), \(team.phase), "
-                                    + (team.scoreText == "\u{2014}" ? "score unavailable" : "\(team.scoreText) points")
-                            )
-                        }
-                    }
-                    .padding(.horizontal, OmenSpacing.step16)
-                    .padding(.vertical, OmenSpacing.step4)
+            HStack(spacing: OmenSpacing.step4) {
+                ForEach(0..<state.railCount, id: \.self) { index in
+                    let isOn = index == state.railIndex
+                    RoundedRectangle(cornerRadius: isOn ? 3 : 2.5, style: .continuous)
+                        .fill(isOn ? OmenColor.accent : OmenColor.borderSubtle)
+                        .frame(width: isOn ? 16 : 5, height: 5)
                 }
-                .padding(.top, OmenSpacing.step4)
-                .accessibilityIdentifier("command.matchup-score-rail")
-            } else {
-                HStack(spacing: OmenSpacing.step4) {
-                    ForEach(0..<state.railCount, id: \.self) { index in
-                        let isOn = index == state.railIndex
-                        RoundedRectangle(cornerRadius: isOn ? 3 : 2.5, style: .continuous)
-                            .fill(isOn ? OmenColor.accent : OmenColor.borderSubtle)
-                            .frame(width: isOn ? 16 : 5, height: 5)
-                    }
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.top, OmenSpacing.step8)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("League \(state.railIndex + 1) of \(state.railCount)")
             }
+            .frame(maxWidth: .infinity)
+            .padding(.top, OmenSpacing.step8)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("League \(state.railIndex + 1) of \(state.railCount)")
         }
     }
 
@@ -1251,7 +1226,6 @@ struct OmenCommandDeskHost: View {
         .background(OmenColor.bg)
         .task {
             await carousel.load(userID: userID)
-            await carousel.prefetchRemainingPages()
         }
         .simultaneousGesture(
             DragGesture(minimumDistance: 40).onEnded { value in
@@ -1293,11 +1267,6 @@ struct OmenCommandDeskHost: View {
         OmenCommandDeskScreen(
             state: state,
             context: context,
-            leagueScores: carousel.scoreSnapshots,
-            onSelectLeagueScore: { index in
-                guard carousel.pages.indices.contains(index) else { return }
-                carousel.selectedIndex = index
-            },
             onOpenAccount: onOpenAccount,
             onOpenLeague: onOpenLeague,
             onOpenLedger: ledgerEntries.isEmpty ? nil : { showLedger = true },

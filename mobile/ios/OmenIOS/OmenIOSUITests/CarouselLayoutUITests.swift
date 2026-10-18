@@ -106,16 +106,6 @@ final class CarouselLayoutUITests: XCTestCase {
         assertFullyOnScreen(matchupCard(in: app), "The matchup card", in: app)
     }
 
-    func testTheScoreRailShowsTheCurrentTeamScoreAtLaunch() {
-        let app = launch("command-center.carousel")
-        let liveScore = app.buttons["Dat Sauce Inc., Live, 64.8 points"]
-        XCTAssertTrue(
-            liveScore.waitForExistence(timeout: 15),
-            "the matchup rail never exposed the current score for the first team"
-        )
-        XCTAssertTrue(liveScore.isHittable, "the first team's score chip is not hittable")
-    }
-
     func testTheCardSurvivesALargeAccessibilityTextSize() {
         // Registry §4: "all type roles scale; layouts reflow, no clipped text." This is also
         // the condition that actually reproduces the founder's clipping — at the default text

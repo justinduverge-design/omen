@@ -86,7 +86,7 @@ final class LeagueCarouselTests: XCTestCase {
     }
 
     @MainActor
-    func testScoreRailWarmsEveryLeagueWithoutInventingPregameOrMissingScores() async {
+    func testScorePortfolioCanWarmEveryLeagueWithoutInventingPregameOrMissingScores() async {
         let viewModel = CarouselFixtures.viewModel()
 
         await viewModel.load(userID: "fixture")
