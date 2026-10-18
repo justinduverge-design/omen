@@ -35,7 +35,19 @@ intact. An impostor agent with host `../../etc` was dropped by the receiver, and
 On KVM1 (systemd 255) and KVM2 (systemd 249), the image's `journalctl` (systemd 257) reads the host journal, checked
 with a throwaway read-only container; nothing was installed.
 
-## Install (each host needs founder approval)
+## Installed (2026-10-18, founder-approved)
+
+- **Command Center:** the receiver is up, listening on `100.98.81.0:6000` only, and `omen-vector-prune.timer` is active.
+- **KVM1** (`omen-prod`) and **KVM2** (`model-host`): agents are running. The KVM1 agent uses about 0.8% CPU and 26 MiB.
+- **Spot check after install:** every secret pattern scanned at zero across all shipped files (JWT, Bearer, `sb_`,
+  `espn_s2`, SWID, `password=`, credentials in URLs, Discord webhooks, full IPv4 addresses, `Authorization`). The 74
+  "email" hits were the systemd unit `user@1000.service`. A planted journal line on KVM2 arrived as
+  `ship test [REDACTED] from 198.51.100.x`.
+- **One-off:** each active container log was read once from the start, up to its 10 MB rotation cap, scrubbed the
+  same way.
+- **Noise to trim later:** the Beszel Docker-proxy's per-minute stats requests are the largest stream.
+
+## Install steps (for a rebuild)
 
 1. **Command Center:** copy `receiver.yaml`, `docker-compose.receiver.yml` and the prune files to `/opt/omen-vector`,
    then `sudo docker compose -f docker-compose.receiver.yml up -d`, then install and enable `omen-vector-prune.timer`.
