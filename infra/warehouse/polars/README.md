@@ -37,6 +37,15 @@ Tested 2026-10-18 on local Postgres 17.11 holding production's 2025 plays: the m
 the receipt verified. `load` wrote 48,771 rows in 12.8 s at a 0.5 GB peak, and a re-run replaced them. `diff-db`
 reported **parity**.
 
+## Production state (2026-10-18)
+
+- Warehouse release `fe0c2164` published and selected (bundle `c9e02054…`, manifest `be5d876d…`; built twice, identical).
+  Its worker accepts schema v13. Rollback selection: commit `2096b220…`, manifest `0540269b…`.
+- `0026_apply_football_shadow.sh` applied on KVM1 (v13, checksum `84fe78c0…`), and `verify-production-readonly.sh` passes.
+  A manual ingest with the new worker succeeded against v13 (which also triggers a v13 backup).
+- 2025 loaded into `football_shadow.nfl_plays` through the database container's socket in one transaction with a count
+  check (48,771 rows). A diff of both production tables reported **parity**. Python is not installed on the host.
+
 ## Production steps (each needs founder approval)
 
 1. Apply `0026_apply_football_shadow.sh` on KVM1 in a change window (`infra/warehouse/runbook.md`). It writes schema
