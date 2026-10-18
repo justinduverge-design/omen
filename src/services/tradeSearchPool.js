@@ -137,7 +137,7 @@ async function runSearch(kind, input, inline, defaultGuard) {
     logger().warn("Trade search worker failed; ran inline", { kind, error: outcome.error.message });
     return inline(input);
   }
-  if (onBudgetExceeded) outcome.message.budgetEvents.forEach((stats) => onBudgetExceeded(stats));
+  if (onBudgetExceeded) outcome.message.budgetEvents.forEach((stats) => { onBudgetExceeded(stats); });
   return outcome.message.result;
 }
 
@@ -155,7 +155,7 @@ function findLeagueTradeCandidatesAsync(input) {
 async function closeTradeSearchPool() {
   closing = true;
   const error = new Error("trade search pool is closed");
-  queue.splice(0).forEach((task) => task.settle({ error }));
+  queue.splice(0).forEach((task) => { task.settle({ error }); });
   await Promise.all(slots.splice(0).map((slot) => {
     if (slot.busy) slot.busy.settle({ error });
     return slot.worker.terminate();

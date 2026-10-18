@@ -31,7 +31,7 @@ function adaptWeeklyRosterCsv({ raw, season, sourceUrl, runId, playerIdByGsis } 
   const superseded = rows.length - kept.length;
   if (superseded) {
     rows.filter((r, i) => lastIndex.get(`${r.week}\0${r.teamId}\0${r.playerId}`) !== i)
-      .forEach((r) => unmatched.push({ provider: "gsis", providerId: r.playerId, season, week: r.week, reason: "superseded_duplicate" }));
+      .forEach((r) => { unmatched.push({ provider: "gsis", providerId: r.playerId, season, week: r.week, reason: "superseded_duplicate" }); });
     rows.length = 0; rows.push(...kept);
   }
   const hash = (b) => `sha256:${crypto.createHash("sha256").update(b).digest("hex")}`;

@@ -102,7 +102,7 @@ async function main() {
     for (const e of starters) {
       const player = e?.playerPoolEntry?.player || e?.player || {};
       const rows = (player.stats || []).filter((r) => Number(r?.statSourceId) === 1 && Number(r?.scoringPeriodId) === WEEK);
-      if (rows.length) { withProj += 1; rows.forEach((r) => splitIds.add(r.statSplitTypeId)); }
+      if (rows.length) { withProj += 1; for (const r of rows) splitIds.add(r.statSplitTypeId); }
     }
     console.log(`  entries=${entries.length}  starters(ESPN table)=${starters.length}  with a week-${WEEK} projected row=${withProj}`);
     console.log(`  statSplitTypeIds on those rows  -> [${[...splitIds].join(", ")}]`);

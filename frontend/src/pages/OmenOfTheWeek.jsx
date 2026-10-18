@@ -80,7 +80,7 @@ function useOmenData() {
 
 function LoadingState({ cry }) {
   return (
-    <div aria-busy="true" aria-label="Loading omen">
+    <div role="status" aria-busy="true" aria-label="Loading omen">
       {/* Real header — branded, not a skeleton block */}
       <div className="mb-5 space-y-1">
         <p className="text-xs font-semibold uppercase tracking-widest text-(--color-team-accent)">

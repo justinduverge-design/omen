@@ -91,6 +91,7 @@ const Tooltip = ({
   });
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: hover dismissal only; the trigger handles focus and keyboard
     <div className="relative inline-block" onMouseLeave={handleHide}>
       {trigger}
       {isVisible && (

@@ -38,7 +38,7 @@ on:
       - "uv.lock"
       - ".gitignore"
       - ".python-version"
-      - "biome.json"
+      - "biome.jsonc"
       - ".graphifyignore"
       - "scripts/research/**"
       - "infra/warehouse/polars/**"

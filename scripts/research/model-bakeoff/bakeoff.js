@@ -66,7 +66,7 @@ async function chat(model, msgs, keepAlive) {
     results[model] = {
       pass: rows.filter((r) => r.ok).length, total: rows.length,
       p50_ms: ms[Math.floor(ms.length / 2)], p90_ms: ms[Math.floor(ms.length * 0.9)],
-      reasons: rows.flatMap((r) => r.reasons).reduce((m, r) => ((m[r.split(":")[0]] = (m[r.split(":")[0]] || 0) + 1), m), {}),
+      reasons: rows.flatMap((r) => r.reasons).reduce((m, r) => { const k = r.split(":")[0]; m[k] = (m[k] || 0) + 1; return m; }, {}),
       rows,
     };
   }

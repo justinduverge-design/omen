@@ -255,8 +255,8 @@ function canonical(value) {
 function withoutKey(value, key) { const copy = { ...value }; delete copy[key]; return copy; }
 function rejectNonFinite(value, path) {
   if (typeof value === "number" && !Number.isFinite(value)) fail("NON_FINITE_VALUE", `${path} contains a non-finite number`);
-  if (Array.isArray(value)) value.forEach((item, index) => rejectNonFinite(item, `${path}[${index}]`));
-  else if (value && typeof value === "object") Object.entries(value).forEach(([key, item]) => rejectNonFinite(item, `${path}.${key}`));
+  if (Array.isArray(value)) value.forEach((item, index) => { rejectNonFinite(item, `${path}[${index}]`); });
+  else if (value && typeof value === "object") Object.entries(value).forEach(([key, item]) => { rejectNonFinite(item, `${path}.${key}`); });
 }
 function entity(value, label) { object(value, label); nonEmpty(value.type, `${label} type`); nonEmpty(value.id, `${label} id`); }
 function entityKey(value) { entity(value, "entity"); return `${value.type}:${value.id}`; }

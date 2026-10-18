@@ -379,7 +379,7 @@ Check the test runner first: confirm whether the two `warehouse/test/*.py` files
 ```
 
 Run in report-only mode (`continue-on-error: true`) for one week, per "old and new tools pass on the same commit".
-Then make it blocking. Add `biome.json` and the Biome paths to the `pr-quality.yml` path filter.
+Then make it blocking. Add `biome.jsonc` and the Biome paths to the `pr-quality.yml` path filter.
 
 ## 3. Python inventory
 

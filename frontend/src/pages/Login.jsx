@@ -252,6 +252,7 @@ function EmailCodeStep({ email, onResend }) {
           inputMode="numeric"
           pattern="[0-9]*"
           maxLength={6}
+          // biome-ignore lint/a11y/noAutofocus: the code field is the only task on this step
           autoFocus
           className="w-full min-h-[52px] rounded-lg border border-(--color-border) bg-(--color-surface-2) px-4 text-center text-lg font-semibold tracking-[0.4em] text-(--color-text-primary) placeholder-(--color-text-tertiary) outline-hidden transition-colors focus:border-(--color-accent) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--color-accent)"
           placeholder="000000"
@@ -347,6 +348,7 @@ export default function Login() {
   }, [searchParams]);
 
   // Listen for Supabase session (handles magic-link and OAuth callbacks)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: subscribe once; the helper reads storage, not render state
   useEffect(() => {
     let mounted = true;
 

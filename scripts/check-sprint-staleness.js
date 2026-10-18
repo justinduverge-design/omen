@@ -227,7 +227,7 @@ function describeInformational(item) {
 
 function report({ ran, skipped, unavailable, findings, informational }) {
   for (const f of findings) {
-    describe(f).forEach((l) => console.log(l));
+    describe(f).forEach((l) => { console.log(l); });
     console.log("");
   }
 
@@ -257,7 +257,7 @@ function report({ ran, skipped, unavailable, findings, informational }) {
   if (informational.length > 0) {
     console.log("For context — not findings:");
     for (const item of informational) {
-      describeInformational(item).forEach((l) => console.log(l));
+      describeInformational(item).forEach((l) => { console.log(l); });
     }
     console.log("");
   }

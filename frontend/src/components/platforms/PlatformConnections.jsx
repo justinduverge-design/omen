@@ -249,6 +249,7 @@ export default function PlatformConnections({ recoveryState = null }) {
     }
   }
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: load once on mount; refreshStatus is recreated every render
   useEffect(() => { refreshStatus(); }, []);
 
   async function connectYahoo() {

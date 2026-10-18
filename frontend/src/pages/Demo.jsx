@@ -162,7 +162,8 @@ function useDemoData() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); /* eslint-disable-line react-hooks/exhaustive-deps */ }, []);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: load once on mount; load is recreated every render
+  useEffect(() => { load(); }, []);
 
   return { data, loading, error, retry: load };
 }

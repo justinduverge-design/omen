@@ -62,8 +62,8 @@ export default function EspnConnectGuide() {
     <InfoSection title={surface === 'mobile' ? 'Send this to your computer' : 'Send this setup to yourself'}>
       <p>Nothing here is your ESPN account — the only thing sent is a link to this page.</p>
       <div className="flex flex-wrap gap-3">
-        <button className="min-h-[44px] rounded-md px-4 font-semibold" style={primaryButton} onClick={share}>Send setup to my computer</button>
-        <button className="min-h-[44px] rounded-md border px-4 font-semibold" style={linkButton} onClick={share}>{copied ? 'Link copied' : 'Copy setup link'}</button>
+        <button type="button" className="min-h-[44px] rounded-md px-4 font-semibold" style={primaryButton} onClick={share}>Send setup to my computer</button>
+        <button type="button" className="min-h-[44px] rounded-md border px-4 font-semibold" style={linkButton} onClick={share}>{copied ? 'Link copied' : 'Copy setup link'}</button>
         <a className="min-h-[44px] rounded-md border px-4 py-2 font-semibold" style={linkButton} href={`sms:?body=${encodeURIComponent(`${SHARE_TEXT} ${GUIDE_URL}`)}`}>Text link</a>
         <a className="min-h-[44px] rounded-md border px-4 py-2 font-semibold" style={linkButton} href={href}>Email link</a>
       </div>

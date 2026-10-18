@@ -46,7 +46,7 @@ function createNamespaceAssertion({
   requireEnum(confidenceClass, CONFIDENCE_CLASSES, "confidenceClass");
   if (canonicalId !== null) requireCanonicalId(canonicalId, entityType);
   const candidates = uniqueSorted(candidateCanonicalIds);
-  candidates.forEach((id) => requireCanonicalId(id, entityType));
+  candidates.forEach((id) => { requireCanonicalId(id, entityType); });
   if (normalizedState === "confirmed" && !canonicalId) fail("confirmed assertion requires a canonical ID");
   if (normalizedState !== "confirmed" && canonicalId !== null) fail(`${normalizedState} assertion cannot carry a serving canonical ID`);
   if (normalizedState === "unresolved" && candidates.length) fail("unresolved assertion cannot carry candidate canonical IDs");
@@ -90,7 +90,7 @@ function createCoachAssignment({
   const state = requireEnum(identityState, new Set(["resolved", "unresolved", "disputed"]), "identityState");
   if (coachId !== null) requireCanonicalId(coachId, "coach");
   const candidates = uniqueSorted(candidateCoachIds);
-  candidates.forEach((id) => requireCanonicalId(id, "coach"));
+  candidates.forEach((id) => { requireCanonicalId(id, "coach"); });
   if (state === "resolved" && !coachId) fail("resolved assignment requires a coach ID");
   if (state === "resolved" && candidates.length) fail("resolved assignment cannot carry candidate coach IDs");
   if (state === "unresolved" && coachId) fail("unresolved assignment cannot carry a coach ID");

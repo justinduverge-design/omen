@@ -1,0 +1,45 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "files": {
+    "includes": ["src/**", "scripts/**", "frontend/src/**", "extension/**", "test/**", "!**/dist", "!**/*.min.js"]
+  },
+  "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2, "lineWidth": 120 },
+  "linter": { "enabled": true, "rules": { "recommended": true } },
+  "assist": { "enabled": false },
+  // index.css uses Tailwind v4 directives (@theme, @utility, @apply).
+  "css": { "parser": { "tailwindDirectives": true } },
+  "overrides": [
+    {
+      // Tests build thenable fakes (objects with `then`) to stand in for query builders and promises.
+      "includes": ["test/**"],
+      "linter": { "rules": { "suspicious": { "noThenProperty": "off" } } }
+    },
+    {
+      // Fixtures are inputs to contract tests and must stay byte-for-byte as written.
+      "includes": ["test/fixtures/**"],
+      "linter": { "enabled": false }
+    },
+    {
+      // Index keys here only render static lists (skeletons, reasons, steps) that never reorder.
+      "includes": ["frontend/src/**"],
+      "linter": { "rules": { "suspicious": { "noArrayIndexKey": "off" } } }
+    },
+    {
+      // `(map[k] ||= []).push(x)` grouping and `while ((m = re.exec(s)) !== null)` are deliberate idioms here.
+      "includes": [
+        "scripts/sight-fit.js",
+        "scripts/sight-fit-kdef.js",
+        "src/services/footballIntelligence/leagueSchemeDna.js",
+        "src/services/footballWarehouse/sightAccuracy.js",
+        "src/services/narrationGrounding.js"
+      ],
+      "linter": { "rules": { "suspicious": { "noAssignInExpressions": "off" } } }
+    },
+    {
+      // The warehouse writers strip control characters from error summaries before logging them.
+      "includes": ["src/services/footballWarehouse/*Writer.js"],
+      "linter": { "rules": { "suspicious": { "noControlCharactersInRegex": "off" } } }
+    }
+  ]
+}
