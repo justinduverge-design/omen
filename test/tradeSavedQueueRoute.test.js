@@ -139,7 +139,7 @@ test("/find issues a batch token in every candidate id, so the same swap gets a 
   const { app } = buildApp();
   const first = await findCandidate(app);
   const second = await findCandidate(app);
-  assert.match(first.id, /^[0-9a-f]{16}\.find_/);
+  assert.match(first.id, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.find_/);
   assert.notEqual(first.id, second.id);
   assert.equal(first.id.split(".").slice(1).join("."), second.id.split(".").slice(1).join("."));
 });
@@ -179,7 +179,7 @@ test("save ignores client-supplied trade fields: the trade comes only from the s
 
 test("an id the server never showed this user returns an error the app turns into 'refresh the search', and writes nothing", async () => {
   const { app, fake } = buildApp();
-  const res = await save(app, "0123456789abcdef.find_2_x_y");
+  const res = await save(app, "00000000-0000-4000-8000-000000000000.find_2_x_y");
   assert.equal(res.status, 410);
   assert.equal(res.body.status, "error");
   assert.equal(res.body.code, "trade_saved_candidate_expired");

@@ -1,0 +1,104 @@
+{
+  "http_status": 200,
+  "route": "/api/moves/:id",
+  "body": {
+    "call_type": "waiver_pickup",
+    "capabilities": [
+      {
+        "fresh_until": null,
+        "kind": "verified",
+        "name": "decision_receipt",
+        "observed_at": "2026-01-01T00:00:00.000Z",
+        "source": "ledger_decisions",
+        "state": "live",
+        "statement": "Omen preserved the recommendation and evidence recorded when this call was issued.",
+        "used": true
+      },
+      {
+        "coverage_state": "supported",
+        "fresh_until": null,
+        "kind": "limitation",
+        "name": "league_exact_scoring",
+        "observed_at": "2026-01-01T00:00:00.000Z",
+        "reason_code": "outcome_result_missing",
+        "reconciliation_state": "pending",
+        "source": "league_scoring_contract",
+        "state": "unavailable",
+        "statement": "A final outcome record is incomplete, so Omen cannot verify this result.",
+        "used": false
+      }
+    ],
+    "capability_contract": "decision-capabilities.v1",
+    "contract_version": "move-detail.v1",
+    "decision_context": {
+      "contract_version": "shared-decision-context.v1",
+      "inputs": {
+        "decision_receipt": {
+          "observed_at": "2026-01-01T00:00:00.000Z",
+          "source": "ledger_decisions",
+          "state": "live",
+          "used": true
+        },
+        "scoring_outcome": {
+          "observed_at": "2026-01-01T00:00:00.000Z",
+          "reason_code": "outcome_result_missing",
+          "source": "ledger_outcomes",
+          "state": "unavailable",
+          "used": false
+        }
+      },
+      "inputs_used": [
+        "decision_receipt"
+      ],
+      "limitations": [
+        {
+          "name": "scoring_outcome",
+          "reason_code": "outcome_result_missing",
+          "state": "unavailable"
+        }
+      ],
+      "profile": "ledger"
+    },
+    "evidence_at_the_time": [
+      {
+        "category": "league_context",
+        "kind": "verified",
+        "statement": "Omen read this league's scoring as PPR."
+      },
+      {
+        "category": "model_input",
+        "kind": "model",
+        "statement": "Omen issued this call as Leaning."
+      }
+    ],
+    "fairness_note": "Omen shows what it knew when the call was made. Later information is never used to make an earlier recommendation look better.",
+    "feedback": {
+      "note": null,
+      "stars": null
+    },
+    "generated_at": "2026-01-01T00:00:00.000Z",
+    "id": "00000000-0000-4000-8000-000000000000",
+    "observed_outcome": {
+      "awaiting": null,
+      "known": false,
+      "statement": "You marked this as not followed, so Omen did not score it."
+    },
+    "snapshot": {
+      "issued_at": "2026-01-01T00:00:00.000Z",
+      "issued_at_timezone": "UTC",
+      "league_id": "414.l.12345",
+      "platform": "yahoo",
+      "recommendation": "Pick up C",
+      "scoring_contract_version": "scoring-contract.v1",
+      "scoring_format": "ppr",
+      "season": 2026,
+      "week": 2
+    },
+    "state": "not_executed",
+    "user_action": {
+      "followed": false,
+      "known": true,
+      "statement": "You marked this as not followed."
+    }
+  }
+}

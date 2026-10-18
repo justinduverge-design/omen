@@ -751,7 +751,7 @@ function createTradeRouter({
   // T4 save lookup (decision log 2026-10-02, "the server remembers every trade it shows"). Each /find
   // response gets a batch token, folded into every candidate id as `{token}.{id}`, and the batch's
   // trades are kept per user for the find cache's lifetime. The app still sends only the id back.
-  const SHOWN_BATCH_TOKEN_RE = /^([0-9a-f]{16})\./;
+  const SHOWN_BATCH_TOKEN_RE = /^([0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})\./;
 
   function shownBatchKey(userId, token) {
     return `shown:${userId}:${token}`;
@@ -765,7 +765,7 @@ function createTradeRouter({
   }
 
   async function keepShownBatch({ userId, platform, leagueId, teamId, week, candidates }) {
-    const token = crypto.randomBytes(8).toString("hex");
+    const token = crypto.randomUUID();
     const issued = candidates.map((candidate) => ({ ...candidate, id: `${token}.${candidate.id}` }));
     const context = nflWeekContext(now()) || {};
     const batch = {

@@ -19,7 +19,7 @@ function row(overrides = {}) {
     season: 2026,
     week: 5,
     provider_team_id: "3",
-    candidate_id: "0123456789abcdef.find_7_a_b",
+    candidate_id: "00000000-0000-4000-8000-000000000000.find_7_a_b",
     trade: { give: { player_key: "a" }, receive: { player_key: "b" }, opponent_team_id: "7" },
     reasoning: { fills_need_for: ["user"] },
     state: "saved",
