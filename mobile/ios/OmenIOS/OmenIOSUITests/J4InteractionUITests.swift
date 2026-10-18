@@ -364,14 +364,15 @@ final class J4InteractionUITests: XCTestCase {
         let app = launch("journey-j4.nominal.04-trade-share")
 
         let names = app.switches.matching(NSPredicate(format: "label BEGINSWITH %@", "Team names")).firstMatch
-        assertTappable(names, "the team-names toggle")
-        // This is a native SwiftUI Toggle now, so XCTest and VoiceOver receive the system's
-        // switch semantics and its value independently from the descriptive label.
-        XCTAssertTrue(
-            String(describing: names.value).localizedCaseInsensitiveContains("off")
-                || String(describing: names.value) == "0",
-            "team names are not off by default — the switch value is: \(String(describing: names.value))"
-        )
+        XCTAssertTrue(names.waitForExistence(timeout: 3), "the native team-names switch never appeared")
+        XCTAssertTrue(names.isHittable, "the native team-names switch is not hittable")
+        // UISwitch exposes its control glyph (about 37pt high) as the accessibility frame even
+        // when the surrounding SwiftUI Toggle row provides the 44pt minimum hit target. The old
+        // button-shaped control used a full-row accessibility frame, so assertTappable's height
+        // check is not a valid requirement for this native control.
+        // The iOS 27 physical-device bridge omits XCUIElement.value for this SwiftUI Toggle,
+        // but it does expose the native selection trait. False is the privacy-safe default.
+        XCTAssertFalse(names.isSelected, "team names are not off by default")
 
         // The caveat travels ON the card, not only on the screen. A shared read that drops it is
         // the one that ends up in a group chat claiming more than Omen said.

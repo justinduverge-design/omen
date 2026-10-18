@@ -483,6 +483,5 @@ struct OmenTradeShareToggleRow: View {
         .frame(minHeight: OmenLayout.minTouchTarget)
         .disabled(action == nil)
         .accessibilityLabel("\(title), \(detail)")
-        .accessibilityValue(isOn ? "On" : "Off")
     }
 }
