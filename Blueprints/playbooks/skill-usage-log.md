@@ -39,3 +39,4 @@ three-weekly skill check (`Direction/reviews/2026-10-03-harness-design-outline.m
 2026-10-18 | Phase 3: Polars pbp reader + parity proof | slops-code-review (fresh agent) | skipped slops-tdd ritual; fixture tests added for every Node rejection case
 2026-10-18 | Phase 3: football_shadow migration + Polars load/diff-db | slops-code-review (fresh agent; caught the schema-version allowlist P0) | none skipped
 2026-10-18 | PRUNE: removal rule, check-orphans.js, mac-sweep.sh | slops-code-review (fresh agent) | skipped slops-tdd: report-only scripts, verified by running them
+2026-10-18 | PRUNE close-out: orphan-candidates in staleness + close-out step | slops-code-review (fresh agent, P2 only) | none skipped

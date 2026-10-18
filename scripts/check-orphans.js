@@ -155,15 +155,23 @@ function screens() {
   return (r.stdout || "").split("\n").filter((l) => /Screen\b/.test(l) && /referenced only/i.test(l)).map((line) => ({ line: line.trim() }));
 }
 
-const report = {
-  routes: routes(),
-  tables: tables(),
-  envVars: envVars(),
-  branches: branches(),
-  untracked: untracked(),
-  screens: screens(),
+function collect() {
+  return { routes: routes(), tables: tables(), envVars: envVars(), branches: branches(), untracked: untracked(), screens: screens() };
+}
+
+const TITLES = {
+  routes: "Routes no client, job or script mentions",
+  tables: "Tables created, never dropped, never named in code",
+  envVars: ".env.example keys nothing reads",
+  branches: "Local branches merged or idle 30+ days",
+  untracked: "Untracked files and folders",
+  screens: "Screens (check-screen-reachability)",
 };
 
+module.exports = { collect, TITLES };
+if (require.main !== module) return;
+
+const report = collect();
 if (JSON_OUT) {
   console.log(JSON.stringify(report, null, 2));
 } else {
@@ -175,17 +183,9 @@ if (JSON_OUT) {
     untracked: (x) => x.path,
     screens: (x) => x.line,
   };
-  const titles = {
-    routes: "Routes no client, job or script mentions",
-    tables: "Tables created, never dropped, never named in code",
-    envVars: ".env.example keys nothing reads",
-    branches: "Local branches merged or idle 30+ days",
-    untracked: "Untracked files and folders",
-    screens: "Screens (check-screen-reachability)",
-  };
   let total = 0;
   for (const k of Object.keys(report)) {
-    console.log(`\n${titles[k]}: ${report[k].length}`);
+    console.log(`\n${TITLES[k]}: ${report[k].length}`);
     for (const x of report[k]) console.log(`  - ${fmt[k](x)}`);
     total += report[k].length;
   }

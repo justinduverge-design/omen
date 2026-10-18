@@ -148,6 +148,9 @@ Then run, in order:
    - Log decisions in Direction/decision_log.md.
    - Add one line to Blueprints/playbooks/skill-usage-log.md (skills invoked,
      skipped and why). The old ledgers are history: do not append to them.
+   - Prune: remove what your work made dead (route, screen, table, flag, env
+     var, branch), or log a dated follow-up. check-sprint-staleness.js prints
+     the candidate counts; node scripts/check-orphans.js lists them.
    - Write a dated handoff in Blueprints/handoffs/YYYY-MM-DD-<task>.md only
      when the work continues in another session.
    - Run the gates. A P0 BLOCKS YOUR OWN CLOSE-OUT. An unrun check is not a

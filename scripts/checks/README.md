@@ -74,6 +74,7 @@ The orchestrator catches it and reports that checker as **DID NOT RUN** — neve
 | `issue-state-conflicts` | wording that contradicts a cited issue's state | the Yahoo/#308 contradiction |
 | `known-issues-missing-paths` | entry naming a repo path that no longer exists | src/omen_gdpr.js (retired 2026-07-13) |
 | `sprint-closed-without-ledger-row` | item declared CLOSED with no row in `sprints_completed.md` | `O2`, `W1-GATE`, `R4`, `R5` |
+| `orphan-candidates` | informational only: counts from `scripts/check-orphans.js` (dead routes, tables, env keys, stale branches, untracked files, unreachable screens) | prune as we build, 2026-10-18 |
 
 ## Writing a checker that will actually get read
 

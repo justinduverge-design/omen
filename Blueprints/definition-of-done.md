@@ -41,7 +41,7 @@ Skipping a gate without writing why = lying about done. Marking a gate done with
 
 **Work that replaces or retires something removes the old thing in the same PR.** That covers routes, screens, simulators and runtimes, database tables and columns, feature flags, env vars, scripts and specs. When removal can't ride along (a production table drop needs its own approved migration), the PR adds a dated follow-up to `Direction/current_sprint.md`, naming what goes and why. A PR that only adds next to something it made obsolete is not done.
 
-1. **Before close-out**, run `node scripts/check-orphans.js`. Each candidate your work created, or now makes dead, is removed or logged. Candidates are not verdicts: a route can be called by a cron, a table read from another repo.
+1. **Before close-out**, `node scripts/check-sprint-staleness.js` prints the candidate counts (the `orphan-candidates` checker); `node scripts/check-orphans.js` lists them. Each candidate your work created, or now makes dead, is removed or logged. Candidates are not verdicts: a route can be called by a cron, a table read from another repo.
 2. **Weekly**, on the build Mac, run `scripts/mac-sweep.sh` (a dry run), then `--apply`. It clears only what rebuilds itself.
 3. **Never** delete production data, a migration file in `sql/applied/` or a store build because a finder listed it. Those keep their own approval gates.
 
