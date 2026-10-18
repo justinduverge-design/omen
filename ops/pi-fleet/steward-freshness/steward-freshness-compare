@@ -1,0 +1,18 @@
+#!/bin/bash
+# Compare the Rust shadow result with the bash check's latest result for one kind; log MATCH or MISMATCH to the journal.
+# Shadow week: a week of MATCH lines is the proof to swap the bash checks for the binary (plan Phase 4).
+set -u
+case "${1:-}" in
+  supabase-backup) stem=backup-freshness ;; football-backup) stem=football-backup-freshness ;; restic-check) stem=restic-check-freshness ;;
+  *) echo "usage: steward-freshness-compare <kind>" >&2; exit 64 ;;
+esac
+dir=/var/lib/steward/state
+pick() { grep -E '^(result|reason)=' "$1" 2>/dev/null | tr '\n' ' '; }
+at() { grep -m1 '^checked_at=' "$1" 2>/dev/null | cut -d= -f2; }
+bash_r=$(pick "$dir/$stem.status"); rust_r=$(pick "$dir/$stem.rust.status")
+if [ -n "$bash_r" ] && [ "$bash_r" = "$rust_r" ]; then
+  logger -t steward-freshness-compare "MATCH $1 $rust_r"
+else
+  # The bash timer runs on its own schedule: near a threshold an hour-old bash result can differ honestly.
+  logger -t steward-freshness-compare "MISMATCH $1 bash=[$bash_r] at $(at "$dir/$stem.status") rust=[$rust_r] at $(at "$dir/$stem.rust.status")"
+fi
