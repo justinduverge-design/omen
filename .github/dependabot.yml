@@ -51,19 +51,16 @@ updates:
       frontend-tooling:
         dependency-type: development
     ignore:
-      # Tailwind v4 is a rewrite, not an upgrade. It removes the JS config
-      # format (`frontend/tailwind.config.js` exists) and replaces the
-      # `@tailwind` directives (`frontend/src/index.css` has three) with
-      # `@import "tailwindcss"`. Merging it breaks the build. Revisit only as
-      # a dedicated migration task.
+      # Majors of the CSS engine and bundler are migration tasks, not weekly
+      # bumps (Tailwind 3 -> 4 and Vite 7 -> 8 landed in #725). Minor and patch
+      # updates still flow. tailwindcss and @tailwindcss/vite move together;
+      # @vitejs/plugin-react follows the Vite major.
       - dependency-name: "tailwindcss"
         update-types: ["version-update:semver-major"]
-      # Vite 8 shipped in the same group as the Tailwind v4 bump and carries
-      # its own breaking changes. Minor and patch updates still flow.
+      - dependency-name: "@tailwindcss/vite"
+        update-types: ["version-update:semver-major"]
       - dependency-name: "vite"
         update-types: ["version-update:semver-major"]
-      # Pinned to the Vite major above — upgrading this alone would desync the
-      # plugin from the bundler it targets.
       - dependency-name: "@vitejs/plugin-react"
         update-types: ["version-update:semver-major"]
 
