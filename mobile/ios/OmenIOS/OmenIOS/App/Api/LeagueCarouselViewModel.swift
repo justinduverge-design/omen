@@ -42,6 +42,18 @@ final class LeagueCarouselViewModel: ObservableObject {
         var displayTeamName: String { teamName?.isEmpty == false ? teamName! : "Your team" }
     }
 
+    /// The at-a-glance fact shown in Command's matchup rail. This is deliberately derived from
+    /// the same per-league overview as the full matchup page: the rail cannot have a cheaper,
+    /// competing notion of the score. A dash is unknown/not started, never zero.
+    struct ScoreSnapshot: Identifiable, Equatable {
+        let id: String
+        let teamName: String
+        let compactTeamName: String
+        let scoreText: String
+        let phase: String
+        let index: Int
+    }
+
     /// What one page's matchup read has produced. `loading` is a real state here — unlike
     /// League Pulse, where a spinner on a resting state was the F-HOT defect — because a
     /// page genuinely is fetching the first time you swipe to it.
@@ -303,6 +315,44 @@ final class LeagueCarouselViewModel: ObservableObject {
         pageStates[page.id] ?? .loading
     }
 
+    var scoreSnapshots: [ScoreSnapshot] {
+        pages.enumerated().map { index, page in
+            let score: String
+            let phase: String
+            switch state(for: page) {
+            case .loading:
+                score = "\u{2014}"
+                phase = "Reading score"
+            case .unavailable:
+                score = "\u{2014}"
+                phase = "Score unavailable"
+            case .loaded(let hero):
+                switch hero {
+                case .beforeGames(let selectedTeam, _, let startTime, _):
+                    score = selectedTeam.scoreText
+                    phase = "Starts \(startTime)"
+                case .live(let selectedTeam, _, _, _):
+                    score = selectedTeam.scoreText
+                    phase = "Live"
+                case .final(let selectedTeam, _, _, _):
+                    score = selectedTeam.scoreText
+                    phase = "Final"
+                case .noMatchup:
+                    score = "\u{2014}"
+                    phase = "No matchup"
+                }
+            }
+            return ScoreSnapshot(
+                id: page.id,
+                teamName: page.displayTeamName,
+                compactTeamName: omenCompactTeamLabel(page.displayTeamName),
+                scoreText: score,
+                phase: phase,
+                index: index
+            )
+        }
+    }
+
     // MARK: - Loading
 
     func load(userID: String? = nil) async {
@@ -367,6 +417,20 @@ final class LeagueCarouselViewModel: ObservableObject {
     /// already loaded, or already loading, is left alone.
     func loadCurrentPage() async {
         guard let page = currentPage else { return }
+        await loadPage(page)
+    }
+
+    /// Warms the rest of the matchup rail after the selected league has rendered. It is
+    /// intentionally not awaited by the shell's first useful state: scores fill progressively,
+    /// and a slow provider cannot delay leagues that already answered.
+    func prefetchRemainingPages() async {
+        for page in pages where pageStates[page.id] == nil {
+            guard !Task.isCancelled else { return }
+            await loadPage(page)
+        }
+    }
+
+    private func loadPage(_ page: Page) async {
         guard pageStates[page.id] == nil else { return }
 
         pageStates[page.id] = .loading

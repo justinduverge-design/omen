@@ -36,6 +36,12 @@ Command is the general manager view, not the head coach headset. It should feel 
 Build acceptance:
 
 - Show breadth before depth: one scannable read per active domain, then route to the destination that owns the detail.
+- The matchup carousel is the user's live team portfolio. Its rail names every followed team with
+  that team's current score so opening Command answers "how are all my teams doing?" before a
+  swipe. The selected page still owns the full opponent, phase and projection read.
+- Warm the remaining league matchup reads after the selected page is ready; never hold the first
+  useful screen for every provider. Pregame, unavailable and missing scores render as named states,
+  never as a factual zero, and one provider failure does not blank scores that already answered.
 - Keep the tone current and calm. Command can say what matters now, but it does not litigate every calculation.
 - Do not duplicate Omen's single-move authority. If a card points at Omen, it says why the user should inspect it; it does not become the Omen result.
 - Do not hide unavailable domains. If waivers, league activity, trades, or ledger evidence are unavailable, Command names the gap and keeps the rest of the desk useful.

@@ -85,6 +85,27 @@ final class LeagueCarouselTests: XCTestCase {
         XCTAssertEqual(filtered[index], "S1")
     }
 
+    @MainActor
+    func testScoreRailWarmsEveryLeagueWithoutInventingPregameOrMissingScores() async {
+        let viewModel = CarouselFixtures.viewModel()
+
+        await viewModel.load(userID: "fixture")
+        await viewModel.prefetchRemainingPages()
+
+        XCTAssertEqual(viewModel.scoreSnapshots.count, 6)
+        XCTAssertEqual(viewModel.scoreSnapshots.first?.teamName, "Dat Sauce Inc.")
+        XCTAssertEqual(viewModel.scoreSnapshots.first?.scoreText, "64.8")
+        XCTAssertEqual(viewModel.scoreSnapshots.first?.phase, "Live")
+
+        let pregame = try? XCTUnwrap(viewModel.scoreSnapshots.first(where: { $0.id == "sleeper:s1" }))
+        XCTAssertEqual(pregame?.scoreText, "\u{2014}")
+        XCTAssertTrue(pregame?.phase.hasPrefix("Starts ") == true)
+
+        let noMatchup = try? XCTUnwrap(viewModel.scoreSnapshots.first(where: { $0.id == "yahoo:y1" }))
+        XCTAssertEqual(noMatchup?.scoreText, "\u{2014}")
+        XCTAssertEqual(noMatchup?.phase, "No matchup")
+    }
+
     // MARK: - The shared commit
     //
     // The carousel (swipe to rest on a league) and the team picker (tap a chip) both make a
