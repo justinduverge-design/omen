@@ -32,7 +32,6 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CAPTURE="$REPO_ROOT/scripts/capture-screenshot-scenario.sh"
 ADB="${OMEN_ADB:-$HOME/Library/Android/sdk/platform-tools/adb}"
-PACKAGE="com.slopssaloon.omen"
 IOS_DEVICE="${OMEN_IOS_DEVICE:-iPhone 16}"
 
 # The surfaces worth a look after a Command Center or design change. `carousel` first: it is

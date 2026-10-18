@@ -1,9 +1,47 @@
-# typos (crate-ci/typos). Report-only in CI until the backlog is clean; see lint-quality.yml.
+# typos (crate-ci/typos). Blocking in CI since 2026-10-18; see lint-quality.yml.
+# A real typo gets fixed. A word below is not a typo (an abbreviation, a name, an id or an
+# intentional bad value in a test), so it is allowed instead of "corrected" into a bug.
 [files]
 extend-exclude = [
   "output/", "Archive/", "References/", "design/", "**/*.lock", "**/package-lock.json",
   "**/*.svg", "**/*.pbxproj", "**/*.min.js",
+  # Append-only records: they state what was true when written, so they are never edited.
+  "Direction/decision_log.md", "Direction/known_issues-resolved.md", "Direction/sprints_completed.md",
+  "Direction/reviews/", "Blueprints/done/", "Blueprints/handoffs/", "Blueprints/audits/",
+  "Blueprints/playbooks/skill-usage-ledger.md", "Solutions/reports/",
+  # Research scratch scripts (short local variable names by design).
+  "scripts/research/",
+]
+
+[default]
+extend-ignore-re = [
+  "[0-9a-f]{7,}",          # hashes and hex ids
+  "[A-Za-z0-9]{8}'s",      # short ids in prose
 ]
 
 [default.extend-words]
-# Fantasy football and product terms that are not typos go here.
+# Fantasy football, product and platform terms.
+FND = "FND"
+TTO = "TTO"
+RTO = "RTO"
+MCH = "MCH"
+PN = "PN"
+OT = "OT"
+NWE = "NWE"
+udid = "udid"
+shepard = "shepard"
+wil = "wil"
+dameon = "dameon"
+# Accepted spellings and prefixes.
+unparseable = "unparseable"
+MIS = "MIS"
+opps = "opps"      # opportunities
+nd = "nd"          # 2nd, 22nd
+thr = "thr"        # threshold variable
+Fo = "Fo"
+daa = "daa"
+SELEC = "SELEC"    # SELECTs
+Registrys = "Registrys"
+Directorys = "Directorys"
+warehose = "warehose"  # deliberate bad FOOTBALL_DATA_MODE in a test
+CALLE = "CALLE"

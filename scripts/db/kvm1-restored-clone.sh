@@ -43,15 +43,15 @@ up() {
   fi
   install -d -m 0700 -o "$BACKUP_USER" -g "$BACKUP_USER" "$SCRATCH"
   restic_as_backup restore "$snap" --target "$SCRATCH" >/dev/null
-  local export
-  export="$(find "$SCRATCH" -type d -name export-current | head -1)"
-  [ -n "$export" ] || { echo "no export-current in snapshot" >&2; exit 1; }
-  (cd "$export" && sha256sum -c --quiet SHA256SUMS) || { echo "checksum failure in restored backup" >&2; exit 1; }
+  local export_dir
+  export_dir="$(find "$SCRATCH" -type d -name export-current | head -1)"
+  [ -n "$export_dir" ] || { echo "no export-current in snapshot" >&2; exit 1; }
+  (cd "$export_dir" && sha256sum -c --quiet SHA256SUMS) || { echo "checksum failure in restored backup" >&2; exit 1; }
   echo "snapshot $snap restored and checksummed"
 
   docker network create --internal "$NET" >/dev/null
   docker run -d --name "$NAME" --network "$NET" -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_DB=omen \
-    -v "$export:/export:ro" postgres:17 >/dev/null
+    -v "$export_dir:/export:ro" postgres:17 >/dev/null
   for _ in $(seq 1 60); do docker exec "$NAME" pg_isready -U postgres -d omen >/dev/null 2>&1 && break; sleep 1; done
   sleep 2
 
@@ -85,7 +85,7 @@ select format('%s %s', c.relname, (xpath('/row/n/text()', query_to_xml(format('s
   from pg_class c where c.relnamespace = 'public'::regnamespace and c.relkind = 'r' order by 1;
 SQL
   echo "--- source-table-counts.txt"
-  cat "$export/source-table-counts.txt"
+  cat "$export_dir/source-table-counts.txt"
   # Mark this database as a rehearsal clone, outside `public`, so scripts/db/production-order-run.sh can
   # verify the server it reached is this clone and never production (Codex, #530).
   in_clone -c "create schema rehearsal_target; create table rehearsal_target.marker (kind text not null); insert into rehearsal_target.marker values ('clone')"

@@ -25,7 +25,7 @@ db="${REHEARSAL_DB:-omen_redo_rehearsal}"
 steps=(01_identity_link 02_connection_credentials 03_leagues_memberships 04_players_crosswalk 05_ledger 06_projections_shadow 07_close_client_writes 08_retire_unscoped_moves 10_account_erasure 09_beta_reports 11_league_scoring_rules 12_saved_trades 13_football_intelligence_signals 14_nflverse_weekly_stats 15_nflverse_full_lines 16_projection_fk_indexes 17_connection_invalidate 18_decision_horizon_grades)
 
 case "${PGHOST:-}" in
-  *supabase.co*|*supabase.com*|*pooler*) echo "refusing: PGHOST looks like a Supabase host" >&2; exit 2 ;;
+  *supabase.co*|*pooler*) echo "refusing: PGHOST looks like a Supabase host" >&2; exit 2 ;;
 esac
 
 psql_db() { psql -X -q -v ON_ERROR_STOP=1 -d "$db" "$@"; }
