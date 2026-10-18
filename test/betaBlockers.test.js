@@ -28,9 +28,9 @@ test("the ESPN adapter never logs or reports a raw request path", () => {
 
 test("the data export selects only columns that exist and includes the new Ledger", () => {
   const src = fs.readFileSync(path.join(__dirname, "..", "src", "routes", "userPrivacy.js"), "utf8");
-  const moves = src.match(/selectRows\("moves", "([^"]+)"/)[1].split(",");
+  const moves = src.match(/selectRows\(\s*"moves",\s*"([^"]+)"/)[1].split(",");
   // Production moves columns, 2026-10-03.
   const real = new Set("id,user_id,week_num,season,move_type,headline,reasoning,confidence,target_player,vorp_score,followed,outcome,created_at,user_stars,user_note,eff,scoring,scoring_contract,scoring_contract_hash,scoring_contract_version,scoring_contract_required,scoring_coverage_state,provider_rule_snapshot_hash,provider_final_outcome,reconciliation_state,platform,league_id".split(","));
   assert.deepEqual(moves.filter((c) => !real.has(c)), []);
-  assert.match(src, /selectRows\("decisions", "/);
+  assert.match(src, /selectRows\(\s*"decisions",\s*"/);
 });

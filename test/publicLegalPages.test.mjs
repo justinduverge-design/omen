@@ -78,7 +78,7 @@ test('final v1 legal pages publish the approved operator, age, jurisdiction, ret
   assert.match(login, /at least 13/);
   assert.match(login, /to="\/terms"/);
   assert.match(login, /to="\/privacy"/);
-  assert.match(login, /localStorage\.setItem\('omen\.legal\.pending'/);
+  assert.match(login, /localStorage\.setItem\(\s*'omen\.legal\.pending'/);
   assert.match(login, /initiated_at/);
   assert.match(login, /\/api\/user\/legal-acceptance/);
   assert.match(routes, /path="\/unsubscribe"/);

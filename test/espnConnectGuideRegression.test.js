@@ -55,8 +55,8 @@ test("EspnConnectGuide.jsx desktop actions point at the published store listings
   // The desktop half of the page exists to hand a user the install, so its destinations are
   // asserted rather than trusted: a sideload/source-tree URL here would be telling a normal
   // user to install unreviewed code.
-  const chrome = src.match(/const CHROME_STORE_URL = '([^']*)'/)?.[1];
-  const edge = src.match(/const EDGE_STORE_URL = '([^']*)'/)?.[1];
+  const chrome = src.match(/const CHROME_STORE_URL =\s*'([^']*)'/)?.[1];
+  const edge = src.match(/const EDGE_STORE_URL =\s*'([^']*)'/)?.[1];
   assert.equal(chrome, "https://chromewebstore.google.com/detail/omen-espn-connect/odfoahekibbfjipnofmfenabnnlgfljm");
   assert.equal(edge, "https://microsoftedge.microsoft.com/addons/detail/omen-espn-connect/nkcbgdhpekbclicgcfbokjmcgkhfhddl");
   assert.doesNotMatch(src, /github\.com/, "must not send users to the source tree to sideload");
@@ -66,7 +66,7 @@ test("EspnConnectGuide.jsx desktop actions point at the published store listings
   assert.match(src, /return 'unknown'/, "detectSurface must have an unknown answer");
   assert.match(
     src,
-    /surface === 'desktop' \? <>\{installHere\}\{handoff\}<\/> : <>\{handoff\}\{installHere\}<\/>/,
+    /surface === 'desktop' \?\s*\(?\s*<>\s*\{installHere\}\s*\{handoff\}\s*<\/>\s*\)?\s*:\s*\(?\s*<>\s*\{handoff\}\s*\{installHere\}\s*<\/>/,
     "both halves must render on every surface; only the order changes"
   );
 });
