@@ -26,6 +26,7 @@ struct AccountView: View {
     @State private var showingPrivacyAndData = false
     @State private var showingHelpSupport = false
     @State private var showingAbout = false
+    @Environment(\.omenHaptics) private var haptics
 
     private var isDemo: Bool { userID == SessionManager.demoUserID }
 
@@ -138,9 +139,28 @@ struct AccountView: View {
             )
 
             if case .failed(let message) = authViewModel.passkeyManagementState {
-                Text(message)
-                    .omenTextStyle(OmenTypography.bodySmall)
-                    .foregroundStyle(OmenColor.Data.riskHigh)
+                OmenStateSurface(kind: .error, title: "Passkey change failed", message: message)
+            }
+            if case .succeeded(let message) = authViewModel.passkeyManagementState {
+                OmenCard(variant: .outlined, tone: .neutral) {
+                    VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+                        Text("Sign-in security updated")
+                            .omenTextStyle(OmenTypography.h2)
+                            .foregroundStyle(OmenColor.textPrimary)
+                        Text(message)
+                            .omenTextStyle(OmenTypography.body)
+                            .foregroundStyle(OmenColor.textSecondary)
+                    }
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityValue("Success")
+            }
+        }
+        .onChange(of: authViewModel.passkeyManagementState) { _, state in
+            switch state {
+            case .succeeded: haptics.play(.success)
+            case .failed: haptics.play(.error)
+            default: break
             }
         }
     }

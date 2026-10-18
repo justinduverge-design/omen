@@ -349,6 +349,8 @@ struct OmenTradeSubmissionStepRow: View {
     let isDone: Bool?
     var onToggleDone: (() -> Void)?
     var onCopy: (() -> Void)?
+    @State private var copied = false
+    @Environment(\.omenHaptics) private var haptics
 
     /// The numbered circle or the done/not-done glyph, and the step text. Shared by both the
     /// plain and the interactive rendering below — identical content, different container.
@@ -396,14 +398,19 @@ struct OmenTradeSubmissionStepRow: View {
             }
 
             if let onCopy {
-                Button(action: onCopy) {
-                    Text("Copy")
+                Button(action: {
+                    onCopy()
+                    copied = true
+                    haptics.play(.success)
+                }) {
+                    Text(copied ? "Copied" : "Copy")
                         .omenTextStyle(OmenTypography.micro)
                         .foregroundStyle(OmenColor.accent)
                         .frame(minWidth: OmenLayout.minTouchTarget, minHeight: OmenLayout.minTouchTarget)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Copy step \(index + 1)")
+                .accessibilityLabel(copied ? "Copied step \(index + 1)" : "Copy step \(index + 1)")
+                .accessibilityValue(copied ? "Copied to clipboard" : "")
             }
         }
     }
@@ -451,33 +458,31 @@ struct OmenTradeShareToggleRow: View {
     var action: (() -> Void)?
 
     var body: some View {
-        Button(action: { action?() }) {
-            HStack(spacing: OmenSpacing.step10) {
-                VStack(alignment: .leading, spacing: OmenSpacing.step2) {
-                    Text(title)
-                        .omenTextStyle(OmenTypography.name)
-                        .foregroundStyle(OmenColor.textPrimary)
-                    Text(detail)
-                        .omenTextStyle(OmenTypography.micro)
-                        .foregroundStyle(OmenColor.textTertiary)
-                        .lineLimit(1)
+        Toggle(
+            isOn: Binding(
+                get: { isOn },
+                set: { newValue in
+                    guard newValue != isOn else { return }
+                    action?()
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                // The word, not a switch glyph, and not colour alone (D7). "On"/"Off" is what
-                // the artboard draws and it is also the only carrier that survives a screenshot
-                // in greyscale.
-                Text(isOn ? "On" : "Off")
+            )
+        ) {
+            VStack(alignment: .leading, spacing: OmenSpacing.step2) {
+                Text(title)
+                    .omenTextStyle(OmenTypography.name)
+                    .foregroundStyle(OmenColor.textPrimary)
+                Text(detail)
                     .omenTextStyle(OmenTypography.micro)
-                    .foregroundStyle(isOn ? OmenColor.textPrimary : OmenColor.textTertiary)
+                    .foregroundStyle(OmenColor.textTertiary)
+                    .lineLimit(1)
             }
-            .padding(.vertical, OmenSpacing.step10)
-            .frame(minHeight: OmenLayout.minTouchTarget)
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
-        .accessibilityElement(children: .ignore)
+        .toggleStyle(.switch)
+        .tint(OmenColor.accent)
+        .padding(.vertical, OmenSpacing.step10)
+        .frame(minHeight: OmenLayout.minTouchTarget)
+        .disabled(action == nil)
         .accessibilityLabel("\(title), \(detail)")
         .accessibilityValue(isOn ? "On" : "Off")
-        .accessibilityHint("Double tap to turn \(isOn ? "off" : "on")")
     }
 }

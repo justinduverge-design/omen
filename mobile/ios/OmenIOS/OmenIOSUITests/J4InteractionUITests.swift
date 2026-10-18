@@ -363,18 +363,14 @@ final class J4InteractionUITests: XCTestCase {
     func testShareNamesAreOffByDefaultAndTheCardCarriesTheCaveat() {
         let app = launch("journey-j4.nominal.04-trade-share")
 
-        let names = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Team names")).firstMatch
+        let names = app.switches.matching(NSPredicate(format: "label BEGINSWITH %@", "Team names")).firstMatch
         assertTappable(names, "the team-names toggle")
-        // The state is read off the **label**, not off `value`.
-        //
-        // `OmenTradeShareToggleRow` sets `.accessibilityValue(isOn ? "On" : "Off")`, and SwiftUI
-        // folds that into the element's label rather than exposing it as `XCUIElement.value` —
-        // the first run of this test read `value` and got `""`. The label is what a VoiceOver
-        // user actually hears, so it is also the honest thing to assert on, and the sighted
-        // reader gets the same word rendered in the row (D7: never colour alone).
+        // This is a native SwiftUI Toggle now, so XCTest and VoiceOver receive the system's
+        // switch semantics and its value independently from the descriptive label.
         XCTAssertTrue(
-            (names.label as String).hasSuffix(", Off"),
-            "team names are not off by default — the row reads: \(names.label)"
+            String(describing: names.value).localizedCaseInsensitiveContains("off")
+                || String(describing: names.value) == "0",
+            "team names are not off by default — the switch value is: \(String(describing: names.value))"
         )
 
         // The caveat travels ON the card, not only on the screen. A shared read that drops it is
