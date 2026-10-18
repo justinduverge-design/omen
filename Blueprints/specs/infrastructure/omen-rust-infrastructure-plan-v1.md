@@ -105,7 +105,7 @@ The one page that shows where the whole migration stands. Update a row whenever 
 |---|---|---|---|---|---|
 | 1 Tooling | CI workflow config | GitHub Actions | shadow (2026-10-18: actions SHA-pinned; uv/ruff, Biome, shellcheck, typos report-only; Tailwind 4 + Vite 8 live; Rust map row + slops-rust-tdd) | old and new tools pass on the same commit | old linters, PostCSS setup, `client/` |
 | 2 Model jobs | `PLAYER_NOTES_ENABLED` | KVM2 + API | off | grounding pass rate, founder spot check | live narration call and its circuit breaker |
-| 3 Ingest | `WAREHOUSE_INGEST_ENGINE=csv\|polars` | KVM1 warehouse worker | off | row-for-row match in a shadow schema | CSV parser, 3 GB heap workaround |
+| 3 Ingest | `WAREHOUSE_INGEST_ENGINE=csv\|polars` | KVM1 warehouse worker | shadow (2026-10-18: football_shadow v13 applied; 2025 loaded, parity) | row-for-row match in a shadow schema | CSV parser, 3 GB heap workaround |
 | 4 Ops | systemd units | Pi fleet, all hosts | off | a week of matching alerts | old watchdog and status scripts |
 | 5 Decision core | `DECISION_ENGINE=js\|shadow\|rust` | API | off | identical outputs across a full week's slate | JS engine, one release after cutover |
 
