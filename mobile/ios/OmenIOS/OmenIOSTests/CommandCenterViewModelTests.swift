@@ -76,9 +76,8 @@ final class CommandCenterViewModelTests: XCTestCase {
         await viewModel.load(userID: "user-1")
 
         XCTAssertNil(viewModel.failure)
-        // No `game_week` in this fixture, so the headline cannot name a week and says so
-        // without one rather than inventing a number.
-        XCTAssertEqual(viewModel.commandCenterState.greeting, "Your game plan is ready.")
+        // No `game_week` in this fixture, so the current desk must not invent a week label.
+        XCTAssertEqual(viewModel.deskState(railCount: 0, railIndex: 0)?.weekLabel, "")
     }
 
     /// The critical honesty guarantee: a failed read must surface as a failure, never as a
@@ -211,10 +210,8 @@ extension CommandCenterViewModelTests {
         await viewModel.load(userID: "user-1")
 
         XCTAssertNil(viewModel.failure, "a standings failure must not fail the whole screen")
+        // `nil` is the current screen's honest absence: no verified context strip is mounted.
         XCTAssertNil(viewModel.context)
-        guard case .empty = viewModel.commandCenterState.context else {
-            return XCTFail("expected the strip to stay empty rather than regress or invent")
-        }
     }
 
     /// Asking a disconnected user's provider for standings is a guaranteed round-trip to an
@@ -341,7 +338,7 @@ extension CommandCenterViewModelTests {
 
         await viewModel.load(userID: "user-1")
 
-        guard case .entries(let entries) = viewModel.commandCenterState.ledger else {
+        guard case .entries(let entries) = viewModel.ledgerState else {
             return XCTFail("expected live Ledger entries")
         }
         XCTAssertEqual(entries.count, 1)
@@ -398,7 +395,7 @@ extension CommandCenterViewModelTests {
 
         await viewModel.load(userID: "user-1")
 
-        guard case .empty = viewModel.commandCenterState.ledger else {
+        guard case .empty = viewModel.ledgerState else {
             return XCTFail("an empty list is a real answer, not a failure")
         }
     }
@@ -416,7 +413,7 @@ extension CommandCenterViewModelTests {
         await viewModel.load(userID: "user-1")
 
         XCTAssertNil(viewModel.failure, "a Ledger failure must not fail the whole screen")
-        guard case .error(let message) = viewModel.commandCenterState.ledger else {
+        guard case .error(let message) = viewModel.ledgerState else {
             return XCTFail("expected an honest Ledger error surface")
         }
         XCTAssertFalse(message.contains("500"), "status codes are for logs, not for users")
@@ -443,9 +440,16 @@ extension CommandCenterViewModelTests {
         await viewModel.load(userID: "user-1")
 
         XCTAssertEqual(moves.calls, 0)
-        guard case .notConnected = viewModel.commandCenterState.ledger else {
-            return XCTFail("expected the disconnected Ledger surface")
+        XCTAssertNil(viewModel.ledger, "a disconnected account never starts the Ledger read")
+        guard case .notConnected = viewModel.ledgerState else {
+            return XCTFail("the current Ledger seam must preserve the disconnected state")
         }
+        guard let desk = viewModel.deskState(railCount: 0, railIndex: 0),
+              case let .unread(capability, sentence) = desk.ledger else {
+            return XCTFail("expected the current desk's honest disconnected Ledger surface")
+        }
+        XCTAssertEqual(capability, "The Ledger")
+        XCTAssertTrue(sentence.lowercased().contains("connect"))
     }
 
     /// facts-of-record #7. Demo renders labeled fixtures and the live Ledger path must be
@@ -470,13 +474,11 @@ extension CommandCenterViewModelTests {
 
         XCTAssertEqual(moves.calls, 0, "demo must not issue a network request")
         XCTAssertNil(viewModel.ledger, "demo must not populate live Ledger state")
-        guard case .entries(let entries) = viewModel.commandCenterState.ledger else {
-            return XCTFail("demo keeps its labeled fixture entries")
+        guard let desk = viewModel.deskState(railCount: 0, railIndex: 0),
+              case let .read(line) = desk.ledger else {
+            return XCTFail("demo keeps a labeled current-desk Ledger line")
         }
-        XCTAssertTrue(
-            entries.allSatisfy { $0.period.hasPrefix("DEMO") },
-            "every demo Ledger row stays labeled as demo"
-        )
+        XCTAssertTrue(line.meta.lowercased().contains("demo"), "demo Ledger data must stay visibly labeled")
     }
 
     func testWaiverAnalysisFillsCurrentDeskAfterTheShellLoads() async throws {

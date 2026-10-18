@@ -427,9 +427,8 @@ final class ChromeInteractionUITests: XCTestCase {
     /// It is an overlay rather than a block for exactly this reason, and "it is an overlay" is
     /// a claim about code that a future refactor can quietly falsify. This measures instead:
     /// the Command Center content height with the pill present must equal the height without
-    /// it. `OmenCommandCenterScreen` does not carry an `OmenFitProbe` — it has its own
-    /// `contentFits` measurement predating J2 — so this reads the frame of the screen's own
-    /// scroll content via the tab shell rather than a probe value.
+    /// it. Both scenarios mount the current desk and expose the same fit probe through the
+    /// deterministic tab shell.
     func testTheReportPillDoesNotCostCommandCenterItsFit() {
         let withPill = launch("chrome.report-pill.resting")
         let pill = withPill.buttons["chrome.report-pill"]
@@ -458,10 +457,8 @@ final class ChromeInteractionUITests: XCTestCase {
     /// `Account.dc.html` is declared **scrolls**; `ReportPill.dc.html` is declared **fits**.
     ///
     /// `ReportPill` is Command Center with the pill on it, so its probe is Command Center's —
-    /// `chrome.fit.command-center`, which this branch added by applying J2's existing
-    /// `OmenFitProbe` to `OmenCommandCenterScreen`. The screen has measured these two heights
-    /// privately since 2026-09-10 to decide `scrollDisabled`; the probe is what makes them
-    /// readable, so `CommandCenter` and `ReportPill` can finally state a number.
+    /// `chrome.fit.command-center`. The probe makes the current desk's measured height readable,
+    /// so `CommandCenter` and `ReportPill` can state a number instead of relying on inspection.
     ///
     /// `command-center.demo-connected` is in the list as the control: the same screen without
     /// the pill. The two must report the **same content height**, which is what turns "the

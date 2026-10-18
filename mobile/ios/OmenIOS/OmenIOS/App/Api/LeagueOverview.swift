@@ -348,22 +348,4 @@ extension LeagueOverview {
         }
     }
 
-    /// League Pulse from this payload. Richer than the `league-standings.v1` derivation because
-    /// the server has already computed the position line.
-    var leaguePulse: OmenLeaguePulseState? {
-        switch standings.status {
-        case .offSeason:
-            return .offSeason(summary: "Standings return when the regular season starts.")
-        case .unavailable:
-            return .unavailable
-        case .available:
-            guard let picture = standings.playoffPicture else { return .unavailable }
-            return .available(
-                position: picture.line,
-                // Absent unless the server actually read playoff settings.
-                cutLine: picture.settingsKnown ? picture.cutLineNote : nil,
-                activity: activity.items.first?.text
-            )
-        }
-    }
 }

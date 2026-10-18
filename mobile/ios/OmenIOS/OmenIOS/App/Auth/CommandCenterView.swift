@@ -294,9 +294,7 @@ struct CommandCenterView: View {
                     railCount: leagueCarouselViewModel.pages.count,
                     railIndex: leagueCarouselViewModel.selectedIndex
                 ) {
-                    // The Sept 13 lock's Command Center. Before this, the production tab mounted
-                    // `OmenCommandCenterScreen` and `OmenCommandDeskScreen` existed only in
-                    // screenshot scenarios — verified on fixtures, never on a phone.
+                    // The Sept 13 lock's Command Center, now the single production composition.
                     OmenCommandDeskHost(
                         state: deskState,
                         context: OmenScreenContext.from(strip: commandCenterViewModel.context).map {

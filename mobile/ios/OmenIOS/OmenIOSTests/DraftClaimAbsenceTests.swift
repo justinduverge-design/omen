@@ -147,7 +147,7 @@ final class DraftClaimAbsenceTests: XCTestCase {
         )
     }
 
-    func testProductionCommandDoesNotMountTheRetiredScreen() throws {
+    func testProductionCommandCannotRestoreTheDeletedScreen() throws {
         let root = try repoAppSourcesRoot()
         let text = try String(
             contentsOf: root.appendingPathComponent("Auth/CommandCenterView.swift"),
@@ -158,7 +158,7 @@ final class DraftClaimAbsenceTests: XCTestCase {
         XCTAssertTrue(body.contains("OmenCommandDeskScreen("))
         XCTAssertFalse(
             body.contains("OmenCommandCenterScreen("),
-            "production Command must have one composition; the retired screen may remain only in migration fixtures"
+            "production Command must keep one composition; the deleted screen must not return"
         )
     }
 

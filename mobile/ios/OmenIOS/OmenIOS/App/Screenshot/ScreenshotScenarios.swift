@@ -56,7 +56,17 @@ enum ScreenshotScenarios {
         ),
         "command-center.long-matchup": ScreenshotScenario(
             label: "Command Center — long fantasy team names in matchup",
-            content: { AnyView(FauxShell(commandStateOverride: OmenCommandCenterFixtures.longNameMatchup)) }
+            content: {
+                AnyView(FauxShell(
+                    commandContentOverride: AnyView(OmenCommandDeskScreen(
+                        state: J2ScreenshotFixtures.longNameDesk,
+                        context: J2ScreenshotFixtures.titansContext,
+                        onOpenAccount: {},
+                        onOpenLeague: {},
+                        onOpenLedger: {}
+                    ))
+                ))
+            }
         ),
         "command-center.disconnected": ScreenshotScenario(
             label: "Command Center — real user, disconnected",
@@ -700,41 +710,23 @@ enum ScreenshotScenarios {
             label: "Help + Support — provider recovery",
             content: { AnyView(OmenHelpSupportView(state: .providerRecovery)) }
         ),
-        // M4-CC-WaiverWatch. One scenario per registered honest state so each can be rendered
-        // and reviewed on its own. The composition is NOT re-implemented here — every entry
-        // mounts the real `OmenCommandCenterScreen` and varies only `waiverWatch`, mirroring
-        // the Android connected test that asserts the same six states.
-        //
-        // Base fixture is chosen for coherence, not convenience: `not-connected` uses the
-        // disconnected fixture because "your waiver moves need a league" beside a selected
-        // demo league would be a state the product never produces. The other five imply a
-        // usable league, so they sit on the demo-connected fixture.
-        //
-        // Waiver Watch renders below the fold on every current iPhone, so capturing these
-        // requires scrolling the screen — see `scripts/capture-screenshot-scenario.sh`.
-        "waiver-watch.pending": ScreenshotScenario(
-            label: "Waiver Watch — claim pending",
-            content: { AnyView(waiverWatch(.pending)) }
-        ),
-        "waiver-watch.processed": ScreenshotScenario(
-            label: "Waiver Watch — waivers processed",
-            content: { AnyView(waiverWatch(.processed)) }
-        ),
-        "waiver-watch.availability-unknown": ScreenshotScenario(
-            label: "Waiver Watch — availability needs confirmation",
-            content: { AnyView(waiverWatch(.availabilityUnknown)) }
-        ),
+        // The retired Command screen carried six Waiver Watch states. The current v2 wire
+        // contract has three different, server-backed meanings: confirmed opportunity,
+        // no credible move, and waiver-system not determined. Only `no-credible-move` is the
+        // same fact as one of the old keys, so it keeps its historical identity. Pending claim,
+        // processed claim, player availability unknown, no connected league and off-season do
+        // not have a current `waiver-analysis.v1` wire body; keeping their keys by relabelling a
+        // different screen would create false evidence. The current equivalents that do exist
+        // are already covered by the J5 journey scenarios immediately above.
         "waiver-watch.no-credible-move": ScreenshotScenario(
-            label: "Waiver Watch — no credible move",
-            content: { AnyView(waiverWatch(.noCredibleMove)) }
-        ),
-        "waiver-watch.not-connected": ScreenshotScenario(
-            label: "Waiver Watch — no connected league",
-            content: { AnyView(waiverWatch(.notConnected, base: OmenCommandCenterFixtures.realDisconnected)) }
-        ),
-        "waiver-watch.off-season": ScreenshotScenario(
-            label: "Waiver Watch — off-season",
-            content: { AnyView(waiverWatch(.offSeason)) }
+            label: "The wire — no credible move",
+            content: { AnyView(j5Shell(AnyView(OmenLeagueWireScreen(
+                state: J5ScreenshotFixtures.noMoveWire,
+                context: J5ScreenshotFixtures.titansContext,
+                onOpenAccount: {},
+                screenIdentifier: "j5.league-wire.no-move",
+                fitProbeIdentifier: "j5.fit.waiver-no-move"
+            )))) }
         ),
         // M6-ContextualHelp. The sheet body is captured directly rather than through a tap:
         // screenshot mode has no interaction, and the content is what needs proving.
@@ -780,25 +772,6 @@ enum ScreenshotScenarios {
             }
         ),
     ]
-
-    /// Rebuilds `base` with one field replaced. `OmenCommandCenterState` is a `let`-only
-    /// struct with no `copy`, so the swap is spelled out rather than mutated in place.
-    private static func waiverWatch(
-        _ state: OmenWaiverWatchState,
-        base: OmenCommandCenterState = OmenCommandCenterFixtures.demoConnected
-    ) -> some View {
-        ScreenshotScenarioHost.commandCenter(
-            OmenCommandCenterState(
-                greeting: base.greeting,
-                context: base.context,
-                platforms: base.platforms,
-                matchup: base.matchup,
-                waiverWatch: state,
-                ledger: base.ledger,
-                leaguePulse: base.leaguePulse
-            )
-        )
-    }
 
     private static func contextualHelp(_ destination: OmenHelpDestination) -> some View {
         OmenContextualHelpSheet(
@@ -880,11 +853,6 @@ struct ScreenshotScenarioHost: View {
         ScreenshotScenarios.entries[scenarioKey]?.content()
     }
 
-    /// Mounts the real Command Center in the deterministic tab shell against an explicit
-    /// state. Used by scenarios that vary one section rather than selecting a whole fixture.
-    static func commandCenter(_ state: OmenCommandCenterState) -> some View {
-        FauxShell(commandStateOverride: state)
-    }
 }
 
 private struct OnboardingAuthScreenshotHost: View {
@@ -1099,8 +1067,6 @@ private struct FauxShell: View {
     /// Which tab the capture opens on. Without it a Trade or League scenario would screenshot
     /// the Command tab and silently prove nothing.
     var initialTab: CommandCenterTab = .command
-    /// Set by scenarios that supply a state directly instead of naming a whole fixture.
-    var commandStateOverride: OmenCommandCenterState?
     /// A real destination composition supplied by a journey scenario. This keeps the permanent
     /// tab shell while avoiding any network/session state and does not duplicate screen markup.
     var omenContentOverride: AnyView? = nil
@@ -1119,19 +1085,13 @@ private struct FauxShell: View {
                 if let commandContentOverride {
                     commandContentOverride
                 } else {
-            OmenCommandCenterScreen(
-                state: commandState,
-                onOpenAccount: {},
-                // Supplied so the Waiver Watch "Review Omen's waiver analysis" link renders.
-                // The screen hides that link when `onOpenOmen` is nil — correct product
-                // behavior, but it meant iOS captures of the `urgent` and `processed` states
-                // were silently missing an element of the approved composition that the
-                // Android host had all along. Found while capturing M4-CC-WaiverWatch.
-                onOpenOmen: {},
-                onOpenLedger: { _ in },
-                onOpenLeague: {},
-                carousel: nil
-            )
+                    OmenCommandDeskScreen(
+                        state: J2ScreenshotFixtures.nominalDesk,
+                        context: J2ScreenshotFixtures.titansContext,
+                        onOpenAccount: {},
+                        onOpenLeague: {},
+                        onOpenLedger: {}
+                    )
                 }
             }
                 .tabItem { CommandCenterTab.command.label }
@@ -1207,15 +1167,6 @@ private struct FauxShell: View {
         // ramp made the blue impossible to keep ignoring. If the real shell's tint changes,
         // change it here in the same edit.
         .tint(OmenColor.accent)
-    }
-
-    private var commandState: OmenCommandCenterState {
-        if let commandStateOverride { return commandStateOverride }
-        switch scenarioKey {
-        case "command-center.demo-connected": return OmenCommandCenterFixtures.demoConnected
-        case "command-center.disconnected": return OmenCommandCenterFixtures.realDisconnected
-        default: return OmenCommandCenterFixtures.realDisconnected
-        }
     }
 
     /// Decoded from contract JSON rather than built by memberwise init, so a scenario also
@@ -1800,6 +1751,42 @@ enum J2ScreenshotFixtures {
         ledger: .read(ledgerLine),
         // The nominal artboard has no foot line and neither does this. Nothing was unread and
         // nothing was read-and-ignored, so there is nothing honest to put there.
+        footnote: nil
+    )
+
+    /// Current-screen stress fixture for the screenshot key that historically exercised long
+    /// fantasy team names. It stays on the production desk composition instead of preserving
+    /// the retired Command screen solely for truncation evidence.
+    static let longNameDesk = OmenDeskState(
+        weekLabel: "Week 7 · Sunday",
+        deadlineLabel: "Lineups lock",
+        deadlineTime: "1:00 PM",
+        matchup: .read(OmenDeskMatchup(
+            platform: .espn,
+            status: "Live · Q2",
+            leader: OmenDeskTeam(
+                crest: "TTO",
+                name: "Justin's Absolutely Enormous Fantasy Team Name",
+                record: "5–2 · you",
+                score: "64.8",
+                isMine: true
+            ),
+            trailer: OmenDeskTeam(
+                crest: "GOS",
+                name: "G.O.A.T. SQUAD Championship Or Bust Edition",
+                record: "6–1",
+                score: "51.2",
+                isMine: false
+            ),
+            projection: "119.6 – 114.2",
+            projectionNote: "Projected · 5.4 ahead",
+            leadFraction: 0.66,
+            watch: "Four of your starters left; two of theirs."
+        )),
+        railCount: 4,
+        railIndex: 0,
+        waiver: .read(waiverMove),
+        ledger: .read(ledgerLine),
         footnote: nil
     )
 

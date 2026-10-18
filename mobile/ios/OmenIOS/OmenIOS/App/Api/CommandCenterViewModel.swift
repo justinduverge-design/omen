@@ -28,16 +28,6 @@ final class CommandCenterViewModel: ObservableObject {
     /// shell-derived default" — the same never-regress rule slice C uses for the context strip.
     @Published private(set) var ledger: OmenLedgerPreviewState?
 
-    /// Slice C, second consumer. `nil` keeps the shell-derived default, which is `.loading`
-    /// while a standings answer is still expected. Set from the same `league-standings.v1`
-    /// payload that fills the context strip — no extra request.
-    @Published private(set) var leaguePulse: OmenLeaguePulseState?
-
-    /// The real Matchup Hero. `nil` keeps the shell-derived `.noMatchup`, which is what every
-    /// connected user used to see unconditionally — the hero's populated cases existed but had
-    /// no real-data path at all.
-    @Published private(set) var matchup: OmenMatchupHeroState?
-
     /// The whole `waiver-analysis.v1` payload, kept rather than reduced.
     ///
     /// Until J5 this read was consumed for `waiverWatch` alone and the payload thrown away, so
@@ -81,27 +71,8 @@ final class CommandCenterViewModel: ObservableObject {
         self.sessionManager = sessionManager
     }
 
-    /// The Command Center state to render, derived from `viewState`.
-    ///
-    /// Slice C overlays the verified context strip when — and only when — standings has
-    /// produced one. The screen therefore never regresses: it renders fully from shell
-    /// truth first, then upgrades in place if the slower provider call succeeds.
-    var commandCenterState: OmenCommandCenterState {
-        switch viewState {
-        case .loading:
-            return OmenCommandCenterFixtures.realLoading
-        case .demo:
-            return OmenCommandCenterFixtures.demoConnected
-        case .loaded(let summary):
-            return .from(summary: summary, context: context, ledger: ledger, leaguePulse: leaguePulse, matchup: matchup)
-        case .failed:
-            return OmenCommandCenterFixtures.realDisconnected
-        }
-    }
-
-    /// Current Ledger truth without routing through the retired Command aggregate.
-    /// Production desk and J6 callers use this seam; `commandCenterState` remains only until
-    /// legacy fixture and mapping tests are retired.
+    /// Current Ledger truth without routing through a screen-specific aggregate. Production
+    /// desk and J6 callers share this seam, including honest loading, failure and demo states.
     var ledgerState: OmenLedgerPreviewState {
         if let ledger { return ledger }
         switch viewState {
@@ -254,8 +225,6 @@ final class CommandCenterViewModel: ObservableObject {
         viewState = .loading
         context = nil
         ledger = nil
-        leaguePulse = nil
-        matchup = nil
         waiverAnalysis = nil
         quietWeek = nil
         overview = nil
@@ -328,29 +297,19 @@ final class CommandCenterViewModel: ObservableObject {
     /// Every failure path here is deliberately silent to the user: the shell is already on
     /// screen and correct, and a provider hiccup must not turn a working Command Center into
     /// an error screen. A failed or empty standings call simply leaves the strip unfilled.
-    /// One `league-overview.v1` read fills the context strip, League Pulse, AND the Matchup
-    /// Hero. It replaced a `league-standings.v1` read that filled only the strip while the
-    /// other two sections were hardwired to states no connected user could escape.
+    /// One `league-overview.v1` read fills the context strip and remains intact for the current
+    /// desk and League destination. It replaced a reduced legacy path that threw most of the
+    /// response away after constructing screen-specific adapter states.
     private func loadContext(accessToken: String, scope: OmenCallScope?) async -> LeagueOverview? {
         guard case .success(let overview) = await leagueRepository.fetchOverview(
             accessToken: accessToken,
             platform: scope?.platform,
             leagueID: scope?.leagueID
         ) else {
-            // The shell-derived default is `.loading`, which would spin forever if left
-            // alone — the original defect in a different costume. A failed read resolves to
-            // an explicit resting state.
-            leaguePulse = .unavailable
             return nil
         }
         self.overview = overview
         context = overview.contextStrip
-        // `nil` from either mapping means "this payload cannot honestly support the section".
-        // League Pulse resolves to `.unavailable` so it always settles; the Matchup Hero stays
-        // `nil` so the shell's honest `.noMatchup` reason survives rather than being replaced
-        // by a blank hero.
-        leaguePulse = overview.leaguePulse ?? .unavailable
-        matchup = overview.matchupHero
         return overview
     }
 
