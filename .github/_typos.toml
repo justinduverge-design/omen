@@ -1,0 +1,9 @@
+# typos (crate-ci/typos). Report-only in CI until the backlog is clean; see lint-quality.yml.
+[files]
+extend-exclude = [
+  "output/", "Archive/", "References/", "design/", "**/*.lock", "**/package-lock.json",
+  "**/*.svg", "**/*.pbxproj", "**/*.min.js",
+]
+
+[default.extend-words]
+# Fantasy football and product terms that are not typos go here.
