@@ -44,6 +44,7 @@ on:
       - "infra/warehouse/polars/**"
       - "warehouse/migrations/**"
       - "ops/pi-fleet/**"
+      - "ops/command-center/**"
       - "**/*.md"
       - "Blueprints/**"
       - "Direction/**"
