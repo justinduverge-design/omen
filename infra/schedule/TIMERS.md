@@ -93,6 +93,4 @@ omen-supabase-backup.service`; KVM2 `omen-warehouse-restore-proof.service`; Pi e
 ## Open items
 
 - Weekly restore proof has no heartbeat monitor yet.
-- `nfl_games.kickoff_at` is empty in the warehouse (the adapter does not fill it from `gameday` + `gametime`, both in
-  `source_row`); needed for deadline and week-to-date conversions.
 - Retention `7 4 3` is provisional (a full warehouse snapshot grew the KVM2 repository by about 0.9 GB).
