@@ -39,6 +39,7 @@ on:
       - ".gitignore"
       - ".python-version"
       - "biome.json"
+      - ".graphifyignore"
       - "**/*.md"
       - "Blueprints/**"
       - "Direction/**"
