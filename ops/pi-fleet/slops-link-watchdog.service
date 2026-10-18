@@ -4,3 +4,4 @@ Description=Slops Pi link watchdog (restart Wi-Fi, then reboot, when the gateway
 [Service]
 Type=oneshot
 ExecStart=/usr/local/sbin/slops-link-watchdog.sh
+TimeoutStartSec=60
