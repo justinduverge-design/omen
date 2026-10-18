@@ -11,6 +11,12 @@ founder, or store work.
 
 ## Active
 
+### BRANCH-SALVAGE — land or retire the unmerged branches from the 2026-10-18 triage
+
+- **Status:** READY
+- **Source:** `Direction/reviews/2026-10-18-branch-triage.md` → "Kept"
+- **Done when:** (1) `feat/provider-gap-g3-g8` (G3 trade targets, G4 transactions, roster bundle; untested WIP) is rebased, tested and opened as a scoped PR, or retired with a reason; (2) founder decides on `codex/root-cause-containment-20260928` + `codex/tuesday-beta-ready-20260929` (provider-state persistence, canonical league context; has migrations, needs Codex review); (3) founder OKs discarding the dirty agent worktrees and deleting `codex/founder-closeout-existing-work`.
+
 ### PRUNE — prune as we build (removal rule, orphan finder, Mac sweep)
 
 - **Status:** VERIFIED
