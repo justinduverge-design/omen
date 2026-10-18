@@ -65,7 +65,7 @@ digest, ops summaries, and data-quality suggestions.
 - **Vector** ships logs and metrics to Command Center.
 - **Rust binaries for the Pi fleet**: replace the watchdog/status scripts. Steward and Sentinel are Pi Zero 2 W boards
   (512 MB, native binaries only, no Docker), which is exactly where a single static Rust binary fits.
-- Add the missing heartbeat monitor for the weekly restore proof.
+- ~~Add the missing heartbeat monitor for the weekly restore proof.~~ Already in place (Kuma push monitor 9, checked 2026-10-18).
 - Keep nginx, Tailscale, Postgres, restic, Supabase, Upstash Redis and GlitchTip/Sentry.
 - Done when: Vector delivers every host's logs, the Rust watchdog runs on the Pi, and every timer has a monitor.
 

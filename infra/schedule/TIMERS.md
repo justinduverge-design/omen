@@ -60,7 +60,7 @@ Backfill (`omen-warehouse-backfill*`, transient units) is manual and never overl
 
 | Timer | When | Purpose | Watched by |
 |---|---|---|---|
-| `omen-warehouse-restore-proof` | Sun 14:00 UTC | isolated restore of the newest warehouse snapshot, proof file | journal (heartbeat monitor still to add) |
+| `omen-warehouse-restore-proof` | Sun 14:00 UTC | isolated restore of the newest warehouse snapshot, proof file | Kuma "Omen warehouse weekly restore proof" (push, 8-day interval; up on success, down on failure) |
 | `omen-host-posture-collect` | every 5 min | host posture | Pi |
 | `omen-maintenance` | Fri 06:30 UTC | weekly updates / reboot-if-required | Beszel |
 | OS timers (apt, certbot, logrotate, fstrim, ...) | OS-managed | patching and housekeeping | n/a |
@@ -92,5 +92,4 @@ omen-supabase-backup.service`; KVM2 `omen-warehouse-restore-proof.service`; Pi e
 
 ## Open items
 
-- Weekly restore proof has no heartbeat monitor yet.
 - Retention `7 4 3` is provisional (a full warehouse snapshot grew the KVM2 repository by about 0.9 GB).
