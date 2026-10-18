@@ -71,6 +71,13 @@ const NUMBER_WORDS = Object.freeze([
   "twenty", "thirty", "forty", "fifty", "hundred", "dozen", "half", "double", "triple",
 ]);
 
+// A number word is grounded by the same value written as digits ("three" by 3). half, double and
+// triple are ratios, not values, so they still need the word itself in the facts.
+const NUMBER_WORD_VALUES = Object.freeze({
+  two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11,
+  twelve: 12, twenty: 20, thirty: 30, forty: 40, fifty: 50, hundred: 100, dozen: 12,
+});
+
 const BANNED_PATTERNS = Object.freeze([
   { code: "guarantee", re: /\b(guarantee[ds]?|guaranteeing|lock(?:ed)?\s+in|can'?t\s+miss|sure\s+thing|no[- ]brainer|certain(?:ly)?|definitely|surely)\b/i },
   {
@@ -227,13 +234,16 @@ function validateGroundedTextUnsafe(text, facts, opts) {
 
   const lower = value.toLowerCase();
   for (const word of NUMBER_WORDS) {
-    if (new RegExp(`\\b${word}\\b`).test(lower) && !index.words.has(word)) {
+    const digits = NUMBER_WORD_VALUES[word];
+    if (new RegExp(`\\b${word}\\b`).test(lower) && !index.words.has(word)
+      && !(digits != null && index.numbers.includes(digits))) {
       reasons.push(`ungrounded_number_word:${word}`);
     }
   }
   for (const term of STAT_TERMS) {
     const hit = new RegExp(`(^|[^a-z])${term.replace(/[-\s]/g, "[-\\s]")}([^a-z]|$)`).test(lower);
-    if (hit && !index.text.includes(term)) reasons.push(`ungrounded_stat:${term}`);
+    // "red zone" and "red-zone" are one phrase: compare with hyphens read as spaces.
+    if (hit && !index.text.replace(/-/g, " ").includes(term.replace(/-/g, " "))) reasons.push(`ungrounded_stat:${term}`);
   }
 
   const extra = new Set(extraAllowedWords.map(stripToken));
