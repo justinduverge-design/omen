@@ -43,3 +43,4 @@ three-weekly skill check (`Direction/reviews/2026-10-03-harness-design-outline.m
 2026-10-18 | Phase 4: Vector log shipping (shadow, not installed) | slops-code-review (fresh agent: 4 P1s fixed) | skipped slops-tdd (config; tested end to end instead)
 2026-10-18 | Branch triage: 30 local branches classified, 23 deleted, 4 archived, #654 closed | none (git triage, docs only) | skipped slops-code-review: docs-only, no code; skipped slops-git-flow: one docs PR per step
 2026-10-18 | Phase 4: Rust steward-freshness (first crate) + Rust CI + deny.toml | slops-rust-tdd (mutation check found one untested boundary, fixed), slops-code-review (fresh agent: 2 P1s fixed) | none skipped
+2026-10-18 | Prune route decisions (#745) + provider salvage G4/G6/G8 (#746) | slops-code-review (fresh agent; caught week-0 empty P1) | skipped slops-tdd ritual; tests written per slice
