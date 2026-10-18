@@ -32,3 +32,4 @@ three-weekly skill check (`Direction/reviews/2026-10-03-harness-design-outline.m
 2026-10-17 | Rust infrastructure plan spec + decision | none by name | docs only, no code; gates run below.
 2026-10-17 | Rust plan prep; OpenTelemetry wiring; trade search worker; retire client/ | none by name | slops-code-review not in this session's skill list; a fresh general-purpose agent reviewed the worker and telemetry diffs (no P0/P1; P2s fixed).
 2026-10-18 | Rust programme: OTel collector + KVM1 endpoint live (#718–#720), Phase 1 part 1 (SHA pins, shellcheck, typos, cargo-deny) | slops-code-review (fresh agent, 4 reviews) | skipped slops-tdd (config and CI only, no new runtime code), slops-canary (deploy health checked by hand: /api/health 200, spans landing).
+2026-10-18 | Phase 1 part 2: uv + ruff, warehouse unittests in CI | slops-code-review (fresh agent) | skipped slops-tdd (tests already exist; now wired into CI)

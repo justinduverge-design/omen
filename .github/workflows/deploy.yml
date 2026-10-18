@@ -34,6 +34,10 @@ on:
       # Doctrine/docs/CI-config-only pushes should not rebuild images or restart KVM1.
       - ".github/workflows/**"
       - ".github/_typos.toml"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".gitignore"
+      - ".python-version"
       - "**/*.md"
       - "Blueprints/**"
       - "Direction/**"
