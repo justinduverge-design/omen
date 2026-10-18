@@ -33,7 +33,7 @@ jobs:
           config: .github/_typos.toml
 
   biome:
-    # JS lint + format (biome.json). Report-only: 825 errors / 684 warnings on 2026-10-18, mostly formatting.
+    # JS lint + format (biome.jsonc). Report-only: 825 errors / 684 warnings on 2026-10-18, mostly formatting.
     continue-on-error: true
     runs-on: ubuntu-latest
     timeout-minutes: 10
