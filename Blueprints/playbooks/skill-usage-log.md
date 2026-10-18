@@ -41,3 +41,4 @@ three-weekly skill check (`Direction/reviews/2026-10-03-harness-design-outline.m
 2026-10-18 | PRUNE: removal rule, check-orphans.js, mac-sweep.sh | slops-code-review (fresh agent) | skipped slops-tdd: report-only scripts, verified by running them
 2026-10-18 | PRUNE close-out: orphan-candidates in staleness + close-out step | slops-code-review (fresh agent, P2 only) | none skipped
 2026-10-18 | Phase 4: Vector log shipping (shadow, not installed) | slops-code-review (fresh agent: 4 P1s fixed) | skipped slops-tdd (config; tested end to end instead)
+2026-10-18 | Branch triage: 30 local branches classified, 23 deleted, 4 archived, #654 closed | none (git triage, docs only) | skipped slops-code-review: docs-only, no code; skipped slops-git-flow: one docs PR per step

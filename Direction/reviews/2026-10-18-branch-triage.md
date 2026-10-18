@@ -28,7 +28,7 @@ No remote branch was deleted.
 
 | Branch | Unique commits | Verdict | Why kept / next step |
 |---|---|---|---|
-| omen-projections-v1 (#654, open) | 2 | KEEP | Open PR. |
+| omen-projections-v1 (#654) | 2 | ALREADY ON MAIN (closed later 2026-10-18) | All 14 files plus the relevance-gate fix landed in #670 (Build 12); #654 closed, branch deleted on origin and locally. |
 | codex/omen-native-lock-v2 | 18 | KEEP (active) | Committed today; Codex work, not touched. Worktree has 5 dirty files. |
 | feat/provider-gap-g3-g8 | 1 (WIP, untested, +1438 lines) | WORTH LANDING (after work) | Main has no `leagueTradeTargets` / `leagueTransactions` / `leagueRosterBundle`. Pushed. Follow-up in `current_sprint.md`. |
 | codex/root-cause-containment-20260928 | 24 | NEEDS FOUNDER (salvage review) | 27 files absent from main (`leagueContext.js`, `providerConnectionState.js`, provider-state SQL reviews, readiness validators). Main moved on (`providerErrors.js`); some may be superseded, migrations need Codex review. Pushed. Follow-up in `current_sprint.md`. |
@@ -55,4 +55,4 @@ Not reviewed by rule: `infra/vector-logs` (main checkout, another session).
   16-hex to a UUID, which is not needed; archived anyway as `origin/archive/saved-trades-table-wip`. native-journeys (Android + iOS
   screenshot scenarios, 637 lines) archived as `origin/archive/native-journeys-20260918`. All worktrees removed, local branches deleted.
 
-Local branches left: `omen-projections-v1` (#654), `feat/provider-gap-g3-g8` (BRANCH-SALVAGE), `codex/omen-native-lock-v2` (active).
+Local branches left: `feat/provider-gap-g3-g8` (BRANCH-SALVAGE), `codex/omen-native-lock-v2` (active).
