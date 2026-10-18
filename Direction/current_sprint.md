@@ -13,7 +13,10 @@ founder, or store work.
 
 ### BRANCH-SALVAGE — land or retire the unmerged branches from the 2026-10-18 triage
 
-- **Status:** READY
+- **Status:** VERIFIED
+- **Claim:** Claude, 2026-10-18, founder direction ("do the provider work")
+- **Evidence:** #746 (G4 transactions route, G6 Yahoo waiver split behind `YAHOO_POOL_STATUS_SPLIT`, G8 per-team budget; 19 tests, CI backend tests pass). G3 (#673) and G5 had already shipped, so they were not re-landed. `feat/provider-gap-g3-g8` deleted.
+- **Follow-ups:** live-probe Yahoo and ESPN transactions, then flip `LEAGUE_TRANSACTIONS_YAHOO` / `_ESPN`; live-probe and flip `YAHOO_POOL_STATUS_SPLIT`; route-level tests for `/api/league/transactions`; G7 deadlines still open; iOS has no League Activity screen for the feed yet.
 - **Source:** `Direction/reviews/2026-10-18-branch-triage.md` → "Kept"
 - **Done when:** `feat/provider-gap-g3-g8` (G3 trade targets, G4 transactions, roster bundle; untested WIP) is rebased, tested and opened as a scoped PR, or retired with a reason. The other triage decisions are made (see the review).
 
@@ -22,7 +25,7 @@ founder, or store work.
 - **Status:** VERIFIED
 - **Claim:** Claude, 2026-10-18, founder direction ("put something in practice to prune as we build")
 - **Evidence:** `Blueprints/definition-of-done.md` → "Removal"; `scripts/check-orphans.js` (first run: 4 route candidates, 191 local branches merged or idle 30+ days, 0 tables, 0 env keys, 0 screens); `scripts/mac-sweep.sh` (dry run clean after the 2026-10-18 manual sweep, 5.7 GB → 68 GB free)
-- **Follow-up, needs a decision:** confirm or remove the four routes nothing in the repo calls: `GET /api/yahoo/roster`, `POST /api/user/consent`, `GET /api/football-intelligence/signals/coach-transfer` (not production-live), `GET /api/optimizer/lineup`. Stale local branches: done 2026-10-18 (`Direction/reviews/2026-10-18-branch-triage.md`). Not yet swept by a finder: TestFlight builds, KVM1 backups and old shadow tables, Supabase columns.
+- **Route decisions (2026-10-18, delegated):** removed `GET /api/yahoo/roster` and `GET /api/optimizer/lineup` (#745); kept `POST /api/user/consent` (privacy surface) and `GET /api/football-intelligence/signals/coach-transfer` (planned slice, tested). Stale local branches: done 2026-10-18 (`Direction/reviews/2026-10-18-branch-triage.md`). Not yet swept by a finder: TestFlight builds, KVM1 backups and old shadow tables, Supabase columns.
 
 ### OMEN-FOUNDATION — inspect the shared football decision foundation before allocating Beta 2
 
