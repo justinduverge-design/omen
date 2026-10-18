@@ -4,9 +4,6 @@
  * =================================================================
  * Optimizer routes (Pro-gated)
  * -----------------------------------------------------------------
- * GET /api/optimizer/lineup?leagueKey=...&week=...
- *   - Per-position start/sit recommendations
- *
  * GET /api/optimizer/waivers?leagueKey=...&week=...
  *   - Top waiver pickups for weakest rostered positions
  *   - Currently returns empty recommendations until Yahoo waiver
@@ -169,40 +166,6 @@ router.post("/mvp-move", retiredCompatRoute({
 
 // All optimizer endpoints require auth. Omen is free — no subscription gate.
 router.use(requireAuth);
-
-router.get("/lineup", async (req, res, next) => {
-  try {
-    const { leagueKey, week } = req.query;
-    if (!leagueKey) {
-      return res.status(400).json({ error: "leagueKey query param required" });
-    }
-    const wk = parseWeek(week);
-    if (wk === undefined) {
-      return res.status(400).json({ error: "week must be between 1 and 18" });
-    }
-
-    const { client: yahoo } = await getAuthenticatedYahooClient(req.user.id);
-    const cacheKey = `ssff:roster:${req.user.id}:${leagueKey}:${wk || "current"}`;
-    const roster   = await rosterSvc.fetchAndNormalizeRoster(yahoo, leagueKey, wk, cacheKey);
-
-    const recommendations = optimizer.evaluateLineup(roster);
-
-    res.json({
-      week:  roster.week,
-      league_key: roster.league_key,
-      team_key:   roster.team_key,
-      starter_count: roster.slots.starters.length,
-      bench_count:   roster.slots.bench.length,
-      recommendations,
-      generated_at:  new Date().toISOString(),
-    });
-  } catch (e) {
-    if (e.message === "yahoo_token_expired") {
-      return res.status(401).json({ error: "Yahoo token expired - re-authenticate" });
-    }
-    next(e);
-  }
-});
 
 router.get("/waivers", async (req, res, next) => {
   try {
