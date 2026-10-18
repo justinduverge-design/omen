@@ -49,7 +49,9 @@
     "status": {
       "required": true,
       "type": "enum",
-      "values": ["\"resolved\""]
+      "values": [
+        "\"resolved\""
+      ]
     },
     "username": {
       "required": true,

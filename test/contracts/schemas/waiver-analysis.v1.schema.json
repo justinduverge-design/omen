@@ -12,7 +12,10 @@
       "type": "string"
     },
     "best_move": {
-      "type": ["null", "object"],
+      "type": [
+        "null",
+        "object"
+      ],
       "properties": {
         "add": {
           "type": "object",
@@ -36,10 +39,20 @@
               "description": "Observed only as null in recorded responses; the real type is not constrained."
             }
           },
-          "required": ["name", "player_key", "position", "projected_points", "status", "team"]
+          "required": [
+            "name",
+            "player_key",
+            "position",
+            "projected_points",
+            "status",
+            "team"
+          ]
         },
         "bid": {
-          "type": ["null", "object"],
+          "type": [
+            "null",
+            "object"
+          ],
           "properties": {
             "amount": {
               "type": "number"
@@ -57,7 +70,13 @@
               "type": "number"
             }
           },
-          "required": ["amount", "basis", "implies_claim_success", "model_version", "of_budget_remaining"]
+          "required": [
+            "amount",
+            "basis",
+            "implies_claim_success",
+            "model_version",
+            "of_budget_remaining"
+          ]
         },
         "displaces": {
           "type": "object",
@@ -81,10 +100,20 @@
               "description": "Observed only as null in recorded responses; the real type is not constrained."
             }
           },
-          "required": ["name", "player_key", "position", "projected_points", "status", "team"]
+          "required": [
+            "name",
+            "player_key",
+            "position",
+            "projected_points",
+            "status",
+            "team"
+          ]
         },
         "drop": {
-          "type": ["null", "object"],
+          "type": [
+            "null",
+            "object"
+          ],
           "properties": {
             "name": {
               "type": "string"
@@ -105,7 +134,14 @@
               "description": "Observed only as null in recorded responses; the real type is not constrained."
             }
           },
-          "required": ["name", "player_key", "position", "projected_points", "status", "team"]
+          "required": [
+            "name",
+            "player_key",
+            "position",
+            "projected_points",
+            "status",
+            "team"
+          ]
         },
         "improvement": {
           "type": "number"
@@ -117,13 +153,24 @@
           "type": "string"
         }
       },
-      "required": ["add", "bid", "displaces", "drop", "improvement", "solves_unavailable_starter", "why_now"]
+      "required": [
+        "add",
+        "bid",
+        "displaces",
+        "drop",
+        "improvement",
+        "solves_unavailable_starter",
+        "why_now"
+      ]
     },
     "contract_version": {
       "type": "string"
     },
     "cost": {
-      "type": ["null", "object"],
+      "type": [
+        "null",
+        "object"
+      ],
       "properties": {
         "accepted_because": {
           "type": "array",
@@ -135,7 +182,10 @@
           "type": "string"
         }
       },
-      "required": ["accepted_because", "removes"]
+      "required": [
+        "accepted_because",
+        "removes"
+      ]
     },
     "deadline": {
       "description": "Observed only as null in recorded responses; the real type is not constrained."
@@ -155,7 +205,11 @@
             "type": "string"
           }
         },
-        "required": ["category", "kind", "statement"]
+        "required": [
+          "category",
+          "kind",
+          "statement"
+        ]
       }
     },
     "generated_at": {
@@ -171,13 +225,19 @@
       }
     },
     "message": {
-      "type": ["null", "string"]
+      "type": [
+        "null",
+        "string"
+      ]
     },
     "platform": {
       "type": "string"
     },
     "scoring_format": {
-      "type": ["null", "string"]
+      "type": [
+        "null",
+        "string"
+      ]
     },
     "season": {
       "type": "number"
@@ -194,13 +254,22 @@
       ]
     },
     "waiver_system": {
-      "type": ["null", "object"],
+      "type": [
+        "null",
+        "object"
+      ],
       "properties": {
         "budget_remaining": {
-          "type": ["null", "number"]
+          "type": [
+            "null",
+            "number"
+          ]
         },
         "budget_total": {
-          "type": ["null", "number"]
+          "type": [
+            "null",
+            "number"
+          ]
         },
         "determined_from": {
           "type": "string"
@@ -212,15 +281,27 @@
           "type": "string"
         },
         "budget_text": {
-          "type": ["null", "string"],
+          "type": [
+            "null",
+            "string"
+          ],
           "description": "Composed server-side, e.g. \"Your budget $80 of $100\". Null unless budget_total and budget_remaining are both known. The native League screen renders a FAAB budget only from this field."
         },
         "order_text": {
-          "type": ["null", "string"],
+          "type": [
+            "null",
+            "string"
+          ],
           "description": "Composed server-side, e.g. \"Claim order 7\". Null unless the league runs priority waivers and the position is known."
         }
       },
-      "required": ["budget_remaining", "budget_total", "determined_from", "priority_position", "system"]
+      "required": [
+        "budget_remaining",
+        "budget_total",
+        "determined_from",
+        "priority_position",
+        "system"
+      ]
     },
     "week": {
       "type": "number"

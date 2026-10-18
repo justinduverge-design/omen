@@ -57,7 +57,10 @@
     "status": {
       "required": true,
       "type": "enum",
-      "values": ["\"connected\"", "\"error\""]
+      "values": [
+        "\"connected\"",
+        "\"error\""
+      ]
     }
   }
 }

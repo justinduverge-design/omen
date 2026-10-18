@@ -28,7 +28,9 @@
     },
     "status": {
       "type": "string",
-      "enum": ["connected"]
+      "enum": [
+        "connected"
+      ]
     },
     "username": {
       "type": "string"

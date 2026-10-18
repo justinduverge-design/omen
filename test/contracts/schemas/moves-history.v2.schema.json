@@ -20,7 +20,10 @@
             "type": "string"
           },
           "followed": {
-            "type": ["boolean", "null"]
+            "type": [
+              "boolean",
+              "null"
+            ]
           },
           "headline": {
             "type": "string"
@@ -35,7 +38,10 @@
             "type": "string"
           },
           "move_type": {
-            "type": ["null", "string"]
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "outcome": {
             "type": "string"
@@ -69,5 +75,10 @@
       "type": "number"
     }
   },
-  "required": ["contract_version", "generated_at", "moves", "season"]
+  "required": [
+    "contract_version",
+    "generated_at",
+    "moves",
+    "season"
+  ]
 }

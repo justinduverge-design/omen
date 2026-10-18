@@ -37,7 +37,11 @@
     "variant": {
       "required": true,
       "type": "enum",
-      "values": ["\"neutral\"", "\"straight\"", "null"]
+      "values": [
+        "\"neutral\"",
+        "\"straight\"",
+        "null"
+      ]
     }
   }
 }

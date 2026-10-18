@@ -32,13 +32,24 @@
             "type": "boolean"
           },
           "team_id": {
-            "type": ["null", "string"]
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "team_name": {
             "description": "Observed only as null in recorded responses; the real type is not constrained."
           }
         },
-        "required": ["id", "name", "scoring_format", "season", "selected", "team_id", "team_name"]
+        "required": [
+          "id",
+          "name",
+          "scoring_format",
+          "season",
+          "selected",
+          "team_id",
+          "team_name"
+        ]
       }
     },
     "message": {
@@ -49,8 +60,13 @@
     },
     "status": {
       "type": "string",
-      "enum": ["connected", "error"]
+      "enum": [
+        "connected",
+        "error"
+      ]
     }
   },
-  "required": ["status"]
+  "required": [
+    "status"
+  ]
 }

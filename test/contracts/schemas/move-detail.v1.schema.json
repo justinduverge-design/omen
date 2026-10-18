@@ -26,7 +26,10 @@
             "type": "string"
           },
           "observed_at": {
-            "type": ["null", "string"]
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "reason_code": {
             "type": "string"
@@ -47,7 +50,16 @@
             "type": "boolean"
           }
         },
-        "required": ["fresh_until", "kind", "name", "observed_at", "source", "state", "statement", "used"]
+        "required": [
+          "fresh_until",
+          "kind",
+          "name",
+          "observed_at",
+          "source",
+          "state",
+          "statement",
+          "used"
+        ]
       }
     },
     "capability_contract": {
@@ -81,7 +93,12 @@
                   "type": "boolean"
                 }
               },
-              "required": ["observed_at", "source", "state", "used"]
+              "required": [
+                "observed_at",
+                "source",
+                "state",
+                "used"
+              ]
             },
             "scoring_outcome": {
               "type": "object",
@@ -102,10 +119,17 @@
                   "type": "boolean"
                 }
               },
-              "required": ["source", "state", "used"]
+              "required": [
+                "source",
+                "state",
+                "used"
+              ]
             }
           },
-          "required": ["decision_receipt", "scoring_outcome"]
+          "required": [
+            "decision_receipt",
+            "scoring_outcome"
+          ]
         },
         "inputs_used": {
           "type": "array",
@@ -128,14 +152,24 @@
                 "type": "string"
               }
             },
-            "required": ["name", "reason_code", "state"]
+            "required": [
+              "name",
+              "reason_code",
+              "state"
+            ]
           }
         },
         "profile": {
           "type": "string"
         }
       },
-      "required": ["contract_version", "inputs", "inputs_used", "limitations", "profile"]
+      "required": [
+        "contract_version",
+        "inputs",
+        "inputs_used",
+        "limitations",
+        "profile"
+      ]
     },
     "evidence_at_the_time": {
       "type": "array",
@@ -152,7 +186,11 @@
             "type": "string"
           }
         },
-        "required": ["category", "kind", "statement"]
+        "required": [
+          "category",
+          "kind",
+          "statement"
+        ]
       }
     },
     "fairness_note": {
@@ -165,10 +203,16 @@
           "description": "Observed only as null in recorded responses; the real type is not constrained."
         },
         "stars": {
-          "type": ["null", "number"]
+          "type": [
+            "null",
+            "number"
+          ]
         }
       },
-      "required": ["note", "stars"]
+      "required": [
+        "note",
+        "stars"
+      ]
     },
     "generated_at": {
       "type": "string"
@@ -180,7 +224,10 @@
       "type": "object",
       "properties": {
         "awaiting": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "detail": {
           "type": "string"
@@ -195,7 +242,11 @@
           "type": "string"
         }
       },
-      "required": ["awaiting", "known", "statement"]
+      "required": [
+        "awaiting",
+        "known",
+        "statement"
+      ]
     },
     "snapshot": {
       "type": "object",
@@ -207,19 +258,31 @@
           "type": "string"
         },
         "league_id": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "platform": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "recommendation": {
           "type": "string"
         },
         "scoring_contract_version": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "scoring_format": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "season": {
           "type": "number"
@@ -242,13 +305,21 @@
     },
     "state": {
       "type": "string",
-      "enum": ["pending", "resolved", "data_incomplete", "superseded"]
+      "enum": [
+        "pending",
+        "resolved",
+        "data_incomplete",
+        "superseded"
+      ]
     },
     "user_action": {
       "type": "object",
       "properties": {
         "followed": {
-          "type": ["boolean", "null"]
+          "type": [
+            "boolean",
+            "null"
+          ]
         },
         "known": {
           "type": "boolean"
@@ -257,7 +328,11 @@
           "type": "string"
         }
       },
-      "required": ["followed", "known", "statement"]
+      "required": [
+        "followed",
+        "known",
+        "statement"
+      ]
     }
   },
   "required": [

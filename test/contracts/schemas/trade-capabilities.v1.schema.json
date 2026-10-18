@@ -27,8 +27,17 @@
           "type": "boolean"
         }
       },
-      "required": ["reason", "supported"]
+      "required": [
+        "reason",
+        "supported"
+      ]
     }
   },
-  "required": ["comparison", "contract_version", "max_teams", "submission", "three_team"]
+  "required": [
+    "comparison",
+    "contract_version",
+    "max_teams",
+    "submission",
+    "three_team"
+  ]
 }

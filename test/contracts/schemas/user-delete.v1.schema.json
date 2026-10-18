@@ -18,5 +18,10 @@
       "type": "string"
     }
   },
-  "required": ["auth_identity_deleted", "contract_version", "deleted", "user_hash"]
+  "required": [
+    "auth_identity_deleted",
+    "contract_version",
+    "deleted",
+    "user_hash"
+  ]
 }

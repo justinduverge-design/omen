@@ -12,7 +12,10 @@
       "type": "string"
     },
     "user": {
-      "type": ["null", "object"],
+      "type": [
+        "null",
+        "object"
+      ],
       "properties": {
         "email": {
           "type": "string"
@@ -21,8 +24,15 @@
           "type": "string"
         }
       },
-      "required": ["email", "id"]
+      "required": [
+        "email",
+        "id"
+      ]
     }
   },
-  "required": ["authenticated", "contract_version", "user"]
+  "required": [
+    "authenticated",
+    "contract_version",
+    "user"
+  ]
 }

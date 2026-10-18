@@ -6,7 +6,10 @@
   "type": "object",
   "properties": {
     "client_version": {
-      "type": ["null", "string"]
+      "type": [
+        "null",
+        "string"
+      ]
     },
     "contract_version": {
       "type": "string"
@@ -15,14 +18,23 @@
       "type": "string"
     },
     "minimum_version": {
-      "type": ["null", "string"]
+      "type": [
+        "null",
+        "string"
+      ]
     },
     "platform": {
-      "type": ["null", "string"]
+      "type": [
+        "null",
+        "string"
+      ]
     },
     "status": {
       "type": "string",
-      "enum": ["ok", "update_required"]
+      "enum": [
+        "ok",
+        "update_required"
+      ]
     },
     "update_required": {
       "type": "boolean"

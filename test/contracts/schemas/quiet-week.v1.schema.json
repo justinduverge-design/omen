@@ -6,7 +6,10 @@
   "type": "object",
   "properties": {
     "body": {
-      "type": ["null", "string"]
+      "type": [
+        "null",
+        "string"
+      ]
     },
     "contract_version": {
       "type": "string"
@@ -15,10 +18,16 @@
       "type": "boolean"
     },
     "headline": {
-      "type": ["null", "string"]
+      "type": [
+        "null",
+        "string"
+      ]
     },
     "next_read": {
-      "type": ["null", "string"]
+      "type": [
+        "null",
+        "string"
+      ]
     },
     "reasons": {
       "type": "array",
@@ -30,9 +39,25 @@
       "type": "string"
     },
     "variant": {
-      "type": ["null", "string"],
-      "enum": ["neutral", "straight", null]
+      "type": [
+        "null",
+        "string"
+      ],
+      "enum": [
+        "neutral",
+        "straight",
+        null
+      ]
     }
   },
-  "required": ["body", "contract_version", "eligible", "headline", "next_read", "reasons", "source_state", "variant"]
+  "required": [
+    "body",
+    "contract_version",
+    "eligible",
+    "headline",
+    "next_read",
+    "reasons",
+    "source_state",
+    "variant"
+  ]
 }

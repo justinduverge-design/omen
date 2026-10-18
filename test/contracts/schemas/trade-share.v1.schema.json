@@ -132,14 +132,25 @@
                     "type": "number"
                   }
                 },
-                "required": ["name", "position", "tier", "vorp"]
+                "required": [
+                  "name",
+                  "position",
+                  "tier",
+                  "vorp"
+                ]
               }
             },
             "total_value": {
               "type": "number"
             }
           },
-          "required": ["missing_projection_count", "player_count", "players", "scarcity_details", "total_value"]
+          "required": [
+            "missing_projection_count",
+            "player_count",
+            "players",
+            "scarcity_details",
+            "total_value"
+          ]
         },
         "scarcity_analysis": {
           "type": "object",
@@ -162,7 +173,12 @@
                     "type": "number"
                   }
                 },
-                "required": ["name", "position", "tier", "vorp"]
+                "required": [
+                  "name",
+                  "position",
+                  "tier",
+                  "vorp"
+                ]
               }
             },
             "send": {
@@ -183,14 +199,23 @@
                     "type": "number"
                   }
                 },
-                "required": ["name", "position", "tier", "vorp"]
+                "required": [
+                  "name",
+                  "position",
+                  "tier",
+                  "vorp"
+                ]
               }
             },
             "summary": {
               "type": "string"
             }
           },
-          "required": ["receive", "send", "summary"]
+          "required": [
+            "receive",
+            "send",
+            "summary"
+          ]
         },
         "scoring_format": {
           "type": "string"
@@ -280,14 +305,25 @@
                     "type": "number"
                   }
                 },
-                "required": ["name", "position", "tier", "vorp"]
+                "required": [
+                  "name",
+                  "position",
+                  "tier",
+                  "vorp"
+                ]
               }
             },
             "total_value": {
               "type": "number"
             }
           },
-          "required": ["missing_projection_count", "player_count", "players", "scarcity_details", "total_value"]
+          "required": [
+            "missing_projection_count",
+            "player_count",
+            "players",
+            "scarcity_details",
+            "total_value"
+          ]
         },
         "verdict": {
           "type": "string"
@@ -332,7 +368,12 @@
                 "type": "string"
               }
             },
-            "required": ["name", "position", "projected_points", "team"]
+            "required": [
+              "name",
+              "position",
+              "projected_points",
+              "team"
+            ]
           }
         },
         "scoring_format": {
@@ -356,12 +397,25 @@
                 "type": "string"
               }
             },
-            "required": ["name", "position", "projected_points", "team"]
+            "required": [
+              "name",
+              "position",
+              "projected_points",
+              "team"
+            ]
           }
         }
       },
-      "required": ["receive", "scoring_format", "send"]
+      "required": [
+        "receive",
+        "scoring_format",
+        "send"
+      ]
     }
   },
-  "required": ["contract_version", "expires_at", "hash"]
+  "required": [
+    "contract_version",
+    "expires_at",
+    "hash"
+  ]
 }

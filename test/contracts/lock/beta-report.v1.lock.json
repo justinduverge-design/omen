@@ -17,7 +17,9 @@
     "status": {
       "required": true,
       "type": "enum",
-      "values": ["\"received\""]
+      "values": [
+        "\"received\""
+      ]
     }
   }
 }

@@ -23,7 +23,11 @@
                 "type": "string"
               }
             },
-            "required": ["category", "source", "text"]
+            "required": [
+              "category",
+              "source",
+              "text"
+            ]
           }
         },
         "status": {
@@ -36,7 +40,11 @@
           }
         }
       },
-      "required": ["items", "status", "unavailable_families"]
+      "required": [
+        "items",
+        "status",
+        "unavailable_families"
+      ]
     },
     "capabilities": {
       "type": "array",
@@ -53,7 +61,10 @@
             "type": "string"
           },
           "observed_at": {
-            "type": ["null", "string"]
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "reason_code": {
             "type": "string"
@@ -71,7 +82,16 @@
             "type": "boolean"
           }
         },
-        "required": ["fresh_until", "kind", "name", "observed_at", "source", "state", "statement", "used"]
+        "required": [
+          "fresh_until",
+          "kind",
+          "name",
+          "observed_at",
+          "source",
+          "state",
+          "statement",
+          "used"
+        ]
       }
     },
     "capability_contract": {
@@ -108,7 +128,11 @@
                   "type": "boolean"
                 }
               },
-              "required": ["source", "state", "used"]
+              "required": [
+                "source",
+                "state",
+                "used"
+              ]
             },
             "league_matchup": {
               "type": "object",
@@ -129,7 +153,11 @@
                   "type": "boolean"
                 }
               },
-              "required": ["source", "state", "used"]
+              "required": [
+                "source",
+                "state",
+                "used"
+              ]
             },
             "league_playoff_settings": {
               "type": "object",
@@ -150,7 +178,11 @@
                   "type": "boolean"
                 }
               },
-              "required": ["source", "state", "used"]
+              "required": [
+                "source",
+                "state",
+                "used"
+              ]
             },
             "league_standings": {
               "type": "object",
@@ -171,7 +203,11 @@
                   "type": "boolean"
                 }
               },
-              "required": ["source", "state", "used"]
+              "required": [
+                "source",
+                "state",
+                "used"
+              ]
             },
             "league_transactions": {
               "type": "object",
@@ -189,7 +225,12 @@
                   "type": "boolean"
                 }
               },
-              "required": ["reason_code", "source", "state", "used"]
+              "required": [
+                "reason_code",
+                "source",
+                "state",
+                "used"
+              ]
             },
             "selected_context": {
               "type": "object",
@@ -207,7 +248,12 @@
                   "type": "boolean"
                 }
               },
-              "required": ["observed_at", "source", "state", "used"]
+              "required": [
+                "observed_at",
+                "source",
+                "state",
+                "used"
+              ]
             }
           },
           "required": [
@@ -240,14 +286,24 @@
                 "type": "string"
               }
             },
-            "required": ["name", "reason_code", "state"]
+            "required": [
+              "name",
+              "reason_code",
+              "state"
+            ]
           }
         },
         "profile": {
           "type": "string"
         }
       },
-      "required": ["contract_version", "inputs", "inputs_used", "limitations", "profile"]
+      "required": [
+        "contract_version",
+        "inputs",
+        "inputs_used",
+        "limitations",
+        "profile"
+      ]
     },
     "generated_at": {
       "type": "string"
@@ -256,7 +312,10 @@
       "type": "string"
     },
     "league_name": {
-      "type": ["null", "string"]
+      "type": [
+        "null",
+        "string"
+      ]
     },
     "matchup": {
       "type": "object",
@@ -265,13 +324,19 @@
           "type": "string"
         },
         "opponent": {
-          "type": ["null", "object"],
+          "type": [
+            "null",
+            "object"
+          ],
           "properties": {
             "points": {
               "type": "number"
             },
             "projected": {
-              "type": ["null", "number"]
+              "type": [
+                "null",
+                "number"
+              ]
             },
             "record": {
               "type": "string"
@@ -283,7 +348,13 @@
               "type": "string"
             }
           },
-          "required": ["points", "projected", "record", "team_id", "team_name"]
+          "required": [
+            "points",
+            "projected",
+            "record",
+            "team_id",
+            "team_name"
+          ]
         },
         "status": {
           "type": "string"
@@ -292,13 +363,19 @@
           "type": "string"
         },
         "you": {
-          "type": ["null", "object"],
+          "type": [
+            "null",
+            "object"
+          ],
           "properties": {
             "points": {
               "type": "number"
             },
             "projected": {
-              "type": ["null", "number"]
+              "type": [
+                "null",
+                "number"
+              ]
             },
             "record": {
               "type": "string"
@@ -310,10 +387,20 @@
               "type": "string"
             }
           },
-          "required": ["points", "projected", "record", "team_id", "team_name"]
+          "required": [
+            "points",
+            "projected",
+            "record",
+            "team_id",
+            "team_name"
+          ]
         }
       },
-      "required": ["opponent", "status", "you"]
+      "required": [
+        "opponent",
+        "status",
+        "you"
+      ]
     },
     "platform": {
       "type": "string"
@@ -325,10 +412,16 @@
       "type": "object",
       "properties": {
         "playoff_picture": {
-          "type": ["null", "object"],
+          "type": [
+            "null",
+            "object"
+          ],
           "properties": {
             "cut_line_note": {
-              "type": ["null", "string"]
+              "type": [
+                "null",
+                "string"
+              ]
             },
             "line": {
               "type": "string"
@@ -343,7 +436,13 @@
               "type": "number"
             }
           },
-          "required": ["cut_line_note", "line", "rank", "settings_known", "team_count"]
+          "required": [
+            "cut_line_note",
+            "line",
+            "rank",
+            "settings_known",
+            "team_count"
+          ]
         },
         "status": {
           "type": "string"
@@ -372,11 +471,22 @@
                 "type": "number"
               }
             },
-            "required": ["is_current_user", "losses", "rank", "team_id", "team_name", "wins"]
+            "required": [
+              "is_current_user",
+              "losses",
+              "rank",
+              "team_id",
+              "team_name",
+              "wins"
+            ]
           }
         }
       },
-      "required": ["playoff_picture", "status", "teams"]
+      "required": [
+        "playoff_picture",
+        "status",
+        "teams"
+      ]
     },
     "week": {
       "type": "number"

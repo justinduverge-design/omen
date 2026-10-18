@@ -15,5 +15,9 @@
       "type": "string"
     }
   },
-  "required": ["contract_version", "error", "message"]
+  "required": [
+    "contract_version",
+    "error",
+    "message"
+  ]
 }

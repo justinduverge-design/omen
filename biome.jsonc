@@ -16,8 +16,14 @@
       "linter": { "rules": { "suspicious": { "noThenProperty": "off" } } }
     },
     {
-      // Fixtures are test inputs or generated snapshots and must stay byte-for-byte as written.
-      "includes": ["test/fixtures/**", "test/contracts/fixtures/**"],
+      // Test inputs and script-generated files (fixtures, contract locks/schemas, xFP table) stay as their writers emit them.
+      "includes": [
+        "test/fixtures/**",
+        "test/contracts/fixtures/**",
+        "test/contracts/lock/**",
+        "test/contracts/schemas/**",
+        "src/services/fantasyMetrics/xfp-tables-v1.json"
+      ],
       "linter": { "enabled": false },
       "formatter": { "enabled": false }
     },

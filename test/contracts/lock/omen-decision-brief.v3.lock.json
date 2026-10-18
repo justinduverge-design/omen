@@ -109,7 +109,10 @@
     "answered_for.selection": {
       "required": true,
       "type": "enum",
-      "values": ["\"account_selected\"", "\"requested\""]
+      "values": [
+        "\"account_selected\"",
+        "\"requested\""
+      ]
     },
     "answered_for.team_id": {
       "required": false,
@@ -118,7 +121,12 @@
     "call_kind": {
       "required": false,
       "type": "enum",
-      "values": ["\"hold\"", "\"start_sit\"", "\"trade_suggestion\"", "\"waiver_pickup\""]
+      "values": [
+        "\"hold\"",
+        "\"start_sit\"",
+        "\"trade_suggestion\"",
+        "\"waiver_pickup\""
+      ]
     },
     "capabilities": {
       "required": true,
@@ -135,7 +143,13 @@
     "capabilities[].kind": {
       "required": true,
       "type": "enum",
-      "values": ["\"inference\"", "\"limitation\"", "\"model\"", "\"projection\"", "\"verified\""]
+      "values": [
+        "\"inference\"",
+        "\"limitation\"",
+        "\"model\"",
+        "\"projection\"",
+        "\"verified\""
+      ]
     },
     "capabilities[].name": {
       "required": true,
@@ -152,7 +166,12 @@
     "capabilities[].state": {
       "required": true,
       "type": "enum",
-      "values": ["\"demo\"", "\"live\"", "\"mock\"", "\"unavailable\""]
+      "values": [
+        "\"demo\"",
+        "\"live\"",
+        "\"mock\"",
+        "\"unavailable\""
+      ]
     },
     "capabilities[].statement": {
       "required": true,
@@ -173,7 +192,12 @@
     "confidence.band": {
       "required": false,
       "type": "enum",
-      "values": ["\"coin_flip\"", "\"confident\"", "\"leaning\"", "null"]
+      "values": [
+        "\"coin_flip\"",
+        "\"confident\"",
+        "\"leaning\"",
+        "null"
+      ]
     },
     "confidence.drivers": {
       "required": false,
@@ -234,7 +258,13 @@
     "evidence[].kind": {
       "required": true,
       "type": "enum",
-      "values": ["\"inference\"", "\"limitation\"", "\"model\"", "\"projection\"", "\"verified\""]
+      "values": [
+        "\"inference\"",
+        "\"limitation\"",
+        "\"model\"",
+        "\"projection\"",
+        "\"verified\""
+      ]
     },
     "evidence[].name": {
       "required": true,
@@ -243,7 +273,13 @@
     "evidence[].source_status": {
       "required": true,
       "type": "enum",
-      "values": ["\"demo\"", "\"live\"", "\"mock\"", "\"stub\"", "\"unavailable\""]
+      "values": [
+        "\"demo\"",
+        "\"live\"",
+        "\"mock\"",
+        "\"stub\"",
+        "\"unavailable\""
+      ]
     },
     "evidence[].statement": {
       "required": true,
@@ -360,12 +396,21 @@
     "hold.considered[].kind": {
       "required": true,
       "type": "enum",
-      "values": ["\"start_sit\"", "\"trade_suggestion\"", "\"waiver_pickup\""]
+      "values": [
+        "\"start_sit\"",
+        "\"trade_suggestion\"",
+        "\"waiver_pickup\""
+      ]
     },
     "hold.considered[].outcome": {
       "required": true,
       "type": "enum",
-      "values": ["\"below_threshold\"", "\"none_found\"", "\"not_needed\"", "\"unavailable\""]
+      "values": [
+        "\"below_threshold\"",
+        "\"none_found\"",
+        "\"not_needed\"",
+        "\"unavailable\""
+      ]
     },
     "hold.considered[].reason": {
       "required": false,
@@ -490,7 +535,12 @@
     "recommendation.confidence.band": {
       "required": false,
       "type": "enum",
-      "values": ["\"coin_flip\"", "\"confident\"", "\"leaning\"", "null"]
+      "values": [
+        "\"coin_flip\"",
+        "\"confident\"",
+        "\"leaning\"",
+        "null"
+      ]
     },
     "recommendation.confidence.drivers": {
       "required": false,
@@ -595,7 +645,11 @@
     "recommendation.risk.level": {
       "required": true,
       "type": "enum",
-      "values": ["\"high\"", "\"low\"", "\"medium\""]
+      "values": [
+        "\"high\"",
+        "\"low\"",
+        "\"medium\""
+      ]
     },
     "recommendation.risk.reasons": {
       "required": true,
@@ -664,7 +718,11 @@
     "recommendation.type": {
       "required": false,
       "type": "enum",
-      "values": ["\"start_sit\"", "\"trade_suggestion\"", "\"waiver_pickup\""]
+      "values": [
+        "\"start_sit\"",
+        "\"trade_suggestion\"",
+        "\"waiver_pickup\""
+      ]
     },
     "request_id": {
       "required": true,
@@ -689,7 +747,13 @@
     "signals.*.status": {
       "required": true,
       "type": "enum",
-      "values": ["\"demo\"", "\"live\"", "\"mock\"", "\"stub\"", "\"unavailable\""]
+      "values": [
+        "\"demo\"",
+        "\"live\"",
+        "\"mock\"",
+        "\"stub\"",
+        "\"unavailable\""
+      ]
     },
     "signals.*.used": {
       "required": true,

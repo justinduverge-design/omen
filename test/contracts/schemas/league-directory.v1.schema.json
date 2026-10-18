@@ -6,31 +6,57 @@
   "type": "object",
   "properties": {
     "active": {
-      "type": ["null", "object"],
+      "type": [
+        "null",
+        "object"
+      ],
       "properties": {
         "league_id": {
           "type": "string"
         },
         "league_name": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "platform": {
           "type": "string"
         },
         "scoring_format": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "season": {
-          "type": ["null", "number"]
+          "type": [
+            "null",
+            "number"
+          ]
         },
         "team_id": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "team_name": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         }
       },
-      "required": ["league_id", "league_name", "platform", "scoring_format", "season", "team_id", "team_name"]
+      "required": [
+        "league_id",
+        "league_name",
+        "platform",
+        "scoring_format",
+        "season",
+        "team_id",
+        "team_name"
+      ]
     },
     "contract_version": {
       "type": "string"
@@ -67,19 +93,31 @@
                   "type": "string"
                 },
                 "league_name": {
-                  "type": ["null", "string"]
+                  "type": [
+                    "null",
+                    "string"
+                  ]
                 },
                 "scoring_format": {
-                  "type": ["null", "string"]
+                  "type": [
+                    "null",
+                    "string"
+                  ]
                 },
                 "season": {
                   "type": "number"
                 },
                 "team_id": {
-                  "type": ["null", "string"]
+                  "type": [
+                    "null",
+                    "string"
+                  ]
                 },
                 "team_name": {
-                  "type": ["null", "string"]
+                  "type": [
+                    "null",
+                    "string"
+                  ]
                 }
               },
               "required": [
@@ -95,13 +133,22 @@
             }
           },
           "notice": {
-            "type": ["null", "string"]
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "platform": {
             "type": "string"
           }
         },
-        "required": ["connection_state", "discovery", "leagues", "notice", "platform"]
+        "required": [
+          "connection_state",
+          "discovery",
+          "leagues",
+          "notice",
+          "platform"
+        ]
       }
     },
     "season": {
