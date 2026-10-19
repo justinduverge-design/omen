@@ -20,3 +20,12 @@ static Rust binary: about 377 KB for `aarch64-unknown-linux-musl`. It replaces
 cargo test -p steward-freshness
 cargo zigbuild --release --target aarch64-unknown-linux-musl -p steward-freshness
 ```
+
+## Shadow on Steward (installed 2026-10-18, founder-approved)
+
+`/usr/local/bin/steward-freshness` (sha256 `2c732837…`, built from main at merge of #744) and
+`steward-freshness-shadow@{supabase-backup,football-backup,restic-check}.timer` run hourly at :10, with
+`steward-freshness-compare` after each run. The first runs were `MATCH` for all three (HEALTHY/none). The state files
+differ only by timing: the bash check had run before the newest backup. Watch with
+`journalctl -t steward-freshness-compare`. A week of MATCH lines is the proof to swap the bash timers for the binary
+(plan Phase 4).
