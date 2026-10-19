@@ -252,3 +252,22 @@ test("zero candidates always names why, from the narrowest step that ruled every
   assert.ok(found.candidates.length > 0);
   assert.equal(found.empty_reason, null);
 });
+
+test("a FLEX slot is not owed to one position: 1 TE + FLEX requires one TE, not two", () => {
+  const { buildTeamNeedProfile } = require("../src/services/tradeFind");
+  const players = [
+    { position: "TE", eligible_positions: ["TE"] },
+    { position: "TE", eligible_positions: ["TE"] },
+    { position: "RB", eligible_positions: ["RB"] },
+    { position: "RB", eligible_positions: ["RB"] },
+  ];
+  const profile = buildTeamNeedProfile({
+    team: { team_id: "1", players },
+    rosterPositions: ["QB", "RB", "RB", "WR", "WR", "TE", "FLEX", "SUPER_FLEX", "BN", "BN"],
+  });
+  assert.equal(profile.needs.TE.required, 1);
+  assert.equal(profile.needs.RB.required, 2);
+  assert.equal(profile.needs.TE.flex_slots, 1);
+  assert.equal(profile.needs.QB.required, 1);
+  assert.equal(profile.needs.QB.superflex_slots, 1);
+});

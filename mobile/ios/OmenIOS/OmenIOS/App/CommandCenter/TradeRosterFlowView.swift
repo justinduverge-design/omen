@@ -74,7 +74,7 @@ struct TradeRosterFlowView: View {
                 )
                 OmenButton(
                     title: "Try again",
-                    action: { Task { await tradeViewModel.loadRoster(userID: userID) } },
+                    action: { Task { await tradeViewModel.loadRoster(userID: userID, force: true) } },
                     variant: .secondary,
                     size: .md
                 )

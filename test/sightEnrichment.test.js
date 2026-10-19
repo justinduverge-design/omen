@@ -122,3 +122,35 @@ test("warehouse authority reads return a season-bounded, same-player receipt", a
   assert.equal(reads.get("WR").season_end, 2026);
   assert.equal(reads.has("BOGUS"), false);
 });
+
+test("compact Sight keeps only what a list row draws", async () => {
+  const { createSightEnricher } = require("../src/services/sightEnrichment");
+  const repo = {
+    readSight: async () =>
+      new Map([
+        [
+          "sleeper:1",
+          {
+            version: "v2",
+            position: "RB",
+            sight_points: 12.3,
+            grade: 71,
+            confidence: "high",
+            drivers: [{ name: "role", points: 1 }],
+          },
+        ],
+      ]),
+    readAuthority: async () => new Map([["RB", { state: "omen_leads", omen_mae: 4 }]]),
+  };
+  const attach = createSightEnricher({
+    getRuntime: () => ({ mode: "warehouse", sightRepository: repo }),
+    env: { SIGHT_ENABLED: "true", SIGHT_VERSION: "v2" },
+  });
+  const payload = { players: [{ player_key: "sleeper:1", name: "A", position: "RB", projected_points: 10 }] };
+  await attach(payload, { compact: true });
+  const sight = payload.players[0].sight;
+  assert.equal(sight.sight_points, 12.3);
+  assert.equal(sight.grade, 71);
+  assert.equal(sight.authority, undefined, "no receipt on a list row");
+  assert.equal(sight.drivers, undefined);
+});

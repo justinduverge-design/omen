@@ -174,15 +174,19 @@
     "own_needs": {
       "needs": {
         "RB": {
+          "flex_slots": 0,
           "have": 3,
           "required": 2,
           "status": "surplus",
+          "superflex_slots": 0,
           "weight": 0.8
         },
         "WR": {
+          "flex_slots": 0,
           "have": 1,
           "required": 1,
           "status": "balanced",
+          "superflex_slots": 0,
           "weight": 1
         }
       },

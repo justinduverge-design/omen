@@ -364,6 +364,37 @@ function resolvedTradePlayers(inputs, resolutions) {
   });
 }
 
+/** Sight keys for resolver ids: a bare Sleeper id becomes `sleeper:<id>`; prefixed keys pass through. */
+function sightKeyFor(player) {
+  const key = String(player?.player_key ?? "");
+  if (/^(sleeper|espn|yahoo):/.test(key)) return key;
+  return /^[0-9]+$/.test(key) ? `sleeper:${key}` : null;
+}
+
+/** Missing projections filled from Omen's read; each filled player is marked so the verdict can say so. */
+async function fillProjectionsFromOmenRead(players, attachSight) {
+  const probes = players.map((player) => ({
+    player_key: sightKeyFor(player),
+    name: player.name,
+    team: player.team,
+    position: player.position,
+  }));
+  try {
+    await attachSight(probes);
+  } catch {
+    return;
+  }
+  probes.forEach((probe, index) => {
+    const player = players[index];
+    const points = Number(probe.sight?.sight_points);
+    if (probe.sight) player.sight = probe.sight;
+    if (player.projected_points == null && Number.isFinite(points)) {
+      player.projected_points = points;
+      player.projection_source = "omen_read";
+    }
+  });
+}
+
 function unresolvedPlayersFor(side, inputs, resolutions) {
   const unresolved = [];
   resolutions.forEach((resolution, index) => {
@@ -812,7 +843,7 @@ function createTradeRouter({
       const teamId = req.query.team_id == null ? null : String(req.query.team_id);
       const teams = teamId ? result.teams.filter((team) => sameTeamId(team.team_id, teamId)) : result.teams;
 
-      await attachSight(teams);
+      await attachSight(teams, { compact: true });
       return res.json({
         contract_version: "trade-roster.v1",
         status: "ok",
@@ -1817,6 +1848,10 @@ function createTradeRouter({
 
       const send = resolvedTradePlayers(req.body.send, sendResolutions);
       const receive = resolvedTradePlayers(req.body.receive, receiveResolutions);
+      // A typed or built offer often has no provider projection for a player. Omen's own read
+      // (Sight, from the warehouse) covers every rostered skill player, so it fills that gap rather
+      // than the verdict giving up with "no projection" (founder, 2026-10-19). Labelled as Omen's read.
+      await fillProjectionsFromOmenRead([...send, ...receive], attachSight);
 
       const analysisOutcome = await analysisPromise;
       if (analysisOutcome.error) throw analysisOutcome.error;

@@ -52,7 +52,12 @@ function collectPlayers(root) {
 
 function createSightEnricher({ getRuntime, env = process.env, budgetMs = DEFAULT_BUDGET_MS, log = null } = {}) {
   /** Adds `sight` to every player object found in `payload` (any response shape). Mutates and returns it. */
-  return async function attachSight(payload) {
+  /**
+   * `compact: true` keeps only what a list row draws (points, grade, confidence, position and the
+   * crosswind gap), for whole-league payloads like the trade roster, where the full receipt on
+   * every player made the response several times larger than the rosters themselves.
+   */
+  return async function attachSight(payload, { compact = false } = {}) {
     const players = payload;
     // A player that already carries Sight (attached before a decision) is not read twice.
     const list = collectPlayers(payload).filter((player) => !player.sight);
@@ -102,7 +107,16 @@ function createSightEnricher({ getRuntime, env = process.env, budgetMs = DEFAULT
                   drivers,
                 }
               : null;
-          player.sight = { ...block, authority, crosswind };
+          player.sight = compact
+            ? {
+                version: block.version,
+                position: block.position,
+                sight_points: block.sight_points,
+                grade: block.grade,
+                confidence: block.confidence,
+                crosswind: crosswind ? { gap_points: crosswind.gap_points } : null,
+              }
+            : { ...block, authority, crosswind };
         }
       }
     } catch (error) {
