@@ -89,10 +89,19 @@ function createSightEnricher({ getRuntime, env = process.env, budgetMs = DEFAULT
           const omenPoints = Number.isFinite(Number(block.sight_points)) ? Number(block.sight_points) : null;
           const threshold = Number.isFinite(Number(authority?.omen_mae)) ? Number(authority.omen_mae) : null;
           const drivers = Array.isArray(block.drivers) ? block.drivers.slice(0, 3) : [];
-          const crosswind = providerPoints != null && omenPoints != null && threshold != null && threshold > 0
-            && Math.abs(omenPoints - providerPoints) > threshold && drivers.length
-            ? { gap_points: Math.round((omenPoints - providerPoints) * 10) / 10, threshold_points: threshold, drivers }
-            : null;
+          const crosswind =
+            providerPoints != null &&
+            omenPoints != null &&
+            threshold != null &&
+            threshold > 0 &&
+            Math.abs(omenPoints - providerPoints) > threshold &&
+            drivers.length
+              ? {
+                  gap_points: Math.round((omenPoints - providerPoints) * 10) / 10,
+                  threshold_points: threshold,
+                  drivers,
+                }
+              : null;
           player.sight = { ...block, authority, crosswind };
         }
       }

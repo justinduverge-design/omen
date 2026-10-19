@@ -15,9 +15,12 @@ const DEFAULT_POLICY = Object.freeze({
 });
 
 const round = (value) => Math.round(value * 100) / 100;
-const finite = (value) => Number.isFinite(Number(value)) ? Number(value) : null;
+const finite = (value) => (Number.isFinite(Number(value)) ? Number(value) : null);
 
-function unresolved(state, { position, modelVersion, policy, sampleSize = 0, weeks = 0, evaluatedAt = null, window = {} } = {}) {
+function unresolved(
+  state,
+  { position, modelVersion, policy, sampleSize = 0, weeks = 0, evaluatedAt = null, window = {} } = {},
+) {
   return {
     version: policy.version,
     state,
@@ -44,7 +47,13 @@ function unresolved(state, { position, modelVersion, policy, sampleSize = 0, wee
  * @param {string} args.modelVersion
  * @param {Array<{week:number,finished_at?:string,summary?:object}>} args.evaluations
  */
-function resolveForecastAuthority({ position, modelVersion, evaluations, now = new Date(), policy: overrides = {} } = {}) {
+function resolveForecastAuthority({
+  position,
+  modelVersion,
+  evaluations,
+  now = new Date(),
+  policy: overrides = {},
+} = {}) {
   const policy = { ...DEFAULT_POLICY, ...overrides };
   const rows = (Array.isArray(evaluations) ? evaluations : []).flatMap((evaluation) => {
     const block = evaluation?.summary?.positions?.[position]?.provider;
@@ -52,17 +61,26 @@ function resolveForecastAuthority({ position, modelVersion, evaluations, now = n
     const omenMae = finite(block?.sight_mae_same_players);
     const providerMae = finite(block?.mae);
     if (!Number.isInteger(n) || n < 3 || omenMae == null || providerMae == null) return [];
-    return [{
-      n, omenMae, providerMae,
-      season: Number(evaluation.season),
-      week: Number(evaluation.week),
-      finishedAt: evaluation.finished_at || null,
-    }];
+    return [
+      {
+        n,
+        omenMae,
+        providerMae,
+        season: Number(evaluation.season),
+        week: Number(evaluation.week),
+        finishedAt: evaluation.finished_at || null,
+      },
+    ];
   });
   if (!rows.length) return unresolved("unresolved_low_sample", { position, modelVersion, policy });
 
   const sampleSize = rows.reduce((sum, row) => sum + row.n, 0);
-  const evaluatedAt = rows.map((row) => row.finishedAt).filter(Boolean).sort().at(-1) || null;
+  const evaluatedAt =
+    rows
+      .map((row) => row.finishedAt)
+      .filter(Boolean)
+      .sort()
+      .at(-1) || null;
   const seasons = rows.map((row) => row.season).filter(Number.isInteger);
   const weeks = rows.map((row) => row.week).filter(Number.isInteger);
   const window = {
@@ -72,19 +90,34 @@ function resolveForecastAuthority({ position, modelVersion, evaluations, now = n
     weekEnd: weeks.length ? Math.max(...weeks) : null,
   };
   if (rows.length < policy.minimumWeeks || sampleSize < policy.minimumPlayers) {
-    return unresolved("unresolved_low_sample", { position, modelVersion, policy, sampleSize, weeks: rows.length, evaluatedAt, window });
+    return unresolved("unresolved_low_sample", {
+      position,
+      modelVersion,
+      policy,
+      sampleSize,
+      weeks: rows.length,
+      evaluatedAt,
+      window,
+    });
   }
   const evaluatedTime = evaluatedAt ? Date.parse(evaluatedAt) : NaN;
   if (!Number.isFinite(evaluatedTime) || now.getTime() - evaluatedTime > policy.maximumAgeDays * 86_400_000) {
-    return unresolved("unresolved_stale", { position, modelVersion, policy, sampleSize, weeks: rows.length, evaluatedAt, window });
+    return unresolved("unresolved_stale", {
+      position,
+      modelVersion,
+      policy,
+      sampleSize,
+      weeks: rows.length,
+      evaluatedAt,
+      window,
+    });
   }
 
   const omenMae = rows.reduce((sum, row) => sum + row.omenMae * row.n, 0) / sampleSize;
   const providerMae = rows.reduce((sum, row) => sum + row.providerMae * row.n, 0) / sampleSize;
   const difference = Math.abs(omenMae - providerMae);
-  const state = difference < policy.tieMarginMae
-    ? "unresolved_tie"
-    : omenMae < providerMae ? "omen_leads" : "provider_leads";
+  const state =
+    difference < policy.tieMarginMae ? "unresolved_tie" : omenMae < providerMae ? "omen_leads" : "provider_leads";
   return {
     version: policy.version,
     state,

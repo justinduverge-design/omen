@@ -93,9 +93,13 @@ function createWarehouseSightRepository({ query, timeoutMs = 2_000, now = () => 
   return {
     /** One evaluated authority receipt per requested position. Missing/legacy evidence resolves closed. */
     async readAuthority({ positions, version = "v1", now = new Date() }) {
-      const wanted = [...new Set((Array.isArray(positions) ? positions : [])
-        .map((position) => String(position || "").toUpperCase())
-        .filter((position) => /^(QB|RB|WR|TE|K|DEF)$/.test(position)))];
+      const wanted = [
+        ...new Set(
+          (Array.isArray(positions) ? positions : [])
+            .map((position) => String(position || "").toUpperCase())
+            .filter((position) => /^(QB|RB|WR|TE|K|DEF)$/.test(position)),
+        ),
+      ];
       if (!wanted.length || !/^v[0-9]{1,3}$/.test(version)) return new Map();
       const result = await query({
         name: "warehouse-sight-authority-read-v1",
@@ -117,9 +121,17 @@ function createWarehouseSightRepository({ query, timeoutMs = 2_000, now = () => 
         query_timeout: timeoutMs,
       });
       const evaluations = result?.rows || [];
-      return new Map(wanted.map((position) => [position, resolveForecastAuthority({
-        position, modelVersion: version, evaluations, now,
-      })]));
+      return new Map(
+        wanted.map((position) => [
+          position,
+          resolveForecastAuthority({
+            position,
+            modelVersion: version,
+            evaluations,
+            now,
+          }),
+        ]),
+      );
     },
     /** Map(app player key -> sight block). Players Sight has no read for are absent. */
     async readSight({ playerKeys, version = "v1", hints = null }) {
