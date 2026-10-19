@@ -87,8 +87,8 @@ struct OmenTradeFindReviewScreen: View {
         case .zeroCandidates:
             OmenStateSurface(
                 kind: .empty,
-                title: "No real gaps to fill.",
-                message: "Omen checked \(viewModel.response?.teamsConsidered ?? 0) teams against your roster and found nothing that clearly helps you. That's not a miss — some weeks there's nothing there." + (viewModel.degradedSentence.map { " " + $0 } ?? "")
+                title: OmenTradeFindReviewScreen.emptyCopy(reason: viewModel.response?.emptyReason, teams: viewModel.response?.teamsConsidered ?? 0).title,
+                message: OmenTradeFindReviewScreen.emptyCopy(reason: viewModel.response?.emptyReason, teams: viewModel.response?.teamsConsidered ?? 0).message + (viewModel.degradedSentence.map { " " + $0 } ?? "")
             )
             .padding(.horizontal, OmenSpacing.step16)
             .padding(.top, OmenSpacing.step32)
@@ -733,6 +733,33 @@ private struct OmenTradeFindActionRow: View {
             )
             .frame(maxWidth: .infinity)
             .accessibilityLabel(saveState == .saved ? "Saved" : "Save this candidate for later")
+        }
+    }
+}
+
+extension OmenTradeFindReviewScreen {
+    /// Zero candidates, named by the step that ruled every trade out. The server sends the reason;
+    /// an older server sends none and gets the general line.
+    static func emptyCopy(reason: String?, teams: Int) -> (title: String, message: String) {
+        switch reason {
+        case "no_fair_trade":
+            return ("Nothing fair on the table.",
+                    "Omen found trades that would help your lineup across \(teams) teams, but each one costs the other manager more than it gives them. A deal they'd turn down isn't a move.")
+        case "no_trade_helps_both_lineups":
+            return ("No swap helps both sides.",
+                    "Omen tried every one-for-one across \(teams) teams. None makes both starting lineups better this week.")
+        case "no_tradeable_players":
+            return ("Nobody to trade right now.",
+                    "Every player who could move is locked or has no projection yet. Check back once this week's games are set.")
+        case "no_readable_opponents":
+            return ("Omen couldn't read the other teams.",
+                    "Your roster loaded, but no other roster in this league did. Try again in a minute.")
+        case "search_budget_exceeded":
+            return ("The search ran out of time.",
+                    "This league has more combinations than Omen can check in one pass. Try again, or build the trade yourself.")
+        default:
+            return ("No real gaps to fill.",
+                    "Omen checked \(teams) teams against your roster and found nothing that clearly helps you. Some weeks there's nothing there.")
         }
     }
 }

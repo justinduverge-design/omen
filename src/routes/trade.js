@@ -1141,6 +1141,9 @@ function createTradeRouter({
         degraded_teams: scan.degraded_teams,
         budget_exceeded: scan.budget_exceeded,
         own_needs: scan.own_needs,
+        // Zero candidates always says why (Build 12 contract: a candidate or a precise terminal reason).
+        empty_reason: scan.empty_reason ?? null,
+        search_funnel: scan.search_funnel ?? null,
         projection_coverage: coverage,
         ...(await withUsageEvidence(
           await keepShownBatch({

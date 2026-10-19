@@ -214,3 +214,41 @@ test("findLeagueTradeCandidates shares one search budget across every opponent, 
   assert.equal(result.budget_exceeded, true);
   assert.ok(exceededCalls > 0);
 });
+
+test("zero candidates always names why, from the narrowest step that ruled everything out", () => {
+  const same = (tag) => thinAtRbRoster(tag);
+  const mirror = findLeagueTradeCandidates({
+    ownTeamId: "1",
+    teams: [team("1", "Mine", same("a")), team("2", "Twin", same("b"))],
+    rosterPositions: ROSTER_POSITIONS,
+  });
+  assert.equal(mirror.candidates.length, 0);
+  assert.equal(mirror.empty_reason, "no_trade_helps_both_lineups");
+  assert.ok(mirror.search_funnel.pairs_evaluated > 0);
+  assert.equal(mirror.search_funnel.mutual_gain, 0);
+
+  const blocked = findLeagueTradeCandidates({
+    ownTeamId: "1",
+    teams: [team("1", "Own Team", ownCandidateRoster()), team("2", "Rival Team", opponentCandidateRoster())],
+    rosterPositions: CANDIDATE_ROSTER_POSITIONS,
+    fairnessGuard: () => false,
+  });
+  assert.equal(blocked.candidates.length, 0);
+  assert.equal(blocked.empty_reason, "no_fair_trade");
+  assert.ok(blocked.search_funnel.mutual_gain > 0);
+
+  const alone = findLeagueTradeCandidates({
+    ownTeamId: "1",
+    teams: [team("1", "Mine", thinAtRbRoster("a"))],
+    rosterPositions: ROSTER_POSITIONS,
+  });
+  assert.equal(alone.empty_reason, "no_readable_opponents");
+
+  const found = findLeagueTradeCandidates({
+    ownTeamId: "1",
+    teams: [team("1", "Own Team", ownCandidateRoster()), team("2", "Rival Team", opponentCandidateRoster())],
+    rosterPositions: CANDIDATE_ROSTER_POSITIONS,
+  });
+  assert.ok(found.candidates.length > 0);
+  assert.equal(found.empty_reason, null);
+});
