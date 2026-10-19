@@ -219,3 +219,33 @@ test("off season envelope is unavailable with a reason", () => {
   assert.equal(body.reason, "off_season");
   assert.equal(body.coverage.limit, 10);
 });
+
+test("ESPN activity names players through Sleeper's ESPN ids, and a miss leaves the name empty", () => {
+  const { parseEspnTransactions, espnNamesFromSleeperPlayers } = require("../src/services/leagueTransactions");
+  const espnNames = espnNamesFromSleeperPlayers({
+    1: { espn_id: 4262921, full_name: "Puka Nacua", position: "WR", team: "LAR" },
+    2: { full_name: "No Espn Id", position: "RB" },
+  });
+  const items = parseEspnTransactions(
+    {
+      transactions: [
+        {
+          id: 7,
+          status: "EXECUTED",
+          type: "FREEAGENT",
+          teamId: 3,
+          processDate: 1760000000000,
+          scoringPeriodId: 6,
+          items: [
+            { type: "ADD", playerId: 4262921, toTeamId: 3 },
+            { type: "DROP", playerId: 999, fromTeamId: 3 },
+          ],
+        },
+      ],
+    },
+    { teamNames: { 3: "Team Three" }, espnNames },
+  );
+  const json = JSON.stringify(items);
+  assert.match(json, /Puka Nacua/);
+  assert.equal(espnNames.size, 1);
+});
