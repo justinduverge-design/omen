@@ -267,6 +267,10 @@ struct OmenCommandDeskScreen: View {
     /// "This week's move". Nil hides the section (whole-app canvas, `Desk.dc.html`).
     var move: OmenDeskSection<OmenDeskMovePreview>?
     var onOpenMove: (() -> Void)?
+    /// False when hosted in a scroll view (the live app). The fit probe measures through a
+    /// `GeometryReader`, which inside a `ScrollView` does not grow with its content, so the
+    /// scroll view saw a short page and sprang back: the founder's "bounces back up".
+    var fitsScreen: Bool = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -294,9 +298,7 @@ struct OmenCommandDeskScreen: View {
             Color.clear.frame(height: OmenSpacing.step12)
         }
         .accessibilityIdentifier(screenIdentifier)
-        .omenFitContent()
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .omenFitProbe(fitProbeIdentifier)
+        .modifier(OmenDeskFit(enabled: fitsScreen, identifier: fitProbeIdentifier))
         .safeAreaInset(edge: .top, spacing: 0) {
             if let context { context.bar }
         }
@@ -488,6 +490,23 @@ struct OmenCommandDeskScreen: View {
         .padding(.horizontal, OmenSpacing.step16)
         .padding(.top, OmenSpacing.step12)
         .padding(.bottom, OmenSpacing.step6)
+    }
+}
+
+/// The fixed-height "fit" composition and its D11 probe, only when the desk is not scrolling.
+private struct OmenDeskFit: ViewModifier {
+    let enabled: Bool
+    let identifier: String
+
+    func body(content: Content) -> some View {
+        if enabled {
+            content
+                .omenFitContent()
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .omenFitProbe(identifier)
+        } else {
+            content.frame(maxWidth: .infinity, alignment: .top)
+        }
     }
 }
 
@@ -1354,7 +1373,8 @@ struct OmenCommandDeskHost: View {
             onOpenLedger: ledgerEntries.isEmpty ? nil : { showLedger = true },
             onReportProblem: onReportProblem,
             move: move,
-            onOpenMove: onOpenMove
+            onOpenMove: onOpenMove,
+            fitsScreen: false
         )
     }
 }
