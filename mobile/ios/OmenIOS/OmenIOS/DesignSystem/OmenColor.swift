@@ -25,7 +25,7 @@ enum OmenColor {
     static let surface1 = dynamic(dark: 0x2A2A27, light: 0xFFFFFF)
     static let surface2 = dynamic(dark: 0x343431, light: 0xECECE9)
     static let surface3 = dynamic(dark: 0x3F3F3B, light: 0xE2E2DE)
-    static let border = dynamic(dark: 0x8A8272, light: 0x8A8A84)
+    static let border = dynamic(dark: 0x8A8272, light: 0x85857F)
     static let borderSubtle = dynamic(dark: 0x3A3A36, light: 0xE0E0DC)
     static let textPrimary = dynamic(dark: 0xF5F0E8, light: 0x161614)
     static let textSecondary = dynamic(dark: 0xBDB5A9, light: 0x4A4A46)

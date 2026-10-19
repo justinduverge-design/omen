@@ -67,6 +67,6 @@ struct OmenTappableCard<Content: View>: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(OmenPressableButtonStyle())
-        .accessibilityHint(accessibilityHint ?? "")
+        .accessibilityHint(accessibilityHint.map { Text($0) } ?? Text(""))
     }
 }

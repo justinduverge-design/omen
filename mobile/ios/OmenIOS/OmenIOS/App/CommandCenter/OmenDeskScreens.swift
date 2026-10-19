@@ -419,7 +419,7 @@ struct OmenCommandDeskScreen: View {
         case .read(let preview):
             OmenTappableCard(
                 contentPadding: OmenSpacing.step12,
-                accessibilityHint: "Opens the full call",
+                accessibilityHint: onOpenMove == nil ? nil : "Opens the full call",
                 action: { onOpenMove?() }
             ) {
                     VStack(alignment: .leading, spacing: OmenSpacing.step6) {

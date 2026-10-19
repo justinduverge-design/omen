@@ -341,7 +341,11 @@ struct CommandCenterView: View {
                 await leagueCarouselViewModel.load(userID: userID)
                 // The desk previews this week's move, so the call starts here, beside the desk's
                 // own reads, rather than waiting for the Omen tab to be opened.
-                async let call: Void = omenDecisionViewModel.load(userID: userID, scope: pickedLeagueScope)
+                // Only when the held call is not already for this league, so returning to the desk
+                // does not re-ask (and flicker the preview).
+                async let call: Void = pickedLeagueScope == nil
+                    ? omenDecisionViewModel.load(userID: userID, scope: nil)
+                    : omenDecisionViewModel.loadIfLeagueChanged(userID: userID, scope: pickedLeagueScope)
                 await commandCenterViewModel.load(userID: userID, scope: pickedLeagueScope)
                 await call
             }

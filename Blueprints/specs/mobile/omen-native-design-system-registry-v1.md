@@ -63,7 +63,7 @@ Tokens are **semantic names**, never raw colors in a screen. The native token na
 
 ### 2.2 Core semantic tokens (concrete values from `index.css`)
 
-> **Light mode reinstated and its ramp replaced, 2026-10-19** (founder: light mode, not beige; reverses D1; `design/whole-app-canvas-2026-10-19/BUILD.md`). Light accent is `#8A5E10` (about 5.3:1 on `#F6F6F4`); the border token is `#8A8A84` to keep its 3:1 boundary role. Any light-mode contrast ratio quoted below predates this change and must be re-measured before it is cited.
+> **Light mode reinstated and its ramp replaced, 2026-10-19** (founder: light mode, not beige; reverses D1; `design/whole-app-canvas-2026-10-19/BUILD.md`). Light accent is `#8A5E10` (about 5.3:1 on `#F6F6F4`); the border token is `#85857F` to keep its 3:1 boundary role. Any light-mode contrast ratio quoted below predates this change and must be re-measured before it is cited.
 
 | Token | Role | Dark (default) | Light / system — WITHDRAWN 2026-09-13 (D1) |
 |---|---|---|---|
@@ -71,7 +71,7 @@ Tokens are **semantic names**, never raw colors in a screen. The native token na
 | `surface-1` | card/panel (smoke / warm white) | `#2A2A27` | `#FFFFFF` |
 | `surface-2` | elevated surface | `#343431` | `#ECECE9` |
 | `surface-3` | inset / hover | `#3F3F3B` | `#E2E2DE` |
-| `border` | standard border — **control boundary, 3:1 floor** | `#8A8272` | `#8A8A84` |
+| `border` | standard border — **control boundary, 3:1 floor** | `#8A8272` | `#85857F` |
 | `border-subtle` | decorative hairline (never a control's only edge) | `#3A3A36` | `#E0E0DC` |
 | `text-primary` | primary text (Bone White) | `#F5F0E8` | `#161614` |
 | `text-secondary` | secondary text | `#BDB5A9` | `#4A4A46` |
