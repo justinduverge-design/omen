@@ -249,13 +249,25 @@ function parseYahooTransactions(raw) {
 // ESPN
 // ---------------------------------------------------------------------------------------------
 
+/** Sleeper's player list carries each player's ESPN id: espn id -> { name, position, nfl_team }. */
+function espnNamesFromSleeperPlayers(players) {
+  const byEspnId = new Map();
+  for (const player of Object.values(players || {})) {
+    if (player?.espn_id == null) continue;
+    const name = player.full_name || [player.first_name, player.last_name].filter(Boolean).join(" ") || null;
+    if (!name) continue;
+    byEspnId.set(String(player.espn_id), { name, position: player.position || null, nfl_team: player.team || null });
+  }
+  return byEspnId;
+}
+
 /**
  * ESPN `view=mTransactions2` -> feed items. Community-documented layout: `transactions[]` with
  * `type` (FREEAGENT | WAIVER | TRADE_ACCEPT | ...), `status` (EXECUTED), `teamId`, `proposedDate`
  * / `processDate` (ms), `scoringPeriodId`, `items[] { type: ADD | DROP | TRADE, playerId,
- * fromTeamId, toTeamId }`. ESPN returns player ids only, so `name` stays null. Not exercised live.
+ * fromTeamId, toTeamId }`. ESPN returns player ids only; names come from `espnNames` (Sleeper's ESPN ids). Exercised live 2026-10-19.
  */
-function parseEspnTransactions(data, { teamNames = {} } = {}) {
+function parseEspnTransactions(data, { teamNames = {}, espnNames = new Map() } = {}) {
   const items = [];
   for (const row of Array.isArray(data?.transactions) ? data.transactions : []) {
     if (!row || typeof row !== "object") continue;
@@ -272,11 +284,12 @@ function parseEspnTransactions(data, { teamNames = {} } = {}) {
     rememberTeam(row.teamId);
     for (const entry of Array.isArray(row.items) ? row.items : []) {
       const entryType = String(entry?.type || "").toUpperCase();
+      const known = entry?.playerId != null ? espnNames.get(String(entry.playerId)) : null;
       const player = {
         player_key: entry?.playerId != null ? `espn:${entry.playerId}` : null,
-        name: null,
-        position: null,
-        nfl_team: null,
+        name: known?.name ?? null,
+        position: known?.position ?? null,
+        nfl_team: known?.nfl_team ?? null,
         team_id: null,
       };
       if (entryType === "ADD" || (entryType === "TRADE" && entry.toTeamId != null)) {
@@ -419,12 +432,13 @@ async function readLeagueTransactions({ connection, userId, context, deps, limit
           ],
         });
       }
+      // Exercised against live Yahoo leagues 2026-10-19 (Build 12 probe): 2 of 2 read, with names.
       return base({
         status: "available",
-        provider_read: "documented_not_exercised",
+        provider_read: "live",
         coverage: { rounds: [], limit: cap, truncated: all.length > items.length },
         items,
-        limitations: ["Yahoo's transactions endpoint is documented but has not been verified against a live league."],
+        limitations: [],
       });
     }
 
@@ -439,11 +453,19 @@ async function readLeagueTransactions({ connection, userId, context, deps, limit
         });
       }
       const credentials = await deps.getEspnCredentials(userId);
-      const read = await deps.espn.fetchEspnTransactions(connection.league_id, credentials.espn_s2, credentials.swid, {
-        seasonId: context.season,
-        week: context.week,
-      });
-      const all = parseEspnTransactions(read?.data ?? read, { teamNames: read?.teamNames || {} });
+      const [read, players] = await Promise.all([
+        deps.espn.fetchEspnTransactions(connection.league_id, credentials.espn_s2, credentials.swid, {
+          seasonId: context.season,
+          week: context.week,
+        }),
+        // ESPN sends player ids only. Names come from Sleeper's public player list, which carries
+        // each player's ESPN id. Decoration, bounded like the Sleeper path: a miss costs the names.
+        deps.sleeper?.fetchSleeperPlayers
+          ? withTimeout(deps.sleeper.fetchSleeperPlayers(), PLAYERS_BUDGET_MS).catch(() => ({}))
+          : Promise.resolve({}),
+      ]);
+      const espnNames = espnNamesFromSleeperPlayers(players);
+      const all = parseEspnTransactions(read?.data ?? read, { teamNames: read?.teamNames || {}, espnNames });
       const items = newest(all, cap);
       if (!items.length) {
         return base({
@@ -456,13 +478,11 @@ async function readLeagueTransactions({ connection, userId, context, deps, limit
       }
       return base({
         status: "available",
-        provider_read: "documented_not_exercised",
+        // Exercised against live ESPN leagues 2026-10-19 (Build 12 probe): 3 of 3 read.
+        provider_read: "live",
         coverage: { rounds: [], limit: cap, truncated: all.length > items.length },
         items,
-        limitations: [
-          "ESPN's transactions view is community-documented and has not been verified against a live league.",
-          "ESPN returns player ids, not names, for transactions.",
-        ],
+        limitations: espnNames.size ? [] : ["Player names were not available for this read."],
       });
     }
   } catch (error) {
@@ -489,6 +509,7 @@ module.exports = {
   DEFAULT_LIMIT,
   MAX_LIMIT,
   clampLimit,
+  espnNamesFromSleeperPlayers,
   parseEspnTransactions,
   parseSleeperTransactions,
   parseYahooTransactions,

@@ -233,12 +233,40 @@ load times, narration and Find a Trade reasons.
   - ESPN connect: the listing-pending and profile-pending notices, and the League ID box as the last resort.
   - The narration states: live, template, and "write-up still coming" for the first view of a move.
   - Loading and partial states for the 1 to 1.7 s first reads (league list, summary, Start/Sit).
+- **Canvas home (founder, 2026-10-19).** Figma is retired; the canvas is Claude Design artboards in
+  `design/`, starting from `design/native-visual-lock-2026-09-13/`. What the Figma file held is pictured in
+  `design/figma-archive/` (13 of its frames exported before the free plan's limit; the rest are listed).
+- **Leftovers on the live screens (founder, 2026-10-19).** Some screens on the phone today are visibly off,
+  and old components or small stray pieces may still be on them that do not belong. The canvas draws each
+  screen from the journey down, not from what is on it now. The screen work then removes every component
+  that has no frame, and logs what it removed (the pruning rule).
+- **Freedom to rework (founder, 2026-10-19).** The canvas may change the app's structure where that makes
+  the product better. Claude designs; the founder approves or rejects. Use references where unsure, and
+  record each one as a principle, not a copied layout.
 
 ### Still open
 
-- **Model host:** gemma3:4b on CPU. Narration now runs in the background, but the first view of each move
-  shows the template. The Phase 2 bake-off (#729) chose qwen3:1.7b, and llama3.2:1b answers short prompts in
-  0.6 to 1.2 s. Changing `LLM_MODEL` needs founder approval.
+- **Project-wide P0/P1/P2 defect sweep (founder, 2026-10-19).** A fresh agent checked every finding in the
+  reviews, handoffs, `known_issues.md`, open PRs and issues against today's code. It found no P0, one P1 and
+  seven P2s still open.
+  - Fixed on `build-12/p-sweep`:
+    - **D1 (P1)** League showed a pregame matchup as "unread".
+    - **D2** The table header claimed "Form · last 5"; it now says "Record".
+    - **D3** An empty activity list was a blank section; it now says so.
+    - **D4** Yahoo and ESPN activity were labelled "not verified"; they are now `live`.
+    - **D5** ESPN activity names come from Sleeper's ESPN ids.
+    - **D7** An undrafted Sleeper league says it hasn't drafted. Raw reason codes such as
+      `provider_failed` are no longer shown as copy.
+    - **D8** The back chevron renders as a template, so it meets light-mode contrast.
+  - Left for the founder: **D6**, one ESPN connection with no team id. Removing or reconnecting it is a
+    production database row.
+  - Left for the canvas: **D9 (P3)**, a light-mode stacked lockup.
+
+- **Queued: narration model switch** (founder, 2026-10-19). Change `LLM_MODEL` from gemma3:4b to
+  qwen3:1.7b, the Phase 2 bake-off winner (#729), on the private model host.
+  - Do it before the TestFlight upload: back up the env file, recreate the API, time a narration, and
+    confirm the breaker stays closed.
+  - Until then, narration runs in the background, so the first view of each move shows the template.
 - **League activity labels:** Yahoo and ESPN still say `documented_not_exercised` / "not verified". The
   2026-10-19 probe exercised them, so update the label and the limitation copy.
 - **ESPN activity names:** map ESPN player ids to names through the player index.

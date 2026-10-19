@@ -415,3 +415,36 @@ final class LeagueOverviewTests: XCTestCase {
         }
     }
 }
+
+// MARK: - League screen matchup strip (Build 12 defect sweep D1, D7)
+
+extension LeagueOverviewTests {
+    private func scoutState(_ overview: LeagueOverview) -> OmenScoutTableState {
+        OmenScoutTableState.from(
+            overview: overview,
+            waiver: .unread(capability: "Waivers", sentence: "Not read."),
+            tradeTargets: .unread(capability: "Trade targets", sentence: "Not read.")
+        )
+    }
+
+    /// Before kickoff neither side has points. That is a read matchup, not an unread one.
+    func testPregameMatchupWithoutPointsIsReadNotUnread() throws {
+        let overview = try decode(matchup: sides(status: "pregame", youPoints: "null", themPoints: "null"))
+        guard case .read(let strip) = scoutState(overview).strip else {
+            return XCTFail("a pregame matchup must render, got \(scoutState(overview).strip)")
+        }
+        XCTAssertEqual(strip.myScore, "\u{2014}")
+        XCTAssertEqual(strip.theirScore, "\u{2014}")
+    }
+
+    /// The reason is a code; the screen says it in words and never shows the code.
+    func testMatchupReasonCodesBecomeSentences() throws {
+        let preDraft = try decode(matchup: #"{"status":"no_matchup","you":null,"opponent":null,"unavailable_reason":"pre_draft"}"#)
+        guard case .unread(_, let sentence) = scoutState(preDraft).strip else { return XCTFail("expected unread") }
+        XCTAssertTrue(sentence.contains("hasn\u{2019}t drafted"))
+
+        let failed = try decode(matchup: #"{"status":"unavailable","you":null,"opponent":null,"unavailable_reason":"provider_failed"}"#)
+        guard case .unread(_, let failedSentence) = scoutState(failed).strip else { return XCTFail("expected unread") }
+        XCTAssertFalse(failedSentence.contains("provider_failed"))
+    }
+}

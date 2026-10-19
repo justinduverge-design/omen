@@ -696,6 +696,16 @@ async function sleeperOverview(connection, context) {
     logger.warn("League overview matchup read failed", { err: e.message, platform: "sleeper" });
   }
 
+  // An undrafted league has no matchup, and "no matchup scheduled" made the founder work out why.
+  // Sleeper's league object (already fetched) says so directly (known_issues #657).
+  const leagueStatus = String(league?.status || "").toLowerCase();
+  if (
+    (leagueStatus === "pre_draft" || leagueStatus === "drafting") &&
+    ["no_matchup", "unavailable"].includes(matchup.status)
+  ) {
+    matchup = { ...matchup, status: "no_matchup", unavailable_reason: "pre_draft" };
+  }
+
   // M11A proved this field arrives on a live Sleeper league: `settings.playoff_teams`, an int.
   // Nothing read it before 2026-08-30, which is the whole reason `settings_known` was false and
   // the activity panel could never populate.

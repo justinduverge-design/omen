@@ -379,7 +379,8 @@ struct OmenLeagueTableScreen: View {
 
     private var tableTrailing: String? {
         switch state.table {
-        case .read: return "Form · last 5"
+        // The contract carries record and points, not recent form, so the header names only that.
+        case .read: return "Record"
         case .unread, .providerLimit: return "Unavailable"
         }
     }
@@ -447,6 +448,11 @@ struct OmenLeagueTableScreen: View {
         sectionHeader("Activity", trailing: activityTrailing)
         switch state.activity {
         case .read(let rows):
+            if rows.isEmpty {
+                // Read and confirmed empty: say so, rather than leave a blank section.
+                OmenScoutNotice(text: "No major league activity to flag right now.")
+                    .padding(.horizontal, OmenSpacing.step16)
+            }
             VStack(spacing: 0) {
                 ForEach(rows) { row in
                     OmenScoutActivityRowView(row: row)
@@ -1346,24 +1352,42 @@ extension OmenScoutTableState {
     }
 
     private static func strip(_ overview: LeagueOverview) -> OmenScoutSection<OmenScoutStrip> {
+        let status = overview.matchup.status
+        let unread = OmenScoutSection<OmenScoutStrip>.unread(
+            capability: "League matchup",
+            sentence: matchupReasonSentence(overview.matchup)
+        )
         guard
             let platform = overview.omenPlatform,
-            let mine = overview.matchup.you?.points,
-            let theirs = overview.matchup.opponent?.points,
-            overview.matchup.status != .unavailable
-        else {
-            return .unread(
-                capability: "League matchup",
-                sentence: overview.matchup.unavailableReason
-                    ?? "The provider did not return this week\u{2019}s scoreboard. The table below read normally."
-            )
+            let you = overview.matchup.you,
+            let opponent = overview.matchup.opponent,
+            status != .unavailable
+        else { return unread }
+        // Before kickoff neither side has points yet. That is a real, read matchup, not an unread one.
+        func score(_ points: Double?) -> String? {
+            if let points { return String(format: "%.1f", points) }
+            return status == .pregame ? "\u{2014}" : nil
         }
+        guard let mine = score(you.points), let theirs = score(opponent.points) else { return unread }
         return .read(OmenScoutStrip(
             platform: platform,
-            myScore: String(format: "%.1f", mine),
-            theirScore: String(format: "%.1f", theirs),
-            status: overview.matchup.status.scoutLabel
+            myScore: mine,
+            theirScore: theirs,
+            status: status.scoutLabel
         ))
+    }
+
+    /// `unavailable_reason` is a code, not copy: never show it raw.
+    static func matchupReasonSentence(_ matchup: LeagueOverview.Matchup) -> String {
+        switch matchup.unavailableReason {
+        case "pre_draft":
+            return "This league hasn\u{2019}t drafted yet, so there is no matchup to show."
+        case "off_season":
+            return "No matchups in the off-season."
+        default:
+            if matchup.status == .noMatchup { return "No matchup scheduled for this league this week." }
+            return "The provider did not return this week\u{2019}s scoreboard. The table below read normally."
+        }
     }
 
     private static func table(_ overview: LeagueOverview) -> OmenScoutSection<[OmenScoutTableRow]> {
