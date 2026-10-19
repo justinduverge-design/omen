@@ -25,9 +25,13 @@ const { ensureAppUser } = require("../services/appUser");
 const { getYahooAuthUrl, exchangeYahooCode } = require("../middleware/yahooOAuth");
 const { getAuthenticatedYahooClient, persistYahooTokens } = require("../services/yahooAuth");
 const leagueMemberships = require("../services/leagueMemberships");
+const { withinLatencyBudget } = require("../services/latencyBudget");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
+// The membership write runs after the redirect, so nothing waits on it, but a hung Yahoo read
+// must not hold a request's worth of work open forever. The next directory read repairs it.
+const MEMBERSHIP_WRITE_BUDGET_MS = 30_000;
 const NATIVE_RETURN_VERIFIER_PREFIX = "omen-native-return-v1:";
 const NATIVE_CALLBACK_URL = "com.slopssaloon.omen://auth/callback";
 
@@ -194,7 +198,9 @@ router.get("/callback", async (req, res, next) => {
     res.redirect(oauthCompletionRedirect(nativeReturn, "connected"));
     const userId = oauthRow.user_id;
     readYahooLeaguesShared(userId).catch(() => {}); // start the shared read now, before the app asks
-    writeYahooMemberships(userId, leagueId)
+    withinLatencyBudget("yahoo_membership_write", MEMBERSHIP_WRITE_BUDGET_MS, () =>
+      writeYahooMemberships(userId, leagueId),
+    )
       .then(() => responseCache.invalidateUser(userId))
       .catch((err) => logger.warn("Yahoo membership write after connect failed", { err: err?.message || "failure" }));
     return;

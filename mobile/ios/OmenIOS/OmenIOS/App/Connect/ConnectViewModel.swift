@@ -55,6 +55,8 @@ final class ConnectViewModel: ObservableObject {
     /// While ESPN counts leagues it has not listed yet (a brand-new login), Omen keeps checking
     /// for longer before it offers the League ID box: up to this many extra attempts, this far apart.
     static let maxEspnPendingAttempts = 6
+    /// Extra checks when ESPN has no fan profile for the login yet (a 404 that may be permanent).
+    static let maxEspnProfilePendingAttempts = 2
     var espnPendingRetryDelay: Duration = .seconds(5)
 
     /// How long the cookie jar must hold the same session before Omen first uses it. A first-time
@@ -345,8 +347,13 @@ final class ConnectViewModel: ObservableObject {
         state = .discoveringEspnLeagues
         var finalResult: Result<[EspnLeagueOption], ConnectFailure>?
         var pendingAttempts = 0
+        var profilePendingOnly = true
         func attemptsAllowed() -> Int {
-            Self.maxEspnDiscoveryAttempts + (pendingAttempts > 0 ? Self.maxEspnPendingAttempts : 0)
+            guard pendingAttempts > 0 else { return Self.maxEspnDiscoveryAttempts }
+            // A missing fan profile may never appear, so it earns a short extension; a counted
+            // league ESPN has not listed yet earns the long one.
+            let extra = profilePendingOnly ? Self.maxEspnProfilePendingAttempts : Self.maxEspnPendingAttempts
+            return Self.maxEspnDiscoveryAttempts + extra
         }
         while espnDiscoveryAttempts < attemptsAllowed() {
             guard stillCurrent() else { return }
@@ -368,7 +375,11 @@ final class ConnectViewModel: ObservableObject {
             // checking on a longer clock instead of handing the user a League ID box.
             if case .failure(.espnListingPending) = result {
                 pendingAttempts += 1
+                profilePendingOnly = false
                 espnCheckNotice = EspnConnectCopy.listingPending
+            } else if case .failure(.espnProfilePending) = result {
+                pendingAttempts += 1
+                if profilePendingOnly { espnCheckNotice = EspnConnectCopy.profilePending }
             }
             if espnDiscoveryAttempts < attemptsAllowed() {
                 try? await Task.sleep(for: pendingAttempts > 0 ? espnPendingRetryDelay : espnDiscoveryRetryDelay)
@@ -390,6 +401,8 @@ final class ConnectViewModel: ObservableObject {
             espnCheckNotice = EspnConnectCopy.noLeaguesFound
         case .some(.failure(.espnListingPending(let expected))):
             espnCheckNotice = EspnConnectCopy.listingStillPending(expected)
+        case .some(.failure(.espnProfilePending)):
+            espnCheckNotice = EspnConnectCopy.profileStillPending
         case .some(.failure(.espnNoFootballLeagues)):
             espnCheckNotice = EspnConnectCopy.noFootballLeagues
         case .some(.failure), .none:

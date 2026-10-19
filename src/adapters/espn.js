@@ -525,7 +525,8 @@ const SWID_PATTERN = /(\{|%7B)[0-9a-f-]{36}(\}|%7D)/gi;
 function redactEspnPath(path) {
   return String(path || "")
     .split("?")[0]
-    .replace(SWID_PATTERN, "[swid]");
+    .replace(SWID_PATTERN, "[swid]")
+    .replace(/\/leagues\/\d+/g, "/leagues/[id]");
 }
 
 function isEspnReconnectResponse(hostname, status) {

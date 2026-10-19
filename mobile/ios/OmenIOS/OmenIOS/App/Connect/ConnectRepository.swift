@@ -283,8 +283,10 @@ struct ApiConnectRepository: ConnectRepository {
             let leagues = response.leagues.map(\.asOption)
             if leagues.isEmpty {
                 switch response.discoveryState {
-                case "espn_listing_pending", "espn_profile_pending":
+                case "espn_listing_pending":
                     return .failure(.espnListingPending(expected: response.espnNflLeagueCount))
+                case "espn_profile_pending":
+                    return .failure(.espnProfilePending)
                 case "no_football_leagues":
                     return .failure(.espnNoFootballLeagues)
                 default:

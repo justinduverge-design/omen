@@ -165,6 +165,9 @@ enum ConnectFailure: Error, Equatable {
     /// ESPN counts football leagues on this account but has not listed them yet — a brand-new
     /// login, or a league joined minutes ago. Keep checking; the League ID box is not next.
     case espnListingPending(expected: Int?)
+    /// ESPN has no fan profile for this login yet (its fan API answers 404). Usually a login made
+    /// seconds ago, but a 404 can also be permanent, so Omen checks only briefly before the fallback.
+    case espnProfilePending
     /// ESPN says this account has no football leagues. Usually a different ESPN account.
     case espnNoFootballLeagues
 
@@ -199,6 +202,8 @@ enum ConnectFailure: Error, Equatable {
             return "Omen signed in but couldn't reach that league. Open the league you want in ESPN, then try again."
         case .espnListingPending:
             return EspnConnectCopy.listingPending
+        case .espnProfilePending:
+            return EspnConnectCopy.profilePending
         case .espnNoFootballLeagues:
             return EspnConnectCopy.noFootballLeagues
         }
@@ -395,6 +400,10 @@ enum EspnConnectCopy {
         let count = expected.map { $0 == 1 ? "1 football league" : "\($0) football leagues" } ?? "a football league"
         return "ESPN says this account has \(count) but still hasn't listed it. Try Check again in a minute. If it still doesn't show, you can enter the league ID."
     }
+    /// ESPN has no fan profile for the login yet. Makes no claim about leagues: ESPN gave no count.
+    static let profilePending = "ESPN is still setting up this login. Omen is checking again."
+    /// After the short profile checks, before the League ID box.
+    static let profileStillPending = "ESPN hasn't finished setting up this login. Try Check again in a minute, or enter the league ID."
     /// ESPN counts zero football leagues on the signed-in account.
     static let noFootballLeagues = "This ESPN account has no football leagues. If your league is on a different ESPN account, sign out of ESPN above and sign in with that one."
 

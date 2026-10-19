@@ -1427,4 +1427,19 @@ extension ConnectFlowTests {
         XCTAssertEqual(viewModel.espnCheckNotice, EspnConnectCopy.noFootballLeagues)
         XCTAssertEqual(repository.recorder.espnDiscoveries, ConnectViewModel.maxEspnDiscoveryAttempts)
     }
+
+    /// ESPN has no fan profile for the login (a 404 that may never clear): check briefly, make no
+    /// claim about leagues, then offer League ID.
+    func testEspnProfilePendingChecksBrieflyThenOffersLeagueId() async {
+        var repository = StubConnectRepository()
+        repository.espnDiscoverResult = .failure(.espnProfilePending)
+        let viewModel = await espnReadyViewModel(repository: repository)
+
+        XCTAssertTrue(viewModel.espnDiscoveryFallbackAvailable)
+        XCTAssertEqual(viewModel.espnCheckNotice, EspnConnectCopy.profileStillPending)
+        XCTAssertEqual(
+            repository.recorder.espnDiscoveries,
+            ConnectViewModel.maxEspnDiscoveryAttempts + ConnectViewModel.maxEspnProfilePendingAttempts
+        )
+    }
 }
