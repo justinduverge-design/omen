@@ -50,3 +50,26 @@ Claude never types a credential.
 - `docker logs -f omen_api` on KVM1, filtered to connect routes and errors.
 - Device console `[omen-timing]` lines for each connect request and screen.
 - Afterwards: re-run `scripts/probe-provider-leagues.js` for the account. Every team readable, projections present.
+
+## Results: founder's walk, 2026-10-18 (iPhone 15, instrumented Release build)
+
+| Step | Result | Server timings |
+|---|---|---|
+| Sign out, sign in | Pass. Straight to the desk, all leagues kept, desk filled in about 3 s | leagues 1.08 s, overview 0.94 s, summary 1.29 s, waivers 1.65 s, Omen call 3.44 s |
+| Sleeper | Pass. 3 of 3 leagues offered and followed | disconnect 0.43, resolve 0.22, connect 1.01, follows 0.31 s |
+| Yahoo | Pass. Returned to Omen by itself; 2 of 2 leagues | auth 0.27, **callback 4.63 s**, leagues 0.86, bind 0.73, follows 0.63 s |
+| ESPN | Pass. Moved on after sign-in by itself; 3 of 3 leagues | disconnect 0.34 s; connect routes are kept out of the access log by design |
+| Afterwards | Probe: every team readable on all three providers | Yahoo 126/156, ESPN 185/185, Sleeper 182/191 projected |
+
+Favourites came back after every reconnect.
+
+**Found during the walk**
+
+- Yahoo callback takes 4.6 s before returning to the app. It trades the code, stores the tokens, fetches every
+  league and team from Yahoo, and clears the cache twice, all before redirecting. Then the app fetches the same
+  leagues again. Fix: redirect once the tokens are stored, record memberships in the background, reuse the fetch.
+- Omen's call waits on the AI write-up: four timeouts in a row opened its circuit breaker (1.25 s spent on a
+  write-up that never arrived).
+- The tester's "old ESPN journey" is the current app's manual League ID fallback. It shows when Omen's league lookup
+  finds nothing or fails, which happens with a brand-new ESPN login. The founder's established account never hits it.
+  The API container restarted 2026-10-19 00:15 UTC, so the tester's attempt is not in its logs; check the Vector copy.
