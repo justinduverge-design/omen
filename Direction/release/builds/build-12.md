@@ -2,9 +2,16 @@
 
 ## Status
 
-Backend shipped to production between 2026-10-15 and 2026-10-17. The app release is open: screen work, the
-paired-iPhone walk and the TestFlight upload are still to do. Baseline before this build: Build 11
-(2026-10-12, ESPN first-login repair).
+**Open. Prep done; the canvas is next.**
+
+- Backend shipped to production in two waves: 2026-10-15 to 10-17 (#670 to #713), then the integration
+  branch on 2026-10-19 (#752, deploy run 39241836554, green).
+- League activity for Yahoo and ESPN switched on in production 2026-10-19 (founder).
+- The app is not uploaded. Still to come: the whole-app canvas, the screen fixes it drives, the device walk
+  below, then TestFlight.
+- **Beta audience:** 7 of the 8 friends-beta leagues. Rhody's ESPN league has been connected since Build 1;
+  a new ESPN account in this beta is the first real test of the fresh-login path.
+- Baseline before this build: Build 11 (2026-10-12, ESPN first-login repair).
 
 ## Goal
 
@@ -27,6 +34,22 @@ Omen's own read (Sight), not on one provider number.
   scoring. Easy calls inflated the hit rate. Trades were judged on one week.
 - **Player index:** most Sleeper and Yahoo players had no link to the warehouse. Only 78 of the 305 players
   Sight rated were reachable from Sleeper or Yahoo.
+
+Found in the promise audit and the founder's reconnect walk (2026-10-18 and 10-19):
+
+- **ESPN fresh login:** a tester saw the manual League ID box, which looked like an old journey. It is the
+  current fallback, and it showed because a brand-new ESPN login can be signed in before ESPN lists its
+  leagues.
+- **Yahoo return:** the OAuth callback took 4.6 s. It fetched every league and team and cleared the cache
+  twice before sending the user back, and then the app fetched the same leagues again.
+- **Omen call write-up:** the private model host runs on CPU and takes 25 to 30 s per answer. Every call
+  waited its 1.25 s budget, timed out and showed the template; the breaker kept opening.
+- **Find a Trade:** an empty result gave no reason. Yahoo Build a Trade could not find your own side, because
+  team keys `461.l.N.t.4` and `4` never matched.
+- **Sight:** reads stopped silently at 400 players, so a whole-league read lost players.
+- **Waivers, first open:** 0.8 to 1.7 s, because ESPN and Yahoo provider reads ran one after another.
+- **Accessibility:** Apple's audit found 61 issues on the demo desk (55 Dynamic Type, 6 contrast).
+- **League activity:** Yahoo and ESPN showed "unavailable"; the reads were built but switched off.
 
 ## What we fixed
 
@@ -67,6 +90,42 @@ Omen's own read (Sight), not on one provider number.
 - Contested hit rate: calls against an OUT or bye alternative do not count (#702).
 - Trades are graded over the week, the next 4 weeks and the season so far (step 18, #710).
 
+**Integration, 2026-10-18 to 10-19 (#752)**
+
+All of it was built on `build-12/integration`, reviewed by a fresh agent, and merged as one PR.
+
+- *Native lock v2:* the Codex branch `codex/omen-native-lock-v2`, which brings the Command desk and the lock
+  work, merged with main's Sight hints.
+- *ESPN fresh login:* the server reads ESPN's own count of football leagues and answers with a discovery
+  state: `complete`, `partial`, `espn_listing_pending`, `espn_profile_pending` or `no_football_leagues`.
+  - While ESPN counts a league it has not listed yet, the app keeps checking for about 30 s.
+  - A missing ESPN profile gets two short checks.
+  - Each case has its own copy. The League ID box is now the last resort.
+  - League ids no longer appear in ESPN request logs.
+- *Yahoo callback:* redirects as soon as the tokens are stored. Memberships are written in the background
+  under a 30 s budget, and the app reuses that league read (60 s, per user). Disconnecting clears it.
+- *Omen call:* the write-up is generated in the background and reused for 30 minutes for the same decision
+  facts. The call no longer waits on a slow model host, and the next view of the same move gets the
+  narration.
+- *Find a Trade:* every empty result names its reason (`no_readable_opponents`, `no_tradeable_players`,
+  `no_trade_helps_both_lineups`, `no_fair_trade`, `search_budget_exceeded`) and returns its search funnel.
+  Yahoo team keys match their bare ids.
+- *Sight:* big reads go in parallel batches of 400, and none are dropped.
+- *Waivers:* independent ESPN and Yahoo reads run together.
+- *Instrumentation:* signposts on every API request and screen, MetricKit payloads kept on the device (no
+  upload), and Xcode performance and accessibility UI tests (cold launch, demo to desk, tab switching, an
+  audit of every tab).
+  - On the iPhone 15: about 150 ms to first frame, and about 370 ms of main-thread time across four tab
+    switches. Earlier "2.8 s tab lag" figures were XCTest idle waits and were withdrawn.
+- *Demo:* Build a Trade explains that it needs a league, and the demo no longer calls capabilities.
+
+**Switched on, 2026-10-19**
+- League activity for Yahoo and ESPN (`LEAGUE_TRANSACTIONS_YAHOO=1`, `LEAGUE_TRANSACTIONS_ESPN=1`). The env
+  file was backed up first.
+  - Read-only probe of the founder's account: 5 of 5 leagues `available`.
+  - Yahoo: 25 and 25 items, with player names.
+  - ESPN: 25, 11 and 14 items, with no player names (ESPN sends ids).
+
 **Warehouse (KVM1)**
 - Routing map in SQL, player and team indexes, and the coach graph. Weather: forecasts and the observed
   archive since 1999.
@@ -77,7 +136,7 @@ Omen's own read (Sight), not on one provider number.
 
 ## PRs in this build
 
-43 PRs, #670 to #713, merged 2026-10-15 to 2026-10-17. Builds 10 and 11 were #645 to #669.
+43 PRs, #670 to #713, merged 2026-10-15 to 2026-10-17; then #714 to #752 to 2026-10-19. Builds 10 and 11 were #645 to #669.
 
 | PR | Area | Title |
 |---|---|---|
@@ -124,17 +183,67 @@ Omen's own read (Sight), not on one provider number.
 | #711 | Start/Sit & Waivers | League GM: bye-week planning in Waivers |
 | #712 | Docs | Close-out: trade horizons, injuries, bye planning |
 | #713 | Docs | Build packages: Build 12 record and ship-when-ready cadence |
+| #714 | Docs | Build 12 package: PR list and retro |
+| #715 to #751 | Infra | Rust programme Phases 1 to 4, OpenTelemetry, Vector, lint gates (shellcheck, typos, Biome), pruning, branch triage, provider gaps G4/G6/G8 (#746). Infrastructure; nothing user-facing beyond #746 |
+| #752 | Integration | Build 12 integration: native lock v2, connection fixes, background narration, load-time instrumentation |
 
 ## Where it lives
 
 - **Production API and warehouse:** everything above.
+- **In the app on main, not yet on TestFlight:**
+  - The Command desk (native lock v2).
+  - The new ESPN discovery states and copy.
+  - The Find a Trade empty reasons.
+  - Signposts and MetricKit.
+  - On the founder's iPhone only: the instrumented Release build.
 - **Not yet in the app:** the Sight block, injury status, the new evidence lines, the contested record,
   trade horizons, warehouse usage evidence on trades, and the "unreadable team" state. The backend sends all
-  of it.
+  of it. The canvas decides how each one looks.
+- **Switches in production:** `SIGHT_ENABLED=true`, `SIGHT_VERSION=v2`, `YAHOO_ENABLED=true`,
+  `LEAGUE_TRANSACTIONS_YAHOO=1`, `LEAGUE_TRANSACTIONS_ESPN=1`.
 
 ## Known issues / next
 
-- **App screens:** render Sight, injuries, evidence, the contested record and trade horizons.
+### Next: the whole-app canvas
+
+Brief: `Blueprints/specs/design/omen-whole-app-canvas-v1.md`. The prep it waited on is done: connections,
+load times, narration and Find a Trade reasons.
+
+- **First cut, in this order:**
+  1. The shared shell and context switcher.
+  2. The J2 live-team portfolio.
+  3. The J3 Omen analysis-to-evidence transition.
+  4. The J4 Trade mode chooser and Find candidate.
+  5. The global state board: buttons, rows, sheets, loading, errors, motion, haptics.
+  6. Grey-box frames for every other screen.
+- **Each frame meets the brief's definition of done:**
+  - every state, including unavailable;
+  - its evidence source and freshness;
+  - Dynamic Type and accessibility;
+  - motion and haptics;
+  - a latency class;
+  - an approval state that is never collapsed into "done".
+- **Problems the canvas has to solve, from this build:**
+  - Render Sight, injuries, the new evidence lines, the contested record and trade horizons.
+  - The 61 accessibility findings (Dynamic Type, contrast), solved in the type and token system rather than
+    screen by screen.
+  - League activity: Yahoo items carry names; ESPN items carry types only. Design both, and the
+    `provider_read` label (below).
+  - Find a Trade empty reasons: one message per reason.
+  - ESPN connect: the listing-pending and profile-pending notices, and the League ID box as the last resort.
+  - The narration states: live, template, and "write-up still coming" for the first view of a move.
+  - Loading and partial states for the 1 to 1.7 s first reads (league list, summary, Start/Sit).
+
+### Still open
+
+- **Model host:** gemma3:4b on CPU. Narration now runs in the background, but the first view of each move
+  shows the template. The Phase 2 bake-off (#729) chose qwen3:1.7b, and llama3.2:1b answers short prompts in
+  0.6 to 1.2 s. Changing `LLM_MODEL` needs founder approval.
+- **League activity labels:** Yahoo and ESPN still say `documented_not_exercised` / "not verified". The
+  2026-10-19 probe exercised them, so update the label and the limitation copy.
+- **ESPN activity names:** map ESPN player ids to names through the player index.
+- **Cold reads:** league list about 1.1 s, summary about 1.3 s and Start/Sit are not yet parallelised the
+  way Waivers is.
 - **Coverage:** Sight reaches Yahoo for 233 of 305 players through the index. The read-time name match
   should cover the rest, but the count is not re-measured.
 - **Injuries:** daily only, so Sunday-morning inactives are missed. Sleeper's practice fields are empty.
@@ -147,10 +256,15 @@ Omen's own read (Sight), not on one provider number.
 
 ## Tester notes
 
-Paste into TestFlight "What to Test". If the box is short, drop the OMEN SIGHT section first.
+Paste into TestFlight "What to Test". If the box is short, drop the OMEN SIGHT section first. Re-check the
+length once the canvas screens are in: the limit is 4,000 characters.
 
 ```
 Build 12 — what changed
+
+NEW LOOK
+- The whole app was redesigned as one system: same shell, same buttons, same states everywhere
+- Text grows with your iPhone text size setting
 
 LEAGUE CONNECTIONS
 - ESPN and Yahoo: Omen now reads your league's real lineup slots (FLEX, SUPERFLEX, etc.)
@@ -158,12 +272,16 @@ LEAGUE CONNECTIONS
 - League page reads other managers' rosters more reliably
 - Locked players (game started) are never suggested for a swap or drop
 - Expired ESPN/Yahoo logins are detected every 6 hours, deleted from our servers, and flagged for reconnect; your league stays connected
+- New ESPN login: if ESPN hasn't listed your league yet, Omen tells you and keeps checking. The League ID box is a last resort
+- Yahoo sends you back to Omen faster after you sign in
+- League activity (adds, drops, trades, waiver claims) now shows for Yahoo and ESPN leagues
 
 TRADES
 - Both sides must gain: no more lopsided "+0.0 for them" offers
 - Trade-locked players are skipped
 - Flex rules match your league (W/R/T, W/R, SUPERFLEX)
 - Trades are graded over the week, the next 4 weeks and the season so far
+- When Find a Trade finds nothing, it tells you why
 
 START/SIT & WAIVERS
 - Picks now weigh Omen's own player read (Sight) alongside the provider projection
@@ -184,7 +302,9 @@ LEDGER
 - New "contested" hit rate: easy calls (benching an injured player) don't count
 
 PLEASE TEST
+- New to ESPN in Omen? Connect it and tell us if you ever see the League ID box
 - Connect or reconnect ESPN / Yahoo / Sleeper and check your lineup slots
+- League page: does the activity match your league?
 - Find a Trade: are the offers fair both ways?
 - Waivers: does the suggested drop make sense?
 - Start/Sit on Sunday morning: are locked players left alone?
@@ -192,11 +312,53 @@ PLEASE TEST
 
 ## Proof
 
-- **Tests:** npm test passes, 2,503 tests at #711.
+- **Tests:** npm test passes: 2,503 tests at #711, and 2,571 at #752. iOS ConnectFlowTests: 70 pass. CI on
+  #752: all 7 checks green.
+- **Founder reconnect walk (2026-10-18, iPhone 15):**
+  - Sign-in passed in about 3 s.
+  - Sleeper 3 of 3, Yahoo 2 of 2, ESPN 3 of 3 leagues returned, and favourites came back.
+  - Probe afterwards: every team readable.
+  - Detail: `Direction/release/build-12-connection-test-plan.md`.
+- **League activity probe (2026-10-19):** 5 of 5 Yahoo and ESPN leagues available.
 - **Database:** the redo rehearsal passed in CI for steps 17 and 18. The warehouse read-only verify passed at
   each schema version up to v12.
 - **Production:** Sight v2 recomputed for weeks 1-6 on code revision 2026-10-17.v2-complete.
-- **Not yet done:** the paired-iPhone walk.
+- **Not yet done:** the paired-iPhone walk below.
+
+### To test once the canvas and screens are fixed
+
+Run in this order, on the founder's iPhone with a Release build, while Claude watches the server logs and
+`[omen-timing]` signposts. Each item passes or is logged in the package.
+
+1. **Automated gates:**
+   - `PerformanceJourneyUITests` (cold launch, demo to desk, tab switching) holds its Xcode baselines.
+   - `testAccessibilityAuditEveryTab` reports 0 issues, down from 61.
+   - npm test and CI are green.
+2. **Sign-in:** sign out and back in. Lands on the desk with leagues kept, and the desk is useful in 3 s or
+   less.
+3. **Connections:** disconnect and reconnect Sleeper, Yahoo and ESPN (the test plan's order).
+   - Every league is offered.
+   - The Yahoo return takes about 1 s or less (it was 4.6 s).
+   - Favourites survive.
+4. **Fresh ESPN account:** the new beta league's owner, or a fresh ESPN login.
+   - Discovery reaches the picker, or the right notice.
+   - The League ID box appears only after the checks.
+   - Check the server's `ESPN league discovery` line (counts only).
+5. **Each tab, for one league per provider:** Desk, Omen call, Start/Sit, Waivers, League (with activity),
+   Find a Trade, Build a Trade and Ledger.
+   - Every frame state from the canvas renders: loading, partial, empty with reason, error with retry,
+     unavailable.
+   - Sight, injuries, evidence lines, the contested record and trade horizons appear where the canvas puts
+     them.
+6. **Narration:** open a move twice. The first view shows the template, and a later view shows the live
+   write-up. No breaker-open lines in the logs.
+7. **Load times:** each screen's `screen/ready` signpost is inside its canvas latency class, and warm reads
+   take under 1 s.
+8. **Accessibility by hand:** largest Dynamic Type, VoiceOver through the desk and one decision, Reduce
+   Motion, and haptics off.
+9. **Demo door:** every tab is reachable without an account, and Build a Trade explains it needs a league.
+10. **Then:** TestFlight upload (`Direction/release/ios-upload-runbook.md`), tester notes pasted, and the
+    package status set to shipped.
 
 ## Retro
 
@@ -212,6 +374,11 @@ PLEASE TEST
   - a wrong-person name match;
   - a week the warehouse had not loaded being scored 0-0;
   - an injury write that could roll back the player-id writes.
+- Instrumenting before judging paid off. Signposts and an App Launch trace showed the "tab lag" was test
+  overhead, so we did not rebuild the tab bar.
+- The founder's reconnect walk, planned from code and settings first, found the Yahoo 4.6 s and the
+  narration breaker in one pass.
+- One integration branch held all of the late Build 12 work. It got one review and one deploy.
 
 **What went wrong**
 - #702 and #703 merged before CI started, which kept the main deploy red until #704. The merge script now
@@ -219,6 +386,10 @@ PLEASE TEST
 - A test User-Agent once carried the founder's email to Wikipedia. It is not in code; never send personal
   data to third parties.
 - Work moved fast enough that the build record was written at the end, not as it went. Packages fix that.
+- In the logs we checked, the narration model never finished inside its budget, and only the reconnect
+  walk surfaced it. A breaker that keeps opening should alert.
+- An audit probe read "Yahoo Sight 0%". The cause was the silent 400-player cap, not Yahoo. Limits should
+  say when they cut.
 
 **Where we get better**
 - Open the package when the build starts and add each PR as it merges.
