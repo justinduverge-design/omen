@@ -56,6 +56,15 @@ struct TradeRosterFlowView: View {
             .padding(OmenSpacing.step16)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(OmenColor.bg)
+        case .demo:
+            OmenStateSurface(
+                kind: .empty,
+                title: "Building a trade needs your league",
+                message: "Demo mode has no real rosters to trade from. Connect ESPN, Yahoo or Sleeper to build a trade with your own team."
+            )
+            .padding(OmenSpacing.step16)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(OmenColor.bg)
         case .failed(let error):
             VStack(spacing: OmenSpacing.step16) {
                 OmenStateSurface(

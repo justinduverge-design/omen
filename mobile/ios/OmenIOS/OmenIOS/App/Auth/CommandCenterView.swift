@@ -440,7 +440,12 @@ struct CommandCenterView: View {
                             .omenScreenReady("trade")
                         }
                     }
-                    .task { await tradeViewModel.loadCapabilities() }
+                    .task {
+                        // Demo is the reviewer's network-free door: it never calls the API, so a
+                        // demo session cannot show a request failure.
+                        guard userID != SessionManager.demoUserID else { return }
+                        await tradeViewModel.loadCapabilities()
+                    }
                 }
             }
             // The league to personalize against comes from the SAME `league-overview.v1` read
