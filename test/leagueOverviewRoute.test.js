@@ -707,7 +707,7 @@ test("Yahoo overview survives a failing or empty settings read with no cut line"
   }
 });
 
-test("an undrafted Sleeper league names pre_draft as the matchup reason (known_issues #657)", async () => {
+test("an undrafted Sleeper league names league_not_started as the matchup reason (known_issues #657)", async () => {
   const sleeperAdapter = defaultSleeperAdapter({
     fetchSleeperLeague: async () => ({
       league_id: "league-1",
@@ -721,5 +721,5 @@ test("an undrafted Sleeper league names pre_draft as the matchup reason (known_i
   const res = await request(buildApp({ connections: [SLEEPER_CONNECTION], sleeperAdapter }), "/api/league/overview");
   assert.equal(res.status, 200);
   assert.equal(res.body.matchup.status, "no_matchup");
-  assert.equal(res.body.matchup.unavailable_reason, "pre_draft");
+  assert.equal(res.body.matchup.unavailable_reason, "league_not_started");
 });

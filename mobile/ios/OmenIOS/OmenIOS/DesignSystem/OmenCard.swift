@@ -49,3 +49,24 @@ struct OmenCard<Content: View>: View {
             .accessibilityValue(variant == .error ? "Error" : "")
     }
 }
+
+/// A card that is one tap target as a whole: the whole-app canvas's preview cards (the Desk's
+/// "This week's move" opens Omen). It composes `OmenCard` rather than making Card itself
+/// interactive, and presses with the house `OmenPressableButtonStyle`.
+struct OmenTappableCard<Content: View>: View {
+    var contentPadding: CGFloat = OmenSpacing.cardInterior
+    var accessibilityHint: String?
+    let action: () -> Void
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        Button(action: action) {
+            OmenCard(contentPadding: contentPadding) {
+                content().frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(OmenPressableButtonStyle())
+        .accessibilityHint(accessibilityHint ?? "")
+    }
+}

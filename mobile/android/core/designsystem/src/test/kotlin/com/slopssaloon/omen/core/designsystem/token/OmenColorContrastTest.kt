@@ -204,7 +204,7 @@ class OmenColorContrastTest {
      * Asserted with Bone White specifically, not with `textPrimary` per theme: `riskHigh` is a
      * data-semantic invariant and is dark in BOTH themes, so a crimson fill always carries the
      * light ink. The first version of this test asked whether light-mode `textPrimary`
-     * (`#1C1917`, near-black) sat on crimson and failed at 1.68:1 — a true number answering a
+     * (`#161614`, near-black) sat on crimson and failed at 1.68:1 — a true number answering a
      * question the product never asks.
      */
     @Test

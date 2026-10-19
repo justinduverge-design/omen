@@ -703,7 +703,7 @@ async function sleeperOverview(connection, context) {
     (leagueStatus === "pre_draft" || leagueStatus === "drafting") &&
     ["no_matchup", "unavailable"].includes(matchup.status)
   ) {
-    matchup = { ...matchup, status: "no_matchup", unavailable_reason: "pre_draft" };
+    matchup = { ...matchup, status: "no_matchup", unavailable_reason: "league_not_started" };
   }
 
   // M11A proved this field arrives on a live Sleeper league: `settings.playoff_teams`, an int.

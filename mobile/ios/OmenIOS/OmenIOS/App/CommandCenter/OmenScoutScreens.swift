@@ -1380,8 +1380,8 @@ extension OmenScoutTableState {
     /// `unavailable_reason` is a code, not copy: never show it raw.
     static func matchupReasonSentence(_ matchup: LeagueOverview.Matchup) -> String {
         switch matchup.unavailableReason {
-        case "pre_draft":
-            return "This league hasn\u{2019}t drafted yet, so there is no matchup to show."
+        case "league_not_started":
+            return "This league hasn\u{2019}t set its teams yet, so there is no matchup to show."
         case "off_season":
             return "No matchups in the off-season."
         default:

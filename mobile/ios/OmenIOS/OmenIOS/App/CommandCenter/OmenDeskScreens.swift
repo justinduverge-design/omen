@@ -154,6 +154,40 @@ struct OmenDeskState: Equatable {
     let footnote: OmenDeskFootnote?
 }
 
+/// "This week's move": the Omen call previewed on the desk (whole-app canvas, `Desk.dc.html`).
+///
+/// A preview, never a second engine: every field is copied from the brief the Omen tab already
+/// renders, and tapping it opens that tab.
+struct OmenDeskMovePreview: Equatable {
+    let headline: String
+    let reason: String?
+    let band: OmenConfidenceBand?
+    let isHold: Bool
+}
+
+extension OmenDeskMovePreview {
+    /// Nil hides the section. With no league, off-season or no call, the desk does not invent one.
+    static func section(from brief: OmenDecisionBriefState) -> OmenDeskSection<OmenDeskMovePreview>? {
+        switch brief {
+        case .success(let payload), .stale(let payload, _), .mock(let payload), .demo(let payload):
+            return .read(OmenDeskMovePreview(
+                headline: payload.verdict,
+                reason: payload.explanation.first ?? payload.move,
+                band: payload.confidenceBand,
+                isHold: false
+            ))
+        case .hold(let hold):
+            return .read(OmenDeskMovePreview(headline: hold.headline, reason: hold.summary, band: nil, isHold: true))
+        case .loading:
+            return .switching
+        case .error(let message, _):
+            return .unread(capability: "This week's move", sentence: message)
+        case .empty, .disconnected, .offSeason:
+            return nil
+        }
+    }
+}
+
 /// `quiet-week.v1`. The variant is **server-owned** and the copy is locked to the artboard.
 enum OmenQuietVariant: String, Equatable {
     /// All positive quiet evidence: empty Omen result, connected platform, last result a win,
@@ -230,13 +264,20 @@ struct OmenCommandDeskScreen: View {
     /// a D11 probe reporting under the wrong screen's name is worse than no probe.
     var screenIdentifier: String = "j2.command-center"
     var fitProbeIdentifier: String = "j2.fit.command-center"
+    /// "This week's move". Nil hides the section (whole-app canvas, `Desk.dc.html`).
+    var move: OmenDeskSection<OmenDeskMovePreview>?
+    var onOpenMove: (() -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
             board
             rail
-            sectionHeader("Waiver watch", action: onOpenLeague == nil ? nil : "League", perform: onOpenLeague)
+            if let move {
+                sectionHeader("This week's move", action: onOpenMove == nil ? nil : "The full call", perform: onOpenMove)
+                moveCard(move)
+            }
+            sectionHeader("Needs you", action: onOpenLeague == nil ? nil : "League", perform: onOpenLeague)
             waiverCard
             sectionHeader("The Ledger", action: onOpenLedger == nil ? nil : "See all", perform: onOpenLedger)
             ledgerCard
@@ -295,7 +336,7 @@ struct OmenCommandDeskScreen: View {
                 Text(state.weekLabel)
                     .omenTextStyle(OmenTypography.micro)
                     .foregroundStyle(OmenColor.accent)
-                Text("Command")
+                Text("Desk")
                     .omenTextStyle(OmenTypography.screenTitle)
                     .foregroundStyle(OmenColor.textPrimary)
             }
@@ -368,6 +409,47 @@ struct OmenCommandDeskScreen: View {
                 .padding(.horizontal, OmenSpacing.step16)
         case .switching:
             OmenDeskCardSkeleton(lineWidths: [0.7, 0.9, 0.45])
+                .padding(.horizontal, OmenSpacing.step16)
+        }
+    }
+
+    /// The call, previewed: headline, one line of why, the band. The whole card opens Omen.
+    @ViewBuilder private func moveCard(_ move: OmenDeskSection<OmenDeskMovePreview>) -> some View {
+        switch move {
+        case .read(let preview):
+            OmenTappableCard(
+                contentPadding: OmenSpacing.step12,
+                accessibilityHint: "Opens the full call",
+                action: { onOpenMove?() }
+            ) {
+                    VStack(alignment: .leading, spacing: OmenSpacing.step6) {
+                        if preview.isHold {
+                            Text("Hold")
+                                .omenTextStyle(OmenTypography.micro)
+                                .foregroundStyle(OmenColor.textTertiary)
+                        }
+                        Text(preview.headline)
+                            .omenTextStyle(OmenTypography.h3)
+                            .foregroundStyle(OmenColor.textPrimary)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                        if let reason = preview.reason {
+                            Text(reason)
+                                .omenTextStyle(OmenTypography.bodySmall)
+                                .foregroundStyle(OmenColor.textSecondary)
+                                .multilineTextAlignment(.leading)
+                                .lineLimit(2)
+                        }
+                        if let band = preview.band { OmenConfidenceBandLabel(band: band) }
+                    }
+            }
+            .disabled(onOpenMove == nil)
+            .padding(.horizontal, OmenSpacing.step16)
+        case .unread(let capability, let sentence):
+            OmenDeskUnreadSection(capability: capability, sentence: sentence)
+                .padding(.horizontal, OmenSpacing.step16)
+        case .switching:
+            OmenDeskCardSkeleton(lineWidths: [0.8, 0.55])
                 .padding(.horizontal, OmenSpacing.step16)
         }
     }
@@ -456,7 +538,7 @@ struct OmenCommandQuietScreen: View {
                 Text(state.weekLabel)
                     .omenTextStyle(OmenTypography.micro)
                     .foregroundStyle(OmenColor.accent)
-                Text("Command")
+                Text("Desk")
                     .omenTextStyle(OmenTypography.screenTitle)
                     .foregroundStyle(OmenColor.textPrimary)
             }
@@ -1211,6 +1293,8 @@ struct OmenCommandDeskHost: View {
     @ObservedObject var carousel: LeagueCarouselViewModel
     var userID: String
     var onContextChanged: (([String]) -> Void)?
+    var move: OmenDeskSection<OmenDeskMovePreview>?
+    var onOpenMove: (() -> Void)?
 
     @State private var showLedger = false
     @State private var receiptEntry: OmenLedgerEntry?
@@ -1268,7 +1352,9 @@ struct OmenCommandDeskHost: View {
             onOpenAccount: onOpenAccount,
             onOpenLeague: onOpenLeague,
             onOpenLedger: ledgerEntries.isEmpty ? nil : { showLedger = true },
-            onReportProblem: onReportProblem
+            onReportProblem: onReportProblem,
+            move: move,
+            onOpenMove: onOpenMove
         )
     }
 }

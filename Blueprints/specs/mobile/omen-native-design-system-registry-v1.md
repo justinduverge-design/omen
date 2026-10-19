@@ -63,21 +63,23 @@ Tokens are **semantic names**, never raw colors in a screen. The native token na
 
 ### 2.2 Core semantic tokens (concrete values from `index.css`)
 
+> **Light mode reinstated and its ramp replaced, 2026-10-19** (founder: light mode, not beige; reverses D1; `design/whole-app-canvas-2026-10-19/BUILD.md`). Light accent is `#8A5E10` (about 5.3:1 on `#F6F6F4`); the border token is `#8A8A84` to keep its 3:1 boundary role. Any light-mode contrast ratio quoted below predates this change and must be re-measured before it is cited.
+
 | Token | Role | Dark (default) | Light / system — WITHDRAWN 2026-09-13 (D1) |
 |---|---|---|---|
-| `bg` | app background (smoky grey / warm parchment) | `#1F1F1D` | `#F1EDE4` |
-| `surface-1` | card/panel (smoke / warm white) | `#2A2A27` | `#FFFDF9` |
-| `surface-2` | elevated surface | `#343431` | `#F6F1E7` |
-| `surface-3` | inset / hover | `#3F3F3B` | `#E9E1D2` |
-| `border` | standard border — **control boundary, 3:1 floor** | `#8A8272` | `#8F7B5F` |
-| `border-subtle` | decorative hairline (never a control's only edge) | `#3A3A36` | `#DCD1BA` |
-| `text-primary` | primary text (Bone White) | `#F5F0E8` | `#1C1917` |
-| `text-secondary` | secondary text | `#BDB5A9` | `#5C5248` |
-| `text-tertiary` | muted / placeholder | `#A79E90` | `#6B6052` |
-| `accent` | brand CTA (Aged Brass, lifted for the smoky ground) | `#C4933B` | `#7A5C1E` |
-| `accent-hover` | accent pressed/hover | `#D8A648` | `#A67C2E` |
-| `accent-muted` | low-emphasis accent fill | `#3A2A0A` | `#F6E7BE` |
-| `text-on-accent` | foreground on accent surfaces | `#14140F` | `#FFFDF9` |
+| `bg` | app background (smoky grey / warm parchment) | `#1F1F1D` | `#F6F6F4` |
+| `surface-1` | card/panel (smoke / warm white) | `#2A2A27` | `#FFFFFF` |
+| `surface-2` | elevated surface | `#343431` | `#ECECE9` |
+| `surface-3` | inset / hover | `#3F3F3B` | `#E2E2DE` |
+| `border` | standard border — **control boundary, 3:1 floor** | `#8A8272` | `#8A8A84` |
+| `border-subtle` | decorative hairline (never a control's only edge) | `#3A3A36` | `#E0E0DC` |
+| `text-primary` | primary text (Bone White) | `#F5F0E8` | `#161614` |
+| `text-secondary` | secondary text | `#BDB5A9` | `#4A4A46` |
+| `text-tertiary` | muted / placeholder | `#A79E90` | `#6B6B66` |
+| `accent` | brand CTA (Aged Brass, lifted for the smoky ground) | `#C4933B` | `#8A5E10` |
+| `accent-hover` | accent pressed/hover | `#D8A648` | `#9A6A16` |
+| `accent-muted` | low-emphasis accent fill | `#3A2A0A` | `#F3E6CC` |
+| `text-on-accent` | foreground on accent surfaces | `#14140F` | `#FFFFFF` |
 | `omen` | AI-signal accent (Verdigris) — **WITHDRAWN 2026-09-13 (D7)**, marketing only | `#2F7D5B` | `#1A5C3E` |
 | `umber` | brown-metal depth | `#5A3A25` | `#5A3A25` |
 | `focus-ring` | focus indicator (accent @ 40%) | derived from `accent` | derived from `accent` |

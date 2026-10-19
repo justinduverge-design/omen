@@ -12,7 +12,7 @@ import XCTest
 final class PerformanceJourneyUITests: XCTestCase {
 
     private let demoTitle = "Look around without an account →"
-    private let tabs = ["Omen", "Trade", "League", "Command"]
+    private let tabs = ["Omen", "Trade", "League", "Desk"]
 
     override func setUp() {
         super.setUp()

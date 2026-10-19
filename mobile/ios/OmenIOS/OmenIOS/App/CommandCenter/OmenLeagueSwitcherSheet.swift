@@ -38,7 +38,7 @@ struct OmenLeagueSwitcherSheet: View {
         // button that clipped its label to a vertical "D o n e". Only a rendered capture
         // caught that — every test passed.
         ScrollView {
-            OmenModalSheet(title: "Switch Team & League") {
+            OmenModalSheet(title: "Your teams") {
                 VStack(alignment: .leading, spacing: OmenSpacing.step24) {
                     content
                     secondaryActions
@@ -145,8 +145,8 @@ struct OmenLeagueSwitcherSheet: View {
     private func platformSection(_ group: LeagueDirectory.PlatformGroup) -> some View {
         VStack(alignment: .leading, spacing: OmenSpacing.step8) {
             Text(platformDisplayName(group.platform).uppercased())
-                .omenTextStyle(OmenTypography.label)
-                .foregroundStyle(OmenColor.textSecondary)
+                .omenTextStyle(OmenTypography.micro)
+                .foregroundStyle(OmenColor.textTertiary)
                 .accessibilityAddTraits(.isHeader)
 
             if group.leagues.isEmpty {
@@ -202,6 +202,12 @@ struct OmenLeagueSwitcherSheet: View {
                 }
             }
         )
+        // The active team sits on a raised surface as well as carrying its checkmark
+        // (whole-app canvas, `Shell.dc.html`). The glyph stays: surface alone is a colour cue.
+        .background(
+            league.isActive ? OmenColor.surface2 : Color.clear,
+            in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+        )
         // The full names live here even when the visible labels truncate.
         .accessibilityLabel(switcherRowAccessibilityLabel(group: group, league: league))
     }
@@ -218,8 +224,10 @@ struct OmenLeagueSwitcherSheet: View {
 
     private var secondaryActions: some View {
         VStack(alignment: .leading, spacing: OmenSpacing.step12) {
-            OmenButton(title: "Connect another league", action: onConnectAnother, variant: .link, size: .sm)
-            OmenButton(title: "Manage connected leagues", action: onManageConnections, variant: .link, size: .sm)
+            HStack(spacing: OmenSpacing.step8) {
+                OmenButton(title: "Connect a league", action: onConnectAnother, variant: .secondary, size: .md)
+                OmenButton(title: "Manage leagues", action: onManageConnections, variant: .secondary, size: .md)
+            }
             // Explicit dismiss as well as the sheet's native swipe: a drag gesture is not an
             // accessible affordance on its own.
             OmenButton(title: "Done", action: onDismiss, variant: .secondary, size: .md)
@@ -232,8 +240,8 @@ struct OmenLeagueSwitcherSheet: View {
     ) -> String {
         // ESPN returns no league name, because it exposes no league list to Omen. Naming
         // the league by id beats printing an empty separator or inventing a name.
-        let name = league.leagueName ?? "League \(league.leagueID)"
-        return "\(name) · \(platformDisplayName(group.platform))"
+        // The provider is the group's header, so the row carries only the league.
+        return league.leagueName ?? "League \(league.leagueID)"
     }
 
     private func emptyGroupMessage(_ group: LeagueDirectory.PlatformGroup) -> String {
