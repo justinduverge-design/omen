@@ -469,10 +469,14 @@ struct WaiverAnalysis: Decodable, Equatable {
         let team: String?
         let projectedPoints: Double?
         let status: String?
+        /// Omen's read (wire key `sight`), attached server-side by `sightEnrichment.js`. Lenient so
+        /// an experimental field cannot discard the waiver answer.
+        @LenientDecoded var omenRead: OmenDecisionEnvelope.OmenRead? = nil
 
         enum CodingKeys: String, CodingKey {
             case name, position, team, status
             case projectedPoints = "projected_points"
+            case omenRead = "sight"
         }
     }
 

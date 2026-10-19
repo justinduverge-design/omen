@@ -96,6 +96,10 @@ struct OmenDeskWaiverMove: Equatable {
     /// and a hardcoded "Confident · Low risk" on every claim is a fabricated read.
     let risk: OmenRiskLevel?
     let riskReason: String?
+    /// Omen's read for each side ("9.9"), from the `sight` block the server attaches. Nil when
+    /// Omen has no read for that player; the line then shows the provider number alone.
+    var addOmenPoints: String? = nil
+    var dropOmenPoints: String? = nil
 }
 
 /// The single `.lrow` under "The Ledger".
@@ -791,9 +795,9 @@ private struct OmenDeskWaiverCard: View {
         HStack(alignment: .top, spacing: OmenSpacing.step8) {
             tick
             VStack(alignment: .leading, spacing: 0) {
-                line(name: move.addName, meta: move.addMeta, points: move.addPoints, incoming: true)
+                line(name: move.addName, meta: move.addMeta, points: move.addPoints, omen: move.addOmenPoints, incoming: true)
                 if let dropName = move.dropName {
-                    line(name: dropName, meta: move.dropMeta, points: move.dropPoints, incoming: false)
+                    line(name: dropName, meta: move.dropMeta, points: move.dropPoints, omen: move.dropOmenPoints, incoming: false)
                 }
             }
         }
@@ -812,7 +816,7 @@ private struct OmenDeskWaiverCard: View {
         .accessibilityHidden(true)
     }
 
-    private func line(name: String, meta: String?, points: String?, incoming: Bool) -> some View {
+    private func line(name: String, meta: String?, points: String?, omen: String?, incoming: Bool) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: OmenSpacing.step6) {
             Text(name)
                 .omenTextStyle(OmenTypography.name)
@@ -825,6 +829,13 @@ private struct OmenDeskWaiverCard: View {
                     .foregroundStyle(OmenColor.textTertiary)
             }
             Spacer(minLength: OmenSpacing.step8)
+            // Omen's read beside the provider's, never in place of it.
+            if let omen {
+                Text("Omen \(omen)")
+                    .omenTextStyle(OmenTypography.micro)
+                    .foregroundStyle(incoming ? OmenColor.accent : OmenColor.textTertiary)
+                    .monospacedDigit()
+            }
             // No points column when the provider gave none. A dash or a zero would both read as
             // a projection, and `waiver-analysis.v1` is explicit that a missing input is null
             // rather than zero for exactly this reason.
@@ -839,7 +850,7 @@ private struct OmenDeskWaiverCard: View {
         .padding(.vertical, OmenSpacing.step2)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
-            [incoming ? "Add" : "Drop", name, meta, points.map { "\($0) projected" }]
+            [incoming ? "Add" : "Drop", name, meta, points.map { "\($0) projected" }, omen.map { "Omen's read \($0)" }]
                 .compactMap { $0 }.joined(separator: ", ")
         )
     }

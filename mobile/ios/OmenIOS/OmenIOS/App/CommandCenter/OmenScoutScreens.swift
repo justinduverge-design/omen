@@ -1683,7 +1683,9 @@ extension WaiverAnalysis {
             // to `.confident` / `.low` for every claim — a fabricated read on a live screen.
             band: nil,
             risk: nil,
-            riskReason: nil
+            riskReason: nil,
+            addOmenPoints: add.omenRead?.points.map { String(format: "%.1f", $0) },
+            dropOmenPoints: best.drop?.omenRead?.points.map { String(format: "%.1f", $0) }
         ))
     }
 }
