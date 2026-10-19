@@ -60,6 +60,31 @@ final class PerformanceJourneyUITests: XCTestCase {
         }
     }
 
+    /// Apple's own accessibility audit (contrast, hit regions, Dynamic Type clipping, labels) on each
+    /// tab of the demo desk. Findings are attached to the report; any issue fails the test.
+    func testAccessibilityAuditEveryTab() throws {
+        let app = XCUIApplication()
+        app.launch()
+        enterDesk(app)
+        var found: [String] = []
+        for name in tabs.reversed() {
+            let tab = app.tabBars.buttons[name]
+            guard tab.waitForExistence(timeout: 5) else { XCTFail("no \(name) tab"); return }
+            tab.tap()
+            _ = tab.wait(for: \.isSelected, toEqual: true, timeout: 5)
+            try app.performAccessibilityAudit { issue in
+                let element = issue.element.map { "\($0.elementType.rawValue) '\($0.label)'" } ?? "screen"
+                found.append("\(name): \(issue.auditType) — \(issue.compactDescription) — \(element)")
+                return true // record every issue, then fail once with the full list
+            }
+        }
+        let attachment = XCTAttachment(string: found.joined(separator: "\n"))
+        attachment.name = "accessibility-audit"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        XCTAssertTrue(found.isEmpty, "\(found.count) accessibility issues:\n" + found.joined(separator: "\n"))
+    }
+
     /// Whichever comes first: the desk (a demo session is already open) or the demo door.
     private func enterDesk(_ app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) {
         let desk = app.tabBars.firstMatch
