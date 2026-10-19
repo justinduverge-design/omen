@@ -90,7 +90,7 @@ function createWarehouseSightRepository({ query, timeoutMs = 2_000, now = () => 
     };
     return byes.map;
   }
-  return {
+  const repository = {
     /** One evaluated authority receipt per requested position. Missing/legacy evidence resolves closed. */
     async readAuthority({ positions, version = "v1", now = new Date() }) {
       const wanted = [
@@ -135,14 +135,29 @@ function createWarehouseSightRepository({ query, timeoutMs = 2_000, now = () => 
     },
     /** Map(app player key -> sight block). Players Sight has no read for are absent. */
     async readSight({ playerKeys, version = "v1", hints = null }) {
-      const refs = [
+      const allRefs = [
         ...new Map(
           (Array.isArray(playerKeys) ? playerKeys : [])
             .map(parseRef)
             .filter(Boolean)
             .map((r) => [r.key, r]),
         ).values(),
-      ].slice(0, MAX_REFS);
+      ];
+      // One query reads at most MAX_REFS players; a bigger set (every roster in a large league)
+      // is read in batches rather than silently cut off.
+      if (allRefs.length > MAX_REFS) {
+        const merged = new Map();
+        for (let i = 0; i < allRefs.length; i += MAX_REFS) {
+          const batch = await repository.readSight({
+            playerKeys: allRefs.slice(i, i + MAX_REFS).map((r) => r.key),
+            version,
+            hints,
+          });
+          for (const [key, value] of batch) merged.set(key, value);
+        }
+        return merged;
+      }
+      const refs = allRefs;
       if (!/^v[0-9]{1,3}$/.test(version)) return new Map();
       const result = !refs.length
         ? { rows: [] }
@@ -297,6 +312,7 @@ function createWarehouseSightRepository({ query, timeoutMs = 2_000, now = () => 
       return out;
     },
   };
+  return repository;
 }
 
 module.exports = { createWarehouseSightRepository, parseRef, parseDefenseRef, hintOf, normalName };
