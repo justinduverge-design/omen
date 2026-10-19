@@ -38,6 +38,8 @@ struct CommandCenterView: View {
     /// Trade has three distinct jobs. Build is the canvas-governed default; Find is the
     /// later sports-game-style candidate search; Type compares a deal already proposed.
     @State private var selectedTradeMode: TradeMode = .build
+    /// The Trade tab opens on the chooser (whole-app canvas, `TradeMode.dc.html`).
+    @State private var tradeChooserVisible: Bool = true
     /// J4: `TradeShare`, over `POST /api/trade/share`.
     @State private var showTradeShareSheet: Bool = false
     @State private var selectedTab: CommandCenterTab = .command
@@ -414,7 +416,7 @@ struct CommandCenterView: View {
                         .omenScreenReady("trade-needs-context")
                     }
                 } else {
-                    OmenTradeModeContainer(selectedMode: $selectedTradeMode) { mode in
+                    OmenTradeModeContainer(selectedMode: $selectedTradeMode, chooserVisible: $tradeChooserVisible) { mode in
                         switch mode {
                         case .find:
                             TradeFindFlowView(
@@ -427,14 +429,14 @@ struct CommandCenterView: View {
                                 fallbackTeamId: loadedOverviewTeamId,
                                 onOpenAccount: { showAccountSheet = true },
                                 onConnectLeague: { showConnectSheet = true },
-                                onDismiss: { selectedTradeMode = .build }
+                                onDismiss: { tradeChooserVisible = true }
                             )
                         case .build:
                             TradeRosterFlowView(
                                 tradeViewModel: tradeViewModel,
                                 userID: userID,
                                 onOpenAccount: { showAccountSheet = true },
-                                onDismiss: { selectedTradeMode = .type }
+                                onDismiss: { tradeChooserVisible = true }
                             )
                         case .type:
                             OmenTradeScreen(
@@ -670,6 +672,7 @@ struct CommandCenterView: View {
         // would compare these players in some other league.
         guard tradeViewModel.applyPrefill(from: call) else { return }
         selectedTradeMode = .type
+        tradeChooserVisible = false
         selectedTab = .trade
         Task { await tradeViewModel.compare(userID: userID) }
     }
@@ -677,6 +680,7 @@ struct CommandCenterView: View {
     /// "Find other trades" on the Omen tab: open the Trade tab's Find mode.
     private func findOtherTrades() {
         selectedTradeMode = .find
+        tradeChooserVisible = false
         selectedTab = .trade
     }
 
@@ -753,7 +757,7 @@ enum TradeMode: String, CaseIterable {
         switch self {
         case .find: return "Find a trade"
         case .build: return "Build a trade"
-        case .type: return "Type a trade"
+        case .type: return "Judge an offer"
         }
     }
 }
@@ -762,31 +766,112 @@ enum TradeMode: String, CaseIterable {
 /// container so a fixture cannot silently bypass the Find / Build / Type entry point.
 struct OmenTradeModeContainer<Content: View>: View {
     @Binding var selectedMode: TradeMode
+    /// True shows the chooser: the three ways people arrive at a trade question. Screenshot
+    /// scenarios pass a constant false to open straight into one mode.
+    @Binding var chooserVisible: Bool
     @ViewBuilder let content: (TradeMode) -> Content
 
     init(
         selectedMode: Binding<TradeMode>,
+        chooserVisible: Binding<Bool> = .constant(false),
         @ViewBuilder content: @escaping (TradeMode) -> Content
     ) {
         _selectedMode = selectedMode
+        _chooserVisible = chooserVisible
         self.content = content
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            OmenTradeTabs(
-                titles: TradeMode.allCases.map(\.title),
-                selectedIndex: TradeMode.allCases.firstIndex(of: selectedMode) ?? 0,
-                onSelect: { index in
-                    guard TradeMode.allCases.indices.contains(index) else { return }
-                    selectedMode = TradeMode.allCases[index]
-                }
-            )
-            .padding(.horizontal, OmenSpacing.step16)
-            .padding(.top, OmenSpacing.step12)
-
-            content(selectedMode)
+        if chooserVisible {
+            OmenTradeChooser { mode in
+                selectedMode = mode
+                chooserVisible = false
+            }
+        } else {
+            VStack(alignment: .leading, spacing: 0) {
+                OmenButton(
+                    title: "\u{2039} Trade",
+                    action: { chooserVisible = true },
+                    variant: .link,
+                    size: .sm
+                )
+                .padding(.horizontal, OmenSpacing.step8)
+                .padding(.top, OmenSpacing.step8)
+                .accessibilityLabel("Back to trade options")
+                OmenTradeTabs(
+                    titles: TradeMode.allCases.map(\.title),
+                    selectedIndex: TradeMode.allCases.firstIndex(of: selectedMode) ?? 0,
+                    onSelect: { index in
+                        guard TradeMode.allCases.indices.contains(index) else { return }
+                        selectedMode = TradeMode.allCases[index]
+                    }
+                )
+                .padding(.horizontal, OmenSpacing.step16)
+                .padding(.top, OmenSpacing.step4)
+                content(selectedMode)
+            }
         }
+    }
+}
+
+/// The Trade tab's front: Find, Build, Judge an offer (whole-app canvas, `TradeMode.dc.html`).
+struct OmenTradeChooser: View {
+    let onChoose: (TradeMode) -> Void
+
+    var body: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: OmenSpacing.step12) {
+                VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+                    Text("Trade")
+                        .omenTextStyle(OmenTypography.micro)
+                        .foregroundStyle(OmenColor.accent)
+                    Text("Settle the argument.")
+                        .omenTextStyle(OmenTypography.screenTitle)
+                        .foregroundStyle(OmenColor.textPrimary)
+                    Text("Every answer shows both sides, both lineups, and Omen\u{2019}s read.")
+                        .omenTextStyle(OmenTypography.body)
+                        .foregroundStyle(OmenColor.textSecondary)
+                }
+                .padding(.bottom, OmenSpacing.step4)
+                option(.find, icon: "magnifyingglass",
+                       line: "Omen reads every roster in the league and brings back trades that make both lineups better.")
+                option(.build, icon: "plus",
+                       line: "Pick a partner and the players. Omen judges it for both of you.")
+                option(.type, icon: "text.alignleft",
+                       line: "Got one in the league or the group chat? Enter the players, get the verdict.")
+            }
+            .padding(.horizontal, OmenSpacing.step16)
+            .padding(.top, OmenSpacing.step16)
+            .padding(.bottom, 104)
+        }
+        .background(OmenColor.bg)
+    }
+
+    private func option(_ mode: TradeMode, icon: String, line: String) -> some View {
+        OmenTappableCard(contentPadding: OmenSpacing.step16, action: { onChoose(mode) }) {
+            HStack(alignment: .top, spacing: OmenSpacing.step14) {
+                Image(systemName: icon)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(mode == .find ? OmenColor.accent : OmenColor.textPrimary)
+                    .frame(width: 40, height: 40)
+                    .background(
+                        mode == .find ? OmenColor.accentMuted : OmenColor.surface2,
+                        in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    )
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: OmenSpacing.step4) {
+                    Text(mode.title)
+                        .omenTextStyle(OmenTypography.h3)
+                        .foregroundStyle(OmenColor.textPrimary)
+                    Text(line)
+                        .omenTextStyle(OmenTypography.bodySmall)
+                        .foregroundStyle(OmenColor.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
     }
 }
 

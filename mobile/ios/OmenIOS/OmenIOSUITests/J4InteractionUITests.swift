@@ -199,7 +199,7 @@ final class J4InteractionUITests: XCTestCase {
         // The production Trade shell owns one mode control. It must expose Find explicitly and
         // must not be replaced by the journey's retired nested Type / Build selector.
         assertTappable(app.buttons["Find a trade"], "the Find-a-trade mode")
-        assertTappable(app.buttons["Type a trade"], "the typed-trade tab")
+        assertTappable(app.buttons["Judge an offer"], "the typed-trade tab")
         assertTappable(app.buttons["Build a trade"], "the built-trade tab")
         assertTappable(app.buttons["All"], "All filter")
         // The two-letter ones, deliberately. They are the narrowest controls on the journey and
@@ -219,7 +219,7 @@ final class J4InteractionUITests: XCTestCase {
         // Their hole is on the chip. A partner whose roster was not read carries no `need` at
         // all rather than "No hole", which is a claim about a roster nobody read.
         XCTAssertTrue((partner.label as String).contains("Needs RB"), "the partner chip does not carry their hole: \(partner.label)")
-        assertTapDoesNotBreak(app.buttons["Type a trade"], app)
+        assertTapDoesNotBreak(app.buttons["Judge an offer"], app)
     }
 
     /// The current contract supports three-team comparison, so the build screen must expose a

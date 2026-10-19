@@ -1847,6 +1847,9 @@ function createTradeRouter({
       // Budgeted + breaker-guarded (narrationBudget.js). Timeout, skip or error
       // yields `explanation: null`, the same value the explainer returns today
       // when the model is unreachable (the compare contract allows null).
+      // Omen's read on every player in the verdict, as Find and the roster already carry. Read in
+      // parallel with the narration so it adds no wait; a failed read leaves the result as it was.
+      const sightRead = attachSight(result).catch(() => undefined);
       const narration = await narrationGuard.run("trade_compare", NARRATION_BUDGET_MS.trade_compare, () =>
         tradeExplainer({
           send,
@@ -1860,6 +1863,7 @@ function createTradeRouter({
         }),
       );
       result.explanation = narration.status === "ok" ? narration.value : null;
+      await sightRead;
 
       return res.json(result);
     } catch (e) {

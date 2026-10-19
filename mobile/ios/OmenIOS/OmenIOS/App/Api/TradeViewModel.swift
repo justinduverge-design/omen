@@ -507,7 +507,7 @@ final class TradeViewModel: ObservableObject {
                 return OmenTradeRosterState.Row(
                     id: player.id,
                     name: player.name,
-                    meta: player.meta,
+                    meta: player.metaWithReads,
                     availability: alreadyAdded ? .added : .available,
                     recipients: alreadyAdded ? [] : recipients
                 )

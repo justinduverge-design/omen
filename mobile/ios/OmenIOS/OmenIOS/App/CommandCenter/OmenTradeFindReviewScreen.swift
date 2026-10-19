@@ -184,6 +184,17 @@ struct OmenTradeFindReviewScreen: View {
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, OmenSpacing.step16)
                 .padding(.top, OmenSpacing.step8)
+
+            // How far the search narrowed: the honest size of "we looked".
+            if let funnel = viewModel.response?.funnelLabel {
+                Text(funnel)
+                    .omenTextStyle(OmenTypography.bodySmall)
+                    .foregroundStyle(OmenColor.textTertiary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, OmenSpacing.step16)
+                    .padding(.top, OmenSpacing.step8)
+            }
         }
     }
 
@@ -590,15 +601,27 @@ private struct OmenTradeFindCandidateCard: View {
                 Text(player.meta).omenTextStyle(OmenTypography.micro).foregroundStyle(OmenColor.textTertiary).lineLimit(1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            Text(player.pointsLabel)
-                .omenTextStyle(OmenTypography.micro)
-                .monospacedDigit()
-                .foregroundStyle(OmenColor.textTertiary)
+            VStack(alignment: .trailing, spacing: OmenSpacing.step2) {
+                Text(player.pointsLabel)
+                    .omenTextStyle(OmenTypography.micro)
+                    .monospacedDigit()
+                    .foregroundStyle(OmenColor.textTertiary)
+                // Omen's read beside the provider's projection, never in place of it.
+                if let omen = player.omenPointsLabel {
+                    Text(omen)
+                        .omenTextStyle(OmenTypography.micro)
+                        .monospacedDigit()
+                        .foregroundStyle(OmenColor.accent)
+                }
+            }
         }
         .padding(OmenSpacing.step10)
         .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(OmenColor.surface1))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(label), \(player.name), \(player.meta), \(player.pointsLabel)")
+        .accessibilityLabel(
+            ["\(label), \(player.name), \(player.meta), \(player.pointsLabel)", player.omenPointsLabel.map { "Omen's read \($0.dropFirst(5))" }]
+                .compactMap { $0 }.joined(separator: ", ")
+        )
     }
 
     private var reasoningLine: some View {

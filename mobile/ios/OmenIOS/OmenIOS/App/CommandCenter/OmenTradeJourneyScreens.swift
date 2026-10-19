@@ -1451,7 +1451,7 @@ enum OmenTradeAnswer: Equatable {
     /// `nil` where there is no answer to show — the offer has no players on one side, so there
     /// is nothing to draw two sides of.
     static func from(_ compare: TradeCompare, offer: TradeOffer) -> OmenTradeAnswer? {
-        let sides = Self.sides(of: offer)
+        let sides = Self.sides(of: offer, compare: compare)
         guard sides.contains(where: { !$0.legs.isEmpty }) else { return nil }
         let read = OmenTradeRead.from(compare)
 
@@ -1500,21 +1500,23 @@ enum OmenTradeAnswer: Equatable {
     /// with nothing under it rather than disappearing.
     /// Not private: `TradeViewModel.rosterBuildState` (M5/J4 roster-read wiring) reuses this to
     /// render the same "both sides, always" block on `TradeBuild` before a verdict exists.
-    static func sides(of offer: TradeOffer) -> [OmenTradeSide] {
+    static func sides(of offer: TradeOffer, compare: TradeCompare? = nil) -> [OmenTradeSide] {
         [
-            OmenTradeSide(heading: "You send", legs: offer.send.map { leg($0, .sending) }),
-            OmenTradeSide(heading: "You receive", legs: offer.receive.map { leg($0, .receiving) })
+            OmenTradeSide(heading: "You send", legs: offer.send.map { leg($0, .sending, omen: compare?.omenPoints(for: $0)) }),
+            OmenTradeSide(heading: "You receive", legs: offer.receive.map { leg($0, .receiving, omen: compare?.omenPoints(for: $0)) })
         ]
     }
 
     /// `rank` is always nil on a live offer, and that is correct rather than missing: the offer
     /// carries names and positions, and `trade-compare.v2` returns no per-player rank. A rank
     /// composed here would be a number Omen never computed.
-    private static func leg(_ player: TradePlayer, _ direction: OmenTradeLeg.Direction) -> OmenTradeLeg {
-        OmenTradeLeg(
+    private static func leg(_ player: TradePlayer, _ direction: OmenTradeLeg.Direction, omen: Double? = nil) -> OmenTradeLeg {
+        // Omen's read joins the meta line when the verdict carries one. Absent stays absent.
+        let omenLabel = omen.map { "Omen \(String(format: "%.1f", $0))" }
+        return OmenTradeLeg(
             direction: direction,
             name: player.name,
-            meta: [player.position, player.team].compactMap { $0 }.joined(separator: " · "),
+            meta: ([player.position, player.team, omenLabel].compactMap { $0 }).joined(separator: " · "),
             rank: nil
         )
     }
