@@ -146,15 +146,12 @@ function createWarehouseSightRepository({ query, timeoutMs = 2_000, now = () => 
       // One query reads at most MAX_REFS players; a bigger set (every roster in a large league)
       // is read in batches rather than silently cut off.
       if (allRefs.length > MAX_REFS) {
-        const merged = new Map();
-        for (let i = 0; i < allRefs.length; i += MAX_REFS) {
-          const batch = await repository.readSight({
-            playerKeys: allRefs.slice(i, i + MAX_REFS).map((r) => r.key),
-            version,
-            hints,
-          });
-          for (const [key, value] of batch) merged.set(key, value);
-        }
+        const batches = [];
+        for (let i = 0; i < allRefs.length; i += MAX_REFS) batches.push(allRefs.slice(i, i + MAX_REFS));
+        const reads = await Promise.all(
+          batches.map((batch) => repository.readSight({ playerKeys: batch.map((r) => r.key), version, hints })),
+        );
+        const merged = new Map(reads.flatMap((read) => [...read]));
         return merged;
       }
       const refs = allRefs;

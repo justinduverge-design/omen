@@ -177,38 +177,42 @@ const NOT_DETERMINED_PENDING_PROBE = () =>
 
 async function loadEspn(connection, userId, week) {
   const credentials = await getAuthenticatedEspnCredentials(userId);
-  const roster = await espnAdapter.buildNormalizedRoster(
+  // Roster, pool and settings are independent ESPN reads: run them together.
+  const rosterRead = espnAdapter.buildNormalizedRoster(
     connection.league_id,
     credentials.espn_s2,
     credentials.swid,
     week,
     { teamId: connection.espn_team_id },
   );
-  const pool = await espnAdapter
+  const poolRead = espnAdapter
     .fetchEspnWaiverPool(connection.league_id, credentials.espn_s2, credentials.swid, week)
     .catch(() => null);
 
   // §6.2 verification, provisional. fromEspn() fails closed: an unrecognized
   // settings shape yields not_determined, so ESPN behaves exactly as it did
   // before until scripts/probe-espn-waiver-settings.js confirms the mapping.
-  let system = NOT_DETERMINED_PENDING_PROBE();
-  try {
-    const data = await espnAdapter.fetchEspnApi(
-      connection.league_id,
-      credentials.espn_s2,
-      credentials.swid,
-      ["mTeam", "mSettings"],
-      null,
-    );
-    const teams = Array.isArray(data?.teams) ? data.teams : [];
-    const team =
-      connection.espn_team_id != null
-        ? teams.find((t) => String(t.id) === String(connection.espn_team_id)) || null
-        : null;
-    system = waiverSystem.fromEspn({ settings: data?.settings, team });
-  } catch (_) {
-    // not_determined. A settings read must never break waiver advice.
-  }
+  const systemRead = (async () => {
+    try {
+      const data = await espnAdapter.fetchEspnApi(
+        connection.league_id,
+        credentials.espn_s2,
+        credentials.swid,
+        ["mTeam", "mSettings"],
+        null,
+      );
+      const teams = Array.isArray(data?.teams) ? data.teams : [];
+      const team =
+        connection.espn_team_id != null
+          ? teams.find((t) => String(t.id) === String(connection.espn_team_id)) || null
+          : null;
+      return waiverSystem.fromEspn({ settings: data?.settings, team });
+    } catch (_) {
+      // not_determined. A settings read must never break waiver advice.
+      return NOT_DETERMINED_PENDING_PROBE();
+    }
+  })();
+  const [roster, pool, system] = await Promise.all([rosterRead, poolRead, systemRead]);
 
   return {
     roster,
@@ -240,8 +244,35 @@ function yahooWaiverLimitations(meta) {
   return notes;
 }
 
+// §6.2 verification. The priority branch is VERIFIED (2026-09-06, three real
+// leagues); the FAAB branch is not — no Yahoo FAAB league was available to
+// read, so fromYahoo() returns not_determined for one and it shows nothing.
+async function readYahooWaiverSystem(client, leagueId) {
+  try {
+    const [rawSettings, myTeamKey] = await Promise.all([
+      client.getLeagueSettings(leagueId),
+      client.getMyTeamKey(leagueId).catch(() => null),
+    ]);
+    return waiverSystem.fromYahoo({
+      // Pass the WHOLE league payload: the settings container is not league[0].
+      settings: rawSettings,
+      team: myTeamKey
+        ? await client
+            .get(`/team/${myTeamKey}`)
+            .then((d) => d?.fantasy_content?.team?.[0] ?? null)
+            .catch(() => null)
+        : null,
+    });
+  } catch (_) {
+    // not_determined. A settings read must never break waiver advice.
+    return NOT_DETERMINED_PENDING_PROBE();
+  }
+}
+
 async function loadYahoo(connection, userId, week) {
   const { client } = await getAuthenticatedYahooClient(userId);
+  // The waiver-system read needs neither roster nor pool: start it now, await it last.
+  const systemRead = readYahooWaiverSystem(client, connection.league_id);
   const cacheKey = `ssff:waiver-analysis:${userId}:${connection.league_id}:${week || "current"}`;
   const roster = await rosterSvc.fetchAndNormalizeRoster(client, connection.league_id, week, cacheKey);
 
@@ -279,26 +310,7 @@ async function loadYahoo(connection, userId, week) {
     pool = null;
   }
 
-  // §6.2 verification. The priority branch is VERIFIED (2026-09-06, three real
-  // leagues); the FAAB branch is not — no Yahoo FAAB league was available to
-  // read, so fromYahoo() returns not_determined for one and it shows nothing.
-  let system = NOT_DETERMINED_PENDING_PROBE();
-  try {
-    const rawSettings = await client.getLeagueSettings(connection.league_id);
-    const myTeamKey = await client.getMyTeamKey(connection.league_id).catch(() => null);
-    system = waiverSystem.fromYahoo({
-      // Pass the WHOLE league payload: the settings container is not league[0].
-      settings: rawSettings,
-      team: myTeamKey
-        ? await client
-            .get(`/team/${myTeamKey}`)
-            .then((d) => d?.fantasy_content?.team?.[0] ?? null)
-            .catch(() => null)
-        : null,
-    });
-  } catch (_) {
-    // not_determined. A settings read must never break waiver advice.
-  }
+  const system = await systemRead;
 
   return {
     roster,
