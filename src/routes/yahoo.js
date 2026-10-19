@@ -114,18 +114,38 @@ router.post("/auth", requireAuth, requireYahooEnabled, async (req, res, next) =>
  * read repairs the memberships). The league id from the OAuth state is client-supplied, so it is
  * written only if Yahoo lists it or Yahoo cannot be asked. Logs carry no token.
  */
+// One Yahoo league read per user, shared for a minute after a connect: the callback's background
+// membership write and the app's GET /leagues (which arrives a second later) both used to ask Yahoo
+// for the same list. The promise is shared while in flight; a rejection is never kept.
+const SHARED_LEAGUES_TTL_MS = 60_000;
+const sharedLeagueReads = new Map();
+
+function readYahooLeaguesShared(userId) {
+  const held = sharedLeagueReads.get(userId);
+  if (held && Date.now() - held.at < SHARED_LEAGUES_TTL_MS) return held.promise;
+  const promise = (async () => {
+    const { client } = await getAuthenticatedYahooClient(userId);
+    const leagues =
+      typeof client.getUserLeaguesWithTeams === "function"
+        ? await client.getUserLeaguesWithTeams()
+        : await client.getUserLeagues();
+    return leagues || [];
+  })();
+  sharedLeagueReads.set(userId, { at: Date.now(), promise });
+  promise.catch(() => {
+    if (sharedLeagueReads.get(userId)?.promise === promise) sharedLeagueReads.delete(userId);
+  });
+  return promise;
+}
+
 async function writeYahooMemberships(userId, leagueId) {
   const result = await leagueMemberships.syncAfterConnect(supabase, {
     userId,
     platform: "yahoo",
     boundLeagueId: leagueId,
     discover: async () => {
-      const { client } = await getAuthenticatedYahooClient(userId);
-      const leagues =
-        typeof client.getUserLeaguesWithTeams === "function"
-          ? await client.getUserLeaguesWithTeams()
-          : await client.getUserLeagues();
-      return (leagues || []).map((league) => ({
+      const leagues = await readYahooLeaguesShared(userId);
+      return leagues.map((league) => ({
         league_id: league.league_id,
         league_name: league.name || null,
         season: league.season,
@@ -173,13 +193,21 @@ router.get("/callback", async (req, res, next) => {
     }
 
     const tokens = await exchangeYahooCode(code);
-    await responseCache.invalidateUser(oauthRow.user_id);
     await persistYahooTokens(oauthRow.user_id, tokens, leagueId);
-    await writeYahooMemberships(oauthRow.user_id, leagueId);
-    await responseCache.invalidateUser(oauthRow.user_id);
-    await supabase.from("oauth_state").delete().eq("state", state);
+    await Promise.all([
+      responseCache.invalidateUser(oauthRow.user_id),
+      supabase.from("oauth_state").delete().eq("state", state),
+    ]);
 
-    return res.redirect(oauthCompletionRedirect(nativeReturn, "connected"));
+    // Back to the app as soon as the tokens are stored. Memberships are written after the
+    // redirect: they never failed the callback anyway, and the next directory read repairs them.
+    res.redirect(oauthCompletionRedirect(nativeReturn, "connected"));
+    const userId = oauthRow.user_id;
+    readYahooLeaguesShared(userId).catch(() => {}); // start the shared read now, before the app asks
+    writeYahooMemberships(userId, leagueId)
+      .then(() => responseCache.invalidateUser(userId))
+      .catch((err) => logger.warn("Yahoo membership write after connect failed", { err: err?.message || "failure" }));
+    return;
   } catch (e) {
     logger.error("Yahoo OAuth callback failed", { err: e.message });
     return next(e);
@@ -226,8 +254,7 @@ router.get("/access-probe", requireAuth, async (req, res) => {
 
 router.get("/leagues", requireAuth, async (req, res, next) => {
   try {
-    const { client } = await getAuthenticatedYahooClient(req.user.id);
-    const leagues = await client.getUserLeagues();
+    const leagues = await readYahooLeaguesShared(req.user.id);
     res.json({ leagues });
   } catch (e) {
     if (e.message === "yahoo_token_expired") {
@@ -280,3 +307,4 @@ router.post("/league", requireAuth, responseCache.invalidateUserCacheOnWrite, as
 });
 
 module.exports = router;
+module.exports.readYahooLeaguesShared = readYahooLeaguesShared;
