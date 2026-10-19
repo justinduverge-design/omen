@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Omen shell and league switcher</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Wix+Madefor+Display:wght@500;700;800&amp;family=Wix+Madefor+Text:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#D8A648}a:hover{color:#F5F0E8}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #1F1F1D; color: #F5F0E8; font-family: 'Wix Madefor Text', system-ui, sans-serif; position: relative; overflow: hidden; display: flex; flex-direction: column">
+
+  <div style="height: 54px; flex: none"></div>
+
+  <button type="button" aria-label="Switch team. Current: Ravens Flock, Sleeper, Slops Dynasty" style="all: unset; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 8px 16px 10px; border-bottom: 1px solid #3A3A36; min-height: 44px">
+    <span style="width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; font-size: 10px; font-weight: 800; background: linear-gradient(180deg,#4a3a15,#33270e); color: #D8A648">RF</span>
+    <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+      <b style="font-size: 14px; font-weight: 700; letter-spacing: -.016em">Ravens Flock</b>
+      <span style="display: flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: #A79E90"><i style="width: 7px; height: 7px; border-radius: 2px; background: #0F70B0; display: block"></i>Sleeper · Slops Dynasty</span>
+    </span>
+    <span aria-hidden="true" style="color: #A79E90; font-size: 12px; font-weight: 800">▾</span>
+  </button>
+
+  <div style="padding: 20px 16px; display: flex; flex-direction: column; gap: 12px; opacity: .35">
+    <div style="height: 120px; border-radius: 14px; background: #2A2A27"></div>
+    <div style="height: 88px; border-radius: 13px; background: #2A2A27"></div>
+    <div style="height: 88px; border-radius: 13px; background: #2A2A27"></div>
+  </div>
+
+  <div style="position: absolute; inset: 0; background: rgba(0,0,0,.55)"></div>
+
+  <div role="dialog" aria-label="Your teams" style="position: absolute; left: 0; right: 0; bottom: 0; background: #262623; border-radius: 22px 22px 0 0; padding: 8px 16px 28px; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 -20px 50px rgba(0,0,0,.5)">
+    <div aria-hidden="true" style="width: 36px; height: 5px; border-radius: 3px; background: #4A4A45; align-self: center; margin-bottom: 12px"></div>
+    <div style="display: flex; justify-content: space-between; align-items: baseline; padding: 0 4px 8px">
+      <h2 style="margin: 0; font-family: 'Wix Madefor Display', sans-serif; font-size: 22px; font-weight: 800; letter-spacing: -.04em">Your teams</h2>
+      <span style="font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #A79E90">8 teams · Week 7</span>
+    </div>
+
+    <p style="margin: 8px 4px 2px; font-size: 10px; font-weight: 800; letter-spacing: .2em; text-transform: uppercase; color: #A79E90">Sleeper</p>
+    <button type="button" style="all: unset; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: #343431; min-height: 44px">
+      <span style="width: 4px; align-self: stretch; border-radius: 2px; background: #C4933B"></span>
+      <span style="flex: 1; display: flex; flex-direction: column; gap: 2px"><b style="font-size: 14px">Ravens Flock</b><span style="font-size: 12px; color: #A79E90">Slops Dynasty · 6–1</span></span>
+      <span style="text-align: right; display: flex; flex-direction: column; gap: 2px"><b style="font-size: 14px; font-variant-numeric: tabular-nums">88.4–71.2</b><span style="font-size: 10px; font-weight: 800; letter-spacing: .14em; color: #D8A648">LIVE · UP</span></span>
+    </button>
+    <button type="button" style="all: unset; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; min-height: 44px">
+      <span style="width: 4px; align-self: stretch"></span>
+      <span style="flex: 1; display: flex; flex-direction: column; gap: 2px"><b style="font-size: 14px">Brass Knuckles</b><span style="font-size: 12px; color: #A79E90">Saloon Keepers · 3–4</span></span>
+      <span style="text-align: right; display: flex; flex-direction: column; gap: 2px"><b style="font-size: 14px; color: #BDB5A9; font-variant-numeric: tabular-nums">54.0–80.6</b><span style="font-size: 10px; font-weight: 800; letter-spacing: .14em; color: #A79E90">LIVE · DOWN</span></span>
+    </button>
+
+    <p style="margin: 10px 4px 2px; font-size: 10px; font-weight: 800; letter-spacing: .2em; text-transform: uppercase; color: #A79E90">Yahoo</p>
+    <button type="button" style="all: unset; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; min-height: 44px">
+      <span style="width: 4px; align-self: stretch"></span>
+      <span style="flex: 1; display: flex; flex-direction: column; gap: 2px"><b style="font-size: 14px">Deep Route Society</b><span style="font-size: 12px; color: #A79E90">Office League · 5–2</span></span>
+      <span style="text-align: right; display: flex; flex-direction: column; gap: 2px"><b style="font-size: 14px; color: #BDB5A9">Sun 1:00</b><span style="font-size: 10px; font-weight: 800; letter-spacing: .14em; color: #A79E90">PRE-GAME</span></span>
+    </button>
+
+    <p style="margin: 10px 4px 2px; font-size: 10px; font-weight: 800; letter-spacing: .2em; text-transform: uppercase; color: #A79E90">ESPN</p>
+    <button type="button" style="all: unset; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; min-height: 44px">
+      <span style="width: 4px; align-self: stretch"></span>
+      <span style="flex: 1; display: flex; flex-direction: column; gap: 2px"><b style="font-size: 14px">Rhody Rollers</b><span style="font-size: 12px; color: #A79E90">Family League · 4–3</span></span>
+      <span style="text-align: right; display: flex; flex-direction: column; gap: 2px"><b style="font-size: 13px; color: #F5F0E8; font-style: italic; font-weight: 600">Sign in again</b><span style="font-size: 10px; font-weight: 800; letter-spacing: .14em; color: #A79E90">ESPN LOGIN EXPIRED</span></span>
+    </button>
+
+    <div style="display: flex; gap: 8px; margin-top: 12px">
+      <a href="#" style="flex: 1; text-align: center; text-decoration: none; padding: 13px 0; border-radius: 12px; background: #343431; color: #F5F0E8; font-size: 14px; font-weight: 700">Connect a league</a>
+      <a href="#" style="flex: 1; text-align: center; text-decoration: none; padding: 13px 0; border-radius: 12px; background: #343431; color: #F5F0E8; font-size: 14px; font-weight: 700">Account</a>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

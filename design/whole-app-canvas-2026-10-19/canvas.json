@@ -1,0 +1,32 @@
+{
+  "v": 3,
+  "createdOnFiles": { "v": 1, "at": "2026-10-19T20:30:00Z" },
+  "title": "Omen Whole-App Canvas",
+  "launch": { "view": "canvas" },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": { "x": 0, "y": 0, "w": 1280, "h": 844, "title": "00 · Start here" },
+    "Shell.dc.html": { "x": 0, "y": 1190, "w": 390, "h": 844, "title": "J2 · Shell + league switcher" },
+    "Desk.dc.html": { "x": 470, "y": 1190, "w": 390, "h": 844, "title": "J2 · Desk — live week" },
+    "OmenCall.dc.html": { "x": 940, "y": 1190, "w": 390, "h": 844, "title": "J3 · Omen — the call" },
+    "OmenEvidence.dc.html": { "x": 1410, "y": 1190, "w": 390, "h": 844, "title": "J3 · Omen — the argument" },
+    "TradeMode.dc.html": { "x": 1880, "y": 1190, "w": 390, "h": 844, "title": "J4 · Trade — how you arrived" },
+    "TradeFind.dc.html": { "x": 2350, "y": 1190, "w": 390, "h": 844, "title": "J4 · Trade — Find candidate" },
+    "StateBoard.dc.html": { "x": 0, "y": 2380, "w": 1280, "h": 980, "title": "States board — every surface, every state" }
+  },
+  "order": [
+    "Main.dc.html",
+    "Shell.dc.html",
+    "Desk.dc.html",
+    "OmenCall.dc.html",
+    "OmenEvidence.dc.html",
+    "TradeMode.dc.html",
+    "TradeFind.dc.html",
+    "StateBoard.dc.html"
+  ],
+  "notes": {
+    "rowJourneys": { "x": 0, "y": 940, "text": "First cut — the interactions reused everywhere", "kind": "title1", "maxW": 2740 },
+    "rowStates": { "x": 0, "y": 2130, "text": "Shared states", "kind": "title1", "maxW": 1280 }
+  },
+  "designSystems": []
+}
