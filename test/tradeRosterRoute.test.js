@@ -256,3 +256,8 @@ test("sameTeamId matches a Yahoo team key against the bare team number the leagu
   assert.equal(sameTeamId("8", "18"), false);
   assert.equal(sameTeamId(null, "4"), false);
 });
+
+test("sameTeamId never matches the same team number across two different Yahoo leagues", () => {
+  const { sameTeamId } = require("../src/routes/trade");
+  assert.equal(sameTeamId("461.l.1.t.4", "461.l.2.t.4"), false);
+});

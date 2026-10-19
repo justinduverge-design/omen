@@ -14,6 +14,7 @@
  */
 
 const express = require("express");
+const sharedLeagueReads = require("../services/yahooLeagueReads");
 const crypto = require("crypto");
 const { createClient } = require("@supabase/supabase-js");
 const responseCache = require("../services/responseCache");
@@ -114,28 +115,15 @@ router.post("/auth", requireAuth, requireYahooEnabled, async (req, res, next) =>
  * read repairs the memberships). The league id from the OAuth state is client-supplied, so it is
  * written only if Yahoo lists it or Yahoo cannot be asked. Logs carry no token.
  */
-// One Yahoo league read per user, shared for a minute after a connect: the callback's background
-// membership write and the app's GET /leagues (which arrives a second later) both used to ask Yahoo
-// for the same list. The promise is shared while in flight; a rejection is never kept.
-const SHARED_LEAGUES_TTL_MS = 60_000;
-const sharedLeagueReads = new Map();
-
 function readYahooLeaguesShared(userId) {
-  const held = sharedLeagueReads.get(userId);
-  if (held && Date.now() - held.at < SHARED_LEAGUES_TTL_MS) return held.promise;
-  const promise = (async () => {
+  return sharedLeagueReads.readYahooLeaguesShared(userId, async () => {
     const { client } = await getAuthenticatedYahooClient(userId);
     const leagues =
       typeof client.getUserLeaguesWithTeams === "function"
         ? await client.getUserLeaguesWithTeams()
         : await client.getUserLeagues();
     return leagues || [];
-  })();
-  sharedLeagueReads.set(userId, { at: Date.now(), promise });
-  promise.catch(() => {
-    if (sharedLeagueReads.get(userId)?.promise === promise) sharedLeagueReads.delete(userId);
   });
-  return promise;
 }
 
 async function writeYahooMemberships(userId, leagueId) {
@@ -194,6 +182,8 @@ router.get("/callback", async (req, res, next) => {
 
     const tokens = await exchangeYahooCode(code);
     await persistYahooTokens(oauthRow.user_id, tokens, leagueId);
+    // New tokens may belong to a different Yahoo account: never answer from the old read.
+    sharedLeagueReads.clearYahooLeagueReads(oauthRow.user_id);
     await Promise.all([
       responseCache.invalidateUser(oauthRow.user_id),
       supabase.from("oauth_state").delete().eq("state", state),

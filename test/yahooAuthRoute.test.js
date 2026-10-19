@@ -104,6 +104,7 @@ function loadYahooRouter({
   const authPath = require.resolve("../src/middleware/auth");
   delete require.cache[routePath];
   delete require.cache[authPath];
+  delete require.cache[require.resolve("../src/services/yahooLeagueReads")];
 
   const state = {
     authTokens: [],

@@ -8,6 +8,7 @@
  */
 
 const express = require("express");
+const { clearYahooLeagueReads } = require("../services/yahooLeagueReads");
 const { createClient } = require("@supabase/supabase-js");
 const responseCache = require("../services/responseCache");
 const { Redis } = require("@upstash/redis");
@@ -887,6 +888,7 @@ router.delete("/:platform", requireAuth, responseCache.invalidateUserCacheOnWrit
         await Promise.all([vaultDelete(conn.espn_secret_id), vaultDelete(conn.swid_secret_id)]);
       } else if (platform === "yahoo") {
         await Promise.all([vaultDelete(conn.token_secret_id), vaultDelete(conn.refresh_secret_id)]);
+        clearYahooLeagueReads(req.user.id);
       }
 
       const { error: deleteError } = await supabase

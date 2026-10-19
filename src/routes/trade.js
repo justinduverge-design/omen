@@ -549,7 +549,11 @@ function sameTeamId(a, b) {
   if (left === right) return true;
   const number = (id) => /(?:^|\.t\.)([0-9]+)$/.exec(id)?.[1] ?? null;
   const yahooKey = /\.t\.[0-9]+$/;
-  if (!yahooKey.test(left) && !yahooKey.test(right)) return false;
+  const leftKey = yahooKey.test(left);
+  const rightKey = yahooKey.test(right);
+  if (!leftKey && !rightKey) return false;
+  // Two full keys must match exactly: "461.l.1.t.4" and "461.l.2.t.4" are different teams.
+  if (leftKey && rightKey) return false;
   return number(left) != null && number(left) === number(right);
 }
 
