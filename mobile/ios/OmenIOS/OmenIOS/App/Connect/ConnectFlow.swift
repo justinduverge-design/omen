@@ -162,6 +162,11 @@ enum ConnectFailure: Error, Equatable {
     case espnSessionUnreadable(EspnDiagnostic? = nil)
     /// The session read fine and ESPN refused the league — wrong league, or no access to it.
     case espnLeagueUnreachable(EspnDiagnostic? = nil)
+    /// ESPN counts football leagues on this account but has not listed them yet — a brand-new
+    /// login, or a league joined minutes ago. Keep checking; the League ID box is not next.
+    case espnListingPending(expected: Int?)
+    /// ESPN says this account has no football leagues. Usually a different ESPN account.
+    case espnNoFootballLeagues
 
     /// The provider's own account of the failure, when there is one. Only the ESPN cases carry
     /// it, because only they have a provider response behind them.
@@ -192,6 +197,10 @@ enum ConnectFailure: Error, Equatable {
             return "Omen couldn't read your ESPN session. That's on us, not you — try the ESPN sign-in again, or choose another provider."
         case .espnLeagueUnreachable:
             return "Omen signed in but couldn't reach that league. Open the league you want in ESPN, then try again."
+        case .espnListingPending:
+            return EspnConnectCopy.listingPending
+        case .espnNoFootballLeagues:
+            return EspnConnectCopy.noFootballLeagues
         }
     }
 }
@@ -378,6 +387,16 @@ enum EspnConnectCopy {
     static let noLeaguesFound = "ESPN didn't report any football leagues on this account. If you know the league ID, you can enter it."
     /// Shown when discovery itself could not run. Not a failed connection — a failed lookup.
     static let discoveryUnavailable = "Omen couldn't get your leagues from ESPN yet. A brand-new ESPN login can take a moment, so try Check again, or enter the league ID."
+
+    /// ESPN counts leagues on the account but has not listed them yet. Shown while Omen keeps checking.
+    static let listingPending = "ESPN knows you're in a league but hasn't listed it for this login yet. That can take a minute on a new ESPN account. Omen is checking again."
+    /// After the extended checks, before the League ID box.
+    static func listingStillPending(_ expected: Int?) -> String {
+        let count = expected.map { $0 == 1 ? "1 football league" : "\($0) football leagues" } ?? "a football league"
+        return "ESPN says this account has \(count) but still hasn't listed it. Try Check again in a minute. If it still doesn't show, you can enter the league ID."
+    }
+    /// ESPN counts zero football leagues on the signed-in account.
+    static let noFootballLeagues = "This ESPN account has no football leagues. If your league is on a different ESPN account, sign out of ESPN above and sign in with that one."
 
     static let checkAgainTitle = "Check again"
 

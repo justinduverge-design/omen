@@ -686,6 +686,22 @@ router.post("/sleeper/connect", requireAuth, responseCache.invalidateUserCacheOn
  * `/espn/connect` does. The response carries league and team labels only; no credential is
  * echoed, and the adapter's failure reporter strips the query string.
  */
+/**
+ * What a discovery answer means, from what ESPN listed against what ESPN counts:
+ * - `complete`: every football league ESPN counts was listed (or ESPN sent no count and some were).
+ * - `partial`: ESPN counts more than it listed. Show what was found and say the rest are coming.
+ * - `espn_listing_pending`: ESPN counts leagues but lists none yet (a fresh login or a just-joined
+ *   league). Keep checking; the manual League ID box is not the next step.
+ * - `no_football_leagues`: ESPN counts zero. Most often the user signed in with another account.
+ * - `unknown_empty`: nothing listed and no count. The old ambiguous case.
+ */
+function espnDiscoveryState(listed, counted) {
+  if (counted == null) return listed > 0 ? "complete" : "unknown_empty";
+  if (counted === 0) return listed > 0 ? "complete" : "no_football_leagues";
+  if (listed === 0) return "espn_listing_pending";
+  return listed < counted ? "partial" : "complete";
+}
+
 router.post(
   "/espn/leagues",
   requireAuth,
@@ -707,8 +723,15 @@ router.post(
       }
 
       let leagues;
+      let espnNflLeagueCount = null;
       try {
-        leagues = await espnAdapter.fetchEspnFanLeagues(espn_s2, swid);
+        if (typeof espnAdapter.fetchEspnFanDirectory === "function") {
+          const directory = await espnAdapter.fetchEspnFanDirectory(espn_s2, swid);
+          leagues = directory.leagues;
+          espnNflLeagueCount = directory.espn_nfl_league_count;
+        } else {
+          leagues = await espnAdapter.fetchEspnFanLeagues(espn_s2, swid);
+        }
       } catch (error) {
         // ESPN rejecting the session is a normal outcome here, not a server fault: the usual cause
         // is a session that expired between sign-in and this call.
@@ -720,6 +743,17 @@ router.post(
             message: "ESPN did not accept that session. Sign in again and retry.",
           });
         }
+        // A brand-new ESPN login can be signed in before ESPN has a fan profile for it.
+        if (status === 404) {
+          logger.warn("ESPN league discovery: fan profile not ready", { http_status: 404 });
+          return res.status(200).json({
+            status: "ok",
+            platform: "espn",
+            leagues: [],
+            discovery_state: "espn_profile_pending",
+            espn_nfl_league_count: null,
+          });
+        }
         logger.warn("ESPN league discovery failed", { http_status: status || null });
         return res.status(502).json({
           status: "error",
@@ -728,7 +762,20 @@ router.post(
         });
       }
 
-      return res.json({ status: "ok", platform: "espn", leagues });
+      const discoveryState = espnDiscoveryState(leagues.length, espnNflLeagueCount);
+      // Counts only: enough to tell the next failed fresh login apart from a wrong account.
+      logger.info("ESPN league discovery", {
+        discovery_state: discoveryState,
+        leagues_listed: leagues.length,
+        espn_nfl_league_count: espnNflLeagueCount,
+      });
+      return res.json({
+        status: "ok",
+        platform: "espn",
+        leagues,
+        discovery_state: discoveryState,
+        espn_nfl_league_count: espnNflLeagueCount,
+      });
     } catch (e) {
       logger.error("ESPN league discovery failed");
       return next(e);
@@ -859,3 +906,4 @@ router.delete("/:platform", requireAuth, responseCache.invalidateUserCacheOnWrit
 });
 
 module.exports = router;
+module.exports.espnDiscoveryState = espnDiscoveryState;

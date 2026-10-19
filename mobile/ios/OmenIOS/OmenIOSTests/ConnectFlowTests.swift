@@ -147,6 +147,7 @@ final class ConnectFlowTests: XCTestCase {
         let viewModel = ConnectViewModel(repository: repository, sessionManager: sessionManager())
         viewModel.espnSessionSettleDelay = .zero
         viewModel.espnDiscoveryRetryDelay = .zero
+        viewModel.espnPendingRetryDelay = .zero
         viewModel.selectProvider(.espn)
         viewModel.beginEspnSignIn(cookieStore: scripted ?? store ?? FakeEspnCookieStore())
         viewModel.espnSignInProgressed(.signedIn(detectedLeagueId: "123456", detectedTeamId: "7"))
@@ -1381,5 +1382,49 @@ final class YahooConnectFlowTests: XCTestCase {
         XCTAssertNil(
             ConnectViewModel.callbackStatus(URL(string: "com.slopssaloon.omen://auth/callback?code=abc&state=xyz")!)
         )
+    }
+}
+
+extension ConnectFlowTests {
+    // MARK: - Fresh ESPN login: League ID is the last resort
+
+    /// ESPN counts a league it has not listed yet. Omen keeps checking past the normal four
+    /// attempts and lands on the picker once ESPN lists it, never showing the League ID box.
+    func testEspnListingPendingKeepsCheckingUntilTheLeagueAppears() async {
+        var repository = StubConnectRepository()
+        let league = EspnLeagueOption(id: "13338821", name: "Fresh League", season: 2026, teamId: "4", teamName: "New Team")
+        repository.espnDiscoverSequence = Array(repeating: .failure(.espnListingPending(expected: 1)), count: 6) + [.success([league])]
+        let viewModel = await espnReadyViewModel(repository: repository)
+
+        guard case .choosingEspnLeague(let options) = viewModel.state else {
+            return XCTFail("expected the picker once ESPN listed the league, got \(viewModel.state)")
+        }
+        XCTAssertEqual(options.map { $0.id }, ["13338821"])
+        XCTAssertFalse(viewModel.espnDiscoveryFallbackAvailable, "the League ID box must not appear when ESPN lists the league")
+        XCTAssertEqual(repository.recorder.espnDiscoveries, 7, "pending extends past the normal four attempts")
+    }
+
+    /// Still pending after the extended checks: say what ESPN reported, then offer League ID.
+    func testEspnListingStillPendingNamesTheCountBeforeOfferingLeagueId() async {
+        var repository = StubConnectRepository()
+        repository.espnDiscoverResult = .failure(.espnListingPending(expected: 2))
+        let viewModel = await espnReadyViewModel(repository: repository)
+
+        XCTAssertTrue(viewModel.espnDiscoveryFallbackAvailable)
+        XCTAssertEqual(viewModel.espnCheckNotice, EspnConnectCopy.listingStillPending(2))
+        XCTAssertEqual(
+            repository.recorder.espnDiscoveries,
+            ConnectViewModel.maxEspnDiscoveryAttempts + ConnectViewModel.maxEspnPendingAttempts
+        )
+    }
+
+    /// No football leagues on this ESPN account: name the likely cause (another ESPN account).
+    func testEspnNoFootballLeaguesPointsAtTheOtherAccount() async {
+        var repository = StubConnectRepository()
+        repository.espnDiscoverResult = .failure(.espnNoFootballLeagues)
+        let viewModel = await espnReadyViewModel(repository: repository)
+
+        XCTAssertEqual(viewModel.espnCheckNotice, EspnConnectCopy.noFootballLeagues)
+        XCTAssertEqual(repository.recorder.espnDiscoveries, ConnectViewModel.maxEspnDiscoveryAttempts)
     }
 }
