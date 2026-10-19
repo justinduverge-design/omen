@@ -49,10 +49,28 @@ enum OmenSignposts {
     }
 
     private static let firstReady = OSAllocatedUnfairLock(initialState: false)
+    private static let demoTapAt = OSAllocatedUnfairLock<Date?>(initialState: nil)
+
+    /// A named moment on the launch timeline, in ms since process start.
+    static func mark(_ what: String) {
+        let ms = sinceProcessStart()
+        screen.emitEvent("mark", "\(what, privacy: .public) \(ms)ms")
+        logger.notice("[omen-timing] \(what, privacy: .public) at \(ms)ms")
+    }
+
+    /// Starts the demo-door clock; the next desk ready event reports how long entry took.
+    static func markDemoTap() {
+        demoTapAt.withLock { $0 = Date() }
+        mark("demo tapped")
+    }
 
     /// A screen has its real content on screen (not a skeleton, not a spinner).
     static func screenReady(_ name: String) {
         screen.emitEvent("ready", "\(name, privacy: .public)")
+        mark("ready \(name)")
+        if name.hasPrefix("desk"), let tapped = demoTapAt.withLock({ value -> Date? in defer { value = nil }; return value }) {
+            logger.notice("[omen-timing] demo tap to \(name, privacy: .public) \(Int(Date().timeIntervalSince(tapped) * 1000))ms")
+        }
         let isFirst = firstReady.withLock { seen -> Bool in
             defer { seen = true }
             return !seen
@@ -60,7 +78,7 @@ enum OmenSignposts {
         if isFirst {
             let ms = sinceProcessStart()
             screen.emitEvent("first-useful-screen", "\(name, privacy: .public) \(ms)ms")
-            logger.info("[omen-timing] first useful screen \(name, privacy: .public) \(ms)ms after process start")
+            logger.notice("[omen-timing] first useful screen \(name, privacy: .public) \(ms)ms after process start")
         }
     }
 }
