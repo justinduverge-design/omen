@@ -315,7 +315,11 @@ struct CommandCenterView: View {
                         userID: userID,
                         onContextChanged: { _ in
                             Task { await reloadAllAfterContextChange() }
-                        }
+                        },
+                        move: OmenDeskMovePreview.section(
+                            from: omenDecisionViewModel.briefState(visibleScope: pickedLeagueScope)
+                        ),
+                        onOpenMove: { selectedTab = .omen }
                     )
                 } else {
                     // The state machine above is exhaustive. This is a fail-closed guard for a
@@ -335,7 +339,15 @@ struct CommandCenterView: View {
                 // request is not a useful head start: it can return another league or a false
                 // empty state, then immediately require a second request once the directory lands.
                 await leagueCarouselViewModel.load(userID: userID)
+                // The desk previews this week's move, so the call starts here, beside the desk's
+                // own reads, rather than waiting for the Omen tab to be opened.
+                // Only when the held call is not already for this league, so returning to the desk
+                // does not re-ask (and flicker the preview).
+                async let call: Void = pickedLeagueScope == nil
+                    ? omenDecisionViewModel.load(userID: userID, scope: nil)
+                    : omenDecisionViewModel.loadIfLeagueChanged(userID: userID, scope: pickedLeagueScope)
                 await commandCenterViewModel.load(userID: userID, scope: pickedLeagueScope)
+                await call
             }
             .tabItem { CommandCenterTab.command.label }
             .tag(CommandCenterTab.command)
@@ -712,19 +724,22 @@ enum CommandCenterTab: String, Hashable, CaseIterable {
 
     var title: String {
         switch self {
-        case .command: return "Command"
+        // "Desk" since the whole-app canvas (2026-10-19). The case keeps its raw value so stored
+        // selections and screenshot scenarios stay valid.
+        case .command: return "Desk"
         case .omen: return "Omen"
         case .trade: return "Trade"
         case .league: return "League"
         }
     }
 
+    /// The canvas's stroke icons, as their nearest SF Symbols.
     var systemImage: String {
         switch self {
-        case .command: return "sparkles"
-        case .omen: return "bolt.fill"
+        case .command: return "menubar.rectangle"
+        case .omen: return "scope"
         case .trade: return "arrow.left.arrow.right"
-        case .league: return "person.3.fill"
+        case .league: return "chart.bar"
         }
     }
 

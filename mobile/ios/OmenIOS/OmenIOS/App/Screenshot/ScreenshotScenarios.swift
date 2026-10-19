@@ -1533,7 +1533,7 @@ struct RealSwitcherSheetScreenshotHost: View {
                 externalPresentation: $presented
             )
             .padding(.horizontal, OmenSpacing.step16)
-            Text("Command").omenTextStyle(OmenTypography.h2).foregroundStyle(OmenColor.textPrimary)
+            Text("Desk").omenTextStyle(OmenTypography.h2).foregroundStyle(OmenColor.textPrimary)
                 .padding(.horizontal, OmenSpacing.step16)
             Spacer()
         }

@@ -148,7 +148,7 @@
     "matchup": {
       "opponent": null,
       "status": "no_matchup",
-      "unavailable_reason": "pre_draft",
+      "unavailable_reason": "league_not_started",
       "you": null
     },
     "platform": "sleeper",

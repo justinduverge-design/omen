@@ -439,9 +439,9 @@ extension LeagueOverviewTests {
 
     /// The reason is a code; the screen says it in words and never shows the code.
     func testMatchupReasonCodesBecomeSentences() throws {
-        let preDraft = try decode(matchup: #"{"status":"no_matchup","you":null,"opponent":null,"unavailable_reason":"pre_draft"}"#)
-        guard case .unread(_, let sentence) = scoutState(preDraft).strip else { return XCTFail("expected unread") }
-        XCTAssertTrue(sentence.contains("hasn\u{2019}t drafted"))
+        let notStarted = try decode(matchup: #"{"status":"no_matchup","you":null,"opponent":null,"unavailable_reason":"league_not_started"}"#)
+        guard case .unread(_, let sentence) = scoutState(notStarted).strip else { return XCTFail("expected unread") }
+        XCTAssertTrue(sentence.contains("hasn\u{2019}t set its teams"))
 
         let failed = try decode(matchup: #"{"status":"unavailable","you":null,"opponent":null,"unavailable_reason":"provider_failed"}"#)
         guard case .unread(_, let failedSentence) = scoutState(failed).strip else { return XCTFail("expected unread") }

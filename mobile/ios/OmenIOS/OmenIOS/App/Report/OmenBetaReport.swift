@@ -62,7 +62,7 @@ enum OmenBetaReportScreen: String, CaseIterable, Identifiable {
     /// should not have to parse `omen_evidence`.
     var displayName: String {
         switch self {
-        case .commandCenter: return "Command"
+        case .commandCenter: return "Desk"
         case .omen: return "Omen"
         case .omenEvidence: return "Omen \u{2014} the full argument"
         case .startSit: return "Start / sit"
