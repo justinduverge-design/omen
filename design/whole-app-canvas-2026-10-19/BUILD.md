@@ -37,6 +37,15 @@ evidence are what make Omen more than a provider mirror. Every screen that shows
   - **League Needs:** "who needs what you have" ranks by Omen's read.
   - **Warehouse evidence:** usage share, role change, injuries, Vegas and weather appear as portents
     wherever the server sends them. Missing evidence is fog, never zero.
+- **Omen screen, founder notes (2026-10-19), to apply when that screen is built:**
+  - **Real numbers, not only projections.** Each player in the call shows actual points this season,
+    the last few games, and usage (snaps, targets, carries, red-zone share) from the warehouse,
+    beside the projections.
+  - **"What moved this call" is Omen's read.** Show the `sight` drivers as named factors with their
+    point effect (role change, matchup, Vegas, weather). This is what the read and the warehouse are for.
+  - **"What Omen couldn't read" only when it is true.** Audit every limitation line against today's
+    reads. Remove those the warehouse now covers, and show a fog line only for data actually missing
+    in this response.
 - **Rule:** the app never picks a winner itself. The server's `authority.state` decides
   `provider_leads`, `omen_leads` or `unresolved_tie`.
 
