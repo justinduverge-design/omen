@@ -75,19 +75,14 @@ async function resolveUserId() {
   // different names, and guessing produced "supabaseUrl is required".
   const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
 
-  const { data, error } = await supabase
-    .from("platform_connections")
-    .select("user_id")
-    .eq("platform", "yahoo");
+  const { data, error } = await supabase.from("platform_connections").select("user_id").eq("platform", "yahoo");
 
   if (error) throw new Error(`could not list Yahoo connections: ${error.message}`);
   const ids = [...new Set((data || []).map((r) => r.user_id))];
 
   if (!ids.length) throw new Error("no Yahoo connection exists. Connect Yahoo first.");
   if (ids.length > 1) {
-    throw new Error(
-      `${ids.length} Yahoo connections exist. Re-run with one of:\n  ` + ids.join("\n  ")
-    );
+    throw new Error(`${ids.length} Yahoo connections exist. Re-run with one of:\n  ` + ids.join("\n  "));
   }
   console.log(`Using the only Yahoo connection: ${ids[0]}`);
   return ids[0];

@@ -26,10 +26,14 @@ test("production access logging omits OAuth query parameters and referrers", () 
     res: () => "0",
     "response-time": () => "4.2",
   };
-  const line = accessLogFormat(tokens, {
-    originalUrl: "/api/yahoo/callback?code=authorization-code&state=csrf-state",
-    headers: { referer: "https://provider.example/callback?code=other-code" },
-  }, {});
+  const line = accessLogFormat(
+    tokens,
+    {
+      originalUrl: "/api/yahoo/callback?code=authorization-code&state=csrf-state",
+      headers: { referer: "https://provider.example/callback?code=other-code" },
+    },
+    {},
+  );
 
   assert.match(line, /GET \/api\/yahoo\/callback HTTP\/1\.1/);
   assert.equal(line.includes("authorization-code"), false);

@@ -21,17 +21,15 @@ function player(id, positions, points) {
 
 test("solveOptimalLineup fills constrained slots before flex and maximizes projection", () => {
   const result = solveOptimalLineup({
-    players: [
-      player("qb", ["QB"], 20),
-      player("wr", ["WR"], 15),
-      player("rb", ["RB"], 14),
-      player("te", ["TE"], 9),
-    ],
+    players: [player("qb", ["QB"], 20), player("wr", ["WR"], 15), player("rb", ["RB"], 14), player("te", ["TE"], 9)],
     rosterPositions: ["QB", "WR", "FLEX"],
   });
 
   assert.equal(result.total, 49);
-  assert.deepEqual(result.starters.map((row) => row.player.player_id), ["qb", "wr", "rb"]);
+  assert.deepEqual(
+    result.starters.map((row) => row.player.player_id),
+    ["qb", "wr", "rb"],
+  );
 });
 
 test("solveOptimalLineup supports super-flex and leaves unprojected players out", () => {
@@ -46,7 +44,10 @@ test("solveOptimalLineup supports super-flex and leaves unprojected players out"
   });
 
   assert.equal(result.total, 54);
-  assert.deepEqual(result.starters.map((row) => row.player.player_id), ["qb-one", "qb-two", "wr"]);
+  assert.deepEqual(
+    result.starters.map((row) => row.player.player_id),
+    ["qb-one", "qb-two", "wr"],
+  );
 });
 
 test("solveOptimalLineup leaves an unfillable slot empty instead of inventing points", () => {
@@ -75,8 +76,27 @@ test("solveOptimalLineup keeps IR and taxi players tradeable but out of starting
 
 test("findTradeCandidate keeps only a fair swap that improves both starting lineups", () => {
   const result = findTradeCandidate({
-    ownTeam: { roster_id: "mine", players: [player("my-rb", ["RB"], 18), player("rb-one", ["RB"], 20), player("rb-two", ["RB"], 19), player("low-wr", ["WR"], 5)] },
-    opponentTeams: [{ roster_id: "other", team_name: "Team 2", players: [player("their-wr", ["WR"], 12), player("wr-one", ["WR"], 20), player("wr-two", ["WR"], 19), player("low-rb", ["RB"], 5)] }],
+    ownTeam: {
+      roster_id: "mine",
+      players: [
+        player("my-rb", ["RB"], 18),
+        player("rb-one", ["RB"], 20),
+        player("rb-two", ["RB"], 19),
+        player("low-wr", ["WR"], 5),
+      ],
+    },
+    opponentTeams: [
+      {
+        roster_id: "other",
+        team_name: "Team 2",
+        players: [
+          player("their-wr", ["WR"], 12),
+          player("wr-one", ["WR"], 20),
+          player("wr-two", ["WR"], 19),
+          player("low-rb", ["RB"], 5),
+        ],
+      },
+    ],
     rosterPositions: ["RB", "RB", "WR"],
     fairnessGuard: () => true,
   });
@@ -132,7 +152,7 @@ test("findTradeCandidate cannot block the event loop on a real league (2026-09-0
   // off. Measured locally at ~65ms, against roughly 15 minutes for the exhaustive version.
   assert.ok(
     elapsed < 5_000,
-    `trade search took ${elapsed}ms; the exact solver should finish this in well under a second`
+    `trade search took ${elapsed}ms; the exact solver should finish this in well under a second`,
   );
   // These rosters are deliberately identical in shape, so no swap improves both teams and
   // `null` here means "no good trade", not "gave up". The test above proves trades are still
@@ -178,7 +198,7 @@ test("a deep league finishes on its merits rather than tripping the solve cap", 
   assert.equal(
     budget.stats.exceeded,
     false,
-    `budget tripped after ${budget.stats.solves} solves in ${elapsed}ms; a 16-team league must be searchable`
+    `budget tripped after ${budget.stats.solves} solves in ${elapsed}ms; a 16-team league must be searchable`,
   );
   // And it is still nowhere near the clock, which is the limit that protects the event loop.
   assert.ok(elapsed < 5_000, `deep-league search took ${elapsed}ms`);
@@ -218,7 +238,10 @@ test("the fast solver cannot be truncated, so it always answers exhaustively", (
 // of the right answer, just far too slow to ship.
 test("the fast solver returns the exhaustive search's answer on randomised rosters", () => {
   let seed = 12345;
-  const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+  const rnd = () => {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    return seed / 0x7fffffff;
+  };
   const pick = (a) => a[Math.floor(rnd() * a.length)];
   const POSITIONS = ["QB", "RB", "WR", "TE", "K", "DEF"];
   const SLOT_SETS = [
@@ -248,7 +271,7 @@ test("the fast solver returns the exhaustive search's answer on randomised roste
     const exhaustive = solveOptimalLineupExhaustive({ players, rosterPositions });
     assert.ok(
       Math.abs(fast.total - exhaustive.total) < 1e-6,
-      `trial ${trial}: fast=${fast.total} exhaustive=${exhaustive.total} slots=${JSON.stringify(rosterPositions)}`
+      `trial ${trial}: fast=${fast.total} exhaustive=${exhaustive.total} slots=${JSON.stringify(rosterPositions)}`,
     );
   }
 });
@@ -275,17 +298,14 @@ test("a player parked in an ineligible slot is never started", () => {
 
   for (const slot of ["IR", "TAXI", "INV", "ALL"]) {
     const result = solveOptimalLineup({
-      players: [
-        player("rb", ["RB"], 5),
-        parked("parked", slot, 99),
-      ],
+      players: [player("rb", ["RB"], 5), parked("parked", slot, 99)],
       rosterPositions: ["RB"],
     });
 
     assert.deepEqual(
       result.starters.map((row) => row.player.player_id),
       ["rb"],
-      `${slot} must not be startable`
+      `${slot} must not be startable`,
     );
     assert.equal(result.total, 5, `${slot} must not contribute points`);
   }
@@ -302,6 +322,9 @@ test("a benched player is still lineup-eligible", () => {
     rosterPositions: ["RB"],
   });
 
-  assert.deepEqual(result.starters.map((row) => row.player.player_id), ["benched"]);
+  assert.deepEqual(
+    result.starters.map((row) => row.player.player_id),
+    ["benched"],
+  );
   assert.equal(result.total, 22);
 });

@@ -16,16 +16,7 @@ const TITLE_SIZE = {
   lg: 'text-5xl sm:text-6xl',
 };
 
-const PageHero = ({
-  eyebrow,
-  title,
-  subtitle,
-  trailing,
-  status,
-  size = 'md',
-  className = '',
-  ...props
-}) => {
+const PageHero = ({ eyebrow, title, subtitle, trailing, status, size = 'md', className = '', ...props }) => {
   const titleSize = TITLE_SIZE[size] ?? TITLE_SIZE.md;
   return (
     <div className={`flex flex-col gap-4 mb-8 ${className}`} {...props}>
@@ -33,40 +24,27 @@ const PageHero = ({
       {(eyebrow || status) && (
         <div className="flex items-center gap-3 text-(--color-text-tertiary)">
           {eyebrow && (
-            <p
-              aria-hidden="false"
-              className="font-mono text-xs font-medium uppercase tracking-wider"
-            >
+            <p aria-hidden="false" className="font-mono text-xs font-medium uppercase tracking-wider">
               {eyebrow}
             </p>
           )}
-          {eyebrow && status && <span aria-hidden="true" className="opacity-50">•</span>}
-          {status && (
-            <div className="flex items-center">
-              {status}
-            </div>
+          {eyebrow && status && (
+            <span aria-hidden="true" className="opacity-50">
+              •
+            </span>
           )}
+          {status && <div className="flex items-center">{status}</div>}
         </div>
       )}
 
       {/* Main row: Title + Trailing slot */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div className="flex flex-col gap-2">
-          <h1 className={`font-display ${titleSize} font-bold text-(--color-text-primary)`}>
-            {title}
-          </h1>
-          {subtitle && (
-            <p className="font-sans text-base text-(--color-text-secondary) max-w-2xl">
-              {subtitle}
-            </p>
-          )}
+          <h1 className={`font-display ${titleSize} font-bold text-(--color-text-primary)`}>{title}</h1>
+          {subtitle && <p className="font-sans text-base text-(--color-text-secondary) max-w-2xl">{subtitle}</p>}
         </div>
 
-        {trailing && (
-          <div className="shrink-0 flex items-center gap-3">
-            {trailing}
-          </div>
-        )}
+        {trailing && <div className="shrink-0 flex items-center gap-3">{trailing}</div>}
       </div>
     </div>
   );

@@ -17,20 +17,32 @@ function warmUp({
   // Off-season there is nothing to pre-fetch for: the football-data downloads are skipped.
   const downloads = (tasks) => (suppressDownloads() ? {} : tasks);
   const tasks = loaders || {
-    warehouse: async () => { await getRuntime()?.warm?.(); },
+    warehouse: async () => {
+      await getRuntime()?.warm?.();
+    },
     ...downloads({
-    season_bundle: () => require("./fantasyMetrics/fantasyMetricsData").getSeasonBundle({ season: Number(getSeason()), log: logger }),
-    usage: () => require("./playerUsage").warm({ season: Number(getSeason()) }),
-    dvp: () => require("./matchupService").warm({ season: Number(getSeason()) }),
+      season_bundle: () =>
+        require("./fantasyMetrics/fantasyMetricsData").getSeasonBundle({ season: Number(getSeason()), log: logger }),
+      usage: () => require("./playerUsage").warm({ season: Number(getSeason()) }),
+      dvp: () => require("./matchupService").warm({ season: Number(getSeason()) }),
     }),
   };
   const started = Object.entries(tasks).map(([name, load]) => {
     let promise;
-    try { promise = Promise.resolve(load()); } catch (error) { promise = Promise.reject(error); }
-    return promise.then(() => null, (error) => {
-      try { logger?.warn?.("Cold-start warm-up skipped", { task: name, reason: error?.code || error?.name || "error" }); } catch {}
-      return name;
-    });
+    try {
+      promise = Promise.resolve(load());
+    } catch (error) {
+      promise = Promise.reject(error);
+    }
+    return promise.then(
+      () => null,
+      (error) => {
+        try {
+          logger?.warn?.("Cold-start warm-up skipped", { task: name, reason: error?.code || error?.name || "error" });
+        } catch {}
+        return name;
+      },
+    );
   });
   return Promise.all(started);
 }
@@ -62,8 +74,12 @@ function scheduleWarmUp({
       if (Number.isFinite(last) && now() - last < MIN_INTERVAL_MS) return null;
     } catch {}
     const timer = setTimer(() => {
-      try { fs.writeFileSync(stampPath, String(now())); } catch {}
-      try { run({ logger }); } catch {}
+      try {
+        fs.writeFileSync(stampPath, String(now()));
+      } catch {}
+      try {
+        run({ logger });
+      } catch {}
     }, delayMs);
     timer?.unref?.();
     return timer;

@@ -24,9 +24,7 @@ const {
 const router = express.Router();
 const ROSTER_TTL_S = 300;
 
-const redis = config.redisUrl
-  ? new Redis({ url: config.redisUrl, token: config.redisToken })
-  : null;
+const redis = config.redisUrl ? new Redis({ url: config.redisUrl, token: config.redisToken }) : null;
 
 async function readCache(key) {
   if (!redis) return null;
@@ -57,14 +55,8 @@ function draftError(res, error, operation) {
   ]).has(error?.code);
   const notFound = error?.status === 404;
   const status = notFound ? 404 : 503;
-  const code = safeCode
-    ? error.code
-    : notFound
-      ? "sleeper_draft_not_found"
-      : "sleeper_draft_unavailable";
-  const message = safeCode || notFound
-    ? error.message
-    : "Sleeper draft data is temporarily unavailable";
+  const code = safeCode ? error.code : notFound ? "sleeper_draft_not_found" : "sleeper_draft_unavailable";
+  const message = safeCode || notFound ? error.message : "Sleeper draft data is temporarily unavailable";
 
   logger.warn("Sleeper draft request failed", {
     operation,
@@ -119,11 +111,13 @@ if (config.draftAssistant.enabled) {
 
       const draft = await sleeperAdapter.fetchSleeperDraft(draftId);
       const connection = await sleeperDraftAccess.assertDraftAccess(req.user.id, draft);
-      return res.json(buildDraftMetaResponse({
-        draftId,
-        draft,
-        platformUserId: connection.platform_user_id,
-      }));
+      return res.json(
+        buildDraftMetaResponse({
+          draftId,
+          draft,
+          platformUserId: connection.platform_user_id,
+        }),
+      );
     } catch (e) {
       return draftError(res, e, "meta");
     }
@@ -147,14 +141,16 @@ if (config.draftAssistant.enabled) {
       ]);
       const connection = await sleeperDraftAccess.assertDraftAccess(req.user.id, draft);
 
-      return res.json(buildDraftStateResponse({
-        draftId,
-        draft,
-        picks,
-        since: sinceCursor,
-        debounceMs: DEFAULT_DEBOUNCE_MS,
-        platformUserId: connection.platform_user_id,
-      }));
+      return res.json(
+        buildDraftStateResponse({
+          draftId,
+          draft,
+          picks,
+          since: sinceCursor,
+          debounceMs: DEFAULT_DEBOUNCE_MS,
+          platformUserId: connection.platform_user_id,
+        }),
+      );
     } catch (e) {
       return draftError(res, e, "state");
     }
@@ -171,7 +167,9 @@ router.get("/roster", requireAuth, async (req, res, next) => {
       return res.status(400).json({ error: "leagueId query param required" });
     }
     if (!week) {
-      return res.status(400).json({ error: "week query param required; use GET /api/system/current-week to resolve it" });
+      return res
+        .status(400)
+        .json({ error: "week query param required; use GET /api/system/current-week to resolve it" });
     }
 
     const wk = parseInt(week, 10);

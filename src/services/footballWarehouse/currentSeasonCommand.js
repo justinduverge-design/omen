@@ -1,7 +1,11 @@
 "use strict";
 
 const { parseWarehouseRuntimeConfig } = require("./runtimeConfig");
-const { createWarehousePool, createCurrentSeasonComposition, createCurrentSeasonValidationComposition } = require("./currentSeasonComposition");
+const {
+  createWarehousePool,
+  createCurrentSeasonComposition,
+  createCurrentSeasonValidationComposition,
+} = require("./currentSeasonComposition");
 const { verifyWarehouseTarget } = require("./targetIdentity");
 const { createDerivedStages } = require("./derivedStages");
 const { createProjectionStages } = require("./projectionStages");
@@ -25,20 +29,29 @@ function parseArgs(argv = []) {
 
 function safeCode(error) {
   return typeof error?.code === "string" && /^[a-z0-9_]{1,64}$/.test(error.code)
-    ? error.code : "warehouse_command_failed";
+    ? error.code
+    : "warehouse_command_failed";
 }
 
 function withDeadline(promise, timeoutMs) {
   let timer;
   const deadline = new Promise((resolve, reject) => {
-    timer = setTimeout(() => reject(Object.assign(new Error("shutdown timed out"), { code: "shutdown_timeout" })), timeoutMs);
+    timer = setTimeout(
+      () => reject(Object.assign(new Error("shutdown timed out"), { code: "shutdown_timeout" })),
+      timeoutMs,
+    );
   });
   return Promise.race([Promise.resolve(promise), deadline]).finally(() => clearTimeout(timer));
 }
 
 async function runCurrentSeasonCommand({
-  argv = [], env = process.env, Pool, output = () => {}, signalSource = process,
-  parseConfig = parseWarehouseRuntimeConfig, createPool = createWarehousePool,
+  argv = [],
+  env = process.env,
+  Pool,
+  output = () => {},
+  signalSource = process,
+  parseConfig = parseWarehouseRuntimeConfig,
+  createPool = createWarehousePool,
   createIngest = createCurrentSeasonComposition,
   createValidation = createCurrentSeasonValidationComposition,
   verifyTarget = verifyWarehouseTarget,
@@ -49,12 +62,16 @@ async function runCurrentSeasonCommand({
   const config = parseConfig({ env, requireDatabase: args.mode === "ingest" });
   if (args.mode === "config") {
     const result = { job: "football-warehouse-current-season", mode: args.mode, state: "validated" };
-    output(result); return result;
+    output(result);
+    return result;
   }
 
   const controller = new AbortController();
   let interrupted = false;
-  const onSignal = () => { interrupted = true; controller.abort(); };
+  const onSignal = () => {
+    interrupted = true;
+    controller.abort();
+  };
   signalSource.once("SIGINT", onSignal);
   signalSource.once("SIGTERM", onSignal);
   let pool;
@@ -66,7 +83,8 @@ async function runCurrentSeasonCommand({
       const summary = await runner.run({ season: args.season, mode: "validate", signal: controller.signal });
       if (interrupted) throw Object.assign(new Error("interrupted"), { code: "interrupted" });
       const result = { job: "football-warehouse-current-season", state: "validated", ...summary };
-      output(result); return result;
+      output(result);
+      return result;
     }
     if (env.FOOTBALL_WAREHOUSE_INGEST_ENABLED !== "true") {
       throw Object.assign(new Error("ingest is disabled"), { code: "ingest_disabled" });
@@ -78,31 +96,58 @@ async function runCurrentSeasonCommand({
     const summary = await runner.run({ season: args.season, mode: "ingest", signal: controller.signal });
     if (interrupted) throw Object.assign(new Error("interrupted"), { code: "interrupted" });
     // Opt-in: derived stages (opportunity table, RAT-QB v0) read the facts just committed above.
-    const derived = env.FOOTBALL_WAREHOUSE_DERIVED_ENABLED === "true"
-      ? await createDerived({ pool, mode: env.FOOTBALL_WAREHOUSE_DERIVED_FAILURE_MODE === "report" ? "report" : "strict" }).run({ season: args.season }) : undefined;
+    const derived =
+      env.FOOTBALL_WAREHOUSE_DERIVED_ENABLED === "true"
+        ? await createDerived({
+            pool,
+            mode: env.FOOTBALL_WAREHOUSE_DERIVED_FAILURE_MODE === "report" ? "report" : "strict",
+          }).run({ season: args.season })
+        : undefined;
     if (interrupted) throw Object.assign(new Error("interrupted"), { code: "interrupted" });
     // Opt-in: third-party weekly projections (rights pending, kill switch FOOTBALL_PROJECTIONS_DISABLED=1). Always
     // report mode here: whatever happens, projections never fail the nflverse ingest that already committed.
     let projections;
     if (env.FOOTBALL_WAREHOUSE_PROJECTIONS_ENABLED === "true") {
-      try { projections = await createProjections({ pool, mode: "report", env }).run({ season: args.season }); } catch (error) {
+      try {
+        projections = await createProjections({ pool, mode: "report", env }).run({ season: args.season });
+      } catch (error) {
         projections = { state: "failed", code: safeCode(error) };
       }
     }
     if (interrupted) throw Object.assign(new Error("interrupted"), { code: "interrupted" });
-    completedResult = { job: "football-warehouse-current-season", state: "succeeded", ...summary, ...(derived ? { derived } : {}), ...(projections ? { projections } : {}) };
+    completedResult = {
+      job: "football-warehouse-current-season",
+      state: "succeeded",
+      ...summary,
+      ...(derived ? { derived } : {}),
+      ...(projections ? { projections } : {}),
+    };
   } catch (error) {
     primaryError = error;
-    output({ job: "football-warehouse-current-season", mode: args.mode, season: args.season, state: "failed", code: safeCode(error) });
+    output({
+      job: "football-warehouse-current-season",
+      mode: args.mode,
+      season: args.season,
+      state: "failed",
+      code: safeCode(error),
+    });
     throw error;
   } finally {
     signalSource.removeListener("SIGINT", onSignal);
     signalSource.removeListener("SIGTERM", onSignal);
     if (pool) {
       pool.removeListener?.("error", onSignal);
-      try { await withDeadline(pool.end(), config.shutdownTimeoutMillis); } catch (error) {
+      try {
+        await withDeadline(pool.end(), config.shutdownTimeoutMillis);
+      } catch (error) {
         if (!primaryError) {
-          output({ job: "football-warehouse-current-season", mode: args.mode, season: args.season, state: "failed", code: safeCode(error) });
+          output({
+            job: "football-warehouse-current-season",
+            mode: args.mode,
+            season: args.season,
+            state: "failed",
+            code: safeCode(error),
+          });
           // biome-ignore lint/correctness/noUnsafeFinally: surface a shutdown failure only when the run itself succeeded
           throw error;
         }

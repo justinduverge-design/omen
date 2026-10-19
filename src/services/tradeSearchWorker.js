@@ -15,7 +15,9 @@ parentPort.on("message", ({ id, kind, args, fairness, budgetMs }) => {
     const input = {
       ...args,
       budget: createSearchBudget({ budgetMs }),
-      onBudgetExceeded: (stats) => { budgetEvents.push(stats); },
+      onBudgetExceeded: (stats) => {
+        budgetEvents.push(stats);
+      },
     };
     if (fairness) input.fairnessGuard = FAIRNESS_GUARDS[fairness];
     const result = kind === "league" ? findLeagueTradeCandidates(input) : findTradeCandidate(input);

@@ -30,7 +30,9 @@ function defaultLogger() {
   if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY) {
     try {
       return require("../middleware/logging").logger;
-    } catch { /* fall through */ }
+    } catch {
+      /* fall through */
+    }
   }
   return {
     warn: (message, meta) => process.stderr.write(`${JSON.stringify({ level: "warn", message, ...meta })}\n`),
@@ -65,7 +67,11 @@ function createNarrationGuard({
 
   const log = (message, meta) => {
     const sink = logger || defaultLogger();
-    try { sink?.warn?.(message, meta); } catch { /* logging must never break a request */ }
+    try {
+      sink?.warn?.(message, meta);
+    } catch {
+      /* logging must never break a request */
+    }
   };
 
   function recordSuccess(site, admittedEpoch) {
@@ -125,7 +131,10 @@ function createNarrationGuard({
       const raced = await Promise.race([
         Promise.resolve().then(() => operation(controller.signal)),
         new Promise((resolve) => {
-          timer = setTimeout(() => { controller.abort(); resolve(timedOut); }, budgetMs);
+          timer = setTimeout(() => {
+            controller.abort();
+            resolve(timedOut);
+          }, budgetMs);
         }),
       ]);
       if (raced === timedOut) {
@@ -148,8 +157,13 @@ function createNarrationGuard({
 
   return {
     run,
-    state: () => (openedAt === null ? "closed" : (now() - openedAt < openMs ? "open" : "half_open")),
-    reset() { consecutiveFailures = 0; openedAt = null; probeInFlight = false; epoch += 1; },
+    state: () => (openedAt === null ? "closed" : now() - openedAt < openMs ? "open" : "half_open"),
+    reset() {
+      consecutiveFailures = 0;
+      openedAt = null;
+      probeInFlight = false;
+      epoch += 1;
+    },
   };
 }
 

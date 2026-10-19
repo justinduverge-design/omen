@@ -12,8 +12,7 @@
 
 const { getStadium, stadiumDistanceMiles } = require("../data/nflStadiums");
 
-const ESPN_SCOREBOARD_URL =
-  "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard";
+const ESPN_SCOREBOARD_URL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard";
 
 const FETCH_TIMEOUT_MS = 5000;
 
@@ -271,7 +270,9 @@ async function _fetchScoreboard() {
  * Returns null if no game found (bye week, offseason).
  */
 async function getGameInfoDetails(teamAbbr) {
-  const abbr = String(teamAbbr || "").trim().toUpperCase();
+  const abbr = String(teamAbbr || "")
+    .trim()
+    .toUpperCase();
   if (!/^[A-Z]{2,3}$/.test(abbr)) {
     return { status: "insufficient_context", reason: "nfl_team_missing_or_invalid" };
   }
@@ -285,56 +286,63 @@ async function getGameInfoDetails(teamAbbr) {
   const scoreboard = await _fetchScoreboardResult();
   if (scoreboard.status !== "available") return scoreboard;
   const events = scoreboard.events;
-  if (!events.length) return { status: "unavailable", reason: "no_games_on_scoreboard", ..._sourceTiming(Date.parse(scoreboard.observed_at)) };
+  if (!events.length)
+    return {
+      status: "unavailable",
+      reason: "no_games_on_scoreboard",
+      ..._sourceTiming(Date.parse(scoreboard.observed_at)),
+    };
 
   for (const event of events) {
     const competition = event?.competitions?.[0];
     if (!competition) continue;
 
     const competitors = competition?.competitors || [];
-    const myTeam = competitors.find(
-      c => String(c?.team?.abbreviation || "").toUpperCase() === abbr
-    );
+    const myTeam = competitors.find((c) => String(c?.team?.abbreviation || "").toUpperCase() === abbr);
     if (!myTeam) continue;
 
-    const oppTeam = competitors.find(
-      c => String(c?.team?.abbreviation || "").toUpperCase() !== abbr
-    );
+    const oppTeam = competitors.find((c) => String(c?.team?.abbreviation || "").toUpperCase() !== abbr);
 
     const homeAwayRaw = String(myTeam.homeAway || "").toLowerCase();
     if (homeAwayRaw !== "home" && homeAwayRaw !== "away") {
-      return { status: "failed", reason: "scoreboard_home_away_missing", ..._sourceTiming(Date.parse(scoreboard.observed_at)) };
+      return {
+        status: "failed",
+        reason: "scoreboard_home_away_missing",
+        ..._sourceTiming(Date.parse(scoreboard.observed_at)),
+      };
     }
-    const homeAway    = homeAwayRaw === "home" ? "Home" : "Away";
-    const oppAbbr     = String(oppTeam?.team?.abbreviation || "").toUpperCase();
-    const oppName     = oppTeam?.team?.displayName || oppAbbr;
-    const kickoffUtc  = event?.date || null;
-    const venueData   = competition?.venue || {};
+    const homeAway = homeAwayRaw === "home" ? "Home" : "Away";
+    const oppAbbr = String(oppTeam?.team?.abbreviation || "").toUpperCase();
+    const oppName = oppTeam?.team?.displayName || oppAbbr;
+    const kickoffUtc = event?.date || null;
+    const venueData = competition?.venue || {};
 
     if (!/^[A-Z]{2,3}$/.test(oppAbbr) || !Number.isFinite(Date.parse(kickoffUtc))) {
-      return { status: "failed", reason: "scoreboard_game_context_incomplete", ..._sourceTiming(Date.parse(scoreboard.observed_at)) };
+      return {
+        status: "failed",
+        reason: "scoreboard_game_context_incomplete",
+        ..._sourceTiming(Date.parse(scoreboard.observed_at)),
+      };
     }
 
-    const homeTeamComp = competitors.find(c => c.homeAway === "home");
+    const homeTeamComp = competitors.find((c) => c.homeAway === "home");
     const homeTeamAbbr = String(homeTeamComp?.team?.abbreviation || "").toUpperCase();
-    const stadium      = getStadium(homeTeamAbbr);
+    const stadium = getStadium(homeTeamAbbr);
 
-    const travelMiles = homeAway === "Away"
-      ? stadiumDistanceMiles(abbr, homeTeamAbbr)
-      : 0;
+    const travelMiles = homeAway === "Away" ? stadiumDistanceMiles(abbr, homeTeamAbbr) : 0;
 
     const result = {
-      kickoff_utc:   kickoffUtc,
+      kickoff_utc: kickoffUtc,
       kickoff_local: _formatKickoff(kickoffUtc),
-      tv_slate:      _getTvSlate(kickoffUtc, event?.name || ""),
-      home_away:     homeAway,
+      tv_slate: _getTvSlate(kickoffUtc, event?.name || ""),
+      home_away: homeAway,
       opponent_abbr: oppAbbr,
       opponent_name: oppName,
-      venue_name:    stadium?.name || venueData?.fullName || "Unknown Venue",
-      is_dome:       stadium?.is_dome ?? (venueData?.indoor || false),
-      venue_lat:     stadium?.lat || null,
-      venue_lng:     stadium?.lng || null,
-      travel_miles:  travelMiles,
+      venue_name: stadium?.name || venueData?.fullName || "Unknown Venue",
+      is_dome: stadium?.is_dome ?? (venueData?.indoor || false),
+      venue_lat: stadium?.lat || null,
+      venue_lng: stadium?.lng || null,
+      travel_miles: travelMiles,
     };
 
     const now = Date.now();
@@ -343,7 +351,11 @@ async function getGameInfoDetails(teamAbbr) {
   }
 
   _logger().info("nflSchedule: no game found for team", { team: abbr });
-  return { status: "unavailable", reason: "team_has_no_game_on_scoreboard", ..._sourceTiming(Date.parse(scoreboard.observed_at)) };
+  return {
+    status: "unavailable",
+    reason: "team_has_no_game_on_scoreboard",
+    ..._sourceTiming(Date.parse(scoreboard.observed_at)),
+  };
 }
 
 /**
@@ -359,12 +371,14 @@ function _formatKickoff(isoString) {
   if (!isoString) return "TBD";
   try {
     const d = new Date(isoString);
-    return d.toLocaleTimeString("en-US", {
-      timeZone: "America/New_York",
-      hour:     "numeric",
-      minute:   "2-digit",
-      hour12:   true,
-    }) + " ET";
+    return (
+      d.toLocaleTimeString("en-US", {
+        timeZone: "America/New_York",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      }) + " ET"
+    );
   } catch {
     return "TBD";
   }
@@ -383,9 +397,9 @@ function _getTvSlate(isoString, eventName) {
     const hourET = Number(
       d.toLocaleString("en-US", {
         timeZone: "America/New_York",
-        hour:     "numeric",
-        hour12:   false,
-      })
+        hour: "numeric",
+        hour12: false,
+      }),
     );
     if (hourET >= 20) return "Sunday Night";
     if (hourET >= 16) return "Late 4:25PM";
@@ -398,7 +412,6 @@ function _getTvSlate(isoString, eventName) {
 function __clearCache() {
   _cache.clear();
 }
-
 
 /**
  * The NFL **game week** — Tuesday-anchored, and the phase within it.
@@ -443,9 +456,7 @@ const GAME_WEEK_PHASES = Object.freeze({
   OFF_SEASON: "off_season",
 });
 
-const DAY_NAMES = Object.freeze([
-  "sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday",
-]);
+const DAY_NAMES = Object.freeze(["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]);
 
 /**
  * `{ week, phase, day, is_off_season }`.

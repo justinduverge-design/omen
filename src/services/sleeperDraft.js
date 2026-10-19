@@ -73,15 +73,13 @@ function normalizeDraftListEntry(draft = {}) {
 }
 
 function normalizeDraftMeta(draft = {}, platformUserId = null) {
-  const userDraftSlot = platformUserId && draft.draft_order
-    ? (draft.draft_order[String(platformUserId)] ?? null)
-    : null;
+  const userDraftSlot =
+    platformUserId && draft.draft_order ? (draft.draft_order[String(platformUserId)] ?? null) : null;
   return {
     ...normalizeDraftListEntry(draft),
     user_draft_slot: userDraftSlot,
-    slot_to_roster_id: draft.slot_to_roster_id && typeof draft.slot_to_roster_id === "object"
-      ? { ...draft.slot_to_roster_id }
-      : null,
+    slot_to_roster_id:
+      draft.slot_to_roster_id && typeof draft.slot_to_roster_id === "object" ? { ...draft.slot_to_roster_id } : null,
     last_picked: draft.last_picked || null,
     last_message_time: draft.last_message_time || null,
   };
@@ -105,8 +103,7 @@ function normalizePick(pick = {}, platformUserId = null) {
     round: intOr(pick.round, 0),
     draft_slot: intOr(pick.draft_slot, 0),
     roster_id: pick.roster_id ?? null,
-    is_user_pick: Boolean(platformUserId)
-      && String(pick.picked_by || "") === String(platformUserId),
+    is_user_pick: Boolean(platformUserId) && String(pick.picked_by || "") === String(platformUserId),
     player_id: pick.player_id ? String(pick.player_id) : null,
     is_keeper: pick.is_keeper === true,
     metadata: safeMetadata(pick.metadata),
@@ -138,13 +135,10 @@ function computeOnTheClock(draft, totalPicksTaken) {
   const round = Math.floor((nextPickNo - 1) / teams) + 1;
   const indexInRound = ((nextPickNo - 1) % teams) + 1;
   const snake = isSnakeDraft(draft.type);
-  const draftSlot = snake && round % 2 === 0
-    ? teams - indexInRound + 1
-    : indexInRound;
+  const draftSlot = snake && round % 2 === 0 ? teams - indexInRound + 1 : indexInRound;
 
-  const slotToRoster = draft.slot_to_roster_id && typeof draft.slot_to_roster_id === "object"
-    ? draft.slot_to_roster_id
-    : null;
+  const slotToRoster =
+    draft.slot_to_roster_id && typeof draft.slot_to_roster_id === "object" ? draft.slot_to_roster_id : null;
   const rosterId = slotToRoster ? (slotToRoster[String(draftSlot)] ?? null) : null;
 
   return {
@@ -181,9 +175,7 @@ function buildDraftStateResponse({
   debounceMs = DEFAULT_DEBOUNCE_MS,
   platformUserId = null,
 }) {
-  const allPicks = Array.isArray(picks)
-    ? picks.map((pick) => normalizePick(pick, platformUserId))
-    : [];
+  const allPicks = Array.isArray(picks) ? picks.map((pick) => normalizePick(pick, platformUserId)) : [];
   allPicks.sort((a, b) => a.pick_no - b.pick_no);
 
   const sinceCursor = intOr(since, 0);
@@ -192,9 +184,7 @@ function buildDraftStateResponse({
   const totalPicks = allPicks.length;
   const settings = safeSettings(draft?.settings);
   const totalSlots = settings.teams * settings.rounds || 0;
-  const currentPickNo = totalSlots && totalPicks >= totalSlots
-    ? totalSlots
-    : totalPicks + 1;
+  const currentPickNo = totalSlots && totalPicks >= totalSlots ? totalSlots : totalPicks + 1;
 
   return {
     contract_version: SLEEPER_DRAFT_STATE_VERSION,

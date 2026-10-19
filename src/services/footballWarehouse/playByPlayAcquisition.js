@@ -1,11 +1,7 @@
 "use strict";
 
 const MAX_SOURCE_BYTES = 256 * 1024 * 1024;
-const ALLOWED_CONTENT_TYPES = new Set([
-  "application/gzip",
-  "application/octet-stream",
-  "application/x-gzip",
-]);
+const ALLOWED_CONTENT_TYPES = new Set(["application/gzip", "application/octet-stream", "application/x-gzip"]);
 
 const sourceUrlForSeason = (season) =>
   `https://github.com/nflverse/nflverse-data/releases/download/pbp/play_by_play_${season}.csv.gz`;
@@ -23,7 +19,9 @@ function abortError() {
 }
 
 async function cancelBody(body, reason) {
-  try { await body?.cancel?.(reason); } catch {}
+  try {
+    await body?.cancel?.(reason);
+  } catch {}
 }
 
 async function readBoundedBody(body, { signal, maxBytes = MAX_SOURCE_BYTES } = {}) {
@@ -42,7 +40,9 @@ async function readBoundedBody(body, { signal, maxBytes = MAX_SOURCE_BYTES } = {
       if (value.byteLength) chunks.push(Buffer.from(value.buffer, value.byteOffset, value.byteLength));
     }
   } catch (error) {
-    try { await reader.cancel(error); } catch {}
+    try {
+      await reader.cancel(error);
+    } catch {}
     throw error;
   } finally {
     reader.releaseLock();
@@ -71,7 +71,8 @@ async function acquirePlayByPlaySource({
     redirect: "follow",
     signal,
   });
-  if (!response || typeof response.status !== "number" || !response.headers) throw new TypeError("source response is invalid");
+  if (!response || typeof response.status !== "number" || !response.headers)
+    throw new TypeError("source response is invalid");
   if (response.status < 200 || response.status > 299) {
     const error = new Error(`source request failed with HTTP ${response.status}`);
     await cancelBody(response.body, error);

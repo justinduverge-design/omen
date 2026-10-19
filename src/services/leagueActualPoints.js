@@ -32,7 +32,8 @@ async function espnPoints({ leagueId, week, credentials, fetchRosters = espnAdap
   for (const team of rosters?.teams || []) {
     for (const player of team?.players || []) {
       const value = Number(player?.actual_points);
-      if (player?.player_id && player.actual_points != null && Number.isFinite(value)) out.set(String(player.player_id), value);
+      if (player?.player_id && player.actual_points != null && Number.isFinite(value))
+        out.set(String(player.player_id), value);
     }
   }
   return out;
@@ -48,7 +49,10 @@ function yahooPointsFromResponse(data) {
     let total = null;
     const walk = (node) => {
       if (!node || typeof node !== "object") return;
-      if (Array.isArray(node)) { node.forEach(walk); return; }
+      if (Array.isArray(node)) {
+        node.forEach(walk);
+        return;
+      }
       if (typeof node.player_key === "string") key = node.player_key;
       if (node.player_points && node.player_points.total != null) total = Number(node.player_points.total);
       Object.values(node).forEach(walk);
@@ -65,7 +69,9 @@ async function yahooPoints({ leagueKey, week, playerKeys, client }) {
   const out = new Map();
   for (let i = 0; i < keys.length; i += 25) {
     const batch = keys.slice(i, i + 25);
-    const data = await client.get(`/league/${leagueKey}/players;player_keys=${batch.join(",")}/stats;type=week;week=${week}`);
+    const data = await client.get(
+      `/league/${leagueKey}/players;player_keys=${batch.join(",")}/stats;type=week;week=${week}`,
+    );
     for (const [key, value] of yahooPointsFromResponse(data)) out.set(key, value);
   }
   return out;

@@ -11,9 +11,14 @@ const {
 const { deriveScoringSnapshot } = require("../src/services/scoringRuleSnapshot");
 
 const HALF_PPR = {
-  pass_yd: 0.04, pass_td: 4, pass_int: -2,
-  rush_yd: 0.1, rush_td: 6,
-  rec: 0.5, rec_yd: 0.1, rec_td: 6,
+  pass_yd: 0.04,
+  pass_td: 4,
+  pass_int: -2,
+  rush_yd: 0.1,
+  rush_td: 6,
+  rec: 0.5,
+  rec_yd: 0.1,
+  rec_td: 6,
   fum_lost: -2,
 };
 
@@ -25,7 +30,9 @@ function sleeperDeps(league) {
 
 test("a Sleeper league derives a real contract version, hashes, and format", async () => {
   const meta = await resolveScoringPersistenceMetadata({
-    platform: "sleeper", leagueId: "L1", deps: sleeperDeps({ scoring_settings: HALF_PPR }),
+    platform: "sleeper",
+    leagueId: "L1",
+    deps: sleeperDeps({ scoring_settings: HALF_PPR }),
   });
 
   assert.equal(meta.coverage_state, "supported");
@@ -38,10 +45,12 @@ test("a Sleeper league derives a real contract version, hashes, and format", asy
 });
 
 test("standard, half-PPR, and PPR leagues persist different formats and different hashes", async () => {
-  const read = async (rec) => resolveScoringPersistenceMetadata({
-    platform: "sleeper", leagueId: "L1",
-    deps: sleeperDeps({ scoring_settings: { ...HALF_PPR, rec } }),
-  });
+  const read = async (rec) =>
+    resolveScoringPersistenceMetadata({
+      platform: "sleeper",
+      leagueId: "L1",
+      deps: sleeperDeps({ scoring_settings: { ...HALF_PPR, rec } }),
+    });
 
   const [std, half, ppr] = await Promise.all([read(0), read(0.5), read(1)]);
 
@@ -52,7 +61,8 @@ test("standard, half-PPR, and PPR leagues persist different formats and differen
 
 test("a league Omen cannot fully reproduce is ambiguous and gets no format label", async () => {
   const meta = await resolveScoringPersistenceMetadata({
-    platform: "sleeper", leagueId: "L1",
+    platform: "sleeper",
+    leagueId: "L1",
     deps: sleeperDeps({ scoring_settings: { ...HALF_PPR, some_future_sleeper_key: 3 } }),
   });
 
@@ -76,7 +86,9 @@ test("every provider now retains the rule body", async () => {
   assert.deepEqual(RETAIN_RULE_BODY, { sleeper: true, espn: true, yahoo: true });
 
   const sleeper = await resolveScoringPersistenceMetadata({
-    platform: "sleeper", leagueId: "L1", deps: sleeperDeps({ scoring_settings: HALF_PPR }),
+    platform: "sleeper",
+    leagueId: "L1",
+    deps: sleeperDeps({ scoring_settings: HALF_PPR }),
   });
 
   assert.ok(sleeper.contract, "the derived rule body is retained");
@@ -84,7 +96,7 @@ test("every provider now retains the rule body", async () => {
   // The hash still pins exactly which rules produced the row, body or no body.
   assert.equal(
     sleeper.provider_rule_snapshot_hash,
-    deriveScoringSnapshot({ platform: "sleeper", leagueSettings: HALF_PPR }).provider_rule_snapshot_hash
+    deriveScoringSnapshot({ platform: "sleeper", leagueSettings: HALF_PPR }).provider_rule_snapshot_hash,
   );
 });
 
@@ -135,7 +147,11 @@ test("an ESPN settings read that throws degrades to pending instead of rejecting
     platform: "espn",
     leagueId: "12345",
     userId: "user-1",
-    deps: { fetchEspnScoringSettings: async () => { throw new Error("ESPN 401"); } },
+    deps: {
+      fetchEspnScoringSettings: async () => {
+        throw new Error("ESPN 401");
+      },
+    },
   });
 
   assert.equal(meta.coverage_state, "pending");
@@ -175,7 +191,11 @@ test("a Yahoo settings read that throws degrades to pending instead of rejecting
     platform: "yahoo",
     leagueId: "470.l.1",
     userId: "user-1",
-    deps: { fetchYahooLeagueSettings: async () => { throw new Error("Yahoo 999"); } },
+    deps: {
+      fetchYahooLeagueSettings: async () => {
+        throw new Error("Yahoo 999");
+      },
+    },
   });
 
   assert.equal(meta.coverage_state, "pending");
@@ -186,8 +206,13 @@ test("a Yahoo settings read that throws degrades to pending instead of rejecting
 
 test("a Sleeper outage degrades to pending and NEVER throws", async () => {
   const meta = await resolveScoringPersistenceMetadata({
-    platform: "sleeper", leagueId: "L1",
-    deps: { fetchSleeperLeague: async () => { throw new Error("sleeper 503"); } },
+    platform: "sleeper",
+    leagueId: "L1",
+    deps: {
+      fetchSleeperLeague: async () => {
+        throw new Error("sleeper 503");
+      },
+    },
   });
 
   assert.equal(meta.coverage_state, "pending");
@@ -216,8 +241,13 @@ test("no input shape rejects, because a rejection here costs the user their reco
 
 test("a provider outage never leaks the provider's message", async () => {
   const meta = await resolveScoringPersistenceMetadata({
-    platform: "sleeper", leagueId: "L1",
-    deps: { fetchSleeperLeague: async () => { throw new Error("token=SECRETVALUE rejected"); } },
+    platform: "sleeper",
+    leagueId: "L1",
+    deps: {
+      fetchSleeperLeague: async () => {
+        throw new Error("token=SECRETVALUE rejected");
+      },
+    },
   });
 
   assert.equal(JSON.stringify(meta).includes("SECRETVALUE"), false);

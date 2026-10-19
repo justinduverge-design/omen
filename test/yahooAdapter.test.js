@@ -7,15 +7,7 @@ const assert = require("node:assert/strict");
 const Module = require("node:module");
 const test = require("node:test");
 
-function playerNode({
-  playerKey,
-  playerId,
-  name,
-  eligiblePositions,
-  selectedPosition,
-  team = "KC",
-  status = null,
-}) {
+function playerNode({ playerKey, playerId, name, eligiblePositions, selectedPosition, team = "KC", status = null }) {
   return {
     player: [
       [
@@ -233,7 +225,7 @@ test("buildNormalizedRoster throws 404 if no Yahoo team exists in the league", a
 
   await assert.rejects(
     () => adapter.buildNormalizedRoster("nfl.l.123", "access-token", 1),
-    (error) => error.status === 404 && error.message === "No Yahoo team found in this league"
+    (error) => error.status === 404 && error.message === "No Yahoo team found in this league",
   );
 });
 
@@ -323,20 +315,32 @@ test("fetchYahooLastResult caches by teamKey/week (6h) so a second call doesn't 
     },
   };
   const { adapter, calls, store } = loadYahooAdapterWithFixtures(data, { redis: true });
-  const client = { getLeagueScoreboard: async (leagueKey, week) => {
-    calls.getLeagueScoreboard.push({ leagueKey, week });
-    return data.scoreboard;
-  } };
+  const client = {
+    getLeagueScoreboard: async (leagueKey, week) => {
+      calls.getLeagueScoreboard.push({ leagueKey, week });
+      return data.scoreboard;
+    },
+  };
 
   const first = await adapter.fetchYahooLastResult({
-    client, leagueKey: "399.l.123", teamKey: "399.l.123.t.7", week: 7,
+    client,
+    leagueKey: "399.l.123",
+    teamKey: "399.l.123.t.7",
+    week: 7,
   });
   const second = await adapter.fetchYahooLastResult({
-    client, leagueKey: "399.l.123", teamKey: "399.l.123.t.7", week: 7,
+    client,
+    leagueKey: "399.l.123",
+    teamKey: "399.l.123.t.7",
+    week: 7,
   });
 
   assert.deepEqual(second, first);
   assert.deepEqual(first, { lastResult: "W", lastGameId: "m-7", lastGameKickoff: null });
-  assert.equal(calls.getLeagueScoreboard.length, 1, "second call should be served from cache, not a live Yahoo request");
+  assert.equal(
+    calls.getLeagueScoreboard.length,
+    1,
+    "second call should be served from cache, not a live Yahoo request",
+  );
   assert.equal(store.size, 1);
 });

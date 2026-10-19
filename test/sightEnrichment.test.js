@@ -6,7 +6,15 @@ const { createSightEnricher, collectPlayers } = require("../src/services/sightEn
 const { parseRef } = require("../src/services/footballWarehouse/sightRepository");
 
 const block = { version: "v1", grade: 71, sight_points: 14.2 };
-const runtime = (calls = []) => ({ mode: "warehouse", sightRepository: { readSight: async (args) => { calls.push(args); return new Map([["sleeper:4046", block]]); } } });
+const runtime = (calls = []) => ({
+  mode: "warehouse",
+  sightRepository: {
+    readSight: async (args) => {
+      calls.push(args);
+      return new Map([["sleeper:4046", block]]);
+    },
+  },
+});
 
 test("with the switch off nothing changes and nothing is read", async () => {
   const calls = [];
@@ -18,8 +26,13 @@ test("with the switch off nothing changes and nothing is read", async () => {
 
 test("with the switch on every player anywhere in the response gets Sight, in one read, for the chosen version", async () => {
   const calls = [];
-  const payload = { candidates: [{ give: { player_key: "sleeper:4046" }, receive: { player_key: "espn:1" } }], teams: [{ players: [{ player_key: "sleeper:4046" }] }] };
-  await createSightEnricher({ getRuntime: () => runtime(calls), env: { SIGHT_ENABLED: "true", SIGHT_VERSION: "v2" } })(payload);
+  const payload = {
+    candidates: [{ give: { player_key: "sleeper:4046" }, receive: { player_key: "espn:1" } }],
+    teams: [{ players: [{ player_key: "sleeper:4046" }] }],
+  };
+  await createSightEnricher({ getRuntime: () => runtime(calls), env: { SIGHT_ENABLED: "true", SIGHT_VERSION: "v2" } })(
+    payload,
+  );
   assert.deepEqual(payload.candidates[0].give.sight, block);
   assert.equal(payload.candidates[0].receive.sight, undefined, "no Sight read means no block, never a guess");
   assert.deepEqual(payload.teams[0].players[0].sight, block);
@@ -30,7 +43,14 @@ test("with the switch on every player anywhere in the response gets Sight, in on
 
 test("a warehouse failure leaves the response as it was", async () => {
   const payload = { players: [{ player_key: "sleeper:4046" }] };
-  const broken = { mode: "warehouse", sightRepository: { readSight: async () => { throw new Error("down"); } } };
+  const broken = {
+    mode: "warehouse",
+    sightRepository: {
+      readSight: async () => {
+        throw new Error("down");
+      },
+    },
+  };
   await createSightEnricher({ getRuntime: () => broken, env: { SIGHT_ENABLED: "true" } })(payload);
   assert.equal(payload.players[0].sight, undefined);
 });

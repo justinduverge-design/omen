@@ -20,9 +20,7 @@ const check = require("../scripts/checks/sprint-closed-without-ledger-row");
  */
 
 const ctxFor = (sprint, ledger) => ({
-  read: (rel) =>
-    ({ "Direction/current_sprint.md": sprint, "Direction/sprints_completed.md": ledger }[rel] ??
-      null),
+  read: (rel) => ({ "Direction/current_sprint.md": sprint, "Direction/sprints_completed.md": ledger })[rel] ?? null,
 });
 
 const LEDGER_WITH_ROW = [
@@ -33,10 +31,7 @@ const LEDGER_WITH_ROW = [
 
 test("flags a CLOSED item with no ledger row", () => {
   const { findings } = check.run(
-    ctxFor(
-      "### R4 — Privacy nutrition labels\n- **Status:** CLOSED — Closure: COMPLETED 2026-08-23.\n",
-      "# Ledger\n"
-    )
+    ctxFor("### R4 — Privacy nutrition labels\n- **Status:** CLOSED — Closure: COMPLETED 2026-08-23.\n", "# Ledger\n"),
   );
   assert.equal(findings.length, 1);
   assert.equal(findings[0].key, "R4");
@@ -44,9 +39,7 @@ test("flags a CLOSED item with no ledger row", () => {
 });
 
 test("a table row counts as a record", () => {
-  const { findings } = check.run(
-    ctxFor("### R4 — Privacy\n- **Status:** CLOSED 2026-08-23.\n", LEDGER_WITH_ROW)
-  );
+  const { findings } = check.run(ctxFor("### R4 — Privacy\n- **Status:** CLOSED 2026-08-23.\n", LEDGER_WITH_ROW));
   assert.deepEqual(findings, []);
 });
 
@@ -54,8 +47,8 @@ test("a section heading that leads with the key counts as a record", () => {
   const { findings } = check.run(
     ctxFor(
       "### W1-GATE — ESPN sheet legal gate\n- **Status:** CLOSED 2026-08-31.\n",
-      "## W1-GATE — ESPN in-app sheet legal and review gate — closed 2026-08-31\n\nThe answer was negative.\n"
-    )
+      "## W1-GATE — ESPN in-app sheet legal and review gate — closed 2026-08-31\n\nThe answer was negative.\n",
+    ),
   );
   assert.deepEqual(findings, []);
 });
@@ -65,8 +58,8 @@ test("a cross-reference in another item's prose is NOT a record", () => {
   const { findings } = check.run(
     ctxFor(
       "### R4 — Privacy\n- **Status:** CLOSED 2026-08-23.\n",
-      "| R3 | Signing | Android internal release unpublished; R4/R5 still gate rollout. |\n"
-    )
+      "| R3 | Signing | Android internal release unpublished; R4/R5 still gate rollout. |\n",
+    ),
   );
   assert.equal(findings.length, 1);
   assert.equal(findings[0].key, "R4");
@@ -82,8 +75,8 @@ test("catches a closure claimed only in another item's prose, after the stub is 
         "- **Status:** READY",
         "- **Unblock:** 2026-08-23 CLEARED — `R4` and `R5` closed after the founder submitted both forms.",
       ].join("\n"),
-      "# Ledger\n"
-    )
+      "# Ledger\n",
+    ),
   );
   assert.deepEqual(findings.map((f) => f.key).sort(), ["R4", "R5"]);
   assert.match(findings[0].source, /current_sprint\.md:3/);
@@ -100,15 +93,13 @@ test("stays quiet on prose about live items and on ordinary sprint text", () => 
         "- **Note:** lifecycle is READY → IN_PROGRESS → VERIFIED → CLOSED.",
         "- **Note:** PR #350 was closed on 2026-08-23 without merging.",
       ].join("\n"),
-      "# Ledger\n"
-    )
+      "# Ledger\n",
+    ),
   );
   assert.deepEqual(findings, []);
 });
 
 test("does not apply when nothing is declared closed", () => {
-  const verdict = check.appliesWhen(
-    ctxFor("### R6 — Tracks\n- **Status:** READY\n", "# Ledger\n")
-  );
+  const verdict = check.appliesWhen(ctxFor("### R6 — Tracks\n- **Status:** READY\n", "# Ledger\n"));
   assert.equal(verdict.applies, false);
 });

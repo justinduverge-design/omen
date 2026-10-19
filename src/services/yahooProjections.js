@@ -50,7 +50,9 @@ const POSITION_TYPE = Object.freeze({ QB: "O", RB: "O", WR: "O", TE: "O", K: "K"
 const rulesMemo = new Map();
 
 function isDisabled() {
-  const value = String(process.env.YAHOO_PROJECTIONS_DISABLED || "").trim().toLowerCase();
+  const value = String(process.env.YAHOO_PROJECTIONS_DISABLED || "")
+    .trim()
+    .toLowerCase();
   return value === "1" || value === "true";
 }
 
@@ -210,9 +212,22 @@ function yahooIndex(sleeperPlayers) {
   return index;
 }
 
-const TEAM_ALIASES = Object.freeze({ JAC: "JAX", WSH: "WAS", LA: "LAR", SD: "LAC", OAK: "LV", STL: "LAR", ARZ: "ARI", CLV: "CLE", BLT: "BAL", HST: "HOU" });
+const TEAM_ALIASES = Object.freeze({
+  JAC: "JAX",
+  WSH: "WAS",
+  LA: "LAR",
+  SD: "LAC",
+  OAK: "LV",
+  STL: "LAR",
+  ARZ: "ARI",
+  CLV: "CLE",
+  BLT: "BAL",
+  HST: "HOU",
+});
 function normTeam(team) {
-  const t = String(team || "").trim().toUpperCase();
+  const t = String(team || "")
+    .trim()
+    .toUpperCase();
   return TEAM_ALIASES[t] || t;
 }
 
@@ -244,8 +259,9 @@ function nameIndex(sleeperPlayers) {
 function fallbackSleeperId(yahooPlayer, sleeperPlayers) {
   const wanted = String(yahooPlayer?.position || "").toUpperCase();
   // Primary position only: a secondary fantasy position is how a namesake slips in.
-  const candidates = (nameIndex(sleeperPlayers).get(normalizeName(yahooPlayer?.name)) || [])
-    .filter((id) => wanted && String(sleeperPlayers[id]?.position || "").toUpperCase() === wanted);
+  const candidates = (nameIndex(sleeperPlayers).get(normalizeName(yahooPlayer?.name)) || []).filter(
+    (id) => wanted && String(sleeperPlayers[id]?.position || "").toUpperCase() === wanted,
+  );
   const team = normTeam(yahooPlayer?.team);
   if (!team) return null;
   const fits = candidates.filter((id) => normTeam(sleeperPlayers[id]?.team) === team);
@@ -259,7 +275,10 @@ function sleeperFullName(player) {
 /** Yahoo's primary position must be one Sleeper lists for the player (a same-named namesake differs). */
 function positionsAgree(yahooPlayer, sleeperPlayer) {
   const wanted = String(yahooPlayer?.position || "").toUpperCase();
-  const listed = [sleeperPlayer?.position, ...(Array.isArray(sleeperPlayer?.fantasy_positions) ? sleeperPlayer.fantasy_positions : [])]
+  const listed = [
+    sleeperPlayer?.position,
+    ...(Array.isArray(sleeperPlayer?.fantasy_positions) ? sleeperPlayer.fantasy_positions : []),
+  ]
     .filter(Boolean)
     .map((position) => String(position).toUpperCase());
   return Boolean(wanted) && listed.includes(wanted);
@@ -299,7 +318,9 @@ function emptyMeta(total, reason) {
 
 function withBudget(promise, ms) {
   let timer;
-  const timeout = new Promise((resolve) => { timer = setTimeout(() => resolve(BUDGET_MS_EXCEEDED), ms); });
+  const timeout = new Promise((resolve) => {
+    timer = setTimeout(() => resolve(BUDGET_MS_EXCEEDED), ms);
+  });
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 const BUDGET_MS_EXCEEDED = Symbol("budget_exceeded");
@@ -332,12 +353,16 @@ async function enrichYahooPlayers(players, { client, leagueKey, week, season, bu
   if (!projectable.length) return emptyMeta(total, "no_projectable_players");
 
   const effectiveWeek = Number(week);
-  if (!Number.isInteger(effectiveWeek) || effectiveWeek < 1 || effectiveWeek > 18) return emptyMeta(total, "week_unknown");
+  if (!Number.isInteger(effectiveWeek) || effectiveWeek < 1 || effectiveWeek > 18)
+    return emptyMeta(total, "week_unknown");
   const effectiveSeason = season || getCurrentNflWeekContext().season;
 
   let loaded;
   try {
-    loaded = await withBudget(load({ client, leagueKey, season: effectiveSeason, week: effectiveWeek, deps }), budgetMs);
+    loaded = await withBudget(
+      load({ client, leagueKey, season: effectiveSeason, week: effectiveWeek, deps }),
+      budgetMs,
+    );
   } catch {
     return emptyMeta(total, "provider_error");
   }

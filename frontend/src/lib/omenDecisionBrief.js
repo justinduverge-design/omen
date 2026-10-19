@@ -24,7 +24,7 @@ export function confidenceBandPresentation(confidence) {
   if (!band && !unavailableReasons.length) return null;
   return {
     band,
-    label: band ? (BAND_LABELS[band] || band.replace(/_/g, ' ')) : 'No confidence read',
+    label: band ? BAND_LABELS[band] || band.replace(/_/g, ' ') : 'No confidence read',
     drivers,
     unavailableReasons,
   };
@@ -32,12 +32,13 @@ export function confidenceBandPresentation(confidence) {
 
 export function normalizeCapabilities(capabilities) {
   if (!Array.isArray(capabilities)) return [];
-  return capabilities.filter((capability) => (
-    capability
-      && typeof capability.name === 'string'
-      && typeof capability.state === 'string'
-      && typeof capability.statement === 'string'
-  ));
+  return capabilities.filter(
+    (capability) =>
+      capability &&
+      typeof capability.name === 'string' &&
+      typeof capability.state === 'string' &&
+      typeof capability.statement === 'string',
+  );
 }
 
 export function footballIntelligenceExplanation(data) {
@@ -46,9 +47,7 @@ export function footballIntelligenceExplanation(data) {
 
   const status = typeof value.status === 'string' ? value.status : 'unavailable';
   const nonAdvisory = ['unavailable', 'insufficient_coverage', 'disputed', 'pending'].includes(status);
-  const summary = typeof value.summary === 'string' && value.summary.trim()
-    ? value.summary.trim()
-    : null;
+  const summary = typeof value.summary === 'string' && value.summary.trim() ? value.summary.trim() : null;
   const whatCouldChangeThis = Array.isArray(value.interpretation?.what_could_change_this)
     ? value.interpretation.what_could_change_this.filter((item) => typeof item === 'string' && item.trim())
     : [];
@@ -69,8 +68,7 @@ export function footballIntelligenceExplanation(data) {
     games: Number.isFinite(value.evidence?.games) ? value.evidence.games : null,
     plays: Number.isFinite(value.evidence?.plays) ? value.evidence.plays : null,
     chartedPlays: Number.isFinite(value.evidence?.charted_plays) ? value.evidence.charted_plays : null,
-    latestObservationAt: typeof value.freshness?.latest_observation_at_utc === 'string'
-      ? value.freshness.latest_observation_at_utc
-      : null,
+    latestObservationAt:
+      typeof value.freshness?.latest_observation_at_utc === 'string' ? value.freshness.latest_observation_at_utc : null,
   };
 }

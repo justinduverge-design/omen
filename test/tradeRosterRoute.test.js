@@ -43,8 +43,16 @@ const YAHOO_FIXTURE = {
   league_status: null,
   roster_positions: [],
   teams: [
-    { team_id: "411.l.1.t.1", team_name: "Own Yahoo Team", players: [{ player_key: "yahoo:1", name: "Own Yahoo Player" }] },
-    { team_id: "411.l.1.t.2", team_name: "Rival Yahoo Team", players: [{ player_key: "yahoo:2", name: "Rival Yahoo Player" }] },
+    {
+      team_id: "411.l.1.t.1",
+      team_name: "Own Yahoo Team",
+      players: [{ player_key: "yahoo:1", name: "Own Yahoo Player" }],
+    },
+    {
+      team_id: "411.l.1.t.2",
+      team_name: "Rival Yahoo Team",
+      players: [{ player_key: "yahoo:2", name: "Rival Yahoo Player" }],
+    },
   ],
 };
 
@@ -87,7 +95,11 @@ async function get(app, path, headers = {}) {
 }
 
 test("GET /api/trade/roster requires authentication", async () => {
-  const app = buildApp({ authenticate: async () => { throw new Error("no session"); } });
+  const app = buildApp({
+    authenticate: async () => {
+      throw new Error("no session");
+    },
+  });
   const res = await get(app, "/api/trade/roster?platform=sleeper&league_id=abc");
   assert.equal(res.status, 401);
   assert.equal(res.body.code, "trade_roster_auth_required");
@@ -157,7 +169,9 @@ test("GET /api/trade/roster resolves a real Yahoo opponent roster from the per-t
 
 test("GET /api/trade/roster gives the honest unavailable shape, never a crash, when ESPN credentials can't be resolved", async () => {
   const app = buildApp({
-    espnCredentials: async () => { throw Object.assign(new Error("ESPN not connected"), { status: 404 }); },
+    espnCredentials: async () => {
+      throw Object.assign(new Error("ESPN not connected"), { status: 404 });
+    },
   });
   const res = await get(app, "/api/trade/roster?platform=espn&league_id=espnleague", {
     authorization: "Bearer t",
@@ -171,7 +185,9 @@ test("GET /api/trade/roster gives the honest unavailable shape, never a crash, w
 
 test("GET /api/trade/roster gives the honest unavailable shape, never a crash, when Yahoo re-auth is required", async () => {
   const app = buildApp({
-    yahooClient: async () => { throw Object.assign(new Error("Yahoo refresh token missing"), { status: 401 }); },
+    yahooClient: async () => {
+      throw Object.assign(new Error("Yahoo refresh token missing"), { status: 401 });
+    },
   });
   const res = await get(app, "/api/trade/roster?platform=yahoo&league_id=411.l.1", {
     authorization: "Bearer t",
@@ -206,7 +222,9 @@ test("GET /api/trade/roster reports unavailable, not a 500, when a Sleeper leagu
 
 test("GET /api/trade/roster answers 503, never a fabricated roster, when the Sleeper read fails", async () => {
   const app = buildApp({
-    fetchLeagueRosters: async () => { throw new Error("sleeper down"); },
+    fetchLeagueRosters: async () => {
+      throw new Error("sleeper down");
+    },
   });
   const res = await get(app, "/api/trade/roster?platform=sleeper&league_id=abc123", {
     authorization: "Bearer t",
@@ -217,7 +235,9 @@ test("GET /api/trade/roster answers 503, never a fabricated roster, when the Sle
 
 test("GET /api/trade/roster answers 503, never a fabricated roster, when the ESPN provider read fails after credentials resolve", async () => {
   const app = buildApp({
-    fetchEspnLeagueRosters: async () => { throw new Error("espn 502"); },
+    fetchEspnLeagueRosters: async () => {
+      throw new Error("espn 502");
+    },
   });
   const res = await get(app, "/api/trade/roster?platform=espn&league_id=espnleague", {
     authorization: "Bearer t",

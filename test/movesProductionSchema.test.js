@@ -17,24 +17,60 @@ const express = require("express");
 const MOVE_ID = "11111111-2222-3333-4444-555555555555";
 
 const PRODUCTION_COLUMNS = new Set([
-  "id", "user_id", "week_num", "season", "move_type", "headline", "reasoning", "confidence",
-  "target_player", "vorp_score", "followed", "outcome", "created_at", "user_stars", "user_note",
-  "eff", "scoring", "scoring_contract", "scoring_contract_hash", "scoring_contract_version",
-  "scoring_contract_required", "scoring_coverage_state", "provider_rule_snapshot_hash",
-  "provider_final_outcome", "reconciliation_state",
+  "id",
+  "user_id",
+  "week_num",
+  "season",
+  "move_type",
+  "headline",
+  "reasoning",
+  "confidence",
+  "target_player",
+  "vorp_score",
+  "followed",
+  "outcome",
+  "created_at",
+  "user_stars",
+  "user_note",
+  "eff",
+  "scoring",
+  "scoring_contract",
+  "scoring_contract_hash",
+  "scoring_contract_version",
+  "scoring_contract_required",
+  "scoring_coverage_state",
+  "provider_rule_snapshot_hash",
+  "provider_final_outcome",
+  "reconciliation_state",
 ]);
 
 // The redo's Ledger tables (decisions, leagues, ...) are read first by the Ledger routes. They hold
 // nothing here, so the routes fall back to moves exactly as they would for a pre-redo row.
 function emptyLedgerQuery(table, ledgerCalls, ledgerError = null) {
   const query = {
-    select() { return query; },
-    eq() { return query; },
-    in() { return query; },
-    order() { return query; },
-    limit() { return query; },
-    then(resolve, reject) { ledgerCalls.push(table); return Promise.resolve({ data: [], error: ledgerError }).then(resolve, reject); },
-    async maybeSingle() { ledgerCalls.push(table); return { data: null, error: ledgerError }; },
+    select() {
+      return query;
+    },
+    eq() {
+      return query;
+    },
+    in() {
+      return query;
+    },
+    order() {
+      return query;
+    },
+    limit() {
+      return query;
+    },
+    then(resolve, reject) {
+      ledgerCalls.push(table);
+      return Promise.resolve({ data: [], error: ledgerError }).then(resolve, reject);
+    },
+    async maybeSingle() {
+      ledgerCalls.push(table);
+      return { data: null, error: ledgerError };
+    },
   };
   return query;
 }
@@ -47,20 +83,30 @@ function fakeSupabase({ rows, columns = PRODUCTION_COLUMNS, calls, ledgerCalls =
         select(selected) {
           const query = {
             filters: [],
-            eq(field, value) { query.filters.push([field, value]); return query; },
-            order() { return query; },
-            limit() { return query; },
+            eq(field, value) {
+              query.filters.push([field, value]);
+              return query;
+            },
+            order() {
+              return query;
+            },
+            limit() {
+              return query;
+            },
             run() {
               calls.push({ columns: selected, filters: query.filters.map(([f]) => f) });
-              const absent = [...selected.split(","), ...query.filters.map(([f]) => f)]
-                .find((column) => !columns.has(column));
+              const absent = [...selected.split(","), ...query.filters.map(([f]) => f)].find(
+                (column) => !columns.has(column),
+              );
               if (absent) {
                 return { data: null, error: { code: "42703", message: `column moves.${absent} does not exist` } };
               }
               const data = rows.filter((row) => query.filters.every(([f, v]) => row[f] === v));
               return { data, error: null };
             },
-            then(resolve, reject) { return Promise.resolve(query.run()).then(resolve, reject); },
+            then(resolve, reject) {
+              return Promise.resolve(query.run()).then(resolve, reject);
+            },
             async maybeSingle() {
               const { data, error } = query.run();
               return { data: data?.[0] || null, error };
@@ -82,7 +128,12 @@ function buildApp(options) {
     if (parent?.filename === routePath) {
       if (request === "@supabase/supabase-js") return { createClient: () => supabase };
       if (request === "../middleware/auth") {
-        return { requireAuth: (req, _res, next) => { req.user = { id: "user-1" }; next(); } };
+        return {
+          requireAuth: (req, _res, next) => {
+            req.user = { id: "user-1" };
+            next();
+          },
+        };
       }
       if (request === "../services/nflSchedule") {
         return { getCurrentNflWeekContext: () => ({ season: 2026, week: 3 }) };
@@ -91,10 +142,16 @@ function buildApp(options) {
     return originalLoad.call(this, request, parent, isMain);
   };
   let router;
-  try { router = require("../src/routes/moves"); } finally { Module._load = originalLoad; }
+  try {
+    router = require("../src/routes/moves");
+  } finally {
+    Module._load = originalLoad;
+  }
   const app = express();
   app.use("/api/moves", router);
-  app.use((err, _req, res, _next) => { res.status(err.status || 500).json({ error: err.message }); });
+  app.use((err, _req, res, _next) => {
+    res.status(err.status || 500).json({ error: err.message });
+  });
   return app;
 }
 
@@ -110,8 +167,15 @@ async function get(app, path) {
 }
 
 const ROW = {
-  id: MOVE_ID, user_id: "user-1", season: 2026, week_num: 2, move_type: "start_sit",
-  headline: "Start Hall", followed: true, outcome: "win", reconciliation_state: null,
+  id: MOVE_ID,
+  user_id: "user-1",
+  season: 2026,
+  week_num: 2,
+  move_type: "start_sit",
+  headline: "Start Hall",
+  followed: true,
+  outcome: "win",
+  reconciliation_state: null,
   created_at: "2026-09-16T12:00:00Z",
 };
 const NATIVE = "/api/moves?platform=sleeper&league_id=L1&contract_version=moves-history.v2";
@@ -150,7 +214,7 @@ test("native Ledger still fails loudly on an unrelated Ledger error", async () =
   assert.equal(status, 500);
 });
 
-test("detail for a legacy moves row with no move_type returns the string call_type \"unknown\"", async () => {
+test('detail for a legacy moves row with no move_type returns the string call_type "unknown"', async () => {
   const legacy = { ...ROW, move_type: null };
   const { status, body } = await get(buildApp({ rows: [legacy], calls: [] }), `/api/moves/${MOVE_ID}`);
   assert.equal(status, 200);
@@ -174,7 +238,13 @@ test("Ledger detail loads against the production column set without result/score
   assert.equal(body.snapshot.platform, null);
   assert.equal(body.snapshot.league_id, null);
   assert.ok(calls.length <= 5, "bounded retries");
-  assert.equal(calls.at(-1).columns.split(",").some((c) => ["result", "scored_at", "platform", "league_id"].includes(c)), false);
+  assert.equal(
+    calls
+      .at(-1)
+      .columns.split(",")
+      .some((c) => ["result", "scored_at", "platform", "league_id"].includes(c)),
+    false,
+  );
 });
 
 test("a missing column that is not optional still fails loudly", async () => {

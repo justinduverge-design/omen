@@ -19,7 +19,7 @@ const stub = (fn) => ({ explainStartSit: fn });
 test("deterministic start/sit explanation is built only from request facts", () => {
   assert.equal(
     FALLBACK,
-    "Tyreek Hill (questionable) is projected for 21.7 pts against 18.2 for Josh Allen, a 3.5-point edge."
+    "Tyreek Hill (questionable) is projected for 21.7 pts against 18.2 for Josh Allen, a 3.5-point edge.",
   );
 });
 
@@ -44,8 +44,22 @@ test("ungrounded or banned model output falls back to the deterministic text", a
 });
 
 test("model error or sync throw falls back to the deterministic text", async () => {
-  assert.equal(await startSit.explainSafely(args, { llmService: stub(async () => { throw new Error("down"); }) }), FALLBACK);
-  assert.equal(await startSit.explainSafely(args, { llmService: stub(() => { throw new Error("sync"); }) }), FALLBACK);
+  assert.equal(
+    await startSit.explainSafely(args, {
+      llmService: stub(async () => {
+        throw new Error("down");
+      }),
+    }),
+    FALLBACK,
+  );
+  assert.equal(
+    await startSit.explainSafely(args, {
+      llmService: stub(() => {
+        throw new Error("sync");
+      }),
+    }),
+    FALLBACK,
+  );
 });
 
 test("a hung model call falls back at the timeout bound", async () => {
@@ -84,9 +98,17 @@ test("route always returns a string explanation even with no model bridge", asyn
 test("an open breaker skips the model and serves the deterministic sentence", async () => {
   const { createNarrationGuard } = require("../src/services/narrationBudget");
   const guard = createNarrationGuard({ failureThreshold: 1, logger: { warn() {} } });
-  await guard.run("start_sit", 50, async () => { throw new Error("down"); });
+  await guard.run("start_sit", 50, async () => {
+    throw new Error("down");
+  });
   let calls = 0;
-  const text = await startSit.explainSafely(args, { guard, llmService: stub(async () => { calls += 1; return "Tyreek Hill is ahead."; }) });
+  const text = await startSit.explainSafely(args, {
+    guard,
+    llmService: stub(async () => {
+      calls += 1;
+      return "Tyreek Hill is ahead.";
+    }),
+  });
   assert.equal(text, FALLBACK);
   assert.equal(calls, 0);
 });

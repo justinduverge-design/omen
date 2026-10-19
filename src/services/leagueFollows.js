@@ -39,7 +39,7 @@ function orderPlatformsByFollowCount(groups) {
  */
 function carouselOrder(groups) {
   return orderPlatformsByFollowCount(groups).flatMap((group) =>
-    (group.leagues || []).map((league) => ({ ...league, platform: group.platform }))
+    (group.leagues || []).map((league) => ({ ...league, platform: group.platform })),
   );
 }
 

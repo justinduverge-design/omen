@@ -7,7 +7,11 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 const fs = require("node:fs");
 const path = require("node:path");
-const { PROVIDER_TEAM_NUMBERS, abbreviationForProviderNumber, TEAMS } = require("../src/services/footballIntelligence/nflTeams");
+const {
+  PROVIDER_TEAM_NUMBERS,
+  abbreviationForProviderNumber,
+  TEAMS,
+} = require("../src/services/footballIntelligence/nflTeams");
 
 test("every team has one provider number; ESPN and Yahoo resolve the same way", () => {
   assert.deepEqual(Object.keys(PROVIDER_TEAM_NUMBERS).sort(), Object.keys(TEAMS).sort());
@@ -30,8 +34,25 @@ test("the team-index migration agrees with the code's team numbers, for teams an
 
 test("ESPN roster players carry their NFL team from proTeamId", () => {
   const { leagueRostersFromEspnSchedule } = require("../src/adapters/espn");
-  const data = { teams: [{ id: 1 }], schedule: [{ matchupPeriodId: 5, home: { teamId: 1, rosterForCurrentScoringPeriod: { entries: [
-    { playerId: 7, lineupSlotId: 4, playerPoolEntry: { player: { id: 7, fullName: "W R", defaultPositionId: 3, proTeamId: 16 } } },
-  ] } } }] };
+  const data = {
+    teams: [{ id: 1 }],
+    schedule: [
+      {
+        matchupPeriodId: 5,
+        home: {
+          teamId: 1,
+          rosterForCurrentScoringPeriod: {
+            entries: [
+              {
+                playerId: 7,
+                lineupSlotId: 4,
+                playerPoolEntry: { player: { id: 7, fullName: "W R", defaultPositionId: 3, proTeamId: 16 } },
+              },
+            ],
+          },
+        },
+      },
+    ],
+  };
   assert.equal(leagueRostersFromEspnSchedule(data, 5).teams[0].players[0].team, "MIN");
 });

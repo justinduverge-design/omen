@@ -18,12 +18,12 @@ const crypto = require("crypto");
 const { createClient } = require("@supabase/supabase-js");
 const responseCache = require("../services/responseCache");
 const config = require("../config");
-const { logger }              = require("../middleware/logging");
-const { requireAuth }         = require("../middleware/auth");
-const { ensureAppUser }       = require("../services/appUser");
+const { logger } = require("../middleware/logging");
+const { requireAuth } = require("../middleware/auth");
+const { ensureAppUser } = require("../services/appUser");
 const { getYahooAuthUrl, exchangeYahooCode } = require("../middleware/yahooOAuth");
 const { getAuthenticatedYahooClient, persistYahooTokens } = require("../services/yahooAuth");
-const leagueMemberships       = require("../services/leagueMemberships");
+const leagueMemberships = require("../services/leagueMemberships");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
@@ -121,9 +121,10 @@ async function writeYahooMemberships(userId, leagueId) {
     boundLeagueId: leagueId,
     discover: async () => {
       const { client } = await getAuthenticatedYahooClient(userId);
-      const leagues = typeof client.getUserLeaguesWithTeams === "function"
-        ? await client.getUserLeaguesWithTeams()
-        : await client.getUserLeagues();
+      const leagues =
+        typeof client.getUserLeaguesWithTeams === "function"
+          ? await client.getUserLeaguesWithTeams()
+          : await client.getUserLeagues();
       return (leagues || []).map((league) => ({
         league_id: league.league_id,
         league_name: league.name || null,
@@ -137,7 +138,11 @@ async function writeYahooMemberships(userId, leagueId) {
     logger.warn("League discovery at connect failed", { platform: "yahoo", http_status: result.discoveryStatus });
   }
   if (result.reason === "write_failed" || result.reason === "no_connection") {
-    logger.warn("League membership write at connect failed", { platform: "yahoo", reason: result.reason, err: result.error || null });
+    logger.warn("League membership write at connect failed", {
+      platform: "yahoo",
+      reason: result.reason,
+      err: result.error || null,
+    });
   }
 }
 
@@ -250,10 +255,14 @@ router.post("/league", requireAuth, responseCache.invalidateUserCacheOnWrite, as
       return res.status(400).json({ error: "leagueId is not one of your Yahoo leagues" });
     }
 
-    const { error } = await supabase.from("platform_connections").update({
-      league_id: match.league_id,
-      updated_at: new Date().toISOString(),
-    }).eq("user_id", req.user.id).eq("platform", "yahoo");
+    const { error } = await supabase
+      .from("platform_connections")
+      .update({
+        league_id: match.league_id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", req.user.id)
+      .eq("platform", "yahoo");
 
     if (error) throw new Error(`platform_connections update failed: ${error.message}`);
 

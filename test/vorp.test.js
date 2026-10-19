@@ -3,12 +3,7 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-const {
-  bScore,
-  getReplacementLevel,
-  scarcityTierForVorp,
-  vorpForPlayer,
-} = require("../src/services/vorp");
+const { bScore, getReplacementLevel, scarcityTierForVorp, vorpForPlayer } = require("../src/services/vorp");
 
 test("getReplacementLevel returns floors for all scoring formats", () => {
   assert.equal(getReplacementLevel("QB", "ppr"), 15); // recalibrated 2026-05-13
@@ -101,7 +96,7 @@ test("vorpForPlayer applies OUT status through adjustedProjection", () => {
 test("bScore favors the side receiving higher scarcity", () => {
   const score = bScore(
     [{ name: "Starter RB", position: "RB", projected_points: 12 }],
-    [{ name: "Elite TE", position: "TE", projected_points: 12 }]
+    [{ name: "Elite TE", position: "TE", projected_points: 12 }],
   );
 
   assert.equal(score, 1.5);
@@ -110,7 +105,7 @@ test("bScore favors the side receiving higher scarcity", () => {
 test("bScore penalizes sending higher scarcity", () => {
   const score = bScore(
     [{ name: "Elite QB", position: "QB", projected_points: 25 }],
-    [{ name: "Starter RB", position: "RB", projected_points: 12 }]
+    [{ name: "Starter RB", position: "RB", projected_points: 12 }],
   );
 
   assert.equal(score, -1.5);
@@ -119,7 +114,7 @@ test("bScore penalizes sending higher scarcity", () => {
 test("bScore is zero when scarcity bonuses are equal", () => {
   const score = bScore(
     [{ name: "Starter RB", position: "RB", projected_points: 12 }],
-    [{ name: "Starter WR", position: "WR", projected_points: 12 }]
+    [{ name: "Starter WR", position: "WR", projected_points: 12 }],
   );
 
   assert.equal(score, 0);

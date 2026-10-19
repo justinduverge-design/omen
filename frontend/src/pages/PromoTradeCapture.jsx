@@ -89,9 +89,7 @@ export default function PromoTradeCapture() {
   return (
     <div className="mx-auto max-w-5xl space-y-8">
       <section className="space-y-4">
-        <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">
-          Trade Analyzer
-        </p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">Trade Analyzer</p>
         <div className="max-w-3xl space-y-3">
           <h1 className="font-display text-4xl font-semibold text-white sm:text-5xl">
             Test the trade before you send it.

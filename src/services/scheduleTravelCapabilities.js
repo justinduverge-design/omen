@@ -24,7 +24,11 @@ function isoNow(now) {
 }
 
 function isNormalizedNflTeam(value) {
-  return /^[A-Z]{2,3}$/.test(String(value || "").trim().toUpperCase());
+  return /^[A-Z]{2,3}$/.test(
+    String(value || "")
+      .trim()
+      .toUpperCase(),
+  );
 }
 
 function limitation({ name, resolution, source, statement, observedAt = null, freshUntil = null }) {
@@ -46,10 +50,20 @@ function limitation({ name, resolution, source, statement, observedAt = null, fr
 function noScheduleCapabilities({ resolution, source, statement, observedAt, freshUntil }) {
   return {
     game_time_tv: limitation({
-      name: "game_time_tv", resolution, source, statement, observedAt, freshUntil,
+      name: "game_time_tv",
+      resolution,
+      source,
+      statement,
+      observedAt,
+      freshUntil,
     }),
     travel_home_away: limitation({
-      name: "travel_home_away", resolution, source, statement, observedAt, freshUntil,
+      name: "travel_home_away",
+      resolution,
+      source,
+      statement,
+      observedAt,
+      freshUntil,
     }),
   };
 }

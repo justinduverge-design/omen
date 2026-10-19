@@ -12,14 +12,7 @@ const net = require("node:net");
  * The app must work without the LLM (it is an enhancement, not a dependency).
  */
 
-const PRIVATE_HOST_SUFFIXES = Object.freeze([
-  ".internal",
-  ".lan",
-  ".local",
-  ".home.arpa",
-  ".tailnet",
-  ".ts.net",
-]);
+const PRIVATE_HOST_SUFFIXES = Object.freeze([".internal", ".lan", ".local", ".home.arpa", ".tailnet", ".ts.net"]);
 
 function parseTimeout(value) {
   const timeout = Number(value);
@@ -54,23 +47,27 @@ function isPrivateIpv4(hostname) {
   const octets = hostname.split(".").map(Number);
   if (octets.length !== 4 || octets.some((octet) => !Number.isInteger(octet))) return false;
   const [a, b] = octets;
-  return a === 10
-    || a === 127
-    || (a === 169 && b === 254)
-    || (a === 172 && b >= 16 && b <= 31)
-    || (a === 192 && b === 168)
-    || (a === 100 && b >= 64 && b <= 127);
+  return (
+    a === 10 ||
+    a === 127 ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168) ||
+    (a === 100 && b >= 64 && b <= 127)
+  );
 }
 
 function isPrivateIpv6(hostname) {
   const normalized = hostname.replace(/^\[/, "").replace(/\]$/, "").toLowerCase();
-  return normalized === "::1"
-    || normalized.startsWith("fc")
-    || normalized.startsWith("fd")
-    || normalized.startsWith("fe8")
-    || normalized.startsWith("fe9")
-    || normalized.startsWith("fea")
-    || normalized.startsWith("feb");
+  return (
+    normalized === "::1" ||
+    normalized.startsWith("fc") ||
+    normalized.startsWith("fd") ||
+    normalized.startsWith("fe8") ||
+    normalized.startsWith("fe9") ||
+    normalized.startsWith("fea") ||
+    normalized.startsWith("feb")
+  );
 }
 
 function isPrivateLlmHost(hostname) {
@@ -82,7 +79,9 @@ function isPrivateLlmHost(hostname) {
 }
 
 function normalizeProvider(value) {
-  const provider = String(value || "local").trim().toLowerCase();
+  const provider = String(value || "local")
+    .trim()
+    .toLowerCase();
   return ["local", "cloud"].includes(provider) ? provider : "invalid";
 }
 
@@ -117,9 +116,7 @@ function buildBridgeConfig(env = process.env) {
     };
   }
 
-  const privateHost = normalized.status === "configured"
-    ? isPrivateLlmHost(normalized.hostname)
-    : false;
+  const privateHost = normalized.status === "configured" ? isPrivateLlmHost(normalized.hostname) : false;
 
   let status = normalized.status;
   if (status === "configured") {
@@ -138,8 +135,8 @@ function buildBridgeConfig(env = process.env) {
 
 const BRIDGE = buildBridgeConfig();
 const LLM_BASE_URL = BRIDGE.baseUrl;
-const LLM_MODEL    = BRIDGE.model;
-const LLM_TIMEOUT  = BRIDGE.timeoutMs;
+const LLM_MODEL = BRIDGE.model;
+const LLM_TIMEOUT = BRIDGE.timeoutMs;
 const NARRATION_MAX_WORDS = 50;
 const NARRATION_MAX_SENTENCES = 2;
 const NARRATION_MAX_TOKENS = 90;
@@ -173,13 +170,13 @@ async function chat(messages, { maxTokens = NARRATION_MAX_TOKENS, timeoutMs = LL
   const timer = setTimeout(() => controller.abort(), boundedTimeout);
   try {
     const res = await fetch(`${LLM_BASE_URL}/v1/chat/completions`, {
-      method:  "POST",
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      signal:  controller.signal,
+      signal: controller.signal,
       body: JSON.stringify({
-        model:    LLM_MODEL,
+        model: LLM_MODEL,
         messages,
-        stream:   false,
+        stream: false,
         max_tokens: maxTokens,
       }),
     });
@@ -199,8 +196,8 @@ async function chat(messages, { maxTokens = NARRATION_MAX_TOKENS, timeoutMs = LL
  * net_value: number, verdict: "accept" | "decline" | "neutral"
  */
 async function explainTrade({ send, receive, net_value, verdict }) {
-  const sendStr    = send.map(p => `${p.name} (${p.position})`).join(", ");
-  const receiveStr = receive.map(p => `${p.name} (${p.position})`).join(", ");
+  const sendStr = send.map((p) => `${p.name} (${p.position})`).join(", ");
+  const receiveStr = receive.map((p) => `${p.name} (${p.position})`).join(", ");
   const messages = [
     {
       role: "system",
@@ -264,16 +261,16 @@ async function runAgent(systemPrompt, userPrompt, { maxTokens = 400, timeoutMs =
   const timer = setTimeout(() => controller.abort(), boundedTimeout);
   try {
     const res = await fetch(`${LLM_BASE_URL}/v1/chat/completions`, {
-      method:  "POST",
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      signal:  controller.signal,
+      signal: controller.signal,
       body: JSON.stringify({
-        model:      LLM_MODEL,
-        messages:   [
+        model: LLM_MODEL,
+        messages: [
           { role: "system", content: systemPrompt },
-          { role: "user",   content: userPrompt },
+          { role: "user", content: userPrompt },
         ],
-        stream:     false,
+        stream: false,
         max_tokens: maxTokens,
       }),
     });
@@ -316,8 +313,7 @@ function countSentences(text) {
 function isWithinNarrationLimits(parts) {
   const text = parts.filter(Boolean).join(" ").trim();
   if (!text) return false;
-  return countWords(text) <= NARRATION_MAX_WORDS
-    && countSentences(text) <= NARRATION_MAX_SENTENCES;
+  return countWords(text) <= NARRATION_MAX_WORDS && countSentences(text) <= NARRATION_MAX_SENTENCES;
 }
 
 function parseOmenExplanation(raw) {

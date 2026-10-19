@@ -29,13 +29,20 @@ function publicRefs(values) {
   if (!Array.isArray(values)) throw new TypeError("refs must be an array");
   const seen = new Map();
   for (const ref of values) {
-    if (!ref || !PROVIDERS.has(ref.provider) || typeof ref.providerId !== "string" || !PROVIDER_ID.test(ref.providerId)) {
+    if (
+      !ref ||
+      !PROVIDERS.has(ref.provider) ||
+      typeof ref.providerId !== "string" ||
+      !PROVIDER_ID.test(ref.providerId)
+    ) {
       throw new TypeError("refs may contain only espn, sleeper, yahoo or gsis provider ids");
     }
     seen.set(refKey(ref.provider, ref.providerId), { provider: ref.provider, providerId: ref.providerId });
   }
   if (seen.size > MAX_REFS) {
-    throw Object.assign(new RangeError(`refs exceeds the ${MAX_REFS}-player query limit`), { code: "refs_cap_exceeded" });
+    throw Object.assign(new RangeError(`refs exceeds the ${MAX_REFS}-player query limit`), {
+      code: "refs_cap_exceeded",
+    });
   }
   return [...seen.values()];
 }

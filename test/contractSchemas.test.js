@@ -82,16 +82,26 @@ test("every state and recommendation type the SERVER emits is in the schema (uni
   // would make the check circular: a state the server emits and the schema forgot could never fail
   // (this omitted `context_unavailable` until code review caught it).
   const source = ["../src/services/omen.js", "../src/routes/omen.js"]
-    .map((f) => fs.readFileSync(require("node:path").join(__dirname, f), "utf8")).join("\n");
+    .map((f) => fs.readFileSync(require("node:path").join(__dirname, f), "utf8"))
+    .join("\n");
   const NOT_A_BRIEF_STATE = new Set(["live", "mock", "demo", "stub", "unavailable"]);
-  const emittedStates = [...new Set([...source.matchAll(/(?<![a-z_])state: "([a-z_]+)"/g)].map((m) => m[1]))]
-    .filter((s) => !NOT_A_BRIEF_STATE.has(s));
+  const emittedStates = [...new Set([...source.matchAll(/(?<![a-z_])state: "([a-z_]+)"/g)].map((m) => m[1]))].filter(
+    (s) => !NOT_A_BRIEF_STATE.has(s),
+  );
   const schemaStates = new Set(schema.properties.state.enum);
-  assert.deepEqual(emittedStates.filter((s) => !schemaStates.has(s)).sort(), [], "states the server emits but the schema lacks");
+  assert.deepEqual(
+    emittedStates.filter((s) => !schemaStates.has(s)).sort(),
+    [],
+    "states the server emits but the schema lacks",
+  );
 
   const emittedTypes = [...new Set([...source.matchAll(/(?<![a-z_])type: "([a-z_]+)"/g)].map((m) => m[1]))];
   const schemaTypes = new Set(schema.definitions.recommendation.properties.type.enum);
-  assert.deepEqual(emittedTypes.filter((t) => !schemaTypes.has(t)).sort(), [], "recommendation types the server emits but the schema lacks");
+  assert.deepEqual(
+    emittedTypes.filter((t) => !schemaTypes.has(t)).sort(),
+    [],
+    "recommendation types the server emits but the schema lacks",
+  );
 });
 
 test("states with no fixture are listed, not silently untested", () => {
@@ -100,8 +110,13 @@ test("states with no fixture are listed, not silently untested", () => {
   // Live-only states the mock builder cannot produce. Adding a fixture removes a name from this
   // list; a new schema state without a fixture or an entry here fails.
   assert.deepEqual(uncovered, [
-    "context_unavailable", "espn_import_blocked", "espn_league_context_missing", "espn_recovery_needed",
-    "pending_live_engine", "sleeper_league_context_missing", "yahoo_reauth_required",
+    "context_unavailable",
+    "espn_import_blocked",
+    "espn_league_context_missing",
+    "espn_recovery_needed",
+    "pending_live_engine",
+    "sleeper_league_context_missing",
+    "yahoo_reauth_required",
   ]);
 });
 
@@ -118,8 +133,15 @@ test("live-only shapes the mock builder cannot emit still validate (nullable del
 
 test("every state that asks the user to act must carry a recovery block (else the app shows its generic fallback)", () => {
   const actionable = [
-    "platform_disconnected", "pending_live_engine", "yahoo_reauth_required", "sleeper_league_context_missing",
-    "espn_reauth_required", "espn_league_context_missing", "espn_import_blocked", "espn_recovery_needed", "context_unavailable",
+    "platform_disconnected",
+    "pending_live_engine",
+    "yahoo_reauth_required",
+    "sleeper_league_context_missing",
+    "espn_reauth_required",
+    "espn_league_context_missing",
+    "espn_import_blocked",
+    "espn_recovery_needed",
+    "context_unavailable",
   ];
   const base = clone(load("espn_reauth_required").body);
   for (const state of actionable) {
@@ -136,18 +158,42 @@ test("every state that asks the user to act must carry a recovery block (else th
 test("the schema rejects breaking changes (it can say no)", () => {
   const good = load("success").body;
   const cases = {
-    "state removed": (b) => { delete b.state; },
-    "state renamed to an unknown value": (b) => { b.state = "ok"; },
-    "warnings becomes an object": (b) => { b.warnings = { a: 1 }; },
-    "recommendation missing on success": (b) => { b.recommendation = null; },
-    "move missing on success": (b) => { delete b.recommendation.move; },
-    "a numeric confidence score leaks to native": (b) => { b.recommendation.confidence.score = 82; },
-    "a band with no drivers": (b) => { b.recommendation.confidence.drivers = []; },
-    "an unknown band": (b) => { b.recommendation.confidence.band = "very_confident"; },
-    "an evidence row with an unknown kind": (b) => { b.evidence[0].kind = "guess"; },
-    "a capability with a bad state": (b) => { b.capabilities[0].state = "stub"; },
-    "capability contract renamed": (b) => { b.capability_contract = "decision-capabilities.v2"; },
-    "an empty statement": (b) => { b.evidence[0].statement = ""; },
+    "state removed": (b) => {
+      delete b.state;
+    },
+    "state renamed to an unknown value": (b) => {
+      b.state = "ok";
+    },
+    "warnings becomes an object": (b) => {
+      b.warnings = { a: 1 };
+    },
+    "recommendation missing on success": (b) => {
+      b.recommendation = null;
+    },
+    "move missing on success": (b) => {
+      delete b.recommendation.move;
+    },
+    "a numeric confidence score leaks to native": (b) => {
+      b.recommendation.confidence.score = 82;
+    },
+    "a band with no drivers": (b) => {
+      b.recommendation.confidence.drivers = [];
+    },
+    "an unknown band": (b) => {
+      b.recommendation.confidence.band = "very_confident";
+    },
+    "an evidence row with an unknown kind": (b) => {
+      b.evidence[0].kind = "guess";
+    },
+    "a capability with a bad state": (b) => {
+      b.capabilities[0].state = "stub";
+    },
+    "capability contract renamed": (b) => {
+      b.capability_contract = "decision-capabilities.v2";
+    },
+    "an empty statement": (b) => {
+      b.evidence[0].statement = "";
+    },
   };
   for (const [name, mutate] of Object.entries(cases)) {
     const bad = clone(good);
@@ -175,8 +221,14 @@ test("additive change is allowed: an unknown extra field and an extra capability
   body.brand_new_field = { anything: true };
   body.recommendation.extra_detail = "ok";
   body.capabilities.push({
-    name: "wind", state: "live", used: true, kind: "model", source: "open-meteo",
-    statement: "Wind 18 mph at kickoff.", observed_at: "2026-01-01T00:00:00.000Z", fresh_until: null,
+    name: "wind",
+    state: "live",
+    used: true,
+    kind: "model",
+    source: "open-meteo",
+    statement: "Wind 18 mph at kickoff.",
+    observed_at: "2026-01-01T00:00:00.000Z",
+    fresh_until: null,
   });
   assert.ok(validate(body), explain());
 });
@@ -190,21 +242,25 @@ test("the lock guard catches removal, retyping, loosening and value removal — 
   const lock = contracts.readLock(CONTRACT);
   const now = clone(contracts.flattenSchema(schema));
 
-  const removed = clone(now); delete removed["recommendation.move"];
+  const removed = clone(now);
+  delete removed["recommendation.move"];
   assert.ok(contracts.compareToLock(lock, removed).some((b) => b.startsWith("removed: recommendation.move")));
 
-  const retyped = clone(now); retyped.warnings.type = "object";
+  const retyped = clone(now);
+  retyped.warnings.type = "object";
   assert.ok(contracts.compareToLock(lock, retyped).some((b) => b.startsWith("retyped: warnings")));
 
-  const loosened = clone(now); loosened.state.required = false;
+  const loosened = clone(now);
+  loosened.state.required = false;
   assert.ok(contracts.compareToLock(lock, loosened).some((b) => b.startsWith("no longer required: state")));
 
-  const narrowed = clone(now); narrowed.state.values = narrowed.state.values.filter((v) => v !== "\"success\"");
+  const narrowed = clone(now);
+  narrowed.state.values = narrowed.state.values.filter((v) => v !== '"success"');
   assert.ok(contracts.compareToLock(lock, narrowed).some((b) => b.startsWith("value removed: state")));
 
   const added = clone(now);
   added["recommendation.new_optional_field"] = { type: "string", required: false };
-  added.state.values = [...added.state.values, "\"brand_new_state\""];
+  added.state.values = [...added.state.values, '"brand_new_state"'];
   assert.deepEqual(contracts.compareToLock(lock, added), [], "additions are not breaking");
 });
 

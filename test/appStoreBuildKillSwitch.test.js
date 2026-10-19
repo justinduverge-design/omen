@@ -38,10 +38,7 @@ test("ConnectLeague.jsx replaces ESPN cookie entry with the desktop extension gu
   assert.match(src, /Open ESPN setup guide/);
   assert.notStrictEqual(appStoreIdx, -1, "APP_STORE_BUILD mobile extension guide missing from EspnCard");
   assert.notStrictEqual(connectedIdx, -1, "existing ESPN_ENABLED/connected gate missing from EspnCard");
-  assert.ok(
-    appStoreIdx < connectedIdx,
-    "APP_STORE_BUILD check must run before the ESPN_ENABLED/connected bypass",
-  );
+  assert.ok(appStoreIdx < connectedIdx, "APP_STORE_BUILD check must run before the ESPN_ENABLED/connected bypass");
   // A phone must never be shown the cookie-paste form: its steps require developer tools,
   // which no mobile browser has. Safari Web Extensions cannot read HttpOnly cookies at all.
   assert.match(card, /isMobileViewport/, "phone-sized viewports must also get the desktop guide");
@@ -52,14 +49,8 @@ test("Yahoo and Sleeper connect are untouched by the app-store kill switch", () 
   const connectLeague = read("frontend", "src", "pages", "ConnectLeague.jsx");
   const platformConnections = read("frontend", "src", "components", "platforms", "PlatformConnections.jsx");
 
-  assert.doesNotMatch(
-    connectLeague.match(/function YahooCard\([\s\S]*?\n\}/)?.[0] ?? "",
-    /APP_STORE_BUILD/,
-  );
-  assert.doesNotMatch(
-    connectLeague.match(/function SleeperCard\([\s\S]*?\n\}/)?.[0] ?? "",
-    /APP_STORE_BUILD/,
-  );
+  assert.doesNotMatch(connectLeague.match(/function YahooCard\([\s\S]*?\n\}/)?.[0] ?? "", /APP_STORE_BUILD/);
+  assert.doesNotMatch(connectLeague.match(/function SleeperCard\([\s\S]*?\n\}/)?.[0] ?? "", /APP_STORE_BUILD/);
   assert.match(platformConnections, /yahoo:\s*\{\s*connected:\s*false,\s*platform:\s*'yahoo'\s*\}/);
 });
 

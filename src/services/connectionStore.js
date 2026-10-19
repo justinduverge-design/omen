@@ -25,7 +25,14 @@ const MISSING_FUNCTION_CODES = new Set(["PGRST202", "42883"]);
 // the SQL, because a misspelled name also comes back as PGRST202 and would fall back forever.
 const STEP02_PARAMS = Object.freeze({
   connection_store_espn: ["p_user_id", "p_league_id", "p_team_id", "p_espn_s2", "p_swid"],
-  connection_store_yahoo: ["p_user_id", "p_access_token", "p_refresh_token", "p_expires_at", "p_yahoo_guid", "p_league_id"],
+  connection_store_yahoo: [
+    "p_user_id",
+    "p_access_token",
+    "p_refresh_token",
+    "p_expires_at",
+    "p_yahoo_guid",
+    "p_league_id",
+  ],
   connection_rotate_yahoo: ["p_user_id", "p_expected_expires_at", "p_access_token", "p_refresh_token", "p_expires_at"],
   connection_revoke: ["p_user_id", "p_platform"],
 });

@@ -20,8 +20,11 @@ async function legacyResolver(players) {
       return {
         status: "resolved",
         player: {
-          id: input.player_key, name: input.name, position: input.position,
-          team: input.team || "FA", projected_points: input.projected_points ?? null,
+          id: input.player_key,
+          name: input.name,
+          position: input.position,
+          team: input.team || "FA",
+          projected_points: input.projected_points ?? null,
         },
       };
     }
@@ -38,7 +41,8 @@ function runtimeWith(rows, { mode = "shadow", fail = false } = {}) {
     identityRepository: {
       async readPlayersByProviderIds({ keys }) {
         calls.push(keys);
-        if (fail) throw Object.assign(new Error("connect ECONNREFUSED postgres://secret@host"), { code: "ECONNREFUSED" });
+        if (fail)
+          throw Object.assign(new Error("connect ECONNREFUSED postgres://secret@host"), { code: "ECONNREFUSED" });
         return new Map(rows);
       },
     },
@@ -71,12 +75,18 @@ test("fallback resolves an espn: key the legacy resolver could not", async () =>
 
 test("fallback never touches the warehouse in supabase mode or when nothing is unresolved", async () => {
   const off = runtimeWith([ESPN_HIT], { mode: "supabase" });
-  const a = await withWarehouseIdentityFallback(legacyResolver, { getRuntime: () => off })([{ player_key: "espn:4242", name: "X", position: "WR" }]);
+  const a = await withWarehouseIdentityFallback(legacyResolver, { getRuntime: () => off })([
+    { player_key: "espn:4242", name: "X", position: "WR" },
+  ]);
   assert.equal(a[0].status, "unresolved");
   const none = runtimeWith([ESPN_HIT]);
-  await withWarehouseIdentityFallback(legacyResolver, { getRuntime: () => none })([{ player_key: "sleeper:1", name: "X", position: "WR" }]);
+  await withWarehouseIdentityFallback(legacyResolver, { getRuntime: () => none })([
+    { player_key: "sleeper:1", name: "X", position: "WR" },
+  ]);
   assert.equal(off.calls.length + none.calls.length, 0);
-  const disabled = await withWarehouseIdentityFallback(legacyResolver, { getRuntime: () => ({ enabled: false }) })([{ player_key: "espn:1", name: "X" }]);
+  const disabled = await withWarehouseIdentityFallback(legacyResolver, { getRuntime: () => ({ enabled: false }) })([
+    { player_key: "espn:1", name: "X" },
+  ]);
   assert.equal(disabled[0].status, "unresolved");
 });
 
@@ -88,15 +98,18 @@ test("fallback leaves keys without provider shape and unknown ids unresolved", a
     { player_key: "espn:9999", name: "Unknown", position: "WR" },
     { player_key: "bogus:1", name: "Odd", position: "WR" },
   ]);
-  assert.deepEqual(out.map((r) => r.status), ["unresolved", "unresolved", "unresolved"]);
+  assert.deepEqual(
+    out.map((r) => r.status),
+    ["unresolved", "unresolved", "unresolved"],
+  );
 });
 
 test("a warehouse failure degrades to the legacy answer with a structured, secret-free log", async () => {
   const logger = quietLogger();
   const runtime = runtimeWith([], { fail: true });
-  const out = await withWarehouseIdentityFallback(legacyResolver, { getRuntime: () => runtime, logger })(
-    [{ player_key: "espn:4242", name: "P. Nacua", position: "WR" }],
-  );
+  const out = await withWarehouseIdentityFallback(legacyResolver, { getRuntime: () => runtime, logger })([
+    { player_key: "espn:4242", name: "P. Nacua", position: "WR" },
+  ]);
   assert.equal(out[0].status, "unresolved");
   const serialized = JSON.stringify(logger.lines);
   assert.match(serialized, /unavailable/);
@@ -109,11 +122,25 @@ test("repository validates public ids, batches one bounded query, and maps rows"
     timeoutMs: 750,
     query: async (request) => {
       requests.push(request);
-      return { rows: [{ provider: "yahoo", provider_id: "31883", gsis_id: "00-1", display_name: "A Player", football_position: "RB", team: "SF" }] };
+      return {
+        rows: [
+          {
+            provider: "yahoo",
+            provider_id: "31883",
+            gsis_id: "00-1",
+            display_name: "A Player",
+            football_position: "RB",
+            team: "SF",
+          },
+        ],
+      };
     },
   });
   const out = await repo.readPlayersByProviderIds({
-    keys: [{ provider: "yahoo", providerId: "31883" }, { provider: "yahoo", providerId: "31883" }],
+    keys: [
+      { provider: "yahoo", providerId: "31883" },
+      { provider: "yahoo", providerId: "31883" },
+    ],
   });
   assert.equal(requests.length, 1);
   assert.equal(requests[0].query_timeout, 750);
@@ -121,7 +148,10 @@ test("repository validates public ids, batches one bounded query, and maps rows"
   assert.deepEqual(out.get("yahoo:31883"), { gsis_id: "00-1", name: "A Player", position: "RB", team: "SF" });
   assert.equal((await repo.readPlayersByProviderIds({ keys: [] })).size, 0);
   await assert.rejects(repo.readPlayersByProviderIds({ keys: [{ provider: "pfr", providerId: "1" }] }), TypeError);
-  await assert.rejects(repo.readPlayersByProviderIds({ keys: [{ provider: "espn", providerId: "1; drop" }] }), TypeError);
+  await assert.rejects(
+    repo.readPlayersByProviderIds({ keys: [{ provider: "espn", providerId: "1; drop" }] }),
+    TypeError,
+  );
   const many = Array.from({ length: 101 }, (_, i) => ({ provider: "espn", providerId: String(i) }));
   await assert.rejects(repo.readPlayersByProviderIds({ keys: many }), RangeError);
 });
@@ -138,7 +168,9 @@ async function post(app, body, headers = {}) {
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   try {
     const res = await fetch(`http://127.0.0.1:${server.address().port}/api/trade/compare`, {
-      method: "POST", headers: { "content-type": "application/json", ...headers }, body: JSON.stringify(body),
+      method: "POST",
+      headers: { "content-type": "application/json", ...headers },
+      body: JSON.stringify(body),
     });
     return { status: res.status, body: await res.json() };
   } finally {
@@ -173,7 +205,8 @@ test("route: with a caller-supplied projection the warehouse-resolved player is 
 
 test("route: a warehouse outage keeps the old 422 unresolved_players behavior", async () => {
   const resolver = withWarehouseIdentityFallback(legacyResolver, {
-    getRuntime: () => runtimeWith([], { fail: true }), logger: quietLogger(),
+    getRuntime: () => runtimeWith([], { fail: true }),
+    logger: quietLogger(),
   });
   const res = await post(buildApp(resolver), TRADE);
   assert.equal(res.status, 422);
@@ -192,7 +225,10 @@ test("fully resolved lookups stay quiet; partial ones log once", async () => {
   const resolve = withWarehouseIdentityFallback(legacyResolver, { getRuntime: () => runtimeWith([ESPN_HIT]), logger });
   await resolve([{ player_key: "espn:4242", name: "P", position: "WR" }]);
   assert.equal(logger.lines.length, 0);
-  await resolve([{ player_key: "espn:4242", name: "P", position: "WR" }, { player_key: "espn:1", name: "Q", position: "WR" }]);
+  await resolve([
+    { player_key: "espn:4242", name: "P", position: "WR" },
+    { player_key: "espn:1", name: "Q", position: "WR" },
+  ]);
   assert.equal(logger.lines.length, 1);
   assert.equal(logger.lines[0][1].outcome, "partial");
 });
@@ -201,7 +237,11 @@ test("importing the trade router opens no pool and the supabase default is a no-
   const pg = require("pg");
   const original = pg.Pool;
   let constructed = 0;
-  pg.Pool = class { constructor() { constructed += 1; } };
+  pg.Pool = class {
+    constructor() {
+      constructed += 1;
+    }
+  };
   try {
     const modulePath = require.resolve("../src/routes/trade");
     delete require.cache[modulePath];

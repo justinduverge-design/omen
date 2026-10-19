@@ -58,8 +58,8 @@ const WAIVER_ANALYSIS_V1 = "waiver-analysis.v1";
 const WAIVER_ANALYSIS_V2 = "waiver-analysis.v2";
 const CONNECTION_COLUMNS =
   // token_expires_at is load-bearing: isOmenReadyConnection() treats an absent
-// expiry as expired, so omitting it here would make every Yahoo connection
-// unusable.
+  // expiry as expired, so omitting it here would make every Yahoo connection
+  // unusable.
   "platform,is_active,league_id,platform_username,platform_user_id,token_secret_id,token_expires_at,espn_secret_id,swid_secret_id,espn_team_id";
 
 function errorBody({ code, message, action, platform = null }) {
@@ -132,12 +132,9 @@ async function loadSleeper(connection, week, season) {
   // rosters, users and user reads happen once however many stages ask for them.
   // The roster read is the only stage whose failure fails the load, as before.
   const leaguePromise = sleeperAdapter.fetchSleeperLeague(connection.league_id).catch(() => null);
-  const rosterPromise = sleeperAdapter.buildNormalizedRoster(
-    connection.league_id,
-    connection.platform_username,
-    week,
-    { season }
-  );
+  const rosterPromise = sleeperAdapter.buildNormalizedRoster(connection.league_id, connection.platform_username, week, {
+    season,
+  });
   const poolPromise = sleeperAdapter
     .fetchSleeperAvailablePlayers(connection.league_id, week, String(season))
     .catch(() => null);
@@ -157,12 +154,7 @@ async function loadSleeper(connection, week, season) {
     }
   })();
 
-  const [league, roster, pool, system] = await Promise.all([
-    leaguePromise,
-    rosterPromise,
-    poolPromise,
-    systemPromise,
-  ]);
+  const [league, roster, pool, system] = await Promise.all([leaguePromise, rosterPromise, poolPromise, systemPromise]);
 
   return {
     roster,
@@ -190,7 +182,7 @@ async function loadEspn(connection, userId, week) {
     credentials.espn_s2,
     credentials.swid,
     week,
-    { teamId: connection.espn_team_id }
+    { teamId: connection.espn_team_id },
   );
   const pool = await espnAdapter
     .fetchEspnWaiverPool(connection.league_id, credentials.espn_s2, credentials.swid, week)
@@ -206,12 +198,13 @@ async function loadEspn(connection, userId, week) {
       credentials.espn_s2,
       credentials.swid,
       ["mTeam", "mSettings"],
-      null
+      null,
     );
     const teams = Array.isArray(data?.teams) ? data.teams : [];
-    const team = connection.espn_team_id != null
-      ? teams.find((t) => String(t.id) === String(connection.espn_team_id)) || null
-      : null;
+    const team =
+      connection.espn_team_id != null
+        ? teams.find((t) => String(t.id) === String(connection.espn_team_id)) || null
+        : null;
     system = waiverSystem.fromEspn({ settings: data?.settings, team });
   } catch (_) {
     // not_determined. A settings read must never break waiver advice.
@@ -225,19 +218,24 @@ async function loadEspn(connection, userId, week) {
     waiverSystem: system,
     scoringFormat: null,
     availabilityConfirmed: pool != null,
-    limitations: pool == null
-      ? []
-      : ["Omen has not verified this league's scoring rules, so evidence omits league scoring."],
+    limitations:
+      pool == null ? [] : ["Omen has not verified this league's scoring rules, so evidence omits league scoring."],
   };
 }
 
 function yahooWaiverLimitations(meta) {
   if (!meta?.available) {
-    return ["Yahoo's available-player response carries no weekly projection and Omen could not build one from Sleeper's public projections, so it cannot rank waiver adds for this league."];
+    return [
+      "Yahoo's available-player response carries no weekly projection and Omen could not build one from Sleeper's public projections, so it cannot rank waiver adds for this league.",
+    ];
   }
-  const notes = ["Projections are Sleeper's public weekly projections, re-scored with this Yahoo league's rules; Yahoo does not publish player projections."];
+  const notes = [
+    "Projections are Sleeper's public weekly projections, re-scored with this Yahoo league's rules; Yahoo does not publish player projections.",
+  ];
   if (meta.scoring_basis === "approximate_scoring") {
-    notes.push("This league has scoring rules Omen cannot reproduce, so these point totals are approximate, not exact league scoring.");
+    notes.push(
+      "This league has scoring rules Omen cannot reproduce, so these point totals are approximate, not exact league scoring.",
+    );
   }
   return notes;
 }
@@ -271,8 +269,11 @@ async function loadYahoo(connection, userId, week) {
       normalizedPool = rosterSvc.normalizeYahooWaivers(raw);
     }
     ({ pool, projectionMeta: poolProjection } = await projectYahooPool(
-      client, connection.league_id, roster.week, normalizedPool,
-      { rosterMeta: roster.projection_meta }
+      client,
+      connection.league_id,
+      roster.week,
+      normalizedPool,
+      { rosterMeta: roster.projection_meta },
     ));
   } catch {
     pool = null;
@@ -288,9 +289,12 @@ async function loadYahoo(connection, userId, week) {
     system = waiverSystem.fromYahoo({
       // Pass the WHOLE league payload: the settings container is not league[0].
       settings: rawSettings,
-      team: myTeamKey ? await client.get(`/team/${myTeamKey}`)
-        .then((d) => d?.fantasy_content?.team?.[0] ?? null)
-        .catch(() => null) : null,
+      team: myTeamKey
+        ? await client
+            .get(`/team/${myTeamKey}`)
+            .then((d) => d?.fantasy_content?.team?.[0] ?? null)
+            .catch(() => null)
+        : null,
     });
   } catch (_) {
     // not_determined. A settings read must never break waiver advice.
@@ -309,9 +313,11 @@ async function loadYahoo(connection, userId, week) {
     limitations: [
       ...yahooWaiverLimitations(poolProjection),
       ...(poolStatusSplit
-        ? [poolStatusSplit.truncated
-          ? "Free agents and players on waivers were read separately; this is the top of the pool by Yahoo's average rank, not every available player."
-          : "Free agents and players on waivers were read separately."]
+        ? [
+            poolStatusSplit.truncated
+              ? "Free agents and players on waivers were read separately; this is the top of the pool by Yahoo's average rank, not every available player."
+              : "Free agents and players on waivers were read separately.",
+          ]
         : []),
     ],
   };
@@ -336,19 +342,23 @@ function parseWeek(value) {
 router.get("/analysis", requireAuth, async (req, res, next) => {
   const requestedContract = req.query.contract_version;
   if (requestedContract != null && ![WAIVER_ANALYSIS_V1, WAIVER_ANALYSIS_V2].includes(requestedContract)) {
-    return res.status(400).json(errorBody({
-      code: "unsupported_waiver_analysis_contract",
-      message: "This version of waiver analysis is not supported.",
-      action: "retry",
-    }));
+    return res.status(400).json(
+      errorBody({
+        code: "unsupported_waiver_analysis_contract",
+        message: "This version of waiver analysis is not supported.",
+        action: "retry",
+      }),
+    );
   }
   const requestedWeek = parseWeek(req.query.week);
   if (requestedWeek === undefined) {
-    return res.status(400).json(errorBody({
-      code: "invalid_week",
-      message: "Week must be between 1 and 18.",
-      action: "retry",
-    }));
+    return res.status(400).json(
+      errorBody({
+        code: "invalid_week",
+        message: "Week must be between 1 and 18.",
+        action: "retry",
+      }),
+    );
   }
 
   try {
@@ -358,11 +368,13 @@ router.get("/analysis", requireAuth, async (req, res, next) => {
     const connection = resolveActiveConnection(rows, { isUsable: (row) => isOmenReadyConnection(row) });
 
     if (!connection) {
-      return res.status(404).json(errorBody({
-        code: "no_usable_league",
-        message: "Connect a league and pick a team before Omen can analyse waivers.",
-        action: "connect",
-      }));
+      return res.status(404).json(
+        errorBody({
+          code: "no_usable_league",
+          message: "Connect a league and pick a team before Omen can analyse waivers.",
+          action: "connect",
+        }),
+      );
     }
 
     // Short per-user response cache. The key carries the resolved connection
@@ -394,14 +406,17 @@ router.get("/analysis", requireAuth, async (req, res, next) => {
         status: error?.status || null,
       });
       const status = error?.status === 401 || error?.status === 403 ? 401 : 502;
-      return res.status(status).json(errorBody({
-        code: status === 401 ? `${connection.platform}_reconnect_required` : "provider_unavailable",
-        message: status === 401
-          ? "Reconnect this platform so Omen can read your roster."
-          : "Omen could not reach this platform. Try again shortly.",
-        action: status === 401 ? "reconnect" : "retry",
-        platform: connection.platform,
-      }));
+      return res.status(status).json(
+        errorBody({
+          code: status === 401 ? `${connection.platform}_reconnect_required` : "provider_unavailable",
+          message:
+            status === 401
+              ? "Reconnect this platform so Omen can read your roster."
+              : "Omen could not reach this platform. Try again shortly.",
+          action: status === 401 ? "reconnect" : "retry",
+          platform: connection.platform,
+        }),
+      );
     }
 
     // Sight first, so the decision itself weighs Omen's read (not just the display).
@@ -426,8 +441,9 @@ router.get("/analysis", requireAuth, async (req, res, next) => {
     // Only a confirmed analysis is kept. availability_unknown / engine_limitation
     // mean a provider could not confirm the pool, which the user may fix or retry.
     await responseCache.store(cacheHandle, 200, payload, {
-      cache: !responseCache.isActionState(analysis)
-        && ["confirmed_opportunity", "no_low_cost_drop", "no_credible_move"].includes(analysis.state),
+      cache:
+        !responseCache.isActionState(analysis) &&
+        ["confirmed_opportunity", "no_low_cost_drop", "no_credible_move"].includes(analysis.state),
     });
     return res.json(payload);
   } catch (e) {

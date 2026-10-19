@@ -1,8 +1,7 @@
 name: Lint quality
 
 # Phase 1 tooling (Blueprints/specs/infrastructure/omen-rust-infrastructure-plan-v1.md).
-# Report-only (continue-on-error) until each backlog is clean, then blocking.
-# shellcheck and typos: clean and blocking since 2026-10-18. biome: still report-only.
+# Each job was report-only until its backlog was clean. shellcheck, typos and biome: clean and blocking since 2026-10-18.
 on:
   pull_request:
   workflow_dispatch:
@@ -33,8 +32,7 @@ jobs:
           config: .github/_typos.toml
 
   biome:
-    # JS lint + format (biome.jsonc). Report-only: 825 errors / 684 warnings on 2026-10-18, mostly formatting.
-    continue-on-error: true
+    # JS lint + format (biome.jsonc). Blocking: lint errors and formatting drift fail the PR; warnings do not.
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

@@ -75,13 +75,32 @@ const CONFIDENCE = Object.freeze({
 });
 
 const STAT_KEYS = Object.freeze([
-  "attempts", "completions", "passing_yards", "passing_tds", "passing_interceptions",
-  "carries", "rushing_yards", "rushing_tds",
-  "targets", "receptions", "receiving_yards", "receiving_tds",
+  "attempts",
+  "completions",
+  "passing_yards",
+  "passing_tds",
+  "passing_interceptions",
+  "carries",
+  "rushing_yards",
+  "rushing_tds",
+  "targets",
+  "receptions",
+  "receiving_yards",
+  "receiving_tds",
   "fumbles_lost",
 ]);
 
 module.exports = {
-  CONFIDENCE, ENVIRONMENT, HALF_LIFE_GAMES_EFFICIENCY, HALF_LIFE_GAMES_VOLUME, MAX_HISTORY_GAMES,
-  METHOD_VERSION, PLAY_PROBABILITY, POSITIONS, RED_ZONE_RATIO_CLAMP, SEASON_DECAY, SHRINKAGE, STAT_KEYS,
+  CONFIDENCE,
+  ENVIRONMENT,
+  HALF_LIFE_GAMES_EFFICIENCY,
+  HALF_LIFE_GAMES_VOLUME,
+  MAX_HISTORY_GAMES,
+  METHOD_VERSION,
+  PLAY_PROBABILITY,
+  POSITIONS,
+  RED_ZONE_RATIO_CLAMP,
+  SEASON_DECAY,
+  SHRINKAGE,
+  STAT_KEYS,
 };

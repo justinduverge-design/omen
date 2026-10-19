@@ -4,7 +4,15 @@ const crypto = require("node:crypto");
 
 // nflverse publishes weekly rosters from 2002; 1999-2001 have no asset (404), so that stage is not published, not failed.
 const FIRST_WEEKLY_ROSTER_SEASON = 2002;
-const DATASETS = new Set(["teams", "schedules", "players", "player-weekly", "team-weekly", "weekly-rosters", "play-by-play"]);
+const DATASETS = new Set([
+  "teams",
+  "schedules",
+  "players",
+  "player-weekly",
+  "team-weekly",
+  "weekly-rosters",
+  "play-by-play",
+]);
 const DEFAULT_ACQUISITION_TIMEOUT_MS = 120_000;
 const MAX_ACQUISITION_TIMEOUT_MS = 600_000;
 
@@ -122,14 +130,18 @@ function createCurrentSeasonIngest({
       const controller = new AbortController();
       let timedOut = false;
       let rejectCallerAbort;
-      const callerAbort = new Promise((resolve, reject) => { rejectCallerAbort = reject; });
+      const callerAbort = new Promise((resolve, reject) => {
+        rejectCallerAbort = reject;
+      });
       const forwardAbort = () => {
         controller.abort(signal.reason);
         rejectCallerAbort(abortError());
       };
       signal?.addEventListener("abort", forwardAbort, { once: true });
       let rejectDeadline;
-      const deadline = new Promise((resolve, reject) => { rejectDeadline = reject; });
+      const deadline = new Promise((resolve, reject) => {
+        rejectDeadline = reject;
+      });
       const timer = setTimeout(() => {
         timedOut = true;
         controller.abort();
@@ -155,7 +167,9 @@ function createCurrentSeasonIngest({
           // to defeat the caller-visible deadline.
           void Promise.allSettled(tasks);
           if (timedOut && !(error instanceof CurrentSeasonIngestError)) {
-            throw new CurrentSeasonIngestError("acquisition_timeout", "football source acquisition timed out", { cause: error });
+            throw new CurrentSeasonIngestError("acquisition_timeout", "football source acquisition timed out", {
+              cause: error,
+            });
           }
           throw error;
         }
@@ -168,7 +182,8 @@ function createCurrentSeasonIngest({
       const playersSource = acquisition(acquired[1], "players");
       const weeklySource = acquisition(acquired[2], "player weekly");
       const teamWeeklySource = acquisition(acquired[3], "team weekly");
-      const rosterSource = selectedSeason >= FIRST_WEEKLY_ROSTER_SEASON ? acquisition(acquired[4], "weekly rosters") : null;
+      const rosterSource =
+        selectedSeason >= FIRST_WEEKLY_ROSTER_SEASON ? acquisition(acquired[4], "weekly rosters") : null;
       const playByPlaySource = acquisition(acquired[5], "play by play");
       const ids = {
         teams: runIdFor({ dataset: "teams", season: selectedSeason, raw: schedulesSource.raw }),
@@ -176,33 +191,50 @@ function createCurrentSeasonIngest({
         players: runIdFor({ dataset: "players", season: selectedSeason, raw: playersSource.raw }),
         playerWeekly: runIdFor({ dataset: "player-weekly", season: selectedSeason, raw: weeklySource.raw }),
         teamWeekly: runIdFor({ dataset: "team-weekly", season: selectedSeason, raw: teamWeeklySource.raw }),
-        weeklyRosters: rosterSource ? runIdFor({ dataset: "weekly-rosters", season: selectedSeason, raw: rosterSource.raw }) : null,
+        weeklyRosters: rosterSource
+          ? runIdFor({ dataset: "weekly-rosters", season: selectedSeason, raw: rosterSource.raw })
+          : null,
         playByPlay: runIdFor({ dataset: "play-by-play", season: selectedSeason, raw: playByPlaySource.raw }),
       };
 
       // Finish every validation before the first independently committed writer runs.
       throwIfAborted(signal);
-      const schedules = dependencies.adaptSchedules({ ...schedulesSource, runId: ids.schedules, season: selectedSeason });
+      const schedules = dependencies.adaptSchedules({
+        ...schedulesSource,
+        runId: ids.schedules,
+        season: selectedSeason,
+      });
       throwIfAborted(signal);
       const players = dependencies.adaptPlayers({ ...playersSource, runId: ids.players });
       throwIfAborted(signal);
       const weekly = dependencies.adaptPlayerWeekly({
-        ...weeklySource, runId: ids.playerWeekly, season: selectedSeason,
+        ...weeklySource,
+        runId: ids.playerWeekly,
+        season: selectedSeason,
         playerIdByGsis: players.playerIdByGsis,
       });
       throwIfAborted(signal);
       const scoresByGameId = new Map(schedules.gameRows.map((game) => [game.gameId, game]));
       const teamWeekly = dependencies.adaptTeamWeekly({
-        ...teamWeeklySource, runId: ids.teamWeekly, season: selectedSeason, scoresByGameId,
+        ...teamWeeklySource,
+        runId: ids.teamWeekly,
+        season: selectedSeason,
+        scoresByGameId,
       });
       throwIfAborted(signal);
-      const rosters = rosterSource ? dependencies.adaptWeeklyRosters({
-        ...rosterSource, runId: ids.weeklyRosters, season: selectedSeason,
-        playerIdByGsis: players.playerIdByGsis,
-      }) : null;
+      const rosters = rosterSource
+        ? dependencies.adaptWeeklyRosters({
+            ...rosterSource,
+            runId: ids.weeklyRosters,
+            season: selectedSeason,
+            playerIdByGsis: players.playerIdByGsis,
+          })
+        : null;
       throwIfAborted(signal);
       const plays = dependencies.adaptPlayByPlay({
-        ...playByPlaySource, runId: ids.playByPlay, season: selectedSeason,
+        ...playByPlaySource,
+        runId: ids.playByPlay,
+        season: selectedSeason,
         playerIdByGsis: players.playerIdByGsis,
       });
       const teamReceipt = { ...schedules.receipt, runId: ids.teams };
@@ -236,35 +268,50 @@ function createCurrentSeasonIngest({
 
       const stages = {};
       throwIfAborted(signal);
-      stages.teams = await dependencies.teamWriter.writeSnapshot({ receipt: teamReceipt, teamRows: schedules.teamRows });
+      stages.teams = await dependencies.teamWriter.writeSnapshot({
+        receipt: teamReceipt,
+        teamRows: schedules.teamRows,
+      });
       throwIfAborted(signal);
       stages.schedules = await dependencies.scheduleWriter.writeSeason({
-        receipt: schedules.receipt, season: selectedSeason, gameRows: schedules.gameRows,
+        receipt: schedules.receipt,
+        season: selectedSeason,
+        gameRows: schedules.gameRows,
       });
       throwIfAborted(signal);
       stages.players = await dependencies.playerWriter.writeSnapshot({
-        receipt: players.receipt, players: players.players, playerIds: players.playerIds,
+        receipt: players.receipt,
+        players: players.players,
+        playerIds: players.playerIds,
       });
       throwIfAborted(signal);
       stages.playerWeekly = await dependencies.playerWeeklyWriter.writeSeason({
-        receipt: weekly.receipt, season: selectedSeason, rows: weekly.rows,
+        receipt: weekly.receipt,
+        season: selectedSeason,
+        rows: weekly.rows,
         unmatchedRows: weekly.unmatchedRows,
       });
       throwIfAborted(signal);
       stages.teamWeekly = await dependencies.teamWeeklyWriter.writeSeason({
-        receipt: teamWeekly.receipt, season: selectedSeason, rows: teamWeekly.rows,
+        receipt: teamWeekly.receipt,
+        season: selectedSeason,
+        rows: teamWeekly.rows,
         unmatchedRows: teamWeekly.unmatchedRows,
       });
       throwIfAborted(signal);
       stages.weeklyRosters = rosters
         ? await dependencies.weeklyRosterWriter.writeSeason({
-          receipt: rosters.receipt, season: selectedSeason, rows: rosters.rows,
-          unmatchedRows: rosters.unmatchedRows,
-        })
+            receipt: rosters.receipt,
+            season: selectedSeason,
+            rows: rosters.rows,
+            unmatchedRows: rosters.unmatchedRows,
+          })
         : { state: "not_published", firstSeason: FIRST_WEEKLY_ROSTER_SEASON };
       throwIfAborted(signal);
       stages.playByPlay = await dependencies.playByPlayWriter.writeSeason({
-        receipt: plays.receipt, season: selectedSeason, rows: plays.rows,
+        receipt: plays.receipt,
+        season: selectedSeason,
+        rows: plays.rows,
         unmatchedRows: plays.unmatchedRows,
       });
 

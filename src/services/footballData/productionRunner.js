@@ -236,10 +236,15 @@ async function captureProductionSet({
     job: "capture-set",
     state: "pass",
     batchId,
-    datasets: Object.fromEntries(Object.entries(datasets).map(([name, value]) => [name, {
-      sha256: value.raw_sha256,
-      byteLength: value.raw_byte_length,
-    }])),
+    datasets: Object.fromEntries(
+      Object.entries(datasets).map(([name, value]) => [
+        name,
+        {
+          sha256: value.raw_sha256,
+          byteLength: value.raw_byte_length,
+        },
+      ]),
+    ),
   });
   await Promise.all([
     writeMutableJson(selectedRoot, "status/current.json", status),
@@ -265,14 +270,17 @@ async function validateProductionBatch({
   for (const dataset of ["stats_player", "stats_team", "schedules"]) {
     const evidence = batch.datasets?.[dataset];
     if (!evidence) throw new Error(`capture batch is missing ${dataset}`);
-    const manifestPath = inside(selectedRoot, path.join(selectedRoot, evidence.manifest_path), `${dataset} manifest path`);
+    const manifestPath = inside(
+      selectedRoot,
+      path.join(selectedRoot, evidence.manifest_path),
+      `${dataset} manifest path`,
+    );
     const exact = await readImpl({
       root: inside(selectedRoot, path.join(selectedRoot, "vault"), "vault root"),
       manifestPath,
       expectedDataset: dataset,
     });
-    if (exact.manifestHash !== evidence.manifest_sha256
-        || exact.manifest.raw.sha256 !== evidence.raw_sha256) {
+    if (exact.manifestHash !== evidence.manifest_sha256 || exact.manifest.raw.sha256 !== evidence.raw_sha256) {
       throw new Error(`${dataset} exact manifest binding failed`);
     }
     verified[dataset] = {
@@ -289,11 +297,7 @@ async function validateProductionBatch({
     publication_authorized: false,
     production_scoring_authorized: false,
   };
-  const receiptPath = await writeImmutableJson(
-    selectedRoot,
-    `validations/${selectedBatchId}.json`,
-    receipt,
-  );
+  const receiptPath = await writeImmutableJson(selectedRoot, `validations/${selectedBatchId}.json`, receipt);
   return { receipt, receiptPath };
 }
 
@@ -311,11 +315,7 @@ async function importPhase3Evidence({ stateRoot = FIXED_CONTAINER_STATE_ROOT, no
     throw new Error("Phase 3 receipt is not bound to the immutable readiness hash");
   }
   const evidenceRoot = `evidence/${PHASE3_ACCEPTANCE_SHA256}`;
-  const acceptancePath = await writeImmutableBytes(
-    selectedRoot,
-    `${evidenceRoot}/acceptance.json`,
-    acceptanceBytes,
-  );
+  const acceptancePath = await writeImmutableBytes(selectedRoot, `${evidenceRoot}/acceptance.json`, acceptanceBytes);
   const receiptPath = await writeImmutableBytes(selectedRoot, `${evidenceRoot}/receipt.json`, receiptBytes);
   const importReceipt = {
     schema: "omen-football-production-import.v1",
@@ -342,14 +342,18 @@ async function recoverPhase3Evidence({
   const selectedState = path.resolve(stateRoot);
   const selectedBackup = path.resolve(backupRoot);
   const selectedRecovery = path.resolve(recoveryRoot);
-  const observation = JSON.parse(await fs.readFile(
-    inside(selectedState, path.join(selectedState, "witness", "phase3-observation.json"), "witness observation"),
-    "utf8",
-  ));
-  if (observation.schema !== "omen-football-witness-observation.v1"
-      || observation.status !== "match"
-      || observation.expected_hash !== PHASE3_ACCEPTANCE_SHA256
-      || observation.observed_hash !== PHASE3_ACCEPTANCE_SHA256) {
+  const observation = JSON.parse(
+    await fs.readFile(
+      inside(selectedState, path.join(selectedState, "witness", "phase3-observation.json"), "witness observation"),
+      "utf8",
+    ),
+  );
+  if (
+    observation.schema !== "omen-football-witness-observation.v1" ||
+    observation.status !== "match" ||
+    observation.expected_hash !== PHASE3_ACCEPTANCE_SHA256 ||
+    observation.observed_hash !== PHASE3_ACCEPTANCE_SHA256
+  ) {
     throw new Error("fresh-root recovery requires an exact matching witness observation");
   }
   const source = inside(
@@ -398,20 +402,25 @@ async function publishAcceptance({
   const selectedRoot = path.resolve(stateRoot);
   const selectedHash = exactHash(acceptanceSha256, "acceptanceSha256");
   if (selectedHash !== PHASE3_ACCEPTANCE_SHA256) throw new Error("publication input is not admitted");
-  const control = await fs.readFile(path.join(selectedRoot, "control", "publication-enabled"), "utf8")
+  const control = await fs
+    .readFile(path.join(selectedRoot, "control", "publication-enabled"), "utf8")
     .catch((error) => (error.code === "ENOENT" ? "" : Promise.reject(error)));
   if (control !== "enabled\n") throw new Error("publication is disabled");
   const observationId = String(witnessObservation || "");
   if (observationId !== "phase3-observation" && !/^[0-9TZ]{16,40}-[a-f0-9]{16}$/.test(observationId)) {
     throw new Error("witness observation id is invalid");
   }
-  const observation = JSON.parse(await fs.readFile(
-    inside(selectedRoot, path.join(selectedRoot, "witness", `${observationId}.json`), "witness observation"),
-    "utf8",
-  ));
-  if (observation.status !== "match"
-      || observation.expected_hash !== selectedHash
-      || observation.observed_hash !== selectedHash) {
+  const observation = JSON.parse(
+    await fs.readFile(
+      inside(selectedRoot, path.join(selectedRoot, "witness", `${observationId}.json`), "witness observation"),
+      "utf8",
+    ),
+  );
+  if (
+    observation.status !== "match" ||
+    observation.expected_hash !== selectedHash ||
+    observation.observed_hash !== selectedHash
+  ) {
     throw new Error("publication requires a matching exact witness observation");
   }
   const acceptancePath = inside(
@@ -433,11 +442,7 @@ async function publishAcceptance({
     promoted: true,
     production_scoring_authorized: false,
   };
-  const publicationPath = await writeImmutableJson(
-    selectedRoot,
-    `published/${publicationId}.json`,
-    publication,
-  );
+  const publicationPath = await writeImmutableJson(selectedRoot, `published/${publicationId}.json`, publication);
   return { publication, publicationPath };
 }
 
@@ -452,7 +457,9 @@ async function recordProductionFailure({
   if (alert.code !== "job_failure") alerts.push(alert);
   const status = buildPayloadFreeStatus({
     generatedAt: now().toISOString(),
-    job: String(command || "job-failure").replace(/[^a-z0-9-]/g, "-").slice(0, 64),
+    job: String(command || "job-failure")
+      .replace(/[^a-z0-9-]/g, "-")
+      .slice(0, 64),
     state: alert.code === "source_loss" ? "pending" : "failed",
     alerts,
   });

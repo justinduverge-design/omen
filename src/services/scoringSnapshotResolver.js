@@ -87,8 +87,9 @@ const LEGACY_FORMAT_LABEL = Object.freeze({
  */
 function legacyFormatFromSnapshot(snapshot) {
   if (snapshot?.coverage_state !== "supported") return null;
-  const reception = (snapshot.contract?.rules || [])
-    .find((rule) => rule.event_key === "receiving_receptions" && rule.operator === "per_event");
+  const reception = (snapshot.contract?.rules || []).find(
+    (rule) => rule.event_key === "receiving_receptions" && rule.operator === "per_event",
+  );
   if (!reception) return null;
   if (reception.value === 0) return "standard";
   if (reception.value === 0.5) return "half_ppr";
@@ -110,7 +111,7 @@ function metadataFrom(snapshot, { retain }) {
     // Null until the provider's retention right is evidenced. The hash above
     // still pins exactly which rules produced this row, so provenance survives
     // even though the body is not retained.
-    contract: retain ? (snapshot.contract || null) : null,
+    contract: retain ? snapshot.contract || null : null,
     retention_withheld: !retain && snapshot.coverage_state === "supported",
   };
 }
@@ -174,7 +175,9 @@ async function defaultYahooSettingsReader(leagueId, userId) {
 }
 
 async function resolveScoringPersistenceMetadata({ platform, leagueId, userId = null, deps = {} } = {}) {
-  const name = String(platform || "").trim().toLowerCase();
+  const name = String(platform || "")
+    .trim()
+    .toLowerCase();
   if (!name) return pendingMetadata("No platform was recorded on this recommendation.");
 
   const retain = RETAIN_RULE_BODY[name] === true;
@@ -219,8 +222,7 @@ async function resolveScoringPersistenceMetadata({ platform, leagueId, userId = 
 
   if (!leagueId) return pendingMetadata("No Sleeper league id was recorded on this recommendation.");
 
-  const fetchLeague = deps.fetchSleeperLeague
-    || require("../adapters/sleeper").fetchSleeperLeague;
+  const fetchLeague = deps.fetchSleeperLeague || require("../adapters/sleeper").fetchSleeperLeague;
 
   let league;
   try {
@@ -233,7 +235,7 @@ async function resolveScoringPersistenceMetadata({ platform, leagueId, userId = 
 
   return metadataFrom(
     deriveScoringSnapshot({ platform: "sleeper", leagueSettings: league?.scoring_settings || null }),
-    { retain }
+    { retain },
   );
 }
 

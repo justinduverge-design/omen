@@ -8,11 +8,7 @@ const test = require("node:test");
 const YahooClient = require("../src/services/yahoo");
 
 function leagueAttrs({ leagueKey, name, season }) {
-  return [[
-    { league_key: leagueKey },
-    { name },
-    { season: String(season) },
-  ]];
+  return [[{ league_key: leagueKey }, { name }, { season: String(season) }]];
 }
 
 /**
@@ -45,8 +41,20 @@ test("getUserLeagues parses the flat-object league shape this endpoint really re
                     { game_key: "470" },
                     {
                       leagues: {
-                        0: { league: leagueAttrsFlat({ leagueKey: "470.l.1255365", name: "Yahoo H2H-Pts 1255365", season: 2026 }) },
-                        1: { league: leagueAttrsFlat({ leagueKey: "470.l.1358570", name: "Fantasy Madness", season: 2026 }) },
+                        0: {
+                          league: leagueAttrsFlat({
+                            leagueKey: "470.l.1255365",
+                            name: "Yahoo H2H-Pts 1255365",
+                            season: 2026,
+                          }),
+                        },
+                        1: {
+                          league: leagueAttrsFlat({
+                            leagueKey: "470.l.1358570",
+                            name: "Fantasy Madness",
+                            season: 2026,
+                          }),
+                        },
                         count: 2,
                       },
                     },
@@ -118,10 +126,7 @@ test("getUserLeagues returns [] when the user has no leagues", async () => {
     fantasy_content: {
       users: {
         0: {
-          user: [
-            { guid: "user-guid" },
-            { games: { count: 0 } },
-          ],
+          user: [{ guid: "user-guid" }, { games: { count: 0 } }],
         },
         count: 1,
       },
@@ -146,7 +151,9 @@ test("getUserLeagues never throws on a malformed or empty response", async () =>
 
 test("getUserLeagues propagates a real fetch/auth failure instead of swallowing it", async () => {
   const client = new YahooClient("token");
-  client.get = async () => { throw new Error("yahoo_token_expired"); };
+  client.get = async () => {
+    throw new Error("yahoo_token_expired");
+  };
 
   await assert.rejects(() => client.getUserLeagues(), /yahoo_token_expired/);
 });
@@ -164,15 +171,17 @@ test("getUserLeagues propagates a real fetch/auth failure instead of swallowing 
 function leagueFlatResponse() {
   return {
     fantasy_content: {
-      league: [{
-        league_key: "470.l.1255365",
-        league_id: "1255365",
-        name: "Yahoo H2H-Pts 1255365",
-        season: "2026",
-        current_week: 1,
-        num_teams: 10,
-        scoring_type: "head",
-      }],
+      league: [
+        {
+          league_key: "470.l.1255365",
+          league_id: "1255365",
+          name: "Yahoo H2H-Pts 1255365",
+          season: "2026",
+          current_week: 1,
+          num_teams: 10,
+          scoring_type: "head",
+        },
+      ],
     },
   };
 }
@@ -203,12 +212,7 @@ test("getLeagueMetadata and getCurrentWeek still read the array-of-single-key-ob
   // handling only whichever shape was fixed most recently.
   const arrayShape = {
     fantasy_content: {
-      league: [[
-        { league_key: "470.l.1358570" },
-        { name: "Fantasy Madness" },
-        { season: "2026" },
-        { current_week: 3 },
-      ]],
+      league: [[{ league_key: "470.l.1358570" }, { name: "Fantasy Madness" }, { season: "2026" }, { current_week: 3 }]],
     },
   };
   const client = new YahooClient("token");
@@ -256,7 +260,16 @@ test("getUserLeaguesWithTeams reads the team the /teams sub-resource nests in ea
                           0: {
                             league: [
                               ...leagueAttrsFlat({ leagueKey: "470.l.1255365", name: "Yahoo H2H-Pts", season: 2026 }),
-                              { teams: { 0: { team: [[{ team_key: "470.l.1255365.t.4" }, { team_id: "4" }, { name: "Gravediggers" }]] }, count: 1 } },
+                              {
+                                teams: {
+                                  0: {
+                                    team: [
+                                      [{ team_key: "470.l.1255365.t.4" }, { team_id: "4" }, { name: "Gravediggers" }],
+                                    ],
+                                  },
+                                  count: 1,
+                                },
+                              },
                             ],
                           },
                           count: 1,
@@ -300,7 +313,14 @@ test("getUserLeaguesWithTeams falls back to the verified endpoint rather than lo
                   0: {
                     game: [
                       { game_key: "470" },
-                      { leagues: { 0: { league: leagueAttrsFlat({ leagueKey: "470.l.1", name: "Fallback League", season: 2026 }) }, count: 1 } },
+                      {
+                        leagues: {
+                          0: {
+                            league: leagueAttrsFlat({ leagueKey: "470.l.1", name: "Fallback League", season: 2026 }),
+                          },
+                          count: 1,
+                        },
+                      },
                     ],
                   },
                   count: 1,
@@ -336,7 +356,22 @@ test("a throwing /teams request still yields the user's leagues", async () => {
           0: {
             user: [
               { guid: "g" },
-              { games: { 0: { game: [{ game_key: "470" }, { leagues: { 0: { league: leagueAttrsFlat({ leagueKey: "470.l.2", name: "Still Here", season: 2026 }) }, count: 1 } }] }, count: 1 } },
+              {
+                games: {
+                  0: {
+                    game: [
+                      { game_key: "470" },
+                      {
+                        leagues: {
+                          0: { league: leagueAttrsFlat({ leagueKey: "470.l.2", name: "Still Here", season: 2026 }) },
+                          count: 1,
+                        },
+                      },
+                    ],
+                  },
+                  count: 1,
+                },
+              },
             ],
           },
           count: 1,
@@ -382,8 +417,32 @@ function scoreboardFixture({ status = "preevent", week = "1" } = {}) {
               matchups: {
                 count: 2,
                 // A matchup the user is NOT in must be skipped, not returned.
-                0: { matchup: { status, week, 0: { teams: { count: 2, 0: team(1, "Take me TUA Championship", "0.00", "103.03", 0.47), 1: team(2, "Other Team", "0.00", "99.10", 0.53) } } } },
-                1: { matchup: { status, week, 0: { teams: { count: 2, 0: team(6, "The Gridiron Corps", "0.00", "112.91", 0.56), 1: team(10, "Tyler's Tip-Top Team", "0.00", "106.75", 0.44) } } } },
+                0: {
+                  matchup: {
+                    status,
+                    week,
+                    0: {
+                      teams: {
+                        count: 2,
+                        0: team(1, "Take me TUA Championship", "0.00", "103.03", 0.47),
+                        1: team(2, "Other Team", "0.00", "99.10", 0.53),
+                      },
+                    },
+                  },
+                },
+                1: {
+                  matchup: {
+                    status,
+                    week,
+                    0: {
+                      teams: {
+                        count: 2,
+                        0: team(6, "The Gridiron Corps", "0.00", "112.91", 0.56),
+                        1: team(10, "Tyler's Tip-Top Team", "0.00", "106.75", 0.44),
+                      },
+                    },
+                  },
+                },
               },
             },
           },
@@ -425,8 +484,9 @@ test("getMatchup reports an absent projection as null rather than as zero", asyn
   const client = new YahooClient("token");
   client.get = async () => {
     const d = scoreboardFixture();
-    d.fantasy_content.league[1].scoreboard["0"].matchups["1"].matchup["0"].teams["0"].team[1]
-      .team_projected_points.total = "";
+    d.fantasy_content.league[1].scoreboard["0"].matchups["1"].matchup["0"].teams[
+      "0"
+    ].team[1].team_projected_points.total = "";
     return d;
   };
 

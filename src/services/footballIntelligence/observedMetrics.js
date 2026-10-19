@@ -31,9 +31,13 @@ function buildObservedMetricFacts({ ordinaryPbp, schedules, identitySnapshot, ft
   for (const play of ordinaryPbp.facts) {
     const game = games.get(play.game_id);
     if (!game) throw invalid(`ordinary PBP play has no admitted schedule context: ${play.game_id}`);
-    if (game.season !== play.season || game.week !== play.week) throw invalid(`schedule period disagrees with ordinary PBP: ${play.game_id}`);
+    if (game.season !== play.season || game.week !== play.week)
+      throw invalid(`schedule period disagrees with ordinary PBP: ${play.game_id}`);
     const resolution = resolveNamespaceIdentity(identitySnapshot, {
-      entityType: "team", namespace: "nflverse", externalId: play.possession_team, at: game.gameday,
+      entityType: "team",
+      namespace: "nflverse",
+      externalId: play.possession_team,
+      at: game.gameday,
     });
     if (resolution.state !== "resolved") {
       const error = invalid(`team identity is ${resolution.state}: nflverse/${play.possession_team}`);
@@ -42,28 +46,48 @@ function buildObservedMetricFacts({ ordinaryPbp, schedules, identitySnapshot, ft
     }
     const key = playKey(play.game_id, play.play_id);
     plays.set(key, { play, game, teamId: resolution.canonical_id });
-    facts.push(metricFact({
-      play, game, teamId: resolution.canonical_id, metric: "no_huddle", value: play.play.no_huddle,
-      availability: "observed", provenance: play.provenance,
-    }));
+    facts.push(
+      metricFact({
+        play,
+        game,
+        teamId: resolution.canonical_id,
+        metric: "no_huddle",
+        value: play.play.no_huddle,
+        availability: "observed",
+        provenance: play.provenance,
+      }),
+    );
   }
 
   if (ftnCharting) {
     for (const charted of ftnCharting.facts) {
       const context = plays.get(playKey(charted.game_id, charted.play_id));
-      if (!context) throw invalid(`FTN charting does not join to the ordinary PBP denominator: ${charted.game_id}/${charted.play_id}`);
-      if (charted.possession_team !== context.play.possession_team) throw invalid(`FTN possession team disagrees with ordinary PBP: ${charted.game_id}/${charted.play_id}`);
+      if (!context)
+        throw invalid(
+          `FTN charting does not join to the ordinary PBP denominator: ${charted.game_id}/${charted.play_id}`,
+        );
+      if (charted.possession_team !== context.play.possession_team)
+        throw invalid(`FTN possession team disagrees with ordinary PBP: ${charted.game_id}/${charted.play_id}`);
       for (const [observationKey, metric] of Object.entries(FTN_METRICS)) {
         const observation = charted.observations[observationKey];
         if (!observation) throw invalid(`FTN observation is missing: ${observationKey}`);
         const usable = ftnCharting.coverage_gate.eligible_for_enrichment && observation.state === "observed";
-        facts.push(metricFact({
-          play: context.play, game: context.game, teamId: context.teamId, metric,
-          value: usable ? observation.value : null,
-          availability: usable ? "observed" : ftnCharting.coverage_gate.eligible_for_enrichment ? observation.state : "not_covered",
-          provenance: charted.provenance,
-          eligible: usable,
-        }));
+        facts.push(
+          metricFact({
+            play: context.play,
+            game: context.game,
+            teamId: context.teamId,
+            metric,
+            value: usable ? observation.value : null,
+            availability: usable
+              ? "observed"
+              : ftnCharting.coverage_gate.eligible_for_enrichment
+                ? observation.state
+                : "not_covered",
+            provenance: charted.provenance,
+            eligible: usable,
+          }),
+        );
       }
     }
   }
@@ -106,9 +130,25 @@ function metricFact({ play, game, teamId, metric, value, availability, provenanc
   });
 }
 
-function requireFacts(value, name) { if (!value || !Array.isArray(value.facts)) throw invalid(`${name} must be a normalized receipt result`); }
-function playKey(gameId, playId) { return `${gameId}\u0000${playId}`; }
-function compareFacts(a, b) { return a.season - b.season || a.week - b.week || a.game_id.localeCompare(b.game_id) || a.play_id - b.play_id || a.metric.localeCompare(b.metric); }
-function invalid(message) { const error = new TypeError(message); error.code = "FOOTBALL_INTELLIGENCE_INVALID"; return error; }
+function requireFacts(value, name) {
+  if (!value || !Array.isArray(value.facts)) throw invalid(`${name} must be a normalized receipt result`);
+}
+function playKey(gameId, playId) {
+  return `${gameId}\u0000${playId}`;
+}
+function compareFacts(a, b) {
+  return (
+    a.season - b.season ||
+    a.week - b.week ||
+    a.game_id.localeCompare(b.game_id) ||
+    a.play_id - b.play_id ||
+    a.metric.localeCompare(b.metric)
+  );
+}
+function invalid(message) {
+  const error = new TypeError(message);
+  error.code = "FOOTBALL_INTELLIGENCE_INVALID";
+  return error;
+}
 
 module.exports = { FTN_METRICS, buildObservedMetricFacts };

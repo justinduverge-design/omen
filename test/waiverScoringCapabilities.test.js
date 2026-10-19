@@ -63,10 +63,13 @@ test("waiver promotion does not calculate, expose, or convert a null bid", () =>
 });
 
 test("league-exact scoring is live only after supported coverage and exact reconciliation", () => {
-  const record = scoringCoverageCapability({
-    coverage_state: "supported",
-    reconciliation_state: "exact",
-  }, { observedAt: "2026-09-17T12:00:00.000Z" });
+  const record = scoringCoverageCapability(
+    {
+      coverage_state: "supported",
+      reconciliation_state: "exact",
+    },
+    { observedAt: "2026-09-17T12:00:00.000Z" },
+  );
 
   assert.deepEqual(record, {
     name: "league_exact_scoring",

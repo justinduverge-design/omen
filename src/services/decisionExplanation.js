@@ -51,7 +51,10 @@ function buildExplanationInput({ type, decision, why } = {}) {
     .slice(0, MAX_REASONS);
   if (!decisionText || !reasons.length) return null;
   const facts = { decision: decisionText, reasons };
-  const hash = crypto.createHash("sha256").update(JSON.stringify([VERSION, type, facts])).digest("hex");
+  const hash = crypto
+    .createHash("sha256")
+    .update(JSON.stringify([VERSION, type, facts]))
+    .digest("hex");
   return { version: VERSION, type, facts, hash };
 }
 
@@ -64,7 +67,7 @@ function messagesFor(input) {
         "Use ONLY the decision and reasons given; add nothing. Use only the names and numbers provided. " +
         "Do not mention any other stat, opponent, injury, matchup or weather. " +
         "Do not predict, do not guarantee, do not give a confidence number. " +
-        "At most 2 sentences, under 45 words, plain text, no markdown. Speak to the manager as \"you\".",
+        'At most 2 sentences, under 45 words, plain text, no markdown. Speak to the manager as "you".',
     },
     {
       role: "user",
@@ -77,13 +80,16 @@ function messagesFor(input) {
  * Ask the local model for the explanation and validate it. Never throws.
  * @returns {Promise<{ ok:boolean, text:string|null, reasons:string[], model:string, ms:number }>}
  */
-async function writeExplanation(input, {
-  baseUrl = process.env.LLM_BASE_URL,
-  model = process.env.DECISION_EXPLANATION_MODEL || DEFAULT_MODEL,
-  timeoutMs = DEFAULT_TIMEOUT_MS,
-  fetchImpl = fetch,
-  validator = validateGroundedText,
-} = {}) {
+async function writeExplanation(
+  input,
+  {
+    baseUrl = process.env.LLM_BASE_URL,
+    model = process.env.DECISION_EXPLANATION_MODEL || DEFAULT_MODEL,
+    timeoutMs = DEFAULT_TIMEOUT_MS,
+    fetchImpl = fetch,
+    validator = validateGroundedText,
+  } = {},
+) {
   const started = Date.now();
   const result = (ok, text, reasons) => ({ ok, text, reasons, model, ms: Date.now() - started });
   if (!input || !baseUrl) return result(false, null, [baseUrl ? "no_input" : "no_llm_base_url"]);

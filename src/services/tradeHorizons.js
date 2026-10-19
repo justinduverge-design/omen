@@ -89,46 +89,85 @@ function horizonRows({ decision, weeks, lastFinishedWeek }) {
  */
 async function scoreTradeHorizons(supabase, { season, lastFinishedWeek, repository, resolveGsis = null, log = null }) {
   const tally = { trades: 0, written: 0, skipped: 0, failed: 0 };
-  if (typeof supabase?.from !== "function" || !repository || !Number.isInteger(lastFinishedWeek) || lastFinishedWeek < 1) return tally;
+  if (
+    typeof supabase?.from !== "function" ||
+    !repository ||
+    !Number.isInteger(lastFinishedWeek) ||
+    lastFinishedWeek < 1
+  )
+    return tally;
   try {
-    const { data: decisions, error } = await supabase.from("ledger_current_calls")
+    const { data: decisions, error } = await supabase
+      .from("ledger_current_calls")
       .select("id,user_id,season,week,call_type,scoring_format,recommendation")
-      .eq("season", season).eq("call_type", "trade_suggestion").lte("week", lastFinishedWeek);
+      .eq("season", season)
+      .eq("call_type", "trade_suggestion")
+      .lte("week", lastFinishedWeek);
     if (error) throw error;
     if (!decisions?.length) return tally;
     const ids = decisions.map((d) => d.id);
-    const { data: done } = await supabase.from("decision_horizon_grades")
-      .select("decision_id,horizon,complete").in("decision_id", ids);
+    const { data: done } = await supabase
+      .from("decision_horizon_grades")
+      .select("decision_id,horizon,complete")
+      .in("decision_id", ids);
     const closed = new Set((done || []).filter((r) => r.complete).map((r) => `${r.decision_id}|${r.horizon}`));
-    const { data: actions } = await supabase.from("decision_actions").select("decision_id,followed").in("decision_id", ids);
+    const { data: actions } = await supabase
+      .from("decision_actions")
+      .select("decision_id,followed")
+      .in("decision_id", ids);
     const declined = new Set((actions || []).filter((a) => a.followed === false).map((a) => a.decision_id));
 
-    const open = decisions.filter((d) => !declined.has(d.id)
-      && Object.keys(HORIZONS).some((h) => !closed.has(`${d.id}|${h}`))
-      && refOf(d, "primary_player") && refOf(d, "comparison_player"));
+    const open = decisions.filter(
+      (d) =>
+        !declined.has(d.id) &&
+        Object.keys(HORIZONS).some((h) => !closed.has(`${d.id}|${h}`)) &&
+        refOf(d, "primary_player") &&
+        refOf(d, "comparison_player"),
+    );
     tally.trades = open.length;
     tally.skipped = decisions.length - open.length;
     if (!open.length) return tally;
 
     // Provider ids -> GSIS once, then one warehouse read per finished week.
-    const keys = [...new Set(open.flatMap((d) => ["primary_player", "comparison_player"].map((w) => refOf(d, w)))
-      .map((r) => `${r.provider}:${r.providerId}`))];
+    const keys = [
+      ...new Set(
+        open
+          .flatMap((d) => ["primary_player", "comparison_player"].map((w) => refOf(d, w)))
+          .map((r) => `${r.provider}:${r.providerId}`),
+      ),
+    ];
     let gsis = new Map();
-    if (typeof resolveGsis === "function") { try { gsis = await resolveGsis(keys); } catch { gsis = new Map(); } }
-    const lookup = (r) => (gsis.get(`${r.provider}:${r.providerId}`) ? { provider: "gsis", providerId: String(gsis.get(`${r.provider}:${r.providerId}`)) } : r);
+    if (typeof resolveGsis === "function") {
+      try {
+        gsis = await resolveGsis(keys);
+      } catch {
+        gsis = new Map();
+      }
+    }
+    const lookup = (r) =>
+      gsis.get(`${r.provider}:${r.providerId}`)
+        ? { provider: "gsis", providerId: String(gsis.get(`${r.provider}:${r.providerId}`)) }
+        : r;
     const keyOf = (r) => `${r.provider}:${r.providerId}`;
-    const refs = [...new Map(open.flatMap((d) => ["primary_player", "comparison_player"].map((w) => lookup(refOf(d, w))))
-      .map((r) => [keyOf(r), r])).values()];
+    const refs = [
+      ...new Map(
+        open
+          .flatMap((d) => ["primary_player", "comparison_player"].map((w) => lookup(refOf(d, w))))
+          .map((r) => [keyOf(r), r]),
+      ).values(),
+    ];
     const firstWeek = Math.min(...open.map((d) => Number(d.week)));
     const byWeek = new Map();
     // Only weeks the warehouse has fully ingested count; the first one that is not stops every horizon there,
     // so a not-yet-loaded week is never scored 0-0 and closed for good.
     let readableThrough = firstWeek - 1;
     for (let week = firstWeek; week <= lastFinishedWeek; week += 1) {
-      if (typeof repository.isWeekIngested === "function" && !(await repository.isWeekIngested({ season, week }))) break;
+      if (typeof repository.isWeekIngested === "function" && !(await repository.isWeekIngested({ season, week })))
+        break;
       const lines = new Map();
       for (let i = 0; i < refs.length; i += REF_BATCH) {
-        for (const [k, v] of await repository.readWeekOutcomes({ refs: refs.slice(i, i + REF_BATCH), season, week })) lines.set(k, v);
+        for (const [k, v] of await repository.readWeekOutcomes({ refs: refs.slice(i, i + REF_BATCH), season, week }))
+          lines.set(k, v);
       }
       byWeek.set(week, lines);
       readableThrough = week;
@@ -139,22 +178,35 @@ async function scoreTradeHorizons(supabase, { season, lastFinishedWeek, reposito
       try {
         const received = keyOf(lookup(refOf(decision, "primary_player")));
         const given = keyOf(lookup(refOf(decision, "comparison_player")));
-        const weeks = new Map([...byWeek].map(([week, lines]) => [week, { received: lines.get(received), given: lines.get(given) }]));
+        const weeks = new Map(
+          [...byWeek].map(([week, lines]) => [week, { received: lines.get(received), given: lines.get(given) }]),
+        );
         if (Number(decision.week) > readableThrough) continue;
-        const rows = horizonRows({ decision, weeks, lastFinishedWeek: readableThrough })
-          .filter((row) => !closed.has(`${row.decision_id}|${row.horizon}`));
+        const rows = horizonRows({ decision, weeks, lastFinishedWeek: readableThrough }).filter(
+          (row) => !closed.has(`${row.decision_id}|${row.horizon}`),
+        );
         if (!rows.length) continue;
-        const { error: writeError } = await supabase.from("decision_horizon_grades").upsert(rows, { onConflict: "decision_id,horizon" });
+        const { error: writeError } = await supabase
+          .from("decision_horizon_grades")
+          .upsert(rows, { onConflict: "decision_id,horizon" });
         if (writeError) throw writeError;
         tally.written += rows.length;
       } catch (error) {
         tally.failed += 1;
-        try { log?.warn?.(`Trade horizon for ${decision.id} failed (${error.code || error.name})`); } catch { /* never throws */ }
+        try {
+          log?.warn?.(`Trade horizon for ${decision.id} failed (${error.code || error.name})`);
+        } catch {
+          /* never throws */
+        }
       }
     }
   } catch (error) {
     tally.failed += 1;
-    try { log?.warn?.(`Trade horizons unavailable (${error.code || error.name})`); } catch { /* never throws */ }
+    try {
+      log?.warn?.(`Trade horizons unavailable (${error.code || error.name})`);
+    } catch {
+      /* never throws */
+    }
   }
   return tally;
 }

@@ -62,9 +62,12 @@ function createCurrentSeasonComposition({ pool, fetchImpl = globalThis.fetch, ac
 }
 
 function createCurrentSeasonValidationComposition({ fetchImpl = globalThis.fetch, acquisitionTimeoutMs } = {}) {
-  const unwritable = (name) => Object.freeze({
-    [name]: async () => { throw new Error("validate mode reached a database writer"); },
-  });
+  const unwritable = (name) =>
+    Object.freeze({
+      [name]: async () => {
+        throw new Error("validate mode reached a database writer");
+      },
+    });
   return createCurrentSeasonIngest({
     acquireSchedules: ({ signal }) => acquireScheduleSource({ fetchImpl, signal }),
     adaptSchedules: adaptSchedulesCsv,

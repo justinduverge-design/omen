@@ -79,7 +79,10 @@ function literalNewlinesInLineComments(source) {
       const sites = [...comment.matchAll(/\\n/g)].map((m) => m.index);
       // Unfolding only a trailing `\n` exposes nothing; a combination counts only if it breaks
       // the line somewhere that leaves code after it.
-      const exposes = sites.reduce((bits, index, k) => (/\S/.test(comment.slice(index + 2)) ? bits | (1 << k) : bits), 0);
+      const exposes = sites.reduce(
+        (bits, index, k) => (/\S/.test(comment.slice(index + 2)) ? bits | (1 << k) : bits),
+        0,
+      );
       if (sites.length > MAX_UNFOLD_SITES) return true;
       for (let mask = 1; mask < 2 ** sites.length; mask += 1) {
         if (!(mask & exposes)) continue;
@@ -106,35 +109,57 @@ test("no line comment contains a literal \\n that swallows the code after it", (
 
 test("the literal-\\n guard catches the shape it exists for and ignores strings", () => {
   const bad = "async function f() {\n  // note.\\n  await work();\n}\n";
-  assert.deepEqual(literalNewlinesInLineComments(bad).map((h) => h.line), [2]);
+  assert.deepEqual(
+    literalNewlinesInLineComments(bad).map((h) => h.line),
+    [2],
+  );
 
   // One space of indentation, or none, is enough to hide the code (Codex P3 on #515).
-  assert.deepEqual(literalNewlinesInLineComments("// note.\\n work();\n").map((h) => h.line), [1]);
-  assert.deepEqual(literalNewlinesInLineComments("// note.\\nwork();\n").map((h) => h.line), [1]);
+  assert.deepEqual(
+    literalNewlinesInLineComments("// note.\\n work();\n").map((h) => h.line),
+    [1],
+  );
+  assert.deepEqual(
+    literalNewlinesInLineComments("// note.\\nwork();\n").map((h) => h.line),
+    [1],
+  );
 
   // The hidden code's own `\n` escapes must survive the unfold (Codex P2 on #515).
   const ownEscape = '// note.\\n const message = "a\\nb";\n';
-  assert.deepEqual(literalNewlinesInLineComments(ownEscape).map((h) => h.line), [1]);
+  assert.deepEqual(
+    literalNewlinesInLineComments(ownEscape).map((h) => h.line),
+    [1],
+  );
 
   // A swallowed block spanning several literal `\n`s, mixed with an intended escape (Codex P2 on #515).
   const block = '// note.\\n if (ok) {\\n log("a\\nb");\\n }\n';
-  assert.deepEqual(literalNewlinesInLineComments(block).map((h) => h.line), [1]);
-  assert.deepEqual(literalNewlinesInLineComments("// note.\\n work();\\n\n").map((h) => h.line), [1]);
+  assert.deepEqual(
+    literalNewlinesInLineComments(block).map((h) => h.line),
+    [1],
+  );
+  assert.deepEqual(
+    literalNewlinesInLineComments("// note.\\n work();\\n\n").map((h) => h.line),
+    [1],
+  );
 
   // A CommonJS file is checked as CommonJS: top-level `await` there is a syntax error, so this
   // comment cannot be hiding runnable code (Codex P2 on #515).
   assert.deepEqual(literalNewlinesInLineComments('"use strict";\n// example:\\n await work();\n'), []);
 
   // A regex whose quote could open a fake string must not hide a later comment (Codex P2 on #515).
-  for (const lead of ["function q() { return /['\"]/; }", "if (ok) /[\"]/.test(value);"]) {
+  for (const lead of ["function q() { return /['\"]/; }", 'if (ok) /["]/.test(value);']) {
     const src = `${lead}\n// note.\\n  work();\n`;
-    assert.deepEqual(literalNewlinesInLineComments(src).map((h) => h.line), [2], lead);
+    assert.deepEqual(
+      literalNewlinesInLineComments(src).map((h) => h.line),
+      [2],
+      lead,
+    );
   }
 
   const fine = [
     'const a = "line one\\n  line two";',
     "const b = 'x\\n  y'; // trailing comment",
-    "const c = `tpl ${\"\\n  z\"} // not a comment \\n  q`;",
+    'const c = `tpl ${"\\n  z"} // not a comment \\n  q`;',
     "const d = /\\/\\/ x\\n  y/.test(s);",
     "/* block \\n  text */",
     "// a comment that mentions \\n at the end\\n",

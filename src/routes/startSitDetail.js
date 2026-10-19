@@ -29,14 +29,13 @@ const { getAuthenticatedEspnCredentials } = require("../services/espnAuth");
 const { getCurrentNflWeekContext, suppressLiveFootballData } = require("../services/nflSchedule");
 const { isOmenReadyConnection } = require("../services/omenReadiness");
 const { readConnectionsWithSelection, resolveActiveConnection } = require("../services/activeSelection");
-const {
-  CONTRACT_VERSION,
-  CONTRACT_VERSION_V2,
-  buildStartSitDetail,
-} = require("../services/startSitDetail");
+const { CONTRACT_VERSION, CONTRACT_VERSION_V2, buildStartSitDetail } = require("../services/startSitDetail");
 const { getUsageBundle, resolveGsis } = require("../services/playerUsage");
 const { getSeasonBundle } = require("../services/fantasyMetrics/fantasyMetricsData");
-const { getRuntime: getSharedWarehouseRuntime, closeRuntime: closeSharedWarehouseRuntime } = require("../services/footballWarehouse/sharedUsageAccess");
+const {
+  getRuntime: getSharedWarehouseRuntime,
+  closeRuntime: closeSharedWarehouseRuntime,
+} = require("../services/footballWarehouse/sharedUsageAccess");
 const { createUsageShadowRunner } = require("../services/footballWarehouse/usageShadow");
 const { getWarehouseUsageBundle } = require("../services/footballWarehouse/warehouseUsageBundle");
 const { getTeamSystemSummaries } = require("../services/footballIntelligence/teamSystemLines");
@@ -57,9 +56,11 @@ const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
 const warehouseUsageRuntime = getSharedWarehouseRuntime({ logger, strict: true });
 const usageReader = createUsageShadowRunner({
   readLegacy: (input) => getUsageBundle(input),
-  readWarehouse: (input) => getWarehouseUsageBundle({
-    ...input, repository: warehouseUsageRuntime.repository,
-  }),
+  readWarehouse: (input) =>
+    getWarehouseUsageBundle({
+      ...input,
+      repository: warehouseUsageRuntime.repository,
+    }),
   emitTelemetry: (event) => logger.info("Football warehouse usage shadow", event),
 });
 
@@ -108,7 +109,10 @@ async function loadDetailContext(connection, userId, week, season) {
   if (connection.platform === "sleeper") {
     const league = await sleeperAdapter.fetchSleeperLeague(connection.league_id).catch(() => null);
     const roster = await sleeperAdapter.buildNormalizedRoster(
-      connection.league_id, connection.platform_username, week, { season }
+      connection.league_id,
+      connection.platform_username,
+      week,
+      { season },
     );
     return {
       roster,
@@ -123,16 +127,19 @@ async function loadDetailContext(connection, userId, week, season) {
     const credentials = await getAuthenticatedEspnCredentials(userId);
     const [{ roster, projectionLines }, espnRules] = await Promise.all([
       espnAdapter.buildNormalizedRosterWithProjectionLines(
-        connection.league_id, credentials.espn_s2, credentials.swid, week,
-        { teamId: connection.espn_team_id }
+        connection.league_id,
+        credentials.espn_s2,
+        credentials.swid,
+        week,
+        { teamId: connection.espn_team_id },
       ),
       // Only the points breakdown reads these rules. A slow or failed read costs that line,
       // never the roster.
       suppressLiveFootballData()
         ? null
         : withinLatencyBudget("start_sit_espn_scoring", PROJECTION_BREAKDOWN_BUDGET_MS, () =>
-          espnAdapter.fetchEspnScoringSettings(connection.league_id, credentials.espn_s2, credentials.swid)
-        ).catch(() => null),
+            espnAdapter.fetchEspnScoringSettings(connection.league_id, credentials.espn_s2, credentials.swid),
+          ).catch(() => null),
     ]);
     // ESPN scoring rules are unverified, so this stays null rather than
     // defaulting to PPR — that default is the A6 defect.
@@ -162,7 +169,8 @@ async function loadDetailContext(connection, userId, week, season) {
 function startSleeperStatLines({ connection, season, week }) {
   if (connection.platform !== "sleeper") return null;
   const promise = withinLatencyBudget("start_sit_projection_stat_lines", PROJECTION_BREAKDOWN_BUDGET_MS, () =>
-    sleeperAdapter.fetchSleeperProjectionStatLines(season, week));
+    sleeperAdapter.fetchSleeperProjectionStatLines(season, week),
+  );
   promise.catch(() => {}); // consumed (and its failure handled) in loadProjectionBreakdowns
   return promise;
 }
@@ -170,8 +178,10 @@ function startSleeperStatLines({ connection, season, week }) {
 async function loadProjectionBreakdowns({ connection, loaded, season, week, statLinesRead = null }) {
   try {
     if (connection.platform === "sleeper") {
-      const statLines = await (statLinesRead || withinLatencyBudget("start_sit_projection_stat_lines", PROJECTION_BREAKDOWN_BUDGET_MS, () =>
-        sleeperAdapter.fetchSleeperProjectionStatLines(season, week)));
+      const statLines = await (statLinesRead ||
+        withinLatencyBudget("start_sit_projection_stat_lines", PROJECTION_BREAKDOWN_BUDGET_MS, () =>
+          sleeperAdapter.fetchSleeperProjectionStatLines(season, week),
+        ));
       return rosterProjectionBreakdowns({
         platform: "sleeper",
         roster: loaded.roster,
@@ -188,7 +198,8 @@ async function loadProjectionBreakdowns({ connection, loaded, season, week, stat
     return rosterProjectionBreakdowns({ platform: connection.platform, roster: loaded.roster });
   } catch (error) {
     logger.warn("Start/Sit projection breakdown unavailable", {
-      platform: connection.platform, status: error?.status || null,
+      platform: connection.platform,
+      status: error?.status || null,
     });
     return null;
   }
@@ -209,17 +220,23 @@ function parseContractVersion(value) {
 router.get("/detail", requireAuth, async (req, res, next) => {
   const week = parseWeek(req.query.week);
   if (week === undefined) {
-    return res.status(400).json(detailError({
-      code: "invalid_week", message: "Week must be between 1 and 18.", action: "retry",
-    }));
+    return res.status(400).json(
+      detailError({
+        code: "invalid_week",
+        message: "Week must be between 1 and 18.",
+        action: "retry",
+      }),
+    );
   }
   const contractVersion = parseContractVersion(req.query.contract_version);
   if (contractVersion === undefined) {
-    return res.status(400).json(detailError({
-      code: "unsupported_contract_version",
-      message: "This Start/Sit contract version is not supported by Omen.",
-      action: "retry",
-    }));
+    return res.status(400).json(
+      detailError({
+        code: "unsupported_contract_version",
+        message: "This Start/Sit contract version is not supported by Omen.",
+        action: "retry",
+      }),
+    );
   }
 
   try {
@@ -229,11 +246,13 @@ router.get("/detail", requireAuth, async (req, res, next) => {
     const connection = resolveActiveConnection(rows, { isUsable: (row) => isOmenReadyConnection(row) });
 
     if (!connection) {
-      return res.status(404).json(detailError({
-        code: "no_usable_league",
-        message: "Connect a league and pick a team before Omen can compare a lineup decision.",
-        action: "connect",
-      }));
+      return res.status(404).json(
+        detailError({
+          code: "no_usable_league",
+          message: "Connect a league and pick a team before Omen can compare a lineup decision.",
+          action: "connect",
+        }),
+      );
     }
 
     let loaded;
@@ -242,25 +261,33 @@ router.get("/detail", requireAuth, async (req, res, next) => {
     } catch (error) {
       // Never echo the provider message; it can carry credential fragments.
       logger.warn("Start/Sit detail provider read failed", {
-        platform: connection.platform, status: error?.status || null,
+        platform: connection.platform,
+        status: error?.status || null,
       });
       const status = error?.status === 401 || error?.status === 403 ? 401 : 502;
-      return res.status(status).json(detailError({
-        code: status === 401 ? `${connection.platform}_reconnect_required` : "provider_unavailable",
-        message: status === 401
-          ? "Reconnect this platform so Omen can read your roster."
-          : "Omen could not reach this platform. Try again shortly.",
-        action: status === 401 ? "reconnect" : "retry",
-        platform: connection.platform,
-      }));
+      return res.status(status).json(
+        detailError({
+          code: status === 401 ? `${connection.platform}_reconnect_required` : "provider_unavailable",
+          message:
+            status === 401
+              ? "Reconnect this platform so Omen can read your roster."
+              : "Omen could not reach this platform. Try again shortly.",
+          action: status === 401 ? "reconnect" : "retry",
+          platform: connection.platform,
+        }),
+      );
     }
 
     const rosterKeys = [...(loaded.roster?.slots?.starters || []), ...(loaded.roster?.slots?.bench || [])]
-      .map((player) => player?.player_key).filter(Boolean);
+      .map((player) => player?.player_key)
+      .filter(Boolean);
     const rosterTeams = [...(loaded.roster?.slots?.starters || []), ...(loaded.roster?.slots?.bench || [])]
-      .map((player) => player?.team).filter(Boolean);
+      .map((player) => player?.team)
+      .filter(Boolean);
     // Started now, awaited after the other reads, so a cold metrics cache overlaps them.
-    const fantasyMetricsRead = suppressLiveFootballData() ? Promise.resolve(null) : loadFantasyMetrics({ supabase, rosterKeys, season: Number(context.season) });
+    const fantasyMetricsRead = suppressLiveFootballData()
+      ? Promise.resolve(null)
+      : loadFantasyMetrics({ supabase, rosterKeys, season: Number(context.season) });
     // One usage read yields both the summaries and the per-week rows (signal vs noise), so the second
     // costs no extra round trip; any failure is empty maps and the response is unchanged.
     // Independent of usage and team system, so it overlaps them (Sleeper only; null elsewhere).
@@ -270,44 +297,54 @@ router.get("/detail", requireAuth, async (req, res, next) => {
     const [{ usage, weekly: weeklyUsage }, teamSystem] = suppressLiveFootballData()
       ? [{ usage: new Map(), weekly: new Map() }, new Map()]
       : await Promise.all([
-        usageReader.read({
-          mode: warehouseUsageRuntime.mode,
-          input: {
-            supabase,
-            playerKeys: rosterKeys,
-            season: Number(context.season),
-            beforeWeek: Number(resolvedWeek),
-            log: logger,
-          },
-        }),
-        getTeamSystemSummaries({ supabase, teams: rosterTeams, season: Number(context.season), log: logger }),
-      ]);
+          usageReader.read({
+            mode: warehouseUsageRuntime.mode,
+            input: {
+              supabase,
+              playerKeys: rosterKeys,
+              season: Number(context.season),
+              beforeWeek: Number(resolvedWeek),
+              log: logger,
+            },
+          }),
+          getTeamSystemSummaries({ supabase, teams: rosterTeams, season: Number(context.season), log: logger }),
+        ]);
     const breakdowns = suppressLiveFootballData()
       ? null
-      : await loadProjectionBreakdowns({ connection, loaded, season: Number(context.season), week: Number(resolvedWeek), statLinesRead });
+      : await loadProjectionBreakdowns({
+          connection,
+          loaded,
+          season: Number(context.season),
+          week: Number(resolvedWeek),
+          statLinesRead,
+        });
     // Over budget is null, which the response already tolerates; the read keeps running underneath.
     const fantasyMetrics = await withinLatencyBudget(
-      "start_sit_fantasy_metrics", FANTASY_METRICS_BUDGET_MS, () => fantasyMetricsRead,
+      "start_sit_fantasy_metrics",
+      FANTASY_METRICS_BUDGET_MS,
+      () => fantasyMetricsRead,
     ).catch(() => null);
 
-    return res.json(buildStartSitDetail({
-      usage,
-      weeklyUsage,
-      teamSystem,
-      breakdowns,
-      fantasyMetrics,
-      roster: loaded.roster,
-      platform: connection.platform,
-      leagueId: connection.league_id,
-      leagueName: loaded.leagueName,
-      teamName: loaded.roster?.team_name || null,
-      week: resolvedWeek,
-      season: context.season,
-      scoringFormat: loaded.scoringFormat,
-      slot: req.query.slot ? String(req.query.slot) : null,
-      offSeason: suppressLiveFootballData(),
-      contractVersion,
-    }));
+    return res.json(
+      buildStartSitDetail({
+        usage,
+        weeklyUsage,
+        teamSystem,
+        breakdowns,
+        fantasyMetrics,
+        roster: loaded.roster,
+        platform: connection.platform,
+        leagueId: connection.league_id,
+        leagueName: loaded.leagueName,
+        teamName: loaded.roster?.team_name || null,
+        week: resolvedWeek,
+        season: context.season,
+        scoringFormat: loaded.scoringFormat,
+        slot: req.query.slot ? String(req.query.slot) : null,
+        offSeason: suppressLiveFootballData(),
+        contractVersion,
+      }),
+    );
   } catch (e) {
     logger.error("Start/Sit detail failed", { err: e.message });
     return next(e);

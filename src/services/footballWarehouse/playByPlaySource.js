@@ -9,9 +9,23 @@ const { sourceUrlForSeason, MAX_SOURCE_BYTES } = require("./playByPlayAcquisitio
 const MAX_DECOMPRESSED_BYTES = 1024 * 1024 * 1024;
 const RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 const REQUIRED_COLUMNS = Object.freeze([
-  "season", "week", "game_id", "play_id", "posteam", "defteam",
-  "passer_player_id", "rusher_player_id", "receiver_player_id", "play_type", "desc",
-  "epa", "wpa", "cpoe", "air_epa", "yac_epa", "success",
+  "season",
+  "week",
+  "game_id",
+  "play_id",
+  "posteam",
+  "defteam",
+  "passer_player_id",
+  "rusher_player_id",
+  "receiver_player_id",
+  "play_type",
+  "desc",
+  "epa",
+  "wpa",
+  "cpoe",
+  "air_epa",
+  "yac_epa",
+  "success",
 ]);
 
 function nullable(value) {
@@ -60,17 +74,25 @@ function adaptPlayByPlayCsvGzip({ raw, season, playerIdByGsis, sourceUrl, runId 
   if (raw.length > MAX_SOURCE_BYTES) throw new RangeError("compressed source exceeds the byte limit");
 
   let csv;
-  try { csv = zlib.gunzipSync(raw, { maxOutputLength: MAX_DECOMPRESSED_BYTES }); } catch {
+  try {
+    csv = zlib.gunzipSync(raw, { maxOutputLength: MAX_DECOMPRESSED_BYTES });
+  } catch {
     throw new TypeError("source is not a valid bounded gzip stream");
   }
   let text;
-  try { text = new TextDecoder("utf-8", { fatal: true }).decode(csv); } catch { throw new TypeError("CSV is not valid UTF-8"); }
+  try {
+    text = new TextDecoder("utf-8", { fatal: true }).decode(csv);
+  } catch {
+    throw new TypeError("CSV is not valid UTF-8");
+  }
   if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
   const records = parseStrictCsv(text);
   if (records.length < 2) throw new TypeError("CSV source has no data rows");
   const headers = records[0].map((header) => header.trim());
-  if (headers.some((header) => !header) || new Set(headers).size !== headers.length) throw new TypeError("CSV headers are invalid");
-  for (const column of REQUIRED_COLUMNS) if (!headers.includes(column)) throw new TypeError(`CSV missing required column: ${column}`);
+  if (headers.some((header) => !header) || new Set(headers).size !== headers.length)
+    throw new TypeError("CSV headers are invalid");
+  for (const column of REQUIRED_COLUMNS)
+    if (!headers.includes(column)) throw new TypeError(`CSV missing required column: ${column}`);
 
   const rows = [];
   const unmatched = [];
@@ -88,9 +110,17 @@ function adaptPlayByPlayCsvGzip({ raw, season, playerIdByGsis, sourceUrl, runId 
     if (keys.has(key)) throw new TypeError("CSV contains a duplicate play key");
     keys.add(key);
     const participantIds = ["passer_player_id", "rusher_player_id", "receiver_player_id"];
-    const unresolved = participantIds.filter((field) => nullable(sourceRow[field]) && !playerIdByGsis.has(nullable(sourceRow[field])));
+    const unresolved = participantIds.filter(
+      (field) => nullable(sourceRow[field]) && !playerIdByGsis.has(nullable(sourceRow[field])),
+    );
     if (unresolved.length) {
-      unmatched.push({ gameId, playId, provider: "gsis", providerIds: unresolved.map((field) => nullable(sourceRow[field])), reason: "gsis_id_not_in_crosswalk" });
+      unmatched.push({
+        gameId,
+        playId,
+        provider: "gsis",
+        providerIds: unresolved.map((field) => nullable(sourceRow[field])),
+        reason: "gsis_id_not_in_crosswalk",
+      });
       continue;
     }
     rows.push({
@@ -100,9 +130,21 @@ function adaptPlayByPlayCsvGzip({ raw, season, playerIdByGsis, sourceUrl, runId 
       playId,
       posteamId: canonicalTeam(sourceRow.posteam, `CSV row ${index + 1} posteam`),
       defteamId: canonicalTeam(sourceRow.defteam, `CSV row ${index + 1} defteam`),
-      passerPlayerId: canonicalPlayer(sourceRow.passer_player_id, playerIdByGsis, `CSV row ${index + 1} passer_player_id`),
-      rusherPlayerId: canonicalPlayer(sourceRow.rusher_player_id, playerIdByGsis, `CSV row ${index + 1} rusher_player_id`),
-      receiverPlayerId: canonicalPlayer(sourceRow.receiver_player_id, playerIdByGsis, `CSV row ${index + 1} receiver_player_id`),
+      passerPlayerId: canonicalPlayer(
+        sourceRow.passer_player_id,
+        playerIdByGsis,
+        `CSV row ${index + 1} passer_player_id`,
+      ),
+      rusherPlayerId: canonicalPlayer(
+        sourceRow.rusher_player_id,
+        playerIdByGsis,
+        `CSV row ${index + 1} rusher_player_id`,
+      ),
+      receiverPlayerId: canonicalPlayer(
+        sourceRow.receiver_player_id,
+        playerIdByGsis,
+        `CSV row ${index + 1} receiver_player_id`,
+      ),
       playType: nullable(sourceRow.play_type),
       descText: nullable(sourceRow.desc),
       epa: finite(sourceRow.epa, `CSV row ${index + 1} epa`),
@@ -117,8 +159,16 @@ function adaptPlayByPlayCsvGzip({ raw, season, playerIdByGsis, sourceUrl, runId 
   const digest = (value) => `sha256:${crypto.createHash("sha256").update(value).digest("hex")}`;
   return {
     receipt: {
-      runId, sourceUrl, sourceRef: digest(raw), sourceBytes: raw.length, sourceRows: records.length - 1,
-      metadata: { schema_fingerprint: digest(Buffer.from(JSON.stringify(headers))), source_columns: headers, unmatched_rows: unmatched.length },
+      runId,
+      sourceUrl,
+      sourceRef: digest(raw),
+      sourceBytes: raw.length,
+      sourceRows: records.length - 1,
+      metadata: {
+        schema_fingerprint: digest(Buffer.from(JSON.stringify(headers))),
+        source_columns: headers,
+        unmatched_rows: unmatched.length,
+      },
     },
     rows,
     unmatched,

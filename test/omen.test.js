@@ -20,9 +20,7 @@ class FakeQuery {
 
   then(resolve, reject) {
     return Promise.resolve({
-      data: this.rows.filter((row) =>
-        this.filters.every(({ field, value }) => row[field] === value)
-      ),
+      data: this.rows.filter((row) => this.filters.every(({ field, value }) => row[field] === value)),
       error: null,
     }).then(resolve, reject);
   }
@@ -66,12 +64,7 @@ function makeRoster() {
   };
 }
 
-function loadOmenService({
-  rows = [],
-  roster = makeRoster(),
-  swaps = [],
-  yahooError = null,
-} = {}) {
+function loadOmenService({ rows = [], roster = makeRoster(), swaps = [], yahooError = null } = {}) {
   const omenPath = require.resolve("../src/services/omen");
   delete require.cache[omenPath];
 
@@ -290,10 +283,7 @@ test("getLiveOmenForUser maps Yahoo lineup swap into live Omen contract", async 
 });
 
 test("getLiveOmenForUser propagates Yahoo auth errors for route-level 401 handling", async () => {
-  const yahooError = Object.assign(
-    new Error("Yahoo refresh token missing - re-auth required"),
-    { status: 401 }
-  );
+  const yahooError = Object.assign(new Error("Yahoo refresh token missing - re-auth required"), { status: 401 });
   const { service } = loadOmenService({
     rows: [
       {
@@ -307,8 +297,8 @@ test("getLiveOmenForUser propagates Yahoo auth errors for route-level 401 handli
     yahooError,
   });
 
-  await assert.rejects(
-    () => service.getLiveOmenForUser("test-user"),
-    { status: 401, message: "Yahoo refresh token missing - re-auth required" }
-  );
+  await assert.rejects(() => service.getLiveOmenForUser("test-user"), {
+    status: 401,
+    message: "Yahoo refresh token missing - re-auth required",
+  });
 });

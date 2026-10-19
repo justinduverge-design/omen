@@ -60,39 +60,62 @@ async function recordLeagueScoringRules(supabase, { platform, providerLeagueId, 
   // Only a fully derived rule set can grade a call; a partial one is kept in `moves` as before.
   if (scoring.coverage_state !== "supported") return skipped("coverage_not_supported");
 
-  const league = must(await supabase
-    .from("leagues").select("id")
-    .eq("provider", platform).eq("provider_league_id", leagueKey).eq("season", year)
-    .maybeSingle(), "league_lookup");
+  const league = must(
+    await supabase
+      .from("leagues")
+      .select("id")
+      .eq("provider", platform)
+      .eq("provider_league_id", leagueKey)
+      .eq("season", year)
+      .maybeSingle(),
+    "league_lookup",
+  );
   if (!league?.id) return skipped("league_not_registered");
 
-  const existing = must(await supabase
-    .from("league_scoring_rules").select("id")
-    .eq("league_id", league.id).eq("season", year).eq("contract_hash", hash)
-    .maybeSingle(), "existing_lookup");
+  const existing = must(
+    await supabase
+      .from("league_scoring_rules")
+      .select("id")
+      .eq("league_id", league.id)
+      .eq("season", year)
+      .eq("contract_hash", hash)
+      .maybeSingle(),
+    "existing_lookup",
+  );
   if (existing) return { written: false, reason: "unchanged", id: existing.id };
 
-  const event = must(await supabase.from("data_events").insert({
-    event: "ingest",
-    subject: `scoring_rules:${platform}`,
-    provider: platform,
-    rights_basis: RIGHTS_BASIS[platform],
-    job: JOB,
-    source_ref: `sha256:${hash}`,
-    row_count: 1,
-    details: { source: "live_request" },
-  }).select("id").single(), "ingest_event");
+  const event = must(
+    await supabase
+      .from("data_events")
+      .insert({
+        event: "ingest",
+        subject: `scoring_rules:${platform}`,
+        provider: platform,
+        rights_basis: RIGHTS_BASIS[platform],
+        job: JOB,
+        source_ref: `sha256:${hash}`,
+        row_count: 1,
+        details: { source: "live_request" },
+      })
+      .select("id")
+      .single(),
+    "ingest_event",
+  );
 
-  const insert = await supabase.from("league_scoring_rules").insert({
-    ingest_event_id: event.id,
-    provider: platform,
-    league_id: league.id,
-    season: year,
-    contract_version: version,
-    contract_hash: hash,
-    rules: contract,
-    uses: ["grading", "advice"],
-  }).select("id").single();
+  const insert = await supabase
+    .from("league_scoring_rules")
+    .insert({
+      ingest_event_id: event.id,
+      provider: platform,
+      league_id: league.id,
+      season: year,
+      contract_version: version,
+      contract_hash: hash,
+      rules: contract,
+      uses: ["grading", "advice"],
+    })
+    .select("id")
+    .single();
   // A concurrent request wrote the same rule set first: the goal is met.
   if (insert.error?.code === UNIQUE_VIOLATION) return { written: false, reason: "unchanged" };
   const row = must(insert, "rules_insert");
@@ -107,7 +130,8 @@ async function recordLeagueScoringRulesSafely(supabase, input, { log } = {}) {
     }
     return result;
   } catch (error) {
-    if (log) log.warn("League scoring rules write failed", { stage: error?.stage || "unknown", code: error?.code || null });
+    if (log)
+      log.warn("League scoring rules write failed", { stage: error?.stage || "unknown", code: error?.code || null });
     return { written: false, reason: "write_failed" };
   }
 }

@@ -40,10 +40,7 @@ async function getAuthenticatedEspnCredentials(userId) {
   let swid;
   try {
     // The two Vault RPCs are independent; run them concurrently.
-    [espn_s2, swid] = await Promise.all([
-      vaultDecrypt(conn.espn_secret_id),
-      vaultDecrypt(conn.swid_secret_id),
-    ]);
+    [espn_s2, swid] = await Promise.all([vaultDecrypt(conn.espn_secret_id), vaultDecrypt(conn.swid_secret_id)]);
   } catch (_e) {
     throw Object.assign(new Error("ESPN credentials unavailable"), { status: 401 });
   }

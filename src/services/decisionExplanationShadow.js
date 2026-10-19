@@ -29,7 +29,11 @@ async function shadowDecisionExplanation(args, { env = process.env, store, log }
     let state;
     if (existing) state = existing.ok ? "available" : "rejected";
     else state = (await target.enqueue(input)) ? "queued" : "pending";
-    (log || defaultLog()).info("decision explanation shadow", { type: input.type, state, hash: input.hash.slice(0, 12) });
+    (log || defaultLog()).info("decision explanation shadow", {
+      type: input.type,
+      state,
+      hash: input.hash.slice(0, 12),
+    });
     return state;
   } catch (error) {
     (log || defaultLog()).warn("decision explanation shadow failed", { error: error?.message });

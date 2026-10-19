@@ -79,7 +79,8 @@ const TEAM_SUMMED = Object.freeze({
  * with the gap identified instead of a plausible number.
  */
 const UNAVAILABLE = Object.freeze({
-  defense_points_allowed: "A7B publishes team rows without an opponent score; derivable from the schedule's home/away scores, not yet wired.",
+  defense_points_allowed:
+    "A7B publishes team rows without an opponent score; derivable from the schedule's home/away scores, not yet wired.",
   defense_yards_allowed: "Not collected by A7B's current team row.",
   idp_solo_tackles: "Individual defensive player facts are not collected by A7B.",
   idp_assisted_tackles: "Individual defensive player facts are not collected by A7B.",

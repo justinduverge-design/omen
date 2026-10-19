@@ -90,10 +90,7 @@ test("capture stores identical bytes once and records each retrieval as an immut
 
 test("capture canonicalizes the season before constructing the fixed release identity", async (t) => {
   const root = await tempRoot(t);
-  const instants = [
-    new Date("2026-08-24T12:00:00.000Z"),
-    new Date("2026-08-24T12:00:01.000Z"),
-  ];
+  const instants = [new Date("2026-08-24T12:00:00.000Z"), new Date("2026-08-24T12:00:01.000Z")];
   let requestedUrl;
   const captured = await captureSnapshot({
     dataset: "stats_player",
@@ -206,13 +203,14 @@ test("capture rejects non-allowlisted datasets and oversized responses before wr
       dataset: "stats_player",
       season: 2025,
       root,
-      fetchImpl: async () => new Response("", {
-        status: 200,
-        headers: {
-          "content-type": "text/csv",
-          "content-length": String(MAX_SNAPSHOT_BYTES + 1),
-        },
-      }),
+      fetchImpl: async () =>
+        new Response("", {
+          status: 200,
+          headers: {
+            "content-type": "text/csv",
+            "content-length": String(MAX_SNAPSHOT_BYTES + 1),
+          },
+        }),
       now: () => new Date("2026-08-24T12:00:00.000Z"),
     }),
     (error) => error.code === "SNAPSHOT_TOO_LARGE",
@@ -225,10 +223,7 @@ test("capture refuses a vault subdirectory symlink that escapes the selected roo
   const outside = await tempRoot(t);
   await mkdir(root, { recursive: true });
   await symlink(outside, path.join(root, "raw"));
-  const instants = [
-    new Date("2026-08-24T12:00:00.000Z"),
-    new Date("2026-08-24T12:00:01.000Z"),
-  ];
+  const instants = [new Date("2026-08-24T12:00:00.000Z"), new Date("2026-08-24T12:00:01.000Z")];
 
   await assert.rejects(
     captureSnapshot({
@@ -246,10 +241,7 @@ test("capture refuses a vault subdirectory symlink that escapes the selected roo
 test("exact-manifest replay verifies bytes and schema and never promotes output", async (t) => {
   const root = await tempRoot(t);
   const replayRoot = path.join(root, "local-replays");
-  const instants = [
-    new Date("2026-08-24T12:00:00.000Z"),
-    new Date("2026-08-24T12:00:01.000Z"),
-  ];
+  const instants = [new Date("2026-08-24T12:00:00.000Z"), new Date("2026-08-24T12:00:01.000Z")];
   const captured = await captureSnapshot({
     dataset: "stats_player",
     season: 2025,
@@ -277,10 +269,7 @@ test("exact-manifest replay verifies bytes and schema and never promotes output"
 
 test("replay rejects tampered raw bytes and writes no replay", async (t) => {
   const root = await tempRoot(t);
-  const instants = [
-    new Date("2026-08-24T12:00:00.000Z"),
-    new Date("2026-08-24T12:00:01.000Z"),
-  ];
+  const instants = [new Date("2026-08-24T12:00:00.000Z"), new Date("2026-08-24T12:00:01.000Z")];
   const captured = await captureSnapshot({
     dataset: "stats_player",
     season: 2025,
@@ -300,10 +289,7 @@ test("replay rejects tampered raw bytes and writes no replay", async (t) => {
 
 test("replay rejects a manifest whose rights evidence no longer matches the allowlist", async (t) => {
   const root = await tempRoot(t);
-  const instants = [
-    new Date("2026-08-24T12:00:00.000Z"),
-    new Date("2026-08-24T12:00:01.000Z"),
-  ];
+  const instants = [new Date("2026-08-24T12:00:00.000Z"), new Date("2026-08-24T12:00:01.000Z")];
   const captured = await captureSnapshot({
     dataset: "stats_player",
     season: 2025,
@@ -327,10 +313,11 @@ test("replay rejects a manifest whose rights evidence no longer matches the allo
 
 test("rights review and local-only root checks fail closed", () => {
   assert.throws(
-    () => assertRightsReviewCurrent({
-      now: new Date("2026-08-24T12:00:00.000Z"),
-      rightsReviewDate: "2025-08-24",
-    }),
+    () =>
+      assertRightsReviewCurrent({
+        now: new Date("2026-08-24T12:00:00.000Z"),
+        rightsReviewDate: "2025-08-24",
+      }),
     (error) => error.code === "RIGHTS_REVIEW_STALE",
   );
   assert.throws(

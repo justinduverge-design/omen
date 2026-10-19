@@ -10,15 +10,17 @@ const {
   hashOf,
 } = require("../src/services/scoringRuleSnapshot");
 const { calculateContractScore } = require("../src/services/scoringContract");
-const {
-  RECONCILIATION_STATES,
-  reconcileMoveScoring,
-} = require("../src/services/scoringReconciliation");
+const { RECONCILIATION_STATES, reconcileMoveScoring } = require("../src/services/scoringReconciliation");
 
 const HALF_PPR = {
-  pass_yd: 0.04, pass_td: 4, pass_int: -2,
-  rush_yd: 0.1, rush_td: 6,
-  rec: 0.5, rec_yd: 0.1, rec_td: 6,
+  pass_yd: 0.04,
+  pass_td: 4,
+  pass_int: -2,
+  rush_yd: 0.1,
+  rush_td: 6,
+  rec: 0.5,
+  rec_yd: 0.1,
+  rec_td: 6,
   fum_lost: -2,
 };
 
@@ -45,9 +47,9 @@ test("standard, half-PPR, and PPR leagues derive different contracts that score 
     return calculateContractScore(snapshot.contract, facts).points;
   };
 
-  assert.equal(points(0), 12);    // standard: 60 yards + 1 TD
-  assert.equal(points(0.5), 15);  // half PPR: + 3
-  assert.equal(points(1), 18);    // PPR: + 6
+  assert.equal(points(0), 12); // standard: 60 yards + 1 TD
+  assert.equal(points(0.5), 15); // half PPR: + 3
+  assert.equal(points(1), 18); // PPR: + 6
 });
 
 test("a zero-valued reception rule is kept, because standard scoring is literally rec: 0", () => {
@@ -92,7 +94,7 @@ test("banded field goals become per-band COUNT rules, not a yardage range", () =
       ["field_goals_made_0_39", "per_event", 3],
       ["field_goals_made_40_49", "per_event", 4],
       ["field_goals_made_50_plus", "per_event", 5],
-    ]
+    ],
   );
 });
 
@@ -102,7 +104,9 @@ test("two made field goals score twice, not once as a two-yard kick", () => {
     leagueSettings: { fgm_0_19: 3, fgm_20_29: 3, fgm_30_39: 3, fgm_40_49: 4, fgm_50p: 5, rec: 0 },
   });
   const points = calculateContractScore(snapshot.contract, {
-    field_goals_made_0_39: 2, field_goals_made_40_49: 0, field_goals_made_50_plus: 0,
+    field_goals_made_0_39: 2,
+    field_goals_made_40_49: 0,
+    field_goals_made_50_plus: 0,
     receiving_receptions: 0,
   }).points;
 
@@ -254,10 +258,7 @@ test("Yahoo tells offensive interceptions apart from defensive ones", () => {
   const snapshot = deriveScoringSnapshot({
     platform: "yahoo",
     leagueSettings: {
-      stat_modifiers: { stats: [
-        { stat: { stat_id: 6, value: "-1" } },
-        { stat: { stat_id: 33, value: "2" } },
-      ] },
+      stat_modifiers: { stats: [{ stat: { stat_id: 6, value: "-1" } }, { stat: { stat_id: 33, value: "2" } }] },
     },
   });
 
@@ -269,13 +270,15 @@ test("Yahoo field-goal bands resolve to the same canonical bands Sleeper uses", 
   const snapshot = deriveScoringSnapshot({
     platform: "yahoo",
     leagueSettings: {
-      stat_modifiers: { stats: [
-        { stat: { stat_id: 19, value: "3" } },
-        { stat: { stat_id: 20, value: "3" } },
-        { stat: { stat_id: 21, value: "3" } },
-        { stat: { stat_id: 22, value: "4" } },
-        { stat: { stat_id: 23, value: "5" } },
-      ] },
+      stat_modifiers: {
+        stats: [
+          { stat: { stat_id: 19, value: "3" } },
+          { stat: { stat_id: 20, value: "3" } },
+          { stat: { stat_id: 21, value: "3" } },
+          { stat: { stat_id: 22, value: "4" } },
+          { stat: { stat_id: 23, value: "5" } },
+        ],
+      },
     },
   });
 
@@ -289,10 +292,7 @@ test("Yahoo sub-bands that disagree make the contract ambiguous rather than pick
   const snapshot = deriveScoringSnapshot({
     platform: "yahoo",
     leagueSettings: {
-      stat_modifiers: { stats: [
-        { stat: { stat_id: 19, value: "3" } },
-        { stat: { stat_id: 21, value: "5" } },
-      ] },
+      stat_modifiers: { stats: [{ stat: { stat_id: 19, value: "3" } }, { stat: { stat_id: 21, value: "5" } }] },
     },
   });
 
@@ -305,10 +305,7 @@ test("an unnamed non-zero Yahoo rule is reported, never silently dropped", () =>
   const snapshot = deriveScoringSnapshot({
     platform: "yahoo",
     leagueSettings: {
-      stat_modifiers: { stats: [
-        { stat: { stat_id: 11, value: "1" } },
-        { stat: { stat_id: 50, value: "10" } },
-      ] },
+      stat_modifiers: { stats: [{ stat: { stat_id: 11, value: "1" } }, { stat: { stat_id: 50, value: "10" } }] },
     },
   });
 
@@ -377,10 +374,16 @@ test("reconciliation reaches exact only when Omen reproduces the provider's fina
 
 test("a small difference is a provider adjustment and a large one is a mismatch", () => {
   const adjusted = reconcileMoveScoring({
-    contract: SUPPORTED.contract, snapshotCoverageState: "supported", facts: FACTS, providerFinalPoints: 15.3,
+    contract: SUPPORTED.contract,
+    snapshotCoverageState: "supported",
+    facts: FACTS,
+    providerFinalPoints: 15.3,
   });
   const mismatch = reconcileMoveScoring({
-    contract: SUPPORTED.contract, snapshotCoverageState: "supported", facts: FACTS, providerFinalPoints: 18,
+    contract: SUPPORTED.contract,
+    snapshotCoverageState: "supported",
+    facts: FACTS,
+    providerFinalPoints: 18,
   });
 
   assert.equal(adjusted.state, RECONCILIATION_STATES.PROVIDER_ADJUSTED);
@@ -422,7 +425,10 @@ test("a restricted or ambiguous snapshot can never reach exact, whatever the num
 
 test("an absent provider final score is pending, and Omen's own number is still reported", () => {
   const result = reconcileMoveScoring({
-    contract: SUPPORTED.contract, snapshotCoverageState: "supported", facts: FACTS, providerFinalPoints: null,
+    contract: SUPPORTED.contract,
+    snapshotCoverageState: "supported",
+    facts: FACTS,
+    providerFinalPoints: null,
   });
 
   assert.equal(result.state, RECONCILIATION_STATES.PENDING);
@@ -437,24 +443,52 @@ test("no contract at all is pending, not unsupported", () => {
 
 test("every one of the seven required states is reachable", () => {
   const seen = new Set([
-    reconcileMoveScoring({ contract: SUPPORTED.contract, snapshotCoverageState: "supported", facts: FACTS, providerFinalPoints: 15 }).state,
-    reconcileMoveScoring({ contract: SUPPORTED.contract, snapshotCoverageState: "supported", facts: FACTS, providerFinalPoints: 15.3 }).state,
+    reconcileMoveScoring({
+      contract: SUPPORTED.contract,
+      snapshotCoverageState: "supported",
+      facts: FACTS,
+      providerFinalPoints: 15,
+    }).state,
+    reconcileMoveScoring({
+      contract: SUPPORTED.contract,
+      snapshotCoverageState: "supported",
+      facts: FACTS,
+      providerFinalPoints: 15.3,
+    }).state,
     reconcileMoveScoring({ snapshotCoverageState: "provider_restricted" }).state,
-    reconcileMoveScoring({ contract: { ruleset_version: "omen-scoring-contract-v1", coverage_state: "supported", rules: [] }, snapshotCoverageState: "supported", facts: FACTS }).state,
+    reconcileMoveScoring({
+      contract: { ruleset_version: "omen-scoring-contract-v1", coverage_state: "supported", rules: [] },
+      snapshotCoverageState: "supported",
+      facts: FACTS,
+    }).state,
     reconcileMoveScoring({ snapshotCoverageState: "ambiguous" }).state,
-    reconcileMoveScoring({ contract: SUPPORTED.contract, snapshotCoverageState: "supported", facts: FACTS, providerFinalPoints: 18 }).state,
+    reconcileMoveScoring({
+      contract: SUPPORTED.contract,
+      snapshotCoverageState: "supported",
+      facts: FACTS,
+      providerFinalPoints: 18,
+    }).state,
     reconcileMoveScoring({ contract: null }).state,
   ]);
 
   assert.deepEqual([...seen].sort(), [
-    "ambiguous", "exact", "mismatch", "pending", "provider_adjusted", "provider_restricted", "unsupported",
+    "ambiguous",
+    "exact",
+    "mismatch",
+    "pending",
+    "provider_adjusted",
+    "provider_restricted",
+    "unsupported",
   ]);
 });
 
 test("an unreported provider score is not read as a real zero", () => {
   for (const value of [null, undefined, ""]) {
     const result = reconcileMoveScoring({
-      contract: SUPPORTED.contract, snapshotCoverageState: "supported", facts: FACTS, providerFinalPoints: value,
+      contract: SUPPORTED.contract,
+      snapshotCoverageState: "supported",
+      facts: FACTS,
+      providerFinalPoints: value,
     });
     assert.equal(result.state, RECONCILIATION_STATES.PENDING);
     assert.equal(result.provider_points, null);
@@ -462,7 +496,10 @@ test("an unreported provider score is not read as a real zero", () => {
 
   // A genuine reported zero is still a real number and still reconciles.
   const zero = reconcileMoveScoring({
-    contract: SUPPORTED.contract, snapshotCoverageState: "supported", facts: FACTS, providerFinalPoints: 0,
+    contract: SUPPORTED.contract,
+    snapshotCoverageState: "supported",
+    facts: FACTS,
+    providerFinalPoints: 0,
   });
   assert.equal(zero.state, RECONCILIATION_STATES.MISMATCH);
   assert.equal(zero.provider_points, 0);

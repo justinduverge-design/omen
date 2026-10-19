@@ -82,8 +82,16 @@ const PHASES = Object.freeze([
     name: PHASE_NAMES[2],
     safe_actions: ["Verify the Pi is online and inspect its actual disk, OS, alert dispatcher, and supervision state"],
     remote_mutations: [
-      remoteAction("pi_witness_root", "Create and permission the independent witness/backup-observer root", "command-center"),
-      remoteAction("pi_witness_install", "Install the reviewed hash/freshness witness with no publication authority", "command-center"),
+      remoteAction(
+        "pi_witness_root",
+        "Create and permission the independent witness/backup-observer root",
+        "command-center",
+      ),
+      remoteAction(
+        "pi_witness_install",
+        "Install the reviewed hash/freshness witness with no publication authority",
+        "command-center",
+      ),
     ],
   },
   {
@@ -91,7 +99,11 @@ const PHASES = Object.freeze([
     safe_actions: ["Verify alert coverage, deduplication, recovery notice behavior, and secret scrubbing locally"],
     remote_mutations: [
       remoteAction("kvm1_alert_export", "Install a read-only, payload-free status export for the witness", "kvm1"),
-      remoteAction("pi_alert_integration", "Add seven football-data signals to the notification-only dispatcher", "command-center"),
+      remoteAction(
+        "pi_alert_integration",
+        "Add seven football-data signals to the notification-only dispatcher",
+        "command-center",
+      ),
     ],
   },
   {
@@ -100,21 +112,33 @@ const PHASES = Object.freeze([
     remote_mutations: [
       remoteAction("kvm1_units_install", "Install disabled KVM1 service and timer units", "kvm1"),
       remoteAction("pi_units_install", "Install disabled Pi witness and outage-monitor units", "command-center"),
-      remoteAction("timers_activate", "Enable collection, validation, witness, and alert timers", "kvm1+command-center"),
+      remoteAction(
+        "timers_activate",
+        "Enable collection, validation, witness, and alert timers",
+        "kvm1+command-center",
+      ),
     ],
   },
   {
     name: PHASE_NAMES[5],
     safe_actions: ["Replay correction and fresh-primary recovery against isolated roots with exact hashes"],
     remote_mutations: [
-      remoteAction("host_recovery_rehearsal", "Run a controlled KVM1-to-Pi backup and fresh KVM1 recovery drill", "kvm1+command-center"),
+      remoteAction(
+        "host_recovery_rehearsal",
+        "Run a controlled KVM1-to-Pi backup and fresh KVM1 recovery drill",
+        "kvm1+command-center",
+      ),
     ],
   },
   {
     name: PHASE_NAMES[6],
     safe_actions: ["Prepare the exact no-write command and acceptance worksheet without credentials"],
     remote_mutations: [
-      remoteAction("a4_no_write", "Read real pending rows and compare Standard/Half PPR/PPR with zero writes", "kvm1-production"),
+      remoteAction(
+        "a4_no_write",
+        "Read real pending rows and compare Standard/Half PPR/PPR with zero writes",
+        "kvm1-production",
+      ),
     ],
   },
   {
@@ -122,8 +146,16 @@ const PHASES = Object.freeze([
     safe_actions: ["Assemble evidence; keep collection, publication, and scoring flags false"],
     remote_mutations: [
       remoteAction("collection_activate", "Enable collection only for an observed shadow week", "kvm1"),
-      remoteAction("publication_activate", "Enable publication after separate founder authorization", "kvm1-production"),
-      remoteAction("scoring_activate", "Enable production Tuesday scoring after separate founder authorization", "kvm1-production"),
+      remoteAction(
+        "publication_activate",
+        "Enable publication after separate founder authorization",
+        "kvm1-production",
+      ),
+      remoteAction(
+        "scoring_activate",
+        "Enable production Tuesday scoring after separate founder authorization",
+        "kvm1-production",
+      ),
     ],
   },
 ]);
@@ -153,8 +185,11 @@ function evaluateA4NoWriteEvidence(evidence) {
   if (evidence.writes_attempted !== 0 || evidence.writes_completed !== 0) {
     failures.push(blocker("a4_write_attempted", "A4 attempted or completed a write"));
   }
-  if ([evidence.standard_comparison, evidence.half_ppr_comparison, evidence.ppr_comparison]
-    .some((value) => value !== "pass")) {
+  if (
+    [evidence.standard_comparison, evidence.half_ppr_comparison, evidence.ppr_comparison].some(
+      (value) => value !== "pass",
+    )
+  ) {
     failures.push(blocker("a4_format_comparison_failed", "All three scoring-format comparisons must pass"));
   }
   if (evidence.independent_reference !== "pass") {
@@ -172,8 +207,7 @@ function evaluateA4NoWriteEvidence(evidence) {
   if (evidence.recovery_rehearsal !== "pass") {
     failures.push(blocker("a4_recovery_unproven", "Recovery behavior must pass before A4 acceptance"));
   }
-  if (evidence.publication_authorized !== false
-      || evidence.persistent_production_scoring_enabled !== false) {
+  if (evidence.publication_authorized !== false || evidence.persistent_production_scoring_enabled !== false) {
     failures.push(blocker("a4_non_activation_violated", "Publication and production scoring must remain disabled"));
   }
   return { status: failures.length ? "fail" : "pass", failures };
@@ -192,11 +226,15 @@ function inspectPhase3(evidence, blockers) {
     blockers.push(blocker("phase3_failure_coverage_incomplete", `Missing Phase 3 scenarios: ${missing.join(", ")}`));
   }
   if (evidence?.publication_authorized !== false || evidence?.promoted !== false) {
-    blockers.push(blocker("phase3_non_publication_violated", "Phase 3 evidence must remain non-promoted and non-published"));
+    blockers.push(
+      blocker("phase3_non_publication_violated", "Phase 3 evidence must remain non-promoted and non-published"),
+    );
   }
-  if (evidence?.recovery?.status !== "recovered"
-      || evidence?.recovery?.witness_status !== "match"
-      || evidence?.recovery?.recovered_sha256 !== ACCEPTANCE_SHA256) {
+  if (
+    evidence?.recovery?.status !== "recovered" ||
+    evidence?.recovery?.witness_status !== "match" ||
+    evidence?.recovery?.recovered_sha256 !== ACCEPTANCE_SHA256
+  ) {
     blockers.push(blocker("phase3_recovery_unbound", "Recovery must preserve the exact hash after a witness match"));
   }
 }
@@ -204,7 +242,8 @@ function inspectPhase3(evidence, blockers) {
 function inspectHosts(hosts, blockers) {
   const kvm1 = hosts?.kvm1;
   if (!kvm1?.reachable) blockers.push(blocker("kvm1_outage", "KVM1 is unreachable"));
-  if (kvm1?.hostname !== "srv1737978") blockers.push(blocker("kvm1_identity_mismatch", "KVM1 hostname does not match the approved host"));
+  if (kvm1?.hostname !== "srv1737978")
+    blockers.push(blocker("kvm1_identity_mismatch", "KVM1 hostname does not match the approved host"));
   if (kvm1?.system_state !== "running") blockers.push(blocker("kvm1_unhealthy", "KVM1 system state is not running"));
   if (!Number.isFinite(kvm1?.available_bytes) || kvm1.available_bytes < KVM1_HARD_STOP_BYTES) {
     blockers.push(blocker("kvm1_disk_below_hard_stop", "KVM1 has less than the 30 GiB hard-stop reserve"));
@@ -218,8 +257,10 @@ function inspectHosts(hosts, blockers) {
   if (witness?.reachable && witness.system_state !== "running") {
     blockers.push(blocker("witness_unhealthy", "Command Center system state is not running"));
   }
-  if (witness?.reachable
-      && (!Number.isFinite(witness.available_bytes) || witness.available_bytes < WITNESS_MINIMUM_BYTES)) {
+  if (
+    witness?.reachable &&
+    (!Number.isFinite(witness.available_bytes) || witness.available_bytes < WITNESS_MINIMUM_BYTES)
+  ) {
     blockers.push(blocker("witness_disk_low", "Command Center has less than the 10 GiB witness reserve"));
   }
 }
@@ -240,34 +281,31 @@ function inspectInfrastructure(evidence, blockers) {
   }
   if (evidence?.correction_rehearsal_mode === "controlled_fixture_not_upstream") {
     const fixture = evidence.controlled_correction;
-    const validFixture = fixture?.schema === "omen-football-controlled-correction-rehearsal.v1"
-      && fixture?.mode === "controlled_fixture_not_upstream"
-      && fixture?.status === "correction_candidate"
-      && typeof fixture?.supersedes === "string"
-      && /^[a-f0-9]{64}$/.test(fixture.supersedes)
-      && Number.isInteger(fixture?.changed_subject_count)
-      && fixture.changed_subject_count > 0
-      && fixture.database_writes_attempted === 0
-      && fixture.database_writes_completed === 0
-      && fixture.publication_authorized === false
-      && fixture.production_scoring_authorized === false
-      && fixture.promoted === false;
+    const validFixture =
+      fixture?.schema === "omen-football-controlled-correction-rehearsal.v1" &&
+      fixture?.mode === "controlled_fixture_not_upstream" &&
+      fixture?.status === "correction_candidate" &&
+      typeof fixture?.supersedes === "string" &&
+      /^[a-f0-9]{64}$/.test(fixture.supersedes) &&
+      Number.isInteger(fixture?.changed_subject_count) &&
+      fixture.changed_subject_count > 0 &&
+      fixture.database_writes_attempted === 0 &&
+      fixture.database_writes_completed === 0 &&
+      fixture.publication_authorized === false &&
+      fixture.production_scoring_authorized === false &&
+      fixture.promoted === false;
     if (!validFixture) {
-      blockers.push(blocker(
-        "controlled_correction_fixture_invalid",
-        "Controlled correction evidence must be labeled, nonzero-subject, superseding, no-write, and non-activating",
-      ));
+      blockers.push(
+        blocker(
+          "controlled_correction_fixture_invalid",
+          "Controlled correction evidence must be labeled, nonzero-subject, superseding, no-write, and non-activating",
+        ),
+      );
     }
   }
 }
 
-function buildProductionReadinessAssessment({
-  phase3,
-  hosts,
-  infrastructure,
-  a4,
-  alertCodes = [],
-} = {}) {
+function buildProductionReadinessAssessment({ phase3, hosts, infrastructure, a4, alertCodes = [] } = {}) {
   const blockers = [];
   inspectPhase3(phase3, blockers);
   inspectHosts(hosts, blockers);

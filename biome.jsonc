@@ -16,14 +16,23 @@
       "linter": { "rules": { "suspicious": { "noThenProperty": "off" } } }
     },
     {
-      // Fixtures are inputs to contract tests and must stay byte-for-byte as written.
-      "includes": ["test/fixtures/**"],
-      "linter": { "enabled": false }
+      // Test inputs and script-generated files (fixtures, contract locks/schemas, xFP table) stay as their writers emit them.
+      "includes": [
+        "test/fixtures/**",
+        "test/contracts/fixtures/**",
+        "test/contracts/lock/**",
+        "test/contracts/schemas/**",
+        "src/services/fantasyMetrics/xfp-tables-v1.json"
+      ],
+      "linter": { "enabled": false },
+      "formatter": { "enabled": false }
     },
     {
       // Index keys here only render static lists (skeletons, reasons, steps) that never reorder.
       "includes": ["frontend/src/**"],
-      "linter": { "rules": { "suspicious": { "noArrayIndexKey": "off" } } }
+      "linter": { "rules": { "suspicious": { "noArrayIndexKey": "off" } } },
+      // The frontend is written with single quotes; the rest of the repo uses double.
+      "javascript": { "formatter": { "quoteStyle": "single" } }
     },
     {
       // `(map[k] ||= []).push(x)` grouping and `while ((m = re.exec(s)) !== null)` are deliberate idioms here.

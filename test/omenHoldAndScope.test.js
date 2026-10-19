@@ -19,11 +19,23 @@ const { buildHold } = require("../src/services/omenHold");
 const { evaluateTradeForConnection, rosterPositionsFromRoster } = require("../src/services/omenTradeCandidate");
 
 class FakeQuery {
-  constructor(rows) { this.rows = rows; this.filters = []; }
-  eq(field, value) { this.filters.push({ field, value }); return this; }
-  maybeSingle() { return Promise.resolve({ data: this.applyFilters()[0] || null, error: null }); }
-  then(resolve, reject) { return Promise.resolve({ data: this.applyFilters(), error: null }).then(resolve, reject); }
-  applyFilters() { return this.rows.filter((row) => this.filters.every(({ field, value }) => row[field] === value)); }
+  constructor(rows) {
+    this.rows = rows;
+    this.filters = [];
+  }
+  eq(field, value) {
+    this.filters.push({ field, value });
+    return this;
+  }
+  maybeSingle() {
+    return Promise.resolve({ data: this.applyFilters()[0] || null, error: null });
+  }
+  then(resolve, reject) {
+    return Promise.resolve({ data: this.applyFilters(), error: null }).then(resolve, reject);
+  }
+  applyFilters() {
+    return this.rows.filter((row) => this.filters.every(({ field, value }) => row[field] === value));
+  }
 }
 
 const player = (key, name, position, projected, extra = {}) => ({
@@ -50,8 +62,13 @@ function loadService({
   const servicePath = require.resolve("../src/services/omen");
   delete require.cache[servicePath];
   const calls = {
-    sleeperRoster: [], espnRoster: [], yahooRoster: [], espnLeagueRosters: [], yahooLeagueRosters: [],
-    sleeperLeagueRosters: [], discovery: [],
+    sleeperRoster: [],
+    espnRoster: [],
+    yahooRoster: [],
+    espnLeagueRosters: [],
+    yahooLeagueRosters: [],
+    sleeperLeagueRosters: [],
+    discovery: [],
   };
   const fakeSupabase = {
     auth: { getUser: async () => ({ data: { user: { id: "user-1" } }, error: null }) },
@@ -144,24 +161,46 @@ function loadService({
 }
 
 const sleeperConn = (extra = {}) => ({
-  id: "ctx-sleeper", user_id: "user-1", platform: "sleeper", is_active: true,
-  league_id: "sl-1", platform_username: "sleepy", ...extra,
+  id: "ctx-sleeper",
+  user_id: "user-1",
+  platform: "sleeper",
+  is_active: true,
+  league_id: "sl-1",
+  platform_username: "sleepy",
+  ...extra,
 });
 const espnConn = (extra = {}) => ({
-  id: "ctx-espn", user_id: "user-1", platform: "espn", is_active: true,
-  league_id: "esp-1", espn_secret_id: "espnSecret", swid_secret_id: "swidSecret", espn_team_id: "7", ...extra,
+  id: "ctx-espn",
+  user_id: "user-1",
+  platform: "espn",
+  is_active: true,
+  league_id: "esp-1",
+  espn_secret_id: "espnSecret",
+  swid_secret_id: "swidSecret",
+  espn_team_id: "7",
+  ...extra,
 });
 const yahooConn = (extra = {}) => ({
-  id: "ctx-yahoo", user_id: "user-1", platform: "yahoo", is_active: true,
-  league_id: "414.l.1", token_secret_id: "tok", ...extra,
+  id: "ctx-yahoo",
+  user_id: "user-1",
+  platform: "yahoo",
+  is_active: true,
+  league_id: "414.l.1",
+  token_secret_id: "tok",
+  ...extra,
 });
 
 // A lineup whose best bench option is below the 0.5-point bar.
 function quietRoster(source, teamKey) {
   return {
-    week: 8, team_key: teamKey, source,
+    week: 8,
+    team_key: teamKey,
+    source,
     slots: {
-      starters: [player("qb1", "Quinn Back", "QB", 20), player("wr1", "Wes Receiver", "WR", 12, { selected_position: "WR" })],
+      starters: [
+        player("qb1", "Quinn Back", "QB", 20),
+        player("wr1", "Wes Receiver", "WR", 12, { selected_position: "WR" }),
+      ],
       bench: [player("wr2", "Ben Chwarmer", "WR", 11.8, { selected_position: "BN" })],
       ir: [],
     },
@@ -268,7 +307,10 @@ test("a quiet week is a HOLD that names the best alternative and why it lost, fr
   assert.equal(alt.threshold, 0.5);
   assert.match(alt.why_not, /Wes Receiver already projects 0\.2 points above Ben Chwarmer \(12 vs 11\.8\)/);
   assert.equal(body.hold.projections.available, true);
-  assert.deepEqual(body.hold.considered.map((c) => c.kind), ["start_sit", "waiver_pickup", "trade_suggestion"]);
+  assert.deepEqual(
+    body.hold.considered.map((c) => c.kind),
+    ["start_sit", "waiver_pickup", "trade_suggestion"],
+  );
   assert.ok(body.hold.reasons.length >= 1);
 });
 
@@ -303,7 +345,10 @@ test("an OUT starter with no usable pickup is reported as its own reason", () =>
   const out = { ...player("a", "Alpha", "WR", 12), status: "OUT" };
   const roster = { slots: { starters: [out], bench: [player("b", "Bravo", "WR", 3, { selected_position: "BN" })] } };
   const hold = buildHold({
-    roster, platformLabel: "Sleeper", waiver: { signalStatus: "live" }, isOut: (s) => s === "OUT",
+    roster,
+    platformLabel: "Sleeper",
+    waiver: { signalStatus: "live" },
+    isOut: (s) => s === "OUT",
   });
   const waiver = hold.reasons.find((r) => r.code === "no_waiver_fix");
   assert.match(waiver.text, /Alpha is OUT/);
@@ -318,7 +363,9 @@ test("Yahoo gets an honest hold: no projections, no trade read, no invented numb
   const { service, calls } = loadService({
     connections: [yahooConn()],
     yahooRoster: {
-      week: 8, team_key: "414.l.1.t.7", source: "yahoo",
+      week: 8,
+      team_key: "414.l.1.t.7",
+      source: "yahoo",
       slots: {
         starters: [noProjection("yahoo:1", "Yara Back", "QB", "QB")],
         bench: [noProjection("yahoo:2", "Yan Bench", "QB", "BN")],
@@ -355,7 +402,9 @@ function espnLeagueFixture() {
   ];
   return {
     roster: {
-      week: 8, team_key: "7", source: "espn",
+      week: 8,
+      team_key: "7",
+      source: "espn",
       slots: {
         starters: [mine[0], mine[1], mine[3]],
         bench: [mine[2]],
@@ -397,7 +446,11 @@ test("ESPN now gets a trade call when a one-for-one improves both lineups", asyn
 test("ESPN with no trade that clears both lineups holds, and the hold says it searched", async () => {
   const fixture = espnLeagueFixture();
   // Make the opponent identical in need so nothing improves both sides.
-  fixture.league.teams[1].players = fixture.league.teams[0].players.map((p) => ({ ...p, player_key: `x${p.player_key}`, player_id: `x${p.player_id}` }));
+  fixture.league.teams[1].players = fixture.league.teams[0].players.map((p) => ({
+    ...p,
+    player_key: `x${p.player_key}`,
+    player_id: `x${p.player_id}`,
+  }));
   const { service } = loadService({
     connections: [espnConn()],
     espnRoster: fixture.roster,
@@ -419,7 +472,13 @@ test("a failing ESPN league read is reported as unavailable, not as 'no trade ex
     platformLabel: "ESPN",
     deps: {
       credentials: { espnS2: "a", swid: "b" },
-      adapters: { espn: { fetchEspnLeagueRosters: async () => { throw new Error("boom"); } } },
+      adapters: {
+        espn: {
+          fetchEspnLeagueRosters: async () => {
+            throw new Error("boom");
+          },
+        },
+      },
     },
   });
   assert.equal(result.status, "unavailable");
@@ -525,10 +584,16 @@ test("cross-user: a league that belongs to another account is refused, and no ro
     sleeperRosterByLeague: { default: quietRoster("sleeper", "7") },
     discovery: (rows, { leagueId }) => (accountA.has(leagueId) ? { ...rows[0], league_id: leagueId } : null),
   });
-  const result = await service.buildLiveOmenMvpMoveForUser("user-1", { leagueId: "sl-B-belongs-to-user-B", platform: "sleeper" });
+  const result = await service.buildLiveOmenMvpMoveForUser("user-1", {
+    leagueId: "sl-B-belongs-to-user-B",
+    platform: "sleeper",
+  });
   assert.equal(result.body.state, "context_unavailable");
   assert.equal(result.body.answered_for.matched, false);
-  assert.deepEqual(calls.discovery.map((d) => d.leagueId), ["sl-B-belongs-to-user-B"]);
+  assert.deepEqual(
+    calls.discovery.map((d) => d.leagueId),
+    ["sl-B-belongs-to-user-B"],
+  );
   assert.deepEqual(calls.sleeperRoster, []);
   // Another account's connection id is refused too.
   const byContext = await service.buildLiveOmenMvpMoveForUser("user-1", { contextId: "ctx-of-user-B" });
@@ -550,18 +615,24 @@ test("a discovery call that hangs fails closed within its budget", async () => {
 test("the hold summary does not claim trades were weighed when the trade could not be evaluated", () => {
   const roster = { slots: { starters: [player("a", "Alpha", "WR", 12)], bench: [] } };
   const unavailable = buildHold({
-    roster, platformLabel: "Yahoo", isOut: () => false,
+    roster,
+    platformLabel: "Yahoo",
+    isOut: () => false,
     trade: { status: "unavailable", reason: "rosters_unreadable", message: "x" },
   });
   assert.doesNotMatch(unavailable.summary, /trade/i);
   const searched = buildHold({
-    roster, platformLabel: "ESPN", isOut: () => false,
+    roster,
+    platformLabel: "ESPN",
+    isOut: () => false,
     trade: { status: "none_found", teams_checked: 5 },
   });
   assert.match(searched.summary, /lineup swaps, waivers and trades/);
   const noProj = buildHold({
     roster: { slots: { starters: [player("a", "Alpha", "WR", null)], bench: [] } },
-    platformLabel: "Yahoo", isOut: () => false, trade: null,
+    platformLabel: "Yahoo",
+    isOut: () => false,
+    trade: null,
   });
   assert.doesNotMatch(noProj.summary, /lineup swaps/);
 });
@@ -584,7 +655,10 @@ test("why_not and delta come from the same optimizer row, with or without observ
 test("a Yahoo hold whose projection build failed does not blame Yahoo for what Omen could not build", () => {
   const roster = {
     projection_meta: { available: false, reason: "timed_out" },
-    slots: { starters: [player("a", "Alpha", "WR", null)], bench: [player("b", "Bravo", "WR", null, { selected_position: "BN" })] },
+    slots: {
+      starters: [player("a", "Alpha", "WR", null)],
+      bench: [player("b", "Bravo", "WR", null, { selected_position: "BN" })],
+    },
   };
   const hold = buildHold({ roster, platformLabel: "Yahoo", isOut: () => false });
   assert.equal(hold.reasons[0].code, "projections_unavailable");
@@ -609,8 +683,14 @@ test("a Yahoo hold with partial projection coverage says players were left out o
 
 test("a roster Omen did not fill in (Sleeper, ESPN) gets no partial-coverage reason", () => {
   const roster = {
-    slots: { starters: [player("a", "Alpha", "WR", 12), player("c", "Charlie", "RB", null)], bench: [player("b", "Bravo", "WR", 11.8, { selected_position: "BN" })] },
+    slots: {
+      starters: [player("a", "Alpha", "WR", 12), player("c", "Charlie", "RB", null)],
+      bench: [player("b", "Bravo", "WR", 11.8, { selected_position: "BN" })],
+    },
   };
   const hold = buildHold({ roster, platformLabel: "Sleeper", isOut: () => false });
-  assert.equal(hold.reasons.some((reason) => reason.code === "projections_partial"), false);
+  assert.equal(
+    hold.reasons.some((reason) => reason.code === "projections_partial"),
+    false,
+  );
 });

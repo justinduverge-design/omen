@@ -65,7 +65,10 @@ test("every read and write is scoped by user_id (the service role bypasses RLS)"
   assert.equal(fake.db.rows.length, 1);
   assert.equal(fake.db.rows[0].user_id, "user-1");
   for (const call of fake.db.calls.filter((c) => c.op !== "upsert")) {
-    assert.ok(call.filters.some(([field]) => field === "user_id"), `${call.op} must filter by user_id`);
+    assert.ok(
+      call.filters.some(([field]) => field === "user_id"),
+      `${call.op} must filter by user_id`,
+    );
   }
 });
 
@@ -111,7 +114,14 @@ test("legacy stores can erase a user's blob; the disabled store holds nothing an
   await createDisabledTradeSavedQueueStore().deleteAll("user-1");
 
   const deleted = [];
-  const redisStore = createRedisTradeSavedQueueStore({ redis: { async del(key) { deleted.push(key); return 1; } } });
+  const redisStore = createRedisTradeSavedQueueStore({
+    redis: {
+      async del(key) {
+        deleted.push(key);
+        return 1;
+      },
+    },
+  });
   await redisStore.deleteAll("user-1");
   assert.deepEqual(deleted, [`${KEY_PREFIX}user-1`]);
 });

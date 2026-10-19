@@ -31,8 +31,18 @@ function snakeDraft({ status = "drafting", teams = 12, rounds = 15, type = "snak
     season_type: "regular",
     settings: { teams, rounds, pick_timer: 60 },
     slot_to_roster_id: {
-      1: 11, 2: 12, 3: 13, 4: 14, 5: 15, 6: 16,
-      7: 17, 8: 18, 9: 19, 10: 20, 11: 21, 12: 22,
+      1: 11,
+      2: 12,
+      3: 13,
+      4: 14,
+      5: 15,
+      6: 16,
+      7: 17,
+      8: 18,
+      9: 19,
+      10: 20,
+      11: 21,
+      12: 22,
     },
     start_time: 1693516800000,
   };
@@ -61,16 +71,19 @@ test("normalizeStatus folds unknown values to 'unknown'", () => {
 });
 
 test("normalizePick coerces malformed numbers and metadata safely", () => {
-  const normalized = normalizePick({
-    pick_no: "12",
-    round: "2",
-    draft_slot: "3",
-    roster_id: 14,
-    picked_by: 99,
-    player_id: 12345,
-    is_keeper: true,
-    metadata: { first_name: "X", last_name: "Y", position: "WR", team: "BUF", junk: "drop" },
-  }, "99");
+  const normalized = normalizePick(
+    {
+      pick_no: "12",
+      round: "2",
+      draft_slot: "3",
+      roster_id: 14,
+      picked_by: 99,
+      player_id: 12345,
+      is_keeper: true,
+      metadata: { first_name: "X", last_name: "Y", position: "WR", team: "BUF", junk: "drop" },
+    },
+    "99",
+  );
 
   assert.equal(normalized.pick_no, 12);
   assert.equal(normalized.round, 2);
@@ -199,12 +212,7 @@ test("buildDraftStateResponse returns full envelope with no picks (pre-draft)", 
 });
 
 test("buildDraftStateResponse returns only picks after since cursor", () => {
-  const picks = [
-    pick(1, 1, 1, "p100"),
-    pick(2, 2, 1, "p200"),
-    pick(3, 3, 1, "p300"),
-    pick(4, 4, 1, "p400"),
-  ];
+  const picks = [pick(1, 1, 1, "p100"), pick(2, 2, 1, "p200"), pick(3, 3, 1, "p300"), pick(4, 4, 1, "p400")];
   const res = buildDraftStateResponse({
     draftId: "draft-1",
     draft: snakeDraft(),
@@ -218,7 +226,10 @@ test("buildDraftStateResponse returns only picks after since cursor", () => {
   assert.equal(res.cursor.latest, 4);
   assert.equal(res.has_new_picks, true);
   assert.equal(res.picks_since.length, 2);
-  assert.deepEqual(res.picks_since.map((p) => p.pick_no), [3, 4]);
+  assert.deepEqual(
+    res.picks_since.map((p) => p.pick_no),
+    [3, 4],
+  );
   assert.equal(res.current_pick, 5);
   assert.equal(res.poll_after_seconds, POLL_AFTER_SECONDS.drafting);
   assert.equal(res.picks_since[0].is_user_pick, true);
@@ -263,11 +274,7 @@ test("buildDraftStateResponse marks complete drafts with null current_pick and l
 });
 
 test("buildDraftStateResponse tolerates unsorted picks input", () => {
-  const picks = [
-    pick(3, 3, 1, "p300"),
-    pick(1, 1, 1, "p100"),
-    pick(2, 2, 1, "p200"),
-  ];
+  const picks = [pick(3, 3, 1, "p300"), pick(1, 1, 1, "p100"), pick(2, 2, 1, "p200")];
   const res = buildDraftStateResponse({
     draftId: "draft-1",
     draft: snakeDraft(),
@@ -275,6 +282,9 @@ test("buildDraftStateResponse tolerates unsorted picks input", () => {
     since: 1,
   });
 
-  assert.deepEqual(res.picks_since.map((p) => p.pick_no), [2, 3]);
+  assert.deepEqual(
+    res.picks_since.map((p) => p.pick_no),
+    [2, 3],
+  );
   assert.equal(res.cursor.latest, 3);
 });

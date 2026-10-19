@@ -25,7 +25,13 @@ function inQuietWindow(now = new Date()) {
 /**
  * @returns {Promise<{ skipped?:string, processed:number, written:number, rejected:number, reasons:Record<string,number> }>}
  */
-async function drainOnce({ store, limit = 50, writer = writeExplanation, now = () => new Date(), deadlineMs = 25 * 60 * 1000 } = {}) {
+async function drainOnce({
+  store,
+  limit = 50,
+  writer = writeExplanation,
+  now = () => new Date(),
+  deadlineMs = 25 * 60 * 1000,
+} = {}) {
   const summary = { processed: 0, written: 0, rejected: 0, reasons: {} };
   const quiet = inQuietWindow(now());
   if (quiet) return { ...summary, skipped: quiet };

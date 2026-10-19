@@ -64,16 +64,10 @@ export default function OmenFeedback({ week, season, moveTitle, moveSubtext }) {
           className="rounded-lg border p-6 text-center"
           style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)' }}
         >
-          <p
-            className="text-xs font-semibold uppercase tracking-widest"
-            style={{ color: 'var(--color-accent)' }}
-          >
+          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-accent)' }}>
             Locked in
           </p>
-          <p
-            className="mt-2 font-display text-xl font-semibold"
-            style={{ color: 'var(--color-text-primary)' }}
-          >
+          <p className="mt-2 font-display text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>
             Your answer is recorded.
           </p>
           <p className="mt-1 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
@@ -233,12 +227,7 @@ function Connector({ gold }) {
 }
 
 function Divider() {
-  return (
-    <div
-      className="mb-5"
-      style={{ height: 1, background: 'var(--color-border)' }}
-    />
-  );
+  return <div className="mb-5" style={{ height: 1, background: 'var(--color-border)' }} />;
 }
 
 function ChoiceButton({ children, active, variant, onClick }) {

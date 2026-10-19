@@ -14,14 +14,20 @@ async function main({ env = process.env } = {}) {
     logger.info("Decision explanations off; nothing to do");
     return { skipped: "off" };
   }
-  const summary = await drainOnce({ store: createDefaultDecisionExplanationStore(env), limit: Number(env.DECISION_EXPLANATION_BATCH) || 50 });
+  const summary = await drainOnce({
+    store: createDefaultDecisionExplanationStore(env),
+    limit: Number(env.DECISION_EXPLANATION_BATCH) || 50,
+  });
   logger.info("Decision explanations drained", summary);
   return summary;
 }
 
 if (require.main === module) {
   const { traceCronJob } = require("./services/telemetry");
-  traceCronJob("decision_explanations", main).catch((error) => { logger.error("Decision explanation drain failed", { code: error.code || "failure" }); process.exit(1); });
+  traceCronJob("decision_explanations", main).catch((error) => {
+    logger.error("Decision explanation drain failed", { code: error.code || "failure" });
+    process.exit(1);
+  });
 }
 
 module.exports = { main };

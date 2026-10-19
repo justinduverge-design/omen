@@ -34,40 +34,19 @@
       ]
     },
     "move-detail.v1": {
-      "state": [
-        "pending",
-        "resolved",
-        "data_incomplete",
-        "superseded"
-      ]
+      "state": ["pending", "resolved", "data_incomplete", "superseded"]
     },
     "quiet-week.v1": {
-      "variant": [
-        "neutral",
-        "straight",
-        null
-      ]
+      "variant": ["neutral", "straight", null]
     },
     "trade-roster.v1": {
-      "status": [
-        "ok",
-        "unavailable"
-      ]
+      "status": ["ok", "unavailable"]
     },
     "system-min-version.v1": {
-      "status": [
-        "ok",
-        "update_required"
-      ]
+      "status": ["ok", "update_required"]
     },
     "platform-provider-state.v1": {
-      "providers.*.state": [
-        "not_started",
-        "needs_reauth",
-        "choosing_league",
-        "resolving_account",
-        "connected"
-      ]
+      "providers.*.state": ["not_started", "needs_reauth", "choosing_league", "resolving_account", "connected"]
     }
   },
   "sources": {

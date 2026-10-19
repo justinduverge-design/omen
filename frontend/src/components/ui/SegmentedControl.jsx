@@ -23,9 +23,7 @@ const SegmentedControl = ({
     const isArrow = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key);
     if (!isArrow) return;
 
-    const radios = Array.from(
-      containerRef.current.querySelectorAll('input[type="radio"]:not([disabled])')
-    );
+    const radios = Array.from(containerRef.current.querySelectorAll('input[type="radio"]:not([disabled])'));
     if (radios.length === 0) return;
 
     const currentIndex = radios.findIndex((radio) => radio === document.activeElement);
@@ -77,7 +75,9 @@ const SegmentedControlItem = ({ value, children, disabled = false, className = '
 
   const disabledClasses = disabled ? 'opacity-50 cursor-not-allowed pointer-events-none' : '';
 
-  const combinedClasses = `${baseClasses} ${sizeClasses} ${stateClasses} ${disabledClasses} ${className}`.trim().replace(/\s+/g, ' ');
+  const combinedClasses = `${baseClasses} ${sizeClasses} ${stateClasses} ${disabledClasses} ${className}`
+    .trim()
+    .replace(/\s+/g, ' ');
 
   return (
     <label

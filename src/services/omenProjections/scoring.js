@@ -91,14 +91,29 @@ function scoreSleeperStatLine(sleeperLine, scoring = "ppr") {
 function toSleeperStatLine(statLine) {
   const s = statLine || {};
   const out = {
-    pass_att: s.attempts, pass_cmp: s.completions, pass_yd: s.passing_yards, pass_td: s.passing_tds,
-    pass_int: s.passing_interceptions, rush_att: s.carries, rush_yd: s.rushing_yards, rush_td: s.rushing_tds,
-    rec_tgt: s.targets, rec: s.receptions, rec_yd: s.receiving_yards, rec_td: s.receiving_tds, fum_lost: s.fumbles_lost,
+    pass_att: s.attempts,
+    pass_cmp: s.completions,
+    pass_yd: s.passing_yards,
+    pass_td: s.passing_tds,
+    pass_int: s.passing_interceptions,
+    rush_att: s.carries,
+    rush_yd: s.rushing_yards,
+    rush_td: s.rushing_tds,
+    rec_tgt: s.targets,
+    rec: s.receptions,
+    rec_yd: s.receiving_yards,
+    rec_td: s.receiving_tds,
+    fum_lost: s.fumbles_lost,
   };
   for (const key of Object.keys(out)) if (!Number.isFinite(Number(out[key]))) delete out[key];
   return out;
 }
 
 module.exports = {
-  SCORING_PRESETS, scoreSleeperStatLine, scoreStatLine, sleeperStatLineToFacts, statLineToFacts, toSleeperStatLine,
+  SCORING_PRESETS,
+  scoreSleeperStatLine,
+  scoreStatLine,
+  sleeperStatLineToFacts,
+  statLineToFacts,
+  toSleeperStatLine,
 };

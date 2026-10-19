@@ -53,9 +53,11 @@ async function main(argv = process.argv.slice(2)) {
   }
 
   if (options.command === "stage") {
-    requireOnly(options,
+    requireOnly(
+      options,
       ["acceptance", "receipt", "primary-root", "witness-root", "backup-root"],
-      ["command", "acceptance", "receipt", "primary-root", "witness-root", "backup-root"]);
+      ["command", "acceptance", "receipt", "primary-root", "witness-root", "backup-root"],
+    );
     const [acceptanceBytes, receiptBytes] = await Promise.all([
       fs.readFile(path.resolve(options.acceptance)),
       fs.readFile(path.resolve(options.receipt)),
@@ -67,22 +69,30 @@ async function main(argv = process.argv.slice(2)) {
       witnessRoot: path.resolve(options["witness-root"]),
       backupRoot: path.resolve(options["backup-root"]),
     });
-    process.stdout.write(`${JSON.stringify({
-      status: result.receipt.status,
-      acceptance_sha256: result.acceptanceHash,
-      publication_authorized: false,
-      primary_evidence_path: result.primaryEvidencePath,
-      backup_evidence_path: result.backupEvidencePath,
-      witness_observation_path: result.witnessObservationPath,
-      staging_receipt_path: result.stagingReceiptPath,
-    }, null, 2)}\n`);
+    process.stdout.write(
+      `${JSON.stringify(
+        {
+          status: result.receipt.status,
+          acceptance_sha256: result.acceptanceHash,
+          publication_authorized: false,
+          primary_evidence_path: result.primaryEvidencePath,
+          backup_evidence_path: result.backupEvidencePath,
+          witness_observation_path: result.witnessObservationPath,
+          staging_receipt_path: result.stagingReceiptPath,
+        },
+        null,
+        2,
+      )}\n`,
+    );
     return;
   }
 
   if (options.command === "recover") {
-    requireOnly(options,
+    requireOnly(
+      options,
       ["hash", "backup-root", "recovery-root", "witness-observation"],
-      ["command", "hash", "backup-root", "recovery-root", "witness-observation"]);
+      ["command", "hash", "backup-root", "recovery-root", "witness-observation"],
+    );
     const result = await recoverPrimaryEvidence({
       acceptanceHash: options.hash,
       backupRoot: path.resolve(options["backup-root"]),

@@ -17,11 +17,11 @@
  */
 
 const { createClient } = require("@supabase/supabase-js");
-const config           = require("../config");
-const { logger }       = require("../middleware/logging");
+const config = require("../config");
+const { logger } = require("../middleware/logging");
 const { refreshYahooToken } = require("../middleware/yahooOAuth");
-const YahooClient      = require("./yahoo");
-const connectionStore  = require("./connectionStore");
+const YahooClient = require("./yahoo");
+const connectionStore = require("./connectionStore");
 
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
 
@@ -34,7 +34,7 @@ async function vaultDecrypt(secretId) {
 
 async function vaultUpdate(secretId, newSecret) {
   const { error } = await supabase.rpc("vault_update_secret", {
-    secret_id:  secretId,
+    secret_id: secretId,
     new_secret: newSecret,
   });
   if (error) throw new Error(`Vault update failed: ${error.message}`);
@@ -81,18 +81,21 @@ async function persistYahooTokens(userId, tokens, leagueId = null) {
       : vaultCreate(tokens.refresh_token, `yahoo_refresh_${userId}`, "Yahoo OAuth refresh token"),
   ]);
 
-  const { error } = await supabase.from("platform_connections").upsert({
-    user_id: userId,
-    platform: "yahoo",
-    // "yahoo" is a deliberate placeholder (league_id is NOT NULL) - hasUsableLeagueId() rejects it; GET /api/yahoo/leagues + POST /api/yahoo/league bind the real one.
-    league_id: leagueId || existing?.league_id || "yahoo",
-    platform_user_id: tokens.xoauth_yahoo_guid || null,
-    token_secret_id: accessSecretId,
-    refresh_secret_id: refreshSecretId,
-    token_expires_at: expiryFrom(tokens),
-    is_active: true,
-    updated_at: new Date().toISOString(),
-  }, { onConflict: "user_id,platform" });
+  const { error } = await supabase.from("platform_connections").upsert(
+    {
+      user_id: userId,
+      platform: "yahoo",
+      // "yahoo" is a deliberate placeholder (league_id is NOT NULL) - hasUsableLeagueId() rejects it; GET /api/yahoo/leagues + POST /api/yahoo/league bind the real one.
+      league_id: leagueId || existing?.league_id || "yahoo",
+      platform_user_id: tokens.xoauth_yahoo_guid || null,
+      token_secret_id: accessSecretId,
+      refresh_secret_id: refreshSecretId,
+      token_expires_at: expiryFrom(tokens),
+      is_active: true,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id,platform" },
+  );
 
   if (error) throw new Error(`Yahoo token persistence failed: ${error.message}`);
 }
@@ -120,8 +123,10 @@ const refreshesInFlight = new Map();
 const CLAIM_TTL_MS = 20_000;
 const CLAIM_WAIT_TRIES = 10;
 const CLAIM_WAIT_MS = 300;
-const RELEASE_IF_OWNER = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
-const RENEW_IF_OWNER = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('pexpire', KEYS[1], ARGV[2]) else return 0 end";
+const RELEASE_IF_OWNER =
+  "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
+const RENEW_IF_OWNER =
+  "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('pexpire', KEYS[1], ARGV[2]) else return 0 end";
 let claimStore;
 let claimSleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 // While held, the claim is renewed well inside its lease, so a slow exchange or slow database write cannot
@@ -130,9 +135,10 @@ let claimRenewEveryMs = CLAIM_TTL_MS / 4;
 
 function refreshClaimStore() {
   if (claimStore === undefined) {
-    claimStore = config.redisUrl && config.redisToken
-      ? new (require("@upstash/redis").Redis)({ url: config.redisUrl, token: config.redisToken })
-      : null;
+    claimStore =
+      config.redisUrl && config.redisToken
+        ? new (require("@upstash/redis").Redis)({ url: config.redisUrl, token: config.redisToken })
+        : null;
   }
   return claimStore;
 }
@@ -267,10 +273,14 @@ async function exchangeWithProvider(userId, conn) {
     if (refreshed.refresh_token) {
       await vaultUpdate(conn.refresh_secret_id, refreshed.refresh_token);
     }
-    await supabase.from("platform_connections").update({
-      token_expires_at: expiresAt,
-      updated_at:       new Date().toISOString(),
-    }).eq("user_id", userId).eq("platform", "yahoo");
+    await supabase
+      .from("platform_connections")
+      .update({
+        token_expires_at: expiresAt,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", userId)
+      .eq("platform", "yahoo");
   }
 
   logger.info("Yahoo token refreshed", { userId, stored: rotation.present ? rotation.data !== false : true });

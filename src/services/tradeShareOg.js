@@ -36,7 +36,9 @@ function sideLabel(players = []) {
 }
 
 function fitLine(text, max = 42) {
-  const clean = String(text || "").replace(/\s+/g, " ").trim();
+  const clean = String(text || "")
+    .replace(/\s+/g, " ")
+    .trim();
   if (clean.length <= max) return clean;
   return `${clean.slice(0, Math.max(0, max - 3)).trimEnd()}...`;
 }

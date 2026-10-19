@@ -16,12 +16,12 @@
 
 const https = require("https");
 
-const RESEND_API_KEY    = process.env.RESEND_API_KEY;
-const SUPABASE_URL      = process.env.SUPABASE_URL;
-const SUPABASE_KEY      = process.env.SUPABASE_SERVICE_KEY;
-const FROM              = "Omen <hello@slopssaloon.com>";
-const SUBJECT           = "You're on the Omen waitlist";
-const DELAY_MS          = 500; // be polite to Resend rate limits
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
+const FROM = "Omen <hello@slopssaloon.com>";
+const SUBJECT = "You're on the Omen waitlist";
+const DELAY_MS = 500; // be polite to Resend rate limits
 
 if (!RESEND_API_KEY || !SUPABASE_URL || !SUPABASE_KEY) {
   console.error("Missing required env vars: RESEND_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_KEY");
@@ -101,7 +101,7 @@ async function main() {
     {
       apikey: SUPABASE_KEY,
       Authorization: `Bearer ${SUPABASE_KEY}`,
-    }
+    },
   );
 
   if (fetchStatus !== 200) {
@@ -125,7 +125,7 @@ async function main() {
     const { status, body } = await post(
       "https://api.resend.com/emails",
       { Authorization: `Bearer ${RESEND_API_KEY}` },
-      { from: FROM, to: [row.email], subject: SUBJECT, html: emailHtml() }
+      { from: FROM, to: [row.email], subject: SUBJECT, html: emailHtml() },
     );
 
     if (status === 200 || status === 201) {

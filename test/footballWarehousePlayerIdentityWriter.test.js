@@ -21,22 +21,26 @@ function input(overrides = {}) {
       sourceRows: 1,
       metadata: { schema_fingerprint: HASH, source_columns: ["gsis_id", "display_name"] },
     },
-    players: [{
-      playerId: "omen:player:gsis.00-0031234",
-      gsisId: "00-0031234",
-      displayName: "Public Player",
-      firstName: "Public",
-      lastName: "Player",
-      footballPosition: "QB",
-      birthDate: "1995-01-02",
-      sourceRow: { gsis_id: "00-0031234", display_name: "Public Player" },
-    }],
-    playerIds: [{
-      provider: "gsis",
-      providerId: "00-0031234",
-      playerId: "omen:player:gsis.00-0031234",
-      matchMethod: "source_crosswalk",
-    }],
+    players: [
+      {
+        playerId: "omen:player:gsis.00-0031234",
+        gsisId: "00-0031234",
+        displayName: "Public Player",
+        firstName: "Public",
+        lastName: "Player",
+        footballPosition: "QB",
+        birthDate: "1995-01-02",
+        sourceRow: { gsis_id: "00-0031234", display_name: "Public Player" },
+      },
+    ],
+    playerIds: [
+      {
+        provider: "gsis",
+        providerId: "00-0031234",
+        playerId: "omen:player:gsis.00-0031234",
+        matchMethod: "source_crosswalk",
+      },
+    ],
     ...overrides,
   };
 }
@@ -55,8 +59,11 @@ function fakePool({ existing = [], run = [], failAt, conflicts = 0 } = {}) {
       }
       if (name === "warehouse-player-identity-existing-v1") return { rows: existing };
       if (name === "warehouse-player-identity-run-v1") return { rows: run };
-      if (name === "warehouse-player-identity-start-receipt-v1" ||
-          name === "warehouse-player-identity-restart-receipt-v1") return { rows: [{ id: 81 }] };
+      if (
+        name === "warehouse-player-identity-start-receipt-v1" ||
+        name === "warehouse-player-identity-restart-receipt-v1"
+      )
+        return { rows: [{ id: 81 }] };
       if (name === "warehouse-player-identity-stage-count-v1") {
         return { rows: [{ player_count: 1, id_count: 1 }] };
       }
@@ -66,13 +73,23 @@ function fakePool({ existing = [], run = [], failAt, conflicts = 0 } = {}) {
       if (name === "warehouse-player-identity-succeed-receipt-v1") return { rows: [], rowCount: 1 };
       return { rows: [], rowCount: 1 };
     },
-    release() { released = true; },
+    release() {
+      released = true;
+    },
   };
-  return { pool: { async connect() { return client; } }, calls, wasReleased: () => released };
+  return {
+    pool: {
+      async connect() {
+        return client;
+      },
+    },
+    calls,
+    wasReleased: () => released,
+  };
 }
 
 function names(calls) {
-  return calls.map((query) => typeof query === "string" ? query : query.name).filter(Boolean);
+  return calls.map((query) => (typeof query === "string" ? query : query.name)).filter(Boolean);
 }
 
 test("atomically upserts players and replaces only the GSIS mapping snapshot", async () => {
@@ -119,16 +136,18 @@ test("preserves dot-bearing canonical IDs and complete public source rows", asyn
   await writerFor(db.pool).writeSnapshot(input());
 
   const playerStage = db.calls.find((call) => call.name === "warehouse-player-identity-stage-players-v1");
-  assert.deepEqual(JSON.parse(playerStage.values[0]), [{
-    player_id: "omen:player:gsis.00-0031234",
-    gsis_id: "00-0031234",
-    display_name: "Public Player",
-    first_name: "Public",
-    last_name: "Player",
-    football_position: "QB",
-    birth_date: "1995-01-02",
-    source_row: { gsis_id: "00-0031234", display_name: "Public Player" },
-  }]);
+  assert.deepEqual(JSON.parse(playerStage.values[0]), [
+    {
+      player_id: "omen:player:gsis.00-0031234",
+      gsis_id: "00-0031234",
+      display_name: "Public Player",
+      first_name: "Public",
+      last_name: "Player",
+      football_position: "QB",
+      birth_date: "1995-01-02",
+      source_row: { gsis_id: "00-0031234", display_name: "Public Player" },
+    },
+  ]);
 });
 
 test("returns unchanged under the global identity lock without replacing mappings", async () => {
@@ -167,16 +186,13 @@ test("restarts a matching failed run but rejects a reused or succeeded run ident
 
 test("rolls back facts before recording a separately sanitized failed receipt", async () => {
   const db = fakePool({ failAt: "warehouse-player-identity-promote-ids-v1" });
-  await assert.rejects(
-    writerFor(db.pool).writeSnapshot(input()),
-    (error) => {
-      assert.ok(error instanceof WarehouseIdentityIngestError);
-      assert.equal(error.code, "23505");
-      assert.equal(error.message, "player identity ingest failed");
-      assert.doesNotMatch(error.message, /secret|private-host/);
-      return true;
-    },
-  );
+  await assert.rejects(writerFor(db.pool).writeSnapshot(input()), (error) => {
+    assert.ok(error instanceof WarehouseIdentityIngestError);
+    assert.equal(error.code, "23505");
+    assert.equal(error.message, "player identity ingest failed");
+    assert.doesNotMatch(error.message, /secret|private-host/);
+    return true;
+  });
   const callNames = names(db.calls);
   assert.ok(callNames.indexOf("ROLLBACK") > callNames.indexOf("warehouse-player-identity-promote-ids-v1"));
   assert.ok(callNames.indexOf("warehouse-player-identity-failed-receipt-v1") > callNames.indexOf("ROLLBACK"));
@@ -188,10 +204,7 @@ test("rolls back facts before recording a separately sanitized failed receipt", 
 
 test("fails closed on database identity conflicts before changing canonical tables", async () => {
   const db = fakePool({ conflicts: 1 });
-  await assert.rejects(
-    writerFor(db.pool).writeSnapshot(input()),
-    (error) => error.code === "identity_conflict",
-  );
+  await assert.rejects(writerFor(db.pool).writeSnapshot(input()), (error) => error.code === "identity_conflict");
   assert.equal(names(db.calls).includes("warehouse-player-identity-upsert-players-v1"), false);
   assert.equal(names(db.calls).includes("warehouse-player-identity-delete-gsis-v1"), false);
 });
@@ -199,21 +212,56 @@ test("fails closed on database identity conflicts before changing canonical tabl
 test("rejects lossy, duplicate, non-GSIS, and name-derived identity input before connecting", async () => {
   let connects = 0;
   const writer = createPlayerIdentityWriter({
-    pool: { async connect() { connects += 1; throw new Error("must not connect"); } },
+    pool: {
+      async connect() {
+        connects += 1;
+        throw new Error("must not connect");
+      },
+    },
     minPlayerRows: 1,
   });
-  await assert.rejects(writer.writeSnapshot(input({ receipt: { ...input().receipt, sourceRows: 2 } })), /counts must match/);
-  await assert.rejects(writer.writeSnapshot(input({ players: [input().players[0], input().players[0]],
-    playerIds: [input().playerIds[0], input().playerIds[0]],
-    receipt: { ...input().receipt, sourceRows: 2 } })), /duplicate player id/);
-  await assert.rejects(writer.writeSnapshot(input({ playerIds: [{ ...input().playerIds[0], provider: "pfr" }] })), /provider must be gsis/);
-  await assert.rejects(writer.writeSnapshot(input({ playerIds: [{ ...input().playerIds[0], matchMethod: "name_match" }] })), /source_crosswalk/);
-  await assert.rejects(writer.writeSnapshot(input({ playerIds: [{ ...input().playerIds[0], providerId: "other" }] })), /directly match/);
-  await assert.rejects(writer.writeSnapshot(input({ players: [{ ...input().players[0], sourceRow: null }] })), /sourceRow must be an object/);
-  await assert.rejects(writer.writeSnapshot(input({ players: [{ ...input().players[0], birthDate: "2026-02-31" }] })), /birthDate is invalid/);
-  await assert.rejects(writer.writeSnapshot(input({ receipt: { ...input().receipt, sourceRef: "bad" } })), /sourceRef is invalid/);
   await assert.rejects(
-    writer.writeSnapshot(input({ receipt: { ...input().receipt, sourceUrl: `${input().receipt.sourceUrl}?download=1` } })),
+    writer.writeSnapshot(input({ receipt: { ...input().receipt, sourceRows: 2 } })),
+    /counts must match/,
+  );
+  await assert.rejects(
+    writer.writeSnapshot(
+      input({
+        players: [input().players[0], input().players[0]],
+        playerIds: [input().playerIds[0], input().playerIds[0]],
+        receipt: { ...input().receipt, sourceRows: 2 },
+      }),
+    ),
+    /duplicate player id/,
+  );
+  await assert.rejects(
+    writer.writeSnapshot(input({ playerIds: [{ ...input().playerIds[0], provider: "pfr" }] })),
+    /provider must be gsis/,
+  );
+  await assert.rejects(
+    writer.writeSnapshot(input({ playerIds: [{ ...input().playerIds[0], matchMethod: "name_match" }] })),
+    /source_crosswalk/,
+  );
+  await assert.rejects(
+    writer.writeSnapshot(input({ playerIds: [{ ...input().playerIds[0], providerId: "other" }] })),
+    /directly match/,
+  );
+  await assert.rejects(
+    writer.writeSnapshot(input({ players: [{ ...input().players[0], sourceRow: null }] })),
+    /sourceRow must be an object/,
+  );
+  await assert.rejects(
+    writer.writeSnapshot(input({ players: [{ ...input().players[0], birthDate: "2026-02-31" }] })),
+    /birthDate is invalid/,
+  );
+  await assert.rejects(
+    writer.writeSnapshot(input({ receipt: { ...input().receipt, sourceRef: "bad" } })),
+    /sourceRef is invalid/,
+  );
+  await assert.rejects(
+    writer.writeSnapshot(
+      input({ receipt: { ...input().receipt, sourceUrl: `${input().receipt.sourceUrl}?download=1` } }),
+    ),
     /not the allowlisted players asset/,
   );
   assert.equal(connects, 0);
@@ -222,7 +270,12 @@ test("rejects lossy, duplicate, non-GSIS, and name-derived identity input before
 test("production default refuses a suspiciously truncated identity snapshot", async () => {
   let connects = 0;
   const writer = createPlayerIdentityWriter({
-    pool: { async connect() { connects += 1; throw new Error("must not connect"); } },
+    pool: {
+      async connect() {
+        connects += 1;
+        throw new Error("must not connect");
+      },
+    },
   });
   await assert.rejects(writer.writeSnapshot(input()), /fewer than 1000 players/);
   assert.equal(connects, 0);

@@ -37,13 +37,21 @@ function fakeSupabase({
           const missing = missingSelectionColumn && CONNECTION_SELECT_WITH_SELECTION.test(columns);
           const query = {
             filters: {},
-            eq(field, value) { query.filters[field] = value; return query; },
-            neq() { return query; },
+            eq(field, value) {
+              query.filters[field] = value;
+              return query;
+            },
+            neq() {
+              return query;
+            },
             then(resolve, reject) {
               if (missing) {
                 return Promise.resolve({
                   data: null,
-                  error: { code: "PGRST204", message: "Could not find the 'is_selected' column of 'platform_connections'" },
+                  error: {
+                    code: "PGRST204",
+                    message: "Could not find the 'is_selected' column of 'platform_connections'",
+                  },
                 }).then(resolve, reject);
               }
               return Promise.resolve({ data: rows, error: null }).then(resolve, reject);
@@ -55,14 +63,23 @@ function fakeSupabase({
           const missing = missingSelectionColumn && Object.hasOwn(patch, "is_selected");
           const query = {
             filters: {},
-            eq(field, value) { query.filters[field] = value; return query; },
-            neq(field, value) { query.filters[`not_${field}`] = value; return query; },
+            eq(field, value) {
+              query.filters[field] = value;
+              return query;
+            },
+            neq(field, value) {
+              query.filters[`not_${field}`] = value;
+              return query;
+            },
             then(resolve, reject) {
               if (updateError) return Promise.resolve({ data: null, error: updateError }).then(resolve, reject);
               if (missing) {
                 return Promise.resolve({
                   data: null,
-                  error: { code: "PGRST204", message: "Could not find the 'is_selected' column of 'platform_connections'" },
+                  error: {
+                    code: "PGRST204",
+                    message: "Could not find the 'is_selected' column of 'platform_connections'",
+                  },
                 }).then(resolve, reject);
               }
               updates.push({ patch, filters: query.filters });
@@ -79,10 +96,10 @@ function fakeSupabase({
 function defaultSleeperAdapter(overrides = {}) {
   return {
     fetchSleeperUser: async () => ({ user_id: "sleeper-user-1" }),
-    fetchSleeperLeagues: async () => ([
+    fetchSleeperLeagues: async () => [
       { league_id: "L-zeta", name: "Zeta League", season: "2026", scoring_settings: { rec: 0.5 } },
       { league_id: "L-alpha", name: "Alpha League", season: "2026", scoring_settings: { rec: 0 } },
-    ]),
+    ],
     fetchSleeperRoster: async (leagueId) => ({
       roster_id: leagueId === "L-alpha" ? 3 : 7,
       users: [{ user_id: "sleeper-user-1", metadata: { team_name: `Team ${leagueId}` } }],
@@ -96,21 +113,22 @@ function defaultSleeperAdapter(overrides = {}) {
  * `entryId` below: that mismatch is the bug this fixture exists to catch.
  */
 const ESPN_LEAGUE_TEAMS = Object.freeze({
-  "12345": { team_id: 9, team_name: "ESPN Team" },
-  "77": { team_id: 4, team_name: "Zeta Squad" },
-  "88": { team_id: 2, team_name: "Mid Squad" },
+  12345: { team_id: 9, team_name: "ESPN Team" },
+  77: { team_id: 4, team_name: "Zeta Squad" },
+  88: { team_id: 2, team_name: "Mid Squad" },
 });
 
 function defaultEspnAdapter(overrides = {}) {
   return {
     // Keyed by league so the directory's per-league resolution is actually observable;
     // a constant here would have passed no matter which league was asked about.
-    verifyLeagueAccess: async (leagueId) => (
-      ESPN_LEAGUE_TEAMS[String(leagueId)] || { team_id: 9, team_name: "ESPN Team" }
-    ),
+    verifyLeagueAccess: async (leagueId) =>
+      ESPN_LEAGUE_TEAMS[String(leagueId)] || { team_id: 9, team_name: "ESPN Team" },
     // Discovery unavailable by default, so every pre-existing ESPN test keeps
     // exercising the bound-league fallback it was written for.
-    fetchEspnFanLeagues: async () => { throw new Error("fan api unavailable"); },
+    fetchEspnFanLeagues: async () => {
+      throw new Error("fan api unavailable");
+    },
     ...overrides,
   };
 }
@@ -126,7 +144,14 @@ function loadRouter(options = {}) {
     if (parent?.filename === routePath) {
       if (request === "@supabase/supabase-js") return { createClient: () => supabaseDouble };
       if (request === "../middleware/auth") {
-        return { requireAuth: options.requireAuth || ((req, _res, next) => { req.user = { id: "user-1" }; next(); }) };
+        return {
+          requireAuth:
+            options.requireAuth ||
+            ((req, _res, next) => {
+              req.user = { id: "user-1" };
+              next();
+            }),
+        };
       }
       if (request === "../middleware/logging") return { logger: { error() {}, warn() {}, info() {} } };
       if (request === "../services/nflSchedule") {
@@ -134,23 +159,25 @@ function loadRouter(options = {}) {
       }
       if (request === "../services/yahooAuth") {
         return {
-          getAuthenticatedYahooClient: options.getAuthenticatedYahooClient
-            || (async () => ({
+          getAuthenticatedYahooClient:
+            options.getAuthenticatedYahooClient ||
+            (async () => ({
               client: options.yahooClient || {
                 // Both, because the real client has both and the directory calls the
                 // team-bearing one. A stub missing it is stub drift, not a route bug.
-                getUserLeagues: async () => ([{ league_id: "449.l.1", name: "Work League", season: 2026 }]),
-                getUserLeaguesWithTeams: async () => ([
+                getUserLeagues: async () => [{ league_id: "449.l.1", name: "Work League", season: 2026 }],
+                getUserLeaguesWithTeams: async () => [
                   { league_id: "449.l.1", name: "Work League", season: 2026, team_id: "7", team_name: "Desk Jockeys" },
-                ]),
+                ],
               },
             })),
         };
       }
       if (request === "../services/espnAuth") {
         return {
-          getAuthenticatedEspnCredentials: options.getAuthenticatedEspnCredentials
-            || (async () => ({ espn_s2: "espn-cookie-secret", swid: "{swid-secret}" })),
+          getAuthenticatedEspnCredentials:
+            options.getAuthenticatedEspnCredentials ||
+            (async () => ({ espn_s2: "espn-cookie-secret", swid: "{swid-secret}" })),
         };
       }
       if (request === "../adapters/sleeper") return options.sleeperAdapter || defaultSleeperAdapter();
@@ -170,7 +197,9 @@ function buildApp(options = {}) {
   const app = express();
   app.use(express.json());
   app.use("/api/leagues", loadRouter(options));
-  app.use((err, _req, res, _next) => { res.status(err.status || 500).json({ error: err.message }); });
+  app.use((err, _req, res, _next) => {
+    res.status(err.status || 500).json({ error: err.message });
+  });
   return app;
 }
 
@@ -191,15 +220,28 @@ async function request(app, { path = "/api/leagues", method = "GET", body = null
 }
 
 const SLEEPER_ROW = {
-  id: "conn-sleeper", platform: "sleeper", is_active: true, league_id: "L-alpha",
-  platform_username: "justin", platform_user_id: "sleeper-user-1",
+  id: "conn-sleeper",
+  platform: "sleeper",
+  is_active: true,
+  league_id: "L-alpha",
+  platform_username: "justin",
+  platform_user_id: "sleeper-user-1",
 };
 const ESPN_ROW = {
-  id: "conn-espn", platform: "espn", is_active: true, league_id: "12345",
-  espn_secret_id: "vault-espn", swid_secret_id: "vault-swid", espn_team_id: "9",
+  id: "conn-espn",
+  platform: "espn",
+  is_active: true,
+  league_id: "12345",
+  espn_secret_id: "vault-espn",
+  swid_secret_id: "vault-swid",
+  espn_team_id: "9",
 };
 const YAHOO_ROW = {
-  id: "conn-yahoo", platform: "yahoo", is_active: true, league_id: "449.l.1", token_secret_id: "vault-yahoo",
+  id: "conn-yahoo",
+  platform: "yahoo",
+  is_active: true,
+  league_id: "449.l.1",
+  token_secret_id: "vault-yahoo",
 };
 
 // --- Success, per provider, proven against that provider's own adapter -------
@@ -213,10 +255,22 @@ test("GET /api/leagues lists Sleeper leagues alphabetically with team, scoring f
   const sleeper = body.platforms.find((p) => p.platform === "sleeper");
   assert.equal(sleeper.connection_state, "connected");
   assert.equal(sleeper.discovery, "full");
-  assert.deepEqual(sleeper.leagues.map((l) => l.league_name), ["Alpha League", "Zeta League"]);
-  assert.deepEqual(sleeper.leagues.map((l) => l.scoring_format), ["standard", "half_ppr"]);
-  assert.deepEqual(sleeper.leagues.map((l) => l.team_name), ["Team L-alpha", "Team L-zeta"]);
-  assert.deepEqual(sleeper.leagues.map((l) => l.is_active), [true, false]);
+  assert.deepEqual(
+    sleeper.leagues.map((l) => l.league_name),
+    ["Alpha League", "Zeta League"],
+  );
+  assert.deepEqual(
+    sleeper.leagues.map((l) => l.scoring_format),
+    ["standard", "half_ppr"],
+  );
+  assert.deepEqual(
+    sleeper.leagues.map((l) => l.team_name),
+    ["Team L-alpha", "Team L-zeta"],
+  );
+  assert.deepEqual(
+    sleeper.leagues.map((l) => l.is_active),
+    [true, false],
+  );
   assert.equal(body.active.platform, "sleeper");
   assert.equal(body.active.league_id, "L-alpha");
   assert.equal(body.active.scoring_format, "standard");
@@ -253,8 +307,14 @@ test("platform groups keep a stable order across visits", async () => {
   const first = await request(app);
   const second = await request(app);
 
-  assert.deepEqual(first.body.platforms.map((p) => p.platform), ["sleeper", "espn", "yahoo"]);
-  assert.deepEqual(second.body.platforms.map((p) => p.platform), first.body.platforms.map((p) => p.platform));
+  assert.deepEqual(
+    first.body.platforms.map((p) => p.platform),
+    ["sleeper", "espn", "yahoo"],
+  );
+  assert.deepEqual(
+    second.body.platforms.map((p) => p.platform),
+    first.body.platforms.map((p) => p.platform),
+  );
 });
 
 test("an explicit selection wins over the deterministic platform tie-break", async () => {
@@ -274,8 +334,14 @@ test("GET /api/leagues returns every platform as not_connected with no active le
 
   assert.equal(status, 200);
   assert.equal(body.active, null);
-  assert.deepEqual(body.platforms.map((p) => p.connection_state), ["not_connected", "not_connected", "not_connected"]);
-  assert.deepEqual(body.platforms.flatMap((p) => p.leagues), []);
+  assert.deepEqual(
+    body.platforms.map((p) => p.connection_state),
+    ["not_connected", "not_connected", "not_connected"],
+  );
+  assert.deepEqual(
+    body.platforms.flatMap((p) => p.leagues),
+    [],
+  );
 });
 
 test("a connected Sleeper account with zero leagues reports connected with an empty list, not an error", async () => {
@@ -298,7 +364,9 @@ test("a Sleeper discovery failure degrades that platform only and leaves the oth
   const app = buildApp({
     supabase: { rows: [SLEEPER_ROW, YAHOO_ROW], missingSelectionColumn: false },
     sleeperAdapter: defaultSleeperAdapter({
-      fetchSleeperLeagues: async () => { throw new Error("sleeper 503"); },
+      fetchSleeperLeagues: async () => {
+        throw new Error("sleeper 503");
+      },
     }),
   });
   const { status, body } = await request(app);
@@ -313,7 +381,9 @@ test("a Sleeper discovery failure degrades that platform only and leaves the oth
 test("an expired Yahoo token is reported as a reconnect notice, not a 500", async () => {
   const app = buildApp({
     supabase: { rows: [YAHOO_ROW], missingSelectionColumn: false },
-    getAuthenticatedYahooClient: async () => { throw new Error("yahoo_token_expired"); },
+    getAuthenticatedYahooClient: async () => {
+      throw new Error("yahoo_token_expired");
+    },
   });
   const { status, body } = await request(app);
 
@@ -326,7 +396,9 @@ test("an expired Yahoo token is reported as a reconnect notice, not a 500", asyn
 test("an ESPN credential failure never puts a cookie value in the response", async () => {
   const app = buildApp({
     supabase: { rows: [ESPN_ROW], missingSelectionColumn: false },
-    getAuthenticatedEspnCredentials: async () => { throw new Error("espn_s2=SECRETCOOKIEVALUE rejected"); },
+    getAuthenticatedEspnCredentials: async () => {
+      throw new Error("espn_s2=SECRETCOOKIEVALUE rejected");
+    },
   });
   const { status, body } = await request(app);
 
@@ -365,7 +437,9 @@ test("POST /api/leagues/active binds a verified Sleeper league and names the sur
   const updates = [];
   const app = buildApp({ supabase: { rows: [SLEEPER_ROW], missingSelectionColumn: false, updates } });
   const { status, body } = await request(app, {
-    path: "/api/leagues/active", method: "POST", body: { platform: "sleeper", league_id: "L-zeta" },
+    path: "/api/leagues/active",
+    method: "POST",
+    body: { platform: "sleeper", league_id: "L-zeta" },
   });
 
   assert.equal(status, 200);
@@ -395,7 +469,9 @@ test("POST /api/leagues/active never carries a previous league's ESPN team id ac
   });
 
   const { status } = await request(app, {
-    path: "/api/leagues/active", method: "POST", body: { platform: "espn", league_id: "12345" },
+    path: "/api/leagues/active",
+    method: "POST",
+    body: { platform: "espn", league_id: "12345" },
   });
 
   assert.equal(status, 200);
@@ -412,12 +488,16 @@ test("POST /api/leagues/active clears the ESPN team id when ESPN cannot be reach
   const app = buildApp({
     supabase: { rows: [ESPN_ROW], missingSelectionColumn: false, updates },
     espnAdapter: defaultEspnAdapter({
-      verifyLeagueAccess: async () => { throw new Error("ESPN 401"); },
+      verifyLeagueAccess: async () => {
+        throw new Error("ESPN 401");
+      },
     }),
   });
 
   const { status } = await request(app, {
-    path: "/api/leagues/active", method: "POST", body: { platform: "espn", league_id: "12345" },
+    path: "/api/leagues/active",
+    method: "POST",
+    body: { platform: "espn", league_id: "12345" },
   });
 
   assert.equal(status, 200);
@@ -429,7 +509,9 @@ test("POST /api/leagues/active accepts the bound ESPN league and records the tea
   const updates = [];
   const app = buildApp({ supabase: { rows: [ESPN_ROW], missingSelectionColumn: false, updates } });
   const { status, body } = await request(app, {
-    path: "/api/leagues/active", method: "POST", body: { platform: "espn", league_id: "12345", team_id: "9" },
+    path: "/api/leagues/active",
+    method: "POST",
+    body: { platform: "espn", league_id: "12345", team_id: "9" },
   });
 
   assert.equal(status, 200);
@@ -466,7 +548,9 @@ test("POST /api/leagues/active dispatches the ESPN membership and team-resolutio
 
   const startedAt = Date.now();
   const { status } = await request(app, {
-    path: "/api/leagues/active", method: "POST", body: { platform: "espn", league_id: "12345" },
+    path: "/api/leagues/active",
+    method: "POST",
+    body: { platform: "espn", league_id: "12345" },
   });
   const elapsedMs = Date.now() - startedAt;
 
@@ -476,7 +560,7 @@ test("POST /api/leagues/active dispatches the ESPN membership and team-resolutio
   // two calls were run one after another.
   assert.ok(
     elapsedMs < CALL_DELAY_MS * 1.8,
-    `expected concurrent dispatch (~${CALL_DELAY_MS}ms); took ${elapsedMs}ms, consistent with sequential calls`
+    `expected concurrent dispatch (~${CALL_DELAY_MS}ms); took ${elapsedMs}ms, consistent with sequential calls`,
   );
 });
 
@@ -487,7 +571,9 @@ test("POST /api/leagues/active clears the old selection before setting the new o
   });
 
   const { status } = await request(app, {
-    path: "/api/leagues/active", method: "POST", body: { platform: "espn", league_id: "12345" },
+    path: "/api/leagues/active",
+    method: "POST",
+    body: { platform: "espn", league_id: "12345" },
   });
 
   assert.equal(status, 200);
@@ -497,7 +583,7 @@ test("POST /api/leagues/active clears the old selection before setting the new o
   assert.equal(clear.patch.is_selected, false, "the first write must clear, not set");
   assert.ok(
     JSON.stringify(clear.filters).includes("espn"),
-    "the clear must be scoped away from the platform being selected"
+    "the clear must be scoped away from the platform being selected",
   );
   assert.equal(set.patch.is_selected, true, "the second write is the one that selects");
 
@@ -508,10 +594,14 @@ test("POST /api/leagues/active clears the old selection before setting the new o
 test("POST /api/leagues/active verifies the Yahoo league against the user's own Yahoo account", async () => {
   const app = buildApp({ supabase: { rows: [YAHOO_ROW], missingSelectionColumn: false, updates: [] } });
   const ok = await request(app, {
-    path: "/api/leagues/active", method: "POST", body: { platform: "yahoo", league_id: "449.l.1" },
+    path: "/api/leagues/active",
+    method: "POST",
+    body: { platform: "yahoo", league_id: "449.l.1" },
   });
   const rejected = await request(app, {
-    path: "/api/leagues/active", method: "POST", body: { platform: "yahoo", league_id: "449.l.999" },
+    path: "/api/leagues/active",
+    method: "POST",
+    body: { platform: "yahoo", league_id: "449.l.999" },
   });
 
   assert.equal(ok.status, 200);
@@ -523,7 +613,9 @@ test("POST /api/leagues/active verifies the Yahoo league against the user's own 
 test("POST /api/leagues/active refuses a Sleeper league the user does not own", async () => {
   const app = buildApp({ supabase: { rows: [SLEEPER_ROW], missingSelectionColumn: false, updates: [] } });
   const { status, body } = await request(app, {
-    path: "/api/leagues/active", method: "POST", body: { platform: "sleeper", league_id: "L-someone-else" },
+    path: "/api/leagues/active",
+    method: "POST",
+    body: { platform: "sleeper", league_id: "L-someone-else" },
   });
 
   assert.equal(status, 400);
@@ -533,7 +625,9 @@ test("POST /api/leagues/active refuses a Sleeper league the user does not own", 
 test("POST /api/leagues/active refuses an ESPN league other than the bound one", async () => {
   const app = buildApp({ supabase: { rows: [ESPN_ROW], missingSelectionColumn: false, updates: [] } });
   const { status, body } = await request(app, {
-    path: "/api/leagues/active", method: "POST", body: { platform: "espn", league_id: "99999" },
+    path: "/api/leagues/active",
+    method: "POST",
+    body: { platform: "espn", league_id: "99999" },
   });
 
   assert.equal(status, 400);
@@ -543,10 +637,14 @@ test("POST /api/leagues/active refuses an ESPN league other than the bound one",
 test("POST /api/leagues/active validates platform and league id", async () => {
   const app = buildApp({ supabase: { rows: [SLEEPER_ROW], missingSelectionColumn: false, updates: [] } });
   const badPlatform = await request(app, {
-    path: "/api/leagues/active", method: "POST", body: { platform: "draftkings", league_id: "L-alpha" },
+    path: "/api/leagues/active",
+    method: "POST",
+    body: { platform: "draftkings", league_id: "L-alpha" },
   });
   const noLeague = await request(app, {
-    path: "/api/leagues/active", method: "POST", body: { platform: "sleeper" },
+    path: "/api/leagues/active",
+    method: "POST",
+    body: { platform: "sleeper" },
   });
 
   assert.equal(badPlatform.status, 400);
@@ -558,7 +656,9 @@ test("POST /api/leagues/active validates platform and league id", async () => {
 test("POST /api/leagues/active returns platform_not_connected when that provider has no connection", async () => {
   const app = buildApp({ supabase: { rows: [SLEEPER_ROW], missingSelectionColumn: false, updates: [] } });
   const { status, body } = await request(app, {
-    path: "/api/leagues/active", method: "POST", body: { platform: "yahoo", league_id: "449.l.1" },
+    path: "/api/leagues/active",
+    method: "POST",
+    body: { platform: "yahoo", league_id: "449.l.1" },
   });
 
   assert.equal(status, 404);
@@ -569,11 +669,15 @@ test("POST /api/leagues/active reports a provider verification outage as retryab
   const app = buildApp({
     supabase: { rows: [SLEEPER_ROW], missingSelectionColumn: false, updates: [] },
     sleeperAdapter: defaultSleeperAdapter({
-      fetchSleeperLeagues: async () => { throw new Error("sleeper 503"); },
+      fetchSleeperLeagues: async () => {
+        throw new Error("sleeper 503");
+      },
     }),
   });
   const { status, body } = await request(app, {
-    path: "/api/leagues/active", method: "POST", body: { platform: "sleeper", league_id: "L-alpha" },
+    path: "/api/leagues/active",
+    method: "POST",
+    body: { platform: "sleeper", league_id: "L-alpha" },
   });
 
   assert.equal(status, 502);
@@ -585,7 +689,9 @@ test("POST /api/leagues/active still binds the league, and says so honestly, whe
   const updates = [];
   const app = buildApp({ supabase: { rows: [SLEEPER_ROW], missingSelectionColumn: true, updates } });
   const { status, body } = await request(app, {
-    path: "/api/leagues/active", method: "POST", body: { platform: "sleeper", league_id: "L-zeta" },
+    path: "/api/leagues/active",
+    method: "POST",
+    body: { platform: "sleeper", league_id: "L-zeta" },
   });
 
   assert.equal(status, 200);
@@ -594,7 +700,6 @@ test("POST /api/leagues/active still binds the league, and says so honestly, whe
   assert.equal(Object.hasOwn(updates[0].patch, "is_selected"), false);
   assert.equal(updates[0].patch.league_id, "L-zeta");
 });
-
 
 // --- Multi-league: discovery, follow-count ordering, and the multiselect write ---
 
@@ -622,11 +727,20 @@ test("ESPN reports every league the fan API returns, not just the bound one", as
   assert.equal(espn.discovery, "full");
   assert.equal(espn.notice, null);
   // Sorted alphabetically by league name within the platform, per §10.2.
-  assert.deepEqual(espn.leagues.map((l) => l.league_name), ["Alpha Dynasty", "Mid Money", "Zeta Office"]);
+  assert.deepEqual(
+    espn.leagues.map((l) => l.league_name),
+    ["Alpha Dynasty", "Mid Money", "Zeta Office"],
+  );
   // Per-league team ids: the whole point. `espn_team_id` could only ever describe one.
-  assert.deepEqual(espn.leagues.map((l) => l.team_id), ["9", "2", "4"]);
+  assert.deepEqual(
+    espn.leagues.map((l) => l.team_id),
+    ["9", "2", "4"],
+  );
   // Only the bound league is active; the other two are followed but not selected.
-  assert.deepEqual(espn.leagues.map((l) => l.is_active), [true, false, false]);
+  assert.deepEqual(
+    espn.leagues.map((l) => l.is_active),
+    [true, false, false],
+  );
 });
 
 // The only confirmed beta defect on the ESPN switcher: every discovered ESPN league rendered as
@@ -641,9 +755,15 @@ test("ESPN discovery resolves each league's real team name and league-scoped tea
   const { body } = await request(app);
 
   const espn = body.platforms.find((p) => p.platform === "espn");
-  assert.deepEqual(espn.leagues.map((l) => l.team_name), ["ESPN Team", "Mid Squad", "Zeta Squad"]);
+  assert.deepEqual(
+    espn.leagues.map((l) => l.team_name),
+    ["ESPN Team", "Mid Squad", "Zeta Squad"],
+  );
   // Not the fan payload's 900009/900002/900004.
-  assert.deepEqual(espn.leagues.map((l) => l.team_id), ["9", "2", "4"]);
+  assert.deepEqual(
+    espn.leagues.map((l) => l.team_id),
+    ["9", "2", "4"],
+  );
 });
 
 test("ESPN discovery keeps a league whose team read fails, rather than dropping it", async () => {
@@ -660,8 +780,14 @@ test("ESPN discovery keeps a league whose team read fails, rather than dropping 
   const { body } = await request(app);
 
   const espn = body.platforms.find((p) => p.platform === "espn");
-  assert.deepEqual(espn.leagues.map((l) => l.league_name), ["Alpha Dynasty", "Mid Money", "Zeta Office"]);
-  assert.deepEqual(espn.leagues.map((l) => l.team_name), ["ESPN Team", null, "Zeta Squad"]);
+  assert.deepEqual(
+    espn.leagues.map((l) => l.league_name),
+    ["Alpha Dynasty", "Mid Money", "Zeta Office"],
+  );
+  assert.deepEqual(
+    espn.leagues.map((l) => l.team_name),
+    ["ESPN Team", null, "Zeta Squad"],
+  );
 });
 
 test("providers are ordered most-leagues-first, ties alphabetical", async () => {
@@ -672,7 +798,10 @@ test("providers are ordered most-leagues-first, ties alphabetical", async () => 
   const { body } = await request(app);
 
   // ESPN 3, Sleeper 2, Yahoo 1.
-  assert.deepEqual(body.platforms.map((p) => p.platform), ["espn", "sleeper", "yahoo"]);
+  assert.deepEqual(
+    body.platforms.map((p) => p.platform),
+    ["espn", "sleeper", "yahoo"],
+  );
 });
 
 // Yahoo rows carried no team at all until 2026-09-05: `yahooLeagues` built them without a team
@@ -683,9 +812,9 @@ test("GET /api/leagues carries the Yahoo team name, not just the league name", a
   const app = buildApp({
     supabase: { rows: [YAHOO_ROW], missingSelectionColumn: false },
     yahooClient: {
-      getUserLeaguesWithTeams: async () => ([
+      getUserLeaguesWithTeams: async () => [
         { league_id: "449.l.1", name: "Work League", season: 2026, team_id: "7", team_name: "Desk Jockeys" },
-      ]),
+      ],
     },
   });
 
@@ -703,9 +832,7 @@ test("a Yahoo league with no team still appears, with a null team name", async (
   const app = buildApp({
     supabase: { rows: [YAHOO_ROW], missingSelectionColumn: false },
     yahooClient: {
-      getUserLeaguesWithTeams: async () => ([
-        { league_id: "449.l.1", name: "Work League", season: 2026 },
-      ]),
+      getUserLeaguesWithTeams: async () => [{ league_id: "449.l.1", name: "Work League", season: 2026 }],
     },
   });
 
@@ -720,17 +847,20 @@ test("a tie in league count breaks alphabetically, not by connection order", asy
   const app = buildApp({
     supabase: { rows: [YAHOO_ROW, SLEEPER_ROW], missingSelectionColumn: false },
     yahooClient: {
-      getUserLeaguesWithTeams: async () => ([
+      getUserLeaguesWithTeams: async () => [
         { league_id: "449.l.1", name: "Work League", season: 2026 },
         { league_id: "449.l.2", name: "Home League", season: 2026 },
-      ]),
+      ],
     },
   });
   const { body } = await request(app);
 
   // Both have two leagues, so "sleeper" < "yahoo" decides it. Unconnected ESPN has
   // zero leagues and keeps a stable tail — the chip row still has to render it.
-  assert.deepEqual(body.platforms.map((p) => p.platform), ["sleeper", "yahoo", "espn"]);
+  assert.deepEqual(
+    body.platforms.map((p) => p.platform),
+    ["sleeper", "yahoo", "espn"],
+  );
 });
 
 test("every discovered league counts as followed while the follows table is absent", async () => {
@@ -776,7 +906,11 @@ test("with memberships applied, a directory read writes a followed membership fo
 test("an existing ESPN connection with one stored membership gets all its leagues back on the next read", async () => {
   const memberships = appliedMemberships();
   await require("../src/services/leagueMemberships").syncMemberships(memberships.client, {
-    userId: "user-1", platform: "espn", season: 2026, leagues: [{ league_id: "12345" }], source: "backfill",
+    userId: "user-1",
+    platform: "espn",
+    season: 2026,
+    leagues: [{ league_id: "12345" }],
+    source: "backfill",
   });
   const app = buildApp({
     supabase: { rows: [ESPN_ROW], missingSelectionColumn: false, memberships },
@@ -790,7 +924,7 @@ test("an existing ESPN connection with one stored membership gets all its league
   // League-scoped team ids from ESPN's league read, never the fan payload's entry ids.
   assert.deepEqual(
     stored.sort((a, b) => a.provider_league_id.localeCompare(b.provider_league_id)).map((m) => m.provider_team_id),
-    ["9", "4", "2"]
+    ["9", "4", "2"],
   );
 });
 
@@ -818,7 +952,9 @@ test("an ESPN team the league read could not confirm is never stored on a member
 test("a confirmed stored ESPN team wins over an unconfirmed one in the switcher", async () => {
   const memberships = appliedMemberships();
   await require("../src/services/leagueMemberships").syncMemberships(memberships.client, {
-    userId: "user-1", platform: "espn", season: 2026,
+    userId: "user-1",
+    platform: "espn",
+    season: 2026,
     leagues: [{ league_id: "88", team_id: "2", team_name: "Mid Squad" }],
   });
   const app = buildApp({
@@ -843,16 +979,27 @@ test("a stored unfollow is reported, and only followed leagues are marked follow
   const memberships = appliedMemberships();
   const svc = require("../src/services/leagueMemberships");
   await svc.syncMemberships(memberships.client, {
-    userId: "user-1", platform: "sleeper", season: 2026, leagues: [{ league_id: "L-alpha" }, { league_id: "L-zeta" }],
+    userId: "user-1",
+    platform: "sleeper",
+    season: 2026,
+    leagues: [{ league_id: "L-alpha" }, { league_id: "L-zeta" }],
   });
-  await svc.replaceFollowed(memberships.client, { userId: "user-1", platform: "sleeper", season: 2026, leagueIds: ["L-alpha"] });
+  await svc.replaceFollowed(memberships.client, {
+    userId: "user-1",
+    platform: "sleeper",
+    season: 2026,
+    leagueIds: ["L-alpha"],
+  });
 
   const app = buildApp({ supabase: { rows: [SLEEPER_ROW], missingSelectionColumn: false, memberships } });
   const { body } = await request(app);
 
   assert.equal(body.follow_persistence, "explicit");
   const sleeper = body.platforms.find((p) => p.platform === "sleeper");
-  assert.deepEqual(sleeper.leagues.filter((l) => l.is_followed).map((l) => l.league_id), ["L-alpha"]);
+  assert.deepEqual(
+    sleeper.leagues.filter((l) => l.is_followed).map((l) => l.league_id),
+    ["L-alpha"],
+  );
   // Still listed: the switcher can re-follow it.
   assert.equal(sleeper.leagues.length, 2);
 });
@@ -860,7 +1007,9 @@ test("a stored unfollow is reported, and only followed leagues are marked follow
 test("when ESPN discovery cannot run, the switcher lists the stored leagues instead of shrinking to one", async () => {
   const memberships = appliedMemberships();
   await require("../src/services/leagueMemberships").syncMemberships(memberships.client, {
-    userId: "user-1", platform: "espn", season: 2026,
+    userId: "user-1",
+    platform: "espn",
+    season: 2026,
     leagues: [
       { league_id: "12345", league_name: "Alpha Dynasty", team_id: "9", team_name: "ESPN Team" },
       { league_id: "77", league_name: "Zeta Office", team_id: "4", team_name: "Zeta Squad" },
@@ -873,9 +1022,18 @@ test("when ESPN discovery cannot run, the switcher lists the stored leagues inst
   const espn = body.platforms.find((p) => p.platform === "espn");
   assert.equal(espn.connection_state, "connected");
   assert.equal(espn.discovery, "bound_only");
-  assert.deepEqual(espn.leagues.map((l) => l.league_name), ["Alpha Dynasty", "Mid Money", "Zeta Office"]);
-  assert.deepEqual(espn.leagues.map((l) => l.team_name), ["ESPN Team", "Mid Squad", "Zeta Squad"]);
-  assert.deepEqual(espn.leagues.map((l) => l.is_active), [true, false, false]);
+  assert.deepEqual(
+    espn.leagues.map((l) => l.league_name),
+    ["Alpha Dynasty", "Mid Money", "Zeta Office"],
+  );
+  assert.deepEqual(
+    espn.leagues.map((l) => l.team_name),
+    ["ESPN Team", "Mid Squad", "Zeta Squad"],
+  );
+  assert.deepEqual(
+    espn.leagues.map((l) => l.is_active),
+    [true, false, false],
+  );
   assert.match(espn.notice, /couldn't ask ESPN for your full league list/);
   assert.match(espn.notice, /last sync/);
   // A partial answer never unfollows anything.
@@ -885,14 +1043,19 @@ test("when ESPN discovery cannot run, the switcher lists the stored leagues inst
 test("a league the provider no longer lists is unfollowed, not deleted, and leaves the switcher", async () => {
   const memberships = appliedMemberships();
   await require("../src/services/leagueMemberships").syncMemberships(memberships.client, {
-    userId: "user-1", platform: "sleeper", season: 2026,
+    userId: "user-1",
+    platform: "sleeper",
+    season: 2026,
     leagues: [{ league_id: "L-alpha" }, { league_id: "L-zeta" }, { league_id: "L-left", league_name: "Left League" }],
   });
   const app = buildApp({ supabase: { rows: [SLEEPER_ROW], missingSelectionColumn: false, memberships } });
   const { body } = await request(app);
 
   const sleeper = body.platforms.find((p) => p.platform === "sleeper");
-  assert.deepEqual(sleeper.leagues.map((l) => l.league_id), ["L-alpha", "L-zeta"]);
+  assert.deepEqual(
+    sleeper.leagues.map((l) => l.league_id),
+    ["L-alpha", "L-zeta"],
+  );
   const left = memberships.membershipsOf("user-1").find((m) => m.provider_league_id === "L-left");
   assert.equal(left.is_followed, false);
 });
@@ -902,8 +1065,16 @@ test("a rejected ESPN connection writes no memberships", async () => {
   const app = buildApp({
     supabase: { rows: [ESPN_ROW], missingSelectionColumn: false, memberships },
     espnAdapter: defaultEspnAdapter({
-      fetchEspnFanLeagues: async () => { const e = new Error("unauthorized"); e.status = 401; throw e; },
-      verifyLeagueAccess: async () => { const e = new Error("unauthorized"); e.status = 401; throw e; },
+      fetchEspnFanLeagues: async () => {
+        const e = new Error("unauthorized");
+        e.status = 401;
+        throw e;
+      },
+      verifyLeagueAccess: async () => {
+        const e = new Error("unauthorized");
+        e.status = 401;
+        throw e;
+      },
     }),
   });
   const { body } = await request(app);
@@ -948,7 +1119,10 @@ test("POST /api/leagues/follows stores a verified multiselect through league_fol
   assert.equal(call.params.p_platform, "sleeper");
   assert.equal(call.params.p_season, 2026);
   // Ids and submission order only: a shared league's name is never taken from a client.
-  assert.deepEqual(call.params.p_entries, [{ league_id: "L-zeta", sort_order: 0 }, { league_id: "L-alpha", sort_order: 1 }]);
+  assert.deepEqual(call.params.p_entries, [
+    { league_id: "L-zeta", sort_order: 0 },
+    { league_id: "L-alpha", sort_order: 1 },
+  ]);
 });
 
 test("POST /api/leagues/follows rejects the whole set when one league is not on the account", async () => {
@@ -996,20 +1170,29 @@ test("POST /api/leagues/follows can follow several ESPN leagues once discovery w
     method: "POST",
     body: {
       platform: "espn",
-      leagues: [{ league_id: "12345", team_id: "9" }, { league_id: "88", team_id: "2" }],
+      leagues: [
+        { league_id: "12345", team_id: "9" },
+        { league_id: "88", team_id: "2" },
+      ],
     },
   });
 
   assert.equal(status, 200);
   assert.deepEqual(body.followed, ["12345", "88"]);
-  const followed = memberships.membershipsOf("user-1").filter((m) => m.is_followed).map((m) => m.provider_league_id);
+  const followed = memberships
+    .membershipsOf("user-1")
+    .filter((m) => m.is_followed)
+    .map((m) => m.provider_league_id);
   assert.deepEqual(followed.sort(), ["12345", "88"]);
 });
 
 test("POST /api/leagues/active mirrors the choice onto the memberships", async () => {
   const memberships = appliedMemberships();
   await require("../src/services/leagueMemberships").syncMemberships(memberships.client, {
-    userId: "user-1", platform: "sleeper", season: 2026, leagues: [{ league_id: "L-alpha" }, { league_id: "L-zeta" }],
+    userId: "user-1",
+    platform: "sleeper",
+    season: 2026,
+    leagues: [{ league_id: "L-alpha" }, { league_id: "L-zeta" }],
   });
   const app = buildApp({ supabase: { rows: [SLEEPER_ROW], missingSelectionColumn: false, memberships } });
 
@@ -1020,7 +1203,10 @@ test("POST /api/leagues/active mirrors the choice onto the memberships", async (
   });
 
   assert.equal(status, 200);
-  const active = memberships.membershipsOf("user-1").filter((m) => m.is_active_selection).map((m) => m.provider_league_id);
+  const active = memberships
+    .membershipsOf("user-1")
+    .filter((m) => m.is_active_selection)
+    .map((m) => m.provider_league_id);
   assert.deepEqual(active, ["L-zeta"]);
 });
 
@@ -1083,8 +1269,14 @@ test("an ESPN read that fails without a 401 stays connected", async () => {
   const app = buildApp({
     supabase: { rows: [ESPN_ROW], missingSelectionColumn: false },
     espnAdapter: defaultEspnAdapter({
-      fetchEspnFanLeagues: async () => { throw new Error("fan api unavailable"); },
-      verifyLeagueAccess: async () => { const e = new Error("ESPN is down"); e.status = 502; throw e; },
+      fetchEspnFanLeagues: async () => {
+        throw new Error("fan api unavailable");
+      },
+      verifyLeagueAccess: async () => {
+        const e = new Error("ESPN is down");
+        e.status = 502;
+        throw e;
+      },
     }),
   });
   const { body } = await request(app);
@@ -1121,7 +1313,10 @@ test("GET /api/leagues: second read is a cache hit with the same body; no store 
     const app = buildApp({
       supabase: { rows: [SLEEPER_ROW], missingSelectionColumn: false },
       sleeperAdapter: defaultSleeperAdapter({
-        fetchSleeperLeagues: async () => { discoveries += 1; return [{ league_id: "L-alpha", name: "Alpha", season: "2026", scoring_settings: { rec: 1 } }]; },
+        fetchSleeperLeagues: async () => {
+          discoveries += 1;
+          return [{ league_id: "L-alpha", name: "Alpha", season: "2026", scoring_settings: { rec: 1 } }];
+        },
       }),
     });
     const first = await requestWithHeaders(app);
@@ -1163,7 +1358,9 @@ test("POST /api/leagues/active invalidates the user's cached entries even when t
     await requestWithHeaders(app);
     assert.equal((await requestWithHeaders(app)).cache, "hit");
     const switched = await requestWithHeaders(app, {
-      path: "/api/leagues/active", method: "POST", body: { platform: "sleeper", league_id: "L-zeta" },
+      path: "/api/leagues/active",
+      method: "POST",
+      body: { platform: "sleeper", league_id: "L-zeta" },
     });
     assert.equal(switched.status, 200);
     assert.equal((await requestWithHeaders(app)).cache, "miss");
@@ -1176,7 +1373,10 @@ test("GET /api/leagues: a connection that needs reconnecting is never cached", a
   responseCache.setStoreForTests(responseCache.createMemoryResponseCacheStore());
   try {
     const app = buildApp({
-      supabase: { rows: [{ platform: "espn", is_active: true, league_id: "12345", espn_secret_id: null, swid_secret_id: null }], missingSelectionColumn: false },
+      supabase: {
+        rows: [{ platform: "espn", is_active: true, league_id: "12345", espn_secret_id: null, swid_secret_id: null }],
+        missingSelectionColumn: false,
+      },
     });
     const first = await requestWithHeaders(app);
     const second = await requestWithHeaders(app);
@@ -1189,7 +1389,9 @@ test("GET /api/leagues: a connection that needs reconnecting is never cached", a
 
 test("platform groups are read concurrently, and a failing platform does not fail the others", async () => {
   let releaseSleeper;
-  const sleeperGate = new Promise((resolve) => { releaseSleeper = resolve; });
+  const sleeperGate = new Promise((resolve) => {
+    releaseSleeper = resolve;
+  });
   let yahooStartedWhileSleeperPending = false;
   const app = buildApp({
     supabase: { rows: [SLEEPER_ROW, ESPN_ROW, YAHOO_ROW], missingSelectionColumn: false },

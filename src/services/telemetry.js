@@ -58,21 +58,28 @@ function safeAttributes(attributes) {
 }
 
 function isPrivateHost(hostname, env = process.env) {
-  const host = String(hostname || "").toLowerCase().replace(/^\[|\]$/g, "");
+  const host = String(hostname || "")
+    .toLowerCase()
+    .replace(/^\[|\]$/g, "");
   if (!host) return false;
   if (host === "localhost" || host === "::1") return true;
   // Only our own tailnet: any *.ts.net would also admit another tailnet's public Funnel host.
-  const tailnet = String(env.OTEL_TAILNET_SUFFIX || "").trim().toLowerCase().replace(/^\./, "");
+  const tailnet = String(env.OTEL_TAILNET_SUFFIX || "")
+    .trim()
+    .toLowerCase()
+    .replace(/^\./, "");
   if (tailnet.endsWith(".ts.net") && host.endsWith(`.${tailnet}`)) return true;
   if (!host.includes(".") && !host.includes(":")) return true; // Docker service name
   const octets = host.split(".").map(Number);
   if (octets.length !== 4 || octets.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) return false;
   const [a, b] = octets;
-  return a === 10
-    || a === 127
-    || (a === 172 && b >= 16 && b <= 31)
-    || (a === 192 && b === 168)
-    || (a === 100 && b >= 64 && b <= 127); // Tailscale CGNAT range
+  return (
+    a === 10 ||
+    a === 127 ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168) ||
+    (a === 100 && b >= 64 && b <= 127)
+  ); // Tailscale CGNAT range
 }
 
 function tracesUrl(endpoint) {
@@ -91,7 +98,12 @@ function sampleRatio(raw) {
  * Returns { enabled, reason, url? }.
  */
 function describeTelemetryConfig(env = process.env) {
-  if (String(env.OTEL_ENABLED || "").trim().toLowerCase() === "false") return { enabled: false, reason: "disabled" };
+  if (
+    String(env.OTEL_ENABLED || "")
+      .trim()
+      .toLowerCase() === "false"
+  )
+    return { enabled: false, reason: "disabled" };
   const endpoint = String(env.OTEL_EXPORTER_OTLP_ENDPOINT || "").trim();
   if (!endpoint) return { enabled: false, reason: "not_configured" };
   let parsed;
@@ -189,8 +201,12 @@ function withSpan(name, fn, attributes) {
   const parent = storage.getStore() || api.ROOT_CONTEXT;
   const span = tracer.startSpan(name, { attributes: safeAttributes(attributes) }, parent);
   const handle = {
-    setAttributes(attrs) { span.setAttributes(safeAttributes(attrs)); },
-    setAttribute(key, value) { span.setAttributes(safeAttributes({ [key]: value })); },
+    setAttributes(attrs) {
+      span.setAttributes(safeAttributes(attrs));
+    },
+    setAttribute(key, value) {
+      span.setAttributes(safeAttributes({ [key]: value }));
+    },
   };
   let result;
   try {
@@ -201,8 +217,14 @@ function withSpan(name, fn, attributes) {
   }
   if (result && typeof result.then === "function") {
     return result.then(
-      (value) => { span.end(); return value; },
-      (error) => { endWithError(span, error); throw error; },
+      (value) => {
+        span.end();
+        return value;
+      },
+      (error) => {
+        endWithError(span, error);
+        throw error;
+      },
     );
   }
   span.end();
@@ -252,7 +274,9 @@ function routeSpanMiddleware(name) {
     const finish = () => {
       if (ended) return;
       ended = true;
-      span.setAttributes(safeAttributes({ "http.route": routeTemplate(req), "http.response.status_code": res.statusCode }));
+      span.setAttributes(
+        safeAttributes({ "http.route": routeTemplate(req), "http.response.status_code": res.statusCode }),
+      );
       if (res.statusCode >= 500) span.setStatus({ code: api.SpanStatusCode.ERROR });
       span.end();
     };
@@ -280,7 +304,10 @@ async function shutdownTelemetry(timeoutMs = 2000) {
   let timer;
   await Promise.race([
     provider.shutdown().catch(() => {}),
-    new Promise((resolve) => { timer = setTimeout(resolve, timeoutMs); timer.unref?.(); }),
+    new Promise((resolve) => {
+      timer = setTimeout(resolve, timeoutMs);
+      timer.unref?.();
+    }),
   ]);
   clearTimeout(timer);
 }

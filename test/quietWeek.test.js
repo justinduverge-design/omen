@@ -3,7 +3,12 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 test("quiet-week voice requires positive healthy evidence and goes straight on loss, injury, failure or unknown", () => {
   const { quietWeek } = require("../src/services/quietWeek");
-  const body = { state: "empty", platform: { status: "connected" }, quiet_inputs: { injured_starter: false }, signals: { roster: { status: "live" } } };
+  const body = {
+    state: "empty",
+    platform: { status: "connected" },
+    quiet_inputs: { injured_starter: false },
+    signals: { roster: { status: "live" } },
+  };
   assert.equal(quietWeek(body, "W").variant, "neutral");
   assert.equal(quietWeek(body, "L").variant, "straight");
   assert.equal(quietWeek(body, null).variant, "straight");
@@ -15,7 +20,12 @@ test("quiet-week voice requires positive healthy evidence and goes straight on l
 
 test("quiet-week composes honest copy per variant, never fabricating specifics", () => {
   const { quietWeek } = require("../src/services/quietWeek");
-  const body = { state: "empty", platform: { status: "connected" }, quiet_inputs: { injured_starter: false }, signals: { roster: { status: "live" } } };
+  const body = {
+    state: "empty",
+    platform: { status: "connected" },
+    quiet_inputs: { injured_starter: false },
+    signals: { roster: { status: "live" } },
+  };
 
   const neutral = quietWeek(body, "W");
   assert.equal(neutral.headline, "Nothing worth waking you for.");

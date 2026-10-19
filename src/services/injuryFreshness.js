@@ -84,10 +84,12 @@ function freshnessPolicy(now = new Date(), { kickoffs = null, offSeason = null, 
   if (off) return { tier: "off_season", ...TIERS.off_season };
 
   const t = at.getTime();
-  const nearKickoff = Array.isArray(kickoffs) && kickoffs.some((k) => {
-    const ms = new Date(k).getTime();
-    return Number.isFinite(ms) && t >= ms - 4 * HOUR && t <= ms + 5 * HOUR;
-  });
+  const nearKickoff =
+    Array.isArray(kickoffs) &&
+    kickoffs.some((k) => {
+      const ms = new Date(k).getTime();
+      return Number.isFinite(ms) && t >= ms - 4 * HOUR && t <= ms + 5 * HOUR;
+    });
   if (nearKickoff || inDayWindow(parts, playoffs)) return { tier: "game_window", ...TIERS.game_window };
   return { tier: "in_season", ...TIERS.in_season };
 }

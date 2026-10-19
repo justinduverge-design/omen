@@ -8,9 +8,21 @@ const { START_SIT } = require("../src/services/evidenceVocabulary");
 
 const row = (category, kind, statement) => ({ category, kind, statement });
 const LEAGUE = row("league_fact", "verified", "This league awards 1 point per reception.");
-const PROJ = row("player_game_fact", "projection", "Tyreek Hill projects 21.7 and Josh Allen projects 18.2 in this league's scoring.");
-const BREAKDOWN = row("points_breakdown", "projected", "Tyreek Hill's 21.7 is 14.2 from receiving and 7.5 from other scoring.");
-const BREAKDOWN_LIMIT = row("points_breakdown", "limitation", "Points breakdown unavailable for Josh Allen: no provider stat lines.");
+const PROJ = row(
+  "player_game_fact",
+  "projection",
+  "Tyreek Hill projects 21.7 and Josh Allen projects 18.2 in this league's scoring.",
+);
+const BREAKDOWN = row(
+  "points_breakdown",
+  "projected",
+  "Tyreek Hill's 21.7 is 14.2 from receiving and 7.5 from other scoring.",
+);
+const BREAKDOWN_LIMIT = row(
+  "points_breakdown",
+  "limitation",
+  "Points breakdown unavailable for Josh Allen: no provider stat lines.",
+);
 const USAGE = row("recent_usage", "verified", "Tyreek Hill had 9 targets over the last 3 games.");
 const USAGE2 = row("recent_usage", "verified", "Josh Allen had 4 carries over the last 3 games.");
 const USAGE3 = row("recent_usage", "verified", "Josh Allen had 31 attempts over the last 3 games.");
@@ -23,20 +35,49 @@ const texts = (rows) => buildEvidenceWhy(rows).map((s) => s.text);
 test("ranking: observed facts, then projection gap, then inference; max three", () => {
   const out = buildEvidenceWhy([LEAGUE, PROJ, BREAKDOWN, USAGE, STATUS, TEAM, INFER]);
   assert.equal(out.length, 3);
-  assert.deepEqual(out.map((s) => s.basis), ["observed", "observed", "observed"]);
-  assert.deepEqual(out.map((s) => s.text), [USAGE.statement, STATUS.statement, BREAKDOWN.statement]);
-  assert.deepEqual(out.map((s) => s.rank), [1, 2, 3]);
+  assert.deepEqual(
+    out.map((s) => s.basis),
+    ["observed", "observed", "observed"],
+  );
+  assert.deepEqual(
+    out.map((s) => s.text),
+    [USAGE.statement, STATUS.statement, BREAKDOWN.statement],
+  );
+  assert.deepEqual(
+    out.map((s) => s.rank),
+    [1, 2, 3],
+  );
 });
 
 const CASES = [
-  { name: "projection then inference when nothing observed", rows: [LEAGUE, INFER, PROJ], expect: [PROJ.statement, INFER.statement] },
+  {
+    name: "projection then inference when nothing observed",
+    rows: [LEAGUE, INFER, PROJ],
+    expect: [PROJ.statement, INFER.statement],
+  },
   { name: "league_fact alone is context, not a reason", rows: [LEAGUE], expect: [NOT_ENOUGH_EVIDENCE] },
   { name: "empty array", rows: [], expect: [NOT_ENOUGH_EVIDENCE] },
   { name: "not an array", rows: null, expect: [NOT_ENOUGH_EVIDENCE] },
-  { name: "malformed rows are ignored", rows: [null, 5, { category: "recent_usage", kind: "verified" }], expect: [NOT_ENOUGH_EVIDENCE] },
-  { name: "at most two per category", rows: [USAGE, USAGE2, USAGE3, PROJ], expect: [USAGE.statement, USAGE2.statement, PROJ.statement] },
-  { name: "limitation outranks inference", rows: [INFER, BREAKDOWN_LIMIT, PROJ], expect: [PROJ.statement, BREAKDOWN_LIMIT.statement, INFER.statement] },
-  { name: "limitation is never crowded out by the cap", rows: [USAGE, STATUS, BREAKDOWN, TEAM, BREAKDOWN_LIMIT], expect: [USAGE.statement, STATUS.statement, BREAKDOWN_LIMIT.statement] },
+  {
+    name: "malformed rows are ignored",
+    rows: [null, 5, { category: "recent_usage", kind: "verified" }],
+    expect: [NOT_ENOUGH_EVIDENCE],
+  },
+  {
+    name: "at most two per category",
+    rows: [USAGE, USAGE2, USAGE3, PROJ],
+    expect: [USAGE.statement, USAGE2.statement, PROJ.statement],
+  },
+  {
+    name: "limitation outranks inference",
+    rows: [INFER, BREAKDOWN_LIMIT, PROJ],
+    expect: [PROJ.statement, BREAKDOWN_LIMIT.statement, INFER.statement],
+  },
+  {
+    name: "limitation is never crowded out by the cap",
+    rows: [USAGE, STATUS, BREAKDOWN, TEAM, BREAKDOWN_LIMIT],
+    expect: [USAGE.statement, STATUS.statement, BREAKDOWN_LIMIT.statement],
+  },
   { name: "limitation alone is surfaced", rows: [BREAKDOWN_LIMIT], expect: [BREAKDOWN_LIMIT.statement] },
   {
     name: "overclaiming rows are dropped",
@@ -91,16 +132,27 @@ test("input rows are not mutated and output is deterministic", () => {
 test("signal-vs-noise usage rows (recent_usage / observed_context) rank as observed facts", () => {
   const out = buildEvidenceWhy([
     { category: "omen_inference", kind: "inference", statement: "The available data favors A B." },
-    { category: "recent_usage", kind: "observed_context", statement: "Snap share held at 80% over the last 4 games, so A B's recent usage is steady." },
+    {
+      category: "recent_usage",
+      kind: "observed_context",
+      statement: "Snap share held at 80% over the last 4 games, so A B's recent usage is steady.",
+    },
   ]);
   assert.equal(out[0].basis, "observed");
   assert.equal(out[0].evidence[0].category, "recent_usage");
 });
 
 test("usage steadiness ranks after points_breakdown and team_system and never evicts them", () => {
-  const STEADY = row("recent_usage", "observed_context", "Snap share held at 80% over the last 4 games, so Tyreek Hill's recent usage is steady.");
+  const STEADY = row(
+    "recent_usage",
+    "observed_context",
+    "Snap share held at 80% over the last 4 games, so Tyreek Hill's recent usage is steady.",
+  );
   const out = buildEvidenceWhy([STEADY, BREAKDOWN, TEAM, INFER]);
-  assert.deepEqual(out.map((s) => s.text), [BREAKDOWN.statement, TEAM.statement, STEADY.statement]);
+  assert.deepEqual(
+    out.map((s) => s.text),
+    [BREAKDOWN.statement, TEAM.statement, STEADY.statement],
+  );
   // A limitation is still never dropped.
   const withLimit = buildEvidenceWhy([STEADY, BREAKDOWN, TEAM, BREAKDOWN_LIMIT]);
   assert.ok(withLimit.some((s) => s.basis === "limitation"));

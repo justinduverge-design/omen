@@ -51,7 +51,9 @@ function foldText(value) {
 const NAME_SUFFIX = /\s+(jr|sr|ii|iii|iv|v)$/;
 
 function stripNameSuffix(folded) {
-  return String(folded || "").replace(NAME_SUFFIX, "").trim();
+  return String(folded || "")
+    .replace(NAME_SUFFIX, "")
+    .trim();
 }
 
 function normalizePosition(value) {
@@ -103,22 +105,14 @@ function sourceEntries(source) {
 
 function playerName(player = {}, fallbackId = "") {
   const firstLast = `${player.first_name || ""} ${player.last_name || ""}`.trim();
-  return (
-    player.full_name
-    || player.search_full_name
-    || player.name
-    || firstLast
-    || fallbackId
-  );
+  return player.full_name || player.search_full_name || player.name || firstLast || fallbackId;
 }
 
 function playerPosition(player = {}) {
   const primary = normalizePosition(player.position);
   if (primary) return primary;
 
-  const eligible = Array.isArray(player.fantasy_positions)
-    ? player.fantasy_positions
-    : [];
+  const eligible = Array.isArray(player.fantasy_positions) ? player.fantasy_positions : [];
   for (const position of eligible) {
     const normalized = normalizePosition(position);
     if (normalized) return normalized;
@@ -152,11 +146,7 @@ function normalizeSourcePlayer(playerId, player = {}) {
     name,
     position,
     team: toTrimmedString(player.team || player.team_abbr || "FA").toUpperCase(),
-    projected_points: finiteOrNull(
-      player.projected_points
-      ?? player.projectedPoints
-      ?? player.pts_ppr
-    ),
+    projected_points: finiteOrNull(player.projected_points ?? player.projectedPoints ?? player.pts_ppr),
     _search_name: foldText(name),
     _search_rank: finiteOrNull(player.search_rank) ?? Number.MAX_SAFE_INTEGER,
   };
@@ -219,16 +209,8 @@ function editDistance(left, right) {
   for (let i = 1; i <= a.length; i += 1) {
     for (let j = 1; j <= b.length; j += 1) {
       const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      rows[i][j] = Math.min(
-        rows[i - 1][j] + 1,
-        rows[i][j - 1] + 1,
-        rows[i - 1][j - 1] + cost
-      );
-      if (
-        i > 1 && j > 1
-        && a[i - 1] === b[j - 2]
-        && a[i - 2] === b[j - 1]
-      ) {
+      rows[i][j] = Math.min(rows[i - 1][j] + 1, rows[i][j - 1] + 1, rows[i - 1][j - 1] + cost);
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
         rows[i][j] = Math.min(rows[i][j], rows[i - 2][j - 2] + 1);
       }
     }
@@ -266,13 +248,8 @@ function fuzzyNameScore(player, foldedQuery) {
     // exact anchor and the initial agrees. This produces a suggestion, never
     // an automatic identity resolution.
     const isLast = i === queryTokens.length - 1;
-    const shortFirstName = !isLast
-      && lastNameAnchored
-      && queryToken.length >= 2
-      && queryToken[0] === playerToken[0];
-    const allowed = isLast
-      ? (distance <= 2 && ratio <= 0.34)
-      : ((distance <= 2 && ratio <= 0.4) || shortFirstName);
+    const shortFirstName = !isLast && lastNameAnchored && queryToken.length >= 2 && queryToken[0] === playerToken[0];
+    const allowed = isLast ? distance <= 2 && ratio <= 0.34 : (distance <= 2 && ratio <= 0.4) || shortFirstName;
     if (!allowed) return null;
     total += ratio;
   }
@@ -288,12 +265,13 @@ function fuzzyMatches(index, foldedQuery, { position = null, limit = MAX_FUZZY_S
     matches.push({ player, score });
   }
   return matches
-    .sort((a, b) => (
-      a.score - b.score
-      || a.player._search_rank - b.player._search_rank
-      || a.player.name.localeCompare(b.player.name)
-      || a.player.id.localeCompare(b.player.id)
-    ))
+    .sort(
+      (a, b) =>
+        a.score - b.score ||
+        a.player._search_rank - b.player._search_rank ||
+        a.player.name.localeCompare(b.player.name) ||
+        a.player.id.localeCompare(b.player.id),
+    )
     .slice(0, limit)
     .map(({ player }) => publicMatchedPlayer(player, MATCH_TYPE_FUZZY));
 }
@@ -314,7 +292,7 @@ function buildSearchIndex(source) {
 function searchIndexFor(source) {
   // Primitives and null cannot key a WeakMap, and `sourceEntries` already
   // returns [] for them — build directly rather than failing.
-  if (!source || (typeof source !== "object")) return buildSearchIndex(source);
+  if (!source || typeof source !== "object") return buildSearchIndex(source);
 
   const cached = indexCaches.get(source);
   if (cached) return cached;
@@ -341,12 +319,13 @@ function searchPlayerSource(source, query = {}) {
   }
 
   const exact = matches
-    .sort((a, b) => (
-      a.matchRank - b.matchRank
-      || a.player._search_rank - b.player._search_rank
-      || a.player.name.localeCompare(b.player.name)
-      || a.player.id.localeCompare(b.player.id)
-    ))
+    .sort(
+      (a, b) =>
+        a.matchRank - b.matchRank ||
+        a.player._search_rank - b.player._search_rank ||
+        a.player.name.localeCompare(b.player.name) ||
+        a.player.id.localeCompare(b.player.id),
+    )
     .slice(0, normalized.limit)
     .map((entry) => publicPlayer(entry.player));
 
@@ -411,9 +390,8 @@ function resolvePlayerInputs(source, players = []) {
     return {
       status: exact.length > 1 ? "ambiguous" : "unresolved",
       input,
-      suggestions: exact.length > 1
-        ? exact.slice(0, MAX_FUZZY_SUGGESTIONS).map((player) => publicPlayer(player))
-        : suggestions,
+      suggestions:
+        exact.length > 1 ? exact.slice(0, MAX_FUZZY_SUGGESTIONS).map((player) => publicPlayer(player)) : suggestions,
     };
   });
 }
@@ -458,18 +436,12 @@ async function searchNflPlayers(query = {}, options = {}) {
   const normalized = query.error ? query : normalizePlayerSearchQuery(query);
   if (normalized.error) return normalized;
 
-  const source = await getCachedSource(
-    options.fetchPlayers,
-    options.cacheTtlMs ?? DEFAULT_CACHE_TTL_MS
-  );
+  const source = await getCachedSource(options.fetchPlayers, options.cacheTtlMs ?? DEFAULT_CACHE_TTL_MS);
   return searchPlayerSource(source, normalized);
 }
 
 async function resolveNflPlayerInputs(players = [], options = {}) {
-  const source = await getCachedSource(
-    options.fetchPlayers,
-    options.cacheTtlMs ?? DEFAULT_CACHE_TTL_MS
-  );
+  const source = await getCachedSource(options.fetchPlayers, options.cacheTtlMs ?? DEFAULT_CACHE_TTL_MS);
   return resolvePlayerInputs(source, players);
 }
 

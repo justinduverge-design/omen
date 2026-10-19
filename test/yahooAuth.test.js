@@ -23,12 +23,15 @@ class FakeQuery {
   maybeSingle() {
     this.state.reads = (this.state.reads || 0) + 1;
     const row = this.state.rows.find((candidate) =>
-      this.filters.every(({ field, value }) => candidate[field] === value)
+      this.filters.every(({ field, value }) => candidate[field] === value),
     );
     const copy = row ? { ...row } : null;
     // Simulates another request finishing its refresh right after this one read the row.
     if (this.state.refreshedByOtherAfterRead === this.state.reads && row) {
-      Object.assign(row, { token_expires_at: new Date(Date.now() + 3600_000).toISOString(), token_secret_id: "other-access-secret" });
+      Object.assign(row, {
+        token_expires_at: new Date(Date.now() + 3600_000).toISOString(),
+        token_secret_id: "other-access-secret",
+      });
     }
     return Promise.resolve({ data: copy, error: null });
   }
@@ -78,7 +81,17 @@ function makeSupabase(state) {
   };
 }
 
-function loadYahooAuth(rows = [], { step02 = false, rotateWins = true, refreshFails = false, otherProcessRefreshes = false, refreshedByOtherAfterRead = null, refreshDelayMs = 0 } = {}) {
+function loadYahooAuth(
+  rows = [],
+  {
+    step02 = false,
+    rotateWins = true,
+    refreshFails = false,
+    otherProcessRefreshes = false,
+    refreshedByOtherAfterRead = null,
+    refreshDelayMs = 0,
+  } = {},
+) {
   const servicePath = require.resolve("../src/services/yahooAuth");
   delete require.cache[servicePath];
 
@@ -110,10 +123,15 @@ function loadYahooAuth(rows = [], { step02 = false, rotateWins = true, refreshFa
         refreshYahooToken: async (refreshToken) => {
           state.refreshedWith = refreshToken;
           state.refreshCalls = (state.refreshCalls || 0) + 1;
-          await new Promise((resolve) => (state.refreshDelayMs ? setTimeout(resolve, state.refreshDelayMs) : setImmediate(resolve)));
+          await new Promise((resolve) =>
+            state.refreshDelayMs ? setTimeout(resolve, state.refreshDelayMs) : setImmediate(resolve),
+          );
           if (state.refreshFails) {
             if (state.otherProcessRefreshes) {
-              Object.assign(state.rows[0], { token_expires_at: "2026-10-03T09:00:00+00:00", token_secret_id: "other-access-secret" });
+              Object.assign(state.rows[0], {
+                token_expires_at: "2026-10-03T09:00:00+00:00",
+                token_secret_id: "other-access-secret",
+              });
             }
             throw new Error("yahoo refresh rejected");
           }
@@ -154,14 +172,14 @@ test("persistYahooTokens updates existing Vault secrets and preserves existing l
 
   assert.equal(state.selects[0], "league_id, token_secret_id, refresh_secret_id");
   const vaultRpcs = state.rpcs.filter((rpc) => rpc.name.startsWith("vault_"));
-  assert.deepEqual(vaultRpcs.map((rpc) => rpc.name), [
-    "vault_update_secret",
-    "vault_update_secret",
-  ]);
-  assert.deepEqual(vaultRpcs.map((rpc) => rpc.params.secret_id), [
-    "access-secret",
-    "refresh-secret",
-  ]);
+  assert.deepEqual(
+    vaultRpcs.map((rpc) => rpc.name),
+    ["vault_update_secret", "vault_update_secret"],
+  );
+  assert.deepEqual(
+    vaultRpcs.map((rpc) => rpc.params.secret_id),
+    ["access-secret", "refresh-secret"],
+  );
   assert.equal(state.upserts.length, 1);
   assert.equal(state.upserts[0].payload.league_id, "existing-league");
   assert.equal(state.upserts[0].payload.token_secret_id, "access-secret");
@@ -172,17 +190,21 @@ test("persistYahooTokens updates existing Vault secrets and preserves existing l
 test("persistYahooTokens creates Vault secrets when no Yahoo connection exists", async () => {
   const { service, state } = loadYahooAuth();
 
-  await service.persistYahooTokens("user-2", {
-    access_token: "access-token",
-    refresh_token: "refresh-token",
-    expires_in: 3600,
-  }, "new-league");
+  await service.persistYahooTokens(
+    "user-2",
+    {
+      access_token: "access-token",
+      refresh_token: "refresh-token",
+      expires_in: 3600,
+    },
+    "new-league",
+  );
 
   const vaultRpcs = state.rpcs.filter((rpc) => rpc.name.startsWith("vault_"));
-  assert.deepEqual(vaultRpcs.map((rpc) => rpc.name), [
-    "vault_create_secret",
-    "vault_create_secret",
-  ]);
+  assert.deepEqual(
+    vaultRpcs.map((rpc) => rpc.name),
+    ["vault_create_secret", "vault_create_secret"],
+  );
   assert.equal(vaultRpcs[0].params.name, "yahoo_access_user-2");
   assert.equal(vaultRpcs[1].params.name, "yahoo_refresh_user-2");
   assert.equal(state.upserts.length, 1);
@@ -217,11 +239,21 @@ const EXPIRED_ROW = {
 
 test("persistYahooTokens stores through connection_store_yahoo when step 02 is present", async () => {
   const { service, state } = loadYahooAuth([], { step02: true });
-  await service.persistYahooTokens("user-4", {
-    access_token: "access-token", refresh_token: "refresh-token", expires_in: 3600, xoauth_yahoo_guid: "guid-4",
-  }, "449.l.4");
+  await service.persistYahooTokens(
+    "user-4",
+    {
+      access_token: "access-token",
+      refresh_token: "refresh-token",
+      expires_in: 3600,
+      xoauth_yahoo_guid: "guid-4",
+    },
+    "449.l.4",
+  );
 
-  assert.deepEqual(state.rpcs.map((rpc) => rpc.name), ["connection_store_yahoo"]);
+  assert.deepEqual(
+    state.rpcs.map((rpc) => rpc.name),
+    ["connection_store_yahoo"],
+  );
   const params = state.rpcs[0].params;
   assert.equal(params.p_user_id, "user-4");
   assert.equal(params.p_access_token, "access-token");
@@ -242,7 +274,10 @@ test("an expired Yahoo token is rotated by compare-and-swap on the expiry the re
   assert.equal(rotate.params.p_expected_expires_at, EXPIRED_ROW.token_expires_at);
   assert.equal(rotate.params.p_access_token, "fresh-access");
   assert.equal(rotate.params.p_refresh_token, "fresh-refresh");
-  assert.equal(state.rpcs.some((rpc) => rpc.name === "vault_update_secret"), false);
+  assert.equal(
+    state.rpcs.some((rpc) => rpc.name === "vault_update_secret"),
+    false,
+  );
   assert.equal(state.updates.length, 0);
 });
 
@@ -251,7 +286,10 @@ test("a Yahoo refresh that loses the race writes nothing and still serves its ow
   const { accessToken } = await service.getAuthenticatedYahooClient("user-9");
 
   assert.equal(accessToken, "fresh-access");
-  assert.equal(state.rpcs.some((rpc) => rpc.name === "vault_update_secret"), false);
+  assert.equal(
+    state.rpcs.some((rpc) => rpc.name === "vault_update_secret"),
+    false,
+  );
   assert.equal(state.updates.length, 0);
 });
 
@@ -262,7 +300,7 @@ test("an expired Yahoo token keeps today's refresh writes while step 02 is not a
   assert.equal(accessToken, "fresh-access");
   assert.deepEqual(
     state.rpcs.filter((rpc) => rpc.name === "vault_update_secret").map((rpc) => rpc.params.secret_id),
-    ["access-secret", "refresh-secret"]
+    ["access-secret", "refresh-secret"],
   );
   assert.equal(state.updates.length, 1);
 });
@@ -276,22 +314,35 @@ test("concurrent requests for one expired Yahoo token share a single exchange wi
   ]);
 
   assert.equal(state.refreshCalls, 1);
-  assert.deepEqual(results.map((r) => r.accessToken), ["fresh-access", "fresh-access", "fresh-access"]);
+  assert.deepEqual(
+    results.map((r) => r.accessToken),
+    ["fresh-access", "fresh-access", "fresh-access"],
+  );
   assert.equal(state.rpcs.filter((rpc) => rpc.name === "connection_rotate_yahoo").length, 1);
 });
 
 test("a Yahoo exchange that fails because another process refreshed first uses the token it stored", async () => {
-  const { service, state } = loadYahooAuth([{ ...EXPIRED_ROW }], { step02: true, refreshFails: true, otherProcessRefreshes: true });
+  const { service, state } = loadYahooAuth([{ ...EXPIRED_ROW }], {
+    step02: true,
+    refreshFails: true,
+    otherProcessRefreshes: true,
+  });
   const { accessToken } = await service.getAuthenticatedYahooClient("user-9");
 
   assert.equal(accessToken, "other-access-secret-plain");
-  assert.equal(state.rpcs.some((rpc) => rpc.name === "connection_rotate_yahoo"), false);
+  assert.equal(
+    state.rpcs.some((rpc) => rpc.name === "connection_rotate_yahoo"),
+    false,
+  );
 });
 
 test("a Yahoo exchange that fails with nobody else refreshing still fails, and writes nothing", async () => {
   const { service, state } = loadYahooAuth([{ ...EXPIRED_ROW }], { step02: true, refreshFails: true });
   await assert.rejects(service.getAuthenticatedYahooClient("user-9"), /yahoo refresh rejected/);
-  assert.equal(state.rpcs.some((rpc) => rpc.name === "connection_rotate_yahoo"), false);
+  assert.equal(
+    state.rpcs.some((rpc) => rpc.name === "connection_rotate_yahoo"),
+    false,
+  );
   assert.equal(state.updates.length, 0);
 });
 
@@ -302,7 +353,10 @@ test("a request whose snapshot went stale while it waited uses the token another
 
   assert.equal(accessToken, "other-access-secret-plain");
   assert.equal(state.refreshCalls || 0, 0);
-  assert.equal(state.rpcs.some((rpc) => rpc.name === "connection_rotate_yahoo"), false);
+  assert.equal(
+    state.rpcs.some((rpc) => rpc.name === "connection_rotate_yahoo"),
+    false,
+  );
 });
 
 // Codex, #525 (P1): the single-flight map is per process. A Redis claim spans the provider exchange
@@ -350,7 +404,10 @@ test("a process that loses the claim never calls Yahoo and uses the token the wi
 test("a process that loses the claim and never sees a stored token fails retryably, without calling Yahoo", async () => {
   const { service, state } = loadYahooAuth([{ ...EXPIRED_ROW }], { step02: true });
   service.setRefreshClaimStore(fakeClaimStore({ held: true }), { sleep: async () => {} });
-  await assert.rejects(service.getAuthenticatedYahooClient("user-9"), (err) => err.status === 503 && err.code === "yahoo_refresh_in_progress");
+  await assert.rejects(
+    service.getAuthenticatedYahooClient("user-9"),
+    (err) => err.status === 503 && err.code === "yahoo_refresh_in_progress",
+  );
   assert.equal(state.refreshCalls || 0, 0);
 });
 
@@ -395,7 +452,12 @@ test("the Yahoo token request has a timeout, so a hung exchange cannot outlive t
   const originalLoad = Module._load;
   Module._load = function patchedLoad(request, parent, isMain) {
     if (request === "axios" && parent?.filename === modulePath) {
-      return { post: async (url, body, options) => { seen.push(options); return { data: { access_token: "a" } }; } };
+      return {
+        post: async (url, body, options) => {
+          seen.push(options);
+          return { data: { access_token: "a" } };
+        },
+      };
     }
     return originalLoad.call(this, request, parent, isMain);
   };

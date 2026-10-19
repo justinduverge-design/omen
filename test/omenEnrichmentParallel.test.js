@@ -71,7 +71,12 @@ function loadRoute({ scheduleDelay, projectionDelay, intelligenceDelay, dvpDelay
             if (failing.includes("intelligence")) throw new Error("fi down");
             response.football_intelligence = { status: "available", summary: "scheme" };
             response.signals = response.signals || {};
-            response.signals.football_intelligence = { status: "live", used: false, source: "football_intelligence", message: "scheme" };
+            response.signals.football_intelligence = {
+              status: "live",
+              used: false,
+              source: "football_intelligence",
+              message: "scheme",
+            };
             return response;
           },
         };
@@ -84,8 +89,18 @@ function loadRoute({ scheduleDelay, projectionDelay, intelligenceDelay, dvpDelay
             events.push("dvp:start");
             await sleep(dvpDelay);
             events.push("dvp:end");
-            assert.equal(response.recommendation.matchup_context?.opponent_team, "DAL", "DvP must run after the schedule merge");
-            return { opponent_team: "DAL", position: "WR", avg_points_allowed: 20, sample_weeks: 5, dvp_label: "favorable" };
+            assert.equal(
+              response.recommendation.matchup_context?.opponent_team,
+              "DAL",
+              "DvP must run after the schedule merge",
+            );
+            return {
+              opponent_team: "DAL",
+              position: "WR",
+              avg_points_allowed: 20,
+              sample_weeks: 5,
+              dvp_label: "favorable",
+            };
           },
         };
       }
@@ -113,7 +128,7 @@ async function bothWays(options, contract) {
 test("parallel enrichment is byte-identical to the serial pipeline (brief v3, completion order reversed)", async () => {
   const { serial, parallel } = await bothWays(
     { scheduleDelay: 30, projectionDelay: 15, intelligenceDelay: 1, dvpDelay: 5 },
-    "omen-decision-brief.v3"
+    "omen-decision-brief.v3",
   );
   // Sanity: every stage actually wrote something.
   assert.equal(serial.recommendation.matchup_context.opponent_team, "DAL");
@@ -124,7 +139,10 @@ test("parallel enrichment is byte-identical to the serial pipeline (brief v3, co
 });
 
 test("parallel enrichment matches serial without v3 (football intelligence skipped)", async () => {
-  const { serial, parallel } = await bothWays({ scheduleDelay: 1, projectionDelay: 20, intelligenceDelay: 1, dvpDelay: 1 }, undefined);
+  const { serial, parallel } = await bothWays(
+    { scheduleDelay: 1, projectionDelay: 20, intelligenceDelay: 1, dvpDelay: 1 },
+    undefined,
+  );
   assert.equal(serial.football_intelligence, undefined);
   assert.equal(JSON.stringify(parallel), JSON.stringify(serial));
 });
@@ -133,7 +151,7 @@ test("a failing stage is simply absent and does not disturb the others", async (
   for (const failing of [["schedule"], ["projection"], ["intelligence"], ["schedule", "projection", "intelligence"]]) {
     const { serial, parallel } = await bothWays(
       { scheduleDelay: 5, projectionDelay: 5, intelligenceDelay: 5, dvpDelay: 1, failing },
-      "omen-decision-brief.v3"
+      "omen-decision-brief.v3",
     );
     assert.equal(JSON.stringify(parallel), JSON.stringify(serial), failing.join(","));
   }
@@ -145,7 +163,10 @@ test("stages overlap: all three independent stages start before any finishes; Dv
   await route.runEnrichmentStages(body(), req, { started_at: Date.now() }, "omen-decision-brief.v3");
   const firstEnd = Math.min(...events.map((e, i) => (e.endsWith(":end") ? i : Infinity)));
   for (const stage of ["schedule", "projection", "intelligence"]) {
-    assert.ok(events.indexOf(`${stage}:start`) < firstEnd, `${stage} started after another stage finished: ${events.join(",")}`);
+    assert.ok(
+      events.indexOf(`${stage}:start`) < firstEnd,
+      `${stage} started after another stage finished: ${events.join(",")}`,
+    );
   }
   assert.ok(events.indexOf("dvp:start") > events.indexOf("schedule:end"), events.join(","));
 });

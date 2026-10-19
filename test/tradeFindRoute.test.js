@@ -66,14 +66,18 @@ function buildApp({
   tradeUsage,
 } = {}) {
   let sleeperCallCount = 0;
-  const wrappedFetch = fetchLeagueRosters || (async () => {
-    sleeperCallCount += 1;
-    return sleeperFixture(3);
-  });
-  const countingFetch = fetchLeagueRosters ? (async (...args) => {
-    sleeperCallCount += 1;
-    return fetchLeagueRosters(...args);
-  }) : wrappedFetch;
+  const wrappedFetch =
+    fetchLeagueRosters ||
+    (async () => {
+      sleeperCallCount += 1;
+      return sleeperFixture(3);
+    });
+  const countingFetch = fetchLeagueRosters
+    ? async (...args) => {
+        sleeperCallCount += 1;
+        return fetchLeagueRosters(...args);
+      }
+    : wrappedFetch;
 
   const router = tradeRoutes.createTradeRouter({
     authenticate,
@@ -103,7 +107,11 @@ async function get(app, path, headers = {}) {
 }
 
 test("GET /api/trade/find requires authentication", async () => {
-  const { app } = buildApp({ authenticate: async () => { throw new Error("no session"); } });
+  const { app } = buildApp({
+    authenticate: async () => {
+      throw new Error("no session");
+    },
+  });
   const res = await get(app, "/api/trade/find?platform=sleeper&league_id=abc&team_id=1");
   assert.equal(res.status, 401);
   assert.equal(res.body.code, "trade_find_auth_required");
@@ -171,7 +179,11 @@ test("GET /api/trade/find gives the honest unavailable shape, never a crash, whe
 });
 
 test("GET /api/trade/find answers 503, never a fabricated batch, when the roster read fails", async () => {
-  const { app } = buildApp({ fetchLeagueRosters: async () => { throw new Error("sleeper down"); } });
+  const { app } = buildApp({
+    fetchLeagueRosters: async () => {
+      throw new Error("sleeper down");
+    },
+  });
   const res = await get(app, "/api/trade/find?platform=sleeper&league_id=abc123&team_id=1", {
     authorization: "Bearer t",
   });
@@ -265,7 +277,11 @@ test("GET /api/trade/find never serves one user's cached ESPN league bundle to a
       const fixture = sleeperFixture(2);
       return {
         roster_positions: fixture.roster_positions,
-        teams: fixture.teams.map((team) => ({ team_id: team.roster_id, team_name: team.team_name, players: team.players })),
+        teams: fixture.teams.map((team) => ({
+          team_id: team.roster_id,
+          team_name: team.team_name,
+          players: team.players,
+        })),
       };
     },
     tradeFindCache: cache,
@@ -318,9 +334,13 @@ function yahooApp({ projected }) {
 }
 
 test("GET /api/trade/find says projections are unavailable when Yahoo enrichment yields no usable coverage", async () => {
-  const res = await get(yahooApp({ projected: false }), "/api/trade/find?platform=yahoo&league_id=nfl.l.555&team_id=1", {
-    authorization: "Bearer t",
-  });
+  const res = await get(
+    yahooApp({ projected: false }),
+    "/api/trade/find?platform=yahoo&league_id=nfl.l.555&team_id=1",
+    {
+      authorization: "Bearer t",
+    },
+  );
   assert.equal(res.status, 200);
   assert.equal(res.body.status, "unavailable");
   assert.equal(res.body.reason, "projections_unavailable");
@@ -346,11 +366,22 @@ test("GET /api/trade/find attaches warehouse usage evidence to candidates, witho
     seen.push({ keys: players.map((p) => p.player_key), ...ctx });
     return {
       state: "ok",
-      byKey: new Map(players.filter((p) => p.position === "WR").map((p) => [p.player_key, { statement: `${p.name}: 9.0 targets a game.`, source: "nfl_weekly_opportunity" }])),
+      byKey: new Map(
+        players
+          .filter((p) => p.position === "WR")
+          .map((p) => [
+            p.player_key,
+            { statement: `${p.name}: 9.0 targets a game.`, source: "nfl_weekly_opportunity" },
+          ]),
+      ),
     };
   };
   const plain = buildApp({ fetchLeagueRosters: async () => sleeperFixture(2) });
-  const withUsage = buildApp({ fetchLeagueRosters: async () => sleeperFixture(2), nflWeekContext: () => ({ week: 3, season: 2026 }), tradeUsage });
+  const withUsage = buildApp({
+    fetchLeagueRosters: async () => sleeperFixture(2),
+    nflWeekContext: () => ({ week: 3, season: 2026 }),
+    tradeUsage,
+  });
   const headers = { authorization: "Bearer t" };
   const q = "/api/trade/find?platform=sleeper&league_id=abc123&team_id=1";
   const a = await get(plain.app, q, headers);
@@ -361,7 +392,11 @@ test("GET /api/trade/find attaches warehouse usage evidence to candidates, witho
   const tail = (c) => String(c.id).split(".").pop(); // the prefix is a per-batch token
   assert.deepEqual(b.body.candidates.map(tail), a.body.candidates.map(tail), "same candidates, same order");
   assert.ok(b.body.candidates.every((c) => Array.isArray(c.usage_evidence)));
-  assert.ok(b.body.candidates.some((c) => c.usage_evidence.some((row) => row.side === "receive" && row.kind === "observed_usage")));
+  assert.ok(
+    b.body.candidates.some((c) =>
+      c.usage_evidence.some((row) => row.side === "receive" && row.kind === "observed_usage"),
+    ),
+  );
   assert.equal(seen.length, 1, "one usage lookup for the whole batch");
   assert.equal(seen[0].season, 2026);
   assert.equal(seen[0].week, 3);
@@ -374,9 +409,28 @@ test("find-a-trade refuses lopsided 'mutual improvements' (a star QB for a depth
   const { mutualFairnessGuard } = require("../src/services/tradeFind");
   const P = (id, position, pts) => ({ player_id: id, player_key: id, name: id, position, projected_points: pts });
   // Phone screenshot 2026-10-15: WR 8.7 out, QB 20.3 in, +6.8 to you, +0.0 to them.
-  assert.equal(mutualFairnessGuard({ give: P("wr", "WR", 8.7), receive: P("qb", "QB", 20.3), userDelta: 6.8, opponentDelta: 0.04 }), false);
+  assert.equal(
+    mutualFairnessGuard({
+      give: P("wr", "WR", 8.7),
+      receive: P("qb", "QB", 20.3),
+      userDelta: 6.8,
+      opponentDelta: 0.04,
+    }),
+    false,
+  );
   // QB 16.9 out, RB 21.9 in, +13.0 to you, +8.3 to them: you win far more season-long value than they gain.
-  assert.equal(mutualFairnessGuard({ give: P("qb", "QB", 16.9), receive: P("rb", "RB", 21.9), userDelta: 13.0, opponentDelta: 8.3 }), false);
+  assert.equal(
+    mutualFairnessGuard({
+      give: P("qb", "QB", 16.9),
+      receive: P("rb", "RB", 21.9),
+      userDelta: 13.0,
+      opponentDelta: 8.3,
+    }),
+    false,
+  );
   // A near-even swap that helps both lineups is still proposed.
-  assert.equal(mutualFairnessGuard({ give: P("rb", "RB", 18), receive: P("wr", "WR", 17), userDelta: 3, opponentDelta: 3 }), true);
+  assert.equal(
+    mutualFairnessGuard({ give: P("rb", "RB", 18), receive: P("wr", "WR", 17), userDelta: 3, opponentDelta: 3 }),
+    true,
+  );
 });

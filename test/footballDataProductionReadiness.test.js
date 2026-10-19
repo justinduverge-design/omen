@@ -99,7 +99,10 @@ test("Phase 4 assessment preserves the exact Phase 3 artifact and all non-activa
   assert.equal(result.schema, "omen-football-production-readiness.v1");
   assert.equal(result.status, "ready_for_founder_approval");
   assert.equal(result.acceptance_sha256, ACCEPTANCE_SHA256);
-  assert.deepEqual(result.phases.map((phase) => phase.name), PHASE_NAMES);
+  assert.deepEqual(
+    result.phases.map((phase) => phase.name),
+    PHASE_NAMES,
+  );
   assert.deepEqual(result.alerts.required, REQUIRED_ALERT_CODES);
   assert.ok(result.schedules.every((schedule) => schedule.active === true));
   assert.equal(result.gates.remote_host_mutation_authorized, false);
@@ -107,9 +110,9 @@ test("Phase 4 assessment preserves the exact Phase 3 artifact and all non-activa
   assert.equal(result.gates.publication_authorized, false);
   assert.equal(result.gates.production_scoring_authorized, false);
   assert.equal(result.gates.a4_no_write_accepted, true);
-  assert.ok(result.phases.every((phase) => phase.remote_mutations.every(
-    (action) => action.requires_founder_approval === true,
-  )));
+  assert.ok(
+    result.phases.every((phase) => phase.remote_mutations.every((action) => action.requires_founder_approval === true)),
+  );
 });
 
 test("an offline Command Center witness blocks readiness and emits witness outage evidence", () => {
@@ -138,20 +141,20 @@ test("an offline Command Center witness blocks readiness and emits witness outag
 test("A4 acceptance requires real rows, all three formats, healthy services, and zero writes", () => {
   assert.deepEqual(evaluateA4NoWriteEvidence(a4Evidence()), { status: "pass", failures: [] });
 
-  const failed = evaluateA4NoWriteEvidence(a4Evidence({
-    real_rows_read: 0,
-    writes_attempted: 1,
-    half_ppr_comparison: "fail",
-    cron_health: "unknown",
-  }));
+  const failed = evaluateA4NoWriteEvidence(
+    a4Evidence({
+      real_rows_read: 0,
+      writes_attempted: 1,
+      half_ppr_comparison: "fail",
+      cron_health: "unknown",
+    }),
+  );
 
   assert.equal(failed.status, "fail");
-  assert.deepEqual(failed.failures.map((failure) => failure.code), [
-    "a4_no_real_rows",
-    "a4_write_attempted",
-    "a4_format_comparison_failed",
-    "a4_cron_unhealthy",
-  ]);
+  assert.deepEqual(
+    failed.failures.map((failure) => failure.code),
+    ["a4_no_real_rows", "a4_write_attempted", "a4_format_comparison_failed", "a4_cron_unhealthy"],
+  );
 });
 
 test("hash drift, latest aliases, promoted Phase 3 evidence, or missing failure coverage fail closed", () => {
@@ -209,12 +212,10 @@ test("unproven provisioning, alert delivery, schedules, supervision, backup, cor
   });
 
   assert.equal(result.status, "blocked");
-  assert.deepEqual(result.blockers.map((blocker) => blocker.code), [
-    "kvm1_not_provisioned",
-    "live_alerts_unproven",
-    "schedules_not_active",
-    "backup_rehearsal_unproven",
-  ]);
+  assert.deepEqual(
+    result.blockers.map((blocker) => blocker.code),
+    ["kvm1_not_provisioned", "live_alerts_unproven", "schedules_not_active", "backup_rehearsal_unproven"],
+  );
   assert.equal(result.alerts.live_delivery_proven, false);
   assert.ok(result.schedules.every((schedule) => schedule.active === false));
   assert.equal(result.gates.publication_authorized, false);
@@ -238,14 +239,23 @@ test("a controlled correction fixture is accepted only with explicit non-upstrea
     },
   });
   const passed = buildProductionReadinessAssessment({
-    phase3: phase3Evidence(), hosts: hostEvidence(), infrastructure, a4: a4Evidence(), alertCodes: REQUIRED_ALERT_CODES,
+    phase3: phase3Evidence(),
+    hosts: hostEvidence(),
+    infrastructure,
+    a4: a4Evidence(),
+    alertCodes: REQUIRED_ALERT_CODES,
   });
   assert.equal(passed.status, "ready_for_founder_approval");
 
   const blocked = buildProductionReadinessAssessment({
-    phase3: phase3Evidence(), hosts: hostEvidence(),
-    infrastructure: { ...infrastructure, controlled_correction: { ...infrastructure.controlled_correction, changed_subject_count: 0 } },
-    a4: a4Evidence(), alertCodes: REQUIRED_ALERT_CODES,
+    phase3: phase3Evidence(),
+    hosts: hostEvidence(),
+    infrastructure: {
+      ...infrastructure,
+      controlled_correction: { ...infrastructure.controlled_correction, changed_subject_count: 0 },
+    },
+    a4: a4Evidence(),
+    alertCodes: REQUIRED_ALERT_CODES,
   });
   assert.ok(blocked.blockers.some((entry) => entry.code === "controlled_correction_fixture_invalid"));
 });

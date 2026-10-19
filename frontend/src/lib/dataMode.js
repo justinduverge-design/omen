@@ -34,7 +34,9 @@ const VALID_MODES = ['mock', 'demo', 'live'];
 let current = null;
 
 const listeners = new Set();
-function notify() { for (const cb of listeners) cb(); }
+function notify() {
+  for (const cb of listeners) cb();
+}
 
 export function subscribeDataMode(cb) {
   listeners.add(cb);

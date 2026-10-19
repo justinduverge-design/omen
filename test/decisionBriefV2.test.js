@@ -93,7 +93,7 @@ test("limitationStatements ignores live signals and malformed entries", () => {
       c: { status: "unavailable" },
       d: null,
     }),
-    ["trimmed"]
+    ["trimmed"],
   );
 });
 
@@ -118,12 +118,18 @@ test("v3 adds canonical capabilities without changing the v2 compatibility envel
 
   assert.equal(brief.contract_version, CONTRACT_V3);
   assert.equal(brief.capability_contract, "decision-capabilities.v1");
-  assert.deepEqual(brief.capabilities.map(({ name, state, kind, used }) => ({ name, state, kind, used })), [
-    { name: "game_time_tv", state: "unavailable", kind: "limitation", used: false },
-    { name: "projections", state: "live", kind: "projection", used: true },
-  ]);
-  assert.deepEqual(brief.evidence.map(({ name, source_status, kind }) => ({ name, source_status, kind })), [
-    { name: "game_time_tv", source_status: "unavailable", kind: "limitation" },
-    { name: "projections", source_status: "live", kind: "projection" },
-  ]);
+  assert.deepEqual(
+    brief.capabilities.map(({ name, state, kind, used }) => ({ name, state, kind, used })),
+    [
+      { name: "game_time_tv", state: "unavailable", kind: "limitation", used: false },
+      { name: "projections", state: "live", kind: "projection", used: true },
+    ],
+  );
+  assert.deepEqual(
+    brief.evidence.map(({ name, source_status, kind }) => ({ name, source_status, kind })),
+    [
+      { name: "game_time_tv", source_status: "unavailable", kind: "limitation" },
+      { name: "projections", source_status: "live", kind: "projection" },
+    ],
+  );
 });

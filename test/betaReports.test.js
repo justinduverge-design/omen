@@ -4,22 +4,47 @@ const assert = require("node:assert/strict");
 const express = require("express");
 const http = require("node:http");
 const { createBetaReportsRouter } = require("../src/routes/betaReports");
-const valid = { screen: "command_center", app_version: "0.1.0", build: "6", os_version: "iOS 18.0", device_model: "iPhone", connection_state: "espn:connected", recent_error_codes: ["provider_unavailable"], message: "The button does not respond.", disclosure_accepted: true };
+const valid = {
+  screen: "command_center",
+  app_version: "0.1.0",
+  build: "6",
+  os_version: "iOS 18.0",
+  device_model: "iPhone",
+  connection_state: "espn:connected",
+  recent_error_codes: ["provider_unavailable"],
+  message: "The button does not respond.",
+  disclosure_accepted: true,
+};
 async function run(body, options = {}) {
   const stored = [];
-  const app = express(); app.use(express.json());
-  app.use(createBetaReportsRouter({
-    authenticate: (req, res, next) => { req.user = { id: "owner" }; next(); },
-    store: async (row) => { stored.push(row); return { id: "report-1" }; },
-    ...options,
-  }));
+  const app = express();
+  app.use(express.json());
+  app.use(
+    createBetaReportsRouter({
+      authenticate: (req, res, next) => {
+        req.user = { id: "owner" };
+        next();
+      },
+      store: async (row) => {
+        stored.push(row);
+        return { id: "report-1" };
+      },
+      ...options,
+    }),
+  );
   const server = http.createServer(app);
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   try {
-    const response = await fetch(`http://127.0.0.1:${server.address().port}/`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    const response = await fetch(`http://127.0.0.1:${server.address().port}/`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
     const text = await response.text();
     return { status: response.status, body: text.startsWith("{") ? JSON.parse(text) : null, stored };
-  } finally { await new Promise((r) => server.close(r)); }
+  } finally {
+    await new Promise((r) => server.close(r));
+  }
 }
 test("report stores only allowlisted metadata under the authenticated owner", async () => {
   const result = await run(valid);
@@ -29,7 +54,16 @@ test("report stores only allowlisted metadata under the authenticated owner", as
   assert.equal(result.body.contract_version, "beta-report.v1");
 });
 test("report rejects credentials, league payloads, screenshots and unacknowledged disclosure without storage", async () => {
-  for (const patch of [{ user_id: "victim" }, { league_name: "private" }, { roster: [] }, { screenshot: "pixels" }, { message: "espn_s2=secret" }, { connection_state: "espn:my-league" }, { recent_error_codes: ["provider said secret"] }, { disclosure_accepted: false }]) {
+  for (const patch of [
+    { user_id: "victim" },
+    { league_name: "private" },
+    { roster: [] },
+    { screenshot: "pixels" },
+    { message: "espn_s2=secret" },
+    { connection_state: "espn:my-league" },
+    { recent_error_codes: ["provider said secret"] },
+    { disclosure_accepted: false },
+  ]) {
     const result = await run({ ...valid, ...patch });
     assert.equal(result.status, 400);
     assert.equal(result.stored.length, 0);
@@ -37,13 +71,21 @@ test("report rejects credentials, league payloads, screenshots and unacknowledge
   }
 });
 test("report fails closed on authentication and storage failure", async () => {
-  assert.equal((await run(valid, { authenticate: (_q, r) => r.status(401).json({ error: "unauthorized" }) })).status, 401);
-  const result = await run(valid, { store: async () => { throw Error("private database detail"); } });
+  assert.equal(
+    (await run(valid, { authenticate: (_q, r) => r.status(401).json({ error: "unauthorized" }) })).status,
+    401,
+  );
+  const result = await run(valid, {
+    store: async () => {
+      throw Error("private database detail");
+    },
+  });
   assert.equal(result.status, 503);
   assert.doesNotMatch(JSON.stringify(result.body), /private database/);
 });
 // Synthetic, cookie-shaped values (not real credentials) in the shapes people paste from a browser.
-const FAKE_S2 = "AEBx7Kq2%2FfR9mZt4Lw8nYp3%2BvC6sJd1Qh5Ge0Uo7Ia2Xb9Nc4Rk8Tf3Wm6Zy1Ep5Hu0Lj7Vg2Dq9Os4Bn8Ck3Mx6Pz1Ar5Ft0Iw7Kv2Gs9Eh4Ly8Ud3Nj6Tq1Ob5Rm0Wc7Xp2Za9%3D";
+const FAKE_S2 =
+  "AEBx7Kq2%2FfR9mZt4Lw8nYp3%2BvC6sJd1Qh5Ge0Uo7Ia2Xb9Nc4Rk8Tf3Wm6Zy1Ep5Hu0Lj7Vg2Dq9Os4Bn8Ck3Mx6Pz1Ar5Ft0Iw7Kv2Gs9Eh4Ly8Ud3Nj6Tq1Ob5Rm0Wc7Xp2Za9%3D";
 const FAKE_SWID = "{3F2A9C1E-7B4D-4E8A-9F21-6C5D0B7A3E94}";
 test("report rejects ESPN cookie label variants and bare cookie-shaped values (Codex #440, plan A2)", async () => {
   const pasted = [

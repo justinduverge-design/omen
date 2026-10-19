@@ -16,7 +16,9 @@ const DEFAULT_WEEKS_AHEAD = 2;
 const LAST_REGULAR_WEEK = 18;
 
 function stageCode(error) {
-  return typeof error?.code === "string" && /^[A-Za-z0-9_]{1,64}$/.test(error.code) ? error.code : "projection_stage_failed";
+  return typeof error?.code === "string" && /^[A-Za-z0-9_]{1,64}$/.test(error.code)
+    ? error.code
+    : "projection_stage_failed";
 }
 
 function killSwitchOn(env) {
@@ -28,7 +30,8 @@ function weeksToFetch({ season, now, weeksAhead = DEFAULT_WEEKS_AHEAD, weekConte
   const context = weekContext(now);
   if (context.season !== season || context.raw_week > LAST_REGULAR_WEEK) return [];
   const weeks = [];
-  for (let week = context.week; week <= Math.min(LAST_REGULAR_WEEK, context.week + weeksAhead); week += 1) weeks.push(week);
+  for (let week = context.week; week <= Math.min(LAST_REGULAR_WEEK, context.week + weeksAhead); week += 1)
+    weeks.push(week);
   return weeks;
 }
 
@@ -62,17 +65,33 @@ function createProjectionStages({
           fetched = await source.fetchWeek({ season, week, signal });
           const written = await writer.writeWeek({ runId, fetchedAt, fetched });
           results.push({
-            week, state: written.state, inserted: written.inserted, changed: written.changed,
-            unchanged: written.unchanged, unmatched: written.unmatched,
+            week,
+            state: written.state,
+            inserted: written.inserted,
+            changed: written.changed,
+            unchanged: written.unchanged,
+            unmatched: written.unmatched,
           });
         } catch (error) {
           const code = stageCode(error);
           // A fetch that failed before the writer ran has no receipt yet; the writer records its own failures.
           if (!fetched && typeof writer.recordFailure === "function") {
-            await writer.recordFailure({ runId, season, week, fetchedAt, code, summary: "projection fetch failed", sourceUrl: "https://api.sleeper.app/projections/nfl" });
+            await writer.recordFailure({
+              runId,
+              season,
+              week,
+              fetchedAt,
+              code,
+              summary: "projection fetch failed",
+              sourceUrl: "https://api.sleeper.app/projections/nfl",
+            });
           }
           results.push({ week, state: "failed", code });
-          failed = failed || Object.assign(new Error(`projection stage week ${week} failed`), { code: `projections_${code}`.slice(0, 64) });
+          failed =
+            failed ||
+            Object.assign(new Error(`projection stage week ${week} failed`), {
+              code: `projections_${code}`.slice(0, 64),
+            });
         }
       }
       if (failed && mode === "strict") throw failed;

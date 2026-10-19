@@ -66,12 +66,19 @@ async function verify(leagueId) {
 
   const decidable = held.size > 0;
 
-  console.log(`\n=== league status: ${String(league.status).toUpperCase()} · ${teams} teams · season ${league.season} ===`);
+  console.log(
+    `\n=== league status: ${String(league.status).toUpperCase()} · ${teams} teams · season ${league.season} ===`,
+  );
   console.log(`  rostered league-wide  : ${held.size}`);
   console.log(`  pool size             : ${pool.length} (${elapsedMs}ms)`);
   console.log(`  with projections      : ${projected}`);
   console.log(`  nulls sorted last     : ${nullsLast ? "yes" : "NO — BUG"}`);
-  console.log(`  top 3                 : ${pool.slice(0, 3).map((p) => `${p.name} ${p.projected_points}`).join(" | ")}`);
+  console.log(
+    `  top 3                 : ${pool
+      .slice(0, 3)
+      .map((p) => `${p.name} ${p.projected_points}`)
+      .join(" | ")}`,
+  );
 
   if (!decidable) {
     console.log(`  SUBTRACTION           : UNDECIDABLE — nobody is rostered yet.`);
@@ -83,7 +90,9 @@ async function verify(leagueId) {
 
   if (leaked.length) {
     console.log(`  SUBTRACTION           : FAIL — ${leaked.length} rostered player(s) leaked into the pool`);
-    leaked.slice(0, 10).forEach((p) => { console.log(`      leaked: ${p.name} (${p.player_id})`); });
+    leaked.slice(0, 10).forEach((p) => {
+      console.log(`      leaked: ${p.name} (${p.player_id})`);
+    });
     return { ok: false, decidable: true };
   }
 
@@ -115,7 +124,7 @@ async function verify(leagueId) {
   console.log(
     anyDecidable
       ? `\n${failed ? "S3 NOT PROVEN — subtraction leaked." : "S3 PROVEN — roster subtraction verified against a drafted league."}`
-      : `\nS3 still open: every league checked is undrafted.`
+      : `\nS3 still open: every league checked is undrafted.`,
   );
   process.exit(failed ? 1 : 0);
 })();

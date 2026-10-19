@@ -73,24 +73,26 @@ function uniqueMap(rows, label) {
 }
 
 function expectedOffense(fact) {
-  const standard = fact.passing_yards / 25
-    + 4 * fact.passing_touchdowns
-    - 2 * fact.passing_interceptions
-    + (fact.rushing_yards + fact.receiving_yards) / 10
-    + 6 * (fact.rushing_touchdowns + fact.receiving_touchdowns + fact.special_teams_touchdowns)
-    + 2 * (fact.passing_two_point_conversions
-      + fact.rushing_two_point_conversions
-      + fact.receiving_two_point_conversions)
-    - 2 * fact.lost_fumbles;
+  const standard =
+    fact.passing_yards / 25 +
+    4 * fact.passing_touchdowns -
+    2 * fact.passing_interceptions +
+    (fact.rushing_yards + fact.receiving_yards) / 10 +
+    6 * (fact.rushing_touchdowns + fact.receiving_touchdowns + fact.special_teams_touchdowns) +
+    2 *
+      (fact.passing_two_point_conversions + fact.rushing_two_point_conversions + fact.receiving_two_point_conversions) -
+    2 * fact.lost_fumbles;
   return { standard, half_ppr: standard + 0.5 * fact.receptions, ppr: standard + fact.receptions };
 }
 
 function expectedKicker(fact) {
-  return fact.pat_made
-    + 3 * (fact.fg_made_0_19 + fact.fg_made_20_29 + fact.fg_made_30_39)
-    + 4 * fact.fg_made_40_49
-    + 5 * fact.fg_made_50_59
-    + 6 * fact.fg_made_60_plus;
+  return (
+    fact.pat_made +
+    3 * (fact.fg_made_0_19 + fact.fg_made_20_29 + fact.fg_made_30_39) +
+    4 * fact.fg_made_40_49 +
+    5 * fact.fg_made_50_59 +
+    6 * fact.fg_made_60_plus
+  );
 }
 
 function pointsAllowed(points) {
@@ -104,28 +106,34 @@ function pointsAllowed(points) {
 }
 
 function expectedDst(fact) {
-  return fact.sacks
-    + 2 * fact.interceptions
-    + 2 * fact.fumble_recoveries
-    + 6 * fact.touchdowns
-    + 2 * fact.safeties
-    + 2 * fact.blocked_kicks
-    + pointsAllowed(fact.points_allowed);
+  return (
+    fact.sacks +
+    2 * fact.interceptions +
+    2 * fact.fumble_recoveries +
+    6 * fact.touchdowns +
+    2 * fact.safeties +
+    2 * fact.blocked_kicks +
+    pointsAllowed(fact.points_allowed)
+  );
 }
 
 function assertRules(result) {
-  if (result.rulesets?.offensive?.version !== "omen-fantasy-v1"
-      || result.rulesets?.kicker?.version !== "omen-kicker-v1"
-      || result.rulesets?.dst?.version !== "omen-dst-v1"
-      || JSON.stringify(result.rulesets.kicker.rules) !== JSON.stringify(EXPECTED_KICKER_RULES)
-      || JSON.stringify(result.rulesets.dst.rules) !== JSON.stringify(EXPECTED_DST_RULES)) {
+  if (
+    result.rulesets?.offensive?.version !== "omen-fantasy-v1" ||
+    result.rulesets?.kicker?.version !== "omen-kicker-v1" ||
+    result.rulesets?.dst?.version !== "omen-dst-v1" ||
+    JSON.stringify(result.rulesets.kicker.rules) !== JSON.stringify(EXPECTED_KICKER_RULES) ||
+    JSON.stringify(result.rulesets.dst.rules) !== JSON.stringify(EXPECTED_DST_RULES)
+  ) {
     fail("VALIDATION_RULESET_MISMATCH", "acceptance artifact does not contain the reviewed v1 rule tables");
   }
 }
 
 function validateAcceptanceDocument(result) {
-  if (result?.schema !== "omen-football-scoring-acceptance.v1"
-      || result?.normalization_version !== "omen-football-normalization.v1") {
+  if (
+    result?.schema !== "omen-football-scoring-acceptance.v1" ||
+    result?.normalization_version !== "omen-football-normalization.v1"
+  ) {
     fail("VALIDATION_SCHEMA_MISMATCH", "acceptance schema or normalization version is unsupported");
   }
   if (result.publication?.authorized !== false || result.publication?.promoted !== false) {
@@ -156,33 +164,45 @@ function validateAcceptanceDocument(result) {
       Math.abs(expected.ppr - derived.publisher_reference?.ppr),
     ];
     maxOffensiveDelta = Math.max(maxOffensiveDelta, ...deltas);
-    if (!near(expected.standard, derived.standard)
-        || !near(expected.half_ppr, derived.half_ppr)
-        || !near(expected.ppr, derived.ppr)
-        || !near(expected.standard, derived.publisher_reference?.standard)
-        || !near(expected.ppr, derived.publisher_reference?.ppr)) {
+    if (
+      !near(expected.standard, derived.standard) ||
+      !near(expected.half_ppr, derived.half_ppr) ||
+      !near(expected.ppr, derived.ppr) ||
+      !near(expected.standard, derived.publisher_reference?.standard) ||
+      !near(expected.ppr, derived.publisher_reference?.ppr)
+    ) {
       fail("VALIDATION_OFFENSIVE_MISMATCH", `independent offensive recomputation failed for ${rowKey}`);
     }
   }
   for (const [rowKey, fact] of factKicker) {
     const derived = derivedKicker.get(rowKey);
     const expected = expectedKicker(fact);
-    if (!derived || !near(expected, derived.standard)
-        || !near(expected, derived.half_ppr) || !near(expected, derived.ppr)) {
+    if (
+      !derived ||
+      !near(expected, derived.standard) ||
+      !near(expected, derived.half_ppr) ||
+      !near(expected, derived.ppr)
+    ) {
       fail("VALIDATION_KICKER_MISMATCH", `independent kicker recomputation failed for ${rowKey}`);
     }
   }
   for (const [rowKey, fact] of factDst) {
     const derived = derivedDst.get(rowKey);
     const expected = expectedDst(fact);
-    if (!derived || !near(expected, derived.standard)
-        || !near(expected, derived.half_ppr) || !near(expected, derived.ppr)) {
+    if (
+      !derived ||
+      !near(expected, derived.standard) ||
+      !near(expected, derived.half_ppr) ||
+      !near(expected, derived.ppr)
+    ) {
       fail("VALIDATION_DST_MISMATCH", `independent DST recomputation failed for ${rowKey}`);
     }
   }
-  if (factOffense.size !== derivedOffense.size
-      || factKicker.size !== derivedKicker.size
-      || factDst.size !== derivedDst.size) {
+  if (
+    factOffense.size !== derivedOffense.size ||
+    factKicker.size !== derivedKicker.size ||
+    factDst.size !== derivedDst.size
+  ) {
     fail("VALIDATION_CARDINALITY_MISMATCH", "fact/result cardinality differs");
   }
 
@@ -205,9 +225,11 @@ function validateAcceptanceDocument(result) {
 function validateAcceptanceArtifact({ acceptanceBytes, receiptBytes } = {}) {
   const result = parseJson(acceptanceBytes, "acceptance artifact");
   const receipt = parseJson(receiptBytes, "acceptance receipt");
-  if (receipt.schema !== "omen-football-scoring-replay.v1"
-      || receipt.acceptance_sha256 !== sha256(acceptanceBytes)
-      || receipt.source_bundle_hash !== result.source_bundle_hash) {
+  if (
+    receipt.schema !== "omen-football-scoring-replay.v1" ||
+    receipt.acceptance_sha256 !== sha256(acceptanceBytes) ||
+    receipt.source_bundle_hash !== result.source_bundle_hash
+  ) {
     fail("VALIDATION_RECEIPT_MISMATCH", "acceptance bytes do not match their exact receipt");
   }
   return {

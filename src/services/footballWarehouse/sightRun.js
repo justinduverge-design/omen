@@ -13,8 +13,10 @@ const VERSIONS = Object.freeze(["v1", "v2"]);
 const METRIC_NAME = "omen_sight";
 
 // A change to the fitted weights must recompute every week, so their fingerprint is part of each run's inputs.
-const WEIGHTS_SHA = require("node:crypto").createHash("sha256")
-  .update(require("node:fs").readFileSync(require.resolve("./sight-weights.v1.json"))).digest("hex");
+const WEIGHTS_SHA = require("node:crypto")
+  .createHash("sha256")
+  .update(require("node:fs").readFileSync(require.resolve("./sight-weights.v1.json")))
+  .digest("hex");
 
 // The same play selection RAT-RB/WR/TE use, plus the week so the run can stop at the through-week.
 const PLAYS_SQL = `
@@ -84,26 +86,64 @@ const KDEF_PLAYS_SQL = `
          p.source_row->>'qb_dropback' AS qb_dropback
     FROM football.nfl_plays p JOIN football.nfl_games g ON g.season = p.season AND g.game_id = p.game_id
    WHERE p.season = $1 AND g.game_type = 'REG' AND p.week <= $2`;
-const ROSTER_STATUS_SQL = "SELECT player_id, roster_status FROM football.nfl_weekly_rosters WHERE season = $1 AND week = $2";
-const KICKERS_SQL = "SELECT player_id, gsis_id FROM football.football_players WHERE football_position = 'K' AND gsis_id IS NOT NULL";
+const ROSTER_STATUS_SQL =
+  "SELECT player_id, roster_status FROM football.nfl_weekly_rosters WHERE season = $1 AND week = $2";
+const KICKERS_SQL =
+  "SELECT player_id, gsis_id FROM football.football_players WHERE football_position = 'K' AND gsis_id IS NOT NULL";
 
-const kdefPlay = (r) => ({ week: r.week, gameId: r.game_id, posteamId: r.posteam_id, defteamId: r.defteam_id, epa: r.epa, playType: r.play_type,
-  kickerGsis: r.kicker_gsis, fieldGoalAttempt: r.fga, fieldGoalResult: r.fg_result, kickDistance: r.kick_distance,
-  extraPointAttempt: r.xpa, extraPointResult: r.xp_result, sack: r.sack, interception: r.interception, fumbleLost: r.fumble_lost,
-  fumbleRecoveryTeam: r.fr_team, touchdown: r.touchdown, tdTeam: r.td_team, safety: r.safety, qbDropback: r.qb_dropback });
+const kdefPlay = (r) => ({
+  week: r.week,
+  gameId: r.game_id,
+  posteamId: r.posteam_id,
+  defteamId: r.defteam_id,
+  epa: r.epa,
+  playType: r.play_type,
+  kickerGsis: r.kicker_gsis,
+  fieldGoalAttempt: r.fga,
+  fieldGoalResult: r.fg_result,
+  kickDistance: r.kick_distance,
+  extraPointAttempt: r.xpa,
+  extraPointResult: r.xp_result,
+  sack: r.sack,
+  interception: r.interception,
+  fumbleLost: r.fumble_lost,
+  fumbleRecoveryTeam: r.fr_team,
+  touchdown: r.touchdown,
+  tdTeam: r.td_team,
+  safety: r.safety,
+  qbDropback: r.qb_dropback,
+});
 
 const PPG_SQL = `
   SELECT player_id, avg(fantasy_points_ppr)::float8 AS ppg FROM football.nfl_player_weekly_stats
    WHERE season = $1 AND season_type = 'REG' AND week <= $2 GROUP BY player_id`;
 
-const PLAYERS_SQL = "SELECT player_id, gsis_id, football_position FROM football.football_players WHERE football_position IN ('QB', 'RB', 'FB', 'WR', 'TE')";
+const PLAYERS_SQL =
+  "SELECT player_id, gsis_id, football_position FROM football.football_players WHERE football_position IN ('QB', 'RB', 'FB', 'WR', 'TE')";
 
 const play = (r) => ({
-  gameId: r.game_id, posteamId: r.posteam_id, receiverId: r.receiver_player_id, rusherId: r.rusher_player_id,
-  epa: r.epa, yacEpa: r.yac_epa, success: r.success, passAttempt: r.pass_attempt, rushAttempt: r.rush_attempt,
-  sack: r.sack, qbScramble: r.qb_scramble, twoPoint: r.two_point, completePass: r.complete_pass, cp: r.cp,
-  yardsGained: r.yards_gained, airYards: r.air_yards, yardline100: r.yardline_100, fumbleLost: r.fumble_lost,
-  fumbledGsisId: r.fumbled_gsis_id, passerId: r.passer_player_id, qbDropback: r.qb_dropback, interception: r.interception,
+  gameId: r.game_id,
+  posteamId: r.posteam_id,
+  receiverId: r.receiver_player_id,
+  rusherId: r.rusher_player_id,
+  epa: r.epa,
+  yacEpa: r.yac_epa,
+  success: r.success,
+  passAttempt: r.pass_attempt,
+  rushAttempt: r.rush_attempt,
+  sack: r.sack,
+  qbScramble: r.qb_scramble,
+  twoPoint: r.two_point,
+  completePass: r.complete_pass,
+  cp: r.cp,
+  yardsGained: r.yards_gained,
+  airYards: r.air_yards,
+  yardline100: r.yardline_100,
+  fumbleLost: r.fumble_lost,
+  fumbledGsisId: r.fumbled_gsis_id,
+  passerId: r.passer_player_id,
+  qbDropback: r.qb_dropback,
+  interception: r.interception,
   cpoe: r.cpoe,
 });
 
@@ -119,7 +159,9 @@ function withFlexGrade(values) {
   const pts = flex.map((v) => v.value);
   const m = pts.reduce((a, b) => a + b, 0) / pts.length;
   const sd = Math.sqrt(pts.reduce((a, b) => a + (b - m) ** 2, 0) / pts.length);
-  for (const v of flex) v.components.flex_grade = Math.round(Math.min(100, Math.max(0, 50 + 10 * (sd > 1e-9 ? (v.value - m) / sd : 0))) * 10000) / 10000;
+  for (const v of flex)
+    v.components.flex_grade =
+      Math.round(Math.min(100, Math.max(0, 50 + 10 * (sd > 1e-9 ? (v.value - m) / sd : 0))) * 10000) / 10000;
   return values;
 }
 
@@ -137,81 +179,153 @@ function createSightRunner({ pool, transactionTimeouts } = {}) {
       if (!Number.isInteger(last) || last < 1) return { state: "skipped", reason: "no_regular_season_plays" };
       let valueCount = 0;
       let state = "unchanged";
-      for (let w = 1; w <= Math.min(last, 18); w += 1) for (const version of VERSIONS) {
-        const r = await runWeek(season, w, version);
-        if (r.state === "succeeded") state = "succeeded";
-        if (w === last && version === "v1") valueCount = r.valueCount ?? 0;
-      }
+      for (let w = 1; w <= Math.min(last, 18); w += 1)
+        for (const version of VERSIONS) {
+          const r = await runWeek(season, w, version);
+          if (r.state === "succeeded") state = "succeeded";
+          if (w === last && version === "v1") valueCount = r.valueCount ?? 0;
+        }
       return { state, valueCount, throughWeek: last };
     },
   };
 
   async function runWeek(season, through, version) {
-      return writer.writeRun({
-        metricName: METRIC_NAME,
-        formulaVersion: version,
-        season,
-        week: through,
-        async resolveInputs(client) {
-          const inputs = await client.query({ name: "sight-inputs-v1", text: INPUTS_SQL, values: [season, through] });
-          return {
-            ingestEventIds: inputs.rows.map((row) => Number(row.ingest_event_id)),
-            parameters: { metric: "SIGHT", version, weights_sha256: WEIGHTS_SHA, code_revision: SIGHT_CODE_REVISION, scope: { season_type: "REG", through_week: through } },
-          };
-        },
-        async computeValues(client) {
-          const players = await client.query({ name: "sight-players-v1", text: PLAYERS_SQL });
-          const positions = new Map(players.rows.map((r) => [r.player_id, { position: r.football_position === "FB" ? "RB" : r.football_position, gsis: r.gsis_id }]));
-          const plays = await client.query({ name: "sight-plays-v1", text: PLAYS_SQL, values: [season, through] });
-          const ppg = await client.query({ name: "sight-ppg-v1", text: PPG_SQL, values: [season, through] });
-          let context = null;
-          let role = null;
-          const allPlays = plays.rows.map(play);
-          if (version === "v2") {
-            const stats = await client.query({ name: "sight-stats-v1", text: STATS_SQL, values: [season, through] });
-            const games = await client.query({ name: "sight-games-v2", text: GAMES_SQL, values: [season] });
-            const priorGames = await client.query({ name: "sight-elements-games-v1", text: ELEMENTS_GAMES_SQL, values: [season] });
-            const badGame = new Map(priorGames.rows.map((g) => [g.game_id, isBadWeather({ dome: g.roof === "dome" || g.roof === "closed",
-              wind: g.wind_mph == null ? null : Number(g.wind_mph), temp: g.temperature_f == null ? null : Number(g.temperature_f), precip: g.precip_in == null ? null : Number(g.precip_in) })]));
-            const priorPlays = await client.query({ name: "sight-elements-plays-v1", text: ELEMENTS_PLAYS_SQL, values: [season] });
-            const gaps = elementsGaps(priorPlays.rows.map((r) => ({ posteamId: r.posteam_id, gameId: r.game_id, epa: r.epa })), badGame);
-            const built = buildContext(stats.rows, games.rows, gaps);
-            context = (id, position) => built.contextFor(id, position, through);
-            const statuses = await client.query({ name: "sight-roster-status-v1", text: ROSTER_STATUS_SQL, values: [season, through + 1] });
-            const teamWeeks = new Map();
-            for (const r of stats.rows) { if (!r.team_id) continue; if (!teamWeeks.has(r.player_id)) teamWeeks.set(r.player_id, []); teamWeeks.get(r.player_id).push([r.week, r.team_id]); }
-            role = buildRoleContext({
-              seasonAgg: aggregateSkillPlays(allPlays, positions),
-              recentAgg: aggregateSkillPlays(plays.rows.filter((r) => r.week >= through - 2).map(play), positions),
-              positions,
-              statusNext: new Map(statuses.rows.map((r) => [r.player_id, r.roster_status])),
-              teamOf: (id) => (teamWeeks.get(id) || []).sort((a, b) => b[0] - a[0])[0]?.[1] || null,
-            });
-          }
-          const skill = computeSight({
-            season,
-            week: through,
-            aggregates: aggregateSkillPlays(allPlays, positions),
-            positions,
-            ppgToDate: new Map(ppg.rows.map((r) => [r.player_id, Number(r.ppg)])),
-            context,
-            role,
+    return writer.writeRun({
+      metricName: METRIC_NAME,
+      formulaVersion: version,
+      season,
+      week: through,
+      async resolveInputs(client) {
+        const inputs = await client.query({ name: "sight-inputs-v1", text: INPUTS_SQL, values: [season, through] });
+        return {
+          ingestEventIds: inputs.rows.map((row) => Number(row.ingest_event_id)),
+          parameters: {
+            metric: "SIGHT",
             version,
+            weights_sha256: WEIGHTS_SHA,
+            code_revision: SIGHT_CODE_REVISION,
+            scope: { season_type: "REG", through_week: through },
+          },
+        };
+      },
+      async computeValues(client) {
+        const players = await client.query({ name: "sight-players-v1", text: PLAYERS_SQL });
+        const positions = new Map(
+          players.rows.map((r) => [
+            r.player_id,
+            { position: r.football_position === "FB" ? "RB" : r.football_position, gsis: r.gsis_id },
+          ]),
+        );
+        const plays = await client.query({ name: "sight-plays-v1", text: PLAYS_SQL, values: [season, through] });
+        const ppg = await client.query({ name: "sight-ppg-v1", text: PPG_SQL, values: [season, through] });
+        let context = null;
+        let role = null;
+        const allPlays = plays.rows.map(play);
+        if (version === "v2") {
+          const stats = await client.query({ name: "sight-stats-v1", text: STATS_SQL, values: [season, through] });
+          const games = await client.query({ name: "sight-games-v2", text: GAMES_SQL, values: [season] });
+          const priorGames = await client.query({
+            name: "sight-elements-games-v1",
+            text: ELEMENTS_GAMES_SQL,
+            values: [season],
           });
-          if (version !== "v2") return skill;
-          const kickers = new Map((await client.query({ name: "sight-kickers-v1", text: KICKERS_SQL })).rows.map((r) => [r.gsis_id, r.player_id]));
-          const kdefPlays = (await client.query({ name: "sight-kdef-plays-v1", text: KDEF_PLAYS_SQL, values: [season, through] })).rows.map(kdefPlay);
-          const gameRows = (await client.query({ name: "sight-games-v2", text: GAMES_SQL, values: [season] })).rows;
-          const scored = gameRows.filter((g) => g.week <= through).map((g) => ({ week: g.week, homeTeamId: g.home_team_id, awayTeamId: g.away_team_id, homeScore: g.home_score, awayScore: g.away_score }));
-          const lines = weeklyLines(kdefPlays, scored, kickers);
-          const kickerTeam = new Map();
-          for (const p of kdefPlays) { const id = p.kickerGsis ? kickers.get(p.kickerGsis) : null; if (id && p.posteamId) kickerTeam.set(`${id}|${p.week}`, p.posteamId); }
-          const kickerTeamByWeek = (id, week) => { for (let w = week; w >= 1; w -= 1) { const t = kickerTeam.get(`${id}|${w}`); if (t) return t; } return null; };
-          const kdef = computeKdefSight({ season, week: through, lines, gameRows, kickerTeamByWeek, weightsFor, phase: phaseOf(through) });
-          const values = withFlexGrade([...skill.values, ...kdef.values]);
-          return { values, summary: { ...skill.summary, positions: { ...skill.summary.positions, ...kdef.summary } } };
-        },
-      });
+          const badGame = new Map(
+            priorGames.rows.map((g) => [
+              g.game_id,
+              isBadWeather({
+                dome: g.roof === "dome" || g.roof === "closed",
+                wind: g.wind_mph == null ? null : Number(g.wind_mph),
+                temp: g.temperature_f == null ? null : Number(g.temperature_f),
+                precip: g.precip_in == null ? null : Number(g.precip_in),
+              }),
+            ]),
+          );
+          const priorPlays = await client.query({
+            name: "sight-elements-plays-v1",
+            text: ELEMENTS_PLAYS_SQL,
+            values: [season],
+          });
+          const gaps = elementsGaps(
+            priorPlays.rows.map((r) => ({ posteamId: r.posteam_id, gameId: r.game_id, epa: r.epa })),
+            badGame,
+          );
+          const built = buildContext(stats.rows, games.rows, gaps);
+          context = (id, position) => built.contextFor(id, position, through);
+          const statuses = await client.query({
+            name: "sight-roster-status-v1",
+            text: ROSTER_STATUS_SQL,
+            values: [season, through + 1],
+          });
+          const teamWeeks = new Map();
+          for (const r of stats.rows) {
+            if (!r.team_id) continue;
+            if (!teamWeeks.has(r.player_id)) teamWeeks.set(r.player_id, []);
+            teamWeeks.get(r.player_id).push([r.week, r.team_id]);
+          }
+          role = buildRoleContext({
+            seasonAgg: aggregateSkillPlays(allPlays, positions),
+            recentAgg: aggregateSkillPlays(plays.rows.filter((r) => r.week >= through - 2).map(play), positions),
+            positions,
+            statusNext: new Map(statuses.rows.map((r) => [r.player_id, r.roster_status])),
+            teamOf: (id) => (teamWeeks.get(id) || []).sort((a, b) => b[0] - a[0])[0]?.[1] || null,
+          });
+        }
+        const skill = computeSight({
+          season,
+          week: through,
+          aggregates: aggregateSkillPlays(allPlays, positions),
+          positions,
+          ppgToDate: new Map(ppg.rows.map((r) => [r.player_id, Number(r.ppg)])),
+          context,
+          role,
+          version,
+        });
+        if (version !== "v2") return skill;
+        const kickers = new Map(
+          (await client.query({ name: "sight-kickers-v1", text: KICKERS_SQL })).rows.map((r) => [
+            r.gsis_id,
+            r.player_id,
+          ]),
+        );
+        const kdefPlays = (
+          await client.query({ name: "sight-kdef-plays-v1", text: KDEF_PLAYS_SQL, values: [season, through] })
+        ).rows.map(kdefPlay);
+        const gameRows = (await client.query({ name: "sight-games-v2", text: GAMES_SQL, values: [season] })).rows;
+        const scored = gameRows
+          .filter((g) => g.week <= through)
+          .map((g) => ({
+            week: g.week,
+            homeTeamId: g.home_team_id,
+            awayTeamId: g.away_team_id,
+            homeScore: g.home_score,
+            awayScore: g.away_score,
+          }));
+        const lines = weeklyLines(kdefPlays, scored, kickers);
+        const kickerTeam = new Map();
+        for (const p of kdefPlays) {
+          const id = p.kickerGsis ? kickers.get(p.kickerGsis) : null;
+          if (id && p.posteamId) kickerTeam.set(`${id}|${p.week}`, p.posteamId);
+        }
+        const kickerTeamByWeek = (id, week) => {
+          for (let w = week; w >= 1; w -= 1) {
+            const t = kickerTeam.get(`${id}|${w}`);
+            if (t) return t;
+          }
+          return null;
+        };
+        const kdef = computeKdefSight({
+          season,
+          week: through,
+          lines,
+          gameRows,
+          kickerTeamByWeek,
+          weightsFor,
+          phase: phaseOf(through),
+        });
+        const values = withFlexGrade([...skill.values, ...kdef.values]);
+        return { values, summary: { ...skill.summary, positions: { ...skill.summary.positions, ...kdef.summary } } };
+      },
+    });
   }
 }
 

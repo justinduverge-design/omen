@@ -48,7 +48,9 @@ async function runBoundedFailureReceipt(client, writeReceipt) {
     await client.query("COMMIT");
     return true;
   } catch {
-    try { await client.query("ROLLBACK"); } catch {}
+    try {
+      await client.query("ROLLBACK");
+    } catch {}
     return false;
   }
 }

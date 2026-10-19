@@ -38,21 +38,27 @@ const MIN_SLEEPER_ROWS = 2000;
  */
 const INJURY_STATUSES = new Set(["Questionable", "Doubtful", "Out", "IR", "PUP", "NA", "Sus", "COV", "DNR"]);
 // Cut by code point, never inside a surrogate pair (Postgres refuses a lone surrogate in jsonb).
-const text = (value, max) => (typeof value === "string" && value.trim() ? Array.from(value.trim()).slice(0, max).join("") : null);
+const text = (value, max) =>
+  typeof value === "string" && value.trim() ? Array.from(value.trim()).slice(0, max).join("") : null;
 
 /** Sleeper's injury report for one player, or nothing. An unknown status is skipped, never stored as something else. */
 function injuryOf(p) {
   const status = typeof p?.injury_status === "string" ? p.injury_status.trim() : "";
   if (!INJURY_STATUSES.has(status)) return {};
   const updated = Number(p?.news_updated);
-  return { injury: {
-    status,
-    body_part: text(p?.injury_body_part, 80),
-    notes: text(p?.injury_notes, 200),
-    practice_participation: text(p?.practice_participation, 40),
-    practice_description: text(p?.practice_description, 200),
-    source_updated_at: Number.isFinite(updated) && updated > 0 && Number.isFinite(new Date(updated).getTime()) ? new Date(updated).toISOString() : null,
-  } };
+  return {
+    injury: {
+      status,
+      body_part: text(p?.injury_body_part, 80),
+      notes: text(p?.injury_notes, 200),
+      practice_participation: text(p?.practice_participation, 40),
+      practice_description: text(p?.practice_description, 200),
+      source_updated_at:
+        Number.isFinite(updated) && updated > 0 && Number.isFinite(new Date(updated).getTime())
+          ? new Date(updated).toISOString()
+          : null,
+    },
+  };
 }
 
 const INJURY_SQL = `
@@ -75,12 +81,15 @@ function bioOf(p) {
 // "Marvin Harrison" compare equal. The birth date carries the identity; the name only has to agree. Same rule
 // as the SQL side (players_bio), character for character, so both sides normalize identically.
 function normalName(value) {
-  return String(value || "").toLowerCase()
-    .replace(/\b(jr|sr|ii|iii|iv|v)\b\.?/g, "").replace(/[^a-z]/g, "");
+  return String(value || "")
+    .toLowerCase()
+    .replace(/\b(jr|sr|ii|iii|iv|v)\b\.?/g, "")
+    .replace(/[^a-z]/g, "");
 }
 
 function sleeperRows(payload) {
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) throw Object.assign(new Error("sleeper players payload is not an object"), { code: "source_shape" });
+  if (!payload || typeof payload !== "object" || Array.isArray(payload))
+    throw Object.assign(new Error("sleeper players payload is not an object"), { code: "source_shape" });
   const rows = [];
   for (const [id, p] of Object.entries(payload)) {
     const gsisRaw = typeof p?.gsis_id === "string" ? p.gsis_id.trim() : "";
@@ -89,7 +98,14 @@ function sleeperRows(payload) {
     const espn = /^[0-9]{1,12}$/.test(espnRaw) ? espnRaw : null;
     if (!/^[0-9]{1,12}$/.test(id) || (!gsis && !espn && !bioOf(p).birthDate)) continue;
     const yahoo = p?.yahoo_id == null ? null : String(p.yahoo_id).trim();
-    rows.push({ sleeperId: id, gsisId: gsis, espnId: espn, ...bioOf(p), yahooId: /^[0-9]{1,12}$/.test(yahoo || "") ? yahoo : null, ...injuryOf(p) });
+    rows.push({
+      sleeperId: id,
+      gsisId: gsis,
+      espnId: espn,
+      ...bioOf(p),
+      yahooId: /^[0-9]{1,12}$/.test(yahoo || "") ? yahoo : null,
+      ...injuryOf(p),
+    });
   }
   return rows;
 }
@@ -140,17 +156,27 @@ function parseCsv(text) {
   for (let i = 0; i < text.length; i += 1) {
     const ch = text[i];
     if (quoted) {
-      if (ch === '"' && text[i + 1] === '"') { field += '"'; i += 1; }
-      else if (ch === '"') quoted = false;
+      if (ch === '"' && text[i + 1] === '"') {
+        field += '"';
+        i += 1;
+      } else if (ch === '"') quoted = false;
       else field += ch;
     } else if (ch === '"') quoted = true;
-    else if (ch === ",") { row.push(field); field = ""; }
-    else if (ch === "\n" || ch === "\r") {
+    else if (ch === ",") {
+      row.push(field);
+      field = "";
+    } else if (ch === "\n" || ch === "\r") {
       if (ch === "\r" && text[i + 1] === "\n") i += 1;
-      row.push(field); rows.push(row); row = []; field = "";
+      row.push(field);
+      rows.push(row);
+      row = [];
+      field = "";
     } else field += ch;
   }
-  if (field || row.length) { row.push(field); rows.push(row); }
+  if (field || row.length) {
+    row.push(field);
+    rows.push(row);
+  }
   return rows;
 }
 
@@ -158,14 +184,18 @@ function parseCsv(text) {
 function dynastyProcessRows(text) {
   const [header, ...body] = parseCsv(String(text || "").replace(/^\uFEFF/, ""));
   const col = (name) => (header || []).indexOf(name);
-  const g = col("gsis_id"); const y = col("yahoo_id"); const sl = col("sleeper_id");
-  if (g < 0 || y < 0 || sl < 0) throw Object.assign(new Error("crosswalk header is missing an id column"), { code: "source_shape" });
+  const g = col("gsis_id");
+  const y = col("yahoo_id");
+  const sl = col("sleeper_id");
+  if (g < 0 || y < 0 || sl < 0)
+    throw Object.assign(new Error("crosswalk header is missing an id column"), { code: "source_shape" });
   const id = (value) => (/^[0-9]{1,12}$/.test(String(value || "").trim()) ? String(value).trim() : null);
   const rows = [];
   for (const r of body) {
     const gsis = String(r[g] || "").trim();
     if (!/^00-[0-9]{7}$/.test(gsis)) continue;
-    const yahooId = id(r[y]); const sleeperId = id(r[sl]);
+    const yahooId = id(r[y]);
+    const sleeperId = id(r[sl]);
     if (yahooId || sleeperId) rows.push({ gsisId: gsis, yahooId, sleeperId });
   }
   return rows;
@@ -186,9 +216,11 @@ const DP_INSERT_SQL = `
 
 async function fetchSleeperPlayers(fetchImpl) {
   const response = await fetchImpl(SLEEPER_PLAYERS_URL, { signal: AbortSignal.timeout(60_000) });
-  if (!response.ok) throw Object.assign(new Error("sleeper players fetch failed"), { code: `source_http_${response.status}` });
+  if (!response.ok)
+    throw Object.assign(new Error("sleeper players fetch failed"), { code: `source_http_${response.status}` });
   const buffer = Buffer.from(await response.arrayBuffer());
-  if (buffer.length > MAX_BYTES) throw Object.assign(new Error("sleeper players too large"), { code: "source_too_large" });
+  if (buffer.length > MAX_BYTES)
+    throw Object.assign(new Error("sleeper players too large"), { code: "source_too_large" });
   return { buffer, payload: JSON.parse(buffer.toString("utf8")) };
 }
 
@@ -199,14 +231,21 @@ function createPlayerIndexStage({ pool, fetchImpl = globalThis.fetch, now = () =
       try {
         await client.query("BEGIN");
         await client.query("SET LOCAL lock_timeout = '5s'");
-        await client.query({ name: "player-index-espn-delete-v1", text: "DELETE FROM football.football_player_ids WHERE provider = 'espn'" });
+        await client.query({
+          name: "player-index-espn-delete-v1",
+          text: "DELETE FROM football.football_player_ids WHERE provider = 'espn'",
+        });
         const inserted = await client.query({ name: "player-index-espn-insert-v1", text: ESPN_SQL });
         await client.query("COMMIT");
         const sleeper = await indexSleeper();
         const dynastyProcess = await indexDynastyProcess();
         return { state: "succeeded", espn: inserted.rowCount, ...sleeper, dynastyProcess };
       } catch (error) {
-        try { await client.query("ROLLBACK"); } catch { /* the original error matters */ }
+        try {
+          await client.query("ROLLBACK");
+        } catch {
+          /* the original error matters */
+        }
         throw error;
       } finally {
         client.release();
@@ -226,26 +265,62 @@ function createPlayerIndexStage({ pool, fetchImpl = globalThis.fetch, now = () =
       return { state: "failed", code: error.code || "source_failed" };
     }
     let rows;
-    try { rows = dynastyProcessRows(buffer.toString("utf8")); } catch (error) { return { state: "failed", code: error.code || "source_shape" }; }
+    try {
+      rows = dynastyProcessRows(buffer.toString("utf8"));
+    } catch (error) {
+      return { state: "failed", code: error.code || "source_shape" };
+    }
     if (rows.length < MIN_DP_ROWS) return { state: "failed", code: "source_partial", rows: rows.length };
     let client;
     try {
       client = await pool.connect();
       await client.query("BEGIN");
       await client.query("SET LOCAL lock_timeout = '5s'");
-      const receipt = await client.query({ name: "player-index-dp-run-v1", text: `
+      const receipt = await client.query({
+        name: "player-index-dp-run-v1",
+        text: `
         INSERT INTO football.player_index_runs (source, rights_basis, source_url, source_ref, source_rows, fetched_at)
         VALUES ('dynastyprocess_playerids', 'gpl_3_0_founder_accepted', $1, $2, $3, $4) RETURNING id`,
-        values: [DP_IDS_URL, `sha256:${crypto.createHash("sha256").update(buffer).digest("hex")}`, rows.length, now().toISOString()] });
+        values: [
+          DP_IDS_URL,
+          `sha256:${crypto.createHash("sha256").update(buffer).digest("hex")}`,
+          rows.length,
+          now().toISOString(),
+        ],
+      });
       const runId = receipt.rows[0].id;
-      const yahoo = await client.query({ name: "player-index-dp-yahoo-v1", text: DP_INSERT_SQL,
-        values: [JSON.stringify(rows.filter((r) => r.yahooId).map((r) => ({ provider_id: r.yahooId, gsis_id: r.gsisId }))), "yahoo", runId] });
-      const sleeper = await client.query({ name: "player-index-dp-sleeper-v1", text: DP_INSERT_SQL,
-        values: [JSON.stringify(rows.filter((r) => r.sleeperId).map((r) => ({ provider_id: r.sleeperId, gsis_id: r.gsisId }))), "sleeper", runId] });
+      const yahoo = await client.query({
+        name: "player-index-dp-yahoo-v1",
+        text: DP_INSERT_SQL,
+        values: [
+          JSON.stringify(rows.filter((r) => r.yahooId).map((r) => ({ provider_id: r.yahooId, gsis_id: r.gsisId }))),
+          "yahoo",
+          runId,
+        ],
+      });
+      const sleeper = await client.query({
+        name: "player-index-dp-sleeper-v1",
+        text: DP_INSERT_SQL,
+        values: [
+          JSON.stringify(rows.filter((r) => r.sleeperId).map((r) => ({ provider_id: r.sleeperId, gsis_id: r.gsisId }))),
+          "sleeper",
+          runId,
+        ],
+      });
       await client.query("COMMIT");
-      return { state: "succeeded", rows: rows.length, yahoo: yahoo.rowCount, sleeper: sleeper.rowCount, runId: Number(runId) };
+      return {
+        state: "succeeded",
+        rows: rows.length,
+        yahoo: yahoo.rowCount,
+        sleeper: sleeper.rowCount,
+        runId: Number(runId),
+      };
     } catch (error) {
-      try { await client?.query("ROLLBACK"); } catch { /* keep the original error */ }
+      try {
+        await client?.query("ROLLBACK");
+      } catch {
+        /* keep the original error */
+      }
       return { state: "failed", code: error.code || "write_failed" };
     } finally {
       client?.release();
@@ -261,38 +336,101 @@ function createPlayerIndexStage({ pool, fetchImpl = globalThis.fetch, now = () =
       return { sleeper: { state: "failed", code: error.code || "source_failed" } };
     }
     const rows = sleeperRows(fetched.payload);
-    if (rows.length < MIN_SLEEPER_ROWS) return { sleeper: { state: "failed", code: "source_partial", rows: rows.length } };
+    if (rows.length < MIN_SLEEPER_ROWS)
+      return { sleeper: { state: "failed", code: "source_partial", rows: rows.length } };
     let client;
     try {
       client = await pool.connect();
       await client.query("BEGIN");
       await client.query("SET LOCAL lock_timeout = '5s'");
-      const receipt = await client.query({ name: "player-index-run-v1", text: `
+      const receipt = await client.query({
+        name: "player-index-run-v1",
+        text: `
         INSERT INTO football.player_index_runs (source, rights_basis, source_url, source_ref, source_rows, fetched_at)
         VALUES ('sleeper_players', 'sleeper_public_api', $1, $2, $3, $4) RETURNING id`,
-        values: [SLEEPER_PLAYERS_URL, `sha256:${crypto.createHash("sha256").update(fetched.buffer).digest("hex")}`, rows.length, now().toISOString()] });
+        values: [
+          SLEEPER_PLAYERS_URL,
+          `sha256:${crypto.createHash("sha256").update(fetched.buffer).digest("hex")}`,
+          rows.length,
+          now().toISOString(),
+        ],
+      });
       const runId = receipt.rows[0].id;
-      await client.query({ name: "player-index-provider-delete-v1", text: "DELETE FROM football.football_player_ids WHERE provider IN ('sleeper', 'yahoo') AND index_run_id IS NOT NULL" });
-      const sleeper = await client.query({ name: "player-index-sleeper-insert-v3", text: SLEEPER_INSERT_SQL,
-        values: [JSON.stringify(rows.map((r) => ({ provider_id: r.sleeperId, gsis_id: r.gsisId, espn_id: r.espnId, name: r.name || null, birth_date: r.birthDate || null }))), "sleeper", runId] });
-      const yahoo = await client.query({ name: "player-index-yahoo-insert-v3", text: SLEEPER_INSERT_SQL,
-        values: [JSON.stringify(rows.filter((r) => r.yahooId).map((r) => ({ provider_id: r.yahooId, gsis_id: r.gsisId, espn_id: r.espnId, name: r.name || null, birth_date: r.birthDate || null }))), "yahoo", runId] });
+      await client.query({
+        name: "player-index-provider-delete-v1",
+        text: "DELETE FROM football.football_player_ids WHERE provider IN ('sleeper', 'yahoo') AND index_run_id IS NOT NULL",
+      });
+      const sleeper = await client.query({
+        name: "player-index-sleeper-insert-v3",
+        text: SLEEPER_INSERT_SQL,
+        values: [
+          JSON.stringify(
+            rows.map((r) => ({
+              provider_id: r.sleeperId,
+              gsis_id: r.gsisId,
+              espn_id: r.espnId,
+              name: r.name || null,
+              birth_date: r.birthDate || null,
+            })),
+          ),
+          "sleeper",
+          runId,
+        ],
+      });
+      const yahoo = await client.query({
+        name: "player-index-yahoo-insert-v3",
+        text: SLEEPER_INSERT_SQL,
+        values: [
+          JSON.stringify(
+            rows
+              .filter((r) => r.yahooId)
+              .map((r) => ({
+                provider_id: r.yahooId,
+                gsis_id: r.gsisId,
+                espn_id: r.espnId,
+                name: r.name || null,
+                birth_date: r.birthDate || null,
+              })),
+          ),
+          "yahoo",
+          runId,
+        ],
+      });
       // The current injury report replaces the last one, in the same transaction as the ids it keys on.
       // A savepoint: an injury-report problem never costs the ids written above.
       let injuries = { rowCount: null };
       await client.query("SAVEPOINT injuries");
       try {
         await client.query({ name: "player-injury-delete-v1", text: "DELETE FROM football.player_injury_reports" });
-        injuries = await client.query({ name: "player-injury-insert-v1", text: INJURY_SQL,
-          values: [JSON.stringify(rows.filter((r) => r.injury).map((r) => ({ provider_id: r.sleeperId, ...r.injury }))), runId] });
+        injuries = await client.query({
+          name: "player-injury-insert-v1",
+          text: INJURY_SQL,
+          values: [
+            JSON.stringify(rows.filter((r) => r.injury).map((r) => ({ provider_id: r.sleeperId, ...r.injury }))),
+            runId,
+          ],
+        });
         await client.query("RELEASE SAVEPOINT injuries");
       } catch {
         await client.query("ROLLBACK TO SAVEPOINT injuries");
       }
       await client.query("COMMIT");
-      return { sleeper: { state: "succeeded", rows: rows.length, sleeper: sleeper.rowCount, yahoo: yahoo.rowCount, injuries: injuries.rowCount, runId: Number(runId) } };
+      return {
+        sleeper: {
+          state: "succeeded",
+          rows: rows.length,
+          sleeper: sleeper.rowCount,
+          yahoo: yahoo.rowCount,
+          injuries: injuries.rowCount,
+          runId: Number(runId),
+        },
+      };
     } catch (error) {
-      try { await client?.query("ROLLBACK"); } catch { /* keep the original error */ }
+      try {
+        await client?.query("ROLLBACK");
+      } catch {
+        /* keep the original error */
+      }
       return { sleeper: { state: "failed", code: error.code || "write_failed" } };
     } finally {
       client?.release();
@@ -300,4 +438,13 @@ function createPlayerIndexStage({ pool, fetchImpl = globalThis.fetch, now = () =
   }
 }
 
-module.exports = { normalName, dynastyProcessRows, parseCsv, DP_INSERT_SQL, createPlayerIndexStage, ESPN_SQL, SLEEPER_INSERT_SQL, sleeperRows };
+module.exports = {
+  normalName,
+  dynastyProcessRows,
+  parseCsv,
+  DP_INSERT_SQL,
+  createPlayerIndexStage,
+  ESPN_SQL,
+  SLEEPER_INSERT_SQL,
+  sleeperRows,
+};

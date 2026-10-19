@@ -74,7 +74,12 @@ function ConfidenceBar({ score }) {
           style={confidenceBarStyle(score)}
         />
       </div>
-      <span className="w-10 text-right font-mono text-xs font-semibold tabular-nums" style={{ color: 'var(--color-text-primary)' }}>{score}%</span>
+      <span
+        className="w-10 text-right font-mono text-xs font-semibold tabular-nums"
+        style={{ color: 'var(--color-text-primary)' }}
+      >
+        {score}%
+      </span>
     </div>
   );
 }
@@ -89,9 +94,17 @@ function AdpRow({ rec, adpMap, adpLoading, connectedPlatform }) {
   if (adpLoading) {
     return (
       <div className="flex flex-wrap items-center gap-2 border-t pt-3" style={{ borderColor: 'var(--color-border)' }}>
-        <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>ADP</p>
-        <div className="h-4 w-20 animate-pulse motion-reduce:animate-none rounded-sm" style={{ background: 'var(--color-surface-1)' }} />
-        <div className="h-4 w-16 animate-pulse motion-reduce:animate-none rounded-sm" style={{ background: 'var(--color-surface-1)' }} />
+        <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>
+          ADP
+        </p>
+        <div
+          className="h-4 w-20 animate-pulse motion-reduce:animate-none rounded-sm"
+          style={{ background: 'var(--color-surface-1)' }}
+        />
+        <div
+          className="h-4 w-16 animate-pulse motion-reduce:animate-none rounded-sm"
+          style={{ background: 'var(--color-surface-1)' }}
+        />
       </div>
     );
   }
@@ -104,25 +117,41 @@ function AdpRow({ rec, adpMap, adpLoading, connectedPlatform }) {
   const platformAdp = connectedPlatform === 'yahoo' ? (playerAdp.yahoo ?? null) : null;
 
   // Other sources: FFC, MFL, and Yahoo only if Yahoo isn't the connected platform
-  const otherSources = ADP_OTHER_SOURCES
-    .filter((s) => !(s.key === 'yahoo' && connectedPlatform === 'yahoo'))
-    .filter((s) => playerAdp[s.key] != null);
+  const otherSources = ADP_OTHER_SOURCES.filter((s) => !(s.key === 'yahoo' && connectedPlatform === 'yahoo')).filter(
+    (s) => playerAdp[s.key] != null,
+  );
 
   const hasAnything = platformAdp != null || otherSources.length > 0;
 
   return (
-    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 border-t pt-3" style={{ borderColor: 'var(--color-border)' }}>
-      <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>ADP</p>
+    <div
+      className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 border-t pt-3"
+      style={{ borderColor: 'var(--color-border)' }}
+    >
+      <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>
+        ADP
+      </p>
 
       {platformAdp != null && (
-        <span className="inline-flex items-center rounded-full border px-3 py-0.5 text-sm font-semibold" style={{ borderColor: 'var(--color-team-accent)', background: 'var(--color-accent-muted)', color: 'var(--color-team-accent)' }}>
+        <span
+          className="inline-flex items-center rounded-full border px-3 py-0.5 text-sm font-semibold"
+          style={{
+            borderColor: 'var(--color-team-accent)',
+            background: 'var(--color-accent-muted)',
+            color: 'var(--color-team-accent)',
+          }}
+        >
           Yahoo {platformAdp}
         </span>
       )}
 
       <span
         className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold"
-        style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)', color: 'var(--color-text-primary)' }}
+        style={{
+          borderColor: 'var(--color-border)',
+          background: 'var(--color-surface-1)',
+          color: 'var(--color-text-primary)',
+        }}
       >
         Omen #{rec.rank}
       </span>
@@ -151,7 +180,11 @@ function AdpRow({ rec, adpMap, adpLoading, connectedPlatform }) {
         </span>
       )}
 
-      {!hasAnything && <span className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>—</span>}
+      {!hasAnything && (
+        <span className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
+          —
+        </span>
+      )}
     </div>
   );
 }
@@ -173,19 +206,25 @@ function RecommendationCard({ rec, adpMap, adpLoading, connectedPlatform }) {
         <div className="flex min-w-0 items-center gap-3">
           <span
             className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-semibold tabular-nums"
-            style={tierStyle ?? { borderColor: 'var(--color-border)', background: 'var(--color-surface-1)', color: 'var(--color-text-primary)' }}
+            style={
+              tierStyle ?? {
+                borderColor: 'var(--color-border)',
+                background: 'var(--color-surface-1)',
+                color: 'var(--color-text-primary)',
+              }
+            }
           >
             {rec.rank}
           </span>
           <div className="min-w-0 flex flex-wrap items-center gap-2">
             <PlayerChip name={rec.player.name} position={rec.player.position} />
-            <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{rec.player.team}</p>
+            <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+              {rec.player.team}
+            </p>
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <Badge tone="neutral">
-            {REC_TYPE_LABELS[rec.recommendation_type] ?? rec.recommendation_type}
-          </Badge>
+          <Badge tone="neutral">{REC_TYPE_LABELS[rec.recommendation_type] ?? rec.recommendation_type}</Badge>
           <RiskBadge risk={rec.risk_level} />
         </div>
       </div>
@@ -198,7 +237,9 @@ function RecommendationCard({ rec, adpMap, adpLoading, connectedPlatform }) {
       </p>
 
       <div>
-        <p className="mb-2 text-xs uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>Confidence</p>
+        <p className="mb-2 text-xs uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>
+          Confidence
+        </p>
         <ConfidenceBar score={rec.confidence_score} />
       </div>
 
@@ -206,7 +247,14 @@ function RecommendationCard({ rec, adpMap, adpLoading, connectedPlatform }) {
         <ol className="space-y-2">
           {rec.reasoning.map((line, i) => (
             <li key={i} className="flex gap-3 text-sm leading-6" style={{ color: 'var(--color-text-primary)' }}>
-              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs font-semibold tabular-nums" style={{ borderColor: 'var(--color-team-accent)', background: 'var(--color-accent-muted)', color: 'var(--color-team-accent)' }}>
+              <span
+                className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs font-semibold tabular-nums"
+                style={{
+                  borderColor: 'var(--color-team-accent)',
+                  background: 'var(--color-accent-muted)',
+                  color: 'var(--color-team-accent)',
+                }}
+              >
                 {i + 1}
               </span>
               {line}
@@ -215,12 +263,7 @@ function RecommendationCard({ rec, adpMap, adpLoading, connectedPlatform }) {
         </ol>
       )}
 
-      <AdpRow
-        rec={rec}
-        adpMap={adpMap}
-        adpLoading={adpLoading}
-        connectedPlatform={connectedPlatform}
-      />
+      <AdpRow rec={rec} adpMap={adpMap} adpLoading={adpLoading} connectedPlatform={connectedPlatform} />
     </Card>
   );
 }
@@ -229,11 +272,7 @@ function LoadingRecommendations() {
   return (
     <div role="status" aria-busy="true" aria-label="Loading recommendations" className="space-y-4">
       {[0, 1, 2].map((i) => (
-        <Card
-          key={i}
-          variant="solid"
-          className="animate-pulse motion-reduce:animate-none space-y-3 p-5"
-        >
+        <Card key={i} variant="solid" className="animate-pulse motion-reduce:animate-none space-y-3 p-5">
           <div className="flex items-center gap-3">
             <div className="h-7 w-7 rounded-full" style={{ background: 'var(--color-surface-2)' }} />
             <div className="h-5 w-36 rounded-sm" style={{ background: 'var(--color-surface-2)' }} />
@@ -282,10 +321,9 @@ export default function DraftAssistant({ platforms }) {
 
     let mounted = true;
     if (import.meta.env.DEV) {
-      import('../data/privateDemoFixtures.js')
-        .then(({ DRAFT_ASSISTANT_FIXTURE }) => {
-          if (mounted) setFixture(DRAFT_ASSISTANT_FIXTURE);
-        });
+      import('../data/privateDemoFixtures.js').then(({ DRAFT_ASSISTANT_FIXTURE }) => {
+        if (mounted) setFixture(DRAFT_ASSISTANT_FIXTURE);
+      });
     }
     return () => {
       mounted = false;
@@ -318,10 +356,16 @@ export default function DraftAssistant({ platforms }) {
     let mounted = true;
     setAdpLoading(true);
     apiFetch(`/api/draft-assistant/adp?format=${scoringFormat}&teams=12`)
-      .then((data) => { if (mounted) setAdpData(data); })
+      .then((data) => {
+        if (mounted) setAdpData(data);
+      })
       .catch(() => {})
-      .finally(() => { if (mounted) setAdpLoading(false); });
-    return () => { mounted = false; };
+      .finally(() => {
+        if (mounted) setAdpLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
   }, [scoringFormat, fixtureActive, fixture]);
 
   function toggleNeed(pos) {
@@ -382,7 +426,9 @@ export default function DraftAssistant({ platforms }) {
           Draft Assistant
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-3">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: 'var(--color-text-primary)' }}>Your next pick</h2>
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: 'var(--color-text-primary)' }}>
+            Your next pick
+          </h2>
         </div>
         <p className="mt-2 text-sm leading-6" style={{ color: 'var(--color-text-secondary)' }}>
           Tell Omen where you are in your draft. It will surface the best available move for your roster.
@@ -403,7 +449,10 @@ export default function DraftAssistant({ platforms }) {
         onSubmit={handleSubmit}
       >
         <fieldset>
-          <legend className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>
+          <legend
+            className="text-xs font-semibold uppercase tracking-widest"
+            style={{ color: 'var(--color-text-secondary)' }}
+          >
             Scoring Format
           </legend>
           <div className="mt-2">
@@ -444,7 +493,10 @@ export default function DraftAssistant({ platforms }) {
         </div>
 
         <fieldset>
-          <legend className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>
+          <legend
+            className="text-xs font-semibold uppercase tracking-widest"
+            style={{ color: 'var(--color-text-secondary)' }}
+          >
             Position Needs
           </legend>
           <p className="mt-1 text-xs" style={{ color: 'var(--color-text-secondary)' }}>
@@ -454,9 +506,7 @@ export default function DraftAssistant({ platforms }) {
             {POSITION_NEEDS.map((pos) => {
               const isSelected = needs.has(pos);
               const posKey = pos.toLowerCase();
-              const tone = isSelected
-                ? (CHIP_POSITION_TONES.has(posKey) ? `pos-${posKey}` : 'accent')
-                : 'neutral';
+              const tone = isSelected ? (CHIP_POSITION_TONES.has(posKey) ? `pos-${posKey}` : 'accent') : 'neutral';
               return (
                 <button
                   key={pos}
@@ -465,32 +515,23 @@ export default function DraftAssistant({ platforms }) {
                   type="button"
                   onClick={() => toggleNeed(pos)}
                 >
-                  <Chip tone={tone} size="md">{pos}</Chip>
+                  <Chip tone={tone} size="md">
+                    {pos}
+                  </Chip>
                 </button>
               );
             })}
           </div>
         </fieldset>
 
-        <Button
-          type="submit"
-          size="lg"
-          loading={loading}
-          disabled={loading || (fixtureActive && !fixture)}
-        >
+        <Button type="submit" size="lg" loading={loading} disabled={loading || (fixtureActive && !fixture)}>
           {loading ? 'Analyzing...' : hasSubmitted ? 'Run Again' : 'Get Recommendation'}
         </Button>
       </form>
 
       {loading && <LoadingRecommendations />}
 
-      {!loading && error && (
-        <ErrorState
-          title="Failed to get recommendations"
-          message={error}
-          onRetry={handleSubmit}
-        />
-      )}
+      {!loading && error && <ErrorState title="Failed to get recommendations" message={error} onRetry={handleSubmit} />}
 
       {!loading && result?.recommendations?.length > 0 && (
         <div className="space-y-4">

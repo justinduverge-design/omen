@@ -38,12 +38,7 @@
  * route layer already accepts those fields as optional extras.
  */
 
-const {
-  parseRosterSlots,
-  effectiveStarters,
-  rosterDepth,
-  needWeightForPosition,
-} = require("./tradeLeagueContext");
+const { parseRosterSlots, effectiveStarters, rosterDepth, needWeightForPosition } = require("./tradeLeagueContext");
 
 const VALID_OUTCOMES = Object.freeze(["accepted", "rejected", "countered"]);
 const VALID_OUTCOME_SET = new Set(VALID_OUTCOMES);
@@ -101,8 +96,10 @@ function staleness({ savedNeed, liveNeed } = {}) {
   if (savedNeed.status !== liveNeed.status) {
     return { status: STALE_STATUS.STALE, reason: "needs_profile_changed" };
   }
-  if ((savedNeed.have ?? null) !== (liveNeed.have ?? null)
-    || (savedNeed.required ?? null) !== (liveNeed.required ?? null)) {
+  if (
+    (savedNeed.have ?? null) !== (liveNeed.have ?? null) ||
+    (savedNeed.required ?? null) !== (liveNeed.required ?? null)
+  ) {
     return { status: STALE_STATUS.STALE, reason: "roster_depth_changed" };
   }
   return { status: STALE_STATUS.FRESH, reason: null };

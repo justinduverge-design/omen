@@ -36,30 +36,16 @@ function isExpiredYahooToken(row, now = new Date()) {
 }
 
 function hasUsableYahooToken(row, now = new Date()) {
-  return Boolean(
-    row?.platform === "yahoo"
-    && row?.is_active
-    && row?.token_secret_id
-    && !isExpiredYahooToken(row, now)
-  );
+  return Boolean(row?.platform === "yahoo" && row?.is_active && row?.token_secret_id && !isExpiredYahooToken(row, now));
 }
 
 function hasUsableSleeperContext(row) {
-  return Boolean(
-    row?.platform === "sleeper"
-    && row?.is_active
-    && row?.platform_username
-    && hasUsableLeagueId(row)
-  );
+  return Boolean(row?.platform === "sleeper" && row?.is_active && row?.platform_username && hasUsableLeagueId(row));
 }
 
 function hasUsableEspnContext(row) {
   return Boolean(
-    row?.platform === "espn"
-    && row?.is_active
-    && row?.espn_secret_id
-    && row?.swid_secret_id
-    && hasUsableLeagueId(row)
+    row?.platform === "espn" && row?.is_active && row?.espn_secret_id && row?.swid_secret_id && hasUsableLeagueId(row),
   );
 }
 
@@ -68,9 +54,7 @@ function buildPlatformSummary(rows = [], now = new Date()) {
   const yahoo = activeRows.find((row) => row.platform === "yahoo" && row.token_secret_id);
   const yahooTokenExpired = isExpiredYahooToken(yahoo, now);
   const sleeper = activeRows.find((row) => row.platform === "sleeper" && row.platform_username);
-  const espn = activeRows.find((row) =>
-    row.platform === "espn" && row.espn_secret_id && row.swid_secret_id
-  );
+  const espn = activeRows.find((row) => row.platform === "espn" && row.espn_secret_id && row.swid_secret_id);
 
   const yahooSummary = {
     connected: Boolean(yahoo && !yahooTokenExpired),
@@ -118,10 +102,9 @@ function applyLastResult(summary, platform, result) {
 }
 
 async function getSleeperLastResult(row, context) {
-  const sleeperUserId = row.platform_user_id
-    || (row.platform_username
-      ? (await sleeperAdapter.fetchSleeperUser(row.platform_username)).user_id
-      : null);
+  const sleeperUserId =
+    row.platform_user_id ||
+    (row.platform_username ? (await sleeperAdapter.fetchSleeperUser(row.platform_username)).user_id : null);
   if (!sleeperUserId) return null;
   return sleeperAdapter.fetchSleeperLastResult({
     leagueId: row.league_id,
@@ -146,16 +129,11 @@ async function getYahooLastResult(row, userId, context) {
 
 async function getEspnLastResult(row, userId, context) {
   const credentials = await getAuthenticatedEspnCredentials(userId);
-  return espnAdapter.fetchEspnLastResult(
-    row.league_id,
-    credentials.espn_s2,
-    credentials.swid,
-    {
-      seasonId: context.season,
-      week: context.week,
-      teamId: row.espn_team_id,
-    }
-  );
+  return espnAdapter.fetchEspnLastResult(row.league_id, credentials.espn_s2, credentials.swid, {
+    seasonId: context.season,
+    week: context.week,
+    teamId: row.espn_team_id,
+  });
 }
 
 const LAST_RESULT_TIMEOUT_MS = 4000;
@@ -201,18 +179,20 @@ async function buildPlatformSummaryForUser(rows = [], userId, now = new Date(), 
     },
   ];
 
-  await Promise.all(lookups.map(async ({ platform, row, run }) => {
-    if (!row) return;
-    try {
-      applyLastResult(summary, platform, await withTimeout(run(row), LAST_RESULT_TIMEOUT_MS));
-    } catch (e) {
-      if (meta) meta.failed = true;
-      logger.warn("Dashboard platform last-result lookup failed", {
-        platform,
-        message: e?.message,
-      });
-    }
-  }));
+  await Promise.all(
+    lookups.map(async ({ platform, row, run }) => {
+      if (!row) return;
+      try {
+        applyLastResult(summary, platform, await withTimeout(run(row), LAST_RESULT_TIMEOUT_MS));
+      } catch (e) {
+        if (meta) meta.failed = true;
+        logger.warn("Dashboard platform last-result lookup failed", {
+          platform,
+          message: e?.message,
+        });
+      }
+    }),
+  );
 
   return summary;
 }
@@ -261,9 +241,7 @@ function buildCommandCapabilities({ rows = [], generatedAt = null } = {}) {
           : "Connect a league before Command can route league-aware sections.",
         observed_at: null,
         fresh_until: null,
-        reason_code: activeRows.length
-          ? "selected_league_context_incomplete"
-          : "no_active_platform_connection",
+        reason_code: activeRows.length ? "selected_league_context_incomplete" : "no_active_platform_connection",
       };
 
   return [
@@ -284,7 +262,9 @@ function buildCommandCapabilities({ rows = [], generatedAt = null } = {}) {
 async function getPlatformRows(userId) {
   const { data, error } = await supabase
     .from("platform_connections")
-    .select("platform,is_active,league_id,platform_username,platform_user_id,token_secret_id,token_expires_at,espn_secret_id,swid_secret_id,espn_team_id")
+    .select(
+      "platform,is_active,league_id,platform_username,platform_user_id,token_secret_id,token_expires_at,espn_secret_id,swid_secret_id,espn_team_id",
+    )
     .eq("user_id", userId);
 
   if (error) throw new Error(`platform_connections lookup failed: ${error.message}`);
@@ -292,11 +272,7 @@ async function getPlatformRows(userId) {
 }
 
 async function getUserProfile(userId) {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("favorite_team")
-    .eq("user_id", userId)
-    .maybeSingle();
+  const { data, error } = await supabase.from("profiles").select("favorite_team").eq("user_id", userId).maybeSingle();
 
   if (error) {
     return { favorite_team: null };
@@ -338,10 +314,7 @@ function summaryCacheParts({ rows, userProfile, now }) {
 
 router.get("/summary", requireAuth, async (req, res, next) => {
   try {
-    const [rows, userProfile] = await Promise.all([
-      getPlatformRows(req.user.id),
-      getUserProfile(req.user.id),
-    ]);
+    const [rows, userProfile] = await Promise.all([getPlatformRows(req.user.id), getUserProfile(req.user.id)]);
     const now = new Date();
     const cacheHandle = await responseCache.lookup({
       route: "dashboard_summary",
@@ -400,7 +373,10 @@ router.get("/summary", requireAuth, async (req, res, next) => {
 router.get("/quiet-week", requireAuth, async (req, res) => {
   try {
     const { buildLiveOmenMvpMoveForUser } = require("../services/omen");
-    if (req.query.context_id != null && (typeof req.query.context_id !== "string" || req.query.context_id.length > 128)) {
+    if (
+      req.query.context_id != null &&
+      (typeof req.query.context_id !== "string" || req.query.context_id.length > 128)
+    ) {
       return res.status(400).json({ error: "invalid_context_id" });
     }
     const cacheHandle = await responseCache.lookup({
@@ -410,10 +386,14 @@ router.get("/quiet-week", requireAuth, async (req, res) => {
     });
     if (cacheHandle.hit) return responseCache.sendHit(res, cacheHandle);
     responseCache.setCacheHeader(res, cacheHandle);
-    const { body, status } = await buildLiveOmenMvpMoveForUser(req.user.id, { contextId: req.query.context_id ?? null });
+    const { body, status } = await buildLiveOmenMvpMoveForUser(req.user.id, {
+      contextId: req.query.context_id ?? null,
+    });
     let lastResult = null;
     if (body.state === "empty") {
-      const rows = (await getPlatformRows(req.user.id)).filter((row) => row.platform === body.platform?.name && String(row.league_id) === String(body.league?.id));
+      const rows = (await getPlatformRows(req.user.id)).filter(
+        (row) => row.platform === body.platform?.name && String(row.league_id) === String(body.league?.id),
+      );
       const platforms = await buildPlatformSummaryForUser(rows, req.user.id);
       lastResult = platforms[body.platform?.name]?.lastResult ?? null;
     }

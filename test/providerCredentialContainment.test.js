@@ -96,10 +96,11 @@ async function captureOutput(fn) {
     stderr: process.stderr.write.bind(process.stderr),
   };
 
-  const tee = (original) => function patched(chunk, encoding, callback) {
-    chunks.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8"));
-    return original(chunk, encoding, callback);
-  };
+  const tee = (original) =>
+    function patched(chunk, encoding, callback) {
+      chunks.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8"));
+      return original(chunk, encoding, callback);
+    };
 
   process.stdout.write = tee(originals.stdout);
   process.stderr.write = tee(originals.stderr);
@@ -145,10 +146,8 @@ async function withFakeEspn({ status, body }, fn) {
   const { port } = server.address();
 
   const originalRequest = https.request;
-  https.request = (options, callback) => http.request(
-    { ...options, protocol: "http:", hostname: "127.0.0.1", port },
-    callback,
-  );
+  https.request = (options, callback) =>
+    http.request({ ...options, protocol: "http:", hostname: "127.0.0.1", port }, callback);
 
   try {
     return await fn(received);
@@ -270,36 +269,37 @@ async function envelopeFor(failing) {
 // --- ESPN ------------------------------------------------------------
 
 test("ESPN auth rejection: the cookie really goes out, and nothing comes back in logs or the envelope", async () => {
-  await withFakeEspn({
-    status: 401,
-    // ESPN returning your own credential inside its refusal.
-    body: (received) => JSON.stringify({
-      messages: ["not authorized"],
-      echoed_request_cookie: received.cookie,
-    }),
-  }, async (received) => {
-    const { captured, thrown } = await captureOutput(() => (
-      espnAdapter.verifyLeagueAccess("1234567", CANARY.espnS2, CANARY.swid)
-    ));
+  await withFakeEspn(
+    {
+      status: 401,
+      // ESPN returning your own credential inside its refusal.
+      body: (received) =>
+        JSON.stringify({
+          messages: ["not authorized"],
+          echoed_request_cookie: received.cookie,
+        }),
+    },
+    async (received) => {
+      const { captured, thrown } = await captureOutput(() =>
+        espnAdapter.verifyLeagueAccess("1234567", CANARY.espnS2, CANARY.swid),
+      );
 
-    // The premise of the whole test: the credential was actually transmitted.
-    // Without this, a passing leak check would only prove the request never
-    // carried anything to leak.
-    assert.ok(received.cookie, "the adapter must have sent a Cookie header");
-    assert.ok(
-      received.cookie.includes(CANARY.espnS2),
-      "the canary espn_s2 must genuinely have been on the wire",
-    );
+      // The premise of the whole test: the credential was actually transmitted.
+      // Without this, a passing leak check would only prove the request never
+      // carried anything to leak.
+      assert.ok(received.cookie, "the adapter must have sent a Cookie header");
+      assert.ok(received.cookie.includes(CANARY.espnS2), "the canary espn_s2 must genuinely have been on the wire");
 
-    assert.ok(thrown, "a 401 from ESPN must reject");
-    assert.match(thrown.message, /ESPN rejected the request/);
+      assert.ok(thrown, "a 401 from ESPN must reject");
+      assert.match(thrown.message, /ESPN rejected the request/);
 
-    assertNoCanary(captured, "ESPN 401 stdout");
+      assertNoCanary(captured, "ESPN 401 stdout");
 
-    const envelope = await envelopeFor(() => Promise.reject(thrown));
-    assertNoCanary(envelope.text, "ESPN 401 error envelope");
-    assert.equal(envelope.status, 401);
-  });
+      const envelope = await envelopeFor(() => Promise.reject(thrown));
+      assertNoCanary(envelope.text, "ESPN 401 error envelope");
+      assert.equal(envelope.status, 401);
+    },
+  );
 });
 
 test("ESPN auth rejection becomes reconnect state without creating an incident", async () => {
@@ -323,12 +323,15 @@ test("ESPN auth rejection becomes reconnect state without creating an incident",
         call: () => espnAdapter.fetchEspnFanLeagues(CANARY.espnS2, CANARY.swid),
       },
     ]) {
-      await withFakeEspn({
-        status: scenario.status,
-        body: () => JSON.stringify({ messages: ["not authorized"] }),
-      }, async () => {
-        await assert.rejects(scenario.call(), (error) => Number(error?.status) === 401);
-      });
+      await withFakeEspn(
+        {
+          status: scenario.status,
+          body: () => JSON.stringify({ messages: ["not authorized"] }),
+        },
+        async () => {
+          await assert.rejects(scenario.call(), (error) => Number(error?.status) === 401);
+        },
+      );
     }
   } finally {
     Sentry.captureException = originalCapture;
@@ -346,16 +349,19 @@ test("ESPN fan-directory incidents redact the SWID embedded in the path", async 
   };
 
   try {
-    await withFakeEspn({
-      status: 500,
-      body: () => JSON.stringify({ error: "upstream unavailable" }),
-    }, async () => {
-      const { captured, thrown } = await captureOutput(() => (
-        espnAdapter.fetchEspnFanLeagues(CANARY.espnS2, CANARY.swid)
-      ));
-      assert.equal(Number(thrown?.status), 502);
-      assertNoCanary(captured, "ESPN fan-directory stdout");
-    });
+    await withFakeEspn(
+      {
+        status: 500,
+        body: () => JSON.stringify({ error: "upstream unavailable" }),
+      },
+      async () => {
+        const { captured, thrown } = await captureOutput(() =>
+          espnAdapter.fetchEspnFanLeagues(CANARY.espnS2, CANARY.swid),
+        );
+        assert.equal(Number(thrown?.status), 502);
+        assertNoCanary(captured, "ESPN fan-directory stdout");
+      },
+    );
   } finally {
     Sentry.captureException = originalCapture;
   }
@@ -373,9 +379,9 @@ test("ESPN 500 and malformed-response paths emit no credential", async () => {
     { status: 200, body: (received) => `<html>session ${received.cookie}</html>` },
   ]) {
     await withFakeEspn(scenario, async () => {
-      const { captured, thrown } = await captureOutput(() => (
-        espnAdapter.verifyLeagueAccess("1234567", CANARY.espnS2, CANARY.swid)
-      ));
+      const { captured, thrown } = await captureOutput(() =>
+        espnAdapter.verifyLeagueAccess("1234567", CANARY.espnS2, CANARY.swid),
+      );
 
       assert.ok(thrown, `HTTP ${scenario.status} must reject`);
       assertNoCanary(captured, `ESPN ${scenario.status} stdout`);
@@ -395,9 +401,9 @@ test("ESPN transport failure emits no credential", async () => {
   };
 
   try {
-    const { captured, thrown } = await captureOutput(() => (
-      espnAdapter.verifyLeagueAccess("1234567", CANARY.espnS2, CANARY.swid)
-    ));
+    const { captured, thrown } = await captureOutput(() =>
+      espnAdapter.verifyLeagueAccess("1234567", CANARY.espnS2, CANARY.swid),
+    );
 
     assert.ok(thrown, "a dead upstream must reject");
     assertNoCanary(captured, "ESPN transport-error stdout");
@@ -412,32 +418,35 @@ test("ESPN transport failure emits no credential", async () => {
 // --- Yahoo -----------------------------------------------------------
 
 test("Yahoo 403: the token goes out and neither the body echo nor the challenge comes back", async () => {
-  await withFakeYahoo({
-    status: 403,
-    // Yahoo's own error bodies have carried request context back before.
-    body: JSON.stringify({
-      error: { description: "This application is not authorized." },
-      access_token: CANARY.yahooAccessToken,
-      refresh_token: CANARY.yahooRefreshToken,
-    }),
-    wwwAuthenticate: `OAuth oauth_problem="token_rejected", token=${CANARY.yahooAccessToken}`,
-  }, async (received) => {
-    const client = new YahooClient(CANARY.yahooAccessToken);
+  await withFakeYahoo(
+    {
+      status: 403,
+      // Yahoo's own error bodies have carried request context back before.
+      body: JSON.stringify({
+        error: { description: "This application is not authorized." },
+        access_token: CANARY.yahooAccessToken,
+        refresh_token: CANARY.yahooRefreshToken,
+      }),
+      wwwAuthenticate: `OAuth oauth_problem="token_rejected", token=${CANARY.yahooAccessToken}`,
+    },
+    async (received) => {
+      const client = new YahooClient(CANARY.yahooAccessToken);
 
-    const { captured, thrown } = await captureOutput(() => client.get("/game/nfl"));
+      const { captured, thrown } = await captureOutput(() => client.get("/game/nfl"));
 
-    assert.equal(received.authorization, `Bearer ${CANARY.yahooAccessToken}`);
-    assert.ok(thrown, "a 403 from Yahoo must reject");
-    assert.equal(thrown.message, "Yahoo API error: 403");
+      assert.equal(received.authorization, `Bearer ${CANARY.yahooAccessToken}`);
+      assert.ok(thrown, "a 403 from Yahoo must reject");
+      assert.equal(thrown.message, "Yahoo API error: 403");
 
-    assertNoCanary(captured, "Yahoo 403 stdout");
+      assertNoCanary(captured, "Yahoo 403 stdout");
 
-    const envelope = await envelopeFor(() => Promise.reject(thrown));
-    assertNoCanary(envelope.text, "Yahoo 403 error envelope");
-    // The diagnostic that made the 403 tractable must still survive — the
-    // requirement is containment, not blanket suppression.
-    assert.ok(thrown.body.includes("not authorized"));
-  });
+      const envelope = await envelopeFor(() => Promise.reject(thrown));
+      assertNoCanary(envelope.text, "Yahoo 403 error envelope");
+      // The diagnostic that made the 403 tractable must still survive — the
+      // requirement is containment, not blanket suppression.
+      assert.ok(thrown.body.includes("not authorized"));
+    },
+  );
 });
 
 test("Yahoo expired-token path emits no credential", async () => {
@@ -474,32 +483,31 @@ test("a Yahoo error whose message itself carries a token is scrubbed before the 
 // --- Sleeper ---------------------------------------------------------
 
 test("Sleeper failure: the axios error's own request headers never reach logs or the envelope", async () => {
-  await withFakeSleeper({
-    status: 403,
-    data: { error: "forbidden", echoed_authorization: CANARY.sleeperAuthorization },
-  }, async () => {
-    const { captured, thrown } = await captureOutput(() => (
-      sleeperAdapter.fetchSleeperUser("some-manager")
-    ));
+  await withFakeSleeper(
+    {
+      status: 403,
+      data: { error: "forbidden", echoed_authorization: CANARY.sleeperAuthorization },
+    },
+    async () => {
+      const { captured, thrown } = await captureOutput(() => sleeperAdapter.fetchSleeperUser("some-manager"));
 
-    assert.ok(thrown, "a Sleeper 403 must reject");
-    // The error genuinely carries the credential — that is the hazard being
-    // contained, and asserting it here keeps the test honest about what it
-    // is proving.
-    assert.equal(thrown.config.headers.Authorization, CANARY.sleeperAuthorization);
+      assert.ok(thrown, "a Sleeper 403 must reject");
+      // The error genuinely carries the credential — that is the hazard being
+      // contained, and asserting it here keeps the test honest about what it
+      // is proving.
+      assert.equal(thrown.config.headers.Authorization, CANARY.sleeperAuthorization);
 
-    assertNoCanary(captured, "Sleeper 403 stdout");
+      assertNoCanary(captured, "Sleeper 403 stdout");
 
-    const envelope = await envelopeFor(() => Promise.reject(thrown));
-    assertNoCanary(envelope.text, "Sleeper 403 error envelope");
-  });
+      const envelope = await envelopeFor(() => Promise.reject(thrown));
+      assertNoCanary(envelope.text, "Sleeper 403 error envelope");
+    },
+  );
 });
 
 test("Sleeper rate-limit reshaping emits no credential", async () => {
   await withFakeSleeper({ status: 429, data: { error: "slow down" } }, async () => {
-    const { captured, thrown } = await captureOutput(() => (
-      sleeperAdapter.fetchSleeperUser("some-manager")
-    ));
+    const { captured, thrown } = await captureOutput(() => sleeperAdapter.fetchSleeperUser("some-manager"));
 
     assert.equal(thrown.code, "sleeper_rate_limited");
     assertNoCanary(captured, "Sleeper 429 stdout");
@@ -570,7 +578,7 @@ test("the error handler is the shipped one, and server.js has no second copy", (
   assert.match(server, /require\("\.\/middleware\/errorEnvelope"\)/);
   // An inline duplicate would drift, and the drifted copy is the one that ships.
   assert.equal(
-    server.includes('error: config.isProd && status >= 500'),
+    server.includes("error: config.isProd && status >= 500"),
     false,
     "server.js must not carry a second, untested error envelope",
   );
@@ -645,10 +653,17 @@ test("2026-09-27: an OAuth state value in a breadcrumb URL is scrubbed, not just
 
   const crumb = scrubSentryBreadcrumb({
     category: "navigation",
-    data: { url: `https://slopssaloon.com/api/yahoo/callback?code=abc&state=${canary}`, from: `/x?state=${canary}`, to: "/y" },
+    data: {
+      url: `https://slopssaloon.com/api/yahoo/callback?code=abc&state=${canary}`,
+      from: `/x?state=${canary}`,
+      to: "/y",
+    },
   });
 
-  assert.ok(!JSON.stringify(crumb).includes(canary), "no OAuth state value may reach the error backend via a breadcrumb");
+  assert.ok(
+    !JSON.stringify(crumb).includes(canary),
+    "no OAuth state value may reach the error backend via a breadcrumb",
+  );
 });
 
 test("2026-09-27: scrubbing `state` must not destroy diagnostics that merely contain the word", () => {

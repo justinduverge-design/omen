@@ -1,13 +1,9 @@
 "use strict";
 
-const {
-  ALLOWED_CONTENT_TYPES,
-  readBoundedBody,
-} = require("./playerWeeklyAcquisition");
+const { ALLOWED_CONTENT_TYPES, readBoundedBody } = require("./playerWeeklyAcquisition");
 const { MAX_SOURCE_BYTES } = require("./playerWeeklySource");
 
-const SCHEDULE_SOURCE_URL =
-  "https://github.com/nflverse/nflverse-data/releases/download/schedules/games.csv";
+const SCHEDULE_SOURCE_URL = "https://github.com/nflverse/nflverse-data/releases/download/schedules/games.csv";
 
 function validateExactSourceUrl(sourceUrl) {
   let parsed;
@@ -63,11 +59,7 @@ async function cancelBody(body, reason) {
   }
 }
 
-async function acquireScheduleSource({
-  sourceUrl = SCHEDULE_SOURCE_URL,
-  fetchImpl = globalThis.fetch,
-  signal,
-} = {}) {
+async function acquireScheduleSource({ sourceUrl = SCHEDULE_SOURCE_URL, fetchImpl = globalThis.fetch, signal } = {}) {
   validateExactSourceUrl(sourceUrl);
   if (typeof fetchImpl !== "function") throw new TypeError("fetchImpl must be a function");
   if (signal != null && !(signal instanceof AbortSignal)) {

@@ -35,16 +35,16 @@ function nativeSourceFiles(directory) {
 
 const findings = [];
 for (const directory of nativeConnectRoots) {
- for (const file of nativeSourceFiles(directory)) {
-  const lines = fs.readFileSync(file, "utf8").split(/\r?\n/);
-  lines.forEach((line, index) => {
-    for (const phrase of forbidden) {
-      if (line.includes(phrase)) {
-        findings.push(`${path.relative(root, file)}:${index + 1}: retired native path: ${phrase}`);
+  for (const file of nativeSourceFiles(directory)) {
+    const lines = fs.readFileSync(file, "utf8").split(/\r?\n/);
+    lines.forEach((line, index) => {
+      for (const phrase of forbidden) {
+        if (line.includes(phrase)) {
+          findings.push(`${path.relative(root, file)}:${index + 1}: retired native path: ${phrase}`);
+        }
       }
-    }
-  });
- }
+    });
+  }
 }
 
 if (findings.length) {

@@ -30,15 +30,41 @@ function reasoning(overrides = {}) {
 // The one-for-one improvement fixture from tradeFindRoute.test.js, so /find returns a candidate.
 const ROSTER_POSITIONS = ["RB", "RB", "WR"];
 function player(id, position, points) {
-  return { player_id: id, player_key: id, name: id, position, eligible_positions: [position], selected_position: "BN", projected_points: points };
+  return {
+    player_id: id,
+    player_key: id,
+    name: id,
+    position,
+    eligible_positions: [position],
+    selected_position: "BN",
+    projected_points: points,
+  };
 }
 function sleeperFixture() {
   return {
     league_status: "in_season",
     roster_positions: ROSTER_POSITIONS,
     teams: [
-      { roster_id: "1", team_name: "Own Team", players: [player("my-rb", "RB", 18), player("rb-one", "RB", 20), player("rb-two", "RB", 19), player("low-wr", "WR", 5)] },
-      { roster_id: "2", team_name: "Rival", players: [player("their-wr", "WR", 12), player("wr-one", "WR", 20), player("wr-two", "WR", 19), player("low-rb", "RB", 5)] },
+      {
+        roster_id: "1",
+        team_name: "Own Team",
+        players: [
+          player("my-rb", "RB", 18),
+          player("rb-one", "RB", 20),
+          player("rb-two", "RB", 19),
+          player("low-wr", "WR", 5),
+        ],
+      },
+      {
+        roster_id: "2",
+        team_name: "Rival",
+        players: [
+          player("their-wr", "WR", 12),
+          player("wr-one", "WR", 20),
+          player("wr-two", "WR", 19),
+          player("low-rb", "RB", 5),
+        ],
+      },
     ],
   };
 }
@@ -99,7 +125,12 @@ async function findCandidate(app, headers = AUTH) {
 }
 
 async function save(app, candidateId, body = {}, headers = AUTH) {
-  return request(app, { method: "POST", path: "/api/trade/saved", headers, body: { candidate_id: candidateId, reasoning: reasoning(), ...body } });
+  return request(app, {
+    method: "POST",
+    path: "/api/trade/saved",
+    headers,
+    body: { candidate_id: candidateId, reasoning: reasoning(), ...body },
+  });
 }
 
 function enc(id) {
@@ -116,8 +147,19 @@ for (const [method, path] of [
   ["DELETE", "/api/trade/saved/c1"],
 ]) {
   test(`${method} ${path} requires authentication`, async () => {
-    const { app } = buildApp({ authenticate: async () => { throw new Error("no session"); } });
-    const res = await request(app, { method, path, body: method === "GET" || method === "DELETE" ? undefined : { candidate_id: "c1", reasoning: reasoning(), outcome: "accepted" } });
+    const { app } = buildApp({
+      authenticate: async () => {
+        throw new Error("no session");
+      },
+    });
+    const res = await request(app, {
+      method,
+      path,
+      body:
+        method === "GET" || method === "DELETE"
+          ? undefined
+          : { candidate_id: "c1", reasoning: reasoning(), outcome: "accepted" },
+    });
     assert.equal(res.status, 401);
     assert.equal(res.body.code, "trade_saved_auth_required");
   });
@@ -127,10 +169,20 @@ for (const [method, path] of [
 
 test("POST /api/trade/saved requires candidate_id and reasoning", async () => {
   const { app } = buildApp();
-  const noId = await request(app, { method: "POST", path: "/api/trade/saved", headers: AUTH, body: { reasoning: reasoning() } });
+  const noId = await request(app, {
+    method: "POST",
+    path: "/api/trade/saved",
+    headers: AUTH,
+    body: { reasoning: reasoning() },
+  });
   assert.equal(noId.status, 400);
   assert.equal(noId.body.code, "trade_saved_candidate_id_required");
-  const noReasoning = await request(app, { method: "POST", path: "/api/trade/saved", headers: AUTH, body: { candidate_id: "c1" } });
+  const noReasoning = await request(app, {
+    method: "POST",
+    path: "/api/trade/saved",
+    headers: AUTH,
+    body: { candidate_id: "c1" },
+  });
   assert.equal(noReasoning.status, 400);
   assert.equal(noReasoning.body.code, "trade_saved_reasoning_required");
 });
@@ -213,7 +265,15 @@ test("two saves at once both survive (the Redis blob could drop one)", async () 
   const { app } = buildApp({
     fetchLeagueRosters: async () => {
       const f = sleeperFixture();
-      f.teams.push({ roster_id: "3", team_name: "Rival 2", players: f.teams[1].players.map((p) => ({ ...p, player_id: `r2-${p.player_id}`, player_key: `r2-${p.player_key}` })) });
+      f.teams.push({
+        roster_id: "3",
+        team_name: "Rival 2",
+        players: f.teams[1].players.map((p) => ({
+          ...p,
+          player_id: `r2-${p.player_id}`,
+          player_key: `r2-${p.player_key}`,
+        })),
+      });
       return f;
     },
   });
@@ -247,8 +307,18 @@ test("the list keeps the trade-saved-queue.v1 item shape, read from the table", 
   assert.equal(res.body.status, "ok");
   const item = res.body.items[0];
   assert.deepEqual(Object.keys(item).sort(), [
-    "candidate_id", "give", "opponent_team_id", "opponent_team_name", "outcome", "outcome_reported_at",
-    "reasoning", "receive", "saved_at", "sent_at", "staleness", "state",
+    "candidate_id",
+    "give",
+    "opponent_team_id",
+    "opponent_team_name",
+    "outcome",
+    "outcome_reported_at",
+    "reasoning",
+    "receive",
+    "saved_at",
+    "sent_at",
+    "staleness",
+    "state",
   ]);
   assert.equal(item.candidate_id, candidate.id);
   assert.equal(item.state, "saved");
@@ -264,9 +334,17 @@ test("saved trades are private per user", async () => {
   const other = await request(app, { path: "/api/trade/saved", headers: { authorization: "Bearer user-2" } });
   assert.equal(other.status, 200);
   assert.equal(other.body.items.length, 0);
-  const sent = await request(app, { method: "POST", path: `/api/trade/saved/${enc(candidate.id)}/sent`, headers: { authorization: "Bearer user-2" } });
+  const sent = await request(app, {
+    method: "POST",
+    path: `/api/trade/saved/${enc(candidate.id)}/sent`,
+    headers: { authorization: "Bearer user-2" },
+  });
   assert.equal(sent.status, 404);
-  const del = await request(app, { method: "DELETE", path: `/api/trade/saved/${enc(candidate.id)}`, headers: { authorization: "Bearer user-2" } });
+  const del = await request(app, {
+    method: "DELETE",
+    path: `/api/trade/saved/${enc(candidate.id)}`,
+    headers: { authorization: "Bearer user-2" },
+  });
   assert.equal(del.status, 404);
 });
 
@@ -284,12 +362,20 @@ test("sent: saved -> sent once, idempotent, 404 for an unknown id", async () => 
   const { app } = buildApp();
   const candidate = await findCandidate(app);
   await save(app, candidate.id);
-  const first = await request(app, { method: "POST", path: `/api/trade/saved/${enc(candidate.id)}/sent`, headers: AUTH });
+  const first = await request(app, {
+    method: "POST",
+    path: `/api/trade/saved/${enc(candidate.id)}/sent`,
+    headers: AUTH,
+  });
   assert.equal(first.status, 200);
   assert.equal(first.body.status, "sent");
   assert.equal(first.body.candidate_id, candidate.id);
   assert.ok(first.body.sent_at);
-  const again = await request(app, { method: "POST", path: `/api/trade/saved/${enc(candidate.id)}/sent`, headers: AUTH });
+  const again = await request(app, {
+    method: "POST",
+    path: `/api/trade/saved/${enc(candidate.id)}/sent`,
+    headers: AUTH,
+  });
   assert.equal(again.status, 200);
   assert.equal(again.body.sent_at, first.body.sent_at, "a repeat call never moves sent_at");
 
@@ -325,7 +411,12 @@ test("outcome: refused before sent, validated, self-reported and correctable aft
   assert.equal(list.body.items[0].outcome, "countered");
   assert.ok(list.body.items[0].outcome_reported_at);
 
-  const unknown = await request(app, { method: "POST", path: "/api/trade/saved/nope/outcome", headers: AUTH, body: { outcome: "accepted" } });
+  const unknown = await request(app, {
+    method: "POST",
+    path: "/api/trade/saved/nope/outcome",
+    headers: AUTH,
+    body: { outcome: "accepted" },
+  });
   assert.equal(unknown.status, 404);
 });
 
@@ -380,9 +471,21 @@ test("staleness re-checks against the saved row's own league and team, no query 
 
 function legacyItem(overrides = {}) {
   return {
-    candidate_id: "legacy-1", reasoning: reasoning(), give: null, receive: null, opponent_team_id: null,
-    opponent_team_name: null, platform: null, league_id: null, team_id: null, state: "saved", outcome: null,
-    saved_at: "2026-10-01T00:00:00.000Z", sent_at: null, outcome_reported_at: null, ...overrides,
+    candidate_id: "legacy-1",
+    reasoning: reasoning(),
+    give: null,
+    receive: null,
+    opponent_team_id: null,
+    opponent_team_name: null,
+    platform: null,
+    league_id: null,
+    team_id: null,
+    state: "saved",
+    outcome: null,
+    saved_at: "2026-10-01T00:00:00.000Z",
+    sent_at: null,
+    outcome_reported_at: null,
+    ...overrides,
   };
 }
 
@@ -391,10 +494,16 @@ test("GET lists table rows first, then legacy Redis items not yet in the table",
   const { app } = buildApp({ tradeSavedQueueStore: legacy });
   const candidate = await findCandidate(app);
   await save(app, candidate.id);
-  await legacy.writeAll("user-1", [legacyItem(), legacyItem({ candidate_id: candidate.id, state: "sent", sent_at: "2026-10-01T01:00:00.000Z" })]);
+  await legacy.writeAll("user-1", [
+    legacyItem(),
+    legacyItem({ candidate_id: candidate.id, state: "sent", sent_at: "2026-10-01T01:00:00.000Z" }),
+  ]);
 
   const list = await request(app, { path: "/api/trade/saved", headers: AUTH });
-  assert.deepEqual(list.body.items.map((i) => i.candidate_id), [candidate.id, "legacy-1"]);
+  assert.deepEqual(
+    list.body.items.map((i) => i.candidate_id),
+    [candidate.id, "legacy-1"],
+  );
   assert.equal(list.body.items[0].state, "saved", "the table row wins over a legacy item with the same id");
   assert.equal(list.body.items[1].staleness.status, "unknown");
 });
@@ -406,7 +515,12 @@ test("a legacy-only item can still be marked sent, given an outcome, and unsaved
 
   const sent = await request(app, { method: "POST", path: "/api/trade/saved/legacy-1/sent", headers: AUTH });
   assert.equal(sent.status, 200);
-  const outcome = await request(app, { method: "POST", path: "/api/trade/saved/legacy-1/outcome", headers: AUTH, body: { outcome: "rejected" } });
+  const outcome = await request(app, {
+    method: "POST",
+    path: "/api/trade/saved/legacy-1/outcome",
+    headers: AUTH,
+    body: { outcome: "rejected" },
+  });
   assert.equal(outcome.status, 200);
   assert.equal((await legacy.readAll("user-1"))[0].outcome, "rejected");
 
@@ -418,8 +532,12 @@ test("a legacy-only item can still be marked sent, given an outcome, and unsaved
 test("an unavailable legacy store never blocks the table-backed list", async () => {
   const legacy = {
     kind: "redis",
-    async readAll() { throw Object.assign(new Error("down"), { code: "trade_saved_queue_storage_unavailable" }); },
-    async writeAll() { throw new Error("down"); },
+    async readAll() {
+      throw Object.assign(new Error("down"), { code: "trade_saved_queue_storage_unavailable" });
+    },
+    async writeAll() {
+      throw new Error("down");
+    },
   };
   const { app } = buildApp({ tradeSavedQueueStore: legacy });
   const candidate = await findCandidate(app);

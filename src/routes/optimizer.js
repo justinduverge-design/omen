@@ -15,14 +15,14 @@
 
 const express = require("express");
 const { createClient } = require("@supabase/supabase-js");
-const config  = require("../config");
-const { logger }              = require("../middleware/logging");
-const { requireAuth }         = require("../middleware/auth");
+const config = require("../config");
+const { logger } = require("../middleware/logging");
+const { requireAuth } = require("../middleware/auth");
 const { getAuthenticatedYahooClient } = require("../services/yahooAuth");
-const rosterSvc               = require("../services/roster");
-const { projectYahooPool }    = require("../services/yahooProjections");
-const optimizer               = require("../services/optimizer");
-const { vorpForPlayer }       = require("../services/vorp");
+const rosterSvc = require("../services/roster");
+const { projectYahooPool } = require("../services/yahooProjections");
+const optimizer = require("../services/optimizer");
+const { vorpForPlayer } = require("../services/vorp");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
@@ -80,11 +80,13 @@ async function resolveActiveYahooLeagueId(userId) {
   if (error) throw new Error(`platform_connections lookup failed: ${error.message}`);
 
   const rows = Array.isArray(data) ? data : [];
-  return rows
-    .filter((row) => row.token_secret_id && hasUsableYahooLeague(row))
-    .sort((a, b) => new Date(b.updated_at || 0) - new Date(a.updated_at || 0))
-    .map((row) => row.league_id)
-    .find(Boolean) || null;
+  return (
+    rows
+      .filter((row) => row.token_secret_id && hasUsableYahooLeague(row))
+      .sort((a, b) => new Date(b.updated_at || 0) - new Date(a.updated_at || 0))
+      .map((row) => row.league_id)
+      .find(Boolean) || null
+  );
 }
 
 function projectedPoints(player = {}) {
@@ -159,10 +161,13 @@ function retiredCompatRoute({ deprecatedEndpoint, canonicalEndpoint }) {
   };
 }
 
-router.post("/mvp-move", retiredCompatRoute({
-  deprecatedEndpoint: "/api/optimizer/mvp-move",
-  canonicalEndpoint: "/api/omen/mvp-move",
-}));
+router.post(
+  "/mvp-move",
+  retiredCompatRoute({
+    deprecatedEndpoint: "/api/optimizer/mvp-move",
+    canonicalEndpoint: "/api/omen/mvp-move",
+  }),
+);
 
 // All optimizer endpoints require auth. Omen is free — no subscription gate.
 router.use(requireAuth);
@@ -180,23 +185,26 @@ router.get("/waivers", async (req, res, next) => {
 
     const { client: yahoo } = await getAuthenticatedYahooClient(req.user.id);
     const cacheKey = `ssff:roster:${req.user.id}:${leagueKey}:${wk || "current"}`;
-    const roster   = await rosterSvc.fetchAndNormalizeRoster(yahoo, leagueKey, wk, cacheKey);
+    const roster = await rosterSvc.fetchAndNormalizeRoster(yahoo, leagueKey, wk, cacheKey);
 
     // Fetch waiver pool via Yahoo and normalize.
     const rawWaivers = await yahoo.getAvailablePlayers(leagueKey, { count: 50, sort: "AR" });
     const { pool: waiverPool } = await projectYahooPool(
-      yahoo, leagueKey, roster.week, rosterSvc.normalizeYahooWaivers(rawWaivers),
-      { rosterMeta: roster.projection_meta }
+      yahoo,
+      leagueKey,
+      roster.week,
+      rosterSvc.normalizeYahooWaivers(rawWaivers),
+      { rosterMeta: roster.projection_meta },
     );
 
     const recommendations = optimizer.findWaiverMoves(roster, waiverPool);
 
     res.json({
-      week:        roster.week,
-      league_key:  roster.league_key,
-      pool_size:   waiverPool.length,
+      week: roster.week,
+      league_key: roster.league_key,
+      pool_size: waiverPool.length,
       recommendations,
-      note:        waiverPool.every(p => p.projected_points == null)
+      note: waiverPool.every((p) => p.projected_points == null)
         ? "Yahoo /players;status=A doesn't include projections - delta uses 0 for waiver players. Recommendations will fire only against OUT/IR rostered players until we wire the projections sub-resource."
         : undefined,
       generated_at: new Date().toISOString(),
@@ -221,9 +229,7 @@ router.get("/waiver", async (req, res, next) => {
       return res.status(400).json({ error: "Yahoo league connection required" });
     }
 
-    const scoringFormat = VALID_SCORING_FORMATS.includes(req.query.scoringFormat)
-      ? req.query.scoringFormat
-      : "ppr";
+    const scoringFormat = VALID_SCORING_FORMATS.includes(req.query.scoringFormat) ? req.query.scoringFormat : "ppr";
     const { client: yahoo } = await getAuthenticatedYahooClient(req.user.id);
     const cacheKey = `ssff:waiver:${req.user.id}:${leagueId}:${wk || "current"}`;
     const roster = await rosterSvc.fetchAndNormalizeRoster(yahoo, leagueId, wk, cacheKey);
@@ -232,8 +238,11 @@ router.get("/waiver", async (req, res, next) => {
     try {
       const rawWaivers = await yahoo.getAvailablePlayers(leagueId, { count: 50, sort: "AR" });
       ({ pool: waiverPool } = await projectYahooPool(
-        yahoo, leagueId, roster.week, rosterSvc.normalizeYahooWaivers(rawWaivers),
-        { rosterMeta: roster.projection_meta }
+        yahoo,
+        leagueId,
+        roster.week,
+        rosterSvc.normalizeYahooWaivers(rawWaivers),
+        { rosterMeta: roster.projection_meta },
       ));
     } catch (e) {
       if (e.message === "yahoo_token_expired") throw e;

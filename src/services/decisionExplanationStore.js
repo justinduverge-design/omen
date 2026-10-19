@@ -97,10 +97,16 @@ function createRedisDecisionExplanationStore({ redis }) {
 function createNoopDecisionExplanationStore() {
   return {
     kind: "disabled",
-    async get() { return null; },
+    async get() {
+      return null;
+    },
     async put() {},
-    async enqueue() { return false; },
-    async dequeue() { return []; },
+    async enqueue() {
+      return false;
+    },
+    async dequeue() {
+      return [];
+    },
     async release() {},
     async requeue() {},
   };

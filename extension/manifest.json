@@ -13,10 +13,7 @@
   },
   "content_scripts": [
     {
-      "matches": [
-        "https://slopssaloon.com/account/connect*",
-        "http://localhost:5173/account/connect*"
-      ],
+      "matches": ["https://slopssaloon.com/account/connect*", "http://localhost:5173/account/connect*"],
       "js": ["content-omen.js"],
       "run_at": "document_idle"
     }

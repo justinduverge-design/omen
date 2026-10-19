@@ -14,18 +14,45 @@ const USER_AGENT = "OmenFootballWarehouse/1.0 (https://slopssaloon.com/; footbal
 // Franchise names as Wikipedia titles them, by season (relocations and renames since 1999).
 function franchiseName(abbr, season) {
   const names = {
-    ARI: "Arizona Cardinals", ATL: "Atlanta Falcons", BAL: "Baltimore Ravens", BUF: "Buffalo Bills", CAR: "Carolina Panthers",
-    CHI: "Chicago Bears", CIN: "Cincinnati Bengals", CLE: "Cleveland Browns", DAL: "Dallas Cowboys", DEN: "Denver Broncos",
-    DET: "Detroit Lions", GB: "Green Bay Packers", HOU: "Houston Texans", IND: "Indianapolis Colts", JAX: "Jacksonville Jaguars",
-    KC: "Kansas City Chiefs", MIA: "Miami Dolphins", MIN: "Minnesota Vikings", NE: "New England Patriots", NO: "New Orleans Saints",
-    NYG: "New York Giants", NYJ: "New York Jets", PHI: "Philadelphia Eagles", PIT: "Pittsburgh Steelers", SEA: "Seattle Seahawks",
-    SF: "San Francisco 49ers", TB: "Tampa Bay Buccaneers", TEN: "Tennessee Titans",
+    ARI: "Arizona Cardinals",
+    ATL: "Atlanta Falcons",
+    BAL: "Baltimore Ravens",
+    BUF: "Buffalo Bills",
+    CAR: "Carolina Panthers",
+    CHI: "Chicago Bears",
+    CIN: "Cincinnati Bengals",
+    CLE: "Cleveland Browns",
+    DAL: "Dallas Cowboys",
+    DEN: "Denver Broncos",
+    DET: "Detroit Lions",
+    GB: "Green Bay Packers",
+    HOU: "Houston Texans",
+    IND: "Indianapolis Colts",
+    JAX: "Jacksonville Jaguars",
+    KC: "Kansas City Chiefs",
+    MIA: "Miami Dolphins",
+    MIN: "Minnesota Vikings",
+    NE: "New England Patriots",
+    NO: "New Orleans Saints",
+    NYG: "New York Giants",
+    NYJ: "New York Jets",
+    PHI: "Philadelphia Eagles",
+    PIT: "Pittsburgh Steelers",
+    SEA: "Seattle Seahawks",
+    SF: "San Francisco 49ers",
+    TB: "Tampa Bay Buccaneers",
+    TEN: "Tennessee Titans",
   };
   if (names[abbr]) return abbr === "HOU" && season < 2002 ? null : names[abbr];
   if (abbr === "LV") return season >= 2020 ? "Las Vegas Raiders" : "Oakland Raiders";
   if (abbr === "LA") return season >= 2016 ? "Los Angeles Rams" : "St. Louis Rams";
   if (abbr === "LAC") return season >= 2017 ? "Los Angeles Chargers" : "San Diego Chargers";
-  if (abbr === "WAS") return season >= 2022 ? "Washington Commanders" : season >= 2020 ? "Washington Football Team" : "Washington Redskins";
+  if (abbr === "WAS")
+    return season >= 2022
+      ? "Washington Commanders"
+      : season >= 2020
+        ? "Washington Football Team"
+        : "Washington Redskins";
   return null;
 }
 
@@ -41,7 +68,10 @@ const ROLE_PATTERNS = [
 
 /** Roles in one staff title ("Assistant head coach/defensive coordinator" -> two roles). */
 function rolesOf(title) {
-  const parts = String(title).split(/\s*\/\s*|\s+and\s+/i).map((p) => p.trim()).filter(Boolean);
+  const parts = String(title)
+    .split(/\s*\/\s*|\s+and\s+/i)
+    .map((p) => p.trim())
+    .filter(Boolean);
   const roles = new Set();
   for (const part of parts) for (const [role, re] of ROLE_PATTERNS) if (re.test(part)) roles.add(role);
   if (/^head coach$/i.test(String(title).trim())) roles.add("head_coach");
@@ -70,7 +100,12 @@ function parseStaff(wikitext) {
 }
 
 function coachIdFor(title) {
-  const slug = String(title).toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 100);
+  const slug = String(title)
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 100);
   return `omen:coach:${slug}`;
 }
 
@@ -80,14 +115,26 @@ async function fetchTeamSeason({ abbr, season, fetchImpl = globalThis.fetch }) {
   if (!name) return null;
   const title = `${season} ${name} season`;
   const url = new URL(API);
-  for (const [k, v] of Object.entries({ action: "parse", page: title, prop: "wikitext|revid", format: "json", redirects: "1" })) url.searchParams.set(k, v);
-  const response = await fetchImpl(url, { headers: { "User-Agent": USER_AGENT, "Api-User-Agent": USER_AGENT }, signal: AbortSignal.timeout(20_000) });
-  if (!response.ok) throw Object.assign(new Error("wikipedia fetch failed"), { code: `source_http_${response.status}` });
+  for (const [k, v] of Object.entries({
+    action: "parse",
+    page: title,
+    prop: "wikitext|revid",
+    format: "json",
+    redirects: "1",
+  }))
+    url.searchParams.set(k, v);
+  const response = await fetchImpl(url, {
+    headers: { "User-Agent": USER_AGENT, "Api-User-Agent": USER_AGENT },
+    signal: AbortSignal.timeout(20_000),
+  });
+  if (!response.ok)
+    throw Object.assign(new Error("wikipedia fetch failed"), { code: `source_http_${response.status}` });
   const body = await response.json();
   if (body?.error) return null;
   const wikitext = body?.parse?.wikitext?.["*"] || "";
   return {
-    title, revisionId: Number(body?.parse?.revid) || null,
+    title,
+    revisionId: Number(body?.parse?.revid) || null,
     sourceRef: `sha256:${crypto.createHash("sha256").update(wikitext).digest("hex")}`,
     staff: parseStaff(wikitext),
   };

@@ -45,7 +45,9 @@ const STATES = Object.freeze({
 });
 
 function normalizedStatus(status) {
-  return String(status || "").trim().toUpperCase();
+  return String(status || "")
+    .trim()
+    .toUpperCase();
 }
 
 // Detail's vocabulary for the shared policy band; there is no scale of its own.
@@ -58,9 +60,10 @@ function confidenceLabel(delta, { corroboration = [], startStatus = null, sitSta
 
 function playerView(player, roster) {
   const key = player?.player_key;
-  const full = (roster?.slots?.starters || [])
-    .concat(roster?.slots?.bench || [])
-    .find((candidate) => candidate.player_key === key) || {};
+  const full =
+    (roster?.slots?.starters || [])
+      .concat(roster?.slots?.bench || [])
+      .find((candidate) => candidate.player_key === key) || {};
   return {
     player_key: key == null ? null : String(key),
     name: player?.name || null,
@@ -76,7 +79,19 @@ function playerView(player, roster) {
  * §5.2. Each entry names its own kind, so the client can never render a
  * projection or a model inference as a verified fact.
  */
-function buildEvidence({ start, sit, delta, scoringFormat, usage = null, teamSystem = null, breakdowns = null, weeklyUsage = null, signal = false, starterOut = false, fantasyMetrics = null }) {
+function buildEvidence({
+  start,
+  sit,
+  delta,
+  scoringFormat,
+  usage = null,
+  teamSystem = null,
+  breakdowns = null,
+  weeklyUsage = null,
+  signal = false,
+  starterOut = false,
+  fantasyMetrics = null,
+}) {
   const evidence = [];
 
   if (scoringFormat) {
@@ -106,10 +121,14 @@ function buildEvidence({ start, sit, delta, scoringFormat, usage = null, teamSys
   // Projection explainer layer 1: where each projection's points come from (Projected, or an
   // honest "unavailable"). No breakdowns at all, as when a read failed, means no rows.
   if (breakdowns?.get) {
-    evidence.push(...breakdownEvidence([start, sit].map((player) => ({
-      name: player.name,
-      breakdown: breakdowns.get(player.player_key) || null,
-    }))));
+    evidence.push(
+      ...breakdownEvidence(
+        [start, sit].map((player) => ({
+          name: player.name,
+          breakdown: breakdowns.get(player.player_key) || null,
+        })),
+      ),
+    );
   }
 
   // Observed recent usage (nflverse box scores via the player crosswalk): facts, not a forecast.
@@ -125,7 +144,9 @@ function buildEvidence({ start, sit, delta, scoringFormat, usage = null, teamSys
       if (!Array.isArray(rows) || !rows.length) continue;
       const summary = signalNoiseSummary({ usageRows: rows, name: player.name });
       // Too little history is left out rather than shown as a non-statement.
-      for (const s of summary.statements.filter((x) => x.source === "usage" && x.classification !== "insufficient_data")) {
+      for (const s of summary.statements.filter(
+        (x) => x.source === "usage" && x.classification !== "insufficient_data",
+      )) {
         evidence.push({ category: "recent_usage", kind: s.kind, statement: s.text });
       }
     }
@@ -145,15 +166,17 @@ function buildEvidence({ start, sit, delta, scoringFormat, usage = null, teamSys
   if (fantasyMetrics?.bundle) {
     const { bundle, gsisByKey, week } = fantasyMetrics;
     for (const player of [start, sit]) {
-      evidence.push(...fantasyMetricsEvidence({
-        name: player.name,
-        gsis: gsisByKey?.get?.(player.player_key) || null,
-        position: player.position,
-        team: player.team,
-        beforeWeek: Number(week),
-        scoringFormat,
-        bundle,
-      }));
+      evidence.push(
+        ...fantasyMetricsEvidence({
+          name: player.name,
+          gsis: gsisByKey?.get?.(player.player_key) || null,
+          position: player.position,
+          team: player.team,
+          beforeWeek: Number(week),
+          scoringFormat,
+          bundle,
+        }),
+      );
     }
     evidence.push(...gameEnvironmentEvidence({ teams: [start.team, sit.team], week: Number(week), bundle }));
   }
@@ -172,16 +195,18 @@ function buildEvidence({ start, sit, delta, scoringFormat, usage = null, teamSys
   evidence.push({
     category: "omen_inference",
     kind: "inference",
-    statement: delta >= CLOSE_DECISION_DELTA
-      ? `The available data favors ${start.name}.`
-      : `The available data slightly favors ${start.name}, and the gap is inside normal projection variance.`,
+    statement:
+      delta >= CLOSE_DECISION_DELTA
+        ? `The available data favors ${start.name}.`
+        : `The available data slightly favors ${start.name}, and the gap is inside normal projection variance.`,
   });
 
   if (!scoringFormat) {
     evidence.push({
       category: "limitation",
       kind: "limitation",
-      statement: "Omen has not verified this league's scoring rules, so the comparison uses the provider's own projections without restating the rule.",
+      statement:
+        "Omen has not verified this league's scoring rules, so the comparison uses the provider's own projections without restating the rule.",
     });
   }
 
@@ -211,8 +236,8 @@ function capability({ name, state, used, kind, source, statement }) {
 // without re-reading provider data or inferring a scoring rule on-device.
 function buildCapabilities({ state, scoringFormat, recommendation = null }) {
   const hasDecision = recommendation != null;
-  const hasProjectionPair = recommendation?.start?.projected_points != null
-    && recommendation?.over?.projected_points != null;
+  const hasProjectionPair =
+    recommendation?.start?.projected_points != null && recommendation?.over?.projected_points != null;
   return [
     capability({
       name: "roster",
@@ -220,11 +245,12 @@ function buildCapabilities({ state, scoringFormat, recommendation = null }) {
       used: hasDecision,
       kind: state === STATES.INCOMPLETE_DATA || state === STATES.OFF_SEASON ? "limitation" : "verified",
       source: "normalized_roster",
-      statement: state === STATES.INCOMPLETE_DATA
-        ? "Omen needs a full starting lineup and a bench before it can compare a lineup decision."
-        : state === STATES.OFF_SEASON
-          ? "Lineup decisions return with the regular season."
-          : "Omen compared the connected league's normalized roster.",
+      statement:
+        state === STATES.INCOMPLETE_DATA
+          ? "Omen needs a full starting lineup and a bench before it can compare a lineup decision."
+          : state === STATES.OFF_SEASON
+            ? "Lineup decisions return with the regular season."
+            : "Omen compared the connected league's normalized roster.",
     }),
     capability({
       name: "league_scoring",
@@ -308,18 +334,28 @@ function buildStartSitDetail({
   };
 
   if (offSeason) {
-    const result = envelope({ context, state: STATES.OFF_SEASON, contractVersion, extra: {
-      message: "Lineup decisions return with the regular season.",
-    } });
+    const result = envelope({
+      context,
+      state: STATES.OFF_SEASON,
+      contractVersion,
+      extra: {
+        message: "Lineup decisions return with the regular season.",
+      },
+    });
     return withCapabilities(result, { scoringFormat, contractVersion });
   }
 
   const starters = Array.isArray(roster?.slots?.starters) ? roster.slots.starters : [];
   const bench = Array.isArray(roster?.slots?.bench) ? roster.slots.bench : [];
   if (!starters.length || !bench.length) {
-    const result = envelope({ context, state: STATES.INCOMPLETE_DATA, contractVersion, extra: {
-      message: "Omen needs a full starting lineup and a bench before it can compare a lineup decision.",
-    } });
+    const result = envelope({
+      context,
+      state: STATES.INCOMPLETE_DATA,
+      contractVersion,
+      extra: {
+        message: "Omen needs a full starting lineup and a bench before it can compare a lineup decision.",
+      },
+    });
     return withCapabilities(result, { scoringFormat, contractVersion });
   }
 
@@ -329,26 +365,38 @@ function buildStartSitDetail({
   const scoped = slot ? all.filter((rec) => String(rec.slot).toUpperCase() === String(slot).toUpperCase()) : all;
 
   if (!scoped.length) {
-    const result = envelope({ context, state: STATES.NO_DECISION, contractVersion, extra: {
-      message: slot
-        ? "No bench player is eligible for that slot."
-        : "No bench player is eligible to change a starting slot this week.",
-    } });
+    const result = envelope({
+      context,
+      state: STATES.NO_DECISION,
+      contractVersion,
+      extra: {
+        message: slot
+          ? "No bench player is eligible for that slot."
+          : "No bench player is eligible to change a starting slot this week.",
+      },
+    });
     return withCapabilities(result, { scoringFormat, contractVersion });
   }
 
   // §5.3: default to the highest-priority *unresolved* decision. An OUT starter
   // outranks any pure projection upgrade — that slot is a hole, not a choice.
-  const ordered = [...scoped].sort((a, b) =>
-    Number(OUT_STATUSES.has(normalizedStatus(b.from.status))) - Number(OUT_STATUSES.has(normalizedStatus(a.from.status)))
-    || b.delta - a.delta);
+  const ordered = [...scoped].sort(
+    (a, b) =>
+      Number(OUT_STATUSES.has(normalizedStatus(b.from.status))) -
+        Number(OUT_STATUSES.has(normalizedStatus(a.from.status))) || b.delta - a.delta,
+  );
   const top = ordered[0];
 
   // A negative delta means the current starter is already the right call.
   if (top.delta <= 0 && !OUT_STATUSES.has(normalizedStatus(top.from.status))) {
-    const result = envelope({ context, state: STATES.NO_DECISION, contractVersion, extra: {
-      message: "Your current lineup already reflects the best available projection.",
-    } });
+    const result = envelope({
+      context,
+      state: STATES.NO_DECISION,
+      contractVersion,
+      extra: {
+        message: "Your current lineup already reflects the best available projection.",
+      },
+    });
     return withCapabilities(result, { scoringFormat, contractVersion });
   }
 
@@ -362,19 +410,35 @@ function buildStartSitDetail({
     why.push(`Higher projected output in this league's scoring (+${Number(delta.toFixed(2))}).`);
   }
   if (starterOut) why.push(`${sit.name} is unavailable for this week.`);
-  if (RISK_STATUSES.has(normalizedStatus(sit.status))) why.push(`${sit.name} carries an unresolved injury designation.`);
+  if (RISK_STATUSES.has(normalizedStatus(sit.status)))
+    why.push(`${sit.name} carries an unresolved injury designation.`);
 
-  const evidence = buildEvidence({ start, sit, delta, scoringFormat, usage, teamSystem, breakdowns, weeklyUsage, signal: contractVersion === CONTRACT_VERSION_V2, starterOut, fantasyMetrics: fantasyMetrics ? { ...fantasyMetrics, week: context.week } : null });
+  const evidence = buildEvidence({
+    start,
+    sit,
+    delta,
+    scoringFormat,
+    usage,
+    teamSystem,
+    breakdowns,
+    weeklyUsage,
+    signal: contractVersion === CONTRACT_VERSION_V2,
+    starterOut,
+    fantasyMetrics: fantasyMetrics ? { ...fantasyMetrics, week: context.week } : null,
+  });
 
   const whyStatements = contractVersion === CONTRACT_VERSION_V2 ? buildEvidenceWhy(evidence) : null;
   // Shadow only (DECISION_EXPLANATIONS_MODE): queue this decision's reasons for the local model. No response change.
-  if (whyStatements) queueDecisionExplanation({ type: "start_sit", decision: `Start ${start.name} over ${sit.name} at ${top.slot}.`, why: whyStatements });
+  if (whyStatements)
+    queueDecisionExplanation({
+      type: "start_sit",
+      decision: `Start ${start.name} over ${sit.name} at ${top.slot}.`,
+      why: whyStatements,
+    });
 
   const result = envelope({
     context,
-    state: starterOut
-      ? STATES.PLAYER_UNAVAILABLE
-      : (delta < CLOSE_DECISION_DELTA ? STATES.CLOSE : STATES.CLEAR),
+    state: starterOut ? STATES.PLAYER_UNAVAILABLE : delta < CLOSE_DECISION_DELTA ? STATES.CLOSE : STATES.CLEAR,
     contractVersion,
     extra: {
       recommendation: {
@@ -383,7 +447,9 @@ function buildStartSitDetail({
         over: sit,
         points_delta: Number(delta.toFixed(2)),
         confidence: confidenceLabel(delta, {
-          corroboration: [usageCorroboration(usage?.get?.(start.player_key), usage?.get?.(sit.player_key))].filter(Boolean),
+          corroboration: [usageCorroboration(usage?.get?.(start.player_key), usage?.get?.(sit.player_key))].filter(
+            Boolean,
+          ),
           startStatus: start.status,
           sitStatus: sit.status,
         }),

@@ -46,7 +46,8 @@ test("two users with the same league and week never share an entry", async () =>
 
 test("the same user in two leagues, weeks, contracts or routes gets separate entries", async () => {
   freshStore();
-  const write = async (route, parts, body) => cache.store(await cache.lookup({ route, userId: "u1", parts }), 200, body, { cache: true });
+  const write = async (route, parts, body) =>
+    cache.store(await cache.lookup({ route, userId: "u1", parts }), 200, body, { cache: true });
   await write("waiver_analysis", { league_id: "L1", week: 7 }, { v: "L1w7" });
   await write("waiver_analysis", { league_id: "L2", week: 7 }, { v: "L2w7" });
   await write("waiver_analysis", { league_id: "L1", week: 8 }, { v: "L1w8" });
@@ -60,7 +61,8 @@ test("the same user in two leagues, weeks, contracts or routes gets separate ent
 
 test("invalidateUser orphans that user's entries only", async () => {
   freshStore();
-  const put = async (userId) => cache.store(await cache.lookup({ route: "quiet_week", userId, parts: {} }), 200, { userId }, { cache: true });
+  const put = async (userId) =>
+    cache.store(await cache.lookup({ route: "quiet_week", userId, parts: {} }), 200, { userId }, { cache: true });
   await put("u1");
   await put("u2");
   assert.equal(await cache.invalidateUser("u1"), true);
@@ -127,10 +129,18 @@ test("a missing or broken store is a miss, never a failure", async () => {
 
   cache.setStoreForTests({
     kind: "broken",
-    get: async () => { throw new Error("redis down"); },
-    set: async () => { throw new Error("redis down"); },
-    getEpoch: async () => { throw new Error("redis down"); },
-    bumpEpoch: async () => { throw new Error("redis down"); },
+    get: async () => {
+      throw new Error("redis down");
+    },
+    set: async () => {
+      throw new Error("redis down");
+    },
+    getEpoch: async () => {
+      throw new Error("redis down");
+    },
+    bumpEpoch: async () => {
+      throw new Error("redis down");
+    },
   });
   const broken = await cache.lookup({ route: "quiet_week", userId: "u1", parts: {} });
   assert.equal(broken.hit, false);
@@ -154,24 +164,45 @@ test("a store that hangs costs at most the timeout and is a miss", async () => {
 });
 
 test("action and recovery states are never cacheable; a healthy move is", () => {
-  const healthy = { state: "success", platform: { name: "sleeper", recovery: null }, signals: { roster: { status: "live" } } };
+  const healthy = {
+    state: "success",
+    platform: { name: "sleeper", recovery: null },
+    signals: { roster: { status: "live" } },
+  };
   assert.deepEqual(cache.omenMoveVerdict(healthy), { cache: true, degraded: false });
   assert.deepEqual(cache.omenMoveVerdict({ ...healthy, state: "empty" }), { cache: true, degraded: false });
   for (const state of [
-    "espn_reauth_required", "yahoo_reauth_required", "platform_disconnected", "context_unavailable",
-    "sleeper_league_context_missing", "espn_league_context_missing", "espn_import_blocked",
-    "espn_recovery_needed", "pending_live_engine", "error", "off_season",
+    "espn_reauth_required",
+    "yahoo_reauth_required",
+    "platform_disconnected",
+    "context_unavailable",
+    "sleeper_league_context_missing",
+    "espn_league_context_missing",
+    "espn_import_blocked",
+    "espn_recovery_needed",
+    "pending_live_engine",
+    "error",
+    "off_season",
   ]) {
     assert.equal(cache.omenMoveVerdict({ ...healthy, state }).cache, false, state);
   }
-  assert.equal(cache.omenMoveVerdict({ ...healthy, platform: { name: "espn", recovery: { code: "reconnect" } } }).cache, false);
-  assert.equal(cache.omenMoveVerdict({ ...healthy, error: { code: "x" } }).cache, false);
-  assert.deepEqual(
-    cache.omenMoveVerdict({ ...healthy, signals: { roster: { status: "unavailable" } } }),
-    { cache: true, degraded: true }
+  assert.equal(
+    cache.omenMoveVerdict({ ...healthy, platform: { name: "espn", recovery: { code: "reconnect" } } }).cache,
+    false,
   );
+  assert.equal(cache.omenMoveVerdict({ ...healthy, error: { code: "x" } }).cache, false);
+  assert.deepEqual(cache.omenMoveVerdict({ ...healthy, signals: { roster: { status: "unavailable" } } }), {
+    cache: true,
+    degraded: true,
+  });
   // Routinely-unavailable enrichment is not a provider failure.
-  assert.equal(cache.omenMoveVerdict({ ...healthy, signals: { roster: { status: "live" }, llm_reasoning: { status: "unavailable" } } }).degraded, false);
+  assert.equal(
+    cache.omenMoveVerdict({
+      ...healthy,
+      signals: { roster: { status: "live" }, llm_reasoning: { status: "unavailable" } },
+    }).degraded,
+    false,
+  );
 });
 
 // --- Route: waiver analysis ---------------------------------------------------
@@ -197,7 +228,10 @@ function loadWaiversRouter({ rowsByUser, counters, poolFails = () => false }) {
         select() {
           let userId = null;
           const query = {
-            eq(field, value) { if (field === "user_id") userId = value; return query; },
+            eq(field, value) {
+              if (field === "user_id") userId = value;
+              return query;
+            },
             then: (r, j) => Promise.resolve({ data: rowsByUser[userId] || [], error: null }).then(r, j),
           };
           return query;
@@ -210,7 +244,12 @@ function loadWaiversRouter({ rowsByUser, counters, poolFails = () => false }) {
     if (parent?.filename === routePath) {
       if (request === "@supabase/supabase-js") return { createClient: () => supabaseDouble };
       if (request === "../middleware/auth") {
-        return { requireAuth: (req, _res, next) => { req.user = { id: req.headers["x-test-user"] }; next(); } };
+        return {
+          requireAuth: (req, _res, next) => {
+            req.user = { id: req.headers["x-test-user"] };
+            next();
+          },
+        };
       }
       if (request === "../middleware/logging") return { logger: { error() {}, warn() {}, info() {} } };
       if (request === "../services/nflSchedule") {
@@ -247,7 +286,12 @@ async function call(app, path, { method = "GET", user = "user-1", body } = {}) {
   try {
     const response = await fetch(`http://127.0.0.1:${server.address().port}${path}`, {
       method,
-      headers: { "x-test-user": user, authorization: "Bearer t", "content-type": "application/json", "x-contract-record": "skip" },
+      headers: {
+        "x-test-user": user,
+        authorization: "Bearer t",
+        "content-type": "application/json",
+        "x-contract-record": "skip",
+      },
       body: body == null ? undefined : JSON.stringify(body),
     });
     return { status: response.status, body: await response.json(), cache: response.headers.get("x-omen-cache") };
@@ -264,7 +308,9 @@ function waiverApp(options) {
   const app = express();
   app.use(express.json());
   app.use("/api/waivers", loadWaiversRouter(options));
-  app.use((err, _req, res, _next) => { res.status(err.status || 500).json({ error: err.message }); });
+  app.use((err, _req, res, _next) => {
+    res.status(err.status || 500).json({ error: err.message });
+  });
   return app;
 }
 
@@ -387,10 +433,26 @@ function loadDashboardRouter({ liveByUser, counters }) {
   Module._load = function patchedLoad(request, parent, isMain) {
     if (request === "../config") return { supabaseUrl: "https://example.supabase.co", supabaseServiceKey: "k" };
     if (request === "@supabase/supabase-js") {
-      return { createClient: () => ({ from: () => ({ select() { return this; }, eq() { return Promise.resolve({ data: [], error: null }); } }) }) };
+      return {
+        createClient: () => ({
+          from: () => ({
+            select() {
+              return this;
+            },
+            eq() {
+              return Promise.resolve({ data: [], error: null });
+            },
+          }),
+        }),
+      };
     }
     if (request === "../middleware/auth" && parent?.filename === routePath) {
-      return { requireAuth: (req, _res, next) => { req.user = { id: req.headers["x-test-user"] }; next(); } };
+      return {
+        requireAuth: (req, _res, next) => {
+          req.user = { id: req.headers["x-test-user"] };
+          next();
+        },
+      };
     }
     return originalLoad.call(this, request, parent, isMain);
   };
@@ -406,19 +468,26 @@ test("quiet-week: per user and per context_id isolation, hit/miss header, no cac
   const counters = { live: [] };
   let state = "empty";
   const app = express();
-  app.use("/api/dashboard", loadDashboardRouter({
-    counters,
-    liveByUser: (userId, { contextId }) => ({
-      status: 200,
-      body: {
-        state,
-        platform: { name: "espn", status: "connected", recovery: state === "espn_reauth_required" ? { code: "reconnect" } : null },
-        league: { id: `${userId}:${contextId}` },
-        quiet_inputs: { injured_starter: false },
-        signals: { roster: { status: "live" } },
-      },
+  app.use(
+    "/api/dashboard",
+    loadDashboardRouter({
+      counters,
+      liveByUser: (userId, { contextId }) => ({
+        status: 200,
+        body: {
+          state,
+          platform: {
+            name: "espn",
+            status: "connected",
+            recovery: state === "espn_reauth_required" ? { code: "reconnect" } : null,
+          },
+          league: { id: `${userId}:${contextId}` },
+          quiet_inputs: { injured_starter: false },
+          signals: { roster: { status: "live" } },
+        },
+      }),
     }),
-  }));
+  );
 
   const a1 = await call(app, "/api/dashboard/quiet-week?context_id=c1", { user: "user-a" });
   assert.equal(a1.cache, "miss");
@@ -429,7 +498,10 @@ test("quiet-week: per user and per context_id isolation, hit/miss header, no cac
   assert.equal((await call(app, "/api/dashboard/quiet-week?context_id=c1", { user: "user-b" })).cache, "miss");
   // Same user, other context id (a league switch): separate computation.
   assert.equal((await call(app, "/api/dashboard/quiet-week?context_id=c2", { user: "user-a" })).cache, "miss");
-  assert.deepEqual(counters.live.map((c) => `${c.userId}:${c.contextId}`), ["user-a:c1", "user-b:c1", "user-a:c2"]);
+  assert.deepEqual(
+    counters.live.map((c) => `${c.userId}:${c.contextId}`),
+    ["user-a:c1", "user-b:c1", "user-a:c2"],
+  );
 
   // A reauth state is never cached: two requests, two computations.
   state = "espn_reauth_required";
@@ -448,9 +520,15 @@ test("invalidateUserCacheOnWrite bumps the epoch before the handler and again be
   const store = freshStore();
   const seen = [];
   const realBump = store.bumpEpoch.bind(store);
-  store.bumpEpoch = async (userId) => { seen.push(userId); return realBump(userId); };
+  store.bumpEpoch = async (userId) => {
+    seen.push(userId);
+    return realBump(userId);
+  };
   const app = express();
-  app.use((req, _res, next) => { req.user = { id: req.headers["x-test-user"] }; next(); });
+  app.use((req, _res, next) => {
+    req.user = { id: req.headers["x-test-user"] };
+    next();
+  });
   app.post("/write", cache.invalidateUserCacheOnWrite, (_req, res) => res.json({ ok: true }));
 
   const handle = await cache.lookup({ route: "quiet_week", userId: "user-1", parts: {} });

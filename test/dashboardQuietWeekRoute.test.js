@@ -10,8 +10,12 @@ function fakeSupabase() {
   return {
     from() {
       return {
-        select() { return this; },
-        eq() { return Promise.resolve({ data: [], error: null }); },
+        select() {
+          return this;
+        },
+        eq() {
+          return Promise.resolve({ data: [], error: null });
+        },
       };
     },
   };

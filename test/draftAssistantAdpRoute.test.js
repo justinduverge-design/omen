@@ -42,13 +42,7 @@ async function request(app, path = "/api/draft-assistant/adp?format=half-ppr&tea
 
 test("GET /api/draft-assistant/adp returns mock ADP shape outside production Redis", async () => {
   const res = await request(buildApp());
-  const expectedMockNames = [
-    "Sample RB1",
-    "Mock WR Starter",
-    "Example TE Value",
-    "Sample Flex Upside",
-    "Sample WR2",
-  ];
+  const expectedMockNames = ["Sample RB1", "Mock WR Starter", "Example TE Value", "Sample Flex Upside", "Sample WR2"];
 
   assert.equal(res.status, 200);
   assert.equal(res.body.is_mock, true);
@@ -61,7 +55,10 @@ test("GET /api/draft-assistant/adp returns mock ADP shape outside production Red
     assert.equal(typeof source.fetched_at, "string");
     assert.equal(Array.isArray(source.players), true);
     assert.equal(source.players.length, 5);
-    assert.deepEqual(source.players.map((player) => player.name), expectedMockNames);
+    assert.deepEqual(
+      source.players.map((player) => player.name),
+      expectedMockNames,
+    );
     for (const player of source.players) {
       assert.equal(typeof player.name, "string");
       assert.equal(typeof player.position, "string");

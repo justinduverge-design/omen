@@ -42,14 +42,12 @@ test("both informational shapes render without crashing", () => {
 
   const item = normalizeNote(
     { kind: "sprint-item", key: "S5", status: "VERIFIED", prs: [{ number: 331 }] },
-    "sprint-vs-merged-prs"
+    "sprint-vs-merged-prs",
   );
-  const note = normalizeNote("Not read: 67 issue reference(s) in decision_log.md.",
-    "issue-state-conflicts");
+  const note = normalizeNote("Not read: 67 issue reference(s) in decision_log.md.", "issue-state-conflicts");
 
   assert.match(describeInformational(item).join("\n"), /S5 \(VERIFIED\).*#331/);
-  assert.match(describeInformational(note).join("\n"),
-    /Not read: 67 issue reference\(s\).*\[issue-state-conflicts\]/);
+  assert.match(describeInformational(note).join("\n"), /Not read: 67 issue reference\(s\).*\[issue-state-conflicts\]/);
   assert.equal(note.kind, "note");
 });
 

@@ -8,18 +8,10 @@ function StateCard({ eyebrow, title, message, action }) {
   return (
     <section className="rounded-lg border border-(--color-border) bg-(--color-surface-1) p-8 text-center">
       {eyebrow && (
-        <p className="text-xs font-semibold uppercase tracking-widest text-(--color-team-accent)">
-          {eyebrow}
-        </p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-(--color-team-accent)">{eyebrow}</p>
       )}
-      <h1 className="mt-3 font-display text-3xl font-semibold text-(--color-text-primary)">
-        {title}
-      </h1>
-      {message && (
-        <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-(--color-text-secondary)">
-          {message}
-        </p>
-      )}
+      <h1 className="mt-3 font-display text-3xl font-semibold text-(--color-text-primary)">{title}</h1>
+      {message && <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-(--color-text-secondary)">{message}</p>}
       {action && (
         <Link
           className="mt-6 inline-flex min-h-[44px] items-center justify-center rounded-md bg-(--color-team-accent) px-5 py-2.5 text-sm font-semibold text-(--color-text-on-accent) transition-colors duration-150 hover:bg-(--color-accent-hover) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-team-accent)"
@@ -94,10 +86,7 @@ export default function TradeShare() {
     };
   }, [hash]);
 
-  const summary = useMemo(
-    () => (snapshot ? summarizeTradeSnapshot(snapshot) : null),
-    [snapshot],
-  );
+  const summary = useMemo(() => (snapshot ? summarizeTradeSnapshot(snapshot) : null), [snapshot]);
 
   if (status === 'loading') {
     return (
@@ -131,23 +120,15 @@ export default function TradeShare() {
       <section className="rounded-lg border border-(--color-border) bg-(--color-surface-1) p-6 md:p-8">
         <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-(--color-team-accent)">
-              Trade Analyzer
-            </p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-(--color-team-accent)">Trade Analyzer</p>
             <h1 className="mt-2 font-display text-3xl font-semibold text-(--color-text-primary) md:text-4xl">
               {summary.title}
             </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-(--color-text-secondary)">
-              {summary.description}
-            </p>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-(--color-text-secondary)">{summary.description}</p>
           </div>
           <div className="rounded-md border border-(--color-team-accent)/30 bg-(--color-team-accent)/10 px-4 py-3 text-left md:min-w-44">
-            <p className="text-xs font-semibold uppercase tracking-widest text-(--color-text-tertiary)">
-              VORP value
-            </p>
-            <p className="mt-1 font-mono text-3xl font-semibold text-(--color-text-primary)">
-              {summary.netValueLabel}
-            </p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-(--color-text-tertiary)">VORP value</p>
+            <p className="mt-1 font-mono text-3xl font-semibold text-(--color-text-primary)">{summary.netValueLabel}</p>
           </div>
         </div>
 
@@ -167,12 +148,17 @@ export default function TradeShare() {
         </div>
 
         <p className="mt-4 rounded-md border border-(--color-border) bg-(--color-bg) px-4 py-3 text-sm leading-6 text-(--color-text-secondary)">
-          Calculated from the player values entered when this snapshot was created. It is not connected league data and does not include ESPN cookies, tokens, or private league data.
+          Calculated from the player values entered when this snapshot was created. It is not connected league data and
+          does not include ESPN cookies, tokens, or private league data.
         </p>
 
         <div className="mt-6 grid gap-4 md:grid-cols-2">
           <PlayerList label="Send" players={result.send?.players || trade.send} totalValue={result.send?.total_value} />
-          <PlayerList label="Receive" players={result.receive?.players || trade.receive} totalValue={result.receive?.total_value} />
+          <PlayerList
+            label="Receive"
+            players={result.receive?.players || trade.receive}
+            totalValue={result.receive?.total_value}
+          />
         </div>
       </section>
 

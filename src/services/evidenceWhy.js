@@ -31,7 +31,7 @@ function tierFor(row) {
   const { category, kind } = row;
   if (kind === "limitation" || category === "limitation") return { tier: "limitation", rank: 3 };
   if (category === "recent_usage" && kind === "verified") return { tier: "observed", rank: 0.0 };
-    if (category === "current_status" && kind === "verified") return { tier: "observed", rank: 0.1 };
+  if (category === "current_status" && kind === "verified") return { tier: "observed", rank: 0.1 };
   if (category === "points_breakdown" && kind === "projected") return { tier: "observed", rank: 0.2 };
   if (category === "team_system" && kind === "observed_context") return { tier: "observed", rank: 0.3 };
   // Signal-vs-noise usage steadiness (signalNoise.js): last of the observed facts, so it never evicts a breakdown or team row.
@@ -118,11 +118,13 @@ function statementsAreGrounded(statements, rows) {
   const list = Array.isArray(rows) ? rows : [];
   return (statements || []).every((statement) => {
     if (!statement.evidence?.length) return statement.text === NOT_ENOUGH_EVIDENCE;
-    const haystack = statement.evidence.map((ref) => {
-      const match = /^evidence\[(\d+)\]$/.exec(ref.id);
-      const row = match ? list[Number(match[1])] : list.find((r) => r && String(r.id) === ref.id);
-      return cleanText(row?.statement);
-    }).join(" ");
+    const haystack = statement.evidence
+      .map((ref) => {
+        const match = /^evidence\[(\d+)\]$/.exec(ref.id);
+        const row = match ? list[Number(match[1])] : list.find((r) => r && String(r.id) === ref.id);
+        return cleanText(row?.statement);
+      })
+      .join(" ");
     const { numbers, names } = tokens(statement.text);
     return [...numbers, ...names].every((token) => haystack.includes(token));
   });

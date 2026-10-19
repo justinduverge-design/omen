@@ -4,5 +4,9 @@ export const ACCOUNT_DELETE_CONFIRMATION = 'delete';
 
 /** Case-insensitive and trimmed, matching the server. See `AccountDeletion.swift` for why. */
 export function isAccountDeleteConfirmation(value) {
-  return String(value ?? '').trim().toLowerCase() === ACCOUNT_DELETE_CONFIRMATION;
+  return (
+    String(value ?? '')
+      .trim()
+      .toLowerCase() === ACCOUNT_DELETE_CONFIRMATION
+  );
 }

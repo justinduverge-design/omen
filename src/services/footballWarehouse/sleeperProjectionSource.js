@@ -15,7 +15,11 @@ const MAX_BYTES = 20 * 1024 * 1024;
 const DEFAULT_TIMEOUT_MS = 20_000;
 
 class ProjectionSourceError extends Error {
-  constructor(code, message) { super(message); this.name = "ProjectionSourceError"; this.code = code; }
+  constructor(code, message) {
+    super(message);
+    this.name = "ProjectionSourceError";
+    this.code = code;
+  }
 }
 
 function projectionUrl(season, week) {
@@ -30,7 +34,11 @@ function projectionUrl(season, week) {
 function sortKeys(value) {
   if (Array.isArray(value)) return value.map(sortKeys);
   if (value && typeof value === "object") {
-    return Object.fromEntries(Object.keys(value).sort().map((key) => [key, sortKeys(value[key])]));
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort()
+        .map((key) => [key, sortKeys(value[key])]),
+    );
   }
   return value;
 }
@@ -54,23 +62,43 @@ function normalizeRecords(payload, { season, week }) {
     const stats = record?.stats;
     const recordWeek = record?.week == null ? week : Number(record.week);
     const recordSeason = record?.season == null ? season : Number(record.season);
-    if (!id || id.length > 128 || !stats || typeof stats !== "object" || Array.isArray(stats)
-        || recordWeek !== week || recordSeason !== season) { skipped += 1; continue; }
+    if (
+      !id ||
+      id.length > 128 ||
+      !stats ||
+      typeof stats !== "object" ||
+      Array.isArray(stats) ||
+      recordWeek !== week ||
+      recordSeason !== season
+    ) {
+      skipped += 1;
+      continue;
+    }
     const company = typeof record.company === "string" && record.company ? record.company.slice(0, 64) : null;
-    byPlayer.set(id, { sourcePlayerId: id, company, statLine: stats, contentHash: contentHash({ company, statLine: stats }) });
+    byPlayer.set(id, {
+      sourcePlayerId: id,
+      company,
+      statLine: stats,
+      contentHash: contentHash({ company, statLine: stats }),
+    });
   }
   return { records: [...byPlayer.values()], skipped, duplicates: payload.length - skipped - byPlayer.size };
 }
 
 async function readBounded(response, maxBytes) {
   const declared = response.headers?.get?.("content-length");
-  if (declared != null && Number(declared) > maxBytes) throw new ProjectionSourceError("source_too_large", "response too large");
+  if (declared != null && Number(declared) > maxBytes)
+    throw new ProjectionSourceError("source_too_large", "response too large");
   const buffer = Buffer.from(await response.arrayBuffer());
   if (buffer.length > maxBytes) throw new ProjectionSourceError("source_too_large", "response too large");
   return buffer;
 }
 
-function createSleeperProjectionSource({ fetchImpl = globalThis.fetch, timeoutMs = DEFAULT_TIMEOUT_MS, maxBytes = MAX_BYTES } = {}) {
+function createSleeperProjectionSource({
+  fetchImpl = globalThis.fetch,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  maxBytes = MAX_BYTES,
+} = {}) {
   if (typeof fetchImpl !== "function") throw new TypeError("fetch is required");
   return {
     source: SOURCE,
@@ -85,12 +113,23 @@ function createSleeperProjectionSource({ fetchImpl = globalThis.fetch, timeoutMs
           signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
         });
       } catch (error) {
-        throw new ProjectionSourceError(error?.name === "TimeoutError" ? "source_timeout" : "source_unreachable", "projection request failed");
+        throw new ProjectionSourceError(
+          error?.name === "TimeoutError" ? "source_timeout" : "source_unreachable",
+          "projection request failed",
+        );
       }
-      if (!response.ok) throw new ProjectionSourceError(`source_http_${Number(response.status) || 0}`.slice(0, 64), "projection request was refused");
+      if (!response.ok)
+        throw new ProjectionSourceError(
+          `source_http_${Number(response.status) || 0}`.slice(0, 64),
+          "projection request was refused",
+        );
       const body = await readBounded(response, maxBytes);
       let payload;
-      try { payload = JSON.parse(body.toString("utf8")); } catch { throw new ProjectionSourceError("source_shape", "projection payload is not JSON"); }
+      try {
+        payload = JSON.parse(body.toString("utf8"));
+      } catch {
+        throw new ProjectionSourceError("source_shape", "projection payload is not JSON");
+      }
       const normalized = normalizeRecords(payload, { season, week });
       return {
         source: SOURCE,
@@ -108,5 +147,11 @@ function createSleeperProjectionSource({ fetchImpl = globalThis.fetch, timeoutMs
 }
 
 module.exports = {
-  ProjectionSourceError, RIGHTS_BASIS, SOURCE, contentHash, createSleeperProjectionSource, normalizeRecords, projectionUrl,
+  ProjectionSourceError,
+  RIGHTS_BASIS,
+  SOURCE,
+  contentHash,
+  createSleeperProjectionSource,
+  normalizeRecords,
+  projectionUrl,
 };

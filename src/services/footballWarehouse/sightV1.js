@@ -16,7 +16,10 @@ const VERSION = "v1";
 const MIN_COHORT = 8;
 
 const mean = (v) => v.reduce((s, x) => s + x, 0) / v.length;
-const sd = (v) => { const m = mean(v); return Math.sqrt(mean(v.map((x) => (x - m) ** 2))); };
+const sd = (v) => {
+  const m = mean(v);
+  return Math.sqrt(mean(v.map((x) => (x - m) ** 2)));
+};
 const r4 = (x) => Math.round(x * 1e4) / 1e4;
 
 function phaseOf(week) {
@@ -32,8 +35,14 @@ const VARIANTS = Object.freeze({ v1: "with_production", v2: "with_weather" });
 /** Weights for (season, position, phase): that season's era fit, else the latest earlier one. */
 function weightsFor(season, position, phase, version = "v1") {
   // A position without a layer (K and DEF have no role layer) uses its richest variant available.
-  const variants = version === "v2" ? ["with_elements", "with_weather", "with_role", "with_context"] : [VARIANTS[version] || VARIANTS.v1];
-  const seasons = Object.keys(WEIGHTS.weights).map(Number).filter((s) => s <= season).sort((a, b) => b - a);
+  const variants =
+    version === "v2"
+      ? ["with_elements", "with_weather", "with_role", "with_context"]
+      : [VARIANTS[version] || VARIANTS.v1];
+  const seasons = Object.keys(WEIGHTS.weights)
+    .map(Number)
+    .filter((s) => s <= season)
+    .sort((a, b) => b - a);
   for (const s of seasons) {
     const entry = WEIGHTS.weights[s]?.[position]?.[phase];
     const variant = variants.find((v) => entry?.[v]);
@@ -44,10 +53,10 @@ function weightsFor(season, position, phase, version = "v1") {
 }
 
 function qualifies(position, agg, week) {
-  if (position === "QB") return agg.dropbacks >= Math.max(30, Math.round(100 * week / 17));
-  if (position === "RB") return agg.carries >= Math.max(10, Math.round(40 * week / 17));
-  if (position === "WR") return agg.targets >= Math.max(8, Math.round(25 * week / 17));
-  return agg.targets >= Math.max(6, Math.round(20 * week / 17));
+  if (position === "QB") return agg.dropbacks >= Math.max(30, Math.round((100 * week) / 17));
+  if (position === "RB") return agg.carries >= Math.max(10, Math.round((40 * week) / 17));
+  if (position === "WR") return agg.targets >= Math.max(8, Math.round((25 * week) / 17));
+  return agg.targets >= Math.max(6, Math.round((20 * week) / 17));
 }
 
 /**
@@ -55,33 +64,54 @@ function qualifies(position, agg, week) {
  * @param {Map} positions omen player id -> { position }
  * @param {Map} ppgToDate omen player id -> points per game through week (games played only)
  */
-function computeSight({ season, week, aggregates, positions, ppgToDate, context = null, role = null, version = VERSION }) {
+function computeSight({
+  season,
+  week,
+  aggregates,
+  positions,
+  ppgToDate,
+  context = null,
+  role = null,
+  version = VERSION,
+}) {
   const phase = phaseOf(week);
   const values = [];
   const summary = { phase, version, positions: {} };
   for (const position of Object.keys(SPECS)) {
     const spec = SPECS[position];
     const w = weightsFor(season, position, phase, version);
-    const ids = [...aggregates.keys()].filter((id) => positions.get(id)?.position === position && qualifies(position, aggregates.get(id), week)).sort();
-    if (!w || ids.length < MIN_COHORT) { summary.positions[position] = { graded: 0, reason: w ? "cohort_too_small" : "no_weights" }; continue; }
+    const ids = [...aggregates.keys()]
+      .filter((id) => positions.get(id)?.position === position && qualifies(position, aggregates.get(id), week))
+      .sort();
+    if (!w || ids.length < MIN_COHORT) {
+      summary.positions[position] = { graded: 0, reason: w ? "cohort_too_small" : "no_weights" };
+      continue;
+    }
     const raws = ids.map((id) => spec.raw(aggregates.get(id)));
     const features = {};
     for (const c of spec.components) {
       const totalN = raws.reduce((s, r) => s + r[c.key].n, 0);
       const prior = totalN > 0 ? raws.reduce((s, r) => s + r[c.key].sum, 0) / totalN : 0;
-      const shrunk = raws.map((r) => (r[c.key].raw == null || r[c.key].n === 0 ? prior : (r[c.key].n * r[c.key].raw + c.shrinkK * prior) / (r[c.key].n + c.shrinkK)));
-      const m = mean(shrunk); const s = sd(shrunk);
-      features[c.key] = shrunk.map((v) => (s > 1e-9 ? c.sign * (v - m) / s : 0));
+      const shrunk = raws.map((r) =>
+        r[c.key].raw == null || r[c.key].n === 0
+          ? prior
+          : (r[c.key].n * r[c.key].raw + c.shrinkK * prior) / (r[c.key].n + c.shrinkK),
+      );
+      const m = mean(shrunk);
+      const s = sd(shrunk);
+      features[c.key] = shrunk.map((v) => (s > 1e-9 ? (c.sign * (v - m)) / s : 0));
     }
     const ppg = ids.map((id) => ppgToDate.get(id) ?? 0);
-    const pm = mean(ppg); const ps = sd(ppg);
+    const pm = mean(ppg);
+    const ps = sd(ppg);
     features.production_ppg = ppg.map((v) => (ps > 1e-9 ? (v - pm) / ps : 0));
     if (version === "v2") {
       // Game context for the next game, z-scored within the cohort; a missing value (no line yet) is neutral.
       const ctx = ids.map((id) => context?.(id, position) || null);
       const z = (key) => {
         const vals = ctx.map((c) => c?.[key]).filter((v) => v != null);
-        const m0 = vals.length ? mean(vals) : 0; const s0 = vals.length ? sd(vals) : 0;
+        const m0 = vals.length ? mean(vals) : 0;
+        const s0 = vals.length ? sd(vals) : 0;
         return ctx.map((c) => (c?.[key] == null || s0 <= 1e-9 ? 0 : (c[key] - m0) / s0));
       };
       features.implied_team_total = z("implied");
@@ -93,23 +123,35 @@ function computeSight({ season, week, aggregates, positions, ppgToDate, context 
       const roles = ids.map((id) => role?.(id, position) || null);
       const zr = (key) => {
         const vals = roles.map((c) => c?.[key]).filter((v) => v != null);
-        const m0 = vals.length ? mean(vals) : 0; const s0 = vals.length ? sd(vals) : 0;
+        const m0 = vals.length ? mean(vals) : 0;
+        const s0 = vals.length ? sd(vals) : 0;
         return roles.map((c) => (c?.[key] == null || s0 <= 1e-9 ? 0 : (c[key] - m0) / s0));
       };
       features.usage_trend = zr("usageTrend");
       features.vacated_share = zr("vacated");
     }
 
-    const points = ids.map((_, i) => w.intercept + Object.entries(w.weights).reduce((s, [k, b]) => s + b * (features[k]?.[i] ?? 0), 0));
-    const m = mean(points); const s = sd(points);
+    const points = ids.map(
+      (_, i) => w.intercept + Object.entries(w.weights).reduce((s, [k, b]) => s + b * (features[k]?.[i] ?? 0), 0),
+    );
+    const m = mean(points);
+    const s = sd(points);
     ids.forEach((id, i) => {
-      const contributions = Object.fromEntries(Object.entries(w.weights).map(([k, b]) => [k, { weight: b, z: r4(features[k][i]), points: r4(b * features[k][i]) }]));
+      const contributions = Object.fromEntries(
+        Object.entries(w.weights).map(([k, b]) => [
+          k,
+          { weight: b, z: r4(features[k][i]), points: r4(b * features[k][i]) },
+        ]),
+      );
       values.push({
         entityType: "player",
         entityId: id,
         value: r4(points[i]),
         components: {
-          metric: "SIGHT", version, position, phase,
+          metric: "SIGHT",
+          version,
+          position,
+          phase,
           grade: r4(Math.min(100, Math.max(0, 50 + 10 * (s > 1e-9 ? (points[i] - m) / s : 0)))),
           sight_points: r4(points[i]),
           production_ppg: r4(ppg[i]),

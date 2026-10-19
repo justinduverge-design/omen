@@ -20,17 +20,52 @@ const fixtures = require("./fixtures/a6-replay-weeks.json");
  */
 
 const LEAGUES = {
-  standard: { rec: 0, rec_yd: 0.1, rec_td: 6, rush_yd: 0.1, rush_td: 6, pass_yd: 0.04, pass_td: 4, pass_int: -2, fum_lost: -2 },
-  half_ppr: { rec: 0.5, rec_yd: 0.1, rec_td: 6, rush_yd: 0.1, rush_td: 6, pass_yd: 0.04, pass_td: 4, pass_int: -2, fum_lost: -2 },
-  ppr: { rec: 1, rec_yd: 0.1, rec_td: 6, rush_yd: 0.1, rush_td: 6, pass_yd: 0.04, pass_td: 4, pass_int: -2, fum_lost: -2 },
+  standard: {
+    rec: 0,
+    rec_yd: 0.1,
+    rec_td: 6,
+    rush_yd: 0.1,
+    rush_td: 6,
+    pass_yd: 0.04,
+    pass_td: 4,
+    pass_int: -2,
+    fum_lost: -2,
+  },
+  half_ppr: {
+    rec: 0.5,
+    rec_yd: 0.1,
+    rec_td: 6,
+    rush_yd: 0.1,
+    rush_td: 6,
+    pass_yd: 0.04,
+    pass_td: 4,
+    pass_int: -2,
+    fum_lost: -2,
+  },
+  ppr: {
+    rec: 1,
+    rec_yd: 0.1,
+    rec_td: 6,
+    rush_yd: 0.1,
+    rush_td: 6,
+    pass_yd: 0.04,
+    pass_td: 4,
+    pass_int: -2,
+    fum_lost: -2,
+  },
 };
 
 /** Every rule the contract prices must have a fact. An absent fact is unknown, not zero. */
 function factsFor(player) {
   return {
-    passing_yards: 0, passing_touchdowns: 0, passing_interceptions: 0,
-    rushing_yards: 0, rushing_touchdowns: 0,
-    receiving_receptions: 0, receiving_yards: 0, receiving_touchdowns: 0,
+    passing_yards: 0,
+    passing_touchdowns: 0,
+    passing_interceptions: 0,
+    rushing_yards: 0,
+    rushing_touchdowns: 0,
+    receiving_receptions: 0,
+    receiving_yards: 0,
+    receiving_touchdowns: 0,
     fumbles_lost: 0,
     ...player.facts,
   };
@@ -57,7 +92,7 @@ for (const week of fixtures.weeks) {
         assert.equal(
           result.state,
           RECONCILIATION_STATES.EXACT,
-          `${result.state}: ${result.reason} (omen ${result.omen_points} vs provider ${result.provider_points})`
+          `${result.state}: ${result.reason} (omen ${result.omen_points} vs provider ${result.provider_points})`,
         );
         assert.equal(result.league_exact, true);
         assert.equal(result.omen_points, player.provider_final[format]);
@@ -70,9 +105,7 @@ for (const week of fixtures.weeks) {
 
 test("the same facts score differently under different league rules", () => {
   const player = fixtures.weeks[0].players[0]; // 9 receptions
-  const points = Object.fromEntries(
-    Object.keys(LEAGUES).map((format) => [format, replay(format, player).omen_points])
-  );
+  const points = Object.fromEntries(Object.keys(LEAGUES).map((format) => [format, replay(format, player).omen_points]));
 
   assert.equal(points.standard, 16.4);
   assert.equal(points.half_ppr, 20.9);
@@ -122,7 +155,10 @@ test("a negative week reconciles exact", () => {
 
 test("the matrix covers four scoring periods and every supported league shape", () => {
   assert.equal(fixtures.weeks.length, 4);
-  assert.deepEqual(fixtures.weeks.map((w) => w.week), [1, 7, 14, 17]);
+  assert.deepEqual(
+    fixtures.weeks.map((w) => w.week),
+    [1, 7, 14, 17],
+  );
   for (const week of fixtures.weeks) {
     assert.ok(week.players.length >= 2, `week ${week.week} needs at least two archetypes`);
     for (const player of week.players) {

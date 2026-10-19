@@ -34,7 +34,10 @@ function sha256(bytes) {
 function stable(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
   if (Array.isArray(value)) return `[${value.map(stable).join(",")}]`;
-  return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stable(value[key])}`).join(",")}}`;
+  return `{${Object.keys(value)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${stable(value[key])}`)
+    .join(",")}}`;
 }
 
 function requireString(value, field) {
@@ -140,12 +143,15 @@ function validateSource(source, intendedUse) {
       attribution: requireString(rights.attribution, "source.rights.attribution"),
     },
   };
-  assertSourceAdmission({
-    family: validated.family,
-    intendedUse,
-    owner: validated.owner,
-    license: validated.rights.license,
-  }, fail);
+  assertSourceAdmission(
+    {
+      family: validated.family,
+      intendedUse,
+      owner: validated.owner,
+      license: validated.rights.license,
+    },
+    fail,
+  );
   return validated;
 }
 
@@ -229,7 +235,8 @@ function createLocalArtifactRegistry({ root, clock = () => new Date() }) {
     } catch (error) {
       fail("INVALID_RECEIPT", `receipt is not valid JSON: ${receiptId}`, { cause: error });
     }
-    if (receiptDigest(receipt) !== digest) fail("RECEIPT_HASH_MISMATCH", `receipt failed hash verification: ${receiptId}`);
+    if (receiptDigest(receipt) !== digest)
+      fail("RECEIPT_HASH_MISMATCH", `receipt failed hash verification: ${receiptId}`);
     if (receipt.receipt_id !== receiptId) fail("RECEIPT_ID_MISMATCH", `receipt self-id does not match: ${receiptId}`);
     return receipt;
   }
@@ -260,7 +267,8 @@ function createLocalArtifactRegistry({ root, clock = () => new Date() }) {
     } catch (error) {
       fail("INVALID_RECEIPT", `derived receipt is not valid JSON: ${receiptId}`, { cause: error });
     }
-    if (receiptDigest(receipt) !== digest) fail("RECEIPT_HASH_MISMATCH", `derived receipt failed hash verification: ${receiptId}`);
+    if (receiptDigest(receipt) !== digest)
+      fail("RECEIPT_HASH_MISMATCH", `derived receipt failed hash verification: ${receiptId}`);
     if (receipt.receipt_id !== receiptId || receipt.schema !== DERIVED_RECEIPT_SCHEMA) {
       fail("RECEIPT_ID_MISMATCH", `derived receipt identity does not match: ${receiptId}`);
     }
@@ -270,7 +278,8 @@ function createLocalArtifactRegistry({ root, clock = () => new Date() }) {
   async function replayReadModel(receiptId) {
     const receipt = await getDerivedReceipt(receiptId);
     const bytes = await readArtifact(receipt.artifact.sha256);
-    if (bytes.length !== receipt.artifact.byte_length) fail("ARTIFACT_LENGTH_MISMATCH", `read model length does not match receipt: ${receiptId}`);
+    if (bytes.length !== receipt.artifact.byte_length)
+      fail("ARTIFACT_LENGTH_MISMATCH", `read model length does not match receipt: ${receiptId}`);
     let readModel;
     try {
       readModel = JSON.parse(bytes);
@@ -278,7 +287,8 @@ function createLocalArtifactRegistry({ root, clock = () => new Date() }) {
       fail("INVALID_DERIVED_ARTIFACT", `read model is not valid JSON: ${receiptId}`, { cause: error });
     }
     validateArtifact(readModel);
-    if (readModel.output_hash !== receipt.validation.output_hash) fail("DERIVED_OUTPUT_MISMATCH", `read model output hash does not match receipt: ${receiptId}`);
+    if (readModel.output_hash !== receipt.validation.output_hash)
+      fail("DERIVED_OUTPUT_MISMATCH", `read model output hash does not match receipt: ${receiptId}`);
     return Object.freeze({ receipt, read_model: readModel, bytes });
   }
 
@@ -350,10 +360,12 @@ function createLocalArtifactRegistry({ root, clock = () => new Date() }) {
     const artifactType = requireString(input.artifact_type, "artifact_type");
     const mediaType = requireString(input.media_type, "media_type");
     const coverage = validateCoverage(input.coverage);
-    const observedEventTime = input.observed_event_time ? {
-      from: toIso(input.observed_event_time.from, "observed_event_time.from"),
-      through: toIso(input.observed_event_time.through, "observed_event_time.through"),
-    } : null;
+    const observedEventTime = input.observed_event_time
+      ? {
+          from: toIso(input.observed_event_time.from, "observed_event_time.from"),
+          through: toIso(input.observed_event_time.through, "observed_event_time.through"),
+        }
+      : null;
     if (observedEventTime && observedEventTime.from > observedEventTime.through) {
       fail("INVALID_SOURCE_RECEIPT", "observed event-time range is reversed");
     }
@@ -396,10 +408,12 @@ function createLocalArtifactRegistry({ root, clock = () => new Date() }) {
       row_count: input.row_count,
       observed_event_time: observedEventTime,
       coverage,
-      supersession: supersedes ? {
-        supersedes_artifact_id: supersedes,
-        reason: input.correction_reason.trim(),
-      } : null,
+      supersession: supersedes
+        ? {
+            supersedes_artifact_id: supersedes,
+            reason: input.correction_reason.trim(),
+          }
+        : null,
       publication: { authorized: false, state: "captured" },
     };
     const digestReceipt = receiptDigest(receipt);
@@ -429,24 +443,28 @@ function createLocalArtifactRegistry({ root, clock = () => new Date() }) {
       fail("INVALID_DERIVED_ARTIFACT", "source_artifact_ids must be non-empty");
     }
     const sourceArtifactIds = [...new Set(input.source_artifact_ids)].sort();
-    if (sourceArtifactIds.length !== input.source_artifact_ids.length) fail("INVALID_DERIVED_ARTIFACT", "source_artifact_ids cannot contain duplicates");
+    if (sourceArtifactIds.length !== input.source_artifact_ids.length)
+      fail("INVALID_DERIVED_ARTIFACT", "source_artifact_ids cannot contain duplicates");
     for (const artifactId of sourceArtifactIds) {
       try {
         await readArtifact(artifactId);
       } catch (error) {
-        if (error.code === "ARTIFACT_NOT_FOUND") fail("SOURCE_ARTIFACT_NOT_FOUND", `read-model source artifact is absent: ${artifactId}`);
+        if (error.code === "ARTIFACT_NOT_FOUND")
+          fail("SOURCE_ARTIFACT_NOT_FOUND", `read-model source artifact is absent: ${artifactId}`);
         throw error;
       }
     }
     const effectiveWindow = input.effective_window;
-    if (!effectiveWindow?.from || !effectiveWindow?.through) fail("INVALID_DERIVED_ARTIFACT", "effective_window.from and through are required");
+    if (!effectiveWindow?.from || !effectiveWindow?.through)
+      fail("INVALID_DERIVED_ARTIFACT", "effective_window.from and through are required");
     const registryRoot = await ready();
     const bytes = Buffer.from(`${stable(input.readModel)}\n`);
     const digest = sha256(bytes);
     const artifactId = `sha256:${digest}`;
     const supersedes = input.supersedes_artifact_id || null;
     if (supersedes) {
-      if (!SHA256.test(supersedes) || supersedes === artifactId) fail("INVALID_SUPERSESSION", "derived supersession must name a different sha256 artifact");
+      if (!SHA256.test(supersedes) || supersedes === artifactId)
+        fail("INVALID_SUPERSESSION", "derived supersession must name a different sha256 artifact");
       const derivedFiles = await listJsonFiles(path.join(registryRoot, "derived-receipts"));
       let predecessor = null;
       for (const file of derivedFiles) {
@@ -468,7 +486,12 @@ function createLocalArtifactRegistry({ root, clock = () => new Date() }) {
       receipt_id: null,
       artifact_type: "football_intelligence_read_model",
       computed_at_utc: toIso(clock(), "clock"),
-      artifact: { sha256: artifactId, byte_length: bytes.length, media_type: "application/json", object_path: `objects/sha256/${digest.slice(0, 2)}/${digest}` },
+      artifact: {
+        sha256: artifactId,
+        byte_length: bytes.length,
+        media_type: "application/json",
+        object_path: `objects/sha256/${digest.slice(0, 2)}/${digest}`,
+      },
       source_artifact_ids: sourceArtifactIds,
       effective_window: effectiveWindow,
       validation,
@@ -479,10 +502,25 @@ function createLocalArtifactRegistry({ root, clock = () => new Date() }) {
     receipt.receipt_id = `receipt:${digestReceipt}`;
     const receiptFile = derivedReceiptPath(registryRoot, digestReceipt);
     const receiptCreated = await writeImmutable(receiptFile, Buffer.from(`${JSON.stringify(receipt, null, 2)}\n`));
-    return { artifact_id: artifactId, receipt_id: receipt.receipt_id, created: { artifact: artifactCreated, receipt: receiptCreated }, paths: { artifact: objectPath, receipt: receiptFile } };
+    return {
+      artifact_id: artifactId,
+      receipt_id: receipt.receipt_id,
+      created: { artifact: artifactCreated, receipt: receiptCreated },
+      paths: { artifact: objectPath, receipt: receiptFile },
+    };
   }
 
-  return Object.freeze({ getReceipt, getDerivedReceipt, readArtifact, replayReceipt, replayReadModel, rebuildIndex, registerReadModel, registerSourceArtifact, root: selectedRoot });
+  return Object.freeze({
+    getReceipt,
+    getDerivedReceipt,
+    readArtifact,
+    replayReceipt,
+    replayReadModel,
+    rebuildIndex,
+    registerReadModel,
+    registerSourceArtifact,
+    root: selectedRoot,
+  });
 }
 
 module.exports = {

@@ -72,9 +72,10 @@ function describeAlternative(row, threshold) {
   const margin = round2(threshold - delta);
   const startName = row.to?.name || "the bench player";
   const sitName = row.from?.name || "your starter";
-  const whyNot = delta >= 0
-    ? `${startName} projects ${Math.abs(delta).toFixed(1)} points above ${sitName} (${row.to.projected} vs ${row.from.projected}), under the ${threshold}-point bar Omen needs before it suggests a swap.`
-    : `${sitName} already projects ${Math.abs(delta).toFixed(1)} points above ${startName} (${row.from.projected} vs ${row.to.projected}), so benching ${sitName} would cost you.`;
+  const whyNot =
+    delta >= 0
+      ? `${startName} projects ${Math.abs(delta).toFixed(1)} points above ${sitName} (${row.to.projected} vs ${row.from.projected}), under the ${threshold}-point bar Omen needs before it suggests a swap.`
+      : `${sitName} already projects ${Math.abs(delta).toFixed(1)} points above ${startName} (${row.from.projected} vs ${row.to.projected}), so benching ${sitName} would cost you.`;
   return {
     kind: "start_sit",
     slot: row.slot || null,
@@ -89,7 +90,10 @@ function describeAlternative(row, threshold) {
 
 function outStarterNames(roster, isOut) {
   const starters = Array.isArray(roster?.slots?.starters) ? roster.slots.starters : [];
-  return starters.filter((player) => isOut(player?.status)).map((player) => player.name).filter(Boolean);
+  return starters
+    .filter((player) => isOut(player?.status))
+    .map((player) => player.name)
+    .filter(Boolean);
 }
 
 /**
@@ -177,9 +181,10 @@ function buildHold({ roster, platformLabel, waiver = {}, trade = null, usage = n
   if (trade) {
     if (trade.status === "none_found") {
       const teams = Number(trade.teams_checked) || 0;
-      const detail = teams > 0
-        ? `Omen searched ${teams} other roster${teams === 1 ? "" : "s"} in this league for a one-for-one trade that improves both lineups and keeps the value fair. None cleared both.`
-        : "Omen searched the other rosters in this league for a one-for-one trade that improves both lineups. None cleared the bar.";
+      const detail =
+        teams > 0
+          ? `Omen searched ${teams} other roster${teams === 1 ? "" : "s"} in this league for a one-for-one trade that improves both lineups and keeps the value fair. None cleared both.`
+          : "Omen searched the other rosters in this league for a one-for-one trade that improves both lineups. None cleared the bar.";
       reasons.push({ code: "no_fair_trade", text: detail });
       considered.push({ kind: "trade_suggestion", outcome: "none_found", detail });
     } else if (trade.status === "unavailable") {

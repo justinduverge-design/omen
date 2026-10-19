@@ -136,9 +136,10 @@ function retryAfterSeconds(req, windowMs) {
  */
 function buildRateLimitEnvelope({ route, method, path, scope, limit, windowMs, req }) {
   return {
-    error: scope === "user"
-      ? `Too many ${method} ${path} requests for this credential. Slow down and retry shortly.`
-      : `Too many ${method} ${path} requests from this network. Slow down and retry shortly.`,
+    error:
+      scope === "user"
+        ? `Too many ${method} ${path} requests for this credential. Slow down and retry shortly.`
+        : `Too many ${method} ${path} requests from this network. Slow down and retry shortly.`,
     code: RATE_LIMITED_CODE,
     scope,
     route,
@@ -159,16 +160,22 @@ function createHotRouteLimiter({ route, method, path, scope, limit, windowMs = H
     limit,
     standardHeaders: "draft-7",
     legacyHeaders: false,
-    keyGenerator: (req) => (
-      scope === "user" ? credentialKey(req) : ipKeyGenerator(req.ip)
-    ),
+    keyGenerator: (req) => (scope === "user" ? credentialKey(req) : ipKeyGenerator(req.ip)),
     // The credential bucket has nothing to count for an anonymous request.
     // Those are covered by the per-IP limiter, which never skips.
     skip: scope === "user" ? (req) => credentialKey(req) === "" : () => false,
     handler: (req, res) => {
-      res.status(429).json(buildRateLimitEnvelope({
-        route, method, path, scope, limit, windowMs, req,
-      }));
+      res.status(429).json(
+        buildRateLimitEnvelope({
+          route,
+          method,
+          path,
+          scope,
+          limit,
+          windowMs,
+          req,
+        }),
+      );
     },
   });
 }
@@ -191,9 +198,7 @@ function createHotRouteLimiters(routeKey, overrides = {}) {
  * store per route+scope, which is the entire point.
  */
 const hotRouteLimiters = Object.freeze(
-  Object.fromEntries(
-    Object.keys(HOT_ROUTE_LIMITS).map((key) => [key, createHotRouteLimiters(key)]),
-  ),
+  Object.fromEntries(Object.keys(HOT_ROUTE_LIMITS).map((key) => [key, createHotRouteLimiters(key)])),
 );
 
 /**

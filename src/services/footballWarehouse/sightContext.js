@@ -28,7 +28,13 @@ function elementsGaps(playRows, badGame) {
     const epa = p.epa == null ? null : Number(p.epa);
     if (bad == null || epa == null || !Number.isFinite(epa) || !p.posteamId) continue;
     const r = t.get(p.posteamId) || { badSum: 0, badN: 0, goodSum: 0, goodN: 0 };
-    if (bad) { r.badSum += epa; r.badN += 1; } else { r.goodSum += epa; r.goodN += 1; }
+    if (bad) {
+      r.badSum += epa;
+      r.badN += 1;
+    } else {
+      r.goodSum += epa;
+      r.goodN += 1;
+    }
     t.set(p.posteamId, r);
   }
   const out = new Map();
@@ -67,18 +73,34 @@ function buildContext(statRows, gameRows, elementsGap = null) {
   for (const g of gameRows) {
     // Weather: indoor games have none. Wind and cold matter for passing and kicking; null means unknown.
     const dome = g.roof === "dome" || g.roof === "closed";
-    const wind = dome ? 0 : (g.wind_mph == null ? null : Number(g.wind_mph));
-    const temp = dome ? 70 : (g.temperature_f == null ? null : Number(g.temperature_f));
+    const wind = dome ? 0 : g.wind_mph == null ? null : Number(g.wind_mph);
+    const temp = dome ? 70 : g.temperature_f == null ? null : Number(g.temperature_f);
     const cold = temp == null ? null : Math.max(0, 40 - temp);
     const total = g.total_line == null ? null : Number(g.total_line);
     const spread = g.spread_line == null ? null : Number(g.spread_line); // nflverse: positive = home favored
     const home = total != null && spread != null ? total / 2 + spread / 2 : null;
     const away = total != null && spread != null ? total / 2 - spread / 2 : null;
     const coldFor = (team) => (cold == null ? null : cold * (warmTeam.get(team) ? 1 : 0));
-    const precip = dome ? 0 : (g.precip_in == null ? null : Number(g.precip_in));
+    const precip = dome ? 0 : g.precip_in == null ? null : Number(g.precip_in);
     const bad = isBadWeather({ dome, wind, temp, precip });
-    game.set(`${g.week}|${g.home_team_id}`, { opp: g.away_team_id, implied: home, wind, cold, precip, bad, coldForWarmTeam: coldFor(g.home_team_id) });
-    game.set(`${g.week}|${g.away_team_id}`, { opp: g.home_team_id, implied: away, wind, cold, precip, bad, coldForWarmTeam: coldFor(g.away_team_id) });
+    game.set(`${g.week}|${g.home_team_id}`, {
+      opp: g.away_team_id,
+      implied: home,
+      wind,
+      cold,
+      precip,
+      bad,
+      coldForWarmTeam: coldFor(g.home_team_id),
+    });
+    game.set(`${g.week}|${g.away_team_id}`, {
+      opp: g.home_team_id,
+      implied: away,
+      wind,
+      cold,
+      precip,
+      bad,
+      coldForWarmTeam: coldFor(g.away_team_id),
+    });
   }
   return {
     contextFor(playerId, position, week) {
@@ -89,15 +111,20 @@ function buildContext(statRows, gameRows, elementsGap = null) {
       if (!next) return null;
       const byWeek = allowed.get(`${next.opp}|${position}`);
       const weeks = byWeek ? [...byWeek].filter(([w]) => w <= week) : [];
-      return { implied: next.implied, oppAllowed: weeks.length ? mean(weeks.map(([, v]) => v)) : null, wind: next.wind ?? null, cold: next.cold ?? null, precip: next.precip ?? null,
+      return {
+        implied: next.implied,
+        oppAllowed: weeks.length ? mean(weeks.map(([, v]) => v)) : null,
+        wind: next.wind ?? null,
+        cold: next.cold ?? null,
+        precip: next.precip ?? null,
         coldForWarmTeam: next.coldForWarmTeam ?? null,
         // The team's elements gap (how much worse its offense plays in bad weather), applied only when the next
         // game is in bad weather; 0 in a dome or mild game, null when the weather is unknown.
-        elements: next.bad == null ? null : (next.bad ? (elementsGap?.get(team) ?? 0) : 0) };
+        elements: next.bad == null ? null : next.bad ? (elementsGap?.get(team) ?? 0) : 0,
+      };
     },
   };
 }
-
 
 module.exports = { buildContext, elementsGaps, isBadWeather };
 
@@ -109,7 +136,8 @@ const OUT_STATUSES = new Set(["RES", "INA", "CUT", "TRD", "RET", "EXE", "TRT"]);
 function roleShare(position, a) {
   if (!a) return null;
   if (position === "QB") return a.teamDropbacks > 0 ? a.dropbacks / a.teamDropbacks : null;
-  if (position === "RB") return a.teamRushAttempts > 0 ? (a.carries + a.targets) / (a.teamRushAttempts + a.teamPassAttempts) : null;
+  if (position === "RB")
+    return a.teamRushAttempts > 0 ? (a.carries + a.targets) / (a.teamRushAttempts + a.teamPassAttempts) : null;
   return a.teamPassAttempts > 0 ? a.targets / a.teamPassAttempts : null;
 }
 

@@ -34,7 +34,10 @@ const rosterSvc = require("../src/services/roster");
 
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
 const labels = new Map();
-const tag = (id) => { if (!labels.has(id)) labels.set(id, `league_${labels.size + 1}`); return labels.get(id); };
+const tag = (id) => {
+  if (!labels.has(id)) labels.set(id, `league_${labels.size + 1}`);
+  return labels.get(id);
+};
 const safeErr = (e) => String(e?.status || e?.code || e?.name || "error").slice(0, 40);
 
 function shape(teams) {
@@ -63,7 +66,9 @@ async function findUserId() {
   for (let page = 1; page < 20; page += 1) {
     const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 200 });
     if (error) throw new Error("auth lookup failed");
-    const hit = (data?.users || []).find((u) => (isIdPrefix ? String(u.id).startsWith(needle) : String(u.email || "").toLowerCase() === needle));
+    const hit = (data?.users || []).find((u) =>
+      isIdPrefix ? String(u.id).startsWith(needle) : String(u.email || "").toLowerCase() === needle,
+    );
     if (hit) return hit.id;
     if (!data?.users?.length || data.users.length < 200) break;
   }
@@ -77,53 +82,92 @@ async function main() {
     .select("platform, league_id, is_active")
     .eq("user_id", userId);
   if (error) throw new Error("connection lookup failed");
-  console.log(JSON.stringify({ connections: (rows || []).map((r) => ({ platform: r.platform, league: tag(r.league_id), active: !!r.is_active, has_league: !!r.league_id })) }));
+  console.log(
+    JSON.stringify({
+      connections: (rows || []).map((r) => ({
+        platform: r.platform,
+        league: tag(r.league_id),
+        active: !!r.is_active,
+        has_league: !!r.league_id,
+      })),
+    }),
+  );
 
   const week = Number(process.env.PROBE_WEEK || 0) || undefined;
   for (const row of rows || []) {
     const out = { platform: row.platform, league: tag(row.league_id) };
     try {
-      if (!row.league_id) { out.result = "no_league_bound"; }
-      else if (row.platform === "sleeper") {
+      if (!row.league_id) {
+        out.result = "no_league_bound";
+      } else if (row.platform === "sleeper") {
         const r = await sleeper.fetchSleeperLeagueRosters(row.league_id, week || 1, String(new Date().getFullYear()));
-        out.result = "ok"; out.league_status = r?.league_status || null;
+        out.result = "ok";
+        out.league_status = r?.league_status || null;
         out.roster_positions = Array.isArray(r?.roster_positions) ? r.roster_positions.length : 0;
         out.shape = shape(r?.teams || []);
       } else if (row.platform === "espn") {
         const c = await getAuthenticatedEspnCredentials(userId);
         const r = await espn.fetchEspnLeagueRosters(row.league_id, c.espn_s2, c.swid, { week });
-        out.result = "ok"; out.roster_positions = Array.isArray(r?.roster_positions) ? r.roster_positions.length : 0;
+        out.result = "ok";
+        out.roster_positions = Array.isArray(r?.roster_positions) ? r.roster_positions.length : 0;
         out.shape = shape(r?.teams || []);
         try {
           const s = await espn.fetchEspnApi(row.league_id, c.espn_s2, c.swid, ["mSettings"], week);
           const counts = s?.settings?.rosterSettings?.lineupSlotCounts;
           out.settings_lineup_slot_counts = counts && typeof counts === "object" ? counts : null;
-        } catch (e) { out.settings_error = safeErr(e); }
+        } catch (e) {
+          out.settings_error = safeErr(e);
+        }
         try {
           const data = await espn.fetchEspnApi(row.league_id, c.espn_s2, c.swid, ["mTeam", "mSettings"], null);
           const model = waiverSystem.fromEspn({ settings: data?.settings, team: null });
-          out.waiver_system = { system: model.system, reason: model.reason, has_acquisition_settings: !!data?.settings?.acquisitionSettings };
-        } catch (e) { out.waiver_system_error = safeErr(e); }
+          out.waiver_system = {
+            system: model.system,
+            reason: model.reason,
+            has_acquisition_settings: !!data?.settings?.acquisitionSettings,
+          };
+        } catch (e) {
+          out.waiver_system_error = safeErr(e);
+        }
         try {
           const pool = await espn.fetchEspnWaiverPool(row.league_id, c.espn_s2, c.swid, week || 6);
-          const list = Array.isArray(pool) ? pool : (pool?.players || []);
-          out.waiver_pool = { players: list.length, with_projection: list.filter((p) => p.projected_points != null).length };
-        } catch (e) { out.waiver_pool_error = safeErr(e); }
+          const list = Array.isArray(pool) ? pool : pool?.players || [];
+          out.waiver_pool = {
+            players: list.length,
+            with_projection: list.filter((p) => p.projected_points != null).length,
+          };
+        } catch (e) {
+          out.waiver_pool_error = safeErr(e);
+        }
       } else if (row.platform === "yahoo") {
         const { accessToken, client } = await getAuthenticatedYahooClient(userId);
         const r = await yahoo.fetchYahooLeagueRosters(row.league_id, accessToken, week);
-        out.result = "ok"; out.roster_positions = Array.isArray(r?.roster_positions) ? r.roster_positions.length : 0;
+        out.result = "ok";
+        out.roster_positions = Array.isArray(r?.roster_positions) ? r.roster_positions.length : 0;
         out.shape = shape(r?.teams || []);
         try {
           const raw = await client.getAvailablePlayers(row.league_id, { count: 50, sort: "AR" });
-          const { pool, projectionMeta } = await projectYahooPool(client, row.league_id, r.week, rosterSvc.normalizeYahooWaivers(raw));
-          out.waiver_pool = { players: pool.length, with_projection: pool.filter((p) => p.projected_points != null).length, meta_reason: projectionMeta?.reason ?? null };
-        } catch (e) { out.waiver_pool_error = safeErr(e); }
+          const { pool, projectionMeta } = await projectYahooPool(
+            client,
+            row.league_id,
+            r.week,
+            rosterSvc.normalizeYahooWaivers(raw),
+          );
+          out.waiver_pool = {
+            players: pool.length,
+            with_projection: pool.filter((p) => p.projected_points != null).length,
+            meta_reason: projectionMeta?.reason ?? null,
+          };
+        } catch (e) {
+          out.waiver_pool_error = safeErr(e);
+        }
         try {
           const rawSettings = await client.getLeagueSettings(row.league_id);
           const model = waiverSystem.fromYahoo({ settings: rawSettings, team: null });
           out.waiver_system = { system: model.system, reason: model.reason };
-        } catch (e) { out.waiver_system_error = safeErr(e); }
+        } catch (e) {
+          out.waiver_system_error = safeErr(e);
+        }
         out.projection_meta = r?.projection_meta ?? null;
         const nul = (r?.teams || []).flatMap((t) => t.players || []).filter((p) => p.projected_points == null);
         out.unprojected_by_position = nul.reduce((a, p) => ({ ...a, [p.position]: (a[p.position] || 0) + 1 }), {});
@@ -135,13 +179,26 @@ async function main() {
           out.settings_has_roster_positions = /roster_positions/.test(flat);
           const m = flat.match(/"roster_positions":\[(.*?)\]\}?,?"/);
           out.settings_roster_positions_present = !!m;
-        } catch (e) { out.settings_error = safeErr(e); }
-      } else { out.result = "unsupported"; }
+        } catch (e) {
+          out.settings_error = safeErr(e);
+        }
+      } else {
+        out.result = "unsupported";
+      }
     } catch (e) {
-      out.result = "failed"; out.error = safeErr(e);
+      out.result = "failed";
+      out.error = safeErr(e);
     }
     console.log(JSON.stringify(out));
   }
 }
 
-main().catch((e) => { console.error("probe failed:", String(e?.message || e).replace(/eyJ[\w.-]+/g, "[redacted]").slice(0, 120)); process.exit(1); });
+main().catch((e) => {
+  console.error(
+    "probe failed:",
+    String(e?.message || e)
+      .replace(/eyJ[\w.-]+/g, "[redacted]")
+      .slice(0, 120),
+  );
+  process.exit(1);
+});

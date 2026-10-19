@@ -16,9 +16,15 @@ const MOVE_ID = "11111111-2222-3333-4444-555555555555";
 // Decision-backed receipts are covered in test/ledgerDecisions.test.js.
 function emptyLedgerQuery() {
   const query = {
-    select() { return query; },
-    eq() { return query; },
-    async maybeSingle() { return { data: null, error: null }; },
+    select() {
+      return query;
+    },
+    eq() {
+      return query;
+    },
+    async maybeSingle() {
+      return { data: null, error: null };
+    },
   };
   return query;
 }
@@ -33,14 +39,24 @@ function fakeSupabase({ rows = [], missingColumns = false, calls = [] } = {}) {
           const missing = missingColumns && /scoring_contract_version/.test(columns);
           const query = {
             filters: {},
-            eq(field, value) { query.filters[field] = value; return query; },
+            eq(field, value) {
+              query.filters[field] = value;
+              return query;
+            },
             async maybeSingle() {
               calls.push({ columns, filters: { ...query.filters } });
               if (missing) {
-                return { data: null, error: { code: "PGRST204", message: "Could not find the 'scoring_contract_version' column of 'moves'" } };
+                return {
+                  data: null,
+                  error: {
+                    code: "PGRST204",
+                    message: "Could not find the 'scoring_contract_version' column of 'moves'",
+                  },
+                };
               }
               const match = rows.find((row) =>
-                Object.entries(query.filters).every(([field, value]) => String(row[field]) === String(value)));
+                Object.entries(query.filters).every(([field, value]) => String(row[field]) === String(value)),
+              );
               return { data: match || null, error: null };
             },
           };
@@ -61,7 +77,12 @@ function loadRouter(options = {}) {
     if (parent?.filename === routePath) {
       if (request === "@supabase/supabase-js") return { createClient: () => supabaseDouble };
       if (request === "../middleware/auth") {
-        return { requireAuth: (req, _res, next) => { req.user = { id: options.userId || "user-1" }; next(); } };
+        return {
+          requireAuth: (req, _res, next) => {
+            req.user = { id: options.userId || "user-1" };
+            next();
+          },
+        };
       }
       if (request === "../services/nflSchedule") {
         return { getCurrentNflWeekContext: () => ({ season: 2026, week: 7 }) };
@@ -81,7 +102,9 @@ function buildApp(options) {
   const app = express();
   app.use(express.json());
   app.use("/api/moves", loadRouter(options));
-  app.use((err, _req, res, _next) => { res.status(err.status || 500).json({ error: err.message }); });
+  app.use((err, _req, res, _next) => {
+    res.status(err.status || 500).json({ error: err.message });
+  });
   return app;
 }
 
@@ -100,16 +123,29 @@ async function request(app, path) {
 }
 
 const RESOLVED_ROW = {
-  id: MOVE_ID, user_id: "user-1", week_num: 6, season: 2026, move_type: "start_sit",
+  id: MOVE_ID,
+  user_id: "user-1",
+  week_num: 6,
+  season: 2026,
+  move_type: "start_sit",
   headline: "Start DeVonta Smith over Chris Olave",
   reasoning: "The available data favored Smith in a close matchup.",
-  confidence: 72, target_player: "DeVonta Smith",
-  followed: true, user_stars: 4, user_note: null,
-  outcome: "win", eff: 70, result: "DeVonta Smith scored 18.4 fantasy points (Half PPR).",
-  created_at: "2026-10-11T20:12:00.000Z", scored_at: "2026-10-15T12:00:00.000Z",
-  platform: "sleeper", league_id: "L1", scoring: "Half PPR",
+  confidence: 72,
+  target_player: "DeVonta Smith",
+  followed: true,
+  user_stars: 4,
+  user_note: null,
+  outcome: "win",
+  eff: 70,
+  result: "DeVonta Smith scored 18.4 fantasy points (Half PPR).",
+  created_at: "2026-10-11T20:12:00.000Z",
+  scored_at: "2026-10-15T12:00:00.000Z",
+  platform: "sleeper",
+  league_id: "L1",
+  scoring: "Half PPR",
   scoring_contract_version: "omen-scoring-contract-v1",
-  scoring_coverage_state: "supported", reconciliation_state: "exact",
+  scoring_coverage_state: "supported",
+  reconciliation_state: "exact",
 };
 
 test("GET /api/moves/:id returns the immutable snapshot with a timezone-qualified issue time", async () => {
@@ -220,7 +256,9 @@ test("an explicit not-followed is distinguished from an unknown one", async () =
 });
 
 test("a pending entry names what it is waiting for instead of showing an outcome", async () => {
-  const app = buildApp({ supabase: { rows: [{ ...RESOLVED_ROW, outcome: "pending", result: null, scored_at: null }] } });
+  const app = buildApp({
+    supabase: { rows: [{ ...RESOLVED_ROW, outcome: "pending", result: null, scored_at: null }] },
+  });
   const { body } = await request(app, `/api/moves/${MOVE_ID}`);
 
   assert.equal(body.state, "pending");

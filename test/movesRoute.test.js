@@ -41,16 +41,12 @@ class FakeQuery {
   }
 
   apply() {
-    let result = this.rows.filter((row) =>
-      this.filters.every(({ field, value }) => row[field] === value)
-    );
+    let result = this.rows.filter((row) => this.filters.every(({ field, value }) => row[field] === value));
 
     if (this.orderSpec) {
       const { field, options } = this.orderSpec;
       const direction = options?.ascending === false ? -1 : 1;
-      result = [...result].sort((a, b) => (
-        String(a[field] || "").localeCompare(String(b[field] || "")) * direction
-      ));
+      result = [...result].sort((a, b) => String(a[field] || "").localeCompare(String(b[field] || "")) * direction);
     }
 
     if (this.limitValue != null) result = result.slice(0, this.limitValue);
@@ -87,10 +83,12 @@ function loadMovesRouter({ rows = [], requireAuth } = {}) {
     }
     if (request === "../middleware/auth" && parent?.filename === routePath) {
       return {
-        requireAuth: requireAuth || ((req, _res, next) => {
-          req.user = { id: "user-1" };
-          next();
-        }),
+        requireAuth:
+          requireAuth ||
+          ((req, _res, next) => {
+            req.user = { id: "user-1" };
+            next();
+          }),
       };
     }
     if (request === "../services/nflSchedule" && parent?.filename === routePath) {
@@ -168,7 +166,14 @@ test("Ledger v2 rows expose unknown provenance without raw outcomes or hit rates
   // in test/ledgerDecisions.test.js. This keeps the row-level honesty rules pinned.
   const { router } = loadMovesRouter();
   const row = router.decisionLedgerRow({
-    decision: { id: "a", season: 2026, week: 1, call_type: "hold", headline: "Hold", issued_at: "2026-09-10T00:00:00Z" },
+    decision: {
+      id: "a",
+      season: 2026,
+      week: 1,
+      call_type: "hold",
+      headline: "Hold",
+      issued_at: "2026-09-10T00:00:00Z",
+    },
     action: null,
     outcome: { state: "resolved", result: "loss", provenance: "legacy_estimate" },
   });
@@ -249,7 +254,10 @@ test("GET /api/moves maps moves and computes W/L effectiveness summary", async (
     followed_count: 2,
     total_count: 3,
   });
-  assert.deepEqual(res.body.moves.map((move) => move.id), ["move-1", "move-2", "move-3"]);
+  assert.deepEqual(
+    res.body.moves.map((move) => move.id),
+    ["move-1", "move-2", "move-3"],
+  );
   assert.deepEqual(res.body.moves[0], {
     id: "move-1",
     season: 2026,
@@ -276,7 +284,10 @@ test("GET /api/moves applies season filter and limit", async () => {
   const res = await request(app, "/api/moves?season=2026&limit=1");
 
   assert.equal(res.status, 200);
-  assert.deepEqual(res.body.moves.map((move) => move.id), ["new-1"]);
+  assert.deepEqual(
+    res.body.moves.map((move) => move.id),
+    ["new-1"],
+  );
   assert.deepEqual(state.lastQuery.filters, [
     { field: "user_id", value: "user-1" },
     { field: "season", value: 2026 },

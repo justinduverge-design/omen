@@ -30,7 +30,10 @@ function joinFtnToOffense({ ftnRows, pbpRows }) {
   let unmatched = 0;
   for (const f of ftnRows) {
     const team = offense.get(`${f.nflverse_game_id}:${Number(f.nflverse_play_id)}`);
-    if (!team) { unmatched += 1; continue; }
+    if (!team) {
+      unmatched += 1;
+      continue;
+    }
     joined.push({ ...f, possession_team: team });
   }
   return { rows: joined, unmatched };
@@ -57,8 +60,15 @@ function mapLeagueRowsToFacts(rows, { artifactSha256 }) {
       facts.push({
         contract_version: CONTRACTS.observedFact,
         fact_key: `${row.nflverse_game_id}:${row.nflverse_play_id}:${row.possession_team}:${metric}`,
-        game_id: row.nflverse_game_id, play_id: String(row.nflverse_play_id), team_id: row.possession_team,
-        subject_type: "team", subject_id: row.possession_team, season, week, metric, value,
+        game_id: row.nflverse_game_id,
+        play_id: String(row.nflverse_play_id),
+        team_id: row.possession_team,
+        subject_type: "team",
+        subject_id: row.possession_team,
+        season,
+        week,
+        metric,
+        value,
         availability: "observed",
         source: {
           artifact_sha256: artifactSha256,
@@ -79,8 +89,10 @@ function buildLeagueDna({ facts, season, throughWeek = 22 }) {
   const byTeam = {};
   for (const team of teams) {
     const window = buildFeatureWindow({
-      facts, subject: { type: "team", id: team },
-      from: { season, week: 1 }, through: { season, week: throughWeek },
+      facts,
+      subject: { type: "team", id: team },
+      from: { season, week: 1 },
+      through: { season, week: throughWeek },
       windowId: `${team}-${season}`,
     });
     byTeam[team] = computeSchemeDna(window);
@@ -102,8 +114,12 @@ function leagueRanks(dnaByTeam) {
   for (const [key, list] of Object.entries(rates)) {
     list.sort((a, b) => b.value - a.value || a.team.localeCompare(b.team));
     const average = list.reduce((s, x) => s + x.value, 0) / list.length;
-    out[key] = { average, teams: list.length, rank: Object.fromEntries(list.map((x, i) => [x.team, i + 1])),
-                 value: Object.fromEntries(list.map((x) => [x.team, x.value])) };
+    out[key] = {
+      average,
+      teams: list.length,
+      rank: Object.fromEntries(list.map((x, i) => [x.team, i + 1])),
+      value: Object.fromEntries(list.map((x) => [x.team, x.value])),
+    };
   }
   return out;
 }

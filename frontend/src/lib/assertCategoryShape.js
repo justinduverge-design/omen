@@ -72,7 +72,8 @@ function assertTypeFlourishes(team) {
     if (flourish.style != null) assertEnum(team, flourish.style, 'typeFlourish.style', TYPE_STYLES);
     if (flourish.variantCaps != null) assertEnum(team, flourish.variantCaps, 'typeFlourish.variantCaps', TYPE_CAPS);
     if (flourish.tracking != null) assertEnum(team, flourish.tracking, 'typeFlourish.tracking', TYPE_TRACKING);
-    if (flourish.fontFeatures != null) assertEnum(team, flourish.fontFeatures, 'typeFlourish.fontFeatures', TYPE_FEATURES);
+    if (flourish.fontFeatures != null)
+      assertEnum(team, flourish.fontFeatures, 'typeFlourish.fontFeatures', TYPE_FEATURES);
     assertArrayValues(team, flourish.enabledInVariant, 'typeFlourish.enabledInVariant', TYPE_VARIANTS);
     if (flourish.style === 'italic' && flourish.weight === 700) {
       fail(team, 'italic-700 not loaded - extend @import or downgrade weight');

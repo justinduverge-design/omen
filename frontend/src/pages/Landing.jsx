@@ -7,15 +7,26 @@ import { apiFetch } from '../lib/api.js';
 function Button({ children, className = '', disabled = false, href }) {
   const base =
     'inline-flex min-h-[44px] items-center justify-center rounded-md px-6 text-sm font-semibold transition-colors active:scale-[0.97] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent)';
-  const cls = [base, disabled ? 'cursor-default opacity-55' : '', className]
-    .filter(Boolean)
-    .join(' ');
-  if (href) return <a className={cls} href={href}>{children}</a>;
-  return <button className={cls} disabled={disabled} type="button">{children}</button>;
+  const cls = [base, disabled ? 'cursor-default opacity-55' : '', className].filter(Boolean).join(' ');
+  if (href)
+    return (
+      <a className={cls} href={href}>
+        {children}
+      </a>
+    );
+  return (
+    <button className={cls} disabled={disabled} type="button">
+      {children}
+    </button>
+  );
 }
 
 function Arrow() {
-  return <span aria-hidden="true" className="ml-1.5 text-base leading-none">→</span>;
+  return (
+    <span aria-hidden="true" className="ml-1.5 text-base leading-none">
+      →
+    </span>
+  );
 }
 
 // ─── Header ───────────────────────────────────────────────────────────────────
@@ -55,26 +66,17 @@ function Header() {
 
 // ─── Story arc steps ──────────────────────────────────────────────────────────
 
-const storySteps = [
-  'Every trade carries risk.',
-  'Omen reads the full picture.',
-  'You get a clear signal.',
-];
+const storySteps = ['Every trade carries risk.', 'Omen reads the full picture.', 'You get a clear signal.'];
 
 function StoryArc() {
   return (
     <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:gap-6">
       {storySteps.map((step, i) => (
         <div key={i} className="flex items-center gap-2">
-          <span className="shrink-0 font-mono text-xs text-(--color-accent)/50">
-            {'0' + (i + 1)}
-          </span>
+          <span className="shrink-0 font-mono text-xs text-(--color-accent)/50">{'0' + (i + 1)}</span>
           <span className="text-xs leading-5 text-(--color-text-primary)/45">{step}</span>
           {i < storySteps.length - 1 && (
-            <span
-              aria-hidden="true"
-              className="hidden shrink-0 text-(--color-text-primary)/20 sm:block"
-            >
+            <span aria-hidden="true" className="hidden shrink-0 text-(--color-text-primary)/20 sm:block">
               /
             </span>
           )}
@@ -113,9 +115,7 @@ function TradeAnalyzerHeroCard() {
       <div className="relative p-5 md:p-7">
         {/* Card header */}
         <div className="mb-5 flex items-center justify-between gap-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-(--color-accent)">
-            Trade Analyzer
-          </p>
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-(--color-accent)">Trade Analyzer</p>
           <span className="rounded-full border border-(--color-accent)/25 px-3 py-1 text-[10px] text-(--color-accent)/70">
             Example
           </span>
@@ -124,23 +124,22 @@ function TradeAnalyzerHeroCard() {
         {/* Players */}
         <div className="mb-5 grid grid-cols-[1fr_auto_1fr] items-start gap-3">
           <div>
-            <p className="mb-2 text-[10px] uppercase tracking-[0.22em] text-(--color-text-primary)/38">
-              You receive
-            </p>
+            <p className="mb-2 text-[10px] uppercase tracking-[0.22em] text-(--color-text-primary)/38">You receive</p>
             <div className="flex flex-col gap-2">
               <PlayerChip name="Breece Hall" position="RB" />
               <PlayerChip name="Chris Olave" position="WR" />
             </div>
           </div>
 
-          <div aria-hidden="true" className="mt-6 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/3 text-sm text-(--color-text-primary)/35">
+          <div
+            aria-hidden="true"
+            className="mt-6 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/3 text-sm text-(--color-text-primary)/35"
+          >
             ⇄
           </div>
 
           <div>
-            <p className="mb-2 text-[10px] uppercase tracking-[0.22em] text-(--color-text-primary)/38">
-              You give
-            </p>
+            <p className="mb-2 text-[10px] uppercase tracking-[0.22em] text-(--color-text-primary)/38">You give</p>
             <div className="flex flex-col gap-2">
               <PlayerChip name="Deebo Samuel" position="WR" />
               <PlayerChip name="James Conner" position="RB" />
@@ -150,13 +149,14 @@ function TradeAnalyzerHeroCard() {
 
         {/* Verdict */}
         <div className="mb-4 flex items-start gap-3 rounded-xl border border-(--color-risk-low)/22 bg-(--color-risk-low)/7 px-4 py-3">
-          <div aria-hidden="true" className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-(--color-risk-low)/18">
+          <div
+            aria-hidden="true"
+            className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-(--color-risk-low)/18"
+          >
             <span className="text-xs font-bold text-(--color-risk-low)">✓</span>
           </div>
           <div>
-            <span className="text-xs font-bold uppercase tracking-[0.2em] text-(--color-risk-low)">
-              Accept
-            </span>
+            <span className="text-xs font-bold uppercase tracking-[0.2em] text-(--color-risk-low)">Accept</span>
             <p className="mt-0.5 text-sm leading-5 text-(--color-text-primary)/75">
               Your weekly upside improves, and you gain a stronger long-term starter.
             </p>
@@ -166,24 +166,16 @@ function TradeAnalyzerHeroCard() {
         {/* Metrics */}
         <div className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-3">
           <div className="rounded-lg border border-white/8 bg-white/2.5 px-3 py-2.5">
-            <p className="text-[10px] uppercase tracking-[0.18em] text-(--color-text-primary)/38">
-              Omen Edge
-            </p>
+            <p className="text-[10px] uppercase tracking-[0.18em] text-(--color-text-primary)/38">Omen Edge</p>
             <p className="mt-1 text-sm font-semibold text-(--color-accent)">Strong</p>
           </div>
           <div className="rounded-lg border border-white/8 bg-white/2.5 px-3 py-2.5">
-            <p className="text-[10px] uppercase tracking-[0.18em] text-(--color-text-primary)/38">
-              Risk
-            </p>
+            <p className="text-[10px] uppercase tracking-[0.18em] text-(--color-text-primary)/38">Risk</p>
             <p className="mt-1 text-sm font-semibold text-(--color-text-primary)">Medium</p>
           </div>
           <div className="col-span-2 rounded-lg border border-white/8 bg-white/2.5 px-3 py-2.5 sm:col-span-1">
-            <p className="text-[10px] uppercase tracking-[0.18em] text-(--color-text-primary)/38">
-              Why it matters
-            </p>
-            <p className="mt-1 text-xs leading-4 text-(--color-text-primary)/60">
-              Weekly upside + long-term depth
-            </p>
+            <p className="text-[10px] uppercase tracking-[0.18em] text-(--color-text-primary)/38">Why it matters</p>
+            <p className="mt-1 text-xs leading-4 text-(--color-text-primary)/60">Weekly upside + long-term depth</p>
           </div>
         </div>
 
@@ -212,16 +204,12 @@ function OmenMiniCard() {
       <div className="pointer-events-none absolute right-0 top-0 h-36 w-36 rounded-full bg-(--color-accent)/7 blur-3xl" />
       <div className="relative p-5">
         <div className="mb-3 flex items-center justify-between gap-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-(--color-accent)">
-            Omen of the Week
-          </p>
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-(--color-accent)">Omen of the Week</p>
           <span className="rounded-full border border-(--color-accent)/22 px-2.5 py-0.5 text-[10px] text-(--color-accent)/65">
             Preview
           </span>
         </div>
-        <h3 className="mb-3 text-lg font-semibold text-(--color-text-primary)">
-          Strike the waiver wire
-        </h3>
+        <h3 className="mb-3 text-lg font-semibold text-(--color-text-primary)">Strike the waiver wire</h3>
         <div className="mb-4 rounded-xl border border-white/8 bg-(--color-bg)/70 p-3.5">
           <p className="text-xs text-(--color-text-primary)/45">Best available move</p>
           <p className="mt-1.5 text-sm font-semibold leading-5 text-(--color-text-primary)">
@@ -255,9 +243,7 @@ function OmenMiniCard() {
 function SignInForm() {
   return (
     <div className="mt-3">
-      <p className="text-[10px] uppercase tracking-[0.22em] text-(--color-text-primary)/32">
-        Already have an account?
-      </p>
+      <p className="text-[10px] uppercase tracking-[0.22em] text-(--color-text-primary)/32">Already have an account?</p>
       <a
         className="mt-2 inline-flex min-h-[44px] items-center rounded-md border border-(--color-accent)/28 px-5 text-sm font-semibold text-(--color-accent) transition-colors hover:border-(--color-accent)/55 hover:bg-(--color-accent)/10"
         href="/login"
@@ -379,10 +365,7 @@ function WaitlistSection() {
   }
 
   return (
-    <section
-      className="relative mx-auto max-w-7xl scroll-mt-20 px-5 pb-24"
-      id="waitlist"
-    >
+    <section className="relative mx-auto max-w-7xl scroll-mt-20 px-5 pb-24" id="waitlist">
       <div className="relative overflow-hidden rounded-2xl border border-(--color-accent)/22 bg-(--color-surface-1) p-8 shadow-2xl shadow-black/60 md:p-12">
         {/* Atmospheric glows */}
         <div className="pointer-events-none absolute left-1/2 top-0 h-64 w-64 -translate-x-1/2 rounded-full bg-(--color-accent)/8 blur-3xl" />
@@ -390,24 +373,21 @@ function WaitlistSection() {
 
         <div className="relative mx-auto max-w-xl text-center">
           {/* Raven detail — subtle brand personality */}
-          <p aria-hidden="true" className="mb-1 text-sm text-(--color-accent)/55">𖤍</p>
+          <p aria-hidden="true" className="mb-1 text-sm text-(--color-accent)/55">
+            𖤍
+          </p>
 
           <h2 className="font-display text-2xl font-semibold text-(--color-text-primary) md:text-3xl">
             Get the signal before launch.
           </h2>
           <p className="mt-3 text-sm leading-6 text-(--color-text-primary)/52">
-            Join the Omen waitlist for early access, product updates, and fantasy
-            football tools as they go live.
+            Join the Omen waitlist for early access, product updates, and fantasy football tools as they go live.
           </p>
 
           {status === 'success' ? (
             <div className="mt-8 rounded-xl border border-(--color-accent)/30 bg-(--color-accent)/8 px-6 py-5">
-              <p className="text-base font-semibold text-(--color-accent)">
-                You're on the list.
-              </p>
-              <p className="mt-1 text-sm text-(--color-text-primary)/60">
-                The raven will send word.
-              </p>
+              <p className="text-base font-semibold text-(--color-accent)">You're on the list.</p>
+              <p className="mt-1 text-sm text-(--color-text-primary)/60">The raven will send word.</p>
             </div>
           ) : (
             <form className="mt-8 flex flex-col gap-4" onSubmit={handleSubmit}>
@@ -433,8 +413,7 @@ function WaitlistSection() {
               {/* Platform */}
               <fieldset>
                 <legend className="mb-2 text-left text-[11px] uppercase tracking-[0.22em] text-(--color-text-primary)/40">
-                  Your platform{' '}
-                  <span className="normal-case text-(--color-text-primary)/28">(optional)</span>
+                  Your platform <span className="normal-case text-(--color-text-primary)/28">(optional)</span>
                 </legend>
                 <div className="flex flex-wrap gap-2">
                   {PLATFORMS.map((p) => (
@@ -523,8 +502,8 @@ export default function Landing() {
             </h1>
 
             <p className="mt-5 max-w-md text-[0.9375rem] leading-7 text-(--color-text-primary)/58">
-              Omen weighs your roster, matchup, player value, and season context
-              — then gives you a plain-English accept, decline, or hold recommendation.
+              Omen weighs your roster, matchup, player value, and season context — then gives you a plain-English
+              accept, decline, or hold recommendation.
             </p>
 
             {/* Story arc */}
@@ -552,14 +531,9 @@ export default function Landing() {
         </section>
 
         {/* ── Secondary feature cards ── */}
-        <section
-          className="relative mx-auto max-w-7xl scroll-mt-24 px-5 pb-16"
-          id="secondary"
-        >
+        <section className="relative mx-auto max-w-7xl scroll-mt-24 px-5 pb-16" id="secondary">
           <div className="mb-8 border-t border-white/8 pt-10">
-            <p className="text-xs uppercase tracking-[0.32em] text-(--color-text-primary)/32">
-              More from Omen
-            </p>
+            <p className="text-xs uppercase tracking-[0.32em] text-(--color-text-primary)/32">More from Omen</p>
           </div>
           <div className="grid gap-5 sm:grid-cols-2">
             {/* DraftAssistantMiniCard removed 2026-08-16 (P1-DraftAssistantSideline).
@@ -575,7 +549,9 @@ export default function Landing() {
             <div className="pointer-events-none absolute left-1/2 top-0 h-48 w-48 -translate-x-1/2 rounded-full bg-(--color-accent)/7 blur-3xl" />
             <div className="relative flex flex-col items-center gap-4 text-center sm:flex-row sm:justify-between sm:text-left">
               <div>
-                <p aria-hidden="true" className="text-sm text-(--color-accent)/55">𖤍</p>
+                <p aria-hidden="true" className="text-sm text-(--color-accent)/55">
+                  𖤍
+                </p>
                 <h2 className="mt-1 font-display text-xl font-semibold text-(--color-text-primary)">
                   Ready to run a real trade?
                 </h2>

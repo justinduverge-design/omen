@@ -15,7 +15,9 @@ async function main({ argv = process.argv.slice(2), env = process.env, stdout = 
 }
 
 if (require.main === module) {
-  main().then((code) => { process.exitCode = code; });
+  main().then((code) => {
+    process.exitCode = code;
+  });
 }
 
 module.exports = { main };

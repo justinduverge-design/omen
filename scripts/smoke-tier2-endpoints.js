@@ -287,21 +287,17 @@ async function smokeMoves({ expectedMoveId } = {}) {
   const name = "moves_history";
   if (!requireToken(name)) return;
 
-  const path = expectedMoveId
-    ? `/api/moves?season=${feedbackSeason}&limit=5`
-    : "/api/moves?limit=5";
+  const path = expectedMoveId ? `/api/moves?season=${feedbackSeason}&limit=5` : "/api/moves?limit=5";
   const res = await request(name, "GET", path, { auth: true });
   const moves = Array.isArray(res.body?.moves) ? res.body.moves : [];
-  const expectedMoveFound = expectedMoveId
-    ? moves.some((move) => move.id === expectedMoveId)
-    : undefined;
+  const expectedMoveFound = expectedMoveId ? moves.some((move) => move.id === expectedMoveId) : undefined;
 
   if (
-    res.status === 200
-    && res.body?.contract_version === "moves-history.v1"
-    && res.body?.summary
-    && Array.isArray(res.body.moves)
-    && (!expectedMoveId || expectedMoveFound)
+    res.status === 200 &&
+    res.body?.contract_version === "moves-history.v1" &&
+    res.body?.summary &&
+    Array.isArray(res.body.moves) &&
+    (!expectedMoveId || expectedMoveFound)
   ) {
     pass(name, {
       status_code: res.status,
@@ -327,11 +323,7 @@ async function smokeStandings() {
   if (!requireToken(name)) return;
 
   const res = await request(name, "GET", "/api/league/standings", { auth: true });
-  if (
-    res.status === 200
-    && res.body?.contract_version === "league-standings.v1"
-    && Array.isArray(res.body.standings)
-  ) {
+  if (res.status === 200 && res.body?.contract_version === "league-standings.v1" && Array.isArray(res.body.standings)) {
     pass(name, {
       status_code: res.status,
       elapsed_ms: res.elapsed_ms,
@@ -342,9 +334,7 @@ async function smokeStandings() {
     return;
   }
 
-  const safeNoLeague = !expectConnectedLeague
-    && res.status === 404
-    && res.body?.code === "league_not_connected";
+  const safeNoLeague = !expectConnectedLeague && res.status === 404 && res.body?.code === "league_not_connected";
 
   if (safeNoLeague) {
     pass(name, {
@@ -401,9 +391,15 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error(JSON.stringify({
-    error: err.message,
-    stack: err.stack,
-  }, null, 2));
+  console.error(
+    JSON.stringify(
+      {
+        error: err.message,
+        stack: err.stack,
+      },
+      null,
+      2,
+    ),
+  );
   process.exit(1);
 });

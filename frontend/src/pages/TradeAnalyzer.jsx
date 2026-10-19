@@ -98,9 +98,7 @@ function TradeAnalyzerPlayerRow({ sectionTitle, index, player, totalCount, activ
   return (
     <div
       className={`grid grid-cols-[auto_minmax(0,1fr)_44px] items-center gap-2 rounded-md border p-2 transition-colors ${
-        active
-          ? 'border-(--color-accent) bg-(--color-accent)/5'
-          : 'border-(--color-border) bg-(--color-surface-1)'
+        active ? 'border-(--color-accent) bg-(--color-accent)/5' : 'border-(--color-border) bg-(--color-surface-1)'
       }`}
       onFocusCapture={() => onActivate(index)}
     >
@@ -156,10 +154,7 @@ function TradeAnalyzerPlayerRow({ sectionTitle, index, player, totalCount, activ
                 }}
               >
                 <span>{p.name}</span>
-                <span
-                  className="text-xs font-semibold"
-                  style={{ color: 'var(--color-accent)', opacity: 0.7 }}
-                >
+                <span className="text-xs font-semibold" style={{ color: 'var(--color-accent)', opacity: 0.7 }}>
                   {p.team}
                 </span>
               </li>
@@ -214,9 +209,7 @@ function PlayerRows({ title, players, onChange, onAdd, onRemove }) {
         <fieldset className="min-w-0 space-y-1.5">
           <legend className="text-xs font-semibold text-(--color-text-secondary)">
             Position
-            <span className="sr-only">
-              {' '}for {activePlayer?.name || `${title} player ${safeActiveIndex + 1}`}
-            </span>
+            <span className="sr-only"> for {activePlayer?.name || `${title} player ${safeActiveIndex + 1}`}</span>
           </legend>
           <div className="grid grid-cols-4 gap-2">
             {TRADE_POSITIONS.map((pos) => {
@@ -231,11 +224,15 @@ function PlayerRows({ title, players, onChange, onAdd, onRemove }) {
                       ? 'ring-2 ring-(--color-accent) ring-offset-2 ring-offset-(--color-bg)'
                       : 'hover:border-(--color-accent)'
                   }`}
-                  style={selected ? {
-                    background: 'var(--color-accent)',
-                    borderColor: 'var(--color-accent)',
-                    color: 'var(--color-text-on-accent)',
-                  } : positionChipStyle(pos)}
+                  style={
+                    selected
+                      ? {
+                          background: 'var(--color-accent)',
+                          borderColor: 'var(--color-accent)',
+                          color: 'var(--color-text-on-accent)',
+                        }
+                      : positionChipStyle(pos)
+                  }
                   onClick={() => onChange(safeActiveIndex, { position: pos })}
                 >
                   {pos}
@@ -250,7 +247,11 @@ function PlayerRows({ title, players, onChange, onAdd, onRemove }) {
           <Button
             variant="secondary"
             size="lg"
-            leadingIcon={<span aria-hidden="true" className="text-lg leading-none">+</span>}
+            leadingIcon={
+              <span aria-hidden="true" className="text-lg leading-none">
+                +
+              </span>
+            }
             onClick={handleAddPlayer}
           >
             Add player
@@ -284,9 +285,7 @@ function ShareControls({ onCreateShare, shareStatus, shareUrl, shareError }) {
     <div className="mt-5 rounded-md border border-(--color-border) bg-(--color-bg) p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="font-display text-sm font-semibold text-(--color-text-primary)">
-            Share this result
-          </p>
+          <p className="font-display text-sm font-semibold text-(--color-text-primary)">Share this result</p>
           <p className="mt-1 text-xs leading-5 text-(--color-text-secondary)">
             Creates a public snapshot. No connected-platform data or private league context is included.
           </p>
@@ -312,7 +311,10 @@ function ShareControls({ onCreateShare, shareStatus, shareUrl, shareError }) {
 
       {shareUrl && (
         <div className="mt-4">
-          <label className="text-xs font-semibold uppercase tracking-widest text-(--color-text-tertiary)" htmlFor="trade-share-url">
+          <label
+            className="text-xs font-semibold uppercase tracking-widest text-(--color-text-tertiary)"
+            htmlFor="trade-share-url"
+          >
             Public link
           </label>
           <input
@@ -324,7 +326,9 @@ function ShareControls({ onCreateShare, shareStatus, shareUrl, shareError }) {
           />
           <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-(--color-text-secondary)" role="status">
-              {shareStatus === 'copied' ? 'Link copied. Public snapshot expires in 30 days.' : 'Public snapshot expires in 30 days.'}
+              {shareStatus === 'copied'
+                ? 'Link copied. Public snapshot expires in 30 days.'
+                : 'Public snapshot expires in 30 days.'}
             </p>
             <a
               className="inline-flex min-h-[44px] items-center justify-center rounded-md bg-(--color-accent) px-4 py-2 text-sm font-semibold text-(--color-text-on-accent) transition-colors duration-150 hover:bg-(--color-accent-hover) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent)"
@@ -359,9 +363,7 @@ function ResultPanel({ result, onCreateShare, shareStatus, shareUrl, shareError,
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-xs font-semibold uppercase tracking-widest text-(--color-accent)">
-              Result
-            </p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-(--color-accent)">Result</p>
             <span className="rounded-full border border-(--color-data-stub)/40 px-2.5 py-0.5 text-xs font-semibold text-(--color-text-secondary)">
               Input-based analysis · not connected league data
             </span>
@@ -384,9 +386,7 @@ function ResultPanel({ result, onCreateShare, shareStatus, shareUrl, shareError,
             value={`${result.net_value > 0 ? '+' : ''}${result.net_value}`}
             tone={result.net_value > 0 ? 'positive' : result.net_value < 0 ? 'negative' : 'neutral'}
           />
-          <p className="mt-2 text-sm text-(--color-text-secondary)">
-            Confidence: {result.confidence}
-          </p>
+          <p className="mt-2 text-sm text-(--color-text-secondary)">Confidence: {result.confidence}</p>
         </div>
         <span className={`rounded-full border px-3 py-1 text-sm font-semibold ${verdictStyles[result.verdict]}`}>
           {result.verdict}
@@ -458,9 +458,7 @@ const TRADE_TIPS = [
 function TradeTipsCard() {
   return (
     <div className="rounded-lg border border-(--color-border) bg-(--color-surface-1) p-5">
-      <p className="text-xs font-semibold uppercase tracking-widest text-(--color-accent)">
-        Omen · Strategy
-      </p>
+      <p className="text-xs font-semibold uppercase tracking-widest text-(--color-accent)">Omen · Strategy</p>
       <h3 className="mt-1 font-display text-lg font-bold text-(--color-text-primary)">Trade Room</h3>
       <ul className="mt-4 space-y-4">
         {TRADE_TIPS.map((tip) => (
@@ -484,17 +482,13 @@ function TradeTipsCard() {
 function BuyLowCard() {
   return (
     <div className="rounded-lg border border-(--color-border) bg-(--color-surface-1) p-5">
-      <p className="text-xs font-semibold uppercase tracking-widest text-(--color-accent)">
-        Mock · Buy Low
-      </p>
+      <p className="text-xs font-semibold uppercase tracking-widest text-(--color-accent)">Mock · Buy Low</p>
       <h3 className="mt-1 font-display text-lg font-bold text-(--color-text-primary)">Targets</h3>
       <ul className="mt-4 divide-y divide-(--color-border)">
         {TRADE_PULSE.buy_low.map((target) => (
           <li key={target.id} className="py-3 first:pt-0 last:pb-0">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-semibold text-(--color-text-primary)">
-                {target.name}
-              </span>
+              <span className="text-sm font-semibold text-(--color-text-primary)">{target.name}</span>
               <div className="flex shrink-0 items-center gap-1.5">
                 <Chip tone={`pos-${target.position.toLowerCase()}`} size="sm">
                   {target.position}
@@ -502,9 +496,7 @@ function BuyLowCard() {
                 <span className="text-xs text-(--color-text-tertiary)">{target.team}</span>
               </div>
             </div>
-            <p className="mt-0.5 text-xs leading-5 text-(--color-text-secondary)">
-              {target.reason}
-            </p>
+            <p className="mt-0.5 text-xs leading-5 text-(--color-text-secondary)">{target.reason}</p>
           </li>
         ))}
       </ul>
@@ -543,9 +535,7 @@ export default function TradeAnalyzer({
   const dealShapeMeta = tradeDealShapeMeta(dealShape);
 
   function updateSide(setter, index, patch) {
-    setter((players) =>
-      players.map((player, i) => (i === index ? { ...player, ...patch } : player)),
-    );
+    setter((players) => players.map((player, i) => (i === index ? { ...player, ...patch } : player)));
   }
 
   function removeSidePlayer(setter, index) {
@@ -633,7 +623,6 @@ export default function TradeAnalyzer({
 
   return (
     <div className={`grid gap-8 ${compact ? '' : 'xl:grid-cols-[1fr_256px]'}`}>
-
       {/* ── Main column: form + result ─────────────────────────────────────── */}
       <div className="flex flex-col gap-8">
         <form className="space-y-5" onSubmit={handleSubmit}>
@@ -676,9 +665,7 @@ export default function TradeAnalyzer({
                     ))}
                   </SegmentedControl>
                 </fieldset>
-                <p className="mt-2 text-xs leading-5 text-(--color-text-secondary)">
-                  {dealShapeMeta.description}
-                </p>
+                <p className="mt-2 text-xs leading-5 text-(--color-text-secondary)">{dealShapeMeta.description}</p>
               </div>
             </div>
           </section>
@@ -706,25 +693,13 @@ export default function TradeAnalyzer({
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Button
-              size="lg"
-              aria-busy={loading}
-              disabled={loading}
-              loading={loading}
-              type="submit"
-            >
+            <Button size="lg" aria-busy={loading} disabled={loading} loading={loading} type="submit">
               {loading ? 'Comparing...' : 'Compare Trade'}
             </Button>
           </div>
         </form>
 
-        {error && (
-          <ErrorState
-            title="Trade comparison failed"
-            message={error}
-            onRetry={handleSubmit}
-          />
-        )}
+        {error && <ErrorState title="Trade comparison failed" message={error} onRetry={handleSubmit} />}
 
         {!loading && !error && hasSubmitted && result && !result.verdict && (
           <EmptyState
@@ -751,7 +726,6 @@ export default function TradeAnalyzer({
           <BuyLowCard />
         </aside>
       )}
-
     </div>
   );
 }

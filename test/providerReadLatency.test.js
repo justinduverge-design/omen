@@ -110,7 +110,9 @@ test("the players map is parsed once per process and loads are single-flight", a
   const { adapter, calls } = loadAdapter(fixtures);
   adapter.resetSleeperPlayersMemo();
   const [a, b, c] = await Promise.all([
-    adapter.fetchSleeperPlayers(), adapter.fetchSleeperPlayers(), adapter.fetchSleeperPlayers(),
+    adapter.fetchSleeperPlayers(),
+    adapter.fetchSleeperPlayers(),
+    adapter.fetchSleeperPlayers(),
   ]);
   assert.equal(a, b);
   assert.equal(b, c);
@@ -157,9 +159,12 @@ test("buildNormalizedRoster issues each read once per request and returns the sa
   assert.equal(scoped.team_key, "3");
   assert.deepEqual(
     scoped.slots.starters.map((p) => [p.player_id, p.projected_points, p.selected_position]),
-    [["p1", 20, "QB"]]
+    [["p1", 20, "QB"]],
   );
-  assert.deepEqual(scoped.slots.bench.map((p) => [p.player_id, p.projected_points]), [["p2", null]]);
+  assert.deepEqual(
+    scoped.slots.bench.map((p) => [p.player_id, p.projected_points]),
+    [["p2", null]],
+  );
 
   // An unscoped call returns the identical roster.
   const unscoped = await adapter.buildNormalizedRoster("L1", "justin", 5, {});
@@ -170,7 +175,10 @@ test("pool and league-roster reads keep their results with projections fetched c
   const { adapter } = loadAdapter(fixtures);
   adapter.resetSleeperPlayersMemo();
   const pool = await adapter.fetchSleeperAvailablePlayers("L1", 5, "2026");
-  assert.deepEqual(pool.map((p) => p.player_id), ["p3"]);
+  assert.deepEqual(
+    pool.map((p) => p.player_id),
+    ["p3"],
+  );
 
   const league = await adapter.fetchSleeperLeagueRosters("L1", 5);
   assert.equal(league.teams.length, 1);
@@ -218,7 +226,11 @@ test("ESPN vault secrets are decrypted concurrently and still fail closed", asyn
     return originalLoad.call(this, request, parent, isMain);
   };
   let auth;
-  try { auth = require("../src/services/espnAuth"); } finally { Module._load = originalLoad; }
+  try {
+    auth = require("../src/services/espnAuth");
+  } finally {
+    Module._load = originalLoad;
+  }
 
   assert.deepEqual(await auth.getAuthenticatedEspnCredentials("u"), { espn_s2: "s2-value", swid: "{swid}" });
   assert.deepEqual(events.slice(0, 2), ["start:a", "start:b"]);
@@ -226,7 +238,7 @@ test("ESPN vault secrets are decrypted concurrently and still fail closed", asyn
   supabase.failOn = "b";
   await assert.rejects(
     auth.getAuthenticatedEspnCredentials("u"),
-    (e) => e.status === 401 && !/s2-value|swid/.test(e.message)
+    (e) => e.status === 401 && !/s2-value|swid/.test(e.message),
   );
 });
 
@@ -269,7 +281,9 @@ test("with a stale players map, every concurrent caller gets it on refresh failu
     fail = true;
     clock += 21 * 60 * 1000; // past the 20 min TTL
     const results = await Promise.all([
-      adapter.fetchSleeperPlayers(), adapter.fetchSleeperPlayers(), adapter.fetchSleeperPlayers(),
+      adapter.fetchSleeperPlayers(),
+      adapter.fetchSleeperPlayers(),
+      adapter.fetchSleeperPlayers(),
     ]);
     for (const r of results) assert.equal(r, first);
     assert.equal(count(calls, "/players/nfl"), 2);
@@ -292,12 +306,21 @@ test("with a stale players map, every concurrent caller gets it on refresh failu
 test("absent-column memory is keyed per table", async () => {
   const moves = require("../src/routes/moves");
   moves.resetAbsentColumns();
-  const run = async (columns) => (columns.split(",").includes("x")
-    ? { data: null, error: { code: "42703", message: "column t.x does not exist" } }
-    : { data: {}, error: null });
+  const run = async (columns) =>
+    columns.split(",").includes("x")
+      ? { data: null, error: { code: "42703", message: "column t.x does not exist" } }
+      : { data: {}, error: null };
   await moves.selectTolerantly(["id", "x"], ["x"], run, "table_a");
   const queries = [];
-  await moves.selectTolerantly(["id", "x"], ["x"], async (c) => { queries.push(c); return run(c); }, "table_b");
+  await moves.selectTolerantly(
+    ["id", "x"],
+    ["x"],
+    async (c) => {
+      queries.push(c);
+      return run(c);
+    },
+    "table_b",
+  );
   assert.equal(queries[0], "id,x", "table_b still tries x");
   moves.resetAbsentColumns();
 });

@@ -124,8 +124,8 @@ async function main() {
     env: {
       ...process.env,
       PORT: String(apiPort),
-      NODE_ENV: "production",          // exercise the production log + envelope path
-      LOG_LEVEL: "warn",               // don't pay for an access log line per request
+      NODE_ENV: "production", // exercise the production log + envelope path
+      LOG_LEVEL: "warn", // don't pay for an access log line per request
       SUPABASE_URL: `http://127.0.0.1:${stubPort}`,
       SUPABASE_SERVICE_KEY: "local-load-stub-key",
       // Keep every optional integration off: no LLM bridge, no Redis, no
@@ -150,29 +150,37 @@ async function main() {
   };
 
   try {
-    if (!await waitForHealth(baseUrl)) {
+    if (!(await waitForHealth(baseUrl))) {
       throw new Error(`API did not become healthy on ${baseUrl}.\n${apiLog.join("")}`);
     }
 
     const report = await runLoad({ baseUrl });
 
-    console.log(JSON.stringify({
-      ...report,
-      stack: {
-        api: `${baseUrl} (real src/server.js, NODE_ENV=production)`,
-        supabase: `http://127.0.0.1:${stubPort} (loopback stub — auth + 2 tables, no real project)`,
-        providers: "none — no Yahoo, Sleeper, or ESPN traffic is generated",
-        stub_calls: {
-          auth_v1_user: seen.auth,
-          platform_connections: seen.platform_connections,
-          profiles: seen.profiles,
-          unstubbed_paths: seen.unknown,
+    console.log(
+      JSON.stringify(
+        {
+          ...report,
+          stack: {
+            api: `${baseUrl} (real src/server.js, NODE_ENV=production)`,
+            supabase: `http://127.0.0.1:${stubPort} (loopback stub — auth + 2 tables, no real project)`,
+            providers: "none — no Yahoo, Sleeper, or ESPN traffic is generated",
+            stub_calls: {
+              auth_v1_user: seen.auth,
+              platform_connections: seen.platform_connections,
+              profiles: seen.profiles,
+              unstubbed_paths: seen.unknown,
+            },
+          },
         },
-      },
-    }, null, 2));
+        null,
+        2,
+      ),
+    );
 
     if (seen.unknown.length) {
-      console.error(`[load] WARNING: ${seen.unknown.length} Supabase calls hit an unstubbed path; the numbers above are not trustworthy.`);
+      console.error(
+        `[load] WARNING: ${seen.unknown.length} Supabase calls hit an unstubbed path; the numbers above are not trustworthy.`,
+      );
       process.exitCode = 1;
     }
   } finally {

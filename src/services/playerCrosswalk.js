@@ -29,8 +29,11 @@ const SUFFIX = /\b(jr|sr|ii|iii|iv|v)\b\.?/g;
 
 function normalizeName(name) {
   return String(name || "")
-    .normalize("NFKD").replace(/[̀-ͯ]/g, "")
-    .toLowerCase().replace(SUFFIX, "").replace(/[^a-z]/g, "");
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(SUFFIX, "")
+    .replace(/[^a-z]/g, "");
 }
 
 function playerIdFor(gsisId) {
@@ -65,8 +68,11 @@ function buildCrosswalk({ nflversePlayers, sleeperPlayers, minLastSeason }) {
     byGsis.set(gsis, row);
     const birth = isoDate(row.birth_date);
     if (!birth) continue;
-    const names = new Set([row.display_name, `${row.first_name} ${row.last_name}`, `${row.football_name} ${row.last_name}`]
-      .map(normalizeName).filter(Boolean));
+    const names = new Set(
+      [row.display_name, `${row.first_name} ${row.last_name}`, `${row.football_name} ${row.last_name}`]
+        .map(normalizeName)
+        .filter(Boolean),
+    );
     for (const n of names) {
       const key = `${n}|${birth}`;
       if (!byNameBirth.has(key)) byNameBirth.set(key, new Set());
@@ -109,15 +115,27 @@ function buildCrosswalk({ nflversePlayers, sleeperPlayers, minLastSeason }) {
       // A free agent with no team is not on any roster Omen reads; recording it would only add noise.
       if (!text(p.team)) continue;
       unresolved.push({
-        provider: "sleeper", provider_player_id: String(sleeperId), full_name: fullName,
-        position: p.position, nfl_team: text(p.team), birth_date: birth, reason,
+        provider: "sleeper",
+        provider_player_id: String(sleeperId),
+        full_name: fullName,
+        position: p.position,
+        nfl_team: text(p.team),
+        birth_date: birth,
+        reason,
         candidates: candidates.map(playerIdFor).sort(),
       });
       continue;
     }
     ids.push({ provider: "sleeper", provider_player_id: String(sleeperId), gsis, match_method: method });
     const yahoo = text(p.yahoo_id);
-    if (yahoo) ids.push({ provider: "yahoo", provider_player_id: yahoo, gsis, match_method: "provider_supplied", via_sleeper: String(sleeperId) });
+    if (yahoo)
+      ids.push({
+        provider: "yahoo",
+        provider_player_id: yahoo,
+        gsis,
+        match_method: "provider_supplied",
+        via_sleeper: String(sleeperId),
+      });
   }
 
   // One id per provider per player, and one player per provider id: anything else is a conflict.
@@ -129,9 +147,12 @@ function buildCrosswalk({ nflversePlayers, sleeperPlayers, minLastSeason }) {
     perPlayer.set(pk, (perPlayer.get(pk) || 0) + 1);
     perId.set(ik, (perId.get(ik) || new Set()).add(m.gsis));
   }
-  const clashes = (m) => perPlayer.get(`${m.provider}|${m.gsis}`) > 1 || perId.get(`${m.provider}|${m.provider_player_id}`).size > 1;
+  const clashes = (m) =>
+    perPlayer.get(`${m.provider}|${m.gsis}`) > 1 || perId.get(`${m.provider}|${m.provider_player_id}`).size > 1;
   // A Yahoo id is only as good as the Sleeper record it came from.
-  const refusedSleeper = new Set(ids.filter((m) => m.provider === "sleeper" && clashes(m)).map((m) => m.provider_player_id));
+  const refusedSleeper = new Set(
+    ids.filter((m) => m.provider === "sleeper" && clashes(m)).map((m) => m.provider_player_id),
+  );
   const providerIds = [];
   for (const m of ids) {
     if (m.via_sleeper && refusedSleeper.has(m.via_sleeper)) continue;
@@ -140,13 +161,23 @@ function buildCrosswalk({ nflversePlayers, sleeperPlayers, minLastSeason }) {
       if (m.provider === "nflverse") continue;
       const row = byGsis.get(m.gsis);
       unresolved.push({
-        provider: m.provider, provider_player_id: m.provider_player_id, full_name: text(row?.display_name) || m.provider_player_id,
-        position: text(row?.position), nfl_team: text(row?.latest_team), birth_date: isoDate(row?.birth_date),
-        reason: "conflict", candidates: [playerIdFor(m.gsis)],
+        provider: m.provider,
+        provider_player_id: m.provider_player_id,
+        full_name: text(row?.display_name) || m.provider_player_id,
+        position: text(row?.position),
+        nfl_team: text(row?.latest_team),
+        birth_date: isoDate(row?.birth_date),
+        reason: "conflict",
+        candidates: [playerIdFor(m.gsis)],
       });
       continue;
     }
-    providerIds.push({ provider: m.provider, provider_player_id: m.provider_player_id, player_id: playerIdFor(m.gsis), match_method: m.match_method });
+    providerIds.push({
+      provider: m.provider,
+      provider_player_id: m.provider_player_id,
+      player_id: playerIdFor(m.gsis),
+      match_method: m.match_method,
+    });
   }
   const dedupUnresolved = new Map(unresolved.map((u) => [`${u.provider}|${u.provider_player_id}`, u]));
 
@@ -154,11 +185,18 @@ function buildCrosswalk({ nflversePlayers, sleeperPlayers, minLastSeason }) {
   for (const [gsis, row] of byGsis) {
     const lastSeason = Number(row.last_season);
     const recent = Number.isFinite(lastSeason) && lastSeason >= minLastSeason;
-    const mappedByProvider = providerIds.some((m) => m.provider !== "nflverse" && m.provider !== "espn" && m.player_id === playerIdFor(gsis));
+    const mappedByProvider = providerIds.some(
+      (m) => m.provider !== "nflverse" && m.provider !== "espn" && m.player_id === playerIdFor(gsis),
+    );
     if (!recent && !mappedByProvider) continue;
     players.push({
-      id: playerIdFor(gsis), full_name: text(row.display_name), position: text(row.position),
-      nfl_team: text(row.latest_team), birth_date: isoDate(row.birth_date), gsis_id: gsis, status: text(row.status),
+      id: playerIdFor(gsis),
+      full_name: text(row.display_name),
+      position: text(row.position),
+      nfl_team: text(row.latest_team),
+      birth_date: isoDate(row.birth_date),
+      gsis_id: gsis,
+      status: text(row.status),
     });
   }
   const kept = new Set(players.map((p) => p.id));

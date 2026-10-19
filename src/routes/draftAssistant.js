@@ -4,26 +4,13 @@ const express = require("express");
 const { Redis } = require("@upstash/redis");
 const config = require("../config");
 const { logger } = require("../middleware/logging");
-const {
-  authenticateOmenRequest,
-} = require("../services/omen");
-const {
-  getAuthenticatedYahooClient,
-} = require("../services/yahooAuth");
-const {
-  buildLiveAdpResponse,
-  buildMockAdpResponse,
-  normalizeAdpQuery,
-} = require("../services/adp");
+const { authenticateOmenRequest } = require("../services/omen");
+const { getAuthenticatedYahooClient } = require("../services/yahooAuth");
+const { buildLiveAdpResponse, buildMockAdpResponse, normalizeAdpQuery } = require("../services/adp");
 
 const router = express.Router();
 const VALID_SCORING_FORMATS = new Set(["ppr", "half_ppr", "standard"]);
-const VALID_RECOMMENDATION_TYPES = [
-  "best_available",
-  "roster_fit",
-  "value_pick",
-  "risk_adjusted",
-];
+const VALID_RECOMMENDATION_TYPES = ["best_available", "roster_fit", "value_pick", "risk_adjusted"];
 
 function nowIso() {
   return new Date().toISOString();
@@ -37,22 +24,15 @@ function numberOrDefault(value, fallback) {
 function normalizePositionNeeds(needs) {
   if (!Array.isArray(needs)) return [];
   return needs
-    .map((need) => String(need || "").trim().toUpperCase())
+    .map((need) =>
+      String(need || "")
+        .trim()
+        .toUpperCase(),
+    )
     .filter(Boolean);
 }
 
-function recommendation({
-  rank,
-  name,
-  position,
-  team,
-  type,
-  headline,
-  rationale,
-  confidence,
-  risk,
-  vorp,
-}) {
+function recommendation({ rank, name, position, team, type, headline, rationale, confidence, risk, vorp }) {
   return {
     rank,
     name,
@@ -128,46 +108,47 @@ function normalizeAdpPlayers(players) {
   return players
     .map((player) => ({
       name: String(player.name || player.player_name || "").trim(),
-      position: String(player.position || "").trim().toUpperCase(),
-      team: String(player.team || player.team_abbr || "").trim().toUpperCase(),
+      position: String(player.position || "")
+        .trim()
+        .toUpperCase(),
+      team: String(player.team || player.team_abbr || "")
+        .trim()
+        .toUpperCase(),
       adp: Number(player.adp ?? player.average_pick ?? player.pick),
       rank: Number(player.rank ?? player.overall_rank),
     }))
-    .filter((player) =>
-      player.name
-      && player.position
-      && Number.isFinite(player.adp)
-    )
+    .filter((player) => player.name && player.position && Number.isFinite(player.adp))
     .sort((a, b) => a.adp - b.adp);
 }
 
 function buildAdpBackedRecommendations(players, positionNeeds = []) {
   const needs = new Set(positionNeeds);
-  return normalizeAdpPlayers(players).slice(0, 5).map((player, index) => {
-    const rosterFit = needs.has(player.position);
-    const vorp = Math.max(1, Number((100 - player.adp).toFixed(1)));
-    return recommendation({
-      rank: index + 1,
-      name: player.name,
-      position: player.position,
-      team: player.team || "FA",
-      type: rosterFit ? "roster_fit" : "value_pick",
-      headline: rosterFit
-        ? `Draft ${player.name} if you want to address ${player.position}`
-        : `Draft ${player.name} as the strongest ADP value on this board`,
-      rationale:
-        `Provider-backed ADP ranks ${player.name} at pick ${player.adp}. ` +
-        "Draft Assistant v1 uses ADP value and declared position needs, not a live draft-room feed.",
-      confidence: rosterFit ? 78 : 72,
-      risk: player.adp <= 36 ? "low" : "medium",
-      vorp,
+  return normalizeAdpPlayers(players)
+    .slice(0, 5)
+    .map((player, index) => {
+      const rosterFit = needs.has(player.position);
+      const vorp = Math.max(1, Number((100 - player.adp).toFixed(1)));
+      return recommendation({
+        rank: index + 1,
+        name: player.name,
+        position: player.position,
+        team: player.team || "FA",
+        type: rosterFit ? "roster_fit" : "value_pick",
+        headline: rosterFit
+          ? `Draft ${player.name} if you want to address ${player.position}`
+          : `Draft ${player.name} as the strongest ADP value on this board`,
+        rationale:
+          `Provider-backed ADP ranks ${player.name} at pick ${player.adp}. ` +
+          "Draft Assistant v1 uses ADP value and declared position needs, not a live draft-room feed.",
+        confidence: rosterFit ? 78 : 72,
+        risk: player.adp <= 36 ? "low" : "medium",
+        vorp,
+      });
     });
-  });
 }
 
-const redis = config.redisUrl && config.redisToken
-  ? new Redis({ url: config.redisUrl, token: config.redisToken })
-  : null;
+const redis =
+  config.redisUrl && config.redisToken ? new Redis({ url: config.redisUrl, token: config.redisToken }) : null;
 
 async function getOptionalYahooClient(req) {
   const authHeader = req.headers.authorization;
@@ -185,9 +166,7 @@ async function getOptionalYahooClient(req) {
 
 router.post("/recommendations", (req, res) => {
   const body = req.body || {};
-  const scoringFormat = VALID_SCORING_FORMATS.has(body.scoring_format)
-    ? body.scoring_format
-    : "ppr";
+  const scoringFormat = VALID_SCORING_FORMATS.has(body.scoring_format) ? body.scoring_format : "ppr";
   const draftPosition = numberOrDefault(body.draft_position, 5);
   const round = numberOrDefault(body.round, 1);
   const positionNeeds = normalizePositionNeeds(body.position_needs);

@@ -14,19 +14,18 @@ const AUTH_URL = "https://api.login.yahoo.com/oauth2/request_auth";
 const TOKEN_URL = "https://api.login.yahoo.com/oauth2/get_token";
 
 function basicAuthHeader() {
-  return `Basic ${Buffer
-    .from(`${config.yahoo.clientId}:${config.yahoo.clientSecret}`)
-    .toString("base64")}`;
+  return `Basic ${Buffer.from(`${config.yahoo.clientId}:${config.yahoo.clientSecret}`).toString("base64")}`;
 }
 
 function yahooOAuthError(error, action) {
   const status = error?.response?.status;
   const data = error?.response?.data;
-  const yahooMessage = data?.error_description
-    || data?.error
-    || data?.message
-    || (typeof data === "string" ? data : null)
-    || error.message;
+  const yahooMessage =
+    data?.error_description ||
+    data?.error ||
+    data?.message ||
+    (typeof data === "string" ? data : null) ||
+    error.message;
   const message = status
     ? `Yahoo OAuth ${action} failed (${status}): ${yahooMessage}`
     : `Yahoo OAuth ${action} failed: ${yahooMessage}`;
@@ -67,18 +66,24 @@ async function requestToken(body, action) {
 }
 
 async function exchangeYahooCode(code) {
-  return requestToken({
-    grant_type: "authorization_code",
-    code,
-    redirect_uri: config.yahoo.redirectUri,
-  }, "code exchange");
+  return requestToken(
+    {
+      grant_type: "authorization_code",
+      code,
+      redirect_uri: config.yahoo.redirectUri,
+    },
+    "code exchange",
+  );
 }
 
 async function refreshYahooToken(refreshToken) {
-  return requestToken({
-    grant_type: "refresh_token",
-    refresh_token: refreshToken,
-  }, "token refresh");
+  return requestToken(
+    {
+      grant_type: "refresh_token",
+      refresh_token: refreshToken,
+    },
+    "token refresh",
+  );
 }
 
 module.exports = {

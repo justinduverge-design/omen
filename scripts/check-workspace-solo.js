@@ -59,7 +59,7 @@
 const { execFileSync } = require("node:child_process");
 
 const BLIND_SPOTS = [
-  "who owns a dirty file — git records no session identity, so \"not mine\" is a judgement you make, not one this tool makes",
+  'who owns a dirty file — git records no session identity, so "not mine" is a judgement you make, not one this tool makes',
   "an agent working in a different clone of the same repo entirely",
   "an editor, IDE, or watcher holding unsaved changes that have not reached disk",
   "whether the other session is finished or still typing — check its branch's commit times",
@@ -93,10 +93,13 @@ function parseWorktrees() {
 function dirtyPaths() {
   const raw = git(["status", "--porcelain"]);
   if (!raw) return [];
-  return raw.split("\n").filter(Boolean).map((line) => ({
-    code: line.slice(0, 2).trim() || "?",
-    path: line.slice(3),
-  }));
+  return raw
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => ({
+      code: line.slice(0, 2).trim() || "?",
+      path: line.slice(3),
+    }));
 }
 
 function main() {
@@ -117,7 +120,8 @@ function main() {
       id: "multiple-worktrees",
       title: `${worktrees.length} worktrees are registered — work can be happening in more than one place`,
       detail: worktrees.map((w) => `${w.path}${w.branch ? `  [${w.branch}]` : "  (detached)"}`),
-      action: "Confirm which one is yours. If another session is live, stay in your own worktree and never commit from theirs.",
+      action:
+        "Confirm which one is yours. If another session is live, stay in your own worktree and never commit from theirs.",
     });
   }
 
@@ -125,9 +129,12 @@ function main() {
     findings.push({
       id: "dirty-at-kickoff",
       title: `${dirty.length} uncommitted path(s) in this tree — at kickoff, these are not yours`,
-      detail: dirty.slice(0, MAX_LISTED).map((d) => `${d.code}  ${d.path}`)
+      detail: dirty
+        .slice(0, MAX_LISTED)
+        .map((d) => `${d.code}  ${d.path}`)
         .concat(dirty.length > MAX_LISTED ? [`… and ${dirty.length - MAX_LISTED} more`] : []),
-      action: "Do NOT `git add -A` or `git add .` here. Take your own worktree, or identify every path before staging anything.",
+      action:
+        "Do NOT `git add -A` or `git add .` here. Take your own worktree, or identify every path before staging anything.",
     });
   }
 
@@ -139,7 +146,8 @@ function main() {
         id: "head-drift",
         title: `HEAD moved since ${since} — the branch changed underneath this session`,
         detail: [`was ${since}`, `now ${head} on ${branch}`],
-        action: "Someone else moved the branch, or a checkout carried your work. Verify your commits survived (`git reflog`) before continuing.",
+        action:
+          "Someone else moved the branch, or a checkout carried your work. Verify your commits survived (`git reflog`) before continuing.",
       });
     }
   }
@@ -158,16 +166,18 @@ function main() {
     console.log(`  → ${f.action}\n`);
   }
 
-  console.log(findings.length === 0
-    ? "No findings — this tree looks like yours alone.\n"
-    : `${findings.length} finding(s).\n`);
+  console.log(
+    findings.length === 0 ? "No findings — this tree looks like yours alone.\n" : `${findings.length} finding(s).\n`,
+  );
 
   console.log("Coverage — this is what a pass above does and does not mean:");
   console.log("  ✓ ran      registered worktrees for this repo");
   console.log("  ✓ ran      uncommitted paths in this working tree");
-  console.log(since
-    ? `  ✓ ran      HEAD drift against ${since}`
-    : "  · skipped  HEAD drift — pass --since <sha> at kickoff to enable it");
+  console.log(
+    since
+      ? `  ✓ ran      HEAD drift against ${since}`
+      : "  · skipped  HEAD drift — pass --since <sha> at kickoff to enable it",
+  );
   for (const b of BLIND_SPOTS) console.log(`  ✗ not checked  ${b}`);
   console.log("");
 

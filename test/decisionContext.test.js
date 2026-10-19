@@ -2,7 +2,11 @@
 
 const assert = require("node:assert/strict");
 const test = require("node:test");
-const { DECISION_CONTEXT_VERSION, attachDecisionReceipt, createDecisionContext } = require("../src/services/decisionContext");
+const {
+  DECISION_CONTEXT_VERSION,
+  attachDecisionReceipt,
+  createDecisionContext,
+} = require("../src/services/decisionContext");
 
 test("decision context de-duplicates a source inside one request while resolving independent sources", async () => {
   let rosterCalls = 0;
@@ -11,11 +15,21 @@ test("decision context de-duplicates a source inside one request while resolving
     profile: "omen_mvp",
     now: () => "2026-09-17T15:00:00.000Z",
     loaders: {
-      roster: async () => { rosterCalls += 1; return { state: "live", source: "sleeper_roster", value: { private: true } }; },
-      projections: async () => { projectionCalls += 1; return { state: "live", source: "sleeper_projection", value: [12.2] }; },
+      roster: async () => {
+        rosterCalls += 1;
+        return { state: "live", source: "sleeper_roster", value: { private: true } };
+      },
+      projections: async () => {
+        projectionCalls += 1;
+        return { state: "live", source: "sleeper_projection", value: [12.2] };
+      },
     },
   });
-  await Promise.all([context.resolve("roster"), context.resolve("roster"), context.resolveMany(["roster", "projections"])]);
+  await Promise.all([
+    context.resolve("roster"),
+    context.resolve("roster"),
+    context.resolveMany(["roster", "projections"]),
+  ]);
   assert.equal(rosterCalls, 1);
   assert.equal(projectionCalls, 1);
   assert.deepEqual(context.value("roster"), { private: true });
@@ -42,11 +56,21 @@ test("receipt distinguishes resolved from used and never serializes private inpu
 });
 
 test("source failure becomes a typed limitation instead of rejecting the feature request", async () => {
-  const context = createDecisionContext({ profile: "trade", loaders: { trade_rosters: async () => { throw new Error("upstream unavailable"); } } });
+  const context = createDecisionContext({
+    profile: "trade",
+    loaders: {
+      trade_rosters: async () => {
+        throw new Error("upstream unavailable");
+      },
+    },
+  });
   const [record] = await context.resolveMany(["trade_rosters"]);
   assert.equal(record.state, "unavailable");
   const receipt = context.receipt();
-  assert.deepEqual(receipt.limitations.find((entry) => entry.name === "trade_rosters"), { name: "trade_rosters", state: "unavailable", reason_code: "source_failed" });
+  assert.deepEqual(
+    receipt.limitations.find((entry) => entry.name === "trade_rosters"),
+    { name: "trade_rosters", state: "unavailable", reason_code: "source_failed" },
+  );
   assert.equal(receipt.inputs.roster.reason_code, "not_requested");
 });
 
@@ -62,7 +86,10 @@ test("candidate builders can record a consumed provider result without exposing 
 
 test("unknown profiles and non-live inputs cannot become used evidence", async () => {
   assert.throws(() => createDecisionContext({ profile: "everything" }), /known profile/);
-  const context = createDecisionContext({ profile: "waiver", loaders: { waivers: async () => ({ state: "pending", source: "provider_pool" }) } });
+  const context = createDecisionContext({
+    profile: "waiver",
+    loaders: { waivers: async () => ({ state: "pending", source: "provider_pool" }) },
+  });
   await context.resolve("waivers");
   assert.equal(context.use("waivers"), false);
   assert.equal(context.receipt().inputs.waivers.used, false);

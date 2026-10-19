@@ -26,11 +26,11 @@ export async function apiFetch(path, opts = {}) {
 
   let body = opts.body;
   if (
-    body
-    && typeof body === 'object'
-    && !(body instanceof FormData)
-    && !(body instanceof URLSearchParams)
-    && !(body instanceof Blob)
+    body &&
+    typeof body === 'object' &&
+    !(body instanceof FormData) &&
+    !(body instanceof URLSearchParams) &&
+    !(body instanceof Blob)
   ) {
     body = JSON.stringify(body);
     if (!headers.has('Content-Type')) {

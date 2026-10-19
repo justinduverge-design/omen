@@ -102,7 +102,9 @@ export function Modal({
           aria-labelledby={titleId}
           aria-describedby={ariaDescribedBy}
           tabIndex={-1}
-          className={`w-full ${maxWidth} rounded-lg border border-(--color-border) bg-(--color-surface-1) shadow-2xl focus:outline-hidden ${className}`.trim().replace(/\s+/g, ' ')}
+          className={`w-full ${maxWidth} rounded-lg border border-(--color-border) bg-(--color-surface-1) shadow-2xl focus:outline-hidden ${className}`
+            .trim()
+            .replace(/\s+/g, ' ')}
           {...rest}
         >
           {title && (

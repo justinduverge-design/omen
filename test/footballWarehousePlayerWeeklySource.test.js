@@ -72,40 +72,45 @@ test("hashes exact raw bytes and maps a complete source row to writer input", ()
     sourceBytes: raw.length,
     sourceRows: 1,
     metadata: {
-      schema_fingerprint: `sha256:${crypto.createHash("sha256").update(Buffer.from(JSON.stringify(HEADERS))).digest("hex")}`,
+      schema_fingerprint: `sha256:${crypto
+        .createHash("sha256")
+        .update(Buffer.from(JSON.stringify(HEADERS)))
+        .digest("hex")}`,
       source_columns: HEADERS,
     },
   });
   assert.equal(result.unmatchedRows, 0);
   assert.deepEqual(result.unmatched, []);
-  assert.deepEqual(result.rows, [{
-    season: 2026,
-    week: 3,
-    seasonType: "REG",
-    playerId: "omen:player:gsis.00-0001",
-    teamId: "omen:team:buf",
-    opponentTeamId: "omen:team:nyj",
-    gameId: "2026_03_BUF_NYJ",
-    footballPosition: "QB",
-    fantasyPointsPpr: 22.4,
-    passingYards: 280,
-    rushingYards: 31,
-    receivingYards: null,
-    targets: null,
-    receptions: null,
-    carries: 5,
-    passingAttempts: 34,
-    targetShare: null,
-    stats: {
-      fantasy_points_ppr: 22.4,
-      attempts: 34,
-      passing_yards: 280,
+  assert.deepEqual(result.rows, [
+    {
+      season: 2026,
+      week: 3,
+      seasonType: "REG",
+      playerId: "omen:player:gsis.00-0001",
+      teamId: "omen:team:buf",
+      opponentTeamId: "omen:team:nyj",
+      gameId: "2026_03_BUF_NYJ",
+      footballPosition: "QB",
+      fantasyPointsPpr: 22.4,
+      passingYards: 280,
+      rushingYards: 31,
+      receivingYards: null,
+      targets: null,
+      receptions: null,
       carries: 5,
-      rushing_yards: 31,
+      passingAttempts: 34,
+      targetShare: null,
+      stats: {
+        fantasy_points_ppr: 22.4,
+        attempts: 34,
+        passing_yards: 280,
+        carries: 5,
+        rushing_yards: 31,
+      },
+      opportunity: {},
+      sourceRow: row(),
     },
-    opportunity: {},
-    sourceRow: row(),
-  }]);
+  ]);
 });
 
 test("strict parser preserves quoted commas, doubled quotes and embedded newlines", () => {
@@ -122,10 +127,7 @@ test("strict parser preserves quoted commas, doubled quotes and embedded newline
 });
 
 test("returns unmatched GSIS rows without matching on player name", () => {
-  const raw = rawCsv([
-    csvRow(row({ player_id: "00-9999", week: "1" })),
-    csvRow(row({ player_id: "", week: "2" })),
-  ]);
+  const raw = rawCsv([csvRow(row({ player_id: "00-9999", week: "1" })), csvRow(row({ player_id: "", week: "2" }))]);
   const result = adaptPlayerWeeklyCsv(sourceArgs(raw));
 
   assert.deepEqual(result.rows, []);
@@ -170,27 +172,27 @@ test("rejects wrong seasons, invalid numerics and credential-bearing source URLs
     /targets is not numeric/,
   );
   assert.throws(
-    () => adaptPlayerWeeklyCsv({
-      ...sourceArgs(rawCsv([csvRow(row())])),
-      sourceUrl: "https://user:password@example.com/source.csv",
-    }),
+    () =>
+      adaptPlayerWeeklyCsv({
+        ...sourceArgs(rawCsv([csvRow(row())])),
+        sourceUrl: "https://user:password@example.com/source.csv",
+      }),
     /sourceUrl is invalid/,
   );
   assert.throws(
-    () => adaptPlayerWeeklyCsv({
-      ...sourceArgs(rawCsv([csvRow(row())])),
-      sourceUrl: "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2025.csv",
-    }),
+    () =>
+      adaptPlayerWeeklyCsv({
+        ...sourceArgs(rawCsv([csvRow(row())])),
+        sourceUrl:
+          "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2025.csv",
+      }),
     /not the allowlisted season asset/,
   );
   assert.throws(
     () => adaptPlayerWeeklyCsv(sourceArgs(rawCsv([csvRow(row({ team: "NOT" }))]))),
     /team is not a known NFL team/,
   );
-  assert.throws(
-    () => adaptPlayerWeeklyCsv(sourceArgs(rawCsv([csvRow(row({ game_id: "" }))]))),
-    /game_id is empty/,
-  );
+  assert.throws(() => adaptPlayerWeeklyCsv(sourceArgs(rawCsv([csvRow(row({ game_id: "" }))]))), /game_id is empty/);
   assert.throws(
     () => adaptPlayerWeeklyCsv(sourceArgs(rawCsv([csvRow(row({ opponent_team: "" }))]))),
     /opponent_team is empty/,
@@ -209,7 +211,15 @@ test("a stray stat line with no team and no opponent is quarantined as unmatched
 
 test("historic franchise codes resolve to the current franchise", () => {
   const { teamIdFor } = require("../src/services/footballIntelligence/nflTeams");
-  for (const [old, current] of [["ARZ", "ari"], ["BLT", "bal"], ["CLV", "cle"], ["HST", "hou"], ["SL", "la"], ["OAK", "lv"], ["SD", "lac"]]) {
+  for (const [old, current] of [
+    ["ARZ", "ari"],
+    ["BLT", "bal"],
+    ["CLV", "cle"],
+    ["HST", "hou"],
+    ["SL", "la"],
+    ["OAK", "lv"],
+    ["SD", "lac"],
+  ]) {
     assert.equal(teamIdFor(old), `omen:team:${current}`);
   }
 });

@@ -18,7 +18,10 @@ const POSITIONS = ["QB", "RB", "RB", "RB", "WR", "WR", "WR", "TE", "K", "DEF", "
 // Seeded so worker and inline see byte-identical leagues.
 function league(teamCount, rosterSize, seed = 7) {
   let state = seed;
-  const random = () => { state = (state * 1103515245 + 12345) % 2147483648; return state / 2147483648; };
+  const random = () => {
+    state = (state * 1103515245 + 12345) % 2147483648;
+    return state / 2147483648;
+  };
   return Array.from({ length: teamCount }, (_, t) => ({
     team_id: String(t + 1),
     team_name: `Team ${t + 1}`,
@@ -26,9 +29,14 @@ function league(teamCount, rosterSize, seed = 7) {
       const position = POSITIONS[p % POSITIONS.length];
       const id = `t${t}p${p}`;
       return {
-        player_id: id, player_key: id, name: id, position,
-        eligible_positions: position === "RB" || position === "WR" || position === "TE" ? [position, "FLEX"] : [position],
-        selected_position: "BN", projected_points: Math.round((3 + random() * 20) * 10) / 10,
+        player_id: id,
+        player_key: id,
+        name: id,
+        position,
+        eligible_positions:
+          position === "RB" || position === "WR" || position === "TE" ? [position, "FLEX"] : [position],
+        selected_position: "BN",
+        projected_points: Math.round((3 + random() * 20) * 10) / 10,
       };
     }),
   }));
@@ -52,7 +60,12 @@ test.after(() => pool.closeTradeSearchPool());
 
 test("worker and inline trade search return identical results", async () => {
   const teams = league(8, 12, 2);
-  const leagueInput = () => ({ ownTeamId: "1", teams, rosterPositions: SLOTS, budget: createSearchBudget({ budgetMs: 30000 }) });
+  const leagueInput = () => ({
+    ownTeamId: "1",
+    teams,
+    rosterPositions: SLOTS,
+    budget: createSearchBudget({ budgetMs: 30000 }),
+  });
   const candidateInput = (fairnessGuard) => ({
     ownTeam: { ...teams[0], roster_id: "1" },
     opponentTeams: teams.slice(1).map((team) => ({ ...team, roster_id: team.team_id })),
@@ -79,11 +92,15 @@ test("worker and inline trade search return identical results", async () => {
 test("a budget trip inside the worker is replayed to onBudgetExceeded", async () => {
   const teams = league(4, 12);
   const events = [];
-  const result = await withMode("worker", () => pool.findLeagueTradeCandidatesAsync({
-    ownTeamId: "1", teams, rosterPositions: SLOTS,
-    budget: createSearchBudget({ budgetMs: 0 }),
-    onBudgetExceeded: (stats) => events.push(stats),
-  }));
+  const result = await withMode("worker", () =>
+    pool.findLeagueTradeCandidatesAsync({
+      ownTeamId: "1",
+      teams,
+      rosterPositions: SLOTS,
+      budget: createSearchBudget({ budgetMs: 0 }),
+      onBudgetExceeded: (stats) => events.push(stats),
+    }),
+  );
   assert.equal(result.budget_exceeded, true);
   assert.ok(events.length >= 1);
   assert.equal(events[0].exceeded, true);
@@ -95,17 +112,31 @@ test("a crashing or hung worker falls back to the inline result, and the next ca
   const hang = path.join(dir, "hang.js");
   fs.writeFileSync(crash, "require('node:worker_threads').parentPort.on('message', () => process.exit(3));");
   fs.writeFileSync(hang, "require('node:worker_threads').parentPort.on('message', () => { for (;;) {} });");
-  t.after(() => { pool.setWorkerPathForTests(path.join(__dirname, "../src/services/tradeSearchWorker.js")); fs.rmSync(dir, { recursive: true, force: true }); });
+  t.after(() => {
+    pool.setWorkerPathForTests(path.join(__dirname, "../src/services/tradeSearchWorker.js"));
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
 
   const teams = league(3, 10);
-  const input = (budgetMs = 30000) => ({ ownTeamId: "1", teams, rosterPositions: SLOTS, budget: createSearchBudget({ budgetMs }) });
+  const input = (budgetMs = 30000) => ({
+    ownTeamId: "1",
+    teams,
+    rosterPositions: SLOTS,
+    budget: createSearchBudget({ budgetMs }),
+  });
   const expected = stable(findLeagueTradeCandidates(input()));
 
   await pool.closeTradeSearchPool();
   pool.setWorkerPathForTests(crash);
-  assert.deepStrictEqual(stable(await withMode("worker", () => pool.findLeagueTradeCandidatesAsync(input()))), expected);
+  assert.deepStrictEqual(
+    stable(await withMode("worker", () => pool.findLeagueTradeCandidatesAsync(input()))),
+    expected,
+  );
   // A second call needs a fresh worker; it crashes too and still falls back.
-  assert.deepStrictEqual(stable(await withMode("worker", () => pool.findLeagueTradeCandidatesAsync(input()))), expected);
+  assert.deepStrictEqual(
+    stable(await withMode("worker", () => pool.findLeagueTradeCandidatesAsync(input()))),
+    expected,
+  );
 
   pool.setWorkerPathForTests(hang);
   const started = Date.now();
@@ -115,5 +146,8 @@ test("a crashing or hung worker falls back to the inline result, and the next ca
   assert.equal(hungResult.budget_exceeded, true);
 
   pool.setWorkerPathForTests(path.join(__dirname, "../src/services/tradeSearchWorker.js"));
-  assert.deepStrictEqual(stable(await withMode("worker", () => pool.findLeagueTradeCandidatesAsync(input()))), expected);
+  assert.deepStrictEqual(
+    stable(await withMode("worker", () => pool.findLeagueTradeCandidatesAsync(input()))),
+    expected,
+  );
 });

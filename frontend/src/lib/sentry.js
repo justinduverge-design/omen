@@ -27,18 +27,13 @@ function scrubValue(value) {
   if (typeof value === 'string') return scrubText(value);
   if (!isPlainObject(value)) return value;
   return Object.fromEntries(
-    Object.entries(value).map(([key, entry]) => [
-      key,
-      SENSITIVE_KEY_PATTERN.test(key) ? SCRUBBED : scrubValue(entry),
-    ]),
+    Object.entries(value).map(([key, entry]) => [key, SENSITIVE_KEY_PATTERN.test(key) ? SCRUBBED : scrubValue(entry)]),
   );
 }
 
 function scrubHeaders(headers) {
   if (!isPlainObject(headers)) return headers;
-  return Object.fromEntries(
-    Object.entries(headers).filter(([key]) => !SENSITIVE_HEADER_PATTERN.test(key)),
-  );
+  return Object.fromEntries(Object.entries(headers).filter(([key]) => !SENSITIVE_HEADER_PATTERN.test(key)));
 }
 
 function parseRequestUrl(rawUrl) {
@@ -86,9 +81,7 @@ function truncateStackFrames(event) {
 function shouldDropRequestData(hint) {
   const originalException = hint?.originalException;
   return Boolean(
-    originalException
-      && typeof originalException === 'object'
-      && originalException.__skipBodyLog === true,
+    originalException && typeof originalException === 'object' && originalException.__skipBodyLog === true,
   );
 }
 

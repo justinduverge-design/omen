@@ -68,7 +68,13 @@ test("sentence starters and position tags are accepted", () => {
 test("validator never throws and treats null opts and facts as empty", () => {
   assert.doesNotThrow(() => validateGroundedText("Start St. Brown.", FACTS, null));
   assert.doesNotThrow(() => validateGroundedText("Start St. Brown.", null, null));
-  assert.doesNotThrow(() => validateGroundedText("x", { get a() { throw new Error("boom"); } }));
+  assert.doesNotThrow(() =>
+    validateGroundedText("x", {
+      get a() {
+        throw new Error("boom");
+      },
+    }),
+  );
 });
 
 test("start-sit route fails closed when the validator throws", async () => {
@@ -77,16 +83,21 @@ test("start-sit route fails closed when the validator throws", async () => {
   const args = { loser, winner, pointsDelta: 3.5, slot: "WR" };
   const text = await startSit.explainSafely(args, {
     llmService: { explainStartSit: async () => "Tyreek Hill is 3.5 points ahead." },
-    validator: () => { throw new Error("validator down"); },
+    validator: () => {
+      throw new Error("validator down");
+    },
   });
   assert.equal(text, startSit.deterministicExplanation(args));
 });
 
 test("MVP narration fails closed when the validator throws", async () => {
   const response = {
-    state: "success", mode: "live",
+    state: "success",
+    mode: "live",
     recommendation: {
-      type: "start_sit", title: "Start A over B", move: "Move A in.",
+      type: "start_sit",
+      title: "Start A over B",
+      move: "Move A in.",
       primary_player: { name: "A", position: "WR", team: "DAL" },
       comparison_player: { name: "B", position: "WR", team: "PHI" },
       expected_value_delta: { points: 2.1, label: "meaningful" },
@@ -98,10 +109,18 @@ test("MVP narration fails closed when the validator throws", async () => {
   };
   const result = await evidence.generateMvpLlmNarration(response, {
     llmService: {
-      explainOmenMvpMove: async () => ({ summary: "A is ahead", why_it_matters: "B is behind", risk: "r", confidence: "c", data_used: ["weekly projection"] }),
+      explainOmenMvpMove: async () => ({
+        summary: "A is ahead",
+        why_it_matters: "B is behind",
+        risk: "r",
+        confidence: "c",
+        data_used: ["weekly projection"],
+      }),
       getLlmBridgeStatus: () => ({ status: "configured_private", model: "gemma4:e2b-q4_0" }),
     },
-    groundingValidator: () => { throw new Error("down"); },
+    groundingValidator: () => {
+      throw new Error("down");
+    },
   });
   assert.equal(result, null);
 });

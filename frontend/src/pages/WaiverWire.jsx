@@ -7,21 +7,14 @@ import { waiverDataMode } from '../lib/recommendationDataMode.js';
 import { ApiError, apiFetch } from '../lib/api.js';
 import { positionChipStyle } from '../lib/positionChip.js';
 import { supabase } from '../lib/supabase.js';
-import {
-  startYahooOAuth,
-  YAHOO_CONNECTIONS_ENABLED,
-  YAHOO_UNAVAILABLE_MESSAGE,
-} from '../lib/yahooAuth.js';
+import { startYahooOAuth, YAHOO_CONNECTIONS_ENABLED, YAHOO_UNAVAILABLE_MESSAGE } from '../lib/yahooAuth.js';
 
 const PLATFORM_LABELS = { yahoo: 'Yahoo', sleeper: 'Sleeper', espn: 'ESPN' };
 
 function PlayerRow({ rank, player }) {
-  const vorpDisplay = player.vorp_delta != null
-    ? `${player.vorp_delta >= 0 ? '+' : ''}${player.vorp_delta.toFixed(1)}`
-    : '—';
-  const ptsDisplay = player.projected_points != null
-    ? player.projected_points.toFixed(1)
-    : '—';
+  const vorpDisplay =
+    player.vorp_delta != null ? `${player.vorp_delta >= 0 ? '+' : ''}${player.vorp_delta.toFixed(1)}` : '—';
+  const ptsDisplay = player.projected_points != null ? player.projected_points.toFixed(1) : '—';
 
   return (
     <div className="flex items-start gap-4 rounded-xl border border-(--color-border) bg-(--color-surface-1) px-5 py-4">
@@ -89,7 +82,9 @@ function TokenExpiredState() {
         </button>
       )}
       {error && (
-        <p className="mt-3 text-xs text-red-300" role="alert">{error}</p>
+        <p className="mt-3 text-xs text-red-300" role="alert">
+          {error}
+        </p>
       )}
     </div>
   );
@@ -123,14 +118,22 @@ export default function WaiverWire() {
 
   useEffect(() => {
     let mounted = true;
-    supabase.auth.getSession().then(({ data }) => {
-      if (mounted) setSession(data?.session ?? null);
-    }).catch(() => { if (mounted) setSession(null); });
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (mounted) setSession(data?.session ?? null);
+      })
+      .catch(() => {
+        if (mounted) setSession(null);
+      });
 
     const { data } = supabase.auth.onAuthStateChange((_event, s) => {
       if (mounted) setSession(s);
     });
-    return () => { mounted = false; data?.subscription?.unsubscribe(); };
+    return () => {
+      mounted = false;
+      data?.subscription?.unsubscribe();
+    };
   }, []);
 
   async function handleSubmit(event) {
@@ -155,9 +158,7 @@ export default function WaiverWire() {
         setTokenExpired(true);
       } else {
         setError(
-          caught instanceof ApiError
-            ? caught.message
-            : caught.message || 'Failed to load waiver recommendations.'
+          caught instanceof ApiError ? caught.message : caught.message || 'Failed to load waiver recommendations.',
         );
       }
     } finally {
@@ -211,14 +212,16 @@ export default function WaiverWire() {
         </button>
       </form>
 
-      {error ? (
-        <ErrorState title="Failed to load waiver picks" message={error} />
-      ) : null}
+      {error ? <ErrorState title="Failed to load waiver picks" message={error} /> : null}
 
       {result ? (
         <div className="space-y-4">
-          {waiverDataMode(result) === 'mock' && <MockBanner message="Preview — mock data. Live waiver rankings connect to your roster when the season begins." />}
-          {waiverDataMode(result) === 'unverified' && <MockBanner message="Data state unverified — these waiver picks are not confirmed live. Refresh before acting." />}
+          {waiverDataMode(result) === 'mock' && (
+            <MockBanner message="Preview — mock data. Live waiver rankings connect to your roster when the season begins." />
+          )}
+          {waiverDataMode(result) === 'unverified' && (
+            <MockBanner message="Data state unverified — these waiver picks are not confirmed live. Refresh before acting." />
+          )}
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -227,7 +230,12 @@ export default function WaiverWire() {
               </p>
               {result.platform && (
                 <span className="inline-flex items-center rounded-full border border-(--color-border) bg-(--color-surface-2) px-2.5 py-0.5 text-xs font-semibold text-(--color-text-secondary)">
-                  {waiverDataMode(result) === 'live' ? 'Live' : waiverDataMode(result) === 'mock' ? 'Mock' : 'Unverified'} · {PLATFORM_LABELS[result.platform] ?? result.platform}
+                  {waiverDataMode(result) === 'live'
+                    ? 'Live'
+                    : waiverDataMode(result) === 'mock'
+                      ? 'Mock'
+                      : 'Unverified'}{' '}
+                  · {PLATFORM_LABELS[result.platform] ?? result.platform}
                 </span>
               )}
             </div>

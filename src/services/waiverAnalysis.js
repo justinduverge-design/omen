@@ -69,7 +69,9 @@ function sightOf(player) {
   const block = player?.sight;
   if (!block || block.confidence === "low") return null;
   const points = Number(block.sight_points);
-  return Number.isFinite(points) ? { points, grade: Number.isFinite(Number(block.grade)) ? Number(block.grade) : null } : null;
+  return Number.isFinite(points)
+    ? { points, grade: Number.isFinite(Number(block.grade)) ? Number(block.grade) : null }
+    : null;
 }
 
 /** The number decisions use: provider projection blended with Sight, or Sight alone when the provider is silent. */
@@ -96,14 +98,22 @@ function positionsOf(player) {
 const REAL_POSITIONS = new Set(["QB", "RB", "WR", "TE", "K", "DEF"]);
 const POSITION_ALIASES = { DST: "DEF", "D/ST": "DEF", D: "DEF", PK: "K" };
 const FLEX_SLOT_POSITIONS = {
-  FLEX: ["RB", "WR", "TE"], "W/R/T": ["RB", "WR", "TE"], WRT: ["RB", "WR", "TE"],
-  "W/R": ["RB", "WR"], "W/T": ["WR", "TE"], REC_FLEX: ["WR", "TE"],
-  SUPER_FLEX: ["QB", "RB", "WR", "TE"], "Q/W/R/T": ["QB", "RB", "WR", "TE"], OP: ["QB", "RB", "WR", "TE"],
+  FLEX: ["RB", "WR", "TE"],
+  "W/R/T": ["RB", "WR", "TE"],
+  WRT: ["RB", "WR", "TE"],
+  "W/R": ["RB", "WR"],
+  "W/T": ["WR", "TE"],
+  REC_FLEX: ["WR", "TE"],
+  SUPER_FLEX: ["QB", "RB", "WR", "TE"],
+  "Q/W/R/T": ["QB", "RB", "WR", "TE"],
+  OP: ["QB", "RB", "WR", "TE"],
   UTIL: ["QB", "RB", "WR", "TE"],
 };
 
 function realPositionOf(value) {
-  const token = String(value || "").trim().toUpperCase();
+  const token = String(value || "")
+    .trim()
+    .toUpperCase();
   const position = POSITION_ALIASES[token] || token;
   return REAL_POSITIONS.has(position) ? position : null;
 }
@@ -119,7 +129,9 @@ function realPositions(player) {
 
 /** What a starter's SLOT accepts: the flex set for a flex slot, else its own position. */
 function slotPositions(starter) {
-  const slot = String(starter?.selected_position || "").trim().toUpperCase();
+  const slot = String(starter?.selected_position || "")
+    .trim()
+    .toUpperCase();
   if (FLEX_SLOT_POSITIONS[slot]) return FLEX_SLOT_POSITIONS[slot];
   const own = realPositionOf(slot);
   return own ? [own] : realPositions(starter);
@@ -127,11 +139,20 @@ function slotPositions(starter) {
 
 /** A player on a bye contributes nothing this week by schedule, not by quality. */
 function isBye(player) {
-  return player?.projection_basis === "bye_week" || String(player?.status || "").trim().toUpperCase() === "BYE";
+  return (
+    player?.projection_basis === "bye_week" ||
+    String(player?.status || "")
+      .trim()
+      .toUpperCase() === "BYE"
+  );
 }
 
 function isOut(player) {
-  return OUT_STATUSES.has(String(effectiveStatus(player) || "").trim().toUpperCase());
+  return OUT_STATUSES.has(
+    String(effectiveStatus(player) || "")
+      .trim()
+      .toUpperCase(),
+  );
 }
 
 function round2(value) {
@@ -149,7 +170,9 @@ function nameOf(player) {
  */
 function displacedStarter(candidate, starters) {
   const eligible = new Set(realPositions(candidate));
-  const matches = starters.filter((starter) => !isLocked(starter) && slotPositions(starter).some((pos) => eligible.has(pos)));
+  const matches = starters.filter(
+    (starter) => !isLocked(starter) && slotPositions(starter).some((pos) => eligible.has(pos)),
+  );
   if (!matches.length) return null;
 
   return matches.reduce((weakest, starter) => {
@@ -175,11 +198,13 @@ function rankCandidates(pool, starters) {
       };
     })
     .filter((entry) => entry && entry.improvement >= MIN_IMPROVEMENT)
-    .sort((a, b) =>
-      // An OUT starter is a hole, not an upgrade. Solve it first.
-      Number(b.solves_out_starter) - Number(a.solves_out_starter)
-      || b.improvement - a.improvement
-      || String(a.player.player_key).localeCompare(String(b.player.player_key)));
+    .sort(
+      (a, b) =>
+        // An OUT starter is a hole, not an upgrade. Solve it first.
+        Number(b.solves_out_starter) - Number(a.solves_out_starter) ||
+        b.improvement - a.improvement ||
+        String(a.player.player_key).localeCompare(String(b.player.player_key)),
+    );
 }
 
 /**
@@ -196,7 +221,10 @@ function upcomingByes(starters, week) {
   const now = Number(week);
   if (!Number.isInteger(now)) return [];
   return (Array.isArray(starters) ? starters : [])
-    .filter((starter) => Number.isInteger(starter?.sight?.bye_week) && starter.sight.bye_week > now && starter.sight.bye_week <= now + 2)
+    .filter(
+      (starter) =>
+        Number.isInteger(starter?.sight?.bye_week) && starter.sight.bye_week > now && starter.sight.bye_week <= now + 2,
+    )
     .map((starter) => ({ starter, week: starter.sight.bye_week, positions: realPositions(starter) }));
 }
 
@@ -206,10 +234,13 @@ function chooseDrop(bench, addedPositions, { starters = null, week = null } = {}
   // bye or out for the week is rostered but is not depth for this week's lineup.
   const rostered = [...(Array.isArray(starters) ? starters : []), ...all];
   const available = (player) => !isOut(player) && !isBye(player);
-  const requiredAt = (position) => (Array.isArray(starters)
-    ? starters.filter((starter) => slotPositions(starter).length === 1 && slotPositions(starter)[0] === position).length
-    : 0);
-  const healthyAt = (position) => rostered.filter((player) => available(player) && realPositions(player).includes(position)).length;
+  const requiredAt = (position) =>
+    Array.isArray(starters)
+      ? starters.filter((starter) => slotPositions(starter).length === 1 && slotPositions(starter)[0] === position)
+          .length
+      : 0;
+  const healthyAt = (position) =>
+    rostered.filter((player) => available(player) && realPositions(player).includes(position)).length;
 
   const droppable = all
     // A bye week is not a reason to drop someone: his projection is 0 by schedule, not by value.
@@ -223,24 +254,38 @@ function chooseDrop(bench, addedPositions, { starters = null, week = null } = {}
     // Omen's season read outranks one low week: a player Sight grades strong is not the cheap drop.
     .filter(({ player }) => !isSeasonStrong(player))
     // Never drop the last bench cover for a starter whose bye is one or two weeks out (unless the add covers it).
-    .filter(({ player }) => !upcomingByes(starters, week).some((bye) => {
-      const positions = realPositions(player);
-      if (!bye.positions.some((pos) => positions.includes(pos)) || bye.positions.some((pos) => addedPositions.includes(pos))) return false;
-      const covers = all.filter((other) => available(other) && other.sight?.bye_week !== bye.week
-        && realPositions(other).some((pos) => bye.positions.includes(pos)));
-      return covers.length <= 1 && covers.includes(player);
-    }));
+    .filter(
+      ({ player }) =>
+        !upcomingByes(starters, week).some((bye) => {
+          const positions = realPositions(player);
+          if (
+            !bye.positions.some((pos) => positions.includes(pos)) ||
+            bye.positions.some((pos) => addedPositions.includes(pos))
+          )
+            return false;
+          const covers = all.filter(
+            (other) =>
+              available(other) &&
+              other.sight?.bye_week !== bye.week &&
+              realPositions(other).some((pos) => bye.positions.includes(pos)),
+          );
+          return covers.length <= 1 && covers.includes(player);
+        }),
+    );
 
   if (!droppable.length) return null;
 
-  const sorted = [...droppable].sort((a, b) =>
-    a.points - b.points || String(a.player.player_key).localeCompare(String(b.player.player_key)));
+  const sorted = [...droppable].sort(
+    (a, b) => a.points - b.points || String(a.player.player_key).localeCompare(String(b.player.player_key)),
+  );
   const weakest = sorted[0];
 
   // Depth at the dropped player's real position (never the bench as a whole), so the cost statement is
   // specific rather than a generic "you lose depth".
   const positions = realPositions(weakest.player);
-  const samePosition = rostered.filter((player) => available(player) && realPositions(player).some((pos) => positions.includes(pos)));
+  const samePosition = rostered.filter(
+    (player) => available(player) && realPositions(player).some((pos) => positions.includes(pos)),
+  );
 
   return {
     player: weakest.player,
@@ -252,13 +297,15 @@ function chooseDrop(bench, addedPositions, { starters = null, week = null } = {}
 
 /** §6.3 categories, emitted only where the data genuinely supports one. */
 function evidenceFor(best, scoringFormat, { starters = [], week = null } = {}) {
-  const evidence = [{
-    category: "immediate_need",
-    statement: best.solves_out_starter
-      ? `${nameOf(best.displaced)} is unavailable this week, leaving the slot empty.`
-      : `${nameOf(best.player)} projects ${best.improvement} points above ${nameOf(best.displaced)}, your weakest eligible starter.`,
-    kind: "roster_math",
-  }];
+  const evidence = [
+    {
+      category: "immediate_need",
+      statement: best.solves_out_starter
+        ? `${nameOf(best.displaced)} is unavailable this week, leaving the slot empty.`
+        : `${nameOf(best.player)} projects ${best.improvement} points above ${nameOf(best.displaced)}, your weakest eligible starter.`,
+      kind: "roster_math",
+    },
+  ];
 
   if (scoringFormat) {
     evidence.push({
@@ -270,8 +317,9 @@ function evidenceFor(best, scoringFormat, { starters = [], week = null } = {}) {
 
   // League-GM planning: the add covers a starter's bye one or two weeks out.
   const addPositions = realPositions(best.player);
-  const bye = upcomingByes(starters, week).find((b) => b.positions.some((pos) => addPositions.includes(pos))
-    && best.player?.sight?.bye_week !== b.week);
+  const bye = upcomingByes(starters, week).find(
+    (b) => b.positions.some((pos) => addPositions.includes(pos)) && best.player?.sight?.bye_week !== b.week,
+  );
   if (bye) {
     evidence.push({
       category: "upcoming_need",
@@ -283,7 +331,13 @@ function evidenceFor(best, scoringFormat, { starters = [], week = null } = {}) {
   // The market: how many ESPN leagues roster the add and how fast that is moving. A signal, never the verdict.
   const owned = Number(best.player?.owned_pct);
   const change = Number(best.player?.owned_pct_change);
-  if (best.player?.owned_pct != null && Number.isFinite(owned) && best.player?.owned_pct_change != null && Number.isFinite(change) && Math.abs(change) >= 1) {
+  if (
+    best.player?.owned_pct != null &&
+    Number.isFinite(owned) &&
+    best.player?.owned_pct_change != null &&
+    Number.isFinite(change) &&
+    Math.abs(change) >= 1
+  ) {
     evidence.push({
       category: "market_signal",
       statement: `${nameOf(best.player)} is rostered in ${round2(owned)}% of ESPN leagues, ${change > 0 ? "up" : "down"} ${round2(Math.abs(change))} points this week.`,
@@ -296,9 +350,10 @@ function evidenceFor(best, scoringFormat, { starters = [], week = null } = {}) {
     const provider = projection(best.player);
     evidence.push({
       category: "omen_read",
-      statement: provider == null
-        ? `Omen's Sight reads ${nameOf(best.player)} at ${round2(sight.points)} points; the provider has no projection.`
-        : `Omen's Sight reads ${nameOf(best.player)} at ${round2(sight.points)} points against the provider's ${round2(provider)}${sight.grade != null ? `, a ${sight.grade} grade at the position` : ""}.`,
+      statement:
+        provider == null
+          ? `Omen's Sight reads ${nameOf(best.player)} at ${round2(sight.points)} points; the provider has no projection.`
+          : `Omen's Sight reads ${nameOf(best.player)} at ${round2(sight.points)} points against the provider's ${round2(provider)}${sight.grade != null ? `, a ${sight.grade} grade at the position` : ""}.`,
       kind: "omen_sight",
     });
   }
@@ -307,9 +362,10 @@ function evidenceFor(best, scoringFormat, { starters = [], week = null } = {}) {
 
 function costFor(drop, best) {
   if (!drop) return null;
-  const removes = drop.remaining_same_position_depth > 0
-    ? `${nameOf(drop.player)} was your ${positionsOf(drop.player)[0] || "bench"} depth; ${drop.remaining_same_position_depth} other option${drop.remaining_same_position_depth === 1 ? "" : "s"} remain${drop.remaining_same_position_depth === 1 ? "s" : ""} at that position.`
-    : `${nameOf(drop.player)} was your only remaining bench option at that position.`;
+  const removes =
+    drop.remaining_same_position_depth > 0
+      ? `${nameOf(drop.player)} was your ${positionsOf(drop.player)[0] || "bench"} depth; ${drop.remaining_same_position_depth} other option${drop.remaining_same_position_depth === 1 ? "" : "s"} remain${drop.remaining_same_position_depth === 1 ? "s" : ""} at that position.`
+      : `${nameOf(drop.player)} was your only remaining bench option at that position.`;
 
   return {
     removes,
@@ -373,7 +429,8 @@ function waiverSystemView(model) {
     // is null, never "$0 of $100". Before these two fields existed the native League screen, which
     // requires them to render a budget or claim order, showed every FAAB and priority league as
     // "not determined" (found by the S0 contract probe, 2026-09-30).
-    budget_text: isFiniteNumber(total) && isFiniteNumber(remaining) ? `Your budget ${money(remaining)} of ${money(total)}` : null,
+    budget_text:
+      isFiniteNumber(total) && isFiniteNumber(remaining) ? `Your budget ${money(remaining)} of ${money(total)}` : null,
     order_text: isFiniteNumber(position) ? `Claim order ${position}` : null,
   };
 }
@@ -382,7 +439,18 @@ function isFiniteNumber(value) {
   return typeof value === "number" && Number.isFinite(value);
 }
 
-function envelope({ platform, leagueId, week, season, scoringFormat, availability, deadline, state, waiverSystem = null, extra = {} }) {
+function envelope({
+  platform,
+  leagueId,
+  week,
+  season,
+  scoringFormat,
+  availability,
+  deadline,
+  state,
+  waiverSystem = null,
+  extra = {},
+}) {
   return {
     contract_version: CONTRACT_VERSION,
     generated_at: new Date().toISOString(),
@@ -436,24 +504,36 @@ function buildWaiverAnalysis({
   };
 
   if (offSeason) {
-    return envelope({ ...base, state: STATES.OFF_SEASON, extra: {
-      message: "Waiver analysis returns with the regular season.",
-    } });
+    return envelope({
+      ...base,
+      state: STATES.OFF_SEASON,
+      extra: {
+        message: "Waiver analysis returns with the regular season.",
+      },
+    });
   }
 
   if (pool == null) {
-    return envelope({ ...base, state: STATES.ENGINE_LIMITATION, extra: {
-      message: "Omen could not read this league's available players, so it will not guess at a waiver move.",
-    } });
+    return envelope({
+      ...base,
+      state: STATES.ENGINE_LIMITATION,
+      extra: {
+        message: "Omen could not read this league's available players, so it will not guess at a waiver move.",
+      },
+    });
   }
 
   const starters = Array.isArray(roster?.slots?.starters) ? roster.slots.starters : [];
   const bench = Array.isArray(roster?.slots?.bench) ? roster.slots.bench : [];
 
   if (!starters.length) {
-    return envelope({ ...base, state: STATES.ENGINE_LIMITATION, extra: {
-      message: "Omen needs a drafted roster before it can weigh a waiver move.",
-    } });
+    return envelope({
+      ...base,
+      state: STATES.ENGINE_LIMITATION,
+      extra: {
+        message: "Omen needs a drafted roster before it can weigh a waiver move.",
+      },
+    });
   }
 
   const ranked = rankCandidates(pool, starters);
@@ -477,9 +557,7 @@ function buildWaiverAnalysis({
     ...base,
     state: drop ? STATES.CONFIRMED : STATES.NO_LOW_COST_DROP,
     extra: {
-      message: drop
-        ? null
-        : "No low-cost drop is clear on this roster. Omen will not force a move.",
+      message: drop ? null : "No low-cost drop is clear on this roster. Omen will not force a move.",
       best_move: {
         add: playerView(best.player),
         drop: drop ? playerView(drop.player) : null,

@@ -50,16 +50,25 @@ function bandedConfidence(value, limitations = []) {
   const band = bandFromScore(score);
   return {
     band,
-    drivers: [safeRationale ? rationale
-      : "This band reflects the engine's combined evidence; it is not a probability of success."],
+    drivers: [
+      safeRationale
+        ? rationale
+        : "This band reflects the engine's combined evidence; it is not a probability of success.",
+    ],
   };
 }
 
 // With no band there is no label to show, and the contract wants a string. Use the engine's own
 // sentence when it carries no number; otherwise the named reason. Never a label or a number.
 function unbandedText(text, confidence) {
-  const clean = typeof text === "string" && text.trim() && !/confiden|leaning|coin flip/i.test(text) && !/\d\s*(?:%|out of|\/\s*100)|confidence[^.!?]*\d/i.test(text);
-  return clean ? text.trim() : (confidence.unavailable_reason?.[0] || "Omen did not produce a confidence value for this call.");
+  const clean =
+    typeof text === "string" &&
+    text.trim() &&
+    !/confiden|leaning|coin flip/i.test(text) &&
+    !/\d\s*(?:%|out of|\/\s*100)|confidence[^.!?]*\d/i.test(text);
+  return clean
+    ? text.trim()
+    : confidence.unavailable_reason?.[0] || "Omen did not produce a confidence value for this call.";
 }
 
 function decisionBriefV2(body) {
@@ -69,18 +78,19 @@ function decisionBriefV2(body) {
     if (Array.isArray(value)) return value.map((item) => visit(item, inherited));
     if (!value || typeof value !== "object") return value;
     const own = value.confidence;
-    const confidence = own != null && typeof own !== "string"
-      ? bandedConfidence(own, limitations)
-      : inherited;
+    const confidence = own != null && typeof own !== "string" ? bandedConfidence(own, limitations) : inherited;
     const result = {};
     for (const [key, item] of Object.entries(value)) {
       if (/^confidence_(score|label|pct|percent|percentage)$/.test(key)) continue;
       if (key === "confidence") {
         // A null band has no label. Substituting one would reintroduce the claim this
         // version exists to remove.
-        result[key] = typeof item === "string"
-          ? (confidence.band ? LABELS[confidence.band] : unbandedText(item, confidence))
-          : confidence;
+        result[key] =
+          typeof item === "string"
+            ? confidence.band
+              ? LABELS[confidence.band]
+              : unbandedText(item, confidence)
+            : confidence;
       } else result[key] = visit(item, confidence);
     }
     return result;

@@ -5,11 +5,7 @@ const crypto = require("node:crypto");
 const fs = require("node:fs/promises");
 const { createClient } = require("@supabase/supabase-js");
 
-const {
-  archiveNotExecutedMoves,
-  fetchPendingMoves,
-  isDryRun,
-} = require("../src/omen_tuesday_cron");
+const { archiveNotExecutedMoves, fetchPendingMoves, isDryRun } = require("../src/omen_tuesday_cron");
 const { validateAcceptanceArtifact } = require("../src/services/footballData/acceptanceValidator");
 
 const ACCEPTANCE_SHA256 = "5c4cbc0568ce85a94512b7722144a7cddcb83fe74bd088f04d90f7a628a00bea";
@@ -49,9 +45,12 @@ async function main({ env = process.env } = {}) {
   const validation = validateAcceptanceArtifact({ acceptanceBytes, receiptBytes });
 
   const writes = { attempted: 0, completed: 0 };
-  const client = guardedSupabase(createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_KEY, {
-    auth: { persistSession: false },
-  }), writes);
+  const client = guardedSupabase(
+    createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_KEY, {
+      auth: { persistSession: false },
+    }),
+    writes,
+  );
   const archivedWouldBe = await archiveNotExecutedMoves(client, new Date(), { dryRun: true });
   const pendingMoves = await fetchPendingMoves(client, new Date());
   if (!pendingMoves.length) throw new Error("A4 requires at least one real pending move");
@@ -69,8 +68,10 @@ async function main({ env = process.env } = {}) {
     standard_comparison: validation.offensive_mismatches === 0 ? "pass" : "fail",
     half_ppr_comparison: validation.offensive_mismatches === 0 ? "pass" : "fail",
     ppr_comparison: validation.offensive_mismatches === 0 ? "pass" : "fail",
-    independent_reference: validation.offensive_mismatches === 0
-      && validation.kicker_mismatches === 0 && validation.dst_mismatches === 0 ? "pass" : "fail",
+    independent_reference:
+      validation.offensive_mismatches === 0 && validation.kicker_mismatches === 0 && validation.dst_mismatches === 0
+        ? "pass"
+        : "fail",
     publication_authorized: false,
     persistent_production_scoring_enabled: false,
   };

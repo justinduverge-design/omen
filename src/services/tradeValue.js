@@ -32,16 +32,16 @@ function finiteNumber(value) {
 }
 
 function looksLikeScoringConfig(value) {
-  return value != null
-    && typeof value === "object"
-    && !Array.isArray(value)
-    && (
-      Object.prototype.hasOwnProperty.call(value, "default_scoring_rules")
-      || Object.prototype.hasOwnProperty.call(value, "scoring_format")
-      || Object.prototype.hasOwnProperty.call(value, "league_roster_slots")
-      || Object.prototype.hasOwnProperty.call(value, "league_scarcity_weights")
-      || Object.prototype.hasOwnProperty.call(value, "scarcity_weights")
-    );
+  return (
+    value != null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    (Object.prototype.hasOwnProperty.call(value, "default_scoring_rules") ||
+      Object.prototype.hasOwnProperty.call(value, "scoring_format") ||
+      Object.prototype.hasOwnProperty.call(value, "league_roster_slots") ||
+      Object.prototype.hasOwnProperty.call(value, "league_scarcity_weights") ||
+      Object.prototype.hasOwnProperty.call(value, "scarcity_weights"))
+  );
 }
 
 function resolveScoringConfig(opts, scoringConfig) {
@@ -51,9 +51,10 @@ function resolveScoringConfig(opts, scoringConfig) {
 }
 
 function scarcityRows(scoringConfig = {}) {
-  const rows = scoringConfig.league_scarcity_weights
-    ?? scoringConfig.scarcity_weights
-    ?? scoringConfig.default_scoring_rules?.scarcity_weights;
+  const rows =
+    scoringConfig.league_scarcity_weights ??
+    scoringConfig.scarcity_weights ??
+    scoringConfig.default_scoring_rules?.scarcity_weights;
   return Array.isArray(rows) ? rows : [];
 }
 
@@ -94,8 +95,8 @@ function resolveTradeConfig(opts = {}, scoringConfig = {}) {
   const config = resolveScoringConfig(opts, scoringConfig);
   const explicitOpts = looksLikeScoringConfig(opts) ? {} : opts;
   const configuredFormat = String(config.scoring_format || "").toLowerCase();
-  const scoringFormat = explicitOpts.scoringFormat
-    || (VALID_SCORING_FORMATS.has(configuredFormat) ? configuredFormat : "ppr");
+  const scoringFormat =
+    explicitOpts.scoringFormat || (VALID_SCORING_FORMATS.has(configuredFormat) ? configuredFormat : "ppr");
 
   if (!VALID_SCORING_FORMATS.has(scoringFormat)) {
     throw new Error("invalid_scoring_format");
@@ -103,26 +104,23 @@ function resolveTradeConfig(opts = {}, scoringConfig = {}) {
 
   const rows = scarcityRows(config);
   const rules = config.default_scoring_rules?.trade_value;
-  const tradeRules = rules && typeof rules === "object" && !Array.isArray(rules)
-    ? rules
-    : {};
+  const tradeRules = rules && typeof rules === "object" && !Array.isArray(rules) ? rules : {};
   const configuredNeutralBand = finiteNumber(tradeRules.neutral_band);
   const configuredScarcitySignalWeight = finiteNumber(tradeRules.scarcity_signal_weight);
 
   return {
     scoringFormat,
-    replacementLevel: explicitOpts.replacementLevel
-      || replacementLevelsFor(scoringFormat, rows),
-    neutralBand: explicitOpts.neutralBand
-      ?? (configuredNeutralBand != null && configuredNeutralBand >= 0
-        ? configuredNeutralBand
-        : null)
-      ?? 2.0,
-    scarcitySignalWeight: explicitOpts.scarcitySignalWeight
-      ?? (configuredScarcitySignalWeight != null && configuredScarcitySignalWeight >= 0
+    replacementLevel: explicitOpts.replacementLevel || replacementLevelsFor(scoringFormat, rows),
+    neutralBand:
+      explicitOpts.neutralBand ??
+      (configuredNeutralBand != null && configuredNeutralBand >= 0 ? configuredNeutralBand : null) ??
+      2.0,
+    scarcitySignalWeight:
+      explicitOpts.scarcitySignalWeight ??
+      (configuredScarcitySignalWeight != null && configuredScarcitySignalWeight >= 0
         ? configuredScarcitySignalWeight
-        : null)
-      ?? DEFAULT_SCARCITY_SIGNAL_WEIGHT,
+        : null) ??
+      DEFAULT_SCARCITY_SIGNAL_WEIGHT,
     scarcityWeights: scarcityWeightsFor(rows),
   };
 }
@@ -173,9 +171,7 @@ function playerValue(player = {}, opts = {}, scoringConfig = {}) {
 function sideValue(players = [], opts = {}, scoringConfig = {}) {
   const valuedPlayers = players.map((player) => playerValue(player, opts, scoringConfig));
   const total = valuedPlayers.reduce((sum, player) => sum + player.value, 0);
-  const missingProjectionCount = valuedPlayers.filter((player) => (
-    player.notes.includes("missing_projection")
-  )).length;
+  const missingProjectionCount = valuedPlayers.filter((player) => player.notes.includes("missing_projection")).length;
 
   return {
     total_value: Number(total.toFixed(2)),
@@ -227,7 +223,7 @@ function highestTier(details = []) {
 function applyDepthDiscount(valuedPlayers, primaryCount) {
   const sorted = [...valuedPlayers].sort((a, b) => b.value - a.value);
   return sorted.reduce((total, player, idx) => {
-    const surplusIdx = idx < primaryCount ? 0 : (idx - primaryCount + 1);
+    const surplusIdx = idx < primaryCount ? 0 : idx - primaryCount + 1;
     const factor = DEPTH_DISCOUNT_CURVE[Math.min(surplusIdx, DEPTH_DISCOUNT_CURVE.length - 1)];
     return total + player.value * factor;
   }, 0);
@@ -253,13 +249,7 @@ function buildScarcitySummary(sendDetails, receiveDetails) {
 
 function compareTrade({ send = [], receive = [] } = {}, opts = {}, scoringConfig = {}) {
   const resolved = resolveTradeConfig(opts, scoringConfig);
-  const {
-    neutralBand,
-    replacementLevel,
-    scarcitySignalWeight,
-    scarcityWeights,
-    scoringFormat,
-  } = resolved;
+  const { neutralBand, replacementLevel, scarcitySignalWeight, scarcityWeights, scoringFormat } = resolved;
   const explicitOpts = looksLikeScoringConfig(opts) ? {} : opts;
   const tradeOpts = { ...explicitOpts, scoringFormat, replacementLevel };
   const sendSide = sideValue(send, tradeOpts);
@@ -270,11 +260,11 @@ function compareTrade({ send = [], receive = [] } = {}, opts = {}, scoringConfig
   // compete for limited roster/starting slots.
   const minCount = Math.min(send.length, receive.length);
   const depthDiscounted = send.length !== receive.length;
-  const effectiveSendVorp    = Number(applyDepthDiscount(sendSide.players, minCount).toFixed(2));
+  const effectiveSendVorp = Number(applyDepthDiscount(sendSide.players, minCount).toFixed(2));
   const effectiveReceiveVorp = Number(applyDepthDiscount(receiveSide.players, minCount).toFixed(2));
 
   const netValue = Number((effectiveReceiveVorp - effectiveSendVorp).toFixed(2));
-  const aScore   = netValue;
+  const aScore = netValue;
   const b = Object.keys(scarcityWeights).length
     ? weightedScarcityScore(sendSide.players, receiveSide.players, scarcityWeights)
     : bScore(send, receive, tradeOpts);

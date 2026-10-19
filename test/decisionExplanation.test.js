@@ -37,7 +37,10 @@ test("input keeps the decision and non-limitation reasons, hashed by facts only"
   assert.deepEqual(input.facts.reasons, [WHY[0].text, WHY[1].text]);
   assert.equal(input.facts.decision, ARGS.decision);
   assert.equal(buildExplanationInput({ ...ARGS }).hash, input.hash);
-  assert.notEqual(buildExplanationInput({ ...ARGS, decision: "Start Tony Pollard over Bijan Robinson at FLEX." }).hash, input.hash);
+  assert.notEqual(
+    buildExplanationInput({ ...ARGS, decision: "Start Tony Pollard over Bijan Robinson at FLEX." }).hash,
+    input.hash,
+  );
 });
 
 test("no input without a known type, a decision or a real reason", () => {
@@ -47,8 +50,14 @@ test("no input without a known type, a decision or a real reason", () => {
 });
 
 test("a grounded model answer is accepted; thinking is off and the model is configurable", async () => {
-  const fetchImpl = fakeFetch("Start Bijan Robinson over Tony Pollard: he has 21.7 carries per game over the last 3 games and is projected for 18.4 points against 12.1.");
-  const out = await writeExplanation(buildExplanationInput(ARGS), { baseUrl: "http://100.67.187.57:11434/", model: "qwen3:1.7b", fetchImpl });
+  const fetchImpl = fakeFetch(
+    "Start Bijan Robinson over Tony Pollard: he has 21.7 carries per game over the last 3 games and is projected for 18.4 points against 12.1.",
+  );
+  const out = await writeExplanation(buildExplanationInput(ARGS), {
+    baseUrl: "http://100.67.187.57:11434/",
+    model: "qwen3:1.7b",
+    fetchImpl,
+  });
   assert.equal(out.ok, true, JSON.stringify(out));
   assert.equal(fetchImpl.calls[0].url, "http://100.67.187.57:11434/api/chat");
   assert.equal(fetchImpl.calls[0].body.think, false);
@@ -57,7 +66,8 @@ test("a grounded model answer is accepted; thinking is off and the model is conf
 
 test("an invented claim is dropped, not repaired", async () => {
   const out = await writeExplanation(buildExplanationInput(ARGS), {
-    baseUrl: "http://x:1", fetchImpl: fakeFetch("Start Bijan Robinson, he has a great matchup and 30 touches."),
+    baseUrl: "http://x:1",
+    fetchImpl: fakeFetch("Start Bijan Robinson, he has a great matchup and 30 touches."),
   });
   assert.equal(out.ok, false);
   assert.equal(out.text, null);
@@ -67,9 +77,16 @@ test("an invented claim is dropped, not repaired", async () => {
 test("transport failures never throw", async () => {
   const input = buildExplanationInput(ARGS);
   assert.deepEqual((await writeExplanation(input, { baseUrl: "" })).reasons, ["no_llm_base_url"]);
-  assert.deepEqual((await writeExplanation(input, { baseUrl: "http://x:1", fetchImpl: fakeFetch("", { status: 500 }) })).reasons, ["http_500"]);
-  const boom = async () => { throw new Error("down"); };
-  assert.deepEqual((await writeExplanation(input, { baseUrl: "http://x:1", fetchImpl: boom })).reasons, ["request_failed"]);
+  assert.deepEqual(
+    (await writeExplanation(input, { baseUrl: "http://x:1", fetchImpl: fakeFetch("", { status: 500 }) })).reasons,
+    ["http_500"],
+  );
+  const boom = async () => {
+    throw new Error("down");
+  };
+  assert.deepEqual((await writeExplanation(input, { baseUrl: "http://x:1", fetchImpl: boom })).reasons, [
+    "request_failed",
+  ]);
 });
 
 test("shadow queues once, then reports available after the worker writes", async () => {
@@ -102,7 +119,9 @@ test("the worker stays out of KVM2's restore-proof and maintenance windows", asy
   assert.equal(inQuietWindow(new Date("2026-10-23T06:15:00Z")), "friday_maintenance");
   const store = createMemoryDecisionExplanationStore();
   await store.enqueue(buildExplanationInput(ARGS));
-  const writer = async () => { throw new Error("must not run"); };
+  const writer = async () => {
+    throw new Error("must not run");
+  };
   const summary = await drainOnce({ store, writer, now: () => new Date("2026-10-18T14:30:00Z") });
   assert.equal(summary.skipped, "sunday_restore_proof");
 });
@@ -114,7 +133,10 @@ test("items left when the deadline passes go back on the queue", async () => {
   await store.enqueue(a);
   await store.enqueue(b);
   let calls = 0;
-  const writer = async () => { calls += 1; return { ok: true, text: "t", reasons: [], model: "m", ms: 1 }; };
+  const writer = async () => {
+    calls += 1;
+    return { ok: true, text: "t", reasons: [], model: "m", ms: 1 };
+  };
   const summary = await drainOnce({ store, writer, now: () => new Date("2026-10-19T12:00:00Z"), deadlineMs: -1 });
   assert.equal(calls, 0);
   assert.equal(summary.processed, 0);

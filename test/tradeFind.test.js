@@ -66,12 +66,7 @@ function deepAtRbRoster(tag) {
 const CANDIDATE_ROSTER_POSITIONS = ["RB", "RB", "WR"];
 
 function ownCandidateRoster() {
-  return [
-    player("my-rb", "RB", 18),
-    player("rb-one", "RB", 20),
-    player("rb-two", "RB", 19),
-    player("low-wr", "WR", 5),
-  ];
+  return [player("my-rb", "RB", 18), player("rb-one", "RB", 20), player("rb-two", "RB", 19), player("low-wr", "WR", 5)];
 }
 
 function opponentCandidateRoster() {
@@ -98,10 +93,7 @@ test("buildTeamNeedProfile reports a real hole where roster depth is below what 
 });
 
 test("findLeagueTradeCandidates returns a candidate with reasoning naming which side's need it fills", () => {
-  const teams = [
-    team("1", "Own Team", ownCandidateRoster()),
-    team("2", "Rival Team", opponentCandidateRoster()),
-  ];
+  const teams = [team("1", "Own Team", ownCandidateRoster()), team("2", "Rival Team", opponentCandidateRoster())];
 
   const result = findLeagueTradeCandidates({
     ownTeamId: "1",
@@ -190,7 +182,7 @@ test("findLeagueTradeCandidates caps opponent teams considered at MAX_OPPONENT_T
   assert.equal(result.status, "ok");
   assert.ok(
     result.teams_considered <= MAX_OPPONENT_TEAMS_PER_SCAN,
-    `expected teams_considered <= ${MAX_OPPONENT_TEAMS_PER_SCAN}, got ${result.teams_considered}`
+    `expected teams_considered <= ${MAX_OPPONENT_TEAMS_PER_SCAN}, got ${result.teams_considered}`,
   );
   assert.equal(result.teams_skipped_for_cap.length, opponentCount - MAX_OPPONENT_TEAMS_PER_SCAN);
   assert.ok(result.candidates.length <= MAX_CANDIDATES_RETURNED);
@@ -212,7 +204,9 @@ test("findLeagueTradeCandidates shares one search budget across every opponent, 
     teams,
     rosterPositions: ROSTER_POSITIONS,
     budget: spentBudget,
-    onBudgetExceeded: () => { exceededCalls += 1; },
+    onBudgetExceeded: () => {
+      exceededCalls += 1;
+    },
   });
 
   assert.equal(result.status, "ok");

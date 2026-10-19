@@ -30,15 +30,30 @@ function parseSeasons(text) {
 }
 
 function parseArgs(argv) {
-  const out = { seasons: null, warmup: 2, positions: ["QB", "RB", "WR", "TE"], sleeper: false, socket: null, urlFile: null, outDir: null };
+  const out = {
+    seasons: null,
+    warmup: 2,
+    positions: ["QB", "RB", "WR", "TE"],
+    sleeper: false,
+    socket: null,
+    urlFile: null,
+    outDir: null,
+  };
   for (let i = 0; i < argv.length; i += 1) {
     const flag = argv[i];
-    if (flag === "--sleeper") { out.sleeper = true; continue; }
+    if (flag === "--sleeper") {
+      out.sleeper = true;
+      continue;
+    }
     const value = argv[i + 1];
     i += 1;
     if (flag === "--seasons") out.seasons = parseSeasons(value);
     else if (flag === "--warmup") out.warmup = Number(value);
-    else if (flag === "--positions") out.positions = String(value).split(",").map((p) => p.trim().toUpperCase()).filter(Boolean);
+    else if (flag === "--positions")
+      out.positions = String(value)
+        .split(",")
+        .map((p) => p.trim().toUpperCase())
+        .filter(Boolean);
     else if (flag === "--socket") out.socket = value;
     else if (flag === "--url-file") out.urlFile = value;
     else if (flag === "--out-dir") out.outDir = value;
@@ -47,13 +62,15 @@ function parseArgs(argv) {
   if (!out.seasons) throw new TypeError("--seasons is required");
   if (!out.outDir || !path.isAbsolute(out.outDir)) throw new TypeError("--out-dir must be an absolute path");
   if (!Number.isInteger(out.warmup) || out.warmup < 0 || out.warmup > 10) throw new RangeError("--warmup must be 0-10");
-  for (const p of out.positions) if (!["QB", "RB", "WR", "TE"].includes(p)) throw new RangeError(`unsupported position ${p}`);
+  for (const p of out.positions)
+    if (!["QB", "RB", "WR", "TE"].includes(p)) throw new RangeError(`unsupported position ${p}`);
   return out;
 }
 
 function poolConfig(args, env) {
   const readOnly = "-c default_transaction_read_only=on -c statement_timeout=300000";
-  if (args.socket) return { host: args.socket, user: "omen_warehouse_read", database: "omen_football", options: readOnly, max: 2 };
+  if (args.socket)
+    return { host: args.socket, user: "omen_warehouse_read", database: "omen_football", options: readOnly, max: 2 };
   const file = args.urlFile || env.OMEN_BACKTEST_DATABASE_URL_FILE;
   if (!file) throw new TypeError("give --url-file, --socket or OMEN_BACKTEST_DATABASE_URL_FILE");
   const { connectionStringFromFile } = require("../src/services/footballWarehouse/runtimeConfig");
@@ -76,12 +93,15 @@ async function main() {
       testSeasons: args.seasons,
       warmupSeasons: args.warmup,
       positions: args.positions,
-      onProgress: ({ season, tested, records }) => process.stderr.write(`season ${season}${tested ? " tested" : " warm-up"}, ${records} records\n`),
+      onProgress: ({ season, tested, records }) =>
+        process.stderr.write(`season ${season}${tested ? " tested" : " warm-up"}, ${records} records\n`),
     });
     fs.mkdirSync(args.outDir, { recursive: true });
     fs.writeFileSync(path.join(args.outDir, "omen-projections-backtest.json"), `${JSON.stringify(report, null, 2)}\n`);
     fs.writeFileSync(path.join(args.outDir, "omen-projections-backtest.md"), renderMarkdown(report));
-    process.stdout.write(`wrote ${path.join(args.outDir, "omen-projections-backtest.md")} and .json (${report.meta.records} player-weeks)\n`);
+    process.stdout.write(
+      `wrote ${path.join(args.outDir, "omen-projections-backtest.md")} and .json (${report.meta.records} player-weeks)\n`,
+    );
   } finally {
     await pool.end();
   }

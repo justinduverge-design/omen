@@ -21,8 +21,8 @@
  */
 
 const winston = require("winston");
-const morgan  = require("morgan");
-const config  = require("../config");
+const morgan = require("morgan");
+const config = require("../config");
 const { scrubText, scrubValue } = require("./sentry");
 
 /**
@@ -70,7 +70,7 @@ const prodFormat = winston.format.combine(
   // before the scrubber sees it.
   winston.format.errors({ stack: true }),
   scrubLogFormat,
-  winston.format.json()
+  winston.format.json(),
 );
 
 const devFormat = winston.format.combine(
@@ -80,16 +80,14 @@ const devFormat = winston.format.combine(
   scrubLogFormat,
   winston.format.printf(({ timestamp, level, message, stack, ...rest }) => {
     const meta = Object.keys(rest).length ? " " + JSON.stringify(rest) : "";
-    return stack
-      ? `${timestamp} ${level} ${message}${meta}\n${stack}`
-      : `${timestamp} ${level} ${message}${meta}`;
-  })
+    return stack ? `${timestamp} ${level} ${message}${meta}\n${stack}` : `${timestamp} ${level} ${message}${meta}`;
+  }),
 );
 
 const logger = winston.createLogger({
-  level:        config.logLevel,
-  defaultMeta:  { service: "omen-api" },
-  transports:   [
+  level: config.logLevel,
+  defaultMeta: { service: "omen-api" },
+  transports: [
     new winston.transports.Console({
       format: config.isProd ? prodFormat : devFormat,
     }),
@@ -123,12 +121,9 @@ function accessLogFormat(tokens, req, res) {
 
 // Morgan -> Winston bridge.
 // Health checks are skipped — they hit every few seconds and would drown signal.
-const httpLogger = morgan(
-  config.isProd ? accessLogFormat : "dev",
-  {
-    stream: { write: (msg) => logger.info(msg.trim()) },
-    skip:   (req, res) => req.path === "/api/health" || Boolean(res.locals.__skipBodyLog),
-  }
-);
+const httpLogger = morgan(config.isProd ? accessLogFormat : "dev", {
+  stream: { write: (msg) => logger.info(msg.trim()) },
+  skip: (req, res) => req.path === "/api/health" || Boolean(res.locals.__skipBodyLog),
+});
 
 module.exports = { accessLogFormat, logger, httpLogger, safeRequestPath, scrubLogFormat };

@@ -77,25 +77,29 @@ test("normalizePlayerSearchQuery rejects unsupported positions", () => {
 test("searchPlayerSource filters by position and excludes inactive players", () => {
   const results = searchPlayerSource(SOURCE, { position: "QB", q: "pat" });
 
-  assert.deepEqual(results, [{
-    id: "sleeper:100",
-    name: "Patrick Mahomes",
-    position: "QB",
-    team: "KC",
-    projected_points: null,
-  }]);
+  assert.deepEqual(results, [
+    {
+      id: "sleeper:100",
+      name: "Patrick Mahomes",
+      position: "QB",
+      team: "KC",
+      projected_points: null,
+    },
+  ]);
 });
 
 test("searchPlayerSource handles punctuation-insensitive names", () => {
   const results = searchPlayerSource(SOURCE, { q: "cj" });
 
-  assert.deepEqual(results, [{
-    id: "sleeper:500",
-    name: "C.J. Stroud",
-    position: "QB",
-    team: "HOU",
-    projected_points: 18.4,
-  }]);
+  assert.deepEqual(results, [
+    {
+      id: "sleeper:500",
+      name: "C.J. Stroud",
+      position: "QB",
+      team: "HOU",
+      projected_points: 18.4,
+    },
+  ]);
 });
 
 test("searchPlayerSource returns an empty array for blank autocomplete queries", () => {
@@ -103,22 +107,26 @@ test("searchPlayerSource returns an empty array for blank autocomplete queries",
 });
 
 test("searchPlayerSource returns explicit fuzzy suggestions for common spoken spellings", () => {
-  assert.deepEqual(searchPlayerSource(SOURCE, { q: "Ted McMillan" }), [{
-    id: "sleeper:600",
-    name: "Tetairoa McMillan",
-    position: "WR",
-    team: "CAR",
-    projected_points: null,
-    match_type: "fuzzy",
-  }]);
-  assert.deepEqual(searchPlayerSource(SOURCE, { q: "Jackson Dart" }), [{
-    id: "sleeper:700",
-    name: "Jaxson Dart",
-    position: "QB",
-    team: "NYG",
-    projected_points: null,
-    match_type: "fuzzy",
-  }]);
+  assert.deepEqual(searchPlayerSource(SOURCE, { q: "Ted McMillan" }), [
+    {
+      id: "sleeper:600",
+      name: "Tetairoa McMillan",
+      position: "WR",
+      team: "CAR",
+      projected_points: null,
+      match_type: "fuzzy",
+    },
+  ]);
+  assert.deepEqual(searchPlayerSource(SOURCE, { q: "Jackson Dart" }), [
+    {
+      id: "sleeper:700",
+      name: "Jaxson Dart",
+      position: "QB",
+      team: "NYG",
+      projected_points: null,
+      match_type: "fuzzy",
+    },
+  ]);
 });
 
 test("searchPlayerSource does not manufacture a fuzzy suggestion without a strong anchor", () => {
@@ -144,10 +152,12 @@ test("resolvePlayerInputs accepts canonical ids and exact names only", () => {
 });
 
 test("resolvePlayerInputs rejects a forged provider-scoped id even when the name is real", () => {
-  const [result] = resolvePlayerInputs(SOURCE, [{
-    player_key: "sleeper:not-real",
-    name: "Patrick Mahomes",
-  }]);
+  const [result] = resolvePlayerInputs(SOURCE, [
+    {
+      player_key: "sleeper:not-real",
+      name: "Patrick Mahomes",
+    },
+  ]);
   assert.equal(result.status, "unresolved");
   assert.deepEqual(result.suggestions, []);
 });
@@ -162,12 +172,12 @@ test("searchNflPlayers caps results at ten", async () => {
         team: "TEN",
         active: true,
       },
-    ])
+    ]),
   );
 
   const results = await searchNflPlayers(
     { position: "RB", q: "test", limit: 99 },
-    { fetchPlayers: async () => source, cacheTtlMs: 0 }
+    { fetchPlayers: async () => source, cacheTtlMs: 0 },
   );
 
   assert.equal(results.length, 10);

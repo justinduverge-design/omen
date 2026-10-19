@@ -3,11 +3,7 @@
 const assert = require("node:assert/strict");
 const { afterEach, test } = require("node:test");
 const Sentry = require("@sentry/node");
-const {
-  flushSentry,
-  initSentry,
-  scrubSentryEvent,
-} = require("../src/middleware/sentry");
+const { flushSentry, initSentry, scrubSentryEvent } = require("../src/middleware/sentry");
 
 const sentryDsnEnvName = ["SENTRY", "DSN"].join("_");
 
@@ -39,23 +35,29 @@ test("Sentry init accepts a fake DSN without sending an event", async () => {
 });
 
 test("Sentry scrubber drops ESPN credential-bearing request events", () => {
-  const result = scrubSentryEvent({
-    request: {
-      method: "POST",
-      url: "https://slopssaloon.com/api/platforms/espn/connect",
+  const result = scrubSentryEvent(
+    {
+      request: {
+        method: "POST",
+        url: "https://slopssaloon.com/api/platforms/espn/connect",
+      },
     },
-  }, {});
+    {},
+  );
 
   assert.equal(result, null);
 });
 
 test("Sentry scrubber redacts OAuth callback code and state from request URLs", () => {
-  const result = scrubSentryEvent({
-    request: {
-      method: "GET",
-      url: "https://slopssaloon.com/api/yahoo/callback?code=authorization-code&state=csrf-state&error=invalid_scope",
+  const result = scrubSentryEvent(
+    {
+      request: {
+        method: "GET",
+        url: "https://slopssaloon.com/api/yahoo/callback?code=authorization-code&state=csrf-state&error=invalid_scope",
+      },
     },
-  }, {});
+    {},
+  );
 
   assert.equal(result.request.url.includes("authorization-code"), false);
   assert.equal(result.request.url.includes("csrf-state"), false);

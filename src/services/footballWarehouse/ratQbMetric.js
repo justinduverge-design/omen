@@ -51,8 +51,15 @@ function finiteOrNull(value) {
 
 function emptyAggregate() {
   return {
-    dropbacks: 0, epaSum: 0, sacks: 0, cpoeSum: 0, cpoeN: 0,
-    interceptions: 0, fumblesLost: 0, rushes: 0, rushEpaSum: 0,
+    dropbacks: 0,
+    epaSum: 0,
+    sacks: 0,
+    cpoeSum: 0,
+    cpoeN: 0,
+    interceptions: 0,
+    fumblesLost: 0,
+    rushes: 0,
+    rushEpaSum: 0,
   };
 }
 
@@ -81,7 +88,10 @@ function aggregateQbPlays(plays, qbGsisById) {
       agg.epaSum += epa;
       if (isFlag(play.sack)) agg.sacks += 1;
       const cpoe = finiteOrNull(play.cpoe);
-      if (isFlag(play.passAttempt) && cpoe != null) { agg.cpoeSum += cpoe; agg.cpoeN += 1; }
+      if (isFlag(play.passAttempt) && cpoe != null) {
+        agg.cpoeSum += cpoe;
+        agg.cpoeN += 1;
+      }
       if (isFlag(play.interception)) agg.interceptions += 1;
       const ownGsis = gsis.get(id);
       if (isFlag(play.fumbleLost) && ownGsis && play.fumbledGsisId === ownGsis) agg.fumblesLost += 1;
@@ -143,9 +153,8 @@ function computeQbGrades(byQb) {
     const prior = totalN > 0 ? totalSum / totalN : 0;
     for (const id of qualifiedIds) {
       const { raw, n } = raws.get(id)[component.key];
-      shrunk.get(id)[component.key] = raw == null || n === 0
-        ? prior
-        : (n * raw + component.shrinkK * prior) / (n + component.shrinkK);
+      shrunk.get(id)[component.key] =
+        raw == null || n === 0 ? prior : (n * raw + component.shrinkK * prior) / (n + component.shrinkK);
     }
     const shrunkValues = qualifiedIds.map((id) => shrunk.get(id)[component.key]);
     const center = mean(shrunkValues);
@@ -171,9 +180,10 @@ function computeQbGrades(byQb) {
   const compositeSd = populationSd(compositeValues);
 
   const values = qualifiedIds.map((id) => {
-    const rawGrade = compositeSd > SD_EPSILON
-      ? GRADE_CENTER + GRADE_POINTS_PER_SD * (composite.get(id) - compositeMean) / compositeSd
-      : GRADE_CENTER;
+    const rawGrade =
+      compositeSd > SD_EPSILON
+        ? GRADE_CENTER + (GRADE_POINTS_PER_SD * (composite.get(id) - compositeMean)) / compositeSd
+        : GRADE_CENTER;
     const clamped = Math.min(100, Math.max(0, rawGrade));
     const agg = byQb.get(id);
     const perComponent = {};
@@ -217,9 +227,16 @@ function computeQbGrades(byQb) {
       outcome: "graded",
       composite_mean: round(compositeMean),
       composite_sd: round(compositeSd),
-      cohort: Object.fromEntries(Object.entries(cohort).map(([key, stats]) => [key, {
-        prior_mean: round(stats.prior_mean), shrunk_mean: round(stats.shrunk_mean), shrunk_sd: round(stats.shrunk_sd),
-      }])),
+      cohort: Object.fromEntries(
+        Object.entries(cohort).map(([key, stats]) => [
+          key,
+          {
+            prior_mean: round(stats.prior_mean),
+            shrunk_mean: round(stats.shrunk_mean),
+            shrunk_sd: round(stats.shrunk_sd),
+          },
+        ]),
+      ),
     },
   };
 }
@@ -238,6 +255,13 @@ function metricConstants() {
 }
 
 module.exports = {
-  METRIC_NAME, FORMULA_VERSION, REGISTRY_ID, QUALIFICATION_MIN_DROPBACKS, MIN_QUALIFIED_COHORT,
-  COMPONENTS, aggregateQbPlays, computeQbGrades, metricConstants,
+  METRIC_NAME,
+  FORMULA_VERSION,
+  REGISTRY_ID,
+  QUALIFICATION_MIN_DROPBACKS,
+  MIN_QUALIFIED_COHORT,
+  COMPONENTS,
+  aggregateQbPlays,
+  computeQbGrades,
+  metricConstants,
 };

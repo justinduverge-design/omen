@@ -34,7 +34,7 @@ const RATE_LABELS = Object.freeze({
 
 function ordinal(n) {
   const v = n % 100;
-  const suffix = v >= 11 && v <= 13 ? "th" : ({ 1: "st", 2: "nd", 3: "rd" }[n % 10] || "th");
+  const suffix = v >= 11 && v <= 13 ? "th" : { 1: "st", 2: "nd", 3: "rd" }[n % 10] || "th";
   return `${n}${suffix}`;
 }
 const pct = (x) => `${(Math.round(x * 1000) / 10).toFixed(1)}%`;
@@ -63,14 +63,22 @@ function distinctive(team, ranks) {
   for (const [feature, r] of Object.entries(ranks)) {
     if (!RATE_LABELS[feature] || r.rank[team] === undefined) continue;
     const middle = (r.teams + 1) / 2;
-    items.push({ feature, rank: r.rank[team], teams: r.teams, value: r.value[team], average: r.average,
-                 spread: Math.abs(r.rank[team] - middle) });
+    items.push({
+      feature,
+      rank: r.rank[team],
+      teams: r.teams,
+      value: r.value[team],
+      average: r.average,
+      spread: Math.abs(r.rank[team] - middle),
+    });
   }
   return items.sort((a, b) => b.spread - a.spread || a.feature.localeCompare(b.feature)).slice(0, 2);
 }
 
 function summaryFor(team, basisSeason, picks) {
-  const parts = picks.map((p) => `${RATE_LABELS[p.feature]} on ${pct(p.value)} of plays (${ordinal(p.rank)} of ${p.teams})`);
+  const parts = picks.map(
+    (p) => `${RATE_LABELS[p.feature]} on ${pct(p.value)} of plays (${ordinal(p.rank)} of ${p.teams})`,
+  );
   return `${teamName(team)}'s offense${basisSeason ? ` in ${basisSeason}` : ""}: ${parts.join("; ")}.`;
 }
 
@@ -104,20 +112,27 @@ function buildTeamSignals({ season, dnaBySeason, ranksBySeason, games, publicati
       "Rates are observed tendencies from charted plays; they do not establish who called the plays or why.",
     ];
     if (!usingCurrent) {
-      limitations.push(currentSeasonReady
-        ? `${season} has too few charted games for ${teamName(team)} yet (Omen needs 4), so this uses ${season - 1}.`
-        : `Too few ${season} games are charted across the league yet for a fair ranking, so this uses ${season - 1}.`);
+      limitations.push(
+        currentSeasonReady
+          ? `${season} has too few charted games for ${teamName(team)} yet (Omen needs 4), so this uses ${season - 1}.`
+          : `Too few ${season} games are charted across the league yet for a fair ranking, so this uses ${season - 1}.`,
+      );
     }
     const previousCoach = coaches[`${season - 1}|${team}`];
     let coachChange = null;
     if (previousCoach && coach && previousCoach !== coach) {
       coachChange = { from: previousCoach, to: coach };
-      limitations.push(`${coach} is in a first season as ${teamName(team)}'s head coach (${previousCoach} was last season), so ${season - 1} tendencies may not carry over.`);
-      const previousTeam = Object.entries(coaches).find(([k, c]) => c === coach && k.startsWith(`${season - 1}|`))?.[0]?.split("|")[1];
+      limitations.push(
+        `${coach} is in a first season as ${teamName(team)}'s head coach (${previousCoach} was last season), so ${season - 1} tendencies may not carry over.`,
+      );
+      const previousTeam = Object.entries(coaches)
+        .find(([k, c]) => c === coach && k.startsWith(`${season - 1}|`))?.[0]
+        ?.split("|")[1];
       const before = previousTeam ? dnaBySeason[season - 1]?.[previousTeam] : null;
       if (previousTeam && before?.status === "available" && usingCurrent) {
         const similarity = compareSchemeDna(before, current);
-        if (similarity.status === "available") coachChange.similarity_to_previous_team = { team: teamIdFor(previousTeam), score: similarity.score };
+        if (similarity.status === "available")
+          coachChange.similarity_to_previous_team = { team: teamIdFor(previousTeam), score: similarity.score };
       }
     }
 
@@ -132,8 +147,14 @@ function buildTeamSignals({ season, dnaBySeason, ranksBySeason, games, publicati
       subject: { team_id: teamId, coach_id: coachId, season, team_abbreviation: team },
       summary: picks.length ? summaryFor(team, basisSeason, picks) : null,
       basis_season: basisSeason,
-      tendencies: picks.map((p) => ({ feature: p.feature, label: RATE_LABELS[p.feature], value: p.value, rank: p.rank,
-                                      teams: p.teams, league_average: p.average })),
+      tendencies: picks.map((p) => ({
+        feature: p.feature,
+        label: RATE_LABELS[p.feature],
+        value: p.value,
+        rank: p.rank,
+        teams: p.teams,
+        league_average: p.average,
+      })),
       head_coach: { name: coach, change: coachChange },
       interpretation: {
         direction: "neutral",
@@ -162,4 +183,14 @@ function buildTeamSignals({ season, dnaBySeason, ranksBySeason, games, publicati
   return signals;
 }
 
-module.exports = { MIN_RANKED_TEAMS, buildTeamSignals, headCoaches, distinctive, summaryFor, ordinal, SIGNAL_TYPE, CONTRACT_VERSION, RATE_LABELS };
+module.exports = {
+  MIN_RANKED_TEAMS,
+  buildTeamSignals,
+  headCoaches,
+  distinctive,
+  summaryFor,
+  ordinal,
+  SIGNAL_TYPE,
+  CONTRACT_VERSION,
+  RATE_LABELS,
+};

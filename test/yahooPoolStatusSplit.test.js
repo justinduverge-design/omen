@@ -15,8 +15,13 @@ const { withinBudget } = require("../src/adapters/yahoo");
  */
 
 function playerNode(key, name, percent) {
-  const meta = [{ player_key: key }, { player_id: key.split(".").pop() }, { name: { full: name } },
-    { editorial_team_abbr: "KC" }, { eligible_positions: [{ position: "WR" }] }];
+  const meta = [
+    { player_key: key },
+    { player_id: key.split(".").pop() },
+    { name: { full: name } },
+    { editorial_team_abbr: "KC" },
+    { eligible_positions: [{ position: "WR" }] },
+  ];
   const node = [meta];
   if (percent !== undefined) node.push({ percent_owned: [{ coverage_type: "week" }, { value: percent }] });
   return { player: node };
@@ -24,7 +29,9 @@ function playerNode(key, name, percent) {
 
 function poolResponse(nodes) {
   const players = { count: nodes.length };
-  nodes.forEach((node, i) => { players[String(i)] = node; });
+  nodes.forEach((node, i) => {
+    players[String(i)] = node;
+  });
   return { fantasy_content: { league: [{}, { players }] } };
 }
 
@@ -38,8 +45,14 @@ test("percent owned reads Yahoo's nested value, and absent means null", () => {
 test("the split pool tags availability and keeps the stricter one for a player seen in both", () => {
   const pool = normalizeYahooPool({
     pages: [
-      { availability: "free_agent", raw: poolResponse([playerNode("n.p.1", "Free Guy", "12"), playerNode("n.p.2", "Both Guy", "40")]) },
-      { availability: "waivers", raw: poolResponse([playerNode("n.p.2", "Both Guy", "40"), playerNode("n.p.3", "Wire Guy")]) },
+      {
+        availability: "free_agent",
+        raw: poolResponse([playerNode("n.p.1", "Free Guy", "12"), playerNode("n.p.2", "Both Guy", "40")]),
+      },
+      {
+        availability: "waivers",
+        raw: poolResponse([playerNode("n.p.2", "Both Guy", "40"), playerNode("n.p.3", "Wire Guy")]),
+      },
     ],
   });
   const byKey = Object.fromEntries(pool.map((p) => [p.player_key, p]));
@@ -69,7 +82,10 @@ test("getAvailablePlayerPool asks for FA and W with ownership, and names a faile
 test("getAvailablePlayers without new options is the same call it always was", async () => {
   const client = new YahooClient("token");
   const paths = [];
-  client.get = async (path) => { paths.push(path); return poolResponse([]); };
+  client.get = async (path) => {
+    paths.push(path);
+    return poolResponse([]);
+  };
   await client.getAvailablePlayers("nfl.l.1", { count: 25 });
   assert.deepEqual(paths, ["/league/nfl.l.1/players;status=A;sort=AR;count=25;start=0"]);
 });

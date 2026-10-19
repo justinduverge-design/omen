@@ -147,8 +147,8 @@ function buildReasoning({ receivePosition, givePosition, ownNeeds, opponentNeeds
   if (userReceivesNeed.status === "hole") fillsNeedFor.push("user");
   if (opponentReceivesNeed.status === "hole") fillsNeedFor.push("opponent");
 
-  const missingProjections = Number(valuation?.send?.missing_projection_count || 0)
-    + Number(valuation?.receive?.missing_projection_count || 0);
+  const missingProjections =
+    Number(valuation?.send?.missing_projection_count || 0) + Number(valuation?.receive?.missing_projection_count || 0);
 
   return {
     fills_need_for: fillsNeedFor.length ? fillsNeedFor : ["no_named_hole_on_either_side"],
@@ -285,7 +285,10 @@ function findLeagueTradeCandidates({
   let budgetExceeded = false;
 
   for (const opponent of scanned) {
-    if (budget.exceeded) { budgetExceeded = true; break; }
+    if (budget.exceeded) {
+      budgetExceeded = true;
+      break;
+    }
 
     // findTradeCandidate (tradeLineup.js) excludes an opponent whose
     // `roster_id` matches the own team's `roster_id` — this route's team
@@ -309,19 +312,21 @@ function findLeagueTradeCandidates({
     if (!candidate) continue;
 
     const opponentNeeds = buildTeamNeedProfile({ team: opponent, rosterPositions });
-    candidates.push(buildCandidateRecord({
-      candidate,
-      opponentTeamId: opponent.team_id,
-      opponentTeamName: opponent.team_name,
-      ownNeeds,
-      opponentNeeds,
-    }));
+    candidates.push(
+      buildCandidateRecord({
+        candidate,
+        opponentTeamId: opponent.team_id,
+        opponentTeamName: opponent.team_name,
+        ownNeeds,
+        opponentNeeds,
+      }),
+    );
   }
 
-  candidates.sort((left, right) => (
-    (right.user_lineup_delta + right.opponent_lineup_delta)
-    - (left.user_lineup_delta + left.opponent_lineup_delta)
-  ));
+  candidates.sort(
+    (left, right) =>
+      right.user_lineup_delta + right.opponent_lineup_delta - (left.user_lineup_delta + left.opponent_lineup_delta),
+  );
 
   return {
     status: "ok",

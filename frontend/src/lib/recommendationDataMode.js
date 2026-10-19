@@ -10,9 +10,7 @@ export function recommendationDataMode(data) {
       .map((signal) => String(signal?.status || '').toLowerCase())
       .filter(Boolean);
     const hasPreviewSignal = statuses.some((status) => status === 'mock' || status === 'demo');
-    const hasMockWarning = data?.warnings?.some((warning) =>
-      /\b(mock|demo)\b/i.test(String(warning)),
-    );
+    const hasMockWarning = data?.warnings?.some((warning) => /\b(mock|demo)\b/i.test(String(warning)));
     if (hasPreviewSignal || hasMockWarning) return 'unverified';
   }
 

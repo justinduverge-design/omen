@@ -1,10 +1,6 @@
 import React, { useState, useRef, useEffect, useId } from 'react';
 
-const Tooltip = ({
-  children,
-  content,
-  side = 'top'
-}) => {
+const Tooltip = ({ children, content, side = 'top' }) => {
   const [isVisible, setIsVisible] = useState(false);
   const triggerRef = useRef(null);
   const timeoutRef = useRef(null);
@@ -27,7 +23,7 @@ const Tooltip = ({
       handleHide();
       // Keep focus on the trigger so keyboard users don't lose their place.
       if (triggerRef.current) {
-         triggerRef.current.focus();
+        triggerRef.current.focus();
       }
     }
   };
@@ -102,7 +98,7 @@ const Tooltip = ({
           style={{
             backgroundColor: 'var(--color-surface-3)',
             color: 'var(--color-text-primary)',
-            border: '1px solid var(--color-border)'
+            border: '1px solid var(--color-border)',
           }}
         >
           {content}
