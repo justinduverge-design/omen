@@ -71,20 +71,20 @@ final class ASWebAuthenticationOAuthProvider: NSObject, SupabaseOAuthProvider, A
                 let session = ASWebAuthenticationSession(
                     url: authorizeURL,
                     callbackURLScheme: self.callbackScheme
-                ) { [weak self] callbackURL, _ in
+                ) { [self] callbackURL, _ in
                     Task { @MainActor in
-                        self?.activeSession = nil
+                        activeSession = nil
                         guard let callbackURL else {
                             // No URL means the sheet closed without completing — the user
                             // dismissed it, or the system tore it down. Previously this returned
                             // without dispatching anything, so the flow stayed in
                             // `.launchingOAuth` and the provider button spun forever with no way
                             // back. Report it as the cancellation it is.
-                            self?.pending.removeValue(forKey: providerId)
-                            self?.cancellationHandler?()
+                            pending.removeValue(forKey: providerId)
+                            cancellationHandler?()
                             return
                         }
-                        self?.callbackHandler?(callbackURL)
+                        callbackHandler?(callbackURL)
                     }
                 }
                 session.presentationContextProvider = self

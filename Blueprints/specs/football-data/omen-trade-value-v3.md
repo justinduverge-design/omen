@@ -12,7 +12,7 @@ levels, the additive scarcity bonus (+2.0 / +0.5 / −0.5) and the 1.0 / 0.5 / 0
 
 | # | Decision |
 |---|---|
-| 1 | **The provider's projections stay the main number.** Omen aims to beat them and measures whether it does; Omen's own read is shown as evidence, never as a replacement number. |
+| 1 | **Superseded 2026-10-16:** neither source is permanently the main number. The current leakage-safe evaluation receipt selects provider, Omen, or unresolved authority for the matching cohort. |
 | 2 | Trade value is built on the lineup change, **and scarcity must be covered explicitly**, because it's part of trading. |
 | 3 | Fantasy playoff weeks are **weighted by the user's playoff odds**. |
 | 4 | Replacement level is **the best player actually free in this league**, with a formula fallback. |
@@ -36,7 +36,9 @@ superflex gap.
 
 ### Layer 1: player outlook, week by week, rest of season
 
-- **Mean per future week:** the provider's projection (decision 1).
+- **Mean per future week:** the evaluated leading read for the matching cohort (decision 1). When
+  authority is unresolved, the simulation must preserve that uncertainty or refuse the stronger
+  title-odds claim; it may not silently choose a provider or Omen value.
   - **Current week:** the provider's weekly projection.
   - **Future weeks:** the provider's rest-of-season projection spread across the player's remaining games
     when the provider publishes one; otherwise the current-week projection carried forward.

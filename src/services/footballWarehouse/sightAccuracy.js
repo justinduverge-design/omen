@@ -55,44 +55,13 @@ function gradeSight(sight, actual, provider = new Map()) {
     const withProvider = rows.filter((r) => r.provider != null);
     positions[position] = {
       n: rows.length,
-      sight: {
-        corr: corr(
-          rows.map((r) => r.predicted),
-          y,
-        ),
-        mae: mae(
-          rows.map((r) => r.predicted),
-          y,
-        ),
-      },
-      ppg_to_date: {
-        corr: corr(
-          rows.map((r) => r.ppg_baseline ?? 0),
-          y,
-        ),
-        mae: mae(
-          rows.map((r) => r.ppg_baseline ?? 0),
-          y,
-        ),
-      },
-      provider:
-        withProvider.length >= 3
-          ? {
-              n: withProvider.length,
-              corr: corr(
-                withProvider.map((r) => r.provider),
-                withProvider.map((r) => r.actual),
-              ),
-              mae: mae(
-                withProvider.map((r) => r.provider),
-                withProvider.map((r) => r.actual),
-              ),
-              sight_corr_same_players: corr(
-                withProvider.map((r) => r.predicted),
-                withProvider.map((r) => r.actual),
-              ),
-            }
-          : { n: withProvider.length, reason: "no_stored_provider_projections" },
+      sight: { corr: corr(rows.map((r) => r.predicted), y), mae: mae(rows.map((r) => r.predicted), y) },
+      ppg_to_date: { corr: corr(rows.map((r) => r.ppg_baseline ?? 0), y), mae: mae(rows.map((r) => r.ppg_baseline ?? 0), y) },
+      provider: withProvider.length >= 3
+        ? { n: withProvider.length, corr: corr(withProvider.map((r) => r.provider), withProvider.map((r) => r.actual)), mae: mae(withProvider.map((r) => r.provider), withProvider.map((r) => r.actual)),
+            sight_corr_same_players: corr(withProvider.map((r) => r.predicted), withProvider.map((r) => r.actual)),
+            sight_mae_same_players: mae(withProvider.map((r) => r.predicted), withProvider.map((r) => r.actual)) }
+        : { n: withProvider.length, reason: "no_stored_provider_projections" },
     };
   }
   return { values, summary: { outcome: values.length ? "graded" : "nothing_to_grade", positions } };

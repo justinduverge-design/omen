@@ -40,6 +40,7 @@ struct OmenTradeFindReviewScreen: View {
     /// Where `Batch-exhausted`'s and `Zero-candidates`'s single secondary button goes — the
     /// contract leaves the destination to the builder ("Trade or League").
     var onExit: (() -> Void)?
+    @Environment(\.omenHaptics) private var haptics
 
     var body: some View {
         ScrollView {
@@ -154,7 +155,7 @@ struct OmenTradeFindReviewScreen: View {
             OmenTradeFindCandidateCard(
                 candidate: candidate,
                 onPass: { viewModel.pass() },
-                onSave: { Task { await viewModel.save() } }
+                onSave: { Task { await saveCurrentCandidate() } }
             )
             .padding(.horizontal, OmenSpacing.step16)
             .padding(.top, OmenSpacing.step12)
@@ -170,7 +171,7 @@ struct OmenTradeFindReviewScreen: View {
             OmenTradeFindActionRow(
                 saveState: viewModel.saveState(for: candidate.id),
                 onPass: { viewModel.pass() },
-                onSave: { Task { await viewModel.save() } },
+                onSave: { Task { await saveCurrentCandidate() } },
                 onRefresh: { Task { await viewModel.reload() } }
             )
             .padding(.horizontal, OmenSpacing.step16)
@@ -183,6 +184,17 @@ struct OmenTradeFindReviewScreen: View {
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, OmenSpacing.step16)
                 .padding(.top, OmenSpacing.step8)
+        }
+    }
+
+    /// The press or swipe acknowledges immediately. The later semantic feedback belongs to the
+    /// actual save result: success only after persistence, error only after an attempted save
+    /// fails. Expiry resolves visibly to `Search again` and is not itself an error vibration.
+    private func saveCurrentCandidate() async {
+        switch await viewModel.save() {
+        case .saved: haptics.play(.success)
+        case .error: haptics.play(.error)
+        case .expired, .none: break
         }
     }
 
@@ -403,11 +415,16 @@ private struct OmenTradeFindCandidateCard: View {
     var onSave: () -> Void
 
     @State private var dragTranslationWidth: CGFloat = 0
+    @State private var announcedCommitDirection: Int = 0
+    @State private var dragIntent: DragIntent = .undecided
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.omenHaptics) private var haptics
 
     /// Distance a drag must travel before it commits, matching the deck-swipe precedent's own
     /// "past the commit threshold" language.
     private static let commitThreshold: CGFloat = 96
+
+    private enum DragIntent { case undecided, horizontal, vertical }
 
     var body: some View {
         VStack(alignment: .leading, spacing: OmenSpacing.step8) {
@@ -440,7 +457,9 @@ private struct OmenTradeFindCandidateCard: View {
         }
         .offset(x: dragTranslationWidth)
         .rotationEffect(.degrees(Double(dragTranslationWidth / 24)))
-        .gesture(dragGesture)
+        // Run beside the parent ScrollView and claim motion only after horizontal intent is
+        // clear. A vertical read of the evidence should never twist or drag the card.
+        .simultaneousGesture(dragGesture)
         // Deliberately NOT a single combined accessibility element: the contract requires
         // VoiceOver to read the card "in document order (opponent, need badges, send/receive
         // rows, reasoning, evidence)" rather than one collapsed summary, so each subview below
@@ -459,20 +478,43 @@ private struct OmenTradeFindCandidateCard: View {
     private var dragGesture: some Gesture {
         DragGesture(minimumDistance: 12)
             .onChanged { value in
+                if dragIntent == .undecided {
+                    let dx = abs(value.translation.width)
+                    let dy = abs(value.translation.height)
+                    guard max(dx, dy) >= 12 else { return }
+                    dragIntent = dx > dy * 1.25 ? .horizontal : .vertical
+                }
+                guard dragIntent == .horizontal else { return }
                 dragTranslationWidth = value.translation.width
+                let direction = value.translation.width <= -Self.commitThreshold ? -1
+                    : value.translation.width >= Self.commitThreshold ? 1 : 0
+                if direction != 0, direction != announcedCommitDirection {
+                    haptics.play(.selection)
+                }
+                announcedCommitDirection = direction
             }
             .onEnded { value in
+                guard dragIntent == .horizontal else {
+                    dragIntent = .undecided
+                    dragTranslationWidth = 0
+                    announcedCommitDirection = 0
+                    return
+                }
                 let translation = value.translation.width
                 let animation: Animation? = reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8)
                 if translation <= -Self.commitThreshold {
+                    haptics.play(.mediumImpact)
                     withAnimation(animation) { dragTranslationWidth = 0 }
                     onPass()
                 } else if translation >= Self.commitThreshold {
+                    haptics.play(.mediumImpact)
                     withAnimation(animation) { dragTranslationWidth = 0 }
                     onSave()
                 } else {
                     withAnimation(animation) { dragTranslationWidth = 0 }
                 }
+                announcedCommitDirection = 0
+                dragIntent = .undecided
             }
     }
 
@@ -677,7 +719,7 @@ private struct OmenTradeFindActionRow: View {
 
     var body: some View {
         HStack(spacing: OmenSpacing.step10) {
-            OmenButton(title: "Pass", action: onPass, variant: .secondary, size: .lg)
+            OmenButton(title: "Pass", action: onPass, variant: .secondary, size: .lg, haptic: .mediumImpact)
                 .frame(maxWidth: .infinity)
                 .accessibilityLabel("Pass on this candidate")
             OmenButton(
@@ -686,7 +728,8 @@ private struct OmenTradeFindActionRow: View {
                 variant: saveState == .saved ? .secondary : .primary,
                 size: .lg,
                 enabled: saveState != .saving && saveState != .saved,
-                loading: saveState == .saving
+                loading: saveState == .saving,
+                haptic: .mediumImpact
             )
             .frame(maxWidth: .infinity)
             .accessibilityLabel(saveState == .saved ? "Saved" : "Save this candidate for later")

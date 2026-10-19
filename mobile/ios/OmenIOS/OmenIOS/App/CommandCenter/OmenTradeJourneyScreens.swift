@@ -449,11 +449,7 @@ struct OmenTradeBuildScreen: View {
                         crest: primary?.crest ?? "",
                         name: primary?.name ?? "",
                         need: primary?.need,
-                        isSelected: true,
-                        // Not the removal affordance — per contract, the primary chip keeps
-                        // today's 2-team behavior (a no-op with three teams active; there is
-                        // nothing to swap it with here).
-                        action: {}
+                        isSelected: true
                     )
                     OmenTradePartnerChip(
                         crest: thirdPartner.crest,
@@ -785,6 +781,8 @@ struct OmenTradeShareScreen: View {
     var onToggleInclusion: ((String) -> Void)?
     var onShare: (() -> Void)?
     var onCopyAsText: (() -> Void)?
+    @State private var copiedAsText = false
+    @Environment(\.omenHaptics) private var haptics
 
     var body: some View {
         OmenTradeScrollShell(
@@ -822,9 +820,22 @@ struct OmenTradeShareScreen: View {
                 .padding(.horizontal, OmenSpacing.step16)
                 .padding(.top, OmenSpacing.step12)
             if let secondary = state.secondaryActionTitle {
-                OmenButton(title: secondary, action: { onCopyAsText?() }, variant: .secondary, size: .lg)
+                OmenButton(
+                    title: copiedAsText ? "Copied" : secondary,
+                    action: {
+                        guard let onCopyAsText else { return }
+                        onCopyAsText()
+                        copiedAsText = true
+                        haptics.play(.success)
+                    },
+                    variant: .secondary,
+                    size: .lg,
+                    enabled: onCopyAsText != nil,
+                    haptic: OmenHaptic.none
+                )
                     .padding(.horizontal, OmenSpacing.step16)
                     .padding(.top, OmenSpacing.step8)
+                    .accessibilityValue(copiedAsText ? "Copied to clipboard" : "")
             }
         }
     }

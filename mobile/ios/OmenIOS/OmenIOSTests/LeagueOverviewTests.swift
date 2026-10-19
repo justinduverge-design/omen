@@ -106,28 +106,13 @@ final class LeagueOverviewTests: XCTestCase {
         XCTAssertEqual(overview.standings.teams.count, 1)
     }
 
-    func testLeaguePulseUsesTheServerComputedPositionAndOmitsAnUnknownCutLine() throws {
-        let overview = try decode(matchup: sides(status: "live"))
-
-        guard case let .available(position, cutLine, activity) = overview.leaguePulse else {
-            return XCTFail("available standings must produce a pulse.")
-        }
-        XCTAssertEqual(position, "3rd of 12")
-        // `settings_known: false` — so the cut line must stay absent even if one were sent.
-        XCTAssertNil(cutLine)
-        // v1 derives no activity signals.
-        XCTAssertNil(activity)
-    }
-
     func testOffSeasonStandingsAreNotReportedAsAFailure() throws {
         let overview = try decode(
             matchup: #"{"status":"no_matchup","you":null,"opponent":null,"unavailable_reason":null}"#,
             standings: #"{"status":"off_season","playoff_picture":null,"teams":[]}"#
         )
 
-        guard case .offSeason = overview.leaguePulse else {
-            return XCTFail("off-season is a season fact, not a provider failure.")
-        }
+        XCTAssertEqual(overview.standings.status, .offSeason)
     }
 
     /// The seam the waiver work drops into. If this shape changes, the integration has to
@@ -194,10 +179,6 @@ final class LeagueOverviewTests: XCTestCase {
         XCTAssertEqual(overview.matchup.status, .unavailable)
         XCTAssertEqual(overview.standings.status, .unavailable)
         XCTAssertEqual(overview.activity.status, .unavailable)
-        // The pulse resolves to an explicit resting state rather than staying pending.
-        guard case .unavailable = overview.leaguePulse else {
-            return XCTFail("unreadable standings must resolve League Pulse, not leave it loading")
-        }
     }
 
     // MARK: - F-SCR-01 — the points the league is actually sorted by

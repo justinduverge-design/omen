@@ -94,7 +94,7 @@ final class SessionManager: ObservableObject {
             // rather than inventing a re-auth the caller cannot resolve.
             return session.isExpired(now: nowEpochSeconds()) ? .needsReauth : .token(session.accessToken)
         }
-        return await apply(await refresher.refreshedSession())
+        return apply(await refresher.refreshedSession())
     }
 
     /// Forces renewal even when the stored token still looks alive. Used only on the
@@ -102,7 +102,7 @@ final class SessionManager: ObservableObject {
     func forceRefresh() async -> SessionAuthorization {
         guard store.load() != nil else { return .needsReauth }
         guard let refresher else { return .needsReauth }
-        return await apply(await refresher.refreshedSession())
+        return apply(await refresher.refreshedSession())
     }
 
     private func apply(_ outcome: SessionRefreshOutcome) -> SessionAuthorization {

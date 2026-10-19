@@ -75,6 +75,19 @@
       **The ship-order gate is part of this fact:** `data-stub` and `data-mock` may not be deleted
       from either token file in any commit that does not also land the hatch and dashed treatments.
 
+    - **Amended 2026-10-16 (founder) — forecast authority is earned, and Sight is not product
+      vocabulary.** A league provider's projection does not lead merely because it came from the
+      provider, and Omen's own read does not lead merely because Omen produced it. For each
+      supported position, scoring family, forecast horizon, and sufficiently-covered evaluation
+      cohort, the source with the better leakage-safe recorded results earns the lead until a newer
+      complete evaluation supersedes it. Where the result is tied, underpowered, stale, or absent,
+      the product says the read is unresolved and does not manufacture a winner. Every displayed
+      number retains explicit source, vintage, coverage, and method provenance. `Sight` remains an
+      internal warehouse/API name only; native customer-facing language uses the Omen product
+      system defined in `Blueprints/specs/design/omen-language-v1.md`. The interaction and data
+      revision of the 2026-09-13 lock is governed by
+      `Blueprints/specs/mobile/omen-native-visual-lock-v2.md`.
+
 17. **Telemetry posture: nothing about users leaves our infrastructure** (decided 2026-08-31). Product analytics are **built in-house** — events counted into Supabase, read by the Founder Digest. **No third-party analytics SDK** (PostHog, Amplitude, or otherwise) may be introduced without an explicit reversal of this decision; the founder chose privacy over a clickable dashboard knowingly, and "a dashboard would be handy" is not a reversal. Beta reports are summarized by the **local Ollama** path only. `AI_PROVIDER=cloud` stays fail-closed at `cloud_disabled_zero_budget` and the public-host guard in `src/services/llm.js` stays; relaxing either is a founder budget decision **and** an egress decision about other people's words, never a config change.
     - **Partially reversed 2026-09-24 (founder).** Cloud PostHog is now approved for user-facing product analytics (click/page/funnel tracking) — the founder's own words: *"I want to know where people are clicking and what and when and why and how."* **Self-hosted was explicitly considered and declined**, not for privacy reasons but capacity: PostHog's self-host stack (ClickHouse + Kafka + Redis + Postgres) is heavy relative to the current fleet, and the founder does not want a future hardware purchase spent on analytics infrastructure rather than revenue-generating work. **What did NOT reverse:** the local-Ollama-only beta-report path, and the `AI_PROVIDER=cloud` fail-closed posture for LLM calls — this reversal is scoped to product/click analytics specifically, not a general "third-party SaaS is fine now." Not yet implemented; this records the decision, not a shipped integration.
 

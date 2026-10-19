@@ -28,20 +28,6 @@ final class CommandCenterViewModel: ObservableObject {
     /// shell-derived default" — the same never-regress rule slice C uses for the context strip.
     @Published private(set) var ledger: OmenLedgerPreviewState?
 
-    /// Slice C, second consumer. `nil` keeps the shell-derived default, which is `.loading`
-    /// while a standings answer is still expected. Set from the same `league-standings.v1`
-    /// payload that fills the context strip — no extra request.
-    @Published private(set) var leaguePulse: OmenLeaguePulseState?
-
-    /// The real Matchup Hero. `nil` keeps the shell-derived `.noMatchup`, which is what every
-    /// connected user used to see unconditionally — the hero's populated cases existed but had
-    /// no real-data path at all.
-    @Published private(set) var matchup: OmenMatchupHeroState?
-
-    /// Waiver Watch detail from `waiver-analysis.v1`. `nil` keeps the dashboard-derived
-    /// status until the route has produced a real decision state.
-    @Published private(set) var waiverWatch: OmenWaiverWatchState?
-
     /// The whole `waiver-analysis.v1` payload, kept rather than reduced.
     ///
     /// Until J5 this read was consumed for `waiverWatch` alone and the payload thrown away, so
@@ -85,21 +71,34 @@ final class CommandCenterViewModel: ObservableObject {
         self.sessionManager = sessionManager
     }
 
-    /// The Command Center state to render, derived from `viewState`.
-    ///
-    /// Slice C overlays the verified context strip when — and only when — standings has
-    /// produced one. The screen therefore never regresses: it renders fully from shell
-    /// truth first, then upgrades in place if the slower provider call succeeds.
-    var commandCenterState: OmenCommandCenterState {
+    /// Current Ledger truth without routing through a screen-specific aggregate. Production
+    /// desk and J6 callers share this seam, including honest loading, failure and demo states.
+    var ledgerState: OmenLedgerPreviewState {
+        if let ledger { return ledger }
         switch viewState {
         case .loading:
-            return OmenCommandCenterFixtures.realLoading
+            return .loading
         case .demo:
-            return OmenCommandCenterFixtures.demoConnected
+            return .entries([
+                OmenLedgerEntry(
+                    id: "demo-start-sit-week-6",
+                    period: "DEMO WEEK 6",
+                    callType: "START/SIT",
+                    summary: "Start DeVonta Smith over Chris Olave",
+                    outcome: "Smith 18.4 · Olave 11.2 · Demo outcome aligned."
+                ),
+                OmenLedgerEntry(
+                    id: "demo-waiver-week-6",
+                    period: "DEMO WEEK 6",
+                    callType: "WAIVER",
+                    summary: "Add Tyrone Tracy Jr.",
+                    outcome: "Demo claim pending."
+                )
+            ])
         case .loaded(let summary):
-            return .from(summary: summary, context: context, ledger: ledger, leaguePulse: leaguePulse, matchup: matchup, waiverWatch: waiverWatch)
+            return summary.tools.omenOfTheWeek.status == .needsPlatform ? .notConnected : .empty
         case .failed:
-            return OmenCommandCenterFixtures.realDisconnected
+            return .error("The Ledger could not be read. Try again when the connection recovers.")
         }
     }
 
@@ -112,7 +111,7 @@ final class CommandCenterViewModel: ObservableObject {
             return OmenDeskState.from(
                 overview: overview,
                 waiver: .from(analysis: waiverAnalysis),
-                ledger: .from(ledger: commandCenterState.ledger),
+                ledger: .from(ledger: ledgerState),
                 weekLabel: summary.gameWeek?.week.map { "Week \($0)" } ?? "",
                 railCount: railCount,
                 railIndex: railIndex,
@@ -132,7 +131,55 @@ final class CommandCenterViewModel: ObservableObject {
                 ledger: .switching,
                 footnote: nil
             )
-        case .demo, .failed:
+        case .demo:
+            // App Review enters through Demo, so Demo must exercise the same Command
+            // composition real users receive. Keeping the legacy Command screen alive only
+            // for Demo preserved a second typography and layout authority in production.
+            return OmenDeskState(
+                weekLabel: "Demo · Week 7",
+                deadlineLabel: nil,
+                deadlineTime: nil,
+                matchup: .read(OmenDeskMatchup(
+                    platform: .espn,
+                    status: "Sample",
+                    leader: OmenDeskTeam(
+                        crest: "DT", name: "Demo Titans", record: "6–1 · you",
+                        score: "64.8", isMine: true
+                    ),
+                    trailer: OmenDeskTeam(
+                        crest: "DR", name: "Demo Rivals", record: "5–2",
+                        score: "58.1", isMine: false
+                    ),
+                    projection: "119.6 – 114.2",
+                    projectionNote: "Sample projection",
+                    leadFraction: nil,
+                    watch: "Opponent has two sample players remaining Monday night."
+                )),
+                railCount: 1,
+                railIndex: 0,
+                waiver: .read(OmenDeskWaiverMove(
+                    addName: "Tyrone Tracy Jr.",
+                    addMeta: "RB · NYG · sample",
+                    addPoints: nil,
+                    dropName: nil,
+                    dropMeta: nil,
+                    dropPoints: nil,
+                    reasoning: "Sample move: immediate help at RB during a thin week.",
+                    band: nil,
+                    risk: nil,
+                    riskReason: nil
+                )),
+                ledger: .read(OmenDeskLedgerLine(
+                    summary: "Start DeVonta Smith over Chris Olave",
+                    meta: "Demo week 6 · start / sit",
+                    outcome: .worked
+                )),
+                footnote: OmenDeskFootnote(
+                    text: "Demo uses clearly labeled sample league data.",
+                    emphasis: nil
+                )
+            )
+        case .failed:
             return nil
         }
     }
@@ -178,9 +225,7 @@ final class CommandCenterViewModel: ObservableObject {
         viewState = .loading
         context = nil
         ledger = nil
-        leaguePulse = nil
-        matchup = nil
-        waiverWatch = nil
+        waiverAnalysis = nil
         quietWeek = nil
         overview = nil
 
@@ -252,29 +297,19 @@ final class CommandCenterViewModel: ObservableObject {
     /// Every failure path here is deliberately silent to the user: the shell is already on
     /// screen and correct, and a provider hiccup must not turn a working Command Center into
     /// an error screen. A failed or empty standings call simply leaves the strip unfilled.
-    /// One `league-overview.v1` read fills the context strip, League Pulse, AND the Matchup
-    /// Hero. It replaced a `league-standings.v1` read that filled only the strip while the
-    /// other two sections were hardwired to states no connected user could escape.
+    /// One `league-overview.v1` read fills the context strip and remains intact for the current
+    /// desk and League destination. It replaced a reduced legacy path that threw most of the
+    /// response away after constructing screen-specific adapter states.
     private func loadContext(accessToken: String, scope: OmenCallScope?) async -> LeagueOverview? {
         guard case .success(let overview) = await leagueRepository.fetchOverview(
             accessToken: accessToken,
             platform: scope?.platform,
             leagueID: scope?.leagueID
         ) else {
-            // The shell-derived default is `.loading`, which would spin forever if left
-            // alone — the original defect in a different costume. A failed read resolves to
-            // an explicit resting state.
-            leaguePulse = .unavailable
             return nil
         }
         self.overview = overview
         context = overview.contextStrip
-        // `nil` from either mapping means "this payload cannot honestly support the section".
-        // League Pulse resolves to `.unavailable` so it always settles; the Matchup Hero stays
-        // `nil` so the shell's honest `.noMatchup` reason survives rather than being replaced
-        // by a blank hero.
-        leaguePulse = overview.leaguePulse ?? .unavailable
-        matchup = overview.matchupHero
         return overview
     }
 
@@ -316,10 +351,9 @@ final class CommandCenterViewModel: ObservableObject {
     private func loadWaiverWatch(accessToken: String) async {
         switch await waiverRepository.fetchWaiverAnalysis(accessToken: accessToken) {
         case .success(let analysis):
-            waiverWatch = analysis.waiverWatchState
             waiverAnalysis = analysis
         case .failure:
-            // The dashboard-derived state remains visible. Waiver analysis has in-band
+            // The current desk keeps its explicit unread state. Waiver analysis has in-band
             // uncertainty states, but a transport failure cannot truthfully become one.
             break
         }

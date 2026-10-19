@@ -283,13 +283,28 @@ struct DesignSystemGalleryView: View {
                     }
                 }
 
-                section("Command Center — screen assembly (feature layer) · connected / disconnected / reauth") {
+                section("Command — current desk · read / no league / switching") {
                     VStack(alignment: .leading, spacing: OmenSpacing.step16) {
-                        OmenCommandCenterScreen(state: OmenCommandCenterFixtures.demoConnected)
+                        OmenCommandDeskScreen(
+                            state: J2ScreenshotFixtures.nominalDesk,
+                            context: J2ScreenshotFixtures.titansContext
+                        )
                             .frame(maxHeight: 900)
-                        OmenCommandCenterScreen(state: OmenCommandCenterFixtures.realDisconnected)
+                        OmenNoLeagueScreen(onConnect: {})
                             .frame(maxHeight: 700)
-                        OmenCommandCenterScreen(state: OmenCommandCenterFixtures.realLoading)
+                        OmenCommandDeskScreen(
+                            state: OmenDeskState(
+                                weekLabel: "",
+                                deadlineLabel: nil,
+                                deadlineTime: nil,
+                                matchup: .switching,
+                                railCount: 0,
+                                railIndex: 0,
+                                waiver: .switching,
+                                ledger: .switching,
+                                footnote: nil
+                            )
+                        )
                             .frame(maxHeight: 700)
                     }
                 }

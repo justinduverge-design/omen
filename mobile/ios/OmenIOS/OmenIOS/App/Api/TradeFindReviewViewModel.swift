@@ -161,11 +161,12 @@ final class TradeFindReviewViewModel: ObservableObject {
     /// save interface with the candidate's `id` and its `reasoning` verbatim, then flips that
     /// candidate's button to `Saved ✓`. Never advances the stack and never navigates — there is
     /// no saved-trades destination yet (T4).
-    func save() async {
-        guard let candidate = currentCandidate else { return }
+    @discardableResult
+    func save() async -> TradeFindSaveOutcome? {
+        guard let candidate = currentCandidate else { return nil }
         // A swipe can land on a card that is already saved or mid-save; the button disables for
         // the same states, so the gesture does too.
-        if saveStates[candidate.id] == .saving || saveStates[candidate.id] == .saved { return }
+        if saveStates[candidate.id] == .saving || saveStates[candidate.id] == .saved { return nil }
         saveStates[candidate.id] = .saving
         let outcome = await saveAction.save(candidateId: candidate.id, reasoning: candidate.reasoning)
         switch outcome {
@@ -173,6 +174,7 @@ final class TradeFindReviewViewModel: ObservableObject {
         case .error: saveStates[candidate.id] = .error
         case .expired: saveStates[candidate.id] = .expired
         }
+        return outcome
     }
 
     func saveState(for candidateId: String) -> SaveState {

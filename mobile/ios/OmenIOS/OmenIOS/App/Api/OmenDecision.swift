@@ -283,6 +283,103 @@ struct OmenDecisionEnvelope: Decodable, Equatable {
         let name: String?
         let position: String?
         let team: String?
+        let providerPoints: Double?
+        /// Internal wire key is `sight`; native product copy always presents this as Omen's Read.
+        /// Lenient so an experimental driver cannot discard the recommendation.
+        @LenientDecoded var omenRead: OmenRead?
+
+        enum CodingKeys: String, CodingKey {
+            case id, name, position, team
+            case providerPoints = "projected_points"
+            case omenRead = "sight"
+        }
+    }
+
+    struct OmenRead: Decodable, Equatable {
+        struct Driver: Decodable, Equatable {
+            let name: String?
+            let points: Double?
+        }
+
+        struct Authority: Decodable, Equatable {
+            let version: String?
+            let state: String?
+            let position: String?
+            let scoringFamily: String?
+            let horizon: String?
+            let modelVersion: String?
+            let sampleSize: Int?
+            let weeks: Int?
+            let evaluatedAt: String?
+            let metric: String?
+            let omenMAE: Double?
+            let providerMAE: Double?
+
+            enum CodingKeys: String, CodingKey {
+                case version, state, position, horizon, weeks, metric
+                case scoringFamily = "scoring_family"
+                case modelVersion = "model_version"
+                case sampleSize = "sample_size"
+                case evaluatedAt = "evaluated_at"
+                case omenMAE = "omen_mae"
+                case providerMAE = "provider_mae"
+            }
+        }
+
+        struct Crosswind: Decodable, Equatable {
+            let gapPoints: Double?
+            let thresholdPoints: Double?
+            let drivers: [Driver]
+
+            enum CodingKeys: String, CodingKey {
+                case drivers
+                case gapPoints = "gap_points"
+                case thresholdPoints = "threshold_points"
+            }
+
+            init(from decoder: Decoder) throws {
+                let c = try decoder.container(keyedBy: CodingKeys.self)
+                gapPoints = try? c.decodeIfPresent(Double.self, forKey: .gapPoints)
+                thresholdPoints = try? c.decodeIfPresent(Double.self, forKey: .thresholdPoints)
+                drivers = (try? c.decodeIfPresent([Driver].self, forKey: .drivers)) ?? []
+            }
+        }
+
+        let version: String?
+        let season: Int?
+        let throughWeek: Int?
+        let position: String?
+        let phase: String?
+        let grade: Int?
+        let confidence: String?
+        let flexGrade: Int?
+        let points: Double?
+        let drivers: [Driver]
+        let authority: Authority?
+        let crosswind: Crosswind?
+
+        enum CodingKeys: String, CodingKey {
+            case version, season, position, phase, grade, confidence, drivers, authority, crosswind
+            case throughWeek = "through_week"
+            case flexGrade = "flex_grade"
+            case points = "sight_points"
+        }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            version = try? c.decodeIfPresent(String.self, forKey: .version)
+            season = try? c.decodeIfPresent(Int.self, forKey: .season)
+            throughWeek = try? c.decodeIfPresent(Int.self, forKey: .throughWeek)
+            position = try? c.decodeIfPresent(String.self, forKey: .position)
+            phase = try? c.decodeIfPresent(String.self, forKey: .phase)
+            grade = try? c.decodeIfPresent(Int.self, forKey: .grade)
+            confidence = try? c.decodeIfPresent(String.self, forKey: .confidence)
+            flexGrade = try? c.decodeIfPresent(Int.self, forKey: .flexGrade)
+            points = try? c.decodeIfPresent(Double.self, forKey: .points)
+            drivers = (try? c.decodeIfPresent([Driver].self, forKey: .drivers)) ?? []
+            authority = try? c.decodeIfPresent(Authority.self, forKey: .authority)
+            crosswind = try? c.decodeIfPresent(Crosswind.self, forKey: .crosswind)
+        }
     }
 
     struct ExpectedValueDelta: Decodable, Equatable {
@@ -593,8 +690,46 @@ extension OmenDecisionEnvelope {
             metrics: Self.metrics(from: recommendation),
             signals: Self.signalItems(capabilities: capabilities, legacySignals: signals),
             alternatives: Self.alternatives(from: recommendation),
+            readComparison: Self.readComparison(
+                player: recommendation.primaryPlayer,
+                provider: answeredFor?.platform ?? platform?.name
+            ),
             footballIntelligence: Self.footballIntelligenceContext(footballIntelligence),
             tradeCall: tradeCall()
+        )
+    }
+
+    private static func readComparison(player: Player?, provider: String?) -> OmenReadComparison? {
+        guard let read = player?.omenRead, read.points != nil || player?.providerPoints != nil else { return nil }
+        let authority = read.authority
+        let state = authority?.state.flatMap(OmenReadAuthority.init(rawValue:)) ?? .unresolvedLowSample
+        let providerKey = provider?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let providerName: String
+        switch providerKey {
+        case "espn": providerName = "ESPN"
+        case "yahoo": providerName = "Yahoo"
+        case "sleeper": providerName = "Sleeper"
+        default: providerName = "Provider"
+        }
+        return OmenReadComparison(
+            authority: state,
+            providerLabel: "\(providerName) Read",
+            providerPoints: player?.providerPoints,
+            omenPoints: read.points,
+            position: authority?.position ?? read.position ?? player?.position,
+            scoringFamily: authority?.scoringFamily,
+            sampleSize: authority?.sampleSize,
+            weeks: authority?.weeks,
+            evaluatedAt: authority?.evaluatedAt,
+            omenMAE: authority?.omenMAE,
+            providerMAE: authority?.providerMAE,
+            crosswindGap: read.crosswind?.gapPoints,
+            crosswindThreshold: read.crosswind?.thresholdPoints,
+            portents: read.drivers.compactMap { driver in
+                guard let name = driver.name else { return nil }
+                let label = name.replacingOccurrences(of: "_", with: " ").capitalized
+                return driver.points.map { "\(label) · \(String(format: "%+.1f", $0))" } ?? label
+            }
         )
     }
 

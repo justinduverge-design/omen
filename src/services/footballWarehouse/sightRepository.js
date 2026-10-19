@@ -6,6 +6,7 @@
 // only: no user, league or roster context reaches the warehouse.
 
 const MAX_REFS = 400;
+const { resolveForecastAuthority } = require("../forecastAuthority");
 
 /** "yahoo:470.p.30123" -> { provider: "yahoo", providerId: "30123" }; the index keeps Yahoo's numeric id. */
 // Fantasy defenses: Sleeper "PHI", ESPN "-16012", Yahoo "100033" (team_ids, kind 'defense').
@@ -90,6 +91,36 @@ function createWarehouseSightRepository({ query, timeoutMs = 2_000, now = () => 
     return byes.map;
   }
   return {
+    /** One evaluated authority receipt per requested position. Missing/legacy evidence resolves closed. */
+    async readAuthority({ positions, version = "v1", now = new Date() }) {
+      const wanted = [...new Set((Array.isArray(positions) ? positions : [])
+        .map((position) => String(position || "").toUpperCase())
+        .filter((position) => /^(QB|RB|WR|TE|K|DEF)$/.test(position)))];
+      if (!wanted.length || !/^v[0-9]{1,3}$/.test(version)) return new Map();
+      const result = await query({
+        name: "warehouse-sight-authority-read-v1",
+        text: `
+          WITH latest_season AS (
+            SELECT MAX(season) AS season
+              FROM football.football_metric_runs
+             WHERE metric_name = 'omen_sight_accuracy' AND formula_version = $1 AND state = 'succeeded'
+               AND parameters ? 'summary'
+          )
+          SELECT season, week, finished_at, parameters->'summary' AS summary
+            FROM football.football_metric_runs AS runs
+            JOIN latest_season USING (season)
+           WHERE runs.metric_name = 'omen_sight_accuracy' AND runs.formula_version = $1 AND runs.state = 'succeeded'
+             AND runs.parameters ? 'summary'
+           ORDER BY season DESC, week DESC
+           LIMIT 36`,
+        values: [version],
+        query_timeout: timeoutMs,
+      });
+      const evaluations = result?.rows || [];
+      return new Map(wanted.map((position) => [position, resolveForecastAuthority({
+        position, modelVersion: version, evaluations, now,
+      })]));
+    },
     /** Map(app player key -> sight block). Players Sight has no read for are absent. */
     async readSight({ playerKeys, version = "v1", hints = null }) {
       const refs = [

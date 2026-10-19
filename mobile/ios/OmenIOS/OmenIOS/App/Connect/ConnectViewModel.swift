@@ -205,7 +205,7 @@ final class ConnectViewModel: ObservableObject {
 
     /// Matches the backend's `NATIVE_REQUEST_ID_PATTERN` — `[A-Za-z0-9_-]{16,128}`. A UUID with
     /// hyphens stripped is 32 safe characters, comfortably inside the range.
-    static func defaultRequestId() -> String {
+    nonisolated static func defaultRequestId() -> String {
         UUID().uuidString.replacingOccurrences(of: "-", with: "")
     }
 

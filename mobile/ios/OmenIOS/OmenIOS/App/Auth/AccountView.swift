@@ -26,6 +26,7 @@ struct AccountView: View {
     @State private var showingPrivacyAndData = false
     @State private var showingHelpSupport = false
     @State private var showingAbout = false
+    @Environment(\.omenHaptics) private var haptics
 
     private var isDemo: Bool { userID == SessionManager.demoUserID }
 
@@ -138,9 +139,28 @@ struct AccountView: View {
             )
 
             if case .failed(let message) = authViewModel.passkeyManagementState {
-                Text(message)
-                    .omenTextStyle(OmenTypography.bodySmall)
-                    .foregroundStyle(OmenColor.Data.riskHigh)
+                OmenStateSurface(kind: .error, title: "Passkey change failed", message: message)
+            }
+            if case .succeeded(let message) = authViewModel.passkeyManagementState {
+                OmenCard(variant: .outlined, tone: .neutral) {
+                    VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+                        Text("Sign-in security updated")
+                            .omenTextStyle(OmenTypography.h2)
+                            .foregroundStyle(OmenColor.textPrimary)
+                        Text(message)
+                            .omenTextStyle(OmenTypography.body)
+                            .foregroundStyle(OmenColor.textSecondary)
+                    }
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityValue("Success")
+            }
+        }
+        .onChange(of: authViewModel.passkeyManagementState) { _, state in
+            switch state {
+            case .succeeded: haptics.play(.success)
+            case .failed: haptics.play(.error)
+            default: break
             }
         }
     }
@@ -155,6 +175,7 @@ private struct ConnectedAccountScreen: View {
     let state: OmenAccountState
     @StateObject private var viewModel: ConnectedPlatformsViewModel
     @State private var pendingDisconnect: OmenAccountConnection?
+    @Environment(\.omenHaptics) private var haptics
 
     let securitySection: AnyView
     var onReportProblem: (() -> Void)?
@@ -186,13 +207,13 @@ private struct ConnectedAccountScreen: View {
         self.onSignOut = onSignOut
     }
 
-    /// `.loading` renders as `.unavailable` — *"couldn't read"* — rather than as an empty list.
-    /// A list that is still arriving is also a list that has not been read, and the sentence is
-    /// true of both. Rendering it empty for the first second is the same false claim, briefly.
+    /// Loading, empty, and unread are different claims. Account used to show the failure sentence
+    /// during every healthy first read; that made opening the screen look broken before the server
+    /// had even answered.
     private var connections: OmenAccountConnections {
         switch viewModel.state {
-        case .loading, .failed:
-            return .unavailable
+        case .loading: return .loading
+        case .failed: return .unavailable
         case .loaded(let rows) where rows.isEmpty:
             return .none
         case .loaded(let rows):
@@ -210,6 +231,8 @@ private struct ConnectedAccountScreen: View {
                 isDemo: state.isDemo
             ),
             onDisconnect: { pendingDisconnect = $0 },
+            disconnectingConnectionID: viewModel.disconnecting,
+            disconnectErrorMessage: viewModel.errorMessage,
             onReportProblem: onReportProblem,
             onOpenHelpCentre: onOpenHelpCentre,
             onOpenPrivacyAndData: onOpenPrivacyAndData,
@@ -233,7 +256,10 @@ private struct ConnectedAccountScreen: View {
                         action: {
                             let platform = row.id
                             pendingDisconnect = nil
-                            Task { await viewModel.disconnect(platform) }
+                            Task {
+                                let disconnected = await viewModel.disconnect(platform)
+                                haptics.play(disconnected ? .success : .error)
+                            }
                         },
                         variant: .danger,
                         size: .lg

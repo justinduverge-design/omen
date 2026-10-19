@@ -24,6 +24,11 @@ function keyOf(player) {
   return typeof key === "string" && /^(sleeper|espn|yahoo):/.test(key) ? key : null;
 }
 
+function providerPointsOf(player) {
+  const value = player?.projected_points ?? player?.projectedPoints ?? player?.projection;
+  return value == null || !Number.isFinite(Number(value)) ? null : Number(value);
+}
+
 const MAX_DEPTH = 8;
 const MAX_PLAYERS = 600;
 
@@ -63,12 +68,33 @@ function createSightEnricher({ getRuntime, env = process.env, budgetMs = DEFAULT
       const hints = new Map(
         list.map((player) => [keyOf(player), { name: player.name, team: player.team, position: player.position }]),
       );
-      const byKey = await withinLatencyBudget("sight_read", budgetMs, () =>
-        repo.readSight({ playerKeys: keys, version: settings.version, hints }),
-      );
+      // Player envelopes are not required to carry position before enrichment; ask for the six bounded
+      // fantasy cohorts so a resolved Sight block can always receive the matching receipt.
+      const positions = ["QB", "RB", "WR", "TE", "K", "DEF"];
+      const { byKey, byPosition } = await withinLatencyBudget("sight_read", budgetMs, async () => {
+        const [reads, authority] = await Promise.all([
+          repo.readSight({ playerKeys: keys, version: settings.version, hints }),
+          typeof repo.readAuthority === "function"
+            ? repo.readAuthority({ positions, version: settings.version })
+            : Promise.resolve(new Map()),
+        ]);
+        return { byKey: reads, byPosition: authority };
+      });
       for (const player of list) {
         const block = byKey.get(keyOf(player));
-        if (block) player.sight = block;
+        if (block) {
+          const position = String(block.position || player?.position || "").toUpperCase();
+          const authority = byPosition.get(position) || null;
+          const providerPoints = providerPointsOf(player);
+          const omenPoints = Number.isFinite(Number(block.sight_points)) ? Number(block.sight_points) : null;
+          const threshold = Number.isFinite(Number(authority?.omen_mae)) ? Number(authority.omen_mae) : null;
+          const drivers = Array.isArray(block.drivers) ? block.drivers.slice(0, 3) : [];
+          const crosswind = providerPoints != null && omenPoints != null && threshold != null && threshold > 0
+            && Math.abs(omenPoints - providerPoints) > threshold && drivers.length
+            ? { gap_points: Math.round((omenPoints - providerPoints) * 10) / 10, threshold_points: threshold, drivers }
+            : null;
+          player.sight = { ...block, authority, crosswind };
+        }
       }
     } catch (error) {
       try {
@@ -81,4 +107,4 @@ function createSightEnricher({ getRuntime, env = process.env, budgetMs = DEFAULT
   };
 }
 
-module.exports = { createSightEnricher, sightSettings, collectPlayers };
+module.exports = { createSightEnricher, sightSettings, collectPlayers, providerPointsOf };

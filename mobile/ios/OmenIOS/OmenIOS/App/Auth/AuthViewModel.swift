@@ -5,6 +5,7 @@ enum PasskeyManagementState: Equatable {
     case loading
     case registering
     case deleting(String)
+    case succeeded(String)
     case failed(String)
 }
 
@@ -311,7 +312,10 @@ final class AuthViewModel: ObservableObject {
                 return
             }
             showsPasskeyPairingOffer = false
-            await refreshPasskeys(offerIfEmpty: false)
+            await refreshPasskeys(
+                offerIfEmpty: false,
+                completionState: .succeeded("Passkey added. You can use it the next time you sign in.")
+            )
         }
     }
 
@@ -320,7 +324,10 @@ final class AuthViewModel: ObservableObject {
         Task {
             switch await repository.deletePasskey(id: id) {
             case .success:
-                await refreshPasskeys(offerIfEmpty: false)
+                await refreshPasskeys(
+                    offerIfEmpty: false,
+                    completionState: .succeeded("Passkey removed.")
+                )
             case .needsReauth:
                 passkeyManagementState = .failed("Sign in again before removing a passkey.")
                 sessionManager.onRefreshFailed()
@@ -346,12 +353,15 @@ final class AuthViewModel: ObservableObject {
         }
     }
 
-    private func refreshPasskeys(offerIfEmpty: Bool) async {
+    private func refreshPasskeys(
+        offerIfEmpty: Bool,
+        completionState: PasskeyManagementState = .idle
+    ) async {
         passkeyManagementState = .loading
         switch await repository.listPasskeys() {
         case .success(let passkeys):
             self.passkeys = passkeys
-            passkeyManagementState = .idle
+            passkeyManagementState = completionState
             if
                 offerIfEmpty,
                 passkeys.isEmpty,

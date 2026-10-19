@@ -56,7 +56,7 @@ final class ContextualHelpAccessibilityUITests: XCTestCase {
     // MARK: - The affordance itself
 
     func testCommandCenterHelpAffordanceIsLabeledAndOpensItsExplanation() {
-        let app = launch("command-center.disconnected")
+        let app = launch("command-center.demo-connected")
 
         // The accessibility name VoiceOver would announce. Icon-only controls are the classic
         // place a label goes missing, so this asserts the exact string, not just existence.
@@ -87,7 +87,7 @@ final class ContextualHelpAccessibilityUITests: XCTestCase {
     func testHelpIsNeverUnsolicited() {
         // Spec §2: contextual help "must never become an unsolicited modal". Nothing may present
         // it but the person's own tap, so a cold launch must show no explanation.
-        let app = launch("command-center.disconnected")
+        let app = launch("command-center.demo-connected")
         XCTAssertTrue(app.buttons["What is this? Command Center"].waitForExistence(timeout: 10))
         XCTAssertFalse(
             app.staticTexts[Self.commandCenterSummary].exists,
@@ -151,7 +151,7 @@ final class ContextualHelpAccessibilityUITests: XCTestCase {
         // Recorded as expected rather than deleted, so the finding stays visible and this test
         // starts failing — loudly — the day someone fixes them. See `Direction/known_issues.md`.
         XCTExpectFailure("Pre-existing Command Center contrast + app-wide Dynamic Type audit findings; not in M6 scope")
-        let app = launch("command-center.disconnected")
+        let app = launch("command-center.demo-connected")
         XCTAssertTrue(app.buttons["What is this? Command Center"].waitForExistence(timeout: 10))
         try app.performAccessibilityAudit()
     }
