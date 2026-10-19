@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Omen — welcome and sign in</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Wix+Madefor+Display:wght@500;700;800&amp;family=Wix+Madefor+Text:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#D8A648}a:hover{color:#F5F0E8}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #1F1F1D; color: #F5F0E8; font-family: 'Wix Madefor Text', system-ui, sans-serif; overflow: hidden; display: flex; flex-direction: column">
+
+  <div aria-hidden="true" style="height: 54px; flex: none; display: flex; justify-content: center; align-items: flex-start; padding-top: 11px; box-sizing: border-box"><span style="width: 124px; height: 36px; border-radius: 18px; background: #000"></span></div>
+
+  <div style="flex: 1; padding: 32px 24px 34px; display: flex; flex-direction: column; gap: 20px">
+    <p style="margin: 0; font-family: 'Wix Madefor Display', sans-serif; font-size: 15px; font-weight: 800; letter-spacing: .32em; color: #C4933B">OMEN</p>
+    <h1 style="margin: 0; font-family: 'Wix Madefor Display', sans-serif; font-size: 36px; font-weight: 800; letter-spacing: -.05em; line-height: 1.02">Your league's front office.</h1>
+    <p style="margin: 0; font-size: 16px; line-height: 1.5; color: #BDB5A9">One move a week for every team you run, with the reasons, the risk, and the receipts.</p>
+
+    <div aria-label="What a call looks like" style="border-radius: 16px; background: linear-gradient(180deg,#2E2E2A,#262622); border-top: 1px solid rgba(196,147,59,.34); padding: 14px; display: flex; flex-direction: column; gap: 8px; transform: rotate(-1.2deg); margin: 4px 6px">
+      <span style="font-size: 10px; font-weight: 800; letter-spacing: .2em; color: #A79E90">THIS WEEK'S MOVE</span>
+      <b style="font-family: 'Wix Madefor Display', sans-serif; font-size: 20px; letter-spacing: -.04em; line-height: 1.1">Start Warren. Sit Moss.</b>
+      <span style="font-size: 12px; line-height: 1.45; color: #BDB5A9">Moss lost goal-line work two weeks running.</span>
+      <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 800; letter-spacing: .14em; color: #D8A648"><i style="width: 14px; height: 2px; background: #C4933B"></i>CONFIDENT</span>
+    </div>
+
+    <div style="margin-top: auto; display: flex; flex-direction: column; gap: 10px">
+      <button type="button" style="all: unset; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; padding: 15px 0; border-radius: 14px; background: #F5F0E8; color: #14140F; font-size: 16px; font-weight: 700">
+        <svg width="16" height="18" viewBox="0 0 16 18" aria-hidden="true"><path fill="#14140F" d="M13.2 9.6c0-2 1.7-3 1.8-3-1-1.4-2.5-1.6-3-1.6-1.3-.1-2.5.8-3.1.8-.7 0-1.7-.8-2.8-.7C4.6 5.1 3.3 6 2.5 7.3c-1.5 2.6-.4 6.5 1.1 8.6.7 1 1.6 2.2 2.7 2.1 1.1 0 1.5-.7 2.8-.7s1.7.7 2.8.7c1.2 0 1.9-1 2.6-2.1.8-1.2 1.2-2.4 1.2-2.4s-2.5-1-2.5-3.9zM11.1 3.4c.6-.7 1-1.7.9-2.7-.9 0-1.9.6-2.6 1.3-.6.6-1 1.6-.9 2.6 1 .1 2-.5 2.6-1.2z"></path></svg>
+        Continue with Apple</button>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+        <button type="button" aria-label="Continue with Google" style="all: unset; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; padding: 14px 0; border-radius: 14px; background: #343431; color: #F5F0E8; font-size: 15px; font-weight: 700">
+          <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.6 9.2c0-.6-.1-1.2-.2-1.7H9v3.3h4.8c-.2 1.1-.8 2-1.8 2.6v2.2h2.9c1.7-1.6 2.7-3.9 2.7-6.4z"></path><path fill="#34A853" d="M9 18c2.4 0 4.5-.8 6-2.2l-2.9-2.2c-.8.5-1.8.9-3.1.9-2.4 0-4.4-1.6-5.1-3.7H.9v2.3C2.4 16 5.5 18 9 18z"></path><path fill="#FBBC05" d="M3.9 10.8c-.2-.5-.3-1.1-.3-1.8s.1-1.2.3-1.8V4.9H.9C.3 6.1 0 7.5 0 9s.3 2.9.9 4.1l3-2.3z"></path><path fill="#EA4335" d="M9 3.6c1.3 0 2.5.5 3.5 1.4l2.6-2.6C13.5.9 11.4 0 9 0 5.5 0 2.4 2 .9 4.9l3 2.3C4.6 5.2 6.6 3.6 9 3.6z"></path></svg>
+          Google</button>
+        <button type="button" aria-label="Continue with Discord" style="all: unset; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; padding: 14px 0; border-radius: 14px; background: #343431; color: #F5F0E8; font-size: 15px; font-weight: 700">
+          <svg width="20" height="16" viewBox="0 0 20 16" aria-hidden="true"><path fill="#5865F2" d="M16.9 1.3A16.5 16.5 0 0 0 12.8 0l-.5 1a15.3 15.3 0 0 0-4.6 0l-.5-1a16.4 16.4 0 0 0-4.1 1.3C.5 5.2-.2 9 .1 12.7A16.6 16.6 0 0 0 5.2 15.3l1-1.7c-.6-.2-1.1-.5-1.6-.8l.4-.3a11.8 11.8 0 0 0 10 0l.4.3c-.5.3-1 .6-1.6.8l1 1.7a16.5 16.5 0 0 0 5-2.6c.4-4.3-.7-8-2.9-11.4zM6.7 10.4c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2zm6.6 0c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2z"></path></svg>
+          Discord</button>
+      </div>
+      <button type="button" style="all: unset; cursor: pointer; text-align: center; padding: 14px 0; border-radius: 14px; background: transparent; box-shadow: inset 0 0 0 1px #3F3F3B; color: #F5F0E8; font-size: 15px; font-weight: 700">Continue with email</button>
+      <a href="Desk.dc.html" style="text-align: center; padding: 12px 0; font-size: 15px; font-weight: 700; color: #C4933B; text-decoration: none">Look around first — demo league</a>
+      <p style="margin: 2px 0 0; font-size: 12px; line-height: 1.45; color: #A79E90; text-align: center">This is your Omen account. Your ESPN, Yahoo or Sleeper league comes next, and Omen never sees those passwords.</p>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
