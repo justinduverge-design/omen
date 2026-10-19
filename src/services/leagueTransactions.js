@@ -1,5 +1,7 @@
 "use strict";
 
+const { abbreviationForProviderNumber } = require("./footballIntelligence/nflTeams");
+
 /**
  * League transactions feed (G4): adds, drops, waiver claims and trades, one contract for all three
  * providers, with an honest label for what each provider actually answered.
@@ -267,6 +269,14 @@ function espnNamesFromSleeperPlayers(players) {
  * / `processDate` (ms), `scoringPeriodId`, `items[] { type: ADD | DROP | TRADE, playerId,
  * fromTeamId, toTeamId }`. ESPN returns player ids only; names come from `espnNames` (Sleeper's ESPN ids). Exercised live 2026-10-19.
  */
+/** ESPN D/ST player ids are -16000 minus ESPN's team number (-16012 = KC); Sleeper has no ESPN id for them. */
+function espnDefense(playerId) {
+  const id = Number(playerId);
+  if (!Number.isInteger(id) || id > -16001 || id < -16034) return null;
+  const abbr = abbreviationForProviderNumber(-16000 - id);
+  return abbr ? { name: `${abbr} D/ST`, position: "DEF", nfl_team: abbr } : null;
+}
+
 function parseEspnTransactions(data, { teamNames = {}, espnNames = new Map() } = {}) {
   const items = [];
   for (const row of Array.isArray(data?.transactions) ? data.transactions : []) {
@@ -284,7 +294,8 @@ function parseEspnTransactions(data, { teamNames = {}, espnNames = new Map() } =
     rememberTeam(row.teamId);
     for (const entry of Array.isArray(row.items) ? row.items : []) {
       const entryType = String(entry?.type || "").toUpperCase();
-      const known = entry?.playerId != null ? espnNames.get(String(entry.playerId)) : null;
+      const known =
+        entry?.playerId != null ? espnNames.get(String(entry.playerId)) || espnDefense(entry.playerId) : null;
       const player = {
         player_key: entry?.playerId != null ? `espn:${entry.playerId}` : null,
         name: known?.name ?? null,

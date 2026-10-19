@@ -249,3 +249,21 @@ test("ESPN activity names players through Sleeper's ESPN ids, and a miss leaves 
   assert.match(json, /Puka Nacua/);
   assert.equal(espnNames.size, 1);
 });
+
+test("ESPN D/ST ids (-16000 minus the team number) are named without Sleeper", () => {
+  const { parseEspnTransactions } = require("../src/services/leagueTransactions");
+  const items = parseEspnTransactions({
+    transactions: [
+      {
+        id: 8,
+        status: "EXECUTED",
+        type: "WAIVER",
+        teamId: 2,
+        processDate: 1760000000000,
+        scoringPeriodId: 6,
+        items: [{ type: "ADD", playerId: -16012, toTeamId: 2 }],
+      },
+    ],
+  });
+  assert.match(JSON.stringify(items), /KC D\/ST/);
+});
