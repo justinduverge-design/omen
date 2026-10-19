@@ -29,8 +29,8 @@ const { withinLatencyBudget } = require("../services/latencyBudget");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
-// The membership write runs after the redirect, so nothing waits on it, but a hung Yahoo read
-// must not hold a request's worth of work open forever. The next directory read repairs it.
+// The membership write runs after the redirect, so nothing waits on it. The budget does not cancel
+// a hung Yahoo read; it bounds how long until the failure is logged. The next directory read repairs it.
 const MEMBERSHIP_WRITE_BUDGET_MS = 30_000;
 const NATIVE_RETURN_VERIFIER_PREFIX = "omen-native-return-v1:";
 const NATIVE_CALLBACK_URL = "com.slopssaloon.omen://auth/callback";

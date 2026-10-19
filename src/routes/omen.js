@@ -556,6 +556,7 @@ async function enrichWithLlm(response, body, options) {
   } else if (sharedNarrationGuard.state() === "open") {
     outcome = { status: "skipped" };
   } else {
+    const wait = sharedNarrationCache.hostFitsBudget(budgetMs);
     const snapshot = structuredClone(response);
     const pending = sharedNarrationCache.generate(key, async (timeoutMs) => {
       const result = await sharedNarrationGuard.run("omen", timeoutMs, () =>
@@ -563,9 +564,7 @@ async function enrichWithLlm(response, body, options) {
       );
       return result.status === "ok" ? result.value : null;
     });
-    outcome = sharedNarrationCache.hostFitsBudget(budgetMs)
-      ? await waitForNarration(pending, budgetMs)
-      : { status: "skipped" };
+    outcome = wait ? await waitForNarration(pending, budgetMs) : { status: "skipped" };
   }
   if (outcome.status === "timeout" || outcome.status === "skipped" || outcome.status === "error") {
     // omenMoveVerdict ignores llm_reasoning, so a breaker/timeout fallback would

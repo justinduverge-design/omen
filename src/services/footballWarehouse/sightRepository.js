@@ -143,6 +143,7 @@ function createWarehouseSightRepository({ query, timeoutMs = 2_000, now = () => 
             .map((r) => [r.key, r]),
         ).values(),
       ];
+      if (!/^v[0-9]{1,3}$/.test(version)) return new Map();
       // One query reads at most MAX_REFS players; a bigger set (every roster in a large league)
       // is read in batches rather than silently cut off.
       if (allRefs.length > MAX_REFS) {

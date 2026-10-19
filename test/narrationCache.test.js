@@ -68,3 +68,19 @@ test("generations run one at a time", async () => {
   await Promise.all([cache.generate("a", produce), cache.generate("b", produce), cache.generate("c", produce)]);
   assert.equal(peak, 1);
 });
+
+test("a busy queue stops requests waiting, and a full queue drops new work", async () => {
+  const cache = createNarrationCache({ maxQueued: 2 });
+  let release;
+  const gate = new Promise((r) => {
+    release = r;
+  });
+  const slow = () => gate.then(() => ({ summary: "s" }));
+  const first = cache.generate("a", slow);
+  assert.equal(cache.hostFitsBudget(1250), false, "work queued ahead: do not wait");
+  const second = cache.generate("b", slow);
+  assert.equal(await cache.generate("c", slow), null, "queue full: dropped");
+  release();
+  await Promise.all([first, second]);
+  assert.equal(cache.hostFitsBudget(1250), true);
+});

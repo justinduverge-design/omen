@@ -21,8 +21,15 @@ const crypto = require("crypto");
 const TTL_MS = 30 * 60_000;
 const MAX_ENTRIES = 500;
 const BACKGROUND_TIMEOUT_MS = 60_000;
+// Waiting generations beyond this are dropped: on a slow host they would land after the user left.
+const MAX_QUEUED = 20;
 
-function createNarrationCache({ now = () => Date.now(), ttlMs = TTL_MS, maxEntries = MAX_ENTRIES } = {}) {
+function createNarrationCache({
+  now = () => Date.now(),
+  ttlMs = TTL_MS,
+  maxEntries = MAX_ENTRIES,
+  maxQueued = MAX_QUEUED,
+} = {}) {
   const done = new Map(); // key -> { value, at }
   const inFlight = new Map(); // key -> promise
   let queue = Promise.resolve();
@@ -50,6 +57,7 @@ function createNarrationCache({ now = () => Date.now(), ttlMs = TTL_MS, maxEntri
   /** Starts (or joins) the generation for `key`. Resolves to the narration or null; never rejects. */
   function generate(key, produce) {
     if (inFlight.has(key)) return inFlight.get(key);
+    if (inFlight.size >= maxQueued) return Promise.resolve(null);
     const run = queue.then(async () => {
       const started = now();
       try {
@@ -71,9 +79,12 @@ function createNarrationCache({ now = () => Date.now(), ttlMs = TTL_MS, maxEntri
     return run;
   }
 
-  /** True when the last generation finished inside `budgetMs` (or none has run yet). */
+  /**
+   * True when a new generation could finish inside `budgetMs`: nothing is queued ahead of it and
+   * the last one finished inside the budget (or none has run yet). Ask before calling generate().
+   */
   function hostFitsBudget(budgetMs) {
-    return lastDurationMs === null || lastDurationMs <= budgetMs;
+    return inFlight.size === 0 && (lastDurationMs === null || lastDurationMs <= budgetMs);
   }
 
   function clear() {
