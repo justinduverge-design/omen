@@ -7,6 +7,8 @@ const assert = require("node:assert/strict");
 const http = require("node:http");
 const Module = require("node:module");
 const test = require("node:test");
+// Narrations are cached per set of decision facts; each test starts with none.
+test.beforeEach(() => require("../src/services/narrationCache").sharedNarrationCache.clear());
 const express = require("express");
 
 function liveEnvelope() {
@@ -310,6 +312,7 @@ function loadOmenRouter({
           };
           return true;
         },
+        buildMvpLlmPayload: (response) => ({ title: response.recommendation?.title ?? null }),
         generateMvpLlmNarration: async (response) => {
           if (llmDelayMs) await new Promise((resolve) => setTimeout(resolve, llmDelayMs));
           state.llmPayloads.push({ state: response.state });
@@ -983,5 +986,23 @@ test("mvp-move cache: a league named in the query string is a separate entry", a
     );
   } finally {
     responseCache.setStoreForTests(undefined);
+  }
+});
+
+test("a slow narration finishes in the background and the next view of the same move is narrated", async () => {
+  responseCache.setStoreForTests(responseCache.createMemoryResponseCacheStore());
+  try {
+    const { app, state } = buildApp({ llmDelayMs: 1500 });
+    const headers = { authorization: "Bearer valid-token", "x-contract-record": "skip" };
+    const body = { include_signals: { llm_reasoning: true, matchup_dvp: false } };
+    const first = await postRaw(app, { headers, body });
+    assert.equal(first.body.signals.llm_reasoning.status, "unavailable");
+    await new Promise((resolve) => setTimeout(resolve, 400)); // the background generation lands
+    const second = await postRaw(app, { headers, body });
+    assert.equal(second.body.recommendation.explanation.summary, "Live Gemma says this is the move.");
+    assert.equal(state.llmPayloads.length, 1, "the model ran once for both views");
+  } finally {
+    responseCache.setStoreForTests(undefined);
+    require("../src/services/narrationBudget").sharedNarrationGuard.reset();
   }
 });

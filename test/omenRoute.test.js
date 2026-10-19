@@ -6,6 +6,8 @@ process.env.SUPABASE_SERVICE_KEY ||= "test-service-key";
 const assert = require("node:assert/strict");
 const http = require("node:http");
 const test = require("node:test");
+// Narrations are cached per set of decision facts; each test starts with none.
+test.beforeEach(() => require("../src/services/narrationCache").sharedNarrationCache.clear());
 const express = require("express");
 const llm = require("../src/services/llm");
 const matchupService = require("../src/services/matchupService");
