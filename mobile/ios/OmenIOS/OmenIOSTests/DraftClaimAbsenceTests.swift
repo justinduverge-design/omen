@@ -147,6 +147,21 @@ final class DraftClaimAbsenceTests: XCTestCase {
         )
     }
 
+    func testProductionCommandCannotRestoreTheDeletedScreen() throws {
+        let root = try repoAppSourcesRoot()
+        let text = try String(
+            contentsOf: root.appendingPathComponent("Auth/CommandCenterView.swift"),
+            encoding: .utf8
+        )
+        let body = Self.strippingComments(from: text)
+
+        XCTAssertTrue(body.contains("OmenCommandDeskScreen("))
+        XCTAssertFalse(
+            body.contains("OmenCommandCenterScreen("),
+            "production Command must keep one composition; the deleted screen must not return"
+        )
+    }
+
     // MARK: - Helpers
 
     private static func strippingComments(from source: String) -> String {
@@ -223,7 +238,7 @@ final class DraftClaimAbsenceTests: XCTestCase {
         )
         let body = Self.strippingComments(from: text)
 
-        for screen in ["OmenCommandCenterScreen(", "OmenDecisionScreen(", "OmenTradeScreen(", "OmenLeagueScreen("] {
+        for screen in ["OmenCommandDeskScreen(", "OmenDecisionScreen(", "OmenTradeScreen(", "OmenLeagueScreen("] {
             XCTAssertTrue(
                 body.contains(screen),
                 "the harness must render \(screen) — a stand-in makes every screenshot and UI test "

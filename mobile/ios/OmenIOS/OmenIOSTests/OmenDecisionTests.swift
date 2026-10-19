@@ -721,9 +721,8 @@ final class OmenDecisionViewModelTests: XCTestCase {
         }
     }
 
-    /// The reachability-closing case: a live `start_sit` call must fetch the richer
-    /// `start-sit-detail.v2` read and expose it, so the Omen destination can swap in the
-    /// carried-over `OmenStartSitScreen` instead of the generic call card.
+    /// A live `start_sit` call fetches the richer `start-sit-detail.v2` read so the current
+    /// Omen destination can enrich its call in place without swapping screen generations.
     func testLiveStartSitCallFetchesStartSitDetail() async throws {
         final class RecordingStartSitRepository: StartSitDetailRepository {
             var calledWithSlot: String??
@@ -743,7 +742,10 @@ final class OmenDecisionViewModelTests: XCTestCase {
 
         await viewModel.load(userID: "real-user")
 
-        XCTAssertNotNil(startSitRepo.calledWithSlot, "a live start_sit call must fetch start-sit-detail.v2")
+        XCTAssertTrue(
+            startSitRepo.calledWithSlot != nil,
+            "a live start_sit call must fetch start-sit-detail.v2"
+        )
         XCTAssertEqual(viewModel.startSitDetail?.state, "clear_decision")
         XCTAssertEqual(viewModel.startSitDetail?.recommendation?.start?.name, "McCaffrey")
     }
@@ -1362,5 +1364,41 @@ final class OmenCallScopeIdentityTests: XCTestCase {
             #"{"state":"empty","mode":"live","answered_for":{"platform":"ESPN","league_id":13338821,"matched":true}}"#.utf8))
         XCTAssertFalse(OmenDecisionViewModel.answeredForADifferentLeague(
             envelope, than: OmenCallScope(platform: "espn", leagueID: "13338821")))
+    }
+}
+
+final class OmenReadDecodingTests: XCTestCase {
+    func testInternalSightBlockDecodesAsAnOmenRead() throws {
+        let json = #"{"state":"success","recommendation":{"primary_player":{"id":"sleeper:4046","name":"Example Player","position":"WR","team":"NYJ","sight":{"version":"v2","season":2026,"through_week":6,"position":"WR","phase":"in_season","grade":74,"confidence":"normal","flex_grade":70,"sight_points":14.2,"drivers":[{"name":"usage_trend","points":1.7}]}}}}"#
+        let envelope = try JSONDecoder().decode(OmenDecisionEnvelope.self, from: Data(json.utf8))
+
+        let read = try XCTUnwrap(envelope.recommendation?.primaryPlayer?.omenRead)
+        XCTAssertEqual(read.version, "v2")
+        XCTAssertEqual(read.throughWeek, 6)
+        XCTAssertEqual(read.grade, 74)
+        XCTAssertEqual(read.points, 14.2)
+        XCTAssertEqual(read.drivers.first?.name, "usage_trend")
+    }
+
+    func testAuthorityLabelsNeverExposeTheInternalSightName() {
+        XCTAssertEqual(OmenReadAuthority.omenLeads.customerLabel, "Omen Read leads")
+        XCTAssertEqual(OmenReadAuthority.providerLeads.customerLabel, "Provider Read leads")
+        XCTAssertEqual(OmenReadAuthority.unresolvedLowSample.customerLabel, "Reads unresolved")
+        XCTAssertFalse(OmenReadAuthority.omenLeads.customerLabel.localizedCaseInsensitiveContains("sight"))
+    }
+
+    func testAuthorityReceiptMapsIntoTheCustomerFacingLeadingRead() throws {
+        let json = #"{"state":"success","mode":"live","answered_for":{"platform":"espn","league_id":"1"},"recommendation":{"title":"Start Example Player","move":"Keep him in WR1.","primary_player":{"name":"Example Player","position":"WR","projected_points":12.8,"sight":{"version":"v2","position":"WR","sight_points":14.2,"drivers":[{"name":"target_share","points":1.4}],"authority":{"version":"forecast-authority.v1","state":"omen_leads","position":"WR","scoring_family":"ppr","sample_size":65,"weeks":2,"evaluated_at":"2026-10-15T12:00:00Z","omen_mae":4.21,"provider_mae":4.75},"crosswind":{"gap_points":1.4,"threshold_points":4.21,"drivers":[]}}}}}"#
+        let envelope = try JSONDecoder().decode(OmenDecisionEnvelope.self, from: Data(json.utf8))
+        guard case .success(let payload) = envelope.briefState() else { return XCTFail("expected success") }
+        let comparison = try XCTUnwrap(payload.readComparison)
+
+        XCTAssertEqual(comparison.authority, .omenLeads)
+        XCTAssertEqual(comparison.authorityLabel, "Omen Read leads")
+        XCTAssertEqual(comparison.providerLabel, "ESPN Read")
+        XCTAssertEqual(comparison.providerPoints, 12.8)
+        XCTAssertEqual(comparison.omenPoints, 14.2)
+        XCTAssertEqual(comparison.sampleSize, 65)
+        XCTAssertEqual(comparison.portents, ["Target Share · +1.4"])
     }
 }

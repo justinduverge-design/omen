@@ -41,6 +41,7 @@ struct OmenTeamPicker: View {
     var externalPresentation: Binding<Bool>?
 
     @State private var localPresentation = false
+    @Environment(\.omenHaptics) private var haptics
 
     private var isSwitcherPresented: Binding<Bool> { externalPresentation ?? $localPresentation }
 
@@ -141,7 +142,12 @@ struct OmenTeamPicker: View {
     ///
     /// `OmenTeamSwitcherSheet` is not deleted. It is still the Account destination's list and it
     /// still has its own preview and height contract; retiring it is that screen's call.
-    private var switcherSheet: some View {
+    /// The sheet content is internal so the signed-in app shell can be the single presenter for
+    /// every cross-tab switch affordance. The picker still presents it locally when it owns the
+    /// trigger (for previews and isolated feature hosts), but a shell must not bind several
+    /// off-tab pickers to the same presentation Boolean — SwiftUI then has several competing
+    /// presentation anchors and the first tap can appear to do nothing until another update.
+    var switcherSheet: some View {
         OmenSwitchSheet(
             state: OmenSwitchSheetState(
                 filters: platformFilters.map { OmenSwitchFilter(id: $0.id, label: $0.label) },
@@ -153,19 +159,18 @@ struct OmenTeamPicker: View {
                     OmenSwitchGroup(title: "Favourites", rows: switcherTeams.filter(\.isFavorite).map(switchRow)),
                     OmenSwitchGroup(title: "All teams", rows: switcherTeams.filter { !$0.isFavorite }.map(switchRow))
                 ].filter { !$0.rows.isEmpty },
-                notice: switcherNotice,
+                notice: switcherFailureNotice ?? switcherNotice,
                 caption: Self.switcherCaption
             ),
             onSelectFilter: { viewModel.selectedPlatform = $0 },
             onSelectRow: { row in
                 guard let page = viewModel.allPages.first(where: { $0.id == row.id }) else { return }
-                // Dismiss first. The switch is fast but not instant, and holding the sheet open
-                // over a screen that is already updating underneath it hides the very thing the
-                // user asked for. The write continues after dismissal.
-                isSwitcherPresented.wrappedValue = false
                 Task {
                     if let refresh = await viewModel.commit(page) {
+                        isSwitcherPresented.wrappedValue = false
                         onContextChanged(refresh)
+                    } else if viewModel.selectionError != nil {
+                        haptics.play(.error)
                     }
                 }
             },
@@ -187,6 +192,11 @@ struct OmenTeamPicker: View {
     /// were "unexplained".
     static let switcherCaption =
         "The check marks the one league Omen is using right now. Tap a team to switch to it; star a team to keep it at the top."
+
+    private var switcherFailureNotice: String? {
+        guard let error = viewModel.selectionError else { return nil }
+        return "That switch did not take. \(switcherErrorMessage(error))"
+    }
 
     private var sheetDetents: Set<PresentationDetent> {
         let height = OmenSwitchSheet.preferredHeight(

@@ -16,7 +16,7 @@ test("ESPN request paths are logged without the query or the user's SWID", () =>
   assert.equal(redactEspnPath(`/apis/v2/fans/${encodeURIComponent(swid)}`), "/apis/v2/fans/[swid]");
   assert.equal(
     redactEspnPath("/apis/v3/games/ffl/seasons/2026/segments/0/leagues/123?view=mRoster"),
-    "/apis/v3/games/ffl/seasons/2026/segments/0/leagues/123",
+    "/apis/v3/games/ffl/seasons/2026/segments/0/leagues/[id]",
   );
   assert.equal(redactEspnPath(`/x/${swid}/y`), "/x/[swid]/y", "a SWID anywhere in the path is removed");
   assert.equal(redactEspnPath(undefined), "");

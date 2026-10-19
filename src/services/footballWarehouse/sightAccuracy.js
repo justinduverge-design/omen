@@ -91,6 +91,10 @@ function gradeSight(sight, actual, provider = new Map()) {
                 withProvider.map((r) => r.predicted),
                 withProvider.map((r) => r.actual),
               ),
+              sight_mae_same_players: mae(
+                withProvider.map((r) => r.predicted),
+                withProvider.map((r) => r.actual),
+              ),
             }
           : { n: withProvider.length, reason: "no_stored_provider_projections" },
     };

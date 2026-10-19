@@ -202,6 +202,10 @@ struct TradeFindResponse: Decodable, Equatable {
     let degradedTeams: [TradeFindDegradedTeam]
     let budgetExceeded: Bool
     let candidates: [TradeFindCandidate]
+    /// Why a finished search returned nothing: `no_fair_trade`, `no_trade_helps_both_lineups`,
+    /// `no_tradeable_players`, `no_readable_opponents`, `search_budget_exceeded`. Nil when there are
+    /// candidates or the server predates the field.
+    let emptyReason: String?
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -215,6 +219,7 @@ struct TradeFindResponse: Decodable, Equatable {
         degradedTeams = try c.decodeIfPresent([TradeFindDegradedTeam].self, forKey: .degradedTeams) ?? []
         budgetExceeded = try c.decodeIfPresent(Bool.self, forKey: .budgetExceeded) ?? false
         candidates = try c.decodeIfPresent([TradeFindCandidate].self, forKey: .candidates) ?? []
+        emptyReason = try c.decodeIfPresent(String.self, forKey: .emptyReason)
 
         if let bounds = try c.decodeIfPresent(Bounds.self, forKey: .bounds) {
             teamsConsidered = bounds.teamsConsidered
@@ -247,6 +252,7 @@ struct TradeFindResponse: Decodable, Equatable {
         case bounds
         case degradedTeams = "degraded_teams"
         case budgetExceeded = "budget_exceeded"
+        case emptyReason = "empty_reason"
         case candidates
     }
 

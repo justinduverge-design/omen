@@ -168,6 +168,12 @@ struct OmenApiClient {
         let data: Data
         let response: URLResponse
         let started = Date()
+        let (signpost, signpostName) = OmenSignposts.beginRequest(
+            method: request.httpMethod ?? "GET",
+            path: request.url?.path ?? "?"
+        )
+        var lastStatus: Int?
+        defer { OmenSignposts.endRequest(signpost, name: signpostName, status: lastStatus) }
         do {
             (data, response) = try await fetcher.data(for: request)
         } catch {
@@ -176,6 +182,7 @@ struct OmenApiClient {
         }
 
         guard let http = response as? HTTPURLResponse else { return .failure(.network) }
+        lastStatus = http.statusCode
         OmenRequestTiming.log(request, status: http.statusCode, since: started)
 
         switch http.statusCode {

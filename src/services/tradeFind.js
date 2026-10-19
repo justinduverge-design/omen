@@ -283,6 +283,7 @@ function findLeagueTradeCandidates({
 
   const candidates = [];
   let budgetExceeded = false;
+  const tally = { pairs_evaluated: 0, mutual_gain: 0, passed_fairness: 0 };
 
   for (const opponent of scanned) {
     if (budget.exceeded) {
@@ -300,6 +301,7 @@ function findLeagueTradeCandidates({
       rosterPositions,
       budget,
       fairnessGuard,
+      tally,
       onBudgetExceeded: (stats) => {
         budgetExceeded = true;
         if (onBudgetExceeded) {
@@ -336,7 +338,18 @@ function findLeagueTradeCandidates({
     degraded_teams: degradedTeams,
     budget_exceeded: budgetExceeded,
     own_needs: ownNeeds,
+    search_funnel: tally,
+    empty_reason: candidates.length ? null : emptyReason({ scanned: scanned.length, tally, budgetExceeded }),
   };
+}
+
+// Why a finished scan found nothing, from the narrowest step that ruled everything out.
+function emptyReason({ scanned, tally, budgetExceeded }) {
+  if (budgetExceeded) return "search_budget_exceeded";
+  if (scanned === 0) return "no_readable_opponents";
+  if (tally.pairs_evaluated === 0) return "no_tradeable_players";
+  if (tally.mutual_gain === 0) return "no_trade_helps_both_lineups";
+  return "no_fair_trade";
 }
 
 module.exports = {

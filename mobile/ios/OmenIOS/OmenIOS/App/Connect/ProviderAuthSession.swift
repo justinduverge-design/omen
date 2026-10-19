@@ -40,10 +40,13 @@ final class ASWebAuthenticationProviderSession: NSObject, ProviderAuthSessionPre
     func authorize(url: URL, callbackScheme: String) async -> ProviderAuthOutcome {
         await withCheckedContinuation { continuation in
             var resumed = false
-            let session = ASWebAuthenticationSession(url: url, callbackURLScheme: callbackScheme) { callbackURL, error in
+            let session = ASWebAuthenticationSession(
+                url: url,
+                callbackURLScheme: callbackScheme
+            ) { [weak self] callbackURL, error in
                 guard !resumed else { return }
                 resumed = true
-                Task { @MainActor [weak self] in
+                Task { @MainActor in
                     self?.activeSession = nil
                 }
                 if let callbackURL {

@@ -80,12 +80,13 @@ final class ConnectedPlatformsViewModel: ObservableObject {
     ///
     /// The server is the truth about what is connected, and a local removal that the server did
     /// not actually perform is exactly the lie this screen exists to stop telling.
-    func disconnect(_ platform: String) async {
-        guard disconnecting == nil else { return }
+    @discardableResult
+    func disconnect(_ platform: String) async -> Bool {
+        guard disconnecting == nil else { return false }
         errorMessage = nil
         guard case .token(let accessToken) = await sessionManager.authorization() else {
             errorMessage = "Sign in again to change your connections."
-            return
+            return false
         }
 
         disconnecting = platform
@@ -94,8 +95,10 @@ final class ConnectedPlatformsViewModel: ObservableObject {
         switch await repository.disconnect(accessToken: accessToken, platform: platform) {
         case .success:
             await load()
+            return true
         case .failure:
             errorMessage = "That didn't disconnect. Try again in a moment."
+            return false
         }
     }
 

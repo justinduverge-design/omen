@@ -58,8 +58,9 @@ test("native app-shell scaffold keeps platform projects, safe environment seams,
   assert.match(signInSource, /demoModeEnabled/, "the demo path must be gated by environment");
 
   const commandCenterSource = read("mobile/ios/OmenIOS/OmenIOS/App/Auth/CommandCenterView.swift");
-  assert.match(commandCenterSource, /OmenCommandCenterScreen\(/);
-  assert.match(commandCenterSource, /OmenStateSurface\(/);
+  // Codex retired OmenCommandCenterScreen on 2026-10-17 (0174ca75); the live desk is OmenCommandDeskScreen.
+  assert.match(commandCenterSource, /OmenCommandDeskScreen\(/);
+  assert.doesNotMatch(commandCenterSource, /OmenCommandCenterScreen\(/);
 
   // Android carried the same stale copy assertions as iOS, for the same reason: the onboarding
   // rework moved the welcome surface into the auth flow and reworded both paths. Pinning the

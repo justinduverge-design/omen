@@ -159,3 +159,22 @@ test("survives an empty or malformed payload without throwing", () => {
     assert.deepEqual(fanLeaguesFromPreferences(payload), []);
   }
 });
+
+test("ESPN's own football-league count reads from fantasyData and is null when absent", () => {
+  const { espnNflLeagueCount } = require("../src/adapters/espn.js");
+  assert.equal(espnNflLeagueCount({ fantasyData: { leaguesBySportLeague: { NFL: 3, NBA: 1 } } }), 3);
+  assert.equal(espnNflLeagueCount({ fantasyData: { leaguesBySportLeague: { NFL: 0 } } }), 0);
+  assert.equal(espnNflLeagueCount({ fantasyData: {} }), null);
+  assert.equal(espnNflLeagueCount({}), null);
+  assert.equal(espnNflLeagueCount({ fantasyData: { leaguesBySportLeague: { NFL: "x" } } }), null);
+});
+
+test("a discovery answer is classified from what ESPN listed against what it counts", () => {
+  const { espnDiscoveryState } = require("../src/routes/platforms");
+  assert.equal(espnDiscoveryState(3, 3), "complete");
+  assert.equal(espnDiscoveryState(2, 3), "partial");
+  assert.equal(espnDiscoveryState(0, 2), "espn_listing_pending", "a fresh login: ESPN knows, has not listed");
+  assert.equal(espnDiscoveryState(0, 0), "no_football_leagues");
+  assert.equal(espnDiscoveryState(2, null), "complete");
+  assert.equal(espnDiscoveryState(0, null), "unknown_empty");
+});

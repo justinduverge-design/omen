@@ -245,3 +245,19 @@ test("GET /api/trade/roster answers 503, never a fabricated roster, when the ESP
   assert.equal(res.status, 503);
   assert.equal(res.body.code, "trade_roster_unavailable");
 });
+
+test("sameTeamId matches a Yahoo team key against the bare team number the league directory sends", () => {
+  const { sameTeamId } = require("../src/routes/trade");
+  assert.equal(sameTeamId("461.l.1234567.t.4", "4"), true);
+  assert.equal(sameTeamId("4", "461.l.1234567.t.4"), true);
+  assert.equal(sameTeamId("461.l.1234567.t.4", "461.l.1234567.t.4"), true);
+  assert.equal(sameTeamId("461.l.1234567.t.14", "4"), false, "t.14 is not team 4");
+  assert.equal(sameTeamId("8", "8"), true);
+  assert.equal(sameTeamId("8", "18"), false);
+  assert.equal(sameTeamId(null, "4"), false);
+});
+
+test("sameTeamId never matches the same team number across two different Yahoo leagues", () => {
+  const { sameTeamId } = require("../src/routes/trade");
+  assert.equal(sameTeamId("461.l.1.t.4", "461.l.2.t.4"), false);
+});

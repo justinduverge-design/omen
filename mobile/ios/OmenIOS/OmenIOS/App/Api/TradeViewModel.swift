@@ -31,6 +31,8 @@ final class TradeViewModel: ObservableObject {
         case loading
         case loaded(TradeRosterResponse)
         case failed(OmenApiError)
+        /// Demo has no real league to read. Not a failure: nothing was attempted.
+        case demo
     }
 
     @Published private(set) var rosterBrowseState: RosterBrowseState = .idle
@@ -47,7 +49,7 @@ final class TradeViewModel: ObservableObject {
     /// the Trade destination.
     func loadRoster(userID: String) async {
         guard userID != SessionManager.demoUserID else {
-            rosterBrowseState = .failed(.network)
+            rosterBrowseState = .demo
             return
         }
         guard let leagueContext = offer.leagueContext else {

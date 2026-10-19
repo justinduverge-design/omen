@@ -396,6 +396,7 @@ function findTradeCandidate({
   fairnessGuard = () => true,
   budget = createSearchBudget(),
   onBudgetExceeded = null,
+  tally = null,
 } = {}) {
   if (!ownTeam || !Array.isArray(ownTeam.players)) return null;
   const ownBaseline = solveOptimalLineup({ players: ownTeam.players, rosterPositions, budget });
@@ -469,8 +470,13 @@ function findTradeCandidate({
         }
         const userDelta = ownAfter.total - ownBaseline.total;
         const opponentDelta = opponentAfter.total - opponentBaseline.total;
+        // The funnel an empty answer is explained from: pairs tried, pairs that help both lineups,
+        // pairs that also pass the fairness guard.
+        if (tally) tally.pairs_evaluated += 1;
         if (userDelta <= 0 || opponentDelta <= 0) continue;
+        if (tally) tally.mutual_gain += 1;
         if (!fairnessGuard({ give, receive, userDelta, opponentDelta })) continue;
+        if (tally) tally.passed_fairness += 1;
         candidates.push({
           opponent,
           give,

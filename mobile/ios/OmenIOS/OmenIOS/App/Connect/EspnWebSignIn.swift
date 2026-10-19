@@ -273,8 +273,10 @@ protocol EspnCookieReading: AnyObject {
 final class EspnWebCookieStore: EspnCookieReading {
     let dataStore: WKWebsiteDataStore
 
-    init(dataStore: WKWebsiteDataStore = .nonPersistent()) {
-        self.dataStore = dataStore
+    init(dataStore: WKWebsiteDataStore? = nil) {
+        // A default argument is evaluated in the caller's isolation context. Constructing the
+        // WebKit store here keeps the main-actor requirement attached to this main-actor type.
+        self.dataStore = dataStore ?? .nonPersistent()
     }
 
     func hasSession() async -> Bool {

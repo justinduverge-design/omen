@@ -280,7 +280,20 @@ struct ApiConnectRepository: ConnectRepository {
 
         switch result {
         case .success(let response):
-            return .success(response.leagues.map(\.asOption))
+            let leagues = response.leagues.map(\.asOption)
+            if leagues.isEmpty {
+                switch response.discoveryState {
+                case "espn_listing_pending":
+                    return .failure(.espnListingPending(expected: response.espnNflLeagueCount))
+                case "espn_profile_pending":
+                    return .failure(.espnProfilePending)
+                case "no_football_leagues":
+                    return .failure(.espnNoFootballLeagues)
+                default:
+                    break
+                }
+            }
+            return .success(leagues)
         case .failure(let error):
             // 401 here is ESPN rejecting the session, not the Omen session — the route
             // distinguishes them, and conflating the two would sign the user out of Omen over
@@ -403,6 +416,16 @@ private struct SleeperConnectResponse: Decodable {
 /// `POST /api/platforms/espn/leagues` — labels only, never a credential.
 private struct EspnLeaguesResponse: Decodable {
     let leagues: [League]
+    /// `complete`, `partial`, `espn_listing_pending`, `espn_profile_pending`, `no_football_leagues`,
+    /// `unknown_empty`. Nil from a server that predates it.
+    let discoveryState: String?
+    let espnNflLeagueCount: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case leagues
+        case discoveryState = "discovery_state"
+        case espnNflLeagueCount = "espn_nfl_league_count"
+    }
 
     struct League: Decodable {
         let leagueId: String
@@ -535,6 +558,8 @@ struct StubConnectRepository: ConnectRepository {
     var espnConnectionResult: Result<EspnConnection?, ConnectFailure> = .success(nil)
     var espnConnectResult: Result<Void, ConnectFailure> = .failure(.network)
     var espnDiscoverResult: Result<[EspnLeagueOption], ConnectFailure> = .success([])
+    /// When set, discovery answers these in order (the last one repeats) instead of `espnDiscoverResult`.
+    var espnDiscoverSequence: [Result<[EspnLeagueOption], ConnectFailure>]?
     var espnDiscoverExpectedSwid: String?
     var followResult: Result<Bool, ConnectFailure> = .success(true)
     /// Records every request id the flow sent, so tests can prove idempotency behavior.
@@ -595,6 +620,9 @@ struct StubConnectRepository: ConnectRepository {
     ) async -> Result<[EspnLeagueOption], ConnectFailure> {
         recorder.espnDiscoveries += 1
         if let expected = espnDiscoverExpectedSwid { recorder.espnDiscoverySwidMatched.append(swid == expected) }
+        if let sequence = espnDiscoverSequence, !sequence.isEmpty {
+            return sequence[min(recorder.espnDiscoveries - 1, sequence.count - 1)]
+        }
         return espnDiscoverResult
     }
 

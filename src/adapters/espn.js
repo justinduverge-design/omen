@@ -525,7 +525,8 @@ const SWID_PATTERN = /(\{|%7B)[0-9a-f-]{36}(\}|%7D)/gi;
 function redactEspnPath(path) {
   return String(path || "")
     .split("?")[0]
-    .replace(SWID_PATTERN, "[swid]");
+    .replace(SWID_PATTERN, "[swid]")
+    .replace(/\/leagues\/\d+/g, "/leagues/[id]");
 }
 
 function isEspnReconnectResponse(hostname, status) {
@@ -1413,6 +1414,26 @@ async function fetchEspnFanLeagues(espn_s2, swid, opts = {}) {
   return fanLeaguesFromPreferences(data, opts);
 }
 
+/**
+ * ESPN's own count of the account's football leagues, from `fantasyData.leaguesBySportLeague.NFL`
+ * on the same fan payload. It carries no ids, but it tells "ESPN has not listed this account's
+ * league yet" (count above zero, no team preferences) apart from "this account has no football
+ * league" (count zero). Null when ESPN does not send the field.
+ */
+function espnNflLeagueCount(data) {
+  const raw = data?.fantasyData?.leaguesBySportLeague?.NFL;
+  const count = Number(raw);
+  return raw == null || !Number.isFinite(count) || count < 0 ? null : count;
+}
+
+/** The fan read plus ESPN's own football-league count, for the discovery route's honest answer. */
+async function fetchEspnFanDirectory(espn_s2, swid, opts = {}) {
+  const fanId = encodeURIComponent(swidWithBraces(swid));
+  const path = `/apis/v2/fans/${fanId}?featureFlags=challengeEntries&showAirings=false&source=ESPN.COM&lang=en`;
+  const data = await doEspnRequest(ESPN_FAN_HOSTNAME, path, espn_s2, swid, 3, null);
+  return { leagues: fanLeaguesFromPreferences(data, opts), espn_nfl_league_count: espnNflLeagueCount(data) };
+}
+
 module.exports = {
   redactEspnPath,
   // Exported for scripts/probe-espn-waiver-settings.js (spec Phase 0, ESPN).
@@ -1447,4 +1468,6 @@ module.exports = {
   waiverPoolFromEspnData,
   fanLeaguesFromPreferences,
   fetchEspnFanLeagues,
+  fetchEspnFanDirectory,
+  espnNflLeagueCount,
 };

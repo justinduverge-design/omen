@@ -7,17 +7,10 @@ import SwiftUI
 // `design/native-visual-lock-2026-09-13/` under the 2026-09-18/19 precedence rule — the artboard
 // owns composition, placement, type and tone; `CONTRACTS.md` owns data, vocabulary and state.
 //
-// ## Why these are new compositions rather than edits to `OmenCommandCenterScreen`
-//
-// That screen is the v1.1 assembly built against `omen-mobile-visual-briefs-v1.md`: context
-// strip, matchup hero, widget pager, platform strip. The canvas folder's own README says the
-// card "stays Command Center's until `U3` rebuilds that destination against
-// `CommandCenter.dc.html`". This is that rebuild, and it is a different composition rather than
-// a re-skin — a scoreboard board, a league rail, one waiver card and one ledger line.
-//
-// The old assembly is NOT deleted here. It still serves the carousel account, the platform
-// detail sheets and three screenshot scenarios that certify them, and deleting it to land a
-// journey would take those with it.
+// This is the U3 rebuild against `CommandCenter.dc.html`: a scoreboard board, a league rail,
+// one waiver card and one ledger line. It is the sole Command composition; the earlier v1.1
+// assembly and its reduced state adapters were removed after production, carousel, gallery and
+// screenshot evidence all migrated here.
 //
 // ## The capability contract on a screen with no evidence surface
 //
@@ -1231,7 +1224,9 @@ struct OmenCommandDeskHost: View {
             desk.padding(.bottom, 104)
         }
         .background(OmenColor.bg)
-        .task { await carousel.load(userID: userID) }
+        .task {
+            await carousel.load(userID: userID)
+        }
         .simultaneousGesture(
             DragGesture(minimumDistance: 40).onEnded { value in
                 let dx = value.translation.width
@@ -1243,7 +1238,6 @@ struct OmenCommandDeskHost: View {
         )
         .onChange(of: carousel.selectedIndex) { _, _ in
             Task {
-                await carousel.loadCurrentPage()
                 if let refresh = await carousel.commitSelection() {
                     onContextChanged?(refresh)
                 }

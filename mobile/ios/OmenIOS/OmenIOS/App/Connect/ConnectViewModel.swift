@@ -52,6 +52,12 @@ final class ConnectViewModel: ObservableObject {
     /// MyDisney code straight to discovery) can have a valid session before ESPN's fan directory
     /// knows the account; two attempts one second apart gave up too early. Settable for tests.
     var espnDiscoveryRetryDelay: Duration = .seconds(2)
+    /// While ESPN counts leagues it has not listed yet (a brand-new login), Omen keeps checking
+    /// for longer before it offers the League ID box: up to this many extra attempts, this far apart.
+    static let maxEspnPendingAttempts = 6
+    /// Extra checks when ESPN has no fan profile for the login yet (a 404 that may be permanent).
+    static let maxEspnProfilePendingAttempts = 2
+    var espnPendingRetryDelay: Duration = .seconds(5)
 
     /// How long the cookie jar must hold the same session before Omen first uses it. A first-time
     /// ESPN sign-in lands its cookies in steps (a fresh `espn_s2` can arrive while `SWID` is still
@@ -205,7 +211,7 @@ final class ConnectViewModel: ObservableObject {
 
     /// Matches the backend's `NATIVE_REQUEST_ID_PATTERN` — `[A-Za-z0-9_-]{16,128}`. A UUID with
     /// hyphens stripped is 32 safe characters, comfortably inside the range.
-    static func defaultRequestId() -> String {
+    nonisolated static func defaultRequestId() -> String {
         UUID().uuidString.replacingOccurrences(of: "-", with: "")
     }
 
@@ -340,7 +346,16 @@ final class ConnectViewModel: ObservableObject {
 
         state = .discoveringEspnLeagues
         var finalResult: Result<[EspnLeagueOption], ConnectFailure>?
-        while espnDiscoveryAttempts < Self.maxEspnDiscoveryAttempts {
+        var pendingAttempts = 0
+        var profilePendingOnly = true
+        func attemptsAllowed() -> Int {
+            guard pendingAttempts > 0 else { return Self.maxEspnDiscoveryAttempts }
+            // A missing fan profile may never appear, so it earns a short extension; a counted
+            // league ESPN has not listed yet earns the long one.
+            let extra = profilePendingOnly ? Self.maxEspnProfilePendingAttempts : Self.maxEspnPendingAttempts
+            return Self.maxEspnDiscoveryAttempts + extra
+        }
+        while espnDiscoveryAttempts < attemptsAllowed() {
             guard stillCurrent() else { return }
             espnDiscoveryAttempts += 1
             let result = await repository.discoverEspnLeagues(
@@ -356,8 +371,18 @@ final class ConnectViewModel: ObservableObject {
                 return
             }
             finalResult = result
-            if espnDiscoveryAttempts < Self.maxEspnDiscoveryAttempts {
-                try? await Task.sleep(for: espnDiscoveryRetryDelay)
+            // ESPN knows the account has a league and is still listing it: say so, and keep
+            // checking on a longer clock instead of handing the user a League ID box.
+            if case .failure(.espnListingPending) = result {
+                pendingAttempts += 1
+                profilePendingOnly = false
+                espnCheckNotice = EspnConnectCopy.listingPending
+            } else if case .failure(.espnProfilePending) = result {
+                pendingAttempts += 1
+                if profilePendingOnly { espnCheckNotice = EspnConnectCopy.profilePending }
+            }
+            if espnDiscoveryAttempts < attemptsAllowed() {
+                try? await Task.sleep(for: pendingAttempts > 0 ? espnPendingRetryDelay : espnDiscoveryRetryDelay)
                 guard stillCurrent() else { return }
                 // Read the jar again rather than resend what just failed: if the first pair was
                 // caught mid-update, the same values will fail the same way.
@@ -374,6 +399,12 @@ final class ConnectViewModel: ObservableObject {
         switch finalResult {
         case .some(.success):
             espnCheckNotice = EspnConnectCopy.noLeaguesFound
+        case .some(.failure(.espnListingPending(let expected))):
+            espnCheckNotice = EspnConnectCopy.listingStillPending(expected)
+        case .some(.failure(.espnProfilePending)):
+            espnCheckNotice = EspnConnectCopy.profileStillPending
+        case .some(.failure(.espnNoFootballLeagues)):
+            espnCheckNotice = EspnConnectCopy.noFootballLeagues
         case .some(.failure), .none:
             espnCheckNotice = EspnConnectCopy.discoveryUnavailable
         }

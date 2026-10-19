@@ -40,3 +40,17 @@ test("an indexed player is not looked up by name; an unindexed one is", async ()
   assert.equal(out.size, 2);
   assert.ok(calls.includes("warehouse-sight-read-hint-v2"));
 });
+
+test("more players than one query holds are read in batches, none dropped", async () => {
+  const sizes = [];
+  const query = async (q) => {
+    if (q.name !== "warehouse-sight-read-v2") return { rows: [] };
+    const keys = q.values[0].map((r) => r.key ?? r);
+    sizes.push(q.values[0].length);
+    return { rows: keys.map((key) => ({ key: String(key), season: 2026, week: 6, value: 5, components: {} })) };
+  };
+  const playerKeys = Array.from({ length: 639 }, (_, i) => `sleeper:${1000 + i}`);
+  const out = await createWarehouseSightRepository({ query }).readSight({ playerKeys, version: "v2" });
+  assert.deepEqual(sizes, [400, 239]);
+  assert.equal(out.size, 639);
+});

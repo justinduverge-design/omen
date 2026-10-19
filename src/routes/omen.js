@@ -6,6 +6,7 @@ const responseCache = require("../services/responseCache");
 const config = require("../config");
 const { requireAuth } = require("../middleware/auth");
 const { sharedNarrationGuard } = require("../services/narrationBudget");
+const { sharedNarrationCache } = require("../services/narrationCache");
 const { logger } = require("../middleware/logging");
 const { withSpan } = require("../services/telemetry");
 const { LIVE_CONTRACT_VERSION } = require("../services/systemContracts");
@@ -24,6 +25,7 @@ const { scoringCoverageCapability, waiverCapability } = require("../services/wai
 const {
   applyDvpContext,
   applyMvpLlmNarration,
+  buildMvpLlmPayload,
   generateMvpLlmNarration,
   resolveMvpDvpContext,
 } = require("../services/mvpEvidenceEnrichment");
@@ -516,6 +518,23 @@ async function enrichWithDvp(response, body, { explicitMock = false } = {}) {
 // Bodies whose narration fell back because of a timeout, error or open breaker.
 const narrationFellBack = new WeakSet();
 
+async function waitForNarration(pending, budgetMs) {
+  let timer = null;
+  const timedOut = Symbol("timeout");
+  try {
+    const value = await Promise.race([
+      pending,
+      new Promise((resolve) => {
+        timer = setTimeout(() => resolve(timedOut), budgetMs);
+      }),
+    ]);
+    if (value === timedOut) return { status: "timeout" };
+    return value ? { status: "ok", value } : { status: "empty" };
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 async function enrichWithLlm(response, body, options) {
   if (!includeLlmReasoning(body, options)) return response;
   if (LLM_BLOCKED_STATES.has(response.state)) return response;
@@ -524,11 +543,29 @@ async function enrichWithLlm(response, body, options) {
   // Per-call budget + process-wide breaker (narrationBudget.js). Never throws:
   // timeout/skip fall back to the "unavailable" state, other failures leave the
   // deterministic template exactly as before.
-  const outcome = await sharedNarrationGuard.run("omen", MVP_LATENCY_BUDGET_MS.llm_narration, () =>
-    withSpan("omen.llm.enrich", () =>
-      generateMvpLlmNarration(response, { timeoutMs: MVP_LATENCY_BUDGET_MS.llm_narration }),
-    ),
-  );
+  // Narration is generated once per set of decision facts, in the background (narrationCache.js),
+  // through the breaker with a long timeout. A cached narration answers at once; otherwise the
+  // request waits only while the host has been finishing inside the budget, so a slow model host
+  // costs no request time, and the next view of the same move gets the narration.
+  const budgetMs = MVP_LATENCY_BUDGET_MS.llm_narration;
+  const key = sharedNarrationCache.keyFor(buildMvpLlmPayload(response));
+  const cached = sharedNarrationCache.get(key);
+  let outcome;
+  if (cached) {
+    outcome = { status: "ok", value: cached };
+  } else if (sharedNarrationGuard.state() === "open") {
+    outcome = { status: "skipped" };
+  } else {
+    const wait = sharedNarrationCache.hostFitsBudget(budgetMs);
+    const snapshot = structuredClone(response);
+    const pending = sharedNarrationCache.generate(key, async (timeoutMs) => {
+      const result = await sharedNarrationGuard.run("omen", timeoutMs, () =>
+        withSpan("omen.llm.enrich", () => generateMvpLlmNarration(snapshot, { timeoutMs })),
+      );
+      return result.status === "ok" ? result.value : null;
+    });
+    outcome = wait ? await waitForNarration(pending, budgetMs) : { status: "skipped" };
+  }
   if (outcome.status === "timeout" || outcome.status === "skipped" || outcome.status === "error") {
     // omenMoveVerdict ignores llm_reasoning, so a breaker/timeout fallback would
     // otherwise be cached for the full TTL. Keep it out of the response cache.

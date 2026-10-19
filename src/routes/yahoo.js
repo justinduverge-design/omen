@@ -14,6 +14,7 @@
  */
 
 const express = require("express");
+const sharedLeagueReads = require("../services/yahooLeagueReads");
 const crypto = require("crypto");
 const { createClient } = require("@supabase/supabase-js");
 const responseCache = require("../services/responseCache");
@@ -24,9 +25,13 @@ const { ensureAppUser } = require("../services/appUser");
 const { getYahooAuthUrl, exchangeYahooCode } = require("../middleware/yahooOAuth");
 const { getAuthenticatedYahooClient, persistYahooTokens } = require("../services/yahooAuth");
 const leagueMemberships = require("../services/leagueMemberships");
+const { withinLatencyBudget } = require("../services/latencyBudget");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
+// The membership write runs after the redirect, so nothing waits on it. The budget does not cancel
+// a hung Yahoo read; it bounds how long until the failure is logged. The next directory read repairs it.
+const MEMBERSHIP_WRITE_BUDGET_MS = 30_000;
 const NATIVE_RETURN_VERIFIER_PREFIX = "omen-native-return-v1:";
 const NATIVE_CALLBACK_URL = "com.slopssaloon.omen://auth/callback";
 
@@ -114,18 +119,25 @@ router.post("/auth", requireAuth, requireYahooEnabled, async (req, res, next) =>
  * read repairs the memberships). The league id from the OAuth state is client-supplied, so it is
  * written only if Yahoo lists it or Yahoo cannot be asked. Logs carry no token.
  */
+function readYahooLeaguesShared(userId) {
+  return sharedLeagueReads.readYahooLeaguesShared(userId, async () => {
+    const { client } = await getAuthenticatedYahooClient(userId);
+    const leagues =
+      typeof client.getUserLeaguesWithTeams === "function"
+        ? await client.getUserLeaguesWithTeams()
+        : await client.getUserLeagues();
+    return leagues || [];
+  });
+}
+
 async function writeYahooMemberships(userId, leagueId) {
   const result = await leagueMemberships.syncAfterConnect(supabase, {
     userId,
     platform: "yahoo",
     boundLeagueId: leagueId,
     discover: async () => {
-      const { client } = await getAuthenticatedYahooClient(userId);
-      const leagues =
-        typeof client.getUserLeaguesWithTeams === "function"
-          ? await client.getUserLeaguesWithTeams()
-          : await client.getUserLeagues();
-      return (leagues || []).map((league) => ({
+      const leagues = await readYahooLeaguesShared(userId);
+      return leagues.map((league) => ({
         league_id: league.league_id,
         league_name: league.name || null,
         season: league.season,
@@ -173,13 +185,25 @@ router.get("/callback", async (req, res, next) => {
     }
 
     const tokens = await exchangeYahooCode(code);
-    await responseCache.invalidateUser(oauthRow.user_id);
     await persistYahooTokens(oauthRow.user_id, tokens, leagueId);
-    await writeYahooMemberships(oauthRow.user_id, leagueId);
-    await responseCache.invalidateUser(oauthRow.user_id);
-    await supabase.from("oauth_state").delete().eq("state", state);
+    // New tokens may belong to a different Yahoo account: never answer from the old read.
+    sharedLeagueReads.clearYahooLeagueReads(oauthRow.user_id);
+    await Promise.all([
+      responseCache.invalidateUser(oauthRow.user_id),
+      supabase.from("oauth_state").delete().eq("state", state),
+    ]);
 
-    return res.redirect(oauthCompletionRedirect(nativeReturn, "connected"));
+    // Back to the app as soon as the tokens are stored. Memberships are written after the
+    // redirect: they never failed the callback anyway, and the next directory read repairs them.
+    res.redirect(oauthCompletionRedirect(nativeReturn, "connected"));
+    const userId = oauthRow.user_id;
+    readYahooLeaguesShared(userId).catch(() => {}); // start the shared read now, before the app asks
+    withinLatencyBudget("yahoo_membership_write", MEMBERSHIP_WRITE_BUDGET_MS, () =>
+      writeYahooMemberships(userId, leagueId),
+    )
+      .then(() => responseCache.invalidateUser(userId))
+      .catch((err) => logger.warn("Yahoo membership write after connect failed", { err: err?.message || "failure" }));
+    return;
   } catch (e) {
     logger.error("Yahoo OAuth callback failed", { err: e.message });
     return next(e);
@@ -226,8 +250,7 @@ router.get("/access-probe", requireAuth, async (req, res) => {
 
 router.get("/leagues", requireAuth, async (req, res, next) => {
   try {
-    const { client } = await getAuthenticatedYahooClient(req.user.id);
-    const leagues = await client.getUserLeagues();
+    const leagues = await readYahooLeaguesShared(req.user.id);
     res.json({ leagues });
   } catch (e) {
     if (e.message === "yahoo_token_expired") {
@@ -280,3 +303,4 @@ router.post("/league", requireAuth, responseCache.invalidateUserCacheOnWrite, as
 });
 
 module.exports = router;
+module.exports.readYahooLeaguesShared = readYahooLeaguesShared;

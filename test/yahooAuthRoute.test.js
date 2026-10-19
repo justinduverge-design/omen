@@ -98,11 +98,13 @@ function loadYahooRouter({
     discoveryFailed: false,
     discoveryStatus: null,
   },
+  membershipSync = null,
 } = {}) {
   const routePath = require.resolve("../src/routes/yahoo");
   const authPath = require.resolve("../src/middleware/auth");
   delete require.cache[routePath];
   delete require.cache[authPath];
+  delete require.cache[require.resolve("../src/services/yahooLeagueReads")];
 
   const state = {
     authTokens: [],
@@ -175,6 +177,7 @@ function loadYahooRouter({
       return {
         syncAfterConnect: async (_supabase, args) => {
           state.membershipSyncs.push(args);
+          if (membershipSync) return membershipSync(args);
           return membershipResult;
         },
       };
@@ -691,4 +694,42 @@ test("the Yahoo callback stays reachable so an in-flight consent cannot strand",
 
   // Any status except the gate's 503 proves the callback was not gated.
   assert.notEqual(res.status, 503);
+});
+
+test("GET /api/yahoo/callback returns to the app before the membership write finishes", async () => {
+  let release;
+  const held = new Promise((resolve) => (release = resolve));
+  const { app, state } = buildApp({
+    oauthRows: [{ ...VALID_OAUTH_ROW }],
+    getAuthenticatedYahooClient: async () => ({ client: { getUserLeaguesWithTeams: async () => [] } }),
+    membershipSync: async () => {
+      await held; // a slow Yahoo league read and membership write
+      return { persisted: true, discoveryFailed: false };
+    },
+  });
+  const res = await request(app, "/api/yahoo/callback?code=code&state=valid-state");
+  assert.equal(res.status, 302, "the redirect must not wait for memberships");
+  assert.equal(state.persists.length, 1, "tokens are stored before the redirect");
+  assert.equal(state.membershipSyncs.length, 1, "memberships were still started");
+  release();
+});
+
+test("the league read after a connect is shared, so Yahoo is asked once", async () => {
+  let reads = 0;
+  const yahooClient = {
+    getUserLeaguesWithTeams: async () => {
+      reads += 1;
+      return [{ league_id: "449.l.1", name: "Work League", season: 2026, team_id: "7", team_name: "Desk Jockeys" }];
+    },
+  };
+  const { app, state } = buildApp({
+    oauthRows: [{ ...VALID_OAUTH_ROW }],
+    getAuthenticatedYahooClient: async () => ({ client: yahooClient }),
+  });
+  await request(app, "/api/yahoo/callback?code=code&state=valid-state");
+  await state.membershipSyncs[0].discover(2026);
+  const res = await request(app, "/api/yahoo/leagues", { headers: { authorization: "Bearer valid-token" } });
+  assert.equal(res.status, 200);
+  assert.equal(res.body.leagues[0].team_id, "7", "the shared read carries team ids");
+  assert.equal(reads, 1);
 });

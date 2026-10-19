@@ -6,6 +6,7 @@
 // only: no user, league or roster context reaches the warehouse.
 
 const MAX_REFS = 400;
+const { resolveForecastAuthority } = require("../forecastAuthority");
 
 /** "yahoo:470.p.30123" -> { provider: "yahoo", providerId: "30123" }; the index keeps Yahoo's numeric id. */
 // Fantasy defenses: Sleeper "PHI", ESPN "-16012", Yahoo "100033" (team_ids, kind 'defense').
@@ -89,17 +90,72 @@ function createWarehouseSightRepository({ query, timeoutMs = 2_000, now = () => 
     };
     return byes.map;
   }
-  return {
+  const repository = {
+    /** One evaluated authority receipt per requested position. Missing/legacy evidence resolves closed. */
+    async readAuthority({ positions, version = "v1", now = new Date() }) {
+      const wanted = [
+        ...new Set(
+          (Array.isArray(positions) ? positions : [])
+            .map((position) => String(position || "").toUpperCase())
+            .filter((position) => /^(QB|RB|WR|TE|K|DEF)$/.test(position)),
+        ),
+      ];
+      if (!wanted.length || !/^v[0-9]{1,3}$/.test(version)) return new Map();
+      const result = await query({
+        name: "warehouse-sight-authority-read-v1",
+        text: `
+          WITH latest_season AS (
+            SELECT MAX(season) AS season
+              FROM football.football_metric_runs
+             WHERE metric_name = 'omen_sight_accuracy' AND formula_version = $1 AND state = 'succeeded'
+               AND parameters ? 'summary'
+          )
+          SELECT season, week, finished_at, parameters->'summary' AS summary
+            FROM football.football_metric_runs AS runs
+            JOIN latest_season USING (season)
+           WHERE runs.metric_name = 'omen_sight_accuracy' AND runs.formula_version = $1 AND runs.state = 'succeeded'
+             AND runs.parameters ? 'summary'
+           ORDER BY season DESC, week DESC
+           LIMIT 36`,
+        values: [version],
+        query_timeout: timeoutMs,
+      });
+      const evaluations = result?.rows || [];
+      return new Map(
+        wanted.map((position) => [
+          position,
+          resolveForecastAuthority({
+            position,
+            modelVersion: version,
+            evaluations,
+            now,
+          }),
+        ]),
+      );
+    },
     /** Map(app player key -> sight block). Players Sight has no read for are absent. */
     async readSight({ playerKeys, version = "v1", hints = null }) {
-      const refs = [
+      const allRefs = [
         ...new Map(
           (Array.isArray(playerKeys) ? playerKeys : [])
             .map(parseRef)
             .filter(Boolean)
             .map((r) => [r.key, r]),
         ).values(),
-      ].slice(0, MAX_REFS);
+      ];
+      if (!/^v[0-9]{1,3}$/.test(version)) return new Map();
+      // One query reads at most MAX_REFS players; a bigger set (every roster in a large league)
+      // is read in batches rather than silently cut off.
+      if (allRefs.length > MAX_REFS) {
+        const batches = [];
+        for (let i = 0; i < allRefs.length; i += MAX_REFS) batches.push(allRefs.slice(i, i + MAX_REFS));
+        const reads = await Promise.all(
+          batches.map((batch) => repository.readSight({ playerKeys: batch.map((r) => r.key), version, hints })),
+        );
+        const merged = new Map(reads.flatMap((read) => [...read]));
+        return merged;
+      }
+      const refs = allRefs;
       if (!/^v[0-9]{1,3}$/.test(version)) return new Map();
       const result = !refs.length
         ? { rows: [] }
@@ -254,6 +310,7 @@ function createWarehouseSightRepository({ query, timeoutMs = 2_000, now = () => 
       return out;
     },
   };
+  return repository;
 }
 
 module.exports = { createWarehouseSightRepository, parseRef, parseDefenseRef, hintOf, normalName };

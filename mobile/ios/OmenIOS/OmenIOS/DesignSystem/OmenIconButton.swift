@@ -20,8 +20,10 @@ struct OmenIconButton: View {
     var size: OmenIconButtonSize = .md
     var enabled: Bool = true
     var loading: Bool = false
+    var haptic: OmenHaptic = .lightImpact
 
     @FocusState private var isFocused: Bool
+    @Environment(\.omenHaptics) private var haptics
 
     private var isInteractable: Bool { enabled && !loading }
 
@@ -51,7 +53,10 @@ struct OmenIconButton: View {
     }
 
     var body: some View {
-        Button(action: action) {
+        Button(action: {
+            haptics.play(haptic)
+            action()
+        }) {
             Group {
                 if loading {
                     ProgressView()
@@ -93,8 +98,9 @@ private struct OmenIconButtonPressableStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .opacity(configuration.isPressed ? 0.84 : 1)
+            .opacity(configuration.isPressed ? 0.88 : 1)
             .scaleEffect(configuration.isPressed && !reduceMotion ? 0.94 : 1)
+            .brightness(configuration.isPressed ? -0.06 : 0)
             .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }

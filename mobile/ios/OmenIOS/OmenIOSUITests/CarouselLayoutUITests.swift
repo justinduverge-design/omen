@@ -128,7 +128,9 @@ final class CarouselLayoutUITests: XCTestCase {
         // scoped-failure rule regressed the carousel would be mostly dead while Sleeper and
         // Yahoo were perfectly readable.
         let app = launch("command-center.carousel-provider-down")
-        let failure = app.staticTexts["This league didn't load"]
+        let failure = app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS %@", "This league didn't load")
+        ).firstMatch
         XCTAssertTrue(
             failure.waitForExistence(timeout: 15),
             "The per-page failure surface never appeared — a failing provider should say so on its own page."

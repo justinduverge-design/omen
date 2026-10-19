@@ -100,6 +100,54 @@ final class J4InteractionUITests: XCTestCase {
         app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", fragment)).firstMatch
     }
 
+    // MARK: - Find a Trade review
+
+    func testFindReviewKeepsVisibleButtonAlternativesAndPersistsASave() {
+        let app = launch("trade.find-review")
+        app.swipeUp()
+        app.swipeUp()
+        let pass = app.buttons["PASS ON THIS CANDIDATE"]
+        let save = app.buttons["SAVE THIS CANDIDATE FOR LATER"]
+
+        assertTappable(pass, "the visible Pass alternative")
+        assertTappable(save, "the visible Save alternative")
+        save.tap()
+
+        XCTAssertTrue(
+            app.buttons["SAVED"].waitForExistence(timeout: 5),
+            "the save action never resolved into its local Saved state"
+        )
+        XCTAssertTrue(
+            text(containing: "Davante's Inferno", in: app).exists,
+            "saving unexpectedly advanced or removed the candidate"
+        )
+    }
+
+    func testFindReviewPassButtonAndSwipeLeftHaveTheSameOutcome() {
+        var app = launch("trade.find-review")
+        app.swipeUp()
+        app.swipeUp()
+        let pass = app.buttons["PASS ON THIS CANDIDATE"]
+        assertTapDoesNotBreak(pass, app)
+        XCTAssertTrue(
+            text(containing: "That's everyone this week", in: app).waitForExistence(timeout: 5),
+            "the Pass button did not exhaust the one-card fixture"
+        )
+        app.terminate()
+
+        app = launch("trade.find-review")
+        let cardText = text(containing: "Davante's Inferno", in: app)
+        XCTAssertTrue(cardText.waitForExistence(timeout: 10), "the swipe card did not load")
+        let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.82, dy: 0.52))
+        let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.18, dy: 0.52))
+        start.press(forDuration: 0.08, thenDragTo: end)
+
+        XCTAssertTrue(
+            text(containing: "That's everyone this week", in: app).waitForExistence(timeout: 5),
+            "swipe-left did not produce the same Pass outcome as the visible button"
+        )
+    }
+
     // MARK: - E017, on every screen that carries it
 
     /// The header slot carries **both** controls, help then account, on all five screens.
@@ -123,6 +171,25 @@ final class J4InteractionUITests: XCTestCase {
             assertTappable(app.buttons["Account and profile"], "\(scenario): account control")
             app.terminate()
         }
+    }
+
+    /// Clipboard work used to complete with no visible response. The control now resolves in
+    /// place so sighted users and VoiceOver both receive confirmation independent of haptics.
+    func testCopyAsTextConfirmsCompletionInPlace() {
+        let app = launch("journey-j4.nominal.04-trade-share")
+        let copy = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "Copy as text")
+        ).firstMatch
+
+        for _ in 0..<3 where !copy.exists { app.swipeUp() }
+        assertTappable(copy, "Copy as text")
+        copy.tap()
+
+        XCTAssertTrue(
+            app.buttons.matching(NSPredicate(format: "label ==[c] %@", "Copied")).firstMatch
+                .waitForExistence(timeout: 3),
+            "the clipboard action completed without visible confirmation"
+        )
     }
 
     // MARK: - TradeBuild
@@ -296,19 +363,16 @@ final class J4InteractionUITests: XCTestCase {
     func testShareNamesAreOffByDefaultAndTheCardCarriesTheCaveat() {
         let app = launch("journey-j4.nominal.04-trade-share")
 
-        let names = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Team names")).firstMatch
-        assertTappable(names, "the team-names toggle")
-        // The state is read off the **label**, not off `value`.
-        //
-        // `OmenTradeShareToggleRow` sets `.accessibilityValue(isOn ? "On" : "Off")`, and SwiftUI
-        // folds that into the element's label rather than exposing it as `XCUIElement.value` —
-        // the first run of this test read `value` and got `""`. The label is what a VoiceOver
-        // user actually hears, so it is also the honest thing to assert on, and the sighted
-        // reader gets the same word rendered in the row (D7: never colour alone).
-        XCTAssertTrue(
-            (names.label as String).hasSuffix(", Off"),
-            "team names are not off by default — the row reads: \(names.label)"
-        )
+        let names = app.switches.matching(NSPredicate(format: "label BEGINSWITH %@", "Team names")).firstMatch
+        XCTAssertTrue(names.waitForExistence(timeout: 3), "the native team-names switch never appeared")
+        XCTAssertTrue(names.isHittable, "the native team-names switch is not hittable")
+        // UISwitch exposes its control glyph (about 37pt high) as the accessibility frame even
+        // when the surrounding SwiftUI Toggle row provides the 44pt minimum hit target. The old
+        // button-shaped control used a full-row accessibility frame, so assertTappable's height
+        // check is not a valid requirement for this native control.
+        // The iOS 27 physical-device bridge omits XCUIElement.value for this SwiftUI Toggle,
+        // but it does expose the native selection trait. False is the privacy-safe default.
+        XCTAssertFalse(names.isSelected, "team names are not off by default")
 
         // The caveat travels ON the card, not only on the screen. A shared read that drops it is
         // the one that ends up in a group chat claiming more than Omen said.

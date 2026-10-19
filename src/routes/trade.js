@@ -539,6 +539,24 @@ function handleStorageError(res, error) {
   return false;
 }
 
+// Yahoo names a team two ways: the league directory sends the bare team number ("4") while the roster
+// read keys teams as "461.l.1234567.t.4". A strict compare matched nothing, so Build a Trade on Yahoo
+// showed an empty own side with status "ok". Compare the team number when either side is a Yahoo key.
+function sameTeamId(a, b) {
+  if (a == null || b == null) return false;
+  const left = String(a);
+  const right = String(b);
+  if (left === right) return true;
+  const number = (id) => /(?:^|\.t\.)([0-9]+)$/.exec(id)?.[1] ?? null;
+  const yahooKey = /\.t\.[0-9]+$/;
+  const leftKey = yahooKey.test(left);
+  const rightKey = yahooKey.test(right);
+  if (!leftKey && !rightKey) return false;
+  // Two full keys must match exactly: "461.l.1.t.4" and "461.l.2.t.4" are different teams.
+  if (leftKey && rightKey) return false;
+  return number(left) != null && number(left) === number(right);
+}
+
 function createTradeRouter({
   tradeShareStore = createDefaultTradeShareStore(),
   generateHash = () => crypto.randomUUID(),
@@ -792,7 +810,7 @@ function createTradeRouter({
       }
 
       const teamId = req.query.team_id == null ? null : String(req.query.team_id);
-      const teams = teamId ? result.teams.filter((team) => team.team_id === teamId) : result.teams;
+      const teams = teamId ? result.teams.filter((team) => sameTeamId(team.team_id, teamId)) : result.teams;
 
       await attachSight(teams);
       return res.json({
@@ -1127,6 +1145,9 @@ function createTradeRouter({
         degraded_teams: scan.degraded_teams,
         budget_exceeded: scan.budget_exceeded,
         own_needs: scan.own_needs,
+        // Zero candidates always says why (Build 12 contract: a candidate or a precise terminal reason).
+        empty_reason: scan.empty_reason ?? null,
+        search_funnel: scan.search_funnel ?? null,
         projection_coverage: coverage,
         ...(await withUsageEvidence(
           await keepShownBatch({
@@ -1256,7 +1277,7 @@ function createTradeRouter({
       if (result.status !== "ok") {
         return { status: "unknown", reason: "insufficient_context_for_staleness_check" };
       }
-      const ownTeam = result.teams.find((team) => team.team_id === String(teamId));
+      const ownTeam = result.teams.find((team) => sameTeamId(team.team_id, teamId));
       if (!ownTeam) {
         return { status: "unknown", reason: "insufficient_context_for_staleness_check" };
       }
@@ -1924,6 +1945,7 @@ module.exports.verdictStateFor = verdictStateFor;
 module.exports.TRADE_COMPARE_CONTRACT = TRADE_COMPARE_CONTRACT;
 module.exports.attachTradeDecisionReceipt = attachTradeDecisionReceipt;
 module.exports.validateLegs = validateLegs;
+module.exports.sameTeamId = sameTeamId;
 module.exports.uniqueTeamIdsFromLegs = uniqueTeamIdsFromLegs;
 module.exports.acceptanceLikelihoodFor = acceptanceLikelihoodFor;
 module.exports.overallEvaluabilityAcrossParticipants = overallEvaluabilityAcrossParticipants;
