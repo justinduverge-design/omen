@@ -14,6 +14,32 @@ The canvas is a proposal until the founder approves it, and these frames have be
 - **Sign in:** Apple, Google, Discord and email (passkeys keep their existing offer sheet).
 - **Leftovers:** any component on a live screen with no frame here is removed. List each removal in the PR.
 
+## Sight and the warehouse on every screen (founder, 2026-10-19: "they were made for this")
+
+Omen's own read (wire key `sight`, always shown as **Omen's read**, never "Sight") and the warehouse's
+evidence are what make Omen more than a provider mirror. Every screen that shows a player shows them.
+
+- **Server side, already sent:**
+  - `sightEnrichment.js` attaches `sight` (points, grade, drivers, authority receipt, crosswind) to every
+    player object in Start/Sit, Waivers, Trade Find/Compare and League rosters.
+  - The decision brief carries the authority receipt and football-intelligence signals.
+- **Shared app pieces:**
+  - Decode `sight` once, as `OmenDecision.Player.OmenRead`, and reuse it in every contract.
+  - One `OmenReadTag` component: Omen's points, then the provider's points, then a crosswind mark when
+    the gap clears the threshold.
+- **Where it shows:**
+  - **Omen call** and **argument:** the Leading read card (already built), crosswind, drivers as
+    portents, and the receipt from `authority`.
+  - **Waivers:** each add and drop shows Omen's read beside the provider projection. "Omen rates
+    strong" is the reason a drop is refused.
+  - **Trade Find and verdict:** each player on both sides shows Omen's read. The lineup gain says
+    which read led.
+  - **League Needs:** "who needs what you have" ranks by Omen's read.
+  - **Warehouse evidence:** usage share, role change, injuries, Vegas and weather appear as portents
+    wherever the server sends them. Missing evidence is fog, never zero.
+- **Rule:** the app never picks a winner itself. The server's `authority.state` decides
+  `provider_leads`, `omen_leads` or `unresolved_tie`.
+
 ## Tokens
 
 The same roles in both modes. Map them onto `DesignSystem/OmenColor.swift` by role, and add the light values. Never put a hex value in a screen.
