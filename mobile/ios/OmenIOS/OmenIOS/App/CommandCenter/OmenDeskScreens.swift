@@ -1023,10 +1023,8 @@ extension OmenDeskState {
         else {
             return .unread(
                 capability: "League matchup",
-                // The server's own reason, rendered verbatim. A client-authored explanation
-                // would be a guess at someone else's failure.
-                sentence: overview.matchup.unavailableReason
-                    ?? "The provider did not return this week's matchup. Everything else below read normally."
+                // `unavailable_reason` is a code, never copy: the shared mapping says it in words.
+                sentence: OmenScoutTableState.matchupReasonSentence(overview.matchup)
             )
         }
 

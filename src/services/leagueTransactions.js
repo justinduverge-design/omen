@@ -249,12 +249,6 @@ function parseYahooTransactions(raw) {
 // ESPN
 // ---------------------------------------------------------------------------------------------
 
-/**
- * ESPN `view=mTransactions2` -> feed items. Community-documented layout: `transactions[]` with
- * `type` (FREEAGENT | WAIVER | TRADE_ACCEPT | ...), `status` (EXECUTED), `teamId`, `proposedDate`
- * / `processDate` (ms), `scoringPeriodId`, `items[] { type: ADD | DROP | TRADE, playerId,
- * fromTeamId, toTeamId }`. ESPN returns player ids only, so `name` stays null. Not exercised live.
- */
 /** Sleeper's player list carries each player's ESPN id: espn id -> { name, position, nfl_team }. */
 function espnNamesFromSleeperPlayers(players) {
   const byEspnId = new Map();
@@ -267,6 +261,12 @@ function espnNamesFromSleeperPlayers(players) {
   return byEspnId;
 }
 
+/**
+ * ESPN `view=mTransactions2` -> feed items. Community-documented layout: `transactions[]` with
+ * `type` (FREEAGENT | WAIVER | TRADE_ACCEPT | ...), `status` (EXECUTED), `teamId`, `proposedDate`
+ * / `processDate` (ms), `scoringPeriodId`, `items[] { type: ADD | DROP | TRADE, playerId,
+ * fromTeamId, toTeamId }`. ESPN returns player ids only; names come from `espnNames` (Sleeper's ESPN ids). Exercised live 2026-10-19.
+ */
 function parseEspnTransactions(data, { teamNames = {}, espnNames = new Map() } = {}) {
   const items = [];
   for (const row of Array.isArray(data?.transactions) ? data.transactions : []) {
