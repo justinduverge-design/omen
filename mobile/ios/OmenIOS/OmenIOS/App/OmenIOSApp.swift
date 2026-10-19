@@ -14,6 +14,8 @@ struct OmenIOSApp: App {
         // O6 proof hook. Runs immediately after install so the handler is already armed, and
         // only when the launch argument is present.
         CrashReporting.crashIfRequested()
+        // Apple's launch, hang, memory and crash reports from real phones; stored on device only.
+        OmenMetricKitRecorder.shared.install()
 
         let sessionStore: SecureSessionStore = KeychainSessionStore()
         let manager = SessionManager(store: sessionStore)

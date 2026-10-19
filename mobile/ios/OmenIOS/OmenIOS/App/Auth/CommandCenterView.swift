@@ -219,6 +219,7 @@ struct CommandCenterView: View {
                         onOpenLedger: nil,
                         onReportProblem: { reportingScreen = .commandCenter }
                     )
+                    .omenScreenReady("desk")
                 } else if case .failed(let directoryError) = leagueCarouselViewModel.contextResolution {
                     VStack(alignment: .leading, spacing: OmenSpacing.step16) {
                         OmenStateSurface(
@@ -282,6 +283,7 @@ struct CommandCenterView: View {
                     OmenNoLeagueScreen(
                         onConnect: { showConnectSheet = true }
                     )
+                    .omenScreenReady("no-league")
                 } else if let quietState = commandCenterViewModel.quietWeekState {
                     // `quiet-week.v1`. Server-owned eligibility and variant — this only
                     // renders once the route has answered `eligible: true` with copy this
@@ -290,6 +292,7 @@ struct CommandCenterView: View {
                         state: quietState,
                         onOpenAccount: { showAccountSheet = true }
                     )
+                    .omenScreenReady("desk-quiet")
                 } else if let deskState = commandCenterViewModel.deskState(
                     railCount: leagueCarouselViewModel.pages.count,
                     railIndex: leagueCarouselViewModel.selectedIndex
@@ -348,6 +351,7 @@ struct CommandCenterView: View {
                     onReviewTrade: { reviewTradeCall($0) },
                     onFindOtherTrades: { findOtherTrades() }
                 )
+                .omenScreenReady("omen-decision")
             }
             .task {
                 omenDecisionViewModel.onConnect = { showConnectSheet = true }
@@ -387,6 +391,7 @@ struct CommandCenterView: View {
                             onPrimaryAction: { tradeViewModel.dismissVerdict() },
                             onShare: { showTradeShareSheet = true }
                         )
+                        .omenScreenReady("trade-verdict")
                     case .needsContext(let state):
                         OmenTradeNeedsContextScreen(
                             state: state,
@@ -394,6 +399,7 @@ struct CommandCenterView: View {
                             onConnect: { showConnectSheet = true },
                             onShowAnyway: { tradeViewModel.dismissVerdict() }
                         )
+                        .omenScreenReady("trade-needs-context")
                     }
                 } else {
                     OmenTradeModeContainer(selectedMode: $selectedTradeMode) { mode in
@@ -431,6 +437,7 @@ struct CommandCenterView: View {
                                 capabilities: tradeViewModel.capabilities,
                                 prefill: tradeViewModel.prefill
                             )
+                            .omenScreenReady("trade")
                         }
                     }
                     .task { await tradeViewModel.loadCapabilities() }
@@ -470,6 +477,7 @@ struct CommandCenterView: View {
                                 }
                             }
                         )
+                        .omenScreenReady("trade-share")
                     }
                 }
             }
@@ -507,6 +515,7 @@ struct CommandCenterView: View {
                     waiverSummary: commandCenterViewModel.waiverAnalysis?.scoutSummary
                         ?? OmenLeagueScreen.waiverUnread
                 )
+                .omenScreenReady("league")
             }
             .task { await loadLeagueForSelectedContext() }
             .tabItem { CommandCenterTab.league.label }
