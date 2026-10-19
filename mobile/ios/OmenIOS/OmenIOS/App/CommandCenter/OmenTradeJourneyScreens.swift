@@ -1502,17 +1502,20 @@ enum OmenTradeAnswer: Equatable {
     /// render the same "both sides, always" block on `TradeBuild` before a verdict exists.
     static func sides(of offer: TradeOffer, compare: TradeCompare? = nil) -> [OmenTradeSide] {
         [
-            OmenTradeSide(heading: "You send", legs: offer.send.map { leg($0, .sending, omen: compare?.omenPoints(for: $0)) }),
-            OmenTradeSide(heading: "You receive", legs: offer.receive.map { leg($0, .receiving, omen: compare?.omenPoints(for: $0)) })
+            OmenTradeSide(heading: "You send", legs: offer.send.map { leg($0, .sending, compared: compare?.compared($0)) }),
+            OmenTradeSide(heading: "You receive", legs: offer.receive.map { leg($0, .receiving, compared: compare?.compared($0)) })
         ]
     }
 
     /// `rank` is always nil on a live offer, and that is correct rather than missing: the offer
     /// carries names and positions, and `trade-compare.v2` returns no per-player rank. A rank
     /// composed here would be a number Omen never computed.
-    private static func leg(_ player: TradePlayer, _ direction: OmenTradeLeg.Direction, omen: Double? = nil) -> OmenTradeLeg {
-        // Omen's read joins the meta line when the verdict carries one. Absent stays absent.
-        let omenLabel = omen.map { "Omen \(String(format: "%.1f", $0))" }
+    private static func leg(_ player: TradePlayer, _ direction: OmenTradeLeg.Direction, compared: TradeCompare.ComparedPlayer? = nil) -> OmenTradeLeg {
+        // Real numbers and Omen's read join the meta line when the verdict carries them.
+        let ppg = compared?.stats?.pointsPerGame.map { "\(String(format: "%.1f", $0)) PPG" }
+        let omen = compared?.omenRead?.points.map { "Omen \(String(format: "%.1f", $0))" }
+        let grade = compared?.rating?.rating.map { "\(compared?.rating?.title ?? OmenPlayerRating.familyName) \(String(format: "%.1f", $0))" }
+        let omenLabel = [ppg, grade, omen].compactMap { $0 }.joined(separator: " · ").nonEmptyTradeLabel
         return OmenTradeLeg(
             direction: direction,
             name: player.name,
@@ -1576,4 +1579,9 @@ enum OmenTradeAnswer: Equatable {
         }
         return OmenTradeLeg(direction: direction, name: player.name, meta: meta, rank: nil)
     }
+}
+
+
+private extension String {
+    var nonEmptyTradeLabel: String? { isEmpty ? nil : self }
 }

@@ -109,28 +109,34 @@ struct TradeCompare: Decodable, Equatable {
         let name: String?
         let playerKey: String?
         let omenRead: OmenDecisionEnvelope.OmenRead?
+        let stats: OmenPlayerStats?
+        let rating: OmenPlayerRating?
 
         init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
             name = try? c.decodeIfPresent(String.self, forKey: .name)
             playerKey = try? c.decodeIfPresent(String.self, forKey: .playerKey)
             omenRead = try? c.decodeIfPresent(OmenDecisionEnvelope.OmenRead.self, forKey: .omenRead)
+            stats = try? c.decodeIfPresent(OmenPlayerStats.self, forKey: .stats)
+            rating = try? c.decodeIfPresent(OmenPlayerRating.self, forKey: .rating)
         }
 
         enum CodingKeys: String, CodingKey {
-            case name
+            case name, stats, rating
             case playerKey = "player_key"
             case omenRead = "sight"
         }
     }
 
-    /// Omen's points for an offered player, matched by key, then by name. Nil when Omen has no read.
-    func omenPoints(for player: TradePlayer) -> Double? {
+    /// The compared player for an offered one, matched by key, then by name.
+    func compared(_ player: TradePlayer) -> ComparedPlayer? {
         let all = (send?.players ?? []) + (receive?.players ?? [])
-        let match = all.first { $0.playerKey != nil && $0.playerKey == player.playerKey }
+        return all.first { $0.playerKey != nil && $0.playerKey == player.playerKey }
             ?? all.first { $0.name == player.name }
-        return match?.omenRead?.points
     }
+
+    /// Omen's points for an offered player. Nil when Omen has no read.
+    func omenPoints(for player: TradePlayer) -> Double? { compared(player)?.omenRead?.points }
 
     enum CodingKeys: String, CodingKey {
         case contractVersion = "contract_version"
@@ -294,6 +300,8 @@ struct TradeRosterResponse: Decodable, Equatable {
         let projectedPoints: Double?
         /// Omen's read (wire key `sight`). Lenient: a drifting block costs the read, not the row.
         let omenRead: OmenDecisionEnvelope.OmenRead?
+        let stats: OmenPlayerStats?
+        let rating: OmenPlayerRating?
 
         var id: String { playerKey ?? name }
 
@@ -305,10 +313,12 @@ struct TradeRosterResponse: Decodable, Equatable {
             team = try c.decodeIfPresent(String.self, forKey: .team)
             projectedPoints = try c.decodeIfPresent(Double.self, forKey: .projectedPoints)
             omenRead = try? c.decodeIfPresent(OmenDecisionEnvelope.OmenRead.self, forKey: .omenRead)
+            stats = try? c.decodeIfPresent(OmenPlayerStats.self, forKey: .stats)
+            rating = try? c.decodeIfPresent(OmenPlayerRating.self, forKey: .rating)
         }
 
         enum CodingKeys: String, CodingKey {
-            case playerKey = "player_key", name, position, team
+            case playerKey = "player_key", name, position, team, stats, rating
             case projectedPoints = "projected_points"
             case omenRead = "sight"
         }
@@ -319,6 +329,8 @@ struct TradeRosterResponse: Decodable, Equatable {
             var parts = [meta]
             if let projected = projectedPoints { parts.append("proj \(String(format: "%.1f", projected))") }
             if let omen = omenRead?.points { parts.append("Omen \(String(format: "%.1f", omen))") }
+            if let ppg = stats?.pointsPerGame { parts.append("\(String(format: "%.1f", ppg)) PPG") }
+            if let r = rating?.rating { parts.append("\(rating?.title ?? OmenPlayerRating.familyName) \(String(format: "%.1f", r))") }
             return parts.joined(separator: " \u{00B7} ")
         }
 

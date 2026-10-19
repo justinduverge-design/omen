@@ -1673,10 +1673,10 @@ extension WaiverAnalysis {
         }
         return .read(OmenDeskWaiverMove(
             addName: name,
-            addMeta: [add.position, add.team].compactMap { $0 }.joined(separator: " \u{00B7} "),
+            addMeta: [add.position, add.team, add.stats?.pointsPerGame.map { String(format: "%.1f PPG", $0) }].compactMap { $0 }.joined(separator: " \u{00B7} "),
             addPoints: add.projectedPoints.map { String(format: "%.1f", $0) },
             dropName: best.drop?.name,
-            dropMeta: [best.drop?.position, best.drop?.team].compactMap { $0 }.joined(separator: " \u{00B7} ").scoutNonEmpty,
+            dropMeta: [best.drop?.position, best.drop?.team, best.drop?.stats?.pointsPerGame.map { String(format: "%.1f PPG", $0) }].compactMap { $0 }.joined(separator: " \u{00B7} ").scoutNonEmpty,
             dropPoints: best.drop?.projectedPoints.map { String(format: "%.1f", $0) },
             reasoning: best.whyNow?.scoutNonEmpty ?? "Omen found this as the strongest available roster move.",
             // `waiver-analysis.v1` carries no confidence band and no risk. These were hardcoded

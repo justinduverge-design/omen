@@ -76,15 +76,30 @@ function createSightEnricher({ getRuntime, env = process.env, budgetMs = DEFAULT
       // Player envelopes are not required to carry position before enrichment; ask for the six bounded
       // fantasy cohorts so a resolved Sight block can always receive the matching receipt.
       const positions = ["QB", "RB", "WR", "TE", "K", "DEF"];
-      const { byKey, byPosition } = await withinLatencyBudget("sight_read", budgetMs, async () => {
-        const [reads, authority] = await Promise.all([
+      const { byKey, byPosition, stats, ratings } = await withinLatencyBudget("sight_read", budgetMs, async () => {
+        const [reads, authority, statLines, ratings] = await Promise.all([
           repo.readSight({ playerKeys: keys, version: settings.version, hints }),
           typeof repo.readAuthority === "function"
             ? repo.readAuthority({ positions, version: settings.version })
             : Promise.resolve(new Map()),
+          // Real numbers beside the read: season points, last games, usage. A failed stats read
+          // costs the numbers only, never Omen's read.
+          typeof repo.readStats === "function"
+            ? repo.readStats({ playerKeys: keys }).catch(() => new Map())
+            : Promise.resolve(new Map()),
+          // Omen's position rating (RAT-QB is Omen's QBR) and its EPA-based components.
+          typeof repo.readRatings === "function"
+            ? repo.readRatings({ playerKeys: keys }).catch(() => new Map())
+            : Promise.resolve(new Map()),
         ]);
-        return { byKey: reads, byPosition: authority };
+        return { byKey: reads, byPosition: authority, stats: statLines, ratings };
       });
+      for (const player of list) {
+        const line = stats.get(keyOf(player));
+        if (line) player.stats = line;
+        const rating = ratings.get(keyOf(player));
+        if (rating) player.rating = rating;
+      }
       for (const player of list) {
         const block = byKey.get(keyOf(player));
         if (block) {

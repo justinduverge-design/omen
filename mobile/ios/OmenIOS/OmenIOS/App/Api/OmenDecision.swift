@@ -287,9 +287,13 @@ struct OmenDecisionEnvelope: Decodable, Equatable {
         /// Internal wire key is `sight`; native product copy always presents this as Omen's Read.
         /// Lenient so an experimental driver cannot discard the recommendation.
         @LenientDecoded var omenRead: OmenRead?
+        /// Real season numbers (wire key `stats`).
+        @LenientDecoded var stats: OmenPlayerStats?
+        /// Omen's position rating (wire key `rating`).
+        @LenientDecoded var rating: OmenPlayerRating?
 
         enum CodingKeys: String, CodingKey {
-            case id, name, position, team
+            case id, name, position, team, stats, rating
             case providerPoints = "projected_points"
             case omenRead = "sight"
         }
@@ -933,5 +937,155 @@ extension LenientDecoded: Equatable where T: Equatable {}
 extension KeyedDecodingContainer {
     func decode<T>(_ type: LenientDecoded<T>.Type, forKey key: Key) throws -> LenientDecoded<T> {
         LenientDecoded(wrappedValue: try? decodeIfPresent(T.self, forKey: key))
+    }
+}
+
+/// Real season numbers for a player (wire key `stats`), from the warehouse's weekly box scores.
+/// Observed facts only, PPR. Every field is optional: a player the warehouse cannot place has no
+/// block at all, and the screen then draws no numbers rather than zeros.
+struct OmenPlayerStats: Decodable, Equatable {
+    struct Game: Decodable, Equatable {
+        let week: Int?
+        let opponent: String?
+        let points: Double?
+    }
+
+    struct Recent: Decodable, Equatable {
+        let games: Int?
+        let targets: Double?
+        let receptions: Double?
+        let carries: Double?
+        let yards: Double?
+        let snapShare: Double?
+
+        enum CodingKeys: String, CodingKey {
+            case games, targets, receptions, carries, yards
+            case snapShare = "snap_share"
+        }
+    }
+
+    let season: Int?
+    let throughWeek: Int?
+    let games: Int?
+    let seasonPoints: Double?
+    let pointsPerGame: Double?
+    let lastGames: [Game]
+    let recent: Recent?
+
+    enum CodingKeys: String, CodingKey {
+        case season, games, recent
+        case throughWeek = "through_week"
+        case seasonPoints = "season_points"
+        case pointsPerGame = "points_per_game"
+        case lastGames = "last_games"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        season = try? c.decodeIfPresent(Int.self, forKey: .season)
+        throughWeek = try? c.decodeIfPresent(Int.self, forKey: .throughWeek)
+        games = try? c.decodeIfPresent(Int.self, forKey: .games)
+        seasonPoints = try? c.decodeIfPresent(Double.self, forKey: .seasonPoints)
+        pointsPerGame = try? c.decodeIfPresent(Double.self, forKey: .pointsPerGame)
+        lastGames = (try? c.decodeIfPresent([Game].self, forKey: .lastGames)) ?? []
+        recent = try? c.decodeIfPresent(Recent.self, forKey: .recent)
+    }
+
+    /// "21.4 PPG · 6 games · last 3: 18.2, 25.0, 30.1". Nil when there is nothing real to say.
+    var summaryLine: String? {
+        var parts: [String] = []
+        if let ppg = pointsPerGame { parts.append("\(Self.one(ppg)) PPG") }
+        if let games, games > 0 { parts.append(games == 1 ? "1 game" : "\(games) games") }
+        let last = lastGames.compactMap(\.points)
+        if !last.isEmpty { parts.append("last \(last.count): " + last.map(Self.one).joined(separator: ", ")) }
+        return parts.isEmpty ? nil : parts.joined(separator: " \u{00B7} ")
+    }
+
+    /// "8 targets · 31 carries · 64% snaps" over the last games. Nil when no usage was recorded.
+    var usageLine: String? {
+        guard let recent else { return nil }
+        var parts: [String] = []
+        if let t = recent.targets, t > 0 { parts.append("\(Int(t)) targets") }
+        if let c = recent.carries, c > 0 { parts.append("\(Int(c)) carries") }
+        if let s = recent.snapShare { parts.append("\(Int(s.rounded()))% snaps") }
+        guard !parts.isEmpty else { return nil }
+        let window = recent.games.map { $0 == 1 ? "last game" : "last \($0)" } ?? "recently"
+        return parts.joined(separator: " \u{00B7} ") + " (\(window))"
+    }
+
+    private static func one(_ value: Double) -> String { String(format: "%.1f", value) }
+}
+
+/// Omen's position rating (wire key `rating`): RAT-QB is Omen's QBR; RAT-RB, RAT-WR and RAT-TE are its
+/// equivalents. Built from play-by-play (EPA, success rate, CPOE, shares). The headline components
+/// are the why behind the grade.
+struct OmenPlayerRating: Decodable, Equatable {
+    struct Component: Decodable, Equatable {
+        let name: String
+        let value: Double?
+    }
+
+    let metric: String?
+    let rating: Double?
+    let season: Int?
+    let games: Int?
+    let headline: [Component]
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        metric = try? c.decodeIfPresent(String.self, forKey: .metric)
+        rating = try? c.decodeIfPresent(Double.self, forKey: .rating)
+        season = try? c.decodeIfPresent(Int.self, forKey: .season)
+        games = try? c.decodeIfPresent(Int.self, forKey: .games)
+        headline = (try? c.decodeIfPresent([Component].self, forKey: .headline)) ?? []
+    }
+
+    enum CodingKeys: String, CodingKey { case metric, rating, season, games, headline }
+
+    /// The display name, per the stat registry's D-RATING-FAMILY (founder, 2026-10-10): one family,
+    /// "Omen Grade", led by position ("RB Omen Grade 73.5"). `RAT-*` ids never reach the screen.
+    /// Change the family name here and every screen follows.
+    static let familyName = "Omen Grade"
+
+    var title: String {
+        let position: String? = switch metric {
+        case "RAT-QB", "RAT-QB-S": "QB"
+        case "RAT-RB": "RB"
+        case "RAT-WR": "WR"
+        case "RAT-TE": "TE"
+        default: nil
+        }
+        return [position, Self.familyName].compactMap { $0 }.joined(separator: " ")
+    }
+
+    /// "Omen QBR 72.5 · EPA/dropback +0.26 · CPOE +5.5". Nil without a rating.
+    var summaryLine: String? {
+        guard let rating else { return nil }
+        let parts = ["\(title) \(String(format: "%.1f", rating))"] + headline.prefix(2).compactMap(Self.label)
+        return parts.joined(separator: " \u{00B7} ")
+    }
+
+    /// Every headline component in words, for the full argument.
+    var componentLines: [String] { headline.compactMap(Self.label) }
+
+    private static func label(_ component: Component) -> String? {
+        guard let v = component.value else { return nil }
+        let signed = { (x: Double, digits: Int) in (x >= 0 ? "+" : "") + String(format: "%.\(digits)f", x) }
+        let pct = { (x: Double) in String(format: "%.1f%%", x <= 1 ? x * 100 : x) }
+        switch component.name {
+        case "epa_per_dropback": return "EPA/dropback \(signed(v, 2))"
+        case "cpoe": return "CPOE \(signed(v, 1))"
+        case "sack_avoidance_rate": return "Sack avoidance \(pct(v))"
+        case "turnover_rate": return "Turnover rate \(pct(v))"
+        case "rush_epa_per_carry": return "Rush EPA \(signed(v, 2))"
+        case "rush_success_rate": return "Success \(pct(v))"
+        case "explosive_run_rate": return "Explosive runs \(pct(v))"
+        case "carry_share": return "Carry share \(pct(v))"
+        case "epa_per_target": return "EPA/target \(signed(v, 2))"
+        case "target_share": return "Target share \(pct(v))"
+        case "catch_over_expected": return "Catch over expected \(signed(v * (abs(v) <= 1 ? 100 : 1), 1))%"
+        case "yac_epa_per_reception": return "YAC EPA \(signed(v, 2))"
+        default: return nil
+        }
     }
 }

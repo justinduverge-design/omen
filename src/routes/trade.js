@@ -387,7 +387,10 @@ async function fillProjectionsFromOmenRead(players, attachSight) {
   probes.forEach((probe, index) => {
     const player = players[index];
     const points = Number(probe.sight?.sight_points);
+    // One key shape everywhere, so the read attached to the verdict later matches this player too.
+    if (probe.player_key) player.player_key = probe.player_key;
     if (probe.sight) player.sight = probe.sight;
+    if (probe.stats) player.stats = probe.stats;
     if (player.projected_points == null && Number.isFinite(points)) {
       player.projected_points = points;
       player.projection_source = "omen_read";

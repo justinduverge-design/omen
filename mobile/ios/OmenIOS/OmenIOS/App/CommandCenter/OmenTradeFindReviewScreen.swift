@@ -606,6 +606,14 @@ private struct OmenTradeFindCandidateCard: View {
             VStack(alignment: .leading, spacing: OmenSpacing.step2) {
                 Text(player.name).omenTextStyle(OmenTypography.name).foregroundStyle(OmenColor.textPrimary).lineLimit(1)
                 Text(player.meta).omenTextStyle(OmenTypography.micro).foregroundStyle(OmenColor.textTertiary).lineLimit(1)
+                // Real numbers: what this player has actually scored this season.
+                if let line = player.stats?.summaryLine {
+                    Text(line).omenTextStyle(OmenTypography.bodySmall).foregroundStyle(OmenColor.textSecondary).lineLimit(1)
+                }
+                // Omen's rating and the efficiency behind it (RAT-QB is Omen's QBR).
+                if let line = player.rating?.summaryLine {
+                    Text(line).omenTextStyle(OmenTypography.bodySmall).foregroundStyle(OmenColor.textSecondary).lineLimit(2)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             VStack(alignment: .trailing, spacing: OmenSpacing.step2) {

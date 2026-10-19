@@ -24,6 +24,8 @@ struct TradeFindPlayer: Decodable, Equatable {
     /// Omen's read (wire key `sight`), attached by `sightEnrichment.js`. Lenient: a drifting
     /// block costs the read, never the candidate.
     let omenRead: OmenDecisionEnvelope.OmenRead?
+    let stats: OmenPlayerStats?
+    let rating: OmenPlayerRating?
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -33,6 +35,8 @@ struct TradeFindPlayer: Decodable, Equatable {
         playerKey = try c.decodeIfPresent(String.self, forKey: .playerKey)
         projectedPoints = try c.decodeIfPresent(Double.self, forKey: .projectedPoints)
         omenRead = try? c.decodeIfPresent(OmenDecisionEnvelope.OmenRead.self, forKey: .omenRead)
+        stats = try? c.decodeIfPresent(OmenPlayerStats.self, forKey: .stats)
+        rating = try? c.decodeIfPresent(OmenPlayerRating.self, forKey: .rating)
     }
 
     /// "Omen 12.8", or nil when Omen has no read for this player.
@@ -45,6 +49,7 @@ struct TradeFindPlayer: Decodable, Equatable {
         case playerKey = "player_key"
         case projectedPoints = "projected_points"
         case omenRead = "sight"
+        case stats, rating
     }
 
     /// "WR · MIA", position alone, team alone, or "Unranked" — never "WR · undefined". Mirrors

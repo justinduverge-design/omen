@@ -60,6 +60,68 @@ function hintOf(key, hint) {
 
 const BYE_TTL_MS = 60 * 60 * 1000;
 
+const num = (v) => (v == null || !Number.isFinite(Number(v)) ? null : Number(v));
+const round1 = (v) => Math.round(v * 10) / 10;
+const sum = (rows, field) => rows.reduce((total, row) => total + (num(row[field]) ?? 0), 0);
+
+// The position ratings Sight is built on. 2026 QB runs are `omen_qb_sight_grade` (RAT-QB-S).
+const RATING_METRICS = ["omen_qb_sight_grade", "omen_qb_grade", "omen_rb_grade", "omen_wr_grade", "omen_te_grade"];
+// The components a screen leads with, per rating, in order.
+const RATING_HEADLINES = {
+  "RAT-QB": ["epa_per_dropback", "cpoe", "sack_avoidance_rate", "turnover_rate"],
+  "RAT-QB-S": ["epa_per_dropback", "cpoe", "sack_avoidance_rate", "turnover_rate"],
+  "RAT-RB": ["rush_epa_per_carry", "rush_success_rate", "explosive_run_rate", "carry_share"],
+  "RAT-WR": ["epa_per_target", "target_share", "catch_over_expected", "yac_epa_per_reception"],
+  "RAT-TE": ["epa_per_target", "target_share", "catch_over_expected", "yac_epa_per_reception"],
+};
+
+function summarizeRating(row) {
+  const body = row.components || {};
+  const metric = body.metric || null;
+  const parts = body.components || {};
+  const headline = (RATING_HEADLINES[metric] || Object.keys(parts).slice(0, 4))
+    .filter((name) => parts[name] && num(parts[name].raw) != null)
+    .map((name) => ({ name, value: num(parts[name].raw), z: num(parts[name].z) }));
+  return {
+    metric,
+    rating: num(row.value) == null ? null : round1(num(row.value)),
+    season: num(row.season),
+    games: num(body.games),
+    opponent_adjusted: body.opponent_adjusted === true,
+    headline,
+  };
+}
+
+/** One player's weekly rows (oldest first) -> the block a screen draws. */
+function summarizeStats(weeks) {
+  const played = weeks.filter((row) => num(row.points) != null);
+  const last = played.slice(-3);
+  const seasonPoints = sum(played, "points");
+  const snaps = last.map((row) => num(row.snap_share)).filter((v) => v != null);
+  return {
+    source: "nflverse weekly stats",
+    scoring: "ppr",
+    season: num(played[0]?.season ?? weeks[0]?.season),
+    through_week: num(played.at(-1)?.week),
+    games: played.length,
+    season_points: round1(seasonPoints),
+    points_per_game: played.length ? round1(seasonPoints / played.length) : null,
+    last_games: last.map((row) => ({
+      week: num(row.week),
+      opponent: row.opponent || null,
+      points: round1(num(row.points)),
+    })),
+    recent: {
+      games: last.length,
+      targets: sum(last, "targets"),
+      receptions: sum(last, "receptions"),
+      carries: sum(last, "carries"),
+      yards: sum(last, "passing_yards") + sum(last, "rushing_yards") + sum(last, "receiving_yards"),
+      snap_share: snaps.length ? round1((snaps.reduce((a, b) => a + b, 0) / snaps.length) * 100) : null,
+    },
+  };
+}
+
 function createWarehouseSightRepository({ query, timeoutMs = 2_000, now = () => Date.now() }) {
   if (typeof query !== "function") throw new TypeError("query must be a function");
   // Each team's bye week this season, from the schedule (the REG week it has no game). Cached for an hour.
@@ -92,6 +154,89 @@ function createWarehouseSightRepository({ query, timeoutMs = 2_000, now = () => 
   }
   const repository = {
     /** One evaluated authority receipt per requested position. Missing/legacy evidence resolves closed. */
+    /**
+     * Map(app player key -> real season numbers) from the warehouse's weekly box scores
+     * (`nfl_player_weekly_stats`, nflverse, CC BY 4.0): the latest regular season's games played,
+     * PPR points, the last three games and usage. Observed facts only; a player the index cannot
+     * place is absent, never zero.
+     */
+    /**
+     * Map(app player key -> Omen's position rating): RAT-QB (Omen's QBR), RAT-RB, RAT-WR, RAT-TE, from
+     * play-by-play (EPA, success rate, CPOE, shares). The latest run of each position's metric; the
+     * headline efficiency components ride along so a screen can show the why behind the grade.
+     */
+    async readRatings({ playerKeys }) {
+      const refs = [
+        ...new Map(
+          (Array.isArray(playerKeys) ? playerKeys : [])
+            .map(parseRef)
+            .filter(Boolean)
+            .map((r) => [r.key, r]),
+        ).values(),
+      ].slice(0, MAX_REFS * 2);
+      if (!refs.length) return new Map();
+      const result = await query({
+        name: "warehouse-player-ratings-v1",
+        text: `
+          WITH runs AS (
+            SELECT DISTINCT ON (metric_name) id, metric_name, season
+              FROM football.football_metric_runs
+             WHERE metric_name = ANY($4::text[]) AND state = 'succeeded'
+             ORDER BY metric_name, season DESC NULLS LAST, id DESC
+          )
+          SELECT DISTINCT ON (refs.key) refs.key, runs.metric_name, runs.season, v.value, v.components
+            FROM unnest($1::text[], $2::text[], $3::text[]) AS refs(key, provider, provider_id)
+            JOIN football.football_player_ids x ON x.provider = refs.provider AND x.provider_id = refs.provider_id
+            JOIN football.football_metric_values v ON v.entity_type = 'player' AND v.entity_id = x.player_id
+            JOIN runs ON runs.id = v.metric_run_id
+           ORDER BY refs.key, runs.season DESC NULLS LAST`,
+        values: [refs.map((r) => r.key), refs.map((r) => r.provider), refs.map((r) => r.providerId), RATING_METRICS],
+        query_timeout: timeoutMs,
+      });
+      const out = new Map();
+      for (const row of result?.rows || []) out.set(row.key, summarizeRating(row));
+      return out;
+    },
+
+    async readStats({ playerKeys }) {
+      const refs = [
+        ...new Map(
+          (Array.isArray(playerKeys) ? playerKeys : [])
+            .map(parseRef)
+            .filter(Boolean)
+            .map((r) => [r.key, r]),
+        ).values(),
+      ].slice(0, MAX_REFS * 2);
+      if (!refs.length) return new Map();
+      const result = await query({
+        name: "warehouse-player-stats-v1",
+        text: `
+          WITH latest AS (
+            SELECT max(season) AS season FROM football.nfl_player_weekly_stats WHERE season_type = 'REG'
+          )
+          SELECT refs.key, f.season, f.week, f.fantasy_points_ppr AS points, f.targets, f.receptions, f.carries,
+                 f.passing_yards, f.rushing_yards, f.receiving_yards, o.snap_share, opp.nflverse_abbr AS opponent
+            FROM unnest($1::text[], $2::text[], $3::text[]) AS refs(key, provider, provider_id)
+            JOIN football.football_player_ids x ON x.provider = refs.provider AND x.provider_id = refs.provider_id
+            CROSS JOIN latest
+            JOIN football.nfl_player_weekly_stats f
+              ON f.player_id = x.player_id AND f.season = latest.season AND f.season_type = 'REG'
+            LEFT JOIN football.nfl_player_weekly_opportunity o
+              ON o.player_id = f.player_id AND o.season = f.season AND o.week = f.week AND o.season_type = f.season_type
+            LEFT JOIN football.football_teams opp ON opp.team_id = f.opponent_team_id
+           ORDER BY refs.key, f.week`,
+        values: [refs.map((r) => r.key), refs.map((r) => r.provider), refs.map((r) => r.providerId)],
+        query_timeout: timeoutMs,
+      });
+      const byKey = new Map();
+      for (const row of result?.rows || []) {
+        if (!byKey.has(row.key)) byKey.set(row.key, []);
+        byKey.get(row.key).push(row);
+      }
+      const out = new Map();
+      for (const [key, weeks] of byKey) out.set(key, summarizeStats(weeks));
+      return out;
+    },
     async readAuthority({ positions, version = "v1", now = new Date() }) {
       const wanted = [
         ...new Set(
