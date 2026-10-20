@@ -50,7 +50,9 @@ const POSITION_TYPE = Object.freeze({ QB: "O", RB: "O", WR: "O", TE: "O", K: "K"
 const rulesMemo = new Map();
 
 function isDisabled() {
-  const value = String(process.env.YAHOO_PROJECTIONS_DISABLED || "").trim().toLowerCase();
+  const value = String(process.env.YAHOO_PROJECTIONS_DISABLED || "")
+    .trim()
+    .toLowerCase();
   return value === "1" || value === "true";
 }
 
@@ -186,6 +188,27 @@ function scoreStatLine(statLine, values) {
   return scored ? round2(total) : null;
 }
 
+/**
+ * The same scoring as `scoreStatLine`, one part per scored stat: `{ stat, quantity, points_per, points }`,
+ * keyed by Sleeper's stat name. What makes a Yahoo projection explainable stat by stat, exactly as
+ * Sleeper's and ESPN's are (`projectionBreakdown.js`).
+ */
+function statLineParts(statLine, values) {
+  if (!statLine || typeof statLine !== "object") return [];
+  const parts = [];
+  for (const [key, quantity] of Object.entries(statLine)) {
+    if (key.startsWith("pts_")) continue;
+    const event = SLEEPER_EVENT_MAP[key]?.event_key || SLEEPER_FG_BANDS[key];
+    if (!event) continue;
+    const perUnit = values.get(event);
+    const count = Number(quantity);
+    if (perUnit == null || !perUnit || !Number.isFinite(count)) continue;
+    const points = count * perUnit;
+    if (points) parts.push({ stat: key, quantity: count, points_per: perUnit, points });
+  }
+  return parts;
+}
+
 const yahooToSleeperMemo = new WeakMap();
 
 /** yahoo_id -> sleeper player id, with ids claimed by more than one Sleeper player left out. */
@@ -210,6 +233,62 @@ function yahooIndex(sleeperPlayers) {
   return index;
 }
 
+const TEAM_ALIASES = Object.freeze({
+  JAC: "JAX",
+  WSH: "WAS",
+  LA: "LAR",
+  SD: "LAC",
+  OAK: "LV",
+  STL: "LAR",
+  ARZ: "ARI",
+  CLV: "CLE",
+  BLT: "BAL",
+  HST: "HOU",
+});
+function normTeam(team) {
+  const t = String(team || "")
+    .trim()
+    .toUpperCase();
+  return TEAM_ALIASES[t] || t;
+}
+
+const nameIndexMemo = new WeakMap();
+
+/** normalized full name -> [sleeper ids], for the fallback when Sleeper's yahoo_id map has no entry. */
+function nameIndex(sleeperPlayers) {
+  if (!sleeperPlayers || typeof sleeperPlayers !== "object") return new Map();
+  const cached = nameIndexMemo.get(sleeperPlayers);
+  if (cached) return cached;
+  const index = new Map();
+  for (const [sleeperId, player] of Object.entries(sleeperPlayers)) {
+    if (!player || player.active === false) continue;
+    const key = normalizeName(sleeperFullName(player));
+    if (!key) continue;
+    if (!index.has(key)) index.set(key, []);
+    index.get(key).push(String(sleeperId));
+  }
+  nameIndexMemo.set(sleeperPlayers, index);
+  return index;
+}
+
+/**
+ * Sleeper's `yahoo_id` field is incomplete (on a live 12-team league it matched about a quarter of
+ * rostered players), so an unmatched Yahoo player is paired by name + position + NFL team instead.
+ * Used only when exactly one active Sleeper player fits all three; a namesake, a missing team on
+ * either side or any ambiguity leaves the player unprojected.
+ */
+function fallbackSleeperId(yahooPlayer, sleeperPlayers) {
+  const wanted = String(yahooPlayer?.position || "").toUpperCase();
+  // Primary position only: a secondary fantasy position is how a namesake slips in.
+  const candidates = (nameIndex(sleeperPlayers).get(normalizeName(yahooPlayer?.name)) || []).filter(
+    (id) => wanted && String(sleeperPlayers[id]?.position || "").toUpperCase() === wanted,
+  );
+  const team = normTeam(yahooPlayer?.team);
+  if (!team) return null;
+  const fits = candidates.filter((id) => normTeam(sleeperPlayers[id]?.team) === team);
+  return fits.length === 1 ? fits[0] : null;
+}
+
 function sleeperFullName(player) {
   return player?.full_name || `${player?.first_name || ""} ${player?.last_name || ""}`.trim();
 }
@@ -217,7 +296,10 @@ function sleeperFullName(player) {
 /** Yahoo's primary position must be one Sleeper lists for the player (a same-named namesake differs). */
 function positionsAgree(yahooPlayer, sleeperPlayer) {
   const wanted = String(yahooPlayer?.position || "").toUpperCase();
-  const listed = [sleeperPlayer?.position, ...(Array.isArray(sleeperPlayer?.fantasy_positions) ? sleeperPlayer.fantasy_positions : [])]
+  const listed = [
+    sleeperPlayer?.position,
+    ...(Array.isArray(sleeperPlayer?.fantasy_positions) ? sleeperPlayer.fantasy_positions : []),
+  ]
     .filter(Boolean)
     .map((position) => String(position).toUpperCase());
   return Boolean(wanted) && listed.includes(wanted);
@@ -257,7 +339,9 @@ function emptyMeta(total, reason) {
 
 function withBudget(promise, ms) {
   let timer;
-  const timeout = new Promise((resolve) => { timer = setTimeout(() => resolve(BUDGET_MS_EXCEEDED), ms); });
+  const timeout = new Promise((resolve) => {
+    timer = setTimeout(() => resolve(BUDGET_MS_EXCEEDED), ms);
+  });
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 const BUDGET_MS_EXCEEDED = Symbol("budget_exceeded");
@@ -290,12 +374,16 @@ async function enrichYahooPlayers(players, { client, leagueKey, week, season, bu
   if (!projectable.length) return emptyMeta(total, "no_projectable_players");
 
   const effectiveWeek = Number(week);
-  if (!Number.isInteger(effectiveWeek) || effectiveWeek < 1 || effectiveWeek > 18) return emptyMeta(total, "week_unknown");
+  if (!Number.isInteger(effectiveWeek) || effectiveWeek < 1 || effectiveWeek > 18)
+    return emptyMeta(total, "week_unknown");
   const effectiveSeason = season || getCurrentNflWeekContext().season;
 
   let loaded;
   try {
-    loaded = await withBudget(load({ client, leagueKey, season: effectiveSeason, week: effectiveWeek, deps }), budgetMs);
+    loaded = await withBudget(
+      load({ client, leagueKey, season: effectiveSeason, week: effectiveWeek, deps }),
+      budgetMs,
+    );
   } catch {
     return emptyMeta(total, "provider_error");
   }
@@ -309,7 +397,8 @@ async function enrichYahooPlayers(players, { client, leagueKey, week, season, bu
   let approximate = false;
   for (const player of projectable) {
     const yahooId = String(player.yahoo_id ?? player.player_id);
-    const sleeperId = index.get(yahooId);
+    let sleeperId = index.get(yahooId);
+    if (!sleeperId) sleeperId = fallbackSleeperId(player, sleeperPlayers);
     const sleeperPlayer = sleeperId ? sleeperPlayers[sleeperId] : null;
     if (!sleeperPlayer || !namesAgree(player.name, sleeperPlayer) || !positionsAgree(player, sleeperPlayer)) continue;
     const points = scoreStatLine(statLines?.[sleeperId], scoring.values);
@@ -329,6 +418,12 @@ async function enrichYahooPlayers(players, { client, leagueKey, week, season, bu
     player.projected_points = points;
     player.projection_source = SOURCE;
     player.projection_basis = basis;
+    // Not enumerable: the breakdown reads it in-process, and it never rides along in a response.
+    Object.defineProperty(player, "projection_parts", {
+      value: statLineParts(statLines?.[sleeperId], scoring.values),
+      enumerable: false,
+      configurable: true,
+    });
     projected += 1;
   }
 

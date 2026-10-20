@@ -131,6 +131,8 @@ private val darkDataSemantics = OmenDataSemanticColors(
 // Registry §2.3: risk-high and the data-source/confidence/position/platform/demo families are
 // identical dark/light by contract; only risk-low/risk-medium document a light override.
 private val lightDataSemantics = darkDataSemantics.copy(
+    // Light mode (2026-10-19): the demo chip's sky blue is ~1.6:1 on the near-white ground.
+    demoText = Color(0xFF0369A1),
     riskLow = Color(0xFF13702F),
     riskMedium = Color(0xFF8F4A09),
 )
@@ -158,23 +160,23 @@ val OmenDarkColors = OmenColorScheme(
 )
 
 val OmenLightColors = OmenColorScheme(
-    bg = Color(0xFFF1EDE4),
-    surface1 = Color(0xFFFFFDF9),
-    surface2 = Color(0xFFF6F1E7),
-    surface3 = Color(0xFFE9E1D2),
-    border = Color(0xFF8F7B5F),
-    borderSubtle = Color(0xFFDCD1BA),
-    textPrimary = Color(0xFF1C1917),
-    textSecondary = Color(0xFF5C5248),
-    textTertiary = Color(0xFF6B6052),
-    accent = Color(0xFF7A5C1E),
-    accentHover = Color(0xFFA67C2E),
-    accentMuted = Color(0xFFF6E7BE),
-    textOnAccent = Color(0xFFFFFDF9),
+    bg = Color(0xFFF6F6F4),
+    surface1 = Color(0xFFFFFFFF),
+    surface2 = Color(0xFFECECE9),
+    surface3 = Color(0xFFE2E2DE),
+    border = Color(0xFF85857F),
+    borderSubtle = Color(0xFFE0E0DC),
+    textPrimary = Color(0xFF161614),
+    textSecondary = Color(0xFF4A4A46),
+    textTertiary = Color(0xFF6B6B66),
+    accent = Color(0xFF8A5E10),
+    accentHover = Color(0xFF9A6A16),
+    accentMuted = Color(0xFFF3E6CC),
+    textOnAccent = Color(0xFFFFFFFF),
     omen = Color(0xFF1A5C3E),
     omenChip = Color(0xFF1A5C3E),
     umber = Color(0xFF5A3A25),
-    focusRing = Color(0xFF7A5C1E),
-    focusRingHalo = Color(0xFF7A5C1E).copy(alpha = 0.4f),
+    focusRing = Color(0xFF8A5E10),
+    focusRingHalo = Color(0xFF8A5E10).copy(alpha = 0.4f),
     data = lightDataSemantics,
 )

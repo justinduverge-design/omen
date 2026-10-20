@@ -14,8 +14,16 @@ const freeze = (list) => Object.freeze([...list]);
 // start-sit-detail v1/v2 `evidence[]` (startSitDetail.js, projectionBreakdown.js).
 const START_SIT = Object.freeze({
   categories: freeze([
-    "league_fact", "player_game_fact", "points_breakdown", "recent_usage", "team_system",
-    "current_status", "omen_inference", "limitation", "omen_metric", "game_environment",
+    "league_fact",
+    "player_game_fact",
+    "points_breakdown",
+    "recent_usage",
+    "team_system",
+    "current_status",
+    "omen_inference",
+    "limitation",
+    "omen_metric",
+    "game_environment",
   ]),
   kinds: freeze(["verified", "projection", "projected", "observed_context", "inference", "limitation"]),
 });
@@ -25,8 +33,10 @@ const START_SIT = Object.freeze({
 const WAIVER = Object.freeze({
   // current_role / observed_usage: usage sentence from warehouse opportunity counts
   // (waiverUsageEvidence.js), appended only when real numbers exist.
-  categories: freeze(["immediate_need", "league_fact", "current_role"]),
-  kinds: freeze(["roster_math", "league_context", "observed_usage"]),
+  // omen_read / omen_sight: Omen's own Sight read of the add, when SIGHT_ENABLED attached one.
+  // market_signal / provider_ownership: ESPN's league-wide roster rate and its weekly change.
+  categories: freeze(["immediate_need", "league_fact", "current_role", "omen_read", "market_signal", "upcoming_need"]),
+  kinds: freeze(["roster_math", "league_context", "observed_usage", "omen_sight", "provider_ownership"]),
 });
 
 // move-detail.v1 `evidence_at_the_time[]`, code-built rows (routes/moves.js legacy builder and

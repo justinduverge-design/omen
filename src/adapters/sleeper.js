@@ -35,9 +35,7 @@ const STARTER_SLOT_MAP = {
   FLEX: "FLEX",
 };
 
-const redis = config.redisUrl
-  ? new Redis({ url: config.redisUrl, token: config.redisToken })
-  : null;
+const redis = config.redisUrl ? new Redis({ url: config.redisUrl, token: config.redisToken }) : null;
 
 function createWindowBudget({
   limit = SLEEPER_REQUEST_LIMIT,
@@ -91,7 +89,11 @@ const sleeperRequestMemo = requestScope.middleware;
 
 function memoKey(url, options) {
   let params = "";
-  try { params = options.params ? JSON.stringify(options.params) : ""; } catch { params = "?"; }
+  try {
+    params = options.params ? JSON.stringify(options.params) : "";
+  } catch {
+    params = "?";
+  }
   // timeout is part of the key: a caller asking for a longer timeout must not be handed
   // a request that was issued with a shorter one.
   return `${url}|${params}|${options.timeout || ""}`;
@@ -106,7 +108,9 @@ function getJson(url, options = {}) {
   const promise = getJsonUncached(url, options);
   store.set(key, promise);
   // A failed read must not poison later callers in the same request.
-  promise.catch(() => { if (store.get(key) === promise) store.delete(key); });
+  promise.catch(() => {
+    if (store.get(key) === promise) store.delete(key);
+  });
   return promise;
 }
 
@@ -137,9 +141,8 @@ async function getJsonUncached(url, options = {}) {
       const rateError = new Error("Sleeper temporarily rate limited draft sync");
       rateError.status = 503;
       rateError.code = "sleeper_rate_limited";
-      rateError.retryAfterMs = Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
-        ? retryAfterSeconds * 1000
-        : 30_000;
+      rateError.retryAfterMs =
+        Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0 ? retryAfterSeconds * 1000 : 30_000;
       throw rateError;
     }
     throw error;
@@ -193,10 +196,7 @@ function normalizeSlot(slot) {
 }
 
 function fullName(player, playerId) {
-  return player?.full_name
-    || `${player?.first_name || ""} ${player?.last_name || ""}`.trim()
-    || playerId
-    || "Unknown";
+  return player?.full_name || `${player?.first_name || ""} ${player?.last_name || ""}`.trim() || playerId || "Unknown";
 }
 
 function primaryPosition(player) {
@@ -316,9 +316,7 @@ async function fetchSleeperRoster(leagueId, userId) {
     getJson(`${BASE}/league/${encodeURIComponent(leagueId)}/users`),
   ]);
 
-  const user = Array.isArray(users)
-    ? users.find((leagueUser) => String(leagueUser.user_id) === String(userId))
-    : null;
+  const user = Array.isArray(users) ? users.find((leagueUser) => String(leagueUser.user_id) === String(userId)) : null;
   const roster = Array.isArray(rosters)
     ? rosters.find((leagueRoster) => String(leagueRoster.owner_id) === String(userId))
     : null;
@@ -340,15 +338,17 @@ async function fetchSleeperRoster(leagueId, userId) {
 function statWithDecimal(settings = {}, wholeKey, decimalKey) {
   const whole = Number(settings?.[wholeKey] || 0);
   const decimal = Number(settings?.[decimalKey] || 0);
-  return Math.round((whole + (decimal / 100)) * 100) / 100;
+  return Math.round((whole + decimal / 100) * 100) / 100;
 }
 
 function sleeperTeamName(user, roster) {
-  return user?.metadata?.team_name
-    || user?.display_name
-    || user?.username
-    || `Team ${roster?.roster_id || ""}`.trim()
-    || "Unknown";
+  return (
+    user?.metadata?.team_name ||
+    user?.display_name ||
+    user?.username ||
+    `Team ${roster?.roster_id || ""}`.trim() ||
+    "Unknown"
+  );
 }
 
 function sleeperLeagueTeamName(user, roster) {
@@ -356,6 +356,36 @@ function sleeperLeagueTeamName(user, roster) {
   // username, user id, or avatar. A user-provided team name is league-scoped;
   // otherwise the opaque roster id is the only identity we expose.
   return user?.metadata?.team_name || `Team ${roster?.roster_id || "Unknown"}`;
+}
+
+/**
+ * One round (week) of a league's transactions: `GET /league/{id}/transactions/{round}` (G4).
+ * Public and documented by Sleeper; returns the raw array. `round` is the week for in-season
+ * rounds. Bounded by a short timeout and the shared Sleeper request budget (`getJson`).
+ */
+async function fetchSleeperTransactions(leagueId, round) {
+  const week = Math.max(0, Math.min(Number.parseInt(round, 10) || 0, 30));
+  const data = await getJson(`${BASE}/league/${encodeURIComponent(leagueId)}/transactions/${week}`, { timeout: 5000 });
+  return Array.isArray(data) ? data : [];
+}
+
+/**
+ * roster_id -> display name for a league, using the same league-scoped team name the rest of the
+ * app exposes (never a manager's display name or username). The rosters and users reads are the
+ * ones the standings read already makes, so inside one request they collapse via the request memo.
+ */
+async function fetchSleeperTeamNames(leagueId) {
+  const [rosters, users] = await Promise.all([
+    getJson(`${BASE}/league/${encodeURIComponent(leagueId)}/rosters`),
+    getJson(`${BASE}/league/${encodeURIComponent(leagueId)}/users`),
+  ]);
+  const leagueUsers = Array.isArray(users) ? users : [];
+  const names = {};
+  for (const roster of Array.isArray(rosters) ? rosters : []) {
+    const user = leagueUsers.find((leagueUser) => String(leagueUser?.user_id) === String(roster?.owner_id));
+    names[String(roster?.roster_id)] = sleeperLeagueTeamName(user, roster);
+  }
+  return names;
 }
 
 async function fetchSleeperStandings(leagueId, currentUserId = null) {
@@ -383,11 +413,12 @@ async function fetchSleeperStandings(leagueId, currentUserId = null) {
   });
 
   return standings
-    .sort((a, b) => (
-      b.wins - a.wins
-      || b.points_for - a.points_for
-      || String(a.team_id || "").localeCompare(String(b.team_id || ""))
-    ))
+    .sort(
+      (a, b) =>
+        b.wins - a.wins ||
+        b.points_for - a.points_for ||
+        String(a.team_id || "").localeCompare(String(b.team_id || "")),
+    )
     .map((team, index) => ({ ...team, rank: index + 1 }));
 }
 
@@ -417,9 +448,8 @@ function lastResultFromMatchups({ leagueId, week, rosterId, matchups }) {
   const mine = rows.find((row) => String(row?.roster_id) === String(rosterId));
   if (!mine?.matchup_id) return normalizeLastResult();
 
-  const opponent = rows.find((row) =>
-    String(row?.matchup_id) === String(mine.matchup_id)
-    && String(row?.roster_id) !== String(rosterId)
+  const opponent = rows.find(
+    (row) => String(row?.matchup_id) === String(mine.matchup_id) && String(row?.roster_id) !== String(rosterId),
   );
   if (!opponent) return normalizeLastResult();
 
@@ -436,7 +466,6 @@ function lastResultFromMatchups({ leagueId, week, rosterId, matchups }) {
     gameId: `${leagueId}:${week}:${mine.matchup_id}`,
   });
 }
-
 
 /**
  * The matchup this week's rows describe, as `league-overview.v1` states it.
@@ -482,14 +511,21 @@ function projectedFromStarters(row, projections) {
   return found ? Math.round(total * 100) / 100 : null;
 }
 
-function matchupFromMatchups({ leagueId, week, rosterId, matchups, standings = [], isPastWeek = false, projections = null }) {
+function matchupFromMatchups({
+  leagueId,
+  week,
+  rosterId,
+  matchups,
+  standings = [],
+  isPastWeek = false,
+  projections = null,
+}) {
   const rows = Array.isArray(matchups) ? matchups : [];
   const mine = rows.find((row) => String(row?.roster_id) === String(rosterId));
   if (!mine?.matchup_id) return { status: "no_matchup", you: null, opponent: null };
 
-  const opponent = rows.find((row) =>
-    String(row?.matchup_id) === String(mine.matchup_id)
-    && String(row?.roster_id) !== String(rosterId)
+  const opponent = rows.find(
+    (row) => String(row?.matchup_id) === String(mine.matchup_id) && String(row?.roster_id) !== String(rosterId),
   );
   // A matchup id with no second side is a bye, not a provider failure.
   if (!opponent) return { status: "no_matchup", you: null, opponent: null };
@@ -501,9 +537,10 @@ function matchupFromMatchups({ leagueId, week, rosterId, matchups, standings = [
     return {
       team_id: teamId,
       team_name: standingsRow?.team_name || null,
-      record: standingsRow && standingsRow.wins != null && standingsRow.losses != null
-        ? `${standingsRow.wins}-${standingsRow.losses}`
-        : null,
+      record:
+        standingsRow && standingsRow.wins != null && standingsRow.losses != null
+          ? `${standingsRow.wins}-${standingsRow.losses}`
+          : null,
       points: Number.isFinite(points) ? points : null,
       // Summed from this side's starters. Null when the caller passed no projections or none
       // of the starters had one — never a guess, and never a zero standing in for silence.
@@ -595,7 +632,9 @@ async function fetchSleeperPlayersLegacy() {
         if (playersMemo.value) playersMemo.at = Date.now() - PLAYERS_MEMO_TTL_MS + PLAYERS_REFRESH_BACKOFF_MS;
         throw err;
       })
-      .finally(() => { if (playersMemo.promise === promise) playersMemo.promise = null; });
+      .finally(() => {
+        if (playersMemo.promise === promise) playersMemo.promise = null;
+      });
     playersMemo.promise = promise;
   }
   try {
@@ -615,7 +654,15 @@ const REFRESH_BACKOFF_BASE_MS = 60 * 1000;
 const REFRESH_BACKOFF_MAX_MS = 10 * 60 * 1000;
 // With nothing cached, a failed first load is remembered briefly so each request does not retry a 30 s fetch.
 const COLD_FAILURE_TTL_MS = 30 * 1000;
-const tieredPlayers = { coldFailure: null, overlay: null, refreshing: null, nextRefreshAt: 0, failures: 0, cold: null, tier: null };
+const tieredPlayers = {
+  coldFailure: null,
+  overlay: null,
+  refreshing: null,
+  nextRefreshAt: 0,
+  failures: 0,
+  cold: null,
+  tier: null,
+};
 
 function currentFreshnessPolicy(nowMs = Date.now()) {
   let offSeason = null;
@@ -635,8 +682,10 @@ function playersMapVerdict(previous, next) {
   const received = next ? Object.keys(next).length : 0;
   const prev = previous ? Object.keys(previous).length : 0;
   if (received === 0) return { ok: false, reason: "empty", previous: prev, received };
-  if (prev >= PLAYERS_MIN_COUNT && received < PLAYERS_MIN_COUNT) return { ok: false, reason: "under_floor", previous: prev, received };
-  if (prev > 0 && received < prev * (1 - PLAYERS_MAX_SHRINK)) return { ok: false, reason: "shrunk", previous: prev, received };
+  if (prev >= PLAYERS_MIN_COUNT && received < PLAYERS_MIN_COUNT)
+    return { ok: false, reason: "under_floor", previous: prev, received };
+  if (prev > 0 && received < prev * (1 - PLAYERS_MAX_SHRINK))
+    return { ok: false, reason: "shrunk", previous: prev, received };
   return { ok: true, previous: prev, received };
 }
 
@@ -668,14 +717,25 @@ function startPlayersRefresh(policy) {
       const sharedAt = Number(await readCache(PLAYERS_AT_KEY));
       if (Number.isFinite(sharedAt) && sharedAt > playersMemo.at && Date.now() - sharedAt < policy.players_ttl_ms) {
         const shared = await readCache(PLAYERS_CACHE_KEY);
-        if (shared) { installPlayers(shared, sharedAt); tieredPlayers.failures = 0; return; }
+        if (shared) {
+          installPlayers(shared, sharedAt);
+          tieredPlayers.failures = 0;
+          return;
+        }
       }
       const players = await getJson(`${BASE}/players/nfl`, { timeout: 30000 });
       const out = players && typeof players === "object" ? players : {};
       const verdict = playersMapVerdict(playersMemo.value, out);
       if (!verdict.ok) {
         // Keep the old map: an empty or truncated file would otherwise turn every Out player healthy.
-        console.log(JSON.stringify({ event: "sleeper_players_refresh_rejected", reason: verdict.reason, previous: verdict.previous, received: verdict.received }));
+        console.log(
+          JSON.stringify({
+            event: "sleeper_players_refresh_rejected",
+            reason: verdict.reason,
+            previous: verdict.previous,
+            received: verdict.received,
+          }),
+        );
         throw new Error("sleeper players refresh rejected");
       }
       const asOf = Date.now();
@@ -688,7 +748,9 @@ function startPlayersRefresh(policy) {
       tieredPlayers.failures += 1;
       tieredPlayers.nextRefreshAt = Date.now() + backoffMs(tieredPlayers.failures);
     }
-  })().finally(() => { tieredPlayers.refreshing = null; });
+  })().finally(() => {
+    tieredPlayers.refreshing = null;
+  });
   tieredPlayers.refreshing = run;
   return run;
 }
@@ -703,7 +765,14 @@ async function loadPlayersCold() {
   const out = players && typeof players === "object" ? players : {};
   const verdict = playersMapVerdict(null, out);
   if (!verdict.ok) {
-    console.log(JSON.stringify({ event: "sleeper_players_refresh_rejected", reason: verdict.reason, previous: 0, received: verdict.received }));
+    console.log(
+      JSON.stringify({
+        event: "sleeper_players_refresh_rejected",
+        reason: verdict.reason,
+        previous: 0,
+        received: verdict.received,
+      }),
+    );
     throw new Error("sleeper players load rejected");
   }
   const asOf = Date.now();
@@ -717,9 +786,16 @@ async function fetchSleeperPlayersTiered() {
     if (failed && Date.now() - failed.at < COLD_FAILURE_TTL_MS) throw failed.error;
     if (!tieredPlayers.cold) {
       const cold = loadPlayersCold()
-        .then(() => { tieredPlayers.coldFailure = null; })
-        .catch((error) => { tieredPlayers.coldFailure = { at: Date.now(), error }; throw error; })
-        .finally(() => { if (tieredPlayers.cold === cold) tieredPlayers.cold = null; });
+        .then(() => {
+          tieredPlayers.coldFailure = null;
+        })
+        .catch((error) => {
+          tieredPlayers.coldFailure = { at: Date.now(), error };
+          throw error;
+        })
+        .finally(() => {
+          if (tieredPlayers.cold === cold) tieredPlayers.cold = null;
+        });
       tieredPlayers.cold = cold;
     }
     await tieredPlayers.cold;
@@ -823,7 +899,9 @@ async function fetchAndCacheSleeperProjectionsOnce(season, week) {
  */
 async function loadStoredSleeperProjections(season, week) {
   try {
-    const stored = await storedProjections.getStoredProjectionReader().readSleeperWeek({ season: Number(season), week: Number(week) });
+    const stored = await storedProjections
+      .getStoredProjectionReader()
+      .readSleeperWeek({ season: Number(season), week: Number(week) });
     if (!stored) return null;
     const payload = stored.rows.map((row) => ({ player_id: row.source_player_id, stats: row.stat_line }));
     const points = normalizeProjections(payload);
@@ -864,12 +942,17 @@ function maybeRefreshProjections(season, week, entry, ttlMs) {
   const now = Date.now();
   if (now - entry.at < ttlMs || entry.refreshing || now < entry.nextRefreshAt) return;
   entry.refreshing = fetchAndCacheSleeperProjections(season, week)
-    .then(() => { entry.failures = 0; entry.nextRefreshAt = 0; })
+    .then(() => {
+      entry.failures = 0;
+      entry.nextRefreshAt = 0;
+    })
     .catch(() => {
       entry.failures += 1;
       entry.nextRefreshAt = Date.now() + backoffMs(entry.failures);
     })
-    .finally(() => { entry.refreshing = null; });
+    .finally(() => {
+      entry.refreshing = null;
+    });
 }
 
 async function loadProjectionsTiered(season, week, { hurtPlayers = true } = {}) {
@@ -895,7 +978,12 @@ async function loadProjectionsTiered(season, week, { hurtPlayers = true } = {}) 
     entry = projectionsMemo.get(key);
   }
   const policy = currentFreshnessPolicy();
-  maybeRefreshProjections(season, week, entry, hurtPlayers ? policy.projections_ttl_ms : policy.healthy_projections_ttl_ms);
+  maybeRefreshProjections(
+    season,
+    week,
+    entry,
+    hurtPlayers ? policy.projections_ttl_ms : policy.healthy_projections_ttl_ms,
+  );
   return entry;
 }
 
@@ -910,7 +998,9 @@ async function legacyProjectionsExpired(season, week) {
 
 async function fetchSleeperProjections(season, week, opts = {}) {
   if (!injuryFreshness.tiersDisabled()) return (await loadProjectionsTiered(season, week, opts)).points;
-  const cached = (await legacyProjectionsExpired(season, week)) ? null : await readCache(projectionsCacheKey(season, week));
+  const cached = (await legacyProjectionsExpired(season, week))
+    ? null
+    : await readCache(projectionsCacheKey(season, week));
   // Normalized on read too: entries cached before this fix hold the raw array.
   if (cached) return normalizeProjections(cached);
   const stored = await loadStoredSleeperProjections(season, week);
@@ -923,7 +1013,9 @@ async function fetchLiveProjectionsRemembering(season, week) {
   const key = `${season}:${week}`;
   const failedAt = statLineFailures.get(key);
   if (failedAt && Date.now() - failedAt < STAT_LINE_FAILURE_TTL_MS) {
-    throw Object.assign(new Error("Sleeper projections recently unavailable"), { code: "sleeper_projections_recently_failed" });
+    throw Object.assign(new Error("Sleeper projections recently unavailable"), {
+      code: "sleeper_projections_recently_failed",
+    });
   }
   try {
     const result = await fetchAndCacheSleeperProjections(season, week);
@@ -937,7 +1029,9 @@ async function fetchLiveProjectionsRemembering(season, week) {
 
 async function fetchSleeperProjectionStatLines(season, week, opts = {}) {
   if (!injuryFreshness.tiersDisabled()) return (await loadProjectionsTiered(season, week, opts)).statLines;
-  const cached = (await legacyProjectionsExpired(season, week)) ? null : await readCache(projectionStatLinesCacheKey(season, week));
+  const cached = (await legacyProjectionsExpired(season, week))
+    ? null
+    : await readCache(projectionStatLinesCacheKey(season, week));
   if (cached && typeof cached === "object" && !Array.isArray(cached)) return cached;
   const stored = await loadStoredSleeperProjections(season, week);
   if (stored) return stored.statLines;
@@ -993,13 +1087,15 @@ async function fetchSleeperAvailablePlayers(leagueId, week, season) {
     // wrongly withheld from the pool by a primary-position check.
     if (!eligiblePositions(player).some((pos) => eligible.has(pos))) continue;
 
-    pool.push(normalizePlayer({
-      playerId: id,
-      player,
-      projection: projectionFor(projections, id),
-      selectedPosition: null,
-      isStarter: false,
-    }));
+    pool.push(
+      normalizePlayer({
+        playerId: id,
+        player,
+        projection: projectionFor(projections, id),
+        selectedPosition: null,
+        isStarter: false,
+      }),
+    );
   }
 
   pool.sort((a, b) => {
@@ -1017,9 +1113,10 @@ async function fetchSleeperAvailablePlayers(leagueId, week, season) {
 async function fetchSleeperLeagueRosters(leagueId, week, season) {
   const leaguePromise = fetchSleeperLeague(leagueId);
   // Projections only need the league's season when the caller did not pass one.
-  const projectionsPromise = (season
-    ? fetchSleeperProjections(season, week)
-    : leaguePromise.then((league) => fetchSleeperProjections(league?.season || currentSeason(), week))
+  const projectionsPromise = (
+    season
+      ? fetchSleeperProjections(season, week)
+      : leaguePromise.then((league) => fetchSleeperProjections(league?.season || currentSeason(), week))
   ).catch(() => ({}));
   const [league, rosters, users, players, projections] = await Promise.all([
     leaguePromise,
@@ -1048,13 +1145,21 @@ async function fetchSleeperLeagueRosters(leagueId, week, season) {
       return {
         roster_id: String(roster?.roster_id || ""),
         team_name: sleeperLeagueTeamName(user, roster),
-        players: [...ids].map((playerId) => normalizePlayer({
-          playerId,
-          player: players?.[playerId] || {},
-          projection: projectionFor(projections, playerId),
-          selectedPosition: reserveIds.has(playerId) ? "IR" : taxiIds.has(playerId) ? "TAXI" : starterIds.has(playerId) ? "STARTER" : "BN",
-          isStarter: starterIds.has(playerId) && !reserveIds.has(playerId),
-        })),
+        players: [...ids].map((playerId) =>
+          normalizePlayer({
+            playerId,
+            player: players?.[playerId] || {},
+            projection: projectionFor(projections, playerId),
+            selectedPosition: reserveIds.has(playerId)
+              ? "IR"
+              : taxiIds.has(playerId)
+                ? "TAXI"
+                : starterIds.has(playerId)
+                  ? "STARTER"
+                  : "BN",
+            isStarter: starterIds.has(playerId) && !reserveIds.has(playerId),
+          }),
+        ),
       };
     }),
   };
@@ -1063,9 +1168,10 @@ async function fetchSleeperLeagueRosters(leagueId, week, season) {
 async function buildNormalizedRoster(leagueId, username, week, opts = {}) {
   const user = await fetchSleeperUser(username);
   const leaguePromise = fetchSleeperLeague(leagueId).catch(() => null);
-  const projectionsPromise = (opts.season
-    ? fetchSleeperProjections(opts.season, week)
-    : leaguePromise.then((league) => fetchSleeperProjections(league?.season || currentSeason(), week))
+  const projectionsPromise = (
+    opts.season
+      ? fetchSleeperProjections(opts.season, week)
+      : leaguePromise.then((league) => fetchSleeperProjections(league?.season || currentSeason(), week))
   ).catch(() => ({}));
   const [league, rosterInfo, players, projections] = await Promise.all([
     leaguePromise,
@@ -1078,9 +1184,7 @@ async function buildNormalizedRoster(leagueId, username, week, opts = {}) {
   const starterIds = Array.isArray(roster.starters) ? roster.starters.map(String) : [];
   const reserveIds = new Set((Array.isArray(roster.reserve) ? roster.reserve : []).map(String));
   const allPlayerIds = Array.isArray(roster.players) ? roster.players.map(String) : [];
-  const rosterPositions = Array.isArray(league?.roster_positions)
-    ? league.roster_positions
-    : [];
+  const rosterPositions = Array.isArray(league?.roster_positions) ? league.roster_positions : [];
 
   const slots = { starters: [], bench: [], ir: [] };
 
@@ -1168,6 +1272,8 @@ module.exports = {
   fetchSleeperLeague,
   fetchSleeperRoster,
   fetchSleeperStandings,
+  fetchSleeperTransactions,
+  fetchSleeperTeamNames,
   fetchSleeperMatchups,
   fetchSleeperLastResult,
   fetchSleeperPlayers,

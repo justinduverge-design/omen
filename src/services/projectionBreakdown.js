@@ -26,23 +26,59 @@ const MIN_LINE_POINTS = 0.5;
 const PROVIDER_LABELS = Object.freeze({ sleeper: "Sleeper", espn: "ESPN", yahoo: "Yahoo" });
 
 const SLEEPER_LABELS = Object.freeze({
-  pass_yd: "pass yds", pass_td: "pass TD", pass_int: "INT thrown", pass_cmp: "completions",
-  pass_att: "pass att", pass_inc: "incompletions", pass_sack: "sacks taken", pass_2pt: "2-pt passes",
-  rush_yd: "rush yds", rush_td: "rush TD", rush_att: "carries", rush_2pt: "2-pt runs",
-  rec: "receptions", rec_yd: "rec yds", rec_td: "rec TD", rec_tgt: "targets", rec_2pt: "2-pt catches",
-  bonus_rec_te: "TE reception bonus", bonus_rec_rb: "RB reception bonus", bonus_rec_wr: "WR reception bonus",
-  fum_lost: "fumbles lost", fum: "fumbles",
-  xpm: "extra points", xpmiss: "missed XP", fgm: "field goals", fgmiss: "missed FG",
-  fgm_0_19: "FG 0-19", fgm_20_29: "FG 20-29", fgm_30_39: "FG 30-39", fgm_40_49: "FG 40-49", fgm_50p: "FG 50+",
-  sack: "sacks", int: "interceptions", fum_rec: "fumble recoveries", def_td: "defensive TD",
-  safe: "safeties", blk_kick: "blocked kicks", def_st_td: "return TD", st_td: "return TD",
+  pass_yd: "pass yds",
+  pass_td: "pass TD",
+  pass_int: "INT thrown",
+  pass_cmp: "completions",
+  pass_att: "pass att",
+  pass_inc: "incompletions",
+  pass_sack: "sacks taken",
+  pass_2pt: "2-pt passes",
+  rush_yd: "rush yds",
+  rush_td: "rush TD",
+  rush_att: "carries",
+  rush_2pt: "2-pt runs",
+  rec: "receptions",
+  rec_yd: "rec yds",
+  rec_td: "rec TD",
+  rec_tgt: "targets",
+  rec_2pt: "2-pt catches",
+  bonus_rec_te: "TE reception bonus",
+  bonus_rec_rb: "RB reception bonus",
+  bonus_rec_wr: "WR reception bonus",
+  fum_lost: "fumbles lost",
+  fum: "fumbles",
+  xpm: "extra points",
+  xpmiss: "missed XP",
+  fgm: "field goals",
+  fgmiss: "missed FG",
+  fgm_0_19: "FG 0-19",
+  fgm_20_29: "FG 20-29",
+  fgm_30_39: "FG 30-39",
+  fgm_40_49: "FG 40-49",
+  fgm_50p: "FG 50+",
+  sack: "sacks",
+  int: "interceptions",
+  fum_rec: "fumble recoveries",
+  def_td: "defensive TD",
+  safe: "safeties",
+  blk_kick: "blocked kicks",
+  def_st_td: "return TD",
+  st_td: "return TD",
 });
 
 // Only ids whose meaning is certain (scoringRuleSnapshot.ESPN_EVENT_MAP). Any other scored id
 // still counts toward the total; it is shown as "other" rather than given a guessed name.
 const ESPN_LABELS = Object.freeze({
-  3: "pass yds", 4: "pass TD", 20: "INT thrown", 24: "rush yds", 25: "rush TD",
-  42: "rec yds", 43: "rec TD", 53: "receptions", 72: "fumbles lost",
+  3: "pass yds",
+  4: "pass TD",
+  20: "INT thrown",
+  24: "rush yds",
+  25: "rush TD",
+  42: "rec yds",
+  43: "rec TD",
+  53: "receptions",
+  72: "fumbles lost",
 });
 
 function finite(value) {
@@ -56,6 +92,7 @@ function round2(value) {
 }
 
 function providerLabel(provider) {
+  if (provider === "yahoo") return "Yahoo (Omen-scored)";
   return PROVIDER_LABELS[provider] || "The provider";
 }
 
@@ -190,8 +227,10 @@ function formatSigned(value) {
 /** "Chris Olave's 15.72 from Sleeper: 72 rec yds × 0.1 = 7.2; 6.1 receptions × 1 = 6.1." */
 function breakdownStatement(name, breakdown) {
   if (breakdown?.status !== "available") return null;
-  const parts = breakdown.lines.map((line) =>
-    `${formatNumber(line.quantity)} ${line.label} × ${formatNumber(line.points_per, 4)} = ${formatNumber(line.points, 1)}`);
+  const parts = breakdown.lines.map(
+    (line) =>
+      `${formatNumber(line.quantity)} ${line.label} × ${formatNumber(line.points_per, 4)} = ${formatNumber(line.points, 1)}`,
+  );
   if (Math.abs(breakdown.other_points) >= 0.05) parts.push(`other scoring ${formatSigned(breakdown.other_points)}`);
   return `${name}'s ${formatNumber(breakdown.provider_points)} from ${providerLabel(breakdown.provider)}: ${parts.join("; ")}.`;
 }
@@ -259,20 +298,42 @@ function rosterProjectionBreakdowns({ platform, roster, sleeper = null, espn = n
     if (!key) continue;
     if (platform === "sleeper") {
       const id = sleeperIdFromKey(key) ?? player.player_id;
-      out.set(key, sleeperProjectionBreakdown({
-        statLine: id == null ? null : sleeper?.statLines?.[String(id)],
-        scoringSettings: sleeper?.scoringSettings,
-        providerPoints: player.projected_points,
-      }));
+      out.set(
+        key,
+        sleeperProjectionBreakdown({
+          statLine: id == null ? null : sleeper?.statLines?.[String(id)],
+          scoringSettings: sleeper?.scoringSettings,
+          providerPoints: player.projected_points,
+        }),
+      );
     } else if (platform === "espn") {
       const projections = espn?.projections;
       const projection = projections instanceof Map ? projections.get(key) : projections?.[key];
-      out.set(key, espnProjectionBreakdown({ projection, rules: espn?.rules, providerPoints: player.projected_points }));
+      out.set(
+        key,
+        espnProjectionBreakdown({ projection, rules: espn?.rules, providerPoints: player.projected_points }),
+      );
+    } else if (platform === "yahoo") {
+      out.set(key, yahooProjectionBreakdown(player));
     } else {
       out.set(key, unavailableBreakdown(platform, "no_stat_line"));
     }
   }
   return out;
+}
+
+/**
+ * Yahoo projects nothing itself; Omen scores Sleeper's projected stat line with this Yahoo league's
+ * rules (`yahooProjections.js`), which records each stat's part. Same reconcile as Sleeper and ESPN.
+ */
+function yahooProjectionBreakdown(player) {
+  const parts = Array.isArray(player?.projection_parts) ? player.projection_parts : [];
+  if (!parts.length) return unavailableBreakdown("yahoo", "no_stat_line");
+  return reconcile({
+    provider: "yahoo",
+    parts: parts.map((part) => ({ ...part, label: SLEEPER_LABELS[part.stat] || part.stat.replace(/_/g, " ") })),
+    providerPoints: finite(player.projected_points),
+  });
 }
 
 /**
@@ -283,7 +344,28 @@ function rosterProjectionBreakdowns({ platform, roster, sleeper = null, espn = n
  * `loadSleeperInputs({ leagueId, season, week })` returns `{ statLines, scoringSettings }`.
  * A thrown loader is the caller's to absorb: the field is then simply absent.
  */
-async function attachOmenProjectionBreakdown({ response, loadSleeperInputs } = {}) {
+/** The ESPN or Yahoo breakdown for the call's primary player. Throws on a failed read; the caller names it. */
+async function providerBreakdown({ platform, response, primary, loadEspnInputs, loadYahooPlayer }) {
+  if (platform === "espn") {
+    // Same read Start/Sit makes: the week's projected stat rows and this league's own rules.
+    const { projections, rules } = await loadEspnInputs({
+      leagueId: response.league?.id ?? null,
+      week: Number(response.league?.week),
+    });
+    const projection = projections instanceof Map ? projections.get(primary.id) : projections?.[primary.id];
+    return espnProjectionBreakdown({ projection, rules, providerPoints: primary.projected_points });
+  }
+  // Yahoo projects nothing; Omen scores Sleeper's stat line with this league's rules, one part per stat.
+  const scored = await loadYahooPlayer({
+    leagueId: response.league?.id ?? null,
+    season: Number(response.league?.season),
+    week: Number(response.league?.week),
+    primary,
+  });
+  return yahooProjectionBreakdown(scored);
+}
+
+async function attachOmenProjectionBreakdown({ response, loadSleeperInputs, loadEspnInputs, loadYahooPlayer } = {}) {
   if (!response || response.state !== "success") return response;
   const primary = response.recommendation?.primary_player;
   if (!primary?.id) return response;
@@ -298,6 +380,16 @@ async function attachOmenProjectionBreakdown({ response, loadSleeperInputs } = {
       week: Number(response.league?.week),
     });
     breakdown = sleeperProjectionBreakdown({ statLine: id == null ? null : statLines?.[id], scoringSettings });
+  } else if (
+    (platform === "espn" && typeof loadEspnInputs === "function") ||
+    (platform === "yahoo" && typeof loadYahooPlayer === "function")
+  ) {
+    try {
+      breakdown = await providerBreakdown({ platform, response, primary, loadEspnInputs, loadYahooPlayer });
+    } catch {
+      // A provider read that fails costs this breakdown only, named rather than absent.
+      breakdown = unavailableBreakdown(platform, "no_stat_line");
+    }
   } else {
     breakdown = unavailableBreakdown(platform, platform === "yahoo" ? "no_stat_line" : "not_read_here");
   }
@@ -306,9 +398,10 @@ async function attachOmenProjectionBreakdown({ response, loadSleeperInputs } = {
     player_id: primary.id,
     player_name: primary.name || null,
     ...breakdown,
-    statement: breakdown.status === "available"
-      ? breakdownStatement(primary.name || "This player", breakdown)
-      : `Points breakdown unavailable: ${breakdown.reason}`,
+    statement:
+      breakdown.status === "available"
+        ? breakdownStatement(primary.name || "This player", breakdown)
+        : `Points breakdown unavailable: ${breakdown.reason}`,
   };
   return response;
 }

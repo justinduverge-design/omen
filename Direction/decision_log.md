@@ -1,5 +1,71 @@
 # Omen Decision Log
 
+## 2026-10-18 — Branch triage: retire stale work, archive what was never pushed
+
+- **Decision (delegated by the founder):** the ~30 local branches left after the prune were triaged against main by
+  behavior. 23 were already on main or superseded and are deleted; PR #654 closed (landed in #670).
+  `codex/root-cause-containment-20260928`, `codex/tuesday-beta-ready-20260929` and `codex/founder-closeout-existing-work`
+  are retired: main rebuilt those areas since, so they are reference only, not merge candidates.
+- **Rule applied:** never delete unpushed or uncommitted work outright; commit it and push to `origin/archive/<name>`.
+- **Open:** `feat/provider-gap-g3-g8` → BRANCH-SALVAGE in `current_sprint.md`. Evidence: `Direction/reviews/2026-10-18-branch-triage.md`.
+
+## 2026-10-13 — Defer ESPN verification until the new beta has an install
+
+- **Founder fact:** the new beta version has no installs yet, so checking the Build 11 ESPN fix now
+  cannot produce useful tester evidence.
+- **Decision:** preserve the merged ESPN watch list but do not inspect logs, request a tester attempt,
+  or modify the login flow until the founder reports an install and resumes the check.
+- **Replacement lane:** use the no-install window for the Omen-summary plus League completion audit,
+  alongside the Trade reliability trace and shared-foundation/provider-honesty inspection.
+- **KVM2 boundary:** no KVM2 action is authorized by this planning change. Projection analysis remains
+  a documented HOLD until a separately reviewed retained-analysis procedure is ready.
+
+## 2026-10-13 — Build 12 projection certification is family-specific and evidence-gated
+
+- **Decision:** projection eligibility is decided independently for standard, half-PPR and PPR, by
+  position, in both the relevant and all-player universes. A PPR pass cannot authorize another family.
+- **Evidence floor:** every season/baseline comparison requires at least 100 paired player-weeks and
+  20 player clusters (`paired-evidence-v1`). Insufficient evidence is `HOLD`.
+- **Reader boundary:** the backtest requires LOGIN `omen_warehouse_read`, database `omen_football`
+  and a read-only session. A read-only superuser is rejected.
+- **Activation boundary:** source repair may be committed locally, but restored-warehouse execution
+  and customer-visible activation remain blocked until a bounded retained-analysis restore path and
+  position/scoring-family results exist.
+
+## 2026-10-12 — Renumber: the planned Build 10 is now Build 12
+
+- **Why:** Build 9 had stale code, so Build 10 shipped the same night from current main, and Build 11 followed with the ESPN first-login fix (settle the cookie pair, patient discovery, Check again; server logs the real ESPN status).
+- **Rule:** the 2026-10-20 plan is Build 12 (`Direction/2026-10-20-build-12-plan.md`). Earlier entries that say "Build 10" for 2026-10-20 mean Build 12.
+
+## 2026-10-12 — Build 9 is distributed; Build 10 becomes the active release target
+
+- **Founder report:** Build 9 was pushed to Apple TestFlight beta users.
+- **Decision:** stop treating the October 13 candidate as pending. It is the observation baseline;
+  active planning now targets Build 10 for Tuesday 2026-10-20.
+- **Scope rule:** Build 10 remains unallocated until the Trade, shared-primitives, provider-capability
+  and unfinished-work evidence packets are complete.
+- **Plan:** `Direction/2026-10-20-build-10-plan.md`.
+- **Boundary:** App Store Connect was not independently read in this session.
+
+## 2026-10-12 (rolling beta correction) — plan one Tuesday at a time; inspect Omen before allocating later builds
+
+- **Decision (founder):** Omen uses a rolling weekly Tuesday frame. Plan and freeze Monday
+  afternoon, release/canary Tuesday, observe Wednesday, and use Thursday through Sunday as the
+  primary engineering window because the token allowance resets Thursday.
+- **Three-release meaning:** 2026-10-13 is the committed candidate; 2026-10-20 is a provisional
+  date whose contents are chosen only after the Omen foundation inspection; 2026-10-27 is a
+  hopeful horizon, not a pre-built roadmap. Each Monday the frame rolls forward.
+- **Current build:** fix only genuine P0/P1 phone-walk findings. If a broken feature cannot be
+  repaired within the freeze, exclude or disable it honestly rather than delaying the entire
+  build or leaving a silent dead end. The founder owns App Store Connect.
+- **Inspection before allocation:** assess shared football primitives, ESPN/Yahoo/Sleeper truth,
+  feature coherence, canvas drift and Xcode evidence automation. Use the result to classify
+  foundations as preserve, consolidate, repair, replace or exclude before assigning Beta 2 work.
+- **Valor boundary:** solve Omen's need correctly first. Extract a tool or procedure upward only
+  after repeated Omen use proves it reusable; Omen does not wait for a generalized consulting
+  framework.
+- **Plan:** `Direction/2026-10-12-rolling-three-beta-frame.md`.
+
 ## 2026-10-12 (later) — projections: the league's provider leads, Omen is the challenger and the filler; read everything the providers expose
 
 - **Decision (founder, 2026-10-12), refining the entry above:** the league provider's own projections LEAD for that league
@@ -4691,5 +4757,40 @@ on the second one.
 2026-10-09 — Omen's API may run warehouse shadow reads while Supabase remains response authority. Shadow reader startup degrades safely to Supabase; warehouse-primary startup remains fail-closed. The warehouse backup root is root-owned 0711 so the dedicated backup account can traverse an exact path without listing it; per-run directories remain 0700 and artifacts 0400. The first encrypted KVM2 snapshot is storage proof, not recovery proof: primary promotion and historical backfill still wait for an isolated KVM2 restore, real authenticated comparison evidence, and exercised monitoring.
 2026-10-09 — The first football-warehouse KVM2 recovery proof passed. Docker save/load is pinned by the exact image content ID because it does not preserve a source registry RepoDigest reference; accepting a mutable local tag is forbidden. Restic credentials remain only on omen-prod: decrypted public-football snapshot bytes may stream over existing Tailscale SSH trust into a root-only KVM2 source, must be checksum-verified before a networkless disposable restore, and must be removed after the retained proof verifies. This closes one-time restore proof, not scheduled recovery automation or monitoring notification.
 2026-10-09 — Sentry's Express integration runs with every layer type ignored (`ignoreLayersType: middleware, router, request_handler`). With `tracesSampleRate: 0` its per-layer spans were never sent, but each one hung a `finish` listener on the response, and the synchronous `/api/health` chain crossed Node's 10-listener warning on every probe. The warning predates PR #577 (reproduced at 981bf645). Route-named error events and layer error capture are kept. Raising `tracesSampleRate` later must revisit this, or Express layer spans will silently be absent.
+2026-10-14 — Build 12 selects Trade reliability as its primary candidate after the four inspection packets completed. The local repair uses league-directory membership, not weekly matchup state, as the primary viewer-team identity; excludes that team from every partner path; invalidates all league-dependent Trade state during a context transition; rejects late async responses from a previous league; and keeps pre-answer provider/scoring copy conditional. Focused native Trade tests pass 24/24 and final independent review is clean. This is source-verified, not release-ready: paired-iPhone partner selection and a visible manual-compare terminal result remain required, and Rhody's ESPN check remains deferred.
 2026-10-15 — The provider capability matrix is one machine-readable file (`Blueprints/specs/football-data/provider-capability-matrix.json`); the markdown is generated and never edited. Every entry carries source evidence (strings the code must, or must not, contain), and `test/providerCapabilityMatrix.test.js` fails when code drifts from it, including when a capability marked not-read starts being read. `last_verified` is a code-check date unless the entry cites a live proof. The earlier prose matrix (#648) is superseded on Yahoo projections: Yahoo is `degraded: derived_projection`, not absent. Reconciliation against the live database is in `Direction/reviews/2026-10-15-provider-matrix-db-reconciliation.md`: league scoring rules and credential health have no app-side writer, so those gaps are missing code, not provider limits.
 2026-10-15 — Foreign-key indexes: three are added (step 16: `projection_shadow_log` on `(player_id, season, week)` and on `league_id`, `projection_snapshots` on `league_id`, the last two partial), because those logs are empty now and grow weekly. Five advisor findings and the `nflverse_weekly_stats (season, week)` index are deliberately not built, each with row counts or a reader search as proof (`Direction/reviews/2026-10-15-fk-index-decision.md`): the tables are a few pages, the parents are never deleted, and nothing reads `nflverse_weekly_stats`. A skipped FK is re-opened by a data-quality check once its table passes 10,000 rows. Step 16 is rehearsed on Postgres 16 only and is not applied to any Supabase project.
+2026-10-17 — Sight v2 is served (`SIGHT_VERSION=v2`), shipped as one bundle: context, K/DEF, role, weather, rain and the team-elements gap. Start/Sit and Waivers blend Sight into the decision value (provider leads, weight 0.3, low-confidence Sight ignored); a bench player Sight grades 70+ is never the cheap drop; locked players (ESPN lineup/roster locks, Yahoo is_editable 0) are never swapped, displaced or dropped. The Ledger's honest number is the contested hit rate: a call against an OUT or bye alternative does not count. Invalid ESPN/Yahoo credentials are deleted from Vault every six hours (step 17), the league kept.
+2026-10-17 — Player index: Sleeper and Yahoo ids match by GSIS, then ESPN id, then unique name plus birth date (`provider_bio`, v10), then the DynastyProcess crosswalk (v11). The founder accepted the crosswalk's GPL-3.0 rights risk; every load's receipt records `gpl_3_0_founder_accepted`, so it stays visible and reversible. Sight coverage this week: ESPN 305/305, Sleeper 304, Yahoo 233. Sleeper practice/injury notes still wait on a founder rights decision.
+2026-10-17 — Trades are graded over three horizons (step 18, `decision_horizon_grades`, applied): the week, the next four weeks, the season so far; a week the warehouse has not ingested stops the count instead of scoring 0-0. Sleeper injury reports are stored (warehouse v12, founder-approved) and fill a missing provider status only. Waivers plan around byes: the last bench cover for a starter whose bye is one or two weeks out is not the drop. QB Sight is fixed by v2's context layer (held-out QB 0.383 vs points-per-game 0.329). Step 16 FK indexes applied. Players the index cannot place are matched at read time by name, NFL team and position, unique or nothing.
+2026-10-17 — Release cadence: a beta build ships when it is ready, not every other Tuesday (overrides 2026-10-12). Each build gets a package in `Direction/release/builds/build-NN.md`: what was wrong, what was fixed (with PRs), where it lives, known issues and next, paste-ready tester notes, and proof. The first package is Build 12.
+
+2026-10-17 — Beta builds ship when ready, not on a fixed Tuesday. Founder: "I would rather just update while we got it" during the beta; a fixed release schedule returns at the full public launch. `Direction/map.md` and the README now say so.
+2026-10-17 — Rust infrastructure direction approved as one programme (`Blueprints/specs/infrastructure/omen-rust-infrastructure-plan-v1.md`): Rust-built tooling first (uv, ruff, Biome, typos, Tailwind 4, Rolldown), then overnight local-model batch jobs on KVM2 (never on a request path), Polars/Parquet warehouse ingest, Vector and Rust binaries for the Pi fleet, and last a shared Rust decision core proven in shadow against the JS version. The Express API is not rewritten. Direction only: each production step keeps its own approval.
+2026-10-17 — OpenTelemetry tracing is wired, off unless `OTEL_EXPORTER_OTLP_ENDPOINT` names a private host (RFC 1918, 100.64/10, loopback, a Docker service name, or our own tailnet suffix via `OTEL_TAILNET_SUFFIX`; any other `*.ts.net` is refused because Funnel hosts are public). The tracer provider is never registered globally, so Sentry 11 (OTel setup off by default) and self-instrumenting libraries such as supabase-js are unaffected. Span attributes pass a fixed allowlist; spans are named by route template; error messages, user/league ids, cookies, headers and query strings are never recorded. The collector runs self-hosted on Command Center (`infra/telemetry/`); deploying it and setting the endpoint on KVM1 are separate approved steps. The trade search runs on a `worker_threads` pool, off by default (`TRADE_SEARCH_MODE=worker` turns it on; turning it on in production is a separate approved step); the legacy `client/` app is retired because nothing served it.
+
+2026-10-18 — Phase 1 tooling, part 1: every GitHub Action is pinned by full commit SHA with its version as a comment (Dependabot github-actions already updates them). New `lint-quality.yml` runs shellcheck (severity warning; 10 findings today, mostly scripts/db) and typos (`.github/_typos.toml`; 207 findings) report-only until each backlog is clean. `dependency-health.yml` gains a cargo-deny job that stays inert until a Cargo.lock exists. OpenTelemetry went live on KVM1 the same night after two deploy fixes for the retired client/ (#719, #720).
+2026-10-18 — Phase 1 tooling, part 2: uv and ruff. Root `pyproject.toml` has no runtime dependencies (Omen Python stays stdlib-only on the hosts' system python3, 3.12 on KVM1 and 3.13 on Command Center); uv pins ruff in `uv.lock`. New `python-quality.yml`: the 8 warehouse release-root unittests now run in CI (blocking), and ruff runs report-only (29 findings), because the trusted release scripts are not reformatted in a tooling PR. deploy.yml paths-ignore gains `pyproject.toml`, `uv.lock` and `.gitignore`.
+2026-10-18 — Phase 1 tooling, part 3: Biome 2.5.15 (`biome.json`, recommended rules, 2-space, 120 cols) over src, scripts, frontend/src, extension and test, report-only in lint-quality.yml (825 errors / 684 warnings today, mostly formatting). A one-shot `biome format --write` is a separate, mechanical PR; making it blocking follows.
+2026-10-18 — Phase 2 model: founder asked for small models (KVM2 RAM is the limit, not disk). Bake-off on 40 real players, judged by narrationGrounding: qwen3:1.7b 33/40 grounded at 4.5 s p50 (1.4 GB) vs gemma3:4b 31/40 at 8.7 s (3.3 GB) vs llama3.2:1b 6/40. qwen3:1.7b becomes the notes model, replacing the Ministral 3 3B plan; gemma3:4b stays on disk as the fallback, and embeddinggemma is for duplicates and fuzzy names. KVM2 Ollama now runs with OLLAMA_MAX_LOADED_MODELS=1. Evidence: scripts/research/model-bakeoff/README.md.
+2026-10-18 — Phase 2 reframed by the founder: the model explains each user's own decision (why A over B for this team), not only generic player notes. Decision explanations come first, player notes second. The engine's evidence rows and why statements (evidenceWhy.js) are the only input; the model (qwen3:1.7b on KVM2) words them into at most 2 sentences, and narrationGrounding drops anything else. Write-behind instead of a nightly batch: the request returns deterministic text, queues the facts (Redis, keyed by a facts hash, no user id), and a drain cron writes and stores the explanation. This means no extra provider logins and no model on a request path. Behind DECISION_EXPLANATIONS_MODE=off|shadow, shadow only; the cron is not scheduled yet. Grounding now treats "red zone"/"red-zone" as one phrase and grounds number words by their digits.
+2026-10-18 — Phase 3 findings: nflverse Parquet matches the CSV on values, not on text. Byte-identical source_row text is not achievable (the CSV writer has its own 15-digit float printer), so the Polars path uses value parity: integer and text columns exact (every column SQL reads as text already matches exactly), floats within 15 significant digits. kickoff_at is filled for 2000 onward; the TIMERS.md open item is closed (1999 has no game times).
+2026-10-18 — Phase 3: Polars play-by-play reader built and proven against production (read-only exports). 1999 and 2025 match the CSV ingest exactly under the value-parity rule; 2026 matches except 2 plays nflverse revised after the last ingest. About 5 s per season at a 1.7 GB peak, against the 3 GB Node heap. No warehouse writes yet: the shadow schema, the load command and the image change are the next approved steps.
+2026-10-18 — Phase 3: football_shadow migration (0025/0026, version 13) and the Polars load and diff-db commands, tested on local Postgres 17.11 with production's 2025 plays: load 12.8 s at 0.5 GB, diff-db parity. Not applied to production; the change window and the worker-image change are the next approvals.
+2026-10-18 — Phase 3 shadow is live on KVM1 (founder-approved): warehouse release fe0c2164 published and selected (its worker accepts v13), migration 0026 applied (schema v13), and the post-apply ingest succeeded. The Polars 2025 play-by-play load into football_shadow matches football.nfl_plays exactly (48,771 rows). WAREHOUSE_INGEST_ENGINE stays csv. Next: run the shadow daily beside the ingest (needs Polars in the worker image) and report parity for a week before any flip.
+2026-10-18 — Prune as we build (founder): work that replaces or retires a route, screen, simulator, table, flag or env var removes the old one in the same PR, or logs a dated follow-up. `scripts/check-orphans.js` lists candidates (never deletes); `scripts/mac-sweep.sh` is the weekly build-Mac cleanup. Simulators are iOS 27 only; iOS 26.5, watchOS and iPads removed.
+2026-10-18 — Steward Wi-Fi hang (about 37 h after a failed eero roam). Founder-approved fix on both Pi Zeros: Wi-Fi power saving off and a local link watchdog (restart Wi-Fi after 10 min, reboot after 30). No new monitor: the dispatcher did alert, but the alert was easy to miss among other standing items. Sources in ops/pi-fleet/.
+2026-10-18 — Alert noise check: the standing #slops-alerts items were a stale Steward TLS result (re-run, healthy, 77 days) and GlitchTip #2 (ESPN 404 on league connect, last seen Oct 14, tied to the ESPN first-login watch item). #2 stays as a real signal, and the existing nightly autoresolve job clears it after 7 quiet days. The restore-proof heartbeat already exists and works (Kuma monitor 9, last push 2026-10-18 14:24 UTC); TIMERS.md and the plan were stale. The repo copy of the dispatcher is re-synced to the deployed version.
+2026-10-18 — Phase 4 Vector log shipping built in shadow: agents on KVM1/KVM2 (journald plus Docker json-file, read-only, no Docker socket, secrets scrubbed on the host, 0.5 CPU cap) ship to an allowlisted, throttled receiver on Command Center that keeps 14 days of daily files. Tested end to end locally; journald readability checked on both hosts. Not installed: each host needs approval.
+2026-10-18 — Vector installed (founder-approved): receiver plus 14-day prune on Command Center, agents on KVM1 and KVM2. A spot check of all shipped files found no unredacted secrets. Shadow: nothing reads the files yet.
+2026-10-18 — Phase 4 Rust Pi watchdog: steward-freshness, the first Rust crate, a dependency-free static aarch64 binary (377 KB) porting Steward's three freshness checks. Parity harness 47/47 identical to the bash checks. Shadow units (hourly, writing *.rust.status plus a MATCH/MISMATCH journal line) are ready but not installed. Rust CI (fmt, clippy, test, Pi cross-compile artifact) and deny.toml land with it.
+2026-10-18 — Prune decisions (delegated by the founder): removed GET /api/yahoo/roster and GET /api/optimizer/lineup (no caller; start/sit and the provider adapters replaced them, #745); kept POST /api/user/consent (privacy) and the coach-transfer signal (planned). Provider salvage (#746): landed G4 league transactions (Sleeper live; Yahoo/ESPN dark behind flags until a live probe), G6 Yahoo FA/waiver split behind YAHOO_POOL_STATUS_SPLIT, G8 per-team budget; G3 and G5 had already shipped. Rule kept: an unread feed is unavailable with a reason, never empty.
+2026-10-18 — steward-freshness shadow installed on Steward (founder-approved): hourly Rust runs beside the bash checks, with a MATCH/MISMATCH journal line each run. First runs: MATCH on all three. The swap to Rust waits for a clean week.
+
+
+## 2026-10-19: Build 12 screens (founder)
+- **Canvas:** Claude Design replaces Figma. Brass stays as the accent. Light mode is reinstated, not beige.
+- **Provider parity:** Sleeper, ESPN and Yahoo get the same thing on every screen. Yahoo is a trade-personalization source.
+- **Ratings name:** "Omen Grade" (QB/RB/WR/TE); "QBR" is avoided as ESPN's brand.
+- **One branch, one ship:** all screen work stays on one branch and ships in one merge.
+- **Narration:** the model switch to qwen3:1.7b is approved; it is handed to Codex to test first.

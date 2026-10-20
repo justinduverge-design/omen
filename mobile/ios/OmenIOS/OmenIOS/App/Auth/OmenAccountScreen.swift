@@ -61,6 +61,9 @@ struct OmenAccountConnection: Identifiable, Equatable {
 /// How the connected-leagues section stands. Three cases, because three different things are
 /// true and only one of them is "you have no leagues".
 enum OmenAccountConnections: Equatable {
+    /// The directory read is in flight. This is not an error and must not borrow the
+    /// unavailable copy while a healthy account is still answering.
+    case loading
     /// Read, and these are the leagues.
     case loaded([OmenAccountConnection])
     /// Read, and there are none. A zero state, not an error — the same rule
@@ -81,6 +84,7 @@ enum OmenAccountConnections: Equatable {
     /// zero beside "Connected leagues" is a claim, and an unread list supports no claim.
     var countLabel: String? {
         switch self {
+        case .loading: return nil
         case .loaded(let rows): return String(rows.count)
         case .none: return "0"
         case .unavailable: return nil
@@ -117,6 +121,8 @@ struct OmenAccountScreen: View {
     let state: OmenAccountState
     var onOpenIdentity: (() -> Void)?
     var onDisconnect: ((OmenAccountConnection) -> Void)?
+    var disconnectingConnectionID: String?
+    var disconnectErrorMessage: String?
     var onAddLeague: (() -> Void)?
     var onReportProblem: (() -> Void)?
     var onOpenHelpCentre: (() -> Void)?
@@ -135,6 +141,7 @@ struct OmenAccountScreen: View {
                 header
                 identityRow
                 connectionsSection
+                appearanceSection
                 supportSection
                 if let securitySection {
                     sectionHeader("Sign-in security", trailing: nil)
@@ -206,6 +213,14 @@ struct OmenAccountScreen: View {
         sectionHeader("Connected leagues", trailing: state.connections.countLabel)
 
         switch state.connections {
+        case .loading:
+            OmenStateSurface(
+                kind: .loading,
+                title: "Reading your connected leagues",
+                message: "Omen is checking which leagues this account can use."
+            )
+            .padding(.horizontal, OmenSpacing.step16)
+            .padding(.vertical, OmenSpacing.step8)
         case .loaded(let rows):
             ForEach(rows) { connection in
                 connectionRow(connection)
@@ -228,6 +243,16 @@ struct OmenAccountScreen: View {
                 .padding(.horizontal, OmenSpacing.step16)
                 .padding(.vertical, OmenSpacing.step8)
                 .accessibilityIdentifier("chrome.account.connections-unavailable")
+        }
+
+        if let disconnectErrorMessage {
+            OmenStateSurface(
+                kind: .error,
+                title: "That league stayed connected",
+                message: disconnectErrorMessage
+            )
+            .padding(.horizontal, OmenSpacing.step16)
+            .padding(.vertical, OmenSpacing.step8)
         }
 
         if let onAddLeague {
@@ -262,7 +287,15 @@ struct OmenAccountScreen: View {
             .accessibilityElement(children: .combine)
 
             if let onDisconnect {
-                OmenButton(title: "Disconnect", action: { onDisconnect(connection) }, variant: .link, size: .sm)
+                OmenButton(
+                    title: disconnectingConnectionID == connection.id ? "Disconnecting…" : "Disconnect",
+                    action: { onDisconnect(connection) },
+                    variant: .link,
+                    size: .sm,
+                    enabled: disconnectingConnectionID == nil,
+                    loading: disconnectingConnectionID == connection.id,
+                    haptic: .warning
+                )
                 // Named, so VoiceOver hears which league it is about to unlink rather than
                 // three identical "Disconnect"s.
                 .accessibilityLabel("Disconnect \(connection.teamName), \(connection.leagueName)")
@@ -271,6 +304,25 @@ struct OmenAccountScreen: View {
         .padding(.horizontal, OmenSpacing.step16)
         .padding(.vertical, OmenSpacing.step10)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @AppStorage(OmenAppearance.storageKey) private var appearance = OmenAppearance.dark.rawValue
+
+    /// Dark (default) / Light / Match iPhone (whole-app canvas, `Account.dc.html`).
+    private var appearanceSection: some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+            sectionHeader("Appearance", trailing: nil)
+            OmenTradeTabs(
+                titles: OmenAppearance.allCases.map(\.title),
+                selectedIndex: OmenAppearance.allCases.firstIndex(of: OmenAppearance(rawValue: appearance) ?? .dark) ?? 0,
+                onSelect: { index in
+                    guard OmenAppearance.allCases.indices.contains(index) else { return }
+                    appearance = OmenAppearance.allCases[index].rawValue
+                }
+            )
+            .padding(.horizontal, OmenSpacing.step16)
+            .accessibilityLabel("Appearance")
+        }
     }
 
     @ViewBuilder private var supportSection: some View {

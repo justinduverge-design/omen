@@ -20,7 +20,12 @@ const zlib = require("zlib");
 const { Readable } = require("stream");
 const { initSentry, flushSentry } = require("./middleware/sentry");
 const { parseCsv, parseCsvLine } = require("./services/csvRows");
-const { joinFtnToOffense, mapLeagueRowsToFacts, buildLeagueDna, leagueRanks } = require("./services/footballIntelligence/leagueSchemeDna");
+const {
+  joinFtnToOffense,
+  mapLeagueRowsToFacts,
+  buildLeagueDna,
+  leagueRanks,
+} = require("./services/footballIntelligence/leagueSchemeDna");
 const { buildTeamSignals, SIGNAL_TYPE } = require("./services/footballIntelligence/teamSignals");
 const { hashCanonical } = require("./services/footballIntelligence/canonicalize");
 const { MODELS } = require("./services/footballIntelligence/contracts");
@@ -45,7 +50,10 @@ async function open(url, fetchImpl) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   const res = await fetchImpl(url, { signal: controller.signal, redirect: "follow" });
-  if (!res.ok) { clearTimeout(timer); throw new Error(`${url} returned ${res.status}`); }
+  if (!res.ok) {
+    clearTimeout(timer);
+    throw new Error(`${url} returned ${res.status}`);
+  }
   return { res, done: () => clearTimeout(timer) };
 }
 
@@ -54,7 +62,9 @@ async function fetchText(url, fetchImpl) {
   try {
     const text = await res.text();
     return { text, sha256: `sha256:${crypto.createHash("sha256").update(text).digest("hex")}` };
-  } finally { done(); }
+  } finally {
+    done();
+  }
 }
 
 /** Streams a gzipped CSV, keeping only `columns`; returns rows and the hash of the compressed bytes. */
@@ -81,12 +91,19 @@ async function streamGzCsv(url, columns, fetchImpl) {
       rows.push(row);
     }
     return { rows, sha256: `sha256:${hash.digest("hex")}` };
-  } finally { done(); }
+  } finally {
+    done();
+  }
 }
 
 async function buildSeason(season, fetchImpl) {
-  const [ftn, pbp] = await Promise.all([fetchText(URLS.ftn(season), fetchImpl), streamGzCsv(URLS.pbp(season), PBP_COLUMNS, fetchImpl)]);
-  const ftnRows = parseCsv(ftn.text, { required: ["nflverse_game_id", "nflverse_play_id", "season", "week", "qb_location"] });
+  const [ftn, pbp] = await Promise.all([
+    fetchText(URLS.ftn(season), fetchImpl),
+    streamGzCsv(URLS.pbp(season), PBP_COLUMNS, fetchImpl),
+  ]);
+  const ftnRows = parseCsv(ftn.text, {
+    required: ["nflverse_game_id", "nflverse_play_id", "season", "week", "qb_location"],
+  });
   const { rows, unmatched } = joinFtnToOffense({ ftnRows, pbpRows: pbp.rows });
   // One team's facts at a time: the whole league's at once is ~500k objects and most of the job's memory.
   const byTeam = new Map();
@@ -115,13 +132,22 @@ async function publishSignals({ client, signals, publishedAt, log = defaultLog }
   for (const signal of signals) {
     const scopeKey = `${signal.signal_type}:${signal.subject.team_id}:${signal.subject.season}`;
     const outputHash = contentHash(signal);
-    const { data: current, error: readError } = await client.from("football_intelligence_signals")
-      .select("id, output_hash").eq("scope_key", scopeKey).eq("publication_state", "published").maybeSingle();
+    const { data: current, error: readError } = await client
+      .from("football_intelligence_signals")
+      .select("id, output_hash")
+      .eq("scope_key", scopeKey)
+      .eq("publication_state", "published")
+      .maybeSingle();
     if (readError) throw new Error(`published read failed: ${readError.code || "unknown"}`);
-    if (current && current.output_hash === outputHash) { unchanged += 1; continue; }
+    if (current && current.output_hash === outputHash) {
+      unchanged += 1;
+      continue;
+    }
     if (current) {
-      const { error } = await client.from("football_intelligence_signals")
-        .update({ publication_state: "superseded", updated_at: publishedAt }).eq("id", current.id);
+      const { error } = await client
+        .from("football_intelligence_signals")
+        .update({ publication_state: "superseded", updated_at: publishedAt })
+        .eq("id", current.id);
       if (error) throw new Error(`supersede failed: ${error.code || "unknown"}`);
     }
     const { error } = await client.from("football_intelligence_signals").insert({
@@ -150,9 +176,17 @@ async function publishSignals({ client, signals, publishedAt, log = defaultLog }
   return { published, unchanged };
 }
 
-async function runFootballIntelligence({ client, season, fetchImpl = fetch, now = () => new Date(), log = defaultLog }) {
+async function runFootballIntelligence({
+  client,
+  season,
+  fetchImpl = fetch,
+  now = () => new Date(),
+  log = defaultLog,
+}) {
   const games = await fetchText(URLS.games, fetchImpl);
-  const gameRows = parseCsv(games.text, { required: ["season", "week", "home_team", "away_team", "home_coach", "away_coach"] });
+  const gameRows = parseCsv(games.text, {
+    required: ["season", "week", "home_team", "away_team", "home_coach", "away_coach"],
+  });
   const [previous, current] = [await buildSeason(season - 1, fetchImpl), await buildSeason(season, fetchImpl)];
   const sourceArtifacts = [games.sha256, ...previous.sources, ...current.sources].sort();
   const artifactId = hashCanonical({ sources: sourceArtifacts, models: MODELS, signal_type: SIGNAL_TYPE });
@@ -163,8 +197,12 @@ async function runFootballIntelligence({ client, season, fetchImpl = fetch, now 
     ranksBySeason: { [season - 1]: previous.ranks, [season]: current.ranks },
     games: gameRows,
     latestObservationAtUtc: null,
-    publication: { artifact_id: artifactId, artifact_version: `league-${season}-w${current.latestWeek}`,
-                   published_at_utc: publishedAt, source_artifacts: sourceArtifacts },
+    publication: {
+      artifact_id: artifactId,
+      artifact_version: `league-${season}-w${current.latestWeek}`,
+      published_at_utc: publishedAt,
+      source_artifacts: sourceArtifacts,
+    },
   });
   const available = signals.filter((s) => s.status === "available").length;
   if (signals.length < MIN_SIGNALS || available < MIN_SIGNALS) {
@@ -172,14 +210,27 @@ async function runFootballIntelligence({ client, season, fetchImpl = fetch, now 
   }
   const result = await publishSignals({ client, signals, publishedAt, log });
   const { error } = await client.from("data_events").insert({
-    event: "ingest", subject: "football_intelligence", provider: "nflverse",
+    event: "ingest",
+    subject: "football_intelligence",
+    provider: "nflverse",
     rights_basis: "nflverse_cc_by_4_0;ftn_charting_cc_by_sa_4_0",
-    job: "omen_football_intelligence_cron v1", source_ref: artifactId, row_count: result.published,
-    details: { signals: signals.length, available, published: result.published, unchanged: result.unchanged,
-               season, latest_week: current.latestWeek, unmatched_ftn_plays: previous.unmatched + current.unmatched },
+    job: "omen_football_intelligence_cron v1",
+    source_ref: artifactId,
+    row_count: result.published,
+    details: {
+      signals: signals.length,
+      available,
+      published: result.published,
+      unchanged: result.unchanged,
+      season,
+      latest_week: current.latestWeek,
+      unmatched_ftn_plays: previous.unmatched + current.unmatched,
+    },
   });
   if (error) throw new Error(`data_events ingest failed: ${error.code || "unknown"}`);
-  log.info(`football intelligence: ${signals.length} teams, ${available} available, season ${season} through week ${current.latestWeek}`);
+  log.info(
+    `football intelligence: ${signals.length} teams, ${available} available, season ${season} through week ${current.latestWeek}`,
+  );
   return { signals: signals.length, available, ...result };
 }
 
@@ -189,13 +240,24 @@ if (require.main === module) {
   const { createClient } = require("@supabase/supabase-js");
   const { getCurrentNflWeekContext } = require("./services/nflSchedule");
   const missing = ["SUPABASE_URL", "SUPABASE_SERVICE_KEY"].filter((key) => !process.env[key]);
-  (async () => {
+  const { traceCronJob } = require("./services/telemetry");
+  traceCronJob("football_intelligence", async () => {
     if (missing.length) throw new Error(`missing env: ${missing.join(", ")}`);
-    const client = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, { auth: { persistSession: false } });
+    const client = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, {
+      auth: { persistSession: false },
+    });
     await runFootballIntelligence({ client, season: Number(getCurrentNflWeekContext().season) });
-  })().then(
-    async () => { await flushSentry(); process.exit(0); },
-    async (err) => { defaultLog.error(err.message); Sentry.captureException(err); await flushSentry(); process.exit(1); }
+  }).then(
+    async () => {
+      await flushSentry();
+      process.exit(0);
+    },
+    async (err) => {
+      defaultLog.error(err.message);
+      Sentry.captureException(err);
+      await flushSentry();
+      process.exit(1);
+    },
   );
 }
 

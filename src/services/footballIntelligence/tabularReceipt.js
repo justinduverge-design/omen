@@ -52,7 +52,8 @@ function numberObservation(value, field, missing = "not_reported") {
     missing,
     parse(item) {
       const parsed = typeof item === "number" ? item : Number(item);
-      if (!Number.isFinite(parsed) || parsed < 0) fail("INVALID_CANONICAL_FACT", `${field} must be a non-negative number`);
+      if (!Number.isFinite(parsed) || parsed < 0)
+        fail("INVALID_CANONICAL_FACT", `${field} must be a non-negative number`);
       return Object.is(parsed, -0) ? 0 : parsed;
     },
   });
@@ -69,8 +70,10 @@ function provenance(receipt) {
 }
 
 async function replayTable({ registry, receiptId, tabularReader, requiredColumns, accepts, receiptErrorCode }) {
-  if (!registry || typeof registry.replayReceipt !== "function") fail("ARTIFACT_REGISTRY_REQUIRED", "registry with replayReceipt is required");
-  if (!tabularReader || typeof tabularReader.readRows !== "function") fail("TABULAR_READER_REQUIRED", "TabularReader.readRows is required");
+  if (!registry || typeof registry.replayReceipt !== "function")
+    fail("ARTIFACT_REGISTRY_REQUIRED", "registry with replayReceipt is required");
+  if (!tabularReader || typeof tabularReader.readRows !== "function")
+    fail("TABULAR_READER_REQUIRED", "TabularReader.readRows is required");
   const { receipt, bytes } = await registry.replayReceipt(receiptId);
   if (receipt.artifact_type !== "raw_source" || !accepts(receipt)) {
     fail(receiptErrorCode, "receipt source family and intended use do not match this normalizer");
@@ -88,7 +91,10 @@ async function replayTable({ registry, receiptId, tabularReader, requiredColumns
   const missing = requiredColumns.filter((column) => !present.has(column));
   if (missing.length) fail("TABULAR_SCHEMA_MISMATCH", `source is missing required columns: ${missing.join(", ")}`);
   if (table.rows.length !== receipt.row_count) {
-    fail("TABULAR_ROW_COUNT_MISMATCH", `receipt declares ${receipt.row_count} rows but TabularReader returned ${table.rows.length}`);
+    fail(
+      "TABULAR_ROW_COUNT_MISMATCH",
+      `receipt declares ${receipt.row_count} rows but TabularReader returned ${table.rows.length}`,
+    );
   }
   return { receipt, rows: table.rows, provenance: provenance(receipt) };
 }

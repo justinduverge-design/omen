@@ -55,6 +55,14 @@ final class CommandCenterViewModelTests: XCTestCase {
         XCTAssertFalse(repository.called, "demo must not issue a network request")
         XCTAssertEqual(viewModel.viewState, .demo)
         XCTAssertNil(viewModel.failure)
+
+        let desk = try XCTUnwrap(viewModel.deskState(railCount: 0, railIndex: 0))
+        XCTAssertTrue(desk.weekLabel.lowercased().contains("demo"))
+        guard case .read(let matchup) = desk.matchup else {
+            return XCTFail("demo must use the current Command desk, not the retired screen")
+        }
+        XCTAssertEqual(matchup.status, "Sample")
+        XCTAssertTrue(matchup.leader.name.lowercased().contains("demo"))
     }
 
     func testSuccessfulLoadMapsSummaryIntoCommandCenterState() async throws {
@@ -68,9 +76,8 @@ final class CommandCenterViewModelTests: XCTestCase {
         await viewModel.load(userID: "user-1")
 
         XCTAssertNil(viewModel.failure)
-        // No `game_week` in this fixture, so the headline cannot name a week and says so
-        // without one rather than inventing a number.
-        XCTAssertEqual(viewModel.commandCenterState.greeting, "Your game plan is ready.")
+        // No `game_week` in this fixture, so the current desk must not invent a week label.
+        XCTAssertEqual(viewModel.deskState(railCount: 0, railIndex: 0)?.weekLabel, "")
     }
 
     /// The critical honesty guarantee: a failed read must surface as a failure, never as a
@@ -203,10 +210,8 @@ extension CommandCenterViewModelTests {
         await viewModel.load(userID: "user-1")
 
         XCTAssertNil(viewModel.failure, "a standings failure must not fail the whole screen")
+        // `nil` is the current screen's honest absence: no verified context strip is mounted.
         XCTAssertNil(viewModel.context)
-        guard case .empty = viewModel.commandCenterState.context else {
-            return XCTFail("expected the strip to stay empty rather than regress or invent")
-        }
     }
 
     /// Asking a disconnected user's provider for standings is a guaranteed round-trip to an
@@ -333,7 +338,7 @@ extension CommandCenterViewModelTests {
 
         await viewModel.load(userID: "user-1")
 
-        guard case .entries(let entries) = viewModel.commandCenterState.ledger else {
+        guard case .entries(let entries) = viewModel.ledgerState else {
             return XCTFail("expected live Ledger entries")
         }
         XCTAssertEqual(entries.count, 1)
@@ -390,7 +395,7 @@ extension CommandCenterViewModelTests {
 
         await viewModel.load(userID: "user-1")
 
-        guard case .empty = viewModel.commandCenterState.ledger else {
+        guard case .empty = viewModel.ledgerState else {
             return XCTFail("an empty list is a real answer, not a failure")
         }
     }
@@ -408,7 +413,7 @@ extension CommandCenterViewModelTests {
         await viewModel.load(userID: "user-1")
 
         XCTAssertNil(viewModel.failure, "a Ledger failure must not fail the whole screen")
-        guard case .error(let message) = viewModel.commandCenterState.ledger else {
+        guard case .error(let message) = viewModel.ledgerState else {
             return XCTFail("expected an honest Ledger error surface")
         }
         XCTAssertFalse(message.contains("500"), "status codes are for logs, not for users")
@@ -435,9 +440,16 @@ extension CommandCenterViewModelTests {
         await viewModel.load(userID: "user-1")
 
         XCTAssertEqual(moves.calls, 0)
-        guard case .notConnected = viewModel.commandCenterState.ledger else {
-            return XCTFail("expected the disconnected Ledger surface")
+        XCTAssertNil(viewModel.ledger, "a disconnected account never starts the Ledger read")
+        guard case .notConnected = viewModel.ledgerState else {
+            return XCTFail("the current Ledger seam must preserve the disconnected state")
         }
+        guard let desk = viewModel.deskState(railCount: 0, railIndex: 0),
+              case let .unread(capability, sentence) = desk.ledger else {
+            return XCTFail("expected the current desk's honest disconnected Ledger surface")
+        }
+        XCTAssertEqual(capability, "The Ledger")
+        XCTAssertTrue(sentence.lowercased().contains("connect"))
     }
 
     /// facts-of-record #7. Demo renders labeled fixtures and the live Ledger path must be
@@ -462,16 +474,14 @@ extension CommandCenterViewModelTests {
 
         XCTAssertEqual(moves.calls, 0, "demo must not issue a network request")
         XCTAssertNil(viewModel.ledger, "demo must not populate live Ledger state")
-        guard case .entries(let entries) = viewModel.commandCenterState.ledger else {
-            return XCTFail("demo keeps its labeled fixture entries")
+        guard let desk = viewModel.deskState(railCount: 0, railIndex: 0),
+              case let .read(line) = desk.ledger else {
+            return XCTFail("demo keeps a labeled current-desk Ledger line")
         }
-        XCTAssertTrue(
-            entries.allSatisfy { $0.period.hasPrefix("DEMO") },
-            "every demo Ledger row stays labeled as demo"
-        )
+        XCTAssertTrue(line.meta.lowercased().contains("demo"), "demo Ledger data must stay visibly labeled")
     }
 
-    func testWaiverAnalysisFillsWaiverWatchAfterTheShellLoads() async throws {
+    func testWaiverAnalysisFillsCurrentDeskAfterTheShellLoads() async throws {
         let viewModel = CommandCenterViewModel(
             repository: StubDashboardRepository(result: .success(try summary(omenStatus: "ready"))),
             leagueRepository: StubLeagueRepository(result: .failure(.network)),
@@ -500,17 +510,20 @@ extension CommandCenterViewModelTests {
 
         await viewModel.load(userID: "user-1")
 
-        guard case let .urgent(deadline, bestMove, alternatives) = viewModel.commandCenterState.waiverWatch else {
-            return XCTFail("expected confirmed waiver opportunity to reach Waiver Watch")
+        let desk = try XCTUnwrap(viewModel.deskState(railCount: 1, railIndex: 0))
+        guard case let .read(bestMove) = desk.waiver else {
+            return XCTFail("expected confirmed waiver opportunity to reach the current desk")
         }
-        XCTAssertEqual(deadline, "Deadline Wed 3:00 AM")
-        XCTAssertEqual(bestMove.playerName, "Sample Waiver RB")
-        XCTAssertEqual(bestMove.position, "RB")
-        XCTAssertTrue(bestMove.availability.contains("Suggested bid 7"))
-        XCTAssertEqual(alternatives.first?.playerName, "Sample Pivot")
+        XCTAssertEqual(bestMove.addName, "Sample Waiver RB")
+        XCTAssertEqual(bestMove.addMeta, "RB · NYG")
+        XCTAssertEqual(bestMove.addPoints, "12.4")
+        XCTAssertEqual(bestMove.dropName, "Bench Depth")
+        XCTAssertEqual(bestMove.reasoning, "Sample Waiver RB covers an unavailable starter.")
+        XCTAssertNil(bestMove.band, "waiver-analysis.v1 carries no confidence band")
+        XCTAssertNil(bestMove.risk, "waiver-analysis.v1 carries no risk classification")
     }
 
-    func testWaiverAnalysisFailureLeavesDashboardWaiverStateInPlace() async throws {
+    func testWaiverAnalysisFailureLeavesCurrentDeskExplicitlyUnread() async throws {
         let viewModel = CommandCenterViewModel(
             repository: StubDashboardRepository(result: .success(try summary(omenStatus: "ready"))),
             leagueRepository: StubLeagueRepository(result: .failure(.network)),
@@ -523,9 +536,13 @@ extension CommandCenterViewModelTests {
 
         await viewModel.load(userID: "user-1")
 
-        guard case .availabilityUnknown = viewModel.commandCenterState.waiverWatch else {
-            return XCTFail("a failed waiver detail read must not claim no moves")
+        XCTAssertNil(viewModel.waiverAnalysis)
+        let desk = try XCTUnwrap(viewModel.deskState(railCount: 1, railIndex: 0))
+        guard case let .unread(capability, sentence) = desk.waiver else {
+            return XCTFail("a failed waiver detail read must remain explicitly unread")
         }
+        XCTAssertEqual(capability, "Waivers")
+        XCTAssertEqual(sentence, "Omen has not read this league's waiver wire yet.")
     }
 
     // MARK: - Quiet week

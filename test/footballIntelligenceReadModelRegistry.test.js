@@ -11,7 +11,9 @@ const { buildBenJohnsonVerticalProof } = require("../src/services/footballIntell
 
 const fixtureRoot = path.join(__dirname, "fixtures", "football-intelligence");
 const csv = require("node:fs").readFileSync(path.join(fixtureRoot, "ben-johnson-primary-reg-2024-2025.csv"), "utf8");
-const manifest = JSON.parse(require("node:fs").readFileSync(path.join(fixtureRoot, "ben-johnson-primary-reg-2024-2025.manifest.json"), "utf8"));
+const manifest = JSON.parse(
+  require("node:fs").readFileSync(path.join(fixtureRoot, "ben-johnson-primary-reg-2024-2025.manifest.json"), "utf8"),
+);
 
 async function setup(t) {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "omen-fi-derived-"));
@@ -42,7 +44,9 @@ async function registerSources(registry) {
           attribution: source.attribution || "Data via nflverse.",
         },
       },
-      schema_fingerprint: `sha256:${String(index + 1).repeat(64).slice(0, 64)}`,
+      schema_fingerprint: `sha256:${String(index + 1)
+        .repeat(64)
+        .slice(0, 64)}`,
       row_count: 1,
       coverage: { games: 1 },
     });
@@ -72,8 +76,16 @@ test("read-model persistence is idempotent and corrections supersede without mut
   const registry = await setup(t);
   const sourceArtifactIds = await registerSources(registry);
   const readModel = buildBenJohnsonVerticalProof({ csv, manifest }).readModel;
-  const first = await registry.registerReadModel({ readModel, source_artifact_ids: sourceArtifactIds, effective_window: { from: { season: 2024, week: 1 }, through: { season: 2025, week: 18 } } });
-  const again = await registry.registerReadModel({ readModel, source_artifact_ids: [...sourceArtifactIds].reverse(), effective_window: { from: { season: 2024, week: 1 }, through: { season: 2025, week: 18 } } });
+  const first = await registry.registerReadModel({
+    readModel,
+    source_artifact_ids: sourceArtifactIds,
+    effective_window: { from: { season: 2024, week: 1 }, through: { season: 2025, week: 18 } },
+  });
+  const again = await registry.registerReadModel({
+    readModel,
+    source_artifact_ids: [...sourceArtifactIds].reverse(),
+    effective_window: { from: { season: 2024, week: 1 }, through: { season: 2025, week: 18 } },
+  });
   assert.equal(again.artifact_id, first.artifact_id);
   assert.equal(again.receipt_id, first.receipt_id);
   assert.deepEqual(again.created, { artifact: false, receipt: false });
@@ -109,11 +121,19 @@ test("rejects invalid read models, missing sources, and ungrounded supersession"
   const invalid = structuredClone(readModel);
   invalid.system_signals[0].evidence = [];
   await assert.rejects(
-    registry.registerReadModel({ readModel: invalid, source_artifact_ids: [], effective_window: { from: { season: 2024, week: 1 }, through: { season: 2025, week: 18 } } }),
+    registry.registerReadModel({
+      readModel: invalid,
+      source_artifact_ids: [],
+      effective_window: { from: { season: 2024, week: 1 }, through: { season: 2025, week: 18 } },
+    }),
     (error) => error.code === "SIGNAL_EVIDENCE_MISSING",
   );
   await assert.rejects(
-    registry.registerReadModel({ readModel, source_artifact_ids: [`sha256:${"f".repeat(64)}`], effective_window: { from: { season: 2024, week: 1 }, through: { season: 2025, week: 18 } } }),
+    registry.registerReadModel({
+      readModel,
+      source_artifact_ids: [`sha256:${"f".repeat(64)}`],
+      effective_window: { from: { season: 2024, week: 1 }, through: { season: 2025, week: 18 } },
+    }),
     (error) => error.code === "SOURCE_ARTIFACT_NOT_FOUND",
   );
 });

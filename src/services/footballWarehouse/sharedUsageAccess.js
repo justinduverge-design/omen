@@ -30,12 +30,21 @@ function getRuntime({ logger, strict = false } = {}) {
       const { Pool } = require("pg");
       runtime = createFailSafeWarehouseReadRuntime({
         Pool,
-        onShadowUnavailable: (event) => { try { logger?.warn?.("Football warehouse reader unavailable", event); } catch {} },
+        onShadowUnavailable: (event) => {
+          try {
+            logger?.warn?.("Football warehouse reader unavailable", event);
+          } catch {}
+        },
       });
     } catch (error) {
       runtime = null;
       failure = error;
-      try { logger?.warn?.("Football warehouse reader failed to configure", { event: "football_warehouse_read_startup", outcome: "unavailable" }); } catch {}
+      try {
+        logger?.warn?.("Football warehouse reader failed to configure", {
+          event: "football_warehouse_read_startup",
+          outcome: "unavailable",
+        });
+      } catch {}
     }
   }
   if (runtime === null && strict) throw failure;
@@ -44,7 +53,9 @@ function getRuntime({ logger, strict = false } = {}) {
 
 async function closeRuntime() {
   const current = runtime;
-  runtime = undefined; failure = null; reader = undefined;
+  runtime = undefined;
+  failure = null;
+  reader = undefined;
   if (current) await current.close();
 }
 
@@ -56,12 +67,20 @@ function getUsageReader({ logger } = {}) {
     reader = createUsageShadowRunner({
       readLegacy: (input) => getUsageBundle(input),
       readWarehouse: (input) => getWarehouseUsageBundle({ ...input, repository: rt.repository }),
-      emitTelemetry: (event) => { try { logger?.info?.("Football warehouse usage shadow", event); } catch {} },
+      emitTelemetry: (event) => {
+        try {
+          logger?.info?.("Football warehouse usage shadow", event);
+        } catch {}
+      },
     });
   }
   return { mode: rt.mode, read: (args) => reader.read(args) };
 }
 
-function _reset() { runtime = undefined; failure = null; reader = undefined; }
+function _reset() {
+  runtime = undefined;
+  failure = null;
+  reader = undefined;
+}
 
 module.exports = { getRuntime, getUsageReader, closeRuntime, _reset };

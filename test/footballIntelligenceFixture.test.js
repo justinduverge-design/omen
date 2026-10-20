@@ -79,7 +79,9 @@ test("manifest preserves source hashes, unmatched counts, and FTN attribution", 
   assert.equal(manifest.attribution, "FTN Data via nflverse");
   assert.equal(manifest.modified, true);
 
-  const sourceHashes = Object.fromEntries(manifest.source_artifacts.map((artifact) => [artifact.filename, artifact.sha256]));
+  const sourceHashes = Object.fromEntries(
+    manifest.source_artifacts.map((artifact) => [artifact.filename, artifact.sha256]),
+  );
   assert.deepEqual(sourceHashes, EXPECTED_SOURCE_HASHES);
   assert.deepEqual(manifest.reconciliation.years, [
     {

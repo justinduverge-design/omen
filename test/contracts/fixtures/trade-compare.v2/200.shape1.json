@@ -2,31 +2,27 @@
   "http_status": 200,
   "route": "/api/trade/compare",
   "body": {
-    "a_score": -1.36,
+    "a_score": -2.5,
     "analysis_context": {
-      "applied": [
-        "scoring_format",
-        "roster_construction",
-        "roster_depth"
-      ],
-      "league_id": "123",
-      "league_name": "Dynasty Dogs",
-      "mode": "personalized",
-      "platform": "sleeper",
+      "applied": [],
+      "league_id": null,
+      "league_name": null,
+      "mode": "neutral",
+      "platform": null,
       "unavailable_reason": null
     },
-    "b_score": 0.2,
-    "combined_score": -1.24,
+    "b_score": 0,
+    "combined_score": -2.5,
     "confidence": "medium",
     "contract_version": "trade-compare.v2",
     "decision_context": {
       "contract_version": "shared-decision-context.v1",
       "inputs": {
         "league_scoring": {
-          "observed_at": "2026-01-01T00:00:00.000Z",
+          "reason_code": "league_scoring_not_used",
           "source": "league_settings",
-          "state": "live",
-          "used": true
+          "state": "not_requested",
+          "used": false
         },
         "projections": {
           "observed_at": "2026-01-01T00:00:00.000Z",
@@ -35,16 +31,16 @@
           "used": true
         },
         "roster": {
-          "observed_at": "2026-01-01T00:00:00.000Z",
+          "reason_code": "roster_context_not_used",
           "source": "selected_league_roster",
-          "state": "live",
-          "used": true
+          "state": "not_requested",
+          "used": false
         },
         "selected_context": {
-          "observed_at": "2026-01-01T00:00:00.000Z",
-          "source": "owned_platform_connection",
-          "state": "live",
-          "used": true
+          "reason_code": "league_context_not_requested",
+          "source": "trade_request",
+          "state": "not_requested",
+          "used": false
         },
         "trade_rosters": {
           "reason_code": "not_requested",
@@ -54,12 +50,24 @@
         }
       },
       "inputs_used": [
-        "league_scoring",
-        "projections",
-        "roster",
-        "selected_context"
+        "projections"
       ],
       "limitations": [
+        {
+          "name": "league_scoring",
+          "reason_code": "league_scoring_not_used",
+          "state": "not_requested"
+        },
+        {
+          "name": "roster",
+          "reason_code": "roster_context_not_used",
+          "state": "not_requested"
+        },
+        {
+          "name": "selected_context",
+          "reason_code": "league_context_not_requested",
+          "state": "not_requested"
+        },
         {
           "name": "trade_rosters",
           "reason_code": "not_requested",
@@ -76,87 +84,110 @@
       "total_player_count": 2
     },
     "explanation": null,
+    "forward_horizons": {
+      "next_4": {
+        "reason": "forward_projection_curve_unavailable",
+        "status": "unavailable",
+        "value": null
+      },
+      "season": {
+        "reason": "forward_projection_curve_unavailable",
+        "status": "unavailable",
+        "value": null
+      },
+      "unit": "player_projection_points_per_week",
+      "week": {
+        "reason": null,
+        "status": "available",
+        "value": -4
+      }
+    },
     "generated_at": "2026-01-01T00:00:00.000Z",
-    "net_value": -1.36,
+    "net_value": -2.5,
     "receive": {
       "missing_projection_count": 0,
       "player_count": 1,
       "players": [
         {
-          "adjusted_projection": 12,
+          "adjusted_projection": 10,
           "confidence": "medium",
-          "name": "WR B",
+          "name": "Bench RB",
           "notes": [],
-          "player_key": "test:0:WR B",
-          "position": "WR",
-          "projected_points": 12,
-          "replacement_level": 5.91,
+          "player_key": "test:0:Bench RB",
+          "position": "RB",
+          "projected_points": 10,
+          "replacement_level": 6.5,
           "scarcity_bonus": 0.5,
           "status": null,
           "tier": "starter",
-          "value": 6.09
+          "value": 3.5
         }
       ],
       "scarcity_details": [
         {
-          "name": "WR B",
-          "position": "WR",
+          "name": "Bench RB",
+          "position": "RB",
           "tier": "starter",
-          "vorp": 6.09
+          "vorp": 3.5
         }
       ],
-      "total_value": 6.09
+      "total_value": 3.5
     },
     "scarcity_analysis": {
       "receive": [
         {
-          "name": "WR B",
-          "position": "WR",
+          "name": "Bench RB",
+          "position": "RB",
           "tier": "starter",
-          "vorp": 6.09
+          "vorp": 3.5
         }
       ],
       "send": [
         {
-          "name": "RB A",
-          "position": "RB",
+          "name": "Starter WR",
+          "position": "WR",
           "tier": "starter",
-          "vorp": 7.45
+          "vorp": 6
         }
       ],
-      "summary": "You are sending a starter-tier RB for a starter-tier WR."
+      "summary": "You are sending a starter-tier WR for a starter-tier RB."
     },
-    "scoring_format": "standard",
+    "scoring_format": "ppr",
     "send": {
       "missing_projection_count": 0,
       "player_count": 1,
       "players": [
         {
-          "adjusted_projection": 12,
+          "adjusted_projection": 14,
           "confidence": "medium",
-          "name": "RB A",
+          "name": "Starter WR",
           "notes": [],
-          "player_key": "test:0:RB A",
-          "position": "RB",
-          "projected_points": 12,
-          "replacement_level": 4.55,
+          "player_key": "test:0:Starter WR",
+          "position": "WR",
+          "projected_points": 14,
+          "replacement_level": 8,
           "scarcity_bonus": 0.5,
           "status": null,
           "tier": "starter",
-          "value": 7.45
+          "value": 6
         }
       ],
       "scarcity_details": [
         {
-          "name": "RB A",
-          "position": "RB",
+          "name": "Starter WR",
+          "position": "WR",
           "tier": "starter",
-          "vorp": 7.45
+          "vorp": 6
         }
       ],
-      "total_value": 7.45
+      "total_value": 6
     },
-    "verdict": "neutral",
-    "verdict_state": "close_needs_context"
+    "the_catch": {
+      "reason": "roster_depth_not_available",
+      "statement": null,
+      "status": "unavailable"
+    },
+    "verdict": "decline",
+    "verdict_state": "you_give_up_too_much"
   }
 }

@@ -51,6 +51,9 @@ const {
   needWeightForPosition,
 } = require("./tradeLeagueContext");
 
+// Positions a FLEX slot can hold. Reported beside `required` so a client never reads a shared slot as one position's.
+const FLEX_ELIGIBLE_POSITIONS = new Set(["RB", "WR", "TE"]);
+
 // Hard cap on opponent rosters considered per invocation. Chosen well above
 // any realistic redraft league (8-16 teams) so it only engages for a
 // pathological or dynasty-scale league — the same posture as
@@ -102,11 +105,20 @@ function buildTeamNeedProfile({ team, rosterPositions = [] } = {}) {
   for (const position of Object.keys(DEFAULT_STARTERS)) {
     if (!(position in effective)) continue;
     const weight = needWeightForPosition(position, { depth, effective });
+    // `required` counts only the league's dedicated slots for this position. FLEX (RB/WR/TE) and
+    // SUPERFLEX (QB/RB/WR/TE) are shared slots, so they are not owed to any one position: rounding
+    // the fractional flex share up made a 1-TE + FLEX league "need 2 TEs" (founder, 2026-10-19).
+    // The flex share still shapes `weight`, which is where demand belongs.
+    const dedicated = slotShape.starters[position] || 0;
     needs[position] = {
       have: depth[position] || 0,
-      required: effective[position] != null ? Math.ceil(effective[position]) : null,
+      required: effective[position] != null ? dedicated : null,
       weight,
       status: needStatus(weight),
+      ...(position === "QB" ? { superflex_slots: slotShape.superFlex } : {}),
+      ...(FLEX_ELIGIBLE_POSITIONS.has(position)
+        ? { flex_slots: slotShape.flex, superflex_slots: slotShape.superFlex }
+        : {}),
     };
   }
 
@@ -147,8 +159,8 @@ function buildReasoning({ receivePosition, givePosition, ownNeeds, opponentNeeds
   if (userReceivesNeed.status === "hole") fillsNeedFor.push("user");
   if (opponentReceivesNeed.status === "hole") fillsNeedFor.push("opponent");
 
-  const missingProjections = Number(valuation?.send?.missing_projection_count || 0)
-    + Number(valuation?.receive?.missing_projection_count || 0);
+  const missingProjections =
+    Number(valuation?.send?.missing_projection_count || 0) + Number(valuation?.receive?.missing_projection_count || 0);
 
   return {
     fills_need_for: fillsNeedFor.length ? fillsNeedFor : ["no_named_hole_on_either_side"],
@@ -166,6 +178,21 @@ function buildCandidateRecord({ candidate, opponentTeamId, opponentTeamName, own
   const receivePosition = primaryPosition(candidate.receive);
   const givePosition = primaryPosition(candidate.give);
   const valuation = compareTrade({ send: [candidate.give], receive: [candidate.receive] });
+  const need = ownNeeds?.needs?.[givePosition];
+  const samePosition = givePosition === receivePosition;
+  const after = Number.isFinite(need?.have) ? need.have - 1 + (samePosition ? 1 : 0) : null;
+  const required = Number.isFinite(need?.required) ? need.required : null;
+  const theCatch =
+    after != null && required != null && after <= required
+      ? {
+          status: "available",
+          code: "thin_position_after_trade",
+          statement: `You would have ${after} ${givePosition} for ${required} dedicated starting spot${required === 1 ? "" : "s"}.`,
+          position: givePosition,
+          players_after: after,
+          dedicated_starters: required,
+        }
+      : { status: "none", code: null, statement: null };
 
   return {
     id: `find_${opponentTeamId ?? "unknown"}_${candidate.give.player_key || candidate.give.player_id || "give"}_${candidate.receive.player_key || candidate.receive.player_id || "receive"}`,
@@ -177,6 +204,7 @@ function buildCandidateRecord({ candidate, opponentTeamId, opponentTeamName, own
     opponent_lineup_delta: candidate.opponentDelta,
     valuation,
     reasoning: buildReasoning({ receivePosition, givePosition, ownNeeds, opponentNeeds, valuation }),
+    the_catch: theCatch,
   };
 }
 
@@ -205,6 +233,19 @@ function buildCandidateRecord({ candidate, opponentTeamId, opponentTeamName, own
  * `budget_exceeded: true`, and whatever candidates were already found are
  * still returned.
  */
+// A side's weekly lineup gain must be real, and neither side may give up more season-long value (VORP)
+// than its own weekly gain justifies. Without the second half a manager "improves" by trading a star
+// for a depth piece they would never accept; without the first, "+0.0 to theirs" counts as mutual.
+const MIN_SIDE_LINEUP_GAIN = 0.5;
+const MAX_VORP_LOSS_PER_WEEKLY_POINT = 1;
+
+function mutualFairnessGuard({ give, receive, userDelta, opponentDelta } = {}) {
+  if (!(userDelta >= MIN_SIDE_LINEUP_GAIN) || !(opponentDelta >= MIN_SIDE_LINEUP_GAIN)) return false;
+  const net = compareTrade({ send: [give], receive: [receive] }).net_value; // your VORP gain, their VORP loss
+  if (!Number.isFinite(net)) return false;
+  return net >= -(userDelta * MAX_VORP_LOSS_PER_WEEKLY_POINT) && net <= opponentDelta * MAX_VORP_LOSS_PER_WEEKLY_POINT;
+}
+
 function findLeagueTradeCandidates({
   ownTeamId,
   teams = [],
@@ -213,7 +254,7 @@ function findLeagueTradeCandidates({
   maxCandidates = MAX_CANDIDATES_RETURNED,
   budget = createSearchBudget(),
   onBudgetExceeded = null,
-  fairnessGuard,
+  fairnessGuard = mutualFairnessGuard,
 } = {}) {
   const allTeams = Array.isArray(teams) ? teams : [];
   const ownTeam = allTeams.find((team) => String(team?.team_id) === String(ownTeamId));
@@ -270,9 +311,13 @@ function findLeagueTradeCandidates({
 
   const candidates = [];
   let budgetExceeded = false;
+  const tally = { pairs_evaluated: 0, mutual_gain: 0, passed_fairness: 0 };
 
   for (const opponent of scanned) {
-    if (budget.exceeded) { budgetExceeded = true; break; }
+    if (budget.exceeded) {
+      budgetExceeded = true;
+      break;
+    }
 
     // findTradeCandidate (tradeLineup.js) excludes an opponent whose
     // `roster_id` matches the own team's `roster_id` — this route's team
@@ -284,6 +329,7 @@ function findLeagueTradeCandidates({
       rosterPositions,
       budget,
       fairnessGuard,
+      tally,
       onBudgetExceeded: (stats) => {
         budgetExceeded = true;
         if (onBudgetExceeded) {
@@ -296,19 +342,21 @@ function findLeagueTradeCandidates({
     if (!candidate) continue;
 
     const opponentNeeds = buildTeamNeedProfile({ team: opponent, rosterPositions });
-    candidates.push(buildCandidateRecord({
-      candidate,
-      opponentTeamId: opponent.team_id,
-      opponentTeamName: opponent.team_name,
-      ownNeeds,
-      opponentNeeds,
-    }));
+    candidates.push(
+      buildCandidateRecord({
+        candidate,
+        opponentTeamId: opponent.team_id,
+        opponentTeamName: opponent.team_name,
+        ownNeeds,
+        opponentNeeds,
+      }),
+    );
   }
 
-  candidates.sort((left, right) => (
-    (right.user_lineup_delta + right.opponent_lineup_delta)
-    - (left.user_lineup_delta + left.opponent_lineup_delta)
-  ));
+  candidates.sort(
+    (left, right) =>
+      right.user_lineup_delta + right.opponent_lineup_delta - (left.user_lineup_delta + left.opponent_lineup_delta),
+  );
 
   return {
     status: "ok",
@@ -318,10 +366,23 @@ function findLeagueTradeCandidates({
     degraded_teams: degradedTeams,
     budget_exceeded: budgetExceeded,
     own_needs: ownNeeds,
+    search_funnel: tally,
+    empty_reason: candidates.length ? null : emptyReason({ scanned: scanned.length, tally, budgetExceeded }),
   };
 }
 
+// Why a finished scan found nothing, from the narrowest step that ruled everything out.
+function emptyReason({ scanned, tally, budgetExceeded }) {
+  if (budgetExceeded) return "search_budget_exceeded";
+  if (scanned === 0) return "no_readable_opponents";
+  if (tally.pairs_evaluated === 0) return "no_tradeable_players";
+  if (tally.mutual_gain === 0) return "no_trade_helps_both_lineups";
+  return "no_fair_trade";
+}
+
 module.exports = {
+  mutualFairnessGuard,
+  MIN_SIDE_LINEUP_GAIN,
   MAX_OPPONENT_TEAMS_PER_SCAN,
   MAX_CANDIDATES_RETURNED,
   buildTeamNeedProfile,

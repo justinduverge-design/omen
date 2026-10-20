@@ -20,11 +20,33 @@ const FORMULA_VERSION = "xfp-v1";
 
 // Columns read from play-by-play. Every one is confirmed in the 2026 file.
 const PBP_COLUMNS = Object.freeze([
-  "season", "week", "season_type", "game_id", "play_id", "posteam", "play_type",
-  "two_point_attempt", "qb_kneel", "qb_spike", "qb_scramble",
-  "receiver_player_id", "rusher_player_id", "td_player_id", "fumbled_1_player_id",
-  "yardline_100", "down", "ydstogo", "goal_to_go", "air_yards", "cp", "xyac_mean_yardage",
-  "complete_pass", "touchdown", "fumble_lost", "receiving_yards", "rushing_yards",
+  "season",
+  "week",
+  "season_type",
+  "game_id",
+  "play_id",
+  "posteam",
+  "play_type",
+  "two_point_attempt",
+  "qb_kneel",
+  "qb_spike",
+  "qb_scramble",
+  "receiver_player_id",
+  "rusher_player_id",
+  "td_player_id",
+  "fumbled_1_player_id",
+  "yardline_100",
+  "down",
+  "ydstogo",
+  "goal_to_go",
+  "air_yards",
+  "cp",
+  "xyac_mean_yardage",
+  "complete_pass",
+  "touchdown",
+  "fumble_lost",
+  "receiving_yards",
+  "rushing_yards",
 ]);
 
 const MIN_BUCKET_PLAYS = 200;
@@ -98,8 +120,13 @@ function compactPlay(row) {
   if (yardline == null) return null;
   let type = null;
   let player = null;
-  if (row.play_type === "pass" && row.receiver_player_id) { type = "target"; player = row.receiver_player_id; }
-  else if (row.play_type === "run" && row.rusher_player_id) { type = "carry"; player = row.rusher_player_id; }
+  if (row.play_type === "pass" && row.receiver_player_id) {
+    type = "target";
+    player = row.receiver_player_id;
+  } else if (row.play_type === "run" && row.rusher_player_id) {
+    type = "carry";
+    player = row.rusher_player_id;
+  }
   if (!type) return null;
   const td = flag(row.touchdown) && row.td_player_id === player;
   const fumbleLost = flag(row.fumble_lost) && row.fumbled_1_player_id === player;
@@ -119,7 +146,7 @@ function compactPlay(row) {
     cp: num(row.cp),
     xyac: num(row.xyac_mean_yardage),
     complete: flag(row.complete_pass),
-    yards: type === "target" ? (num(row.receiving_yards) || 0) : (num(row.rushing_yards) || 0),
+    yards: type === "target" ? num(row.receiving_yards) || 0 : num(row.rushing_yards) || 0,
     td,
     fumbleLost,
   };
@@ -192,9 +219,23 @@ function rollupPlayerWeeks(plays, tables) {
     const key = `${p.player}|${p.week}`;
     if (!out.has(key)) {
       out.set(key, {
-        player: p.player, week: p.week, team: p.team, targets: 0, carries: 0,
-        expected: {}, actual: {}, fallbackPlays: 0,
-        opportunity: { rz_targets: 0, i10_targets: 0, ez_targets: 0, deep_targets: 0, rz_carries: 0, i10_carries: 0, gl_carries: 0 },
+        player: p.player,
+        week: p.week,
+        team: p.team,
+        targets: 0,
+        carries: 0,
+        expected: {},
+        actual: {},
+        fallbackPlays: 0,
+        opportunity: {
+          rz_targets: 0,
+          i10_targets: 0,
+          ez_targets: 0,
+          deep_targets: 0,
+          rz_carries: 0,
+          i10_carries: 0,
+          gl_carries: 0,
+        },
       });
     }
     const row = out.get(key);
@@ -226,10 +267,12 @@ function rollupPlayerWeeks(plays, tables) {
  */
 function formatPoints(facts, rec = 1) {
   const f = (key) => facts[key] || 0;
-  return rec * f("receiving_receptions")
-    + 0.1 * (f("receiving_yards") + f("rushing_yards"))
-    + 6 * (f("receiving_touchdowns") + f("rushing_touchdowns"))
-    - 2 * f("fumbles_lost");
+  return (
+    rec * f("receiving_receptions") +
+    0.1 * (f("receiving_yards") + f("rushing_yards")) +
+    6 * (f("receiving_touchdowns") + f("rushing_touchdowns")) -
+    2 * f("fumbles_lost")
+  );
 }
 
 /**

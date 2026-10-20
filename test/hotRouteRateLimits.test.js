@@ -128,8 +128,7 @@ for (const [routeKey, spec] of Object.entries(HOT_ROUTE_LIMITS)) {
       assert.equal(refused.body.limit, spec.perIp);
       assert.equal(refused.body.window_seconds, HOT_ROUTE_WINDOW_MS / 1000);
       assert.ok(
-        refused.body.retry_after_seconds > 0
-        && refused.body.retry_after_seconds <= HOT_ROUTE_WINDOW_MS / 1000,
+        refused.body.retry_after_seconds > 0 && refused.body.retry_after_seconds <= HOT_ROUTE_WINDOW_MS / 1000,
         "retry_after_seconds must be a usable number inside the window",
       );
       // A client cannot back off correctly without these.

@@ -16,9 +16,7 @@
  * structurally invisible to the only mechanism watching for drift.
  */
 
-const {
-  SPRINT_FILE, parseSprintItems, isAvailableWork, isBlocked, referencedNumbers,
-} = require("./markdown");
+const { SPRINT_FILE, parseSprintItems, isAvailableWork, isBlocked, referencedNumbers } = require("./markdown");
 
 /**
  * One stray reference to a merged PR is normal — items cite prior art constantly. A whole
@@ -43,8 +41,7 @@ module.exports = {
     // both available *and* citing enough PR numbers to be judged? If not, the left fielder
     // stays put and no PR listing is fetched on this check's behalf.
     const candidates = parseSprintItems(text).filter(
-      (i) => isAvailableWork(i.status) && !isBlocked(i)
-        && referencedNumbers(i.body.join("\n")).length >= MIN_CITED_PRS
+      (i) => isAvailableWork(i.status) && !isBlocked(i) && referencedNumbers(i.body.join("\n")).length >= MIN_CITED_PRS,
     );
     if (candidates.length === 0) {
       return {

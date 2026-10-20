@@ -12,13 +12,10 @@ const PLATFORM_MONOGRAMS = {
   espn: 'E',
 };
 
-const PlatformBadge = React.forwardRef(function PlatformBadge({
-  platform,
-  size = 'md',
-  showLabel = true,
-  className = '',
-  ...props
-}, ref) {
+const PlatformBadge = React.forwardRef(function PlatformBadge(
+  { platform, size = 'md', showLabel = true, className = '', ...props },
+  ref,
+) {
   if (!['yahoo', 'sleeper', 'espn'].includes(platform)) {
     return null; // Invalid platform, strict enforcement per brief
   }
@@ -34,9 +31,7 @@ const PlatformBadge = React.forwardRef(function PlatformBadge({
   // For text on neutral surface, use -chip token if it exists (Yahoo/ESPN),
   // otherwise fallback to base platform color (Sleeper)
   const hasChipToken = platform === 'yahoo' || platform === 'espn';
-  const labelColorToken = hasChipToken
-    ? `var(--color-platform-${platform}-chip)`
-    : `var(--color-platform-${platform})`;
+  const labelColorToken = hasChipToken ? `var(--color-platform-${platform}-chip)` : `var(--color-platform-${platform})`;
 
   const label = PLATFORM_LABELS[platform];
 
@@ -52,7 +47,7 @@ const PlatformBadge = React.forwardRef(function PlatformBadge({
     >
       {/* Icon fallback container */}
       <div
-        className={`flex items-center justify-center rounded shrink-0 font-bold ${iconSizeClasses}`}
+        className={`flex items-center justify-center rounded-sm shrink-0 font-bold ${iconSizeClasses}`}
         style={{
           backgroundColor: bgToken,
           color: iconTextToken,
@@ -64,10 +59,7 @@ const PlatformBadge = React.forwardRef(function PlatformBadge({
 
       {/* Label text */}
       {showLabel && (
-        <span
-          className={`font-medium ${labelTextSizeClasses}`}
-          style={{ color: labelColorToken }}
-        >
+        <span className={`font-medium ${labelTextSizeClasses}`} style={{ color: labelColorToken }}>
           {label}
         </span>
       )}

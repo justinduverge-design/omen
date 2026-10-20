@@ -27,7 +27,8 @@ async function getTeamSystemSummaries({ supabase, teams, season, log }) {
     const byId = new Map();
     for (const row of data || []) {
       const summary = row?.payload?.summary;
-      if (row.status === "available" && typeof summary === "string" && summary.trim()) byId.set(row.team_id, summary.trim());
+      if (row.status === "available" && typeof summary === "string" && summary.trim())
+        byId.set(row.team_id, summary.trim());
     }
     return new Map(abbrs.filter((a) => byId.has(teamIdFor(a))).map((a) => [a, byId.get(teamIdFor(a))]));
   } catch (error) {

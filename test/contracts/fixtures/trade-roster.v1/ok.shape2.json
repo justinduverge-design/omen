@@ -3,41 +3,32 @@
   "route": "/api/trade/roster",
   "body": {
     "contract_version": "trade-roster.v1",
-    "platform": "sleeper",
-    "roster_positions": [
-      "QB",
-      "RB",
-      "RB",
-      "WR",
-      "WR",
-      "FLEX",
-      "BN"
-    ],
+    "platform": "espn",
+    "roster_positions": [],
     "status": "ok",
     "teams": [
       {
         "players": [
           {
-            "name": "Own Player",
-            "player_key": "sleeper:100",
-            "position": "RB"
+            "name": "Own ESPN Player",
+            "player_key": "espn:1"
           }
         ],
-        "team_id": "1",
-        "team_name": "Own Team"
+        "team_id": "10",
+        "team_name": "Own ESPN Team"
       },
       {
         "players": [
           {
-            "name": "Opponent Player",
-            "player_key": "sleeper:200",
-            "position": "WR"
+            "name": "Rival ESPN Player",
+            "player_key": "espn:2"
           }
         ],
-        "team_id": "2",
-        "team_name": "Opponent Team"
+        "team_id": "20",
+        "team_name": "Rival ESPN Team"
       }
     ],
+    "unreadable_team_ids": [],
     "week": 3
   }
 }

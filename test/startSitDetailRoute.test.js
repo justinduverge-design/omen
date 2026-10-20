@@ -9,11 +9,7 @@ const Module = require("node:module");
 const test = require("node:test");
 const express = require("express");
 
-const {
-  buildStartSitDetail,
-  CONTRACT_VERSION_V2,
-  STATES,
-} = require("../src/services/startSitDetail");
+const { buildStartSitDetail, CONTRACT_VERSION_V2, STATES } = require("../src/services/startSitDetail");
 
 function player(name, position, projected, status = null, slot = null) {
   return {
@@ -40,9 +36,14 @@ const ROSTER = {
 
 test("buildStartSitDetail answers with the recommendation first, in league context", () => {
   const result = buildStartSitDetail({
-    roster: ROSTER, platform: "sleeper", leagueId: "L1",
-    leagueName: "Dynasty Dogs", teamName: "Justin Titans",
-    week: 7, season: 2026, scoringFormat: "0.5 PPR",
+    roster: ROSTER,
+    platform: "sleeper",
+    leagueId: "L1",
+    leagueName: "Dynasty Dogs",
+    teamName: "Justin Titans",
+    week: 7,
+    season: 2026,
+    scoringFormat: "0.5 PPR",
   });
 
   assert.equal(result.contract_version, "start-sit-detail.v1");
@@ -81,7 +82,10 @@ test("a big gap reads high only when observed usage corroborates it", () => {
 
 test("evidence separates the league fact, the projection, and Omen's inference", () => {
   const result = buildStartSitDetail({
-    roster: ROSTER, platform: "sleeper", leagueId: "L1", scoringFormat: "0.5 PPR",
+    roster: ROSTER,
+    platform: "sleeper",
+    leagueId: "L1",
+    scoringFormat: "0.5 PPR",
   });
   const byCategory = Object.fromEntries(result.evidence.map((e) => [e.category, e]));
 
@@ -110,7 +114,11 @@ test("v2 adds the shared capability manifest without upgrading unknown scoring t
     { state: "unavailable", used: false, kind: "limitation" },
   );
   assert.deepEqual(
-    { state: byName.player_projections.state, used: byName.player_projections.used, kind: byName.player_projections.kind },
+    {
+      state: byName.player_projections.state,
+      used: byName.player_projections.used,
+      kind: byName.player_projections.kind,
+    },
     { state: "live", used: true, kind: "projection" },
   );
   assert.equal(result.decision_context.contract_version, "shared-decision-context.v1");
@@ -191,7 +199,8 @@ test("a lineup that is already optimal returns no_decision rather than a forced 
 test("an empty bench is incomplete_data, and off-season is off_season", () => {
   const empty = buildStartSitDetail({
     roster: { week: 7, slots: { starters: [player("A", "WR", 1)], bench: [] } },
-    platform: "sleeper", leagueId: "L1",
+    platform: "sleeper",
+    leagueId: "L1",
   });
   const off = buildStartSitDetail({ roster: ROSTER, platform: "sleeper", leagueId: "L1", offSeason: true });
 
@@ -232,7 +241,12 @@ function loadRouter(options = {}) {
     if (parent?.filename === routePath) {
       if (request === "@supabase/supabase-js") return { createClient: () => supabaseDouble };
       if (request === "../middleware/auth") {
-        return { requireAuth: (req, _res, next) => { req.user = { id: "user-1" }; next(); } };
+        return {
+          requireAuth: (req, _res, next) => {
+            req.user = { id: "user-1" };
+            next();
+          },
+        };
       }
       if (request === "../middleware/logging") return { logger: { error() {}, warn() {}, info() {} } };
       if (request === "../services/nflSchedule") {
@@ -247,14 +261,16 @@ function loadRouter(options = {}) {
       }
       if (request === "../services/yahooAuth") {
         return {
-          getAuthenticatedYahooClient: options.getAuthenticatedYahooClient
-            || (async () => ({ client: { getLeagueMetadata: async () => ({ league_name: "Work League" }) } })),
+          getAuthenticatedYahooClient:
+            options.getAuthenticatedYahooClient ||
+            (async () => ({ client: { getLeagueMetadata: async () => ({ league_name: "Work League" }) } })),
         };
       }
       if (request === "../services/espnAuth") {
         return {
-          getAuthenticatedEspnCredentials: options.getAuthenticatedEspnCredentials
-            || (async () => ({ espn_s2: "ESPNCOOKIESECRET", swid: "{SWIDSECRET}" })),
+          getAuthenticatedEspnCredentials:
+            options.getAuthenticatedEspnCredentials ||
+            (async () => ({ espn_s2: "ESPNCOOKIESECRET", swid: "{SWIDSECRET}" })),
         };
       }
       if (request === "../services/roster") {
@@ -285,7 +301,9 @@ function buildApp(options) {
   app.use(express.json());
   app.use("/api/start-sit", loadRouter(options));
   app.use("/api/start-sit", require("../src/routes/startSit"));
-  app.use((err, _req, res, _next) => { res.status(err.status || 500).json({ error: err.message }); });
+  app.use((err, _req, res, _next) => {
+    res.status(err.status || 500).json({ error: err.message });
+  });
   return app;
 }
 
@@ -304,9 +322,19 @@ async function request(app, path = "/api/start-sit/detail", extraHeaders = {}) {
 }
 
 const SLEEPER_CONN = { platform: "sleeper", is_active: true, league_id: "L1", platform_username: "justin" };
-const ESPN_CONN = { platform: "espn", is_active: true, league_id: "12345", espn_secret_id: "v1", swid_secret_id: "v2", espn_team_id: "9" };
+const ESPN_CONN = {
+  platform: "espn",
+  is_active: true,
+  league_id: "12345",
+  espn_secret_id: "v1",
+  swid_secret_id: "v2",
+  espn_team_id: "9",
+};
 const YAHOO_CONN = {
-  platform: "yahoo", is_active: true, league_id: "449.l.1", token_secret_id: "v3",
+  platform: "yahoo",
+  is_active: true,
+  league_id: "449.l.1",
+  token_secret_id: "v3",
   token_expires_at: new Date(Date.now() + 3600_000).toISOString(),
 };
 
@@ -336,7 +364,8 @@ test("Sleeper: an already-optimal lineup returns 200 no_decision, not an error",
     sleeperAdapter: {
       fetchSleeperLeague: async () => ({}),
       buildNormalizedRoster: async () => ({
-        week: 7, slots: { starters: [player("A", "WR", 20)], bench: [player("B", "WR", 2)] },
+        week: 7,
+        slots: { starters: [player("A", "WR", 20)], bench: [player("B", "WR", 2)] },
       }),
     },
   });
@@ -355,7 +384,9 @@ test("ESPN: detail is built from the ESPN adapter and leaks no cookie value", as
         return { roster: ROSTER, projectionLines: new Map() };
       },
       // A failed rules read costs only the breakdown, never the detail.
-      fetchEspnScoringSettings: async () => { throw new Error("espn 503"); },
+      fetchEspnScoringSettings: async () => {
+        throw new Error("espn 503");
+      },
     },
   });
   const { status, body } = await request(app);
@@ -412,7 +443,9 @@ test("a provider outage is a retryable 502, not a fabricated recommendation", as
     connections: [SLEEPER_CONN],
     sleeperAdapter: {
       fetchSleeperLeague: async () => ({}),
-      buildNormalizedRoster: async () => { throw new Error("sleeper 503"); },
+      buildNormalizedRoster: async () => {
+        throw new Error("sleeper 503");
+      },
     },
   });
   const { status, body } = await request(app);
@@ -466,7 +499,11 @@ test("the existing stateless POST /api/start-sit comparator is unchanged", async
 const PPR_SETTINGS = { rec: 1, rec_yd: 0.1, rec_td: 6, rush_yd: 0.1, rush_td: 6, fum_lost: -2 };
 
 function sleeperRosterWithKeys() {
-  const sleeperPlayer = (id, name, projected) => ({ ...player(name, "WR", projected), player_key: `sleeper:${id}`, player_id: id });
+  const sleeperPlayer = (id, name, projected) => ({
+    ...player(name, "WR", projected),
+    player_key: `sleeper:${id}`,
+    player_id: id,
+  });
   return {
     week: 7,
     team_name: "Justin Titans",
@@ -488,21 +525,41 @@ test("engine: points_breakdown rows follow the projection row, labelled projecte
   const { rosterProjectionBreakdowns } = require("../src/services/projectionBreakdown");
   const roster = sleeperRosterWithKeys();
   const breakdowns = rosterProjectionBreakdowns({
-    platform: "sleeper", roster, sleeper: { statLines: STAT_LINES, scoringSettings: PPR_SETTINGS },
+    platform: "sleeper",
+    roster,
+    sleeper: { statLines: STAT_LINES, scoringSettings: PPR_SETTINGS },
   });
-  const result = buildStartSitDetail({ roster, platform: "sleeper", leagueId: "L1", scoringFormat: "1 point per reception", breakdowns });
+  const result = buildStartSitDetail({
+    roster,
+    platform: "sleeper",
+    leagueId: "L1",
+    scoringFormat: "1 point per reception",
+    breakdowns,
+  });
 
   const rows = result.evidence.filter((e) => e.category === "points_breakdown");
-  assert.deepEqual(rows.map((row) => row.kind), ["projected", "limitation"]);
-  assert.equal(rows[0].statement, "DeVonta Smith's 15.72 from Sleeper: 72 rec yds × 0.1 = 7.2; 6.1 receptions × 1 = 6.1; 0.4 rec TD × 6 = 2.4.");
-  assert.match(rows[1].statement, /^Points breakdown unavailable for Chris Olave: .*does not add up to Sleeper's projection/);
+  assert.deepEqual(
+    rows.map((row) => row.kind),
+    ["projected", "limitation"],
+  );
+  assert.equal(
+    rows[0].statement,
+    "DeVonta Smith's 15.72 from Sleeper: 72 rec yds × 0.1 = 7.2; 6.1 receptions × 1 = 6.1; 0.4 rec TD × 6 = 2.4.",
+  );
+  assert.match(
+    rows[1].statement,
+    /^Points breakdown unavailable for Chris Olave: .*does not add up to Sleeper's projection/,
+  );
   const categories = result.evidence.map((e) => e.category);
   assert.equal(categories.indexOf("points_breakdown"), categories.indexOf("player_game_fact") + 1);
 });
 
 test("engine: no breakdowns supplied means no points_breakdown rows", () => {
   const result = buildStartSitDetail({ roster: ROSTER, platform: "sleeper", leagueId: "L1" });
-  assert.equal(result.evidence.some((e) => e.category === "points_breakdown"), false);
+  assert.equal(
+    result.evidence.some((e) => e.category === "points_breakdown"),
+    false,
+  );
 });
 
 test("Sleeper route: the stat line and the league's scoring produce a points breakdown", async () => {
@@ -531,14 +588,19 @@ test("Sleeper route: a failed stat-line read degrades to no breakdown line, neve
     sleeperAdapter: {
       fetchSleeperLeague: async () => ({ scoring_settings: PPR_SETTINGS }),
       buildNormalizedRoster: async () => sleeperRosterWithKeys(),
-      fetchSleeperProjectionStatLines: async () => { throw new Error("sleeper 503"); },
+      fetchSleeperProjectionStatLines: async () => {
+        throw new Error("sleeper 503");
+      },
     },
   });
   const { status, body } = await request(app);
 
   assert.equal(status, 200);
   assert.equal(body.recommendation.start.name, "DeVonta Smith");
-  assert.equal(body.evidence.some((e) => e.category === "points_breakdown"), false);
+  assert.equal(
+    body.evidence.some((e) => e.category === "points_breakdown"),
+    false,
+  );
 });
 
 test("ESPN route: the projected stat row and the league's stat-id rules produce a breakdown", async () => {
@@ -556,11 +618,17 @@ test("ESPN route: the projected stat row and the league's stat-id rules produce 
         assert.deepEqual([id, week, opts.teamId], ["12345", 7, "9"]);
         return {
           roster: espnRoster,
-          projectionLines: new Map([["espn:2", { position_id: 3, applied_total: 15.7, stats: { 53: 6.1, 42: 72, 43: 0.4 } }]]),
+          projectionLines: new Map([
+            ["espn:2", { position_id: 3, applied_total: 15.7, stats: { 53: 6.1, 42: 72, 43: 0.4 } }],
+          ]),
         };
       },
       fetchEspnScoringSettings: async () => ({
-        byStatId: new Map([["53", { points: 1, overrides: {} }], ["42", { points: 0.1, overrides: {} }], ["43", { points: 6, overrides: {} }]]),
+        byStatId: new Map([
+          ["53", { points: 1, overrides: {} }],
+          ["42", { points: 0.1, overrides: {} }],
+          ["43", { points: 6, overrides: {} }],
+        ]),
         ruleCount: 3,
       }),
     },
@@ -569,7 +637,10 @@ test("ESPN route: the projected stat row and the league's stat-id rules produce 
 
   assert.equal(status, 200);
   const rows = body.evidence.filter((e) => e.category === "points_breakdown");
-  assert.equal(rows[0].statement, "DeVonta Smith's 15.7 from ESPN: 72 rec yds × 0.1 = 7.2; 6.1 receptions × 1 = 6.1; 0.4 rec TD × 6 = 2.4.");
+  assert.equal(
+    rows[0].statement,
+    "DeVonta Smith's 15.7 from ESPN: 72 rec yds × 0.1 = 7.2; 6.1 receptions × 1 = 6.1; 0.4 rec TD × 6 = 2.4.",
+  );
   assert.match(rows[1].statement, /^Points breakdown unavailable for Chris Olave: ESPN gave no projected stat line/);
   assert.equal(JSON.stringify(body).includes("ESPNCOOKIESECRET"), false);
 });
@@ -579,11 +650,13 @@ test("Yahoo route: the breakdown is named unavailable once, with the reason", as
   const { body } = await request(app);
 
   const rows = body.evidence.filter((e) => e.category === "points_breakdown");
-  assert.deepEqual(rows, [{
-    category: "points_breakdown",
-    kind: "limitation",
-    statement: "Points breakdown unavailable: Yahoo does not give Omen a projected stat line.",
-  }]);
+  assert.deepEqual(rows, [
+    {
+      category: "points_breakdown",
+      kind: "limitation",
+      statement: "Points breakdown unavailable: Yahoo does not give Omen a projected stat line.",
+    },
+  ]);
 });
 
 test("v2 route carries ranked why_statements built from the evidence rows; v1 does not", async () => {
@@ -610,7 +683,13 @@ test("v2 route carries ranked why_statements built from the evidence rows; v1 do
 });
 
 test("v2 builder: no recommendation means no why_statements field", () => {
-  const result = buildStartSitDetail({ roster: ROSTER, platform: "sleeper", leagueId: "L1", offSeason: true, contractVersion: CONTRACT_VERSION_V2 });
+  const result = buildStartSitDetail({
+    roster: ROSTER,
+    platform: "sleeper",
+    leagueId: "L1",
+    offSeason: true,
+    contractVersion: CONTRACT_VERSION_V2,
+  });
   assert.equal(result.why_statements, undefined);
 });
 
@@ -627,24 +706,39 @@ const snOptions = (extra = {}) => ({
 });
 // Serialized with generation timestamps blanked, for equality across two requests.
 const stable = (body) => JSON.stringify(body, (k, v) => (/(^|_)(at|generated_at|observed_at)$/.test(k) ? null : v));
-const weeks = (shares, extra = {}) => shares.map((snap_share, i) => ({ week: i + 1, snap_share, targets: 6, carries: 0, ...extra }));
+const weeks = (shares, extra = {}) =>
+  shares.map((snap_share, i) => ({ week: i + 1, snap_share, targets: 6, carries: 0, ...extra }));
 const bundle = (weekly) => async () => ({ usage: new Map(), weekly: new Map(Object.entries(weekly)) });
-const signalRows = (body) => body.evidence.filter((r) => r.category === "recent_usage" && r.kind === "observed_context");
+const signalRows = (body) =>
+  body.evidence.filter((r) => r.category === "recent_usage" && r.kind === "observed_context");
 
 test("signal: stable vs volatile usage become tagged observed_context rows, the gap becomes a projection row", async () => {
   const stable = weeks([0.8, 0.8, 0.8, 0.8]);
   const volatile = weeks([0.9, 0.4, 0.85, 0.35, 0.9, 0.4]);
-  const { status, body } = await request(buildApp(snOptions({
-    getUsageBundle: bundle({ "p-DeVonta-Smith": stable, "p-Chris-Olave": volatile }),
-  })), SN_URL);
+  const { status, body } = await request(
+    buildApp(
+      snOptions({
+        getUsageBundle: bundle({ "p-DeVonta-Smith": stable, "p-Chris-Olave": volatile }),
+      }),
+    ),
+    SN_URL,
+  );
   assert.equal(status, 200);
   const rows = signalRows(body);
   assert.equal(rows.length, 2);
-  assert.match(rows[0].statement, /^Snap share held at 80% over the last 4 games, so DeVonta Smith's recent usage is steady\.$/);
+  assert.match(
+    rows[0].statement,
+    /^Snap share held at 80% over the last 4 games, so DeVonta Smith's recent usage is steady\.$/,
+  );
   assert.match(rows[1].statement, /Chris Olave's recent usage is uneven\.$/);
-  const gap = body.evidence.filter((r) => r.category === "player_game_fact" && r.kind === "projection" && /projection gap/.test(r.statement));
+  const gap = body.evidence.filter(
+    (r) => r.category === "player_game_fact" && r.kind === "projection" && /projection gap/.test(r.statement),
+  );
   assert.equal(gap.length, 1);
-  assert.equal(gap[0].statement, "A 4.2-point projection gap is outside normal projection variance: a real edge on paper.");
+  assert.equal(
+    gap[0].statement,
+    "A 4.2-point projection gap is outside normal projection variance: a real edge on paper.",
+  );
   // Closed vocabulary only.
   const vocab = require("../src/services/evidenceVocabulary").START_SIT;
   for (const row of body.evidence) {
@@ -654,75 +748,125 @@ test("signal: stable vs volatile usage become tagged observed_context rows, the 
   // Grounded: every number in the new text comes from the inputs (delta, share percents, game counts).
   const allowed = new Set(["4.2", "80", "4", "6", "90", "35", "40", "85", "25", "20"]);
   for (const row of [...rows, gap[0]]) {
-    for (const n of row.statement.match(/\d+(?:\.\d+)?/g) || []) assert.ok(allowed.has(n), `ungrounded number ${n} in: ${row.statement}`);
+    for (const n of row.statement.match(/\d+(?:\.\d+)?/g) || [])
+      assert.ok(allowed.has(n), `ungrounded number ${n} in: ${row.statement}`);
   }
 });
 
 test("signal: insufficient history adds no usage row; a usage failure leaves the response as without usage", async () => {
-  const insufficient = await request(buildApp(snOptions({
-    getUsageBundle: bundle({ "p-DeVonta-Smith": weeks([0.8, 0.8]), "p-Chris-Olave": weeks([0.7]) }),
-  })), SN_URL);
+  const insufficient = await request(
+    buildApp(
+      snOptions({
+        getUsageBundle: bundle({ "p-DeVonta-Smith": weeks([0.8, 0.8]), "p-Chris-Olave": weeks([0.7]) }),
+      }),
+    ),
+    SN_URL,
+  );
   assert.equal(signalRows(insufficient.body).length, 0);
 
   const none = await request(buildApp(snOptions({ getUsageBundle: bundle({}) })), SN_URL);
-  const failed = await request(buildApp(snOptions({
-    getUsageBundle: async () => ({ usage: new Map(), weekly: new Map() }), // what getUsageBundle returns on any failure
-  })), SN_URL);
+  const failed = await request(
+    buildApp(
+      snOptions({
+        getUsageBundle: async () => ({ usage: new Map(), weekly: new Map() }), // what getUsageBundle returns on any failure
+      }),
+    ),
+    SN_URL,
+  );
   assert.equal(stable(failed.body), stable(none.body));
   assert.equal(signalRows(failed.body).length, 0);
 });
 
 test("signal: rows never change the confidence band or the recommendation; v1 is untouched", async () => {
-  const withSignal = await request(buildApp(snOptions({
-    getUsageBundle: bundle({ "p-DeVonta-Smith": weeks([0.8, 0.8, 0.8, 0.8]), "p-Chris-Olave": weeks([0.9, 0.4, 0.85, 0.35]) }),
-  })), SN_URL);
+  const withSignal = await request(
+    buildApp(
+      snOptions({
+        getUsageBundle: bundle({
+          "p-DeVonta-Smith": weeks([0.8, 0.8, 0.8, 0.8]),
+          "p-Chris-Olave": weeks([0.9, 0.4, 0.85, 0.35]),
+        }),
+      }),
+    ),
+    SN_URL,
+  );
   const without = await request(buildApp(snOptions({ getUsageBundle: bundle({}) })), SN_URL);
   assert.deepEqual(withSignal.body.recommendation, without.body.recommendation);
   assert.equal(withSignal.body.recommendation.confidence, without.body.recommendation.confidence);
 
-  const v1With = await request(buildApp(snOptions({
-    getUsageBundle: bundle({ "p-DeVonta-Smith": weeks([0.8, 0.8, 0.8, 0.8]) }),
-  })));
+  const v1With = await request(
+    buildApp(
+      snOptions({
+        getUsageBundle: bundle({ "p-DeVonta-Smith": weeks([0.8, 0.8, 0.8, 0.8]) }),
+      }),
+    ),
+  );
   const v1Without = await request(buildApp(snOptions({ getUsageBundle: bundle({}) })));
   assert.equal(stable(v1With.body), stable(v1Without.body));
   assert.equal(signalRows(v1With.body).length, 0);
-  assert.equal(v1With.body.evidence.some((r) => /projection gap/.test(r.statement)), false);
+  assert.equal(
+    v1With.body.evidence.some((r) => /projection gap/.test(r.statement)),
+    false,
+  );
 });
 
 test("signal: an OUT player gets no steadiness row, and a forced replacement gets no 'real edge' gap row", async () => {
-  const roster = { week: 7, team_name: "Justin Titans", slots: {
-    starters: [player("Chris Olave", "WR", 11.0, "OUT")],
-    bench: [player("DeVonta Smith", "WR", 15.2)],
-  } };
-  const out = await request(buildApp(snOptions({
-    rosterSvc: undefined,
-    sleeperAdapter: {
-      fetchSleeperLeague: async () => ({ name: "Dynasty Dogs", scoring_settings: { rec: 0.5 } }),
-      buildNormalizedRoster: async () => roster,
+  const roster = {
+    week: 7,
+    team_name: "Justin Titans",
+    slots: {
+      starters: [player("Chris Olave", "WR", 11.0, "OUT")],
+      bench: [player("DeVonta Smith", "WR", 15.2)],
     },
-    getUsageBundle: bundle({ "p-DeVonta-Smith": weeks([0.8, 0.8, 0.8, 0.8]), "p-Chris-Olave": weeks([0.8, 0.8, 0.8, 0.8]) }),
-  })), SN_URL);
+  };
+  const out = await request(
+    buildApp(
+      snOptions({
+        rosterSvc: undefined,
+        sleeperAdapter: {
+          fetchSleeperLeague: async () => ({ name: "Dynasty Dogs", scoring_settings: { rec: 0.5 } }),
+          buildNormalizedRoster: async () => roster,
+        },
+        getUsageBundle: bundle({
+          "p-DeVonta-Smith": weeks([0.8, 0.8, 0.8, 0.8]),
+          "p-Chris-Olave": weeks([0.8, 0.8, 0.8, 0.8]),
+        }),
+      }),
+    ),
+    SN_URL,
+  );
   assert.equal(out.body.state, "player_unavailable");
   const steady = signalRows(out.body);
   assert.equal(steady.length, 1, "only the available replacement");
   assert.match(steady[0].statement, /DeVonta Smith/);
-  assert.equal(out.body.evidence.some((r) => /projection gap|real edge/.test(r.statement)), false);
+  assert.equal(
+    out.body.evidence.some((r) => /projection gap|real edge/.test(r.statement)),
+    false,
+  );
 });
 
 test("signal: the gap sentence agrees with the confidence band and the close state at the 1.5 line", async () => {
   // The optimizer hands the route a 2-decimal delta, so the route sees 1.49 / 1.5 / 1.51; the raw 1.496 case is in signalNoise.test.js.
   for (const startPts of [12.49, 12.5, 12.51]) {
-    const roster = { week: 7, team_name: "Justin Titans", slots: {
-      starters: [player("Chris Olave", "WR", 11.0)],
-      bench: [player("DeVonta Smith", "WR", startPts)],
-    } };
-    const { body } = await request(buildApp(snOptions({
-      sleeperAdapter: {
-        fetchSleeperLeague: async () => ({ name: "Dynasty Dogs", scoring_settings: { rec: 0.5 } }),
-        buildNormalizedRoster: async () => roster,
+    const roster = {
+      week: 7,
+      team_name: "Justin Titans",
+      slots: {
+        starters: [player("Chris Olave", "WR", 11.0)],
+        bench: [player("DeVonta Smith", "WR", startPts)],
       },
-      getUsageBundle: bundle({}),
-    })), SN_URL);
+    };
+    const { body } = await request(
+      buildApp(
+        snOptions({
+          sleeperAdapter: {
+            fetchSleeperLeague: async () => ({ name: "Dynasty Dogs", scoring_settings: { rec: 0.5 } }),
+            buildNormalizedRoster: async () => roster,
+          },
+          getUsageBundle: bundle({}),
+        }),
+      ),
+      SN_URL,
+    );
     const gap = body.evidence.find((r) => /projection gap/.test(r.statement));
     const inside = /inside normal projection variance/.test(gap.statement);
     assert.equal(inside, body.recommendation.confidence === "low", `${startPts}: ${gap.statement}`);
@@ -733,12 +877,31 @@ test("signal: the gap sentence agrees with the confidence band and the close sta
 test("fantasy metrics: the route adds Fated Points lines from the season bundle, and none without one", async () => {
   const line = { receiving_receptions: 5, receiving_yards: 60 };
   const rollups = [4, 5, 6].map((week) => ({
-    player: "00-SMITH", week, team: "PHI", targets: 7, carries: 0, expected: line, actual: line, fallbackPlays: 0,
-    opportunity: { rz_targets: 0, i10_targets: 0, ez_targets: 0, deep_targets: 0, rz_carries: 0, i10_carries: 0, gl_carries: 0 },
+    player: "00-SMITH",
+    week,
+    team: "PHI",
+    targets: 7,
+    carries: 0,
+    expected: line,
+    actual: line,
+    fallbackPlays: 0,
+    opportunity: {
+      rz_targets: 0,
+      i10_targets: 0,
+      ez_targets: 0,
+      deep_targets: 0,
+      rz_carries: 0,
+      i10_carries: 0,
+      gl_carries: 0,
+    },
   }));
   const bundle = {
-    byPlayer: new Map([["00-SMITH", rollups]]), byTeam: new Map([["PHI", rollups]]), teamWeeks: new Map([["PHI", [4, 5, 6]]]),
-    positions: new Map([["00-SMITH", "WR"]]), names: new Map(), games: [],
+    byPlayer: new Map([["00-SMITH", rollups]]),
+    byTeam: new Map([["PHI", rollups]]),
+    teamWeeks: new Map([["PHI", [4, 5, 6]]]),
+    positions: new Map([["00-SMITH", "WR"]]),
+    names: new Map(),
+    games: [],
   };
   const sleeperAdapter = {
     fetchSleeperLeague: async () => ({ name: "Dynasty Dogs", scoring_settings: { rec: 0.5 } }),
@@ -746,7 +909,9 @@ test("fantasy metrics: the route adds Fated Points lines from the season bundle,
   };
   const empty = async () => ({ usage: new Map(), weekly: new Map() });
   const withBundle = buildApp({
-    connections: [SLEEPER_CONN], sleeperAdapter, getUsageBundle: empty,
+    connections: [SLEEPER_CONN],
+    sleeperAdapter,
+    getUsageBundle: empty,
     resolveGsis: async () => new Map([["p-DeVonta-Smith", "00-SMITH"]]),
     getSeasonBundle: async ({ season }) => (season === 2026 ? bundle : null),
   });
@@ -754,12 +919,18 @@ test("fantasy metrics: the route adds Fated Points lines from the season bundle,
   assert.equal(status, 200);
   const metric = body.evidence.filter((row) => row.category === "omen_metric");
   assert.ok(metric.length >= 2);
-  assert.match(metric[0].statement, /^Fated Points \(beta\): DeVonta Smith's usage was worth 8\.5 half-PPR points a game over his last 3 games/);
+  assert.match(
+    metric[0].statement,
+    /^Fated Points \(beta\): DeVonta Smith's usage was worth 8\.5 half-PPR points a game over his last 3 games/,
+  );
 
   const without = buildApp({ connections: [SLEEPER_CONN], sleeperAdapter, getUsageBundle: empty });
   const plain = await request(without);
   assert.equal(plain.status, 200);
-  assert.equal(plain.body.evidence.some((row) => row.category === "omen_metric"), false);
+  assert.equal(
+    plain.body.evidence.some((row) => row.category === "omen_metric"),
+    false,
+  );
 });
 
 // --- Cold-start latency ------------------------------------------------------
@@ -767,7 +938,9 @@ test("fantasy metrics: the route adds Fated Points lines from the season bundle,
 test("a cold fantasy-metrics read is capped: the route answers without it while the build keeps running", async () => {
   let release;
   let started = 0;
-  const gate = new Promise((resolve) => { release = resolve; });
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
   const app = buildApp({
     connections: [SLEEPER_CONN],
     sleeperAdapter: {
@@ -776,7 +949,10 @@ test("a cold fantasy-metrics read is capped: the route answers without it while 
       fetchSleeperProjectionStatLines: async () => STAT_LINES,
     },
     getUsageBundle: async () => ({ usage: new Map(), weekly: new Map() }),
-    getSeasonBundle: () => { started += 1; return gate.then(() => null); },
+    getSeasonBundle: () => {
+      started += 1;
+      return gate.then(() => null);
+    },
   });
   const t0 = Date.now();
   const { status, body } = await request(app, "/api/start-sit/detail", { "x-contract-record": "skip" });
@@ -796,7 +972,10 @@ test("Sleeper stat lines are requested in parallel with usage, not after it", as
     sleeperAdapter: {
       fetchSleeperLeague: async () => ({ scoring_settings: PPR_SETTINGS }),
       buildNormalizedRoster: async () => sleeperRosterWithKeys(),
-      fetchSleeperProjectionStatLines: async () => { statLinesRequested = true; return STAT_LINES; },
+      fetchSleeperProjectionStatLines: async () => {
+        statLinesRequested = true;
+        return STAT_LINES;
+      },
     },
     getUsageBundle: async () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
@@ -807,5 +986,8 @@ test("Sleeper stat lines are requested in parallel with usage, not after it", as
   const { status, body } = await request(app, "/api/start-sit/detail", { "x-contract-record": "skip" });
   assert.equal(status, 200);
   assert.equal(requestedBeforeUsageFinished, true);
-  assert.equal(body.evidence.some((e) => e.category === "points_breakdown"), true);
+  assert.equal(
+    body.evidence.some((e) => e.category === "points_breakdown"),
+    true,
+  );
 });

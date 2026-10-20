@@ -3,31 +3,23 @@
   "route": "/api/trade/roster",
   "body": {
     "contract_version": "trade-roster.v1",
-    "platform": "espn",
+    "platform": "yahoo",
     "roster_positions": [],
     "status": "ok",
     "teams": [
       {
         "players": [
           {
-            "name": "Own ESPN Player",
-            "player_key": "espn:1"
+            "name": "Rival Yahoo Player",
+            "player_key": "yahoo:2"
           }
         ],
-        "team_id": "10",
-        "team_name": "Own ESPN Team"
-      },
-      {
-        "players": [
-          {
-            "name": "Rival ESPN Player",
-            "player_key": "espn:2"
-          }
-        ],
-        "team_id": "20",
-        "team_name": "Rival ESPN Team"
+        "read_status": "ok",
+        "team_id": "411.l.1.t.2",
+        "team_name": "Rival Yahoo Team"
       }
     ],
+    "unreadable_team_ids": [],
     "week": 3
   }
 }

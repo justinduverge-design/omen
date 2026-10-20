@@ -21,10 +21,7 @@ function setBounded(cache, key, value) {
   cache.set(key, value);
 }
 
-function createSleeperDraftAccess({
-  supabaseClient,
-  now = () => Date.now(),
-} = {}) {
+function createSleeperDraftAccess({ supabaseClient, now = () => Date.now() } = {}) {
   const db = supabaseClient || createClient(config.supabaseUrl, config.supabaseServiceKey);
   const cache = new Map();
   const inFlight = new Map();

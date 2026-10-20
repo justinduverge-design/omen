@@ -37,7 +37,12 @@ Analyzer is the front door; Omen of the Week is the main event. Detail: `Directi
 
 ## Right now
 
-Focus: release cadence is every other Tuesday; next is 2026-10-27, plan in `Direction/2026-10-27-beta-readiness.md`. Latest state: `Blueprints/handoffs/rate-limit-shutdown-checkpoint.md`. Pinned task: `Direction/agent_inbox.md`.
+Focus: Build 11 is the current tester baseline and Build 12 is next. During the beta a build ships when it is
+ready, not on a fixed Tuesday (founder, 2026-10-17); a fixed schedule returns at the public launch. The active sprint frame is
+`Direction/2026-10-20-build-12-plan.md`; cadence, inspection gate and unallocated horizon live in
+`Direction/2026-10-12-rolling-three-beta-frame.md`;
+the 2026-10-27 readiness index remains in `Direction/2026-10-27-beta-readiness.md`. Latest state:
+`Blueprints/handoffs/2026-10-13-build-11-shipped-codex-handoff.md`. Pinned task: `Direction/agent_inbox.md`.
 What is shipped and open: `node scripts/shipped.js` → `Direction/shipped.md`.
 
 ## How work flows
@@ -53,14 +58,15 @@ and the risky-PR list: `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md` § Review. Cl
 | Database, migrations, RLS, erase/export | `Blueprints/rebuild/omen-database-redo-v1.md`, `sql/2026-10-01-redo/`, latest `Blueprints/handoffs/2026-10-0*` | `slops-api-hardening`, `security-privacy-evidence`, `rbac-risk-review`; request `@codex review` |
 | ESPN / Yahoo / Sleeper connection or sync | `Blueprints/specs/mobile/omen-mobile-onboarding-connection-contract-v1.md`, `Blueprints/specs/espn-connect-guide-v1.md` | `slops-provider-resilience` |
 | API routes, server code | `Blueprints/api-routes.md`, `test/` | `slops-tdd`, `slops-api-hardening` |
-| Native iPhone screen | the seven-file native gate in `CLAUDE.md`, approved Figma node | `slops-native-screen-design`, `slops-figma-to-native`, `slops-native-sim-drive`, `slops-native-ui-audit` |
+| Native iPhone screen | the seven-file native gate in `CLAUDE.md`, approved Figma node, `Blueprints/specs/mobile/omen-native-visual-lock-v2.md` | `slops-native-screen-design`, `slops-figma-to-native`, `slops-native-sim-drive`, `slops-native-ui-audit` |
 | Shared UI components or team theming | `Blueprints/specs/design/component-lock-v1.md`, `team-theme-contract-v1.md` | `slops-ux-copy` for words |
 | Recommendations / scoring / football data | `Blueprints/specs/football-data/`, `Direction/football-data-and-schemes-research.md` | `slops-tdd` |
 | Public copy, analytics, demo mode, type | `Direction/facts-of-record.md` facts 16-21, `Brand/brand-system.md` | `slops-ux-copy` |
 | Auth, tokens, user data | `Blueprints/security-privacy.md` | `security-privacy-evidence`; request `@codex review` |
 | A bug or failed check | `Direction/known_issues.md` (open only) | `slops-investigate` |
 | Warehouse, timers, backups, SSH, rollback | `infra/schedule/TIMERS.md`, `infra/schedule/ACCESS.md`, `infra/warehouse/`, `Direction/2026-10-13-release-rollback-card.md` | `slops-canary` |
-| Release, deploy, store consoles | `Direction/release/`, `Direction/release_readiness.md` | `slops-ship`, `slops-canary`, `slops-founder-admin-runbook` |
+| Rust crates, Pi binaries, Rust core bindings | `Blueprints/specs/infrastructure/omen-rust-infrastructure-plan-v1.md`, `Blueprints/specs/infrastructure/rust-prep/harness-and-ci-prep.md` | `slops-rust-tdd`, `slops-code-review` |
+| Release, deploy, store consoles, build packages | `Direction/release/builds/` (one package per build), `Direction/release/`, `Direction/release_readiness.md` | `slops-ship`, `slops-canary`, `slops-founder-admin-runbook` |
 | Where a new file belongs | `RESOLVER.md` | — |
 | Why something was decided | `Direction/decision_log.md` (search, do not read whole) | — |
 | What a code area touches or depends on | Run `graphify update .` (about a minute, no API cost; the graph is generated and not in git), then `graphify explain "X"`, `graphify path "A" "B"` or `graphify query "question"`. Covers code only; scope in `.graphifyignore` | `slops-graphify` |

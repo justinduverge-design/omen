@@ -7,6 +7,13 @@ const FLEX_ELIGIBILITY = {
   FLEX: ["RB", "WR", "TE"],
   REC_FLEX: ["WR", "TE"],
   SUPER_FLEX: ["QB", "RB", "WR", "TE"],
+  // Yahoo's own names for the same slots, and ESPN's RB/WR flex. Without these a Yahoo "W/R/T"
+  // slot accepted nobody and the flex spot silently stayed empty in every lineup solve.
+  "W/R/T": ["RB", "WR", "TE"],
+  "W/R": ["RB", "WR"],
+  "W/T": ["WR", "TE"],
+  "Q/W/R/T": ["QB", "RB", "WR", "TE"],
+  WRRB_FLEX: ["RB", "WR"],
 };
 
 const NON_STARTER_SLOTS = new Set(["BN", "BENCH", "IR", "TAXI"]);
@@ -71,7 +78,13 @@ function createSearchBudget({ budgetMs = TRADE_SEARCH_BUDGET_MS, now = Date.now 
   let exceeded = false;
   let solves = 0;
   return {
-    get exceeded() { return exceeded; },
+    get exceeded() {
+      return exceeded;
+    },
+    // Read by tradeSearchPool.js to hand a worker the time this budget has left.
+    get budgetMs() {
+      return budgetMs;
+    },
     countSolve() {
       solves += 1;
       if (solves > TRADE_SEARCH_MAX_SOLVES) exceeded = true;
@@ -81,7 +94,9 @@ function createSearchBudget({ budgetMs = TRADE_SEARCH_BUDGET_MS, now = Date.now 
       if (!exceeded && now() - startedAt > budgetMs) exceeded = true;
       return !exceeded;
     },
-    get stats() { return { solves, elapsedMs: now() - startedAt, exceeded }; },
+    get stats() {
+      return { solves, elapsedMs: now() - startedAt, exceeded };
+    },
   };
 }
 
@@ -123,9 +138,10 @@ function finiteProjection(player) {
 
 function slotEligible(player, slot) {
   const allowed = FLEX_ELIGIBILITY[slot] || [slot];
-  const positions = Array.isArray(player?.eligible_positions) && player.eligible_positions.length
-    ? player.eligible_positions
-    : [player?.position];
+  const positions =
+    Array.isArray(player?.eligible_positions) && player.eligible_positions.length
+      ? player.eligible_positions
+      : [player?.position];
   return positions.some((position) => allowed.includes(position));
 }
 
@@ -190,12 +206,23 @@ function hungarian(cost, rowCount, colCount) {
       for (let j = 1; j <= colCount; j += 1) {
         if (used[j]) continue;
         const cur = cost[i0 - 1][j - 1] - u[i0] - v[j];
-        if (cur < minv[j]) { minv[j] = cur; way[j] = j0; }
-        if (minv[j] < delta) { delta = minv[j]; j1 = j; }
+        if (cur < minv[j]) {
+          minv[j] = cur;
+          way[j] = j0;
+        }
+        if (minv[j] < delta) {
+          delta = minv[j];
+          j1 = j;
+        }
       }
 
       for (let j = 0; j <= colCount; j += 1) {
-        if (used[j]) { u[p[j]] += delta; v[j] -= delta; } else { minv[j] -= delta; }
+        if (used[j]) {
+          u[p[j]] += delta;
+          v[j] -= delta;
+        } else {
+          minv[j] -= delta;
+        }
       }
 
       j0 = j1;
@@ -241,9 +268,7 @@ function solveOptimalLineup({ players = [], rosterPositions = [] } = {}) {
     const row = new Float64Array(colCount);
     for (let j = 0; j < eligiblePlayers.length; j += 1) {
       const player = eligiblePlayers[j];
-      row[j] = slotEligible(player, slots[i].slot)
-        ? -finiteProjection(player)
-        : INELIGIBLE_COST;
+      row[j] = slotEligible(player, slots[i].slot) ? -finiteProjection(player) : INELIGIBLE_COST;
     }
     // Dummy columns stay 0.
     return row;
@@ -302,10 +327,16 @@ function solveOptimalLineupExhaustive({ players = [], rosterPositions = [], budg
 
   function outOfBudget() {
     if (!budget) return false;
-    if (ranOut || budget.exceeded) { ranOut = true; return true; }
+    if (ranOut || budget.exceeded) {
+      ranOut = true;
+      return true;
+    }
     nodes += 1;
     // Sampled rather than per-node: a `Date.now()` on every node costs more than the node.
-    if (nodes % DEADLINE_CHECK_INTERVAL === 0 && !budget.checkClock()) { ranOut = true; return true; }
+    if (nodes % DEADLINE_CHECK_INTERVAL === 0 && !budget.checkClock()) {
+      ranOut = true;
+      return true;
+    }
     return false;
   }
 
@@ -365,6 +396,7 @@ function findTradeCandidate({
   fairnessGuard = () => true,
   budget = createSearchBudget(),
   onBudgetExceeded = null,
+  tally = null,
 } = {}) {
   if (!ownTeam || !Array.isArray(ownTeam.players)) return null;
   const ownBaseline = solveOptimalLineup({ players: ownTeam.players, rosterPositions, budget });
@@ -379,31 +411,49 @@ function findTradeCandidate({
   let ranOut = false;
 
   for (const opponent of opponentTeams) {
-    if (ranOut || budget.exceeded) { ranOut = true; break; }
+    if (ranOut || budget.exceeded) {
+      ranOut = true;
+      break;
+    }
     if (!opponent || !Array.isArray(opponent.players) || opponent.roster_id === ownTeam.roster_id) continue;
     const opponentBaseline = solveOptimalLineup({ players: opponent.players, rosterPositions, budget });
-    if (!opponentBaseline.exhaustive) { ranOut = true; break; }
-    const opponentStarterIds = new Set(opponentBaseline.starters
-      .map((row) => row.player && String(row.player.player_id || row.player.player_key))
-      .filter(Boolean));
-    const ownWorstStarter = Math.min(...ownBaseline.starters
-      .map((row) => finiteProjection(row.player))
-      .filter((points) => points !== null), Infinity);
+    if (!opponentBaseline.exhaustive) {
+      ranOut = true;
+      break;
+    }
+    const opponentStarterIds = new Set(
+      opponentBaseline.starters
+        .map((row) => row.player && String(row.player.player_id || row.player.player_key))
+        .filter(Boolean),
+    );
+    const ownWorstStarter = Math.min(
+      ...ownBaseline.starters.map((row) => finiteProjection(row.player)).filter((points) => points !== null),
+      Infinity,
+    );
 
     for (const give of ownTeam.players) {
-      if (ranOut || budget.exceeded) { ranOut = true; break; }
-      if (finiteProjection(give) === null) continue;
+      if (ranOut || budget.exceeded) {
+        ranOut = true;
+        break;
+      }
+      if (finiteProjection(give) === null || give.trade_locked === true) continue;
       for (const receive of opponent.players) {
-        if (ranOut || budget.exceeded) { ranOut = true; break; }
+        if (ranOut || budget.exceeded) {
+          ranOut = true;
+          break;
+        }
         const receivePoints = finiteProjection(receive);
-        if (receivePoints === null) continue;
+        if (receivePoints === null || receive.trade_locked === true) continue;
         // Bound obvious non-candidates without excluding cross-position trades:
         // a bench opponent asset needs to beat the user's weakest starter.
         const receiveId = String(receive.player_id || receive.player_key);
         if (!opponentStarterIds.has(receiveId) && receivePoints <= ownWorstStarter) continue;
 
         // Counted before the work, so the cap bounds solves started, not solves finished.
-        if (!budget.countSolve() || !budget.checkClock()) { ranOut = true; break; }
+        if (!budget.countSolve() || !budget.checkClock()) {
+          ranOut = true;
+          break;
+        }
         const ownAfter = solveOptimalLineup({
           players: [...withoutPlayer(ownTeam.players, give), receive],
           rosterPositions,
@@ -414,11 +464,19 @@ function findTradeCandidate({
           rosterPositions,
           budget,
         });
-        if (!ownAfter.exhaustive || !opponentAfter.exhaustive) { ranOut = true; break; }
+        if (!ownAfter.exhaustive || !opponentAfter.exhaustive) {
+          ranOut = true;
+          break;
+        }
         const userDelta = ownAfter.total - ownBaseline.total;
         const opponentDelta = opponentAfter.total - opponentBaseline.total;
+        // The funnel an empty answer is explained from: pairs tried, pairs that help both lineups,
+        // pairs that also pass the fairness guard.
+        if (tally) tally.pairs_evaluated += 1;
         if (userDelta <= 0 || opponentDelta <= 0) continue;
+        if (tally) tally.mutual_gain += 1;
         if (!fairnessGuard({ give, receive, userDelta, opponentDelta })) continue;
+        if (tally) tally.passed_fairness += 1;
         candidates.push({
           opponent,
           give,
@@ -436,11 +494,14 @@ function findTradeCandidate({
     return null;
   }
 
-  candidates.sort((left, right) => (
-    right.userDelta - left.userDelta
-    || right.opponentDelta - left.opponentDelta
-    || String(left.receive.player_id || left.receive.player_key).localeCompare(String(right.receive.player_id || right.receive.player_key))
-  ));
+  candidates.sort(
+    (left, right) =>
+      right.userDelta - left.userDelta ||
+      right.opponentDelta - left.opponentDelta ||
+      String(left.receive.player_id || left.receive.player_key).localeCompare(
+        String(right.receive.player_id || right.receive.player_key),
+      ),
+  );
   return candidates[0] || null;
 }
 

@@ -102,6 +102,10 @@ will be renewed or replaced.
 
 ## 🟡 OPEN — one ESPN connection row has no `espn_team_id` ([#657](https://github.com/justinduverge-design/omen/issues/657))
 
+**Release disposition 2026-10-20:** explicitly carried into Build 13. This legacy row does not block Build
+12 or first-time users. Build 13 must prove the current first-time connection, league discovery and ingestion
+path with a new account, then repair or retire this row based on that evidence.
+
 Surfaced 2026-09-07 by `scripts/espn-projection-live-proof.js` running over every connected ESPN
 league. One row (league `2114292181`) resolves to
 `status: "unavailable", unavailable_reason: "team_unknown"` and therefore `projected: null`, while
@@ -117,7 +121,11 @@ rejecting. Discovery cannot run, so nothing ever binds a team id. It should stop
 row the moment that connection is re-established — the directory now tells the user to do exactly
 that. Re-check after a reconnect before treating it as a separate defect.
 
-## 🟡 OPEN — an undrafted Sleeper league says the wrong true thing ([#657](https://github.com/justinduverge-design/omen/issues/657))
+## 🟢 RESOLVED 2026-10-19 — an undrafted Sleeper league said the wrong true thing ([#657](https://github.com/justinduverge-design/omen/issues/657))
+
+**Correction:** #754 added the provider-aware pre-draft reason to `league-overview.v1` and the native
+screen. Undrafted Sleeper leagues now say they have not drafted; raw reason codes are not shown as copy.
+The original finding remains below as provenance.
 
 Founder on a real device, 2026-09-07: "Sleeper doesn't display the matchup on every league, which
 is funky... Oh, I think that's because that was not drafted."
@@ -135,7 +143,11 @@ Not done because it is a `league-overview.v1` contract addition, not a copy twea
 to reach the client as data, and the other two providers need a defined answer for the same field.
 Scoped, not skipped.
 
-## 🟡 OPEN — iOS `CanvasChevronLeft` has the Android chevron's bug, and `OmenIconButton` cannot fix it ([#657](https://github.com/justinduverge-design/omen/issues/657))
+## 🟢 RESOLVED 2026-10-19 — iOS `CanvasChevronLeft` had the Android chevron's bug ([#657](https://github.com/justinduverge-design/omen/issues/657))
+
+**Correction:** #754 set the asset catalog's template-rendering intent and preserved its vector
+representation. The button tint now controls the chevron in light and dark appearance. The original
+diagnosis remains below as provenance.
 
 Found 2026-09-07 while fixing the Android twin; **not** fixed, to keep that session's change inside
 the founder's stated Android + ESPN scope.
@@ -156,7 +168,12 @@ Checked before proposing: `CanvasChevronLeft` is the **only** asset image passed
 `OmenIconButton` — the other eleven call sites use SF Symbols — so template rendering cannot
 recolour a multicolour mark.
 
-## 🟡 OPEN — the stacked Omen lockup is a dark-only asset on both platforms ([#657](https://github.com/justinduverge-design/omen/issues/657))
+## 🟡 PARTLY RESOLVED 2026-10-20 — the stacked Omen lockup was dark-only on both platforms ([#657](https://github.com/justinduverge-design/omen/issues/657))
+
+**iOS correction:** #760 chose option (b), added the transparent light-appearance asset with the
+`#161614` wordmark and unchanged brass ball, and removed forced-dark sign-in. iOS is resolved and is not a
+Build 12 blocker. Android remains on its existing dark plate while Android development is paused; the
+original cross-platform finding remains below as provenance.
 
 Deliberately **not** fixed on 2026-09-07, because it is a brand decision and not a bug fix.
 

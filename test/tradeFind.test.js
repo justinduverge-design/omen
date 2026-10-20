@@ -66,12 +66,7 @@ function deepAtRbRoster(tag) {
 const CANDIDATE_ROSTER_POSITIONS = ["RB", "RB", "WR"];
 
 function ownCandidateRoster() {
-  return [
-    player("my-rb", "RB", 18),
-    player("rb-one", "RB", 20),
-    player("rb-two", "RB", 19),
-    player("low-wr", "WR", 5),
-  ];
+  return [player("my-rb", "RB", 18), player("rb-one", "RB", 20), player("rb-two", "RB", 19), player("low-wr", "WR", 5)];
 }
 
 function opponentCandidateRoster() {
@@ -98,10 +93,7 @@ test("buildTeamNeedProfile reports a real hole where roster depth is below what 
 });
 
 test("findLeagueTradeCandidates returns a candidate with reasoning naming which side's need it fills", () => {
-  const teams = [
-    team("1", "Own Team", ownCandidateRoster()),
-    team("2", "Rival Team", opponentCandidateRoster()),
-  ];
+  const teams = [team("1", "Own Team", ownCandidateRoster()), team("2", "Rival Team", opponentCandidateRoster())];
 
   const result = findLeagueTradeCandidates({
     ownTeamId: "1",
@@ -132,6 +124,9 @@ test("findLeagueTradeCandidates returns a candidate with reasoning naming which 
   // tradeValue.js engine, unmodified.
   assert.ok(candidate.valuation);
   assert.ok(Number.isFinite(candidate.valuation.net_value));
+  assert.equal(candidate.the_catch.status, "available");
+  assert.equal(candidate.the_catch.code, "thin_position_after_trade");
+  assert.match(candidate.the_catch.statement, /dedicated starting spot/);
 });
 
 test("findLeagueTradeCandidates never proposes a candidate against a roster it cannot read", () => {
@@ -190,7 +185,7 @@ test("findLeagueTradeCandidates caps opponent teams considered at MAX_OPPONENT_T
   assert.equal(result.status, "ok");
   assert.ok(
     result.teams_considered <= MAX_OPPONENT_TEAMS_PER_SCAN,
-    `expected teams_considered <= ${MAX_OPPONENT_TEAMS_PER_SCAN}, got ${result.teams_considered}`
+    `expected teams_considered <= ${MAX_OPPONENT_TEAMS_PER_SCAN}, got ${result.teams_considered}`,
   );
   assert.equal(result.teams_skipped_for_cap.length, opponentCount - MAX_OPPONENT_TEAMS_PER_SCAN);
   assert.ok(result.candidates.length <= MAX_CANDIDATES_RETURNED);
@@ -212,11 +207,70 @@ test("findLeagueTradeCandidates shares one search budget across every opponent, 
     teams,
     rosterPositions: ROSTER_POSITIONS,
     budget: spentBudget,
-    onBudgetExceeded: () => { exceededCalls += 1; },
+    onBudgetExceeded: () => {
+      exceededCalls += 1;
+    },
   });
 
   assert.equal(result.status, "ok");
   assert.equal(result.candidates.length, 0, "a spent budget must yield no candidates, never a guessed one");
   assert.equal(result.budget_exceeded, true);
   assert.ok(exceededCalls > 0);
+});
+
+test("zero candidates always names why, from the narrowest step that ruled everything out", () => {
+  const same = (tag) => thinAtRbRoster(tag);
+  const mirror = findLeagueTradeCandidates({
+    ownTeamId: "1",
+    teams: [team("1", "Mine", same("a")), team("2", "Twin", same("b"))],
+    rosterPositions: ROSTER_POSITIONS,
+  });
+  assert.equal(mirror.candidates.length, 0);
+  assert.equal(mirror.empty_reason, "no_trade_helps_both_lineups");
+  assert.ok(mirror.search_funnel.pairs_evaluated > 0);
+  assert.equal(mirror.search_funnel.mutual_gain, 0);
+
+  const blocked = findLeagueTradeCandidates({
+    ownTeamId: "1",
+    teams: [team("1", "Own Team", ownCandidateRoster()), team("2", "Rival Team", opponentCandidateRoster())],
+    rosterPositions: CANDIDATE_ROSTER_POSITIONS,
+    fairnessGuard: () => false,
+  });
+  assert.equal(blocked.candidates.length, 0);
+  assert.equal(blocked.empty_reason, "no_fair_trade");
+  assert.ok(blocked.search_funnel.mutual_gain > 0);
+
+  const alone = findLeagueTradeCandidates({
+    ownTeamId: "1",
+    teams: [team("1", "Mine", thinAtRbRoster("a"))],
+    rosterPositions: ROSTER_POSITIONS,
+  });
+  assert.equal(alone.empty_reason, "no_readable_opponents");
+
+  const found = findLeagueTradeCandidates({
+    ownTeamId: "1",
+    teams: [team("1", "Own Team", ownCandidateRoster()), team("2", "Rival Team", opponentCandidateRoster())],
+    rosterPositions: CANDIDATE_ROSTER_POSITIONS,
+  });
+  assert.ok(found.candidates.length > 0);
+  assert.equal(found.empty_reason, null);
+});
+
+test("a FLEX slot is not owed to one position: 1 TE + FLEX requires one TE, not two", () => {
+  const { buildTeamNeedProfile } = require("../src/services/tradeFind");
+  const players = [
+    { position: "TE", eligible_positions: ["TE"] },
+    { position: "TE", eligible_positions: ["TE"] },
+    { position: "RB", eligible_positions: ["RB"] },
+    { position: "RB", eligible_positions: ["RB"] },
+  ];
+  const profile = buildTeamNeedProfile({
+    team: { team_id: "1", players },
+    rosterPositions: ["QB", "RB", "RB", "WR", "WR", "TE", "FLEX", "SUPER_FLEX", "BN", "BN"],
+  });
+  assert.equal(profile.needs.TE.required, 1);
+  assert.equal(profile.needs.RB.required, 2);
+  assert.equal(profile.needs.TE.flex_slots, 1);
+  assert.equal(profile.needs.QB.required, 1);
+  assert.equal(profile.needs.QB.superflex_slots, 1);
 });

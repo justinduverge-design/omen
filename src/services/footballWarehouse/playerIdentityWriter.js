@@ -1,6 +1,10 @@
 "use strict";
 
-const { runBoundedFailureReceipt, setLocalTransactionTimeouts, validateTransactionTimeouts } = require("./transactionTimeouts");
+const {
+  runBoundedFailureReceipt,
+  setLocalTransactionTimeouts,
+  validateTransactionTimeouts,
+} = require("./transactionTimeouts");
 
 const { PLAYERS_SOURCE_URL } = require("./playerIdentitySource");
 
@@ -51,7 +55,11 @@ function plainObject(value, name) {
 function validateSourceUrl(value) {
   requiredString(value, "receipt.sourceUrl", /^https:\/\/\S+$/);
   let parsed;
-  try { parsed = new URL(value); } catch { throw new TypeError("receipt.sourceUrl is invalid"); }
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new TypeError("receipt.sourceUrl is invalid");
+  }
   if (parsed.protocol !== "https:" || parsed.username || parsed.password) {
     throw new TypeError("receipt.sourceUrl is invalid");
   }
@@ -67,8 +75,11 @@ function validateReceipt(receipt) {
     "receipt.metadata.schema_fingerprint",
     SOURCE_REF,
   );
-  if (!Array.isArray(metadata.source_columns) || metadata.source_columns.length === 0 ||
-      metadata.source_columns.some((column) => typeof column !== "string" || !column)) {
+  if (
+    !Array.isArray(metadata.source_columns) ||
+    metadata.source_columns.length === 0 ||
+    metadata.source_columns.some((column) => typeof column !== "string" || !column)
+  ) {
     throw new TypeError("receipt.metadata.source_columns must be a nonempty string array");
   }
   return {
@@ -83,8 +94,8 @@ function validateReceipt(receipt) {
 
 function validatePlayer(player, index) {
   plainObject(player, `players[${index}]`);
-  const birthDate = player.birthDate == null ? null :
-    requiredString(player.birthDate, `players[${index}].birthDate`, ISO_DATE);
+  const birthDate =
+    player.birthDate == null ? null : requiredString(player.birthDate, `players[${index}].birthDate`, ISO_DATE);
   if (birthDate) {
     const parsed = new Date(`${birthDate}T00:00:00Z`);
     if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== birthDate) {
@@ -118,8 +129,10 @@ function validatePlayerId(playerId, index) {
 }
 
 function sanitizeError(error) {
-  const code = typeof error?.code === "string" && /^[A-Za-z0-9_]{1,64}$/.test(error.code)
-    ? error.code : "warehouse_identity_ingest_failed";
+  const code =
+    typeof error?.code === "string" && /^[A-Za-z0-9_]{1,64}$/.test(error.code)
+      ? error.code
+      : "warehouse_identity_ingest_failed";
   const raw = error instanceof WarehouseIdentityIngestError ? error.message : "player identity ingest failed";
   return {
     code,
@@ -132,7 +145,8 @@ function sanitizeError(error) {
 
 async function recordFailure(client, receipt, error) {
   const safe = sanitizeError(error);
-  await runBoundedFailureReceipt(client, () => client.query({
+  await runBoundedFailureReceipt(client, () =>
+    client.query({
       name: "warehouse-player-identity-failed-receipt-v1",
       text: `
         INSERT INTO football.warehouse_ingest_events
@@ -147,10 +161,20 @@ async function recordFailure(client, receipt, error) {
         WHERE football.warehouse_ingest_events.state <> 'succeeded'
           AND football.warehouse_ingest_events.source_ref = EXCLUDED.source_ref
       `,
-      values: [receipt.runId, DATASET, RIGHTS_BASIS, receipt.sourceUrl, receipt.sourceRef,
-        receipt.sourceBytes, receipt.sourceRows, safe.code, safe.summary,
-        JSON.stringify(receipt.metadata)],
-    }));
+      values: [
+        receipt.runId,
+        DATASET,
+        RIGHTS_BASIS,
+        receipt.sourceUrl,
+        receipt.sourceRef,
+        receipt.sourceBytes,
+        receipt.sourceRows,
+        safe.code,
+        safe.summary,
+        JSON.stringify(receipt.metadata),
+      ],
+    }),
+  );
 }
 
 function createPlayerIdentityWriter({ pool, minPlayerRows = 1000, transactionTimeouts } = {}) {
@@ -194,8 +218,8 @@ function createPlayerIdentityWriter({ pool, minPlayerRows = 1000, transactionTim
 
       const client = await pool.connect();
       try {
-      await client.query("BEGIN");
-      await setLocalTransactionTimeouts(client, timeouts);
+        await client.query("BEGIN");
+        await setLocalTransactionTimeouts(client, timeouts);
         await client.query({
           name: "warehouse-player-identity-lock-v1",
           text: "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))",
@@ -210,9 +234,13 @@ function createPlayerIdentityWriter({ pool, minPlayerRows = 1000, transactionTim
         });
         if (existing.rows.length) {
           await client.query("COMMIT");
-          return { state: "unchanged", ingestEventId: existing.rows[0].id,
-            sourceRows: receipt.sourceRows, writtenPlayers: admittedPlayers.length,
-            writtenPlayerIds: admittedIds.length };
+          return {
+            state: "unchanged",
+            ingestEventId: existing.rows[0].id,
+            sourceRows: receipt.sourceRows,
+            writtenPlayers: admittedPlayers.length,
+            writtenPlayerIds: admittedIds.length,
+          };
         }
         const run = await client.query({
           name: "warehouse-player-identity-run-v1",
@@ -221,58 +249,94 @@ function createPlayerIdentityWriter({ pool, minPlayerRows = 1000, transactionTim
                  ORDER BY id DESC LIMIT 1`,
           values: [receipt.runId, DATASET],
         });
-        if (run.rows[0]?.state === "succeeded" ||
-            (run.rows[0] && run.rows[0].source_ref !== receipt.sourceRef)) {
+        if (run.rows[0]?.state === "succeeded" || (run.rows[0] && run.rows[0].source_ref !== receipt.sourceRef)) {
           throw new WarehouseIdentityIngestError("run_id_conflict", "run id already belongs to another ingest");
         }
         const started = run.rows.length
           ? await client.query({
-            name: "warehouse-player-identity-restart-receipt-v1",
-            text: `UPDATE football.warehouse_ingest_events SET rights_basis=$2, source_url=$3,
+              name: "warehouse-player-identity-restart-receipt-v1",
+              text: `UPDATE football.warehouse_ingest_events SET rights_basis=$2, source_url=$3,
                    source_ref=$4, source_bytes=$5, source_rows=NULL, state='started',
                    started_at=clock_timestamp(), finished_at=NULL, error_code=NULL,
                    error_summary=NULL, metadata=$6::jsonb WHERE id=$1 AND state='failed' RETURNING id`,
-            values: [run.rows[0].id, RIGHTS_BASIS, receipt.sourceUrl, receipt.sourceRef,
-              receipt.sourceBytes, JSON.stringify(receipt.metadata)],
-          })
+              values: [
+                run.rows[0].id,
+                RIGHTS_BASIS,
+                receipt.sourceUrl,
+                receipt.sourceRef,
+                receipt.sourceBytes,
+                JSON.stringify(receipt.metadata),
+              ],
+            })
           : await client.query({
-            name: "warehouse-player-identity-start-receipt-v1",
-            text: `INSERT INTO football.warehouse_ingest_events
+              name: "warehouse-player-identity-start-receipt-v1",
+              text: `INSERT INTO football.warehouse_ingest_events
                    (run_id,dataset,season,rights_basis,source_url,source_ref,source_bytes,state,metadata)
                    VALUES ($1,$2,NULL,$3,$4,$5,$6,'started',$7::jsonb) RETURNING id`,
-            values: [receipt.runId, DATASET, RIGHTS_BASIS, receipt.sourceUrl, receipt.sourceRef,
-              receipt.sourceBytes, JSON.stringify(receipt.metadata)],
-          });
-        if (!started.rows.length) throw new WarehouseIdentityIngestError("run_id_conflict", "run id could not be started");
+              values: [
+                receipt.runId,
+                DATASET,
+                RIGHTS_BASIS,
+                receipt.sourceUrl,
+                receipt.sourceRef,
+                receipt.sourceBytes,
+                JSON.stringify(receipt.metadata),
+              ],
+            });
+        if (!started.rows.length)
+          throw new WarehouseIdentityIngestError("run_id_conflict", "run id could not be started");
         const ingestEventId = started.rows[0].id;
 
-        await client.query({ name: "warehouse-player-identity-create-player-stage-v1", text: `
+        await client.query({
+          name: "warehouse-player-identity-create-player-stage-v1",
+          text: `
           CREATE TEMP TABLE stage_football_players (
             player_id text PRIMARY KEY, gsis_id text UNIQUE NOT NULL, display_name text NOT NULL,
             first_name text, last_name text, football_position text, birth_date date,
-            source_row jsonb NOT NULL) ON COMMIT DROP` });
-        await client.query({ name: "warehouse-player-identity-stage-players-v1", text: `
+            source_row jsonb NOT NULL) ON COMMIT DROP`,
+        });
+        await client.query({
+          name: "warehouse-player-identity-stage-players-v1",
+          text: `
           INSERT INTO stage_football_players
             (player_id,gsis_id,display_name,first_name,last_name,football_position,birth_date,source_row)
           SELECT * FROM jsonb_to_recordset($1::jsonb) AS r(player_id text,gsis_id text,
             display_name text,first_name text,last_name text,football_position text,birth_date date,source_row jsonb)`,
-          values: [JSON.stringify(admittedPlayers)] });
-        await client.query({ name: "warehouse-player-identity-create-id-stage-v1", text: `
+          values: [JSON.stringify(admittedPlayers)],
+        });
+        await client.query({
+          name: "warehouse-player-identity-create-id-stage-v1",
+          text: `
           CREATE TEMP TABLE stage_football_player_ids (
             provider text NOT NULL, provider_id text PRIMARY KEY, player_id text UNIQUE NOT NULL,
-            match_method text NOT NULL) ON COMMIT DROP` });
-        await client.query({ name: "warehouse-player-identity-stage-ids-v1", text: `
+            match_method text NOT NULL) ON COMMIT DROP`,
+        });
+        await client.query({
+          name: "warehouse-player-identity-stage-ids-v1",
+          text: `
           INSERT INTO stage_football_player_ids (provider,provider_id,player_id,match_method)
           SELECT * FROM jsonb_to_recordset($1::jsonb) AS r(provider text,provider_id text,
-            player_id text,match_method text)`, values: [JSON.stringify(admittedIds)] });
-        const counts = await client.query({ name: "warehouse-player-identity-stage-count-v1", text: `
+            player_id text,match_method text)`,
+          values: [JSON.stringify(admittedIds)],
+        });
+        const counts = await client.query({
+          name: "warehouse-player-identity-stage-count-v1",
+          text: `
           SELECT (SELECT count(*)::integer FROM stage_football_players) AS player_count,
-                 (SELECT count(*)::integer FROM stage_football_player_ids) AS id_count` });
-        if (counts.rows[0]?.player_count !== admittedPlayers.length ||
-            counts.rows[0]?.id_count !== admittedIds.length) {
-          throw new WarehouseIdentityIngestError("stage_count_mismatch", "staged identity counts did not match source rows");
+                 (SELECT count(*)::integer FROM stage_football_player_ids) AS id_count`,
+        });
+        if (
+          counts.rows[0]?.player_count !== admittedPlayers.length ||
+          counts.rows[0]?.id_count !== admittedIds.length
+        ) {
+          throw new WarehouseIdentityIngestError(
+            "stage_count_mismatch",
+            "staged identity counts did not match source rows",
+          );
         }
-        const conflicts = await client.query({ name: "warehouse-player-identity-stage-conflicts-v1", text: `
+        const conflicts = await client.query({
+          name: "warehouse-player-identity-stage-conflicts-v1",
+          text: `
           SELECT count(*)::integer AS invalid_count
           FROM stage_football_players s
           LEFT JOIN stage_football_player_ids i
@@ -281,11 +345,17 @@ function createPlayerIdentityWriter({ pool, minPlayerRows = 1000, transactionTim
           LEFT JOIN football.football_players p_by_gsis ON p_by_gsis.gsis_id=s.gsis_id
           WHERE i.provider_id IS NULL
              OR (p_by_id.gsis_id IS NOT NULL AND p_by_id.gsis_id <> s.gsis_id)
-             OR (p_by_gsis.player_id IS NOT NULL AND p_by_gsis.player_id <> s.player_id)` });
+             OR (p_by_gsis.player_id IS NOT NULL AND p_by_gsis.player_id <> s.player_id)`,
+        });
         if (conflicts.rows[0]?.invalid_count !== 0) {
-          throw new WarehouseIdentityIngestError("identity_conflict", "staged GSIS identities conflict with canonical players");
+          throw new WarehouseIdentityIngestError(
+            "identity_conflict",
+            "staged GSIS identities conflict with canonical players",
+          );
         }
-        await client.query({ name: "warehouse-player-identity-upsert-players-v1", text: `
+        await client.query({
+          name: "warehouse-player-identity-upsert-players-v1",
+          text: `
           INSERT INTO football.football_players
             (player_id,gsis_id,display_name,first_name,last_name,football_position,birth_date,source_row,ingest_event_id)
           SELECT player_id,gsis_id,display_name,first_name,last_name,football_position,birth_date,source_row,$1
@@ -295,24 +365,45 @@ function createPlayerIdentityWriter({ pool, minPlayerRows = 1000, transactionTim
             first_name=EXCLUDED.first_name,last_name=EXCLUDED.last_name,
             football_position=EXCLUDED.football_position,birth_date=EXCLUDED.birth_date,
             source_row=EXCLUDED.source_row,
-            ingest_event_id=EXCLUDED.ingest_event_id`, values: [ingestEventId] });
-        await client.query({ name: "warehouse-player-identity-delete-gsis-v1",
-          text: "DELETE FROM football.football_player_ids WHERE provider='gsis'" });
-        await client.query({ name: "warehouse-player-identity-promote-ids-v1", text: `
+            ingest_event_id=EXCLUDED.ingest_event_id`,
+          values: [ingestEventId],
+        });
+        await client.query({
+          name: "warehouse-player-identity-delete-gsis-v1",
+          text: "DELETE FROM football.football_player_ids WHERE provider='gsis'",
+        });
+        await client.query({
+          name: "warehouse-player-identity-promote-ids-v1",
+          text: `
           INSERT INTO football.football_player_ids
             (provider,provider_id,player_id,match_method,ingest_event_id)
           SELECT provider,provider_id,player_id,match_method,$1 FROM stage_football_player_ids`,
-          values: [ingestEventId] });
-        const succeeded = await client.query({ name: "warehouse-player-identity-succeed-receipt-v1", text: `
+          values: [ingestEventId],
+        });
+        const succeeded = await client.query({
+          name: "warehouse-player-identity-succeed-receipt-v1",
+          text: `
           UPDATE football.warehouse_ingest_events SET state='succeeded',source_rows=$2,
             finished_at=clock_timestamp() WHERE id=$1 AND state='started'`,
-          values: [ingestEventId, receipt.sourceRows] });
-        if (succeeded.rowCount !== 1) throw new WarehouseIdentityIngestError("receipt_update_failed", "identity receipt did not reach succeeded state");
+          values: [ingestEventId, receipt.sourceRows],
+        });
+        if (succeeded.rowCount !== 1)
+          throw new WarehouseIdentityIngestError(
+            "receipt_update_failed",
+            "identity receipt did not reach succeeded state",
+          );
         await client.query("COMMIT");
-        return { state: "succeeded", ingestEventId, sourceRows: receipt.sourceRows,
-          writtenPlayers: admittedPlayers.length, writtenPlayerIds: admittedIds.length };
+        return {
+          state: "succeeded",
+          ingestEventId,
+          sourceRows: receipt.sourceRows,
+          writtenPlayers: admittedPlayers.length,
+          writtenPlayerIds: admittedIds.length,
+        };
       } catch (error) {
-        try { await client.query("ROLLBACK"); } catch {}
+        try {
+          await client.query("ROLLBACK");
+        } catch {}
         await recordFailure(client, receipt, error);
         const safe = sanitizeError(error);
         throw new WarehouseIdentityIngestError(safe.code, safe.summary, { cause: error });

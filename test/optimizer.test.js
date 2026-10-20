@@ -47,9 +47,7 @@ test("POST /api/start-sit returns a ranked recommendation for valid players", as
   assert.equal(res.body.pointsDelta, 3.5);
   assert.equal(res.body.recommendation, "Start Tyreek Hill over Josh Allen");
   assert.ok(Object.prototype.hasOwnProperty.call(res.body, "explanation"));
-  assert.deepEqual(res.body.signals, [
-    { label: "Projection edge", value: "+3.5 pts", weight: "high" },
-  ]);
+  assert.deepEqual(res.body.signals, [{ label: "Projection edge", value: "+3.5 pts", weight: "high" }]);
 });
 
 test("POST /api/start-sit includes injury status signals", async () => {

@@ -23,6 +23,10 @@ struct SignInView: View {
     @State private var lockupPresented = false
 
     var body: some View {
+        signIn
+    }
+
+    private var signIn: some View {
         GeometryReader { proxy in
             ScrollView {
                 Group {

@@ -7,10 +7,7 @@ const {
   acquirePlayerWeeklySource,
   readBoundedBody,
 } = require("../src/services/footballWarehouse/playerWeeklyAcquisition");
-const {
-  MAX_SOURCE_BYTES,
-  sourceUrlForSeason,
-} = require("../src/services/footballWarehouse/playerWeeklySource");
+const { MAX_SOURCE_BYTES, sourceUrlForSeason } = require("../src/services/footballWarehouse/playerWeeklySource");
 
 function stream(chunks, { onCancel } = {}) {
   return new ReadableStream({
@@ -66,7 +63,10 @@ test("requests only the exact season asset and returns its exact bytes", async (
 
 test("rejects non-exact, insecure and credential-bearing source URLs before fetch", async () => {
   let calls = 0;
-  const fetchImpl = async () => { calls += 1; return response(); };
+  const fetchImpl = async () => {
+    calls += 1;
+    return response();
+  };
   for (const sourceUrl of [
     "http://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2026.csv",
     "https://user:secret@github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2026.csv",
@@ -86,10 +86,15 @@ test("rejects non-2xx responses and cancels their bodies", async () => {
   await assert.rejects(
     acquirePlayerWeeklySource({
       season: 2026,
-      fetchImpl: async () => response({
-        status: 503,
-        body: stream([Buffer.from("upstream detail")], { onCancel: () => { cancelled = true; } }),
-      }),
+      fetchImpl: async () =>
+        response({
+          status: 503,
+          body: stream([Buffer.from("upstream detail")], {
+            onCancel: () => {
+              cancelled = true;
+            },
+          }),
+        }),
     }),
     /HTTP 503/,
   );
@@ -102,10 +107,15 @@ test("requires an allowlisted Content-Type", async () => {
     await assert.rejects(
       acquirePlayerWeeklySource({
         season: 2026,
-        fetchImpl: async () => response({
-          type,
-          body: stream([Buffer.from("rejected")], { onCancel: () => { cancelled = true; } }),
-        }),
+        fetchImpl: async () =>
+          response({
+            type,
+            body: stream([Buffer.from("rejected")], {
+              onCancel: () => {
+                cancelled = true;
+              },
+            }),
+          }),
       }),
       /Content-Type/,
     );
@@ -129,10 +139,15 @@ test("rejects invalid, empty and oversized declared lengths before reading", asy
   await assert.rejects(
     acquirePlayerWeeklySource({
       season: 2026,
-      fetchImpl: async () => response({
-        length: MAX_SOURCE_BYTES + 1,
-        body: stream([Buffer.from("never read")], { onCancel: () => { cancelled = true; } }),
-      }),
+      fetchImpl: async () =>
+        response({
+          length: MAX_SOURCE_BYTES + 1,
+          body: stream([Buffer.from("never read")], {
+            onCancel: () => {
+              cancelled = true;
+            },
+          }),
+        }),
     }),
     new RegExp(`exceeds ${MAX_SOURCE_BYTES} bytes`),
   );
@@ -152,10 +167,7 @@ test("enforces the observed-byte limit and cancels the active reader", async () 
       cancelled = true;
     },
   });
-  await assert.rejects(
-    readBoundedBody(body, { maxBytes: 10 }),
-    /exceeds 10 bytes/,
-  );
+  await assert.rejects(readBoundedBody(body, { maxBytes: 10 }), /exceeds 10 bytes/);
   assert.equal(cancelled, true);
 });
 
@@ -168,10 +180,7 @@ test("rejects empty, missing, non-byte and declared-length-mismatched bodies", a
     acquirePlayerWeeklySource({ season: 2026, fetchImpl: async () => response({ body: null }) }),
     /no readable body/,
   );
-  await assert.rejects(
-    readBoundedBody(stream(["not bytes"]), { maxBytes: 10 }),
-    /non-byte chunk/,
-  );
+  await assert.rejects(readBoundedBody(stream(["not bytes"]), { maxBytes: 10 }), /non-byte chunk/);
   await assert.rejects(
     acquirePlayerWeeklySource({
       season: 2026,
@@ -189,7 +198,10 @@ test("passes through AbortSignal and stops an already-aborted request before fet
     acquirePlayerWeeklySource({
       season: 2026,
       signal: controller.signal,
-      fetchImpl: async () => { calls += 1; return response(); },
+      fetchImpl: async () => {
+        calls += 1;
+        return response();
+      },
     }),
     { name: "AbortError" },
   );

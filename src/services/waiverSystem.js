@@ -105,9 +105,7 @@ function fromSleeper({ league, roster } = {}) {
 
   if (system === SYSTEMS.FAAB) {
     const total = isFiniteNumber(settings.waiver_budget) ? settings.waiver_budget : null;
-    const used = isFiniteNumber(rosterSettings.waiver_budget_used)
-      ? rosterSettings.waiver_budget_used
-      : null;
+    const used = isFiniteNumber(rosterSettings.waiver_budget_used) ? rosterSettings.waiver_budget_used : null;
     // Remaining is derived, never assumed. Missing input stays unknown and
     // never becomes zero — a zero budget reads as "you cannot bid", which is a
     // different and wrong claim.
@@ -129,9 +127,7 @@ function fromSleeper({ league, roster } = {}) {
     });
   }
 
-  const position = isFiniteNumber(rosterSettings.waiver_position)
-    ? rosterSettings.waiver_position
-    : null;
+  const position = isFiniteNumber(rosterSettings.waiver_position) ? rosterSettings.waiver_position : null;
 
   return Object.freeze({
     version: MODEL_VERSION,
@@ -147,7 +143,6 @@ function fromSleeper({ league, roster } = {}) {
     priority_position: position,
   });
 }
-
 
 /**
  * ESPN — VERIFIED 2026-09-05 against three real leagues on the founder's account.
@@ -231,7 +226,6 @@ function fromEspn({ settings, team } = {}) {
   });
 }
 
-
 /**
  * Read an attribute off a Yahoo entity in EITHER of its two serialisations —
  * a flat object, or an array of single-key objects. Both are real and the
@@ -311,9 +305,7 @@ function fromYahoo({ settings, team } = {}) {
 
   if (faabTrue) {
     const balance = yahooAttr(team, "faab_balance");
-    const remaining = isFiniteNumber(Number(balance)) && balance !== null && balance !== ""
-      ? Number(balance)
-      : null;
+    const remaining = isFiniteNumber(Number(balance)) && balance !== null && balance !== "" ? Number(balance) : null;
     return Object.freeze({
       version: MODEL_VERSION,
       system: SYSTEMS.FAAB,

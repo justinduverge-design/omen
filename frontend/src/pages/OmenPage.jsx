@@ -18,9 +18,7 @@ function OmenHeader() {
 
   return (
     <section className="max-w-2xl">
-      <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-team-accent)]">
-        Omen
-      </p>
+      <p className="text-xs font-semibold uppercase tracking-widest text-(--color-team-accent)">Omen</p>
       {cry && (
         <p
           className="mt-1.5 font-sans text-[11px] font-semibold uppercase"
@@ -29,12 +27,14 @@ function OmenHeader() {
           {cry}
         </p>
       )}
-      <h1 className="mt-3 font-display text-4xl font-semibold sm:text-5xl" style={{ color: 'var(--color-text-primary)' }}>
+      <h1
+        className="mt-3 font-display text-4xl font-semibold sm:text-5xl"
+        style={{ color: 'var(--color-text-primary)' }}
+      >
         Omen of the Week
       </h1>
       <p className="mt-4 text-sm leading-6" style={{ color: 'var(--color-text-secondary)' }}>
-        Your single highest-value move — start/sit, waiver, or trade — distilled into
-        one plain-English call each week.
+        Your single highest-value move — start/sit, waiver, or trade — distilled into one plain-English call each week.
       </p>
     </section>
   );
@@ -65,10 +65,18 @@ export default function OmenPage() {
     }
     let mounted = true;
     apiFetch('/api/dashboard/summary')
-      .then((data) => { if (mounted) setSummary(data); })
-      .catch(() => { if (mounted) setFetchFailed(true); })
-      .finally(() => { if (mounted) setLoading(false); });
-    return () => { mounted = false; };
+      .then((data) => {
+        if (mounted) setSummary(data);
+      })
+      .catch(() => {
+        if (mounted) setFetchFailed(true);
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
   }, [omenFixtureActive]);
 
   const omenStatus = summary?.tools?.omen_of_the_week?.status;
@@ -112,7 +120,7 @@ export default function OmenPage() {
 
       <div className="border-t pt-4" style={{ borderColor: 'var(--color-border)' }}>
         <Link
-          className="inline-flex min-h-[44px] items-center rounded-sm text-xs text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)]"
+          className="inline-flex min-h-[44px] items-center rounded-xs text-xs text-(--color-text-secondary) transition-colors hover:text-(--color-text-primary) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-team-accent)"
           to="/football"
         >
           ← Back to dashboard

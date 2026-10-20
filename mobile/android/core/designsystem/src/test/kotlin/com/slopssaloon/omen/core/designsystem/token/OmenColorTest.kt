@@ -23,10 +23,10 @@ class OmenColorTest {
 
     @Test
     fun `light core semantics match registry`() {
-        assertEquals(Color(0xFFF1EDE4), OmenLightColors.bg)
-        assertEquals(Color(0xFFFFFDF9), OmenLightColors.surface1)
-        assertEquals(Color(0xFF1C1917), OmenLightColors.textPrimary)
-        assertEquals(Color(0xFF7A5C1E), OmenLightColors.accent)
+        assertEquals(Color(0xFFF6F6F4), OmenLightColors.bg)
+        assertEquals(Color(0xFFFFFFFF), OmenLightColors.surface1)
+        assertEquals(Color(0xFF161614), OmenLightColors.textPrimary)
+        assertEquals(Color(0xFF8A5E10), OmenLightColors.accent)
         assertEquals(Color(0xFF1A5C3E), OmenLightColors.omen)
     }
 
@@ -59,7 +59,9 @@ class OmenColorTest {
         assertEquals(OmenDarkColors.data.platformSleeper, OmenLightColors.data.platformSleeper)
         assertEquals(OmenDarkColors.data.platformYahoo, OmenLightColors.data.platformYahoo)
         assertEquals(OmenDarkColors.data.platformEspn, OmenLightColors.data.platformEspn)
-        assertEquals(OmenDarkColors.data.demoText, OmenLightColors.data.demoText)
+        // Demo text is themed since light mode (2026-10-19): the sky blue is ~1.6:1 on the near-white ground.
+        assertEquals(Color(0xFF7DD3FC), OmenDarkColors.data.demoText)
+        assertEquals(Color(0xFF0369A1), OmenLightColors.data.demoText)
     }
 
     @Test

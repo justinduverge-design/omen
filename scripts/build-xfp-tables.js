@@ -83,4 +83,7 @@ async function main() {
   console.log(`wrote ${OUT}: ${Object.keys(buckets).length} buckets, ${contentSha}`);
 }
 
-main().catch((error) => { console.error(error.message); process.exit(1); });
+main().catch((error) => {
+  console.error(error.message);
+  process.exit(1);
+});

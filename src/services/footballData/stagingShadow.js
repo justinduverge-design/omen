@@ -125,12 +125,7 @@ function evaluateOperationalHealth({
 
 function classifyPipelineFailure(error = {}) {
   const code = String(error.code || error || "UNKNOWN_PIPELINE_FAILURE");
-  const sourcePending = new Set([
-    "SOURCE_DEFERRED",
-    "SOURCE_HTTP_ERROR",
-    "SOURCE_TIMEOUT",
-    "SOURCE_UNAVAILABLE",
-  ]);
+  const sourcePending = new Set(["SOURCE_DEFERRED", "SOURCE_HTTP_ERROR", "SOURCE_TIMEOUT", "SOURCE_UNAVAILABLE"]);
   const pending = sourcePending.has(code);
   return {
     status: pending ? "pending" : "quarantined",
@@ -165,12 +160,7 @@ function derivedComparable(result) {
   });
 }
 
-function buildCorrectionCandidate({
-  currentAcceptance,
-  currentHash,
-  previousAcceptance,
-  previousHash,
-} = {}) {
+function buildCorrectionCandidate({ currentAcceptance, currentHash, previousAcceptance, previousHash } = {}) {
   const currentArtifactHash = exactHash(currentHash, "currentHash");
   const previousArtifactHash = exactHash(previousHash, "previousHash");
   if (JSON.stringify(currentAcceptance?.scope) !== JSON.stringify(previousAcceptance?.scope)) {
@@ -206,11 +196,12 @@ function buildCorrectionCandidate({
       });
     }
   }
-  changedSubjects.sort((left, right) => (
-    left.week - right.week
-      || left.subject_type.localeCompare(right.subject_type)
-      || left.subject_id.localeCompare(right.subject_id)
-  ));
+  changedSubjects.sort(
+    (left, right) =>
+      left.week - right.week ||
+      left.subject_type.localeCompare(right.subject_type) ||
+      left.subject_id.localeCompare(right.subject_id),
+  );
   if (!changedSubjects.length) {
     return {
       status: "no_change",
@@ -374,8 +365,12 @@ async function stageShadowAcceptance({
     observed_at_utc: checkedAt,
     expected_hash: acceptanceHash,
     observed_hash: observedHash,
-    status: witnessEvaluation.status === "pass" ? "match"
-      : witnessEvaluation.status === "hard_stop" ? "mismatch" : "unavailable",
+    status:
+      witnessEvaluation.status === "pass"
+        ? "match"
+        : witnessEvaluation.status === "hard_stop"
+          ? "mismatch"
+          : "unavailable",
     publication_authorized: false,
   };
   const witnessObservationPath = await writeImmutable(
@@ -402,17 +397,21 @@ async function stageShadowAcceptance({
       severity: witnessEvaluation.status === "hard_stop" ? "critical" : "high",
     });
   }
-  const correction = previousAcceptance && previousHash
-    ? buildCorrectionCandidate({
-      currentAcceptance: acceptance,
-      currentHash: acceptanceHash,
-      previousAcceptance,
-      previousHash,
-    })
-    : null;
-  const status = witnessEvaluation.status === "hard_stop" ? "quarantined"
-    : witnessEvaluation.status === "alert" || health.status === "alert" ? "held"
-      : "staged";
+  const correction =
+    previousAcceptance && previousHash
+      ? buildCorrectionCandidate({
+          currentAcceptance: acceptance,
+          currentHash: acceptanceHash,
+          previousAcceptance,
+          previousHash,
+        })
+      : null;
+  const status =
+    witnessEvaluation.status === "hard_stop"
+      ? "quarantined"
+      : witnessEvaluation.status === "alert" || health.status === "alert"
+        ? "held"
+        : "staged";
   const runId = `${artifactTime(checkedAt)}-${acceptanceHash.slice(0, 16)}`;
   const stagingReceipt = {
     schema: STAGING_RECEIPT_SCHEMA,
@@ -467,10 +466,12 @@ async function recoverPrimaryEvidence({
   const recovery = await prepareRoleRoot(recoveryRoot, "recovery");
   assertDisjointRoots({ backup, recovery });
   const observation = suppliedObservation || JSON.parse(await fs.readFile(witnessObservationPath, "utf8"));
-  if (observation?.schema !== WITNESS_SCHEMA
-      || observation.status !== "match"
-      || observation.observed_hash !== selectedHash
-      || observation.expected_hash !== selectedHash) {
+  if (
+    observation?.schema !== WITNESS_SCHEMA ||
+    observation.status !== "match" ||
+    observation.observed_hash !== selectedHash ||
+    observation.expected_hash !== selectedHash
+  ) {
     fail("WITNESS_MISMATCH", "primary recovery requires one exact matching witness observation");
   }
   const evidenceRelative = `evidence/${selectedHash}`;
@@ -487,11 +488,7 @@ async function recoverPrimaryEvidence({
     fail("RECOVERY_HASH_MISMATCH", "backup acceptance bytes do not match the requested hash");
   }
   validateAcceptanceArtifact({ acceptanceBytes, receiptBytes });
-  const acceptancePath = await writeImmutable(
-    recovery,
-    `${evidenceRelative}/acceptance.json`,
-    acceptanceBytes,
-  );
+  const acceptancePath = await writeImmutable(recovery, `${evidenceRelative}/acceptance.json`, acceptanceBytes);
   await writeImmutable(recovery, `${evidenceRelative}/receipt.json`, receiptBytes);
   const recoveredAt = iso(now(), "recovery time");
   const recoveryReceipt = {
@@ -521,9 +518,7 @@ function runFailureInjectionMatrix({ acceptance, acceptanceHash } = {}) {
     : sha256(Buffer.from(`${JSON.stringify(acceptance, null, 2)}\n`));
   const corrected = JSON.parse(JSON.stringify(acceptance));
   corrected.source_manifests.stats_player = "f".repeat(64);
-  corrected.source_bundle_hash = sha256(Buffer.from(JSON.stringify(
-    Object.entries(corrected.source_manifests).sort(),
-  )));
+  corrected.source_bundle_hash = sha256(Buffer.from(JSON.stringify(Object.entries(corrected.source_manifests).sort())));
   const correctedFact = corrected.facts.offensive[0];
   const correctedResult = corrected.derived.offensive[0];
   correctedFact.receiving_yards += 10;
@@ -576,14 +571,22 @@ function runFailureInjectionMatrix({ acceptance, acceptanceHash } = {}) {
   ];
   const passed = scenarios.every((scenario) => {
     switch (scenario.name) {
-      case "source_loss": return scenario.result.status === "pending" && !scenario.result.fallback_attempted;
-      case "schema_drift": return scenario.result.status === "quarantined";
-      case "witness_mismatch": return scenario.result.status === "hard_stop";
-      case "witness_unavailable": return scenario.result.status === "alert";
-      case "source_stale": return scenario.result.alerts.some((alert) => alert.code === "source_stale");
-      case "disk_low": return scenario.result.alerts.some((alert) => alert.code === "disk_low");
-      case "correction_candidate": return scenario.result.status === "correction_candidate";
-      default: return false;
+      case "source_loss":
+        return scenario.result.status === "pending" && !scenario.result.fallback_attempted;
+      case "schema_drift":
+        return scenario.result.status === "quarantined";
+      case "witness_mismatch":
+        return scenario.result.status === "hard_stop";
+      case "witness_unavailable":
+        return scenario.result.status === "alert";
+      case "source_stale":
+        return scenario.result.alerts.some((alert) => alert.code === "source_stale");
+      case "disk_low":
+        return scenario.result.alerts.some((alert) => alert.code === "disk_low");
+      case "correction_candidate":
+        return scenario.result.status === "correction_candidate";
+      default:
+        return false;
     }
   });
   return {

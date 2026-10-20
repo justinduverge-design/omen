@@ -100,6 +100,54 @@ final class J4InteractionUITests: XCTestCase {
         app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", fragment)).firstMatch
     }
 
+    // MARK: - Find a Trade review
+
+    func testFindReviewKeepsVisibleButtonAlternativesAndPersistsASave() {
+        let app = launch("trade.find-review")
+        app.swipeUp()
+        app.swipeUp()
+        let pass = app.buttons["PASS ON THIS CANDIDATE"]
+        let save = app.buttons["SAVE THIS CANDIDATE FOR LATER"]
+
+        assertTappable(pass, "the visible Pass alternative")
+        assertTappable(save, "the visible Save alternative")
+        save.tap()
+
+        XCTAssertTrue(
+            app.buttons["SAVED"].waitForExistence(timeout: 5),
+            "the save action never resolved into its local Saved state"
+        )
+        XCTAssertTrue(
+            text(containing: "Davante's Inferno", in: app).exists,
+            "saving unexpectedly advanced or removed the candidate"
+        )
+    }
+
+    func testFindReviewPassButtonAndSwipeLeftHaveTheSameOutcome() {
+        var app = launch("trade.find-review")
+        app.swipeUp()
+        app.swipeUp()
+        let pass = app.buttons["PASS ON THIS CANDIDATE"]
+        assertTapDoesNotBreak(pass, app)
+        XCTAssertTrue(
+            text(containing: "That's everyone this week", in: app).waitForExistence(timeout: 5),
+            "the Pass button did not exhaust the one-card fixture"
+        )
+        app.terminate()
+
+        app = launch("trade.find-review")
+        let cardText = text(containing: "Davante's Inferno", in: app)
+        XCTAssertTrue(cardText.waitForExistence(timeout: 10), "the swipe card did not load")
+        let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.82, dy: 0.52))
+        let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.18, dy: 0.52))
+        start.press(forDuration: 0.08, thenDragTo: end)
+
+        XCTAssertTrue(
+            text(containing: "That's everyone this week", in: app).waitForExistence(timeout: 5),
+            "swipe-left did not produce the same Pass outcome as the visible button"
+        )
+    }
+
     // MARK: - E017, on every screen that carries it
 
     /// The header slot carries **both** controls, help then account, on all five screens.
@@ -125,14 +173,33 @@ final class J4InteractionUITests: XCTestCase {
         }
     }
 
+    /// Clipboard work used to complete with no visible response. The control now resolves in
+    /// place so sighted users and VoiceOver both receive confirmation independent of haptics.
+    func testCopyAsTextConfirmsCompletionInPlace() {
+        let app = launch("journey-j4.nominal.04-trade-share")
+        let copy = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "Copy as text")
+        ).firstMatch
+
+        for _ in 0..<3 where !copy.exists { app.swipeUp() }
+        assertTappable(copy, "Copy as text")
+        copy.tap()
+
+        XCTAssertTrue(
+            app.buttons.matching(NSPredicate(format: "label ==[c] %@", "Copied")).firstMatch
+                .waitForExistence(timeout: 3),
+            "the clipboard action completed without visible confirmation"
+        )
+    }
+
     // MARK: - TradeBuild
 
     func testTheBuildScreenOffersItsTabsFiltersAndPartners() {
         let app = launch("journey-j4.nominal.01-trade-build")
-        // The artboard's two tabs. `Type a trade` is the shipped `OmenTradeScreen` path and
-        // `Build a trade` is this journey; the first build invented "Build"/"Rosters", which
-        // hid the typed path that actually ships.
-        assertTappable(app.buttons["Type a trade"], "the typed-trade tab")
+        // The production Trade shell owns one mode control. It must expose Find explicitly and
+        // must not be replaced by the journey's retired nested Type / Build selector.
+        assertTappable(app.buttons["Find a trade"], "the Find-a-trade mode")
+        assertTappable(app.buttons["Judge an offer"], "the typed-trade tab")
         assertTappable(app.buttons["Build a trade"], "the built-trade tab")
         assertTappable(app.buttons["All"], "All filter")
         // The two-letter ones, deliberately. They are the narrowest controls on the journey and
@@ -152,44 +219,21 @@ final class J4InteractionUITests: XCTestCase {
         // Their hole is on the chip. A partner whose roster was not read carries no `need` at
         // all rather than "No hole", which is a claim about a roster nobody read.
         XCTAssertTrue((partner.label as String).contains("Needs RB"), "the partner chip does not carry their hole: \(partner.label)")
-        assertTapDoesNotBreak(app.buttons["Type a trade"], app)
+        assertTapDoesNotBreak(app.buttons["Judge an offer"], app)
     }
 
-    /// **`max_teams: 2`, and the third-team control renders UNAVAILABLE.**
-    ///
-    /// Three things have to hold at once and each fails differently:
-    ///
-    ///   1. The control is **present**. Hiding it denies the product ever meant to do this.
-    ///   2. It is **not a button**. A control that answers a tap by doing nothing is worse than
-    ///      one that plainly does not respond, and `.disabled()` on a live-looking control reads
-    ///      as a bug in the app rather than a limit of the product.
-    ///   3. The reason is **named in words a user can read**, not a code and not only a
-    ///      VoiceOver label — a dashed control with no visible explanation is the thing users
-    ///      file bug reports about.
-    func testTheThirdTeamControlIsUnavailableRatherThanHiddenOrWorking() {
+    /// The current contract supports three-team comparison, so the build screen must expose a
+    /// live Add-team control and must not simultaneously claim that only two teams work.
+    func testTheThirdTeamControlIsLiveAndDoesNotShowAStaleLimit() {
         let app = launch("journey-j4.nominal.01-trade-build")
 
-        // 1 and 3 together: the accessibility label carries the name, the word "Unavailable",
-        // and the server's reason said as English.
-        let control = app.descendants(matching: .any)
-            .matching(NSPredicate(format: "label BEGINSWITH %@", "Add a third team. Unavailable."))
-            .firstMatch
-        XCTAssertTrue(control.waitForExistence(timeout: 10), "the third-team control is not on screen at all")
-        XCTAssertTrue(
-            (control.label as String).contains("has not been built yet"),
-            "the third-team control does not say why: \(control.label)"
-        )
-
-        // 2: nothing in the button tree offers to add a team.
-        let asButton = app.buttons
+        let control = app.buttons
             .matching(NSPredicate(format: "label CONTAINS %@", "Add a third team"))
             .firstMatch
-        XCTAssertFalse(asButton.exists, "the third-team control is a live button — it must not be tappable")
-
-        // And the sighted reader gets the same sentence, outside the accessibility label.
-        XCTAssertTrue(
-            text(containing: "only compare two teams", in: app).waitForExistence(timeout: 10),
-            "the two-team limit is not stated in visible copy"
+        assertTappable(control, "the live third-team control")
+        XCTAssertFalse(
+            text(containing: "only compare two teams", in: app).exists,
+            "the live Add-team control is contradicted by stale two-team-limit copy"
         )
     }
 
@@ -319,19 +363,16 @@ final class J4InteractionUITests: XCTestCase {
     func testShareNamesAreOffByDefaultAndTheCardCarriesTheCaveat() {
         let app = launch("journey-j4.nominal.04-trade-share")
 
-        let names = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Team names")).firstMatch
-        assertTappable(names, "the team-names toggle")
-        // The state is read off the **label**, not off `value`.
-        //
-        // `OmenTradeShareToggleRow` sets `.accessibilityValue(isOn ? "On" : "Off")`, and SwiftUI
-        // folds that into the element's label rather than exposing it as `XCUIElement.value` —
-        // the first run of this test read `value` and got `""`. The label is what a VoiceOver
-        // user actually hears, so it is also the honest thing to assert on, and the sighted
-        // reader gets the same word rendered in the row (D7: never colour alone).
-        XCTAssertTrue(
-            (names.label as String).hasSuffix(", Off"),
-            "team names are not off by default — the row reads: \(names.label)"
-        )
+        let names = app.switches.matching(NSPredicate(format: "label BEGINSWITH %@", "Team names")).firstMatch
+        XCTAssertTrue(names.waitForExistence(timeout: 3), "the native team-names switch never appeared")
+        XCTAssertTrue(names.isHittable, "the native team-names switch is not hittable")
+        // UISwitch exposes its control glyph (about 37pt high) as the accessibility frame even
+        // when the surrounding SwiftUI Toggle row provides the 44pt minimum hit target. The old
+        // button-shaped control used a full-row accessibility frame, so assertTappable's height
+        // check is not a valid requirement for this native control.
+        // The iOS 27 physical-device bridge omits XCUIElement.value for this SwiftUI Toggle,
+        // but it does expose the native selection trait. False is the privacy-safe default.
+        XCTAssertFalse(names.isSelected, "team names are not off by default")
 
         // The caveat travels ON the card, not only on the screen. A shared read that drops it is
         // the one that ends up in a group chat claiming more than Omen said.

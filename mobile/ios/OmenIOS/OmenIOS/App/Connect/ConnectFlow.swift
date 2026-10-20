@@ -42,17 +42,7 @@ enum ConnectState: Equatable {
     /// The Omen session, not the provider, is the problem.
     case needsReauth
 
-    /// A provider Omen cannot connect on this platform at all — ESPN today. Not a failure,
-    /// and never a dead end: the copy routes to the path that does work.
-    case unsupportedOnMobile(provider: ConnectProvider)
-
-    // MARK: ESPN — handoff, not a connect flow.
-    //
-    // The app never performs the ESPN connection: the desktop helper fills Omen's own web
-    // form and the user presses Connect there. These two cases exist only so the app can
-    // *read back* what the server already knows, which is why there is no ESPN equivalent of
-    // `authorizing` or `choosingLeague`. Onboarding contract §5/§10: no in-app credential
-    // capture, no embedded provider login, and no ESPN connect UI.
+    // MARK: ESPN — native iPhone connect flow.
 
     /// Consent, shown before ESPN's sign-in is opened. W1-A makes this a required step, not a
     /// footnote: the user is told what is about to open and what Omen will read, before it opens.
@@ -65,8 +55,6 @@ enum ConnectState: Equatable {
     case choosingEspnLeague([EspnLeagueOption])
     /// The user pressed Connect. Sending the one request that carries the session.
     case validatingEspnConnection(leagueId: String)
-    /// Re-reading `GET /api/leagues` after the user says they finished on a computer.
-    case checkingEspnConnection
     /// The server reports a bound ESPN league with usable team context.
     case espnConnected(EspnConnection)
 
@@ -85,8 +73,6 @@ enum ConnectState: Equatable {
             return "Checking what Yahoo shared with Omen…"
         case .bindingYahooLeague:
             return "Checking that Omen can read this league…"
-        case .checkingEspnConnection:
-            return "Checking whether your ESPN league reached Omen…"
         case .discoveringEspnLeagues:
             return "Signed in. Finding your leagues…"
         case .validatingEspnConnection:
@@ -103,7 +89,7 @@ enum ConnectState: Equatable {
         case .resolvingAccount, .validatingConnection,
              .startingYahooAuthorization, .awaitingYahooReturn,
              .confirmingYahooConnection, .bindingYahooLeague,
-             .checkingEspnConnection, .validatingEspnConnection,
+             .validatingEspnConnection,
              .discoveringEspnLeagues:
             return true
         default: return false
@@ -176,6 +162,14 @@ enum ConnectFailure: Error, Equatable {
     case espnSessionUnreadable(EspnDiagnostic? = nil)
     /// The session read fine and ESPN refused the league — wrong league, or no access to it.
     case espnLeagueUnreachable(EspnDiagnostic? = nil)
+    /// ESPN counts football leagues on this account but has not listed them yet — a brand-new
+    /// login, or a league joined minutes ago. Keep checking; the League ID box is not next.
+    case espnListingPending(expected: Int?)
+    /// ESPN has no fan profile for this login yet (its fan API answers 404). Usually a login made
+    /// seconds ago, but a 404 can also be permanent, so Omen checks only briefly before the fallback.
+    case espnProfilePending
+    /// ESPN says this account has no football leagues. Usually a different ESPN account.
+    case espnNoFootballLeagues
 
     /// The provider's own account of the failure, when there is one. Only the ESPN cases carry
     /// it, because only they have a provider response behind them.
@@ -203,21 +197,24 @@ enum ConnectFailure: Error, Equatable {
         case .providerNotConnected:
             return "Yahoo didn't finish connecting. Try again, and make sure you tap Agree in the Yahoo screen."
         case .espnSessionUnreadable:
-            return "Omen couldn't read your ESPN session. That's on us, not you — try once more, or finish on a computer."
+            return "Omen couldn't read your ESPN session. That's on us, not you — try the ESPN sign-in again, or choose another provider."
         case .espnLeagueUnreachable:
             return "Omen signed in but couldn't reach that league. Open the league you want in ESPN, then try again."
+        case .espnListingPending:
+            return EspnConnectCopy.listingPending
+        case .espnProfilePending:
+            return EspnConnectCopy.profilePending
+        case .espnNoFootballLeagues:
+            return EspnConnectCopy.noFootballLeagues
         }
     }
 }
 
-/// Providers offered in the picker. Availability is a *product* fact here, not a guess —
-/// each case's `availability` is sourced from a recorded decision, not from probing.
+/// Providers offered in the iPhone picker. Every listed provider has one current native path.
 enum ConnectProvider: String, CaseIterable, Identifiable {
     case espn
     case yahoo
     case sleeper
-
-    static let espnSetupURL = URL(string: "https://slopssaloon.com/espn-connect")!
 
     /// The order the picker shows, which is **not** `allCases`.
     ///
@@ -249,38 +246,16 @@ enum ConnectProvider: String, CaseIterable, Identifiable {
         }
     }
 
-    var availability: ConnectAvailability {
-        switch self {
-        case .sleeper:
-            return .available
-        case .yahoo:
-            // **Entitlement granted 2026-08-28**, and native OAuth is wired as of this change.
-            //
-            // This case previously returned `.useWeb` because native had browser plumbing only
-            // for Supabase sign-in, not for a provider connect handshake. That was true of the
-            // client and never of the server: `POST /api/yahoo/auth` has accepted
-            // `native_return: true` since PR #191, and its callback redirects to
-            // `com.slopssaloon.omen://auth/callback?status=connected|cancelled` after
-            // validating and consuming the OAuth state server-side. The missing half was the
-            // `ASWebAuthenticationSession` the onboarding-connection contract §87 already
-            // specifies. A beta tester found the gap the honest way — by picking Yahoo on a
-            // phone and being told to go find a computer.
-            return .available
-        case .espn:
-            // **Was `.useWeb` until 2026-09-02.** W1-A: ESPN now signs in inside the app.
-            //
-            // Two things had to be true and both now are. The mechanism: `HttpOnlyCookieSpikeTests`
-            // proved `WKHTTPCookieStore` returns server-set HttpOnly cookies, killing the standing
-            // assumption — inherited from `2026-07-07-espn-ios-cookie-sync-research.md` §C — that
-            // iOS could not reach them. The permission: onboarding contract §87's WebView ban was
-            // lifted for ESPN by the founder on 2026-09-02, with the guideline 5.2.2 exposure
-            // stated and accepted, since ESPN publishes no authorization to satisfy it.
-            //
-            // The desktop helper and `/espn-connect` stay exactly as they are. They are the
-            // documented fallback for `espnSessionUnreadable`, and the only path on Android.
-            return .available
-        }
-    }
+    /// Compatibility for contextual-help code while it migrates off the historical availability
+    /// abstraction. Production Connect navigation does not branch on this value.
+    var availability: ConnectAvailability { .available }
+
+}
+
+enum ConnectAvailability: Equatable {
+    case available
+    case onHold(reason: String)
+    case useWeb(reason: String)
 }
 
 /// What the server reports about the user's ESPN connection, reduced to the two things the
@@ -322,49 +297,12 @@ struct EspnLeagueOption: Equatable, Identifiable {
     }
 }
 
-/// The ESPN handoff, written once so the app and its tests agree on what the user is told.
+/// The native iPhone ESPN flow, written once so the app and its tests agree on what the user is told.
 ///
 /// Every line here has to survive App Store review reading it as store-facing copy: no
 /// password, no cookie, no token, no `espn_s2`, no `SWID`. The app is describing a helper
 /// that runs somewhere else, and it says so.
-enum EspnHandoffCopy {
-    static let title = "Sync ESPN"
-    static let subtitle = "ESPN doesn't offer Omen a phone sign-in yet. One setup on a computer, and your league syncs here from then on."
-
-    struct Step: Equatable, Identifiable {
-        let index: Int
-        let title: String
-        let detail: String
-        var id: Int { index }
-    }
-
-    static let steps: [Step] = [
-        Step(
-            index: 1,
-            title: "Open the setup page on a computer",
-            detail: "Send yourself the link, or open slopssaloon.com/espn-connect in Chrome or Edge."
-        ),
-        Step(
-            index: 2,
-            title: "Add the free Omen helper",
-            detail: "It reads espn.com only, and it never submits anything for you."
-        ),
-        Step(
-            index: 3,
-            title: "Sign in to ESPN Fantasy there",
-            detail: "You sign in on ESPN's own site, in your own browser. Omen never sees that step."
-        ),
-        Step(
-            index: 4,
-            title: "Review the form and choose Connect",
-            detail: "The helper fills Omen's form. You check it and press Connect yourself."
-        ),
-        Step(
-            index: 5,
-            title: "Come back and tap I connected ESPN",
-            detail: "Omen re-checks your leagues and takes you straight to Command Center."
-        ),
-    ]
+enum EspnConnectCopy {
 
     /// Consent, shown before ESPN's own sign-in opens. W1-A's binding constraint, and the
     /// sentence App Review will read: it says what opens, who the user signs in to, what Omen
@@ -444,9 +382,6 @@ enum EspnHandoffCopy {
     static let signInConnectTitle = "Connect this league"
     static let signInCancelTitle = "Cancel"
 
-    /// Shown when the in-app sign-in has failed twice and the user is routed to the desktop path.
-    static let signInFellBack = "We couldn't read your ESPN session on this phone. The desktop helper still works — here's how."
-
     /// League-picker copy. Mirrors what the flow actually did rather than a generic heading:
     /// the user did not choose these, ESPN reported them.
     static func foundLeaguesTitle(_ count: Int) -> String {
@@ -458,16 +393,21 @@ enum EspnHandoffCopy {
     /// Shown when discovery itself could not run. Not a failed connection — a failed lookup.
     static let discoveryUnavailable = "Omen couldn't get your leagues from ESPN yet. A brand-new ESPN login can take a moment, so try Check again, or enter the league ID."
 
-    static let openSetupTitle = "Open ESPN setup"
-    static let checkConnectionTitle = "I connected ESPN"
+    /// ESPN counts leagues on the account but has not listed them yet. Shown while Omen keeps checking.
+    static let listingPending = "ESPN knows you're in a league but hasn't listed it for this login yet. That can take a minute on a new ESPN account. Omen is checking again."
+    /// After the extended checks, before the League ID box.
+    static func listingStillPending(_ expected: Int?) -> String {
+        let count = expected.map { $0 == 1 ? "1 football league" : "\($0) football leagues" } ?? "a football league"
+        return "ESPN says this account has \(count) but still hasn't listed it. Try Check again in a minute. If it still doesn't show, you can enter the league ID."
+    }
+    /// ESPN has no fan profile for the login yet. Makes no claim about leagues: ESPN gave no count.
+    static let profilePending = "ESPN is still setting up this login. Omen is checking again."
+    /// After the short profile checks, before the League ID box.
+    static let profileStillPending = "ESPN hasn't finished setting up this login. Try Check again in a minute, or enter the league ID."
+    /// ESPN counts zero football leagues on the signed-in account.
+    static let noFootballLeagues = "This ESPN account has no football leagues. If your league is on a different ESPN account, sign out of ESPN above and sign in with that one."
+
     static let checkAgainTitle = "Check again"
-
-    /// Shown when the re-check finds nothing yet. A status line, not an error: the user has
-    /// done nothing wrong, they are most likely mid-way through the desktop steps.
-    static let notConnectedYet = "No ESPN league yet. Finish the steps on a computer, then tap Check again."
-
-    /// Shown when the re-check itself could not run.
-    static let checkUnavailable = "We couldn't reach Omen to check. Try again in a moment."
 
     static func connectedMessage(_ connection: EspnConnection) -> String {
         guard let team = connection.teamName, !team.isEmpty else {
@@ -477,11 +417,6 @@ enum EspnHandoffCopy {
     }
 }
 
-enum ConnectAvailability: Equatable {
-    case available
-    case onHold(reason: String)
-    case useWeb(reason: String)
-}
 
 /// A Sleeper account resolved from a username, with the leagues Omen can offer.
 struct ResolvedSleeperAccount: Equatable {

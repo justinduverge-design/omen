@@ -8,7 +8,9 @@ const VALID_PRIVATE_FIXTURE_KEYS = new Set(Object.values(PRIVATE_FIXTURE_KEYS));
 const QUERY_PARAM_NAMES = ['fixture', 'omen_fixture'];
 
 export function normalizePrivateFixtureKey(value) {
-  const normalized = String(value || '').trim().toLowerCase();
+  const normalized = String(value || '')
+    .trim()
+    .toLowerCase();
   return VALID_PRIVATE_FIXTURE_KEYS.has(normalized) ? normalized : null;
 }
 

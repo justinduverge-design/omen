@@ -63,9 +63,7 @@ function numberOrNull(value) {
 
 function yahooAttrReader(raw) {
   if (!raw || typeof raw !== "object") return null;
-  return Array.isArray(raw)
-    ? key => raw.find(x => x?.[key])?.[key] ?? null
-    : key => raw[key] ?? null;
+  return Array.isArray(raw) ? (key) => raw.find((x) => x?.[key])?.[key] ?? null : (key) => raw[key] ?? null;
 }
 
 class YahooClient {
@@ -153,9 +151,9 @@ class YahooClient {
   async getMyTeamKey(leagueKey) {
     const d = await this.get(`/users;use_login=1/games;game_keys=nfl/leagues;league_keys=${leagueKey}/teams`);
     // Walk: fantasy_content.users[0].user[1].games[0].game[1].leagues[0].league[1].teams[0].team[0]
-    const u   = d?.fantasy_content?.users?.[0]?.user;
-    const lg  = u?.[1]?.games?.[0]?.game?.[1]?.leagues?.[0]?.league;
-    const tm  = lg?.[1]?.teams?.[0]?.team?.[0];
+    const u = d?.fantasy_content?.users?.[0]?.user;
+    const lg = u?.[1]?.games?.[0]?.game?.[1]?.leagues?.[0]?.league;
+    const tm = lg?.[1]?.teams?.[0]?.team?.[0];
     if (!tm) return null;
     // team[0] is the ARRAY shape here (confirmed live 2026-08-28); the reader
     // handles both so this cannot break if Yahoo flattens it later.
@@ -186,11 +184,11 @@ class YahooClient {
     if (!games) return [];
 
     const leagues = [];
-    for (const gameEntry of Object.values(games).filter(g => g?.game)) {
+    for (const gameEntry of Object.values(games).filter((g) => g?.game)) {
       const leaguesContainer = gameEntry.game?.[1]?.leagues;
       if (!leaguesContainer) continue;
 
-      for (const leagueEntry of Object.values(leaguesContainer).filter(l => l?.league)) {
+      for (const leagueEntry of Object.values(leaguesContainer).filter((l) => l?.league)) {
         const entry = yahooAttrReader(leagueEntry.league?.[0]);
         if (!entry) continue;
         const leagueKey = entry("league_key");
@@ -204,10 +202,12 @@ class YahooClient {
           league_id: leagueKey,
           name: entry("name"),
           season: Number(entry("season")) || null,
-          ...(teamEntry ? {
-            team_id: teamEntry("team_id") || null,
-            team_name: teamEntry("name") || null,
-          } : {}),
+          ...(teamEntry
+            ? {
+                team_id: teamEntry("team_id") || null,
+                team_name: teamEntry("name") || null,
+              }
+            : {}),
         });
       }
     }
@@ -240,7 +240,7 @@ class YahooClient {
   async getUserLeaguesWithTeams() {
     try {
       const leagues = await this.#parseUserLeagues(
-        await this.get("/users;use_login=1/games;game_keys=nfl/leagues/teams")
+        await this.get("/users;use_login=1/games;game_keys=nfl/leagues/teams"),
       );
       if (leagues.length) return leagues;
     } catch {
@@ -373,11 +373,15 @@ class YahooClient {
     }
   }
 
+  /** The league's recent adds, drops and trades (G4). Raw Yahoo response; parsed in leagueTransactions.js. */
+  async getTransactions(leagueKey, opts = {}) {
+    const count = Math.min(Math.max(parseInt(opts.count, 10) || 25, 1), 25);
+    return this.get(`/league/${leagueKey}/transactions;types=add,drop,trade;count=${count}`, { report: false });
+  }
+
   /** Roster for a team at a given week. Returns raw Yahoo response. */
   async getRoster(teamKey, week) {
-    const path = week
-      ? `/team/${teamKey}/roster;week=${week}`
-      : `/team/${teamKey}/roster`;
+    const path = week ? `/team/${teamKey}/roster;week=${week}` : `/team/${teamKey}/roster`;
     return this.get(path);
   }
 
@@ -387,7 +391,7 @@ class YahooClient {
       const d = await this.get(path);
       const stats = d?.fantasy_content?.team?.[1]?.team_stats?.stats?.stat;
       if (!Array.isArray(stats)) return null;
-      const projEntry = stats.find(s => s?.stat_id === "4");
+      const projEntry = stats.find((s) => s?.stat_id === "4");
       const val = parseFloat(projEntry?.value);
       return Number.isFinite(val) ? val : null;
     } catch {
@@ -397,16 +401,90 @@ class YahooClient {
 
   /**
    * Fetch available (waiver/free agent) players for a league.
-   * Yahoo paginates at 25 max; we'll request `count` (capped at 50) sorted
+   * Yahoo returns at most 25 per page; `count` (default 50, capped at 100) is paged and merged, sorted
    * by Average Rank ('AR') so the highest-value players come first.
    *
    * Returns: raw Yahoo response. Use rosterSvc.normalizeYahooWaivers()
    * to flatten into the shape the optimizer expects.
    */
+  /**
+   * The league's available players split by how a user can get them (G6): free agents (`FA`, add
+   * now) and players on waivers (`W`, claim), read in parallel with percent owned.
+   *
+   * Returns `{ pages: [{ availability: "free_agent" | "waivers", raw }], truncated, failed }`.
+   * `truncated` is true when a status filled its whole window, so a caller can say the pool is the
+   * top of the pool rather than all of it. `failed` lists statuses that could not be read.
+   * Documented by Yahoo, not yet exercised against a live league: the caller keeps this behind
+   * `YAHOO_POOL_STATUS_SPLIT` and falls back to `getAvailablePlayers`.
+   */
+  async getAvailablePlayerPool(leagueKey, opts = {}) {
+    const count = Math.min(Math.max(parseInt(opts.count, 10) || 25, 1), 100);
+    const sort = opts.sort || "AR";
+    const size = (raw) => {
+      const players = raw?.fantasy_content?.league?.[1]?.players;
+      return players && typeof players === "object" ? Object.keys(players).filter((k) => k !== "count").length : 0;
+    };
+    const statuses = [
+      ["FA", "free_agent"],
+      ["W", "waivers"],
+    ];
+    const settled = await Promise.allSettled(
+      statuses.map(([status]) => this.getAvailablePlayers(leagueKey, { status, sort, count, ownership: true })),
+    );
+    const pages = [];
+    const failed = [];
+    let truncated = false;
+    settled.forEach((result, index) => {
+      const availability = statuses[index][1];
+      if (result.status !== "fulfilled") {
+        failed.push(availability);
+        return;
+      }
+      pages.push({ availability, raw: result.value });
+      if (size(result.value) >= count) truncated = true;
+    });
+    return { pages, truncated, failed };
+  }
+
   async getAvailablePlayers(leagueKey, opts = {}) {
-    const count = Math.min(opts.count || 50, 50);
-    const sort  = opts.sort  || "AR";    // AR = Average Rank
-    return this.get(`/league/${leagueKey}/players;status=A;sort=${sort};count=${count};start=0`);
+    // Yahoo returns at most 25 players per page, so a request for 50 silently came back as 25.
+    // Page it: the first page is the response, later pages are folded into its `players` map.
+    const PAGE = 25;
+    const want = Math.min(Math.max(parseInt(opts.count, 10) || 50, 1), 100);
+    const sort = opts.sort || "AR"; // AR = Average Rank
+    // G6: `status` (A all available | FA free agents | W on waivers) and `ownership` (also request
+    // percent_owned) are optional; with neither this is the call it always was.
+    const status = ["A", "FA", "W"].includes(opts.status) ? opts.status : "A";
+    const out = opts.ownership ? ";out=percent_owned" : "";
+    const page = (start, count) =>
+      this.get(`/league/${leagueKey}/players;status=${status};sort=${sort};count=${count};start=${start}${out}`);
+    const first = await page(0, Math.min(want, PAGE));
+    const firstPlayers = first?.fantasy_content?.league?.[1]?.players;
+    if (want <= PAGE || !firstPlayers) return first;
+
+    const starts = [];
+    for (let start = PAGE; start < want; start += PAGE) starts.push(start);
+    const later = await Promise.all(starts.map((start) => page(start, Math.min(PAGE, want - start)).catch(() => null)));
+    const seen = new Set(
+      Object.values(firstPlayers)
+        .map((entry) => entry?.player?.[0]?.[0]?.player_key)
+        .filter(Boolean),
+    );
+    let next = Object.keys(firstPlayers).filter((k) => k !== "count").length;
+    for (const response of later) {
+      const players = response?.fantasy_content?.league?.[1]?.players;
+      if (!players) continue;
+      for (const k of Object.keys(players)) {
+        if (k === "count") continue;
+        const key = players[k]?.player?.[0]?.[0]?.player_key;
+        if (key && seen.has(key)) continue; // the pool shifted between parallel pages
+        if (key) seen.add(key);
+        firstPlayers[String(next)] = players[k];
+        next += 1;
+      }
+    }
+    firstPlayers.count = next;
+    return first;
   }
 
   async getGameKeyForSeason(year) {
@@ -433,12 +511,12 @@ class YahooClient {
     const standings = d?.fantasy_content?.league?.[1]?.standings?.[0]?.teams;
     if (!standings) return [];
     return Object.values(standings)
-      .filter(t => t?.team)
+      .filter((t) => t?.team)
       .map((t, i) => {
-        const info  = t.team[0];
+        const info = t.team[0];
         const stats = t.team[2]?.team_standings;
-        const teamKey = info?.find?.(x => x?.team_key)?.team_key || null;
-        const name = info?.find?.(x => x?.name)?.name || "Unknown";
+        const teamKey = info?.find?.((x) => x?.team_key)?.team_key || null;
+        const name = info?.find?.((x) => x?.name)?.name || "Unknown";
         const wins = Number(stats?.outcome_totals?.wins || 0);
         const losses = Number(stats?.outcome_totals?.losses || 0);
         const pointsFor = Number(stats?.points_for || 0);
@@ -462,9 +540,7 @@ class YahooClient {
   }
 
   async getLeagueScoreboard(leagueKey, week) {
-    const path = week
-      ? `/league/${leagueKey}/scoreboard;week=${week}`
-      : `/league/${leagueKey}/scoreboard`;
+    const path = week ? `/league/${leagueKey}/scoreboard;week=${week}` : `/league/${leagueKey}/scoreboard`;
     return this.get(path);
   }
 }

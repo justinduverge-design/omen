@@ -14,7 +14,12 @@
 // differences (public football fields only) and latency percentiles. It never prints secrets, provider
 // keys, user ids or raw error text. Exit code is nonzero if any query errored.
 
-const { compareUsageBundles, equalValue, WEEK_FIELDS, SUMMARY_FIELDS } = require("./services/footballWarehouse/usageComparison");
+const {
+  compareUsageBundles,
+  equalValue,
+  WEEK_FIELDS,
+  SUMMARY_FIELDS,
+} = require("./services/footballWarehouse/usageComparison");
 
 const MAX_SAMPLE = 200;
 const MAX_DIFFS = 10;
@@ -31,14 +36,24 @@ function parseArgs(argv) {
     if (value == null) throw new TypeError(`${flag} needs a value`);
     if (flag === "--season") out.season = Number(value);
     else if (flag === "--week") out.week = Number(value);
-    else if (flag === "--player-keys") out.playerKeys = [...new Set(value.split(",").map((k) => k.trim()).filter(Boolean))];
+    else if (flag === "--player-keys")
+      out.playerKeys = [
+        ...new Set(
+          value
+            .split(",")
+            .map((k) => k.trim())
+            .filter(Boolean),
+        ),
+      ];
     else if (flag === "--sample") out.sample = Number(value);
     else if (flag === "--provider") out.provider = value;
     else throw new TypeError(`unknown flag ${flag}`);
   }
-  if (!Number.isInteger(out.season) || out.season < 1999 || out.season > 2100) throw new TypeError("--season must be a year");
+  if (!Number.isInteger(out.season) || out.season < 1999 || out.season > 2100)
+    throw new TypeError("--season must be a year");
   if (!Number.isInteger(out.week) || out.week < 1 || out.week > 23) throw new TypeError("--week must be 1-23");
-  if ((out.playerKeys == null) === (out.sample == null)) throw new TypeError("pass exactly one of --player-keys or --sample");
+  if ((out.playerKeys == null) === (out.sample == null))
+    throw new TypeError("pass exactly one of --player-keys or --sample");
   if (out.playerKeys && (!out.playerKeys.length || out.playerKeys.length > MAX_SAMPLE)) {
     throw new TypeError(`--player-keys must list 1-${MAX_SAMPLE} keys`);
   }
@@ -62,7 +77,9 @@ function readOnlySupabase(client) {
         },
       });
     },
-    rpc() { throw new Error("rpc not allowed in read-only parity run"); },
+    rpc() {
+      throw new Error("rpc not allowed in read-only parity run");
+    },
   };
 }
 
@@ -112,7 +129,12 @@ const single = (bundle, key) => ({
 const present = (bundle, key) => bundle.usage.has(key) || bundle.weekly.has(key);
 
 const difference = (kind, gsisId, week, stat, legacy, warehouse) => ({
-  kind, gsis_id: gsisId, week, stat, legacy: legacy ?? null, warehouse: warehouse ?? null,
+  kind,
+  gsis_id: gsisId,
+  week,
+  stat,
+  legacy: legacy ?? null,
+  warehouse: warehouse ?? null,
 });
 
 /** Field-level detail for sample output; the counts come from compareUsageBundles itself. */
@@ -122,7 +144,8 @@ function fieldDifferences(legacy, warehouse, key, gsisId) {
   const right = warehouse.usage.get(key);
   if (left && right) {
     for (const field of SUMMARY_FIELDS) {
-      if (!equalValue(left[field], right[field])) out.push(difference("summary_field_mismatch", gsisId, null, field, left[field], right[field]));
+      if (!equalValue(left[field], right[field]))
+        out.push(difference("summary_field_mismatch", gsisId, null, field, left[field], right[field]));
     }
   }
   const byWeek = (rows) => new Map((rows || []).map((row) => [Number(row.week), row]));
@@ -154,45 +177,82 @@ async function timed(operation, sink) {
 async function runParity({ args, supabase, readLegacy, readWarehouse, resolveGsis, rng = Math.random }) {
   const errors = { sample: 0, crosswalk: 0, legacy: 0, legacy_degraded: 0, warehouse: 0 };
   const errorCodes = new Set();
-  const record = (bucket, error) => { errors[bucket] += 1; errorCodes.add(`${bucket}:${safeCode(error)}`); };
+  const record = (bucket, error) => {
+    errors[bucket] += 1;
+    errorCodes.add(`${bucket}:${safeCode(error)}`);
+  };
 
   let keys = args.playerKeys;
   if (!keys) {
-    try { keys = await samplePlayerKeys({ supabase, provider: args.provider, count: args.sample, rng }); }
-    catch (error) { record("sample", error); keys = []; }
+    try {
+      keys = await samplePlayerKeys({ supabase, provider: args.provider, count: args.sample, rng });
+    } catch (error) {
+      record("sample", error);
+      keys = [];
+    }
   }
 
   let gsisByKey = new Map();
-  try { gsisByKey = await resolveGsis(supabase, keys); } catch (error) { record("crosswalk", error); }
+  try {
+    gsisByKey = await resolveGsis(supabase, keys);
+  } catch (error) {
+    record("crosswalk", error);
+  }
 
   const counts = {
-    players_requested: keys.length, matched: 0, differing: 0,
-    missing_on_legacy_only: 0, missing_on_warehouse_only: 0, absent_on_both: 0,
+    players_requested: keys.length,
+    matched: 0,
+    differing: 0,
+    missing_on_legacy_only: 0,
+    missing_on_warehouse_only: 0,
+    absent_on_both: 0,
   };
   const kinds = {
-    missing_legacy_player: 0, missing_warehouse_player: 0, missing_legacy_weeks: 0,
-    missing_warehouse_weeks: 0, mismatched_fields: 0,
+    missing_legacy_player: 0,
+    missing_warehouse_player: 0,
+    missing_legacy_weeks: 0,
+    missing_warehouse_weeks: 0,
+    mismatched_fields: 0,
   };
   const samples = [];
   const legacyMs = [];
   const warehouseMs = [];
   // getUsageBundle swallows its own failures and returns empty maps; it reports them via log.warn.
   let degraded = 0;
-  const log = { warn() { degraded += 1; }, error() { degraded += 1; }, info() {} };
+  const log = {
+    warn() {
+      degraded += 1;
+    },
+    error() {
+      degraded += 1;
+    },
+    info() {},
+  };
 
   for (const key of keys) {
     const input = { supabase, playerKeys: [key], season: args.season, beforeWeek: args.week, log };
     const degradedBefore = degraded;
     let legacy = null;
     let warehouse = null;
-    try { legacy = await timed(() => readLegacy(input), legacyMs); } catch (error) { record("legacy", error); }
+    try {
+      legacy = await timed(() => readLegacy(input), legacyMs);
+    } catch (error) {
+      record("legacy", error);
+    }
     if (degraded > degradedBefore) record("legacy_degraded", { code: "legacy_reader_degraded" });
-    try { warehouse = await timed(() => readWarehouse(input), warehouseMs); } catch (error) { record("warehouse", error); }
+    try {
+      warehouse = await timed(() => readWarehouse(input), warehouseMs);
+    } catch (error) {
+      record("warehouse", error);
+    }
     if (!legacy || !warehouse || degraded > degradedBefore) continue; // an errored side is not a data difference
 
     const inLegacy = present(legacy, key);
     const inWarehouse = present(warehouse, key);
-    if (!inLegacy && !inWarehouse) { counts.absent_on_both += 1; continue; }
+    if (!inLegacy && !inWarehouse) {
+      counts.absent_on_both += 1;
+      continue;
+    }
     const legacyOne = single(legacy, key);
     const warehouseOne = single(warehouse, key);
     const result = compareUsageBundles(legacyOne, warehouseOne);
@@ -201,16 +261,29 @@ async function runParity({ args, supabase, readLegacy, readWarehouse, resolveGsi
     kinds.missing_legacy_weeks += result.missing_legacy_weeks;
     kinds.missing_warehouse_weeks += result.missing_warehouse_weeks;
     kinds.mismatched_fields += result.mismatched_fields;
-    if (result.outcome === "match") { counts.matched += 1; continue; }
+    if (result.outcome === "match") {
+      counts.matched += 1;
+      continue;
+    }
     if (!inLegacy) counts.missing_on_legacy_only += 1;
     else if (!inWarehouse) counts.missing_on_warehouse_only += 1;
     else counts.differing += 1;
 
     const gsisId = gsisByKey.get(key);
     if (gsisId && samples.length < MAX_DIFFS) {
-      const details = (inLegacy && inWarehouse)
-        ? fieldDifferences(legacyOne, warehouseOne, key, gsisId)
-        : [difference(inLegacy ? "missing_warehouse_player" : "missing_legacy_player", gsisId, null, null, null, null)];
+      const details =
+        inLegacy && inWarehouse
+          ? fieldDifferences(legacyOne, warehouseOne, key, gsisId)
+          : [
+              difference(
+                inLegacy ? "missing_warehouse_player" : "missing_legacy_player",
+                gsisId,
+                null,
+                null,
+                null,
+                null,
+              ),
+            ];
       for (const detail of details) if (samples.length < MAX_DIFFS) samples.push(detail);
     }
   }
@@ -244,7 +317,9 @@ async function main({ argv = process.argv.slice(2), env = process.env, stdout = 
     runtime = createWarehouseReadRuntime({ env: { ...env, FOOTBALL_DATA_MODE: "warehouse" }, Pool });
     const supabase = readOnlySupabase(createClient(config.supabaseUrl, config.supabaseServiceKey));
     const result = await runParity({
-      args, supabase, resolveGsis,
+      args,
+      supabase,
+      resolveGsis,
       readLegacy: (input) => getUsageBundle(input),
       readWarehouse: (input) => getWarehouseUsageBundle({ ...input, repository: runtime.repository }),
     });
@@ -252,15 +327,24 @@ async function main({ argv = process.argv.slice(2), env = process.env, stdout = 
     return result.ok ? 0 : 1;
   } catch (error) {
     const config = error instanceof TypeError || error instanceof RangeError;
-    output({ report: "warehouse-shadow-parity", ok: false, state: "failed", code: config ? "invalid_input_or_config" : safeCode(error) });
+    output({
+      report: "warehouse-shadow-parity",
+      ok: false,
+      state: "failed",
+      code: config ? "invalid_input_or_config" : safeCode(error),
+    });
     return 1;
   } finally {
-    try { await runtime?.close(); } catch {}
+    try {
+      await runtime?.close();
+    } catch {}
   }
 }
 
 if (require.main === module) {
-  main().then((code) => { process.exitCode = code; });
+  main().then((code) => {
+    process.exitCode = code;
+  });
 }
 
 module.exports = { main, parseArgs, runParity, readOnlySupabase, percentile };

@@ -1,21 +1,27 @@
-# Database redo, 2026-10-01 — review-only SQL
+# Database redo, 2026-10-01: reviewed SQL steps
 
 Design: `Blueprints/rebuild/omen-database-redo-v1.md`. Findings it fixes:
 `Direction/2026-10-01-league-connections-review.md`.
 
-**Nothing here is applied.** Each numbered step goes to production only as its own founder-approved
+**Status (2026-10-17):** the redo is live in production. Steps 01-09 were rehearsed and verified on
+2026-10-02, and later steps were applied one at a time (most recently 16 and 18). These files are the reviewed
+source. Whether a given step is applied is recorded in `Direction/decision_log.md` and production's
+`supabase_migrations` history, not here.
+
+Each numbered step goes to production only as its own founder-approved
 order: approval → rehearsal on a restored production clone → verification → production
 (facts-of-record #8). Apply only the `.up.sql` file of the approved step. Database work is done by
 Claude or Codex sessions only. Jules and Muse never touch the database.
 
 | File | Runs where |
 |---|---|
-| `00a_scratch_supabase_shim.sql`, `00b_production_schema_snapshot.sql`, `00c_scratch_seed.sql` | **scratch only**: Supabase stand-ins, production's schema as read 2026-10-01, synthetic data |
+| `00a_scratch_supabase_shim.sql`, `00b_production_schema_snapshot.sql`, `00c_scratch_seed.sql`, `00d_production_acls.sql` | **scratch only**: Supabase stand-ins, production's schema as read 2026-10-01, synthetic data |
 | `production-catalog-2026-10-01.json` | fixture: production's catalog, read-only, 2026-10-01 |
-| Steps 01-14, 16 | identity, credentials, leagues, players, Ledger, projections + data record, close client writes, delete the 6 unscoped Ledger rows, beta reports, one-transaction account erasure, league scoring rules compartment, saved trades, football-intelligence signals (13), and covering indexes for the projection logs' foreign keys (16; decision `Direction/reviews/2026-10-15-fk-index-decision.md`), and temporary nflverse weekly player stats (14; job spec `Blueprints/specs/football-data/omen-nflverse-weekly-stats-ingest-v1.md`) |
+| Steps 01-14, 16-18 | identity, credentials, leagues, players, Ledger, projections + data record, close client writes, delete the 6 unscoped Ledger rows, beta reports, one-transaction account erasure, league scoring rules compartment, saved trades, football-intelligence signals (13), and covering indexes for the projection logs' foreign keys (16; decision `Direction/reviews/2026-10-15-fk-index-decision.md`), and temporary nflverse weekly player stats (14; job spec `Blueprints/specs/football-data/omen-nflverse-weekly-stats-ingest-v1.md`), marking a refused provider login as needs-reconnect (17), and trade grades over three horizons (18) |
 | `NN_<step>.up.sql` | the step (one transaction, preflight aborts on unexpected state) |
 | `NN_<step>.down.sql` | its exact rollback (schema and data) |
 | `NN_<step>.test.sql` | scratch assertions; rolls back |
+| `runbook/` | read-only verify queries per step, plus the catalog snapshot queries and expected output |
 
 **Production boundary changed 2026-10-04:** Step 15 is retired for Supabase and must not be applied
 there. The full nflverse record, including play-by-play back to 1999, belongs in the private KVM1

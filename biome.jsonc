@@ -1,0 +1,54 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "files": {
+    "includes": ["src/**", "scripts/**", "frontend/src/**", "extension/**", "test/**", "!**/dist", "!**/*.min.js"]
+  },
+  "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2, "lineWidth": 120 },
+  "linter": { "enabled": true, "rules": { "recommended": true } },
+  "assist": { "enabled": false },
+  // index.css uses Tailwind v4 directives (@theme, @utility, @apply).
+  "css": { "parser": { "tailwindDirectives": true } },
+  "overrides": [
+    {
+      // Tests build thenable fakes (objects with `then`) to stand in for query builders and promises.
+      "includes": ["test/**"],
+      "linter": { "rules": { "suspicious": { "noThenProperty": "off" } } }
+    },
+    {
+      // Test inputs and script-generated files (fixtures, contract locks/schemas, xFP table) stay as their writers emit them.
+      "includes": [
+        "test/fixtures/**",
+        "test/contracts/fixtures/**",
+        "test/contracts/lock/**",
+        "test/contracts/schemas/**",
+        "src/services/fantasyMetrics/xfp-tables-v1.json"
+      ],
+      "linter": { "enabled": false },
+      "formatter": { "enabled": false }
+    },
+    {
+      // Index keys here only render static lists (skeletons, reasons, steps) that never reorder.
+      "includes": ["frontend/src/**"],
+      "linter": { "rules": { "suspicious": { "noArrayIndexKey": "off" } } },
+      // The frontend is written with single quotes; the rest of the repo uses double.
+      "javascript": { "formatter": { "quoteStyle": "single" } }
+    },
+    {
+      // `(map[k] ||= []).push(x)` grouping and `while ((m = re.exec(s)) !== null)` are deliberate idioms here.
+      "includes": [
+        "scripts/sight-fit.js",
+        "scripts/sight-fit-kdef.js",
+        "src/services/footballIntelligence/leagueSchemeDna.js",
+        "src/services/footballWarehouse/sightAccuracy.js",
+        "src/services/narrationGrounding.js"
+      ],
+      "linter": { "rules": { "suspicious": { "noAssignInExpressions": "off" } } }
+    },
+    {
+      // The warehouse writers strip control characters from error summaries before logging them.
+      "includes": ["src/services/footballWarehouse/*Writer.js"],
+      "linter": { "rules": { "suspicious": { "noControlCharactersInRegex": "off" } } }
+    }
+  ]
+}

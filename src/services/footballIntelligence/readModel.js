@@ -4,7 +4,14 @@ const { CONTRACTS } = require("./contracts");
 const { hashCanonical } = require("./canonicalize");
 
 function buildFootballIntelligenceReadModel({ schemeDna, systemSignals, coachingTree, provenance = [] }) {
-  if (!Array.isArray(schemeDna) || !Array.isArray(systemSignals) || !coachingTree || !Array.isArray(coachingTree.nodes) || !Array.isArray(coachingTree.edges) || !Array.isArray(provenance)) {
+  if (
+    !Array.isArray(schemeDna) ||
+    !Array.isArray(systemSignals) ||
+    !coachingTree ||
+    !Array.isArray(coachingTree.nodes) ||
+    !Array.isArray(coachingTree.edges) ||
+    !Array.isArray(provenance)
+  ) {
     throw invalid("read model inputs have invalid shapes");
   }
   const orderedDna = [...schemeDna].sort((a, b) => a.output_hash.localeCompare(b.output_hash));
@@ -27,6 +34,10 @@ function buildFootballIntelligenceReadModel({ schemeDna, systemSignals, coaching
   return { ...artifact, output_hash: hashCanonical(artifact) };
 }
 
-function invalid(message) { const error = new TypeError(message); error.code = "FOOTBALL_INTELLIGENCE_INVALID"; return error; }
+function invalid(message) {
+  const error = new TypeError(message);
+  error.code = "FOOTBALL_INTELLIGENCE_INVALID";
+  return error;
+}
 
 module.exports = { buildFootballIntelligenceReadModel };

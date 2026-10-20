@@ -2,14 +2,7 @@ import React, { createContext, useContext, useRef, useId } from 'react';
 
 const RadioCardGroupContext = createContext();
 
-const RadioCardGroup = ({
-  value,
-  onValueChange,
-  className = '',
-  'aria-label': ariaLabel,
-  children,
-  ...props
-}) => {
+const RadioCardGroup = ({ value, onValueChange, className = '', 'aria-label': ariaLabel, children, ...props }) => {
   const name = useId();
   const containerRef = useRef(null);
 
@@ -18,9 +11,7 @@ const RadioCardGroup = ({
     const isArrow = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key);
     if (!isArrow) return;
 
-    const radios = Array.from(
-      containerRef.current.querySelectorAll('input[type="radio"]:not([disabled])')
-    );
+    const radios = Array.from(containerRef.current.querySelectorAll('input[type="radio"]:not([disabled])'));
     if (radios.length === 0) return;
 
     const currentIndex = radios.findIndex((radio) => radio === document.activeElement);
@@ -67,8 +58,8 @@ const RadioCardGroupItem = ({ value, title, description, disabled = false, class
 
   // We use border-2 on both to prevent layout shift.
   const stateClasses = isSelected
-    ? 'border-2 border-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-accent)_4%,transparent)]'
-    : 'border-2 border-[var(--color-border-subtle)] bg-[var(--color-surface-1)] hover:border-[var(--color-border)]';
+    ? 'border-2 border-(--color-accent) bg-[color-mix(in_srgb,var(--color-accent)_4%,transparent)]'
+    : 'border-2 border-(--color-border-subtle) bg-(--color-surface-1) hover:border-(--color-border)';
 
   const disabledClasses = disabled ? 'opacity-50 cursor-not-allowed pointer-events-none' : '';
 
@@ -77,7 +68,7 @@ const RadioCardGroupItem = ({ value, title, description, disabled = false, class
   return (
     <label
       htmlFor={id}
-      className={`${combinedClasses} has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--color-accent)]`}
+      className={`${combinedClasses} has-focus-visible:outline-solid has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-(--color-accent)`}
       {...props}
     >
       <input
@@ -95,10 +86,10 @@ const RadioCardGroupItem = ({ value, title, description, disabled = false, class
         className="sr-only peer"
       />
       <div className="flex w-full items-start justify-between gap-3 mb-1">
-        <span className="text-base font-semibold text-[var(--color-text-primary)]">
-          {title}
-        </span>
-        <div className={`mt-0.5 flex shrink-0 items-center justify-center w-5 h-5 rounded-full border ${isSelected ? 'border-[var(--color-accent)] bg-[var(--color-accent)] text-[var(--color-text-on-accent)]' : 'border-[var(--color-border)] bg-transparent'}`}>
+        <span className="text-base font-semibold text-(--color-text-primary)">{title}</span>
+        <div
+          className={`mt-0.5 flex shrink-0 items-center justify-center w-5 h-5 rounded-full border ${isSelected ? 'border-(--color-accent) bg-(--color-accent) text-(--color-text-on-accent)' : 'border-(--color-border) bg-transparent'}`}
+        >
           {isSelected && (
             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
               <circle cx="8" cy="8" r="4" />
@@ -106,11 +97,7 @@ const RadioCardGroupItem = ({ value, title, description, disabled = false, class
           )}
         </div>
       </div>
-      {description && (
-        <span className="text-sm text-[var(--color-text-secondary)]">
-          {description}
-        </span>
-      )}
+      {description && <span className="text-sm text-(--color-text-secondary)">{description}</span>}
     </label>
   );
 };

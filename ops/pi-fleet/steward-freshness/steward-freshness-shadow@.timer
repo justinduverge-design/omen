@@ -1,0 +1,10 @@
+[Unit]
+Description=Hourly Rust shadow run of the Steward %i freshness check
+
+[Timer]
+OnCalendar=*-*-* *:10:00
+RandomizedDelaySec=60
+Persistent=true
+
+[Install]
+WantedBy=timers.target

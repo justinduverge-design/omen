@@ -46,11 +46,11 @@ const REPLACEMENT_LEVELS = Object.freeze({
 // QB ≥10, RB/WR ≥8, TE ≥7, DST ≥8.
 const SCARCITY_THRESHOLDS = Object.freeze({
   QB: Object.freeze({ elite: 10, bubble: -5 }),
-  RB: Object.freeze({ elite: 8,  bubble: -3 }),
-  WR: Object.freeze({ elite: 8,  bubble: -3 }),
-  TE: Object.freeze({ elite: 7,  bubble: -2 }),
+  RB: Object.freeze({ elite: 8, bubble: -3 }),
+  WR: Object.freeze({ elite: 8, bubble: -3 }),
+  TE: Object.freeze({ elite: 7, bubble: -2 }),
   DST: Object.freeze({ elite: 8, bubble: 2 }),
-  default: Object.freeze({ elite: 3,  bubble: -2 }),
+  default: Object.freeze({ elite: 3, bubble: -2 }),
 });
 
 const SCARCITY_BONUS = Object.freeze({
@@ -84,12 +84,7 @@ function getReplacementLevel(position, scoringFormat = "ppr") {
 function replacementFromMap(position, replacementLevel) {
   const normalized = normalizePosition(position);
   const rawPosition = String(position || "UNK").toUpperCase();
-  return Number(
-    replacementLevel?.[normalized]
-    ?? replacementLevel?.[rawPosition]
-    ?? replacementLevel?.UNK
-    ?? 0
-  ) || 0;
+  return Number(replacementLevel?.[normalized] ?? replacementLevel?.[rawPosition] ?? replacementLevel?.UNK ?? 0) || 0;
 }
 
 function scarcityTierForVorp(vorp, position) {
@@ -107,9 +102,10 @@ function vorpForPlayer(player = {}, opts = {}) {
   const scoringFormat = opts.scoringFormat || "ppr";
   const position = primaryPosition(player);
   const adjusted = adjustedProjection(player);
-  const replacement = opts.replacementLevel && typeof opts.replacementLevel === "object"
-    ? replacementFromMap(position, opts.replacementLevel)
-    : getReplacementLevel(position, scoringFormat);
+  const replacement =
+    opts.replacementLevel && typeof opts.replacementLevel === "object"
+      ? replacementFromMap(position, opts.replacementLevel)
+      : getReplacementLevel(position, scoringFormat);
   const vorp = Number((adjusted - replacement).toFixed(2));
   const tier = scarcityTierForVorp(vorp, position);
   const projected = Number(player.projected_points);

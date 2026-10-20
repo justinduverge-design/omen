@@ -7,10 +7,7 @@ const config = require("../config");
 const llm = require("../services/llm");
 const { sharedNarrationGuard, NARRATION_BUDGET_MS } = require("../services/narrationBudget");
 const { buildLiveAdpResponse } = require("../services/adp");
-const {
-  DEFAULT_SHARE_TTL_SECONDS,
-  createDefaultTradeShareStore,
-} = require("../services/tradeShareStore");
+const { DEFAULT_SHARE_TTL_SECONDS, createDefaultTradeShareStore } = require("../services/tradeShareStore");
 const { buildTradeShareOgSvg } = require("../services/tradeShareOg");
 const { compareTrade } = require("../services/tradeValue");
 const { resolveNflPlayerInputs } = require("../services/playerSearch");
@@ -19,17 +16,11 @@ const { getRuntime: getSharedWarehouseRuntime } = require("../services/footballW
 const { resolveTradeLeagueContext } = require("../services/tradeLeagueContext");
 const { createDefaultTradeSavedQueueStore } = require("../services/tradeSavedQueueStore");
 const { createSupabaseSavedTradesStore } = require("../services/savedTradesStore");
-const {
-  VALID_OUTCOME_SET,
-  currentNeedFor,
-  staleness: computeStaleness,
-} = require("../services/tradeSavedQueue");
-const { findLeagueTradeCandidates, MAX_OPPONENT_TEAMS_PER_SCAN, MAX_CANDIDATES_RETURNED } = require("../services/tradeFind");
+const { VALID_OUTCOME_SET, currentNeedFor, staleness: computeStaleness } = require("../services/tradeSavedQueue");
+const { MAX_OPPONENT_TEAMS_PER_SCAN, MAX_CANDIDATES_RETURNED } = require("../services/tradeFind");
+const { findLeagueTradeCandidatesAsync } = require("../services/tradeSearchPool");
 const { createSearchBudget } = require("../services/tradeLineup");
-const {
-  DEFAULT_FIND_CACHE_TTL_SECONDS,
-  createDefaultTradeFindCache,
-} = require("../services/tradeFindCacheStore");
+const { DEFAULT_FIND_CACHE_TTL_SECONDS, createDefaultTradeFindCache } = require("../services/tradeFindCacheStore");
 const { authenticateOmenRequest, getActivePlatformConnections } = require("../services/omen");
 const { getCurrentNflWeekContext } = require("../services/nflSchedule");
 const { logger } = require("../middleware/logging");
@@ -39,6 +30,10 @@ const espnAdapter = require("../adapters/espn");
 const yahooAdapter = require("../adapters/yahoo");
 const { getAuthenticatedEspnCredentials } = require("../services/espnAuth");
 const { getAuthenticatedYahooClient } = require("../services/yahooAuth");
+const { resolveScoringPersistenceMetadata } = require("../services/scoringSnapshotResolver");
+const { createClient } = require("@supabase/supabase-js");
+const { createTradeUsageEvidence, usageRowsForTrade } = require("../services/tradeUsageEvidence");
+const { createSightEnricher } = require("../services/sightEnrichment");
 
 const MAX_PLAYERS_PER_SIDE = 10;
 const MAX_SHARE_PAYLOAD_BYTES = 16 * 1024;
@@ -80,9 +75,10 @@ const VERDICT_STATE_INSUFFICIENT = "insufficient_data";
 const VALID_SCORING_FORMATS = new Set(["ppr", "half_ppr", "standard"]);
 const UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SENSITIVE_FIELD_RE = /(cookie|espn_s2|swid|token|secret|authorization|password)/i;
-const tradePulseRedis = config.isProd && config.redisUrl && config.redisToken
-  ? new Redis({ url: config.redisUrl, token: config.redisToken })
-  : null;
+const tradePulseRedis =
+  config.isProd && config.redisUrl && config.redisToken
+    ? new Redis({ url: config.redisUrl, token: config.redisToken })
+    : null;
 
 function isPlainObject(value) {
   return value != null && typeof value === "object" && !Array.isArray(value);
@@ -102,8 +98,8 @@ function validatePlayers(players, side) {
       return "each player must be an object";
     }
     if (
-      Object.prototype.hasOwnProperty.call(player, "projected_points")
-      && !Number.isFinite(Number(player.projected_points))
+      Object.prototype.hasOwnProperty.call(player, "projected_points") &&
+      !Number.isFinite(Number(player.projected_points))
     ) {
       return "projected_points must be a number";
     }
@@ -113,10 +109,7 @@ function validatePlayers(players, side) {
 }
 
 function validateTradePayload(body = {}) {
-  if (
-    body.scoring_format != null
-    && !VALID_SCORING_FORMATS.has(String(body.scoring_format))
-  ) {
+  if (body.scoring_format != null && !VALID_SCORING_FORMATS.has(String(body.scoring_format))) {
     return "scoring_format must be one of ppr, half_ppr, standard";
   }
 
@@ -141,10 +134,7 @@ function validateLeagueContext(body = {}) {
   if (!isPlainObject(context)) {
     return "league_context must be an object";
   }
-  if (
-    context.platform != null
-    && !VALID_CONTEXT_PLATFORMS.has(String(context.platform).toLowerCase())
-  ) {
+  if (context.platform != null && !VALID_CONTEXT_PLATFORMS.has(String(context.platform).toLowerCase())) {
     return "league_context.platform must be one of yahoo, sleeper, espn";
   }
   if (context.league_id != null && String(context.league_id).length > MAX_LEAGUE_ID_LENGTH) {
@@ -219,10 +209,14 @@ function teamNamesFromLegs(legs) {
  */
 function acceptanceLikelihoodFor(verdictState) {
   switch (verdictState) {
-    case "favors_you": return "likely";
-    case "you_give_up_too_much": return "unlikely";
-    case "close_needs_context": return "uncertain";
-    default: return "uncertain";
+    case "favors_you":
+      return "likely";
+    case "you_give_up_too_much":
+      return "unlikely";
+    case "close_needs_context":
+      return "uncertain";
+    default:
+      return "uncertain";
   }
 }
 
@@ -238,19 +232,25 @@ function overallEvaluabilityAcrossParticipants(evaluabilities) {
 
   if (!total) {
     return {
-      status: "insufficient_data", reason: "no_players",
-      missing_projection_count: 0, total_player_count: 0,
+      status: "insufficient_data",
+      reason: "no_players",
+      missing_projection_count: 0,
+      total_player_count: 0,
     };
   }
   if (missing > 0) {
     return {
-      status: "insufficient_data", reason: "missing_projections",
-      missing_projection_count: missing, total_player_count: total,
+      status: "insufficient_data",
+      reason: "missing_projections",
+      missing_projection_count: missing,
+      total_player_count: total,
     };
   }
   return {
-    status: "evaluable", reason: null,
-    missing_projection_count: 0, total_player_count: total,
+    status: "evaluable",
+    reason: null,
+    missing_projection_count: 0,
+    total_player_count: total,
   };
 }
 
@@ -288,10 +288,9 @@ function buildThreeTeamSubmission(resolvedLegs, teamNames) {
  * emits, per the founder decision of 2026-08-16.
  */
 function evaluabilityFor(result) {
-  const missing = Number(result?.send?.missing_projection_count || 0)
-    + Number(result?.receive?.missing_projection_count || 0);
-  const total = Number(result?.send?.player_count || 0)
-    + Number(result?.receive?.player_count || 0);
+  const missing =
+    Number(result?.send?.missing_projection_count || 0) + Number(result?.receive?.missing_projection_count || 0);
+  const total = Number(result?.send?.player_count || 0) + Number(result?.receive?.player_count || 0);
 
   if (!total) {
     return {
@@ -320,6 +319,13 @@ function evaluabilityFor(result) {
 function verdictStateFor(result, evaluability) {
   if (evaluability.status === "insufficient_data") return VERDICT_STATE_INSUFFICIENT;
   return VERDICT_STATE_BY_VERDICT[result?.verdict] || "close_needs_context";
+}
+
+let supabaseClient = null;
+// Crosswalk reads only (provider key -> public GSIS id); built on first use.
+function defaultSupabase() {
+  if (!supabaseClient) supabaseClient = createClient(config.supabaseUrl, config.supabaseServiceKey);
+  return supabaseClient;
 }
 
 function neutralAnalysisContext(reason = null) {
@@ -359,6 +365,52 @@ function resolvedTradePlayers(inputs, resolutions) {
   });
 }
 
+/** Copies `sight`, `stats` and `rating` from the offered players onto the verdict's own player objects. */
+function copyPlayerReads(result, offered) {
+  const byName = new Map(offered.filter((p) => p?.name).map((p) => [p.name, p]));
+  for (const side of [result?.send, result?.receive]) {
+    for (const player of Array.isArray(side?.players) ? side.players : []) {
+      const source = byName.get(player?.name);
+      if (!source) continue;
+      for (const field of ["sight", "stats", "rating"])
+        if (source[field] && !player[field]) player[field] = source[field];
+    }
+  }
+}
+
+/** Sight keys for resolver ids: a bare Sleeper id becomes `sleeper:<id>`; prefixed keys pass through. */
+function sightKeyFor(player) {
+  const key = String(player?.player_key ?? "");
+  if (/^(sleeper|espn|yahoo):/.test(key)) return key;
+  return /^[0-9]+$/.test(key) ? `sleeper:${key}` : null;
+}
+
+/** Missing projections filled from Omen's read; each filled player is marked so the verdict can say so. */
+async function fillProjectionsFromOmenRead(players, attachSight) {
+  const probes = players.map((player) => ({
+    player_key: sightKeyFor(player),
+    name: player.name,
+    team: player.team,
+    position: player.position,
+  }));
+  try {
+    await attachSight(probes);
+  } catch {
+    return;
+  }
+  probes.forEach((probe, index) => {
+    const player = players[index];
+    const points = Number(probe.sight?.sight_points);
+    // The resolver's key stays as it is; the prefixed key is only how Sight found him.
+    if (probe.sight) player.sight = probe.sight;
+    if (probe.stats) player.stats = probe.stats;
+    if (player.projected_points == null && Number.isFinite(points)) {
+      player.projected_points = points;
+      player.projection_source = "omen_read";
+    }
+  });
+}
+
 function unresolvedPlayersFor(side, inputs, resolutions) {
   const unresolved = [];
   resolutions.forEach((resolution, index) => {
@@ -389,22 +441,80 @@ async function defaultLeagueContextResolver({ userId, platform, leagueId }) {
       fetchSleeperLeague: (id) => sleeperAdapter.fetchSleeperLeague(id),
       buildSleeperRoster: async (id, username, league) => {
         const context = getCurrentNflWeekContext();
-        const normalized = await sleeperAdapter.buildNormalizedRoster(
-          id,
-          username,
-          context.week,
-          { season: league?.season || context.season }
-        );
+        const normalized = await sleeperAdapter.buildNormalizedRoster(id, username, context.week, {
+          season: league?.season || context.season,
+        });
         const slots = normalized?.slots || {};
-        return [
-          ...(slots.starters || []),
-          ...(slots.bench || []),
-          ...(slots.ir || []),
-        ];
+        return [...(slots.starters || []), ...(slots.bench || []), ...(slots.ir || [])];
       },
+      readProviderContext: readEspnOrYahooTradeContext,
       logger,
     },
   });
+}
+
+/**
+ * ESPN / Yahoo league context for a personalized trade read: every team's roster (for the user's own
+ * and the league size), the league's lineup slots, and the scoring format from the league's own
+ * reception rule. The same reads Find a Trade and the scoring resolver already make.
+ */
+/** `ppr` / `half_ppr` / `standard` from a Yahoo league's reception rule, else null. */
+async function yahooReceptionFormat(client, leagueId) {
+  const { deriveYahooRules } = require("../services/scoringRuleSnapshot");
+  const data = await client.get(`/league/${leagueId}/settings`);
+  const league = data?.fantasy_content?.league;
+  const raw = Array.isArray(league) ? league[1]?.settings : league?.settings;
+  const settings = Array.isArray(raw) ? raw[0] : raw;
+  const reception = (deriveYahooRules(settings)?.rules || []).find(
+    (rule) => rule.event_key === "receiving_receptions" && rule.operator === "per_event",
+  );
+  if (!reception) return null;
+  if (reception.value === 1) return "ppr";
+  if (reception.value === 0.5) return "half_ppr";
+  if (reception.value === 0) return "standard";
+  return null;
+}
+
+async function readEspnOrYahooTradeContext(connection, userId) {
+  const leagueId = String(connection.league_id);
+  const { week } = getCurrentNflWeekContext();
+  const scoring = await resolveScoringPersistenceMetadata({
+    platform: connection.platform,
+    leagueId,
+    userId,
+  }).catch(() => null);
+  let rosters;
+  let ownTeam = null;
+  // The full rule snapshot is often "ambiguous" (one rule Omen cannot map), which leaves `format`
+  // null. A trade read needs only the reception rule, so read that one rule directly.
+  let receptionFormat = null;
+  if (connection.platform === "espn") {
+    const credentials = await getAuthenticatedEspnCredentials(userId);
+    rosters = await espnAdapter.fetchEspnLeagueRosters(leagueId, credentials.espn_s2, credentials.swid, { week });
+    ownTeam = (rosters?.teams || []).find((team) => sameTeamId(team?.team_id, connection.espn_team_id)) || null;
+    const rules = await espnAdapter
+      .fetchEspnScoringSettings(leagueId, credentials.espn_s2, credentials.swid)
+      .catch(() => null);
+    receptionFormat = espnAdapter.espnScoringFormat(rules);
+  } else if (connection.platform === "yahoo") {
+    const auth = await getAuthenticatedYahooClient(userId);
+    rosters = await yahooAdapter.fetchYahooLeagueRosters(leagueId, auth.accessToken, week);
+    const myKey = await auth.client?.getMyTeamKey?.(leagueId).catch(() => null);
+    ownTeam = (rosters?.teams || []).find((team) => myKey && sameTeamId(team?.team_id, myKey)) || null;
+    receptionFormat = await yahooReceptionFormat(auth.client, leagueId).catch(() => null);
+  } else {
+    return null;
+  }
+  const teams = Array.isArray(rosters?.teams) ? rosters.teams : [];
+  if (!teams.length) return null;
+  const known = new Set(["ppr", "half_ppr", "standard"]);
+  return {
+    scoringFormat: scoring?.format || (known.has(receptionFormat) ? receptionFormat : null),
+    rosterPositions: Array.isArray(rosters?.roster_positions) ? rosters.roster_positions : [],
+    teamCount: teams.length,
+    rosterPlayers: Array.isArray(ownTeam?.players) ? ownTeam.players : [],
+    leagueName: rosters?.league_name || null,
+  };
 }
 
 function jsonByteLength(value) {
@@ -421,9 +531,7 @@ function containsSensitiveField(value) {
   }
   if (!isPlainObject(value)) return false;
 
-  return Object.entries(value).some(([key, nested]) => (
-    SENSITIVE_FIELD_RE.test(key) || containsSensitiveField(nested)
-  ));
+  return Object.entries(value).some(([key, nested]) => SENSITIVE_FIELD_RE.test(key) || containsSensitiveField(nested));
 }
 
 function truncateString(value, maxLength) {
@@ -464,12 +572,7 @@ function validateTradeSharePayload(body = {}) {
   return tradeError ? { status: 400, error: tradeError } : null;
 }
 
-function buildShareSnapshot({
-  hash,
-  body,
-  now = () => new Date(),
-  ttlSeconds = DEFAULT_SHARE_TTL_SECONDS,
-}) {
+function buildShareSnapshot({ hash, body, now = () => new Date(), ttlSeconds = DEFAULT_SHARE_TTL_SECONDS }) {
   const createdAt = now();
   const expiresAt = new Date(createdAt.getTime() + ttlSeconds * 1000);
   const trade = {
@@ -477,12 +580,15 @@ function buildShareSnapshot({
     receive: body.receive.map(sanitizePlayer),
     scoring_format: body.scoring_format || "ppr",
   };
-  const result = compareTrade({
-    send: trade.send,
-    receive: trade.receive,
-  }, {
-    scoringFormat: trade.scoring_format,
-  });
+  const result = compareTrade(
+    {
+      send: trade.send,
+      receive: trade.receive,
+    },
+    {
+      scoringFormat: trade.scoring_format,
+    },
+  );
 
   return {
     contract_version: TRADE_SHARE_CONTRACT,
@@ -500,18 +606,27 @@ function attachTradeDecisionReceipt(result, analysis = {}) {
   const context = createDecisionContext({ profile: "trade" });
   const personalized = analysis.mode === "personalized";
   const applied = new Set(Array.isArray(analysis.applied) ? analysis.applied : []);
-  const missingProjectionCount = Number(result?.send?.missing_projection_count || 0)
-    + Number(result?.receive?.missing_projection_count || 0);
+  const missingProjectionCount =
+    Number(result?.send?.missing_projection_count || 0) + Number(result?.receive?.missing_projection_count || 0);
 
-  context.record("selected_context", personalized
-    ? { state: "live", source: "owned_platform_connection" }
-    : { state: "not_requested", source: "trade_request", reason_code: "league_context_not_requested" });
-  context.record("roster", personalized && applied.has("roster_depth")
-    ? { state: "live", source: "selected_league_roster" }
-    : { state: "not_requested", source: "selected_league_roster", reason_code: "roster_context_not_used" });
-  context.record("league_scoring", personalized && applied.has("scoring_format")
-    ? { state: "live", source: "league_settings" }
-    : { state: "not_requested", source: "league_settings", reason_code: "league_scoring_not_used" });
+  context.record(
+    "selected_context",
+    personalized
+      ? { state: "live", source: "owned_platform_connection" }
+      : { state: "not_requested", source: "trade_request", reason_code: "league_context_not_requested" },
+  );
+  context.record(
+    "roster",
+    personalized && applied.has("roster_depth")
+      ? { state: "live", source: "selected_league_roster" }
+      : { state: "not_requested", source: "selected_league_roster", reason_code: "roster_context_not_used" },
+  );
+  context.record(
+    "league_scoring",
+    personalized && applied.has("scoring_format")
+      ? { state: "live", source: "league_settings" }
+      : { state: "not_requested", source: "league_settings", reason_code: "league_scoring_not_used" },
+  );
   // Player identity/value inputs were server-resolved before compareTrade. The
   // receipt names that evaluation input without serializing player IDs or raw
   // resolver output.
@@ -534,6 +649,24 @@ function handleStorageError(res, error) {
     return true;
   }
   return false;
+}
+
+// Yahoo names a team two ways: the league directory sends the bare team number ("4") while the roster
+// read keys teams as "461.l.1234567.t.4". A strict compare matched nothing, so Build a Trade on Yahoo
+// showed an empty own side with status "ok". Compare the team number when either side is a Yahoo key.
+function sameTeamId(a, b) {
+  if (a == null || b == null) return false;
+  const left = String(a);
+  const right = String(b);
+  if (left === right) return true;
+  const number = (id) => /(?:^|\.t\.)([0-9]+)$/.exec(id)?.[1] ?? null;
+  const yahooKey = /\.t\.[0-9]+$/;
+  const leftKey = yahooKey.test(left);
+  const rightKey = yahooKey.test(right);
+  if (!leftKey && !rightKey) return false;
+  // Two full keys must match exactly: "461.l.1.t.4" and "461.l.2.t.4" are different teams.
+  if (leftKey && rightKey) return false;
+  return number(left) != null && number(left) === number(right);
 }
 
 function createTradeRouter({
@@ -571,14 +704,45 @@ function createTradeRouter({
   tradeSavedQueueStore = createDefaultTradeSavedQueueStore(),
   // T4 storage of record: the `saved_trades` table (redo step 12).
   savedTradesStore = createSupabaseSavedTradesStore(),
+  // Warehouse opportunity counts for the players in a candidate, as evidence beside the projection
+  // math. Evidence only: a no-op in `supabase` mode and on any warehouse failure or timeout.
+  tradeUsage = createTradeUsageEvidence({
+    getRuntime: () => getSharedWarehouseRuntime({ logger }),
+    getSupabase: () => defaultSupabase(),
+    log: logger,
+  }),
+  // Sight on every player in Trade responses, behind SIGHT_ENABLED (see sightEnrichment.js).
+  attachSight = createSightEnricher({ getRuntime: () => getSharedWarehouseRuntime({ logger }), log: logger }),
 } = {}) {
   const router = express.Router();
 
-  router.get("/capabilities", (_req, res) => res.json({
-    contract_version: "trade-capabilities.v1", max_teams: THREE_TEAM_COUNT,
-    comparison: "multi_sided", submission: "handoff_only",
-    three_team: { supported: true, reason: null },
-  }));
+  /** `{ candidates, usage_evidence_state }`: each candidate gains `usage_evidence` rows (possibly empty). */
+  async function withUsageEvidence(candidates, week) {
+    const shown = Array.isArray(candidates) ? candidates : [];
+    const usage = await tradeUsage(
+      shown.flatMap((candidate) => [candidate?.give, candidate?.receive]),
+      { season: nflWeekContext(now())?.season, week },
+    );
+    const candidatesOut = shown.map((candidate) => ({
+      ...candidate,
+      usage_evidence: usageRowsForTrade(candidate, usage.byKey),
+    }));
+    await attachSight(candidatesOut);
+    return {
+      candidates: candidatesOut,
+      usage_evidence_state: usage.state,
+    };
+  }
+
+  router.get("/capabilities", (_req, res) =>
+    res.json({
+      contract_version: "trade-capabilities.v1",
+      max_teams: THREE_TEAM_COUNT,
+      comparison: "multi_sided",
+      submission: "handoff_only",
+      three_team: { supported: true, reason: null },
+    }),
+  );
 
   /**
    * Every team's roster for a Sleeper league, in the route's unified shape. Wraps the same
@@ -652,6 +816,7 @@ function createTradeRouter({
       team_id: team?.team_id ? String(team.team_id) : "",
       team_name: team?.team_name || null,
       players: Array.isArray(team?.players) ? team.players : [],
+      read_status: team?.read_status === "unreadable" ? "unreadable" : "ok",
     }));
     return {
       status: "ok",
@@ -722,7 +887,13 @@ function createTradeRouter({
         // and `fresh=1` bypasses it entirely.
         const bundleAge = cached ? now().getTime() - Date.parse(cached.generated_at) : Infinity;
         const bypass = String(req.query.fresh || "") === "1";
-        if (!bypass && cached && Array.isArray(cached.teams) && bundleAge >= 0 && bundleAge <= ROSTER_BUNDLE_MAX_AGE_MS) {
+        if (
+          !bypass &&
+          cached &&
+          Array.isArray(cached.teams) &&
+          bundleAge >= 0 &&
+          bundleAge <= ROSTER_BUNDLE_MAX_AGE_MS
+        ) {
           result = {
             status: "ok",
             week: cached.week || week,
@@ -751,8 +922,9 @@ function createTradeRouter({
       }
 
       const teamId = req.query.team_id == null ? null : String(req.query.team_id);
-      const teams = teamId ? result.teams.filter((team) => team.team_id === teamId) : result.teams;
+      const teams = teamId ? result.teams.filter((team) => sameTeamId(team.team_id, teamId)) : result.teams;
 
+      await attachSight(teams, { compact: true });
       return res.json({
         contract_version: "trade-roster.v1",
         status: "ok",
@@ -760,6 +932,10 @@ function createTradeRouter({
         week: result.week,
         roster_positions: result.roster_positions,
         teams,
+        // Additive: teams the provider failed to read. Empty for a clean read.
+        unreadable_team_ids: result.teams
+          .filter((team) => team.read_status === "unreadable")
+          .map((team) => team.team_id),
       });
     } catch (e) {
       return next(e);
@@ -784,8 +960,8 @@ function createTradeRouter({
 
   /**
    * How many of the league's players carry a projection. Find-a-trade ranks swaps by projected
-   * lineup change, so a provider that supplies none (Yahoo today) cannot produce an honest
-   * candidate: the route says so instead of scanning and reporting "no gaps to fill".
+   * lineup change, so a roster read whose provider/native-or-derived path supplies none cannot
+   * produce an honest candidate: the route says so instead of reporting "no gaps to fill".
    */
   function projectionCoverage(teams) {
     let players = 0;
@@ -844,12 +1020,17 @@ function createTradeRouter({
       provider_team_id: teamId,
       season: Number.isInteger(context.season) ? context.season : now().getUTCFullYear(),
       week,
-      trades: Object.fromEntries(issued.map((candidate) => [candidate.id, {
-        give: keptTradePlayer(candidate.give),
-        receive: keptTradePlayer(candidate.receive),
-        opponent_team_id: candidate.opponent_team_id == null ? null : String(candidate.opponent_team_id),
-        opponent_team_name: candidate.opponent_team_name ?? null,
-      }])),
+      trades: Object.fromEntries(
+        issued.map((candidate) => [
+          candidate.id,
+          {
+            give: keptTradePlayer(candidate.give),
+            receive: keptTradePlayer(candidate.receive),
+            opponent_team_id: candidate.opponent_team_id == null ? null : String(candidate.opponent_team_id),
+            opponent_team_name: candidate.opponent_team_name ?? null,
+          },
+        ]),
+      ),
     };
     try {
       await tradeFindCache.write(shownBatchKey(userId, token), batch, DEFAULT_FIND_CACHE_TTL_SECONDS);
@@ -1000,7 +1181,7 @@ function createTradeRouter({
       teamId = resolveOwnTeamId({ platform, leagueId, teamId, teams: bundle.teams });
 
       let budgetExceededStats = null;
-      // The scan is synchronous CPU on the event loop; a repeat /find against the
+      // The scan is CPU-heavy (run on a worker thread, see tradeSearchPool.js); a repeat /find against the
       // same bundle reuses it. The memo is keyed by the bundle's cache key, team
       // and generated_at, so a regenerated bundle never matches a stale entry.
       const scanMemoKey = `${cacheKey}|${teamId}`;
@@ -1009,12 +1190,14 @@ function createTradeRouter({
       if (memoized && memoized.generatedAt === bundle.generated_at && memoized.expiresAt > Date.now()) {
         scan = memoized.scan;
       } else {
-        scan = findLeagueTradeCandidates({
+        scan = await findLeagueTradeCandidatesAsync({
           ownTeamId: teamId,
           teams: bundle.teams,
           rosterPositions: bundle.roster_positions,
           budget: createSearchBudget(),
-          onBudgetExceeded: (stats) => { budgetExceededStats = stats; },
+          onBudgetExceeded: (stats) => {
+            budgetExceededStats = stats;
+          },
         });
         // A budget trip is wall-clock dependent, so it is never frozen into the memo.
         if (!scan.budget_exceeded && !budgetExceededStats && scan.status !== "own_team_not_found") {
@@ -1048,11 +1231,10 @@ function createTradeRouter({
         });
       }
 
-      const responseStatus = scan.degraded_teams.length > 0
-        || scan.teams_skipped_for_cap.length > 0
-        || scan.budget_exceeded
-        ? "degraded"
-        : "ok";
+      const responseStatus =
+        scan.degraded_teams.length > 0 || scan.teams_skipped_for_cap.length > 0 || scan.budget_exceeded
+          ? "degraded"
+          : "ok";
 
       return res.json({
         contract_version: TRADE_FIND_CONTRACT,
@@ -1075,15 +1257,21 @@ function createTradeRouter({
         degraded_teams: scan.degraded_teams,
         budget_exceeded: scan.budget_exceeded,
         own_needs: scan.own_needs,
+        // Zero candidates always says why (Build 12 contract: a candidate or a precise terminal reason).
+        empty_reason: scan.empty_reason ?? null,
+        search_funnel: scan.search_funnel ?? null,
         projection_coverage: coverage,
-        candidates: await keepShownBatch({
-          userId: user.id,
-          platform,
-          leagueId,
-          teamId,
-          week: bundle.week,
-          candidates: scan.candidates,
-        }),
+        ...(await withUsageEvidence(
+          await keepShownBatch({
+            userId: user.id,
+            platform,
+            leagueId,
+            teamId,
+            week: bundle.week,
+            candidates: scan.candidates,
+          }),
+          bundle.week,
+        )),
       });
     } catch (e) {
       return next(e);
@@ -1201,7 +1389,7 @@ function createTradeRouter({
       if (result.status !== "ok") {
         return { status: "unknown", reason: "insufficient_context_for_staleness_check" };
       }
-      const ownTeam = result.teams.find((team) => team.team_id === String(teamId));
+      const ownTeam = result.teams.find((team) => sameTeamId(team.team_id, teamId));
       if (!ownTeam) {
         return { status: "unknown", reason: "insufficient_context_for_staleness_check" };
       }
@@ -1212,7 +1400,9 @@ function createTradeRouter({
       });
       return computeStaleness({ savedNeed, liveNeed });
     } catch (e) {
-      logger.warn("Trade saved queue staleness check failed; reporting unknown rather than guessing", { err: e.message });
+      logger.warn("Trade saved queue staleness check failed; reporting unknown rather than guessing", {
+        err: e.message,
+      });
       return { status: "unknown", reason: "insufficient_context_for_staleness_check" };
     }
   }
@@ -1338,10 +1528,14 @@ function createTradeRouter({
         return rosterReads.get(key);
       };
 
-      const serialized = await Promise.all(items.map(async (item) => serializeSavedItem(
-        item,
-        await stalenessForItem(item, { queryPlatform, queryLeagueId, queryTeamId, readRoster }),
-      )));
+      const serialized = await Promise.all(
+        items.map(async (item) =>
+          serializeSavedItem(
+            item,
+            await stalenessForItem(item, { queryPlatform, queryLeagueId, queryTeamId, readRoster }),
+          ),
+        ),
+      );
 
       return res.json({
         contract_version: TRADE_SAVED_QUEUE_CONTRACT,
@@ -1462,21 +1656,37 @@ function createTradeRouter({
   });
 
   router.get("/pulse", async (_req, res) => {
-    const unavailable = () => res.json({
-      contract_version: "trade-pulse.v1", status: "unavailable", is_mock: false,
-      source_status: "live_adp_unavailable", buy_low: [], sell_high: [],
-    });
+    const unavailable = () =>
+      res.json({
+        contract_version: "trade-pulse.v1",
+        status: "unavailable",
+        is_mock: false,
+        source_status: "live_adp_unavailable",
+        buy_low: [],
+        sell_high: [],
+      });
     if (!tradePulseRedisClient) return unavailable();
     try {
-      const adp = await tradePulseBuilder({ redis: tradePulseRedisClient, format: "ppr", teams: 12, year: new Date().getFullYear() });
+      const adp = await tradePulseBuilder({
+        redis: tradePulseRedisClient,
+        format: "ppr",
+        teams: 12,
+        year: new Date().getFullYear(),
+      });
       const players = Array.isArray(adp.weighted_players) ? adp.weighted_players.slice(0, 5) : [];
       return res.json({
-        contract_version: "trade-pulse.v1", status: "live", is_mock: false,
-        source_status: "live_adp", generated_at: new Date().toISOString(),
+        contract_version: "trade-pulse.v1",
+        status: "live",
+        is_mock: false,
+        source_status: "live_adp",
+        generated_at: new Date().toISOString(),
         buy_low: players.map((player) => ({
-          name: player.name, position: player.position, team: player.team,
+          name: player.name,
+          position: player.position,
+          team: player.team,
           reason: "Consensus ADP supports a value review before your league prices it in.",
-        })), sell_high: [],
+        })),
+        sell_high: [],
       });
     } catch {
       return unavailable();
@@ -1548,15 +1758,18 @@ function createTradeRouter({
     const teamIds = uniqueTeamIdsFromLegs(legs);
     if (teamIds.length > THREE_TEAM_COUNT) {
       return res.status(422).json({
-        error: "multi_team_trade_unsupported", max_teams: THREE_TEAM_COUNT,
+        error: "multi_team_trade_unsupported",
+        max_teams: THREE_TEAM_COUNT,
         message: "Omen compares at most three teams. No trade analysis was performed.",
       });
     }
     if (teamIds.length < THREE_TEAM_COUNT) {
       return res.status(422).json({
-        error: "three_team_shape_required", max_teams: THREE_TEAM_COUNT,
-        message: "These legs only touch two teams. Use a two-team compare (send/receive) instead — "
-          + "Omen never silently collapses a three-team request into a two-team one.",
+        error: "three_team_shape_required",
+        max_teams: THREE_TEAM_COUNT,
+        message:
+          "These legs only touch two teams. Use a two-team compare (send/receive) instead — " +
+          "Omen never silently collapses a three-team request into a two-team one.",
       });
     }
 
@@ -1567,10 +1780,12 @@ function createTradeRouter({
 
     let resolvedLegs;
     try {
-      resolvedLegs = await Promise.all(legs.map(async (leg) => ({
-        leg,
-        resolutions: await playerResolver(leg.players),
-      })));
+      resolvedLegs = await Promise.all(
+        legs.map(async (leg) => ({
+          leg,
+          resolutions: await playerResolver(leg.players),
+        })),
+      );
     } catch (error) {
       logger.warn("Trade player resolution unavailable", { err: error.message });
       return res.status(503).json({
@@ -1598,19 +1813,14 @@ function createTradeRouter({
     }));
 
     const { analysis, scoringConfig } = await resolveAnalysisContext(req);
-    const scoring_format = analysis.mode === "personalized"
-      ? scoringConfig.scoring_format
-      : (req.body.scoring_format || "ppr");
+    const scoring_format =
+      analysis.mode === "personalized" ? scoringConfig.scoring_format : req.body.scoring_format || "ppr";
 
     const teamNames = teamNamesFromLegs(legs);
 
     const participants = teamIds.map((teamId) => {
-      const sends = resolvedLegsWithPlayers
-        .filter((leg) => leg.from === teamId)
-        .flatMap((leg) => leg.players);
-      const receives = resolvedLegsWithPlayers
-        .filter((leg) => leg.to === teamId)
-        .flatMap((leg) => leg.players);
+      const sends = resolvedLegsWithPlayers.filter((leg) => leg.from === teamId).flatMap((leg) => leg.players);
+      const receives = resolvedLegsWithPlayers.filter((leg) => leg.to === teamId).flatMap((leg) => leg.players);
 
       const result = compareTrade({ send: sends, receive: receives }, { scoringFormat: scoring_format }, scoringConfig);
       const evaluability = evaluabilityFor(result);
@@ -1657,12 +1867,17 @@ function createTradeRouter({
       if (req.body?.legs != null) {
         return await handleThreeTeamCompare(req, res);
       }
-      if (req.body?.teams != null || req.body?.participants != null
-        || (req.body?.team_count != null && req.body.team_count !== 2)) {
+      if (
+        req.body?.teams != null ||
+        req.body?.participants != null ||
+        (req.body?.team_count != null && req.body.team_count !== 2)
+      ) {
         return res.status(422).json({
-          error: "multi_team_trade_unsupported", max_teams: 2,
-          message: "Omen doesn't support that trade shape. Use send/receive for a two-team "
-            + "compare, or legs for a three-team compare.",
+          error: "multi_team_trade_unsupported",
+          max_teams: 2,
+          message:
+            "Omen doesn't support that trade shape. Use send/receive for a two-team " +
+            "compare, or legs for a three-team compare.",
         });
       }
       const validationError = validateTradePayload(req.body);
@@ -1683,7 +1898,10 @@ function createTradeRouter({
       // Context resolution (auth + provider settings) is independent of identity
       // resolution, so it starts now. Its outcome is only consulted after the
       // identity gates below pass, so every early return is unchanged.
-      const analysisPromise = resolveAnalysisContext(req).then((value) => ({ value }), (error) => ({ error }));
+      const analysisPromise = resolveAnalysisContext(req).then(
+        (value) => ({ value }),
+        (error) => ({ error }),
+      );
       try {
         [sendResolutions, receiveResolutions] = await Promise.all([
           playerResolver(req.body.send),
@@ -1711,22 +1929,30 @@ function createTradeRouter({
 
       const send = resolvedTradePlayers(req.body.send, sendResolutions);
       const receive = resolvedTradePlayers(req.body.receive, receiveResolutions);
-
-      const analysisOutcome = await analysisPromise;
+      // A typed or built offer often has no provider projection for a player. Omen's own read
+      // (Sight, from the warehouse) covers every rostered skill player, so it fills that gap rather
+      // than the verdict giving up with "no projection" (founder, 2026-10-19). Labelled as Omen's read.
+      const [analysisOutcome] = await Promise.all([
+        analysisPromise,
+        fillProjectionsFromOmenRead([...send, ...receive], attachSight),
+      ]);
       if (analysisOutcome.error) throw analysisOutcome.error;
       const { analysis, scoringConfig } = analysisOutcome.value;
       // A personalized run derives its scoring format from the provider's own
       // settings; the client-supplied label only governs the neutral path.
-      const scoring_format = analysis.mode === "personalized"
-        ? scoringConfig.scoring_format
-        : (req.body.scoring_format || "ppr");
+      const scoring_format =
+        analysis.mode === "personalized" ? scoringConfig.scoring_format : req.body.scoring_format || "ppr";
 
-      const result = compareTrade({
-        send,
-        receive,
-      }, {
-        scoringFormat: scoring_format,
-      }, scoringConfig);
+      const result = compareTrade(
+        {
+          send,
+          receive,
+        },
+        {
+          scoringFormat: scoring_format,
+        },
+        scoringConfig,
+      );
 
       const evaluability = evaluabilityFor(result);
       result.contract_version = TRADE_COMPARE_CONTRACT;
@@ -1738,10 +1964,12 @@ function createTradeRouter({
       // Budgeted + breaker-guarded (narrationBudget.js). Timeout, skip or error
       // yields `explanation: null`, the same value the explainer returns today
       // when the model is unreachable (the compare contract allows null).
-      const narration = await narrationGuard.run(
-        "trade_compare",
-        NARRATION_BUDGET_MS.trade_compare,
-        () => tradeExplainer({
+      // Omen's read on every player in the verdict: copied from the reads already made for the
+      // offered players (matched by name), then a read for anyone still without one.
+      copyPlayerReads(result, [...send, ...receive]);
+      const sightRead = attachSight(result).catch(() => undefined);
+      const narration = await narrationGuard.run("trade_compare", NARRATION_BUDGET_MS.trade_compare, () =>
+        tradeExplainer({
           send,
           receive,
           net_value: result.net_value,
@@ -1749,10 +1977,11 @@ function createTradeRouter({
           b_score: result.b_score,
           combined_score: result.combined_score,
           scarcity_analysis: result.scarcity_analysis,
-          verdict:   result.verdict,
-        })
+          verdict: result.verdict,
+        }),
       );
       result.explanation = narration.status === "ok" ? narration.value : null;
+      await sightRead;
 
       return res.json(result);
     } catch (e) {
@@ -1838,6 +2067,7 @@ module.exports.verdictStateFor = verdictStateFor;
 module.exports.TRADE_COMPARE_CONTRACT = TRADE_COMPARE_CONTRACT;
 module.exports.attachTradeDecisionReceipt = attachTradeDecisionReceipt;
 module.exports.validateLegs = validateLegs;
+module.exports.sameTeamId = sameTeamId;
 module.exports.uniqueTeamIdsFromLegs = uniqueTeamIdsFromLegs;
 module.exports.acceptanceLikelihoodFor = acceptanceLikelihoodFor;
 module.exports.overallEvaluabilityAcrossParticipants = overallEvaluabilityAcrossParticipants;

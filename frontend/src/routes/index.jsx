@@ -26,17 +26,11 @@ import WaiverWire from '../pages/WaiverWire.jsx';
 
 // Dev-only harness — Vite replaces import.meta.env.DEV with `false` at build time,
 // making the dynamic import unreachable and tree-shaking Omen.jsx out of the prod bundle.
-const OmenHarness = import.meta.env.DEV
-  ? lazy(() => import('../pages/Omen.jsx'))
-  : null;
+const OmenHarness = import.meta.env.DEV ? lazy(() => import('../pages/Omen.jsx')) : null;
 
-const PromoCapture = import.meta.env.DEV
-  ? lazy(() => import('../pages/PromoCapture.jsx'))
-  : null;
+const PromoCapture = import.meta.env.DEV ? lazy(() => import('../pages/PromoCapture.jsx')) : null;
 
-const PromoTradeCapture = import.meta.env.DEV
-  ? lazy(() => import('../pages/PromoTradeCapture.jsx'))
-  : null;
+const PromoTradeCapture = import.meta.env.DEV ? lazy(() => import('../pages/PromoTradeCapture.jsx')) : null;
 
 export default function AppRoutes() {
   return (
@@ -46,8 +40,22 @@ export default function AppRoutes() {
       <Route path="/about" element={<OmenLanding />} />
       <Route path="/corvus" element={<Navigate to="/about" replace />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/trade" element={<AppLayout><TradeAnalyzer /></AppLayout>} />
-      <Route path="/trade/share/:hash" element={<AppLayout><TradeShare /></AppLayout>} />
+      <Route
+        path="/trade"
+        element={
+          <AppLayout>
+            <TradeAnalyzer />
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/trade/share/:hash"
+        element={
+          <AppLayout>
+            <TradeShare />
+          </AppLayout>
+        }
+      />
       {/* /draft removed 2026-08-16 (P1-DraftAssistantSideline) — cut from 1.0,
           returns for the 2027 fantasy draft. Falls through to the catch-all 404.
           The page itself is preserved at pages/DraftAssistant.jsx. */}
@@ -119,7 +127,9 @@ export default function AppRoutes() {
         path="/waiver"
         element={
           <ProtectedRoute>
-            <AppLayout><WaiverWire /></AppLayout>
+            <AppLayout>
+              <WaiverWire />
+            </AppLayout>
           </ProtectedRoute>
         }
       />
@@ -130,7 +140,9 @@ export default function AppRoutes() {
           path="/dev/omen"
           element={
             <Suspense fallback={null}>
-              <AppLayout><OmenHarness /></AppLayout>
+              <AppLayout>
+                <OmenHarness />
+              </AppLayout>
             </Suspense>
           }
         />
@@ -141,7 +153,9 @@ export default function AppRoutes() {
           path="/dev/promo-capture"
           element={
             <Suspense fallback={null}>
-              <AppLayout><PromoCapture /></AppLayout>
+              <AppLayout>
+                <PromoCapture />
+              </AppLayout>
             </Suspense>
           }
         />
@@ -152,7 +166,9 @@ export default function AppRoutes() {
           path="/dev/promo-trade"
           element={
             <Suspense fallback={null}>
-              <AppLayout><PromoTradeCapture /></AppLayout>
+              <AppLayout>
+                <PromoTradeCapture />
+              </AppLayout>
             </Suspense>
           }
         />

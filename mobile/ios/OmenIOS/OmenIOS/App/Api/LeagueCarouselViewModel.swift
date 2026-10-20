@@ -42,6 +42,18 @@ final class LeagueCarouselViewModel: ObservableObject {
         var displayTeamName: String { teamName?.isEmpty == false ? teamName! : "Your team" }
     }
 
+    /// The at-a-glance fact shown in Command's matchup rail. This is deliberately derived from
+    /// the same per-league overview as the full matchup page: the rail cannot have a cheaper,
+    /// competing notion of the score. A dash is unknown/not started, never zero.
+    struct ScoreSnapshot: Identifiable, Equatable {
+        let id: String
+        let teamName: String
+        let compactTeamName: String
+        let scoreText: String
+        let phase: String
+        let index: Int
+    }
+
     /// What one page's matchup read has produced. `loading` is a real state here — unlike
     /// League Pulse, where a spinner on a resting state was the F-HOT defect — because a
     /// page genuinely is fetching the first time you swipe to it.
@@ -72,6 +84,17 @@ final class LeagueCarouselViewModel: ObservableObject {
         case empty
     }
 
+    /// Shell-level meaning of the directory state. Feature screens must not infer this from an
+    /// optional scope: `nil` while the directory is loading and `nil` after a confirmed empty
+    /// directory are opposite facts and therefore require different presentation.
+    enum ContextResolution: Equatable {
+        case resolving
+        case selected(OmenCallScope)
+        case confirmedNone
+        case failed(OmenApiError)
+        case demo
+    }
+
     /// The "All" chip. A sentinel rather than an optional so the filter is one value with
     /// one meaning, and `Picker`-style selection has something concrete to bind to.
     static let allPlatforms = "__all__"
@@ -91,6 +114,8 @@ final class LeagueCarouselViewModel: ObservableObject {
     /// Set while a rest-on-page selection is being written, so the widget can say the
     /// context is changing rather than appear to have changed already.
     @Published private(set) var committingPageID: String?
+    /// Visible recovery for a user-triggered switch that did not verifiably land.
+    @Published private(set) var selectionError: OmenApiError?
     /// The page `commit(_:)` last wrote to the server, until the directory re-read confirms it as active.
     ///
     /// The team picker on Omen, Trade and League commits a league BY NAME and deliberately leaves
@@ -118,6 +143,11 @@ final class LeagueCarouselViewModel: ObservableObject {
     private var isRestoringFilter = false
     /// Guards against a swipe-through: swiping across five pages must not fire five writes.
     private var commitTask: Task<Void, Never>?
+    /// One directory read for every surface sharing this view model. SwiftUI may mount several
+    /// TabView children at once, and each child legitimately asks for context in its `.task`.
+    /// Without coalescing, a later cancelled request can write `.loading` after the successful
+    /// request has already resolved, leaving the whole app in placeholders forever.
+    private var directoryLoadTask: Task<Void, Never>?
 
     /// How many pending `selectedIndex` changes this view model made ITSELF, and which the
     /// carousel's `.onChange` must therefore not treat as a user resting on a new page.
@@ -227,6 +257,22 @@ final class LeagueCarouselViewModel: ObservableObject {
         allPages.first(where: { isCurrent($0) }) ?? currentPage
     }
 
+    var contextResolution: ContextResolution {
+        switch viewState {
+        case .loading:
+            return .resolving
+        case .loaded:
+            guard let scope = activePage?.omenCallScope else { return .confirmedNone }
+            return .selected(scope)
+        case .empty:
+            return .confirmedNone
+        case .failed(let error):
+            return .failed(error)
+        case .demo:
+            return .demo
+        }
+    }
+
     /// The id of the ONE league Omen is using right now, or nil when none can be named.
     ///
     /// Order of authority: the league this view model last wrote to the server (the account-wide
@@ -269,9 +315,64 @@ final class LeagueCarouselViewModel: ObservableObject {
         pageStates[page.id] ?? .loading
     }
 
+    var scoreSnapshots: [ScoreSnapshot] {
+        pages.enumerated().map { index, page in
+            let score: String
+            let phase: String
+            switch state(for: page) {
+            case .loading:
+                score = "\u{2014}"
+                phase = "Reading score"
+            case .unavailable:
+                score = "\u{2014}"
+                phase = "Score unavailable"
+            case .loaded(let hero):
+                switch hero {
+                case .beforeGames(let selectedTeam, _, let startTime, _):
+                    score = selectedTeam.scoreText
+                    phase = "Starts \(startTime)"
+                case .live(let selectedTeam, _, _, _):
+                    score = selectedTeam.scoreText
+                    phase = "Live"
+                case .final(let selectedTeam, _, _, _):
+                    score = selectedTeam.scoreText
+                    phase = "Final"
+                case .noMatchup:
+                    score = "\u{2014}"
+                    phase = "No matchup"
+                }
+            }
+            return ScoreSnapshot(
+                id: page.id,
+                teamName: page.displayTeamName,
+                compactTeamName: omenCompactTeamLabel(page.displayTeamName),
+                scoreText: score,
+                phase: phase,
+                index: index
+            )
+        }
+    }
+
     // MARK: - Loading
 
     func load(userID: String? = nil) async {
+        if let directoryLoadTask {
+            await directoryLoadTask.value
+            return
+        }
+
+        // This unstructured task owns the request independently of whichever SwiftUI child
+        // happened to ask first. Removing that child must not cancel shared app context.
+        let task = Task { [weak self] () -> Void in
+            guard let self else { return }
+            await self.performLoad(userID: userID)
+        }
+        directoryLoadTask = task
+        await task.value
+        directoryLoadTask = nil
+    }
+
+    private func performLoad(userID: String?) async {
         guard userID != SessionManager.demoUserID else {
             viewState = .demo
             return
@@ -316,6 +417,20 @@ final class LeagueCarouselViewModel: ObservableObject {
     /// already loaded, or already loading, is left alone.
     func loadCurrentPage() async {
         guard let page = currentPage else { return }
+        await loadPage(page)
+    }
+
+    /// Warms the rest of the matchup rail after the selected league has rendered. It is
+    /// intentionally not awaited by the shell's first useful state: scores fill progressively,
+    /// and a slow provider cannot delay leagues that already answered.
+    func prefetchRemainingPages() async {
+        for page in pages where pageStates[page.id] == nil {
+            guard !Task.isCancelled else { return }
+            await loadPage(page)
+        }
+    }
+
+    private func loadPage(_ page: Page) async {
         guard pageStates[page.id] == nil else { return }
 
         pageStates[page.id] = .loading
@@ -376,6 +491,10 @@ final class LeagueCarouselViewModel: ObservableObject {
         }
         commitTask?.cancel()
         guard let page = currentPage else { return nil }
+        // The accepted swipe changes context immediately. Publish the target before either the
+        // per-page read or the verified server write begins so callers can remove the outgoing
+        // league's values and mount the shaped switch placeholder in the same interaction turn.
+        committingPageID = page.id
         // The carousel shows the page it is committing, so its matchup has to be in flight
         // before the write. The picker has no such page and skips this.
         await loadCurrentPage()
@@ -407,6 +526,7 @@ final class LeagueCarouselViewModel: ObservableObject {
         // 2026-10-11).
         guard !(page.isActive && lastCommittedPageID == page.id) else { return nil }
 
+        selectionError = nil
         committingPageID = page.id
 
         let result = await sessionManager.authorized {
@@ -449,11 +569,12 @@ final class LeagueCarouselViewModel: ObservableObject {
                 self?.committingPageID = nil
             }
             return selection.refresh
-        case .failure:
+        case .failure(let error):
             // The switch did not verifiably land and the directory does not show it as active; the
             // server's state is unknown rather than known-unchanged. Chip and content both stay where
             // they were, and the caller does not reload, so they cannot disagree with each other.
             committingPageID = nil
+            selectionError = error
             return nil
         }
     }

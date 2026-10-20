@@ -45,7 +45,8 @@ const { referencedNumbers, REF_PATTERN } = require("./markdown");
 const DIRECTION_DIR = "Direction";
 
 const SAYS_RESOLVED = /\b(fixed|resolved|closed|re-?approved|complete[d]?|no longer (an issue|blocking))\b/i;
-const SAYS_OPEN = /\b(still open|still waiting|still failing|unresolved|refused|blocker|is open|remains open|pending)\b/i;
+const SAYS_OPEN =
+  /\b(still open|still waiting|still failing|unresolved|refused|blocker|is open|remains open|pending)\b/i;
 
 /**
  * How close a status word must sit to the reference to be read as describing it.
@@ -93,8 +94,7 @@ const HISTORICAL_FILES = new Set(["Direction/decision_log.md"]);
  * superseded bullet among live ones, and treating the marker as an opener blinded the rest of
  * the item.
  */
-const SUPERSESSION_INLINE =
-  /\[?\bSUPERSEDED\b|\bsuperseded (?:by|on)\b|~~/i;
+const SUPERSESSION_INLINE = /\[?\bSUPERSEDED\b|\bsuperseded (?:by|on)\b|~~/i;
 
 /**
  * An opener explicitly hands everything after it to the record:
@@ -221,8 +221,7 @@ module.exports = {
           if (saysResolved === saysOpen) continue;
 
           const state = known.get(number).state;
-          const conflicts =
-            (saysResolved && state === "OPEN") || (saysOpen && state === "CLOSED");
+          const conflicts = (saysResolved && state === "OPEN") || (saysOpen && state === "CLOSED");
           if (!conflicts) continue;
 
           findings.push({
@@ -243,7 +242,7 @@ module.exports = {
       informational.push(
         `Not read: ${suppressedInLogs} issue reference(s) in ${[...HISTORICAL_FILES].join(", ")} — ` +
           `an append-only log of dated decisions, which states what was true when each ` +
-          `decision was taken. Editing it to match today would falsify the record.`
+          `decision was taken. Editing it to match today would falsify the record.`,
       );
     }
     if (suppressedInBlocks > 0) {
@@ -251,7 +250,7 @@ module.exports = {
         `Not read: ${suppressedInBlocks} issue reference(s) inside superseded blocks or dated ` +
           `reconciliation sections in ${[...blockFiles].sort().join(", ")}. ` +
           `Provenance, not current claims. If a live claim is hiding in one of these blocks, ` +
-          `this check will not see it — that is the accepted cost of not rewriting history.`
+          `this check will not see it — that is the accepted cost of not rewriting history.`,
       );
     }
     return { findings, informational };

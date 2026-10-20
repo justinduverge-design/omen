@@ -67,33 +67,33 @@ const ESPN_EVENT_MAP = Object.freeze({
  * labels, so only ids certain from other evidence are named there.
  */
 const YAHOO_STAT_MAP = Object.freeze({
-  4: { event_key: "passing_yards", operator: "per_event" },            // Passing Yards (O)
-  5: { event_key: "passing_touchdowns", operator: "per_event" },       // Passing Touchdowns (O)
-  6: { event_key: "passing_interceptions", operator: "per_event" },    // Interceptions (O)
-  9: { event_key: "rushing_yards", operator: "per_event" },            // Rushing Yards (O)
-  10: { event_key: "rushing_touchdowns", operator: "per_event" },      // Rushing Touchdowns (O)
-  11: { event_key: "receiving_receptions", operator: "per_event" },    // Receptions (O)
-  12: { event_key: "receiving_yards", operator: "per_event" },         // Receiving Yards (O)
-  13: { event_key: "receiving_touchdowns", operator: "per_event" },    // Receiving Touchdowns (O)
-  15: { event_key: "return_touchdowns", operator: "per_event" },       // Return Touchdowns (O)
-  16: { event_key: "two_point_conversions", operator: "per_event" },   // 2-Point Conversions (O)
-  18: { event_key: "fumbles_lost", operator: "per_event" },            // Fumbles Lost (O)
-  29: { event_key: "extra_points_made", operator: "per_event" },       // Point After Attempt Made (K)
-  32: { event_key: "defense_sacks", operator: "per_event" },           // Sack (DT)
-  33: { event_key: "defense_interceptions", operator: "per_event" },   // Interception (DT)
+  4: { event_key: "passing_yards", operator: "per_event" }, // Passing Yards (O)
+  5: { event_key: "passing_touchdowns", operator: "per_event" }, // Passing Touchdowns (O)
+  6: { event_key: "passing_interceptions", operator: "per_event" }, // Interceptions (O)
+  9: { event_key: "rushing_yards", operator: "per_event" }, // Rushing Yards (O)
+  10: { event_key: "rushing_touchdowns", operator: "per_event" }, // Rushing Touchdowns (O)
+  11: { event_key: "receiving_receptions", operator: "per_event" }, // Receptions (O)
+  12: { event_key: "receiving_yards", operator: "per_event" }, // Receiving Yards (O)
+  13: { event_key: "receiving_touchdowns", operator: "per_event" }, // Receiving Touchdowns (O)
+  15: { event_key: "return_touchdowns", operator: "per_event" }, // Return Touchdowns (O)
+  16: { event_key: "two_point_conversions", operator: "per_event" }, // 2-Point Conversions (O)
+  18: { event_key: "fumbles_lost", operator: "per_event" }, // Fumbles Lost (O)
+  29: { event_key: "extra_points_made", operator: "per_event" }, // Point After Attempt Made (K)
+  32: { event_key: "defense_sacks", operator: "per_event" }, // Sack (DT)
+  33: { event_key: "defense_interceptions", operator: "per_event" }, // Interception (DT)
   34: { event_key: "defense_fumble_recoveries", operator: "per_event" }, // Fumble Recovery (DT)
-  35: { event_key: "defense_touchdowns", operator: "per_event" },      // Touchdown (DT)
-  36: { event_key: "defense_safeties", operator: "per_event" },        // Safety (DT)
-  37: { event_key: "defense_blocks", operator: "per_event" },          // Block Kick (DT)
+  35: { event_key: "defense_touchdowns", operator: "per_event" }, // Touchdown (DT)
+  36: { event_key: "defense_safeties", operator: "per_event" }, // Safety (DT)
+  37: { event_key: "defense_blocks", operator: "per_event" }, // Block Kick (DT)
   49: { event_key: "defense_return_touchdowns", operator: "per_event" }, // Kickoff and Punt Return TD (DT)
 });
 
 /** Yahoo's field-goal bands, resolved through the same canonical bands Sleeper uses. */
 const YAHOO_FG_BANDS = Object.freeze({
-  19: "field_goals_made_0_39",   // Field Goals 0-19 Yards
-  20: "field_goals_made_0_39",   // Field Goals 20-29 Yards
-  21: "field_goals_made_0_39",   // Field Goals 30-39 Yards
-  22: "field_goals_made_40_49",  // Field Goals 40-49 Yards
+  19: "field_goals_made_0_39", // Field Goals 0-19 Yards
+  20: "field_goals_made_0_39", // Field Goals 20-29 Yards
+  21: "field_goals_made_0_39", // Field Goals 30-39 Yards
+  22: "field_goals_made_40_49", // Field Goals 40-49 Yards
   23: "field_goals_made_50_plus", // Field Goals 50+ Yards
 });
 
@@ -174,7 +174,10 @@ function finite(value) {
 function canonicalize(value) {
   if (Array.isArray(value)) return `[${value.map(canonicalize).join(",")}]`;
   if (value && typeof value === "object") {
-    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalize(value[key])}`).join(",")}}`;
+    return `{${Object.keys(value)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${canonicalize(value[key])}`)
+      .join(",")}}`;
   }
   return JSON.stringify(value ?? null);
 }
@@ -184,10 +187,12 @@ function hashOf(value) {
 }
 
 function sortRules(rules) {
-  return [...rules].sort((a, b) =>
-    String(a.event_key).localeCompare(String(b.event_key))
-    || String(a.operator).localeCompare(String(b.operator))
-    || (a.min ?? 0) - (b.min ?? 0));
+  return [...rules].sort(
+    (a, b) =>
+      String(a.event_key).localeCompare(String(b.event_key)) ||
+      String(a.operator).localeCompare(String(b.operator)) ||
+      (a.min ?? 0) - (b.min ?? 0),
+  );
 }
 
 /**
@@ -325,9 +330,7 @@ function deriveYahooRules(settings) {
   const modifiers = settings?.stat_modifiers?.stats;
   if (!Array.isArray(modifiers) && !modifiers) return null;
 
-  const list = Array.isArray(modifiers)
-    ? modifiers
-    : Object.values(modifiers).filter((entry) => entry && entry.stat);
+  const list = Array.isArray(modifiers) ? modifiers : Object.values(modifiers).filter((entry) => entry && entry.stat);
 
   const rules = [];
   const unmapped = [];
@@ -388,9 +391,7 @@ function snapshot({ platform, coverageState, rules = [], unmapped = [], reason =
     contract_hash: hashOf(contract),
     // A rule snapshot only. Never a credential, roster, or league identity.
     provider_rule_snapshot_hash: hashOf({ platform, rules, unmapped }),
-    unsupported_event_keys: rules
-      .map((rule) => rule.event_key)
-      .filter((key) => !EVENT_KEYS.has(key)),
+    unsupported_event_keys: rules.map((rule) => rule.event_key).filter((key) => !EVENT_KEYS.has(key)),
   };
 }
 

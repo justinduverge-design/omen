@@ -54,7 +54,10 @@ function createMemoryTradeSavedQueueStore() {
       return items ? items.map((item) => ({ ...item })) : [];
     },
     async writeAll(userId, items) {
-      records.set(userId, items.map((item) => ({ ...item })));
+      records.set(
+        userId,
+        items.map((item) => ({ ...item })),
+      );
     },
     async deleteAll(userId) {
       records.delete(userId);

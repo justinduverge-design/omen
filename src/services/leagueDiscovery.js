@@ -39,29 +39,34 @@ async function discoverLeagues(row, userId, season) {
   if (platform === "yahoo") {
     const { client } = await getAuthenticatedYahooClient(userId);
     const leagues = await client.getUserLeagues();
-    return toMap((leagues || []).map((league) => ({
-      league_id: String(league.league_id),
-      league_name: league.name || null,
-      season: league.season == null ? null : Number(league.season),
-      team_id: null,
-      team_name: null,
-    })));
+    return toMap(
+      (leagues || []).map((league) => ({
+        league_id: String(league.league_id),
+        league_name: league.name || null,
+        season: league.season == null ? null : Number(league.season),
+        team_id: null,
+        team_name: null,
+      })),
+    );
   }
 
   if (platform === "sleeper") {
-    const sleeperUserId = row.platform_user_id
-      || (row.platform_username
-        ? (await sleeperAdapter.fetchSleeperUser(row.platform_username)).user_id
-        : null);
+    const sleeperUserId =
+      row.platform_user_id ||
+      (row.platform_username ? (await sleeperAdapter.fetchSleeperUser(row.platform_username)).user_id : null);
     if (!sleeperUserId) return new Map();
     const leagues = await sleeperAdapter.fetchSleeperLeagues(sleeperUserId, season);
-    return toMap((leagues || []).map((league) => ({
-      league_id: String(league.league_id || league.id),
-      league_name: league.name || null,
-      season: league.season == null ? null : Number(league.season),
-      team_id: null,
-      team_name: null,
-    })).filter((league) => league.league_id && league.league_id !== "undefined"));
+    return toMap(
+      (leagues || [])
+        .map((league) => ({
+          league_id: String(league.league_id || league.id),
+          league_name: league.name || null,
+          season: league.season == null ? null : Number(league.season),
+          team_id: null,
+          team_name: null,
+        }))
+        .filter((league) => league.league_id && league.league_id !== "undefined"),
+    );
   }
 
   if (platform === "espn") {
@@ -74,13 +79,15 @@ async function discoverLeagues(row, userId, season) {
       // rejecting it would break a connection that works.
     }
     if (!usableLeagueId(row)) return new Map();
-    return toMap([{
-      league_id: String(row.league_id),
-      league_name: null,
-      season: season == null ? null : Number(season),
-      team_id: row.espn_team_id == null ? null : String(row.espn_team_id),
-      team_name: null,
-    }]);
+    return toMap([
+      {
+        league_id: String(row.league_id),
+        league_name: null,
+        season: season == null ? null : Number(season),
+        team_id: row.espn_team_id == null ? null : String(row.espn_team_id),
+        team_name: null,
+      },
+    ]);
   }
 
   return new Map();
@@ -120,9 +127,7 @@ async function connectionForLeague(rows, { platform, leagueId, userId, season, i
     return {
       ...row,
       league_id: wanted,
-      espn_team_id: row.platform === "espn"
-        ? (match.team_id ?? row.espn_team_id ?? null)
-        : row.espn_team_id,
+      espn_team_id: row.platform === "espn" ? (match.team_id ?? row.espn_team_id ?? null) : row.espn_team_id,
     };
   }
   return null;

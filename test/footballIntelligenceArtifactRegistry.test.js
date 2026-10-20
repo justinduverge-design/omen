@@ -179,10 +179,7 @@ test("detects object tampering before replay", async (t) => {
     coverage: { games: 1, eligible_plays: 1, charted_plays: null },
   });
   await fs.writeFile(result.paths.artifact, "tampered");
-  await assert.rejects(
-    registry.readArtifact(result.artifact_id),
-    (error) => error.code === "ARTIFACT_HASH_MISMATCH",
-  );
+  await assert.rejects(registry.readArtifact(result.artifact_id), (error) => error.code === "ARTIFACT_HASH_MISMATCH");
 });
 
 test("verified receipt replay binds immutable receipt metadata to exact object bytes", async (t) => {
@@ -208,33 +205,48 @@ test("verified receipt replay binds immutable receipt metadata to exact object b
 test("local CLI registers, indexes, and verifies without a storage vendor", async (t) => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "omen-fi-cli-root-"));
   const inputs = await fs.mkdtemp(path.join(os.tmpdir(), "omen-fi-cli-input-"));
-  t.after(() => Promise.all([
-    fs.rm(root, { recursive: true, force: true }),
-    fs.rm(inputs, { recursive: true, force: true }),
-  ]));
+  t.after(() =>
+    Promise.all([fs.rm(root, { recursive: true, force: true }), fs.rm(inputs, { recursive: true, force: true })]),
+  );
   const artifact = path.join(inputs, "pbp.csv");
   const metadata = path.join(inputs, "metadata.json");
   await fs.writeFile(artifact, "game_id,play_id\n2025_01_SEA_SF,1\n");
-  await fs.writeFile(metadata, JSON.stringify({
-    artifact_type: "raw_source",
-    intended_use: "current_denominator",
-    media_type: "text/csv",
-    source: SOURCE,
-    schema_fingerprint: `sha256:${"2".repeat(64)}`,
-    row_count: 1,
-    coverage: { games: 1, eligible_plays: 1, charted_plays: null },
-  }));
+  await fs.writeFile(
+    metadata,
+    JSON.stringify({
+      artifact_type: "raw_source",
+      intended_use: "current_denominator",
+      media_type: "text/csv",
+      source: SOURCE,
+      schema_fingerprint: `sha256:${"2".repeat(64)}`,
+      row_count: 1,
+      coverage: { games: 1, eligible_plays: 1, charted_plays: null },
+    }),
+  );
   const script = path.resolve(__dirname, "../scripts/football-intelligence-artifacts.js");
-  const registered = JSON.parse((await execFileAsync(process.execPath, [
-    script, "register", "--root", root, "--file", artifact, "--metadata", metadata,
-  ])).stdout);
+  const registered = JSON.parse(
+    (
+      await execFileAsync(process.execPath, [
+        script,
+        "register",
+        "--root",
+        root,
+        "--file",
+        artifact,
+        "--metadata",
+        metadata,
+      ])
+    ).stdout,
+  );
   const index = JSON.parse((await execFileAsync(process.execPath, [script, "index", "--root", root])).stdout);
-  const verified = JSON.parse((await execFileAsync(process.execPath, [
-    script, "verify", "--root", root, "--artifact", registered.artifact_id,
-  ])).stdout);
-  const replayed = JSON.parse((await execFileAsync(process.execPath, [
-    script, "replay", "--root", root, "--receipt", registered.receipt_id,
-  ])).stdout);
+  const verified = JSON.parse(
+    (await execFileAsync(process.execPath, [script, "verify", "--root", root, "--artifact", registered.artifact_id]))
+      .stdout,
+  );
+  const replayed = JSON.parse(
+    (await execFileAsync(process.execPath, [script, "replay", "--root", root, "--receipt", registered.receipt_id]))
+      .stdout,
+  );
   assert.equal(index.artifacts.length, 1);
   assert.deepEqual(verified, {
     artifact_id: registered.artifact_id,

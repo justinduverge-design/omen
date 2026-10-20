@@ -28,8 +28,9 @@
  *   status "unavailable" the trade could not be weighed; `reason` is a stable code
  */
 
-const { findTradeCandidate, createSearchBudget } = require("./tradeLineup");
-const { compareTrade } = require("./tradeValue");
+const { createSearchBudget } = require("./tradeLineup");
+const { findTradeCandidateAsync } = require("./tradeSearchPool");
+const { mutualFairnessGuard } = require("./tradeFind");
 const { normalizePosition } = require("./playerSearch");
 
 // A weekly-lineup gain may justify only a bounded loss in season-long VORP (same policy the
@@ -44,7 +45,10 @@ const TRADE_READ_BUDGET_MS = 1500;
 const TRADE_SEARCH_BUDGET_MS = 1200;
 
 const UNAVAILABLE_COPY = Object.freeze({
-  projections_unavailable: (label) => `${label} does not give Omen weekly projections, so a trade cannot be weighed.`,
+  projections_unavailable: (label) =>
+    label === "Yahoo"
+      ? "Omen could not build enough usable projections for this Yahoo league this week, so a trade cannot be weighed."
+      : `${label} did not provide enough usable weekly projections, so a trade cannot be weighed.`,
   rosters_unreadable: (label) => `Omen could not read the other ${label} rosters in this league.`,
   league_not_active: () => "This league has not finished drafting, so there are no rosters to trade from.",
   own_team_not_found: (label) => `Omen could not find your team in the ${label} league rosters.`,
@@ -99,10 +103,16 @@ function looksLikeMissingName(name) {
 }
 
 async function fillDisplayNames(players, { getRuntime, logger } = {}) {
-  const wanted = players.filter((player) => looksLikeMissingName(player?.name) && /^(espn|yahoo|sleeper):/.test(String(player?.player_key || "")));
+  const wanted = players.filter(
+    (player) => looksLikeMissingName(player?.name) && /^(espn|yahoo|sleeper):/.test(String(player?.player_key || "")),
+  );
   if (!wanted.length) return players;
   let runtime = null;
-  try { runtime = typeof getRuntime === "function" ? getRuntime() : null; } catch { runtime = null; }
+  try {
+    runtime = typeof getRuntime === "function" ? getRuntime() : null;
+  } catch {
+    runtime = null;
+  }
   if (!runtime?.enabled || !runtime.identityRepository || runtime.mode === "supabase") return players;
   try {
     const keys = wanted.map((player) => {
@@ -118,7 +128,14 @@ async function fillDisplayNames(players, { getRuntime, logger } = {}) {
       return { ...player, name: hit.name, position, team: player.team || hit.team || null };
     });
   } catch {
-    try { logger?.info?.("Omen trade identity fallback unavailable", { event: "omen_trade_identity", outcome: "unavailable" }); } catch { /* never throws */ }
+    try {
+      logger?.info?.("Omen trade identity fallback unavailable", {
+        event: "omen_trade_identity",
+        outcome: "unavailable",
+      });
+    } catch {
+      /* never throws */
+    }
     return players;
   }
 }
@@ -135,7 +152,7 @@ async function readSleeper({ connection, roster, adapters }) {
   const leagueRosters = await adapters.sleeper.fetchSleeperLeagueRosters(
     connection.league_id,
     roster.week,
-    String(new Date().getFullYear())
+    String(new Date().getFullYear()),
   );
   const status = String(leagueRosters?.league_status || "").toLowerCase();
   if (status === "pre_draft" || status === "drafting") return { unavailable: "league_not_active" };
@@ -152,14 +169,15 @@ async function readEspn({ connection, roster, credentials, adapters }) {
     connection.league_id,
     credentials.espnS2,
     credentials.swid,
-    { week: roster.week }
+    { week: roster.week },
   );
   const teams = leagueTeamsFromEspn(rosters);
   return {
     teams,
-    rosterPositions: Array.isArray(rosters?.roster_positions) && rosters.roster_positions.length
-      ? rosters.roster_positions
-      : rosterPositionsFromRoster(roster),
+    rosterPositions:
+      Array.isArray(rosters?.roster_positions) && rosters.roster_positions.length
+        ? rosters.roster_positions
+        : rosterPositionsFromRoster(roster),
     ownTeamId: String(roster?.team_key ?? connection.espn_team_id ?? ""),
   };
 }
@@ -172,12 +190,14 @@ async function readYahoo({ connection, roster, yahooAuth, adapters }) {
     team_id: team?.team_id ? String(team.team_id) : "",
     team_name: team?.team_name || null,
     players: Array.isArray(team?.players) ? team.players : [],
+    read_status: team?.read_status === "unreadable" ? "unreadable" : "ok",
   }));
   return {
     teams,
-    rosterPositions: Array.isArray(rosters?.roster_positions) && rosters.roster_positions.length
-      ? rosters.roster_positions
-      : rosterPositionsFromRoster(roster),
+    rosterPositions:
+      Array.isArray(rosters?.roster_positions) && rosters.roster_positions.length
+        ? rosters.roster_positions
+        : rosterPositionsFromRoster(roster),
     ownTeamId: String(roster?.team_key ?? ""),
   };
 }
@@ -211,13 +231,15 @@ async function evaluateTradeForConnection({ connection, roster, platformLabel, d
   const withinBudget = deps.withinBudget || (async (fn) => fn());
   let leagueRead;
   try {
-    leagueRead = await withinBudget(() => read({
-      connection,
-      roster,
-      credentials: deps.credentials,
-      yahooAuth: deps.yahooAuth,
-      adapters: deps.adapters,
-    }));
+    leagueRead = await withinBudget(() =>
+      read({
+        connection,
+        roster,
+        credentials: deps.credentials,
+        yahooAuth: deps.yahooAuth,
+        adapters: deps.adapters,
+      }),
+    );
   } catch (error) {
     return unavailable(error?.code === "latency_budget_exceeded" ? "timed_out" : "rosters_unreadable");
   }
@@ -226,34 +248,50 @@ async function evaluateTradeForConnection({ connection, roster, platformLabel, d
   const teams = leagueRead.teams;
   const ownTeam = teams.find((team) => team.team_id === leagueRead.ownTeamId);
   if (!ownTeam) return unavailable("own_team_not_found");
+  if (ownTeam.read_status === "unreadable") return unavailable("rosters_unreadable");
   const rosterPositions = leagueRead.rosterPositions;
   if (!Array.isArray(rosterPositions) || rosterPositions.length === 0) return unavailable("no_starting_slots");
 
   // Another manager whose roster the provider did not disclose is skipped, never assumed empty.
-  const opponents = teams.filter((team) => team.team_id !== ownTeam.team_id && Array.isArray(team.players) && team.players.length > 0);
+  const opponents = teams.filter(
+    (team) =>
+      team.team_id !== ownTeam.team_id &&
+      team.read_status !== "unreadable" &&
+      Array.isArray(team.players) &&
+      team.players.length > 0,
+  );
+  const teamsUnreadable = teams.filter(
+    (team) => team.team_id !== ownTeam.team_id && team.read_status === "unreadable",
+  ).length;
   if (!opponents.length) return unavailable("rosters_unreadable");
 
   let budgetTripped = false;
-  const candidate = findTradeCandidate({
+  const candidate = await findTradeCandidateAsync({
     ownTeam: { ...ownTeam, roster_id: ownTeam.team_id },
     opponentTeams: opponents.map((team) => ({ ...team, roster_id: team.team_id })),
     rosterPositions,
     budget: createSearchBudget({ budgetMs: TRADE_SEARCH_BUDGET_MS }),
     onBudgetExceeded: (stats) => {
       budgetTripped = true;
-      if (deps.onBudgetExceeded) deps.onBudgetExceeded(stats, { opponents: teams.length, own_players: ownTeam.players.length });
+      if (deps.onBudgetExceeded)
+        deps.onBudgetExceeded(stats, { opponents: teams.length, own_players: ownTeam.players.length });
     },
-    fairnessGuard: ({ give, receive, userDelta }) => {
-      const valuation = compareTrade({ send: [give], receive: [receive] });
-      return Number.isFinite(valuation.net_value)
-        && valuation.net_value >= -(userDelta * MAX_VORP_LOSS_PER_WEEKLY_POINT);
-    },
+    // Two-sided: the other manager must gain a real amount and must not lose more season-long
+    // value than that gain justifies, or the "mutual improvement" is a trade nobody would accept.
+    fairnessGuard: mutualFairnessGuard,
   });
 
   if (!candidate) {
     return budgetTripped
       ? unavailable("search_budget_exceeded")
-      : { status: "none_found", reason: null, message: null, teams_checked: opponents.length, candidate: null };
+      : {
+          status: "none_found",
+          reason: null,
+          message: null,
+          teams_checked: opponents.length,
+          teams_unreadable: teamsUnreadable,
+          candidate: null,
+        };
   }
 
   const [give, receive] = await fillDisplayNames([candidate.give, candidate.receive], deps);
@@ -262,6 +300,7 @@ async function evaluateTradeForConnection({ connection, roster, platformLabel, d
     reason: null,
     message: null,
     teams_checked: opponents.length,
+    teams_unreadable: teamsUnreadable,
     candidate: { ...candidate, give, receive },
   };
 }

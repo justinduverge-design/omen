@@ -3,10 +3,7 @@
 
 const fs = require("node:fs/promises");
 const path = require("node:path");
-const {
-  ArtifactRegistryError,
-  createLocalArtifactRegistry,
-} = require("../src/services/footballIntelligence");
+const { ArtifactRegistryError, createLocalArtifactRegistry } = require("../src/services/footballIntelligence");
 
 function usage() {
   return [
@@ -55,18 +52,22 @@ async function main() {
   if (command === "verify") {
     if (!options.artifact) throw new Error(usage());
     const bytes = await registry.readArtifact(options.artifact);
-    process.stdout.write(`${JSON.stringify({ artifact_id: options.artifact, byte_length: bytes.length, verified: true })}\n`);
+    process.stdout.write(
+      `${JSON.stringify({ artifact_id: options.artifact, byte_length: bytes.length, verified: true })}\n`,
+    );
     return;
   }
   if (command === "replay") {
     if (!options.receipt) throw new Error(usage());
     const replay = await registry.replayReceipt(options.receipt);
-    process.stdout.write(`${JSON.stringify({
-      receipt_id: replay.receipt.receipt_id,
-      artifact_id: replay.receipt.artifact.sha256,
-      byte_length: replay.bytes.length,
-      verified: true,
-    })}\n`);
+    process.stdout.write(
+      `${JSON.stringify({
+        receipt_id: replay.receipt.receipt_id,
+        artifact_id: replay.receipt.artifact.sha256,
+        byte_length: replay.bytes.length,
+        verified: true,
+      })}\n`,
+    );
     return;
   }
   throw new Error(usage());

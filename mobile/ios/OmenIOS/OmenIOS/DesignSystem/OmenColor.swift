@@ -5,7 +5,11 @@ import UIKit
 /// `omen-native-design-system-registry-v1.md` §2.2/§2.3 — do not hand-edit a hex here without
 /// updating the registry row first (registry markdown is the source of truth).
 ///
-/// **Warm neutral ramp, 2026-09-11.** The light ramp was Tailwind's cold grey on a
+/// **Neutral light ramp, 2026-10-19.** Founder: light mode, not beige. The light values below are
+/// the whole-app canvas's (`design/whole-app-canvas-2026-10-19/BUILD.md`); accent is `#8A5E10` (5.3:1
+/// on `bg`), the canvas's `#9A6A16` falling just short of 4.5:1 for text. The dark ramp is unchanged.
+///
+/// **Warm neutral ramp, 2026-09-11** (light values since replaced). The light ramp was Tailwind's cold grey on a
 /// brass-and-umber brand; it is now derived from the approved core (Bone White, Weathered
 /// Umber). `border` also changed role — it is the sole visible boundary of text fields,
 /// pickers, OTP cells and outlined buttons, and shipped at 1.08:1, so it now clears WCAG
@@ -17,19 +21,19 @@ import UIKit
 /// `OmenColor.xxx` directly and gets the correct dark/light value automatically, with no
 /// `@Environment(\.colorScheme)` plumbing required at the call site.
 enum OmenColor {
-    static let bg = dynamic(dark: 0x1F1F1D, light: 0xF1EDE4)
-    static let surface1 = dynamic(dark: 0x2A2A27, light: 0xFFFDF9)
-    static let surface2 = dynamic(dark: 0x343431, light: 0xF6F1E7)
-    static let surface3 = dynamic(dark: 0x3F3F3B, light: 0xE9E1D2)
-    static let border = dynamic(dark: 0x8A8272, light: 0x8F7B5F)
-    static let borderSubtle = dynamic(dark: 0x3A3A36, light: 0xDCD1BA)
-    static let textPrimary = dynamic(dark: 0xF5F0E8, light: 0x1C1917)
-    static let textSecondary = dynamic(dark: 0xBDB5A9, light: 0x5C5248)
-    static let textTertiary = dynamic(dark: 0xA79E90, light: 0x6B6052)
-    static let accent = dynamic(dark: 0xC4933B, light: 0x7A5C1E)
-    static let accentHover = dynamic(dark: 0xD8A648, light: 0xA67C2E)
-    static let accentMuted = dynamic(dark: 0x3A2A0A, light: 0xF6E7BE)
-    static let textOnAccent = dynamic(dark: 0x14140F, light: 0xFFFDF9)
+    static let bg = dynamic(dark: 0x1F1F1D, light: 0xF6F6F4)
+    static let surface1 = dynamic(dark: 0x2A2A27, light: 0xFFFFFF)
+    static let surface2 = dynamic(dark: 0x343431, light: 0xECECE9)
+    static let surface3 = dynamic(dark: 0x3F3F3B, light: 0xE2E2DE)
+    static let border = dynamic(dark: 0x8A8272, light: 0x85857F)
+    static let borderSubtle = dynamic(dark: 0x3A3A36, light: 0xE0E0DC)
+    static let textPrimary = dynamic(dark: 0xF5F0E8, light: 0x161614)
+    static let textSecondary = dynamic(dark: 0xBDB5A9, light: 0x4A4A46)
+    static let textTertiary = dynamic(dark: 0xA79E90, light: 0x6B6B66)
+    static let accent = dynamic(dark: 0xC4933B, light: 0x8A5E10)
+    static let accentHover = dynamic(dark: 0xD8A648, light: 0x9A6A16)
+    static let accentMuted = dynamic(dark: 0x3A2A0A, light: 0xF3E6CC)
+    static let textOnAccent = dynamic(dark: 0x14140F, light: 0xFFFFFF)
     static let omen = dynamic(dark: 0x2F7D5B, light: 0x1A5C3E)
 
     /// Verdigris tuned for **chip typography**, the same way `Data.platformSleeperChip` and
@@ -64,7 +68,7 @@ enum OmenColor {
     /// Derived from `accent`; solid stroke color for the focus-ring outline (registry §2.2, §4).
     static let focusRing = accent
     /// Soft halo layered behind `focusRing` — the "accent @ 40%" reading of the registry row.
-    static let focusRingHalo = dynamic(dark: 0xC4933B, light: 0x7A5C1E, alpha: 0.4)
+    static let focusRingHalo = dynamic(dark: 0xC4933B, light: 0x8A5E10, alpha: 0.4)
 
     enum Data {
         // Data-semantic invariant tokens (registry §2.3) — never theme-overridden, except the
@@ -98,7 +102,8 @@ enum OmenColor {
         static let onPlatformSleeper = invariant(0xFFFFFF)
         static let onPlatformYahoo = invariant(0xFFFFFF)
         static let onPlatformEspn = invariant(0xFFFFFF)
-        static let demoText = invariant(0x7DD3FC)
+        // Light value added with light mode: #7DD3FC is ~1.6:1 on the near-white ground.
+        static let demoText = dynamic(dark: 0x7DD3FC, light: 0x0369A1)
         static let demoTextSecondary = invariant(0xBAE6FD, alpha: 0.8)
     }
 
@@ -124,5 +129,31 @@ private extension UIColor {
             blue: CGFloat(hex & 0xFF) / 255,
             alpha: alpha
         )
+    }
+}
+
+
+/// The Appearance setting (Account › Appearance). Dark stays the default; Light is the neutral
+/// near-white ramp above, never beige (founder, 2026-10-19); Match iPhone follows the system.
+enum OmenAppearance: String, CaseIterable {
+    case dark, light, system
+
+    static let storageKey = "omen.appearance"
+
+    var title: String {
+        switch self {
+        case .dark: return "Dark"
+        case .light: return "Light"
+        case .system: return "Match iPhone"
+        }
+    }
+
+    /// Nil hands the choice to the system.
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .dark: return .dark
+        case .light: return .light
+        case .system: return nil
+        }
     }
 }

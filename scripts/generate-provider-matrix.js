@@ -30,7 +30,9 @@ function render(matrix) {
   const lines = [];
   lines.push("# Provider capability matrix");
   lines.push("");
-  lines.push("<!-- GENERATED from provider-capability-matrix.json by scripts/generate-provider-matrix.js. Do not edit. -->");
+  lines.push(
+    "<!-- GENERATED from provider-capability-matrix.json by scripts/generate-provider-matrix.js. Do not edit. -->",
+  );
   lines.push("");
   lines.push(`As of ${matrix.as_of}. ${matrix.note}`);
   lines.push("");
@@ -50,7 +52,9 @@ function render(matrix) {
   lines.push("|---|---|---|---|---|---|");
   for (const entry of entries.filter((item) => item.status !== "available")) {
     const verified = entry.last_verified ? `${entry.last_verified} (${entry.verification})` : "never";
-    lines.push(`| ${entry.provider} | ${entry.capability} | ${entry.status} | ${entry.reason} | ${entry.detail} | ${verified} |`);
+    lines.push(
+      `| ${entry.provider} | ${entry.capability} | ${entry.status} | ${entry.reason} | ${entry.detail} | ${verified} |`,
+    );
   }
   lines.push("");
   lines.push("## Provider data Omen receives or could receive but does not read");
@@ -60,7 +64,9 @@ function render(matrix) {
   lines.push("| Provider | Field | Seen | Opportunity | Value | Needs |");
   lines.push("|---|---|---|---|---|---|");
   for (const item of matrix.unused_surface) {
-    lines.push(`| ${item.provider} | ${item.field} | ${item.kind} | ${item.opportunity} | ${item.value} | ${item.needs} |`);
+    lines.push(
+      `| ${item.provider} | ${item.field} | ${item.kind} | ${item.opportunity} | ${item.value} | ${item.needs} |`,
+    );
   }
   lines.push("");
   lines.push("## Vocabulary");

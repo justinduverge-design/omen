@@ -12,42 +12,45 @@
     "capabilities": [
       {
         "fresh_until": null,
-        "kind": "inference",
+        "kind": "limitation",
         "name": "league_activity",
-        "observed_at": "2026-01-01T00:00:00.000Z",
+        "observed_at": null,
+        "reason_code": "settings_not_read",
         "source": "derived_standings",
-        "state": "live",
-        "statement": "Omen evaluated standings-backed league activity from the verified league table.",
-        "used": true
+        "state": "unavailable",
+        "statement": "Omen cannot evaluate standings-backed activity with the available league context.",
+        "used": false
       },
       {
         "fresh_until": null,
         "kind": "verified",
         "name": "league_matchup",
         "observed_at": "2026-01-01T00:00:00.000Z",
-        "source": "espn_matchup",
+        "reason_code": "no_matchup",
+        "source": "sleeper_matchups",
         "state": "live",
-        "statement": "Omen read this week's matchup from your connected ESPN league.",
+        "statement": "Your provider confirmed that your team has no matchup this week.",
         "used": true
       },
       {
         "fresh_until": null,
-        "kind": "verified",
+        "kind": "limitation",
         "name": "league_playoff_settings",
-        "observed_at": "2026-01-01T00:00:00.000Z",
-        "source": "espn_league_settings",
-        "state": "live",
-        "statement": "Omen read this league's playoff-team setting.",
-        "used": true
+        "observed_at": null,
+        "reason_code": "settings_not_read",
+        "source": "sleeper_league_settings",
+        "state": "unavailable",
+        "statement": "Omen has not read a playoff-team setting for this league.",
+        "used": false
       },
       {
         "fresh_until": null,
         "kind": "verified",
         "name": "league_standings",
         "observed_at": "2026-01-01T00:00:00.000Z",
-        "source": "espn_league_context",
+        "source": "sleeper_league_standings",
         "state": "live",
-        "statement": "Omen read the current standings from your connected ESPN league.",
+        "statement": "Omen read the current standings from your connected Sleeper league.",
         "used": true
       },
       {
@@ -68,7 +71,7 @@
         "observed_at": "2026-01-01T00:00:00.000Z",
         "source": "owned_platform_connection",
         "state": "live",
-        "statement": "Omen scoped this overview to your connected ESPN league.",
+        "statement": "Omen scoped this overview to your connected Sleeper league.",
         "used": true
       }
     ],
@@ -78,26 +81,27 @@
       "contract_version": "shared-decision-context.v1",
       "inputs": {
         "league_activity": {
-          "observed_at": "2026-01-01T00:00:00.000Z",
+          "reason_code": "settings_not_read",
           "source": "derived_standings",
-          "state": "live",
-          "used": true
+          "state": "unavailable",
+          "used": false
         },
         "league_matchup": {
           "observed_at": "2026-01-01T00:00:00.000Z",
-          "source": "espn_matchup",
+          "reason_code": "no_matchup",
+          "source": "sleeper_matchups",
           "state": "live",
           "used": true
         },
         "league_playoff_settings": {
-          "observed_at": "2026-01-01T00:00:00.000Z",
-          "source": "espn_league_settings",
-          "state": "live",
-          "used": true
+          "reason_code": "settings_not_read",
+          "source": "sleeper_league_settings",
+          "state": "unavailable",
+          "used": false
         },
         "league_standings": {
           "observed_at": "2026-01-01T00:00:00.000Z",
-          "source": "espn_league_context",
+          "source": "sleeper_league_standings",
           "state": "live",
           "used": true
         },
@@ -115,13 +119,21 @@
         }
       },
       "inputs_used": [
-        "league_activity",
         "league_matchup",
-        "league_playoff_settings",
         "league_standings",
         "selected_context"
       ],
       "limitations": [
+        {
+          "name": "league_activity",
+          "reason_code": "settings_not_read",
+          "state": "unavailable"
+        },
+        {
+          "name": "league_playoff_settings",
+          "reason_code": "settings_not_read",
+          "state": "unavailable"
+        },
         {
           "name": "league_transactions",
           "reason_code": "not_requested",
@@ -131,34 +143,22 @@
       "profile": "league"
     },
     "generated_at": "2026-01-01T00:00:00.000Z",
-    "league_id": "espn-1",
-    "league_name": "Real Path League",
+    "league_id": "league-1",
+    "league_name": "Sleeper League",
     "matchup": {
-      "game_id": "g-1",
-      "opponent": {
-        "points": 99.8,
-        "projected": null,
-        "record": "4-4",
-        "team_id": "4",
-        "team_name": "Rivals"
-      },
-      "status": "final",
-      "you": {
-        "points": 120.2,
-        "projected": null,
-        "record": "5-3",
-        "team_id": "9",
-        "team_name": "ESPN Team"
-      }
+      "opponent": null,
+      "status": "no_matchup",
+      "unavailable_reason": "league_not_started",
+      "you": null
     },
-    "platform": "espn",
+    "platform": "sleeper",
     "season": 2026,
     "standings": {
       "playoff_picture": {
-        "cut_line_note": "4 games clear of the cut line",
-        "line": "2nd of 3 · in a playoff spot",
+        "cut_line_note": null,
+        "line": "2nd of 3",
         "rank": 2,
-        "settings_known": true,
+        "settings_known": false,
         "team_count": 3
       },
       "status": "available",
@@ -166,31 +166,25 @@
         {
           "is_current_user": false,
           "losses": 1,
-          "points_against": 100,
-          "points_for": 900,
           "rank": 1,
           "team_id": "3",
-          "team_name": "Team 3",
+          "team_name": "Top Dogs",
           "wins": 7
         },
         {
           "is_current_user": true,
           "losses": 2,
-          "points_against": 100,
-          "points_for": 850,
           "rank": 2,
-          "team_id": "9",
-          "team_name": "Team 9",
+          "team_id": "7",
+          "team_name": "Ravens Flock",
           "wins": 6
         },
         {
           "is_current_user": false,
           "losses": 6,
-          "points_against": 100,
-          "points_for": 600,
           "rank": 3,
-          "team_id": "5",
-          "team_name": "Team 5",
+          "team_id": "9",
+          "team_name": "Also Rans",
           "wins": 2
         }
       ]

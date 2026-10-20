@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // MARK: - T3, "reviewing what Omen found"
 //
@@ -40,6 +41,7 @@ struct OmenTradeFindReviewScreen: View {
     /// Where `Batch-exhausted`'s and `Zero-candidates`'s single secondary button goes — the
     /// contract leaves the destination to the builder ("Trade or League").
     var onExit: (() -> Void)?
+    @Environment(\.omenHaptics) private var haptics
 
     var body: some View {
         ScrollView {
@@ -86,8 +88,8 @@ struct OmenTradeFindReviewScreen: View {
         case .zeroCandidates:
             OmenStateSurface(
                 kind: .empty,
-                title: "No real gaps to fill.",
-                message: "Omen checked \(viewModel.response?.teamsConsidered ?? 0) teams against your roster and found nothing that clearly helps you. That's not a miss — some weeks there's nothing there." + (viewModel.degradedSentence.map { " " + $0 } ?? "")
+                title: OmenTradeFindReviewScreen.emptyCopy(reason: viewModel.response?.emptyReason, teams: viewModel.response?.teamsConsidered ?? 0).title,
+                message: OmenTradeFindReviewScreen.emptyCopy(reason: viewModel.response?.emptyReason, teams: viewModel.response?.teamsConsidered ?? 0).message + (viewModel.degradedSentence.map { " " + $0 } ?? "")
             )
             .padding(.horizontal, OmenSpacing.step16)
             .padding(.top, OmenSpacing.step32)
@@ -154,7 +156,7 @@ struct OmenTradeFindReviewScreen: View {
             OmenTradeFindCandidateCard(
                 candidate: candidate,
                 onPass: { viewModel.pass() },
-                onSave: { Task { await viewModel.save() } }
+                onSave: { Task { await saveCurrentCandidate() } }
             )
             .padding(.horizontal, OmenSpacing.step16)
             .padding(.top, OmenSpacing.step12)
@@ -170,7 +172,7 @@ struct OmenTradeFindReviewScreen: View {
             OmenTradeFindActionRow(
                 saveState: viewModel.saveState(for: candidate.id),
                 onPass: { viewModel.pass() },
-                onSave: { Task { await viewModel.save() } },
+                onSave: { Task { await saveCurrentCandidate() } },
                 onRefresh: { Task { await viewModel.reload() } }
             )
             .padding(.horizontal, OmenSpacing.step16)
@@ -183,6 +185,28 @@ struct OmenTradeFindReviewScreen: View {
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, OmenSpacing.step16)
                 .padding(.top, OmenSpacing.step8)
+
+            // How far the search narrowed: the honest size of "we looked".
+            if let funnel = viewModel.response?.funnelLabel {
+                Text(funnel)
+                    .omenTextStyle(OmenTypography.bodySmall)
+                    .foregroundStyle(OmenColor.textTertiary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, OmenSpacing.step16)
+                    .padding(.top, OmenSpacing.step8)
+            }
+        }
+    }
+
+    /// The press or swipe acknowledges immediately. The later semantic feedback belongs to the
+    /// actual save result: success only after persistence, error only after an attempted save
+    /// fails. Expiry resolves visibly to `Search again` and is not itself an error vibration.
+    private func saveCurrentCandidate() async {
+        switch await viewModel.save() {
+        case .saved: haptics.play(.success)
+        case .error: haptics.play(.error)
+        case .expired, .none: break
         }
     }
 
@@ -201,8 +225,8 @@ struct OmenTradeFindReviewScreen: View {
         switch reason {
         case "projections_unavailable":
             return (
-                "\(provider) doesn't share projections yet",
-                "Find a trade ranks swaps by how they change your projected lineup, and \(provider) gives Omen no projections to rank with. Omen won't guess. You can still compare an offer yourself."
+                "Not enough projections to rank trades",
+                "Find a trade ranks swaps by how they change your projected lineup, and Omen could not build enough usable projections for this \(provider) league. Omen won't guess. You can still compare an offer yourself."
             )
         case "provider_reauth_required":
             return (
@@ -403,11 +427,16 @@ private struct OmenTradeFindCandidateCard: View {
     var onSave: () -> Void
 
     @State private var dragTranslationWidth: CGFloat = 0
+    @State private var announcedCommitDirection: Int = 0
+    @State private var dragIntent: DragIntent = .undecided
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.omenHaptics) private var haptics
 
     /// Distance a drag must travel before it commits, matching the deck-swipe precedent's own
     /// "past the commit threshold" language.
     private static let commitThreshold: CGFloat = 96
+
+    private enum DragIntent { case undecided, horizontal, vertical }
 
     var body: some View {
         VStack(alignment: .leading, spacing: OmenSpacing.step8) {
@@ -415,6 +444,7 @@ private struct OmenTradeFindCandidateCard: View {
             chips
             legs
             reasoningLine
+            catchLine
             evidence
         }
         .padding(OmenSpacing.step14)
@@ -440,7 +470,9 @@ private struct OmenTradeFindCandidateCard: View {
         }
         .offset(x: dragTranslationWidth)
         .rotationEffect(.degrees(Double(dragTranslationWidth / 24)))
-        .gesture(dragGesture)
+        // Run beside the parent ScrollView and claim motion only after horizontal intent is
+        // clear. A vertical read of the evidence should never twist or drag the card.
+        .modifier(OmenFindSwipe(dragGesture: dragGesture, onChanged: swipeChanged, onEnded: swipeEnded))
         // Deliberately NOT a single combined accessibility element: the contract requires
         // VoiceOver to read the card "in document order (opponent, need badges, send/receive
         // rows, reasoning, evidence)" rather than one collapsed summary, so each subview below
@@ -459,21 +491,50 @@ private struct OmenTradeFindCandidateCard: View {
     private var dragGesture: some Gesture {
         DragGesture(minimumDistance: 12)
             .onChanged { value in
-                dragTranslationWidth = value.translation.width
+                if dragIntent == .undecided {
+                    let dx = abs(value.translation.width)
+                    let dy = abs(value.translation.height)
+                    guard max(dx, dy) >= 12 else { return }
+                    dragIntent = dx > dy * 1.25 ? .horizontal : .vertical
+                }
+                guard dragIntent == .horizontal else { return }
+                swipeChanged(value.translation.width)
             }
             .onEnded { value in
-                let translation = value.translation.width
-                let animation: Animation? = reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8)
-                if translation <= -Self.commitThreshold {
-                    withAnimation(animation) { dragTranslationWidth = 0 }
-                    onPass()
-                } else if translation >= Self.commitThreshold {
-                    withAnimation(animation) { dragTranslationWidth = 0 }
-                    onSave()
-                } else {
-                    withAnimation(animation) { dragTranslationWidth = 0 }
+                guard dragIntent == .horizontal else {
+                    dragIntent = .undecided
+                    dragTranslationWidth = 0
+                    announcedCommitDirection = 0
+                    return
                 }
+                swipeEnded(value.translation.width)
             }
+    }
+
+    private func swipeChanged(_ width: CGFloat) {
+        dragTranslationWidth = width
+        let direction = width <= -Self.commitThreshold ? -1 : width >= Self.commitThreshold ? 1 : 0
+        if direction != 0, direction != announcedCommitDirection {
+            haptics.play(.selection)
+        }
+        announcedCommitDirection = direction
+    }
+
+    private func swipeEnded(_ translation: CGFloat) {
+        let animation: Animation? = reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8)
+        if translation <= -Self.commitThreshold {
+            haptics.play(.mediumImpact)
+            withAnimation(animation) { dragTranslationWidth = 0 }
+            onPass()
+        } else if translation >= Self.commitThreshold {
+            haptics.play(.mediumImpact)
+            withAnimation(animation) { dragTranslationWidth = 0 }
+            onSave()
+        } else {
+            withAnimation(animation) { dragTranslationWidth = 0 }
+        }
+        announcedCommitDirection = 0
+        dragIntent = .undecided
     }
 
     private var header: some View {
@@ -546,17 +607,37 @@ private struct OmenTradeFindCandidateCard: View {
             VStack(alignment: .leading, spacing: OmenSpacing.step2) {
                 Text(player.name).omenTextStyle(OmenTypography.name).foregroundStyle(OmenColor.textPrimary).lineLimit(1)
                 Text(player.meta).omenTextStyle(OmenTypography.micro).foregroundStyle(OmenColor.textTertiary).lineLimit(1)
+                // Real numbers: what this player has actually scored this season.
+                if let line = player.stats?.summaryLine {
+                    Text(line).omenTextStyle(OmenTypography.bodySmall).foregroundStyle(OmenColor.textSecondary).lineLimit(1)
+                }
+                // Omen's rating and the efficiency behind it (RAT-QB is Omen's QBR).
+                if let line = player.rating?.summaryLine {
+                    Text(line).omenTextStyle(OmenTypography.bodySmall).foregroundStyle(OmenColor.textSecondary).lineLimit(2)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            Text(player.pointsLabel)
-                .omenTextStyle(OmenTypography.micro)
-                .monospacedDigit()
-                .foregroundStyle(OmenColor.textTertiary)
+            VStack(alignment: .trailing, spacing: OmenSpacing.step2) {
+                Text(player.pointsLabel)
+                    .omenTextStyle(OmenTypography.micro)
+                    .monospacedDigit()
+                    .foregroundStyle(OmenColor.textTertiary)
+                // Omen's read beside the provider's projection, never in place of it.
+                if let omen = player.omenPointsLabel {
+                    Text(omen)
+                        .omenTextStyle(OmenTypography.micro)
+                        .monospacedDigit()
+                        .foregroundStyle(OmenColor.accent)
+                }
+            }
         }
         .padding(OmenSpacing.step10)
         .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(OmenColor.surface1))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(label), \(player.name), \(player.meta), \(player.pointsLabel)")
+        .accessibilityLabel(
+            ["\(label), \(player.name), \(player.meta), \(player.pointsLabel)", player.omenPointsLabel.map { "Omen's read \($0.dropFirst(5))" }]
+                .compactMap { $0 }.joined(separator: ", ")
+        )
     }
 
     private var reasoningLine: some View {
@@ -569,6 +650,16 @@ private struct OmenTradeFindCandidateCard: View {
                 + Text(" to theirs.").foregroundStyle(OmenColor.textSecondary)
         )
         .omenTextStyle(OmenTypography.bodySmall)
+    }
+
+    @ViewBuilder
+    private var catchLine: some View {
+        if candidate.theCatch?.status == "available", let statement = candidate.theCatch?.statement {
+            Text("The catch · \(statement)")
+                .omenTextStyle(OmenTypography.bodySmall)
+                .foregroundStyle(OmenColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     private static func signedString(_ value: Double) -> String {
@@ -677,7 +768,7 @@ private struct OmenTradeFindActionRow: View {
 
     var body: some View {
         HStack(spacing: OmenSpacing.step10) {
-            OmenButton(title: "Pass", action: onPass, variant: .secondary, size: .lg)
+            OmenButton(title: "Pass", action: onPass, variant: .secondary, size: .lg, haptic: .mediumImpact)
                 .frame(maxWidth: .infinity)
                 .accessibilityLabel("Pass on this candidate")
             OmenButton(
@@ -686,10 +777,90 @@ private struct OmenTradeFindActionRow: View {
                 variant: saveState == .saved ? .secondary : .primary,
                 size: .lg,
                 enabled: saveState != .saving && saveState != .saved,
-                loading: saveState == .saving
+                loading: saveState == .saving,
+                haptic: .mediumImpact
             )
             .frame(maxWidth: .infinity)
             .accessibilityLabel(saveState == .saved ? "Saved" : "Save this candidate for later")
+        }
+    }
+}
+
+extension OmenTradeFindReviewScreen {
+    /// Zero candidates, named by the step that ruled every trade out. The server sends the reason;
+    /// an older server sends none and gets the general line.
+    static func emptyCopy(reason: String?, teams: Int) -> (title: String, message: String) {
+        switch reason {
+        case "no_fair_trade":
+            return ("Nothing fair on the table.",
+                    "Omen found trades that would help your lineup across \(teams) teams, but each one costs the other manager more than it gives them. A deal they'd turn down isn't a move.")
+        case "no_trade_helps_both_lineups":
+            return ("No swap helps both sides.",
+                    "Omen tried every one-for-one across \(teams) teams. None makes both starting lineups better this week.")
+        case "no_tradeable_players":
+            return ("Nobody to trade right now.",
+                    "Every player who could move is locked or has no projection yet. Check back once this week's games are set.")
+        case "no_readable_opponents":
+            return ("Omen couldn't read the other teams.",
+                    "Your roster loaded, but no other roster in this league did. Try again in a minute.")
+        case "search_budget_exceeded":
+            return ("The search ran out of time.",
+                    "This league has more combinations than Omen can check in one pass. Try again, or build the trade yourself.")
+        default:
+            return ("No real gaps to fill.",
+                    "Omen checked \(teams) teams against your roster and found nothing that clearly helps you. Some weeks there's nothing there.")
+        }
+    }
+}
+
+
+/// The Find card's swipe. On iOS 18+ it is a UIKit pan that refuses to begin unless the motion is
+/// horizontal, so a vertical drag on the card scrolls the page from the first point instead of
+/// being held by SwiftUI while it decides (Apple's `UIGestureRecognizerRepresentable`). iOS 17 keeps
+/// the SwiftUI drag.
+private struct OmenFindSwipe<G: Gesture>: ViewModifier {
+    let dragGesture: G
+    let onChanged: (CGFloat) -> Void
+    let onEnded: (CGFloat) -> Void
+
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, *) {
+            content.gesture(OmenHorizontalPan(onChanged: onChanged, onEnded: onEnded))
+        } else {
+            content.simultaneousGesture(dragGesture)
+        }
+    }
+}
+
+@available(iOS 18.0, *)
+private struct OmenHorizontalPan: UIGestureRecognizerRepresentable {
+    let onChanged: (CGFloat) -> Void
+    let onEnded: (CGFloat) -> Void
+
+    func makeUIGestureRecognizer(context: Context) -> UIPanGestureRecognizer {
+        let pan = UIPanGestureRecognizer()
+        pan.delegate = context.coordinator
+        return pan
+    }
+
+    func makeCoordinator(converter: CoordinateSpaceConverter) -> Coordinator { Coordinator() }
+
+    func handleUIGestureRecognizerAction(_ recognizer: UIPanGestureRecognizer, context: Context) {
+        let width = recognizer.translation(in: recognizer.view).x
+        switch recognizer.state {
+        case .changed: onChanged(width)
+        case .ended: onEnded(width)
+        // A pan the system interrupted (a call, Control Center) never commits Save or Pass.
+        case .cancelled, .failed: onEnded(0)
+        default: break
+        }
+    }
+
+    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
+        func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+            guard let pan = gestureRecognizer as? UIPanGestureRecognizer else { return false }
+            let velocity = pan.velocity(in: pan.view)
+            return abs(velocity.x) > abs(velocity.y) * 1.25
         }
     }
 }

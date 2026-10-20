@@ -35,7 +35,7 @@ export default function Unsubscribe() {
             <input
               id="unsubscribe-email"
               autoComplete="email"
-              className="min-h-[48px] w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] px-4 text-[var(--color-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+              className="min-h-[48px] w-full rounded-lg border border-(--color-border) bg-(--color-surface-1) px-4 text-(--color-text-primary) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent)"
               required
               type="email"
               value={email}
@@ -43,7 +43,7 @@ export default function Unsubscribe() {
             />
           </label>
           <button
-            className="min-h-[48px] rounded-lg bg-[var(--color-accent)] px-5 font-semibold text-black disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-[48px] rounded-lg bg-(--color-accent) px-5 font-semibold text-black disabled:cursor-not-allowed disabled:opacity-50"
             disabled={status === 'loading'}
             type="submit"
           >
@@ -51,12 +51,21 @@ export default function Unsubscribe() {
           </button>
         </form>
         {message && (
-          <p className={status === 'error' ? 'text-red-400' : ''} role="status">{message}</p>
+          <p className={status === 'error' ? 'text-red-400' : ''} role="status">
+            {message}
+          </p>
         )}
       </InfoSection>
       <InfoSection title="Need help?">
         <p>
-          Email <a className="font-semibold text-[var(--color-accent)] underline underline-offset-4" href="mailto:privacy@slopssaloon.com">privacy@slopssaloon.com</a> from the address you want removed.
+          Email{' '}
+          <a
+            className="font-semibold text-(--color-accent) underline underline-offset-4"
+            href="mailto:privacy@slopssaloon.com"
+          >
+            privacy@slopssaloon.com
+          </a>{' '}
+          from the address you want removed.
         </p>
       </InfoSection>
     </PublicInfoLayout>

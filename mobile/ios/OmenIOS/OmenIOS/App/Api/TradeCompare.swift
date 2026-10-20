@@ -8,6 +8,28 @@ import Foundation
 /// signal and **never by inference on the client**. This type therefore reads `verdict_state`
 /// and never `verdict`.
 struct TradeCompare: Decodable, Equatable {
+    struct ForwardHorizons: Decodable, Equatable {
+        struct Horizon: Decodable, Equatable {
+            let status: String
+            let value: Double?
+            let reason: String?
+        }
+        let unit: String
+        let week: Horizon
+        let next4: Horizon
+        let season: Horizon
+
+        enum CodingKeys: String, CodingKey {
+            case unit, week, season
+            case next4 = "next_4"
+        }
+    }
+
+    struct Catch: Decodable, Equatable {
+        let status: String
+        let statement: String?
+        let reason: String?
+    }
     /// Visual briefs §9.2. Order is deliberate: it is the order the four states are described
     /// in the contract, not a severity ranking.
     enum VerdictState: String, Decodable {
@@ -88,8 +110,57 @@ struct TradeCompare: Decodable, Equatable {
     let analysisContext: AnalysisContext
     let netValue: Double?
     let explanation: String?
+    let forwardHorizons: ForwardHorizons?
+    let theCatch: Catch?
     /// Server-owned supporting coverage; never used to create a client-side verdict.
     let capabilities: [OmenDecisionCapability]?
+    /// The compared players with Omen's read attached (`send.players`, `receive.players`).
+    @LenientDecoded var send: ComparedSide? = nil
+    @LenientDecoded var receive: ComparedSide? = nil
+
+    struct ComparedSide: Decodable, Equatable {
+        let players: [ComparedPlayer]
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            players = (try? c.decodeIfPresent([ComparedPlayer].self, forKey: .players)) ?? []
+        }
+
+        enum CodingKeys: String, CodingKey { case players }
+    }
+
+    struct ComparedPlayer: Decodable, Equatable {
+        let name: String?
+        let playerKey: String?
+        let omenRead: OmenDecisionEnvelope.OmenRead?
+        let stats: OmenPlayerStats?
+        let rating: OmenPlayerRating?
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            name = try? c.decodeIfPresent(String.self, forKey: .name)
+            playerKey = try? c.decodeIfPresent(String.self, forKey: .playerKey)
+            omenRead = try? c.decodeIfPresent(OmenDecisionEnvelope.OmenRead.self, forKey: .omenRead)
+            stats = try? c.decodeIfPresent(OmenPlayerStats.self, forKey: .stats)
+            rating = try? c.decodeIfPresent(OmenPlayerRating.self, forKey: .rating)
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case name, stats, rating
+            case playerKey = "player_key"
+            case omenRead = "sight"
+        }
+    }
+
+    /// The compared player for an offered one, matched by key, then by name.
+    func compared(_ player: TradePlayer) -> ComparedPlayer? {
+        let all = (send?.players ?? []) + (receive?.players ?? [])
+        return all.first { $0.playerKey != nil && $0.playerKey == player.playerKey }
+            ?? all.first { $0.name == player.name }
+    }
+
+    /// Omen's points for an offered player. Nil when Omen has no read.
+    func omenPoints(for player: TradePlayer) -> Double? { compared(player)?.omenRead?.points }
 
     enum CodingKeys: String, CodingKey {
         case contractVersion = "contract_version"
@@ -97,7 +168,9 @@ struct TradeCompare: Decodable, Equatable {
         case evaluability, explanation
         case analysisContext = "analysis_context"
         case netValue = "net_value"
-        case capabilities
+        case forwardHorizons = "forward_horizons"
+        case theCatch = "the_catch"
+        case capabilities, send, receive
     }
 
     /// The headline the screen shows. Never derived from `netValue` — the server owns the
@@ -251,6 +324,10 @@ struct TradeRosterResponse: Decodable, Equatable {
         let position: String?
         let team: String?
         let projectedPoints: Double?
+        /// Omen's read (wire key `sight`). Lenient: a drifting block costs the read, not the row.
+        let omenRead: OmenDecisionEnvelope.OmenRead?
+        let stats: OmenPlayerStats?
+        let rating: OmenPlayerRating?
 
         var id: String { playerKey ?? name }
 
@@ -261,11 +338,26 @@ struct TradeRosterResponse: Decodable, Equatable {
             position = try c.decodeIfPresent(String.self, forKey: .position)
             team = try c.decodeIfPresent(String.self, forKey: .team)
             projectedPoints = try c.decodeIfPresent(Double.self, forKey: .projectedPoints)
+            omenRead = try? c.decodeIfPresent(OmenDecisionEnvelope.OmenRead.self, forKey: .omenRead)
+            stats = try? c.decodeIfPresent(OmenPlayerStats.self, forKey: .stats)
+            rating = try? c.decodeIfPresent(OmenPlayerRating.self, forKey: .rating)
         }
 
         enum CodingKeys: String, CodingKey {
-            case playerKey = "player_key", name, position, team
+            case playerKey = "player_key", name, position, team, stats, rating
             case projectedPoints = "projected_points"
+            case omenRead = "sight"
+        }
+
+        /// The row's detail line with the numbers: "RB · IND · proj 11.9 · Omen 12.8". A read that
+        /// is missing is left out, never shown as zero.
+        var metaWithReads: String {
+            var parts = [meta]
+            if let projected = projectedPoints { parts.append("proj \(String(format: "%.1f", projected))") }
+            if let omen = omenRead?.points { parts.append("Omen \(String(format: "%.1f", omen))") }
+            if let ppg = stats?.pointsPerGame { parts.append("\(String(format: "%.1f", ppg)) PPG") }
+            if let r = rating?.rating { parts.append("\(rating?.title ?? OmenPlayerRating.familyName) \(String(format: "%.1f", r))") }
+            return parts.joined(separator: " \u{00B7} ")
         }
 
         /// "RB · IND", or just the position, or just the team — never a fabricated rank.

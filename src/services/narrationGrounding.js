@@ -18,67 +18,212 @@ const DEFAULT_MAX_CHARS = 400;
 
 // Function words and neutral analyst vocabulary a rephrasing may use. Only
 // consulted for capitalized tokens (sentence starters), so it stays short.
-const COMMON_WORDS = new Set((
-  "a an and are as at be because but by can for from has have he her him his if in into is it its " +
-  "more most no not of on one only or our over she so than that the their them then there these they " +
-  "this to up we while with you your will would should could may might also both either each still " +
-  "start starting starts sit bench benching benched keep put play playing move moving swap swapping " +
-  "pick add drop hold lineup roster slot week projected projection projections points point pts " +
-  "edge gap lead leads ahead behind higher lower better stronger weaker bigger smaller clear close " +
-  "meaningful small modest solid risk risky safe safer confidence confident medium high low " +
-  "questionable doubtful out active injured injury status available unavailable matchup matchups " +
-  "data source sources signal signals provider providers expected value delta difference " +
-  "omen based using given here since when where which who what why how however overall " +
-  "expect expects likely unlikely though although instead rather just simply plainly " +
-  "waiver pickup trade accept decline neutral live mock deterministic " +
-  "adds gives brings offers provides makes keeps leaves lets helps means shows reflects favors " +
-  "recommend recommends recommended strong healthy best good great top another any all other some " +
-  "many much key main primary reason move choice call option player players role those these " +
-  "gets get got ranks lines line up down about around across after before during without within " +
-  "sitting starting benching choosing choose trust go going stay staying lean leaning " +
-  "i'd i'll i'm id ill im we'd we'll you'd you'll let's lets it's its that's thats there's " +
-  "if when since given considering consider look looking note noting go with plan stick sticking " +
-  "bet backing back favor favoring prefer preferring take taking use using rely relying " +
-  "projected-higher higher-projected pass passing okay ok yes no do does don't dont can't cant"
-).split(/\s+/));
+const COMMON_WORDS = new Set(
+  (
+    "a an and are as at be because but by can for from has have he her him his if in into is it its " +
+    "more most no not of on one only or our over she so than that the their them then there these they " +
+    "this to up we while with you your will would should could may might also both either each still " +
+    "start starting starts sit bench benching benched keep put play playing move moving swap swapping " +
+    "pick add drop hold lineup roster slot week projected projection projections points point pts " +
+    "edge gap lead leads ahead behind higher lower better stronger weaker bigger smaller clear close " +
+    "meaningful small modest solid risk risky safe safer confidence confident medium high low " +
+    "questionable doubtful out active injured injury status available unavailable matchup matchups " +
+    "data source sources signal signals provider providers expected value delta difference " +
+    "omen based using given here since when where which who what why how however overall " +
+    "expect expects likely unlikely though although instead rather just simply plainly " +
+    "waiver pickup trade accept decline neutral live mock deterministic " +
+    "adds gives brings offers provides makes keeps leaves lets helps improves means shows reflects favors " +
+    "recommend recommends recommended strong healthy best good great top another any all other some " +
+    "many much key main primary reason move choice call option player players role those these " +
+    "gets get got ranks lines line up down about around across after before during without within " +
+    "sitting starting benching choosing choose trust go going stay staying lean leaning " +
+    "i'd i'll i'm id ill im we'd we'll you'd you'll let's lets it's its that's thats there's " +
+    "if when since given considering consider look looking note noting go with plan stick sticking " +
+    "bet backing back favor favoring prefer preferring take taking use using rely relying " +
+    "projected-higher higher-projected pass passing okay ok yes no do does don't dont can't cant"
+  ).split(/\s+/),
+);
 
 // Stat/usage claims a small model likes to invent. Each is rejected unless the
 // same phrase already appears in the facts.
 const STAT_TERMS = Object.freeze([
-  "target share", "targets", "snap", "snaps", "snap count", "carries", "touches", "touchdown",
-  "touchdowns", "yards", "yardage", "receptions", "red zone", "red-zone", "air yards", "routes",
-  "usage", "volume", "workload", "opportunity share", "completion", "interceptions", "sacks",
-  "weather", "wind", "rain", "snow", "dome", "revenge game", "bye", "streak", "trending",
-  "last week", "last game", "past games", "career", "season-long", "per game", "ppr",
-  "defense ranks", "ranked", "rank", "game script", "pace", "offensive line", "coach", "coaching",
-  "depth chart", "contract", "rookie", "veteran",
+  "target share",
+  "targets",
+  "snap",
+  "snaps",
+  "snap count",
+  "carries",
+  "touches",
+  "touchdown",
+  "touchdowns",
+  "yards",
+  "yardage",
+  "receptions",
+  "red zone",
+  "red-zone",
+  "air yards",
+  "routes",
+  "usage",
+  "volume",
+  "workload",
+  "opportunity share",
+  "completion",
+  "interceptions",
+  "sacks",
+  "weather",
+  "wind",
+  "rain",
+  "snow",
+  "dome",
+  "revenge game",
+  "bye",
+  "streak",
+  "trending",
+  "last week",
+  "last game",
+  "past games",
+  "career",
+  "season-long",
+  "per game",
+  "ppr",
+  "defense ranks",
+  "ranked",
+  "rank",
+  "game script",
+  "pace",
+  "offensive line",
+  "coach",
+  "coaching",
+  "depth chart",
+  "contract",
+  "rookie",
+  "veteran",
   // Unsupported "reason" language: each is a claim the engine never made, so it
   // is allowed only when the same phrase is already in the facts.
-  "dominant", "dominating", "lately", "recently", "recent form", "form", "momentum", "hot", "cold",
-  "great matchup", "good matchup", "easy matchup", "plus matchup", "soft matchup", "tough matchup",
-  "favorable", "unfavorable", "soft defense", "weak defense", "poor defense", "bad defense",
-  "tough defense", "stout", "elite", "upside", "ceiling", "floor", "boom", "bust", "breakout",
-  "locked in", "locked-in", "must-start", "must start", "must-sit", "smash", "smash spot",
-  "workhorse", "bellcow", "lead back", "featured", "explosive", "efficient", "efficiency",
-  "rested", "fresh legs", "hot streak", "cold streak", "points allowed", "shootout", "blowout",
-  "garbage time", "target", "red-hot", "on fire", "league-winner", "league winner", "sleeper pick",
+  "dominant",
+  "dominating",
+  "lately",
+  "recently",
+  "recent form",
+  "form",
+  "momentum",
+  "hot",
+  "cold",
+  "great matchup",
+  "good matchup",
+  "easy matchup",
+  "plus matchup",
+  "soft matchup",
+  "tough matchup",
+  "favorable",
+  "unfavorable",
+  "soft defense",
+  "weak defense",
+  "poor defense",
+  "bad defense",
+  "tough defense",
+  "stout",
+  "elite",
+  "upside",
+  "ceiling",
+  "floor",
+  "boom",
+  "bust",
+  "breakout",
+  "locked in",
+  "locked-in",
+  "must-start",
+  "must start",
+  "must-sit",
+  "smash",
+  "smash spot",
+  "workhorse",
+  "bellcow",
+  "lead back",
+  "featured",
+  "explosive",
+  "efficient",
+  "efficiency",
+  "rested",
+  "fresh legs",
+  "hot streak",
+  "cold streak",
+  "points allowed",
+  "shootout",
+  "blowout",
+  "garbage time",
+  "target",
+  "red-hot",
+  "on fire",
+  "league-winner",
+  "league winner",
+  "sleeper pick",
 ]);
 
 const POSITION_TAGS = new Set(["QB", "RB", "WR", "TE", "K", "DEF", "DST", "FLEX", "IR"]);
 
 const NUMBER_WORDS = Object.freeze([
-  "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve",
-  "twenty", "thirty", "forty", "fifty", "hundred", "dozen", "half", "double", "triple",
+  "two",
+  "three",
+  "four",
+  "five",
+  "six",
+  "seven",
+  "eight",
+  "nine",
+  "ten",
+  "eleven",
+  "twelve",
+  "twenty",
+  "thirty",
+  "forty",
+  "fifty",
+  "hundred",
+  "dozen",
+  "half",
+  "double",
+  "triple",
 ]);
 
+// A number word is grounded by the same value written as digits ("three" by 3). half, double and
+// triple are ratios, not values, so they still need the word itself in the facts.
+const NUMBER_WORD_VALUES = Object.freeze({
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+  six: 6,
+  seven: 7,
+  eight: 8,
+  nine: 9,
+  ten: 10,
+  eleven: 11,
+  twelve: 12,
+  twenty: 20,
+  thirty: 30,
+  forty: 40,
+  fifty: 50,
+  hundred: 100,
+  dozen: 12,
+});
+
 const BANNED_PATTERNS = Object.freeze([
-  { code: "guarantee", re: /\b(guarantee[ds]?|guaranteeing|lock(?:ed)?\s+in|can'?t\s+miss|sure\s+thing|no[- ]brainer|certain(?:ly)?|definitely|surely)\b/i },
+  {
+    code: "guarantee",
+    re: /\b(guarantee[ds]?|guaranteeing|lock(?:ed)?\s+in|can'?t\s+miss|sure\s+thing|no[- ]brainer|certain(?:ly)?|definitely|surely)\b/i,
+  },
   {
     code: "beats_projections",
     re: /\b(beat|beats|beating|outperform\w*|outsmart\w*|more\s+accurate\s+than|better\s+than|improv\w+\s+on|ahead\s+of)\s+(?:the\s+|all\s+|any\s+)?(?:provider\s+|consensus\s+|expert\s+)?(?:projections?|consensus|experts?|analysts?|sleeper|espn|yahoo)\b/i,
   },
-  { code: "own_prediction", re: /\b(?:omen|we|our\s+model|the\s+model|ai|our\s+algorithm)\s+(?:predicts?|forecasts?|projects?|simulates?|believes?|thinks?)\b|\bour\s+(?:prediction|forecast|model|algorithm|projection)\b/i },
-  { code: "numeric_confidence", re: /\d+(?:\.\d+)?\s*%|\bout\s+of\s+(?:100|10)\b|\b(?:confidence|chance|probability|odds|likelihood)\b[^.!?]{0,40}\d|\d[^.!?]{0,20}\b(?:confidence|chance|probability|odds|likelihood)\b/i },
+  {
+    code: "own_prediction",
+    re: /\b(?:omen|we|our\s+model|the\s+model|ai|our\s+algorithm)\s+(?:predicts?|forecasts?|projects?|simulates?|believes?|thinks?)\b|\bour\s+(?:prediction|forecast|model|algorithm|projection)\b/i,
+  },
+  {
+    code: "numeric_confidence",
+    re: /\d+(?:\.\d+)?\s*%|\bout\s+of\s+(?:100|10)\b|\b(?:confidence|chance|probability|odds|likelihood)\b[^.!?]{0,40}\d|\d[^.!?]{0,20}\b(?:confidence|chance|probability|odds|likelihood)\b/i,
+  },
 ]);
 
 function stripToken(token) {
@@ -90,8 +235,7 @@ function stripToken(token) {
 }
 
 function wordsOf(text) {
-  return (String(text).match(/[A-Za-z][A-Za-z'’.-]*/g) || [])
-    .map((token) => token.replace(/[.-]+$/, ""));
+  return (String(text).match(/[A-Za-z][A-Za-z'’.-]*/g) || []).map((token) => token.replace(/[.-]+$/, ""));
 }
 
 function collectLeaves(value, strings, numbers, depth = 0) {
@@ -143,14 +287,18 @@ function numberIsGrounded(token, factNumbers) {
     const magnitude = Math.abs(fact);
     // Same value at the precision the text uses: 3.5 grounds "3.5", "3.50",
     // and (rounded) "4"; 4.65 grounds "4.65", "4.7" and "5".
-    return Number(magnitude.toFixed(decimals)) === value
-      || Number(magnitude.toFixed(Math.max(decimals, 0))) === value
-      || (decimals === 0 && Math.round(magnitude) === value);
+    return (
+      Number(magnitude.toFixed(decimals)) === value ||
+      Number(magnitude.toFixed(Math.max(decimals, 0))) === value ||
+      (decimals === 0 && Math.round(magnitude) === value)
+    );
   });
 }
 
 function splitSentences(text) {
-  return String(text).split(/(?<=[.!?])\s+(?=[A-Z])/).filter(Boolean);
+  return String(text)
+    .split(/(?<=[.!?])\s+(?=[A-Z])/)
+    .filter(Boolean);
 }
 
 function countWords(text) {
@@ -227,23 +375,39 @@ function validateGroundedTextUnsafe(text, facts, opts) {
 
   const lower = value.toLowerCase();
   for (const word of NUMBER_WORDS) {
-    if (new RegExp(`\\b${word}\\b`).test(lower) && !index.words.has(word)) {
+    const digits = NUMBER_WORD_VALUES[word];
+    if (
+      new RegExp(`\\b${word}\\b`).test(lower) &&
+      !index.words.has(word) &&
+      !(digits != null && index.numbers.includes(digits))
+    ) {
       reasons.push(`ungrounded_number_word:${word}`);
     }
   }
   for (const term of STAT_TERMS) {
     const hit = new RegExp(`(^|[^a-z])${term.replace(/[-\s]/g, "[-\\s]")}([^a-z]|$)`).test(lower);
-    if (hit && !index.text.includes(term)) reasons.push(`ungrounded_stat:${term}`);
+    // "red zone" and "red-zone" are one phrase: compare with hyphens read as spaces.
+    if (hit && !index.text.replace(/-/g, " ").includes(term.replace(/-/g, " ")))
+      reasons.push(`ungrounded_stat:${term}`);
   }
 
   const extra = new Set(extraAllowedWords.map(stripToken));
-  const sentenceStarts = new Set(splitSentences(value).map((s) => wordsOf(s)[0]).filter(Boolean));
+  const sentenceStarts = new Set(
+    splitSentences(value)
+      .map((s) => wordsOf(s)[0])
+      .filter(Boolean),
+  );
   for (const token of wordsOf(value)) {
     if (!/^[A-Z]/.test(token)) continue;
     if (POSITION_TAGS.has(token)) continue;
     const parts = token.split("-").map(stripToken).filter(Boolean);
-    const known = parts.every((part) => index.words.has(part) || extra.has(part) || part === "omen"
-      || (sentenceStarts.has(token) && COMMON_WORDS.has(part)));
+    const known = parts.every(
+      (part) =>
+        index.words.has(part) ||
+        extra.has(part) ||
+        part === "omen" ||
+        (sentenceStarts.has(token) && COMMON_WORDS.has(part)),
+    );
     if (!known) reasons.push(`ungrounded_name:${token}`);
   }
 

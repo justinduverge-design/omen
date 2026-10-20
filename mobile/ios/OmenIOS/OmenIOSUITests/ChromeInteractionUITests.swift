@@ -265,7 +265,9 @@ final class ChromeInteractionUITests: XCTestCase {
     func testTheReportPillIsPresentAndSaysWhatItSends() {
         let app = launch("chrome.report-pill.resting")
 
-        let pill = app.buttons["chrome.report-pill"]
+        let pill = app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH %@", "Something look wrong?")
+        ).firstMatch
         assertTappable(pill, "the report pill")
         // The promise is in the accessibility label because the pill is one combined element.
         // It is the whole reason `OmenBetaReport` is a closed struct, so it is pinned here as
@@ -422,34 +424,27 @@ final class ChromeInteractionUITests: XCTestCase {
         )
     }
 
-    /// The pill must not cost Command Center its `fits` declaration.
-    ///
-    /// It is an overlay rather than a block for exactly this reason, and "it is an overlay" is
-    /// a claim about code that a future refactor can quietly falsify. This measures instead:
-    /// the Command Center content height with the pill present must equal the height without
-    /// it. `OmenCommandCenterScreen` does not carry an `OmenFitProbe` — it has its own
-    /// `contentFits` measurement predating J2 — so this reads the frame of the screen's own
-    /// scroll content via the tab shell rather than a probe value.
-    func testTheReportPillDoesNotCostCommandCenterItsFit() {
+    /// The live Ledger has variable height. The report control must participate in layout so it
+    /// can never obscure a Ledger row; the screen may scroll to make room.
+    func testTheReportPillDoesNotCoverTheLedger() {
         let withPill = launch("chrome.report-pill.resting")
-        let pill = withPill.buttons["chrome.report-pill"]
+        let pill = withPill.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH %@", "Something look wrong?")
+        ).firstMatch
         XCTAssertTrue(pill.waitForExistence(timeout: 15), "the pill is not on the Command Center frame")
-        withPill.terminate()
-
-        let withPillHeight = Self.contentHeight("chrome.report-pill.resting", "chrome.fit.command-center", self)
-        let withoutPillHeight = Self.contentHeight("command-center.demo-connected", "chrome.fit.command-center", self)
-        guard let withPillHeight, let withoutPillHeight else {
-            return XCTFail("could not measure both Command Center frames — with=\(String(describing: withPillHeight)) without=\(String(describing: withoutPillHeight))")
-        }
-        print("D11 pill cost: command-center content with=\(withPillHeight)pt without=\(withoutPillHeight)pt delta=\(withPillHeight - withoutPillHeight)pt")
-        XCTAssertEqual(
-            withPillHeight, withoutPillHeight,
-            "the report pill added \(withPillHeight - withoutPillHeight)pt to Command Center's content — it is in the stack, not an overlay, and CommandCenter is declared a fit"
+        let ledger = withPill.staticTexts["The Ledger"]
+        XCTAssertTrue(ledger.waitForExistence(timeout: 5), "the Ledger heading is not on the Command Center frame")
+        XCTAssertGreaterThanOrEqual(
+            pill.frame.minY, ledger.frame.maxY,
+            "the report pill overlaps the Ledger instead of following it in the document"
         )
+        withPill.terminate()
 
         let without = launch("command-center.demo-connected")
         XCTAssertFalse(
-            without.buttons["chrome.report-pill"].exists,
+            without.buttons.matching(
+                NSPredicate(format: "label BEGINSWITH %@", "Something look wrong?")
+            ).firstMatch.exists,
             "the pill appeared on a scenario that never asked for it — every existing Command Center capture just changed"
         )
         without.terminate()
@@ -458,10 +453,8 @@ final class ChromeInteractionUITests: XCTestCase {
     /// `Account.dc.html` is declared **scrolls**; `ReportPill.dc.html` is declared **fits**.
     ///
     /// `ReportPill` is Command Center with the pill on it, so its probe is Command Center's —
-    /// `chrome.fit.command-center`, which this branch added by applying J2's existing
-    /// `OmenFitProbe` to `OmenCommandCenterScreen`. The screen has measured these two heights
-    /// privately since 2026-09-10 to decide `scrollDisabled`; the probe is what makes them
-    /// readable, so `CommandCenter` and `ReportPill` can finally state a number.
+    /// `chrome.fit.command-center`. The probe makes the current desk's measured height readable,
+    /// so `CommandCenter` and `ReportPill` can state a number instead of relying on inspection.
     ///
     /// `command-center.demo-connected` is in the list as the control: the same screen without
     /// the pill. The two must report the **same content height**, which is what turns "the

@@ -2,20 +2,13 @@
 
 const assert = require("node:assert/strict");
 const test = require("node:test");
-const {
-  currentNeedFor,
-  staleness,
-  VALID_OUTCOME_SET,
-  STALE_STATUS,
-} = require("../src/services/tradeSavedQueue");
+const { currentNeedFor, staleness, VALID_OUTCOME_SET, STALE_STATUS } = require("../src/services/tradeSavedQueue");
 
 test("currentNeedFor derives the same {status, have, required} shape reasoning.user_receives.need already uses", () => {
   const need = currentNeedFor({
     position: "RB",
     rosterPositions: ["QB", "RB", "RB", "WR", "WR", "BN"],
-    players: [
-      { position: "RB", selected_position: "RB" },
-    ],
+    players: [{ position: "RB", selected_position: "RB" }],
   });
   assert.equal(need.status, "hole");
   assert.equal(need.have, 1);

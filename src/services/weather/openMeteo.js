@@ -168,7 +168,9 @@ async function getGameWeather({
   // Index the series by UTC instant. `timezone=UTC` makes the strings naive UTC; append Z rather
   // than trusting the host zone.
   const at = new Map();
-  h.time.forEach((t, i) => at.set(Date.parse(`${t}:00Z`), i));
+  h.time.forEach((t, i) => {
+    at.set(Date.parse(`${t}:00Z`), i);
+  });
   const val = (name, ms) => {
     const i = at.get(ms);
     return i == null ? null : finite(h[`${name}${suffix}`] && h[`${name}${suffix}`][i]);
@@ -180,7 +182,10 @@ async function getGameWeather({
   // start+1h .. end.
   const accumulated = [];
   for (let k = 0; k < GAME_WINDOW_HOURS; k += 1) {
-    instantaneous.push({ temp: val("temperature_2m", startMs + k * HOUR_MS), wind: val("wind_speed_10m", startMs + k * HOUR_MS) });
+    instantaneous.push({
+      temp: val("temperature_2m", startMs + k * HOUR_MS),
+      wind: val("wind_speed_10m", startMs + k * HOUR_MS),
+    });
     const t = startMs + (k + 1) * HOUR_MS;
     accumulated.push({
       precip: val("precipitation", t),

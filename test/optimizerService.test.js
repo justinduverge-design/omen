@@ -8,21 +8,25 @@ const optimizer = require("../src/services/optimizer");
 function roster() {
   return {
     slots: {
-      starters: [{
-        player_key: "starter-rb",
-        name: "Starter RB",
-        position: "RB",
-        selected_position: "RB",
-        eligible_positions: ["RB"],
-        projected_points: 10,
-      }],
-      bench: [{
-        player_key: "bench-rb",
-        name: "Bench RB",
-        position: "RB",
-        eligible_positions: ["RB"],
-        projected_points: 11,
-      }],
+      starters: [
+        {
+          player_key: "starter-rb",
+          name: "Starter RB",
+          position: "RB",
+          selected_position: "RB",
+          eligible_positions: ["RB"],
+          projected_points: 10,
+        },
+      ],
+      bench: [
+        {
+          player_key: "bench-rb",
+          name: "Bench RB",
+          position: "RB",
+          eligible_positions: ["RB"],
+          projected_points: 11,
+        },
+      ],
     },
   };
 }
@@ -52,11 +56,7 @@ test("explicit optimizer options override a separately supplied scoring config",
     },
   };
 
-  const recommendations = optimizer.evaluateLineup(
-    roster(),
-    { minDelta: Number.NEGATIVE_INFINITY },
-    scoringConfig
-  );
+  const recommendations = optimizer.evaluateLineup(roster(), { minDelta: Number.NEGATIVE_INFINITY }, scoringConfig);
 
   assert.equal(recommendations.length, 1);
 });

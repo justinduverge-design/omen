@@ -64,16 +64,10 @@ export default function OmenFeedback({ week, season, moveTitle, moveSubtext }) {
           className="rounded-lg border p-6 text-center"
           style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)' }}
         >
-          <p
-            className="text-xs font-semibold uppercase tracking-widest"
-            style={{ color: 'var(--color-accent)' }}
-          >
+          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-accent)' }}>
             Locked in
           </p>
-          <p
-            className="mt-2 font-display text-xl font-semibold"
-            style={{ color: 'var(--color-text-primary)' }}
-          >
+          <p className="mt-2 font-display text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>
             Your answer is recorded.
           </p>
           <p className="mt-1 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
@@ -146,6 +140,7 @@ export default function OmenFeedback({ week, season, moveTitle, moveSubtext }) {
               {stars > 0 ? `${stars} / 5` : '—'}
             </span>
           </div>
+          {/* biome-ignore lint/a11y/useSemanticElements: a fieldset would bring legend layout; role=group is equivalent */}
           <div className="flex" role="group" aria-label="Star rating">
             {[1, 2, 3, 4, 5].map((n) => (
               <button
@@ -153,7 +148,7 @@ export default function OmenFeedback({ week, season, moveTitle, moveSubtext }) {
                 type="button"
                 aria-label={`${n} star${n !== 1 ? 's' : ''}`}
                 aria-pressed={n <= stars}
-                className="flex flex-1 items-center justify-center py-3 transition-transform active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)] rounded-sm"
+                className="flex flex-1 items-center justify-center py-3 transition-transform active:scale-95 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--color-accent) rounded-xs"
                 onClick={() => setStars(stars === n ? 0 : n)}
               >
                 <Star filled={n <= stars} />
@@ -179,7 +174,7 @@ export default function OmenFeedback({ week, season, moveTitle, moveSubtext }) {
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="Injury, lineup change, trusted the Omen..."
-            className="w-full min-h-[44px] bg-transparent pb-3 font-sans text-base outline-none transition-colors placeholder:italic"
+            className="w-full min-h-[44px] bg-transparent pb-3 font-sans text-base outline-hidden transition-colors placeholder:italic"
             style={{
               color: 'var(--color-text-primary)',
               borderBottom: `1px solid ${note ? 'var(--color-accent)' : 'var(--color-border)'}`,
@@ -200,7 +195,7 @@ export default function OmenFeedback({ week, season, moveTitle, moveSubtext }) {
           aria-busy={submitting}
           disabled={submitting}
           onClick={handleSubmit}
-          className="w-full rounded-md font-sans text-base font-semibold transition-all active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full rounded-md font-sans text-base font-semibold transition-all active:scale-[0.97] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--color-accent) disabled:cursor-not-allowed disabled:opacity-50"
           style={{
             background: 'var(--color-accent)',
             color: 'var(--color-text-on-accent)',
@@ -232,12 +227,7 @@ function Connector({ gold }) {
 }
 
 function Divider() {
-  return (
-    <div
-      className="mb-5"
-      style={{ height: 1, background: 'var(--color-border)' }}
-    />
-  );
+  return <div className="mb-5" style={{ height: 1, background: 'var(--color-border)' }} />;
 }
 
 function ChoiceButton({ children, active, variant, onClick }) {
@@ -256,7 +246,7 @@ function ChoiceButton({ children, active, variant, onClick }) {
       type="button"
       aria-pressed={active}
       onClick={onClick}
-      className="h-12 rounded-md border font-sans text-lg font-semibold transition-colors active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
+      className="h-12 rounded-md border font-sans text-lg font-semibold transition-colors active:scale-[0.97] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--color-accent)"
       style={active ? activeStyle : idleStyle}
     >
       {children}

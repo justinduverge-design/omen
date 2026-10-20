@@ -1,16 +1,6 @@
-# League Components
+# League components
 
-Tier 2 landing zone for League Standings UI.
+`LeagueStandings.jsx`: the standings table, used by `pages/Standings.jsx` and `pages/Football.jsx`.
 
-Canonical backend contract:
-- `GET /api/league/standings`
-- Contract version: `league-standings.v1`
-
-Expected states:
-- loading
-- success
-- disconnected / reconnect required
-- empty
-- error
-
-Default placement is `/football` unless Justin or Claude moves it.
+- Data: `GET /api/league/standings` (`league-standings.v1`). The same shape comes back for ESPN, Yahoo and Sleeper.
+- It must handle loading, success, disconnected/reconnect-required, empty and error states.

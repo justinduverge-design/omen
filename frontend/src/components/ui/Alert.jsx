@@ -20,10 +20,28 @@ const CARD_SCOPED_TEXT_VARS = {
 };
 
 const TONE_STYLE = {
-  neutral: { borderColor: 'var(--color-border)', background: 'var(--color-surface-1)', color: 'var(--color-text-secondary)', ...CARD_SCOPED_TEXT_VARS },
-  omen:    { borderColor: 'var(--color-team-accent)', background: 'var(--color-accent-muted)', color: 'var(--color-text-primary)' },
-  risk:    { borderColor: 'var(--color-risk-high)', background: 'color-mix(in srgb, var(--color-risk-high) 12%, var(--color-surface-1))', color: 'var(--color-text-primary)', ...CARD_SCOPED_TEXT_VARS },
-  success: { borderColor: 'rgba(52,199,89,0.3)', background: 'rgba(52,199,89,0.10)', color: 'var(--color-text-primary)' },
+  neutral: {
+    borderColor: 'var(--color-border)',
+    background: 'var(--color-surface-1)',
+    color: 'var(--color-text-secondary)',
+    ...CARD_SCOPED_TEXT_VARS,
+  },
+  omen: {
+    borderColor: 'var(--color-team-accent)',
+    background: 'var(--color-accent-muted)',
+    color: 'var(--color-text-primary)',
+  },
+  risk: {
+    borderColor: 'var(--color-risk-high)',
+    background: 'color-mix(in srgb, var(--color-risk-high) 12%, var(--color-surface-1))',
+    color: 'var(--color-text-primary)',
+    ...CARD_SCOPED_TEXT_VARS,
+  },
+  success: {
+    borderColor: 'rgba(52,199,89,0.3)',
+    background: 'rgba(52,199,89,0.10)',
+    color: 'var(--color-text-primary)',
+  },
 };
 
 export function Alert({ tone = 'neutral', className = '', style: styleOverride, children, ...rest }) {

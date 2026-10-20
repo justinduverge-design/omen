@@ -93,7 +93,7 @@ final class J2InteractionUITests: XCTestCase {
 
     func testTheDeskSectionLinksAreReachable() {
         let app = launch("journey-j2.nominal.01-command-center")
-        assertTappable(app.buttons["League, Waiver watch"], "waiver watch league link")
+        assertTappable(app.buttons["League, Needs you"], "needs-you league link")
         assertTappable(app.buttons["See all, The Ledger"], "ledger see-all link")
         assertTapDoesNotBreak(app.buttons["See all, The Ledger"], app)
     }

@@ -1,0 +1,9 @@
+[package]
+name = "steward-freshness"
+version = "0.1.0"
+edition = "2024"
+description = "Steward's backup freshness checks (Supabase backup, football backup, Restic integrity), one static binary."
+license = "UNLICENSED"
+publish = false
+
+[dependencies]

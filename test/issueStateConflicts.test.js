@@ -31,9 +31,8 @@ function ctxFor(files) {
 test("catches a live claim that contradicts a closed issue", () => {
   const { findings } = check.run(
     ctxFor({
-      "Direction/facts-of-record.md":
-        "# Facts\n\n1. **Yahoo.** The entitlement is refused, issue #308 still open.\n",
-    })
+      "Direction/facts-of-record.md": "# Facts\n\n1. **Yahoo.** The entitlement is refused, issue #308 still open.\n",
+    }),
   );
   assert.equal(findings.length, 1);
   assert.equal(findings[0].issue, 308);
@@ -50,7 +49,7 @@ test("skips an inline [SUPERSEDED] marker but not its live siblings", () => {
         "- **[SUPERSEDED]** Access refused, issue #308 still open.",
         "- **Status:** blocker remains, issue #308 is open.",
       ].join("\n"),
-    })
+    }),
   );
   assert.equal(findings.length, 1, "the live sibling bullet must still be found");
   assert.equal(findings[0].line, 3);
@@ -67,7 +66,7 @@ test("skips everything after an explicit 'everything below' opener, until the ne
         "## Current status",
         "- Access is refused and issue #308 is still open.",
       ].join("\n"),
-    })
+    }),
   );
   assert.equal(findings.length, 1, "the heading closes the region");
   assert.equal(findings[0].line, 6);
@@ -76,9 +75,8 @@ test("skips everything after an explicit 'everything below' opener, until the ne
 test("does not read the decision log, which records what was true at a date", () => {
   const { findings, informational } = check.run(
     ctxFor({
-      "Direction/decision_log.md":
-        "## 2026-08-24 — a decision\n- taken while its API is refused, issue #308 open.\n",
-    })
+      "Direction/decision_log.md": "## 2026-08-24 — a decision\n- taken while its API is refused, issue #308 open.\n",
+    }),
   );
   assert.equal(findings.length, 0);
   assert.match(informational.join(" "), /decision_log\.md/);
@@ -91,7 +89,7 @@ test("reports what it skipped rather than suppressing silently", () => {
         "## ✅ Reconciled against GitHub — 2026-08-19",
         "- entitlement refused, issue #308 open.",
       ].join("\n"),
-    })
+    }),
   );
   assert.ok(informational.length > 0, "a suppression must be visible in the output");
   assert.match(informational.join(" "), /Not read:/);
@@ -100,9 +98,8 @@ test("reports what it skipped rather than suppressing silently", () => {
 test("strikethrough text is treated as retracted", () => {
   const { findings } = check.run(
     ctxFor({
-      "Direction/current_sprint.md":
-        "### F6\n- **Unblock:** ~~refused, issue #308 still open~~ WITHDRAWN\n",
-    })
+      "Direction/current_sprint.md": "### F6\n- **Unblock:** ~~refused, issue #308 still open~~ WITHDRAWN\n",
+    }),
   );
   assert.equal(findings.length, 0);
 });

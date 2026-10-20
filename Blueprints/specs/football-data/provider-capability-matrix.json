@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "as_of": "2026-10-15",
+  "as_of": "2026-10-18",
   "note": "Canonical machine-readable provider capability matrix. test/providerCapabilityMatrix.test.js fails when the code drifts from it. The markdown view is generated: node scripts/generate-provider-matrix.js. Edit this file, never the view.",
   "capabilities": [
     "league_settings",
@@ -32,8 +32,6 @@
   },
   "reason_codes": {
     "provider_restricted": "The provider's terms or Omen's own verification stop it claiming an exact result.",
-    "borrowed_from_user_lineup": "The league-wide read has no slot list, so the user's own lineup slots stand in for it.",
-    "silent_partial_read": "A failed sub-read becomes an empty result with no flag.",
     "requires_derived_projection": "Availability is not confirmed unless a derived projection exists.",
     "probe_pending": "The mapping fails closed to not_determined until a live probe confirms it.",
     "derived_projection": "The provider gives none; Omen derives one from another source, or leaves it null.",
@@ -98,12 +96,19 @@
       "capability": "user_roster",
       "status": "available",
       "reason": null,
-      "detail": "Starters, bench, IR, taxi, projection and injury status.",
+      "detail": "Starters, bench, IR, taxi, projection and injury status. Injury status, body part, notes and practice fields from Sleeper's daily player list are stored in football.player_injury_reports (founder-approved 2026-10-17) and fill a missing provider status in Start/Sit and Waivers.",
       "evidence": [
         {
           "file": "src/adapters/sleeper.js",
           "includes": [
             "buildNormalizedRoster"
+          ]
+        },
+        {
+          "file": "src/services/footballWarehouse/playerIndexStage.js",
+          "includes": [
+            "injury_status",
+            "practice_participation"
           ]
         }
       ],
@@ -227,25 +232,25 @@
     {
       "provider": "sleeper",
       "capability": "transactions",
-      "status": "not_read",
-      "reason": "not_read_by_omen",
-      "detail": "Sleeper documents a per-round transactions endpoint. Omen reads none; the league overview names transactions as an unavailable family.",
+      "status": "available",
+      "reason": null,
+      "detail": "GET /api/league/transactions (league-transactions.v1) reads this round and the one before from Sleeper's documented per-round endpoint. Only complete transactions are items; an outage is unavailable with a reason, never empty.",
       "evidence": [
         {
           "file": "src/adapters/sleeper.js",
-          "excludes": [
-            "/transactions"
+          "includes": [
+            "fetchSleeperTransactions"
           ]
         },
         {
-          "file": "src/routes/league.js",
+          "file": "src/services/leagueTransactions.js",
           "includes": [
-            "unavailable_families: [\"transactions\"]"
+            "provider_read: \"live\""
           ]
         }
       ],
       "verification": "code",
-      "last_verified": "2026-10-15"
+      "last_verified": "2026-10-18"
     },
     {
       "provider": "sleeper",
@@ -378,12 +383,19 @@
       "capability": "user_roster",
       "status": "available",
       "reason": null,
-      "detail": "mTeam and mRoster with lineup slots, injury status and ESPN's own projection.",
+      "detail": "mTeam and mRoster with lineup slots, injury status and ESPN's own projection. Lock flags (lineupLocked, rosterLocked, tradeLocked) are read onto each player; Trade skips trade-locked players. Start/Sit and Waivers skip locked players (sightDecision.isLocked).",
       "evidence": [
         {
           "file": "src/adapters/espn.js",
           "includes": [
             "buildNormalizedRoster"
+          ]
+        },
+        {
+          "file": "src/adapters/espn.js",
+          "includes": [
+            "trade_locked",
+            "lineup_locked"
           ]
         }
       ],
@@ -393,24 +405,19 @@
     {
       "provider": "espn",
       "capability": "league_roster_positions",
-      "status": "degraded",
-      "reason": "borrowed_from_user_lineup",
-      "detail": "The league-wide roster read returns roster_positions: []. The trade solver borrows the slots from the user's own lineup, which is wrong when that lineup has an empty or unusual slot.",
+      "status": "available",
+      "reason": null,
+      "detail": "Read from the league's own settings (mSettings lineupSlotCounts) into solver slot names. Slot ids Omen has no name for (IDP, head coach) are skipped. Falls back to the user's lineup slots only when settings carry none.",
       "evidence": [
         {
           "file": "src/adapters/espn.js",
           "includes": [
-            "roster_positions: []"
-          ]
-        },
-        {
-          "file": "src/services/omenTradeCandidate.js",
-          "includes": [
-            "rosterPositionsFromRoster"
+            "rosterPositionsFromEspnSettings",
+            "mSettings"
           ]
         }
       ],
-      "verification": "code",
+      "verification": "live",
       "last_verified": "2026-10-15"
     },
     {
@@ -475,12 +482,19 @@
       "capability": "waiver_pool",
       "status": "available",
       "reason": null,
-      "detail": "kona_player_info free agents and waivers, paginated. The waiver deadline is always null.",
+      "detail": "kona_player_info free agents and waivers, paginated. The waiver deadline is always null. ownership.percentOwned/percentChange are read onto pool players; Waivers name a large weekly change as a market signal.",
       "evidence": [
         {
           "file": "src/adapters/espn.js",
           "includes": [
             "fetchEspnWaiverPool"
+          ]
+        },
+        {
+          "file": "src/adapters/espn.js",
+          "includes": [
+            "percentOwned",
+            "percentChange"
           ]
         }
       ],
@@ -490,9 +504,9 @@
     {
       "provider": "espn",
       "capability": "waiver_system",
-      "status": "degraded",
-      "reason": "probe_pending",
-      "detail": "fromEspn fails closed to not_determined until the settings mapping is confirmed by a probe.",
+      "status": "available",
+      "reason": null,
+      "detail": "fromEspn reads acquisitionSettings. Read live on one connected league on 2026-10-15: determined as FAAB. The priority branch has not been seen live.",
       "evidence": [
         {
           "file": "src/routes/waivers.js",
@@ -502,31 +516,31 @@
           ]
         }
       ],
-      "verification": "code",
+      "verification": "live",
       "last_verified": "2026-10-15"
     },
     {
       "provider": "espn",
       "capability": "transactions",
       "status": "not_read",
-      "reason": "not_read_by_omen",
-      "detail": "ESPN's mTransactions2 view is community-documented. Omen reads none.",
+      "reason": "probe_pending",
+      "detail": "fetchEspnTransactions reads mTransactions2 only with LEAGUE_TRANSACTIONS_ESPN=1 (off). Community-documented, not exercised live; an unrecognised shape is unavailable, not empty.",
       "evidence": [
         {
           "file": "src/adapters/espn.js",
-          "excludes": [
-            "mTransactions"
+          "includes": [
+            "mTransactions2"
           ]
         },
         {
-          "file": "src/routes/league.js",
+          "file": "src/services/leagueTransactions.js",
           "includes": [
-            "unavailable_families: [\"transactions\"]"
+            "LEAGUE_TRANSACTIONS_ESPN"
           ]
         }
       ],
       "verification": "code",
-      "last_verified": "2026-10-15"
+      "last_verified": "2026-10-18"
     },
     {
       "provider": "espn",
@@ -653,12 +667,18 @@
       "capability": "user_roster",
       "status": "available",
       "reason": null,
-      "detail": "Slots and status are read. The roster itself carries no projection; see player_projections.",
+      "detail": "Slots and status are read. The roster itself carries no projection; see player_projections. is_editable is read onto each player; Start/Sit and Waivers skip a player Yahoo marks not editable.",
       "evidence": [
         {
           "file": "src/adapters/yahoo.js",
           "includes": [
             "buildNormalizedRoster"
+          ]
+        },
+        {
+          "file": "src/services/roster.js",
+          "includes": [
+            "is_editable"
           ]
         }
       ],
@@ -668,24 +688,18 @@
     {
       "provider": "yahoo",
       "capability": "league_roster_positions",
-      "status": "degraded",
-      "reason": "borrowed_from_user_lineup",
-      "detail": "The league-wide roster read returns roster_positions: [], so the trade solver borrows the user's own slots.",
+      "status": "available",
+      "reason": null,
+      "detail": "Read from the league's own settings (roster_positions, starting positions, expanded by count) in Yahoo's slot names. Falls back to the user's lineup slots only when settings are unreadable.",
       "evidence": [
         {
           "file": "src/adapters/yahoo.js",
           "includes": [
-            "roster_positions: []"
-          ]
-        },
-        {
-          "file": "src/services/omenTradeCandidate.js",
-          "includes": [
-            "rosterPositionsFromRoster"
+            "rosterPositionsFromYahooSettings"
           ]
         }
       ],
-      "verification": "code",
+      "verification": "live",
       "last_verified": "2026-10-15"
     },
     {
@@ -725,15 +739,21 @@
     {
       "provider": "yahoo",
       "capability": "league_rosters",
-      "status": "degraded",
-      "reason": "silent_partial_read",
-      "detail": "One standings call plus one roster call per team. A team whose roster read fails comes back as an empty team with no flag, so Trade cannot tell it from a genuinely empty roster.",
+      "status": "available",
+      "reason": null,
+      "detail": "One standings call plus one roster call per team. A team whose roster read fails is flagged read_status=unreadable (and listed in unreadable_team_ids on /api/trade/roster), so Trade skips it instead of treating it as empty.",
       "evidence": [
         {
           "file": "src/adapters/yahoo.js",
           "includes": [
-            "fetchYahooLeagueRosters",
-            "One team's roster failing to read must not fail"
+            "unreadable_team_ids",
+            "read_status"
+          ]
+        },
+        {
+          "file": "src/services/omenTradeCandidate.js",
+          "includes": [
+            "teams_unreadable"
           ]
         }
       ],
@@ -745,7 +765,7 @@
       "capability": "waiver_pool",
       "status": "degraded",
       "reason": "requires_derived_projection",
-      "detail": "The available-player list is read, but availability stays unconfirmed unless a derived projection exists, so waiver adds cannot be ranked without one.",
+      "detail": "The available-player list is paged past Yahoo's 25-per-page cap (live: 50 players, 40 with a derived projection). Availability is still only confirmed where a derived projection exists. With YAHOO_POOL_STATUS_SPLIT=1 (off, not exercised live) free agents (FA) and waivers (W) are read separately with percent_owned; any failure falls back to the single status=A read.",
       "evidence": [
         {
           "file": "src/routes/waivers.js",
@@ -758,9 +778,21 @@
           "includes": [
             "getAvailablePlayers"
           ]
+        },
+        {
+          "file": "src/services/yahoo.js",
+          "includes": [
+            "PAGE = 25"
+          ]
+        },
+        {
+          "file": "src/services/yahoo.js",
+          "includes": [
+            "getAvailablePlayerPool"
+          ]
         }
       ],
-      "verification": "code",
+      "verification": "live",
       "last_verified": "2026-10-15"
     },
     {
@@ -768,7 +800,7 @@
       "capability": "waiver_system",
       "status": "degraded",
       "reason": "probe_pending",
-      "detail": "The priority branch was verified on three real leagues (2026-09-06). The FAAB branch is unverified and returns not_determined.",
+      "detail": "Priority branch read live on one connected league on 2026-10-15 (determined as priority; earlier verified on three leagues 2026-09-06). The FAAB branch is still unverified and returns not_determined.",
       "evidence": [
         {
           "file": "src/routes/waivers.js",
@@ -783,31 +815,31 @@
           ]
         }
       ],
-      "verification": "code",
+      "verification": "live",
       "last_verified": "2026-10-15"
     },
     {
       "provider": "yahoo",
       "capability": "transactions",
       "status": "not_read",
-      "reason": "not_read_by_omen",
-      "detail": "Yahoo documents /league/{key}/transactions. Omen reads none.",
+      "reason": "probe_pending",
+      "detail": "getTransactions reads /league/{key}/transactions only with LEAGUE_TRANSACTIONS_YAHOO=1 (off). Documented by Yahoo, not exercised live; an unrecognised shape is unavailable, not empty.",
       "evidence": [
         {
           "file": "src/services/yahoo.js",
-          "excludes": [
-            "/transactions"
+          "includes": [
+            "/transactions;types=add,drop,trade"
           ]
         },
         {
-          "file": "src/routes/league.js",
+          "file": "src/services/leagueTransactions.js",
           "includes": [
-            "unavailable_families: [\"transactions\"]"
+            "LEAGUE_TRANSACTIONS_YAHOO"
           ]
         }
       ],
       "verification": "code",
-      "last_verified": "2026-10-15"
+      "last_verified": "2026-10-18"
     },
     {
       "provider": "yahoo",
@@ -912,20 +944,6 @@
   "unused_surface": [
     {
       "provider": "espn",
-      "field": "lineupLocked / rosterLocked / tradeLocked",
-      "kind": "observed",
-      "evidence": "Blueprints/specs/b2d-espn-e0-verdict-v1.md (pool entry keys, live 2026-07-27)",
-      "opportunity": "Do not recommend a start, drop or trade for a player the provider says is locked. Today a lock would not stop the recommendation.",
-      "value": "high",
-      "needs": "none; fields already arrive in the responses Omen reads",
-      "tokens": [
-        "lineupLocked",
-        "rosterLocked",
-        "tradeLocked"
-      ]
-    },
-    {
-      "provider": "espn",
       "field": "eligibleSlots",
       "kind": "observed",
       "evidence": "Blueprints/specs/b2d-espn-e0-verdict-v1.md (live 2026-07-27)",
@@ -934,19 +952,6 @@
       "needs": "none; already arrives",
       "tokens": [
         "eligibleSlots"
-      ]
-    },
-    {
-      "provider": "espn",
-      "field": "ownership.percentOwned / percentChange",
-      "kind": "observed",
-      "evidence": "Blueprints/specs/b2d-espn-e0-verdict-v1.md (percentOwned 97.3-99.8 on the sample)",
-      "opportunity": "Waiver heat: who the market is adding. Free signal for waiver ranking and for trade market value.",
-      "value": "medium",
-      "needs": "none; already arrives",
-      "tokens": [
-        "percentOwned",
-        "percentChange"
       ]
     },
     {
@@ -988,20 +993,6 @@
     },
     {
       "provider": "sleeper",
-      "field": "practice_participation / practice_description / injury_notes",
-      "kind": "documented",
-      "evidence": "Sleeper players list (already downloaded and cached)",
-      "opportunity": "Practice status and injury notes are the injury-report data the 2026-10-09 handoff lists as the biggest open start/sit gain.",
-      "value": "high",
-      "needs": "founder rights decision: whether to admit NFL injury-report data via Sleeper",
-      "tokens": [
-        "practice_participation",
-        "practice_description",
-        "injury_notes"
-      ]
-    },
-    {
-      "provider": "sleeper",
       "field": "traded_picks",
       "kind": "documented",
       "evidence": "Sleeper API docs: /league/{id}/traded_picks",
@@ -1023,30 +1014,6 @@
       "tokens": [
         "winners_bracket",
         "losers_bracket"
-      ]
-    },
-    {
-      "provider": "yahoo",
-      "field": "percent_owned",
-      "kind": "documented",
-      "evidence": "Yahoo Fantasy API player sub-resource",
-      "opportunity": "Same waiver-heat signal as ESPN; also the waiver versus free-agent distinction (status W vs FA).",
-      "value": "medium",
-      "needs": "a live probe; needs the founder's Yahoo session",
-      "tokens": [
-        "percent_owned"
-      ]
-    },
-    {
-      "provider": "yahoo",
-      "field": "is_editable",
-      "kind": "documented",
-      "evidence": "Yahoo Fantasy API roster player field",
-      "opportunity": "Lineup-lock flag, the Yahoo equivalent of ESPN lineupLocked.",
-      "value": "high",
-      "needs": "a live probe; needs the founder's Yahoo session",
-      "tokens": [
-        "is_editable"
       ]
     },
     {

@@ -7,30 +7,27 @@
 
 "use strict";
 
-const express          = require("express");
-const crypto           = require("crypto");
+const express = require("express");
+const crypto = require("crypto");
 const { createClient } = require("@supabase/supabase-js");
-const { Redis }        = require("@upstash/redis");
+const { Redis } = require("@upstash/redis");
 const { getYahooAuthUrl, exchangeYahooCode, refreshYahooToken } = require("./middleware/yahooOAuth");
-const { requireAuth }  = require("./middleware/auth");
+const { requireAuth } = require("./middleware/auth");
 
-const router     = express.Router();
+const router = express.Router();
 const START_TIME = Date.now();
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
-);
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 
 const redis = new Redis({
-  url:   process.env.REDIS_URL,
+  url: process.env.REDIS_URL,
   token: process.env.REDIS_TOKEN,
 });
 
-const YAHOO_CLIENT_ID     = process.env.YAHOO_CLIENT_ID;
+const YAHOO_CLIENT_ID = process.env.YAHOO_CLIENT_ID;
 const YAHOO_CLIENT_SECRET = process.env.YAHOO_CLIENT_SECRET;
-const YAHOO_REDIRECT_URI  = process.env.YAHOO_REDIRECT_URI;
-const APP_BASE_URL        = process.env.APP_BASE_URL;
+const YAHOO_REDIRECT_URI = process.env.YAHOO_REDIRECT_URI;
+const APP_BASE_URL = process.env.APP_BASE_URL;
 
 const SLEEPER_BASE = "https://api.sleeper.app/v1";
 
@@ -48,12 +45,12 @@ async function vaultDecrypt(secretId) {
 async function vaultCreate(secret, name, description = "") {
   const { data, error } = await supabase.rpc("vault_create_secret", { secret, name, description });
   if (error) throw new Error(`Vault create failed (${name}): ${error.message}`);
-  return data; 
+  return data;
 }
 
 async function vaultUpdate(secretId, newSecret) {
   const { error } = await supabase.rpc("vault_update_secret", {
-    secret_id:  secretId,
+    secret_id: secretId,
     new_secret: newSecret,
   });
   if (error) throw new Error(`Vault update failed (${secretId}): ${error.message}`);
@@ -89,31 +86,28 @@ class SleeperClient {
   }
 
   async buildStandings(leagueId, myUserId) {
-    const [rosters, users] = await Promise.all([
-      this.getLeagueRosters(leagueId),
-      this.getLeagueUsers(leagueId),
-    ]);
+    const [rosters, users] = await Promise.all([this.getLeagueRosters(leagueId), this.getLeagueUsers(leagueId)]);
 
-    const userMap = Object.fromEntries(users.map(u => [u.user_id, u]));
+    const userMap = Object.fromEntries(users.map((u) => [u.user_id, u]));
 
     return rosters
-      .map(r => {
-        const user   = userMap[r.owner_id] || {};
-        const wins   = r.settings?.wins          || 0;
-        const losses = r.settings?.losses        || 0;
-        const fpts   = r.settings?.fpts          || 0;
-        const fptsD  = r.settings?.fpts_decimal  || 0;
+      .map((r) => {
+        const user = userMap[r.owner_id] || {};
+        const wins = r.settings?.wins || 0;
+        const losses = r.settings?.losses || 0;
+        const fpts = r.settings?.fpts || 0;
+        const fptsD = r.settings?.fpts_decimal || 0;
 
         return {
           roster_id: r.roster_id,
-          user_id:   r.owner_id,
-          name:      user.metadata?.team_name || user.display_name || "Unknown",
-          rec:       `${wins}-${losses}`,
+          user_id: r.owner_id,
+          name: user.metadata?.team_name || user.display_name || "Unknown",
+          rec: `${wins}-${losses}`,
           wins,
           losses,
-          pts:       `${fpts}.${String(fptsD).padStart(2, "0")}`,
-          pts_num:   fpts + fptsD / 100,
-          me:        r.owner_id === myUserId,
+          pts: `${fpts}.${String(fptsD).padStart(2, "0")}`,
+          pts_num: fpts + fptsD / 100,
+          me: r.owner_id === myUserId,
         };
       })
       .sort((a, b) => b.wins - a.wins || b.pts_num - a.pts_num)
@@ -128,7 +122,7 @@ class SleeperClient {
 class YahooClient {
   constructor(accessToken) {
     this.accessToken = accessToken;
-    this.base        = "https://fantasysports.yahooapis.com/fantasy/v2";
+    this.base = "https://fantasysports.yahooapis.com/fantasy/v2";
   }
 
   static generatePKCE() {
@@ -157,21 +151,21 @@ class YahooClient {
   }
 
   async getLeagueStandings(leagueKey) {
-    const d         = await this.get(`/league/${leagueKey}/standings`);
+    const d = await this.get(`/league/${leagueKey}/standings`);
     const standings = d?.fantasy_content?.league?.[1]?.standings?.[0]?.teams;
     if (!standings) return [];
     return Object.values(standings)
-      .filter(t => t?.team)
+      .filter((t) => t?.team)
       .map((t, i) => {
-        const info  = t.team[0];
+        const info = t.team[0];
         const stats = t.team[2]?.team_standings;
         return {
-          rank:    parseInt(stats?.rank) || i + 1,
-          name:    info?.find?.(x => x?.name)?.name || "Unknown",
-          rec:     `${stats?.outcome_totals?.wins || 0}-${stats?.outcome_totals?.losses || 0}`,
-          pts:     stats?.points_for?.toFixed(2) || "0.00",
+          rank: parseInt(stats?.rank) || i + 1,
+          name: info?.find?.((x) => x?.name)?.name || "Unknown",
+          rec: `${stats?.outcome_totals?.wins || 0}-${stats?.outcome_totals?.losses || 0}`,
+          pts: stats?.points_for?.toFixed(2) || "0.00",
           pts_num: parseFloat(stats?.points_for) || 0,
-          me:      false,
+          me: false,
         };
       });
   }
@@ -184,7 +178,7 @@ class YahooClient {
 class ESPNClient {
   constructor(espnS2, swid) {
     this.cookies = `espn_s2=${espnS2}; SWID=${swid}`;
-    this.base    = "https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl";
+    this.base = "https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl";
   }
 
   async getLeague(leagueId, season = new Date().getFullYear()) {
@@ -197,16 +191,16 @@ class ESPNClient {
   }
 
   async buildStandings(leagueId, myTeamId, season) {
-    const data  = await this.getLeague(leagueId, season);
+    const data = await this.getLeague(leagueId, season);
     const teams = data?.teams || [];
     return teams
-      .map(t => ({
-        rank:    t.rankCalculatedFinal || t.rankFinal || 99,
-        name:    t.name || t.abbrev || "Team",
-        rec:     `${t.record?.overall?.wins || 0}-${t.record?.overall?.losses || 0}`,
-        pts:     (t.points || 0).toFixed(2),
+      .map((t) => ({
+        rank: t.rankCalculatedFinal || t.rankFinal || 99,
+        name: t.name || t.abbrev || "Team",
+        rec: `${t.record?.overall?.wins || 0}-${t.record?.overall?.losses || 0}`,
+        pts: (t.points || 0).toFixed(2),
         pts_num: t.points || 0,
-        me:      t.id === myTeamId,
+        me: t.id === myTeamId,
       }))
       .sort((a, b) => a.rank - b.rank);
   }
@@ -243,24 +237,36 @@ function redirectLegacyRoute({ canonicalEndpoint }) {
   };
 }
 
-router.post("/auth/sleeper/connect", retiredLegacyRoute({
-  deprecatedEndpoint: "/api/auth/sleeper/connect",
-  canonicalEndpoint: "/api/platforms/sleeper/connect",
-}));
+router.post(
+  "/auth/sleeper/connect",
+  retiredLegacyRoute({
+    deprecatedEndpoint: "/api/auth/sleeper/connect",
+    canonicalEndpoint: "/api/platforms/sleeper/connect",
+  }),
+);
 
-router.get("/auth/yahoo/authorize", retiredLegacyRoute({
-  deprecatedEndpoint: "/api/auth/yahoo/authorize",
-  canonicalEndpoint: "/api/yahoo/auth",
-}));
+router.get(
+  "/auth/yahoo/authorize",
+  retiredLegacyRoute({
+    deprecatedEndpoint: "/api/auth/yahoo/authorize",
+    canonicalEndpoint: "/api/yahoo/auth",
+  }),
+);
 
-router.get("/auth/yahoo/callback", redirectLegacyRoute({
-  canonicalEndpoint: "/api/yahoo/callback",
-}));
+router.get(
+  "/auth/yahoo/callback",
+  redirectLegacyRoute({
+    canonicalEndpoint: "/api/yahoo/callback",
+  }),
+);
 
-router.post("/auth/espn/connect", retiredLegacyRoute({
-  deprecatedEndpoint: "/api/auth/espn/connect",
-  canonicalEndpoint: "/api/platforms/espn/connect",
-}));
+router.post(
+  "/auth/espn/connect",
+  retiredLegacyRoute({
+    deprecatedEndpoint: "/api/auth/espn/connect",
+    canonicalEndpoint: "/api/platforms/espn/connect",
+  }),
+);
 
 router.get("/health", (req, res) => {
   res.json({ status: "ok", uptime: `${Math.floor((Date.now() - START_TIME) / 1000)}s` });

@@ -19,29 +19,98 @@ const {
 } = require("../src/services/footballData/acceptanceValidator");
 
 const PLAYER_HEADERS = [
-  "player_id", "player_name", "player_display_name", "position", "season", "week",
-  "season_type", "game_id", "team", "opponent_team", "passing_yards", "passing_tds",
-  "passing_interceptions", "sack_fumbles_lost", "passing_2pt_conversions", "carries",
-  "rushing_yards", "rushing_tds", "rushing_fumbles_lost", "rushing_2pt_conversions",
-  "receptions", "receiving_yards", "receiving_tds", "receiving_fumbles_lost",
-  "receiving_2pt_conversions", "special_teams_tds", "fg_made", "fg_att", "fg_missed",
-  "fg_blocked", "fg_made_0_19", "fg_made_20_29", "fg_made_30_39",
-  "fg_made_40_49", "fg_made_50_59", "fg_made_60_", "pat_made", "pat_att",
-  "pat_missed", "pat_blocked", "fantasy_points", "fantasy_points_ppr",
+  "player_id",
+  "player_name",
+  "player_display_name",
+  "position",
+  "season",
+  "week",
+  "season_type",
+  "game_id",
+  "team",
+  "opponent_team",
+  "passing_yards",
+  "passing_tds",
+  "passing_interceptions",
+  "sack_fumbles_lost",
+  "passing_2pt_conversions",
+  "carries",
+  "rushing_yards",
+  "rushing_tds",
+  "rushing_fumbles_lost",
+  "rushing_2pt_conversions",
+  "receptions",
+  "receiving_yards",
+  "receiving_tds",
+  "receiving_fumbles_lost",
+  "receiving_2pt_conversions",
+  "special_teams_tds",
+  "fg_made",
+  "fg_att",
+  "fg_missed",
+  "fg_blocked",
+  "fg_made_0_19",
+  "fg_made_20_29",
+  "fg_made_30_39",
+  "fg_made_40_49",
+  "fg_made_50_59",
+  "fg_made_60_",
+  "pat_made",
+  "pat_att",
+  "pat_missed",
+  "pat_blocked",
+  "fantasy_points",
+  "fantasy_points_ppr",
 ];
 
 const TEAM_HEADERS = [
-  "season", "week", "team", "season_type", "game_id", "opponent_team", "def_sacks",
-  "def_interceptions", "fumble_recovery_opp", "def_tds", "fumble_recovery_tds",
-  "special_teams_tds", "def_safeties", "def_punt_blocks", "def_pat_blocks",
-  "def_fg_blocks", "fg_made", "fg_att", "fg_missed", "fg_blocked", "fg_made_0_19",
-  "fg_made_20_29", "fg_made_30_39", "fg_made_40_49", "fg_made_50_59",
-  "fg_made_60_", "pat_made", "pat_att", "pat_missed", "pat_blocked",
+  "season",
+  "week",
+  "team",
+  "season_type",
+  "game_id",
+  "opponent_team",
+  "def_sacks",
+  "def_interceptions",
+  "fumble_recovery_opp",
+  "def_tds",
+  "fumble_recovery_tds",
+  "special_teams_tds",
+  "def_safeties",
+  "def_punt_blocks",
+  "def_pat_blocks",
+  "def_fg_blocks",
+  "fg_made",
+  "fg_att",
+  "fg_missed",
+  "fg_blocked",
+  "fg_made_0_19",
+  "fg_made_20_29",
+  "fg_made_30_39",
+  "fg_made_40_49",
+  "fg_made_50_59",
+  "fg_made_60_",
+  "pat_made",
+  "pat_att",
+  "pat_missed",
+  "pat_blocked",
 ];
 
 const SCHEDULE_HEADERS = [
-  "game_id", "season", "game_type", "week", "gameday", "away_team", "away_score",
-  "home_team", "home_score", "old_game_id", "gsis", "pfr", "pff", "espn",
+  "game_id",
+  "season",
+  "game_type",
+  "week",
+  "gameday",
+  "away_team",
+  "away_score",
+  "home_team",
+  "home_score",
+  "old_game_id",
+  "gsis",
+  "pfr",
+  "pff",
+  "espn",
 ];
 
 const HASHES = Object.freeze({
@@ -168,25 +237,32 @@ function fixture(overrides = {}) {
       pff: `pff-${game.week}`,
       espn: `espn-${game.week}`,
     });
-    [[game.away, game.home], [game.home, game.away]].forEach(([team, opponent], side) => {
+    [
+      [game.away, game.home],
+      [game.home, game.away],
+    ].forEach(([team, opponent], side) => {
       const base = gameIndex * 4 + side * 2;
-      players.push(playerRow({
-        playerId: `00-${String(3000000 + base).padStart(7, "0")}`,
-        name: gameIndex === 0 && side === 0 ? "Receiver, Jr." : `${team} Receiver`,
-        week: game.week,
-        gameId,
-        team,
-        opponent,
-      }));
-      players.push(playerRow({
-        playerId: `00-${String(3000001 + base).padStart(7, "0")}`,
-        name: `${team} Kicker`,
-        week: game.week,
-        gameId,
-        team,
-        opponent,
-        kicker: true,
-      }));
+      players.push(
+        playerRow({
+          playerId: `00-${String(3000000 + base).padStart(7, "0")}`,
+          name: gameIndex === 0 && side === 0 ? "Receiver, Jr." : `${team} Receiver`,
+          week: game.week,
+          gameId,
+          team,
+          opponent,
+        }),
+      );
+      players.push(
+        playerRow({
+          playerId: `00-${String(3000001 + base).padStart(7, "0")}`,
+          name: `${team} Kicker`,
+          week: game.week,
+          gameId,
+          team,
+          opponent,
+          kicker: true,
+        }),
+      );
       teams.push(teamRow({ week: game.week, gameId, team, opponent }));
     });
   });
@@ -203,10 +279,17 @@ function fixture(overrides = {}) {
 }
 
 test("CSV parsing preserves quoted aliases instead of shifting identity columns", () => {
-  const rows = parseCsvObjects(csv(["player_id", "player_name"], [{
-    player_id: "00-0030000",
-    player_name: 'Receiver, "Junior"',
-  }]));
+  const rows = parseCsvObjects(
+    csv(
+      ["player_id", "player_name"],
+      [
+        {
+          player_id: "00-0030000",
+          player_name: 'Receiver, "Junior"',
+        },
+      ],
+    ),
+  );
 
   assert.deepEqual(rows, [{ player_id: "00-0030000", player_name: 'Receiver, "Junior"' }]);
 });
@@ -269,10 +352,11 @@ test("malformed GSIS identities and unresolved targets fail closed", () => {
   );
 
   assert.throws(
-    () => buildScoringAcceptance({
-      ...fixture(),
-      recommendedTargets: [{ subject_type: "player", subject_id: "00-0099999" }],
-    }),
+    () =>
+      buildScoringAcceptance({
+        ...fixture(),
+        recommendedTargets: [{ subject_type: "player", subject_id: "00-0099999" }],
+      }),
     (error) => error.code === "UNRESOLVED_TARGET",
   );
 });
@@ -355,10 +439,11 @@ test("Phase 2 requires at least four distinct historical weeks and completed sch
 
 test("manifest provenance must identify every exact source snapshot", () => {
   assert.throws(
-    () => buildScoringAcceptance({
-      ...fixture(),
-      manifestHashes: { ...HASHES, stats_team: "latest" },
-    }),
+    () =>
+      buildScoringAcceptance({
+        ...fixture(),
+        manifestHashes: { ...HASHES, stats_team: "latest" },
+      }),
     (error) => error.code === "INVALID_MANIFEST_HASH",
   );
 });
@@ -366,11 +451,13 @@ test("manifest provenance must identify every exact source snapshot", () => {
 test("an independent validator recomputes every ruleset and binds the exact receipt", () => {
   const result = buildScoringAcceptance(fixture());
   const acceptanceBytes = Buffer.from(`${JSON.stringify(result, null, 2)}\n`);
-  const receiptBytes = Buffer.from(JSON.stringify({
-    schema: "omen-football-scoring-replay.v1",
-    acceptance_sha256: crypto.createHash("sha256").update(acceptanceBytes).digest("hex"),
-    source_bundle_hash: result.source_bundle_hash,
-  }));
+  const receiptBytes = Buffer.from(
+    JSON.stringify({
+      schema: "omen-football-scoring-replay.v1",
+      acceptance_sha256: crypto.createHash("sha256").update(acceptanceBytes).digest("hex"),
+      source_bundle_hash: result.source_bundle_hash,
+    }),
+  );
   const validation = validateAcceptanceArtifact({ acceptanceBytes, receiptBytes });
 
   assert.equal(validation.status, "validated");

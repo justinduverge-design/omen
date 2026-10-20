@@ -14,19 +14,31 @@
  *
  * --check is the gate. Editing CSS inside an artboard is the mistake it exists to catch.
  */
-import fs from 'node:fs';
-import path from 'node:path';
+import fs from "node:fs";
+import path from "node:path";
 
 const dir = process.argv[2];
-const check = process.argv.includes('--check');
-if (!dir) { console.error('usage: sync-canvas-css.mjs <canvas-dir> [--check]'); process.exit(2); }
+const check = process.argv.includes("--check");
+if (!dir) {
+  console.error("usage: sync-canvas-css.mjs <canvas-dir> [--check]");
+  process.exit(2);
+}
 
-const sharedPath = path.join(dir, '_shared.css');
-if (!fs.existsSync(sharedPath)) { console.error(`no _shared.css in ${dir}`); process.exit(2); }
-const shared = fs.readFileSync(sharedPath, 'utf8').trim();
+const sharedPath = path.join(dir, "_shared.css");
+if (!fs.existsSync(sharedPath)) {
+  console.error(`no _shared.css in ${dir}`);
+  process.exit(2);
+}
+const shared = fs.readFileSync(sharedPath, "utf8").trim();
 
-const boards = fs.readdirSync(dir).filter(f => f.endsWith('.dc.html')).sort();
-if (!boards.length) { console.error(`no .dc.html artboards in ${dir}`); process.exit(2); }
+const boards = fs
+  .readdirSync(dir)
+  .filter((f) => f.endsWith(".dc.html"))
+  .sort();
+if (!boards.length) {
+  console.error(`no .dc.html artboards in ${dir}`);
+  process.exit(2);
+}
 
 const drifted = [];
 const missing = [];
@@ -34,13 +46,19 @@ let written = 0;
 
 for (const f of boards) {
   const p = path.join(dir, f);
-  let src = fs.readFileSync(p, 'utf8');
+  let src = fs.readFileSync(p, "utf8");
   const m = src.match(/<style>([\s\S]*?)<\/style>/);
 
-  if (!m) { missing.push(f); continue; }
+  if (!m) {
+    missing.push(f);
+    continue;
+  }
   if (m[1].trim() === shared) continue;
 
-  if (check) { drifted.push(f); continue; }
+  if (check) {
+    drifted.push(f);
+    continue;
+  }
   src = src.slice(0, m.index) + `<style>\n${shared}\n</style>` + src.slice(m.index + m[0].length);
   fs.writeFileSync(p, src);
   written++;
@@ -51,15 +69,20 @@ if (check) {
     for (const f of drifted) console.error(`DRIFTED  ${f} — its <style> differs from _shared.css`);
     for (const f of missing) console.error(`NO STYLE ${f} — artboards must carry the shared block inline`);
     console.error(`\n${drifted.length + missing.length} of ${boards.length} artboards out of sync.`);
-    console.error('Fix by editing _shared.css and re-running without --check. Never edit CSS in an artboard.');
+    console.error("Fix by editing _shared.css and re-running without --check. Never edit CSS in an artboard.");
     process.exit(1);
   }
   console.log(`canvas css parity: OK (${boards.length} artboards match _shared.css).`);
-  console.log('\nWhat this does NOT check:');
-  console.log('  · whether the CSS is correct — that is OmenColorContrastTest and the registry');
-  console.log('  · artboard BODY markup, which is per-screen by design');
-  console.log('  · that a class used in an artboard exists in the stylesheet');
+  console.log("\nWhat this does NOT check:");
+  console.log("  · whether the CSS is correct — that is OmenColorContrastTest and the registry");
+  console.log("  · artboard BODY markup, which is per-screen by design");
+  console.log("  · that a class used in an artboard exists in the stylesheet");
 } else {
-  console.log(`synced ${written} artboard(s) from _shared.css; ${boards.length - written - missing.length} already current.`);
-  if (missing.length) { for (const f of missing) console.error(`NO STYLE ${f} — add an empty <style></style> block`); process.exit(1); }
+  console.log(
+    `synced ${written} artboard(s) from _shared.css; ${boards.length - written - missing.length} already current.`,
+  );
+  if (missing.length) {
+    for (const f of missing) console.error(`NO STYLE ${f} — add an empty <style></style> block`);
+    process.exit(1);
+  }
 }

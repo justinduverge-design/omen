@@ -15,20 +15,15 @@ initSentry({ component: "cron" });
 const Sentry = require("@sentry/node");
 const { createClient } = require("@supabase/supabase-js");
 const { Redis } = require("@upstash/redis");
-const {
-  RECONCILIATION_STATES,
-  reconcileMoveScoring,
-} = require("./services/scoringReconciliation");
+const { RECONCILIATION_STATES, reconcileMoveScoring } = require("./services/scoringReconciliation");
 const ledgerStore = require("./services/ledger");
 const { bandFromScore } = require("./services/confidencePolicy");
 const { getCurrentNflWeekContext } = require("./services/nflSchedule");
 const { footballDataMode, createFailSafeWarehouseReadRuntime } = require("./services/footballWarehouse/readRuntime");
 const { resolveWarehouseOutcomes } = require("./services/footballWarehouse/ledgerOutcomes");
+const { resolveGsis } = require("./services/playerUsage");
 
-const REQUIRED_SCORING_ENV = Object.freeze([
-  "SUPABASE_URL",
-  "SUPABASE_SERVICE_KEY",
-]);
+const REQUIRED_SCORING_ENV = Object.freeze(["SUPABASE_URL", "SUPABASE_SERVICE_KEY"]);
 
 const CURRENT_SEASON = new Date().getFullYear();
 // nflverse reorganized its releases: the `player_stats` tag stopped receiving new
@@ -36,8 +31,7 @@ const CURRENT_SEASON = new Date().getFullYear();
 // `stats_player_week_<season>.csv`. The old path 404s for every season from 2025
 // on, which the 404-deferral path would otherwise read as "not published yet"
 // forever. Verified against the live release index 2026-08-15.
-const NFLVERSE_BASE_URL =
-  "https://github.com/nflverse/nflverse-data/releases/download/stats_player";
+const NFLVERSE_BASE_URL = "https://github.com/nflverse/nflverse-data/releases/download/stats_player";
 
 function nflverseStatsFileName(season) {
   return `stats_player_week_${season}.csv`;
@@ -158,7 +152,10 @@ function parseCsvLine(line = "") {
 }
 
 function nflverseScoresFromCsv(csvText, { season, weekNum, seasonType = DEFAULT_SEASON_TYPE } = {}) {
-  const lines = String(csvText || "").trim().split(/\r?\n/).filter(Boolean);
+  const lines = String(csvText || "")
+    .trim()
+    .split(/\r?\n/)
+    .filter(Boolean);
   if (lines.length < 2) return {};
   const headers = parseCsvLine(lines[0]).map((header) => header.trim());
   // `season_type` is required rather than optional-when-present: a file without it
@@ -200,7 +197,9 @@ async function fetchPendingMoves(supabase, now = new Date()) {
     // scoring-enable order is mandatory: approval -> staging schema -> verification
     // -> production schema -> scoring enablement. Until then this code must not
     // run Tuesday scoring against a live database.
-    .select("id, week_num, season, headline, confidence, target_player, scoring, scoring_contract, scoring_contract_required, scoring_coverage_state, outcome, followed, created_at")
+    .select(
+      "id, week_num, season, headline, confidence, target_player, scoring, scoring_contract, scoring_contract_required, scoring_coverage_state, outcome, followed, created_at",
+    )
     .eq("outcome", "pending")
     .eq("followed", true)
     .lt("created_at", cutoff)
@@ -227,7 +226,10 @@ async function archiveNotExecutedMoves(supabase, now = new Date(), { dryRun = fa
   const { error: updateError } = await supabase
     .from("moves")
     .update({ outcome: "not_executed", scored_at: new Date().toISOString() })
-    .in("id", rows.map((row) => row.id));
+    .in(
+      "id",
+      rows.map((row) => row.id),
+    );
 
   if (updateError) throw new Error(`Not-executed archive failed: ${updateError.message}`);
   return rows.length;
@@ -411,8 +413,7 @@ async function saveScoredMove(supabase, moveId, score) {
   // `reconciliation_state` arrives with the reviewed A6 schema, and applying it
   // is the gated founder sequence. Until then, save without it rather than
   // failing the run.
-  if (error && Object.hasOwn(patch, "reconciliation_state")
-    && /reconciliation_state/.test(error.message || "")) {
+  if (error && Object.hasOwn(patch, "reconciliation_state") && /reconciliation_state/.test(error.message || "")) {
     const { reconciliation_state: _dropped, ...withoutState } = patch;
     ({ error } = await supabase.from("moves").update(withoutState).eq("id", moveId));
   }
@@ -467,8 +468,8 @@ function gradeDecision({ decision, action }, playerScores) {
 }
 
 function decisionAsMove(decision, target) {
-  const contractRequired = decision.call_type !== "legacy"
-    || Boolean(decision.scoring_contract_version || decision.scoring_contract_hash);
+  const contractRequired =
+    decision.call_type !== "legacy" || Boolean(decision.scoring_contract_version || decision.scoring_contract_hash);
   return {
     target_player: target,
     headline: decision.headline,
@@ -520,32 +521,159 @@ function gradeDecisionFromWarehouse({ decision, action }, found) {
       summary: "The recommended player could not be matched to the football warehouse by provider id.",
     };
   }
-  if (found.kind === "no_line") {
-    return {
-      state: "data_incomplete",
-      provenance: "legacy_estimate",
-      summary: "No public stat line matched the recommended player.",
-    };
-  }
+  // A resolved player with no stat line did not play: he scored 0, which is a real outcome for the call.
 
   const label = LEGACY_SCORING_LABELS[decision.scoring_format] || decision.scoring_format || "PPR";
-  const ppr = found.ppr;
-  const receptions = found.receptions;
-  // nflverse PPR = standard + receptions, so Standard and Half PPR follow exactly from the same line.
-  if (label !== "PPR" && !Number.isFinite(receptions)) {
+  return gradeAgainstAlternative(decision, found, label, target);
+}
+
+// What each call type compares: the player Omen picked against the one it passed over.
+const COMPARISON_WORDS = Object.freeze({
+  start_sit: ["Started", "sat"],
+  waiver_pickup: ["Added", "dropped"],
+  trade_suggestion: ["Received", "gave"],
+});
+
+/** Points for one warehouse line in the call's format; a resolved player with no line played 0. */
+function formatPoints(line, label) {
+  if (!line || line.kind === "unresolved") return null;
+  if (line.kind === "no_line") return 0;
+  const { ppr, receptions } = line;
+  if (label === "PPR") return ppr;
+  if (!Number.isFinite(receptions)) return null;
+  return label === "Half PPR" ? ppr - receptions / 2 : ppr - receptions;
+}
+
+/**
+ * A call is graded against its own alternative, never against a fixed number: did the player Omen
+ * picked outscore the one it passed over that week? Points are derived from public stat lines in the
+ * call's format, so the provenance is an estimate, not the league's exact scoring.
+ */
+function gradeAgainstAlternative(decision, found, label, target) {
+  const words = COMPARISON_WORDS[decision.call_type];
+  const comparisonName = decision?.recommendation?.comparison_player?.name || "the alternative";
+  if (!words || !found.comparison) {
     return {
       state: "data_incomplete",
       provenance: "legacy_estimate",
-      summary: `The ${label} total cannot be derived because the stat line has no reception count.`,
+      summary: "This call names no alternative player, so there is nothing to grade it against.",
     };
   }
-  const stats = {
-    name: target,
-    rec_ppr: ppr,
-    rec_std: Number.isFinite(receptions) ? ppr - receptions : undefined,
-    rec_half: Number.isFinite(receptions) ? ppr - receptions / 2 : undefined,
+  const picked = formatPoints(found, label);
+  const passed = formatPoints(found.comparison, label);
+  if (picked == null || passed == null) {
+    return {
+      state: "data_incomplete",
+      provenance: "legacy_estimate",
+      summary:
+        picked == null
+          ? `${target} could not be matched to a public stat line.`
+          : `${comparisonName} could not be matched to a public stat line.`,
+    };
+  }
+  const margin = Math.round((picked - passed) * 10) / 10;
+  const result = margin >= 0 ? "win" : "loss";
+  return {
+    state: "resolved",
+    result,
+    provenance: "legacy_estimate",
+    reconciliation_state: null,
+    effectiveness: Math.max(0, Math.min(100, Math.round(50 + margin * 4))),
+    summary:
+      `${words[0]} ${target}: ${picked.toFixed(1)}; ${words[1]} ${comparisonName}: ${passed.toFixed(1)} (${label} estimate). ` +
+      (margin >= 0 ? `The call gained ${margin.toFixed(1)}.` : `The call cost ${Math.abs(margin).toFixed(1)}.`),
   };
-  return gradeMatched(decision, stats, target);
+}
+
+/** The provider's own id for a recommendation player: "sleeper:4046" -> 4046, "espn:3054211" -> 3054211, Yahoo keys as-is. */
+function leaguePlayerId(decision, which) {
+  const id = decision?.recommendation?.[which]?.id;
+  if (typeof id !== "string" || !id) return null;
+  const match = /^(sleeper|espn|yahoo):(.+)$/.exec(id);
+  return match ? match[2] : id;
+}
+
+/**
+ * The points each call's two players actually scored, as the league itself scored them, read from the
+ * connected provider. Map(decisionId -> { primary, comparison }); a player the league did not report is
+ * undefined. Never throws: a league that cannot be read is simply absent and grading falls back.
+ */
+async function resolveLeagueOutcomes(supabase, entries, deps = {}) {
+  const out = new Map();
+  const groups = new Map();
+  if (!supabase || typeof supabase.from !== "function") return out;
+  for (const entry of entries) {
+    const { decision } = entry;
+    if (!decision?.league_id) continue;
+    const key = `${decision.league_id}|${decision.week}|${decision.user_id}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(decision);
+  }
+  const espnCreds =
+    deps.espnCredentials || ((userId) => require("./services/espnAuth").getAuthenticatedEspnCredentials(userId));
+  const yahooAuth =
+    deps.yahooClient || ((userId) => require("./services/yahooAuth").getAuthenticatedYahooClient(userId));
+  // Lazy: the provider adapters load config, which this module must not require at import time.
+  const points = deps.leagueActualPoints || require("./services/leagueActualPoints");
+
+  for (const decisions of groups.values()) {
+    const first = decisions[0];
+    try {
+      const { data: league } = await supabase
+        .from("leagues")
+        .select("provider,provider_league_id")
+        .eq("id", first.league_id)
+        .maybeSingle();
+      if (!league?.provider_league_id) continue;
+      const week = Number(first.week);
+      let scored = new Map();
+      if (league.provider === "sleeper") {
+        scored = await points.sleeperPoints({ leagueId: league.provider_league_id, week });
+      } else if (league.provider === "espn") {
+        scored = await points.espnPoints({
+          leagueId: league.provider_league_id,
+          week,
+          credentials: await espnCreds(first.user_id),
+        });
+      } else if (league.provider === "yahoo") {
+        const { client } = await yahooAuth(first.user_id);
+        const keys = decisions
+          .flatMap((d) => [leaguePlayerId(d, "primary_player"), leaguePlayerId(d, "comparison_player")])
+          .filter(Boolean);
+        scored = await points.yahooPoints({ leagueKey: league.provider_league_id, week, playerKeys: keys, client });
+      }
+      for (const decision of decisions) {
+        out.set(decision.id, {
+          primary: scored.get(String(leaguePlayerId(decision, "primary_player"))),
+          comparison: scored.get(String(leaguePlayerId(decision, "comparison_player"))),
+        });
+      }
+    } catch (error) {
+      log.warn(
+        `League points unavailable for one league-week; falling back (reason=${error.code || error.status || error.name})`,
+      );
+    }
+  }
+  return out;
+}
+
+/** Grade from the league's own scored points: exact, so provenance is verified. Null when either is missing. */
+function gradeFromLeaguePoints(decision, league) {
+  const words = COMPARISON_WORDS[decision.call_type];
+  if (!words || !league || league.primary == null || league.comparison == null) return null;
+  const target = decisionTargetPlayer(decision) || "the recommended player";
+  const comparisonName = decision?.recommendation?.comparison_player?.name || "the alternative";
+  const margin = Math.round((league.primary - league.comparison) * 10) / 10;
+  return {
+    state: "resolved",
+    result: margin >= 0 ? "win" : "loss",
+    provenance: "verified",
+    reconciliation_state: RECONCILIATION_STATES.EXACT,
+    effectiveness: Math.max(0, Math.min(100, Math.round(50 + margin * 4))),
+    summary:
+      `${words[0]} ${target}: ${league.primary.toFixed(1)}; ${words[1]} ${comparisonName}: ${league.comparison.toFixed(1)} (your league's scoring). ` +
+      (margin >= 0 ? `The call gained ${margin.toFixed(1)}.` : `The call cost ${Math.abs(margin).toFixed(1)}.`),
+  };
 }
 
 async function openWarehouseOutcomeRepository({ env, dependencies, Pool } = {}) {
@@ -583,14 +711,24 @@ async function previewLedgerOutcomes(supabase, { season, week, repository, depen
   }
   if (!repository) throw new Error("warehouse outcome repository is not available");
   const fetchScorable = dependencies.fetchScorableDecisions || ledgerStore.fetchScorableDecisions;
-  const entries = (await fetchScorable(supabase, { season, beforeWeek: week + 1 }))
-    .filter((entry) => entry.decision.week === week);
+  const entries = (await fetchScorable(supabase, { season, beforeWeek: week + 1 })).filter(
+    (entry) => entry.decision.week === week,
+  );
   const needsLine = entries.filter((entry) => entry.action?.followed !== false);
-  const found = await resolveWarehouseOutcomes({ entries: needsLine, repository });
+  const found = await resolveWarehouseOutcomes({
+    entries: needsLine,
+    repository,
+    resolveGsis: (keys) => resolveGsis(supabase, keys),
+  });
 
   const counts = { calls: entries.length, graded: 0, data_incomplete: 0, not_executed: 0, pending: 0 };
+  const leagueFound = await resolveLeagueOutcomes(supabase, needsLine, dependencies);
   const preview = entries.map((entry) => {
-    const outcome = gradeDecisionFromWarehouse(entry, found.get(entry.decision.id));
+    const outcome =
+      (entry.action?.followed === false
+        ? null
+        : gradeFromLeaguePoints(entry.decision, leagueFound.get(entry.decision.id))) ||
+      gradeDecisionFromWarehouse(entry, found.get(entry.decision.id));
     if (!outcome) {
       counts.pending += 1;
       return { decision_id: entry.decision.id, week, state: "pending", basis: "week_not_in_warehouse" };
@@ -616,14 +754,17 @@ async function previewLedgerOutcomes(supabase, { season, week, repository, depen
  * so a missed run is caught up next time. Re-runs are idempotent: a final outcome is never touched
  * and an unchanged incomplete one is not rewritten.
  */
-async function scoreLedgerDecisions(supabase, {
-  now = new Date(),
-  dryRun = false,
-  fetchScores = fetchNFLScores,
-  redis = null,
-  env = process.env,
-  dependencies = {},
-} = {}) {
+async function scoreLedgerDecisions(
+  supabase,
+  {
+    now = new Date(),
+    dryRun = false,
+    fetchScores = fetchNFLScores,
+    redis = null,
+    env = process.env,
+    dependencies = {},
+  } = {},
+) {
   const tally = emptyLedgerTally();
   const { season, raw_week: rawWeek } = getCurrentNflWeekContext(now);
   if (!Number.isInteger(rawWeek) || rawWeek < 2) return tally;
@@ -644,18 +785,48 @@ async function scoreLedgerDecisions(supabase, {
       warehouseFound = await resolveWarehouseOutcomes({
         entries: pending.filter((entry) => entry.action?.followed !== false),
         repository: warehouse.repository,
+        resolveGsis: (keys) => resolveGsis(supabase, keys),
       });
+      // Trades are also graded over the next four weeks and the season so far (step 18). Never fails scoring.
+      if (!dryRun) {
+        const scoreHorizons = dependencies.scoreTradeHorizons || require("./services/tradeHorizons").scoreTradeHorizons;
+        const horizons = await scoreHorizons(supabase, {
+          season,
+          lastFinishedWeek: beforeWeek - 1,
+          repository: warehouse.repository,
+          resolveGsis: (keys) => resolveGsis(supabase, keys),
+          log,
+        });
+        if (horizons.trades || horizons.written || horizons.failed) tally.trade_horizons = horizons;
+      }
     }
   } catch (error) {
     warehouseFound = null;
     log.warn(`Warehouse outcome read failed; using the existing scoring path (reason=${error.code || error.name})`);
   } finally {
-    try { await warehouse.close(); } catch { /* closing a read pool must not fail scoring */ }
+    try {
+      await warehouse.close();
+    } catch {
+      /* closing a read pool must not fail scoring */
+    }
   }
+
+  const leagueFound = await resolveLeagueOutcomes(
+    supabase,
+    pending.filter((entry) => entry.action?.followed !== false),
+    dependencies,
+  );
 
   for (const entry of pending) {
     const { decision } = entry;
     try {
+      const fromLeague =
+        entry.action?.followed === false ? null : gradeFromLeaguePoints(decision, leagueFound.get(decision.id));
+      if (fromLeague) {
+        const status = await saveOutcome(supabase, { decision, existing: entry.outcome, outcome: fromLeague, now });
+        tally[status === "inserted" ? "inserted" : status === "updated" ? "updated" : "unchanged"] += 1;
+        continue;
+      }
       if (warehouseFound) {
         const outcome = gradeDecisionFromWarehouse(entry, warehouseFound.get(decision.id));
         if (!outcome) {
@@ -727,7 +898,10 @@ async function runScoring({ env = process.env, now = new Date(), dependencies = 
   const scoreLedger = async () => {
     try {
       return await resolvedScoreLedger(supabase, {
-        now, dryRun, redis, env,
+        now,
+        dryRun,
+        redis,
+        env,
         fetchScores: dependencies.fetchNFLScores || fetchNFLScores,
       });
     } catch (error) {
@@ -784,9 +958,13 @@ async function main({ env = process.env } = {}) {
   }
 
   const result = await runScoring({ env });
-  log.info(`Tuesday scoring complete: archived=${result.archiveCount} scored=${result.scoredCount} failed=${result.failedCount} deferred=${result.deferredCount}`);
+  log.info(
+    `Tuesday scoring complete: archived=${result.archiveCount} scored=${result.scoredCount} failed=${result.failedCount} deferred=${result.deferredCount}`,
+  );
   const ledger = result.ledger || {};
-  log.info(`Ledger scoring: inserted=${ledger.inserted} updated=${ledger.updated} unchanged=${ledger.unchanged} deferred=${ledger.deferred} failed=${ledger.failed}${ledger.error ? " error=true" : ""}`);
+  log.info(
+    `Ledger scoring: inserted=${ledger.inserted} updated=${ledger.updated} unchanged=${ledger.unchanged} deferred=${ledger.deferred} failed=${ledger.failed}${ledger.error ? " error=true" : ""}`,
+  );
   return result;
 }
 
@@ -807,7 +985,8 @@ function installSentryProcessHandlers() {
 
 if (require.main === module) {
   installSentryProcessHandlers();
-  main()
+  const { traceCronJob } = require("./services/telemetry");
+  traceCronJob("tuesday_scoring", () => main())
     .then(async () => {
       await flushSentry();
       process.exit(0);
@@ -821,6 +1000,9 @@ if (require.main === module) {
 }
 
 module.exports = {
+  gradeFromLeaguePoints,
+  resolveLeagueOutcomes,
+  gradeAgainstAlternative,
   archiveNotExecutedMoves,
   confidenceFlags,
   fetchNFLScores,

@@ -3,10 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router';
 import AppLayout from '../components/layout/AppLayout.jsx';
 import PlatformConnections from '../components/platforms/PlatformConnections.jsx';
 import { apiFetch } from '../lib/api.js';
-import {
-  ACCOUNT_DELETE_CONFIRMATION,
-  isAccountDeleteConfirmation,
-} from '../lib/accountDeletion.js';
+import { ACCOUNT_DELETE_CONFIRMATION, isAccountDeleteConfirmation } from '../lib/accountDeletion.js';
 import { setDataMode } from '../lib/dataMode.js';
 import { storeNextUrl } from '../lib/nextUrl.js';
 import { supabase } from '../lib/supabase.js';
@@ -30,7 +27,9 @@ function AccountDeleteDialog({ open, onClose }) {
     setSubmitting(false);
     setTimeout(() => inputRef.current?.focus(), 50);
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, [open]);
 
   useEffect(() => {
@@ -86,19 +85,22 @@ function AccountDeleteDialog({ open, onClose }) {
           aria-modal="true"
           aria-labelledby="account-delete-title"
           aria-describedby="account-delete-copy"
-          className="w-full max-w-lg rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5 shadow-2xl"
+          className="w-full max-w-lg rounded-lg border border-(--color-border) bg-(--color-surface-1) p-5 shadow-2xl"
           onSubmit={handleDelete}
         >
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-risk-high)]">Final check</p>
-              <h3 id="account-delete-title" className="mt-1 text-2xl font-bold tracking-tight text-[var(--color-text-primary)]">
+              <p className="text-xs font-semibold uppercase tracking-widest text-(--color-risk-high)">Final check</p>
+              <h3
+                id="account-delete-title"
+                className="mt-1 text-2xl font-bold tracking-tight text-(--color-text-primary)"
+              >
                 Delete Omen data
               </h3>
             </div>
             <button
               type="button"
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-[var(--color-text-tertiary)] transition-colors duration-150 hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-(--color-text-tertiary) transition-colors duration-150 hover:bg-(--color-surface-2) hover:text-(--color-text-primary) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-team-accent) disabled:cursor-not-allowed disabled:opacity-50"
               aria-label="Close delete confirmation"
               disabled={submitting}
               onClick={onClose}
@@ -109,33 +111,37 @@ function AccountDeleteDialog({ open, onClose }) {
             </button>
           </div>
 
-          <p id="account-delete-copy" className="mt-4 text-sm leading-6 text-[var(--color-text-secondary)]">
-            This removes Omen-stored platform connections, saved moves, consent records, and profile data.
-            It does not change data held by fantasy platforms or sign-in providers.
+          <p id="account-delete-copy" className="mt-4 text-sm leading-6 text-(--color-text-secondary)">
+            This removes Omen-stored platform connections, saved moves, consent records, and profile data. It does not
+            change data held by fantasy platforms or sign-in providers.
           </p>
 
-          <div className="mt-4 rounded-lg border border-[var(--color-risk-high)]/40 bg-[var(--color-risk-high)]/10 px-4 py-3">
-            <p className="text-sm font-semibold text-[var(--color-text-primary)]">This cannot be undone.</p>
-            <p className="mt-1 text-xs leading-5 text-[var(--color-text-secondary)]">
-              Type <span className="font-mono text-[var(--color-text-primary)]">{ACCOUNT_DELETE_CONFIRMATION}</span> to confirm.
+          <div className="mt-4 rounded-lg border border-(--color-risk-high)/40 bg-(--color-risk-high)/10 px-4 py-3">
+            <p className="text-sm font-semibold text-(--color-text-primary)">This cannot be undone.</p>
+            <p className="mt-1 text-xs leading-5 text-(--color-text-secondary)">
+              Type <span className="font-mono text-(--color-text-primary)">{ACCOUNT_DELETE_CONFIRMATION}</span> to
+              confirm.
             </p>
           </div>
 
-          <label className="mt-5 block text-xs font-semibold uppercase tracking-widest text-[var(--color-text-tertiary)]" htmlFor="account-delete-confirmation">
+          <label
+            className="mt-5 block text-xs font-semibold uppercase tracking-widest text-(--color-text-tertiary)"
+            htmlFor="account-delete-confirmation"
+          >
             Confirmation phrase
           </label>
           <input
             ref={inputRef}
             id="account-delete-confirmation"
             autoComplete="off"
-            className="mt-2 w-full min-h-[48px] rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] px-4 text-base text-[var(--color-text-primary)] outline-none transition-colors duration-150 placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-risk-high)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)]"
+            className="mt-2 w-full min-h-[48px] rounded-lg border border-(--color-border) bg-(--color-surface-2) px-4 text-base text-(--color-text-primary) outline-hidden transition-colors duration-150 placeholder:text-(--color-text-tertiary) focus:border-(--color-risk-high) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-team-accent)"
             disabled={submitting}
             value={confirmation}
             onChange={(e) => setConfirmation(e.target.value)}
           />
 
           {error && (
-            <p className="mt-3 text-sm text-[var(--color-risk-high)]" role="alert">
+            <p className="mt-3 text-sm text-(--color-risk-high)" role="alert">
               {error}
             </p>
           )}
@@ -143,7 +149,7 @@ function AccountDeleteDialog({ open, onClose }) {
           <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <button
               type="button"
-              className="min-h-[44px] rounded-lg border border-[var(--color-border)] px-5 text-sm font-semibold text-[var(--color-text-secondary)] transition-colors duration-150 hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)] disabled:cursor-not-allowed disabled:opacity-50"
+              className="min-h-[44px] rounded-lg border border-(--color-border) px-5 text-sm font-semibold text-(--color-text-secondary) transition-colors duration-150 hover:bg-(--color-surface-2) hover:text-(--color-text-primary) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-team-accent) disabled:cursor-not-allowed disabled:opacity-50"
               disabled={submitting}
               onClick={onClose}
             >
@@ -151,7 +157,7 @@ function AccountDeleteDialog({ open, onClose }) {
             </button>
             <button
               type="submit"
-              className="min-h-[44px] rounded-lg bg-[var(--color-risk-high)] px-5 text-sm font-semibold text-white transition-colors duration-150 hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)] disabled:cursor-not-allowed disabled:opacity-50"
+              className="min-h-[44px] rounded-lg bg-(--color-risk-high) px-5 text-sm font-semibold text-white transition-colors duration-150 hover:brightness-110 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-team-accent) disabled:cursor-not-allowed disabled:opacity-50"
               disabled={!canSubmit || submitting}
             >
               {submitting ? 'Deleting Omen data…' : 'Delete Omen data'}
@@ -167,25 +173,25 @@ function PrivacySection() {
   const [dialogOpen, setDialogOpen] = useState(false);
 
   return (
-    <div className="border-t border-[var(--color-border)] pt-6">
+    <div className="border-t border-(--color-border) pt-6">
       <section className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-team-accent)]">Privacy</p>
-        <h2 className="text-xl font-bold tracking-tight text-[var(--color-text-primary)]">Omen Data</h2>
-        <p className="text-sm leading-6 text-[var(--color-text-secondary)]">
+        <p className="text-xs font-semibold uppercase tracking-widest text-(--color-team-accent)">Privacy</p>
+        <h2 className="text-xl font-bold tracking-tight text-(--color-text-primary)">Omen Data</h2>
+        <p className="text-sm leading-6 text-(--color-text-secondary)">
           Delete the data Omen stores for your account, including platform connections and move history.
         </p>
       </section>
-      <div className="mt-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-4">
+      <div className="mt-4 rounded-lg border border-(--color-border) bg-(--color-surface-1) p-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-sm font-semibold text-[var(--color-text-primary)]">Delete Omen data</p>
-            <p className="mt-1 text-sm leading-6 text-[var(--color-text-secondary)]">
+            <p className="text-sm font-semibold text-(--color-text-primary)">Delete Omen data</p>
+            <p className="mt-1 text-sm leading-6 text-(--color-text-secondary)">
               Omen will remove saved data and sign this browser out after the request completes.
             </p>
           </div>
           <button
             type="button"
-            className="min-h-[44px] shrink-0 rounded-lg border border-[var(--color-risk-high)]/50 px-5 text-sm font-semibold text-[var(--color-risk-high)] transition-colors duration-150 hover:bg-[var(--color-risk-high)]/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)]"
+            className="min-h-[44px] shrink-0 rounded-lg border border-(--color-risk-high)/50 px-5 text-sm font-semibold text-(--color-risk-high) transition-colors duration-150 hover:bg-(--color-risk-high)/10 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-team-accent)"
             onClick={() => setDialogOpen(true)}
           >
             Delete data
@@ -209,7 +215,8 @@ export default function Account() {
   // Session gate.
   useEffect(() => {
     let mounted = true;
-    supabase.auth.getSession()
+    supabase.auth
+      .getSession()
       .then(({ data }) => {
         if (!mounted) return;
         if (!data?.session) {
@@ -225,7 +232,9 @@ export default function Account() {
           navigate('/login', { replace: true });
         }
       });
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [navigate]);
 
   // Phase 1.5g.3: Account is settings-only — no live fantasy recommendation
@@ -238,7 +247,7 @@ export default function Account() {
   if (checkingSession) {
     return (
       <AppLayout>
-        <p className="text-sm text-[var(--color-text-secondary)]">Checking account access…</p>
+        <p className="text-sm text-(--color-text-secondary)">Checking account access…</p>
       </AppLayout>
     );
   }
@@ -246,17 +255,17 @@ export default function Account() {
   return (
     <AppLayout>
       <section className="max-w-3xl">
-        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-team-accent)]">Omen</p>
-        <h1 className="mt-3 text-5xl font-bold tracking-tight text-[var(--color-text-primary)] sm:text-6xl">Account</h1>
-        <p className="mt-4 text-sm leading-6 text-[var(--color-text-secondary)]">
+        <p className="text-xs font-semibold uppercase tracking-widest text-(--color-team-accent)">Omen</p>
+        <h1 className="mt-3 text-5xl font-bold tracking-tight text-(--color-text-primary) sm:text-6xl">Account</h1>
+        <p className="mt-4 text-sm leading-6 text-(--color-text-secondary)">
           Manage your fantasy platform connections and account preferences.
         </p>
       </section>
 
-      <div className="border-t border-[var(--color-border)] pt-6">
+      <div className="border-t border-(--color-border) pt-6">
         <section className="space-y-1">
-          <h2 className="text-xl font-bold tracking-tight text-[var(--color-text-primary)]">Platform Connections</h2>
-          <p className="text-sm leading-6 text-[var(--color-text-secondary)]">
+          <h2 className="text-xl font-bold tracking-tight text-(--color-text-primary)">Platform Connections</h2>
+          <p className="text-sm leading-6 text-(--color-text-secondary)">
             Connect the fantasy platforms Omen uses to read your rosters.
           </p>
         </section>

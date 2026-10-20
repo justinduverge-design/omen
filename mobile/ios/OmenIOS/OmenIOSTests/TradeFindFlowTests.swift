@@ -87,7 +87,11 @@ final class TradeFindFlowTests: XCTestCase {
     func testLauncherHandlesNoLeagueDemoAndFailure() async {
         let sut = launcher(.success(threeProviderDirectory))
         await sut.resolve(userID: "user-1", platform: nil, leagueId: nil, fallbackTeamId: nil)
-        XCTAssertEqual(sut.state, .noLeague)
+        XCTAssertEqual(sut.state, .leagueUnknown, "connected leagues without an active selection are not an empty account")
+
+        let empty = launcher(.success(directory(#"{"contract_version":"league-directory.v1","platforms":[]}"#)))
+        await empty.resolve(userID: "user-1", platform: nil, leagueId: nil, fallbackTeamId: nil)
+        XCTAssertEqual(empty.state, .noLeague)
 
         await sut.resolve(userID: SessionManager.demoUserID, platform: "espn", leagueId: "1", fallbackTeamId: nil)
         XCTAssertEqual(sut.state, .demo)
@@ -95,6 +99,27 @@ final class TradeFindFlowTests: XCTestCase {
         let failing = launcher(.failure(.network))
         await failing.resolve(userID: "user-1", platform: "espn", leagueId: "517756847", fallbackTeamId: nil)
         XCTAssertEqual(failing.state, .failed(.network))
+    }
+
+    func testLauncherRecoversActiveLeagueWhenSheetOpenedBeforeScopeLands() async {
+        let active = directory("""
+        {
+          "contract_version": "league-directory.v1",
+          "active": { "platform": "sleeper", "league_id": "s-1", "team_id": "4" },
+          "platforms": [
+            { "platform": "sleeper", "connection_state": "connected", "leagues": [
+              { "league_id": "s-1", "team_id": "4", "team_name": "DarthSlops" }
+            ] }
+          ]
+        }
+        """)
+        let sut = launcher(.success(active))
+
+        // This is the physical-device race: the sheet receives nil before the shell's
+        // asynchronous selected scope arrives. The directory's active context is authoritative.
+        await sut.resolve(userID: "user-1", platform: nil, leagueId: nil, fallbackTeamId: nil)
+
+        XCTAssertEqual(sut.state, .ready(platform: "sleeper", leagueId: "s-1", teamId: "4"))
     }
 
     // MARK: - Save hits the real endpoint
@@ -245,7 +270,7 @@ final class TradeFindFlowTests: XCTestCase {
         XCTAssertEqual(sut.viewState, .routeElsewhere(reason: "projections_unavailable"))
 
         let copy = OmenTradeFindReviewScreen.unavailableCopy(reason: "projections_unavailable", platform: "yahoo")
-        XCTAssertEqual(copy.title, "Yahoo doesn't share projections yet")
+        XCTAssertEqual(copy.title, "Not enough projections to rank trades")
         XCTAssertFalse(copy.message.localizedCaseInsensitiveContains("no real gaps"))
     }
 
@@ -253,5 +278,38 @@ final class TradeFindFlowTests: XCTestCase {
         let reasons = ["projections_unavailable", "provider_reauth_required", "league_not_active", "own_roster_unavailable", "provider_unsupported"]
         let titles = reasons.map { OmenTradeFindReviewScreen.unavailableCopy(reason: $0, platform: "espn").title }
         XCTAssertEqual(Set(titles).count, reasons.count)
+    }
+
+    // MARK: - League trade targets
+
+    func testLeagueTradeTargetsReadsOneRowPerOpponentFromTheFindScan() {
+        guard case .read(let targets) = LeagueTradeTargetsViewModel.targets(from: response(platform: "yahoo")) else {
+            return XCTFail("a scan with candidates is a read section")
+        }
+        XCTAssertEqual(targets.count, 1)
+        XCTAssertEqual(targets[0].teamName, "Them")
+        XCTAssertEqual(targets[0].crest, "T")
+        XCTAssertEqual(targets[0].read, "B for A: +2.0 to your lineup, +1.0 to theirs.")
+    }
+
+    func testLeagueTradeTargetsIsAnEmptyReadNotAnUnreadWhenTheScanFoundNothing() {
+        let scan = response(platform: "yahoo", candidates: false)
+        XCTAssertEqual(LeagueTradeTargetsViewModel.targets(from: scan), .read([]))
+    }
+
+    func testLeagueTradeTargetsNamesTheRealReasonWhenTheScanIsUnavailable() {
+        let scan = response(platform: "yahoo", status: "unavailable", reason: "own_roster_unavailable", candidates: false)
+        guard case .unread(_, let sentence) = LeagueTradeTargetsViewModel.targets(from: scan) else {
+            return XCTFail("an unavailable scan is unread")
+        }
+        XCTAssertTrue(sentence.contains("your own roster"))
+    }
+
+    func testLeagueTradeTargetsLoadsThroughTheRepositoryOncePerLeague() async {
+        let repo = StubTradeFindRepository(result: .success(response(platform: "yahoo")))
+        let vm = LeagueTradeTargetsViewModel(repository: repo, sessionManager: sessionManager())
+        await vm.load(platform: "yahoo", leagueId: "l", teamId: "1", week: 3)
+        guard case .read(let targets) = vm.section else { return XCTFail("expected a read section") }
+        XCTAssertEqual(targets.map(\.teamName), ["Them"])
     }
 }

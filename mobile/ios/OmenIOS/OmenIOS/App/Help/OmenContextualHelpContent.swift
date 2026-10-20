@@ -39,7 +39,7 @@ enum OmenContextualHelpContent {
         switch destination {
         case .commandCenter:
             return OmenHelpTopic(
-                title: "Command Center",
+                title: "The Desk",
                 summary: "Your week in one place — the matchup that matters, the moves worth making, and the record of what you've done.",
                 tips: [
                     OmenHelpTip(

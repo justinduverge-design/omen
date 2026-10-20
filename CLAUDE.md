@@ -65,18 +65,20 @@ credentials, and billing. Never merge past an open P0/P1. Policy: `Blueprints/pr
 2. Set `Status: VERIFIED` on the item with an `Evidence:` pointer.
 3. Log decisions in `Direction/decision_log.md`.
 4. Add one line to `Blueprints/playbooks/skill-usage-log.md`: date, task, skills invoked, skills skipped and why.
-5. Run the gates. **A P0 blocks your close-out.** An unrun check is not a passing check: in a standalone
+5. Prune: remove what your work made dead (route, screen, table, flag, env var, branch), or log a dated
+   follow-up. `check-sprint-staleness.js` prints the candidate counts; `check-orphans.js` lists them.
+6. Run the gates. **A P0 blocks your close-out.** An unrun check is not a passing check: in a standalone
    clone without the L0 tree, say the gate did not run.
 
 ```bash
-node scripts/check-sprint-staleness.js                         # queue vs main, this repo
+node scripts/check-sprint-staleness.js                         # queue vs main, plus prune candidates
 node ../../Blueprints/tools/truth-gate/truth-gate.mjs --quiet   # cross-layer docs, from L0 root
 node ../../Blueprints/tools/valor-brain/validate.mjs            # opted-in metadata pages
 node scripts/check-kickoff-drift.js                             # this list vs kickoff-l2.md
 node scripts/harness-cost.js                                    # always-loaded set within budget
 ```
 
-6. Write a dated handoff in `Blueprints/handoffs/` only when work continues in another session.
+7. Write a dated handoff in `Blueprints/handoffs/` only when work continues in another session.
 
 The older ledgers (`Blueprints/playbooks/skill-usage-ledger.md`, `Blueprints/done/LEDGER.md`) are history:
 do not read them and do not append to them.

@@ -14,6 +14,8 @@ struct OmenIOSApp: App {
         // O6 proof hook. Runs immediately after install so the handler is already armed, and
         // only when the launch argument is present.
         CrashReporting.crashIfRequested()
+        // Apple's launch, hang, memory and crash reports from real phones; stored on device only.
+        OmenMetricKitRecorder.shared.install()
 
         let sessionStore: SecureSessionStore = KeychainSessionStore()
         let manager = SessionManager(store: sessionStore)
@@ -61,6 +63,8 @@ struct OmenIOSApp: App {
         _authViewModel = StateObject(wrappedValue: viewModel)
     }
 
+    @AppStorage(OmenAppearance.storageKey) private var appearance = OmenAppearance.dark.rawValue
+
     var body: some Scene {
         WindowGroup {
             // Screenshot short-circuit — when the native-visual-evidence CI workflow
@@ -75,6 +79,7 @@ struct OmenIOSApp: App {
                 ScreenshotScenarioHost(scenarioKey: scenarioKey)
             } else {
                 AppShellView()
+                    .preferredColorScheme((OmenAppearance(rawValue: appearance) ?? .dark).colorScheme)
                     .environmentObject(sessionManager)
                     .environmentObject(authViewModel)
                     .environment(\.omenEnvironment, .fromBundle)

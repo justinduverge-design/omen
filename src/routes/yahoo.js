@@ -4,13 +4,9 @@
  * =================================================================
  * Yahoo data routes
  * -----------------------------------------------------------------
- * GET /api/yahoo/roster?leagueKey=...&week=...  (auth required)
- *
- * Returns the authenticated user's normalized Yahoo roster for the
- * given league. If `week` is omitted, uses the league's current week.
- *
- * Roster is table-stakes data (free + pro), so this only requires
- * auth - subscription gating goes on the optimizer routes.
+ * OAuth connect/callback, league listing and the access probe. The
+ * roster read (GET /api/yahoo/roster) was removed 2026-10-18: no client
+ * called it; rosters come through the provider adapters on /api/league.
  *
  * Token plumbing (decrypt, refresh-if-expired, persist) lives in
  * src/services/yahooAuth.js so the optimizer router can reuse it.
@@ -18,20 +14,24 @@
  */
 
 const express = require("express");
+const sharedLeagueReads = require("../services/yahooLeagueReads");
 const crypto = require("crypto");
 const { createClient } = require("@supabase/supabase-js");
 const responseCache = require("../services/responseCache");
 const config = require("../config");
-const { logger }              = require("../middleware/logging");
-const { requireAuth }         = require("../middleware/auth");
-const { ensureAppUser }       = require("../services/appUser");
+const { logger } = require("../middleware/logging");
+const { requireAuth } = require("../middleware/auth");
+const { ensureAppUser } = require("../services/appUser");
 const { getYahooAuthUrl, exchangeYahooCode } = require("../middleware/yahooOAuth");
 const { getAuthenticatedYahooClient, persistYahooTokens } = require("../services/yahooAuth");
-const yahooAdapter            = require("../adapters/yahoo");
-const leagueMemberships       = require("../services/leagueMemberships");
+const leagueMemberships = require("../services/leagueMemberships");
+const { withinLatencyBudget } = require("../services/latencyBudget");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
+// The membership write runs after the redirect, so nothing waits on it. The budget does not cancel
+// a hung Yahoo read; it bounds how long until the failure is logged. The next directory read repairs it.
+const MEMBERSHIP_WRITE_BUDGET_MS = 30_000;
 const NATIVE_RETURN_VERIFIER_PREFIX = "omen-native-return-v1:";
 const NATIVE_CALLBACK_URL = "com.slopssaloon.omen://auth/callback";
 
@@ -119,17 +119,25 @@ router.post("/auth", requireAuth, requireYahooEnabled, async (req, res, next) =>
  * read repairs the memberships). The league id from the OAuth state is client-supplied, so it is
  * written only if Yahoo lists it or Yahoo cannot be asked. Logs carry no token.
  */
+function readYahooLeaguesShared(userId) {
+  return sharedLeagueReads.readYahooLeaguesShared(userId, async () => {
+    const { client } = await getAuthenticatedYahooClient(userId);
+    const leagues =
+      typeof client.getUserLeaguesWithTeams === "function"
+        ? await client.getUserLeaguesWithTeams()
+        : await client.getUserLeagues();
+    return leagues || [];
+  });
+}
+
 async function writeYahooMemberships(userId, leagueId) {
   const result = await leagueMemberships.syncAfterConnect(supabase, {
     userId,
     platform: "yahoo",
     boundLeagueId: leagueId,
     discover: async () => {
-      const { client } = await getAuthenticatedYahooClient(userId);
-      const leagues = typeof client.getUserLeaguesWithTeams === "function"
-        ? await client.getUserLeaguesWithTeams()
-        : await client.getUserLeagues();
-      return (leagues || []).map((league) => ({
+      const leagues = await readYahooLeaguesShared(userId);
+      return leagues.map((league) => ({
         league_id: league.league_id,
         league_name: league.name || null,
         season: league.season,
@@ -142,7 +150,11 @@ async function writeYahooMemberships(userId, leagueId) {
     logger.warn("League discovery at connect failed", { platform: "yahoo", http_status: result.discoveryStatus });
   }
   if (result.reason === "write_failed" || result.reason === "no_connection") {
-    logger.warn("League membership write at connect failed", { platform: "yahoo", reason: result.reason, err: result.error || null });
+    logger.warn("League membership write at connect failed", {
+      platform: "yahoo",
+      reason: result.reason,
+      err: result.error || null,
+    });
   }
 }
 
@@ -173,38 +185,28 @@ router.get("/callback", async (req, res, next) => {
     }
 
     const tokens = await exchangeYahooCode(code);
-    await responseCache.invalidateUser(oauthRow.user_id);
     await persistYahooTokens(oauthRow.user_id, tokens, leagueId);
-    await writeYahooMemberships(oauthRow.user_id, leagueId);
-    await responseCache.invalidateUser(oauthRow.user_id);
-    await supabase.from("oauth_state").delete().eq("state", state);
+    // New tokens may belong to a different Yahoo account: never answer from the old read.
+    sharedLeagueReads.clearYahooLeagueReads(oauthRow.user_id);
+    await Promise.all([
+      responseCache.invalidateUser(oauthRow.user_id),
+      supabase.from("oauth_state").delete().eq("state", state),
+    ]);
 
-    return res.redirect(oauthCompletionRedirect(nativeReturn, "connected"));
+    // Back to the app as soon as the tokens are stored. Memberships are written after the
+    // redirect: they never failed the callback anyway, and the next directory read repairs them.
+    res.redirect(oauthCompletionRedirect(nativeReturn, "connected"));
+    const userId = oauthRow.user_id;
+    readYahooLeaguesShared(userId).catch(() => {}); // start the shared read now, before the app asks
+    withinLatencyBudget("yahoo_membership_write", MEMBERSHIP_WRITE_BUDGET_MS, () =>
+      writeYahooMemberships(userId, leagueId),
+    )
+      .then(() => responseCache.invalidateUser(userId))
+      .catch((err) => logger.warn("Yahoo membership write after connect failed", { err: err?.message || "failure" }));
+    return;
   } catch (e) {
     logger.error("Yahoo OAuth callback failed", { err: e.message });
     return next(e);
-  }
-});
-
-router.get("/roster", requireAuth, async (req, res, next) => {
-  try {
-    const { leagueKey, week } = req.query;
-    if (!leagueKey) {
-      return res.status(400).json({ error: "leagueKey query param required (e.g. nfl.l.12345)" });
-    }
-    const wk = week ? parseInt(week, 10) : null;
-
-    const { accessToken } = await getAuthenticatedYahooClient(req.user.id);
-    const roster = await yahooAdapter.buildNormalizedRoster(leagueKey, accessToken, wk, {
-      cacheScope: req.user.id,
-    });
-
-    res.json(roster);
-  } catch (e) {
-    if (e.message === "yahoo_token_expired") {
-      return res.status(401).json({ error: "Yahoo token expired - re-authenticate" });
-    }
-    next(e);
   }
 });
 
@@ -248,8 +250,7 @@ router.get("/access-probe", requireAuth, async (req, res) => {
 
 router.get("/leagues", requireAuth, async (req, res, next) => {
   try {
-    const { client } = await getAuthenticatedYahooClient(req.user.id);
-    const leagues = await client.getUserLeagues();
+    const leagues = await readYahooLeaguesShared(req.user.id);
     res.json({ leagues });
   } catch (e) {
     if (e.message === "yahoo_token_expired") {
@@ -277,10 +278,14 @@ router.post("/league", requireAuth, responseCache.invalidateUserCacheOnWrite, as
       return res.status(400).json({ error: "leagueId is not one of your Yahoo leagues" });
     }
 
-    const { error } = await supabase.from("platform_connections").update({
-      league_id: match.league_id,
-      updated_at: new Date().toISOString(),
-    }).eq("user_id", req.user.id).eq("platform", "yahoo");
+    const { error } = await supabase
+      .from("platform_connections")
+      .update({
+        league_id: match.league_id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", req.user.id)
+      .eq("platform", "yahoo");
 
     if (error) throw new Error(`platform_connections update failed: ${error.message}`);
 
@@ -298,3 +303,4 @@ router.post("/league", requireAuth, responseCache.invalidateUserCacheOnWrite, as
 });
 
 module.exports = router;
+module.exports.readYahooLeaguesShared = readYahooLeaguesShared;

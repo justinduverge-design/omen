@@ -33,7 +33,9 @@ function isTradeSharePagePath(pathname = "") {
 }
 
 function firstForwardedValue(value) {
-  return String(value || "").split(",")[0].trim();
+  return String(value || "")
+    .split(",")[0]
+    .trim();
 }
 
 function publicOriginFromRequest(req) {

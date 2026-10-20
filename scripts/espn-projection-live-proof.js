@@ -67,8 +67,9 @@ async function main() {
     // Q1/Q2/Q3 — the raw payload, exactly the views fetchEspnMatchup now requests.
     let raw;
     try {
-      raw = await espn.fetchEspnApi(row.league_id, creds.espn_s2, creds.swid,
-        ["mMatchup", "mMatchupScore"], WEEK, { seasonId: SEASON });
+      raw = await espn.fetchEspnApi(row.league_id, creds.espn_s2, creds.swid, ["mMatchup", "mMatchupScore"], WEEK, {
+        seasonId: SEASON,
+      });
     } catch (e) {
       console.log(`  ESPN read failed: ${e.message}\n`);
       continue;
@@ -76,13 +77,17 @@ async function main() {
 
     const games = Array.isArray(raw?.schedule) ? raw.schedule : [];
     const target = String(row.espn_team_id ?? "");
-    const game = games.find((g) => {
-      const ids = [g?.home?.teamId, g?.away?.teamId].map((x) => String(x));
-      return Number(g?.matchupPeriodId ?? g?.scoringPeriodId) === WEEK && ids.includes(target);
-    }) || games.find((g) => Number(g?.matchupPeriodId ?? g?.scoringPeriodId) === WEEK);
+    const game =
+      games.find((g) => {
+        const ids = [g?.home?.teamId, g?.away?.teamId].map((x) => String(x));
+        return Number(g?.matchupPeriodId ?? g?.scoringPeriodId) === WEEK && ids.includes(target);
+      }) || games.find((g) => Number(g?.matchupPeriodId ?? g?.scoringPeriodId) === WEEK);
 
     console.log(`  schedule                       -> ${shape(games)}`);
-    if (!game) { console.log("  no game for this week\n"); continue; }
+    if (!game) {
+      console.log("  no game for this week\n");
+      continue;
+    }
 
     const side = String(game?.home?.teamId) === target ? game.home : game.away;
     for (const f of ["totalProjectedPoints", "totalProjectedPointsLive", "totalPoints", "winProbability"]) {
@@ -94,22 +99,32 @@ async function main() {
     }
 
     // Q4 — do starters carry a statSourceId 1 row for this week?
-    const entries = side?.rosterForCurrentScoringPeriod?.entries
-      || side?.rosterForMatchupPeriod?.entries || [];
+    const entries = side?.rosterForCurrentScoringPeriod?.entries || side?.rosterForMatchupPeriod?.entries || [];
     const starters = entries.filter((e) => e?.lineupSlotId != null && !NON_STARTER.has(Number(e.lineupSlotId)));
     let withProj = 0;
     const splitIds = new Set();
     for (const e of starters) {
       const player = e?.playerPoolEntry?.player || e?.player || {};
-      const rows = (player.stats || []).filter((r) => Number(r?.statSourceId) === 1 && Number(r?.scoringPeriodId) === WEEK);
-      if (rows.length) { withProj += 1; rows.forEach((r) => splitIds.add(r.statSplitTypeId)); }
+      const rows = (player.stats || []).filter(
+        (r) => Number(r?.statSourceId) === 1 && Number(r?.scoringPeriodId) === WEEK,
+      );
+      if (rows.length) {
+        withProj += 1;
+        for (const r of rows) splitIds.add(r.statSplitTypeId);
+      }
     }
-    console.log(`  entries=${entries.length}  starters(ESPN table)=${starters.length}  with a week-${WEEK} projected row=${withProj}`);
+    console.log(
+      `  entries=${entries.length}  starters(ESPN table)=${starters.length}  with a week-${WEEK} projected row=${withProj}`,
+    );
     console.log(`  statSplitTypeIds on those rows  -> [${[...splitIds].join(", ")}]`);
 
     // The actual fix, end to end.
-    const matchup = await espn.fetchEspnMatchup(row.league_id, creds.espn_s2, creds.swid,
-      { seasonId: SEASON, week: WEEK, teamId: row.espn_team_id, standings: [] });
+    const matchup = await espn.fetchEspnMatchup(row.league_id, creds.espn_s2, creds.swid, {
+      seasonId: SEASON,
+      week: WEEK,
+      teamId: row.espn_team_id,
+      standings: [],
+    });
     console.log(`  --> matchup.status              = ${matchup.status}`);
     console.log(`  --> you.projected               = ${matchup.you?.projected ?? "null"}`);
     console.log(`  --> opponent.projected          = ${matchup.opponent?.projected ?? "null"}`);
@@ -118,4 +133,7 @@ async function main() {
   console.log("No credential, cookie, or key was printed above.");
 }
 
-main().catch((e) => { console.error("FAILED:", e.message); process.exit(1); });
+main().catch((e) => {
+  console.error("FAILED:", e.message);
+  process.exit(1);
+});

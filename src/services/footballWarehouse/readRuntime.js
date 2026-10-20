@@ -6,6 +6,7 @@ const { createWarehouseUsageRepository } = require("./usageRepository");
 const { createWarehouseOutcomeRepository } = require("./outcomeRepository");
 const { createWarehousePlayerIdentityRepository } = require("./playerIdentityRepository");
 const { createWarehouseProjectionRepository } = require("./projectionRepository");
+const { createWarehouseSightRepository } = require("./sightRepository");
 
 const MODES = Object.freeze(["supabase", "shadow", "warehouse"]);
 const READ_ROLE = "omen_warehouse_read";
@@ -42,7 +43,9 @@ function assertFootballDataModeAtStartup({ env = process.env, logger, exit = pro
   try {
     return footballDataMode(env);
   } catch (error) {
-    try { logger?.error?.("Invalid FOOTBALL_DATA_MODE; refusing to start", { err: error.message }); } catch {}
+    try {
+      logger?.error?.("Invalid FOOTBALL_DATA_MODE; refusing to start", { err: error.message });
+    } catch {}
     exit(1);
     return null;
   }
@@ -61,9 +64,18 @@ function readConnectionString(env, { readFileSync = fs.readFileSync, statSync = 
 
   const value = String(readFileSync(file, "utf8")).trim();
   let parsed;
-  try { parsed = new URL(value); } catch { throw new TypeError(`${key} must contain a valid PostgreSQL URL`); }
-  if (!['postgres:', 'postgresql:'].includes(parsed.protocol) || !parsed.hostname || !parsed.pathname.slice(1)
-      || !parsed.username || !parsed.password) {
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new TypeError(`${key} must contain a valid PostgreSQL URL`);
+  }
+  if (
+    !["postgres:", "postgresql:"].includes(parsed.protocol) ||
+    !parsed.hostname ||
+    !parsed.pathname.slice(1) ||
+    !parsed.username ||
+    !parsed.password
+  ) {
     throw new TypeError(`${key} must contain a complete PostgreSQL URL`);
   }
   for (const name of ["sslmode", "sslcert", "sslkey", "sslrootcert", "options", "application_name"]) {
@@ -95,7 +107,11 @@ function parseWarehouseReadConfig({ env = process.env, fileSystem } = {}) {
     enabled: true,
     connectionString,
     ssl: sslMode === "require" ? Object.freeze({ rejectUnauthorized: true }) : false,
-    connectionTimeoutMillis: boundedInteger(env, "FOOTBALL_WAREHOUSE_READ_CONNECTION_TIMEOUT_MS", LIMITS.connectionTimeoutMillis),
+    connectionTimeoutMillis: boundedInteger(
+      env,
+      "FOOTBALL_WAREHOUSE_READ_CONNECTION_TIMEOUT_MS",
+      LIMITS.connectionTimeoutMillis,
+    ),
     idleTimeoutMillis: boundedInteger(env, "FOOTBALL_WAREHOUSE_READ_IDLE_TIMEOUT_MS", LIMITS.idleTimeoutMillis),
     queryTimeoutMillis: boundedInteger(env, "FOOTBALL_WAREHOUSE_READ_QUERY_TIMEOUT_MS", LIMITS.queryTimeoutMillis),
     poolMax: boundedInteger(env, "FOOTBALL_WAREHOUSE_READ_POOL_MAX", LIMITS.poolMax),
@@ -155,9 +171,11 @@ function createVerifiedReadQuery({ pool, config, now = Date.now }) {
       query_timeout: config.queryTimeoutMillis,
     });
     const row = result?.rows?.[0];
-    if (row?.database_name !== config.expectedDatabase
-        || row?.role_name !== config.expectedRole
-        || row?.transaction_read_only !== "on") {
+    if (
+      row?.database_name !== config.expectedDatabase ||
+      row?.role_name !== config.expectedRole ||
+      row?.transaction_read_only !== "on"
+    ) {
       const error = new Error("warehouse read target identity did not match the approved read-only target");
       error.code = "WAREHOUSE_READ_TARGET_MISMATCH";
       throw error;
@@ -194,7 +212,16 @@ function createVerifiedReadQuery({ pool, config, now = Date.now }) {
 function createWarehouseReadRuntime({ env = process.env, Pool, fileSystem, onPoolError } = {}) {
   const config = parseWarehouseReadConfig({ env, fileSystem });
   if (!config.enabled) {
-    return Object.freeze({ mode: config.mode, enabled: false, repository: null, outcomeRepository: null, identityRepository: null, projectionRepository: null, close: async () => {} });
+    return Object.freeze({
+      mode: config.mode,
+      enabled: false,
+      repository: null,
+      outcomeRepository: null,
+      identityRepository: null,
+      projectionRepository: null,
+      sightRepository: null,
+      close: async () => {},
+    });
   }
   const pool = createWarehouseReadPool({ Pool, config, onPoolError });
   const query = createVerifiedReadQuery({ pool, config });
@@ -214,6 +241,7 @@ function createWarehouseReadRuntime({ env = process.env, Pool, fileSystem, onPoo
     timeoutMs: config.queryTimeoutMillis,
     query,
   });
+  const sightRepository = createWarehouseSightRepository({ timeoutMs: config.queryTimeoutMillis, query });
   return Object.freeze({
     mode: config.mode,
     enabled: true,
@@ -221,6 +249,7 @@ function createWarehouseReadRuntime({ env = process.env, Pool, fileSystem, onPoo
     outcomeRepository,
     identityRepository,
     projectionRepository,
+    sightRepository,
     // Fire-and-forget pre-warm: the caller swallows errors; a failure here is retried by the next query.
     warm: () => query.warm(),
     close: async () => pool.end(),
@@ -248,12 +277,23 @@ function createFailSafeWarehouseReadRuntime({
   } catch (error) {
     if (mode !== "shadow") throw error;
     try {
-      onShadowUnavailable(Object.freeze({
-        event: "football_warehouse_read_startup",
-        outcome: "unavailable",
-      }));
+      onShadowUnavailable(
+        Object.freeze({
+          event: "football_warehouse_read_startup",
+          outcome: "unavailable",
+        }),
+      );
     } catch {}
-    return Object.freeze({ mode, enabled: false, repository: null, outcomeRepository: null, identityRepository: null, projectionRepository: null, close: async () => {} });
+    return Object.freeze({
+      mode,
+      enabled: false,
+      repository: null,
+      outcomeRepository: null,
+      identityRepository: null,
+      projectionRepository: null,
+      sightRepository: null,
+      close: async () => {},
+    });
   }
 }
 

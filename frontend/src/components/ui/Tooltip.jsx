@@ -1,10 +1,6 @@
 import React, { useState, useRef, useEffect, useId } from 'react';
 
-const Tooltip = ({
-  children,
-  content,
-  side = 'top'
-}) => {
+const Tooltip = ({ children, content, side = 'top' }) => {
   const [isVisible, setIsVisible] = useState(false);
   const triggerRef = useRef(null);
   const timeoutRef = useRef(null);
@@ -27,7 +23,7 @@ const Tooltip = ({
       handleHide();
       // Keep focus on the trigger so keyboard users don't lose their place.
       if (triggerRef.current) {
-         triggerRef.current.focus();
+        triggerRef.current.focus();
       }
     }
   };
@@ -91,17 +87,18 @@ const Tooltip = ({
   });
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: hover dismissal only; the trigger handles focus and keyboard
     <div className="relative inline-block" onMouseLeave={handleHide}>
       {trigger}
       {isVisible && (
         <div
           id={tooltipId}
           role="tooltip"
-          className={`absolute z-50 px-2 py-1 text-sm rounded shadow-sm whitespace-nowrap pointer-events-none transition-opacity duration-150 motion-reduce:transition-none motion-reduce:duration-0 opacity-100 ${getSideClasses()}`}
+          className={`absolute z-50 px-2 py-1 text-sm rounded-sm shadow-xs whitespace-nowrap pointer-events-none transition-opacity duration-150 motion-reduce:transition-none motion-reduce:duration-0 opacity-100 ${getSideClasses()}`}
           style={{
             backgroundColor: 'var(--color-surface-3)',
             color: 'var(--color-text-primary)',
-            border: '1px solid var(--color-border)'
+            border: '1px solid var(--color-border)',
           }}
         >
           {content}

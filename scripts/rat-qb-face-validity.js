@@ -53,11 +53,18 @@ function printTable(title, rows) {
   console.log(`\n${title}`);
   console.log("grade  dropbacks  epa/db   cpoe  sackAvoid  tov/db  rushEPA  name");
   for (const r of rows) {
-    console.log([
-      fmt(r.value, 1).padStart(5), String(r.dropbacks).padStart(9), fmt(r.epa_db, 3).padStart(6),
-      fmt(r.cpoe, 2).padStart(5), fmt(r.sack_avoid, 3).padStart(9), fmt(r.tov_rate, 3).padStart(6),
-      fmt(r.rush_epa, 3).padStart(7), r.display_name,
-    ].join("  "));
+    console.log(
+      [
+        fmt(r.value, 1).padStart(5),
+        String(r.dropbacks).padStart(9),
+        fmt(r.epa_db, 3).padStart(6),
+        fmt(r.cpoe, 2).padStart(5),
+        fmt(r.sack_avoid, 3).padStart(9),
+        fmt(r.tov_rate, 3).padStart(6),
+        fmt(r.rush_epa, 3).padStart(7),
+        r.display_name,
+      ].join("  "),
+    );
   }
 }
 
@@ -70,10 +77,14 @@ async function main() {
     const { rows } = await pool.query(SQL, [METRIC_NAME, FORMULA_VERSION, season, week]);
     const scope = week == null ? "regular season to date" : `through week ${week}`;
     if (!rows.length) {
-      console.log(`No stored ${METRIC_NAME} ${FORMULA_VERSION} grades for ${season} (${scope}). Run it first; nothing is computed here.`);
+      console.log(
+        `No stored ${METRIC_NAME} ${FORMULA_VERSION} grades for ${season} (${scope}). Run it first; nothing is computed here.`,
+      );
       return;
     }
-    console.log(`${METRIC_NAME} ${FORMULA_VERSION}, ${season}, ${scope}: ${rows.length} qualified QBs (unfitted, not opponent-adjusted)`);
+    console.log(
+      `${METRIC_NAME} ${FORMULA_VERSION}, ${season}, ${scope}: ${rows.length} qualified QBs (unfitted, not opponent-adjusted)`,
+    );
     printTable(`Top ${Math.min(limit, rows.length)}`, rows.slice(0, limit));
     printTable(`Bottom ${Math.min(limit, rows.length)}`, rows.slice(-limit).reverse());
   } finally {
@@ -81,4 +92,7 @@ async function main() {
   }
 }
 
-main().catch((error) => { console.error(error.message); process.exitCode = 1; });
+main().catch((error) => {
+  console.error(error.message);
+  process.exitCode = 1;
+});

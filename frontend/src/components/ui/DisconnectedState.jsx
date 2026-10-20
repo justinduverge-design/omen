@@ -16,26 +16,17 @@ export default function DisconnectedState({
       }}
     >
       {eyebrow && (
-        <p
-          className="text-xs font-semibold uppercase tracking-widest"
-          style={{ color: 'var(--color-accent)' }}
-        >
+        <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-accent)' }}>
           {eyebrow}
         </p>
       )}
       {title && (
-        <p
-          className="mt-3 text-lg font-semibold"
-          style={{ color: 'var(--color-text-primary)' }}
-        >
+        <p className="mt-3 text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>
           {title}
         </p>
       )}
       {message && (
-        <p
-          className="mt-2 text-sm leading-6"
-          style={{ color: 'var(--color-text-secondary)' }}
-        >
+        <p className="mt-2 text-sm leading-6" style={{ color: 'var(--color-text-secondary)' }}>
           {message}
         </p>
       )}

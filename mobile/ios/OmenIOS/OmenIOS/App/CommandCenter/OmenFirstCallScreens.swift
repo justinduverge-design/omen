@@ -20,6 +20,69 @@ struct OmenEvidenceScreen: View {
                 header
                 scope
 
+                if let comparison = payload.readComparison {
+                    sectionHeader("Leading Read")
+                    OmenLeadingReadCard(comparison: comparison)
+
+                    if !payload.explanation.isEmpty {
+                        sectionHeader("Counsel")
+                        OmenCard(contentPadding: OmenSpacing.step12) {
+                            VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+                                ForEach(payload.explanation, id: \.self) { line in
+                                    Text(line)
+                                        .omenTextStyle(OmenTypography.bodySmall)
+                                        .foregroundStyle(OmenColor.textPrimary)
+                                }
+                            }
+                        }
+                    }
+
+                    if let gap = comparison.crosswindGap, let threshold = comparison.crosswindThreshold {
+                        sectionHeader("Crosswind")
+                        OmenCard(contentPadding: OmenSpacing.step12) {
+                            Text(String(format: "The reads differ by %+.1f points, beyond the %.1f-point evaluated error boundary.", gap, threshold))
+                                .omenTextStyle(OmenTypography.bodySmall)
+                                .foregroundStyle(OmenColor.textSecondary)
+                        }
+                    }
+
+                    if !comparison.portents.isEmpty {
+                        sectionHeader("Portents")
+                        OmenCard(contentPadding: OmenSpacing.step12) {
+                            VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+                                ForEach(comparison.portents, id: \.self) { portent in
+                                    Text(portent)
+                                        .omenTextStyle(OmenTypography.bodySmall)
+                                        .foregroundStyle(OmenColor.textSecondary)
+                                }
+                            }
+                        }
+                    }
+
+                    if comparison.authority != .providerLeads && comparison.authority != .omenLeads {
+                        sectionHeader("Fog")
+                        OmenCard(contentPadding: OmenSpacing.step12) {
+                            Text(fogCopy(comparison.authority))
+                                .omenTextStyle(OmenTypography.bodySmall)
+                                .foregroundStyle(OmenColor.textSecondary)
+                        }
+                    }
+
+                    sectionHeader("Receipt")
+                    OmenCard(contentPadding: OmenSpacing.step12) {
+                        VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+                            if let scope = comparison.scopeLabel { OmenEvidenceRow(key: "Cohort", statement: scope) }
+                            if let sample = comparison.sampleSize, let weeks = comparison.weeks {
+                                OmenEvidenceRow(key: "Coverage", statement: "\(sample) same-player results across \(weeks) weeks")
+                            }
+                            if let omen = comparison.omenMAE, let provider = comparison.providerMAE {
+                                OmenEvidenceRow(key: "Error", statement: String(format: "Omen %.2f MAE · %@ %.2f MAE", omen, comparison.providerLabel, provider))
+                            }
+                            if let evaluated = comparison.evaluatedAt { OmenEvidenceRow(key: "Evaluated", statement: evaluated) }
+                        }
+                    }
+                }
+
                 VStack(alignment: .leading, spacing: OmenSpacing.step10) {
                     ForEach(Array(payload.signals.enumerated()), id: \.offset) { _, signal in
                         OmenCapabilityEvidenceRow(signal: signal)
@@ -90,6 +153,16 @@ struct OmenEvidenceScreen: View {
         }
         .background(OmenColor.bg)
         .accessibilityIdentifier("j3.omen-evidence")
+    }
+
+    private func fogCopy(_ authority: OmenReadAuthority) -> String {
+        switch authority {
+        case .unresolvedTie: "The measured errors are too close to name a leading read."
+        case .unresolvedStale: "The comparison is too old to govern this call."
+        case .singleSourceOnly: "Only one usable read is available, so Omen cannot make a head-to-head claim."
+        case .unresolvedLowSample: "There are not enough current same-player results to name a leading read."
+        case .providerLeads, .omenLeads: ""
+        }
     }
 
     private var header: some View {
@@ -232,285 +305,6 @@ private struct OmenCapabilityEvidenceRow: View {
         case .mock: return "Sample"
         case .unavailable: return "Unavailable"
         }
-    }
-}
-
-/// J3, screen three/four. One destination renders the route's honest state: the clear-decision
-/// composition when the response names a comparison, and the incomplete-data composition when a
-/// required capability could not be read.
-struct OmenStartSitScreen: View {
-    let detail: StartSitDetail
-    var onRetry: (() -> Void)?
-    var onOpenAccount: (() -> Void)?
-    var context: OmenFirstCallContext?
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: OmenSpacing.step12) {
-                header
-                switch detail.state {
-                case "clear_decision", "close_decision", "player_unavailable":
-                    clearDecision
-                case "incomplete_data":
-                    incompleteDecision
-                case "off_season":
-                    OmenStateSurface(
-                        kind: .empty,
-                        title: "Lineup decisions return in season",
-                        message: detail.message ?? "Omen will read your lineup again when the regular season begins."
-                    )
-                default:
-                    OmenStateSurface(
-                        kind: .empty,
-                        title: "No lineup change",
-                        message: detail.message ?? "Omen did not find a defensible lineup change for this slot."
-                    )
-                }
-                Color.clear.frame(height: OmenSpacing.step16)
-            }
-            .padding(.horizontal, OmenSpacing.step16)
-            .padding(.vertical, OmenSpacing.step12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-                // The iOS 26 floating tab bar overlays content rather than insetting it, and
-                // the 46.5pt switcher bar pushed this screen's last line under it — measured at
-                // 98% occluded, tab-bar top 769.0pt against a line spanning 768.3-799.7pt.
-                // This clearance makes the line reachable by scrolling instead of hidden with no
-                // affordance. It does NOT restore D11: the screen no longer fits, and which of
-                // spacing, the ledger line or the fit itself gives way is a founder call.
-                .padding(.bottom, 64)
-        }
-        // `safeAreaInset` rather than a VStack wrapper: wrapping made the ScrollView a child
-        // and it lost its own bottom inset, so the last line slid under the tab bar. Applied
-        // before `.background` so it insets the scroll view rather than the wrapper.
-        .safeAreaInset(edge: .top, spacing: 0) {
-            if let context { context.bar }
-        }
-        .background(OmenColor.bg)
-        .accessibilityIdentifier("j3.start-sit.\(detail.state)")
-    }
-
-    private var header: some View {
-        HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading, spacing: OmenSpacing.step4) {
-                if let week = detail.week {
-                    Text("Week \(week) · Start / sit")
-                        .omenTextStyle(OmenTypography.micro)
-                        .foregroundStyle(OmenColor.accent)
-                } else {
-                    Text("Start / sit")
-                        .omenTextStyle(OmenTypography.micro)
-                        .foregroundStyle(OmenColor.accent)
-                }
-                // The v2 route returns one recommendation pair, not a complete roster. The canvas's
-                // "Your lineup" is therefore a shape cue, not a literal the product may claim.
-                Text(detail.state == "incomplete_data" ? "Partial read" : "The call")
-                    .omenTextStyle(OmenTypography.screenTitle)
-                    .foregroundStyle(OmenColor.textPrimary)
-            }
-            Spacer(minLength: OmenSpacing.step8)
-            OmenScreenHeaderControls(
-                topic: OmenContextualHelpContent.topic(for: .omen),
-                onOpenAccount: onOpenAccount
-            )
-        }
-    }
-
-    @ViewBuilder private var clearDecision: some View {
-        if let recommendation = detail.recommendation,
-           let start = recommendation.start,
-           let over = recommendation.over {
-            OmenCard(contentPadding: OmenSpacing.step12) {
-                Text(clearSummary(recommendation: recommendation, start: start, over: over))
-                    .omenTextStyle(OmenTypography.bodySmall)
-                    .foregroundStyle(OmenColor.textSecondary)
-            }
-
-            sectionHeader("The clear call", trailing: recommendation.slot)
-            OmenCard(contentPadding: OmenSpacing.step12) {
-                VStack(spacing: 0) {
-                    startSitPlayerRow(start, role: "Start")
-                    Divider().overlay(OmenColor.borderSubtle)
-                    startSitPlayerRow(over, role: "Sit")
-                }
-            }
-
-            sectionHeader(
-                detail.state == "close_decision" ? "Why it stays close" : "Why it is clear",
-                trailing: recommendation.pointsDelta.map { String(format: "+%.1f points", $0) }
-            )
-            OmenCard(contentPadding: OmenSpacing.step12) {
-                HStack(alignment: .top, spacing: OmenSpacing.step10) {
-                    StartSitSwapMark()
-                    VStack(alignment: .leading, spacing: OmenSpacing.step8) {
-                        ForEach(detail.why, id: \.self) { reason in
-                            Text(reason)
-                                .omenTextStyle(OmenTypography.bodySmall)
-                                .foregroundStyle(OmenColor.textSecondary)
-                        }
-                        ForEach(detail.evidence, id: \.statement) { item in
-                            if let statement = item.statement {
-                                Text(evidenceLine(item, statement: statement))
-                                    .omenTextStyle(OmenTypography.bodySmall)
-                                    .foregroundStyle(OmenColor.textSecondary)
-                            }
-                        }
-                        HStack(spacing: OmenSpacing.step14) {
-                            if let confidence = recommendation.confidence {
-                                Text(confidence.replacingOccurrences(of: "_", with: " "))
-                                    .omenTextStyle(OmenTypography.micro)
-                                    .foregroundStyle(OmenColor.accentHover)
-                            }
-                            if detail.state == "player_unavailable" {
-                                OmenRiskLabel(level: .high, reason: over.status.map { "\($0) — unavailable" })
-                            } else {
-                                OmenRiskLabel(level: detail.state == "close_decision" ? .medium : .low)
-                            }
-                        }
-                    }
-                }
-            }
-
-            if !detail.whatCouldChangeThis.isEmpty {
-                sectionHeader("What could change this")
-                OmenCard(contentPadding: OmenSpacing.step12) {
-                    VStack(alignment: .leading, spacing: OmenSpacing.step8) {
-                        ForEach(detail.whatCouldChangeThis, id: \.self) { condition in
-                            Text(condition)
-                                .omenTextStyle(OmenTypography.bodySmall)
-                                .foregroundStyle(OmenColor.textSecondary)
-                        }
-                    }
-                }
-            }
-        } else {
-            OmenStateSurface(
-                kind: .error,
-                title: "The lineup call was incomplete",
-                message: "Omen received a decision state without both players. Refresh before acting."
-            )
-        }
-    }
-
-    @ViewBuilder private var incompleteDecision: some View {
-        OmenCard(variant: .empty, contentPadding: OmenSpacing.step10) {
-            VStack(alignment: .leading, spacing: OmenSpacing.step4) {
-                Text("Omen is working from part of the decision context.")
-                    .omenTextStyle(OmenTypography.bodySmall)
-                    .foregroundStyle(OmenColor.textSecondary)
-                Text(detail.message ?? "A required lineup input was unavailable, so Omen did not make a call.")
-                    .omenTextStyle(OmenTypography.bodySmall)
-                    .foregroundStyle(OmenColor.textTertiary)
-            }
-        }
-
-        let visible = detail.capabilities.filter { $0.state != "not_requested" }
-        let readable = visible.filter { $0.state == "live" }
-        let unavailable = visible.filter { $0.state != "live" }
-
-        if !readable.isEmpty {
-            sectionHeader("What Omen could read", trailing: "\(readable.count) input\(readable.count == 1 ? "" : "s")")
-            capabilityCard(readable)
-        }
-        if !unavailable.isEmpty {
-            sectionHeader("What it could not", trailing: "\(unavailable.count) input\(unavailable.count == 1 ? "" : "s")")
-            capabilityCard(unavailable)
-        }
-
-        sectionHeader("So Omen is not making a call")
-        OmenCard(contentPadding: OmenSpacing.step12) {
-            Text("A recommendation without the required lineup inputs would look like advice and be a guess. Restore the missing read, or make this week’s call yourself.")
-                .omenTextStyle(OmenTypography.name)
-                .foregroundStyle(OmenColor.textSecondary)
-        }
-        if let onRetry {
-            OmenButton(
-                title: retryTitle,
-                action: onRetry,
-                variant: .primary,
-                size: .lg
-            )
-        }
-    }
-
-    private func capabilityCard(_ capabilities: [OmenDecisionCapability]) -> some View {
-        OmenCard(contentPadding: OmenSpacing.step12) {
-            VStack(alignment: .leading, spacing: OmenSpacing.step10) {
-                ForEach(Array(capabilities.enumerated()), id: \.offset) { _, capability in
-                    OmenCapabilityEvidenceRow(signal: capability.signalItem)
-                }
-            }
-        }
-    }
-
-    private func startSitPlayerRow(_ player: StartSitDetail.Player, role: String) -> some View {
-        HStack(alignment: .center, spacing: OmenSpacing.step10) {
-            VStack(alignment: .leading, spacing: OmenSpacing.step2) {
-                Text(player.name ?? "Unnamed player")
-                    .omenTextStyle(OmenTypography.bodySmall)
-                    .foregroundStyle(OmenColor.textPrimary)
-                Text([role, player.position, player.team, player.status].compactMap { $0 }.joined(separator: " · "))
-                    .omenTextStyle(OmenTypography.micro)
-                    .foregroundStyle(OmenColor.textTertiary)
-            }
-            Spacer(minLength: OmenSpacing.step8)
-            if let projection = player.projectedPoints {
-                Text(String(format: "%.1f", projection))
-                    .omenTextStyle(OmenTypography.numeric)
-                    .foregroundStyle(role == "Start" ? OmenColor.textPrimary : OmenColor.textTertiary)
-            }
-        }
-        .padding(.vertical, OmenSpacing.step8)
-        .accessibilityElement(children: .combine)
-    }
-
-    private func sectionHeader(_ title: String, trailing: String? = nil) -> some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text(title)
-                .omenTextStyle(OmenTypography.micro)
-                .foregroundStyle(OmenColor.textTertiary)
-            Spacer(minLength: OmenSpacing.step8)
-            if let trailing {
-                Text(trailing)
-                    .omenTextStyle(OmenTypography.micro)
-                    .foregroundStyle(OmenColor.textTertiary)
-            }
-        }
-        .padding(.top, OmenSpacing.step4)
-    }
-
-    private func clearSummary(
-        recommendation: StartSitDetail.Recommendation,
-        start: StartSitDetail.Player,
-        over: StartSitDetail.Player
-    ) -> String {
-        let verb = detail.state == "close_decision" ? "leans toward" : "favors"
-        let names = "Omen \(verb) \(start.name ?? "the available option") over \(over.name ?? "the current starter")"
-        guard let delta = recommendation.pointsDelta else { return names + "." }
-        return names + String(format: " by %.1f projected points.", delta)
-    }
-
-    private func evidenceLine(_ item: StartSitDetail.Evidence, statement: String) -> String {
-        guard let kind = item.kind, !kind.isEmpty else { return statement }
-        let label = kind.replacingOccurrences(of: "_", with: " ").capitalized
-        return "\(label) · \(statement)"
-    }
-
-    private var retryTitle: String {
-        guard let platform = detail.platform, !platform.isEmpty else { return "Retry the connection" }
-        return "Retry \(platform.capitalized)"
-    }
-}
-
-private struct StartSitSwapMark: View {
-    var body: some View {
-        VStack(spacing: 0) {
-            Circle().fill(OmenColor.accent).frame(width: OmenSpacing.step8, height: OmenSpacing.step8)
-            Rectangle().fill(OmenColor.borderSubtle).frame(width: OmenSpacing.step2).frame(maxHeight: .infinity)
-            Circle().fill(OmenColor.surface3).frame(width: OmenSpacing.step6, height: OmenSpacing.step6)
-        }
-        .frame(width: OmenSpacing.step20)
-        .frame(minHeight: OmenSpacing.step64)
-        .accessibilityHidden(true)
     }
 }
 

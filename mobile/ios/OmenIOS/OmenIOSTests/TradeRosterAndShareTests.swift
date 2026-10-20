@@ -11,6 +11,63 @@ import XCTest
 @MainActor
 final class TradeRosterAndShareTests: XCTestCase {
 
+    private final class HoldingSessionRefresher: SessionRefreshing {
+        private var continuation: CheckedContinuation<SessionRefreshOutcome, Never>?
+        private var startWaiters: [CheckedContinuation<Void, Never>] = []
+
+        func refreshedSession() async -> SessionRefreshOutcome {
+            await withCheckedContinuation { continuation in
+                self.continuation = continuation
+                startWaiters.forEach { $0.resume() }
+                startWaiters = []
+            }
+        }
+
+        func waitUntilHeld() async {
+            if continuation != nil { return }
+            await withCheckedContinuation { startWaiters.append($0) }
+        }
+
+        func release(_ outcome: SessionRefreshOutcome) {
+            continuation?.resume(returning: outcome)
+            continuation = nil
+        }
+    }
+
+    private actor HoldingRosterRepository: TradeRepository {
+        private var rosterContinuation: CheckedContinuation<Result<TradeRosterResponse, OmenApiError>, Never>?
+        private var startWaiters: [CheckedContinuation<Void, Never>] = []
+
+        func compare(offer: TradeOffer, accessToken: String?) async -> Result<TradeCompare, OmenApiError> { .failure(.network) }
+        func capabilities() async -> Result<TradeCapabilities, OmenApiError> { .failure(.network) }
+        func share(offer: TradeOffer, accessToken: String?) async -> Result<TradeShareResponse, OmenApiError> { .failure(.network) }
+        func compareThreeTeam(offer: TradeThreeTeamOffer, accessToken: String?) async -> Result<TradeThreeTeamCompare, OmenApiError> { .failure(.network) }
+
+        func roster(
+            platform: String,
+            leagueId: String,
+            teamId: String?,
+            week: Int?,
+            accessToken: String
+        ) async -> Result<TradeRosterResponse, OmenApiError> {
+            return await withCheckedContinuation { continuation in
+                rosterContinuation = continuation
+                startWaiters.forEach { $0.resume() }
+                startWaiters = []
+            }
+        }
+
+        func waitUntilRosterRequestIsHeld() async {
+            if rosterContinuation != nil { return }
+            await withCheckedContinuation { startWaiters.append($0) }
+        }
+
+        func releaseRoster(with result: Result<TradeRosterResponse, OmenApiError>) {
+            rosterContinuation?.resume(returning: result)
+            rosterContinuation = nil
+        }
+    }
+
     private func signedInSessionManager() -> SessionManager {
         let session = Session(userID: "user-1", accessToken: "t", refreshToken: "r", expiresAtEpochSeconds: 2_000)
         return SessionManager(store: InMemorySecureSessionStore(initial: session), nowEpochSeconds: { 1_000 })
@@ -27,7 +84,7 @@ final class TradeRosterAndShareTests: XCTestCase {
             playerSearch: StubPlayerSearchRepository(result: .success([])),
             sessionManager: signedInSessionManager()
         )
-        vm.useLeague(platform: "sleeper", leagueId: "league-1")
+        vm.useLeague(platform: "sleeper", leagueId: "league-1", viewerTeamId: "1")
         return vm
     }
 
@@ -61,7 +118,8 @@ final class TradeRosterAndShareTests: XCTestCase {
         }
         XCTAssertTrue(response.isAvailable)
         XCTAssertEqual(response.teams.count, 2)
-        XCTAssertEqual(sut.selectedPartnerTeamID, "1")
+        XCTAssertEqual(sut.rosterPartners.map(\.id), ["2"])
+        XCTAssertEqual(sut.selectedPartnerTeamID, "2")
 
         sut.selectPartnerTeam("2")
         let screenState = sut.rosterScreenState
@@ -91,6 +149,140 @@ final class TradeRosterAndShareTests: XCTestCase {
             return XCTFail("Expected .read")
         }
         XCTAssertEqual(rows.first?.availability, .added)
+    }
+
+    func testRosterPartnersFailClosedWhenViewerIdentityIsUnknown() async {
+        let repo = StubTradeRepository(result: .failure(.network), rosterResult: .success(rosterFixture()))
+        let sut = TradeViewModel(
+            repository: repo,
+            playerSearch: StubPlayerSearchRepository(result: .success([])),
+            sessionManager: signedInSessionManager()
+        )
+        sut.useLeague(platform: "sleeper", leagueId: "league-1")
+
+        await sut.loadRoster(userID: "user-1")
+
+        XCTAssertTrue(sut.rosterPartners.isEmpty, "unknown viewer identity must not expose the viewer as a partner")
+        XCTAssertNil(sut.selectedPartnerTeamID)
+        XCTAssertTrue(sut.partnerPickerCandidates.isEmpty)
+    }
+
+    func testDirectoryIdentitySurvivesAByeWithNoMatchupTeam() throws {
+        let directory = try JSONDecoder().decode(LeagueDirectory.self, from: Data("""
+        {
+          "platforms": [{
+            "platform": "sleeper",
+            "leagues": [{
+              "league_id": "league-1",
+              "team_id": "1",
+              "is_active": true
+            }]
+          }]
+        }
+        """.utf8))
+
+        XCTAssertEqual(directory.teamID(platform: "SLEEPER", leagueID: "league-1"), "1")
+        XCTAssertNil(directory.teamID(platform: "sleeper", leagueID: "bye-week-matchup"))
+    }
+
+    func testLoadingOrFailedLeagueClearsPreviouslyLoadedRoster() async {
+        let sut = makeViewModel(rosterResult: .success(rosterFixture()))
+        await sut.loadRoster(userID: "user-1")
+        XCTAssertEqual(sut.rosterPartners.map(\.id), ["2"])
+
+        // The shell sends an unavailable context for both `.loading` and `.failed`; neither
+        // may retain league A while league B is unresolved.
+        sut.useLeague(platform: nil, leagueId: nil, viewerTeamId: nil)
+
+        XCTAssertEqual(sut.rosterBrowseState, .idle)
+        XCTAssertTrue(sut.rosterPartners.isEmpty)
+        XCTAssertNil(sut.selectedPartnerTeamID)
+        XCTAssertNil(sut.viewerTeamID)
+        XCTAssertNil(sut.offer.leagueContext)
+    }
+
+    func testLoadedLeagueBInvalidatesLoadedLeagueARoster() async {
+        let sut = makeViewModel(rosterResult: .success(rosterFixture()))
+        await sut.loadRoster(userID: "user-1")
+        XCTAssertEqual(sut.rosterPartners.map(\.id), ["2"])
+
+        sut.useLeague(platform: "yahoo", leagueId: "league-2", viewerTeamId: "9")
+
+        XCTAssertEqual(sut.rosterBrowseState, .idle)
+        XCTAssertTrue(sut.rosterPartners.isEmpty)
+        XCTAssertNil(sut.selectedPartnerTeamID)
+        XCTAssertEqual(sut.viewerTeamID, "9")
+        XCTAssertEqual(sut.offer.leagueContext, .init(platform: "yahoo", leagueId: "league-2"))
+    }
+
+    func testLateLeagueARosterCannotReturnAfterLeagueBStartsLoadingOrFails() async {
+        let repo = HoldingRosterRepository()
+        let sut = TradeViewModel(
+            repository: repo,
+            playerSearch: StubPlayerSearchRepository(result: .success([])),
+            sessionManager: signedInSessionManager()
+        )
+        sut.useLeague(platform: "sleeper", leagueId: "league-a", viewerTeamId: "1")
+        let load = Task { await sut.loadRoster(userID: "user-1") }
+        await repo.waitUntilRosterRequestIsHeld()
+
+        sut.useLeague(platform: nil, leagueId: nil, viewerTeamId: nil)
+        await repo.releaseRoster(with: .success(rosterFixture()))
+        await load.value
+
+        XCTAssertEqual(sut.rosterBrowseState, .idle)
+        XCTAssertTrue(sut.rosterPartners.isEmpty)
+        XCTAssertNil(sut.offer.leagueContext)
+    }
+
+    func testLateLeagueARosterCannotReturnAfterLeagueBLoads() async {
+        let repo = HoldingRosterRepository()
+        let sut = TradeViewModel(
+            repository: repo,
+            playerSearch: StubPlayerSearchRepository(result: .success([])),
+            sessionManager: signedInSessionManager()
+        )
+        sut.useLeague(platform: "sleeper", leagueId: "league-a", viewerTeamId: "1")
+        let load = Task { await sut.loadRoster(userID: "user-1") }
+        await repo.waitUntilRosterRequestIsHeld()
+
+        sut.useLeague(platform: "yahoo", leagueId: "league-b", viewerTeamId: "9")
+        await repo.releaseRoster(with: .success(rosterFixture()))
+        await load.value
+
+        XCTAssertEqual(sut.rosterBrowseState, .idle)
+        XCTAssertTrue(sut.rosterPartners.isEmpty)
+        XCTAssertEqual(sut.offer.leagueContext, .init(platform: "yahoo", leagueId: "league-b"))
+    }
+
+    func testLateLeagueAAuthorizationFailureCannotOverwriteLeagueBState() async {
+        let expiring = Session(
+            userID: "user-1",
+            accessToken: "old",
+            refreshToken: "refresh",
+            expiresAtEpochSeconds: 1_050
+        )
+        let sessionManager = SessionManager(
+            store: InMemorySecureSessionStore(initial: expiring),
+            nowEpochSeconds: { 1_000 }
+        )
+        let refresher = HoldingSessionRefresher()
+        sessionManager.attach(refresher: refresher)
+        let sut = TradeViewModel(
+            repository: StubTradeRepository(result: .failure(.network), rosterResult: .success(rosterFixture())),
+            playerSearch: StubPlayerSearchRepository(result: .success([])),
+            sessionManager: sessionManager
+        )
+        sut.useLeague(platform: "sleeper", leagueId: "league-a", viewerTeamId: "1")
+        let load = Task { await sut.loadRoster(userID: "user-1") }
+        await refresher.waitUntilHeld()
+
+        sut.useLeague(platform: "yahoo", leagueId: "league-b", viewerTeamId: "9")
+        refresher.release(.rejected)
+        await load.value
+
+        XCTAssertEqual(sut.rosterBrowseState, .idle)
+        XCTAssertEqual(sut.offer.leagueContext, .init(platform: "yahoo", leagueId: "league-b"))
     }
 
     // MARK: - Roster: honest unavailable, never fabricated, never a crash
@@ -206,7 +398,7 @@ final class TradeRosterAndShareTests: XCTestCase {
             threeTeamResult: threeTeamResult
         )
         let vm = TradeViewModel(repository: repo, playerSearch: StubPlayerSearchRepository(result: .success([])), sessionManager: signedInSessionManager())
-        vm.useLeague(platform: "sleeper", leagueId: "league-1")
+        vm.useLeague(platform: "sleeper", leagueId: "league-1", viewerTeamId: "1")
         return vm
     }
 

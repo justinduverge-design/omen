@@ -21,13 +21,12 @@ function normalizeFavoriteTeam(value) {
 
 function isFavoriteTeamMigrationPending(error) {
   const code = String(error?.code || "");
-  const text = [error?.message, error?.details, error?.hint]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
+  const text = [error?.message, error?.details, error?.hint].filter(Boolean).join(" ").toLowerCase();
 
-  return (code === "42703" || code === "PGRST204" || text.includes("favorite_team"))
-    && (text.includes("column") || text.includes("schema cache") || text.includes("does not exist"));
+  return (
+    (code === "42703" || code === "PGRST204" || text.includes("favorite_team")) &&
+    (text.includes("column") || text.includes("schema cache") || text.includes("does not exist"))
+  );
 }
 
 router.patch("/preferences", requireAuth, async (req, res, next) => {
@@ -45,10 +44,13 @@ router.patch("/preferences", requireAuth, async (req, res, next) => {
 
     const { data, error } = await supabase
       .from("profiles")
-      .upsert({
-        user_id: req.user.id,
-        favorite_team: parsed.value,
-      }, { onConflict: "user_id" })
+      .upsert(
+        {
+          user_id: req.user.id,
+          favorite_team: parsed.value,
+        },
+        { onConflict: "user_id" },
+      )
       .select("favorite_team")
       .maybeSingle();
 

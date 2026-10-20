@@ -6,29 +6,27 @@ const responseCache = require("../services/responseCache");
 const config = require("../config");
 const { requireAuth } = require("../middleware/auth");
 const { sharedNarrationGuard } = require("../services/narrationBudget");
+const { sharedNarrationCache } = require("../services/narrationCache");
 const { logger } = require("../middleware/logging");
+const { withSpan } = require("../services/telemetry");
 const { LIVE_CONTRACT_VERSION } = require("../services/systemContracts");
 const { suppressLiveFootballData } = require("../services/nflSchedule");
 const { ensureAppUser } = require("../services/appUser");
-const {
-  pendingMetadata,
-  resolveScoringPersistenceMetadata,
-} = require("../services/scoringSnapshotResolver");
+const { pendingMetadata, resolveScoringPersistenceMetadata } = require("../services/scoringSnapshotResolver");
 const {
   authRequiredMvpResponse,
   buildLiveOmenMvpMoveForUser,
   buildOmenMvpMoveResponse,
   authenticateOmenRequest,
   offSeasonMvpResponse,
+  refreshEvidenceSignals,
 } = require("../services/omen");
 const { resolveScheduleTravelCapabilities } = require("../services/scheduleTravelCapabilities");
-const {
-  scoringCoverageCapability,
-  waiverCapability,
-} = require("../services/waiverScoringCapabilities");
+const { scoringCoverageCapability, waiverCapability } = require("../services/waiverScoringCapabilities");
 const {
   applyDvpContext,
   applyMvpLlmNarration,
+  buildMvpLlmPayload,
   generateMvpLlmNarration,
   resolveMvpDvpContext,
 } = require("../services/mvpEvidenceEnrichment");
@@ -38,16 +36,21 @@ const {
   decisionBriefV2,
   decisionBriefV3,
 } = require("../services/decisionBriefV2");
-const {
-  isLatencyBudgetExceeded,
-  withinLatencyBudget,
-} = require("../services/latencyBudget");
+const { isLatencyBudgetExceeded, withinLatencyBudget } = require("../services/latencyBudget");
 const { createFootballIntelligenceServingRepository } = require("../services/footballIntelligence/servingRepository");
 const { enrichOmenWithFootballIntelligence } = require("../services/footballIntelligence/omenExplanation");
 const { teamIdFor } = require("../services/footballIntelligence/nflTeams");
+const { recordLeagueScoringRulesSafely } = require("../services/leagueScoringRules");
+const { createSightEnricher } = require("../services/sightEnrichment");
+const { getRuntime: getSightRuntime } = require("../services/footballWarehouse/sharedUsageAccess");
+const attachSight = createSightEnricher({ getRuntime: () => getSightRuntime({ logger }), log: logger });
 const ledger = require("../services/ledger");
 const { attachOmenProjectionBreakdown } = require("../services/projectionBreakdown");
 const sleeperAdapter = require("../adapters/sleeper");
+const espnAdapter = require("../adapters/espn");
+const { getAuthenticatedEspnCredentials } = require("../services/espnAuth");
+const { getAuthenticatedYahooClient } = require("../services/yahooAuth");
+const { enrichYahooPlayers } = require("../services/yahooProjections");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
@@ -84,7 +87,7 @@ const MVP_LATENCY_BUDGET_MS = Object.freeze({
 
 // Projection explainer layer 1 on the Omen call. Sleeper's league read and its week's stat
 // lines (cached hourly by the adapter); the league's rules stay in memory only.
-async function enrichWithProjectionBreakdown(response) {
+async function enrichWithProjectionBreakdown(response, userId = null) {
   if (suppressLiveFootballData()) return response;
   return attachOmenProjectionBreakdown({
     response,
@@ -95,6 +98,36 @@ async function enrichWithProjectionBreakdown(response) {
       ]);
       return { statLines, scoringSettings: league?.scoring_settings || null };
     },
+    // ESPN and Yahoo, the same as Sleeper (founder, 2026-10-19). Reads go through the user's own
+    // stored connection; without a user there is no read and the breakdown says so.
+    loadEspnInputs: userId
+      ? async ({ leagueId, week }) => {
+          const credentials = await getAuthenticatedEspnCredentials(userId);
+          const [read, rules] = await Promise.all([
+            espnAdapter.buildNormalizedRosterWithProjectionLines(leagueId, credentials.espn_s2, credentials.swid, week),
+            espnAdapter.fetchEspnScoringSettings(leagueId, credentials.espn_s2, credentials.swid).catch(() => null),
+          ]);
+          return { projections: read?.projectionLines, rules };
+        }
+      : undefined,
+    loadYahooPlayer: userId
+      ? async ({ leagueId, season, week, primary }) => {
+          const { client } = await getAuthenticatedYahooClient(userId);
+          const yahooId = String(primary.id || "")
+            .split(".p.")
+            .pop();
+          const probe = {
+            player_id: yahooId,
+            yahoo_id: yahooId,
+            name: primary.name,
+            position: primary.position,
+            team: primary.team,
+          };
+          await enrichYahooPlayers([probe], { client, leagueKey: leagueId, week, season });
+          probe.projected_points = primary.projected_points ?? probe.projected_points;
+          return probe;
+        }
+      : undefined,
   });
 }
 
@@ -113,7 +146,9 @@ function includeMatchupDvp(body = {}) {
 }
 
 function requestFootballIntelligenceRepository(req) {
-  const token = String(req.headers.authorization || "").slice("Bearer ".length).trim();
+  const token = String(req.headers.authorization || "")
+    .slice("Bearer ".length)
+    .trim();
   const client = createClient(config.supabaseUrl, config.supabaseServiceKey, {
     accessToken: async () => token,
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
@@ -289,17 +324,21 @@ function attachCapabilityOverrides(response, overrides = {}) {
 function waiverCapabilityForOmen(response) {
   const signal = response?.signals?.waivers;
   const selectedWaiver = response?.recommendation?.type === "waiver_pickup";
-  const state = selectedWaiver && signal?.status === "live"
-    ? "confirmed_opportunity"
-    : signal?.status === "live"
-      ? "no_credible_move"
-      : "availability_unknown";
-  return waiverCapability({
-    platform: response?.platform?.name,
-    state,
-    message: signal?.message,
-    generated_at: response?.generated_at,
-  }, { used: selectedWaiver });
+  const state =
+    selectedWaiver && signal?.status === "live"
+      ? "confirmed_opportunity"
+      : signal?.status === "live"
+        ? "no_credible_move"
+        : "availability_unknown";
+  return waiverCapability(
+    {
+      platform: response?.platform?.name,
+      state,
+      message: signal?.message,
+      generated_at: response?.generated_at,
+    },
+    { used: selectedWaiver },
+  );
 }
 
 async function enrichWithScheduleTravel(response) {
@@ -308,10 +347,10 @@ async function enrichWithScheduleTravel(response) {
   const source = await resolveScheduleTravelCapabilities({ nflTeam });
   const opponent = source.game_time_tv?.facts?.find((fact) => fact?.name === "opponent")?.value;
   if (
-    source.game_time_tv?.status === "live"
-    && source.game_time_tv?.resolution === "available"
-    && typeof opponent === "string"
-    && /^[A-Z]{2,3}$/.test(opponent)
+    source.game_time_tv?.status === "live" &&
+    source.game_time_tv?.resolution === "available" &&
+    typeof opponent === "string" &&
+    /^[A-Z]{2,3}$/.test(opponent)
   ) {
     // DvP receives its opponent only from this schedule source. There is no
     // deterministic team-to-opponent fallback in a live response.
@@ -335,15 +374,13 @@ function attachWaiverCapability(response) {
 
 async function scoringPersistenceMetadata(response = {}, userId = null) {
   try {
-    return await withinLatencyBudget(
-      "scoring_metadata",
-      1200,
-      () => resolveScoringPersistenceMetadata({
+    return await withinLatencyBudget("scoring_metadata", 1200, () =>
+      resolveScoringPersistenceMetadata({
         platform: response.platform?.name || null,
         leagueId: response.league?.id || null,
         // ESPN's settings are a credentialed read, so the resolver needs to know whose.
         userId,
-      })
+      }),
     );
   } catch {
     return pendingMetadata("Scoring contract could not be read within Omen's response budget.");
@@ -370,8 +407,10 @@ const OPTIONAL_MOVE_COLUMNS = Object.freeze(["platform", "league_id"]);
 
 function namesMissingColumn(error, column) {
   const message = error?.message || "";
-  return new RegExp(`column [^ ]*\\b${column}\\b|'${column}' column`, "i").test(message)
-    || (error?.code === "PGRST204" && message.includes(column));
+  return (
+    new RegExp(`column [^ ]*\\b${column}\\b|'${column}' column`, "i").test(message) ||
+    (error?.code === "PGRST204" && message.includes(column))
+  );
 }
 
 /**
@@ -382,11 +421,8 @@ function namesMissingColumn(error, column) {
  * be issued. That is the whole point of the fail-closed behavior this preserves.
  */
 async function upsertMoveTolerantly(payload) {
-  const attempt = (row) => supabase
-    .from("moves")
-    .upsert(row, { onConflict: "user_id,week_num,season" })
-    .select("id")
-    .maybeSingle();
+  const attempt = (row) =>
+    supabase.from("moves").upsert(row, { onConflict: "user_id,week_num,season" }).select("id").maybeSingle();
 
   let row = { ...payload };
   const dropped = [];
@@ -404,9 +440,9 @@ async function upsertMoveTolerantly(payload) {
       return result;
     }
 
-    const missing = OPTIONAL_MOVE_COLUMNS
-      .filter((column) => Object.hasOwn(row, column))
-      .find((column) => namesMissingColumn(result.error, column));
+    const missing = OPTIONAL_MOVE_COLUMNS.filter((column) => Object.hasOwn(row, column)).find((column) =>
+      namesMissingColumn(result.error, column),
+    );
     if (!missing) return result;
 
     delete row[missing];
@@ -439,29 +475,42 @@ async function persistLiveRecommendation(user, response) {
   });
   await ensureAppUser(user);
 
+  // Keep the league's rules for grading. Best-effort and off the answer's critical path: it logs a stage
+  // and a database code on failure, never throws, and only ever stores a body the rights gate retained.
+  void recordLeagueScoringRulesSafely(
+    supabase,
+    {
+      platform: response.platform?.name,
+      providerLeagueId: response.league?.id,
+      season,
+      scoring,
+    },
+    { log: logger },
+  );
+
   const recommendation = response.recommendation;
   const { data, error } = await upsertMoveTolerantly({
-      user_id: user.id,
-      week_num: week,
-      season,
-      move_type: recommendation.type || null,
-      headline: recommendation.title || null,
-      reasoning: recommendation.explanation?.summary || null,
-      confidence: Number.isFinite(Number(recommendation.confidence?.score))
-        ? Number(recommendation.confidence.score)
-        : null,
-      target_player: recommendation.primary_player?.name || null,
-      scoring: scoring.legacy_label ?? legacyScoringLabel(scoring.format),
-      platform: response.platform?.name || null,
-      league_id: response.league?.id || null,
-      scoring_contract: scoring.contract ?? null,
-      scoring_contract_hash: scoring.contract_hash,
-      scoring_contract_version: scoring.contract_version,
-      scoring_contract_required: scoring.contract_required,
-      scoring_coverage_state: scoring.coverage_state,
-      provider_rule_snapshot_hash: scoring.provider_rule_snapshot_hash,
-      provider_final_outcome: null,
-      reconciliation_state: scoring.reconciliation_state,
+    user_id: user.id,
+    week_num: week,
+    season,
+    move_type: recommendation.type || null,
+    headline: recommendation.title || null,
+    reasoning: recommendation.explanation?.summary || null,
+    confidence: Number.isFinite(Number(recommendation.confidence?.score))
+      ? Number(recommendation.confidence.score)
+      : null,
+    target_player: recommendation.primary_player?.name || null,
+    scoring: scoring.legacy_label ?? legacyScoringLabel(scoring.format),
+    platform: response.platform?.name || null,
+    league_id: response.league?.id || null,
+    scoring_contract: scoring.contract ?? null,
+    scoring_contract_hash: scoring.contract_hash,
+    scoring_contract_version: scoring.contract_version,
+    scoring_contract_required: scoring.contract_required,
+    scoring_coverage_state: scoring.coverage_state,
+    provider_rule_snapshot_hash: scoring.provider_rule_snapshot_hash,
+    provider_final_outcome: null,
+    reconciliation_state: scoring.reconciliation_state,
   });
 
   if (error) throw new Error(`live recommendation persistence failed: ${error.message}`);
@@ -478,11 +527,11 @@ async function persistLiveRecommendation(user, response) {
 async function recordLedgerCall(user, response, served, trace) {
   if (!user?.id || response?.state !== "success" || !response.recommendation) return;
   try {
-    await traceStage(trace, "ledger", () => withinLatencyBudget(
-      "ledger",
-      MVP_LATENCY_BUDGET_MS.ledger,
-      () => ledger.recordDecisionSafely(supabase, { userId: user.id, response, served }, { log: logger })
-    ));
+    await traceStage(trace, "ledger", () =>
+      withinLatencyBudget("ledger", MVP_LATENCY_BUDGET_MS.ledger, () =>
+        ledger.recordDecisionSafely(supabase, { userId: user.id, response, served }, { log: logger }),
+      ),
+    );
   } catch {
     // Budget exceeded. The trace records it; the response is not held for the Ledger.
   }
@@ -504,6 +553,23 @@ async function enrichWithDvp(response, body, { explicitMock = false } = {}) {
 // Bodies whose narration fell back because of a timeout, error or open breaker.
 const narrationFellBack = new WeakSet();
 
+async function waitForNarration(pending, budgetMs) {
+  let timer = null;
+  const timedOut = Symbol("timeout");
+  try {
+    const value = await Promise.race([
+      pending,
+      new Promise((resolve) => {
+        timer = setTimeout(() => resolve(timedOut), budgetMs);
+      }),
+    ]);
+    if (value === timedOut) return { status: "timeout" };
+    return value ? { status: "ok", value } : { status: "empty" };
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 async function enrichWithLlm(response, body, options) {
   if (!includeLlmReasoning(body, options)) return response;
   if (LLM_BLOCKED_STATES.has(response.state)) return response;
@@ -512,11 +578,29 @@ async function enrichWithLlm(response, body, options) {
   // Per-call budget + process-wide breaker (narrationBudget.js). Never throws:
   // timeout/skip fall back to the "unavailable" state, other failures leave the
   // deterministic template exactly as before.
-  const outcome = await sharedNarrationGuard.run(
-    "omen",
-    MVP_LATENCY_BUDGET_MS.llm_narration,
-    () => generateMvpLlmNarration(response, { timeoutMs: MVP_LATENCY_BUDGET_MS.llm_narration })
-  );
+  // Narration is generated once per set of decision facts, in the background (narrationCache.js),
+  // through the breaker with a long timeout. A cached narration answers at once; otherwise the
+  // request waits only while the host has been finishing inside the budget, so a slow model host
+  // costs no request time, and the next view of the same move gets the narration.
+  const budgetMs = MVP_LATENCY_BUDGET_MS.llm_narration;
+  const key = sharedNarrationCache.keyFor(buildMvpLlmPayload(response));
+  const cached = sharedNarrationCache.get(key);
+  let outcome;
+  if (cached) {
+    outcome = { status: "ok", value: cached };
+  } else if (sharedNarrationGuard.state() === "open") {
+    outcome = { status: "skipped" };
+  } else {
+    const wait = sharedNarrationCache.hostFitsBudget(budgetMs);
+    const snapshot = structuredClone(response);
+    const pending = sharedNarrationCache.generate(key, async (timeoutMs) => {
+      const result = await sharedNarrationGuard.run("omen", timeoutMs, () =>
+        withSpan("omen.llm.enrich", () => generateMvpLlmNarration(snapshot, { timeoutMs })),
+      );
+      return result.status === "ok" ? result.value : null;
+    });
+    outcome = wait ? await waitForNarration(pending, budgetMs) : { status: "skipped" };
+  }
   if (outcome.status === "timeout" || outcome.status === "skipped" || outcome.status === "error") {
     // omenMoveVerdict ignores llm_reasoning, so a breaker/timeout fallback would
     // otherwise be cached for the full TTL. Keep it out of the response cache.
@@ -531,7 +615,8 @@ async function enrichWithLlm(response, body, options) {
       status: "unavailable",
       used: false,
       source: "ollama_gemma",
-      message: "Private narration did not finish within Omen's response budget; the deterministic recommendation is unchanged.",
+      message:
+        "Private narration did not finish within Omen's response budget; the deterministic recommendation is unchanged.",
     };
   }
   return response;
@@ -554,11 +639,11 @@ async function liveOmenResult(req, trace, preAuth = null) {
     if (suppressLiveFootballData()) {
       return { ...offSeasonMvpResponse(), authenticatedUser: user };
     }
-    const result = await traceStage(trace, "core_decision", () => withinLatencyBudget(
-      "core_decision",
-      MVP_LATENCY_BUDGET_MS.core_decision,
-      () => buildLiveOmenMvpMoveForUser(user.id, requestedLeagueOptions(req))
-    ));
+    const result = await traceStage(trace, "core_decision", () =>
+      withinLatencyBudget("core_decision", MVP_LATENCY_BUDGET_MS.core_decision, () =>
+        buildLiveOmenMvpMoveForUser(user.id, requestedLeagueOptions(req)),
+      ),
+    );
     return { ...result, authenticatedUser: user };
   } catch (e) {
     const timedOut = isLatencyBudgetExceeded(e);
@@ -595,9 +680,11 @@ async function liveOmenResult(req, trace, preAuth = null) {
 }
 
 function backgroundBestEffort(name, operation) {
-  Promise.resolve().then(operation).catch((error) => {
-    logger.warn("Omen background write failed", { stage: name, code: error?.code || null });
-  });
+  Promise.resolve()
+    .then(operation)
+    .catch((error) => {
+      logger.warn("Omen background write failed", { stage: name, code: error?.code || null });
+    });
 }
 
 function cloneForStage(body) {
@@ -641,10 +728,13 @@ async function runEnrichmentStages(body, req, trace, requestedContract) {
   }
 
   const schedule = runStage(trace, "schedule", () => enrichWithScheduleTravel(clones.schedule));
-  const projection = runStage(trace, "projection_breakdown", () => enrichWithProjectionBreakdown(clones.projection));
-  const intelligence = requestedContract === BRIEF_V3
-    ? runStage(trace, "football_intelligence", () => enrichWithFootballIntelligence(clones.intelligence, req))
-    : Promise.resolve(false);
+  const projection = runStage(trace, "projection_breakdown", () =>
+    enrichWithProjectionBreakdown(clones.projection, req.omenUserId),
+  );
+  const intelligence =
+    requestedContract === BRIEF_V3
+      ? runStage(trace, "football_intelligence", () => enrichWithFootballIntelligence(clones.intelligence, req))
+      : Promise.resolve(false);
 
   // Merge whether or not a stage succeeded: the serial pipeline keeps whatever a
   // failed stage wrote before it threw (e.g. the derived omen_team_id).
@@ -692,7 +782,7 @@ function mergeIntelligenceStage(body, clone) {
 async function runEnrichmentStagesSerial(body, req, trace, requestedContract) {
   await runStage(trace, "schedule", () => enrichWithScheduleTravel(body));
   attachWaiverCapability(body);
-  await runStage(trace, "projection_breakdown", () => enrichWithProjectionBreakdown(body));
+  await runStage(trace, "projection_breakdown", () => enrichWithProjectionBreakdown(body, req.omenUserId));
   await runStage(trace, "matchup_dvp", () => enrichWithDvp(body, req.body || {}));
   if (requestedContract === BRIEF_V3) {
     await runStage(trace, "football_intelligence", () => enrichWithFootballIntelligence(body, req));
@@ -722,9 +812,11 @@ function emitLatencyTrace(trace, responseState) {
   logger.info("Omen MVP latency budget", {
     total_ms: totalMs,
     response_state: responseState || "unknown",
-    stages: Object.fromEntries(Object.entries(trace)
-      .filter(([name]) => name !== "started_at")
-      .map(([name, value]) => [name, value])),
+    stages: Object.fromEntries(
+      Object.entries(trace)
+        .filter(([name]) => name !== "started_at")
+        .map(([name, value]) => [name, value]),
+    ),
   });
 }
 
@@ -740,18 +832,21 @@ router.post("/feedback", requireAuth, async (req, res, next) => {
 
     const { data, error } = await supabase
       .from("moves")
-      .upsert({
-        user_id: req.user.id,
-        week_num: week,
-        season,
-        followed,
-        user_stars: stars,
-        user_note: note,
-        // A feedback-only/direct client must never create a row that the A6
-        // worker can mistake for historical PPR data. The live recommendation
-        // path fills the rest of the contract provenance server-side.
-        scoring_contract_required: true,
-      }, { onConflict: "user_id,week_num,season" })
+      .upsert(
+        {
+          user_id: req.user.id,
+          week_num: week,
+          season,
+          followed,
+          user_stars: stars,
+          user_note: note,
+          // A feedback-only/direct client must never create a row that the A6
+          // worker can mistake for historical PPR data. The live recommendation
+          // path fills the rest of the contract provenance server-side.
+          scoring_contract_required: true,
+        },
+        { onConflict: "user_id,week_num,season" },
+      )
       .select("id")
       .maybeSingle();
 
@@ -773,7 +868,10 @@ router.post("/feedback", requireAuth, async (req, res, next) => {
       });
       if (!recorded.written) logger.info("Ledger action not recorded", { reason: recorded.reason });
     } catch (ledgerError) {
-      logger.warn("Ledger action write failed", { stage: ledgerError?.stage || "unknown", code: ledgerError?.code || null });
+      logger.warn("Ledger action write failed", {
+        stage: ledgerError?.stage || "unknown",
+        code: ledgerError?.code || null,
+      });
     }
 
     return res.json({ recorded: true, move_id: data.id });
@@ -808,7 +906,9 @@ function attachDataFreshness(body) {
   }
 }
 
-router.post("/mvp-move", async (req, res) => {
+router.post("/mvp-move", (req, res) => withSpan("omen.request", (span) => mvpMove(req, res, span)));
+
+async function mvpMove(req, res, span) {
   const trace = { started_at: Date.now() };
   const requestedContract = req.body?.contract_version;
   if (requestedContract != null && ![BRIEF_V2, BRIEF_V3, LIVE_CONTRACT_VERSION].includes(requestedContract)) {
@@ -847,21 +947,20 @@ router.post("/mvp-move", async (req, res) => {
     // Ledger persistence runs beside optional evidence enrichment. We still
     // fail closed if it cannot be stored, but it is no longer a fourth serial
     // network wait after schedule/DvP/LLM work.
-    const persistence = traceStage(trace, "persistence", () => withinLatencyBudget(
-      "persistence",
-      MVP_LATENCY_BUDGET_MS.persistence,
-      () => persistLiveRecommendation(result.authenticatedUser, result.body)
-    )).then(
+    const persistence = traceStage(trace, "persistence", () =>
+      withinLatencyBudget("persistence", MVP_LATENCY_BUDGET_MS.persistence, () =>
+        persistLiveRecommendation(result.authenticatedUser, result.body),
+      ),
+    ).then(
       () => ({ ok: true }),
-      (error) => ({ ok: false, error })
+      (error) => ({ ok: false, error }),
     );
+    req.omenUserId = result.authenticatedUser?.id || null;
     await runEnrichmentStages(result.body, req, trace, requestedContract);
     try {
-      await traceStage(trace, "llm_narration", () => enrichWithLlm(
-        result.body,
-        req.body || {},
-        { defaultEnabled: false }
-      ));
+      await traceStage(trace, "llm_narration", () =>
+        enrichWithLlm(result.body, req.body || {}, { defaultEnabled: false }),
+      );
     } catch {
       // LLM explanation is an enhancement only. Keep deterministic response.
     }
@@ -881,8 +980,22 @@ router.post("/mvp-move", async (req, res) => {
       return res.status(503).json(body);
     }
     attachDataFreshness(result.body);
+    // Omen's read, real stats and Omen Grades on the call's players BEFORE presenting, so the evidence
+    // the screen shows ("what moved this call") is built from them, not from first-MVP placeholders.
+    await traceStage(trace, "sight", () => attachSight(result.body));
+    if (typeof refreshEvidenceSignals === "function") refreshEvidenceSignals(result.body);
     const body = present(result.body);
+    // The presenter may rebuild player objects: carry the read across rather than reading twice.
+    // The Ledger then records what Sight said too.
+    for (const role of ["primary_player", "comparison_player"]) {
+      const before = result.body?.recommendation?.[role];
+      const after = body?.recommendation?.[role];
+      if (!before || !after || after === before) continue;
+      for (const field of ["sight", "stats", "rating"])
+        if (before[field] && !after[field]) after[field] = before[field];
+    }
     emitLatencyTrace(trace, body.state);
+    span.setAttribute("omen.state", body.state || "unknown");
     // Both are best-effort and must not hold the response: respond first, finish
     // in the background. The cacheability decision reads the un-presented body
     // (`state` and `signals` live there in every contract version), so it is
@@ -910,7 +1023,7 @@ router.post("/mvp-move", async (req, res) => {
     // LLM explanation is an enhancement only. Keep deterministic response.
   }
   return res.status(result.status).json(present(result.body));
-});
+}
 
 module.exports = router;
 module.exports.runEnrichmentStages = runEnrichmentStages;

@@ -35,7 +35,9 @@ export function tradeDealShapeMeta(value) {
 }
 
 function normalizePosition(position) {
-  const next = String(position || '').trim().toUpperCase();
+  const next = String(position || '')
+    .trim()
+    .toUpperCase();
   return TRADE_POSITIONS.includes(next) ? next : EMPTY_TRADE_PLAYER.position;
 }
 
@@ -51,7 +53,9 @@ export function cleanTradePlayer(player) {
     position: normalizePosition(player.position),
   };
 
-  const team = String(player.team || '').trim().toUpperCase();
+  const team = String(player.team || '')
+    .trim()
+    .toUpperCase();
   if (team) cleaned.team = team;
 
   const projected = Number(player.projected_points);
@@ -65,11 +69,7 @@ export function cleanTradePlayer(player) {
   return cleaned;
 }
 
-export function buildTradePayload({
-  send = [],
-  receive = [],
-  scoringFormat = DEFAULT_TRADE_SCORING_FORMAT,
-} = {}) {
+export function buildTradePayload({ send = [], receive = [], scoringFormat = DEFAULT_TRADE_SCORING_FORMAT } = {}) {
   return {
     scoring_format: normalizeScoringFormat(scoringFormat),
     send: send.map(cleanTradePlayer),

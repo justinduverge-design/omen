@@ -108,20 +108,22 @@ function getOmenOfTheWeekMock(now = new Date()) {
           risk_level: "low",
         },
       ],
-      disclaimer:
-        "Mock data for frontend integration only. Do not present this as live fantasy advice.",
+      disclaimer: "Mock data for frontend integration only. Do not present this as live fantasy advice.",
     },
   };
 }
 
-function getOmenLiveEmpty({
-  status = "needs_platform_connection",
-  message = "No personalized Omen is available yet.",
-  connected_platforms = [],
-  season = 2026,
-  week = null,
-  scoring_format = DEFAULT_SCORING_FORMAT,
-} = {}, now = new Date()) {
+function getOmenLiveEmpty(
+  {
+    status = "needs_platform_connection",
+    message = "No personalized Omen is available yet.",
+    connected_platforms = [],
+    season = 2026,
+    week = null,
+    scoring_format = DEFAULT_SCORING_FORMAT,
+  } = {},
+  now = new Date(),
+) {
   return {
     feature: "omen_of_the_week",
     status,

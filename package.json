@@ -4,6 +4,7 @@
   "description": "Omen — Slops Saloon Fantasy Football Intelligence",
   "main": "src/server.js",
   "scripts": {
+    "native:retired-paths:check": "node scripts/check-retired-native-paths.mjs",
     "start": "node src/server.js",
     "dev": "node src/server.js",
     "cron": "node src/omen_tuesday_cron.js",
@@ -12,10 +13,15 @@
     "evals:mock": "node evals/slops-prompt-guard.mjs",
     "contracts:record": "node scripts/contract-recorded.js record",
     "contracts:check": "node scripts/contracts.js check && node scripts/contract-recorded.js check",
-    "contracts:lock": "node scripts/contracts.js lock"
+    "contracts:lock": "node scripts/contracts.js lock",
+    "prune:check": "node scripts/check-orphans.js",
+    "prune:mac": "bash scripts/mac-sweep.sh"
   },
   "dependencies": {
+    "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/exporter-trace-otlp-http": "^0.222.0",
+    "@opentelemetry/resources": "2.8.0",
+    "@opentelemetry/sdk-trace": "^2.11.0",
     "@sentry/node": "^11.3.0",
     "@supabase/supabase-js": "^2.117.2",
     "@upstash/redis": "^1.39.0",

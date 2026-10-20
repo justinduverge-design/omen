@@ -10,11 +10,7 @@ import {
   normalizeCapabilities,
   omenDecisionBriefRequest,
 } from '../lib/omenDecisionBrief.js';
-import {
-  formatOmenSignalKey,
-  omenSignalBadgeStyle,
-  omenSignalStatusMeta,
-} from '../lib/omenSignalLabels.js';
+import { formatOmenSignalKey, omenSignalBadgeStyle, omenSignalStatusMeta } from '../lib/omenSignalLabels.js';
 import { recommendationDataMode } from '../lib/recommendationDataMode.js';
 
 const ESPN_RECOVERY_STATES = new Set([
@@ -55,37 +51,35 @@ function useOmenData() {
       setData(result);
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
-        try { localStorage.setItem('omen.auth.next', '/omen'); } catch (_) {}
+        try {
+          localStorage.setItem('omen.auth.next', '/omen');
+        } catch (_) {}
         navigate('/login');
         return;
       }
       if (err instanceof ApiError && err.body?.state) {
         setData(err.body);
       } else {
-        setError(
-          err instanceof ApiError
-            ? err.message
-            : 'Failed to load the Omen. Please try again.',
-        );
+        setError(err instanceof ApiError ? err.message : 'Failed to load the Omen. Please try again.');
       }
     } finally {
       setLoading(false);
     }
   }, [navigate, fixtureActive]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   return { data, loading, error, retry: load };
 }
 
 function LoadingState({ cry }) {
   return (
-    <div aria-busy="true" aria-label="Loading omen">
+    <div role="status" aria-busy="true" aria-label="Loading omen">
       {/* Real header — branded, not a skeleton block */}
       <div className="mb-5 space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-team-accent)]">
-          Omen of the Week
-        </p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-(--color-team-accent)">Omen of the Week</p>
         {cry && (
           <p
             className="text-sm font-semibold uppercase tracking-widest"
@@ -100,8 +94,8 @@ function LoadingState({ cry }) {
       <div className="animate-pulse motion-reduce:animate-none space-y-4">
         <div className="h-8 w-2/3 rounded-md bg-slate-800" />
         <div className="space-y-3 rounded-xl border border-slate-800 bg-slate-900 p-5">
-          <div className="h-4 w-full rounded bg-slate-800" />
-          <div className="h-4 w-5/6 rounded bg-slate-800" />
+          <div className="h-4 w-full rounded-sm bg-slate-800" />
+          <div className="h-4 w-5/6 rounded-sm bg-slate-800" />
         </div>
         <div className="h-2 rounded-full bg-slate-800" />
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -137,21 +131,15 @@ function ErrorState({ message, onRetry }) {
 function EmptyState({ explanation }) {
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900 p-10 text-center">
-      <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">
-        Omen of the Week
-      </p>
+      <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">Omen of the Week</p>
       <p className="mt-3 text-lg font-semibold text-white">No move clears the threshold</p>
       <p className="mt-2 text-sm leading-6 text-slate-400">
         {explanation?.summary ?? 'Omen does not see a weekly move worth forcing right now.'}
       </p>
       {explanation?.why_it_matters ? (
-        <p className="mt-3 text-sm leading-6 text-slate-500">
-          {explanation.why_it_matters}
-        </p>
+        <p className="mt-3 text-sm leading-6 text-slate-500">{explanation.why_it_matters}</p>
       ) : null}
-      {explanation?.confidence ? (
-        <p className="mt-3 text-xs text-slate-500">{explanation.confidence}</p>
-      ) : null}
+      {explanation?.confidence ? <p className="mt-3 text-xs text-slate-500">{explanation.confidence}</p> : null}
     </div>
   );
 }
@@ -162,9 +150,7 @@ function PlatformPromptState({ platform }) {
 
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900 p-10 text-center">
-      <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">
-        Omen of the Week
-      </p>
+      <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">Omen of the Week</p>
       <p className="mt-3 text-lg font-semibold text-white">Connect {platformName}</p>
       <p className="mt-2 text-sm leading-6 text-slate-400">
         {recovery?.message ?? 'Link Yahoo, Sleeper, or ESPN to receive your personalized weekly omen.'}
@@ -184,25 +170,19 @@ function RecoveryPanel({ platform, state }) {
 
   const { name, recovery } = platform;
   const isEspn = name === 'espn';
-  const accountHref = isEspn && state
-    ? `/account?platform=espn&recovery=${state}`
-    : '/account';
+  const accountHref = isEspn && state ? `/account?platform=espn&recovery=${state}` : '/account';
 
   return (
     <section className="rounded-xl border border-red-400/20 bg-red-400/5 p-6">
       <p className="text-xs font-semibold uppercase tracking-widest text-red-400">
         {isEspn ? 'ESPN recovery required' : 'Platform disconnected'}
       </p>
-      <h2 className="mt-2 text-xl font-semibold capitalize text-white">
-        {platformLabel(name) || name}
-      </h2>
+      <h2 className="mt-2 text-xl font-semibold capitalize text-white">{platformLabel(name) || name}</h2>
       <p className="mt-2 text-sm leading-6 text-slate-400">
         {recovery?.message ?? 'Reconnect your platform before Omen can read your roster.'}
       </p>
       {recovery?.fields_needed?.length ? (
-        <p className="mt-2 text-xs text-slate-500">
-          Fields needed: {recovery.fields_needed.join(', ')}
-        </p>
+        <p className="mt-2 text-xs text-slate-500">Fields needed: {recovery.fields_needed.join(', ')}</p>
       ) : null}
       {recovery?.cta ? (
         <a
@@ -255,7 +235,9 @@ function ConfidenceBand({ confidence }) {
       <p className="text-xs uppercase tracking-widest text-slate-400">Confidence</p>
       <p className="mt-1 text-sm font-semibold capitalize text-white">{presentation.label}</p>
       {[...presentation.drivers, ...presentation.unavailableReasons].map((statement) => (
-        <p key={statement} className="mt-2 text-xs leading-5 text-slate-500">{statement}</p>
+        <p key={statement} className="mt-2 text-xs leading-5 text-slate-500">
+          {statement}
+        </p>
       ))}
     </div>
   );
@@ -267,20 +249,14 @@ function PlayerCompareCard({ player, action, isRecommended }) {
   return (
     <div
       className={`rounded-xl border p-4 ${
-        isRecommended
-          ? 'border-amber-400/40 bg-amber-400/5'
-          : 'border-slate-700 bg-slate-950'
+        isRecommended ? 'border-amber-400/40 bg-amber-400/5' : 'border-slate-700 bg-slate-950'
       }`}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
-            {action}
-          </p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">{action}</p>
           <p className="mt-1 truncate text-base font-semibold text-white">{player.name}</p>
-          <p className="mt-0.5 text-xs text-slate-400">
-            {[player.position, player.team].filter(Boolean).join(' · ')}
-          </p>
+          <p className="mt-0.5 text-xs text-slate-400">{[player.position, player.team].filter(Boolean).join(' · ')}</p>
         </div>
       </div>
     </div>
@@ -299,9 +275,7 @@ function PrimaryActionCard({ recommendation }) {
         <PlayerCompareCard player={primary} action="START" isRecommended />
         <PlayerCompareCard player={comparison} action="BENCH" isRecommended={false} />
       </div>
-      {recommendation?.move ? (
-        <p className="text-xs leading-5 text-amber-300">{recommendation.move}</p>
-      ) : null}
+      {recommendation?.move ? <p className="text-xs leading-5 text-amber-300">{recommendation.move}</p> : null}
     </div>
   );
 }
@@ -310,9 +284,7 @@ function ImpactGrid({ expectedValueDelta }) {
   if (!expectedValueDelta) return null;
 
   const points = Number(expectedValueDelta.points);
-  const formattedPoints = Number.isFinite(points)
-    ? `${points >= 0 ? '+' : ''}${points.toFixed(1)} pts`
-    : '—';
+  const formattedPoints = Number.isFinite(points) ? `${points >= 0 ? '+' : ''}${points.toFixed(1)} pts` : '—';
 
   return (
     <div>
@@ -325,9 +297,7 @@ function ImpactGrid({ expectedValueDelta }) {
         {expectedValueDelta.label ? (
           <div className="rounded-xl border border-slate-800 bg-slate-900 p-3">
             <p className="text-xs text-slate-500">Edge Label</p>
-            <p className="mt-1 text-base font-semibold capitalize text-white">
-              {expectedValueDelta.label}
-            </p>
+            <p className="mt-1 text-base font-semibold capitalize text-white">{expectedValueDelta.label}</p>
           </div>
         ) : null}
       </div>
@@ -345,7 +315,7 @@ function ReasoningList({ explanation }) {
       <ol className="space-y-3">
         {reasoning.map((line, i) => (
           <li key={line} className="flex gap-3 text-sm leading-6 text-slate-300">
-            <span className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border border-amber-400/30 bg-amber-400/10 text-xs font-semibold text-amber-400">
+            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-amber-400/30 bg-amber-400/10 text-xs font-semibold text-amber-400">
               {i + 1}
             </span>
             {line}
@@ -359,10 +329,7 @@ function ReasoningList({ explanation }) {
 function SignalBadge({ status }) {
   const meta = omenSignalStatusMeta(status);
   return (
-    <span
-      className="rounded-full border px-2 py-0.5 text-xs font-semibold"
-      style={omenSignalBadgeStyle(status)}
-    >
+    <span className="rounded-full border px-2 py-0.5 text-xs font-semibold" style={omenSignalBadgeStyle(status)}>
       {meta.label}
     </span>
   );
@@ -372,21 +339,22 @@ function CapabilitiesPanel({ capabilities, signals }) {
   const records = normalizeCapabilities(capabilities);
   const entries = records.length
     ? records.map((capability) => [capability.name, capability])
-    : Object.entries(signals || {}).map(([name, signal]) => [name, {
-      ...signal,
-      state: signal?.status,
-      statement: signal?.message,
-    }]);
+    : Object.entries(signals || {}).map(([name, signal]) => [
+        name,
+        {
+          ...signal,
+          state: signal?.status,
+          statement: signal?.message,
+        },
+      ]);
   if (!entries.length) return null;
 
   return (
     <div>
       <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
         <div>
-          <p className="text-xs uppercase tracking-widest text-[var(--color-text-secondary)]">
-            Input honesty
-          </p>
-          <p className="mt-1 text-xs leading-5 text-[var(--color-text-tertiary)]">
+          <p className="text-xs uppercase tracking-widest text-(--color-text-secondary)">Input honesty</p>
+          <p className="mt-1 text-xs leading-5 text-(--color-text-tertiary)">
             Live inputs drive the call. Stub, mock, and unavailable inputs are labeled before the reasoning.
           </p>
         </div>
@@ -397,28 +365,22 @@ function CapabilitiesPanel({ capabilities, signals }) {
           const meta = omenSignalStatusMeta(state);
           const usedLabel = capability?.used ? meta.usedLabel : 'Not used';
           return (
-          <div
-            key={key}
-            className="flex flex-col gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] px-4 py-3 sm:flex-row sm:items-start sm:justify-between"
-          >
-            <div>
-              <p className="text-sm font-semibold text-[var(--color-text-primary)]">
-                {formatOmenSignalKey(key)}
-              </p>
-              <p className="mt-1 text-xs font-semibold text-[var(--color-text-secondary)]">
-                {meta.description}
-              </p>
-              {capability?.statement ? (
-                <p className="mt-1 text-xs leading-5 text-[var(--color-text-tertiary)]">{capability.statement}</p>
-              ) : null}
+            <div
+              key={key}
+              className="flex flex-col gap-2 rounded-xl border border-(--color-border) bg-(--color-surface-1) px-4 py-3 sm:flex-row sm:items-start sm:justify-between"
+            >
+              <div>
+                <p className="text-sm font-semibold text-(--color-text-primary)">{formatOmenSignalKey(key)}</p>
+                <p className="mt-1 text-xs font-semibold text-(--color-text-secondary)">{meta.description}</p>
+                {capability?.statement ? (
+                  <p className="mt-1 text-xs leading-5 text-(--color-text-tertiary)">{capability.statement}</p>
+                ) : null}
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <SignalBadge status={state} />
+                <span className="text-xs font-semibold text-(--color-text-tertiary)">{usedLabel}</span>
+              </div>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <SignalBadge status={state} />
-              <span className="text-xs font-semibold text-[var(--color-text-tertiary)]">
-                {usedLabel}
-              </span>
-            </div>
-          </div>
           );
         })}
       </div>
@@ -434,7 +396,10 @@ function RiskReasons({ risk }) {
       <p className="mb-2 text-xs uppercase tracking-widest text-slate-400">Risk Notes</p>
       <ul className="space-y-2">
         {risk.reasons.map((reason) => (
-          <li key={reason} className="rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-xs leading-5 text-slate-400">
+          <li
+            key={reason}
+            className="rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-xs leading-5 text-slate-400"
+          >
             {reason}
           </li>
         ))}
@@ -455,13 +420,9 @@ function AlternativeCard({ alt }) {
         <p className="text-xs capitalize text-slate-500">{moveType?.replace(/_/g, ' ')}</p>
         <p className="mt-0.5 truncate text-sm font-semibold text-white">{title}</p>
       </div>
-      <div className="flex-shrink-0 text-right">
-        {confidence ? (
-          <p className="text-sm font-semibold text-white">{confidence.label}</p>
-        ) : null}
-        {riskLevel ? (
-          <p className="text-xs capitalize text-amber-400">{riskLevel} risk</p>
-        ) : null}
+      <div className="shrink-0 text-right">
+        {confidence ? <p className="text-sm font-semibold text-white">{confidence.label}</p> : null}
+        {riskLevel ? <p className="text-xs capitalize text-amber-400">{riskLevel} risk</p> : null}
       </div>
     </div>
   );
@@ -471,42 +432,58 @@ function FootballIntelligencePanel({ data }) {
   const explanation = footballIntelligenceExplanation(data);
   if (!explanation) return null;
 
-  const degraded = ['stale', 'partial', 'insufficient_coverage', 'unavailable', 'disputed', 'pending'].includes(explanation.status);
+  const degraded = ['stale', 'partial', 'insufficient_coverage', 'unavailable', 'disputed', 'pending'].includes(
+    explanation.status,
+  );
   return (
-    <section className={`rounded-xl border p-4 ${degraded ? 'border-amber-400/30 bg-amber-400/5' : 'border-slate-800 bg-slate-900'}`}>
+    <section
+      className={`rounded-xl border p-4 ${degraded ? 'border-amber-400/30 bg-amber-400/5' : 'border-slate-800 bg-slate-900'}`}
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs uppercase tracking-widest text-slate-400">Football intelligence</p>
-        <span className="text-xs font-semibold capitalize text-slate-300">
-          {explanation.status.replace(/_/g, ' ')}
-        </span>
+        <span className="text-xs font-semibold capitalize text-slate-300">{explanation.status.replace(/_/g, ' ')}</span>
       </div>
       {explanation.summary ? <p className="mt-2 text-sm leading-6 text-slate-300">{explanation.summary}</p> : null}
       {explanation.reasonCode ? (
-        <p className="mt-2 text-xs leading-5 text-slate-400">
-          {explanation.reasonCode.replace(/_/g, ' ')}
-        </p>
+        <p className="mt-2 text-xs leading-5 text-slate-400">{explanation.reasonCode.replace(/_/g, ' ')}</p>
       ) : null}
-      {(explanation.coverageState || explanation.freshnessState) ? (
+      {explanation.coverageState || explanation.freshnessState ? (
         <p className="mt-2 text-xs text-slate-500">
-          {[explanation.coverageState && `Coverage: ${explanation.coverageState.replace(/_/g, ' ')}`, explanation.freshnessState && `Freshness: ${explanation.freshnessState.replace(/_/g, ' ')}`].filter(Boolean).join(' · ')}
+          {[
+            explanation.coverageState && `Coverage: ${explanation.coverageState.replace(/_/g, ' ')}`,
+            explanation.freshnessState && `Freshness: ${explanation.freshnessState.replace(/_/g, ' ')}`,
+          ]
+            .filter(Boolean)
+            .join(' · ')}
         </p>
       ) : null}
-      {(explanation.games != null || explanation.plays != null || explanation.chartedPlays != null || explanation.coverageRatio != null) ? (
+      {explanation.games != null ||
+      explanation.plays != null ||
+      explanation.chartedPlays != null ||
+      explanation.coverageRatio != null ? (
         <p className="mt-2 text-xs text-slate-500">
           {[
             explanation.games != null && `${explanation.games} games`,
             explanation.plays != null && `${explanation.plays} plays`,
             explanation.chartedPlays != null && `${explanation.chartedPlays} charted`,
             explanation.coverageRatio != null && `${Math.round(explanation.coverageRatio * 100)}% coverage`,
-          ].filter(Boolean).join(' · ')}
+          ]
+            .filter(Boolean)
+            .join(' · ')}
         </p>
       ) : null}
-      {explanation.limitations.map((item) => <p key={item} className="mt-2 text-xs leading-5 text-amber-200/70">{item}</p>)}
+      {explanation.limitations.map((item) => (
+        <p key={item} className="mt-2 text-xs leading-5 text-amber-200/70">
+          {item}
+        </p>
+      ))}
       {explanation.whatCouldChangeThis.length ? (
         <div className="mt-3">
           <p className="text-xs font-semibold text-slate-400">What could change this</p>
           <ul className="mt-1 space-y-1 text-xs leading-5 text-slate-500">
-            {explanation.whatCouldChangeThis.map((item) => <li key={item}>• {item}</li>)}
+            {explanation.whatCouldChangeThis.map((item) => (
+              <li key={item}>• {item}</li>
+            ))}
           </ul>
         </div>
       ) : null}
@@ -520,17 +497,16 @@ function platformLabel(platform) {
     sleeper: 'Sleeper',
     espn: 'ESPN',
   };
-  const normalized = String(platform || '').trim().toLowerCase();
+  const normalized = String(platform || '')
+    .trim()
+    .toLowerCase();
   return labels[normalized] || (normalized ? normalized[0].toUpperCase() + normalized.slice(1) : '');
 }
 
 function reasoningFromExplanation(explanation) {
   if (!explanation) return [];
 
-  const lines = [
-    explanation.why_it_matters,
-    explanation.risk,
-  ].filter(Boolean);
+  const lines = [explanation.why_it_matters, explanation.risk].filter(Boolean);
 
   if (Array.isArray(explanation.data_used) && explanation.data_used.length) {
     lines.push(`Data used: ${explanation.data_used.join(', ')}.`);
@@ -555,9 +531,7 @@ export default function OmenOfTheWeek() {
   if (data?.state === 'pending_live_engine') {
     return (
       <div className="rounded-xl border border-slate-800 bg-slate-900 p-10 text-center">
-        <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">
-          Omen of the Week
-        </p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">Omen of the Week</p>
         <p className="mt-3 text-lg font-semibold text-white">Platform connected</p>
         <p className="mt-2 text-sm leading-6 text-slate-400">
           Your platform is connected. Live recommendations are being prepared — check back soon.
@@ -586,10 +560,7 @@ export default function OmenOfTheWeek() {
 
   if (data?.state === 'error') {
     return (
-      <ErrorState
-        message={data.error?.message ?? 'Omen could not generate an MVP Move right now.'}
-        onRetry={retry}
-      />
+      <ErrorState message={data.error?.message ?? 'Omen could not generate an MVP Move right now.'} onRetry={retry} />
     );
   }
 
@@ -617,9 +588,7 @@ export function OmenRecommendationView({ data, banner = null, showFeedback }) {
   const demoMode = dataMode === 'demo';
   const unverifiedMode = dataMode === 'unverified';
   const privateFixtureMode = data?.fixture_key === PRIVATE_FIXTURE_KEYS.OMEN_ROSTER;
-  const livePlatformLabel = dataMode === 'live' && platform?.name
-    ? platformLabel(platform.name)
-    : '';
+  const livePlatformLabel = dataMode === 'live' && platform?.name ? platformLabel(platform.name) : '';
   // Feedback is a live-only ritual. Callers may suppress it, but cannot opt a preview
   // or unverified envelope into the live feedback path.
   const feedbackVisible = dataMode === 'live' && showFeedback !== false;
@@ -629,9 +598,12 @@ export function OmenRecommendationView({ data, banner = null, showFeedback }) {
       {banner}
 
       {mockMode && !banner && (
-        <MockBanner message={privateFixtureMode
-          ? `${data.fixture_label} Omen roster and recommendation are mock.`
-          : 'Preview Mode - mock or stub data is labeled in the signal list. Live recommendations connect to your actual roster when the season begins.'}
+        <MockBanner
+          message={
+            privateFixtureMode
+              ? `${data.fixture_label} Omen roster and recommendation are mock.`
+              : 'Preview Mode - mock or stub data is labeled in the signal list. Live recommendations connect to your actual roster when the season begins.'
+          }
         />
       )}
 
@@ -642,9 +614,7 @@ export function OmenRecommendationView({ data, banner = null, showFeedback }) {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">
-              Omen of the Week
-            </p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">Omen of the Week</p>
             {livePlatformLabel && (
               <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-300">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
@@ -661,9 +631,7 @@ export function OmenRecommendationView({ data, banner = null, showFeedback }) {
               </span>
             )}
           </div>
-          <h2 className="mt-2 text-2xl font-semibold text-white sm:text-3xl">
-            {rec.title}
-          </h2>
+          <h2 className="mt-2 text-2xl font-semibold text-white sm:text-3xl">{rec.title}</h2>
           <p className="mt-1 text-xs text-slate-500">
             Week {league?.week ?? '—'} · {league?.season ?? '—'} Season
           </p>
@@ -675,9 +643,7 @@ export function OmenRecommendationView({ data, banner = null, showFeedback }) {
       </div>
 
       <div className="rounded-xl border border-slate-800 bg-slate-900 px-5 py-4">
-        <p className="text-sm leading-6 text-slate-300">
-          {rec.explanation?.summary ?? rec.move}
-        </p>
+        <p className="text-sm leading-6 text-slate-300">{rec.explanation?.summary ?? rec.move}</p>
         <p className="mt-2 text-xs text-gray-400">
           Powered by Omen · Week {league?.week ?? '—'}
           {league?.scoring_format ? ` · ${league.scoring_format.toUpperCase()}` : ''}

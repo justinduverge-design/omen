@@ -69,6 +69,15 @@
           "projected_points": 20,
           "selected_position": "BN"
         },
+        "the_catch": {
+          "code": "thin_position_after_trade",
+          "dedicated_starters": 2,
+          "players_after": 2,
+          "position": "RB",
+          "statement": "You would have 2 RB for 2 dedicated starting spots.",
+          "status": "available"
+        },
+        "usage_evidence": [],
         "user_lineup_delta": 15,
         "valuation": {
           "a_score": 0.5,
@@ -76,6 +85,24 @@
           "combined_score": 0.5,
           "confidence": "medium",
           "depth_discounted": false,
+          "forward_horizons": {
+            "next_4": {
+              "reason": "forward_projection_curve_unavailable",
+              "status": "unavailable",
+              "value": null
+            },
+            "season": {
+              "reason": "forward_projection_curve_unavailable",
+              "status": "unavailable",
+              "value": null
+            },
+            "unit": "player_projection_points_per_week",
+            "week": {
+              "reason": null,
+              "status": "available",
+              "value": 2
+            }
+          },
           "generated_at": "2026-01-01T00:00:00.000Z",
           "net_value": 0.5,
           "receive": {
@@ -156,6 +183,11 @@
             ],
             "total_value": 11.5
           },
+          "the_catch": {
+            "reason": "roster_depth_not_available",
+            "statement": null,
+            "status": "unavailable"
+          },
           "verdict": "neutral"
         }
       }
@@ -168,19 +200,24 @@
         "team_name": "Broken Team"
       }
     ],
+    "empty_reason": null,
     "league_id": "abc123",
     "own_needs": {
       "needs": {
         "RB": {
+          "flex_slots": 0,
           "have": 3,
           "required": 2,
           "status": "surplus",
+          "superflex_slots": 0,
           "weight": 0.8
         },
         "WR": {
+          "flex_slots": 0,
           "have": 1,
           "required": 1,
           "status": "balanced",
+          "superflex_slots": 0,
           "weight": 1
         }
       },
@@ -193,8 +230,14 @@
       "players": 8,
       "projected": 8
     },
+    "search_funnel": {
+      "mutual_gain": 9,
+      "pairs_evaluated": 16,
+      "passed_fairness": 6
+    },
     "status": "degraded",
     "team_id": "1",
+    "usage_evidence_state": "not_in_season",
     "week": 3
   }
 }

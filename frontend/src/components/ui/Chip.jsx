@@ -12,14 +12,10 @@ const CHIP_TONES = {
   'pos-k': { bg: 'var(--color-pos-k)', text: 'var(--color-text-on-accent)' },
 };
 
-const Chip = React.forwardRef(function Chip({
-  tone = 'neutral',
-  size = 'md',
-  className = '',
-  style = {},
-  children,
-  ...props
-}, ref) {
+const Chip = React.forwardRef(function Chip(
+  { tone = 'neutral', size = 'md', className = '', style = {}, children, ...props },
+  ref,
+) {
   const toneConfig = CHIP_TONES[tone] || CHIP_TONES.neutral;
 
   let sizeClasses = '';
@@ -35,17 +31,13 @@ const Chip = React.forwardRef(function Chip({
     color: toneConfig.text,
   };
 
-  const baseClasses = 'inline-flex items-center justify-center font-bold uppercase tracking-wide rounded-sm whitespace-nowrap';
+  const baseClasses =
+    'inline-flex items-center justify-center font-bold uppercase tracking-wide rounded-xs whitespace-nowrap';
 
   const combinedClasses = `${baseClasses} ${sizeClasses} ${className}`.trim().replace(/\s+/g, ' ');
 
   return (
-    <span
-      ref={ref}
-      className={combinedClasses}
-      style={{ ...style, ...computedStyle }}
-      {...props}
-    >
+    <span ref={ref} className={combinedClasses} style={{ ...style, ...computedStyle }} {...props}>
       {children}
     </span>
   );

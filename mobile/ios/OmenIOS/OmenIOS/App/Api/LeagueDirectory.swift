@@ -189,6 +189,17 @@ extension LeagueDirectory {
         guard let platform = active?.platform, let leagueID = active?.leagueID else { return nil }
         return "\(platform):\(leagueID)"
     }
+
+    /// The provider-confirmed team managed by this account in one league. This comes from
+    /// the league directory, not the current week's matchup, so a bye or an unavailable
+    /// matchup cannot make Trade forget which roster belongs to the viewer.
+    func teamID(platform: String, leagueID: String) -> String? {
+        platforms
+            .first { $0.platform.caseInsensitiveCompare(platform) == .orderedSame }?
+            .leagues
+            .first { $0.leagueID == leagueID }?
+            .teamID
+    }
 }
 
 extension LeagueSelectionResult {

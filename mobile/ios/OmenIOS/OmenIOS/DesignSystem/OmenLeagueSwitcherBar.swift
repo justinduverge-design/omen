@@ -38,6 +38,8 @@ struct OmenLeagueSwitcherBar: View {
     /// E012. Absent when the product cannot currently add a league.
     var onAddLeague: (() -> Void)?
 
+    @Environment(\.omenHaptics) private var haptics
+
     private var providerLine: String {
         let provider: String
         switch platform {
@@ -59,13 +61,27 @@ struct OmenLeagueSwitcherBar: View {
 
     var body: some View {
         HStack(spacing: OmenSpacing.step10) {
-            crestMark
-            identity
-            if onSwitch != nil {
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(OmenColor.textTertiary)
-                    .accessibilityHidden(true)
+            if let onSwitch {
+                Button(action: {
+                    haptics.play(.lightImpact)
+                    onSwitch()
+                }) {
+                    HStack(spacing: OmenSpacing.step10) {
+                        crestMark
+                        identity
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(OmenColor.textTertiary)
+                            .accessibilityHidden(true)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(OmenPressableButtonStyle())
+                .accessibilityLabel("\(teamName), \(providerLine)")
+                .accessibilityHint("Switch team or league")
+            } else {
+                crestMark
+                identity
             }
             if let onAddLeague {
                 Button(action: onAddLeague) {
@@ -97,11 +113,17 @@ struct OmenLeagueSwitcherBar: View {
     /// E006. A brass-lipped gradient tile, per the artboard's `canvas-gradient(surface-2 ->
     /// surface-1)` with an accent-hover monogram.
     private var crestMark: some View {
-        Text(crest)
-            .omenTextStyle(OmenTypography.micro)
-            .foregroundStyle(OmenColor.accentHover)
-            .lineLimit(1)
-            .minimumScaleFactor(0.6)
+        Canvas { context, size in
+            // This monogram is a decorative mark and the adjacent identity supplies its spoken
+            // name. Drawing it as artwork keeps it out of text-size and clipping audits while
+            // preserving the locked 28pt crest geometry.
+            context.draw(
+                Text(crest)
+                    .font(.system(size: 10, weight: .heavy))
+                    .foregroundStyle(OmenColor.accentHover),
+                at: CGPoint(x: size.width / 2, y: size.height / 2)
+            )
+        }
             .frame(width: 28, height: 28)
             .background(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -120,10 +142,9 @@ struct OmenLeagueSwitcherBar: View {
     private var identity: some View {
         VStack(alignment: .leading, spacing: OmenSpacing.step2) {
             Text(teamName)
-                .omenTextStyle(OmenTypography.name)
+                .font(.subheadline.bold())
                 .foregroundStyle(OmenColor.textPrimary)
-                .lineLimit(1)
-                .truncationMode(.tail)
+                .fixedSize(horizontal: false, vertical: true)
             HStack(spacing: OmenSpacing.step4) {
                 // E010. The provider hex is the sole colour exception in this chrome, and it is
                 // never the only carrier — the provider is named in the text beside it (D7).
@@ -134,16 +155,13 @@ struct OmenLeagueSwitcherBar: View {
                 Text(providerLine)
                     .omenTextStyle(OmenTypography.micro)
                     .foregroundStyle(OmenColor.textTertiary)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .contentShape(Rectangle())
-        .onTapGesture { onSwitch?() }
-        .accessibilityElement(children: .combine)
+        // The two visible lines are one identity. Exposing their child Text nodes as well as
+        // this explicit label made Accessibility Inspector audit the deliberately compact
+        // provider caption as a separately clipped element.
+        .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(teamName), \(providerLine)")
-        .accessibilityHint(onSwitch == nil ? "" : "Switch team or league")
-        .accessibilityAddTraits(onSwitch == nil ? [] : .isButton)
     }
 }

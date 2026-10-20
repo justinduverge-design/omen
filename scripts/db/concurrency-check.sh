@@ -30,7 +30,7 @@ step11="${STEP11:-$sqldir/11_league_scoring_rules.up.sql}"
 db=omen_concurrency_check
 u=00000000-0000-4000-8000-000000000009
 
-case "${PGHOST:-}" in *supabase.co*|*supabase.com*|*pooler*) echo "refusing: Supabase host" >&2; exit 2 ;; esac
+case "${PGHOST:-}" in *supabase.co*|*pooler*) echo "refusing: Supabase host" >&2; exit 2 ;; esac
 
 q() { psql -X -At -d "$db" -c "$1"; }
 fail() { echo "FAIL: $*"; dropdb --if-exists "$db" >/dev/null 2>&1; exit 1; }

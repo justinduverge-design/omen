@@ -6,7 +6,8 @@ const GUIDE_URL = 'https://slopssaloon.com/espn-connect';
 // Store listings, not the GitHub source tree — a repo URL is a dead end for a normal user
 // and asks them to sideload rather than install.
 const CHROME_STORE_URL = 'https://chromewebstore.google.com/detail/omen-espn-connect/odfoahekibbfjipnofmfenabnnlgfljm';
-const EDGE_STORE_URL = 'https://microsoftedge.microsoft.com/addons/detail/omen-espn-connect/nkcbgdhpekbclicgcfbokjmcgkhfhddl';
+const EDGE_STORE_URL =
+  'https://microsoftedge.microsoft.com/addons/detail/omen-espn-connect/nkcbgdhpekbclicgcfbokjmcgkhfhddl';
 const CONNECT_PAGE_URL = '/account/connect';
 const SHARE_TEXT = 'Finish ESPN setup on a computer with Omen’s desktop helper.';
 
@@ -35,7 +36,9 @@ const primaryButton = { background: 'var(--color-accent)', color: 'var(--color-t
 export default function EspnConnectGuide() {
   const [copied, setCopied] = useState(false);
   const [surface, setSurface] = useState('unknown');
-  useEffect(() => { setSurface(detectSurface()); }, []);
+  useEffect(() => {
+    setSurface(detectSurface());
+  }, []);
 
   async function share() {
     if (navigator.share) return navigator.share({ title: 'Omen ESPN setup', text: SHARE_TEXT, url: GUIDE_URL });
@@ -47,14 +50,41 @@ export default function EspnConnectGuide() {
   // On a computer, install is the next tap. On a phone it is not installable at all, so it is
   // shown as context further down rather than as an action that cannot be taken.
   const installHere = (
-    <InfoSection title={surface === 'desktop' ? 'You’re on a computer — start here' : 'On the computer, install the helper'}>
+    <InfoSection
+      title={surface === 'desktop' ? 'You’re on a computer — start here' : 'On the computer, install the helper'}
+    >
       <p>The helper is free, reads espn.com only, and never submits anything for you.</p>
       <div className="flex flex-wrap gap-3">
-        <a className="min-h-[44px] rounded-md px-4 py-2 font-semibold" style={primaryButton} href={CHROME_STORE_URL} target="_blank" rel="noreferrer">Add to Chrome</a>
-        <a className="min-h-[44px] rounded-md border px-4 py-2 font-semibold" style={linkButton} href={EDGE_STORE_URL} target="_blank" rel="noreferrer">Add to Edge</a>
-        <a className="min-h-[44px] rounded-md border px-4 py-2 font-semibold" style={linkButton} href={CONNECT_PAGE_URL}>Open the Omen connect page</a>
+        <a
+          className="min-h-[44px] rounded-md px-4 py-2 font-semibold"
+          style={primaryButton}
+          href={CHROME_STORE_URL}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Add to Chrome
+        </a>
+        <a
+          className="min-h-[44px] rounded-md border px-4 py-2 font-semibold"
+          style={linkButton}
+          href={EDGE_STORE_URL}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Add to Edge
+        </a>
+        <a
+          className="min-h-[44px] rounded-md border px-4 py-2 font-semibold"
+          style={linkButton}
+          href={CONNECT_PAGE_URL}
+        >
+          Open the Omen connect page
+        </a>
       </div>
-      <p className="text-sm">Then sign in to ESPN Fantasy in that same browser, choose Fill into Omen, review the form, and press Connect ESPN yourself.</p>
+      <p className="text-sm">
+        Then sign in to ESPN Fantasy in that same browser, choose Fill into Omen, review the form, and press Connect
+        ESPN yourself.
+      </p>
     </InfoSection>
   );
 
@@ -62,21 +92,83 @@ export default function EspnConnectGuide() {
     <InfoSection title={surface === 'mobile' ? 'Send this to your computer' : 'Send this setup to yourself'}>
       <p>Nothing here is your ESPN account — the only thing sent is a link to this page.</p>
       <div className="flex flex-wrap gap-3">
-        <button className="min-h-[44px] rounded-md px-4 font-semibold" style={primaryButton} onClick={share}>Send setup to my computer</button>
-        <button className="min-h-[44px] rounded-md border px-4 font-semibold" style={linkButton} onClick={share}>{copied ? 'Link copied' : 'Copy setup link'}</button>
-        <a className="min-h-[44px] rounded-md border px-4 py-2 font-semibold" style={linkButton} href={`sms:?body=${encodeURIComponent(`${SHARE_TEXT} ${GUIDE_URL}`)}`}>Text link</a>
-        <a className="min-h-[44px] rounded-md border px-4 py-2 font-semibold" style={linkButton} href={href}>Email link</a>
+        <button
+          type="button"
+          className="min-h-[44px] rounded-md px-4 font-semibold"
+          style={primaryButton}
+          onClick={share}
+        >
+          Send setup to my computer
+        </button>
+        <button
+          type="button"
+          className="min-h-[44px] rounded-md border px-4 font-semibold"
+          style={linkButton}
+          onClick={share}
+        >
+          {copied ? 'Link copied' : 'Copy setup link'}
+        </button>
+        <a
+          className="min-h-[44px] rounded-md border px-4 py-2 font-semibold"
+          style={linkButton}
+          href={`sms:?body=${encodeURIComponent(`${SHARE_TEXT} ${GUIDE_URL}`)}`}
+        >
+          Text link
+        </a>
+        <a className="min-h-[44px] rounded-md border px-4 py-2 font-semibold" style={linkButton} href={href}>
+          Email link
+        </a>
       </div>
     </InfoSection>
   );
 
-  return <PublicInfoLayout eyebrow="ESPN SETUP" title="Finish ESPN on a computer">
-    <p>ESPN gives Omen no phone sign-in, so this one step happens on a computer. Omen’s free browser helper handles the tedious part, then you review the form and choose Connect yourself. You do it once.</p>
-    {surface === 'desktop' ? <>{installHere}{handoff}</> : <>{handoff}{installHere}</>}
-    {/* Store links live in `installHere` now, so the support table states support only. */}
-    <InfoSection title="Which browser to use"><EspnBrowserSupport storeLinks={false} /></InfoSection>
-    <InfoSection title="What happens next"><ol className="list-decimal space-y-2 pl-5"><li>On a computer, install the Omen ESPN Connect helper in Chrome or Edge.</li><li>Sign in to ESPN Fantasy in that browser.</li><li>Choose Fill into Omen.</li><li>Review the filled form, then select Connect ESPN yourself.</li><li>Back in the Omen app, tap <strong>I connected ESPN</strong> — it re-checks your leagues and takes you to Command Center.</li></ol><p className="pt-3 text-sm">Using Safari or Firefox on a computer? The helper can’t run there, but you can still connect — the ESPN card on the connect page walks you through copying the two values by hand.</p></InfoSection>
-    <InfoSection title="Watch the walkthrough"><p>A mock 90-second Chrome/Edge walkthrough is coming here. It will show the flow without using a real ESPN account or credentials.</p></InfoSection>
-    <p className="text-xs">The helper only fills the Omen form you open; it does not submit it. Platform trademarks belong to their respective owners. Omen is not endorsed by or affiliated with ESPN.</p>
-  </PublicInfoLayout>;
+  return (
+    <PublicInfoLayout eyebrow="ESPN SETUP" title="Finish ESPN on a computer">
+      <p>
+        ESPN gives Omen no phone sign-in, so this one step happens on a computer. Omen’s free browser helper handles the
+        tedious part, then you review the form and choose Connect yourself. You do it once.
+      </p>
+      {surface === 'desktop' ? (
+        <>
+          {installHere}
+          {handoff}
+        </>
+      ) : (
+        <>
+          {handoff}
+          {installHere}
+        </>
+      )}
+      {/* Store links live in `installHere` now, so the support table states support only. */}
+      <InfoSection title="Which browser to use">
+        <EspnBrowserSupport storeLinks={false} />
+      </InfoSection>
+      <InfoSection title="What happens next">
+        <ol className="list-decimal space-y-2 pl-5">
+          <li>On a computer, install the Omen ESPN Connect helper in Chrome or Edge.</li>
+          <li>Sign in to ESPN Fantasy in that browser.</li>
+          <li>Choose Fill into Omen.</li>
+          <li>Review the filled form, then select Connect ESPN yourself.</li>
+          <li>
+            Back in the Omen app, tap <strong>I connected ESPN</strong> — it re-checks your leagues and takes you to
+            Command Center.
+          </li>
+        </ol>
+        <p className="pt-3 text-sm">
+          Using Safari or Firefox on a computer? The helper can’t run there, but you can still connect — the ESPN card
+          on the connect page walks you through copying the two values by hand.
+        </p>
+      </InfoSection>
+      <InfoSection title="Watch the walkthrough">
+        <p>
+          A mock 90-second Chrome/Edge walkthrough is coming here. It will show the flow without using a real ESPN
+          account or credentials.
+        </p>
+      </InfoSection>
+      <p className="text-xs">
+        The helper only fills the Omen form you open; it does not submit it. Platform trademarks belong to their
+        respective owners. Omen is not endorsed by or affiliated with ESPN.
+      </p>
+    </PublicInfoLayout>
+  );
 }

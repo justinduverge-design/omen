@@ -31,10 +31,22 @@ const PROVIDERS = new Set(["espn", "yahoo", "sleeper"]);
 const EVIDENCE_KINDS = new Set(["verified", "projection", "model", "inference", "limitation"]);
 const RISK_LEVELS = new Set(["low", "medium", "high"]);
 const COVERAGE_STATES = new Set([
-  "supported", "provider_adjusted", "provider_restricted", "unsupported", "ambiguous", "mismatch", "pending",
+  "supported",
+  "provider_adjusted",
+  "provider_restricted",
+  "unsupported",
+  "ambiguous",
+  "mismatch",
+  "pending",
 ]);
 const RECONCILIATION_STATES = new Set([
-  "exact", "provider_adjusted", "provider_restricted", "unsupported", "ambiguous", "mismatch", "pending",
+  "exact",
+  "provider_adjusted",
+  "provider_restricted",
+  "unsupported",
+  "ambiguous",
+  "mismatch",
+  "pending",
 ]);
 const FINAL_OUTCOME_STATES = new Set(["resolved", "not_executed"]);
 const UNIQUE_VIOLATION = "23505";
@@ -43,14 +55,42 @@ const IN_BATCH = 150;
 
 const DECISION_LIST_COLUMNS = "id,season,week,call_type,headline,summary,recommendation,issued_at,issued_at_timezone";
 const DECISION_DETAIL_COLUMNS = [
-  "id", "user_id", "league_id", "provider_team_id", "season", "week", "call_type", "contract_version",
-  "band", "band_drivers", "band_unavailable_reason", "headline", "summary", "recommendation",
-  "scoring_format", "scoring_contract_version", "scoring_coverage_state", "issued_at", "issued_at_timezone",
-  "supersedes_id", "legacy_move_id",
+  "id",
+  "user_id",
+  "league_id",
+  "provider_team_id",
+  "season",
+  "week",
+  "call_type",
+  "contract_version",
+  "band",
+  "band_drivers",
+  "band_unavailable_reason",
+  "headline",
+  "summary",
+  "recommendation",
+  "scoring_format",
+  "scoring_contract_version",
+  "scoring_coverage_state",
+  "issued_at",
+  "issued_at_timezone",
+  "supersedes_id",
+  "legacy_move_id",
 ].join(",");
 const SCORABLE_COLUMNS = [
-  "id", "user_id", "season", "week", "call_type", "headline", "recommendation", "internal_score",
-  "scoring_format", "scoring_contract_version", "scoring_contract_hash", "scoring_coverage_state",
+  "id",
+  "user_id",
+  "league_id",
+  "season",
+  "week",
+  "call_type",
+  "headline",
+  "recommendation",
+  "internal_score",
+  "scoring_format",
+  "scoring_contract_version",
+  "scoring_contract_hash",
+  "scoring_coverage_state",
 ].join(",");
 
 class LedgerError extends Error {
@@ -152,7 +192,9 @@ function factorRows(response = {}) {
       source: text(capability.source) || "unknown",
       source_as_of: validIso(capability.observed_at),
       // The schema requires a reason on every limitation: something Omen could not read says why.
-      reason_code: text(capability.reason_code) || (kind === "limitation" ? `capability_${capability.state || "unavailable"}` : null),
+      reason_code:
+        text(capability.reason_code) ||
+        (kind === "limitation" ? `capability_${capability.state || "unavailable"}` : null),
       details: jsonSafe({
         state: capability.state,
         ...(capability.coverage_state ? { coverage_state: capability.coverage_state } : {}),
@@ -163,9 +205,9 @@ function factorRows(response = {}) {
 
   const intelligence = response.football_intelligence;
   if (
-    intelligence
-    && ["available", "stale"].includes(intelligence.status)
-    && response.signals?.football_intelligence?.status === "live"
+    intelligence &&
+    ["available", "stale"].includes(intelligence.status) &&
+    response.signals?.football_intelligence?.status === "live"
   ) {
     const changes = Array.isArray(intelligence.interpretation?.what_could_change_this)
       ? intelligence.interpretation.what_could_change_this.map(text).filter(Boolean)
@@ -208,9 +250,8 @@ function decisionRecord({ userId, leagueUuid, teamId, response, served = null, n
   const confidence = recommendation.confidence;
   const banded = bandedConfidence(confidence, limitationStatements(response.signals));
   const scoring = recommendation.scoring && typeof recommendation.scoring === "object" ? recommendation.scoring : {};
-  const servedRecommendation = served?.recommendation && typeof served.recommendation === "object"
-    ? served.recommendation
-    : recommendation;
+  const servedRecommendation =
+    served?.recommendation && typeof served.recommendation === "object" ? served.recommendation : recommendation;
 
   return {
     user_id: userId,
@@ -226,7 +267,9 @@ function decisionRecord({ userId, leagueUuid, teamId, response, served = null, n
     band_unavailable_reason: banded.band ? null : banded.unavailable_reason.join(" "),
     internal_score: finite(typeof confidence === "number" ? confidence : confidence?.score),
     risk_level: RISK_LEVELS.has(recommendation.risk?.level) ? recommendation.risk.level : null,
-    risk_reasons: Array.isArray(recommendation.risk?.reasons) ? recommendation.risk.reasons.map(text).filter(Boolean) : [],
+    risk_reasons: Array.isArray(recommendation.risk?.reasons)
+      ? recommendation.risk.reasons.map(text).filter(Boolean)
+      : [],
     headline: text(recommendation.title) || text(recommendation.move) || text(recommendation.explanation?.summary),
     summary: text(recommendation.explanation?.summary),
     // players.id is the Omen canonical id (omen:player:*). The engine does not carry it yet, and a
@@ -247,37 +290,48 @@ function decisionRecord({ userId, leagueUuid, teamId, response, served = null, n
 }
 
 function sameCall(current, candidate) {
-  return current.call_type === candidate.call_type
-    && current.headline === candidate.headline
-    && (current.band ?? null) === (candidate.band ?? null)
-    && (current.recommendation?.id ?? null) === (candidate.recommendation?.id ?? null);
+  return (
+    current.call_type === candidate.call_type &&
+    current.headline === candidate.headline &&
+    (current.band ?? null) === (candidate.band ?? null) &&
+    (current.recommendation?.id ?? null) === (candidate.recommendation?.id ?? null)
+  );
 }
 
 async function resolveLeagueId(supabase, { platform, providerLeagueId, season }) {
-  const league = must(await supabase
-    .from("leagues")
-    .select("id")
-    .eq("provider", platform)
-    .eq("provider_league_id", providerLeagueId)
-    .eq("season", season)
-    .maybeSingle(), "league_lookup");
+  const league = must(
+    await supabase
+      .from("leagues")
+      .select("id")
+      .eq("provider", platform)
+      .eq("provider_league_id", providerLeagueId)
+      .eq("season", season)
+      .maybeSingle(),
+    "league_lookup",
+  );
   return league?.id || null;
 }
 
 /** The team-week's current call: the one nothing supersedes. */
 async function currentCall(supabase, { userId, leagueId, teamId, season, week }) {
-  const rows = must(await supabase
-    .from("decisions")
-    .select("id,supersedes_id,call_type,headline,band,recommendation,issued_at")
-    .eq("user_id", userId)
-    .eq("league_id", leagueId)
-    .eq("provider_team_id", teamId)
-    .eq("season", season)
-    .eq("week", week), "chain_lookup") || [];
+  const rows =
+    must(
+      await supabase
+        .from("decisions")
+        .select("id,supersedes_id,call_type,headline,band,recommendation,issued_at")
+        .eq("user_id", userId)
+        .eq("league_id", leagueId)
+        .eq("provider_team_id", teamId)
+        .eq("season", season)
+        .eq("week", week),
+      "chain_lookup",
+    ) || [];
   const superseded = new Set(rows.map((row) => row.supersedes_id).filter(Boolean));
-  return rows
-    .filter((row) => !superseded.has(row.id))
-    .sort((left, right) => String(right.issued_at || "").localeCompare(String(left.issued_at || "")))[0] || null;
+  return (
+    rows
+      .filter((row) => !superseded.has(row.id))
+      .sort((left, right) => String(right.issued_at || "").localeCompare(String(left.issued_at || "")))[0] || null
+  );
 }
 
 /**
@@ -302,12 +356,15 @@ async function recordDecision(supabase, { userId, response, served = null, now =
   const leagueId = await resolveLeagueId(supabase, { platform, providerLeagueId, season });
   if (!leagueId) return skipped("league_not_registered");
 
-  const membership = must(await supabase
-    .from("league_memberships")
-    .select("provider_team_id")
-    .eq("user_id", userId)
-    .eq("league_id", leagueId)
-    .maybeSingle(), "membership_lookup");
+  const membership = must(
+    await supabase
+      .from("league_memberships")
+      .select("provider_team_id")
+      .eq("user_id", userId)
+      .eq("league_id", leagueId)
+      .maybeSingle(),
+    "membership_lookup",
+  );
   // decisions_check_insert refuses a call for a league the person does not follow.
   if (!membership) return skipped("league_not_followed");
 
@@ -374,9 +431,20 @@ async function recordDecisionSafely(supabase, input, { log } = {}) {
  * current call; when they follow several leagues the request must name the league, otherwise the
  * report is not attributed rather than guessed.
  */
-async function recordDecisionAction(supabase, {
-  userId, season, week, followed, stars = null, note = null, platform = null, providerLeagueId = null, now = new Date(),
-} = {}) {
+async function recordDecisionAction(
+  supabase,
+  {
+    userId,
+    season,
+    week,
+    followed,
+    stars = null,
+    note = null,
+    platform = null,
+    providerLeagueId = null,
+    now = new Date(),
+  } = {},
+) {
   let leagueId = null;
   if (platform || providerLeagueId) {
     if (!PROVIDERS.has(platform) || !text(providerLeagueId)) return skipped("league_scope_invalid");
@@ -394,15 +462,21 @@ async function recordDecisionAction(supabase, {
   const calls = must(await query, "action_call_lookup") || [];
   if (calls.length !== 1) return skipped(calls.length ? "ambiguous_call" : "no_call");
 
-  must(await supabase.from("decision_actions").upsert({
-    decision_id: calls[0].id,
-    user_id: userId,
-    followed,
-    stars,
-    note,
-    provenance: "self_reported",
-    updated_at: now.toISOString(),
-  }, { onConflict: "decision_id" }), "action_upsert");
+  must(
+    await supabase.from("decision_actions").upsert(
+      {
+        decision_id: calls[0].id,
+        user_id: userId,
+        followed,
+        stars,
+        note,
+        provenance: "self_reported",
+        updated_at: now.toISOString(),
+      },
+      { onConflict: "decision_id" },
+    ),
+    "action_upsert",
+  );
   return { written: true, decision_id: calls[0].id };
 }
 
@@ -411,7 +485,8 @@ async function recordDecisionAction(supabase, {
 async function byDecision(supabase, table, columns, ids, userId, stage) {
   const map = new Map();
   for (const batch of chunks(ids)) {
-    const rows = must(await supabase.from(table).select(columns).in("decision_id", batch).eq("user_id", userId), stage) || [];
+    const rows =
+      must(await supabase.from(table).select(columns).in("decision_id", batch).eq("user_id", userId), stage) || [];
     for (const row of rows) map.set(row.decision_id, row);
   }
   return map;
@@ -425,20 +500,31 @@ async function listLedgerCalls(supabase, { userId, platform, providerLeagueId, s
   const leagueId = await resolveLeagueId(supabase, { platform, providerLeagueId, season });
   if (!leagueId) return [];
 
-  const decisions = must(await supabase
-    .from("ledger_current_calls")
-    .select(DECISION_LIST_COLUMNS)
-    .eq("user_id", userId)
-    .eq("league_id", leagueId)
-    .eq("season", season)
-    .order("issued_at", { ascending: false })
-    .limit(limit), "ledger_list") || [];
+  const decisions =
+    must(
+      await supabase
+        .from("ledger_current_calls")
+        .select(DECISION_LIST_COLUMNS)
+        .eq("user_id", userId)
+        .eq("league_id", leagueId)
+        .eq("season", season)
+        .order("issued_at", { ascending: false })
+        .limit(limit),
+      "ledger_list",
+    ) || [];
   if (!decisions.length) return [];
 
   const ids = decisions.map((decision) => decision.id);
   const [actions, outcomes] = await Promise.all([
     byDecision(supabase, "decision_actions", "decision_id,followed,stars,provenance", ids, userId, "ledger_actions"),
-    byDecision(supabase, "decision_outcomes", "decision_id,state,result,provenance,effectiveness", ids, userId, "ledger_outcomes"),
+    byDecision(
+      supabase,
+      "decision_outcomes",
+      "decision_id,state,result,provenance,effectiveness",
+      ids,
+      userId,
+      "ledger_outcomes",
+    ),
   ]);
   return decisions.map((decision) => ({
     decision,
@@ -453,23 +539,44 @@ async function listLedgerCalls(supabase, { userId, platform, providerLeagueId, s
  * person's. The user filter is in every query.
  */
 async function loadLedgerCall(supabase, { userId, id }) {
-  let decision = must(await supabase
-    .from("decisions").select(DECISION_DETAIL_COLUMNS).eq("id", id).eq("user_id", userId).maybeSingle(), "detail_lookup");
+  let decision = must(
+    await supabase.from("decisions").select(DECISION_DETAIL_COLUMNS).eq("id", id).eq("user_id", userId).maybeSingle(),
+    "detail_lookup",
+  );
   if (!decision) {
-    decision = must(await supabase
-      .from("decisions").select(DECISION_DETAIL_COLUMNS).eq("legacy_move_id", id).eq("user_id", userId).maybeSingle(), "detail_legacy_lookup");
+    decision = must(
+      await supabase
+        .from("decisions")
+        .select(DECISION_DETAIL_COLUMNS)
+        .eq("legacy_move_id", id)
+        .eq("user_id", userId)
+        .maybeSingle(),
+      "detail_legacy_lookup",
+    );
   }
   if (!decision) return null;
 
   const [factors, action, outcome, successors, league] = await Promise.all([
-    supabase.from("decision_factors")
+    supabase
+      .from("decision_factors")
       .select("position,factor_key,family,line_label,evidence_kind,used,statement,source,source_as_of,reason_code")
-      .eq("decision_id", decision.id).eq("user_id", userId).order("position", { ascending: true }),
-    supabase.from("decision_actions")
-      .select("followed,stars,note,provenance").eq("decision_id", decision.id).eq("user_id", userId).maybeSingle(),
-    supabase.from("decision_outcomes")
-      .select("state,result,provenance,reconciliation_state,scoring_coverage_state,scoring_format,effectiveness,summary,scored_at")
-      .eq("decision_id", decision.id).eq("user_id", userId).maybeSingle(),
+      .eq("decision_id", decision.id)
+      .eq("user_id", userId)
+      .order("position", { ascending: true }),
+    supabase
+      .from("decision_actions")
+      .select("followed,stars,note,provenance")
+      .eq("decision_id", decision.id)
+      .eq("user_id", userId)
+      .maybeSingle(),
+    supabase
+      .from("decision_outcomes")
+      .select(
+        "state,result,provenance,reconciliation_state,scoring_coverage_state,scoring_format,effectiveness,summary,scored_at",
+      )
+      .eq("decision_id", decision.id)
+      .eq("user_id", userId)
+      .maybeSingle(),
     supabase.from("decisions").select("id").eq("supersedes_id", decision.id).eq("user_id", userId).limit(1),
     supabase.from("leagues").select("provider,provider_league_id").eq("id", decision.league_id).maybeSingle(),
   ]);
@@ -481,7 +588,29 @@ async function loadLedgerCall(supabase, { userId, id }) {
     outcome: must(outcome, "detail_outcome"),
     superseded: (must(successors, "detail_successor") || []).length > 0,
     league: must(league, "detail_league"),
+    horizons:
+      decision.call_type === "trade_suggestion"
+        ? await loadHorizons(supabase, { userId, decisionId: decision.id })
+        : [],
   };
+}
+
+/** Step 18 horizon grades for a trade call. A read problem (or the table not applied yet) is an empty list, never an error. */
+async function loadHorizons(supabase, { userId, decisionId }) {
+  try {
+    const { data, error } = await supabase
+      .from("decision_horizon_grades")
+      .select(
+        "horizon,from_week,through_week,weeks_counted,received_points,given_points,margin,result,complete,provenance",
+      )
+      .eq("decision_id", decisionId)
+      .eq("user_id", userId);
+    if (error) return [];
+    const order = { week: 0, next_4: 1, season: 2 };
+    return (data || []).sort((a, b) => (order[a.horizon] ?? 9) - (order[b.horizon] ?? 9));
+  } catch {
+    return [];
+  }
 }
 
 // --- Tuesday scoring -------------------------------------------------------------------------------
@@ -491,24 +620,35 @@ async function loadLedgerCall(supabase, { userId, id }) {
  * A call with a `data_incomplete` outcome is returned again so a later run can complete it.
  */
 async function fetchScorableDecisions(supabase, { season, beforeWeek }) {
-  const decisions = must(await supabase
-    .from("ledger_current_calls")
-    .select(SCORABLE_COLUMNS)
-    .eq("season", season)
-    .lt("week", beforeWeek)
-    .order("issued_at", { ascending: true }), "scoring_lookup") || [];
+  const decisions =
+    must(
+      await supabase
+        .from("ledger_current_calls")
+        .select(SCORABLE_COLUMNS)
+        .eq("season", season)
+        .lt("week", beforeWeek)
+        .order("issued_at", { ascending: true }),
+      "scoring_lookup",
+    ) || [];
   if (!decisions.length) return [];
 
   const ids = decisions.map((decision) => decision.id);
   const outcomes = new Map();
   const actions = new Map();
   for (const batch of chunks(ids)) {
-    for (const row of must(await supabase.from("decision_outcomes")
-      .select("decision_id,state,result,reconciliation_state,summary").in("decision_id", batch), "scoring_outcomes") || []) {
+    for (const row of must(
+      await supabase
+        .from("decision_outcomes")
+        .select("decision_id,state,result,reconciliation_state,summary")
+        .in("decision_id", batch),
+      "scoring_outcomes",
+    ) || []) {
       outcomes.set(row.decision_id, row);
     }
-    for (const row of must(await supabase.from("decision_actions")
-      .select("decision_id,followed").in("decision_id", batch), "scoring_actions") || []) {
+    for (const row of must(
+      await supabase.from("decision_actions").select("decision_id,followed").in("decision_id", batch),
+      "scoring_actions",
+    ) || []) {
       actions.set(row.decision_id, row);
     }
   }
@@ -534,7 +674,9 @@ async function saveDecisionOutcome(supabase, { decision, existing = null, outcom
     result: outcome.state === "resolved" ? outcome.result : null,
     provenance: outcome.provenance,
     reconciliation_state: RECONCILIATION_STATES.has(outcome.reconciliation_state) ? outcome.reconciliation_state : null,
-    scoring_coverage_state: COVERAGE_STATES.has(decision.scoring_coverage_state) ? decision.scoring_coverage_state : null,
+    scoring_coverage_state: COVERAGE_STATES.has(decision.scoring_coverage_state)
+      ? decision.scoring_coverage_state
+      : null,
     scoring_format: text(decision.scoring_format),
     effectiveness: integerIn(outcome.effectiveness, 0, 100),
     summary: text(outcome.summary),
@@ -542,17 +684,26 @@ async function saveDecisionOutcome(supabase, { decision, existing = null, outcom
   };
 
   if (existing) {
-    const unchanged = existing.state === row.state
-      && (existing.result ?? null) === row.result
-      && (existing.reconciliation_state ?? null) === row.reconciliation_state
-      && (existing.summary ?? null) === row.summary;
+    const unchanged =
+      existing.state === row.state &&
+      (existing.result ?? null) === row.result &&
+      (existing.reconciliation_state ?? null) === row.reconciliation_state &&
+      (existing.summary ?? null) === row.summary;
     if (unchanged) return "unchanged";
-    must(await supabase.from("decision_outcomes").update(row)
-      .eq("decision_id", decision.id).eq("state", "data_incomplete"), "outcome_update");
+    must(
+      await supabase
+        .from("decision_outcomes")
+        .update(row)
+        .eq("decision_id", decision.id)
+        .eq("state", "data_incomplete"),
+      "outcome_update",
+    );
     return "updated";
   }
 
-  const insert = await supabase.from("decision_outcomes").insert({ decision_id: decision.id, user_id: decision.user_id, ...row });
+  const insert = await supabase
+    .from("decision_outcomes")
+    .insert({ decision_id: decision.id, user_id: decision.user_id, ...row });
   if (insert.error?.code === UNIQUE_VIOLATION) return "exists";
   must(insert, "outcome_insert");
   return "inserted";

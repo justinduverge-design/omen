@@ -1,0 +1,62 @@
+# OpenTelemetry Collector (otelcol-contrib) for Omen traces. Self-hosted on Command Center.
+# Deployed on Command Center 2026-10-17 (/opt/omen-telemetry). See README.md in this directory.
+#
+# Receives OTLP/HTTP from omen_api and omen_cron on KVM1 over the tailnet only, batches,
+# strips anything that should never be there, and writes rotated JSON files on local disk.
+# Nothing is exported off the box.
+
+receivers:
+  otlp:
+    protocols:
+      http:
+        # Bind to Command Center's Tailscale IP only, never 0.0.0.0 (fleet rule 3).
+        endpoint: 100.98.81.0:4318
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 200
+    spike_limit_mib: 50
+  # Defence in depth: the app already allowlists attributes. Drop the usual PII-bearing
+  # keys in case a future change slips one through.
+  attributes/scrub:
+    actions:
+      - { key: url.full, action: delete }
+      - { key: url.query, action: delete }
+      - { key: http.url, action: delete }
+      - { key: http.target, action: delete }
+      - { key: enduser.id, action: delete }
+      - { key: user.id, action: delete }
+      - { key: user.email, action: delete }
+      - { key: client.address, action: delete }
+      - { key: http.request.header.cookie, action: delete }
+      - { key: http.request.header.authorization, action: delete }
+  batch:
+    send_batch_size: 512
+    timeout: 5s
+
+exporters:
+  file:
+    path: /var/lib/otelcol/traces.jsonl
+    format: json
+    rotation:
+      max_megabytes: 50
+      max_days: 14
+      max_backups: 10
+  debug:
+    verbosity: basic
+
+extensions:
+  health_check:
+    endpoint: 127.0.0.1:13133
+
+service:
+  extensions: [health_check]
+  telemetry:
+    metrics:
+      level: none
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, attributes/scrub, batch]
+      exporters: [file, debug]

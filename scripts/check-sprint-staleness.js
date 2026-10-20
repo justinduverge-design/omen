@@ -74,6 +74,7 @@ const CHECKERS = [
   require("./checks/issue-state-conflicts"),
   require("./checks/known-issues-missing-paths"),
   require("./checks/sprint-closed-without-ledger-row"),
+  require("./checks/orphan-candidates"),
 ];
 
 /**
@@ -94,7 +95,12 @@ const asJson = args.includes("--json");
 const limitArg = args.indexOf("--limit");
 const prLimit = limitArg >= 0 ? Number(args[limitArg + 1]) || 100 : 100;
 const onlyArg = args.indexOf("--only");
-const only = onlyArg >= 0 ? String(args[onlyArg + 1] || "").split(",").map((s) => s.trim()) : null;
+const only =
+  onlyArg >= 0
+    ? String(args[onlyArg + 1] || "")
+        .split(",")
+        .map((s) => s.trim())
+    : null;
 
 function main() {
   const ctx = createContext({ prLimit });
@@ -124,15 +130,12 @@ function main() {
       const result = checker.run(ctx);
       ran.push({ id: checker.id, title: checker.title, detail: verdict.detail });
       findings.push(...(result.findings || []).map((f) => ({ ...f, checker: checker.id })));
-      informational.push(
-        ...(result.informational || []).map((n) => normalizeNote(n, checker.id)));
+      informational.push(...(result.informational || []).map((n) => normalizeNote(n, checker.id)));
     } catch (e) {
       // A network failure means this checker did not run. Reporting it as passing would be
       // the false all-clear this tool exists to prevent, so it is called out separately and
       // does not count toward a clean exit.
-      const reason = e instanceof GitHubUnavailableError
-        ? `GitHub unreachable — ${e.message}`
-        : e.message;
+      const reason = e instanceof GitHubUnavailableError ? `GitHub unreachable — ${e.message}` : e.message;
       unavailable.push({ id: checker.id, title: checker.title, reason });
     }
   }
@@ -177,8 +180,7 @@ function describe(f) {
     case "handoff":
       return [
         `STALE    ${f.file}`,
-        `         claims "Not pushed/merged" while citing merged PR(s): ` +
-          f.prs.map((p) => `#${p.number}`).join(", "),
+        `         claims "Not pushed/merged" while citing merged PR(s): ` + f.prs.map((p) => `#${p.number}`).join(", "),
       ];
     case "buried-known-issue":
       return [
@@ -226,13 +228,13 @@ function describeInformational(item) {
 
 function report({ ran, skipped, unavailable, findings, informational }) {
   for (const f of findings) {
-    describe(f).forEach((l) => console.log(l));
+    describe(f).forEach((l) => {
+      console.log(l);
+    });
     console.log("");
   }
 
-  console.log(findings.length === 0
-    ? "No findings in the checks that ran.\n"
-    : `${findings.length} finding(s).\n`);
+  console.log(findings.length === 0 ? "No findings in the checks that ran.\n" : `${findings.length} finding(s).\n`);
 
   console.log("Coverage — this is what a pass above does and does not mean:");
   for (const c of ran) {
@@ -256,7 +258,9 @@ function report({ ran, skipped, unavailable, findings, informational }) {
   if (informational.length > 0) {
     console.log("For context — not findings:");
     for (const item of informational) {
-      describeInformational(item).forEach((l) => console.log(l));
+      describeInformational(item).forEach((l) => {
+        console.log(l);
+      });
     }
     console.log("");
   }

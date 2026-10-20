@@ -56,6 +56,13 @@ struct OmenLeagueCarousel: View {
         VStack(alignment: .leading, spacing: OmenSpacing.step12) {
             addLeagueRow
             chipRow
+            if let error = viewModel.selectionError {
+                OmenStateSurface(
+                    kind: .error,
+                    title: "That switch did not take",
+                    message: switcherErrorMessage(error)
+                )
+            }
             matchupHeader
             content
         }

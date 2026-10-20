@@ -93,12 +93,18 @@ test("a zero projection is treated as a real zero and an absent one is not", () 
   const zero = buildWaiverAnalysis({
     roster: ROSTER,
     pool: [free("Zero RB", "RB", 0)],
-    platform: "sleeper", leagueId: "L1", availabilityConfirmed: true,
+    platform: "sleeper",
+    leagueId: "L1",
+    availabilityConfirmed: true,
   });
   const absent = buildWaiverAnalysis({
     roster: ROSTER,
-    pool: [{ player_key: "f-n", name: "No Projection", position: "RB", eligible_positions: ["RB"], projected_points: null }],
-    platform: "sleeper", leagueId: "L1", availabilityConfirmed: true,
+    pool: [
+      { player_key: "f-n", name: "No Projection", position: "RB", eligible_positions: ["RB"], projected_points: null },
+    ],
+    platform: "sleeper",
+    leagueId: "L1",
+    availabilityConfirmed: true,
   });
 
   // Zero is below the weak starter, so it is ranked and rejected on merit.
@@ -112,7 +118,9 @@ test("no defensible low-cost drop is stated plainly instead of forcing one", () 
   const result = buildWaiverAnalysis({
     roster: { week: 7, slots: { starters: [starter("Weak RB", "RB", 5.0)], bench: [] } },
     pool: [free("Tracy", "RB", 12.0)],
-    platform: "sleeper", leagueId: "L1", availabilityConfirmed: true,
+    platform: "sleeper",
+    leagueId: "L1",
+    availabilityConfirmed: true,
   });
 
   assert.equal(result.state, STATES.NO_LOW_COST_DROP);
@@ -122,8 +130,20 @@ test("no defensible low-cost drop is stated plainly instead of forcing one", () 
 });
 
 test("an unreadable pool is engine_limitation, and an empty pool is no_credible_move", () => {
-  const unreadable = buildWaiverAnalysis({ roster: ROSTER, pool: null, platform: "espn", leagueId: "1", availabilityConfirmed: false });
-  const empty = buildWaiverAnalysis({ roster: ROSTER, pool: [], platform: "espn", leagueId: "1", availabilityConfirmed: true });
+  const unreadable = buildWaiverAnalysis({
+    roster: ROSTER,
+    pool: null,
+    platform: "espn",
+    leagueId: "1",
+    availabilityConfirmed: false,
+  });
+  const empty = buildWaiverAnalysis({
+    roster: ROSTER,
+    pool: [],
+    platform: "espn",
+    leagueId: "1",
+    availabilityConfirmed: true,
+  });
 
   assert.equal(unreadable.state, STATES.ENGINE_LIMITATION);
   assert.equal(empty.state, STATES.NO_CREDIBLE_MOVE);
@@ -131,8 +151,11 @@ test("an unreadable pool is engine_limitation, and an empty pool is no_credible_
 
 test("no FAAB amount, waiver priority, or claim probability is ever produced", () => {
   const result = buildWaiverAnalysis({
-    roster: ROSTER, pool: [free("Tracy", "RB", 12.0)],
-    platform: "sleeper", leagueId: "L1", availabilityConfirmed: true,
+    roster: ROSTER,
+    pool: [free("Tracy", "RB", 12.0)],
+    platform: "sleeper",
+    leagueId: "L1",
+    availabilityConfirmed: true,
   });
   const serialized = JSON.stringify(result).toLowerCase();
 
@@ -143,8 +166,12 @@ test("no FAAB amount, waiver priority, or claim probability is ever produced", (
 
 test("a deadline is dropped unless availability was confirmed", () => {
   const unconfirmed = buildWaiverAnalysis({
-    roster: ROSTER, pool: [], platform: "yahoo", leagueId: "1",
-    availabilityConfirmed: false, deadline: "2026-10-15T07:00:00Z",
+    roster: ROSTER,
+    pool: [],
+    platform: "yahoo",
+    leagueId: "1",
+    availabilityConfirmed: false,
+    deadline: "2026-10-15T07:00:00Z",
   });
   assert.equal(unconfirmed.deadline, null);
   assert.equal(unconfirmed.availability_state, "unconfirmed");
@@ -152,8 +179,12 @@ test("a deadline is dropped unless availability was confirmed", () => {
 
 test("off-season returns the off_season state rather than weekly urgency", () => {
   const result = buildWaiverAnalysis({
-    roster: ROSTER, pool: [free("Tracy", "RB", 12.0)],
-    platform: "sleeper", leagueId: "L1", availabilityConfirmed: true, offSeason: true,
+    roster: ROSTER,
+    pool: [free("Tracy", "RB", 12.0)],
+    platform: "sleeper",
+    leagueId: "L1",
+    availabilityConfirmed: true,
+    offSeason: true,
   });
   assert.equal(result.state, STATES.OFF_SEASON);
   assert.equal(result.best_move, null);
@@ -184,7 +215,12 @@ function loadRouter(options = {}) {
     if (parent?.filename === routePath) {
       if (request === "@supabase/supabase-js") return { createClient: () => supabaseDouble };
       if (request === "../middleware/auth") {
-        return { requireAuth: (req, _res, next) => { req.user = { id: "user-1" }; next(); } };
+        return {
+          requireAuth: (req, _res, next) => {
+            req.user = { id: "user-1" };
+            next();
+          },
+        };
       }
       if (request === "../middleware/logging") return { logger: { error() {}, warn() {}, info() {} } };
       if (request === "../services/nflSchedule") {
@@ -199,17 +235,20 @@ function loadRouter(options = {}) {
       }
       if (request === "../services/yahooAuth") {
         return {
-          getAuthenticatedYahooClient: options.getAuthenticatedYahooClient
-            || (async () => ({ client: options.yahooClient || { getAvailablePlayers: async () => ({}) } })),
+          getAuthenticatedYahooClient:
+            options.getAuthenticatedYahooClient ||
+            (async () => ({ client: options.yahooClient || { getAvailablePlayers: async () => ({}) } })),
         };
       }
       if (request === "../services/espnAuth") {
         return {
-          getAuthenticatedEspnCredentials: options.getAuthenticatedEspnCredentials
-            || (async () => ({ espn_s2: "ESPNCOOKIESECRET", swid: "{SWIDSECRET}" })),
+          getAuthenticatedEspnCredentials:
+            options.getAuthenticatedEspnCredentials ||
+            (async () => ({ espn_s2: "ESPNCOOKIESECRET", swid: "{SWIDSECRET}" })),
         };
       }
-      if (request === "../services/roster") return options.rosterSvc || { fetchAndNormalizeRoster: async () => ROSTER, normalizeYahooWaivers: () => [] };
+      if (request === "../services/roster")
+        return options.rosterSvc || { fetchAndNormalizeRoster: async () => ROSTER, normalizeYahooWaivers: () => [] };
       if (request === "../adapters/sleeper") return options.sleeperAdapter || {};
       if (request === "../adapters/espn") return options.espnAdapter || {};
     }
@@ -227,7 +266,9 @@ function buildApp(options) {
   const app = express();
   app.use(express.json());
   app.use("/api/waivers", loadRouter(options));
-  app.use((err, _req, res, _next) => { res.status(err.status || 500).json({ error: err.message }); });
+  app.use((err, _req, res, _next) => {
+    res.status(err.status || 500).json({ error: err.message });
+  });
   return app;
 }
 
@@ -246,9 +287,19 @@ async function request(app, path = "/api/waivers/analysis") {
 }
 
 const SLEEPER_CONN = { platform: "sleeper", is_active: true, league_id: "L1", platform_username: "justin" };
-const ESPN_CONN = { platform: "espn", is_active: true, league_id: "12345", espn_secret_id: "v1", swid_secret_id: "v2", espn_team_id: "9" };
+const ESPN_CONN = {
+  platform: "espn",
+  is_active: true,
+  league_id: "12345",
+  espn_secret_id: "v1",
+  swid_secret_id: "v2",
+  espn_team_id: "9",
+};
 const YAHOO_CONN = {
-  platform: "yahoo", is_active: true, league_id: "449.l.1", token_secret_id: "v3",
+  platform: "yahoo",
+  is_active: true,
+  league_id: "449.l.1",
+  token_secret_id: "v3",
   // isOmenReadyConnection() treats an absent expiry as expired.
   token_expires_at: new Date(Date.now() + 3600_000).toISOString(),
 };
@@ -258,9 +309,18 @@ test("Sleeper: analysis is built from the Sleeper adapter's own roster and avail
   const app = buildApp({
     connections: [SLEEPER_CONN],
     sleeperAdapter: {
-      fetchSleeperLeague: async (id) => { calls.push(`league:${id}`); return { scoring_settings: { rec: 0.5 } }; },
-      buildNormalizedRoster: async (id, username, week) => { calls.push(`roster:${id}:${username}:${week}`); return ROSTER; },
-      fetchSleeperAvailablePlayers: async (id, week) => { calls.push(`pool:${id}:${week}`); return [free("Tracy", "RB", 12.0)]; },
+      fetchSleeperLeague: async (id) => {
+        calls.push(`league:${id}`);
+        return { scoring_settings: { rec: 0.5 } };
+      },
+      buildNormalizedRoster: async (id, username, week) => {
+        calls.push(`roster:${id}:${username}:${week}`);
+        return ROSTER;
+      },
+      fetchSleeperAvailablePlayers: async (id, week) => {
+        calls.push(`pool:${id}:${week}`);
+        return [free("Tracy", "RB", 12.0)];
+      },
     },
   });
   const { status, body } = await request(app);
@@ -291,18 +351,20 @@ test("waiver-analysis.v2 adds a canonical capability without changing the waiver
   assert.equal(body.decision_context.contract_version, "shared-decision-context.v1");
   assert.deepEqual(body.decision_context.inputs_used, ["roster", "selected_context", "waivers"]);
   assert.equal(body.decision_context.inputs.projections.state, "unavailable");
-  assert.deepEqual(body.capabilities, [{
-    name: "waivers",
-    state: "live",
-    used: false,
-    kind: "inference",
-    source: "sleeper",
-    statement: "No waiver move stands out for this roster right now.",
-    observed_at: body.generated_at,
-    fresh_until: null,
-    reason_code: "no_credible_move",
-    detail_ref: { contract: "waiver-analysis.v1", path: "/api/waivers/analysis" },
-  }]);
+  assert.deepEqual(body.capabilities, [
+    {
+      name: "waivers",
+      state: "live",
+      used: false,
+      kind: "inference",
+      source: "sleeper",
+      statement: "No waiver move stands out for this roster right now.",
+      observed_at: body.generated_at,
+      fresh_until: null,
+      reason_code: "no_credible_move",
+      detail_ref: { contract: "waiver-analysis.v1", path: "/api/waivers/analysis" },
+    },
+  ]);
 });
 
 test("an unsupported waiver-analysis contract is rejected before provider reads", async () => {
@@ -335,7 +397,9 @@ test("Sleeper: a pool failure degrades to engine_limitation while the roster sti
     sleeperAdapter: {
       fetchSleeperLeague: async () => ({}),
       buildNormalizedRoster: async () => ROSTER,
-      fetchSleeperAvailablePlayers: async () => { throw new Error("sleeper 503"); },
+      fetchSleeperAvailablePlayers: async () => {
+        throw new Error("sleeper 503");
+      },
     },
   });
   const { status, body } = await request(app);
@@ -349,8 +413,14 @@ test("ESPN: analysis is built from fetchEspnWaiverPool, which the optimizer rout
   const app = buildApp({
     connections: [ESPN_CONN],
     espnAdapter: {
-      buildNormalizedRoster: async (id, _s2, _swid, week, opts) => { calls.push(`roster:${id}:${week}:${opts.teamId}`); return ROSTER; },
-      fetchEspnWaiverPool: async (id, _s2, _swid, week) => { calls.push(`pool:${id}:${week}`); return [free("Tracy", "RB", 12.0)]; },
+      buildNormalizedRoster: async (id, _s2, _swid, week, opts) => {
+        calls.push(`roster:${id}:${week}:${opts.teamId}`);
+        return ROSTER;
+      },
+      fetchEspnWaiverPool: async (id, _s2, _swid, week) => {
+        calls.push(`pool:${id}:${week}`);
+        return [free("Tracy", "RB", 12.0)];
+      },
     },
   });
   const { status, body } = await request(app);
@@ -398,7 +468,9 @@ test("ESPN: an unreadable pool degrades to engine_limitation rather than a 500",
     connections: [ESPN_CONN],
     espnAdapter: {
       buildNormalizedRoster: async () => ROSTER,
-      fetchEspnWaiverPool: async () => { throw new Error("espn 500"); },
+      fetchEspnWaiverPool: async () => {
+        throw new Error("espn 500");
+      },
     },
   });
   const { status, body } = await request(app);
@@ -413,7 +485,9 @@ test("Yahoo: the route reaches Yahoo but states plainly that its pool carries no
     yahooClient: { getAvailablePlayers: async () => ({ raw: true }) },
     rosterSvc: {
       fetchAndNormalizeRoster: async () => ROSTER,
-      normalizeYahooWaivers: () => ([{ player_key: "y1", name: "Yahoo FA", position: "RB", eligible_positions: ["RB"], projected_points: null }]),
+      normalizeYahooWaivers: () => [
+        { player_key: "y1", name: "Yahoo FA", position: "RB", eligible_positions: ["RB"], projected_points: null },
+      ],
     },
   });
   const { status, body } = await request(app);

@@ -9,7 +9,7 @@ same way `O1b`'s GlitchTip stack was.
 
 | File | Deployed path | Owner/mode | Task |
 |---|---|---|---|
-| `slops-alert-dispatcher` | `/usr/local/sbin/slops-alert-dispatcher` | `root:root` `0700` | `O9` |
+| `slops-alert-dispatcher` | `/usr/local/sbin/slops-alert-dispatcher` | `root:root` `0700` | `O9` (re-synced from the Pi 2026-10-18, sha256 `a19e6a15…`) |
 
 ## slops-alert-dispatcher
 

@@ -27,17 +27,23 @@ after(async () => {
 
 function get(server, path) {
   return new Promise((resolve, reject) => {
-    http.get({ port: server.address().port, path }, (res) => {
-      let body = "";
-      res.on("data", (chunk) => { body += chunk; });
-      res.on("end", () => resolve({ status: res.statusCode, body }));
-    }).on("error", reject);
+    http
+      .get({ port: server.address().port, path }, (res) => {
+        let body = "";
+        res.on("data", (chunk) => {
+          body += chunk;
+        });
+        res.on("end", () => resolve({ status: res.statusCode, body }));
+      })
+      .on("error", reject);
   });
 }
 
 test("a deep synchronous middleware chain adds no per-layer finish listeners", async (t) => {
   const warnings = [];
-  const onWarning = (w) => { if (w.name === "MaxListenersExceededWarning") warnings.push(w); };
+  const onWarning = (w) => {
+    if (w.name === "MaxListenersExceededWarning") warnings.push(w);
+  };
   process.on("warning", onWarning);
   t.after(() => process.off("warning", onWarning));
 
@@ -60,7 +66,10 @@ test("a deep synchronous middleware chain adds no per-layer finish listeners", a
   assert.ok(finish <= 2, `expected no per-layer finish listeners, saw ${finish}`);
 
   await new Promise((resolve) => setImmediate(resolve));
-  assert.deepEqual(warnings.map((w) => w.message), []);
+  assert.deepEqual(
+    warnings.map((w) => w.message),
+    [],
+  );
 });
 
 test("an error thrown in a route is still captured with the route's transaction name", async (t) => {
@@ -69,7 +78,9 @@ test("an error thrown in a route is still captured with the route's transaction 
   Sentry.getClient().on("beforeSendEvent", (event) => events.push(event));
 
   const app = express();
-  app.get("/boom/:id", () => { throw new Error("route-boom"); });
+  app.get("/boom/:id", () => {
+    throw new Error("route-boom");
+  });
   Sentry.setupExpressErrorHandler(app);
   app.use((_err, _req, res, _next) => res.status(500).end());
 

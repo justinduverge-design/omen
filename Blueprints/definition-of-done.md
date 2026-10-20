@@ -37,6 +37,14 @@ Every gate marked done must **point to evidence** — commit hash, file path, sc
 
 Skipping a gate without writing why = lying about done. Marking a gate done with stale, fabricated, or missing evidence is a hard prohibition.
 
+## Removal: prune as we build — added 2026-10-18
+
+**Work that replaces or retires something removes the old thing in the same PR.** That covers routes, screens, simulators and runtimes, database tables and columns, feature flags, env vars, scripts and specs. When removal can't ride along (a production table drop needs its own approved migration), the PR adds a dated follow-up to `Direction/current_sprint.md`, naming what goes and why. A PR that only adds next to something it made obsolete is not done.
+
+1. **Before close-out**, `node scripts/check-sprint-staleness.js` prints the candidate counts (the `orphan-candidates` checker); `node scripts/check-orphans.js` lists them. Each candidate your work created, or now makes dead, is removed or logged. Candidates are not verdicts: a route can be called by a cron, a table read from another repo.
+2. **Weekly**, on the build Mac, run `scripts/mac-sweep.sh` (a dry run), then `--apply`. It clears only what rebuilds itself.
+3. **Never** delete production data, a migration file in `sql/applied/` or a store build because a finder listed it. Those keep their own approval gates.
+
 ## Native UI: device gate — added 2026-09-30
 
 **A native screen is not done, and may not be marked `VERIFIED`, until it has run on the founder's paired iPhone.** Simulator captures prove composition; they do not prove what the founder sees. On 2026-09-30 the Sept 13 visual lock was marked `VERIFIED` (U1, U3, U4) on simulator frames rendered from fixtures and forced dark, while the production Command tab still mounted the pre-lock screen, in light mode. The reachability check passed because it counts references from screenshot code.

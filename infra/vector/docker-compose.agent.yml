@@ -1,0 +1,23 @@
+# Vector agent (Phase 4, shadow). Pinned by digest; host networking, nothing published (fleet rule 4).
+services:
+  vector:
+    image: timberio/vector:0.59.0-debian@sha256:98e7b4dfe50750e61470697bbd2fbeca643d12bea97f351005038ef506eab630
+    container_name: omen-vector-agent
+    restart: unless-stopped
+    command: ["--config", "/etc/vector/vector.yaml"]
+    network_mode: host
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 192m
+    cpus: "0.5"            # KVM1 has 2 vCPU: never take more than half of one from the API
+    blkio_config:
+      weight: 100
+    tmpfs: [/tmp]
+    environment:
+      VECTOR_HOST: ${VECTOR_HOST:-unknown}
+    volumes:
+      - /opt/omen-vector/agent.yaml:/etc/vector/vector.yaml:ro
+      - /opt/omen-vector/state:/var/lib/vector
+      - /var/log/journal:/var/log/journal:ro
+      - /etc/machine-id:/etc/machine-id:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro

@@ -110,6 +110,9 @@ struct OmenScoutCutLine: Equatable {
 struct OmenScoutTableState: Equatable {
     /// "Week 7 · 12 teams"
     let weekLabel: String
+    /// "2nd of 12 · top 6 make the playoffs": your standing, the canvas's League headline. Nil when
+    /// standings were not read.
+    var standingLine: String? = nil
     /// The `.hatch` banner above the sections. Present only when something screen-wide is true —
     /// on `LeagueDegraded`, that the provider is partial. Absent on the nominal pass: a banner
     /// that always shows teaches people to stop reading it.
@@ -318,9 +321,14 @@ struct OmenLeagueTableScreen: View {
                 Text(state.weekLabel)
                     .omenTextStyle(OmenTypography.micro)
                     .foregroundStyle(OmenColor.accent)
-                Text("The Table")
+                Text("League")
                     .omenTextStyle(OmenTypography.screenTitle)
                     .foregroundStyle(OmenColor.textPrimary)
+                if let standing = state.standingLine {
+                    Text(standing)
+                        .omenTextStyle(OmenTypography.body)
+                        .foregroundStyle(OmenColor.textSecondary)
+                }
             }
             Spacer(minLength: OmenSpacing.step8)
             OmenScreenHeaderControls(
@@ -379,7 +387,8 @@ struct OmenLeagueTableScreen: View {
 
     private var tableTrailing: String? {
         switch state.table {
-        case .read: return "Form · last 5"
+        // The contract carries record and points, not recent form, so the header names only that.
+        case .read: return "Record"
         case .unread, .providerLimit: return "Unavailable"
         }
     }
@@ -447,6 +456,11 @@ struct OmenLeagueTableScreen: View {
         sectionHeader("Activity", trailing: activityTrailing)
         switch state.activity {
         case .read(let rows):
+            if rows.isEmpty {
+                // Read and confirmed empty: say so, rather than leave a blank section.
+                OmenScoutNotice(text: "No major league activity to flag right now.")
+                    .padding(.horizontal, OmenSpacing.step16)
+            }
             VStack(spacing: 0) {
                 ForEach(rows) { row in
                     OmenScoutActivityRowView(row: row)
@@ -1320,6 +1334,9 @@ extension OmenScoutTableState {
     ) -> OmenScoutTableState {
         OmenScoutTableState(
             weekLabel: weekLabel(overview),
+            standingLine: overview.standings.playoffPicture.map { picture in
+                [picture.line, picture.cutLineNote].compactMap { $0 }.joined(separator: " \u{00B7} ")
+            },
             notice: notice,
             strip: strip(overview),
             table: table(overview),
@@ -1346,24 +1363,42 @@ extension OmenScoutTableState {
     }
 
     private static func strip(_ overview: LeagueOverview) -> OmenScoutSection<OmenScoutStrip> {
+        let status = overview.matchup.status
+        let unread = OmenScoutSection<OmenScoutStrip>.unread(
+            capability: "League matchup",
+            sentence: matchupReasonSentence(overview.matchup)
+        )
         guard
             let platform = overview.omenPlatform,
-            let mine = overview.matchup.you?.points,
-            let theirs = overview.matchup.opponent?.points,
-            overview.matchup.status != .unavailable
-        else {
-            return .unread(
-                capability: "League matchup",
-                sentence: overview.matchup.unavailableReason
-                    ?? "The provider did not return this week\u{2019}s scoreboard. The table below read normally."
-            )
+            let you = overview.matchup.you,
+            let opponent = overview.matchup.opponent,
+            status != .unavailable
+        else { return unread }
+        // Before kickoff neither side has points yet. That is a real, read matchup, not an unread one.
+        func score(_ points: Double?) -> String? {
+            if let points { return String(format: "%.1f", points) }
+            return status == .pregame ? "\u{2014}" : nil
         }
+        guard let mine = score(you.points), let theirs = score(opponent.points) else { return unread }
         return .read(OmenScoutStrip(
             platform: platform,
-            myScore: String(format: "%.1f", mine),
-            theirScore: String(format: "%.1f", theirs),
-            status: overview.matchup.status.scoutLabel
+            myScore: mine,
+            theirScore: theirs,
+            status: status.scoutLabel
         ))
+    }
+
+    /// `unavailable_reason` is a code, not copy: never show it raw.
+    static func matchupReasonSentence(_ matchup: LeagueOverview.Matchup) -> String {
+        switch matchup.unavailableReason {
+        case "league_not_started":
+            return "This league hasn\u{2019}t set its teams yet, so there is no matchup to show."
+        case "off_season":
+            return "No matchups in the off-season."
+        default:
+            if matchup.status == .noMatchup { return "No matchup scheduled for this league this week." }
+            return "The provider did not return this week\u{2019}s scoreboard. The table below read normally."
+        }
     }
 
     private static func table(_ overview: LeagueOverview) -> OmenScoutSection<[OmenScoutTableRow]> {
@@ -1560,7 +1595,7 @@ extension OmenScoutWireState {
         if let add = analysis.bestMove?.add, let name = add.name, !name.isEmpty {
             rows.append(OmenScoutWireRow(
                 title: name,
-                detail: [add.position, add.team].compactMap { $0 }.joined(separator: " \u{00B7} "),
+                detail: add.metaWithNumbers,
                 status: .live
             ))
         }
@@ -1568,7 +1603,7 @@ extension OmenScoutWireState {
             guard let player = alternative.player, let name = player.name, !name.isEmpty else { continue }
             rows.append(OmenScoutWireRow(
                 title: name,
-                detail: [player.position, player.team].compactMap { $0 }.joined(separator: " \u{00B7} "),
+                detail: player.metaWithNumbers,
                 status: .live
             ))
         }
@@ -1602,10 +1637,10 @@ private extension OmenScoutWireMove {
         guard let add = bestMove.add, let name = add.name, !name.isEmpty else { return nil }
         self.init(
             addName: name,
-            addMeta: [add.position, add.team].compactMap { $0 }.joined(separator: " \u{00B7} "),
+            addMeta: add.metaWithNumbers,
             addPoints: add.projectedPoints.map { String(format: "%.1f", $0) },
             dropName: bestMove.drop?.name,
-            dropMeta: [bestMove.drop?.position, bestMove.drop?.team].compactMap { $0 }.joined(separator: " \u{00B7} ").nonEmptyOrNil,
+            dropMeta: bestMove.drop?.metaWithNumbers.nonEmptyOrNil,
             dropPoints: bestMove.drop?.projectedPoints.map { String(format: "%.1f", $0) },
             reasoning: bestMove.whyNow?.nonEmptyOrNil ?? "Omen found this as the strongest available roster move."
         )
@@ -1615,7 +1650,7 @@ private extension OmenScoutWireMove {
         guard let player = alternative.player, let name = player.name, !name.isEmpty else { return nil }
         self.init(
             addName: name,
-            addMeta: [player.position, player.team].compactMap { $0 }.joined(separator: " \u{00B7} "),
+            addMeta: player.metaWithNumbers,
             addPoints: player.projectedPoints.map { String(format: "%.1f", $0) },
             dropName: nil,
             dropMeta: nil,
@@ -1649,21 +1684,39 @@ extension WaiverAnalysis {
         }
         return .read(OmenDeskWaiverMove(
             addName: name,
-            addMeta: [add.position, add.team].compactMap { $0 }.joined(separator: " \u{00B7} "),
+            addMeta: add.metaWithNumbers,
             addPoints: add.projectedPoints.map { String(format: "%.1f", $0) },
             dropName: best.drop?.name,
-            dropMeta: [best.drop?.position, best.drop?.team].compactMap { $0 }.joined(separator: " \u{00B7} ").scoutNonEmpty,
+            dropMeta: best.drop?.metaWithNumbers.scoutNonEmpty,
             dropPoints: best.drop?.projectedPoints.map { String(format: "%.1f", $0) },
             reasoning: best.whyNow?.scoutNonEmpty ?? "Omen found this as the strongest available roster move.",
             // `waiver-analysis.v1` carries no confidence band and no risk. These were hardcoded
             // to `.confident` / `.low` for every claim — a fabricated read on a live screen.
             band: nil,
             risk: nil,
-            riskReason: nil
+            riskReason: nil,
+            addOmenPoints: add.omenRead?.points.map { String(format: "%.1f", $0) },
+            dropOmenPoints: best.drop?.omenRead?.points.map { String(format: "%.1f", $0) }
         ))
     }
 }
 
 private extension String {
     var scoutNonEmpty: String? { isEmpty ? nil : self }
+}
+
+
+extension WaiverAnalysis.Player {
+    /// "RB · TEN · 12.4 PPG · RB Omen Grade 61.2". Real numbers and Omen's grade beside the
+    /// position, the same on Sleeper, ESPN and Yahoo; a missing number is left out, never zero.
+    var metaWithNumbers: String {
+        [
+            position,
+            team,
+            stats?.pointsPerGame.map { String(format: "%.1f PPG", $0) },
+            rating?.rating.map { "\(rating?.title ?? OmenPlayerRating.familyName) \(String(format: "%.1f", $0))" },
+        ]
+        .compactMap { $0 }
+        .joined(separator: " \u{00B7} ")
+    }
 }

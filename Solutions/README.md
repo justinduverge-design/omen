@@ -1,7 +1,11 @@
-# Corvus Solutions
+# Omen Solutions
 
-This folder is for completed Corvus product outputs, reports, baselines, and deliverables.
+Finished Omen outputs worth keeping after a task closes: reports, baselines, audit results and deliverables.
 
-Use it for finished artifacts that should be preserved after a task is complete.
+| Path | What it holds |
+|---|---|
+| `reports/` | Finished reports |
+| `deliverables/` | Finished deliverables |
+| `audit_report.json`, `impeccable_baseline.json` | Saved audit and design-lint baselines |
 
-Do not put active app source, secrets, package files, SQL, deployment config, `.git`, or `node_modules` here.
+Do not put app source, secrets, package files, SQL, deployment config, `.git` or `node_modules` here.

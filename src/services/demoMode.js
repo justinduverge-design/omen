@@ -208,11 +208,11 @@ function cloneFixture(value) {
 }
 
 function findRosterPlayer(roster, playerKey) {
-  return [
-    ...roster.slots.starters,
-    ...roster.slots.bench,
-    ...roster.slots.ir,
-  ].find((player) => player.player_key === playerKey) || null;
+  return (
+    [...roster.slots.starters, ...roster.slots.bench, ...roster.slots.ir].find(
+      (player) => player.player_key === playerKey,
+    ) || null
+  );
 }
 
 function demoSignal(source, message) {
@@ -258,7 +258,10 @@ function buildDemoOmen(roster, swap, generatedAt) {
     },
     signals: {
       roster: demoSignal("demo_roster_fixture", "Roster context comes from the deterministic Omen demo fixture."),
-      projections: demoSignal("demo_projection_fixture", "Projected points are sample values for demonstrating Omen behavior."),
+      projections: demoSignal(
+        "demo_projection_fixture",
+        "Projected points are sample values for demonstrating Omen behavior.",
+      ),
       matchup_dvp: demoSignal("demo_matchup_fixture", "Matchup context is illustrative and is not current NFL data."),
       llm_reasoning: demoSignal("demo_explanation_template", "Explanation is deterministic and does not call an LLM."),
     },
@@ -302,11 +305,7 @@ function buildDemoOmen(roster, swap, generatedAt) {
         why_it_matters: `${startPlayer.name} improves the sample lineup by ${swap.delta.toFixed(2)} projected points.`,
         risk: "This demonstrates the decision shape only; it is not live fantasy advice.",
         confidence: `${bandSentence(bandFromScore(confidenceScore), swap.confidence_reason || "The sample lineup has a projected point edge.")} This is a deterministic demo scenario.`,
-        data_used: [
-          "deterministic demo roster",
-          "sample projected points",
-          "sample player availability",
-        ],
+        data_used: ["deterministic demo roster", "sample projected points", "sample player availability"],
       },
     },
     alternatives: [],

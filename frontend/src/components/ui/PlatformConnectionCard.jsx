@@ -59,12 +59,17 @@ export default function PlatformConnectionCard({
         )}
 
         {isError && errorMessage && (
-          <div className="mt-4 rounded-lg px-4 py-3 text-sm border" style={{
-            borderColor: 'var(--color-border)',
-            backgroundColor: 'var(--color-surface-1)',
-            color: 'var(--color-text-primary)'
-          }}>
-            <p className="font-semibold mb-1" style={{ color: 'var(--color-risk-high)' }}>Connection Error</p>
+          <div
+            className="mt-4 rounded-lg px-4 py-3 text-sm border"
+            style={{
+              borderColor: 'var(--color-border)',
+              backgroundColor: 'var(--color-surface-1)',
+              color: 'var(--color-text-primary)',
+            }}
+          >
+            <p className="font-semibold mb-1" style={{ color: 'var(--color-risk-high)' }}>
+              Connection Error
+            </p>
             <p style={{ color: 'var(--color-text-secondary)' }}>{errorMessage}</p>
           </div>
         )}

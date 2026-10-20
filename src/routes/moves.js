@@ -67,7 +67,9 @@ function isKnownAbsent(column, now) {
 async function selectTolerantly(columns, optional, run, table = "moves") {
   const startedAt = Date.now();
   // Start without the columns already known to be absent: no failing query per request.
-  let selected = columns.filter((column) => !(optional.includes(column) && isKnownAbsent(`${table}:${column}`, startedAt)));
+  let selected = columns.filter(
+    (column) => !(optional.includes(column) && isKnownAbsent(`${table}:${column}`, startedAt)),
+  );
   for (;;) {
     const result = await run(selected.join(","));
     if (!result.error || !isMissingColumnError(result.error)) return result;
@@ -132,17 +134,12 @@ function buildSummary(moves = []) {
     followedCount += 1;
     if (move.outcome === "win") wins += 1;
     if (move.outcome === "loss") losses += 1;
-    if (
-      (move.outcome === "win" || move.outcome === "loss")
-      && Number.isFinite(Number(move.effectiveness_pct))
-    ) {
+    if ((move.outcome === "win" || move.outcome === "loss") && Number.isFinite(Number(move.effectiveness_pct))) {
       scoredEff.push(Number(move.effectiveness_pct));
     }
   }
 
-  const avg = scoredEff.length
-    ? Math.round(scoredEff.reduce((sum, value) => sum + value, 0) / scoredEff.length)
-    : null;
+  const avg = scoredEff.length ? Math.round(scoredEff.reduce((sum, value) => sum + value, 0) / scoredEff.length) : null;
 
   return {
     wins,
@@ -160,8 +157,13 @@ router.get("/", requireAuth, async (req, res, next) => {
     if (req.query.contract_version && !native && req.query.contract_version !== "moves-history.v1") {
       return res.status(400).json({ error: "unsupported_moves_contract" });
     }
-    if (native && (!["espn", "yahoo", "sleeper"].includes(req.query.platform)
-      || typeof req.query.league_id !== "string" || !req.query.league_id.trim() || req.query.league_id.length > 128)) {
+    if (
+      native &&
+      (!["espn", "yahoo", "sleeper"].includes(req.query.platform) ||
+        typeof req.query.league_id !== "string" ||
+        !req.query.league_id.trim() ||
+        req.query.league_id.length > 128)
+    ) {
       return res.status(400).json({ error: "ledger_context_required" });
     }
     const season = parsePositiveInteger(req.query.season, defaultSeason(), { max: 9999 });
@@ -188,10 +190,13 @@ router.get("/", requireAuth, async (req, res, next) => {
         logger.warn("moves ledger cannot be league-scoped: Ledger tables unreadable", { message: err.message });
         return res.status(503).json(ledgerScopeUnavailable());
       }
+      const rows = calls.map(decisionLedgerRow);
       return res.json({
         contract_version: "moves-history.v2",
-        generated_at: nowIso(), season,
-        moves: calls.map(decisionLedgerRow),
+        generated_at: nowIso(),
+        season,
+        record: ledgerRecord(rows),
+        moves: rows,
       });
     }
 
@@ -237,22 +242,63 @@ function isVerifiedOutcome(outcome) {
  * not-executed call is `not_verified`; no outcome, or an incomplete one, is `pending`. A user's
  * follow report is never equated with verified scoring. The engine's internal number is not read.
  */
+// The alternative could not play: the call was right by schedule or injury, not by football judgment.
+const UNCONTESTED_STATUSES = new Set(["O", "OUT", "IR", "IR-R", "PUP", "SUSP", "BYE", "NA"]);
+
+/** true: a real choice between two players who could play. false: the alternative could not. null: unknown (older calls). */
+function isContestedCall(decision) {
+  const status = decision?.recommendation?.comparison_player?.status;
+  if (typeof status !== "string" || !status.trim()) return null;
+  return !UNCONTESTED_STATUSES.has(status.trim().toUpperCase());
+}
+
+/** The Ledger's record over the listed calls: every verified call, and the contested ones on their own (the honest hit rate). */
+function ledgerRecord(rows) {
+  const record = {
+    worked: 0,
+    did_not_work: 0,
+    contested_worked: 0,
+    contested_did_not_work: 0,
+    uncontested: 0,
+    contest_unknown: 0,
+  };
+  for (const row of rows) {
+    if (row.outcome !== "worked" && row.outcome !== "did_not_work") continue;
+    record[row.outcome] += 1;
+    if (row.contested === true) record[`contested_${row.outcome}`] += 1;
+    else if (row.contested === false) record.uncontested += 1;
+    else record.contest_unknown += 1;
+  }
+  const contested = record.contested_worked + record.contested_did_not_work;
+  record.contested_hit_rate = contested ? Math.round((record.contested_worked / contested) * 1000) / 1000 : null;
+  return record;
+}
+
 function decisionLedgerRow({ decision, action, outcome }) {
   const followed = typeof action?.followed === "boolean" ? action.followed : null;
   const verified = isVerifiedOutcome(outcome);
   return {
-    id: decision.id, season: decision.season, week: decision.week,
+    contested: isContestedCall(decision),
+    id: decision.id,
+    season: decision.season,
+    week: decision.week,
     move_type: decisionCallType(decision),
     headline: textOrNull(decision.headline) || textOrNull(decision.summary),
-    issued_at: decision.issued_at || null, issued_at_timezone: decision.issued_at_timezone || "UTC",
+    issued_at: decision.issued_at || null,
+    issued_at_timezone: decision.issued_at_timezone || "UTC",
     followed,
-    action_provenance: followed === null ? "unknown" : (action.provenance || "self_reported"),
+    action_provenance: followed === null ? "unknown" : action.provenance || "self_reported",
     provenance: verified ? "verified" : "unknown",
-    outcome: !outcome || outcome.state === "data_incomplete" ? "pending"
-      : verified ? (outcome.result === "win" ? "worked" : "did_not_work") : "not_verified",
+    outcome:
+      !outcome || outcome.state === "data_incomplete"
+        ? "pending"
+        : verified
+          ? outcome.result === "win"
+            ? "worked"
+            : "did_not_work"
+          : "not_verified",
   };
 }
-
 
 // --- Ledger detail (visual briefs §7) ---------------------------------------
 //
@@ -267,20 +313,54 @@ const DETAIL_ERROR_CONTRACT = "move-detail-error.v1";
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const DETAIL_COLUMNS = [
-  "id", "user_id", "week_num", "season", "move_type", "headline", "reasoning",
-  "confidence", "target_player", "followed", "user_stars", "user_note",
-  "outcome", "eff", "result", "created_at", "scored_at",
-  "platform", "league_id",
+  "id",
+  "user_id",
+  "week_num",
+  "season",
+  "move_type",
+  "headline",
+  "reasoning",
+  "confidence",
+  "target_player",
+  "followed",
+  "user_stars",
+  "user_note",
+  "outcome",
+  "eff",
+  "result",
+  "created_at",
+  "scored_at",
+  "platform",
+  "league_id",
   // A6 contract fields, present on production since the reviewed migration was applied.
-  "scoring", "scoring_contract_version", "scoring_coverage_state", "reconciliation_state",
+  "scoring",
+  "scoring_contract_version",
+  "scoring_coverage_state",
+  "reconciliation_state",
 ];
 
 // Absent from production today; dropped from the query when the database says so. With no
 // `result` the receipt never claims a retained final score, which is the safe direction.
-const OPTIONAL_DETAIL_COLUMNS = DETAIL_COLUMNS.filter((column) => ![
-  "id", "user_id", "week_num", "season", "move_type", "headline", "reasoning",
-  "confidence", "target_player", "followed", "user_stars", "user_note", "outcome", "eff", "created_at",
-].includes(column));
+const OPTIONAL_DETAIL_COLUMNS = DETAIL_COLUMNS.filter(
+  (column) =>
+    ![
+      "id",
+      "user_id",
+      "week_num",
+      "season",
+      "move_type",
+      "headline",
+      "reasoning",
+      "confidence",
+      "target_player",
+      "followed",
+      "user_stars",
+      "user_note",
+      "outcome",
+      "eff",
+      "created_at",
+    ].includes(column),
+);
 
 function detailError({ code, message, action }) {
   return {
@@ -297,27 +377,23 @@ function outcomeName(row) {
 }
 
 function hasPersistedScoringMetadata(row) {
-  return Boolean(
-    row?.scoring_contract_version
-    || row?.scoring_coverage_state
-    || row?.reconciliation_state
-  );
+  return Boolean(row?.scoring_contract_version || row?.scoring_coverage_state || row?.reconciliation_state);
 }
 
 function hasExactScoringOutcome(row) {
-  return row?.scoring_coverage_state === "supported"
-    && row?.reconciliation_state === "exact"
-    && ["win", "loss"].includes(outcomeName(row))
-    && Boolean(row?.result);
+  return (
+    row?.scoring_coverage_state === "supported" &&
+    row?.reconciliation_state === "exact" &&
+    ["win", "loss"].includes(outcomeName(row)) &&
+    Boolean(row?.result)
+  );
 }
 
 function hasLegacyEstimatedOutcome(row) {
   // Pre-A6 records were intentionally graded against the documented PPR
   // fallback. They remain useful history, but are never provider-verified or
   // promoted into a league-exact capability.
-  return !hasPersistedScoringMetadata(row)
-    && ["win", "loss"].includes(outcomeName(row))
-    && Boolean(row?.result);
+  return !hasPersistedScoringMetadata(row) && ["win", "loss"].includes(outcomeName(row)) && Boolean(row?.result);
 }
 
 function scoringOutcomeStatus(row) {
@@ -410,15 +486,27 @@ function evidenceAtTheTime(row) {
   const evidence = [];
 
   if (row?.scoring) {
-    evidence.push({ category: "league_context", kind: "verified", statement: `This recommendation was graded in ${row.scoring} scoring.` });
+    evidence.push({
+      category: "league_context",
+      kind: "verified",
+      statement: `This recommendation was graded in ${row.scoring} scoring.`,
+    });
   }
   if (row?.target_player) {
-    evidence.push({ category: "player_game_fact", kind: "verified", statement: `The recommendation named ${row.target_player}.` });
+    evidence.push({
+      category: "player_game_fact",
+      kind: "verified",
+      statement: `The recommendation named ${row.target_player}.`,
+    });
   }
   // The stored number is an internal ordering value; the response only ever says the band.
   const recordedBand = row?.confidence != null ? bandFromScore(Number(row.confidence)) : null;
   if (recordedBand) {
-    evidence.push({ category: "model_input", kind: "model", statement: `Omen issued this call as ${BAND_LABELS[recordedBand]}.` });
+    evidence.push({
+      category: "model_input",
+      kind: "model",
+      statement: `Omen issued this call as ${BAND_LABELS[recordedBand]}.`,
+    });
   }
   if (row?.reasoning) {
     evidence.push({ category: "omen_inference", kind: "inference", statement: String(row.reasoning) });
@@ -429,7 +517,8 @@ function evidenceAtTheTime(row) {
     evidence.push({
       category: "limitation",
       kind: "limitation",
-      statement: "This entry predates league scoring capture, so it was graded against the PPR fallback rather than this league's own rules.",
+      statement:
+        "This entry predates league scoring capture, so it was graded against the PPR fallback rather than this league's own rules.",
     });
   }
 
@@ -443,17 +532,24 @@ function evidenceAtTheTime(row) {
  */
 function observedOutcome(row) {
   const state = detailState(row);
-  if (state === "pending") return { known: false, statement: "This recommendation has not been scored yet.", awaiting: "final scoring for this week" };
-  if (state === "data_incomplete") return { known: false, statement: scoringOutcomeStatus(row).statement, awaiting: null };
+  if (state === "pending")
+    return {
+      known: false,
+      statement: "This recommendation has not been scored yet.",
+      awaiting: "final scoring for this week",
+    };
+  if (state === "data_incomplete")
+    return { known: false, statement: scoringOutcomeStatus(row).statement, awaiting: null };
 
   const outcome = outcomeName(row);
   if (hasLegacyEstimatedOutcome(row)) {
     return {
       known: true,
       provenance: "legacy_estimate",
-      statement: outcome === "win"
-        ? "Historical PPR fallback estimate aligned with the recommendation."
-        : "Historical PPR fallback estimate did not align with the recommendation.",
+      statement:
+        outcome === "win"
+          ? "Historical PPR fallback estimate aligned with the recommendation."
+          : "Historical PPR fallback estimate did not align with the recommendation.",
       detail: row.result || null,
       awaiting: null,
     };
@@ -462,29 +558,39 @@ function observedOutcome(row) {
   return {
     known: true,
     provenance: "verified",
-    statement: outcome === "win"
-      ? "Observed outcome aligned with the recommendation."
-      : "Observed outcome did not align with the recommendation.",
+    statement:
+      outcome === "win"
+        ? "Observed outcome aligned with the recommendation."
+        : "Observed outcome did not align with the recommendation.",
     detail: row.result || null,
     awaiting: null,
   };
 }
 
-function attachLedgerDecisionReceipt(response, row, { receiptSource = "moves_persisted_receipt", scoringSource = "moves_reconciliation" } = {}) {
+function attachLedgerDecisionReceipt(
+  response,
+  row,
+  { receiptSource = "moves_persisted_receipt", scoringSource = "moves_reconciliation" } = {},
+) {
   const context = createDecisionContext({ profile: "ledger" });
   const persistedRecommendation = recommendationFrom(row);
   const hasDecisionReceipt = typeof persistedRecommendation === "string" && persistedRecommendation.trim().length > 0;
   const outcome = scoringOutcomeStatus(row);
 
-  context.record("decision_receipt", hasDecisionReceipt ? {
-    state: "live",
-    source: receiptSource,
-    observed_at: row.created_at || null,
-  } : {
-    state: "unavailable",
-    source: receiptSource,
-    reason_code: "issue_time_recommendation_not_recorded",
-  });
+  context.record(
+    "decision_receipt",
+    hasDecisionReceipt
+      ? {
+          state: "live",
+          source: receiptSource,
+          observed_at: row.created_at || null,
+        }
+      : {
+          state: "unavailable",
+          source: receiptSource,
+          reason_code: "issue_time_recommendation_not_recorded",
+        },
+  );
   if (hasDecisionReceipt) context.use("decision_receipt");
 
   context.record("scoring_outcome", {
@@ -496,28 +602,33 @@ function attachLedgerDecisionReceipt(response, row, { receiptSource = "moves_per
   if (outcome.used) context.use("scoring_outcome");
   attachDecisionReceipt(response, context);
 
-  const decisionReceiptCapability = hasDecisionReceipt ? {
-    state: "live",
-    used: true,
-    kind: "verified",
-    source: receiptSource,
-    statement: "Omen preserved the recommendation and evidence recorded when this call was issued.",
-    observed_at: row.created_at || null,
-  } : {
-    state: "unavailable",
-    used: false,
-    kind: "limitation",
-    source: receiptSource,
-    statement: "Omen did not retain a readable issue-time recommendation for this entry.",
-    reason_code: "issue_time_recommendation_not_recorded",
-  };
-  const scoringCapability = scoringCoverageCapability({
-    coverage_state: row.scoring_coverage_state,
-    reconciliation_state: row.reconciliation_state,
-  }, {
-    used: outcome.used,
-    observedAt: row.scored_at || null,
-  });
+  const decisionReceiptCapability = hasDecisionReceipt
+    ? {
+        state: "live",
+        used: true,
+        kind: "verified",
+        source: receiptSource,
+        statement: "Omen preserved the recommendation and evidence recorded when this call was issued.",
+        observed_at: row.created_at || null,
+      }
+    : {
+        state: "unavailable",
+        used: false,
+        kind: "limitation",
+        source: receiptSource,
+        statement: "Omen did not retain a readable issue-time recommendation for this entry.",
+        reason_code: "issue_time_recommendation_not_recorded",
+      };
+  const scoringCapability = scoringCoverageCapability(
+    {
+      coverage_state: row.scoring_coverage_state,
+      reconciliation_state: row.reconciliation_state,
+    },
+    {
+      used: outcome.used,
+      observedAt: row.scored_at || null,
+    },
+  );
   // A scoring-contract state can only support this historical receipt when a
   // corresponding result line survived. Do not let an exact marker revive a
   // missing outcome, and never call a legacy PPR estimate provider-verified.
@@ -565,7 +676,8 @@ function moveDetail(row) {
       stars: row.user_stars ?? null,
       note: row.user_note || null,
     },
-    fairness_note: "Omen shows what it knew when the call was made. Later information is never used to make an earlier recommendation look better.",
+    fairness_note:
+      "Omen shows what it knew when the call was made. Later information is never used to make an earlier recommendation look better.",
   };
   return attachLedgerDecisionReceipt(response, row);
 }
@@ -609,7 +721,11 @@ function decisionEvidence({ decision, factors }) {
     });
   }
   if (decision.band && BAND_LABELS[decision.band]) {
-    evidence.push({ category: "model_input", kind: "model", statement: `Omen issued this call as ${BAND_LABELS[decision.band]}.` });
+    evidence.push({
+      category: "model_input",
+      kind: "model",
+      statement: `Omen issued this call as ${BAND_LABELS[decision.band]}.`,
+    });
   } else if (textOrNull(decision.band_unavailable_reason)) {
     evidence.push({ category: "limitation", kind: "limitation", statement: decision.band_unavailable_reason.trim() });
   }
@@ -626,10 +742,18 @@ function decisionEvidence({ decision, factors }) {
 
 function decisionObservedOutcome({ decision, outcome, superseded }) {
   if (superseded) {
-    return { known: false, statement: "A later call for the same week replaced this one, so Omen does not score it.", awaiting: null };
+    return {
+      known: false,
+      statement: "A later call for the same week replaced this one, so Omen does not score it.",
+      awaiting: null,
+    };
   }
   if (!outcome) {
-    return { known: false, statement: "This recommendation has not been scored yet.", awaiting: "final scoring for this week" };
+    return {
+      known: false,
+      statement: "This recommendation has not been scored yet.",
+      awaiting: "final scoring for this week",
+    };
   }
   if (outcome.state === "not_executed") {
     return { known: false, statement: "You marked this as not followed, so Omen did not score it.", awaiting: null };
@@ -647,7 +771,9 @@ function decisionObservedOutcome({ decision, outcome, superseded }) {
     return {
       known: true,
       provenance: "verified",
-      statement: aligned ? "Observed outcome aligned with the recommendation." : "Observed outcome did not align with the recommendation.",
+      statement: aligned
+        ? "Observed outcome aligned with the recommendation."
+        : "Observed outcome did not align with the recommendation.",
       detail: textOrNull(outcome.summary),
       awaiting: null,
     };
@@ -657,19 +783,40 @@ function decisionObservedOutcome({ decision, outcome, superseded }) {
     known: true,
     provenance: outcome.provenance || "legacy_estimate",
     statement: legacy
-      ? (aligned
+      ? aligned
         ? "Historical PPR fallback estimate aligned with the recommendation."
-        : "Historical PPR fallback estimate did not align with the recommendation.")
-      : (aligned
+        : "Historical PPR fallback estimate did not align with the recommendation."
+      : aligned
         ? "Omen's estimate from public stat lines aligned with the recommendation. It is not reconciled to this league's own scoring."
-        : "Omen's estimate from public stat lines did not align with the recommendation. It is not reconciled to this league's own scoring."),
+        : "Omen's estimate from public stat lines did not align with the recommendation. It is not reconciled to this league's own scoring.",
     detail: textOrNull(outcome.summary),
     awaiting: null,
   };
 }
 
-function decisionDetail({ decision, factors = [], action = null, outcome = null, superseded = false, league = null }) {
+function decisionDetail({
+  decision,
+  factors = [],
+  action = null,
+  outcome = null,
+  superseded = false,
+  league = null,
+  horizons = [],
+}) {
   const response = {
+    // Trades only: the call graded over its week, the next four weeks and the season so far (estimates).
+    horizons: (Array.isArray(horizons) ? horizons : []).map((h) => ({
+      horizon: h.horizon,
+      from_week: h.from_week,
+      through_week: h.through_week,
+      weeks_counted: h.weeks_counted,
+      received_points: Number(h.received_points),
+      given_points: Number(h.given_points),
+      margin: Number(h.margin),
+      result: h.result,
+      complete: h.complete === true,
+      provenance: h.provenance,
+    })),
     contract_version: DETAIL_CONTRACT,
     generated_at: nowIso(),
     id: decision.id,
@@ -693,33 +840,40 @@ function decisionDetail({ decision, factors = [], action = null, outcome = null,
       stars: action?.stars ?? null,
       note: textOrNull(action?.note),
     },
-    fairness_note: "Omen shows what it knew when the call was made. Later information is never used to make an earlier recommendation look better.",
+    fairness_note:
+      "Omen shows what it knew when the call was made. Later information is never used to make an earlier recommendation look better.",
   };
 
   // The capability manifest reuses the moves receipt rules on an equivalent view of the outcome.
   const resolved = outcome?.state === "resolved";
-  return attachLedgerDecisionReceipt(response, {
-    headline: decision.headline,
-    reasoning: decision.summary,
-    created_at: decision.issued_at,
-    scored_at: outcome?.scored_at || null,
-    outcome: resolved ? outcome.result : outcome ? outcome.state : "pending",
-    result: resolved ? (textOrNull(outcome.summary) || outcome.result) : null,
-    scoring: decision.scoring_format,
-    scoring_contract_version: decision.scoring_contract_version,
-    scoring_coverage_state: outcome?.scoring_coverage_state ?? decision.scoring_coverage_state,
-    reconciliation_state: outcome?.reconciliation_state ?? null,
-  }, { receiptSource: "ledger_decisions", scoringSource: "ledger_outcomes" });
+  return attachLedgerDecisionReceipt(
+    response,
+    {
+      headline: decision.headline,
+      reasoning: decision.summary,
+      created_at: decision.issued_at,
+      scored_at: outcome?.scored_at || null,
+      outcome: resolved ? outcome.result : outcome ? outcome.state : "pending",
+      result: resolved ? textOrNull(outcome.summary) || outcome.result : null,
+      scoring: decision.scoring_format,
+      scoring_contract_version: decision.scoring_contract_version,
+      scoring_coverage_state: outcome?.scoring_coverage_state ?? decision.scoring_coverage_state,
+      reconciliation_state: outcome?.reconciliation_state ?? null,
+    },
+    { receiptSource: "ledger_decisions", scoringSource: "ledger_outcomes" },
+  );
 }
 
 router.get("/:id", requireAuth, async (req, res, next) => {
   const id = String(req.params.id || "").trim();
   if (!UUID_PATTERN.test(id)) {
-    return res.status(400).json(detailError({
-      code: "invalid_move_id",
-      message: "That is not a valid Ledger entry id.",
-      action: "back",
-    }));
+    return res.status(400).json(
+      detailError({
+        code: "invalid_move_id",
+        message: "That is not a valid Ledger entry id.",
+        action: "back",
+      }),
+    );
   }
 
   try {
@@ -730,22 +884,20 @@ router.get("/:id", requireAuth, async (req, res, next) => {
 
     // A moves row the redo did not copy (v1 history ids). The user_id filter is the isolation
     // boundary. It is applied in the query, never checked after the fact.
-    const load = async (columns) => supabase
-      .from("moves")
-      .select(columns)
-      .eq("id", id)
-      .eq("user_id", req.user.id)
-      .maybeSingle();
+    const load = async (columns) =>
+      supabase.from("moves").select(columns).eq("id", id).eq("user_id", req.user.id).maybeSingle();
 
     const { data, error } = await selectTolerantly(DETAIL_COLUMNS, OPTIONAL_DETAIL_COLUMNS, load);
     if (error) throw new Error(`move lookup failed: ${error.message}`);
 
     if (!data) {
-      return res.status(404).json(detailError({
-        code: "move_not_found",
-        message: "That Ledger entry is not available.",
-        action: "back",
-      }));
+      return res.status(404).json(
+        detailError({
+          code: "move_not_found",
+          message: "That Ledger entry is not available.",
+          action: "back",
+        }),
+      );
     }
 
     return res.json(moveDetail(data));
@@ -772,3 +924,5 @@ module.exports.hasLegacyEstimatedOutcome = hasLegacyEstimatedOutcome;
 module.exports.scoringOutcomeStatus = scoringOutcomeStatus;
 module.exports.selectTolerantly = selectTolerantly;
 module.exports.resetAbsentColumns = resetAbsentColumns;
+module.exports.ledgerRecord = ledgerRecord;
+module.exports.decisionLedgerRow = decisionLedgerRow;

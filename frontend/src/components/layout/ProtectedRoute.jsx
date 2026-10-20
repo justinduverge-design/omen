@@ -9,18 +9,19 @@ export default function ProtectedRoute({ children }) {
   const location = useLocation();
   const [session, setSession] = useState(undefined); // undefined = still loading
   // undefined = not yet resolved against the server; otherwise an OnboardingStatus.
-  const [onboarding, setOnboarding] = useState(
-    () => (isOnboardingDone() ? OnboardingStatus.CONNECTED : undefined),
-  );
+  const [onboarding, setOnboarding] = useState(() => (isOnboardingDone() ? OnboardingStatus.CONNECTED : undefined));
 
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (mounted) setSession(data?.session ?? null);
-    }).catch(() => {
-      if (mounted) setSession(null);
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (mounted) setSession(data?.session ?? null);
+      })
+      .catch(() => {
+        if (mounted) setSession(null);
+      });
 
     const { data } = supabase.auth.onAuthStateChange((_event, s) => {
       if (mounted) setSession(s);
@@ -37,13 +38,15 @@ export default function ProtectedRoute({ children }) {
   useEffect(() => {
     if (!session) return;
 
-    apiFetch('/api/session').then((data) => {
-      if (data?.authenticated === false) {
-        supabase.auth.signOut();
-      }
-    }).catch(() => {
-      // Network error or server unavailable — fail silently, do not block the UI.
-    });
+    apiFetch('/api/session')
+      .then((data) => {
+        if (data?.authenticated === false) {
+          supabase.auth.signOut();
+        }
+      })
+      .catch(() => {
+        // Network error or server unavailable — fail silently, do not block the UI.
+      });
   }, [session]);
 
   // The local flag is a cache, not the record. When it is absent, ask the server
@@ -56,15 +59,14 @@ export default function ProtectedRoute({ children }) {
     resolveOnboardingStatus(apiFetch).then((status) => {
       if (mounted) setOnboarding(status);
     });
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [session, onboarding]);
 
   if (session === undefined || (session && onboarding === undefined && location.pathname !== '/onboarding')) {
     return (
-      <div
-        className="flex min-h-[100dvh] items-center justify-center"
-        style={{ background: 'var(--color-bg)' }}
-      >
+      <div className="flex min-h-dvh items-center justify-center" style={{ background: 'var(--color-bg)' }}>
         <span
           className="h-5 w-5 animate-spin motion-reduce:hidden rounded-full border-2"
           style={{ borderColor: 'var(--color-border)', borderTopColor: 'var(--color-accent)' }}

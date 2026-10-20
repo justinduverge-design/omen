@@ -20,7 +20,10 @@ function loadRouter(store) {
           from(table) {
             assert.equal(table, "waitlist_signups");
             return {
-              insert: async (row) => { store.push({ ...row }); return { error: null }; },
+              insert: async (row) => {
+                store.push({ ...row });
+                return { error: null };
+              },
               delete() {
                 return {
                   eq: async (field, value) => {
@@ -37,8 +40,11 @@ function loadRouter(store) {
     }
     return originalLoad.call(this, request, parent, isMain);
   };
-  try { return require("../src/routes/waitlist"); }
-  finally { Module._load = originalLoad; }
+  try {
+    return require("../src/routes/waitlist");
+  } finally {
+    Module._load = originalLoad;
+  }
 }
 
 async function request(app, method, body) {
@@ -64,7 +70,10 @@ test("DELETE /api/waitlist removes normalized matching signups and returns a pri
 
   const response = await request(app, "DELETE", { email: " PERSON@EXAMPLE.COM " });
   assert.equal(response.status, 200);
-  assert.deepEqual(response.body, { ok: true, message: "If that address was on the Omen waitlist, it has been removed." });
+  assert.deepEqual(response.body, {
+    ok: true,
+    message: "If that address was on the Omen waitlist, it has been removed.",
+  });
   assert.deepEqual(store, [{ email: "other@example.com" }]);
 });
 

@@ -2,7 +2,8 @@
 
 **Purpose:** SVG mask assets for chant rendering per `slops-saloon/Blueprints/specs/chant-and-fan-copy-spec-v1.md` §5.2.
 
-**Status:** folder prepared 2026-07-03. No assets authored yet.
+**Status:** reserved since 2026-07-03, and still empty. Chant rendering is not in the current app. This file
+describes the plan in case the work resumes.
 
 ---
 
@@ -16,7 +17,7 @@
 
 ## What does NOT go here
 
-- **Primary logos** — those live at `slops-saloon/omen/logos/` (emblem, wordmark, horizontal lockup, favicon set, app icon, brand board, preview sheet).
+- **Primary logos** — those live at `logos/` (emblem, wordmark, horizontal lockup, favicon set, app icon, brand board, preview sheet).
 - **Team-specific texture overrides** — those live per-team in `slops-saloon/Blueprints/specs/teams/[team-slug]-colorway.md` as file references. This folder holds *shared* textures used across teams.
 - **Photography / hero images** — different asset track entirely, no location yet defined.
 
@@ -57,7 +58,7 @@ Any texture used at runtime must be copied to `omen/frontend/public/textures/` a
 
 When adding a texture:
 
-1. Author or generate SVG at `slops-saloon/omen/logos/textures/chant-*.svg`.
+1. Author or generate SVG at `logos/textures/chant-*.svg`.
 2. Copy to `slops-saloon/omen/frontend/public/textures/chant-*.svg`.
 3. Reference in `frontend/src/index.css` via CSS variable per chant spec §9:
    ```css

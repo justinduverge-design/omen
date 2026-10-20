@@ -3,18 +3,31 @@
 const { fail, integer, observed, replayTable, text } = require("./tabularReceipt");
 
 const REQUIRED_COLUMNS = Object.freeze([
-  "game_id", "season", "week", "game_type", "gameday", "away_team", "home_team", "away_coach", "home_coach",
+  "game_id",
+  "season",
+  "week",
+  "game_type",
+  "gameday",
+  "away_team",
+  "home_team",
+  "away_coach",
+  "home_coach",
 ]);
 
 async function ingestScheduleReceipt({ registry, receiptId, tabularReader } = {}) {
   const replay = await replayTable({
-    registry, receiptId, tabularReader, requiredColumns: REQUIRED_COLUMNS,
-    accepts: (receipt) => receipt.source.family === "schedules" && ["identity_context", "historical_replay"].includes(receipt.intended_use),
+    registry,
+    receiptId,
+    tabularReader,
+    requiredColumns: REQUIRED_COLUMNS,
+    accepts: (receipt) =>
+      receipt.source.family === "schedules" && ["identity_context", "historical_replay"].includes(receipt.intended_use),
     receiptErrorCode: "SCHEDULE_RECEIPT_REQUIRED",
   });
   const identities = new Set();
   const facts = replay.rows.map((row) => {
-    if (!row || typeof row !== "object" || Array.isArray(row)) fail("INVALID_CANONICAL_FACT", "schedule rows must be objects");
+    if (!row || typeof row !== "object" || Array.isArray(row))
+      fail("INVALID_CANONICAL_FACT", "schedule rows must be objects");
     const gameId = text(row.game_id, "game_id");
     if (identities.has(gameId)) fail("DUPLICATE_GAME_CONTEXT_FACT", `duplicate schedule game identity: ${gameId}`);
     identities.add(gameId);
@@ -43,7 +56,11 @@ async function ingestScheduleReceipt({ registry, receiptId, tabularReader } = {}
     });
   });
   facts.sort((a, b) => a.game_id.localeCompare(b.game_id));
-  return Object.freeze({ receipt_id: replay.receipt.receipt_id, artifact_id: replay.receipt.artifact.sha256, facts: Object.freeze(facts) });
+  return Object.freeze({
+    receipt_id: replay.receipt.receipt_id,
+    artifact_id: replay.receipt.artifact.sha256,
+    facts: Object.freeze(facts),
+  });
 }
 
 module.exports = { REQUIRED_COLUMNS, ingestScheduleReceipt };

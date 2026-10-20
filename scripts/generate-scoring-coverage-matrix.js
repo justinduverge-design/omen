@@ -19,11 +19,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { EVENT_KEYS } = require("../src/services/scoringContract");
-const {
-  SLEEPER_EVENT_MAP,
-  SLEEPER_FG_BANDS,
-  SLEEPER_IGNORED_KEYS,
-} = require("../src/services/scoringRuleSnapshot");
+const { SLEEPER_EVENT_MAP, SLEEPER_FG_BANDS, SLEEPER_IGNORED_KEYS } = require("../src/services/scoringRuleSnapshot");
 const { RETAIN_RULE_BODY } = require("../src/services/scoringSnapshotResolver");
 
 const OUTPUT = path.join(__dirname, "..", "Blueprints", "specs", "a6-scoring-coverage-matrix.md");
@@ -81,9 +77,7 @@ function render() {
     rows.push("|---|---|---|---|");
     for (const key of inGroup) {
       const providerKeys = sleeper.get(key);
-      const sleeperCell = providerKeys
-        ? `✅ \`${providerKeys.sort().join("`, `")}\``
-        : "❌ not mapped";
+      const sleeperCell = providerKeys ? `✅ \`${providerKeys.sort().join("`, `")}\`` : "❌ not mapped";
       rows.push(`| \`${key}\` | ${sleeperCell} | ${espn.has(key) ? "✅" : "❌"} | ${yahoo.has(key) ? "✅" : "❌"} |`);
     }
   }
@@ -144,7 +138,13 @@ ${unmapped.length ? `These are canonical events Omen understands but has no Slee
 
 ## Sleeper keys deliberately ignored
 
-${[...SLEEPER_IGNORED_KEYS].sort().map((key) => `- \`${key}\` — carries no scoring weight; listed explicitly so it is *known* irrelevant rather than falling through to the unmapped bucket, which would make every league permanently ambiguous.`).join("\n")}
+${[...SLEEPER_IGNORED_KEYS]
+  .sort()
+  .map(
+    (key) =>
+      `- \`${key}\` — carries no scoring weight; listed explicitly so it is *known* irrelevant rather than falling through to the unmapped bucket, which would make every league permanently ambiguous.`,
+  )
+  .join("\n")}
 
 ## Per-event detail
 ${rows.join("\n")}

@@ -34,7 +34,10 @@ test("Ben Johnson proof runs observed fixture through DNA, signal, and Coaching 
   assert.equal(proof.signal.state, "established");
   assert.equal(proof.coachingTree.edges.filter((edge) => edge.edge_type === "confirmed_assignment").length, 2);
   assert.equal(proof.coachingTree.edges.filter((edge) => edge.edge_type === "inferred_system_influence").length, 1);
-  assert.equal(proof.readModel.provenance.some((item) => item.source_family === "official_coach_biography"), true);
+  assert.equal(
+    proof.readModel.provenance.some((item) => item.source_family === "official_coach_biography"),
+    true,
+  );
 });
 
 test("Ben Johnson proof is byte-stable when source rows are shuffled", () => {
@@ -65,5 +68,8 @@ test("Ben Johnson proof refuses a self-resigned fixture snapshot", () => {
   const alteredManifest = structuredClone(input.manifest);
   const crypto = require("node:crypto");
   alteredManifest.output.sha256 = crypto.createHash("sha256").update(alteredCsv).digest("hex");
-  assert.throws(() => buildBenJohnsonVerticalProof({ csv: alteredCsv, manifest: alteredManifest }), /reviewed pinned snapshot/);
+  assert.throws(
+    () => buildBenJohnsonVerticalProof({ csv: alteredCsv, manifest: alteredManifest }),
+    /reviewed pinned snapshot/,
+  );
 });

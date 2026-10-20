@@ -1,9 +1,5 @@
-# Frontend Providers
+# Frontend providers
 
-Tier 2 landing zone for app-wide providers.
-
-Planned first use:
-- Team theme hydration from `GET /api/dashboard/summary.user.favorite_team`.
-- LocalStorage remains the fallback for unauthenticated/static preview behavior.
-
-Keep provider code frontend-only. Backend contract changes belong in `Blueprints/handoffs/frontend-to-backend.md`.
+An empty home for app-wide React providers, such as team theme hydrated from `GET /api/dashboard/summary`
+(`user.favorite_team`). Keep this folder frontend-only. API changes start in `Blueprints/api-routes.md` and
+`test/contracts/`.

@@ -32,9 +32,7 @@ export const OnboardingStatus = {
 
 export function isOnboardingDone() {
   try {
-    return Boolean(
-      localStorage.getItem(DONE_KEY) || localStorage.getItem(LEGACY_DONE_KEY),
-    );
+    return Boolean(localStorage.getItem(DONE_KEY) || localStorage.getItem(LEGACY_DONE_KEY));
   } catch {
     // Private mode, or storage blocked. The server record still decides.
     return false;

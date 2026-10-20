@@ -36,9 +36,7 @@ async function request(app, { method = "GET", path, body } = {}) {
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     const contentType = res.headers.get("content-type") || "";
-    const parsedBody = contentType.includes("application/json")
-      ? await res.json()
-      : await res.text();
+    const parsedBody = contentType.includes("application/json") ? await res.json() : await res.text();
     return {
       status: res.status,
       contentType,
@@ -93,12 +91,14 @@ test("POST /api/trade/share rejects sensitive credential-like fields", async () 
     method: "POST",
     path: "/api/trade/share",
     body: validSharePayload({
-      receive: [{
-        name: "Starter WR",
-        position: "WR",
-        projected_points: 14,
-        espn_s2: "never-store-this",
-      }],
+      receive: [
+        {
+          name: "Starter WR",
+          position: "WR",
+          projected_points: 14,
+          espn_s2: "never-store-this",
+        },
+      ],
     }),
   });
 
@@ -112,12 +112,14 @@ test("POST /api/trade/share rejects oversized public snapshots", async () => {
     method: "POST",
     path: "/api/trade/share",
     body: validSharePayload({
-      send: [{
-        name: "Bench RB",
-        position: "RB",
-        projected_points: 10,
-        status: "x".repeat(20_000),
-      }],
+      send: [
+        {
+          name: "Bench RB",
+          position: "RB",
+          projected_points: 10,
+          status: "x".repeat(20_000),
+        },
+      ],
     }),
   });
 

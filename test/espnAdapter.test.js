@@ -34,9 +34,10 @@ function loadEspnAdapterWithTeams(teams, opts = {}) {
       return {
         request: (options, callback) => {
           requests.push(options);
-          const response = typeof opts.responseForRequest === "function"
-            ? opts.responseForRequest(options, requests.length - 1)
-            : { teams, schedule: opts.schedule };
+          const response =
+            typeof opts.responseForRequest === "function"
+              ? opts.responseForRequest(options, requests.length - 1)
+              : { teams, schedule: opts.schedule };
           const body = JSON.stringify(response);
           const req = new EventEmitter();
           req.end = () => {
@@ -154,7 +155,7 @@ test("buildNormalizedRoster returns starters, bench, and IR in normalized shape"
     "espn-cookie",
     "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}",
     1,
-    { seasonId: 2026 }
+    { seasonId: 2026 },
   );
 
   assert.equal(roster.week, 1);
@@ -168,58 +169,61 @@ test("buildNormalizedRoster returns starters, bench, and IR in normalized shape"
 
 test("waiverPoolFromEspnData keeps only unrostered waiver candidates with projected stats", () => {
   const { adapter } = loadEspnAdapterWithTeams([]);
-  const pool = adapter.waiverPoolFromEspnData({
-    players: [
-      {
-        playerPoolEntry: {
-          onTeamId: 0,
-          status: "FREEAGENT",
-          player: {
-            id: 2001,
-            fullName: "Available WR",
-            defaultPosition: 3,
-            eligiblePositions: [3],
-            proTeamAbbreviation: "KC",
-            injuryStatus: "QUESTIONABLE",
-            stats: [
-              { statSourceId: 0, scoringPeriodId: 4, appliedTotal: 18.2 },
-              { statSourceId: 1, scoringPeriodId: 4, appliedTotal: 12.4 },
-            ],
+  const pool = adapter.waiverPoolFromEspnData(
+    {
+      players: [
+        {
+          playerPoolEntry: {
+            onTeamId: 0,
+            status: "FREEAGENT",
+            player: {
+              id: 2001,
+              fullName: "Available WR",
+              defaultPosition: 3,
+              eligiblePositions: [3],
+              proTeamAbbreviation: "KC",
+              injuryStatus: "QUESTIONABLE",
+              stats: [
+                { statSourceId: 0, scoringPeriodId: 4, appliedTotal: 18.2 },
+                { statSourceId: 1, scoringPeriodId: 4, appliedTotal: 12.4 },
+              ],
+            },
           },
         },
-      },
-      {
-        onTeamId: 7,
-        status: "FREEAGENT",
-        player: {
-          id: 2002,
-          fullName: "Rostered WR",
-          defaultPosition: 3,
-          stats: [{ statSourceId: 1, scoringPeriodId: 4, appliedTotal: 20 }],
+        {
+          onTeamId: 7,
+          status: "FREEAGENT",
+          player: {
+            id: 2002,
+            fullName: "Rostered WR",
+            defaultPosition: 3,
+            stats: [{ statSourceId: 1, scoringPeriodId: 4, appliedTotal: 20 }],
+          },
         },
-      },
-      {
-        onTeamId: 0,
-        status: "ONTEAM",
-        player: {
-          id: 2003,
-          fullName: "Unavailable RB",
-          defaultPosition: 2,
-          stats: [{ statSourceId: 1, scoringPeriodId: 4, appliedTotal: 16 }],
+        {
+          onTeamId: 0,
+          status: "ONTEAM",
+          player: {
+            id: 2003,
+            fullName: "Unavailable RB",
+            defaultPosition: 2,
+            stats: [{ statSourceId: 1, scoringPeriodId: 4, appliedTotal: 16 }],
+          },
         },
-      },
-      {
-        onTeamId: 0,
-        status: "WAIVERS",
-        player: {
-          id: 2004,
-          fullName: "Actuals Only TE",
-          defaultPosition: 4,
-          stats: [{ statSourceId: 0, scoringPeriodId: 4, appliedTotal: 9.3 }],
+        {
+          onTeamId: 0,
+          status: "WAIVERS",
+          player: {
+            id: 2004,
+            fullName: "Actuals Only TE",
+            defaultPosition: 4,
+            stats: [{ statSourceId: 0, scoringPeriodId: 4, appliedTotal: 9.3 }],
+          },
         },
-      },
-    ],
-  }, { week: 4 });
+      ],
+    },
+    { week: 4 },
+  );
 
   assert.deepEqual(pool, [
     {
@@ -261,9 +265,7 @@ test("fetchEspnWaiverPool pages the filtered player pool without putting the fil
     responseForRequest: (_request, index) => ({ players: index === 0 ? firstPage : [availablePlayer(4000)] }),
   });
 
-  const pool = await adapter.fetchEspnWaiverPool(
-    "12345", "test-cookie", "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", 4
-  );
+  const pool = await adapter.fetchEspnWaiverPool("12345", "test-cookie", "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", 4);
 
   assert.equal(pool.length, 501);
   assert.equal(requests.length, 2);
@@ -284,7 +286,12 @@ test("fetchEspnWaiverPool pages the filtered player pool without putting the fil
 
 test("lineupSlotId 20 maps to BN and is_starter false", async () => {
   const { adapter } = loadEspnAdapterWithTeams(fixtureTeams());
-  const roster = await adapter.buildNormalizedRoster("12345", "espn-cookie", "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", 1);
+  const roster = await adapter.buildNormalizedRoster(
+    "12345",
+    "espn-cookie",
+    "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}",
+    1,
+  );
 
   assert.equal(roster.slots.bench[0].selected_position, "BN");
   assert.equal(roster.slots.bench[0].is_starter, false);
@@ -292,7 +299,12 @@ test("lineupSlotId 20 maps to BN and is_starter false", async () => {
 
 test("lineupSlotId 21 goes into IR array", async () => {
   const { adapter } = loadEspnAdapterWithTeams(fixtureTeams());
-  const roster = await adapter.buildNormalizedRoster("12345", "espn-cookie", "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", 1);
+  const roster = await adapter.buildNormalizedRoster(
+    "12345",
+    "espn-cookie",
+    "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}",
+    1,
+  );
 
   assert.equal(roster.slots.ir[0].selected_position, "IR");
   assert.equal(roster.slots.ir[0].name, "IR WR");
@@ -300,28 +312,48 @@ test("lineupSlotId 21 goes into IR array", async () => {
 
 test("ESPN QUESTIONABLE maps to Q", async () => {
   const { adapter } = loadEspnAdapterWithTeams(fixtureTeams());
-  const roster = await adapter.buildNormalizedRoster("12345", "espn-cookie", "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", 1);
+  const roster = await adapter.buildNormalizedRoster(
+    "12345",
+    "espn-cookie",
+    "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}",
+    1,
+  );
 
   assert.equal(roster.slots.bench[0].status, "Q");
 });
 
 test("ESPN ACTIVE maps to null", async () => {
   const { adapter } = loadEspnAdapterWithTeams(fixtureTeams());
-  const roster = await adapter.buildNormalizedRoster("12345", "espn-cookie", "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", 1);
+  const roster = await adapter.buildNormalizedRoster(
+    "12345",
+    "espn-cookie",
+    "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}",
+    1,
+  );
 
   assert.equal(roster.slots.starters[0].status, null);
 });
 
 test("missing projected points do not crash and produce null", async () => {
   const { adapter } = loadEspnAdapterWithTeams(fixtureTeams());
-  const roster = await adapter.buildNormalizedRoster("12345", "espn-cookie", "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", 1);
+  const roster = await adapter.buildNormalizedRoster(
+    "12345",
+    "espn-cookie",
+    "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}",
+    1,
+  );
 
   assert.equal(roster.slots.bench[0].projected_points, null);
 });
 
 test("player_key is prefixed with espn", async () => {
   const { adapter } = loadEspnAdapterWithTeams(fixtureTeams());
-  const roster = await adapter.buildNormalizedRoster("12345", "espn-cookie", "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", 1);
+  const roster = await adapter.buildNormalizedRoster(
+    "12345",
+    "espn-cookie",
+    "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}",
+    1,
+  );
 
   assert.equal(roster.slots.starters[0].player_key, "espn:1001");
 });
@@ -352,7 +384,7 @@ test("buildLeagueStandings maps ESPN teams without exposing cookies", async () =
     "12345",
     "espn-cookie",
     "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}",
-    { seasonId: 2026, week: 8 }
+    { seasonId: 2026, week: 8 },
   );
 
   assert.deepEqual(standings, [
@@ -385,7 +417,10 @@ test("verifyLeagueAccess returns team_id and team_name for a known team", async 
     { id: 9, ownerId: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", name: "Current Team" },
   ]);
   const result = await adapter.verifyLeagueAccess(
-    "12345", "espn-cookie", "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", null
+    "12345",
+    "espn-cookie",
+    "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}",
+    null,
   );
   assert.equal(result.team_id, "9");
   assert.equal(result.team_name, "Current Team");
@@ -397,7 +432,7 @@ test("verifyLeagueAccess throws 404 when team not found", async () => {
   ]);
   await assert.rejects(
     () => adapter.verifyLeagueAccess("12345", "espn-cookie", "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", null),
-    (err) => err.status === 404
+    (err) => err.status === 404,
   );
 });
 
@@ -408,13 +443,15 @@ test("lastResultFromEspnSchedule returns W without exposing credentials", () => 
     leagueId: "12345",
     week: 7,
     teamId: "9",
-    schedule: [{
-      id: 77,
-      matchupPeriodId: 7,
-      winner: "HOME",
-      home: { teamId: 9, totalPoints: 112.3 },
-      away: { teamId: 4, totalPoints: 101.4 },
-    }],
+    schedule: [
+      {
+        id: 77,
+        matchupPeriodId: 7,
+        winner: "HOME",
+        home: { teamId: 9, totalPoints: 112.3 },
+        away: { teamId: 4, totalPoints: 101.4 },
+      },
+    ],
   });
 
   assert.deepEqual(result, {
@@ -432,11 +469,13 @@ test("lastResultFromEspnSchedule falls back to points when winner is missing", (
     leagueId: "12345",
     week: 7,
     teamId: "9",
-    schedule: [{
-      matchupPeriodId: 7,
-      home: { teamId: 9, totalPoints: 88.3 },
-      away: { teamId: 4, totalPoints: 101.4 },
-    }],
+    schedule: [
+      {
+        matchupPeriodId: 7,
+        home: { teamId: 9, totalPoints: 88.3 },
+        away: { teamId: 4, totalPoints: 101.4 },
+      },
+    ],
   });
 
   assert.deepEqual(result, {
@@ -447,21 +486,25 @@ test("lastResultFromEspnSchedule falls back to points when winner is missing", (
 });
 
 test("fetchEspnLastResult caches by league/week/teamId and never embeds the SWID cookie", async () => {
-  const schedule = [{
-    id: 77,
-    matchupPeriodId: 7,
-    winner: "HOME",
-    home: { teamId: 9, totalPoints: 112.3 },
-    away: { teamId: 4, totalPoints: 101.4 },
-  }];
+  const schedule = [
+    {
+      id: 77,
+      matchupPeriodId: 7,
+      winner: "HOME",
+      home: { teamId: 9, totalPoints: 112.3 },
+      away: { teamId: 4, totalPoints: 101.4 },
+    },
+  ];
   const { adapter, requests, store } = loadEspnAdapterWithTeams([], { schedule, redis: true });
 
-  const first = await adapter.fetchEspnLastResult(
-    "12345", "espn-cookie", "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", { week: 7, teamId: "9" }
-  );
-  const second = await adapter.fetchEspnLastResult(
-    "12345", "espn-cookie", "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", { week: 7, teamId: "9" }
-  );
+  const first = await adapter.fetchEspnLastResult("12345", "espn-cookie", "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", {
+    week: 7,
+    teamId: "9",
+  });
+  const second = await adapter.fetchEspnLastResult("12345", "espn-cookie", "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", {
+    week: 7,
+    teamId: "9",
+  });
 
   assert.deepEqual(second, first);
   assert.equal(requests.length, 1, "second call should be served from cache, not a live ESPN request");
@@ -498,8 +541,26 @@ test("standingsFromEspnData normalizes already-fetched data without a network ca
   const standings = adapter.standingsFromEspnData(data, "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", {});
 
   assert.deepEqual(standings, [
-    { rank: 1, team_id: "4", team_name: "Top Team", is_current_user: false, wins: 7, losses: 1, points_for: 1200, points_against: 900 },
-    { rank: 2, team_id: "9", team_name: "Current Team", is_current_user: true, wins: 5, losses: 3, points_for: 1001.2, points_against: 944.6 },
+    {
+      rank: 1,
+      team_id: "4",
+      team_name: "Top Team",
+      is_current_user: false,
+      wins: 7,
+      losses: 1,
+      points_for: 1200,
+      points_against: 900,
+    },
+    {
+      rank: 2,
+      team_id: "9",
+      team_name: "Current Team",
+      is_current_user: true,
+      wins: 5,
+      losses: 3,
+      points_for: 1001.2,
+      points_against: 944.6,
+    },
   ]);
 });
 
@@ -519,7 +580,7 @@ test("teamFromEspnData throws 404 when team not found in already-fetched data", 
 
   assert.throws(
     () => adapter.teamFromEspnData(data, "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", null),
-    (err) => err.status === 404
+    (err) => err.status === 404,
   );
 });
 
@@ -539,19 +600,25 @@ test("rosterFromEspnData normalizes starters/bench/IR from already-fetched data"
 });
 
 test("fetchEspnLastResult never caches when teamId is unknown", async () => {
-  const schedule = [{
-    id: 77,
-    matchupPeriodId: 7,
-    winner: "HOME",
-    home: { teamId: 9, totalPoints: 112.3 },
-    away: { teamId: 4, totalPoints: 101.4 },
-  }];
+  const schedule = [
+    {
+      id: 77,
+      matchupPeriodId: 7,
+      winner: "HOME",
+      home: { teamId: 9, totalPoints: 112.3 },
+      away: { teamId: 4, totalPoints: 101.4 },
+    },
+  ];
   const { adapter, requests, store } = loadEspnAdapterWithTeams([], { schedule, redis: true });
 
   await adapter.fetchEspnLastResult("12345", "espn-cookie", "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", { week: 7 });
   await adapter.fetchEspnLastResult("12345", "espn-cookie", "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", { week: 7 });
 
-  assert.equal(requests.length, 2, "without a teamId there is nothing safe to key a cache entry on, so each call refetches");
+  assert.equal(
+    requests.length,
+    2,
+    "without a teamId there is nothing safe to key a cache entry on, so each call refetches",
+  );
   assert.equal(store.size, 0);
 });
 
@@ -565,19 +632,12 @@ test("fetchEspnLastResult never caches when teamId is unknown", async () => {
  * web the league was left unnamed.
  */
 test("buildLeagueContext reads the league name ESPN already returns", async () => {
-  const teams = [
-    { id: 9, ownerId: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", name: "Current Team", wins: 5, losses: 3 },
-  ];
+  const teams = [{ id: 9, ownerId: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", name: "Current Team", wins: 5, losses: 3 }];
   const { adapter } = loadEspnAdapterWithTeams(teams, {
     responseForRequest: () => ({ teams, settings: { name: "The Titans of Slopsilonia" } }),
   });
 
-  const context = await adapter.buildLeagueContext(
-    "12345",
-    "s2-cookie",
-    "{SWID}",
-    { seasonId: 2026, week: 1 }
-  );
+  const context = await adapter.buildLeagueContext("12345", "s2-cookie", "{SWID}", { seasonId: 2026, week: 1 });
 
   assert.equal(context.league_name, "The Titans of Slopsilonia");
   assert.equal(context.standings.length, 1);
@@ -614,32 +674,42 @@ test("normalizePlayer reads the projection ESPN ships in player.stats for the re
   const { adapter } = loadEspnAdapterWithTeams([]);
   {
     const data = {
-      teams: [{
-        id: 8,
-        owners: ["{AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE}"],
-        roster: {
-          entries: [{
-            playerId: 4432622,
-            lineupSlotId: 2,
-            playerPoolEntry: {
-              player: {
-                id: 4432622,
-                fullName: "Jaxon Smith-Njigba",
-                defaultPositionId: 3,
-                eligibleSlots: [3, 4, 5, 23],
-                stats: [
-                  // The week we asked for.
-                  { scoringPeriodId: 1, statSourceId: 1, statSplitTypeId: 1, appliedTotal: 18.92226009, seasonId: 2026 },
-                  // Season-long projection — must NOT be mistaken for a weekly one.
-                  { scoringPeriodId: 0, statSourceId: 1, statSplitTypeId: 0, appliedTotal: 326.67, seasonId: 2026 },
-                  // Last season's actuals.
-                  { scoringPeriodId: 0, statSourceId: 0, statSplitTypeId: 0, appliedTotal: 359.9, seasonId: 2025 },
-                ],
+      teams: [
+        {
+          id: 8,
+          owners: ["{AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE}"],
+          roster: {
+            entries: [
+              {
+                playerId: 4432622,
+                lineupSlotId: 2,
+                playerPoolEntry: {
+                  player: {
+                    id: 4432622,
+                    fullName: "Jaxon Smith-Njigba",
+                    defaultPositionId: 3,
+                    eligibleSlots: [3, 4, 5, 23],
+                    stats: [
+                      // The week we asked for.
+                      {
+                        scoringPeriodId: 1,
+                        statSourceId: 1,
+                        statSplitTypeId: 1,
+                        appliedTotal: 18.92226009,
+                        seasonId: 2026,
+                      },
+                      // Season-long projection — must NOT be mistaken for a weekly one.
+                      { scoringPeriodId: 0, statSourceId: 1, statSplitTypeId: 0, appliedTotal: 326.67, seasonId: 2026 },
+                      // Last season's actuals.
+                      { scoringPeriodId: 0, statSourceId: 0, statSplitTypeId: 0, appliedTotal: 359.9, seasonId: 2025 },
+                    ],
+                  },
+                },
               },
-            },
-          }],
+            ],
+          },
         },
-      }],
+      ],
     };
 
     const roster = adapter.rosterFromEspnData(data, "517756847", "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", 1, {});
@@ -656,11 +726,21 @@ test("firstFinite treats null and empty string as absent rather than as zero", (
   const { adapter } = loadEspnAdapterWithTeams([]);
   {
     const data = (projected) => ({
-      teams: [{
-        id: 8,
-        owners: ["{AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE}"],
-        roster: { entries: [{ playerId: 1, lineupSlotId: 2, playerPoolEntry: { player: { id: 1, fullName: "P", defaultPositionId: 3, projectedPoints: projected } } }] },
-      }],
+      teams: [
+        {
+          id: 8,
+          owners: ["{AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE}"],
+          roster: {
+            entries: [
+              {
+                playerId: 1,
+                lineupSlotId: 2,
+                playerPoolEntry: { player: { id: 1, fullName: "P", defaultPositionId: 3, projectedPoints: projected } },
+              },
+            ],
+          },
+        },
+      ],
     });
 
     const nulled = adapter.rosterFromEspnData(data(null), "1", "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", 1, {});
@@ -683,11 +763,13 @@ test("a matchup side falls back to ESPN's stated total when it ships no roster",
   const { adapter } = loadEspnAdapterWithTeams([]);
   // `totalProjectedPoints` — the server field. NOT `totalProjectedPointsLive`, which ESPN's own
   // client computes and assigns onto the model rather than receiving from the API.
-  const schedule = [{
-    matchupPeriodId: 3,
-    home: { teamId: 9, totalPoints: 61.2, totalProjectedPoints: 118.4 },
-    away: { teamId: 4, totalPoints: 58.0, totalProjectedPoints: 111.9 },
-  }];
+  const schedule = [
+    {
+      matchupPeriodId: 3,
+      home: { teamId: 9, totalPoints: 61.2, totalProjectedPoints: 118.4 },
+      away: { teamId: 4, totalPoints: 58.0, totalProjectedPoints: 111.9 },
+    },
+  ];
 
   const matchup = adapter.matchupFromEspnSchedule({ leagueId: "1", week: 3, teamId: "9", schedule });
 
@@ -704,22 +786,27 @@ test("the starter sum wins over the stated total, matching what ESPN displays", 
     playerId,
     lineupSlotId,
     playerPoolEntry: {
-      player: { id: playerId, fullName: `P${playerId}`, defaultPositionId: 3, stats: [
-        { statSourceId: 1, scoringPeriodId: 3, appliedTotal: projected },
-      ] },
+      player: {
+        id: playerId,
+        fullName: `P${playerId}`,
+        defaultPositionId: 3,
+        stats: [{ statSourceId: 1, scoringPeriodId: 3, appliedTotal: projected }],
+      },
     },
   });
 
-  const schedule = [{
-    matchupPeriodId: 3,
-    home: {
-      teamId: 9,
-      totalPoints: 10,
-      totalProjectedPoints: 999,
-      rosterForCurrentScoringPeriod: { entries: [entry(1, 2, 12.5), entry(2, 4, 9.25)] },
+  const schedule = [
+    {
+      matchupPeriodId: 3,
+      home: {
+        teamId: 9,
+        totalPoints: 10,
+        totalProjectedPoints: 999,
+        rosterForCurrentScoringPeriod: { entries: [entry(1, 2, 12.5), entry(2, 4, 9.25)] },
+      },
+      away: { teamId: 4, totalPoints: 8, totalProjectedPoints: 111.9 },
     },
-    away: { teamId: 4, totalPoints: 8, totalProjectedPoints: 111.9 },
-  }];
+  ];
 
   const matchup = adapter.matchupFromEspnSchedule({ leagueId: "1", week: 3, teamId: "9", schedule });
 
@@ -738,30 +825,37 @@ test("only ESPN's own starter slots are summed", () => {
     playerId,
     lineupSlotId,
     playerPoolEntry: {
-      player: { id: playerId, fullName: `P${playerId}`, defaultPositionId: 3, stats: [
-        { statSourceId: 1, scoringPeriodId: 3, appliedTotal: projected },
-      ] },
+      player: {
+        id: playerId,
+        fullName: `P${playerId}`,
+        defaultPositionId: 3,
+        stats: [{ statSourceId: 1, scoringPeriodId: 3, appliedTotal: projected }],
+      },
     },
   });
 
-  const schedule = [{
-    matchupPeriodId: 3,
-    home: {
-      teamId: 9,
-      totalPoints: 0,
-      rosterForCurrentScoringPeriod: { entries: [
-        entry(1, 2, 12.5),    // RB     — starter
-        entry(2, 4, 9.25),    // WR     — starter
-        entry(3, 10, 4.0),    // LB     — starter (IDP; `LINEUP_SLOT_MAP` calls it "UNK")
-        entry(4, 23, 6.25),   // FLEX   — starter
-        entry(5, 20, 40.0),   // BE     — excluded
-        entry(6, 21, 30.0),   // IR     — excluded
-        entry(7, 22, 50.0),   // INV    — excluded (counted before this fix)
-        entry(8, 25, 60.0),   // ALL    — excluded (counted before this fix)
-      ] },
+  const schedule = [
+    {
+      matchupPeriodId: 3,
+      home: {
+        teamId: 9,
+        totalPoints: 0,
+        rosterForCurrentScoringPeriod: {
+          entries: [
+            entry(1, 2, 12.5), // RB     — starter
+            entry(2, 4, 9.25), // WR     — starter
+            entry(3, 10, 4.0), // LB     — starter (IDP; `LINEUP_SLOT_MAP` calls it "UNK")
+            entry(4, 23, 6.25), // FLEX   — starter
+            entry(5, 20, 40.0), // BE     — excluded
+            entry(6, 21, 30.0), // IR     — excluded
+            entry(7, 22, 50.0), // INV    — excluded (counted before this fix)
+            entry(8, 25, 60.0), // ALL    — excluded (counted before this fix)
+          ],
+        },
+      },
+      away: { teamId: 4, totalPoints: 0, rosterForCurrentScoringPeriod: { entries: [entry(9, 2, 20.0)] } },
     },
-    away: { teamId: 4, totalPoints: 0, rosterForCurrentScoringPeriod: { entries: [entry(9, 2, 20.0)] } },
-  }];
+  ];
 
   const matchup = adapter.matchupFromEspnSchedule({ leagueId: "1", week: 3, teamId: "9", schedule });
 
@@ -790,11 +884,13 @@ test("an entry with no lineup slot is not treated as a starter", () => {
 // downstream turns a fabricated zero into a confident recommendation.
 test("a side ESPN has no projection for is null, never a zero", () => {
   const { adapter } = loadEspnAdapterWithTeams([]);
-  const schedule = [{
-    matchupPeriodId: 3,
-    home: { teamId: 9, totalPoints: 0 },
-    away: { teamId: 4, totalPoints: 0 },
-  }];
+  const schedule = [
+    {
+      matchupPeriodId: 3,
+      home: { teamId: 9, totalPoints: 0 },
+      away: { teamId: 4, totalPoints: 0 },
+    },
+  ];
 
   const matchup = adapter.matchupFromEspnSchedule({ leagueId: "1", week: 3, teamId: "9", schedule });
 
@@ -810,11 +906,13 @@ test("a roster whose starters carry no projection is null, never a zero", () => 
     lineupSlotId,
     playerPoolEntry: { player: { id: playerId, fullName: `P${playerId}`, defaultPositionId: 3, stats: [] } },
   });
-  const schedule = [{
-    matchupPeriodId: 3,
-    home: { teamId: 9, totalPoints: 0, rosterForCurrentScoringPeriod: { entries: [bare(1, 2)] } },
-    away: { teamId: 4, totalPoints: 0, rosterForCurrentScoringPeriod: { entries: [bare(2, 2)] } },
-  }];
+  const schedule = [
+    {
+      matchupPeriodId: 3,
+      home: { teamId: 9, totalPoints: 0, rosterForCurrentScoringPeriod: { entries: [bare(1, 2)] } },
+      away: { teamId: 4, totalPoints: 0, rosterForCurrentScoringPeriod: { entries: [bare(2, 2)] } },
+    },
+  ];
 
   const matchup = adapter.matchupFromEspnSchedule({ leagueId: "1", week: 3, teamId: "9", schedule });
 
@@ -828,16 +926,21 @@ test("rosterForMatchupPeriod is read when rosterForCurrentScoringPeriod is absen
     playerId,
     lineupSlotId,
     playerPoolEntry: {
-      player: { id: playerId, fullName: `P${playerId}`, defaultPositionId: 3, stats: [
-        { statSourceId: 1, scoringPeriodId: 3, appliedTotal: projected },
-      ] },
+      player: {
+        id: playerId,
+        fullName: `P${playerId}`,
+        defaultPositionId: 3,
+        stats: [{ statSourceId: 1, scoringPeriodId: 3, appliedTotal: projected }],
+      },
     },
   });
-  const schedule = [{
-    matchupPeriodId: 3,
-    home: { teamId: 9, totalPoints: 0, rosterForMatchupPeriod: { entries: [entry(1, 2, 15.5)] } },
-    away: { teamId: 4, totalPoints: 0, rosterForMatchupPeriod: { entries: [entry(2, 2, 11.0)] } },
-  }];
+  const schedule = [
+    {
+      matchupPeriodId: 3,
+      home: { teamId: 9, totalPoints: 0, rosterForMatchupPeriod: { entries: [entry(1, 2, 15.5)] } },
+      away: { teamId: 4, totalPoints: 0, rosterForMatchupPeriod: { entries: [entry(2, 2, 11.0)] } },
+    },
+  ];
 
   const matchup = adapter.matchupFromEspnSchedule({ leagueId: "1", week: 3, teamId: "9", schedule });
 
@@ -856,24 +959,31 @@ test("an Invalid Player or ALL slot is bucketed as bench, never as a starter", (
     playerPoolEntry: { player: { id: playerId, fullName: `P${playerId}`, defaultPositionId: 3 } },
   });
   const data = {
-    teams: [{
-      id: 8,
-      owners: ["{AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE}"],
-      roster: { entries: [
-        entry(1, 2),   // RB  — starter
-        entry(2, 10),  // LB  — starter (IDP, unnamed in LINEUP_SLOT_MAP)
-        entry(3, 20),  // BE  — bench
-        entry(4, 21),  // IR  — ir
-        entry(5, 22),  // INV — bench, NOT a starter
-        entry(6, 25),  // ALL — bench, NOT a starter
-      ] },
-    }],
+    teams: [
+      {
+        id: 8,
+        owners: ["{AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE}"],
+        roster: {
+          entries: [
+            entry(1, 2), // RB  — starter
+            entry(2, 10), // LB  — starter (IDP, unnamed in LINEUP_SLOT_MAP)
+            entry(3, 20), // BE  — bench
+            entry(4, 21), // IR  — ir
+            entry(5, 22), // INV — bench, NOT a starter
+            entry(6, 25), // ALL — bench, NOT a starter
+          ],
+        },
+      },
+    ],
   };
 
   const roster = adapter.rosterFromEspnData(data, "1", "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", 1, {});
 
   assert.deepEqual(roster.slots.starters.map((p) => p.player_id).sort(), ["1", "2"]);
-  assert.deepEqual(roster.slots.ir.map((p) => p.player_id), ["4"]);
+  assert.deepEqual(
+    roster.slots.ir.map((p) => p.player_id),
+    ["4"],
+  );
   assert.deepEqual(roster.slots.bench.map((p) => p.player_id).sort(), ["3", "5", "6"]);
 });
 
@@ -884,12 +994,14 @@ test("an Invalid Player or ALL slot is bucketed as bench, never as a starter", (
 // `team.name` is the branch that actually fires for these leagues.
 test("team names are trimmed of the padding ESPN stores verbatim", () => {
   const { adapter } = loadEspnAdapterWithTeams([]);
-  const data = { teams: [
-    { id: 1, name: "    Love Thy Lamb", owners: ["{AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE}"] },
-    { id: 2, name: "The Bijan Incident " },
-    { id: 3, name: "A    B" },
-    { id: 4, location: "  Team ", nickname: " Name  " },
-  ] };
+  const data = {
+    teams: [
+      { id: 1, name: "    Love Thy Lamb", owners: ["{AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE}"] },
+      { id: 2, name: "The Bijan Incident " },
+      { id: 3, name: "A    B" },
+      { id: 4, location: "  Team ", nickname: " Name  " },
+    ],
+  };
   const standings = adapter.standingsFromEspnData(data, "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}");
   const names = standings.map((t) => t.team_name);
 
@@ -910,17 +1022,21 @@ test("projectionLinesFromEspnData keeps each rostered player's projected stat ro
     playerPoolEntry: { player: { id: playerId, fullName: `P${playerId}`, defaultPositionId: 3, stats } },
   });
   const data = {
-    teams: [{
-      id: 8,
-      roster: { entries: [
-        entry(1, [
-          { statSourceId: 0, scoringPeriodId: 3, appliedTotal: 20, stats: { 53: 9 } },
-          { statSourceId: 1, scoringPeriodId: 0, appliedTotal: 250, stats: { 53: 90 } },
-          { statSourceId: 1, scoringPeriodId: 3, appliedTotal: 13.3, stats: { 53: 6.1, 42: 72.3 } },
-        ]),
-        entry(2, [{ statSourceId: 0, scoringPeriodId: 3, appliedTotal: 4, stats: { 53: 4 } }]),
-      ] },
-    }],
+    teams: [
+      {
+        id: 8,
+        roster: {
+          entries: [
+            entry(1, [
+              { statSourceId: 0, scoringPeriodId: 3, appliedTotal: 20, stats: { 53: 9 } },
+              { statSourceId: 1, scoringPeriodId: 0, appliedTotal: 250, stats: { 53: 90 } },
+              { statSourceId: 1, scoringPeriodId: 3, appliedTotal: 13.3, stats: { 53: 6.1, 42: 72.3 } },
+            ]),
+            entry(2, [{ statSourceId: 0, scoringPeriodId: 3, appliedTotal: 4, stats: { 53: 4 } }]),
+          ],
+        },
+      },
+    ],
   };
 
   const lines = adapter.projectionLinesFromEspnData(data, "{X}", 3, { teamId: 8 });

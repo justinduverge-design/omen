@@ -56,7 +56,7 @@ function makeSupabase(state) {
             },
             maybeSingle() {
               const row = state.oauthRows.find((candidate) =>
-                this.filters.every(({ field, value }) => candidate[field] === value)
+                this.filters.every(({ field, value }) => candidate[field] === value),
               );
               return Promise.resolve({ data: row || null, error: null });
             },
@@ -72,7 +72,7 @@ function makeSupabase(state) {
             },
             then(resolve, reject) {
               const deleted = state.oauthRows.filter((candidate) =>
-                this.filters.every(({ field, value }) => candidate[field] === value)
+                this.filters.every(({ field, value }) => candidate[field] === value),
               );
               state.deletes.push(...deleted);
               state.oauthRows = state.oauthRows.filter((candidate) => !deleted.includes(candidate));
@@ -90,12 +90,21 @@ function loadYahooRouter({
   oauthRows = [],
   getAuthenticatedYahooClient,
   yahooEnabled = true,
-  membershipResult = { persisted: true, inserted: 0, updated: 0, unfollowed: 0, discoveryFailed: false, discoveryStatus: null },
+  membershipResult = {
+    persisted: true,
+    inserted: 0,
+    updated: 0,
+    unfollowed: 0,
+    discoveryFailed: false,
+    discoveryStatus: null,
+  },
+  membershipSync = null,
 } = {}) {
   const routePath = require.resolve("../src/routes/yahoo");
   const authPath = require.resolve("../src/middleware/auth");
   delete require.cache[routePath];
   delete require.cache[authPath];
+  delete require.cache[require.resolve("../src/services/yahooLeagueReads")];
 
   const state = {
     authTokens: [],
@@ -124,9 +133,15 @@ function loadYahooRouter({
     if (request === "../middleware/logging" && (parent?.filename === routePath || parent?.filename === authPath)) {
       return {
         logger: {
-          error(message, meta) { state.logs.push({ level: "error", message, meta }); },
-          warn(message, meta) { state.logs.push({ level: "warn", message, meta }); },
-          info(message, meta) { state.logs.push({ level: "info", message, meta }); },
+          error(message, meta) {
+            state.logs.push({ level: "error", message, meta });
+          },
+          warn(message, meta) {
+            state.logs.push({ level: "warn", message, meta });
+          },
+          info(message, meta) {
+            state.logs.push({ level: "info", message, meta });
+          },
         },
       };
     }
@@ -148,9 +163,11 @@ function loadYahooRouter({
     }
     if (request === "../services/yahooAuth" && parent?.filename === routePath) {
       return {
-        getAuthenticatedYahooClient: getAuthenticatedYahooClient || (async () => {
-          throw new Error("roster path not exercised in yahoo auth route tests");
-        }),
+        getAuthenticatedYahooClient:
+          getAuthenticatedYahooClient ||
+          (async () => {
+            throw new Error("roster path not exercised in yahoo auth route tests");
+          }),
         persistYahooTokens: async (userId, tokens, leagueId) => {
           state.persists.push({ userId, tokens, leagueId });
         },
@@ -160,6 +177,7 @@ function loadYahooRouter({
       return {
         syncAfterConnect: async (_supabase, args) => {
           state.membershipSyncs.push(args);
+          if (membershipSync) return membershipSync(args);
           return membershipResult;
         },
       };
@@ -301,13 +319,15 @@ test("POST /api/yahoo/auth records only the fixed native-return intent", async (
 
 test("GET /api/yahoo/callback redirects back to account connect onboarding", async () => {
   const { app, state } = buildApp({
-    oauthRows: [{
-      state: "valid-state",
-      platform: "yahoo",
-      user_id: "test-slops-user",
-      verifier: "league-1",
-      expires_at: new Date(Date.now() + 60_000).toISOString(),
-    }],
+    oauthRows: [
+      {
+        state: "valid-state",
+        platform: "yahoo",
+        user_id: "test-slops-user",
+        verifier: "league-1",
+        expires_at: new Date(Date.now() + 60_000).toISOString(),
+      },
+    ],
   });
   const res = await request(app, "/api/yahoo/callback?code=code&state=valid-state");
 
@@ -337,10 +357,10 @@ const VALID_OAUTH_ROW = Object.freeze({
 // Plan A5: a Yahoo connect or re-auth writes league memberships after the tokens persist.
 test("GET /api/yahoo/callback writes league memberships after the tokens persist", async () => {
   const yahooClient = {
-    getUserLeaguesWithTeams: async () => ([
+    getUserLeaguesWithTeams: async () => [
       { league_id: "449.l.1", name: "Work League", season: 2026, team_id: "7", team_name: "Desk Jockeys" },
       { league_id: "449.l.2", name: "Family", season: 2026, team_id: "3", team_name: "Dad Bod" },
-    ]),
+    ],
   };
   const { app, state } = buildApp({
     oauthRows: [{ ...VALID_OAUTH_ROW }],
@@ -365,7 +385,13 @@ test("GET /api/yahoo/callback writes league memberships after the tokens persist
 test("GET /api/yahoo/callback still completes when the membership write fails", async () => {
   const { app, state } = buildApp({
     oauthRows: [{ ...VALID_OAUTH_ROW }],
-    membershipResult: { persisted: false, reason: "write_failed", error: "leagues upsert failed (XX000)", discoveryFailed: true, discoveryStatus: 401 },
+    membershipResult: {
+      persisted: false,
+      reason: "write_failed",
+      error: "leagues upsert failed (XX000)",
+      discoveryFailed: true,
+      discoveryStatus: 401,
+    },
   });
   const res = await request(app, "/api/yahoo/callback?code=code&state=valid-state");
 
@@ -379,13 +405,15 @@ test("GET /api/yahoo/callback still completes when the membership write fails", 
 
 test("GET /api/yahoo/callback returns a verified native start to the fixed deep link without OAuth artifacts", async () => {
   const { app, state } = buildApp({
-    oauthRows: [{
-      state: "valid-native-state",
-      platform: "yahoo",
-      user_id: "test-slops-user",
-      verifier: 'omen-native-return-v1:{"league_id":"league-1"}',
-      expires_at: new Date(Date.now() + 60_000).toISOString(),
-    }],
+    oauthRows: [
+      {
+        state: "valid-native-state",
+        platform: "yahoo",
+        user_id: "test-slops-user",
+        verifier: 'omen-native-return-v1:{"league_id":"league-1"}',
+        expires_at: new Date(Date.now() + 60_000).toISOString(),
+      },
+    ],
   });
   const res = await request(app, "/api/yahoo/callback?code=secret-code&state=valid-native-state");
 
@@ -398,13 +426,15 @@ test("GET /api/yahoo/callback returns a verified native start to the fixed deep 
 
 test("GET /api/yahoo/callback returns a safe fixed native cancellation and consumes the transaction", async () => {
   const { app, state } = buildApp({
-    oauthRows: [{
-      state: "cancel-native-state",
-      platform: "yahoo",
-      user_id: "test-slops-user",
-      verifier: 'omen-native-return-v1:{"league_id":"league-1"}',
-      expires_at: new Date(Date.now() + 60_000).toISOString(),
-    }],
+    oauthRows: [
+      {
+        state: "cancel-native-state",
+        platform: "yahoo",
+        user_id: "test-slops-user",
+        verifier: 'omen-native-return-v1:{"league_id":"league-1"}',
+        expires_at: new Date(Date.now() + 60_000).toISOString(),
+      },
+    ],
   });
   const res = await request(app, "/api/yahoo/callback?error=access_denied&state=cancel-native-state");
 
@@ -420,13 +450,15 @@ test("GET /api/yahoo/callback returns a safe fixed native cancellation and consu
 
 test("GET /api/yahoo/callback logs the real provider error and never a token or auth code", async () => {
   const { app, state } = buildApp({
-    oauthRows: [{
-      state: "mismatch-state",
-      platform: "yahoo",
-      user_id: "test-slops-user",
-      verifier: "league-1",
-      expires_at: new Date(Date.now() + 60_000).toISOString(),
-    }],
+    oauthRows: [
+      {
+        state: "mismatch-state",
+        platform: "yahoo",
+        user_id: "test-slops-user",
+        verifier: "league-1",
+        expires_at: new Date(Date.now() + 60_000).toISOString(),
+      },
+    ],
   });
   const res = await request(app, "/api/yahoo/callback?error=redirect_uri_mismatch&state=mismatch-state");
 
@@ -443,13 +475,15 @@ test("GET /api/yahoo/callback logs the real provider error and never a token or 
 
 test("GET /api/yahoo/callback rejects invalid, expired, and duplicate native states without a deep-link redirect", async () => {
   const expired = buildApp({
-    oauthRows: [{
-      state: "expired-native-state",
-      platform: "yahoo",
-      user_id: "test-slops-user",
-      verifier: 'omen-native-return-v1:{"league_id":"league-1"}',
-      expires_at: new Date(Date.now() - 60_000).toISOString(),
-    }],
+    oauthRows: [
+      {
+        state: "expired-native-state",
+        platform: "yahoo",
+        user_id: "test-slops-user",
+        verifier: 'omen-native-return-v1:{"league_id":"league-1"}',
+        expires_at: new Date(Date.now() - 60_000).toISOString(),
+      },
+    ],
   });
   const invalid = await request(expired.app, "/api/yahoo/callback?code=secret-code&state=unknown-state");
   const expiredRes = await request(expired.app, "/api/yahoo/callback?code=secret-code&state=expired-native-state");
@@ -477,9 +511,7 @@ test("GET /api/yahoo/leagues returns the authenticated user's Yahoo leagues", as
       assert.equal(userId, "test-slops-user");
       return {
         client: {
-          getUserLeagues: async () => [
-            { league_id: "449.l.123", name: "Legends League", season: 2026 },
-          ],
+          getUserLeagues: async () => [{ league_id: "449.l.123", name: "Legends League", season: 2026 }],
         },
       };
     },
@@ -524,7 +556,7 @@ test("GET /api/yahoo/leagues surfaces the real cause of an unexpected failure in
   assert.equal(res.status, 500);
   assert.equal(
     res.body.error,
-    "Yahoo leagues lookup failed: Vault decrypt failed: permission denied for function vault_decrypt_secret"
+    "Yahoo leagues lookup failed: Vault decrypt failed: permission denied for function vault_decrypt_secret",
   );
 });
 
@@ -532,7 +564,9 @@ test("POST /api/yahoo/league surfaces the real cause of an unexpected failure in
   const { app } = buildApp({
     getAuthenticatedYahooClient: async () => ({
       client: {
-        getUserLeagues: async () => { throw new Error("Yahoo API error: 999"); },
+        getUserLeagues: async () => {
+          throw new Error("Yahoo API error: 999");
+        },
       },
     }),
   });
@@ -591,9 +625,7 @@ test("POST /api/yahoo/league rejects a leagueId that isn't one of the user's Yah
   const { app, state } = buildApp({
     getAuthenticatedYahooClient: async () => ({
       client: {
-        getUserLeagues: async () => [
-          { league_id: "449.l.123", name: "Legends League", season: 2026 },
-        ],
+        getUserLeagues: async () => [{ league_id: "449.l.123", name: "Legends League", season: 2026 }],
       },
     }),
   });
@@ -662,4 +694,42 @@ test("the Yahoo callback stays reachable so an in-flight consent cannot strand",
 
   // Any status except the gate's 503 proves the callback was not gated.
   assert.notEqual(res.status, 503);
+});
+
+test("GET /api/yahoo/callback returns to the app before the membership write finishes", async () => {
+  let release;
+  const held = new Promise((resolve) => (release = resolve));
+  const { app, state } = buildApp({
+    oauthRows: [{ ...VALID_OAUTH_ROW }],
+    getAuthenticatedYahooClient: async () => ({ client: { getUserLeaguesWithTeams: async () => [] } }),
+    membershipSync: async () => {
+      await held; // a slow Yahoo league read and membership write
+      return { persisted: true, discoveryFailed: false };
+    },
+  });
+  const res = await request(app, "/api/yahoo/callback?code=code&state=valid-state");
+  assert.equal(res.status, 302, "the redirect must not wait for memberships");
+  assert.equal(state.persists.length, 1, "tokens are stored before the redirect");
+  assert.equal(state.membershipSyncs.length, 1, "memberships were still started");
+  release();
+});
+
+test("the league read after a connect is shared, so Yahoo is asked once", async () => {
+  let reads = 0;
+  const yahooClient = {
+    getUserLeaguesWithTeams: async () => {
+      reads += 1;
+      return [{ league_id: "449.l.1", name: "Work League", season: 2026, team_id: "7", team_name: "Desk Jockeys" }];
+    },
+  };
+  const { app, state } = buildApp({
+    oauthRows: [{ ...VALID_OAUTH_ROW }],
+    getAuthenticatedYahooClient: async () => ({ client: yahooClient }),
+  });
+  await request(app, "/api/yahoo/callback?code=code&state=valid-state");
+  await state.membershipSyncs[0].discover(2026);
+  const res = await request(app, "/api/yahoo/leagues", { headers: { authorization: "Bearer valid-token" } });
+  assert.equal(res.status, 200);
+  assert.equal(res.body.leagues[0].team_id, "7", "the shared read carries team ids");
+  assert.equal(reads, 1);
 });

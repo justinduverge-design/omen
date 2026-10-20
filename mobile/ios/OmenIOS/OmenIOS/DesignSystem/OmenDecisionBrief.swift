@@ -79,6 +79,9 @@ struct OmenDecisionBriefPayload {
     let metrics: [OmenMetricItem]
     let signals: [OmenSignalItem]
     let alternatives: [OmenDecisionBriefAlternative]
+    let readComparison: OmenReadComparison?
+    /// The call's players with their real numbers (warehouse stats and Omen Grades).
+    let players: [OmenCallPlayerNumbers]
     /// Optional published football-intelligence context. This is supporting evidence for the
     /// server-owned call, never a second recommendation. The API mapper admits only published
     /// `available` or `stale` signals with a real summary. Insufficient coverage remains a
@@ -103,9 +106,12 @@ struct OmenDecisionBriefPayload {
         metrics: [OmenMetricItem] = [],
         signals: [OmenSignalItem] = [],
         alternatives: [OmenDecisionBriefAlternative] = [],
+        readComparison: OmenReadComparison? = nil,
         footballIntelligence: OmenFootballIntelligenceContext? = nil,
-        tradeCall: OmenTradeCall? = nil
+        tradeCall: OmenTradeCall? = nil,
+        players: [OmenCallPlayerNumbers] = []
     ) {
+        self.players = players
         self.callType = callType
         self.verdict = verdict
         self.move = move
@@ -120,8 +126,52 @@ struct OmenDecisionBriefPayload {
         self.metrics = metrics
         self.signals = signals
         self.alternatives = alternatives
+        self.readComparison = readComparison
         self.footballIntelligence = footballIntelligence
         self.tradeCall = tradeCall
+    }
+}
+
+/// One player in the call, with the real numbers behind him: season PPG and last games, recent usage,
+/// and the Omen Grade with the efficiency stats under it. Lines the server could not fill are nil.
+struct OmenCallPlayerNumbers: Equatable, Identifiable {
+    let name: String
+    let role: String
+    let statsLine: String?
+    let usageLine: String?
+    let gradeLine: String?
+    let gradeDetails: [String]
+
+    var id: String { "\(role)-\(name)" }
+    var isEmpty: Bool { statsLine == nil && usageLine == nil && gradeLine == nil }
+}
+
+struct OmenReadComparison {
+    let authority: OmenReadAuthority
+    let providerLabel: String
+    let providerPoints: Double?
+    let omenPoints: Double?
+    let position: String?
+    let scoringFamily: String?
+    let sampleSize: Int?
+    let weeks: Int?
+    let evaluatedAt: String?
+    let omenMAE: Double?
+    let providerMAE: Double?
+    let crosswindGap: Double?
+    let crosswindThreshold: Double?
+    let portents: [String]
+
+    var scopeLabel: String? {
+        let scope = [position, scoringFamily?.uppercased()].compactMap { $0 }.joined(separator: " · ")
+        return scope.isEmpty ? nil : scope
+    }
+
+    var authorityLabel: String {
+        switch authority {
+        case .providerLeads: "\(providerLabel) leads"
+        default: authority.customerLabel
+        }
     }
 }
 
@@ -373,6 +423,9 @@ struct OmenDecisionBrief<Feedback: View>: View {
             if !payload.metrics.isEmpty {
                 OmenMetricStrip(items: payload.metrics)
             }
+            if let comparison = payload.readComparison {
+                OmenLeadingReadCard(comparison: comparison)
+            }
             // Absent means absent. No placeholder bar, no em dash, no zero — a greyed bar
             // still occupies the position a number belongs in and reads as a number.
             //
@@ -406,6 +459,65 @@ struct OmenDecisionBrief<Feedback: View>: View {
             }
             feedback
         }
+    }
+}
+
+struct OmenLeadingReadCard: View {
+    let comparison: OmenReadComparison
+
+    var body: some View {
+        OmenCard(contentPadding: OmenSpacing.step12) {
+            VStack(alignment: .leading, spacing: OmenSpacing.step10) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("Leading Read")
+                        .omenTextStyle(OmenTypography.micro)
+                        .foregroundStyle(OmenColor.textTertiary)
+                    Spacer(minLength: OmenSpacing.step8)
+                    if let scope = comparison.scopeLabel {
+                        Text(scope)
+                            .omenTextStyle(OmenTypography.micro)
+                            .foregroundStyle(OmenColor.textTertiary)
+                    }
+                }
+                Text(comparison.authorityLabel)
+                    .omenTextStyle(OmenTypography.h3)
+                    .foregroundStyle(OmenColor.textPrimary)
+                    .accessibilityAddTraits(.isHeader)
+                HStack(spacing: OmenSpacing.step16) {
+                    if let providerPoints = comparison.providerPoints {
+                        read(label: comparison.providerLabel, points: providerPoints)
+                    }
+                    read(label: "Omen Read", points: comparison.omenPoints)
+                }
+                if comparison.authority != .providerLeads && comparison.authority != .omenLeads {
+                    Text("Neither read has earned the lead for this cohort yet.")
+                        .omenTextStyle(OmenTypography.bodySmall)
+                        .foregroundStyle(OmenColor.textSecondary)
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilitySummary)
+    }
+
+    private func read(label: String, points: Double?) -> some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step4) {
+            Text(label)
+                .omenTextStyle(OmenTypography.micro)
+                .foregroundStyle(OmenColor.textTertiary)
+            Text(points.map { String(format: "%.1f", $0) } ?? "Building")
+                .omenTextStyle(OmenTypography.numeric)
+                .foregroundStyle(OmenColor.textPrimary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var accessibilitySummary: String {
+        let omen = comparison.omenPoints.map { String(format: "%.1f", $0) } ?? "building"
+        guard let providerPoints = comparison.providerPoints else {
+            return "Leading Read. \(comparison.authorityLabel). Omen Read, \(omen)."
+        }
+        return "Leading Read. \(comparison.authorityLabel). \(comparison.providerLabel), \(String(format: "%.1f", providerPoints)). Omen Read, \(omen)."
     }
 }
 

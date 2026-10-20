@@ -9,18 +9,9 @@ import EmptyState from '../components/ui/EmptyState.jsx';
 import { NFL_TEAMS } from '../data/nflTeams.js';
 import { apiFetch } from '../lib/api.js';
 import { setDataMode } from '../lib/dataMode.js';
-import {
-  getPostWinSignal,
-  hasSeenPostWinGameId,
-  markPostWinGameIdSeen,
-  teamWinLabel,
-} from '../lib/postWinPulse.js';
+import { getPostWinSignal, hasSeenPostWinGameId, markPostWinGameIdSeen, teamWinLabel } from '../lib/postWinPulse.js';
 import { useTheme } from '../lib/themeMode.js';
-import {
-  startYahooOAuth,
-  YAHOO_CONNECTIONS_ENABLED,
-  YAHOO_UNAVAILABLE_MESSAGE,
-} from '../lib/yahooAuth.js';
+import { startYahooOAuth, YAHOO_CONNECTIONS_ENABLED, YAHOO_UNAVAILABLE_MESSAGE } from '../lib/yahooAuth.js';
 import OmenOfTheWeek from './OmenOfTheWeek';
 import TradeAnalyzer from './TradeAnalyzer';
 
@@ -37,13 +28,16 @@ function PlatformStatusBar({ platforms, loading }) {
   const [reconnectError, setReconnectError] = useState(null);
 
   if (loading) {
-    return <div className="h-10 animate-pulse motion-reduce:animate-none rounded-lg" style={{ background: 'var(--color-surface-2)' }} />;
+    return (
+      <div
+        className="h-10 animate-pulse motion-reduce:animate-none rounded-lg"
+        style={{ background: 'var(--color-surface-2)' }}
+      />
+    );
   }
   if (!platforms) return null;
 
-  const connected = Object.entries(platforms).filter(
-    ([key, v]) => key !== 'connections' && v?.connected,
-  );
+  const connected = Object.entries(platforms).filter(([key, v]) => key !== 'connections' && v?.connected);
 
   const tokenExpired = Object.entries(platforms).filter(
     ([key, v]) => key !== 'connections' && v?.status === 'token_expired',
@@ -74,14 +68,12 @@ function PlatformStatusBar({ platforms, loading }) {
                 className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-300"
               >
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                {label}{suffix}
+                {label}
+                {suffix}
               </span>
             );
           })}
-          <Link
-            className="ml-auto text-xs transition-colors hover:text-[var(--color-text-primary)]"
-            to="/account"
-          >
+          <Link className="ml-auto text-xs transition-colors hover:text-(--color-text-primary)" to="/account">
             Manage
           </Link>
         </Alert>
@@ -139,13 +131,14 @@ export default function Football() {
   const [summaryLoading, setSummaryLoading] = useState(true);
   const [postWinWashActive, setPostWinWashActive] = useState(false);
   const { mode, team: teamAbbr } = useTheme();
-  const themedTeam = useMemo(() => (
-    teamAbbr ? NFL_TEAMS.find((t) => t.abbr === teamAbbr) ?? null : null
-  ), [teamAbbr]);
+  const themedTeam = useMemo(
+    () => (teamAbbr ? (NFL_TEAMS.find((t) => t.abbr === teamAbbr) ?? null) : null),
+    [teamAbbr],
+  );
   const postWinTeam = useMemo(() => {
     const favoriteTeam = summary?.user?.favorite_team;
     const abbr = favoriteTeam || teamAbbr;
-    return abbr ? NFL_TEAMS.find((t) => t.abbr === abbr) ?? null : null;
+    return abbr ? (NFL_TEAMS.find((t) => t.abbr === abbr) ?? null) : null;
   }, [summary?.user?.favorite_team, teamAbbr]);
   const cultureTag = useMemo(() => {
     if (mode !== 'team' || !themedTeam) return null;
@@ -155,18 +148,23 @@ export default function Football() {
   useEffect(() => {
     let mounted = true;
     apiFetch('/api/dashboard/summary')
-      .then((data) => { if (mounted) setSummary(data); })
-      .catch(() => { /* fail silently — tabs degrade to self-managed states */ })
-      .finally(() => { if (mounted) setSummaryLoading(false); });
-    return () => { mounted = false; };
+      .then((data) => {
+        if (mounted) setSummary(data);
+      })
+      .catch(() => {
+        /* fail silently — tabs degrade to self-managed states */
+      })
+      .finally(() => {
+        if (mounted) setSummaryLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const tools = summary?.tools;
   const omenStatus = tools?.omen_of_the_week?.status;
-  const postWinSignal = useMemo(
-    () => getPostWinSignal(summary?.platforms),
-    [summary?.platforms],
-  );
+  const postWinSignal = useMemo(() => getPostWinSignal(summary?.platforms), [summary?.platforms]);
 
   useEffect(() => {
     if (summaryLoading || !postWinSignal?.lastGameId) return undefined;
@@ -207,7 +205,12 @@ export default function Football() {
     switch (id) {
       case 'omen':
         if (summaryLoading) {
-          return <div className="h-32 animate-pulse motion-reduce:animate-none rounded-xl" style={{ background: 'var(--color-surface-2)' }} />;
+          return (
+            <div
+              className="h-32 animate-pulse motion-reduce:animate-none rounded-xl"
+              style={{ background: 'var(--color-surface-2)' }}
+            />
+          );
         }
         if (omenStatus === 'needs_platform') {
           return (
@@ -265,21 +268,21 @@ export default function Football() {
             </span>
           )}
           {postWinSignal && (
-            <span
-              className="post-win-chip inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-widest"
-              aria-label={teamWinLabel(postWinTeam)}
-            >
+            <span className="post-win-chip inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-widest">
               <span aria-hidden="true">✦</span>
               <span>{teamWinLabel(postWinTeam)}</span>
             </span>
           )}
         </div>
-        <h1 className="mt-3 text-5xl font-bold tracking-tight sm:text-6xl" style={{ color: 'var(--color-text-primary)' }}>
+        <h1
+          className="mt-3 text-5xl font-bold tracking-tight sm:text-6xl"
+          style={{ color: 'var(--color-text-primary)' }}
+        >
           Hall of Records
         </h1>
         <p className="mt-4 text-sm leading-6" style={{ color: 'var(--color-text-secondary)' }}>
-          Start with a trade check, then let Omen of the Week fold
-          start/sit and waiver choices into one plain-English weekly move.
+          Start with a trade check, then let Omen of the Week fold start/sit and waiver choices into one plain-English
+          weekly move.
         </p>
       </section>
 
@@ -322,6 +325,7 @@ export default function Football() {
         role="tabpanel"
         id={`tab-panel-${activeTab}`}
         aria-labelledby={`tab-${activeTab}`}
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: WAI-ARIA tabs pattern makes the tabpanel focusable
         tabIndex={0}
       >
         {renderTab(activeTab)}

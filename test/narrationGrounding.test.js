@@ -54,3 +54,28 @@ test("grounding: non-string input is rejected", () => {
   assert.equal(validateGroundedText(null, FACTS).ok, false);
   assert.equal(validateGroundedText({ a: 1 }, FACTS).ok, false);
 });
+
+test("grounding: 'red zone' in text is grounded by 'red-zone' in facts, and the reverse", () => {
+  assert.equal(
+    validateGroundedText("Smith has 4 red zone touches.", { name: "Smith", f: "4 red-zone touches" }).ok,
+    true,
+  );
+  assert.equal(
+    validateGroundedText("Smith has 4 red-zone touches.", { name: "Smith", f: "4 red zone touches" }).ok,
+    true,
+  );
+});
+
+test("grounding: a number word is grounded by the same value in digits", () => {
+  const facts = { name: "Smith", f: "20.7 carries per game over the last 3 games" };
+  assert.equal(validateGroundedText("Smith has 20.7 carries per game over the last three games.", facts).ok, true);
+  const bad = validateGroundedText("Smith has 20.7 carries per game over the last four games.", facts);
+  assert.equal(bad.ok, false);
+  assert.ok(bad.reasons.includes("ungrounded_number_word:four"), JSON.stringify(bad));
+});
+
+test("grounding: ratio words still need the word itself", () => {
+  const r = validateGroundedText("Smith doubled to 2 carries.", { name: "Smith", f: "2 carries" });
+  assert.equal(r.ok, true, JSON.stringify(r));
+  assert.equal(validateGroundedText("Smith has double the carries, 2.", { name: "Smith", f: "2 carries" }).ok, false);
+});

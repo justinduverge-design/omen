@@ -16,11 +16,10 @@ import SwiftUI
 /// A control that is drawn, named, and **not usable** — the `unavailable` carrier applied to an
 /// affordance rather than to a data source.
 ///
-/// This exists because of one line in `CONTRACTS.md` that is easy to satisfy the wrong way:
-/// *"Current capability says `max_teams: 2`. Three-team controls must render unavailable until
-/// that changes."* Unavailable, not hidden and not functional. Hiding the control would make the
-/// product look like it never imagined a three-team trade; leaving it live would let a user build
-/// an offer the server cannot score.
+/// This remains the carrier for any capability read that says a control is unavailable. The
+/// current Trade contract supports three teams, so its Add-team control uses the live primitive;
+/// this treatment still prevents an unread or explicitly unsupported capability from looking like
+/// a broken button.
 ///
 /// Carriers, per registry §2.3 and D7 — colour is never the only one:
 ///   - `text-tertiary` ink,
@@ -113,8 +112,22 @@ struct OmenTradePartnerChip: View {
     var action: (() -> Void)?
 
     var body: some View {
-        Button(action: { action?() }) {
-            VStack(spacing: OmenSpacing.step4) {
+        Group {
+            if let action {
+                Button(action: action) { content }
+                    .buttonStyle(OmenPressableButtonStyle())
+                    .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+            } else {
+                content
+                    .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel([name, need].compactMap { $0 }.joined(separator: ", "))
+    }
+
+    private var content: some View {
+        VStack(spacing: OmenSpacing.step4) {
                 Text(crest)
                     .omenTextStyle(OmenTypography.micro)
                     .foregroundStyle(isSelected ? OmenColor.accentHover : OmenColor.textSecondary)
@@ -140,14 +153,9 @@ struct OmenTradePartnerChip: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
                 }
-            }
-            .frame(width: 66)
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel([name, need].compactMap { $0 }.joined(separator: ", "))
-        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+        .frame(width: 66)
+        .contentShape(Rectangle())
     }
 }
 
@@ -341,6 +349,8 @@ struct OmenTradeSubmissionStepRow: View {
     let isDone: Bool?
     var onToggleDone: (() -> Void)?
     var onCopy: (() -> Void)?
+    @State private var copied = false
+    @Environment(\.omenHaptics) private var haptics
 
     /// The numbered circle or the done/not-done glyph, and the step text. Shared by both the
     /// plain and the interactive rendering below — identical content, different container.
@@ -388,14 +398,19 @@ struct OmenTradeSubmissionStepRow: View {
             }
 
             if let onCopy {
-                Button(action: onCopy) {
-                    Text("Copy")
+                Button(action: {
+                    onCopy()
+                    copied = true
+                    haptics.play(.success)
+                }) {
+                    Text(copied ? "Copied" : "Copy")
                         .omenTextStyle(OmenTypography.micro)
                         .foregroundStyle(OmenColor.accent)
                         .frame(minWidth: OmenLayout.minTouchTarget, minHeight: OmenLayout.minTouchTarget)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Copy step \(index + 1)")
+                .accessibilityLabel(copied ? "Copied step \(index + 1)" : "Copy step \(index + 1)")
+                .accessibilityValue(copied ? "Copied to clipboard" : "")
             }
         }
     }
@@ -443,33 +458,30 @@ struct OmenTradeShareToggleRow: View {
     var action: (() -> Void)?
 
     var body: some View {
-        Button(action: { action?() }) {
-            HStack(spacing: OmenSpacing.step10) {
-                VStack(alignment: .leading, spacing: OmenSpacing.step2) {
-                    Text(title)
-                        .omenTextStyle(OmenTypography.name)
-                        .foregroundStyle(OmenColor.textPrimary)
-                    Text(detail)
-                        .omenTextStyle(OmenTypography.micro)
-                        .foregroundStyle(OmenColor.textTertiary)
-                        .lineLimit(1)
+        Toggle(
+            isOn: Binding(
+                get: { isOn },
+                set: { newValue in
+                    guard newValue != isOn else { return }
+                    action?()
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                // The word, not a switch glyph, and not colour alone (D7). "On"/"Off" is what
-                // the artboard draws and it is also the only carrier that survives a screenshot
-                // in greyscale.
-                Text(isOn ? "On" : "Off")
+            )
+        ) {
+            VStack(alignment: .leading, spacing: OmenSpacing.step2) {
+                Text(title)
+                    .omenTextStyle(OmenTypography.name)
+                    .foregroundStyle(OmenColor.textPrimary)
+                Text(detail)
                     .omenTextStyle(OmenTypography.micro)
-                    .foregroundStyle(isOn ? OmenColor.textPrimary : OmenColor.textTertiary)
+                    .foregroundStyle(OmenColor.textTertiary)
+                    .lineLimit(1)
             }
-            .padding(.vertical, OmenSpacing.step10)
-            .frame(minHeight: OmenLayout.minTouchTarget)
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
-        .accessibilityElement(children: .ignore)
+        .toggleStyle(.switch)
+        .tint(OmenColor.accent)
+        .padding(.vertical, OmenSpacing.step10)
+        .frame(minHeight: OmenLayout.minTouchTarget)
+        .disabled(action == nil)
         .accessibilityLabel("\(title), \(detail)")
-        .accessibilityValue(isOn ? "On" : "Off")
-        .accessibilityHint("Double tap to turn \(isOn ? "off" : "on")")
     }
 }

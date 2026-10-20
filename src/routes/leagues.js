@@ -32,12 +32,7 @@ const {
   usableLeagueId,
 } = require("../services/activeSelection");
 const { orderPlatformsByFollowCount } = require("../services/leagueFollows");
-const {
-  readMemberships,
-  replaceFollowed,
-  selectActive,
-  syncMemberships,
-} = require("../services/leagueMemberships");
+const { readMemberships, replaceFollowed, selectActive, syncMemberships } = require("../services/leagueMemberships");
 
 const router = express.Router();
 router.use(require("../services/sleeperRequestScope").middleware);
@@ -120,33 +115,36 @@ function sortLeagues(leagues) {
 }
 
 async function sleeperLeagues(row, season) {
-  const userId = row.platform_user_id
-    || (row.platform_username ? (await sleeperAdapter.fetchSleeperUser(row.platform_username)).user_id : null);
+  const userId =
+    row.platform_user_id ||
+    (row.platform_username ? (await sleeperAdapter.fetchSleeperUser(row.platform_username)).user_id : null);
   if (!userId) return { discovery: "unavailable", leagues: [], notice: "Sleeper connection is missing user context." };
 
   const leagues = await sleeperAdapter.fetchSleeperLeagues(userId, season);
-  const entries = await Promise.all((leagues || []).map(async (league) => {
-    const leagueId = String(league?.league_id || league?.id || "").trim();
-    let teamId = null;
-    let teamName = null;
-    try {
-      const roster = await sleeperAdapter.fetchSleeperRoster(leagueId, userId);
-      teamId = roster?.roster_id == null ? null : String(roster.roster_id);
-      const users = Array.isArray(roster?.users) ? roster.users : [];
-      const me = users.find((u) => String(u.user_id) === String(userId));
-      teamName = me?.metadata?.team_name || me?.display_name || me?.username || null;
-    } catch {
-      // §10.2 still needs the league row even when the roster lookup drifts.
-    }
-    return leagueEntry({
-      leagueId,
-      leagueName: league?.name,
-      season: league?.season || season,
-      scoringFormat: sleeperScoringFormat(league),
-      teamId,
-      teamName,
-    });
-  }));
+  const entries = await Promise.all(
+    (leagues || []).map(async (league) => {
+      const leagueId = String(league?.league_id || league?.id || "").trim();
+      let teamId = null;
+      let teamName = null;
+      try {
+        const roster = await sleeperAdapter.fetchSleeperRoster(leagueId, userId);
+        teamId = roster?.roster_id == null ? null : String(roster.roster_id);
+        const users = Array.isArray(roster?.users) ? roster.users : [];
+        const me = users.find((u) => String(u.user_id) === String(userId));
+        teamName = me?.metadata?.team_name || me?.display_name || me?.username || null;
+      } catch {
+        // §10.2 still needs the league row even when the roster lookup drifts.
+      }
+      return leagueEntry({
+        leagueId,
+        leagueName: league?.name,
+        season: league?.season || season,
+        scoringFormat: sleeperScoringFormat(league),
+        teamId,
+        teamName,
+      });
+    }),
+  );
 
   return { discovery: "full", leagues: entries.filter((e) => e.league_id), notice: null };
 }
@@ -158,23 +156,25 @@ async function yahooLeagues(row, userId) {
   const leagues = await client.getUserLeaguesWithTeams();
   return {
     discovery: "full",
-    leagues: (leagues || []).map((league) => leagueEntry({
-      leagueId: league.league_id,
-      leagueName: league.name,
-      season: league.season,
-      // Null, not guessed — the A6 rule. The reason is no longer entitlement:
-      // Yahoo's access has been live since 2026-08-28 (facts-of-record #11) and
-      // `/league/{key}/settings` demonstrably returns `scoring_type`,
-      // `stat_categories` and `stat_modifiers` (verified 2026-09-06). Nothing
-      // reads or maps them yet, so this stays null until something does.
-      // Making it real is a separate piece of work, not a comment fix.
-      scoringFormat: null,
-      // Yahoo rows carried no team at all until 2026-09-05, so every Yahoo league in the
-      // switcher fell back to its league name and a user with two Yahoo teams could not tell
-      // them apart. `getUserLeagues` now returns the team with the league, at no extra request.
-      teamId: league.team_id,
-      teamName: league.team_name,
-    })),
+    leagues: (leagues || []).map((league) =>
+      leagueEntry({
+        leagueId: league.league_id,
+        leagueName: league.name,
+        season: league.season,
+        // Null, not guessed — the A6 rule. The reason is no longer entitlement:
+        // Yahoo's access has been live since 2026-08-28 (facts-of-record #11) and
+        // `/league/{key}/settings` demonstrably returns `scoring_type`,
+        // `stat_categories` and `stat_modifiers` (verified 2026-09-06). Nothing
+        // reads or maps them yet, so this stays null until something does.
+        // Making it real is a separate piece of work, not a comment fix.
+        scoringFormat: null,
+        // Yahoo rows carried no team at all until 2026-09-05, so every Yahoo league in the
+        // switcher fell back to its league name and a user with two Yahoo teams could not tell
+        // them apart. `getUserLeagues` now returns the team with the league, at no extra request.
+        teamId: league.team_id,
+        teamName: league.team_name,
+      }),
+    ),
     notice: null,
   };
 }
@@ -227,34 +227,37 @@ async function yahooLeagues(row, userId) {
  */
 async function resolveEspnTeams(leagues, credentials) {
   if (!credentials) return leagues;
-  return Promise.all(leagues.map(async (league) => {
-    let team = null;
-    try {
-      team = await espnAdapter.verifyLeagueAccess(
-        league.league_id, credentials.espn_s2, credentials.swid, null
-      );
-    } catch {
-      // SWID did not match a team — a shared or delegated account can do this. Discovery's id is
-      // the only other claim available, so it gets one attempt rather than none.
-      if (!league.team_id) return league;
+  return Promise.all(
+    leagues.map(async (league) => {
+      let team = null;
       try {
-        team = await espnAdapter.verifyLeagueAccess(
-          league.league_id, credentials.espn_s2, credentials.swid, league.team_id
-        );
+        team = await espnAdapter.verifyLeagueAccess(league.league_id, credentials.espn_s2, credentials.swid, null);
       } catch {
-        // Never surface the ESPN failure detail here; the connection state field carries it.
-        return league;
+        // SWID did not match a team — a shared or delegated account can do this. Discovery's id is
+        // the only other claim available, so it gets one attempt rather than none.
+        if (!league.team_id) return league;
+        try {
+          team = await espnAdapter.verifyLeagueAccess(
+            league.league_id,
+            credentials.espn_s2,
+            credentials.swid,
+            league.team_id,
+          );
+        } catch {
+          // Never surface the ESPN failure detail here; the connection state field carries it.
+          return league;
+        }
       }
-    }
-    if (!team) return league;
-    return {
-      ...league,
-      team_id: team.team_id == null ? league.team_id : String(team.team_id),
-      team_name: team.team_name || league.team_name || null,
-      // ESPN's own league read named this team. Only such a team is stored on a membership.
-      team_verified: team.team_id != null,
-    };
-  }));
+      if (!team) return league;
+      return {
+        ...league,
+        team_id: team.team_id == null ? league.team_id : String(team.team_id),
+        team_name: team.team_name || league.team_name || null,
+        // ESPN's own league read named this team. Only such a team is stored on a membership.
+        team_verified: team.team_id != null,
+      };
+    }),
+  );
 }
 
 async function espnLeagues(row, userId, season) {
@@ -270,27 +273,27 @@ async function espnLeagues(row, userId, season) {
 
   if (credentials) {
     try {
-      const discovered = await espnAdapter.fetchEspnFanLeagues(
-        credentials.espn_s2,
-        credentials.swid,
-        { season }
-      );
+      const discovered = await espnAdapter.fetchEspnFanLeagues(credentials.espn_s2, credentials.swid, { season });
       if (discovered.length) {
         const named = await resolveEspnTeams(discovered, credentials);
         // Reached only when ESPN answered, so the credentials are good.
         return {
           discovery: "full",
-          leagues: named.map((league) => leagueEntry({
-            leagueId: league.league_id,
-            leagueName: league.league_name,
-            season: league.season || season,
-            // ESPN's scoring rules are a separate read Omen has not mapped. Null, not
-            // guessed — guessing PPR here is the A6 defect.
-            scoringFormat: null,
-            teamId: league.team_id,
-            teamName: league.team_name,
-          })),
-          verifiedTeams: new Set(named.filter((league) => league.team_verified).map((league) => String(league.league_id))),
+          leagues: named.map((league) =>
+            leagueEntry({
+              leagueId: league.league_id,
+              leagueName: league.league_name,
+              season: league.season || season,
+              // ESPN's scoring rules are a separate read Omen has not mapped. Null, not
+              // guessed — guessing PPR here is the A6 defect.
+              scoringFormat: null,
+              teamId: league.team_id,
+              teamName: league.team_name,
+            }),
+          ),
+          verifiedTeams: new Set(
+            named.filter((league) => league.team_verified).map((league) => String(league.league_id)),
+          ),
           notice: null,
         };
       }
@@ -316,7 +319,7 @@ async function espnLeagues(row, userId, season) {
         row.league_id,
         credentials.espn_s2,
         credentials.swid,
-        row.espn_team_id || null
+        row.espn_team_id || null,
       );
       teamId = team?.team_id == null ? teamId : String(team.team_id);
       teamName = team?.team_name || null;
@@ -343,9 +346,10 @@ function discoveryFailure(platform, error) {
   return {
     discovery: "unavailable",
     leagues: [],
-    notice: platform === "yahoo" && /token_expired/.test(error?.message || "")
-      ? "Yahoo needs to be reconnected before its leagues can be listed."
-      : "Omen could not reach this platform to list leagues.",
+    notice:
+      platform === "yahoo" && /token_expired/.test(error?.message || "")
+        ? "Yahoo needs to be reconnected before its leagues can be listed."
+        : "Omen could not reach this platform to list leagues.",
   };
 }
 
@@ -406,9 +410,9 @@ async function syncGroupMemberships(userId, season, row, group) {
       connectionId: row.id,
       season,
       leagues: group.verifiedTeams
-        ? group.leagues.map((league) => (group.verifiedTeams.has(String(league.league_id))
-          ? league
-          : { ...league, team_id: null, team_name: null }))
+        ? group.leagues.map((league) =>
+            group.verifiedTeams.has(String(league.league_id)) ? league : { ...league, team_id: null, team_name: null },
+          )
         : group.leagues,
       source: "backfill",
       markMissing: group.discovery === "full",
@@ -445,7 +449,9 @@ function finishGroup(group, row, membershipView, season) {
       league_name: league.league_name ?? membership.league_name,
       scoring_format: league.scoring_format ?? membership.scoring_format,
       team_id: useStoredTeam ? membership.team_id : league.team_id,
-      team_name: useStoredTeam ? (membership.team_name ?? league.team_name) : (league.team_name ?? membership.team_name),
+      team_name: useStoredTeam
+        ? (membership.team_name ?? league.team_name)
+        : (league.team_name ?? membership.team_name),
     };
   });
   let notice = group.notice;
@@ -454,19 +460,22 @@ function finishGroup(group, row, membershipView, season) {
     const listed = new Set(leagues.map((league) => league.league_id));
     const extra = stored
       .filter((m) => m.season === season && m.is_followed && !listed.has(m.league_id))
-      .map((m) => leagueEntry({
-        leagueId: m.league_id,
-        leagueName: m.league_name,
-        season: m.season,
-        scoringFormat: m.scoring_format,
-        teamId: m.team_id,
-        teamName: m.team_name,
-      }));
+      .map((m) =>
+        leagueEntry({
+          leagueId: m.league_id,
+          leagueName: m.league_name,
+          season: m.season,
+          scoringFormat: m.scoring_format,
+          teamId: m.team_id,
+          teamName: m.team_name,
+        }),
+      );
     if (extra.length) {
       leagues = leagues.concat(extra);
-      notice = group.platform === "espn" && group.discovery === "bound_only"
-        ? `Omen couldn't ask ESPN for your full league list. ${STORED_LEAGUES_NOTICE}`
-        : [group.notice, STORED_LEAGUES_NOTICE].filter(Boolean).join(" ");
+      notice =
+        group.platform === "espn" && group.discovery === "bound_only"
+          ? `Omen couldn't ask ESPN for your full league list. ${STORED_LEAGUES_NOTICE}`
+          : [group.notice, STORED_LEAGUES_NOTICE].filter(Boolean).join(" ");
     }
   }
 
@@ -481,9 +490,7 @@ function finishGroup(group, row, membershipView, season) {
     leagues: sortLeagues(leagues).map((league) => ({
       ...league,
       is_active: boundLeagueId != null && league.league_id === boundLeagueId,
-      is_followed: membershipView.persisted
-        ? storedByKey.get(keyOf(league))?.is_followed ?? true
-        : true,
+      is_followed: membershipView.persisted ? (storedByKey.get(keyOf(league))?.is_followed ?? true) : true,
     })),
   };
 }
@@ -498,7 +505,9 @@ async function readMembershipView(userId) {
 }
 
 function activeSummary(rows, groups) {
-  const connection = resolveActiveConnection(rows, { isUsable: (row) => usableLeagueId(row) && credentialsPresent(row) });
+  const connection = resolveActiveConnection(rows, {
+    isUsable: (row) => usableLeagueId(row) && credentialsPresent(row),
+  });
   if (!connection) return null;
 
   const group = groups.find((g) => g.platform === connection.platform);
@@ -545,18 +554,21 @@ router.get("/", requireAuth, async (req, res, next) => {
     // Providers are independent and platformGroup catches its own errors, so one
     // slow or failing platform cannot hold up or fail the others. Promise.all keeps
     // the output in PLATFORM_GROUP_ORDER.
-    const discovered = await Promise.all(PLATFORM_GROUP_ORDER.map((platform) =>
-      platformGroup(platform, byPlatform.get(platform), req.user.id, season)));
+    const discovered = await Promise.all(
+      PLATFORM_GROUP_ORDER.map((platform) => platformGroup(platform, byPlatform.get(platform), req.user.id, season)),
+    );
 
     // Write what the providers said, then read the stored memberships back: the switcher's
     // followed set and its fallback league list come from `leagues` + `league_memberships`.
-    await Promise.all(discovered.map((group) =>
-      syncGroupMemberships(req.user.id, season, byPlatform.get(group.platform), group)));
+    await Promise.all(
+      discovered.map((group) => syncGroupMemberships(req.user.id, season, byPlatform.get(group.platform), group)),
+    );
     const membershipView = await readMembershipView(req.user.id);
     const followsPersisted = membershipView.persisted;
 
     const groups = discovered.map((group) =>
-      finishGroup(group, byPlatform.get(group.platform), membershipView, season));
+      finishGroup(group, byPlatform.get(group.platform), membershipView, season),
+    );
 
     // A group that needs the user to act (reconnect) is never kept; a connected
     // group whose discovery failed is a partial answer and is kept only briefly.
@@ -602,8 +614,9 @@ async function discoverLeagueIds(platform, row, userId, season) {
     return new Set((leagues || []).map((league) => String(league.league_id)));
   }
   if (platform === "sleeper") {
-    const sleeperUserId = row.platform_user_id
-      || (row.platform_username ? (await sleeperAdapter.fetchSleeperUser(row.platform_username)).user_id : null);
+    const sleeperUserId =
+      row.platform_user_id ||
+      (row.platform_username ? (await sleeperAdapter.fetchSleeperUser(row.platform_username)).user_id : null);
     if (!sleeperUserId) return new Set();
     const leagues = await sleeperAdapter.fetchSleeperLeagues(sleeperUserId, season);
     return new Set((leagues || []).map((league) => String(league.league_id || league.id)));
@@ -642,7 +655,7 @@ async function resolveEspnTeamId(userId, leagueId, requestedTeamId) {
       leagueId,
       credentials.espn_s2,
       credentials.swid,
-      requestedTeamId ?? null
+      requestedTeamId ?? null,
     );
     return team?.team_id == null ? null : String(team.team_id);
   } catch {
@@ -722,25 +735,31 @@ async function persistSelection(userId, platform, leagueId, teamId) {
 }
 
 router.post("/active", requireAuth, responseCache.invalidateUserCacheOnWrite, async (req, res, next) => {
-  const platform = String(req.body?.platform || "").trim().toLowerCase();
+  const platform = String(req.body?.platform || "")
+    .trim()
+    .toLowerCase();
   const leagueId = String(req.body?.league_id ?? req.body?.leagueId ?? "").trim();
   const rawTeamId = req.body?.team_id ?? req.body?.teamId;
   const teamId = rawTeamId == null || rawTeamId === "" ? null : String(rawTeamId).trim();
 
   if (!VALID_PLATFORMS.has(platform)) {
-    return res.status(400).json(errorBody({
-      code: "invalid_platform",
-      message: "Choose Sleeper, ESPN, or Yahoo.",
-      action: "retry",
-    }));
+    return res.status(400).json(
+      errorBody({
+        code: "invalid_platform",
+        message: "Choose Sleeper, ESPN, or Yahoo.",
+        action: "retry",
+      }),
+    );
   }
   if (!leagueId) {
-    return res.status(400).json(errorBody({
-      code: "league_id_required",
-      message: "Pick a league to make active.",
-      action: "retry",
-      platform,
-    }));
+    return res.status(400).json(
+      errorBody({
+        code: "league_id_required",
+        message: "Pick a league to make active.",
+        action: "retry",
+        platform,
+      }),
+    );
   }
 
   try {
@@ -749,12 +768,14 @@ router.post("/active", requireAuth, responseCache.invalidateUserCacheOnWrite, as
     const row = rows.find((candidate) => candidate.platform === platform);
 
     if (connectionState(row) !== "connected") {
-      return res.status(404).json(errorBody({
-        code: "platform_not_connected",
-        message: "Connect this platform before making one of its leagues active.",
-        action: "connect",
-        platform,
-      }));
+      return res.status(404).json(
+        errorBody({
+          code: "platform_not_connected",
+          message: "Connect this platform before making one of its leagues active.",
+          action: "connect",
+          platform,
+        }),
+      );
     }
 
     // Dispatched together rather than one after the other: this was the diagnosed source of
@@ -781,21 +802,25 @@ router.post("/active", requireAuth, responseCache.invalidateUserCacheOnWrite, as
 
     if (!belongsResult.ok) {
       logger.warn("Active league verification failed", { platform, err: belongsResult.error.message });
-      return res.status(502).json(errorBody({
-        code: "league_verification_unavailable",
-        message: "Omen could not confirm that league with the platform. Try again shortly.",
-        action: "retry",
-        platform,
-      }));
+      return res.status(502).json(
+        errorBody({
+          code: "league_verification_unavailable",
+          message: "Omen could not confirm that league with the platform. Try again shortly.",
+          action: "retry",
+          platform,
+        }),
+      );
     }
 
     if (!belongsResult.value) {
-      return res.status(400).json(errorBody({
-        code: "league_not_in_account",
-        message: "That league is not one Omen can see on your connected account.",
-        action: "retry",
-        platform,
-      }));
+      return res.status(400).json(
+        errorBody({
+          code: "league_not_in_account",
+          message: "That league is not one Omen can see on your connected account.",
+          action: "retry",
+          platform,
+        }),
+      );
     }
 
     // Resolve the team the user actually owns in the league being selected, rather than trusting
@@ -815,7 +840,8 @@ router.post("/active", requireAuth, responseCache.invalidateUserCacheOnWrite, as
       active: {
         platform,
         league_id: leagueId,
-        team_id: platform === "espn" ? (teamId ?? (row.espn_team_id == null ? null : String(row.espn_team_id))) : teamId,
+        team_id:
+          platform === "espn" ? (teamId ?? (row.espn_team_id == null ? null : String(row.espn_team_id))) : teamId,
       },
       // §10.3: the caller must refresh these surfaces with the new context.
       refresh: ["command_center", "omen", "league", "waiver_watch", "ledger"],
@@ -845,23 +871,29 @@ router.post("/active", requireAuth, responseCache.invalidateUserCacheOnWrite, as
  * from "accepted but not stored yet" when step 03 is absent.
  */
 router.post("/follows", requireAuth, responseCache.invalidateUserCacheOnWrite, async (req, res, next) => {
-  const platform = String(req.body?.platform || "").trim().toLowerCase();
+  const platform = String(req.body?.platform || "")
+    .trim()
+    .toLowerCase();
   const submitted = Array.isArray(req.body?.leagues) ? req.body.leagues : null;
 
   if (!VALID_PLATFORMS.has(platform)) {
-    return res.status(400).json(errorBody({
-      code: "invalid_platform",
-      message: "Choose Sleeper, ESPN, or Yahoo.",
-      action: "retry",
-    }));
+    return res.status(400).json(
+      errorBody({
+        code: "invalid_platform",
+        message: "Choose Sleeper, ESPN, or Yahoo.",
+        action: "retry",
+      }),
+    );
   }
   if (!submitted) {
-    return res.status(400).json(errorBody({
-      code: "leagues_required",
-      message: "Pick at least one league to follow.",
-      action: "retry",
-      platform,
-    }));
+    return res.status(400).json(
+      errorBody({
+        code: "leagues_required",
+        message: "Pick at least one league to follow.",
+        action: "retry",
+        platform,
+      }),
+    );
   }
 
   // Only the id is read. Clients may still send team and league names (the contract allows
@@ -877,12 +909,14 @@ router.post("/follows", requireAuth, responseCache.invalidateUserCacheOnWrite, a
     const row = rows.find((candidate) => candidate.platform === platform);
 
     if (connectionState(row) !== "connected") {
-      return res.status(404).json(errorBody({
-        code: "platform_not_connected",
-        message: "Connect this platform before choosing which of its leagues to follow.",
-        action: "connect",
-        platform,
-      }));
+      return res.status(404).json(
+        errorBody({
+          code: "platform_not_connected",
+          message: "Connect this platform before choosing which of its leagues to follow.",
+          action: "connect",
+          platform,
+        }),
+      );
     }
 
     let owned;
@@ -890,24 +924,29 @@ router.post("/follows", requireAuth, responseCache.invalidateUserCacheOnWrite, a
       owned = await discoverLeagueIds(platform, row, req.user.id, season);
     } catch (error) {
       logger.warn("Follow verification failed", { platform, err: error.message });
-      return res.status(502).json(errorBody({
-        code: "league_verification_unavailable",
-        message: "Omen could not confirm those leagues with the platform. Try again shortly.",
-        action: "retry",
-        platform,
-      }));
+      return res.status(502).json(
+        errorBody({
+          code: "league_verification_unavailable",
+          message: "Omen could not confirm those leagues with the platform. Try again shortly.",
+          action: "retry",
+          platform,
+        }),
+      );
     }
 
     const rejected = entries.filter((entry) => !owned.has(entry.league_id));
     if (rejected.length) {
-      return res.status(400).json(errorBody({
-        code: "league_not_in_account",
-        message: rejected.length === entries.length
-          ? "Omen can't see those leagues on your connected account."
-          : "One of those leagues isn't on your connected account. Nothing was changed.",
-        action: "retry",
-        platform,
-      }));
+      return res.status(400).json(
+        errorBody({
+          code: "league_not_in_account",
+          message:
+            rejected.length === entries.length
+              ? "Omen can't see those leagues on your connected account."
+              : "One of those leagues isn't on your connected account. Nothing was changed.",
+          action: "retry",
+          platform,
+        }),
+      );
     }
 
     const persisted = await replaceFollowed(supabase, {

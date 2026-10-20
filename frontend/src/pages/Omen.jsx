@@ -42,11 +42,7 @@ const SIGNAL_STYLES = {
 
 function SignalBadge({ status }) {
   const style = SIGNAL_STYLES[status] ?? SIGNAL_STYLES.unavailable;
-  return (
-    <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${style}`}>
-      {status}
-    </span>
-  );
+  return <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${style}`}>{status}</span>;
 }
 
 function SignalsPanel({ signals }) {
@@ -55,21 +51,15 @@ function SignalsPanel({ signals }) {
 
   return (
     <div className="rounded-md border border-slate-800 bg-slate-950 p-4">
-      <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-500">
-        Signals used
-      </p>
+      <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-500">Signals used</p>
       <ul className="space-y-2.5">
         {entries.map(([key, signal]) => (
           <li className="flex items-start justify-between gap-3 text-sm" key={key}>
-            <span className="capitalize text-slate-400">
-              {key.replace(/_/g, ' ')}
-            </span>
+            <span className="capitalize text-slate-400">{key.replace(/_/g, ' ')}</span>
             <div className="flex flex-col items-end gap-1">
               <SignalBadge status={signal.status} />
               {signal.message ? (
-                <span className="max-w-xs text-right text-xs text-slate-600">
-                  {signal.message}
-                </span>
+                <span className="max-w-xs text-right text-xs text-slate-600">{signal.message}</span>
               ) : null}
             </div>
           </li>
@@ -89,14 +79,8 @@ function ConfidenceMeter({ confidence }) {
     <div className="space-y-1.5">
       <div className="flex items-baseline gap-2">
         <span className={`text-2xl font-semibold ${colorClass}`}>{score}</span>
-        <span className="text-xs font-semibold uppercase tracking-widest text-slate-500">
-          / 100
-        </span>
-        {label ? (
-          <span className={`text-sm font-semibold ${colorClass}`}>
-            {label.replace('_', ' ')}
-          </span>
-        ) : null}
+        <span className="text-xs font-semibold uppercase tracking-widest text-slate-500">/ 100</span>
+        {label ? <span className={`text-sm font-semibold ${colorClass}`}>{label.replace('_', ' ')}</span> : null}
       </div>
       <div className="h-1.5 w-full rounded-full bg-slate-800">
         <div
@@ -104,9 +88,7 @@ function ConfidenceMeter({ confidence }) {
           style={{ width: `${Math.min(100, Math.max(0, score))}%` }}
         />
       </div>
-      {rationale ? (
-        <p className="text-xs text-slate-500">{rationale}</p>
-      ) : null}
+      {rationale ? <p className="text-xs text-slate-500">{rationale}</p> : null}
     </div>
   );
 }
@@ -117,25 +99,19 @@ function RecoveryPanel({ platform, state }) {
   const isEspn = name === 'espn';
 
   // Safe query params only — no credential values, Vault ids, or auth headers in URL.
-  const accountHref = isEspn && state
-    ? `/account?platform=espn&recovery=${state}`
-    : '/account';
+  const accountHref = isEspn && state ? `/account?platform=espn&recovery=${state}` : '/account';
 
   return (
     <section className="rounded-lg border border-red-400/20 bg-red-400/5 p-6">
       <p className="text-xs font-semibold uppercase tracking-widest text-red-400">
         {isEspn ? 'ESPN connection required' : 'Platform disconnected'}
       </p>
-      <h2 className="mt-2 text-xl font-semibold capitalize text-white">
-        {name}
-      </h2>
+      <h2 className="mt-2 text-xl font-semibold capitalize text-white">{name}</h2>
       <p className="mt-2 text-sm leading-6 text-slate-400">
         {recovery?.message ?? 'Reconnect your platform before Omen can read your roster.'}
       </p>
       {recovery?.fields_needed?.length ? (
-        <p className="mt-2 text-xs text-slate-500">
-          Fields needed: {recovery.fields_needed.join(', ')}
-        </p>
+        <p className="mt-2 text-xs text-slate-500">Fields needed: {recovery.fields_needed.join(', ')}</p>
       ) : null}
       {recovery?.cta ? (
         <a
@@ -152,9 +128,7 @@ function RecoveryPanel({ platform, state }) {
 function EmptyStateCard({ explanation }) {
   return (
     <section className="rounded-lg border border-slate-700 bg-slate-900 p-6">
-      <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
-        No move this week
-      </p>
+      <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">No move this week</p>
       <h2 className="mt-2 text-2xl font-semibold text-white">Stand pat.</h2>
       {explanation ? (
         <div className="mt-4 space-y-2">
@@ -162,12 +136,8 @@ function EmptyStateCard({ explanation }) {
           {explanation.why_it_matters ? (
             <p className="text-sm leading-6 text-slate-400">{explanation.why_it_matters}</p>
           ) : null}
-          {explanation.risk ? (
-            <p className="text-sm text-slate-500">{explanation.risk}</p>
-          ) : null}
-          {explanation.confidence ? (
-            <p className="text-xs text-slate-500">{explanation.confidence}</p>
-          ) : null}
+          {explanation.risk ? <p className="text-sm text-slate-500">{explanation.risk}</p> : null}
+          {explanation.confidence ? <p className="text-xs text-slate-500">{explanation.confidence}</p> : null}
         </div>
       ) : null}
     </section>
@@ -198,16 +168,8 @@ function RecommendationCard({ data }) {
   const { recommendation, signals } = data;
   if (!recommendation) return null;
 
-  const {
-    title,
-    move,
-    primary_player,
-    comparison_player,
-    expected_value_delta,
-    confidence,
-    risk,
-    explanation,
-  } = recommendation;
+  const { title, move, primary_player, comparison_player, expected_value_delta, confidence, risk, explanation } =
+    recommendation;
 
   const riskStyle = RISK_STYLES[risk?.level] ?? RISK_STYLES.medium;
 
@@ -217,13 +179,9 @@ function RecommendationCard({ data }) {
       <section className="rounded-lg border border-amber-400/20 bg-amber-400/5 p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">
-              Omen of the Week
-            </p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">Omen of the Week</p>
             <h2 className="mt-2 text-2xl font-semibold text-white">{title}</h2>
-            {move ? (
-              <p className="mt-1.5 text-sm leading-6 text-slate-400">{move}</p>
-            ) : null}
+            {move ? <p className="mt-1.5 text-sm leading-6 text-slate-400">{move}</p> : null}
           </div>
           {risk?.level ? (
             <span className={`rounded-full border px-3 py-1 text-sm font-semibold ${riskStyle}`}>
@@ -234,9 +192,7 @@ function RecommendationCard({ data }) {
 
         {confidence ? (
           <div className="mt-5 border-t border-slate-800 pt-4">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-slate-500">
-              Confidence
-            </p>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-slate-500">Confidence</p>
             <ConfidenceMeter confidence={confidence} />
           </div>
         ) : null}
@@ -247,9 +203,7 @@ function RecommendationCard({ data }) {
               +{Number(expected_value_delta.points).toFixed(1)} pts
             </span>
             {expected_value_delta.label ? (
-              <span className="text-xs text-slate-500">
-                {expected_value_delta.label} projected advantage
-              </span>
+              <span className="text-xs text-slate-500">{expected_value_delta.label} projected advantage</span>
             ) : null}
           </div>
         ) : null}
@@ -258,21 +212,19 @@ function RecommendationCard({ data }) {
       {/* Plain-English explanation */}
       {explanation ? (
         <section className="rounded-lg border border-slate-800 bg-slate-900 p-5">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-500">
-            Why this move
-          </p>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-500">Why this move</p>
           <div className="space-y-3">
             <p className="text-sm leading-6 text-slate-200">{explanation.summary}</p>
             {explanation.why_it_matters ? (
               <p className="text-sm leading-6 text-slate-400">{explanation.why_it_matters}</p>
             ) : null}
-            {explanation.risk ? (
-              <p className="text-sm text-slate-500">{explanation.risk}</p>
-            ) : null}
+            {explanation.risk ? <p className="text-sm text-slate-500">{explanation.risk}</p> : null}
             {risk?.reasons?.length ? (
               <ul className="list-inside list-disc space-y-1">
                 {risk.reasons.map((reason, i) => (
-                  <li className="text-xs text-slate-500" key={i}>{reason}</li>
+                  <li className="text-xs text-slate-500" key={i}>
+                    {reason}
+                  </li>
                 ))}
               </ul>
             ) : null}
@@ -293,13 +245,11 @@ function RecommendationCard({ data }) {
       ) : null}
 
       {/* Player comparison */}
-      {(primary_player || comparison_player) ? (
+      {primary_player || comparison_player ? (
         <div className="grid gap-4 sm:grid-cols-2">
           {primary_player ? (
             <div className="rounded-md border border-emerald-400/20 bg-emerald-400/5 p-4">
-              <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400">
-                Start
-              </p>
+              <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400">Start</p>
               <p className="mt-1 text-base font-semibold text-white">{primary_player.name}</p>
               <p className="text-sm text-slate-400">
                 {primary_player.position} · {primary_player.team}
@@ -308,9 +258,7 @@ function RecommendationCard({ data }) {
           ) : null}
           {comparison_player ? (
             <div className="rounded-md border border-slate-700 bg-slate-900 p-4">
-              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
-                Bench
-              </p>
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Bench</p>
               <p className="mt-1 text-base font-semibold text-white">{comparison_player.name}</p>
               <p className="text-sm text-slate-400">
                 {comparison_player.position} · {comparison_player.team}
@@ -321,9 +269,7 @@ function RecommendationCard({ data }) {
       ) : null}
 
       {/* Signals */}
-      {signals && Object.keys(signals).length ? (
-        <SignalsPanel signals={signals} />
-      ) : null}
+      {signals && Object.keys(signals).length ? <SignalsPanel signals={signals} /> : null}
     </div>
   );
 }
@@ -338,12 +284,13 @@ function OmenResult({ data, onRetry }) {
   if (state === 'empty') return <EmptyStateCard explanation={explanation} />;
 
   if (
-    state === 'platform_disconnected'
-    || state === 'espn_reauth_required'
-    || state === 'espn_league_context_missing'
-    || state === 'espn_import_blocked'
-    || state === 'espn_recovery_needed'
-  ) return <RecoveryPanel platform={platform} state={state} />;
+    state === 'platform_disconnected' ||
+    state === 'espn_reauth_required' ||
+    state === 'espn_league_context_missing' ||
+    state === 'espn_import_blocked' ||
+    state === 'espn_recovery_needed'
+  )
+    return <RecoveryPanel platform={platform} state={state} />;
 
   if (state === 'error') return <ErrorCard error={error} onRetry={onRetry} />;
 
@@ -393,9 +340,12 @@ export default function Omen() {
       if (caught instanceof ApiError && caught.body?.state) {
         setResult(caught.body);
       } else {
-        const message = caught instanceof ApiError
-          ? (typeof caught.body?.error === 'string' ? caught.body.error : caught.message)
-          : caught.message || 'Could not get your MVP Move.';
+        const message =
+          caught instanceof ApiError
+            ? typeof caught.body?.error === 'string'
+              ? caught.body.error
+              : caught.message
+            : caught.message || 'Could not get your MVP Move.';
         setFetchError(message);
       }
     } finally {
@@ -418,7 +368,7 @@ export default function Omen() {
             <label className="text-xs font-semibold text-slate-400">
               Platform
               <select
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400"
+                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-hidden transition-colors focus:border-amber-400"
                 value={platform}
                 onChange={(e) => setPlatform(e.target.value)}
               >
@@ -433,7 +383,7 @@ export default function Omen() {
             <label className="text-xs font-semibold text-slate-400">
               League ID
               <input
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400"
+                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-hidden transition-colors focus:border-amber-400"
                 placeholder="e.g. 414.l.12345"
                 value={leagueId}
                 onChange={(e) => setLeagueId(e.target.value)}
@@ -444,7 +394,7 @@ export default function Omen() {
               Team ID
               <span className="ml-1 font-normal text-slate-600">(optional)</span>
               <input
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400"
+                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-hidden transition-colors focus:border-amber-400"
                 placeholder="e.g. 7"
                 value={teamId}
                 onChange={(e) => setTeamId(e.target.value)}
@@ -454,7 +404,7 @@ export default function Omen() {
             <label className="text-xs font-semibold text-slate-400">
               Week
               <input
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400"
+                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-hidden transition-colors focus:border-amber-400"
                 max={18}
                 min={1}
                 type="number"
@@ -466,12 +416,14 @@ export default function Omen() {
             <label className="text-xs font-semibold text-slate-400">
               Scoring format
               <select
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400"
+                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-hidden transition-colors focus:border-amber-400"
                 value={scoringFormat}
                 onChange={(e) => setScoringFormat(e.target.value)}
               >
                 {SCORING_FORMATS.map(({ value, label }) => (
-                  <option key={value} value={value}>{label}</option>
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
                 ))}
               </select>
             </label>
@@ -497,12 +449,14 @@ export default function Omen() {
               <label className="text-xs font-semibold text-slate-400">
                 Mock state
                 <select
-                  className="ml-2 rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-white outline-none focus:border-amber-400"
+                  className="ml-2 rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-white outline-hidden focus:border-amber-400"
                   value={mockState}
                   onChange={(e) => setMockState(e.target.value)}
                 >
                   {MOCK_STATES.map((s) => (
-                    <option key={s} value={s}>{s}</option>
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
                   ))}
                 </select>
               </label>

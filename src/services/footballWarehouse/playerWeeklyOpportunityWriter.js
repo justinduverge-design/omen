@@ -14,7 +14,12 @@ const TOLERANCE = 1;
 const NUMBER = "'^-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?$'";
 
 class PlayerWeeklyOpportunityError extends Error {
-  constructor(code, message, report) { super(message); this.name = "PlayerWeeklyOpportunityError"; this.code = code; if (report) this.report = report; }
+  constructor(code, message, report) {
+    super(message);
+    this.name = "PlayerWeeklyOpportunityError";
+    this.code = code;
+    if (report) this.report = report;
+  }
 }
 
 // Counts per player-week, built from the season's plays. A numeric column that is blank, NA or garbled is NULL.
@@ -107,11 +112,15 @@ SELECT
                        AND NOT (btrim(source_row->>'yardline_100') ~ ${NUMBER})))::integer AS missing_yardline_plays
 FROM football.nfl_plays WHERE season = $1 AND week IS NOT NULL`;
 
-const COLUMNS = "week,season_type,player_id,team_id,carries,targets,red_zone_carries,red_zone_targets,inside_10_touches,inside_5_touches,end_zone_targets,deep_targets,details,ingest_event_id";
+const COLUMNS =
+  "week,season_type,player_id,team_id,carries,targets,red_zone_carries,red_zone_targets,inside_10_touches,inside_5_touches,end_zone_targets,deep_targets,details,ingest_event_id";
 
 function safeCode(error) {
-  return error instanceof PlayerWeeklyOpportunityError ? error.code
-    : typeof error?.code === "string" && /^[A-Za-z0-9_]{1,64}$/.test(error.code) ? error.code : "warehouse_opportunity_failed";
+  return error instanceof PlayerWeeklyOpportunityError
+    ? error.code
+    : typeof error?.code === "string" && /^[A-Za-z0-9_]{1,64}$/.test(error.code)
+      ? error.code
+      : "warehouse_opportunity_failed";
 }
 
 /**
@@ -120,48 +129,112 @@ function safeCode(error) {
  * ingest_event_id is the season's latest succeeded play_by_play receipt; no receipt row of its own is written
  * (warehouse_ingest_events.dataset has no value for derived tables). An unchanged derivation writes nothing.
  */
-function createPlayerWeeklyOpportunityWriter({ pool, transactionTimeouts, maxOutlierRatio = DEFAULT_MAX_OUTLIER_RATIO } = {}) {
+function createPlayerWeeklyOpportunityWriter({
+  pool,
+  transactionTimeouts,
+  maxOutlierRatio = DEFAULT_MAX_OUTLIER_RATIO,
+} = {}) {
   if (!pool || typeof pool.connect !== "function") throw new TypeError("pool.connect must be a function");
-  if (typeof maxOutlierRatio !== "number" || !(maxOutlierRatio >= 0 && maxOutlierRatio <= 1)) throw new RangeError("maxOutlierRatio is invalid");
+  if (typeof maxOutlierRatio !== "number" || !(maxOutlierRatio >= 0 && maxOutlierRatio <= 1))
+    throw new RangeError("maxOutlierRatio is invalid");
   const timeouts = validateTransactionTimeouts(transactionTimeouts);
-  return { async writeSeason({ season } = {}) {
-    if (!Number.isInteger(season) || season < 1999 || season > 2100) throw new TypeError("season is invalid");
-    const client = await pool.connect(); let began = false;
-    try {
-      await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ"); began = true; await setLocalTransactionTimeouts(client, timeouts);
-      await client.query({ name: `warehouse-${DATASET}-lock-v1`, text: "SELECT pg_advisory_xact_lock(hashtext($1),$2)", values: [DATASET, season] });
-      const receipt = await client.query({ name: `warehouse-${DATASET}-receipt-v1`, text: "SELECT id FROM football.warehouse_ingest_events WHERE dataset='play_by_play' AND season=$1 AND state='succeeded' ORDER BY finished_at DESC, id DESC LIMIT 1", values: [season] });
-      if (!receipt.rows.length) throw new PlayerWeeklyOpportunityError("play_by_play_receipt_missing", "no succeeded play-by-play receipt for the season");
-      const ingestEventId = receipt.rows[0].id;
-      await client.query("CREATE TEMP TABLE stage_nfl_player_weekly_opportunity (LIKE football.nfl_player_weekly_opportunity INCLUDING DEFAULTS) ON COMMIT DROP");
-      await client.query(DERIVE_SQL, [season, ingestEventId]);
-      const present = await client.query({ text: "SELECT count(*)::integer AS n FROM football.nfl_player_weekly_stats WHERE season=$1", values: [season] });
-      if (!present.rows[0].n) throw new PlayerWeeklyOpportunityError("stats_missing", "no nfl_player_weekly_stats rows for the season");
-      const skipped = (await client.query({ text: SKIPPED_SQL, values: [season] })).rows[0];
-      const stats = (await client.query(RECONCILE_SQL, [season, TOLERANCE])).rows[0];
-      const reconciliation = {
-        comparedRows: stats.compared_rows, outlierRows: stats.outlier_rows, missingStatsRows: stats.missing_stats_rows,
-        missingPlayRows: stats.missing_play_rows, kneelAdjustedRows: stats.kneel_adjusted_rows, outlierRatio: stats.compared_rows ? stats.outlier_rows / stats.compared_rows : 0,
-        outlierSample: stats.outlier_sample, crosswalkDroppedPlays: skipped.crosswalk_dropped_plays, missingYardlinePlays: skipped.missing_yardline_plays, tolerance: TOLERANCE, maxOutlierRatio,
-      };
-      if (!stats.derived_rows) throw new PlayerWeeklyOpportunityError("opportunity_no_rows", "play-by-play produced no opportunity rows", reconciliation);
-      if (stats.outlier_rows > maxOutlierRatio * stats.compared_rows) throw new PlayerWeeklyOpportunityError("opportunity_reconciliation_failed", "play-by-play disagrees with the weekly stat lines beyond tolerance", reconciliation);
-      const drift = await client.query({ text: `SELECT
+  return {
+    async writeSeason({ season } = {}) {
+      if (!Number.isInteger(season) || season < 1999 || season > 2100) throw new TypeError("season is invalid");
+      const client = await pool.connect();
+      let began = false;
+      try {
+        await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ");
+        began = true;
+        await setLocalTransactionTimeouts(client, timeouts);
+        await client.query({
+          name: `warehouse-${DATASET}-lock-v1`,
+          text: "SELECT pg_advisory_xact_lock(hashtext($1),$2)",
+          values: [DATASET, season],
+        });
+        const receipt = await client.query({
+          name: `warehouse-${DATASET}-receipt-v1`,
+          text: "SELECT id FROM football.warehouse_ingest_events WHERE dataset='play_by_play' AND season=$1 AND state='succeeded' ORDER BY finished_at DESC, id DESC LIMIT 1",
+          values: [season],
+        });
+        if (!receipt.rows.length)
+          throw new PlayerWeeklyOpportunityError(
+            "play_by_play_receipt_missing",
+            "no succeeded play-by-play receipt for the season",
+          );
+        const ingestEventId = receipt.rows[0].id;
+        await client.query(
+          "CREATE TEMP TABLE stage_nfl_player_weekly_opportunity (LIKE football.nfl_player_weekly_opportunity INCLUDING DEFAULTS) ON COMMIT DROP",
+        );
+        await client.query(DERIVE_SQL, [season, ingestEventId]);
+        const present = await client.query({
+          text: "SELECT count(*)::integer AS n FROM football.nfl_player_weekly_stats WHERE season=$1",
+          values: [season],
+        });
+        if (!present.rows[0].n)
+          throw new PlayerWeeklyOpportunityError("stats_missing", "no nfl_player_weekly_stats rows for the season");
+        const skipped = (await client.query({ text: SKIPPED_SQL, values: [season] })).rows[0];
+        const stats = (await client.query(RECONCILE_SQL, [season, TOLERANCE])).rows[0];
+        const reconciliation = {
+          comparedRows: stats.compared_rows,
+          outlierRows: stats.outlier_rows,
+          missingStatsRows: stats.missing_stats_rows,
+          missingPlayRows: stats.missing_play_rows,
+          kneelAdjustedRows: stats.kneel_adjusted_rows,
+          outlierRatio: stats.compared_rows ? stats.outlier_rows / stats.compared_rows : 0,
+          outlierSample: stats.outlier_sample,
+          crosswalkDroppedPlays: skipped.crosswalk_dropped_plays,
+          missingYardlinePlays: skipped.missing_yardline_plays,
+          tolerance: TOLERANCE,
+          maxOutlierRatio,
+        };
+        if (!stats.derived_rows)
+          throw new PlayerWeeklyOpportunityError(
+            "opportunity_no_rows",
+            "play-by-play produced no opportunity rows",
+            reconciliation,
+          );
+        if (stats.outlier_rows > maxOutlierRatio * stats.compared_rows)
+          throw new PlayerWeeklyOpportunityError(
+            "opportunity_reconciliation_failed",
+            "play-by-play disagrees with the weekly stat lines beyond tolerance",
+            reconciliation,
+          );
+        const drift = await client.query({
+          text: `SELECT
         (SELECT count(*)::integer FROM (SELECT ${COLUMNS} FROM stage_nfl_player_weekly_opportunity EXCEPT SELECT ${COLUMNS} FROM football.nfl_player_weekly_opportunity WHERE season=$1) a) AS added,
-        (SELECT count(*)::integer FROM (SELECT ${COLUMNS} FROM football.nfl_player_weekly_opportunity WHERE season=$1 EXCEPT SELECT ${COLUMNS} FROM stage_nfl_player_weekly_opportunity) b) AS removed`, values: [season] });
-      if (drift.rows[0].added === 0 && drift.rows[0].removed === 0) {
+        (SELECT count(*)::integer FROM (SELECT ${COLUMNS} FROM football.nfl_player_weekly_opportunity WHERE season=$1 EXCEPT SELECT ${COLUMNS} FROM stage_nfl_player_weekly_opportunity) b) AS removed`,
+          values: [season],
+        });
+        if (drift.rows[0].added === 0 && drift.rows[0].removed === 0) {
+          await client.query("COMMIT");
+          return { state: "unchanged", ingestEventId, writtenRows: stats.derived_rows, reconciliation };
+        }
+        await client.query({
+          name: `warehouse-${DATASET}-delete-v1`,
+          text: "DELETE FROM football.nfl_player_weekly_opportunity WHERE season=$1",
+          values: [season],
+        });
+        await client.query({
+          text: `INSERT INTO football.nfl_player_weekly_opportunity (season,${COLUMNS}) SELECT season,${COLUMNS} FROM stage_nfl_player_weekly_opportunity`,
+        });
         await client.query("COMMIT");
-        return { state: "unchanged", ingestEventId, writtenRows: stats.derived_rows, reconciliation };
+        return { state: "succeeded", ingestEventId, writtenRows: stats.derived_rows, reconciliation };
+      } catch (error) {
+        if (began)
+          try {
+            await client.query("ROLLBACK");
+          } catch {}
+        const safe = new PlayerWeeklyOpportunityError(
+          safeCode(error),
+          "player-week opportunity derivation failed",
+          error?.report,
+        );
+        throw safe;
+      } finally {
+        client.release();
       }
-      await client.query({ name: `warehouse-${DATASET}-delete-v1`, text: "DELETE FROM football.nfl_player_weekly_opportunity WHERE season=$1", values: [season] });
-      await client.query({ text: `INSERT INTO football.nfl_player_weekly_opportunity (season,${COLUMNS}) SELECT season,${COLUMNS} FROM stage_nfl_player_weekly_opportunity` });
-      await client.query("COMMIT");
-      return { state: "succeeded", ingestEventId, writtenRows: stats.derived_rows, reconciliation };
-    } catch (error) {
-      if (began) try { await client.query("ROLLBACK"); } catch {}
-      const safe = new PlayerWeeklyOpportunityError(safeCode(error), "player-week opportunity derivation failed", error?.report);
-      throw safe;
-    } finally { client.release(); }
-  }};
+    },
+  };
 }
 module.exports = { createPlayerWeeklyOpportunityWriter, PlayerWeeklyOpportunityError, DEFAULT_MAX_OUTLIER_RATIO };

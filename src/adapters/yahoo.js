@@ -15,9 +15,7 @@ const { enrichYahooPlayers } = require("../services/yahooProjections");
 
 const ROSTER_TTL_S = 300;
 
-const redis = config.redisUrl
-  ? new Redis({ url: config.redisUrl, token: config.redisToken })
-  : null;
+const redis = config.redisUrl ? new Redis({ url: config.redisUrl, token: config.redisToken }) : null;
 
 async function readCache(key) {
   if (!redis) return null;
@@ -102,14 +100,19 @@ function teamsFromYahooMatchup(matchup) {
   if (Array.isArray(matchup?.teams)) return matchup.teams;
   const teams = matchup?.teams?.team ? matchup.teams.team : matchup?.teams;
   if (Array.isArray(teams)) return teams;
-  return objectValues(teams).map((entry) => entry.team || entry).filter(Boolean);
+  return objectValues(teams)
+    .map((entry) => entry.team || entry)
+    .filter(Boolean);
 }
 
 function yahooMatchupsFromScoreboard(scoreboard) {
-  const raw = scoreboard?.fantasy_content?.league?.[1]?.scoreboard?.[0]?.matchups
-    || scoreboard?.scoreboard?.matchups
-    || scoreboard?.matchups;
-  return objectValues(raw).map((entry) => entry.matchup || entry).filter(Boolean);
+  const raw =
+    scoreboard?.fantasy_content?.league?.[1]?.scoreboard?.[0]?.matchups ||
+    scoreboard?.scoreboard?.matchups ||
+    scoreboard?.matchups;
+  return objectValues(raw)
+    .map((entry) => entry.matchup || entry)
+    .filter(Boolean);
 }
 
 function lastResultFromYahooScoreboard({ leagueKey, week, teamKey, scoreboard }) {
@@ -155,9 +158,10 @@ async function fetchYahooLastResult({ client, leagueKey, teamKey, week, season }
   const cached = await readCache(cacheKey);
   if (cached) return cached;
 
-  const scoreboard = typeof client.getLeagueScoreboard === "function"
-    ? await client.getLeagueScoreboard(leagueKey, week)
-    : await client.get(`/league/${leagueKey}/scoreboard;week=${week}`);
+  const scoreboard =
+    typeof client.getLeagueScoreboard === "function"
+      ? await client.getLeagueScoreboard(leagueKey, week)
+      : await client.get(`/league/${leagueKey}/scoreboard;week=${week}`);
   const result = lastResultFromYahooScoreboard({ leagueKey, week, teamKey, scoreboard });
   await writeCache(cacheKey, result, LAST_RESULT_TTL_S);
   return result;
@@ -170,7 +174,7 @@ async function buildNormalizedRoster(leagueKey, accessToken, week, opts = {}) {
     throw Object.assign(new Error("No Yahoo team found in this league"), { status: 404 });
   }
 
-  const effectiveWeek = week || await client.getCurrentWeek(leagueKey);
+  const effectiveWeek = week || (await client.getCurrentWeek(leagueKey));
   const cacheKey = cacheKeyFor(leagueKey, teamKey, effectiveWeek, opts);
   const cached = await readCache(cacheKey);
   if (cached) return cached;
@@ -203,51 +207,112 @@ async function buildNormalizedRoster(leagueKey, accessToken, week, opts = {}) {
  * Used by Trade's opponent-roster read (`GET /api/trade/roster`). No new Yahoo surface, no
  * new auth — the standings and per-team roster reads already run in production today.
  */
+/**
+ * League starting slots from Yahoo's `/league/{key}/settings` `roster_positions`
+ * (`[{roster_position: {position, count, is_starting_position}}]`), expanded by count, in Yahoo's
+ * own slot names (W/R/T, Q/W/R/T, DEF, K...). Starting positions only. Empty when the payload has
+ * none, in which case callers fall back to the user's own lineup.
+ */
+function rosterPositionsFromYahooSettings(league) {
+  const found = [];
+  const walk = (node) => {
+    if (!node || typeof node !== "object") return;
+    if (Array.isArray(node)) {
+      node.forEach(walk);
+      return;
+    }
+    if (Array.isArray(node.roster_positions)) found.push(...node.roster_positions);
+    Object.values(node).forEach(walk);
+  };
+  walk(league);
+  const slots = [];
+  for (const wrapper of found) {
+    const entry = wrapper?.roster_position || wrapper;
+    const position = String(entry?.position || "").toUpperCase();
+    const count = Number(entry?.count);
+    const starting = Number(entry?.is_starting_position) === 1;
+    if (!position || !starting || !Number.isInteger(count) || count < 1) continue;
+    for (let i = 0; i < count; i += 1) slots.push(position);
+  }
+  return slots;
+}
+
+// G8: one slow team must not hold the whole league read (and Trade) hostage.
+const TEAM_ROSTER_BUDGET_MS = Number(process.env.YAHOO_TEAM_ROSTER_BUDGET_MS) || 6000;
+
+/** Resolves like `promise`, or rejects with `code: "team_roster_timeout"` after `ms`. */
+function withinBudget(promise, ms) {
+  let timer;
+  const budget = new Promise((_, reject) => {
+    timer = setTimeout(
+      () => reject(Object.assign(new Error("team roster read timed out"), { code: "team_roster_timeout" })),
+      ms,
+    );
+    timer.unref?.();
+  });
+  return Promise.race([promise, budget]).finally(() => clearTimeout(timer));
+}
+
 async function fetchYahooLeagueRosters(leagueKey, accessToken, week) {
   const client = new YahooClient(accessToken);
-  const effectiveWeek = week || await client.getCurrentWeek(leagueKey);
+  const effectiveWeek = week || (await client.getCurrentWeek(leagueKey));
   const standings = await client.getLeagueStandings(leagueKey);
 
-  const teams = await Promise.all(standings.map(async (team) => {
-    if (!team?.team_id) {
-      return { team_id: null, team_name: team?.team_name || null, players: [] };
-    }
-    let players = [];
-    try {
-      const raw = await client.getRoster(team.team_id, effectiveWeek);
-      const normalized = normalizeYahooRoster(raw, effectiveWeek);
-      players = [
-        ...(normalized.slots.starters || []),
-        ...(normalized.slots.bench || []),
-        ...(normalized.slots.ir || []),
-      ].map(withYahooIds);
-    } catch {
-      // One team's roster failing to read must not fail the whole league read. Partial
-      // data with that team's players empty is more honest than aborting the request.
-      players = [];
-    }
-    return { team_id: team.team_id, team_name: team.team_name || null, players };
-  }));
+  const settingsRead = Promise.resolve()
+    .then(() => client.getLeagueSettings(leagueKey, { report: false }))
+    .catch(() => null);
+  const teams = await Promise.all(
+    standings.map(async (team) => {
+      if (!team?.team_id) {
+        return { team_id: null, team_name: team?.team_name || null, players: [], read_status: "unreadable" };
+      }
+      let players = [];
+      let readStatus = "ok";
+      try {
+        const raw = await withinBudget(client.getRoster(team.team_id, effectiveWeek), TEAM_ROSTER_BUDGET_MS);
+        const normalized = normalizeYahooRoster(raw, effectiveWeek);
+        players = [
+          ...(normalized.slots.starters || []),
+          ...(normalized.slots.bench || []),
+          ...(normalized.slots.ir || []),
+        ].map(withYahooIds);
+      } catch {
+        // One team's roster failing to read must not fail the whole league read. Partial
+        // data is more honest than aborting the request, but the team is flagged so Trade can
+        // tell "the read failed" from "this roster is empty" and skip it instead of assuming.
+        // A team past its time budget (G8) is unreadable the same way.
+        players = [];
+        readStatus = "unreadable";
+      }
+      return { team_id: team.team_id, team_name: team.team_name || null, players, read_status: readStatus };
+    }),
+  );
+  // Settings unreadable (null) leaves the slot list empty: callers fall back to the user's own lineup.
+  const rosterPositions = rosterPositionsFromYahooSettings(await settingsRead);
+  const unreadableTeamIds = teams.filter((team) => team.read_status === "unreadable").map((team) => team.team_id);
 
   // Yahoo carries no projection; fill every team's players from Sleeper's public stat lines scored
   // with this league's rules (yahooProjections.js). Best effort and bounded.
   const projectionMeta = await enrichYahooPlayers(
     teams.flatMap((team) => team.players),
-    { client, leagueKey, week: effectiveWeek }
+    { client, leagueKey, week: effectiveWeek },
   );
 
   return {
     week: rosterWeek(effectiveWeek),
     league_status: null,
-    roster_positions: [],
+    roster_positions: rosterPositions,
     teams,
+    unreadable_team_ids: unreadableTeamIds,
     projection_meta: projectionMeta,
   };
 }
 
 module.exports = {
+  withinBudget,
   buildNormalizedRoster,
   fetchYahooLastResult,
   fetchYahooLeagueRosters,
   lastResultFromYahooScoreboard,
+  rosterPositionsFromYahooSettings,
 };

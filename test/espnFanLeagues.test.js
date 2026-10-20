@@ -42,13 +42,15 @@ function teamPreference({
 test("maps a fan payload into the league rows the picker needs", () => {
   const leagues = fanLeaguesFromPreferences({ preferences: [teamPreference()] });
 
-  assert.deepEqual(leagues, [{
-    league_id: "13338821",
-    league_name: "Slops Saloon FF Showdown",
-    season: 2026,
-    team_id: "3",
-    team_name: "The Titans of Slopsilonia",
-  }]);
+  assert.deepEqual(leagues, [
+    {
+      league_id: "13338821",
+      league_name: "Slops Saloon FF Showdown",
+      season: 2026,
+      team_id: "3",
+      team_name: "The Titans of Slopsilonia",
+    },
+  ]);
 });
 
 test("returns every football league, so a multi-league manager sees all of them", () => {
@@ -63,20 +65,23 @@ test("returns every football league, so a multi-league manager sees all of them"
   });
 
   assert.equal(leagues.length, 3);
-  assert.deepEqual(leagues.map((l) => l.league_id), ["1", "2", "3"]);
+  assert.deepEqual(
+    leagues.map((l) => l.league_id),
+    ["1", "2", "3"],
+  );
 });
 
 test("ignores non-football fantasy teams on the same account", () => {
   // The fan payload spans every fantasy sport the account plays. Without the game-id filter a
   // basketball team is offered as a football league and the connect then fails confusingly.
   const leagues = fanLeaguesFromPreferences({
-    preferences: [
-      teamPreference({ gameId: 2, leagueId: "hoops" }),
-      teamPreference({ gameId: 1, leagueId: "ffl" }),
-    ],
+    preferences: [teamPreference({ gameId: 2, leagueId: "hoops" }), teamPreference({ gameId: 1, leagueId: "ffl" })],
   });
 
-  assert.deepEqual(leagues.map((l) => l.league_id), ["ffl"]);
+  assert.deepEqual(
+    leagues.map((l) => l.league_id),
+    ["ffl"],
+  );
 });
 
 test("a negative groupId is normalized the way ESPN's own client normalizes it", () => {
@@ -133,18 +138,43 @@ test("de-duplicates a league that appears more than once", () => {
 });
 
 test("filters to the requested season when one is given", () => {
-  const leagues = fanLeaguesFromPreferences({
-    preferences: [
-      teamPreference({ leagueId: "old", seasonId: 2025 }),
-      teamPreference({ leagueId: "now", seasonId: 2026 }),
-    ],
-  }, { season: 2026 });
+  const leagues = fanLeaguesFromPreferences(
+    {
+      preferences: [
+        teamPreference({ leagueId: "old", seasonId: 2025 }),
+        teamPreference({ leagueId: "now", seasonId: 2026 }),
+      ],
+    },
+    { season: 2026 },
+  );
 
-  assert.deepEqual(leagues.map((l) => l.league_id), ["now"]);
+  assert.deepEqual(
+    leagues.map((l) => l.league_id),
+    ["now"],
+  );
 });
 
 test("survives an empty or malformed payload without throwing", () => {
   for (const payload of [null, {}, { preferences: null }, { preferences: [null, {}] }]) {
     assert.deepEqual(fanLeaguesFromPreferences(payload), []);
   }
+});
+
+test("ESPN's own football-league count reads from fantasyData and is null when absent", () => {
+  const { espnNflLeagueCount } = require("../src/adapters/espn.js");
+  assert.equal(espnNflLeagueCount({ fantasyData: { leaguesBySportLeague: { NFL: 3, NBA: 1 } } }), 3);
+  assert.equal(espnNflLeagueCount({ fantasyData: { leaguesBySportLeague: { NFL: 0 } } }), 0);
+  assert.equal(espnNflLeagueCount({ fantasyData: {} }), null);
+  assert.equal(espnNflLeagueCount({}), null);
+  assert.equal(espnNflLeagueCount({ fantasyData: { leaguesBySportLeague: { NFL: "x" } } }), null);
+});
+
+test("a discovery answer is classified from what ESPN listed against what it counts", () => {
+  const { espnDiscoveryState } = require("../src/routes/platforms");
+  assert.equal(espnDiscoveryState(3, 3), "complete");
+  assert.equal(espnDiscoveryState(2, 3), "partial");
+  assert.equal(espnDiscoveryState(0, 2), "espn_listing_pending", "a fresh login: ESPN knows, has not listed");
+  assert.equal(espnDiscoveryState(0, 0), "no_football_leagues");
+  assert.equal(espnDiscoveryState(2, null), "complete");
+  assert.equal(espnDiscoveryState(0, null), "unknown_empty");
 });

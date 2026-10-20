@@ -1,16 +1,8 @@
 "use strict";
 
-const {
-  MAX_SOURCE_BYTES,
-  sourceUrlForSeason,
-} = require("./playerWeeklySource");
+const { MAX_SOURCE_BYTES, sourceUrlForSeason } = require("./playerWeeklySource");
 
-const ALLOWED_CONTENT_TYPES = new Set([
-  "application/csv",
-  "application/octet-stream",
-  "text/csv",
-  "text/plain",
-]);
+const ALLOWED_CONTENT_TYPES = new Set(["application/csv", "application/octet-stream", "text/csv", "text/plain"]);
 
 function validateSeason(season) {
   if (!Number.isInteger(season) || season < 1999 || season > 2100) {

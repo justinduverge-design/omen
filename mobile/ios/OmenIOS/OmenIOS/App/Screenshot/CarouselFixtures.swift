@@ -18,6 +18,85 @@ import Foundation
 /// path, so a parsing regression surfaces too.
 enum CarouselFixtures {
 
+    /// The current Command desk state for the carousel's resting page. Screenshot evidence
+    /// derives this from the same directory/page model the production host observes rather
+    /// than rebuilding the retired Command Center fixture around it.
+    @MainActor
+    static func deskState(
+        for viewModel: LeagueCarouselViewModel,
+        failingPlatform: String? = nil
+    ) -> OmenDeskState {
+        guard let page = viewModel.currentPage else {
+            return OmenDeskState(
+                weekLabel: "",
+                deadlineLabel: nil,
+                deadlineTime: nil,
+                matchup: .switching,
+                railCount: viewModel.pages.count,
+                railIndex: viewModel.selectedIndex,
+                waiver: .switching,
+                ledger: .switching,
+                footnote: nil
+            )
+        }
+
+        let overview = page.platform == failingPlatform
+            ? nil
+            : overview(platform: page.platform, leagueID: page.leagueID)
+        var state = OmenDeskState.from(
+            overview: overview,
+            waiver: .unread(
+                capability: "Waiver analysis",
+                sentence: "This fixture isolates the league carousel; no waiver read was requested."
+            ),
+            ledger: .unread(
+                capability: "The Ledger",
+                sentence: "This fixture isolates the league carousel; no Ledger read was requested."
+            ),
+            weekLabel: overview.flatMap(\.week).map { "Week \($0)" } ?? "Week 7",
+            railCount: viewModel.pages.count,
+            railIndex: viewModel.selectedIndex,
+            standingsLine: nil
+        )
+
+        if page.platform == failingPlatform {
+            state = OmenDeskState(
+                weekLabel: state.weekLabel,
+                deadlineLabel: nil,
+                deadlineTime: nil,
+                matchup: .unread(
+                    capability: "League matchup",
+                    // Kept verbatim so the existing UI gate can find the scoped failure while
+                    // the remaining five pages continue to prove provider isolation.
+                    sentence: "This league didn't load"
+                ),
+                railCount: state.railCount,
+                railIndex: state.railIndex,
+                waiver: state.waiver,
+                ledger: state.ledger,
+                footnote: nil
+            )
+        }
+        return state
+    }
+
+    @MainActor
+    static func context(for viewModel: LeagueCarouselViewModel) -> OmenScreenContext? {
+        guard let page = viewModel.currentPage else { return nil }
+        let platform: OmenPlatform
+        switch page.platform.lowercased() {
+        case "yahoo": platform = .yahoo
+        case "sleeper": platform = .sleeper
+        default: platform = .espn
+        }
+        return OmenScreenContext(
+            crest: OmenDeskState.crest(from: page.displayTeamName),
+            teamName: page.displayTeamName,
+            platform: platform,
+            leagueName: page.leagueName
+        )
+    }
+
     /// Three lines at phone width — the maximum the watch rail renders.
     ///
     /// NOT what the app currently produces: `LeagueOverview.watchLine` emits only

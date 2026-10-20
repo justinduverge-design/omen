@@ -14,8 +14,7 @@
 // `stats_player_week_<season>.csv`. The old path 404s for every season from 2025
 // on. Verified against the live release index 2026-08-18 — see
 // src/omen_tuesday_cron.js, which carries the same fix and the same rationale.
-const NFLVERSE_BASE_URL =
-  "https://github.com/nflverse/nflverse-data/releases/download/stats_player";
+const NFLVERSE_BASE_URL = "https://github.com/nflverse/nflverse-data/releases/download/stats_player";
 
 // nflverse publishes REG (weeks 1-18) and POST (weeks 19-22) rows in one file.
 // DvP context is about a defense's regular-season tendency; mixing in a handful
@@ -70,7 +69,6 @@ function _fetchRows(cacheKey, season) {
 }
 
 async function _download(cacheKey, season) {
-
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
@@ -121,10 +119,13 @@ function _parseCsvLine(line = "") {
 }
 
 function _parseCsv(csvText) {
-  const lines = String(csvText || "").trim().split(/\r?\n/).filter(Boolean);
+  const lines = String(csvText || "")
+    .trim()
+    .split(/\r?\n/)
+    .filter(Boolean);
   if (lines.length < 2) return [];
 
-  const headers = _parseCsvLine(lines[0]).map(h => h.trim());
+  const headers = _parseCsvLine(lines[0]).map((h) => h.trim());
   const required = ["season", "week", "season_type", "position", "opponent_team"];
   for (const column of required) {
     if (!headers.includes(column)) {
@@ -135,7 +136,7 @@ function _parseCsv(csvText) {
     throw new Error("missing required column: fantasy_points or fantasy_points_ppr");
   }
 
-  return lines.slice(1).map(line => {
+  return lines.slice(1).map((line) => {
     const values = _parseCsvLine(line);
     const row = {};
     headers.forEach((header, idx) => {
@@ -146,7 +147,10 @@ function _parseCsv(csvText) {
 }
 
 function _normalizePosition(position) {
-  const normalized = String(position || "").toUpperCase().replace("D/ST", "DEF").replace("DST", "DEF");
+  const normalized = String(position || "")
+    .toUpperCase()
+    .replace("D/ST", "DEF")
+    .replace("DST", "DEF");
   if (normalized === "PK") return "K";
   return normalized;
 }
@@ -203,12 +207,12 @@ async function getDvpContext({ position, opponentTeam, season, week }) {
     for (const row of rows) {
       const rowWeek = Number.parseInt(row.week, 10);
       if (
-        Number.parseInt(row.season, 10) !== seasonInt
-        || row.season_type !== DEFAULT_SEASON_TYPE
-        || !Number.isInteger(rowWeek)
-        || rowWeek >= weekInt
-        || _normalizePosition(row.position) !== pos
-        || String(row.opponent_team || "").toUpperCase() !== opponent
+        Number.parseInt(row.season, 10) !== seasonInt ||
+        row.season_type !== DEFAULT_SEASON_TYPE ||
+        !Number.isInteger(rowWeek) ||
+        rowWeek >= weekInt ||
+        _normalizePosition(row.position) !== pos ||
+        String(row.opponent_team || "").toUpperCase() !== opponent
       ) {
         continue;
       }
@@ -226,11 +230,11 @@ async function getDvpContext({ position, opponentTeam, season, week }) {
     const avgPointsAllowed = Math.round(avg * 10) / 10;
 
     return {
-      opponent_team:       opponent,
-      position:            pos,
-      avg_points_allowed:  avgPointsAllowed,
-      sample_weeks:        matching.length,
-      dvp_label:           _labelFor(pos, avgPointsAllowed),
+      opponent_team: opponent,
+      position: pos,
+      avg_points_allowed: avgPointsAllowed,
+      sample_weeks: matching.length,
+      dvp_label: _labelFor(pos, avgPointsAllowed),
     };
   } catch (err) {
     _logger().warn("matchupService: DvP calculation failed", { message: err?.message });
@@ -238,7 +242,10 @@ async function getDvpContext({ position, opponentTeam, season, week }) {
   }
 }
 
-function _resetCache() { _cache.clear(); _inflight.clear(); }
+function _resetCache() {
+  _cache.clear();
+  _inflight.clear();
+}
 
 /** Loads the season file into the cache ahead of the first request. Rejects on failure; callers swallow it. */
 async function warm({ season }) {

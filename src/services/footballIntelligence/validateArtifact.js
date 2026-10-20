@@ -70,7 +70,8 @@ function validateArtifact(artifact) {
     coaching_tree_edges: artifact.coaching_tree.edges.map((item) => item.edge_hash).sort(),
     provenance: [...artifact.provenance].sort((a, b) => independentHash(a).localeCompare(independentHash(b))),
   });
-  if (artifact.input_hash !== expectedInputHash) fail("READ_MODEL_INPUT_MISMATCH", "read-model input_hash does not match its component artifacts");
+  if (artifact.input_hash !== expectedInputHash)
+    fail("READ_MODEL_INPUT_MISMATCH", "read-model input_hash does not match its component artifacts");
 
   const expectedOutputHash = independentHash(withoutKey(artifact, "output_hash"));
   if (artifact.output_hash !== expectedOutputHash) {
@@ -119,7 +120,8 @@ function validateDna(dna) {
 
 function validateFeature(feature, label) {
   object(feature, label);
-  if (!new Set(["rate", "distribution"]).has(feature.kind)) fail("FEATURE_KIND_INVALID", `${label} has unsupported kind`);
+  if (!new Set(["rate", "distribution"]).has(feature.kind))
+    fail("FEATURE_KIND_INVALID", `${label} has unsupported kind`);
   nonNegativeInteger(feature.denominator, `${label} denominator`);
   nonNegativeInteger(feature.missing, `${label} missing`);
   nonEmpty(feature.source_family, `${label} source_family`);
@@ -127,12 +129,14 @@ function validateFeature(feature, label) {
 
   if (feature.kind === "rate") {
     nonNegativeInteger(feature.numerator, `${label} numerator`);
-    if (feature.numerator > feature.denominator) fail("FEATURE_DENOMINATOR_INVALID", `${label} numerator exceeds denominator`);
+    if (feature.numerator > feature.denominator)
+      fail("FEATURE_DENOMINATOR_INVALID", `${label} numerator exceeds denominator`);
     if (feature.denominator === 0) {
       if (feature.value !== null) fail("FEATURE_VALUE_INVALID", `${label} must use null when its denominator is zero`);
     } else {
       finite(feature.value, `${label} value`);
-      if (feature.value < 0 || feature.value > 1) fail("FEATURE_VALUE_INVALID", `${label} rate must be between 0 and 1`);
+      if (feature.value < 0 || feature.value > 1)
+        fail("FEATURE_VALUE_INVALID", `${label} rate must be between 0 and 1`);
       if (!near(feature.value, feature.numerator / feature.denominator)) {
         fail("FEATURE_DENOMINATOR_INVALID", `${label} value does not equal numerator/denominator`);
       }
@@ -147,11 +151,16 @@ function validateFeature(feature, label) {
     return sum + count;
   }, 0);
   if (total !== feature.denominator) fail("FEATURE_DENOMINATOR_INVALID", `${label} counts do not sum to denominator`);
-  if (!sameKeys(feature.counts, feature.distribution)) fail("FEATURE_DISTRIBUTION_INVALID", `${label} counts/distribution categories differ`);
+  if (!sameKeys(feature.counts, feature.distribution))
+    fail("FEATURE_DISTRIBUTION_INVALID", `${label} counts/distribution categories differ`);
   let distributionTotal = 0;
   for (const [category, value] of Object.entries(feature.distribution)) {
     finite(value, `${label} distribution ${category}`);
-    if (value < 0 || value > 1 || (feature.denominator > 0 && !near(value, feature.counts[category] / feature.denominator))) {
+    if (
+      value < 0 ||
+      value > 1 ||
+      (feature.denominator > 0 && !near(value, feature.counts[category] / feature.denominator))
+    ) {
       fail("FEATURE_DISTRIBUTION_INVALID", `${label} distribution does not match counts`);
     }
     distributionTotal += value;
@@ -164,7 +173,8 @@ function validateFeature(feature, label) {
 function validateSignal(signal, { dnaByHash }) {
   object(signal, "System Signal");
   exact(signal.contract_version, EXPECTED.systemSignal, "System Signal contract");
-  if (signal.model_version !== undefined) exact(signal.model_version, EXPECTED.systemSignalModel, "System Signal model");
+  if (signal.model_version !== undefined)
+    exact(signal.model_version, EXPECTED.systemSignalModel, "System Signal model");
   nonEmpty(signal.signal_type, "System Signal type");
   member(signal.state, SIGNAL_STATES, "System Signal state");
   entity(signal.subject, "System Signal subject");
@@ -193,7 +203,8 @@ function validateSignal(signal, { dnaByHash }) {
       fail("SIGNAL_EVIDENCE_LINK_INVALID", `evidence feature ${evidence.feature} is absent from linked Scheme DNA`);
     }
   }
-  if (signal.output_hash !== independentHash(withoutKey(signal, "output_hash"))) fail("SIGNAL_HASH_MISMATCH", "System Signal output_hash is invalid");
+  if (signal.output_hash !== independentHash(withoutKey(signal, "output_hash")))
+    fail("SIGNAL_HASH_MISMATCH", "System Signal output_hash is invalid");
 }
 
 function validateEdge(edge, { dnaByHash, nodeIds }) {
@@ -205,7 +216,8 @@ function validateEdge(edge, { dnaByHash, nodeIds }) {
     fail("TREE_NODE_LINK_INVALID", "Coaching Tree edge endpoint is absent from nodes");
   }
   hash(edge.edge_hash, "Coaching Tree edge_hash");
-  if (edge.edge_hash !== independentHash(withoutKey(edge, "edge_hash"))) fail("TREE_HASH_MISMATCH", "Coaching Tree edge_hash is invalid");
+  if (edge.edge_hash !== independentHash(withoutKey(edge, "edge_hash")))
+    fail("TREE_HASH_MISMATCH", "Coaching Tree edge_hash is invalid");
   if (edge.edge_type === "confirmed_assignment") {
     exact(edge.confidence, "confirmed", "confirmed assignment confidence");
     object(edge.effective_window, "confirmed assignment effective_window");
@@ -217,7 +229,8 @@ function validateEdge(edge, { dnaByHash, nodeIds }) {
     }
     return;
   }
-  if (edge.edge_type !== "inferred_system_influence") fail("TREE_EDGE_TYPE_INVALID", `unsupported Coaching Tree edge ${edge.edge_type}`);
+  if (edge.edge_type !== "inferred_system_influence")
+    fail("TREE_EDGE_TYPE_INVALID", `unsupported Coaching Tree edge ${edge.edge_type}`);
   exact(edge.model_version, EXPECTED.coachingTreeModel, "inferred Coaching Tree model");
   member(edge.confidence, CONFIDENCE, "inferred influence confidence");
   if (edge.confidence === "confirmed") fail("TREE_EDGE_TYPE_MISMATCH", "inferred influence cannot be confirmed");
@@ -230,46 +243,100 @@ function validateEdge(edge, { dnaByHash, nodeIds }) {
   object(edge.evidence, "inferred influence evidence");
   const baseline = dnaByHash.get(edge.compared_scheme_dna.baseline_hash);
   const comparison = dnaByHash.get(edge.compared_scheme_dna.comparison_hash);
-  if (JSON.stringify(edge.evidence.baseline_sample) !== JSON.stringify(baseline.sample)
-    || edge.evidence.baseline_coverage !== baseline.coverage
-    || JSON.stringify(edge.evidence.comparison_sample) !== JSON.stringify(comparison.sample)
-    || edge.evidence.comparison_coverage !== comparison.coverage) fail("TREE_EVIDENCE_MISMATCH", "inferred influence evidence does not match compared Scheme DNA");
+  if (
+    JSON.stringify(edge.evidence.baseline_sample) !== JSON.stringify(baseline.sample) ||
+    edge.evidence.baseline_coverage !== baseline.coverage ||
+    JSON.stringify(edge.evidence.comparison_sample) !== JSON.stringify(comparison.sample) ||
+    edge.evidence.comparison_coverage !== comparison.coverage
+  )
+    fail("TREE_EVIDENCE_MISMATCH", "inferred influence evidence does not match compared Scheme DNA");
   exact(edge.similarity.model_version, EXPECTED.similarityModel, "similarity model");
   finite(edge.similarity.score, "inferred influence similarity score");
-  if (edge.similarity.score < 0 || edge.similarity.score > 1) fail("TREE_SIMILARITY_INVALID", "inferred influence similarity must be between 0 and 1");
+  if (edge.similarity.score < 0 || edge.similarity.score > 1)
+    fail("TREE_SIMILARITY_INVALID", "inferred influence similarity must be between 0 and 1");
 }
 
 function independentHash(value) {
-  return `sha256:${crypto.createHash("sha256").update(JSON.stringify(canonical(value))).digest("hex")}`;
+  return `sha256:${crypto
+    .createHash("sha256")
+    .update(JSON.stringify(canonical(value)))
+    .digest("hex")}`;
 }
 function canonical(value) {
   if (value === null || typeof value === "string" || typeof value === "boolean") return value;
-  if (typeof value === "number") { finite(value, "hash input"); return Object.is(value, -0) ? 0 : value; }
+  if (typeof value === "number") {
+    finite(value, "hash input");
+    return Object.is(value, -0) ? 0 : value;
+  }
   if (Array.isArray(value)) return value.map(canonical);
   object(value, "hash input");
-  return Object.fromEntries(Object.keys(value).sort().map((key) => {
-    if (value[key] === undefined) fail("NON_CANONICAL_VALUE", `undefined hash property ${key}`);
-    return [key, canonical(value[key])];
-  }));
+  return Object.fromEntries(
+    Object.keys(value)
+      .sort()
+      .map((key) => {
+        if (value[key] === undefined) fail("NON_CANONICAL_VALUE", `undefined hash property ${key}`);
+        return [key, canonical(value[key])];
+      }),
+  );
 }
-function withoutKey(value, key) { const copy = { ...value }; delete copy[key]; return copy; }
+function withoutKey(value, key) {
+  const copy = { ...value };
+  delete copy[key];
+  return copy;
+}
 function rejectNonFinite(value, path) {
-  if (typeof value === "number" && !Number.isFinite(value)) fail("NON_FINITE_VALUE", `${path} contains a non-finite number`);
-  if (Array.isArray(value)) value.forEach((item, index) => rejectNonFinite(item, `${path}[${index}]`));
-  else if (value && typeof value === "object") Object.entries(value).forEach(([key, item]) => rejectNonFinite(item, `${path}.${key}`));
+  if (typeof value === "number" && !Number.isFinite(value))
+    fail("NON_FINITE_VALUE", `${path} contains a non-finite number`);
+  if (Array.isArray(value))
+    value.forEach((item, index) => {
+      rejectNonFinite(item, `${path}[${index}]`);
+    });
+  else if (value && typeof value === "object")
+    Object.entries(value).forEach(([key, item]) => {
+      rejectNonFinite(item, `${path}.${key}`);
+    });
 }
-function entity(value, label) { object(value, label); nonEmpty(value.type, `${label} type`); nonEmpty(value.id, `${label} id`); }
-function entityKey(value) { entity(value, "entity"); return `${value.type}:${value.id}`; }
-function object(value, label) { if (!value || typeof value !== "object" || Array.isArray(value)) fail("INVALID_SHAPE", `${label} must be an object`); }
-function array(value, label) { if (!Array.isArray(value)) fail("INVALID_SHAPE", `${label} must be an array`); }
-function exact(actual, expected, label) { if (actual !== expected) fail("VERSION_MISMATCH", `${label} must be ${expected}`); }
-function hash(value, label) { if (!HASH.test(value || "")) fail("HASH_INVALID", `${label} must be a canonical sha256 hash`); }
-function finite(value, label) { if (!Number.isFinite(value)) fail("NON_FINITE_VALUE", `${label} must be finite`); }
-function nonNegativeInteger(value, label) { if (!Number.isInteger(value) || value < 0) fail("INVALID_COUNT", `${label} must be a non-negative integer`); }
-function nonEmpty(value, label) { if (typeof value !== "string" || value.length === 0) fail("INVALID_SHAPE", `${label} must be a non-empty string`); }
-function member(value, allowed, label) { if (!allowed.has(value)) fail("STATE_INVALID", `${label} is unsupported: ${value}`); }
-function near(left, right) { return Math.abs(left - right) <= 1e-12; }
-function sameKeys(left, right) { return JSON.stringify(Object.keys(left).sort()) === JSON.stringify(Object.keys(right).sort()); }
-function fail(code, message) { throw new FootballIntelligenceValidationError(code, message); }
+function entity(value, label) {
+  object(value, label);
+  nonEmpty(value.type, `${label} type`);
+  nonEmpty(value.id, `${label} id`);
+}
+function entityKey(value) {
+  entity(value, "entity");
+  return `${value.type}:${value.id}`;
+}
+function object(value, label) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) fail("INVALID_SHAPE", `${label} must be an object`);
+}
+function array(value, label) {
+  if (!Array.isArray(value)) fail("INVALID_SHAPE", `${label} must be an array`);
+}
+function exact(actual, expected, label) {
+  if (actual !== expected) fail("VERSION_MISMATCH", `${label} must be ${expected}`);
+}
+function hash(value, label) {
+  if (!HASH.test(value || "")) fail("HASH_INVALID", `${label} must be a canonical sha256 hash`);
+}
+function finite(value, label) {
+  if (!Number.isFinite(value)) fail("NON_FINITE_VALUE", `${label} must be finite`);
+}
+function nonNegativeInteger(value, label) {
+  if (!Number.isInteger(value) || value < 0) fail("INVALID_COUNT", `${label} must be a non-negative integer`);
+}
+function nonEmpty(value, label) {
+  if (typeof value !== "string" || value.length === 0) fail("INVALID_SHAPE", `${label} must be a non-empty string`);
+}
+function member(value, allowed, label) {
+  if (!allowed.has(value)) fail("STATE_INVALID", `${label} is unsupported: ${value}`);
+}
+function near(left, right) {
+  return Math.abs(left - right) <= 1e-12;
+}
+function sameKeys(left, right) {
+  return JSON.stringify(Object.keys(left).sort()) === JSON.stringify(Object.keys(right).sort());
+}
+function fail(code, message) {
+  throw new FootballIntelligenceValidationError(code, message);
+}
 
 module.exports = { FootballIntelligenceValidationError, validateArtifact };

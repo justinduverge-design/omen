@@ -1,25 +1,26 @@
 # Omen Blueprints
 
-This folder holds Omen product blueprints.
+How Omen is built: specs, architecture, playbooks, prompts, handoffs and the definition of done. `Direction/`
+says what to do and why. This folder says how.
 
-Use it for product handoffs, prompts, specs, playbooks, skills, and implementation-adjacent planning docs that apply to the Omen app.
+## Key paths
 
-## Key Paths
+| Path | What it holds |
+|---|---|
+| `api-routes.md` | Every API route, with its contract version |
+| `security-privacy.md` | Security and privacy rules for auth, tokens and user data |
+| `definition-of-done.md` | What "done" requires for each type of work |
+| `demo-mode.md` | How Demo Mode works (kept for App Store review) |
+| `architecture/` | The football warehouse design and the rebuild plan |
+| `rebuild/` | The database redo design and audit, the call-slice plan, the cutover runbook and the backend map |
+| `specs/` | Product and engineering specs. `specs/mobile/` is the native iPhone/Android gate, `specs/football-data/` covers data and scoring, `specs/design/` holds design authority, and `specs/infrastructure/` covers the Pi fleet and hosts |
+| `playbooks/` | Repeatable procedures: release, rollback, ESPN recovery, App Store review, native design delivery |
+| `prompts/` | Session kickoff prompts and the review loop (`HOW-TO-RUN-THE-LOOP.md`) |
+| `handoffs/` | Dated session handoffs. The newest one describes the latest state |
+| `skills/` | Omen-local skills only. The shared skill library lives in the Slops-OS repository |
+| `quality/` | Quality baseline snapshot |
+| `audits/` | Code reviews and audits, mostly from the 2026 web phase. Historical |
+| `backlog/`, `done/` | Older web component backlog and done ledgers. Historical; do not append |
 
-- `handoffs/` - frontend/backend coordination and shared engineering decisions.
-- `prompts/` - Omen-specific runnable prompts.
-- `specs/` - Omen product, UX, backend, and implementation-neutral specs.
-- `playbooks/` - Omen operational or workflow playbooks.
-- `skills/` - product-local skills only when they are Omen-specific.
-
-Global SLOPS skills live at:
-
-```text
-..\..\Blueprints\skills\
-```
-
-Division-level blueprints live at:
-
-```text
-..\Blueprints\
-```
+Global skills and doctrine live in the separate `Slops-OS` repository (`Blueprints/skills/`). Division-level
+blueprints live in the Slops Saloon layer.

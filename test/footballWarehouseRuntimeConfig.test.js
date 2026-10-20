@@ -33,20 +33,37 @@ test("configuration failures name constraints but never disclose the secret", ()
   const failures = [
     () => connectionStringFromFile({}, safeFileSystem),
     () => connectionStringFromFile({ FOOTBALL_WAREHOUSE_DATABASE_URL_FILE: "relative" }, safeFileSystem),
-    () => connectionStringFromFile({ FOOTBALL_WAREHOUSE_DATABASE_URL_FILE: "/secret" }, {
-      ...safeFileSystem, statSync: () => ({ isFile: () => true, size: secret.length, mode: 0o100404 }),
-    }),
-    () => connectionStringFromFile({ FOOTBALL_WAREHOUSE_DATABASE_URL_FILE: "/secret" }, {
-      ...safeFileSystem, readFileSync: () => "mysql://warehouse:do-not-print@warehouse.internal/football",
-    }),
+    () =>
+      connectionStringFromFile(
+        { FOOTBALL_WAREHOUSE_DATABASE_URL_FILE: "/secret" },
+        {
+          ...safeFileSystem,
+          statSync: () => ({ isFile: () => true, size: secret.length, mode: 0o100404 }),
+        },
+      ),
+    () =>
+      connectionStringFromFile(
+        { FOOTBALL_WAREHOUSE_DATABASE_URL_FILE: "/secret" },
+        {
+          ...safeFileSystem,
+          readFileSync: () => "mysql://warehouse:do-not-print@warehouse.internal/football",
+        },
+      ),
   ];
   for (const run of failures) {
     assert.throws(run, (error) => !String(error).includes("do-not-print"));
   }
-  assert.throws(() => connectionStringFromFile({ FOOTBALL_WAREHOUSE_DATABASE_URL_FILE: "/secret" }, {
-    ...safeFileSystem,
-    readFileSync: () => `${secret}?sslmode=disable`,
-  }), /must not override/);
+  assert.throws(
+    () =>
+      connectionStringFromFile(
+        { FOOTBALL_WAREHOUSE_DATABASE_URL_FILE: "/secret" },
+        {
+          ...safeFileSystem,
+          readFileSync: () => `${secret}?sslmode=disable`,
+        },
+      ),
+    /must not override/,
+  );
 });
 
 test("bounds every pool and acquisition setting", () => {
@@ -55,10 +72,14 @@ test("bounds every pool and acquisition setting", () => {
     FOOTBALL_WAREHOUSE_CONNECTION_TIMEOUT_MS: "999",
   };
   assert.throws(() => parseWarehouseRuntimeConfig({ env, fileSystem: safeFileSystem }), /1000 through 30000/);
-  assert.throws(() => parseWarehouseRuntimeConfig({
-    env: { ...env, FOOTBALL_WAREHOUSE_CONNECTION_TIMEOUT_MS: "1000", FOOTBALL_WAREHOUSE_POOL_MAX: "5" },
-    fileSystem: safeFileSystem,
-  }), /1 through 4/);
+  assert.throws(
+    () =>
+      parseWarehouseRuntimeConfig({
+        env: { ...env, FOOTBALL_WAREHOUSE_CONNECTION_TIMEOUT_MS: "1000", FOOTBALL_WAREHOUSE_POOL_MAX: "5" },
+        fileSystem: safeFileSystem,
+      }),
+    /1 through 4/,
+  );
 });
 
 test("validate-only configuration does not require or read a database secret", () => {

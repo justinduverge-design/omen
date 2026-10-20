@@ -1,9 +1,9 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import path from 'node:path';
-import { findCoverage } from '../scripts/check-canvas-contract-coverage.mjs';
+import test from "node:test";
+import assert from "node:assert/strict";
+import path from "node:path";
+import { findCoverage } from "../scripts/check-canvas-contract-coverage.mjs";
 
-test('visual-lock canvas has a one-to-one contract inventory', () => {
+test("visual-lock canvas has a one-to-one contract inventory", () => {
   const coverage = findCoverage();
   assert.equal(coverage.artboards.length, 35);
   assert.equal(coverage.contracts.length, 35);
@@ -18,11 +18,11 @@ test('visual-lock canvas has a one-to-one contract inventory', () => {
   assert.deepEqual(coverage.invalidScreens, []);
 });
 
-test('coverage checker reports an isolated complete fixture', () => {
+test("coverage checker reports an isolated complete fixture", () => {
   const coverage = findCoverage({
-    canvasDir: path.resolve('test/fixtures/canvas-contract-coverage/canvas'),
-    contractsDir: path.resolve('test/fixtures/canvas-contract-coverage/contracts'),
-    requirementsPath: path.resolve('test/fixtures/canvas-contract-coverage/requirements.json'),
+    canvasDir: path.resolve("test/fixtures/canvas-contract-coverage/canvas"),
+    contractsDir: path.resolve("test/fixtures/canvas-contract-coverage/contracts"),
+    requirementsPath: path.resolve("test/fixtures/canvas-contract-coverage/requirements.json"),
   });
   assert.deepEqual(coverage.missingContracts, []);
   assert.deepEqual(coverage.orphanContracts, []);

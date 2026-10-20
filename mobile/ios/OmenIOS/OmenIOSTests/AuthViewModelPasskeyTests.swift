@@ -89,7 +89,10 @@ final class AuthViewModelPasskeyTests: XCTestCase {
         XCTAssertEqual(provider.registrationOptions, repository.registrationOptions)
         XCTAssertEqual(repository.registrationChallengeID, repository.registrationOptions.challengeID)
         XCTAssertEqual(repository.registrationCredential?.credentialID, "credential-id")
-        XCTAssertEqual(viewModel.passkeyManagementState, .idle)
+        XCTAssertEqual(
+            viewModel.passkeyManagementState,
+            .succeeded("Passkey added. You can use it the next time you sign in.")
+        )
     }
 
     private func makeViewModel(provider: PasskeyProvider) -> AuthViewModel {

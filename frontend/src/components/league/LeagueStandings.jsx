@@ -58,9 +58,7 @@ function StandingsTable({ standings, postWinActive = false }) {
                   style={{ color: row.is_current_user ? 'var(--color-accent)' : 'var(--color-text-primary)' }}
                 >
                   {row.team_name}
-                  {row.is_current_user && (
-                    <span className="ml-1.5 font-mono text-[10px] opacity-60">you</span>
-                  )}
+                  {row.is_current_user && <span className="ml-1.5 font-mono text-[10px] opacity-60">you</span>}
                 </span>
               </td>
               <td
@@ -69,10 +67,7 @@ function StandingsTable({ standings, postWinActive = false }) {
               >
                 {row.wins}–{row.losses}
               </td>
-              <td
-                className="py-2.5 font-mono text-xs tabular-nums"
-                style={{ color: 'var(--color-text-secondary)' }}
-              >
+              <td className="py-2.5 font-mono text-xs tabular-nums" style={{ color: 'var(--color-text-secondary)' }}>
                 {row.points_for != null ? row.points_for.toFixed(1) : '—'}
               </td>
             </tr>
@@ -89,7 +84,7 @@ function SkeletonTable() {
       {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
         <div
           key={i}
-          className="h-9 animate-pulse motion-reduce:animate-none rounded"
+          className="h-9 animate-pulse motion-reduce:animate-none rounded-sm"
           style={{ background: 'var(--color-surface-2)' }}
         />
       ))}
@@ -115,7 +110,9 @@ export default function LeagueStandings({ postWinActive = false }) {
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const isDisconnected = errorCode === 'league_not_connected';
   const isReconnect = errorCode && errorCode.endsWith('_reconnect_required');
@@ -176,11 +173,14 @@ export default function LeagueStandings({ postWinActive = false }) {
     >
       <button
         type="button"
-        className="flex w-full items-center justify-between px-4 py-3 transition-colors hover:bg-[var(--color-surface-2)]"
+        className="flex w-full items-center justify-between px-4 py-3 transition-colors hover:bg-(--color-surface-2)"
         onClick={() => setCollapsed((v) => !v)}
       >
         <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-tertiary)' }}>
+          <span
+            className="text-xs font-semibold uppercase tracking-widest"
+            style={{ color: 'var(--color-text-tertiary)' }}
+          >
             League Standings
           </span>
           {data && (

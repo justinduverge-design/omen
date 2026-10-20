@@ -2,18 +2,18 @@
   "http_status": 200,
   "route": "/api/trade/compare",
   "body": {
-    "a_score": 0.5,
+    "a_score": -10.5,
     "analysis_context": {
       "applied": [],
       "league_id": null,
       "league_name": null,
       "mode": "neutral",
       "platform": null,
-      "unavailable_reason": "no_connected_league"
+      "unavailable_reason": null
     },
-    "b_score": 0,
-    "combined_score": 0.5,
-    "confidence": "medium",
+    "b_score": -1,
+    "combined_score": -11.1,
+    "confidence": "low",
     "contract_version": "trade-compare.v2",
     "decision_context": {
       "contract_version": "shared-decision-context.v1",
@@ -25,10 +25,10 @@
           "used": false
         },
         "projections": {
-          "observed_at": "2026-01-01T00:00:00.000Z",
+          "reason_code": "projection_incomplete",
           "source": "resolved_player_inputs",
-          "state": "live",
-          "used": true
+          "state": "unavailable",
+          "used": false
         },
         "roster": {
           "reason_code": "roster_context_not_used",
@@ -49,14 +49,17 @@
           "used": false
         }
       },
-      "inputs_used": [
-        "projections"
-      ],
+      "inputs_used": [],
       "limitations": [
         {
           "name": "league_scoring",
           "reason_code": "league_scoring_not_used",
           "state": "not_requested"
+        },
+        {
+          "name": "projections",
+          "reason_code": "projection_incomplete",
+          "state": "unavailable"
         },
         {
           "name": "roster",
@@ -78,24 +81,93 @@
     },
     "depth_discounted": false,
     "evaluability": {
-      "missing_projection_count": 0,
-      "reason": null,
-      "status": "evaluable",
+      "missing_projection_count": 1,
+      "reason": "missing_projections",
+      "status": "insufficient_data",
       "total_player_count": 2
     },
     "explanation": null,
+    "forward_horizons": {
+      "next_4": {
+        "reason": "forward_projection_curve_unavailable",
+        "status": "unavailable",
+        "value": null
+      },
+      "season": {
+        "reason": "forward_projection_curve_unavailable",
+        "status": "unavailable",
+        "value": null
+      },
+      "unit": "player_projection_points_per_week",
+      "week": {
+        "reason": "weekly_projection_unavailable",
+        "status": "unavailable",
+        "value": null
+      }
+    },
     "generated_at": "2026-01-01T00:00:00.000Z",
-    "net_value": 0.5,
+    "net_value": -10.5,
     "receive": {
+      "missing_projection_count": 1,
+      "player_count": 1,
+      "players": [
+        {
+          "adjusted_projection": 0,
+          "confidence": "low",
+          "name": "Unknown RB",
+          "notes": [
+            "missing_projection"
+          ],
+          "player_key": "test:0:Unknown RB",
+          "position": "RB",
+          "projected_points": null,
+          "replacement_level": 6.5,
+          "scarcity_bonus": -0.5,
+          "status": null,
+          "tier": "replaceable",
+          "value": -6.5
+        }
+      ],
+      "scarcity_details": [
+        {
+          "name": "Unknown RB",
+          "position": "RB",
+          "tier": "replaceable",
+          "vorp": -6.5
+        }
+      ],
+      "total_value": -6.5
+    },
+    "scarcity_analysis": {
+      "receive": [
+        {
+          "name": "Unknown RB",
+          "position": "RB",
+          "tier": "replaceable",
+          "vorp": -6.5
+        }
+      ],
+      "send": [
+        {
+          "name": "Known WR",
+          "position": "WR",
+          "tier": "starter",
+          "vorp": 4
+        }
+      ],
+      "summary": "You are sending a starter-tier WR for a replaceable-tier RB."
+    },
+    "scoring_format": "ppr",
+    "send": {
       "missing_projection_count": 0,
       "player_count": 1,
       "players": [
         {
           "adjusted_projection": 12,
           "confidence": "medium",
-          "name": "WR B",
+          "name": "Known WR",
           "notes": [],
-          "player_key": "test:0:WR B",
+          "player_key": "test:0:Known WR",
           "position": "WR",
           "projected_points": 12,
           "replacement_level": 8,
@@ -107,7 +179,7 @@
       ],
       "scarcity_details": [
         {
-          "name": "WR B",
+          "name": "Known WR",
           "position": "WR",
           "tier": "starter",
           "vorp": 4
@@ -115,56 +187,12 @@
       ],
       "total_value": 4
     },
-    "scarcity_analysis": {
-      "receive": [
-        {
-          "name": "WR B",
-          "position": "WR",
-          "tier": "starter",
-          "vorp": 4
-        }
-      ],
-      "send": [
-        {
-          "name": "RB A",
-          "position": "RB",
-          "tier": "starter",
-          "vorp": 3.5
-        }
-      ],
-      "summary": "You are sending a starter-tier RB for a starter-tier WR."
+    "the_catch": {
+      "reason": "roster_depth_not_available",
+      "statement": null,
+      "status": "unavailable"
     },
-    "scoring_format": "ppr",
-    "send": {
-      "missing_projection_count": 0,
-      "player_count": 1,
-      "players": [
-        {
-          "adjusted_projection": 10,
-          "confidence": "medium",
-          "name": "RB A",
-          "notes": [],
-          "player_key": "test:0:RB A",
-          "position": "RB",
-          "projected_points": 10,
-          "replacement_level": 6.5,
-          "scarcity_bonus": 0.5,
-          "status": null,
-          "tier": "starter",
-          "value": 3.5
-        }
-      ],
-      "scarcity_details": [
-        {
-          "name": "RB A",
-          "position": "RB",
-          "tier": "starter",
-          "vorp": 3.5
-        }
-      ],
-      "total_value": 3.5
-    },
-    "verdict": "neutral",
-    "verdict_state": "close_needs_context"
+    "verdict": "decline",
+    "verdict_state": "insufficient_data"
   }
 }

@@ -35,9 +35,7 @@ class FakeQuery {
   }
 
   applyFilters() {
-    return this.rows.filter((row) =>
-      this.filters.every(({ field, value }) => row[field] === value)
-    );
+    return this.rows.filter((row) => this.filters.every(({ field, value }) => row[field] === value));
   }
 }
 
@@ -78,10 +76,12 @@ function loadDashboardRouter({
     }
     if (request === "../middleware/auth" && parent?.filename === routePath) {
       return {
-        requireAuth: requireAuth || ((req, _res, next) => {
-          req.user = { id: "test-user" };
-          next();
-        }),
+        requireAuth:
+          requireAuth ||
+          ((req, _res, next) => {
+            req.user = { id: "test-user" };
+            next();
+          }),
       };
     }
     if (request === "../middleware/logging" && parent?.filename === routePath) {
@@ -89,20 +89,22 @@ function loadDashboardRouter({
     }
     if (request === "../services/nflSchedule" && parent?.filename === routePath) {
       return {
-        getCurrentNflWeekContext: () => context || {
-          season: 2026,
-          week: 1,
-          season_type: "regular",
-        },
+        getCurrentNflWeekContext: () =>
+          context || {
+            season: 2026,
+            week: 1,
+            season_type: "regular",
+          },
         // Fixed rather than "now": a headline that rotates with the real calendar would make
         // these assertions pass or fail depending on the weekday the suite runs.
-        getNflGameWeek: () => gameWeek || {
-          season: 2026,
-          week: 1,
-          phase: "live",
-          day: "sunday",
-          is_off_season: false,
-        },
+        getNflGameWeek: () =>
+          gameWeek || {
+            season: 2026,
+            week: 1,
+            phase: "live",
+            day: "sunday",
+            is_off_season: false,
+          },
         isOffSeason: () => offSeason,
         // The six user-facing gates now call suppressLiveFootballData(). Mirroring the
         // same flag keeps these cases testing the suppressed path, which is what
@@ -112,36 +114,46 @@ function loadDashboardRouter({
     }
     if (request === "../services/yahooAuth" && parent?.filename === routePath) {
       return {
-        getAuthenticatedYahooClient: getAuthenticatedYahooClient || (async () => ({
-          client: {
-            getMyTeamKey: async () => "449.l.123.t.7",
-          },
-        })),
+        getAuthenticatedYahooClient:
+          getAuthenticatedYahooClient ||
+          (async () => ({
+            client: {
+              getMyTeamKey: async () => "449.l.123.t.7",
+            },
+          })),
       };
     }
     if (request === "../services/espnAuth" && parent?.filename === routePath) {
       return {
-        getAuthenticatedEspnCredentials: getAuthenticatedEspnCredentials || (async () => ({
-          espn_s2: "espn-cookie-secret",
-          swid: "{swid-secret}",
-        })),
+        getAuthenticatedEspnCredentials:
+          getAuthenticatedEspnCredentials ||
+          (async () => ({
+            espn_s2: "espn-cookie-secret",
+            swid: "{swid-secret}",
+          })),
       };
     }
     if (request === "../adapters/sleeper" && parent?.filename === routePath) {
-      return sleeperAdapter || {
-        fetchSleeperUser: async () => ({ user_id: "sleeper-user-1" }),
-        fetchSleeperLastResult: async () => null,
-      };
+      return (
+        sleeperAdapter || {
+          fetchSleeperUser: async () => ({ user_id: "sleeper-user-1" }),
+          fetchSleeperLastResult: async () => null,
+        }
+      );
     }
     if (request === "../adapters/yahoo" && parent?.filename === routePath) {
-      return yahooAdapter || {
-        fetchYahooLastResult: async () => null,
-      };
+      return (
+        yahooAdapter || {
+          fetchYahooLastResult: async () => null,
+        }
+      );
     }
     if (request === "../adapters/espn" && parent?.filename === routePath) {
-      return espnAdapter || {
-        fetchEspnLastResult: async () => null,
-      };
+      return (
+        espnAdapter || {
+          fetchEspnLastResult: async () => null,
+        }
+      );
     }
     return originalLoad.call(this, request, parent, isMain);
   };
@@ -209,12 +221,8 @@ test("GET /api/dashboard/summary returns platform-aware tool summary", async () 
         platform_username: "sleepy",
       },
     ],
-    userRows: [
-      { id: "test-user" },
-    ],
-    profileRows: [
-      { user_id: "test-user", favorite_team: "KC" },
-    ],
+    userRows: [{ id: "test-user" }],
+    profileRows: [{ user_id: "test-user", favorite_team: "KC" }],
   });
 
   const res = await request(app, "/api/dashboard/summary", {
@@ -257,34 +265,40 @@ test("GET /api/dashboard/summary returns platform-aware tool summary", async () 
     mode: "free",
     status: "ready",
   });
-  assert.deepEqual(res.body.capabilities.map((capability) => ({
-    name: capability.name,
-    state: capability.state,
-    used: capability.used,
-    kind: capability.kind,
-    source: capability.source,
-    reason_code: capability.reason_code,
-  })), [
-    {
-      name: "game_week",
-      state: "live",
-      used: false,
-      kind: "verified",
-      source: "nfl_game_week",
-      reason_code: undefined,
-    },
-    {
-      name: "selected_context",
-      state: "live",
-      used: false,
-      kind: "verified",
-      source: "platform_connections",
-      reason_code: undefined,
-    },
-  ]);
+  assert.deepEqual(
+    res.body.capabilities.map((capability) => ({
+      name: capability.name,
+      state: capability.state,
+      used: capability.used,
+      kind: capability.kind,
+      source: capability.source,
+      reason_code: capability.reason_code,
+    })),
+    [
+      {
+        name: "game_week",
+        state: "live",
+        used: false,
+        kind: "verified",
+        source: "nfl_game_week",
+        reason_code: undefined,
+      },
+      {
+        name: "selected_context",
+        state: "live",
+        used: false,
+        kind: "verified",
+        source: "platform_connections",
+        reason_code: undefined,
+      },
+    ],
+  );
   assert.ok(Number.isFinite(Date.parse(res.body.generated_at)));
-  assert.ok(res.body.capabilities.every((capability) => capability.observed_at === null
-    || Number.isFinite(Date.parse(capability.observed_at))));
+  assert.ok(
+    res.body.capabilities.every(
+      (capability) => capability.observed_at === null || Number.isFinite(Date.parse(capability.observed_at)),
+    ),
+  );
   const serialized = JSON.stringify(res.body.capabilities);
   assert.ok(!serialized.includes("secret-id"));
   assert.ok(!serialized.includes("449.l.123"));
@@ -358,9 +372,7 @@ test("GET /api/dashboard/summary marks expired Yahoo OAuth token for reconnect U
         token_expires_at: "2000-01-01T00:00:00.000Z",
       },
     ],
-    userRows: [
-      { id: "test-user" },
-    ],
+    userRows: [{ id: "test-user" }],
   });
 
   const res = await request(app, "/api/dashboard/summary", {
@@ -398,9 +410,7 @@ test("GET /api/dashboard/summary marks Omen pending and waiver needing platform 
         platform_username: "sleepy",
       },
     ],
-    userRows: [
-      { id: "test-user" },
-    ],
+    userRows: [{ id: "test-user" }],
   });
 
   const res = await request(app, "/api/dashboard/summary", {
@@ -431,9 +441,7 @@ test("GET /api/dashboard/summary marks Omen ready for subscribed Sleeper users w
         platform_username: "sleepy",
       },
     ],
-    userRows: [
-      { id: "test-user" },
-    ],
+    userRows: [{ id: "test-user" }],
   });
 
   const res = await request(app, "/api/dashboard/summary", {
@@ -465,9 +473,7 @@ test("GET /api/dashboard/summary marks Omen off-season for subscribed users with
         platform_username: "sleepy",
       },
     ],
-    userRows: [
-      { id: "test-user" },
-    ],
+    userRows: [{ id: "test-user" }],
   });
 
   const res = await request(app, "/api/dashboard/summary", {
@@ -495,9 +501,7 @@ test("GET /api/dashboard/summary applies Sleeper last-result enrichment", async 
         platform_user_id: "sleeper-user-1",
       },
     ],
-    userRows: [
-      { id: "test-user" },
-    ],
+    userRows: [{ id: "test-user" }],
     sleeperAdapter: {
       fetchSleeperLastResult: async (opts) => {
         assert.deepEqual(opts, {
@@ -541,9 +545,7 @@ test("GET /api/dashboard/summary marks Omen ready for subscribed ESPN users with
         swid_secret_id: "swid-secret",
       },
     ],
-    userRows: [
-      { id: "test-user" },
-    ],
+    userRows: [{ id: "test-user" }],
   });
 
   const res = await request(app, "/api/dashboard/summary", {
@@ -582,9 +584,7 @@ test("GET /api/dashboard/summary doesn't hang when a platform last-result lookup
         platform_user_id: "sleeper-user-1",
       },
     ],
-    userRows: [
-      { id: "test-user" },
-    ],
+    userRows: [{ id: "test-user" }],
     sleeperAdapter: {
       fetchSleeperLastResult: () => new Promise(() => {}),
     },
@@ -616,9 +616,7 @@ test("GET /api/dashboard/summary omits subscription entirely now that Omen is fr
         token_expires_at: "2999-01-01T00:00:00.000Z",
       },
     ],
-    userRows: [
-      { id: "test-user" },
-    ],
+    userRows: [{ id: "test-user" }],
   });
 
   const res = await request(app, "/api/dashboard/summary", {
@@ -651,10 +649,12 @@ test("GET /api/dashboard/summary does not advertise Draft Assistant", async () =
   });
 
   assert.equal(res.status, 200);
-  assert.equal(res.body.tools.draft_assistant, undefined,
-    "draft_assistant must not appear in the advertised tool list");
-  assert.ok(!Object.keys(res.body.tools).some((key) => /draft/i.test(key)),
-    "no tool key may reference the draft");
+  assert.equal(
+    res.body.tools.draft_assistant,
+    undefined,
+    "draft_assistant must not appear in the advertised tool list",
+  );
+  assert.ok(!Object.keys(res.body.tools).some((key) => /draft/i.test(key)), "no tool key may reference the draft");
   // The tools that ARE in 1.0 must be untouched by the removal.
   assert.equal(res.body.tools.trade_analyzer.status, "ready");
   assert.equal(res.body.tools.start_sit.status, "ready");
@@ -669,10 +669,17 @@ test("GET /api/dashboard/summary is cached per user and invalidated by connectio
     let lookups = 0;
     const sleeperAdapter = {
       fetchSleeperUser: async () => ({ user_id: "u1" }),
-      fetchSleeperLastResult: async () => { lookups += 1; return null; },
+      fetchSleeperLastResult: async () => {
+        lookups += 1;
+        return null;
+      },
     };
     const sleeperRow = (userId, league) => ({
-      user_id: userId, platform: "sleeper", is_active: true, platform_username: "sleepy", league_id: league,
+      user_id: userId,
+      platform: "sleeper",
+      is_active: true,
+      platform_username: "sleepy",
+      league_id: league,
     });
     const context = { season: 2026, week: 5, season_type: "regular" };
     async function getAs(userId, rows) {
@@ -680,12 +687,17 @@ test("GET /api/dashboard/summary is cached per user and invalidated by connectio
         context,
         sleeperAdapter,
         platformRows: rows,
-        requireAuth: (req, _res, next) => { req.user = { id: userId }; next(); },
+        requireAuth: (req, _res, next) => {
+          req.user = { id: userId };
+          next();
+        },
       });
       const server = http.createServer(app);
       await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
       try {
-        const res = await fetch(`http://127.0.0.1:${server.address().port}/api/dashboard/summary`, { headers: { "x-contract-record": "skip" } });
+        const res = await fetch(`http://127.0.0.1:${server.address().port}/api/dashboard/summary`, {
+          headers: { "x-contract-record": "skip" },
+        });
         return { cache: res.headers.get("x-omen-cache"), body: await res.json() };
       } finally {
         await new Promise((resolve) => server.close(resolve));
@@ -721,17 +733,26 @@ test("cached dashboard summaries never cross users, even with identical connecti
   responseCache.setStoreForTests(responseCache.createMemoryResponseCacheStore());
   try {
     const row = (userId) => ({
-      user_id: userId, platform: "sleeper", is_active: true, platform_username: `name-${userId}`, league_id: "SAME",
+      user_id: userId,
+      platform: "sleeper",
+      is_active: true,
+      platform_username: `name-${userId}`,
+      league_id: "SAME",
     });
     const get = async (userId) => {
       const app = buildApp({
         platformRows: [row(userId)],
-        requireAuth: (req, _res, next) => { req.user = { id: userId }; next(); },
+        requireAuth: (req, _res, next) => {
+          req.user = { id: userId };
+          next();
+        },
       });
       const server = http.createServer(app);
       await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
       try {
-        const res = await fetch(`http://127.0.0.1:${server.address().port}/api/dashboard/summary`, { headers: { "x-contract-record": "skip" } });
+        const res = await fetch(`http://127.0.0.1:${server.address().port}/api/dashboard/summary`, {
+          headers: { "x-contract-record": "skip" },
+        });
         return { cache: res.headers.get("x-omen-cache"), body: await res.json() };
       } finally {
         await new Promise((resolve) => server.close(resolve));

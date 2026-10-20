@@ -21,7 +21,10 @@ function withoutYamlComments(contents) {
 test("warehouse PostgreSQL is internal-only and bounded", () => {
   const compose = withoutYamlComments(read("infra", "warehouse", "docker-compose.yml"));
 
-  assert.match(compose, /image:\s+postgres:17\.11-bookworm@sha256:91eb910c44c7ed13f7f1a4ccadaa9ca72ef14cddc04cacb6e070e48eb44731a3$/m);
+  assert.match(
+    compose,
+    /image:\s+postgres:17\.11-bookworm@sha256:91eb910c44c7ed13f7f1a4ccadaa9ca72ef14cddc04cacb6e070e48eb44731a3$/m,
+  );
   assert.match(compose, /POSTGRES_DB:\s*omen_football/);
   assert.match(compose, /pg_isready\s+-U\s+postgres\s+-d\s+omen_football/);
   assert.match(compose, /checksum='27fb1e8dd4a5167ffc27660f165f326e7c9a6e3b4aaf2e04ec16ec4e55448f1c'/);
@@ -38,7 +41,11 @@ test("warehouse PostgreSQL is internal-only and bounded", () => {
 
 test("warehouse ingest worker is exact-commit built and deployed only by digest", () => {
   const compose = withoutYamlComments(read("infra", "warehouse", "docker-compose.yml"));
-  assert.match(compose, /FOOTBALL_WAREHOUSE_DERIVED_ENABLED:\s*"true"/, "release runs the opportunity and RAT-QB stages after ingest");
+  assert.match(
+    compose,
+    /FOOTBALL_WAREHOUSE_DERIVED_ENABLED:\s*"true"/,
+    "release runs the opportunity and RAT-QB stages after ingest",
+  );
   assert.match(compose, /NODE_OPTIONS:\s*--max-old-space-size=3072/, "full historical seasons need a 3 GB heap");
   assert.match(compose, /mem_limit:\s*4g/, "ingest container must be bounded above its heap");
   const dockerfile = read("Dockerfile.warehouse-ingest");
@@ -125,8 +132,11 @@ test("production verification is read-only and enters only the fixed private con
   assert.match(sql, /begin transaction read only;/i);
   assert.match(sql, /VERIFIED production football warehouse read-only/);
   assert.doesNotMatch(sql, /^\s*(?:insert|update|delete|truncate|alter|create|drop|grant|revoke)\b/im);
-  assert.match(fixture, /insert into football\.warehouse_ingest_events/i,
-    "the destructive local fixture remains visibly separate from production verification");
+  assert.match(
+    fixture,
+    /insert into football\.warehouse_ingest_events/i,
+    "the destructive local fixture remains visibly separate from production verification",
+  );
 });
 
 test("LOGIN provisioning uses an explicit host-secret and private-container admin boundary", () => {
@@ -141,8 +151,11 @@ test("LOGIN provisioning uses an explicit host-secret and private-container admi
   assert.match(provision, /container="omen_football_warehouse"/);
   assert.match(provision, /psql_admin=\(docker exec --interactive "\$container" psql/);
   assert.match(provision, /cat > "\$probe"/);
-  assert.doesNotMatch(provision, /docker exec[^\n]*(?:PGPASSWORD|password=[^'"\s]+)/i,
-    "credentials must not be placed in Docker argv or environment variables");
+  assert.doesNotMatch(
+    provision,
+    /docker exec[^\n]*(?:PGPASSWORD|password=[^'"\s]+)/i,
+    "credentials must not be placed in Docker argv or environment variables",
+  );
 });
 
 test("unsafe preparation scripts fail closed until their proven replacements exist", () => {

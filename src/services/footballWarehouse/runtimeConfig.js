@@ -31,9 +31,18 @@ function connectionStringFromFile(env, { readFileSync = fs.readFileSync, statSyn
   if ((stat.mode & 0o007) !== 0) throw new TypeError(`${key} must not be accessible by other users`);
   const value = String(readFileSync(file, "utf8")).trim();
   let parsed;
-  try { parsed = new URL(value); } catch { throw new TypeError(`${key} must contain a valid PostgreSQL URL`); }
-  if (!["postgres:", "postgresql:"].includes(parsed.protocol) || !parsed.hostname || !parsed.pathname.slice(1)
-      || !parsed.username || !parsed.password) {
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new TypeError(`${key} must contain a valid PostgreSQL URL`);
+  }
+  if (
+    !["postgres:", "postgresql:"].includes(parsed.protocol) ||
+    !parsed.hostname ||
+    !parsed.pathname.slice(1) ||
+    !parsed.username ||
+    !parsed.password
+  ) {
     throw new TypeError(`${key} must contain a complete PostgreSQL URL`);
   }
   for (const name of ["sslmode", "sslcert", "sslkey", "sslrootcert"]) {

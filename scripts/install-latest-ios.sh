@@ -8,21 +8,35 @@
 #
 #   ./scripts/install-latest-ios.sh
 #
-# Requirements: the iPhone paired and unlocked, Xcode signed in to team 6RWR5G9894.
+# Requirements: the iPhone paired and unlocked, Xcode signed in to team 6RWR5G9894,
+# and this checkout's ignored Config/Local.xcconfig present.
 # This installs a DEVELOPMENT build directly. It is not TestFlight and does not reach any
 # other tester — see the note at the bottom.
 set -euo pipefail
 
 DEVICE="${OMEN_IOS_DEVICE_ID:-}"
 PROJECT="mobile/ios/OmenIOS/OmenIOS.xcodeproj"
-DERIVED="${TMPDIR:-/tmp}/omen-device-install"
 BUNDLE="com.slopssaloon.omen"
 
-cd "$(git rev-parse --show-toplevel)/slops-saloon/omen" 2>/dev/null || cd "$(dirname "$0")/.."
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd -P)"
+cd "$REPO_ROOT"
+
+BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+COMMIT="$(git rev-parse --short=12 HEAD)"
+DERIVED="${TMPDIR:-/tmp}/omen-device-install-$COMMIT"
+LOCAL_CONFIG="mobile/ios/OmenIOS/Config/Local.xcconfig"
+
+if [ ! -f "$LOCAL_CONFIG" ]; then
+  echo "Refusing to build a misleading provider-disabled app." >&2
+  echo "Missing: $REPO_ROOT/$LOCAL_CONFIG" >&2
+  echo "Create the ignored local config for this checkout, then retry." >&2
+  exit 1
+fi
 
 if [ -z "$DEVICE" ]; then
   DEVICE=$(xcrun devicectl list devices 2>/dev/null \
-    | awk '/available \(paired\)/ {print $3; exit}')
+    | grep 'available (paired)' | grep -Eo '[0-9A-Fa-f]{8}-[0-9A-Fa-f]{16}|[0-9A-F]{8}-([0-9A-F]{4}-){3}[0-9A-F]{12}' | head -1 || true)
 fi
 
 if [ -z "$DEVICE" ]; then
@@ -32,7 +46,9 @@ if [ -z "$DEVICE" ]; then
 fi
 
 echo "==> Device:  $DEVICE"
-echo "==> Commit:  $(git rev-parse --short HEAD)  ($(git rev-parse --abbrev-ref HEAD))"
+echo "==> Root:    $REPO_ROOT"
+echo "==> Commit:  $COMMIT  ($BRANCH)"
+echo "==> Derived: $DERIVED"
 
 # Refuse to install something that is not what the repo says it is. A build from a dirty tree
 # is not "the latest version" — it is one nobody can reproduce or point a finding at.
@@ -42,19 +58,32 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
 fi
 
 echo "==> Building…"
-xcodebuild -project "$PROJECT" -scheme OmenIOS \
+BUILD_LOG="$(mktemp -t omen-ios-build.XXXXXX)"
+trap 'rm -f "$BUILD_LOG"' EXIT
+if ! xcodebuild -project "$PROJECT" -scheme OmenIOS \
   -destination 'generic/platform=iOS' -configuration Debug \
-  -derivedDataPath "$DERIVED" build \
-  | grep -E "error:|warning: .*(deprecated|signing)|\*\* BUILD" || true
+  -derivedDataPath "$DERIVED" build >"$BUILD_LOG" 2>&1; then
+  grep -E "error:|warning:|\*\* BUILD" "$BUILD_LOG" >&2 || tail -80 "$BUILD_LOG" >&2
+  exit 1
+fi
+grep -E "warning: .*(deprecated|signing)|\*\* BUILD" "$BUILD_LOG" || true
 
-APP=$(find "$DERIVED" -name "Omen.app" -path "*iphoneos*" -type d | head -1)
-[ -n "$APP" ] || { echo "Build produced no app bundle." >&2; exit 1; }
+APP="$DERIVED/Build/Products/Debug-iphoneos/Omen.app"
+[ -d "$APP" ] || { echo "Build produced no app bundle at $APP." >&2; exit 1; }
+
+BUILT_BUNDLE=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist")
+BUILT_VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Info.plist")
+[ "$BUILT_BUNDLE" = "$BUNDLE" ] || {
+  echo "Built bundle mismatch: expected $BUNDLE, got $BUILT_BUNDLE." >&2
+  exit 1
+}
+echo "==> Artifact: $BUILT_BUNDLE build $BUILT_VERSION from $COMMIT ($BRANCH)"
 
 echo "==> Installing…"
 xcrun devicectl device install app --device "$DEVICE" "$APP" >/dev/null
 xcrun devicectl device process launch --device "$DEVICE" "$BUNDLE" >/dev/null
 
-echo "==> Installed and launched: $(git rev-parse --short HEAD)"
+echo "==> Installed and launched: $COMMIT ($BRANCH), app build $BUILT_VERSION"
 echo
 echo "This is a DEVELOPMENT build on one device. It is NOT TestFlight:"
 echo "  - no other tester receives it"

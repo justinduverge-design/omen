@@ -84,10 +84,14 @@ test("Trade reports a three-team ceiling and never silently drops or invents a f
   assert.equal(capabilities.body.max_teams, 3);
   assert.equal(capabilities.body.three_team.supported, true);
   for (const platform of ["espn", "yahoo", "sleeper"]) {
-    const res = await request(app, { body: {
-      send: [{ name: "A" }], receive: [{ name: "B" }],
-      teams: [{ id: 1 }, { id: 2 }, { id: 3 }], league_context: { platform },
-    } });
+    const res = await request(app, {
+      body: {
+        send: [{ name: "A" }],
+        receive: [{ name: "B" }],
+        teams: [{ id: 1 }, { id: 2 }, { id: 3 }],
+        league_context: { platform },
+      },
+    });
     assert.equal(res.status, 422);
     assert.equal(res.body.error, "multi_team_trade_unsupported");
   }
@@ -100,9 +104,25 @@ test("POST /api/trade/compare evaluates a three-team ring trade with every parti
   const res = await request(app, {
     body: {
       legs: [
-        { from: "you", to: "team_b", to_name: "Davante's Inferno", players: [{ name: "Jonathan Taylor", position: "RB", projected_points: 18 }] },
-        { from: "team_b", to: "team_c", from_name: "Davante's Inferno", to_name: "Chubb Rock", players: [{ name: "Ja'Marr Chase", position: "WR", projected_points: 20 }] },
-        { from: "team_c", to: "you", from_name: "Chubb Rock", players: [{ name: "Tyjae Spears", position: "RB", projected_points: 12 }] },
+        {
+          from: "you",
+          to: "team_b",
+          to_name: "Davante's Inferno",
+          players: [{ name: "Jonathan Taylor", position: "RB", projected_points: 18 }],
+        },
+        {
+          from: "team_b",
+          to: "team_c",
+          from_name: "Davante's Inferno",
+          to_name: "Chubb Rock",
+          players: [{ name: "Ja'Marr Chase", position: "WR", projected_points: 20 }],
+        },
+        {
+          from: "team_c",
+          to: "you",
+          from_name: "Chubb Rock",
+          players: [{ name: "Tyjae Spears", position: "RB", projected_points: 12 }],
+        },
       ],
     },
   });
@@ -122,8 +142,9 @@ test("POST /api/trade/compare evaluates a three-team ring trade with every parti
   assert.equal(byId.you.sends.players.length, 1);
   assert.equal(byId.you.sends.players[0].name, "Jonathan Taylor");
   assert.equal(byId.you.receives.players[0].name, "Tyjae Spears");
-  assert.ok(["favors_you", "you_give_up_too_much", "close_needs_context", "insufficient_data"]
-    .includes(byId.you.verdict_state));
+  assert.ok(
+    ["favors_you", "you_give_up_too_much", "close_needs_context", "insufficient_data"].includes(byId.you.verdict_state),
+  );
   assert.ok(["likely", "unlikely", "uncertain"].includes(byId.you.acceptance_likelihood));
   assert.equal(byId.team_b.team_name, "Davante's Inferno");
   assert.equal(byId.team_c.team_name, "Chubb Rock");
@@ -218,14 +239,21 @@ test("POST /api/trade/compare rejects a three-team payload with fewer than two l
 
 test("POST /api/trade/compare surfaces unresolved players in a three-team leg without scoring anything", async () => {
   const router = tradeRoutes.createTradeRouter({
-    playerResolver: async (players) => players.map((player) => (
-      player.name === "Zzzqx Notaplayer"
-        ? { status: "unresolved", input: player, suggestions: [] }
-        : {
-          status: "resolved",
-          player: { id: `test:${player.name}`, name: player.name, position: player.position || "UNK", team: "FA", projected_points: player.projected_points ?? null },
-        }
-    )),
+    playerResolver: async (players) =>
+      players.map((player) =>
+        player.name === "Zzzqx Notaplayer"
+          ? { status: "unresolved", input: player, suggestions: [] }
+          : {
+              status: "resolved",
+              player: {
+                id: `test:${player.name}`,
+                name: player.name,
+                position: player.position || "UNK",
+                team: "FA",
+                projected_points: player.projected_points ?? null,
+              },
+            },
+      ),
   });
   const app = buildApp(router);
   const res = await request(app, {
@@ -282,10 +310,14 @@ test("GET /api/trade/pulse maps live weighted ADP into source-labeled targets", 
   assert.equal(res.body.status, "live");
   assert.equal(res.body.is_mock, false);
   assert.equal(res.body.source_status, "live_adp");
-  assert.deepEqual(res.body.buy_low, [{
-    name: "Value Receiver", position: "WR", team: "DET",
-    reason: "Consensus ADP supports a value review before your league prices it in.",
-  }]);
+  assert.deepEqual(res.body.buy_low, [
+    {
+      name: "Value Receiver",
+      position: "WR",
+      team: "DET",
+      reason: "Consensus ADP supports a value review before your league prices it in.",
+    },
+  ]);
 });
 
 test("POST /api/trade/compare requires receive array", async () => {
@@ -351,20 +383,21 @@ test("POST /api/trade/compare handles missing projections with low confidence", 
 test("POST /api/trade/compare refuses unknown players before scoring or the LLM", async () => {
   let explainCalls = 0;
   const router = tradeRoutes.createTradeRouter({
-    playerResolver: async (players) => players.map((player) => (
-      player.name === "Patrick Mahomes"
-        ? {
-          status: "resolved",
-          player: {
-            id: "sleeper:4046",
-            name: "Patrick Mahomes",
-            position: "QB",
-            team: "KC",
-            projected_points: null,
-          },
-        }
-        : { status: "unresolved", input: player, suggestions: [] }
-    )),
+    playerResolver: async (players) =>
+      players.map((player) =>
+        player.name === "Patrick Mahomes"
+          ? {
+              status: "resolved",
+              player: {
+                id: "sleeper:4046",
+                name: "Patrick Mahomes",
+                position: "QB",
+                team: "KC",
+                projected_points: null,
+              },
+            }
+          : { status: "unresolved", input: player, suggestions: [] },
+      ),
     tradeExplainer: async () => {
       explainCalls += 1;
       return "must not run";
@@ -398,20 +431,21 @@ test("POST /api/trade/compare returns near matches without silently resolving th
     match_type: "fuzzy",
   };
   const router = tradeRoutes.createTradeRouter({
-    playerResolver: async (players) => players.map((player) => (
-      player.name === "Jackson Dart"
-        ? { status: "unresolved", input: player, suggestions: [suggestion] }
-        : {
-          status: "resolved",
-          player: {
-            id: "sleeper:4046",
-            name: "Patrick Mahomes",
-            position: "QB",
-            team: "KC",
-            projected_points: null,
-          },
-        }
-    )),
+    playerResolver: async (players) =>
+      players.map((player) =>
+        player.name === "Jackson Dart"
+          ? { status: "unresolved", input: player, suggestions: [suggestion] }
+          : {
+              status: "resolved",
+              player: {
+                id: "sleeper:4046",
+                name: "Patrick Mahomes",
+                position: "QB",
+                team: "KC",
+                projected_points: null,
+              },
+            },
+      ),
   });
   const res = await request(buildApp(router), {
     body: {

@@ -1,27 +1,24 @@
-# Corvus Handoffs
+# Omen Handoffs
 
-This folder is the active frontend/backend handoff layer for Corvus.
+Dated notes written when work continues in another session: `YYYY-MM-DD-<topic>.md`. The newest files describe
+the current state. `Direction/map.md` names the latest handoff to start from.
 
-## Active Files
+## Long-running files
 
-- `frontend-to-backend.md` - Claude/frontend requests for Codex/backend.
-- `backend-to-frontend.md` - Codex/backend completed contracts and answers for Claude/frontend.
-- `decisions.md` - shared engineering handoff decisions.
+- `frontend-to-backend.md` and `backend-to-frontend.md`: endpoint and contract requests and answers between the
+  app (web and native) and the API.
+- `decisions.md`: shared engineering decisions made during handoffs. Product decisions go in
+  `Direction/decision_log.md`.
+- `jules/`: the 2026-07 web UI brief queue for Jules. Historical.
 
-## Required Handoff Shape
+Most files before 2026-09 describe the web-first phase and are history, not instructions.
 
-Every endpoint or contract handoff should include:
+## Shape of an endpoint or contract handoff
 
-- feature name
-- status
-- method and path
-- request body or query
-- response shape
-- example response
-- files changed
-- limitations
-- how frontend should call it
+Feature name, status, method and path, request body or query, response shape, an example response, files
+changed, limitations, and how the client should call it.
 
 ## Boundary
 
-Do not put root SLOPS OS handoffs or Slops Saloon division handoffs here unless they directly affect Corvus product execution.
+Handoffs for Slops OS (L0) or the Slops Saloon division (L1) do not belong here unless they directly change
+Omen work.

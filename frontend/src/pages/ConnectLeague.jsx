@@ -5,29 +5,17 @@ import EspnBrowserSupport from '../components/espn/EspnBrowserSupport.jsx';
 import { consumeConnectDestination, storeNextUrl } from '../lib/nextUrl.js';
 import { markOnboardingDone } from '../lib/onboarding.js';
 import { supabase } from '../lib/supabase.js';
-import {
-  startYahooOAuth,
-  YAHOO_CONNECTIONS_ENABLED,
-  YAHOO_UNAVAILABLE_MESSAGE,
-} from '../lib/yahooAuth.js';
-import {
-  Button,
-  Input,
-  PlatformConnectionCard,
-  RadioCardGroup,
-  SegmentedControl,
-} from '../components/ui/index.js';
+import { startYahooOAuth, YAHOO_CONNECTIONS_ENABLED, YAHOO_UNAVAILABLE_MESSAGE } from '../lib/yahooAuth.js';
+import { Button, Input, PlatformConnectionCard, RadioCardGroup, SegmentedControl } from '../components/ui/index.js';
 
 // ── Shared primitives ─────────────────────────────────────────────────────────
 
 function ManualEntryCard({ children }) {
   return (
-    <article className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5">
+    <article className="rounded-xl border border-(--color-border) bg-(--color-surface-1) p-5">
       <div className="mb-4">
-        <h2 className="font-sans text-sm font-semibold text-[var(--color-text-primary)]">
-          Manual Entry
-        </h2>
-        <p className="mt-0.5 text-xs text-[var(--color-text-secondary)]">
+        <h2 className="font-sans text-sm font-semibold text-(--color-text-primary)">Manual Entry</h2>
+        <p className="mt-0.5 text-xs text-(--color-text-secondary)">
           Enter your league details without a platform connection.
         </p>
       </div>
@@ -39,7 +27,7 @@ function ManualEntryCard({ children }) {
 function ErrorMsg({ message }) {
   if (!message) return null;
   return (
-    <p className="text-xs text-[var(--color-risk-high)]" role="alert">
+    <p className="text-xs text-(--color-risk-high)" role="alert">
       {message}
     </p>
   );
@@ -109,21 +97,21 @@ function SleeperCard({ connected, connectedUsername, onRefresh, disabled }) {
         status={error ? 'error' : 'connected'}
         title="Sleeper"
         description="Connected with your Sleeper account."
-        primaryAction={(
+        primaryAction={
           <Button variant="tertiary" size="lg" disabled={disabled} onClick={handleDisconnect}>
             Disconnect
           </Button>
-        )}
-        stepGuide={(
+        }
+        stepGuide={
           <>
             {connectedUsername && (
-              <p className="mb-3 text-xs text-[var(--color-text-secondary)]">
-                Username: <span className="text-[var(--color-text-primary)]">{connectedUsername}</span>
+              <p className="mb-3 text-xs text-(--color-text-secondary)">
+                Username: <span className="text-(--color-text-primary)">{connectedUsername}</span>
               </p>
             )}
             <ErrorMsg message={error} />
           </>
-        )}
+        }
       />
     );
   }
@@ -134,94 +122,93 @@ function SleeperCard({ connected, connectedUsername, onRefresh, disabled }) {
       status={error ? 'error' : 'disconnected'}
       title="Sleeper"
       description="Enter your Sleeper username — no password needed."
-      stepGuide={(
+      stepGuide={
         <>
-        {step === 'idle' && (
-        <form className="flex flex-col gap-3" onSubmit={handleResolve}>
-          <Input
-            id="sleeper-username"
-            label="Sleeper Username"
-            placeholder="yoursleeperusername"
-            required
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
-          <Button type="submit" size="lg" disabled={disabled || !username.trim()}>
-            Find My Leagues
-          </Button>
-        </form>
-        )}
-
-      {step === 'resolving' && (
-        <p className="text-xs text-[var(--color-text-secondary)]">Looking up your Sleeper leagues…</p>
-      )}
-
-      {step === 'selecting' && resolvedData && (
-        <div className="flex flex-col gap-3">
-          <p className="text-xs text-[var(--color-text-secondary)]">
-            Found <span className="text-[var(--color-text-primary)]">{resolvedData.leagues?.length || 0}</span> league
-            {resolvedData.leagues?.length !== 1 ? 's' : ''} for{' '}
-            <span className="text-[var(--color-text-primary)]">{resolvedData.username}</span>.
-            Pick one to connect.
-          </p>
-
-          {resolvedData.leagues?.length > 0 ? (
-            <fieldset className="flex flex-col gap-2">
-              <legend className="sr-only">Select a league</legend>
-              {resolvedData.leagues.map((league) => (
-                <label
-                  key={league.id}
-                  className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors ${
-                    selectedLeagueId === league.id
-                      ? 'border-[var(--color-accent)] bg-[var(--color-accent-muted)]'
-                      : 'border-[var(--color-border)] bg-[var(--color-surface-2)] hover:border-[var(--color-border)]'
-                  }`}
-                >
-                  <input
-                    checked={selectedLeagueId === league.id}
-                    className="sr-only"
-                    name="sleeper-league"
-                    type="radio"
-                    value={league.id}
-                    onChange={() => setSelectedLeagueId(league.id)}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="truncate text-sm font-medium text-[var(--color-text-primary)]">
-                      {league.name || `League ${league.id}`}
-                    </p>
-                    {league.scoring_format && (
-                      <p className="text-[10px] uppercase tracking-wider text-[var(--color-text-tertiary)]">
-                        {league.scoring_format}
-                      </p>
-                    )}
-                  </div>
-                </label>
-              ))}
-            </fieldset>
-          ) : (
-            <p className="text-xs text-[var(--color-text-secondary)]">
-              No active leagues found for this season.
-            </p>
+          {step === 'idle' && (
+            <form className="flex flex-col gap-3" onSubmit={handleResolve}>
+              <Input
+                id="sleeper-username"
+                label="Sleeper Username"
+                placeholder="yoursleeperusername"
+                required
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+              />
+              <Button type="submit" size="lg" disabled={disabled || !username.trim()}>
+                Find My Leagues
+              </Button>
+            </form>
           )}
 
-          <div className="flex gap-2">
-            <Button
-              size="lg"
-              disabled={!selectedLeagueId}
-              loading={step === 'connecting'}
-              onClick={handleConnect}
-            >
-              Connect League
-            </Button>
-            <Button variant="tertiary" size="lg" onClick={() => { setStep('idle'); setResolvedData(null); }}>
-              Change Username
-            </Button>
-          </div>
-        </div>
-      )}
-        <ErrorMsg message={error} />
+          {step === 'resolving' && (
+            <p className="text-xs text-(--color-text-secondary)">Looking up your Sleeper leagues…</p>
+          )}
+
+          {step === 'selecting' && resolvedData && (
+            <div className="flex flex-col gap-3">
+              <p className="text-xs text-(--color-text-secondary)">
+                Found <span className="text-(--color-text-primary)">{resolvedData.leagues?.length || 0}</span> league
+                {resolvedData.leagues?.length !== 1 ? 's' : ''} for{' '}
+                <span className="text-(--color-text-primary)">{resolvedData.username}</span>. Pick one to connect.
+              </p>
+
+              {resolvedData.leagues?.length > 0 ? (
+                <fieldset className="flex flex-col gap-2">
+                  <legend className="sr-only">Select a league</legend>
+                  {resolvedData.leagues.map((league) => (
+                    <label
+                      key={league.id}
+                      className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors ${
+                        selectedLeagueId === league.id
+                          ? 'border-(--color-accent) bg-(--color-accent-muted)'
+                          : 'border-(--color-border) bg-(--color-surface-2) hover:border-(--color-border)'
+                      }`}
+                    >
+                      <input
+                        checked={selectedLeagueId === league.id}
+                        className="sr-only"
+                        name="sleeper-league"
+                        type="radio"
+                        value={league.id}
+                        onChange={() => setSelectedLeagueId(league.id)}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="truncate text-sm font-medium text-(--color-text-primary)">
+                          {league.name || `League ${league.id}`}
+                        </p>
+                        {league.scoring_format && (
+                          <p className="text-[10px] uppercase tracking-wider text-(--color-text-tertiary)">
+                            {league.scoring_format}
+                          </p>
+                        )}
+                      </div>
+                    </label>
+                  ))}
+                </fieldset>
+              ) : (
+                <p className="text-xs text-(--color-text-secondary)">No active leagues found for this season.</p>
+              )}
+
+              <div className="flex gap-2">
+                <Button size="lg" disabled={!selectedLeagueId} loading={step === 'connecting'} onClick={handleConnect}>
+                  Connect League
+                </Button>
+                <Button
+                  variant="tertiary"
+                  size="lg"
+                  onClick={() => {
+                    setStep('idle');
+                    setResolvedData(null);
+                  }}
+                >
+                  Change Username
+                </Button>
+              </div>
+            </div>
+          )}
+          <ErrorMsg message={error} />
         </>
-      )}
+      }
     />
   );
 }
@@ -260,7 +247,9 @@ function YahooCard({ connected, leagues = [], disabled, onRefresh }) {
       .finally(() => {
         if (!cancelled) setLoadingLeagues(false);
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [needsLeague]);
 
   async function handleDisconnect() {
@@ -296,7 +285,7 @@ function YahooCard({ connected, leagues = [], disabled, onRefresh }) {
         status={error ? 'error' : 'pending'}
         title="Yahoo"
         description="Choose which Yahoo league Omen should use."
-        primaryAction={(
+        primaryAction={
           <Button
             size="lg"
             disabled={disabled || !selectedLeagueId || !leagueOptions?.length}
@@ -305,17 +294,15 @@ function YahooCard({ connected, leagues = [], disabled, onRefresh }) {
           >
             Connect League
           </Button>
-        )}
+        }
         secondaryActions={[
           <Button key="disconnect" variant="tertiary" size="lg" disabled={disabled} onClick={handleDisconnect}>
             Disconnect
           </Button>,
         ]}
-        stepGuide={(
+        stepGuide={
           <>
-            {loadingLeagues && (
-              <p className="text-xs text-[var(--color-text-secondary)]">Looking up your Yahoo leagues…</p>
-            )}
+            {loadingLeagues && <p className="text-xs text-(--color-text-secondary)">Looking up your Yahoo leagues…</p>}
             {!loadingLeagues && leagueOptions?.length > 0 && (
               <RadioCardGroup
                 aria-label="Select your Yahoo league"
@@ -333,13 +320,11 @@ function YahooCard({ connected, leagues = [], disabled, onRefresh }) {
               </RadioCardGroup>
             )}
             {!loadingLeagues && leagueOptions && leagueOptions.length === 0 && (
-              <p className="text-xs text-[var(--color-text-secondary)]">
-                No active Yahoo leagues found for this season.
-              </p>
+              <p className="text-xs text-(--color-text-secondary)">No active Yahoo leagues found for this season.</p>
             )}
             <ErrorMsg message={error} />
           </>
-        )}
+        }
       />
     );
   }
@@ -352,11 +337,11 @@ function YahooCard({ connected, leagues = [], disabled, onRefresh }) {
         title="Yahoo"
         description="Yahoo Fantasy is connected."
         stepGuide={<ErrorMsg message={error} />}
-        primaryAction={(
+        primaryAction={
           <Button variant="tertiary" size="lg" disabled={disabled} onClick={handleDisconnect}>
             Disconnect
           </Button>
-        )}
+        }
       />
     );
   }
@@ -368,11 +353,11 @@ function YahooCard({ connected, leagues = [], disabled, onRefresh }) {
         status="disconnected"
         title="Yahoo"
         description={YAHOO_UNAVAILABLE_MESSAGE}
-        primaryAction={(
+        primaryAction={
           <Button size="lg" disabled>
             On hold
           </Button>
-        )}
+        }
       />
     );
   }
@@ -384,7 +369,7 @@ function YahooCard({ connected, leagues = [], disabled, onRefresh }) {
       title="Yahoo"
       description="Connect via Yahoo OAuth. You'll be redirected to Yahoo to authorize access."
       stepGuide={<ErrorMsg message={error} />}
-      primaryAction={(
+      primaryAction={
         <Button
           size="lg"
           disabled={disabled}
@@ -402,7 +387,7 @@ function YahooCard({ connected, leagues = [], disabled, onRefresh }) {
         >
           Connect Yahoo
         </Button>
-      )}
+      }
     />
   );
 }
@@ -447,7 +432,8 @@ const ESPN_EXTENSION_GUIDE_URL = '/espn-connect';
 // runs on the user's own ESPN session, so say so before they invest effort in setting one up. The
 // affiliation line is not decorative: Disney's Terms of Use section 2.B.vii bars use that suggests
 // an association with their brands.
-const ESPN_CONSENT_NOTE = "Connecting ESPN uses your own ESPN session so Omen can read your league \u2014 your roster, scoring, and matchup. It is your account and your choice, and you can disconnect it any time in Account. Omen is not affiliated with or endorsed by ESPN.";
+const ESPN_CONSENT_NOTE =
+  'Connecting ESPN uses your own ESPN session so Omen can read your league \u2014 your roster, scoring, and matchup. It is your account and your choice, and you can disconnect it any time in Account. Omen is not affiliated with or endorsed by ESPN.';
 
 function MobileEspnCard() {
   return (
@@ -456,29 +442,39 @@ function MobileEspnCard() {
       status="disconnected"
       title="ESPN"
       description="ESPN needs one step on a computer. Phone browsers can't reach the values ESPN requires — this is the only part of Omen that works that way."
-      stepGuide={<div className="flex flex-col gap-4 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-        <EspnBrowserSupport />
-        <p>On a computer: sign in to ESPN Fantasy, then either use the Omen helper in Chrome or Edge, or copy the two values yourself in any desktop browser. Either way you review the filled form and press Connect ESPN — Omen never submits it for you.</p>
-        <Button asChild size="lg">
-          <a href={ESPN_EXTENSION_GUIDE_URL} target="_blank" rel="noreferrer">
-            Open ESPN setup guide
-          </a>
-        </Button>
-        <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>Sleeper connects right here on your phone if you'd rather start there.</p>
-        <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>{ESPN_CONSENT_NOTE}</p>
-      </div>}
+      stepGuide={
+        <div className="flex flex-col gap-4 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+          <EspnBrowserSupport />
+          <p>
+            On a computer: sign in to ESPN Fantasy, then either use the Omen helper in Chrome or Edge, or copy the two
+            values yourself in any desktop browser. Either way you review the filled form and press Connect ESPN — Omen
+            never submits it for you.
+          </p>
+          <Button asChild size="lg">
+            <a href={ESPN_EXTENSION_GUIDE_URL} target="_blank" rel="noreferrer">
+              Open ESPN setup guide
+            </a>
+          </Button>
+          <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
+            Sleeper connects right here on your phone if you'd rather start there.
+          </p>
+          <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
+            {ESPN_CONSENT_NOTE}
+          </p>
+        </div>
+      }
     />
   );
 }
 
 function EspnGuide({ browser, setBrowser }) {
-  const guide = ESPN_STEPS.find(g => g.browser === browser) || ESPN_STEPS[0];
+  const guide = ESPN_STEPS.find((g) => g.browser === browser) || ESPN_STEPS[0];
   return (
     <div
       className="rounded-lg p-4 text-sm"
       style={{ background: 'var(--color-surface-2)', border: '1px solid var(--color-border)' }}
     >
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-(--color-text-secondary)">
         How to find your ESPN cookies
       </p>
       <SegmentedControl
@@ -488,7 +484,7 @@ function EspnGuide({ browser, setBrowser }) {
         value={browser}
         onValueChange={setBrowser}
       >
-        {ESPN_STEPS.map(g => (
+        {ESPN_STEPS.map((g) => (
           <SegmentedControl.Item key={g.browser} value={g.browser}>
             {g.browser}
           </SegmentedControl.Item>
@@ -496,12 +492,14 @@ function EspnGuide({ browser, setBrowser }) {
       </SegmentedControl>
       <ol className="list-decimal space-y-1.5 pl-4">
         {guide.steps.map((step, i) => (
-          <li key={i} className="text-xs leading-5 text-[var(--color-text-secondary)]">{step}</li>
+          <li key={i} className="text-xs leading-5 text-(--color-text-secondary)">
+            {step}
+          </li>
         ))}
       </ol>
-      <p className="mt-3 text-[10px] text-[var(--color-text-tertiary)]">
-        ESPN cookies expire when you sign out or after long inactivity. If Omen loses access, return here with fresh values.
-        Your credentials are encrypted and stored securely.
+      <p className="mt-3 text-[10px] text-(--color-text-tertiary)">
+        ESPN cookies expire when you sign out or after long inactivity. If Omen loses access, return here with fresh
+        values. Your credentials are encrypted and stored securely.
       </p>
     </div>
   );
@@ -570,7 +568,8 @@ function EspnCard({ connected, disabled, onRefresh }) {
       const messages = {
         espn_cookies_required: 'Please enter both espn_s2 and SWID cookies.',
         espn_league_id_required: 'Please enter your ESPN League ID.',
-        espn_cookies_invalid: 'Those cookies were rejected by ESPN. Make sure you copied them correctly — they expire when you sign out.',
+        espn_cookies_invalid:
+          'Those cookies were rejected by ESPN. Make sure you copied them correctly — they expire when you sign out.',
       };
       setError(messages[code] || err.message || 'Could not connect to ESPN. Try again.');
     } finally {
@@ -596,11 +595,17 @@ function EspnCard({ connected, disabled, onRefresh }) {
         title="ESPN"
         description="ESPN Fantasy is connected."
         stepGuide={<ErrorMsg message={error} />}
-        primaryAction={(
-          <Button id="espn-reconnect-button" variant="tertiary" size="lg" disabled={disabled} onClick={() => setShowForm(true)}>
+        primaryAction={
+          <Button
+            id="espn-reconnect-button"
+            variant="tertiary"
+            size="lg"
+            disabled={disabled}
+            onClick={() => setShowForm(true)}
+          >
             Reconnect ESPN
           </Button>
-        )}
+        }
         secondaryActions={[
           <Button key="disconnect" variant="tertiary" size="lg" disabled={disabled} onClick={handleDisconnect}>
             Disconnect
@@ -616,50 +621,59 @@ function EspnCard({ connected, disabled, onRefresh }) {
       status={error ? 'error' : connected ? 'connected' : 'disconnected'}
       title="ESPN"
       description="Requires two cookies from your ESPN session. Every step is shown below — takes about 2 minutes."
-      stepGuide={<div className="flex flex-col gap-4">
-        <EspnGuide browser={browser} setBrowser={setBrowser} />
+      stepGuide={
+        <div className="flex flex-col gap-4">
+          <EspnGuide browser={browser} setBrowser={setBrowser} />
 
-        <form className="flex flex-col gap-3" onSubmit={handleConnect}>
-          <Input
-            id="espn-s2"
-            label="espn_s2 Cookie"
-            type="password"
-            autoComplete="off"
-            required
-            value={form.espn_s2}
-            onChange={(e) => setForm(f => ({ ...f, espn_s2: e.target.value }))}
-          />
-          <Input
-            id="espn-swid"
-            label="SWID Cookie"
-            type="password"
-            autoComplete="off"
-            required
-            value={form.swid}
-            onChange={(e) => setForm(f => ({ ...f, swid: e.target.value }))}
-          />
-          <Input
-            id="espn-league-id"
-            label="ESPN League ID"
-            placeholder="12345678"
-            autoComplete="off"
-            required
-            value={form.league_id}
-            onChange={(e) => setForm(f => ({ ...f, league_id: e.target.value }))}
-          />
-          <div className="flex gap-2">
-            <Button size="lg" loading={loading} type="submit" disabled={disabled}>
-              {connected ? 'Reconnect ESPN' : 'Connect ESPN'}
-            </Button>
-            {showForm && (
-              <Button variant="tertiary" size="lg" onClick={() => { setShowForm(false); setError(''); }}>
-                Cancel
+          <form className="flex flex-col gap-3" onSubmit={handleConnect}>
+            <Input
+              id="espn-s2"
+              label="espn_s2 Cookie"
+              type="password"
+              autoComplete="off"
+              required
+              value={form.espn_s2}
+              onChange={(e) => setForm((f) => ({ ...f, espn_s2: e.target.value }))}
+            />
+            <Input
+              id="espn-swid"
+              label="SWID Cookie"
+              type="password"
+              autoComplete="off"
+              required
+              value={form.swid}
+              onChange={(e) => setForm((f) => ({ ...f, swid: e.target.value }))}
+            />
+            <Input
+              id="espn-league-id"
+              label="ESPN League ID"
+              placeholder="12345678"
+              autoComplete="off"
+              required
+              value={form.league_id}
+              onChange={(e) => setForm((f) => ({ ...f, league_id: e.target.value }))}
+            />
+            <div className="flex gap-2">
+              <Button size="lg" loading={loading} type="submit" disabled={disabled}>
+                {connected ? 'Reconnect ESPN' : 'Connect ESPN'}
               </Button>
-            )}
-          </div>
-        </form>
-        <ErrorMsg message={error} />
-      </div>}
+              {showForm && (
+                <Button
+                  variant="tertiary"
+                  size="lg"
+                  onClick={() => {
+                    setShowForm(false);
+                    setError('');
+                  }}
+                >
+                  Cancel
+                </Button>
+              )}
+            </div>
+          </form>
+          <ErrorMsg message={error} />
+        </div>
+      }
     />
   );
 }
@@ -673,8 +687,8 @@ function ManualCard() {
         className="rounded-lg px-4 py-3 text-xs"
         style={{ background: 'var(--color-surface-2)', border: '1px solid var(--color-border)' }}
       >
-        <p className="font-semibold text-[var(--color-text-secondary)]">Coming soon</p>
-        <p className="mt-1 text-[var(--color-text-tertiary)]">
+        <p className="font-semibold text-(--color-text-secondary)">Coming soon</p>
+        <p className="mt-1 text-(--color-text-tertiary)">
           Manual entry is under development. Connect Sleeper, Yahoo, or ESPN for full Omen access now.
         </p>
       </div>
@@ -721,6 +735,7 @@ export default function ConnectLeague() {
     }
   }
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: fetch once auth resolves; fetchPlatforms is recreated every render
   useEffect(() => {
     if (!checkingAuth) fetchPlatforms();
   }, [checkingAuth]);
@@ -739,45 +754,34 @@ export default function ConnectLeague() {
     navigate(dest, { replace: true });
   }
 
-  const anyConnected = platforms
-    ? ['sleeper', 'yahoo', 'espn'].some(p => platforms[p]?.connected)
-    : false;
+  const anyConnected = platforms ? ['sleeper', 'yahoo', 'espn'].some((p) => platforms[p]?.connected) : false;
 
   if (checkingAuth) {
     return (
-      <div
-        className="flex min-h-[100dvh] items-center justify-center"
-        style={{ background: 'var(--color-bg)' }}
-      >
-        <p className="text-sm text-[var(--color-text-secondary)]">Checking your account…</p>
+      <div className="flex min-h-dvh items-center justify-center" style={{ background: 'var(--color-bg)' }}>
+        <p className="text-sm text-(--color-text-secondary)">Checking your account…</p>
       </div>
     );
   }
 
   return (
-    <div
-      className="min-h-[100dvh] px-4 py-12"
-      style={{ background: 'var(--color-bg)' }}
-    >
+    <div className="min-h-dvh px-4 py-12" style={{ background: 'var(--color-bg)' }}>
       <div className="mx-auto max-w-lg">
         {/* Header */}
         <div className="mb-8">
-          <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-[var(--color-accent)]">
-            Step 2 of 2
-          </p>
-          <h1 className="font-display text-4xl font-bold tracking-tight text-[var(--color-text-primary)]">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-(--color-accent)">Step 2 of 2</p>
+          <h1 className="font-display text-4xl font-bold tracking-tight text-(--color-text-primary)">
             Connect Your League
           </h1>
-          <p className="mt-2 text-sm leading-6 text-[var(--color-text-secondary)]">
-            Omen needs your league to find your Most Valuable Play.
-            Connect the platform your league runs on.
+          <p className="mt-2 text-sm leading-6 text-(--color-text-secondary)">
+            Omen needs your league to find your Most Valuable Play. Connect the platform your league runs on.
           </p>
         </div>
 
         {/* Platform cards */}
         {loadingPlatforms ? (
           <div className="flex flex-col gap-4">
-            {[0, 1, 2].map(i => (
+            {[0, 1, 2].map((i) => (
               <div
                 key={i}
                 className="h-24 animate-pulse motion-reduce:animate-none rounded-xl"
@@ -819,7 +823,7 @@ export default function ConnectLeague() {
           <Button className="w-full" variant="tertiary" size="lg" onClick={handleSkip}>
             Skip for now — I'll connect later
           </Button>
-          <p className="text-center text-[10px] text-[var(--color-text-tertiary)]">
+          <p className="text-center text-[10px] text-(--color-text-tertiary)">
             Skipping keeps Trade Analyzer available. Omen requires a connected league.
           </p>
         </div>

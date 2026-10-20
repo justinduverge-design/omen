@@ -38,11 +38,11 @@ import SwiftUI
 // ## The three places the artboards claim more than the contract can pay for
 //
 // 1. **Three teams.** `TradeBuild.dc.html` and `TradeRoster.dc.html` draw a working three-team
-//    deal, an `Add team` chip and a three-leg offer. `trade-capabilities.v1` says `max_teams: 2`
-//    and `three_team.supported: false`, `reason: "multi_team_comparison_not_implemented"`, and
-//    `CONTRACTS.md` is explicit that three-team controls **render unavailable** — not hidden, not
-//    functional. So the composition is kept, the `Add team` chip renders through
-//    `OmenUnavailableControl`, the legs are two-team, and the reason is a sentence beside it.
+//    deal, an `Add team` chip and a three-leg offer. `trade-capabilities.v1` now pays for that
+//    composition with `max_teams: 3`, `comparison: "multi_sided"` and
+//    `three_team.supported: true`. Submission remains `handoff_only`: the server evaluates all
+//    three participants but returns ordered linked two-team handoffs because no connected
+//    provider exposes a native three-team write API.
 //
 // 2. **The confidence band and the risk chip.** Three artboards draw a band (`Leaning`,
 //    `Coin flip`) and two draw `Medium risk`. **`trade-compare.v2` returns neither.** Its fields
@@ -231,6 +231,8 @@ struct OmenTradeRead: Equatable {
     /// The inputs, already in the server's order. The screen does not re-rank — re-ranking is a
     /// claim about relative importance that no contract supports.
     let inputs: [OmenTradeInput]
+    var forwardWeek: Double? = nil
+    var theCatch: String? = nil
 }
 
 /// `.howto` — how to actually submit this, given that Omen never submits on anyone's behalf.
@@ -382,13 +384,15 @@ struct OmenTradeBuildScreen: View {
                 title: state.title,
                 onOpenAccount: onOpenAccount
             )
-            OmenTradeTabs(
-                titles: state.tabTitles,
-                selectedIndex: state.selectedTabIndex,
-                onSelect: onSelectTab
-            )
-            .padding(.horizontal, OmenSpacing.step16)
-            .padding(.top, OmenSpacing.step12)
+            if !state.tabTitles.isEmpty {
+                OmenTradeTabs(
+                    titles: state.tabTitles,
+                    selectedIndex: state.selectedTabIndex,
+                    onSelect: onSelectTab
+                )
+                .padding(.horizontal, OmenSpacing.step16)
+                .padding(.top, OmenSpacing.step12)
+            }
 
             partners
             if let disclosure = state.removalDisclosure {
@@ -396,9 +400,10 @@ struct OmenTradeBuildScreen: View {
                     .padding(.top, OmenSpacing.step8)
             }
             filters
-            // Once three teams are active there is nothing left to explain about the chip row —
-            // both slots are filled and the "why can't I add a team" sentence would be stale.
-            if state.thirdPartner == nil {
+            // Explain a disabled or unread Add-team control. When the capability read says
+            // three-team comparison is supported, the control is live and a limit notice would
+            // directly contradict it.
+            if state.thirdPartner == nil, state.capability?.threeTeamSupported != true {
                 threeTeamNotice
             }
 
@@ -446,11 +451,7 @@ struct OmenTradeBuildScreen: View {
                         crest: primary?.crest ?? "",
                         name: primary?.name ?? "",
                         need: primary?.need,
-                        isSelected: true,
-                        // Not the removal affordance — per contract, the primary chip keeps
-                        // today's 2-team behavior (a no-op with three teams active; there is
-                        // nothing to swap it with here).
-                        action: {}
+                        isSelected: true
                     )
                     OmenTradePartnerChip(
                         crest: thirdPartner.crest,
@@ -782,6 +783,8 @@ struct OmenTradeShareScreen: View {
     var onToggleInclusion: ((String) -> Void)?
     var onShare: (() -> Void)?
     var onCopyAsText: (() -> Void)?
+    @State private var copiedAsText = false
+    @Environment(\.omenHaptics) private var haptics
 
     var body: some View {
         OmenTradeScrollShell(
@@ -819,9 +822,22 @@ struct OmenTradeShareScreen: View {
                 .padding(.horizontal, OmenSpacing.step16)
                 .padding(.top, OmenSpacing.step12)
             if let secondary = state.secondaryActionTitle {
-                OmenButton(title: secondary, action: { onCopyAsText?() }, variant: .secondary, size: .lg)
+                OmenButton(
+                    title: copiedAsText ? "Copied" : secondary,
+                    action: {
+                        guard let onCopyAsText else { return }
+                        onCopyAsText()
+                        copiedAsText = true
+                        haptics.play(.success)
+                    },
+                    variant: .secondary,
+                    size: .lg,
+                    enabled: onCopyAsText != nil,
+                    haptic: OmenHaptic.none
+                )
                     .padding(.horizontal, OmenSpacing.step16)
                     .padding(.top, OmenSpacing.step8)
+                    .accessibilityValue(copiedAsText ? "Copied to clipboard" : "")
             }
         }
     }
@@ -1040,6 +1056,22 @@ private struct OmenTradeReadBlock: View {
                 }
             }
 
+            if read.forwardWeek != nil || read.theCatch != nil {
+                VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+                    if let value = read.forwardWeek {
+                        Text("This week · \(value >= 0 ? "+" : "")\(String(format: "%.1f", value)) player projection points")
+                            .omenTextStyle(OmenTypography.bodySmall)
+                            .foregroundStyle(OmenColor.textSecondary)
+                    }
+                    if let theCatch = read.theCatch {
+                        Text("The catch · \(theCatch)")
+                            .omenTextStyle(OmenTypography.bodySmall)
+                            .foregroundStyle(OmenColor.textSecondary)
+                    }
+                }
+                .padding(.top, OmenSpacing.step10)
+            }
+
             if let submission {
                 VStack(alignment: .leading, spacing: OmenSpacing.step8) {
                     HStack(spacing: OmenSpacing.step8) {
@@ -1254,7 +1286,9 @@ extension OmenTradeRead {
             reasoning: compare.explanation?.isEmpty == false ? compare.explanation! : compare.subhead,
             caveat: caveat(for: compare),
             isPersonalized: compare.analysisContext.isPersonalized,
-            inputs: (compare.capabilities ?? []).compactMap(OmenTradeInput.init(capability:))
+            inputs: (compare.capabilities ?? []).compactMap(OmenTradeInput.init(capability:)),
+            forwardWeek: compare.forwardHorizons?.week.status == "available" ? compare.forwardHorizons?.week.value : nil,
+            theCatch: compare.theCatch?.status == "available" ? compare.theCatch?.statement : nil
         )
     }
 
@@ -1437,7 +1471,7 @@ enum OmenTradeAnswer: Equatable {
     /// `nil` where there is no answer to show — the offer has no players on one side, so there
     /// is nothing to draw two sides of.
     static func from(_ compare: TradeCompare, offer: TradeOffer) -> OmenTradeAnswer? {
-        let sides = Self.sides(of: offer)
+        let sides = Self.sides(of: offer, compare: compare)
         guard sides.contains(where: { !$0.legs.isEmpty }) else { return nil }
         let read = OmenTradeRead.from(compare)
 
@@ -1486,21 +1520,26 @@ enum OmenTradeAnswer: Equatable {
     /// with nothing under it rather than disappearing.
     /// Not private: `TradeViewModel.rosterBuildState` (M5/J4 roster-read wiring) reuses this to
     /// render the same "both sides, always" block on `TradeBuild` before a verdict exists.
-    static func sides(of offer: TradeOffer) -> [OmenTradeSide] {
+    static func sides(of offer: TradeOffer, compare: TradeCompare? = nil) -> [OmenTradeSide] {
         [
-            OmenTradeSide(heading: "You send", legs: offer.send.map { leg($0, .sending) }),
-            OmenTradeSide(heading: "You receive", legs: offer.receive.map { leg($0, .receiving) })
+            OmenTradeSide(heading: "You send", legs: offer.send.map { leg($0, .sending, compared: compare?.compared($0)) }),
+            OmenTradeSide(heading: "You receive", legs: offer.receive.map { leg($0, .receiving, compared: compare?.compared($0)) })
         ]
     }
 
     /// `rank` is always nil on a live offer, and that is correct rather than missing: the offer
     /// carries names and positions, and `trade-compare.v2` returns no per-player rank. A rank
     /// composed here would be a number Omen never computed.
-    private static func leg(_ player: TradePlayer, _ direction: OmenTradeLeg.Direction) -> OmenTradeLeg {
-        OmenTradeLeg(
+    private static func leg(_ player: TradePlayer, _ direction: OmenTradeLeg.Direction, compared: TradeCompare.ComparedPlayer? = nil) -> OmenTradeLeg {
+        // Real numbers and Omen's read join the meta line when the verdict carries them.
+        let ppg = compared?.stats?.pointsPerGame.map { "\(String(format: "%.1f", $0)) PPG" }
+        let omen = compared?.omenRead?.points.map { "Omen \(String(format: "%.1f", $0))" }
+        let grade = compared?.rating?.rating.map { "\(compared?.rating?.title ?? OmenPlayerRating.familyName) \(String(format: "%.1f", $0))" }
+        let omenLabel = [ppg, grade, omen].compactMap { $0 }.joined(separator: " · ").nonEmptyTradeLabel
+        return OmenTradeLeg(
             direction: direction,
             name: player.name,
-            meta: [player.position, player.team].compactMap { $0 }.joined(separator: " · "),
+            meta: ([player.position, player.team, omenLabel].compactMap { $0 }).joined(separator: " · "),
             rank: nil
         )
     }
@@ -1560,4 +1599,9 @@ enum OmenTradeAnswer: Equatable {
         }
         return OmenTradeLeg(direction: direction, name: player.name, meta: meta, rank: nil)
     }
+}
+
+
+private extension String {
+    var nonEmptyTradeLabel: String? { isEmpty ? nil : self }
 }

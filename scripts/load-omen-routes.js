@@ -76,8 +76,8 @@ function assertTargetIsLocal(baseUrl) {
   }
 
   throw new Error(
-    `Refusing to load-test ${host}. This script is local-only by default (O4: never production). `
-    + "Set OMEN_LOAD_ALLOW_REMOTE=1 only for a target you have explicit approval to hit.",
+    `Refusing to load-test ${host}. This script is local-only by default (O4: never production). ` +
+      "Set OMEN_LOAD_ALLOW_REMOTE=1 only for a target you have explicit approval to hit.",
   );
 }
 
@@ -173,13 +173,15 @@ async function request(baseUrl, path, { method, body, client }) {
 async function runRoute({ baseUrl, name, path, method, body, mode, clients, requestsPerClient }) {
   const started = performance.now();
 
-  const perClient = await Promise.all(clients.map(async (client) => {
-    const results = [];
-    for (let i = 0; i < requestsPerClient; i += 1) {
-      results.push(await request(baseUrl, path, { method, body, client }));
-    }
-    return results;
-  }));
+  const perClient = await Promise.all(
+    clients.map(async (client) => {
+      const results = [];
+      for (let i = 0; i < requestsPerClient; i += 1) {
+        results.push(await request(baseUrl, path, { method, body, client }));
+      }
+      return results;
+    }),
+  );
 
   const results = perClient.flat();
   const wallMs = performance.now() - started;
@@ -225,7 +227,10 @@ function routeSpecs({ authToken }) {
   // every /api/* call, so hammering all three routes from one identity trips
   // *that* limiter before the looser hot-route budgets are reached. To show a
   // specific route's own limit binding, drive that route alone.
-  const only = String(productEnv("LOAD_ROUTES") || "").split(",").map((s) => s.trim()).filter(Boolean);
+  const only = String(productEnv("LOAD_ROUTES") || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
 
   const specs = [
     {
@@ -296,10 +301,10 @@ async function runLoad({
       investor_demo_p95_ms: 750,
     },
     scope_caveat:
-      "Local run. Measures Omen's own request path — routing, middleware, rate limiters, "
-      + "validation, response assembly, and auth/Supabase round-trips when run under "
-      + "scripts/local-load-stack.js. It does NOT measure provider fan-out to Yahoo, Sleeper, "
-      + "or ESPN, or a real LLM call. Week 1 Sunday morning is the real load test.",
+      "Local run. Measures Omen's own request path — routing, middleware, rate limiters, " +
+      "validation, response assembly, and auth/Supabase round-trips when run under " +
+      "scripts/local-load-stack.js. It does NOT measure provider fan-out to Yahoo, Sleeper, " +
+      "or ESPN, or a real LLM call. Week 1 Sunday morning is the real load test.",
   };
 }
 

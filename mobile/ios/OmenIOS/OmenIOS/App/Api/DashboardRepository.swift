@@ -469,10 +469,16 @@ struct WaiverAnalysis: Decodable, Equatable {
         let team: String?
         let projectedPoints: Double?
         let status: String?
+        /// Omen's read (wire key `sight`), attached server-side by `sightEnrichment.js`. Lenient so
+        /// an experimental field cannot discard the waiver answer.
+        @LenientDecoded var omenRead: OmenDecisionEnvelope.OmenRead? = nil
+        @LenientDecoded var stats: OmenPlayerStats? = nil
+        @LenientDecoded var rating: OmenPlayerRating? = nil
 
         enum CodingKeys: String, CodingKey {
-            case name, position, team, status
+            case name, position, team, status, stats, rating
             case projectedPoints = "projected_points"
+            case omenRead = "sight"
         }
     }
 
@@ -486,67 +492,6 @@ struct WaiverAnalysis: Decodable, Equatable {
         let improvement: Double?
         let tradeoff: String?
     }
-}
-
-extension WaiverAnalysis {
-    var waiverWatchState: OmenWaiverWatchState {
-        switch state {
-        case .confirmedOpportunity:
-            guard let bestMove, let opportunity = OmenWaiverOpportunity(bestMove: bestMove) else {
-                return .availabilityUnknown
-            }
-            return .urgent(
-                deadlineText: deadline.map { "Deadline \($0)" } ?? "Availability confirmed",
-                bestMove: opportunity,
-                longHorizonMoves: alternatives.compactMap(OmenWaiverOpportunity.init(alternative:)).prefixArray(3)
-            )
-        case .availabilityUnknown:
-            return .availabilityUnknown
-        case .noLowCostDrop:
-            return .processed
-        case .noCredibleMove:
-            return .noCredibleMove
-        case .engineLimitation, .unknown:
-            return .availabilityUnknown
-        case .offSeason:
-            return .offSeason
-        }
-    }
-}
-
-private extension OmenWaiverOpportunity {
-    init?(bestMove: WaiverAnalysis.BestMove) {
-        guard let add = bestMove.add, let name = add.name?.trimmed, !name.isEmpty else { return nil }
-        let projected = bestMove.improvement.map { "Projects +\(Self.pointsText($0)) vs current slot" }
-        let bid = bestMove.bid?.amount.map { "Suggested bid \(Self.pointsText($0))" }
-        self.init(
-            playerName: name,
-            position: add.position?.trimmed.nonEmpty ?? "Player",
-            team: add.team?.trimmed.nonEmpty ?? "Available player",
-            availability: [projected, bid].compactMap { $0 }.joined(separator: " · ").nonEmpty ?? "Available in this league",
-            reason: bestMove.whyNow?.trimmed.nonEmpty ?? "Omen found this as the strongest available roster move."
-        )
-    }
-
-    init?(alternative: WaiverAnalysis.Alternative) {
-        guard let player = alternative.player, let name = player.name?.trimmed, !name.isEmpty else { return nil }
-        self.init(
-            playerName: name,
-            position: player.position?.trimmed.nonEmpty ?? "Player",
-            team: player.team?.trimmed.nonEmpty ?? "Available player",
-            availability: alternative.improvement.map { "Projects +\(Self.pointsText($0))" } ?? "Available in this league",
-            reason: alternative.tradeoff?.trimmed.nonEmpty ?? "Alternative waiver option."
-        )
-    }
-
-    static func pointsText(_ value: Double) -> String {
-        let rounded = (value * 10).rounded() / 10
-        return rounded == floor(rounded) ? String(Int(rounded)) : String(rounded)
-    }
-}
-
-private extension Array {
-    func prefixArray(_ maxLength: Int) -> [Element] { Array(prefix(maxLength)) }
 }
 
 private extension String {

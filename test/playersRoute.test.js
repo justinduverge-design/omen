@@ -21,20 +21,22 @@ function loadPlayersRouter({ source, sourceError } = {}) {
       return {
         fetchSleeperPlayers: async () => {
           if (sourceError) throw sourceError;
-          return source || {
-            100: {
-              full_name: "Patrick Mahomes",
-              position: "QB",
-              team: "KC",
-              active: true,
-            },
-            200: {
-              full_name: "Tony Pollard",
-              position: "RB",
-              team: "TEN",
-              active: true,
-            },
-          };
+          return (
+            source || {
+              100: {
+                full_name: "Patrick Mahomes",
+                position: "QB",
+                team: "KC",
+                active: true,
+              },
+              200: {
+                full_name: "Tony Pollard",
+                position: "RB",
+                team: "TEN",
+                active: true,
+              },
+            }
+          );
         },
       };
     }
@@ -82,13 +84,15 @@ test("GET /api/players/search returns matching autocomplete rows", async () => {
   const res = await request(app, "/api/players/search?position=QB&q=pat");
 
   assert.equal(res.status, 200);
-  assert.deepEqual(res.body, [{
-    id: "sleeper:100",
-    name: "Patrick Mahomes",
-    position: "QB",
-    team: "KC",
-    projected_points: null,
-  }]);
+  assert.deepEqual(res.body, [
+    {
+      id: "sleeper:100",
+      name: "Patrick Mahomes",
+      position: "QB",
+      team: "KC",
+      projected_points: null,
+    },
+  ]);
 });
 
 test("GET /api/players/search returns [] for a blank q", async () => {

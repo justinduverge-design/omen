@@ -4,7 +4,15 @@ const { CONTRACTS, MODELS } = require("./contracts");
 const { hashCanonical } = require("./canonicalize");
 const { compareSchemeDna } = require("./schemeDna");
 
-function buildSystemSignal({ subject, baseline, comparison, comparisonOptions = {}, fantasyImplications = [], alternativeExplanations = [], limitations = [] }) {
+function buildSystemSignal({
+  subject,
+  baseline,
+  comparison,
+  comparisonOptions = {},
+  fantasyImplications = [],
+  alternativeExplanations = [],
+  limitations = [],
+}) {
   const similarity = compareSchemeDna(baseline, comparison, comparisonOptions);
   const state = classifyState(baseline, comparison, similarity);
   const evidence = similarity.components.map((component) => {
@@ -14,7 +22,14 @@ function buildSystemSignal({ subject, baseline, comparison, comparisonOptions = 
       feature: component.feature,
       baseline_value: previous,
       comparison_value: current,
-      direction: previous === null || current === null ? "distribution_similarity" : current > previous ? "up" : current < previous ? "down" : "flat",
+      direction:
+        previous === null || current === null
+          ? "distribution_similarity"
+          : current > previous
+            ? "up"
+            : current < previous
+              ? "down"
+              : "flat",
       delta: previous === null || current === null ? null : round(current - previous),
       similarity: component.similarity,
     };
@@ -27,13 +42,19 @@ function buildSystemSignal({ subject, baseline, comparison, comparisonOptions = 
     state,
     subject: subject || comparison.subject,
     baseline: { scheme_dna_hash: baseline.output_hash, subject: baseline.subject, window_id: baseline.window_id },
-    comparison: { scheme_dna_hash: comparison.output_hash, subject: comparison.subject, window_id: comparison.window_id },
+    comparison: {
+      scheme_dna_hash: comparison.output_hash,
+      subject: comparison.subject,
+      window_id: comparison.window_id,
+    },
     similarity,
     evidence,
     confidence,
     fantasy_implications: cleanStrings(fantasyImplications),
     alternative_explanations: cleanStrings(alternativeExplanations),
-    limitations: [...new Set([...limitations, ...similarity.limitations, ...baseline.limitations, ...comparison.limitations])].sort(),
+    limitations: [
+      ...new Set([...limitations, ...similarity.limitations, ...baseline.limitations, ...comparison.limitations]),
+    ].sort(),
   };
   return { ...artifact, output_hash: hashCanonical(artifact) };
 }
@@ -50,9 +71,21 @@ function signalConfidence(baseline, comparison, similarity) {
   const levels = { low: 0, medium: 1, high: 2 };
   return levels[baseline.confidence] <= levels[comparison.confidence] ? baseline.confidence : comparison.confidence;
 }
-function scalarValue(feature) { return feature && feature.kind === "rate" ? feature.value : null; }
-function cleanStrings(values) { if (!Array.isArray(values) || values.some((value) => typeof value !== "string" || !value.trim())) throw invalid("explanation fields must be arrays of non-empty strings"); return [...new Set(values.map((value) => value.trim()))].sort(); }
-function round(value) { return Number(value.toFixed(6)); }
-function invalid(message) { const error = new TypeError(message); error.code = "FOOTBALL_INTELLIGENCE_INVALID"; return error; }
+function scalarValue(feature) {
+  return feature && feature.kind === "rate" ? feature.value : null;
+}
+function cleanStrings(values) {
+  if (!Array.isArray(values) || values.some((value) => typeof value !== "string" || !value.trim()))
+    throw invalid("explanation fields must be arrays of non-empty strings");
+  return [...new Set(values.map((value) => value.trim()))].sort();
+}
+function round(value) {
+  return Number(value.toFixed(6));
+}
+function invalid(message) {
+  const error = new TypeError(message);
+  error.code = "FOOTBALL_INTELLIGENCE_INVALID";
+  return error;
+}
 
 module.exports = { buildSystemSignal, classifyState };

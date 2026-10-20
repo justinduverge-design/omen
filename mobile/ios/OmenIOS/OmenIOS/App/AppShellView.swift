@@ -37,13 +37,18 @@ struct AppShellView: View {
             case .loading:
                 OmenStateSurface(kind: .loading, title: "Loading Omen", message: "Checking your session.")
                     .padding(OmenSpacing.step24)
+                    .onAppear { OmenSignposts.mark("session-check shown") }
 
             case .signedOut:
                 SignInView(
                     viewModel: authViewModel,
                     demoModeEnabled: environment.demoModeEnabled,
-                    onTryDemo: { sessionManager.onDemo() }
+                    onTryDemo: {
+                        OmenSignposts.markDemoTap()
+                        sessionManager.onDemo()
+                    }
                 )
+                .omenScreenReady("sign-in")
 
             case .needsReauth:
                 SignInView(
@@ -94,6 +99,9 @@ struct AppShellView: View {
                         client: OmenApiClient(baseURL: environment.apiBaseURL)
                     ),
                     playerSearchRepository: ApiPlayerSearchRepository(
+                        client: OmenApiClient(baseURL: environment.apiBaseURL)
+                    ),
+                    tradeFindRepository: ApiTradeFindRepository(
                         client: OmenApiClient(baseURL: environment.apiBaseURL)
                     )
                 )

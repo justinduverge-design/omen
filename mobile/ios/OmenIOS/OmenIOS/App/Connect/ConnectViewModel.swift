@@ -31,10 +31,6 @@ final class ConnectViewModel: ObservableObject {
     /// at the moment of the tap.
     private(set) var espnCookieStore: EspnCookieReading?
 
-    /// How many times the user has been offered a retry after an unreadable session. The Wave 1
-    /// contract allows one, then routes to the desktop path rather than looping.
-    private var espnUnreadableRetries = 0
-
     /// The ESPN session, held only between sign-in and the connect that consumes it.
     ///
     /// Discovery made this necessary: the session has to survive from sign-in, through the
@@ -56,6 +52,12 @@ final class ConnectViewModel: ObservableObject {
     /// MyDisney code straight to discovery) can have a valid session before ESPN's fan directory
     /// knows the account; two attempts one second apart gave up too early. Settable for tests.
     var espnDiscoveryRetryDelay: Duration = .seconds(2)
+    /// While ESPN counts leagues it has not listed yet (a brand-new login), Omen keeps checking
+    /// for longer before it offers the League ID box: up to this many extra attempts, this far apart.
+    static let maxEspnPendingAttempts = 6
+    /// Extra checks when ESPN has no fan profile for the login yet (a 404 that may be permanent).
+    static let maxEspnProfilePendingAttempts = 2
+    var espnPendingRetryDelay: Duration = .seconds(5)
 
     /// How long the cookie jar must hold the same session before Omen first uses it. A first-time
     /// ESPN sign-in lands its cookies in steps (a fresh `espn_s2` can arrive while `SWID` is still
@@ -209,7 +211,7 @@ final class ConnectViewModel: ObservableObject {
 
     /// Matches the backend's `NATIVE_REQUEST_ID_PATTERN` — `[A-Za-z0-9_-]{16,128}`. A UUID with
     /// hyphens stripped is 32 safe characters, comfortably inside the range.
-    static func defaultRequestId() -> String {
+    nonisolated static func defaultRequestId() -> String {
         UUID().uuidString.replacingOccurrences(of: "-", with: "")
     }
 
@@ -218,30 +220,20 @@ final class ConnectViewModel: ObservableObject {
     }
 
     func selectProvider(_ provider: ConnectProvider) {
-        switch provider.availability {
-        case .available:
-            // Sleeper's next step is the username field the picker already renders beneath
-            // itself; Yahoo's is a browser round trip that has to be started explicitly.
-            if provider == .yahoo {
-                selectedProvider = provider
-                Task { await connectYahoo() }
-            } else if provider == .espn {
-                // Consent first, always. W1-A's binding constraint: the user is told what is about
-                // to open before it opens, and declining writes no state.
-                selectedProvider = provider
-                espnCheckNotice = nil
-                espnUnreadableRetries = 0
-                state = .espnConsent
-            } else {
-                selectedProvider = provider
-                state = .notStarted
-            }
-        case .onHold, .useWeb:
-            // Not an error and not a dead end — the view renders the provider's own reason and
-            // a safe next action from `availability`.
+        // Every provider in the iPhone picker has one current native path. Unsupported and
+        // desktop-handoff branches were removed so a new binary cannot fall back into retired UI.
+        if provider == .yahoo {
+            selectedProvider = provider
+            Task { await connectYahoo() }
+        } else if provider == .espn {
+            // Consent first, always. W1-A's binding constraint: the user is told what is about
+            // to open before it opens, and declining writes no state.
             selectedProvider = provider
             espnCheckNotice = nil
-            state = .unsupportedOnMobile(provider: provider)
+            state = .espnConsent
+        } else {
+            selectedProvider = provider
+            state = .notStarted
         }
     }
 
@@ -341,7 +333,7 @@ final class ConnectViewModel: ObservableObject {
             // Never leave the user on a bare web view: an early exit offers the same way out a
             // failed round does.
             espnDiscoveryFallbackAvailable = true
-            espnCheckNotice = EspnHandoffCopy.discoveryUnavailable
+            espnCheckNotice = EspnConnectCopy.discoveryUnavailable
             espnDiscoveryTask = nil
         }
 
@@ -354,7 +346,16 @@ final class ConnectViewModel: ObservableObject {
 
         state = .discoveringEspnLeagues
         var finalResult: Result<[EspnLeagueOption], ConnectFailure>?
-        while espnDiscoveryAttempts < Self.maxEspnDiscoveryAttempts {
+        var pendingAttempts = 0
+        var profilePendingOnly = true
+        func attemptsAllowed() -> Int {
+            guard pendingAttempts > 0 else { return Self.maxEspnDiscoveryAttempts }
+            // A missing fan profile may never appear, so it earns a short extension; a counted
+            // league ESPN has not listed yet earns the long one.
+            let extra = profilePendingOnly ? Self.maxEspnProfilePendingAttempts : Self.maxEspnPendingAttempts
+            return Self.maxEspnDiscoveryAttempts + extra
+        }
+        while espnDiscoveryAttempts < attemptsAllowed() {
             guard stillCurrent() else { return }
             espnDiscoveryAttempts += 1
             let result = await repository.discoverEspnLeagues(
@@ -370,8 +371,18 @@ final class ConnectViewModel: ObservableObject {
                 return
             }
             finalResult = result
-            if espnDiscoveryAttempts < Self.maxEspnDiscoveryAttempts {
-                try? await Task.sleep(for: espnDiscoveryRetryDelay)
+            // ESPN knows the account has a league and is still listing it: say so, and keep
+            // checking on a longer clock instead of handing the user a League ID box.
+            if case .failure(.espnListingPending) = result {
+                pendingAttempts += 1
+                profilePendingOnly = false
+                espnCheckNotice = EspnConnectCopy.listingPending
+            } else if case .failure(.espnProfilePending) = result {
+                pendingAttempts += 1
+                if profilePendingOnly { espnCheckNotice = EspnConnectCopy.profilePending }
+            }
+            if espnDiscoveryAttempts < attemptsAllowed() {
+                try? await Task.sleep(for: pendingAttempts > 0 ? espnPendingRetryDelay : espnDiscoveryRetryDelay)
                 guard stillCurrent() else { return }
                 // Read the jar again rather than resend what just failed: if the first pair was
                 // caught mid-update, the same values will fail the same way.
@@ -387,9 +398,15 @@ final class ConnectViewModel: ObservableObject {
         espnDiscoveryFallbackAvailable = true
         switch finalResult {
         case .some(.success):
-            espnCheckNotice = EspnHandoffCopy.noLeaguesFound
+            espnCheckNotice = EspnConnectCopy.noLeaguesFound
+        case .some(.failure(.espnListingPending(let expected))):
+            espnCheckNotice = EspnConnectCopy.listingStillPending(expected)
+        case .some(.failure(.espnProfilePending)):
+            espnCheckNotice = EspnConnectCopy.profileStillPending
+        case .some(.failure(.espnNoFootballLeagues)):
+            espnCheckNotice = EspnConnectCopy.noFootballLeagues
         case .some(.failure), .none:
-            espnCheckNotice = EspnHandoffCopy.discoveryUnavailable
+            espnCheckNotice = EspnConnectCopy.discoveryUnavailable
         }
         state = .espnSigningIn
     }
@@ -526,7 +543,7 @@ final class ConnectViewModel: ObservableObject {
     }
 
     /// After a successful connect, the league label comes from the server rather than from
-    /// anything the client scraped — the same read the "I connected ESPN" button uses.
+    /// anything the client scraped — the provider-neutral directory remains the authority.
     private func confirmEspnFromServer(leagueId: String) async {
         guard let accessToken = await bearer() else { return }
         switch await repository.espnConnection(accessToken: accessToken) {
@@ -538,19 +555,11 @@ final class ConnectViewModel: ObservableObject {
         }
     }
 
-    /// Contract §W1-A failure table: one retry on an unreadable session, then the desktop path.
-    /// Never a loop, and never copy that blames the user.
+    /// An unreadable session remains a bounded native retry. A current iPhone binary must never
+    /// route into the retired desktop-helper UI; the user can retry or choose another provider.
     private func failEspnSignIn(with failure: ConnectFailure) {
         clearEspnSession()
 
-        if case .espnSessionUnreadable = failure {
-            espnUnreadableRetries += 1
-            if espnUnreadableRetries > 1 {
-                espnCheckNotice = EspnHandoffCopy.signInFellBack
-                state = .unsupportedOnMobile(provider: .espn)
-                return
-            }
-        }
         state = .retryableError(failure)
     }
 
@@ -564,35 +573,6 @@ final class ConnectViewModel: ObservableObject {
         guard case .espnSigningIn = state else { return }
         clearEspnSession()
         state = .canceled
-    }
-
-    /// "I connected ESPN" — re-reads the server after the user finished on a computer.
-    ///
-    /// This is a **read**, not a connect. The app has no ESPN credential path and never asks
-    /// for one (onboarding contract §2/§5); the whole action is `GET /api/leagues` plus a
-    /// decision about where to send the user next. A connection with usable team context
-    /// routes on; anything else leaves the steps on screen with an honest status line, so a
-    /// user who tapped too early is not thrown back to the provider picker.
-    func checkEspnConnection() async {
-        guard !state.isBusy else { return }
-        espnCheckNotice = nil
-        guard let accessToken = await bearer() else { return }
-
-        state = .checkingEspnConnection
-        switch await repository.espnConnection(accessToken: accessToken) {
-        case .success(let connection):
-            if let connection {
-                state = .espnConnected(connection)
-            } else {
-                espnCheckNotice = EspnHandoffCopy.notConnectedYet
-                state = .unsupportedOnMobile(provider: .espn)
-            }
-        case .failure:
-            // The reason is never shown verbatim: `ConnectFailure` messages are written for
-            // provider operations the user started, and none of them is true here.
-            espnCheckNotice = EspnHandoffCopy.checkUnavailable
-            state = .unsupportedOnMobile(provider: .espn)
-        }
     }
 
     /// Spec §6: "Cancellation is normal, not an error."
@@ -609,7 +589,6 @@ final class ConnectViewModel: ObservableObject {
         espnCheckNotice = nil
         clearEspnSession()
         espnLeagueId = ""
-        espnUnreadableRetries = 0
         selectedProvider = nil
         clearLeagueSelection()
         followsNotPersisted = false
@@ -799,7 +778,7 @@ struct ConnectConfirmation: Equatable {
         let list = leagueNames.joined(separator: ", ")
         if pending { return "Connecting \(list). Saving your choice\u{2026}" }
         if remembered {
-            return "Omen will remember all of them: \(list). Swipe between them on Command Center."
+            return "Omen will remember all of them: \(list). Swipe between them on the Desk."
         }
         return "Omen connected \(list), but could only save \(leagueNames[0]) for next time. "
             + "You can add the others again from Account."

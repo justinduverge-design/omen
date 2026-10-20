@@ -7,17 +7,10 @@ import SwiftUI
 // `design/native-visual-lock-2026-09-13/` under the 2026-09-18/19 precedence rule — the artboard
 // owns composition, placement, type and tone; `CONTRACTS.md` owns data, vocabulary and state.
 //
-// ## Why these are new compositions rather than edits to `OmenCommandCenterScreen`
-//
-// That screen is the v1.1 assembly built against `omen-mobile-visual-briefs-v1.md`: context
-// strip, matchup hero, widget pager, platform strip. The canvas folder's own README says the
-// card "stays Command Center's until `U3` rebuilds that destination against
-// `CommandCenter.dc.html`". This is that rebuild, and it is a different composition rather than
-// a re-skin — a scoreboard board, a league rail, one waiver card and one ledger line.
-//
-// The old assembly is NOT deleted here. It still serves the carousel account, the platform
-// detail sheets and three screenshot scenarios that certify them, and deleting it to land a
-// journey would take those with it.
+// This is the U3 rebuild against `CommandCenter.dc.html`: a scoreboard board, a league rail,
+// one waiver card and one ledger line. It is the sole Command composition; the earlier v1.1
+// assembly and its reduced state adapters were removed after production, carousel, gallery and
+// screenshot evidence all migrated here.
 //
 // ## The capability contract on a screen with no evidence surface
 //
@@ -103,6 +96,10 @@ struct OmenDeskWaiverMove: Equatable {
     /// and a hardcoded "Confident · Low risk" on every claim is a fabricated read.
     let risk: OmenRiskLevel?
     let riskReason: String?
+    /// Omen's read for each side ("9.9"), from the `sight` block the server attaches. Nil when
+    /// Omen has no read for that player; the line then shows the provider number alone.
+    var addOmenPoints: String? = nil
+    var dropOmenPoints: String? = nil
 }
 
 /// The single `.lrow` under "The Ledger".
@@ -159,6 +156,40 @@ struct OmenDeskState: Equatable {
     let waiver: OmenDeskSection<OmenDeskWaiverMove>
     let ledger: OmenDeskSection<OmenDeskLedgerLine>
     let footnote: OmenDeskFootnote?
+}
+
+/// "This week's move": the Omen call previewed on the desk (whole-app canvas, `Desk.dc.html`).
+///
+/// A preview, never a second engine: every field is copied from the brief the Omen tab already
+/// renders, and tapping it opens that tab.
+struct OmenDeskMovePreview: Equatable {
+    let headline: String
+    let reason: String?
+    let band: OmenConfidenceBand?
+    let isHold: Bool
+}
+
+extension OmenDeskMovePreview {
+    /// Nil hides the section. With no league, off-season or no call, the desk does not invent one.
+    static func section(from brief: OmenDecisionBriefState) -> OmenDeskSection<OmenDeskMovePreview>? {
+        switch brief {
+        case .success(let payload), .stale(let payload, _), .mock(let payload), .demo(let payload):
+            return .read(OmenDeskMovePreview(
+                headline: payload.verdict,
+                reason: payload.explanation.first ?? payload.move,
+                band: payload.confidenceBand,
+                isHold: false
+            ))
+        case .hold(let hold):
+            return .read(OmenDeskMovePreview(headline: hold.headline, reason: hold.summary, band: nil, isHold: true))
+        case .loading:
+            return .switching
+        case .error(let message, _):
+            return .unread(capability: "This week's move", sentence: message)
+        case .empty, .disconnected, .offSeason:
+            return nil
+        }
+    }
 }
 
 /// `quiet-week.v1`. The variant is **server-owned** and the copy is locked to the artboard.
@@ -237,13 +268,24 @@ struct OmenCommandDeskScreen: View {
     /// a D11 probe reporting under the wrong screen's name is worse than no probe.
     var screenIdentifier: String = "j2.command-center"
     var fitProbeIdentifier: String = "j2.fit.command-center"
+    /// "This week's move". Nil hides the section (whole-app canvas, `Desk.dc.html`).
+    var move: OmenDeskSection<OmenDeskMovePreview>?
+    var onOpenMove: (() -> Void)?
+    /// False when hosted in a scroll view (the live app). The fit probe measures through a
+    /// `GeometryReader`, which inside a `ScrollView` does not grow with its content, so the
+    /// scroll view saw a short page and sprang back: the founder's "bounces back up".
+    var fitsScreen: Bool = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
             board
             rail
-            sectionHeader("Waiver watch", action: onOpenLeague == nil ? nil : "League", perform: onOpenLeague)
+            if let move {
+                sectionHeader("This week's move", action: onOpenMove == nil ? nil : "The full call", perform: onOpenMove)
+                moveCard(move)
+            }
+            sectionHeader("Needs you", action: onOpenLeague == nil ? nil : "League", perform: onOpenLeague)
             waiverCard
             sectionHeader("The Ledger", action: onOpenLedger == nil ? nil : "See all", perform: onOpenLedger)
             ledgerCard
@@ -260,9 +302,7 @@ struct OmenCommandDeskScreen: View {
             Color.clear.frame(height: OmenSpacing.step12)
         }
         .accessibilityIdentifier(screenIdentifier)
-        .omenFitContent()
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .omenFitProbe(fitProbeIdentifier)
+        .modifier(OmenDeskFit(enabled: fitsScreen, identifier: fitProbeIdentifier))
         .safeAreaInset(edge: .top, spacing: 0) {
             if let context { context.bar }
         }
@@ -302,7 +342,7 @@ struct OmenCommandDeskScreen: View {
                 Text(state.weekLabel)
                     .omenTextStyle(OmenTypography.micro)
                     .foregroundStyle(OmenColor.accent)
-                Text("Command")
+                Text("Desk")
                     .omenTextStyle(OmenTypography.screenTitle)
                     .foregroundStyle(OmenColor.textPrimary)
             }
@@ -362,6 +402,10 @@ struct OmenCommandDeskScreen: View {
             .padding(.top, OmenSpacing.step8)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("League \(state.railIndex + 1) of \(state.railCount)")
+            // This is status text for a swipeable rail, not a control of its own. Keeping it in
+            // the accessibility tree lets VoiceOver announce the current page without asking
+            // Apple's audit to enforce a 44 pt interactive hit target on the five-point dots.
+            .accessibilityRespondsToUserInteraction(false)
         }
     }
 
@@ -375,6 +419,47 @@ struct OmenCommandDeskScreen: View {
                 .padding(.horizontal, OmenSpacing.step16)
         case .switching:
             OmenDeskCardSkeleton(lineWidths: [0.7, 0.9, 0.45])
+                .padding(.horizontal, OmenSpacing.step16)
+        }
+    }
+
+    /// The call, previewed: headline, one line of why, the band. The whole card opens Omen.
+    @ViewBuilder private func moveCard(_ move: OmenDeskSection<OmenDeskMovePreview>) -> some View {
+        switch move {
+        case .read(let preview):
+            OmenTappableCard(
+                contentPadding: OmenSpacing.step12,
+                accessibilityHint: onOpenMove == nil ? nil : "Opens the full call",
+                action: { onOpenMove?() }
+            ) {
+                    VStack(alignment: .leading, spacing: OmenSpacing.step6) {
+                        if preview.isHold {
+                            Text("Hold")
+                                .omenTextStyle(OmenTypography.micro)
+                                .foregroundStyle(OmenColor.textTertiary)
+                        }
+                        Text(preview.headline)
+                            .omenTextStyle(OmenTypography.h3)
+                            .foregroundStyle(OmenColor.textPrimary)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                        if let reason = preview.reason {
+                            Text(reason)
+                                .omenTextStyle(OmenTypography.bodySmall)
+                                .foregroundStyle(OmenColor.textSecondary)
+                                .multilineTextAlignment(.leading)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        if let band = preview.band { OmenConfidenceBandLabel(band: band) }
+                    }
+            }
+            .disabled(onOpenMove == nil)
+            .padding(.horizontal, OmenSpacing.step16)
+        case .unread(let capability, let sentence):
+            OmenDeskUnreadSection(capability: capability, sentence: sentence)
+                .padding(.horizontal, OmenSpacing.step16)
+        case .switching:
+            OmenDeskCardSkeleton(lineWidths: [0.8, 0.55])
                 .padding(.horizontal, OmenSpacing.step16)
         }
     }
@@ -413,6 +498,23 @@ struct OmenCommandDeskScreen: View {
         .padding(.horizontal, OmenSpacing.step16)
         .padding(.top, OmenSpacing.step12)
         .padding(.bottom, OmenSpacing.step6)
+    }
+}
+
+/// The fixed-height "fit" composition and its D11 probe, only when the desk is not scrolling.
+private struct OmenDeskFit: ViewModifier {
+    let enabled: Bool
+    let identifier: String
+
+    func body(content: Content) -> some View {
+        if enabled {
+            content
+                .omenFitContent()
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .omenFitProbe(identifier)
+        } else {
+            content.frame(maxWidth: .infinity, alignment: .top)
+        }
     }
 }
 
@@ -463,7 +565,7 @@ struct OmenCommandQuietScreen: View {
                 Text(state.weekLabel)
                     .omenTextStyle(OmenTypography.micro)
                     .foregroundStyle(OmenColor.accent)
-                Text("Command")
+                Text("Desk")
                     .omenTextStyle(OmenTypography.screenTitle)
                     .foregroundStyle(OmenColor.textPrimary)
             }
@@ -548,7 +650,8 @@ private struct OmenDeskBoard: View {
             if let watch = matchup.watch {
                 Text(watch)
                     .omenTextStyle(OmenTypography.bodySmall)
-                    .foregroundStyle(OmenColor.textSecondary)
+                    .foregroundStyle(OmenColor.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, OmenSpacing.step8)
                     .overlay(alignment: .top) {
                         Rectangle().fill(OmenColor.textPrimary.opacity(0.08)).frame(height: 1)
@@ -594,18 +697,20 @@ private struct OmenDeskBoard: View {
                     .omenTextStyle(OmenTypography.bodySmall)
                     .fontWeight(.bold)
                     .foregroundStyle(OmenColor.textPrimary)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(team.record)
-                    .omenTextStyle(OmenTypography.micro)
-                    .foregroundStyle(OmenColor.textTertiary)
+                    .font(.subheadline.bold())
+                    .foregroundStyle(team.isMine ? Color(uiColor: .label) : OmenColor.textTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             Text(team.score)
                 .omenTextStyle(isLeading ? OmenTypography.scoreLead : OmenTypography.scoreTrail)
                 .foregroundStyle(isLeading ? OmenColor.textPrimary : OmenColor.textTertiary)
         }
-        .accessibilityElement(children: .combine)
+        // The scoreboard row has one complete spoken summary below. Ignoring its visual child
+        // labels prevents compact score typography from becoming separate, clipped AX nodes.
+        .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(team.name), \(team.record), \(team.score) points")
     }
 
@@ -642,11 +747,16 @@ private struct OmenDeskBoard: View {
     }
 
     private func crest(_ team: OmenDeskTeam) -> some View {
-        Text(team.crest)
-            .omenTextStyle(OmenTypography.micro)
-            .foregroundStyle(team.isMine ? OmenColor.accentHover : OmenColor.textSecondary)
-            .lineLimit(1)
-            .minimumScaleFactor(0.6)
+        Canvas { context, size in
+            // Decorative artwork: the adjacent accessible row already announces the full team
+            // name. Keep this monogram inside the fixed scoreboard tile at every text size.
+            context.draw(
+                Text(team.crest)
+                    .font(.system(size: 10, weight: .heavy))
+                    .foregroundStyle(OmenColor.textPrimary),
+                at: CGPoint(x: size.width / 2, y: size.height / 2)
+            )
+        }
             .frame(width: 30, height: 30)
             .background(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -697,9 +807,9 @@ private struct OmenDeskWaiverCard: View {
         HStack(alignment: .top, spacing: OmenSpacing.step8) {
             tick
             VStack(alignment: .leading, spacing: 0) {
-                line(name: move.addName, meta: move.addMeta, points: move.addPoints, incoming: true)
+                line(name: move.addName, meta: move.addMeta, points: move.addPoints, omen: move.addOmenPoints, incoming: true)
                 if let dropName = move.dropName {
-                    line(name: dropName, meta: move.dropMeta, points: move.dropPoints, incoming: false)
+                    line(name: dropName, meta: move.dropMeta, points: move.dropPoints, omen: move.dropOmenPoints, incoming: false)
                 }
             }
         }
@@ -718,19 +828,26 @@ private struct OmenDeskWaiverCard: View {
         .accessibilityHidden(true)
     }
 
-    private func line(name: String, meta: String?, points: String?, incoming: Bool) -> some View {
+    private func line(name: String, meta: String?, points: String?, omen: String?, incoming: Bool) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: OmenSpacing.step6) {
             Text(name)
                 .omenTextStyle(OmenTypography.name)
                 .fontWeight(incoming ? .bold : .medium)
                 .foregroundStyle(incoming ? OmenColor.textPrimary : OmenColor.textTertiary)
-                .lineLimit(1)
+                .fixedSize(horizontal: false, vertical: true)
             if let meta {
                 Text(meta)
                     .omenTextStyle(OmenTypography.micro)
                     .foregroundStyle(OmenColor.textTertiary)
             }
             Spacer(minLength: OmenSpacing.step8)
+            // Omen's read beside the provider's, never in place of it.
+            if let omen {
+                Text("Omen \(omen)")
+                    .omenTextStyle(OmenTypography.micro)
+                    .foregroundStyle(incoming ? OmenColor.accent : OmenColor.textTertiary)
+                    .monospacedDigit()
+            }
             // No points column when the provider gave none. A dash or a zero would both read as
             // a projection, and `waiver-analysis.v1` is explicit that a missing input is null
             // rather than zero for exactly this reason.
@@ -745,7 +862,7 @@ private struct OmenDeskWaiverCard: View {
         .padding(.vertical, OmenSpacing.step2)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
-            [incoming ? "Add" : "Drop", name, meta, points.map { "\($0) projected" }]
+            [incoming ? "Add" : "Drop", name, meta, points.map { "\($0) projected" }, omen.map { "Omen's read \($0)" }]
                 .compactMap { $0 }.joined(separator: ", ")
         )
     }
@@ -762,8 +879,7 @@ private struct OmenDeskLedgerRow: View {
                     .omenTextStyle(OmenTypography.bodySmall)
                     .fontWeight(.bold)
                     .foregroundStyle(OmenColor.textPrimary)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(line.meta)
                     .omenTextStyle(OmenTypography.micro)
                     .foregroundStyle(OmenColor.textTertiary)
@@ -1030,10 +1146,8 @@ extension OmenDeskState {
         else {
             return .unread(
                 capability: "League matchup",
-                // The server's own reason, rendered verbatim. A client-authored explanation
-                // would be a guess at someone else's failure.
-                sentence: overview.matchup.unavailableReason
-                    ?? "The provider did not return this week's matchup. Everything else below read normally."
+                // `unavailable_reason` is a code, never copy: the shared mapping says it in words.
+                sentence: OmenScoutTableState.matchupReasonSentence(overview.matchup)
             )
         }
 
@@ -1211,6 +1325,7 @@ struct OmenCommandDeskHost: View {
     var context: OmenScreenContext?
     /// The unabridged Ledger, for the "See all" sheet. Nil when the read did not produce entries.
     var ledgerEntries: [OmenLedgerEntry] = []
+    var ledgerHeadline: String?
     var onOpenAccount: (() -> Void)?
     var onOpenLeague: (() -> Void)?
     var onReportProblem: (() -> Void)?
@@ -1220,6 +1335,8 @@ struct OmenCommandDeskHost: View {
     @ObservedObject var carousel: LeagueCarouselViewModel
     var userID: String
     var onContextChanged: (([String]) -> Void)?
+    var move: OmenDeskSection<OmenDeskMovePreview>?
+    var onOpenMove: (() -> Void)?
 
     @State private var showLedger = false
     @State private var receiptEntry: OmenLedgerEntry?
@@ -1231,7 +1348,9 @@ struct OmenCommandDeskHost: View {
             desk.padding(.bottom, 104)
         }
         .background(OmenColor.bg)
-        .task { await carousel.load(userID: userID) }
+        .task {
+            await carousel.load(userID: userID)
+        }
         .simultaneousGesture(
             DragGesture(minimumDistance: 40).onEnded { value in
                 let dx = value.translation.width
@@ -1243,7 +1362,6 @@ struct OmenCommandDeskHost: View {
         )
         .onChange(of: carousel.selectedIndex) { _, _ in
             Task {
-                await carousel.loadCurrentPage()
                 if let refresh = await carousel.commitSelection() {
                     onContextChanged?(refresh)
                 }
@@ -1252,7 +1370,11 @@ struct OmenCommandDeskHost: View {
         .sheet(isPresented: $showLedger) {
             CommandCenterDetailSheet(title: "The Ledger") {
                 OmenLedgerScreen(
-                    state: OmenLedgerState.from(entries: ledgerEntries),
+                    state: {
+                        var state = OmenLedgerState.from(entries: ledgerEntries)
+                        state.headline = ledgerHeadline
+                        return state
+                    }(),
                     onOpenAccount: onOpenAccount,
                     onOpenCall: { call in
                         guard let entry = ledgerEntries.first(where: { $0.id == call.id }) else { return }
@@ -1276,7 +1398,10 @@ struct OmenCommandDeskHost: View {
             onOpenAccount: onOpenAccount,
             onOpenLeague: onOpenLeague,
             onOpenLedger: ledgerEntries.isEmpty ? nil : { showLedger = true },
-            onReportProblem: onReportProblem
+            onReportProblem: onReportProblem,
+            move: move,
+            onOpenMove: onOpenMove,
+            fitsScreen: false
         )
     }
 }

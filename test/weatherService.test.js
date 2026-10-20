@@ -36,12 +36,14 @@ describe("weatherService.getVenueWeather", () => {
       return {
         ok: true,
         json: async () => ({
-          list: [{
-            main: { temp: 51.6 },
-            wind: { speed: 11.4 },
-            weather: [{ description: "light rain" }],
-            pop: 0.62,
-          }],
+          list: [
+            {
+              main: { temp: 51.6 },
+              wind: { speed: 11.4 },
+              weather: [{ description: "light rain" }],
+              pop: 0.62,
+            },
+          ],
         }),
       };
     };

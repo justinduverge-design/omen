@@ -9,13 +9,13 @@
  * 3. Fires a welcome email via Resend (best-effort; signup never fails on email error).
  */
 
-const express          = require("express");
-const axios            = require("axios");
+const express = require("express");
+const axios = require("axios");
 const { createClient } = require("@supabase/supabase-js");
-const config           = require("../config");
-const { logger }       = require("../middleware/logging");
+const config = require("../config");
+const { logger } = require("../middleware/logging");
 
-const router   = express.Router();
+const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -40,37 +40,38 @@ router.post("/", async (req, res) => {
 
   // Best-effort email — never blocks or fails the signup
   if (config.resend?.apiKey) {
-    axios.post(
-      "https://api.resend.com/emails",
-      {
-        from: "Omen <hello@slopssaloon.com>",
-        to: [cleanEmail],
-        subject: "You're on the Omen waitlist",
-        html: waitlistEmailHtml(),
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${config.resend.apiKey}`,
-          "Content-Type": "application/json",
+    axios
+      .post(
+        "https://api.resend.com/emails",
+        {
+          from: "Omen <hello@slopssaloon.com>",
+          to: [cleanEmail],
+          subject: "You're on the Omen waitlist",
+          html: waitlistEmailHtml(),
         },
-        timeout: 5000,
-      }
-    ).catch((err) => logger.warn("Resend email failed", { err: err.message }));
+        {
+          headers: {
+            Authorization: `Bearer ${config.resend.apiKey}`,
+            "Content-Type": "application/json",
+          },
+          timeout: 5000,
+        },
+      )
+      .catch((err) => logger.warn("Resend email failed", { err: err.message }));
   }
 
   res.json({ ok: true });
 });
 
 router.delete("/", async (req, res) => {
-  const email = String(req.body?.email || "").trim().toLowerCase();
+  const email = String(req.body?.email || "")
+    .trim()
+    .toLowerCase();
   if (!EMAIL_RE.test(email)) {
     return res.status(400).json({ error: "Valid email is required." });
   }
 
-  const { error } = await supabase
-    .from("waitlist_signups")
-    .delete()
-    .eq("email", email);
+  const { error } = await supabase.from("waitlist_signups").delete().eq("email", email);
 
   if (error) {
     logger.error("waitlist unsubscribe failed", { err: error.message });

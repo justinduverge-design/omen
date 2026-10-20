@@ -63,10 +63,7 @@ const NOT_YET_APPLIED_TABLES = new Set(["beta_reports", "saved_trades"]);
 const MISSING_TABLE_CODES = new Set(["42P01", "PGRST205"]);
 
 async function selectRows(table, columns, userId) {
-  const { data, error } = await supabase
-    .from(table)
-    .select(columns)
-    .eq("user_id", userId);
+  const { data, error } = await supabase.from(table).select(columns).eq("user_id", userId);
   if (NOT_YET_APPLIED_TABLES.has(table) && MISSING_TABLE_CODES.has(error?.code)) return [];
   if (error) throw new Error(`${table} export failed: ${error.message}`);
   return Array.isArray(data) ? data : [];
@@ -120,26 +117,34 @@ async function ensureConsentRecord(consentType, userId, req) {
 router.get("/export", requireAuth, async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const [
-      profile,
-      platformRows,
-      consentRows,
-      moveRows,
-      decisionRows,
-      reportRows,
-      savedTradeRows,
-    ] = await Promise.all([
+    const [profile, platformRows, consentRows, moveRows, decisionRows, reportRows, savedTradeRows] = await Promise.all([
       selectUserProfile(userId),
       selectRows(
         "platform_connections",
         "platform,platform_username,league_id,espn_team_id,is_active,token_expires_at,created_at,updated_at",
-        userId
+        userId,
       ),
       selectRows("consent_records", "consent_type,granted,granted_at,withdrawn_at,ip_address,user_agent", userId),
-      selectRows("moves", "id,platform,league_id,season,week_num,move_type,headline,reasoning,confidence,target_player,followed,outcome,user_stars,user_note,created_at", userId),
-      selectRows("decisions", "id,league_id,provider_team_id,season,week,call_type,headline,summary,recommendation,band,risk_level,risk_reasons,scoring_format,issued_at,created_at", userId),
-      selectRows("beta_reports", "id,message,screen,app_version,build,os_version,device_model,connection_state,recent_error_codes,disclosure_accepted,created_at,expires_at", userId),
-      selectRows("saved_trades", "provider,provider_league_id,season,week,provider_team_id,candidate_id,trade,reasoning,state,outcome,outcome_provenance,saved_at,sent_at,outcome_at", userId),
+      selectRows(
+        "moves",
+        "id,platform,league_id,season,week_num,move_type,headline,reasoning,confidence,target_player,followed,outcome,user_stars,user_note,created_at",
+        userId,
+      ),
+      selectRows(
+        "decisions",
+        "id,league_id,provider_team_id,season,week,call_type,headline,summary,recommendation,band,risk_level,risk_reasons,scoring_format,issued_at,created_at",
+        userId,
+      ),
+      selectRows(
+        "beta_reports",
+        "id,message,screen,app_version,build,os_version,device_model,connection_state,recent_error_codes,disclosure_accepted,created_at,expires_at",
+        userId,
+      ),
+      selectRows(
+        "saved_trades",
+        "provider,provider_league_id,season,week,provider_team_id,candidate_id,trade,reasoning,state,outcome,outcome_provenance,saved_at,sent_at,outcome_at",
+        userId,
+      ),
     ]);
 
     return res.json({
@@ -198,21 +203,13 @@ router.post("/legal-acceptance", requireAuth, async (req, res, next) => {
     const privacyVersion = String(req.body?.privacy_version || "");
     const minimumAgeConfirmed = req.body?.minimum_age_confirmed === true;
 
-    if (
-      termsVersion !== LEGAL_VERSION ||
-      privacyVersion !== LEGAL_VERSION ||
-      !minimumAgeConfirmed
-    ) {
+    if (termsVersion !== LEGAL_VERSION || privacyVersion !== LEGAL_VERSION || !minimumAgeConfirmed) {
       return res.status(422).json({
         error: "Current Terms, Privacy Notice, and 13+ confirmation are required.",
       });
     }
 
-    await Promise.all(
-      LEGAL_CONSENT_TYPES.map((consentType) =>
-        ensureConsentRecord(consentType, req.user.id, req)
-      )
-    );
+    await Promise.all(LEGAL_CONSENT_TYPES.map((consentType) => ensureConsentRecord(consentType, req.user.id, req)));
 
     return res.json({
       contract_version: "legal-acceptance.v1",
@@ -226,53 +223,58 @@ router.post("/legal-acceptance", requireAuth, async (req, res, next) => {
   }
 });
 
-router.delete("/delete", requireAuth, require("../services/responseCache").invalidateUserCacheOnWrite, async (req, res, next) => {
-  try {
-    if (!isDeleteConfirmed(req.body?.confirmation)) {
-      return res.status(400).json({
-        error: `confirmation must equal "${DELETE_CONFIRMATION}"`,
+router.delete(
+  "/delete",
+  requireAuth,
+  require("../services/responseCache").invalidateUserCacheOnWrite,
+  async (req, res, next) => {
+    try {
+      if (!isDeleteConfirmed(req.body?.confirmation)) {
+        return res.status(400).json({
+          error: `confirmation must equal "${DELETE_CONFIRMATION}"`,
+        });
+      }
+
+      const userId = req.user.id;
+
+      // First, so a failure stops the request before anything is erased and a retry starts clean.
+      await legacySavedTrades.deleteAll(userId);
+
+      // One transaction for everything Omen holds (redo step 10). It waits for any connect in flight,
+      // deletes every Vault secret or nothing, erases the Ledger, writes the audit row and removes the
+      // users row. Today's table-by-table path stays until the function is applied.
+      const { data: erased, error: eraseError } = await supabase.rpc("account_erase", {
+        p_user_id: userId,
+        p_method: "user_requested",
       });
+      if (eraseError && !isMissingFunction(eraseError)) {
+        throw new Error(`account_erase failed (${eraseError.code || "unknown"})`);
+      }
+      // The function cleans a sign-in with no app row itself, under its lock (Codex, #534), and reports a
+      // repeat request as already_erased; the legacy cleanup runs only when the function is missing or is
+      // the earlier version that returned no_such_user.
+      if (eraseError || (erased?.erased === false && erased.reason !== "already_erased")) {
+        // Function not applied yet, or no app user row. A sign-in without an app row can still own rows
+        // keyed to the auth user (consent from /legal-acceptance, OAuth state), so clean those up before
+        // the audit row records the deletion (Codex, #526).
+        await eraseAccountLegacy(userId);
+      }
+
+      const { error: authError } = await supabase.auth.admin.deleteUser(userId);
+      if (authError) throw new Error(`auth identity delete failed: ${authError.message}`);
+
+      logger.info("User deletion completed", { user_hash: userHash(userId) });
+      return res.json({
+        contract_version: "user-delete.v1",
+        deleted: true,
+        auth_identity_deleted: true,
+        user_hash: userHash(userId),
+      });
+    } catch (err) {
+      return next(err);
     }
-
-    const userId = req.user.id;
-
-    // First, so a failure stops the request before anything is erased and a retry starts clean.
-    await legacySavedTrades.deleteAll(userId);
-
-    // One transaction for everything Omen holds (redo step 10). It waits for any connect in flight,
-    // deletes every Vault secret or nothing, erases the Ledger, writes the audit row and removes the
-    // users row. Today's table-by-table path stays until the function is applied.
-    const { data: erased, error: eraseError } = await supabase.rpc("account_erase", {
-      p_user_id: userId,
-      p_method: "user_requested",
-    });
-    if (eraseError && !isMissingFunction(eraseError)) {
-      throw new Error(`account_erase failed (${eraseError.code || "unknown"})`);
-    }
-    // The function cleans a sign-in with no app row itself, under its lock (Codex, #534), and reports a
-    // repeat request as already_erased; the legacy cleanup runs only when the function is missing or is
-    // the earlier version that returned no_such_user.
-    if (eraseError || (erased?.erased === false && erased.reason !== "already_erased")) {
-      // Function not applied yet, or no app user row. A sign-in without an app row can still own rows
-      // keyed to the auth user (consent from /legal-acceptance, OAuth state), so clean those up before
-      // the audit row records the deletion (Codex, #526).
-      await eraseAccountLegacy(userId);
-    }
-
-    const { error: authError } = await supabase.auth.admin.deleteUser(userId);
-    if (authError) throw new Error(`auth identity delete failed: ${authError.message}`);
-
-    logger.info("User deletion completed", { user_hash: userHash(userId) });
-    return res.json({
-      contract_version: "user-delete.v1",
-      deleted: true,
-      auth_identity_deleted: true,
-      user_hash: userHash(userId),
-    });
-  } catch (err) {
-    return next(err);
-  }
-});
+  },
+);
 
 async function insertDeletionAudit(userId) {
   const { error } = await supabase.from("deletion_audit_log").insert({

@@ -8,6 +8,7 @@
  */
 
 const express = require("express");
+const { clearYahooLeagueReads } = require("../services/yahooLeagueReads");
 const { createClient } = require("@supabase/supabase-js");
 const responseCache = require("../services/responseCache");
 const { Redis } = require("@upstash/redis");
@@ -17,6 +18,7 @@ const { requireAuth } = require("../middleware/auth");
 const { ensureAppUser } = require("../services/appUser");
 const connectionStore = require("../services/connectionStore");
 const leagueMemberships = require("../services/leagueMemberships");
+const { scheduleEspnLateLeagueSync } = require("../services/espnLateLeagueSync");
 const { hasUsableLeagueId } = require("../services/omenReadiness");
 const sleeperAdapter = require("../adapters/sleeper");
 const espnAdapter = require("../adapters/espn");
@@ -77,9 +79,7 @@ function stripWrappingQuotes(value) {
   if (trimmed.length < 2) return trimmed;
   const first = trimmed[0];
   const last = trimmed[trimmed.length - 1];
-  return ((first === "\"" && last === "\"") || (first === "'" && last === "'"))
-    ? trimmed.slice(1, -1).trim()
-    : trimmed;
+  return (first === '"' && last === '"') || (first === "'" && last === "'") ? trimmed.slice(1, -1).trim() : trimmed;
 }
 
 function extractCookieValue(rawValue, cookieName) {
@@ -171,15 +171,17 @@ function platformStatus(rows) {
 
 function selectedLeagueFromConnection(row) {
   if (!hasUsableLeagueId(row)) return [];
-  return [{
-    id: String(row.league_id),
-    name: null,
-    season: null,
-    scoring_format: null,
-    team_id: row.espn_team_id ? String(row.espn_team_id) : null,
-    team_name: null,
-    selected: true,
-  }];
+  return [
+    {
+      id: String(row.league_id),
+      name: null,
+      season: null,
+      scoring_format: null,
+      team_id: row.espn_team_id ? String(row.espn_team_id) : null,
+      team_name: null,
+      selected: true,
+    },
+  ];
 }
 
 function platformStatusContract(rows) {
@@ -225,31 +227,70 @@ function platformStatusContract(rows) {
 function providerState(platform, row) {
   const base = { platform, state: "not_started", recovery_action: "start_connection", error_code: null };
   if (!row?.is_active) return base;
+  // A credential the provider refused was removed by the health check; the user must reconnect.
+  if ((platform === "espn" || platform === "yahoo") && row.credential_state === "needs_reauth") {
+    return {
+      ...base,
+      state: "needs_reauth",
+      recovery_action: "reauthenticate",
+      error_code: row.last_failure_code || `${platform}_credential_refused`,
+    };
+  }
 
   if (platform === "yahoo") {
     if (!row.token_secret_id) {
-      return { ...base, state: "needs_reauth", recovery_action: "reauthenticate", error_code: "yahoo_oauth_context_missing" };
+      return {
+        ...base,
+        state: "needs_reauth",
+        recovery_action: "reauthenticate",
+        error_code: "yahoo_oauth_context_missing",
+      };
     }
     if (!hasUsableLeagueId(row)) {
-      return { ...base, state: "choosing_league", recovery_action: "choose_league", error_code: "yahoo_league_context_missing" };
+      return {
+        ...base,
+        state: "choosing_league",
+        recovery_action: "choose_league",
+        error_code: "yahoo_league_context_missing",
+      };
     }
   }
 
   if (platform === "sleeper") {
     if (!row.platform_username) {
-      return { ...base, state: "resolving_account", recovery_action: "retry", error_code: "sleeper_account_context_missing" };
+      return {
+        ...base,
+        state: "resolving_account",
+        recovery_action: "retry",
+        error_code: "sleeper_account_context_missing",
+      };
     }
     if (!hasUsableLeagueId(row)) {
-      return { ...base, state: "choosing_league", recovery_action: "choose_league", error_code: "sleeper_league_context_missing" };
+      return {
+        ...base,
+        state: "choosing_league",
+        recovery_action: "choose_league",
+        error_code: "sleeper_league_context_missing",
+      };
     }
   }
 
   if (platform === "espn") {
     if (!row.espn_secret_id || !row.swid_secret_id) {
-      return { ...base, state: "needs_reauth", recovery_action: "reauthenticate", error_code: "espn_connection_context_missing" };
+      return {
+        ...base,
+        state: "needs_reauth",
+        recovery_action: "reauthenticate",
+        error_code: "espn_connection_context_missing",
+      };
     }
     if (!hasUsableLeagueId(row)) {
-      return { ...base, state: "choosing_league", recovery_action: "choose_league", error_code: "espn_league_context_missing" };
+      return {
+        ...base,
+        state: "choosing_league",
+        recovery_action: "choose_league",
+        error_code: "espn_league_context_missing",
+      };
     }
   }
 
@@ -261,7 +302,7 @@ function providerStateContract(rows) {
   return {
     contract_version: PROVIDER_STATE_CONTRACT_VERSION,
     providers: Object.fromEntries(
-      [...VALID_PLATFORMS].map((platform) => [platform, providerState(platform, byPlatform.get(platform))])
+      [...VALID_PLATFORMS].map((platform) => [platform, providerState(platform, byPlatform.get(platform))]),
     ),
   };
 }
@@ -292,9 +333,7 @@ async function vaultUpdate(secretId, newSecret) {
 }
 
 async function vaultUpsert(existingSecretId, secret, name, description) {
-  return existingSecretId
-    ? vaultUpdate(existingSecretId, secret)
-    : vaultCreate(secret, name, description);
+  return existingSecretId ? vaultUpdate(existingSecretId, secret) : vaultCreate(secret, name, description);
 }
 
 // Today's ESPN store, kept until redo step 02 is applied: secrets and row in separate calls.
@@ -313,16 +352,19 @@ async function storeEspnLegacy(userId, { leagueId, espnTeamId, espn_s2, swid }) 
     vaultUpsert(existing?.swid_secret_id, swid, `espn_swid_${userId}`, "ESPN SWID cookie"),
   ]);
 
-  const { error } = await supabase.from("platform_connections").upsert({
-    user_id: userId,
-    platform: "espn",
-    espn_secret_id: espnSecretId,
-    swid_secret_id: swidSecretId,
-    league_id: leagueId,
-    espn_team_id: espnTeamId,
-    is_active: true,
-    updated_at: nowIso(),
-  }, { onConflict: "user_id,platform" });
+  const { error } = await supabase.from("platform_connections").upsert(
+    {
+      user_id: userId,
+      platform: "espn",
+      espn_secret_id: espnSecretId,
+      swid_secret_id: swidSecretId,
+      league_id: leagueId,
+      espn_team_id: espnTeamId,
+      is_active: true,
+      updated_at: nowIso(),
+    },
+    { onConflict: "user_id,platform" },
+  );
 
   if (error) throw new Error(`ESPN connection upsert failed: ${error.message}`);
 }
@@ -342,7 +384,11 @@ async function writeConnectMemberships(userId, platform, options) {
     logger.warn("League discovery at connect failed", { platform, http_status: result.discoveryStatus });
   }
   if (result.reason === "write_failed" || result.reason === "no_connection") {
-    logger.warn("League membership write at connect failed", { platform, reason: result.reason, err: result.error || null });
+    logger.warn("League membership write at connect failed", {
+      platform,
+      reason: result.reason,
+      err: result.error || null,
+    });
   }
   return result;
 }
@@ -432,21 +478,25 @@ function espnValidationError(result) {
     return {
       status: "error",
       code: "espn_league_or_team_not_found",
-      message: "ESPN accepted the request, but Omen could not find your team in that league. Confirm the League ID belongs to the same ESPN account and that the league has a fantasy team for you.",
+      message:
+        "ESPN accepted the request, but Omen could not find your team in that league. Confirm the League ID belongs to the same ESPN account and that the league has a fantasy team for you.",
     };
   }
 
   return {
     status: "error",
     code: "espn_cookies_invalid",
-    message: "ESPN did not accept those cookies. Make sure espn_s2 and SWID were copied from the same signed-in ESPN browser session.",
+    message:
+      "ESPN did not accept those cookies. Make sure espn_s2 and SWID were copied from the same signed-in ESPN browser session.",
   };
 }
 
 async function getPlatformConnectionRows(userId) {
   const { data, error } = await supabase
     .from("platform_connections")
-    .select("platform,is_active,platform_username,token_secret_id,espn_secret_id,swid_secret_id,league_id,espn_team_id")
+    .select(
+      "platform,is_active,platform_username,token_secret_id,espn_secret_id,swid_secret_id,league_id,espn_team_id,credential_state,last_failure_code",
+    )
     .eq("user_id", userId);
 
   if (error) throw new Error(`platform_connections lookup failed: ${error.message}`);
@@ -505,9 +555,7 @@ router.post("/sleeper/resolve", requireAuth, async (req, res, next) => {
     }
 
     const leagues = await sleeperAdapter.fetchSleeperLeagues(sleeperUser.user_id, season);
-    const summaries = await Promise.all(
-      leagues.map((league) => sleeperLeagueSummary(league, sleeperUser.user_id))
-    );
+    const summaries = await Promise.all(leagues.map((league) => sleeperLeagueSummary(league, sleeperUser.user_id)));
 
     return res.json({
       status: "resolved",
@@ -573,21 +621,24 @@ router.post("/sleeper/connect", requireAuth, responseCache.invalidateUserCacheOn
       throw e;
     }
 
-    const { error } = await supabase.from("platform_connections").upsert({
-      user_id: req.user.id,
-      platform: "sleeper",
-      platform_user_id: sleeperUser.user_id,
-      platform_username: sleeperUser.username || username,
-      league_id: leagueId,
-      is_active: true,
-      updated_at: nowIso(),
-    }, { onConflict: "user_id,platform" });
+    const { error } = await supabase.from("platform_connections").upsert(
+      {
+        user_id: req.user.id,
+        platform: "sleeper",
+        platform_user_id: sleeperUser.user_id,
+        platform_username: sleeperUser.username || username,
+        league_id: leagueId,
+        is_active: true,
+        updated_at: nowIso(),
+      },
+      { onConflict: "user_id,platform" },
+    );
 
     if (error) throw new Error(`Sleeper connection upsert failed: ${error.message}`);
     connectionSaved = true;
     await writeConnectMemberships(req.user.id, "sleeper", {
-      discover: async (season) => (await sleeperAdapter.fetchSleeperLeagues(sleeperUser.user_id, season) || [])
-        .map((league) => ({
+      discover: async (season) =>
+        ((await sleeperAdapter.fetchSleeperLeagues(sleeperUser.user_id, season)) || []).map((league) => ({
           league_id: String(league?.league_id || league?.id || "").trim(),
           league_name: league?.name || null,
           season: league?.season,
@@ -637,119 +688,191 @@ router.post("/sleeper/connect", requireAuth, responseCache.invalidateUserCacheOn
  * `/espn/connect` does. The response carries league and team labels only; no credential is
  * echoed, and the adapter's failure reporter strips the query string.
  */
-router.post("/espn/leagues", requireAuth, (req, res, next) => {
-  res.locals.__skipBodyLog = true;
-  return next();
-}, async (req, res, next) => {
-  try {
-    const espn_s2 = extractCookieValue(req.body?.espn_s2, "espn_s2");
-    const swid = normalizeSwidCookie(req.body?.swid);
+/**
+ * What a discovery answer means, from what ESPN listed against what ESPN counts:
+ * - `complete`: every football league ESPN counts was listed (or ESPN sent no count and some were).
+ * - `partial`: ESPN counts more than it listed. Show what was found and say the rest are coming.
+ * - `espn_listing_pending`: ESPN counts leagues but lists none yet (a fresh login or a just-joined
+ *   league). Keep checking; the manual League ID box is not the next step.
+ * - `no_football_leagues`: ESPN counts zero. Most often the user signed in with another account.
+ * - `unknown_empty`: nothing listed and no count. The old ambiguous case.
+ */
+function espnDiscoveryState(listed, counted) {
+  if (counted == null) return listed > 0 ? "complete" : "unknown_empty";
+  if (counted === 0) return listed > 0 ? "complete" : "no_football_leagues";
+  if (listed === 0) return "espn_listing_pending";
+  return listed < counted ? "partial" : "complete";
+}
 
-    if (!espn_s2 || !swid) {
-      return res.status(422).json({
-        status: "error",
-        code: "espn_cookies_required",
-        message: "ESPN_S2 and SWID are required.",
-      });
-    }
-
-    let leagues;
+router.post(
+  "/espn/leagues",
+  requireAuth,
+  (req, res, next) => {
+    res.locals.__skipBodyLog = true;
+    return next();
+  },
+  async (req, res, next) => {
     try {
-      leagues = await espnAdapter.fetchEspnFanLeagues(espn_s2, swid);
-    } catch (error) {
-      // ESPN rejecting the session is a normal outcome here, not a server fault: the usual cause
-      // is a session that expired between sign-in and this call.
-      const status = Number(error?.status);
-      if (status === 401 || status === 403) {
-        return res.status(401).json({
+      const espn_s2 = extractCookieValue(req.body?.espn_s2, "espn_s2");
+      const swid = normalizeSwidCookie(req.body?.swid);
+
+      if (!espn_s2 || !swid) {
+        return res.status(422).json({
           status: "error",
-          code: "espn_session_rejected",
-          message: "ESPN did not accept that session. Sign in again and retry.",
+          code: "espn_cookies_required",
+          message: "ESPN_S2 and SWID are required.",
         });
       }
-      logger.warn("ESPN league discovery failed", { http_status: status || null });
-      return res.status(502).json({
-        status: "error",
-        code: "espn_discovery_unavailable",
-        message: "Omen could not reach ESPN to list your leagues. Try again shortly.",
+
+      let leagues;
+      let espnNflLeagueCount = null;
+      try {
+        if (typeof espnAdapter.fetchEspnFanDirectory === "function") {
+          const directory = await espnAdapter.fetchEspnFanDirectory(espn_s2, swid);
+          leagues = directory.leagues;
+          espnNflLeagueCount = directory.espn_nfl_league_count;
+        } else {
+          leagues = await espnAdapter.fetchEspnFanLeagues(espn_s2, swid);
+        }
+      } catch (error) {
+        // ESPN rejecting the session is a normal outcome here, not a server fault: the usual cause
+        // is a session that expired between sign-in and this call.
+        const status = Number(error?.status);
+        if (status === 401 || status === 403) {
+          return res.status(401).json({
+            status: "error",
+            code: "espn_session_rejected",
+            message: "ESPN did not accept that session. Sign in again and retry.",
+          });
+        }
+        // A brand-new ESPN login can be signed in before ESPN has a fan profile for it.
+        if (status === 404) {
+          logger.warn("ESPN league discovery: fan profile not ready", { http_status: 404 });
+          return res.status(200).json({
+            status: "ok",
+            platform: "espn",
+            leagues: [],
+            discovery_state: "espn_profile_pending",
+            espn_nfl_league_count: null,
+          });
+        }
+        logger.warn("ESPN league discovery failed", { http_status: status || null });
+        return res.status(502).json({
+          status: "error",
+          code: "espn_discovery_unavailable",
+          message: "Omen could not reach ESPN to list your leagues. Try again shortly.",
+        });
+      }
+
+      const discoveryState = espnDiscoveryState(leagues.length, espnNflLeagueCount);
+      // Counts only: enough to tell the next failed fresh login apart from a wrong account.
+      logger.info("ESPN league discovery", {
+        discovery_state: discoveryState,
+        leagues_listed: leagues.length,
+        espn_nfl_league_count: espnNflLeagueCount,
       });
-    }
-
-    return res.json({ status: "ok", platform: "espn", leagues });
-  } catch (e) {
-    logger.error("ESPN league discovery failed");
-    return next(e);
-  }
-});
-
-router.post("/espn/connect", requireAuth, responseCache.invalidateUserCacheOnWrite, (req, res, next) => {
-  res.locals.__skipBodyLog = true;
-  return next();
-}, async (req, res, next) => {
-  try {
-    const espn_s2 = extractCookieValue(req.body?.espn_s2, "espn_s2");
-    const swid = normalizeSwidCookie(req.body?.swid);
-    const leagueId = normalizeEspnLeagueId(req.body?.league_id);
-    const espnTeamId = req.body?.espn_team_id == null
-      ? null
-      : String(req.body.espn_team_id).trim() || null;
-
-    if (!espn_s2 || !swid) {
-      return res.status(422).json({
-        status: "error",
-        code: "espn_cookies_required",
-        message: "ESPN_S2 and SWID are required.",
+      return res.json({
+        status: "ok",
+        platform: "espn",
+        leagues,
+        discovery_state: discoveryState,
+        espn_nfl_league_count: espnNflLeagueCount,
       });
+    } catch (e) {
+      logger.error("ESPN league discovery failed");
+      return next(e);
     }
-    if (!leagueId) {
-      return res.status(422).json({
-        status: "error",
-        code: "espn_league_id_required",
-        message: "ESPN league ID is required.",
+  },
+);
+
+router.post(
+  "/espn/connect",
+  requireAuth,
+  responseCache.invalidateUserCacheOnWrite,
+  (req, res, next) => {
+    res.locals.__skipBodyLog = true;
+    return next();
+  },
+  async (req, res, next) => {
+    try {
+      const espn_s2 = extractCookieValue(req.body?.espn_s2, "espn_s2");
+      const swid = normalizeSwidCookie(req.body?.swid);
+      const leagueId = normalizeEspnLeagueId(req.body?.league_id);
+      const espnTeamId = req.body?.espn_team_id == null ? null : String(req.body.espn_team_id).trim() || null;
+
+      if (!espn_s2 || !swid) {
+        return res.status(422).json({
+          status: "error",
+          code: "espn_cookies_required",
+          message: "ESPN_S2 and SWID are required.",
+        });
+      }
+      if (!leagueId) {
+        return res.status(422).json({
+          status: "error",
+          code: "espn_league_id_required",
+          message: "ESPN league ID is required.",
+        });
+      }
+
+      await ensureAppUser(req.user);
+
+      const validation = await validateEspnConnection({ leagueId, espn_s2, swid, espnTeamId });
+      if (!validation.valid) {
+        return res.status(400).json(espnValidationError(validation));
+      }
+
+      // Both cookies and the connection row in one transaction, under the lock account_erase() takes.
+      const stored = await connectionStore.storeEspn(supabase, {
+        userId: req.user.id,
+        leagueId,
+        teamId: espnTeamId ?? null,
+        espnS2: espn_s2,
+        swid,
       });
-    }
-
-    await ensureAppUser(req.user);
-
-    const validation = await validateEspnConnection({ leagueId, espn_s2, swid, espnTeamId });
-    if (!validation.valid) {
-      return res.status(400).json(espnValidationError(validation));
-    }
-
-    // Both cookies and the connection row in one transaction, under the lock account_erase() takes.
-    const stored = await connectionStore.storeEspn(supabase, {
-      userId: req.user.id, leagueId, teamId: espnTeamId ?? null, espnS2: espn_s2, swid,
-    });
-    if (!stored.present) await storeEspnLegacy(req.user.id, { leagueId, espnTeamId, espn_s2, swid });
-    // The cookies stay in this closure: they reach ESPN and nothing else.
-    await writeConnectMemberships(req.user.id, "espn", {
-      connectionId: stored.present ? stored.data : null,
-      discover: (season) => espnAdapter.fetchEspnFanLeagues(espn_s2, swid, { season }),
-      boundLeagueId: leagueId,
-      boundTeamId: espnTeamId,
-      boundVerified: true,
-      trustDiscoveredTeams: false,
-    });
-    return res.json({
-      connected: true,
-      status: "connected",
-      platform: "espn",
-      leagues: [{
-        id: leagueId,
-        name: null,
+      if (!stored.present) await storeEspnLegacy(req.user.id, { leagueId, espnTeamId, espn_s2, swid });
+      // The cookies stay in this closure: they reach ESPN and nothing else.
+      await writeConnectMemberships(req.user.id, "espn", {
+        connectionId: stored.present ? stored.data : null,
+        discover: (season) => espnAdapter.fetchEspnFanLeagues(espn_s2, swid, { season }),
+        boundLeagueId: leagueId,
+        boundTeamId: espnTeamId,
+        boundVerified: true,
+        trustDiscoveredTeams: false,
+      });
+      scheduleEspnLateLeagueSync({
+        userId: req.user.id,
         season: currentSeason(),
-        scoring_format: null,
-        team_id: espnTeamId,
-        team_name: null,
-        selected: true,
-      }],
-    });
-  } catch (e) {
-    if (e.status && e.status < 500) return next(e);
-    logger.error("ESPN connect failed", { err: e.message });
-    return next(new Error("ESPN connect failed"));
-  }
-});
+        fetchDirectory: async () => {
+          const current = await getAuthenticatedEspnCredentials(req.user.id);
+          return espnAdapter.fetchEspnFanDirectory(current.espn_s2, current.swid, { season: currentSeason() });
+        },
+        syncMemberships: (options) => leagueMemberships.syncMemberships(supabase, options),
+        log: logger,
+      });
+      return res.json({
+        connected: true,
+        status: "connected",
+        platform: "espn",
+        leagues: [
+          {
+            id: leagueId,
+            name: null,
+            season: currentSeason(),
+            scoring_format: null,
+            team_id: espnTeamId,
+            team_name: null,
+            selected: true,
+          },
+        ],
+      });
+    } catch (e) {
+      if (e.status && e.status < 500) return next(e);
+      logger.error("ESPN connect failed", { err: e.message });
+      return next(new Error("ESPN connect failed"));
+    }
+  },
+);
 
 router.delete("/:platform", requireAuth, responseCache.invalidateUserCacheOnWrite, async (req, res, next) => {
   try {
@@ -773,15 +896,10 @@ router.delete("/:platform", requireAuth, responseCache.invalidateUserCacheOnWrit
 
     if (conn) {
       if (platform === "espn") {
-        await Promise.all([
-          vaultDelete(conn.espn_secret_id),
-          vaultDelete(conn.swid_secret_id),
-        ]);
+        await Promise.all([vaultDelete(conn.espn_secret_id), vaultDelete(conn.swid_secret_id)]);
       } else if (platform === "yahoo") {
-        await Promise.all([
-          vaultDelete(conn.token_secret_id),
-          vaultDelete(conn.refresh_secret_id),
-        ]);
+        await Promise.all([vaultDelete(conn.token_secret_id), vaultDelete(conn.refresh_secret_id)]);
+        clearYahooLeagueReads(req.user.id);
       }
 
       const { error: deleteError } = await supabase
@@ -801,3 +919,4 @@ router.delete("/:platform", requireAuth, responseCache.invalidateUserCacheOnWrit
 });
 
 module.exports = router;
+module.exports.espnDiscoveryState = espnDiscoveryState;

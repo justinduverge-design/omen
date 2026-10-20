@@ -85,6 +85,27 @@ final class LeagueCarouselTests: XCTestCase {
         XCTAssertEqual(filtered[index], "S1")
     }
 
+    @MainActor
+    func testScorePortfolioCanWarmEveryLeagueWithoutInventingPregameOrMissingScores() async {
+        let viewModel = CarouselFixtures.viewModel()
+
+        await viewModel.load(userID: "fixture")
+        await viewModel.prefetchRemainingPages()
+
+        XCTAssertEqual(viewModel.scoreSnapshots.count, 6)
+        XCTAssertEqual(viewModel.scoreSnapshots.first?.teamName, "Dat Sauce Inc.")
+        XCTAssertEqual(viewModel.scoreSnapshots.first?.scoreText, "64.8")
+        XCTAssertEqual(viewModel.scoreSnapshots.first?.phase, "Live")
+
+        let pregame = try? XCTUnwrap(viewModel.scoreSnapshots.first(where: { $0.id == "sleeper:s1" }))
+        XCTAssertEqual(pregame?.scoreText, "\u{2014}")
+        XCTAssertTrue(pregame?.phase.hasPrefix("Starts ") == true)
+
+        let noMatchup = try? XCTUnwrap(viewModel.scoreSnapshots.first(where: { $0.id == "yahoo:y1" }))
+        XCTAssertEqual(noMatchup?.scoreText, "\u{2014}")
+        XCTAssertEqual(noMatchup?.phase, "No matchup")
+    }
+
     // MARK: - The shared commit
     //
     // The carousel (swipe to rest on a league) and the team picker (tap a chip) both make a
@@ -121,6 +142,62 @@ final class LeagueCarouselTests: XCTestCase {
              {"league_id":"L1","league_name":"Alpha","team_name":"Titans","is_active":true},
              {"league_id":"L2","league_name":"Beta","team_name":"Sentinels","is_active":false}]}]}
         """)
+    }
+
+    @MainActor
+    func testContextIsResolvingBeforeTheDirectoryAnswers() throws {
+        let viewModel = makeViewModel(
+            directory: try twoLeagues(),
+            selection: .failure(.network),
+            recorder: StubLeagueDirectoryRepository.Recorder()
+        )
+
+        XCTAssertEqual(viewModel.contextResolution, .resolving)
+    }
+
+    @MainActor
+    func testLoadedDirectoryResolvesToItsActiveLeagueScope() async throws {
+        let viewModel = makeViewModel(
+            directory: try twoLeagues(),
+            selection: .failure(.network),
+            recorder: StubLeagueDirectoryRepository.Recorder()
+        )
+
+        await viewModel.load(userID: "user-1")
+
+        XCTAssertEqual(
+            viewModel.contextResolution,
+            .selected(OmenCallScope(platform: "sleeper", leagueID: "L1"))
+        )
+    }
+
+    @MainActor
+    func testEmptyDirectoryIsConfirmedNoneNotStillResolving() async throws {
+        let empty = try decode("""
+        {"contract_version":"league-directory.v1","season":2026,"platforms":[]}
+        """)
+        let viewModel = makeViewModel(
+            directory: empty,
+            selection: .failure(.network),
+            recorder: StubLeagueDirectoryRepository.Recorder()
+        )
+
+        await viewModel.load(userID: "user-1")
+
+        XCTAssertEqual(viewModel.contextResolution, .confirmedNone)
+    }
+
+    @MainActor
+    func testDirectoryFailureDoesNotMasqueradeAsNoLeague() async {
+        let viewModel = LeagueCarouselViewModel(
+            directoryRepository: StubLeagueDirectoryRepository(directory: .failure(.network)),
+            leagueRepository: StubLeagueRepository(result: .failure(.network)),
+            sessionManager: liveSession()
+        )
+
+        await viewModel.load(userID: "user-1")
+
+        XCTAssertEqual(viewModel.contextResolution, .failed(.network))
     }
 
     @MainActor
@@ -402,12 +479,21 @@ final class LeagueCarouselTests: XCTestCase {
     private final class CountingRepository: LeagueDirectoryRepository, @unchecked Sendable {
         var directories: [LeagueDirectory]
         var selection: Result<LeagueSelectionResult, OmenApiError>
+        var fetchDelayNanoseconds: UInt64
         private(set) var fetches = 0
-        init(directories: [LeagueDirectory], selection: Result<LeagueSelectionResult, OmenApiError>) {
+        init(
+            directories: [LeagueDirectory],
+            selection: Result<LeagueSelectionResult, OmenApiError>,
+            fetchDelayNanoseconds: UInt64 = 0
+        ) {
             self.directories = directories
             self.selection = selection
+            self.fetchDelayNanoseconds = fetchDelayNanoseconds
         }
         func fetchDirectory(accessToken: String) async -> Result<LeagueDirectory, OmenApiError> {
+            if fetchDelayNanoseconds > 0 {
+                try? await Task.sleep(nanoseconds: fetchDelayNanoseconds)
+            }
             defer { fetches += 1 }
             return .success(directories[min(fetches, directories.count - 1)])
         }
@@ -440,6 +526,26 @@ final class LeagueCarouselTests: XCTestCase {
              {"league_id":"L1","league_name":"Alpha","team_name":"Titans","is_active":\(leagueID == "L1")},
              {"league_id":"L2","league_name":"Beta","team_name":"Sentinels","is_active":\(leagueID == "L2")}]}]}
         """)
+    }
+
+    @MainActor
+    func testConcurrentSurfaceLoadsShareOneDirectoryRequest() async throws {
+        let repository = CountingRepository(
+            directories: [try directory(active: "L1")],
+            selection: .failure(.network),
+            fetchDelayNanoseconds: 50_000_000
+        )
+        let model = viewModel(over: repository)
+
+        async let command: Void = model.load(userID: "user-1")
+        async let omen: Void = model.load(userID: "user-1")
+        async let league: Void = model.load(userID: "user-1")
+        _ = await (command, omen, league)
+
+        XCTAssertEqual(repository.fetches, 1)
+        guard case .selected = model.contextResolution else {
+            return XCTFail("shared load must resolve selected context, got \(model.contextResolution)")
+        }
     }
 
     @MainActor
@@ -493,6 +599,7 @@ final class LeagueCarouselTests: XCTestCase {
         let refresh = await model.commit(target)
 
         XCTAssertNil(refresh)
+        XCTAssertEqual(model.selectionError, .network, "the visible switcher owns a retryable failure state")
         XCTAssertEqual(model.activePage?.id, before, "chip and content both stay on the old league")
         XCTAssertFalse(model.isCurrent(target))
     }

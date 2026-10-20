@@ -116,10 +116,11 @@ final class ConnectedPlatformsTests: XCTestCase {
         let viewModel = ConnectedPlatformsViewModel(repository: repository, sessionManager: sessionManager())
         await viewModel.load()
 
-        await viewModel.disconnect("espn")
+        let disconnected = await viewModel.disconnect("espn")
 
         XCTAssertEqual(recorder.disconnected, ["espn"])
         XCTAssertNil(viewModel.errorMessage)
+        XCTAssertTrue(disconnected, "the host uses this outcome for completion feedback")
     }
 
     /// **A failed disconnect must not look like a successful one.** Removing the row locally on
@@ -133,9 +134,10 @@ final class ConnectedPlatformsTests: XCTestCase {
         let viewModel = ConnectedPlatformsViewModel(repository: repository, sessionManager: sessionManager())
         await viewModel.load()
 
-        await viewModel.disconnect("espn")
+        let disconnected = await viewModel.disconnect("espn")
 
         XCTAssertNotNil(viewModel.errorMessage)
+        XCTAssertFalse(disconnected, "a failed request must never trigger success feedback")
         guard case .loaded(let rows) = viewModel.state else {
             return XCTFail("expected the list to survive a failed disconnect, got \(viewModel.state)")
         }
@@ -165,9 +167,10 @@ final class ConnectedPlatformsTests: XCTestCase {
             sessionManager: sessionManager(withToken: nil)
         )
 
-        await viewModel.disconnect("espn")
+        let disconnected = await viewModel.disconnect("espn")
 
         XCTAssertTrue(recorder.disconnected.isEmpty)
         XCTAssertNotNil(viewModel.errorMessage)
+        XCTAssertFalse(disconnected)
     }
 }

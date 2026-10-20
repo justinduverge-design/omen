@@ -37,7 +37,10 @@ const OUT = new Set(["O", "OUT", "IR", "IR-R", "PUP", "DOUBTFUL", "SUSP"]);
 const DEFINITE_OUT = new Set(["O", "OUT", "IR", "IR-R", "PUP", "SUSP"]);
 const RISKY = new Set(["Q", "QUESTIONABLE", "GTD", "DTD"]);
 
-const status = (s) => String(s || "").trim().toUpperCase();
+const status = (s) =>
+  String(s || "")
+    .trim()
+    .toUpperCase();
 
 function bandFromScore(score) {
   if (typeof score !== "number" || !Number.isFinite(score)) return null;
@@ -87,7 +90,14 @@ const fmt = (n) => Number(n.toFixed(2));
  * @param {string} [input.maxBand]      hard ceiling for this surface
  * @returns {{band: string|null, reason: string}}
  */
-function assessConfidence({ gap, corroboration = [], startStatus = null, sitStatus = null, closeCall = false, maxBand = null } = {}) {
+function assessConfidence({
+  gap,
+  corroboration = [],
+  startStatus = null,
+  sitStatus = null,
+  closeCall = false,
+  maxBand = null,
+} = {}) {
   const g = typeof gap === "number" ? gap : gap == null || gap === "" ? NaN : Number(gap);
   if (!Number.isFinite(g)) {
     return { band: null, reason: "Omen has no projection gap to judge this call." };
@@ -97,18 +107,28 @@ function assessConfidence({ gap, corroboration = [], startStatus = null, sitStat
   const sitOut = DEFINITE_OUT.has(status(sitStatus));
   const done = (band, reason) => ({ band: cap(band, maxBand), reason });
 
-  if (startOut) return done(BANDS.COIN_FLIP, "The player this call would start is listed out, so there is no edge to trust.");
+  if (startOut)
+    return done(BANDS.COIN_FLIP, "The player this call would start is listed out, so there is no edge to trust.");
   if (sitOut) {
     // Fail safe: the hole only justifies Confident when the replacement clearly beats an empty slot.
     if (closeCall || g < THRESHOLDS.COIN_FLIP_BELOW) {
-      return done(BANDS.COIN_FLIP, `The current starter is listed out, but the replacement's projected edge (${fmt(Math.max(g, 0))} pts) does not clearly beat him.`);
+      return done(
+        BANDS.COIN_FLIP,
+        `The current starter is listed out, but the replacement's projected edge (${fmt(Math.max(g, 0))} pts) does not clearly beat him.`,
+      );
     }
     return startRisky
       ? done(BANDS.LEANING, "The current starter is listed out, but the replacement carries an injury designation too.")
-      : done(BANDS.CONFIDENT, "The current starter is listed out, so this slot needs a replacement regardless of projections.");
+      : done(
+          BANDS.CONFIDENT,
+          "The current starter is listed out, so this slot needs a replacement regardless of projections.",
+        );
   }
   if (closeCall || g < THRESHOLDS.COIN_FLIP_BELOW) {
-    return done(BANDS.COIN_FLIP, `The projection gap (${fmt(Math.max(g, 0))} pts) is inside normal projection variance.`);
+    return done(
+      BANDS.COIN_FLIP,
+      `The projection gap (${fmt(Math.max(g, 0))} pts) is inside normal projection variance.`,
+    );
   }
 
   // A questionable/doubtful label on the benched player is a provider status, not verified evidence:
@@ -116,15 +136,24 @@ function assessConfidence({ gap, corroboration = [], startStatus = null, sitStat
   const kinds = kindsOf(corroboration);
 
   if (startRisky) {
-    return done(BANDS.LEANING, "The player this call would start carries an injury designation, which caps this at a lean.");
+    return done(
+      BANDS.LEANING,
+      "The player this call would start carries an injury designation, which caps this at a lean.",
+    );
   }
   if (kinds.length && g >= THRESHOLDS.CONFIDENT_MIN_GAP) {
     return done(BANDS.CONFIDENT, `A ${fmt(g)} pt projection gap is backed by observed ${describe(kinds)}.`);
   }
   if (kinds.length) {
-    return done(BANDS.LEANING, `Observed ${describe(kinds)} agrees, but the ${fmt(g)} pt projection gap is under ${THRESHOLDS.CONFIDENT_MIN_GAP} pts.`);
+    return done(
+      BANDS.LEANING,
+      `Observed ${describe(kinds)} agrees, but the ${fmt(g)} pt projection gap is under ${THRESHOLDS.CONFIDENT_MIN_GAP} pts.`,
+    );
   }
-  return done(BANDS.LEANING, `This rests on the provider projection gap (${fmt(g)} pts) alone, with no observed evidence behind it, so it stays a lean.`);
+  return done(
+    BANDS.LEANING,
+    `This rests on the provider projection gap (${fmt(g)} pts) alone, with no observed evidence behind it, so it stays a lean.`,
+  );
 }
 
 /** Does observed recent usage favor the player being started? Returns "recent_usage" evidence or null. */

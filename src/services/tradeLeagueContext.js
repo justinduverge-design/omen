@@ -31,7 +31,12 @@ const DEFAULT_TEAM_COUNT = 12;
 // (see vorp.js). Demand is measured as a ratio against this, never in the
 // abstract.
 const DEFAULT_STARTERS = Object.freeze({
-  QB: 1, RB: 2, WR: 2, TE: 1, K: 1, DST: 1,
+  QB: 1,
+  RB: 2,
+  WR: 2,
+  TE: 1,
+  K: 1,
+  DST: 1,
 });
 
 const FLEX_ELIGIBLE = Object.freeze(["RB", "WR", "TE"]);
@@ -83,9 +88,18 @@ function parseRosterSlots(rosterPositions) {
     const slot = String(raw).toUpperCase().trim();
     if (!slot) continue;
 
-    if (NON_STARTING_SLOTS.has(slot)) { bench += 1; continue; }
-    if (FLEX_SLOTS.has(slot)) { flex += 1; continue; }
-    if (SUPER_FLEX_SLOTS.has(slot)) { superFlex += 1; continue; }
+    if (NON_STARTING_SLOTS.has(slot)) {
+      bench += 1;
+      continue;
+    }
+    if (FLEX_SLOTS.has(slot)) {
+      flex += 1;
+      continue;
+    }
+    if (SUPER_FLEX_SLOTS.has(slot)) {
+      superFlex += 1;
+      continue;
+    }
 
     const position = normalizePosition(slot);
     if (!Object.prototype.hasOwnProperty.call(DEFAULT_STARTERS, position)) continue;
@@ -109,9 +123,7 @@ function effectiveStarters(slotShape) {
 
   if (slotShape.flex > 0 && directTotal > 0) {
     for (const position of eligible) {
-      effective[position] = round2(
-        effective[position] + slotShape.flex * (effective[position] / directTotal)
-      );
+      effective[position] = round2(effective[position] + slotShape.flex * (effective[position] / directTotal));
     }
   }
   if (slotShape.superFlex > 0) {
@@ -240,8 +252,8 @@ function usableConnection(row) {
   if (!row?.is_active || !row?.league_id) return false;
   if (row.platform === "sleeper") return Boolean(row.platform_username || row.platform_user_id);
   if (row.platform === "espn") return Boolean(row.espn_secret_id && row.swid_secret_id);
-  // Yahoo is refused at the app-entitlement level (facts-of-record #11); it
-  // cannot supply league context and is not offered as a personalization source.
+  // Yahoo has been enabled since Build 9 (YAHOO_ENABLED); its stored OAuth token is the context.
+  if (row.platform === "yahoo") return Boolean(row.token_secret_id);
   return false;
 }
 
@@ -251,9 +263,7 @@ function selectContextConnection(rows, { platform, leagueId } = {}) {
     .filter((row) => !platform || row.platform === platform)
     .filter((row) => !leagueId || String(row.league_id) === String(leagueId));
   // Sleeper first: it needs no credential and is the cheapest reliable read.
-  return candidates.sort((a, b) => (
-    (a.platform === "sleeper" ? 0 : 1) - (b.platform === "sleeper" ? 0 : 1)
-  ))[0] || null;
+  return candidates.sort((a, b) => (a.platform === "sleeper" ? 0 : 1) - (b.platform === "sleeper" ? 0 : 1))[0] || null;
 }
 
 function sleeperScoringFormat(league) {
@@ -271,18 +281,8 @@ function sleeperScoringFormat(league) {
  * neutral-fallback reason rather than throwing, because §8.3 requires that an
  * unverifiable league quietly retains neutral analysis.
  */
-async function resolveTradeLeagueContext({
-  userId,
-  platform = null,
-  leagueId = null,
-  deps = {},
-} = {}) {
-  const {
-    getConnections,
-    fetchSleeperLeague,
-    buildSleeperRoster,
-    logger = { warn() {} },
-  } = deps;
+async function resolveTradeLeagueContext({ userId, platform = null, leagueId = null, deps = {} } = {}) {
+  const { getConnections, fetchSleeperLeague, buildSleeperRoster, readProviderContext, logger = { warn() {} } } = deps;
 
   if (!userId || typeof getConnections !== "function") {
     return { status: "unavailable", reason: UNRESOLVED.no_connection };
@@ -302,22 +302,41 @@ async function resolveTradeLeagueContext({
   }
 
   if (connection.platform !== "sleeper") {
-    // ESPN carries the data but needs its credential path and its own
-    // provider proof before it may claim personalization. Named, not faked.
-    return {
-      status: "unavailable",
-      reason: UNRESOLVED.provider_unsupported,
-      platform: connection.platform,
-    };
+    // ESPN and Yahoo personalize from the same four facts Sleeper does: the league's scoring, its
+    // lineup slots, its size, and the user's own roster, all read through the user's stored
+    // connection (founder, 2026-10-19: every league gets what Sleeper gets).
+    if (typeof readProviderContext !== "function") {
+      return { status: "unavailable", reason: UNRESOLVED.provider_unsupported, platform: connection.platform };
+    }
+    try {
+      const context = await readProviderContext(connection, userId);
+      if (!context) {
+        return { status: "unavailable", reason: UNRESOLVED.provider_failed, platform: connection.platform };
+      }
+      const built = buildTradeScoringConfig({
+        scoringFormat: context.scoringFormat || "ppr",
+        rosterPositions: context.rosterPositions,
+        teamCount: finiteOrNull(context.teamCount) || DEFAULT_TEAM_COUNT,
+        rosterPlayers: context.rosterPlayers || [],
+      });
+      // An unread or unmapped scoring rule is not claimed as applied: the slots and roster still are.
+      if (!context.scoringFormat) built.applied = built.applied.filter((name) => name !== "scoring_format");
+      return {
+        status: "personalized",
+        platform: connection.platform,
+        league_id: String(connection.league_id),
+        league_name: context.leagueName || null,
+        ...built,
+      };
+    } catch (e) {
+      logger.warn("Trade league context: provider read failed", { platform: connection.platform, err: e.message });
+      return { status: "unavailable", reason: UNRESOLVED.provider_failed, platform: connection.platform };
+    }
   }
 
   try {
     const league = await fetchSleeperLeague(String(connection.league_id));
-    const roster = await buildSleeperRoster(
-      String(connection.league_id),
-      connection.platform_username,
-      league
-    );
+    const roster = await buildSleeperRoster(String(connection.league_id), connection.platform_username, league);
     const built = buildTradeScoringConfig({
       scoringFormat: sleeperScoringFormat(league),
       rosterPositions: league?.roster_positions,

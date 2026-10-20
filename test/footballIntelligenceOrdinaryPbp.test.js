@@ -6,15 +6,28 @@ const os = require("node:os");
 const path = require("node:path");
 const test = require("node:test");
 
-const {
-  createLocalArtifactRegistry,
-  ingestOrdinaryPbpReceipt,
-} = require("../src/services/footballIntelligence");
+const { createLocalArtifactRegistry, ingestOrdinaryPbpReceipt } = require("../src/services/footballIntelligence");
 
 const COLUMNS = Object.freeze([
-  "game_id", "play_id", "season", "week", "season_type", "posteam", "defteam",
-  "down", "ydstogo", "yardline_100", "game_seconds_remaining", "play_type",
-  "pass", "rush", "qb_scramble", "no_huddle", "no_play", "touchdown", "yards_gained",
+  "game_id",
+  "play_id",
+  "season",
+  "week",
+  "season_type",
+  "posteam",
+  "defteam",
+  "down",
+  "ydstogo",
+  "yardline_100",
+  "game_seconds_remaining",
+  "play_type",
+  "pass",
+  "rush",
+  "qb_scramble",
+  "no_huddle",
+  "no_play",
+  "touchdown",
+  "yards_gained",
 ]);
 
 const SOURCE = Object.freeze({
@@ -109,7 +122,10 @@ test("exact registered ordinary PBP receipt replays through TabularReader into b
     excluded_no_play: 1,
     excluded_non_scrimmage: 1,
   });
-  assert.deepEqual(result.facts.map((fact) => fact.play_id), [101, 103]);
+  assert.deepEqual(
+    result.facts.map((fact) => fact.play_id),
+    [101, 103],
+  );
   assert.deepEqual(result.facts[0], {
     schema: "football-observed-fact.v1",
     normalization_version: "football-intelligence-normalization.v1",
@@ -137,9 +153,20 @@ test("canonical facts are deterministic across source row order", async (t) => {
   const rows = [play({ play_id: "2" }), play({ play_id: "1", play_type: "run", pass: "0", rush: "1" })];
   const first = await setup(t, rows);
   const second = await setup(t, [...rows].reverse());
-  const one = await ingestOrdinaryPbpReceipt({ registry: first.registry, receiptId: first.registered.receipt_id, tabularReader: first.tabularReader });
-  const two = await ingestOrdinaryPbpReceipt({ registry: second.registry, receiptId: second.registered.receipt_id, tabularReader: second.tabularReader });
-  assert.deepEqual(one.facts.map(({ provenance, ...fact }) => fact), two.facts.map(({ provenance, ...fact }) => fact));
+  const one = await ingestOrdinaryPbpReceipt({
+    registry: first.registry,
+    receiptId: first.registered.receipt_id,
+    tabularReader: first.tabularReader,
+  });
+  const two = await ingestOrdinaryPbpReceipt({
+    registry: second.registry,
+    receiptId: second.registered.receipt_id,
+    tabularReader: second.tabularReader,
+  });
+  assert.deepEqual(
+    one.facts.map(({ provenance, ...fact }) => fact),
+    two.facts.map(({ provenance, ...fact }) => fact),
+  );
 });
 
 test("fails closed on a non-PBP receipt before invoking TabularReader", async (t) => {
@@ -149,7 +176,11 @@ test("fails closed on a non-PBP receipt before invoking TabularReader", async (t
     source: { ...SOURCE, family: "schedules", release: "games.csv" },
   });
   await assert.rejects(
-    ingestOrdinaryPbpReceipt({ registry: setupResult.registry, receiptId: setupResult.registered.receipt_id, tabularReader: setupResult.tabularReader }),
+    ingestOrdinaryPbpReceipt({
+      registry: setupResult.registry,
+      receiptId: setupResult.registered.receipt_id,
+      tabularReader: setupResult.tabularReader,
+    }),
     (error) => error.code === "ORDINARY_PBP_RECEIPT_REQUIRED",
   );
   assert.equal(setupResult.calls.length, 0);
@@ -158,26 +189,45 @@ test("fails closed on a non-PBP receipt before invoking TabularReader", async (t
 test("fails closed on row-count drift, duplicate play identity, and malformed observed values", async (t) => {
   const drift = await setup(t, [play()], { row_count: 2 });
   await assert.rejects(
-    ingestOrdinaryPbpReceipt({ registry: drift.registry, receiptId: drift.registered.receipt_id, tabularReader: drift.tabularReader }),
+    ingestOrdinaryPbpReceipt({
+      registry: drift.registry,
+      receiptId: drift.registered.receipt_id,
+      tabularReader: drift.tabularReader,
+    }),
     (error) => error.code === "TABULAR_ROW_COUNT_MISMATCH",
   );
 
   const duplicate = await setup(t, [play(), play()]);
   await assert.rejects(
-    ingestOrdinaryPbpReceipt({ registry: duplicate.registry, receiptId: duplicate.registered.receipt_id, tabularReader: duplicate.tabularReader }),
+    ingestOrdinaryPbpReceipt({
+      registry: duplicate.registry,
+      receiptId: duplicate.registered.receipt_id,
+      tabularReader: duplicate.tabularReader,
+    }),
     (error) => error.code === "DUPLICATE_OBSERVED_PLAY",
   );
 
   const malformed = await setup(t, [play({ down: "first" })]);
   await assert.rejects(
-    ingestOrdinaryPbpReceipt({ registry: malformed.registry, receiptId: malformed.registered.receipt_id, tabularReader: malformed.tabularReader }),
+    ingestOrdinaryPbpReceipt({
+      registry: malformed.registry,
+      receiptId: malformed.registered.receipt_id,
+      tabularReader: malformed.tabularReader,
+    }),
     (error) => error.code === "INVALID_OBSERVED_PLAY",
   );
 
   const schema = await setup(t, [play()]);
-  schema.tabularReader.readRows = async () => ({ columns: COLUMNS.filter((column) => column !== "posteam"), rows: [play()] });
+  schema.tabularReader.readRows = async () => ({
+    columns: COLUMNS.filter((column) => column !== "posteam"),
+    rows: [play()],
+  });
   await assert.rejects(
-    ingestOrdinaryPbpReceipt({ registry: schema.registry, receiptId: schema.registered.receipt_id, tabularReader: schema.tabularReader }),
+    ingestOrdinaryPbpReceipt({
+      registry: schema.registry,
+      receiptId: schema.registered.receipt_id,
+      tabularReader: schema.tabularReader,
+    }),
     (error) => error.code === "TABULAR_SCHEMA_MISMATCH",
   );
 });

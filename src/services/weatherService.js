@@ -78,9 +78,9 @@ async function getVenueWeather({ lat, lng, is_dome }) {
     const forecast = data?.list?.[0] || {};
 
     const result = {
-      temp_f:        Math.round(forecast?.main?.temp || 65),
-      wind_mph:      Math.round(forecast?.wind?.speed || 0),
-      conditions:    forecast?.weather?.[0]?.description || "Unknown",
+      temp_f: Math.round(forecast?.main?.temp || 65),
+      wind_mph: Math.round(forecast?.wind?.speed || 0),
+      conditions: forecast?.weather?.[0]?.description || "Unknown",
       precip_chance: Math.round((forecast?.pop || 0) * 100),
     };
 

@@ -1,0 +1,19 @@
+[Unit]
+Description=Steward freshness check (Rust, shadow) for %i
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=steward-check
+# Writes /var/lib/steward/state/<stem>.rust.status only. The alert dispatcher reads an explicit list of the bash
+# state files, so shadow output can never alert.
+ExecStart=/usr/local/bin/steward-freshness %i --shadow
+# Compare on every exit (also crashes and usage errors), not only on success.
+ExecStopPost=/usr/local/bin/steward-freshness-compare %i
+SuccessExitStatus=1 2 3
+UMask=0027
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/steward/state
+PrivateTmp=yes

@@ -62,10 +62,12 @@ function loadAccountRouter({ profileRows = [], profileError = null, requireAuth 
     }
     if (request === "../middleware/auth" && parent?.filename === routePath) {
       return {
-        requireAuth: requireAuth || ((req, _res, next) => {
-          req.user = { id: "user-1", email: "User@Example.com" };
-          next();
-        }),
+        requireAuth:
+          requireAuth ||
+          ((req, _res, next) => {
+            req.user = { id: "user-1", email: "User@Example.com" };
+            next();
+          }),
       };
     }
     if (request === "../services/appUser" && parent?.filename === routePath) {

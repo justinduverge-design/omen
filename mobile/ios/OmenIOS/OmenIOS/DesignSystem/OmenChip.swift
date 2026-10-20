@@ -33,6 +33,10 @@ struct OmenChip: View {
     var selected = false
     var enabled = true
     var action: (() -> Void)?
+    /// Chips change a selection by default. Action-like chips can opt into a light impact.
+    var haptic: OmenHaptic = .selection
+
+    @Environment(\.omenHaptics) private var haptics
 
     private var foreground: Color {
         switch tone {
@@ -112,8 +116,11 @@ struct OmenChip: View {
 
     var body: some View {
         if let action {
-            Button(action: action) { labelView }
-                .buttonStyle(.plain)
+            Button(action: {
+                haptics.play(haptic)
+                action()
+            }) { labelView }
+                .buttonStyle(OmenPressableButtonStyle())
                 .disabled(!enabled)
                 .accessibilityValue(selected ? "Selected" : "")
         } else {

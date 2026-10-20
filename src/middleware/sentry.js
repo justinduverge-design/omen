@@ -26,7 +26,8 @@ const SENSITIVE_QUERY_PARAMETER_PATTERN = /password|cookie|token|secret|swid|esp
  *      and O8 forwards a snippet of them by design — this is the common case
  *      here, not an edge one.
  */
-const SENSITIVE_TEXT_PATTERN = /([A-Za-z0-9_-]*(?:password|cookie|token|secret|swid|espn_s2|vault|authorization)[A-Za-z0-9_-]*)("?\s*[:=]\s*"?)([^"&\s,;}]+)/gi;
+const SENSITIVE_TEXT_PATTERN =
+  /([A-Za-z0-9_-]*(?:password|cookie|token|secret|swid|espn_s2|vault|authorization)[A-Za-z0-9_-]*)("?\s*[:=]\s*"?)([^"&\s,;}]+)/gi;
 
 /**
  * OAuth authorization codes, scrubbed separately and narrowly.
@@ -121,9 +122,7 @@ function scrubValue(value) {
       key,
       // Exact-match `code` rather than substring, for the same reason the text pattern is
       // narrow: `status_code` and `error_code` must survive.
-      SENSITIVE_KEY_PATTERN.test(key) || key.toLowerCase() === "code"
-        ? SCRUBBED
-        : scrubValue(entry),
+      SENSITIVE_KEY_PATTERN.test(key) || key.toLowerCase() === "code" ? SCRUBBED : scrubValue(entry),
     ]),
   );
 }
@@ -131,9 +130,7 @@ function scrubValue(value) {
 function scrubHeaders(headers) {
   if (!isPlainObject(headers)) return headers;
 
-  return Object.fromEntries(
-    Object.entries(headers).filter(([key]) => !SENSITIVE_HEADER_PATTERN.test(key)),
-  );
+  return Object.fromEntries(Object.entries(headers).filter(([key]) => !SENSITIVE_HEADER_PATTERN.test(key)));
 }
 
 function parseRequestUrl(rawUrl) {
@@ -163,9 +160,7 @@ function isEspnCredentialRequest(request = {}) {
 function isDemoRequestPath(rawUrl) {
   const path = requestPath(rawUrl);
   if (!path) return false;
-  return DEMO_ROUTE_PREFIXES.some(
-    (prefix) => path === prefix || path.startsWith(`${prefix}/`),
-  );
+  return DEMO_ROUTE_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
 }
 
 function isDemoEvent(event = {}) {
@@ -207,9 +202,7 @@ function truncateStackFrames(event) {
 function shouldDropRequestData(hint) {
   const originalException = hint?.originalException;
   return Boolean(
-    originalException
-      && typeof originalException === "object"
-      && originalException.__skipBodyLog === true,
+    originalException && typeof originalException === "object" && originalException.__skipBodyLog === true,
   );
 }
 
@@ -350,9 +343,9 @@ function initSentry({ component }) {
     // Boot-time, before the logger exists. Loud on purpose: the entire cost
     // of this bug was that it made no noise.
     console.error(
-      `[sentry] SENTRY_DSN is set but INVALID (${dsn.reason}) — error reporting is DISABLED. `
-      + "No errors will be reported by this process until it is corrected. "
-      + "Check GET /api/ready -> checks.error_tracking.",
+      `[sentry] SENTRY_DSN is set but INVALID (${dsn.reason}) — error reporting is DISABLED. ` +
+        "No errors will be reported by this process until it is corrected. " +
+        "Check GET /api/ready -> checks.error_tracking.",
     );
   }
 
@@ -372,9 +365,7 @@ function initSentry({ component }) {
     // on every probe. Ignoring every layer type keeps what we use (route-named
     // error events, layer error capture) and drops the spans. Revisit if
     // tracesSampleRate is ever raised.
-    integrations: [
-      Sentry.expressIntegration({ ignoreLayersType: ["middleware", "router", "request_handler"] }),
-    ],
+    integrations: [Sentry.expressIntegration({ ignoreLayersType: ["middleware", "router", "request_handler"] })],
     sendDefaultPii: false,
     beforeSend: scrubSentryEvent,
     beforeBreadcrumb: scrubSentryBreadcrumb,

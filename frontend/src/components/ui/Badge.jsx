@@ -8,17 +8,13 @@ const BADGE_TONES = {
   success: 'var(--color-risk-low)',
   warning: 'var(--color-risk-medium)',
   risk: 'var(--color-risk-high)',
-  neutral: 'var(--color-text-secondary)'
+  neutral: 'var(--color-text-secondary)',
 };
 
-const Badge = React.forwardRef(function Badge({
-  tone = 'neutral',
-  size = 'md',
-  className = '',
-  style = {},
-  children,
-  ...props
-}, ref) {
+const Badge = React.forwardRef(function Badge(
+  { tone = 'neutral', size = 'md', className = '', style = {}, children, ...props },
+  ref,
+) {
   const toneColor = BADGE_TONES[tone] || BADGE_TONES.neutral;
 
   let sizeClasses = '';
@@ -39,9 +35,9 @@ const Badge = React.forwardRef(function Badge({
   };
 
   if (tone === 'neutral') {
-      computedStyle.color = 'var(--color-text-secondary)';
-      computedStyle.backgroundColor = 'var(--color-surface-2)';
-      computedStyle.borderColor = 'var(--color-border)';
+    computedStyle.color = 'var(--color-text-secondary)';
+    computedStyle.backgroundColor = 'var(--color-surface-2)';
+    computedStyle.borderColor = 'var(--color-border)';
   }
 
   const baseClasses = 'inline-flex items-center justify-center font-medium rounded-full border whitespace-nowrap';
@@ -49,12 +45,7 @@ const Badge = React.forwardRef(function Badge({
   const combinedClasses = `${baseClasses} ${sizeClasses} ${className}`.trim().replace(/\s+/g, ' ');
 
   return (
-    <span
-      ref={ref}
-      className={combinedClasses}
-      style={{ ...style, ...computedStyle }}
-      {...props}
-    >
+    <span ref={ref} className={combinedClasses} style={{ ...style, ...computedStyle }} {...props}>
       {/* We prepend a dot indicator to explicitly communicate the tone color since text is primary */}
       {tone !== 'neutral' && (
         <span
@@ -63,7 +54,7 @@ const Badge = React.forwardRef(function Badge({
           style={{
             backgroundColor: toneColor,
             width: size === 'sm' ? '4px' : '6px',
-            height: size === 'sm' ? '4px' : '6px'
+            height: size === 'sm' ? '4px' : '6px',
           }}
         />
       )}

@@ -29,7 +29,19 @@ enum ScreenshotScenarios {
         ),
         "command-center.demo-connected": ScreenshotScenario(
             label: "Command Center — demo/mock connected",
-            content: { AnyView(FauxShell(scenarioKey: "command-center.demo-connected")) }
+            content: {
+                AnyView(FauxShell(
+                    scenarioKey: "command-center.demo-connected",
+                    commandContentOverride: AnyView(OmenCommandDeskScreen(
+                        state: J2ScreenshotFixtures.nominalDesk,
+                        context: J2ScreenshotFixtures.titansContext,
+                        onOpenAccount: {},
+                        onOpenLeague: {},
+                        onOpenLedger: {},
+                        fitProbeIdentifier: "chrome.fit.command-center"
+                    ))
+                ))
+            }
         ),
         // The `carousel != nil` branch — a real multi-league account. Every other Command
         // Center scenario runs the stacked layout, which is why three clipping bugs reached
@@ -44,11 +56,26 @@ enum ScreenshotScenarios {
         ),
         "command-center.long-matchup": ScreenshotScenario(
             label: "Command Center — long fantasy team names in matchup",
-            content: { AnyView(FauxShell(commandStateOverride: OmenCommandCenterFixtures.longNameMatchup)) }
+            content: {
+                AnyView(FauxShell(
+                    commandContentOverride: AnyView(OmenCommandDeskScreen(
+                        state: J2ScreenshotFixtures.longNameDesk,
+                        context: J2ScreenshotFixtures.titansContext,
+                        onOpenAccount: {},
+                        onOpenLeague: {},
+                        onOpenLedger: {}
+                    ))
+                ))
+            }
         ),
         "command-center.disconnected": ScreenshotScenario(
             label: "Command Center — real user, disconnected",
-            content: { AnyView(FauxShell(scenarioKey: "command-center.disconnected")) }
+            content: {
+                AnyView(FauxShell(
+                    initialTab: .command,
+                    commandContentOverride: AnyView(OmenNoLeagueScreen(onConnect: {}))
+                ))
+            }
         ),
         // `M5` slices F and G. Added 2026-08-30 with `F-VET-B03`: the two newest screens in
         // the product had no scenario at all, so nothing — not the harness, not an
@@ -181,10 +208,15 @@ enum ScreenshotScenarios {
             }
         ),
         "journey-j3.nominal.03-start-sit": ScreenshotScenario(
-            label: "J3 nominal 3/3 — clear Start/Sit call",
+            label: "J3 nominal 3/3 — inline Start/Sit detail",
             content: {
-                AnyView(j3Shell(AnyView(OmenStartSitScreen(
-                    detail: J3ScreenshotFixtures.nominalStartSit,
+                AnyView(j3Shell(AnyView(OmenDecisionScreen(
+                    state: OmenDecisionFixtures.journeyNominal,
+                    startSitDetail: J3ScreenshotFixtures.nominalStartSit,
+                    weekLabel: "Week 7",
+                    providerName: "ESPN",
+                    onMakeMove: {},
+                    onDecline: {},
                     onOpenAccount: {},
                     context: J3ScreenshotFixtures.context
                 ))))
@@ -216,11 +248,16 @@ enum ScreenshotScenarios {
             }
         ),
         "journey-j3.degraded.03-start-sit": ScreenshotScenario(
-            label: "J3 degraded 3/3 — incomplete Start/Sit read",
+            label: "J3 degraded 3/3 — inline incomplete Start/Sit read",
             content: {
-                AnyView(j3Shell(AnyView(OmenStartSitScreen(
-                    detail: J3ScreenshotFixtures.degradedStartSit,
-                    onRetry: {},
+                AnyView(j3Shell(AnyView(OmenDecisionScreen(
+                    state: OmenDecisionFixtures.degraded,
+                    startSitDetail: J3ScreenshotFixtures.degradedStartSit,
+                    onRetryStartSit: {},
+                    weekLabel: "Week 7",
+                    providerName: "ESPN",
+                    onMakeMove: {},
+                    onDecline: {},
                     onOpenAccount: {},
                     context: J3ScreenshotFixtures.context
                 ))))
@@ -334,7 +371,7 @@ enum ScreenshotScenarios {
         // `TradeNeedsContext` holds it in the degraded one — same seat, two states of the same
         // answer. See `J4ScreenshotFixtures` for why that split is a contract and not a choice.
         "journey-j4.nominal.01-trade-build": ScreenshotScenario(
-            label: "J4 nominal 1/4 — build a deal, third team unavailable",
+            label: "J4 nominal 1/4 — build a deal, third team available",
             content: { AnyView(j4Shell(AnyView(OmenTradeBuildScreen(
                 state: J4ScreenshotFixtures.nominalBuild,
                 context: J4ScreenshotFixtures.titansContext,
@@ -342,7 +379,8 @@ enum ScreenshotScenarios {
                 onSelectTab: { _ in },
                 onSelectPartner: { _ in },
                 onSelectFilter: { _ in },
-                onPrimaryAction: {}
+                onPrimaryAction: {},
+                onOpenPartnerPicker: {}
             )))) }
         ),
         "journey-j4.nominal.02-trade-roster": ScreenshotScenario(
@@ -388,7 +426,8 @@ enum ScreenshotScenarios {
                 onSelectTab: { _ in },
                 onSelectPartner: { _ in },
                 onSelectFilter: { _ in },
-                onPrimaryAction: {}
+                onPrimaryAction: {},
+                onOpenPartnerPicker: {}
             )))) }
         ),
         "journey-j4.degraded.02-trade-roster": ScreenshotScenario(
@@ -671,41 +710,23 @@ enum ScreenshotScenarios {
             label: "Help + Support — provider recovery",
             content: { AnyView(OmenHelpSupportView(state: .providerRecovery)) }
         ),
-        // M4-CC-WaiverWatch. One scenario per registered honest state so each can be rendered
-        // and reviewed on its own. The composition is NOT re-implemented here — every entry
-        // mounts the real `OmenCommandCenterScreen` and varies only `waiverWatch`, mirroring
-        // the Android connected test that asserts the same six states.
-        //
-        // Base fixture is chosen for coherence, not convenience: `not-connected` uses the
-        // disconnected fixture because "your waiver moves need a league" beside a selected
-        // demo league would be a state the product never produces. The other five imply a
-        // usable league, so they sit on the demo-connected fixture.
-        //
-        // Waiver Watch renders below the fold on every current iPhone, so capturing these
-        // requires scrolling the screen — see `scripts/capture-screenshot-scenario.sh`.
-        "waiver-watch.pending": ScreenshotScenario(
-            label: "Waiver Watch — claim pending",
-            content: { AnyView(waiverWatch(.pending)) }
-        ),
-        "waiver-watch.processed": ScreenshotScenario(
-            label: "Waiver Watch — waivers processed",
-            content: { AnyView(waiverWatch(.processed)) }
-        ),
-        "waiver-watch.availability-unknown": ScreenshotScenario(
-            label: "Waiver Watch — availability needs confirmation",
-            content: { AnyView(waiverWatch(.availabilityUnknown)) }
-        ),
+        // The retired Command screen carried six Waiver Watch states. The current v2 wire
+        // contract has three different, server-backed meanings: confirmed opportunity,
+        // no credible move, and waiver-system not determined. Only `no-credible-move` is the
+        // same fact as one of the old keys, so it keeps its historical identity. Pending claim,
+        // processed claim, player availability unknown, no connected league and off-season do
+        // not have a current `waiver-analysis.v1` wire body; keeping their keys by relabelling a
+        // different screen would create false evidence. The current equivalents that do exist
+        // are already covered by the J5 journey scenarios immediately above.
         "waiver-watch.no-credible-move": ScreenshotScenario(
-            label: "Waiver Watch — no credible move",
-            content: { AnyView(waiverWatch(.noCredibleMove)) }
-        ),
-        "waiver-watch.not-connected": ScreenshotScenario(
-            label: "Waiver Watch — no connected league",
-            content: { AnyView(waiverWatch(.notConnected, base: OmenCommandCenterFixtures.realDisconnected)) }
-        ),
-        "waiver-watch.off-season": ScreenshotScenario(
-            label: "Waiver Watch — off-season",
-            content: { AnyView(waiverWatch(.offSeason)) }
+            label: "The wire — no credible move",
+            content: { AnyView(j5Shell(AnyView(OmenLeagueWireScreen(
+                state: J5ScreenshotFixtures.noMoveWire,
+                context: J5ScreenshotFixtures.titansContext,
+                onOpenAccount: {},
+                screenIdentifier: "j5.league-wire.no-move",
+                fitProbeIdentifier: "j5.fit.waiver-no-move"
+            )))) }
         ),
         // M6-ContextualHelp. The sheet body is captured directly rather than through a tap:
         // screenshot mode has no interaction, and the content is what needs proving.
@@ -752,25 +773,6 @@ enum ScreenshotScenarios {
         ),
     ]
 
-    /// Rebuilds `base` with one field replaced. `OmenCommandCenterState` is a `let`-only
-    /// struct with no `copy`, so the swap is spelled out rather than mutated in place.
-    private static func waiverWatch(
-        _ state: OmenWaiverWatchState,
-        base: OmenCommandCenterState = OmenCommandCenterFixtures.demoConnected
-    ) -> some View {
-        ScreenshotScenarioHost.commandCenter(
-            OmenCommandCenterState(
-                greeting: base.greeting,
-                context: base.context,
-                platforms: base.platforms,
-                matchup: base.matchup,
-                waiverWatch: state,
-                ledger: base.ledger,
-                leaguePulse: base.leaguePulse
-            )
-        )
-    }
-
     private static func contextualHelp(_ destination: OmenHelpDestination) -> some View {
         OmenContextualHelpSheet(
             topic: OmenContextualHelpContent.topic(for: destination),
@@ -789,11 +791,18 @@ enum ScreenshotScenarios {
         FauxShell(initialTab: .command, commandContentOverride: content)
     }
 
-    /// J4 opens on the Trade tab. Trade is the front door — `context.md` says so — and all five
-    /// of its artboards are that destination, so a capture that opened anywhere else would be a
-    /// picture of the wrong screen.
+    /// J4 opens on the Trade tab through the same Find / Build / Type mode control production
+    /// uses. Mounting the inner journey screen directly hid Find a trade from every J4 capture
+    /// even though it was available in the live destination.
     private static func j4Shell(_ content: AnyView) -> some View {
-        FauxShell(initialTab: .trade, tradeContentOverride: content)
+        FauxShell(
+            initialTab: .trade,
+            tradeContentOverride: AnyView(
+                OmenTradeModeContainer(selectedMode: .constant(.build)) { mode in
+                    mode == .build ? content : AnyView(EmptyView())
+                }
+            )
+        )
     }
 
     /// J5 opens on the League tab. All six of its artboards live in that destination — the wire
@@ -844,11 +853,6 @@ struct ScreenshotScenarioHost: View {
         ScreenshotScenarios.entries[scenarioKey]?.content()
     }
 
-    /// Mounts the real Command Center in the deterministic tab shell against an explicit
-    /// state. Used by scenarios that vary one section rather than selecting a whole fixture.
-    static func commandCenter(_ state: OmenCommandCenterState) -> some View {
-        FauxShell(commandStateOverride: state)
-    }
 }
 
 private struct OnboardingAuthScreenshotHost: View {
@@ -1063,11 +1067,6 @@ private struct FauxShell: View {
     /// Which tab the capture opens on. Without it a Trade or League scenario would screenshot
     /// the Command tab and silently prove nothing.
     var initialTab: CommandCenterTab = .command
-    /// Set by scenarios that supply a state directly instead of naming a whole fixture.
-    var commandStateOverride: OmenCommandCenterState?
-    /// Supplied by the carousel scenarios. Everything else leaves this nil and gets the
-    /// stacked `carousel == nil` layout, which is what those captures have always been of.
-    var carousel: LeagueCarouselViewModel?
     /// A real destination composition supplied by a journey scenario. This keeps the permanent
     /// tab shell while avoiding any network/session state and does not duplicate screen markup.
     var omenContentOverride: AnyView? = nil
@@ -1086,19 +1085,13 @@ private struct FauxShell: View {
                 if let commandContentOverride {
                     commandContentOverride
                 } else {
-            OmenCommandCenterScreen(
-                state: commandState,
-                onOpenAccount: {},
-                // Supplied so the Waiver Watch "Review Omen's waiver analysis" link renders.
-                // The screen hides that link when `onOpenOmen` is nil — correct product
-                // behavior, but it meant iOS captures of the `urgent` and `processed` states
-                // were silently missing an element of the approved composition that the
-                // Android host had all along. Found while capturing M4-CC-WaiverWatch.
-                onOpenOmen: {},
-                onOpenLedger: { _ in },
-                onOpenLeague: {},
-                carousel: carousel
-            )
+                    OmenCommandDeskScreen(
+                        state: J2ScreenshotFixtures.nominalDesk,
+                        context: J2ScreenshotFixtures.titansContext,
+                        onOpenAccount: {},
+                        onOpenLeague: {},
+                        onOpenLedger: {}
+                    )
                 }
             }
                 .tabItem { CommandCenterTab.command.label }
@@ -1137,12 +1130,18 @@ private struct FauxShell: View {
                 if let tradeContentOverride {
                     tradeContentOverride
                 } else {
-                    OmenTradeScreen(
-                        state: tradeState,
-                        offer: tradeOffer,
-                        onFindTrade: {},
-                        prefill: scenarioKey == "trade.prefilled" ? Self.prefilledTrade : nil
-                    )
+                    OmenTradeModeContainer(selectedMode: .constant(.type)) { mode in
+                        switch mode {
+                        case .type:
+                            OmenTradeScreen(
+                                state: tradeState,
+                                offer: tradeOffer,
+                                prefill: scenarioKey == "trade.prefilled" ? Self.prefilledTrade : nil
+                            )
+                        case .find, .build:
+                            EmptyView()
+                        }
+                    }
                 }
             }
             .tabItem { CommandCenterTab.trade.label }
@@ -1168,17 +1167,6 @@ private struct FauxShell: View {
         // ramp made the blue impossible to keep ignoring. If the real shell's tint changes,
         // change it here in the same edit.
         .tint(OmenColor.accent)
-    }
-
-    private var commandState: OmenCommandCenterState {
-        if let commandStateOverride { return commandStateOverride }
-        switch scenarioKey {
-        case "command-center.demo-connected": return OmenCommandCenterFixtures.demoConnected
-        case "command-center.disconnected": return OmenCommandCenterFixtures.realDisconnected
-        case "command-center.carousel", "command-center.carousel-provider-down":
-            return OmenCommandCenterFixtures.realConnected
-        default: return OmenCommandCenterFixtures.realDisconnected
-        }
     }
 
     /// Decoded from contract JSON rather than built by memberwise init, so a scenario also
@@ -1545,7 +1533,7 @@ struct RealSwitcherSheetScreenshotHost: View {
                 externalPresentation: $presented
             )
             .padding(.horizontal, OmenSpacing.step16)
-            Text("Command").omenTextStyle(OmenTypography.h2).foregroundStyle(OmenColor.textPrimary)
+            Text("Desk").omenTextStyle(OmenTypography.h2).foregroundStyle(OmenColor.textPrimary)
                 .padding(.horizontal, OmenSpacing.step16)
             Spacer()
         }
@@ -1670,11 +1658,24 @@ private struct CarouselScenarioHost: View {
     }
 
     var body: some View {
-        // The scenario key was omitted here until 2026-09-17, so `commandState` fell through to
-        // `default:` and every carousel capture rendered the DISCONNECTED Command Center beneath
-        // a live carousel. Pass it, and the switch below resolves a connected state.
-        FauxShell(scenarioKey: scenarioKey, carousel: viewModel)
-            .task { await viewModel.load(userID: "fixture") }
+        FauxShell(
+            scenarioKey: scenarioKey,
+            commandContentOverride: AnyView(
+                OmenCommandDeskHost(
+                    state: CarouselFixtures.deskState(
+                        for: viewModel,
+                        failingPlatform: failingPlatform
+                    ),
+                    context: CarouselFixtures.context(for: viewModel),
+                    onOpenAccount: {},
+                    onOpenLeague: {},
+                    onReportProblem: {},
+                    carousel: viewModel,
+                    userID: "fixture",
+                    onContextChanged: { _ in }
+                )
+            )
+        )
     }
 }
 
@@ -1750,6 +1751,42 @@ enum J2ScreenshotFixtures {
         ledger: .read(ledgerLine),
         // The nominal artboard has no foot line and neither does this. Nothing was unread and
         // nothing was read-and-ignored, so there is nothing honest to put there.
+        footnote: nil
+    )
+
+    /// Current-screen stress fixture for the screenshot key that historically exercised long
+    /// fantasy team names. It stays on the production desk composition instead of preserving
+    /// the retired Command screen solely for truncation evidence.
+    static let longNameDesk = OmenDeskState(
+        weekLabel: "Week 7 · Sunday",
+        deadlineLabel: "Lineups lock",
+        deadlineTime: "1:00 PM",
+        matchup: .read(OmenDeskMatchup(
+            platform: .espn,
+            status: "Live · Q2",
+            leader: OmenDeskTeam(
+                crest: "TTO",
+                name: "Justin's Absolutely Enormous Fantasy Team Name",
+                record: "5–2 · you",
+                score: "64.8",
+                isMine: true
+            ),
+            trailer: OmenDeskTeam(
+                crest: "GOS",
+                name: "G.O.A.T. SQUAD Championship Or Bust Edition",
+                record: "6–1",
+                score: "51.2",
+                isMine: false
+            ),
+            projection: "119.6 – 114.2",
+            projectionNote: "Projected · 5.4 ahead",
+            leadFraction: 0.66,
+            watch: "Four of your starters left; two of theirs."
+        )),
+        railCount: 4,
+        railIndex: 0,
+        waiver: .read(waiverMove),
+        ledger: .read(ledgerLine),
         footnote: nil
     )
 
@@ -1889,9 +1926,8 @@ enum J2ScreenshotFixtures {
 ///
 /// ## Facts of record pinned by these fixtures, not decorated by them
 ///
-///   - `max_teams: 2`, `three_team.supported: false`,
-///     `reason: "multi_team_comparison_not_implemented"`. The `Add team` chip renders
-///     **unavailable** on both Build frames — not hidden and not working.
+///   - `max_teams: 3`, `three_team.supported: true`, `comparison: "multi_sided"`. The `Add team`
+///     chip is available on Build; provider submission remains an ordered split handoff.
 ///   - `TradeRoster`'s degraded frame is `permanentlyUnavailable`. A provider that will not hand
 ///     over the other teams' rosters is a **permanent limit, not an outage**, so there is no
 ///     retry fixture here and there must never be one.
@@ -1914,10 +1950,10 @@ enum J4ScreenshotFixtures {
 
     // MARK: Capability
 
-    static let twoTeamsOnly = OmenTradeCapability(
-        maxTeams: 2,
-        threeTeamSupported: false,
-        threeTeamReason: "multi_team_comparison_not_implemented"
+    static let threeTeamsSupported = OmenTradeCapability(
+        maxTeams: 3,
+        threeTeamSupported: true,
+        threeTeamReason: nil
     )
 
     // MARK: Partners and filters
@@ -2023,16 +2059,15 @@ enum J4ScreenshotFixtures {
     static let nominalBuild = OmenTradeBuildState(
         kicker: "Two teams",
         title: "Build a deal",
-        // The artboard's two tabs, not "Build"/"Rosters". `Type a trade` is the shipped
-        // `OmenTradeScreen` path and `Build a trade` is this journey — the split is real
-        // product, and both `TradeBuild` and `TradeRoster` draw it with the same tab on.
-        tabTitles: ["Type a trade", "Build a trade"],
-        selectedTabIndex: 1,
+        // The production Trade shell owns Find / Build / Type. The journey itself must not draw
+        // a second, competing Type / Build selector underneath it.
+        tabTitles: [],
+        selectedTabIndex: 0,
         partners: partners,
         selectedPartnerID: "dsi",
         filters: filters,
         selectedFilterID: "all",
-        capability: twoTeamsOnly,
+        capability: threeTeamsSupported,
         sides: sides,
         read: nominalRead,
         submission: submission,
@@ -2042,16 +2077,13 @@ enum J4ScreenshotFixtures {
     static let degradedBuild = OmenTradeBuildState(
         kicker: "Two teams",
         title: "Build a deal",
-        // The artboard's two tabs, not "Build"/"Rosters". `Type a trade` is the shipped
-        // `OmenTradeScreen` path and `Build a trade` is this journey — the split is real
-        // product, and both `TradeBuild` and `TradeRoster` draw it with the same tab on.
-        tabTitles: ["Type a trade", "Build a trade"],
-        selectedTabIndex: 1,
+        tabTitles: [],
+        selectedTabIndex: 0,
         partners: partners,
         selectedPartnerID: "dsi",
         filters: filters,
         selectedFilterID: "all",
-        capability: twoTeamsOnly,
+        capability: threeTeamsSupported,
         sides: sides,
         read: degradedRead,
         // No submission block. The handoff steps come from `trade-capabilities.v1`'s
@@ -2072,7 +2104,7 @@ enum J4ScreenshotFixtures {
         selectedPartnerID: "dsi",
         filters: filters,
         selectedFilterID: "rb",
-        capability: twoTeamsOnly,
+        capability: threeTeamsSupported,
         rosters: .read(
             teamName: "Davante\u{2019}s Inferno",
             playerCount: 16,
@@ -2116,7 +2148,7 @@ enum J4ScreenshotFixtures {
         selectedPartnerID: "dsi",
         filters: filters,
         selectedFilterID: "rb",
-        capability: twoTeamsOnly,
+        capability: threeTeamsSupported,
         rosters: .permanentlyUnavailable(
             capability: "Opponent rosters",
             sentence: "ESPN does not give Omen the other teams\u{2019} rosters in this league, so there is no trade call to make here. This will not change by trying again."
@@ -2869,17 +2901,14 @@ enum ChromeFixtures {
             scenarioKey: "chrome.report-pill.resting",
             initialTab: .command,
             commandContentOverride: AnyView(
-                OmenCommandCenterScreen(
-                    state: OmenCommandCenterFixtures.demoConnected,
+                OmenCommandDeskScreen(
+                    state: J2ScreenshotFixtures.nominalDesk,
+                    context: J2ScreenshotFixtures.titansContext,
                     onOpenAccount: {},
-                    onOpenOmen: {},
-                    onOpenLedger: { _ in },
                     onOpenLeague: {},
-                    // The only difference from `command-center.demo-connected`. Every other
-                    // Command Center scenario leaves this nil and captures exactly what it
-                    // captured before, which is how the pill was added without re-certifying
-                    // eight existing frames.
-                    onReportProblem: {}
+                    onOpenLedger: {},
+                    onReportProblem: {},
+                    fitProbeIdentifier: "chrome.fit.command-center"
                 )
             )
         )

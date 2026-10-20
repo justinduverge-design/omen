@@ -16,31 +16,62 @@ const { EVENT_KEYS } = require("../src/services/scoringContract");
 /** An A7B player row: 9 catches, 104 yards, 1 TD, nothing else. */
 function playerRow(overrides = {}) {
   return {
-    passing_yards: 0, passing_tds: 0, passing_interceptions: 0,
-    sack_fumbles_lost: 0, passing_2pt_conversions: 0,
-    rushing_yards: 0, rushing_tds: 0, rushing_fumbles_lost: 0, rushing_2pt_conversions: 0,
-    receptions: 9, receiving_yards: 104, receiving_tds: 1,
-    receiving_fumbles_lost: 0, receiving_2pt_conversions: 0,
+    passing_yards: 0,
+    passing_tds: 0,
+    passing_interceptions: 0,
+    sack_fumbles_lost: 0,
+    passing_2pt_conversions: 0,
+    rushing_yards: 0,
+    rushing_tds: 0,
+    rushing_fumbles_lost: 0,
+    rushing_2pt_conversions: 0,
+    receptions: 9,
+    receiving_yards: 104,
+    receiving_tds: 1,
+    receiving_fumbles_lost: 0,
+    receiving_2pt_conversions: 0,
     special_teams_tds: 0,
-    fg_made: 0, fg_missed: 0,
-    fg_made_0_19: 0, fg_made_20_29: 0, fg_made_30_39: 0,
-    fg_made_40_49: 0, fg_made_50_59: 0, fg_made_60_: 0,
-    pat_made: 0, pat_missed: 0,
+    fg_made: 0,
+    fg_missed: 0,
+    fg_made_0_19: 0,
+    fg_made_20_29: 0,
+    fg_made_30_39: 0,
+    fg_made_40_49: 0,
+    fg_made_50_59: 0,
+    fg_made_60_: 0,
+    pat_made: 0,
+    pat_missed: 0,
     ...overrides,
   };
 }
 
 function teamRow(overrides = {}) {
   return {
-    def_sacks: 3, def_interceptions: 1, fumble_recovery_opp: 1, def_tds: 0,
-    def_safeties: 0, special_teams_tds: 0,
-    def_punt_blocks: 0, def_pat_blocks: 0, def_fg_blocks: 1,
+    def_sacks: 3,
+    def_interceptions: 1,
+    fumble_recovery_opp: 1,
+    def_tds: 0,
+    def_safeties: 0,
+    special_teams_tds: 0,
+    def_punt_blocks: 0,
+    def_pat_blocks: 0,
+    def_fg_blocks: 1,
     ...overrides,
   };
 }
 
 function sleeperLeague(rec) {
-  return { rec, rec_yd: 0.1, rec_td: 6, rush_yd: 0.1, rush_td: 6, pass_yd: 0.04, pass_td: 4, pass_int: -2, fum_lost: -2 };
+  return {
+    rec,
+    rec_yd: 0.1,
+    rec_td: 6,
+    rush_yd: 0.1,
+    rush_td: 6,
+    pass_yd: 0.04,
+    pass_td: 4,
+    pass_int: -2,
+    fum_lost: -2,
+  };
 }
 
 // --- The thing A6 was waiting for -------------------------------------------
@@ -100,9 +131,7 @@ test("an absent column is missing, never zero", () => {
 test("a summed fact is unknown when any single component is unknown", () => {
   // Fumbles lost is three columns. Two of three is not a fumble count — it is a smaller
   // wrong number that looks entirely plausible.
-  const { facts, missing } = canonicalFactsFromFootballData(
-    playerRow({ rushing_fumbles_lost: null })
-  );
+  const { facts, missing } = canonicalFactsFromFootballData(playerRow({ rushing_fumbles_lost: null }));
 
   assert.equal(Object.hasOwn(facts, "fumbles_lost"), false);
   assert.ok(missing.includes("fumbles_lost"));
@@ -127,10 +156,17 @@ test("a missing priced fact makes the whole grade unsupported and names the gap"
 // --- Kickers and defence ----------------------------------------------------
 
 test("six A7B distance bands collapse into the three canonical bands", () => {
-  const { facts } = canonicalFactsFromFootballData(playerRow({
-    fg_made_0_19: 1, fg_made_20_29: 1, fg_made_30_39: 1,
-    fg_made_40_49: 2, fg_made_50_59: 1, fg_made_60_: 1, fg_made: 7,
-  }));
+  const { facts } = canonicalFactsFromFootballData(
+    playerRow({
+      fg_made_0_19: 1,
+      fg_made_20_29: 1,
+      fg_made_30_39: 1,
+      fg_made_40_49: 2,
+      fg_made_50_59: 1,
+      fg_made_60_: 1,
+      fg_made: 7,
+    }),
+  );
 
   assert.equal(facts.field_goals_made_0_39, 3);
   assert.equal(facts.field_goals_made_40_49, 2);

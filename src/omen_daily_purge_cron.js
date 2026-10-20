@@ -49,13 +49,14 @@ if (require.main === module) {
   const Sentry = require("@sentry/node");
   const { createClient } = require("@supabase/supabase-js");
   const missing = ["SUPABASE_URL", "SUPABASE_SERVICE_KEY"].filter((key) => !process.env[key]);
-  (async () => {
+  const { traceCronJob } = require("./services/telemetry");
+  traceCronJob("daily_purge", async () => {
     if (missing.length) throw new Error(`missing env: ${missing.join(", ")}`);
     const client = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, {
       auth: { persistSession: false },
     });
     await runPurges({ client });
-  })().then(
+  }).then(
     async () => {
       await flushSentry();
       process.exit(0);
@@ -65,7 +66,7 @@ if (require.main === module) {
       Sentry.captureException(err);
       await flushSentry();
       process.exit(1);
-    }
+    },
   );
 }
 

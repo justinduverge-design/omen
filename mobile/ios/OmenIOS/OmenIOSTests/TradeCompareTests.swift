@@ -463,3 +463,38 @@ final class TradeCompareTests: XCTestCase {
         XCTAssertFalse(twoTeamLooking.isThreeTeamShape)
     }
 }
+
+// MARK: - Omen's read on Trade (whole-app canvas, 2026-10-19)
+
+extension TradeCompareTests {
+    func testFindFunnelLineAndOmenReadDecode() throws {
+        let json = """
+        {"contract_version":"trade-find.v1","status":"ok","platform":"sleeper",
+         "bounds":{"teams_considered":11,"teams_skipped_for_cap":[]},
+         "search_funnel":{"pairs_evaluated":340,"mutual_gain":12,"passed_fairness":2},
+         "candidates":[]}
+        """
+        let response = try JSONDecoder().decode(TradeFindResponse.self, from: Data(json.utf8))
+        XCTAssertEqual(response.funnelLabel, "Read 11 rosters \u{00B7} 340 pairs checked \u{00B7} 2 fair for both sides")
+
+        let player = try JSONDecoder().decode(TradeFindPlayer.self, from: Data(#"{"name":"Garrett Wilson","sight":{"sight_points":14.1}}"#.utf8))
+        XCTAssertEqual(player.omenPointsLabel, "Omen 14.1")
+        let bare = try JSONDecoder().decode(TradeFindPlayer.self, from: Data(#"{"name":"No Read"}"#.utf8))
+        XCTAssertNil(bare.omenPointsLabel, "no read stays absent, never zero")
+    }
+
+    func testVerdictMatchesOmenReadToTheOfferedPlayer() throws {
+        let json = """
+        {"contract_version":"trade-compare.v2","verdict_state":"favors_you",
+         "evaluability":{"status":"evaluable"},"analysis_context":{"mode":"neutral"},
+         "send":{"players":[{"name":"Breece Hall","player_key":"sleeper:1","sight":{"sight_points":11.2}}]},
+         "receive":{"players":[{"name":"Garrett Wilson","sight":{"sight_points":14.1}}]}}
+        """
+        guard let compare = try? JSONDecoder().decode(TradeCompare.self, from: Data(json.utf8)) else {
+            return XCTFail("compare did not decode")
+        }
+        XCTAssertEqual(compare.omenPoints(for: TradePlayer(name: "Breece Hall", playerKey: "sleeper:1")), 11.2)
+        XCTAssertEqual(compare.omenPoints(for: TradePlayer(name: "Garrett Wilson")), 14.1)
+        XCTAssertNil(compare.omenPoints(for: TradePlayer(name: "Someone Else")))
+    }
+}

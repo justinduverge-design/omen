@@ -1,0 +1,43 @@
+name: Lint quality
+
+# Phase 1 tooling (Blueprints/specs/infrastructure/omen-rust-infrastructure-plan-v1.md).
+# Each job was report-only until its backlog was clean. shellcheck, typos and biome: clean and blocking since 2026-10-18.
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lint-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  shellcheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: shellcheck (preinstalled on ubuntu-latest)
+        run: git ls-files -z '*.sh' | xargs -0 shellcheck --severity=warning --format=gcc
+
+  typos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: crate-ci/typos@7f9d0819ca1c008ade73f4b41fa9d258d48f605b # v1.51.1
+        with:
+          config: .github/_typos.toml
+
+  biome:
+    # JS lint + format (biome.jsonc). Blocking: lint errors and formatting drift fail the PR; warnings do not.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: biomejs/setup-biome@4c91541eaada48f67d7dbd7833600ce162b68f51 # v2.7.1
+        with:
+          version: 2.5.15
+      - run: biome ci --reporter=github

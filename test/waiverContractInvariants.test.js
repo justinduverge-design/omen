@@ -15,10 +15,25 @@ const base = { platform: "sleeper", leagueId: "L1", week: 3, season: 2026, avail
 
 const CASES = {
   off_season: { ...base, waiverSystem: FAAB, offSeason: true },
-  engine_limitation_pool: { ...base, waiverSystem: FAAB, pool: null, roster: { slots: { starters: [P("s", "A", "RB", 5)], bench: [] } } },
+  engine_limitation_pool: {
+    ...base,
+    waiverSystem: FAAB,
+    pool: null,
+    roster: { slots: { starters: [P("s", "A", "RB", 5)], bench: [] } },
+  },
   engine_limitation_roster: { ...base, waiverSystem: FAAB, pool: [], roster: { slots: { starters: [], bench: [] } } },
-  no_credible_move: { ...base, waiverSystem: FAAB, pool: [P("p", "B", "RB", 1)], roster: { slots: { starters: [P("s", "A", "RB", 9)], bench: [] } } },
-  confirmed_opportunity: { ...base, waiverSystem: FAAB, pool: [P("p", "B", "RB", 12)], roster: { slots: { starters: [P("s", "A", "RB", 5)], bench: [P("b", "C", "RB", 2)] } } },
+  no_credible_move: {
+    ...base,
+    waiverSystem: FAAB,
+    pool: [P("p", "B", "RB", 1)],
+    roster: { slots: { starters: [P("s", "A", "RB", 9)], bench: [] } },
+  },
+  confirmed_opportunity: {
+    ...base,
+    waiverSystem: FAAB,
+    pool: [P("p", "B", "RB", 12)],
+    roster: { slots: { starters: [P("s", "A", "RB", 5)], bench: [P("b", "C", "RB", 2)] } },
+  },
 };
 
 test("every envelope state carries waiver_system — a client never has to test for the key", () => {
@@ -67,14 +82,20 @@ test("waiver_system carries composed budget_text / order_text, and only when eve
 
   const unreadBalance = buildWaiverAnalysis({
     ...CASES.confirmed_opportunity,
-    waiverSystem: fromSleeper({ league: { settings: { waiver_type: 2, waiver_budget: 100 } }, roster: { settings: {} } }),
+    waiverSystem: fromSleeper({
+      league: { settings: { waiver_type: 2, waiver_budget: 100 } },
+      roster: { settings: {} },
+    }),
   });
   assert.equal(unreadBalance.waiver_system.budget_remaining, null);
-  assert.equal(unreadBalance.waiver_system.budget_text, null, "an unread balance must not become \"$0 of $100\"");
+  assert.equal(unreadBalance.waiver_system.budget_text, null, 'an unread balance must not become "$0 of $100"');
 
   const priority = buildWaiverAnalysis({
     ...CASES.confirmed_opportunity,
-    waiverSystem: fromSleeper({ league: { settings: { waiver_type: 0 } }, roster: { settings: { waiver_position: 7 } } }),
+    waiverSystem: fromSleeper({
+      league: { settings: { waiver_type: 0 } },
+      roster: { settings: { waiver_position: 7 } },
+    }),
   });
   assert.equal(priority.waiver_system.order_text, "Claim order 7");
   assert.equal(priority.waiver_system.budget_text, null);

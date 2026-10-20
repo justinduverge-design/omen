@@ -48,12 +48,15 @@ test("schedule capabilities preserve verified game facts separately from inferre
   assert.equal(kickoff.used, false);
   assert.equal(kickoff.observed_at, "2026-09-10T16:00:00.000Z");
   assert.equal(kickoff.fresh_until, "2026-09-10T20:00:00.000Z");
-  assert.deepEqual(kickoff.facts.map((fact) => [fact.name, fact.kind]), [
-    ["kickoff", "verified"],
-    ["opponent", "verified"],
-    ["home_away", "verified"],
-    ["kickoff_window", "inference"],
-  ]);
+  assert.deepEqual(
+    kickoff.facts.map((fact) => [fact.name, fact.kind]),
+    [
+      ["kickoff", "verified"],
+      ["opponent", "verified"],
+      ["home_away", "verified"],
+      ["kickoff_window", "inference"],
+    ],
+  );
   assert.match(kickoff.message, /No broadcaster is claimed/i);
 
   assert.equal(travel.status, "live");
@@ -74,7 +77,10 @@ test("an away game with unknown stadium coordinates does not turn distance into 
 
 test("missing normalized team is insufficient context and does not query a schedule source", async () => {
   let called = false;
-  nflSchedule.getGameInfoDetails = async () => { called = true; return availableGame(); };
+  nflSchedule.getGameInfoDetails = async () => {
+    called = true;
+    return availableGame();
+  };
 
   const result = await resolveScheduleTravelCapabilities({ nflTeam: "not an nfl team", now: IN_SEASON });
   assert.equal(called, false);
@@ -85,7 +91,10 @@ test("missing normalized team is insufficient context and does not query a sched
 
 test("off-season is not applicable and does not query the current scoreboard", async () => {
   let called = false;
-  nflSchedule.getGameInfoDetails = async () => { called = true; return availableGame(); };
+  nflSchedule.getGameInfoDetails = async () => {
+    called = true;
+    return availableGame();
+  };
 
   const result = await resolveScheduleTravelCapabilities({ nflTeam: "KC", now: OFF_SEASON });
   assert.equal(called, false);

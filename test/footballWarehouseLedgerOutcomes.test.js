@@ -57,7 +57,10 @@ function harness(entries, query, extra = {}) {
   const saved = [];
   const dependencies = {
     fetchScorableDecisions: async () => entries,
-    saveDecisionOutcome: async (_db, { decision, outcome }) => { saved.push({ id: decision.id, outcome }); return "inserted"; },
+    saveDecisionOutcome: async (_db, { decision, outcome }) => {
+      saved.push({ id: decision.id, outcome });
+      return "inserted";
+    },
     warehouseOutcomeRepository: createWarehouseOutcomeRepository({ query }),
     ...extra,
   };
@@ -65,6 +68,13 @@ function harness(entries, query, extra = {}) {
 }
 
 const entry = (decision) => ({ decision, outcome: null, action: null });
+// A start/sit call: start `start`, sit `sit`. Graded against each other, never a fixed number.
+const startSit = (id, start, sit, over = {}) =>
+  legacyDecision(id, start, {
+    call_type: "start_sit",
+    recommendation: { primary_player: { id: start, name: "Starter" }, comparison_player: { id: sit, name: "Benched" } },
+    ...over,
+  });
 const CROSSWALK = { "sleeper:111": "omen:player:a", "sleeper:222": "omen:player:b" };
 const LINES = {
   "omen:player:a": { ppr: 22.4, receptions: 6 },
@@ -72,19 +82,30 @@ const LINES = {
 };
 
 test("a graded win from the warehouse is an estimate, never verified", async () => {
-  const { saved, dependencies } = harness([entry(legacyDecision("d1", "sleeper:111"))], fakeQuery({ crosswalk: CROSSWALK, lines: LINES }));
-  const fetchScores = async () => { throw new Error("GitHub CSV must not be used"); };
+  const { saved, dependencies } = harness(
+    [entry(startSit("d1", "sleeper:111", "sleeper:222"))],
+    fakeQuery({ crosswalk: CROSSWALK, lines: LINES }),
+  );
+  const fetchScores = async () => {
+    throw new Error("GitHub CSV must not be used");
+  };
   const tally = await cron.scoreLedgerDecisions({}, { now: TUESDAY, fetchScores, dependencies });
 
   assert.equal(tally.inserted, 1);
   assert.equal(saved[0].outcome.state, "resolved");
   assert.equal(saved[0].outcome.result, "win");
   assert.equal(saved[0].outcome.provenance, "legacy_estimate");
-  assert.match(saved[0].outcome.summary, /22\.4/);
+  assert.match(
+    saved[0].outcome.summary,
+    /Started Starter: 22\.4; sat Benched: 3\.2 \(PPR estimate\)\. The call gained 19\.2\./,
+  );
 });
 
 test("a graded loss from the warehouse", async () => {
-  const { saved, dependencies } = harness([entry(legacyDecision("d2", "sleeper:222"))], fakeQuery({ crosswalk: CROSSWALK, lines: LINES }));
+  const { saved, dependencies } = harness(
+    [entry(startSit("d2", "sleeper:222", "sleeper:111"))],
+    fakeQuery({ crosswalk: CROSSWALK, lines: LINES }),
+  );
   await cron.scoreLedgerDecisions({}, { now: TUESDAY, fetchScores: async () => ({}), dependencies });
   assert.equal(saved[0].outcome.state, "resolved");
   assert.equal(saved[0].outcome.result, "loss");
@@ -92,21 +113,39 @@ test("a graded loss from the warehouse", async () => {
 });
 
 test("Half PPR and Standard totals are derived from the PPR line and receptions", async () => {
+  const found = { kind: "points", ppr: 20, receptions: 6, comparison: { kind: "points", ppr: 10, receptions: 2 } };
   const half = cron.gradeDecisionFromWarehouse(
-    { decision: legacyDecision("d", "sleeper:111", { scoring_format: "half_ppr" }), action: null },
-    { kind: "points", ppr: 20, receptions: 6 },
+    { decision: startSit("d", "sleeper:111", "sleeper:222", { scoring_format: "half_ppr" }), action: null },
+    found,
   );
-  assert.match(half.summary, /17\.0 fantasy points \(Half PPR\)/);
+  assert.match(half.summary, /17\.0; sat Benched: 9\.0 \(Half PPR estimate\)/);
   const std = cron.gradeDecisionFromWarehouse(
-    { decision: legacyDecision("d", "sleeper:111", { scoring_format: "standard" }), action: null },
-    { kind: "points", ppr: 20, receptions: 6 },
+    { decision: startSit("d", "sleeper:111", "sleeper:222", { scoring_format: "standard" }), action: null },
+    found,
   );
-  assert.match(std.summary, /14\.0 fantasy points \(Standard\)/);
+  assert.match(std.summary, /14\.0; sat Benched: 8\.0 \(Standard estimate\)/);
   const unknown = cron.gradeDecisionFromWarehouse(
-    { decision: legacyDecision("d", "sleeper:111", { scoring_format: "standard" }), action: null },
-    { kind: "points", ppr: 20, receptions: null },
+    { decision: startSit("d", "sleeper:111", "sleeper:222", { scoring_format: "standard" }), action: null },
+    { ...found, receptions: null },
   );
   assert.equal(unknown.state, "data_incomplete");
+});
+
+test("a call is never graded against a fixed number: no alternative means not graded", () => {
+  const graded = cron.gradeDecisionFromWarehouse(
+    { decision: legacyDecision("d", "sleeper:111"), action: null },
+    { kind: "points", ppr: 30, receptions: 5 },
+  );
+  assert.equal(graded.state, "data_incomplete");
+});
+
+test("an inactive player (resolved, no stat line) scored zero and is graded, not skipped", () => {
+  const graded = cron.gradeDecisionFromWarehouse(
+    { decision: startSit("d", "sleeper:111", "sleeper:222"), action: null },
+    { kind: "no_line", comparison: { kind: "points", ppr: 8, receptions: 2 } },
+  );
+  assert.equal(graded.state, "resolved");
+  assert.equal(graded.result, "loss");
 });
 
 test("an unresolved provider id is data_incomplete, never a guess by name", async () => {
@@ -119,19 +158,29 @@ test("an unresolved provider id is data_incomplete, never a guess by name", asyn
   const { saved, dependencies } = harness(entries, fakeQuery({ crosswalk: CROSSWALK, lines: LINES, log }));
   await cron.scoreLedgerDecisions({}, { now: TUESDAY, fetchScores: async () => ({}), dependencies });
 
-  assert.deepEqual(saved.map((row) => row.outcome.state), ["data_incomplete", "data_incomplete", "data_incomplete"]);
+  assert.deepEqual(
+    saved.map((row) => row.outcome.state),
+    ["data_incomplete", "data_incomplete", "data_incomplete"],
+  );
   assert.ok(saved.every((row) => row.outcome.result === undefined));
   assert.ok(!JSON.stringify(log).includes("Josh Allen"), "names never reach the warehouse");
 });
 
 test("a resolved player with no line that week is data_incomplete", async () => {
-  const { saved, dependencies } = harness([entry(legacyDecision("d6", "sleeper:111"))], fakeQuery({ crosswalk: CROSSWALK, lines: {} }));
+  const { saved, dependencies } = harness(
+    [entry(legacyDecision("d6", "sleeper:111"))],
+    fakeQuery({ crosswalk: CROSSWALK, lines: {} }),
+  );
   await cron.scoreLedgerDecisions({}, { now: TUESDAY, fetchScores: async () => ({}), dependencies });
   assert.equal(saved[0].outcome.state, "data_incomplete");
 });
 
 test("a contract-required call stays data_incomplete: warehouse totals cannot prove league scoring", async () => {
-  const live = legacyDecision("d7", "sleeper:111", { call_type: "start_sit", scoring_contract_version: "v1", scoring_contract_hash: "abc" });
+  const live = legacyDecision("d7", "sleeper:111", {
+    call_type: "start_sit",
+    scoring_contract_version: "v1",
+    scoring_contract_hash: "abc",
+  });
   const { saved, dependencies } = harness([entry(live)], fakeQuery({ crosswalk: CROSSWALK, lines: LINES }));
   await cron.scoreLedgerDecisions({}, { now: TUESDAY, fetchScores: async () => ({}), dependencies });
   assert.equal(saved[0].outcome.state, "data_incomplete");
@@ -139,7 +188,10 @@ test("a contract-required call stays data_incomplete: warehouse totals cannot pr
 });
 
 test("a week the warehouse has not ingested stays Pending: nothing is written", async () => {
-  const { saved, dependencies } = harness([entry(legacyDecision("d8", "sleeper:111"))], fakeQuery({ ingestedWeeks: [], crosswalk: CROSSWALK, lines: LINES }));
+  const { saved, dependencies } = harness(
+    [entry(legacyDecision("d8", "sleeper:111"))],
+    fakeQuery({ ingestedWeeks: [], crosswalk: CROSSWALK, lines: LINES }),
+  );
   const tally = await cron.scoreLedgerDecisions({}, { now: TUESDAY, fetchScores: async () => ({}), dependencies });
   assert.deepEqual(saved, []);
   assert.deepEqual(tally, { inserted: 0, updated: 0, unchanged: 0, deferred: 1, failed: 0 });
@@ -147,11 +199,20 @@ test("a week the warehouse has not ingested stays Pending: nothing is written", 
 
 test("a warehouse outage falls back to the existing nflverse path unchanged", async () => {
   const { saved, dependencies } = harness(
-    [entry(legacyDecision("d9", "sleeper:111", { recommendation: { primary_player: { id: "sleeper:111", name: "Bench Breakout" } } }))],
+    [
+      entry(
+        legacyDecision("d9", "sleeper:111", {
+          recommendation: { primary_player: { id: "sleeper:111", name: "Bench Breakout" } },
+        }),
+      ),
+    ],
     fakeQuery({ fail: true }),
   );
   let fetched = 0;
-  const fetchScores = async () => { fetched += 1; return { bench_breakout: { name: "Bench Breakout", rec_std: 12, rec_half: 14, rec_ppr: 16 } }; };
+  const fetchScores = async () => {
+    fetched += 1;
+    return { bench_breakout: { name: "Bench Breakout", rec_std: 12, rec_half: 14, rec_ppr: 16 } };
+  };
   const tally = await cron.scoreLedgerDecisions({}, { now: TUESDAY, fetchScores, dependencies });
   assert.equal(fetched, 1);
   assert.equal(tally.inserted, 1);
@@ -159,57 +220,88 @@ test("a warehouse outage falls back to the existing nflverse path unchanged", as
 });
 
 test("supabase mode never opens the warehouse", async () => {
-  const entries = [entry(legacyDecision("d10", "sleeper:111", { recommendation: { primary_player: { id: "sleeper:111", name: "Bench Breakout" } } }))];
+  const entries = [
+    entry(
+      legacyDecision("d10", "sleeper:111", {
+        recommendation: { primary_player: { id: "sleeper:111", name: "Bench Breakout" } },
+      }),
+    ),
+  ];
   const saved = [];
   let fetched = 0;
-  await cron.scoreLedgerDecisions({}, {
-    now: TUESDAY,
-    env: { FOOTBALL_DATA_MODE: "supabase" },
-    fetchScores: async () => { fetched += 1; return { bench_breakout: { name: "Bench Breakout", rec_std: 12, rec_half: 14, rec_ppr: 16 } }; },
-    dependencies: {
-      fetchScorableDecisions: async () => entries,
-      saveDecisionOutcome: async (_db, { decision }) => { saved.push(decision.id); return "inserted"; },
+  await cron.scoreLedgerDecisions(
+    {},
+    {
+      now: TUESDAY,
+      env: { FOOTBALL_DATA_MODE: "supabase" },
+      fetchScores: async () => {
+        fetched += 1;
+        return { bench_breakout: { name: "Bench Breakout", rec_std: 12, rec_half: 14, rec_ppr: 16 } };
+      },
+      dependencies: {
+        fetchScorableDecisions: async () => entries,
+        saveDecisionOutcome: async (_db, { decision }) => {
+          saved.push(decision.id);
+          return "inserted";
+        },
+      },
     },
-  });
+  );
   assert.equal(fetched, 1);
   assert.deepEqual(saved, ["d10"]);
 });
 
 test("the dry-run preview computes outcomes for a week and writes nothing", async () => {
   const entries = [
-    entry(legacyDecision("p1", "sleeper:111")),
-    entry(legacyDecision("p2", "sleeper:222")),
+    entry(startSit("p1", "sleeper:111", "sleeper:222")),
+    entry(startSit("p2", "sleeper:222", "sleeper:111")),
     entry(legacyDecision("p3", "sleeper:999")),
     { decision: legacyDecision("p4", "sleeper:111"), outcome: null, action: { followed: false } },
     entry(legacyDecision("p5", "sleeper:111", { week: 3 })), // other week: excluded
   ];
   let writes = 0;
   const repository = createWarehouseOutcomeRepository({ query: fakeQuery({ crosswalk: CROSSWALK, lines: LINES }) });
-  const report = await cron.previewLedgerOutcomes({}, {
-    season: 2026,
-    week: 4,
-    repository,
-    dependencies: {
-      fetchScorableDecisions: async () => entries,
-      saveDecisionOutcome: async () => { writes += 1; },
+  const report = await cron.previewLedgerOutcomes(
+    {},
+    {
+      season: 2026,
+      week: 4,
+      repository,
+      dependencies: {
+        fetchScorableDecisions: async () => entries,
+        saveDecisionOutcome: async () => {
+          writes += 1;
+        },
+      },
     },
-  });
+  );
   assert.equal(writes, 0);
   assert.equal(report.written, 0);
   assert.deepEqual(report.counts, { calls: 4, graded: 2, data_incomplete: 1, not_executed: 1, pending: 0 });
-  assert.deepEqual(report.preview.map((row) => row.state), ["resolved", "resolved", "data_incomplete", "not_executed"]);
+  assert.deepEqual(
+    report.preview.map((row) => row.state),
+    ["resolved", "resolved", "data_incomplete", "not_executed"],
+  );
 
   const early = createWarehouseOutcomeRepository({ query: fakeQuery({ ingestedWeeks: [] }) });
-  const pending = await cron.previewLedgerOutcomes({}, {
-    season: 2026, week: 4, repository: early,
-    dependencies: { fetchScorableDecisions: async () => [entry(legacyDecision("p6", "sleeper:111"))] },
-  });
+  const pending = await cron.previewLedgerOutcomes(
+    {},
+    {
+      season: 2026,
+      week: 4,
+      repository: early,
+      dependencies: { fetchScorableDecisions: async () => [entry(legacyDecision("p6", "sleeper:111"))] },
+    },
+  );
   assert.equal(pending.counts.pending, 1);
   assert.equal(pending.preview[0].state, "pending");
 });
 
 test("provider refs come only from a provider-prefixed player id", () => {
-  assert.deepEqual(providerRefFromDecision(legacyDecision("x", "yahoo:31002")), { provider: "yahoo", providerId: "31002" });
+  assert.deepEqual(providerRefFromDecision(legacyDecision("x", "yahoo:31002")), {
+    provider: "yahoo",
+    providerId: "31002",
+  });
   assert.equal(providerRefFromDecision(legacyDecision("x", "omen:player:abc")), null);
   assert.equal(providerRefFromDecision({ recommendation: { primary_player: { name: "Josh Allen" } } }), null);
 });
@@ -220,16 +312,33 @@ test("the outcome repository batches 200 ids per query and rejects non-public id
   const refs = Array.from({ length: 450 }, (_, i) => ({ provider: "sleeper", providerId: String(i) }));
   const out = await repository.readWeekOutcomes({ refs, season: 2026, week: 4 });
   assert.equal(out.size, 450);
-  assert.deepEqual(log.map((q) => q.values[0].length), [200, 200, 50]);
-  await assert.rejects(() => repository.readWeekOutcomes({ refs: [{ provider: "sleeper", providerId: "a b; drop" }], season: 2026, week: 4 }), TypeError);
+  assert.deepEqual(
+    log.map((q) => q.values[0].length),
+    [200, 200, 50],
+  );
+  await assert.rejects(
+    () =>
+      repository.readWeekOutcomes({ refs: [{ provider: "sleeper", providerId: "a b; drop" }], season: 2026, week: 4 }),
+    TypeError,
+  );
 });
 
 test("dry-run report never contains a player name or summary text", async () => {
   const repository = createWarehouseOutcomeRepository({ query: fakeQuery({ crosswalk: CROSSWALK, lines: LINES }) });
-  const report = await cron.previewLedgerOutcomes({}, {
-    season: 2026, week: 4, repository,
-    dependencies: { fetchScorableDecisions: async () => [entry(legacyDecision("n1", "sleeper:111")), entry(legacyDecision("n2", "sleeper:999"))] },
-  });
+  const report = await cron.previewLedgerOutcomes(
+    {},
+    {
+      season: 2026,
+      week: 4,
+      repository,
+      dependencies: {
+        fetchScorableDecisions: async () => [
+          entry(legacyDecision("n1", "sleeper:111")),
+          entry(legacyDecision("n2", "sleeper:999")),
+        ],
+      },
+    },
+  );
   const text = JSON.stringify(report);
   assert.ok(!text.includes("Some Name"));
   assert.ok(!text.includes("fantasy points"));
@@ -242,26 +351,44 @@ test("a partially ingested week (under 100 lines) stays Pending", async () => {
 });
 
 test("shadow does not make the warehouse authoritative; only warehouse mode or the explicit flag does", async () => {
-  const entries = [entry(legacyDecision("s1", "sleeper:111", { recommendation: { primary_player: { id: "sleeper:111", name: "Bench Breakout" } } }))];
+  const entries = [
+    entry(
+      legacyDecision("s1", "sleeper:111", {
+        recommendation: { primary_player: { id: "sleeper:111", name: "Bench Breakout" } },
+      }),
+    ),
+  ];
   const warnings = [];
   const original = console.warn;
   console.warn = (...args) => warnings.push(args.join(" "));
   const run = async (env) => {
     warnings.length = 0;
-    await cron.scoreLedgerDecisions({}, {
-      now: TUESDAY, env,
-      fetchScores: async () => ({ bench_breakout: { name: "Bench Breakout", rec_std: 12, rec_half: 14, rec_ppr: 16 } }),
-      dependencies: { fetchScorableDecisions: async () => entries, saveDecisionOutcome: async () => "inserted" },
-    });
+    await cron.scoreLedgerDecisions(
+      {},
+      {
+        now: TUESDAY,
+        env,
+        fetchScores: async () => ({
+          bench_breakout: { name: "Bench Breakout", rec_std: 12, rec_half: 14, rec_ppr: 16 },
+        }),
+        dependencies: { fetchScorableDecisions: async () => entries, saveDecisionOutcome: async () => "inserted" },
+      },
+    );
     return warnings.length;
   };
   try {
     assert.equal(await run({ FOOTBALL_DATA_MODE: "shadow" }), 0, "shadow never tries the warehouse scorer");
-    assert.equal(await run({ FOOTBALL_DATA_MODE: "supabase", OMEN_LEDGER_WAREHOUSE_SCORING: "true" }), 0, "the flag only applies in shadow");
+    assert.equal(
+      await run({ FOOTBALL_DATA_MODE: "supabase", OMEN_LEDGER_WAREHOUSE_SCORING: "true" }),
+      0,
+      "the flag only applies in shadow",
+    );
     // Opted in but no reader credential: the attempt is made, fails closed, and falls back with a warning.
-    assert.ok(await run({ FOOTBALL_DATA_MODE: "warehouse" }) > 0);
-    assert.ok(await run({ FOOTBALL_DATA_MODE: "shadow", OMEN_LEDGER_WAREHOUSE_SCORING: "true" }) > 0);
-  } finally { console.warn = original; }
+    assert.ok((await run({ FOOTBALL_DATA_MODE: "warehouse" })) > 0);
+    assert.ok((await run({ FOOTBALL_DATA_MODE: "shadow", OMEN_LEDGER_WAREHOUSE_SCORING: "true" })) > 0);
+  } finally {
+    console.warn = original;
+  }
 });
 
 test("exceeding the ref cap is a logged fallback reason, not a crash", async () => {
@@ -271,23 +398,41 @@ test("exceeding the ref cap is a logged fallback reason, not a crash", async () 
   const original = console.warn;
   console.warn = (...args) => warnings.push(args.join(" "));
   try {
-    await cron.scoreLedgerDecisions({}, {
-      now: TUESDAY, fetchScores: async () => ({}),
-      dependencies: {
-        fetchScorableDecisions: async () => many,
-        saveDecisionOutcome: async (_d, { decision }) => { saved.push(decision.id); return "inserted"; },
-        warehouseOutcomeRepository: createWarehouseOutcomeRepository({ query: fakeQuery() }),
+    await cron.scoreLedgerDecisions(
+      {},
+      {
+        now: TUESDAY,
+        fetchScores: async () => ({}),
+        dependencies: {
+          fetchScorableDecisions: async () => many,
+          saveDecisionOutcome: async (_d, { decision }) => {
+            saved.push(decision.id);
+            return "inserted";
+          },
+          warehouseOutcomeRepository: createWarehouseOutcomeRepository({ query: fakeQuery() }),
+        },
       },
-    });
-  } finally { console.warn = original; }
+    );
+  } finally {
+    console.warn = original;
+  }
   assert.ok(warnings.some((line) => line.includes("reason=refs_cap_exceeded")));
 });
 
 test("the dry-run CLI helpers: read-only Supabase and argument parsing", () => {
   const { parseArgs, readOnlySupabase } = require("../src/omen_ledger_outcomes_dry_run");
-  const table = { select() { return this; }, insert() {}, update() {}, upsert() {}, delete() {} };
+  const table = {
+    select() {
+      return this;
+    },
+    insert() {},
+    update() {},
+    upsert() {},
+    delete() {},
+  };
   const ro = readOnlySupabase({ from: () => table });
-  for (const method of ["insert", "update", "upsert", "delete"]) assert.throws(() => ro.from("decisions")[method], /write not allowed/);
+  for (const method of ["insert", "update", "upsert", "delete"])
+    assert.throws(() => ro.from("decisions")[method], /write not allowed/);
   assert.throws(() => ro.rpc(), /rpc not allowed/);
   assert.equal(typeof ro.from("decisions").select, "function");
   assert.deepEqual(parseArgs(["--season", "2026", "--week", "4"]), { season: 2026, week: 4 });

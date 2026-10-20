@@ -15,8 +15,20 @@ const express = require("express");
 // F1 audit (2026-07-31) found the route code correctly scoped but untested at this
 // isolation level — this closes that gap.
 const CONNECTIONS = [
-  { user_id: "user-1", platform: "espn", espn_secret_id: "secret-espn-user1", swid_secret_id: "swid-user1", league_id: "L1" },
-  { user_id: "user-2", platform: "espn", espn_secret_id: "secret-espn-user2", swid_secret_id: "swid-user2", league_id: "L2" },
+  {
+    user_id: "user-1",
+    platform: "espn",
+    espn_secret_id: "secret-espn-user1",
+    swid_secret_id: "swid-user1",
+    league_id: "L1",
+  },
+  {
+    user_id: "user-2",
+    platform: "espn",
+    espn_secret_id: "secret-espn-user2",
+    swid_secret_id: "swid-user2",
+    league_id: "L2",
+  },
 ];
 
 const VAULT_VALUES = {
@@ -43,9 +55,7 @@ function loadEspnRouter({ actingUserId, capturedRosterCalls }) {
                     return {
                       async maybeSingle() {
                         assert.equal(table, "platform_connections");
-                        const row = CONNECTIONS.find(
-                          (c) => c[field1] === value1 && c[field2] === value2
-                        );
+                        const row = CONNECTIONS.find((c) => c[field1] === value1 && c[field2] === value2);
                         return { data: row || null, error: null };
                       },
                     };

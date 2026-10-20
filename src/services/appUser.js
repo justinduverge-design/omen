@@ -11,7 +11,9 @@ function appUserError(message, status = 422) {
 
 async function ensureAppUser(authUser) {
   const userId = String(authUser?.id || "").trim();
-  const email = String(authUser?.email || "").trim().toLowerCase();
+  const email = String(authUser?.email || "")
+    .trim()
+    .toLowerCase();
 
   if (!userId) {
     throw appUserError("Authenticated user id is required", 401);
@@ -20,12 +22,13 @@ async function ensureAppUser(authUser) {
     throw appUserError("Authenticated user email is required");
   }
 
-  const { error } = await supabase
-    .from("users")
-    .upsert({
+  const { error } = await supabase.from("users").upsert(
+    {
       id: userId,
       email,
-    }, { onConflict: "id" });
+    },
+    { onConflict: "id" },
+  );
 
   if (error) throw new Error(`app user bootstrap failed: ${error.message}`);
   return { id: userId, email };

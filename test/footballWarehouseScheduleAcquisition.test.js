@@ -3,10 +3,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const {
-  SCHEDULE_SOURCE_URL,
-  acquireScheduleSource,
-} = require("../src/services/footballWarehouse/scheduleAcquisition");
+const { SCHEDULE_SOURCE_URL, acquireScheduleSource } = require("../src/services/footballWarehouse/scheduleAcquisition");
 const { MAX_SOURCE_BYTES } = require("../src/services/footballWarehouse/playerWeeklySource");
 
 function stream(chunks, { onCancel } = {}) {
@@ -62,7 +59,10 @@ test("requests only the exact schedules asset and returns its exact bytes", asyn
 
 test("rejects alternate, insecure and credential-bearing URLs before fetch", async () => {
   let calls = 0;
-  const fetchImpl = async () => { calls += 1; return response(); };
+  const fetchImpl = async () => {
+    calls += 1;
+    return response();
+  };
   for (const sourceUrl of [
     SCHEDULE_SOURCE_URL.replace("https:", "http:"),
     SCHEDULE_SOURCE_URL.replace("https://", "https://user:secret@"),
@@ -81,10 +81,15 @@ test("rejects non-2xx responses and cancels their bodies", async () => {
   let cancelled = false;
   await assert.rejects(
     acquireScheduleSource({
-      fetchImpl: async () => response({
-        status: 503,
-        body: stream([Buffer.from("upstream detail")], { onCancel: () => { cancelled = true; } }),
-      }),
+      fetchImpl: async () =>
+        response({
+          status: 503,
+          body: stream([Buffer.from("upstream detail")], {
+            onCancel: () => {
+              cancelled = true;
+            },
+          }),
+        }),
     }),
     /HTTP 503/,
   );
@@ -96,10 +101,15 @@ test("requires an allowlisted Content-Type and cancels rejected bodies", async (
     let cancelled = false;
     await assert.rejects(
       acquireScheduleSource({
-        fetchImpl: async () => response({
-          type,
-          body: stream([Buffer.from("rejected")], { onCancel: () => { cancelled = true; } }),
-        }),
+        fetchImpl: async () =>
+          response({
+            type,
+            body: stream([Buffer.from("rejected")], {
+              onCancel: () => {
+                cancelled = true;
+              },
+            }),
+          }),
       }),
       /Content-Type/,
     );
@@ -109,23 +119,22 @@ test("requires an allowlisted Content-Type and cancels rejected bodies", async (
 
 test("rejects invalid, empty and oversized declared lengths before reading", async () => {
   for (const length of ["-1", "1.5", "3, 3", "9007199254740992"]) {
-    await assert.rejects(
-      acquireScheduleSource({ fetchImpl: async () => response({ length }) }),
-      /Content-Length/,
-    );
+    await assert.rejects(acquireScheduleSource({ fetchImpl: async () => response({ length }) }), /Content-Length/);
   }
-  await assert.rejects(
-    acquireScheduleSource({ fetchImpl: async () => response({ length: 0 }) }),
-    /body is empty/,
-  );
+  await assert.rejects(acquireScheduleSource({ fetchImpl: async () => response({ length: 0 }) }), /body is empty/);
 
   let cancelled = false;
   await assert.rejects(
     acquireScheduleSource({
-      fetchImpl: async () => response({
-        length: MAX_SOURCE_BYTES + 1,
-        body: stream([Buffer.from("never read")], { onCancel: () => { cancelled = true; } }),
-      }),
+      fetchImpl: async () =>
+        response({
+          length: MAX_SOURCE_BYTES + 1,
+          body: stream([Buffer.from("never read")], {
+            onCancel: () => {
+              cancelled = true;
+            },
+          }),
+        }),
     }),
     new RegExp(`exceeds ${MAX_SOURCE_BYTES} bytes`),
   );
@@ -157,10 +166,7 @@ test("rejects empty, missing, non-byte and declared-length-mismatched bodies", a
     acquireScheduleSource({ fetchImpl: async () => response({ body: stream([]) }) }),
     /body is empty/,
   );
-  await assert.rejects(
-    acquireScheduleSource({ fetchImpl: async () => response({ body: null }) }),
-    /no readable body/,
-  );
+  await assert.rejects(acquireScheduleSource({ fetchImpl: async () => response({ body: null }) }), /no readable body/);
   await assert.rejects(
     acquireScheduleSource({ fetchImpl: async () => response({ body: stream(["not bytes"]) }) }),
     /non-byte chunk/,
@@ -180,7 +186,10 @@ test("passes through AbortSignal and stops an already-aborted request before fet
   await assert.rejects(
     acquireScheduleSource({
       signal: controller.signal,
-      fetchImpl: async () => { calls += 1; return response(); },
+      fetchImpl: async () => {
+        calls += 1;
+        return response();
+      },
     }),
     { name: "AbortError" },
   );

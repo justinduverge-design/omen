@@ -190,3 +190,23 @@ final class OmenSpacingScaleTests: XCTestCase {
     }
 }
 
+/// Interaction-response v1 keeps haptics injectable so tests and screenshot journeys never need
+/// to invoke hardware feedback to verify which semantic response an action requested.
+final class OmenHapticClientTests: XCTestCase {
+    func testInjectedClientReceivesTheRequestedSemanticFeedback() {
+        var received: [OmenHaptic] = []
+        let client = OmenHapticClient { received.append($0) }
+
+        client.play(.selection)
+        client.play(.mediumImpact)
+        client.play(.success)
+
+        XCTAssertEqual(received, [.selection, .mediumImpact, .success])
+    }
+
+    func testSilentClientAcceptsEveryFeedbackWithoutSideEffects() {
+        let feedback: [OmenHaptic] = [.none, .selection, .lightImpact, .mediumImpact, .success, .warning, .error]
+        feedback.forEach(OmenHapticClient.silent.play)
+    }
+}
+

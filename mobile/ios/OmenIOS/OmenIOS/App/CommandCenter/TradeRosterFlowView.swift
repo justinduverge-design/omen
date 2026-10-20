@@ -48,11 +48,23 @@ struct TradeRosterFlowView: View {
     private var content: some View {
         switch tradeViewModel.rosterBrowseState {
         case .idle, .loading:
-            OmenTradeBuildScreen(
-                state: loadingBuildState,
-                onOpenAccount: onOpenAccount,
-                onPrimaryAction: {}
+            OmenStateSurface(
+                kind: .loading,
+                title: "Reading your league's teams",
+                message: "Omen is loading the real rosters you can build this trade with."
             )
+            .padding(OmenSpacing.step16)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(OmenColor.bg)
+        case .demo:
+            OmenStateSurface(
+                kind: .empty,
+                title: "Building a trade needs your league",
+                message: "Demo mode has no real rosters to trade from. Connect ESPN, Yahoo or Sleeper to build a trade with your own team."
+            )
+            .padding(OmenSpacing.step16)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(OmenColor.bg)
         case .failed(let error):
             VStack(spacing: OmenSpacing.step16) {
                 OmenStateSurface(
@@ -62,7 +74,7 @@ struct TradeRosterFlowView: View {
                 )
                 OmenButton(
                     title: "Try again",
-                    action: { Task { await tradeViewModel.loadRoster(userID: userID) } },
+                    action: { Task { await tradeViewModel.loadRoster(userID: userID, force: true) } },
                     variant: .secondary,
                     size: .md
                 )
@@ -128,29 +140,14 @@ struct TradeRosterFlowView: View {
         } else {
             // The roster read has not landed yet for this partner (mid-navigation). Never a
             // permanent-unavailable claim for a read that simply has not run.
-            ProgressView()
+            OmenStateSurface(
+                kind: .loading,
+                title: "Opening this roster",
+                message: "Omen is keeping your trade intact while this team's players load."
+            )
+                .padding(OmenSpacing.step16)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(OmenColor.bg)
         }
-    }
-
-    /// `TradeBuild` while the read is in flight: real sides (the offer built so far), no
-    /// partners yet — the partner chips populate the moment the read lands.
-    private var loadingBuildState: OmenTradeBuildState {
-        OmenTradeBuildState(
-            kicker: "Two teams",
-            title: "Trade with a real team",
-            tabTitles: [],
-            selectedTabIndex: 0,
-            partners: [],
-            selectedPartnerID: nil,
-            filters: [],
-            selectedFilterID: nil,
-            capability: tradeViewModel.rosterCapability,
-            sides: OmenTradeAnswer.sides(of: tradeViewModel.offer),
-            read: nil,
-            submission: nil,
-            primaryActionTitle: "Loading your league's teams…"
-        )
     }
 }

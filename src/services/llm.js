@@ -3,7 +3,7 @@
 const net = require("node:net");
 
 /**
- * LLM service — wraps Ollama OpenAI-compatible API.
+ * LLM service — wraps Ollama's private chat APIs.
  * LLM_BASE_URL: private/internal Ollama URL (e.g. http://ollama.internal:11434)
  * LLM_MODEL:    model name (e.g. gemma4:e2b-q4_0 or gemma3:4b)
  * LLM_TIMEOUT:  ms before giving up (default 30000)
@@ -12,14 +12,7 @@ const net = require("node:net");
  * The app must work without the LLM (it is an enhancement, not a dependency).
  */
 
-const PRIVATE_HOST_SUFFIXES = Object.freeze([
-  ".internal",
-  ".lan",
-  ".local",
-  ".home.arpa",
-  ".tailnet",
-  ".ts.net",
-]);
+const PRIVATE_HOST_SUFFIXES = Object.freeze([".internal", ".lan", ".local", ".home.arpa", ".tailnet", ".ts.net"]);
 
 function parseTimeout(value) {
   const timeout = Number(value);
@@ -54,23 +47,27 @@ function isPrivateIpv4(hostname) {
   const octets = hostname.split(".").map(Number);
   if (octets.length !== 4 || octets.some((octet) => !Number.isInteger(octet))) return false;
   const [a, b] = octets;
-  return a === 10
-    || a === 127
-    || (a === 169 && b === 254)
-    || (a === 172 && b >= 16 && b <= 31)
-    || (a === 192 && b === 168)
-    || (a === 100 && b >= 64 && b <= 127);
+  return (
+    a === 10 ||
+    a === 127 ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168) ||
+    (a === 100 && b >= 64 && b <= 127)
+  );
 }
 
 function isPrivateIpv6(hostname) {
   const normalized = hostname.replace(/^\[/, "").replace(/\]$/, "").toLowerCase();
-  return normalized === "::1"
-    || normalized.startsWith("fc")
-    || normalized.startsWith("fd")
-    || normalized.startsWith("fe8")
-    || normalized.startsWith("fe9")
-    || normalized.startsWith("fea")
-    || normalized.startsWith("feb");
+  return (
+    normalized === "::1" ||
+    normalized.startsWith("fc") ||
+    normalized.startsWith("fd") ||
+    normalized.startsWith("fe8") ||
+    normalized.startsWith("fe9") ||
+    normalized.startsWith("fea") ||
+    normalized.startsWith("feb")
+  );
 }
 
 function isPrivateLlmHost(hostname) {
@@ -82,7 +79,9 @@ function isPrivateLlmHost(hostname) {
 }
 
 function normalizeProvider(value) {
-  const provider = String(value || "local").trim().toLowerCase();
+  const provider = String(value || "local")
+    .trim()
+    .toLowerCase();
   return ["local", "cloud"].includes(provider) ? provider : "invalid";
 }
 
@@ -117,9 +116,7 @@ function buildBridgeConfig(env = process.env) {
     };
   }
 
-  const privateHost = normalized.status === "configured"
-    ? isPrivateLlmHost(normalized.hostname)
-    : false;
+  const privateHost = normalized.status === "configured" ? isPrivateLlmHost(normalized.hostname) : false;
 
   let status = normalized.status;
   if (status === "configured") {
@@ -138,11 +135,15 @@ function buildBridgeConfig(env = process.env) {
 
 const BRIDGE = buildBridgeConfig();
 const LLM_BASE_URL = BRIDGE.baseUrl;
-const LLM_MODEL    = BRIDGE.model;
-const LLM_TIMEOUT  = BRIDGE.timeoutMs;
+const LLM_MODEL = BRIDGE.model;
+const LLM_TIMEOUT = BRIDGE.timeoutMs;
 const NARRATION_MAX_WORDS = 50;
 const NARRATION_MAX_SENTENCES = 2;
 const NARRATION_MAX_TOKENS = 90;
+
+function usesNativeChat(model = LLM_MODEL) {
+  return /^qwen3(?::|$)/i.test(String(model).trim());
+}
 
 function getLlmBridgeStatus() {
   return {
@@ -150,7 +151,7 @@ function getLlmBridgeStatus() {
     provider: BRIDGE.provider,
     model: LLM_MODEL,
     timeout_ms: LLM_TIMEOUT,
-    transport: "openai_compatible_chat_completions",
+    transport: usesNativeChat() ? "ollama_native_chat_no_think" : "openai_compatible_chat_completions",
     private_route_required: true,
     public_url_exposed: false,
     note: "LLM_BASE_URL must resolve over a private route such as Tailscale; this status never returns the URL.",
@@ -163,7 +164,11 @@ function narrationLimitInstruction() {
 
 /**
  * Core: send messages to the LLM, return full text response.
- * Uses the OpenAI-compatible /v1/chat/completions endpoint.
+ *
+ * Qwen3's thinking mode can consume the entire 90-token narration budget before it emits an
+ * answer. Ollama's OpenAI-compatible endpoint does not honor `think: false` on the model-host
+ * version used by Omen, so Qwen3 goes through the native endpoint where the option is enforced.
+ * Other models retain the established OpenAI-compatible request shape.
  * Returns null if LLM is unavailable or times out.
  */
 async function chat(messages, { maxTokens = NARRATION_MAX_TOKENS, timeoutMs = LLM_TIMEOUT } = {}) {
@@ -172,20 +177,33 @@ async function chat(messages, { maxTokens = NARRATION_MAX_TOKENS, timeoutMs = LL
   const boundedTimeout = parseTimeout(timeoutMs);
   const timer = setTimeout(() => controller.abort(), boundedTimeout);
   try {
-    const res = await fetch(`${LLM_BASE_URL}/v1/chat/completions`, {
-      method:  "POST",
+    const nativeChat = usesNativeChat();
+    const res = await fetch(`${LLM_BASE_URL}${nativeChat ? "/api/chat" : "/v1/chat/completions"}`, {
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      signal:  controller.signal,
-      body: JSON.stringify({
-        model:    LLM_MODEL,
-        messages,
-        stream:   false,
-        max_tokens: maxTokens,
-      }),
+      signal: controller.signal,
+      body: JSON.stringify(
+        nativeChat
+          ? {
+              model: LLM_MODEL,
+              messages,
+              stream: false,
+              think: false,
+              // Narration is a constrained rephrase, not a creative-writing surface. Zero
+              // temperature keeps the small CPU model repeatable and reduces grounding rejects.
+              options: { num_predict: maxTokens, temperature: 0 },
+            }
+          : {
+              model: LLM_MODEL,
+              messages,
+              stream: false,
+              max_tokens: maxTokens,
+            },
+      ),
     });
     if (!res.ok) return null;
     const data = await res.json();
-    return data?.choices?.[0]?.message?.content?.trim() || null;
+    return (nativeChat ? data?.message?.content : data?.choices?.[0]?.message?.content)?.trim() || null;
   } catch {
     return null;
   } finally {
@@ -199,8 +217,8 @@ async function chat(messages, { maxTokens = NARRATION_MAX_TOKENS, timeoutMs = LL
  * net_value: number, verdict: "accept" | "decline" | "neutral"
  */
 async function explainTrade({ send, receive, net_value, verdict }) {
-  const sendStr    = send.map(p => `${p.name} (${p.position})`).join(", ");
-  const receiveStr = receive.map(p => `${p.name} (${p.position})`).join(", ");
+  const sendStr = send.map((p) => `${p.name} (${p.position})`).join(", ");
+  const receiveStr = receive.map((p) => `${p.name} (${p.position})`).join(", ");
   const messages = [
     {
       role: "system",
@@ -258,33 +276,13 @@ async function explainStartSit({ from, to, delta, slot, timeoutMs }) {
  * Returns null on failure — caller must handle gracefully.
  */
 async function runAgent(systemPrompt, userPrompt, { maxTokens = 400, timeoutMs = LLM_TIMEOUT * 2 } = {}) {
-  if (!LLM_BASE_URL) return null;
-  const controller = new AbortController();
-  const boundedTimeout = parseTimeout(timeoutMs);
-  const timer = setTimeout(() => controller.abort(), boundedTimeout);
-  try {
-    const res = await fetch(`${LLM_BASE_URL}/v1/chat/completions`, {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      signal:  controller.signal,
-      body: JSON.stringify({
-        model:      LLM_MODEL,
-        messages:   [
-          { role: "system", content: systemPrompt },
-          { role: "user",   content: userPrompt },
-        ],
-        stream:     false,
-        max_tokens: maxTokens,
-      }),
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data?.choices?.[0]?.message?.content?.trim() || null;
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timer);
-  }
+  return chat(
+    [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ],
+    { maxTokens, timeoutMs },
+  );
 }
 
 function stripJsonFence(text) {
@@ -316,8 +314,7 @@ function countSentences(text) {
 function isWithinNarrationLimits(parts) {
   const text = parts.filter(Boolean).join(" ").trim();
   if (!text) return false;
-  return countWords(text) <= NARRATION_MAX_WORDS
-    && countSentences(text) <= NARRATION_MAX_SENTENCES;
+  return countWords(text) <= NARRATION_MAX_WORDS && countSentences(text) <= NARRATION_MAX_SENTENCES;
 }
 
 function parseOmenExplanation(raw) {
@@ -336,8 +333,11 @@ function parseOmenExplanation(raw) {
 
   const summary = shortUserString(parsed.summary);
   const whyItMatters = shortUserString(parsed.why_it_matters);
-  const riskText = shortUserString(parsed.risk);
-  const confidenceText = shortUserString(parsed.confidence);
+  // These two fields are validation metadata only: the response keeps its deterministic risk
+  // and confidence. Small local models commonly add sentence punctuation to both fragments,
+  // which would consume the two-sentence customer-copy budget before summary/why are counted.
+  const riskText = shortUserString(parsed.risk)?.replace(/[.!?]+$/, "");
+  const confidenceText = shortUserString(parsed.confidence)?.replace(/[.!?]+$/, "");
   const dataUsed = Array.isArray(parsed.data_used)
     ? parsed.data_used.map(shortUserString).filter(Boolean).slice(0, 8)
     : null;

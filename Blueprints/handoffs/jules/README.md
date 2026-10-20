@@ -1,5 +1,8 @@
 # Jules UI Implementation Brief Queue — Omen
 
+> **Context, 2026-10-17.** This queue drove the 2026-07 React web component work. The native iPhone app is
+> now the product, so check a brief against current `Direction/` before using it.
+
 **Date:** 2026-07-15 (updated same day — added briefs 06–13, corrected PlatformBadge dependency, then a consistency/quality polish pass: queue-position labels, Phase A/B structure normalization across all 13 briefs, forbidden-file standardization, common-failure-modes and review-gate sections added; execution-safety polish added to prevent verification-time lockfile churn)
 **Status:** Active queue index — authoritative run order
 **Authority chain:** `Blueprints/specs/design/omen-ui-north-star-v1.md` → `Blueprints/specs/design/README.md` → `Blueprints/backlog/ui-component-system.md` → this file → individual briefs in this directory.

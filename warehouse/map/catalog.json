@@ -1,0 +1,297 @@
+{
+  "schema_version": "warehouse-map.v1",
+  "note": "The warehouse's routing table. One entry per table. Edit this file, then run `node scripts/warehouse-map.js write` to regenerate the per-table files; `check` fails CI when this file, the generated files, the migrations and the code disagree. The SQL copy lives in football.warehouse_map (migration 0007).",
+  "layers": {
+    "ledger": "How data got here: ingest receipts and schema versions.",
+    "identity": "Who and what: teams and players, and every provider id that points at them.",
+    "facts": "What happened on the field, from public nflverse data. Never edited by Omen.",
+    "provider": "Third-party numbers Omen stores but does not own (projections). Kept separate and labelled.",
+    "sight": "Omen's own numbers, computed from facts. Versioned, and graded against what happened."
+  },
+  "tables": [
+    {
+      "name": "warehouse_schema_migrations",
+      "layer": "ledger",
+      "grain": "one row per applied migration",
+      "source": "the migration apply scripts in warehouse/migrations",
+      "refresh": "on migration",
+      "purpose": "The warehouse's schema version. The app refuses a warehouse whose version it does not accept.",
+      "gaps": []
+    },
+    {
+      "name": "warehouse_ingest_events",
+      "layer": "ledger",
+      "grain": "one row per dataset load (run, dataset, season)",
+      "source": "the daily ingest and backfills",
+      "refresh": "daily 07:15 ET",
+      "purpose": "Receipt for every load: source url and hash, row counts, state. Every fact row cites one.",
+      "gaps": []
+    },
+    {
+      "name": "football_teams",
+      "layer": "identity",
+      "grain": "one row per franchise",
+      "source": "nflverse teams",
+      "refresh": "daily 07:15 ET",
+      "purpose": "NFL teams with their nflverse abbreviation and active seasons.",
+      "gaps": []
+    },
+    {
+      "name": "football_players",
+      "layer": "identity",
+      "grain": "one row per NFL player ever (GSIS)",
+      "source": "nflverse players",
+      "refresh": "daily 07:15 ET",
+      "purpose": "Every NFL player with position and birth date. Rookies arrive here when nflverse lists them; retired players stay.",
+      "gaps": [
+        "No per-season status (rookie, active, practice squad, IR, retired): derived from nfl_weekly_rosters today, not stored."
+      ]
+    },
+    {
+      "name": "football_player_ids",
+      "layer": "identity",
+      "grain": "one row per (provider, provider id)",
+      "source": "nflverse players (GSIS, ESPN) and the Sleeper player list (Sleeper, Yahoo, matched by GSIS)",
+      "refresh": "daily 07:15 ET",
+      "purpose": "The player index: every provider id (GSIS, ESPN, Sleeper, Yahoo) pointing at one Omen player. Grading, usage and projections resolve through it.",
+      "gaps": [
+        "A Yahoo id is indexed only where Sleeper lists it; players Sleeper does not map stay unindexed for Yahoo."
+      ]
+    },
+    {
+      "name": "nfl_games",
+      "layer": "facts",
+      "grain": "one row per game",
+      "source": "nflverse schedules",
+      "refresh": "daily 07:15 ET",
+      "purpose": "Schedule and results: kickoff, score, stadium, roof, surface, temperature, wind, rest days, lines, coaches.",
+      "gaps": [
+        "Weather here is the recorded game-day value, not a forecast."
+      ]
+    },
+    {
+      "name": "nfl_weekly_rosters",
+      "layer": "facts",
+      "grain": "one row per (season, week, team, player)",
+      "source": "nflverse weekly rosters",
+      "refresh": "daily 07:15 ET",
+      "purpose": "Who was on which team each week, with depth position and roster status. The source of player lifecycle.",
+      "gaps": []
+    },
+    {
+      "name": "nfl_player_weekly_stats",
+      "layer": "facts",
+      "grain": "one row per (season, week, season type, player)",
+      "source": "nflverse stats_player",
+      "refresh": "daily 07:15 ET",
+      "purpose": "Box-score lines and PPR points per player-week. Grading and projections read it.",
+      "gaps": [
+        "A player who did not record a stat has no row: absence means did-not-play, not unknown."
+      ]
+    },
+    {
+      "name": "nfl_team_weekly_stats",
+      "layer": "facts",
+      "grain": "one row per (season, week, season type, team)",
+      "source": "nflverse team stats",
+      "refresh": "daily 07:15 ET",
+      "purpose": "Team totals per game, the base for matchup and pace reads.",
+      "gaps": []
+    },
+    {
+      "name": "nfl_plays",
+      "layer": "facts",
+      "grain": "one row per play (partitioned by season, 1999 onward)",
+      "source": "nflverse play-by-play",
+      "refresh": "daily 07:15 ET",
+      "purpose": "Every play with EPA, WPA, CPOE and the players involved. The raw material for Sight.",
+      "gaps": []
+    },
+    {
+      "name": "nfl_player_weekly_opportunity",
+      "layer": "facts",
+      "grain": "one row per (season, week, season type, player)",
+      "source": "derived from nfl_plays by the ingest",
+      "refresh": "daily 07:15 ET, after plays",
+      "purpose": "Usage: snaps, routes, carries, targets, red-zone and goal-line work, deep targets.",
+      "gaps": [
+        "Snap counts carry an open rights review; readers select opportunity counts only."
+      ]
+    },
+    {
+      "name": "football_metric_runs",
+      "layer": "sight",
+      "grain": "one row per metric computation (metric, version, season, week)",
+      "source": "Omen metric jobs (first: RAT-QB)",
+      "refresh": "daily 07:15 ET, after facts",
+      "purpose": "Receipt for each Sight computation: which metric, which formula version, when, and whether it succeeded.",
+      "gaps": []
+    },
+    {
+      "name": "football_metric_run_inputs",
+      "layer": "sight",
+      "grain": "one row per (metric run, ingest event)",
+      "source": "Omen metric jobs",
+      "refresh": "with each metric run",
+      "purpose": "Exactly which fact loads a Sight value was computed from.",
+      "gaps": []
+    },
+    {
+      "name": "football_metric_values",
+      "layer": "sight",
+      "grain": "one row per (metric run, entity)",
+      "source": "Omen metric jobs",
+      "refresh": "with each metric run",
+      "purpose": "Sight's numbers: one value per player or team per run, with its components.",
+      "gaps": [
+        "Only RAT-QB exists. No Sight value feeds a recommendation yet."
+      ]
+    },
+    {
+      "name": "projection_fetch_runs",
+      "layer": "provider",
+      "grain": "one row per projection fetch (source, season, week)",
+      "source": "Sleeper public projections (upstream: Rotowire)",
+      "refresh": "weekly, once migration 0005 is applied",
+      "purpose": "Receipt for each third-party projection fetch.",
+      "gaps": [
+        "Migration 0005 is written but not applied to production."
+      ],
+      "migration": "0005"
+    },
+    {
+      "name": "player_weekly_projections",
+      "layer": "provider",
+      "grain": "one row per (source, season, week, player): the current projection",
+      "source": "Sleeper public projections",
+      "refresh": "weekly, once migration 0005 is applied",
+      "purpose": "The provider's current weekly projection per player, kept apart from Sight.",
+      "gaps": [
+        "Migration 0005 is written but not applied to production. Commercial permission from the provider is pending."
+      ],
+      "migration": "0005"
+    },
+    {
+      "name": "player_weekly_projection_versions",
+      "layer": "provider",
+      "grain": "one row per change to a projection",
+      "source": "Sleeper public projections",
+      "refresh": "weekly, once migration 0005 is applied",
+      "purpose": "Append-only history of every projection change, so a call can be judged on the number it actually saw.",
+      "gaps": [
+        "Migration 0005 is written but not applied to production."
+      ],
+      "migration": "0005"
+    },
+    {
+      "name": "warehouse_map",
+      "layer": "ledger",
+      "grain": "one row per warehouse table",
+      "source": "warehouse/map/catalog.json via migration 0007",
+      "refresh": "on migration",
+      "purpose": "This map, inside the warehouse: what each table is, its layer, grain, source, refresh and known gaps. Query it before writing SQL.",
+      "gaps": [],
+      "migration": "0007"
+    },
+    {
+      "name": "player_index_runs",
+      "layer": "ledger",
+      "grain": "one row per player-index load from a non-nflverse source",
+      "source": "Sleeper public player list; DynastyProcess player id crosswalk (GPL-3.0, founder-accepted 2026-10-17)",
+      "refresh": "daily 07:15 ET, after the player ingest",
+      "purpose": "Receipt for provider ids indexed from outside nflverse, so every index row says where it came from.",
+      "gaps": [],
+      "migration": "0009"
+    },
+    {
+      "name": "player_injury_reports",
+      "layer": "facts",
+      "grain": "one current row per injured player",
+      "source": "Sleeper public player list (same daily download as the player index); founder-approved 2026-10-17",
+      "refresh": "daily 07:15 ET, with the player index",
+      "purpose": "Injury status and body part for every player, so Start/Sit can weigh an injury the league's provider did not report.",
+      "gaps": [
+        "Once a day: a Sunday-morning inactive is not seen until the next run.",
+        "Sleeper's practice fields are often empty."
+      ],
+      "migration": "0023"
+    },
+    {
+      "name": "team_ids",
+      "layer": "identity",
+      "grain": "one row per (provider, provider code, team or defense)",
+      "source": "provider team numbering and codes, verified against live leagues (migration 0011)",
+      "refresh": "on migration",
+      "purpose": "The team index: provider team and defense codes (Sleeper PHI, ESPN -16012, Yahoo 100033) point at one Omen team.",
+      "gaps": [],
+      "migration": "0011"
+    },
+    {
+      "name": "coach_index_runs",
+      "layer": "ledger",
+      "grain": "one row per coach-graph load",
+      "source": "Wikipedia team-season pages",
+      "refresh": "daily 07:15 ET (backfill once, then the current season)",
+      "purpose": "Receipt for coach-graph loads, so every coach and assignment says where it came from.",
+      "gaps": [],
+      "migration": "0013"
+    },
+    {
+      "name": "coaches",
+      "layer": "identity",
+      "grain": "one row per coach",
+      "source": "Wikipedia team-season staff lists",
+      "refresh": "daily 07:15 ET",
+      "purpose": "Coaches keyed by Wikipedia page title, so one coach links across teams and seasons.",
+      "gaps": [],
+      "migration": "0013"
+    },
+    {
+      "name": "coach_assignments",
+      "layer": "facts",
+      "grain": "one row per (coach, team, season, role)",
+      "source": "Wikipedia team-season staff lists (CC BY-SA facts, title + revision kept)",
+      "refresh": "daily 07:15 ET",
+      "purpose": "The coach graph: who was head coach, coordinator or assistant head coach for which team each season.",
+      "gaps": [
+        "Play caller is not listed on the pages; inferred scheme influence (Scheme DNA) is a later edge type.",
+        "Pages that omit a staff section leave that team-season without assignments."
+      ],
+      "migration": "0013"
+    },
+    {
+      "name": "coach_lineage",
+      "layer": "facts",
+      "grain": "one row per (staff coach, head coach, team, season)",
+      "source": "derived from coach_assignments",
+      "refresh": "always current (a view)",
+      "purpose": "Who worked under whom: every staff member and the head coach he served, per team-season. Derived, never typed in.",
+      "gaps": [],
+      "migration": "0013"
+    },
+    {
+      "name": "game_weather_forecasts",
+      "layer": "facts",
+      "grain": "one row per (game, fetch)",
+      "source": "Open-Meteo forecast API (CC BY 4.0), stadium coordinates from src/data/stadiums.json",
+      "refresh": "daily 07:15 ET, games kicking off in the next 10 days",
+      "purpose": "Forecast wind, cold and rain for upcoming games, so Sight reads the next game with the weather it was trained on.",
+      "gaps": [
+        "Retractable roofs: open or closed is unknown in advance; stored as retractable with the outdoor forecast."
+      ],
+      "migration": "0015"
+    },
+    {
+      "name": "game_weather_observed",
+      "layer": "facts",
+      "grain": "one row per played game",
+      "source": "Open-Meteo historical archive (CC BY 4.0), venue coordinates from src/data/stadiums.json",
+      "refresh": "daily 07:15 ET (backfill 1999 onward, then new games)",
+      "purpose": "What the weather actually was for every game, including rain, for Sight's weather and team-elements layers.",
+      "gaps": [
+        "Retractable roofs use the game's recorded roof state when nflverse has it; otherwise the outdoor reading."
+      ],
+      "migration": "0017"
+    }
+  ]
+}

@@ -40,19 +40,44 @@ const OUTPUT_COLUMNS = Object.freeze([
 ]);
 
 const FTN_REQUIRED_COLUMNS = Object.freeze([
-  "nflverse_game_id", "season", "week", "nflverse_play_id", "starting_hash",
-  "qb_location", "n_offense_backfield", "n_defense_box", "is_no_huddle",
-  "is_motion", "is_play_action", "is_screen_pass", "is_rpo", "is_trick_play",
-  "is_qb_out_of_pocket", "is_qb_sneak", "n_blitzers", "n_pass_rushers",
+  "nflverse_game_id",
+  "season",
+  "week",
+  "nflverse_play_id",
+  "starting_hash",
+  "qb_location",
+  "n_offense_backfield",
+  "n_defense_box",
+  "is_no_huddle",
+  "is_motion",
+  "is_play_action",
+  "is_screen_pass",
+  "is_rpo",
+  "is_trick_play",
+  "is_qb_out_of_pocket",
+  "is_qb_sneak",
+  "n_blitzers",
+  "n_pass_rushers",
 ]);
 const PARTICIPATION_REQUIRED_COLUMNS = Object.freeze([
-  "nflverse_game_id", "play_id", "possession_team", "offense_formation",
-  "offense_personnel", "defenders_in_box", "defense_personnel",
+  "nflverse_game_id",
+  "play_id",
+  "possession_team",
+  "offense_formation",
+  "offense_personnel",
+  "defenders_in_box",
+  "defense_personnel",
   "number_of_pass_rushers",
 ]);
 const SCHEDULE_REQUIRED_COLUMNS = Object.freeze([
-  "game_id", "season", "game_type", "week", "away_team", "home_team",
-  "away_coach", "home_coach",
+  "game_id",
+  "season",
+  "game_type",
+  "week",
+  "away_team",
+  "home_team",
+  "away_coach",
+  "home_coach",
 ]);
 
 const SOURCES = Object.freeze([
@@ -225,10 +250,14 @@ async function buildFixture({ sourceDir, outputDir = DEFAULT_OUTPUT_DIR } = {}) 
     assertOutput(outputRows);
     const fixtureBytes = Buffer.from(serializeCsv(outputRows), "utf8");
     const fixtureSha256 = sha256(fixtureBytes);
-    const cohortCounts = Object.fromEntries(PRIMARY_COHORTS.map((cohort) => [
-      cohortKey(cohort),
-      outputRows.filter((row) => row.season === String(cohort.season) && row.possession_team === cohort.possession_team).length,
-    ]));
+    const cohortCounts = Object.fromEntries(
+      PRIMARY_COHORTS.map((cohort) => [
+        cohortKey(cohort),
+        outputRows.filter(
+          (row) => row.season === String(cohort.season) && row.possession_team === cohort.possession_team,
+        ).length,
+      ]),
+    );
     const manifest = {
       schema: "football-intelligence-source-fixture-manifest.v1",
       fixture: FIXTURE_NAME,
@@ -373,7 +402,8 @@ async function parseCsvProjected(sourcePath, requiredColumns, projectedColumns, 
           field += char;
         }
       } else if (char === '"') {
-        if (field) throw new Error(`${spec.filename} quoted field must begin at a field boundary on row ${physicalRow}`);
+        if (field)
+          throw new Error(`${spec.filename} quoted field must begin at a field boundary on row ${physicalRow}`);
         quoted = true;
       } else if (char === ",") {
         row.push(field);
@@ -436,28 +466,36 @@ function projectRow(ftn, participation) {
 }
 
 function assertOutput(rows) {
-  if (OUTPUT_COLUMNS.length !== 24) throw new Error(`fixture schema must contain 24 columns, received ${OUTPUT_COLUMNS.length}`);
+  if (OUTPUT_COLUMNS.length !== 24)
+    throw new Error(`fixture schema must contain 24 columns, received ${OUTPUT_COLUMNS.length}`);
   if (rows.length !== 4217) throw new Error(`fixture must contain 4,217 rows, received ${rows.length}`);
   const rowKeys = new Set();
   for (const row of rows) {
     const key = playKey(row.nflverse_game_id, row.nflverse_play_id);
     if (rowKeys.has(key)) throw new Error(`fixture contains duplicate play ${key}`);
     rowKeys.add(key);
-    if (row.season === "2024" && !["DET", "CHI"].includes(row.possession_team)) throw new Error(`unexpected 2024 cohort ${row.possession_team}`);
-    if (row.season === "2025" && row.possession_team !== "CHI") throw new Error(`unexpected 2025 cohort ${row.possession_team}`);
+    if (row.season === "2024" && !["DET", "CHI"].includes(row.possession_team))
+      throw new Error(`unexpected 2024 cohort ${row.possession_team}`);
+    if (row.season === "2025" && row.possession_team !== "CHI")
+      throw new Error(`unexpected 2025 cohort ${row.possession_team}`);
   }
   for (const cohort of PRIMARY_COHORTS) {
-    const actual = rows.filter((row) => row.season === String(cohort.season) && row.possession_team === cohort.possession_team).length;
-    if (actual !== cohort.expected_rows) throw new Error(`${cohortKey(cohort)} expected ${cohort.expected_rows} rows, received ${actual}`);
+    const actual = rows.filter(
+      (row) => row.season === String(cohort.season) && row.possession_team === cohort.possession_team,
+    ).length;
+    if (actual !== cohort.expected_rows)
+      throw new Error(`${cohortKey(cohort)} expected ${cohort.expected_rows} rows, received ${actual}`);
   }
 }
 
 function compareOutputRows(left, right) {
-  return Number(left.season) - Number(right.season)
-    || compareText(left.possession_team, right.possession_team)
-    || Number(left.week) - Number(right.week)
-    || compareText(left.nflverse_game_id, right.nflverse_game_id)
-    || Number(left.nflverse_play_id) - Number(right.nflverse_play_id);
+  return (
+    Number(left.season) - Number(right.season) ||
+    compareText(left.possession_team, right.possession_team) ||
+    Number(left.week) - Number(right.week) ||
+    compareText(left.nflverse_game_id, right.nflverse_game_id) ||
+    Number(left.nflverse_play_id) - Number(right.nflverse_play_id)
+  );
 }
 
 function compareText(left, right) {
@@ -505,12 +543,14 @@ function cohortKey(cohort) {
 }
 
 if (require.main === module) {
-  buildFixture(parseArgs(process.argv.slice(2))).then((result) => {
-    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
-  }).catch((error) => {
-    process.stderr.write(`${error.stack || error.message}\n`);
-    process.exitCode = 1;
-  });
+  buildFixture(parseArgs(process.argv.slice(2)))
+    .then((result) => {
+      process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    })
+    .catch((error) => {
+      process.stderr.write(`${error.stack || error.message}\n`);
+      process.exitCode = 1;
+    });
 }
 
 module.exports = {

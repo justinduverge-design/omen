@@ -23,12 +23,16 @@
 // (including ./config), so init errors get captured.
 const { initSentry, drainSentry, flushSentry } = require("./middleware/sentry");
 initSentry({ component: "api" });
+// Self-hosted OpenTelemetry tracing. A no-op unless OTEL_EXPORTER_OTLP_ENDPOINT is set
+// (services/telemetry.js). It owns no global OTel state, so it cannot collide with Sentry.
+const telemetry = require("./services/telemetry");
+telemetry.initTelemetry({ component: "api" });
 
 const Sentry = require("@sentry/node");
 const express = require("express");
-const path    = require("path");
-const fs      = require("fs");
-const config  = require("./config");
+const path = require("path");
+const fs = require("fs");
+const config = require("./config");
 const systemRoutes = require("./routes/system");
 const { logger, httpLogger } = require("./middleware/logging");
 const {
@@ -65,16 +69,19 @@ const app = express();
 // SY0-701 4.5: required for accurate access logs + rate-limit attribution.
 app.set("trust proxy", 1);
 
+// One span per request, named by route template only. Before everything else so
+// the span covers the whole chain. No-op when tracing is off.
+app.use(telemetry.requestSpanMiddleware);
+
 // --- Security FIRST -----------------------------------------------
 app.use(helmetMiddleware);
 app.use(permissionsPolicyMiddleware);
 app.use(corsMiddleware);
 app.use((req, res, next) => {
-  const carriesEspnCredentials = (
-    (req.method === "POST" && req.path === "/api/platforms/espn/connect")
-    || (req.method === "POST" && req.path === "/api/auth/espn/connect")
-    || (req.method === "GET" && req.path === "/api/espn/roster")
-  );
+  const carriesEspnCredentials =
+    (req.method === "POST" && req.path === "/api/platforms/espn/connect") ||
+    (req.method === "POST" && req.path === "/api/auth/espn/connect") ||
+    (req.method === "GET" && req.path === "/api/espn/roster");
   if (carriesEspnCredentials) {
     res.locals.__skipBodyLog = true;
   }
@@ -170,7 +177,7 @@ const AASA_FILE = path.join(SPA_DIR, ".well-known", "apple-app-site-association"
 const HAS_SPA = fs.existsSync(SPA_INDEX);
 
 if (HAS_SPA) {
-  logger.info("Serving SPA from client/dist", { path: SPA_DIR });
+  logger.info("Serving SPA from frontend/dist", { path: SPA_DIR });
   // Express static ignores dot-prefixed paths by default. Serve the AASA
   // contract explicitly so iOS can validate the webcredentials association.
   if (fs.existsSync(AASA_FILE)) {
@@ -184,10 +191,12 @@ if (HAS_SPA) {
   // Static assets (JS, CSS, images) can be cached because Vite hashes
   // build outputs. The SPA shell must revalidate so deploys do not leave
   // browsers stuck on an old index.html that points at stale assets.
-  app.use(express.static(SPA_DIR, {
-    maxAge: "30d",
-    setHeaders: setSpaStaticCacheHeaders,
-  }));
+  app.use(
+    express.static(SPA_DIR, {
+      maxAge: "30d",
+      setHeaders: setSpaStaticCacheHeaders,
+    }),
+  );
 } else {
   logger.warn(`No SPA found at ${SPA_DIR} - falling back to JSON status`);
   app.get("/", (req, res) => {
@@ -312,7 +321,8 @@ try {
 // --- Mount /api/trade (free, auth-gated trade comparison) --------
 try {
   const tradeRoutes = require("./routes/trade");
-  app.use("/api/trade", publicToolRateLimit, tradeRoutes);
+  // Trade search is timed here, at the route level, not inside the search modules.
+  app.use("/api/trade", telemetry.routeSpanMiddleware("trade.request"), publicToolRateLimit, tradeRoutes);
 } catch (e) {
   logger.error("Trade router failed to load", { err: e.message, stack: e.stack });
 }
@@ -367,7 +377,7 @@ if (HAS_SPA) {
 
   app.get(/.*/, (req, res, next) => {
     if (req.path.startsWith("/api/")) return next();
-    if (req.path.includes("."))       return next();  // missed static asset = 404
+    if (req.path.includes(".")) return next(); // missed static asset = 404
     setSpaIndexCacheHeaders(res);
     res.sendFile(SPA_INDEX, (err) => {
       if (err) {
@@ -407,11 +417,13 @@ app.use(errorHandler);
 const server = app.listen(config.port, () => {
   logger.info("Omen API listening", {
     port: config.port,
-    env:  config.nodeEnv,
+    env: config.nodeEnv,
   });
   // Pre-warm a few seconds after the port is open (off with OMEN_COLD_START_WARMUP=off): readiness and
   // health never wait on it, and it cannot throw.
-  try { require("./services/coldStartWarmup").scheduleWarmUp({ logger }); } catch {}
+  try {
+    require("./services/coldStartWarmup").scheduleWarmUp({ logger });
+  } catch {}
 });
 
 // --- Graceful shutdown --------------------------------------------
@@ -423,8 +435,10 @@ const shutdown = (signal, exitCode = 0) => {
     await Promise.all([
       closeWarehouseUsageRuntime(),
       require("./services/footballWarehouse/sharedUsageAccess").closeRuntime(),
+      telemetry.shutdownTelemetry(),
+      require("./services/tradeSearchPool").closeTradeSearchPool(),
     ]).catch(() => {
-      logger.warn("Warehouse read pool did not close cleanly");
+      logger.warn("Warehouse pool, telemetry or trade search pool did not close cleanly");
     });
     logger.info("HTTP server closed");
     process.exit(exitCode);
@@ -435,7 +449,7 @@ const shutdown = (signal, exitCode = 0) => {
   }, 10000).unref();
 };
 process.on("SIGTERM", () => shutdown("SIGTERM"));
-process.on("SIGINT",  () => shutdown("SIGINT"));
+process.on("SIGINT", () => shutdown("SIGINT"));
 
 // --- Last-resort error capture ------------------------------------
 // O8. Sentry.setupExpressErrorHandler above catches anything thrown

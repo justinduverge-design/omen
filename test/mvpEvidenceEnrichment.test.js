@@ -7,10 +7,13 @@ const evidence = require("../src/services/mvpEvidenceEnrichment");
 
 function liveResponse() {
   return {
-    state: "success", mode: "live", request_id: "must-not-reach-model",
+    state: "success",
+    mode: "live",
+    request_id: "must-not-reach-model",
     league: { id: "must-not-reach-model", season: 2026, week: 4 },
     recommendation: {
-      type: "start_sit", title: "Start Starter Wideout over Bench Wideout",
+      type: "start_sit",
+      title: "Start Starter Wideout over Bench Wideout",
       move: "Move Starter Wideout into your WR slot.",
       primary_player: { id: "must-not-reach-model", name: "Starter Wideout", position: "WR", team: "DAL" },
       comparison_player: { id: "must-not-reach-model", name: "Bench Wideout", position: "WR", team: "PHI" },
@@ -19,15 +22,27 @@ function liveResponse() {
       risk: { level: "medium", reasons: ["Matchup is unavailable."] },
       matchup_context: { opponent_team: "NYG", source: "espn_scoreboard", status: "live" },
       explanation: {
-        summary: "Start Starter Wideout.", why_it_matters: "The projection edge is meaningful.",
-        risk: "Risk is medium.", confidence: "Confidence is 82 out of 100.",
+        summary: "Start Starter Wideout.",
+        why_it_matters: "The projection edge is meaningful.",
+        risk: "Risk is medium.",
+        confidence: "Confidence is 82 out of 100.",
         data_used: ["connected roster", "weekly projection"],
       },
     },
     signals: {
       roster: { status: "live", message: "Roster imported from connected provider." },
-      llm_reasoning: { status: "unavailable", used: false, source: "ollama_gemma", message: "Private narration is not available." },
-      matchup_dvp: { status: "unavailable", used: false, source: "nflverse_data", message: "Opponent context is not available." },
+      llm_reasoning: {
+        status: "unavailable",
+        used: false,
+        source: "ollama_gemma",
+        message: "Private narration is not available.",
+      },
+      matchup_dvp: {
+        status: "unavailable",
+        used: false,
+        source: "nflverse_data",
+        message: "Opponent context is not available.",
+      },
     },
   };
 }
@@ -36,8 +51,10 @@ function validNarration(overrides = {}) {
   return {
     summary: "Start Starter Wideout for the stronger projected role",
     why_it_matters: "The roster projection gives this lineup a meaningful edge",
-    risk: "Risk remains medium", confidence: "Confidence is high",
-    data_used: ["connected roster", "weekly projection"], ...overrides,
+    risk: "Risk remains medium",
+    confidence: "Confidence is high",
+    data_used: ["connected roster", "weekly projection"],
+    ...overrides,
   };
 }
 
@@ -47,6 +64,7 @@ test("private LLM payload is bounded and omits identifiers and raw response mate
   assert.equal(serialized.includes("must-not-reach-model"), false);
   assert.equal(payload.primary_player.id, undefined);
   assert.equal(payload.state, "success");
+  assert.equal(Object.hasOwn(payload.confidence, "score"), false);
   assert.deepEqual(payload.data_used, ["connected roster", "weekly projection"]);
 });
 
@@ -88,7 +106,10 @@ test("LLM remains unavailable when output invents a data source or the private b
 test("live DvP lookup requires an actual schedule-backed opponent and never maps DAL to PHI", () => {
   const response = liveResponse();
   assert.deepEqual(evidence.deriveVerifiedDvpLookup(response), {
-    position: "WR", opponentTeam: "NYG", season: 2026, week: 4,
+    position: "WR",
+    opponentTeam: "NYG",
+    season: 2026,
+    week: 4,
   });
   delete response.recommendation.matchup_context;
   assert.equal(evidence.deriveVerifiedDvpLookup(response), null);
@@ -98,37 +119,63 @@ test("DvP mock context is accepted only for an explicit mock response and declar
   const response = liveResponse();
   response.mode = "mock";
   response.recommendation.matchup_context = {
-    opponent_team: "PHI", source: "mock_schedule_fixture", status: "mock",
+    opponent_team: "PHI",
+    source: "mock_schedule_fixture",
+    status: "mock",
   };
   assert.equal(evidence.deriveVerifiedDvpLookup(response), null);
   assert.deepEqual(evidence.deriveVerifiedDvpLookup(response, { explicitMock: true }), {
-    position: "WR", opponentTeam: "PHI", season: 2026, week: 4,
+    position: "WR",
+    opponentTeam: "PHI",
+    season: 2026,
+    week: 4,
   });
 });
 
 test("DvP resolver validates provider result and distinct-week evidence before promotion", async () => {
   const response = liveResponse();
-  const expected = { opponent_team: "NYG", position: "WR", avg_points_allowed: 16.2, sample_weeks: 3, dvp_label: "favorable" };
-  const dvp = await evidence.resolveMvpDvpContext(response, {}, {
-    matchup: { getDvpContext: async (lookup) => {
-      assert.deepEqual(lookup, { position: "WR", opponentTeam: "NYG", season: 2026, week: 4 });
-      return expected;
-    } },
-  });
+  const expected = {
+    opponent_team: "NYG",
+    position: "WR",
+    avg_points_allowed: 16.2,
+    sample_weeks: 3,
+    dvp_label: "favorable",
+  };
+  const dvp = await evidence.resolveMvpDvpContext(
+    response,
+    {},
+    {
+      matchup: {
+        getDvpContext: async (lookup) => {
+          assert.deepEqual(lookup, { position: "WR", opponentTeam: "NYG", season: 2026, week: 4 });
+          return expected;
+        },
+      },
+    },
+  );
   assert.deepEqual(dvp, expected);
   assert.equal(evidence.applyDvpContext(response, dvp), true);
   assert.equal(response.signals.matchup_dvp.status, "live");
   assert.ok(response.recommendation.explanation.data_used.includes("matchup DvP"));
-  const wrongOpponent = await evidence.resolveMvpDvpContext(liveResponse(), {}, {
-    matchup: { getDvpContext: async () => ({ ...expected, opponent_team: "DAL" }) },
-  });
+  const wrongOpponent = await evidence.resolveMvpDvpContext(
+    liveResponse(),
+    {},
+    {
+      matchup: { getDvpContext: async () => ({ ...expected, opponent_team: "DAL" }) },
+    },
+  );
   assert.equal(wrongOpponent, null);
 });
 
 test("why_statements reach the model payload so a grounded rephrase of their numbers passes", () => {
   const response = liveResponse();
   response.recommendation.explanation.why_statements = [
-    { rank: 1, basis: "projection", text: "Starter Wideout projects 15.2 and Bench Wideout projects 13.1.", evidence: [] },
+    {
+      rank: 1,
+      basis: "projection",
+      text: "Starter Wideout projects 15.2 and Bench Wideout projects 13.1.",
+      evidence: [],
+    },
   ];
   const payload = evidence.buildMvpLlmPayload(response);
   assert.deepEqual(payload.why_statements, ["Starter Wideout projects 15.2 and Bench Wideout projects 13.1."]);
@@ -141,7 +188,26 @@ test("why_statements reach the model payload so a grounded rephrase of their num
   // Applying a narration keeps the deterministic statements on the response.
   evidence.applyMvpLlmNarration(response, {
     explanation: { summary: "s", why_it_matters: "w", risk: "r", confidence: "c", data_used: ["connected roster"] },
-    source: "ollama_local", model: "m",
+    source: "ollama_local",
+    model: "m",
   });
   assert.equal(response.recommendation.explanation.why_statements.length, 1);
+});
+
+test("grounding accepts a neutral improves sentence without admitting new facts", async () => {
+  const narration = await evidence.generateMvpLlmNarration(liveResponse(), {
+    llmService: {
+      explainOmenMvpMove: async () => ({
+        summary: "Start Starter Wideout for the meaningful projection edge.",
+        why_it_matters: "Improves expected value by 2.1 points with a projection edge.",
+        risk: "Medium risk",
+        confidence: "Confident",
+        data_used: ["connected roster", "weekly projection"],
+      }),
+      getLlmBridgeStatus: () => ({ status: "configured_private", model: "qwen3:1.7b" }),
+    },
+  });
+
+  assert.ok(narration);
+  assert.equal(narration.model, "qwen3:1.7b");
 });

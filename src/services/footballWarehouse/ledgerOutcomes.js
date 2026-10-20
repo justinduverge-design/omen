@@ -5,8 +5,8 @@ const { refKey } = require("./outcomeRepository");
 const PLAYER_KEY = /^(yahoo|espn|sleeper):([0-9A-Za-z_-]{1,64})$/;
 
 /** The provider player id the engine stored with the call (`primary_player.id`), or null. Never a name. */
-function providerRefFromDecision(decision) {
-  const id = decision?.recommendation?.primary_player?.id;
+function providerRefFromDecision(decision, which = "primary_player") {
+  const id = decision?.recommendation?.[which]?.id;
   const match = typeof id === "string" ? PLAYER_KEY.exec(id) : null;
   return match ? { provider: match[1], providerId: match[2] } : null;
 }
@@ -20,13 +20,41 @@ function providerRefFromDecision(decision) {
  *   points      { ppr, receptions } a usable line
  * Throws if the warehouse cannot be read; the caller then falls back to the existing path.
  */
-async function resolveWarehouseOutcomes({ entries, repository }) {
+async function resolveWarehouseOutcomes({ entries, repository, resolveGsis = null }) {
+  // The warehouse keys players by NFL GSIS id only; provider ids (sleeper:, espn:, yahoo:) are mapped
+  // through the Supabase crosswalk first. Without this every call read as "unresolved".
+  let gsisByKey = new Map();
+  if (typeof resolveGsis === "function") {
+    const keys = [
+      ...new Set(
+        entries
+          .flatMap(({ decision }) => [
+            providerRefFromDecision(decision),
+            providerRefFromDecision(decision, "comparison_player"),
+          ])
+          .filter(Boolean)
+          .map((ref) => `${ref.provider}:${ref.providerId}`),
+      ),
+    ];
+    try {
+      gsisByKey = keys.length ? await resolveGsis(keys) : new Map();
+    } catch {
+      gsisByKey = new Map();
+    }
+  }
+  const lookupRef = (decision, which = "primary_player") => {
+    const ref = providerRefFromDecision(decision, which);
+    if (!ref) return null;
+    const gsis = gsisByKey.get(`${ref.provider}:${ref.providerId}`);
+    return gsis ? { provider: "gsis", providerId: String(gsis) } : ref;
+  };
   const results = new Map();
   const byWeek = new Map();
   for (const entry of entries) {
     const { decision } = entry;
     const key = `${decision.season}:${decision.week}`;
-    if (!byWeek.has(key)) byWeek.set(key, { season: Number(decision.season), week: Number(decision.week), entries: [] });
+    if (!byWeek.has(key))
+      byWeek.set(key, { season: Number(decision.season), week: Number(decision.week), entries: [] });
     byWeek.get(key).entries.push(entry);
   }
 
@@ -37,18 +65,25 @@ async function resolveWarehouseOutcomes({ entries, repository }) {
     }
     const refs = [];
     for (const { decision } of group.entries) {
-      const ref = providerRefFromDecision(decision);
-      if (ref) refs.push(ref);
+      for (const which of ["primary_player", "comparison_player"]) {
+        const ref = lookupRef(decision, which);
+        if (ref) refs.push(ref);
+      }
     }
     const found = refs.length
       ? await repository.readWeekOutcomes({ refs, season: group.season, week: group.week })
       : new Map();
     for (const { decision } of group.entries) {
-      const ref = providerRefFromDecision(decision);
-      const row = ref ? found.get(refKey(ref.provider, ref.providerId)) : null;
-      if (!row || !row.resolved) results.set(decision.id, { kind: "unresolved" });
-      else if (!row.hasLine || row.ppr == null) results.set(decision.id, { kind: "no_line" });
-      else results.set(decision.id, { kind: "points", ppr: row.ppr, receptions: row.receptions });
+      const lineFor = (which) => {
+        const ref = lookupRef(decision, which);
+        const row = ref ? found.get(refKey(ref.provider, ref.providerId)) : null;
+        if (!row || !row.resolved) return { kind: "unresolved" };
+        if (!row.hasLine || row.ppr == null) return { kind: "no_line" };
+        return { kind: "points", ppr: row.ppr, receptions: row.receptions };
+      };
+      const primary = lineFor("primary_player");
+      const comparison = providerRefFromDecision(decision, "comparison_player") ? lineFor("comparison_player") : null;
+      results.set(decision.id, comparison ? { ...primary, comparison } : primary);
     }
   }
   return results;

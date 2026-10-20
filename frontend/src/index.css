@@ -1,115 +1,199 @@
-@import url('https://fonts.googleapis.com/css2?family=Alegreya+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Alegreya+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&display=swap")
+  layer(base);
+@import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap") layer(base);
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-/* ── Omen theme tokens ───────────────────────────────────────────────────────
+@theme {
+  --color-slops-bg: #0f172a;
+  --color-slops-surface: #1e293b;
+  --color-slops-border: #334155;
+  --color-slops-amber: #f59e0b;
+  --color-slops-amberLight: #fcd34d;
+  --color-slops-text: #f8fafc;
+  --color-slops-muted: #94a3b8;
+
+  --color-raven: #0a0a0b;
+  --color-charcoal: #1c1c1e;
+  --color-bone: #f5f0e8;
+
+  --color-gold: #a67c2e;
+  --color-gold-light: #c49035;
+  --color-gold-muted: #3a2a0a;
+
+  --color-crimson: #7e1717;
+  --color-verdigris: #2f7d5b;
+  --color-umber: #5a3a25;
+  --color-omen: #2f7d5b;
+
+  --font-sans: Alegreya Sans, system-ui, sans-serif;
+  --font-display: Alegreya Sans, system-ui, sans-serif;
+  --font-mono: DM Mono, ui-monospace, monospace;
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+
+  /* v4 dropped these v3 Preflight defaults; keep them so nothing changes visually. */
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-gray-400);
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+@utility type-flourish-eyebrow {
+  font-family: var(--type-flourish-family);
+  font-weight: var(--type-flourish-weight);
+  font-style: var(--type-flourish-style);
+  font-variant-caps: var(--type-flourish-caps);
+  letter-spacing: var(--type-flourish-tracking);
+  font-feature-settings: var(--type-flourish-features);
+}
+
+@utility moment-eyebrow {
+  /* Quiet eyebrow label for the moment chrome. Colour is palette-sourced via
+     the runtime var; typography (uppercase, tracked) carries the distinction.
+     Font size is set with a Tailwind class on the element so this rule adds no
+     new size step to the CSS type hierarchy. */
+  font-family: "Alegreya Sans", system-ui, sans-serif;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--moment-eyebrow-color);
+}
+
+@utility post-win-chip {
+  color: color-mix(in srgb, var(--color-team-accent) 94%, white 6%);
+  border-color: color-mix(in srgb, var(--color-team-accent) 44%, var(--color-border) 56%);
+  background: color-mix(in srgb, var(--color-team-accent) 14%, transparent);
+}
+
+@layer utilities {
+  /* ── Omen theme tokens ───────────────────────────────────────────────────────
    Applied via data-theme="dark" | "light" on <html>.
    System mode resolves via JS (reads prefers-color-scheme, applies data-theme).
    The :root block below is the dark fallback for SSR / before JS runs.
    ─────────────────────────────────────────────────────────────────────────── */
 
-:root {
-  --color-bg:              #0A0A0B;
-  --color-surface-1:       #1C1C1E;
-  --color-surface-2:       #2C2C2E;
-  --color-surface-3:       #3A3A3C;
-  --color-border:          #3A3A3C;
-  --color-border-subtle:   #2C2C2E;
-  --color-text-primary:    #F5F0E8;
-  --color-text-secondary:  #AEAEB2;
-  --color-card-text-primary:   #F5F0E8;
-  --color-card-text-secondary: #AEAEB2;
-  --color-text-tertiary:   #6D6D72;
-  --color-accent:          #A67C2E;
-  --color-accent-hover:    #C49035;
-  --color-accent-muted:    #3A2A0A;
-  --color-text-on-accent:  #0A0A0B;
-  --color-risk-low:        #34C759;
-  --color-risk-medium:     #FF9F0A;
-  --color-risk-high:       #7E1717;
-  /* Phase 1.8 confidence gradient endpoints — deeper than risk-low/risk-high
+  :root {
+    --color-bg: #0a0a0b;
+    --color-surface-1: #1c1c1e;
+    --color-surface-2: #2c2c2e;
+    --color-surface-3: #3a3a3c;
+    --color-border: #3a3a3c;
+    --color-border-subtle: #2c2c2e;
+    --color-text-primary: #f5f0e8;
+    --color-text-secondary: #aeaeb2;
+    --color-card-text-primary: #f5f0e8;
+    --color-card-text-secondary: #aeaeb2;
+    --color-text-tertiary: #6d6d72;
+    --color-accent: #a67c2e;
+    --color-accent-hover: #c49035;
+    --color-accent-muted: #3a2a0a;
+    --color-text-on-accent: #0a0a0b;
+    --color-risk-low: #34c759;
+    --color-risk-medium: #ff9f0a;
+    --color-risk-high: #7e1717;
+    /* Phase 1.8 confidence gradient endpoints — deeper than risk-low/risk-high
      so the HSL-interpolated midpoint reads as a rich amber, not a pastel. */
-  --color-confidence-floor:   #701020;
-  --color-confidence-ceiling: #206F3A;
-  /* Phase 1.9 metallic tier palette — Draft Assistant top-3 ordinal pill.
+    --color-confidence-floor: #701020;
+    --color-confidence-ceiling: #206f3a;
+    /* Phase 1.9 metallic tier palette — Draft Assistant top-3 ordinal pill.
      Identical across themes (decorative/branded, not a surface token);
      gold is deliberately brighter/more saturated than --color-accent. */
-  --color-tier-gold:      #D4AF37;
-  --color-tier-silver:    #C0C0C0;
-  --color-tier-bronze:    #8C5A2B;
-  --color-on-tier-gold:   #0A0A0B;
-  --color-on-tier-silver: #0A0A0B;
-  --color-on-tier-bronze: #F5F0E8;
-  --color-omen:            #2F7D5B;
-  --color-umber:           #5A3A25;
-  --color-data-live:       #34C759;
-  --color-data-stub:       #FF9F0A;
-  --color-data-mock:       #636366;
-  --color-data-unavailable:#3A3A3C;
-  /* Phase 2.7 demo accent — sky family, contrast-tuned per theme. */
-  --color-demo-text:           #7DD3FC; /* sky-300, AAA on dark bg */
-  --color-demo-text-secondary: rgba(186, 230, 253, 0.8); /* sky-200/80 */
-  /* Phase 1.5 team-theme tokens (default to brand accent so Omen modes are visually unchanged). */
-  --color-team-primary:      #A67C2E;
-  --color-team-secondary:    #C49035;
-  --color-team-accent:       #A67C2E;
-  --color-team-surface:      #0A0A0B;
-  --color-team-surface-card: #1C1C1E;
-  --motif-shape:             solid;
-  --motif-color:             transparent;
-  --motif-thickness:         0px;
-  --motif-opacity:           0;
-  --motif-svg-url:           none;
-  --type-flourish-family:    inherit;
-  --type-flourish-weight:    inherit;
-  --type-flourish-style:     normal;
-  --type-flourish-caps:      normal;
-  --type-flourish-tracking:  normal;
-  --type-flourish-features:  normal;
-  /* Phase 1.5g.3 cultural-moment overlay. Defaults are inert so non-moment
+    --color-tier-gold: #d4af37;
+    --color-tier-silver: #c0c0c0;
+    --color-tier-bronze: #8c5a2b;
+    --color-on-tier-gold: #0a0a0b;
+    --color-on-tier-silver: #0a0a0b;
+    --color-on-tier-bronze: #f5f0e8;
+    --color-omen: #2f7d5b;
+    --color-umber: #5a3a25;
+    --color-data-live: #34c759;
+    --color-data-stub: #ff9f0a;
+    --color-data-mock: #636366;
+    --color-data-unavailable: #3a3a3c;
+    /* Phase 2.7 demo accent — sky family, contrast-tuned per theme. */
+    --color-demo-text: #7dd3fc; /* sky-300, AAA on dark bg */
+    --color-demo-text-secondary: rgba(186, 230, 253, 0.8); /* sky-200/80 */
+    /* Phase 1.5 team-theme tokens (default to brand accent so Omen modes are visually unchanged). */
+    --color-team-primary: #a67c2e;
+    --color-team-secondary: #c49035;
+    --color-team-accent: #a67c2e;
+    --color-team-surface: #0a0a0b;
+    --color-team-surface-card: #1c1c1e;
+    --motif-shape: solid;
+    --motif-color: transparent;
+    --motif-thickness: 0px;
+    --motif-opacity: 0;
+    --motif-svg-url: none;
+    --type-flourish-family: inherit;
+    --type-flourish-weight: inherit;
+    --type-flourish-style: normal;
+    --type-flourish-caps: normal;
+    --type-flourish-tracking: normal;
+    --type-flourish-features: normal;
+    /* Phase 1.5g.3 cultural-moment overlay. Defaults are inert so non-moment
      pages render byte-identically; <MomentChrome> sets these at runtime. */
-  --moment-eyebrow:            "";
-  --moment-eyebrow-color:      var(--color-text-secondary);
-  --moment-surface-tint:       transparent;
-  --moment-surface-tint-alpha: 0;
-  --moment-citation:           "";
-  /* Phase 1.6 position chip palette. CB-validated. */
-  --color-pos-rb:  #34D399;
-  --color-pos-wr:  #60A5FA;
-  --color-pos-qb:  #FB923C;
-  --color-pos-te:  #C084FC;
-  --color-pos-def: #F472B6;
-  --color-pos-k:   #A3A3A3;
-  /* Phase 1.7 platform brand palette — dark fallback. Yahoo/ESPN sourced from
+    --moment-eyebrow: "";
+    --moment-eyebrow-color: var(--color-text-secondary);
+    --moment-surface-tint: transparent;
+    --moment-surface-tint-alpha: 0;
+    --moment-citation: "";
+    /* Phase 1.6 position chip palette. CB-validated. */
+    --color-pos-rb: #34d399;
+    --color-pos-wr: #60a5fa;
+    --color-pos-qb: #fb923c;
+    --color-pos-te: #c084fc;
+    --color-pos-def: #f472b6;
+    --color-pos-k: #a3a3a3;
+    /* Phase 1.7 platform brand palette — dark fallback. Yahoo/ESPN sourced from
      public brand-color references; Sleeper's hex is sampled from the app
      icon's eye color (2026-07-12, ~#63D8F7 measured, see decision log) — the
      prior #1FA3E8 was an unconfirmed approximation. -chip tokens are
      dark-surface-legible overrides for small badge/icon text where the raw
      brand hue is too low-luminance to read. */
-  --color-platform-sleeper:    #63D8F7;
-  --color-platform-yahoo:      #410093;
-  --color-platform-espn:       #C81E2C;
-  --color-platform-yahoo-chip: #A080C9;
-  --color-platform-espn-chip:  #F2929A;
-  --color-on-platform-sleeper: #0A0A0B;
-  --color-on-platform-yahoo:   #F5F0E8;
-  --color-on-platform-espn:    #F5F0E8;
+    --color-platform-sleeper: #63d8f7;
+    --color-platform-yahoo: #410093;
+    --color-platform-espn: #c81e2c;
+    --color-platform-yahoo-chip: #a080c9;
+    --color-platform-espn-chip: #f2929a;
+    --color-on-platform-sleeper: #0a0a0b;
+    --color-on-platform-yahoo: #f5f0e8;
+    --color-on-platform-espn: #f5f0e8;
+  }
 }
 
 @layer components {
-  [data-motif-target='page-edge'],
-  [data-motif-target='section-divider'],
-  [data-motif-target='card'],
-  [data-motif-target='eyebrow'] {
+  [data-motif-target="page-edge"],
+  [data-motif-target="section-divider"],
+  [data-motif-target="card"],
+  [data-motif-target="eyebrow"] {
     position: relative;
   }
 
-  :root[data-motif-page-edge='true'] [data-motif-target='page-edge']::before,
-  :root[data-motif-section-divider='true'] [data-motif-target='section-divider']::before {
-    content: '';
+  :root[data-motif-page-edge="true"] [data-motif-target="page-edge"]::before,
+  :root[data-motif-section-divider="true"] [data-motif-target="section-divider"]::before {
+    content: "";
     pointer-events: none;
     position: absolute;
     left: 0;
@@ -121,8 +205,8 @@
     opacity: var(--motif-opacity, 1);
   }
 
-  :root[data-motif-shape='double'][data-motif-page-edge='true'] [data-motif-target='page-edge']::before,
-  :root[data-motif-shape='double'][data-motif-section-divider='true'] [data-motif-target='section-divider']::before {
+  :root[data-motif-shape="double"][data-motif-page-edge="true"] [data-motif-target="page-edge"]::before,
+  :root[data-motif-shape="double"][data-motif-section-divider="true"] [data-motif-target="section-divider"]::before {
     height: calc(var(--motif-thickness, 1px) * 3);
     background: repeating-linear-gradient(
       to bottom,
@@ -131,35 +215,24 @@
     );
   }
 
-  :root[data-motif-shape='dashed'][data-motif-page-edge='true'] [data-motif-target='page-edge']::before,
-  :root[data-motif-shape='dashed'][data-motif-section-divider='true'] [data-motif-target='section-divider']::before {
-    background: repeating-linear-gradient(
-      to right,
-      var(--motif-color, transparent) 0 14px,
-      transparent 14px 22px
-    );
+  :root[data-motif-shape="dashed"][data-motif-page-edge="true"] [data-motif-target="page-edge"]::before,
+  :root[data-motif-shape="dashed"][data-motif-section-divider="true"] [data-motif-target="section-divider"]::before {
+    background: repeating-linear-gradient(to right, var(--motif-color, transparent) 0 14px, transparent 14px 22px);
   }
 
-  :root[data-motif-shape='dotted'][data-motif-page-edge='true'] [data-motif-target='page-edge']::before,
-  :root[data-motif-shape='dotted'][data-motif-section-divider='true'] [data-motif-target='section-divider']::before {
-    background: radial-gradient(circle, var(--motif-color, transparent) 45%, transparent 50%) left center / 12px 100% repeat-x;
+  :root[data-motif-shape="dotted"][data-motif-page-edge="true"] [data-motif-target="page-edge"]::before,
+  :root[data-motif-shape="dotted"][data-motif-section-divider="true"] [data-motif-target="section-divider"]::before {
+    background:
+      radial-gradient(circle, var(--motif-color, transparent) 45%, transparent 50%) left center / 12px 100% repeat-x;
   }
 
-  :root[data-motif-card='true'] [data-motif-target='card'] {
-    box-shadow: inset 0 0 0 var(--motif-thickness, 1px) color-mix(in srgb, var(--motif-color, transparent) 80%, transparent);
+  :root[data-motif-card="true"] [data-motif-target="card"] {
+    box-shadow: inset 0 0 0 var(--motif-thickness, 1px)
+      color-mix(in srgb, var(--motif-color, transparent) 80%, transparent);
   }
 
-  :root[data-motif-eyebrow='true'] [data-motif-target='eyebrow'] {
+  :root[data-motif-eyebrow="true"] [data-motif-target="eyebrow"] {
     border-bottom: var(--motif-thickness, 1px) solid var(--motif-color, transparent);
-  }
-
-  .type-flourish-eyebrow {
-    font-family: var(--type-flourish-family);
-    font-weight: var(--type-flourish-weight);
-    font-style: var(--type-flourish-style);
-    font-variant-caps: var(--type-flourish-caps);
-    letter-spacing: var(--type-flourish-tracking);
-    font-feature-settings: var(--type-flourish-features);
   }
 
   /* Phase 1.5g.3 — cultural-moment surface tint. Only paints when
@@ -167,7 +240,7 @@
      moment is active in mock mode). Alpha is capped ≤0.18 by the schema so
      body-text contrast on the tinted surface stays AA. v1 render path is
      color-mix; falls back to a flat token only if a Safari regression appears. */
-  :root[data-moment-active='true'] [data-moment-target='page-surface'] {
+  :root[data-moment-active="true"] [data-moment-target="page-surface"] {
     background-color: color-mix(
       in srgb,
       var(--color-bg),
@@ -175,26 +248,8 @@
     );
   }
 
-  /* Quiet eyebrow label for the moment chrome. Colour is palette-sourced via
-     the runtime var; typography (uppercase, tracked) carries the distinction.
-     Font size is set with a Tailwind class on the element so this rule adds no
-     new size step to the CSS type hierarchy. */
-  .moment-eyebrow {
-    font-family: 'Alegreya Sans', system-ui, sans-serif;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.16em;
-    color: var(--moment-eyebrow-color);
-  }
-
-  .post-win-chip {
-    color: color-mix(in srgb, var(--color-team-accent) 94%, white 6%);
-    border-color: color-mix(in srgb, var(--color-team-accent) 44%, var(--color-border) 56%);
-    background: color-mix(in srgb, var(--color-team-accent) 14%, transparent);
-  }
-
-  :root[data-post-win-wash='true'] header::after {
-    content: '';
+  :root[data-post-win-wash="true"] header::after {
+    content: "";
     pointer-events: none;
     position: absolute;
     left: 0;
@@ -202,13 +257,12 @@
     bottom: -1px;
     z-index: 1;
     height: 2px;
-    background:
-      linear-gradient(
-        90deg,
-        transparent 0%,
-        color-mix(in srgb, var(--color-team-accent) 94%, white 6%) 48%,
-        transparent 100%
-      );
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      color-mix(in srgb, var(--color-team-accent) 94%, white 6%) 48%,
+      transparent 100%
+    );
     animation: post-win-header-wash 800ms ease-in-out both;
   }
 
@@ -230,7 +284,7 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    :root[data-post-win-wash='true'] header::after {
+    :root[data-post-win-wash="true"] header::after {
       animation: none;
       opacity: 1;
       transform: none;
@@ -238,134 +292,136 @@
   }
 }
 
-:root[data-theme="dark"] {
-  --color-bg:              #0A0A0B;
-  --color-surface-1:       #1C1C1E;
-  --color-surface-2:       #2C2C2E;
-  --color-surface-3:       #3A3A3C;
-  --color-border:          #3A3A3C;
-  --color-border-subtle:   #2C2C2E;
-  --color-text-primary:    #F5F0E8;
-  --color-text-secondary:  #AEAEB2;
-  --color-card-text-primary:   #F5F0E8;
-  --color-card-text-secondary: #AEAEB2;
-  --color-text-tertiary:   #6D6D72;
-  --color-accent:          #A67C2E;
-  --color-accent-hover:    #C49035;
-  --color-accent-muted:    #3A2A0A;
-  --color-text-on-accent:  #0A0A0B;
-  --color-risk-low:        #34C759;
-  --color-risk-medium:     #FF9F0A;
-  --color-risk-high:       #7E1717;
-  /* Phase 1.8 confidence gradient endpoints — deeper than risk-low/risk-high
+@layer utilities {
+  :root[data-theme="dark"] {
+    --color-bg: #0a0a0b;
+    --color-surface-1: #1c1c1e;
+    --color-surface-2: #2c2c2e;
+    --color-surface-3: #3a3a3c;
+    --color-border: #3a3a3c;
+    --color-border-subtle: #2c2c2e;
+    --color-text-primary: #f5f0e8;
+    --color-text-secondary: #aeaeb2;
+    --color-card-text-primary: #f5f0e8;
+    --color-card-text-secondary: #aeaeb2;
+    --color-text-tertiary: #6d6d72;
+    --color-accent: #a67c2e;
+    --color-accent-hover: #c49035;
+    --color-accent-muted: #3a2a0a;
+    --color-text-on-accent: #0a0a0b;
+    --color-risk-low: #34c759;
+    --color-risk-medium: #ff9f0a;
+    --color-risk-high: #7e1717;
+    /* Phase 1.8 confidence gradient endpoints — deeper than risk-low/risk-high
      so the HSL-interpolated midpoint reads as a rich amber, not a pastel. */
-  --color-confidence-floor:   #701020;
-  --color-confidence-ceiling: #206F3A;
-  /* Phase 1.9 metallic tier palette — Draft Assistant top-3 ordinal pill.
+    --color-confidence-floor: #701020;
+    --color-confidence-ceiling: #206f3a;
+    /* Phase 1.9 metallic tier palette — Draft Assistant top-3 ordinal pill.
      Identical across themes (decorative/branded, not a surface token);
      gold is deliberately brighter/more saturated than --color-accent. */
-  --color-tier-gold:      #D4AF37;
-  --color-tier-silver:    #C0C0C0;
-  --color-tier-bronze:    #8C5A2B;
-  --color-on-tier-gold:   #0A0A0B;
-  --color-on-tier-silver: #0A0A0B;
-  --color-on-tier-bronze: #F5F0E8;
-  --color-omen:            #2F7D5B;
-  --color-umber:           #5A3A25;
-  --color-data-live:       #34C759;
-  --color-data-stub:       #FF9F0A;
-  --color-data-mock:       #636366;
-  --color-data-unavailable:#3A3A3C;
-  --color-demo-text:           #7DD3FC; /* sky-300, AAA on dark bg */
-  --color-demo-text-secondary: rgba(186, 230, 253, 0.8); /* sky-200/80 */
-  --color-team-primary:      #A67C2E;
-  --color-team-secondary:    #C49035;
-  --color-team-accent:       #A67C2E;
-  --color-team-surface:      #0A0A0B;
-  --color-team-surface-card: #1C1C1E;
-  /* Phase 1.6 position chip palette. CB-validated. */
-  --color-pos-rb:  #34D399;
-  --color-pos-wr:  #60A5FA;
-  --color-pos-qb:  #FB923C;
-  --color-pos-te:  #C084FC;
-  --color-pos-def: #F472B6;
-  --color-pos-k:   #A3A3A3;
-  /* Phase 1.7 platform brand palette — dark theme. See :root comment for
+    --color-tier-gold: #d4af37;
+    --color-tier-silver: #c0c0c0;
+    --color-tier-bronze: #8c5a2b;
+    --color-on-tier-gold: #0a0a0b;
+    --color-on-tier-silver: #0a0a0b;
+    --color-on-tier-bronze: #f5f0e8;
+    --color-omen: #2f7d5b;
+    --color-umber: #5a3a25;
+    --color-data-live: #34c759;
+    --color-data-stub: #ff9f0a;
+    --color-data-mock: #636366;
+    --color-data-unavailable: #3a3a3c;
+    --color-demo-text: #7dd3fc; /* sky-300, AAA on dark bg */
+    --color-demo-text-secondary: rgba(186, 230, 253, 0.8); /* sky-200/80 */
+    --color-team-primary: #a67c2e;
+    --color-team-secondary: #c49035;
+    --color-team-accent: #a67c2e;
+    --color-team-surface: #0a0a0b;
+    --color-team-surface-card: #1c1c1e;
+    /* Phase 1.6 position chip palette. CB-validated. */
+    --color-pos-rb: #34d399;
+    --color-pos-wr: #60a5fa;
+    --color-pos-qb: #fb923c;
+    --color-pos-te: #c084fc;
+    --color-pos-def: #f472b6;
+    --color-pos-k: #a3a3a3;
+    /* Phase 1.7 platform brand palette — dark theme. See :root comment for
      sourcing/confidence notes. */
-  --color-platform-sleeper:    #63D8F7;
-  --color-platform-yahoo:      #410093;
-  --color-platform-espn:       #C81E2C;
-  --color-platform-yahoo-chip: #A080C9;
-  --color-platform-espn-chip:  #F2929A;
-  --color-on-platform-sleeper: #0A0A0B;
-  --color-on-platform-yahoo:   #F5F0E8;
-  --color-on-platform-espn:    #F5F0E8;
-}
+    --color-platform-sleeper: #63d8f7;
+    --color-platform-yahoo: #410093;
+    --color-platform-espn: #c81e2c;
+    --color-platform-yahoo-chip: #a080c9;
+    --color-platform-espn-chip: #f2929a;
+    --color-on-platform-sleeper: #0a0a0b;
+    --color-on-platform-yahoo: #f5f0e8;
+    --color-on-platform-espn: #f5f0e8;
+  }
 
-:root[data-theme="light"] {
-  --color-bg:              #FAFAF9;
-  --color-surface-1:       #FFFFFF;
-  --color-surface-2:       #F5F5F4;
-  --color-surface-3:       #EBEBEA;
-  --color-border:          #E5E5E3;
-  --color-border-subtle:   #F0F0EE;
-  --color-text-primary:    #1C1C1E;
-  --color-text-secondary:  #6B7280;
-  --color-card-text-primary:   #1C1C1E;
-  --color-card-text-secondary: #6B7280;
-  --color-text-tertiary:   #9CA3AF;
-  --color-accent:          #7A5C1E;
-  --color-accent-hover:    #A67C2E;
-  --color-accent-muted:    #FEF3C7;
-  --color-text-on-accent:  #FAFAF9;
-  --color-risk-low:        #16A34A;
-  --color-risk-medium:     #D97706;
-  --color-risk-high:       #7E1717;
-  /* Phase 1.8 confidence gradient endpoints — same deep hues as dark theme
+  :root[data-theme="light"] {
+    --color-bg: #fafaf9;
+    --color-surface-1: #ffffff;
+    --color-surface-2: #f5f5f4;
+    --color-surface-3: #ebebea;
+    --color-border: #e5e5e3;
+    --color-border-subtle: #f0f0ee;
+    --color-text-primary: #1c1c1e;
+    --color-text-secondary: #6b7280;
+    --color-card-text-primary: #1c1c1e;
+    --color-card-text-secondary: #6b7280;
+    --color-text-tertiary: #9ca3af;
+    --color-accent: #7a5c1e;
+    --color-accent-hover: #a67c2e;
+    --color-accent-muted: #fef3c7;
+    --color-text-on-accent: #fafaf9;
+    --color-risk-low: #16a34a;
+    --color-risk-medium: #d97706;
+    --color-risk-high: #7e1717;
+    /* Phase 1.8 confidence gradient endpoints — same deep hues as dark theme
      (darker variants, not lighter washes per page-system.md). */
-  --color-confidence-floor:   #701020;
-  --color-confidence-ceiling: #206F3A;
-  /* Phase 1.9 metallic tier palette — same hexes as dark theme; see :root
+    --color-confidence-floor: #701020;
+    --color-confidence-ceiling: #206f3a;
+    /* Phase 1.9 metallic tier palette — same hexes as dark theme; see :root
      comment. */
-  --color-tier-gold:      #D4AF37;
-  --color-tier-silver:    #C0C0C0;
-  --color-tier-bronze:    #8C5A2B;
-  --color-on-tier-gold:   #0A0A0B;
-  --color-on-tier-silver: #0A0A0B;
-  --color-on-tier-bronze: #F5F0E8;
-  --color-omen:            #1A5C3E;
-  --color-umber:           #5A3A25;
-  --color-data-live:       #16A34A;
-  --color-data-stub:       #D97706;
-  --color-data-mock:       #9CA3AF;
-  --color-data-unavailable:#E5E5E3;
-  --color-demo-text:           #0369A1; /* sky-700 on #FAFAF9 ≈ 7.5:1, AAA */
-  --color-demo-text-secondary: #075985; /* sky-800 on #FAFAF9 ≈ 9.5:1, AAA */
-  --color-team-primary:      #7A5C1E;
-  --color-team-secondary:    #A67C2E;
-  --color-team-accent:       #7A5C1E;
-  --color-team-surface:      #FAFAF9;
-  --color-team-surface-card: #FFFFFF;
-  /* Phase 1.6 position chip palette — light-mode variants land deeper for AA on light surfaces. */
-  --color-pos-rb:  #047857;
-  --color-pos-wr:  #1D4ED8;
-  --color-pos-qb:  #9A3412;
-  --color-pos-te:  #7E22CE;
-  --color-pos-def: #9D174D;
-  --color-pos-k:   #525252;
-  /* Phase 1.7 platform brand palette — light-mode variants land deeper for AA
+    --color-tier-gold: #d4af37;
+    --color-tier-silver: #c0c0c0;
+    --color-tier-bronze: #8c5a2b;
+    --color-on-tier-gold: #0a0a0b;
+    --color-on-tier-silver: #0a0a0b;
+    --color-on-tier-bronze: #f5f0e8;
+    --color-omen: #1a5c3e;
+    --color-umber: #5a3a25;
+    --color-data-live: #16a34a;
+    --color-data-stub: #d97706;
+    --color-data-mock: #9ca3af;
+    --color-data-unavailable: #e5e5e3;
+    --color-demo-text: #0369a1; /* sky-700 on #FAFAF9 ≈ 7.5:1, AAA */
+    --color-demo-text-secondary: #075985; /* sky-800 on #FAFAF9 ≈ 9.5:1, AAA */
+    --color-team-primary: #7a5c1e;
+    --color-team-secondary: #a67c2e;
+    --color-team-accent: #7a5c1e;
+    --color-team-surface: #fafaf9;
+    --color-team-surface-card: #ffffff;
+    /* Phase 1.6 position chip palette — light-mode variants land deeper for AA on light surfaces. */
+    --color-pos-rb: #047857;
+    --color-pos-wr: #1d4ed8;
+    --color-pos-qb: #9a3412;
+    --color-pos-te: #7e22ce;
+    --color-pos-def: #9d174d;
+    --color-pos-k: #525252;
+    /* Phase 1.7 platform brand palette — light-mode variants land deeper for AA
      on light surfaces. Yahoo's official purple is already dark enough to
      reuse unchanged; Sleeper and ESPN get deepened light-mode hexes. Sleeper's
      light variant is the dark-theme cyan (#63D8F7) deepened ~50% luminance to
      hit 5.9:1 on white (verified via WCAG contrast calc, 2026-07-12) rather
      than a separately-picked color. No -chip overrides needed here — base
      tokens already pass as text-on-white. */
-  --color-platform-sleeper:    #316C7B;
-  --color-platform-yahoo:      #410093;
-  --color-platform-espn:       #C81E2C;
-  --color-on-platform-sleeper: #FAFAF9;
-  --color-on-platform-yahoo:   #FAFAF9;
-  --color-on-platform-espn:    #FAFAF9;
+    --color-platform-sleeper: #316c7b;
+    --color-platform-yahoo: #410093;
+    --color-platform-espn: #c81e2c;
+    --color-on-platform-sleeper: #fafaf9;
+    --color-on-platform-yahoo: #fafaf9;
+    --color-on-platform-espn: #fafaf9;
+  }
 }
 
 @layer base {
@@ -375,7 +431,7 @@
   }
   body {
     @apply font-sans antialiased;
-    font-family: 'Alegreya Sans', system-ui, sans-serif;
+    font-family: "Alegreya Sans", system-ui, sans-serif;
     background-color: var(--color-bg);
     color: var(--color-text-primary);
   }
@@ -385,14 +441,14 @@
   textarea,
   label,
   nav {
-    font-family: 'Alegreya Sans', system-ui, sans-serif;
+    font-family: "Alegreya Sans", system-ui, sans-serif;
   }
 
   /* iOS Safari auto-zooms when a focused input's font-size is < 16px. Enforce 16px
      on text-entry controls on touch devices only — desktop keeps Tailwind's text-sm
      for visual density. Specificity (0,5,1) wins over class utilities. */
   @media (hover: none) and (pointer: coarse) {
-    input:not([type='checkbox']):not([type='radio']):not([type='submit']):not([type='button']):not([type='reset']),
+    input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]),
     textarea,
     select {
       font-size: 16px;
@@ -406,11 +462,19 @@
    data-theme pick one. Raven-ink cut is used on light, Bone cut on dark.
    Both filenames stay in the bundle, which the deploy logo gates depend on. */
 .omen-lockup-on-dark,
-.omen-lockup-on-light { display: block; }
+.omen-lockup-on-light {
+  display: block;
+}
 
-:root[data-theme='light'] .omen-lockup-on-dark { display: none; }
-:root[data-theme='dark'] .omen-lockup-on-light { display: none; }
+:root[data-theme="light"] .omen-lockup-on-dark {
+  display: none;
+}
+:root[data-theme="dark"] .omen-lockup-on-light {
+  display: none;
+}
 
 /* No data-theme yet (first paint, before applyThemeMode runs): show the Bone
    cut, matching the app's dark default, and keep the light cut out of flow. */
-:root:not([data-theme]) .omen-lockup-on-light { display: none; }
+:root:not([data-theme]) .omen-lockup-on-light {
+  display: none;
+}

@@ -9,9 +9,15 @@ const { createSleeperDraftAccess } = require("../src/services/sleeperDraftAccess
 
 function fakeSupabase(data, error = null, calls = null) {
   const query = {
-    select() { return this; },
-    eq() { return this; },
-    async maybeSingle() { return { data, error }; },
+    select() {
+      return this;
+    },
+    eq() {
+      return this;
+    },
+    async maybeSingle() {
+      return { data, error };
+    },
   };
   return {
     from() {
@@ -31,10 +37,7 @@ test("allows only the authenticated user's connected Sleeper league", async () =
     supabaseClient: fakeSupabase(CONNECTION),
   });
 
-  assert.deepEqual(
-    await access.assertLeagueAccess("app-user-1", "league-1"),
-    CONNECTION,
-  );
+  assert.deepEqual(await access.assertLeagueAccess("app-user-1", "league-1"), CONNECTION);
   await assert.rejects(
     access.assertLeagueAccess("app-user-1", "league-2"),
     (error) => error.status === 404 && error.code === "sleeper_draft_not_found",
@@ -58,10 +61,7 @@ test("coalesces and caches connection ownership lookups", async () => {
     supabaseClient: fakeSupabase(CONNECTION, null, calls),
   });
 
-  await Promise.all([
-    access.getConnection("app-user-1"),
-    access.getConnection("app-user-1"),
-  ]);
+  await Promise.all([access.getConnection("app-user-1"), access.getConnection("app-user-1")]);
   await access.getConnection("app-user-1");
 
   assert.equal(calls.count, 1);

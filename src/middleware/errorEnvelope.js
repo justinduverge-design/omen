@@ -43,9 +43,7 @@ function buildErrorEnvelope(err, { isProd = config.isProd } = {}) {
   return {
     status,
     body: {
-      error: hideDetail
-        ? PRODUCTION_5XX_MESSAGE
-        : scrubText(String(err?.message ?? PRODUCTION_5XX_MESSAGE)),
+      error: hideDetail ? PRODUCTION_5XX_MESSAGE : scrubText(String(err?.message ?? PRODUCTION_5XX_MESSAGE)),
     },
   };
 }
@@ -54,11 +52,11 @@ function errorHandler(err, req, res, _next) {
   const { status, body } = buildErrorEnvelope(err);
 
   logger.error("Unhandled error", {
-    err:    scrubText(String(err?.message ?? "")),
-    stack:  scrubText(String(err?.stack ?? "")),
-    path:   req.path,
+    err: scrubText(String(err?.message ?? "")),
+    stack: scrubText(String(err?.stack ?? "")),
+    path: req.path,
     method: req.method,
-    ip:     req.ip,
+    ip: req.ip,
   });
 
   res.status(status).json(body);

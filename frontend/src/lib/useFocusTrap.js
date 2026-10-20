@@ -24,8 +24,9 @@ export function useFocusTrap(containerRef, active) {
 
     function handleKeyDown(e) {
       if (e.key !== 'Tab') return;
-      const focusable = Array.from(container.querySelectorAll(FOCUSABLE_SELECTOR))
-        .filter((el) => el.offsetParent !== null);
+      const focusable = Array.from(container.querySelectorAll(FOCUSABLE_SELECTOR)).filter(
+        (el) => el.offsetParent !== null,
+      );
       if (!focusable.length) return;
 
       e.preventDefault();

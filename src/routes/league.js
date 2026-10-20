@@ -11,6 +11,7 @@ const { getAuthenticatedYahooClient } = require("../services/yahooAuth");
 const { getAuthenticatedEspnCredentials } = require("../services/espnAuth");
 const sleeperAdapter = require("../adapters/sleeper");
 const espnAdapter = require("../adapters/espn");
+const leagueTransactions = require("../services/leagueTransactions");
 
 const router = express.Router();
 router.use(require("../services/sleeperRequestScope").middleware);
@@ -22,10 +23,7 @@ const VALID_PLATFORMS = new Set(["yahoo", "sleeper", "espn"]);
 // candidate is tried before the request is allowed to fail, so one dead provider
 // can never take down a user who has a healthy connection elsewhere.
 const PLATFORM_ORDER = ["espn", "sleeper", "yahoo"];
-const {
-  SELECTION_COLUMN,
-  readConnectionsWithSelection,
-} = require("../services/activeSelection");
+const { SELECTION_COLUMN, readConnectionsWithSelection } = require("../services/activeSelection");
 const { connectionForLeague } = require("../services/leagueDiscovery");
 const { attachDecisionReceipt, createDecisionContext } = require("../services/decisionContext");
 const { CAPABILITY_CONTRACT, promotedCapability } = require("../services/decisionCapabilities");
@@ -124,7 +122,7 @@ async function getConnectionRows(userId) {
   const { rows } = await readConnectionsWithSelection(
     supabase,
     userId,
-    "platform,is_active,league_id,platform_username,platform_user_id,token_secret_id,refresh_secret_id,espn_secret_id,swid_secret_id,espn_team_id"
+    "platform,is_active,league_id,platform_username,platform_user_id,token_secret_id,refresh_secret_id,espn_secret_id,swid_secret_id,espn_team_id",
   );
   return rows;
 }
@@ -165,8 +163,9 @@ async function yahooStandings(connection, userId, context, shared = null) {
 }
 
 async function sleeperStandings(connection, context) {
-  const sleeperUserId = connection.platform_user_id
-    || (connection.platform_username
+  const sleeperUserId =
+    connection.platform_user_id ||
+    (connection.platform_username
       ? (await sleeperAdapter.fetchSleeperUser(connection.platform_username)).user_id
       : null);
 
@@ -201,7 +200,7 @@ async function espnStandings(connection, userId, context) {
       seasonId: context.season,
       week: context.week,
       teamId: connection.espn_team_id,
-    }
+    },
   );
 
   return baseEnvelope(connection, context, { league_name, standings });
@@ -222,9 +221,10 @@ function providerAuthCode(platform) {
 }
 
 function errorEnvelope({ code, status, platform = null }) {
-  const copy = ERROR_COPY[code]
-    || (code?.endsWith("_reconnect_required") ? ERROR_COPY.reconnect_required : null)
-    || ERROR_COPY.provider_failed;
+  const copy =
+    ERROR_COPY[code] ||
+    (code?.endsWith("_reconnect_required") ? ERROR_COPY.reconnect_required : null) ||
+    ERROR_COPY.provider_failed;
   return {
     status,
     body: {
@@ -251,7 +251,10 @@ router.get("/standings", requireAuth, async (req, res, next) => {
     const context = getCurrentNflWeekContext();
     const rows = await getConnectionRows(req.user.id);
     const candidates = await candidatesForRequest(rows, {
-      platform, leagueId, userId: req.user.id, season: context.season,
+      platform,
+      leagueId,
+      userId: req.user.id,
+      season: context.season,
     });
 
     if (!candidates.length) {
@@ -306,7 +309,6 @@ router.get("/standings", requireAuth, async (req, res, next) => {
     return next(e);
   }
 });
-
 
 // ---------------------------------------------------------------------------
 // GET /api/league/overview  ->  league-overview.v1
@@ -385,9 +387,8 @@ function attachOverviewDecisionReceipt(response, connection) {
   const playoffSettingsLive = standings.playoff_picture?.settings_known === true;
   // An empty activity list is a completed derived read only when the route had the
   // playoff setting it needs. Without it, the same empty list means insufficient context.
-  const activityLive = standingsLive
-    && playoffSettingsLive
-    && ["available", "partial", "empty"].includes(activity.status);
+  const activityLive =
+    standingsLive && playoffSettingsLive && ["available", "partial", "empty"].includes(activity.status);
   const definitions = [
     {
       name: "selected_context",
@@ -410,21 +411,29 @@ function attachOverviewDecisionReceipt(response, connection) {
       name: "league_matchup",
       state: matchupLive ? "live" : "unavailable",
       source: sourceFor(connection, "league_matchup"),
-      reason_code: matchupLive && matchup.status === "no_matchup"
-        ? "no_matchup"
-        : matchupLive ? undefined : matchup.unavailable_reason || "not_read",
+      reason_code:
+        matchupLive && matchup.status === "no_matchup"
+          ? "no_matchup"
+          : matchupLive
+            ? undefined
+            : matchup.unavailable_reason || "not_read",
       kind: matchupLive ? "verified" : "limitation",
-      statement: matchupLive && matchup.status === "no_matchup"
-        ? "Your provider confirmed that your team has no matchup this week."
-        : matchupLive
-          ? `Omen read this week's matchup from your connected ${providerLabel(connection.platform)} league.`
-          : "Omen could not read this week's matchup for this league.",
+      statement:
+        matchupLive && matchup.status === "no_matchup"
+          ? "Your provider confirmed that your team has no matchup this week."
+          : matchupLive
+            ? `Omen read this week's matchup from your connected ${providerLabel(connection.platform)} league.`
+            : "Omen could not read this week's matchup for this league.",
     },
     {
       name: "league_playoff_settings",
       state: playoffSettingsLive ? "live" : "unavailable",
       source: sourceFor(connection, "league_playoff_settings"),
-      reason_code: playoffSettingsLive ? undefined : standings.status === "off_season" ? "off_season" : "settings_not_read",
+      reason_code: playoffSettingsLive
+        ? undefined
+        : standings.status === "off_season"
+          ? "off_season"
+          : "settings_not_read",
       kind: playoffSettingsLive ? "verified" : "limitation",
       statement: playoffSettingsLive
         ? "Omen read this league's playoff-team setting."
@@ -436,10 +445,15 @@ function attachOverviewDecisionReceipt(response, connection) {
       source: "derived_standings",
       reason_code: activityLive
         ? undefined
-        : standings.status === "off_season" ? "off_season"
-          : !standingsLive ? limitationReasonForStandings(standings)
-            : !playoffSettingsLive ? "settings_not_read"
-              : activity.status === "unavailable" ? "not_read" : "input_unavailable",
+        : standings.status === "off_season"
+          ? "off_season"
+          : !standingsLive
+            ? limitationReasonForStandings(standings)
+            : !playoffSettingsLive
+              ? "settings_not_read"
+              : activity.status === "unavailable"
+                ? "not_read"
+                : "input_unavailable",
       kind: activityLive ? "inference" : "limitation",
       statement: activityLive
         ? "Omen evaluated standings-backed league activity from the verified league table."
@@ -469,18 +483,21 @@ function attachOverviewDecisionReceipt(response, connection) {
 
 /** Sections fail independently. One dead provider call must never blank the destination. */
 function overviewEnvelope(connection, context, sections = {}) {
-  return attachOverviewDecisionReceipt({
-    contract_version: "league-overview.v1",
-    generated_at: nowIso(),
-    platform: connection.platform,
-    league_id: String(connection.league_id),
-    league_name: sections.league_name || null,
-    season: Number(sections.season || context.season),
-    week: Number(sections.week || context.week),
-    matchup: sections.matchup || { status: "unavailable", you: null, opponent: null, unavailable_reason: "not_read" },
-    standings: sections.standings || { status: "unavailable", playoff_picture: null, teams: [] },
-    activity: sections.activity || emptyActivity(),
-  }, connection);
+  return attachOverviewDecisionReceipt(
+    {
+      contract_version: "league-overview.v1",
+      generated_at: nowIso(),
+      platform: connection.platform,
+      league_id: String(connection.league_id),
+      league_name: sections.league_name || null,
+      season: Number(sections.season || context.season),
+      week: Number(sections.week || context.week),
+      matchup: sections.matchup || { status: "unavailable", you: null, opponent: null, unavailable_reason: "not_read" },
+      standings: sections.standings || { status: "unavailable", playoff_picture: null, teams: [] },
+      activity: sections.activity || emptyActivity(),
+    },
+    connection,
+  );
 }
 
 /**
@@ -522,14 +539,14 @@ function standingsActivity(teams, playoffTeams) {
   }
 
   const items = [];
-  const ranked = rows.filter((t) => Number.isFinite(Number(t?.rank)))
-    .sort((a, b) => Number(a.rank) - Number(b.rank));
+  const ranked = rows.filter((t) => Number.isFinite(Number(t?.rank))).sort((a, b) => Number(a.rank) - Number(b.rank));
 
   const lastIn = ranked[cut - 1];
   const firstOut = ranked[cut];
-  const record = (t) => (Number.isFinite(Number(t?.wins)) && Number.isFinite(Number(t?.losses))
-    ? `${Number(t.wins)}-${Number(t.losses)}`
-    : null);
+  const record = (t) =>
+    Number.isFinite(Number(t?.wins)) && Number.isFinite(Number(t?.losses))
+      ? `${Number(t.wins)}-${Number(t.losses)}`
+      : null;
 
   // Tied at the cut line — two or more teams with identical W-L across the boundary.
   const lastInRecord = record(lastIn);
@@ -608,7 +625,8 @@ function playoffPicture(teams, playoffTeams) {
 
 /** Games clear of, or back from, the playoff boundary. Null unless both records are present. */
 function cutLineNote(teams, rank, cut) {
-  const ranked = (teams || []).filter((t) => Number.isFinite(Number(t?.rank)))
+  const ranked = (teams || [])
+    .filter((t) => Number.isFinite(Number(t?.rank)))
     .sort((a, b) => Number(a.rank) - Number(b.rank));
   const mine = ranked.find((t) => Number(t.rank) === rank);
   const inside = rank <= cut;
@@ -625,16 +643,15 @@ function cutLineNote(teams, rank, cut) {
 }
 
 function ordinal(n) {
-  const suffix = (n % 100 >= 11 && n % 100 <= 13) ? "th"
-    : n % 10 === 1 ? "st"
-      : n % 10 === 2 ? "nd"
-        : n % 10 === 3 ? "rd" : "th";
+  const suffix =
+    n % 100 >= 11 && n % 100 <= 13 ? "th" : n % 10 === 1 ? "st" : n % 10 === 2 ? "nd" : n % 10 === 3 ? "rd" : "th";
   return `${n}${suffix}`;
 }
 
 async function sleeperOverview(connection, context) {
-  const sleeperUserId = connection.platform_user_id
-    || (connection.platform_username
+  const sleeperUserId =
+    connection.platform_user_id ||
+    (connection.platform_username
       ? (await sleeperAdapter.fetchSleeperUser(connection.platform_username)).user_id
       : null);
 
@@ -661,12 +678,10 @@ async function sleeperOverview(connection, context) {
     const [roster, matchups, projections] = await Promise.all([
       sleeperAdapter.fetchSleeperRoster(connection.league_id, sleeperUserId),
       sleeperAdapter.fetchSleeperMatchups(connection.league_id, context.week),
-      sleeperAdapter
-        .fetchSleeperProjections(Number(league?.season) || context.season, context.week)
-        .catch((e) => {
-          logger.warn("Sleeper matchup projections unavailable", { err: e.message });
-          return {};
-        }),
+      sleeperAdapter.fetchSleeperProjections(Number(league?.season) || context.season, context.week).catch((e) => {
+        logger.warn("Sleeper matchup projections unavailable", { err: e.message });
+        return {};
+      }),
     ]);
     matchup = sleeperAdapter.matchupFromMatchups({
       leagueId: connection.league_id,
@@ -679,6 +694,16 @@ async function sleeperOverview(connection, context) {
     });
   } catch (e) {
     logger.warn("League overview matchup read failed", { err: e.message, platform: "sleeper" });
+  }
+
+  // An undrafted league has no matchup, and "no matchup scheduled" made the founder work out why.
+  // Sleeper's league object (already fetched) says so directly (known_issues #657).
+  const leagueStatus = String(league?.status || "").toLowerCase();
+  if (
+    (leagueStatus === "pre_draft" || leagueStatus === "drafting") &&
+    ["no_matchup", "unavailable"].includes(matchup.status)
+  ) {
+    matchup = { ...matchup, status: "no_matchup", unavailable_reason: "league_not_started" };
   }
 
   // M11A proved this field arrives on a live Sleeper league: `settings.playoff_teams`, an int.
@@ -701,21 +726,24 @@ async function sleeperOverview(connection, context) {
 
 async function espnOverview(connection, userId, context) {
   const credentials = await getAuthenticatedEspnCredentials(userId);
-  const { league_name: espnLeagueName, standings, playoff_teams: espnPlayoffTeams } = await espnAdapter.buildLeagueContext(
-    connection.league_id,
-    credentials.espn_s2,
-    credentials.swid,
-    { seasonId: context.season, week: context.week, teamId: connection.espn_team_id }
-  );
+  const {
+    league_name: espnLeagueName,
+    standings,
+    playoff_teams: espnPlayoffTeams,
+  } = await espnAdapter.buildLeagueContext(connection.league_id, credentials.espn_s2, credentials.swid, {
+    seasonId: context.season,
+    week: context.week,
+    teamId: connection.espn_team_id,
+  });
 
   let matchup = { status: "unavailable", you: null, opponent: null, unavailable_reason: "provider_failed" };
   try {
-    matchup = await espnAdapter.fetchEspnMatchup(
-      connection.league_id,
-      credentials.espn_s2,
-      credentials.swid,
-      { seasonId: context.season, week: context.week, teamId: connection.espn_team_id, standings }
-    );
+    matchup = await espnAdapter.fetchEspnMatchup(connection.league_id, credentials.espn_s2, credentials.swid, {
+      seasonId: context.season,
+      week: context.week,
+      teamId: connection.espn_team_id,
+      standings,
+    });
   } catch (e) {
     logger.warn("League overview matchup read failed", { err: e.message, platform: "espn" });
   }
@@ -772,7 +800,7 @@ async function yahooOverview(connection, userId, context) {
     // Reuse the client and team key the standings read just fetched; fall back to a fresh
     // lookup only when that read could not resolve the team key.
     const client = shared.client || (await getAuthenticatedYahooClient(userId)).client;
-    const teamKey = shared.teamKey || await client.getMyTeamKey(connection.league_id);
+    const teamKey = shared.teamKey || (await client.getMyTeamKey(connection.league_id));
     const week = standingsEnvelope.week || context.week;
     const read = teamKey ? await client.getMatchup(connection.league_id, teamKey, week) : null;
     if (read) {
@@ -812,7 +840,9 @@ function readYahooPlayoffTeams(client, leagueKey) {
     timer.unref?.();
   });
   return Promise.race([
-    Promise.resolve().then(() => client.getPlayoffTeamCount(leagueKey)).catch(() => null),
+    Promise.resolve()
+      .then(() => client.getPlayoffTeamCount(leagueKey))
+      .catch(() => null),
     budget,
   ]).finally(() => clearTimeout(timer));
 }
@@ -896,7 +926,10 @@ router.get("/overview", requireAuth, async (req, res, next) => {
     if (cacheHandle.hit) return responseCache.sendHit(res, cacheHandle);
     responseCache.setCacheHeader(res, cacheHandle);
     const candidates = await candidatesForRequest(rows, {
-      platform, leagueId, userId: req.user.id, season: context.season,
+      platform,
+      leagueId,
+      userId: req.user.id,
+      season: context.season,
     });
 
     if (!candidates.length) {
@@ -905,10 +938,12 @@ router.get("/overview", requireAuth, async (req, res, next) => {
     }
 
     if (suppressLiveFootballData()) {
-      return res.json(overviewEnvelope(candidates[0], context, {
-        matchup: { status: "unavailable", you: null, opponent: null, unavailable_reason: "off_season" },
-        standings: { status: "off_season", playoff_picture: null, teams: [] },
-      }));
+      return res.json(
+        overviewEnvelope(candidates[0], context, {
+          matchup: { status: "unavailable", you: null, opponent: null, unavailable_reason: "off_season" },
+          standings: { status: "off_season", playoff_picture: null, teams: [] },
+        }),
+      );
     }
 
     const failures = [];
@@ -956,6 +991,87 @@ router.get("/overview", requireAuth, async (req, res, next) => {
       platform: failures[0]?.platform || null,
     });
     return res.status(result.status).json(result.body);
+  } catch (e) {
+    return next(e);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/league/transactions  ->  league-transactions.v1   (G4)
+//
+// The league's recent adds, drops, waiver claims and trades. Sleeper is read live; Yahoo and ESPN
+// are documented-but-unexercised and stay dark behind LEAGUE_TRANSACTIONS_YAHOO / _ESPN (see
+// services/leagueTransactions.js). Its own route and its own failure domain: the League overview's
+// hot path never waits on it, and a provider that cannot answer says `unavailable` with a reason.
+// ---------------------------------------------------------------------------
+router.get("/transactions", requireAuth, async (req, res, next) => {
+  const platform = normalizePlatform(req.query.platform);
+  const leagueId = normalizeLeagueId(req.query.leagueId);
+  const limit = leagueTransactions.clampLimit(req.query.limit);
+
+  if (platform && !VALID_PLATFORMS.has(platform)) {
+    const result = errorEnvelope({ code: "invalid_platform", status: 400 });
+    return res.status(result.status).json(result.body);
+  }
+
+  try {
+    const context = getCurrentNflWeekContext();
+    const rows = await getConnectionRows(req.user.id);
+    const cacheHandle = await responseCache.lookup({
+      route: "league_transactions",
+      userId: req.user.id,
+      parts: {
+        platform: platform || null,
+        league_id: leagueId || null,
+        week: context.week,
+        season: context.season,
+        limit,
+        connections: rows
+          .map((row) => ({
+            platform: row.platform,
+            league_id: row.league_id == null ? null : String(row.league_id),
+            selected: Boolean(row.is_selected),
+          }))
+          .sort((a, b) => `${a.platform}:${a.league_id}`.localeCompare(`${b.platform}:${b.league_id}`)),
+      },
+    });
+    if (cacheHandle.hit) return responseCache.sendHit(res, cacheHandle);
+    responseCache.setCacheHeader(res, cacheHandle);
+
+    const candidates = await candidatesForRequest(rows, {
+      platform,
+      leagueId,
+      userId: req.user.id,
+      season: context.season,
+    });
+    if (!candidates.length) {
+      const result = errorEnvelope({ code: "league_not_connected", status: 404 });
+      return res.status(result.status).json(result.body);
+    }
+
+    const connection = candidates[0];
+    if (suppressLiveFootballData()) {
+      return res.json(leagueTransactions.offSeasonEnvelope(connection, context, limit));
+    }
+    const body = await leagueTransactions.readLeagueTransactions({
+      connection,
+      userId: req.user.id,
+      context,
+      limit,
+      deps: {
+        sleeper: sleeperAdapter,
+        espn: espnAdapter,
+        getYahooClient: getAuthenticatedYahooClient,
+        getEspnCredentials: getAuthenticatedEspnCredentials,
+        env: process.env,
+      },
+    });
+    // A failed or dark read is kept only briefly so a recovered provider is not hidden for a minute.
+    await responseCache.store(cacheHandle, 200, body, {
+      cache: true,
+      degraded: body.status === "unavailable",
+    });
+    return res.json(body);
   } catch (e) {
     return next(e);
   }

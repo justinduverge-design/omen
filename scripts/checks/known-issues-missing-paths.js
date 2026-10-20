@@ -31,8 +31,18 @@ const PATH_REF = /`([A-Za-z0-9_.\-/]+\.(?:js|jsx|ts|tsx|swift|kt|kts|json|yml|ya
  * that are genuinely repo-rooted.
  */
 const REPO_ROOTS = [
-  "src/", "test/", "scripts/", "frontend/", "mobile/", "sql/",
-  "Blueprints/", "Direction/", "Brand/", ".github/", ".agents/", "deploy/",
+  "src/",
+  "test/",
+  "scripts/",
+  "frontend/",
+  "mobile/",
+  "sql/",
+  "Blueprints/",
+  "Direction/",
+  "Brand/",
+  ".github/",
+  ".agents/",
+  "deploy/",
 ];
 
 /**

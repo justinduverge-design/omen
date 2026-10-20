@@ -48,7 +48,7 @@ struct OmenConfidenceBandLabel: View {
 
 /// Risk as form, not hue (D7, registry §2.3).
 ///
-/// - low: `text-tertiary` label, no container
+/// - low: high-contrast label, no container
 /// - medium: outlined chip, `border`, `text-secondary` ink
 /// - high: filled `surface-3`, `border` outline, `text-primary` ink, leading `▲`, and the label
 ///   **names the risk** — "Hamstring — game-time call" — never the word "high" alone
@@ -73,8 +73,10 @@ struct OmenRiskLabel: View {
         switch level {
         case .low:
             Text(text)
-                .omenTextStyle(OmenTypography.micro)
-                .foregroundStyle(OmenColor.textTertiary)
+                .font(.subheadline.bold())
+                .foregroundStyle(Color(uiColor: UIColor { traits in
+                    traits.userInterfaceStyle == .dark ? .white : .black
+                }))
         case .medium:
             Text(text)
                 .omenTextStyle(OmenTypography.micro)
