@@ -126,6 +126,14 @@
           "projected_points": 20,
           "selected_position": "BN"
         },
+        "the_catch": {
+          "code": "thin_position_after_trade",
+          "dedicated_starters": 2,
+          "players_after": 2,
+          "position": "RB",
+          "statement": "You would have 2 RB for 2 dedicated starting spots.",
+          "status": "available"
+        },
         "usage_evidence": [],
         "user_lineup_delta": 15,
         "valuation": {
@@ -134,6 +142,24 @@
           "combined_score": 0.5,
           "confidence": "medium",
           "depth_discounted": false,
+          "forward_horizons": {
+            "next_4": {
+              "reason": "forward_projection_curve_unavailable",
+              "status": "unavailable",
+              "value": null
+            },
+            "season": {
+              "reason": "forward_projection_curve_unavailable",
+              "status": "unavailable",
+              "value": null
+            },
+            "unit": "player_projection_points_per_week",
+            "week": {
+              "reason": null,
+              "status": "available",
+              "value": 2
+            }
+          },
           "generated_at": "2026-01-01T00:00:00.000Z",
           "net_value": 0.5,
           "receive": {
@@ -214,6 +240,11 @@
             ],
             "total_value": 11.5
           },
+          "the_catch": {
+            "reason": "roster_depth_not_available",
+            "statement": null,
+            "status": "unavailable"
+          },
           "verdict": "neutral"
         }
       },
@@ -271,6 +302,14 @@
           "projected_points": 20,
           "selected_position": "BN"
         },
+        "the_catch": {
+          "code": "thin_position_after_trade",
+          "dedicated_starters": 2,
+          "players_after": 2,
+          "position": "RB",
+          "statement": "You would have 2 RB for 2 dedicated starting spots.",
+          "status": "available"
+        },
         "usage_evidence": [],
         "user_lineup_delta": 15,
         "valuation": {
@@ -279,6 +318,24 @@
           "combined_score": 0.5,
           "confidence": "medium",
           "depth_discounted": false,
+          "forward_horizons": {
+            "next_4": {
+              "reason": "forward_projection_curve_unavailable",
+              "status": "unavailable",
+              "value": null
+            },
+            "season": {
+              "reason": "forward_projection_curve_unavailable",
+              "status": "unavailable",
+              "value": null
+            },
+            "unit": "player_projection_points_per_week",
+            "week": {
+              "reason": null,
+              "status": "available",
+              "value": 2
+            }
+          },
           "generated_at": "2026-01-01T00:00:00.000Z",
           "net_value": 0.5,
           "receive": {
@@ -359,6 +416,11 @@
             ],
             "total_value": 11.5
           },
+          "the_catch": {
+            "reason": "roster_depth_not_available",
+            "statement": null,
+            "status": "unavailable"
+          },
           "verdict": "neutral"
         }
       },
@@ -416,6 +478,14 @@
           "projected_points": 20,
           "selected_position": "BN"
         },
+        "the_catch": {
+          "code": "thin_position_after_trade",
+          "dedicated_starters": 2,
+          "players_after": 2,
+          "position": "RB",
+          "statement": "You would have 2 RB for 2 dedicated starting spots.",
+          "status": "available"
+        },
         "usage_evidence": [],
         "user_lineup_delta": 15,
         "valuation": {
@@ -424,6 +494,24 @@
           "combined_score": 0.5,
           "confidence": "medium",
           "depth_discounted": false,
+          "forward_horizons": {
+            "next_4": {
+              "reason": "forward_projection_curve_unavailable",
+              "status": "unavailable",
+              "value": null
+            },
+            "season": {
+              "reason": "forward_projection_curve_unavailable",
+              "status": "unavailable",
+              "value": null
+            },
+            "unit": "player_projection_points_per_week",
+            "week": {
+              "reason": null,
+              "status": "available",
+              "value": 2
+            }
+          },
           "generated_at": "2026-01-01T00:00:00.000Z",
           "net_value": 0.5,
           "receive": {
@@ -504,6 +592,11 @@
             ],
             "total_value": 11.5
           },
+          "the_catch": {
+            "reason": "roster_depth_not_available",
+            "statement": null,
+            "status": "unavailable"
+          },
           "verdict": "neutral"
         }
       },
@@ -561,6 +654,14 @@
           "projected_points": 20,
           "selected_position": "BN"
         },
+        "the_catch": {
+          "code": "thin_position_after_trade",
+          "dedicated_starters": 2,
+          "players_after": 2,
+          "position": "RB",
+          "statement": "You would have 2 RB for 2 dedicated starting spots.",
+          "status": "available"
+        },
         "usage_evidence": [],
         "user_lineup_delta": 15,
         "valuation": {
@@ -569,6 +670,24 @@
           "combined_score": 0.5,
           "confidence": "medium",
           "depth_discounted": false,
+          "forward_horizons": {
+            "next_4": {
+              "reason": "forward_projection_curve_unavailable",
+              "status": "unavailable",
+              "value": null
+            },
+            "season": {
+              "reason": "forward_projection_curve_unavailable",
+              "status": "unavailable",
+              "value": null
+            },
+            "unit": "player_projection_points_per_week",
+            "week": {
+              "reason": null,
+              "status": "available",
+              "value": 2
+            }
+          },
           "generated_at": "2026-01-01T00:00:00.000Z",
           "net_value": 0.5,
           "receive": {
@@ -649,6 +768,11 @@
             ],
             "total_value": 11.5
           },
+          "the_catch": {
+            "reason": "roster_depth_not_available",
+            "statement": null,
+            "status": "unavailable"
+          },
           "verdict": "neutral"
         }
       },
@@ -706,6 +830,14 @@
           "projected_points": 20,
           "selected_position": "BN"
         },
+        "the_catch": {
+          "code": "thin_position_after_trade",
+          "dedicated_starters": 2,
+          "players_after": 2,
+          "position": "RB",
+          "statement": "You would have 2 RB for 2 dedicated starting spots.",
+          "status": "available"
+        },
         "usage_evidence": [],
         "user_lineup_delta": 15,
         "valuation": {
@@ -714,6 +846,24 @@
           "combined_score": 0.5,
           "confidence": "medium",
           "depth_discounted": false,
+          "forward_horizons": {
+            "next_4": {
+              "reason": "forward_projection_curve_unavailable",
+              "status": "unavailable",
+              "value": null
+            },
+            "season": {
+              "reason": "forward_projection_curve_unavailable",
+              "status": "unavailable",
+              "value": null
+            },
+            "unit": "player_projection_points_per_week",
+            "week": {
+              "reason": null,
+              "status": "available",
+              "value": 2
+            }
+          },
           "generated_at": "2026-01-01T00:00:00.000Z",
           "net_value": 0.5,
           "receive": {
@@ -794,6 +944,11 @@
             ],
             "total_value": 11.5
           },
+          "the_catch": {
+            "reason": "roster_depth_not_available",
+            "statement": null,
+            "status": "unavailable"
+          },
           "verdict": "neutral"
         }
       },
@@ -851,6 +1006,14 @@
           "projected_points": 20,
           "selected_position": "BN"
         },
+        "the_catch": {
+          "code": "thin_position_after_trade",
+          "dedicated_starters": 2,
+          "players_after": 2,
+          "position": "RB",
+          "statement": "You would have 2 RB for 2 dedicated starting spots.",
+          "status": "available"
+        },
         "usage_evidence": [],
         "user_lineup_delta": 15,
         "valuation": {
@@ -859,6 +1022,24 @@
           "combined_score": 0.5,
           "confidence": "medium",
           "depth_discounted": false,
+          "forward_horizons": {
+            "next_4": {
+              "reason": "forward_projection_curve_unavailable",
+              "status": "unavailable",
+              "value": null
+            },
+            "season": {
+              "reason": "forward_projection_curve_unavailable",
+              "status": "unavailable",
+              "value": null
+            },
+            "unit": "player_projection_points_per_week",
+            "week": {
+              "reason": null,
+              "status": "available",
+              "value": 2
+            }
+          },
           "generated_at": "2026-01-01T00:00:00.000Z",
           "net_value": 0.5,
           "receive": {
@@ -939,6 +1120,11 @@
             ],
             "total_value": 11.5
           },
+          "the_catch": {
+            "reason": "roster_depth_not_available",
+            "statement": null,
+            "status": "unavailable"
+          },
           "verdict": "neutral"
         }
       },
@@ -996,6 +1182,14 @@
           "projected_points": 20,
           "selected_position": "BN"
         },
+        "the_catch": {
+          "code": "thin_position_after_trade",
+          "dedicated_starters": 2,
+          "players_after": 2,
+          "position": "RB",
+          "statement": "You would have 2 RB for 2 dedicated starting spots.",
+          "status": "available"
+        },
         "usage_evidence": [],
         "user_lineup_delta": 15,
         "valuation": {
@@ -1004,6 +1198,24 @@
           "combined_score": 0.5,
           "confidence": "medium",
           "depth_discounted": false,
+          "forward_horizons": {
+            "next_4": {
+              "reason": "forward_projection_curve_unavailable",
+              "status": "unavailable",
+              "value": null
+            },
+            "season": {
+              "reason": "forward_projection_curve_unavailable",
+              "status": "unavailable",
+              "value": null
+            },
+            "unit": "player_projection_points_per_week",
+            "week": {
+              "reason": null,
+              "status": "available",
+              "value": 2
+            }
+          },
           "generated_at": "2026-01-01T00:00:00.000Z",
           "net_value": 0.5,
           "receive": {
@@ -1084,6 +1296,11 @@
             ],
             "total_value": 11.5
           },
+          "the_catch": {
+            "reason": "roster_depth_not_available",
+            "statement": null,
+            "status": "unavailable"
+          },
           "verdict": "neutral"
         }
       },
@@ -1141,6 +1358,14 @@
           "projected_points": 20,
           "selected_position": "BN"
         },
+        "the_catch": {
+          "code": "thin_position_after_trade",
+          "dedicated_starters": 2,
+          "players_after": 2,
+          "position": "RB",
+          "statement": "You would have 2 RB for 2 dedicated starting spots.",
+          "status": "available"
+        },
         "usage_evidence": [],
         "user_lineup_delta": 15,
         "valuation": {
@@ -1149,6 +1374,24 @@
           "combined_score": 0.5,
           "confidence": "medium",
           "depth_discounted": false,
+          "forward_horizons": {
+            "next_4": {
+              "reason": "forward_projection_curve_unavailable",
+              "status": "unavailable",
+              "value": null
+            },
+            "season": {
+              "reason": "forward_projection_curve_unavailable",
+              "status": "unavailable",
+              "value": null
+            },
+            "unit": "player_projection_points_per_week",
+            "week": {
+              "reason": null,
+              "status": "available",
+              "value": 2
+            }
+          },
           "generated_at": "2026-01-01T00:00:00.000Z",
           "net_value": 0.5,
           "receive": {
@@ -1229,6 +1472,11 @@
             ],
             "total_value": 11.5
           },
+          "the_catch": {
+            "reason": "roster_depth_not_available",
+            "statement": null,
+            "status": "unavailable"
+          },
           "verdict": "neutral"
         }
       },
@@ -1286,6 +1534,14 @@
           "projected_points": 20,
           "selected_position": "BN"
         },
+        "the_catch": {
+          "code": "thin_position_after_trade",
+          "dedicated_starters": 2,
+          "players_after": 2,
+          "position": "RB",
+          "statement": "You would have 2 RB for 2 dedicated starting spots.",
+          "status": "available"
+        },
         "usage_evidence": [],
         "user_lineup_delta": 15,
         "valuation": {
@@ -1294,6 +1550,24 @@
           "combined_score": 0.5,
           "confidence": "medium",
           "depth_discounted": false,
+          "forward_horizons": {
+            "next_4": {
+              "reason": "forward_projection_curve_unavailable",
+              "status": "unavailable",
+              "value": null
+            },
+            "season": {
+              "reason": "forward_projection_curve_unavailable",
+              "status": "unavailable",
+              "value": null
+            },
+            "unit": "player_projection_points_per_week",
+            "week": {
+              "reason": null,
+              "status": "available",
+              "value": 2
+            }
+          },
           "generated_at": "2026-01-01T00:00:00.000Z",
           "net_value": 0.5,
           "receive": {
@@ -1374,6 +1648,11 @@
             ],
             "total_value": 11.5
           },
+          "the_catch": {
+            "reason": "roster_depth_not_available",
+            "statement": null,
+            "status": "unavailable"
+          },
           "verdict": "neutral"
         }
       },
@@ -1431,6 +1710,14 @@
           "projected_points": 20,
           "selected_position": "BN"
         },
+        "the_catch": {
+          "code": "thin_position_after_trade",
+          "dedicated_starters": 2,
+          "players_after": 2,
+          "position": "RB",
+          "statement": "You would have 2 RB for 2 dedicated starting spots.",
+          "status": "available"
+        },
         "usage_evidence": [],
         "user_lineup_delta": 15,
         "valuation": {
@@ -1439,6 +1726,24 @@
           "combined_score": 0.5,
           "confidence": "medium",
           "depth_discounted": false,
+          "forward_horizons": {
+            "next_4": {
+              "reason": "forward_projection_curve_unavailable",
+              "status": "unavailable",
+              "value": null
+            },
+            "season": {
+              "reason": "forward_projection_curve_unavailable",
+              "status": "unavailable",
+              "value": null
+            },
+            "unit": "player_projection_points_per_week",
+            "week": {
+              "reason": null,
+              "status": "available",
+              "value": 2
+            }
+          },
           "generated_at": "2026-01-01T00:00:00.000Z",
           "net_value": 0.5,
           "receive": {
@@ -1518,6 +1823,11 @@
               }
             ],
             "total_value": 11.5
+          },
+          "the_catch": {
+            "reason": "roster_depth_not_available",
+            "statement": null,
+            "status": "unavailable"
           },
           "verdict": "neutral"
         }
