@@ -3,11 +3,11 @@
 ## Status
 
 **Open. Build 12 implementation shipped 2026-10-20 through #762 and #763 reconciled the release record,
-but the release is not complete until the account repair and final iPhone walk below pass.**
+but the release is not complete until the final iPhone walk below passes.**
 The source checklist in `Blueprints/handoffs/2026-10-19-build-12-codex-finish.md` is implemented. The open
-release gates are reconnecting and re-proving the ESPN account with no team id, installing the final signed
-build on the founder's iPhone, completing the provider/screen/accessibility walk, and uploading that proven
-archive to TestFlight.
+release gates are installing the final signed build on the founder's iPhone, completing the screen and
+unfiltered-accessibility walk, and uploading that proven archive to TestFlight. The one legacy ESPN row with
+no team id is explicitly carried into Build 13; it does not block first-time users or the Build 12 binary.
 
 - Backend shipped to production in two waves: 2026-10-15 to 10-17 (#670 to #713), then the integration
   branch on 2026-10-19 (#752, deploy run 39241836554, green).
@@ -233,6 +233,19 @@ All of it was built on `build-12/integration`, reviewed by a fresh agent, and me
   - Production probe: real numbers in 89 ms.
 
 ## Known issues / next
+
+### Explicit Build 13 carry-forward
+
+- Re-prove the complete first-time ESPN connection, discovery and ingestion journey with a new account,
+  and repair or retire the legacy connection row with no `espn_team_id`.
+- Reconcile the provider capability matrix against current production and code. Record separately what Omen
+  uses now, what providers expose but Omen does not use, and what provider fields are obsolete because the
+  warehouse or another canonical source supersedes them.
+- Evaluate the already-probed `qwen3:1.7b` narration path and other small-model background work without
+  changing Build 12's production model setting.
+
+The working inventory is `Direction/release/builds/build-13.md`. These are known follow-ups, not reasons to
+hold a Build 12 candidate that passes the final phone and archive gates.
 
 ### Historical canvas plan (implemented in #756 to #758)
 

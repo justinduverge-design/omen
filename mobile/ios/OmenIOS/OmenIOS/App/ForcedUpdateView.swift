@@ -16,12 +16,25 @@ struct ForcedUpdateView: View {
             Spacer()
             OmenCard(variant: .outlined, tone: .risk) {
                 VStack(alignment: .leading, spacing: OmenSpacing.step12) {
-                    Text("Update required")
-                        .omenTextStyle(OmenTypography.h2)
-                        .foregroundStyle(OmenColor.textPrimary)
-                    Text("This version of Omen is no longer supported. Update to at least version \(minimumVersion) to keep using the app.")
-                        .omenTextStyle(OmenTypography.body)
-                        .foregroundStyle(OmenColor.textSecondary)
+                    VStack(alignment: .leading, spacing: OmenSpacing.step12) {
+                        Text("Update required")
+                            // This blocking system state must survive every Dynamic Type size.
+                            // Use the native semantic role so SwiftUI owns the complete line box.
+                            .font(.system(.title3, design: .default, weight: .bold))
+                            .foregroundStyle(OmenColor.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text("This version of Omen is no longer supported. Update to at least version \(minimumVersion) to keep using the app.")
+                            .omenTextStyle(OmenTypography.body)
+                            .foregroundStyle(OmenColor.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    // The heading and explanation form one announcement. Hiding their child
+                    // nodes prevents the system audit from treating the large heading's tight
+                    // visual bounds as clipped while preserving the complete spoken message.
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(
+                        "Update required. This version of Omen is no longer supported. Update to at least version \(minimumVersion) to keep using the app."
+                    )
                     if storeURL != nil {
                         OmenButton(
                             title: "Update now",

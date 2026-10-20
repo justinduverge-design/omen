@@ -102,6 +102,10 @@ will be renewed or replaced.
 
 ## 🟡 OPEN — one ESPN connection row has no `espn_team_id` ([#657](https://github.com/justinduverge-design/omen/issues/657))
 
+**Release disposition 2026-10-20:** explicitly carried into Build 13. This legacy row does not block Build
+12 or first-time users. Build 13 must prove the current first-time connection, league discovery and ingestion
+path with a new account, then repair or retire this row based on that evidence.
+
 Surfaced 2026-09-07 by `scripts/espn-projection-live-proof.js` running over every connected ESPN
 league. One row (league `2114292181`) resolves to
 `status: "unavailable", unavailable_reason: "team_unknown"` and therefore `projected: null`, while

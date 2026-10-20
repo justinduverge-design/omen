@@ -402,6 +402,10 @@ struct OmenCommandDeskScreen: View {
             .padding(.top, OmenSpacing.step8)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("League \(state.railIndex + 1) of \(state.railCount)")
+            // This is status text for a swipeable rail, not a control of its own. Keeping it in
+            // the accessibility tree lets VoiceOver announce the current page without asking
+            // Apple's audit to enforce a 44 pt interactive hit target on the five-point dots.
+            .accessibilityRespondsToUserInteraction(false)
         }
     }
 
@@ -697,13 +701,16 @@ private struct OmenDeskBoard: View {
                 Text(team.record)
                     .font(.subheadline.bold())
                     .foregroundStyle(team.isMine ? Color(uiColor: .label) : OmenColor.textTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             Text(team.score)
                 .omenTextStyle(isLeading ? OmenTypography.scoreLead : OmenTypography.scoreTrail)
                 .foregroundStyle(isLeading ? OmenColor.textPrimary : OmenColor.textTertiary)
         }
-        .accessibilityElement(children: .combine)
+        // The scoreboard row has one complete spoken summary below. Ignoring its visual child
+        // labels prevents compact score typography from becoming separate, clipped AX nodes.
+        .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(team.name), \(team.record), \(team.score) points")
     }
 
@@ -740,11 +747,16 @@ private struct OmenDeskBoard: View {
     }
 
     private func crest(_ team: OmenDeskTeam) -> some View {
-        Text(team.crest)
-            .omenTextStyle(OmenTypography.micro)
-            .foregroundStyle(OmenColor.textPrimary)
-            .lineLimit(1)
-            .minimumScaleFactor(0.6)
+        Canvas { context, size in
+            // Decorative artwork: the adjacent accessible row already announces the full team
+            // name. Keep this monogram inside the fixed scoreboard tile at every text size.
+            context.draw(
+                Text(team.crest)
+                    .font(.system(size: 10, weight: .heavy))
+                    .foregroundStyle(OmenColor.textPrimary),
+                at: CGPoint(x: size.width / 2, y: size.height / 2)
+            )
+        }
             .frame(width: 30, height: 30)
             .background(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)

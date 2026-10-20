@@ -15,9 +15,10 @@ the current queue.
 - #762 recorded the final Trade response fixtures. Merge `36835f11` deployed successfully in run
   `39473388464`, including backend tests, contract verification, health smoke and visual canary.
 - Deferred beyond this finish: the move follow-through write route and support/report delivery workflow.
-- Remaining release gates: reconnect and re-prove the ESPN account whose stored row has no team id; install
-  the final signed build on the founder's iPhone; complete the provider, screen and unfiltered accessibility
-  walk; then upload only that proven archive to TestFlight.
+- Remaining release gates: install the final signed build on the founder's iPhone; complete the screen and
+  unfiltered-accessibility walk; then upload only that proven archive to TestFlight. By founder decision on
+  2026-10-20, the legacy ESPN row with no team id and a complete fresh-account ESPN proof are Build 13
+  liabilities, not Build 12 release gates. See `Direction/release/builds/build-13.md`.
 
 ## Where things are
 
