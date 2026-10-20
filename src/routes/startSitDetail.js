@@ -64,7 +64,10 @@ const usageReader = createUsageShadowRunner({
     }),
   emitTelemetry: (event) => logger.info("Football warehouse usage shadow", event),
 });
-const attachSight = createSightEnricher({ getRuntime: () => getSharedWarehouseRuntime({ logger, strict: true }), log: logger });
+const attachSight = createSightEnricher({
+  getRuntime: () => getSharedWarehouseRuntime({ logger, strict: true }),
+  log: logger,
+});
 
 const ERROR_CONTRACT = "start-sit-detail-error.v1";
 // token_expires_at is load-bearing: isOmenReadyConnection() treats an absent
