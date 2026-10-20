@@ -60,7 +60,7 @@ final class ContextualHelpAccessibilityUITests: XCTestCase {
 
         // The accessibility name VoiceOver would announce. Icon-only controls are the classic
         // place a label goes missing, so this asserts the exact string, not just existence.
-        let help = app.buttons["What is this? Command Center"]
+        let help = app.buttons["What is this? The Desk"]
         XCTAssertTrue(help.waitForExistence(timeout: 10), "help affordance is missing or unlabeled")
 
         // It is distinguishable from the profile control sitting beside it.
@@ -88,7 +88,7 @@ final class ContextualHelpAccessibilityUITests: XCTestCase {
         // Spec §2: contextual help "must never become an unsolicited modal". Nothing may present
         // it but the person's own tap, so a cold launch must show no explanation.
         let app = launch("command-center.demo-connected")
-        XCTAssertTrue(app.buttons["What is this? Command Center"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["What is this? The Desk"].waitForExistence(timeout: 10))
         XCTAssertFalse(
             app.staticTexts[Self.commandCenterSummary].exists,
             "an explanation appeared without the user asking for it"
@@ -152,7 +152,7 @@ final class ContextualHelpAccessibilityUITests: XCTestCase {
         // starts failing — loudly — the day someone fixes them. See `Direction/known_issues.md`.
         XCTExpectFailure("Pre-existing Command Center contrast + app-wide Dynamic Type audit findings; not in M6 scope")
         let app = launch("command-center.demo-connected")
-        XCTAssertTrue(app.buttons["What is this? Command Center"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["What is this? The Desk"].waitForExistence(timeout: 10))
         try app.performAccessibilityAudit()
     }
 }
