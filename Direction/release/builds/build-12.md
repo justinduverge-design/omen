@@ -2,14 +2,17 @@
 
 ## Status
 
-**Open. Screens shipped 2026-10-19 (#754 to #758); logo, model switch, accessibility, device walk and TestFlight are left.**
-Handoff for the finish: `Blueprints/handoffs/2026-10-19-build-12-codex-finish.md`.
+**Ready for the final iPhone install/walk and TestFlight upload. Build 12 implementation shipped 2026-10-20
+through #762; #763 closes the release record.**
+The finish handoff in `Blueprints/handoffs/2026-10-19-build-12-codex-finish.md` is implemented. The only
+release gate still open is installing the final signed build on the founder's iPhone, completing the walk,
+and uploading that proven archive to TestFlight.
 
 - Backend shipped to production in two waves: 2026-10-15 to 10-17 (#670 to #713), then the integration
   branch on 2026-10-19 (#752, deploy run 39241836554, green).
 - League activity for Yahoo and ESPN switched on in production 2026-10-19 (founder).
-- The app is not uploaded. Still to come: the whole-app canvas, the screen fixes it drives, the device walk
-  below, then TestFlight.
+- The app is not uploaded. The final source builds and signs; the founder's phone was away for the last
+  install, so the final connected-device walk below and TestFlight upload remain.
 - **Beta audience:** 7 of the 8 friends-beta leagues. Rhody's ESPN league has been connected since Build 1;
   a new ESPN account in this beta is the first real test of the fresh-login path.
 - Baseline before this build: Build 11 (2026-10-12, ESPN first-login repair).
@@ -187,25 +190,34 @@ All of it was built on `build-12/integration`, reviewed by a fresh agent, and me
 | #714 | Docs | Build 12 package: PR list and retro |
 | #715 to #751 | Infra | Rust programme Phases 1 to 4, OpenTelemetry, Vector, lint gates (shellcheck, typos, Biome), pruning, branch triage, provider gaps G4/G6/G8 (#746). Infrastructure; nothing user-facing beyond #746 |
 | #752 | Integration | Build 12 integration: native lock v2, connection fixes, background narration, load-time instrumentation |
+| #753 | Docs | Build 12 package: integration, league activity, canvas plan and post-canvas test walk |
+| #754 | Defects | Build 12 defect sweep: League states, live activity with ESPN names, pre-draft reason, chevron contrast |
+| #755 | Defects | ESPN activity: name D/ST entries |
+| #756 | Design | Whole-app canvas: first cut (proposal) |
+| #757 | iOS | Canvas build 1: Desk and shell |
+| #758 | iOS | Build 12 screens: every screen wired to the backend on Sleeper, ESPN and Yahoo |
+| #759 | Docs | Close-out: Build 12 screens + Codex finish handoff |
+| #760 | iOS / Narration | Build 12: light lockup and qwen narration bridge |
+| #761 | iOS / Providers / Trade | Finish Build 12 device gate and provider contracts |
+| #762 | Contracts | Refresh Build 12 Trade contract fixtures |
+| #763 | Docs | Update Build 12 release package and tester notes |
 
 ## Where it lives
 
 - **Production API and warehouse:** everything above.
-- **In the app on main, not yet on TestFlight:**
-  - The Command desk (native lock v2).
-  - The new ESPN discovery states and copy.
-  - The Find a Trade empty reasons.
-  - Signposts and MetricKit.
-  - On the founder's iPhone only: the instrumented Release build.
-- **Not yet in the app:** the Sight block, injury status, the new evidence lines, the contested record,
-  trade horizons, warehouse usage evidence on trades, and the "unreadable team" state. The backend sends all
-  of it. The canvas decides how each one looks.
+- **In the app on `main`, not yet on TestFlight:** the Command desk and shared shell; provider-aware Desk,
+  Omen, Start/Sit, Waivers, League, Trade and Ledger screens; light and dark lockups; ESPN discovery and
+  background late-listing recovery; Find a Trade reasons and "the catch"; Trade horizon states; Sight and
+  warehouse evidence; contested records; signposts and MetricKit.
+- **On the founder's iPhone:** the #760 Release build, including the light/dark sign-in proof. The final
+  #761/#762 source compiles and signs, but still needs its connected-device install and walk.
 - **Switches in production:** `SIGHT_ENABLED=true`, `SIGHT_VERSION=v2`, `YAHOO_ENABLED=true`,
   `LEAGUE_TRANSACTIONS_YAHOO=1`, `LEAGUE_TRANSACTIONS_ESPN=1`.
 
 ## Shipped 2026-10-19 (#754 to #758)
 
-- **Defect sweep (#754, #755):** no P0, one P1. All fixed except D6, a production database row, and D9, a light-mode logo.
+- **Defect sweep (#754, #755):** no P0, one P1. The source defects shipped; D6 remains an owner-controlled
+  production database row, and #760 later fixed D9's light-mode logo.
 - **Canvas (#756):** the whole-app canvas and `BUILD.md`, in Claude Design. Figma is retired.
 - **Desk and shell (#757):** the Desk, the tabs and the switcher.
 - **Screens (#758):** every screen is wired to the backend on all three providers.
@@ -215,7 +227,7 @@ All of it was built on `build-12/integration`, reviewed by a fresh agent, and me
   - FLEX fix, light mode, contested Ledger record.
 - **Proof:**
   - npm test: 2,580 pass. iOS unit tests: 649 pass.
-  - UI tests: 98 of 101 pass; the 3 left fail on main too.
+  - The three stale UI expectations and the remaining accessibility gates were repaired in #761.
   - Two fresh-agent reviews: no P0 or P1.
   - Production probe: real numbers in 89 ms.
 
@@ -264,8 +276,8 @@ load times, narration and Find a Trade reasons.
 ### Still open
 
 - **Project-wide P0/P1/P2 defect sweep (founder, 2026-10-19).** A fresh agent checked every finding in the
-  reviews, handoffs, `known_issues.md`, open PRs and issues against today's code. It found no P0, one P1 and
-  seven P2s still open.
+  reviews, handoffs, `known_issues.md`, open PRs and issues against the code. The source defects are fixed;
+  one owner-controlled production row remains.
   - Fixed on `build-12/p-sweep`:
     - **D1 (P1)** League showed a pregame matchup as "unread".
     - **D2** The table header claimed "Form · last 5"; it now says "Record".
@@ -277,16 +289,11 @@ load times, narration and Find a Trade reasons.
     - **D8** The back chevron renders as a template, so it meets light-mode contrast.
   - Left for the founder: **D6**, one ESPN connection with no team id. Removing or reconnecting it is a
     production database row.
-  - Left for the canvas: **D9 (P3)**, a light-mode stacked lockup.
+  - Fixed in #760: **D9 (P3)**, the light-mode stacked lockup.
 
-- **Queued: narration model switch** (founder, 2026-10-19). Change `LLM_MODEL` from gemma3:4b to
-  qwen3:1.7b, the Phase 2 bake-off winner (#729), on the private model host.
-  - Do it before the TestFlight upload: back up the env file, recreate the API, time a narration, and
-    confirm the breaker stays closed.
-  - Until then, narration runs in the background, so the first view of each move shows the template.
-- **League activity labels:** Yahoo and ESPN still say `documented_not_exercised` / "not verified". The
-  2026-10-19 probe exercised them, so update the label and the limitation copy.
-- **ESPN activity names:** map ESPN player ids to names through the player index.
+- **Narration production setting:** #760 proved `qwen3:1.7b` against the private model host with thinking
+  disabled and shipped the transport support. Production remains on `gemma3:4b`; changing `LLM_MODEL` is a
+  separate production activation, not part of the TestFlight binary.
 - **Cold reads:** league list about 1.1 s, summary about 1.3 s and Start/Sit are not yet parallelised the
   way Waivers is.
 - **Coverage:** Sight reaches Yahoo for 233 of 305 players through the index. The read-time name match
@@ -310,6 +317,13 @@ Build 12 — what changed
 NEW LOOK
 - The whole app was redesigned as one system: same shell, same buttons, same states everywhere
 - Text grows with your iPhone text size setting
+- Sign-in and the Omen logo now work in Light, Dark and Match iPhone appearance
+- The "Something look wrong?" report control stays in the page and never covers your Ledger
+
+OMEN CALLS
+- Omen makes its own call for Sleeper, Yahoo and ESPN leagues
+- A missing provider projection no longer prevents Omen from making a call when its own evidence is available
+- When only Omen has a read, the screen says "Omen Read" instead of pretending the provider supplied one
 
 LEAGUE CONNECTIONS
 - ESPN and Yahoo: Omen now reads your league's real lineup slots (FLEX, SUPERFLEX, etc.)
@@ -318,6 +332,7 @@ LEAGUE CONNECTIONS
 - Locked players (game started) are never suggested for a swap or drop
 - Expired ESPN/Yahoo logins are detected every 6 hours, deleted from our servers, and flagged for reconnect; your league stays connected
 - New ESPN login: if ESPN hasn't listed your league yet, Omen tells you and keeps checking. The League ID box is a last resort
+- If ESPN lists only some leagues at first, Omen keeps checking for the rest in the background
 - Yahoo sends you back to Omen faster after you sign in
 - League activity (adds, drops, trades, waiver claims) now shows for Yahoo and ESPN leagues
 
@@ -327,6 +342,8 @@ TRADES
 - Flex rules match your league (W/R/T, W/R, SUPERFLEX)
 - Trades are graded over the week, the next 4 weeks and the season so far
 - When Find a Trade finds nothing, it tells you why
+- Trade detail names "the catch" when the move would leave a position thin
+- Future horizons are shown only when Omen has real data; unavailable periods are never guessed
 
 START/SIT & WAIVERS
 - Picks now weigh Omen's own player read (Sight) alongside the provider projection
@@ -349,6 +366,8 @@ LEDGER
 PLEASE TEST
 - New to ESPN in Omen? Connect it and tell us if you ever see the League ID box
 - Connect or reconnect ESPN / Yahoo / Sleeper and check your lineup slots
+- Open one Omen call in each provider and confirm each gives you a usable call
+- Scroll Desk through Ledger and confirm the report control never covers a card
 - League page: does the activity match your league?
 - Find a Trade: are the offers fair both ways?
 - Waivers: does the suggested drop make sense?
@@ -357,8 +376,14 @@ PLEASE TEST
 
 ## Proof
 
-- **Tests:** npm test passes: 2,503 tests at #711, and 2,571 at #752. iOS ConnectFlowTests: 70 pass. CI on
-  #752: all 7 checks green.
+- **Final automated gates:** npm test passed 2,586 of 2,586 before the final fixture-only closeout. The iOS
+  unit target passed 649 tests with 1 intentional skip and 0 failures. The focused final provider and Trade
+  suites passed 112 of 112; the final Start/Sit route rerun passed 37 of 37.
+- **Builds:** simulator build passed. A generic Release iPhone build completed and was signed with Apple
+  Development. #760 was installed on the founder's iPhone and its light/dark sign-in appearances were
+  inspected; the final #761 build awaits the connected-phone install.
+- **Review and CI:** a fresh review found no remaining merge blockers. #761 passed shellcheck, typos and
+  Biome. #762 then passed all six PR gates, including the full backend test and contract audit.
 - **Founder reconnect walk (2026-10-18, iPhone 15):**
   - Sign-in passed in about 3 s.
   - Sleeper 3 of 3, Yahoo 2 of 2, ESPN 3 of 3 leagues returned, and favourites came back.
@@ -368,7 +393,11 @@ PLEASE TEST
 - **Database:** the redo rehearsal passed in CI for steps 17 and 18. The warehouse read-only verify passed at
   each schema version up to v12.
 - **Production:** Sight v2 recomputed for weeks 1-6 on code revision 2026-10-17.v2-complete.
-- **Not yet done:** the paired-iPhone walk below.
+- **Final production deploy:** merge `36835f11` deployed successfully in run `39473388464`; backend tests,
+  recorded contracts, dependency audit, frontend build, image builds, `/api/health`, deployed-logo check and
+  public-route visual canary all passed.
+- **Not yet done:** install the final signed build on the paired iPhone, run the walk below, and upload the
+  proven archive to TestFlight.
 
 ### To test once the canvas and screens are fixed
 

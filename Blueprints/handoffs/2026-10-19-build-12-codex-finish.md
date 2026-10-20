@@ -1,5 +1,23 @@
 # Build 12: handoff to Codex (2026-10-19)
 
+## Closeout (2026-10-20)
+
+This handoff has been executed through #762. Treat the original checklist below as historical context, not
+the current queue.
+
+- #760 shipped the light stacked lockup, removed forced-dark sign-in, added Qwen's native Ollama chat path
+  with thinking disabled, and passed a production-shaped probe on the private model host.
+- Production still uses `gemma3:4b`. Activating `qwen3:1.7b` is a separate production-setting decision; it
+  is not a Build 12 binary gate.
+- #761 repaired the accessibility and stale UI-test gates, put the report control in the Desk flow after
+  Ledger, made Omen calls usable across Sleeper, Yahoo and ESPN when provider projections are absent, added
+  ESPN late-listing background recovery, and completed the Trade fields.
+- #762 recorded the final Trade response fixtures. Merge `36835f11` deployed successfully in run
+  `39473388464`, including backend tests, contract verification, health smoke and visual canary.
+- Deferred beyond this finish: the move follow-through write route and support/report delivery workflow.
+- Remaining release gate: install the final signed build on the founder's iPhone, complete the Build 12
+  device walk, then upload the proven archive to TestFlight.
+
 ## Where things are
 
 - **Repo:** `/Users/justinduvergecatalino/Documents/GitHub/Slops-OS/slops-saloon/omen`
@@ -18,7 +36,7 @@
   - `xcodebuild -configuration Release -destination id=<UDID> -allowProvisioningUpdates`
   - `xcrun devicectl device install app`
 
-## What is left for Build 12
+## Original finish list (historical)
 
 1. **Logo:** light-mode stacked lockup. See the prompt below.
 2. **Narration model:** switch to qwen3:1.7b.
