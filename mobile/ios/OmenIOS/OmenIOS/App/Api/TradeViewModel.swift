@@ -36,6 +36,11 @@ final class TradeViewModel: ObservableObject {
     }
 
     @Published private(set) var rosterBrowseState: RosterBrowseState = .idle
+
+    /// The league (`platform:leagueId`) the held rosters were read for.
+
+    private var rosterLoadedFor: String?
+    private var rosterLoadedAt: Date?
     @Published private(set) var selectedPartnerTeamID: String?
     /// Provider-confirmed identity for the team the signed-in user manages in `offer.leagueContext`.
     /// Without it Omen cannot distinguish an opponent from the viewer and must offer no partner.
@@ -47,7 +52,7 @@ final class TradeViewModel: ObservableObject {
     /// from the SAME `league-overview.v1` read the League destination uses — this never
     /// discovers a league on its own, so it can never name a different league than the rest of
     /// the Trade destination.
-    func loadRoster(userID: String) async {
+    func loadRoster(userID: String, force: Bool = false) async {
         guard userID != SessionManager.demoUserID else {
             rosterBrowseState = .demo
             return
@@ -56,6 +61,12 @@ final class TradeViewModel: ObservableObject {
             rosterBrowseState = .failed(.network)
             return
         }
+        // Reuse the league's rosters already in hand. Re-reading every team's roster (and blanking
+        // the screen to a spinner) on every visit to Build was the founder's "takes forever".
+        let leagueKey = "\(leagueContext.platform):\(leagueContext.leagueId)"
+        // Reused for five minutes, so a waiver add or accepted trade shows up on the next visit after that.
+        if !force, rosterLoadedFor == leagueKey, let at = rosterLoadedAt, Date().timeIntervalSince(at) < 300,
+           case .loaded = rosterBrowseState { return }
         let generation = leagueGeneration
         let accessToken: String?
         if case .token(let renewed) = await sessionManager.authorization() {
@@ -82,6 +93,8 @@ final class TradeViewModel: ObservableObject {
         switch result {
         case .success(let response):
             rosterBrowseState = .loaded(response)
+            rosterLoadedFor = leagueKey
+            rosterLoadedAt = Date()
             // Omen's own trade call names who it would deal with; open on that team, not the first one.
             let preferred = Self.partnerTeamID(in: response, for: prefill)
             selectedPartnerTeamID = rosterPartners.contains(where: { $0.id == preferred })
@@ -133,6 +146,7 @@ final class TradeViewModel: ObservableObject {
         clearSuggestions()
         viewState = .idle
         rosterBrowseState = .idle
+        rosterLoadedFor = nil
         selectedPartnerTeamID = nil
         thirdPartnerTeamID = nil
         threeTeamLegs = []
@@ -507,7 +521,7 @@ final class TradeViewModel: ObservableObject {
                 return OmenTradeRosterState.Row(
                     id: player.id,
                     name: player.name,
-                    meta: player.meta,
+                    meta: player.metaWithReads,
                     availability: alreadyAdded ? .added : .available,
                     recipients: alreadyAdded ? [] : recipients
                 )

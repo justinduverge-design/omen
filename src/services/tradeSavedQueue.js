@@ -78,7 +78,8 @@ function currentNeedFor({ position, rosterPositions, players } = {}) {
   return {
     status: needStatus(weight),
     have: depth[position] || 0,
-    required: effective[position] != null ? Math.ceil(effective[position]) : null,
+    // Dedicated slots only; FLEX/SUPERFLEX are shared and never owed to one position (tradeFind.js).
+    required: effective[position] != null ? slotShape.starters[position] || 0 : null,
   };
 }
 

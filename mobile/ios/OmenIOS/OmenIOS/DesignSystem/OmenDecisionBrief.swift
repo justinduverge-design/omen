@@ -80,6 +80,8 @@ struct OmenDecisionBriefPayload {
     let signals: [OmenSignalItem]
     let alternatives: [OmenDecisionBriefAlternative]
     let readComparison: OmenReadComparison?
+    /// The call's players with their real numbers (warehouse stats and Omen Grades).
+    let players: [OmenCallPlayerNumbers]
     /// Optional published football-intelligence context. This is supporting evidence for the
     /// server-owned call, never a second recommendation. The API mapper admits only published
     /// `available` or `stale` signals with a real summary. Insufficient coverage remains a
@@ -106,8 +108,10 @@ struct OmenDecisionBriefPayload {
         alternatives: [OmenDecisionBriefAlternative] = [],
         readComparison: OmenReadComparison? = nil,
         footballIntelligence: OmenFootballIntelligenceContext? = nil,
-        tradeCall: OmenTradeCall? = nil
+        tradeCall: OmenTradeCall? = nil,
+        players: [OmenCallPlayerNumbers] = []
     ) {
+        self.players = players
         self.callType = callType
         self.verdict = verdict
         self.move = move
@@ -126,6 +130,20 @@ struct OmenDecisionBriefPayload {
         self.footballIntelligence = footballIntelligence
         self.tradeCall = tradeCall
     }
+}
+
+/// One player in the call, with the real numbers behind him: season PPG and last games, recent usage,
+/// and the Omen Grade with the efficiency stats under it. Lines the server could not fill are nil.
+struct OmenCallPlayerNumbers: Equatable, Identifiable {
+    let name: String
+    let role: String
+    let statsLine: String?
+    let usageLine: String?
+    let gradeLine: String?
+    let gradeDetails: [String]
+
+    var id: String { "\(role)-\(name)" }
+    var isEmpty: Bool { statsLine == nil && usageLine == nil && gradeLine == nil }
 }
 
 struct OmenReadComparison {

@@ -188,6 +188,27 @@ function scoreStatLine(statLine, values) {
   return scored ? round2(total) : null;
 }
 
+/**
+ * The same scoring as `scoreStatLine`, one part per scored stat: `{ stat, quantity, points_per, points }`,
+ * keyed by Sleeper's stat name. What makes a Yahoo projection explainable stat by stat, exactly as
+ * Sleeper's and ESPN's are (`projectionBreakdown.js`).
+ */
+function statLineParts(statLine, values) {
+  if (!statLine || typeof statLine !== "object") return [];
+  const parts = [];
+  for (const [key, quantity] of Object.entries(statLine)) {
+    if (key.startsWith("pts_")) continue;
+    const event = SLEEPER_EVENT_MAP[key]?.event_key || SLEEPER_FG_BANDS[key];
+    if (!event) continue;
+    const perUnit = values.get(event);
+    const count = Number(quantity);
+    if (perUnit == null || !perUnit || !Number.isFinite(count)) continue;
+    const points = count * perUnit;
+    if (points) parts.push({ stat: key, quantity: count, points_per: perUnit, points });
+  }
+  return parts;
+}
+
 const yahooToSleeperMemo = new WeakMap();
 
 /** yahoo_id -> sleeper player id, with ids claimed by more than one Sleeper player left out. */
@@ -397,6 +418,12 @@ async function enrichYahooPlayers(players, { client, leagueKey, week, season, bu
     player.projected_points = points;
     player.projection_source = SOURCE;
     player.projection_basis = basis;
+    // Not enumerable: the breakdown reads it in-process, and it never rides along in a response.
+    Object.defineProperty(player, "projection_parts", {
+      value: statLineParts(statLines?.[sleeperId], scoring.values),
+      enumerable: false,
+      configurable: true,
+    });
     projected += 1;
   }
 

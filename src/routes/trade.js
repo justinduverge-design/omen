@@ -30,6 +30,7 @@ const espnAdapter = require("../adapters/espn");
 const yahooAdapter = require("../adapters/yahoo");
 const { getAuthenticatedEspnCredentials } = require("../services/espnAuth");
 const { getAuthenticatedYahooClient } = require("../services/yahooAuth");
+const { resolveScoringPersistenceMetadata } = require("../services/scoringSnapshotResolver");
 const { createClient } = require("@supabase/supabase-js");
 const { createTradeUsageEvidence, usageRowsForTrade } = require("../services/tradeUsageEvidence");
 const { createSightEnricher } = require("../services/sightEnrichment");
@@ -364,6 +365,52 @@ function resolvedTradePlayers(inputs, resolutions) {
   });
 }
 
+/** Copies `sight`, `stats` and `rating` from the offered players onto the verdict's own player objects. */
+function copyPlayerReads(result, offered) {
+  const byName = new Map(offered.filter((p) => p?.name).map((p) => [p.name, p]));
+  for (const side of [result?.send, result?.receive]) {
+    for (const player of Array.isArray(side?.players) ? side.players : []) {
+      const source = byName.get(player?.name);
+      if (!source) continue;
+      for (const field of ["sight", "stats", "rating"])
+        if (source[field] && !player[field]) player[field] = source[field];
+    }
+  }
+}
+
+/** Sight keys for resolver ids: a bare Sleeper id becomes `sleeper:<id>`; prefixed keys pass through. */
+function sightKeyFor(player) {
+  const key = String(player?.player_key ?? "");
+  if (/^(sleeper|espn|yahoo):/.test(key)) return key;
+  return /^[0-9]+$/.test(key) ? `sleeper:${key}` : null;
+}
+
+/** Missing projections filled from Omen's read; each filled player is marked so the verdict can say so. */
+async function fillProjectionsFromOmenRead(players, attachSight) {
+  const probes = players.map((player) => ({
+    player_key: sightKeyFor(player),
+    name: player.name,
+    team: player.team,
+    position: player.position,
+  }));
+  try {
+    await attachSight(probes);
+  } catch {
+    return;
+  }
+  probes.forEach((probe, index) => {
+    const player = players[index];
+    const points = Number(probe.sight?.sight_points);
+    // The resolver's key stays as it is; the prefixed key is only how Sight found him.
+    if (probe.sight) player.sight = probe.sight;
+    if (probe.stats) player.stats = probe.stats;
+    if (player.projected_points == null && Number.isFinite(points)) {
+      player.projected_points = points;
+      player.projection_source = "omen_read";
+    }
+  });
+}
+
 function unresolvedPlayersFor(side, inputs, resolutions) {
   const unresolved = [];
   resolutions.forEach((resolution, index) => {
@@ -400,9 +447,74 @@ async function defaultLeagueContextResolver({ userId, platform, leagueId }) {
         const slots = normalized?.slots || {};
         return [...(slots.starters || []), ...(slots.bench || []), ...(slots.ir || [])];
       },
+      readProviderContext: readEspnOrYahooTradeContext,
       logger,
     },
   });
+}
+
+/**
+ * ESPN / Yahoo league context for a personalized trade read: every team's roster (for the user's own
+ * and the league size), the league's lineup slots, and the scoring format from the league's own
+ * reception rule. The same reads Find a Trade and the scoring resolver already make.
+ */
+/** `ppr` / `half_ppr` / `standard` from a Yahoo league's reception rule, else null. */
+async function yahooReceptionFormat(client, leagueId) {
+  const { deriveYahooRules } = require("../services/scoringRuleSnapshot");
+  const data = await client.get(`/league/${leagueId}/settings`);
+  const league = data?.fantasy_content?.league;
+  const raw = Array.isArray(league) ? league[1]?.settings : league?.settings;
+  const settings = Array.isArray(raw) ? raw[0] : raw;
+  const reception = (deriveYahooRules(settings)?.rules || []).find(
+    (rule) => rule.event_key === "receiving_receptions" && rule.operator === "per_event",
+  );
+  if (!reception) return null;
+  if (reception.value === 1) return "ppr";
+  if (reception.value === 0.5) return "half_ppr";
+  if (reception.value === 0) return "standard";
+  return null;
+}
+
+async function readEspnOrYahooTradeContext(connection, userId) {
+  const leagueId = String(connection.league_id);
+  const { week } = getCurrentNflWeekContext();
+  const scoring = await resolveScoringPersistenceMetadata({
+    platform: connection.platform,
+    leagueId,
+    userId,
+  }).catch(() => null);
+  let rosters;
+  let ownTeam = null;
+  // The full rule snapshot is often "ambiguous" (one rule Omen cannot map), which leaves `format`
+  // null. A trade read needs only the reception rule, so read that one rule directly.
+  let receptionFormat = null;
+  if (connection.platform === "espn") {
+    const credentials = await getAuthenticatedEspnCredentials(userId);
+    rosters = await espnAdapter.fetchEspnLeagueRosters(leagueId, credentials.espn_s2, credentials.swid, { week });
+    ownTeam = (rosters?.teams || []).find((team) => sameTeamId(team?.team_id, connection.espn_team_id)) || null;
+    const rules = await espnAdapter
+      .fetchEspnScoringSettings(leagueId, credentials.espn_s2, credentials.swid)
+      .catch(() => null);
+    receptionFormat = espnAdapter.espnScoringFormat(rules);
+  } else if (connection.platform === "yahoo") {
+    const auth = await getAuthenticatedYahooClient(userId);
+    rosters = await yahooAdapter.fetchYahooLeagueRosters(leagueId, auth.accessToken, week);
+    const myKey = await auth.client?.getMyTeamKey?.(leagueId).catch(() => null);
+    ownTeam = (rosters?.teams || []).find((team) => myKey && sameTeamId(team?.team_id, myKey)) || null;
+    receptionFormat = await yahooReceptionFormat(auth.client, leagueId).catch(() => null);
+  } else {
+    return null;
+  }
+  const teams = Array.isArray(rosters?.teams) ? rosters.teams : [];
+  if (!teams.length) return null;
+  const known = new Set(["ppr", "half_ppr", "standard"]);
+  return {
+    scoringFormat: scoring?.format || (known.has(receptionFormat) ? receptionFormat : null),
+    rosterPositions: Array.isArray(rosters?.roster_positions) ? rosters.roster_positions : [],
+    teamCount: teams.length,
+    rosterPlayers: Array.isArray(ownTeam?.players) ? ownTeam.players : [],
+    leagueName: rosters?.league_name || null,
+  };
 }
 
 function jsonByteLength(value) {
@@ -812,7 +924,7 @@ function createTradeRouter({
       const teamId = req.query.team_id == null ? null : String(req.query.team_id);
       const teams = teamId ? result.teams.filter((team) => sameTeamId(team.team_id, teamId)) : result.teams;
 
-      await attachSight(teams);
+      await attachSight(teams, { compact: true });
       return res.json({
         contract_version: "trade-roster.v1",
         status: "ok",
@@ -1817,8 +1929,13 @@ function createTradeRouter({
 
       const send = resolvedTradePlayers(req.body.send, sendResolutions);
       const receive = resolvedTradePlayers(req.body.receive, receiveResolutions);
-
-      const analysisOutcome = await analysisPromise;
+      // A typed or built offer often has no provider projection for a player. Omen's own read
+      // (Sight, from the warehouse) covers every rostered skill player, so it fills that gap rather
+      // than the verdict giving up with "no projection" (founder, 2026-10-19). Labelled as Omen's read.
+      const [analysisOutcome] = await Promise.all([
+        analysisPromise,
+        fillProjectionsFromOmenRead([...send, ...receive], attachSight),
+      ]);
       if (analysisOutcome.error) throw analysisOutcome.error;
       const { analysis, scoringConfig } = analysisOutcome.value;
       // A personalized run derives its scoring format from the provider's own
@@ -1847,6 +1964,10 @@ function createTradeRouter({
       // Budgeted + breaker-guarded (narrationBudget.js). Timeout, skip or error
       // yields `explanation: null`, the same value the explainer returns today
       // when the model is unreachable (the compare contract allows null).
+      // Omen's read on every player in the verdict: copied from the reads already made for the
+      // offered players (matched by name), then a read for anyone still without one.
+      copyPlayerReads(result, [...send, ...receive]);
+      const sightRead = attachSight(result).catch(() => undefined);
       const narration = await narrationGuard.run("trade_compare", NARRATION_BUDGET_MS.trade_compare, () =>
         tradeExplainer({
           send,
@@ -1860,6 +1981,7 @@ function createTradeRouter({
         }),
       );
       result.explanation = narration.status === "ok" ? narration.value : null;
+      await sightRead;
 
       return res.json(result);
     } catch (e) {

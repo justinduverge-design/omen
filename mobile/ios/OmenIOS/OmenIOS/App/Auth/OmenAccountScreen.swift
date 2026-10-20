@@ -141,6 +141,7 @@ struct OmenAccountScreen: View {
                 header
                 identityRow
                 connectionsSection
+                appearanceSection
                 supportSection
                 if let securitySection {
                     sectionHeader("Sign-in security", trailing: nil)
@@ -303,6 +304,25 @@ struct OmenAccountScreen: View {
         .padding(.horizontal, OmenSpacing.step16)
         .padding(.vertical, OmenSpacing.step10)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @AppStorage(OmenAppearance.storageKey) private var appearance = OmenAppearance.dark.rawValue
+
+    /// Dark (default) / Light / Match iPhone (whole-app canvas, `Account.dc.html`).
+    private var appearanceSection: some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+            sectionHeader("Appearance", trailing: nil)
+            OmenTradeTabs(
+                titles: OmenAppearance.allCases.map(\.title),
+                selectedIndex: OmenAppearance.allCases.firstIndex(of: OmenAppearance(rawValue: appearance) ?? .dark) ?? 0,
+                onSelect: { index in
+                    guard OmenAppearance.allCases.indices.contains(index) else { return }
+                    appearance = OmenAppearance.allCases[index].rawValue
+                }
+            )
+            .padding(.horizontal, OmenSpacing.step16)
+            .accessibilityLabel("Appearance")
+        }
     }
 
     @ViewBuilder private var supportSection: some View {

@@ -81,7 +81,9 @@ struct ConnectView: View {
                         espnSignInPlaceholder
                     case .choosingEspnLeague(let options):
                         espnLeaguePicker(options)
-                    case .validatingEspnConnection, .discoveringEspnLeagues:
+                    case .discoveringEspnLeagues:
+                        espnDiscoverySteps
+                    case .validatingEspnConnection:
                         busySection
                     case .espnConnected(let connection):
                         espnConnectedSection(connection)
@@ -185,9 +187,10 @@ struct ConnectView: View {
     /// says "browser" plainly: the user is about to leave the app, and being told after the
     /// fact is how a connect flow reads as a hijack.
     private func availabilityLabel(_ provider: ConnectProvider) -> String {
-        if provider == .yahoo { return "Sign in with Yahoo. Read-only access." }
-        if provider == .espn { return "A few more steps — ESPN has no read-only sign-in. We walk you through it here, on your phone." }
-        return "Username only. About ten seconds."
+        // One honest line per provider on how it connects (whole-app canvas, `Connect.dc.html`).
+        if provider == .yahoo { return "Sign in on Yahoo's page, then you're back here. Read-only." }
+        if provider == .espn { return "Sign in to ESPN inside Omen, and Omen finds your leagues." }
+        return "Just your username. No password."
     }
 
     // MARK: - Step 5 — connect
@@ -249,7 +252,7 @@ struct ConnectView: View {
     private var multiselectFooter: some View {
         VStack(alignment: .leading, spacing: OmenSpacing.step8) {
             if viewModel.selectedLeagueIDs.count > 1 {
-                Text("Omen will follow all \(viewModel.selectedLeagueIDs.count) and start on the first one. You can swipe between them on Command Center.")
+                Text("Omen will follow all \(viewModel.selectedLeagueIDs.count) and start on the first one. You can swipe between them on the Desk.")
                     .omenTextStyle(OmenTypography.bodySmall)
                     .foregroundStyle(OmenColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -385,7 +388,7 @@ struct ConnectView: View {
     private var connectedButtons: some View {
         ViewThatFits(in: .horizontal) {
             HStack(spacing: OmenSpacing.step12) {
-                OmenButton(title: "Go to Command Center", action: onConnected, variant: .primary, size: .md)
+                OmenButton(title: "Go to the Desk", action: onConnected, variant: .primary, size: .md)
                     .frame(maxWidth: .infinity)
                 OmenButton(
                     title: "Connect another league",
@@ -396,7 +399,7 @@ struct ConnectView: View {
                 .frame(maxWidth: .infinity)
             }
             VStack(alignment: .leading, spacing: OmenSpacing.step12) {
-                OmenButton(title: "Go to Command Center", action: onConnected, variant: .primary, size: .md)
+                OmenButton(title: "Go to the Desk", action: onConnected, variant: .primary, size: .md)
                     .frame(maxWidth: .infinity)
                 OmenButton(
                     title: "Connect another league",
@@ -559,6 +562,47 @@ struct ConnectView: View {
                 }
             }
         }
+    }
+
+    /// ESPN discovery as visible steps (whole-app canvas, `EspnConnect.dc.html`): what is done, what
+    /// Omen is waiting on, and ESPN's own status line while a new login is still being listed.
+    private var espnDiscoverySteps: some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step16) {
+            Text("Finding your leagues")
+                .omenTextStyle(OmenTypography.h2)
+                .foregroundStyle(OmenColor.textPrimary)
+            espnStep(done: true, title: "Signed in to ESPN", detail: "Your ESPN login stays private to Omen\u{2019}s server.")
+            espnStep(done: false, title: "Finding your football leagues", detail: viewModel.espnCheckNotice)
+        }
+        .padding(.top, OmenSpacing.step24)
+    }
+
+    private func espnStep(done: Bool, title: String, detail: String?) -> some View {
+        HStack(alignment: .top, spacing: OmenSpacing.step12) {
+            Group {
+                if done {
+                    Image(systemName: "checkmark.circle.fill").foregroundStyle(OmenColor.accent)
+                } else {
+                    ProgressView().controlSize(.small).tint(OmenColor.accent)
+                }
+            }
+            .frame(width: 22, height: 22)
+            .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: OmenSpacing.step2) {
+                Text(title)
+                    .omenTextStyle(OmenTypography.name)
+                    .foregroundStyle(OmenColor.textPrimary)
+                if let detail {
+                    Text(detail)
+                        .omenTextStyle(OmenTypography.bodySmall)
+                        .foregroundStyle(OmenColor.textSecondary)
+                        .italic(!done)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityValue(done ? "Done" : "In progress")
     }
 
     /// Inline stand-in while the cover is up, so the sheet's dismissal never reveals a blank

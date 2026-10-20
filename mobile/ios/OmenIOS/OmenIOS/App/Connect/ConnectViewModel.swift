@@ -778,7 +778,7 @@ struct ConnectConfirmation: Equatable {
         let list = leagueNames.joined(separator: ", ")
         if pending { return "Connecting \(list). Saving your choice\u{2026}" }
         if remembered {
-            return "Omen will remember all of them: \(list). Swipe between them on Command Center."
+            return "Omen will remember all of them: \(list). Swipe between them on the Desk."
         }
         return "Omen connected \(list), but could only save \(leagueNames[0]) for next time. "
             + "You can add the others again from Account."

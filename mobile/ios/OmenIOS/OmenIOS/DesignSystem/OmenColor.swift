@@ -102,7 +102,8 @@ enum OmenColor {
         static let onPlatformSleeper = invariant(0xFFFFFF)
         static let onPlatformYahoo = invariant(0xFFFFFF)
         static let onPlatformEspn = invariant(0xFFFFFF)
-        static let demoText = invariant(0x7DD3FC)
+        // Light value added with light mode: #7DD3FC is ~1.6:1 on the near-white ground.
+        static let demoText = dynamic(dark: 0x7DD3FC, light: 0x0369A1)
         static let demoTextSecondary = invariant(0xBAE6FD, alpha: 0.8)
     }
 
@@ -128,5 +129,31 @@ private extension UIColor {
             blue: CGFloat(hex & 0xFF) / 255,
             alpha: alpha
         )
+    }
+}
+
+
+/// The Appearance setting (Account › Appearance). Dark stays the default; Light is the neutral
+/// near-white ramp above, never beige (founder, 2026-10-19); Match iPhone follows the system.
+enum OmenAppearance: String, CaseIterable {
+    case dark, light, system
+
+    static let storageKey = "omen.appearance"
+
+    var title: String {
+        switch self {
+        case .dark: return "Dark"
+        case .light: return "Light"
+        case .system: return "Match iPhone"
+        }
+    }
+
+    /// Nil hands the choice to the system.
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .dark: return .dark
+        case .light: return .light
+        case .system: return nil
+        }
     }
 }

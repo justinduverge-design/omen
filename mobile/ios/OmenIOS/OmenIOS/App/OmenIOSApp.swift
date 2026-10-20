@@ -63,6 +63,8 @@ struct OmenIOSApp: App {
         _authViewModel = StateObject(wrappedValue: viewModel)
     }
 
+    @AppStorage(OmenAppearance.storageKey) private var appearance = OmenAppearance.dark.rawValue
+
     var body: some Scene {
         WindowGroup {
             // Screenshot short-circuit — when the native-visual-evidence CI workflow
@@ -77,6 +79,7 @@ struct OmenIOSApp: App {
                 ScreenshotScenarioHost(scenarioKey: scenarioKey)
             } else {
                 AppShellView()
+                    .preferredColorScheme((OmenAppearance(rawValue: appearance) ?? .dark).colorScheme)
                     .environmentObject(sessionManager)
                     .environmentObject(authViewModel)
                     .environment(\.omenEnvironment, .fromBundle)

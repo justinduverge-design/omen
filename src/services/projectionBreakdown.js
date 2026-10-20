@@ -92,6 +92,7 @@ function round2(value) {
 }
 
 function providerLabel(provider) {
+  if (provider === "yahoo") return "Yahoo (Omen-scored)";
   return PROVIDER_LABELS[provider] || "The provider";
 }
 
@@ -312,11 +313,27 @@ function rosterProjectionBreakdowns({ platform, roster, sleeper = null, espn = n
         key,
         espnProjectionBreakdown({ projection, rules: espn?.rules, providerPoints: player.projected_points }),
       );
+    } else if (platform === "yahoo") {
+      out.set(key, yahooProjectionBreakdown(player));
     } else {
       out.set(key, unavailableBreakdown(platform, "no_stat_line"));
     }
   }
   return out;
+}
+
+/**
+ * Yahoo projects nothing itself; Omen scores Sleeper's projected stat line with this Yahoo league's
+ * rules (`yahooProjections.js`), which records each stat's part. Same reconcile as Sleeper and ESPN.
+ */
+function yahooProjectionBreakdown(player) {
+  const parts = Array.isArray(player?.projection_parts) ? player.projection_parts : [];
+  if (!parts.length) return unavailableBreakdown("yahoo", "no_stat_line");
+  return reconcile({
+    provider: "yahoo",
+    parts: parts.map((part) => ({ ...part, label: SLEEPER_LABELS[part.stat] || part.stat.replace(/_/g, " ") })),
+    providerPoints: finite(player.projected_points),
+  });
 }
 
 /**
@@ -327,7 +344,28 @@ function rosterProjectionBreakdowns({ platform, roster, sleeper = null, espn = n
  * `loadSleeperInputs({ leagueId, season, week })` returns `{ statLines, scoringSettings }`.
  * A thrown loader is the caller's to absorb: the field is then simply absent.
  */
-async function attachOmenProjectionBreakdown({ response, loadSleeperInputs } = {}) {
+/** The ESPN or Yahoo breakdown for the call's primary player. Throws on a failed read; the caller names it. */
+async function providerBreakdown({ platform, response, primary, loadEspnInputs, loadYahooPlayer }) {
+  if (platform === "espn") {
+    // Same read Start/Sit makes: the week's projected stat rows and this league's own rules.
+    const { projections, rules } = await loadEspnInputs({
+      leagueId: response.league?.id ?? null,
+      week: Number(response.league?.week),
+    });
+    const projection = projections instanceof Map ? projections.get(primary.id) : projections?.[primary.id];
+    return espnProjectionBreakdown({ projection, rules, providerPoints: primary.projected_points });
+  }
+  // Yahoo projects nothing; Omen scores Sleeper's stat line with this league's rules, one part per stat.
+  const scored = await loadYahooPlayer({
+    leagueId: response.league?.id ?? null,
+    season: Number(response.league?.season),
+    week: Number(response.league?.week),
+    primary,
+  });
+  return yahooProjectionBreakdown(scored);
+}
+
+async function attachOmenProjectionBreakdown({ response, loadSleeperInputs, loadEspnInputs, loadYahooPlayer } = {}) {
   if (!response || response.state !== "success") return response;
   const primary = response.recommendation?.primary_player;
   if (!primary?.id) return response;
@@ -342,6 +380,16 @@ async function attachOmenProjectionBreakdown({ response, loadSleeperInputs } = {
       week: Number(response.league?.week),
     });
     breakdown = sleeperProjectionBreakdown({ statLine: id == null ? null : statLines?.[id], scoringSettings });
+  } else if (
+    (platform === "espn" && typeof loadEspnInputs === "function") ||
+    (platform === "yahoo" && typeof loadYahooPlayer === "function")
+  ) {
+    try {
+      breakdown = await providerBreakdown({ platform, response, primary, loadEspnInputs, loadYahooPlayer });
+    } catch {
+      // A provider read that fails costs this breakdown only, named rather than absent.
+      breakdown = unavailableBreakdown(platform, "no_stat_line");
+    }
   } else {
     breakdown = unavailableBreakdown(platform, platform === "yahoo" ? "no_stat_line" : "not_read_here");
   }

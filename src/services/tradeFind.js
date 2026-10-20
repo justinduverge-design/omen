@@ -51,6 +51,9 @@ const {
   needWeightForPosition,
 } = require("./tradeLeagueContext");
 
+// Positions a FLEX slot can hold. Reported beside `required` so a client never reads a shared slot as one position's.
+const FLEX_ELIGIBLE_POSITIONS = new Set(["RB", "WR", "TE"]);
+
 // Hard cap on opponent rosters considered per invocation. Chosen well above
 // any realistic redraft league (8-16 teams) so it only engages for a
 // pathological or dynasty-scale league — the same posture as
@@ -102,11 +105,20 @@ function buildTeamNeedProfile({ team, rosterPositions = [] } = {}) {
   for (const position of Object.keys(DEFAULT_STARTERS)) {
     if (!(position in effective)) continue;
     const weight = needWeightForPosition(position, { depth, effective });
+    // `required` counts only the league's dedicated slots for this position. FLEX (RB/WR/TE) and
+    // SUPERFLEX (QB/RB/WR/TE) are shared slots, so they are not owed to any one position: rounding
+    // the fractional flex share up made a 1-TE + FLEX league "need 2 TEs" (founder, 2026-10-19).
+    // The flex share still shapes `weight`, which is where demand belongs.
+    const dedicated = slotShape.starters[position] || 0;
     needs[position] = {
       have: depth[position] || 0,
-      required: effective[position] != null ? Math.ceil(effective[position]) : null,
+      required: effective[position] != null ? dedicated : null,
       weight,
       status: needStatus(weight),
+      ...(position === "QB" ? { superflex_slots: slotShape.superFlex } : {}),
+      ...(FLEX_ELIGIBLE_POSITIONS.has(position)
+        ? { flex_slots: slotShape.flex, superflex_slots: slotShape.superFlex }
+        : {}),
     };
   }
 

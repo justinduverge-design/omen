@@ -27,6 +27,8 @@ final class CommandCenterViewModel: ObservableObject {
     /// Slice E. `nil` means "the Ledger request has not produced an answer yet, so keep the
     /// shell-derived default" — the same never-regress rule slice C uses for the context strip.
     @Published private(set) var ledger: OmenLedgerPreviewState?
+    /// The contested record, the Ledger's headline ("11 of 14 close calls held up.").
+    @Published private(set) var ledgerHeadline: String?
 
     /// The whole `waiver-analysis.v1` payload, kept rather than reduced.
     ///
@@ -329,6 +331,7 @@ final class CommandCenterViewModel: ObservableObject {
         switch await movesRepository.fetchMoves(accessToken: accessToken, platform: platform, leagueId: leagueId) {
         case .success(let history):
             ledger = history.ledgerState
+            ledgerHeadline = history.contestedHeadline
         case .failure(let error):
             // A 401 here is not routed to re-auth: the summary call that just succeeded used
             // the same token, so this is far more likely a route-level problem than a dead

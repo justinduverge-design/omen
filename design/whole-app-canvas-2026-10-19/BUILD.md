@@ -14,6 +14,58 @@ The canvas is a proposal until the founder approves it, and these frames have be
 - **Sign in:** Apple, Google, Discord and email (passkeys keep their existing offer sheet).
 - **Leftovers:** any component on a live screen with no frame here is removed. List each removal in the PR.
 
+## Sight and the warehouse on every screen (founder, 2026-10-19: "they were made for this")
+
+Omen's own read (wire key `sight`, always shown as **Omen's read**, never "Sight") and the warehouse's
+evidence are what make Omen more than a provider mirror. Every screen that shows a player shows them.
+
+- **Server side, already sent:**
+  - `sightEnrichment.js` attaches `sight` (points, grade, drivers, authority receipt, crosswind) to every
+    player object in Start/Sit, Waivers, Trade Find/Compare and League rosters.
+  - The decision brief carries the authority receipt and football-intelligence signals.
+- **Shared app pieces:**
+  - Decode `sight` once, as `OmenDecision.Player.OmenRead`, and reuse it in every contract.
+  - One `OmenReadTag` component: Omen's points, then the provider's points, then a crosswind mark when
+    the gap clears the threshold.
+- **Where it shows:**
+  - **Omen call** and **argument:** the Leading read card (already built), crosswind, drivers as
+    portents, and the receipt from `authority`.
+  - **Waivers:** each add and drop shows Omen's read beside the provider projection. "Omen rates
+    strong" is the reason a drop is refused.
+  - **Trade Find and verdict:** each player on both sides shows Omen's read. The lineup gain says
+    which read led.
+  - **League Needs:** "who needs what you have" ranks by Omen's read.
+  - **Warehouse evidence:** usage share, role change, injuries, Vegas and weather appear as portents
+    wherever the server sends them. Missing evidence is fog, never zero.
+- **Omen screen, founder notes (2026-10-19), to apply when that screen is built:**
+  - **Real numbers, not only projections.** Each player in the call shows actual points this season,
+    the last few games, and usage (snaps, targets, carries, red-zone share) from the warehouse,
+    beside the projections.
+  - **"What moved this call" is Omen's read.** Show the `sight` drivers as named factors with their
+    point effect (role change, matchup, Vegas, weather). This is what the read and the warehouse are for.
+  - **"What Omen couldn't read" only when it is true.** Audit every limitation line against today's
+    reads. Remove those the warehouse now covers, and show a fog line only for data actually missing
+    in this response.
+- **Rule:** the app never picks a winner itself. The server's `authority.state` decides
+  `provider_leads`, `omen_leads` or `unresolved_tie`.
+
+## Provider parity (founder, 2026-10-19: "everything should work with Yahoo, Sleeper or ESPN")
+
+No screen ships until all three providers get the same thing. Audited 2026-10-19 by searching every
+route and service for Sleeper-only branches.
+
+| Capability | Sleeper | ESPN | Yahoo |
+|---|---|---|---|
+| Rosters, lineup slots, FLEX/SUPERFLEX | yes | yes | yes |
+| Omen's read, real stats, Omen Grades | yes | yes | yes (one warehouse index) |
+| Personalized trade analysis | yes | **yes, as of 2026-10-19** | **yes, as of 2026-10-19** |
+| Start/Sit projection breakdown | yes | yes | **yes, as of 2026-10-19** (Omen-scored) |
+| Omen call projection breakdown | yes | **yes, as of 2026-10-19** | **yes, as of 2026-10-19** (Omen-scored) |
+| League activity | yes | yes, names via Sleeper ids | yes |
+| Pre-draft state | yes | n/a (provider has no such status) | n/a |
+
+No open parity gaps found in this audit.
+
 ## Tokens
 
 The same roles in both modes. Map them onto `DesignSystem/OmenColor.swift` by role, and add the light values. Never put a hex value in a screen.
@@ -47,9 +99,9 @@ The same roles in both modes. Map them onto `DesignSystem/OmenColor.swift` by ro
 | `OmenEvidence` | `OmenEvidenceScreen` | same brief: authority receipt, drivers, crosswind, fog | Sections in lock-v2 order. Never label anything "Sight". |
 | `OmenHold` | `OmenDecisionScreen` hold and no-move states | brief with no recommendation, closest alternatives | Confident hold. Shows the closest calls it passed on and when Omen looks again. |
 | `TradeMode` | `OmenTradeScreen` | `trade-capabilities.v1`, `trade-saved-queue.v1` | Three entries: Find, Build, Judge an offer (the old "Type"). Saved trades with a stale-roster state. |
-| `TradeFind` | `OmenTradeFindReviewScreen` | `trade-find.v1` (`search_funnel`, `empty_reason`) | Both sides, then both lineups' gain per week, then the catch, then the funnel line. Empty: one message per `empty_reason` (states board). |
+| `TradeFind` | `OmenTradeFindReviewScreen` | `trade-find.v1` (`search_funnel`, `empty_reason`) | Both sides with Omen's read per player, then both lineups' gain per week, then the funnel line. Empty: one message per `empty_reason` (states board). Built 2026-10-19, except "the catch", which waits on a server field. |
 | `TradeBuild` | `OmenTradeBuildScreen`, `OmenTradeRosterScreen`, `TradePartnerPicker` | roster route, `players-search.v1` | Send and get trays at the top; a roster segmented by side; locked players show disabled with "Locked · game started". |
-| `TradeVerdict` | `OmenTradeVerdictScreen`, `OmenTradeShareScreen` | `trade-compare.v2`, `trade-share.v1` | Verdict sentence, both sides × three horizons (week, next 4, season), the catch, then propose and share. |
+| `TradeVerdict` | `OmenTradeVerdictScreen`, `OmenTradeShareScreen` | `trade-compare.v2`, `trade-share.v1` | Verdict sentence, both sides with Omen's read per player, then propose and share. **Correction (2026-10-19):** the "three horizons" on this frame do not exist as forward projections. The server's horizons (`tradeHorizons.js`) are after-the-fact grades and belong to the Ledger. A forward week / next-4 / season split needs a new compare field first. "The catch" is not a server field either; until it is, the existing context lines stand in. |
 | `League` | `OmenLeagueScreen` / `OmenLeagueTableScreen` (`OmenScoutScreens.swift`) | `league-overview.v1`, `league-transactions.v1` | Headline from standings. Table / Needs / Activity segments, a playoff line, "who needs what you have" linking to Find. |
 | `Waivers` | `OmenLeagueWireScreen` | `waiver-analysis.v2` | Verdict-style headline, add/drop swap, bid when FAAB, why, the never-suggest rule at the foot. |
 | `Ledger` | `OmenLedgerScreen`, `OmenLedgerDetailScreen` | `moves-history.v2`, `move-detail.v1` | Contested record headline and a week strip. Three provenances look different: checked, your word, unknown. Trades show three horizons. |

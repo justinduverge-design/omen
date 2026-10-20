@@ -110,6 +110,9 @@ struct OmenScoutCutLine: Equatable {
 struct OmenScoutTableState: Equatable {
     /// "Week 7 · 12 teams"
     let weekLabel: String
+    /// "2nd of 12 · top 6 make the playoffs": your standing, the canvas's League headline. Nil when
+    /// standings were not read.
+    var standingLine: String? = nil
     /// The `.hatch` banner above the sections. Present only when something screen-wide is true —
     /// on `LeagueDegraded`, that the provider is partial. Absent on the nominal pass: a banner
     /// that always shows teaches people to stop reading it.
@@ -318,9 +321,14 @@ struct OmenLeagueTableScreen: View {
                 Text(state.weekLabel)
                     .omenTextStyle(OmenTypography.micro)
                     .foregroundStyle(OmenColor.accent)
-                Text("The Table")
+                Text("League")
                     .omenTextStyle(OmenTypography.screenTitle)
                     .foregroundStyle(OmenColor.textPrimary)
+                if let standing = state.standingLine {
+                    Text(standing)
+                        .omenTextStyle(OmenTypography.body)
+                        .foregroundStyle(OmenColor.textSecondary)
+                }
             }
             Spacer(minLength: OmenSpacing.step8)
             OmenScreenHeaderControls(
@@ -1326,6 +1334,9 @@ extension OmenScoutTableState {
     ) -> OmenScoutTableState {
         OmenScoutTableState(
             weekLabel: weekLabel(overview),
+            standingLine: overview.standings.playoffPicture.map { picture in
+                [picture.line, picture.cutLineNote].compactMap { $0 }.joined(separator: " \u{00B7} ")
+            },
             notice: notice,
             strip: strip(overview),
             table: table(overview),
@@ -1584,7 +1595,7 @@ extension OmenScoutWireState {
         if let add = analysis.bestMove?.add, let name = add.name, !name.isEmpty {
             rows.append(OmenScoutWireRow(
                 title: name,
-                detail: [add.position, add.team].compactMap { $0 }.joined(separator: " \u{00B7} "),
+                detail: add.metaWithNumbers,
                 status: .live
             ))
         }
@@ -1592,7 +1603,7 @@ extension OmenScoutWireState {
             guard let player = alternative.player, let name = player.name, !name.isEmpty else { continue }
             rows.append(OmenScoutWireRow(
                 title: name,
-                detail: [player.position, player.team].compactMap { $0 }.joined(separator: " \u{00B7} "),
+                detail: player.metaWithNumbers,
                 status: .live
             ))
         }
@@ -1626,10 +1637,10 @@ private extension OmenScoutWireMove {
         guard let add = bestMove.add, let name = add.name, !name.isEmpty else { return nil }
         self.init(
             addName: name,
-            addMeta: [add.position, add.team].compactMap { $0 }.joined(separator: " \u{00B7} "),
+            addMeta: add.metaWithNumbers,
             addPoints: add.projectedPoints.map { String(format: "%.1f", $0) },
             dropName: bestMove.drop?.name,
-            dropMeta: [bestMove.drop?.position, bestMove.drop?.team].compactMap { $0 }.joined(separator: " \u{00B7} ").nonEmptyOrNil,
+            dropMeta: bestMove.drop?.metaWithNumbers.nonEmptyOrNil,
             dropPoints: bestMove.drop?.projectedPoints.map { String(format: "%.1f", $0) },
             reasoning: bestMove.whyNow?.nonEmptyOrNil ?? "Omen found this as the strongest available roster move."
         )
@@ -1639,7 +1650,7 @@ private extension OmenScoutWireMove {
         guard let player = alternative.player, let name = player.name, !name.isEmpty else { return nil }
         self.init(
             addName: name,
-            addMeta: [player.position, player.team].compactMap { $0 }.joined(separator: " \u{00B7} "),
+            addMeta: player.metaWithNumbers,
             addPoints: player.projectedPoints.map { String(format: "%.1f", $0) },
             dropName: nil,
             dropMeta: nil,
@@ -1673,21 +1684,39 @@ extension WaiverAnalysis {
         }
         return .read(OmenDeskWaiverMove(
             addName: name,
-            addMeta: [add.position, add.team].compactMap { $0 }.joined(separator: " \u{00B7} "),
+            addMeta: add.metaWithNumbers,
             addPoints: add.projectedPoints.map { String(format: "%.1f", $0) },
             dropName: best.drop?.name,
-            dropMeta: [best.drop?.position, best.drop?.team].compactMap { $0 }.joined(separator: " \u{00B7} ").scoutNonEmpty,
+            dropMeta: best.drop?.metaWithNumbers.scoutNonEmpty,
             dropPoints: best.drop?.projectedPoints.map { String(format: "%.1f", $0) },
             reasoning: best.whyNow?.scoutNonEmpty ?? "Omen found this as the strongest available roster move.",
             // `waiver-analysis.v1` carries no confidence band and no risk. These were hardcoded
             // to `.confident` / `.low` for every claim — a fabricated read on a live screen.
             band: nil,
             risk: nil,
-            riskReason: nil
+            riskReason: nil,
+            addOmenPoints: add.omenRead?.points.map { String(format: "%.1f", $0) },
+            dropOmenPoints: best.drop?.omenRead?.points.map { String(format: "%.1f", $0) }
         ))
     }
 }
 
 private extension String {
     var scoutNonEmpty: String? { isEmpty ? nil : self }
+}
+
+
+extension WaiverAnalysis.Player {
+    /// "RB · TEN · 12.4 PPG · RB Omen Grade 61.2". Real numbers and Omen's grade beside the
+    /// position, the same on Sleeper, ESPN and Yahoo; a missing number is left out, never zero.
+    var metaWithNumbers: String {
+        [
+            position,
+            team,
+            stats?.pointsPerGame.map { String(format: "%.1f PPG", $0) },
+            rating?.rating.map { "\(rating?.title ?? OmenPlayerRating.familyName) \(String(format: "%.1f", $0))" },
+        ]
+        .compactMap { $0 }
+        .joined(separator: " \u{00B7} ")
+    }
 }

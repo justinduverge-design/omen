@@ -1307,6 +1307,71 @@ function buildLiveMvpSignals({ connectedPlatforms = [], platform = "yahoo" } = {
   };
 }
 
+/**
+ * Replace the first-MVP placeholder signals with what the call actually used, once Omen's read,
+ * the warehouse stats and the Omen Grades are attached to the call's players (founder, 2026-10-19:
+ * "what moved this call? that's what Sight is"). Placeholders for inputs this call never needed
+ * (waivers, kickoff/TV, travel) are removed, so nothing shows as "couldn't read" that was never
+ * asked for. Real reads become live signals with the numbers in their statement.
+ */
+const STALE_MVP_SIGNALS = ["waivers", "travel_home_away", "game_time_tv"];
+
+function refreshEvidenceSignals(body) {
+  const rec = body?.recommendation;
+  if (!rec || !body.signals || typeof body.signals !== "object") return body;
+  const players = [rec.primary_player, rec.comparison_player].filter((p) => p && typeof p === "object");
+  if (!players.length) return body;
+  const fmt = (n) => (Number.isFinite(Number(n)) ? Number(n).toFixed(1) : null);
+
+  // Placeholders go only when real evidence replaces them (Sight on and attached), never a live
+  // signal, and never the input the call itself used (waivers on a waiver call).
+  const hasEvidence = players.some((p) => p.sight || p.stats || p.rating);
+  if (hasEvidence) {
+    const callType = String(rec.type || "");
+    for (const key of STALE_MVP_SIGNALS) {
+      if (body.signals[key]?.status === "live") continue;
+      if (key === "waivers" && callType.includes("waiver")) continue;
+      delete body.signals[key];
+    }
+    if (body.signals.weather && body.signals.weather.status !== "live") delete body.signals.weather;
+    if (body.signals.matchup_dvp && body.signals.matchup_dvp.status !== "live") delete body.signals.matchup_dvp;
+  }
+
+  const reads = players
+    .filter((p) => fmt(p.sight?.sight_points))
+    .map(
+      (p) =>
+        `${p.name}: Omen ${fmt(p.sight.sight_points)}${fmt(p.projected_points) ? ` vs ${fmt(p.projected_points)} projected` : ""}`,
+    );
+  if (reads.length) body.signals.omen_read = signal("live", true, "omen_sight", `${reads.join("; ")}.`);
+
+  const drivers = [];
+  for (const p of players) {
+    for (const d of Array.isArray(p.sight?.drivers) ? p.sight.drivers : []) {
+      const pts = Number(d?.points);
+      if (!d?.name || !Number.isFinite(pts) || Math.abs(pts) < 0.1) continue;
+      drivers.push(`${p.name}: ${String(d.name).replace(/_/g, " ")} ${pts > 0 ? "+" : ""}${pts.toFixed(1)}`);
+    }
+  }
+  if (drivers.length)
+    body.signals.what_moved_it = signal("live", true, "omen_sight_drivers", `${drivers.slice(0, 4).join("; ")}.`);
+
+  const stats = players
+    .filter((p) => fmt(p.stats?.points_per_game))
+    .map((p) => `${p.name}: ${fmt(p.stats.points_per_game)} PPG over ${p.stats.games} games`);
+  if (stats.length) body.signals.season_stats = signal("live", true, "nflverse_weekly_stats", `${stats.join("; ")}.`);
+
+  const grades = players
+    .filter((p) => fmt(p.rating?.rating))
+    .map((p) => `${p.name}: ${fmt(p.rating.rating)} Omen Grade`);
+  if (grades.length) body.signals.omen_grade = signal("live", true, "omen_position_grade", `${grades.join("; ")}.`);
+
+  const injuries = players.filter((p) => p.sight?.injury_status).map((p) => `${p.name}: ${p.sight.injury_status}`);
+  if (injuries.length)
+    body.signals.injuries = signal("live", true, "warehouse_injury_reports", `${injuries.join("; ")}.`);
+  return body;
+}
+
 // Tagged evidence rows for a lineup swap, from fields the swap already carries. The statements
 // quote those fields and nothing else; they feed buildEvidenceWhy.
 function swapEvidenceRows({ swap, startPlayer, sitPlayer }) {
@@ -2426,6 +2491,7 @@ module.exports = {
   buildOmenMvpMoveResponse,
   buildSignals,
   buildLiveMvpSignals,
+  refreshEvidenceSignals,
   offSeasonMvpResponse,
   preDraftMvpResponse,
   mapWaiverPickupToMvpMove,

@@ -50,9 +50,17 @@ function collectPlayers(root) {
   return found;
 }
 
+// The stats and grade reads are decoration beside Omen's read: kept short so they never lengthen a call.
+const EXTRA_READ_BUDGET_MS = 600;
+
 function createSightEnricher({ getRuntime, env = process.env, budgetMs = DEFAULT_BUDGET_MS, log = null } = {}) {
   /** Adds `sight` to every player object found in `payload` (any response shape). Mutates and returns it. */
-  return async function attachSight(payload) {
+  /**
+   * `compact: true` keeps only what a list row draws (points, grade, confidence, position and the
+   * crosswind gap), for whole-league payloads like the trade roster, where the full receipt on
+   * every player made the response several times larger than the rosters themselves.
+   */
+  return async function attachSight(payload, { compact = false } = {}) {
     const players = payload;
     // A player that already carries Sight (attached before a decision) is not read twice.
     const list = collectPlayers(payload).filter((player) => !player.sight);
@@ -71,6 +79,16 @@ function createSightEnricher({ getRuntime, env = process.env, budgetMs = DEFAULT
       // Player envelopes are not required to carry position before enrichment; ask for the six bounded
       // fantasy cohorts so a resolved Sight block can always receive the matching receipt.
       const positions = ["QB", "RB", "WR", "TE", "K", "DEF"];
+      // Real numbers and Omen Grades run beside the read, each on its own short clock, OUTSIDE the
+      // Sight budget: a slow or failed stats read costs the numbers only, never Omen's read.
+      const extra = (read) =>
+        typeof read !== "function"
+          ? Promise.resolve(new Map())
+          : withinLatencyBudget("sight_extra", Math.min(budgetMs, EXTRA_READ_BUDGET_MS), () =>
+              read.call(repo, { playerKeys: keys }),
+            ).catch(() => new Map());
+      const statsRead = extra(repo.readStats);
+      const ratingsRead = extra(repo.readRatings);
       const { byKey, byPosition } = await withinLatencyBudget("sight_read", budgetMs, async () => {
         const [reads, authority] = await Promise.all([
           repo.readSight({ playerKeys: keys, version: settings.version, hints }),
@@ -80,6 +98,13 @@ function createSightEnricher({ getRuntime, env = process.env, budgetMs = DEFAULT
         ]);
         return { byKey: reads, byPosition: authority };
       });
+      const [stats, ratings] = await Promise.all([statsRead, ratingsRead]);
+      for (const player of list) {
+        const line = stats.get(keyOf(player));
+        if (line) player.stats = line;
+        const rating = ratings.get(keyOf(player));
+        if (rating) player.rating = rating;
+      }
       for (const player of list) {
         const block = byKey.get(keyOf(player));
         if (block) {
@@ -102,7 +127,16 @@ function createSightEnricher({ getRuntime, env = process.env, budgetMs = DEFAULT
                   drivers,
                 }
               : null;
-          player.sight = { ...block, authority, crosswind };
+          player.sight = compact
+            ? {
+                version: block.version,
+                position: block.position,
+                sight_points: block.sight_points,
+                grade: block.grade,
+                confidence: block.confidence,
+                crosswind: crosswind ? { gap_points: crosswind.gap_points } : null,
+              }
+            : { ...block, authority, crosswind };
         }
       }
     } catch (error) {

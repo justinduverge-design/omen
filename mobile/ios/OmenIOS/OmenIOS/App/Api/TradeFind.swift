@@ -21,6 +21,11 @@ struct TradeFindPlayer: Decodable, Equatable {
     let team: String?
     let playerKey: String?
     let projectedPoints: Double?
+    /// Omen's read (wire key `sight`), attached by `sightEnrichment.js`. Lenient: a drifting
+    /// block costs the read, never the candidate.
+    let omenRead: OmenDecisionEnvelope.OmenRead?
+    let stats: OmenPlayerStats?
+    let rating: OmenPlayerRating?
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -29,12 +34,32 @@ struct TradeFindPlayer: Decodable, Equatable {
         team = try c.decodeIfPresent(String.self, forKey: .team)
         playerKey = try c.decodeIfPresent(String.self, forKey: .playerKey)
         projectedPoints = try c.decodeIfPresent(Double.self, forKey: .projectedPoints)
+        omenRead = try? c.decodeIfPresent(OmenDecisionEnvelope.OmenRead.self, forKey: .omenRead)
+        stats = try? c.decodeIfPresent(OmenPlayerStats.self, forKey: .stats)
+        rating = try? c.decodeIfPresent(OmenPlayerRating.self, forKey: .rating)
+    }
+
+    /// "30.7 PPG, RB Omen Grade 73.5": what the player has done and how Omen grades him. Nil when
+    /// the warehouse has neither for him.
+    var numbersShort: String? {
+        let parts = [
+            stats?.pointsPerGame.map { String(format: "%.1f PPG", $0) },
+            rating?.rating.map { "\(rating?.title ?? OmenPlayerRating.familyName) \(String(format: "%.1f", $0))" },
+        ].compactMap { $0 }
+        return parts.isEmpty ? nil : parts.joined(separator: ", ")
+    }
+
+    /// "Omen 12.8", or nil when Omen has no read for this player.
+    var omenPointsLabel: String? {
+        omenRead?.points.map { "Omen \(String(format: "%.1f", $0))" }
     }
 
     enum CodingKeys: String, CodingKey {
         case name, position, team
         case playerKey = "player_key"
         case projectedPoints = "projected_points"
+        case omenRead = "sight"
+        case stats, rating
     }
 
     /// "WR · MIA", position alone, team alone, or "Unranked" — never "WR · undefined". Mirrors
@@ -206,6 +231,28 @@ struct TradeFindResponse: Decodable, Equatable {
     /// `no_tradeable_players`, `no_readable_opponents`, `search_budget_exceeded`. Nil when there are
     /// candidates or the server predates the field.
     let emptyReason: String?
+    /// `search_funnel`: how far the search narrowed. Nil from servers that predate it.
+    let searchFunnel: SearchFunnel?
+
+    struct SearchFunnel: Decodable, Equatable {
+        let pairsEvaluated: Int?
+        let mutualGain: Int?
+        let passedFairness: Int?
+
+        enum CodingKeys: String, CodingKey {
+            case pairsEvaluated = "pairs_evaluated"
+            case mutualGain = "mutual_gain"
+            case passedFairness = "passed_fairness"
+        }
+    }
+
+    /// "Read 11 rosters · 340 pairs checked · 2 fair for both sides" (whole-app canvas, `TradeFind`).
+    var funnelLabel: String? {
+        guard let funnel = searchFunnel, let pairs = funnel.pairsEvaluated else { return nil }
+        var parts = ["Read \(teamsConsidered) rosters", "\(pairs) pairs checked"]
+        if let fair = funnel.passedFairness { parts.append("\(fair) fair for both sides") }
+        return parts.joined(separator: " \u{00B7} ")
+    }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -220,6 +267,7 @@ struct TradeFindResponse: Decodable, Equatable {
         budgetExceeded = try c.decodeIfPresent(Bool.self, forKey: .budgetExceeded) ?? false
         candidates = try c.decodeIfPresent([TradeFindCandidate].self, forKey: .candidates) ?? []
         emptyReason = try c.decodeIfPresent(String.self, forKey: .emptyReason)
+        searchFunnel = try? c.decodeIfPresent(SearchFunnel.self, forKey: .searchFunnel)
 
         if let bounds = try c.decodeIfPresent(Bounds.self, forKey: .bounds) {
             teamsConsidered = bounds.teamsConsidered
@@ -253,6 +301,7 @@ struct TradeFindResponse: Decodable, Equatable {
         case degradedTeams = "degraded_teams"
         case budgetExceeded = "budget_exceeded"
         case emptyReason = "empty_reason"
+        case searchFunnel = "search_funnel"
         case candidates
     }
 
@@ -471,7 +520,10 @@ final class LeagueTradeTargetsViewModel: ObservableObject {
 
     static func read(for candidate: TradeFindCandidate) -> String {
         func pts(_ value: Double?) -> String { value.map { String(format: "%+.1f", $0) } ?? "n/a" }
-        return "\(candidate.receive.name) for \(candidate.give.name): \(pts(candidate.userLineupDelta)) to your lineup, \(pts(candidate.opponentLineupDelta)) to theirs."
+        func named(_ player: TradeFindPlayer) -> String {
+            player.numbersShort.map { "\(player.name) (\($0))" } ?? player.name
+        }
+        return "\(named(candidate.receive)) for \(named(candidate.give)): \(pts(candidate.userLineupDelta)) to your lineup, \(pts(candidate.opponentLineupDelta)) to theirs."
     }
 
     private static func unavailableSentence(reason: String?) -> String {

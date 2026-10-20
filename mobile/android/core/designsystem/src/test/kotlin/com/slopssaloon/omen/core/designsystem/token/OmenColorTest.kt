@@ -59,7 +59,9 @@ class OmenColorTest {
         assertEquals(OmenDarkColors.data.platformSleeper, OmenLightColors.data.platformSleeper)
         assertEquals(OmenDarkColors.data.platformYahoo, OmenLightColors.data.platformYahoo)
         assertEquals(OmenDarkColors.data.platformEspn, OmenLightColors.data.platformEspn)
-        assertEquals(OmenDarkColors.data.demoText, OmenLightColors.data.demoText)
+        // Demo text is themed since light mode (2026-10-19): the sky blue is ~1.6:1 on the near-white ground.
+        assertEquals(Color(0xFF7DD3FC), OmenDarkColors.data.demoText)
+        assertEquals(Color(0xFF0369A1), OmenLightColors.data.demoText)
     }
 
     @Test

@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // MARK: - T3, "reviewing what Omen found"
 //
@@ -184,6 +185,17 @@ struct OmenTradeFindReviewScreen: View {
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, OmenSpacing.step16)
                 .padding(.top, OmenSpacing.step8)
+
+            // How far the search narrowed: the honest size of "we looked".
+            if let funnel = viewModel.response?.funnelLabel {
+                Text(funnel)
+                    .omenTextStyle(OmenTypography.bodySmall)
+                    .foregroundStyle(OmenColor.textTertiary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, OmenSpacing.step16)
+                    .padding(.top, OmenSpacing.step8)
+            }
         }
     }
 
@@ -459,7 +471,7 @@ private struct OmenTradeFindCandidateCard: View {
         .rotationEffect(.degrees(Double(dragTranslationWidth / 24)))
         // Run beside the parent ScrollView and claim motion only after horizontal intent is
         // clear. A vertical read of the evidence should never twist or drag the card.
-        .simultaneousGesture(dragGesture)
+        .modifier(OmenFindSwipe(dragGesture: dragGesture, onChanged: swipeChanged, onEnded: swipeEnded))
         // Deliberately NOT a single combined accessibility element: the contract requires
         // VoiceOver to read the card "in document order (opponent, need badges, send/receive
         // rows, reasoning, evidence)" rather than one collapsed summary, so each subview below
@@ -485,13 +497,7 @@ private struct OmenTradeFindCandidateCard: View {
                     dragIntent = dx > dy * 1.25 ? .horizontal : .vertical
                 }
                 guard dragIntent == .horizontal else { return }
-                dragTranslationWidth = value.translation.width
-                let direction = value.translation.width <= -Self.commitThreshold ? -1
-                    : value.translation.width >= Self.commitThreshold ? 1 : 0
-                if direction != 0, direction != announcedCommitDirection {
-                    haptics.play(.selection)
-                }
-                announcedCommitDirection = direction
+                swipeChanged(value.translation.width)
             }
             .onEnded { value in
                 guard dragIntent == .horizontal else {
@@ -500,22 +506,34 @@ private struct OmenTradeFindCandidateCard: View {
                     announcedCommitDirection = 0
                     return
                 }
-                let translation = value.translation.width
-                let animation: Animation? = reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8)
-                if translation <= -Self.commitThreshold {
-                    haptics.play(.mediumImpact)
-                    withAnimation(animation) { dragTranslationWidth = 0 }
-                    onPass()
-                } else if translation >= Self.commitThreshold {
-                    haptics.play(.mediumImpact)
-                    withAnimation(animation) { dragTranslationWidth = 0 }
-                    onSave()
-                } else {
-                    withAnimation(animation) { dragTranslationWidth = 0 }
-                }
-                announcedCommitDirection = 0
-                dragIntent = .undecided
+                swipeEnded(value.translation.width)
             }
+    }
+
+    private func swipeChanged(_ width: CGFloat) {
+        dragTranslationWidth = width
+        let direction = width <= -Self.commitThreshold ? -1 : width >= Self.commitThreshold ? 1 : 0
+        if direction != 0, direction != announcedCommitDirection {
+            haptics.play(.selection)
+        }
+        announcedCommitDirection = direction
+    }
+
+    private func swipeEnded(_ translation: CGFloat) {
+        let animation: Animation? = reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8)
+        if translation <= -Self.commitThreshold {
+            haptics.play(.mediumImpact)
+            withAnimation(animation) { dragTranslationWidth = 0 }
+            onPass()
+        } else if translation >= Self.commitThreshold {
+            haptics.play(.mediumImpact)
+            withAnimation(animation) { dragTranslationWidth = 0 }
+            onSave()
+        } else {
+            withAnimation(animation) { dragTranslationWidth = 0 }
+        }
+        announcedCommitDirection = 0
+        dragIntent = .undecided
     }
 
     private var header: some View {
@@ -588,17 +606,37 @@ private struct OmenTradeFindCandidateCard: View {
             VStack(alignment: .leading, spacing: OmenSpacing.step2) {
                 Text(player.name).omenTextStyle(OmenTypography.name).foregroundStyle(OmenColor.textPrimary).lineLimit(1)
                 Text(player.meta).omenTextStyle(OmenTypography.micro).foregroundStyle(OmenColor.textTertiary).lineLimit(1)
+                // Real numbers: what this player has actually scored this season.
+                if let line = player.stats?.summaryLine {
+                    Text(line).omenTextStyle(OmenTypography.bodySmall).foregroundStyle(OmenColor.textSecondary).lineLimit(1)
+                }
+                // Omen's rating and the efficiency behind it (RAT-QB is Omen's QBR).
+                if let line = player.rating?.summaryLine {
+                    Text(line).omenTextStyle(OmenTypography.bodySmall).foregroundStyle(OmenColor.textSecondary).lineLimit(2)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            Text(player.pointsLabel)
-                .omenTextStyle(OmenTypography.micro)
-                .monospacedDigit()
-                .foregroundStyle(OmenColor.textTertiary)
+            VStack(alignment: .trailing, spacing: OmenSpacing.step2) {
+                Text(player.pointsLabel)
+                    .omenTextStyle(OmenTypography.micro)
+                    .monospacedDigit()
+                    .foregroundStyle(OmenColor.textTertiary)
+                // Omen's read beside the provider's projection, never in place of it.
+                if let omen = player.omenPointsLabel {
+                    Text(omen)
+                        .omenTextStyle(OmenTypography.micro)
+                        .monospacedDigit()
+                        .foregroundStyle(OmenColor.accent)
+                }
+            }
         }
         .padding(OmenSpacing.step10)
         .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(OmenColor.surface1))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(label), \(player.name), \(player.meta), \(player.pointsLabel)")
+        .accessibilityLabel(
+            ["\(label), \(player.name), \(player.meta), \(player.pointsLabel)", player.omenPointsLabel.map { "Omen's read \($0.dropFirst(5))" }]
+                .compactMap { $0 }.joined(separator: ", ")
+        )
     }
 
     private var reasoningLine: some View {
@@ -760,6 +798,58 @@ extension OmenTradeFindReviewScreen {
         default:
             return ("No real gaps to fill.",
                     "Omen checked \(teams) teams against your roster and found nothing that clearly helps you. Some weeks there's nothing there.")
+        }
+    }
+}
+
+
+/// The Find card's swipe. On iOS 18+ it is a UIKit pan that refuses to begin unless the motion is
+/// horizontal, so a vertical drag on the card scrolls the page from the first point instead of
+/// being held by SwiftUI while it decides (Apple's `UIGestureRecognizerRepresentable`). iOS 17 keeps
+/// the SwiftUI drag.
+private struct OmenFindSwipe<G: Gesture>: ViewModifier {
+    let dragGesture: G
+    let onChanged: (CGFloat) -> Void
+    let onEnded: (CGFloat) -> Void
+
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, *) {
+            content.gesture(OmenHorizontalPan(onChanged: onChanged, onEnded: onEnded))
+        } else {
+            content.simultaneousGesture(dragGesture)
+        }
+    }
+}
+
+@available(iOS 18.0, *)
+private struct OmenHorizontalPan: UIGestureRecognizerRepresentable {
+    let onChanged: (CGFloat) -> Void
+    let onEnded: (CGFloat) -> Void
+
+    func makeUIGestureRecognizer(context: Context) -> UIPanGestureRecognizer {
+        let pan = UIPanGestureRecognizer()
+        pan.delegate = context.coordinator
+        return pan
+    }
+
+    func makeCoordinator(converter: CoordinateSpaceConverter) -> Coordinator { Coordinator() }
+
+    func handleUIGestureRecognizerAction(_ recognizer: UIPanGestureRecognizer, context: Context) {
+        let width = recognizer.translation(in: recognizer.view).x
+        switch recognizer.state {
+        case .changed: onChanged(width)
+        case .ended: onEnded(width)
+        // A pan the system interrupted (a call, Control Center) never commits Save or Pass.
+        case .cancelled, .failed: onEnded(0)
+        default: break
+        }
+    }
+
+    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
+        func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+            guard let pan = gestureRecognizer as? UIPanGestureRecognizer else { return false }
+            let velocity = pan.velocity(in: pan.view)
+            return abs(velocity.x) > abs(velocity.y) * 1.25
         }
     }
 }

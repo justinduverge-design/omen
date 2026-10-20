@@ -342,6 +342,13 @@ function loadOmenRouter({
         },
       };
     }
+    // The breakdown's ESPN/Yahoo reads go through the user's stored connection; offline here.
+    if ((request === "../services/yahooAuth" || request === "../services/espnAuth") && parent?.filename === routePath) {
+      const offline = async () => {
+        throw Object.assign(new Error("not connected in tests"), { status: 401 });
+      };
+      return { getAuthenticatedYahooClient: offline, getAuthenticatedEspnCredentials: offline };
+    }
     if (request === "../services/llm" && parent?.filename === routePath) {
       return {
         explainOmenMvpMove: async (payload) => {
