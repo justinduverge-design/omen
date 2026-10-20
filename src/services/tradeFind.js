@@ -182,16 +182,17 @@ function buildCandidateRecord({ candidate, opponentTeamId, opponentTeamName, own
   const samePosition = givePosition === receivePosition;
   const after = Number.isFinite(need?.have) ? need.have - 1 + (samePosition ? 1 : 0) : null;
   const required = Number.isFinite(need?.required) ? need.required : null;
-  const theCatch = after != null && required != null && after <= required
-    ? {
-        status: "available",
-        code: "thin_position_after_trade",
-        statement: `You would have ${after} ${givePosition} for ${required} dedicated starting spot${required === 1 ? "" : "s"}.`,
-        position: givePosition,
-        players_after: after,
-        dedicated_starters: required,
-      }
-    : { status: "none", code: null, statement: null };
+  const theCatch =
+    after != null && required != null && after <= required
+      ? {
+          status: "available",
+          code: "thin_position_after_trade",
+          statement: `You would have ${after} ${givePosition} for ${required} dedicated starting spot${required === 1 ? "" : "s"}.`,
+          position: givePosition,
+          players_after: after,
+          dedicated_starters: required,
+        }
+      : { status: "none", code: null, statement: null };
 
   return {
     id: `find_${opponentTeamId ?? "unknown"}_${candidate.give.player_key || candidate.give.player_id || "give"}_${candidate.receive.player_key || candidate.receive.player_id || "receive"}`,

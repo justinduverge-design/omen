@@ -13,7 +13,10 @@ test("late ESPN leagues are followed by bounded background checks and stop at th
     connectionId: "c1",
     season: 2026,
     delays: [1, 2, 3],
-    schedule: (callback) => { callbacks.push(callback); return { unref() {} }; },
+    schedule: (callback) => {
+      callbacks.push(callback);
+      return { unref() {} };
+    },
     fetchDirectory: async () => {
       read += 1;
       return read === 1
@@ -32,7 +35,11 @@ test("late ESPN leagues are followed by bounded background checks and stop at th
     { league_id: "2", team_id: null, team_name: null },
   ]);
   assert.equal(writes.at(-1).source, "connect");
-  assert.equal(writes.at(-1).connectionId, null, "the write resolves the current connection instead of retaining an old one");
+  assert.equal(
+    writes.at(-1).connectionId,
+    null,
+    "the write resolves the current connection instead of retaining an old one",
+  );
 });
 
 test("a newer connect cancels the prior account watch before it can write", async () => {
@@ -47,17 +54,66 @@ test("a newer connect cancels the prior account watch before it can write", asyn
   };
   scheduleEspnLateLeagueSync({
     ...base,
-    schedule: (callback) => { oldCallbacks.push(callback); return null; },
+    schedule: (callback) => {
+      oldCallbacks.push(callback);
+      return null;
+    },
     fetchDirectory: async () => ({ leagues: [{ league_id: "old" }], espn_nfl_league_count: 1 }),
   });
   scheduleEspnLateLeagueSync({
     ...base,
-    schedule: (callback) => { newCallbacks.push(callback); return null; },
+    schedule: (callback) => {
+      newCallbacks.push(callback);
+      return null;
+    },
     fetchDirectory: async () => ({ leagues: [{ league_id: "new" }], espn_nfl_league_count: 1 }),
   });
   await oldCallbacks[0]();
   await newCallbacks[0]();
-  assert.deepEqual(writes.map((write) => write.leagues[0].league_id), ["new"]);
+  assert.deepEqual(
+    writes.map((write) => write.leagues[0].league_id),
+    ["new"],
+  );
+});
+
+test("a reconnect cancels an old discovery already in flight before it can write", async () => {
+  const oldCallbacks = [];
+  const newCallbacks = [];
+  const writes = [];
+  let releaseOld;
+  const oldDirectory = new Promise((resolve) => {
+    releaseOld = resolve;
+  });
+  const base = {
+    userId: "racing-user",
+    season: 2026,
+    delays: [1],
+    syncMemberships: async (options) => writes.push(options),
+  };
+  scheduleEspnLateLeagueSync({
+    ...base,
+    schedule: (callback) => {
+      oldCallbacks.push(callback);
+      return null;
+    },
+    fetchDirectory: async () => oldDirectory,
+  });
+  const oldRun = oldCallbacks[0]();
+  scheduleEspnLateLeagueSync({
+    ...base,
+    schedule: (callback) => {
+      newCallbacks.push(callback);
+      return null;
+    },
+    fetchDirectory: async () => ({ leagues: [{ league_id: "new" }], espn_nfl_league_count: 1 }),
+  });
+  releaseOld({ leagues: [{ league_id: "old" }], espn_nfl_league_count: 1 });
+  await oldRun;
+  await newCallbacks[0]();
+  assert.deepEqual(
+    writes.map((write) => write.leagues[0].league_id),
+    ["new"],
+  );
 });
 
 test("late ESPN checks never throw into the server and never log credential material", async () => {
@@ -66,8 +122,15 @@ test("late ESPN checks never throw into the server and never log credential mate
   scheduleEspnLateLeagueSync({
     userId: "u1",
     delays: [1],
-    schedule: (callback) => { callbacks.push(callback); return null; },
-    fetchDirectory: async () => { const error = new Error("secret cookie value"); error.status = 503; throw error; },
+    schedule: (callback) => {
+      callbacks.push(callback);
+      return null;
+    },
+    fetchDirectory: async () => {
+      const error = new Error("secret cookie value");
+      error.status = 503;
+      throw error;
+    },
     syncMemberships: async () => assert.fail("must not write after a failed discovery"),
     log: { warn: (...args) => warnings.push(args) },
   });

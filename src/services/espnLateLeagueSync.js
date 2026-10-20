@@ -25,8 +25,10 @@ function scheduleEspnLateLeagueSync({
       if (stopped || activeWatches.get(userId) !== watch) return;
       try {
         const directory = (await fetchDirectory()) || {};
+        if (activeWatches.get(userId) !== watch) return;
         const leagues = Array.isArray(directory.leagues) ? directory.leagues : [];
         if (leagues.length) {
+          if (activeWatches.get(userId) !== watch) return;
           await syncMemberships({
             userId,
             platform: "espn",
