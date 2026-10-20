@@ -50,6 +50,9 @@ function collectPlayers(root) {
   return found;
 }
 
+// The stats and grade reads are decoration beside Omen's read: kept short so they never lengthen a call.
+const EXTRA_READ_BUDGET_MS = 600;
+
 function createSightEnricher({ getRuntime, env = process.env, budgetMs = DEFAULT_BUDGET_MS, log = null } = {}) {
   /** Adds `sight` to every player object found in `payload` (any response shape). Mutates and returns it. */
   /**
@@ -76,24 +79,26 @@ function createSightEnricher({ getRuntime, env = process.env, budgetMs = DEFAULT
       // Player envelopes are not required to carry position before enrichment; ask for the six bounded
       // fantasy cohorts so a resolved Sight block can always receive the matching receipt.
       const positions = ["QB", "RB", "WR", "TE", "K", "DEF"];
-      const { byKey, byPosition, stats, ratings } = await withinLatencyBudget("sight_read", budgetMs, async () => {
-        const [reads, authority, statLines, ratings] = await Promise.all([
+      // Real numbers and Omen Grades run beside the read, each on its own short clock, OUTSIDE the
+      // Sight budget: a slow or failed stats read costs the numbers only, never Omen's read.
+      const extra = (read) =>
+        typeof read !== "function"
+          ? Promise.resolve(new Map())
+          : withinLatencyBudget("sight_extra", Math.min(budgetMs, EXTRA_READ_BUDGET_MS), () =>
+              read.call(repo, { playerKeys: keys }),
+            ).catch(() => new Map());
+      const statsRead = extra(repo.readStats);
+      const ratingsRead = extra(repo.readRatings);
+      const { byKey, byPosition } = await withinLatencyBudget("sight_read", budgetMs, async () => {
+        const [reads, authority] = await Promise.all([
           repo.readSight({ playerKeys: keys, version: settings.version, hints }),
           typeof repo.readAuthority === "function"
             ? repo.readAuthority({ positions, version: settings.version })
             : Promise.resolve(new Map()),
-          // Real numbers beside the read: season points, last games, usage. A failed stats read
-          // costs the numbers only, never Omen's read.
-          typeof repo.readStats === "function"
-            ? repo.readStats({ playerKeys: keys }).catch(() => new Map())
-            : Promise.resolve(new Map()),
-          // Omen's position rating (RAT-QB is Omen's QBR) and its EPA-based components.
-          typeof repo.readRatings === "function"
-            ? repo.readRatings({ playerKeys: keys }).catch(() => new Map())
-            : Promise.resolve(new Map()),
         ]);
-        return { byKey: reads, byPosition: authority, stats: statLines, ratings };
+        return { byKey: reads, byPosition: authority };
       });
+      const [stats, ratings] = await Promise.all([statsRead, ratingsRead]);
       for (const player of list) {
         const line = stats.get(keyOf(player));
         if (line) player.stats = line;

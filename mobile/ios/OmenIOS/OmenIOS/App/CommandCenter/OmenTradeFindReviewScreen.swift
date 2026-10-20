@@ -838,7 +838,9 @@ private struct OmenHorizontalPan: UIGestureRecognizerRepresentable {
         let width = recognizer.translation(in: recognizer.view).x
         switch recognizer.state {
         case .changed: onChanged(width)
-        case .ended, .cancelled, .failed: onEnded(width)
+        case .ended: onEnded(width)
+        // A pan the system interrupted (a call, Control Center) never commits Save or Pass.
+        case .cancelled, .failed: onEnded(0)
         default: break
         }
     }

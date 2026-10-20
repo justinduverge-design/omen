@@ -131,6 +131,8 @@ private val darkDataSemantics = OmenDataSemanticColors(
 // Registry §2.3: risk-high and the data-source/confidence/position/platform/demo families are
 // identical dark/light by contract; only risk-low/risk-medium document a light override.
 private val lightDataSemantics = darkDataSemantics.copy(
+    // Light mode (2026-10-19): the demo chip's sky blue is ~1.6:1 on the near-white ground.
+    demoText = Color(0xFF0369A1),
     riskLow = Color(0xFF13702F),
     riskMedium = Color(0xFF8F4A09),
 )

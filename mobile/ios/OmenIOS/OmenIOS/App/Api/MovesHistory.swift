@@ -68,7 +68,7 @@ struct MovesHistory: Decodable, Equatable {
     let moves: [Move]
     /// `record`: the season's results, including the contested record (calls against an OUT or
     /// bye alternative do not count), which the Ledger leads with.
-    let record: Record?
+    @LenientDecoded var record: Record? = nil
 
     enum CodingKeys: String, CodingKey {
         case contractVersion = "contract_version"

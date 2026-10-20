@@ -982,12 +982,18 @@ async function mvpMove(req, res, span) {
     attachDataFreshness(result.body);
     // Omen's read, real stats and Omen Grades on the call's players BEFORE presenting, so the evidence
     // the screen shows ("what moved this call") is built from them, not from first-MVP placeholders.
-    await attachSight(result.body);
+    await traceStage(trace, "sight", () => attachSight(result.body));
     if (typeof refreshEvidenceSignals === "function") refreshEvidenceSignals(result.body);
     const body = present(result.body);
-    // The presenter may rebuild player objects; re-attach when it dropped the read. The Ledger
-    // then records what Sight said too.
-    if (body?.recommendation?.primary_player && !body.recommendation.primary_player.sight) await attachSight(body);
+    // The presenter may rebuild player objects: carry the read across rather than reading twice.
+    // The Ledger then records what Sight said too.
+    for (const role of ["primary_player", "comparison_player"]) {
+      const before = result.body?.recommendation?.[role];
+      const after = body?.recommendation?.[role];
+      if (!before || !after || after === before) continue;
+      for (const field of ["sight", "stats", "rating"])
+        if (before[field] && !after[field]) after[field] = before[field];
+    }
     emitLatencyTrace(trace, body.state);
     span.setAttribute("omen.state", body.state || "unknown");
     // Both are best-effort and must not hold the response: respond first, finish

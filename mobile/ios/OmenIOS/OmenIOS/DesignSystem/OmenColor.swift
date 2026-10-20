@@ -102,7 +102,8 @@ enum OmenColor {
         static let onPlatformSleeper = invariant(0xFFFFFF)
         static let onPlatformYahoo = invariant(0xFFFFFF)
         static let onPlatformEspn = invariant(0xFFFFFF)
-        static let demoText = invariant(0x7DD3FC)
+        // Light value added with light mode: #7DD3FC is ~1.6:1 on the near-white ground.
+        static let demoText = dynamic(dark: 0x7DD3FC, light: 0x0369A1)
         static let demoTextSecondary = invariant(0xBAE6FD, alpha: 0.8)
     }
 

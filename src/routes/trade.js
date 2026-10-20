@@ -365,6 +365,19 @@ function resolvedTradePlayers(inputs, resolutions) {
   });
 }
 
+/** Copies `sight`, `stats` and `rating` from the offered players onto the verdict's own player objects. */
+function copyPlayerReads(result, offered) {
+  const byName = new Map(offered.filter((p) => p?.name).map((p) => [p.name, p]));
+  for (const side of [result?.send, result?.receive]) {
+    for (const player of Array.isArray(side?.players) ? side.players : []) {
+      const source = byName.get(player?.name);
+      if (!source) continue;
+      for (const field of ["sight", "stats", "rating"])
+        if (source[field] && !player[field]) player[field] = source[field];
+    }
+  }
+}
+
 /** Sight keys for resolver ids: a bare Sleeper id becomes `sleeper:<id>`; prefixed keys pass through. */
 function sightKeyFor(player) {
   const key = String(player?.player_key ?? "");
@@ -388,8 +401,7 @@ async function fillProjectionsFromOmenRead(players, attachSight) {
   probes.forEach((probe, index) => {
     const player = players[index];
     const points = Number(probe.sight?.sight_points);
-    // One key shape everywhere, so the read attached to the verdict later matches this player too.
-    if (probe.player_key) player.player_key = probe.player_key;
+    // The resolver's key stays as it is; the prefixed key is only how Sight found him.
     if (probe.sight) player.sight = probe.sight;
     if (probe.stats) player.stats = probe.stats;
     if (player.projected_points == null && Number.isFinite(points)) {
@@ -1920,9 +1932,10 @@ function createTradeRouter({
       // A typed or built offer often has no provider projection for a player. Omen's own read
       // (Sight, from the warehouse) covers every rostered skill player, so it fills that gap rather
       // than the verdict giving up with "no projection" (founder, 2026-10-19). Labelled as Omen's read.
-      await fillProjectionsFromOmenRead([...send, ...receive], attachSight);
-
-      const analysisOutcome = await analysisPromise;
+      const [analysisOutcome] = await Promise.all([
+        analysisPromise,
+        fillProjectionsFromOmenRead([...send, ...receive], attachSight),
+      ]);
       if (analysisOutcome.error) throw analysisOutcome.error;
       const { analysis, scoringConfig } = analysisOutcome.value;
       // A personalized run derives its scoring format from the provider's own
@@ -1951,8 +1964,9 @@ function createTradeRouter({
       // Budgeted + breaker-guarded (narrationBudget.js). Timeout, skip or error
       // yields `explanation: null`, the same value the explainer returns today
       // when the model is unreachable (the compare contract allows null).
-      // Omen's read on every player in the verdict, as Find and the roster already carry. Read in
-      // parallel with the narration so it adds no wait; a failed read leaves the result as it was.
+      // Omen's read on every player in the verdict: copied from the reads already made for the
+      // offered players (matched by name), then a read for anyone still without one.
+      copyPlayerReads(result, [...send, ...receive]);
       const sightRead = attachSight(result).catch(() => undefined);
       const narration = await narrationGuard.run("trade_compare", NARRATION_BUDGET_MS.trade_compare, () =>
         tradeExplainer({

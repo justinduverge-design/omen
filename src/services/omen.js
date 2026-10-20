@@ -1323,9 +1323,19 @@ function refreshEvidenceSignals(body) {
   if (!players.length) return body;
   const fmt = (n) => (Number.isFinite(Number(n)) ? Number(n).toFixed(1) : null);
 
-  for (const key of STALE_MVP_SIGNALS) delete body.signals[key];
-  if (body.signals.weather?.status !== "live") delete body.signals.weather;
-  if (body.signals.matchup_dvp?.status !== "live") delete body.signals.matchup_dvp;
+  // Placeholders go only when real evidence replaces them (Sight on and attached), never a live
+  // signal, and never the input the call itself used (waivers on a waiver call).
+  const hasEvidence = players.some((p) => p.sight || p.stats || p.rating);
+  if (hasEvidence) {
+    const callType = String(rec.type || "");
+    for (const key of STALE_MVP_SIGNALS) {
+      if (body.signals[key]?.status === "live") continue;
+      if (key === "waivers" && callType.includes("waiver")) continue;
+      delete body.signals[key];
+    }
+    if (body.signals.weather && body.signals.weather.status !== "live") delete body.signals.weather;
+    if (body.signals.matchup_dvp && body.signals.matchup_dvp.status !== "live") delete body.signals.matchup_dvp;
+  }
 
   const reads = players
     .filter((p) => fmt(p.sight?.sight_points))

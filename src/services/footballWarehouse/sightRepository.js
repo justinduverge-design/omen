@@ -189,7 +189,7 @@ function createWarehouseSightRepository({ query, timeoutMs = 2_000, now = () => 
             JOIN football.football_player_ids x ON x.provider = refs.provider AND x.provider_id = refs.provider_id
             JOIN football.football_metric_values v ON v.entity_type = 'player' AND v.entity_id = x.player_id
             JOIN runs ON runs.id = v.metric_run_id
-           ORDER BY refs.key, runs.season DESC NULLS LAST`,
+           ORDER BY refs.key, runs.season DESC NULLS LAST, array_position($4::text[], runs.metric_name)`,
         values: [refs.map((r) => r.key), refs.map((r) => r.provider), refs.map((r) => r.providerId), RATING_METRICS],
         query_timeout: timeoutMs,
       });

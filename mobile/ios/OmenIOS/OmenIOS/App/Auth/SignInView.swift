@@ -23,6 +23,13 @@ struct SignInView: View {
     @State private var lockupPresented = false
 
     var body: some View {
+        signIn
+            // The stacked lockup is a single cream-on-dark asset: on the light ground its wordmark
+            // disappears. Sign-in stays dark until a light lockup exists (review P1, 2026-10-19).
+            .preferredColorScheme(.dark)
+    }
+
+    private var signIn: some View {
         GeometryReader { proxy in
             ScrollView {
                 Group {

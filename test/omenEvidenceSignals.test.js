@@ -41,3 +41,25 @@ test("the call's evidence is rebuilt from Omen's read, stats and grades; first-M
   assert.doesNotMatch(body.signals.what_moved_it.message, /noise/);
   assert.match(body.signals.season_stats.message, /30\.7 PPG over 5 games.*21\.4 PPG over 6 games/);
 });
+
+test("with no evidence attached nothing is removed, and a waiver call keeps its waivers signal", () => {
+  const bare = {
+    recommendation: { primary_player: { name: "A" } },
+    signals: { waivers: { status: "unavailable" }, weather: { status: "stub" } },
+  };
+  refreshEvidenceSignals(bare);
+  assert.deepEqual(Object.keys(bare.signals).sort(), ["waivers", "weather"]);
+
+  const waiver = {
+    recommendation: { type: "waiver_pickup", primary_player: { name: "A", sight: { sight_points: 9 } } },
+    signals: {
+      waivers: { status: "live", used: true },
+      game_time_tv: { status: "live" },
+      travel_home_away: { status: "stub" },
+    },
+  };
+  refreshEvidenceSignals(waiver);
+  assert.ok(waiver.signals.waivers);
+  assert.ok(waiver.signals.game_time_tv, "a live signal is never removed");
+  assert.equal(waiver.signals.travel_home_away, undefined);
+});
