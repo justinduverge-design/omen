@@ -178,7 +178,7 @@ function buildCandidateRecord({ candidate, opponentTeamId, opponentTeamName, own
   const receivePosition = primaryPosition(candidate.receive);
   const givePosition = primaryPosition(candidate.give);
   const valuation = compareTrade({ send: [candidate.give], receive: [candidate.receive] });
-  const need = ownNeeds?.[givePosition];
+  const need = ownNeeds?.needs?.[givePosition];
   const samePosition = givePosition === receivePosition;
   const after = Number.isFinite(need?.have) ? need.have - 1 + (samePosition ? 1 : 0) : null;
   const required = Number.isFinite(need?.required) ? need.required : null;

@@ -257,7 +257,7 @@ function forwardHorizons(sendSide, receiveSide) {
   const received = projectionTotal(receiveSide);
   const week = sent == null || received == null ? null : Number((received - sent).toFixed(2));
   return {
-    unit: "lineup_points_per_week",
+    unit: "player_projection_points_per_week",
     week: {
       status: week == null ? "unavailable" : "available",
       value: week,

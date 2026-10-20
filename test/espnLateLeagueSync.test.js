@@ -32,6 +32,32 @@ test("late ESPN leagues are followed by bounded background checks and stop at th
     { league_id: "2", team_id: null, team_name: null },
   ]);
   assert.equal(writes.at(-1).source, "connect");
+  assert.equal(writes.at(-1).connectionId, null, "the write resolves the current connection instead of retaining an old one");
+});
+
+test("a newer connect cancels the prior account watch before it can write", async () => {
+  const oldCallbacks = [];
+  const newCallbacks = [];
+  const writes = [];
+  const base = {
+    userId: "same-user",
+    season: 2026,
+    delays: [1],
+    syncMemberships: async (options) => writes.push(options),
+  };
+  scheduleEspnLateLeagueSync({
+    ...base,
+    schedule: (callback) => { oldCallbacks.push(callback); return null; },
+    fetchDirectory: async () => ({ leagues: [{ league_id: "old" }], espn_nfl_league_count: 1 }),
+  });
+  scheduleEspnLateLeagueSync({
+    ...base,
+    schedule: (callback) => { newCallbacks.push(callback); return null; },
+    fetchDirectory: async () => ({ leagues: [{ league_id: "new" }], espn_nfl_league_count: 1 }),
+  });
+  await oldCallbacks[0]();
+  await newCallbacks[0]();
+  assert.deepEqual(writes.map((write) => write.leagues[0].league_id), ["new"]);
 });
 
 test("late ESPN checks never throw into the server and never log credential material", async () => {

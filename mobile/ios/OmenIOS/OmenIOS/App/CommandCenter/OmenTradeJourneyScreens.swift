@@ -1059,7 +1059,7 @@ private struct OmenTradeReadBlock: View {
             if read.forwardWeek != nil || read.theCatch != nil {
                 VStack(alignment: .leading, spacing: OmenSpacing.step8) {
                     if let value = read.forwardWeek {
-                        Text("This week · \(value >= 0 ? "+" : "")\(String(format: "%.1f", value)) lineup points")
+                        Text("This week · \(value >= 0 ? "+" : "")\(String(format: "%.1f", value)) player projection points")
                             .omenTextStyle(OmenTypography.bodySmall)
                             .foregroundStyle(OmenColor.textSecondary)
                     }

@@ -842,9 +842,11 @@ router.post(
       });
       scheduleEspnLateLeagueSync({
         userId: req.user.id,
-        connectionId: stored.present ? stored.data : null,
         season: currentSeason(),
-        fetchDirectory: () => espnAdapter.fetchEspnFanDirectory(espn_s2, swid, { season: currentSeason() }),
+        fetchDirectory: async () => {
+          const current = await getAuthenticatedEspnCredentials(req.user.id);
+          return espnAdapter.fetchEspnFanDirectory(current.espn_s2, current.swid, { season: currentSeason() });
+        },
         syncMemberships: (options) => leagueMemberships.syncMemberships(supabase, options),
         log: logger,
       });
