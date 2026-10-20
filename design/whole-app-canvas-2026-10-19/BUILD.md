@@ -60,11 +60,11 @@ route and service for Sleeper-only branches.
 | Omen's read, real stats, Omen Grades | yes | yes | yes (one warehouse index) |
 | Personalized trade analysis | yes | **yes, as of 2026-10-19** | **yes, as of 2026-10-19** |
 | Start/Sit projection breakdown | yes | yes | **yes, as of 2026-10-19** (Omen-scored) |
-| Omen call projection breakdown | yes | not yet (the call carries no ESPN stat row) | not yet |
+| Omen call projection breakdown | yes | **yes, as of 2026-10-19** | **yes, as of 2026-10-19** (Omen-scored) |
 | League activity | yes | yes, names via Sleeper ids | yes |
 | Pre-draft state | yes | n/a (provider has no such status) | n/a |
 
-Open: the Omen call's projection breakdown for ESPN and Yahoo.
+No open parity gaps found in this audit.
 
 ## Tokens
 

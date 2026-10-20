@@ -47,6 +47,10 @@ const attachSight = createSightEnricher({ getRuntime: () => getSightRuntime({ lo
 const ledger = require("../services/ledger");
 const { attachOmenProjectionBreakdown } = require("../services/projectionBreakdown");
 const sleeperAdapter = require("../adapters/sleeper");
+const espnAdapter = require("../adapters/espn");
+const { getAuthenticatedEspnCredentials } = require("../services/espnAuth");
+const { getAuthenticatedYahooClient } = require("../services/yahooAuth");
+const { enrichYahooPlayers } = require("../services/yahooProjections");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
@@ -83,7 +87,7 @@ const MVP_LATENCY_BUDGET_MS = Object.freeze({
 
 // Projection explainer layer 1 on the Omen call. Sleeper's league read and its week's stat
 // lines (cached hourly by the adapter); the league's rules stay in memory only.
-async function enrichWithProjectionBreakdown(response) {
+async function enrichWithProjectionBreakdown(response, userId = null) {
   if (suppressLiveFootballData()) return response;
   return attachOmenProjectionBreakdown({
     response,
@@ -94,6 +98,36 @@ async function enrichWithProjectionBreakdown(response) {
       ]);
       return { statLines, scoringSettings: league?.scoring_settings || null };
     },
+    // ESPN and Yahoo, the same as Sleeper (founder, 2026-10-19). Reads go through the user's own
+    // stored connection; without a user there is no read and the breakdown says so.
+    loadEspnInputs: userId
+      ? async ({ leagueId, week }) => {
+          const credentials = await getAuthenticatedEspnCredentials(userId);
+          const [read, rules] = await Promise.all([
+            espnAdapter.buildNormalizedRosterWithProjectionLines(leagueId, credentials.espn_s2, credentials.swid, week),
+            espnAdapter.fetchEspnScoringSettings(leagueId, credentials.espn_s2, credentials.swid).catch(() => null),
+          ]);
+          return { projections: read?.projectionLines, rules };
+        }
+      : undefined,
+    loadYahooPlayer: userId
+      ? async ({ leagueId, season, week, primary }) => {
+          const { client } = await getAuthenticatedYahooClient(userId);
+          const yahooId = String(primary.id || "")
+            .split(".p.")
+            .pop();
+          const probe = {
+            player_id: yahooId,
+            yahoo_id: yahooId,
+            name: primary.name,
+            position: primary.position,
+            team: primary.team,
+          };
+          await enrichYahooPlayers([probe], { client, leagueKey: leagueId, week, season });
+          probe.projected_points = primary.projected_points ?? probe.projected_points;
+          return probe;
+        }
+      : undefined,
   });
 }
 
@@ -694,7 +728,9 @@ async function runEnrichmentStages(body, req, trace, requestedContract) {
   }
 
   const schedule = runStage(trace, "schedule", () => enrichWithScheduleTravel(clones.schedule));
-  const projection = runStage(trace, "projection_breakdown", () => enrichWithProjectionBreakdown(clones.projection));
+  const projection = runStage(trace, "projection_breakdown", () =>
+    enrichWithProjectionBreakdown(clones.projection, req.omenUserId),
+  );
   const intelligence =
     requestedContract === BRIEF_V3
       ? runStage(trace, "football_intelligence", () => enrichWithFootballIntelligence(clones.intelligence, req))
@@ -746,7 +782,7 @@ function mergeIntelligenceStage(body, clone) {
 async function runEnrichmentStagesSerial(body, req, trace, requestedContract) {
   await runStage(trace, "schedule", () => enrichWithScheduleTravel(body));
   attachWaiverCapability(body);
-  await runStage(trace, "projection_breakdown", () => enrichWithProjectionBreakdown(body));
+  await runStage(trace, "projection_breakdown", () => enrichWithProjectionBreakdown(body, req.omenUserId));
   await runStage(trace, "matchup_dvp", () => enrichWithDvp(body, req.body || {}));
   if (requestedContract === BRIEF_V3) {
     await runStage(trace, "football_intelligence", () => enrichWithFootballIntelligence(body, req));
@@ -919,6 +955,7 @@ async function mvpMove(req, res, span) {
       () => ({ ok: true }),
       (error) => ({ ok: false, error }),
     );
+    req.omenUserId = result.authenticatedUser?.id || null;
     await runEnrichmentStages(result.body, req, trace, requestedContract);
     try {
       await traceStage(trace, "llm_narration", () =>
