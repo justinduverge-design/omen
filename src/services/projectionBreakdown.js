@@ -92,6 +92,7 @@ function round2(value) {
 }
 
 function providerLabel(provider) {
+  if (provider === "yahoo") return "Yahoo (Omen-scored)";
   return PROVIDER_LABELS[provider] || "The provider";
 }
 
@@ -312,11 +313,27 @@ function rosterProjectionBreakdowns({ platform, roster, sleeper = null, espn = n
         key,
         espnProjectionBreakdown({ projection, rules: espn?.rules, providerPoints: player.projected_points }),
       );
+    } else if (platform === "yahoo") {
+      out.set(key, yahooProjectionBreakdown(player));
     } else {
       out.set(key, unavailableBreakdown(platform, "no_stat_line"));
     }
   }
   return out;
+}
+
+/**
+ * Yahoo projects nothing itself; Omen scores Sleeper's projected stat line with this Yahoo league's
+ * rules (`yahooProjections.js`), which records each stat's part. Same reconcile as Sleeper and ESPN.
+ */
+function yahooProjectionBreakdown(player) {
+  const parts = Array.isArray(player?.projection_parts) ? player.projection_parts : [];
+  if (!parts.length) return unavailableBreakdown("yahoo", "no_stat_line");
+  return reconcile({
+    provider: "yahoo",
+    parts: parts.map((part) => ({ ...part, label: SLEEPER_LABELS[part.stat] || part.stat.replace(/_/g, " ") })),
+    providerPoints: finite(player.projected_points),
+  });
 }
 
 /**

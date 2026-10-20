@@ -264,3 +264,21 @@ test("rosterProjectionBreakdowns keys each player's breakdown by player_key per 
   assert.equal(yahoo.get("y:1").reason_code, "no_stat_line");
   assert.equal(yahoo.get("y:1").provider, "yahoo");
 });
+
+test("Yahoo gets a stat-by-stat breakdown like Sleeper and ESPN, from the Omen-scored stat line", () => {
+  const { rosterProjectionBreakdowns } = require("../src/services/projectionBreakdown");
+  const player = { player_key: "yahoo:461.p.1", projected_points: 14.5 };
+  Object.defineProperty(player, "projection_parts", {
+    value: [
+      { stat: "rec", quantity: 5, points_per: 0.5, points: 2.5 },
+      { stat: "rec_yd", quantity: 60, points_per: 0.1, points: 6 },
+      { stat: "rec_td", quantity: 1, points_per: 6, points: 6 },
+    ],
+    enumerable: false,
+  });
+  const out = rosterProjectionBreakdowns({ platform: "yahoo", roster: { slots: { starters: [player] } } });
+  const breakdown = out.get("yahoo:461.p.1");
+  assert.equal(breakdown.status, "available");
+  assert.equal(breakdown.total, 14.5);
+  assert.equal(breakdown.lines.length, 3);
+});

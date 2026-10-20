@@ -49,6 +49,23 @@ evidence are what make Omen more than a provider mirror. Every screen that shows
 - **Rule:** the app never picks a winner itself. The server's `authority.state` decides
   `provider_leads`, `omen_leads` or `unresolved_tie`.
 
+## Provider parity (founder, 2026-10-19: "everything should work with Yahoo, Sleeper or ESPN")
+
+No screen ships until all three providers get the same thing. Audited 2026-10-19 by searching every
+route and service for Sleeper-only branches.
+
+| Capability | Sleeper | ESPN | Yahoo |
+|---|---|---|---|
+| Rosters, lineup slots, FLEX/SUPERFLEX | yes | yes | yes |
+| Omen's read, real stats, Omen Grades | yes | yes | yes (one warehouse index) |
+| Personalized trade analysis | yes | **yes, as of 2026-10-19** | **yes, as of 2026-10-19** |
+| Start/Sit projection breakdown | yes | yes | **yes, as of 2026-10-19** (Omen-scored) |
+| Omen call projection breakdown | yes | not yet (the call carries no ESPN stat row) | not yet |
+| League activity | yes | yes, names via Sleeper ids | yes |
+| Pre-draft state | yes | n/a (provider has no such status) | n/a |
+
+Open: the Omen call's projection breakdown for ESPN and Yahoo.
+
 ## Tokens
 
 The same roles in both modes. Map them onto `DesignSystem/OmenColor.swift` by role, and add the light values. Never put a hex value in a screen.
