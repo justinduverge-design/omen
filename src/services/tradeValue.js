@@ -247,6 +247,27 @@ function buildScarcitySummary(sendDetails, receiveDetails) {
   return `You are sending ${articleForTier(send.tier)} ${formatTier(send.tier)} ${send.position} for ${articleForTier(receive.tier)} ${formatTier(receive.tier)} ${receive.position}.`;
 }
 
+function projectionTotal(side) {
+  if (!side.players.length || side.missing_projection_count > 0) return null;
+  return Number(side.players.reduce((sum, player) => sum + player.projected_points, 0).toFixed(2));
+}
+
+function forwardHorizons(sendSide, receiveSide) {
+  const sent = projectionTotal(sendSide);
+  const received = projectionTotal(receiveSide);
+  const week = sent == null || received == null ? null : Number((received - sent).toFixed(2));
+  return {
+    unit: "player_projection_points_per_week",
+    week: {
+      status: week == null ? "unavailable" : "available",
+      value: week,
+      reason: week == null ? "weekly_projection_unavailable" : null,
+    },
+    next_4: { status: "unavailable", value: null, reason: "forward_projection_curve_unavailable" },
+    season: { status: "unavailable", value: null, reason: "forward_projection_curve_unavailable" },
+  };
+}
+
 function compareTrade({ send = [], receive = [] } = {}, opts = {}, scoringConfig = {}) {
   const resolved = resolveTradeConfig(opts, scoringConfig);
   const { neutralBand, replacementLevel, scarcitySignalWeight, scarcityWeights, scoringFormat } = resolved;
@@ -289,6 +310,16 @@ function compareTrade({ send = [], receive = [] } = {}, opts = {}, scoringConfig
       receive: receiveSide.scarcity_details,
       summary: buildScarcitySummary(sendSide.scarcity_details, receiveSide.scarcity_details),
     },
+    // Forward-looking only. The similarly named Ledger horizons are after-the-fact grades and
+    // must never be reused here. Current-week projections are available; the provider-neutral
+    // engine has no future projection curve yet, so those cells say unavailable rather than
+    // multiplying one week into a fabricated season.
+    forward_horizons: forwardHorizons(sendSide, receiveSide),
+    the_catch: {
+      status: "unavailable",
+      statement: null,
+      reason: "roster_depth_not_available",
+    },
   };
 }
 
@@ -299,4 +330,5 @@ module.exports = {
   sideValue,
   compareTrade,
   resolveTradeConfig,
+  forwardHorizons,
 };

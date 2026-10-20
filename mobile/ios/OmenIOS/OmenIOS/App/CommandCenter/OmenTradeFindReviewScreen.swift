@@ -444,6 +444,7 @@ private struct OmenTradeFindCandidateCard: View {
             chips
             legs
             reasoningLine
+            catchLine
             evidence
         }
         .padding(OmenSpacing.step14)
@@ -649,6 +650,16 @@ private struct OmenTradeFindCandidateCard: View {
                 + Text(" to theirs.").foregroundStyle(OmenColor.textSecondary)
         )
         .omenTextStyle(OmenTypography.bodySmall)
+    }
+
+    @ViewBuilder
+    private var catchLine: some View {
+        if candidate.theCatch?.status == "available", let statement = candidate.theCatch?.statement {
+            Text("The catch · \(statement)")
+                .omenTextStyle(OmenTypography.bodySmall)
+                .foregroundStyle(OmenColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     private static func signedString(_ value: Double) -> String {

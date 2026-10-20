@@ -8,6 +8,28 @@ import Foundation
 /// signal and **never by inference on the client**. This type therefore reads `verdict_state`
 /// and never `verdict`.
 struct TradeCompare: Decodable, Equatable {
+    struct ForwardHorizons: Decodable, Equatable {
+        struct Horizon: Decodable, Equatable {
+            let status: String
+            let value: Double?
+            let reason: String?
+        }
+        let unit: String
+        let week: Horizon
+        let next4: Horizon
+        let season: Horizon
+
+        enum CodingKeys: String, CodingKey {
+            case unit, week, season
+            case next4 = "next_4"
+        }
+    }
+
+    struct Catch: Decodable, Equatable {
+        let status: String
+        let statement: String?
+        let reason: String?
+    }
     /// Visual briefs §9.2. Order is deliberate: it is the order the four states are described
     /// in the contract, not a severity ranking.
     enum VerdictState: String, Decodable {
@@ -88,6 +110,8 @@ struct TradeCompare: Decodable, Equatable {
     let analysisContext: AnalysisContext
     let netValue: Double?
     let explanation: String?
+    let forwardHorizons: ForwardHorizons?
+    let theCatch: Catch?
     /// Server-owned supporting coverage; never used to create a client-side verdict.
     let capabilities: [OmenDecisionCapability]?
     /// The compared players with Omen's read attached (`send.players`, `receive.players`).
@@ -144,6 +168,8 @@ struct TradeCompare: Decodable, Equatable {
         case evaluability, explanation
         case analysisContext = "analysis_context"
         case netValue = "net_value"
+        case forwardHorizons = "forward_horizons"
+        case theCatch = "the_catch"
         case capabilities, send, receive
     }
 

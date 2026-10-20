@@ -265,7 +265,9 @@ final class ChromeInteractionUITests: XCTestCase {
     func testTheReportPillIsPresentAndSaysWhatItSends() {
         let app = launch("chrome.report-pill.resting")
 
-        let pill = app.buttons["chrome.report-pill"]
+        let pill = app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH %@", "Something look wrong?")
+        ).firstMatch
         assertTappable(pill, "the report pill")
         // The promise is in the accessibility label because the pill is one combined element.
         // It is the whole reason `OmenBetaReport` is a closed struct, so it is pinned here as
@@ -422,33 +424,27 @@ final class ChromeInteractionUITests: XCTestCase {
         )
     }
 
-    /// The pill must not cost Command Center its `fits` declaration.
-    ///
-    /// It is an overlay rather than a block for exactly this reason, and "it is an overlay" is
-    /// a claim about code that a future refactor can quietly falsify. This measures instead:
-    /// the Command Center content height with the pill present must equal the height without
-    /// it. Both scenarios mount the current desk and expose the same fit probe through the
-    /// deterministic tab shell.
-    func testTheReportPillDoesNotCostCommandCenterItsFit() {
+    /// The live Ledger has variable height. The report control must participate in layout so it
+    /// can never obscure a Ledger row; the screen may scroll to make room.
+    func testTheReportPillDoesNotCoverTheLedger() {
         let withPill = launch("chrome.report-pill.resting")
-        let pill = withPill.buttons["chrome.report-pill"]
+        let pill = withPill.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH %@", "Something look wrong?")
+        ).firstMatch
         XCTAssertTrue(pill.waitForExistence(timeout: 15), "the pill is not on the Command Center frame")
-        withPill.terminate()
-
-        let withPillHeight = Self.contentHeight("chrome.report-pill.resting", "chrome.fit.command-center", self)
-        let withoutPillHeight = Self.contentHeight("command-center.demo-connected", "chrome.fit.command-center", self)
-        guard let withPillHeight, let withoutPillHeight else {
-            return XCTFail("could not measure both Command Center frames — with=\(String(describing: withPillHeight)) without=\(String(describing: withoutPillHeight))")
-        }
-        print("D11 pill cost: command-center content with=\(withPillHeight)pt without=\(withoutPillHeight)pt delta=\(withPillHeight - withoutPillHeight)pt")
-        XCTAssertEqual(
-            withPillHeight, withoutPillHeight,
-            "the report pill added \(withPillHeight - withoutPillHeight)pt to Command Center's content — it is in the stack, not an overlay, and CommandCenter is declared a fit"
+        let ledger = withPill.staticTexts["The Ledger"]
+        XCTAssertTrue(ledger.waitForExistence(timeout: 5), "the Ledger heading is not on the Command Center frame")
+        XCTAssertGreaterThanOrEqual(
+            pill.frame.minY, ledger.frame.maxY,
+            "the report pill overlaps the Ledger instead of following it in the document"
         )
+        withPill.terminate()
 
         let without = launch("command-center.demo-connected")
         XCTAssertFalse(
-            without.buttons["chrome.report-pill"].exists,
+            without.buttons.matching(
+                NSPredicate(format: "label BEGINSWITH %@", "Something look wrong?")
+            ).firstMatch.exists,
             "the pill appeared on a scenario that never asked for it — every existing Command Center capture just changed"
         )
         without.terminate()

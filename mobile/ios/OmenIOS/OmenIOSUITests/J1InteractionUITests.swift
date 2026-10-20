@@ -118,7 +118,10 @@ final class J1InteractionUITests: XCTestCase {
     func testNoLeagueTerminusIsNotADeadEnd() {
         let app = launch("journey-j1.nominal.06-command-no-league")
         assertTappable(app.buttons["Connect a league"], "connect")
-        assertTappable(app.buttons["See how Omen decides"], "see how Omen decides")
+        let explanation = app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS %@", "this screen would be guessing, so it stays empty")
+        ).firstMatch
+        XCTAssertTrue(explanation.waitForExistence(timeout: 10), "the no-league terminus no longer explains why it stays empty")
         assertTapDoesNotBreak(app.buttons["Connect a league"], app)
     }
 }

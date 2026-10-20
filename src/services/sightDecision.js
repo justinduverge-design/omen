@@ -18,7 +18,8 @@ function sightPoints(player) {
 
 function blendWithSight(providerPoints, player) {
   const sight = sightPoints(player);
-  if (sight == null || providerPoints == null) return providerPoints;
+  if (providerPoints == null) return sight;
+  if (sight == null) return providerPoints;
   return providerPoints + SIGHT_WEIGHT * (sight - providerPoints);
 }
 

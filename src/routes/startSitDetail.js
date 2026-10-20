@@ -41,6 +41,7 @@ const { getWarehouseUsageBundle } = require("../services/footballWarehouse/wareh
 const { getTeamSystemSummaries } = require("../services/footballIntelligence/teamSystemLines");
 const { rosterProjectionBreakdowns } = require("../services/projectionBreakdown");
 const { withinLatencyBudget } = require("../services/latencyBudget");
+const { createSightEnricher } = require("../services/sightEnrichment");
 const sleeperAdapter = require("../adapters/sleeper");
 const espnAdapter = require("../adapters/espn");
 
@@ -62,6 +63,10 @@ const usageReader = createUsageShadowRunner({
       repository: warehouseUsageRuntime.repository,
     }),
   emitTelemetry: (event) => logger.info("Football warehouse usage shadow", event),
+});
+const attachSight = createSightEnricher({
+  getRuntime: () => getSharedWarehouseRuntime({ logger, strict: true }),
+  log: logger,
 });
 
 const ERROR_CONTRACT = "start-sit-detail-error.v1";
@@ -325,6 +330,7 @@ router.get("/detail", requireAuth, async (req, res, next) => {
       () => fantasyMetricsRead,
     ).catch(() => null);
 
+    await attachSight({ roster: loaded.roster });
     return res.json(
       buildStartSitDetail({
         usage,

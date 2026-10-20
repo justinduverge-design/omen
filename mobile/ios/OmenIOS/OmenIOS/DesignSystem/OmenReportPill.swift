@@ -2,15 +2,12 @@ import SwiftUI
 
 /// `ReportPill.dc.html` — E042 through E047.
 ///
-/// ## It is an overlay, not a block
+/// ## It is in the document flow
 ///
-/// The artboard positions it `bottom:76px` over the Command Center's `.spacer`, absolutely
-/// rather than in flow, and that placement is load-bearing rather than cosmetic:
-/// `CommandCenter.dc.html` is one of the thirteen artboards **declared `fits`**. A 73pt card
-/// added to that screen's content stack would spend headroom the fit declaration has already
-/// promised. As an overlay it costs the layout nothing and D11 reads the same number with the
-/// pill present as without it, which is checked rather than asserted —
-/// `ChromeInteractionUITests.testTheReportPillDoesNotCostCommandCenterItsFit`.
+/// The original artboard used absolute positioning, but the live Desk is scrollable and its
+/// Ledger height changes with real data. An absolute bottom overlay can therefore cover the
+/// Ledger. The production composition places this control after the Ledger so content always
+/// lays out around it; a slightly taller scroll document is preferable to hidden decisions.
 ///
 /// ## Why the whole card is the target
 ///
@@ -54,7 +51,7 @@ struct OmenReportPill: View {
                     Text(visibleSubtitle)
                         .omenTextStyle(OmenTypography.bodySmall)
                         .foregroundStyle(OmenColor.textTertiary)
-                        .lineLimit(1)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 

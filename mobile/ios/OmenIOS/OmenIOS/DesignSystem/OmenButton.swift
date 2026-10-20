@@ -44,7 +44,7 @@ enum OmenReadAuthority: String, Decodable, Equatable {
         switch self {
         case .providerLeads: "Provider Read leads"
         case .omenLeads: "Omen Read leads"
-        case .singleSourceOnly: "One read available"
+        case .singleSourceOnly: "Omen Read"
         case .unresolvedTie, .unresolvedLowSample, .unresolvedStale: "Reads unresolved"
         }
     }

@@ -124,6 +124,9 @@ test("findLeagueTradeCandidates returns a candidate with reasoning naming which 
   // tradeValue.js engine, unmodified.
   assert.ok(candidate.valuation);
   assert.ok(Number.isFinite(candidate.valuation.net_value));
+  assert.equal(candidate.the_catch.status, "available");
+  assert.equal(candidate.the_catch.code, "thin_position_after_trade");
+  assert.match(candidate.the_catch.statement, /dedicated starting spot/);
 });
 
 test("findLeagueTradeCandidates never proposes a candidate against a roster it cannot read", () => {
