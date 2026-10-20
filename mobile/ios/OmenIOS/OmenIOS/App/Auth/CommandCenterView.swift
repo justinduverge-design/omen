@@ -329,8 +329,8 @@ struct CommandCenterView: View {
                     // future state, not a route back into the retired Command composition.
                     OmenStateSurface(
                         kind: .error,
-                        title: "Command isn't ready",
-                        message: "This version of Omen couldn't present the current Command state."
+                        title: "The Desk isn\u{2019}t ready",
+                        message: "This version of Omen couldn\u{2019}t present the Desk right now."
                     )
                     .padding(OmenSpacing.step24)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
