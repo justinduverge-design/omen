@@ -18,6 +18,7 @@ const { requireAuth } = require("../middleware/auth");
 const { ensureAppUser } = require("../services/appUser");
 const connectionStore = require("../services/connectionStore");
 const leagueMemberships = require("../services/leagueMemberships");
+const { scheduleEspnLateLeagueSync } = require("../services/espnLateLeagueSync");
 const { hasUsableLeagueId } = require("../services/omenReadiness");
 const sleeperAdapter = require("../adapters/sleeper");
 const espnAdapter = require("../adapters/espn");
@@ -838,6 +839,14 @@ router.post(
         boundTeamId: espnTeamId,
         boundVerified: true,
         trustDiscoveredTeams: false,
+      });
+      scheduleEspnLateLeagueSync({
+        userId: req.user.id,
+        connectionId: stored.present ? stored.data : null,
+        season: currentSeason(),
+        fetchDirectory: () => espnAdapter.fetchEspnFanDirectory(espn_s2, swid, { season: currentSeason() }),
+        syncMemberships: (options) => leagueMemberships.syncMemberships(supabase, options),
+        log: logger,
       });
       return res.json({
         connected: true,

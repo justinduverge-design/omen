@@ -21,6 +21,34 @@ test("decision value blends provider with Sight, ignores low confidence, fills a
   assert.equal(decisionValue(p("n", "WR", null)), null);
 });
 
+test("lineup calls use Omen's read when Sleeper, Yahoo, or ESPN omits a projection", () => {
+  const { evaluateLineup } = require("../src/services/optimizer");
+  for (const platform of ["sleeper", "yahoo", "espn"]) {
+    const roster = {
+      projection_meta: { available: false, source: platform },
+      slots: {
+        starters: [
+          p(`${platform}-start`, "WR", null, {
+            selected_position: "WR",
+            eligible_positions: ["WR"],
+            sight: sight(7),
+          }),
+        ],
+        bench: [
+          p(`${platform}-bench`, "WR", null, {
+            selected_position: "BN",
+            eligible_positions: ["WR"],
+            sight: sight(14),
+          }),
+        ],
+      },
+    };
+    const [call] = evaluateLineup(roster);
+    assert.equal(call?.to.player_key, `sleeper:${platform}-bench`, `${platform} must get Omen's lineup call`);
+    assert.equal(call?.delta, 7);
+  }
+});
+
 test("Sight can change which add wins and is named in the evidence", () => {
   const roster = {
     slots: {

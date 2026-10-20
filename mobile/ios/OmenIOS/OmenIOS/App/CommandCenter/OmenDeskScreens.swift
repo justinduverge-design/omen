@@ -289,6 +289,11 @@ struct OmenCommandDeskScreen: View {
             waiverCard
             sectionHeader("The Ledger", action: onOpenLedger == nil ? nil : "See all", perform: onOpenLedger)
             ledgerCard
+            if let onReportProblem {
+                OmenReportPill(action: onReportProblem)
+                    .padding(.horizontal, OmenSpacing.step16)
+                    .padding(.top, OmenSpacing.step12)
+            }
             Spacer(minLength: OmenSpacing.step8)
             if let footnote = state.footnote {
                 OmenDeskFootnoteStrip(footnote: footnote)
@@ -300,13 +305,6 @@ struct OmenCommandDeskScreen: View {
         .modifier(OmenDeskFit(enabled: fitsScreen, identifier: fitProbeIdentifier))
         .safeAreaInset(edge: .top, spacing: 0) {
             if let context { context.bar }
-        }
-        .overlay(alignment: .bottom) {
-            if let onReportProblem {
-                OmenReportPill(action: onReportProblem)
-                    .padding(.horizontal, OmenSpacing.step16)
-                    .padding(.bottom, 76)
-            }
         }
         .background(OmenColor.bg)
     }

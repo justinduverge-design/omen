@@ -484,7 +484,9 @@ struct OmenLeadingReadCard: View {
                     .foregroundStyle(OmenColor.textPrimary)
                     .accessibilityAddTraits(.isHeader)
                 HStack(spacing: OmenSpacing.step16) {
-                    read(label: comparison.providerLabel, points: comparison.providerPoints)
+                    if let providerPoints = comparison.providerPoints {
+                        read(label: comparison.providerLabel, points: providerPoints)
+                    }
                     read(label: "Omen Read", points: comparison.omenPoints)
                 }
                 if comparison.authority != .providerLeads && comparison.authority != .omenLeads {
@@ -503,7 +505,7 @@ struct OmenLeadingReadCard: View {
             Text(label)
                 .omenTextStyle(OmenTypography.micro)
                 .foregroundStyle(OmenColor.textTertiary)
-            Text(points.map { String(format: "%.1f", $0) } ?? "Not available")
+            Text(points.map { String(format: "%.1f", $0) } ?? "Building")
                 .omenTextStyle(OmenTypography.numeric)
                 .foregroundStyle(OmenColor.textPrimary)
         }
@@ -511,9 +513,11 @@ struct OmenLeadingReadCard: View {
     }
 
     private var accessibilitySummary: String {
-        let provider = comparison.providerPoints.map { String(format: "%.1f", $0) } ?? "not available"
-        let omen = comparison.omenPoints.map { String(format: "%.1f", $0) } ?? "not available"
-        return "Leading Read. \(comparison.authorityLabel). \(comparison.providerLabel), \(provider). Omen Read, \(omen)."
+        let omen = comparison.omenPoints.map { String(format: "%.1f", $0) } ?? "building"
+        guard let providerPoints = comparison.providerPoints else {
+            return "Leading Read. \(comparison.authorityLabel). Omen Read, \(omen)."
+        }
+        return "Leading Read. \(comparison.authorityLabel). \(comparison.providerLabel), \(String(format: "%.1f", providerPoints)). Omen Read, \(omen)."
     }
 }
 

@@ -37,7 +37,7 @@ const POSITION_GROUPS = {
 };
 
 const { assessConfidence, scoreForBand, usageCorroboration } = require("./confidencePolicy");
-const { blendWithSight, isLocked, effectiveStatus } = require("./sightDecision");
+const { blendWithSight, sightPoints, isLocked, effectiveStatus } = require("./sightDecision");
 
 const HEALTHY = new Set([null, undefined, "", "P", "PROBABLE"]);
 const RISKY = new Set(["Q", "QUESTIONABLE", "GTD", "DTD"]);
@@ -106,15 +106,19 @@ function statusPenalty(status) {
 }
 
 function adjustedProjection(player) {
-  const raw = Number(player.projected_points) || 0;
-  // Omen's Sight moves the number when it is attached; without it this is the provider projection, unchanged.
-  // Only a real provider number is blended: a missing one stays 0 here, exactly as before.
-  const proj = hasProjection(player) ? blendWithSight(raw, player) : raw;
+  const raw = hasProjection(player) ? Number(player.projected_points) : null;
+  // Providers supply league context, not permission for Omen to make a call. When a free
+  // provider omits its projection, Omen's own warehouse read remains a valid decision input.
+  const proj = blendWithSight(raw, player) ?? 0;
   return proj * (1 - statusPenalty(effectiveStatus(player)));
 }
 
 function hasProjection(player) {
   return player != null && player.projected_points != null && Number.isFinite(Number(player.projected_points));
+}
+
+function hasDecisionRead(player) {
+  return hasProjection(player) || sightPoints(player) != null;
 }
 
 // Sleeper and ESPN rosters leave a bye-week player's projection null, and a null there has always
@@ -180,13 +184,13 @@ function evaluateLineup(roster, opts = {}, scoringConfig = {}) {
     const compat = compatibleSlots(slot);
     const sProj = adjustedProjection(starter);
     // An unprojected starter can only be replaced when he is OUT (status alone scores him zero).
-    if (strict && !hasProjection(starter) && statusPenalty(effectiveStatus(starter)) < 1) continue;
+    if (strict && !hasDecisionRead(starter) && statusPenalty(effectiveStatus(starter)) < 1) continue;
 
     const candidates = roster.slots.bench
       .filter(
         (b) =>
           !isLocked(b) &&
-          (!strict || hasProjection(b)) &&
+          (!strict || hasDecisionRead(b)) &&
           Array.isArray(b.eligible_positions) &&
           b.eligible_positions.some((p) => compat.includes(p)),
       )

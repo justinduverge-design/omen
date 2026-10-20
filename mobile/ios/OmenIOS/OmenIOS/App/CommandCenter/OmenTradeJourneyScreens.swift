@@ -231,6 +231,8 @@ struct OmenTradeRead: Equatable {
     /// The inputs, already in the server's order. The screen does not re-rank — re-ranking is a
     /// claim about relative importance that no contract supports.
     let inputs: [OmenTradeInput]
+    var forwardWeek: Double? = nil
+    var theCatch: String? = nil
 }
 
 /// `.howto` — how to actually submit this, given that Omen never submits on anyone's behalf.
@@ -1054,6 +1056,22 @@ private struct OmenTradeReadBlock: View {
                 }
             }
 
+            if read.forwardWeek != nil || read.theCatch != nil {
+                VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+                    if let value = read.forwardWeek {
+                        Text("This week · \(value >= 0 ? "+" : "")\(String(format: "%.1f", value)) lineup points")
+                            .omenTextStyle(OmenTypography.bodySmall)
+                            .foregroundStyle(OmenColor.textSecondary)
+                    }
+                    if let theCatch = read.theCatch {
+                        Text("The catch · \(theCatch)")
+                            .omenTextStyle(OmenTypography.bodySmall)
+                            .foregroundStyle(OmenColor.textSecondary)
+                    }
+                }
+                .padding(.top, OmenSpacing.step10)
+            }
+
             if let submission {
                 VStack(alignment: .leading, spacing: OmenSpacing.step8) {
                     HStack(spacing: OmenSpacing.step8) {
@@ -1268,7 +1286,9 @@ extension OmenTradeRead {
             reasoning: compare.explanation?.isEmpty == false ? compare.explanation! : compare.subhead,
             caveat: caveat(for: compare),
             isPersonalized: compare.analysisContext.isPersonalized,
-            inputs: (compare.capabilities ?? []).compactMap(OmenTradeInput.init(capability:))
+            inputs: (compare.capabilities ?? []).compactMap(OmenTradeInput.init(capability:)),
+            forwardWeek: compare.forwardHorizons?.week.status == "available" ? compare.forwardHorizons?.week.value : nil,
+            theCatch: compare.theCatch?.status == "available" ? compare.theCatch?.statement : nil
         )
     }
 

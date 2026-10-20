@@ -19,6 +19,14 @@ test("compares a one-for-one trade by replacement-level value", () => {
   assert.equal(result.scoring_format, "ppr");
   assert.equal(result.a_score, 2.5); // recalibrated 2026-05-13
   assert.equal(result.combined_score, 2.5); // recalibrated 2026-05-13
+  assert.deepEqual(result.forward_horizons.week, { status: "available", value: 4, reason: null });
+  assert.equal(result.forward_horizons.next_4.reason, "forward_projection_curve_unavailable");
+  assert.equal(result.forward_horizons.season.value, null);
+  assert.deepEqual(result.the_catch, {
+    status: "unavailable",
+    statement: null,
+    reason: "roster_depth_not_available",
+  });
 });
 
 test("supports uneven player-count trades without hidden roster assumptions", () => {
@@ -48,6 +56,8 @@ test("marks missing projections as low confidence instead of inventing value", (
   assert.equal(result.receive.players[0].notes.includes("missing_projection"), true);
   assert.equal(result.confidence, "low");
   assert.equal(result.verdict, "decline");
+  assert.equal(result.forward_horizons.week.status, "unavailable");
+  assert.equal(result.forward_horizons.week.reason, "weekly_projection_unavailable");
 });
 
 test("uses injury/status-adjusted projection through the optimizer baseline", () => {
