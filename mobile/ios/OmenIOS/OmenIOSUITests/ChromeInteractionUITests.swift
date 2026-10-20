@@ -265,7 +265,9 @@ final class ChromeInteractionUITests: XCTestCase {
     func testTheReportPillIsPresentAndSaysWhatItSends() {
         let app = launch("chrome.report-pill.resting")
 
-        let pill = app.buttons["chrome.report-pill"]
+        let pill = app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH %@", "Something look wrong?")
+        ).firstMatch
         assertTappable(pill, "the report pill")
         // The promise is in the accessibility label because the pill is one combined element.
         // It is the whole reason `OmenBetaReport` is a closed struct, so it is pinned here as
@@ -431,7 +433,9 @@ final class ChromeInteractionUITests: XCTestCase {
     /// deterministic tab shell.
     func testTheReportPillDoesNotCostCommandCenterItsFit() {
         let withPill = launch("chrome.report-pill.resting")
-        let pill = withPill.buttons["chrome.report-pill"]
+        let pill = withPill.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH %@", "Something look wrong?")
+        ).firstMatch
         XCTAssertTrue(pill.waitForExistence(timeout: 15), "the pill is not on the Command Center frame")
         withPill.terminate()
 
@@ -448,7 +452,9 @@ final class ChromeInteractionUITests: XCTestCase {
 
         let without = launch("command-center.demo-connected")
         XCTAssertFalse(
-            without.buttons["chrome.report-pill"].exists,
+            without.buttons.matching(
+                NSPredicate(format: "label BEGINSWITH %@", "Something look wrong?")
+            ).firstMatch.exists,
             "the pill appeared on a scenario that never asked for it — every existing Command Center capture just changed"
         )
         without.terminate()

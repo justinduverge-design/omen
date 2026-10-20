@@ -289,11 +289,6 @@ struct OmenCommandDeskScreen: View {
             waiverCard
             sectionHeader("The Ledger", action: onOpenLedger == nil ? nil : "See all", perform: onOpenLedger)
             ledgerCard
-            if let onReportProblem {
-                OmenReportPill(action: onReportProblem)
-                    .padding(.horizontal, OmenSpacing.step16)
-                    .padding(.top, OmenSpacing.step12)
-            }
             Spacer(minLength: OmenSpacing.step8)
             if let footnote = state.footnote {
                 OmenDeskFootnoteStrip(footnote: footnote)
@@ -305,6 +300,13 @@ struct OmenCommandDeskScreen: View {
         .modifier(OmenDeskFit(enabled: fitsScreen, identifier: fitProbeIdentifier))
         .safeAreaInset(edge: .top, spacing: 0) {
             if let context { context.bar }
+        }
+        .overlay(alignment: .bottom) {
+            if let onReportProblem {
+                OmenReportPill(action: onReportProblem)
+                    .padding(.horizontal, OmenSpacing.step16)
+                    .padding(.bottom, 76)
+            }
         }
         .background(OmenColor.bg)
     }
@@ -444,7 +446,7 @@ struct OmenCommandDeskScreen: View {
                                 .omenTextStyle(OmenTypography.bodySmall)
                                 .foregroundStyle(OmenColor.textSecondary)
                                 .multilineTextAlignment(.leading)
-                                .lineLimit(2)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                         if let band = preview.band { OmenConfidenceBandLabel(band: band) }
                     }
@@ -646,7 +648,8 @@ private struct OmenDeskBoard: View {
             if let watch = matchup.watch {
                 Text(watch)
                     .omenTextStyle(OmenTypography.bodySmall)
-                    .foregroundStyle(OmenColor.textSecondary)
+                    .foregroundStyle(OmenColor.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, OmenSpacing.step8)
                     .overlay(alignment: .top) {
                         Rectangle().fill(OmenColor.textPrimary.opacity(0.08)).frame(height: 1)
@@ -692,11 +695,10 @@ private struct OmenDeskBoard: View {
                     .omenTextStyle(OmenTypography.bodySmall)
                     .fontWeight(.bold)
                     .foregroundStyle(OmenColor.textPrimary)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(team.record)
-                    .omenTextStyle(OmenTypography.micro)
-                    .foregroundStyle(OmenColor.textTertiary)
+                    .font(.subheadline.bold())
+                    .foregroundStyle(team.isMine ? Color(uiColor: .label) : OmenColor.textTertiary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             Text(team.score)
@@ -742,7 +744,7 @@ private struct OmenDeskBoard: View {
     private func crest(_ team: OmenDeskTeam) -> some View {
         Text(team.crest)
             .omenTextStyle(OmenTypography.micro)
-            .foregroundStyle(team.isMine ? OmenColor.accentHover : OmenColor.textSecondary)
+            .foregroundStyle(OmenColor.textPrimary)
             .lineLimit(1)
             .minimumScaleFactor(0.6)
             .frame(width: 30, height: 30)
@@ -822,7 +824,7 @@ private struct OmenDeskWaiverCard: View {
                 .omenTextStyle(OmenTypography.name)
                 .fontWeight(incoming ? .bold : .medium)
                 .foregroundStyle(incoming ? OmenColor.textPrimary : OmenColor.textTertiary)
-                .lineLimit(1)
+                .fixedSize(horizontal: false, vertical: true)
             if let meta {
                 Text(meta)
                     .omenTextStyle(OmenTypography.micro)
@@ -867,8 +869,7 @@ private struct OmenDeskLedgerRow: View {
                     .omenTextStyle(OmenTypography.bodySmall)
                     .fontWeight(.bold)
                     .foregroundStyle(OmenColor.textPrimary)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(line.meta)
                     .omenTextStyle(OmenTypography.micro)
                     .foregroundStyle(OmenColor.textTertiary)

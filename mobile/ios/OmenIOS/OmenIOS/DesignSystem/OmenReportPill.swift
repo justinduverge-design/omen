@@ -54,7 +54,7 @@ struct OmenReportPill: View {
                     Text(visibleSubtitle)
                         .omenTextStyle(OmenTypography.bodySmall)
                         .foregroundStyle(OmenColor.textTertiary)
-                        .lineLimit(1)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 

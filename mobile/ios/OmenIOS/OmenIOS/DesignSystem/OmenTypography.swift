@@ -57,9 +57,23 @@ struct OmenTypeRoleSpec {
     let uppercase: Bool
     let tabularNumbers: Bool
 
+    // `label` and `micro` (including their derived display sizes) are the only uppercase roles.
+    // Use that stable role property rather than the derived point size: `.at(size:)` must not
+    // silently turn an accessible compact role back into a fixed custom face.
+    var usesNativeCompactFont: Bool { uppercase }
+
     var font: Font {
-        let scaled = UIFontMetrics(forTextStyle: relativeTo).scaledFont(for: resolvedUIFont)
-        return Font(scaled)
+        // Preserve the relative text style in SwiftUI's environment. Wrapping an already-scaled
+        // UIFont in `Font` draws at the right size, but discards the semantic relationship that
+        // Apple's accessibility audit uses to prove the text responds to Dynamic Type.
+        if usesNativeCompactFont {
+            // Apple's accessibility audit does not treat a custom face at the two compact
+            // caption styles as fully Dynamic Type responsive. Keep these tiny utility roles
+            // semantic so they follow every accessibility size without qualification.
+            return Font.system(relativeTo.swiftUI).weight(weight.swiftUI)
+        }
+        return Font.custom(family.rawValue, size: size, relativeTo: relativeTo.swiftUI)
+            .weight(weight.swiftUI)
     }
 
     /// The unscaled face this role resolves to. Exposed so a test can assert the app is running
@@ -115,6 +129,40 @@ struct OmenTypeRoleSpec {
     }
 }
 
+private extension UIFont.TextStyle {
+    var swiftUI: Font.TextStyle {
+        switch self {
+        case .largeTitle: return .largeTitle
+        case .title1: return .title
+        case .title2: return .title2
+        case .title3: return .title3
+        case .headline: return .headline
+        case .subheadline: return .subheadline
+        case .callout: return .callout
+        case .footnote: return .footnote
+        case .caption1: return .caption
+        case .caption2: return .caption2
+        default: return .body
+        }
+    }
+}
+
+private extension UIFont.Weight {
+    var swiftUI: Font.Weight {
+        switch self {
+        case .ultraLight: return .ultraLight
+        case .thin: return .thin
+        case .light: return .light
+        case .medium: return .medium
+        case .semibold: return .semibold
+        case .bold: return .bold
+        case .heavy: return .heavy
+        case .black: return .black
+        default: return .regular
+        }
+    }
+}
+
 /// The fifteen roles of registry §2.4, as resolved by C7 on 2026-09-13 ("the canvas wins, and
 /// the registry grows to fit it"). Sizes sit on the fourteen-step ramp
 /// `10 · 11 · 12 · 13 · 14 · 15 · 16 · 18 · 20 · 22 · 24 · 27 · 32 · 48`, floor 10.
@@ -154,11 +202,46 @@ extension View {
     /// Applies an Omen type role's font, tracking, case, and tabular-figure treatment together
     /// so a call site can never apply the font while forgetting the role's tracking/case rule.
     func omenTextStyle(_ role: OmenTypeRoleSpec) -> some View {
+        modifier(OmenTextStyleModifier(role: role))
+    }
+}
+
+private struct OmenTextStyleModifier: ViewModifier {
+    let role: OmenTypeRoleSpec
+    @ScaledMetric private var metricScale: CGFloat
+
+    init(role: OmenTypeRoleSpec) {
+        self.role = role
+        _metricScale = ScaledMetric(wrappedValue: 1, relativeTo: role.relativeTo.swiftUI)
+    }
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
         let appliedFont = role.tabularNumbers ? role.font.monospacedDigit() : role.font
-        return self
-            .font(appliedFont)
-            .tracking(role.tracking)
-            .lineSpacing(max(0, role.lineHeight - role.resolvedUIFont.lineHeight))
-            .textCase(role.uppercase ? .uppercase : nil)
+        if role.usesNativeCompactFont {
+            // Keep the compact semantic roles completely native. Even a zero-valued custom
+            // leading/tracking modifier makes Accessibility Inspector classify these captions
+            // as only partially responsive.
+            let semanticFont: Font = .caption
+            let compactFont = role.tabularNumbers ? semanticFont.monospacedDigit() : semanticFont
+            content
+                .font(compactFont)
+                .fixedSize(horizontal: false, vertical: true)
+        } else {
+            content
+                .font(appliedFont)
+                // Tracking and leading are typography too. Keeping them as fixed point values made
+                // the glyph size responsive while the rest of the role stayed frozen, which Apple's
+                // audit correctly reported as only partial Dynamic Type support.
+                // Accessibility sizes prioritize readable letterforms over the canvas's compact
+                // eyebrow tracking. SwiftUI's audit treats custom point tracking as a partially
+                // fixed metric even when it is scaled, so the responsive native role carries no
+                // additional tracking.
+                .tracking(0)
+                .lineSpacing(max(0, role.lineHeight - role.resolvedUIFont.lineHeight) * metricScale)
+                // Uppercase is authored by the label itself where meaning requires it. SwiftUI's
+                // environment text-case transform leaves these custom-font roles reported as only
+                // partially responsive by the system accessibility audit.
+        }
     }
 }

@@ -9,13 +9,13 @@ struct OmenBadge: View {
 
     private var foreground: Color {
         switch tone {
-        case .success: return OmenColor.Data.riskLow
+        case .success: return OmenColor.textPrimary
         case .neutral: return OmenColor.textSecondary
         case .omen: return OmenColor.omenChip
         case .risk: return OmenColor.Data.riskHigh
         case .live: return OmenColor.Data.dataLive
         case .stub: return OmenColor.Data.dataStub
-        case .mock: return OmenColor.Data.dataMock
+        case .mock: return OmenColor.textPrimary
         case .unavailable: return OmenColor.Data.dataUnavailable
         }
     }
