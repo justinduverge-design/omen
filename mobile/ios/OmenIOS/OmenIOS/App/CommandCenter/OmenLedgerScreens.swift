@@ -153,6 +153,8 @@ struct OmenLedgerState: Equatable {
     /// `.top .kick` — "11 calls".
     let kicker: String
     let groups: [OmenLedgerGroup]
+    /// The contested record ("11 of 14 close calls held up."). Easy calls do not count.
+    var headline: String? = nil
     /// The *could not read* class. Named, with a sentence, and never dropped to make room —
     /// `capability-expression-v1.md` singles this class out as the one that must survive
     /// truncation, since it is the only one that costs the reader something.
@@ -323,6 +325,14 @@ struct OmenLedgerScreen: View {
                 Text("The Ledger")
                     .omenTextStyle(OmenTypography.screenTitle)
                     .foregroundStyle(OmenColor.textPrimary)
+                if let headline = state.headline {
+                    Text(headline)
+                        .omenTextStyle(OmenTypography.h3)
+                        .foregroundStyle(OmenColor.textPrimary)
+                    Text("Easy calls, like benching a player who is out, do not count.")
+                        .omenTextStyle(OmenTypography.bodySmall)
+                        .foregroundStyle(OmenColor.textSecondary)
+                }
             }
             Spacer(minLength: OmenSpacing.step8)
             OmenScreenHeaderControls(

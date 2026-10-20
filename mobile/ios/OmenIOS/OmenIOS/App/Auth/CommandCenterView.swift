@@ -309,6 +309,7 @@ struct CommandCenterView: View {
                             return bar
                         },
                         ledgerEntries: commandCenterViewModel.ledgerState.entries,
+                        ledgerHeadline: commandCenterViewModel.ledgerHeadline,
                         onOpenAccount: { showAccountSheet = true },
                         onOpenLeague: { selectedTab = .league },
                         onReportProblem: { reportingScreen = .commandCenter },

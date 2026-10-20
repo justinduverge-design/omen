@@ -1314,6 +1314,7 @@ struct OmenCommandDeskHost: View {
     var context: OmenScreenContext?
     /// The unabridged Ledger, for the "See all" sheet. Nil when the read did not produce entries.
     var ledgerEntries: [OmenLedgerEntry] = []
+    var ledgerHeadline: String?
     var onOpenAccount: (() -> Void)?
     var onOpenLeague: (() -> Void)?
     var onReportProblem: (() -> Void)?
@@ -1358,7 +1359,11 @@ struct OmenCommandDeskHost: View {
         .sheet(isPresented: $showLedger) {
             CommandCenterDetailSheet(title: "The Ledger") {
                 OmenLedgerScreen(
-                    state: OmenLedgerState.from(entries: ledgerEntries),
+                    state: {
+                        var state = OmenLedgerState.from(entries: ledgerEntries)
+                        state.headline = ledgerHeadline
+                        return state
+                    }(),
                     onOpenAccount: onOpenAccount,
                     onOpenCall: { call in
                         guard let entry = ledgerEntries.first(where: { $0.id == call.id }) else { return }

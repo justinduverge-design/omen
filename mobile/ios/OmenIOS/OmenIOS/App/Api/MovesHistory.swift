@@ -66,10 +66,38 @@ struct MovesHistory: Decodable, Equatable {
     let season: Int?
     let summary: Summary?
     let moves: [Move]
+    /// `record`: the season's results, including the contested record (calls against an OUT or
+    /// bye alternative do not count), which the Ledger leads with.
+    let record: Record?
 
     enum CodingKeys: String, CodingKey {
         case contractVersion = "contract_version"
-        case season, summary, moves
+        case season, summary, moves, record
+    }
+
+    struct Record: Decodable, Equatable {
+        let worked: Int?
+        let didNotWork: Int?
+        let contestedWorked: Int?
+        let contestedDidNotWork: Int?
+        let contestUnknown: Int?
+        let uncontested: Int?
+
+        enum CodingKeys: String, CodingKey {
+            case worked, uncontested
+            case didNotWork = "did_not_work"
+            case contestedWorked = "contested_worked"
+            case contestedDidNotWork = "contested_did_not_work"
+            case contestUnknown = "contest_unknown"
+        }
+    }
+
+    /// "11 of 14 close calls held up." Nil before any contested call has a result.
+    var contestedHeadline: String? {
+        guard let worked = record?.contestedWorked, let lost = record?.contestedDidNotWork, worked + lost > 0 else {
+            return nil
+        }
+        return "\(worked) of \(worked + lost) close calls held up."
     }
 
     struct Summary: Decodable, Equatable {

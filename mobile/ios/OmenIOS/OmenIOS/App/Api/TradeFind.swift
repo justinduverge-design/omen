@@ -39,6 +39,16 @@ struct TradeFindPlayer: Decodable, Equatable {
         rating = try? c.decodeIfPresent(OmenPlayerRating.self, forKey: .rating)
     }
 
+    /// "30.7 PPG, RB Omen Grade 73.5": what the player has done and how Omen grades him. Nil when
+    /// the warehouse has neither for him.
+    var numbersShort: String? {
+        let parts = [
+            stats?.pointsPerGame.map { String(format: "%.1f PPG", $0) },
+            rating?.rating.map { "\(rating?.title ?? OmenPlayerRating.familyName) \(String(format: "%.1f", $0))" },
+        ].compactMap { $0 }
+        return parts.isEmpty ? nil : parts.joined(separator: ", ")
+    }
+
     /// "Omen 12.8", or nil when Omen has no read for this player.
     var omenPointsLabel: String? {
         omenRead?.points.map { "Omen \(String(format: "%.1f", $0))" }
@@ -510,7 +520,10 @@ final class LeagueTradeTargetsViewModel: ObservableObject {
 
     static func read(for candidate: TradeFindCandidate) -> String {
         func pts(_ value: Double?) -> String { value.map { String(format: "%+.1f", $0) } ?? "n/a" }
-        return "\(candidate.receive.name) for \(candidate.give.name): \(pts(candidate.userLineupDelta)) to your lineup, \(pts(candidate.opponentLineupDelta)) to theirs."
+        func named(_ player: TradeFindPlayer) -> String {
+            player.numbersShort.map { "\(player.name) (\($0))" } ?? player.name
+        }
+        return "\(named(candidate.receive)) for \(named(candidate.give)): \(pts(candidate.userLineupDelta)) to your lineup, \(pts(candidate.opponentLineupDelta)) to theirs."
     }
 
     private static func unavailableSentence(reason: String?) -> String {
