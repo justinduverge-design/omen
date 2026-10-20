@@ -30,6 +30,7 @@ const espnAdapter = require("../adapters/espn");
 const yahooAdapter = require("../adapters/yahoo");
 const { getAuthenticatedEspnCredentials } = require("../services/espnAuth");
 const { getAuthenticatedYahooClient } = require("../services/yahooAuth");
+const { resolveScoringPersistenceMetadata } = require("../services/scoringSnapshotResolver");
 const { createClient } = require("@supabase/supabase-js");
 const { createTradeUsageEvidence, usageRowsForTrade } = require("../services/tradeUsageEvidence");
 const { createSightEnricher } = require("../services/sightEnrichment");
@@ -434,9 +435,74 @@ async function defaultLeagueContextResolver({ userId, platform, leagueId }) {
         const slots = normalized?.slots || {};
         return [...(slots.starters || []), ...(slots.bench || []), ...(slots.ir || [])];
       },
+      readProviderContext: readEspnOrYahooTradeContext,
       logger,
     },
   });
+}
+
+/**
+ * ESPN / Yahoo league context for a personalized trade read: every team's roster (for the user's own
+ * and the league size), the league's lineup slots, and the scoring format from the league's own
+ * reception rule. The same reads Find a Trade and the scoring resolver already make.
+ */
+/** `ppr` / `half_ppr` / `standard` from a Yahoo league's reception rule, else null. */
+async function yahooReceptionFormat(client, leagueId) {
+  const { deriveYahooRules } = require("../services/scoringRuleSnapshot");
+  const data = await client.get(`/league/${leagueId}/settings`);
+  const league = data?.fantasy_content?.league;
+  const raw = Array.isArray(league) ? league[1]?.settings : league?.settings;
+  const settings = Array.isArray(raw) ? raw[0] : raw;
+  const reception = (deriveYahooRules(settings)?.rules || []).find(
+    (rule) => rule.event_key === "receiving_receptions" && rule.operator === "per_event",
+  );
+  if (!reception) return null;
+  if (reception.value === 1) return "ppr";
+  if (reception.value === 0.5) return "half_ppr";
+  if (reception.value === 0) return "standard";
+  return null;
+}
+
+async function readEspnOrYahooTradeContext(connection, userId) {
+  const leagueId = String(connection.league_id);
+  const { week } = getCurrentNflWeekContext();
+  const scoring = await resolveScoringPersistenceMetadata({
+    platform: connection.platform,
+    leagueId,
+    userId,
+  }).catch(() => null);
+  let rosters;
+  let ownTeam = null;
+  // The full rule snapshot is often "ambiguous" (one rule Omen cannot map), which leaves `format`
+  // null. A trade read needs only the reception rule, so read that one rule directly.
+  let receptionFormat = null;
+  if (connection.platform === "espn") {
+    const credentials = await getAuthenticatedEspnCredentials(userId);
+    rosters = await espnAdapter.fetchEspnLeagueRosters(leagueId, credentials.espn_s2, credentials.swid, { week });
+    ownTeam = (rosters?.teams || []).find((team) => sameTeamId(team?.team_id, connection.espn_team_id)) || null;
+    const rules = await espnAdapter
+      .fetchEspnScoringSettings(leagueId, credentials.espn_s2, credentials.swid)
+      .catch(() => null);
+    receptionFormat = espnAdapter.espnScoringFormat(rules);
+  } else if (connection.platform === "yahoo") {
+    const auth = await getAuthenticatedYahooClient(userId);
+    rosters = await yahooAdapter.fetchYahooLeagueRosters(leagueId, auth.accessToken, week);
+    const myKey = await auth.client?.getMyTeamKey?.(leagueId).catch(() => null);
+    ownTeam = (rosters?.teams || []).find((team) => myKey && sameTeamId(team?.team_id, myKey)) || null;
+    receptionFormat = await yahooReceptionFormat(auth.client, leagueId).catch(() => null);
+  } else {
+    return null;
+  }
+  const teams = Array.isArray(rosters?.teams) ? rosters.teams : [];
+  if (!teams.length) return null;
+  const known = new Set(["ppr", "half_ppr", "standard"]);
+  return {
+    scoringFormat: scoring?.format || (known.has(receptionFormat) ? receptionFormat : null),
+    rosterPositions: Array.isArray(rosters?.roster_positions) ? rosters.roster_positions : [],
+    teamCount: teams.length,
+    rosterPlayers: Array.isArray(ownTeam?.players) ? ownTeam.players : [],
+    leagueName: rosters?.league_name || null,
+  };
 }
 
 function jsonByteLength(value) {

@@ -442,11 +442,14 @@ test("league_context must be an object", async () => {
  * 5. Connection selection and provider truth
  * ---------------------------------------------------------------- */
 
-test("Yahoo is never offered as a personalization source while its API is refused", () => {
+// Reversed 2026-10-19 (founder: every league gets what Sleeper gets). Yahoo has been enabled since
+// Build 9; a stored OAuth token makes it a personalization source, and no token still does not.
+test("Yahoo with a stored token is a personalization source; without one it is not", () => {
   const chosen = selectContextConnection([
     { platform: "yahoo", is_active: true, league_id: "y1", token_secret_id: "s1" },
   ]);
-  assert.equal(chosen, null);
+  assert.equal(chosen?.platform, "yahoo");
+  assert.equal(selectContextConnection([{ platform: "yahoo", is_active: true, league_id: "y1" }]), null);
 });
 
 test("Sleeper is preferred because it needs no credential", () => {
