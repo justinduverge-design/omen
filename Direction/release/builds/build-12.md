@@ -2,11 +2,12 @@
 
 ## Status
 
-**Ready for the final iPhone install/walk and TestFlight upload. Build 12 implementation shipped 2026-10-20
-through #762; #763 closes the release record.**
-The finish handoff in `Blueprints/handoffs/2026-10-19-build-12-codex-finish.md` is implemented. The only
-release gate still open is installing the final signed build on the founder's iPhone, completing the walk,
-and uploading that proven archive to TestFlight.
+**Open. Build 12 implementation shipped 2026-10-20 through #762 and #763 reconciled the release record,
+but the release is not complete until the account repair and final iPhone walk below pass.**
+The source checklist in `Blueprints/handoffs/2026-10-19-build-12-codex-finish.md` is implemented. The open
+release gates are reconnecting and re-proving the ESPN account with no team id, installing the final signed
+build on the founder's iPhone, completing the provider/screen/accessibility walk, and uploading that proven
+archive to TestFlight.
 
 - Backend shipped to production in two waves: 2026-10-15 to 10-17 (#670 to #713), then the integration
   branch on 2026-10-19 (#752, deploy run 39241836554, green).
@@ -233,10 +234,10 @@ All of it was built on `build-12/integration`, reviewed by a fresh agent, and me
 
 ## Known issues / next
 
-### Next: the whole-app canvas
+### Historical canvas plan (implemented in #756 to #758)
 
-Brief: `Blueprints/specs/design/omen-whole-app-canvas-v1.md`. The prep it waited on is done: connections,
-load times, narration and Find a Trade reasons.
+This section records the plan that produced the shipped canvas and screens. It is provenance, not the
+current queue. Brief: `Blueprints/specs/design/omen-whole-app-canvas-v1.md`.
 
 - **First cut, in this order:**
   1. The shared shell and context switcher.
@@ -273,38 +274,38 @@ load times, narration and Find a Trade reasons.
   the product better. Claude designs; the founder approves or rejects. Use references where unsure, and
   record each one as a principle, not a copied layout.
 
-### Still open
+### Build 12 release blockers
 
-- **Project-wide P0/P1/P2 defect sweep (founder, 2026-10-19).** A fresh agent checked every finding in the
-  reviews, handoffs, `known_issues.md`, open PRs and issues against the code. The source defects are fixed;
-  one owner-controlled production row remains.
-  - Fixed on `build-12/p-sweep`:
-    - **D1 (P1)** League showed a pregame matchup as "unread".
-    - **D2** The table header claimed "Form · last 5"; it now says "Record".
-    - **D3** An empty activity list was a blank section; it now says so.
-    - **D4** Yahoo and ESPN activity were labelled "not verified"; they are now `live`.
-    - **D5** ESPN activity names come from Sleeper's ESPN ids.
-    - **D7** An undrafted Sleeper league says it hasn't drafted. Raw reason codes such as
-      `provider_failed` are no longer shown as copy.
-    - **D8** The back chevron renders as a template, so it meets light-mode contrast.
-  - Left for the founder: **D6**, one ESPN connection with no team id. Removing or reconnecting it is a
-    production database row.
-  - Fixed in #760: **D9 (P3)**, the light-mode stacked lockup.
+1. **Repair and re-prove the ESPN row without a team id.** The affected ESPN credential was rejected, so
+   discovery could not bind `espn_team_id`. The founder must reconnect that ESPN account on the phone; then
+   rerun the sanitized provider proof and confirm every connected ESPN league is usable. Do not edit or
+   delete the production row by guesswork.
+2. **Run the final physical-iPhone gate.** Install the final signed Release build, run every provider and
+   screen in the device walk below, and run the unfiltered accessibility audit. Source changes are merged;
+   device proof for the final binary is not.
+3. **Upload only the proven archive to TestFlight.** Paste the tester notes below and record the TestFlight
+   build number here before changing this package to Shipped.
 
-- **Narration production setting:** #760 proved `qwen3:1.7b` against the private model host with thinking
-  disabled and shipped the transport support. Production remains on `gemma3:4b`; changing `LLM_MODEL` is a
-  separate production activation, not part of the TestFlight binary.
-- **Cold reads:** league list about 1.1 s, summary about 1.3 s and Start/Sit are not yet parallelised the
-  way Waivers is.
-- **Coverage:** Sight reaches Yahoo for 233 of 305 players through the index. The read-time name match
-  should cover the rest, but the count is not re-measured.
-- **Injuries:** daily only, so Sunday-morning inactives are missed. Sleeper's practice fields are empty.
-- **Kickers:** K Sight is noise and stays low confidence.
-- **Sight v3:** coach graph and scheme links into Sight. Built as a bundle and switched once.
-- **Provider surface:** Sleeper depth chart, Yahoo `percent_owned`, keeper and auction values are still
-  unused (provider matrix).
-- **Merge process:** two PRs merged before CI started (#702, #703). This is fixed in the merge script, and
-  the main deploy was red until #704.
+### Resolved Build 12 findings
+
+- D1 through D5 and D7 through D9 shipped in #754, #755 and #760. The undrafted Sleeper copy, iOS template
+  chevron and iOS light lockup entries in `Direction/known_issues.md` are closed or narrowed accordingly.
+- The report control, accessibility implementation, stale UI expectations, provider-wide Omen call,
+  ESPN late-listing recovery and Trade server fields shipped in #761; final physical-device proof remains
+  part of blocker 2 rather than being inferred from source or unit tests.
+
+### Post-Build 12 backlog — not release blockers
+
+- **Narration model:** #760 proved `qwen3:1.7b` with thinking disabled. Production remains on `gemma3:4b`.
+  Small-model background work and any production activation are a later, separately approved change.
+- **Support/report delivery and move follow-through:** the Desk control is placed correctly, but end-to-end
+  support delivery and the "I made the move / Not this week" write route remain post-Build 12 work.
+- **Performance and model depth:** parallelise remaining cold reads; re-measure Yahoo player-index coverage;
+  improve Sunday injury freshness; keep K low-confidence until it earns more; build Sight v3 separately.
+- **Unused provider fields:** Sleeper depth chart plus Yahoo `percent_owned`, keeper and auction values remain
+  candidates for later features. Their absence does not prevent today's calls from working.
+- **Operations outside this release:** the Cloudflare 522 experiment and off-host backup-expiry risk remain
+  tracked in `Direction/known_issues.md`; neither is introduced by the Build 12 binary.
 
 ## Tester notes
 
@@ -396,8 +397,9 @@ PLEASE TEST
 - **Final production deploy:** merge `36835f11` deployed successfully in run `39473388464`; backend tests,
   recorded contracts, dependency audit, frontend build, image builds, `/api/health`, deployed-logo check and
   public-route visual canary all passed.
-- **Not yet done:** install the final signed build on the paired iPhone, run the walk below, and upload the
-  proven archive to TestFlight.
+- **Not yet done:** reconnect and re-prove the affected ESPN account; install the final signed build on the
+  paired iPhone; run the provider, screen and unfiltered accessibility walk below; upload the proven archive
+  to TestFlight.
 
 ### To test once the canvas and screens are fixed
 
