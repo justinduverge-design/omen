@@ -130,3 +130,29 @@ private extension UIColor {
         )
     }
 }
+
+
+/// The Appearance setting (Account › Appearance). Dark stays the default; Light is the neutral
+/// near-white ramp above, never beige (founder, 2026-10-19); Match iPhone follows the system.
+enum OmenAppearance: String, CaseIterable {
+    case dark, light, system
+
+    static let storageKey = "omen.appearance"
+
+    var title: String {
+        switch self {
+        case .dark: return "Dark"
+        case .light: return "Light"
+        case .system: return "Match iPhone"
+        }
+    }
+
+    /// Nil hands the choice to the system.
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .dark: return .dark
+        case .light: return .light
+        case .system: return nil
+        }
+    }
+}
