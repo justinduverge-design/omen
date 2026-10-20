@@ -4786,3 +4786,11 @@ on the second one.
 2026-10-18 — Phase 4 Rust Pi watchdog: steward-freshness, the first Rust crate, a dependency-free static aarch64 binary (377 KB) porting Steward's three freshness checks. Parity harness 47/47 identical to the bash checks. Shadow units (hourly, writing *.rust.status plus a MATCH/MISMATCH journal line) are ready but not installed. Rust CI (fmt, clippy, test, Pi cross-compile artifact) and deny.toml land with it.
 2026-10-18 — Prune decisions (delegated by the founder): removed GET /api/yahoo/roster and GET /api/optimizer/lineup (no caller; start/sit and the provider adapters replaced them, #745); kept POST /api/user/consent (privacy) and the coach-transfer signal (planned). Provider salvage (#746): landed G4 league transactions (Sleeper live; Yahoo/ESPN dark behind flags until a live probe), G6 Yahoo FA/waiver split behind YAHOO_POOL_STATUS_SPLIT, G8 per-team budget; G3 and G5 had already shipped. Rule kept: an unread feed is unavailable with a reason, never empty.
 2026-10-18 — steward-freshness shadow installed on Steward (founder-approved): hourly Rust runs beside the bash checks, with a MATCH/MISMATCH journal line each run. First runs: MATCH on all three. The swap to Rust waits for a clean week.
+
+
+## 2026-10-19: Build 12 screens (founder)
+- **Canvas:** Claude Design replaces Figma. Brass stays as the accent. Light mode is reinstated, not beige.
+- **Provider parity:** Sleeper, ESPN and Yahoo get the same thing on every screen. Yahoo is a trade-personalization source.
+- **Ratings name:** "Omen Grade" (QB/RB/WR/TE); "QBR" is avoided as ESPN's brand.
+- **One branch, one ship:** all screen work stays on one branch and ships in one merge.
+- **Narration:** the model switch to qwen3:1.7b is approved; it is handed to Codex to test first.

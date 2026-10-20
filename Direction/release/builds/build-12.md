@@ -2,7 +2,8 @@
 
 ## Status
 
-**Open. Prep done; the canvas is next.**
+**Open. Screens shipped 2026-10-19 (#754 to #758); logo, model switch, accessibility, device walk and TestFlight are left.**
+Handoff for the finish: `Blueprints/handoffs/2026-10-19-build-12-codex-finish.md`.
 
 - Backend shipped to production in two waves: 2026-10-15 to 10-17 (#670 to #713), then the integration
   branch on 2026-10-19 (#752, deploy run 39241836554, green).
@@ -201,6 +202,22 @@ All of it was built on `build-12/integration`, reviewed by a fresh agent, and me
   of it. The canvas decides how each one looks.
 - **Switches in production:** `SIGHT_ENABLED=true`, `SIGHT_VERSION=v2`, `YAHOO_ENABLED=true`,
   `LEAGUE_TRANSACTIONS_YAHOO=1`, `LEAGUE_TRANSACTIONS_ESPN=1`.
+
+## Shipped 2026-10-19 (#754 to #758)
+
+- **Defect sweep (#754, #755):** no P0, one P1. All fixed except D6, a production database row, and D9, a light-mode logo.
+- **Canvas (#756):** the whole-app canvas and `BUILD.md`, in Claude Design. Figma is retired.
+- **Desk and shell (#757):** the Desk, the tabs and the switcher.
+- **Screens (#758):** every screen is wired to the backend on all three providers.
+  - Real stats and Omen Grades on every player.
+  - Omen call evidence built from Omen's read.
+  - ESPN and Yahoo personalized trades and projection breakdowns.
+  - FLEX fix, light mode, contested Ledger record.
+- **Proof:**
+  - npm test: 2,580 pass. iOS unit tests: 649 pass.
+  - UI tests: 98 of 101 pass; the 3 left fail on main too.
+  - Two fresh-agent reviews: no P0 or P1.
+  - Production probe: real numbers in 89 ms.
 
 ## Known issues / next
 
