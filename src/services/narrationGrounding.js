@@ -32,7 +32,7 @@ const COMMON_WORDS = new Set(
     "omen based using given here since when where which who what why how however overall " +
     "expect expects likely unlikely though although instead rather just simply plainly " +
     "waiver pickup trade accept decline neutral live mock deterministic " +
-    "adds gives brings offers provides makes keeps leaves lets helps means shows reflects favors " +
+    "adds gives brings offers provides makes keeps leaves lets helps improves means shows reflects favors " +
     "recommend recommends recommended strong healthy best good great top another any all other some " +
     "many much key main primary reason move choice call option player players role those these " +
     "gets get got ranks lines line up down about around across after before during without within " +

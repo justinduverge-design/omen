@@ -64,6 +64,7 @@ test("private LLM payload is bounded and omits identifiers and raw response mate
   assert.equal(serialized.includes("must-not-reach-model"), false);
   assert.equal(payload.primary_player.id, undefined);
   assert.equal(payload.state, "success");
+  assert.equal(Object.hasOwn(payload.confidence, "score"), false);
   assert.deepEqual(payload.data_used, ["connected roster", "weekly projection"]);
 });
 
@@ -191,4 +192,22 @@ test("why_statements reach the model payload so a grounded rephrase of their num
     model: "m",
   });
   assert.equal(response.recommendation.explanation.why_statements.length, 1);
+});
+
+test("grounding accepts a neutral improves sentence without admitting new facts", async () => {
+  const narration = await evidence.generateMvpLlmNarration(liveResponse(), {
+    llmService: {
+      explainOmenMvpMove: async () => ({
+        summary: "Start Starter Wideout for the meaningful projection edge.",
+        why_it_matters: "Improves expected value by 2.1 points with a projection edge.",
+        risk: "Medium risk",
+        confidence: "Confident",
+        data_used: ["connected roster", "weekly projection"],
+      }),
+      getLlmBridgeStatus: () => ({ status: "configured_private", model: "qwen3:1.7b" }),
+    },
+  });
+
+  assert.ok(narration);
+  assert.equal(narration.model, "qwen3:1.7b");
 });

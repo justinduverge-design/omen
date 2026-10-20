@@ -3,6 +3,16 @@
     {
       "filename" : "omen-lockup-stacked.svg",
       "idiom" : "universal"
+    },
+    {
+      "appearances" : [
+        {
+          "appearance" : "luminosity",
+          "value" : "light"
+        }
+      ],
+      "filename" : "omen-lockup-stacked-light.svg",
+      "idiom" : "universal"
     }
   ],
   "info" : {

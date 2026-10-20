@@ -102,14 +102,39 @@ test("parseOmenExplanation rejects narration over 50 words or 2 sentences", () =
     assert.equal(llm.parseOmenExplanation(tooLong), null);
 
     const tooManySentences = {
-      summary: "Start the safer flex.",
-      why_it_matters: "The edge is real.",
+      summary: "Start the safer flex. Keep the bench option ready.",
+      why_it_matters: "The edge is real. The lineup gains useful value.",
       risk: "The bench option is volatile.",
       confidence: "Confidence is medium.",
       data_used: ["connected roster"],
     };
 
     assert.equal(llm.parseOmenExplanation(tooManySentences), null);
+  } finally {
+    restore();
+  }
+});
+
+test("parseOmenExplanation treats unapplied risk and confidence as fragments", () => {
+  const { llm, restore } = loadLlmWithEnv();
+
+  try {
+    assert.deepEqual(
+      llm.parseOmenExplanation({
+        summary: "Start the safer flex.",
+        why_it_matters: "The projection edge is meaningful.",
+        risk: "Risk is medium.",
+        confidence: "Confidence is high.",
+        data_used: ["connected roster"],
+      }),
+      {
+        summary: "Start the safer flex.",
+        why_it_matters: "The projection edge is meaningful.",
+        risk: "Risk is medium",
+        confidence: "Confidence is high",
+        data_used: ["connected roster"],
+      },
+    );
   } finally {
     restore();
   }
@@ -162,6 +187,35 @@ test("LLM bridge allows Tailscale/private addresses and strips trailing slashes"
     assert.deepEqual(urls, ["http://100.64.10.20:11434/v1/chat/completions"]);
   } finally {
     global.fetch = oldFetch;
+    restore();
+  }
+});
+
+test("Qwen3 uses Ollama native chat with thinking disabled inside the narration budget", async () => {
+  const { llm, restore } = loadLlmWithEnv({
+    LLM_BASE_URL: "http://100.64.10.20:11434/v1/",
+    LLM_MODEL: "qwen3:1.7b",
+  });
+
+  try {
+    await withCapturedFetch(
+      async () => ({
+        ok: true,
+        json: async () => ({ message: { content: "A short grounded answer." } }),
+      }),
+      async (calls) => {
+        assert.equal(await llm.chat([{ role: "user", content: "hello" }]), "A short grounded answer.");
+        assert.equal(calls.length, 1);
+        assert.equal(calls[0].url, "http://100.64.10.20:11434/api/chat");
+        assert.equal(calls[0].body.model, "qwen3:1.7b");
+        assert.equal(calls[0].body.think, false);
+        assert.equal(calls[0].body.options.num_predict, 90);
+        assert.equal(calls[0].body.options.temperature, 0);
+        assert.equal(Object.hasOwn(calls[0].body, "max_tokens"), false);
+        assert.equal(llm.getLlmBridgeStatus().transport, "ollama_native_chat_no_think");
+      },
+    );
+  } finally {
     restore();
   }
 });

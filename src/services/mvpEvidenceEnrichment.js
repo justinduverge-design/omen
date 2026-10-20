@@ -92,7 +92,10 @@ function buildMvpLlmPayload(response = {}) {
         }
       : null,
     confidence: {
-      score: Number.isFinite(Number(confidence.score)) ? Number(confidence.score) : null,
+      // Confidence is a band in customer copy, never a percentage. The deterministic response
+      // retains its internal score; the narrator only needs the label and rationale to explain
+      // the already-made call. Withholding the number also prevents small models from echoing it
+      // as a forbidden percentage even when the prompt says not to.
       label: shortSafeString(confidence.label, 32),
       rationale: shortSafeString(confidence.rationale),
     },
