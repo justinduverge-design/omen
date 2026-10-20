@@ -699,8 +699,25 @@ extension OmenDecisionEnvelope {
                 provider: answeredFor?.platform ?? platform?.name
             ),
             footballIntelligence: Self.footballIntelligenceContext(footballIntelligence),
-            tradeCall: tradeCall()
+            tradeCall: tradeCall(),
+            players: [
+                Self.numbers(recommendation.primaryPlayer, role: "start"),
+                Self.numbers(recommendation.comparisonPlayer, role: "compare"),
+            ].compactMap { $0 }
         )
+    }
+
+    private static func numbers(_ player: Player?, role: String) -> OmenCallPlayerNumbers? {
+        guard let player, let name = player.name else { return nil }
+        let numbers = OmenCallPlayerNumbers(
+            name: name,
+            role: role,
+            statsLine: player.stats?.summaryLine,
+            usageLine: player.stats?.usageLine,
+            gradeLine: player.rating?.rating.map { "\(player.rating?.title ?? OmenPlayerRating.familyName) \(String(format: "%.1f", $0))" },
+            gradeDetails: player.rating?.componentLines ?? []
+        )
+        return numbers.isEmpty ? nil : numbers
     }
 
     private static func readComparison(player: Player?, provider: String?) -> OmenReadComparison? {
@@ -836,8 +853,15 @@ extension OmenDecisionEnvelope {
     }
 
     private static func signalLabel(_ key: String) -> String {
-        if key == "exact_espn_scoring_unavailable" {
-            return "Exact ESPN scoring unavailable"
+        switch key {
+        case "exact_espn_scoring_unavailable": return "Exact ESPN scoring unavailable"
+        // The evidence the server builds from the warehouse (`refreshEvidenceSignals`).
+        case "omen_read": return "Omen\u{2019}s read"
+        case "what_moved_it": return "What moved it"
+        case "season_stats": return "This season"
+        case "omen_grade": return OmenPlayerRating.familyName
+        case "injuries": return "Injuries"
+        default: break
         }
         return key.split(separator: "_")
             .map { $0.prefix(1).uppercased() + $0.dropFirst().lowercased() }

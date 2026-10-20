@@ -19,6 +19,7 @@ const {
   buildOmenMvpMoveResponse,
   authenticateOmenRequest,
   offSeasonMvpResponse,
+  refreshEvidenceSignals,
 } = require("../services/omen");
 const { resolveScheduleTravelCapabilities } = require("../services/scheduleTravelCapabilities");
 const { scoringCoverageCapability, waiverCapability } = require("../services/waiverScoringCapabilities");
@@ -942,9 +943,14 @@ async function mvpMove(req, res, span) {
       return res.status(503).json(body);
     }
     attachDataFreshness(result.body);
+    // Omen's read, real stats and Omen Grades on the call's players BEFORE presenting, so the evidence
+    // the screen shows ("what moved this call") is built from them, not from first-MVP placeholders.
+    await attachSight(result.body);
+    if (typeof refreshEvidenceSignals === "function") refreshEvidenceSignals(result.body);
     const body = present(result.body);
-    // Sight on every player in the call, behind SIGHT_ENABLED. The Ledger then records what Sight said too.
-    await attachSight(body);
+    // The presenter may rebuild player objects; re-attach when it dropped the read. The Ledger
+    // then records what Sight said too.
+    if (body?.recommendation?.primary_player && !body.recommendation.primary_player.sight) await attachSight(body);
     emitLatencyTrace(trace, body.state);
     span.setAttribute("omen.state", body.state || "unknown");
     // Both are best-effort and must not hold the response: respond first, finish

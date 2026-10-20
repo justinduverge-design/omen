@@ -966,6 +966,7 @@ struct OmenDecisionScreen: View {
                     }
                     // Blocks 5-7, `omencall-evidence-contract-v1`. Three labelled groups rather
                     // than one flat list: the capability contract's classes ARE the lesson.
+                    if !payload.players.isEmpty { callNumbers(payload.players) }
                     capabilityGroups(payload)
                     footballIntelligence(payload)
                     actions(payload)
@@ -1068,6 +1069,39 @@ struct OmenDecisionScreen: View {
     ///
     /// A group with no members is **absent**, not empty — no heading, no "none".
     /// `not_requested` is filtered before it reaches here and renders nowhere.
+    /// "The numbers": what each player in the call has actually done, and his Omen Grade with the
+    /// efficiency stats behind it (founder, 2026-10-19: real numbers, not only projections).
+    private func callNumbers(_ players: [OmenCallPlayerNumbers]) -> some View {
+        OmenCard(contentPadding: OmenSpacing.step12) {
+            VStack(alignment: .leading, spacing: OmenSpacing.step12) {
+                Text("The numbers")
+                    .omenTextStyle(OmenTypography.micro)
+                    .foregroundStyle(OmenColor.textTertiary)
+                ForEach(players) { player in
+                    VStack(alignment: .leading, spacing: OmenSpacing.step4) {
+                        Text(player.name)
+                            .omenTextStyle(OmenTypography.name)
+                            .foregroundStyle(OmenColor.textPrimary)
+                        if let grade = player.gradeLine {
+                            Text(grade)
+                                .omenTextStyle(OmenTypography.bodySmall)
+                                .fontWeight(.bold)
+                                .foregroundStyle(OmenColor.accent)
+                        }
+                        ForEach([player.statsLine, player.usageLine].compactMap { $0 } + player.gradeDetails, id: \.self) { line in
+                            Text(line)
+                                .omenTextStyle(OmenTypography.bodySmall)
+                                .foregroundStyle(OmenColor.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .accessibilityElement(children: .combine)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
     @ViewBuilder
     private func capabilityGroups(_ payload: OmenDecisionBriefPayload) -> some View {
         let moved = payload.signals.filter { $0.used == true && $0.source == .live }
