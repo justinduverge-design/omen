@@ -137,20 +137,9 @@ final class ContextualHelpAccessibilityUITests: XCTestCase {
         try app.performAccessibilityAudit(for: Self.auditedCategories)
     }
 
-    func testCommandCenterScreenAuditRecordsTwoPreExistingFailures() throws {
-        // The affordance was added to an already-shipped header, so this screen is audited too.
-        // It fails on **two defects that predate M6 and are not this task's to fix**:
-        //
-        //   1. `Contrast failed` — a stronger verdict than the "nearly passed" M6 introduced
-        //      and fixed in its own component.
-        //   2. `Dynamic Type font sizes are unsupported` — `OmenTypography` builds each role as
-        //      `Font(UIFontMetrics.scaledFont(for:))`. That resolves a size at construction
-        //      instead of vending a text-style-relative font, so the audit cannot see the roles
-        //      as scalable. This affects **every** screen in the app, not this component.
-        //
-        // Recorded as expected rather than deleted, so the finding stays visible and this test
-        // starts failing — loudly — the day someone fixes them. See `Direction/known_issues.md`.
-        XCTExpectFailure("Pre-existing Command Center contrast + app-wide Dynamic Type audit findings; not in M6 scope")
+    func testCommandCenterScreenPassesTheUnfilteredAccessibilityAudit() throws {
+        // This stays unfiltered so a regression in contrast, Dynamic Type, hit regions, labels,
+        // clipping or traits fails the suite instead of being hidden behind an expected failure.
         let app = launch("command-center.demo-connected")
         XCTAssertTrue(app.buttons["What is this? The Desk"].waitForExistence(timeout: 10))
         try app.performAccessibilityAudit()

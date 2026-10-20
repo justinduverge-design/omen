@@ -58,15 +58,9 @@ final class ForcedUpdateAccessibilityUITests: XCTestCase {
         XCTAssertTrue(updateButton.isHittable, "The update control must be hittable, not merely present in the tree")
     }
 
-    /// Pins the app-wide `OmenTypography` finding on *this* screen rather than asserting it by
-    /// analogy with M6's. The unfiltered audit is expected to fail here for that one reason —
-    /// and, unlike the Command Center, **not** for contrast: the filtered audit above includes
-    /// `.contrast` and passes, so this screen's colour pairings are genuinely sound.
-    ///
-    /// Recorded as expected rather than skipped, so this test fails loudly the day
-    /// `OmenTypography` starts vending text-style-relative fonts and can then be retired.
-    func testUnfilteredAuditRecordsOnlyTheAppWideDynamicTypeFinding() throws {
-        XCTExpectFailure("App-wide OmenTypography Dynamic Type audit finding; not in O7 scope — see Direction/known_issues.md")
+    /// The unfiltered audit protects Dynamic Type along with contrast, hit regions, labels,
+    /// clipping and traits. No expected failure is allowed on this blocking screen.
+    func testUnfilteredAccessibilityAuditPasses() throws {
         let app = launch()
         try app.performAccessibilityAudit()
     }
