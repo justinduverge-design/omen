@@ -2,8 +2,8 @@
 
 ## Status
 
-**Ready for the final iPhone install/walk and TestFlight upload. Build 12 source and server work shipped
-2026-10-20 through #762.**
+**Ready for the final iPhone install/walk and TestFlight upload. Build 12 implementation shipped 2026-10-20
+through #762; #763 closes the release record.**
 The finish handoff in `Blueprints/handoffs/2026-10-19-build-12-codex-finish.md` is implemented. The only
 release gate still open is installing the final signed build on the founder's iPhone, completing the walk,
 and uploading that proven archive to TestFlight.
@@ -190,15 +190,17 @@ All of it was built on `build-12/integration`, reviewed by a fresh agent, and me
 | #714 | Docs | Build 12 package: PR list and retro |
 | #715 to #751 | Infra | Rust programme Phases 1 to 4, OpenTelemetry, Vector, lint gates (shellcheck, typos, Biome), pruning, branch triage, provider gaps G4/G6/G8 (#746). Infrastructure; nothing user-facing beyond #746 |
 | #752 | Integration | Build 12 integration: native lock v2, connection fixes, background narration, load-time instrumentation |
-| #753 | Docs | Build 12 integration package and final device-walk plan |
-| #754 to #755 | Defects | Build 12 defect sweep and contract-fixture repair |
-| #756 | Design | Whole-app canvas and implementation sheet |
-| #757 | iOS | Desk, shared shell and context switcher |
-| #758 | iOS | Build 12 screens wired across Sleeper, Yahoo and ESPN |
-| #759 | Docs | Build 12 closeout and Codex finish handoff |
-| #760 | iOS / Narration | Light-mode lockup and Qwen narration transport |
-| #761 | iOS / Providers / Trade | Finish device gates, provider-wide calls and Trade contracts |
-| #762 | Contracts | Record the final Trade response fixtures |
+| #753 | Docs | Build 12 package: integration, league activity, canvas plan and post-canvas test walk |
+| #754 | Defects | Build 12 defect sweep: League states, live activity with ESPN names, pre-draft reason, chevron contrast |
+| #755 | Defects | ESPN activity: name D/ST entries |
+| #756 | Design | Whole-app canvas: first cut (proposal) |
+| #757 | iOS | Canvas build 1: Desk and shell |
+| #758 | iOS | Build 12 screens: every screen wired to the backend on Sleeper, ESPN and Yahoo |
+| #759 | Docs | Close-out: Build 12 screens + Codex finish handoff |
+| #760 | iOS / Narration | Build 12: light lockup and qwen narration bridge |
+| #761 | iOS / Providers / Trade | Finish Build 12 device gate and provider contracts |
+| #762 | Contracts | Refresh Build 12 Trade contract fixtures |
+| #763 | Docs | Update Build 12 release package and tester notes |
 
 ## Where it lives
 

@@ -4,6 +4,14 @@
 **Run by:** the founder on the iPhone, with Claude watching server logs and the app's `[omen-timing]` lines.
 Claude never types a credential.
 
+## Closeout note (2026-10-20)
+
+The 2026-10-18 walk below remains the recorded reconnect proof; its settings and timings are dated snapshots.
+Since that walk, #752 shortened the Yahoo return and added ESPN discovery states, and #761 added bounded
+background recovery for ESPN leagues listed late. #761 also made Omen calls usable across Sleeper, Yahoo and
+ESPN when a provider projection is missing but Omen has its own evidence. The final #761 binary still needs
+the connected-iPhone walk in `Direction/release/builds/build-12.md` before TestFlight upload.
+
 ## What signing out does, and why it is not enough
 
 - **Sign out** (`SessionManager.signOut`) clears the Omen session on the phone only. Provider links stay on the
@@ -14,7 +22,7 @@ Claude never types a credential.
   league) cascade away with it. Move history and the Ledger are keyed to the user and stay.
 - So the real test is: disconnect a provider, reconnect it, and check the leagues come back usable.
 
-## Production settings that change what we see (read 2026-10-18)
+## Production settings that changed what the 2026-10-18 walk saw (historical snapshot)
 
 | Setting | Value | Effect on this test |
 |---|---|---|
