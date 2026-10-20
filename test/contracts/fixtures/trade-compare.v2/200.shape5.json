@@ -2,7 +2,6 @@
   "http_status": 200,
   "route": "/api/trade/compare",
   "body": {
-    "a_score": -5,
     "analysis_context": {
       "applied": [],
       "league_id": null,
@@ -11,160 +10,262 @@
       "platform": null,
       "unavailable_reason": null
     },
-    "b_score": -0.5,
-    "combined_score": -5.3,
-    "confidence": "medium",
     "contract_version": "trade-compare.v2",
-    "decision_context": {
-      "contract_version": "shared-decision-context.v1",
-      "inputs": {
-        "league_scoring": {
-          "reason_code": "league_scoring_not_used",
-          "source": "league_settings",
-          "state": "not_requested",
-          "used": false
-        },
-        "projections": {
-          "observed_at": "2026-01-01T00:00:00.000Z",
-          "source": "resolved_player_inputs",
-          "state": "live",
-          "used": true
-        },
-        "roster": {
-          "reason_code": "roster_context_not_used",
-          "source": "selected_league_roster",
-          "state": "not_requested",
-          "used": false
-        },
-        "selected_context": {
-          "reason_code": "league_context_not_requested",
-          "source": "trade_request",
-          "state": "not_requested",
-          "used": false
-        },
-        "trade_rosters": {
-          "reason_code": "not_requested",
-          "source": "unknown",
-          "state": "unavailable",
-          "used": false
-        }
-      },
-      "inputs_used": [
-        "projections"
-      ],
-      "limitations": [
-        {
-          "name": "league_scoring",
-          "reason_code": "league_scoring_not_used",
-          "state": "not_requested"
-        },
-        {
-          "name": "roster",
-          "reason_code": "roster_context_not_used",
-          "state": "not_requested"
-        },
-        {
-          "name": "selected_context",
-          "reason_code": "league_context_not_requested",
-          "state": "not_requested"
-        },
-        {
-          "name": "trade_rosters",
-          "reason_code": "not_requested",
-          "state": "unavailable"
-        }
-      ],
-      "profile": "trade"
-    },
-    "depth_discounted": false,
     "evaluability": {
-      "missing_projection_count": 0,
-      "reason": null,
-      "status": "evaluable",
-      "total_player_count": 2
+      "missing_projection_count": 2,
+      "reason": "missing_projections",
+      "status": "insufficient_data",
+      "total_player_count": 6
     },
-    "explanation": "Justin Jefferson for Patrick Mahomes",
-    "generated_at": "2026-01-01T00:00:00.000Z",
-    "net_value": -5,
-    "receive": {
-      "missing_projection_count": 0,
-      "player_count": 1,
-      "players": [
-        {
-          "adjusted_projection": 14,
-          "confidence": "medium",
-          "name": "Patrick Mahomes",
-          "notes": [],
-          "player_key": "sleeper:4046",
-          "position": "QB",
-          "projected_points": 14,
-          "replacement_level": 15,
-          "scarcity_bonus": 0,
-          "status": null,
-          "tier": "bubble",
-          "value": -1
-        }
-      ],
-      "scarcity_details": [
-        {
-          "name": "Patrick Mahomes",
-          "position": "QB",
-          "tier": "bubble",
-          "vorp": -1
-        }
-      ],
-      "total_value": -1
+    "participants": [
+      {
+        "acceptance_likelihood": "unlikely",
+        "confidence": "medium",
+        "evaluability": {
+          "missing_projection_count": 0,
+          "reason": null,
+          "status": "evaluable",
+          "total_player_count": 2
+        },
+        "net_value": -6,
+        "receives": {
+          "missing_projection_count": 0,
+          "player_count": 1,
+          "players": [
+            {
+              "adjusted_projection": 12,
+              "confidence": "medium",
+              "name": "Tyjae Spears",
+              "notes": [],
+              "player_key": "test:0:Tyjae Spears",
+              "position": "RB",
+              "projected_points": 12,
+              "replacement_level": 6.5,
+              "scarcity_bonus": 0.5,
+              "status": null,
+              "tier": "starter",
+              "value": 5.5
+            }
+          ],
+          "scarcity_details": [
+            {
+              "name": "Tyjae Spears",
+              "position": "RB",
+              "tier": "starter",
+              "vorp": 5.5
+            }
+          ],
+          "total_value": 5.5
+        },
+        "roster_fit": {
+          "depth_discounted": false,
+          "summary": "You are sending an elite-tier RB for a starter-tier RB."
+        },
+        "sends": {
+          "missing_projection_count": 0,
+          "player_count": 1,
+          "players": [
+            {
+              "adjusted_projection": 18,
+              "confidence": "medium",
+              "name": "Jonathan Taylor",
+              "notes": [],
+              "player_key": "test:0:Jonathan Taylor",
+              "position": "RB",
+              "projected_points": 18,
+              "replacement_level": 6.5,
+              "scarcity_bonus": 2,
+              "status": null,
+              "tier": "elite",
+              "value": 11.5
+            }
+          ],
+          "scarcity_details": [
+            {
+              "name": "Jonathan Taylor",
+              "position": "RB",
+              "tier": "elite",
+              "vorp": 11.5
+            }
+          ],
+          "total_value": 11.5
+        },
+        "team_id": "you",
+        "team_name": null,
+        "verdict": "decline",
+        "verdict_state": "you_give_up_too_much"
+      },
+      {
+        "acceptance_likelihood": "uncertain",
+        "confidence": "low",
+        "evaluability": {
+          "missing_projection_count": 1,
+          "reason": "missing_projections",
+          "status": "insufficient_data",
+          "total_player_count": 2
+        },
+        "net_value": 19.5,
+        "receives": {
+          "missing_projection_count": 0,
+          "player_count": 1,
+          "players": [
+            {
+              "adjusted_projection": 18,
+              "confidence": "medium",
+              "name": "Jonathan Taylor",
+              "notes": [],
+              "player_key": "test:0:Jonathan Taylor",
+              "position": "RB",
+              "projected_points": 18,
+              "replacement_level": 6.5,
+              "scarcity_bonus": 2,
+              "status": null,
+              "tier": "elite",
+              "value": 11.5
+            }
+          ],
+          "scarcity_details": [
+            {
+              "name": "Jonathan Taylor",
+              "position": "RB",
+              "tier": "elite",
+              "vorp": 11.5
+            }
+          ],
+          "total_value": 11.5
+        },
+        "roster_fit": {
+          "depth_discounted": false,
+          "summary": "You are sending a replaceable-tier WR for an elite-tier RB."
+        },
+        "sends": {
+          "missing_projection_count": 1,
+          "player_count": 1,
+          "players": [
+            {
+              "adjusted_projection": 0,
+              "confidence": "low",
+              "name": "Ja'Marr Chase",
+              "notes": [
+                "missing_projection"
+              ],
+              "player_key": "test:0:Ja'Marr Chase",
+              "position": "WR",
+              "projected_points": null,
+              "replacement_level": 8,
+              "scarcity_bonus": -0.5,
+              "status": null,
+              "tier": "replaceable",
+              "value": -8
+            }
+          ],
+          "scarcity_details": [
+            {
+              "name": "Ja'Marr Chase",
+              "position": "WR",
+              "tier": "replaceable",
+              "vorp": -8
+            }
+          ],
+          "total_value": -8
+        },
+        "team_id": "team_b",
+        "team_name": null,
+        "verdict": "accept",
+        "verdict_state": "insufficient_data"
+      },
+      {
+        "acceptance_likelihood": "uncertain",
+        "confidence": "low",
+        "evaluability": {
+          "missing_projection_count": 1,
+          "reason": "missing_projections",
+          "status": "insufficient_data",
+          "total_player_count": 2
+        },
+        "net_value": -13.5,
+        "receives": {
+          "missing_projection_count": 1,
+          "player_count": 1,
+          "players": [
+            {
+              "adjusted_projection": 0,
+              "confidence": "low",
+              "name": "Ja'Marr Chase",
+              "notes": [
+                "missing_projection"
+              ],
+              "player_key": "test:0:Ja'Marr Chase",
+              "position": "WR",
+              "projected_points": null,
+              "replacement_level": 8,
+              "scarcity_bonus": -0.5,
+              "status": null,
+              "tier": "replaceable",
+              "value": -8
+            }
+          ],
+          "scarcity_details": [
+            {
+              "name": "Ja'Marr Chase",
+              "position": "WR",
+              "tier": "replaceable",
+              "vorp": -8
+            }
+          ],
+          "total_value": -8
+        },
+        "roster_fit": {
+          "depth_discounted": false,
+          "summary": "You are sending a starter-tier RB for a replaceable-tier WR."
+        },
+        "sends": {
+          "missing_projection_count": 0,
+          "player_count": 1,
+          "players": [
+            {
+              "adjusted_projection": 12,
+              "confidence": "medium",
+              "name": "Tyjae Spears",
+              "notes": [],
+              "player_key": "test:0:Tyjae Spears",
+              "position": "RB",
+              "projected_points": 12,
+              "replacement_level": 6.5,
+              "scarcity_bonus": 0.5,
+              "status": null,
+              "tier": "starter",
+              "value": 5.5
+            }
+          ],
+          "scarcity_details": [
+            {
+              "name": "Tyjae Spears",
+              "position": "RB",
+              "tier": "starter",
+              "vorp": 5.5
+            }
+          ],
+          "total_value": 5.5
+        },
+        "team_id": "team_c",
+        "team_name": null,
+        "verdict": "decline",
+        "verdict_state": "insufficient_data"
+      }
+    ],
+    "submission": {
+      "caption": "No provider builds a three-team trade natively. Submit it as linked two-team trades, in this order.",
+      "mode": "split_handoff",
+      "reason": "no_connected_provider_publishes_a_three_team_write_api",
+      "steps": [
+        "Leg 1: send Jonathan Taylor from you to team_b.",
+        "Leg 2: send Ja'Marr Chase from team_b to team_c. Make it contingent on leg 1 completing first.",
+        "Leg 3: send Tyjae Spears from team_c to you. Make it contingent on leg 2 completing first."
+      ]
     },
-    "scarcity_analysis": {
-      "receive": [
-        {
-          "name": "Patrick Mahomes",
-          "position": "QB",
-          "tier": "bubble",
-          "vorp": -1
-        }
-      ],
-      "send": [
-        {
-          "name": "Justin Jefferson",
-          "position": "WR",
-          "tier": "starter",
-          "vorp": 4
-        }
-      ],
-      "summary": "You are sending a starter-tier WR for a bubble-tier QB."
-    },
-    "scoring_format": "ppr",
-    "send": {
-      "missing_projection_count": 0,
-      "player_count": 1,
-      "players": [
-        {
-          "adjusted_projection": 12,
-          "confidence": "medium",
-          "name": "Justin Jefferson",
-          "notes": [],
-          "player_key": "sleeper:6794",
-          "position": "WR",
-          "projected_points": 12,
-          "replacement_level": 8,
-          "scarcity_bonus": 0.5,
-          "status": null,
-          "tier": "starter",
-          "value": 4
-        }
-      ],
-      "scarcity_details": [
-        {
-          "name": "Justin Jefferson",
-          "position": "WR",
-          "tier": "starter",
-          "vorp": 4
-        }
-      ],
-      "total_value": 4
-    },
-    "verdict": "decline",
+    "team_count": 3,
+    "trade_shape": "three_team",
     "verdict_state": "you_give_up_too_much"
   }
 }

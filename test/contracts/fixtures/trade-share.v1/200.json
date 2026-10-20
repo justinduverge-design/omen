@@ -13,6 +13,24 @@
       "combined_score": 2.5,
       "confidence": "medium",
       "depth_discounted": false,
+      "forward_horizons": {
+        "next_4": {
+          "reason": "forward_projection_curve_unavailable",
+          "status": "unavailable",
+          "value": null
+        },
+        "season": {
+          "reason": "forward_projection_curve_unavailable",
+          "status": "unavailable",
+          "value": null
+        },
+        "unit": "player_projection_points_per_week",
+        "week": {
+          "reason": null,
+          "status": "available",
+          "value": 4
+        }
+      },
       "generated_at": "2026-01-01T00:00:00.000Z",
       "net_value": 2.5,
       "receive": {
@@ -92,6 +110,11 @@
           }
         ],
         "total_value": 3.5
+      },
+      "the_catch": {
+        "reason": "roster_depth_not_available",
+        "statement": null,
+        "status": "unavailable"
       },
       "verdict": "accept"
     },
