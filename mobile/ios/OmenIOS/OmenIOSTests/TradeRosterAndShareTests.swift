@@ -341,6 +341,10 @@ final class TradeRosterAndShareTests: XCTestCase {
         await sut.share(userID: "user-1")
 
         XCTAssertEqual(sut.shareState, .shared(response))
+        XCTAssertEqual(
+            sut.sharedURL(baseURL: URL(string: "https://slopssaloon.com")!)?.absoluteString,
+            "https://slopssaloon.com/api/trade/share/abc-123"
+        )
     }
 
     func testShareFailureIsNamedRatherThanSilent() async {

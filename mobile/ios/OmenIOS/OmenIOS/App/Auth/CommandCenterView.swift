@@ -42,6 +42,7 @@ struct CommandCenterView: View {
     @State private var tradeChooserVisible: Bool = true
     /// J4: `TradeShare`, over `POST /api/trade/share`.
     @State private var showTradeShareSheet: Bool = false
+    @State private var tradeShareItem: TradeShareItem?
     @State private var selectedTab: CommandCenterTab = .command
     @StateObject private var leagueViewModel: LeagueViewModel
     @StateObject private var tradeViewModel: TradeViewModel
@@ -490,7 +491,18 @@ struct CommandCenterView: View {
                             state: state,
                             onOpenAccount: { showAccountSheet = true },
                             onToggleInclusion: { tradeViewModel.toggleShareInclusion($0) },
-                            onShare: { Task { await tradeViewModel.share(userID: userID) } },
+                            onShare: {
+                                Task {
+                                    if let url = tradeViewModel.sharedURL(baseURL: environment.apiBaseURL) {
+                                        presentTradeShare(url)
+                                        return
+                                    }
+                                    await tradeViewModel.share(userID: userID)
+                                    if let url = tradeViewModel.sharedURL(baseURL: environment.apiBaseURL) {
+                                        presentTradeShare(url)
+                                    }
+                                }
+                            },
                             onCopyAsText: {
                                 if let text = tradeViewModel.copyShareText() {
                                     UIPasteboard.general.string = text
@@ -555,9 +567,13 @@ struct CommandCenterView: View {
                     sessionManager: sessionManager,
                     onConnected: {
                         showConnectSheet = false
-                        // Re-read the shell so the new connection is reflected immediately
-                        // rather than waiting for the next cold launch.
-                        Task { await commandCenterViewModel.load(userID: userID, scope: pickedLeagueScope) }
+                        // A connection changes the directory as well as the Desk payload.
+                        // Reloading only the latter left the Desk empty until another tab
+                        // happened to trigger the missing directory read.
+                        Task {
+                            await leagueCarouselViewModel.load(userID: userID)
+                            await reloadAllAfterContextChange()
+                        }
                     },
                     onDismiss: { showConnectSheet = false }
                 )
@@ -611,6 +627,9 @@ struct CommandCenterView: View {
                 onDismiss: { reportingScreen = nil }
             )
         }
+        .sheet(item: $tradeShareItem) { item in
+            OmenActivityView(items: [item.url])
+        }
     }
 
     /// One Apple system-sheet presenter for every context-strip / screen-shell switch action.
@@ -645,6 +664,15 @@ struct CommandCenterView: View {
             return .none
         }
         return OmenBetaReportConnectionState(provider: provider, state: .connected)
+    }
+
+    private func presentTradeShare(_ url: URL) {
+        // Dismiss Omen's setup sheet before asking iOS to present its activity sheet. Two
+        // simultaneous sheet presenters race and make a successful link look like a dead tap.
+        showTradeShareSheet = false
+        DispatchQueue.main.async {
+            tradeShareItem = TradeShareItem(url: url)
+        }
     }
 
     /// Reloads every personalized surface after a context (league) change.
@@ -724,6 +752,21 @@ struct CommandCenterView: View {
 /// file and once in `ScreenshotScenarios.FauxShell` — which is how the screenshot harness came
 /// to advertise Trade and League as "landing next" for a day after the real screens shipped
 /// (`F-VET-B01`). Two copies of a list drift; one copy cannot.
+private struct TradeShareItem: Identifiable {
+    let id = UUID()
+    let url: URL
+}
+
+private struct OmenActivityView: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
+}
+
 enum CommandCenterTab: String, Hashable, CaseIterable {
     case command, omen, trade, league
 
@@ -1088,6 +1131,10 @@ struct OmenDecisionScreen: View {
                                 .omenTextStyle(OmenTypography.bodySmall)
                                 .fontWeight(.bold)
                                 .foregroundStyle(OmenColor.accent)
+                        } else {
+                            Text("Omen Grade unavailable")
+                                .omenTextStyle(OmenTypography.bodySmall)
+                                .foregroundStyle(OmenColor.textTertiary)
                         }
                         ForEach([player.statsLine, player.usageLine].compactMap { $0 } + player.gradeDetails, id: \.self) { line in
                             Text(line)

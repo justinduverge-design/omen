@@ -4,6 +4,13 @@ Read this before touching a screen. The order: **this sheet, then the artboard, 
 The canvas is a proposal until the founder approves it, and these frames have been reviewed in conversation
 (2026-10-19). If a frame and this sheet disagree, stop and flag it.
 
+**Device-walk correction, 2026-10-20:** approval of a journey, hierarchy or state does not require a
+pixel-for-pixel copy of a proposal frame. Components must fit the information they carry. Do not turn every
+section into the same rounded card, force short labels into undersized columns, or keep controls where a
+real phone proves they are confusing merely because an artboard drew them there. Preserve the contract,
+reading order, semantic tokens and state honesty; use tables, dividers, pills, plain sections, lists or a
+single dominant surface as the content requires. Physical-device evidence outranks a literal frame copy.
+
 ## Decisions already made (founder, 2026-10-19)
 
 - **Accent:** brass stays. The verdigris and bone study is kept for the record only (`*Verdigris*`, `*Bone*`). Do not build it.
