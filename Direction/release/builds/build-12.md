@@ -289,15 +289,15 @@ current queue. Brief: `Blueprints/specs/design/omen-whole-app-canvas-v1.md`.
 
 ### Build 12 release blockers
 
-1. **Repair and re-prove the ESPN row without a team id.** The affected ESPN credential was rejected, so
-   discovery could not bind `espn_team_id`. The founder must reconnect that ESPN account on the phone; then
-   rerun the sanitized provider proof and confirm every connected ESPN league is usable. Do not edit or
-   delete the production row by guesswork.
-2. **Run the final physical-iPhone gate.** Install the final signed Release build, run every provider and
-   screen in the device walk below, and run the unfiltered accessibility audit. Source changes are merged;
-   device proof for the final binary is not.
-3. **Upload only the proven archive to TestFlight.** Paste the tester notes below and record the TestFlight
+1. **Run the final physical-iPhone gate.** Install the final signed Release build, run the Build 12 screen
+   and accessibility walk against the already-connected leagues, and record any honest degraded states.
+   Source changes are merged; device proof for the final binary is not.
+2. **Upload only the proven archive to TestFlight.** Paste the tester notes below and record the TestFlight
    build number here before changing this package to Shipped.
+
+The rejected legacy ESPN credential with no `espn_team_id`, plus a genuinely fresh ESPN-account journey,
+is a named Build 13 liability rather than a Build 12 release blocker. Do not edit or delete that production
+row by guesswork, and do not claim fresh-account proof until it is actually run.
 
 ### Resolved Build 12 findings
 
@@ -410,9 +410,27 @@ PLEASE TEST
 - **Final production deploy:** merge `36835f11` deployed successfully in run `39473388464`; backend tests,
   recorded contracts, dependency audit, frontend build, image builds, `/api/health`, deployed-logo check and
   public-route visual canary all passed.
-- **Not yet done:** reconnect and re-prove the affected ESPN account; install the final signed build on the
-  paired iPhone; run the provider, screen and unfiltered accessibility walk below; upload the proven archive
-  to TestFlight.
+- **Not yet done:** install the final signed build on the paired iPhone; run the screen and unfiltered
+  accessibility walk below; upload the proven archive to TestFlight. Fresh-account ESPN and the rejected
+  legacy row are explicitly carried into Build 13.
+
+### Founder device walk, 2026-10-20
+
+The first post-reconnect walk found release-candidate defects that were not visible in the static canvas:
+
+- the Desk refreshed its payload but not its league directory after a connection, so it could remain blank
+  until another tab triggered the missing read;
+- the compact Trade direction column wrapped `Out` onto two lines;
+- Trade created a public link but did not hand it to the iOS share sheet;
+- the Trade verdict lacked an obvious back affordance;
+- the Desk's Ledger preview looked tappable but only its small `See all` label opened the Ledger;
+- a player with real stats but no returned grade looked partially decoded rather than explicitly unavailable.
+
+The corrective pass reloads the full league context after connection, makes the Ledger preview tappable,
+labels a missing grade honestly, restores Trade back/share behavior, and replaces boxed Trade direction rows
+with information-specific red `OUT` and green `IN` pills plus divided player lines. The words remain visible,
+so color is not the only carrier. This pass also records the governing correction in the canvas build sheet:
+the canvas is a proposal and physical-device usability outranks literal container copying.
 
 ### To test once the canvas and screens are fixed
 
@@ -425,21 +443,17 @@ Run in this order, on the founder's iPhone with a Release build, while Claude wa
    - npm test and CI are green.
 2. **Sign-in:** sign out and back in. Lands on the desk with leagues kept, and the desk is useful in 3 s or
    less.
-3. **Connections:** disconnect and reconnect Sleeper, Yahoo and ESPN (the test plan's order).
-   - Every league is offered.
+3. **Connections:** prove the Build 12 reconnect-refresh correction with one available provider account.
+   - The Desk populates immediately after connection without requiring a tab switch.
    - The Yahoo return takes about 1 s or less (it was 4.6 s).
    - Favourites survive.
-4. **Fresh ESPN account:** the new beta league's owner, or a fresh ESPN login.
-   - Discovery reaches the picker, or the right notice.
-   - The League ID box appears only after the checks.
-   - Check the server's `ESPN league discovery` line (counts only).
-5. **Each tab, for one league per provider:** Desk, Omen call, Start/Sit, Waivers, League (with activity),
+4. **Each tab, using the already-connected beta leagues:** Desk, Omen call, Start/Sit, Waivers, League (with activity),
    Find a Trade, Build a Trade and Ledger.
    - Every frame state from the canvas renders: loading, partial, empty with reason, error with retry,
      unavailable.
    - Sight, injuries, evidence lines, the contested record and trade horizons appear where the canvas puts
      them.
-6. **Narration:** open a move twice. The first view shows the template, and a later view shows the live
+5. **Narration:** open a move twice. The first view shows the template, and a later view shows the live
    write-up. No breaker-open lines in the logs.
 7. **Load times:** each screen's `screen/ready` signpost is inside its canvas latency class, and warm reads
    take under 1 s.

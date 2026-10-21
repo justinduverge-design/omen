@@ -467,9 +467,14 @@ struct OmenCommandDeskScreen: View {
     @ViewBuilder private var ledgerCard: some View {
         switch state.ledger {
         case .read(let line):
-            OmenCard(contentPadding: OmenSpacing.step12) {
+            OmenTappableCard(
+                contentPadding: OmenSpacing.step12,
+                accessibilityHint: "Opens the Ledger",
+                action: { onOpenLedger?() }
+            ) {
                 OmenDeskLedgerRow(line: line)
             }
+            .disabled(onOpenLedger == nil)
             .padding(.horizontal, OmenSpacing.step16)
         case .unread(let capability, let sentence):
             OmenDeskUnreadSection(capability: capability, sentence: sentence)

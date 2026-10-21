@@ -612,7 +612,13 @@ final class TradeViewModel: ObservableObject {
             card: card,
             inclusions: inclusions,
             note: "This link is public for 30 days. Anyone with it can see the card above — nothing else about your league.",
-            primaryActionTitle: shareState == .sharing ? "Sharing…" : "Get a share link",
+            primaryActionTitle: {
+                switch shareState {
+                case .sharing: return "Creating link…"
+                case .shared: return "Share link"
+                default: return "Get a share link"
+                }
+            }(),
             secondaryActionTitle: "Copy as text",
             failure: failure
         )
@@ -653,6 +659,12 @@ final class TradeViewModel: ObservableObject {
         guard case .loaded(let compare) = viewState else { return nil }
         let read = OmenTradeRead.from(compare)
         return "\(read.headline)\n\(read.reasoning)\n\(read.caveat)\n— via Omen"
+    }
+
+    func sharedURL(baseURL: URL) -> URL? {
+        guard case .shared(let response) = shareState,
+              !response.apiPath.isEmpty else { return nil }
+        return URL(string: response.apiPath, relativeTo: baseURL)?.absoluteURL
     }
 
     func dismissShare() {

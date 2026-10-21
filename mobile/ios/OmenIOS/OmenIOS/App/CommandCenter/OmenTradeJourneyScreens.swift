@@ -682,7 +682,12 @@ struct OmenTradeVerdictScreen: View {
             fitProbeIdentifier: "j4.fit.trade-verdict",
             context: context
         ) {
-            OmenTradeJourneyHeader(kicker: state.kicker, title: state.title, onOpenAccount: onOpenAccount)
+            OmenTradeJourneyHeader(
+                kicker: state.kicker,
+                title: state.title,
+                onOpenAccount: onOpenAccount,
+                onBack: onPrimaryAction
+            )
 
             ForEach(Array(state.sides.enumerated()), id: \.offset) { _, side in
                 OmenTradeLegBlock(side: side)
@@ -742,7 +747,12 @@ struct OmenTradeNeedsContextScreen: View {
             fitProbeIdentifier: "j4.fit.trade-needs-context",
             context: context
         ) {
-            OmenTradeJourneyHeader(kicker: state.kicker, title: state.title, onOpenAccount: onOpenAccount)
+            OmenTradeJourneyHeader(
+                kicker: state.kicker,
+                title: state.title,
+                onOpenAccount: onOpenAccount,
+                onBack: onShowAnyway
+            )
 
             ForEach(Array(state.sides.enumerated()), id: \.offset) { _, side in
                 OmenTradeLegBlock(side: side)
@@ -924,12 +934,21 @@ private struct OmenTradeJourneyHeader: View {
     let kicker: String
     let title: String
     var onOpenAccount: (() -> Void)?
+    var onBack: (() -> Void)?
 
     var body: some View {
         // `.bottom`, not `.lastTextBaseline`, for the reason J2 records: baseline alignment asks
         // SwiftUI to resolve a text baseline for the E017 icon buttons, which have no text, and
         // that collapsed their reported frame to the 20pt glyph — under the 44pt floor.
         HStack(alignment: .bottom, spacing: OmenSpacing.step8) {
+            if let onBack {
+                OmenIconButton(
+                    contentDescription: "Back to trade offer",
+                    icon: Image(systemName: "chevron.left"),
+                    action: onBack,
+                    tone: .neutral
+                )
+            }
             VStack(alignment: .leading, spacing: OmenSpacing.step4) {
                 Text(kicker)
                     .omenTextStyle(OmenTypography.micro)
@@ -971,13 +990,27 @@ private struct OmenTradeLegBlock: View {
 
     private func row(_ leg: OmenTradeLeg) -> some View {
         HStack(spacing: OmenSpacing.step10) {
-            // `.lateral` renders no glyph at all — not even a dash — per
-            // `TradeBuildThreeTeam-v1.md`'s acceptance check. The 22pt column stays reserved so
-            // the name/meta column does not shift between rows.
-            Text(leg.label)
-                .omenTextStyle(OmenTypography.micro)
-                .foregroundStyle(leg.direction == .receiving ? OmenColor.accent : OmenColor.textTertiary)
-                .frame(width: 22, alignment: .leading)
+            // Direction gets its own compact language: OUT is risk red and IN is live green.
+            // The word remains visible, so color reinforces meaning instead of carrying it.
+            // A lateral three-team leg intentionally reserves the same space without a glyph.
+            Group {
+                if leg.label.isEmpty {
+                    Color.clear
+                } else {
+                    let color = leg.direction == .receiving
+                        ? OmenColor.Data.riskLow
+                        : OmenColor.Data.riskHigh
+                    Text(leg.label.uppercased())
+                        .omenTextStyle(OmenTypography.micro)
+                        .fontWeight(.bold)
+                        .foregroundStyle(color)
+                        .lineLimit(1)
+                        .padding(.horizontal, OmenSpacing.step6)
+                        .padding(.vertical, OmenSpacing.step4)
+                        .background(color.opacity(0.16), in: Capsule())
+                }
+            }
+            .frame(width: 44, alignment: .leading)
             VStack(alignment: .leading, spacing: OmenSpacing.step2) {
                 Text(leg.name)
                     .omenTextStyle(OmenTypography.name)
@@ -997,10 +1030,10 @@ private struct OmenTradeLegBlock: View {
                     .foregroundStyle(OmenColor.textTertiary)
             }
         }
-        .padding(OmenSpacing.step10)
-        .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous).fill(OmenColor.surface1)
-        )
+        .padding(.vertical, OmenSpacing.step10)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(OmenColor.borderSubtle).frame(height: 1)
+        }
         .accessibilityElement(children: .combine)
         .accessibilityLabel([leg.accessibilityDirection, leg.name, leg.meta, leg.rank].compactMap { $0 }.joined(separator: ", "))
     }

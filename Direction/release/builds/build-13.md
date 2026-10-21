@@ -73,3 +73,16 @@ Validate this list against current source before implementation:
 - Add the move follow-through write route for “I made the move” / “Not this week”.
 - Turn this inventory into a prioritized Build 13 plan only after Build 12 ships and first-user feedback is
   observed. Preserve separate states for idea, source-built, test-passed, deployed and phone-proven.
+
+## Device-walk product follow-ups from Build 12
+
+- Re-audit every primary destination by information type, not by shared container count. Keep semantic
+  continuity, but choose cards, tables, dividers, pills, lists and plain sections according to the content.
+- Build Trade needs a server contract for the user's own roster and an explicit side selector; the current
+  roster response names opponents only, so the client cannot honestly offer the user's team yet.
+- Improve Find a Trade realism and acceptance likelihood. Review position/value asymmetry such as a kicker
+  for a quarterback, and define the product policy for useful candidates when no mutually beneficial swap
+  clears the current fairness guard. Do not quietly weaken fairness to manufacture a result.
+- Explain football terms such as EPA in plain language or behind contextual help.
+- Evaluate user-controlled team/account marks as a later identity feature; do not turn provider or status
+  colors into decorative team theming.
