@@ -60,6 +60,31 @@ final class PerformanceJourneyUITests: XCTestCase {
         }
     }
 
+    /// Drives the production shell rather than a screenshot fixture. The mode chooser used to
+    /// have coverage only as a static artboard, which allowed Build a trade to look present while
+    /// its real transition was broken by competing presentation state.
+    func testBuildATradeOpensFromTheRealTradeChooser() {
+        let app = XCUIApplication()
+        app.launch()
+        enterDesk(app)
+
+        let tradeTab = app.tabBars.buttons["Trade"]
+        XCTAssertTrue(tradeTab.waitForExistence(timeout: 5), "the Trade tab is missing")
+        tradeTab.tap()
+        XCTAssertTrue(tradeTab.wait(for: \.isSelected, toEqual: true, timeout: 5), "Trade never became selected")
+
+        let build = app.buttons.containing(.staticText, identifier: "Build a trade").firstMatch
+        XCTAssertTrue(build.waitForExistence(timeout: 5), "Build a trade is missing from the chooser")
+        XCTAssertTrue(build.isHittable, "Build a trade is covered by another presentation")
+        build.tap()
+
+        XCTAssertTrue(
+            app.staticTexts["Building a trade needs your league"].waitForExistence(timeout: 10),
+            "Build a trade did not open its production destination"
+        )
+        XCTAssertFalse(build.exists, "the chooser is still trying to show over Build a trade")
+    }
+
     /// Apple's own accessibility audit (contrast, hit regions, Dynamic Type clipping, labels) on each
     /// tab of the demo desk. Findings are attached to the report; any issue fails the test.
     func testAccessibilityAuditEveryTab() throws {

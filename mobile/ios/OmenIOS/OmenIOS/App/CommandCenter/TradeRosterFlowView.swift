@@ -17,6 +17,7 @@ struct TradeRosterFlowView: View {
     let userID: String
     var onOpenAccount: (() -> Void)?
     var onDismiss: (() -> Void)?
+    var onOpenPartnerPicker: (() -> Void)?
 
     @State private var path: [Step] = []
 
@@ -33,15 +34,6 @@ struct TradeRosterFlowView: View {
                 }
         }
         .task { await tradeViewModel.loadRoster(userID: userID) }
-        // T5: `TradePartnerPicker`, reached from the live "Add team" chip on `TradeBuild`.
-        .sheet(isPresented: $tradeViewModel.isPartnerPickerPresented) {
-            TradePartnerPicker(
-                candidates: tradeViewModel.partnerPickerCandidates,
-                leagueName: nil,
-                onSelect: { tradeViewModel.addThirdPartner($0) },
-                onDismiss: { tradeViewModel.dismissPartnerPicker() }
-            )
-        }
     }
 
     @ViewBuilder
@@ -91,7 +83,7 @@ struct TradeRosterFlowView: View {
                     path = [.roster]
                 },
                 onPrimaryAction: { primaryAction() },
-                onOpenPartnerPicker: { tradeViewModel.openPartnerPicker() },
+                onOpenPartnerPicker: { onOpenPartnerPicker?() },
                 onRemoveThirdPartner: { tradeViewModel.removeThirdPartner() },
                 onToggleSubmissionStepDone: { tradeViewModel.toggleThreeTeamSubmissionStep($0) },
                 onCopySubmissionStep: { copyThreeTeamStep($0) }
