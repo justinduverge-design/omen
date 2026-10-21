@@ -27,22 +27,20 @@ struct CommandCenterView: View {
     /// switcher's — the two read the same route for different reasons and fail independently.
     private let leagueDirectoryRepository: LeagueDirectoryRepository
     @Environment(\.omenEnvironment) private var environment
-    @State private var showAccountSheet: Bool = false
+    /// The command center owns one modal presenter. Independent sheet booleans can all become
+    /// true in the same render pass, leaving SwiftUI to reject one presentation and making a
+    /// perfectly valid destination (most visibly Build a trade) appear not to open.
+    @State private var presentedSheet: CommandCenterSheet?
     /// `ReportPill.dc.html`, wired to both its doors. Non-nil means the composer is open, and
     /// the value is the screen the user was on when they opened it — the composer must be told
     /// rather than resolve it, because a composer that resolved its own current screen would
     /// name the composer.
-    @State private var reportingScreen: OmenBetaReportScreen?
-    @State private var showConnectSheet: Bool = false
-    @State private var showSwitcherSheet: Bool = false
     /// Trade has three distinct jobs. Build is the canvas-governed default; Find is the
     /// later sports-game-style candidate search; Type compares a deal already proposed.
     @State private var selectedTradeMode: TradeMode = .build
     /// The Trade tab opens on the chooser (whole-app canvas, `TradeMode.dc.html`).
     @State private var tradeChooserVisible: Bool = true
     /// J4: `TradeShare`, over `POST /api/trade/share`.
-    @State private var showTradeShareSheet: Bool = false
-    @State private var tradeShareItem: TradeShareItem?
     @State private var selectedTab: CommandCenterTab = .command
     @StateObject private var leagueViewModel: LeagueViewModel
     @StateObject private var tradeViewModel: TradeViewModel
@@ -132,7 +130,7 @@ struct CommandCenterView: View {
                     // there. Concurrent: see `reloadAllAfterContextChange`.
                     Task { await reloadAllAfterContextChange() }
                 },
-                onAddLeague: { showConnectSheet = true },
+                onAddLeague: { presentSheet(.connect) },
                 // This picker owns its pinned Switch button locally. Cross-screen switch
                 // affordances route to the shell's one presenter below; binding every off-tab
                 // picker to the same Boolean created competing SwiftUI presentation anchors.
@@ -217,10 +215,10 @@ struct CommandCenterView: View {
                             footnote: nil
                         ),
                         context: nil,
-                        onOpenAccount: { showAccountSheet = true },
+                        onOpenAccount: { presentSheet(.account) },
                         onOpenLeague: { selectedTab = .league },
                         onOpenLedger: nil,
-                        onReportProblem: { reportingScreen = .commandCenter }
+                        onReportProblem: { presentSheet(.report(.commandCenter)) }
                     )
                     .omenScreenReady("desk")
                 } else if case .failed(let directoryError) = leagueCarouselViewModel.contextResolution {
@@ -256,7 +254,7 @@ struct CommandCenterView: View {
                         context: switching.context,
                         weekLabel: switching.weekLabel,
                         footnote: switching.footnote,
-                        onOpenAccount: { showAccountSheet = true }
+                        onOpenAccount: { presentSheet(.account) }
                     )
                 } else if let failure = commandCenterViewModel.failure {
                     // M5 slice B: an unreadable shell renders an explicit failure surface.
@@ -284,7 +282,7 @@ struct CommandCenterView: View {
                     // screenshot of nothing. The Command Center's own furniture renders as a
                     // broken dashboard when there is no league; this says why it is empty.
                     OmenNoLeagueScreen(
-                        onConnect: { showConnectSheet = true }
+                        onConnect: { presentSheet(.connect) }
                     )
                     .omenScreenReady("no-league")
                 } else if let quietState = commandCenterViewModel.quietWeekState {
@@ -293,7 +291,7 @@ struct CommandCenterView: View {
                     // build recognises; every other case keeps the ordinary desk above.
                     OmenCommandQuietScreen(
                         state: quietState,
-                        onOpenAccount: { showAccountSheet = true }
+                        onOpenAccount: { presentSheet(.account) }
                     )
                     .omenScreenReady("desk-quiet")
                 } else if let deskState = commandCenterViewModel.deskState(
@@ -305,15 +303,15 @@ struct CommandCenterView: View {
                         state: deskState,
                         context: OmenScreenContext.from(strip: commandCenterViewModel.context).map {
                             var bar = $0
-                            bar.onSwitch = { showSwitcherSheet = true }
-                            bar.onAddLeague = { showConnectSheet = true }
+                            bar.onSwitch = { presentSheet(.switcher) }
+                            bar.onAddLeague = { presentSheet(.connect) }
                             return bar
                         },
                         ledgerEntries: commandCenterViewModel.ledgerState.entries,
                         ledgerHeadline: commandCenterViewModel.ledgerHeadline,
-                        onOpenAccount: { showAccountSheet = true },
+                        onOpenAccount: { presentSheet(.account) },
                         onOpenLeague: { selectedTab = .league },
-                        onReportProblem: { reportingScreen = .commandCenter },
+                        onReportProblem: { presentSheet(.report(.commandCenter)) },
                         loadReceipt: { await commandCenterViewModel.loadReceipt(id: $0) },
                         carousel: leagueCarouselViewModel,
                         userID: userID,
@@ -370,7 +368,7 @@ struct CommandCenterView: View {
                 .omenScreenReady("omen-decision")
             }
             .task {
-                omenDecisionViewModel.onConnect = { showConnectSheet = true }
+                omenDecisionViewModel.onConnect = { presentSheet(.connect) }
                 await omenDecisionViewModel.load(userID: userID, scope: pickedLeagueScope)
             }
             // The picker can change the league without this tab's own `.task` running again, and the
@@ -403,16 +401,16 @@ struct CommandCenterView: View {
                     case .verdict(let state):
                         OmenTradeVerdictScreen(
                             state: state,
-                            onOpenAccount: { showAccountSheet = true },
+                            onOpenAccount: { presentSheet(.account) },
                             onPrimaryAction: { tradeViewModel.dismissVerdict() },
-                            onShare: { showTradeShareSheet = true }
+                            onShare: { presentSheet(.tradeShareSetup) }
                         )
                         .omenScreenReady("trade-verdict")
                     case .needsContext(let state):
                         OmenTradeNeedsContextScreen(
                             state: state,
-                            onOpenAccount: { showAccountSheet = true },
-                            onConnect: { showConnectSheet = true },
+                            onOpenAccount: { presentSheet(.account) },
+                            onConnect: { presentSheet(.connect) },
                             onShowAnyway: { tradeViewModel.dismissVerdict() }
                         )
                         .omenScreenReady("trade-needs-context")
@@ -429,16 +427,22 @@ struct CommandCenterView: View {
                                 platform: pickedLeagueScope?.platform ?? tradeViewModel.offer.leagueContext?.platform,
                                 leagueId: pickedLeagueScope?.leagueID ?? tradeViewModel.offer.leagueContext?.leagueId,
                                 fallbackTeamId: loadedOverviewTeamId,
-                                onOpenAccount: { showAccountSheet = true },
-                                onConnectLeague: { showConnectSheet = true },
+                                onOpenAccount: { presentSheet(.account) },
+                                onConnectLeague: { presentSheet(.connect) },
                                 onDismiss: { tradeChooserVisible = true }
                             )
                         case .build:
                             TradeRosterFlowView(
                                 tradeViewModel: tradeViewModel,
                                 userID: userID,
-                                onOpenAccount: { showAccountSheet = true },
-                                onDismiss: { tradeChooserVisible = true }
+                                onOpenAccount: { presentSheet(.account) },
+                                onDismiss: { tradeChooserVisible = true },
+                                onOpenPartnerPicker: {
+                                    tradeViewModel.openPartnerPicker()
+                                    if tradeViewModel.isPartnerPickerPresented {
+                                        presentSheet(.tradePartnerPicker)
+                                    }
+                                }
                             )
                         case .type:
                             OmenTradeScreen(
@@ -484,38 +488,6 @@ struct CommandCenterView: View {
                 guard case .loaded(let overview) = leagueViewModel.viewState else { return }
                 syncTradeLeague(overview)
             }
-            .sheet(isPresented: $showTradeShareSheet) {
-                if let state = tradeViewModel.shareScreenState {
-                    NavigationStack {
-                        OmenTradeShareScreen(
-                            state: state,
-                            onOpenAccount: { showAccountSheet = true },
-                            onToggleInclusion: { tradeViewModel.toggleShareInclusion($0) },
-                            onShare: {
-                                Task {
-                                    if let url = tradeViewModel.sharedURL(baseURL: environment.apiBaseURL) {
-                                        presentTradeShare(url)
-                                        return
-                                    }
-                                    await tradeViewModel.share(userID: userID)
-                                    if let url = tradeViewModel.sharedURL(baseURL: environment.apiBaseURL) {
-                                        presentTradeShare(url)
-                                    }
-                                }
-                            },
-                            onCopyAsText: {
-                                if let text = tradeViewModel.copyShareText() {
-                                    UIPasteboard.general.string = text
-                                }
-                            }
-                        )
-                        .omenScreenReady("trade-share")
-                    }
-                }
-            }
-            .onChange(of: showTradeShareSheet) { _, isPresented in
-                if !isPresented { tradeViewModel.dismissShare() }
-            }
             .tabItem { CommandCenterTab.trade.label }
             .tag(CommandCenterTab.trade)
 
@@ -526,13 +498,13 @@ struct CommandCenterView: View {
                 OmenLeagueScreen(
                     state: leagueViewModel.viewState,
                     onRetry: { Task { await leagueViewModel.reload() } },
-                    onConnect: { showConnectSheet = true },
+                    onConnect: { presentSheet(.connect) },
                     // E017 carries both controls, and `OmenScreenShell` renders the account
                     // one only when this is non-nil. Without it the League destination — and
                     // the wire sheet it presents, which inherits this same closure — were the
                     // only signed-in surfaces with no route to the account. Every sibling tab
                     // already passed it.
-                    onOpenAccount: { showAccountSheet = true },
+                    onOpenAccount: { presentSheet(.account) },
                     // The wire comes from the SAME `waiver-analysis.v1` read Command Center
                     // already makes, for the reason Trade takes its league from the League
                     // destination's read: two surfaces that fetch the wire separately can
@@ -557,78 +529,11 @@ struct CommandCenterView: View {
         // screen used the Omen accent — found on device 2026-09-01. Android's NavigationBar
         // already tinted correctly; only iOS had drifted.
         .tint(OmenColor.accent)
-        .sheet(isPresented: $showSwitcherSheet) {
-            shellSwitcherSheet
-        }
-        .sheet(isPresented: $showConnectSheet) {
-            NavigationStack {
-                ConnectView(
-                    repository: connectRepository,
-                    sessionManager: sessionManager,
-                    onConnected: {
-                        showConnectSheet = false
-                        // A connection changes the directory as well as the Desk payload.
-                        // Reloading only the latter left the Desk empty until another tab
-                        // happened to trigger the missing directory read.
-                        Task {
-                            await leagueCarouselViewModel.load(userID: userID)
-                            await reloadAllAfterContextChange()
-                        }
-                    },
-                    onDismiss: { showConnectSheet = false }
-                )
-                .navigationTitle("Connect")
-                .navigationBarTitleDisplayMode(.inline)
-                // M6-ContextualHelp on the toolbar rather than inside `providerPicker`, so it
-                // is still reachable from the error, on-hold, and ESPN-unsupported states —
-                // which is exactly where "why can't I connect this?" gets asked.
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        OmenContextualHelpButton(
-                            topic: OmenContextualHelpContent.topic(for: .connect),
-                            size: .sm
-                        )
-                    }
-                }
-            }
-        }
-        .sheet(isPresented: $showAccountSheet) {
-            NavigationStack {
-                AccountView(
-                    userID: userID,
-                    sessionManager: sessionManager,
-                    authViewModel: authViewModel,
-                    leagueDirectoryRepository: leagueDirectoryRepository,
-                    // The same composer the pill opens, told it is being opened from Account.
-                    // One composer, two doors: two would be two disclosures to keep true.
-                    onReportProblem: { reportingScreen = .account }
-                )
-                    .navigationTitle("Account")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .topBarLeading) {
-                            OmenContextualHelpButton(
-                                topic: OmenContextualHelpContent.topic(for: .account),
-                                size: .sm
-                            )
-                        }
-                        ToolbarItem(placement: .topBarTrailing) {
-                            OmenButton(title: "Done", action: { showAccountSheet = false }, variant: .link, size: .sm)
-                        }
-                    }
-            }
-        }
-        .sheet(item: $reportingScreen) { screen in
-            OmenReportComposerSheet(
-                screen: screen,
-                connectionState: reportConnectionState,
-                repository: URLSessionBetaReportRepository(apiBaseURL: environment.apiBaseURL),
-                accessToken: sessionManager.currentSession?.accessToken,
-                onDismiss: { reportingScreen = nil }
-            )
-        }
-        .sheet(item: $tradeShareItem) { item in
-            OmenActivityView(items: [item.url])
+        .sheet(item: $presentedSheet, onDismiss: {
+            tradeViewModel.dismissPartnerPicker()
+            if tradeViewModel.shareScreenState != nil { tradeViewModel.dismissShare() }
+        }) { sheet in
+            commandCenterSheet(sheet)
         }
     }
 
@@ -645,10 +550,143 @@ struct CommandCenterView: View {
             onContextChanged: { _ in
                 Task { await reloadAllAfterContextChange() }
             },
-            onAddLeague: { showConnectSheet = true },
-            externalPresentation: $showSwitcherSheet
+            onAddLeague: { presentSheet(.connect) },
+            externalPresentation: switcherPresentedBinding
         )
         .switcherSheet
+    }
+
+    private var switcherPresentedBinding: Binding<Bool> {
+        Binding(
+            get: {
+                if case .switcher = presentedSheet { return true }
+                return false
+            },
+            set: { isPresented in
+                if isPresented { presentSheet(.switcher) }
+                else if case .switcher = presentedSheet { presentedSheet = nil }
+            }
+        )
+    }
+
+    @ViewBuilder
+    private func commandCenterSheet(_ sheet: CommandCenterSheet) -> some View {
+        switch sheet {
+        case .switcher:
+            shellSwitcherSheet
+        case .connect:
+            NavigationStack {
+                ConnectView(
+                    repository: connectRepository,
+                    sessionManager: sessionManager,
+                    onConnected: {
+                        presentedSheet = nil
+                        Task {
+                            await leagueCarouselViewModel.load(userID: userID)
+                            await reloadAllAfterContextChange()
+                        }
+                    },
+                    onDismiss: { presentedSheet = nil }
+                )
+                .navigationTitle("Connect")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        OmenContextualHelpButton(
+                            topic: OmenContextualHelpContent.topic(for: .connect),
+                            size: .sm
+                        )
+                    }
+                }
+            }
+        case .account:
+            NavigationStack {
+                AccountView(
+                    userID: userID,
+                    sessionManager: sessionManager,
+                    authViewModel: authViewModel,
+                    leagueDirectoryRepository: leagueDirectoryRepository,
+                    onReportProblem: { presentSheet(.report(.account)) }
+                )
+                .navigationTitle("Account")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        OmenContextualHelpButton(
+                            topic: OmenContextualHelpContent.topic(for: .account),
+                            size: .sm
+                        )
+                    }
+                    ToolbarItem(placement: .topBarTrailing) {
+                        OmenButton(title: "Done", action: { presentedSheet = nil }, variant: .link, size: .sm)
+                    }
+                }
+            }
+        case .report(let screen):
+            OmenReportComposerSheet(
+                screen: screen,
+                connectionState: reportConnectionState,
+                repository: URLSessionBetaReportRepository(apiBaseURL: environment.apiBaseURL),
+                accessToken: sessionManager.currentSession?.accessToken,
+                onDismiss: { presentedSheet = nil }
+            )
+        case .tradeShareSetup:
+            if let state = tradeViewModel.shareScreenState {
+                NavigationStack {
+                    OmenTradeShareScreen(
+                        state: state,
+                        onOpenAccount: { presentSheet(.account) },
+                        onToggleInclusion: { tradeViewModel.toggleShareInclusion($0) },
+                        onShare: {
+                            Task {
+                                if let url = tradeViewModel.sharedURL(baseURL: environment.apiBaseURL) {
+                                    presentTradeShare(url)
+                                    return
+                                }
+                                await tradeViewModel.share(userID: userID)
+                                if let url = tradeViewModel.sharedURL(baseURL: environment.apiBaseURL) {
+                                    presentTradeShare(url)
+                                }
+                            }
+                        },
+                        onCopyAsText: {
+                            if let text = tradeViewModel.copyShareText() {
+                                UIPasteboard.general.string = text
+                            }
+                        }
+                    )
+                    .omenScreenReady("trade-share")
+                }
+            }
+        case .tradeActivity(let url):
+            OmenActivityView(items: [url])
+        case .tradePartnerPicker:
+            TradePartnerPicker(
+                candidates: tradeViewModel.partnerPickerCandidates,
+                leagueName: nil,
+                onSelect: {
+                    tradeViewModel.addThirdPartner($0)
+                    presentedSheet = nil
+                },
+                onDismiss: {
+                    tradeViewModel.dismissPartnerPicker()
+                    presentedSheet = nil
+                }
+            )
+        }
+    }
+
+    private func presentSheet(_ sheet: CommandCenterSheet) {
+        guard presentedSheet != nil else {
+            presentedSheet = sheet
+            return
+        }
+        // UIKit must finish dismissing the current controller before SwiftUI asks it to host
+        // the replacement. One state value means a second sheet can never race the first.
+        presentedSheet = nil
+        DispatchQueue.main.async {
+            presentedSheet = sheet
+        }
     }
 
     /// The one provider fact a report carries, and the reason it is derived here rather than in
@@ -667,12 +705,7 @@ struct CommandCenterView: View {
     }
 
     private func presentTradeShare(_ url: URL) {
-        // Dismiss Omen's setup sheet before asking iOS to present its activity sheet. Two
-        // simultaneous sheet presenters race and make a successful link look like a dead tap.
-        showTradeShareSheet = false
-        DispatchQueue.main.async {
-            tradeShareItem = TradeShareItem(url: url)
-        }
+        presentSheet(.tradeActivity(url))
     }
 
     /// Reloads every personalized surface after a context (league) change.
@@ -752,9 +785,26 @@ struct CommandCenterView: View {
 /// file and once in `ScreenshotScenarios.FauxShell` — which is how the screenshot harness came
 /// to advertise Trade and League as "landing next" for a day after the real screens shipped
 /// (`F-VET-B01`). Two copies of a list drift; one copy cannot.
-private struct TradeShareItem: Identifiable {
-    let id = UUID()
-    let url: URL
+private enum CommandCenterSheet: Identifiable {
+    case switcher
+    case connect
+    case account
+    case report(OmenBetaReportScreen)
+    case tradeShareSetup
+    case tradeActivity(URL)
+    case tradePartnerPicker
+
+    var id: String {
+        switch self {
+        case .switcher: return "switcher"
+        case .connect: return "connect"
+        case .account: return "account"
+        case .report(let screen): return "report-\(screen.rawValue)"
+        case .tradeShareSetup: return "trade-share-setup"
+        case .tradeActivity(let url): return "trade-activity-\(url.absoluteString)"
+        case .tradePartnerPicker: return "trade-partner-picker"
+        }
+    }
 }
 
 private struct OmenActivityView: UIViewControllerRepresentable {
