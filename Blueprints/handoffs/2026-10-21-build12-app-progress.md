@@ -21,6 +21,39 @@ A screen is done only when all of these hold, and the evidence is linked next to
 6. A fresh review agent compared it to its frame and the spec and found no P0 or P1.
 7. Unit tests and the screen's screenshot scenario pass.
 
+## Rule: no parallel pieces (founder, 2026-10-21)
+
+"You have to clean up the old shit. You can't just make up new shit." Every new piece either replaces an
+old one (the old file is deleted when its last caller moves) or the old one is changed in place to become
+the new one. Nothing old and new lives side by side at merge. The ledger below is the checklist; **the
+build cannot open its PR while any row is not Deleted.** A screen's gate includes deleting every old piece
+it was the last user of, in the same commit.
+
+## Replacement ledger
+
+| Old piece | Callers today | Becomes | Status |
+|---|---|---|---|
+| `OmenPlayerRow` (old) | Omen first call, decision brief, gallery | `OmenRosterRow`, then renamed `OmenPlayerRow` | open |
+| `OmenDecisionBrief` | Omen non-success states | new Omen call + `OmenStateBlock` | open |
+| `OmenConfidenceBar`, `OmenMetricStrip`, `OmenRiskPanel`, `OmenSignalList` | only `OmenDecisionBrief` and the gallery | `OmenFigure`, full argument rows | open (go with the decision brief) |
+| `OmenPlatformConnectionCard` | gallery only | `OmenProviderMark` + Account rows | open |
+| `OmenStateSurface` | 18 files | `OmenStateBlock` | open |
+| `OmenCard`, `OmenTappableCard` | 20 files | `OmenAnswerSurface`, plain page + hairlines | open |
+| `OmenListRow` | 6 files | `OmenKeyValueRow`, `OmenRosterRow` | open |
+| `OmenModalSheet` | 6 files | system sheet + `OmenSheetHeader` | open |
+| `OmenScreenShell`, `OmenContextStrip`, `OmenLeagueSwitcherBar` | 5 / 3 / 3 files | page header + `OmenTeamControl` | open |
+| `OmenTeamSwitcherSheet`, `OmenSwitchSheet` | 2 / 2 files | one switcher sheet on `OmenSheetHeader` | open |
+| `OmenMatchupHero`, carousel views | Desk | `OmenTeamRolodex`, `OmenPinnedScore` | open |
+| `OmenTradeTabs`, `OmenTradePartnerChip`, old trade journey screens | Trade | trade chooser, builder, verdict sheet | open |
+| `OmenReportPill` | 3 files | "Report this" link + report sheet | open |
+| `OmenChip`, `OmenBadge`, `OmenPlatformBadge`, `OmenCanvasTextAction` | 3 / 4 / 3 / 3 files | `OmenProviderMark`, `OmenBarTextButton`, words | open |
+| `OmenContextualHelpButton` (header "?") | 1 file | "How Omen makes a call" in Account (spec § 3) | open |
+| `OmenEvidenceRow` | 3 files | `OmenKeyValueRow` | open |
+| `OmenIconButton`, `OmenPlatformCompactRow`, `OmenProviderCard` | 5 / 1 / 1 files | keep only if a frame uses it; otherwise delete | open |
+| Old type roles (`display`, `h1`-`h3`, `call`, `scoreLead`, `scoreTrail`, `screenTitle`, `cardLead`, `name`, `bodySmall`, `label`) | many | foundation roles | open |
+| `DesignSystemGalleryView` | debug | `FoundationGallery` | open |
+| Old screen files each new screen replaces | per screen | listed per screen in the table below | open |
+
 ## Foundation (built and reviewed before any screen, then frozen)
 
 - [ ] Colour tokens match spec § 7 (dark and light), including `omenChip` for green words

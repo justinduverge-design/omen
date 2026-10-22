@@ -229,6 +229,8 @@ an omission.
 
 1. The screen's frame is founder-approved and in the repo export.
 2. It is composed only from § 5 patterns; a new pattern is added here first.
+   No parallel pieces: a new pattern replaces an old component or the old one is reshaped into it, and the
+   old file is deleted when its last screen moves (founder, 2026-10-21). The ledger is in the progress file.
 3. Built, captured in dark and light on iPhone 17 Pro and SE, compared to the frame.
 4. Fresh-agent review, then on the founder's phone.
 
