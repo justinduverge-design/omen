@@ -159,8 +159,7 @@ struct CommandCenterView: View {
     private var tradeVerdictShown: Binding<Bool> {
         Binding(
             get: {
-                // Judge an offer still draws its own answer until it is rebuilt; no second verdict over it.
-                guard tradePath.last != .judge, case .loaded(let compare) = tradeViewModel.viewState else { return false }
+                guard case .loaded(let compare) = tradeViewModel.viewState else { return false }
                 return OmenTradeAnswer.from(compare, offer: tradeViewModel.offer) != nil
             },
             set: { if !$0 { tradeViewModel.dismissVerdict() } }
@@ -168,6 +167,53 @@ struct CommandCenterView: View {
     }
 
     private var tradeProviderName: String { OmenProviderMark.displayName(tradeViewModel.offer.leagueContext?.platform) }
+
+    private var tradeJudge: some View {
+        OmenJudgeOfferScreen(
+            state: OmenJudgeOfferState(
+                send: tradeViewModel.offer.send,
+                receive: tradeViewModel.offer.receive,
+                partners: tradeViewModel.rosterPartners,
+                partnerID: tradeViewModel.selectedPartnerTeamID,
+                results: tradeViewModel.suggestions.map { result in
+                    OmenJudgeOfferState.Result(
+                        id: result.id, name: result.name, position: result.position, team: result.team,
+                        owner: tradeOwner(of: result), isCorrection: result.matchType == "fuzzy"
+                    )
+                },
+                searchNote: {
+                    switch tradeViewModel.searchState {
+                    case .idle, .results: return nil
+                    case .searching: return "Looking\u{2026}"
+                    case .empty(let q): return "No player named \u{201C}\(q)\u{201D}."
+                    case .failed(let e): return TradeViewModel.message(for: e)
+                    }
+                }(),
+                judging: tradeViewModel.viewState == .loading,
+                judgeError: { if case .failed(let e) = tradeViewModel.viewState { return TradeViewModel.message(for: e) } else { return nil } }()
+            ),
+            onQuery: { tradeViewModel.search($0, side: $1) },
+            onAdd: { picked, side in
+                if let result = tradeViewModel.suggestions.first(where: { $0.id == picked.id }) { tradeViewModel.add(result, to: side) }
+            },
+            onRemove: { tradeViewModel.remove(at: $0, from: $1) },
+            onSwitchPartner: { tradeViewModel.switchPartner(to: $0) },
+            onJudge: { Task { await tradeViewModel.compare(userID: userID) } }
+        )
+        // Rosters name who owns each player and who sent the offer; Judge works without them.
+        .task { if userID != SessionManager.demoUserID { await tradeViewModel.loadRoster(userID: userID) } }
+    }
+
+    /// "on Gibbs me some Rice", "free agent" only when every roster was read, or nil when Omen can't tell.
+    private func tradeOwner(of result: PlayerSearchResult) -> String? {
+        guard case .loaded(let rosters) = tradeViewModel.rosterBrowseState, rosters.isAvailable else { return nil }
+        let key = result.name.lowercased()
+        if let team = rosters.teams.first(where: { $0.players.contains { $0.name.lowercased() == key } }) {
+            return team.id == tradeViewModel.viewerTeamID ? "on your team" : team.teamName.map { "on \($0)" }
+        }
+        // A team that came back empty (unreadable) could be hiding him: no free-agent claim then.
+        return rosters.teams.allSatisfy { !$0.players.isEmpty } ? "free agent" : nil
+    }
 
     @ViewBuilder
     private var tradeBuilder: some View {
@@ -543,19 +589,7 @@ struct CommandCenterView: View {
                         )
                         .toolbar(.hidden, for: .tabBar)
                     case .judge:
-                            OmenTradeScreen(
-                                state: tradeViewModel.viewState,
-                                offer: tradeViewModel.offer,
-                                searchState: tradeViewModel.searchState,
-                                searchingSide: tradeViewModel.searchingSide,
-                                onQueryChanged: { query, side in tradeViewModel.search(query, side: side) },
-                                onAddResult: { player, side in tradeViewModel.add(player, to: side) },
-                                onRemove: { index, side in tradeViewModel.remove(at: index, from: side) },
-                                onCompare: { Task { await tradeViewModel.compare(userID: userID) } },
-                                capabilities: tradeViewModel.capabilities,
-                                prefill: tradeViewModel.prefill
-                            )
-                            .omenScreenReady("trade-judge")
+                        tradeJudge.toolbar(.hidden, for: .tabBar)
                     case .player(let id):
                         tradePlayer(id).toolbar(.hidden, for: .tabBar)
                     }

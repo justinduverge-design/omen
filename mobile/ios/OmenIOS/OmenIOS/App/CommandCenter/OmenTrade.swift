@@ -146,14 +146,14 @@ struct OmenTradeBuilderScreen: View {
             VStack(alignment: .leading, spacing: OmenSpacing.step20) {
                 VStack(alignment: .leading, spacing: OmenSpacing.step4) {
                     Text("Build a trade").omenTextStyle(OmenTypography.pageTitle).foregroundStyle(OmenColor.textPrimary).accessibilityAddTraits(.isHeader)
-                    partnerMenu
+                    OmenTradePartnerMenu(partners: state.partners, partnerID: state.partnerID, onSwitch: onSwitchPartner)
                 }
                 if let onThreeTeam {
                     OmenBarTextButton(title: "Make it a three-team trade", action: onThreeTeam)
                 }
                 HStack(alignment: .top, spacing: OmenSpacing.step10) {
-                    tray("You send", players: state.send, side: .send, empty: "Pick from your roster")
-                    tray("You get", players: state.receive, side: .receive, empty: "Pick from theirs")
+                    OmenTradeTray(title: "You send", players: state.send, empty: "Pick from your roster", onRemove: { onRemove($0, .send) })
+                    OmenTradeTray(title: "You get", players: state.receive, empty: "Pick from theirs", onRemove: { onRemove($0, .receive) })
                 }
                 Picker("Roster", selection: $showingTheirs) {
                     Text("Your roster").tag(false)
@@ -201,15 +201,38 @@ struct OmenTradeBuilderScreen: View {
         .omenScreenReady("trade-builder")
     }
 
-    private var partnerMenu: some View {
+    /// Omen's points this week for one tray, from the roster read. Nil when any player's read is missing.
+    private func points(_ offered: [TradePlayer]) -> Double? {
+        let everyone = state.mine + state.theirs
+        let values = offered.compactMap { o in
+            // Omen's read only: a provider number is never labelled as Omen's.
+            everyone.first { $0.id == (o.playerKey ?? o.name) || $0.name == o.name }.flatMap(\.omenPoints)
+        }
+        return values.count == offered.count ? values.reduce(0, +) : nil
+    }
+}
+
+// MARK: - Shared
+
+/// "with Gibbs me some Rice · Needs WR · Change": the trade partner, switchable from a menu.
+struct OmenTradePartnerMenu: View {
+    let partners: [OmenTradePartner]
+    let partnerID: String?
+    var prefix = "with"
+    var onSwitch: (String) -> Void
+
+    private var partner: OmenTradePartner? { partners.first { $0.id == partnerID } }
+
+    var body: some View {
         Menu {
-            ForEach(state.partners) { p in
-                OmenBarTextButton(title: p.name) { onSwitchPartner(p.id) }
+            ForEach(partners) { p in
+                OmenBarTextButton(title: p.name) { onSwitch(p.id) }
             }
         } label: {
             HStack(spacing: OmenSpacing.step8) {
                 OmenTeamCrest(name: partner?.name ?? "?", side: 28)
-                Text("with \(partner?.name ?? "a team")").omenTextStyle(OmenTypography.body).foregroundStyle(OmenColor.textPrimary)
+                Text("\(prefix) \(partner?.name ?? "a team")").omenTextStyle(OmenTypography.body).foregroundStyle(OmenColor.textPrimary)
+                    .multilineTextAlignment(.leading)
                 if let need = partner?.need, !need.isEmpty {
                     Text(need).omenTextStyle(OmenTypography.rowTitle).foregroundStyle(OmenColor.omenChip)
                 }
@@ -219,16 +242,37 @@ struct OmenTradeBuilderScreen: View {
         }
         .accessibilityLabel("Trade partner, \(partner?.name ?? "none"). Change")
     }
+}
 
-    private func tray(_ title: String, players: [TradePlayer], side: TradeViewModel.Side, empty: String) -> some View {
+/// One side of a trade as removable tokens (builder and Judge an offer). `active` outlines the side
+/// the next pick goes to.
+struct OmenTradeTray: View {
+    let title: String
+    let players: [TradePlayer]
+    let empty: String
+    var active = false
+    /// When set, the title is a button that makes this the side the next pick goes to.
+    var onSelect: (() -> Void)?
+    var onRemove: (Int) -> Void
+
+    var body: some View {
         VStack(alignment: .leading, spacing: OmenSpacing.step8) {
-            Text(title.uppercased()).omenTextStyle(OmenTypography.eyebrow).foregroundStyle(OmenColor.textTertiary)
+            if let onSelect {
+                OmenPressable(action: onSelect) {
+                    Text(title.uppercased()).omenTextStyle(OmenTypography.eyebrow).foregroundStyle(active ? OmenColor.accentHover : OmenColor.textTertiary)
+                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                }
+                .accessibilityLabel("\(title)\(active ? ", adding here" : "")")
+                .accessibilityHint("Adds the next player to this side")
+            } else {
+                Text(title.uppercased()).omenTextStyle(OmenTypography.eyebrow).foregroundStyle(OmenColor.textTertiary)
+            }
             VStack(alignment: .leading, spacing: OmenSpacing.step6) {
                 if players.isEmpty {
                     Text(empty).omenTextStyle(OmenTypography.quiet).foregroundStyle(OmenColor.textTertiary).padding(OmenSpacing.step6)
                 }
                 ForEach(Array(players.enumerated()), id: \.offset) { index, player in
-                    OmenPressable(action: { onRemove(index, side) }) {
+                    OmenPressable(action: { onRemove(index) }) {
                         HStack(spacing: OmenSpacing.step6) {
                             Text(player.name).omenTextStyle(OmenTypography.rowTitle).foregroundStyle(OmenColor.textPrimary).lineLimit(1)
                             Spacer(minLength: 0)
@@ -246,21 +290,12 @@ struct OmenTradeBuilderScreen: View {
             .frame(maxWidth: .infinity, minHeight: 60, alignment: .topLeading)
             .background(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(players.isEmpty ? OmenColor.borderSubtle : .clear, style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
+                    .strokeBorder(active ? OmenColor.accent : players.isEmpty ? OmenColor.borderSubtle : .clear,
+                                  style: StrokeStyle(lineWidth: 1.5, dash: active || !players.isEmpty ? [] : [5, 4]))
                     .background(players.isEmpty ? Color.clear : OmenColor.surface1, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             )
         }
         .frame(maxWidth: .infinity)
-    }
-
-    /// Omen's points this week for one tray, from the roster read. Nil when any player's read is missing.
-    private func points(_ offered: [TradePlayer]) -> Double? {
-        let everyone = state.mine + state.theirs
-        let values = offered.compactMap { o in
-            // Omen's read only: a provider number is never labelled as Omen's.
-            everyone.first { $0.id == (o.playerKey ?? o.name) || $0.name == o.name }.flatMap(\.omenPoints)
-        }
-        return values.count == offered.count ? values.reduce(0, +) : nil
     }
 }
 

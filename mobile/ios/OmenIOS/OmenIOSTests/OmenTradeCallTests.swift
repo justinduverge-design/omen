@@ -304,9 +304,6 @@ final class OmenTradeCallTests: XCTestCase {
 
         XCTAssertEqual(vm.viewState, .failed(.server(status: 503)))
         XCTAssertEqual(vm.offer.send.map(\.name), ["Sample WR1"], "the offer is kept so the user can retry")
-        let status = OmenTradePrefillCard.status(for: vm.viewState)
-        XCTAssertTrue(status?.contains("couldn't re-check") == true)
-        XCTAssertTrue(status?.contains("not been confirmed") == true, "it does not repeat the Omen tab's call as confirmed")
     }
 
     func testEditingTheOfferEndsItBeingOmensCall() throws {
@@ -354,15 +351,6 @@ final class OmenTradeCallTests: XCTestCase {
     }
 
     // MARK: - Words and accessibility
-
-    func testPrefillCardNamesThePartnerOnlyWhenTheCallDid() {
-        let withPartner = TradeViewModel.Prefill(giveName: "A", receiveName: "B", partnerName: "Team X", receivePlayerKey: nil, platform: nil)
-        let without = TradeViewModel.Prefill(giveName: "A", receiveName: "B", partnerName: nil, receivePlayerKey: nil, platform: nil)
-        XCTAssertEqual(OmenTradePrefillCard.summary(for: withPartner), "Send A, get B, with Team X.")
-        XCTAssertEqual(OmenTradePrefillCard.summary(for: without), "Send A, get B.")
-        XCTAssertNil(OmenTradePrefillCard.status(for: .idle))
-        XCTAssertNotNil(OmenTradePrefillCard.status(for: .loading))
-    }
 
     // MARK: - League scope
 

@@ -888,10 +888,17 @@ private struct FauxShell: View {
                 } else {
                     if ["trade.empty", "trade.prefilled", "trade.verdict"].contains(scenarioKey) {
                         NavigationStack {
-                            OmenTradeScreen(
-                                state: tradeState,
-                                offer: tradeOffer,
-                                prefill: scenarioKey == "trade.prefilled" ? Self.prefilledTrade : nil
+                            OmenJudgeOfferScreen(
+                                state: OmenJudgeOfferState(
+                                    send: tradeOffer.send, receive: tradeOffer.receive,
+                                    partners: FoundationFixtures.builder.partners, partnerID: FoundationFixtures.builder.partnerID,
+                                    results: scenarioKey == "trade.empty" ? [
+                                        .init(id: "rr", name: "Rashee Rice", position: "WR", team: "KC", owner: "on Gibbs me some Rice", isCorrection: false),
+                                        .init(id: "rs", name: "Rashid Shaheed", position: "WR", team: "NO", owner: "free agent", isCorrection: false),
+                                    ] : []
+                                ),
+                                onQuery: { _, _ in }, onAdd: { _, _ in }, onRemove: { _, _ in }, onSwitchPartner: { _ in }, onJudge: {},
+                                side: .receive, query: scenarioKey == "trade.empty" ? "Rash" : ""
                             )
                         }
                     } else {
@@ -940,20 +947,6 @@ private struct FauxShell: View {
         return .loaded(overview)
     }
 
-    private var tradeState: TradeViewModel.ViewState {
-        guard let result = Self.decodeTrade(Self.tradeVerdictJSON) else { return .failed(.decode) }
-        return (scenarioKey == "trade.empty" || scenarioKey == "trade.prefilled") ? .idle : .loaded(result)
-    }
-
-    /// What `TradeViewModel.applyPrefill` records for the `omen.trade-call` fixture, so the two screens in the
-    /// journey show the same deal.
-    private static var prefilledTrade: TradeViewModel.Prefill {
-        TradeViewModel.Prefill(
-            giveName: "Sample WR1", receiveName: "Sample RB1", partnerName: "Sample Rivals",
-            receivePlayerKey: "sample-rb1", platform: "espn"
-        )
-    }
-
     private var tradeOffer: TradeOffer {
         if scenarioKey == "trade.prefilled" {
             return TradeOffer(
@@ -962,7 +955,10 @@ private struct FauxShell: View {
             )
         }
         return scenarioKey == "trade.empty"
-            ? TradeOffer()
+            ? TradeOffer(
+                send: [TradePlayer(name: "Trey McBride", position: "TE", team: "ARI")],
+                receive: [TradePlayer(name: "Jake Ferguson", position: "TE", team: "DAL")]
+            )
             : TradeOffer(
                 send: [TradePlayer(name: "A.J. Brown", position: "WR", team: "PHI")],
                 receive: [TradePlayer(name: "Garrett Wilson", position: "WR", team: "NYJ")]
