@@ -34,6 +34,38 @@ enum FoundationFixtures {
         receive: [TradePlayer(name: "Zay Flowers", position: "WR", team: "BAL", playerKey: "t2")]
     )
 
+    /// Frame ThreeTeam: you, Gibbs me some Rice, Drake Maye Day; building, or judged with the provider steps.
+    static func threeTeam(judged: Bool) -> OmenThreeTeamState {
+        let teams = [
+            OmenTradePartner(id: "you", crest: "You", name: "You"),
+            OmenTradePartner(id: "gr", crest: "GR", name: "Gibbs me some Rice", need: "Needs WR"),
+            OmenTradePartner(id: "dm", crest: "DM", name: "Drake Maye Day"),
+        ]
+        let miller = OmenPlayerSummary(id: "km", name: "Kendre Miller", position: "RB", team: "NO", number: 25, omenPoints: 9.1, providerPoints: 8.4, providerName: "Sleeper", grade: 58, lead: .omen)
+        let moves = [
+            OmenThreeTeamState.Move(id: "1", players: ["DeVonta Smith"], fromID: "you", toID: "gr"),
+            OmenThreeTeamState.Move(id: "2", players: ["Zay Flowers"], fromID: "gr", toID: "dm"),
+            OmenThreeTeamState.Move(id: "3", players: ["Kendre Miller"], fromID: "dm", toID: "you"),
+        ]
+        return OmenThreeTeamState(
+            providerName: "Sleeper", teams: teams, candidates: [],
+            rosters: ["you": builder.mine, "gr": builder.theirs, "dm": [miller]],
+            destinations: ["you|p4": "gr"], moves: moves,
+            phase: judged ? .judged(
+                lines: [
+                    .init(id: "you", name: "You", sends: "send D. Smith to Gibbs me some Rice", gets: "get K. Miller from Drake Maye Day", net: 1.4),
+                    .init(id: "gr", name: "Gibbs me some Rice", sends: "send Z. Flowers to Drake Maye Day", gets: "get D. Smith from you", net: 2.1),
+                    .init(id: "dm", name: "Drake Maye Day", sends: "send K. Miller to you", gets: "get Z. Flowers from Gibbs me some Rice", net: 0.8),
+                ],
+                caption: "",
+                steps: [
+                    .init(id: 0, text: "You \u{2192} Gibbs me some Rice", done: true),
+                    .init(id: 1, text: "Gibbs me some Rice \u{2192} Drake Maye Day", done: false),
+                ]
+            ) : .building
+        )
+    }
+
     static let teams: [OmenTeamCardModel] = [
         OmenTeamCardModel(id: "t1", platform: "espn", leagueName: "Slops Saloon", teamName: "Titans of Slopsilonia", record: "5\u{2013}2", score: 64.8, opponentName: "Gibbs me some Rice", opponentRecord: "6\u{2013}1", opponentScore: 51.2, playersLeft: 4, opponentPlayersLeft: 2, projected: 119.6, opponentProjected: 114.2, line: "Projected to win by 5.4. Bijan and McBride still to play.", status: .live("Q2")),
         OmenTeamCardModel(id: "t2", platform: "sleeper", leagueName: "Dynasty Degens", teamName: "Slopsilonia Dynasty", record: "4\u{2013}3", score: 88.1, opponentName: "Taxi Squad Kings", opponentRecord: "5\u{2013}2", opponentScore: 92.4, playersLeft: 3, opponentPlayersLeft: 1, projected: 121.0, opponentProjected: 112.5, status: .live("Q3")),

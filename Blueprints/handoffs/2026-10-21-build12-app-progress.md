@@ -86,6 +86,7 @@ Forced update · Desk with no league · Demo · Rosters unreadable · States (lo
 | Player | Main | `OmenPlayer.swift` | 1-7 pass | same review | `player.page` screenshots, audit clean |
 | Omen call (+ trade call, hold, states) | Main, OmenTradeCall, States | `OmenCall.swift` | 1-7 pass | fresh agent: 3 P1 (hand-off now opens the provider's league; start/sit detail retry; account/help on Desk by spec) and P2s fixed | `output/screens/build12/omen/`, `OmenCallUITests` (audit clean), 637 unit tests |
 | Trade chooser, builder, verdict sheet, share | TradeChooser, Main builder, Sheets verdict, TradeShare | `OmenTrade.swift` | 1-7 pass | fresh agent: P0 (share lost its data) and 4 P1 (three-team unreachable, silent failed judge, connect over a sheet, provider pts labelled Omen) fixed; injury words (all providers) and trade locks (ESPN; Sleeper and Yahoo send none) now on the row, `PlayerStatusTests` | `output/screens/build12/trade-{dark,light}/`, `TradeUITests` (audit clean), 637 unit tests |
+| Find a trade, Judge an offer, Three-team | FindTrade, JudgeOffer, ThreeTeam | `OmenFindTrade.swift`, `OmenJudgeOffer.swift`, `OmenThreeTeam.swift` | 1-5, 7 pass; review pending (whole-trade review next) | deleted `OmenTradeFindReviewScreen`, `OmenTradeScreen` + prefill card, `OmenTradeBuildScreen`, `OmenTradeRosterScreen`, `TradePartnerPicker`, 8 of 9 `OmenTradeControls` (tabs stay for Account); app save-for-later dropped (not in design) | `output/screens/build12/trade-{dark,light}/`, `TradeUITests` (audit clean, 6 tests), 631 unit tests |
 | Full argument | FullArgument | `OmenCall.swift` | 1-7 pass | same review | `journey-j3.nominal.02-omen-evidence` |
 
 ## Whole-app pass
@@ -109,7 +110,7 @@ Forced update · Desk with no league · Demo · Rosters unreadable · States (lo
   `OmenStateBlock`. Delete in the same change: `OmenDecisionBrief`, `OmenConfidenceBar`, `OmenMetricStrip`,
   `OmenRiskPanel`, `OmenSignalList`, old `OmenPlayerRow`, `OmenReportPill`, `OmenFirstCallScreens` parts the
   new call replaces; then rename `OmenRosterRow` to `OmenPlayerRow`.
-- **Next:** Trade chunk 2 (Find, Judge an offer, three-team rebuilt; old trade controls deleted), then League (+ Waivers,
+- **Next:** fresh review of all of Trade, then League (+ Waivers,
   Ledger, receipt), then the rest of the screen list, then the whole-app pass.
 - **Tooling notes:** add Swift files with `addfile2.py`-style pbxproj edits (no synchronized groups);
   capture with `scripts/capture-screen-batch.sh --platform ios --build --scenarios "..."`; UI tests in

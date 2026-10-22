@@ -168,6 +168,65 @@ struct CommandCenterView: View {
 
     private var tradeProviderName: String { OmenProviderMark.displayName(tradeViewModel.offer.leagueContext?.platform) }
 
+    private var tradeThreeTeam: some View {
+        let vm = tradeViewModel
+        let teams = vm.threeTeamTeams
+        var rosters: [String: [OmenPlayerSummary]] = [:]
+        var destinations: [String: String] = [:]
+        for team in teams {
+            let players = vm.threeTeamRoster(team.id)?.players ?? []
+            rosters[team.id] = players.map { OmenPlayerSummary($0, providerName: tradeProviderName) }
+            for player in players {
+                if let to = vm.threeTeamDestination(playerKey: player.playerKey ?? player.name, from: team.id) {
+                    destinations["\(team.id)|\(player.id)"] = to
+                }
+            }
+        }
+        let moves = vm.threeTeamLegs.map { OmenThreeTeamState.Move(id: $0.id.uuidString, players: $0.players.map(\.name), fromID: $0.from, toID: $0.to) }
+        let names: (String) -> String = { id in teams.first { $0.id == id }?.name ?? id }
+        let phase: OmenThreeTeamState.Phase = {
+            switch vm.threeTeamViewState {
+            case .idle, .demo: return .building
+            case .loading: return .judging
+            case .failed(let e): return .failed(TradeViewModel.message(for: e))
+            case .loaded(let compare):
+                let lines = teams.map { team -> OmenThreeTeamState.Line in
+                    let out = vm.threeTeamLegs.filter { $0.from == team.id }
+                    let into = vm.threeTeamLegs.filter { $0.to == team.id }
+                    let participant = compare.participants.first { $0.teamID == team.id }
+                    return .init(
+                        id: team.id, name: team.name,
+                        sends: out.isEmpty ? nil : out.map { "send \($0.players.map(\.name).joined(separator: ", ")) to \(names($0.to))" }.joined(separator: "; "),
+                        gets: into.isEmpty ? nil : into.map { "get \($0.players.map(\.name).joined(separator: ", ")) from \(names($0.from))" }.joined(separator: "; "),
+                        net: participant?.netValue
+                    )
+                }
+                let steps = compare.submission.steps.enumerated().map { OmenThreeTeamState.Step(id: $0.offset, text: $0.element, done: vm.threeTeamSubmissionDoneSteps.contains($0.offset)) }
+                return .judged(lines: lines, caption: compare.submission.caption, steps: steps)
+            }
+        }()
+        return OmenThreeTeamScreen(
+            state: OmenThreeTeamState(
+                providerName: tradeProviderName, teams: teams, candidates: vm.partnerPickerCandidates,
+                rosters: rosters, destinations: destinations, moves: moves, phase: phase
+            ),
+            onPickThird: { id in if let team = vm.partnerPickerCandidates.first(where: { $0.id == id }) { vm.addThirdPartner(team) } },
+            onRemoveThird: {
+                vm.removeThirdPartner()
+                tradePath.removeLast()
+            },
+            onSend: { summary, from, to in
+                if let player = vm.threeTeamRoster(from)?.players.first(where: { $0.id == summary.id }) { vm.setThreeTeamDestination(player, from: from, to: to) }
+            },
+            onOpenPlayer: { tradePath.append(.player($0)) },
+            onJudge: { Task { await vm.compareThreeTeam(userID: userID) } },
+            onAdjust: { vm.dismissThreeTeamVerdict() },
+            onToggleStep: { vm.toggleThreeTeamSubmissionStep($0) },
+            onCopyStep: { if let text = vm.copyTextForThreeTeamStep($0) { UIPasteboard.general.string = text } },
+            onOpenProvider: leagueCarouselViewModel.activePage.flatMap(Self.handoffURL(for:)).map { url in { UIApplication.shared.open(url) } }
+        )
+    }
+
     private var tradeJudge: some View {
         OmenJudgeOfferScreen(
             state: OmenJudgeOfferState(
@@ -252,11 +311,7 @@ struct CommandCenterView: View {
                     onSwitchPartner: { tradeViewModel.switchPartner(to: $0) },
                     onOpenPlayer: { tradePath.append(.player($0)) },
                     onJudge: { Task { await tradeViewModel.compare(userID: userID) } },
-                    onThreeTeam: tradeViewModel.rosterCapability?.threeTeamSupported == true ? {
-                        tradePath.append(.threeTeam)
-                        tradeViewModel.openPartnerPicker()
-                        if tradeViewModel.isPartnerPickerPresented { presentSheet(.tradePartnerPicker) }
-                    } : nil
+                    onThreeTeam: tradeViewModel.rosterCapability?.threeTeamSupported == true ? { tradePath.append(.threeTeam) } : nil
                 )
                 .toolbar {
                     if !tradeViewModel.offer.send.isEmpty || !tradeViewModel.offer.receive.isEmpty {
@@ -570,24 +625,7 @@ struct CommandCenterView: View {
                     case .build:
                         tradeBuilder.toolbar(.hidden, for: .tabBar)
                     case .threeTeam:
-                        // Three-team still runs on the old build screen until its own rebuild (ledger).
-                        OmenTradeBuildScreen(
-                            state: tradeViewModel.rosterBuildState,
-                            onOpenAccount: { presentSheet(.account) },
-                            onSelectPartner: { tradeViewModel.selectPartnerTeam($0) },
-                            onPrimaryAction: {
-                                if case .loaded = tradeViewModel.threeTeamViewState { tradeViewModel.dismissThreeTeamVerdict() }
-                                else { Task { await tradeViewModel.compareThreeTeam(userID: userID) } }
-                            },
-                            onOpenPartnerPicker: {
-                                tradeViewModel.openPartnerPicker()
-                                if tradeViewModel.isPartnerPickerPresented { presentSheet(.tradePartnerPicker) }
-                            },
-                            onRemoveThirdPartner: { tradeViewModel.removeThirdPartner() },
-                            onToggleSubmissionStepDone: { tradeViewModel.toggleThreeTeamSubmissionStep($0) },
-                            onCopySubmissionStep: { if let text = tradeViewModel.copyTextForThreeTeamStep($0) { UIPasteboard.general.string = text } }
-                        )
-                        .toolbar(.hidden, for: .tabBar)
+                        tradeThreeTeam.toolbar(.hidden, for: .tabBar)
                     case .judge:
                         tradeJudge.toolbar(.hidden, for: .tabBar)
                     case .player(let id):
@@ -697,7 +735,6 @@ struct CommandCenterView: View {
         // already tinted correctly; only iOS had drifted.
         .tint(OmenColor.accent)
         .sheet(item: $presentedSheet, onDismiss: {
-            tradeViewModel.dismissPartnerPicker()
             if tradeViewModel.shareScreenState != nil { tradeViewModel.dismissShare() }
         }) { sheet in
             commandCenterSheet(sheet)
@@ -825,19 +862,6 @@ struct CommandCenterView: View {
             }
         case .tradeActivity(let url):
             OmenActivityView(items: [url])
-        case .tradePartnerPicker:
-            TradePartnerPicker(
-                candidates: tradeViewModel.partnerPickerCandidates,
-                leagueName: nil,
-                onSelect: {
-                    tradeViewModel.addThirdPartner($0)
-                    presentedSheet = nil
-                },
-                onDismiss: {
-                    tradeViewModel.dismissPartnerPicker()
-                    presentedSheet = nil
-                }
-            )
         }
     }
 
@@ -956,7 +980,6 @@ private enum CommandCenterSheet: Identifiable {
     case report(OmenBetaReportScreen)
     case tradeShareSetup
     case tradeActivity(URL)
-    case tradePartnerPicker
 
     var id: String {
         switch self {
@@ -966,7 +989,6 @@ private enum CommandCenterSheet: Identifiable {
         case .report(let screen): return "report-\(screen.rawValue)"
         case .tradeShareSetup: return "trade-share-setup"
         case .tradeActivity(let url): return "trade-activity-\(url.absoluteString)"
-        case .tradePartnerPicker: return "trade-partner-picker"
         }
     }
 }

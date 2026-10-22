@@ -61,6 +61,8 @@ enum ScreenshotScenarios {
         "trade.chooser": ScreenshotScenario(label: "Trade \u{2014} chooser", content: { AnyView(OmenTradeChooserView(teamControl: ("espn", "Titans"), onFind: {}, onBuild: {}, onJudge: {})) }),
         "trade.builder": ScreenshotScenario(label: "Trade \u{2014} builder, your roster", content: { AnyView(NavigationStack { OmenTradeBuilderScreen(state: FoundationFixtures.builder, onToggle: { _, _ in }, onRemove: { _, _ in }, onSwitchPartner: { _ in }, onOpenPlayer: { _ in }, onJudge: {}) }) }),
         "trade.builder-theirs": ScreenshotScenario(label: "Trade \u{2014} builder, their roster", content: { AnyView(NavigationStack { OmenTradeBuilderScreen(state: FoundationFixtures.builder, onToggle: { _, _ in }, onRemove: { _, _ in }, onSwitchPartner: { _ in }, onOpenPlayer: { _ in }, onJudge: {}, showingTheirs: true) }) }),
+        "trade.three-team": ScreenshotScenario(label: "Trade \u{2014} three-team, who sends what", content: { AnyView(NavigationStack { OmenThreeTeamScreen(state: FoundationFixtures.threeTeam(judged: false), onPickThird: { _ in }, onRemoveThird: {}, onSend: { _, _, _ in }, onOpenPlayer: { _ in }, onJudge: {}, onAdjust: {}, onToggleStep: { _ in }, onCopyStep: { _ in }, onOpenProvider: {}) }) }),
+        "trade.three-team-judged": ScreenshotScenario(label: "Trade \u{2014} three-team judged", content: { AnyView(NavigationStack { OmenThreeTeamScreen(state: FoundationFixtures.threeTeam(judged: true), onPickThird: { _ in }, onRemoveThird: {}, onSend: { _, _, _ in }, onOpenPlayer: { _ in }, onJudge: {}, onAdjust: {}, onToggleStep: { _ in }, onCopyStep: { _ in }, onOpenProvider: {}) }) }),
         "foundation.players": ScreenshotScenario(label: "Foundation v1: player pieces", content: { AnyView(FoundationPlayersGallery()) }),
         "foundation.teams": ScreenshotScenario(label: "Foundation v1: team pieces and states", content: { AnyView(FoundationTeamsGallery()) }),
         "league.loaded": ScreenshotScenario(
@@ -202,31 +204,8 @@ enum ScreenshotScenarios {
                 }
             )))) }
         ),
-        "journey-j4.nominal.01-trade-build": ScreenshotScenario(
-            label: "J4 nominal 1/4 — build a deal, third team available",
-            content: { AnyView(j4Shell(AnyView(OmenTradeBuildScreen(
-                state: J4ScreenshotFixtures.nominalBuild,
-                context: J4ScreenshotFixtures.titansContext,
-                onOpenAccount: {},
-                onSelectTab: { _ in },
-                onSelectPartner: { _ in },
-                onSelectFilter: { _ in },
-                onPrimaryAction: {},
-                onOpenPartnerPicker: {}
-            )))) }
-        ),
-        "journey-j4.nominal.02-trade-roster": ScreenshotScenario(
-            label: "J4 nominal 2/4 — picking from a roster Omen could read",
-            content: { AnyView(j4Shell(AnyView(OmenTradeRosterScreen(
-                state: J4ScreenshotFixtures.nominalRoster,
-                context: J4ScreenshotFixtures.titansContext,
-                onOpenAccount: {},
-                onSelectTab: { _ in },
-                onSelectPartner: { _ in },
-                onSelectFilter: { _ in },
-                onAddPlayer: { _ in }
-            )))) }
-        ),
+        "journey-j4.nominal.01-trade-build": ScreenshotScenario(label: "J4 nominal 1/4 \u{2014} build a deal, third team available", content: { AnyView(NavigationStack { OmenTradeBuilderScreen(state: FoundationFixtures.builder, onToggle: { _, _ in }, onRemove: { _, _ in }, onSwitchPartner: { _ in }, onOpenPlayer: { _ in }, onJudge: {}, onThreeTeam: {}) }) }),
+        "journey-j4.nominal.02-trade-roster": ScreenshotScenario(label: "J4 nominal 2/4 \u{2014} three-team, who sends what", content: { AnyView(NavigationStack { OmenThreeTeamScreen(state: FoundationFixtures.threeTeam(judged: false), onPickThird: { _ in }, onRemoveThird: {}, onSend: { _, _, _ in }, onOpenPlayer: { _ in }, onJudge: {}, onAdjust: {}, onToggleStep: { _ in }, onCopyStep: { _ in }, onOpenProvider: {}) }) }),
         "journey-j4.nominal.03-trade-verdict": ScreenshotScenario(
             label: "J4 nominal 3/4 — the read, both sides and the caveat",
             content: { AnyView(j4Shell(AnyView(OmenTradeVerdictSheet(kind: .verdict(J4ScreenshotFixtures.verdict), providerName: "ESPN", onAdjust: {}, onOpenProvider: {}, onShare: {})))) }
@@ -235,31 +214,8 @@ enum ScreenshotScenarios {
             label: "J4 nominal 4/4 — share the read, names off by default",
             content: { AnyView(j4Shell(AnyView(OmenTradeShareSheet(state: J4ScreenshotFixtures.nominalShare, onToggle: { _ in }, onShare: {}, onCopy: {}, onDone: {})))) }
         ),
-        "journey-j4.degraded.01-trade-build": ScreenshotScenario(
-            label: "J4 degraded 1/4 — a read built on inputs that did not all arrive",
-            content: { AnyView(j4Shell(AnyView(OmenTradeBuildScreen(
-                state: J4ScreenshotFixtures.degradedBuild,
-                context: J4ScreenshotFixtures.titansContext,
-                onOpenAccount: {},
-                onSelectTab: { _ in },
-                onSelectPartner: { _ in },
-                onSelectFilter: { _ in },
-                onPrimaryAction: {},
-                onOpenPartnerPicker: {}
-            )))) }
-        ),
-        "journey-j4.degraded.02-trade-roster": ScreenshotScenario(
-            label: "J4 degraded 2/4 — no opponent rosters, permanently",
-            content: { AnyView(j4Shell(AnyView(OmenTradeRosterScreen(
-                state: J4ScreenshotFixtures.degradedRoster,
-                context: J4ScreenshotFixtures.titansContext,
-                onOpenAccount: {},
-                onSelectTab: { _ in },
-                onSelectPartner: { _ in },
-                onSelectFilter: { _ in },
-                onAddPlayer: { _ in }
-            )))) }
-        ),
+        "journey-j4.degraded.01-trade-build": ScreenshotScenario(label: "J4 degraded 1/4 \u{2014} three-team judged, set it up by hand", content: { AnyView(NavigationStack { OmenThreeTeamScreen(state: FoundationFixtures.threeTeam(judged: true), onPickThird: { _ in }, onRemoveThird: {}, onSend: { _, _, _ in }, onOpenPlayer: { _ in }, onJudge: {}, onAdjust: {}, onToggleStep: { _ in }, onCopyStep: { _ in }, onOpenProvider: {}) }) }),
+        "journey-j4.degraded.02-trade-roster": ScreenshotScenario(label: "J4 degraded 2/4 \u{2014} no opponent rosters", content: { AnyView(OmenStateBlock(kind: .notEnoughToGoOn, title: "Omen can\u{2019}t see the other teams yet", message: "Omen can't read the other teams' rosters for this provider yet.", actionTitle: "Judge an offer instead", action: {}).padding(OmenSpacing.step20).frame(maxHeight: .infinity, alignment: .top).background(OmenColor.bg)) }),
         "journey-j4.degraded.03-trade-needs-context": ScreenshotScenario(
             label: "J4 degraded 3/4 — too close to call blind, and it says which input is missing",
             content: { AnyView(j4Shell(AnyView(OmenTradeVerdictSheet(kind: .needsContext(J4ScreenshotFixtures.needsContext), onAdjust: {}, onConnect: {})))) }
@@ -1689,11 +1645,6 @@ enum J4ScreenshotFixtures {
 
     // MARK: Capability
 
-    static let threeTeamsSupported = OmenTradeCapability(
-        maxTeams: 3,
-        threeTeamSupported: true,
-        threeTeamReason: nil
-    )
 
     // MARK: Partners and filters
 
@@ -1705,20 +1656,6 @@ enum J4ScreenshotFixtures {
         OmenTradePartner(id: "puk", crest: "PUK", name: "Puk Around & Find Out", need: nil)
     ]
 
-    /// The artboard's six, including its `.fc.smart` one.
-    ///
-    /// "Fills my RB hole" rather than "Buy low": `.fc.smart` is a filter that names a
-    /// **conclusion** rather than a position, and a conclusion about *this* roster is what makes
-    /// it a different kind of control. "Buy low" is a category, which is what the plain chips
-    /// already are.
-    static let filters: [OmenTradeFilter] = [
-        OmenTradeFilter(id: "all", title: "All"),
-        OmenTradeFilter(id: "qb", title: "QB"),
-        OmenTradeFilter(id: "rb", title: "RB"),
-        OmenTradeFilter(id: "wr", title: "WR"),
-        OmenTradeFilter(id: "te", title: "TE"),
-        OmenTradeFilter(id: "fills-rb", title: "Fills my RB hole", isSmart: true)
-    ]
 
     // MARK: Inputs
 
@@ -1795,105 +1732,11 @@ enum J4ScreenshotFixtures {
 
     // MARK: TradeBuild
 
-    static let nominalBuild = OmenTradeBuildState(
-        kicker: "Two teams",
-        title: "Build a deal",
-        // The production Trade shell owns Find / Build / Type. The journey itself must not draw
-        // a second, competing Type / Build selector underneath it.
-        tabTitles: [],
-        selectedTabIndex: 0,
-        partners: partners,
-        selectedPartnerID: "dsi",
-        filters: filters,
-        selectedFilterID: "all",
-        capability: threeTeamsSupported,
-        sides: sides,
-        read: nominalRead,
-        submission: submission,
-        primaryActionTitle: "Get Omen\u{2019}s read"
-    )
 
-    static let degradedBuild = OmenTradeBuildState(
-        kicker: "Two teams",
-        title: "Build a deal",
-        tabTitles: [],
-        selectedTabIndex: 0,
-        partners: partners,
-        selectedPartnerID: "dsi",
-        filters: filters,
-        selectedFilterID: "all",
-        capability: threeTeamsSupported,
-        sides: sides,
-        read: degradedRead,
-        // No submission block. The handoff steps come from `trade-capabilities.v1`'s
-        // `submission` field, and this pass is the one where that read did not land — inventing
-        // three ESPN steps here would be the screen claiming a capability it does not have.
-        submission: nil,
-        primaryActionTitle: "Get Omen\u{2019}s read"
-    )
 
     // MARK: TradeRoster
 
-    static let nominalRoster = OmenTradeRosterState(
-        kicker: "Build a deal",
-        title: "Their roster",
-        tabTitles: ["Type a trade", "Build a trade"],
-        selectedTabIndex: 1,
-        partners: partners,
-        selectedPartnerID: "dsi",
-        filters: filters,
-        selectedFilterID: "rb",
-        capability: threeTeamsSupported,
-        rosters: .read(
-            teamName: "Davante\u{2019}s Inferno",
-            playerCount: 16,
-            rows: [
-                OmenTradeRosterState.Row(
-                    id: "pollard",
-                    name: "Tony Pollard",
-                    meta: "RB · TEN · RB 18",
-                    availability: .added
-                ),
-                OmenTradeRosterState.Row(
-                    id: "wright",
-                    name: "Jaylen Wright",
-                    meta: "RB · TEN · unranked",
-                    availability: .available
-                ),
-                OmenTradeRosterState.Row(
-                    id: "gibbs",
-                    name: "Jahmyr Gibbs",
-                    meta: "RB · DET · RB 3",
-                    availability: .theyNeedThis
-                )
-            ],
-            freshness: "Rosters read 6 minutes ago"
-        ),
-        note: "Gibbs is greyed because they are as thin at back as you are. Omen will still score it if you ask, but they will not take it."
-    )
 
-    /// Fact of record #16, rendered.
-    ///
-    /// The provider will not hand over the other teams' rosters for this league, so **Omen
-    /// issues no trade call at all** — and that is a permanent provider limit, not an outage.
-    /// There is no retry control on this frame and there must never be one: a retry says "try
-    /// again later", and later is not a thing that helps here.
-    static let degradedRoster = OmenTradeRosterState(
-        kicker: "Build a deal",
-        title: "Their roster",
-        tabTitles: ["Type a trade", "Build a trade"],
-        selectedTabIndex: 1,
-        partners: partners,
-        selectedPartnerID: "dsi",
-        filters: filters,
-        selectedFilterID: "rb",
-        capability: threeTeamsSupported,
-        rosters: .permanentlyUnavailable(
-            capability: "Opponent rosters",
-            sentence: "ESPN does not give Omen the other teams\u{2019} rosters in this league, so there is no trade call to make here. This will not change by trying again."
-        ),
-        note: nil
-    )
 
     // MARK: TradeVerdict
 

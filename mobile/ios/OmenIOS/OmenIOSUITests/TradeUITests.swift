@@ -47,7 +47,7 @@ final class TradeUITests: XCTestCase {
     }
 
     func testTradeScreensPassTheAccessibilityAudit() throws {
-        for scenario in ["trade.chooser", "trade.find-review", "trade.find-unavailable", "trade.empty", "trade.builder", "trade.builder-theirs", "journey-j4.nominal.03-trade-verdict", "journey-j4.nominal.04-trade-share"] {
+        for scenario in ["trade.chooser", "trade.find-review", "trade.find-unavailable", "trade.empty", "trade.three-team", "trade.three-team-judged", "trade.builder", "trade.builder-theirs", "journey-j4.nominal.03-trade-verdict", "journey-j4.nominal.04-trade-share"] {
             let app = launch(scenario)
             try app.performAccessibilityAudit(for: [.dynamicType, .sufficientElementDescription, .hitRegion, .contrast]) { issue in
                 print("AUDIT \(scenario): \(issue.auditType.rawValue) \(issue.compactDescription) :: \(issue.element?.debugDescription.prefix(200) ?? "nil")")
