@@ -61,10 +61,14 @@ final class LeagueCarouselViewModel: ObservableObject {
         case loading
         case loaded(OmenMatchupHeroState)
         case unavailable(String)
+        /// The session or the provider needs the user to sign in again. Typed, so no screen has to
+        /// recognise it from a sentence.
+        case needsReauth
 
         static func == (lhs: PageState, rhs: PageState) -> Bool {
             switch (lhs, rhs) {
             case (.loading, .loading): return true
+            case (.needsReauth, .needsReauth): return true
             case (.unavailable(let l), .unavailable(let r)): return l == r
             case (.loaded, .loaded): return true
             default: return false
@@ -326,6 +330,9 @@ final class LeagueCarouselViewModel: ObservableObject {
             case .unavailable:
                 score = "\u{2014}"
                 phase = "Score unavailable"
+            case .needsReauth:
+                score = "\u{2014}"
+                phase = "Sign in again"
             case .loaded(let hero):
                 switch hero {
                 case .beforeGames(let selectedTeam, _, let startTime, _):
@@ -435,7 +442,7 @@ final class LeagueCarouselViewModel: ObservableObject {
 
         pageStates[page.id] = .loading
         guard case .token(let accessToken) = await sessionManager.authorization() else {
-            pageStates[page.id] = .unavailable("Sign in again to read this league.")
+            pageStates[page.id] = .needsReauth
             return
         }
 
@@ -455,6 +462,8 @@ final class LeagueCarouselViewModel: ObservableObject {
             // The task itself was cancelled (swiped away): clear so the next visit fetches again. A
             // cancel with a live task is the generic `.unavailable` below; nil would read as `.loading`.
             pageStates[page.id] = nil
+        case .failure(.unauthorized):
+            pageStates[page.id] = .needsReauth
         case .failure:
             pageStates[page.id] = .unavailable(
                 "Omen couldn't read this league's week just now. Swipe back to try again."

@@ -155,7 +155,7 @@ final class DraftClaimAbsenceTests: XCTestCase {
         )
         let body = Self.strippingComments(from: text)
 
-        XCTAssertTrue(body.contains("OmenCommandDeskScreen("))
+        XCTAssertTrue(body.contains("OmenDeskView("))
         XCTAssertFalse(
             body.contains("OmenCommandCenterScreen("),
             "production Command must keep one composition; the deleted screen must not return"
@@ -238,7 +238,7 @@ final class DraftClaimAbsenceTests: XCTestCase {
         )
         let body = Self.strippingComments(from: text)
 
-        for screen in ["OmenCommandDeskScreen(", "OmenDecisionScreen(", "OmenTradeScreen(", "OmenLeagueScreen("] {
+        for screen in ["DeskScenario(", "OmenDecisionScreen(", "OmenTradeScreen(", "OmenLeagueScreen("] {
             XCTAssertTrue(
                 body.contains(screen),
                 "the harness must render \(screen) — a stand-in makes every screenshot and UI test "

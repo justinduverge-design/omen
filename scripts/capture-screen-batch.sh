@@ -38,10 +38,10 @@ IOS_DEVICE="${OMEN_IOS_DEVICE:-iPhone 16}"
 # the `carousel != null` branch a real multi-league account runs, and the one that had no
 # coverage at all until 2026-09-10 — three clipping bugs shipped through it.
 DEFAULT_SCENARIOS=(
-  command-center.carousel
-  command-center.carousel-provider-down
-  command-center.demo-connected
-  command-center.disconnected
+  desk.ready
+  desk.failed
+  desk.demo
+  desk.no-league
   onboarding.email-code
   omen.demo
 )

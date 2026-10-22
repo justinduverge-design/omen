@@ -383,6 +383,64 @@ final class TradeViewModel: ObservableObject {
         add(TradePlayer(name: player.name, position: player.position, team: player.team, playerKey: player.playerKey), to: .receive)
     }
 
+    // MARK: - Trade builder (both rosters, one screen)
+
+    /// The viewer's own team from the same roster read, so the builder can pick what you send from
+    /// your real roster instead of a typed name (founder, 2026-10-21: "I don't think you can select
+    /// from your own team").
+    var viewerRoster: TradeRosterResponse.Team? {
+        guard case .loaded(let response) = rosterBrowseState, response.isAvailable,
+              let viewerTeamID, !viewerTeamID.isEmpty else { return nil }
+        return response.teams.first { $0.id == viewerTeamID }
+    }
+
+    var partnerRoster: TradeRosterResponse.Team? {
+        guard case .loaded(let response) = rosterBrowseState, response.isAvailable,
+              let selectedPartnerTeamID else { return nil }
+        return response.teams.first { $0.id == selectedPartnerTeamID }
+    }
+
+    /// Whether a roster player is already in the offer on that side. Keyed by provider id, then name.
+    func isInOffer(_ player: TradeRosterResponse.Player, side: Side) -> Bool {
+        (side == .send ? offer.send : offer.receive).contains { Self.same($0, player) }
+    }
+
+    func toggleFromRoster(_ player: TradeRosterResponse.Player, side: Side) {
+        let list = side == .send ? offer.send : offer.receive
+        if let index = list.firstIndex(where: { Self.same($0, player) }) {
+            remove(at: index, from: side)
+        } else {
+            add(TradePlayer(name: player.name, position: player.position, team: player.team, playerKey: player.playerKey), to: side)
+        }
+    }
+
+    /// Picking a different partner keeps what you send and drops what you asked for from the old one.
+    func switchPartner(to id: String) {
+        guard id != selectedPartnerTeamID else { return }
+        selectedPartnerTeamID = id
+        if !offer.receive.isEmpty {
+            offer.receive = []
+            prefill = nil
+            prefillScope = nil
+            invalidateCompare()
+            viewState = .idle
+        }
+    }
+
+    func clearOffer() {
+        offer.send = []
+        offer.receive = []
+        prefill = nil
+        prefillScope = nil
+        invalidateCompare()
+        viewState = .idle
+    }
+
+    private static func same(_ offered: TradePlayer, _ player: TradeRosterResponse.Player) -> Bool {
+        if let a = offered.playerKey, let b = player.playerKey, !a.isEmpty, !b.isEmpty { return a == b }
+        return offered.name == player.name
+    }
+
     func dismissRosterBrowse() {
         rosterBrowseState = .idle
         selectedPartnerTeamID = nil

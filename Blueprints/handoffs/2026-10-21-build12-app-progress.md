@@ -43,9 +43,9 @@ it was the last user of, in the same commit.
 | `OmenModalSheet` | 6 files | system sheet + `OmenSheetHeader` | open |
 | `OmenScreenShell`, `OmenContextStrip`, `OmenLeagueSwitcherBar` | 5 / 3 / 3 files | page header + `OmenTeamControl` | open |
 | `OmenTeamSwitcherSheet`, `OmenSwitchSheet` | 2 / 2 files | one switcher sheet on `OmenSheetHeader` | open |
-| `OmenMatchupHero`, carousel views | Desk | `OmenTeamRolodex`, `OmenPinnedScore` | open |
+| `OmenMatchupHero` view (state enum stays as data), carousel views | Desk | `OmenTeamRolodex`, `OmenPinnedScore` | carousel, widget pager, old desk host/screen, switch-loading, quiet and no-league screens **deleted**; `OmenMatchupHero` view still referenced by its tests, delete with them |
 | `OmenTradeTabs`, `OmenTradePartnerChip`, old trade journey screens | Trade | trade chooser, builder, verdict sheet | open |
-| `OmenReportPill` | 3 files | "Report this" link + report sheet | open |
+| `OmenReportPill` | 3 files | "Report this" link + report sheet | removed from the Desk; file deleted with the Omen call |
 | `OmenChip`, `OmenBadge`, `OmenPlatformBadge`, `OmenCanvasTextAction` | 3 / 4 / 3 / 3 files | `OmenProviderMark`, `OmenBarTextButton`, words | open |
 | `OmenContextualHelpButton` (header "?") | 1 file | "How Omen makes a call" in Account (spec § 3) | open |
 | `OmenEvidenceRow` | 3 files | `OmenKeyValueRow` | open |
@@ -55,7 +55,7 @@ it was the last user of, in the same commit.
 | `OmenTradeControls.swift` (rest of file) | trade journey | trade builder pieces | open |
 | `OmenAuthPrimaryButton`, `OmenFocusRing`, `OmenPicker`, `OmenTextField`, `OmenFormField`, `OmenOtpCodeField` | sign-in, forms | **kept on purpose**: form and sign-in controls the foundation does not replace; restyled only if a frame differs | kept |
 | Old type roles (`display`, `h1`-`h3`, `call`, `scoreLead`, `scoreTrail`, `screenTitle`, `cardLead`, `name`, `bodySmall`, `label`) | many | foundation roles | open |
-| `DesignSystemGalleryView` | debug | `FoundationGallery` | open |
+| `DesignSystemGalleryView` | debug | `FoundationGallery` | **deleted** |
 | Old screen files each new screen replaces | per screen | listed per screen in the table below | open |
 
 ## Foundation (built and reviewed before any screen, then frozen)
@@ -82,7 +82,8 @@ Forced update · Desk with no league · Demo · Rosters unreadable · States (lo
 
 | Screen | Frame | Built | Gate 1-7 | Reviewer | Evidence |
 |---|---|---|---|---|---|
-| (filled in as each screen passes) | | | | | |
+| Desk | Main, States, Edges | `OmenDesk.swift` | 1-7 pass | fresh agent: 3 P1 fixed (mid-switch outline, switch error + retry, typed reauth), P2s fixed | `output/screens/build12/desk/`, `DeskUITests` (audit clean), 652 unit tests |
+| Player | Main | `OmenPlayer.swift` | 1-7 pass | same review | `player.page` screenshots, audit clean |
 
 ## Whole-app pass
 

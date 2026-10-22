@@ -42,7 +42,7 @@ final class CommandCenterViewModel: ObservableObject {
 
     /// `quiet-week.v1`. `nil` means "no quiet-week answer yet, or not eligible" — the Command
     /// tab keeps rendering the ordinary desk in either case. Only a mapped, eligible
-    /// `OmenQuietState` swaps the desk for the quiet screen; see `quietWeekState`.
+    /// `OmenQuietState` becomes the Desk's "This week" hold card; see `quietWeekState`.
     @Published private(set) var quietWeek: QuietWeekResponse?
 
     /// The whole `league-overview.v1` read. Until the lock's Command Center was mounted this was

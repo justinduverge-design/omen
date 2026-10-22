@@ -155,186 +155,170 @@ struct CommandCenterView: View {
         return overview.matchup.you?.teamId
     }
 
-    /// The team a switch is currently writing to, or nil when nothing is in flight.
-    ///
-    /// Read off the carousel's own `committingPageID` rather than a second flag, so there is one
-    /// answer to "is a switch happening" and it cannot disagree with itself.
-    private var switchingContext: (context: OmenScreenContext, weekLabel: String, footnote: OmenDeskFootnote)? {
-        guard
-            let committingID = leagueCarouselViewModel.committingPageID,
-            let page = leagueCarouselViewModel.allPages.first(where: { $0.id == committingID })
-        else { return nil }
 
-        let platform: OmenPlatform
-        switch page.platform.lowercased() {
-        case "yahoo": platform = .yahoo
-        case "sleeper": platform = .sleeper
-        default: platform = .espn
-        }
-        let providerName: String
-        switch platform {
-        case .espn: providerName = "ESPN"
-        case .yahoo: providerName = "Yahoo"
-        case .sleeper: providerName = "Sleeper"
-        }
+    // MARK: - Desk (foundation v1)
 
-        return (
-            context: OmenScreenContext(
-                crest: OmenDeskState.crest(from: page.displayTeamName),
-                teamName: page.displayTeamName,
-                platform: platform,
-                leagueName: page.leagueName
-            ),
-            // No week label mid-switch: the week belongs to the read that has not landed yet,
-            // and carrying the old team's week over would be the same reuse §10.3 forbids.
-            weekLabel: "",
-            footnote: OmenDeskFootnote(
-                text: "Reading \(page.displayTeamName) from \(providerName).",
-                emphasis: "The previous team's numbers are gone, not reused."
-            )
+    @State private var deskPath: [DeskRoute] = []
+
+    private var deskPhase: OmenDeskView.Phase {
+        switch leagueCarouselViewModel.contextResolution {
+        case .resolving: return .loading
+        case .failed(let error): return .failed(message: commandCenterFailureMessage(error))
+        case .confirmedNone: return .noLeague
+        case .selected, .demo:
+            if let failure = commandCenterViewModel.failure { return .failed(message: commandCenterFailureMessage(failure)) }
+            return leagueCarouselViewModel.pages.isEmpty ? .loading : .ready
+        }
+    }
+
+    private var deskTeams: [OmenTeamCardModel] {
+        leagueCarouselViewModel.pages.map { OmenTeamCardModel(page: $0, state: leagueCarouselViewModel.state(for: $0)) }
+    }
+
+    /// The Rolodex's front card is the carousel's selected page; settling a card moves the selection,
+    /// and the carousel commits it as the team every tab reasons about.
+    private var deskSelection: Binding<String?> {
+        Binding(
+            get: {
+                let pages = leagueCarouselViewModel.pages
+                return pages.indices.contains(leagueCarouselViewModel.selectedIndex) ? pages[leagueCarouselViewModel.selectedIndex].id : pages.first?.id
+            },
+            set: { id in
+                if let index = leagueCarouselViewModel.pages.firstIndex(where: { $0.id == id }) {
+                    leagueCarouselViewModel.selectedIndex = index
+                }
+            }
         )
+    }
+
+    private var deskMove: OmenDeskMovePreview? {
+        if let quiet = commandCenterViewModel.quietWeekState {
+            return OmenDeskMovePreview(headline: quiet.headline, reason: quiet.body, band: quiet.band, isHold: true)
+        }
+        if case .read(let preview) = OmenDeskMovePreview.section(from: omenDecisionViewModel.briefState(visibleScope: pickedLeagueScope)) {
+            return preview
+        }
+        return nil
+    }
+
+    private var deskNeeds: [OmenDeskView.Need] {
+        var needs: [OmenDeskView.Need] = []
+        if case .read(let waiver) = commandCenterViewModel.deskState(railCount: 0, railIndex: 0)?.waiver {
+            let title = waiver.dropName.map { "Add \(waiver.addName), drop \($0)" } ?? "Add \(waiver.addName)"
+            needs.append(.init(id: "waiver", kind: .waiver, title: title, detail: waiver.reasoning))
+        }
+        for team in deskTeams where team.status == .reconnect {
+            needs.append(.init(id: "reconnect-\(team.id)", kind: .reconnect, title: "Sign in to \(OmenProviderMark.displayName(team.platform)) again", detail: team.leagueName))
+        }
+        return needs
+    }
+
+    private var deskProviderName: String {
+        OmenProviderMark.displayName(tradeViewModel.offer.leagueContext?.platform)
+    }
+
+    @ViewBuilder
+    private func deskDestination(_ route: DeskRoute) -> some View {
+        switch route {
+        case .player(let id):
+            if let player = tradeViewModel.viewerRoster?.players.first(where: { $0.id == id }) {
+                OmenPlayerScreen(
+                    page: OmenPlayerPage(player, ownerLabel: "Your team", providerName: deskProviderName),
+                    tradeTitle: "Shop \(player.name) in a trade",
+                    onTrade: {
+                        if !tradeViewModel.isInOffer(player, side: .send) { tradeViewModel.toggleFromRoster(player, side: .send) }
+                        selectedTradeMode = .build
+                        tradeChooserVisible = false
+                        selectedTab = .trade
+                    }
+                )
+            } else {
+                OmenStateBlock(kind: .notEnoughToGoOn, title: "This player isn\u{2019}t on the roster Omen just read", message: "Rosters change after trades and waivers. Go back to see the current team.")
+                    .padding(OmenSpacing.step20)
+                    .frame(maxHeight: .infinity, alignment: .top)
+                    .background(OmenColor.bg)
+            }
+        case .ledger:
+            OmenLedgerScreen(
+                state: {
+                    var state = OmenLedgerState.from(entries: commandCenterViewModel.ledgerState.entries)
+                    state.headline = commandCenterViewModel.ledgerHeadline
+                    return state
+                }(),
+                onOpenAccount: { presentSheet(.account) },
+                onOpenCall: { call in deskPath.append(.receipt(call.id)) }
+            )
+        case .receipt(let id):
+            if let entry = commandCenterViewModel.ledgerState.entries.first(where: { $0.id == id }) {
+                LedgerReceiptView(entry: entry, load: { await commandCenterViewModel.loadReceipt(id: $0) }, onOpenAccount: { presentSheet(.account) })
+            } else {
+                OmenStateBlock(kind: .notEnoughToGoOn, title: "This call isn\u{2019}t in the Ledger Omen just read", message: "Go back to see the current Ledger.")
+                    .padding(OmenSpacing.step20)
+                    .frame(maxHeight: .infinity, alignment: .top)
+                    .background(OmenColor.bg)
+            }
+        }
     }
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            Group {
-                // A missing scope before the directory answers is not evidence that the user
-                // has no league. Hold the honest loading composition until context resolves;
-                // this prevents the cold-launch flash of factual zero-state copy.
-                if case .resolving = leagueCarouselViewModel.contextResolution {
-                    OmenCommandDeskScreen(
-                        state: OmenDeskState(
-                            weekLabel: "",
-                            deadlineLabel: nil,
-                            deadlineTime: nil,
-                            matchup: .switching,
-                            railCount: 0,
-                            railIndex: 0,
-                            waiver: .switching,
-                            ledger: .switching,
-                            footnote: nil
-                        ),
-                        context: nil,
-                        onOpenAccount: { presentSheet(.account) },
-                        onOpenLeague: { selectedTab = .league },
-                        onOpenLedger: nil,
-                        onReportProblem: { presentSheet(.report(.commandCenter)) }
-                    )
-                    .omenScreenReady("desk")
-                } else if case .failed(let directoryError) = leagueCarouselViewModel.contextResolution {
-                    VStack(alignment: .leading, spacing: OmenSpacing.step16) {
-                        OmenStateSurface(
-                            kind: .error,
-                            title: "Couldn't load your leagues",
-                            message: commandCenterFailureMessage(directoryError)
-                        )
-                        OmenButton(
-                            title: "Try again",
-                            action: {
-                                Task {
-                                    await leagueCarouselViewModel.load(userID: userID)
-                                    await commandCenterViewModel.load(userID: userID, scope: pickedLeagueScope)
-                                }
-                            },
-                            variant: .secondary,
-                            size: .md
-                        )
+            NavigationStack(path: $deskPath) {
+                OmenDeskView(
+                    phase: deskPhase,
+                    weekLabel: commandCenterViewModel.deskState(railCount: leagueCarouselViewModel.pages.count, railIndex: leagueCarouselViewModel.selectedIndex)?.weekLabel,
+                    teams: deskTeams,
+                    selectedTeamID: deskSelection,
+                    move: deskMove,
+                    needs: deskNeeds,
+                    team: (tradeViewModel.viewerRoster?.players ?? []).map { OmenPlayerSummary($0, providerName: deskProviderName) }
+                        .sorted { ($0.omenPoints ?? $0.providerPoints ?? -1) > ($1.omenPoints ?? $1.providerPoints ?? -1) },
+                    teamProvider: deskProviderName,
+                    ledgerLine: commandCenterViewModel.ledgerHeadline,
+                    isDemo: userID == SessionManager.demoUserID,
+                    switchingTo: leagueCarouselViewModel.committingPageID.flatMap { id in
+                        leagueCarouselViewModel.pages.first { $0.id == id }?.displayTeamName
+                    },
+                    switchError: leagueCarouselViewModel.selectionError.map(commandCenterFailureMessage),
+                    onRetrySwitch: {
+                        Task {
+                            if await leagueCarouselViewModel.commitSelection() != nil { await reloadAllAfterContextChange() }
+                        }
+                    },
+                    onAccount: { presentSheet(.account) },
+                    onRetry: {
+                        Task {
+                            await leagueCarouselViewModel.load(userID: userID)
+                            await commandCenterViewModel.load(userID: userID, scope: pickedLeagueScope)
+                        }
+                    },
+                    onConnect: { presentSheet(.connect) },
+                    onOpenMove: { selectedTab = .omen },
+                    onNeed: { need in
+                        switch need.kind {
+                        case .waiver: selectedTab = .league
+                        case .reconnect: presentSheet(.connect)
+                        }
+                    },
+                    onReconnect: { _ in presentSheet(.connect) },
+                    onOpenPlayer: { deskPath.append(.player($0)) },
+                    onOpenLedger: commandCenterViewModel.ledgerState.entries.isEmpty ? nil : { deskPath.append(.ledger) }
+                )
+                .toolbar(.hidden, for: .navigationBar)
+                .navigationDestination(for: DeskRoute.self) { route in deskDestination(route) }
+            }
+            .onChange(of: leagueCarouselViewModel.selectedIndex) { _, _ in
+                // Pushed screens belong to the team they were opened for.
+                deskPath = []
+                Task {
+                    if await leagueCarouselViewModel.commitSelection() != nil {
+                        await reloadAllAfterContextChange()
                     }
-                    .padding(OmenSpacing.step24)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                    .background(OmenColor.bg)
-                // §10.3, wired. A league switch used to leave the outgoing team's scoreboard on
-                // screen until the new read landed — for that second the numbers belonged to one
-                // team and the name above them to another. The contract is explicit that "the
-                // previous team's numbers are discarded, never reused while loading", so the
-                // desk goes to its mid-switch state instead and the switcher bar commits to the
-                // new team immediately, which is the only thing on the screen we actually know.
-                } else if let switching = switchingContext {
-                    OmenSwitchLoadingScreen(
-                        context: switching.context,
-                        weekLabel: switching.weekLabel,
-                        footnote: switching.footnote,
-                        onOpenAccount: { presentSheet(.account) }
-                    )
-                } else if let failure = commandCenterViewModel.failure {
-                    // M5 slice B: an unreadable shell renders an explicit failure surface.
-                    // It must NOT silently fall through to the disconnected fixture, which
-                    // would state as fact that the user has no leagues.
-                    VStack(alignment: .leading, spacing: OmenSpacing.step16) {
-                        OmenStateSurface(
-                            kind: .error,
-                            title: "Couldn't reach Omen",
-                            message: commandCenterFailureMessage(failure)
-                        )
-                        OmenButton(
-                            title: "Try again",
-                            action: { Task { await commandCenterViewModel.load(userID: userID, scope: pickedLeagueScope) } },
-                            variant: .secondary,
-                            size: .md
-                        )
-                    }
-                    .padding(OmenSpacing.step24)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                    .background(OmenColor.bg)
-                } else if case .confirmedNone = leagueCarouselViewModel.contextResolution {
-                    // J1's terminus, wired. Until now this screen existed only in a screenshot
-                    // scenario — captured, and unreachable by any real user, which is a
-                    // screenshot of nothing. The Command Center's own furniture renders as a
-                    // broken dashboard when there is no league; this says why it is empty.
-                    OmenNoLeagueScreen(
-                        onConnect: { presentSheet(.connect) }
-                    )
-                    .omenScreenReady("no-league")
-                } else if let quietState = commandCenterViewModel.quietWeekState {
-                    // `quiet-week.v1`. Server-owned eligibility and variant — this only
-                    // renders once the route has answered `eligible: true` with copy this
-                    // build recognises; every other case keeps the ordinary desk above.
-                    OmenCommandQuietScreen(
-                        state: quietState,
-                        onOpenAccount: { presentSheet(.account) }
-                    )
-                    .omenScreenReady("desk-quiet")
-                } else if let deskState = commandCenterViewModel.deskState(
-                    railCount: leagueCarouselViewModel.pages.count,
-                    railIndex: leagueCarouselViewModel.selectedIndex
-                ) {
-                    // The Sept 13 lock's Command Center, now the single production composition.
-                    OmenCommandDeskHost(
-                        state: deskState,
-                        context: OmenScreenContext.from(strip: commandCenterViewModel.context).map {
-                            var bar = $0
-                            bar.onSwitch = { presentSheet(.switcher) }
-                            bar.onAddLeague = { presentSheet(.connect) }
-                            return bar
-                        },
-                        ledgerEntries: commandCenterViewModel.ledgerState.entries,
-                        ledgerHeadline: commandCenterViewModel.ledgerHeadline,
-                        onOpenAccount: { presentSheet(.account) },
-                        onOpenLeague: { selectedTab = .league },
-                        onReportProblem: { presentSheet(.report(.commandCenter)) },
-                        loadReceipt: { await commandCenterViewModel.loadReceipt(id: $0) },
-                        carousel: leagueCarouselViewModel,
-                        userID: userID,
-                        onContextChanged: { _ in
-                            Task { await reloadAllAfterContextChange() }
-                        },
-                        move: OmenDeskMovePreview.section(
-                            from: omenDecisionViewModel.briefState(visibleScope: pickedLeagueScope)
-                        ),
-                        onOpenMove: { selectedTab = .omen }
-                    )
-                } else {
-                    // The state machine above is exhaustive. This is a fail-closed guard for a
-                    // future state, not a route back into the retired Command composition.
-                    OmenStateSurface(
-                        kind: .error,
-                        title: "The Desk isn\u{2019}t ready",
-                        message: "This version of Omen couldn\u{2019}t present the Desk right now."
-                    )
-                    .padding(OmenSpacing.step24)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                    .background(OmenColor.bg)
                 }
+            }
+            // "Your team" comes from the same roster read Trade uses (cached five minutes).
+            .task(id: tradeViewModel.offer.leagueContext) {
+                guard userID != SessionManager.demoUserID else { return }
+                await tradeViewModel.loadRoster(userID: userID)
             }
             .task {
                 // Resolve context before making a personalized read. An unscoped dashboard
@@ -842,6 +826,13 @@ enum CommandCenterTab: String, Hashable, CaseIterable {
     }
 
     var label: some View { Label(title, systemImage: systemImage) }
+}
+
+/// Pushed screens on the Desk tab (navigation map).
+enum DeskRoute: Hashable {
+    case player(String)
+    case ledger
+    case receipt(String)
 }
 
 enum TradeMode: String, CaseIterable {

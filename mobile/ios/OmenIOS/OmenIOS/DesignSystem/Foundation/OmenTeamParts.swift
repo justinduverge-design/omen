@@ -5,7 +5,8 @@ import SwiftUI
 /// One followed team, as every team pattern draws it.
 struct OmenTeamCardModel: Equatable, Identifiable {
     enum Status: Equatable {
-        case live(String)
+        /// The game clock when the provider sends one ("Q2"), otherwise just live.
+        case live(String?)
         case upcoming(String)
         case final
         /// The provider signed the user out; the card says so and offers the fix.
@@ -53,24 +54,30 @@ struct OmenTeamRolodex: View {
     @State private var scrolledID: String?
 
     var body: some View {
-        VStack(spacing: OmenSpacing.step10) {
+        VStack(spacing: OmenSpacing.step2) {
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(spacing: OmenSpacing.step12) {
                     ForEach(teams) { team in
                         OmenTeamCard(team: team, onReconnect: onReconnect.map { fix in { fix(team) } })
-                            .containerRelativeFrame(.horizontal) { width, _ in width - 60 }
+                            .containerRelativeFrame(.horizontal) { width, _ in teams.count == 1 ? width - 40 : width - 60 }
                             .scrollTransition(.interactive, axis: .horizontal) { view, phase in
-                                view.scaleEffect(phase.isIdentity ? 1 : 0.94).opacity(phase.isIdentity ? 1 : 0.55)
+                                view.scaleEffect(phase.isIdentity ? 1 : 0.94)
                             }
                             .id(team.id)
                     }
                 }
                 .scrollTargetLayout()
             }
-            .contentMargins(.horizontal, 30, for: .scrollContent)
+            .contentMargins(.horizontal, teams.count == 1 ? 20 : 30, for: .scrollContent)
             .scrollTargetBehavior(.viewAligned)
             .scrollPosition(id: $scrolledID)
             .onAppear { scrolledID = selectedID ?? teams.first?.id }
+            // Teams can arrive after the first render; land on the selected one when they do.
+            .onChange(of: teams.map(\.id)) { _, _ in
+                if scrolledID == nil || !teams.contains(where: { $0.id == scrolledID }) {
+                    scrolledID = selectedID ?? teams.first?.id
+                }
+            }
             // Commit only when the scroll comes to rest, never mid-flick (spec § 4.1).
             .modifier(OmenScrollSettle(position: scrolledID) { settled in
                 guard let settled, settled != selectedID else { return }
@@ -102,8 +109,10 @@ struct OmenTeamRolodex: View {
                 .omenTextStyle(OmenTypography.quiet)
                 .foregroundStyle(OmenColor.textTertiary)
         }
+        .frame(minHeight: 44)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Team \(index + 1) of \(teams.count)")
+        .accessibilityAddTraits(.isStaticText)
     }
 }
 
@@ -141,7 +150,7 @@ struct OmenTeamCard: View {
             VStack(alignment: .leading, spacing: OmenSpacing.step12) {
                 HStack {
                     OmenProviderMark(platform: team.platform)
-                    Text("\u{00B7} \(team.leagueName)").omenTextStyle(OmenTypography.quiet).foregroundStyle(OmenColor.textTertiary).lineLimit(1)
+                    Text("\u{00B7} \(team.leagueName)").omenTextStyle(OmenTypography.quiet).foregroundStyle(OmenColor.textSecondary).lineLimit(1)
                     Spacer(minLength: OmenSpacing.step8)
                     Text(statusText).omenTextStyle(OmenTypography.quiet).foregroundStyle(team.status == .reconnect ? OmenColor.accentHover : OmenColor.textTertiary)
                 }
@@ -176,7 +185,7 @@ struct OmenTeamCard: View {
 
     private var statusText: String {
         switch team.status {
-        case .live(let clock): "Live \u{00B7} \(clock)"
+        case .live(let clock): clock.map { "Live \u{00B7} \($0)" } ?? "Live"
         case .upcoming(let when): when
         case .final: "Final"
         case .reconnect: "Sign in again"
@@ -190,7 +199,7 @@ struct OmenTeamCard: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(name).omenTextStyle(OmenTypography.rowTitle).foregroundStyle(lead ? OmenColor.textPrimary : OmenColor.textSecondary).lineLimit(2)
                 Text([record, left.map { "\($0) to play" }].compactMap { $0 }.joined(separator: " \u{00B7} "))
-                    .omenTextStyle(OmenTypography.quiet).foregroundStyle(OmenColor.textTertiary)
+                    .omenTextStyle(OmenTypography.quiet).foregroundStyle(OmenColor.textSecondary)
                     .lineLimit(1)
             }
             .layoutPriority(1)

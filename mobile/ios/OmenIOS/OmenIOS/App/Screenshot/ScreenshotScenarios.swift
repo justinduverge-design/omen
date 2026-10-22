@@ -27,59 +27,6 @@ enum ScreenshotScenarios {
             label: "Onboarding — connect your league",
             content: { AnyView(OnboardingConnectScreenshotHost()) }
         ),
-        "command-center.demo-connected": ScreenshotScenario(
-            label: "Command Center — demo/mock connected",
-            content: {
-                AnyView(FauxShell(
-                    scenarioKey: "command-center.demo-connected",
-                    commandContentOverride: AnyView(OmenCommandDeskScreen(
-                        state: J2ScreenshotFixtures.nominalDesk,
-                        context: J2ScreenshotFixtures.titansContext,
-                        onOpenAccount: {},
-                        onOpenLeague: {},
-                        onOpenLedger: {},
-                        fitProbeIdentifier: "chrome.fit.command-center"
-                    ))
-                ))
-            }
-        ),
-        // The `carousel != nil` branch — a real multi-league account. Every other Command
-        // Center scenario runs the stacked layout, which is why three clipping bugs reached
-        // the founder's phone before anything here could catch them.
-        "command-center.carousel": ScreenshotScenario(
-            label: "Command Center — six leagues, live carousel",
-            content: { AnyView(CarouselScenarioHost(scenarioKey: "command-center.carousel")) }
-        ),
-        "command-center.carousel-provider-down": ScreenshotScenario(
-            label: "Command Center — carousel with one provider failing",
-            content: { AnyView(CarouselScenarioHost(scenarioKey: "command-center.carousel-provider-down", failingPlatform: "espn")) }
-        ),
-        "command-center.long-matchup": ScreenshotScenario(
-            label: "Command Center — long fantasy team names in matchup",
-            content: {
-                AnyView(FauxShell(
-                    commandContentOverride: AnyView(OmenCommandDeskScreen(
-                        state: J2ScreenshotFixtures.longNameDesk,
-                        context: J2ScreenshotFixtures.titansContext,
-                        onOpenAccount: {},
-                        onOpenLeague: {},
-                        onOpenLedger: {}
-                    ))
-                ))
-            }
-        ),
-        "command-center.disconnected": ScreenshotScenario(
-            label: "Command Center — real user, disconnected",
-            content: {
-                AnyView(FauxShell(
-                    initialTab: .command,
-                    commandContentOverride: AnyView(OmenNoLeagueScreen(onConnect: {}))
-                ))
-            }
-        ),
-        // `M5` slices F and G. Added 2026-08-30 with `F-VET-B03`: the two newest screens in
-        // the product had no scenario at all, so nothing — not the harness, not an
-        // accessibility audit, not any UI test — could reach them without a real account.
         "trade.verdict": ScreenshotScenario(
             label: "Trade — personalized verdict",
             content: { AnyView(FauxShell(scenarioKey: "trade.verdict", initialTab: .trade)) }
@@ -104,6 +51,13 @@ enum ScreenshotScenarios {
             label: "Trade — Find a trade, provider has no projections",
             content: { AnyView(FindReviewScenarioHost(unavailableReason: "projections_unavailable", platform: "yahoo")) }
         ),
+        // The Desk on the foundation (2026-10-21).
+        "desk.ready": ScreenshotScenario(label: "Desk \u{2014} three teams, a move, needs, your team", content: { AnyView(DeskScenario(phase: .ready)) }),
+        "desk.loading": ScreenshotScenario(label: "Desk \u{2014} reading leagues", content: { AnyView(DeskScenario(phase: .loading)) }),
+        "desk.no-league": ScreenshotScenario(label: "Desk \u{2014} no league yet", content: { AnyView(DeskScenario(phase: .noLeague)) }),
+        "desk.failed": ScreenshotScenario(label: "Desk \u{2014} leagues could not be read", content: { AnyView(DeskScenario(phase: .failed(message: "We couldn\u{2019}t reach Omen. Check your connection and try again."))) }),
+        "desk.demo": ScreenshotScenario(label: "Desk \u{2014} demo", content: { AnyView(DeskScenario(phase: .ready, demo: true)) }),
+        "player.page": ScreenshotScenario(label: "Player \u{2014} Omen's read first", content: { AnyView(NavigationStack { OmenPlayerScreen(page: FoundationFixtures.pukaPage, tradeTitle: "Shop Puka Nacua in a trade", onTrade: {}) }) }),
         "foundation.players": ScreenshotScenario(label: "Foundation v1: player pieces", content: { AnyView(FoundationPlayersGallery()) }),
         "foundation.teams": ScreenshotScenario(label: "Foundation v1: team pieces and states", content: { AnyView(FoundationTeamsGallery()) }),
         "league.loaded": ScreenshotScenario(
@@ -151,20 +105,6 @@ enum ScreenshotScenarios {
             label: "J1 4/6 — ESPN consent, before the sheet opens",
             content: { AnyView(OnboardingConnectScreenshotHost(autoSelectProvider: .espn)) }
         ),
-        "journey-j1.nominal.06-command-no-league": ScreenshotScenario(
-            label: "J1 6/6 — signed in, no league connected",
-            content: {
-                AnyView(FauxShell(
-                    initialTab: .command,
-                    commandContentOverride: AnyView(OmenNoLeagueScreen(
-                        onConnect: {}
-                    ))
-                ))
-            }
-        ),
-        // J1 "Getting in" — the degraded pass. The journey has no capability profile, so per
-        // `screen-journeys-v1.md` the provider failure path IS the degraded pass, and ESPN on
-        // iPhone is the only confirmed beta failure on record.
         "journey-j1.degraded.05-connect-failed": ScreenshotScenario(
             label: "J1 degraded 5/6 — ESPN refused a stale session",
             content: {
@@ -278,16 +218,6 @@ enum ScreenshotScenarios {
         // degraded one, and that is the contract rather than a convenience: the neutral variant
         // requires *all* positive quiet evidence, so it cannot occur in a pass where a provider
         // failed. Straight fires on exactly that.
-        "journey-j2.nominal.01-command-center": ScreenshotScenario(
-            label: "J2 nominal 1/4 — the desk, everything read",
-            content: { AnyView(j2Shell(AnyView(OmenCommandDeskScreen(
-                state: J2ScreenshotFixtures.nominalDesk,
-                context: J2ScreenshotFixtures.titansContext,
-                onOpenAccount: {},
-                onOpenLeague: {},
-                onOpenLedger: {}
-            )))) }
-        ),
         "journey-j2.nominal.02-switch-sheet": ScreenshotScenario(
             label: "J2 nominal 2/4 — the switcher sheet over the desk",
             content: { AnyView(j2Shell(AnyView(OmenSwitchSheetOverlay(
@@ -297,39 +227,8 @@ enum ScreenshotScenarios {
                 onToggleFavorite: { _ in },
                 onDismiss: {},
                 backdrop: {
-                    OmenCommandDeskScreen(
-                        state: J2ScreenshotFixtures.nominalDesk,
-                        context: J2ScreenshotFixtures.titansContext,
-                        onOpenAccount: {}
-                    )
+                    DeskScenario(phase: .ready)
                 }
-            )))) }
-        ),
-        "journey-j2.nominal.03-switch-loading": ScreenshotScenario(
-            label: "J2 nominal 3/4 — mid-switch, nothing reused",
-            content: { AnyView(j2Shell(AnyView(OmenSwitchLoadingScreen(
-                context: J2ScreenshotFixtures.davantesContext,
-                weekLabel: "Week 7 · Sunday",
-                footnote: J2ScreenshotFixtures.switchingFootnote,
-                onOpenAccount: {}
-            )))) }
-        ),
-        "journey-j2.nominal.04-command-quiet": ScreenshotScenario(
-            label: "J2 nominal 4/4 — a quiet week, neutral variant",
-            content: { AnyView(j2Shell(AnyView(OmenCommandQuietScreen(
-                state: J2ScreenshotFixtures.quietNeutral,
-                context: J2ScreenshotFixtures.titansContext,
-                onOpenAccount: {}
-            )))) }
-        ),
-        "journey-j2.degraded.01-command-center": ScreenshotScenario(
-            label: "J2 degraded 1/4 — dead matchup read beside a live wire",
-            content: { AnyView(j2Shell(AnyView(OmenCommandDeskScreen(
-                state: J2ScreenshotFixtures.degradedDesk,
-                context: J2ScreenshotFixtures.titansContext,
-                onOpenAccount: {},
-                onOpenLeague: {},
-                onOpenLedger: {}
             )))) }
         ),
         "journey-j2.degraded.02-switch-sheet": ScreenshotScenario(
@@ -341,37 +240,10 @@ enum ScreenshotScenarios {
                 onToggleFavorite: { _ in },
                 onDismiss: {},
                 backdrop: {
-                    OmenCommandDeskScreen(
-                        state: J2ScreenshotFixtures.degradedDesk,
-                        context: J2ScreenshotFixtures.titansContext,
-                        onOpenAccount: {}
-                    )
+                    DeskScenario(phase: .ready)
                 }
             )))) }
         ),
-        "journey-j2.degraded.03-switch-loading": ScreenshotScenario(
-            label: "J2 degraded 3/4 — mid-switch after a partial read",
-            content: { AnyView(j2Shell(AnyView(OmenSwitchLoadingScreen(
-                context: J2ScreenshotFixtures.davantesContext,
-                weekLabel: "Week 7 · Sunday",
-                footnote: J2ScreenshotFixtures.switchingFootnote,
-                onOpenAccount: {}
-            )))) }
-        ),
-        "journey-j2.degraded.04-command-quiet-straight": ScreenshotScenario(
-            label: "J2 degraded 4/4 — a quiet week after a loss, straight variant",
-            content: { AnyView(j2Shell(AnyView(OmenCommandQuietScreen(
-                state: J2ScreenshotFixtures.quietStraight,
-                context: J2ScreenshotFixtures.titansContext,
-                onOpenAccount: {}
-            )))) }
-        ),
-        // J4, "settling an argument". Trade is the front door, so these open on the Trade tab.
-        //
-        // Numbered in the order a user meets them: build a deal, look at the other roster, get
-        // the read, send it. `TradeVerdict` holds the third seat in the nominal pass and
-        // `TradeNeedsContext` holds it in the degraded one — same seat, two states of the same
-        // answer. See `J4ScreenshotFixtures` for why that split is a contract and not a choice.
         "journey-j4.nominal.01-trade-build": ScreenshotScenario(
             label: "J4 nominal 1/4 — build a deal, third team available",
             content: { AnyView(j4Shell(AnyView(OmenTradeBuildScreen(
@@ -645,10 +517,6 @@ enum ScreenshotScenarios {
         "account.about-data-sources": ScreenshotScenario(
             label: "About & data sources \u{2014} nflverse credit, provider data is the user's own",
             content: { AnyView(NavigationStack { OmenAboutDataSourcesView() }) }
-        ),
-        "chrome.report-pill.resting": ScreenshotScenario(
-            label: "Report pill \u{2014} in place on Command",
-            content: { AnyView(ChromeFixtures.reportPillOnCommand()) }
         ),
         "chrome.report-pill.composer": ScreenshotScenario(
             label: "Report pill \u{2014} the composer, showing exactly what it sends",
@@ -1087,13 +955,7 @@ private struct FauxShell: View {
                 if let commandContentOverride {
                     commandContentOverride
                 } else {
-                    OmenCommandDeskScreen(
-                        state: J2ScreenshotFixtures.nominalDesk,
-                        context: J2ScreenshotFixtures.titansContext,
-                        onOpenAccount: {},
-                        onOpenLeague: {},
-                        onOpenLedger: {}
-                    )
+                    DeskScenario(phase: .ready)
                 }
             }
                 .tabItem { CommandCenterTab.command.label }
@@ -1663,19 +1525,7 @@ private struct CarouselScenarioHost: View {
         FauxShell(
             scenarioKey: scenarioKey,
             commandContentOverride: AnyView(
-                OmenCommandDeskHost(
-                    state: CarouselFixtures.deskState(
-                        for: viewModel,
-                        failingPlatform: failingPlatform
-                    ),
-                    context: CarouselFixtures.context(for: viewModel),
-                    onOpenAccount: {},
-                    onOpenLeague: {},
-                    onReportProblem: {},
-                    carousel: viewModel,
-                    userID: "fixture",
-                    onContextChanged: { _ in }
-                )
+                DeskScenario(phase: .ready)
             )
         )
     }
@@ -2896,24 +2746,6 @@ enum ChromeFixtures {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(OmenColor.bg)
-    }
-
-    static func reportPillOnCommand() -> some View {
-        FauxShell(
-            scenarioKey: "chrome.report-pill.resting",
-            initialTab: .command,
-            commandContentOverride: AnyView(
-                OmenCommandDeskScreen(
-                    state: J2ScreenshotFixtures.nominalDesk,
-                    context: J2ScreenshotFixtures.titansContext,
-                    onOpenAccount: {},
-                    onOpenLeague: {},
-                    onOpenLedger: {},
-                    onReportProblem: {},
-                    fitProbeIdentifier: "chrome.fit.command-center"
-                )
-            )
-        )
     }
 
     static func composer(_ phase: OmenReportComposerSheet.Phase) -> some View {

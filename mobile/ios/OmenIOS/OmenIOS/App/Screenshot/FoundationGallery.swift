@@ -10,6 +10,16 @@ enum FoundationFixtures {
     static let pollard = OmenPlayerSummary(id: "p5", name: "Tony Pollard", position: "RB", team: "TEN", number: 20, grade: nil, detail: "Out \u{00B7} can\u{2019}t be traded", locked: true)
     static let mcbride = OmenPlayerSummary(id: "p6", name: "Trey McBride", position: "TE", team: "ARI", number: 85, omenPoints: 13.7, providerPoints: 12.2, providerName: "ESPN", grade: 82, lead: .unresolved)
 
+    static let pukaPage = OmenPlayerPage(
+        player: puka,
+        ownerLabel: "Your team",
+        gameLine: "Sun 4:25 vs SEA",
+        reasons: [.init(text: "Target share up since Week 4", points: 1.6), .init(text: "Faces the 28th pass defence", points: 0.8), .init(text: "49.5-point game total", points: 0.3)],
+        lastGames: [.init(label: "DAL", points: 21.4), .init(label: "SF", points: 12.8), .init(label: "NYG", points: 24.1), .init(label: "ARI", points: 9.6), .init(label: "SEA", points: 19.3)],
+        role: [.init(label: "Snap share", value: "94%"), .init(label: "Targets a game", value: "11.0"), .init(label: "Catches a game", value: "7.5")],
+        season: [.init(label: "Points a game", value: "17.9"), .init(label: "Season points", value: "107.4"), .init(label: "Games", value: "6"), .init(label: "Yards a catch, recent", value: "13.3")]
+    )
+
     static let teams: [OmenTeamCardModel] = [
         OmenTeamCardModel(id: "t1", platform: "espn", leagueName: "Slops Saloon", teamName: "Titans of Slopsilonia", record: "5\u{2013}2", score: 64.8, opponentName: "Gibbs me some Rice", opponentRecord: "6\u{2013}1", opponentScore: 51.2, playersLeft: 4, opponentPlayersLeft: 2, projected: 119.6, opponentProjected: 114.2, line: "Projected to win by 5.4. Bijan and McBride still to play.", status: .live("Q2")),
         OmenTeamCardModel(id: "t2", platform: "sleeper", leagueName: "Dynasty Degens", teamName: "Slopsilonia Dynasty", record: "4\u{2013}3", score: 88.1, opponentName: "Taxi Squad Kings", opponentRecord: "5\u{2013}2", opponentScore: 92.4, playersLeft: 3, opponentPlayersLeft: 1, projected: 121.0, opponentProjected: 112.5, status: .live("Q3")),
@@ -81,5 +91,30 @@ struct FoundationTeamsGallery: View {
             .padding(.top, OmenSpacing.step16)
         }
         .background(OmenColor.bg)
+    }
+}
+
+/// The Desk on fixtures, for screenshots: the same view production mounts.
+struct DeskScenario: View {
+    let phase: OmenDeskView.Phase
+    var demo = false
+    @State private var selected: String? = "t1"
+
+    var body: some View {
+        OmenDeskView(
+            phase: phase,
+            weekLabel: "Week 7 \u{00B7} Sunday",
+            teams: demo ? [FoundationFixtures.teams[0]] : FoundationFixtures.teams,
+            selectedTeamID: $selected,
+            move: OmenDeskMovePreview(headline: "Start Jakobi Meyers in your flex.", reason: "The Giants put their best corner on Smith and leave the slot to a rookie.", band: nil, isHold: false),
+            needs: [.init(id: "waiver", kind: .waiver, title: "Add Tyjae Spears, drop Roschon Johnson", detail: "Covers Bijan\u{2019}s Week 9 bye")]
+                + (demo ? [] : [.init(id: "reconnect", kind: .reconnect, title: "Sign in to Yahoo again", detail: "Work League")]),
+            team: [FoundationFixtures.puka, FoundationFixtures.bijan, FoundationFixtures.mcbride, FoundationFixtures.meyers],
+            teamProvider: "ESPN",
+            ledgerLine: "Omen\u{2019}s record: 41\u{2013}19 when it disagreed with ESPN",
+            isDemo: demo,
+            onTryDemo: {},
+            onOpenLedger: {}
+        )
     }
 }

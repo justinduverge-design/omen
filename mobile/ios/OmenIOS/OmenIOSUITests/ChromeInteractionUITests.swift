@@ -262,23 +262,6 @@ final class ChromeInteractionUITests: XCTestCase {
 
     // MARK: - The report pill
 
-    func testTheReportPillIsPresentAndSaysWhatItSends() {
-        let app = launch("chrome.report-pill.resting")
-
-        let pill = app.buttons.matching(
-            NSPredicate(format: "label BEGINSWITH %@", "Something look wrong?")
-        ).firstMatch
-        assertTappable(pill, "the report pill")
-        // The promise is in the accessibility label because the pill is one combined element.
-        // It is the whole reason `OmenBetaReport` is a closed struct, so it is pinned here as
-        // well as in `BetaReportTests`.
-        XCTAssertTrue(
-            pill.label.contains("never your league data"),
-            "the report pill no longer states what it will not send: \(pill.label)"
-        )
-        assertTapDoesNotBreak(pill, app)
-    }
-
     /// What the composer tells a user before they send, itemised from the payload itself.
     func testTheComposerListsExactlyWhatItSendsAndPromisesNoStorage() {
         let app = launch("chrome.report-pill.composer")
@@ -424,47 +407,11 @@ final class ChromeInteractionUITests: XCTestCase {
         )
     }
 
-    /// The live Ledger has variable height. The report control must participate in layout so it
-    /// can never obscure a Ledger row; the screen may scroll to make room.
-    func testTheReportPillDoesNotCoverTheLedger() {
-        let withPill = launch("chrome.report-pill.resting")
-        let pill = withPill.buttons.matching(
-            NSPredicate(format: "label BEGINSWITH %@", "Something look wrong?")
-        ).firstMatch
-        XCTAssertTrue(pill.waitForExistence(timeout: 15), "the pill is not on the Command Center frame")
-        let ledger = withPill.staticTexts["The Ledger"]
-        XCTAssertTrue(ledger.waitForExistence(timeout: 5), "the Ledger heading is not on the Command Center frame")
-        XCTAssertGreaterThanOrEqual(
-            pill.frame.minY, ledger.frame.maxY,
-            "the report pill overlaps the Ledger instead of following it in the document"
-        )
-        withPill.terminate()
-
-        let without = launch("command-center.demo-connected")
-        XCTAssertFalse(
-            without.buttons.matching(
-                NSPredicate(format: "label BEGINSWITH %@", "Something look wrong?")
-            ).firstMatch.exists,
-            "the pill appeared on a scenario that never asked for it — every existing Command Center capture just changed"
-        )
-        without.terminate()
-    }
-
-    /// `Account.dc.html` is declared **scrolls**; `ReportPill.dc.html` is declared **fits**.
-    ///
-    /// `ReportPill` is Command Center with the pill on it, so its probe is Command Center's —
-    /// `chrome.fit.command-center`. The probe makes the current desk's measured height readable,
-    /// so `CommandCenter` and `ReportPill` can state a number instead of relying on inspection.
-    ///
-    /// `command-center.demo-connected` is in the list as the control: the same screen without
-    /// the pill. The two must report the **same content height**, which is what turns "the
-    /// pill is an overlay" from a claim about code into a measurement.
+    /// `Account.dc.html` is declared **scrolls**; the probe reports its measured height.
     private static let probes: [(scenario: String, probe: String, declared: String)] = [
         ("chrome.account.connected", "chrome.fit.account", "scroll"),
         ("chrome.account.no-leagues", "chrome.fit.account", "scroll"),
         ("chrome.account.connections-unavailable", "chrome.fit.account", "scroll"),
-        ("chrome.report-pill.resting", "chrome.fit.command-center", "fit"),
-        ("command-center.demo-connected", "chrome.fit.command-center", "fit")
     ]
 
     private static func measure(_ scenario: String, _ test: ChromeInteractionUITests) -> Int? {

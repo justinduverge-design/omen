@@ -190,15 +190,20 @@ struct OmenProviderMark: View {
     }
 }
 
-/// The account avatar: initials for now (spec § 5; a photo is a later decision).
+/// The account avatar: initials, or a person mark when the name is unknown (spec § 5; a photo is later).
 struct OmenAvatar: View {
-    let initials: String
+    var initials: String?
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            Text(initials)
-                .omenTextStyle(OmenTypography.cardLead)
+            Group {
+                if let initials, !initials.isEmpty {
+                    Text(initials).omenTextStyle(OmenTypography.cardLead)
+                } else {
+                    Image(systemName: "person.fill").font(.system(size: 16))
+                }
+            }
                 .foregroundStyle(OmenColor.textSecondary)
                 .frame(width: 40, height: 40)
                 .background(OmenColor.surface2, in: Circle())
@@ -295,6 +300,10 @@ struct OmenStatGrid: View {
                 .background(OmenColor.surface1)
                 .accessibilityElement(children: .combine)
             }
+            // An odd count gets a blank surface, not a gap the hairline colour shows through.
+            if stats.count % 2 == 1 {
+                OmenColor.surface1.frame(maxWidth: .infinity, maxHeight: .infinity).accessibilityHidden(true)
+            }
         }
         .background(OmenColor.borderSubtle)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -365,7 +374,8 @@ struct OmenStateBlock: View {
                     title: actionTitle,
                     action: action,
                     variant: kind == .failed || kind == .notEnoughToGoOn ? .primary : .secondary,
-                    size: .lg
+                    size: .lg,
+                    fullWidth: true
                 )
                 .padding(.top, OmenSpacing.step4)
             }

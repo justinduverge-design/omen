@@ -95,6 +95,8 @@ struct OmenButton: View {
     /// Override only when the action has a stronger semantic meaning. Link-style navigation is
     /// quiet by default; ordinary controls acknowledge with a light impact.
     var haptic: OmenHaptic? = nil
+    /// Primary actions in a dock or a state block span the width (foundation v1 frames).
+    var fullWidth: Bool = false
 
     @FocusState private var isFocused: Bool
     @Environment(\.omenHaptics) private var haptics
@@ -149,7 +151,7 @@ struct OmenButton: View {
             }
             .foregroundStyle(isInteractable ? contentColor : OmenColor.textTertiary)
             .padding(.horizontal, horizontalPadding)
-            .frame(minHeight: max(heightPt, OmenLayout.minTouchTarget))
+            .frame(maxWidth: fullWidth ? .infinity : nil, minHeight: max(heightPt, OmenLayout.minTouchTarget))
             .background(backgroundView)
         }
         .buttonStyle(OmenPressableButtonStyle())
