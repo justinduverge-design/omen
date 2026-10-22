@@ -56,6 +56,7 @@ struct OmenReportComposerSheet: View {
     @State var schema: OmenBetaReportSchema?
     @State private var note: String = ""
     @State private var disclosureAccepted: Bool = false
+    @State private var topic: OmenBetaReportTopic = .bug
 
     private var report: OmenBetaReport {
         OmenBetaReport(
@@ -67,7 +68,8 @@ struct OmenReportComposerSheet: View {
             connectionState: connectionState,
             recentErrorCodes: recentErrorCodes,
             message: note,
-            disclosureAccepted: disclosureAccepted
+            disclosureAccepted: disclosureAccepted,
+            topic: topic
         )
     }
 
@@ -106,6 +108,18 @@ struct OmenReportComposerSheet: View {
             .omenTextStyle(OmenTypography.body)
             .foregroundStyle(OmenColor.textSecondary)
             .fixedSize(horizontal: false, vertical: true)
+
+        VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+            Text("About")
+                .omenTextStyle(OmenTypography.micro)
+                .foregroundStyle(OmenColor.textTertiary)
+            Picker("About", selection: $topic) {
+                ForEach(OmenBetaReportTopic.allCases) { Text($0.title).tag($0) }
+            }
+            .pickerStyle(.menu)
+            .tint(OmenColor.accentHover)
+            .disabled(phase != .composing)
+        }
 
         OmenFormField(label: "What happened?") {
             OmenTextField(
@@ -210,13 +224,15 @@ struct OmenReportComposerSheet: View {
             // reuse the component would put a seventh state into a primitive for one call site.
             OmenCard(variant: .outlined, tone: .omen) {
                 VStack(alignment: .leading, spacing: OmenSpacing.step8) {
-                    Text("Report received")
+                    Text("Received")
                         .omenTextStyle(OmenTypography.h3)
                         .foregroundStyle(OmenColor.textPrimary)
                     // The server's own word, and the id it issued. No promise about what
                     // happens next: `beta-report.v1` says a report was received and says
                     // nothing about it being read, and neither does this.
-                    Text(id.isEmpty ? "Omen has your report." : "Omen has your report. Reference \(id).")
+                    Text(id.isEmpty
+                         ? "A person reads every report. Any reply comes to your account email."
+                         : "A person reads every report. Any reply comes to your account email. Reference \(id).")
                         .omenTextStyle(OmenTypography.body)
                         .foregroundStyle(OmenColor.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)

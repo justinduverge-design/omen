@@ -140,3 +140,84 @@ test("the credential check is linear: a very long run without a percent sign is 
   const elapsedMs = Number(process.hrtime.bigint() - started) / 1e6;
   assert.ok(elapsedMs < 250, `took ${elapsedMs} ms`);
 });
+function triaged(extra = {}) {
+  const pending = [];
+  const sent = [];
+  const seen = [];
+  return {
+    pending,
+    sent,
+    seen,
+    options: {
+      defer: (work) => pending.push(work()),
+      context: async () => ({ connections: ["espn: needs_reconnect (updated 2026-10-20)"] }),
+      triage: async (row, topic, facts) => {
+        seen.push({ row, topic, facts });
+        return {
+          summary: "Trade screen froze after picking a player.",
+          category: "bug",
+          severity: "high",
+          likely_cause: "ESPN connection needs reconnecting.",
+          next_step: "Ask them to reconnect ESPN.",
+          agent_brief: "Trade builder, build 12, check roster load after reconnect.",
+        };
+      },
+      notify: async (mail) => {
+        sent.push(mail);
+        return true;
+      },
+      ...extra,
+    },
+  };
+}
+test("a saved report is summarized by the model and the summary, not the note, is emailed", async () => {
+  const t = triaged();
+  const result = await run({ ...valid, topic: "bug" }, {
+    ...t.options,
+    authenticate: (req, _res, next) => {
+      req.user = { id: "owner", email: "fan@example.com" };
+      next();
+    },
+  });
+  await Promise.all(t.pending);
+  assert.equal(result.status, 201);
+  assert.match(result.body.id, /^R-[A-Z0-9]{6}$/);
+  assert.equal(t.seen[0].topic, "bug");
+  assert.match(t.seen[0].facts.connections[0], /needs_reconnect/);
+  assert.equal(t.sent.length, 1);
+  assert.match(t.sent[0].subject, /HIGH · Something broke/);
+  assert.match(t.sent[0].text, /Trade screen froze/);
+  assert.match(t.sent[0].text, /Agent brief/);
+  assert.doesNotMatch(t.sent[0].text, /The button does not respond/);
+  assert.equal(t.sent[0].replyTo, "fan@example.com");
+});
+test("the stored row drops the topic and files a Support report under Account", async () => {
+  const t = triaged();
+  const result = await run({ ...valid, screen: "support", topic: "question" }, t.options);
+  await Promise.all(t.pending);
+  assert.equal(result.status, 201);
+  assert.equal(result.stored[0].screen, "account");
+  assert.equal("topic" in result.stored[0], false);
+});
+test("when the model cannot summarize, the founder still gets an alert without the note", async () => {
+  const t = triaged({ triage: async () => null });
+  await run(valid, t.options);
+  await Promise.all(t.pending);
+  assert.match(t.sent[0].text, /could not summarize/);
+  assert.doesNotMatch(t.sent[0].text, /The button does not respond/);
+});
+test("nothing is summarized or emailed when the report was not saved", async () => {
+  const t = triaged();
+  const result = await run(valid, {
+    ...t.options,
+    store: async () => {
+      throw Error("down");
+    },
+  });
+  assert.equal(result.status, 503);
+  assert.equal(t.pending.length, 0);
+});
+test("report rejects an unknown topic", async () => {
+  const result = await run({ ...valid, topic: "spam" }, triaged().options);
+  assert.equal(result.status, 400);
+});

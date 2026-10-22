@@ -55,6 +55,7 @@ enum OmenBetaReportScreen: String, CaseIterable, Identifiable {
     case espnConnect = "espn_connect"
     case connectFailed = "connect_failed"
     case switcher
+    case support
 
     var id: String { rawValue }
 
@@ -78,6 +79,7 @@ enum OmenBetaReportScreen: String, CaseIterable, Identifiable {
         case .espnConnect: return "ESPN connect"
         case .connectFailed: return "Connection failed"
         case .switcher: return "League switcher"
+        case .support: return "Support"
         }
     }
 }
@@ -131,6 +133,20 @@ struct OmenBetaReportConnectionState: Equatable {
     }
 }
 
+/// The topics the server accepts (`TOPICS` in `src/routes/betaReports.js`).
+enum OmenBetaReportTopic: String, CaseIterable, Identifiable {
+    case bug, call, connection, question
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .bug: "Something broke"
+        case .call: "A call looks wrong"
+        case .connection: "League connection"
+        case .question: "Question"
+        }
+    }
+}
+
 /// The exact body `POST /api/beta/reports` accepts. Nine fields, no more, by construction.
 struct OmenBetaReport: Equatable {
     let screen: OmenBetaReportScreen
@@ -149,6 +165,8 @@ struct OmenBetaReport: Equatable {
     /// rather than a constant so a report can only be built by a caller that had a disclosure to
     /// accept.
     let disclosureAccepted: Bool
+    /// What the report is about, picked on the composer. Optional on the wire.
+    var topic: OmenBetaReportTopic? = nil
 
     /// Five is the server's cap. Truncating here rather than letting the server 400 means a user
     /// with six recent errors gets a report, not a rejection they cannot act on.
@@ -188,7 +206,7 @@ struct OmenBetaReport: Equatable {
             "recent_error_codes": Array(recentErrorCodes.prefix(Self.maximumErrorCodes)),
             "message": message,
             "disclosure_accepted": disclosureAccepted
-        ]
+        ].merging(topic.map { ["topic": $0.rawValue] } ?? [:]) { a, _ in a }
     }
 
     /// The lines the composer lists under "What this sends", in send order.
@@ -207,6 +225,7 @@ struct OmenBetaReport: Equatable {
             "Recent error codes",
             recentErrorCodes.isEmpty ? "None recorded" : recentErrorCodes.joined(separator: ", ")
         ))
+        if let topic { lines.append(("About", topic.title)) }
         lines.append(("Your note", message.isEmpty ? "Empty" : message))
         return lines
     }
@@ -215,7 +234,7 @@ struct OmenBetaReport: Equatable {
 /// What `GET /api/beta/reports/schema` returns.
 ///
 /// The disclosure string is **the server's**, not the client's. It says what happens to a report
-/// — today, *"Reports are summarized by a model for a daily founder digest."* That is a claim
+/// — today, *"Omen's own model, on Omen's servers, summarizes each report and the founder gets that summary by email."* That is a claim
 /// about processing, and it belongs to whoever operates the processing. A client that wrote its
 /// own copy of that sentence would keep telling users it after the server changed its mind.
 struct OmenBetaReportSchema: Equatable {

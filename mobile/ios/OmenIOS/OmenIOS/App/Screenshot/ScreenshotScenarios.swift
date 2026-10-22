@@ -2951,7 +2951,7 @@ private struct StubBetaReportRepository: OmenBetaReportRepository {
     static let schema = OmenBetaReportSchema(
         screens: OmenBetaReportScreen.allCases.map(\.rawValue),
         screenshotsSupported: false,
-        disclosure: "Reports are summarized by a model for a daily founder digest. Do not include league data or credentials."
+        disclosure: "Omen's own model, on Omen's servers, summarizes each report and the founder gets that summary by email and can reply to your account email. Your words stay on Omen's servers and are deleted after 30 days. Do not include league data or credentials."
     )
 
     func schema() async -> OmenBetaReportSchema { Self.schema }

@@ -4794,3 +4794,16 @@ on the second one.
 - **Ratings name:** "Omen Grade" (QB/RB/WR/TE); "QBR" is avoided as ESPN's brand.
 - **One branch, one ship:** all screen work stays on one branch and ships in one merge.
 - **Narration:** the model switch to qwen3:1.7b is approved; it is handed to Codex to test first.
+
+## 2026-10-21 — Support reports: local model summary, emailed to the founder
+
+**Decision (founder, 2026-10-21).** Every saved beta report is read by the private Ollama model on
+`model-host`, together with the reporter's app metadata and their provider connection status. The model
+writes a summary, severity, likely cause, next step and a short brief for an engineering agent. That
+summary and the metadata are emailed to the founder through Resend (`SUPPORT_NOTIFY_EMAIL`, reply-to the
+reporter). The person's own words are not in the email; they stay in `beta_reports` and are purged after
+30 days. This keeps fact-of-record 17 (reports are summarized only on our own model) and adds one egress:
+the summary, to the founder's inbox. The in-app disclosure says so before the person sends.
+**Why.** Reports were saved (one sat unread in production) but nothing told anyone. **Done 2026-10-21:** `SUPPORT_NOTIFY_EMAIL=support@slopssaloon.com` set on KVM1 (founder yes; `RESEND_API_KEY` was already set for the waitlist); mail is sent from `reports@slopssaloon.com`. **Not yet done:**
+setting `RESEND_API_KEY` and `SUPPORT_NOTIFY_EMAIL` on the API host (needs the founder's yes), and handing
+a high-severity brief straight to an agent (Jules or Codex), which would post outside our infrastructure.
