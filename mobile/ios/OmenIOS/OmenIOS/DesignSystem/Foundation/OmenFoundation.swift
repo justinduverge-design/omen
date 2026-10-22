@@ -88,7 +88,6 @@ struct OmenPlayerBadge: View {
             if number != nil, let position {
                 Text(position)
                     .omenTextStyle(OmenTypography.micro)
-                    .opacity(0.85)
             }
         }
         .foregroundStyle(ink)
@@ -432,9 +431,13 @@ struct OmenBottomDock<Content: View>: View {
             .padding(.horizontal, OmenSpacing.step20)
             .padding(.top, OmenSpacing.step16)
             .padding(.bottom, OmenSpacing.step8)
-            .background(
-                LinearGradient(colors: [OmenColor.bg.opacity(0), OmenColor.bg], startPoint: .top, endPoint: .init(x: 0.5, y: 0.25))
-                    .ignoresSafeArea()
-            )
+            // Solid under its own text (contrast); the fade sits above it, over the scrolling content.
+            .background(OmenColor.bg.ignoresSafeArea())
+            .background(alignment: .top) {
+                LinearGradient(colors: [OmenColor.bg.opacity(0), OmenColor.bg], startPoint: .top, endPoint: .bottom)
+                    .frame(height: OmenSpacing.step24)
+                    .offset(y: -OmenSpacing.step24)
+                    .allowsHitTesting(false)
+            }
     }
 }

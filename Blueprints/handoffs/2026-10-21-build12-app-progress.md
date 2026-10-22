@@ -85,6 +85,7 @@ Forced update · Desk with no league · Demo · Rosters unreadable · States (lo
 | Desk | Main, States, Edges | `OmenDesk.swift` | 1-7 pass | fresh agent: 3 P1 fixed (mid-switch outline, switch error + retry, typed reauth), P2s fixed | `output/screens/build12/desk/`, `DeskUITests` (audit clean), 652 unit tests |
 | Player | Main | `OmenPlayer.swift` | 1-7 pass | same review | `player.page` screenshots, audit clean |
 | Omen call (+ trade call, hold, states) | Main, OmenTradeCall, States | `OmenCall.swift` | 1-7 pass | fresh agent: 3 P1 (hand-off now opens the provider's league; start/sit detail retry; account/help on Desk by spec) and P2s fixed | `output/screens/build12/omen/`, `OmenCallUITests` (audit clean), 637 unit tests |
+| Trade chooser, builder, verdict sheet, share | TradeChooser, Main builder, Sheets verdict, TradeShare | `OmenTrade.swift` | 1-7 pass | fresh agent: P0 (share lost its data) and 4 P1 (three-team unreachable, silent failed judge, connect over a sheet, provider pts labelled Omen) fixed; locked players = data gap § 9 | `output/screens/build12/trade-{dark,light}/`, `TradeUITests` (audit clean), 637 unit tests |
 | Full argument | FullArgument | `OmenCall.swift` | 1-7 pass | same review | `journey-j3.nominal.02-omen-evidence` |
 
 ## Whole-app pass
@@ -108,7 +109,7 @@ Forced update · Desk with no league · Demo · Rosters unreadable · States (lo
   `OmenStateBlock`. Delete in the same change: `OmenDecisionBrief`, `OmenConfidenceBar`, `OmenMetricStrip`,
   `OmenRiskPanel`, `OmenSignalList`, old `OmenPlayerRow`, `OmenReportPill`, `OmenFirstCallScreens` parts the
   new call replaces; then rename `OmenRosterRow` to `OmenPlayerRow`.
-- **Next:** Trade (chooser, Find, builder, verdict sheet, share, three-team, judge), then League (+ Waivers,
+- **Next:** Trade chunk 2 (Find, Judge an offer, three-team rebuilt; old trade controls deleted), then League (+ Waivers,
   Ledger, receipt), then the rest of the screen list, then the whole-app pass.
 - **Tooling notes:** add Swift files with `addfile2.py`-style pbxproj edits (no synchronized groups);
   capture with `scripts/capture-screen-batch.sh --platform ios --build --scenarios "..."`; UI tests in

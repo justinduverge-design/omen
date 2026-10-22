@@ -58,6 +58,9 @@ enum ScreenshotScenarios {
         "desk.failed": ScreenshotScenario(label: "Desk \u{2014} leagues could not be read", content: { AnyView(DeskScenario(phase: .failed(message: "We couldn\u{2019}t reach Omen. Check your connection and try again."))) }),
         "desk.demo": ScreenshotScenario(label: "Desk \u{2014} demo", content: { AnyView(DeskScenario(phase: .ready, demo: true)) }),
         "player.page": ScreenshotScenario(label: "Player \u{2014} Omen's read first", content: { AnyView(NavigationStack { OmenPlayerScreen(page: FoundationFixtures.pukaPage, tradeTitle: "Shop Puka Nacua in a trade", onTrade: {}) }) }),
+        "trade.chooser": ScreenshotScenario(label: "Trade \u{2014} chooser", content: { AnyView(OmenTradeChooserView(teamControl: ("espn", "Titans"), onFind: {}, onBuild: {}, onJudge: {})) }),
+        "trade.builder": ScreenshotScenario(label: "Trade \u{2014} builder, your roster", content: { AnyView(NavigationStack { OmenTradeBuilderScreen(state: FoundationFixtures.builder, onToggle: { _, _ in }, onRemove: { _, _ in }, onSwitchPartner: { _ in }, onOpenPlayer: { _ in }, onJudge: {}) }) }),
+        "trade.builder-theirs": ScreenshotScenario(label: "Trade \u{2014} builder, their roster", content: { AnyView(NavigationStack { OmenTradeBuilderScreen(state: FoundationFixtures.builder, onToggle: { _, _ in }, onRemove: { _, _ in }, onSwitchPartner: { _ in }, onOpenPlayer: { _ in }, onJudge: {}, showingTheirs: true) }) }),
         "foundation.players": ScreenshotScenario(label: "Foundation v1: player pieces", content: { AnyView(FoundationPlayersGallery()) }),
         "foundation.teams": ScreenshotScenario(label: "Foundation v1: team pieces and states", content: { AnyView(FoundationTeamsGallery()) }),
         "league.loaded": ScreenshotScenario(
@@ -226,25 +229,11 @@ enum ScreenshotScenarios {
         ),
         "journey-j4.nominal.03-trade-verdict": ScreenshotScenario(
             label: "J4 nominal 3/4 — the read, both sides and the caveat",
-            content: { AnyView(j4Shell(AnyView(OmenTradeVerdictScreen(
-                state: J4ScreenshotFixtures.verdict,
-                context: J4ScreenshotFixtures.titansContext,
-                onOpenAccount: {},
-                onPrimaryAction: {},
-                onCounter: {},
-                onShare: {}
-            )))) }
+            content: { AnyView(j4Shell(AnyView(OmenTradeVerdictSheet(kind: .verdict(J4ScreenshotFixtures.verdict), providerName: "ESPN", onAdjust: {}, onOpenProvider: {}, onShare: {})))) }
         ),
         "journey-j4.nominal.04-trade-share": ScreenshotScenario(
             label: "J4 nominal 4/4 — share the read, names off by default",
-            content: { AnyView(j4Shell(AnyView(OmenTradeShareScreen(
-                state: J4ScreenshotFixtures.nominalShare,
-                context: J4ScreenshotFixtures.titansContext,
-                onOpenAccount: {},
-                onToggleInclusion: { _ in },
-                onShare: {},
-                onCopyAsText: {}
-            )))) }
+            content: { AnyView(j4Shell(AnyView(OmenTradeShareSheet(state: J4ScreenshotFixtures.nominalShare, onToggle: { _ in }, onShare: {}, onCopy: {}, onDone: {})))) }
         ),
         "journey-j4.degraded.01-trade-build": ScreenshotScenario(
             label: "J4 degraded 1/4 — a read built on inputs that did not all arrive",
@@ -273,24 +262,11 @@ enum ScreenshotScenarios {
         ),
         "journey-j4.degraded.03-trade-needs-context": ScreenshotScenario(
             label: "J4 degraded 3/4 — too close to call blind, and it says which input is missing",
-            content: { AnyView(j4Shell(AnyView(OmenTradeNeedsContextScreen(
-                state: J4ScreenshotFixtures.needsContext,
-                context: J4ScreenshotFixtures.titansContext,
-                onOpenAccount: {},
-                onConnect: {},
-                onShowAnyway: {}
-            )))) }
+            content: { AnyView(j4Shell(AnyView(OmenTradeVerdictSheet(kind: .needsContext(J4ScreenshotFixtures.needsContext), onAdjust: {}, onConnect: {})))) }
         ),
         "journey-j4.degraded.04-trade-share": ScreenshotScenario(
             label: "J4 degraded 4/4 — the share service failed, and the read did not",
-            content: { AnyView(j4Shell(AnyView(OmenTradeShareScreen(
-                state: J4ScreenshotFixtures.degradedShare,
-                context: J4ScreenshotFixtures.titansContext,
-                onOpenAccount: {},
-                onToggleInclusion: { _ in },
-                onShare: {},
-                onCopyAsText: {}
-            )))) }
+            content: { AnyView(j4Shell(AnyView(OmenTradeShareSheet(state: J4ScreenshotFixtures.degradedShare, onToggle: { _ in }, onShare: {}, onCopy: {}, onDone: {})))) }
         ),
         // MARK: - J5, "the scout's nest"
         //
@@ -622,11 +598,7 @@ enum ScreenshotScenarios {
     private static func j4Shell(_ content: AnyView) -> some View {
         FauxShell(
             initialTab: .trade,
-            tradeContentOverride: AnyView(
-                OmenTradeModeContainer(selectedMode: .constant(.build)) { mode in
-                    mode == .build ? content : AnyView(EmptyView())
-                }
-            )
+            tradeContentOverride: AnyView(NavigationStack { content })
         )
     }
 
@@ -935,17 +907,16 @@ private struct FauxShell: View {
                 if let tradeContentOverride {
                     tradeContentOverride
                 } else {
-                    OmenTradeModeContainer(selectedMode: .constant(.type)) { mode in
-                        switch mode {
-                        case .type:
+                    if ["trade.empty", "trade.prefilled", "trade.verdict"].contains(scenarioKey) {
+                        NavigationStack {
                             OmenTradeScreen(
                                 state: tradeState,
                                 offer: tradeOffer,
                                 prefill: scenarioKey == "trade.prefilled" ? Self.prefilledTrade : nil
                             )
-                        case .find, .build:
-                            EmptyView()
                         }
+                    } else {
+                        OmenTradeChooserView(onFind: {}, onBuild: {}, onJudge: {})
                     }
                 }
             }

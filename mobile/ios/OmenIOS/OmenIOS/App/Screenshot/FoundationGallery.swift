@@ -20,6 +20,20 @@ enum FoundationFixtures {
         season: [.init(label: "Points a game", value: "17.9"), .init(label: "Season points", value: "107.4"), .init(label: "Games", value: "6"), .init(label: "Yards a catch, recent", value: "13.3")]
     )
 
+    static let builder = OmenTradeBuilderState(
+        mine: [puka, bijan, smith, mcbride, meyers],
+        theirs: [
+            OmenPlayerSummary(id: "t1", name: "Jahmyr Gibbs", position: "RB", team: "DET", number: 26, omenPoints: 20.4, providerPoints: 19.1, providerName: "ESPN", grade: 93, lead: .omen),
+            OmenPlayerSummary(id: "t2", name: "Zay Flowers", position: "WR", team: "BAL", number: 4, omenPoints: 13.9, providerPoints: 13.1, providerName: "ESPN", grade: 77, lead: .omen),
+            OmenPlayerSummary(id: "t3", name: "Garrett Wilson", position: "WR", team: "NYJ", number: 5, omenPoints: 15.2, providerPoints: 15.6, providerName: "ESPN", grade: 81, lead: .provider),
+            pollard,
+        ],
+        partners: [OmenTradePartner(id: "gr", crest: "GR", name: "Gibbs me some Rice", need: "Needs WR")],
+        partnerID: "gr",
+        send: [TradePlayer(name: "DeVonta Smith", position: "WR", team: "PHI", playerKey: "p4")],
+        receive: [TradePlayer(name: "Zay Flowers", position: "WR", team: "BAL", playerKey: "t2")]
+    )
+
     static let teams: [OmenTeamCardModel] = [
         OmenTeamCardModel(id: "t1", platform: "espn", leagueName: "Slops Saloon", teamName: "Titans of Slopsilonia", record: "5\u{2013}2", score: 64.8, opponentName: "Gibbs me some Rice", opponentRecord: "6\u{2013}1", opponentScore: 51.2, playersLeft: 4, opponentPlayersLeft: 2, projected: 119.6, opponentProjected: 114.2, line: "Projected to win by 5.4. Bijan and McBride still to play.", status: .live("Q2")),
         OmenTeamCardModel(id: "t2", platform: "sleeper", leagueName: "Dynasty Degens", teamName: "Slopsilonia Dynasty", record: "4\u{2013}3", score: 88.1, opponentName: "Taxi Squad Kings", opponentRecord: "5\u{2013}2", opponentScore: 92.4, playersLeft: 3, opponentPlayersLeft: 1, projected: 121.0, opponentProjected: 112.5, status: .live("Q3")),

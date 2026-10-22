@@ -31,15 +31,6 @@ struct CommandCenterView: View {
     /// true in the same render pass, leaving SwiftUI to reject one presentation and making a
     /// perfectly valid destination (most visibly Build a trade) appear not to open.
     @State private var presentedSheet: CommandCenterSheet?
-    /// `ReportPill.dc.html`, wired to both its doors. Non-nil means the composer is open, and
-    /// the value is the screen the user was on when they opened it — the composer must be told
-    /// rather than resolve it, because a composer that resolved its own current screen would
-    /// name the composer.
-    /// Trade has three distinct jobs. Build is the canvas-governed default; Find is the
-    /// later sports-game-style candidate search; Type compares a deal already proposed.
-    @State private var selectedTradeMode: TradeMode = .build
-    /// The Trade tab opens on the chooser (whole-app canvas, `TradeMode.dc.html`).
-    @State private var tradeChooserVisible: Bool = true
     /// J4: `TradeShare`, over `POST /api/trade/share`.
     @State private var selectedTab: CommandCenterTab = .command
     @StateObject private var leagueViewModel: LeagueViewModel
@@ -160,6 +151,89 @@ struct CommandCenterView: View {
 
     @State private var deskPath: [DeskRoute] = []
     @State private var omenPath: [OmenRoute] = []
+    @State private var tradePath: [TradeRoute] = []
+    @State private var tradeShowingShare = false
+    @State private var tradeShareURL: URL?
+
+    /// The verdict is a sheet over the builder or the offer; closing it keeps the picks.
+    private var tradeVerdictShown: Binding<Bool> {
+        Binding(
+            get: {
+                // Judge an offer still draws its own answer until it is rebuilt; no second verdict over it.
+                guard tradePath.last != .judge, case .loaded(let compare) = tradeViewModel.viewState else { return false }
+                return OmenTradeAnswer.from(compare, offer: tradeViewModel.offer) != nil
+            },
+            set: { if !$0 { tradeViewModel.dismissVerdict() } }
+        )
+    }
+
+    private var tradeProviderName: String { OmenProviderMark.displayName(tradeViewModel.offer.leagueContext?.platform) }
+
+    @ViewBuilder
+    private var tradeBuilder: some View {
+        switch tradeViewModel.rosterBrowseState {
+        case .idle, .loading:
+            OmenStateBlock(kind: .loading, title: "Reading your league\u{2019}s rosters", message: "Your team and every other team, so you can pick from both.")
+                .padding(OmenSpacing.step20).frame(maxHeight: .infinity, alignment: .top).background(OmenColor.bg)
+                .task { await tradeViewModel.loadRoster(userID: userID) }
+        case .demo:
+            OmenStateBlock(kind: .notEnoughToGoOn, title: "Building a trade needs your league", message: "Demo mode has no real rosters. Connect ESPN, Yahoo or Sleeper to build from your own team.", actionTitle: "Connect a league", action: { presentSheet(.connect) })
+                .padding(OmenSpacing.step20).frame(maxHeight: .infinity, alignment: .top).background(OmenColor.bg)
+        case .failed(let error):
+            OmenStateBlock(kind: .failed, title: "Omen couldn\u{2019}t load the rosters", message: TradeViewModel.message(for: error), actionTitle: "Try again", action: { Task { await tradeViewModel.loadRoster(userID: userID, force: true) } })
+                .padding(OmenSpacing.step20).frame(maxHeight: .infinity, alignment: .top).background(OmenColor.bg)
+        case .loaded(let response):
+            if !response.isAvailable || tradeViewModel.viewerRoster == nil {
+                OmenStateBlock(kind: .notEnoughToGoOn, title: "Omen can\u{2019}t see the other teams yet", message: response.unavailableSentence, actionTitle: "Judge an offer instead", action: { tradePath = [.judge] })
+                    .padding(OmenSpacing.step20).frame(maxHeight: .infinity, alignment: .top).background(OmenColor.bg)
+            } else {
+                OmenTradeBuilderScreen(
+                    state: OmenTradeBuilderState(
+                        mine: (tradeViewModel.viewerRoster?.players ?? []).map { OmenPlayerSummary($0, providerName: tradeProviderName) },
+                        theirs: (tradeViewModel.partnerRoster?.players ?? []).map { OmenPlayerSummary($0, providerName: tradeProviderName) },
+                        partners: tradeViewModel.rosterPartners,
+                        partnerID: tradeViewModel.selectedPartnerTeamID,
+                        send: tradeViewModel.offer.send,
+                        receive: tradeViewModel.offer.receive,
+                        judging: tradeViewModel.viewState == .loading,
+                        judgeError: { if case .failed(let e) = tradeViewModel.viewState { return TradeViewModel.message(for: e) } else { return nil } }()
+                    ),
+                    onToggle: { summary, side in
+                        let roster = side == .send ? tradeViewModel.viewerRoster : tradeViewModel.partnerRoster
+                        if let player = roster?.players.first(where: { $0.id == summary.id }) { tradeViewModel.toggleFromRoster(player, side: side) }
+                    },
+                    onRemove: { tradeViewModel.remove(at: $0, from: $1) },
+                    onSwitchPartner: { tradeViewModel.switchPartner(to: $0) },
+                    onOpenPlayer: { tradePath.append(.player($0)) },
+                    onJudge: { Task { await tradeViewModel.compare(userID: userID) } },
+                    onThreeTeam: tradeViewModel.rosterCapability?.threeTeamSupported == true ? {
+                        tradePath.append(.threeTeam)
+                        tradeViewModel.openPartnerPicker()
+                        if tradeViewModel.isPartnerPickerPresented { presentSheet(.tradePartnerPicker) }
+                    } : nil
+                )
+                .toolbar {
+                    if !tradeViewModel.offer.send.isEmpty || !tradeViewModel.offer.receive.isEmpty {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            OmenBarTextButton(title: "Clear", tone: OmenColor.textSecondary) { tradeViewModel.clearOffer() }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func tradePlayer(_ id: String) -> some View {
+        if let player = tradeViewModel.viewerRoster?.players.first(where: { $0.id == id }) {
+            OmenPlayerScreen(page: OmenPlayerPage(player, ownerLabel: "Your team", providerName: tradeProviderName))
+        } else if let team = tradeViewModel.partnerRoster, let player = team.players.first(where: { $0.id == id }) {
+            OmenPlayerScreen(page: OmenPlayerPage(player, ownerLabel: team.teamName, providerName: tradeProviderName))
+        } else {
+            OmenStateBlock(kind: .notEnoughToGoOn, title: "This player isn\u{2019}t on the rosters Omen just read", message: "Go back to see the current rosters.")
+                .padding(OmenSpacing.step20).frame(maxHeight: .infinity, alignment: .top).background(OmenColor.bg)
+        }
+    }
     @State private var fullArgumentPayload: OmenDecisionBriefPayload?
 
     /// The league on the provider's own site, where the user makes the move. Nil when the provider has
@@ -241,8 +315,7 @@ struct CommandCenterView: View {
                     tradeTitle: "Shop \(player.name) in a trade",
                     onTrade: {
                         if !tradeViewModel.isInOffer(player, side: .send) { tradeViewModel.toggleFromRoster(player, side: .send) }
-                        selectedTradeMode = .build
-                        tradeChooserVisible = false
+                        tradePath = [.build]
                         selectedTab = .trade
                     }
                 )
@@ -416,31 +489,19 @@ struct CommandCenterView: View {
             //
             // `dismissVerdict` keeps the offer. A user who reads "you give up too much" wants to
             // change one player, not retype the deal.
-            withTeamPicker {
-                if case .loaded(let compare) = tradeViewModel.viewState,
-                   let answer = OmenTradeAnswer.from(compare, offer: tradeViewModel.offer) {
-                    switch answer {
-                    case .verdict(let state):
-                        OmenTradeVerdictScreen(
-                            state: state,
-                            onOpenAccount: { presentSheet(.account) },
-                            onPrimaryAction: { tradeViewModel.dismissVerdict() },
-                            onShare: { presentSheet(.tradeShareSetup) }
-                        )
-                        .omenScreenReady("trade-verdict")
-                    case .needsContext(let state):
-                        OmenTradeNeedsContextScreen(
-                            state: state,
-                            onOpenAccount: { presentSheet(.account) },
-                            onConnect: { presentSheet(.connect) },
-                            onShowAnyway: { tradeViewModel.dismissVerdict() }
-                        )
-                        .omenScreenReady("trade-needs-context")
-                    }
-                } else {
-                    OmenTradeModeContainer(selectedMode: $selectedTradeMode, chooserVisible: $tradeChooserVisible) { mode in
-                        switch mode {
-                        case .find:
+            NavigationStack(path: $tradePath) {
+                OmenTradeChooserView(
+                    teamControl: leagueCarouselViewModel.activePage.map { ($0.platform, $0.displayTeamName) },
+                    onSwitchTeam: { presentSheet(.switcher) },
+                    onFind: { tradePath.append(.find) },
+                    onBuild: { tradePath.append(.build) },
+                    onJudge: { tradePath.append(.judge) }
+                )
+                .navigationTitle("Trade")
+                .toolbar(.hidden, for: .navigationBar)
+                .navigationDestination(for: TradeRoute.self) { route in
+                    switch route {
+                    case .find:
                             TradeFindFlowView(
                                 directoryRepository: leagueDirectoryRepository,
                                 sessionManager: sessionManager,
@@ -451,22 +512,30 @@ struct CommandCenterView: View {
                                 fallbackTeamId: loadedOverviewTeamId,
                                 onOpenAccount: { presentSheet(.account) },
                                 onConnectLeague: { presentSheet(.connect) },
-                                onDismiss: { tradeChooserVisible = true }
+                                onDismiss: { tradePath.removeAll() }
                             )
-                        case .build:
-                            TradeRosterFlowView(
-                                tradeViewModel: tradeViewModel,
-                                userID: userID,
-                                onOpenAccount: { presentSheet(.account) },
-                                onDismiss: { tradeChooserVisible = true },
-                                onOpenPartnerPicker: {
-                                    tradeViewModel.openPartnerPicker()
-                                    if tradeViewModel.isPartnerPickerPresented {
-                                        presentSheet(.tradePartnerPicker)
-                                    }
-                                }
-                            )
-                        case .type:
+                    case .build:
+                        tradeBuilder.toolbar(.hidden, for: .tabBar)
+                    case .threeTeam:
+                        // Three-team still runs on the old build screen until its own rebuild (ledger).
+                        OmenTradeBuildScreen(
+                            state: tradeViewModel.rosterBuildState,
+                            onOpenAccount: { presentSheet(.account) },
+                            onSelectPartner: { tradeViewModel.selectPartnerTeam($0) },
+                            onPrimaryAction: {
+                                if case .loaded = tradeViewModel.threeTeamViewState { tradeViewModel.dismissThreeTeamVerdict() }
+                                else { Task { await tradeViewModel.compareThreeTeam(userID: userID) } }
+                            },
+                            onOpenPartnerPicker: {
+                                tradeViewModel.openPartnerPicker()
+                                if tradeViewModel.isPartnerPickerPresented { presentSheet(.tradePartnerPicker) }
+                            },
+                            onRemoveThirdPartner: { tradeViewModel.removeThirdPartner() },
+                            onToggleSubmissionStepDone: { tradeViewModel.toggleThreeTeamSubmissionStep($0) },
+                            onCopySubmissionStep: { if let text = tradeViewModel.copyTextForThreeTeamStep($0) { UIPasteboard.general.string = text } }
+                        )
+                        .toolbar(.hidden, for: .tabBar)
+                    case .judge:
                             OmenTradeScreen(
                                 state: tradeViewModel.viewState,
                                 offer: tradeViewModel.offer,
@@ -479,16 +548,51 @@ struct CommandCenterView: View {
                                 capabilities: tradeViewModel.capabilities,
                                 prefill: tradeViewModel.prefill
                             )
-                            .omenScreenReady("trade")
-                        }
-                    }
-                    .task {
-                        // Demo is the reviewer's network-free door: it never calls the API, so a
-                        // demo session cannot show a request failure.
-                        guard userID != SessionManager.demoUserID else { return }
-                        await tradeViewModel.loadCapabilities()
+                            .omenScreenReady("trade-judge")
+                    case .player(let id):
+                        tradePlayer(id).toolbar(.hidden, for: .tabBar)
                     }
                 }
+            }
+            .sheet(isPresented: tradeVerdictShown, onDismiss: { tradeShowingShare = false }) {
+                if tradeShowingShare, let state = tradeViewModel.shareScreenState {
+                    OmenTradeShareSheet(
+                        state: state,
+                        onToggle: { tradeViewModel.toggleShareInclusion($0) },
+                        onShare: {
+                            Task {
+                                if tradeViewModel.sharedURL(baseURL: environment.apiBaseURL) == nil { await tradeViewModel.share(userID: userID) }
+                                if let url = tradeViewModel.sharedURL(baseURL: environment.apiBaseURL) {
+                                    tradeShareURL = url
+                                }
+                            }
+                        },
+                        onCopy: { if let text = tradeViewModel.copyShareText() { UIPasteboard.general.string = text } },
+                        onDone: { tradeShowingShare = false }
+                    )
+                    .sheet(isPresented: Binding(get: { tradeShareURL != nil }, set: { if !$0 { tradeShareURL = nil } })) {
+                        if let url = tradeShareURL { OmenActivityView(items: [url]) }
+                    }
+                } else if case .loaded(let compare) = tradeViewModel.viewState,
+                   let answer = OmenTradeAnswer.from(compare, offer: tradeViewModel.offer) {
+                    OmenTradeVerdictSheet(
+                        kind: { switch answer { case .verdict(let v): .verdict(v); case .needsContext(let n): .needsContext(n) } }(),
+                        providerName: leagueCarouselViewModel.activePage.flatMap { Self.handoffURL(for: $0) == nil ? nil : OmenProviderMark.displayName($0.platform) },
+                        onAdjust: { tradeViewModel.dismissVerdict() },
+                        onOpenProvider: leagueCarouselViewModel.activePage.flatMap(Self.handoffURL(for:)).map { url in { UIApplication.shared.open(url) } },
+                        onShare: { tradeShowingShare = true },
+                        onConnect: {
+                            // One sheet at a time: close the verdict, then open Connect.
+                            tradeViewModel.dismissVerdict()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { presentSheet(.connect) }
+                        }
+                    )
+                }
+            }
+            .task {
+                // Demo is the reviewer's network-free door: it never calls the API.
+                guard userID != SessionManager.demoUserID else { return }
+                await tradeViewModel.loadCapabilities()
             }
             // The league to personalize against comes from the SAME `league-overview.v1` read
             // the League destination uses. Trade never discovers a league on its own, so the
@@ -655,10 +759,9 @@ struct CommandCenterView: View {
         case .tradeShareSetup:
             if let state = tradeViewModel.shareScreenState {
                 NavigationStack {
-                    OmenTradeShareScreen(
+                    OmenTradeShareSheet(
                         state: state,
-                        onOpenAccount: { presentSheet(.account) },
-                        onToggleInclusion: { tradeViewModel.toggleShareInclusion($0) },
+                        onToggle: { tradeViewModel.toggleShareInclusion($0) },
                         onShare: {
                             Task {
                                 if let url = tradeViewModel.sharedURL(baseURL: environment.apiBaseURL) {
@@ -671,11 +774,10 @@ struct CommandCenterView: View {
                                 }
                             }
                         },
-                        onCopyAsText: {
-                            if let text = tradeViewModel.copyShareText() {
-                                UIPasteboard.general.string = text
-                            }
-                        }
+                        onCopy: {
+                            if let text = tradeViewModel.copyShareText() { UIPasteboard.general.string = text }
+                        },
+                        onDone: { presentedSheet = nil }
                     )
                     .omenScreenReady("trade-share")
                 }
@@ -755,16 +857,15 @@ struct CommandCenterView: View {
         // Refused (no known league, or not reviewable): stay on the call rather than open a Trade tab that
         // would compare these players in some other league.
         guard tradeViewModel.applyPrefill(from: call) else { return }
-        selectedTradeMode = .type
-        tradeChooserVisible = false
+        // "Check it in the builder": the call's players are in the trays and the verdict opens over them.
+        tradePath = [.build]
         selectedTab = .trade
         Task { await tradeViewModel.compare(userID: userID) }
     }
 
     /// "Find other trades" on the Omen tab: open the Trade tab's Find mode.
     private func findOtherTrades() {
-        selectedTradeMode = .find
-        tradeChooserVisible = false
+        tradePath = [.find]
         selectedTab = .trade
     }
 
@@ -874,131 +975,6 @@ enum DeskRoute: Hashable {
     case player(String)
     case ledger
     case receipt(String)
-}
-
-enum TradeMode: String, CaseIterable {
-    case find, build, type
-
-    var title: String {
-        switch self {
-        case .find: return "Find a trade"
-        case .build: return "Build a trade"
-        case .type: return "Judge an offer"
-        }
-    }
-}
-
-/// The shared Trade destination chrome. Production and screenshot evidence both use this
-/// container so a fixture cannot silently bypass the Find / Build / Type entry point.
-struct OmenTradeModeContainer<Content: View>: View {
-    @Binding var selectedMode: TradeMode
-    /// True shows the chooser: the three ways people arrive at a trade question. Screenshot
-    /// scenarios pass a constant false to open straight into one mode.
-    @Binding var chooserVisible: Bool
-    @ViewBuilder let content: (TradeMode) -> Content
-
-    init(
-        selectedMode: Binding<TradeMode>,
-        chooserVisible: Binding<Bool> = .constant(false),
-        @ViewBuilder content: @escaping (TradeMode) -> Content
-    ) {
-        _selectedMode = selectedMode
-        _chooserVisible = chooserVisible
-        self.content = content
-    }
-
-    var body: some View {
-        if chooserVisible {
-            OmenTradeChooser { mode in
-                selectedMode = mode
-                chooserVisible = false
-            }
-        } else {
-            VStack(alignment: .leading, spacing: 0) {
-                OmenButton(
-                    title: "\u{2039} Trade",
-                    action: { chooserVisible = true },
-                    variant: .link,
-                    size: .sm
-                )
-                .padding(.horizontal, OmenSpacing.step8)
-                .padding(.top, OmenSpacing.step8)
-                .accessibilityLabel("Back to trade options")
-                OmenTradeTabs(
-                    titles: TradeMode.allCases.map(\.title),
-                    selectedIndex: TradeMode.allCases.firstIndex(of: selectedMode) ?? 0,
-                    onSelect: { index in
-                        guard TradeMode.allCases.indices.contains(index) else { return }
-                        selectedMode = TradeMode.allCases[index]
-                    }
-                )
-                .padding(.horizontal, OmenSpacing.step16)
-                .padding(.top, OmenSpacing.step4)
-                content(selectedMode)
-            }
-        }
-    }
-}
-
-/// The Trade tab's front: Find, Build, Judge an offer (whole-app canvas, `TradeMode.dc.html`).
-struct OmenTradeChooser: View {
-    let onChoose: (TradeMode) -> Void
-
-    var body: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: OmenSpacing.step12) {
-                VStack(alignment: .leading, spacing: OmenSpacing.step8) {
-                    Text("Trade")
-                        .omenTextStyle(OmenTypography.micro)
-                        .foregroundStyle(OmenColor.accent)
-                    Text("Settle the argument.")
-                        .omenTextStyle(OmenTypography.screenTitle)
-                        .foregroundStyle(OmenColor.textPrimary)
-                    Text("Every answer shows both sides, both lineups, and Omen\u{2019}s read.")
-                        .omenTextStyle(OmenTypography.body)
-                        .foregroundStyle(OmenColor.textSecondary)
-                }
-                .padding(.bottom, OmenSpacing.step4)
-                option(.find, icon: "magnifyingglass",
-                       line: "Omen reads every roster in the league and brings back trades that make both lineups better.")
-                option(.build, icon: "plus",
-                       line: "Pick a partner and the players. Omen judges it for both of you.")
-                option(.type, icon: "text.alignleft",
-                       line: "Got one in the league or the group chat? Enter the players, get the verdict.")
-            }
-            .padding(.horizontal, OmenSpacing.step16)
-            .padding(.top, OmenSpacing.step16)
-            .padding(.bottom, 104)
-        }
-        .background(OmenColor.bg)
-    }
-
-    private func option(_ mode: TradeMode, icon: String, line: String) -> some View {
-        OmenTappableCard(contentPadding: OmenSpacing.step16, action: { onChoose(mode) }) {
-            HStack(alignment: .top, spacing: OmenSpacing.step14) {
-                Image(systemName: icon)
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(mode == .find ? OmenColor.accent : OmenColor.textPrimary)
-                    .frame(width: 40, height: 40)
-                    .background(
-                        mode == .find ? OmenColor.accentMuted : OmenColor.surface2,
-                        in: RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    )
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: OmenSpacing.step4) {
-                    Text(mode.title)
-                        .omenTextStyle(OmenTypography.h3)
-                        .foregroundStyle(OmenColor.textPrimary)
-                    Text(line)
-                        .omenTextStyle(OmenTypography.bodySmall)
-                        .foregroundStyle(OmenColor.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isButton)
-    }
 }
 
 /// User-facing copy for a shell read failure. Deliberately says what the user can do and
