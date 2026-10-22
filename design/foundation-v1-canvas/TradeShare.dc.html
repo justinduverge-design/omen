@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Trade share</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Wix+Madefor+Display:wght@600;700;800&amp;family=Wix+Madefor+Text:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+*{box-sizing:border-box}
+.d{font-family:'Wix Madefor Display',system-ui,sans-serif}
+.num{font-family:'Wix Madefor Display',system-ui,sans-serif;font-variant-numeric:tabular-nums}
+.eyebrow{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:600}
+.tog{width:50px;height:30px;border-radius:15px;position:relative;flex:none}
+.tog i{position:absolute;top:2px;width:26px;height:26px;border-radius:13px;background:#F5F0E8}
+.r{display:flex;align-items:center;gap:12px;min-height:56px;border-bottom:1px solid #33332F}
+</style>
+</helmet>
+<div style="width:390px;height:844px;border-radius:44px;overflow:hidden;position:relative;background:#1F1F1D;color:#F5F0E8;font-family:'Wix Madefor Text',system-ui,sans-serif">
+  <div style="position:absolute;top:11px;left:133px;width:124px;height:36px;border-radius:20px;background:#000"></div>
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,.45)"></div>
+  <div style="position:absolute;left:0;right:0;bottom:0;top:90px;background:#262624;border-radius:28px 28px 0 0;padding:12px 20px 34px">
+    <div style="width:36px;height:5px;border-radius:3px;background:#4A4A45;margin:0 auto 14px"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center"><div class="d" style="font-size:22px;font-weight:800">Share this trade</div><div style="font-size:15px;font-weight:600;color:#D8A648;min-height:44px;display:flex;align-items:center">Done</div></div>
+    <div style="font-size:13.5px;color:#BDB5A9;margin-top:2px">Send Omen's read to the group chat. The link works for 30 days.</div>
+
+    <div style="margin-top:16px;background:#1F1F1D;border-radius:20px;padding:16px;border-top:1px solid rgba(196,147,59,.45)">
+      <div style="display:flex;justify-content:space-between"><span class="d" style="font-size:13px;font-weight:800;letter-spacing:.28em;color:#D8A648">OMEN</span><span style="font-size:11px;color:#A79E90">Week 7 · half-PPR</span></div>
+      <div class="d" style="font-size:18px;font-weight:700;margin-top:10px">Both of you win this.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
+        <div><div class="eyebrow" style="color:#A79E90">Team A sends</div><div style="font-size:14px;font-weight:600;margin-top:4px">DeVonta Smith</div></div>
+        <div><div class="eyebrow" style="color:#A79E90">Team B sends</div><div style="font-size:14px;font-weight:600;margin-top:4px">Zay Flowers</div><div style="font-size:14px;font-weight:600">Kendre Miller</div></div>
+      </div>
+      <div style="display:flex;gap:22px;margin-top:12px"><div><span class="num" style="font-weight:800;color:#D8A648">+1.9</span> <span style="font-size:11.5px;color:#A79E90">Team A / wk</span></div><div><span class="num" style="font-weight:800">+2.4</span> <span style="font-size:11.5px;color:#A79E90">Team B / wk</span></div></div>
+    </div>
+
+    <div style="margin-top:14px">
+      <div class="r"><div style="flex:1"><div style="font-size:15px;font-weight:600">Show team names</div><div style="font-size:12.5px;color:#A79E90">Off: the card says Team A and Team B</div></div><div class="tog" style="background:#4A4A45"><i style="left:2px"></i></div></div>
+      <div class="r"><div style="flex:1"><div style="font-size:15px;font-weight:600">Show player names</div><div style="font-size:12.5px;color:#A79E90">Players are public, so they show</div></div><div class="tog" style="background:#C4933B"><i style="right:2px"></i></div></div>
+    </div>
+    <div style="font-size:12px;color:#A79E90;margin-top:12px;line-height:1.45">The link never carries your league, your roster or your login.</div>
+  </div>
+  <div style="position:absolute;left:20px;right:20px;bottom:34px;display:flex;gap:10px">
+    <div style="flex:1;height:52px;border-radius:26px;background:#343431;display:flex;align-items:center;justify-content:center;font-weight:700">Copy link</div>
+    <div style="flex:1.4;height:52px;border-radius:26px;background:#C4933B;color:#14140F;display:flex;align-items:center;justify-content:center;font-weight:700">Share…</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script>
+</body>
+</html>

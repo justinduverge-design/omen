@@ -1,0 +1,717 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Omen prototype</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Wix+Madefor+Display:wght@500;600;700;800&amp;family=Wix+Madefor+Text:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#141412}
+*{box-sizing:border-box}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+.ph{width:390px;height:844px;background:#1F1F1D;color:#F5F0E8;font-family:'Wix Madefor Text',system-ui,sans-serif;position:relative;overflow:hidden;border-radius:44px}
+.scroll{position:absolute;inset:0;overflow-y:auto;padding:58px 0 120px;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+.island{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:124px;height:36px;border-radius:20px;background:#000;z-index:30}
+.d{font-family:'Wix Madefor Display',system-ui,sans-serif}
+.num{font-family:'Wix Madefor Display',system-ui,sans-serif;font-variant-numeric:tabular-nums}
+.pad{padding:0 20px}
+.eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#A79E90;font-weight:600}
+.brass{color:#D8A648}
+.t2{color:#BDB5A9}.t3{color:#A79E90}
+.hair{height:1px;background:#3A3A36}
+.row{display:flex;align-items:center;gap:12px}
+.chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:13px;background:#343431;font-size:12px;font-weight:600;color:#BDB5A9}
+.pos{display:inline-flex;align-items:center;justify-content:center;width:34px;height:22px;border-radius:6px;border:1px solid #4A4A45;font-size:10.5px;font-weight:700;letter-spacing:.06em;color:#BDB5A9}
+.av{width:40px;height:40px;border-radius:20px;background:#343431;display:flex;align-items:center;justify-content:center;font-family:'Wix Madefor Display';font-weight:700;font-size:13px;color:#BDB5A9;flex:none}
+.grade{width:40px;height:40px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-family:'Wix Madefor Display';font-weight:800;font-size:14px;flex:none}
+.g-hi{border:2px solid #C4933B;color:#F5F0E8}
+.g-mid{border:2px solid #6B675F;color:#F5F0E8}
+.g-lo{border:2px dashed #5A564F;color:#A79E90}
+.tabbar{position:absolute;left:16px;right:16px;bottom:24px;height:64px;border-radius:32px;background:rgba(52,52,49,.82);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.07);display:flex;padding:6px;z-index:20}
+.tab{flex:1;border-radius:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:10.5px;font-weight:600;color:#BDB5A9}
+.tab.on{background:rgba(196,147,59,.16);color:#D8A648}
+.navbar{position:absolute;top:0;left:0;right:0;height:104px;padding:58px 12px 0;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(#1F1F1D 70%,rgba(31,31,29,0));z-index:15}
+.back{display:flex;align-items:center;gap:2px;height:44px;padding:0 8px;color:#D8A648;font-size:16px;font-weight:500}
+.btn{height:52px;border-radius:26px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;width:100%;text-align:center}
+.btn-p{background:#C4933B;color:#14140F}
+.btn-s{background:#343431;color:#F5F0E8}
+.lip{border-top:1px solid rgba(196,147,59,.45)}
+.card{background:#2A2A27;border-radius:22px}
+.list-row{display:flex;align-items:center;gap:12px;padding:12px 20px;min-height:64px;width:100%}
+.list-row:active{background:#2A2A27}
+.seg{display:flex;background:#2A2A27;border-radius:12px;padding:3px;margin:0 20px}
+.seg button{flex:1;height:36px;border-radius:9px;font-size:13.5px;font-weight:600;color:#BDB5A9;text-align:center}
+.seg button.on{background:#3F3F3B;color:#F5F0E8}
+.check{width:26px;height:26px;border-radius:13px;border:2px solid #5A564F;flex:none;display:flex;align-items:center;justify-content:center}
+.check.on{background:#C4933B;border-color:#C4933B}
+.bar{height:6px;border-radius:3px;background:#343431;overflow:hidden}
+.bar i{display:block;height:100%;background:#C4933B;border-radius:3px}
+.spark{display:flex;align-items:flex-end;gap:6px;height:64px}
+.spark div{flex:1;border-radius:4px 4px 2px 2px;background:#4A4A45}
+.spark div.hi{background:#C4933B}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#262624;border-radius:28px 28px 0 0;z-index:40;padding:10px 0 34px;box-shadow:0 -20px 60px rgba(0,0,0,.5)}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.45);z-index:35}
+.grab{width:36px;height:5px;border-radius:3px;background:#4A4A45;margin:0 auto 14px}
+.tray{min-height:58px;border-radius:16px;border:1.5px dashed #4A4A45;padding:8px;display:flex;flex-wrap:wrap;gap:6px;align-content:flex-start}
+.tray.full{border-style:solid;border-color:#3A3A36;background:#262624}
+.tok{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 6px 0 10px;border-radius:15px;background:#3F3F3B;font-size:12.5px;font-weight:600}
+.tok b{width:20px;height:20px;border-radius:10px;background:#2A2A27;display:flex;align-items:center;justify-content:center;font-size:12px;color:#BDB5A9}
+.dock{position:absolute;left:0;right:0;bottom:0;padding:14px 20px 30px;background:linear-gradient(rgba(31,31,29,0),#1F1F1D 22%);z-index:18}
+.score-big{font-size:46px;font-weight:800;letter-spacing:-.02em;line-height:1}
+.drv{display:grid;grid-template-columns:1fr 58px;gap:4px 12px;align-items:center}
+.pill-up{color:#D8A648;font-weight:700}
+.st{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:#3A3A36;border-radius:16px;overflow:hidden}
+.st div{background:#2A2A27;padding:12px 10px}
+table{border-collapse:collapse;width:100%}
+td,th{padding:10px 0;font-size:13.5px;border-bottom:1px solid #33332F}
+th{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#A79E90;font-weight:600;text-align:right}
+th:first-child,td:first-child{text-align:left}
+td{text-align:right;font-variant-numeric:tabular-nums}
+.me td{color:#D8A648;font-weight:700}
+.jb{width:40px;height:40px;border-radius:12px;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+.jb b{font-family:'Wix Madefor Display';font-size:16px;font-weight:800}
+.jb i{font-style:normal;font-size:8.5px;font-weight:700;letter-spacing:.08em;opacity:.85;margin-top:2px}
+.rolo{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:18px 30px 6px;scrollbar-width:none}
+.rolo::-webkit-scrollbar{display:none}
+.rcard{flex:none;width:330px;scroll-snap-align:center;background:#2A2A27;border-radius:24px;padding:18px;border-top:1px solid rgba(196,147,59,.45);transition:transform .25s ease,opacity .25s ease}
+.pdot{width:8px;height:8px;border-radius:4px;display:inline-block}
+</style>
+</helmet>
+
+<div class="ph">
+<div class="island"></div>
+
+<!-- ============ DESK ============ -->
+<sc-if value="{{isDesk}}" hint-placeholder-val="{{ true }}">
+<div class="scroll">
+  <div class="pad" style="display:flex;align-items:center;justify-content:space-between;height:44px">
+    <div><div class="eyebrow brass">Week 7 · Sunday</div><div class="d" style="font-size:28px;font-weight:800;line-height:1.1">Up in 2 of 3</div></div>
+    <button onClick="{{goAccount}}" class="av" style="width:44px;height:44px;font-size:12px" aria-label="Account and support">JD</button>
+  </div>
+
+  <div class="rolo" onScroll="{{onRoll}}" aria-label="Your teams">
+    <sc-for list="{{rolo}}" as="t" hint-placeholder-count="3">
+      <div class="rcard" style="transform:{{t.tf}};opacity:{{t.op}}">
+        <div class="row" style="justify-content:space-between">
+          <div class="row" style="gap:8px"><span class="pdot" style="background:{{t.pc}}"></span><span class="t3" style="font-size:12px;font-weight:600">{{t.provider}} · {{t.league}}</span></div>
+          <span class="t3" style="font-size:12px">{{t.status}}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr auto;align-items:end;margin-top:14px;row-gap:10px">
+          <div><div style="font-size:15px;font-weight:700">{{t.team}}</div><div class="t3" style="font-size:12px">{{t.rec}} · {{t.left}}</div></div>
+          <div class="num" style="font-size:40px;font-weight:800;line-height:1">{{t.us}}</div>
+          <div><div class="t2" style="font-size:14px;font-weight:600">{{t.opp}}</div><div class="t3" style="font-size:12px">{{t.oppRec}}</div></div>
+          <div class="num t3" style="font-size:28px;font-weight:800;line-height:1;text-align:right">{{t.them}}</div>
+        </div>
+        <div style="margin-top:14px;height:6px;border-radius:3px;background:#3F3F3B;overflow:hidden"><div style="height:100%;width:{{t.win}};background:#C4933B"></div></div>
+        <div class="t2" style="font-size:12.5px;margin-top:8px">{{t.line}}</div>
+      </div>
+    </sc-for>
+  </div>
+  <div style="display:flex;justify-content:center;gap:6px;margin-top:10px" aria-hidden="true">
+    <sc-for list="{{rolo}}" as="t" hint-placeholder-count="3"><div style="height:6px;border-radius:3px;width:{{t.dotW}};background:{{t.dotC}}"></div></sc-for>
+  </div>
+
+  <button onClick="{{openMcB}}" style="display:block;margin:20px 20px 0;width:calc(100% - 40px);padding:14px 16px;border-radius:18px;background:#262624;border:1px solid #3A3A36">
+    <div class="row" style="gap:8px"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6" stroke="#D8A648" stroke-width="1.6" fill="none"/><circle cx="8" cy="8" r="2" fill="#D8A648"/></svg><div class="eyebrow brass" style="font-size:10.5px">The swing matchup</div></div>
+    <div style="font-size:15.5px;font-weight:700;margin-top:8px;line-height:1.3">Watch McBride against Derwin James.</div>
+    <div class="t2" style="font-size:13px;margin-top:4px;line-height:1.45">The Chargers play two-high zone on 64% of snaps, so the seams open. McBride sees 8 targets a game against it. If James travels with him, Gibbs' side closes the gap.</div>
+  </button>
+
+  <div style="margin:28px 20px 0" class="card lip">
+    <button onClick="{{goOmen}}" style="display:block;width:100%;padding:20px">
+      <div class="row" style="justify-content:space-between"><div class="eyebrow brass">This week's move</div><span class="chip" style="height:22px;font-size:11px">Confident</span></div>
+      <div class="d" style="font-size:24px;font-weight:700;line-height:1.15;margin-top:10px">Start Jakobi Meyers.<br><span class="t3">Sit DeVonta Smith.</span></div>
+      <div class="row" style="margin-top:14px;gap:18px">
+        <div><div class="num brass" style="font-size:20px;font-weight:800">+3.1</div><div class="t3" style="font-size:11.5px">points</div></div>
+        <div><div class="num" style="font-size:20px;font-weight:800">72%</div><div class="t3" style="font-size:11.5px">slot snaps</div></div>
+        <div style="flex:1"></div>
+        <div class="row brass" style="font-size:14px;font-weight:600;gap:4px">See why <svg width="8" height="12" viewBox="0 0 8 12" aria-hidden="true"><path d="M2 2l4 4-4 4" stroke="#D8A648" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg></div>
+      </div>
+    </button>
+  </div>
+
+  <div class="pad" style="margin-top:30px;display:flex;justify-content:space-between;align-items:baseline">
+    <div class="d" style="font-size:19px;font-weight:700">Needs you</div><div class="t3" style="font-size:13px">2</div>
+  </div>
+  <div style="margin-top:6px">
+    <button class="list-row" onClick="{{goTradeFromDesk}}">
+      <div style="width:40px;height:40px;border-radius:12px;background:#343431;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 7h11l-3-3M16 13H5l3 3" stroke="#D8A648" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div style="flex:1"><div style="font-size:15px;font-weight:600">Gibbs me some Rice needs a WR</div><div class="t3" style="font-size:13px">DeVonta Smith for Zay Flowers helps you both</div></div>
+      <svg width="8" height="12" viewBox="0 0 8 12" aria-hidden="true"><path d="M2 2l4 4-4 4" stroke="#6B675F" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>
+    </button>
+    <div class="hair" style="margin-left:72px"></div>
+    <button class="list-row" onClick="{{openJW}}">
+      <div style="width:40px;height:40px;border-radius:12px;background:#343431;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12M4 10h12" stroke="#D8A648" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+      <div style="flex:1"><div style="font-size:15px;font-weight:600">Add Tyjae Spears before Wednesday</div><div class="t3" style="font-size:13px">Covers Bijan's Week 9 bye · 12% rostered</div></div>
+      <svg width="8" height="12" viewBox="0 0 8 12" aria-hidden="true"><path d="M2 2l4 4-4 4" stroke="#6B675F" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+
+  <div class="pad" style="margin-top:30px;display:flex;justify-content:space-between;align-items:baseline">
+    <div class="d" style="font-size:19px;font-weight:700">Your starters</div><div class="t3" style="font-size:13px">Omen · proj</div>
+  </div>
+  <div style="margin-top:6px">
+    <sc-for list="{{starters}}" as="p" hint-placeholder-count="5">
+      <button class="list-row" onClick="{{p.open}}" style="min-height:58px;padding-top:8px;padding-bottom:8px">
+        <span class="jb" style="background:{{p.bc}};color:{{p.fc}}" aria-hidden="true"><b>{{p.num}}</b><i>{{p.pos}}</i></span>
+        <div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:600">{{p.name}}</div><div class="t3" style="font-size:12.5px">{{p.team}} · {{p.status}}</div></div>
+        <div style="text-align:right"><div class="num" style="font-size:16px;font-weight:700">{{p.omen}}</div><div class="t3 num" style="font-size:11.5px">{{p.prov}}</div></div>
+      </button>
+    </sc-for>
+  </div>
+  <div class="pad" style="margin-top:22px"><button class="t3" style="font-size:13.5px;height:44px">Omen's record: 41–19 on contested calls ›</button></div>
+</div>
+</sc-if>
+
+<!-- ============ OMEN CALL ============ -->
+<sc-if value="{{isOmen}}" hint-placeholder-val="{{ false }}">
+<div class="scroll" style="padding-top:64px">
+  <div class="pad">
+    <div class="eyebrow brass">Omen · Week 7</div>
+    <div class="d" style="font-size:34px;font-weight:800;line-height:1.05;letter-spacing:-.01em;margin-top:12px">Start Jakobi Meyers in your flex.</div>
+    <div class="t2" style="font-size:16px;margin-top:10px;line-height:1.45">ESPN has Smith ahead. Omen doesn't. The Giants put their best corner on the outside and leave the slot to a rookie, and Meyers lines up in the slot on 72% of his snaps.</div>
+  </div>
+
+  <div style="margin:24px 20px 0;display:grid;grid-template-columns:1fr 44px 1fr;align-items:center">
+    <button onClick="{{openMeyers}}" class="card" style="padding:16px;text-align:center;border:1.5px solid #C4933B">
+      <div class="eyebrow brass" style="font-size:10px">Start</div>
+      <div style="font-size:15px;font-weight:700;margin-top:8px">J. Meyers</div>
+      <div class="t3" style="font-size:12px">WR · LV</div>
+      <div class="num" style="font-size:30px;font-weight:800;margin-top:10px">13.4</div>
+      <div class="t3" style="font-size:11px">Omen · ESPN 10.6</div>
+    </button>
+    <div style="text-align:center"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 7h11l-3-3M16 13H5l3 3" stroke="#6B675F" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <button onClick="{{openSmith}}" class="card" style="padding:16px;text-align:center">
+      <div class="eyebrow" style="font-size:10px">Sit</div>
+      <div style="font-size:15px;font-weight:700;margin-top:8px" class="t2">D. Smith</div>
+      <div class="t3" style="font-size:12px">WR · PHI</div>
+      <div class="num t3" style="font-size:30px;font-weight:800;margin-top:10px">10.3</div>
+      <div class="t3" style="font-size:11px">Omen · ESPN 13.4</div>
+    </button>
+  </div>
+
+  <div class="pad" style="margin-top:20px;display:flex;gap:28px">
+    <div><div class="num brass" style="font-size:22px;font-weight:800">+3.1</div><div class="t3" style="font-size:12px">points better</div></div>
+    <div><div style="font-size:22px;font-weight:800" class="d">Medium</div><div class="t3" style="font-size:12px">risk</div></div>
+    <div><div style="font-size:22px;font-weight:800" class="d">Lean</div><div class="t3" style="font-size:12px">confidence</div></div>
+  </div>
+
+  <div class="pad" style="margin-top:34px">
+    <div class="d" style="font-size:19px;font-weight:700">What moved the call</div>
+    <div class="t3" style="font-size:13px;margin-top:4px">Where Omen and ESPN disagree, point by point</div>
+    <div style="margin-top:16px;display:flex;flex-direction:column;gap:14px">
+      <sc-for list="{{jwDrivers}}" as="d" hint-placeholder-count="4">
+        <div class="drv">
+          <div><div style="font-size:14.5px;font-weight:600">{{d.name}}</div><div class="t3" style="font-size:12.5px;margin-top:2px">{{d.note}}</div></div>
+          <div class="num pill-up" style="text-align:right;font-size:15px">{{d.pts}}</div>
+          <div class="bar" style="grid-column:1 / span 2"><i style="width:{{d.w}}"></i></div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div class="pad" style="margin-top:34px">
+    <div class="d" style="font-size:19px;font-weight:700">Last 4 games</div>
+    <table style="margin-top:8px">
+      <tr><th></th><th>Tgt/g</th><th>Slot</th><th>Yds/c</th><th>Pts</th></tr>
+      <tr><td>Meyers</td><td>8.3</td><td>72%</td><td>11.8</td><td class="num">14.1</td></tr>
+      <tr><td>D. Smith</td><td class="t3">6.0</td><td class="t3">21%</td><td class="t3">12.4</td><td class="t3">11.2</td></tr>
+    </table>
+    <div class="t3" style="font-size:12.5px;margin-top:10px;line-height:1.5">Smith against top-10 outside corners this year: 3.8 catches, 41 yards.</div>
+  </div>
+
+  <div class="pad" style="margin-top:30px;display:flex;flex-direction:column;gap:10px">
+    <button class="btn btn-p">I made the move</button>
+    <button class="btn btn-s">Not this week</button>
+  </div>
+  <div class="pad t3" style="font-size:12.5px;margin-top:16px;line-height:1.5">On WR calls where it disagreed with ESPN this season, Omen was right 14 times out of 22.</div>
+</div>
+</sc-if>
+
+<!-- ============ PLAYER ============ -->
+<sc-if value="{{isPlayer}}" hint-placeholder-val="{{ false }}">
+<div class="scroll" style="padding-top:104px">
+  <div class="pad" style="display:flex;align-items:center;gap:16px">
+    <div class="jb" style="width:72px;height:72px;border-radius:22px;background:{{pl.bc}};color:{{pl.fc}}" aria-hidden="true"><b style="font-size:28px">{{pl.num}}</b><i style="font-size:11px">{{pl.pos}}</i></div>
+    <div style="flex:1">
+      <div class="d" style="font-size:26px;font-weight:800;line-height:1.05">{{pl.name}}</div>
+      <div class="t2" style="font-size:14px;margin-top:6px">{{pl.pos}} · {{pl.teamName}} · {{pl.owner}}</div>
+      <div class="t3" style="font-size:13px;margin-top:2px">{{pl.game}}</div>
+    </div>
+  </div>
+
+  <div style="margin:22px 20px 0;padding:20px" class="card lip">
+    <div class="row" style="align-items:flex-start;justify-content:space-between">
+      <div>
+        <div class="eyebrow brass">Omen's read · Week 7</div>
+        <div class="row" style="align-items:baseline;gap:10px;margin-top:10px"><div class="num" style="font-size:44px;font-weight:800;line-height:1">{{pl.omen}}</div><div class="t3" style="font-size:14px">pts</div></div>
+        <div class="t2" style="font-size:13.5px;margin-top:6px">ESPN says <span class="num">{{pl.prov}}</span> · Omen is <span class="brass" style="font-weight:700">{{pl.gap}}</span></div>
+      </div>
+      <div style="text-align:center">
+        <div style="width:64px;height:64px;border-radius:32px;border:3px solid #C4933B;display:flex;align-items:center;justify-content:center" class="num"><span style="font-size:24px;font-weight:800">{{pl.grade}}</span></div>
+        <div class="t3" style="font-size:11px;margin-top:6px">Omen grade</div>
+      </div>
+    </div>
+    <div class="hair" style="margin:18px 0 14px"></div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <sc-for list="{{pl.drivers}}" as="d" hint-placeholder-count="3">
+        <div class="row" style="justify-content:space-between"><div style="font-size:14px">{{d.name}}</div><div class="num pill-up" style="font-size:14px">{{d.pts}}</div></div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div class="pad" style="margin-top:30px">
+    <div class="row" style="justify-content:space-between;align-items:baseline"><div class="d" style="font-size:19px;font-weight:700">Last 5 games</div><div class="t3 num" style="font-size:13px">avg {{pl.avg}}</div></div>
+    <div class="spark" style="margin-top:14px">
+      <sc-for list="{{pl.last}}" as="g" hint-placeholder-count="5"><div class="{{g.cls}}" style="height:{{g.h}}"></div></sc-for>
+    </div>
+    <div style="display:flex;gap:6px;margin-top:6px">
+      <sc-for list="{{pl.last}}" as="g" hint-placeholder-count="5"><div style="flex:1;text-align:center"><div class="num" style="font-size:13px;font-weight:700">{{g.pts}}</div><div class="t3" style="font-size:11px">{{g.opp}}</div></div></sc-for>
+    </div>
+  </div>
+
+  <div class="pad" style="margin-top:30px">
+    <div class="d" style="font-size:19px;font-weight:700">Role</div>
+    <div class="st" style="margin-top:12px">
+      <sc-for list="{{pl.usage}}" as="u" hint-placeholder-count="4"><div><div class="num" style="font-size:19px;font-weight:800">{{u.v}}</div><div class="t3" style="font-size:11.5px;margin-top:2px">{{u.k}}</div></div></sc-for>
+    </div>
+    <div class="t2" style="font-size:13.5px;margin-top:10px">{{pl.roleNote}}</div>
+  </div>
+
+  <div class="pad" style="margin-top:30px">
+    <div class="d" style="font-size:19px;font-weight:700">Season</div>
+    <table style="margin-top:6px">
+      <sc-for list="{{pl.season}}" as="s" hint-placeholder-count="5"><tr><td class="t2">{{s.k}}</td><td style="font-weight:700">{{s.v}}</td></tr></sc-for>
+    </table>
+  </div>
+
+  <div class="pad" style="margin-top:28px;display:flex;gap:10px">
+    <button class="btn btn-s" onClick="{{tradeThisPlayer}}" style="flex:1">{{pl.tradeLabel}}</button>
+  </div>
+</div>
+<div class="navbar">
+  <button class="back" onClick="{{goBack}}"><svg width="12" height="20" viewBox="0 0 12 20" aria-hidden="true"><path d="M10 2L2 10l8 8" stroke="#D8A648" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> {{backLabel}}</button>
+</div>
+</sc-if>
+
+<!-- ============ TRADE ============ -->
+<sc-if value="{{isTrade}}" hint-placeholder-val="{{ false }}">
+<div class="scroll" style="padding-top:104px;padding-bottom:190px">
+  <div class="pad">
+    <div class="d" style="font-size:30px;font-weight:800">Trade</div>
+    <button onClick="{{cyclePartner}}" class="row" style="margin-top:10px;gap:10px;height:44px">
+      <div class="av" style="width:30px;height:30px;font-size:10.5px">{{partner.ini}}</div>
+      <div style="font-size:15px;font-weight:600">with {{partner.name}}</div>
+      <span style="font-size:13px;font-weight:600;color:#7DC98A">{{partner.need}}</span>
+      <span class="brass" style="font-size:13px;font-weight:600">Change</span>
+    </button>
+  </div>
+
+  <div class="pad" style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <div><div class="eyebrow" style="margin-bottom:8px">You send</div>
+      <div class="{{sendTrayCls}}">
+        <sc-for list="{{sendList}}" as="p" hint-placeholder-count="1"><button class="tok" onClick="{{p.toggle}}" aria-label="Remove {{p.name}}">{{p.short}} <b>×</b></button></sc-for>
+        <sc-if value="{{sendEmpty}}" hint-placeholder-val="{{ true }}"><div class="t3" style="font-size:12.5px;padding:10px 6px">Pick from your roster</div></sc-if>
+      </div></div>
+    <div><div class="eyebrow" style="margin-bottom:8px">You get</div>
+      <div class="{{getTrayCls}}">
+        <sc-for list="{{getList}}" as="p" hint-placeholder-count="1"><button class="tok" onClick="{{p.toggle}}" aria-label="Remove {{p.name}}">{{p.short}} <b>×</b></button></sc-for>
+        <sc-if value="{{getEmpty}}" hint-placeholder-val="{{ true }}"><div class="t3" style="font-size:12.5px;padding:10px 6px">Pick from theirs</div></sc-if>
+      </div></div>
+  </div>
+
+  <div class="seg" style="margin-top:22px">
+    <button class="{{segMine}}" onClick="{{showMine}}">Your roster</button>
+    <button class="{{segTheirs}}" onClick="{{showTheirs}}">{{partner.short}}</button>
+  </div>
+  <div class="pad t3" style="font-size:12px;margin-top:12px;display:flex;justify-content:space-between"><span>Player</span><span>Omen grade</span></div>
+  <div style="margin-top:4px">
+    <sc-for list="{{rosterRows}}" as="p" hint-placeholder-count="7">
+      <div class="list-row" style="padding-top:6px;padding-bottom:6px;min-height:60px;opacity:{{p.op}}">
+        <button class="{{p.checkCls}}" onClick="{{p.toggle}}" aria-label="Select {{p.name}}"><sc-if value="{{p.sel}}" hint-placeholder-val="{{ false }}"><svg width="12" height="10" viewBox="0 0 12 10" aria-hidden="true"><path d="M1.5 5l3 3 6-6.5" stroke="#14140F" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></sc-if></button>
+        <button onClick="{{p.open}}" style="flex:1;min-width:0;display:flex;align-items:center;gap:12px">
+          <span class="jb" style="background:{{p.bc}};color:{{p.fc}}" aria-hidden="true"><b>{{p.num}}</b><i>{{p.pos}}</i></span>
+          <div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:600">{{p.name}}</div><div class="t3" style="font-size:12.5px">{{p.sub}}</div></div>
+          <div class="{{p.gradeCls}}">{{p.grade}}</div>
+        </button>
+      </div>
+    </sc-for>
+  </div>
+</div>
+<div class="navbar">
+  <sc-if value="{{hasBack}}" hint-placeholder-val="{{ true }}"><button class="back" onClick="{{goBack}}"><svg width="12" height="20" viewBox="0 0 12 20" aria-hidden="true"><path d="M10 2L2 10l8 8" stroke="#D8A648" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> {{backLabel}}</button></sc-if>
+  <div style="flex:1"></div>
+  <button class="back" onClick="{{clearTrade}}" style="color:#BDB5A9">Clear</button>
+</div>
+<div class="dock">
+  <div class="row" style="justify-content:space-between;margin-bottom:12px">
+    <div><div class="t3" style="font-size:11.5px">Your lineup</div><div class="num" style="font-size:18px;font-weight:800;color:{{youColor}}">{{youDelta}}</div></div>
+    <div style="text-align:right"><div class="t3" style="font-size:11.5px">Their lineup</div><div class="num" style="font-size:18px;font-weight:800;color:{{themColor}}">{{themDelta}}</div></div>
+  </div>
+  <button class="btn btn-p" onClick="{{judge}}" style="opacity:{{judgeOp}}">{{judgeLabel}}</button>
+</div>
+<sc-if value="{{showVerdict}}" hint-placeholder-val="{{ false }}">
+  <button class="scrim" onClick="{{closeVerdict}}" aria-label="Close"></button>
+  <div class="sheet">
+    <div class="grab"></div>
+    <div class="pad">
+      <div class="eyebrow brass">Omen's verdict</div>
+      <div class="d" style="font-size:28px;font-weight:800;line-height:1.1;margin-top:10px">{{verdictHead}}</div>
+      <div class="t2" style="font-size:15px;line-height:1.45;margin-top:10px">{{verdictBody}}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px">
+        <div class="card" style="padding:14px"><div class="t3" style="font-size:12px">You, per week</div><div class="num" style="font-size:26px;font-weight:800;color:{{youColor}}">{{youDelta}}</div></div>
+        <div class="card" style="padding:14px"><div class="t3" style="font-size:12px">{{partner.short}}, per week</div><div class="num" style="font-size:26px;font-weight:800;color:{{themColor}}">{{themDelta}}</div></div>
+      </div>
+      <div class="t3" style="font-size:12.5px;margin-top:12px">{{verdictCatch}}</div>
+      <div style="display:flex;gap:10px;margin-top:20px">
+        <button class="btn btn-s" style="flex:1" onClick="{{closeVerdict}}">Adjust</button>
+        <button class="btn btn-p" style="flex:1.4">Send to {{partner.short}}</button>
+      </div>
+    </div>
+  </div>
+</sc-if>
+</sc-if>
+
+<!-- ============ LEAGUE ============ -->
+<sc-if value="{{isLeague}}" hint-placeholder-val="{{ false }}">
+<div class="scroll">
+  <div class="pad" style="margin-top:8px">
+    <div class="eyebrow">Slops Saloon · ESPN · 10 teams</div>
+    <div class="d" style="font-size:30px;font-weight:800;margin-top:8px">3rd, and climbing.</div>
+    <div class="t2" style="font-size:14.5px;margin-top:6px">One game back of first. Omen gives you the 2nd-best roster in the league.</div>
+  </div>
+  <div class="pad" style="margin-top:22px">
+    <table>
+      <tr><th style="width:24px">#</th><th style="text-align:left">Team</th><th>W–L</th><th>PF</th><th>Omen</th></tr>
+      <sc-for list="{{standings}}" as="s" hint-placeholder-count="6"><tr class="{{s.cls}}"><td class="t3">{{s.r}}</td><td style="text-align:left">{{s.t}}</td><td>{{s.wl}}</td><td>{{s.pf}}</td><td>{{s.om}}</td></tr></sc-for>
+    </table>
+  </div>
+  <div class="pad" style="margin-top:32px">
+    <div class="d" style="font-size:19px;font-weight:700">Who needs what you have</div>
+    <div class="t3" style="font-size:13px;margin-top:4px">Ranked by how much both lineups gain</div>
+  </div>
+  <div style="margin-top:10px;display:flex;gap:12px;overflow-x:auto;padding:0 20px 4px;scrollbar-width:none">
+    <sc-for list="{{targets}}" as="t" hint-placeholder-count="3">
+      <button onClick="{{t.go}}" class="card" style="flex:none;width:250px;padding:16px">
+        <div class="row" style="justify-content:space-between"><div style="font-size:14px;font-weight:700">{{t.team}}</div><span class="chip" style="height:22px;font-size:11px">needs {{t.need}}</span></div>
+        <div style="margin-top:14px;font-size:13px" class="t3">Send</div>
+        <div style="font-size:15px;font-weight:600">{{t.send}}</div>
+        <div style="margin-top:8px;font-size:13px" class="t3">Get</div>
+        <div style="font-size:15px;font-weight:600">{{t.get}}</div>
+        <div class="row" style="margin-top:14px;justify-content:space-between"><span class="num brass" style="font-weight:800">{{t.you}} you</span><span class="num t2" style="font-weight:700">{{t.them}} them</span></div>
+      </button>
+    </sc-for>
+  </div>
+  <div class="pad" style="margin-top:32px"><div class="d" style="font-size:19px;font-weight:700">This week in the league</div></div>
+  <div style="margin-top:6px">
+    <sc-for list="{{activity}}" as="a" hint-placeholder-count="4">
+      <div class="list-row" style="min-height:56px"><div style="width:8px;height:8px;border-radius:4px;background:{{a.dot}}"></div><div style="flex:1"><div style="font-size:14.5px">{{a.t}}</div><div class="t3" style="font-size:12px">{{a.s}}</div></div></div>
+    </sc-for>
+  </div>
+</div>
+</sc-if>
+
+<!-- ============ ACCOUNT ============ -->
+<sc-if value="{{isAccount}}" hint-placeholder-val="{{ false }}">
+<div class="scroll" style="padding-top:104px">
+  <div class="pad row" style="gap:14px">
+    <div class="av" style="width:56px;height:56px;border-radius:28px;font-size:18px">JD</div>
+    <div><div class="d" style="font-size:22px;font-weight:800">Justin</div><div class="t3" style="font-size:13px">Signed in with Apple</div></div>
+  </div>
+  <div class="pad eyebrow" style="margin-top:28px">Your leagues</div>
+  <div style="margin-top:6px">
+    <sc-for list="{{leagues}}" as="l" hint-placeholder-count="3">
+      <div class="list-row" style="min-height:60px"><span class="pos" style="width:44px">{{l.p}}</span><div style="flex:1"><div style="font-size:15px;font-weight:600">{{l.team}}</div><div class="t3" style="font-size:12.5px">{{l.league}}</div></div><div style="font-size:12.5px;font-weight:600;color:{{l.c}}">{{l.s}}</div></div>
+    </sc-for>
+    <button class="list-row brass" style="font-weight:600;font-size:15px;min-height:52px">+ Connect a league</button>
+  </div>
+  <div class="pad eyebrow" style="margin-top:22px">Help</div>
+  <div style="margin-top:6px">
+    <button class="list-row" onClick="{{goSupport}}" style="min-height:56px"><div style="flex:1;font-size:15px;font-weight:600">Contact support</div><div class="t3" style="font-size:13px">Replies by email</div></button>
+    <div class="hair" style="margin-left:20px"></div>
+    <button class="list-row" onClick="{{goSupportBug}}" style="min-height:56px"><div style="flex:1;font-size:15px;font-weight:600">Report a problem</div><div class="t3" style="font-size:13px">Sends a screenshot</div></button>
+    <div class="hair" style="margin-left:20px"></div>
+    <button class="list-row" style="min-height:56px"><div style="flex:1;font-size:15px;font-weight:600">How Omen makes a call</div></button>
+  </div>
+  <div class="pad eyebrow" style="margin-top:22px">App</div>
+  <div style="margin-top:6px">
+    <div class="list-row" style="min-height:56px"><div style="flex:1;font-size:15px;font-weight:600">Appearance</div><div class="t3" style="font-size:14px">Dark</div></div>
+    <div class="hair" style="margin-left:20px"></div>
+    <div class="list-row" style="min-height:56px"><div style="flex:1;font-size:15px;font-weight:600">Notifications</div><div class="t3" style="font-size:14px">Lineup lock, trades</div></div>
+    <div class="hair" style="margin-left:20px"></div>
+    <div class="list-row" style="min-height:56px"><div style="flex:1;font-size:15px;font-weight:600">Privacy and your data</div></div>
+  </div>
+  <div class="pad" style="margin-top:28px;display:flex;flex-direction:column;gap:10px">
+    <button class="btn btn-s">Sign out</button>
+    <button class="btn" style="color:#E07A6B">Delete account</button>
+  </div>
+  <div class="pad t3" style="font-size:12px;text-align:center;margin-top:8px">Omen 1.0 (12)</div>
+</div>
+<div class="navbar">
+  <button class="back" onClick="{{goBack}}"><svg width="12" height="20" viewBox="0 0 12 20" aria-hidden="true"><path d="M10 2L2 10l8 8" stroke="#D8A648" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> {{backLabel}}</button>
+  <div class="d" style="font-size:16px;font-weight:700;position:absolute;left:50%;transform:translateX(-50%);top:70px">Account</div>
+</div>
+</sc-if>
+
+<!-- ============ SUPPORT ============ -->
+<sc-if value="{{isSupport}}" hint-placeholder-val="{{ false }}">
+<div class="scroll" style="padding-top:104px">
+  <sc-if value="{{supportSent}}" hint-placeholder-val="{{ false }}">
+    <div class="pad" style="padding-top:60px;text-align:center">
+      <div style="width:64px;height:64px;border-radius:32px;border:2px solid #C4933B;margin:0 auto;display:flex;align-items:center;justify-content:center"><svg width="26" height="20" viewBox="0 0 26 20" aria-hidden="true"><path d="M2 10l7 7L24 2" stroke="#D8A648" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="d" style="font-size:24px;font-weight:800;margin-top:20px">Sent to Justin.</div>
+      <div class="t2" style="font-size:15px;margin-top:10px;line-height:1.5">It landed in the founder's inbox as ticket #1042. You'll get a reply at the email on your account, usually the same day.</div>
+      <button class="btn btn-s" onClick="{{goBack}}" style="margin-top:28px">Done</button>
+    </div>
+  </sc-if>
+  <sc-if value="{{supportComposing}}" hint-placeholder-val="{{ true }}">
+    <div class="pad">
+      <div class="d" style="font-size:28px;font-weight:800">{{supportTitle}}</div>
+      <div class="t2" style="font-size:14.5px;margin-top:6px;line-height:1.45">A real person reads every one. Replies come to your account email.</div>
+      <div class="eyebrow" style="margin-top:24px">About</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
+        <sc-for list="{{topics}}" as="t" hint-placeholder-count="4"><button onClick="{{t.pick}}" class="chip" style="height:36px;padding:0 14px;font-size:13.5px;background:{{t.bg}};color:{{t.fg}}">{{t.label}}</button></sc-for>
+      </div>
+      <label for="msg" class="eyebrow" style="display:block;margin-top:24px">What happened</label>
+      <textarea id="msg" style="margin-top:10px;width:100%;height:150px;border-radius:16px;background:#2A2A27;border:1px solid #3A3A36;color:#F5F0E8;padding:14px;font:inherit;font-size:15px;resize:none" placeholder="The trade screen froze after I picked Bijan…"></textarea>
+      <div class="row" style="margin-top:14px;justify-content:space-between">
+        <div style="font-size:14px">Attach a screenshot of this screen</div>
+        <div style="width:50px;height:30px;border-radius:15px;background:#C4933B;position:relative"><div style="position:absolute;right:2px;top:2px;width:26px;height:26px;border-radius:13px;background:#F5F0E8"></div></div>
+      </div>
+      <div class="t3" style="font-size:12.5px;margin-top:14px;line-height:1.5">We also send your app version and which league was open. Never your provider login.</div>
+      <button class="btn btn-p" onClick="{{sendSupport}}" style="margin-top:24px">Send</button>
+    </div>
+  </sc-if>
+</div>
+<div class="navbar">
+  <button class="back" onClick="{{goBack}}"><svg width="12" height="20" viewBox="0 0 12 20" aria-hidden="true"><path d="M10 2L2 10l8 8" stroke="#D8A648" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> {{backLabel}}</button>
+</div>
+</sc-if>
+
+<!-- ============ TEAM SWITCHER ============ -->
+<sc-if value="{{showTeams}}" hint-placeholder-val="{{ false }}">
+  <button class="scrim" onClick="{{closeTeams}}" aria-label="Close"></button>
+  <div class="sheet">
+    <div class="grab"></div>
+    <div class="pad d" style="font-size:20px;font-weight:800">Your teams</div>
+    <div style="margin-top:8px">
+      <sc-for list="{{leagues}}" as="l" hint-placeholder-count="3">
+        <button onClick="{{closeTeams}}" class="list-row" style="min-height:64px;background:{{l.bg}}"><span class="pos" style="width:44px">{{l.p}}</span><div style="flex:1"><div style="font-size:15px;font-weight:600">{{l.team}}</div><div class="t3" style="font-size:12.5px">{{l.league}}</div></div><div class="num" style="font-size:15px;font-weight:700">{{l.score}}</div></button>
+      </sc-for>
+    </div>
+    <div class="pad" style="margin-top:10px;display:flex;gap:10px"><button class="btn btn-s" style="flex:1">Connect a league</button><button class="btn btn-s" style="flex:1" onClick="{{teamsToAccount}}">Account</button></div>
+  </div>
+</sc-if>
+
+<sc-if value="{{showTabs}}" hint-placeholder-val="{{ true }}">
+<div class="tabbar" role="tablist">
+  <button class="{{tabDesk}}" onClick="{{goDesk}}"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect x="3" y="5" width="16" height="12" rx="3" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M3 9h16" stroke="currentColor" stroke-width="1.8"/></svg>Desk</button>
+  <button class="{{tabOmen}}" onClick="{{goOmen}}"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M11 2v4M11 16v4M2 11h4M16 11h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Omen</button>
+  <button class="{{tabTrade}}" onClick="{{goTradeTab}}"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M4 8h13l-3.5-3.5M18 14H5l3.5 3.5" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Trade</button>
+  <button class="{{tabLeague}}" onClick="{{goLeague}}"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect x="3.5" y="10" width="4" height="8" rx="1.2" fill="currentColor"/><rect x="9" y="5" width="4" height="13" rx="1.2" fill="currentColor"/><rect x="14.5" y="8" width="4" height="10" rx="1.2" fill="currentColor"/></svg>League</button>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+var MINE = [
+  {id:'hurts',name:'Jalen Hurts',short:'Hurts',pos:'QB',team:'PHI',grade:84,omen:22.9,prov:21.6,status:'Sun 1:00 vs NYG',starter:true},
+  {id:'bijan',name:'Bijan Robinson',short:'Bijan',pos:'RB',team:'ATL',grade:91,omen:19.8,prov:18.7,status:'Sun 4:25 at SEA',starter:true},
+  {id:'jw',name:'Jaylen Wright',short:'J. Wright',pos:'RB',team:'TEN',grade:68,omen:14.8,prov:11.4,status:'Playing · 9.6 pts',starter:true},
+  {id:'puka',name:'Puka Nacua',short:'Puka',pos:'WR',team:'LAR',grade:88,omen:18.6,prov:15.9,status:'Final · 21.4 pts',starter:true},
+  {id:'dsmith',name:'DeVonta Smith',short:'D. Smith',pos:'WR',team:'PHI',grade:72,omen:12.9,prov:13.4,status:'Sun 1:00 vs NYG',starter:true},
+  {id:'mcbride',name:'Trey McBride',short:'McBride',pos:'TE',team:'ARI',grade:82,omen:13.7,prov:12.2,status:'Sun 4:05 vs LAC',starter:true},
+  {id:'meyers',name:'Jakobi Meyers',short:'Meyers',pos:'WR',team:'LV',grade:61,omen:9.8,prov:10.6,status:'Bench',starter:false},
+  {id:'rj',name:'Roschon Johnson',short:'R. Johnson',pos:'RB',team:'CHI',grade:31,omen:7.5,prov:4.1,status:'Bench',starter:false}
+];
+var PARTNERS = [
+  {id:'gmr',name:'Gibbs me some Rice',short:'Gibbs me some Rice',ini:'GR',need:'Needs WR',needPos:'WR',roster:[
+    {id:'gibbs',name:'Jahmyr Gibbs',short:'Gibbs',pos:'RB',team:'DET',grade:93,omen:20.4,prov:19.1,status:'Starter'},
+    {id:'purdy',name:'Brock Purdy',short:'Purdy',pos:'QB',team:'SF',grade:76,omen:19.2,prov:18.8,status:'Starter'},
+    {id:'zay',name:'Zay Flowers',short:'Z. Flowers',pos:'WR',team:'BAL',grade:77,omen:13.9,prov:13.1,status:'Bench · 3rd WR'},
+    {id:'gwilson',name:'Garrett Wilson',short:'G. Wilson',pos:'WR',team:'NYJ',grade:81,omen:15.2,prov:15.6,status:'Starter'},
+    {id:'ferg',name:'Jake Ferguson',short:'Ferguson',pos:'TE',team:'DAL',grade:63,omen:9.9,prov:10.3,status:'Starter'},
+    {id:'pollard',name:'Tony Pollard',short:'Pollard',pos:'RB',team:'TEN',grade:0,omen:0,prov:0,status:'Out · IR',locked:true},
+    {id:'kmiller',name:'Kendre Miller',short:'K. Miller',pos:'RB',team:'NO',grade:58,omen:9.1,prov:8.4,status:'Starter'}
+  ]},
+  {id:'dmv',name:'Drake Maye Day',short:'Drake Maye Day',ini:'DM',need:'Needs RB',needPos:'RB',roster:[
+    {id:'maye',name:'Drake Maye',short:'Maye',pos:'QB',team:'NE',grade:79,omen:20.1,prov:18.9,status:'Starter'},
+    {id:'ajb',name:'A.J. Brown',short:'A.J. Brown',pos:'WR',team:'PHI',grade:86,omen:16.8,prov:17.2,status:'Starter'},
+    {id:'ladd',name:'Ladd McConkey',short:'McConkey',pos:'WR',team:'LAC',grade:80,omen:14.4,prov:13.2,status:'Starter'},
+    {id:'tucker',name:'Tucker Kraft',short:'Kraft',pos:'TE',team:'GB',grade:74,omen:11.6,prov:10.9,status:'Starter'},
+    {id:'jj',name:'Javonte Williams',short:'J. Williams',pos:'RB',team:'DAL',grade:55,omen:10.2,prov:11.0,status:'Starter'}
+  ]}
+];
+var NEED_BONUS = 2.6;
+// Player badge: NFL team colour, jersey number, position. No photos (no lawful free source; founder 2026-10-21).
+var TEAM = {PHI:['#004C54','#fff'],ATL:['#A71930','#fff'],TEN:['#4B92DB','#0C2340'],LAR:['#003594','#FFD100'],ARI:['#97233F','#fff'],LV:['#A5ACAF','#000'],CHI:['#0B162A','#E64100'],DET:['#0076B6','#fff'],SF:['#AA0000','#fff'],BAL:['#241773','#fff'],NYJ:['#125740','#fff'],DAL:['#041E42','#fff'],NO:['#D3BC8D','#101820'],NE:['#002244','#fff'],LAC:['#0080C6','#FFC20E'],GB:['#203731','#FFB612'],KC:['#E31837','#fff']};
+var NUM = {hurts:1,bijan:7,jw:20,puka:12,dsmith:6,mcbride:85,meyers:16,rj:23,gibbs:26,purdy:13,zay:4,gwilson:5,ferg:87,pollard:20,kmiller:25,maye:10,ajb:11,ladd:15,tucker:85,jj:33};
+function badge(p){ var c = TEAM[p.team] || ['#343431','#F5F0E8']; return {bc:c[0], fc:c[1], num:NUM[p.id] != null ? String(NUM[p.id]) : p.pos}; }
+
+class Component extends DCLogic {
+  constructor(p){ super(p); this.state = {screen:'desk', tab:'desk', back:[], player:'puka', side:'mine', send:[], get:[], pi:0, verdict:false}; }
+  nav(screen, extra){ var st=this.state; this.setState(Object.assign({screen:screen, back:st.back.concat([{screen:st.screen,tab:st.tab}])}, extra||{})); }
+  tabTo(t, screen){ this.setState({tab:t, screen:screen, back:[], verdict:false}); }
+  allPlayers(){ var all = MINE.slice(); PARTNERS.forEach(function(p){ all = all.concat(p.roster.map(function(r){ return Object.assign({owner:p.name}, r); })); }); return all; }
+  find(id){ var a=this.allPlayers(); for (var i=0;i<a.length;i++) if (a[i].id===id) return a[i]; return MINE[0]; }
+  sum(ids, key){ var s=0, self=this; ids.forEach(function(id){ s += self.find(id)[key]||0; }); return s; }
+  fmt(n){ return (n>=0?'+':'') + n.toFixed(1); }
+  playerView(id){
+    var p = this.find(id), mine = MINE.some(function(m){return m.id===id;});
+    var g = p.grade, base = p.omen || 8;
+    var seed = id.length;
+    var last = [0.8,1.25,0.6,1.1,0.95].map(function(f,i){ var v = Math.max(1.5, base*(f + ((seed+i)%3-1)*0.08)); return v; });
+    var maxv = Math.max.apply(null,last);
+    var opps = ['DAL','SF','NYG','BYE','SEA'].slice(0,5);
+    opps = ['W2','W3','W4','W5','W6'];
+    var usageByPos = {
+      QB:[{k:'Pass att/g',v:'34.1'},{k:'Rush att/g',v:'8.6'},{k:'RZ att',v:'19'},{k:'Sacked %',v:'6.2'}],
+      RB:[{k:'Snap share',v: id==='jw'?'71%':Math.round(40+g/3)+'%'},{k:'Carries/g',v: id==='jw'?'18.0':(8+g/8).toFixed(1)},{k:'Targets/g',v:(1.5+g/40).toFixed(1)},{k:'RZ touches',v:String(Math.round(g/9))}],
+      WR:[{k:'Target share',v: id==='puka'?'29%':Math.round(12+g/6)+'%'},{k:'Snap share',v:Math.round(70+g/5)+'%'},{k:'aDOT',v:(7+g/30).toFixed(1)},{k:'RZ targets',v:String(Math.round(g/12))}],
+      TE:[{k:'Target share',v:Math.round(10+g/7)+'%'},{k:'Route rate',v:Math.round(55+g/3)+'%'},{k:'aDOT',v:(5+g/40).toFixed(1)},{k:'RZ targets',v:String(Math.round(g/11))}]
+    };
+    var seasonByPos = {
+      QB:[{k:'Pass yds',v:'1,742'},{k:'Pass TD / INT',v:'11 / 3'},{k:'Rush yds',v:'288'},{k:'Rush TD',v:'4'},{k:'Fantasy pts / g',v:'22.4'}],
+      RB:[{k:'Rush yds',v:String(Math.round(g*5.2))},{k:'Yds / carry',v:(3.6+g/90).toFixed(1)},{k:'Receptions',v:String(Math.round(g/5))},{k:'Total TD',v:String(Math.round(g/18))},{k:'Fantasy pts / g',v:(base*0.95).toFixed(1)}],
+      WR:[{k:'Receptions',v: id==='puka'?'52':String(Math.round(g/2.2))},{k:'Rec yds',v: id==='puka'?'694':String(Math.round(g*6.6))},{k:'Yds / catch',v: id==='puka'?'13.3':(10+g/40).toFixed(1)},{k:'Rec TD',v:String(Math.round(g/20))},{k:'Fantasy pts / g',v:(base*0.96).toFixed(1)}],
+      TE:[{k:'Receptions',v:String(Math.round(g/2.4))},{k:'Rec yds',v:String(Math.round(g*5))},{k:'Yds / catch',v:(9+g/50).toFixed(1)},{k:'Rec TD',v:String(Math.round(g/22))},{k:'Fantasy pts / g',v:(base*0.95).toFixed(1)}]
+    };
+    var drivers = id==='meyers' ? [{name:'Slot vs. a rookie nickel corner',pts:'+1.9'},{name:'Adams gone: 8.3 targets a game since',pts:'+1.1'},{name:'Raiders trail, throw late',pts:'+0.4'}]
+      : id==='dsmith' ? [{name:'Shadowed by a top-10 outside corner',pts:'−2.2'},{name:'Eagles favoured by 7, run late',pts:'−0.6'}]
+      : id==='mcbride' ? [{name:'Seams open against two-high zone',pts:'+1.4'},{name:'27% target share, best among TEs',pts:'+0.9'}]
+      : id==='jw' ? [{name:'Took over the backfield',pts:'+2.4'},{name:'Tennessee is a 3-pt favourite',pts:'+0.6'},{name:'Jaguars allow 4.9 yds/carry',pts:'+0.4'}]
+      : id==='puka' ? [{name:'Target share up since Week 4',pts:'+1.6'},{name:'Faces the 28th pass defence',pts:'+0.8'},{name:'49.5-point game total',pts:'+0.3'}]
+      : [{name:'Role over the last 3 weeks',pts:this.fmt((g-60)/25)},{name:'Matchup',pts:this.fmt((g-55)/40)}];
+    var gap = (p.omen - p.prov);
+    var roleNote = id==='jw' ? 'Lead back since Pollard went on IR. 18 carries last week, up from 6.' : id==='puka' ? 'Rams’ first read. 11 targets a game since Week 4.' : 'Steady role over the last three weeks.';
+    var bd = badge(p);
+    return {
+      bc: bd.bc, fc: bd.fc, num: bd.num,
+      ini: p.name.split(' ').map(function(w){return w[0];}).join('').slice(0,2),
+      name:p.name, pos:p.pos, teamName:p.team, owner: mine ? 'Your team' : (p.owner||'League'),
+      game: p.status, omen: p.omen.toFixed(1), prov: p.prov.toFixed(1), gap: (gap>=0?'+':'')+gap.toFixed(1)+' higher', grade: p.grade,
+      drivers: drivers,
+      last: last.map(function(v,i){ return {pts:v.toFixed(1), opp:opps[i], h: Math.round(10+54*v/maxv)+'px', cls: v>=base?'hi':''}; }),
+      avg: (last.reduce(function(a,b){return a+b;},0)/5).toFixed(1),
+      usage: usageByPos[p.pos]||usageByPos.WR, season: seasonByPos[p.pos]||seasonByPos.WR, roleNote: roleNote,
+      tradeLabel: mine ? 'Shop '+p.short+' in a trade' : 'Trade for '+p.short
+    };
+  }
+  renderVals(){
+    var self=this, st=this.state, partner=PARTNERS[st.pi];
+    var open = function(id){ return function(){ self.nav('player',{player:id}); }; };
+    var toggle = function(id, mine){ return function(){
+      var key = mine?'send':'get', cur = st[key].slice(), i = cur.indexOf(id);
+      if (i>=0) cur.splice(i,1); else cur.push(id);
+      var o={}; o[key]=cur; self.setState(o);
+    }; };
+    var roster = st.side==='mine' ? MINE : partner.roster;
+    var rosterRows = roster.map(function(p){
+      var mine = st.side==='mine', sel = (mine?st.send:st.get).indexOf(p.id)>=0;
+      return Object.assign(badge(p), { name:p.name, pos:p.pos, grade: p.locked?'—':p.grade, sel: sel,
+        sub: p.team+' · '+(p.locked? 'Out · can’t be traded' : p.omen.toFixed(1)+' this week'),
+        checkCls: 'check'+(sel?' on':''), op: p.locked? '.45':'1',
+        gradeCls: 'grade '+(p.locked?'g-lo':p.grade>=80?'g-hi':p.grade>=60?'g-mid':'g-lo'),
+        toggle: p.locked? function(){} : toggle(p.id, mine), open: open(p.id) });
+    });
+    var sendList = st.send.map(function(id){ var p=self.find(id); return {name:p.name, short:p.short, toggle:toggle(id,true)}; });
+    var getList = st.get.map(function(id){ var p=self.find(id); return {name:p.name, short:p.short, toggle:toggle(id,false)}; });
+    var ready = st.send.length>0 && st.get.length>0;
+    var sendPts = this.sum(st.send,'omen'), getPts = this.sum(st.get,'omen');
+    var sendsNeed = st.send.some(function(id){ return self.find(id).pos===partner.needPos; });
+    var you = ready ? (getPts - sendPts)*0.55 + 0.4 : 0;
+    var them = ready ? (sendPts - getPts)*0.55 + (sendsNeed?NEED_BONUS:0) : 0;
+    var fair = you>=0.5 && them>=0.5;
+    var head = !ready ? '' : fair ? 'Both of you win this.' : you<0.5 && them>=0.5 ? 'You’d be giving it away.' : them<0.5 && you>=0.5 ? 'They won’t take it.' : 'Nobody gets better.';
+    var body = !ready ? '' : fair ? 'You fill your flex with a better weekly scorer, and '+partner.short+' finally gets the '+partner.needPos+' they’ve been starting a backup at.' :
+      you<0.5 ? 'Your lineup gets worse each week. Ask for more, or send less.' : partner.short+' loses points in their lineup. Add something at '+partner.needPos+' to get their attention.';
+    var starters = MINE.filter(function(p){return p.starter;}).map(function(p){ return Object.assign(badge(p), {name:p.name,pos:p.pos,team:p.team,status:p.status,omen:p.omen.toFixed(1),prov:'ESPN '+p.prov.toFixed(1),open:open(p.id)}); });
+    var tab = function(t){ return 'tab'+(st.tab===t?' on':''); };
+    var backTop = st.back.length ? st.back[st.back.length-1] : null;
+    var labels = {desk:'Desk',omen:'Omen',player:'Player',trade:'Trade',league:'League',account:'Account',support:'Support'};
+    return {
+      isDesk: st.screen==='desk', isOmen: st.screen==='omen', isPlayer: st.screen==='player', isTrade: st.screen==='trade', isLeague: st.screen==='league',
+      onRoll: function(e){ var el=e.currentTarget; var i=Math.round(el.scrollLeft/342); if (i!==(st.ri||0)) self.setState({ri:i}); },
+      rolo: [
+        {provider:'ESPN',pc:'#C81E2C',league:'Slops Saloon',status:'Live · Q2',team:'Titans of Slopsilonia',rec:'5–2',left:'4 to play',us:'64.8',opp:'Gibbs me some Rice',oppRec:'6–1 · 2 to play',them:'51.2',win:'56%',line:'Projected to win by 5.4. Bijan and McBride still to play.'},
+        {provider:'Sleeper',pc:'#1FA3E8',league:'Dynasty Degens',status:'Live · Q3',team:'Slopsilonia Dynasty',rec:'4–3',left:'3 to play',us:'88.1',opp:'Taxi Squad Kings',oppRec:'5–2 · 1 to play',them:'92.4',win:'61%',line:'Down 4.3 but your three left outscore their one. Omen has you by 9.'},
+        {provider:'Yahoo',pc:'#7B3FD6',league:'Work League',status:'Sign in again',team:'Gridiron Gumbo',rec:'3–4',left:'—',us:'—',opp:'Yahoo needs you to sign in again',oppRec:'Scores pause until you do',them:'',win:'0%',line:'Tap to reconnect. Your league is kept.'}
+      ].map(function(t,i){ var on=i===(st.ri||0); return Object.assign(t,{tf: on?'scale(1)':'scale(.94)', op: on?'1':'.55', dotW: on?'18px':'6px', dotC: on?'#C4933B':'#4A4A45'}); }),
+      showTabs: !(st.screen==='player' || st.screen==='account' || st.screen==='support' || (st.screen==='trade' && st.back.length>0)),
+      isAccount: st.screen==='account', isSupport: st.screen==='support',
+      goAccount: function(){ self.nav('account'); },
+      goSupport: function(){ self.nav('support',{topic:'question',sent:false}); },
+      goSupportBug: function(){ self.nav('support',{topic:'bug',sent:false}); },
+      supportSent: !!st.sent, supportComposing: !st.sent,
+      supportTitle: st.topic==='bug' ? 'Report a problem' : 'Contact support',
+      sendSupport: function(){ self.setState({sent:true}); },
+      topics: [['bug','Something broke'],['call','A call looks wrong'],['connect','League connection'],['question','Question']].map(function(t){ var on = (st.topic||'question')===t[0]; return {label:t[1], bg: on?'#C4933B':'#343431', fg: on?'#14140F':'#BDB5A9', pick:function(){ self.setState({topic:t[0]}); }}; }),
+      showTeams: !!st.teams, openTeams: function(){ self.setState({teams:true}); }, closeTeams: function(){ self.setState({teams:false}); },
+      teamsToAccount: function(){ self.setState({teams:false}); self.nav('account'); },
+      leagues: [
+        {p:'ESPN',team:'Titans of Slopsilonia',league:'Slops Saloon · 5–2',score:'64.8–51.2',s:'Live',c:'#7DC98A',bg:'#30302C'},
+        {p:'SLPR',team:'Slopsilonia Dynasty',league:'Dynasty Degens · 4–3',score:'88.1–92.4',s:'Live',c:'#7DC98A',bg:'transparent'},
+        {p:'YHOO',team:'Gridiron Gumbo',league:'Work League · 3–4',score:'—',s:'Sign in again',c:'#D8A648',bg:'transparent'}
+      ],
+      openMcB: open('mcbride'), openMeyers: open('meyers'), openSmith: open('dsmith'),
+      hasBack: st.back.length>0,
+      tabDesk: tab('desk'), tabOmen: tab('omen'), tabTrade: tab('trade'), tabLeague: tab('league'),
+      goDesk: function(){ self.tabTo('desk','desk'); }, goOmen: function(){ self.tabTo('omen','omen'); },
+      goTradeTab: function(){ self.tabTo('trade','trade'); }, goLeague: function(){ self.tabTo('league','league'); },
+      goTradeFromDesk: function(){ self.nav('trade',{pi:0, send:['dsmith'], get:['zay'], side:'theirs'}); },
+      openJW: open('jw'), openRJ: open('rj'),
+      goBack: function(){ if(!st.back.length){ self.tabTo(st.tab, st.tab); return; } var b=st.back.slice(), top=b.pop(); self.setState({screen:top.screen, tab:top.tab, back:b, verdict:false}); },
+      backLabel: backTop ? labels[backTop.screen] : labels[st.tab],
+      starters: starters,
+      jwDrivers: [
+        {name:'Smith draws the shadow corner', note:'The Giants travel their top corner on the outside', pts:'+2.2', w:'100%'},
+        {name:'Meyers gets the rookie in the slot', note:'Slot corners have allowed 9.1 yards a target to him', pts:'+1.9', w:'86%'},
+        {name:'Targets since Adams left', note:'8.3 a game, up from 5.6', pts:'+1.1', w:'50%'},
+        {name:'Game script', note:'Eagles favoured by 7, so they run late; the Raiders throw', pts:'+1.0', w:'45%'}
+      ],
+      pl: this.playerView(st.player),
+      tradeThisPlayer: function(){ var mine = MINE.some(function(m){return m.id===st.player;}); var o={pi:st.pi, side: mine?'mine':'theirs'}; if (mine) o.send=[st.player]; else { var idx=0; PARTNERS.forEach(function(p,i){ if (p.roster.some(function(r){return r.id===st.player;})) idx=i; }); o.pi=idx; o.get=[st.player]; o.send=[]; } self.nav('trade',o); },
+      partner: partner,
+      cyclePartner: function(){ self.setState({pi:(st.pi+1)%PARTNERS.length, get:[], verdict:false}); },
+      segMine: st.side==='mine'?'on':'', segTheirs: st.side==='theirs'?'on':'',
+      showMine: function(){ self.setState({side:'mine'}); }, showTheirs: function(){ self.setState({side:'theirs'}); },
+      rosterRows: rosterRows, sendList: sendList, getList: getList,
+      sendEmpty: !sendList.length, getEmpty: !getList.length,
+      sendTrayCls: 'tray'+(sendList.length?' full':''), getTrayCls: 'tray'+(getList.length?' full':''),
+      youDelta: ready? this.fmt(you) : '—', themDelta: ready? this.fmt(them) : '—',
+      youColor: !ready?'#A79E90': you>=0.5?'#D8A648':'#F5F0E8', themColor: !ready?'#A79E90': them>=0.5?'#D8A648':'#F5F0E8',
+      judge: function(){ if (ready) self.setState({verdict:true}); },
+      judgeOp: ready?'1':'.4', judgeLabel: ready? 'Judge this trade' : 'Pick a player on each side',
+      clearTrade: function(){ self.setState({send:[], get:[], verdict:false}); },
+      showVerdict: st.verdict, closeVerdict: function(){ self.setState({verdict:false}); },
+      verdictHead: head, verdictBody: body,
+      verdictCatch: fair ? 'The catch: Flowers has a Week 14 bye, your first playoff week.' : 'Omen only suggests trades where both lineups gain at least half a point a week.',
+      standings: [
+        {r:1,t:'Gibbs me some Rice',wl:'6–1',pf:'812',om:'3rd'},
+        {r:2,t:'Drake Maye Day',wl:'5–2',pf:'798',om:'4th'},
+        {r:3,t:'Titans of Slopsilonia',wl:'5–2',pf:'841',om:'2nd',cls:'me'},
+        {r:4,t:'Bowers Bowl',wl:'4–3',pf:'826',om:'1st'},
+        {r:5,t:'Ja’Marr Hug',wl:'4–3',pf:'760',om:'6th'},
+        {r:6,t:'Nabers Think',wl:'3–4',pf:'744',om:'5th'}
+      ].map(function(s){ s.cls = s.cls||''; return s; }),
+      targets: [
+        {team:'Gibbs me some Rice',need:'WR',send:'DeVonta Smith',get:'Zay Flowers + K. Miller',you:'+1.9',them:'+2.4',go:function(){ self.nav('trade',{pi:0,send:['dsmith'],get:['zay','kmiller'],side:'theirs'}); }},
+        {team:'Drake Maye Day',need:'RB',send:'Jaylen Wright',get:'Ladd McConkey',you:'+1.2',them:'+3.1',go:function(){ self.nav('trade',{pi:1,send:['jw'],get:['ladd'],side:'theirs'}); }}
+      ],
+      activity: [
+        {t:'Bowers Bowl added Tyrone Tracy', s:'Waivers · $14 FAAB · Tue', dot:'#C4933B'},
+        {t:'Nabers Think traded Kyren Williams for Mike Evans', s:'Trade · Mon', dot:'#BDB5A9'},
+        {t:'Drake Maye Day dropped Rashid Shaheed', s:'Free agent · Mon', dot:'#6B675F'}
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

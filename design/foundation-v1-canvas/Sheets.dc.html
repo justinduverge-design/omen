@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sheets</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Wix+Madefor+Display:wght@600;700;800&amp;family=Wix+Madefor+Text:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+*{box-sizing:border-box}
+.d{font-family:'Wix Madefor Display',system-ui,sans-serif}
+.num{font-family:'Wix Madefor Display',system-ui,sans-serif;font-variant-numeric:tabular-nums}
+.phone{width:390px;height:844px;border-radius:44px;overflow:hidden;position:relative;background:#1F1F1D;color:#F5F0E8;font-family:'Wix Madefor Text',system-ui,sans-serif;flex:none}
+.isl{position:absolute;top:11px;left:133px;width:124px;height:36px;border-radius:20px;background:#000;z-index:3}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.5)}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#262624;border-radius:28px 28px 0 0;padding:12px 20px 34px}
+.grab{width:36px;height:5px;border-radius:3px;background:#4A4A45;margin:0 auto 14px}
+.top{display:flex;justify-content:space-between;align-items:center}
+.close{font-size:15px;font-weight:600;color:#D8A648;min-height:44px;display:flex;align-items:center}
+.btn{height:52px;border-radius:26px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px}
+.tm{display:flex;align-items:center;gap:12px;min-height:64px;border-bottom:1px solid #33332F}
+.prov{width:44px;height:22px;border-radius:6px;border:1px solid #4A4A45;font-size:10px;font-weight:700;color:#BDB5A9;display:flex;align-items:center;justify-content:center;flex:none}
+.chip{height:36px;padding:0 14px;border-radius:18px;font-size:13.5px;font-weight:600;display:inline-flex;align-items:center}
+</style>
+</helmet>
+<div style="width:1330px;height:844px;display:flex;gap:80px">
+
+  <div class="phone" aria-label="Team switcher">
+    <div class="isl"></div><div class="scrim"></div>
+    <div class="sheet">
+      <div class="grab"></div>
+      <div class="top"><div class="d" style="font-size:22px;font-weight:800">Your teams</div><div class="close">Done</div></div>
+      <div class="tm" style="background:#30302C;margin:6px -20px 0;padding:0 20px"><span class="prov">ESPN</span><div style="flex:1"><div style="font-size:15px;font-weight:600">Titans of Slopsilonia</div><div style="font-size:12.5px;color:#A79E90">Slops Saloon · 5–2</div></div><div class="num" style="font-weight:700">64.8–51.2</div></div>
+      <div class="tm"><span class="prov">SLPR</span><div style="flex:1"><div style="font-size:15px;font-weight:600">Slopsilonia Dynasty</div><div style="font-size:12.5px;color:#A79E90">Dynasty Degens · 4–3</div></div><div class="num" style="font-weight:700">88.1–92.4</div></div>
+      <div class="tm"><span class="prov">YHOO</span><div style="flex:1"><div style="font-size:15px;font-weight:600">Gridiron Gumbo</div><div style="font-size:12.5px;color:#A79E90">Work League · 3–4</div></div><div style="font-size:13px;font-weight:600;color:#D8A648">Sign in again</div></div>
+      <div style="display:flex;gap:10px;margin-top:16px"><div class="btn" style="flex:1;background:#343431">Connect a league</div><div class="btn" style="flex:1;background:#343431">Account</div></div>
+    </div>
+  </div>
+
+  <div class="phone" aria-label="Verdict">
+    <div class="isl"></div><div class="scrim"></div>
+    <div class="sheet">
+      <div class="grab"></div>
+      <div class="top"><div style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:#D8A648">Omen's verdict</div><div class="close">Close</div></div>
+      <div class="d" style="font-size:28px;font-weight:800;line-height:1.1;margin-top:4px">Both of you win this.</div>
+      <div style="font-size:15px;color:#BDB5A9;line-height:1.45;margin-top:10px">You fill your flex with a better weekly scorer, and Gibbs me some Rice finally gets the WR they've been starting a backup at.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px">
+        <div style="background:#2A2A27;border-radius:16px;padding:14px"><div style="font-size:12px;color:#A79E90">Your lineup, a week</div><div class="num" style="font-size:26px;font-weight:800;color:#D8A648">+1.9</div></div>
+        <div style="background:#2A2A27;border-radius:16px;padding:14px"><div style="font-size:12px;color:#A79E90">Theirs, a week</div><div class="num" style="font-size:26px;font-weight:800">+2.4</div></div>
+      </div>
+      <div style="font-size:12.5px;color:#BDB5A9;margin-top:12px"><b style="color:#F5F0E8">The catch:</b> Flowers has a Week 14 bye, your first playoff week.</div>
+      <div style="display:flex;gap:10px;margin-top:18px"><div class="btn" style="flex:1;background:#343431">Adjust</div><div class="btn" style="flex:1.5;background:#C4933B;color:#14140F">Open in ESPN</div></div>
+      <div style="display:flex;justify-content:space-between;margin-top:12px;font-size:13.5px;font-weight:600"><span style="color:#D8A648">Share</span><span style="color:#D8A648">Save for later</span><span style="color:#A79E90">I sent it</span></div>
+    </div>
+  </div>
+
+  <div class="phone" aria-label="Report a problem">
+    <div class="isl"></div><div class="scrim"></div>
+    <div class="sheet" style="top:120px">
+      <div class="grab"></div>
+      <div class="top"><div class="d" style="font-size:22px;font-weight:800">Report a problem</div><div class="close">Cancel</div></div>
+      <div style="font-size:13.5px;color:#BDB5A9;margin-top:2px">A real person reads every one. Replies come to your account email.</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px"><span class="chip" style="background:#C4933B;color:#14140F">Something broke</span><span class="chip" style="background:#343431;color:#BDB5A9">A call looks wrong</span><span class="chip" style="background:#343431;color:#BDB5A9">League connection</span><span class="chip" style="background:#343431;color:#BDB5A9">Question</span></div>
+      <div style="height:130px;border-radius:16px;background:#2E2E2B;border:1px solid #3A3A36;margin-top:16px;padding:14px;font-size:15px;color:#A79E90">What happened?</div>
+      <div style="font-size:12px;color:#A79E90;margin-top:12px;line-height:1.5">Sent with it: this screen (Trade), app 1.0 (12), iPhone 16, iOS 27, ESPN connected. Omen's own model summarizes it for the founder. Your words stay on Omen's servers for 30 days.</div>
+      <div class="btn" style="background:#C4933B;color:#14140F;margin-top:16px">Send</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1330,"height":844}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>League pick</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Wix+Madefor+Display:wght@600;700;800&amp;family=Wix+Madefor+Text:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+*{box-sizing:border-box}
+.d{font-family:'Wix Madefor Display',system-ui,sans-serif}
+.eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:600}
+.step{display:flex;align-items:center;gap:12px;min-height:40px;font-size:14.5px}
+.dot{width:22px;height:22px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex:none}
+.lg{display:flex;align-items:center;gap:12px;min-height:66px;border-bottom:1px solid #33332F}
+.check{width:26px;height:26px;border-radius:13px;display:flex;align-items:center;justify-content:center;flex:none}
+</style>
+</helmet>
+<div style="width:390px;height:844px;border-radius:44px;overflow:hidden;position:relative;background:#1F1F1D;color:#F5F0E8;font-family:'Wix Madefor Text',system-ui,sans-serif">
+  <div style="position:absolute;top:11px;left:133px;width:124px;height:36px;border-radius:20px;background:#000"></div>
+  <div style="padding:58px 12px 0;height:104px;display:flex;align-items:center">
+    <a href="Connect.dc.html" style="display:flex;align-items:center;gap:4px;height:44px;padding:0 8px;color:#D8A648;font-size:16px;text-decoration:none"><svg width="12" height="20" viewBox="0 0 12 20" aria-hidden="true"><path d="M10 2L2 10l8 8" stroke="#D8A648" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> Connect</a>
+  </div>
+  <div style="padding:0 20px">
+    <div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:4px;background:#C81E2C;display:inline-block"></span><span class="eyebrow" style="color:#A79E90">ESPN</span></div>
+    <div class="d" style="font-size:28px;font-weight:800;line-height:1.08;margin-top:8px">Finding your leagues</div>
+
+    <div style="margin-top:16px">
+      <div class="step"><span class="dot" style="background:#C4933B"><svg width="11" height="9" viewBox="0 0 12 10" aria-hidden="true"><path d="M1.5 5l3 3 6-6.5" stroke="#14140F" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Signed in to ESPN</div>
+      <div class="step"><span class="dot" style="background:#C4933B"><svg width="11" height="9" viewBox="0 0 12 10" aria-hidden="true"><path d="M1.5 5l3 3 6-6.5" stroke="#14140F" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Found 2 football leagues</div>
+      <div class="step"><span class="dot" style="border:2px dashed #6B675F"></span><span style="color:#BDB5A9">Still checking. ESPN sometimes lists leagues late.</span></div>
+    </div>
+
+    <div class="d" style="font-size:19px;font-weight:700;margin-top:22px">Follow which?</div>
+    <div class="lg">
+      <span class="check" style="background:#C4933B"><svg width="12" height="10" viewBox="0 0 12 10" aria-hidden="true"><path d="M1.5 5l3 3 6-6.5" stroke="#14140F" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <div style="flex:1"><div style="font-size:15.5px;font-weight:600">Slops Saloon</div><div style="font-size:12.5px;color:#A79E90">Titans of Slopsilonia · 10 teams · half-PPR</div></div>
+    </div>
+    <div class="lg">
+      <span class="check" style="border:2px solid #5A564F"></span>
+      <div style="flex:1"><div style="font-size:15.5px;font-weight:600">Office Pool</div><div style="font-size:12.5px;color:#A79E90">Gumbo Ya Ya · 12 teams · PPR</div></div>
+    </div>
+    <div style="font-size:13px;color:#A79E90;margin-top:14px;line-height:1.5">Missing one? <span style="color:#D8A648;font-weight:600">Check again</span>, or add it by league ID.</div>
+  </div>
+  <div style="position:absolute;left:0;right:0;bottom:0;padding:16px 20px 32px">
+    <div style="height:52px;border-radius:26px;background:#C4933B;color:#14140F;font-weight:700;font-size:16px;display:flex;align-items:center;justify-content:center">Follow 1 league</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script>
+</body>
+</html>

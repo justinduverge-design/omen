@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>System sheets</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Wix+Madefor+Display:wght@600;700;800&amp;family=Wix+Madefor+Text:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+*{box-sizing:border-box}
+.d{font-family:'Wix Madefor Display',system-ui,sans-serif}
+.phone{width:390px;height:844px;border-radius:44px;overflow:hidden;position:relative;background:#1F1F1D;color:#F5F0E8;font-family:'Wix Madefor Text',system-ui,sans-serif;flex:none}
+.isl{position:absolute;top:11px;left:133px;width:124px;height:36px;border-radius:20px;background:#000;z-index:3}
+.btn{height:52px;border-radius:26px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px}
+</style>
+</helmet>
+<div style="width:860px;height:844px;display:flex;gap:80px">
+
+  <div class="phone" aria-label="Passkey offer">
+    <div class="isl"></div>
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,.5)"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;background:#262624;border-radius:28px 28px 0 0;padding:12px 24px 34px;text-align:center">
+      <div style="width:36px;height:5px;border-radius:3px;background:#4A4A45;margin:0 auto 22px"></div>
+      <div style="width:64px;height:64px;border-radius:32px;border:2px solid #C4933B;margin:0 auto;display:flex;align-items:center;justify-content:center"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><circle cx="9" cy="9" r="5" stroke="#D8A648" stroke-width="2" fill="none"/><path d="M13 12l9 9M18 17l3-3M20 19l2-2" stroke="#D8A648" stroke-width="2" stroke-linecap="round"/></svg></div>
+      <div class="d" style="font-size:24px;font-weight:800;margin-top:16px">Sign in with Face ID next time</div>
+      <div style="font-size:14.5px;color:#BDB5A9;line-height:1.5;margin-top:8px">Save a passkey on this iPhone. No code to wait for, nothing to remember.</div>
+      <div class="btn" style="background:#C4933B;color:#14140F;margin-top:22px">Save a passkey</div>
+      <div style="font-size:15px;font-weight:600;color:#BDB5A9;margin-top:6px;min-height:44px;display:flex;align-items:center;justify-content:center">Not now</div>
+    </div>
+  </div>
+
+  <div class="phone" aria-label="Forced update">
+    <div class="isl"></div>
+    <div style="padding:200px 28px 0;text-align:center">
+      <div class="d" style="font-size:15px;font-weight:800;letter-spacing:.32em;color:#D8A648">OMEN</div>
+      <div class="d" style="font-size:30px;font-weight:800;line-height:1.1;margin-top:20px">Update Omen to keep going</div>
+      <div style="font-size:15px;color:#BDB5A9;line-height:1.5;margin-top:12px">This version can no longer read your leagues correctly. The update takes a minute, and your leagues and Ledger are kept.</div>
+    </div>
+    <div style="position:absolute;left:24px;right:24px;bottom:44px">
+      <div class="btn" style="background:#C4933B;color:#14140F">Update in the App Store</div>
+      <div style="font-size:12px;color:#A79E90;text-align:center;margin-top:12px">You have 1.0 (9). Omen needs 1.0 (11) or later.</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":860,"height":844}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script>
+</body>
+</html>
