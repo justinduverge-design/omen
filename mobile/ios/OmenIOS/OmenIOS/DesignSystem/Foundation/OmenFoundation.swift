@@ -74,12 +74,14 @@ struct OmenPlayerBadge: View {
     let number: Int?
     let position: String?
     var size: Size = .row
+    @ScaledMetric(relativeTo: .body) private var rowSide: CGFloat = 40
+    @ScaledMetric(relativeTo: .title) private var heroSide: CGFloat = 72
 
     var body: some View {
         let pair = OmenNFLTeamColors.pair(for: team)
         let fill = pair.map { OmenNFLTeamColors.color($0.fill) } ?? OmenColor.surface2
         let ink = pair.map { OmenNFLTeamColors.color($0.text) } ?? OmenColor.textSecondary
-        let side: CGFloat = size == .row ? 40 : 72
+        let side: CGFloat = size == .row ? rowSide : heroSide
         VStack(spacing: size == .row ? 1 : 3) {
             Text(number.map(String.init) ?? (position ?? "\u{2014}"))
                 .omenTextStyle(size == .row ? OmenTypography.numeric : OmenTypography.figure)
@@ -156,12 +158,14 @@ struct OmenProviderMark: View {
             }
             .accessibilityElement(children: .combine)
         case .tag:
-            Text(short)
-                .omenTextStyle(OmenTypography.micro)
-                .foregroundStyle(OmenColor.textSecondary)
-                .frame(width: 44, height: 22)
-                .overlay(RoundedRectangle(cornerRadius: 6).stroke(color.opacity(0.7), lineWidth: 1.5))
-                .accessibilityLabel(name)
+            HStack(spacing: OmenSpacing.step6) {
+                Circle().fill(color).frame(width: 8, height: 8)
+                Text(name).omenTextStyle(OmenTypography.quiet).foregroundStyle(OmenColor.textSecondary)
+            }
+            .padding(.horizontal, OmenSpacing.step10)
+            .padding(.vertical, OmenSpacing.step4)
+            .overlay(Capsule().stroke(OmenColor.borderSubtle, lineWidth: 1))
+            .accessibilityElement(children: .combine)
         }
     }
 
@@ -173,15 +177,6 @@ struct OmenProviderMark: View {
         case "yahoo": "Yahoo"
         case "sleeper": "Sleeper"
         default: "Provider"
-        }
-    }
-
-    private var short: String {
-        switch platform.lowercased() {
-        case "espn": "ESPN"
-        case "yahoo": "YHOO"
-        case "sleeper": "SLPR"
-        default: platform.uppercased().prefix(4).description
         }
     }
 
@@ -393,7 +388,7 @@ struct OmenSheetHeader: View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: OmenSpacing.step4) {
                 if let eyebrow {
-                    Text(eyebrow).omenTextStyle(OmenTypography.eyebrow).foregroundStyle(OmenColor.accentHover)
+                    Text(eyebrow.uppercased()).omenTextStyle(OmenTypography.eyebrow).foregroundStyle(OmenColor.accentHover)
                 }
                 Text(title)
                     .omenTextStyle(OmenTypography.sectionHeader)

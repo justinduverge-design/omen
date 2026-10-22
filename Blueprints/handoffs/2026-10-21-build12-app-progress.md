@@ -50,21 +50,25 @@ it was the last user of, in the same commit.
 | `OmenContextualHelpButton` (header "?") | 1 file | "How Omen makes a call" in Account (spec § 3) | open |
 | `OmenEvidenceRow` | 3 files | `OmenKeyValueRow` | open |
 | `OmenIconButton`, `OmenPlatformCompactRow`, `OmenProviderCard` | 5 / 1 / 1 files | keep only if a frame uses it; otherwise delete | open |
+| `OmenConnectionStatusBadge` | connect / account | `OmenProviderMark` + status words on the row | open |
+| `OmenConfirmationDialog` | delete, disconnect | system confirmation + `OmenSheetHeader` (Delete frame) | open |
+| `OmenTradeControls.swift` (rest of file) | trade journey | trade builder pieces | open |
+| `OmenAuthPrimaryButton`, `OmenFocusRing`, `OmenPicker`, `OmenTextField`, `OmenFormField`, `OmenOtpCodeField` | sign-in, forms | **kept on purpose**: form and sign-in controls the foundation does not replace; restyled only if a frame differs | kept |
 | Old type roles (`display`, `h1`-`h3`, `call`, `scoreLead`, `scoreTrail`, `screenTitle`, `cardLead`, `name`, `bodySmall`, `label`) | many | foundation roles | open |
 | `DesignSystemGalleryView` | debug | `FoundationGallery` | open |
 | Old screen files each new screen replaces | per screen | listed per screen in the table below | open |
 
 ## Foundation (built and reviewed before any screen, then frozen)
 
-- [ ] Colour tokens match spec § 7 (dark and light), including `omenChip` for green words
-- [ ] Type roles: heroNumber, screenTitle, sectionHeader, body, quiet, eyebrow
-- [ ] Back control · section header · state block (hold, nothing worth doing, not enough, failed)
-- [ ] Player row (browse, compare, pick) · player badge (team colour, number, position)
-- [ ] Team crest · provider mark · account avatar (initials)
-- [ ] Omen read block · start/sit pair · stat grid · accent lip surface
-- [ ] Sheet chrome (grabber, Close/Done, unsaved-input confirm) · bottom dock
-- [ ] Team Rolodex · pinned score · team control ("ESPN · Titans ▾")
-- [ ] Foundation review by a fresh agent; then frozen
+- [x] Colour tokens match spec § 7 (dark and light), including `omenChip` for green words
+- [x] Type roles: heroNumber, screenTitle, sectionHeader, body, quiet, eyebrow
+- [x] Back control · section header · state block (hold, nothing worth doing, not enough, failed)
+- [x] Player row (browse, compare, pick) · player badge (team colour, number, position)
+- [x] Team crest · provider mark · account avatar (initials)
+- [x] Omen read block · start/sit pair · stat grid · accent lip surface
+- [x] Sheet chrome (grabber, Close/Done, unsaved-input confirm) · bottom dock
+- [x] Team Rolodex · pinned score · team control ("ESPN · Titans ▾")
+- [x] Foundation review by a fresh agent (6 P1, 7 P2, all fixed: authority emphasis, missing-number fallback, settle-only commit, locked-row contrast, uppercase eyebrows, grade ring track, scaled sizes, full provider names); **frozen 2026-10-21**. Evidence: `output/screens/build12/foundation/ios/{dark,light}/`. Unit tests 652, 0 failures.
 
 ## Screens
 

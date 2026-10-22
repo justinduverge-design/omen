@@ -1,1 +1,4 @@
+ios      dark  foundation.players
 ios      dark  foundation.teams
+ios      light  foundation.players
+ios      light  foundation.teams

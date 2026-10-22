@@ -61,7 +61,7 @@ struct FoundationTeamsGallery: View {
             VStack(alignment: .leading, spacing: OmenSpacing.step20) {
                 HStack {
                     VStack(alignment: .leading, spacing: OmenSpacing.step4) {
-                        Text("Week 7 \u{00B7} Sunday").omenTextStyle(OmenTypography.eyebrow).foregroundStyle(OmenColor.accentHover)
+                        Text("WEEK 7 \u{00B7} SUNDAY").omenTextStyle(OmenTypography.eyebrow).foregroundStyle(OmenColor.accentHover)
                         Text("Up in 1 of 2").omenTextStyle(OmenTypography.pageTitle).foregroundStyle(OmenColor.textPrimary)
                     }
                     Spacer()

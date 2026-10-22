@@ -58,9 +58,8 @@ struct OmenRosterRow: View {
                     }
                 }
                 .disabled(player.locked)
-                .opacity(player.locked ? 0.45 : 1)
                 .accessibilityElement(children: .combine)
-                .accessibilityLabel(player.locked ? "\(player.name), can't be traded" : player.name)
+                .accessibilityLabel(pickLabel)
                 .accessibilityHint(player.locked ? "" : selected ? "Removes him from the trade" : "Adds him to the trade")
                 .accessibilityAddTraits(selected ? .isSelected : [])
                 OmenPressable(action: onInfo) {
@@ -74,13 +73,22 @@ struct OmenRosterRow: View {
         }
     }
 
+    private var pickLabel: String {
+        var parts = [player.name]
+        if player.locked { parts.append("can't be traded") }
+        if let grade = player.grade { parts.append("Omen grade \(grade)") }
+        if let omen = player.omenPoints { parts.append("Omen \(OmenPlayerSummary.one(omen)) this week") }
+        return parts.joined(separator: ", ")
+    }
+
     private var rowContent: some View {
         HStack(spacing: OmenSpacing.step12) {
             OmenPlayerBadge(team: player.team, number: player.number, position: player.position)
+                .saturation(player.locked ? 0 : 1)
             VStack(alignment: .leading, spacing: OmenSpacing.step2) {
                 Text(player.name)
                     .omenTextStyle(OmenTypography.rowTitle)
-                    .foregroundStyle(OmenColor.textPrimary)
+                    .foregroundStyle(player.locked ? OmenColor.textTertiary : OmenColor.textPrimary)
                     .lineLimit(2)
                 if let detail = player.detail ?? defaultDetail {
                     Text(detail)
@@ -106,13 +114,13 @@ struct OmenRosterRow: View {
             VStack(alignment: .trailing, spacing: OmenSpacing.step2) {
                 if let omen = player.omenPoints {
                     Text("Omen \(OmenPlayerSummary.one(omen))")
-                        .omenTextStyle(player.lead == .provider ? OmenTypography.quiet : OmenTypography.numeric)
-                        .foregroundStyle(player.lead == .provider ? OmenColor.textTertiary : OmenColor.textPrimary)
+                        .omenTextStyle(player.lead == .omen ? OmenTypography.numeric : OmenTypography.quiet)
+                        .foregroundStyle(player.lead == .omen ? OmenColor.textPrimary : OmenColor.textSecondary)
                 }
                 if let provider = player.providerPoints {
                     Text("\(player.providerName) \(OmenPlayerSummary.one(provider))")
                         .omenTextStyle(player.lead == .provider ? OmenTypography.numeric : OmenTypography.quiet)
-                        .foregroundStyle(player.lead == .provider ? OmenColor.textPrimary : OmenColor.textTertiary)
+                        .foregroundStyle(player.lead == .provider ? OmenColor.textPrimary : OmenColor.textSecondary)
                 }
             }
         } else if let points = player.omenPoints ?? player.providerPoints {
@@ -148,12 +156,18 @@ struct OmenGradeRing: View {
             .omenTextStyle(side > 50 ? OmenTypography.figure : OmenTypography.cardLead)
             .foregroundStyle(grade == nil ? OmenColor.textTertiary : OmenColor.textPrimary)
             .frame(width: side, height: side)
-            .overlay(
-                Circle().stroke(
-                    (grade ?? 0) >= 80 ? OmenColor.accent : OmenColor.border,
-                    style: StrokeStyle(lineWidth: side > 50 ? 3 : 2, dash: grade == nil ? [3, 3] : [])
-                )
-            )
+            .overlay {
+                let width: CGFloat = side > 50 ? 3 : 2
+                ZStack {
+                    Circle().stroke(OmenColor.borderSubtle, style: StrokeStyle(lineWidth: width, dash: grade == nil ? [3, 3] : []))
+                    if let grade {
+                        Circle()
+                            .trim(from: 0, to: CGFloat(min(max(grade, 0), 100)) / 100)
+                            .stroke(OmenColor.accent, style: StrokeStyle(lineWidth: width, lineCap: .round))
+                            .rotationEffect(.degrees(-90))
+                    }
+                }
+            }
             .accessibilityLabel(grade.map { "Omen grade \($0)" } ?? "No Omen grade")
     }
 }
@@ -175,7 +189,7 @@ struct OmenReadBlock: View {
             VStack(alignment: .leading, spacing: OmenSpacing.step16) {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: OmenSpacing.step6) {
-                        Text(title).omenTextStyle(OmenTypography.eyebrow).foregroundStyle(OmenColor.accentHover)
+                        Text(title.uppercased()).omenTextStyle(OmenTypography.eyebrow).foregroundStyle(OmenColor.accentHover)
                         numbers
                     }
                     Spacer(minLength: OmenSpacing.step12)
@@ -207,21 +221,25 @@ struct OmenReadBlock: View {
 
     @ViewBuilder
     private var numbers: some View {
-        let omenLeads = player.lead == .omen
-        let providerLeads = player.lead == .provider
-        if let omen = player.omenPoints, !providerLeads {
+        // The earned lead is set large. Unresolved: both at the same size, and it says so (spec § 2).
+        // A missing number never hides the one that exists.
+        switch (player.lead, player.omenPoints, player.providerPoints) {
+        case (.omen, .some(let omen), let provider):
             lead(value: omen, source: "Omen")
-            if let provider = player.providerPoints {
-                second(source: player.providerName, value: provider)
-            }
-        } else if let provider = player.providerPoints, !omenLeads {
+            if let provider { second(source: player.providerName, value: provider) }
+        case (.provider, let omen, .some(let provider)):
             lead(value: provider, source: player.providerName)
-            if let omen = player.omenPoints { second(source: "Omen", value: omen) }
-        }
-        if player.lead == .unresolved, player.omenPoints != nil, player.providerPoints != nil {
-            Text("Neither has the better record for this yet.")
-                .omenTextStyle(OmenTypography.quiet)
-                .foregroundStyle(OmenColor.textTertiary)
+            if let omen { second(source: "Omen", value: omen) }
+        default:
+            HStack(alignment: .firstTextBaseline, spacing: OmenSpacing.step16) {
+                if let omen = player.omenPoints { even(value: omen, source: "Omen") }
+                if let provider = player.providerPoints { even(value: provider, source: player.providerName) }
+            }
+            if player.omenPoints != nil, player.providerPoints != nil {
+                Text("Neither has the better record for this yet.")
+                    .omenTextStyle(OmenTypography.quiet)
+                    .foregroundStyle(OmenColor.textTertiary)
+            }
         }
     }
 
@@ -229,6 +247,14 @@ struct OmenReadBlock: View {
         HStack(alignment: .firstTextBaseline, spacing: OmenSpacing.step6) {
             Text(OmenPlayerSummary.one(value)).omenTextStyle(OmenTypography.heroNumber).foregroundStyle(OmenColor.textPrimary)
             Text(source).omenTextStyle(OmenTypography.body).foregroundStyle(OmenColor.textTertiary)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func even(value: Double, source: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: OmenSpacing.step4) {
+            Text(OmenPlayerSummary.one(value)).omenTextStyle(OmenTypography.figure).foregroundStyle(OmenColor.textPrimary)
+            Text(source).omenTextStyle(OmenTypography.quiet).foregroundStyle(OmenColor.textTertiary)
         }
         .accessibilityElement(children: .combine)
     }
@@ -264,7 +290,7 @@ struct OmenSidePair: View {
 
     private func card(_ side: Side, emphasized: Bool) -> some View {
         let content = VStack(spacing: OmenSpacing.step6) {
-            Text(side.label).omenTextStyle(OmenTypography.eyebrow).foregroundStyle(emphasized ? OmenColor.accentHover : OmenColor.textTertiary)
+            Text(side.label.uppercased()).omenTextStyle(OmenTypography.eyebrow).foregroundStyle(emphasized ? OmenColor.accentHover : OmenColor.textTertiary)
             OmenPlayerBadge(team: side.player.team, number: side.player.number, position: side.player.position)
             Text(side.player.name)
                 .omenTextStyle(OmenTypography.rowTitle)

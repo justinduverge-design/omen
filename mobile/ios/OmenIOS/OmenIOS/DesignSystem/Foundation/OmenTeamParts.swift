@@ -71,11 +71,12 @@ struct OmenTeamRolodex: View {
             .scrollTargetBehavior(.viewAligned)
             .scrollPosition(id: $scrolledID)
             .onAppear { scrolledID = selectedID ?? teams.first?.id }
-            .onChange(of: scrolledID) { _, settled in
+            // Commit only when the scroll comes to rest, never mid-flick (spec § 4.1).
+            .modifier(OmenScrollSettle(position: scrolledID) { settled in
                 guard let settled, settled != selectedID else { return }
                 UISelectionFeedbackGenerator().selectionChanged()
                 selectedID = settled
-            }
+            })
             .onChange(of: selectedID) { _, chosen in
                 if chosen != scrolledID { withAnimation { scrolledID = chosen } }
             }
@@ -106,6 +107,30 @@ struct OmenTeamRolodex: View {
     }
 }
 
+/// Calls back once a scroll has come to rest. iOS 18 reports the scroll phase; iOS 17 waits until the
+/// position has not changed for a quarter second.
+private struct OmenScrollSettle: ViewModifier {
+    let position: String?
+    let onSettle: (String?) -> Void
+    @State private var pending: Task<Void, Never>?
+
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, *) {
+            content.onScrollPhaseChange { _, phase in
+                if phase == .idle { onSettle(position) }
+            }
+        } else {
+            content.onChange(of: position) { _, value in
+                pending?.cancel()
+                pending = Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(250))
+                    if !Task.isCancelled { onSettle(value) }
+                }
+            }
+        }
+    }
+}
+
 /// One team's card in the Rolodex.
 struct OmenTeamCard: View {
     let team: OmenTeamCardModel
@@ -129,7 +154,7 @@ struct OmenTeamCard: View {
                         VStack(alignment: .leading, spacing: OmenSpacing.step4) {
                             GeometryReader { geo in
                                 HStack(spacing: 2) {
-                                    Capsule().fill(OmenColor.accent).frame(width: geo.size.width * share)
+                                    Capsule().fill(OmenColor.accent).frame(width: max(0, (geo.size.width - 2) * share))
                                     Capsule().fill(OmenColor.surface3)
                                 }
                             }
@@ -210,7 +235,7 @@ struct OmenPinnedScore: View {
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, OmenSpacing.step16)
-            .frame(height: 44)
+            .frame(minHeight: 44)
             .background(.bar)
         }
         .accessibilityLabel("Your score \(team.score.map(OmenPlayerSummary.one) ?? "none"), \(team.opponentName ?? "opponent") \(team.opponentScore.map(OmenPlayerSummary.one) ?? "none"). Scroll to top")
