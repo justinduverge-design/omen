@@ -55,6 +55,8 @@ struct OmenPlayerRow: View {
         case browse(onOpen: () -> Void)
         /// Both forecasts with sources, the whole row opens the player.
         case compare(onOpen: () -> Void)
+        /// Both numbers, nothing to open (a free agent Omen has no page for).
+        case display
         /// A list you pick from: the row toggles the pick, a separate info control opens the player.
         case pick(selected: Bool, onToggle: () -> Void, onInfo: () -> Void)
     }
@@ -69,6 +71,8 @@ struct OmenPlayerRow: View {
             OmenPressable(action: onOpen) { rowContent }
                 .accessibilityElement(children: .combine)
                 .accessibilityHint("Opens \(player.name)'s page")
+        case .display:
+            rowContent.accessibilityElement(children: .combine)
         case .pick(let selected, let onToggle, let onInfo):
             HStack(spacing: OmenSpacing.step8) {
                 OmenPressable(action: onToggle) {
@@ -128,6 +132,13 @@ struct OmenPlayerRow: View {
         .frame(minHeight: 58)
     }
 
+    private var showsBothNumbers: Bool {
+        switch variant {
+        case .compare, .display: true
+        default: false
+        }
+    }
+
     private var defaultDetail: String? {
         [player.position, player.team].compactMap { $0 }.joined(separator: " \u{00B7} ").nilIfEmpty
     }
@@ -136,7 +147,7 @@ struct OmenPlayerRow: View {
     private var trailing: some View {
         if showsGrade {
             OmenGradeRing(grade: player.grade)
-        } else if case .compare = variant {
+        } else if showsBothNumbers {
             VStack(alignment: .trailing, spacing: OmenSpacing.step2) {
                 if let omen = player.omenPoints {
                     Text("Omen \(OmenPlayerSummary.one(omen))")

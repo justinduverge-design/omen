@@ -206,7 +206,7 @@ an omission.
 | Ledger per-week contested record | Ledger strip | Contested record exists (#702); per-week split not checked. |
 | "I made the move" | Omen call, Ledger | `POST /api/omen/feedback` already writes `followed`. Still needed: the app calling it, targeting the exact league and call, and a reply that confirms the Ledger write (today the route can say `recorded: true` when its league-scoped Ledger write was skipped). Follow-through stays self-reported. Until confirmed, the app says "Noted", not "Saved to your Ledger". |
 | Starter vs bench per player | Desk "Your team" | Not in the roster read. |
-| Tradeable / locked per player | Trade builder | ESPN and Yahoo locks are read (#701); check they reach the roster route. |
+| Tradeable / locked per player | Trade builder | Done 2026-10-22: the roster route passes `status` (all three providers) and `trade_locked` (ESPN) through; rows show the injury word and lock. Sleeper and Yahoo send no trade lock. |
 | Three-team capability | Trade builder | `trade-capabilities.v1` carries it. |
 | Jersey numbers per player | Player badge | Check the roster and player index carry them (nflverse rosters do). |
 | Fantasy team logo or avatar per team | Team crest | Sleeper `avatar`; ESPN and Yahoo team logo fields; confirm each adapter keeps them. |

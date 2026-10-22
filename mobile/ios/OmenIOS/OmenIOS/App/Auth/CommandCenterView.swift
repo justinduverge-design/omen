@@ -97,43 +97,6 @@ struct CommandCenterView: View {
         self.leagueDirectoryRepository = leagueDirectoryRepository
     }
 
-
-    /// Wraps a destination in the team picker.
-    ///
-    /// Omen, Trade and League each answer a question about one league, so each gets the row
-    /// that changes which one. Command Center does not — its carousel already IS the picker,
-    /// and two of them on one screen would be a control competing with itself.
-    ///
-    /// Reloading is driven from `refresh`, which the server supplies: the picker returns the
-    /// surfaces a context change invalidated, and this reloads exactly those rather than
-    /// deciding for itself which screens went stale.
-    @ViewBuilder
-    private func withTeamPicker<Content: View>(
-        @ViewBuilder _ content: () -> Content
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            OmenTeamPicker(
-                viewModel: leagueCarouselViewModel,
-                userID: userID,
-                onContextChanged: { _ in
-                    // Every personalized surface, not just the visible one — a user who
-                    // switches on Trade and then taps League must not find the old team
-                    // there. Concurrent: see `reloadAllAfterContextChange`.
-                    Task { await reloadAllAfterContextChange() }
-                },
-                onAddLeague: { presentSheet(.connect) },
-                // This picker owns its pinned Switch button locally. Cross-screen switch
-                // affordances route to the shell's one presenter below; binding every off-tab
-                // picker to the same Boolean created competing SwiftUI presentation anchors.
-                externalPresentation: nil
-            )
-            .padding(.horizontal, OmenSpacing.step16)
-            .padding(.top, OmenSpacing.step12)
-            content()
-        }
-        .background(OmenColor.bg.ignoresSafeArea())
-    }
-
     /// The user's own team id from the League destination's matchup, when that read landed.
     /// Only a fallback for a directory that left the team blank.
     private var loadedOverviewTeamId: String? {
@@ -151,6 +114,7 @@ struct CommandCenterView: View {
 
     @State private var deskPath: [DeskRoute] = []
     @State private var omenPath: [OmenRoute] = []
+    @State private var leaguePath: [LeagueRoute] = []
     @State private var tradePath: [TradeRoute] = []
     @State private var tradeShowingShare = false
     @State private var tradeShareURL: URL?
@@ -167,6 +131,40 @@ struct CommandCenterView: View {
     }
 
     private var tradeProviderName: String { OmenProviderMark.displayName(tradeViewModel.offer.leagueContext?.platform) }
+
+    private var leagueState: OmenLeagueState {
+        switch leagueViewModel.viewState {
+        case .idle, .loading:
+            return OmenLeagueState(phase: .loading)
+        case .demo:
+            return OmenLeagueState(phase: .noLeague)
+        case .failed(let error):
+            return OmenLeagueState(phase: .failed(LeagueViewModel.message(for: error)))
+        case .loaded(let overview):
+            let provider = OmenProviderMark.displayName(overview.platform)
+            let waiver = commandCenterViewModel.waiverAnalysis.map { OmenWaiversState(analysis: $0, providerName: provider) }
+            return OmenLeagueState(
+                overview: overview,
+                targets: leagueTradeTargetsViewModel.candidates.map { OmenFindTradeState.Candidate($0, providerName: provider) },
+                targetsNote: leagueTradeTargetsViewModel.note,
+                waiver: waiver?.headline.map { .init(line: $0, gain: commandCenterViewModel.waiverAnalysis?.bestMove?.improvement) }
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var waiversScreen: some View {
+        if let analysis = commandCenterViewModel.waiverAnalysis {
+            let provider = OmenProviderMark.displayName(leagueCarouselViewModel.activePage?.platform)
+            OmenWaiversScreen(
+                state: OmenWaiversState(analysis: analysis, providerName: provider),
+                onOpenProvider: leagueCarouselViewModel.activePage.flatMap(Self.handoffURL(for:)).map { url in { UIApplication.shared.open(url) } }
+            )
+        } else {
+            OmenStateBlock(kind: .loading, title: "Reading the wire")
+                .padding(OmenSpacing.step20).frame(maxHeight: .infinity, alignment: .top).background(OmenColor.bg)
+        }
+    }
 
     private var tradeThreeTeam: some View {
         let vm = tradeViewModel
@@ -435,6 +433,8 @@ struct CommandCenterView: View {
                     .frame(maxHeight: .infinity, alignment: .top)
                     .background(OmenColor.bg)
             }
+        case .waivers:
+            waiversScreen
         case .ledger:
             OmenLedgerScreen(
                 state: {
@@ -492,7 +492,7 @@ struct CommandCenterView: View {
                     onOpenMove: { selectedTab = .omen },
                     onNeed: { need in
                         switch need.kind {
-                        case .waiver: selectedTab = .league
+                        case .waiver: deskPath.append(.waivers)
                         case .reconnect: presentSheet(.connect)
                         }
                     },
@@ -704,35 +704,27 @@ struct CommandCenterView: View {
             .tabItem { CommandCenterTab.trade.label }
             .tag(CommandCenterTab.trade)
 
-            // M5 slice F: the League destination now renders `league-overview.v1`. It
-            // replaced an honest "landing next" placeholder, which was correct while the
-            // screen contract was unratified and is no longer.
-            withTeamPicker {
-                OmenLeagueScreen(
-                    state: leagueViewModel.viewState,
+            NavigationStack(path: $leaguePath) {
+                OmenLeagueView(
+                    state: leagueState,
+                    teamControl: leagueCarouselViewModel.activePage.map { ($0.platform, $0.displayTeamName) },
+                    onSwitchTeam: { presentSheet(.switcher) },
                     onRetry: { Task { await leagueViewModel.reload() } },
                     onConnect: { presentSheet(.connect) },
-                    // E017 carries both controls, and `OmenScreenShell` renders the account
-                    // one only when this is non-nil. Without it the League destination — and
-                    // the wire sheet it presents, which inherits this same closure — were the
-                    // only signed-in surfaces with no route to the account. Every sibling tab
-                    // already passed it.
-                    onOpenAccount: { presentSheet(.account) },
-                    // The wire comes from the SAME `waiver-analysis.v1` read Command Center
-                    // already makes, for the reason Trade takes its league from the League
-                    // destination's read: two surfaces that fetch the wire separately can
-                    // disagree about it on screen.
-                    //
-                    // Nil until that read lands, which removes the section link rather than
-                    // opening an empty sheet.
-                    wire: commandCenterViewModel.waiverAnalysis.map {
-                        OmenScoutWireState.from(analysis: $0, weekLabel: leagueViewModel.wireWeekLabel)
+                    onOpenTarget: { id in
+                        guard let candidate = leagueTradeTargetsViewModel.candidates.first(where: { $0.id == id }) else { return }
+                        tradeViewModel.openInBuilder(candidate)
+                        tradePath = [.build]
+                        selectedTab = .trade
                     },
-                    tradeTargets: leagueTradeTargetsViewModel.section,
-                    waiverSummary: commandCenterViewModel.waiverAnalysis?.scoutSummary
-                        ?? OmenLeagueScreen.waiverUnread
+                    onOpenWaivers: commandCenterViewModel.waiverAnalysis == nil ? nil : { leaguePath.append(.waivers) }
                 )
-                .omenScreenReady("league")
+                .toolbar(.hidden, for: .navigationBar)
+                .navigationDestination(for: LeagueRoute.self) { route in
+                    switch route {
+                    case .waivers: waiversScreen
+                    }
+                }
             }
             .task { await loadLeagueForSelectedContext() }
             .tabItem { CommandCenterTab.league.label }
@@ -1044,6 +1036,7 @@ enum OmenRoute: Hashable { case fullArgument }
 /// Pushed screens on the Desk tab (navigation map).
 enum DeskRoute: Hashable {
     case player(String)
+    case waivers
     case ledger
     case receipt(String)
 }

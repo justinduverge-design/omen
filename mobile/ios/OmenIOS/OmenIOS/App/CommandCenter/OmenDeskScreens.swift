@@ -365,7 +365,16 @@ extension OmenDeskState {
             return .unread(
                 capability: "League matchup",
                 // `unavailable_reason` is a code, never copy: the shared mapping says it in words.
-                sentence: OmenScoutTableState.matchupReasonSentence(overview.matchup)
+                sentence: {
+                    switch overview.matchup.unavailableReason {
+                    case "league_not_started": return "This league hasn\u{2019}t set its teams yet, so there is no matchup to show."
+                    case "off_season": return "No matchups in the off-season."
+                    default:
+                        return overview.matchup.status == .noMatchup
+                            ? "No matchup scheduled for this league this week."
+                            : "The provider did not return this week\u{2019}s scoreboard."
+                    }
+                }()
             )
         }
 
@@ -457,13 +466,29 @@ extension OmenDeskSection where Value == OmenDeskWaiverMove {
                 sentence: "Omen has not read this league's waiver wire yet."
             )
         }
-        switch analysis.scoutSummary {
-        case .read(let move):
-            return .read(move)
-        case .unread(let capability, let sentence),
-             .providerLimit(let capability, let sentence, _):
-            return .unread(capability: capability, sentence: sentence)
+        // Only a confirmed opportunity with a real add becomes a move; every other state says why.
+        guard analysis.state == .confirmedOpportunity, let best = analysis.bestMove, let add = best.add,
+              let name = add.name?.nilIfEmpty else {
+            return .unread(
+                capability: "Waivers",
+                sentence: analysis.message?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+                    ?? "Omen has no claim worth making on this wire right now."
+            )
         }
+        return .read(OmenDeskWaiverMove(
+            addName: name,
+            addMeta: [add.position, add.team].compactMap { $0 }.joined(separator: " \u{00B7} "),
+            addPoints: add.projectedPoints.map { String(format: "%.1f", $0) },
+            dropName: best.drop?.name,
+            dropMeta: best.drop.map { [$0.position, $0.team].compactMap { $0 }.joined(separator: " \u{00B7} ") }?.nilIfEmpty,
+            dropPoints: best.drop?.projectedPoints.map { String(format: "%.1f", $0) },
+            reasoning: best.whyNow?.nilIfEmpty ?? "Omen found this as the strongest available roster move.",
+            band: nil,
+            risk: nil,
+            riskReason: nil,
+            addOmenPoints: add.omenRead?.points.map { String(format: "%.1f", $0) },
+            dropOmenPoints: best.drop?.omenRead?.points.map { String(format: "%.1f", $0) }
+        ))
     }
 }
 

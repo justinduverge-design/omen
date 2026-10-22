@@ -117,7 +117,7 @@ final class DraftClaimAbsenceTests: XCTestCase {
     func testLeagueDestinationOffersNoDraftEntry() throws {
         let root = try repoAppSourcesRoot()
 
-        for relative in ["Auth/CommandCenterView.swift", "CommandCenter/OmenLeagueScreen.swift"] {
+        for relative in ["Auth/CommandCenterView.swift", "CommandCenter/OmenLeague.swift", "CommandCenter/OmenWaivers.swift"] {
             let text = try String(
                 contentsOf: root.appendingPathComponent(relative),
                 encoding: .utf8
@@ -140,7 +140,7 @@ final class DraftClaimAbsenceTests: XCTestCase {
         )
         let body = Self.strippingComments(from: text)
 
-        XCTAssertTrue(body.contains("OmenLeagueScreen("), "the League tab must render the real screen")
+        XCTAssertTrue(body.contains("OmenLeagueView("), "the League tab must render the real screen")
         XCTAssertFalse(
             body.contains("League is landing next"),
             "the League placeholder must not survive alongside the real screen"
@@ -238,7 +238,7 @@ final class DraftClaimAbsenceTests: XCTestCase {
         )
         let body = Self.strippingComments(from: text)
 
-        for screen in ["DeskScenario(", "OmenCallView(", "OmenJudgeOfferScreen(", "OmenLeagueScreen("] {
+        for screen in ["DeskScenario(", "OmenCallView(", "OmenJudgeOfferScreen(", "OmenLeagueView("] {
             XCTAssertTrue(
                 body.contains(screen),
                 "the harness must render \(screen) — a stand-in makes every screenshot and UI test "

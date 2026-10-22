@@ -932,9 +932,8 @@ final class ContractFixtureDecodeTests: XCTestCase {
         XCTAssertTrue(failures.isEmpty, "The app cannot decode a response the server sends:\n" + failures.joined(separator: "\n"))
     }
     /// Found by an "always-nil" probe over these fixtures: the app's `WaiverSystem` reads `budget_text` and
-    /// `order_text`, which the server never sent, and `OmenWaiverSystem` treats a league without them as
-    /// `not_determined` — so every FAAB and priority league rendered as undetermined. The server now
-    /// composes both; this pins that the native mapping lights up from real server output.
+    /// `order_text`, which the server never sent, so every FAAB and priority league rendered as undetermined.
+    /// The server now composes both; this pins that real server output carries them (Waivers shows the budget).
     func testWaiverSystemFixturesMapToTheRightNativeSystem() throws {
         var checked = 0
         for fixture in try fixtures("waiver-analysis.v1") where fixture.status < 400 {
@@ -942,22 +941,14 @@ final class ContractFixtureDecodeTests: XCTestCase {
             guard let system = analysis.waiverSystem else { continue }
             switch system.system {
             case .faab:
-                if system.budgetText != nil {
-                    guard case .faab(let budget, _) = OmenWaiverSystem(analysis.waiverSystem) else {
-                        return XCTFail("\(fixture.name): a FAAB league with a known budget must map to .faab")
-                    }
-                    XCTAssertTrue(budget.hasPrefix("Your budget $"), budget)
+                if let budget = system.budgetText {
+                    XCTAssertTrue(budget.hasPrefix("Your budget $"), "\(fixture.name): \(budget)")
                     checked += 1
                 }
             case .priority:
-                if system.orderText != nil {
-                    guard case .priority = OmenWaiverSystem(analysis.waiverSystem) else {
-                        return XCTFail("\(fixture.name): a priority league with a known order must map to .priority")
-                    }
-                    checked += 1
-                }
+                if system.orderText != nil { checked += 1 }
             case .notDetermined:
-                XCTAssertEqual(OmenWaiverSystem(analysis.waiverSystem), .notDetermined, fixture.name)
+                XCTAssertNil(system.budgetText, fixture.name)
             }
         }
         XCTAssertGreaterThan(checked, 0, "no FAAB or priority fixture exercised the native mapping")

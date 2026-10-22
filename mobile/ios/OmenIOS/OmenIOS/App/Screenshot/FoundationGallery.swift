@@ -34,6 +34,50 @@ enum FoundationFixtures {
         receive: [TradePlayer(name: "Zay Flowers", position: "WR", team: "BAL", playerKey: "t2")]
     )
 
+    /// Frame Main, League: ten teams, two trade targets, the wire, the week.
+    static func league(degraded: Bool = false) -> OmenLeagueState {
+        let names = ["Gibbs me some Rice", "Drake Maye Day", "Titans of Slopsilonia", "Taxi Squad Kings", "Puk Around & Find Out", "Chubb Rock"]
+        let flowers = OmenPlayerSummary(id: "zf", name: "Zay Flowers", position: "WR", team: "BAL", omenPoints: 13.9, providerPoints: 13.1, providerName: "ESPN", grade: 77, lead: .omen)
+        let miller = OmenPlayerSummary(id: "km", name: "Kendre Miller", position: "RB", team: "NO", omenPoints: 9.1, providerPoints: 8.4, providerName: "ESPN", grade: 58, lead: .omen)
+        return OmenLeagueState(
+            phase: .ready,
+            eyebrow: "Slops Saloon \u{00B7} ESPN \u{00B7} 10 teams",
+            headline: "3rd, one game back of first",
+            subline: "Top 4 make the playoffs. You\u{2019}re 1 game clear of 5th.",
+            standings: degraded ? [] : names.enumerated().map { i, n in
+                .init(id: "\(i)", rank: i + 1, name: n, record: ["6\u{2013}1", "5\u{2013}2", "5\u{2013}2", "4\u{2013}3", "4\u{2013}3", "3\u{2013}4"][i], pointsFor: [812, 790, 777, 741, 730, 702][i], isYou: i == 2)
+            },
+            standingsNote: degraded ? "ESPN didn\u{2019}t send the standings this time." : nil,
+            targets: degraded ? [] : [
+                .init(id: "c1", partnerName: "Gibbs me some Rice", partnerNeed: "Needs WR", send: smith, receive: flowers, yourGain: 1.9, theirGain: 2.4, theCatch: nil),
+                .init(id: "c2", partnerName: "Drake Maye Day", partnerNeed: "Needs RB", send: meyers, receive: miller, yourGain: 0.8, theirGain: 1.6, theCatch: nil),
+            ],
+            targetsNote: degraded ? "Omen could not read the other managers\u{2019} rosters for this league, so it names no trade targets." : nil,
+            waiver: .init(line: "Add Tyjae Spears. Drop Roschon Johnson.", gain: 6.7),
+            activity: [
+                .init(id: "a1", text: "Taxi Squad Kings traded Breece Hall for Puka Nacua", category: "trade"),
+                .init(id: "a2", text: "Chubb Rock added Tyjae Spears", category: "add"),
+                .init(id: "a3", text: "Drake Maye Day dropped Rashid Shaheed", category: "drop"),
+            ]
+        )
+    }
+
+    /// Frame Waivers: one add and drop with a bid, or nothing worth doing.
+    static func waivers(move: Bool) -> OmenWaiversState {
+        let spears = OmenPlayerSummary(id: "add", name: "Tyjae Spears", position: "RB", team: "TEN", omenPoints: 10.8, providerPoints: 8.9, providerName: "ESPN", grade: 66, lead: .omen, detail: "RB \u{00B7} TEN \u{00B7} 12% rostered")
+        let roschon = OmenPlayerSummary(id: "drop", name: "Roschon Johnson", position: "RB", team: "CHI", omenPoints: 4.1, providerPoints: 4.1, providerName: "ESPN", grade: 31, lead: .unresolved)
+        let others = [
+            OmenWaiversState.Other(id: "o1", player: OmenPlayerSummary(id: "o1", name: "Jalen McMillan", position: "WR", team: "TB", omenPoints: 9.4, providerName: "ESPN", lead: .omen), note: "TB \u{00B7} 6 targets in each of the last 2"),
+            OmenWaiversState.Other(id: "o2", player: OmenPlayerSummary(id: "o2", name: "Theo Johnson", position: "TE", team: "NYG", omenPoints: 7.2, providerName: "ESPN", lead: .omen), note: "NYG \u{00B7} route rate up to 78%"),
+        ]
+        return move
+            ? OmenWaiversState(eyebrow: "Waivers \u{00B7} claims run Wed 3:00 AM", headline: "Add Tyjae Spears. Drop Roschon Johnson.",
+                               reason: "Bijan is on bye in Week 9 and Spears is the only back on the wire with a real role.",
+                               add: spears, drop: roschon, bid: "Bid $6", bidNote: "of your $82 left", others: others, empty: nil, providerName: "ESPN")
+            : OmenWaiversState(eyebrow: "Waivers", headline: nil, reason: nil, add: nil, drop: nil, bid: nil, bidNote: nil, others: others,
+                               empty: (title: "Nothing on the wire beats your bench", message: "Omen checked the free agents against your roster this week."), providerName: "ESPN")
+    }
+
     /// Frame ThreeTeam: you, Gibbs me some Rice, Drake Maye Day; building, or judged with the provider steps.
     static func threeTeam(judged: Bool) -> OmenThreeTeamState {
         let teams = [
