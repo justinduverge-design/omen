@@ -3,8 +3,9 @@
   "route": "/",
   "body": {
     "contract_version": "beta-report.v1",
-    "id": "report-1",
-    "message": "Report received. Thank you.",
-    "status": "received"
+    "id": "R-RPN5FS",
+    "message": "Received. A person reads every report and replies by email.",
+    "status": "received",
+    "stored_id": "report-1"
   }
 }

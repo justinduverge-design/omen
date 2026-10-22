@@ -234,10 +234,13 @@ function reportMail(row, ref, storedId, topic, triage, context, replyTo) {
   return { subject: `[Omen] ${severity}${label} · ${ref}`, text, replyTo };
 }
 
-function ticketRef() {
+// The ticket ref is derived from the stored row's id, so a ref quoted in an email or by a tester always
+// leads back to one row, and the same report always has the same ref.
+function ticketRef(storedId) {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const digest = require("node:crypto").createHash("sha256").update(String(storedId)).digest();
   let ref = "R-";
-  for (let i = 0; i < 6; i++) ref += alphabet[Math.floor(Math.random() * alphabet.length)];
+  for (let i = 0; i < 6; i++) ref += alphabet[digest[i] % alphabet.length];
   return ref;
 }
 
@@ -291,7 +294,7 @@ function createBetaReportsRouter({
         message: "Your report was not saved. Please try again later.",
       });
     }
-    const ref = ticketRef();
+    const ref = ticketRef(saved.id);
     const replyTo = typeof req.user.email === "string" ? req.user.email : null;
     // With the default sender and no inbox configured there is no one to tell, so the model is not woken.
     const nobodyToTell = notify === defaultNotify && (!process.env.SUPPORT_NOTIFY_EMAIL || !process.env.RESEND_API_KEY);
