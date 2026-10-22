@@ -3,10 +3,8 @@ import XCTest
 
 /// T3 — `TradeFindReviewViewModel`, driving `TradeFindReview` from `trade-find.v1`.
 ///
-/// Pins: a real batch resolves into `.reviewing` with an honest client-side pager; `Pass` never
-/// calls the save interface and empties the stack into `.batchExhausted`; `Save` calls the
-/// interface with the candidate's `id` and its `reasoning` **verbatim** and flips to `.saved`
-/// without advancing the stack or navigating anywhere; a `status: "ok"` empty batch is
+/// Pins: a real batch resolves into `.reviewing` with an honest client-side pager; `Pass` empties
+/// the stack into `.batchExhausted`; a `status: "ok"` empty batch is
 /// `.zeroCandidates`, never confused with `.batchExhausted`; and `status: "unavailable"` is
 /// answered honestly as `.routeElsewhere` rather than rendered as either empty state.
 @MainActor
@@ -17,23 +15,11 @@ final class TradeFindReviewViewModelTests: XCTestCase {
         return SessionManager(store: InMemorySecureSessionStore(initial: session), nowEpochSeconds: { 1_000 })
     }
 
-    private final class SpySaveAction: TradeFindSaveAction {
-        var outcome: TradeFindSaveOutcome = .saved
-        private(set) var calls: [(candidateId: String, reasoning: TradeFindReasoning)] = []
-
-        func save(candidateId: String, reasoning: TradeFindReasoning) async -> TradeFindSaveOutcome {
-            calls.append((candidateId, reasoning))
-            return outcome
-        }
-    }
-
     private func makeViewModel(
-        findResult: Result<TradeFindResponse, OmenApiError>,
-        saveAction: TradeFindSaveAction = StubTradeFindSaveAction()
+        findResult: Result<TradeFindResponse, OmenApiError>
     ) -> TradeFindReviewViewModel {
         TradeFindReviewViewModel(
             repository: StubTradeFindRepository(result: findResult),
-            saveAction: saveAction,
             sessionManager: sessionManager()
         )
     }
@@ -118,9 +104,8 @@ final class TradeFindReviewViewModelTests: XCTestCase {
 
     // MARK: - Pass: local only, never a network call, empties into batchExhausted
 
-    func testPassAdvancesTheStackAndNeverCallsSave() async {
-        let spy = SpySaveAction()
-        let sut = makeViewModel(findResult: .success(batchFixture()), saveAction: spy)
+    func testPassAdvancesTheStack() async {
+        let sut = makeViewModel(findResult: .success(batchFixture()))
         await sut.load(platform: "sleeper", leagueId: "league-1", teamId: "1", week: 3)
 
         sut.pass()
@@ -130,42 +115,8 @@ final class TradeFindReviewViewModelTests: XCTestCase {
         sut.pass()
         XCTAssertEqual(sut.viewState, .batchExhausted)
         XCTAssertNil(sut.currentCandidate)
-        XCTAssertTrue(spy.calls.isEmpty, "Pass must never call the save interface")
     }
 
-    // MARK: - Save: calls the interface verbatim, flips to Saved, never advances or navigates
-
-    func testSaveCallsTheInterfaceWithCandidateIdAndReasoningVerbatim() async {
-        let spy = SpySaveAction()
-        let sut = makeViewModel(findResult: .success(batchFixture()), saveAction: spy)
-        await sut.load(platform: "sleeper", leagueId: "league-1", teamId: "1", week: 3)
-
-        let candidateBeforeSave = sut.currentCandidate
-        await sut.save()
-
-        XCTAssertEqual(spy.calls.count, 1)
-        XCTAssertEqual(spy.calls.first?.candidateId, "c1")
-        XCTAssertEqual(spy.calls.first?.reasoning, candidateBeforeSave?.reasoning)
-        XCTAssertEqual(sut.saveState(for: "c1"), .saved)
-        // Never advances and never changes viewState -- no queue destination exists yet.
-        XCTAssertEqual(sut.currentCandidate?.id, "c1")
-        XCTAssertEqual(sut.viewState, .reviewing)
-    }
-
-    func testSaveFailureRevertsRatherThanClaimingSuccess() async {
-        let spy = SpySaveAction()
-        spy.outcome = .error
-        let sut = makeViewModel(findResult: .success(batchFixture()), saveAction: spy)
-        await sut.load(platform: "sleeper", leagueId: "league-1", teamId: "1", week: 3)
-
-        await sut.save()
-        XCTAssertEqual(sut.saveState(for: "c1"), .error)
-
-        // Retrying after a fixed backend succeeds.
-        spy.outcome = .saved
-        await sut.save()
-        XCTAssertEqual(sut.saveState(for: "c1"), .saved)
-    }
 
     // MARK: - Zero-candidates: a real, honest positive state, distinct from batch-exhausted
 

@@ -44,7 +44,7 @@ enum ScreenshotScenarios {
             content: { AnyView(FauxShell(scenarioKey: "trade.prefilled", initialTab: .trade)) }
         ),
         "trade.find-review": ScreenshotScenario(
-            label: "Trade — Find a trade, swipe review",
+            label: "Trade — Find a trade, one swap",
             content: { AnyView(FindReviewScenarioHost(unavailableReason: nil)) }
         ),
         "trade.find-unavailable": ScreenshotScenario(
@@ -695,53 +695,32 @@ private struct OnboardingAuthScreenshotHost: View {
     }
 }
 
-/// `OmenTradeFindReviewScreen` against a stubbed repository and save action: no network, no
-/// session. A fixture batch (one fair swap with its reasoning) or a server "unavailable" answer.
+/// Find a trade from fixtures (frame FindTrade): one swap, or the honest "unavailable" answer.
 private struct FindReviewScenarioHost: View {
-    var platform: String
-    @StateObject private var viewModel: TradeFindReviewViewModel
-
-    init(unavailableReason: String?, platform: String = "sleeper") {
-        self.platform = platform
-        let candidate = """
-        {
-          "id": "tok.find_2_waddle_pollard", "opponent_team_id": "2", "opponent_team_name": "Davante's Inferno",
-          "give": { "name": "Jaylen Waddle", "position": "WR", "team": "MIA", "projected_points": 14.8 },
-          "receive": { "name": "Tony Pollard", "position": "RB", "team": "TEN", "projected_points": 16.2 },
-          "user_lineup_delta": 4.2, "opponent_lineup_delta": 1.1,
-          "reasoning": {
-            "fills_need_for": ["user"],
-            "user_receives": { "position": "RB", "need": { "status": "hole", "have": 2, "required": 3 } },
-            "opponent_receives": { "position": "WR", "need": { "status": "surplus", "have": 6, "required": 3 } },
-            "evidence": ["live_roster_depth", "live_lineup_projection_delta"]
-          }
-        }
-        """
-        let json: String
-        if let unavailableReason {
-            json = """
-            { "contract_version": "trade-find.v1", "status": "unavailable", "platform": "\(platform)",
-              "league_id": "l", "week": 7, "reason": "\(unavailableReason)", "candidates": [] }
-            """
-        } else {
-            json = """
-            { "contract_version": "trade-find.v1", "status": "ok", "platform": "\(platform)",
-              "league_id": "l", "team_id": "1", "week": 7,
-              "bounds": { "teams_considered": 5, "teams_skipped_for_cap": [] },
-              "degraded_teams": [], "budget_exceeded": false, "candidates": [\(candidate)] }
-            """
-        }
-        let response = try? JSONDecoder().decode(TradeFindResponse.self, from: Data(json.utf8))
-        let session = Session(userID: "screenshot", accessToken: "t", refreshToken: "r", expiresAtEpochSeconds: 9_999_999_999)
-        _viewModel = StateObject(wrappedValue: TradeFindReviewViewModel(
-            repository: StubTradeFindRepository(result: response.map { .success($0) } ?? .failure(.decode)),
-            saveAction: StubTradeFindSaveAction(),
-            sessionManager: SessionManager(store: InMemorySecureSessionStore(initial: session), nowEpochSeconds: { 1_000 })
-        ))
-    }
+    var unavailableReason: String?
+    var platform = "sleeper"
 
     var body: some View {
-        OmenTradeFindReviewScreen(viewModel: viewModel, platform: platform, leagueId: "l", teamId: "1", week: 7)
+        NavigationStack {
+            OmenFindTradeScreen(state: state, onOpenInBuilder: {}, onNext: {}, onRetry: {}, onOpenPlayer: { _ in }, onBack: {})
+        }
+    }
+
+    private var state: OmenFindTradeState {
+        if let unavailableReason {
+            let copy = OmenFindTradeState.unavailableCopy(reason: unavailableReason, platform: platform)
+            return OmenFindTradeState(phase: .unavailable(title: copy.title, message: copy.message, retry: false))
+        }
+        let flowers = OmenPlayerSummary(id: "zf", name: "Zay Flowers", position: "WR", team: "BAL", number: 4, omenPoints: 13.9, providerPoints: 13.1, providerName: "ESPN", grade: 77, lead: .omen)
+        return OmenFindTradeState(
+            phase: .reviewing(.init(
+                id: "c1", partnerName: "Gibbs me some Rice", partnerNeed: "Needs WR",
+                send: FoundationFixtures.smith, receive: flowers,
+                yourGain: 1.9, theirGain: 2.4,
+                theCatch: "Flowers has a Week 14 bye, your first playoff week."
+            ), index: 0, total: 4),
+            teamsRead: 9
+        )
     }
 }
 

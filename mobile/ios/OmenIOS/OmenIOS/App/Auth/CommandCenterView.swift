@@ -227,7 +227,9 @@ struct CommandCenterView: View {
     private func tradePlayer(_ id: String) -> some View {
         if let player = tradeViewModel.viewerRoster?.players.first(where: { $0.id == id }) {
             OmenPlayerScreen(page: OmenPlayerPage(player, ownerLabel: "Your team", providerName: tradeProviderName))
-        } else if let team = tradeViewModel.partnerRoster, let player = team.players.first(where: { $0.id == id }) {
+        } else if case .loaded(let rosters) = tradeViewModel.rosterBrowseState,
+                  let team = rosters.teams.first(where: { $0.players.contains { $0.id == id } }),
+                  let player = team.players.first(where: { $0.id == id }) {
             OmenPlayerScreen(page: OmenPlayerPage(player, ownerLabel: team.teamName, providerName: tradeProviderName))
         } else {
             OmenStateBlock(kind: .notEnoughToGoOn, title: "This player isn\u{2019}t on the rosters Omen just read", message: "Go back to see the current rosters.")
@@ -502,18 +504,23 @@ struct CommandCenterView: View {
                 .navigationDestination(for: TradeRoute.self) { route in
                     switch route {
                     case .find:
-                            TradeFindFlowView(
-                                directoryRepository: leagueDirectoryRepository,
-                                sessionManager: sessionManager,
-                                apiBaseURL: environment.apiBaseURL,
-                                userID: userID,
-                                platform: pickedLeagueScope?.platform ?? tradeViewModel.offer.leagueContext?.platform,
-                                leagueId: pickedLeagueScope?.leagueID ?? tradeViewModel.offer.leagueContext?.leagueId,
-                                fallbackTeamId: loadedOverviewTeamId,
-                                onOpenAccount: { presentSheet(.account) },
-                                onConnectLeague: { presentSheet(.connect) },
-                                onDismiss: { tradePath.removeAll() }
-                            )
+                        TradeFindFlowView(
+                            directoryRepository: leagueDirectoryRepository,
+                            sessionManager: sessionManager,
+                            findRepository: ApiTradeFindRepository(client: OmenApiClient(baseURL: environment.apiBaseURL)),
+                            userID: userID,
+                            platform: pickedLeagueScope?.platform ?? tradeViewModel.offer.leagueContext?.platform,
+                            leagueId: pickedLeagueScope?.leagueID ?? tradeViewModel.offer.leagueContext?.leagueId,
+                            fallbackTeamId: loadedOverviewTeamId,
+                            onConnectLeague: { presentSheet(.connect) },
+                            onOpenInBuilder: { candidate in
+                                tradeViewModel.openInBuilder(candidate)
+                                tradePath = [.build]
+                            },
+                            onOpenPlayer: { tradePath.append(.player($0)) },
+                            onDismiss: { tradePath.removeAll() }
+                        )
+                        .toolbar(.hidden, for: .tabBar)
                     case .build:
                         tradeBuilder.toolbar(.hidden, for: .tabBar)
                     case .threeTeam:

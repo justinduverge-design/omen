@@ -427,6 +427,14 @@ final class TradeViewModel: ObservableObject {
         }
     }
 
+    /// Find a trade's "Open in builder": the partner and both players, ready to judge or adjust.
+    func openInBuilder(_ candidate: TradeFindCandidate) {
+        clearOffer()
+        if let partner = candidate.opponentTeamId, !partner.isEmpty { selectedPartnerTeamID = partner }
+        add(TradePlayer(name: candidate.give.name, position: candidate.give.position, team: candidate.give.team, playerKey: candidate.give.playerKey), to: .send)
+        add(TradePlayer(name: candidate.receive.name, position: candidate.receive.position, team: candidate.receive.team, playerKey: candidate.receive.playerKey), to: .receive)
+    }
+
     func clearOffer() {
         offer.send = []
         offer.receive = []

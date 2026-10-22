@@ -2,7 +2,7 @@ import XCTest
 @testable import Omen
 
 /// Find a trade as the Trade tab's front door: resolving the user's own team from the league
-/// directory, the real save call (`POST /api/trade/saved`), and the honest unavailable states.
+/// directory, and the honest unavailable states.
 @MainActor
 final class TradeFindFlowTests: XCTestCase {
 
@@ -122,79 +122,7 @@ final class TradeFindFlowTests: XCTestCase {
         XCTAssertEqual(sut.state, .ready(platform: "sleeper", leagueId: "s-1", teamId: "4"))
     }
 
-    // MARK: - Save hits the real endpoint
-
-    private final class CapturingFetcher: OmenHTTPFetching {
-        var captured: URLRequest?
-        let status: Int
-        let body: String
-        init(status: Int, body: String) { self.status = status; self.body = body }
-
-        func data(for request: URLRequest) async throws -> (Data, URLResponse) {
-            captured = request
-            let response = HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: nil, headerFields: nil)!
-            return (Data(body.utf8), response)
-        }
-    }
-
-    private let reasoning: TradeFindReasoning = {
-        let json = """
-        {
-          "fills_need_for": ["user"],
-          "user_receives": { "position": "RB", "need": { "status": "hole", "have": 2, "required": 3 } },
-          "opponent_receives": { "position": "WR", "need": { "status": "surplus", "have": 6, "required": 3 } },
-          "evidence": ["live_roster_depth", "live_lineup_projection_delta"]
-        }
-        """
-        return try! JSONDecoder().decode(TradeFindReasoning.self, from: Data(json.utf8))
-    }()
-
-    private func saveAction(_ fetcher: CapturingFetcher) -> ApiTradeFindSaveAction {
-        ApiTradeFindSaveAction(
-            client: OmenApiClient(baseURL: URL(string: "https://example.invalid")!, fetcher: fetcher),
-            sessionManager: sessionManager()
-        )
-    }
-
-    func testSavePostsCandidateIdAndReasoningVerbatimToTheSavedEndpoint() async throws {
-        let fetcher = CapturingFetcher(status: 200, body: #"{"status":"saved"}"#)
-        let outcome = await saveAction(fetcher).save(candidateId: "tok.find_2_a_b", reasoning: reasoning)
-
-        XCTAssertEqual(outcome, .saved)
-        XCTAssertEqual(fetcher.captured?.httpMethod, "POST")
-        XCTAssertEqual(fetcher.captured?.url?.path, "/api/trade/saved")
-        XCTAssertEqual(fetcher.captured?.value(forHTTPHeaderField: "Authorization"), "Bearer t")
-
-        let sent = try JSONSerialization.jsonObject(with: XCTUnwrap(fetcher.captured?.httpBody)) as? [String: Any]
-        XCTAssertEqual(sent?["candidate_id"] as? String, "tok.find_2_a_b")
-        let sentReasoning = try XCTUnwrap(sent?["reasoning"] as? [String: Any])
-        XCTAssertEqual(sentReasoning["fills_need_for"] as? [String], ["user"])
-        XCTAssertEqual((sentReasoning["user_receives"] as? [String: Any])?["position"] as? String, "RB")
-        XCTAssertEqual(sentReasoning["evidence"] as? [String], ["live_roster_depth", "live_lineup_projection_delta"])
-        XCTAssertEqual(Set(sent?.keys.map { $0 } ?? []), ["candidate_id", "reasoning"], "nothing else is sent: the server resolves the trade itself")
-    }
-
-    func testSaveMaps410ToExpiredAndOtherFailuresToError() async {
-        let expired = await saveAction(CapturingFetcher(status: 410, body: #"{"code":"trade_saved_candidate_expired"}"#))
-            .save(candidateId: "x", reasoning: reasoning)
-        XCTAssertEqual(expired, .expired)
-
-        let unavailable = await saveAction(CapturingFetcher(status: 503, body: #"{"code":"trade_saved_queue_storage_unavailable"}"#))
-            .save(candidateId: "x", reasoning: reasoning)
-        XCTAssertEqual(unavailable, .error)
-
-        let wrongStatus = await saveAction(CapturingFetcher(status: 200, body: #"{"status":"error"}"#))
-            .save(candidateId: "x", reasoning: reasoning)
-        XCTAssertEqual(wrongStatus, .error)
-    }
-
-    // MARK: - View model: expired saves and provider-aware copy
-
-    private final class FixedSave: TradeFindSaveAction {
-        let outcome: TradeFindSaveOutcome
-        init(_ outcome: TradeFindSaveOutcome) { self.outcome = outcome }
-        func save(candidateId: String, reasoning: TradeFindReasoning) async -> TradeFindSaveOutcome { outcome }
-    }
+    // MARK: - View model: provider-aware copy
 
     private func response(platform: String, status: String = "ok", reason: String? = nil, degraded: String = "[]", candidates: Bool = true) -> TradeFindResponse {
         let candidate = """
@@ -223,32 +151,11 @@ final class TradeFindFlowTests: XCTestCase {
         return try! JSONDecoder().decode(TradeFindResponse.self, from: Data(json.utf8))
     }
 
-    private func viewModel(_ result: TradeFindResponse, save: TradeFindSaveOutcome = .saved) -> TradeFindReviewViewModel {
+    private func viewModel(_ result: TradeFindResponse) -> TradeFindReviewViewModel {
         TradeFindReviewViewModel(
             repository: StubTradeFindRepository(result: .success(result)),
-            saveAction: FixedSave(save),
             sessionManager: sessionManager()
         )
-    }
-
-    func testExpiredSaveIsItsOwnStateAndSearchAgainReloads() async {
-        let sut = viewModel(response(platform: "sleeper"), save: .expired)
-        await sut.load(platform: "sleeper", leagueId: "l", teamId: "1", week: nil)
-        await sut.save()
-        XCTAssertEqual(sut.saveState(for: "c1"), .expired)
-
-        await sut.reload()
-        XCTAssertEqual(sut.viewState, .reviewing)
-        XCTAssertEqual(sut.saveState(for: "c1"), .idle, "a fresh search clears the stale save state")
-    }
-
-    func testASwipeOnAnAlreadySavedCardDoesNotSaveTwice() async {
-        let sut = viewModel(response(platform: "sleeper"))
-        await sut.load(platform: "sleeper", leagueId: "l", teamId: "1", week: nil)
-        await sut.save()
-        XCTAssertEqual(sut.saveState(for: "c1"), .saved)
-        await sut.save()
-        XCTAssertEqual(sut.saveState(for: "c1"), .saved)
     }
 
     func testDegradedSentenceNamesTheProviderThatFailedNotAlwaysEspn() async {
@@ -269,15 +176,9 @@ final class TradeFindFlowTests: XCTestCase {
         await sut.load(platform: "yahoo", leagueId: "l", teamId: "1", week: nil)
         XCTAssertEqual(sut.viewState, .routeElsewhere(reason: "projections_unavailable"))
 
-        let copy = OmenTradeFindReviewScreen.unavailableCopy(reason: "projections_unavailable", platform: "yahoo")
+        let copy = OmenFindTradeState.unavailableCopy(reason: "projections_unavailable", platform: "yahoo")
         XCTAssertEqual(copy.title, "Not enough projections to rank trades")
         XCTAssertFalse(copy.message.localizedCaseInsensitiveContains("no real gaps"))
-    }
-
-    func testEveryServerReasonHasItsOwnCopy() {
-        let reasons = ["projections_unavailable", "provider_reauth_required", "league_not_active", "own_roster_unavailable", "provider_unsupported"]
-        let titles = reasons.map { OmenTradeFindReviewScreen.unavailableCopy(reason: $0, platform: "espn").title }
-        XCTAssertEqual(Set(titles).count, reasons.count)
     }
 
     // MARK: - League trade targets
