@@ -5,9 +5,9 @@ import SwiftUI
 enum FoundationFixtures {
     static let puka = OmenPlayerSummary(id: "p1", name: "Puka Nacua", position: "WR", team: "LAR", number: 12, omenPoints: 18.6, providerPoints: 15.9, providerName: "ESPN", grade: 88, lead: .omen, detail: "LAR \u{00B7} Sun 4:25")
     static let bijan = OmenPlayerSummary(id: "p2", name: "Bijan Robinson", position: "RB", team: "ATL", number: 7, omenPoints: 19.8, providerPoints: 18.7, providerName: "ESPN", grade: 91, lead: .omen)
-    static let meyers = OmenPlayerSummary(id: "p3", name: "Jakobi Meyers", position: "WR", team: "LV", number: 16, omenPoints: 13.4, providerPoints: 10.6, providerName: "ESPN", grade: 61, lead: .omen)
+    static let meyers = OmenPlayerSummary(id: "p3", name: "Jakobi Meyers", position: "WR", team: "LV", number: 16, omenPoints: 13.4, providerPoints: 10.6, providerName: "ESPN", grade: 61, lead: .omen, injury: "Questionable")
     static let smith = OmenPlayerSummary(id: "p4", name: "DeVonta Smith", position: "WR", team: "PHI", number: 6, omenPoints: 10.3, providerPoints: 13.4, providerName: "ESPN", grade: 72, lead: .omen)
-    static let pollard = OmenPlayerSummary(id: "p5", name: "Tony Pollard", position: "RB", team: "TEN", number: 20, grade: nil, detail: "Out \u{00B7} can\u{2019}t be traded", locked: true)
+    static let pollard = OmenPlayerSummary(id: "p5", name: "Tony Pollard", position: "RB", team: "TEN", number: 20, grade: nil, detail: "can\u{2019}t be traded", locked: true, injury: "Out")
     static let mcbride = OmenPlayerSummary(id: "p6", name: "Trey McBride", position: "TE", team: "ARI", number: 85, omenPoints: 13.7, providerPoints: 12.2, providerName: "ESPN", grade: 82, lead: .unresolved)
 
     static let pukaPage = OmenPlayerPage(

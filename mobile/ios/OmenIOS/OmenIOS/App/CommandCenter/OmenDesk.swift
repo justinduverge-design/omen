@@ -379,7 +379,10 @@ extension OmenPlayerSummary {
             providerPoints: player.projectedPoints,
             providerName: providerName,
             grade: player.omenRead?.grade,
-            lead: lead
+            lead: lead,
+            detail: player.tradeLocked ? "can\u{2019}t be traded" : nil,
+            locked: player.tradeLocked,
+            injury: OmenPlayerSummary.injuryWord(player.status)
         )
     }
 }

@@ -22,10 +22,30 @@ struct OmenPlayerSummary: Equatable, Identifiable {
     var detail: String?
     /// The player cannot be added to a trade (game started, provider lock, injured reserve).
     var locked = false
+    /// The provider's injury designation in words ("Questionable", "Out"); nil when healthy or unknown.
+    var injury: String?
 
     enum Lead: Equatable { case omen, provider, unresolved }
 
     static func one(_ value: Double) -> String { String(format: "%.1f", value) }
+
+    /// Provider status codes (ESPN, Sleeper, Yahoo) in plain words. "Active", "Healthy" and blank are nil;
+    /// an unknown code is kept as sent rather than guessed at.
+    static func injuryWord(_ raw: String?) -> String? {
+        guard let raw = raw?.trimmingCharacters(in: .whitespaces), !raw.isEmpty else { return nil }
+        switch raw.uppercased().replacingOccurrences(of: "_", with: " ") {
+        case "ACTIVE", "HEALTHY", "NORMAL", "NA": return nil
+        case "Q", "QUESTIONABLE": return "Questionable"
+        case "D", "DOUBTFUL": return "Doubtful"
+        case "O", "OUT": return "Out"
+        case "IR", "INJURY RESERVE", "INJURED RESERVE", "IL": return "Injured reserve"
+        case "PUP", "PUP-R", "PUP-P", "PHYSICALLY UNABLE TO PERFORM": return "PUP"
+        case "SUS", "SUSP", "SUSPENSION", "SUSPENDED": return "Suspended"
+        case "COV", "COVID": return "Out"
+        case "DTD", "DAY TO DAY": return "Day to day"
+        default: return raw.capitalized
+        }
+    }
 }
 
 /// The player row (the old row of the same name was deleted 2026-10-22), in the three variants of spec § 5.
@@ -75,6 +95,7 @@ struct OmenPlayerRow: View {
 
     private var pickLabel: String {
         var parts = [player.name]
+        if let injury = player.injury { parts.append(injury) }
         if player.locked { parts.append("can't be traded") }
         if let grade = player.grade { parts.append("Omen grade \(grade)") }
         if let omen = player.omenPoints { parts.append("Omen \(OmenPlayerSummary.one(omen)) this week") }
@@ -90,7 +111,12 @@ struct OmenPlayerRow: View {
                     .omenTextStyle(OmenTypography.rowTitle)
                     .foregroundStyle(player.locked ? OmenColor.textTertiary : OmenColor.textPrimary)
                     .lineLimit(2)
-                if let detail = player.detail ?? defaultDetail {
+                if let injury = player.injury {
+                    // The designation leads the line in warning colour; the rest stays quiet.
+                    (Text(injury).foregroundColor(OmenColor.Data.riskMedium)
+                        + Text((player.detail ?? defaultDetail).map { " \u{00B7} \($0)" } ?? "").foregroundColor(OmenColor.textTertiary))
+                        .omenTextStyle(OmenTypography.quiet)
+                } else if let detail = player.detail ?? defaultDetail {
                     Text(detail)
                         .omenTextStyle(OmenTypography.quiet)
                         .foregroundStyle(OmenColor.textTertiary)
