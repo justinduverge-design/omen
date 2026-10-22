@@ -90,3 +90,24 @@ Forced update · Desk with no league · Demo · Rosters unreadable · States (lo
 - [ ] Every screenshot side by side; drift between screens listed and fixed
 - [ ] Remove the screens and components the new ones replace (list each in the PR)
 - [ ] Fresh-agent review of the whole diff; PR; CI green; on the founder's phone
+
+## Resume here (updated 2026-10-22)
+
+- **Done and pushed:** foundation (frozen), Desk, Player. Branch `claude/build12-app` on origin.
+- **Approval:** founder 2026-10-22, rebuild Omen, Trade and League the way the Desk was; push freely, no merge
+  until all screens pass (decision log 2026-10-22).
+- **Next: the Omen call.** Frames: `Main.dc.html` (Omen section), `OmenTradeCall.dc.html`,
+  `FullArgument.dc.html`, `States.dc.html` (hold). Replace `OmenDecisionScreen` (in
+  `App/Auth/CommandCenterView.swift`) and `OmenDecisionBrief` with a new `OmenCallView` built from § 5:
+  headline (`payload.verdict`), body (`payload.explanation.first`), `OmenSidePair` for start/sit
+  (`startSitDetail`), `OmenFigure` row (impact, risk, band), "What moved the call" from moved signals and
+  `readComparison` drivers, actions ("Make this move in ESPN", "Not this week"), "See the full argument"
+  pushed, "Report this" link. Trade call variant from `payload.tradeCall`. Hold and failure states via
+  `OmenStateBlock`. Delete in the same change: `OmenDecisionBrief`, `OmenConfidenceBar`, `OmenMetricStrip`,
+  `OmenRiskPanel`, `OmenSignalList`, old `OmenPlayerRow`, `OmenReportPill`, `OmenFirstCallScreens` parts the
+  new call replaces; then rename `OmenRosterRow` to `OmenPlayerRow`.
+- **Then:** Trade (chooser, Find, builder, verdict sheet, share, three-team, judge), then League (+ Waivers,
+  Ledger, receipt), then the rest of the screen list, then the whole-app pass.
+- **Tooling notes:** add Swift files with `addfile2.py`-style pbxproj edits (no synchronized groups);
+  capture with `scripts/capture-screen-batch.sh --platform ios --build --scenarios "..."`; UI tests in
+  `OmenIOSUITests/DeskUITests.swift` are the pattern (audit prints offending elements).
