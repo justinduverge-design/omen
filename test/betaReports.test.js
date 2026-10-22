@@ -3,7 +3,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const express = require("express");
 const http = require("node:http");
-const { createBetaReportsRouter } = require("../src/routes/betaReports");
+const { createBetaReportsRouter, cleanTriage } = require("../src/routes/betaReports");
 const valid = {
   screen: "command_center",
   app_version: "0.1.0",
@@ -220,4 +220,40 @@ test("nothing is summarized or emailed when the report was not saved", async () 
 test("report rejects an unknown topic", async () => {
   const result = await run({ ...valid, topic: "spam" }, triaged().options);
   assert.equal(result.status, 400);
+});
+test("the email names the stored report so the founder can find it", async () => {
+  const t = triaged();
+  await run(valid, t.options);
+  await Promise.all(t.pending);
+  assert.match(t.sent[0].text, /beta_reports id report-1/);
+});
+test("model output is cleaned: emails removed, non-strings and credential shapes rejected", () => {
+  assert.equal(cleanTriage({ summary: "Mail fan@example.com about it", severity: "low" }).summary, "Mail [email] about it");
+  assert.equal(cleanTriage({ summary: "ok", severity: { level: "high" } }), null);
+  assert.equal(cleanTriage({ summary: "their espn_s2=abc cookie" }), null);
+  assert.equal(cleanTriage({ severity: "high" }), null);
+  assert.equal(cleanTriage("not json"), null);
+});
+test("a throwing background job is contained by the default defer", async () => {
+  const { createBetaReportsRouter: make } = require("../src/routes/betaReports");
+  let rejected = false;
+  const onRejection = () => {
+    rejected = true;
+  };
+  process.on("unhandledRejection", onRejection);
+  try {
+    const result = await run(valid, {
+      notify: async () => {
+        throw Error("resend down");
+      },
+      triage: async () => null,
+      context: async () => ({ connections: [] }),
+    });
+    await new Promise((r) => setTimeout(r, 20));
+    assert.equal(result.status, 201);
+    assert.equal(rejected, false);
+    assert.equal(typeof make, "function");
+  } finally {
+    process.off("unhandledRejection", onRejection);
+  }
 });

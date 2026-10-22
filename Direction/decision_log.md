@@ -4802,7 +4802,7 @@ on the second one.
 writes a summary, severity, likely cause, next step and a short brief for an engineering agent. That
 summary and the metadata are emailed to the founder through Resend (`SUPPORT_NOTIFY_EMAIL`, reply-to the
 reporter). The person's own words are not in the email; they stay in `beta_reports` and are purged after
-30 days. This keeps fact-of-record 17 (reports are summarized only on our own model) and adds one egress:
+30 days. This amends fact-of-record 17 (recorded there): reports are still summarized only on our own model, and one egress is added:
 the summary, to the founder's inbox. The in-app disclosure says so before the person sends.
 **Why.** Reports were saved (one sat unread in production) but nothing told anyone. **Done 2026-10-21:** `SUPPORT_NOTIFY_EMAIL=support@slopssaloon.com` set on KVM1 (founder yes; `RESEND_API_KEY` was already set for the waitlist); mail is sent from `reports@slopssaloon.com`. **Not yet done:**
 setting `RESEND_API_KEY` and `SUPPORT_NOTIFY_EMAIL` on the API host (needs the founder's yes), and handing

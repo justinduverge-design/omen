@@ -159,19 +159,39 @@ async function defaultTriage(row, topic, context) {
   const raw = await runAgent(TRIAGE_SYSTEM, triagePrompt(row, topic, context), { maxTokens: 500 });
   if (!raw) return null;
   try {
-    const json = JSON.parse(
-      String(raw)
-        .trim()
-        .replace(/^```(?:json)?\s*/i, "")
-        .replace(/\s*```$/i, ""),
+    return cleanTriage(
+      JSON.parse(
+        String(raw)
+          .trim()
+          .replace(/^```(?:json)?\s*/i, "")
+          .replace(/\s*```$/i, ""),
+      ),
     );
-    return typeof json.summary === "string" && !looksSensitive(JSON.stringify(json)) ? json : null;
   } catch {
     return null;
   }
 }
 
-function reportMail(row, ref, topic, triage, context, replyTo) {
+const TRIAGE_FIELDS = ["summary", "category", "severity", "likely_cause", "next_step", "agent_brief"];
+const EMAIL_ADDRESS = /[^\s@]+@[^\s@]+\.[^\s@]+/g;
+// The model is asked to leave out names and credentials; this does not trust it to. Every field must be a
+// short string, email addresses are removed, and anything credential-shaped drops the whole read. Names
+// of people or leagues cannot be detected reliably; that residual risk is the founder's recorded call
+// (decision log 2026-10-21).
+function cleanTriage(json) {
+  if (!json || typeof json !== "object") return null;
+  const out = {};
+  for (const key of TRIAGE_FIELDS) {
+    const value = json[key];
+    if (value === undefined || value === null) continue;
+    if (typeof value !== "string") return null;
+    out[key] = value.replace(EMAIL_ADDRESS, "[email]").slice(0, 600);
+  }
+  if (!out.summary || looksSensitive(JSON.stringify(out))) return null;
+  return out;
+}
+
+function reportMail(row, ref, storedId, topic, triage, context, replyTo) {
   const label = TOPICS[topic] || "Report";
   const head = triage
     ? [
@@ -184,11 +204,11 @@ function reportMail(row, ref, topic, triage, context, replyTo) {
         "Agent brief (paste into Codex, Jules or Claude Code):",
         triage.agent_brief || "",
       ]
-    : ["Ollama could not summarize this one. Read it in beta_reports."];
+    : ["Ollama could not summarize this one. Read it in beta_reports (id below)."];
   const text = [
     ...head,
     "",
-    `Ticket: ${ref}`,
+    `Ticket: ${ref} · beta_reports id ${storedId}`,
     `Reply goes to: ${replyTo || "no email on the account"} (user ${row.user_id})`,
     `Screen: ${row.screen} · App ${row.app_version} (${row.build}) · ${row.device_model}, ${row.os_version}`,
     `Device connection: ${row.connection_state} · Server: ${context.connections.join("; ") || "none"}`,
@@ -260,12 +280,13 @@ function createBetaReportsRouter({
     const ref = ticketRef();
     const replyTo = typeof req.user.email === "string" ? req.user.email : null;
     // With the default sender and no inbox configured there is no one to tell, so the model is not woken.
-    const nobodyToTell = notify === defaultNotify && !process.env.SUPPORT_NOTIFY_EMAIL;
+    const nobodyToTell =
+      notify === defaultNotify && (!process.env.SUPPORT_NOTIFY_EMAIL || !process.env.RESEND_API_KEY);
     if (!nobodyToTell)
       defer(async () => {
       const facts = await context(row.user_id).catch(() => ({ connections: [] }));
       const read = await triage(row, topic, facts).catch(() => null);
-      await notify(reportMail(row, ref, topic, read, facts, replyTo));
+      await notify(reportMail(row, ref, saved.id, topic, read, facts, replyTo));
     });
     return res.status(201).json({
       contract_version: "beta-report.v1",
@@ -277,4 +298,4 @@ function createBetaReportsRouter({
   });
   return router;
 }
-module.exports = { createBetaReportsRouter, looksSensitive };
+module.exports = { createBetaReportsRouter, looksSensitive, cleanTriage };
