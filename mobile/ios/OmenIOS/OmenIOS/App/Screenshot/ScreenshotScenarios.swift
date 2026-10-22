@@ -104,6 +104,8 @@ enum ScreenshotScenarios {
             label: "Trade — Find a trade, provider has no projections",
             content: { AnyView(FindReviewScenarioHost(unavailableReason: "projections_unavailable", platform: "yahoo")) }
         ),
+        "foundation.players": ScreenshotScenario(label: "Foundation v1: player pieces", content: { AnyView(FoundationPlayersGallery()) }),
+        "foundation.teams": ScreenshotScenario(label: "Foundation v1: team pieces and states", content: { AnyView(FoundationTeamsGallery()) }),
         "league.loaded": ScreenshotScenario(
             label: "League — live matchup, standings, empty activity",
             content: { AnyView(FauxShell(scenarioKey: "league.loaded", initialTab: .league)) }

@@ -132,7 +132,10 @@ struct OmenTeamCrest: View {
     }
 
     static func initials(_ name: String) -> String {
-        let letters = name.split(separator: " ").prefix(2).compactMap(\.first)
+        // Skip the small words, so "Titans of Slopsilonia" is TS, not TO.
+        let small: Set<String> = ["of", "the", "a", "an", "and", "me", "my", "de", "la"]
+        let words = name.split(separator: " ").filter { !small.contains($0.lowercased()) }
+        let letters = (words.isEmpty ? name.split(separator: " ") : words).prefix(2).compactMap(\.first)
         return letters.isEmpty ? "?" : String(letters).uppercased()
     }
 }
