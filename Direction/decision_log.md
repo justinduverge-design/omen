@@ -4816,3 +4816,10 @@ Build 12. The app is built in one pass, not two waves (founder: waves drift apar
 team-colour jersey badges, no photos (no lawful free source); providers show as name and colour, no
 logos; the account avatar stays initials for now. Progress and the per-screen gate live in
 `Blueprints/handoffs/2026-10-21-build12-app-progress.md`.
+
+## 2026-10-22 — Omen, Trade and League rebuilt the way the Desk was
+
+**Decision (founder, 2026-10-22).** "You have founder approval to do what you did with [Desk] to Omen,
+trade, and league." Each is rebuilt on the foundation, the old screens and pieces it replaces are
+deleted in the same change, and each passes the progress-file gate. Commit and push freely on
+`claude/build12-app`; no merge until the screen work is done.
