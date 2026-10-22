@@ -20,7 +20,12 @@ const SCREENS = new Set([
   "support",
 ]);
 // What the person picked on the Support screen. Optional, so older builds still send reports.
-const TOPICS = { bug: "Something broke", call: "A call looks wrong", connection: "League connection", question: "Question" };
+const TOPICS = {
+  bug: "Something broke",
+  call: "A call looks wrong",
+  connection: "League connection",
+  question: "Question",
+};
 const FIELDS = new Set([
   "screen",
   "app_version",
@@ -109,8 +114,17 @@ async function defaultNotify({ subject, text, replyTo }) {
   try {
     await axios.post(
       "https://api.resend.com/emails",
-      { from: "Omen Reports <reports@slopssaloon.com>", to: [to], subject, text, ...(replyTo ? { reply_to: replyTo } : {}) },
-      { headers: { Authorization: `Bearer ${config.resend.apiKey}`, "Content-Type": "application/json" }, timeout: 5000 },
+      {
+        from: "Omen Reports <reports@slopssaloon.com>",
+        to: [to],
+        subject,
+        text,
+        ...(replyTo ? { reply_to: replyTo } : {}),
+      },
+      {
+        headers: { Authorization: `Bearer ${config.resend.apiKey}`, "Content-Type": "application/json" },
+        timeout: 5000,
+      },
     );
     return true;
   } catch {
@@ -280,14 +294,13 @@ function createBetaReportsRouter({
     const ref = ticketRef();
     const replyTo = typeof req.user.email === "string" ? req.user.email : null;
     // With the default sender and no inbox configured there is no one to tell, so the model is not woken.
-    const nobodyToTell =
-      notify === defaultNotify && (!process.env.SUPPORT_NOTIFY_EMAIL || !process.env.RESEND_API_KEY);
+    const nobodyToTell = notify === defaultNotify && (!process.env.SUPPORT_NOTIFY_EMAIL || !process.env.RESEND_API_KEY);
     if (!nobodyToTell)
       defer(async () => {
-      const facts = await context(row.user_id).catch(() => ({ connections: [] }));
-      const read = await triage(row, topic, facts).catch(() => null);
-      await notify(reportMail(row, ref, saved.id, topic, read, facts, replyTo));
-    });
+        const facts = await context(row.user_id).catch(() => ({ connections: [] }));
+        const read = await triage(row, topic, facts).catch(() => null);
+        await notify(reportMail(row, ref, saved.id, topic, read, facts, replyTo));
+      });
     return res.status(201).json({
       contract_version: "beta-report.v1",
       id: ref,

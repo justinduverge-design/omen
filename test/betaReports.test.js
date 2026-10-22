@@ -172,13 +172,16 @@ function triaged(extra = {}) {
 }
 test("a saved report is summarized by the model and the summary, not the note, is emailed", async () => {
   const t = triaged();
-  const result = await run({ ...valid, topic: "bug" }, {
-    ...t.options,
-    authenticate: (req, _res, next) => {
-      req.user = { id: "owner", email: "fan@example.com" };
-      next();
+  const result = await run(
+    { ...valid, topic: "bug" },
+    {
+      ...t.options,
+      authenticate: (req, _res, next) => {
+        req.user = { id: "owner", email: "fan@example.com" };
+        next();
+      },
     },
-  });
+  );
   await Promise.all(t.pending);
   assert.equal(result.status, 201);
   assert.match(result.body.id, /^R-[A-Z0-9]{6}$/);
@@ -228,7 +231,10 @@ test("the email names the stored report so the founder can find it", async () =>
   assert.match(t.sent[0].text, /beta_reports id report-1/);
 });
 test("model output is cleaned: emails removed, non-strings and credential shapes rejected", () => {
-  assert.equal(cleanTriage({ summary: "Mail fan@example.com about it", severity: "low" }).summary, "Mail [email] about it");
+  assert.equal(
+    cleanTriage({ summary: "Mail fan@example.com about it", severity: "low" }).summary,
+    "Mail [email] about it",
+  );
   assert.equal(cleanTriage({ summary: "ok", severity: { level: "high" } }), null);
   assert.equal(cleanTriage({ summary: "their espn_s2=abc cookie" }), null);
   assert.equal(cleanTriage({ severity: "high" }), null);
