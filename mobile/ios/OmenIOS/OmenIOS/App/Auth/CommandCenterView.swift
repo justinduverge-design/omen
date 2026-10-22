@@ -266,8 +266,15 @@ struct CommandCenterView: View {
     /// "on Gibbs me some Rice", "free agent" only when every roster was read, or nil when Omen can't tell.
     private func tradeOwner(of result: PlayerSearchResult) -> String? {
         guard case .loaded(let rosters) = tradeViewModel.rosterBrowseState, rosters.isAvailable else { return nil }
+        // Search ids and roster keys share the provider id; a name match is only the fallback.
         let key = result.name.lowercased()
-        if let team = rosters.teams.first(where: { $0.players.contains { $0.name.lowercased() == key } }) {
+        let byKey: (TradeRosterResponse.Player) -> Bool = { player in
+            guard let k = player.playerKey else { return false }
+            return k == result.id || k.hasSuffix(":\(result.id)")
+        }
+        let byName: (TradeRosterResponse.Player) -> Bool = { $0.name.lowercased() == key }
+        if let team = rosters.teams.first(where: { $0.players.contains(where: byKey) })
+            ?? rosters.teams.first(where: { $0.players.contains(where: byName) }) {
             return team.id == tradeViewModel.viewerTeamID ? "on your team" : team.teamName.map { "on \($0)" }
         }
         // A team that came back empty (unreadable) could be hiding him: no free-agent claim then.
@@ -616,7 +623,8 @@ struct CommandCenterView: View {
                             onConnectLeague: { presentSheet(.connect) },
                             onOpenInBuilder: { candidate in
                                 tradeViewModel.openInBuilder(candidate)
-                                tradePath = [.build]
+                                // Back from the builder returns to the trade Omen found.
+                                tradePath.append(.build)
                             },
                             onOpenPlayer: { tradePath.append(.player($0)) },
                             onDismiss: { tradePath.removeAll() }

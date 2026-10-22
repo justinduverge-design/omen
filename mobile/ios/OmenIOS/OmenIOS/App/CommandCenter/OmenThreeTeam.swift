@@ -226,6 +226,9 @@ struct OmenThreeTeamScreen: View {
                     }
                     .padding(.vertical, OmenSpacing.step12)
                     .accessibilityElement(children: .combine)
+                    .accessibilityLabel([line.name, line.sends, line.gets,
+                                         line.net.map { "\($0 >= 0 ? "plus" : "minus") \(OmenPlayerSummary.one(abs($0))) points a week" } ?? "no number"]
+                        .compactMap { $0 }.joined(separator: ", "))
                     OmenHairline()
                 }
                 Text("Points per week, each lineup.").omenTextStyle(OmenTypography.quiet).foregroundStyle(OmenColor.textTertiary)

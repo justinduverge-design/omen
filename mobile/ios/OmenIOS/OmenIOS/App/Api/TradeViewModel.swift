@@ -259,6 +259,15 @@ final class TradeViewModel: ObservableObject {
         thirdPartnerRemovalDisclosure = nil
     }
 
+    /// A new main partner ends any three-team trade built around the old one: no team twice, no legs to
+    /// a team that is no longer in the trade.
+    private func clearThreeTeam() {
+        thirdPartnerTeamID = nil
+        threeTeamLegs = []
+        threeTeamViewState = .idle
+        threeTeamSubmissionDoneSteps = []
+    }
+
     /// The three teams in a three-team trade, "you" first. Empty until a third team is added.
     var threeTeamTeams: [OmenTradePartner] {
         guard let thirdPartnerTeamID, let primary = selectedPartnerTeamID else { return [] }
@@ -403,6 +412,7 @@ final class TradeViewModel: ObservableObject {
     /// Picking a different partner keeps what you send and drops what you asked for from the old one.
     func switchPartner(to id: String) {
         guard id != selectedPartnerTeamID else { return }
+        clearThreeTeam()
         selectedPartnerTeamID = id
         if !offer.receive.isEmpty {
             offer.receive = []
@@ -416,6 +426,7 @@ final class TradeViewModel: ObservableObject {
     /// Find a trade's "Open in builder": the partner and both players, ready to judge or adjust.
     func openInBuilder(_ candidate: TradeFindCandidate) {
         clearOffer()
+        clearThreeTeam()
         if let partner = candidate.opponentTeamId, !partner.isEmpty { selectedPartnerTeamID = partner }
         add(TradePlayer(name: candidate.give.name, position: candidate.give.position, team: candidate.give.team, playerKey: candidate.give.playerKey), to: .send)
         add(TradePlayer(name: candidate.receive.name, position: candidate.receive.position, team: candidate.receive.team, playerKey: candidate.receive.playerKey), to: .receive)

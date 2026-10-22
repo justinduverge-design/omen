@@ -525,3 +525,34 @@ final class TradeRosterAndShareTests: XCTestCase {
         return vm
     }
 }
+
+extension TradeRosterAndShareTests {
+    /// Review P1, 2026-10-22: a new main partner must end the three-team trade built around the old one.
+    func testSwitchingPartnerEndsTheThreeTeamTrade() async {
+        let repo = StubTradeRepository(result: .failure(.network), rosterResult: .success(threeTeamFixtureForSwitch()))
+        let sut = TradeViewModel(repository: repo, playerSearch: StubPlayerSearchRepository(result: .success([])), sessionManager: signedInSessionManagerForSwitch())
+        sut.useLeague(platform: "sleeper", leagueId: "league-1", viewerTeamId: "1")
+        await sut.loadRoster(userID: "user-1")
+        sut.addThirdPartner(OmenTradePartner(id: "3", crest: "CHB", name: "Chubb Rock"))
+        if let chase = sut.threeTeamRoster("2")?.players.first { sut.setThreeTeamDestination(chase, from: "2", to: "3") }
+
+        sut.switchPartner(to: "3")
+
+        XCTAssertNil(sut.thirdPartnerTeamID)
+        XCTAssertTrue(sut.threeTeamLegs.isEmpty)
+        XCTAssertTrue(sut.threeTeamTeams.isEmpty, "never the same team twice")
+    }
+
+    private func threeTeamFixtureForSwitch() -> TradeRosterResponse {
+        try! JSONDecoder().decode(TradeRosterResponse.self, from: Data("""
+        { "contract_version": "trade-roster.v1", "status": "ok", "platform": "sleeper", "week": 3, "teams": [
+          { "team_id": "1", "team_name": "Own", "players": [ { "player_key": "sleeper:100", "name": "A" } ] },
+          { "team_id": "2", "team_name": "Two", "players": [ { "player_key": "sleeper:200", "name": "B" } ] },
+          { "team_id": "3", "team_name": "Chubb Rock", "players": [ { "player_key": "sleeper:300", "name": "C" } ] } ] }
+        """.utf8))
+    }
+
+    private func signedInSessionManagerForSwitch() -> SessionManager {
+        SessionManager(store: InMemorySecureSessionStore(initial: Session(userID: "user-1", accessToken: "t", refreshToken: "r", expiresAtEpochSeconds: 2_000)), nowEpochSeconds: { 1_000 })
+    }
+}
