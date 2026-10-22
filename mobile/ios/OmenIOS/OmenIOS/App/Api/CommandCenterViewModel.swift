@@ -107,6 +107,12 @@ final class CommandCenterViewModel: ObservableObject {
     /// The lock's Command Center, from the same reads the legacy screen used. `nil` until the
     /// shell has loaded; sections resolve independently, so a dead matchup read never blanks the
     /// waiver or Ledger sections beside it.
+    /// "Week 7" from the dashboard summary, for any screen's eyebrow. Nil until the summary has loaded.
+    var weekLabel: String? {
+        guard case .loaded(let summary) = viewState else { return nil }
+        return summary.gameWeek?.week.map { "Week \($0)" }
+    }
+
     func deskState(railCount: Int, railIndex: Int) -> OmenDeskState? {
         switch viewState {
         case .loaded(let summary):

@@ -33,9 +33,9 @@ it was the last user of, in the same commit.
 
 | Old piece | Callers today | Becomes | Status |
 |---|---|---|---|
-| `OmenPlayerRow` (old) | Omen first call, decision brief, gallery | `OmenRosterRow`, then renamed `OmenPlayerRow` | open |
-| `OmenDecisionBrief` | Omen non-success states | new Omen call + `OmenStateBlock` | open |
-| `OmenConfidenceBar`, `OmenMetricStrip`, `OmenRiskPanel`, `OmenSignalList` | only `OmenDecisionBrief` and the gallery | `OmenFigure`, full argument rows | open (go with the decision brief) |
+| `OmenPlayerRow` (old) | Omen first call, decision brief, gallery | `OmenRosterRow`, then renamed `OmenPlayerRow` | **deleted; renamed** |
+| `OmenDecisionBrief` | Omen non-success states | new Omen call + `OmenStateBlock` | **deleted** (data types moved to `App/Api/OmenCallModels.swift`) |
+| `OmenConfidenceBar`, `OmenMetricStrip`, `OmenRiskPanel`, `OmenSignalList` | only `OmenDecisionBrief` and the gallery | `OmenFigure`, full argument rows | **deleted** |
 | `OmenPlatformConnectionCard` | gallery only | `OmenProviderMark` + Account rows | open |
 | `OmenStateSurface` | 18 files | `OmenStateBlock` | open |
 | `OmenCard`, `OmenTappableCard` | 20 files | `OmenAnswerSurface`, plain page + hairlines | open |
@@ -45,7 +45,7 @@ it was the last user of, in the same commit.
 | `OmenTeamSwitcherSheet`, `OmenSwitchSheet` | 2 / 2 files | one switcher sheet on `OmenSheetHeader` | open |
 | `OmenMatchupHero` view (state enum stays as data), carousel views | Desk | `OmenTeamRolodex`, `OmenPinnedScore` | carousel, widget pager, old desk host/screen, switch-loading, quiet and no-league screens **deleted**; `OmenMatchupHero` view still referenced by its tests, delete with them |
 | `OmenTradeTabs`, `OmenTradePartnerChip`, old trade journey screens | Trade | trade chooser, builder, verdict sheet | open |
-| `OmenReportPill` | 3 files | "Report this" link + report sheet | removed from the Desk; file deleted with the Omen call |
+| `OmenReportPill` | 3 files | "Report this" link + report sheet | **deleted** |
 | `OmenChip`, `OmenBadge`, `OmenPlatformBadge`, `OmenCanvasTextAction` | 3 / 4 / 3 / 3 files | `OmenProviderMark`, `OmenBarTextButton`, words | open |
 | `OmenContextualHelpButton` (header "?") | 1 file | "How Omen makes a call" in Account (spec § 3) | open |
 | `OmenEvidenceRow` | 3 files | `OmenKeyValueRow` | open |
@@ -84,6 +84,8 @@ Forced update · Desk with no league · Demo · Rosters unreadable · States (lo
 |---|---|---|---|---|---|
 | Desk | Main, States, Edges | `OmenDesk.swift` | 1-7 pass | fresh agent: 3 P1 fixed (mid-switch outline, switch error + retry, typed reauth), P2s fixed | `output/screens/build12/desk/`, `DeskUITests` (audit clean), 652 unit tests |
 | Player | Main | `OmenPlayer.swift` | 1-7 pass | same review | `player.page` screenshots, audit clean |
+| Omen call (+ trade call, hold, states) | Main, OmenTradeCall, States | `OmenCall.swift` | 1-7 pass | fresh agent: 3 P1 (hand-off now opens the provider's league; start/sit detail retry; account/help on Desk by spec) and P2s fixed | `output/screens/build12/omen/`, `OmenCallUITests` (audit clean), 637 unit tests |
+| Full argument | FullArgument | `OmenCall.swift` | 1-7 pass | same review | `journey-j3.nominal.02-omen-evidence` |
 
 ## Whole-app pass
 
@@ -96,7 +98,7 @@ Forced update · Desk with no league · Demo · Rosters unreadable · States (lo
 - **Done and pushed:** foundation (frozen), Desk, Player. Branch `claude/build12-app` on origin.
 - **Approval:** founder 2026-10-22, rebuild Omen, Trade and League the way the Desk was; push freely, no merge
   until all screens pass (decision log 2026-10-22).
-- **Next: the Omen call.** Frames: `Main.dc.html` (Omen section), `OmenTradeCall.dc.html`,
+- **Done 2026-10-22: the Omen call** (row above). Original plan kept for reference: Frames: `Main.dc.html` (Omen section), `OmenTradeCall.dc.html`,
   `FullArgument.dc.html`, `States.dc.html` (hold). Replace `OmenDecisionScreen` (in
   `App/Auth/CommandCenterView.swift`) and `OmenDecisionBrief` with a new `OmenCallView` built from § 5:
   headline (`payload.verdict`), body (`payload.explanation.first`), `OmenSidePair` for start/sit
@@ -106,7 +108,7 @@ Forced update · Desk with no league · Demo · Rosters unreadable · States (lo
   `OmenStateBlock`. Delete in the same change: `OmenDecisionBrief`, `OmenConfidenceBar`, `OmenMetricStrip`,
   `OmenRiskPanel`, `OmenSignalList`, old `OmenPlayerRow`, `OmenReportPill`, `OmenFirstCallScreens` parts the
   new call replaces; then rename `OmenRosterRow` to `OmenPlayerRow`.
-- **Then:** Trade (chooser, Find, builder, verdict sheet, share, three-team, judge), then League (+ Waivers,
+- **Next:** Trade (chooser, Find, builder, verdict sheet, share, three-team, judge), then League (+ Waivers,
   Ledger, receipt), then the rest of the screen list, then the whole-app pass.
 - **Tooling notes:** add Swift files with `addfile2.py`-style pbxproj edits (no synchronized groups);
   capture with `scripts/capture-screen-batch.sh --platform ios --build --scenarios "..."`; UI tests in

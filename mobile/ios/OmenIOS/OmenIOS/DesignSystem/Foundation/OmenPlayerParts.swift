@@ -28,8 +28,8 @@ struct OmenPlayerSummary: Equatable, Identifiable {
     static func one(_ value: Double) -> String { String(format: "%.1f", value) }
 }
 
-/// The player row (named OmenRosterRow beside the older OmenPlayerRow, which retires), in the three variants of spec § 5.
-struct OmenRosterRow: View {
+/// The player row (the old row of the same name was deleted 2026-10-22), in the three variants of spec § 5.
+struct OmenPlayerRow: View {
     enum Variant {
         /// A list you browse: the whole row opens the player.
         case browse(onOpen: () -> Void)
@@ -271,6 +271,8 @@ struct OmenSidePair: View {
     struct Side {
         let label: String
         let player: OmenPlayerSummary
+        /// More players on the same side (a trade can send two).
+        var more: [OmenPlayerSummary] = []
         var value: String?
         var valueCaption: String?
         var onOpen: (() -> Void)?
@@ -292,10 +294,12 @@ struct OmenSidePair: View {
         let content = VStack(spacing: OmenSpacing.step6) {
             Text(side.label.uppercased()).omenTextStyle(OmenTypography.eyebrow).foregroundStyle(emphasized ? OmenColor.accentHover : OmenColor.textTertiary)
             OmenPlayerBadge(team: side.player.team, number: side.player.number, position: side.player.position)
-            Text(side.player.name)
-                .omenTextStyle(OmenTypography.rowTitle)
-                .foregroundStyle(emphasized ? OmenColor.textPrimary : OmenColor.textSecondary)
-                .multilineTextAlignment(.center)
+            ForEach([side.player] + side.more) { player in
+                Text(player.name)
+                    .omenTextStyle(OmenTypography.rowTitle)
+                    .foregroundStyle(emphasized ? OmenColor.textPrimary : OmenColor.textSecondary)
+                    .multilineTextAlignment(.center)
+            }
             if let value = side.value {
                 Text(value).omenTextStyle(OmenTypography.figure).foregroundStyle(emphasized ? OmenColor.textPrimary : OmenColor.textTertiary)
             }

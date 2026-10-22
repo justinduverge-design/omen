@@ -251,7 +251,7 @@ struct OmenDeskView: View {
         VStack(alignment: .leading, spacing: OmenSpacing.step6) {
             OmenSectionHeader(title: "Your team", trailing: "Omen \u{00B7} \(teamProvider)")
             ForEach(team) { player in
-                OmenRosterRow(player: player, variant: .compare(onOpen: { onOpenPlayer(player.id) }))
+                OmenPlayerRow(player: player, variant: .compare(onOpen: { onOpenPlayer(player.id) }))
                 OmenHairline().padding(.leading, 52)
             }
         }

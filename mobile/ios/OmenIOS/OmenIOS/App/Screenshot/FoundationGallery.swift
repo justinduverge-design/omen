@@ -33,13 +33,13 @@ struct FoundationPlayersGallery: View {
             VStack(alignment: .leading, spacing: OmenSpacing.step24) {
                 OmenSectionHeader(title: "Your team", trailing: "Omen \u{00B7} ESPN")
                 VStack(spacing: 0) {
-                    OmenRosterRow(player: FoundationFixtures.puka, variant: .browse(onOpen: {}))
+                    OmenPlayerRow(player: FoundationFixtures.puka, variant: .browse(onOpen: {}))
                     OmenHairline()
-                    OmenRosterRow(player: FoundationFixtures.bijan, variant: .compare(onOpen: {}))
+                    OmenPlayerRow(player: FoundationFixtures.bijan, variant: .compare(onOpen: {}))
                     OmenHairline()
-                    OmenRosterRow(player: FoundationFixtures.smith, variant: .pick(selected: true, onToggle: {}, onInfo: {}), showsGrade: true)
+                    OmenPlayerRow(player: FoundationFixtures.smith, variant: .pick(selected: true, onToggle: {}, onInfo: {}), showsGrade: true)
                     OmenHairline()
-                    OmenRosterRow(player: FoundationFixtures.pollard, variant: .pick(selected: false, onToggle: {}, onInfo: {}), showsGrade: true)
+                    OmenPlayerRow(player: FoundationFixtures.pollard, variant: .pick(selected: false, onToggle: {}, onInfo: {}), showsGrade: true)
                 }
                 OmenReadBlock(player: FoundationFixtures.puka, reasons: [
                     .init(text: "Target share up since Week 4", points: 1.6),

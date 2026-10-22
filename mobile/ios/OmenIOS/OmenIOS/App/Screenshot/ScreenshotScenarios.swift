@@ -127,82 +127,37 @@ enum ScreenshotScenarios {
         "journey-j3.nominal.01-omen-call": ScreenshotScenario(
             label: "J3 nominal 1/3 — Omen call",
             content: {
-                AnyView(j3Shell(AnyView(OmenDecisionScreen(
-                    state: OmenDecisionFixtures.journeyNominal,
-                    weekLabel: "Week 7",
-                    providerName: "ESPN",
-                    onMakeMove: {},
-                    onDecline: {},
-                    onOpenAccount: {},
-                    context: J3ScreenshotFixtures.context
-                ))))
+                AnyView(j3Shell(AnyView(OmenCallView(state: OmenDecisionFixtures.journeyNominal, weekLabel: "Week 7", providerName: "ESPN", onMakeMove: {}, onReviewTrade: { _ in }, onFindOtherTrades: {}))))
             }
         ),
         "journey-j3.nominal.02-omen-evidence": ScreenshotScenario(
             label: "J3 nominal 2/3 — full argument",
             content: {
-                AnyView(j3Shell(AnyView(OmenEvidenceScreen(
-                    payload: OmenDecisionFixtures.journeyNominalPayload,
-                    weekLabel: "Week 7",
-                    onOpenAccount: {},
-                    context: J3ScreenshotFixtures.context
-                ))))
+                AnyView(j3Shell(AnyView(OmenFullArgumentScreen(payload: OmenDecisionFixtures.journeyNominalPayload))))
             }
         ),
         "journey-j3.nominal.03-start-sit": ScreenshotScenario(
             label: "J3 nominal 3/3 — inline Start/Sit detail",
             content: {
-                AnyView(j3Shell(AnyView(OmenDecisionScreen(
-                    state: OmenDecisionFixtures.journeyNominal,
-                    startSitDetail: J3ScreenshotFixtures.nominalStartSit,
-                    weekLabel: "Week 7",
-                    providerName: "ESPN",
-                    onMakeMove: {},
-                    onDecline: {},
-                    onOpenAccount: {},
-                    context: J3ScreenshotFixtures.context
-                ))))
+                AnyView(j3Shell(AnyView(OmenCallView(state: OmenDecisionFixtures.journeyNominal, startSit: J3ScreenshotFixtures.nominalStartSit, weekLabel: "Week 7", providerName: "ESPN", onMakeMove: {}, onReviewTrade: { _ in }, onFindOtherTrades: {}))))
             }
         ),
         "journey-j3.degraded.01-omen-call": ScreenshotScenario(
             label: "J3 degraded 1/3 — Omen call",
             content: {
-                AnyView(j3Shell(AnyView(OmenDecisionScreen(
-                    state: OmenDecisionFixtures.degraded,
-                    weekLabel: "Week 7",
-                    providerName: "ESPN",
-                    onMakeMove: {},
-                    onDecline: {},
-                    onOpenAccount: {},
-                    context: J3ScreenshotFixtures.context
-                ))))
+                AnyView(j3Shell(AnyView(OmenCallView(state: OmenDecisionFixtures.degraded, weekLabel: "Week 7", providerName: "ESPN", onMakeMove: {}, onReviewTrade: { _ in }, onFindOtherTrades: {}))))
             }
         ),
         "journey-j3.degraded.02-omen-evidence": ScreenshotScenario(
             label: "J3 degraded 2/3 — unavailable and unused inputs",
             content: {
-                AnyView(j3Shell(AnyView(OmenEvidenceScreen(
-                    payload: OmenDecisionFixtures.journeyDegradedPayload,
-                    weekLabel: "Week 7",
-                    onOpenAccount: {},
-                    context: J3ScreenshotFixtures.context
-                ))))
+                AnyView(j3Shell(AnyView(OmenFullArgumentScreen(payload: OmenDecisionFixtures.journeyDegradedPayload))))
             }
         ),
         "journey-j3.degraded.03-start-sit": ScreenshotScenario(
             label: "J3 degraded 3/3 — inline incomplete Start/Sit read",
             content: {
-                AnyView(j3Shell(AnyView(OmenDecisionScreen(
-                    state: OmenDecisionFixtures.degraded,
-                    startSitDetail: J3ScreenshotFixtures.degradedStartSit,
-                    onRetryStartSit: {},
-                    weekLabel: "Week 7",
-                    providerName: "ESPN",
-                    onMakeMove: {},
-                    onDecline: {},
-                    onOpenAccount: {},
-                    context: J3ScreenshotFixtures.context
-                ))))
+                AnyView(j3Shell(AnyView(OmenCallView(state: OmenDecisionFixtures.degraded, startSit: J3ScreenshotFixtures.degradedStartSit, weekLabel: "Week 7", providerName: "ESPN", onMakeMove: {}, onReviewTrade: { _ in }, onFindOtherTrades: {}))))
             }
         ),
         // J2 — "the desk". The numbering is the storyboard order: arrive at Command, open the
@@ -965,21 +920,7 @@ private struct FauxShell: View {
                 if let omenContentOverride {
                     omenContentOverride
                 } else {
-                    OmenDecisionScreen(
-                        state: omenState,
-                        // Supplied so the capture exercises the header eyebrow and the provider handoff.
-                        // Both are optional on the screen by design: absent week means no eyebrow, and
-                        // absent provider means no "make this move" button, because neither may be
-                        // guessed. A capture that never passes them would silently prove only the
-                        // degraded half of the layout.
-                        weekLabel: "Week 7",
-                        providerName: "ESPN",
-                        onMakeMove: {},
-                        onDecline: {},
-                        onOpenFullArgument: {},
-                        onReviewTrade: { _ in },
-                        onFindOtherTrades: {}
-                    )
+                    OmenCallView(state: omenState, weekLabel: "Week 7", providerName: "ESPN", onMakeMove: {}, onReviewTrade: { _ in }, onFindOtherTrades: {})
                 }
             }
             .tabItem { CommandCenterTab.omen.label }

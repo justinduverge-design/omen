@@ -238,7 +238,7 @@ final class DraftClaimAbsenceTests: XCTestCase {
         )
         let body = Self.strippingComments(from: text)
 
-        for screen in ["DeskScenario(", "OmenDecisionScreen(", "OmenTradeScreen(", "OmenLeagueScreen("] {
+        for screen in ["DeskScenario(", "OmenCallView(", "OmenTradeScreen(", "OmenLeagueScreen("] {
             XCTAssertTrue(
                 body.contains(screen),
                 "the harness must render \(screen) — a stand-in makes every screenshot and UI test "

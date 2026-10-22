@@ -159,6 +159,20 @@ struct CommandCenterView: View {
     // MARK: - Desk (foundation v1)
 
     @State private var deskPath: [DeskRoute] = []
+    @State private var omenPath: [OmenRoute] = []
+    @State private var fullArgumentPayload: OmenDecisionBriefPayload?
+
+    /// The league on the provider's own site, where the user makes the move. Nil when the provider has
+    /// no stable league address.
+    static func handoffURL(for page: LeagueCarouselViewModel.Page) -> URL? {
+        let id = page.leagueID.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? page.leagueID
+        switch page.platform.lowercased() {
+        case "espn": return URL(string: "https://fantasy.espn.com/football/team?leagueId=\(id)")
+        case "sleeper": return URL(string: "https://sleeper.com/leagues/\(id)")
+        case "yahoo": return URL(string: "https://football.fantasysports.yahoo.com/f1/\(id)")
+        default: return nil
+        }
+    }
 
     private var deskPhase: OmenDeskView.Phase {
         switch leagueCarouselViewModel.contextResolution {
@@ -303,6 +317,7 @@ struct CommandCenterView: View {
                     onOpenPlayer: { deskPath.append(.player($0)) },
                     onOpenLedger: commandCenterViewModel.ledgerState.entries.isEmpty ? nil : { deskPath.append(.ledger) }
                 )
+                .navigationTitle("Desk")
                 .toolbar(.hidden, for: .navigationBar)
                 .navigationDestination(for: DeskRoute.self) { route in deskDestination(route) }
             }
@@ -341,15 +356,38 @@ struct CommandCenterView: View {
             // M5 slice D: the Omen destination now renders the live engine's answer.
             // Previously this picked a fixture — `realDisconnected` for every real
             // signed-in user, regardless of their actual leagues.
-            withTeamPicker {
-                OmenDecisionScreen(
+            NavigationStack(path: $omenPath) {
+                OmenCallView(
                     state: omenDecisionViewModel.briefState(visibleScope: pickedLeagueScope),
-                    startSitDetail: omenDecisionViewModel.startSitDetail,
+                    startSit: omenDecisionViewModel.startSitDetail,
+                    weekLabel: commandCenterViewModel.weekLabel,
+                    // Omen hands the move over: it opens the league on the provider's own site.
+                    providerName: leagueCarouselViewModel.activePage.flatMap { Self.handoffURL(for: $0) == nil ? nil : OmenProviderMark.displayName($0.platform) },
+                    teamControl: leagueCarouselViewModel.activePage.map { ($0.platform, $0.displayTeamName) },
+                    onSwitchTeam: { presentSheet(.switcher) },
+                    onMakeMove: leagueCarouselViewModel.activePage.flatMap(Self.handoffURL(for:)).map { url in { UIApplication.shared.open(url) } },
                     onRetryStartSit: { Task { await omenDecisionViewModel.load(userID: userID, scope: pickedLeagueScope) } },
+                    onOpenFullArgument: {
+                        // The argument is the one on screen when tapped; a later reload never blanks it.
+                        fullArgumentPayload = omenDecisionViewModel.briefState(visibleScope: pickedLeagueScope).payload
+                        omenPath.append(.fullArgument)
+                    },
+                    onReport: { presentSheet(.report(.omen)) },
                     onReviewTrade: { reviewTradeCall($0) },
                     onFindOtherTrades: { findOtherTrades() }
                 )
-                .omenScreenReady("omen-decision")
+                .navigationTitle("Omen")
+                .toolbar(.hidden, for: .navigationBar)
+                .navigationDestination(for: OmenRoute.self) { _ in
+                    if let payload = fullArgumentPayload {
+                        OmenFullArgumentScreen(payload: payload)
+                    } else {
+                        OmenStateBlock(kind: .notEnoughToGoOn, title: "There\u{2019}s no call to argue yet", message: "Go back once Omen has made this week\u{2019}s call.")
+                            .padding(OmenSpacing.step20)
+                            .frame(maxHeight: .infinity, alignment: .top)
+                            .background(OmenColor.bg)
+                    }
+                }
             }
             .task {
                 omenDecisionViewModel.onConnect = { presentSheet(.connect) }
@@ -828,6 +866,9 @@ enum CommandCenterTab: String, Hashable, CaseIterable {
     var label: some View { Label(title, systemImage: systemImage) }
 }
 
+/// Pushed screens on the Omen tab (navigation map).
+enum OmenRoute: Hashable { case fullArgument }
+
 /// Pushed screens on the Desk tab (navigation map).
 enum DeskRoute: Hashable {
     case player(String)
@@ -975,596 +1016,6 @@ private func commandCenterFailureMessage(_ error: OmenApiError) -> String {
         return "Omen had a problem on our side (error \(status)). Try again in a moment."
     case .decode:
         return "Omen sent something this version of the app couldn't read. Updating the app may fix it."
-    }
-}
-
-/// M4 Omen destination assembly. State selection stays here; DecisionBrief owns its states.
-/// The Omen destination — `U1`, built against `Blueprints/specs/design/screen-contracts/
-/// OmenCall-v1.md` and `design/native-visual-lock-2026-09-13/OmenCall.dc.html`.
-///
-/// **Omen decides or declines to decide.** The experience contract is explicit that this screen
-/// never ranks candidates — other destinations explore, this one commits — so there is no list
-/// affordance here and `alternatives` is deliberately not rendered.
-///
-/// `.success` is laid out here because the artboard specifies this screen's composition. Richer
-/// start/sit detail enriches that composition in place; it must not replace the destination with
-/// the older standalone J3 screen after the network response arrives.
-/// **Every non-success state still belongs to `OmenDecisionBrief`**, which owns all nine of them
-/// and is exercised state-by-state in the design-system gallery; duplicating them here would
-/// create a second set to keep honest, which is the failure `demo-mode-pre-empty-state` warns about.
-struct OmenDecisionScreen: View {
-    let state: OmenDecisionBriefState
-    /// `start-sit-detail.v2`, read only when the live call is a start/sit
-    /// (`payload.callType == "start_sit"`). `nil` keeps this screen's ordinary `.success`
-    /// composition. A real detail answer enriches that composition in place; fabricated or
-    /// partial player rows are never shown.
-    var startSitDetail: StartSitDetail?
-    var onRetryStartSit: (() -> Void)?
-    /// Rendered as the header eyebrow (E015). Absent when the caller does not know the week —
-    /// a screen that names a week it was not told is a claim about the schedule.
-    var weekLabel: String?
-    /// Fills the primary action (E055). Without it the action cannot name where the move goes,
-    /// so it is not offered: a button that says "make this move" somewhere unspecified is worse
-    /// than no button.
-    var providerName: String?
-    var onMakeMove: (() -> Void)?
-    var onDecline: (() -> Void)?
-    var onOpenFullArgument: (() -> Void)?
-    /// Fills E017, the artboard's account slot. Optional for the same reason `onMakeMove` is:
-    /// an avatar that opens nothing is a drawn affordance, not a reachable one.
-    var onOpenAccount: (() -> Void)?
-    /// E005–E012. Absent when the caller does not know the context; the bar is then not drawn
-    /// at all rather than drawn empty.
-    var context: OmenFirstCallContext?
-    /// "Review this trade": fills the Trade screen with this call's swap and checks it. Only offered for a trade
-    /// call that can be reviewed (never a Yahoo league: no projections). Absent means the action is not drawn.
-    var onReviewTrade: ((OmenTradeCall) -> Void)?
-    /// "Find other trades": opens Find a trade. Same gating as `onReviewTrade`.
-    var onFindOtherTrades: (() -> Void)?
-    @State private var showingFullArgument = false
-
-    var body: some View { ordinaryBody }
-
-    private var ordinaryBody: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: OmenSpacing.step12) {
-                header
-                scopeLine
-                if case .success(let payload) = state {
-                    if let tradeCall = payload.tradeCall {
-                        tradeCallCard(payload, tradeCall)
-                    } else {
-                        callCard(payload)
-                    }
-                    // The richer start/sit read used to replace this entire destination with
-                    // the carried-over J3 screen after the request completed. That made Omen's
-                    // header, type hierarchy and spatial rhythm visibly snap between two screen
-                    // generations. Keep one destination mounted and enrich its call in place.
-                    if payload.callType == "start_sit", let startSitDetail {
-                        startSitDetailCard(startSitDetail)
-                    }
-                    // The source that earned the lead belongs immediately after the verdict.
-                    // Keeping it only in the expanded argument made the compact call look like
-                    // the old provider-first product even when the server supplied a receipt.
-                    if let comparison = payload.readComparison {
-                        OmenLeadingReadCard(comparison: comparison)
-                    }
-                    // Blocks 5-7, `omencall-evidence-contract-v1`. Three labelled groups rather
-                    // than one flat list: the capability contract's classes ARE the lesson.
-                    if !payload.players.isEmpty { callNumbers(payload.players) }
-                    capabilityGroups(payload)
-                    footballIntelligence(payload)
-                    actions(payload)
-                    // Block 10. Promoted from OmenEvidence, where most users never saw it.
-                    whyThisConfidence(payload)
-                    fullArgumentAction
-                    footerLine
-                } else {
-                    // Every non-success state, unchanged and owned by the brief.
-                    OmenDecisionBrief(state: state)
-                }
-            }
-            .padding(.horizontal, OmenSpacing.step16)
-            .padding(.vertical, OmenSpacing.step12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-                // The iOS 26 floating tab bar overlays content rather than insetting it, and
-                // the 46.5pt switcher bar pushed this screen's last line under it — measured at
-                // 98% occluded, tab-bar top 769.0pt against a line spanning 768.3-799.7pt.
-                // This clearance makes the line reachable by scrolling instead of hidden with no
-                // affordance. It does NOT restore D11: the screen no longer fits, and which of
-                // spacing, the ledger line or the fit itself gives way is a founder call.
-                .padding(.bottom, 64)
-        }
-        // `safeAreaInset` rather than a VStack wrapper: wrapping made the ScrollView a child
-        // and it lost its own bottom inset, so the last line slid under the tab bar. Applied
-        // before `.background` so it insets the scroll view rather than the wrapper.
-        .safeAreaInset(edge: .top, spacing: 0) {
-            if let context { context.bar }
-        }
-        .background(OmenColor.bg)
-        .sheet(isPresented: $showingFullArgument) {
-            if let payload = successPayload {
-                NavigationStack {
-                    OmenEvidenceScreen(payload: payload, weekLabel: weekLabel)
-                }
-                .presentationDragIndicator(.visible)
-            }
-        }
-    }
-
-    private var header: some View {
-        HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading, spacing: OmenSpacing.step4) {
-                if let weekLabel {
-                    Text(weekLabel)
-                        .omenTextStyle(OmenTypography.micro)
-                        .foregroundStyle(OmenColor.accent)
-                }
-                Text("Omen")
-                    .omenTextStyle(OmenTypography.screenTitle)
-                    .foregroundStyle(OmenColor.textPrimary)
-            }
-            Spacer(minLength: OmenSpacing.step8)
-            // Founder decision, 2026-09-18: this slot carries BOTH controls, not one.
-            //
-            // The artboard draws a single 30x30 account avatar here (E017). M6-ContextualHelp
-            // shipped the help button into the same slot, and U1 kept it — confidence, risk and
-            // "why is this empty" are the three things people ask on this screen, and deleting a
-            // shipped affordance to match a picture is not a fix. But leaving help alone made the
-            // account unreachable from the Omen destination, which the artboard does provide.
-            //
-            // Command Center already pairs them in this order, so the pairing is precedent rather
-            // than invention. The cost is ~38pt more header width than the artboard draws: a
-            // deliberate, recorded drift on the canvas's one-slot composition. The same slot
-            // appears on 25 of the 30 artboards, so this resolves the pattern, not one screen.
-            OmenContextualHelpButton(topic: OmenContextualHelpContent.topic(for: .omen))
-            if let onOpenAccount {
-                OmenIconButton(
-                    contentDescription: "Account and profile",
-                    icon: Image(systemName: "person.crop.circle"),
-                    action: onOpenAccount,
-                    tone: .neutral
-                )
-            }
-        }
-    }
-
-    /// E018–E021. `1 of 3` and `Locked Tue 3:00` are **deliberately absent**: no call index and
-    /// no lock time exist in `omen-decision-brief.v3`, and a client-computed lock time is a claim
-    /// about the provider's schedule Omen cannot stand behind — wrong in exactly the weeks it
-    /// matters. "One per team" is a true product statement (fact-of-record #16) and stays.
-    private var scopeLine: some View {
-        Text("Call · one per team")
-            .omenTextStyle(OmenTypography.micro)
-            .foregroundStyle(OmenColor.textTertiary)
-    }
-
-
-    // MARK: - Evidence as the teaching layer (`omencall-evidence-contract-v1`, ratified 2026-09-18)
-
-    /// Blocks 5-7. One flat list of inputs is compliance furniture; split into three labelled
-    /// groups it teaches the questions a fantasy player needs to learn to ask — not only what the
-    /// data said, but whether it mattered and where Omen is blind.
-    ///
-    /// **This also fixes a real defect.** The previous composition rendered
-    /// `payload.signals.prefix(3)`, which truncates a flat list and can therefore drop an
-    /// `unavailable` input to make room. `capability-expression-v1` prohibits exactly that: the
-    /// unavailable class is the one that must survive truncation, because it is the only one that
-    /// costs the reader something.
-    ///
-    /// A group with no members is **absent**, not empty — no heading, no "none".
-    /// `not_requested` is filtered before it reaches here and renders nowhere.
-    /// "The numbers": what each player in the call has actually done, and his Omen Grade with the
-    /// efficiency stats behind it (founder, 2026-10-19: real numbers, not only projections).
-    private func callNumbers(_ players: [OmenCallPlayerNumbers]) -> some View {
-        OmenCard(contentPadding: OmenSpacing.step12) {
-            VStack(alignment: .leading, spacing: OmenSpacing.step12) {
-                Text("The numbers")
-                    .omenTextStyle(OmenTypography.micro)
-                    .foregroundStyle(OmenColor.textTertiary)
-                ForEach(players) { player in
-                    VStack(alignment: .leading, spacing: OmenSpacing.step4) {
-                        Text(player.name)
-                            .omenTextStyle(OmenTypography.name)
-                            .foregroundStyle(OmenColor.textPrimary)
-                        if let grade = player.gradeLine {
-                            Text(grade)
-                                .omenTextStyle(OmenTypography.bodySmall)
-                                .fontWeight(.bold)
-                                .foregroundStyle(OmenColor.accent)
-                        } else {
-                            Text("Omen Grade unavailable")
-                                .omenTextStyle(OmenTypography.bodySmall)
-                                .foregroundStyle(OmenColor.textTertiary)
-                        }
-                        ForEach([player.statsLine, player.usageLine].compactMap { $0 } + player.gradeDetails, id: \.self) { line in
-                            Text(line)
-                                .omenTextStyle(OmenTypography.bodySmall)
-                                .foregroundStyle(OmenColor.textSecondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                    .accessibilityElement(children: .combine)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
-    @ViewBuilder
-    private func capabilityGroups(_ payload: OmenDecisionBriefPayload) -> some View {
-        let moved = payload.signals.filter { $0.used == true && $0.source == .live }
-        let readNotUsed = payload.signals.filter { $0.used == false && $0.source == .live }
-        let couldNotRead = payload.signals.filter { $0.source == .unavailable }
-
-        VStack(alignment: .leading, spacing: OmenSpacing.step12) {
-            if !moved.isEmpty {
-                capabilityGroup("What moved this call", moved, emphasis: true)
-            }
-            if !readNotUsed.isEmpty {
-                capabilityGroup("Read, but it didn't decide this", readNotUsed, emphasis: false)
-            }
-            if !couldNotRead.isEmpty {
-                capabilityGroup("What Omen couldn't read", couldNotRead, emphasis: false)
-            }
-        }
-    }
-
-    /// Row order inside a group is the server's. The screen must not re-rank: re-ranking is a
-    /// claim about relative importance that no contract supports.
-    private func capabilityGroup(
-        _ title: String,
-        _ items: [OmenSignalItem],
-        emphasis: Bool
-    ) -> some View {
-        // `OmenCard`, not a raw RoundedRectangle: `PrimitiveEnforcementTests` fails app sources
-        // that compose their own surfaces, and it is right to — a screen-level shape is a token
-        // the theme cannot reach. The contract named OmenCard; this now matches it.
-        OmenCard(
-            variant: emphasis ? .solid : .outlined,
-            contentPadding: OmenSpacing.step12
-        ) {
-            VStack(alignment: .leading, spacing: OmenSpacing.step8) {
-                Text(title)
-                    .omenTextStyle(OmenTypography.micro)
-                    .foregroundStyle(OmenColor.textTertiary)
-                ForEach(Array(items.enumerated()), id: \.offset) { _, item in
-                    OmenEvidenceRow(key: item.label, statement: item.detail ?? "")
-                        // "Read, but it didn't decide this" carries no evidence styling. A source
-                        // is not evidence until an engine marks it used.
-                        .opacity(emphasis ? 1.0 : 0.72)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
-    @ViewBuilder
-    private func footballIntelligence(_ payload: OmenDecisionBriefPayload) -> some View {
-        if let signal = payload.footballIntelligence {
-            OmenCard(contentPadding: OmenSpacing.step12) {
-                VStack(alignment: .leading, spacing: OmenSpacing.step8) {
-                    Text("System signal")
-                        .omenTextStyle(OmenTypography.micro)
-                        .foregroundStyle(OmenColor.textTertiary)
-                    Text(signal.summary)
-                        .omenTextStyle(OmenTypography.bodySmall)
-                        .foregroundStyle(OmenColor.textSecondary)
-                    OmenEvidenceRow(key: "Authority", statement: signal.evidenceAuthority)
-                    if let coverage = signal.coverage {
-                        OmenEvidenceRow(key: "Coverage", statement: coverage)
-                    }
-                    OmenEvidenceRow(key: "Freshness", statement: signal.freshness)
-                    if !signal.whatCouldChangeThis.isEmpty {
-                        Text("What would change this")
-                            .omenTextStyle(OmenTypography.micro)
-                            .foregroundStyle(OmenColor.textTertiary)
-                        ForEach(signal.whatCouldChangeThis, id: \.self) { condition in
-                            Text(condition)
-                                .omenTextStyle(OmenTypography.bodySmall)
-                                .foregroundStyle(OmenColor.textSecondary)
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-    }
-
-    /// Block 10. The transferable rule, not a restatement of the band.
-    ///
-    /// Server drivers are preferred. The fallback states the *rule* rather than inventing a
-    /// driver, because a driver Omen did not produce is a claim about this week's data.
-    /// **Never a numeral and never a meter** — fact-of-record #16.
-    @ViewBuilder
-    private func whyThisConfidence(_ payload: OmenDecisionBriefPayload) -> some View {
-        if let band = payload.confidenceBand {
-            OmenCard(contentPadding: OmenSpacing.step12) {
-                VStack(alignment: .leading, spacing: OmenSpacing.step8) {
-                    Text("Why this confidence")
-                        .omenTextStyle(OmenTypography.micro)
-                        .foregroundStyle(OmenColor.textTertiary)
-                    if payload.confidenceDrivers.isEmpty {
-                        Text(Self.confidenceRule(for: band))
-                            .omenTextStyle(OmenTypography.bodySmall)
-                            .foregroundStyle(OmenColor.textSecondary)
-                    } else {
-                        ForEach(payload.confidenceDrivers, id: \.self) { driver in
-                            Text(driver)
-                                .omenTextStyle(OmenTypography.bodySmall)
-                                .foregroundStyle(OmenColor.textSecondary)
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-    }
-
-    /// The rule behind each band, written per band rather than interpolated. What makes a call
-    /// Confident is agreement, not margin — that is the part a reader can reuse next week.
-    private static func confidenceRule(for band: OmenConfidenceBand) -> String {
-        switch band.label.lowercased() {
-        case "confident":
-            return "Confident means the reads agree. Several independent inputs point the same way and none contradicts — that is what separates Confident from Leaning, not the size of the gap."
-        case "leaning":
-            return "Leaning means the reads mostly agree, but at least one pulls the other way or is missing. The move is still the better side of a close call."
-        default:
-            return "This band reflects how far the available reads agree with each other, not how large the projected gap is."
-        }
-    }
-
-    /// Block 12. Kept as its own action now that the evidence rows no longer live in a disclosure.
-    ///
-    /// `OmenButton`, not a raw `Button`: `PrimitiveEnforcementTests` bans raw SwiftUI controls in
-    /// app sources, and it caught this. The rule is right — a raw control does not pick up the
-    /// focus ring, the tone or the touch target the primitive guarantees.
-    private var fullArgumentAction: some View {
-        OmenButton(
-            title: "See the full argument",
-            action: {
-                if let onOpenFullArgument { onOpenFullArgument() } else { showingFullArgument = true }
-            },
-            variant: .link,
-            size: .md
-        )
-    }
-
-    private func callCard(_ payload: OmenDecisionBriefPayload) -> some View {
-        VStack(alignment: .leading, spacing: OmenSpacing.step10) {
-            if let callType = payload.callType, !callType.isEmpty {
-                Text(Self.callTypeLabel(callType))
-                    .omenTextStyle(OmenTypography.micro)
-                    .foregroundStyle(OmenColor.textTertiary)
-            }
-            Text(payload.verdict)
-                .omenTextStyle(OmenTypography.call)
-                .foregroundStyle(OmenColor.textPrimary)
-            Text(payload.explanation.first ?? payload.move)
-                .omenTextStyle(OmenTypography.name)
-                .foregroundStyle(OmenColor.textSecondary)
-
-            // E026–E028. Band and risk sit together; the band is a rule and a word, never a
-            // number and never a meter.
-            HStack(spacing: OmenSpacing.step14) {
-                if let band = payload.confidenceBand {
-                    OmenConfidenceBandLabel(band: band)
-                }
-                OmenRiskLabel(level: payload.risk, reason: payload.riskReasons.first)
-                Spacer(minLength: 0)
-            }
-
-            if !payload.confidenceUnavailableReason.isEmpty, payload.confidenceBand == nil {
-                ForEach(payload.confidenceUnavailableReason, id: \.self) { reason in
-                    Text(reason)
-                        .omenTextStyle(OmenTypography.bodySmall)
-                        .foregroundStyle(OmenColor.textSecondary)
-                }
-            }
-
-            // `factsRow` (E029-E041) is deliberately NOT rendered here any more.
-            //
-            // `capability-symbols-v1` is explicit that the four fact chips exist because they sit
-            // "in a compact row where there is no space for sentences". With D11 waived there IS
-            // space, and the three capability groups below now carry the same inputs as full
-            // sentences. Keeping both restated ROSTER and WEATHER twice, six pixels apart — the
-            // "same fact restated" failure the journey spec exists to catch.
-            //
-            // The helper is retained, not deleted: it is still correct for any future compact
-            // surface, and deleting it would force the next author to re-derive the chip mapping.
-        }
-        .padding(OmenSpacing.step14)
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(OmenColor.surface2)
-                .overlay(RoundedRectangle(cornerRadius: 14).stroke(OmenColor.borderSubtle, lineWidth: 1))
-        )
-    }
-
-    @ViewBuilder
-    private func startSitDetailCard(_ detail: StartSitDetail) -> some View {
-        if let recommendation = detail.recommendation,
-           let start = recommendation.start,
-           let over = recommendation.over {
-            OmenCard(contentPadding: OmenSpacing.step12) {
-                VStack(alignment: .leading, spacing: OmenSpacing.step10) {
-                    HStack(alignment: .firstTextBaseline) {
-                        Text("Lineup detail")
-                            .omenTextStyle(OmenTypography.micro)
-                            .foregroundStyle(OmenColor.textTertiary)
-                        Spacer(minLength: OmenSpacing.step8)
-                        if let slot = recommendation.slot {
-                            Text(slot)
-                                .omenTextStyle(OmenTypography.micro)
-                                .foregroundStyle(OmenColor.textTertiary)
-                        }
-                    }
-                    startSitDetailRow(start, role: "Start", emphasized: true)
-                    Divider().overlay(OmenColor.borderSubtle)
-                    startSitDetailRow(over, role: "Sit", emphasized: false)
-                    if !detail.why.isEmpty {
-                        ForEach(detail.why, id: \.self) { reason in
-                            Text(reason)
-                                .omenTextStyle(OmenTypography.bodySmall)
-                                .foregroundStyle(OmenColor.textSecondary)
-                        }
-                    }
-                    if !detail.whatCouldChangeThis.isEmpty {
-                        Text("What could change this")
-                            .omenTextStyle(OmenTypography.micro)
-                            .foregroundStyle(OmenColor.textTertiary)
-                        ForEach(detail.whatCouldChangeThis, id: \.self) { condition in
-                            Text(condition)
-                                .omenTextStyle(OmenTypography.bodySmall)
-                                .foregroundStyle(OmenColor.textSecondary)
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        } else if detail.state == "incomplete_data" {
-            VStack(alignment: .leading, spacing: OmenSpacing.step10) {
-                OmenStateSurface(
-                    kind: .disconnected,
-                    title: "Lineup detail is incomplete",
-                    message: detail.message ?? "Omen could not read every input needed for the lineup detail. The call above remains the available answer."
-                )
-                if let onRetryStartSit {
-                    OmenButton(title: "Try the lineup read again", action: onRetryStartSit, variant: .secondary, size: .md)
-                }
-            }
-        }
-    }
-
-    private func startSitDetailRow(
-        _ player: StartSitDetail.Player,
-        role: String,
-        emphasized: Bool
-    ) -> some View {
-        HStack(alignment: .center, spacing: OmenSpacing.step10) {
-            VStack(alignment: .leading, spacing: OmenSpacing.step2) {
-                Text(player.name ?? "Unnamed player")
-                    .omenTextStyle(OmenTypography.name)
-                    .foregroundStyle(emphasized ? OmenColor.textPrimary : OmenColor.textSecondary)
-                Text([role, player.position, player.team, player.status].compactMap { $0 }.joined(separator: " · "))
-                    .omenTextStyle(OmenTypography.micro)
-                    .foregroundStyle(OmenColor.textTertiary)
-            }
-            Spacer(minLength: OmenSpacing.step8)
-            if let projection = player.projectedPoints {
-                Text(String(format: "%.1f", projection))
-                    .omenTextStyle(OmenTypography.numeric)
-                    .foregroundStyle(emphasized ? OmenColor.textPrimary : OmenColor.textTertiary)
-            }
-        }
-        .padding(.vertical, OmenSpacing.step4)
-        .accessibilityElement(children: .combine)
-    }
-
-    /// E029–E041, and the capability expression for profile `omen_mvp`.
-    ///
-    /// The chips are not chosen here — each is one input from the decision receipt, rendered in
-    /// its class per `capability-expression-v1.md`. `not_requested` never arrives: it is filtered
-    /// before mapping, because a source Omen never asked for is not one it failed to read.
-    private func factsRow(_ payload: OmenDecisionBriefPayload) -> some View {
-        let facts = payload.signals.filter { $0.source == .unavailable || $0.used == true }
-        return ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: OmenSpacing.step8) {
-                ForEach(facts) { signal in
-                    OmenFactChip(
-                        label: signal.label,
-                        icon: Self.icon(for: signal.label),
-                        unread: signal.source == .unavailable
-                    )
-                }
-            }
-        }
-    }
-
-    /// A trade call, laid out as a trade: the verdict sentence, who goes and who comes, why both lineups
-    /// improve, the band and risk, then the two actions. The actions sit here, above the evidence, because
-    /// "review it" is the next step and should not need a scroll to find.
-    private func tradeCallCard(_ payload: OmenDecisionBriefPayload, _ call: OmenTradeCall) -> some View {
-        VStack(alignment: .leading, spacing: OmenSpacing.step12) {
-            Text("Trade")
-                .omenTextStyle(OmenTypography.micro)
-                .foregroundStyle(OmenColor.textTertiary)
-            Text(payload.verdict)
-                .omenTextStyle(OmenTypography.call)
-                .foregroundStyle(OmenColor.textPrimary)
-            OmenTradeCallSwap(call: call)
-            // The band is a rule and a word, never a number and never a meter.
-            HStack(spacing: OmenSpacing.step14) {
-                if let band = payload.confidenceBand {
-                    OmenConfidenceBandLabel(band: band)
-                }
-                OmenRiskLabel(level: payload.risk, reason: payload.riskReasons.first)
-                Spacer(minLength: 0)
-            }
-            if !payload.confidenceUnavailableReason.isEmpty, payload.confidenceBand == nil {
-                ForEach(payload.confidenceUnavailableReason, id: \.self) { reason in
-                    Text(reason)
-                        .omenTextStyle(OmenTypography.bodySmall)
-                        .foregroundStyle(OmenColor.textSecondary)
-                }
-            }
-            OmenTradeCallActions(call: call, onReview: onReviewTrade, onFindOthers: onFindOtherTrades)
-            // A high-risk label already carries the first reason; it is not listed a second time.
-            OmenTradeCallWhy(
-                call: call,
-                impact: payload.impact,
-                riskReasons: payload.risk == .high ? Array(payload.riskReasons.dropFirst()) : payload.riskReasons
-            )
-        }
-    }
-
-    private func actions(_ payload: OmenDecisionBriefPayload) -> some View {
-        VStack(spacing: OmenSpacing.step8) {
-            // A trade call is handed over through "Review this trade"; "make this move" is a lineup action.
-            if payload.tradeCall == nil, let providerName, let onMakeMove {
-                // `submission: handoff_only`. This never claims the offer was sent — it hands the
-                // user to the provider, which is the only thing Omen can honestly promise.
-                OmenButton(title: "Make this move in \(providerName)", action: onMakeMove, variant: .primary, size: .lg)
-            }
-            if let onDecline {
-                OmenButton(title: "Not this week", action: onDecline, variant: .secondary, size: .lg)
-            }
-        }
-    }
-
-    private var footerLine: some View {
-        Text("Every call lands in the Ledger whether you take it or not.")
-            .omenTextStyle(OmenTypography.bodySmall)
-            .foregroundStyle(OmenColor.textSecondary)
-            .padding(.top, OmenSpacing.step10)
-    }
-
-    /// "start_sit" -> "Start / sit". Server vocabulary, rendered as words.
-    private static func callTypeLabel(_ raw: String) -> String {
-        let words = raw.split(whereSeparator: { $0 == "_" || $0 == "-" }).map(String.init)
-        guard let first = words.first else { return raw }
-        return ([first.capitalized] + words.dropFirst()).joined(separator: " / ")
-    }
-
-    /// The artboard draws a factor-specific symbol per chip. The API's capability vocabulary is
-    /// open-ended, so a symbol is used only where the name genuinely maps to one; anything else
-    /// gets the unread-source mark when it is unread, and no invented glyph when it is not.
-    /// Recorded as a contract-vs-vocabulary gap rather than papered over with a default icon.
-    private static func icon(for label: String) -> OmenEvidenceIcon? {
-        let key = label.lowercased()
-        if key.contains("weather") || key.contains("wind") { return .wind }
-        if key.contains("travel") || key.contains("zone") || key.contains("schedule") { return .travelZones }
-        if key.contains("rest") || key.contains("days") { return .restClock }
-        // No symbol rather than a wrong one. Falling back to `.unreadSource` put the
-        // "could not read" mark on inputs Omen HAD read and used — the first build of this
-        // screen shipped a used Roster chip wearing the unread glyph, which is a false claim
-        // made by an icon. An absent symbol says nothing; the wrong symbol says something untrue.
-        return nil
-    }
-
-    private var successPayload: OmenDecisionBriefPayload? {
-        guard case .success(let payload) = state else { return nil }
-        return payload
     }
 }
 

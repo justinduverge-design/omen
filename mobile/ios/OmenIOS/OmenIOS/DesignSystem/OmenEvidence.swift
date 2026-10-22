@@ -1,25 +1,5 @@
 import SwiftUI
 
-/// The named symbols `OmenCall-v1` requires. The contract states that a missing symbol name is a
-/// build failure, so these are declared rather than left to call sites to name.
-///
-/// Path data was copied verbatim from `design/native-visual-lock-2026-09-13/OmenCall.dc.html` into
-/// vector imagesets. Each renders as a template so it takes its tint from the type role — which is
-/// what lets `unreadSource` sit at `text-tertiary` beside read facts at `text-secondary` without a
-/// second asset.
-enum OmenEvidenceIcon: String {
-    /// `evidence.wind`
-    case wind = "EvidenceWind"
-    /// `evidence.travel-zones`
-    case travelZones = "EvidenceTravelZones"
-    /// `evidence.rest-clock`
-    case restClock = "EvidenceRestClock"
-    /// `evidence.unread-source` — the factor Omen could not read.
-    case unreadSource = "EvidenceUnreadSource"
-
-    var image: Image { Image(rawValue).renderingMode(.template) }
-}
-
 /// Confidence as a band, never a number.
 ///
 /// Registry §2.3: `Confident / Leaning / Coin flip`, a **14×2px accent rule preceding the word.
@@ -95,35 +75,6 @@ struct OmenRiskLabel: View {
             .background(Capsule().fill(OmenColor.surface3))
             .overlay(Capsule().stroke(OmenColor.border, lineWidth: 1))
         }
-    }
-}
-
-/// One factor behind the call — "Wind 22", "2 zones", "4 days".
-///
-/// The `unread` variant is the honesty half of `U1`: a factor Omen could **not** read renders at
-/// `text-tertiary` with the `evidence.unread-source` symbol, beside read factors at
-/// `text-secondary`. It is present and named rather than omitted, because a factor silently
-/// dropped reads as a factor that did not matter.
-struct OmenFactChip: View {
-    let label: String
-    /// Optional on purpose. The artboard draws a factor-specific symbol per chip, but the
-    /// capability vocabulary is open-ended — so a symbol appears only where the name genuinely
-    /// maps to one. A default glyph would be a claim the data does not support.
-    let icon: OmenEvidenceIcon?
-    var unread: Bool = false
-
-    var body: some View {
-        HStack(spacing: OmenSpacing.step4) {
-            if let symbol = unread ? OmenEvidenceIcon.unreadSource : icon {
-                symbol.image
-                    .resizable()
-                    .frame(width: 12, height: 12)
-            }
-            Text(label).omenTextStyle(OmenTypography.micro)
-        }
-        .foregroundStyle(unread ? OmenColor.textTertiary : OmenColor.textSecondary)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(unread ? "\(label) — not read" : label)
     }
 }
 

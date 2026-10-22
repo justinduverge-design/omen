@@ -317,10 +317,22 @@ struct OmenKeyValueRow: View {
     var valueTone: Color = OmenColor.textPrimary
 
     var body: some View {
-        HStack(spacing: OmenSpacing.step12) {
-            Text(key).omenTextStyle(OmenTypography.body).foregroundStyle(OmenColor.textSecondary)
-            Spacer(minLength: OmenSpacing.step8)
-            Text(value).omenTextStyle(OmenTypography.rowTitle).foregroundStyle(valueTone).multilineTextAlignment(.trailing)
+        Group {
+            // A sentence-length value reads as a sentence: label above, text below, never squeezed right.
+            if value.count > 24 {
+                VStack(alignment: .leading, spacing: OmenSpacing.step2) {
+                    Text(key).omenTextStyle(OmenTypography.rowTitle).foregroundStyle(OmenColor.textPrimary)
+                    Text(value).omenTextStyle(OmenTypography.body).foregroundStyle(OmenColor.textSecondary).fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, OmenSpacing.step10)
+            } else {
+                HStack(spacing: OmenSpacing.step12) {
+                    Text(key).omenTextStyle(OmenTypography.body).foregroundStyle(OmenColor.textSecondary)
+                    Spacer(minLength: OmenSpacing.step8)
+                    Text(value).omenTextStyle(OmenTypography.rowTitle).foregroundStyle(valueTone).multilineTextAlignment(.trailing)
+                }
+            }
         }
         .frame(minHeight: 46)
         .overlay(alignment: .bottom) { OmenHairline() }

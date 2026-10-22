@@ -364,15 +364,6 @@ final class OmenTradeCallTests: XCTestCase {
         XCTAssertNotNil(OmenTradePrefillCard.status(for: .loading))
     }
 
-    func testSwapRowsAreSpokenAsSentences() throws {
-        let call = try self.call()
-        XCTAssertEqual(OmenTradeCallSwap.accessibilityLabel(title: "You send", side: call.give), "You send Sample WR1, WR, Sample Team.")
-        XCTAssertEqual(OmenTradeCallSwap.accessibilityLabel(title: "You get", side: call.receive), "You get Sample RB1, RB, Sample Team.")
-        XCTAssertEqual(OmenTradeCallSwap.partnerAccessibilityLabel("Sample Rivals"), "Trade partner Sample Rivals.")
-        let bare = OmenTradeCall.Side(name: "Solo", position: nil, team: nil, playerKey: nil)
-        XCTAssertEqual(OmenTradeCallSwap.accessibilityLabel(title: "You get", side: bare), "You get Solo.")
-    }
-
     // MARK: - League scope
 
     func testCallWithNoKnownLeagueIsRefusedAndTheOldLeagueIsNotUsed() throws {
@@ -444,16 +435,6 @@ final class OmenTradeCallTests: XCTestCase {
         var c = try call()
         c.scope = OmenCallScope(platform: "yahoo", leagueID: "L1")
         XCTAssertFalse(c.canReview)
-    }
-
-    func testYahooCallShowsNeitherAction() throws {
-        let yahoo = try XCTUnwrap(try payload(try envelope(source: "yahoo_league_rosters", platform: "yahoo")).tradeCall)
-        XCTAssertEqual(OmenTradeCallActions.titles(for: yahoo, canReview: true, canFindOthers: true), [])
-        XCTAssertEqual(
-            OmenTradeCallActions.titles(for: try call(), canReview: true, canFindOthers: true),
-            ["Review this trade", "Find other trades"]
-        )
-        XCTAssertEqual(OmenTradeCallActions.titles(for: try call(), canReview: false, canFindOthers: false), [])
     }
 
     // MARK: - Stale compare results
