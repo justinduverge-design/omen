@@ -125,14 +125,16 @@ Missing is never zero.
 
   The accent is the only chrome accent and means "Omen's pick / act here". Green is only ever words,
   never a fill. The grade ring is an accent stroke over a hairline track.
-- **Type roles** (both platforms change in lockstep; today's tokens differ and get updated with the
-  first screen that uses them):
+- **Type roles** (added beside the older roles on iOS 2026-10-21; the older roles retire with the screens
+  that use them; Android follows when it resumes):
 
   | Role | Size | Face |
   |---|---|---|
   | `heroNumber` | 44 | Display ExtraBold, tabular |
-  | `screenTitle` | 30 | Display ExtraBold |
+  | `pageTitle` | 30 | Display ExtraBold |
   | `sectionHeader` | 19 | Display Bold, sentence case |
+  | `figure` | 22 | Display ExtraBold, tabular (the +1.9 and Low / Lean figures) |
+  | `rowTitle` | 15 | Text SemiBold (names in rows) |
   | `body` | 15 | Text Regular |
   | `quiet` | 12–13 | Text Regular / Medium |
   | `eyebrow` | 11 | Text SemiBold, uppercase, tracked: the one place uppercase is allowed, above a title |

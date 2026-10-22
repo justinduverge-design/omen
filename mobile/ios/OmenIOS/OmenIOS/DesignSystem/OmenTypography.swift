@@ -196,6 +196,16 @@ enum OmenTypography {
     static let label = OmenTypeRoleSpec(family: .text, lineHeight: 14, design: .default, size: 11, weight: .bold, relativeTo: .caption1, tracking: 11 * 0.12, uppercase: true, tabularNumbers: false)
     static let micro = OmenTypeRoleSpec(family: .text, lineHeight: 13, design: .default, size: 10, weight: .heavy, relativeTo: .caption2, tracking: 10 * 0.16, uppercase: true, tabularNumbers: false)
     static let numeric = OmenTypeRoleSpec(family: .display, lineHeight: 22, design: .default, size: 15, weight: .heavy, relativeTo: .body, tracking: 0, uppercase: false, tabularNumbers: true)
+
+    // Foundation v1 roles (`omen-design-foundation-v1.md` § 7, approved 2026-10-21). New screens use only
+    // these plus `body`; the older roles above retire with the screens that use them.
+    static let heroNumber = OmenTypeRoleSpec(family: .display, lineHeight: 48, design: .default, size: 44, weight: .heavy, relativeTo: .largeTitle, tracking: 0, uppercase: false, tabularNumbers: true)
+    static let pageTitle = OmenTypeRoleSpec(family: .display, lineHeight: 34, design: .default, size: 30, weight: .heavy, relativeTo: .title1, tracking: 0, uppercase: false, tabularNumbers: false)
+    static let sectionHeader = OmenTypeRoleSpec(family: .display, lineHeight: 24, design: .default, size: 19, weight: .bold, relativeTo: .title3, tracking: 0, uppercase: false, tabularNumbers: false)
+    static let rowTitle = OmenTypeRoleSpec(family: .text, lineHeight: 20, design: .default, size: 15, weight: .semibold, relativeTo: .body, tracking: 0, uppercase: false, tabularNumbers: false)
+    static let quiet = OmenTypeRoleSpec(family: .text, lineHeight: 17, design: .default, size: 12.5, weight: .regular, relativeTo: .footnote, tracking: 0, uppercase: false, tabularNumbers: false)
+    static let eyebrow = OmenTypeRoleSpec(family: .text, lineHeight: 14, design: .default, size: 11, weight: .semibold, relativeTo: .caption1, tracking: 11 * 0.16, uppercase: true, tabularNumbers: false)
+    static let figure = OmenTypeRoleSpec(family: .display, lineHeight: 26, design: .default, size: 22, weight: .heavy, relativeTo: .title2, tracking: 0, uppercase: false, tabularNumbers: true)
 }
 
 extension View {
