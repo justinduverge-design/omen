@@ -42,6 +42,10 @@ for (const c of manifest.cases) {
       const balance = tradeBalance(snapshot, c.move);
       assert.ok(balance.gap > c.check.max_value_gap_per_week, `expected a lopsided trade, gap ${balance.gap}`);
     }
+    if (c.check.owner_change_at_most != null) {
+      const { owner } = gradeMove(snapshot, c.move);
+      assert.ok(owner.change <= c.check.owner_change_at_most, `${c.why} Got ${owner.change}.`);
+    }
     if (c.check.start_must_be_projected_to_play) {
       const own = snapshot.teams.find((t) => t.own);
       const start = own.players.find((p) => p.name === c.move.start);

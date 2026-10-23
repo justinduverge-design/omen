@@ -50,6 +50,104 @@
       "check": {
         "start_must_be_projected_to_play": true
       }
+    },
+    {
+      "id": "d465-w7-start-tuten",
+      "snapshot": "d465",
+      "league": "Sleeper, 12 teams, 1 QB, 2 flex",
+      "move": {
+        "type": "start",
+        "start": "Bhayshul Tuten",
+        "over": "Michael Mayer"
+      },
+      "verdict": "reject_if_projected_out",
+      "why": "Omen moved Tuten into FLEX while Sleeper projected him 0 this week.",
+      "check": {
+        "start_must_be_projected_to_play": true
+      }
+    },
+    {
+      "id": "d465-w7-odunze-for-nix",
+      "snapshot": "d465",
+      "league": "Sleeper, 12 teams, 1 QB",
+      "move": {
+        "type": "trade",
+        "give": [
+          "Rome Odunze"
+        ],
+        "receive": [
+          "Bo Nix"
+        ]
+      },
+      "verdict": "reject",
+      "why": "A QB for a starting WR in a one-QB league: your lineup falls 3.1 points over four weeks while theirs rises 11.7.",
+      "check": {
+        "owner_change_at_most": 0
+      }
+    },
+    {
+      "id": "d465-w7-higbee-claim",
+      "snapshot": "d465",
+      "league": "Sleeper, 12 teams, FAAB",
+      "move": {
+        "type": "waiver",
+        "add": "Tyler Higbee",
+        "drop": "CIN DEF"
+      },
+      "verdict": "reject",
+      "why": "A waiver claim that lowers the lineup by 2.9 points over four weeks (dropping the only defense).",
+      "check": {
+        "owner_change_at_most": 0
+      }
+    },
+    {
+      "id": "omen-app-data-w7-higbee-for-watson",
+      "snapshot": "omen-app-data",
+      "league": "Sleeper, 8 teams, 1 QB",
+      "move": {
+        "type": "trade",
+        "give": [
+          "Tyler Higbee"
+        ],
+        "receive": [
+          "Christian Watson"
+        ]
+      },
+      "verdict": "reject",
+      "why": "Great for you (+23.5) but the other team loses 7.2 and gives up 6.8 points a week of value: nobody accepts it.",
+      "check": {
+        "max_value_gap_per_week": 2
+      }
+    },
+    {
+      "id": "omen-app-data-w7-jets-claim",
+      "snapshot": "omen-app-data",
+      "league": "Sleeper, 8 teams, FAAB",
+      "move": {
+        "type": "waiver",
+        "add": "NYJ DEF",
+        "drop": "Tyler Higbee"
+      },
+      "verdict": "reject",
+      "why": "A claim on the Jets defense when the Browns defense is a free add that does as well; it also drops the TE Omen told this team to start.",
+      "check": {
+        "claim_must_beat_best_free_agent": true
+      }
+    },
+    {
+      "id": "espn-las-vegas-w7-marks-for-sutton",
+      "snapshot": "espn-las-vegas",
+      "league": "ESPN, 10 teams, 1 QB, flex",
+      "move": {
+        "type": "waiver",
+        "add": "Woody Marks",
+        "drop": "Courtland Sutton"
+      },
+      "verdict": "reject",
+      "why": "Dropping Courtland Sutton adds nothing to this week's best lineup (0.0).",
+      "check": {
+        "owner_change_at_most": 0
+      }
     }
   ],
   "captured": {
