@@ -623,9 +623,7 @@ private struct FauxShell: View {
     var omenContentOverride: AnyView? = nil
     /// Same seam for the Command tab, so J1's terminus can be captured inside the real shell.
     var commandContentOverride: AnyView? = nil
-    /// Same seam again for the Trade tab. J4's five screens all live in that destination, and
-    /// without this a J4 capture would screenshot `OmenTradeScreen` — the shipped compare
-    /// surface — while claiming to be a picture of `TradeBuild`.
+    /// Same seam again for the Trade tab, so a Trade capture shows the screen it names inside the real shell.
     var tradeContentOverride: AnyView? = nil
     /// And for the League tab, which is J5's whole destination.
     var leagueContentOverride: AnyView? = nil
