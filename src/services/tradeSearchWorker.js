@@ -5,9 +5,9 @@
 // milliseconds the caller had left, and budget-trip callbacks come back as data to be replayed.
 const { parentPort } = require("node:worker_threads");
 const { findTradeCandidate, createSearchBudget } = require("./tradeLineup");
-const { findLeagueTradeCandidates, mutualFairnessGuard } = require("./tradeFind");
+const { findLeagueTradeCandidates, mutualFairnessGuard, sensibleTradeGuard } = require("./tradeFind");
 
-const FAIRNESS_GUARDS = { mutual: mutualFairnessGuard };
+const FAIRNESS_GUARDS = { mutual: mutualFairnessGuard, sensible: sensibleTradeGuard };
 
 parentPort.on("message", ({ id, kind, args, fairness, budgetMs }) => {
   try {

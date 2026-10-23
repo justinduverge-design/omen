@@ -475,7 +475,7 @@ function findTradeCandidate({
         if (tally) tally.pairs_evaluated += 1;
         if (userDelta <= 0 || opponentDelta <= 0) continue;
         if (tally) tally.mutual_gain += 1;
-        if (!fairnessGuard({ give, receive, userDelta, opponentDelta })) continue;
+        if (!fairnessGuard({ give, receive, userDelta, opponentDelta, ownTeam, opponent, rosterPositions })) continue;
         if (tally) tally.passed_fairness += 1;
         candidates.push({
           opponent,

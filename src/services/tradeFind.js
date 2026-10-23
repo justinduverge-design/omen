@@ -246,6 +246,50 @@ function mutualFairnessGuard({ give, receive, userDelta, opponentDelta } = {}) {
   return net >= -(userDelta * MAX_VORP_LOSS_PER_WEEKLY_POINT) && net <= opponentDelta * MAX_VORP_LOSS_PER_WEEKLY_POINT;
 }
 
+// Kickers and defenses are streamed off the waiver wire every week, so a lineup gain there is a waiver move, not a
+// reason to trade a real player. A found trade never sends or asks for one (founder, 2026-10-23: "trade a RB for a
+// defense when I'm light at RB").
+const STREAMED_POSITIONS = new Set(["K", "DST", "DEF", "D/ST"]);
+
+// A cross-position trade may not take a player from a position where that team is already short (a "hole": fewer
+// bodies than the league's demand there, flex share included), and may not leave it unable to fill its dedicated
+// starting spots. Either would be the "light at RB" trade a manager rejects on sight.
+function keepsDepth(needs, position) {
+  const info = needs?.needs?.[position];
+  if (!info) return true;
+  if (info.status === "hole") return false;
+  if (Number.isFinite(info.have) && Number.isFinite(info.required)) return info.have - 1 >= info.required;
+  return true;
+}
+
+function positionalGuard({ give, receive, ownNeeds, opponentNeeds }) {
+  const givePosition = primaryPosition(give);
+  const receivePosition = primaryPosition(receive);
+  if (STREAMED_POSITIONS.has(givePosition) || STREAMED_POSITIONS.has(receivePosition)) return false;
+  if (givePosition === receivePosition) return true;
+  return keepsDepth(ownNeeds, givePosition) && keepsDepth(opponentNeeds, receivePosition);
+}
+
+// Need profiles per roster, so a guard called once per player pair builds each team's profile once.
+const needCache = new WeakMap();
+function cachedNeeds(team, rosterPositions) {
+  if (!team || typeof team !== "object") return null;
+  let profile = needCache.get(team);
+  if (!profile) {
+    profile = buildTeamNeedProfile({ team, rosterPositions });
+    needCache.set(team, profile);
+  }
+  return profile;
+}
+
+// The guard every trade search uses: the trade fits both rosters (no K or DEF, no selling from a hole) and is
+// fair both ways. Called by `tradeLineup.findTradeCandidate` with both teams on the pair.
+function sensibleTradeGuard(pair = {}) {
+  const ownNeeds = cachedNeeds(pair.ownTeam, pair.rosterPositions);
+  const opponentNeeds = cachedNeeds(pair.opponent, pair.rosterPositions);
+  return positionalGuard({ give: pair.give, receive: pair.receive, ownNeeds, opponentNeeds }) && mutualFairnessGuard(pair);
+}
+
 function findLeagueTradeCandidates({
   ownTeamId,
   teams = [],
@@ -254,7 +298,7 @@ function findLeagueTradeCandidates({
   maxCandidates = MAX_CANDIDATES_RETURNED,
   budget = createSearchBudget(),
   onBudgetExceeded = null,
-  fairnessGuard = mutualFairnessGuard,
+  fairnessGuard = sensibleTradeGuard,
 } = {}) {
   const allTeams = Array.isArray(teams) ? teams : [];
   const ownTeam = allTeams.find((team) => String(team?.team_id) === String(ownTeamId));
@@ -323,6 +367,7 @@ function findLeagueTradeCandidates({
     // `roster_id` matches the own team's `roster_id` — this route's team
     // shape uses `team_id`, so `roster_id` is mapped in here rather than
     // changing that guard's contract for every other caller.
+    const opponentNeeds = buildTeamNeedProfile({ team: opponent, rosterPositions });
     const candidate = findTradeCandidate({
       ownTeam: { ...ownTeam, roster_id: ownTeam.team_id },
       opponentTeams: [{ ...opponent, roster_id: opponent.team_id }],
@@ -341,7 +386,6 @@ function findLeagueTradeCandidates({
     if (budget.exceeded) budgetExceeded = true;
     if (!candidate) continue;
 
-    const opponentNeeds = buildTeamNeedProfile({ team: opponent, rosterPositions });
     candidates.push(
       buildCandidateRecord({
         candidate,
@@ -382,6 +426,8 @@ function emptyReason({ scanned, tally, budgetExceeded }) {
 
 module.exports = {
   mutualFairnessGuard,
+  positionalGuard,
+  sensibleTradeGuard,
   MIN_SIDE_LINEUP_GAIN,
   MAX_OPPONENT_TEAMS_PER_SCAN,
   MAX_CANDIDATES_RETURNED,
