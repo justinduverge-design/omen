@@ -41,7 +41,7 @@
  * The thing #404 actually broke was the CPU work done with that data.
  */
 
-const { findTradeCandidate, createSearchBudget } = require("./tradeLineup");
+const { findTradeCandidate, createSearchBudget, weeklyAverage } = require("./tradeLineup");
 const { compareTrade, primaryPosition } = require("./tradeValue");
 const {
   DEFAULT_STARTERS,
@@ -288,7 +288,7 @@ function leagueReplacement(teams = [], rosterPositions = []) {
   const byPosition = {};
   for (const team of teams) {
     for (const player of team?.players || []) {
-      const points = Number(player?.projected_points);
+      const points = weeklyAverage(player);
       if (!Number.isFinite(points)) continue;
       const position = primaryPosition(player);
       if (!byPosition[position]) byPosition[position] = [];
@@ -306,7 +306,7 @@ function leagueReplacement(teams = [], rosterPositions = []) {
 
 function valueOver(players, replacement) {
   return players.reduce((sum, player) => {
-    const points = Number(player?.projected_points);
+    const points = weeklyAverage(player);
     if (!Number.isFinite(points)) return sum;
     return sum + Math.max(0, points - (replacement[primaryPosition(player)] ?? 0));
   }, 0);

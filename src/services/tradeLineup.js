@@ -389,6 +389,51 @@ function withoutPlayer(players, player) {
  * a product whose entire promise is "see the move before the league does". A missing suggestion
  * is honest. A confidently wrong one is not, and silence is the only safe answer here.
  */
+// A trade is judged over the weeks the players carry projections for (comingWeeks.js): this week and up to three
+// coming ones, averaged so every threshold keeps meaning points a week. A bye or an injury costs the week it costs.
+const MAX_TRADE_WEEKS = 4;
+
+function lineupWeeks(teams = []) {
+  const weeks = new Set();
+  for (const team of teams)
+    for (const player of team?.players || [])
+      for (const week of Object.keys(player?.projected_points_by_week || {})) weeks.add(Number(week));
+  return [...weeks]
+    .filter(Number.isInteger)
+    .sort((a, b) => a - b)
+    .slice(0, MAX_TRADE_WEEKS);
+}
+
+function forWeek(player, week) {
+  const value = player?.projected_points_by_week?.[week];
+  return value == null || !Number.isFinite(Number(value)) ? player : { ...player, projected_points: Number(value) };
+}
+
+/** A player's points a week over the weeks he carries, or this week's number when he carries none. */
+function weeklyAverage(player) {
+  const values = Object.values(player?.projected_points_by_week || {})
+    .slice(0, MAX_TRADE_WEEKS)
+    .map(Number)
+    .filter(Number.isFinite);
+  if (values.length) return values.reduce((a, b) => a + b, 0) / values.length;
+  const points = Number(player?.projected_points);
+  return player?.projected_points == null ? Number.NaN : points;
+}
+
+/** The best lineup's points a week, averaged over `weeks`; with no weeks, this week's lineup. */
+function solveAcrossWeeks({ players = [], rosterPositions = [], budget = null, weeks = [] } = {}) {
+  if (!weeks.length) return solveOptimalLineup({ players, rosterPositions, budget });
+  let total = 0;
+  let first = null;
+  for (const week of weeks) {
+    const solved = solveOptimalLineup({ players: players.map((p) => forWeek(p, week)), rosterPositions, budget });
+    if (!solved.exhaustive) return solved;
+    first ??= solved;
+    total += solved.total;
+  }
+  return { ...first, total: total / weeks.length };
+}
+
 function findTradeCandidate({
   ownTeam,
   opponentTeams = [],
@@ -400,9 +445,12 @@ function findTradeCandidate({
   // Points a week of a replacement-level player per position in this league (tradeFind.leagueReplacement), handed to
   // the guard so it can weigh what each side gives against what it gets.
   replacement = null,
+  weeks = null,
 } = {}) {
   if (!ownTeam || !Array.isArray(ownTeam.players)) return null;
-  const ownBaseline = solveOptimalLineup({ players: ownTeam.players, rosterPositions, budget });
+  const judgedWeeks = weeks ?? lineupWeeks([ownTeam, ...opponentTeams]);
+  const solve = (players) => solveAcrossWeeks({ players, rosterPositions, budget, weeks: judgedWeeks });
+  const ownBaseline = solve(ownTeam.players);
   if (!ownBaseline.exhaustive) {
     // The user's own baseline is the denominator for every delta below. Without an exact one
     // there is nothing to compare against, so there is no point starting.
@@ -419,7 +467,7 @@ function findTradeCandidate({
       break;
     }
     if (!opponent || !Array.isArray(opponent.players) || opponent.roster_id === ownTeam.roster_id) continue;
-    const opponentBaseline = solveOptimalLineup({ players: opponent.players, rosterPositions, budget });
+    const opponentBaseline = solve(opponent.players);
     if (!opponentBaseline.exhaustive) {
       ranOut = true;
       break;
@@ -460,16 +508,8 @@ function findTradeCandidate({
           ranOut = true;
           break;
         }
-        const ownAfter = solveOptimalLineup({
-          players: [...withoutPlayer(ownTeam.players, give), receive],
-          rosterPositions,
-          budget,
-        });
-        const opponentAfter = solveOptimalLineup({
-          players: [...withoutPlayer(opponent.players, receive), give],
-          rosterPositions,
-          budget,
-        });
+        const ownAfter = solve([...withoutPlayer(ownTeam.players, give), receive]);
+        const opponentAfter = solve([...withoutPlayer(opponent.players, receive), give]);
         if (!ownAfter.exhaustive || !opponentAfter.exhaustive) {
           ranOut = true;
           break;
@@ -519,6 +559,8 @@ module.exports = {
   // Exported for the property test that pins the fast solver to the old exhaustive one.
   solveOptimalLineupExhaustive,
   findTradeCandidate,
+  lineupWeeks,
+  weeklyAverage,
   createSearchBudget,
   TRADE_SEARCH_BUDGET_MS,
   TRADE_SEARCH_MAX_SOLVES,

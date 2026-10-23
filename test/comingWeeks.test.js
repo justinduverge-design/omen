@@ -86,3 +86,30 @@ test("a pickup who is on bye next week is worth less than one who plays every we
   });
   assert.equal(result.best_move.add.name, "Every Week");
 });
+
+const { findTradeCandidate, lineupWeeks } = require("../src/services/tradeLineup");
+
+test("a trade is judged over the coming weeks: a receiver out after this week is worth one week of three, so the healthy receiver is the trade", () => {
+  const SLOTS = ["WR", "RB"];
+  const own = {
+    roster_id: "me",
+    players: [p("My RB", "RB", 6, { player_id: "a" }), p("My RB Two", "RB", 15, { player_id: "b" })],
+  };
+  const hurtSoon = p("WR Hurt Soon", "WR", 20, { player_id: "c", projected_points_by_week: { 7: 20, 8: 0, 9: 0 } });
+  const opponent = {
+    roster_id: "them",
+    players: [hurtSoon, p("Their WR", "WR", 18, { player_id: "d", projected_points_by_week: { 7: 18, 8: 18, 9: 18 } })],
+  };
+  assert.deepEqual(lineupWeeks([own, opponent]), [7, 8, 9]);
+  const thisWeekOnly = findTradeCandidate({
+    ownTeam: own,
+    opponentTeams: [opponent],
+    rosterPositions: SLOTS,
+    weeks: [],
+  });
+  const overWeeks = findTradeCandidate({ ownTeam: own, opponentTeams: [opponent], rosterPositions: SLOTS });
+  // This week alone the 20-point receiver is the trade; over the three weeks he plays one, so the healthy one is.
+  assert.equal(thisWeekOnly.receive.name, "WR Hurt Soon");
+  assert.equal(overWeeks.receive.name, "Their WR");
+  assert.deepEqual([overWeeks.userDelta, overWeeks.opponentDelta], [9, 3]);
+});
