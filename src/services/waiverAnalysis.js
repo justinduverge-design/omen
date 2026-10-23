@@ -517,6 +517,10 @@ function weekValue(player, week, currentWeek) {
   if (SEASON_OUT.has(status)) return 0;
   if (week === currentWeek && (isOut(player) || isBye(player))) return 0;
   if (Number.isInteger(player?.sight?.bye_week) && player.sight.bye_week === week) return 0;
+  // A coming week the provider read (comingWeeks.js) uses that week's number; any other week keeps this week's.
+  const ahead = player?.projected_points_by_week?.[week];
+  if (week !== currentWeek && ahead != null && Number.isFinite(Number(ahead)))
+    return decisionValue({ ...player, projected_points: Number(ahead) });
   return decisionValue(player);
 }
 
