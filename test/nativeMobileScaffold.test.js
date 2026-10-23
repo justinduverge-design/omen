@@ -58,8 +58,9 @@ test("native app-shell scaffold keeps platform projects, safe environment seams,
   assert.match(signInSource, /demoModeEnabled/, "the demo path must be gated by environment");
 
   const commandCenterSource = read("mobile/ios/OmenIOS/OmenIOS/App/Auth/CommandCenterView.swift");
-  // Codex retired OmenCommandCenterScreen on 2026-10-17 (0174ca75); the live desk is OmenCommandDeskScreen.
-  assert.match(commandCenterSource, /OmenCommandDeskScreen\(/);
+  // Build 12 (#770) rebuilt the Desk on the design foundation; the live desk is OmenDeskView.
+  assert.match(commandCenterSource, /OmenDeskView\(/);
+  assert.doesNotMatch(commandCenterSource, /OmenCommandDeskScreen\(/);
   assert.doesNotMatch(commandCenterSource, /OmenCommandCenterScreen\(/);
 
   // Android carried the same stale copy assertions as iOS, for the same reason: the onboarding
