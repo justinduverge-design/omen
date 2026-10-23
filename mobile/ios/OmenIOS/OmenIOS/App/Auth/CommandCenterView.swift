@@ -677,7 +677,7 @@ struct CommandCenterView: View {
                     }
                 }
             }
-            .sheet(isPresented: tradeVerdictShown, onDismiss: { tradeShowingShare = false }) {
+            .sheet(isPresented: tradeVerdictShown, onDismiss: { tradeShowingShare = false; tradeViewModel.dismissShare() }) {
                 if tradeShowingShare, let state = tradeViewModel.shareScreenState {
                     OmenTradeShareSheet(
                         state: state,
@@ -786,11 +786,19 @@ struct CommandCenterView: View {
     private var shellSwitcherSheet: some View {
         OmenTeamSwitcherSheet(
             teams: deskTeams,
-            selectedID: deskSelection.wrappedValue,
+            selectedID: leagueCarouselViewModel.activePage?.id ?? deskSelection.wrappedValue,
             committingID: leagueCarouselViewModel.committingPageID,
             error: leagueCarouselViewModel.selectionError.map { "That switch didn\u{2019}t take. " + commandCenterFailureMessage($0) },
             onSelect: { team in
                 guard let page = leagueCarouselViewModel.allPages.first(where: { $0.id == team.id }) else { return }
+                // Moving the Rolodex to the team is the switch: the Desk's selection change commits it and
+                // reloads, so every tab and the switcher's check agree on one team.
+                if let index = leagueCarouselViewModel.pages.firstIndex(where: { $0.id == team.id }),
+                   index != leagueCarouselViewModel.selectedIndex {
+                    leagueCarouselViewModel.selectedIndex = index
+                    presentedSheet = nil
+                    return
+                }
                 Task {
                     if await leagueCarouselViewModel.commit(page) != nil {
                         presentedSheet = nil

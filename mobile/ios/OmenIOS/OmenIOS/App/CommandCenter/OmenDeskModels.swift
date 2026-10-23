@@ -1,31 +1,8 @@
 import SwiftUI
 
-// MARK: - J2, "the desk"
-//
-// The five artboards of `screen-journeys-v1.md`'s second journey: `CommandCenter`,
-// `CommandQuiet`, `CommandQuietStraight`, `SwitchSheet` and `SwitchLoading`. Built to
-// `design/native-visual-lock-2026-09-13/` under the 2026-09-18/19 precedence rule — the artboard
-// owns composition, placement, type and tone; `CONTRACTS.md` owns data, vocabulary and state.
-//
-// This is the U3 rebuild against `CommandCenter.dc.html`: a scoreboard board, a league rail,
-// one waiver card and one ledger line. It is the sole Command composition; the earlier v1.1
-// assembly and its reduced state adapters were removed after production, carousel, gallery and
-// screenshot evidence all migrated here.
-//
-// ## The capability contract on a screen with no evidence surface
-//
-// J2's profile is `consumes`. `capability-expression-v1.md` gives four presentation classes and
-// `CONTRACTS.md` gives this screen its own rule: **"Every section fails independently; a dead
-// matchup read sits beside live standings."** Those two compose into the design here:
-//
-//   - *used evidence*      — a section that read and mattered renders in full.
-//   - *read, not used*     — named in the foot line, `text-tertiary`, no evidence styling.
-//   - *could not read*     — the section renders in place, names the capability, and says in a
-//                            sentence what was not read. It is never dropped to make room.
-//   - *out of scope*       — absent. `not_requested` renders nowhere, on any screen.
-//
-// There are no capability glyphs anywhere below. `capability-symbols-v1.md` corrected that
-// invented requirement on 2026-09-18: a capability renders as a word.
+// The Desk's data models: scoreboard teams, sections that fail independently, the waiver move, the Ledger line
+// and the quiet-week state. The screen itself is `OmenDeskView` in OmenDesk.swift. A section that could not be
+// read names what it could not read; `not_requested` renders nowhere.
 
 // MARK: - State
 
@@ -244,68 +221,6 @@ extension OmenQuietState {
             nextRead: nextRead,
             footnote: nil
         )
-    }
-}
-
-struct OmenDeskUnreadSection: View {
-    let capability: String
-    let sentence: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: OmenSpacing.step6) {
-            Text(capability)
-                .omenTextStyle(OmenTypography.micro)
-                .foregroundStyle(OmenColor.textTertiary)
-            Text(sentence)
-                .omenTextStyle(OmenTypography.bodySmall)
-                .foregroundStyle(OmenColor.textTertiary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(OmenSpacing.step12)
-        .background(
-            RoundedRectangle(cornerRadius: 13, style: .continuous)
-                .fill(OmenColor.surface1.opacity(0.5))
-                .overlay(
-                    // `.hatch`'s dashed border: the registry §2.3 carrier for a source that is
-                    // not solid live data. Colour is never the only carrier (D7), so the words
-                    // do the work and the dash confirms them.
-                    RoundedRectangle(cornerRadius: 13, style: .continuous)
-                        .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
-                        .foregroundStyle(OmenColor.border)
-                )
-        )
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(capability). Could not read. \(sentence)")
-    }
-}
-
-/// `.oneline` — the foot strip.
-struct OmenDeskFootnoteStrip: View {
-    let footnote: OmenDeskFootnote
-
-    var body: some View {
-        HStack(spacing: OmenSpacing.step10) {
-            Group {
-                if let emphasis = footnote.emphasis {
-                    Text(footnote.text) + Text(" ") + Text(emphasis).foregroundColor(OmenColor.textPrimary).bold()
-                } else {
-                    Text(footnote.text)
-                }
-            }
-            .omenTextStyle(OmenTypography.bodySmall)
-            .foregroundStyle(OmenColor.textSecondary)
-            .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 0)
-        }
-        .padding(.top, OmenSpacing.step10)
-        .padding(.horizontal, OmenSpacing.step16)
-        .overlay(alignment: .top) {
-            Rectangle().fill(OmenColor.borderSubtle).frame(height: 1)
-                .padding(.horizontal, OmenSpacing.step16)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel([footnote.text, footnote.emphasis].compactMap { $0 }.joined(separator: " "))
     }
 }
 

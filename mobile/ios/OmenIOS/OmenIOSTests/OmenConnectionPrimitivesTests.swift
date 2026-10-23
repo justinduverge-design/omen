@@ -18,12 +18,6 @@ final class OmenConnectionPrimitivesTests: XCTestCase {
         XCTAssertEqual(positionLabel(for: .def), "DEF")
         XCTAssertEqual(positionLabel(for: .k), "K")
 
-        XCTAssertEqual(positionChipTone(for: .rb), .rb)
-        XCTAssertEqual(positionChipTone(for: .wr), .wr)
-        XCTAssertEqual(positionChipTone(for: .qb), .qb)
-        XCTAssertEqual(positionChipTone(for: .te), .te)
-        XCTAssertEqual(positionChipTone(for: .def), .def)
-        XCTAssertEqual(positionChipTone(for: .k), .k)
     }
 
     func testPlayerRowSubtitleComposesTeamAndMeta() {
@@ -80,17 +74,6 @@ final class OmenConnectionPrimitivesTests: XCTestCase {
         case .te: return "TE"
         case .def: return "DEF"
         case .k: return "K"
-        }
-    }
-
-    private func positionChipTone(for position: OmenPosition) -> OmenChipTone {
-        switch position {
-        case .rb: return .rb
-        case .wr: return .wr
-        case .qb: return .qb
-        case .te: return .te
-        case .def: return .def
-        case .k: return .k
         }
     }
 

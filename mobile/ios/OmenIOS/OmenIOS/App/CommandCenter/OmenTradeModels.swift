@@ -1,68 +1,9 @@
 import SwiftUI
 
-// MARK: - J4, "settling an argument"
-//
-// The five artboards of `screen-journeys-v1.md`'s fourth journey: `TradeBuild`, `TradeRoster`,
-// `TradeNeedsContext`, `TradeVerdict` and `TradeShare`. Capability profile: `trade`.
-//
-// Built under the 2026-09-18/19 precedence rule — the artboard owns composition, placement, type
-// and tone; `CONTRACTS.md` owns data, vocabulary and state. Where the two disagreed here, the
-// disagreements were all of one kind and they are recorded at the point they bite rather than
-// summarised: **the artboards draw a product that knows more than `trade-compare.v2` returns.**
-//
-// ## Trade's own rule, from `CONTRACTS.md`
-//
-// *"Trade is the argument-settler: the place a manager opens when the league chat is debating
-// fairness, value, veto, or whether to make the offer. It must show both sides and state the
-// caveat."*
-//
-// Both halves are structural here rather than editorial. Every verdict-bearing screen renders
-// `OmenTradeLegBlock` — both sides, always, even when one side is a single player — and every one
-// of them renders `caveat`, which is non-optional in the state types for exactly that reason. A
-// screen that could omit the caveat would omit it on the day it mattered.
-//
-// ## The capability contract on this journey
-//
-// `capability-expression-v1.md`'s four presentation classes, applied to the inputs a trade read
-// actually has:
-//
-//   - *used evidence*   — `OmenTradeInput.Presentation.used`, full prominence, `text-secondary`.
-//   - *read, not used*  — `.readNotUsed`, `text-tertiary`, and the sentence says so. **No
-//                          evidence styling**: acceptance rule 3.
-//   - *could not read*  — `.couldNotRead`, named, `text-tertiary`, with an `Unavailable` badge
-//                          and a sentence saying what was not read. Never dropped to make room.
-//   - *out of scope*    — absent from the array. `not_requested` renders nowhere.
-//
-// There are no capability glyphs. `capability-symbols-v1.md`: a capability renders as a word.
-//
-// ## The three places the artboards claim more than the contract can pay for
-//
-// 1. **Three teams.** `TradeBuild.dc.html` and `TradeRoster.dc.html` draw a working three-team
-//    deal, an `Add team` chip and a three-leg offer. `trade-capabilities.v1` now pays for that
-//    composition with `max_teams: 3`, `comparison: "multi_sided"` and
-//    `three_team.supported: true`. Submission remains `handoff_only`: the server evaluates all
-//    three participants but returns ordered linked two-team handoffs because no connected
-//    provider exposes a native three-team write API.
-//
-// 2. **The confidence band and the risk chip.** Three artboards draw a band (`Leaning`,
-//    `Coin flip`) and two draw `Medium risk`. **`trade-compare.v2` returns neither.** Its fields
-//    are `verdict_state`, `evaluability`, `analysis_context`, `net_value`, `explanation` and
-//    `capabilities` — there is no confidence and no risk anywhere in it.
-//
-//    A band could be derived: `close_needs_context` plainly means "close". That derivation is
-//    exactly the defect `U1` paid for and `capability-symbols-v1.md` records — a mark that made a
-//    claim the data did not support. Omen's own fact-of-record #16 retired numeric confidence in
-//    favour of a **server-issued** band; a client that mints one is worse than a numeral.
-//
-//    So the band and the risk chip are **absent**, and the slot they occupied carries the thing
-//    the payload does have and the contract demands anyway: the caveat, as `analysis_context`'s
-//    own mode. The three artboards are redrawn to the merged result in the same commit.
-//
-// 3. **`Rosters read live from ESPN at 3:48 PM`** on `TradeRoster` is drawn as unconditional.
-//    Fact-of-record #16 says Omen issues **no trade call at all** where a provider will not give
-//    the other teams' rosters, and `CONTRACTS.md` calls that a permanent provider limit rather
-//    than an outage. `OmenTradeRosterScreen` therefore has a second state for it, and it offers
-//    no retry — a retry button would promise that trying again could work.
+// Trade's data models: offer legs, sides, inputs, the read, the verdict and share state, built from
+// trade-compare.v2. The screens are in OmenTrade.swift, OmenJudgeOffer.swift and OmenThreeTeam.swift.
+// Every verdict carries both sides and its caveat; the contract returns no confidence band or risk level, so
+// none is derived here.
 
 // MARK: - State
 

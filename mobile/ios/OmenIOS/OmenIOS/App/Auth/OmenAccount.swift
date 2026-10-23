@@ -120,7 +120,7 @@ struct OmenAccountScreen: View {
             VStack(alignment: .leading, spacing: OmenSpacing.step16) {
                 Text("Disconnect \(name)?").omenTextStyle(OmenTypography.sectionHeader).foregroundStyle(OmenColor.textPrimary)
                     .accessibilityAddTraits(.isHeader)
-                Text("Omen stops reading this league. Your \(name) account and team are untouched, and you can connect again any time.")
+                Text("Omen stops reading every \(name) league you follow. Your \(name) account and teams are untouched, and you can connect again any time.")
                     .omenTextStyle(OmenTypography.body).foregroundStyle(OmenColor.textSecondary).fixedSize(horizontal: false, vertical: true)
                 OmenButton(title: "Disconnect", action: { confirming = nil; onDisconnect?(connection) }, variant: .danger, size: .lg, haptic: .warning, fullWidth: true)
                 OmenButton(title: "Keep it connected", action: { confirming = nil }, variant: .secondary, size: .lg, fullWidth: true)
@@ -425,6 +425,7 @@ struct OmenDeleteAccountSheet: View {
         .frame(maxHeight: .infinity, alignment: .top)
         .background(OmenColor.surface1.ignoresSafeArea())
         .presentationDetents([.medium])
+        .interactiveDismissDisabled(deleting)
         .omenScreenReady("account-delete")
     }
 

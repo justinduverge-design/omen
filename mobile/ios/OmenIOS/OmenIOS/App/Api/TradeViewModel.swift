@@ -787,6 +787,8 @@ final class TradeViewModel: ObservableObject {
             return
         }
         invalidateCompare()
+        // A share link belongs to the read it was made from; a new read starts without one.
+        shareState = .idle
         let token = compareGeneration
 
         // `/compare` degrades an unauthenticated caller to a 200 neutral answer rather than a

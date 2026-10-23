@@ -290,6 +290,8 @@ private struct OmenLedgerWeeks: View {
                 }
             }
             .padding(.top, OmenSpacing.step2)
+            // The record above counts contested calls for the season; the bars count every graded call listed below.
+            Text("Bars: every graded call in the list below.").omenTextStyle(OmenTypography.quiet).foregroundStyle(OmenColor.textTertiary)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(weeks.map { w in

@@ -93,7 +93,7 @@ struct OmenReportComposerSheet: View {
     }
 
     @ViewBuilder private var composer: some View {
-        Text("A real person reads every one. Replies come to your account email.")
+        Text("Tell Omen what happened. Any reply comes to your account email.")
             .omenTextStyle(OmenTypography.body).foregroundStyle(OmenColor.textSecondary)
             .fixedSize(horizontal: false, vertical: true)
 

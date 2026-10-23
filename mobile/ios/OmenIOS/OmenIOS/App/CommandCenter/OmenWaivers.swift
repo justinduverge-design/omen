@@ -66,11 +66,23 @@ extension OmenWaiversState {
                 summary(alt.player, id: "alt\(index)").map { Other(id: $0.id, player: $0, note: alt.tradeoff?.nilIfEmpty) }
             },
             empty: headline != nil ? nil : (
-                title: analysis.state == .offSeason ? "No waivers in the off-season" : "Nothing on the wire beats your bench",
+                title: Self.emptyTitle(analysis.state),
                 message: analysis.message?.nilIfEmpty ?? "Omen checked the free agents against your roster this week."
             ),
             providerName: providerName
         )
+    }
+}
+
+extension OmenWaiversState {
+    /// Only a finished read may say nothing beats the bench; an unread or unsupported wire says so instead.
+    static func emptyTitle(_ state: WaiverAnalysis.State) -> String {
+        switch state {
+        case .offSeason: "No waivers in the off-season"
+        case .noCredibleMove, .noLowCostDrop, .confirmedOpportunity: "Nothing on the wire beats your bench"
+        case .availabilityUnknown: "Omen couldn\u{2019}t read who\u{2019}s available"
+        case .engineLimitation, .unknown: "Omen couldn\u{2019}t judge the wire this week"
+        }
     }
 }
 

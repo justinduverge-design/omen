@@ -80,23 +80,6 @@ enum CarouselFixtures {
         return state
     }
 
-    @MainActor
-    static func context(for viewModel: LeagueCarouselViewModel) -> OmenScreenContext? {
-        guard let page = viewModel.currentPage else { return nil }
-        let platform: OmenPlatform
-        switch page.platform.lowercased() {
-        case "yahoo": platform = .yahoo
-        case "sleeper": platform = .sleeper
-        default: platform = .espn
-        }
-        return OmenScreenContext(
-            crest: OmenDeskState.crest(from: page.displayTeamName),
-            teamName: page.displayTeamName,
-            platform: platform,
-            leagueName: page.leagueName
-        )
-    }
-
     /// Three lines at phone width — the maximum the watch rail renders.
     ///
     /// NOT what the app currently produces: `LeagueOverview.watchLine` emits only

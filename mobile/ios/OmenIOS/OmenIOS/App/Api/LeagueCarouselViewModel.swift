@@ -686,13 +686,10 @@ final class LeagueCarouselViewModel: ObservableObject {
     /// list — the alternative is opening the switcher onto nothing and making the user work out why.
     private func restoreProviderFilter() {
         guard let currentUserID else { return }
-        let stored = preferences.providerFilter(userID: currentUserID)
-        let restored: String
-        if let stored, stored == Self.allPlatforms || availablePlatforms.contains(stored) {
-            restored = stored
-        } else {
-            restored = Self.allPlatforms
-        }
+        // Build 12 removed the provider filter control, so a filter saved by an older build would hide teams with
+        // no way to clear it. Every team shows; the stored value is overwritten with All.
+        _ = preferences.providerFilter(userID: currentUserID)
+        let restored = Self.allPlatforms
         isRestoringFilter = true
         selectedPlatform = restored
         isRestoringFilter = false
