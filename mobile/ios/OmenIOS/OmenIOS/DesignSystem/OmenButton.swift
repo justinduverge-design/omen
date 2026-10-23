@@ -115,7 +115,7 @@ struct OmenButton: View {
         switch variant {
         case .primary: return OmenColor.textOnAccent
         case .secondary, .tertiary, .link: return toneColor
-        case .danger: return OmenColor.Data.riskHigh
+        case .danger: return OmenColor.danger
         }
     }
 
@@ -172,7 +172,7 @@ struct OmenButton: View {
                 .stroke(isInteractable ? toneColor : OmenColor.border, lineWidth: 1)
         case .danger:
             RoundedRectangle(cornerRadius: 8)
-                .stroke(isInteractable ? OmenColor.Data.riskHigh : OmenColor.border, lineWidth: 1)
+                .stroke(isInteractable ? OmenColor.danger : OmenColor.border, lineWidth: 1)
         case .tertiary, .link:
             Color.clear
         }

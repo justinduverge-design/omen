@@ -9,6 +9,11 @@ release gates are installing the final signed build on the founder's iPhone, com
 unfiltered-accessibility walk, and uploading that proven archive to TestFlight. The one legacy ESPN row with
 no team id is explicitly carried into Build 13; it does not block first-time users or the Build 12 binary.
 
+- **Screen rebuild (2026-10-21 to 10-23, PR #770):** every iOS screen was rebuilt on the approved design
+  foundation (`Blueprints/specs/design/omen-design-foundation-v1.md`, canvas `design/foundation-v1-canvas/`)
+  and the old screens and components were deleted. Full local suite green on 2026-10-23: 613 unit tests and
+  every UI test with its accessibility audit. A fresh review's four P1s are fixed. Not yet merged, installed
+  on the founder's iPhone, or uploaded.
 - Backend shipped to production in two waves: 2026-10-15 to 10-17 (#670 to #713), then the integration
   branch on 2026-10-19 (#752, deploy run 39241836554, green).
 - League activity for Yahoo and ESPN switched on in production 2026-10-19 (founder).
@@ -202,6 +207,7 @@ All of it was built on `build-12/integration`, reviewed by a fresh agent, and me
 | #761 | iOS / Providers / Trade | Finish Build 12 device gate and provider contracts |
 | #762 | Contracts | Refresh Build 12 Trade contract fixtures |
 | #763 | Docs | Update Build 12 release package and tester notes |
+| #770 | iOS | Build 12: every screen rebuilt on the design foundation (Desk, Omen, Player, Trade, League, Waivers, Ledger, Account, Support, switcher, sign-in, Connect, system sheets) |
 
 ## Where it lives
 
@@ -231,6 +237,27 @@ All of it was built on `build-12/integration`, reviewed by a fresh agent, and me
   - The three stale UI expectations and the remaining accessibility gates were repaired in #761.
   - Two fresh-agent reviews: no P0 or P1.
   - Production probe: real numbers in 89 ms.
+
+## Screen rebuild (#770)
+
+One build, every screen, on the foundation: Desk and its team Rolodex, the Omen call and full argument, the
+player page, Trade (chooser, builder, Find a trade, Judge an offer, three-team, verdict and share), League,
+Waivers, Ledger and receipt, Account and its pages, Contact support and Report a problem, the team switcher,
+Welcome, email code, Connect and league pick, connect failed, the passkey offer and the forced update.
+
+- **Deleted, not kept alongside:** the old J1 to J6 screens, the old trade journey, the league switcher and
+  team picker, Help + Support, About, and the design-system pieces nothing renders any more.
+- **Behaviour changes:** Account opens as a page from the Desk; Contact support sends an in-app report
+  (no more pre-filled email); the team switcher drops the provider filter and favourites; a build without
+  Supabase settings says provider sign-in isn't set up; the email code submits itself at six digits.
+- **Kept on purpose:** the nflverse CC BY 4.0 credit and the Yahoo attribution (Sources page), the delete
+  phrase gate, the report disclosure before Send, and all provider connection logic (Connect was restyled only).
+- **Not drawn because the server doesn't send it:** League's "Omen" roster rank, Ledger points per call and
+  "confidence then", Notifications settings, Export your data, ties in standings, jersey numbers, team logos,
+  the swing matchup and win probability (foundation spec § 9).
+- **Review P2s left open:** the Desk's Ledger line disappears without a word when the Ledger can't load, and
+  the Desk has no "Report a problem" entry of its own (Account has it).
+- **Screenshots:** `output/screens/build12/final/` (dark and light, local only).
 
 ## Known issues / next
 
@@ -329,10 +356,10 @@ length once the canvas screens are in: the limit is 4,000 characters.
 Build 12 — what changed
 
 NEW LOOK
-- The whole app was redesigned as one system: same shell, same buttons, same states everywhere
-- Text grows with your iPhone text size setting
-- Sign-in and the Omen logo now work in Light, Dark and Match iPhone appearance
-- The "Something look wrong?" report control stays in the page and never covers your Ledger
+- Every screen was rebuilt as one system: swipe your teams on the Desk, one call per team, the same buttons and states everywhere
+- Account is a page from the Desk; Contact support and Report a problem are in Account
+- The Ledger leads with your record when Omen disagreed with your provider
+- Text grows with your iPhone text size setting; Light, Dark and Match iPhone all work
 
 OMEN CALLS
 - Omen makes its own call for Sleeper, Yahoo and ESPN leagues
@@ -381,7 +408,7 @@ PLEASE TEST
 - New to ESPN in Omen? Connect it and tell us if you ever see the League ID box
 - Connect or reconnect ESPN / Yahoo / Sleeper and check your lineup slots
 - Open one Omen call in each provider and confirm each gives you a usable call
-- Scroll Desk through Ledger and confirm the report control never covers a card
+- Swipe teams on the Desk and use the team switcher: does every tab follow?
 - League page: does the activity match your league?
 - Find a Trade: are the offers fair both ways?
 - Waivers: does the suggested drop make sense?

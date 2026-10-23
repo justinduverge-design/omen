@@ -47,7 +47,7 @@ struct OmenTextField: View {
             .clipShape(RoundedRectangle(cornerRadius: 8))
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
-                    .stroke(isError ? OmenColor.Data.riskHigh : OmenColor.border, lineWidth: 1)
+                    .stroke(isError ? OmenColor.danger : OmenColor.border, lineWidth: 1)
             )
             .focused($isFocused)
             .omenFocusRing(isFocused: isFocused, cornerRadius: 8)

@@ -89,6 +89,9 @@ Forced update · Desk with no league · Demo · Rosters unreadable · States (lo
 | Find a trade, Judge an offer, Three-team | FindTrade, JudgeOffer, ThreeTeam | `OmenFindTrade.swift`, `OmenJudgeOffer.swift`, `OmenThreeTeam.swift` | 1-5, 7 pass; review pending (whole-trade review next) | deleted `OmenTradeFindReviewScreen`, `OmenTradeScreen` + prefill card, `OmenTradeBuildScreen`, `OmenTradeRosterScreen`, `TradePartnerPicker`, 8 of 9 `OmenTradeControls` (tabs stay for Account); app save-for-later dropped (not in design) | `output/screens/build12/trade-{dark,light}/`, `TradeUITests` (audit clean, 6 tests), 631 unit tests |
 | League, Waivers | Main League, Waivers | `OmenLeague.swift`, `OmenWaivers.swift` | 1-5, 7 pass; review pending | deleted `OmenLeagueScreen`, `OmenScoutScreens` (1.7k lines), `withTeamPicker`, `J5InteractionUITests`; the frame's "Omen" roster-rank column left out (no data, § 9). Desk waiver need now pushes Waivers. Trade review: P1 (new partner ends three-team) fixed in ecdc6ead | `output/screens/build12/league-{dark,light}/`, `LeagueUITests` (audit clean), 633 unit tests |
 | Full argument | FullArgument | `OmenCall.swift` | 1-7 pass | same review | `journey-j3.nominal.02-omen-evidence` |
+| Ledger, receipt | Ledger, LedgerReceipt | `OmenLedger.swift` | 1-7 pass | fresh agent: 2 P1 (failed read looked empty; receipt mixed live and frozen) fixed | `ledger.root`, `ledger.receipt`, `LeagueUITests` |
+| Account and pages, Support, switcher | Account, AccountPages, Main support, Sheets | `OmenAccount.swift`, `OmenReportComposerSheet.swift`, `OmenTeamSwitcher.swift` | 1-7 pass | whole-app review | `chrome.account.*`, `support.contact`, `switcher.sheet`, `ChromeInteractionUITests` |
+| Welcome, email code, Connect, league pick, connect failed, passkey, forced update | Welcome, EmailCode, Connect, LeaguePick, Edges, SystemSheets | `SignInView.swift`, `ConnectView.swift` (restyle only), `OmenConnectFailedScreen.swift`, `PasskeyOfferSheet.swift`, `ForcedUpdateView.swift` | 1-7 pass | whole-app review | `onboarding.*`, `J1InteractionUITests`, `ForcedUpdateAccessibilityUITests` |
 
 ## Whole-app pass
 
@@ -111,8 +114,10 @@ Forced update · Desk with no league · Demo · Rosters unreadable · States (lo
   `OmenStateBlock`. Delete in the same change: `OmenDecisionBrief`, `OmenConfidenceBar`, `OmenMetricStrip`,
   `OmenRiskPanel`, `OmenSignalList`, old `OmenPlayerRow`, `OmenReportPill`, `OmenFirstCallScreens` parts the
   new call replaces; then rename `OmenRosterRow` to `OmenPlayerRow`.
-- **Next:** Ledger and Ledger receipt, then review League + Ledger together (+ Waivers,
-  Ledger, receipt), then the rest of the screen list, then the whole-app pass.
+- **Done 2026-10-23:** every screen built; whole-app pass done (dead components deleted, model files renamed,
+  whole-app review: 4 P1 fixed, 2 P2 left open and recorded in `Direction/release/builds/build-12.md`); full local
+  suite green (613 unit + all UI tests). Dark and light captures in `output/screens/build12/final/`.
+- **Next:** merge #770, then install the Release build on the founder's iPhone and run the device walk.
 - **Tooling notes:** add Swift files with `addfile2.py`-style pbxproj edits (no synchronized groups);
   capture with `scripts/capture-screen-batch.sh --platform ios --build --scenarios "..."`; UI tests in
   `OmenIOSUITests/DeskUITests.swift` are the pattern (audit prints offending elements).

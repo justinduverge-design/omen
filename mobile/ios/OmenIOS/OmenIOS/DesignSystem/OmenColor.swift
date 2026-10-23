@@ -48,6 +48,8 @@ enum OmenColor {
     /// names Verdigris Green `#2F7D5B` as the intelligence/active-signal colour, so the chip that
     /// *adds* a league now reads in it rather than borrowing brass from the filters beside it.
     static let omenChip = dynamic(dark: 0x4FAE81, light: 0x1A5C3E)
+    /// Destructive controls (Delete account). `Data.riskHigh` is a fixed dark red that vanishes on the dark surface.
+    static let danger = dynamic(dark: 0xF2766B, light: 0xA51D1D)
     static let umber = dynamic(dark: 0x5A3A25, light: 0x5A3A25)
 
     /// Favourite / starred marks. Founder-approved 2026-09-05 and recorded in

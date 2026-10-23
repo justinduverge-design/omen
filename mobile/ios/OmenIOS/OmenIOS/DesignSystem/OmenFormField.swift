@@ -9,7 +9,7 @@ struct OmenFormField<Content: View>: View {
     @ViewBuilder let content: Content
 
     private var feedback: String? { errorMessage ?? successMessage }
-    private var feedbackColor: Color { errorMessage == nil ? OmenColor.Data.riskLow : OmenColor.Data.riskHigh }
+    private var feedbackColor: Color { errorMessage == nil ? OmenColor.Data.riskLow : OmenColor.danger }
 
     init(
         label: String,
