@@ -30,7 +30,7 @@
 
 const { createSearchBudget } = require("./tradeLineup");
 const { findTradeCandidateAsync } = require("./tradeSearchPool");
-const { mutualFairnessGuard } = require("./tradeFind");
+const { sensibleTradeGuard } = require("./tradeFind");
 const { normalizePosition } = require("./playerSearch");
 
 // A weekly-lineup gain may justify only a bounded loss in season-long VORP (same policy the
@@ -276,9 +276,9 @@ async function evaluateTradeForConnection({ connection, roster, platformLabel, d
       if (deps.onBudgetExceeded)
         deps.onBudgetExceeded(stats, { opponents: teams.length, own_players: ownTeam.players.length });
     },
-    // Two-sided: the other manager must gain a real amount and must not lose more season-long
-    // value than that gain justifies, or the "mutual improvement" is a trade nobody would accept.
-    fairnessGuard: mutualFairnessGuard,
+    // Fits both rosters (no K or DEF, never sold from a position the team is short at) and is fair both ways: the
+    // other manager must gain a real amount and not lose more season-long value than that gain justifies.
+    fairnessGuard: sensibleTradeGuard,
   });
 
   if (!candidate) {

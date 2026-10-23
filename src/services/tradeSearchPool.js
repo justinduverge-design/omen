@@ -27,7 +27,7 @@
 const path = require("node:path");
 const { Worker } = require("node:worker_threads");
 const { findTradeCandidate, TRADE_SEARCH_BUDGET_MS } = require("./tradeLineup");
-const { findLeagueTradeCandidates, mutualFairnessGuard } = require("./tradeFind");
+const { findLeagueTradeCandidates, mutualFairnessGuard, sensibleTradeGuard } = require("./tradeFind");
 
 let workerPath = path.join(__dirname, "tradeSearchWorker.js");
 /// Past the budget, how long a worker may take to answer before it is presumed stuck.
@@ -132,7 +132,14 @@ function runOnWorker(payload) {
 
 async function runSearch(kind, input, inline, defaultGuard) {
   const { budget, onBudgetExceeded, fairnessGuard = defaultGuard, ...args } = input || {};
-  const fairness = fairnessGuard === mutualFairnessGuard ? "mutual" : fairnessGuard === NO_GUARD ? null : undefined;
+  const fairness =
+    fairnessGuard === sensibleTradeGuard
+      ? "sensible"
+      : fairnessGuard === mutualFairnessGuard
+        ? "mutual"
+        : fairnessGuard === NO_GUARD
+          ? null
+          : undefined;
   const startedAt = Date.now();
   const remainingMs = !budget
     ? () => TRADE_SEARCH_BUDGET_MS - (Date.now() - startedAt)
@@ -160,7 +167,7 @@ function findTradeCandidateAsync(input) {
 
 /** Async `tradeFind.findLeagueTradeCandidates`. */
 function findLeagueTradeCandidatesAsync(input) {
-  return runSearch("league", input, findLeagueTradeCandidates, mutualFairnessGuard);
+  return runSearch("league", input, findLeagueTradeCandidates, sensibleTradeGuard);
 }
 
 /** Terminates every worker and stops respawning. Pending calls fall back to inline. For tests and shutdown. */
