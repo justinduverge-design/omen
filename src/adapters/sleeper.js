@@ -239,8 +239,12 @@ function normalizeProjections(payload) {
     if (!record || typeof record !== "object") return;
     const id = record.player_id != null ? String(record.player_id) : fallbackId;
     if (!id) return;
-    const points = Number(record.stats?.pts_ppr ?? record.pts_ppr);
-    if (Number.isFinite(points)) out[id] = points;
+    const raw = record.stats?.pts_ppr ?? record.pts_ppr;
+    const points = Number(raw);
+    if (raw != null && Number.isFinite(points)) out[id] = points;
+    // A row with a stats object but no points is Sleeper projecting the player not to play this week
+    // (inactive, out, bye): an honest 0, not a missing read for another source to fill.
+    else if (record.stats && typeof record.stats === "object") out[id] = 0;
   };
 
   if (Array.isArray(payload)) {
@@ -1281,6 +1285,7 @@ module.exports = {
   fetchSleeperProjectionStatLines,
   resetSleeperStatLineFailures,
   normalizeProjectionStatLines,
+  normalizeProjections,
   fetchSleeperAvailablePlayers,
   fetchSleeperLeagueRosters,
   fetchSleeperLeagueDrafts,
