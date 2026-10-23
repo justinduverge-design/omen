@@ -31,6 +31,9 @@ const { getRuntime: getWarehouseRuntime } = require("../services/footballWarehou
 const { waiverCapabilitiesEnvelope } = require("../services/waiverScoringCapabilities");
 const { attachDecisionReceipt, createDecisionContext } = require("../services/decisionContext");
 const waiverSystem = require("../services/waiverSystem");
+const seasonEnd = require("../services/seasonEnd");
+const { attachComingWeeks } = require("../services/comingWeeks");
+const { lineupHorizon } = require("../services/waiverAnalysis");
 const rosterSvc = require("../services/roster");
 const { projectYahooPool } = require("../services/yahooProjections");
 const responseCache = require("../services/responseCache");
@@ -161,6 +164,7 @@ async function loadSleeper(connection, week, season) {
     pool,
     waiverSystem: system,
     scoringFormat: scoringFormatFromSleeperLeague(league),
+    lastPlayoffWeek: seasonEnd.fromSleeper(league),
     // Sleeper's rosters endpoint is the league's own truth about who is rostered,
     // so an unrostered player really is a free agent in this league.
     availabilityConfirmed: pool != null,
@@ -189,6 +193,7 @@ async function loadEspn(connection, userId, week) {
     .fetchEspnWaiverPool(connection.league_id, credentials.espn_s2, credentials.swid, week)
     .catch(() => null);
 
+  let espnLastWeek = null;
   // §6.2 verification, provisional. fromEspn() fails closed: an unrecognized
   // settings shape yields not_determined, so ESPN behaves exactly as it did
   // before until scripts/probe-espn-waiver-settings.js confirms the mapping.
@@ -206,24 +211,36 @@ async function loadEspn(connection, userId, week) {
         connection.espn_team_id != null
           ? teams.find((t) => String(t.id) === String(connection.espn_team_id)) || null
           : null;
+      espnLastWeek = seasonEnd.fromEspn(data?.settings);
       return waiverSystem.fromEspn({ settings: data?.settings, team });
     } catch (_) {
       // not_determined. A settings read must never break waiver advice.
       return NOT_DETERMINED_PENDING_PROBE();
     }
   })();
-  const [roster, pool, system] = await Promise.all([rosterRead, poolRead, systemRead]);
+  // A rules read must never break waiver advice, even a synchronous throw.
+  const rulesRead = Promise.resolve()
+    .then(() => espnAdapter.fetchEspnScoringSettings(connection.league_id, credentials.espn_s2, credentials.swid))
+    .catch(() => null);
+  const [roster, pool, system, rules] = await Promise.all([rosterRead, poolRead, systemRead, rulesRead]);
 
+  // ESPN's projected points are its own appliedTotal, already scored by this league's rules. Reading
+  // the rules confirms that; without them the evidence still says so. scoringFormat stays null rather
+  // than a PPR guess (the A6 defect).
+  const rulesVerified = rules?.ruleCount > 0;
   return {
     roster,
     pool,
-    // ESPN exposes no scoring-settings mapping Omen has verified, so this stays
-    // null rather than defaulting to PPR — that default is the A6 defect.
     waiverSystem: system,
     scoringFormat: null,
+    lastPlayoffWeek: espnLastWeek,
     availabilityConfirmed: pool != null,
     limitations:
-      pool == null ? [] : ["Omen has not verified this league's scoring rules, so evidence omits league scoring."],
+      pool == null
+        ? []
+        : rulesVerified
+          ? ["Projections are ESPN's own, scored with this league's rules."]
+          : ["Omen has not verified this league's scoring rules, so evidence omits league scoring."],
   };
 }
 
@@ -247,12 +264,13 @@ function yahooWaiverLimitations(meta) {
 // §6.2 verification. The priority branch is VERIFIED (2026-09-06, three real
 // leagues); the FAAB branch is not — no Yahoo FAAB league was available to
 // read, so fromYahoo() returns not_determined for one and it shows nothing.
-async function readYahooWaiverSystem(client, leagueId) {
+async function readYahooWaiverSystem(client, leagueId, onSettings = () => {}) {
   try {
     const [rawSettings, myTeamKey] = await Promise.all([
       client.getLeagueSettings(leagueId),
       client.getMyTeamKey(leagueId).catch(() => null),
     ]);
+    onSettings(rawSettings);
     return waiverSystem.fromYahoo({
       // Pass the WHOLE league payload: the settings container is not league[0].
       settings: rawSettings,
@@ -269,10 +287,16 @@ async function readYahooWaiverSystem(client, leagueId) {
   }
 }
 
+// Yahoo's own ceiling per status (four pages of 25); the top 50 left useful adds out.
+const YAHOO_POOL_COUNT = 100;
+
 async function loadYahoo(connection, userId, week) {
   const { client } = await getAuthenticatedYahooClient(userId);
   // The waiver-system read needs neither roster nor pool: start it now, await it last.
-  const systemRead = readYahooWaiverSystem(client, connection.league_id);
+  let yahooLastWeek = null;
+  const systemRead = readYahooWaiverSystem(client, connection.league_id, (raw) => {
+    yahooLastWeek = seasonEnd.fromYahoo(raw);
+  });
   const cacheKey = `ssff:waiver-analysis:${userId}:${connection.league_id}:${week || "current"}`;
   const roster = await rosterSvc.fetchAndNormalizeRoster(client, connection.league_id, week, cacheKey);
 
@@ -280,13 +304,16 @@ async function loadYahoo(connection, userId, week) {
   let poolProjection = null;
   let poolStatusSplit = null;
   try {
-    // G6: with YAHOO_POOL_STATUS_SPLIT=1 the pool is read as free agents and waivers separately,
-    // with percent owned. Documented by Yahoo, not yet exercised live, so it is off by default and
+    // G6: the pool is read as free agents and waivers separately, with percent owned, so a claim is
+    // never judged as a free add (founder cases, 2026-10-23). YAHOO_POOL_STATUS_SPLIT=0 turns it off;
     // any failure or partial read falls back to the single status=A read below.
     let normalizedPool = null;
-    if (process.env.YAHOO_POOL_STATUS_SPLIT === "1" && typeof client.getAvailablePlayerPool === "function") {
+    if (process.env.YAHOO_POOL_STATUS_SPLIT !== "0" && typeof client.getAvailablePlayerPool === "function") {
       try {
-        const split = await client.getAvailablePlayerPool(connection.league_id, { count: 25, sort: "AR" });
+        const split = await client.getAvailablePlayerPool(connection.league_id, {
+          count: YAHOO_POOL_COUNT,
+          sort: "AR",
+        });
         if (split.pages.length && !split.failed.length) {
           normalizedPool = rosterSvc.normalizeYahooPool(split);
           poolStatusSplit = { truncated: Boolean(split.truncated) };
@@ -296,7 +323,7 @@ async function loadYahoo(connection, userId, week) {
       }
     }
     if (!normalizedPool) {
-      const raw = await client.getAvailablePlayers(connection.league_id, { count: 50, sort: "AR" });
+      const raw = await client.getAvailablePlayers(connection.league_id, { count: YAHOO_POOL_COUNT, sort: "AR" });
       normalizedPool = rosterSvc.normalizeYahooWaivers(raw);
     }
     ({ pool, projectionMeta: poolProjection } = await projectYahooPool(
@@ -317,6 +344,7 @@ async function loadYahoo(connection, userId, week) {
     pool,
     waiverSystem: system,
     scoringFormat: null,
+    lastPlayoffWeek: yahooLastWeek,
     // Yahoo's /players;status=A is Yahoo's own list of this league's free agents but carries no
     // projection. Projections come from Sleeper's public stat lines scored with this league's rules
     // (yahooProjections.js). Without them no candidate is evidence-backed, and availability alone is
@@ -431,6 +459,21 @@ router.get("/analysis", requireAuth, async (req, res, next) => {
       );
     }
 
+    // The coming weeks' projections (byes, returns, injuries), on every provider. A failed read keeps
+    // this week's number for every week, as before.
+    const horizon = lineupHorizon({ week, lastPlayoffWeek: loaded.lastPlayoffWeek });
+    await attachComingWeeks({
+      platform: connection.platform,
+      players: [
+        ...(loaded.roster?.slots?.starters || []),
+        ...(loaded.roster?.slots?.bench || []),
+        ...(loaded.pool || []),
+      ],
+      week,
+      season: context.season,
+      weeks: horizon,
+      deps: sleeperAdapter,
+    }).catch(() => {});
     // Sight first, so the decision itself weighs Omen's read (not just the display).
     await attachSight({ roster: loaded.roster, pool: loaded.pool });
     const baseAnalysis = buildWaiverAnalysis({
@@ -443,6 +486,7 @@ router.get("/analysis", requireAuth, async (req, res, next) => {
       scoringFormat: loaded.scoringFormat,
       availabilityConfirmed: loaded.availabilityConfirmed,
       waiverSystem: loaded.waiverSystem || null,
+      lastPlayoffWeek: loaded.lastPlayoffWeek ?? null,
       deadline: null,
       offSeason: suppressLiveFootballData(),
     });
@@ -467,3 +511,6 @@ router.get("/analysis", requireAuth, async (req, res, next) => {
 module.exports = router;
 module.exports.scoringFormatFromSleeperLeague = scoringFormatFromSleeperLeague;
 module.exports.presentAnalysis = presentAnalysis;
+// For evals/decision-cases/capture-server.js: the same roster and free-agent reads the waiver route makes.
+module.exports.loadForConnection = loadForConnection;
+module.exports.CONNECTION_COLUMNS = CONNECTION_COLUMNS;

@@ -30,8 +30,12 @@
       },
       "drop": null,
       "improvement": 7,
+      "lineup_gain": 7,
+      "reasons": [
+        "Your best lineup gains 7.0 points a week over weeks 3–5."
+      ],
       "solves_unavailable_starter": false,
-      "why_now": "B projects above your weakest eligible starter for this week."
+      "why_now": "Your best lineup gains 7.0 points a week over weeks 3–5."
     },
     "contract_version": "waiver-analysis.v1",
     "cost": null,

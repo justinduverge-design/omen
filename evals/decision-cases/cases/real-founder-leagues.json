@@ -1,0 +1,264 @@
+{
+  "about": "The founder's real teams, frozen at a decision time. The data (rosters, licensed projections) is captured locally into evals/decision-cases/private/<snapshot>.json and never committed; these are the judgements Omen must match. A case without its private snapshot is skipped, not failed.",
+  "cases": [
+    {
+      "id": "eb-football-w7-nix-claim",
+      "snapshot": "eb-football",
+      "league": "Sleeper, 10 teams, 1 QB, 2 flex, PPR, FAAB $100",
+      "move": {
+        "type": "waiver",
+        "add": "Bo Nix",
+        "drop": "Brian Thomas Jr.",
+        "bid": 28
+      },
+      "verdict": "reject",
+      "why": "A third QB in a one-QB league. Free agents (no claim, no bid) at QB do at least as much: the claim must beat the best free add, not just this week's starter.",
+      "check": {
+        "claim_must_beat_best_free_agent": true
+      }
+    },
+    {
+      "id": "eb-football-w7-harvey-for-lamar",
+      "snapshot": "eb-football",
+      "league": "Sleeper, 10 teams, 1 QB, 2 flex, PPR",
+      "move": {
+        "type": "trade",
+        "give": [
+          "RJ Harvey"
+        ],
+        "receive": [
+          "Lamar Jackson"
+        ]
+      },
+      "verdict": "reject",
+      "why": "Founder: a split-backfield RB with few touchdowns for a top-three fantasy QB who scores running and passing. Both lineups rise on paper, but the other manager gives away far more value than he gets, so nobody accepts it and Omen must not propose it.",
+      "check": {
+        "max_value_gap_per_week": 2
+      }
+    },
+    {
+      "id": "eb-football-w7-start-sit-health",
+      "snapshot": "eb-football",
+      "league": "Sleeper, 10 teams, PPR",
+      "move": {
+        "type": "start",
+        "start": "Mike Evans",
+        "over": "KC Concepcion Jr."
+      },
+      "verdict": "reject_if_projected_out",
+      "why": "Omen's call was to start Mike Evans (Questionable). At capture Sleeper projected him 0 for weeks 7 and 8. Starting a player projected not to play is never the move; the call must read availability, not last week's number.",
+      "check": {
+        "start_must_be_projected_to_play": true
+      }
+    },
+    {
+      "id": "d465-w7-start-tuten",
+      "snapshot": "d465",
+      "league": "Sleeper, 12 teams, 1 QB, 2 flex",
+      "move": {
+        "type": "start",
+        "start": "Bhayshul Tuten",
+        "over": "Michael Mayer"
+      },
+      "verdict": "reject_if_projected_out",
+      "why": "Omen moved Tuten into FLEX while Sleeper projected him 0 this week.",
+      "check": {
+        "start_must_be_projected_to_play": true
+      }
+    },
+    {
+      "id": "d465-w7-odunze-for-nix",
+      "snapshot": "d465",
+      "league": "Sleeper, 12 teams, 1 QB",
+      "move": {
+        "type": "trade",
+        "give": [
+          "Rome Odunze"
+        ],
+        "receive": [
+          "Bo Nix"
+        ]
+      },
+      "verdict": "reject",
+      "why": "A QB for a starting WR in a one-QB league: your lineup falls 3.1 points over four weeks while theirs rises 11.7.",
+      "check": {
+        "owner_change_at_most": 0
+      }
+    },
+    {
+      "id": "d465-w7-higbee-claim",
+      "snapshot": "d465",
+      "league": "Sleeper, 12 teams, FAAB",
+      "move": {
+        "type": "waiver",
+        "add": "Tyler Higbee",
+        "drop": "CIN DEF"
+      },
+      "verdict": "reject",
+      "why": "A waiver claim that lowers the lineup by 2.9 points over four weeks (dropping the only defense).",
+      "check": {
+        "owner_change_at_most": 0
+      }
+    },
+    {
+      "id": "omen-app-data-w7-higbee-for-watson",
+      "snapshot": "omen-app-data",
+      "league": "Sleeper, 8 teams, 1 QB",
+      "move": {
+        "type": "trade",
+        "give": [
+          "Tyler Higbee"
+        ],
+        "receive": [
+          "Christian Watson"
+        ]
+      },
+      "verdict": "reject",
+      "why": "Great for you (+23.5) but the other team loses 7.2 and gives up 6.8 points a week of value: nobody accepts it.",
+      "check": {
+        "max_value_gap_per_week": 2
+      }
+    },
+    {
+      "id": "omen-app-data-w7-jets-claim",
+      "snapshot": "omen-app-data",
+      "league": "Sleeper, 8 teams, FAAB",
+      "move": {
+        "type": "waiver",
+        "add": "NYJ DEF",
+        "drop": "Tyler Higbee"
+      },
+      "verdict": "reject",
+      "why": "A claim on the Jets defense when the Browns defense is a free add that does as well; it also drops the TE Omen told this team to start.",
+      "check": {
+        "claim_must_beat_best_free_agent": true
+      }
+    },
+    {
+      "id": "espn-las-vegas-w7-marks-for-sutton",
+      "snapshot": "espn-las-vegas",
+      "league": "ESPN, 10 teams, 1 QB, flex",
+      "move": {
+        "type": "waiver",
+        "add": "Woody Marks",
+        "drop": "Courtland Sutton"
+      },
+      "verdict": "reject",
+      "why": "Dropping Courtland Sutton adds nothing to this week's best lineup (0.0).",
+      "check": {
+        "owner_change_at_most": 0
+      }
+    },
+    {
+      "id": "espn-everything-backwards-w7-wilson-for-lamar",
+      "snapshot": "espn-everything-backwards",
+      "league": "ESPN, 12 teams, 1 QB",
+      "move": {
+        "type": "trade",
+        "give": [
+          "Michael Wilson"
+        ],
+        "receive": [
+          "Lamar Jackson"
+        ]
+      },
+      "verdict": "reject",
+      "why": "Founder: an easy no. A WR2 for a top fantasy QB; the other side gets back less than half the value it gives.",
+      "check": {}
+    },
+    {
+      "id": "eb-football-w7-harvey-for-maye",
+      "snapshot": "eb-football",
+      "league": "Sleeper, 10 teams, 1 QB",
+      "move": {
+        "type": "trade",
+        "give": [
+          "RJ Harvey"
+        ],
+        "receive": [
+          "Drake Maye"
+        ]
+      },
+      "verdict": "reject",
+      "why": "Founder: an easy no. A split-backfield RB for a top QB in a one-QB league.",
+      "check": {}
+    },
+    {
+      "id": "omen-app-data-w7-laporta-for-watson",
+      "snapshot": "omen-app-data",
+      "league": "Sleeper, 8 teams",
+      "move": {
+        "type": "trade",
+        "give": [
+          "Sam LaPorta"
+        ],
+        "receive": [
+          "Christian Watson"
+        ]
+      },
+      "verdict": "judgement_call",
+      "why": "Founder: a conversation. Omen may propose it; it must not be the only kind of trade it can find.",
+      "check": {}
+    },
+    {
+      "id": "eb-football-w7-jacobs-for-maye",
+      "snapshot": "eb-football",
+      "league": "Sleeper, 10 teams, 1 QB",
+      "move": {
+        "type": "trade",
+        "give": [
+          "Josh Jacobs"
+        ],
+        "receive": [
+          "Drake Maye"
+        ]
+      },
+      "verdict": "judgement_call",
+      "why": "Founder: an all-right trade. Jacobs sat out six weeks off the field (suspension/exempt list), not hurt; in a normal year you'd make it.",
+      "check": {}
+    },
+    {
+      "id": "espn-everything-backwards-w7-allgeier-for-rodgers",
+      "snapshot": "espn-everything-backwards",
+      "league": "ESPN, 12 teams, 1 QB",
+      "move": {
+        "type": "trade",
+        "give": [
+          "Tyler Allgeier"
+        ],
+        "receive": [
+          "Aaron Rodgers"
+        ]
+      },
+      "verdict": "judgement_call",
+      "why": "Founder: a medium; a conversation, not one he'd make.",
+      "check": {}
+    }
+  ],
+  "captured": {
+    "sleeper": [
+      "eb-football (10 teams, 1 QB, 2 flex)",
+      "d465 (12 teams, 1 QB, 2 flex, 6-pt pass TD)",
+      "omen-app-data (8 teams, 1 QB, 2 flex)"
+    ],
+    "espn": [
+      "13338821 (12 teams, 1 QB, flex)",
+      "1330728110 (12 teams, 1 QB, flex, no DEF)",
+      "517756847 (10 teams, 1 QB, flex)"
+    ],
+    "yahoo": [
+      "470.l.1358570 (12 teams, 1 QB, W/R/T)",
+      "470.l.1255365 (10 teams, 1 QB, W/R/T)"
+    ]
+  },
+  "gaps_found_2026_10_23": [
+    "ESPN: league scoring is not read ('Omen has not verified this league's scoring rules') in all three ESPN leagues.",
+    "Yahoo: projections are Sleeper's re-scored with approximate Yahoo rules.",
+    "ESPN and Yahoo: a free agent (add now) and a player on waivers (claim, maybe a bid) are not told apart.",
+    "Yahoo: the free-agent pool stops at the top 50; ESPN: about half the pool carries a projection.",
+    "ESPN and Yahoo: only the current week is read, so byes and coming weeks can't be counted yet."
+  ],
+  "phase_3_notes": [
+    "The emotional side of trades (founder, 2026-10-23): managers overpay after losing a starter, names sell above their numbers, returns from suspension are undervalued. Learn per league from its own trade and claim history."
+  ]
+}

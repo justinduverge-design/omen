@@ -557,3 +557,43 @@ test("an expired Yahoo token is excluded from selection rather than silently use
   assert.equal(status, 404);
   assert.equal(body.code, "no_usable_league");
 });
+
+test("ESPN: with the league's rules read, the evidence says the projections use them", async () => {
+  const app = buildApp({
+    connections: [ESPN_CONN],
+    espnAdapter: {
+      buildNormalizedRoster: async () => ROSTER,
+      fetchEspnWaiverPool: async () => [free("Tracy", "RB", 12.0)],
+      fetchEspnScoringSettings: async () => ({ byStatId: new Map(), ruleCount: 24 }),
+    },
+  });
+  const { body } = await request(app);
+
+  assert.deepEqual(body.limitations, ["Projections are ESPN's own, scored with this league's rules."]);
+  assert.equal(body.scoring_format, null);
+});
+
+test("Yahoo: free agents and players on waivers are read separately, 100 deep, by default", async () => {
+  const asked = [];
+  const app = buildApp({
+    connections: [YAHOO_CONN],
+    yahooClient: {
+      getAvailablePlayerPool: async (_league, opts) => {
+        asked.push(opts);
+        return { pages: [{ availability: "free_agent", raw: {} }], truncated: false, failed: [] };
+      },
+      getAvailablePlayers: async () => {
+        throw new Error("the single status=A read is only the fallback");
+      },
+    },
+    rosterSvc: {
+      fetchAndNormalizeRoster: async () => ROSTER,
+      normalizeYahooPool: () => [],
+      normalizeYahooWaivers: () => [],
+    },
+  });
+  const { status } = await request(app);
+
+  assert.equal(status, 200);
+  assert.deepEqual(asked, [{ count: 100, sort: "AR" }]);
+});

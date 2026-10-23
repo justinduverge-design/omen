@@ -24,8 +24,12 @@
       },
       "drop": null,
       "improvement": 7,
+      "lineup_gain": 7,
+      "reasons": [
+        "Your best lineup gains 7.0 points a week over weeks 3–5."
+      ],
       "solves_unavailable_starter": false,
-      "why_now": "B projects above your weakest eligible starter for this week."
+      "why_now": "Your best lineup gains 7.0 points a week over weeks 3–5."
     },
     "contract_version": "waiver-analysis.v1",
     "cost": null,
@@ -44,7 +48,15 @@
     "scoring_format": null,
     "season": 2026,
     "state": "no_low_cost_drop",
-    "waiver_system": null,
+    "waiver_system": {
+      "budget_remaining": null,
+      "budget_text": null,
+      "budget_total": null,
+      "determined_from": "not_determined",
+      "order_text": null,
+      "priority_position": null,
+      "system": "not_determined"
+    },
     "week": 3
   }
 }

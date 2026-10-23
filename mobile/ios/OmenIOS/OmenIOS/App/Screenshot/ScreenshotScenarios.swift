@@ -492,7 +492,11 @@ private struct FindReviewScenarioHost: View {
                 id: "c1", partnerName: "Gibbs me some Rice", partnerNeed: "Needs WR",
                 send: FoundationFixtures.smith, receive: flowers,
                 yourGain: 1.9, theirGain: 2.4,
-                theCatch: "Flowers has a Week 14 bye, your first playoff week."
+                theCatch: "Flowers has a Week 14 bye, your first playoff week.",
+                reasons: [
+                    "Omen grades Zay Flowers 77 to DeVonta Smith's 64: Zay Flowers has a big share of the targets.",
+                    "Your best lineup gains 1.9 points a week over weeks 7\u{2013}10.",
+                ]
             ), index: 0, total: 4),
             teamsRead: 9
         )

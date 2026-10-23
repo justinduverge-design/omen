@@ -168,6 +168,8 @@ struct TradeFindCandidate: Decodable, Equatable, Identifiable {
     let opponentLineupDelta: Double?
     let reasoning: TradeFindReasoning
     let theCatch: Catch?
+    /// Reasons first (server moveReasons.js). Empty from an older server.
+    let reasons: [String]
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -180,6 +182,7 @@ struct TradeFindCandidate: Decodable, Equatable, Identifiable {
         opponentLineupDelta = try c.decodeIfPresent(Double.self, forKey: .opponentLineupDelta)
         reasoning = try c.decode(TradeFindReasoning.self, forKey: .reasoning)
         theCatch = try c.decodeIfPresent(Catch.self, forKey: .theCatch)
+        reasons = (try? c.decodeIfPresent([String].self, forKey: .reasons)) ?? []
     }
 
     enum CodingKeys: String, CodingKey {
@@ -191,6 +194,7 @@ struct TradeFindCandidate: Decodable, Equatable, Identifiable {
         case opponentLineupDelta = "opponent_lineup_delta"
         case reasoning
         case theCatch = "the_catch"
+        case reasons
     }
 
     /// "vs Davante's Inferno", or the honest fallback the data-binding notes call for —

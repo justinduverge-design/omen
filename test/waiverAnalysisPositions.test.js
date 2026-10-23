@@ -56,21 +56,29 @@ const run = (pool) =>
   });
 
 test("a tight end is never offered for an injured running back's slot, even though both list BN and IR", () => {
-  const out = run([P("Freiermuth", "TE", 7.3, null), P("Free RB", "RB", 5.2, null)]);
+  const out = run([P("Freiermuth", "TE", 7.3, null), P("Free RB", "RB", 12, null)]);
   assert.equal(out.best_move.add.name, "Free RB");
   assert.equal(out.best_move.displaces.name, "Montgomery");
   assert.equal(out.best_move.solves_unavailable_starter, true);
 });
 
 test("with only a tight end available he can fill the flex slot, never the RB slot", () => {
-  const out = run([P("Freiermuth", "TE", 7.3, null)]);
+  const out = run([P("Freiermuth", "TE", 9.5, null)]);
   assert.equal(out.best_move.add.name, "Freiermuth");
   assert.equal(out.best_move.displaces.name, "Concepcion", "the W/R/T starter, not the injured RB");
   assert.equal(out.best_move.solves_unavailable_starter, false);
 });
 
-test("a player on a bye, or projected 0.0, is never the drop", () => {
+// Phase 1 (2026-10-23): Dowdle (6.62) on the bench already fills the out starter's slot, so a 5.2-point free agent
+// adds nothing to the best lineup. The old "beats a starter" check called it a fix.
+test("a free agent weaker than the bench player who already fills the slot is not a move", () => {
   const out = run([P("Free RB", "RB", 5.2, null)]);
+  assert.equal(out.best_move ?? null, null);
+  assert.equal(out.state, "no_credible_move");
+});
+
+test("a player on a bye, or projected 0.0, is never the drop", () => {
+  const out = run([P("Free RB", "RB", 12, null)]);
   assert.notEqual(out.best_move.drop.name, "Gordon");
   assert.ok(out.best_move.drop.name);
   const noProjectionDrop = chooseDrop([P("Zero", "WR", 0, "BN")], ["RB"]);
@@ -89,6 +97,6 @@ test("a drop never leaves the lineup short at its position", () => {
 });
 
 test("the cost statement counts depth at the real position, not the whole bench", () => {
-  const out = run([P("Free RB", "RB", 5.2, null)]);
+  const out = run([P("Free RB", "RB", 12, null)]);
   assert.match(out.cost.removes, /Okonkwo was your TE depth; 1 other option remains at that position\./);
 });

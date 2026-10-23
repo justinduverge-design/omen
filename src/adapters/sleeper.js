@@ -239,8 +239,12 @@ function normalizeProjections(payload) {
     if (!record || typeof record !== "object") return;
     const id = record.player_id != null ? String(record.player_id) : fallbackId;
     if (!id) return;
-    const points = Number(record.stats?.pts_ppr ?? record.pts_ppr);
-    if (Number.isFinite(points)) out[id] = points;
+    const raw = record.stats?.pts_ppr ?? record.pts_ppr;
+    const points = Number(raw);
+    if (raw != null && Number.isFinite(points)) out[id] = points;
+    // A row with a stats object but no points is Sleeper projecting the player not to play this week
+    // (inactive, out, bye): an honest 0, not a missing read for another source to fill.
+    else if (record.stats && typeof record.stats === "object") out[id] = 0;
   };
 
   if (Array.isArray(payload)) {
@@ -1051,9 +1055,9 @@ async function fetchSleeperProjectionStatLines(season, week, opts = {}) {
  * the other way produces a recommendation the user cannot act on.
  *
  * Returns the same normalized player shape as buildNormalizedRoster, ranked by
- * projected points. Players with no projection sort last and keep
- * `projected_points: null` — never 0, which would read as a real projection of
- * zero rather than absent data.
+ * projected points. Players Sleeper has no row for sort last and keep
+ * `projected_points: null`. A row with no points is Sleeper projecting the player
+ * not to play, which is a real 0 (normalizeProjections).
  */
 async function fetchSleeperAvailablePlayers(leagueId, week, season) {
   const targetSeason = season || currentSeason();
@@ -1281,6 +1285,7 @@ module.exports = {
   fetchSleeperProjectionStatLines,
   resetSleeperStatLineFailures,
   normalizeProjectionStatLines,
+  normalizeProjections,
   fetchSleeperAvailablePlayers,
   fetchSleeperLeagueRosters,
   fetchSleeperLeagueDrafts,

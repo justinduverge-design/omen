@@ -26,6 +26,8 @@ const { getCurrentNflWeekContext } = require("../services/nflSchedule");
 const { logger } = require("../middleware/logging");
 const { attachDecisionReceipt, createDecisionContext } = require("../services/decisionContext");
 const sleeperAdapter = require("../adapters/sleeper");
+const comingWeeks = require("../services/comingWeeks");
+const { reasonsFor } = require("../services/moveReasons");
 const espnAdapter = require("../adapters/espn");
 const yahooAdapter = require("../adapters/yahoo");
 const { getAuthenticatedEspnCredentials } = require("../services/espnAuth");
@@ -686,6 +688,8 @@ function createTradeRouter({
   // already uses internally for Omen's own weekly recommendation.
   fetchLeagueRosters = (...args) => sleeperAdapter.fetchSleeperLeagueRosters(...args),
   nflWeekContext = getCurrentNflWeekContext,
+  // The coming weeks' projections for every rostered player (comingWeeks.js), so a trade weighs byes and returns.
+  attachComingWeeks = (input) => comingWeeks.attachComingWeeks({ ...input, deps: sleeperAdapter }),
   // Every-team-roster reads for ESPN and Yahoo. Each is a normalizer over an
   // already-authenticated call this codebase already makes for a narrower purpose
   // (see src/adapters/espn.js#fetchEspnLeagueRosters, src/adapters/yahoo.js
@@ -728,6 +732,16 @@ function createTradeRouter({
       usage_evidence: usageRowsForTrade(candidate, usage.byKey),
     }));
     await attachSight(candidatesOut);
+    // Reasons first (founder, 2026-10-23): who misses which weeks, Omen's read of each player, then the lineup change.
+    for (const candidate of candidatesOut) {
+      const weeks = candidate?.weeks || {};
+      candidate.reasons = reasonsFor({
+        gain: candidate?.receive && { ...candidate.receive, projected_points_by_week: weeks.receive },
+        lose: candidate?.give && { ...candidate.give, projected_points_by_week: weeks.give },
+        weeks: weeks.judged || [],
+        lineupGain: candidate?.user_lineup_delta,
+      });
+    }
     return {
       candidates: candidatesOut,
       usage_evidence_state: usage.state,
@@ -898,7 +912,11 @@ function createTradeRouter({
             status: "ok",
             week: cached.week || week,
             roster_positions: Array.isArray(cached.roster_positions) ? cached.roster_positions : [],
-            teams: cached.teams,
+            // The coming weeks are /find's working data, not part of the roster contract.
+            teams: cached.teams.map((team) => ({
+              ...team,
+              players: (team?.players || []).map(({ projected_points_by_week: _weeks, ...player }) => player),
+            })),
           };
         }
       } catch (e) {
@@ -1156,6 +1174,17 @@ function createTradeRouter({
           roster_positions: result.roster_positions,
           teams: result.teams,
         };
+        // A failed read leaves this week's numbers, and the trade is judged on this week as before.
+        await Promise.resolve()
+          .then(() =>
+            attachComingWeeks({
+              platform,
+              players: (bundle.teams || []).flatMap((team) => team?.players || []),
+              week: bundle.week,
+              season: nflWeekContext(now())?.season,
+            }),
+          )
+          .catch(() => {});
 
         try {
           await tradeFindCache.write(cacheKey, bundle, DEFAULT_FIND_CACHE_TTL_SECONDS);

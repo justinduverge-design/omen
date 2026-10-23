@@ -41,7 +41,7 @@
  * The thing #404 actually broke was the CPU work done with that data.
  */
 
-const { findTradeCandidate, createSearchBudget } = require("./tradeLineup");
+const { findTradeCandidate, createSearchBudget, weeklyAverage, lineupWeeks } = require("./tradeLineup");
 const { compareTrade, primaryPosition } = require("./tradeValue");
 const {
   DEFAULT_STARTERS,
@@ -174,7 +174,12 @@ function buildReasoning({ receivePosition, givePosition, ownNeeds, opponentNeeds
   };
 }
 
-function buildCandidateRecord({ candidate, opponentTeamId, opponentTeamName, ownNeeds, opponentNeeds }) {
+// The coming weeks are the search's working data (comingWeeks.js), not part of the trade-find contract.
+function withoutWeeks({ projected_points_by_week: _weeks, ...player }) {
+  return player;
+}
+
+function buildCandidateRecord({ candidate, opponentTeamId, opponentTeamName, ownNeeds, opponentNeeds, weeks = [] }) {
   const receivePosition = primaryPosition(candidate.receive);
   const givePosition = primaryPosition(candidate.give);
   const valuation = compareTrade({ send: [candidate.give], receive: [candidate.receive] });
@@ -198,13 +203,20 @@ function buildCandidateRecord({ candidate, opponentTeamId, opponentTeamName, own
     id: `find_${opponentTeamId ?? "unknown"}_${candidate.give.player_key || candidate.give.player_id || "give"}_${candidate.receive.player_key || candidate.receive.player_id || "receive"}`,
     opponent_team_id: opponentTeamId ?? null,
     opponent_team_name: opponentTeamName ?? null,
-    give: candidate.give,
-    receive: candidate.receive,
+    give: withoutWeeks(candidate.give),
+    receive: withoutWeeks(candidate.receive),
     user_lineup_delta: candidate.userDelta,
     opponent_lineup_delta: candidate.opponentDelta,
     valuation,
     reasoning: buildReasoning({ receivePosition, givePosition, ownNeeds, opponentNeeds, valuation }),
     the_catch: theCatch,
+    // The weeks the trade was judged over and each player's number in them, so the route can say who misses which
+    // week (moveReasons.js) without the per-week field riding on the player objects.
+    weeks: {
+      judged: weeks,
+      give: candidate.give.projected_points_by_week || {},
+      receive: candidate.receive.projected_points_by_week || {},
+    },
   };
 }
 
@@ -270,6 +282,68 @@ function positionalGuard({ give, receive, ownNeeds, opponentNeeds }) {
   return keepsDepth(ownNeeds, givePosition) && keepsDepth(opponentNeeds, receivePosition);
 }
 
+// A trade both managers would accept gives up about as much value as it gets. Value is points a week above a
+// replacement-level player at the position in this league: the first player at that position who would not start if
+// every team set its best lineup (the formula fallback of trade value v3, until the free-agent pool is read here).
+// Founder, 2026-10-23: a split-backfield RB for a top-three QB raises both lineups on paper and nobody accepts it.
+const MAX_VALUE_GAP = 2;
+const MIN_VALUE_SHARE = 0.65;
+// Below this much value a week on both sides, the share is noise and only the absolute gap applies.
+const MIN_VALUE_FOR_SHARE = 0.5;
+
+// A replacement level read from a handful of rosters is not a league's; below this many teams the value check is off.
+const MIN_TEAMS_FOR_REPLACEMENT = 6;
+
+function leagueReplacement(teams = [], rosterPositions = []) {
+  if (!Array.isArray(teams) || teams.length < MIN_TEAMS_FOR_REPLACEMENT) return null;
+  const effective = effectiveStarters(parseRosterSlots(rosterPositions));
+  const byPosition = {};
+  for (const team of teams) {
+    for (const player of team?.players || []) {
+      const points = weeklyAverage(player);
+      if (!Number.isFinite(points)) continue;
+      const position = primaryPosition(player);
+      if (!byPosition[position]) byPosition[position] = [];
+      byPosition[position].push(points);
+    }
+  }
+  const out = {};
+  for (const [position, list] of Object.entries(byPosition)) {
+    list.sort((a, b) => b - a);
+    const startersLeagueWide = Math.round((effective[position] || 0) * teams.length);
+    out[position] = list[Math.min(startersLeagueWide, list.length - 1)] ?? 0;
+  }
+  return out;
+}
+
+function valueOver(players, replacement) {
+  return players.reduce((sum, player) => {
+    const points = weeklyAverage(player);
+    if (!Number.isFinite(points)) return sum;
+    return sum + Math.max(0, points - (replacement[primaryPosition(player)] ?? 0));
+  }, 0);
+}
+
+// Neither lineup gains more than this many times the other's: a trade where one side gets nearly all the gain is a
+// trade the other side has no reason to make (live walk, 2026-10-23: +1.2 for you, +6.5 for them).
+const MAX_GAIN_RATIO = 3;
+
+/** Neither side gives away more than MAX_VALUE_GAP points a week of value over replacement, nor takes most of the gain. */
+function valueBalanced({ give, receive, replacement, userDelta, opponentDelta }) {
+  if (Number.isFinite(userDelta) && Number.isFinite(opponentDelta) && userDelta > 0 && opponentDelta > 0) {
+    if (Math.max(userDelta, opponentDelta) > MAX_GAIN_RATIO * Math.min(userDelta, opponentDelta)) return false;
+  }
+  if (!replacement) return true;
+  const got = valueOver([receive], replacement);
+  const gave = valueOver([give], replacement);
+  if (Math.abs(got - gave) > MAX_VALUE_GAP) return false;
+  // Each side gets back a fair share of what it gives: an elite QB for a WR2 can sit inside the absolute gap because
+  // QB values bunch up in one-QB leagues, but the other side still gets back half (founder, 2026-10-23: Wilson for
+  // Lamar and Harvey for Maye, "an easy no").
+  const larger = Math.max(got, gave);
+  return larger <= MIN_VALUE_FOR_SHARE || Math.min(got, gave) / larger >= MIN_VALUE_SHARE;
+}
+
 // Need profiles per roster, so a guard called once per player pair builds each team's profile once.
 const needCache = new WeakMap();
 function cachedNeeds(team, rosterPositions) {
@@ -288,7 +362,9 @@ function sensibleTradeGuard(pair = {}) {
   const ownNeeds = cachedNeeds(pair.ownTeam, pair.rosterPositions);
   const opponentNeeds = cachedNeeds(pair.opponent, pair.rosterPositions);
   return (
-    positionalGuard({ give: pair.give, receive: pair.receive, ownNeeds, opponentNeeds }) && mutualFairnessGuard(pair)
+    positionalGuard({ give: pair.give, receive: pair.receive, ownNeeds, opponentNeeds }) &&
+    valueBalanced(pair) &&
+    mutualFairnessGuard(pair)
   );
 }
 
@@ -332,6 +408,8 @@ function findLeagueTradeCandidates({
   }
 
   const ownNeeds = buildTeamNeedProfile({ team: ownTeam, rosterPositions });
+  const replacement = leagueReplacement(allTeams, rosterPositions);
+  const judgedWeeks = lineupWeeks(allTeams);
   const others = allTeams.filter((team) => String(team?.team_id) !== String(ownTeamId));
 
   const degradedTeams = [];
@@ -379,6 +457,7 @@ function findLeagueTradeCandidates({
       budget,
       fairnessGuard,
       tally,
+      replacement,
       onBudgetExceeded: (stats) => {
         budgetExceeded = true;
         if (onBudgetExceeded) {
@@ -397,6 +476,7 @@ function findLeagueTradeCandidates({
         opponentTeamName: opponent.team_name,
         ownNeeds,
         opponentNeeds,
+        weeks: judgedWeeks,
       }),
     );
   }
@@ -432,6 +512,8 @@ module.exports = {
   mutualFairnessGuard,
   positionalGuard,
   sensibleTradeGuard,
+  leagueReplacement,
+  valueBalanced,
   MIN_SIDE_LINEUP_GAIN,
   MAX_OPPONENT_TEAMS_PER_SCAN,
   MAX_CANDIDATES_RETURNED,
