@@ -51,3 +51,15 @@ test("a higher grade leads with what drives it", () => {
     "Omen grades Josh Allen 83 to Drake Maye's 70: Josh Allen has designed runs near the goal line and in the open field.",
   ]);
 });
+
+test("doubtful, a bye inside the window, and a questionable higher grade read right", () => {
+  assert.deepEqual(reasonsFor({ gain: { name: "A" }, lose: { name: "B", status: "D" } }), ["B is doubtful this week."]);
+  const nix = { name: "Bo Nix", projected_points_by_week: { 7: 19, 8: 0, 9: 15 }, sight: { bye_week: 8 } };
+  assert.deepEqual(reasonsFor({ gain: { name: "Other QB" }, lose: nix }), ["Bo Nix is on bye week 8."]);
+  const q = { name: "Q Star", status: "Q", sight: { grade: 80 } };
+  const reasons = reasonsFor({ gain: { name: "Fill In", sight: { grade: 60 } }, lose: q });
+  assert.equal(
+    reasons.some((r) => /while he's out/.test(r)),
+    false,
+  );
+});

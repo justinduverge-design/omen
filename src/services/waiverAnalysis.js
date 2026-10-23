@@ -692,7 +692,9 @@ function buildWaiverAnalysis({
   const drop = best.drop;
   const alternatives = alternativesFrom(ranked, scoringFormat);
 
-  const judgedWeeks = Array.from({ length: weeks }, (_, k) => Number(base.week) + k).filter(Number.isInteger);
+  const judgedWeeks = Array.from({ length: weeks }, (_, k) => Number(base.week) + k).filter(
+    (w) => Number.isInteger(w) && w >= 1,
+  );
   const moveReasons = reasonsFor({
     gain: best.player,
     lose: drop?.player ?? best.displaced,

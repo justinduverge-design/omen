@@ -36,8 +36,9 @@ function weeksText(weeks) {
 
 /** Weeks this player is projected not to play, from his per-week numbers. */
 function missedWeeks(player) {
+  const bye = Number(player?.sight?.bye_week);
   return Object.entries(player?.projected_points_by_week || {})
-    .filter(([, v]) => v != null && Number(v) === 0)
+    .filter(([w, v]) => v != null && Number(v) === 0 && Number(w) !== bye)
     .map(([w]) => Number(w))
     .filter(Number.isInteger)
     .sort((a, b) => a - b);
@@ -50,11 +51,18 @@ function availability(player) {
   const status = String(injury?.status || player?.status || "").trim();
   const hurt = OUT_WORDS[status] || OUT_WORDS[status.toUpperCase()];
   const body = injury?.body_part ? ` (${String(injury.body_part).toLowerCase()})` : "";
-  if (hurt && missed.length) return `${player.name} is ${hurt}${body} and projected to miss ${weeksText(missed)}.`;
-  if (missed.length) return `${player.name} is projected not to play ${weeksText(missed)}.`;
-  if (hurt) return `${player.name} is ${hurt}${body}.`;
-  if (/^(Q|QUESTIONABLE|D|DOUBTFUL)$/i.test(status))
-    return `${player.name} is ${status.length > 1 ? status.toLowerCase() : "questionable"}${body} this week.`;
+  const bye = Number(player?.sight?.bye_week);
+  const byeIn = Object.keys(player?.projected_points_by_week || {})
+    .map(Number)
+    .includes(bye);
+  const byeLine = byeIn ? ` He is on bye week ${bye}.` : "";
+  if (hurt && missed.length)
+    return `${player.name} is ${hurt}${body} and projected to miss ${weeksText(missed)}.${byeLine}`;
+  if (missed.length) return `${player.name} is projected not to play ${weeksText(missed)}.${byeLine}`;
+  if (hurt) return `${player.name} is ${hurt}${body}.${byeLine}`;
+  if (byeIn) return `${player.name} is on bye week ${bye}.`;
+  if (/^(Q|QUESTIONABLE)$/i.test(status)) return `${player.name} is questionable${body} this week.`;
+  if (/^(D|DOUBTFUL)$/i.test(status)) return `${player.name} is doubtful${body} this week.`;
   return null;
 }
 
@@ -82,7 +90,8 @@ function read(gain, lose) {
   }
   if (gainGrade != null && loseGrade != null && gainGrade < loseGrade) {
     // The better player is losing his place only because he can't play; say so instead of arguing against the move.
-    const out = missedWeeks(lose).length > 0 || availability(lose) != null;
+    const status = String(lose?.sight?.injury?.status || lose?.status || "").trim();
+    const out = missedWeeks(lose).length > 0 || Boolean(OUT_WORDS[status] || OUT_WORDS[status.toUpperCase()]);
     if (out)
       return `${lose.name} is the better player when healthy (Omen ${loseGrade} to ${gainGrade}), but not while he's out.`;
     return why ? `${gain.name} has ${why}.` : null;
