@@ -279,6 +279,10 @@ struct CommandCenterView: View {
         case .idle where { if case .failed = leagueViewModel.viewState { return true } else { return false } }():
             OmenStateBlock(kind: .failed, title: "Omen couldn\u{2019}t read your league", message: "Trades are built from your league\u{2019}s rosters, and that read didn\u{2019}t come back.", actionTitle: "Try again", action: { Task { await loadLeagueForSelectedContext() } })
                 .padding(OmenSpacing.step20).frame(maxHeight: .infinity, alignment: .top).background(OmenColor.bg)
+        // The overview loaded but gave the builder no league or team: say so instead of loading forever.
+        case .idle where tradeViewModel.offer.leagueContext == nil && { if case .loaded = leagueViewModel.viewState { return true } else { return false } }():
+            OmenStateBlock(kind: .notEnoughToGoOn, title: "Pick a team to trade from", message: "Omen read your league but couldn\u{2019}t tell which team is yours. Choose your team, then build a trade.", actionTitle: "Try again", action: { Task { await loadLeagueForSelectedContext() } })
+                .padding(OmenSpacing.step20).frame(maxHeight: .infinity, alignment: .top).background(OmenColor.bg)
         case .idle, .loading:
             OmenStateBlock(kind: .loading, title: "Reading your league\u{2019}s rosters", message: "Your team and every other team, so you can pick from both.")
                 .padding(OmenSpacing.step20).frame(maxHeight: .infinity, alignment: .top).background(OmenColor.bg)

@@ -51,7 +51,7 @@ extension OmenWaiversState {
         let add = summary(move?.add, id: "add")
         let drop = summary(move?.drop, id: "drop")
         let headline: String? = add.map { add in
-            drop.map { "Add \(add.name). Drop \(Self.sentence($0.name))" } ?? "Add \(Self.sentence(add.name))"
+            drop.map { "Add \(Self.sentence(add.name)) Drop \(Self.sentence($0.name))" } ?? "Add \(Self.sentence(add.name))"
         }
         let bid = move?.bid?.amount.map { "Bid $\(Int($0.rounded()))" }
         self.init(
