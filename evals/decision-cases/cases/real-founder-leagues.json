@@ -199,6 +199,40 @@
       "verdict": "judgement_call",
       "why": "Founder: a conversation. Omen may propose it; it must not be the only kind of trade it can find.",
       "check": {}
+    },
+    {
+      "id": "eb-football-w7-jacobs-for-maye",
+      "snapshot": "eb-football",
+      "league": "Sleeper, 10 teams, 1 QB",
+      "move": {
+        "type": "trade",
+        "give": [
+          "Josh Jacobs"
+        ],
+        "receive": [
+          "Drake Maye"
+        ]
+      },
+      "verdict": "judgement_call",
+      "why": "Founder: an all-right trade. Jacobs sat out six weeks off the field (suspension/exempt list), not hurt; in a normal year you'd make it.",
+      "check": {}
+    },
+    {
+      "id": "espn-everything-backwards-w7-allgeier-for-rodgers",
+      "snapshot": "espn-everything-backwards",
+      "league": "ESPN, 12 teams, 1 QB",
+      "move": {
+        "type": "trade",
+        "give": [
+          "Tyler Allgeier"
+        ],
+        "receive": [
+          "Aaron Rodgers"
+        ]
+      },
+      "verdict": "judgement_call",
+      "why": "Founder: a medium; a conversation, not one he'd make.",
+      "check": {}
     }
   ],
   "captured": {
@@ -223,5 +257,8 @@
     "ESPN and Yahoo: a free agent (add now) and a player on waivers (claim, maybe a bid) are not told apart.",
     "Yahoo: the free-agent pool stops at the top 50; ESPN: about half the pool carries a projection.",
     "ESPN and Yahoo: only the current week is read, so byes and coming weeks can't be counted yet."
+  ],
+  "phase_3_notes": [
+    "The emotional side of trades (founder, 2026-10-23): managers overpay after losing a starter, names sell above their numbers, returns from suspension are undervalued. Learn per league from its own trade and claim history."
   ]
 }
